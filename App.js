@@ -2,7 +2,7 @@ import { StyleSheet, KeyboardAvoidingView, SafeAreaView, Text, View, Pressable, 
 import React, { useRef, useState } from 'react'
 import PhoneInput from 'react-native-phone-number-input';
 
-export default function login() {
+export default function Login() {
     const [focused, setFocused] = useState(false);
     const [showMobileNumberLabel, setShowMobileNumberLabel] = useState(false);
     const [phoneNumber, setPhoneNumber] = useState('');
@@ -45,48 +45,50 @@ export default function login() {
     }
 
     return (
-        <KeyboardAvoidingView style={styles.main_ctnr}>
-            <Pressable style={styles.main_pressable} onPress={onPressOutside}>
-                <View>
-                    <View style={styles.title_text_ctnr}>
-                        <Text style={styles.title_text}>Enter your mobile phone number</Text>
-                    </View>
-                    <View style={styles.description_text_ctnr}>
-                        <Text style={styles.description_text}>Please confirm your country code and enter your mobile phone number</Text>
-                    </View>
-                    <View style={styles.phone_input_ctnr}>
-                        <View style={styles.phone_input_labels_ctnr}>
-                            <Text style={styles.phone_input_label}>Country code</Text>
-                            <Text style={[styles.mobile_number_label, phoneNumberValid && styles.mobile_number_valid_label]}>{showMobileNumberLabel ? 'Mobile Number' : ''}</Text>
+        <SafeAreaView style={styles.safe_area_view}>
+            <KeyboardAvoidingView style={styles.main_ctnr}>
+                <Pressable style={styles.main_pressable} onPress={onPressOutside}>
+                    <View>
+                        <View style={styles.title_text_ctnr}>
+                            <Text style={styles.title_text}>Enter your mobile phone number</Text>
                         </View>
-                        <PhoneInput
-                            ref={phoneInput}
-                            defaultCode='US'
-                            placeholder={focused ? ' ' : 'Mobile Number'}
-                            layout="second"
-                            textContainerStyle={styles.phone_input_text_ctnr}
-                            countryPickerButtonStyle={styles.country_picker_btn}
-                            codeTextStyle={styles.phone_country_code}
-                            textInputStyle={[(!focused && styles.phone_input_text), (focused && styles.phone_input_text_selected), (phoneNumberValid && styles.phone_input_text_valid)]}
-                            textInputProps={{
-                                onFocus: () => { onTextInputFocus() },
-                                keyboardType: 'number-pad',
-                                placeholderTextColor: 'grey',
-                            }}
-                            inputStyle={{
-                                background: "lightblue"
-                            }}
-                            onChangeFormattedText={onChangeInputText}
-                        />
+                        <View style={styles.description_text_ctnr}>
+                            <Text style={styles.description_text}>Please confirm your country code and enter your mobile phone number</Text>
+                        </View>
+                        <View style={styles.phone_input_ctnr}>
+                            <View style={styles.phone_input_labels_ctnr}>
+                                <Text style={styles.phone_input_label}>Country code</Text>
+                                <Text style={[styles.mobile_number_label, phoneNumberValid && styles.mobile_number_valid_label]}>{showMobileNumberLabel ? 'Mobile Number' : ''}</Text>
+                            </View>
+                            <PhoneInput
+                                ref={phoneInput}
+                                defaultCode='US'
+                                placeholder={focused ? ' ' : 'Mobile Number'}
+                                layout="second"
+                                textContainerStyle={styles.phone_input_text_ctnr}
+                                countryPickerButtonStyle={styles.country_picker_btn}
+                                codeTextStyle={styles.phone_country_code}
+                                textInputStyle={[(!focused && styles.phone_input_text), (focused && styles.phone_input_text_selected), (phoneNumberValid && styles.phone_input_text_valid)]}
+                                textInputProps={{
+                                    onFocus: () => { onTextInputFocus() },
+                                    keyboardType: 'number-pad',
+                                    placeholderTextColor: 'grey',
+                                }}
+                                inputStyle={{
+                                    background: "lightblue"
+                                }}
+                                onChangeFormattedText={onChangeInputText}
+                            />
+                        </View>
                     </View>
-                </View>
-                <Pressable onPress={onPressContinue}>
-                    <View style={pressedContinue ? styles.continue_btn_submitted : styles.continue_btn}>
-                        <Text style={pressedContinue ? styles.continue_btn_text_submitted : styles.continue_btn_text}>CONTINUE</Text>
-                    </View>
+                    <Pressable onPress={onPressContinue}>
+                        <View style={pressedContinue ? styles.continue_btn_submitted : styles.continue_btn}>
+                            <Text style={pressedContinue ? styles.continue_btn_text_submitted : styles.continue_btn_text}>CONTINUE</Text>
+                        </View>
+                    </Pressable>
                 </Pressable>
-            </Pressable>
-        </KeyboardAvoidingView>
+            </KeyboardAvoidingView>
+        </SafeAreaView>
     );
 }
 
@@ -96,6 +98,9 @@ const COLORS = {
 };
 
 const styles = StyleSheet.create({
+    safe_area_view: {
+        flex: 1
+    },
     main_ctnr: {
         padding: 25,
         flex: 1,
