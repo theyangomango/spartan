@@ -1,6 +1,7 @@
 import { StyleSheet, KeyboardAvoidingView, SafeAreaView, Text, View, Pressable, Keyboard } from 'react-native'
 import React, { useRef, useState } from 'react'
 import PhoneInput from 'react-native-phone-number-input';
+import makeID from './backend/helper/makeID';
 
 export default function Login() {
     const [focused, setFocused] = useState(false);
