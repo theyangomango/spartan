@@ -1,0 +1,27 @@
+{
+    "uid": null,
+    "handle": null,
+    "name": null,
+    "phoneNumber": null,
+    "joined": null,
+    "instagramHandle": null,
+    "lastActive": null,
+    "pfp": null,
+    "bio": "",
+    "followers": [],
+    "following": [],
+    "feedPosts": [],
+    "feedStories": [],
+    "posts": [],
+    "stories": [],
+    "workouts": [],
+    "progressPhotos": [],
+    "stats": {
+        "totalReps": 0,
+        "totalVolume": 0,
+        "workoutCount": 0
+    },
+    "followerCount": 0,
+    "followingCount": 0,
+    "postCount": 0
+}
