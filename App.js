@@ -10,7 +10,7 @@ export default function Login() {
     const [pressedContinue, setPressedContinue] = useState(false);
     const phoneInput = useRef(null);
 
-
+    
     function onPressOutside() {
         console.log('press outside');
         setFocused(false);

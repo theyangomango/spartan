@@ -1,5 +1,5 @@
-import { incrementDocValue } from "../helper/incrementDocValue";
-import { arrayAppend } from "../helper/arrayAppend";
+import { incrementDocValue } from "../helper/firebase/incrementDocValue";
+import { arrayAppend } from "../helper/firebase/arrayAppend";
 
 export async function likeStory(sid, uid) {
     incrementDocValue('stories', sid, 'likeCount');

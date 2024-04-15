@@ -1,4 +1,4 @@
-import { createDoc } from "./helper/createDoc";
+import { createDoc } from "./helper/firebase/createDoc";
 import makeID from "./helper/makeID";
 
 export default async function initUser(handle, name = null, phoneNumber) {
