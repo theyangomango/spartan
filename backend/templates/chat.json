@@ -1,0 +1,17 @@
+{
+    "cid": null,
+    "users": [
+        {
+            "uid": null,
+            "joined": null
+        }
+    ],
+    "created": null,
+    "messages": [
+        {
+            "uid": null,
+            "content": "",
+            "timestamp": null
+        }
+    ]
+}
