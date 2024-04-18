@@ -50,7 +50,7 @@ const styles = StyleSheet.create({
     },
     posts_view_ctnr: {
         paddingHorizontal: 20,
-        flex: 1
+        flex: 1,
     },
     posts_scrollview: {
         paddingTop: 20

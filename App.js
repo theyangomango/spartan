@@ -13,8 +13,8 @@ export default function App() {
             <Stack.Navigator screenOptions={{
                 headerShown: false
             }}>
-                {/* <Stack.Screen name='Feed' component={Feed}/> */}
-                <Stack.Screen name='Messages' component={Messages} />
+                <Stack.Screen name='Feed' component={Feed}/>
+                {/* <Stack.Screen name='Messages' component={Messages} /> */}
             </Stack.Navigator>
         </NavigationContainer>
     )
