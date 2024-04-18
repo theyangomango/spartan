@@ -1,4 +1,4 @@
-import { StyleSheet, View, Text, ScrollView } from "react-native";
+import { StyleSheet, View, ScrollView } from "react-native";
 import Header from "../components/Header";
 import Footer from "../components/Footer";
 import Story from "../components/Story";
@@ -51,6 +51,7 @@ const styles = StyleSheet.create({
     posts_view_ctnr: {
         paddingHorizontal: 20,
         flex: 1,
+        backgroundColor: '#fff',
     },
     posts_scrollview: {
         paddingTop: 20

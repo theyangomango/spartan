@@ -1,37 +1,12 @@
 import { StyleSheet, View, Text } from "react-native"
-import { SimpleLineIcons, AntDesign, Fontisto, Ionicons } from '@expo/vector-icons';
+import { AntDesign, Fontisto, Ionicons } from '@expo/vector-icons';
+import PostHeader from "./PostHeader";
 
 export default function Post() {
     return (
         <View style={styles.main_ctnr}>
-            {
-                // * Header
-            }
-            <View style={styles.header}>
-                <View style={styles.header_left}>
-                    <View style={styles.pfp}>
-                    </View>
-
-                    <View style={styles.header_text_ctnr}>
-                        <View>
-                            <Text style={styles.handle}>lakshitahuja</Text>
-                        </View>
-                        <View>
-                            <Text style={styles.date_text}>Fortnite
-                            </Text>
-                        </View>
-                    </View>
-                </View>
-                <View style={styles.header_right}>
-                    <View style={styles.follow_btn}>
-                        <Text style={styles.follow_text}>Follow</Text>
-                    </View>
-                    <View style={styles.options_icon_ctnr}>
-                        <SimpleLineIcons name='options' size={14} />
-                    </View>
-                </View>
-
-            </View>
+            <PostHeader />
+            
             {
                 // * Body
             }
