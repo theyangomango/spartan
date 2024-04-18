@@ -1,5 +1,6 @@
 import { StyleSheet, View, Text, ScrollView } from "react-native";
 import Header from "../components/Header";
+import Footer from "../components/Footer";
 import Story from "../components/Story";
 import Post from "../components/Post";
 
@@ -30,6 +31,7 @@ export default function Feed() {
                     }
                 </ScrollView>
             </View>
+            <Footer />
         </View>
     )
 }
