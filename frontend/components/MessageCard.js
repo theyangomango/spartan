@@ -1,5 +1,4 @@
 import { View, StyleSheet, Text } from "react-native"
-import Footer from "./Footer";
 
 export default function MessageCard() {
     return (

@@ -1,7 +1,7 @@
 import { View, Text, StyleSheet } from "react-native"
 import { SimpleLineIcons } from '@expo/vector-icons'
 
-export default function PostHeader() {
+export default function PostHeader({data}) {
     return (
         <View style={styles.main_ctnr}>
             <View style={styles.left}>
@@ -9,10 +9,13 @@ export default function PostHeader() {
                 </View>
                 <View style={styles.text_ctnr}>
                     <View>
-                        <Text style={styles.handle_text}>lakshitahuja</Text>
+                        <Text style={styles.handle_text}>
+                            {data.handle}
+                        </Text>
                     </View>
                     <View>
-                        <Text style={styles.date_text}>Fortnite
+                        <Text style={styles.date_text}>
+                            {data.location}
                         </Text>
                     </View>
                 </View>

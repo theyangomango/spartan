@@ -1,5 +1,5 @@
-import { createDoc } from "./helper/createDoc";
-import makeID from "./helper/makeID";
+import { createDoc } from '../helper/firebase/createDoc'
+import makeID from '../helper/makeID'
 
 export default async function createPost(uid, caption, images, wid) {
     let pid = makeID();
