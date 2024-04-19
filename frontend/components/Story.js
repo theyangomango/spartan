@@ -43,11 +43,12 @@ const styles = StyleSheet.create({
         borderColor: '#fff'
     },
     text_ctnr: {
-        paddingTop: 4,
+        paddingTop: 6,
     },
     text: {
         textAlign: 'center',
-        fontSize: 11,
-        color: '#fff'
+        fontSize: 10,
+        color: '#fff',
+        fontFamily: 'Inter_400Regular'
     }
 });

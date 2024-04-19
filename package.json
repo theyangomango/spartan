@@ -10,10 +10,14 @@
     "build": "eas build --profile=development:simulator --platform=ios"
   },
   "dependencies": {
+    "@expo-google-fonts/inter": "^0.2.3",
+    "@expo-google-fonts/lato": "^0.2.3",
+    "@expo-google-fonts/source-sans-pro": "^0.2.3",
     "@react-navigation/native": "^6.1.17",
     "@react-navigation/native-stack": "^6.9.26",
     "expo": "~50.0.14",
     "expo-dev-client": "~3.3.11",
+    "expo-font": "~11.10.3",
     "expo-status-bar": "~1.11.1",
     "firebase": "^10.11.0",
     "iconsax-react-native": "^0.0.8",

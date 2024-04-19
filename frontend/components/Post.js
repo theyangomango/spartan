@@ -6,7 +6,7 @@ export default function Post() {
     return (
         <View style={styles.main_ctnr}>
             <PostHeader />
-            
+
             {
                 // * Body
             }
@@ -166,13 +166,13 @@ const styles = StyleSheet.create({
         paddingHorizontal: 5
     },
     comments_handle_text: {
-        fontSize: 13,
-        fontWeight: '700',
-        color: '#959595'
+        fontSize: 12.5,
+        fontFamily: 'Lato_700Bold',
+        color: '#959595',
     },
     comments_content_text: {
-        fontSize: 12,
-        fontWeight: '500'
+        fontSize: 11,
+        fontFamily: 'Inter_400Regular'
     },
     footer: {
         borderTopColor: '#CFCFCF',
@@ -204,11 +204,12 @@ const styles = StyleSheet.create({
         paddingHorizontal: 5,
     },
     footer_count_text: {
-        fontWeight: '700',
+        fontFamily: 'Lato_700Bold',
         fontSize: 12
     },
     footer_text: {
         color: '#616977',
+        fontFamily: 'Lato_400Regular',
         fontSize: 12
     },
     footer_right: {

@@ -49,19 +49,20 @@ const styles = StyleSheet.create({
         padding: 4,
     },
     handle_text: {
-        fontWeight: '700',
         fontSize: 12.5,
         paddingBottom: 5,
+        fontFamily: 'Lato_700Bold',
     },
     date_text: {
         fontSize: 10.5,
+        fontFamily: 'Lato_400Regular'
     },
     right: {
         flexDirection: 'row'
     },
     follow_btn: {
-        width: 80,
-        height: 35,
+        width: 70,
+        height: 33,
         borderRadius: 30,
         marginHorizontal: 10,
         marginVertical: 4,
@@ -71,11 +72,12 @@ const styles = StyleSheet.create({
     follow_text: {
         textAlign: 'center',
         color: 'white',
-        fontSize: 12,
-        fontWeight: '600'
+        fontSize: 11,
+        fontFamily: 'Lato_700Bold',
     },
     options_icon_ctnr: {
         justifyContent: 'center',
-        alignItems: 'center'
+        alignItems: 'center',
+        paddingHorizontal: 5
     },
 });

@@ -1,13 +1,18 @@
+import { useEffect, useState } from "react";
 import { StyleSheet, View, ScrollView } from "react-native";
 import Header from "../components/Header";
 import Footer from "../components/Footer";
 import Story from "../components/Story";
 import Post from "../components/Post";
 
-const stories = [1, 2];
-const posts = [1];
-
 export default function Feed() {
+    const [stories, setStories] = useState([1]);
+    const [posts, setPosts] = useState([1]);
+
+    useEffect(() => {
+        
+    }, []);
+
     return (
         <View style={styles.main_ctnr}>
             <Header />
@@ -43,6 +48,7 @@ const styles = StyleSheet.create({
     stories_view_ctnr: {
         width: '100%',
         backgroundColor: '#2D9EFF',
+        paddingBottom: 10,
     },
     stories_scrollview_ctnr: {
         flexDirection: 'row',

@@ -38,14 +38,14 @@ const styles = StyleSheet.create({
         flexDirection: 'row'
     },
     handle_text: {
-        fontSize: 16,
-        fontWeight: '600',
+        fontSize: 16.2,
         color: '#707078',
-        paddingVertical: 5
+        paddingVertical: 5,
+        fontFamily: 'SourceSansPro_600SemiBold'
     },
     content_text: {
         fontSize: 12.5,
-        fontWeight: '300',
+        fontFamily: 'SourceSansPro_400Regular',
         color: '#707078',
     },
     right_ctnr: {
@@ -53,7 +53,8 @@ const styles = StyleSheet.create({
     },
     date_text: {
         padding: 5,
-        fontSize: 12.5,
         color: '#707078',
+        fontSize: 12.5,
+        fontFamily: 'SourceSansPro_400Regular',
     }
 });
