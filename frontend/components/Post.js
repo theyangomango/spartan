@@ -1,17 +1,37 @@
-import { StyleSheet, View, Text } from "react-native"
+import { useEffect, useState } from "react";
+import { StyleSheet, View, Image } from "react-native"
 import PostHeader from "./PostHeader";
 import PostFooter from "./PostFooter";
 import PostCommentPreview from "./PostCommentPreview";
+import getPFP from "../../backend/storage/getPFP";
+import getPostImage from "../../backend/storage/getPostImage";
 
 export default function Post({ data }) {
+    const [pfp, setPFP] = useState(null);
+    const [image, setImage] = useState(null);
+
+    useEffect(() => {
+        getPFP(data.uid)
+            .then(url => {
+                setPFP(url);
+            });
+        getPostImage(data.images[0])
+            .then(url => {
+                setImage(url);
+            });
+    }, []);
+
 
     return (
         <View style={styles.main_ctnr}>
-            <PostHeader data={data} />
+            <PostHeader data={data} url={pfp} />
 
             <View style={styles.body_ctnr}>
                 <View style={styles.image_ctnr}>
-
+                    <Image
+                        source={{uri: image}}
+                        style={styles.image}
+                    />
                 </View>
             </View>
 
@@ -51,8 +71,10 @@ const styles = StyleSheet.create({
     },
     image_ctnr: {
         width: '100%',
-        height: 150,
-        backgroundColor: 'red',
+        height: 200,
+    },
+    image: {
+        flex: 1,
         borderRadius: 15,
     },
     liked_users: {

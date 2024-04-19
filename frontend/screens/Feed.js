@@ -5,7 +5,7 @@ import Footer from "../components/Footer";
 import Story from "../components/Story";
 import Post from "../components/Post";
 import { readDoc } from "../../backend/helper/firebase/readDoc";
-import createPost from "../../backend/posts/createPost";
+import initUser from "../../backend/initUser";
 
 const UID = '6b176d7d-4d89-4cb5-beb0-0f19b47a10a2';
 

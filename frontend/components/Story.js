@@ -1,12 +1,24 @@
-import { StyleSheet, View, Text } from "react-native";
+import { useEffect, useState } from "react";
+import { StyleSheet, View, Text, Image } from "react-native";
+import getPFP from "../../backend/storage/getPFP";
 
-export default function Story() {
+export default function Story({ data }) {
+    const [pfp, setPFP] = useState(null);
+    useEffect(() => {
+        getPFP(data.uid)
+            .then(url => {
+                console.log(url);
+                setPFP(url);
+            })
+    }, []);
+
     return (
         <View style={styles.main_ctnr}>
             <View style={styles.pfp_ctnr}>
-                <View style={styles.pfp_image}>
-
-                </View>
+                <Image
+                    source={{uri: pfp}}
+                    style={styles.pfp}
+                />
             </View>
             <View style={styles.text_ctnr}>
                 <Text style={styles.text}>Your story</Text>
@@ -31,15 +43,15 @@ const styles = StyleSheet.create({
         justifyContent: 'center',
         alignItems: 'center',
         borderColor: '#fff',
-        borderWidth: 1.5,
+        borderWidth: 2,
         borderRadius: 28
     },
-    pfp_image: {
+    pfp: {
         width: 48,
         height: 48,
         backgroundColor: '#fff',
         borderRadius: 33,
-        borderWidth: 1.5,
+        // borderWidth: 1.5,
         borderColor: '#fff'
     },
     text_ctnr: {

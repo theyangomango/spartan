@@ -1,11 +1,17 @@
-import { View, Text, StyleSheet } from "react-native"
+import { View, Text, Image, StyleSheet } from "react-native"
 import { SimpleLineIcons } from '@expo/vector-icons'
 
-export default function PostHeader({data}) {
+export default function PostHeader({data, url}) {
+    console.log(url);
+
     return (
         <View style={styles.main_ctnr}>
             <View style={styles.left}>
                 <View style={styles.pfp_ctnr}>
+                    <Image 
+                        source={{uri: url}}
+                        style={styles.pfp}
+                    />
                 </View>
                 <View style={styles.text_ctnr}>
                     <View>
@@ -44,10 +50,14 @@ const styles = StyleSheet.create({
     pfp_ctnr: {
         width: 42,
         height: 42,
-        borderRadius: 21,
-        backgroundColor: 'red',
+        // borderRadius: 21,
+        // backgroundColor: 'red',
         marginRight: 5,
     },
+    pfp: {
+        flex: 1,
+        borderRadius: 21
+    },  
     text_ctnr: {
         padding: 4,
     },
