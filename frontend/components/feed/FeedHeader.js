@@ -1,17 +1,17 @@
 import { StyleSheet, View, Text, Image, Pressable } from "react-native";
 import { Ionicons } from '@expo/vector-icons'
 
-export default function Header({ navigation }) {
+export default function FeedHeader({ navigation }) {
     function toMessagesScreen() {
         navigation.navigate('Messages');
-    }  
+    }
 
     return (
         <View style={styles.main_ctnr}>
             <View style={styles.logo}>
                 <View style={styles.logo_image_ctnr}>
                     <Image
-                        source={require('../../Layer_1.png')}
+                        source={require('../../../frontend/assets/Layer_1.png')}
                         style={styles.logo_image}
                     />
                 </View>

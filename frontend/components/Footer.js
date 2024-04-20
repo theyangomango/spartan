@@ -1,7 +1,7 @@
 import { Pressable, StyleSheet, View } from "react-native";
 import { Home, Cup, Weight, SearchNormal1, Profile } from 'iconsax-react-native'
 
-export default function Footer({ navigation }) {
+export default function Footer({ navigation, currentScreenName }) {
     function toFeedScreen() {
         navigation.navigate('Feed')
     }
@@ -26,29 +26,53 @@ export default function Footer({ navigation }) {
         <View style={styles.main_ctnr}>
             <View style={styles.icon_ctnr}>
                 <Pressable onPress={toFeedScreen}>
-
-                    <Home size="32" color="#0499fe" variant="Broken" />
+                    {currentScreenName != 'Feed' &&
+                        <Home size="32" color="#888" variant="Broken" />
+                    }
+                    {currentScreenName == 'Feed' &&
+                        < Home size="32" color="#0499fe" variant="Broken" />
+                    }
                 </Pressable>
 
             </View>
             <View style={styles.icon_ctnr}>
                 <Pressable onPress={toCompetitionScreen}>
-                    <Cup size="32" color="#888" />
+                    {currentScreenName != 'Competition' &&
+                        <Cup size="32" color="#888" />
+                    }
+                    {currentScreenName == 'Competition' &&
+                        <Cup size="32" color="#0499fe" />
+                    }
                 </Pressable>
             </View>
             <View style={styles.icon_ctnr}>
                 <Pressable onPress={toWorkoutScreen}>
-                    <Weight size="36" color="#888" />
+                    {currentScreenName != 'Workout' &&
+                        <Weight size="36" color="#888" />
+                    }
+                    {currentScreenName == 'Workout' &&
+                        <Weight size="36" color="#0499fe" />
+                    }
                 </Pressable>
             </View>
             <View style={styles.icon_ctnr}>
                 <Pressable onPress={toExploreScreen}>
-                    <SearchNormal1 size="28" color="#888" />
+                    {currentScreenName != 'Explore' &&
+                        <SearchNormal1 size="28" color="#888" />
+                    }
+                    {currentScreenName == 'Explore' &&
+                        <SearchNormal1 size="28" color="#0499fe" />
+                    }
                 </Pressable>
             </View>
             <View style={styles.icon_ctnr}>
                 <Pressable onPress={toProfileScreen}>
-                    <Profile size="32" color="#888" variant="Broken" />
+                    {currentScreenName != 'Profile' &&
+                        <Profile size="32" color="#888" variant="Broken" />
+                    }
+                    {currentScreenName == 'Profile' &&
+                        < Profile size="32" color="#0499fe" variant="Broken" />
+                    }
                 </Pressable>
             </View>
         </View>

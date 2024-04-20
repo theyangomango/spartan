@@ -67,7 +67,7 @@ export default function Profile({ navigation }) {
                 </View>
             </View>
 
-            <Footer navigation={navigation} />
+            <Footer navigation={navigation} currentScreenName={'Profile'} />
         </View>
 
     )

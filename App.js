@@ -173,7 +173,7 @@ export default function App() {
                     animation: 'none'
                 }} />
                 <Stack.Screen name='Messages' component={Messages} options={{
-                    animation: 'none'
+                    animation: 'default'
                 }} />
             </Stack.Navigator>
         </NavigationContainer>

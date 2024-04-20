@@ -1,10 +1,10 @@
 import { useEffect, useState } from "react";
 import { StyleSheet, View, ScrollView } from "react-native";
-import Header from "../components/Header";
 import Footer from "../components/Footer";
 import Story from "../components/feed/Story";
 import Post from "../components/feed/Post";
 import { readDoc } from "../../backend/helper/firebase/readDoc";
+import FeedHeader from "../components/feed/FeedHeader";
 
 const UID = '6b176d7d-4d89-4cb5-beb0-0f19b47a10a2';
 
@@ -38,7 +38,7 @@ export default function Feed({ navigation }) {
 
     return (
         <View style={styles.main_ctnr}>
-            <Header navigation={navigation} />
+            <FeedHeader navigation={navigation} />
             <View style={styles.stories_view_ctnr}>
                 <ScrollView showsHorizontalScrollIndicator={false} style={styles.stories_scrollview_ctnr} horizontal={true}>
                     {
@@ -59,7 +59,7 @@ export default function Feed({ navigation }) {
                     }
                 </ScrollView>
             </View>
-            <Footer navigation={navigation} />
+            <Footer navigation={navigation} currentScreenName={'Feed'} />
         </View>
     )
 }
