@@ -6,7 +6,7 @@ import PostCommentPreview from "./PostCommentPreview";
 import getPFP from "../../../backend/storage/getPFP";
 import getPostImage from "../../../backend/storage/getPostImage";
 
-export default function Post({ data }) {
+export default function Post({ data, uid }) {
     const [pfp, setPFP] = useState(null);
     const [image, setImage] = useState(null);
 
@@ -47,7 +47,7 @@ export default function Post({ data }) {
                 }
             </View>
 
-            <PostFooter data={data} />
+            <PostFooter data={data} uid={uid}/>
         </View>
     )
 }

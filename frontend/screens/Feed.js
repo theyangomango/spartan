@@ -54,7 +54,7 @@ export default function Feed({ navigation }) {
                     {
                         // * Posts
                         posts.map((content, index) => {
-                            return <Post data={content} key={index} />
+                            return <Post data={content} uid={UID} key={index} />
                         })
                     }
                 </ScrollView>

@@ -1,30 +1,60 @@
-import { StyleSheet, View, Text } from "react-native"
+import { StyleSheet, View, Text, Pressable } from "react-native"
 import { AntDesign, Fontisto, Ionicons } from '@expo/vector-icons';
+import { likePost } from "../../../backend/posts/likePost";
+import { unlikePost } from "../../../backend/posts/unlikePost";
+import { useState } from "react";
 
-export default function PostFooter({ data }) {
+export default function PostFooter({ data, uid }) {
+    const db_liked = data.likes.includes(uid);
+    const [liked, setLiked] = useState(db_liked);
+
+    function handleLikeBtnPress() {
+        setLiked(!liked);
+        if (!liked) {
+            likePost(data.pid, uid);
+        } else {
+            unlikePost(data.pid, uid)
+        }
+    }
+
+    function handleCommentBtnPress() {
+
+    }
+
     return (
         <View style={styles.main_ctnr}>
             <View style={styles.left}>
                 <View style={styles.likes_ctnr}>
-                    <View style={styles.like_icon_ctnr}>
-                        <AntDesign
-                            name="like2"
-                            size={20}
-                        />
-                    </View>
+                    <Pressable onPress={handleLikeBtnPress}>
+                        <View style={styles.like_icon_ctnr}>
+                            {!liked && <AntDesign
+                                name="like2"
+                                size={20}
+                            />}
+                            {liked && <AntDesign
+                                name="like2"
+                                size={20}
+                                color='#0499fe'
+                            />}
+                        </View>
+                    </Pressable>
                     <Text style={styles.count_text}>
-                        {data.likeCount}
+                        {db_liked == liked && data.likeCount}
+                        {db_liked && (!liked) && data.likeCount - 1}
+                        {!(db_liked) && liked && data.likeCount + 1}
                     </Text>
                     <Text> </Text>
                     <Text style={styles.text}>Likes</Text>
                 </View>
                 <View style={styles.comments_ctnr}>
-                    <View style={styles.comment_icon_ctnr}>
-                        <Fontisto
-                            name="comment"
-                            size={17}
-                        />
-                    </View>
+                    <Pressable onPress={handleCommentBtnPress}>
+                        <View style={styles.comment_icon_ctnr}>
+                            <Fontisto
+                                name="comment"
+                                size={17}
+                            />
+                        </View>
+                    </Pressable>
                     <Text style={styles.count_text}>
                         {data.commentCount}
                     </Text>
