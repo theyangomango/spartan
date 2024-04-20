@@ -2,8 +2,6 @@ import { View, Text, Image, StyleSheet } from "react-native"
 import { SimpleLineIcons } from '@expo/vector-icons'
 
 export default function PostHeader({data, url}) {
-    console.log(url);
-
     return (
         <View style={styles.main_ctnr}>
             <View style={styles.left}>

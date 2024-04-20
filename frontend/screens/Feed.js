@@ -2,14 +2,13 @@ import { useEffect, useState } from "react";
 import { StyleSheet, View, ScrollView } from "react-native";
 import Header from "../components/Header";
 import Footer from "../components/Footer";
-import Story from "../components/Story";
-import Post from "../components/Post";
+import Story from "../components/feed/Story";
+import Post from "../components/feed/Post";
 import { readDoc } from "../../backend/helper/firebase/readDoc";
-import initUser from "../../backend/initUser";
 
 const UID = '6b176d7d-4d89-4cb5-beb0-0f19b47a10a2';
 
-export default function Feed() {
+export default function Feed({ navigation }) {
     const [stories, setStories] = useState([]);
     const [posts, setPosts] = useState([]);
 
@@ -39,7 +38,7 @@ export default function Feed() {
 
     return (
         <View style={styles.main_ctnr}>
-            <Header />
+            <Header navigation={navigation} />
             <View style={styles.stories_view_ctnr}>
                 <ScrollView showsHorizontalScrollIndicator={false} style={styles.stories_scrollview_ctnr} horizontal={true}>
                     {
@@ -60,7 +59,7 @@ export default function Feed() {
                     }
                 </ScrollView>
             </View>
-            <Footer />
+            <Footer navigation={navigation} />
         </View>
     )
 }

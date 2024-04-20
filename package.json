@@ -12,6 +12,8 @@
   "dependencies": {
     "@expo-google-fonts/inter": "^0.2.3",
     "@expo-google-fonts/lato": "^0.2.3",
+    "@expo-google-fonts/outfit": "^0.2.3",
+    "@expo-google-fonts/poppins": "^0.2.3",
     "@expo-google-fonts/source-sans-pro": "^0.2.3",
     "@react-navigation/native": "^6.1.17",
     "@react-navigation/native-stack": "^6.9.26",

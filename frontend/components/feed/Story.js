@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { StyleSheet, View, Text, Image } from "react-native";
-import getPFP from "../../backend/storage/getPFP";
+import getPFP from "../../../backend/storage/getPFP";
 
 export default function Story({ data }) {
     const [pfp, setPFP] = useState(null);

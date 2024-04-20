@@ -1,14 +1,15 @@
-import { StyleSheet, View, Text, Image } from "react-native";
+import { StyleSheet, View, Text, Image, Pressable } from "react-native";
 import { Ionicons } from '@expo/vector-icons'
 
-export default function Header() {
+export default function Header({ navigation }) {
+    function toMessagesScreen() {
+        navigation.navigate('Messages');
+    }  
+
     return (
         <View style={styles.main_ctnr}>
             <View style={styles.logo}>
                 <View style={styles.logo_image_ctnr}>
-                    {
-                        // ! Increase Resolution
-                    }
                     <Image
                         source={require('../../Layer_1.png')}
                         style={styles.logo_image}
@@ -16,9 +17,11 @@ export default function Header() {
                 </View>
                 <Text style={styles.logo_text}>SPARTAN</Text>
             </View>
-            <View style={styles.msg_btn_ctnr}>
-                <Ionicons name='chatbubble-outline' size={20} color={'#fff'}/>
-            </View>
+            <Pressable onPress={toMessagesScreen}>
+                <View style={styles.msg_btn_ctnr}>
+                    <Ionicons name='chatbubble-outline' size={20} color={'#fff'} />
+                </View>
+            </Pressable>
         </View>
     )
 }

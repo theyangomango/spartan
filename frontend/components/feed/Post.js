@@ -3,8 +3,8 @@ import { StyleSheet, View, Image } from "react-native"
 import PostHeader from "./PostHeader";
 import PostFooter from "./PostFooter";
 import PostCommentPreview from "./PostCommentPreview";
-import getPFP from "../../backend/storage/getPFP";
-import getPostImage from "../../backend/storage/getPostImage";
+import getPFP from "../../../backend/storage/getPFP";
+import getPostImage from "../../../backend/storage/getPostImage";
 
 export default function Post({ data }) {
     const [pfp, setPFP] = useState(null);
