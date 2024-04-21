@@ -1,12 +1,7 @@
-import { StyleSheet, View, Text, Image, Pressable } from "react-native";
-import { Ionicons } from '@expo/vector-icons'
+import { StyleSheet, View, Pressable, Text } from "react-native";
 import { ArrowLeft2 } from 'iconsax-react-native'
 
-export default function MessagesHeader({ navigation }) {
-    function toFeedScreen() {
-        navigation.navigate('Feed');
-    }
-
+export default function MessagesHeader({ toFeedScreen, handle }) {
     return (
         <View style={styles.main_ctnr}>
             <Pressable onPress={toFeedScreen}>
@@ -14,6 +9,9 @@ export default function MessagesHeader({ navigation }) {
                     <ArrowLeft2 size="28" color="#fff" />
                 </View>
             </Pressable>
+            <View style={styles.handle_text_ctnr}>
+                <Text style={styles.handle_text}>{handle}</Text>
+            </View>
         </View>
     )
 }
@@ -27,9 +25,16 @@ const styles = StyleSheet.create({
         paddingBottom: 20,
         flexDirection: 'row',
         alignItems: 'flex-end',
-        justifyContent: 'space-between'
     },
     arrow_icon_ctnr: {
         padding: 5
+    },
+    handle_text_ctnr: {
+        padding: 9
+    },
+    handle_text: {
+        fontFamily: 'SourceSansPro_600SemiBold',
+        fontSize: 20,
+        color: '#fff'
     },
 });

@@ -1,18 +1,34 @@
-import { View, StyleSheet, Text } from "react-native"
+import { View, StyleSheet, Text, Image } from "react-native"
+import getDisplayTime from '../../helper/getDisplayTime'
+import { useEffect, useState } from "react";
+import getPFP from '../../../backend/storage/getPFP'
 
-export default function MessageCard() {
+export default function MessageCard({ uid, handle, content, timestamp }) {
+    const [image, setImage] = useState(null);
+    
+    useEffect(() => {
+        getPFP(uid)
+            .then(url => {
+                setImage(url);
+            });
+    }, []);
+    
     return (
         <View style={styles.main_ctnr}>
             <View style={styles.left_ctnr}>
                 <View style={styles.pfp_ctnr}>
+                    <Image
+                        source={{uri: image}}
+                        style={styles.pfp}
+                    />
                 </View>
                 <View>
-                    <Text style={styles.handle_text}>Sam Suluk</Text>
-                    <Text style={styles.content_text}>you're small asf boy</Text>
+                    <Text style={styles.handle_text}>{handle}</Text>
+                    <Text style={styles.content_text}>{content}</Text>
                 </View>
             </View>
             <View style={styles.right_ctnr}>
-                <Text style={styles.date_text}>6:30pm</Text>
+                <Text style={styles.date_text}>{getDisplayTime(timestamp)}</Text>
             </View>
         </View>
     )
@@ -30,7 +46,10 @@ const styles = StyleSheet.create({
         width: 58,
         height: 58,
         marginRight: 12,
-        backgroundColor: 'red',
+        // backgroundColor: 'red',
+    },
+    pfp: {
+        flex: 1,
         borderRadius: 29
     },
     left_ctnr: {

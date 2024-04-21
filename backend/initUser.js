@@ -19,6 +19,7 @@ export default async function initUser(handle, name = null, phoneNumber) {
         feedStories: [],
         workouts: [],
         progressPhotos: [],
+        messages: [],
         stats: {
             totalReps: 0,
             totalVolume: 0,

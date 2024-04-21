@@ -158,7 +158,7 @@ export default function App() {
                 headerShown: false
             }}>
                 <Stack.Screen name='Feed' component={Feed} options={{
-                    animation: 'none'
+                    animation: 'none',
                 }} />
                 <Stack.Screen name='Competition' component={Competition} options={{
                     animation: 'none'

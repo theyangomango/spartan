@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { StyleSheet, View, ScrollView } from "react-native";
 import Footer from "../components/Footer";
 import Story from "../components/feed/Story";
@@ -11,17 +11,19 @@ const UID = '6b176d7d-4d89-4cb5-beb0-0f19b47a10a2';
 export default function Feed({ navigation }) {
     const [stories, setStories] = useState([]);
     const [posts, setPosts] = useState([]);
+    const [messages, setMessages] = useState(null);
+    const userData = useRef(0);
 
     useEffect(() => {
-        getFeedData();
+        getUserData();
     }, []);
 
-    async function getFeedData() {
-        let userData = await readDoc('users', UID);
+    async function getUserData() {
+        userData.current = await readDoc('users', UID);
 
         // * Stories
         let db_stories = [];
-        for (sid of userData.feedStories) {
+        for (sid of userData.current.feedStories) {
             let storyData = await readDoc('stories', sid);
             db_stories.push(storyData);
         }
@@ -29,16 +31,32 @@ export default function Feed({ navigation }) {
 
         // * Posts
         let db_posts = [];
-        for (pid of userData.feedPosts) {
+        for (pid of userData.current.feedPosts) {
             let postData = await readDoc('posts', pid);
             db_posts.push(postData);
         }
         setPosts(db_posts);
+
+        // * Messages
+        let db_messages = [];
+        for (mid of userData.current.messages) {
+            let messageData = await readDoc('messages', mid);
+            db_messages.push(messageData);
+        }
+        setMessages(db_messages);
+    }
+
+    function toMessagesScreen() {
+        if (messages == null) return;
+        navigation.navigate('Messages', {
+            userData: userData.current,
+            messages: messages
+        })
     }
 
     return (
         <View style={styles.main_ctnr}>
-            <FeedHeader navigation={navigation} />
+            <FeedHeader toMessagesScreen={toMessagesScreen} />
             <View style={styles.stories_view_ctnr}>
                 <ScrollView showsHorizontalScrollIndicator={false} style={styles.stories_scrollview_ctnr} horizontal={true}>
                     {
