@@ -1,6 +1,6 @@
 import { StyleSheet, View, Text, Modal } from "react-native";
 
-export default function NewWorkout({ navigation }) {
+export default function NewWorkout() {
     return (
         <View style={styles.main_ctnr}>
             <View style={styles.header}>
@@ -18,17 +18,12 @@ export default function NewWorkout({ navigation }) {
             </View>
 
             <View>
-
             </View>
-
-
 
             <View style={styles.add_exercise_btn}>
                 <Text style={styles.add_exercise_text}>Add Exercise</Text>
             </View>
 
-
-            {/* <Footer navigation={navigation} currentScreenName={'Workout'} /> */}
         </View>
     )
 }

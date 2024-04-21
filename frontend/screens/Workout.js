@@ -1,72 +1,110 @@
-// import { StyleSheet, View } from "react-native";
-// import Footer from "../components/Footer";
-// import NewWorkout from "../modals/NewWorkout";
-
-// export default function Workout({ navigation }) {
-//     return (
-//         <>
-//             <NewWorkout/>
-//         </>
-//     )
-// }
-
-// const styles = StyleSheet.create({
-
-// });
-
 import React, { useRef } from "react";
-import { SafeAreaView, TouchableOpacity, Text, StyleSheet } from "react-native";
+import { TouchableOpacity, Text, StyleSheet, View } from "react-native";
 import BottomSheet from "react-native-gesture-bottom-sheet";
 import NewWorkout from "../modals/NewWorkout";
+import Footer from "../components/Footer";
+import TemplateCard from "../components/workout/TemplateCard";
 
-const Example = () => {
-    // Needed in order to use .show()
+export default function Workout({ navigation }) {
     const bottomSheet = useRef();
 
+    function startNewWorkout() {
+        bottomSheet.current.show()
+    }
+
     return (
-        <SafeAreaView style={styles.container}>
+        <View style={styles.main_ctnr}>
             <BottomSheet hasDraggableIcon ref={bottomSheet} height={800} sheetBackgroundColor={'#fff'}>
-                <NewWorkout/>
+                <NewWorkout />
             </BottomSheet>
-            <TouchableOpacity
-                style={styles.button}
-                onPress={() => bottomSheet.current.show()}
-            >
-                <Text style={styles.text}>Open modal</Text>
-            </TouchableOpacity>
-        </SafeAreaView>
+
+
+            <View style={styles.body}>
+                <Text style={styles.title_text}>Workouts</Text>
+
+                <View style={styles.top_btns_ctnr}>
+                    <TouchableOpacity onPress={startNewWorkout} style={styles.start_new_workout_btn}>
+                        <Text style={styles.start_new_workout_text}>Start New Workout</Text>
+                    </TouchableOpacity>
+
+                    <TouchableOpacity style={styles.join_workout_btn}>
+                        <Text style={styles.join_workout_text}>Join Workout</Text>
+                    </TouchableOpacity>
+                </View>
+
+
+                <Text style={styles.subtitle_text}>Templates</Text>
+
+                <TemplateCard />
+            </View>
+
+
+
+            <Footer navigation={navigation} currentScreenName={'Workout'} />
+        </View>
     );
 };
 
 const styles = StyleSheet.create({
-    button: {
-        height: 50,
-        width: 150,
-        backgroundColor: "#140078",
-        justifyContent: "center",
-        alignItems: "center",
-        borderRadius: 20,
-        shadowColor: "#8559da",
-        shadowOpacity: 0.7,
-        shadowOffset: {
-            height: 4,
-            width: 4,
-        },
-        shadowRadius: 5,
-        elevation: 6,
+    main_ctnr: {
+        flex: 1,
+        backgroundColor: '#fff'
+    },
+    body: {
+        flex: 1,
+        paddingHorizontal: 18,
+        marginTop: 60
+    },
+    title_text: {
+        fontFamily: 'Poppins_700Bold',
+        fontSize: 22,
+        paddingHorizontal: 4,
+        paddingBottom: 6
+    },
+    subtitle_text: {
+        marginTop: 24,
+        fontFamily: 'Poppins_600SemiBold',
+        fontSize: 18,
+        paddingHorizontal: 4,
+        paddingBottom: 6
+    },
+    top_btns_ctnr: {
+        // paddingHorizontal: 4
+    },
+    start_new_workout_btn: {
+        width: '100%',
+        height: 35,
+        marginVertical: 6,
+        borderRadius: 15,
+        backgroundColor: '#51B8FF',
+        justifyContent: 'center',
+        alignItems: 'center'
+    },
+    start_new_workout_text: {
+        fontSize: 16,
+        fontFamily: 'SourceSansPro_600SemiBold',
+        color: 'white'
+    },
+    join_workout_btn: {
+        width: '100%',
+        height: 35,
+        marginVertical: 6,
+        borderRadius: 15,
+        backgroundColor: '#EAC435',
+        justifyContent: 'center',
+        alignItems: 'center'
+    },
+    join_workout_text: {
+        fontSize: 16,
+        fontFamily: 'SourceSansPro_600SemiBold',
+        color: 'white'
     },
     text: {
         color: "white",
         fontWeight: "600",
     },
-    container: {
-        flex: 1,
-        justifyContent: "center",
-        alignItems: "center",
-    },
+
     bottom_sheet: {
         backgroundColor: '#fff'
     }
 });
-
-export default Example;
