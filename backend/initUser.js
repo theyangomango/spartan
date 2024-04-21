@@ -23,6 +23,7 @@ export default async function initUser(handle, name = null, phoneNumber) {
         stats: {
             totalReps: 0,
             totalVolume: 0,
+            totalTime: 0,
             workoutCount: 0,
         },
         followerCount: 0,

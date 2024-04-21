@@ -20,7 +20,8 @@
     "stats": {
         "totalReps": 0,
         "totalVolume": 0,
-        "workoutCount": 0
+        "workoutCount": 0,
+        "totalTime": 0
     },
     "followerCount": 0,
     "followingCount": 0,

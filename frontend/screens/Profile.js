@@ -1,4 +1,5 @@
-import { StyleSheet, View, Text, TouchableOpacity } from "react-native";
+import { useState } from "react";
+import { StyleSheet, View, Text, TouchableOpacity, Pressable } from "react-native";
 import { Grid2, Activity } from 'iconsax-react-native'
 import Footer from "../components/Footer";
 import ProfileHeader from "../components/profile/ProfileHeader";
@@ -6,31 +7,45 @@ import ProfileInfo from "../components/profile/ProfileInfo";
 import EditProfileButton from "../components/profile/EditProfileButton";
 import WorkoutStats from "../components/profile/WorkoutStats";
 
-const UID = '6b176d7d-4d89-4cb5-beb0-0f19b47a10a2';
-
 export default function Profile({ navigation, route }) {
-    console.log('Profile Screen')
+    const userData = route.params.userData;
+
+    const [postsSelected, setPostsSelected] = useState(true);
+
+    function selectPosts() {
+        setPostsSelected(true);
+    }
+
+    function selectActivity() {
+        setPostsSelected(false);
+    }
 
     return (
         <View style={styles.main_ctnr}>
             <View style={styles.body_ctnr}>
                 <ProfileHeader />
-                <ProfileInfo uid={UID} />
+                <ProfileInfo userData={userData} />
                 <EditProfileButton />
-                <WorkoutStats />
+                <WorkoutStats userData={userData} />
 
 
                 <View style={styles.panel_btns}>
                     <View style={styles.posts_btn}>
-                        <Grid2 size="28" color="#359ffc" />
+                        <Pressable onPress={selectPosts}>
+                            {!postsSelected && <Grid2 size="28" color="#888" />}
+                            {postsSelected && <Grid2 size="28" color="#359ffc" />}
+                        </Pressable>
                     </View>
                     <View style={styles.activity_btn}>
-                        <Activity size="28" color="#888" />
+                        <Pressable onPress={selectActivity}>
+                            {!postsSelected && <Activity size="28" color="#359ffc" />}
+                            {postsSelected && <Activity size="28" color="#888" />}
+                        </Pressable>
                     </View>
                 </View>
             </View>
 
-            <Footer navigation={navigation} currentScreenName={'Profile'} />
+            <Footer navigation={navigation} currentScreenName={'Profile'} userData={userData} />
         </View>
 
     )

@@ -1,24 +1,35 @@
-import { StyleSheet, View, Text } from "react-native";
+import { useEffect, useState } from "react";
+import { StyleSheet, View, Text, Image } from "react-native";
+import getPFP from "../../../backend/storage/getPFP";
 
-export default function ProfileInfo({ uid }) {
-    console.log(uid);
+export default function ProfileInfo({ userData }) {
+    const [pfp, setPFP] = useState(null);
+
+    useEffect(() => {
+        getPFP(userData.uid)
+            .then(url => {
+                setPFP(url)
+            })
+    }, []);
 
     return (
         <View>
             <View style={styles.top_row}>
-                <View style={styles.pfp}>
-                </View>
+                <Image
+                    source={{ uri: pfp }}
+                    style={styles.pfp}
+                />
                 <View style={styles.user_stats_ctnr}>
                     <View style={styles.user_stat}>
-                        <Text style={styles.user_stat_count_text}>3</Text>
+                        <Text style={styles.user_stat_count_text}>{userData.postCount}</Text>
                         <Text style={styles.user_stat_text}>Posts</Text>
                     </View>
                     <View style={styles.user_stat}>
-                        <Text style={styles.user_stat_count_text}>25</Text>
+                        <Text style={styles.user_stat_count_text}>{userData.followerCount}</Text>
                         <Text style={styles.user_stat_text}>Followers</Text>
                     </View>
                     <View style={styles.user_stat}>
-                        <Text style={styles.user_stat_count_text}>25</Text>
+                        <Text style={styles.user_stat_count_text}>{userData.followingCount}</Text>
                         <Text style={styles.user_stat_text}>Following</Text>
                     </View>
                 </View>
@@ -26,10 +37,10 @@ export default function ProfileInfo({ uid }) {
 
             <View style={styles.profile_info_ctnr}>
                 <View style={styles.name_ctnr}>
-                    <Text style={styles.name_text}>Yang Bai</Text>
+                    <Text style={styles.name_text}>{userData.handle}</Text>
                 </View>
                 <View style={styles.bio_ctnr}>
-                    <Text style={styles.bio_text}>jhs 26, ptx</Text>
+                    <Text style={styles.bio_text}>{userData.bio}</Text>
                 </View>
             </View>
         </View>
@@ -48,7 +59,7 @@ const styles = StyleSheet.create({
         width: 64,
         height: 64,
         borderRadius: 32,
-        backgroundColor: 'red',
+        // backgroundColor: 'red',
     },
     user_stats_ctnr: {
         flexDirection: 'row',

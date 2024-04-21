@@ -5,7 +5,9 @@ import NewWorkout from "../modals/NewWorkout";
 import Footer from "../components/Footer";
 import TemplateCard from "../components/workout/TemplateCard";
 
-export default function Workout({ navigation }) {
+export default function Workout({ navigation, route }) {
+    const userData = route.params.userData;
+
     const bottomSheet = useRef();
 
     function startNewWorkout() {
@@ -40,7 +42,7 @@ export default function Workout({ navigation }) {
 
 
 
-            <Footer navigation={navigation} currentScreenName={'Workout'} />
+            <Footer navigation={navigation} currentScreenName={'Workout'} userData={userData} />
         </View>
     );
 };

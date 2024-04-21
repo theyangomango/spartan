@@ -54,11 +54,6 @@ export default function Feed({ navigation }) {
             userData: userData.current,
             messages: messages
         })
-
-        // navigation.push('Messages', {
-        //     userData: userData.current,
-        //     messages: messages
-        // })
     }
 
     return (
@@ -84,7 +79,7 @@ export default function Feed({ navigation }) {
                     }
                 </ScrollView>
             </View>
-            <Footer navigation={navigation} currentScreenName={'Feed'} />
+            <Footer navigation={navigation} currentScreenName={'Feed'} userData={userData.current} />
         </View>
     )
 }

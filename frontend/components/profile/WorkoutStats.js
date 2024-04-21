@@ -1,19 +1,19 @@
 import { StyleSheet, View, Text } from "react-native"
 
-export default function WorkoutStats() {
+export default function WorkoutStats({ userData }) {
     return (
         <View style={styles.main_ctnr}>
             <View style={[styles.workout_stat, styles.total_workouts_stat_ctnr]}>
                 <Text style={styles.workout_stat_text}>Total Workouts</Text>
-                <Text style={[styles.workout_stat_number, styles.total_workouts_stat_number]}>54</Text>
+                <Text style={[styles.workout_stat_number, styles.total_workouts_stat_number]}>{userData.stats.workoutCount}</Text>
             </View>
             <View style={[styles.workout_stat, styles.total_volume_stat_ctnr]}>
                 <Text style={styles.workout_stat_text}>Total Volume</Text>
-                <Text style={[styles.workout_stat_number, styles.total_volume_stat_number]}>2.9M lb</Text>
+                <Text style={[styles.workout_stat_number, styles.total_volume_stat_number]}>{userData.stats.totalVolume} lb</Text>
             </View>
             <View style={[styles.workout_stat, styles.gym_time_stat_ctnr]}>
                 <Text style={styles.workout_stat_text}>Time in Gym</Text>
-                <Text style={[styles.workout_stat_number, styles.gym_time_stat_number]}>3d 20h</Text>
+                <Text style={[styles.workout_stat_number, styles.gym_time_stat_number]}>{userData.stats.totalTime}</Text>
             </View>
         </View>
     )
