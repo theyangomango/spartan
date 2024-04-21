@@ -4,7 +4,6 @@ import MessagesHeader from "../components/messages/MessagesHeader";
 import { useDebugValue, useEffect, useReducer, useState } from "react";
 
 export default function Messages({ navigation, route }) {
-    // const { userData, messages } = route.params;
 
     const [userData, setUserData] = useState(null);
     const [messages, setMessages] = useState(null);

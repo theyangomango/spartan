@@ -50,15 +50,15 @@ export default function Feed({ navigation }) {
 
     function toMessagesScreen() {
         if (messages == null) return;
-        // navigation.navigate('Messages', {
-        //     userData: userData.current,
-        //     messages: messages
-        // })
-
-        navigation.push('Messages', {
+        navigation.navigate('Messages', {
             userData: userData.current,
             messages: messages
         })
+
+        // navigation.push('Messages', {
+        //     userData: userData.current,
+        //     messages: messages
+        // })
     }
 
     return (

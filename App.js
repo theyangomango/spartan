@@ -1,13 +1,13 @@
 // import Authentication from "./frontend/screens/Authentication";
 import { NavigationContainer } from '@react-navigation/native'
-import { createNativeStackNavigator } from '@react-navigation/native-stack'
+import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
+
 import Feed from "./frontend/screens/Feed";
 import Profile from './frontend/screens/Profile';
 import Explore from './frontend/screens/Explore';
 import Workout from './frontend/screens/Workout';
 import Competition from './frontend/screens/Competition';
 import Messages from './frontend/screens/Messages';
-
 import {
     useFonts,
     Inter_100Thin,
@@ -20,7 +20,6 @@ import {
     Inter_800ExtraBold,
     Inter_900Black,
 } from '@expo-google-fonts/inter';
-
 import {
     Lato_100Thin,
     Lato_100Thin_Italic,
@@ -33,7 +32,6 @@ import {
     Lato_900Black,
     Lato_900Black_Italic,
 } from '@expo-google-fonts/lato';
-
 import {
     SourceSansPro_200ExtraLight,
     SourceSansPro_200ExtraLight_Italic,
@@ -48,7 +46,6 @@ import {
     SourceSansPro_900Black,
     SourceSansPro_900Black_Italic,
 } from '@expo-google-fonts/source-sans-pro';
-
 import {
     Poppins_100Thin,
     Poppins_100Thin_Italic,
@@ -69,7 +66,6 @@ import {
     Poppins_900Black,
     Poppins_900Black_Italic,
 } from '@expo-google-fonts/poppins';
-
 import {
     Outfit_100Thin,
     Outfit_200ExtraLight,
@@ -81,7 +77,6 @@ import {
     Outfit_800ExtraBold,
     Outfit_900Black,
 } from '@expo-google-fonts/outfit';
-
 import {
     Mulish_200ExtraLight,
     Mulish_300Light,
@@ -101,7 +96,7 @@ import {
     Mulish_900Black_Italic,
 } from '@expo-google-fonts/mulish';
 
-const Stack = createNativeStackNavigator();
+const Tab = createBottomTabNavigator();
 
 export default function App() {
     let [fontsLoaded] = useFonts({
@@ -190,30 +185,19 @@ export default function App() {
     }
     else return (
         <NavigationContainer>
-            <Stack.Navigator initialRouteName='Feed' screenOptions={{
+            <Tab.Navigator initialRouteName='Feed' screenOptions={{
                 headerShown: false,
+                tabBarStyle: {
+                    display: 'none'
+                }
             }}>
-                <Stack.Screen name='Feed' component={Feed} options={{
-                    animation: 'none',
-                    detachPreviousScreen: false,
-                    freezeOnBlur: true,
-                }} />
-                <Stack.Screen name='Competition' component={Competition} options={{
-                    animation: 'none'
-                }} />
-                <Stack.Screen name='Workout' component={Workout} options={{
-                    animation: 'none'
-                }} />
-                <Stack.Screen name='Explore' component={Explore} options={{
-                    animation: 'none'
-                }} />
-                <Stack.Screen name='Profile' component={Profile} options={{
-                    animation: 'none'
-                }} />
-                <Stack.Screen name='Messages' component={Messages} options={{
-                    animation: 'default',
-                }} />
-            </Stack.Navigator>
+                <Tab.Screen name='Feed' component={Feed} />
+                <Tab.Screen name='Messages' component={Messages} />
+                <Tab.Screen name='Competition' component={Competition} />
+                <Tab.Screen name='Workout' component={Workout} />
+                <Tab.Screen name='Explore' component={Explore} />
+                <Tab.Screen name='Profile' component={Profile} />
+            </Tab.Navigator>
         </NavigationContainer>
     )
 }
