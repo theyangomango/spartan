@@ -32,7 +32,7 @@ const styles = StyleSheet.create({
     main_ctnr: {
         flex: 1,
         backgroundColor: '#fff',
-        paddingHorizontal: 20,
+        paddingHorizontal: 22,
     },
     header: {
         height: 40,

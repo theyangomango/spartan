@@ -3,12 +3,14 @@ import { StyleSheet, View, ScrollView } from "react-native";
 import Footer from "../components/Footer";
 import Story from "../components/feed/Story";
 import Post from "../components/feed/Post";
-import { readDoc } from "../../backend/helper/firebase/readDoc";
 import FeedHeader from "../components/feed/FeedHeader";
+import { readDoc } from "../../backend/helper/firebase/readDoc";
 
 const UID = '6b176d7d-4d89-4cb5-beb0-0f19b47a10a2';
 
 export default function Feed({ navigation }) {
+    console.log('Feed Screen');
+
     const [stories, setStories] = useState([]);
     const [posts, setPosts] = useState([]);
     const [messages, setMessages] = useState(null);
@@ -48,7 +50,12 @@ export default function Feed({ navigation }) {
 
     function toMessagesScreen() {
         if (messages == null) return;
-        navigation.navigate('Messages', {
+        // navigation.navigate('Messages', {
+        //     userData: userData.current,
+        //     messages: messages
+        // })
+
+        navigation.push('Messages', {
             userData: userData.current,
             messages: messages
         })

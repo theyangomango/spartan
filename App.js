@@ -191,10 +191,12 @@ export default function App() {
     else return (
         <NavigationContainer>
             <Stack.Navigator initialRouteName='Feed' screenOptions={{
-                headerShown: false
+                headerShown: false,
             }}>
                 <Stack.Screen name='Feed' component={Feed} options={{
                     animation: 'none',
+                    detachPreviousScreen: false,
+                    freezeOnBlur: true,
                 }} />
                 <Stack.Screen name='Competition' component={Competition} options={{
                     animation: 'none'
@@ -209,7 +211,7 @@ export default function App() {
                     animation: 'none'
                 }} />
                 <Stack.Screen name='Messages' component={Messages} options={{
-                    animation: 'default'
+                    animation: 'default',
                 }} />
             </Stack.Navigator>
         </NavigationContainer>
