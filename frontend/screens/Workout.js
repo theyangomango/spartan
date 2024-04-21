@@ -1,15 +1,72 @@
-import { StyleSheet, View } from "react-native";
-import Footer from "../components/Footer";
+// import { StyleSheet, View } from "react-native";
+// import Footer from "../components/Footer";
+// import NewWorkout from "../modals/NewWorkout";
 
-export default function Workout({ navigation }) {
+// export default function Workout({ navigation }) {
+//     return (
+//         <>
+//             <NewWorkout/>
+//         </>
+//     )
+// }
+
+// const styles = StyleSheet.create({
+
+// });
+
+import React, { useRef } from "react";
+import { SafeAreaView, TouchableOpacity, Text, StyleSheet } from "react-native";
+import BottomSheet from "react-native-gesture-bottom-sheet";
+import NewWorkout from "../modals/NewWorkout";
+
+const Example = () => {
+    // Needed in order to use .show()
+    const bottomSheet = useRef();
+
     return (
-        <>
-            <View style={{flex: 1}}></View>
-            <Footer navigation={navigation} currentScreenName={'Workout'}/>
-        </>
-    )
-}
+        <SafeAreaView style={styles.container}>
+            <BottomSheet hasDraggableIcon ref={bottomSheet} height={800} sheetBackgroundColor={'#fff'}>
+                <NewWorkout/>
+            </BottomSheet>
+            <TouchableOpacity
+                style={styles.button}
+                onPress={() => bottomSheet.current.show()}
+            >
+                <Text style={styles.text}>Open modal</Text>
+            </TouchableOpacity>
+        </SafeAreaView>
+    );
+};
 
 const styles = StyleSheet.create({
-
+    button: {
+        height: 50,
+        width: 150,
+        backgroundColor: "#140078",
+        justifyContent: "center",
+        alignItems: "center",
+        borderRadius: 20,
+        shadowColor: "#8559da",
+        shadowOpacity: 0.7,
+        shadowOffset: {
+            height: 4,
+            width: 4,
+        },
+        shadowRadius: 5,
+        elevation: 6,
+    },
+    text: {
+        color: "white",
+        fontWeight: "600",
+    },
+    container: {
+        flex: 1,
+        justifyContent: "center",
+        alignItems: "center",
+    },
+    bottom_sheet: {
+        backgroundColor: '#fff'
+    }
 });
+
+export default Example;
