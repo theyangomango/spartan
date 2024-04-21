@@ -1,6 +1,8 @@
-import { StyleSheet, View , Text} from "react-native";
+import { StyleSheet, View, Text } from "react-native";
 
-export default function ProfileInfo() {
+export default function ProfileInfo({ uid }) {
+    console.log(uid);
+
     return (
         <View>
             <View style={styles.top_row}>

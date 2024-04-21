@@ -6,14 +6,16 @@ import ProfileInfo from "../components/profile/ProfileInfo";
 import EditProfileButton from "../components/profile/EditProfileButton";
 import WorkoutStats from "../components/profile/WorkoutStats";
 
-export default function Profile({ navigation }) {
+const UID = '6b176d7d-4d89-4cb5-beb0-0f19b47a10a2';
+
+export default function Profile({ navigation, route }) {
     console.log('Profile Screen')
 
     return (
         <View style={styles.main_ctnr}>
             <View style={styles.body_ctnr}>
                 <ProfileHeader />
-                <ProfileInfo />
+                <ProfileInfo uid={UID} />
                 <EditProfileButton />
                 <WorkoutStats />
 

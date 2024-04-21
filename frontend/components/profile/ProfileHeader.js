@@ -1,22 +1,28 @@
-import { StyleSheet, View, Text } from "react-native";
+import { StyleSheet, View, Text, TouchableOpacity } from "react-native";
 import { ArrowDown2, AddSquare, HambergerMenu } from 'iconsax-react-native'
 
 export default function ProfileHeader() {
     return (
         <View style={styles.main_ctnr}>
-            <View style={styles.left}>
-                <Text style={styles.handle_text}>@yangbai</Text>
-                <View style={styles.down_arrow_ctnr}>
-                    <ArrowDown2 size="22" color="#000" />
+            <TouchableOpacity>
+                <View style={styles.left}>
+                    <Text style={styles.handle_text}>@yangbai</Text>
+                    <View style={styles.down_arrow_ctnr}>
+                        <ArrowDown2 size="22" color="#000" />
+                    </View>
                 </View>
-            </View>
+            </TouchableOpacity>
             <View style={styles.right}>
-                <View style={styles.create_btn_ctnr}>
-                    <AddSquare size="24" color="#000" />
-                </View>
-                <View style={styles.options_btn_ctnr}>
-                    <HambergerMenu size="24" color="#000" />
-                </View>
+                <TouchableOpacity>
+                    <View style={styles.create_btn_ctnr}>
+                        <AddSquare size="24" color="#000" />
+                    </View>
+                </TouchableOpacity>
+                <TouchableOpacity>
+                    <View style={styles.options_btn_ctnr}>
+                        <HambergerMenu size="24" color="#000" />
+                    </View>
+                </TouchableOpacity>
             </View>
         </View>
     )
