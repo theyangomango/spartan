@@ -99,9 +99,9 @@ const styles = StyleSheet.create({
         alignItems: 'center'
     },
     posts_ctnr: {
-        marginTop: 6,
+        marginTop: 8,
         flexDirection: 'row',
         flexWrap: 'wrap',
-        // paddingHorizontal: 6
+        paddingHorizontal: 4
     }
 });
