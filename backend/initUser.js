@@ -17,8 +17,10 @@ export default async function initUser(handle, name = null, phoneNumber) {
         following: [],
         feedPosts: [],
         feedStories: [],
-        workouts: [],
         progressPhotos: [],
+        posts: [],
+        stories: [],
+        workouts: [],
         messages: [],
         stats: {
             totalReps: 0,

@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { StyleSheet, View, Text, TouchableOpacity, Pressable } from "react-native";
 import { Grid2, Activity } from 'iconsax-react-native'
 import Footer from "../components/Footer";
@@ -6,11 +6,27 @@ import ProfileHeader from "../components/profile/ProfileHeader";
 import ProfileInfo from "../components/profile/ProfileInfo";
 import EditProfileButton from "../components/profile/EditProfileButton";
 import WorkoutStats from "../components/profile/WorkoutStats";
+import PostPreview from "../components/profile/PostPreview";
+import { readDoc } from "../../backend/helper/firebase/readDoc";
 
 export default function Profile({ navigation, route }) {
     const userData = route.params.userData;
-
+    const [posts, setPosts] = useState([]);
     const [postsSelected, setPostsSelected] = useState(true);
+
+    useEffect(() => {
+        getPosts();
+    }, []);
+
+    async function getPosts() {
+        // * Posts
+        let db_posts = [];
+        for (pid of userData.posts) {
+            let postData = await readDoc('posts', pid);
+            db_posts.push(postData);
+        }
+        setPosts(db_posts);
+    }
 
     function selectPosts() {
         setPostsSelected(true);
@@ -42,6 +58,12 @@ export default function Profile({ navigation, route }) {
                             {postsSelected && <Activity size="28" color="#888" />}
                         </Pressable>
                     </View>
+                </View>
+
+                <View style={styles.posts_ctnr}>
+                    {posts.map((post, index) => {
+                        return <PostPreview postData={post} key={index} />
+                    })}
                 </View>
             </View>
 
@@ -75,5 +97,11 @@ const styles = StyleSheet.create({
     activity_btn: {
         width: '50%',
         alignItems: 'center'
+    },
+    posts_ctnr: {
+        marginTop: 6,
+        flexDirection: 'row',
+        flexWrap: 'wrap',
+        // paddingHorizontal: 6
     }
 });
