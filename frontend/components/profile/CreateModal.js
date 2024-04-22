@@ -1,14 +1,14 @@
 import { StyleSheet, View, Text, Modal, TouchableOpacity } from "react-native";
 import { Gallery, AddCircle } from 'iconsax-react-native'
 
-export default function CreateModal() {
+export default function CreateModal({ createPost }) {
     return (
         <View style={styles.main_ctnr}>
             <View style={styles.header}>
                 <Text style={styles.header_text}>Create</Text>
             </View>
 
-            <TouchableOpacity>
+            <TouchableOpacity onPress={createPost}>
                 <View style={styles.post_ctnr}>
                     <View style={styles.post_icon_ctnr}>
                         <Gallery size="21" color="#000" variant="Broken" />

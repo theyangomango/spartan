@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useRef } from "react";
-import { StyleSheet, View, Text, TouchableOpacity, Pressable } from "react-native";
+import { StyleSheet, View, Text, TouchableOpacity, Pressable, Modal } from "react-native";
 import { useFocusEffect } from '@react-navigation/native';
 import { Grid2, Activity } from 'iconsax-react-native'
 import BottomSheet from "react-native-gesture-bottom-sheet";
@@ -11,15 +11,21 @@ import WorkoutStats from "../components/profile/WorkoutStats";
 import PostPreview from "../components/profile/PostPreview";
 import { readDoc } from "../../backend/helper/firebase/readDoc";
 import CreateModal from "../components/profile/CreateModal";
+import CreatePostModal from "../components/profile/CreatePostModal";
 
 export default function Profile({ navigation, route }) {
     const userData = route.params.userData;
     const [posts, setPosts] = useState([]);
     const [postsSelected, setPostsSelected] = useState(true);
 
-    // const [createModalShown, setCreateModalShown] = useState(false);
     const [bkgColor, setBkgColor] = useState('#000');
     const bottomSheet = useRef();
+
+    const [modalVisible, setModalVisible] = useState(false);
+
+    useEffect(() => {
+        getPosts();
+    }, []);
 
     useFocusEffect(
         React.useCallback(() => {
@@ -28,7 +34,6 @@ export default function Profile({ navigation, route }) {
                 let panY = parseInt(JSON.stringify(bottomSheet.current.state.pan.y));
                 let animatedHeight = parseInt(JSON.stringify(bottomSheet.current.state.animatedHeight));
                 let realHeight = Math.max(panY, 200 - animatedHeight);
-                console.log(realHeight);
                 setBkgColor(`rgba(0, 0, 0, ${0.6 - 0.75 * (realHeight / 200)})`)
             }, 50);
 
@@ -39,11 +44,6 @@ export default function Profile({ navigation, route }) {
             };
         }, [])
     );
-
-
-    useEffect(() => {
-        getPosts();
-    }, []);
 
     async function getPosts() {
         // * Posts
@@ -59,6 +59,15 @@ export default function Profile({ navigation, route }) {
         bottomSheet.current.show();
     }
 
+    function uploadPost() {
+        console.log('Upload Post');
+        // ! Dont understand what is going on here
+        bottomSheet.current.close()
+        setTimeout(() => {
+            setModalVisible(true);
+        }, 800)
+    }
+
     function selectPosts() {
         setPostsSelected(true);
     }
@@ -68,23 +77,32 @@ export default function Profile({ navigation, route }) {
     }
 
     return (
+
         <View style={styles.main_ctnr}>
-            <BottomSheet
-                hasDraggableIcon
-                ref={bottomSheet}
-                height={200}
-                sheetBackgroundColor={'#fff'}
-                backgroundColor={bkgColor}
+
+            <Modal
+                animationType="slide"
+                visible={modalVisible}
             >
-                <CreateModal />
-            </BottomSheet>
+                <CreatePostModal />
+            </Modal>
+
 
             <View style={styles.body_ctnr}>
+                <BottomSheet
+                    hasDraggableIcon
+                    ref={bottomSheet}
+                    height={200}
+                    sheetBackgroundColor={'#fff'}
+                    backgroundColor={bkgColor}
+                >
+                    <CreateModal createPost={uploadPost} />
+                </BottomSheet>
+
                 <ProfileHeader onPressCreateBtn={upload} />
                 <ProfileInfo userData={userData} />
                 <EditProfileButton />
                 <WorkoutStats userData={userData} />
-
 
                 <View style={styles.panel_btns}>
                     <View style={styles.posts_btn}>

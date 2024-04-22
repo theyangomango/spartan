@@ -1,10 +1,12 @@
 import React, { useRef, useState } from "react";
-import { TouchableOpacity, Text, StyleSheet, View } from "react-native";
+import { Text, StyleSheet, View } from "react-native";
 import { useFocusEffect } from '@react-navigation/native';
 import BottomSheet from "react-native-gesture-bottom-sheet";
 import NewWorkoutModal from "../components/workout/NewWorkoutModal";
 import Footer from "../components/Footer";
 import TemplateCard from "../components/workout/TemplateCard";
+import StartWorkoutButton from "../components/workout/StartWorkoutButton";
+import JoinWorkoutButton from "../components/workout/JoinWorkoutButton";
 
 export default function Workout({ navigation, route }) {
     const userData = route.params.userData;
@@ -18,7 +20,6 @@ export default function Workout({ navigation, route }) {
                 let panY = parseInt(JSON.stringify(bottomSheet.current.state.pan.y));
                 let animatedHeight = parseInt(JSON.stringify(bottomSheet.current.state.animatedHeight));
                 let realHeight = Math.max(panY, 1100 - animatedHeight);
-                console.log(realHeight);
                 setBkgColor(`rgba(0, 0, 0, ${0.7 - 0.75 * (realHeight / 800)})`)
             }, 50);
 
@@ -49,20 +50,10 @@ export default function Workout({ navigation, route }) {
 
             <View style={styles.body}>
                 <Text style={styles.title_text}>Workouts</Text>
-
-                <View style={styles.top_btns_ctnr}>
-                    <TouchableOpacity onPress={startNewWorkout} style={styles.start_new_workout_btn}>
-                        <Text style={styles.start_new_workout_text}>Start New Workout</Text>
-                    </TouchableOpacity>
-
-                    <TouchableOpacity style={styles.join_workout_btn}>
-                        <Text style={styles.join_workout_text}>Join Workout</Text>
-                    </TouchableOpacity>
-                </View>
-
+                <StartWorkoutButton startWorkout={startNewWorkout} />
+                <JoinWorkoutButton />
 
                 <Text style={styles.subtitle_text}>Templates</Text>
-
                 <TemplateCard />
             </View>
 
@@ -95,43 +86,5 @@ const styles = StyleSheet.create({
         fontSize: 18,
         paddingHorizontal: 4,
         paddingBottom: 6
-    },
-    top_btns_ctnr: {
-        // paddingHorizontal: 4
-    },
-    start_new_workout_btn: {
-        width: '100%',
-        height: 35,
-        marginVertical: 6,
-        borderRadius: 15,
-        backgroundColor: '#51B8FF',
-        justifyContent: 'center',
-        alignItems: 'center'
-    },
-    start_new_workout_text: {
-        fontSize: 16,
-        fontFamily: 'SourceSansPro_600SemiBold',
-        color: 'white'
-    },
-    join_workout_btn: {
-        width: '100%',
-        height: 35,
-        marginVertical: 6,
-        borderRadius: 15,
-        backgroundColor: '#EAC435',
-        justifyContent: 'center',
-        alignItems: 'center'
-    },
-    join_workout_text: {
-        fontSize: 16,
-        fontFamily: 'SourceSansPro_600SemiBold',
-        color: 'white'
-    },
-    text: {
-        color: "white",
-        fontWeight: "600",
-    },
-    bottom_sheet: {
-        backgroundColor: '#fff',
     }
 });
