@@ -1,7 +1,7 @@
 import { StyleSheet, View, Text, TouchableOpacity } from "react-native";
 import { ArrowDown2, AddSquare, HambergerMenu } from 'iconsax-react-native'
 
-export default function ProfileHeader() {
+export default function ProfileHeader({ onPressCreateBtn }) {
     return (
         <View style={styles.main_ctnr}>
             <TouchableOpacity>
@@ -13,7 +13,7 @@ export default function ProfileHeader() {
                 </View>
             </TouchableOpacity>
             <View style={styles.right}>
-                <TouchableOpacity>
+                <TouchableOpacity onPress={onPressCreateBtn}>
                     <View style={styles.create_btn_ctnr}>
                         <AddSquare size="24" color="#000" />
                     </View>

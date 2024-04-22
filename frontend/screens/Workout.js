@@ -1,25 +1,25 @@
-import React, { useEffect, useRef, useState } from "react";
+import React, { useRef, useState } from "react";
 import { TouchableOpacity, Text, StyleSheet, View } from "react-native";
 import { useFocusEffect } from '@react-navigation/native';
 import BottomSheet from "react-native-gesture-bottom-sheet";
-import NewWorkout from "../modals/NewWorkout";
+import NewWorkoutModal from "../components/workout/NewWorkoutModal";
 import Footer from "../components/Footer";
 import TemplateCard from "../components/workout/TemplateCard";
 
 export default function Workout({ navigation, route }) {
-    const [bkgColor, setBkgColor] = useState('#000');
-
-
     const userData = route.params.userData;
-
+    const [bkgColor, setBkgColor] = useState('#000');
     const bottomSheet = useRef();
-
 
     useFocusEffect(
         React.useCallback(() => {
             // Do something when the screen is focused
             const interval = setInterval(() => {
-                setBkgColor(`rgba(0, 0, 0, ${0.7 - 0.75 * (parseFloat(JSON.stringify(bottomSheet.current.state.pan.y)) / 800)})`)
+                let panY = parseInt(JSON.stringify(bottomSheet.current.state.pan.y));
+                let animatedHeight = parseInt(JSON.stringify(bottomSheet.current.state.animatedHeight));
+                let realHeight = Math.max(panY, 1100 - animatedHeight);
+                console.log(realHeight);
+                setBkgColor(`rgba(0, 0, 0, ${0.7 - 0.75 * (realHeight / 800)})`)
             }, 50);
 
             return () => {
@@ -43,7 +43,7 @@ export default function Workout({ navigation, route }) {
                 sheetBackgroundColor={'#fff'}
                 backgroundColor={bkgColor}
             >
-                <NewWorkout />
+                <NewWorkoutModal />
             </BottomSheet>
 
 

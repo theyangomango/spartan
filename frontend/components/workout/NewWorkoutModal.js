@@ -1,6 +1,6 @@
 import { StyleSheet, View, Text, Modal } from "react-native";
 
-export default function NewWorkout() {
+export default function NewWorkoutModal() {
     return (
         <View style={styles.main_ctnr}>
             <View style={styles.header}>

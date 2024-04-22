@@ -1,6 +1,8 @@
-import { useEffect, useState } from "react";
+import React, { useEffect, useState, useRef } from "react";
 import { StyleSheet, View, Text, TouchableOpacity, Pressable } from "react-native";
+import { useFocusEffect } from '@react-navigation/native';
 import { Grid2, Activity } from 'iconsax-react-native'
+import BottomSheet from "react-native-gesture-bottom-sheet";
 import Footer from "../components/Footer";
 import ProfileHeader from "../components/profile/ProfileHeader";
 import ProfileInfo from "../components/profile/ProfileInfo";
@@ -8,11 +10,36 @@ import EditProfileButton from "../components/profile/EditProfileButton";
 import WorkoutStats from "../components/profile/WorkoutStats";
 import PostPreview from "../components/profile/PostPreview";
 import { readDoc } from "../../backend/helper/firebase/readDoc";
+import CreateModal from "../components/profile/CreateModal";
 
 export default function Profile({ navigation, route }) {
     const userData = route.params.userData;
     const [posts, setPosts] = useState([]);
     const [postsSelected, setPostsSelected] = useState(true);
+
+    // const [createModalShown, setCreateModalShown] = useState(false);
+    const [bkgColor, setBkgColor] = useState('#000');
+    const bottomSheet = useRef();
+
+    useFocusEffect(
+        React.useCallback(() => {
+            // Do something when the screen is focused
+            const interval = setInterval(() => {
+                let panY = parseInt(JSON.stringify(bottomSheet.current.state.pan.y));
+                let animatedHeight = parseInt(JSON.stringify(bottomSheet.current.state.animatedHeight));
+                let realHeight = Math.max(panY, 200 - animatedHeight);
+                console.log(realHeight);
+                setBkgColor(`rgba(0, 0, 0, ${0.6 - 0.75 * (realHeight / 200)})`)
+            }, 50);
+
+            return () => {
+                // Do something when the screen is unfocused
+                // Useful for cleanup functions
+                clearInterval(interval);
+            };
+        }, [])
+    );
+
 
     useEffect(() => {
         getPosts();
@@ -28,6 +55,10 @@ export default function Profile({ navigation, route }) {
         setPosts(db_posts);
     }
 
+    function upload() {
+        bottomSheet.current.show();
+    }
+
     function selectPosts() {
         setPostsSelected(true);
     }
@@ -38,8 +69,18 @@ export default function Profile({ navigation, route }) {
 
     return (
         <View style={styles.main_ctnr}>
+            <BottomSheet
+                hasDraggableIcon
+                ref={bottomSheet}
+                height={200}
+                sheetBackgroundColor={'#fff'}
+                backgroundColor={bkgColor}
+            >
+                <CreateModal />
+            </BottomSheet>
+
             <View style={styles.body_ctnr}>
-                <ProfileHeader />
+                <ProfileHeader onPressCreateBtn={upload} />
                 <ProfileInfo userData={userData} />
                 <EditProfileButton />
                 <WorkoutStats userData={userData} />
@@ -60,7 +101,7 @@ export default function Profile({ navigation, route }) {
                     </View>
                 </View>
 
-                <View style={styles.posts_ctnr}>
+                <View style={[styles.posts_ctnr, !postsSelected && { display: 'none' }]}>
                     {posts.map((post, index) => {
                         return <PostPreview postData={post} key={index} />
                     })}
@@ -102,6 +143,6 @@ const styles = StyleSheet.create({
         marginTop: 8,
         flexDirection: 'row',
         flexWrap: 'wrap',
-        paddingHorizontal: 4
+        paddingHorizontal: 4,
     }
 });
