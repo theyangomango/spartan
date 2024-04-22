@@ -11,7 +11,7 @@ import WorkoutStats from "../components/profile/WorkoutStats";
 import PostPreview from "../components/profile/PostPreview";
 import { readDoc } from "../../backend/helper/firebase/readDoc";
 import CreateModal from "../components/profile/CreateModal";
-import CreatePostModal from "../components/profile/CreatePostModal";
+import CreatePostModal from "../components/profile/CreatePostModal/CreatePostModal";
 
 export default function Profile({ navigation, route }) {
     const userData = route.params.userData;
@@ -59,13 +59,17 @@ export default function Profile({ navigation, route }) {
         bottomSheet.current.show();
     }
 
+    function closeNewPostModal() {
+        setModalVisible(false);
+    }
+
     function uploadPost() {
         console.log('Upload Post');
         // ! Dont understand what is going on here
         bottomSheet.current.close()
         setTimeout(() => {
             setModalVisible(true);
-        }, 800)
+        }, 400)
     }
 
     function selectPosts() {
@@ -84,7 +88,7 @@ export default function Profile({ navigation, route }) {
                 animationType="slide"
                 visible={modalVisible}
             >
-                <CreatePostModal />
+                <CreatePostModal closeModal={closeNewPostModal} />
             </Modal>
 
 
