@@ -11,7 +11,7 @@ import WorkoutStats from "../components/profile/WorkoutStats";
 import PostPreview from "../components/profile/PostPreview";
 import { readDoc } from "../../backend/helper/firebase/readDoc";
 import CreateModal from "../components/profile/CreateModal";
-import CreatePostModal from "../components/profile/CreatePostModal/CreatePostModal";
+import SelectPhotosScreen from "../components/profile/CreatePostModal/SelectPhotosScreen";
 
 export default function Profile({ navigation, route }) {
     const userData = route.params.userData;
@@ -88,7 +88,7 @@ export default function Profile({ navigation, route }) {
                 animationType="slide"
                 visible={modalVisible}
             >
-                <CreatePostModal closeModal={closeNewPostModal} />
+                <SelectPhotosScreen closeModal={closeNewPostModal} />
             </Modal>
 
 
