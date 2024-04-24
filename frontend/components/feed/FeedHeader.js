@@ -30,10 +30,10 @@ export default function FeedHeader({ toMessagesScreen }) {
 const styles = StyleSheet.create({
     main_ctnr: {
         width: '100%',
-        height: 122,
+        height: 105,
         backgroundColor: '#2D9EFF',
-        paddingHorizontal: 15,
-        paddingBottom: 20,
+        paddingLeft: 10,
+        paddingRight: 15,
         flexDirection: 'row',
         alignItems: 'flex-end',
         justifyContent: 'space-between'
