@@ -1,13 +1,17 @@
 // import Authentication from "./frontend/screens/Authentication";
 import { NavigationContainer } from '@react-navigation/native'
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
+import { createNativeStackNavigator } from '@react-navigation/native-stack';
 
 import Feed from "./frontend/screens/Feed";
 import Profile from './frontend/screens/Profile';
+import SelectPhotosScreen from './frontend/components/profile/CreatePostModal/SelectPhotosScreen';
+import PostOptionsScreen from './frontend/components/profile/CreatePostModal/PostOptionsScreen';
 import Explore from './frontend/screens/Explore';
 import Workout from './frontend/screens/Workout';
 import Competition from './frontend/screens/Competition';
 import Messages from './frontend/screens/Messages';
+
 import {
     useFonts,
     Inter_100Thin,
@@ -97,6 +101,21 @@ import {
 } from '@expo-google-fonts/mulish';
 
 const Tab = createBottomTabNavigator();
+const Stack = createNativeStackNavigator();
+
+const ProfileStack = (({navigation, route}) => {
+    return (
+        <Stack.Navigator initialRouteName='Profile' screenOptions={{
+            headerShown: false
+        }}>
+            <Stack.Screen name='Profile' component={Profile} initialParams={{
+                userData: route.params.userData
+            }}/>
+            <Stack.Screen name='SelectPhotos' component={SelectPhotosScreen}/>
+            <Stack.Screen name='PostOptions' component={PostOptionsScreen}/>
+        </Stack.Navigator>
+    )
+});
 
 export default function App() {
     let [fontsLoaded] = useFonts({
@@ -196,7 +215,7 @@ export default function App() {
                 <Tab.Screen name='Competition' component={Competition} />
                 <Tab.Screen name='Workout' component={Workout} />
                 <Tab.Screen name='Explore' component={Explore} />
-                <Tab.Screen name='Profile' component={Profile} />
+                <Tab.Screen name='ProfileStack' component={ProfileStack} />
             </Tab.Navigator>
         </NavigationContainer>
     )

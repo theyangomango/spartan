@@ -4,8 +4,9 @@ import { AntDesign } from '@expo/vector-icons'
 import * as MediaLibrary from 'expo-media-library';
 import Photo from './Photo';
 
-export default function SelectPhotosScreen({ closeModal }) {
-    const [assets, setAssets] = useState([]);
+export default function SelectPhotosScreen({ navigation, route }) {
+
+    const [assets, setAssets] = useState(null);
     const [images, setImages] = useState([]);
     const [permissionResponse, requestPermission] = MediaLibrary.usePermissions();
 
@@ -21,11 +22,19 @@ export default function SelectPhotosScreen({ closeModal }) {
         setAssets(fetchedObj.assets);
     }
 
+    function goBack() {
+        navigation.goBack();
+    }
+
+    function next() {
+        navigation.navigate('PostOptions')
+    }
+
     return (
         <View style={styles.container}>
             <View style={styles.header_ctnr}>
                 <View style={styles.close_icon_ctnr}>
-                    <TouchableOpacity onPress={closeModal}>
+                    <TouchableOpacity onPress={goBack}>
                         <AntDesign name='close' size={24} />
                     </TouchableOpacity>
                 </View>
@@ -33,7 +42,7 @@ export default function SelectPhotosScreen({ closeModal }) {
                     <Text style={styles.title_text}>New Post</Text>
                 </View>
                 <View style={styles.next_icon_ctnr}>
-                    <TouchableOpacity>
+                    <TouchableOpacity onPress={next}>
                         <AntDesign name='right' size={24} color={'#0699FF'} />
                     </TouchableOpacity>
                 </View>
@@ -41,10 +50,10 @@ export default function SelectPhotosScreen({ closeModal }) {
 
 
             <View style={styles.preview_ctnr}>
-                <Image
-                    source={{ uri: images.length > 0 ? images[images.length - 1] : (assets[0] != null && assets[0].uri) }}
+                {assets && <Image
+                    source={{ uri: images.length > 0 ? images[images.length - 1] : (assets.length > 0 && assets[0].uri) }}
                     style={styles.preview_image}
-                />
+                />}
             </View>
 
             <View style={styles.images_header_ctnr}>

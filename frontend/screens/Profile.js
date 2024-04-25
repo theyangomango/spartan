@@ -15,13 +15,14 @@ import SelectPhotosScreen from "../components/profile/CreatePostModal/SelectPhot
 
 export default function Profile({ navigation, route }) {
     const userData = route.params.userData;
+
     const [posts, setPosts] = useState([]);
     const [postsSelected, setPostsSelected] = useState(true);
 
     const [bkgColor, setBkgColor] = useState('#000');
     const bottomSheet = useRef();
 
-    const [modalVisible, setModalVisible] = useState(false);
+    // const [modalVisible, setModalVisible] = useState(false);
 
     useEffect(() => {
         getPosts();
@@ -60,16 +61,14 @@ export default function Profile({ navigation, route }) {
     }
 
     function closeNewPostModal() {
-        setModalVisible(false);
+        navigation.goBack();
     }
 
     function uploadPost() {
         console.log('Upload Post');
         // ! Dont understand what is going on here
         bottomSheet.current.close()
-        setTimeout(() => {
-            setModalVisible(true);
-        }, 400)
+        navigation.navigate('SelectPhotos')
     }
 
     function selectPosts() {
@@ -80,18 +79,14 @@ export default function Profile({ navigation, route }) {
         setPostsSelected(false);
     }
 
+    function toOptionsScreen() {
+        console.log('Options');
+        navigation.navigate('PostOptions');
+    }
+
     return (
 
         <View style={styles.main_ctnr}>
-
-            <Modal
-                animationType="slide"
-                visible={modalVisible}
-            >
-                <SelectPhotosScreen closeModal={closeNewPostModal} />
-            </Modal>
-
-
             <View style={styles.body_ctnr}>
                 <BottomSheet
                     hasDraggableIcon

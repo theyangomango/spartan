@@ -18,6 +18,7 @@
     "@expo-google-fonts/source-sans-pro": "^0.2.3",
     "@react-navigation/bottom-tabs": "^6.5.20",
     "@react-navigation/native": "^6.1.17",
+    "@react-navigation/native-stack": "^6.9.26",
     "expo": "~50.0.14",
     "expo-dev-client": "~3.3.11",
     "expo-font": "~11.10.3",

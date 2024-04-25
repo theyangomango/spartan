@@ -103,7 +103,6 @@ const styles = StyleSheet.create({
         paddingLeft: 8,
         paddingTop: 10
     },
-
     story_text: {
         fontFamily: 'Inter_400Regular',
         fontSize: 10,

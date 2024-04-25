@@ -32,7 +32,7 @@ export default function Footer({ navigation, currentScreenName, userData }) {
 
     function toProfileScreen() {
         if (!userData) return;
-        navigation.navigate('Profile', {
+        navigation.navigate('ProfileStack', {
             userData: userData
         })
     }
