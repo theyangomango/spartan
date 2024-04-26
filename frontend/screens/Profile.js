@@ -14,7 +14,7 @@ import CreateModal from "../components/profile/CreateModal";
 import SelectPhotosScreen from "../components/profile/CreatePostModal/SelectPhotosScreen";
 
 export default function Profile({ navigation, route }) {
-    const userData = route.params.userData;
+    const { userData } = route.params;
 
     const [posts, setPosts] = useState([]);
     const [postsSelected, setPostsSelected] = useState(true);
@@ -66,9 +66,10 @@ export default function Profile({ navigation, route }) {
 
     function uploadPost() {
         console.log('Upload Post');
-        // ! Dont understand what is going on here
         bottomSheet.current.close()
-        navigation.navigate('SelectPhotos')
+        navigation.navigate('SelectPhotos', {
+            userData: userData
+        })
     }
 
     function selectPosts() {
@@ -81,7 +82,9 @@ export default function Profile({ navigation, route }) {
 
     function toOptionsScreen() {
         console.log('Options');
-        navigation.navigate('PostOptions');
+        navigation.navigate('PostOptions', {
+            userData: userData
+        });
     }
 
     return (

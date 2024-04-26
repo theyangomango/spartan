@@ -63,14 +63,14 @@ const styles = StyleSheet.create({
     post_text: {
         fontFamily: 'SourceSansPro_400Regular',
         fontSize: 16,
-        paddingTop: 6,
-        paddingBottom: 6
+        paddingTop: 7,
+        paddingBottom: 7
     },
     story_text: {
         fontFamily: 'SourceSansPro_400Regular',
         fontSize: 16,
-        paddingTop: 6,
-        paddingBottom: 6
+        paddingTop: 7,
+        paddingBottom: 7
     },
     story_icon_ctnr: {
         justifyContent: 'center',

@@ -76,7 +76,6 @@ const styles = StyleSheet.create({
         fontSize: 18,
         color: '#888'
     },
-
     add_exercise_btn: {
         width: '100%',
         height: 35,

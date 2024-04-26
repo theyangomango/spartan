@@ -5,7 +5,7 @@ import * as MediaLibrary from 'expo-media-library';
 import Photo from './Photo';
 
 export default function SelectPhotosScreen({ navigation, route }) {
-
+    const { userData } = route.params;
     const [assets, setAssets] = useState(null);
     const [images, setImages] = useState([]);
     const [permissionResponse, requestPermission] = MediaLibrary.usePermissions();
@@ -27,7 +27,10 @@ export default function SelectPhotosScreen({ navigation, route }) {
     }
 
     function next() {
-        navigation.navigate('PostOptions')
+        navigation.navigate('PostOptions', {
+            userData: userData,
+            images: images
+        });
     }
 
     return (
@@ -35,7 +38,7 @@ export default function SelectPhotosScreen({ navigation, route }) {
             <View style={styles.header_ctnr}>
                 <View style={styles.close_icon_ctnr}>
                     <TouchableOpacity onPress={goBack}>
-                        <AntDesign name='close' size={24} />
+                        <AntDesign name='close' size={20} />
                     </TouchableOpacity>
                 </View>
                 <View style={styles.header_text_ctnr}>
@@ -43,7 +46,7 @@ export default function SelectPhotosScreen({ navigation, route }) {
                 </View>
                 <View style={styles.next_icon_ctnr}>
                     <TouchableOpacity onPress={next}>
-                        <AntDesign name='right' size={24} color={'#0699FF'} />
+                        <AntDesign name='right' size={20} color={images.length > 0 ? '#0699FF' : '#000'} />
                     </TouchableOpacity>
                 </View>
             </View>
@@ -97,9 +100,9 @@ const styles = StyleSheet.create({
         paddingHorizontal: 18
     },
     title_text: {
-        fontFamily: 'Inter_700Bold',
-        fontSize: 18,
         padding: 10,
+        fontFamily: 'Mulish_700Bold',
+        fontSize: 17,
     },
     preview_ctnr: {
         width: '100%',
