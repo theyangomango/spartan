@@ -26,17 +26,17 @@ const styles = StyleSheet.create({
         borderWidth: 1.5,
         borderRadius: 10,
         borderColor: '#aaa',
-        backgroundColor: '#f6f6f6'
+        backgroundColor: '#fafafa'
     },
     selected: {
         borderColor: '#0699FF'
     },
     finished: {
         paddingVertical: 3,
-        marginVertical: 3.5,
+        marginVertical: 3,
         paddingHorizontal: 16,
     },
     text: {
         fontFamily: 'Mulish_700Bold',
-    }
+    },
 });
