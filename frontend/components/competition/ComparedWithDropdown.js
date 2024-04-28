@@ -14,7 +14,7 @@ const data = [
     { label: 'Item 8', value: '8' },
 ];
 
-export default function ComparingDropdown() {
+export default function ComparedWithDropdown() {
     const [value, setValue] = useState('1');
     const [isFocus, setIsFocus] = useState(false);
 
@@ -29,7 +29,7 @@ export default function ComparingDropdown() {
                 showsVerticalScrollIndicator={false}
                 data={data}
                 search
-                maxHeight={250}
+                maxHeight={200}
                 labelField="label"
                 valueField="value"
                 searchPlaceholder="Search..."
@@ -41,7 +41,7 @@ export default function ComparingDropdown() {
                     setIsFocus(false);
                 }}
                 renderRightIcon={() => (
-                    <ArrowDown2 size={20} color="#fff" style={styles.right_icon} />
+                    <ArrowDown2 size={20} color="#000" style={styles.right_icon} />
                 )}
                 renderItem={item => {
                     return (
@@ -57,11 +57,7 @@ export default function ComparingDropdown() {
 
 const styles = StyleSheet.create({
     container: {
-        backgroundColor: '#2D9EFF',
-        position: 'absolute',
-        top: 40,
-        right: 0,
-        width: 200,
+        width: 110
     },
     dropdown: {
         height: 50,
@@ -70,9 +66,9 @@ const styles = StyleSheet.create({
     drop_ctnr: {
         borderRadius: 10,
         backgroundColor: '#fff',
-        width: 185,
+        width: 300,
         shadowColor: '#000',
-        shadowOffset: { width: -4, height: 5 },
+        shadowOffset: { width: -4, height: -4 },
         shadowOpacity: 0.3,
         shadowRadius: 4,
     },
@@ -88,10 +84,9 @@ const styles = StyleSheet.create({
         marginRight: 5,
     },
     selected_text: {
+        fontFamily: 'Mulish_700Bold',
         fontSize: 16,
-        color: '#fff',
-        fontFamily: 'Inter_600SemiBold',
-        textAlign: 'right'
+        textAlign: 'left'
     },
     iconStyle: {
         width: 20,
@@ -108,6 +103,6 @@ const styles = StyleSheet.create({
     },
     right_icon: {
         marginLeft: 5,
-        marginRight: 15
+        marginRight: 15,
     }
 });

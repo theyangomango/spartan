@@ -3,6 +3,7 @@ import Footer from "../components/Footer";
 import { ArrowUp2, ArrowDown2 } from 'iconsax-react-native'
 import Podium from "../components/competition/Podium";
 import ComparingDropdown from "../components/competition/ComparingDropdown";
+import ComparedWithDropdown from "../components/competition/ComparedWithDropdown";
 
 export default function Competition({ navigation, route }) {
     const userData = route.params.userData;
@@ -11,20 +12,22 @@ export default function Competition({ navigation, route }) {
         <View style={styles.main_ctnr}>
             <View style={styles.body}>
                 <View style={styles.top_ctnr}>
-                    <TouchableOpacity style={styles.header}>
+                    <View style={styles.header}>
                         <ComparingDropdown />
-                    </TouchableOpacity>
+                    </View>
 
                     <Podium />
                 </View>
 
                 <View style={styles.bottom_ctnr}>
                     <TouchableOpacity>
-                        <View style={styles.bottom_ctnr_heading}>
-                            <Text style={styles.bottom_ctnr_heading_text}>All Followers</Text>
+                        {/* <View style={styles.bottom_ctnr_heading}> */}
+                            {/* <Text style={styles.bottom_ctnr_heading_text}>All Followers</Text>
                             <Text> </Text>
-                            <ArrowDown2 size={18} color="#000" />
-                        </View>
+                            <ArrowDown2 size={18} color="#000" /> */}
+                            <ComparedWithDropdown />
+
+                        {/* </View> */}
                     </TouchableOpacity>
 
                     <ScrollView style={styles.scrollview_ctnr}>
@@ -38,7 +41,7 @@ export default function Competition({ navigation, route }) {
                             <View style={styles.card_right}>
                                 <Text style={styles.stat_text}>225lbs</Text>
                                 <Text style={styles.rank_text}>1st</Text>
-                                <ArrowUp2 size={20} color="#50C878" style={styles.arrow_icon}/>
+                                <ArrowUp2 size={20} color="#50C878" style={styles.arrow_icon} />
                             </View>
                         </View>
 
@@ -52,7 +55,7 @@ export default function Competition({ navigation, route }) {
                             <View style={styles.card_right}>
                                 <Text style={styles.stat_text}>30lbs</Text>
                                 <Text style={styles.rank_text}>2nd</Text>
-                                <ArrowDown2 size={20} color="red" style={styles.arrow_icon}/>
+                                <ArrowDown2 size={20} color="red" style={styles.arrow_icon} />
                             </View>
                         </View>
                     </ScrollView>
