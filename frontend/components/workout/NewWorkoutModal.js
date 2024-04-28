@@ -1,30 +1,55 @@
-import { StyleSheet, View, Text, Modal } from "react-native";
+import { useEffect, useState } from "react";
+import { StyleSheet, View, Text, Modal, TouchableOpacity, ScrollView } from "react-native";
+import { readDoc } from "../../../backend/helper/firebase/readDoc";
+import millisToMinutesAndSeconds from "../../helper/milliesToMinutesAndSeconds";
+import ExerciseCard from "./ExerciseCard";
 
-export default function NewWorkoutModal() {
+export default function NewWorkoutModal({ wid, closeModal }) {
+    const [workout, setWorkout] = useState(null);
+    const [timer, setTimer] = useState('0:00');
+
+    useEffect(() => {
+        init();
+    }, [])
+
+    async function init() {
+        let data = await readDoc('workouts', wid);
+        await setWorkout(data);
+
+        let createdTime = data.created;
+        setInterval(() => {
+            let diff = Date.now() - createdTime;
+            console.log(millisToMinutesAndSeconds(diff));
+            // setTimer(millisToMinutesAndSeconds(diff));
+        }, 1000);
+    }
+
     return (
-        <View style={styles.main_ctnr}>
+        <ScrollView style={styles.main_ctnr}>
             <View style={styles.header}>
-                <View style={styles.cancel_btn}>
+                <TouchableOpacity onPress={closeModal} style={styles.cancel_btn}>
                     <Text style={styles.cancel_btn_text}>Cancel</Text>
-                </View>
-                <View style={styles.finish_btn}>
+                </TouchableOpacity>
+                <TouchableOpacity style={styles.finish_btn}>
                     <Text style={styles.finish_btn_text}>Finish</Text>
-                </View>
+                </TouchableOpacity>
             </View>
 
             <View>
                 <Text style={styles.title_text}>April 20th Workout</Text>
-                <Text style={styles.stopwatch_text}>12:15</Text>
+                <Text style={styles.stopwatch_text}>{timer}</Text>
             </View>
 
-            <View>
-            </View>
+            <ExerciseCard />
+            <ExerciseCard />
+            <ExerciseCard />
 
-            <View style={styles.add_exercise_btn}>
+
+
+            <TouchableOpacity style={styles.add_exercise_btn}>
                 <Text style={styles.add_exercise_text}>Add Exercise</Text>
-            </View>
-
-        </View>
+            </TouchableOpacity>
+        </ScrollView>
     )
 }
 

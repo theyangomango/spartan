@@ -7,11 +7,14 @@ import Footer from "../components/Footer";
 import TemplateCard from "../components/workout/TemplateCard";
 import StartWorkoutButton from "../components/workout/StartWorkoutButton";
 import JoinWorkoutButton from "../components/workout/JoinWorkoutButton";
+import initWorkout from "../../backend/initWorkout";
+import makeID from "../../backend/helper/makeID";
 
 export default function Workout({ navigation, route }) {
     const userData = route.params.userData;
     const [bkgColor, setBkgColor] = useState('#000');
     const bottomSheet = useRef();
+    const [wid, setWID] = useState(null);
 
     useFocusEffect(
         React.useCallback(() => {
@@ -32,7 +35,14 @@ export default function Workout({ navigation, route }) {
     );
 
     function startNewWorkout() {
-        bottomSheet.current.show()
+        let wid = makeID();
+        initWorkout(wid, userData.uid);
+        setWID(wid);
+        bottomSheet.current.show();
+    }
+
+    function closeNewWorkoutModal() {
+        bottomSheet.current.close();
     }
 
     return (
@@ -43,8 +53,10 @@ export default function Workout({ navigation, route }) {
                 height={800}
                 sheetBackgroundColor={'#fff'}
                 backgroundColor={bkgColor}
+                // Todo edit draggable option to allow scrolling
+                // draggable={false} 
             >
-                <NewWorkoutModal />
+                <NewWorkoutModal wid={wid} closeModal={(closeNewWorkoutModal)} />
             </BottomSheet>
 
 
