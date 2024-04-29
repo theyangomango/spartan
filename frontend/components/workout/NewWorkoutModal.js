@@ -2,9 +2,11 @@ import { useEffect, useState } from "react";
 import { StyleSheet, View, Text, Modal, TouchableOpacity, ScrollView } from "react-native";
 import { readDoc } from "../../../backend/helper/firebase/readDoc";
 import millisToMinutesAndSeconds from "../../helper/milliesToMinutesAndSeconds";
-import ExerciseCard from "./ExerciseCard";
+import ExerciseLog from "./ExerciseLog";
+import SelectExerciseModal from "./SelectExerciseModal";
 
 export default function NewWorkoutModal({ wid, closeModal }) {
+    const [selectExerciseModalVisible, setSelectExerciseModalVisible] = useState(false);
     const [workout, setWorkout] = useState(null);
     const [timer, setTimer] = useState('0:00');
 
@@ -19,13 +21,28 @@ export default function NewWorkoutModal({ wid, closeModal }) {
         let createdTime = data.created;
         setInterval(() => {
             let diff = Date.now() - createdTime;
-            console.log(millisToMinutesAndSeconds(diff));
             // setTimer(millisToMinutesAndSeconds(diff));
         }, 1000);
     }
 
+    function showSelectExerciseModal() {
+        setSelectExerciseModalVisible(true);
+    }
+
+    function closeSelectExerciseModal() {
+        console.log('hi');
+        setSelectExerciseModalVisible(false);
+    }
+
     return (
         <ScrollView style={styles.main_ctnr}>
+            <Modal
+                animationType='fade'
+                transparent={true}
+                visible={selectExerciseModalVisible}>
+                <SelectExerciseModal closeModal={closeSelectExerciseModal}/>
+            </Modal>
+
             <View style={styles.header}>
                 <TouchableOpacity onPress={closeModal} style={styles.cancel_btn}>
                     <Text style={styles.cancel_btn_text}>Cancel</Text>
@@ -40,16 +57,16 @@ export default function NewWorkoutModal({ wid, closeModal }) {
                 <Text style={styles.stopwatch_text}>{timer}</Text>
             </View>
 
-            <ExerciseCard />
-            <ExerciseCard />
-            <ExerciseCard />
+            <ExerciseLog />
+            <ExerciseLog />
+            <ExerciseLog />
 
 
 
-            <TouchableOpacity style={styles.add_exercise_btn}>
+            <TouchableOpacity onPress={showSelectExerciseModal} style={styles.add_exercise_btn}>
                 <Text style={styles.add_exercise_text}>Add Exercise</Text>
             </TouchableOpacity>
-        </ScrollView>
+        </ScrollView >
     )
 }
 
