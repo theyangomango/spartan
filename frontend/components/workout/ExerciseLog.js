@@ -2,15 +2,15 @@ import { View, StyleSheet, Text, TextInput, Pressable } from "react-native";
 import { useState } from "react";
 import SetRow from "./SetRow";
 
-export default function ExerciseLog() {
+export default function ExerciseLog({ name }) {
     const [sets, setSets] = useState([
-        { previous: '405lb x 12' }, { previous: '405lb x 12' }, { previous: '405lb x 12' }
+        { previous: '405lb x 12' }
     ]);
 
     return (
         <View style={styles.main_ctnr}>
             <View style={styles.header}>
-                <Text style={styles.exercise_text}>Bench Press</Text>
+                <Text style={styles.exercise_text}>{name}</Text>
             </View>
             <View style={styles.labels}>
                 <View style={styles.set_ctnr}>

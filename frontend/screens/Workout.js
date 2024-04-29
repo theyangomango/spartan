@@ -9,6 +9,8 @@ import StartWorkoutButton from "../components/workout/StartWorkoutButton";
 import JoinWorkoutButton from "../components/workout/JoinWorkoutButton";
 import initWorkout from "../../backend/initWorkout";
 import makeID from "../../backend/helper/makeID";
+import eraseDoc from "../../backend/helper/firebase/eraseDoc";
+import updateDoc from "../../backend/helper/firebase/updateDoc";
 
 export default function Workout({ navigation, route }) {
     const userData = route.params.userData;
@@ -35,10 +37,19 @@ export default function Workout({ navigation, route }) {
     );
 
     function startNewWorkout() {
-        let wid = makeID();
-        initWorkout(wid, userData.uid);
-        setWID(wid);
+        let newWID = makeID();
+        initWorkout(newWID, userData.uid);
+        setWID(newWID);
         bottomSheet.current.show();
+    }
+
+    function updateNewWorkout(workout) {
+        updateDoc('workouts', wid, workout);
+    }
+
+    function cancelNewWorkout() {
+        eraseDoc('workouts', wid);
+        closeNewWorkoutModal();
     }
 
     function closeNewWorkoutModal() {
@@ -53,10 +64,15 @@ export default function Workout({ navigation, route }) {
                 height={800}
                 sheetBackgroundColor={'#fff'}
                 backgroundColor={bkgColor}
-                // Todo edit draggable option to allow scrolling
-                // draggable={false} 
+            // Todo edit draggable option to allow scrolling
+            // draggable={false} 
             >
-                <NewWorkoutModal wid={wid} closeModal={(closeNewWorkoutModal)} />
+                <NewWorkoutModal
+                    wid={wid}
+                    closeModal={(closeNewWorkoutModal)}
+                    cancelWorkout={cancelNewWorkout}
+                    updateWorkout={updateNewWorkout}
+                />
             </BottomSheet>
 
 

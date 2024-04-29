@@ -5,14 +5,17 @@ import millisToMinutesAndSeconds from "../../helper/milliesToMinutesAndSeconds";
 import ExerciseLog from "./ExerciseLog";
 import SelectExerciseModal from "./SelectExerciseModal";
 
-export default function NewWorkoutModal({ wid, closeModal }) {
+export default function NewWorkoutModal({ wid, closeModal, cancelWorkout, updateWorkout }) {
     const [selectExerciseModalVisible, setSelectExerciseModalVisible] = useState(false);
-    const [workout, setWorkout] = useState(null);
+    const [workout, setWorkout] = useState({
+        wid: wid,
+        exercises: [],
+    });
     const [timer, setTimer] = useState('0:00');
 
     useEffect(() => {
         init();
-    }, [])
+    }, []);
 
     async function init() {
         let data = await readDoc('workouts', wid);
@@ -34,7 +37,14 @@ export default function NewWorkoutModal({ wid, closeModal }) {
     }
 
     function appendExercises(exercises) {
-        console.log(exercises);
+        for (exercise of exercises) {
+            workout.exercises.push({
+                name: exercise,
+                sets: []
+            })
+        }
+        updateWorkout(workout);
+        console.log(workout);
     }
 
     return (
@@ -47,7 +57,7 @@ export default function NewWorkoutModal({ wid, closeModal }) {
             </Modal>
 
             <View style={styles.header}>
-                <TouchableOpacity onPress={closeModal} style={styles.cancel_btn}>
+                <TouchableOpacity onPress={cancelWorkout} style={styles.cancel_btn}>
                     <Text style={styles.cancel_btn_text}>Cancel</Text>
                 </TouchableOpacity>
                 <TouchableOpacity style={styles.finish_btn}>
@@ -60,11 +70,13 @@ export default function NewWorkoutModal({ wid, closeModal }) {
                 <Text style={styles.stopwatch_text}>{timer}</Text>
             </View>
 
-            <ExerciseLog />
-            <ExerciseLog />
-            <ExerciseLog />
-
-
+            {
+                workout.exercises.map((ex, index) => {
+                    return (
+                        <ExerciseLog name={ex.name} key={index} />
+                    )
+                })
+            }
 
             <TouchableOpacity onPress={showSelectExerciseModal} style={styles.add_exercise_btn}>
                 <Text style={styles.add_exercise_text}>Add Exercise</Text>

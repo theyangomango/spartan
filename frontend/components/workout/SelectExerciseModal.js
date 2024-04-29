@@ -18,7 +18,7 @@ export default function SelectExerciseModal({ closeModal, appendExercises }) {
     }
 
     function handleFinish() {
-        if (selectExercise.length == 0) return;
+        if (selectedExercises.length == 0) return;
         appendExercises(selectedExercises);
         closeModal();
     }
