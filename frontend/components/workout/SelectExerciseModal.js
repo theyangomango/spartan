@@ -1,17 +1,49 @@
-import { StyleSheet, View, Text, Pressable, ScrollView } from "react-native";
+import { StyleSheet, View, Text, Pressable, ScrollView, TouchableOpacity } from "react-native";
 import ExerciseCard from "./ExerciseCard";
+import { Add } from 'iconsax-react-native'
+import { Ionicons } from '@expo/vector-icons'
+import { useState } from "react";
 
-export default function SelectExerciseModal({ closeModal }) {
+export default function SelectExerciseModal({ closeModal, appendExercises }) {
+    const [selectedExercises, setSelectedExercises] = useState([]);
+
+    function selectExercise(name) {
+        setSelectedExercises([...selectedExercises, name]);
+    }
+
+    function deselectExercise(name) {
+        setSelectedExercises(selectedExercises.filter(exercise => {
+            exercise != name
+        }));
+    }
+
+    function handleFinish() {
+        if (selectExercise.length == 0) return;
+        appendExercises(selectedExercises);
+        closeModal();
+    }
 
     return (
         <View style={styles.modal_outside}>
             <Pressable onPress={() => closeModal()} style={styles.outside_pressable} />
             <View style={styles.main_ctnr}>
+                <View style={styles.header}>
+                    <View style={styles.add_icon_ctnr}>
+                        <Add size={30} color={'#777'} />
+                    </View>
+                    <TouchableOpacity onPress={handleFinish} style={styles.done_icon_ctnr}>
+                        <Ionicons
+                            name="checkmark-done"
+                            size={26}
+                            color={selectedExercises.length == 0 ? '#777' : '#0699FF'}
+                        />
+                    </TouchableOpacity>
+                </View>
                 <ScrollView>
-                    <ExerciseCard />
-                    <ExerciseCard />
-                    <ExerciseCard />
-                    <ExerciseCard />
+                    <ExerciseCard name={'Lateral Raise'} selectExercise={selectExercise} deselectExercise={deselectExercise} />
+                    <ExerciseCard name={'Bench Press'} selectExercise={selectExercise} deselectExercise={deselectExercise} />
+                    <ExerciseCard name={'Dumbell Press'} selectExercise={selectExercise} deselectExercise={deselectExercise} />
+                    <ExerciseCard name={'Ab Wheel'} selectExercise={selectExercise} deselectExercise={deselectExercise} />
                 </ScrollView>
             </View>
             <Pressable onPress={() => closeModal()} style={styles.outside_pressable} />
@@ -41,6 +73,17 @@ const styles = StyleSheet.create({
         shadowOffset: { width: 0, height: 2 },
         shadowOpacity: 0.8,
         shadowRadius: 3,
-        padding: 10
+        paddingVertical: 10
     },
+    header: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        paddingHorizontal: 10
+    },
+    add_icon_ctnr: {
+        padding: 3
+    },
+    done_icon_ctnr: {
+        padding: 5
+    }
 });

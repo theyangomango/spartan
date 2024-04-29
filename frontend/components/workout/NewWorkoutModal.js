@@ -30,8 +30,11 @@ export default function NewWorkoutModal({ wid, closeModal }) {
     }
 
     function closeSelectExerciseModal() {
-        console.log('hi');
         setSelectExerciseModalVisible(false);
+    }
+
+    function appendExercises(exercises) {
+        console.log(exercises);
     }
 
     return (
@@ -40,7 +43,7 @@ export default function NewWorkoutModal({ wid, closeModal }) {
                 animationType='fade'
                 transparent={true}
                 visible={selectExerciseModalVisible}>
-                <SelectExerciseModal closeModal={closeSelectExerciseModal}/>
+                <SelectExerciseModal closeModal={closeSelectExerciseModal} appendExercises={appendExercises} />
             </Modal>
 
             <View style={styles.header}>
