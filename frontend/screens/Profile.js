@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useRef } from "react";
-import { StyleSheet, View, Text, TouchableOpacity, Pressable, Modal } from "react-native";
+import { StyleSheet, View, Pressable } from "react-native";
 import { useFocusEffect } from '@react-navigation/native';
 import { Grid2, Activity } from 'iconsax-react-native'
 import BottomSheet from "react-native-gesture-bottom-sheet";
@@ -9,21 +9,16 @@ import ProfileInfo from "../components/profile/ProfileInfo";
 import EditProfileButton from "../components/profile/EditProfileButton";
 import WorkoutStats from "../components/profile/WorkoutStats";
 import PostPreview from "../components/profile/PostPreview";
-import { readDoc } from "../../backend/helper/firebase/readDoc";
+import readDoc from "../../backend/helper/firebase/readDoc";
 import CreateModal from "../components/profile/CreateModal";
-import SelectPhotosScreen from "../components/profile/CreatePostModal/SelectPhotosScreen";
 import WorkoutFooter from "../components/workout/WorkoutFooter";
 
-export default function Profile({ navigation, route }) {
-    const { userData } = route.params;
-
+export default function Profile({ navigation }) {
+    const userData = global.userData;
     const [posts, setPosts] = useState([]);
     const [postsSelected, setPostsSelected] = useState(true);
-
     const [bkgColor, setBkgColor] = useState('#000');
     const bottomSheet = useRef();
-
-    // const [modalVisible, setModalVisible] = useState(false);
 
     useEffect(() => {
         getPosts();
@@ -31,7 +26,6 @@ export default function Profile({ navigation, route }) {
 
     useFocusEffect(
         React.useCallback(() => {
-            // Do something when the screen is focused
             const interval = setInterval(() => {
                 let panY = parseInt(JSON.stringify(bottomSheet.current.state.pan.y));
                 let animatedHeight = parseInt(JSON.stringify(bottomSheet.current.state.animatedHeight));
@@ -40,8 +34,6 @@ export default function Profile({ navigation, route }) {
             }, 50);
 
             return () => {
-                // Do something when the screen is unfocused
-                // Useful for cleanup functions
                 clearInterval(interval);
             };
         }, [])
@@ -130,10 +122,10 @@ export default function Profile({ navigation, route }) {
             </View>
 
             {global.workout &&
-                <WorkoutFooter userData={userData}/>
+                <WorkoutFooter userData={userData} />
             }
 
-            <Footer navigation={navigation} currentScreenName={'Profile'} userData={userData} />
+            <Footer navigation={navigation} currentScreenName={'Profile'} />
         </View>
 
     )

@@ -1,40 +1,30 @@
 import { Pressable, StyleSheet, View } from "react-native";
 import { Home, Cup, Weight, SearchNormal1, Profile } from 'iconsax-react-native'
 
-export default function Footer({ navigation, currentScreenName, userData }) {
+export default function Footer({ navigation, currentScreenName }) {
     function toFeedScreen() {
-        if (!userData) return;
-        navigation.navigate('Feed', {
-            userData: userData
-        })
+        if (!global.userData) return;
+        navigation.navigate('Feed');
     }
 
     function toCompetitionScreen() {
-        if (!userData) return;
-        navigation.navigate('Competition', {
-            userData: userData
-        })
+        if (!global.userData) return;
+        navigation.navigate('Competition');
     }
 
     function toWorkoutScreen() {
-        if (!userData) return;
-        navigation.navigate('Workout', {
-            userData: userData
-        })
+        if (!global.userData) return;
+        navigation.navigate('Workout');
     }
 
     function toExploreScreen() {
-        if (!userData) return;
-        navigation.navigate('Explore', {
-            userData: userData
-        })
+        if (!global.userData) return;
+        navigation.navigate('Explore');
     }
 
     function toProfileScreen() {
-        if (!userData) return;
-        navigation.navigate('ProfileStack', {
-            userData: userData
-        })
+        if (!global.userData) return;
+        navigation.navigate('ProfileStack');
     }
 
     return (

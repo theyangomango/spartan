@@ -1,4 +1,4 @@
-import { createDoc } from "./helper/firebase/createDoc";
+import createDoc from "./helper/firebase/createDoc";
 
 export default async function initWorkout(wid, creatorUID) {
     createDoc('workouts', wid, {

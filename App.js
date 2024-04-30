@@ -103,16 +103,14 @@ import {
 const Tab = createBottomTabNavigator();
 const Stack = createNativeStackNavigator();
 
-const ProfileStack = (({navigation, route}) => {
+const ProfileStack = (({ navigation, route }) => {
     return (
         <Stack.Navigator initialRouteName='Profile' screenOptions={{
             headerShown: false
         }}>
-            <Stack.Screen name='Profile' component={Profile} initialParams={{
-                userData: route.params.userData
-            }}/>
-            <Stack.Screen name='SelectPhotos' component={SelectPhotosScreen}/>
-            <Stack.Screen name='PostOptions' component={PostOptionsScreen}/>
+            <Stack.Screen name='Profile' component={Profile} />
+            <Stack.Screen name='SelectPhotos' component={SelectPhotosScreen} />
+            <Stack.Screen name='PostOptions' component={PostOptionsScreen} />
         </Stack.Navigator>
     )
 });

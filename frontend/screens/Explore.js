@@ -3,17 +3,17 @@ import Footer from "../components/Footer";
 import WorkoutFooter from "../components/workout/WorkoutFooter";
 
 export default function Explore({ navigation, route }) {
-    const userData = route.params.userData;
+    const userData = global.userData;
 
     return (
         <>
             <View style={{ flex: 1 }}></View>
 
             {global.workout &&
-                <WorkoutFooter userData={userData}/>
+                <WorkoutFooter userData={userData} />
             }
 
-            <Footer navigation={navigation} currentScreenName={'Explore'} userData={userData} />
+            <Footer navigation={navigation} currentScreenName={'Explore'} />
         </>
     )
 }

@@ -1,20 +1,11 @@
+import { useDebugValue, useEffect, useReducer, useState } from "react";
 import { ScrollView, StyleSheet, View } from "react-native";
 import MessageCard from "../components/messages/MessageCard";
 import MessagesHeader from "../components/messages/MessagesHeader";
-import { useDebugValue, useEffect, useReducer, useState } from "react";
 
 export default function Messages({ navigation, route }) {
-
-    const [userData, setUserData] = useState(null);
-    const [messages, setMessages] = useState(null);
-
-    useEffect(() => {
-        if (userData == null) {
-            console.log('hello');
-            setUserData(route.params.userData);
-            setMessages(route.params.messages);
-        }
-    }, []);
+    const userData = global.userData;
+    const messages = route.params.messages;
 
     function toFeedScreen() {
         navigation.goBack();

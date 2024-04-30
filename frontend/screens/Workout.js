@@ -2,7 +2,7 @@ import React, { useRef, useState } from "react";
 import { Text, StyleSheet, View } from "react-native";
 import { useFocusEffect } from '@react-navigation/native';
 import BottomSheet from "react-native-gesture-bottom-sheet";
-import NewWorkoutModal from "../components/workout/NewWorkoutModal";
+import NewWorkoutModal from "../components/workout/new_workout/NewWorkoutModal";
 import Footer from "../components/Footer";
 import TemplateCard from "../components/workout/TemplateCard";
 import StartWorkoutButton from "../components/workout/StartWorkoutButton";
@@ -14,8 +14,8 @@ import updateDoc from "../../backend/helper/firebase/updateDoc";
 import WorkoutFooter from "../components/workout/WorkoutFooter";
 import JoinWorkoutModal from "../components/workout/JoinWorkoutModal";
 
-export default function Workout({ navigation, route }) {
-    const userData = route.params.userData;
+export default function Workout({ navigation }) {
+    const userData = global.userData;
     const [newWorkoutBkgColor, setNewWorkoutBkgColor] = useState('#000');
     const [joinWorkoutBkgColor, setJoinWorkoutBkgColor] = useState('#000');
     const newWorkoutBottomSheet = useRef();
@@ -132,7 +132,7 @@ export default function Workout({ navigation, route }) {
                 <WorkoutFooter userData={userData} />
             }
 
-            <Footer navigation={navigation} currentScreenName={'Workout'} userData={userData} />
+            <Footer navigation={navigation} currentScreenName={'Workout'}/>
         </View>
     );
 };

@@ -1,4 +1,4 @@
-import { createDoc } from '../helper/firebase/createDoc'
+import createDoc from '../helper/firebase/createDoc'
 import makeID from '../helper/makeID'
 
 export default async function createPost(uid, caption, images, wid = null) {

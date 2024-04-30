@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { StyleSheet, View, Text, Modal, TouchableOpacity, ScrollView } from "react-native";
-import millisToMinutesAndSeconds from "../../helper/milliesToMinutesAndSeconds";
+import millisToMinutesAndSeconds from "../../../helper/milliesToMinutesAndSeconds";
 import ExerciseLog from "./ExerciseLog";
 import SelectExerciseModal from "./SelectExerciseModal";
 
