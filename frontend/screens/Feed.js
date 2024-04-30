@@ -6,13 +6,12 @@ import FeedHeader from "../components/feed/FeedHeader";
 import { readDoc } from "../../backend/helper/firebase/readDoc";
 import InstaStory from 'react-native-insta-story';
 import getStoriesDisplayFormat from "../helper/getStoriesDisplayFormat";
+import WorkoutFooter from "../components/workout/WorkoutFooter";
 
 
 const UID = '6b176d7d-4d89-4cb5-beb0-0f19b47a10a2';
 
 export default function Feed({ navigation }) {
-    console.log('Feed Screen');
-
     const [storiesDisplay, setStoriesDisplay] = useState(null);
     const [posts, setPosts] = useState([]);
     const [messages, setMessages] = useState(null);
@@ -89,6 +88,11 @@ export default function Feed({ navigation }) {
                     }
                 </ScrollView>
             </View>
+
+            {global.workout &&
+                <WorkoutFooter userData={userData}/>
+            }
+
             <Footer navigation={navigation} currentScreenName={'Feed'} userData={userData.current} />
         </View>
     )

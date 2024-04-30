@@ -11,12 +11,20 @@ import initWorkout from "../../backend/initWorkout";
 import makeID from "../../backend/helper/makeID";
 import eraseDoc from "../../backend/helper/firebase/eraseDoc";
 import updateDoc from "../../backend/helper/firebase/updateDoc";
+import WorkoutFooter from "../components/workout/WorkoutFooter";
 
 export default function Workout({ navigation, route }) {
     const userData = route.params.userData;
     const [bkgColor, setBkgColor] = useState('#000');
     const bottomSheet = useRef();
-    const [wid, setWID] = useState(null);
+    const [workout, setWorkout] = useState(null);
+    global.workout = workout;
+    global.openWorkoutModal = (user) => {
+        navigation.navigate('Workout', {
+            userData: user
+        });
+        bottomSheet.current.show()
+    }
 
     useFocusEffect(
         React.useCallback(() => {
@@ -39,16 +47,27 @@ export default function Workout({ navigation, route }) {
     function startNewWorkout() {
         let newWID = makeID();
         initWorkout(newWID, userData.uid);
-        setWID(newWID);
+        setWorkout({
+            wid: newWID,
+            creatorUID: userData.uid,
+            created: Date.now(),
+            users: [],
+            exercises: []
+        })
         bottomSheet.current.show();
     }
 
     function updateNewWorkout(workout) {
-        updateDoc('workouts', wid, workout);
+        updateDoc('workouts', workout.wid, workout);
     }
 
     function cancelNewWorkout() {
-        eraseDoc('workouts', wid);
+        eraseDoc('workouts', workout.wid);
+        closeNewWorkoutModal();
+    }
+
+    function finishNewWorkout() {
+        setWorkout(null);
         closeNewWorkoutModal();
     }
 
@@ -68,10 +87,12 @@ export default function Workout({ navigation, route }) {
             // draggable={false} 
             >
                 <NewWorkoutModal
-                    wid={wid}
+                    workout={workout}
+                    setWorkout={setWorkout}
                     closeModal={(closeNewWorkoutModal)}
                     cancelWorkout={cancelNewWorkout}
                     updateWorkout={updateNewWorkout}
+                    finishWorkout={finishNewWorkout}
                 />
             </BottomSheet>
 
@@ -85,7 +106,9 @@ export default function Workout({ navigation, route }) {
                 <TemplateCard />
             </View>
 
-
+            {workout &&
+                <WorkoutFooter userData={userData}/>
+            }
 
             <Footer navigation={navigation} currentScreenName={'Workout'} userData={userData} />
         </View>

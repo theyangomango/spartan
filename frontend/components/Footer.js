@@ -107,10 +107,10 @@ const styles = StyleSheet.create({
         paddingHorizontal: 5,
 
         // Todo Box Shadow
-        shadowColor: '#aaa',
+        shadowColor: '#555',
         shadowOffset: { width: 0, height: 1 },
         shadowOpacity: 1,
-        shadowRadius: 8,
+        shadowRadius: 2,
     },
     icon_ctnr: {
         flex: 1,

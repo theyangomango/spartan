@@ -12,6 +12,7 @@ import PostPreview from "../components/profile/PostPreview";
 import { readDoc } from "../../backend/helper/firebase/readDoc";
 import CreateModal from "../components/profile/CreateModal";
 import SelectPhotosScreen from "../components/profile/CreatePostModal/SelectPhotosScreen";
+import WorkoutFooter from "../components/workout/WorkoutFooter";
 
 export default function Profile({ navigation, route }) {
     const { userData } = route.params;
@@ -127,6 +128,10 @@ export default function Profile({ navigation, route }) {
                     })}
                 </View>
             </View>
+
+            {global.workout &&
+                <WorkoutFooter userData={userData}/>
+            }
 
             <Footer navigation={navigation} currentScreenName={'Profile'} userData={userData} />
         </View>

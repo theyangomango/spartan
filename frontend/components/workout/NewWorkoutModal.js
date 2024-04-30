@@ -1,16 +1,11 @@
 import { useEffect, useState } from "react";
 import { StyleSheet, View, Text, Modal, TouchableOpacity, ScrollView } from "react-native";
-import { readDoc } from "../../../backend/helper/firebase/readDoc";
 import millisToMinutesAndSeconds from "../../helper/milliesToMinutesAndSeconds";
 import ExerciseLog from "./ExerciseLog";
 import SelectExerciseModal from "./SelectExerciseModal";
 
-export default function NewWorkoutModal({ wid, closeModal, cancelWorkout, updateWorkout }) {
+export default function NewWorkoutModal({ workout, setWorkout, closeModal, cancelWorkout, updateWorkout, finishWorkout }) {
     const [selectExerciseModalVisible, setSelectExerciseModalVisible] = useState(false);
-    const [workout, setWorkout] = useState({
-        wid: wid,
-        exercises: [],
-    });
     const [timer, setTimer] = useState('0:00');
 
     useEffect(() => {
@@ -18,13 +13,9 @@ export default function NewWorkoutModal({ wid, closeModal, cancelWorkout, update
     }, []);
 
     async function init() {
-        let data = await readDoc('workouts', wid);
-        await setWorkout(data);
-
-        let createdTime = data.created;
         setInterval(() => {
-            let diff = Date.now() - createdTime;
-            // setTimer(millisToMinutesAndSeconds(diff));
+            let diff = Date.now() - workout.created;
+            setTimer(millisToMinutesAndSeconds(diff));
         }, 1000);
     }
 
@@ -53,14 +44,17 @@ export default function NewWorkoutModal({ wid, closeModal, cancelWorkout, update
                 animationType='fade'
                 transparent={true}
                 visible={selectExerciseModalVisible}>
-                <SelectExerciseModal closeModal={closeSelectExerciseModal} appendExercises={appendExercises} />
+                <SelectExerciseModal
+                    closeModal={closeSelectExerciseModal}
+                    appendExercises={appendExercises}
+                />
             </Modal>
 
             <View style={styles.header}>
                 <TouchableOpacity onPress={cancelWorkout} style={styles.cancel_btn}>
                     <Text style={styles.cancel_btn_text}>Cancel</Text>
                 </TouchableOpacity>
-                <TouchableOpacity style={styles.finish_btn}>
+                <TouchableOpacity onPress={finishWorkout} style={styles.finish_btn}>
                     <Text style={styles.finish_btn_text}>Finish</Text>
                 </TouchableOpacity>
             </View>

@@ -4,6 +4,7 @@ import { ArrowUp2, ArrowDown2 } from 'iconsax-react-native'
 import Podium from "../components/competition/Podium";
 import ComparingDropdown from "../components/competition/ComparingDropdown";
 import ComparedWithDropdown from "../components/competition/ComparedWithDropdown";
+import WorkoutFooter from "../components/workout/WorkoutFooter";
 
 export default function Competition({ navigation, route }) {
     const userData = route.params.userData;
@@ -22,10 +23,10 @@ export default function Competition({ navigation, route }) {
                 <View style={styles.bottom_ctnr}>
                     <TouchableOpacity>
                         {/* <View style={styles.bottom_ctnr_heading}> */}
-                            {/* <Text style={styles.bottom_ctnr_heading_text}>All Followers</Text>
+                        {/* <Text style={styles.bottom_ctnr_heading_text}>All Followers</Text>
                             <Text> </Text>
                             <ArrowDown2 size={18} color="#000" /> */}
-                            <ComparedWithDropdown />
+                        <ComparedWithDropdown />
 
                         {/* </View> */}
                     </TouchableOpacity>
@@ -62,6 +63,11 @@ export default function Competition({ navigation, route }) {
                 </View>
 
             </View>
+
+            {global.workout &&
+                <WorkoutFooter userData={userData}/>
+            }
+
             <Footer navigation={navigation} currentScreenName={'Competition'} userData={userData} />
         </View>
     )
