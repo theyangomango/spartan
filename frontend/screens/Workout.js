@@ -12,37 +12,46 @@ import makeID from "../../backend/helper/makeID";
 import eraseDoc from "../../backend/helper/firebase/eraseDoc";
 import updateDoc from "../../backend/helper/firebase/updateDoc";
 import WorkoutFooter from "../components/workout/WorkoutFooter";
+import JoinWorkoutModal from "../components/workout/JoinWorkoutModal";
 
 export default function Workout({ navigation, route }) {
     const userData = route.params.userData;
-    const [bkgColor, setBkgColor] = useState('#000');
-    const bottomSheet = useRef();
+    const [newWorkoutBkgColor, setNewWorkoutBkgColor] = useState('#000');
+    const [joinWorkoutBkgColor, setJoinWorkoutBkgColor] = useState('#000');
+    const newWorkoutBottomSheet = useRef();
+    const joinWorkoutBottomSheet = useRef();
     const [workout, setWorkout] = useState(null);
     global.workout = workout;
     global.openWorkoutModal = (user) => {
         navigation.navigate('Workout', {
             userData: user
         });
-        bottomSheet.current.show()
+        newWorkoutBottomSheet.current.show()
     }
 
     useFocusEffect(
         React.useCallback(() => {
-            // Do something when the screen is focused
             const interval = setInterval(() => {
-                let panY = parseInt(JSON.stringify(bottomSheet.current.state.pan.y));
-                let animatedHeight = parseInt(JSON.stringify(bottomSheet.current.state.animatedHeight));
-                let realHeight = Math.max(panY, 1100 - animatedHeight);
-                setBkgColor(`rgba(0, 0, 0, ${0.7 - 0.75 * (realHeight / 800)})`)
+                let panY1 = parseInt(JSON.stringify(newWorkoutBottomSheet.current.state.pan.y));
+                let animatedHeight1 = parseInt(JSON.stringify(newWorkoutBottomSheet.current.state.animatedHeight));
+                let realHeight1 = Math.max(panY1, 1100 - animatedHeight1);
+                setNewWorkoutBkgColor(`rgba(0, 0, 0, ${0.7 - 0.75 * (realHeight1 / 800)})`)
+
+                let panY2 = parseInt(JSON.stringify(joinWorkoutBottomSheet.current.state.pan.y));
+                let animatedHeight2 = parseInt(JSON.stringify(joinWorkoutBottomSheet.current.state.animatedHeight));
+                let realHeight2 = Math.max(panY2, 475 - animatedHeight2);
+                setJoinWorkoutBkgColor(`rgba(0, 0, 0, ${0.55 - 0.6 * (realHeight2 / 425)})`)
             }, 50);
 
             return () => {
-                // Do something when the screen is unfocused
-                // Useful for cleanup functions
                 clearInterval(interval);
             };
         }, [])
     );
+
+    function showJoinWorkout() {
+        joinWorkoutBottomSheet.current.show();
+    }
 
     function startNewWorkout() {
         let newWID = makeID();
@@ -54,7 +63,7 @@ export default function Workout({ navigation, route }) {
             users: [],
             exercises: []
         })
-        bottomSheet.current.show();
+        newWorkoutBottomSheet.current.show();
     }
 
     function updateNewWorkout(workout) {
@@ -72,17 +81,17 @@ export default function Workout({ navigation, route }) {
     }
 
     function closeNewWorkoutModal() {
-        bottomSheet.current.close();
+        newWorkoutBottomSheet.current.close();
     }
 
     return (
         <View style={styles.main_ctnr}>
             <BottomSheet
                 hasDraggableIcon
-                ref={bottomSheet}
+                ref={newWorkoutBottomSheet}
                 height={800}
                 sheetBackgroundColor={'#fff'}
-                backgroundColor={bkgColor}
+                backgroundColor={newWorkoutBkgColor}
             // Todo edit draggable option to allow scrolling
             // draggable={false} 
             >
@@ -96,18 +105,31 @@ export default function Workout({ navigation, route }) {
                 />
             </BottomSheet>
 
+            <BottomSheet
+                hasDraggableIcon
+                ref={joinWorkoutBottomSheet}
+                height={475}
+                sheetBackgroundColor={'#fff'}
+                backgroundColor={joinWorkoutBkgColor}
+            // Todo edit draggable option to allow scrolling
+            // draggable={false} 
+            >
+                <JoinWorkoutModal />
+            </BottomSheet>
+
+
 
             <View style={styles.body}>
                 <Text style={styles.title_text}>Workouts</Text>
                 <StartWorkoutButton startWorkout={startNewWorkout} />
-                <JoinWorkoutButton />
+                <JoinWorkoutButton joinWorkout={showJoinWorkout} />
 
                 <Text style={styles.subtitle_text}>Templates</Text>
                 <TemplateCard />
             </View>
 
             {workout &&
-                <WorkoutFooter userData={userData}/>
+                <WorkoutFooter userData={userData} />
             }
 
             <Footer navigation={navigation} currentScreenName={'Workout'} userData={userData} />

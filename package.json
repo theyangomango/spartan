@@ -28,6 +28,7 @@
     "iconsax-react-native": "^0.0.8",
     "react": "18.2.0",
     "react-native": "0.73.6",
+    "react-native-confirmation-code-field": "^7.4.0",
     "react-native-element-dropdown": "^2.10.4",
     "react-native-gesture-bottom-sheet": "^1.1.0",
     "react-native-insta-story": "^1.1.9",
