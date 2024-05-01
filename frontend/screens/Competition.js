@@ -5,9 +5,28 @@ import ComparingDropdown from "../components/competition/ComparingDropdown";
 import ComparedWithDropdown from "../components/competition/ComparedWithDropdown";
 import WorkoutFooter from "../components/workout/WorkoutFooter";
 import CompetitionCard from "../components/competition/CompetitionCard";
+import { useEffect, useState } from "react";
+import retrieveFollowingUsers from "../../backend/retrieveFollowingUsers";
+import rankUsers from "../helper/rankUsers";
+import getPFPs from "../../backend/storage/getPFPs";
 
 export default function Competition({ navigation, route }) {
     const userData = global.userData;
+    const [userList, setUserList] = useState(null);
+    const [pfps, setPFPs] = useState(null);
+
+    useEffect(() => {
+        retrieveFollowingUsers(userData.following)
+            .then(data => {
+                let users = [userData, ...data];
+                setUserList(rankUsers(users, 'benchPress'));
+
+                getPFPs([userData.uid, userData.following])
+                    .then(data => {
+                        setPFPs(data);
+                    })
+            })
+    }, []);
 
     return (
         <View style={styles.main_ctnr}>
@@ -17,7 +36,20 @@ export default function Competition({ navigation, route }) {
                         <ComparingDropdown />
                     </View>
 
-                    <Podium />
+                    <Podium data={(userList && pfps) ? ([
+                        {
+                            handle: userList[0].handle,
+                            pfp: pfps[0]
+                        },
+                        (userList.length > 1) && {
+                            handle: userList[1].handle,
+                            pfp: pfps[1]
+                        },
+                        (userList.length > 2) && {
+                            handle: userList[2].handle,
+                            pfp: pfps[2]
+                        }
+                    ]) : null} />
                 </View>
 
                 <View style={styles.bottom_ctnr}>
@@ -26,8 +58,16 @@ export default function Competition({ navigation, route }) {
                     </View>
 
                     <ScrollView style={styles.scrollview_ctnr}>
-                        <CompetitionCard />
-                        <CompetitionCard />
+                        {(userList && pfps) && userList.map((user, index) => {
+                            return <CompetitionCard
+                                uid={user.uid}
+                                pfp={pfps[index]}
+                                handle={user.handle}
+                                value={user.stats.exercises['benchPress']}
+                                rank={index + 1}
+                                key={index}
+                            />
+                        })}
                     </ScrollView>
                 </View>
             </View>

@@ -1,19 +1,21 @@
-import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { Image, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { ArrowDown2 } from 'iconsax-react-native';
+import { useEffect, useState } from 'react';
+import getPFP from '../../../backend/storage/getPFP';
+import getOrdinalString from '../../helper/getOrdinalString';
 
-export default function CompetitionCard() {
-
+export default function CompetitionCard({ uid, pfp, handle, value, rank }) {
     return (
         <View style={styles.card_ctnr}>
             <View style={styles.card_left}>
                 <View style={styles.pfp_ctnr}>
-
+                    <Image source={{ uri: pfp }} style={styles.pfp} />
                 </View>
-                <Text style={styles.handle_text}>yangbai</Text>
+                <Text style={styles.handle_text}>{handle}</Text>
             </View>
             <View style={styles.card_right}>
-                <Text style={styles.stat_text}>30lbs</Text>
-                <Text style={styles.rank_text}>2nd</Text>
+                <Text style={styles.stat_text}>{value}lbs</Text>
+                <Text style={styles.rank_text}>{getOrdinalString(rank)}</Text>
                 <ArrowDown2 size={20} color="red" style={styles.arrow_icon} />
             </View>
         </View>
@@ -38,7 +40,9 @@ const styles = StyleSheet.create({
     pfp_ctnr: {
         width: 36,
         height: 36,
-        backgroundColor: 'red',
+    },
+    pfp: {
+        flex: 1,
         borderRadius: 18
     },
     handle_text: {

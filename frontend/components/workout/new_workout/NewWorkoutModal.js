@@ -35,7 +35,6 @@ export default function NewWorkoutModal({ workout, setWorkout, closeModal, cance
             })
         }
         updateWorkout(workout);
-        console.log(workout);
     }
 
     return (

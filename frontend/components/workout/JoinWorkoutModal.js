@@ -10,7 +10,6 @@ import {
 const CELL_COUNT = 4;
 
 
-
 export default function JoinWorkoutModal() {
     const [value, setValue] = useState('');
     const ref = useBlurOnFulfill({ value, cellCount: CELL_COUNT });

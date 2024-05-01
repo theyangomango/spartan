@@ -15,18 +15,49 @@ import WorkoutFooter from "../components/workout/WorkoutFooter";
 import JoinWorkoutModal from "../components/workout/JoinWorkoutModal";
 
 export default function Workout({ navigation }) {
-    const userData = global.userData;
-    const [newWorkoutBkgColor, setNewWorkoutBkgColor] = useState('#000');
-    const [joinWorkoutBkgColor, setJoinWorkoutBkgColor] = useState('#000');
+    const [workout, setWorkout] = useState(null);
     const newWorkoutBottomSheet = useRef();
     const joinWorkoutBottomSheet = useRef();
-    const [workout, setWorkout] = useState(null);
-    global.workout = workout;
+    const [newWorkoutBkgColor, setNewWorkoutBkgColor] = useState('#000');
+    const [joinWorkoutBkgColor, setJoinWorkoutBkgColor] = useState('#000');
+
+    const userData = global.userData;
     global.openWorkoutModal = (user) => {
-        navigation.navigate('Workout', {
-            userData: user
-        });
+        navigation.navigate('Workout');
         newWorkoutBottomSheet.current.show()
+    }
+
+    async function startNewWorkout() {
+        let newWID = makeID();
+        initWorkout(newWID, userData.uid);
+        await setWorkout({
+            wid: newWID,
+            creatorUID: userData.uid,
+            created: Date.now(),
+            users: [],
+            exercises: []
+        });
+        global.workout = workout;
+        newWorkoutBottomSheet.current.show();
+    }
+
+    function updateNewWorkout(workout) {
+        updateDoc('workouts', workout.wid, workout);
+    }
+
+    function cancelNewWorkout() {
+        eraseDoc('workouts', workout.wid);
+        newWorkoutBottomSheet.current.close();
+        setTimeout(() => {
+            setWorkout(null);
+        }, 1000);
+    }
+
+    function finishNewWorkout() {
+        newWorkoutBottomSheet.current.close();
+        setTimeout(() => {
+            setWorkout(null);
+        }, 1000);
     }
 
     useFocusEffect(
@@ -49,41 +80,6 @@ export default function Workout({ navigation }) {
         }, [])
     );
 
-    function showJoinWorkout() {
-        joinWorkoutBottomSheet.current.show();
-    }
-
-    function startNewWorkout() {
-        let newWID = makeID();
-        initWorkout(newWID, userData.uid);
-        setWorkout({
-            wid: newWID,
-            creatorUID: userData.uid,
-            created: Date.now(),
-            users: [],
-            exercises: []
-        })
-        newWorkoutBottomSheet.current.show();
-    }
-
-    function updateNewWorkout(workout) {
-        updateDoc('workouts', workout.wid, workout);
-    }
-
-    function cancelNewWorkout() {
-        eraseDoc('workouts', workout.wid);
-        closeNewWorkoutModal();
-    }
-
-    function finishNewWorkout() {
-        setWorkout(null);
-        closeNewWorkoutModal();
-    }
-
-    function closeNewWorkoutModal() {
-        newWorkoutBottomSheet.current.close();
-    }
-
     return (
         <View style={styles.main_ctnr}>
             <BottomSheet
@@ -98,7 +94,7 @@ export default function Workout({ navigation }) {
                 <NewWorkoutModal
                     workout={workout}
                     setWorkout={setWorkout}
-                    closeModal={(closeNewWorkoutModal)}
+                    closeModal={() => newWorkoutBottomSheet.current.close()}
                     cancelWorkout={cancelNewWorkout}
                     updateWorkout={updateNewWorkout}
                     finishWorkout={finishNewWorkout}
@@ -118,11 +114,10 @@ export default function Workout({ navigation }) {
             </BottomSheet>
 
 
-
             <View style={styles.body}>
                 <Text style={styles.title_text}>Workouts</Text>
                 <StartWorkoutButton startWorkout={startNewWorkout} />
-                <JoinWorkoutButton joinWorkout={showJoinWorkout} />
+                <JoinWorkoutButton joinWorkout={() => joinWorkoutBottomSheet.current.show()} />
 
                 <Text style={styles.subtitle_text}>Templates</Text>
                 <TemplateCard />
@@ -132,7 +127,7 @@ export default function Workout({ navigation }) {
                 <WorkoutFooter userData={userData} />
             }
 
-            <Footer navigation={navigation} currentScreenName={'Workout'}/>
+            <Footer navigation={navigation} currentScreenName={'Workout'} />
         </View>
     );
 };

@@ -22,6 +22,10 @@ export default function Feed({ navigation }) {
         init();
     }, []);
 
+    useEffect(() => {
+        console.log(global.workout);
+    }, [global.workout])
+
     async function init() { 
         userDataRef.current = await readDoc('users', UID);
         let feedData = await retrieveUserFeed(userDataRef.current);

@@ -4,22 +4,18 @@ import { Dropdown } from 'react-native-element-dropdown';
 import { ArrowDown2 } from 'iconsax-react-native'
 
 const data = [
-    { label: 'Bench Press', value: '1' },
-    { label: 'Total', value: '2' },
-    { label: 'Item 3', value: '3' },
-    { label: 'Ite3334m 4', value: '4' },
-    { label: 'Item 5', value: '5' },
-    { label: 'Item 6', value: '6' },
-    { label: 'Item 7', value: '7' },
-    { label: 'Item 8', value: '8' },
+    { label: 'Bench Press', value: 'Bench Press' },
+    { label: 'Bicep Curls', value: 'Bicep Curls' },
+    { label: 'Pull Ups', value: 'Pull Ups' },
+    { label: 'Push Ups', value: 'Push Ups' },
 ];
 
 export default function ComparedWithDropdown() {
-    const [value, setValue] = useState('1');
+    const [value, setValue] = useState('Bench Press');
     const [isFocus, setIsFocus] = useState(false);
 
     return (
-        <View style={styles.container}>
+        <View style={{width: value.length * 15}}>
             <Dropdown
                 style={styles.dropdown}
                 selectedTextStyle={styles.selected_text}
@@ -37,7 +33,7 @@ export default function ComparedWithDropdown() {
                 onFocus={() => setIsFocus(true)}
                 onBlur={() => setIsFocus(false)}
                 onChange={item => {
-                    setValue(item.value);
+                    setValue(item.label);
                     setIsFocus(false);
                 }}
                 renderRightIcon={() => (
@@ -56,9 +52,6 @@ export default function ComparedWithDropdown() {
 };
 
 const styles = StyleSheet.create({
-    container: {
-        width: 110
-    },
     dropdown: {
         height: 50,
         paddingHorizontal: 8,

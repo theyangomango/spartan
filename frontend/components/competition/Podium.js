@@ -1,25 +1,33 @@
-import { StyleSheet, View, Text } from "react-native";
+import { StyleSheet, View, Text, Image } from "react-native";
 
-export default function Podium() {
+export default function Podium({ data }) {
+    console.log(data);
+
     return (
         <View style={styles.leaderboard_ctnr}>
             <View style={styles.left}>
-                <View style={styles.left_pfp}></View>
-                <Text style={styles.leaderboard_handle_text}>samsuluk</Text>
+                <View style={styles.left_pfp}>
+                    {data && <Image source={{ uri: data[1].pfp }} style={styles.pfp} />}
+                </View>
+                <Text style={styles.leaderboard_handle_text}>{data && data[1].handle}</Text>
                 <View style={[styles.bar_ctnr, styles.silver_ctnr]}>
                     <Text style={styles.bar_text}>2</Text>
                 </View>
             </View>
             <View style={styles.center}>
-                <View style={styles.center_pfp}></View>
-                <Text style={styles.leaderboard_handle_text}>samsuluk</Text>
+                <View style={styles.center_pfp}>
+                    {data && <Image source={{ uri: data[0].pfp }} style={styles.pfp} />}
+                </View>
+                <Text style={styles.leaderboard_handle_text}>{data && data[0].handle}</Text>
                 <View style={[styles.bar_ctnr, styles.gold_ctnr]}>
                     <Text style={styles.bar_text}>1</Text>
                 </View>
             </View>
             <View style={styles.right}>
-                <View style={styles.right_pfp}></View>
-                <Text style={styles.leaderboard_handle_text}>samsuluk</Text>
+                <View style={styles.right_pfp}>
+                    {data && <Image source={{ uri: data[2].pfp }} style={styles.pfp} />}
+                </View>
+                <Text style={styles.leaderboard_handle_text}>{data && data[2].handle}</Text>
                 <View style={[styles.bar_ctnr, styles.bronze_ctnr]}>
                     <Text style={styles.bar_text}>3</Text>
                 </View>
@@ -67,20 +75,21 @@ const styles = StyleSheet.create({
     left_pfp: {
         width: 43,
         height: 43,
-        backgroundColor: 'red',
         borderRadius: 22
     },
     center_pfp: {
         width: 46,
         height: 46,
-        backgroundColor: 'red',
         borderRadius: 23
     },
     right_pfp: {
         width: 40,
         height: 40,
-        backgroundColor: 'red',
         borderRadius: 20
+    },
+    pfp: {
+        flex: 1,
+        borderRadius: 50,
     },
     leaderboard_handle_text: {
         fontFamily: 'Mulish_700Bold',

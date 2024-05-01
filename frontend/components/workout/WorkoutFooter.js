@@ -1,8 +1,6 @@
 import { StyleSheet, View, Text, Pressable, TouchableOpacity } from "react-native";
 
 export default function WorkoutFooter({ userData }) {
-    console.log(userData);
-
     return (
         <TouchableOpacity onPress={() => global.openWorkoutModal(userData)} style={styles.main_ctnr}>
             <Text style={styles.text}>Morning Workout</Text>
