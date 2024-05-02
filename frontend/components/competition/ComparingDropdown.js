@@ -4,18 +4,26 @@ import { Dropdown } from 'react-native-element-dropdown';
 import { ArrowDown2 } from 'iconsax-react-native'
 
 const data = [
-    { label: 'Bench Press', value: '1' },
-    { label: 'Total', value: '2' },
-    { label: 'Item 3', value: '3' },
-    { label: 'Ite3334m 4', value: '4' },
-    { label: 'Item 5', value: '5' },
-    { label: 'Item 6', value: '6' },
-    { label: 'Item 7', value: '7' },
-    { label: 'Item 8', value: '8' },
+    { label: 'Ab Wheel', value: 'abWheel' },
+    { label: 'Arnold Press', value: 'arnoldPress' },
+    { label: 'Around the World', value: 'aroundTheWorld' },
+    { label: 'Back Extention', value: 'backExtention' },
+    { label: 'Bench Dip', value: 'benchDip' },
+    { label: 'Bench Press', value: 'benchPress' },
+    { label: 'Bench Press (Smith Machine)', value: 'benchPressSmithMachine' },
+    { label: 'Bench Press (Dumbell)', value: 'benchPressDumbell' },
+
+    { label: 'Bent Over One Arm Row', value: 'bentOverOneArmRow' },
+    { label: 'Bent Over Row (Barbell)', value: 'bentOverRowBarbell' },
+    { label: 'Bent Over Row (Dumbell)', value: 'bentOverRowDumbell' },
+    { label: 'Bicep Curls (Barbell)', value: 'bicepCurlsBarbell' },
+    { label: 'Bicep Curls (Dumbell)', value: 'bicepCurlsDumbell' },
+    { label: 'Bulgarian Split Squats', value: 'bulgarianSplitSquats' },
+    { label: 'Burpees', value: 'burpees' },
 ];
 
-export default function ComparingDropdown() {
-    const [value, setValue] = useState('1');
+export default function ComparingDropdown({ selectCategoryCompared }) {
+    const [value, setValue] = useState('benchPress');
     const [isFocus, setIsFocus] = useState(false);
 
     return (
@@ -38,6 +46,7 @@ export default function ComparingDropdown() {
                 onBlur={() => setIsFocus(false)}
                 onChange={item => {
                     setValue(item.value);
+                    selectCategoryCompared(item.value);
                     setIsFocus(false);
                 }}
                 renderRightIcon={() => (
@@ -61,7 +70,7 @@ const styles = StyleSheet.create({
         position: 'absolute',
         top: 40,
         right: 0,
-        width: 200,
+        width: '70%',
     },
     dropdown: {
         height: 50,
@@ -70,7 +79,7 @@ const styles = StyleSheet.create({
     drop_ctnr: {
         borderRadius: 10,
         backgroundColor: '#fff',
-        width: 185,
+        width: '65%',
         shadowColor: '#000',
         shadowOffset: { width: -4, height: 5 },
         shadowOpacity: 0.3,

@@ -12,14 +12,17 @@ import getPFPs from "../../backend/storage/getPFPs";
 
 export default function Competition({ navigation, route }) {
     const userData = global.userData;
+    const [users, setUsers] = useState(null);
     const [userList, setUserList] = useState(null);
     const [pfps, setPFPs] = useState(null);
+    const [categoryCompared, setCategoryCompared] = useState('benchPress');
 
     useEffect(() => {
         retrieveFollowingUsers(userData.following)
             .then(data => {
                 let users = [userData, ...data];
-                setUserList(rankUsers(users, 'benchPress'));
+                setUsers(users);
+                setUserList(rankUsers(users, categoryCompared));
 
                 getPFPs([userData.uid, userData.following])
                     .then(data => {
@@ -28,12 +31,18 @@ export default function Competition({ navigation, route }) {
             })
     }, []);
 
+    function selectCategoryCompared(category) {
+        setCategoryCompared(category)
+        setUserList(rankUsers(users, category));
+    }
+
+
     return (
         <View style={styles.main_ctnr}>
             <View style={styles.body}>
                 <View style={styles.top_ctnr}>
                     <View style={styles.header}>
-                        <ComparingDropdown />
+                        <ComparingDropdown selectCategoryCompared={selectCategoryCompared} />
                     </View>
 
                     <Podium data={(userList && pfps) ? ([
@@ -63,7 +72,7 @@ export default function Competition({ navigation, route }) {
                                 uid={user.uid}
                                 pfp={pfps[index]}
                                 handle={user.handle}
-                                value={user.stats.exercises['benchPress']}
+                                value={user.stats.exercises[categoryCompared]}
                                 rank={index + 1}
                                 key={index}
                             />
