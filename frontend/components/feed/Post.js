@@ -65,17 +65,16 @@ const styles = StyleSheet.create({
     },
     body_ctnr: {
         flex: 1,
-        paddingTop: 6,
-        paddingBottom: 5,
-        // paddingHorizontal: 5,
+        paddingTop: 8,
+        paddingBottom: 6,
     },
     image_ctnr: {
         width: '100%',
-        height: 200,
+        height: 200
     },
     image: {
         flex: 1,
-        borderRadius: 15,
+        borderRadius: 10,
     },
     liked_users: {
     },

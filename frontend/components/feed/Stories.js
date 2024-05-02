@@ -26,7 +26,6 @@ const styles = StyleSheet.create({
     stories_ctnr: {
         backgroundColor: '#2D9EFF',
         paddingLeft: 8,
-        paddingTop: 10
     },
     story_text: {
         fontFamily: 'Inter_400Regular',

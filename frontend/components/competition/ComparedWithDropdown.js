@@ -4,18 +4,16 @@ import { Dropdown } from 'react-native-element-dropdown';
 import { ArrowDown2 } from 'iconsax-react-native'
 
 const data = [
-    { label: 'Bench Press', value: 'Bench Press' },
-    { label: 'Bicep Curls', value: 'Bicep Curls' },
-    { label: 'Pull Ups', value: 'Pull Ups' },
-    { label: 'Push Ups', value: 'Push Ups' },
+    { label: 'All Followers', value: 'All Followers' },
+    { label: 'Close Friends', value: 'Close Friends' },
 ];
 
 export default function ComparedWithDropdown() {
-    const [value, setValue] = useState('Bench Press');
+    const [value, setValue] = useState('All Followers');
     const [isFocus, setIsFocus] = useState(false);
 
     return (
-        <View style={{width: value.length * 15}}>
+        <View style={{width: value.length * 13}}>
             <Dropdown
                 style={styles.dropdown}
                 selectedTextStyle={styles.selected_text}
@@ -24,7 +22,6 @@ export default function ComparedWithDropdown() {
                 iconStyle={styles.iconStyle}
                 showsVerticalScrollIndicator={false}
                 data={data}
-                search
                 maxHeight={200}
                 labelField="label"
                 valueField="value"
@@ -61,7 +58,7 @@ const styles = StyleSheet.create({
         backgroundColor: '#fff',
         width: 300,
         shadowColor: '#000',
-        shadowOffset: { width: -4, height: -4 },
+        shadowOffset: { width: -4, height: 4 },
         shadowOpacity: 0.3,
         shadowRadius: 4,
     },
@@ -84,15 +81,6 @@ const styles = StyleSheet.create({
     iconStyle: {
         width: 20,
         height: 20,
-    },
-    search_text: {
-        height: 32,
-        paddingBottom: 2,
-        fontFamily: 'Mulish_600SemiBold',
-        fontSize: 16,
-        borderTopWidth: 0,
-        borderLeftWidth: 0,
-        borderRightWidth: 0,
     },
     right_icon: {
         marginLeft: 5,

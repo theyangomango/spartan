@@ -18,7 +18,7 @@ const styles = StyleSheet.create({
     handle_text: {
         fontSize: 12.5,
         fontFamily: 'Lato_700Bold',
-        color: '#959595',
+        color: '#555',
     },
     content_text: {
         fontSize: 11,
