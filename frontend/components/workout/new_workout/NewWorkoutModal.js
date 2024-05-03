@@ -38,7 +38,7 @@ export default function NewWorkoutModal({ workout, setWorkout, closeModal, cance
     }
 
     return (
-        <ScrollView style={styles.main_ctnr}>
+        <ScrollView showsVerticalScrollIndicator={false} style={styles.main_ctnr}>
             <Modal
                 animationType='fade'
                 transparent={true}
@@ -82,10 +82,10 @@ const styles = StyleSheet.create({
     main_ctnr: {
         flex: 1,
         backgroundColor: '#fff',
-        paddingHorizontal: 22,
     },
     header: {
         height: 40,
+        paddingHorizontal: 22,
         flexDirection: 'row',
         alignItems: 'flex-end',
         justifyContent: 'space-between'
@@ -119,15 +119,17 @@ const styles = StyleSheet.create({
     title_text: {
         fontFamily: 'Poppins_700Bold',
         fontSize: 22,
-        paddingTop: 40
+        paddingTop: 40,
+        paddingHorizontal: 22,
     },
     stopwatch_text: {
         fontFamily: 'Outfit_400Regular',
         fontSize: 18,
-        color: '#888'
+        color: '#888',
+        paddingHorizontal: 22,
     },
     add_exercise_btn: {
-        width: '100%',
+        marginHorizontal: 22,
         height: 35,
         marginVertical: 16,
         borderRadius: 15,

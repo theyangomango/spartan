@@ -10,6 +10,7 @@ export default function EditableStat({ placeholder = '0', isFinished }) {
             <TextInput
                 editable
                 placeholder='0'
+                placeholderTextColor={'#888'}
                 onFocus={setIsSelected}
                 onEndEditing={() => setIsSelected(false)}
                 style={styles.text}
@@ -22,11 +23,9 @@ const styles = StyleSheet.create({
     editing: {
         paddingVertical: 2,
         marginVertical: 3,
-        paddingHorizontal: 16,
-        borderWidth: 1.5,
-        borderRadius: 10,
-        borderColor: '#aaa',
-        backgroundColor: '#fafafa'
+        paddingHorizontal: 18,
+        borderRadius: 8,
+        backgroundColor: '#f3f3f3'
     },
     selected: {
         borderColor: '#0699FF'
