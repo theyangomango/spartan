@@ -6,7 +6,7 @@ export default function MessagesHeader({ toFeedScreen, handle }) {
         <View style={styles.main_ctnr}>
             <Pressable onPress={toFeedScreen}>
                 <View style={styles.arrow_icon_ctnr}>
-                    <ArrowLeft2 size="28" color="#fff" />
+                    <ArrowLeft2 size="24" color="#fff" />
                 </View>
             </Pressable>
             <View style={styles.handle_text_ctnr}>
@@ -19,15 +19,15 @@ export default function MessagesHeader({ toFeedScreen, handle }) {
 const styles = StyleSheet.create({
     main_ctnr: {
         width: '100%',
-        height: 122,
+        height: 110,
         backgroundColor: '#2D9EFF',
         paddingHorizontal: 15,
-        paddingBottom: 20,
+        paddingBottom: 10,
         flexDirection: 'row',
         alignItems: 'flex-end',
     },
     arrow_icon_ctnr: {
-        padding: 5
+        padding: 6
     },
     handle_text_ctnr: {
         padding: 9

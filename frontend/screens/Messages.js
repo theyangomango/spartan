@@ -5,10 +5,19 @@ import MessagesHeader from "../components/messages/MessagesHeader";
 
 export default function Messages({ navigation, route }) {
     const userData = global.userData;
-    const messages = route.params.messages;
+    const [messages, setMessages] = useState([]);
+    // const messages = route.params.messages;
+
+    useEffect(() => {
+        setMessages(route.params.messages);
+    }, []);
 
     function toFeedScreen() {
         navigation.goBack();
+    }
+
+    function toChat() {
+        navigation.navigate('Chat');
     }
 
     if (userData) {
@@ -29,6 +38,7 @@ export default function Messages({ navigation, route }) {
                                         handle={usersExcludingSelf[0].handle}
                                         content={msg.content[msg.content.length - 1].text}
                                         timestamp={msg.content[msg.content.length - 1].timestamp}
+                                        toChat={toChat}
                                         key={index}
                                     />
                                 )
@@ -45,6 +55,7 @@ export default function Messages({ navigation, route }) {
 const styles = StyleSheet.create({
     main_ctnr: {
         flex: 1,
+        backgroundColor: '#fff'
     },
     cards_ctnr: {
         flex: 1,

@@ -1,9 +1,9 @@
-import { View, StyleSheet, Text, Image } from "react-native"
+import { View, StyleSheet, Text, Image, TouchableOpacity } from "react-native"
 import getDisplayTime from '../../helper/getDisplayTime'
 import { useEffect, useState } from "react";
 import getPFP from '../../../backend/storage/getPFP'
 
-export default function MessageCard({ uid, handle, content, timestamp }) {
+export default function MessageCard({ uid, handle, content, timestamp, toChat }) {
     const [image, setImage] = useState(null);
     
     useEffect(() => {
@@ -14,7 +14,7 @@ export default function MessageCard({ uid, handle, content, timestamp }) {
     }, []);
     
     return (
-        <View style={styles.main_ctnr}>
+        <TouchableOpacity onPress={toChat} style={styles.main_ctnr}>
             <View style={styles.left_ctnr}>
                 <View style={styles.pfp_ctnr}>
                     <Image
@@ -30,7 +30,7 @@ export default function MessageCard({ uid, handle, content, timestamp }) {
             <View style={styles.right_ctnr}>
                 <Text style={styles.date_text}>{getDisplayTime(timestamp)}</Text>
             </View>
-        </View>
+        </TouchableOpacity>
     )
 }
 
