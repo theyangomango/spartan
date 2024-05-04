@@ -11,6 +11,7 @@ import Explore from './frontend/screens/Explore';
 import Workout from './frontend/screens/Workout';
 import Competition from './frontend/screens/Competition';
 import Messages from './frontend/screens/Messages';
+import Chat from './frontend/screens/Chat';
 
 import {
     useFonts,
@@ -201,20 +202,22 @@ export default function App() {
         return <></>
     }
     else return (
-        <NavigationContainer>
-            <Tab.Navigator initialRouteName='Feed' screenOptions={{
-                headerShown: false,
-                tabBarStyle: {
-                    display: 'none'
-                }
-            }}>
-                <Tab.Screen name='Feed' component={Feed} />
-                <Tab.Screen name='Messages' component={Messages} />
-                <Tab.Screen name='Competition' component={Competition} />
-                <Tab.Screen name='Workout' component={Workout} />
-                <Tab.Screen name='Explore' component={Explore} />
-                <Tab.Screen name='ProfileStack' component={ProfileStack} />
-            </Tab.Navigator>
-        </NavigationContainer>
+        // <NavigationContainer>
+        //     <Tab.Navigator initialRouteName='Feed' screenOptions={{
+        //         headerShown: false,
+        //         tabBarStyle: {
+        //             display: 'none'
+        //         }
+        //     }}>
+        //         <Tab.Screen name='Feed' component={Feed} />
+        //         <Tab.Screen name='Messages' component={Messages} />
+        //         <Tab.Screen name='Chat' component={Chat} />
+        //         <Tab.Screen name='Competition' component={Competition} />
+        //         <Tab.Screen name='Workout' component={Workout} />
+        //         <Tab.Screen name='Explore' component={Explore} />
+        //         <Tab.Screen name='ProfileStack' component={ProfileStack} />
+        //     </Tab.Navigator>
+        // </NavigationContainer>
+        <Chat />
     )
 }

@@ -26,7 +26,7 @@ export default function SetRow({ set, index }) {
             </View>
             <View style={styles.done_ctnr}>
                 <Pressable style={isDone ? styles.checkmark_ctnr_selected : styles.checkmark_ctnr} onPress={toggleDone}>
-                    <Ionicons name="checkmark-sharp" size={14} style={styles.checkmark} color={isDone ? 'white' : 'black'}/>
+                    <Ionicons name="checkmark-sharp" size={16} style={styles.checkmark} color={isDone ? '#fff' : '#444'}/>
                 </Pressable>
             </View>
         </View>

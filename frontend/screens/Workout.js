@@ -1,5 +1,5 @@
 import React, { useRef, useState } from "react";
-import { Text, StyleSheet, View } from "react-native";
+import { Text, StyleSheet, View, ScrollView } from "react-native";
 import { useFocusEffect } from '@react-navigation/native';
 import BottomSheet from "react-native-gesture-bottom-sheet";
 import NewWorkoutModal from "../components/workout/new_workout/NewWorkoutModal";
@@ -120,7 +120,10 @@ export default function Workout({ navigation }) {
                 <JoinWorkoutButton joinWorkout={() => joinWorkoutBottomSheet.current.show()} />
 
                 <Text style={styles.subtitle_text}>Templates</Text>
-                <TemplateCard />
+                <ScrollView>
+                    <TemplateCard />
+                    <TemplateCard />
+                </ScrollView>
             </View>
 
             {workout &&

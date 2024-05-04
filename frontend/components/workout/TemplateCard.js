@@ -8,10 +8,10 @@ export default function TemplateCard() {
                 <Text style={styles.title_text}>Chest + Arms</Text>
                 <View style={styles.header_right}>
                     <View style={styles.send_icon_ctnr}>
-                        <Send size="24" color="#000" />
+                        <Send size={21} color="#000" />
                     </View>
                     <View style={styles.options_icon_ctnr}>
-                        <More size="24" color="#000" />
+                        <More size={22} color="#000" />
                     </View>
                 </View>
             </View>
@@ -40,6 +40,7 @@ const styles = StyleSheet.create({
         borderWidth: 1,
         borderRadius: 10,
         paddingHorizontal: 18,
+        marginVertical: 6,
         paddingTop: 12,
         paddingBottom: 7,
         borderColor: '#ccc'
