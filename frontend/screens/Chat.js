@@ -151,7 +151,7 @@ const styles = StyleSheet.create({
         backgroundColor: '#0499FE', // Blue background color for user messages
         borderRadius: 10,
         marginHorizontal: 20,
-        marginVertical: 5,
+        marginVertical: 4,
         padding: 10,
         maxWidth: '70%',
     },
@@ -160,7 +160,7 @@ const styles = StyleSheet.create({
         backgroundColor: '#0499FE', // Blue background color for other messages
         borderRadius: 10,
         marginHorizontal: 20,
-        marginVertical: 5,
+        marginVertical: 4,
         padding: 10,
         maxWidth: '70%',
     },

@@ -88,6 +88,7 @@ export default function Feed({ navigation }) {
 const styles = StyleSheet.create({
     main_ctnr: {
         flex: 1,
+        backgroundColor: '#fff'
     },
     posts_view_ctnr: {
         paddingTop: 20,
