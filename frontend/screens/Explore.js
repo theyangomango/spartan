@@ -3,7 +3,33 @@ import { StyleSheet, View, TouchableWithoutFeedback, Keyboard, FlatList, Image, 
 import Footer from "../components/Footer";
 import WorkoutFooter from "../components/workout/WorkoutFooter";
 import SearchBar from "react-native-dynamic-search-bar";
-import RNBounceable from "@freakycoder/react-native-bounceable";
+import PostPreview from '../components/explore/PostPreview';
+
+const posts = [
+    {
+        id: 1,
+        user: {
+            username: "user1",
+            profileImage: "https://via.placeholder.com/150", // Placeholder profile image
+        },
+        image: "https://via.placeholder.com/300", // Placeholder post image
+        likes: 100,
+        comments: 20,
+        timestamp: "2024-05-04T10:30:00Z",
+    },
+    {
+        id: 2,
+        user: {
+            username: "user2",
+            profileImage: "https://via.placeholder.com/150", // Placeholder profile image
+        },
+        image: "https://via.placeholder.com/300", // Placeholder post image
+        likes: 150,
+        comments: 30,
+        timestamp: "2024-05-03T15:45:00Z",
+    },
+    // Add more posts as needed
+];
 
 export default function Explore({ navigation, route }) {
     const userData = global.userData;
@@ -22,11 +48,15 @@ export default function Explore({ navigation, route }) {
     // Function to dismiss the keyboard
     const dismissKeyboard = () => Keyboard.dismiss();
 
+    function toPostList() {
+        navigation.navigate('PostList', {
+            posts: posts
+        })
+    }
+
     // Renders each item in the grid
     const renderItem = ({ item }) => (
-        <RNBounceable onPress={() => console.log('Image pressed', item.id)} style={styles.image_ctnr}>
-            <Image source={{ uri: item.uri }} style={styles.image} />
-        </RNBounceable>
+        <PostPreview toPostList={toPostList} item={item} />
     );
 
     return (
@@ -90,18 +120,6 @@ const styles = StyleSheet.create({
     flatlist: {
         flex: 1,
         paddingHorizontal: 3,
-    },
-    image_ctnr: {
-        flex: 1,
-        flexDirection: 'column',
-        margin: 1, // Adjust spacing between images
-        aspectRatio: 1,
-        backgroundColor: 'red' // This is just to visualize the container, remove if not needed
-    },
-    image: {
-        width: '100%', // Makes each image fill the container
-        // height: 100,
-        resizeMode: 'cover' // Ensures the image covers the specified area without distortion
     },
     row: {
         flex: 1,

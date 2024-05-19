@@ -12,6 +12,7 @@ import Workout from './frontend/screens/Workout';
 import Competition from './frontend/screens/Competition';
 import Messages from './frontend/screens/Messages';
 import Chat from './frontend/screens/Chat';
+import PostList from './frontend/screens/PostList';
 
 import {
     useFonts,
@@ -216,6 +217,7 @@ export default function App() {
                 <Tab.Screen name='Workout' component={Workout} />
                 <Tab.Screen name='Explore' component={Explore} />
                 <Tab.Screen name='ProfileStack' component={ProfileStack} />
+                <Tab.Screen name='PostList' component={PostList}/>
             </Tab.Navigator>
         </NavigationContainer>
     )

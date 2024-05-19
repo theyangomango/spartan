@@ -1,4 +1,4 @@
-import { StyleSheet, View } from "react-native";
+import { StyleSheet, Text, View } from "react-native";
 import InstaStory from "react-native-insta-story";
 
 export default function Stories({ displayStories }) {
@@ -13,7 +13,7 @@ export default function Stories({ displayStories }) {
                     unPressedAvatarTextColor={'#fff'}
                     pressedAvatarTextColor={'#fff'}
                     avatarTextStyle={styles.story_text}
-                    avatarImageStyle={styles.story_image}
+                    avatarImageStyle ={styles.story_image}
                     avatarWrapperStyle={styles.story_border}
                     duration={10}
                 />}
@@ -28,7 +28,7 @@ const styles = StyleSheet.create({
         paddingLeft: 8,
     },
     story_text: {
-        fontFamily: 'Inter_400Regular',
+        fontFamily: 'Inter_500Medium',
         fontSize: 10,
         paddingTop: 3,
         paddingBottom: 10

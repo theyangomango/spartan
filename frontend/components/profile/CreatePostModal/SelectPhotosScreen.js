@@ -115,7 +115,7 @@ const styles = StyleSheet.create({
     images_header_ctnr: {
     },
     images_header_text: {
-        fontFamily: 'Inter_700Bold',
+        fontFamily: 'Mulish_700Bold',
         fontSize: 18,
         paddingHorizontal: 12,
         paddingVertical: 12,

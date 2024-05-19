@@ -70,8 +70,8 @@ export default function Workout({ navigation }) {
 
                 let panY2 = parseInt(JSON.stringify(joinWorkoutBottomSheet.current.state.pan.y));
                 let animatedHeight2 = parseInt(JSON.stringify(joinWorkoutBottomSheet.current.state.animatedHeight));
-                let realHeight2 = Math.max(panY2, 475 - animatedHeight2);
-                setJoinWorkoutBkgColor(`rgba(0, 0, 0, ${0.55 - 0.6 * (realHeight2 / 425)})`)
+                let realHeight2 = Math.max(panY2, 325 - animatedHeight2);
+                setJoinWorkoutBkgColor(`rgba(0, 0, 0, ${0.55 - 0.6 * (realHeight2 / 275)})`)
             }, 50);
 
             return () => {
@@ -104,7 +104,7 @@ export default function Workout({ navigation }) {
             <BottomSheet
                 hasDraggableIcon
                 ref={joinWorkoutBottomSheet}
-                height={475}
+                height={275}
                 sheetBackgroundColor={'#fff'}
                 backgroundColor={joinWorkoutBkgColor}
             // Todo edit draggable option to allow scrolling
