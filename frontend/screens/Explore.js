@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { StyleSheet, View, TouchableWithoutFeedback, Keyboard, FlatList, Image, TouchableOpacity } from 'react-native';
+import { StyleSheet, View, TouchableWithoutFeedback, Keyboard, FlatList, Text } from 'react-native';
 import Footer from "../components/Footer";
 import WorkoutFooter from "../components/workout/WorkoutFooter";
 import SearchBar from "react-native-dynamic-search-bar";
@@ -10,9 +10,9 @@ const posts = [
         id: 1,
         user: {
             username: "user1",
-            profileImage: "https://via.placeholder.com/150", // Placeholder profile image
+            profileImage: "https://via.placeholder.com/150",
         },
-        image: "https://via.placeholder.com/300", // Placeholder post image
+        image: "https://via.placeholder.com/300",
         likes: 100,
         comments: 20,
         timestamp: "2024-05-04T10:30:00Z",
@@ -21,9 +21,9 @@ const posts = [
         id: 2,
         user: {
             username: "user2",
-            profileImage: "https://via.placeholder.com/150", // Placeholder profile image
+            profileImage: "https://via.placeholder.com/150",
         },
-        image: "https://via.placeholder.com/300", // Placeholder post image
+        image: "https://via.placeholder.com/300",
         likes: 150,
         comments: 30,
         timestamp: "2024-05-03T15:45:00Z",
@@ -31,10 +31,20 @@ const posts = [
     // Add more posts as needed
 ];
 
-export default function Explore({ navigation, route }) {
-    const userData = global.userData;
+const handles = [
+    'john_doe',
+    'jane_smith',
+    'alice_johnson',
+    'bob_anderson',
+    'charlie_harris',
+    'david_brown',
+    'emma_white',
+];
 
-    // Expanded sample data for the grid
+export default function Explore({ navigation }) {
+    const userData = global.userData;
+    const [searchString, setSearchString] = useState('');
+    const [filteredHandles, setFilteredHandles] = useState([]);
     const [photos, setPhotos] = useState([
         { id: '1', uri: 'https://placeimg.com/640/640/nature' },
         { id: '2', uri: 'https://placeimg.com/640/640/people' },
@@ -42,26 +52,42 @@ export default function Explore({ navigation, route }) {
         { id: '4', uri: 'https://placeimg.com/640/640/tech' },
         { id: '5', uri: 'https://placeimg.com/640/640/arch' },
         { id: '6', uri: 'https://placeimg.com/640/640/any' }
-        // You can add more images as needed
     ]);
 
-    // Function to dismiss the keyboard
     const dismissKeyboard = () => Keyboard.dismiss();
 
-    function toPostList() {
-        navigation.navigate('PostList', {
-            posts: posts
-        })
-    }
+    const toPostList = () => {
+        navigation.navigate('PostList', { posts });
+    };
 
-    // Renders each item in the grid
-    const renderItem = ({ item }) => (
+    const filterHandles = (text) => {
+        setSearchString(text);
+        if (text === '') {
+            setFilteredHandles([]);
+        } else {
+            const filtered = handles
+                .filter(handle =>
+                    handle.toLowerCase().includes(text.toLowerCase())
+                )
+                .slice(0, 5); // Limit to 5 usernames
+            setFilteredHandles(filtered);
+        }
+    };
+
+    const renderPostPreview = ({ item }) => (
         <PostPreview toPostList={toPostList} item={item} />
+    );
+
+    const renderHandleItem = ({ item }) => (
+        <View style={styles.handlePreview}>
+            <View style={styles.pfpContainer} />
+            <Text style={styles.handleText}>{item}</Text>
+        </View>
     );
 
     return (
         <TouchableWithoutFeedback onPress={dismissKeyboard}>
-            <View style={styles.main_ctnr}>
+            <View style={styles.mainContainer}>
                 <View style={styles.header}>
                     <SearchBar
                         fontColor="#c6c6c6"
@@ -69,46 +95,51 @@ export default function Explore({ navigation, route }) {
                         cancelIconColor="#c6c6c6"
                         placeholder="Search"
                         placeholderTextColor="#aaa"
-                        onClearPress={() => {
-                            // Filter list, update setPhotos accordingly
-                        }}
-                        style={styles.search_bar}
+                        value={searchString}
+                        onChangeText={filterHandles}
+                        onClearPress={() => setFilteredHandles([])}
+                        style={styles.searchBar}
                     />
                 </View>
 
+                {filteredHandles.length > 0 && (
+                    <FlatList
+                        data={filteredHandles}
+                        keyExtractor={(item) => item}
+                        renderItem={renderHandleItem}
+                        style={styles.handleFlatlist}
+                    />
+                )}
+
                 <FlatList
                     data={photos}
-                    renderItem={renderItem}
+                    renderItem={renderPostPreview}
                     keyExtractor={item => item.id.toString()}
-                    numColumns={3} // This ensures the grid has 3 columns
+                    numColumns={3}
                     columnWrapperStyle={styles.row}
-                    style={styles.flatlist}
+                    style={styles.postsFlatlist}
                 />
 
-                {global.workout &&
-                    <WorkoutFooter userData={userData} />
-                }
+                {global.workout && <WorkoutFooter userData={userData} />}
 
-                <Footer navigation={navigation} currentScreenName={'Explore'} />
+                <Footer navigation={navigation} currentScreenName="Explore" />
             </View>
         </TouchableWithoutFeedback>
     );
 }
 
 const styles = StyleSheet.create({
-    main_ctnr: {
+    mainContainer: {
         flex: 1,
-        backgroundColor: '#fff'
+        backgroundColor: '#fff',
     },
     header: {
         marginTop: 55,
         marginBottom: 10,
     },
-    search_bar: {
+    searchBar: {
         borderWidth: 1,
         borderColor: '#ccc',
-        height: 'auto',
-        width: 'auto',
         paddingVertical: 12,
         paddingHorizontal: 5,
         marginHorizontal: 12,
@@ -117,12 +148,42 @@ const styles = StyleSheet.create({
         shadowOpacity: 0.2,
         shadowRadius: 3,
     },
-    flatlist: {
+    postsFlatlist: {
         flex: 1,
         paddingHorizontal: 3,
     },
     row: {
         flex: 1,
-        justifyContent: 'space-around'
-    }
+        justifyContent: 'space-around',
+    },
+    handleFlatlist: {
+        position: 'absolute',
+        top: 100, // Adjust based on the height of the header and search bar
+        left: 0,
+        right: 0,
+        backgroundColor: 'white',
+        zIndex: 1,
+        paddingBottom: 5,
+    },
+    handlePreview: {
+        paddingVertical: 9,
+        marginHorizontal: 8,
+        paddingHorizontal: 12,
+        flexDirection: 'row',
+        alignItems: 'center',
+        borderBottomWidth: 0.7,
+        borderBottomColor: '#888',
+    },
+    pfpContainer: {
+        width: 36,
+        height: 36,
+        backgroundColor: 'red',
+        borderRadius: 18,
+    },
+    handleText: {
+        fontSize: 16,
+        paddingBottom: 5,
+        fontFamily: 'Lato_700Bold',
+        marginHorizontal: 12,
+    },
 });
