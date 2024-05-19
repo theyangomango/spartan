@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { StyleSheet, View, TouchableWithoutFeedback, Keyboard, FlatList, Text } from 'react-native';
+import { StyleSheet, View, TouchableWithoutFeedback, Keyboard, FlatList, Text, Pressable, TouchableOpacity } from 'react-native';
 import Footer from "../components/Footer";
 import WorkoutFooter from "../components/workout/WorkoutFooter";
 import SearchBar from "react-native-dynamic-search-bar";
@@ -54,8 +54,6 @@ export default function Explore({ navigation }) {
         { id: '6', uri: 'https://placeimg.com/640/640/any' }
     ]);
 
-    const dismissKeyboard = () => Keyboard.dismiss();
-
     const toPostList = () => {
         navigation.navigate('PostList', { posts });
     };
@@ -74,19 +72,27 @@ export default function Explore({ navigation }) {
         }
     };
 
+    function toViewProfile() {
+        navigation.navigate('ViewProfile');
+    }
+
     const renderPostPreview = ({ item }) => (
         <PostPreview toPostList={toPostList} item={item} />
     );
 
     const renderHandleItem = ({ item }) => (
-        <View style={styles.handlePreview}>
+        <TouchableOpacity
+            onPress={() => {
+                toViewProfile();
+            }}
+            style={styles.handlePreview}>
             <View style={styles.pfpContainer} />
             <Text style={styles.handleText}>{item}</Text>
-        </View>
+        </TouchableOpacity>
     );
 
     return (
-        <TouchableWithoutFeedback onPress={dismissKeyboard}>
+        <TouchableWithoutFeedback onPress={Keyboard.dismiss} accessible={false}>
             <View style={styles.mainContainer}>
                 <View style={styles.header}>
                     <SearchBar
@@ -108,6 +114,7 @@ export default function Explore({ navigation }) {
                         keyExtractor={(item) => item}
                         renderItem={renderHandleItem}
                         style={styles.handleFlatlist}
+                        keyboardShouldPersistTaps="always"
                     />
                 )}
 
@@ -118,6 +125,7 @@ export default function Explore({ navigation }) {
                     numColumns={3}
                     columnWrapperStyle={styles.row}
                     style={styles.postsFlatlist}
+                    keyboardShouldPersistTaps="handled"
                 />
 
                 {global.workout && <WorkoutFooter userData={userData} />}
