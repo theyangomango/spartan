@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { StyleSheet, View, Image } from "react-native"
-import PostHeader from "../1_feed/PostHeader";
-import PostFooter from "../1_feed/PostFooter";
+import ExplorePostHeader from "./ExplorePostHeader";
+import ExplorePostFooter from "./ExplorePostFooter";
 import PostCommentPreview from "./../1_feed/PostCommentPreview";
 import getPFP from "../../../backend/storage/getPFP";
 import getPostImage from "../../../backend/storage/getPostImage";
@@ -24,7 +24,7 @@ export default function ExplorePost({ data }) {
 
     return (
         <View style={styles.main_ctnr}>
-            <PostHeader data={data} url={pfp} />
+            <ExplorePostHeader data={data} url={pfp} />
 
             <View style={styles.body_ctnr}>
                 <View style={styles.image_ctnr}>
@@ -34,6 +34,8 @@ export default function ExplorePost({ data }) {
                     />
                 </View>
             </View>
+
+            <ExplorePostFooter data={data} uid={global.userData.uid} />
 
             <View style={styles.comments}>
                 {data.commentCount == 1 &&
@@ -47,7 +49,6 @@ export default function ExplorePost({ data }) {
                 }
             </View>
 
-            <PostFooter data={data} uid={global.userData.uid} />
         </View>
     )
 }
@@ -55,31 +56,28 @@ export default function ExplorePost({ data }) {
 const styles = StyleSheet.create({
     main_ctnr: {
         width: '100%',
-        paddingHorizontal: 18,
         paddingTop: 12,
-        paddingBottom: 10,
-        borderRadius: 15,
+        // paddingBottom: 10,
         borderColor: '#CFCFCF',
-        borderWidth: 1,
         marginBottom: 16,
     },
     body_ctnr: {
         flex: 1,
-        paddingTop: 8,
-        paddingBottom: 6,
+        // paddingTop: 8,
+        // paddingBottom: 6,
     },
     image_ctnr: {
-        width: '100%',
-        height: 200
+        marginHorizontal: 3,
     },
     image: {
-        flex: 1,
-        borderRadius: 10,
+        width: '100%',
+        aspectRatio: 1
     },
     liked_users: {
     },
     comments: {
+        paddingTop: 4,
         paddingBottom: 10,
-        paddingHorizontal: 5
+        paddingHorizontal: 12
     },
 });
