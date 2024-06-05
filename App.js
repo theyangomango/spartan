@@ -3,13 +3,13 @@ import { NavigationContainer } from '@react-navigation/native'
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 
-import Feed from "./frontend/screens/Feed";
-import Profile from './frontend/screens/Profile';
-import SelectPhotosScreen from './frontend/components/profile/CreatePostModal/SelectPhotosScreen';
-import PostOptionsScreen from './frontend/components/profile/CreatePostModal/PostOptionsScreen';
-import Explore from './frontend/screens/Explore';
-import Workout from './frontend/screens/Workout';
-import Competition from './frontend/screens/Competition';
+import Feed from "./frontend/screens/1_Feed";
+import Profile from './frontend/screens/5_Profile';
+import SelectPhotosScreen from './frontend/components/5_profile/CreatePostModal/SelectPhotosScreen';
+import PostOptionsScreen from './frontend/components/5_profile/CreatePostModal/PostOptionsScreen';
+import Explore from './frontend/screens/4_Explore';
+import Workout from './frontend/screens/3_Workout';
+import Competition from './frontend/screens/2_Competition';
 import Messages from './frontend/screens/Messages';
 import Chat from './frontend/screens/Chat';
 import PostList from './frontend/screens/PostList';

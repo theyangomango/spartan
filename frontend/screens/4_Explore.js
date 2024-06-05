@@ -1,35 +1,9 @@
 import React, { useState } from 'react';
 import { StyleSheet, View, TouchableWithoutFeedback, Keyboard, FlatList, Text, Pressable, TouchableOpacity } from 'react-native';
 import Footer from "../components/Footer";
-import WorkoutFooter from "../components/workout/WorkoutFooter";
+import WorkoutFooter from "../components/3_workout/WorkoutFooter";
 import SearchBar from "react-native-dynamic-search-bar";
-import PostPreview from '../components/explore/PostPreview';
-
-const posts = [
-    {
-        id: 1,
-        user: {
-            username: "user1",
-            profileImage: "https://via.placeholder.com/150",
-        },
-        image: "https://via.placeholder.com/300",
-        likes: 100,
-        comments: 20,
-        timestamp: "2024-05-04T10:30:00Z",
-    },
-    {
-        id: 2,
-        user: {
-            username: "user2",
-            profileImage: "https://via.placeholder.com/150",
-        },
-        image: "https://via.placeholder.com/300",
-        likes: 150,
-        comments: 30,
-        timestamp: "2024-05-03T15:45:00Z",
-    },
-    // Add more posts as needed
-];
+import PostPreview from '../components/4_explore/PostPreview';
 
 const handles = [
     'john_doe',
@@ -55,7 +29,7 @@ export default function Explore({ navigation }) {
     ]);
 
     const toPostList = () => {
-        navigation.navigate('PostList', { posts });
+        navigation.navigate('PostList');
     };
 
     const filterHandles = (text) => {

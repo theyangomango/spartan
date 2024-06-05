@@ -1,13 +1,13 @@
 import { useEffect, useRef, useState } from "react";
 import { StyleSheet, View, ScrollView } from "react-native";
 import Footer from "../components/Footer";
-import Post from "../components/feed/Post";
-import FeedHeader from "../components/feed/FeedHeader";
+import Post from "../components/1_feed/Post";
+import FeedHeader from "../components/1_feed/FeedHeader";
 import readDoc from "../../backend/helper/firebase/readDoc";
 import getStoriesDisplayFormat from "../helper/getStoriesDisplayFormat";
-import WorkoutFooter from "../components/workout/WorkoutFooter";
-import retrieveUserFeed from "../../backend/retrieveUserData";
-import Stories from "../components/feed/Stories";
+import WorkoutFooter from "../components/3_workout/WorkoutFooter";
+import retrieveUserFeed from "../../backend/retreiveUserFeed";
+import Stories from "../components/1_feed/Stories";
 
 // Todo - store uid on phone storage
 const UID = '6b176d7d-4d89-4cb5-beb0-0f19b47a10a2'; // Hard set UID 
@@ -61,7 +61,7 @@ export default function Feed({ navigation }) {
                         setScrollviewBkgColor('#2D9EFF');
                     }
                 }}
-                scrollEventThrottle={10}
+                scrollEventThrottle={1}
             >
                 <Stories displayStories={storiesDisplay} />
                 <View style={styles.posts_view_ctnr}>

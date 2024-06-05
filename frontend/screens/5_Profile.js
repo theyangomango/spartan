@@ -4,14 +4,14 @@ import { useFocusEffect } from '@react-navigation/native';
 import { Grid2, Activity } from 'iconsax-react-native'
 import BottomSheet from "react-native-gesture-bottom-sheet";
 import Footer from "../components/Footer";
-import ProfileHeader from "../components/profile/ProfileHeader";
-import ProfileInfo from "../components/profile/ProfileInfo";
-import EditProfileButton from "../components/profile/EditProfileButton";
-import WorkoutStats from "../components/profile/WorkoutStats";
-import PostPreview from "../components/profile/PostPreview";
+import ProfileHeader from "../components/5_profile/ProfileHeader";
+import ProfileInfo from "../components/5_profile/ProfileInfo";
+import EditProfileButton from "../components/5_profile/EditProfileButton";
+import WorkoutStats from "../components/5_profile/WorkoutStats";
+import PostPreview from "../components/5_profile/PostPreview";
 import readDoc from "../../backend/helper/firebase/readDoc";
-import CreateModal from "../components/profile/CreateModal";
-import WorkoutFooter from "../components/workout/WorkoutFooter";
+import CreateModal from "../components/5_profile/CreateModal";
+import WorkoutFooter from "../components/3_workout/WorkoutFooter";
 
 export default function Profile({ navigation }) {
     const userData = global.userData;

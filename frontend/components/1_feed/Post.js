@@ -29,7 +29,7 @@ export default function Post({ data, uid }) {
             <View style={styles.body_ctnr}>
                 <View style={styles.image_ctnr}>
                     <Image
-                        source={{uri: image}}
+                        source={{ uri: image }}
                         style={styles.image}
                     />
                 </View>
@@ -47,7 +47,7 @@ export default function Post({ data, uid }) {
                 }
             </View>
 
-            <PostFooter data={data} uid={uid}/>
+            <PostFooter data={data} uid={uid} />
         </View>
     )
 }

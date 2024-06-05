@@ -1,4 +1,5 @@
 import readDoc from "./helper/firebase/readDoc";
+import retrievePosts from "./posts/retrievePosts";
 
 export default async function retrieveUserFeed(userData) {
     let db_stories = [];
@@ -7,11 +8,12 @@ export default async function retrieveUserFeed(userData) {
         db_stories.push(storyData);
     }
 
-    let db_posts = [];
-    for (pid of userData.feedPosts) {
-        let postData = await readDoc('posts', pid);
-        db_posts.push(postData);
-    }
+    let db_posts = await retrievePosts(userData.feedPosts);
+    // let db_posts = [];
+    // for (pid of userData.feedPosts) {
+    //     let postData = await readDoc('posts', pid);
+    //     db_posts.push(postData);
+    // }
 
     let db_messages = [];
     for (mid of userData.messages) {

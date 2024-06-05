@@ -2,17 +2,17 @@ import React, { useRef, useState } from "react";
 import { Text, StyleSheet, View, ScrollView } from "react-native";
 import { useFocusEffect } from '@react-navigation/native';
 import BottomSheet from "react-native-gesture-bottom-sheet";
-import NewWorkoutModal from "../components/workout/new_workout/NewWorkoutModal";
+import NewWorkoutModal from "../components/3_workout/new_workout/NewWorkoutModal";
 import Footer from "../components/Footer";
-import TemplateCard from "../components/workout/TemplateCard";
-import StartWorkoutButton from "../components/workout/StartWorkoutButton";
-import JoinWorkoutButton from "../components/workout/JoinWorkoutButton";
+import TemplateCard from "../components/3_workout/TemplateCard";
+import StartWorkoutButton from "../components/3_workout/StartWorkoutButton";
+import JoinWorkoutButton from "../components/3_workout/JoinWorkoutButton";
 import initWorkout from "../../backend/initWorkout";
 import makeID from "../../backend/helper/makeID";
 import eraseDoc from "../../backend/helper/firebase/eraseDoc";
 import updateDoc from "../../backend/helper/firebase/updateDoc";
-import WorkoutFooter from "../components/workout/WorkoutFooter";
-import JoinWorkoutModal from "../components/workout/JoinWorkoutModal";
+import WorkoutFooter from "../components/3_workout/WorkoutFooter";
+import JoinWorkoutModal from "../components/3_workout/JoinWorkoutModal";
 
 export default function Workout({ navigation }) {
     const [workout, setWorkout] = useState(null);

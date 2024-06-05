@@ -1,28 +1,32 @@
-import React from "react";
+import React, { useEffect, useState } from "react";
 import { StyleSheet, View, FlatList, Text, Image, TouchableOpacity, Pressable } from "react-native";
-import { ArrowLeft2 } from 'iconsax-react-native'
+import { ArrowLeft2 } from 'iconsax-react-native';
+import retrievePosts from "../../backend/posts/retrievePosts";
+import ExplorePost from "../components/explore_posts_list/ExplorePost";
+
+const postIDs = ['b3a27dbf-209e-4f50-962b-2634bf4ce50e'];
+
 
 const PostList = ({ navigation, route, onPostPress }) => {
-    const posts = route.params.posts;
+    const [posts, setPosts] = useState(null);
+
+    useEffect(() => {
+        init();
+    }, []);
+
+    async function init() {
+        let db_posts = await retrievePosts(postIDs);
+        // console.log(db_posts);
+        setPosts(db_posts);
+    }
 
     function goBack() {
-        navigation.navigate('Explore')
+        navigation.navigate('Explore');
     }
 
     // Render each post item
     const renderPostItem = ({ item }) => (
-        <TouchableOpacity onPress={() => onPostPress(item)}>
-            <View style={styles.postContainer}>
-                <View style={styles.userHeader}>
-                    <Image source={{ uri: item.user.profileImage }} style={styles.profileImage} />
-                    <Text style={styles.username}>{item.user.username}</Text>
-                </View>
-                <Image source={{ uri: item.image }} style={styles.postImage} />
-                <View style={styles.footer}>
-                    <Text style={styles.commentsLikesText}>{item.comments} comments • {item.likes} likes</Text>
-                </View>
-            </View>
-        </TouchableOpacity>
+        <ExplorePost data={item}/>
     );
 
     return (
@@ -32,12 +36,12 @@ const PostList = ({ navigation, route, onPostPress }) => {
                     <ArrowLeft2 size="24" color="#fff" style={styles.backIcon} />
                 </Pressable>
             </View>
-            <FlatList
+            {posts && <FlatList
                 data={posts}
                 renderItem={renderPostItem}
-                keyExtractor={(item) => item.id.toString()}
+                keyExtractor={(item) => item.pid}
                 style={styles.postList}
-            />
+            />}
         </View>
     );
 };

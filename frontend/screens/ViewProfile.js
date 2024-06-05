@@ -2,10 +2,10 @@ import React, { useEffect, useState, useRef } from "react";
 import { StyleSheet, View, Pressable, Text, TouchableOpacity } from "react-native";
 import { Grid2, Activity } from 'iconsax-react-native'
 import Footer from "../components/Footer";
-import WorkoutStats from "../components/profile/WorkoutStats";
-import PostPreview from "../components/profile/PostPreview";
+import WorkoutStats from "../components/5_profile/WorkoutStats";
+import PostPreview from "../components/5_profile/PostPreview";
 import readDoc from "../../backend/helper/firebase/readDoc";
-import WorkoutFooter from "../components/workout/WorkoutFooter";
+import WorkoutFooter from "../components/3_workout/WorkoutFooter";
 import ViewProfileInfo from "../components/viewProfile/ViewProfileInfo";
 import ViewProfileHeader from "../components/viewProfile/ViewProfileHeader";
 
