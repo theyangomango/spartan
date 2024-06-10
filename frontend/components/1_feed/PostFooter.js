@@ -4,7 +4,7 @@ import { likePost } from "../../../backend/posts/likePost";
 import { unlikePost } from "../../../backend/posts/unlikePost";
 import { useState } from "react";
 
-export default function PostFooter({ data, uid }) {
+export default function PostFooter({ data, uid, handleCommentBtnPress }) {
     const db_liked = data.likes.includes(uid);
     const [liked, setLiked] = useState(db_liked);
 
@@ -17,15 +17,11 @@ export default function PostFooter({ data, uid }) {
         }
     }
 
-    function handleCommentBtnPress() {
-
-    }
-
     return (
         <View style={styles.main_ctnr}>
             <View style={styles.left}>
-                <View style={styles.likes_ctnr}>
-                    <Pressable onPress={handleLikeBtnPress}>
+                <Pressable onPress={handleLikeBtnPress}>
+                    <View style={styles.likes_ctnr}>
                         <View style={styles.like_icon_ctnr}>
                             {!liked && <AntDesign
                                 name="like2"
@@ -37,15 +33,15 @@ export default function PostFooter({ data, uid }) {
                                 color='#0499fe'
                             />}
                         </View>
-                    </Pressable>
-                    <Text style={styles.count_text}>
-                        {db_liked == liked && data.likeCount}
-                        {db_liked && (!liked) && data.likeCount - 1}
-                        {!(db_liked) && liked && data.likeCount + 1}
-                    </Text>
-                    <Text> </Text>
-                    <Text style={styles.text}>Likes</Text>
-                </View>
+                        <Text style={styles.count_text}>
+                            {db_liked == liked && data.likeCount}
+                            {db_liked && (!liked) && data.likeCount - 1}
+                            {!(db_liked) && liked && data.likeCount + 1}
+                        </Text>
+                        <Text> </Text>
+                        <Text style={styles.text}>Likes</Text>
+                    </View>
+                </Pressable>
                 <View style={styles.comments_ctnr}>
                     <Pressable onPress={handleCommentBtnPress}>
                         <View style={styles.comment_icon_ctnr}>

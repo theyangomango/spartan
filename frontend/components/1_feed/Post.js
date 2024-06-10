@@ -1,14 +1,17 @@
-import { useEffect, useState } from "react";
-import { StyleSheet, View, Image } from "react-native"
+import React, { useEffect, useState } from "react";
+import { StyleSheet, View, Image, TextInput, TouchableOpacity, Text } from "react-native";
 import PostHeader from "./PostHeader";
 import PostFooter from "./PostFooter";
 import PostCommentPreview from "./PostCommentPreview";
 import getPFP from "../../../backend/storage/getPFP";
 import getPostImage from "../../../backend/storage/getPostImage";
+import { Ionicons } from '@expo/vector-icons';
 
 export default function Post({ data, uid }) {
     const [pfp, setPFP] = useState(null);
     const [image, setImage] = useState(null);
+    const [isCommenting, setIsCommenting] = useState(false);
+    const [commentText, setCommentText] = useState('');
 
     useEffect(() => {
         getPFP(data.uid)
@@ -21,6 +24,19 @@ export default function Post({ data, uid }) {
             });
     }, []);
 
+    function initComment() {
+        // setIsCommenting(true);
+    }
+
+    function handleEndEditing() {
+        if (commentText == '') setIsCommenting(false);
+    }
+
+    function handleCommentSubmit() {
+        console.log(commentText);
+        setIsCommenting(false);
+        setCommentText('');
+    }
 
     return (
         <View style={styles.main_ctnr}>
@@ -47,9 +63,28 @@ export default function Post({ data, uid }) {
                 }
             </View>
 
-            <PostFooter data={data} uid={uid} />
+            <View style={styles.comment_input_ctnr}>
+                <TextInput
+                    style={isCommenting ? styles.comment_input_commenting : styles.comment_input}
+                    value={commentText}
+                    onChangeText={setCommentText}
+                    onFocus={setIsCommenting}
+                    onEndEditing={handleEndEditing}
+                    placeholder="Comment"
+                    placeholderTextColor="#bcbcbc"
+                    multiline={true}
+                />
+                {isCommenting &&
+                    <TouchableOpacity onPress={handleCommentSubmit}>
+                        {/* <Text style={styles.submit_button_text}>Submit</Text> */}
+                        <Ionicons name="send" size={16} color="#0499fe" />
+                    </TouchableOpacity>
+                }
+            </View>
+
+            <PostFooter data={data} uid={uid} handleCommentBtnPress={initComment} />
         </View>
-    )
+    );
 }
 
 const styles = StyleSheet.create({
@@ -60,8 +95,9 @@ const styles = StyleSheet.create({
         paddingBottom: 10,
         borderRadius: 15,
         borderColor: '#CFCFCF',
-        borderWidth: 1,
+        borderWidth: 1.2,
         marginBottom: 16,
+        backgroundColor: '#fff', // Added background color for better visibility
     },
     body_ctnr: {
         flex: 1,
@@ -76,10 +112,32 @@ const styles = StyleSheet.create({
         flex: 1,
         borderRadius: 10,
     },
-    liked_users: {
-    },
+    liked_users: {},
     comments: {
-        paddingBottom: 10,
+        // paddingBottom: 10,
         paddingHorizontal: 5
+    },
+    comment_input_ctnr: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        paddingHorizontal: 5,
+        // paddingBottom: 10,
+    },
+    comment_input: {
+        flex: 1,
+        marginRight: 10,
+        color: '#888', // Darker text color for better readability
+        paddingBottom: 5,
+        fontSize: 11.5,
+        fontWeight: '700'
+    },
+    comment_input_commenting: {
+        flex: 1,
+        marginRight: 10,
+        color: '#888', // Darker text color for better readability
+        paddingBottom: 5,
+        fontSize: 11.5,
+        fontWeight: '700'
+
     },
 });

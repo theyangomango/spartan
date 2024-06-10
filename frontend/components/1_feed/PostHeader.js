@@ -41,7 +41,7 @@ export default function PostHeader({ data, url }) {
                     </Text>
                 </Pressable>
                 <View style={styles.options_icon_ctnr}>
-                    <SimpleLineIcons name='options' size={14} />
+                    <SimpleLineIcons name='options-vertical' size={14} />
                 </View>
             </View>
         </View>
@@ -116,6 +116,6 @@ const styles = StyleSheet.create({
     options_icon_ctnr: {
         justifyContent: 'center',
         alignItems: 'center',
-        paddingHorizontal: 5
+        paddingRight: 3
     },
 });

@@ -21,7 +21,7 @@ const styles = StyleSheet.create({
         color: '#555',
     },
     content_text: {
-        fontSize: 11,
+        fontSize: 11.5,
         fontFamily: 'Inter_400Regular'
     },
 });
