@@ -1,12 +1,10 @@
 import createDoc from '../helper/firebase/createDoc'
 import makeID from '../helper/makeID'
 
-export default async function createPost(uid, caption, images, wid = null) {
+export default async function createPost(uid, caption, images, id, wid = null) {
     console.log(uid, caption, images, wid);
-
-    let pid = makeID();
     createDoc('posts', pid, {
-        pid: pid,
+        pid: id,
         uid: uid,
         created: Date.now(),
         caption: caption,

@@ -3,11 +3,11 @@ import { AntDesign } from '@expo/vector-icons'
 import { useState } from "react";
 import { Location, Weight } from 'iconsax-react-native'
 import { Feather } from '@expo/vector-icons'
-import createPost from '../../../../backend/posts/createPost'
+import uploadImage from "../../../../backend/storage/uploadImage";
+import makeID from "../../../../backend/helper/makeID";
 
 export default function PostOptionsScreen({ navigation, route }) {
     const { userData, images } = route.params;
-
     const [caption, setCaption] = useState('');
 
     function goBack() {
@@ -15,8 +15,10 @@ export default function PostOptionsScreen({ navigation, route }) {
     }
 
     function sharePost() {
-        console.log('Uploading Post...');
-        createPost(userData.uid, caption, images);
+        images.forEach((image, index) => {
+            let id = makeID();
+            uploadImage(image, `posts/${id}/${index}`);
+        });
     }
 
     return (
