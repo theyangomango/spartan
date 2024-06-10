@@ -1,13 +1,20 @@
-import { View, Text, Image, StyleSheet } from "react-native"
-import { SimpleLineIcons } from '@expo/vector-icons'
+import React, { useState } from 'react';
+import { View, Text, Image, StyleSheet, Pressable } from 'react-native';
+import { SimpleLineIcons } from '@expo/vector-icons';
 
-export default function PostHeader({data, url}) {
+export default function PostHeader({ data, url }) {
+    const [isFollowing, setIsFollowing] = useState(false);
+
+    const handleFollowPress = () => {
+        setIsFollowing((prev) => !prev);
+    };
+
     return (
         <View style={styles.main_ctnr}>
             <View style={styles.left}>
                 <View style={styles.pfp_ctnr}>
-                    <Image 
-                        source={{uri: url}}
+                    <Image
+                        source={{ uri: url }}
                         style={styles.pfp}
                     />
                 </View>
@@ -25,15 +32,20 @@ export default function PostHeader({data, url}) {
                 </View>
             </View>
             <View style={styles.right}>
-                <View style={styles.follow_btn}>
-                    <Text style={styles.follow_text}>Follow</Text>
-                </View>
+                <Pressable
+                    style={[styles.follow_btn, isFollowing && styles.following_btn]}
+                    onPress={handleFollowPress}
+                >
+                    <Text style={isFollowing ? styles.following_btn_text : styles.follow_text}>
+                        {isFollowing ? 'Following' : 'Follow'}
+                    </Text>
+                </Pressable>
                 <View style={styles.options_icon_ctnr}>
                     <SimpleLineIcons name='options' size={14} />
                 </View>
             </View>
         </View>
-    )
+    );
 }
 
 const styles = StyleSheet.create({
@@ -48,14 +60,12 @@ const styles = StyleSheet.create({
     pfp_ctnr: {
         width: 42,
         height: 42,
-        // borderRadius: 21,
-        // backgroundColor: 'red',
         marginRight: 5,
     },
     pfp: {
         flex: 1,
         borderRadius: 21
-    },  
+    },
     text_ctnr: {
         padding: 4,
     },
@@ -80,9 +90,26 @@ const styles = StyleSheet.create({
         backgroundColor: '#0699FF',
         justifyContent: 'center'
     },
+    following_btn: {
+        width: 75,
+        height: 33,
+        borderRadius: 30,
+        marginHorizontal: 10,
+        marginVertical: 4,
+        backgroundColor: '#fff',
+        justifyContent: 'center',
+        borderWidth: 1.5,
+        borderColor: '#0699FF'
+    },
     follow_text: {
         textAlign: 'center',
         color: 'white',
+        fontSize: 11,
+        fontFamily: 'Lato_700Bold',
+    },
+    following_btn_text: {
+        textAlign: 'center',
+        color: '#0699FF',
         fontSize: 11,
         fontFamily: 'Lato_700Bold',
     },

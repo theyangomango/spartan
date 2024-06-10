@@ -12,18 +12,11 @@ import Stories from "../components/1_feed/Stories";
 // Todo - store uid on phone storage
 const UID = '6b176d7d-4d89-4cb5-beb0-0f19b47a10a2'; // Hard set UID 
 
-const isCloseToBottom = ({ layoutMeasurement, contentOffset, contentSize }) => {
-    const paddingToBottom = 100;
-    return layoutMeasurement.height + contentOffset.y >=
-        contentSize.height - paddingToBottom;
-};
-
 export default function Feed({ navigation }) {
     const [storiesDisplay, setStoriesDisplay] = useState(null);
     const [posts, setPosts] = useState([]);
     const [messages, setMessages] = useState(null);
     const userDataRef = useRef(0);
-    const [scrollviewBkgColor, setScrollviewBkgColor] = useState('#fff')
 
     useEffect(() => {
         init();
@@ -36,7 +29,6 @@ export default function Feed({ navigation }) {
         setPosts(feedData[1]);
         setMessages(feedData[2]);
         global.userData = userDataRef.current;
-        setScrollviewBkgColor('#2D9EFF')
     }
 
     function toMessagesScreen() {
@@ -50,31 +42,22 @@ export default function Feed({ navigation }) {
     return (
         <View style={styles.main_ctnr}>
             <FeedHeader toMessagesScreen={toMessagesScreen} />
-            <ScrollView
-                showsVerticalScrollIndicator={false}
-                style={{ backgroundColor: scrollviewBkgColor }}
-
-                onScroll={({ nativeEvent }) => {
-                    if (isCloseToBottom(nativeEvent)) {
-                        setScrollviewBkgColor('#fff');
-                    } else {
-                        setScrollviewBkgColor('#2D9EFF');
-                    }
-                }}
-                scrollEventThrottle={1}
-            >
-                <Stories displayStories={storiesDisplay} />
-                <View style={styles.posts_view_ctnr}>
-
-                    {
-                        posts.map((content, index) => {
-                            return <Post data={content} uid={UID} key={index} />
-                        })
-                    }
-
-
-                </View>
+            <ScrollView scrollEnabled={true} showsVerticalScrollIndicator={false} style={{backgroundColor: '#2D9EFF'}}>
+                <ScrollView
+                    showsVerticalScrollIndicator={false}
+                    style={{ backgroundColor: '#fff', paddingBottom: 200}}
+                >
+                    <Stories displayStories={storiesDisplay} />
+                    <View style={styles.posts_view_ctnr}>
+                        {
+                            posts.map((content, index) => {
+                                return <Post data={content} uid={UID} key={index} />
+                            })
+                        }
+                    </View>
+                </ScrollView>
             </ScrollView>
+
 
 
             {global.workout &&

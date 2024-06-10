@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { StyleSheet, View, Image } from "react-native"
 import ExplorePostHeader from "./ExplorePostHeader";
 import ExplorePostFooter from "./ExplorePostFooter";
-import PostCommentPreview from "./../1_feed/PostCommentPreview";
+import PostCommentPreview from "../1_feed/PostCommentPreview";
 import getPFP from "../../../backend/storage/getPFP";
 import getPostImage from "../../../backend/storage/getPostImage";
 
