@@ -1,8 +1,12 @@
 import { View, StyleSheet, Text, TextInput, Pressable, TouchableOpacity } from "react-native";
 import { useState } from "react";
 import SetRow from "./SetRow";
+import { FontAwesome5 } from '@expo/vector-icons'
+import DoubleSetRow from "./DoubleSetRow";
 
 export default function ExerciseLog({ name }) {
+    const canTrackBothSides = true;
+    const [isTrackingBothSides, setIsTrackingBothSides] = useState(false);
     const [sets, setSets] = useState([
         { previous: '405lb x 12' }
     ]);
@@ -13,10 +17,21 @@ export default function ExerciseLog({ name }) {
         }])
     }
 
+    function handlePressTrackingBothSidesButton() {
+        setIsTrackingBothSides(!isTrackingBothSides);
+    }
+
     return (
         <View style={styles.main_ctnr}>
             <View style={styles.header}>
                 <Text style={styles.exercise_text}>{name}</Text>
+                {
+                    canTrackBothSides && <Pressable onPress={handlePressTrackingBothSidesButton}>
+                        <View style={isTrackingBothSides ? styles.track_both_button_on_ctnr : styles.track_both_button_off_ctnr}>
+                            <FontAwesome5 name='grip-lines-vertical' size={10} color={isTrackingBothSides ? '#0699FF' : '#0699FF'} />
+                        </View>
+                    </Pressable>
+                }
             </View>
             <View style={styles.labels}>
                 <View style={styles.set_ctnr}>
@@ -33,7 +48,13 @@ export default function ExerciseLog({ name }) {
                 </View>
             </View>
             <View>
-                {
+                {isTrackingBothSides ?
+                    sets.map((set, index) => {
+                        return (
+                            <DoubleSetRow set={set} index={index} key={index} />
+                        )
+                    })
+                    :
                     sets.map((set, index) => {
                         return (
                             <SetRow set={set} index={index} key={index} />
@@ -54,12 +75,34 @@ const styles = StyleSheet.create({
     main_ctnr: {
         marginVertical: 16,
     },
+    header: {
+        flexDirection: 'row',
+    },
+    track_both_button_off_ctnr: {
+        paddingVertical: 2,
+        paddingHorizontal: 9,
+        marginTop: 1,
+        marginHorizontal: 8,
+        borderRadius: 4,
+        borderWidth: 1.2,
+        borderColor: '#0699FF',
+    },
+    track_both_button_on_ctnr: {
+        paddingVertical: 2,
+        paddingHorizontal: 9,
+        marginTop: 1,
+        marginHorizontal: 8,
+        borderRadius: 4,
+        borderWidth: 1.2,
+        borderColor: '#0699FF',
+        backgroundColor: '#ADE4FF'
+    },
     exercise_text: {
         fontFamily: 'Mulish_700Bold',
         color: '#0699FF',
         fontSize: 14,
         paddingBottom: 10,
-        paddingHorizontal: 22,
+        paddingLeft: 22,
     },
     labels: {
         flexDirection: 'row',
