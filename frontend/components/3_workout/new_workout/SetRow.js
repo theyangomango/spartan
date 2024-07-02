@@ -20,7 +20,7 @@ export default function SetRow({ set, index }) {
             </View>
             <View style={styles.weight_unit_ctnr}>
                 <EditableStat isFinished={isDone} />
-            </View>
+            </View> 
             <View style={styles.reps_ctnr}>
                 <EditableStat isFinished={isDone} />
             </View>

@@ -1,11 +1,18 @@
 import React, { useState } from 'react';
 import { View, Text, Image, StyleSheet, Pressable } from 'react-native';
 import { SimpleLineIcons } from '@expo/vector-icons';
+import followUser from '../../../backend/user/followUser';
+import unfollowUser from '../../../backend/user/unfollowUser';
 
-export default function PostHeader({ data, url }) {
-    const [isFollowing, setIsFollowing] = useState(false);
+export default function PostHeader({ data, url }) {;
+    const [isFollowing, setIsFollowing] = useState(global.userData.following.includes(data.uid));
 
     const handleFollowPress = () => {
+        if (!isFollowing) {
+            followUser(global.userData.uid, data.uid);
+        } else {
+            unfollowUser(global.userData.uid, data.uid);
+        }
         setIsFollowing((prev) => !prev);
     };
 
