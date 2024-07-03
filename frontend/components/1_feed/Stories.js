@@ -1,23 +1,26 @@
-import { StyleSheet, Text, View } from "react-native";
+import { Button, Pressable, StyleSheet, Text, View } from "react-native";
 import InstaStory from "react-native-insta-story";
+import StoryHeaderButtons from "./StoryHeaderButtons";
 
 export default function Stories({ displayStories }) {
+    
     return (
-        <View style={styles.stories_view_ctnr}>
-            <View style={styles.stories_ctnr}>
-                {displayStories && <InstaStory
-                    data={displayStories}
-                    avatarSize={56}
-                    unPressedBorderColor={'#fff'}
-                    pressedBorderColor={'#8dcbfc'}
-                    unPressedAvatarTextColor={'#fff'}
-                    pressedAvatarTextColor={'#fff'}
-                    avatarTextStyle={styles.story_text}
-                    avatarImageStyle ={styles.story_image}
-                    avatarWrapperStyle={styles.story_border}
-                    duration={10}
-                />}
-            </View>
+        <View style={styles.stories_ctnr}>
+            {displayStories && <InstaStory
+                data={displayStories}
+                avatarSize={56}
+                unPressedBorderColor={'#fff'}
+                pressedBorderColor={'#8dcbfc'}
+                unPressedAvatarTextColor={'#fff'}
+                pressedAvatarTextColor={'#fff'}
+                avatarTextStyle={styles.story_text}
+                avatarImageStyle={styles.story_image}
+                avatarWrapperStyle={styles.story_border}
+                renderCloseComponent={({ item, onPress }) => (
+                    <StoryHeaderButtons data={item}/>
+                )}
+                duration={10}
+            />}
         </View>
     )
 }

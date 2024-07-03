@@ -13,6 +13,8 @@ export default async function getStoriesDisplayFormat(db_stories) {
             data[index].stories.push({
                 story_id: sid,
                 story_image: 'https://images.unsplash.com/photo-1511367461989-f85a21fda167?ixid=MnwxMjA3fDB8MHxzZWFyY2h8Mnx8cHJvZmlsZXxlbnwwfHwwfHw%3D&ixlib=rb-1.2.1&w=1000&q=80',
+                swipeText: 'Custom swipe text for this story',
+                onPress: () => console.log('story 1 swiped'),
             });
         }
         else { // uid not included
@@ -28,6 +30,8 @@ export default async function getStoriesDisplayFormat(db_stories) {
                     {
                         story_id: sid,
                         story_image: 'https://images.unsplash.com/photo-1511367461989-f85a21fda167?ixid=MnwxMjA3fDB8MHxzZWFyY2h8Mnx8cHJvZmlsZXxlbnwwfHwwfHw%3D&ixlib=rb-1.2.1&w=1000&q=80',
+                        swipeText: 'Custom swipe text for this story',
+                        onPress: () => console.log('story 1 swiped'),
                     }
                 ]
             });
