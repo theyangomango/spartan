@@ -3,7 +3,7 @@ import getDisplayTime from '../../helper/getDisplayTime'
 import { useEffect, useState } from "react";
 import getPFP from '../../../backend/storage/getPFP'
 
-export default function MessageCard({ uid, handle, content, timestamp, toChat }) {
+export default function MessageCard({ uid, handle, content, timestamp, toChat, index }) {
     const [image, setImage] = useState(null);
     
     useEffect(() => {
@@ -14,7 +14,7 @@ export default function MessageCard({ uid, handle, content, timestamp, toChat })
     }, []);
     
     return (
-        <TouchableOpacity onPress={toChat} style={styles.main_ctnr}>
+        <TouchableOpacity onPress={() => toChat(index, uid, handle)} style={styles.main_ctnr}>
             <View style={styles.left_ctnr}>
                 <View style={styles.pfp_ctnr}>
                     <Image

@@ -16,8 +16,8 @@ export default function Messages({ navigation, route }) {
         navigation.goBack();
     }
 
-    function toChat() {
-        navigation.navigate('Chat');
+    function toChat(key, pfp_uid, handle) {
+        navigation.navigate('Chat', { data: messages[key], pfp_uid: pfp_uid, handle: handle });
     }
 
     if (userData) {
@@ -39,6 +39,7 @@ export default function Messages({ navigation, route }) {
                                         content={msg.content[msg.content.length - 1].text}
                                         timestamp={msg.content[msg.content.length - 1].timestamp}
                                         toChat={toChat}
+                                        index={index}
                                         key={index}
                                     />
                                 )

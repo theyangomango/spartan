@@ -1,8 +1,10 @@
-import { arrayAppend } from "../helper/firebase/arrayAppend";
+import arrayAppend from "../helper/firebase/arrayAppend";
 
-export default async function sendMessage(uid, cid, content) {
-    arrayAppend('messages', cid, messages, {
+export default async function sendMessage(uid, cid, content, timestamp = Date.now()) {
+    console.log(uid, cid, content, timestamp);
+    arrayAppend('messages', cid, 'content', {
         uid: uid,
-        content: content
+        content: content,
+        timestamp: timestamp
     });
 }

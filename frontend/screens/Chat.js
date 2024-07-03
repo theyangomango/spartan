@@ -1,14 +1,25 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { View, Text, TextInput, TouchableOpacity, StyleSheet, FlatList, KeyboardAvoidingView, Platform, Keyboard, StatusBar } from 'react-native';
+import { View, Text, TextInput, TouchableOpacity, StyleSheet, FlatList, KeyboardAvoidingView, Platform, Keyboard, StatusBar, Image } from 'react-native';
 import { Ionicons } from '@expo/vector-icons'; // Import Ionicons from @expo/vector-icons
 import { ArrowLeft2 } from 'iconsax-react-native';
+import getPFP from '../../backend/storage/getPFP';
+import sendMessage from '../../backend/messages/sendMessage';
 
-const Chat = ({ navigation }) => {
+const Chat = ({ navigation, route }) => {
+    const { pfp_uid, handle, data } = route.params;
+    const [image, setImage] = useState(null);
     const [messages, setMessages] = useState([]);
     const [inputText, setInputText] = useState('');
     const [isScrolled, setIsScrolled] = useState(false);
     const [isInputFocused, setIsInputFocused] = useState(false); // State to track input focus
     const flatListRef = useRef(null);
+
+    useEffect(() => {
+        getPFP(pfp_uid)
+            .then(url => {
+                setImage(url);
+            });
+    }, []);
 
     useEffect(() => {
         const keyboardDidShowListener = Keyboard.addListener('keyboardDidShow', () => {
@@ -37,7 +48,9 @@ const Chat = ({ navigation }) => {
             sender: 'user', // Assuming user sends the message
             timestamp: new Date().getTime(),
         };
+
         setMessages([newMessage, ...messages]); // Append new message to the beginning of the array
+        sendMessage(global.userData.uid, data.cid, inputText);
         setInputText('');
     };
 
@@ -72,9 +85,13 @@ const Chat = ({ navigation }) => {
                         <ArrowLeft2 size="24" color="#fff" />
                     </TouchableOpacity>
                     <View style={styles.headerContent}>
-                        {/* Placeholder for Profile Picture */}
-                        <View style={styles.profilePicture}></View>
-                        <Text style={styles.handleText}>yangbai</Text>
+                        <View style={styles.pfp_ctnr}>
+                            <Image
+                                source={{ uri: image }}
+                                style={styles.pfp}
+                            />
+                        </View>
+                        <Text style={styles.handleText}>{handle}</Text>
                     </View>
                 </View>
                 <View style={styles.content}>
@@ -131,12 +148,16 @@ const styles = StyleSheet.create({
         alignItems: 'center',
         paddingVertical: 10,
     },
-    profilePicture: {
+    pfp_ctnr: {
         width: 35,
         height: 35,
-        borderRadius: 20,
-        backgroundColor: '#ccc', // Gray background color
+        // borderRadius: 20,
+        // backgroundColor: '#ccc', // Gray background color
         marginRight: 10,
+    },
+    pfp: {
+        flex: 1,
+        borderRadius: 20,
     },
     handleText: {
         fontFamily: 'SourceSansPro_600SemiBold',
