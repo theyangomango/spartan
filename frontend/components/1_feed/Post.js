@@ -34,7 +34,17 @@ export default function Post({ data, uid, onPressCommentButton }) {
                 </View>
             </View>
 
-            <View style={styles.comments}>
+            <View style={styles.caption}>
+                <Text style={styles.caption_text}>
+                    <Text style={styles.caption_handle}>rithvikpunati</Text>
+                    <Text> </Text>
+                    <Text style={styles.caption_content}>
+                        Lorem Ipsum is simply dummy text of the printing and typesetting industry 🗣️🗣️🗣️
+                    </Text>
+                </Text>
+            </View>
+
+            {/* <View style={styles.comments}>
                 {data.commentCount == 1 &&
                     <PostCommentPreview handle={data.comments[0].handle} content={data.comments[0].content} />
                 }
@@ -44,9 +54,9 @@ export default function Post({ data, uid, onPressCommentButton }) {
                         <PostCommentPreview handle={data.comments[1].handle} content={data.comments[1].content} />
                     </>
                 }
-            </View>
+            </View> */}
 
-            <PostFooter data={data} uid={uid} onPressCommentButton={onPressCommentButton}/>
+            <PostFooter data={data} uid={uid} onPressCommentButton={onPressCommentButton} />
         </View>
     );
 }
@@ -70,14 +80,30 @@ const styles = StyleSheet.create({
     },
     image_ctnr: {
         width: '100%',
-        aspectRatio: 1.15
+        aspectRatio: 1.2
     },
     image: {
         flex: 1,
         borderRadius: 10,
     },
-    comments: {
-        paddingBottom: 5,
-        paddingHorizontal: 5
+    caption: {
+        marginBottom: 7,
+        paddingHorizontal: 2,
     },
+    caption_text: {
+        lineHeight: 20
+    },
+    caption_handle: {
+        fontFamily: 'Lato_700Bold',
+        fontSize: 12,
+    },
+    caption_content: {
+        fontFamily: 'Lato_400Regular',
+        fontSize: 11.5,
+        color: '#777'
+    }
+    // comments: {
+    //     paddingBottom: 5,
+    //     paddingHorizontal: 5
+    // },
 });
