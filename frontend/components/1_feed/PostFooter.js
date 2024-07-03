@@ -4,7 +4,7 @@ import { likePost } from "../../../backend/posts/likePost";
 import { unlikePost } from "../../../backend/posts/unlikePost";
 import { useState } from "react";
 
-export default function PostFooter({ data, uid, handleCommentBtnPress }) {
+export default function PostFooter({ data, uid, onPressCommentButton }) {
     const db_liked = data.likes.includes(uid);
     const [liked, setLiked] = useState(db_liked);
 
@@ -42,21 +42,19 @@ export default function PostFooter({ data, uid, handleCommentBtnPress }) {
                         <Text style={styles.text}>Likes</Text>
                     </View>
                 </Pressable>
-                <View style={styles.comments_ctnr}>
-                    <Pressable onPress={handleCommentBtnPress}>
-                        <View style={styles.comment_icon_ctnr}>
-                            <Fontisto
-                                name="comment"
-                                size={17}
-                            />
-                        </View>
-                    </Pressable>
+                <Pressable onPress={onPressCommentButton} style={styles.comments_ctnr}>
+                    <View style={styles.comment_icon_ctnr}>
+                        <Fontisto
+                            name="comment"
+                            size={17}
+                        />
+                    </View>
                     <Text style={styles.count_text}>
                         {data.commentCount}
                     </Text>
                     <Text> </Text>
                     <Text style={styles.text}>Comments</Text>
-                </View>
+                </Pressable>
             </View>
             <View style={styles.right}>
                 <View style={styles.share_icon_ctnr}>

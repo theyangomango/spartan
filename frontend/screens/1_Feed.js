@@ -1,4 +1,5 @@
-import { useEffect, useRef, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
+import { useFocusEffect } from "@react-navigation/native";
 import { StyleSheet, View, ScrollView } from "react-native";
 import Footer from "../components/Footer";
 import Post from "../components/1_feed/Post";
@@ -8,6 +9,8 @@ import getStoriesDisplayFormat from "../helper/getStoriesDisplayFormat";
 import WorkoutFooter from "../components/3_workout/WorkoutFooter";
 import retrieveUserFeed from "../../backend/retreiveUserFeed";
 import Stories from "../components/1_feed/Stories";
+import BottomSheet from "react-native-gesture-bottom-sheet";
+import CommentsModal from "../components/1_feed/CommentsModal";
 
 // Todo - store uid on phone storage
 const UID = '6b176d7d-4d89-4cb5-beb0-0f19b47a10a2'; // Hard set UID 
@@ -18,9 +21,27 @@ export default function Feed({ navigation }) {
     const [messages, setMessages] = useState(null);
     const userDataRef = useRef(0);
 
+    const commentsBottomSheet = useRef();
+    const [commentsBottomSheetBackgroundColor, setCommentsBottomSheetBackgroundColor] = useState('#000');
+
     useEffect(() => {
         init();
     }, []);
+
+    useFocusEffect(
+        React.useCallback(() => {
+            const interval = setInterval(() => {
+                let panY = parseInt(JSON.stringify(commentsBottomSheet.current.state.pan.y));
+                let animatedHeight = parseInt(JSON.stringify(commentsBottomSheet.current.state.animatedHeight));
+                let realHeight = Math.max(panY, 650 - animatedHeight);
+                setCommentsBottomSheetBackgroundColor(`rgba(0, 0, 0, ${0.7 - 0.75 * (realHeight / 600)})`)
+            }, 50);
+
+            return () => {
+                clearInterval(interval);
+            };
+        }, [])
+    );
 
     async function init() {
         userDataRef.current = await readDoc('users', UID);
@@ -39,19 +60,34 @@ export default function Feed({ navigation }) {
         })
     }
 
+    function openCommentsModal() {
+        commentsBottomSheet.current.show();
+    }
+
     return (
         <View style={styles.main_ctnr}>
+            <BottomSheet
+                hasDraggableIcon
+                ref={commentsBottomSheet}
+                height={600}
+                sheetBackgroundColor={'#fff'}
+                backgroundColor={commentsBottomSheetBackgroundColor}
+                draggable={false}
+            >
+                <CommentsModal />
+            </BottomSheet>
+
             <FeedHeader toMessagesScreen={toMessagesScreen} />
-            <ScrollView scrollEnabled={true} showsVerticalScrollIndicator={false} style={{backgroundColor: '#2D9EFF'}}>
+            <ScrollView scrollEnabled={true} showsVerticalScrollIndicator={false} style={{ backgroundColor: '#2D9EFF' }}>
                 <ScrollView
                     showsVerticalScrollIndicator={false}
-                    style={{ backgroundColor: '#fff', paddingBottom: 200}}
+                    style={{ backgroundColor: '#fff', paddingBottom: 200 }}
                 >
                     <Stories displayStories={storiesDisplay} />
                     <View style={styles.posts_view_ctnr}>
                         {
                             posts.map((content, index) => {
-                                return <Post data={content} uid={UID} key={index} />
+                                return <Post data={content} uid={UID} onPressCommentButton={openCommentsModal} key={index} />
                             })
                         }
                     </View>
@@ -60,11 +96,12 @@ export default function Feed({ navigation }) {
 
 
 
-            {global.workout &&
+            {
+                global.workout &&
                 <WorkoutFooter userData={userDataRef} />
             }
             <Footer navigation={navigation} currentScreenName={'Feed'} />
-        </View>
+        </View >
     )
 }
 
@@ -75,7 +112,7 @@ const styles = StyleSheet.create({
     },
     posts_view_ctnr: {
         paddingTop: 20,
-        paddingHorizontal: 20,
+        paddingHorizontal: 16,
         flex: 1,
         backgroundColor: '#fff',
     }

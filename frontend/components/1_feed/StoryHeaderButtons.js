@@ -15,8 +15,8 @@ export default function StoryHeaderButtons({ data }) {
         <View style={styles.main_ctnr}>
             <Pressable onPress={handlePressLikeButton}>
                 {isLiked ?
-                    <Heart size={24} color="#FF8A65" variant="Bold" /> :
-                    <Heart size={24} color="#FF8A65" />
+                    <Heart size={21} color="#FF8A65" variant="Bold" /> :
+                    <Heart size={21} color="#FF8A65" />
                 }
             </Pressable>
         </View>
