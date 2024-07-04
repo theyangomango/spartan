@@ -9,8 +9,11 @@ export default function MessagesHeader({ toFeedScreen, handle }) {
                     <ArrowLeft2 size="24" color="#fff" />
                 </View>
             </Pressable>
-            <View style={styles.handle_text_ctnr}>
-                <Text style={styles.handle_text}>{handle}</Text>
+            <View style={styles.title_ctnr}>
+                <Text style={styles.title}>Messages</Text>
+            </View>
+            <View style={[styles.arrow_icon_ctnr, styles.hidden]}>
+                <ArrowLeft2 size="24" color="#2D9EFF" /> 
             </View>
         </View>
     )
@@ -29,12 +32,14 @@ const styles = StyleSheet.create({
     arrow_icon_ctnr: {
         padding: 6
     },
-    handle_text_ctnr: {
-        padding: 9
+    title_ctnr: {
+        padding: 9,
+        flex: 1,
+        alignItems: 'center',
     },
-    handle_text: {
+    title: {
         fontFamily: 'SourceSansPro_600SemiBold',
         fontSize: 20,
         color: '#fff'
-    },
+    }
 });

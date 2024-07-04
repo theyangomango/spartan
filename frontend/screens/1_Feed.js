@@ -69,16 +69,13 @@ export default function Feed({ navigation }) {
 
     return (
         <View style={styles.main_ctnr}>
-            {/* <BlurView intensity={100} style={styles.blurview}>
-            </BlurView> */}
-
             <BottomSheet
                 hasDraggableIcon
                 ref={commentsBottomSheet}
                 height={850}
                 sheetBackgroundColor={'#fff'}
                 backgroundColor={commentsBottomSheetBackgroundColor}
-                draggable={false}
+                draggable={true} // Optional, as it's true by default
             >
                 <CommentsModal postData={currentPost} />
             </BottomSheet>

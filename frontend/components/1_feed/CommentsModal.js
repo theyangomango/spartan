@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useRef } from 'react';
-import { View, Text, FlatList, StyleSheet, TouchableOpacity, TextInput, Platform, Image, KeyboardAvoidingView, Keyboard } from 'react-native';
+import { View, Text, FlatList, StyleSheet, TouchableOpacity, TextInput, Platform, Image, KeyboardAvoidingView, Keyboard, PanResponder, Pressable } from 'react-native';
 import CommentCard from './CommentCard';
 import updateDoc from '../../../backend/helper/firebase/updateDoc';
 import { Ionicons } from '@expo/vector-icons'; // Import Ionicons from @expo/vector-icons
@@ -88,35 +88,45 @@ export default function CommentsModal({ postData }) {
             behavior={Platform.OS === 'ios' ? 'padding' : null}
         >
             <View style={styles.main_ctnr}>
+                <View>
+                    <Text style={styles.headerText}>Comments</Text>
+                </View>
                 <FlatList
+                    showsVerticalScrollIndicator={false}
                     ref={flatListRef}
                     data={comments}
                     keyExtractor={(item, index) => index.toString()}
                     renderItem={({ item, index }) => (
-                        <CommentCard data={item} likeComment={handleLikeComment} unlikeComment={handleUnlikeComment} index={index} key={index} />
+                        <Pressable>
+                            <CommentCard data={item} likeComment={handleLikeComment} unlikeComment={handleUnlikeComment} index={index} key={index} />
+                        </Pressable>
                     )}
                 />
-                <View style={[styles.footer, { marginBottom: isInputFocused ? 70 : 30 }]}>
-                    <View style={styles.pfp_ctnr}>
-                        <Image
-                            source={{ uri: pfp }}
-                            style={styles.pfp}
-                        />
+
+                <Pressable>
+                    <View style={[styles.footer, { marginBottom: isInputFocused ? 70 : 30 }]}>
+                        <View style={styles.pfp_ctnr}>
+                            <Image
+                                source={{ uri: pfp }}
+                                style={styles.pfp}
+                            />
+                        </View>
+                        <View style={[styles.inputContainer]}>
+                            <TextInput
+                                style={styles.textInput}
+                                value={inputText}
+                                onChangeText={setInputText}
+                                placeholder={`Add a comment for ${postData.handle}`}
+                                onFocus={handleInputFocus}
+                                onBlur={handleInputBlur}
+                            />
+                            {inputText && <TouchableOpacity style={styles.sendButton} onPress={handleSend}>
+                                <Ionicons name="send" size={15} color="#fff" />
+                            </TouchableOpacity>}
+                        </View>
                     </View>
-                    <View style={[styles.inputContainer]}>
-                        <TextInput
-                            style={styles.textInput}
-                            value={inputText}
-                            onChangeText={setInputText}
-                            placeholder={`Add a comment for ${postData.handle}`}
-                            onFocus={handleInputFocus}
-                            onBlur={handleInputBlur}
-                        />
-                        {inputText && <TouchableOpacity style={styles.sendButton} onPress={handleSend}>
-                            <Ionicons name="send" size={15} color="#fff" />
-                        </TouchableOpacity>}
-                    </View>
-                </View>
+                </Pressable>
+
             </View>
         </KeyboardAvoidingView>
     );
@@ -126,6 +136,18 @@ const styles = StyleSheet.create({
     main_ctnr: {
         flex: 1,
         paddingHorizontal: 15,
+    },
+    header: {
+        height: 60,
+        justifyContent: 'center',
+        alignItems: 'center',
+        backgroundColor: '#fff',
+        borderBottomWidth: 1,
+        borderBottomColor: '#ccc',
+    },
+    headerText: {
+        fontSize: 18,
+        fontWeight: 'bold',
     },
     footer: {
         flexDirection: 'row',
