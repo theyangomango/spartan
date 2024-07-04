@@ -32,10 +32,10 @@ export default function Footer({ navigation, currentScreenName }) {
             <View style={styles.icon_ctnr}>
                 <Pressable onPress={toFeedScreen}>
                     {currentScreenName != 'Feed' &&
-                        <Home size="32" color="#888" variant="Broken" />
+                        <Home size="26" color="#888" variant="Broken" />
                     }
                     {currentScreenName == 'Feed' &&
-                        < Home size="32" color="#0499fe" variant="Broken" />
+                        < Home size="26" color="#0499fe" variant="Broken" />
                     }
                 </Pressable>
 
@@ -43,40 +43,40 @@ export default function Footer({ navigation, currentScreenName }) {
             <View style={styles.icon_ctnr}>
                 <Pressable onPress={toCompetitionScreen}>
                     {currentScreenName != 'Competition' &&
-                        <Cup size="32" color="#888" />
+                        <Cup size="26" color="#888" />
                     }
                     {currentScreenName == 'Competition' &&
-                        <Cup size="32" color="#0499fe" />
+                        <Cup size="26" color="#0499fe" />
                     }
                 </Pressable>
             </View>
-            <View style={styles.icon_ctnr}>
+            <View style={[styles.icon_ctnr, styles.workout_icon_ctnr]}>
                 <Pressable onPress={toWorkoutScreen}>
                     {currentScreenName != 'Workout' &&
-                        <Weight size="36" color="#888" />
+                        <Weight size="30" color="#888" />
                     }
                     {currentScreenName == 'Workout' &&
-                        <Weight size="36" color="#0499fe" />
+                        <Weight size="30" color="#0499fe" />
                     }
                 </Pressable>
             </View>
             <View style={styles.icon_ctnr}>
                 <Pressable onPress={toExploreScreen}>
                     {currentScreenName != 'Explore' &&
-                        <SearchNormal1 size="28" color="#888" />
+                        <SearchNormal1 size="24" color="#888" />
                     }
                     {currentScreenName == 'Explore' &&
-                        <SearchNormal1 size="28" color="#0499fe" />
+                        <SearchNormal1 size="24" color="#0499fe" />
                     }
                 </Pressable>
             </View>
             <View style={styles.icon_ctnr}>
                 <Pressable onPress={toProfileScreen}>
                     {currentScreenName != 'Profile' &&
-                        <Profile size="32" color="#888" variant="Broken" />
+                        <Profile size="26" color="#888" variant="Broken" />
                     }
                     {currentScreenName == 'Profile' &&
-                        < Profile size="32" color="#0499fe" variant="Broken" />
+                        < Profile size="26" color="#0499fe" variant="Broken" />
                     }
                 </Pressable>
             </View>
@@ -87,23 +87,26 @@ export default function Footer({ navigation, currentScreenName }) {
 const styles = StyleSheet.create({
     main_ctnr: {
         width: '100%',
-        height: 96,
+        height: 86,
         borderTopLeftRadius: 24,
         borderTopRightRadius: 24,
         backgroundColor: '#fff',
         flexDirection: 'row',
         justifyContent: 'center',
-        paddingTop: 20,
-        paddingHorizontal: 5,
+        paddingHorizontal: 16,
 
         // Todo Box Shadow
-        shadowColor: '#555',
-        shadowOffset: { width: 0, height: 1 },
+        shadowColor: '#cbcbcb',
+        shadowOffset: { width: 0, height: 0.25 },
         shadowOpacity: 1,
         shadowRadius: 2,
     },
     icon_ctnr: {
         flex: 1,
-        alignItems: 'center'
+        alignItems: 'center',
+        paddingTop: 20,
     },
+    workout_icon_ctnr: {
+        paddingTop: 18.5
+    }
 });

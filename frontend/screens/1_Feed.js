@@ -78,20 +78,15 @@ export default function Feed({ navigation }) {
             </BottomSheet>
 
             <FeedHeader toMessagesScreen={toMessagesScreen} />
-            <ScrollView scrollEnabled={true} showsVerticalScrollIndicator={false} style={{ backgroundColor: '#2D9EFF' }}>
-                <ScrollView
-                    showsVerticalScrollIndicator={false}
-                    style={{ backgroundColor: '#fff', paddingBottom: 200 }}
-                >
-                    <Stories displayStories={storiesDisplay} />
-                    <View style={styles.posts_view_ctnr}>
-                        {
-                            posts.map((content, index) => {
-                                return <Post data={content} uid={UID} onPressCommentButton={openCommentsModal} key={index} />
-                            })
-                        }
-                    </View>
-                </ScrollView>
+            <ScrollView scrollEnabled={true} showsVerticalScrollIndicator={false} bounces={false}>
+                <Stories displayStories={storiesDisplay} />
+                <View style={styles.posts_view_ctnr}>
+                    {
+                        posts.map((content, index) => {
+                            return <Post data={content} uid={UID} onPressCommentButton={openCommentsModal} key={index} />
+                        })
+                    }
+                </View>
             </ScrollView>
 
 
