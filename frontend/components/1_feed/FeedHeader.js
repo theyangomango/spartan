@@ -1,5 +1,6 @@
 import { StyleSheet, View, Text, Image, Pressable, TouchableOpacity } from "react-native";
 import { Ionicons } from '@expo/vector-icons'
+import { BlurView } from 'expo-blur';
 
 export default function FeedHeader({ toMessagesScreen }) {
     return (

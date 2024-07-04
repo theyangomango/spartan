@@ -11,7 +11,7 @@ import retrieveUserFeed from "../../backend/retreiveUserFeed";
 import Stories from "../components/1_feed/Stories";
 import BottomSheet from "react-native-gesture-bottom-sheet";
 import CommentsModal from "../components/1_feed/CommentsModal";
-// import { BlurView } from 'expo-blur';
+import { BlurView } from 'expo-blur';
 
 // Todo - store uid on phone storage
 const UID = '6b176d7d-4d89-4cb5-beb0-0f19b47a10a2'; // Hard set UID 
@@ -69,6 +69,9 @@ export default function Feed({ navigation }) {
 
     return (
         <View style={styles.main_ctnr}>
+            {/* <BlurView intensity={100} style={styles.blurview}>
+            </BlurView> */}
+
             <BottomSheet
                 hasDraggableIcon
                 ref={commentsBottomSheet}
@@ -77,7 +80,7 @@ export default function Feed({ navigation }) {
                 backgroundColor={commentsBottomSheetBackgroundColor}
                 draggable={false}
             >
-                <CommentsModal data={comments}/>
+                <CommentsModal data={comments} />
             </BottomSheet>
 
             <FeedHeader toMessagesScreen={toMessagesScreen} />
@@ -92,13 +95,12 @@ export default function Feed({ navigation }) {
                 </View>
             </ScrollView>
 
-
-
             {
                 global.workout &&
                 <WorkoutFooter userData={userDataRef} />
             }
             <Footer navigation={navigation} currentScreenName={'Feed'} />
+            <BlurView intensity={1.8} style={styles.blurview}/>
         </View >
     )
 }
@@ -106,12 +108,20 @@ export default function Feed({ navigation }) {
 const styles = StyleSheet.create({
     main_ctnr: {
         flex: 1,
-        backgroundColor: '#fff'
+        // backgroundColor: '#fff'
     },
     posts_view_ctnr: {
         paddingTop: 20,
         paddingHorizontal: 16,
         flex: 1,
         backgroundColor: '#fff',
+    },
+    blurview: {
+        position: 'absolute',
+        top: 80,
+        left: 0,
+        width: '100%',
+        height: 20,
+        // backgroundColor: 'red'
     }
 });
