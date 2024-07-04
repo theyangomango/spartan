@@ -36,7 +36,7 @@ export default function Feed({ navigation }) {
             const interval = setInterval(() => {
                 let panY = parseInt(JSON.stringify(commentsBottomSheet.current.state.pan.y));
                 let animatedHeight = parseInt(JSON.stringify(commentsBottomSheet.current.state.animatedHeight));
-                let realHeight = Math.max(panY, 650 - animatedHeight);
+                let realHeight = Math.max(panY, 1000 - animatedHeight);
                 setCommentsBottomSheetBackgroundColor(`rgba(0, 0, 0, ${0.7 - 0.75 * (realHeight / 600)})`)
             }, 50);
 
@@ -77,7 +77,7 @@ export default function Feed({ navigation }) {
             <BottomSheet
                 hasDraggableIcon
                 ref={commentsBottomSheet}
-                height={600}
+                height={850}
                 sheetBackgroundColor={'#fff'}
                 backgroundColor={commentsBottomSheetBackgroundColor}
                 draggable={false}
@@ -102,7 +102,7 @@ export default function Feed({ navigation }) {
                 <WorkoutFooter userData={userDataRef} />
             }
             <Footer navigation={navigation} currentScreenName={'Feed'} />
-            <BlurView intensity={2} style={styles.blurview}/>
+            <BlurView intensity={1.5} style={styles.blurview}/>
         </View >
     )
 }
@@ -120,7 +120,7 @@ const styles = StyleSheet.create({
     },
     blurview: {
         position: 'absolute',
-        top: 90,
+        top: 95,
         left: 0,
         width: '100%',
         height: 10,

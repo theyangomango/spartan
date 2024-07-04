@@ -1,112 +1,157 @@
-import React from 'react';
-import { View, Text, FlatList, StyleSheet, TouchableOpacity } from 'react-native';
+import React, { useEffect, useState, useRef } from 'react';
+import { View, Text, FlatList, StyleSheet, TouchableOpacity, TextInput, Platform, Image, KeyboardAvoidingView, Keyboard } from 'react-native';
 import CommentCard from './CommentCard';
 import updateDoc from '../../../backend/helper/firebase/updateDoc';
+import { Ionicons } from '@expo/vector-icons'; // Import Ionicons from @expo/vector-icons
+import getPFP from '../../../backend/storage/getPFP';
 
 export default function CommentsModal({ pid, data }) {
+    const [pfp, setPFP] = useState(null);
+    const [inputText, setInputText] = useState('');
+    const [isInputFocused, setIsInputFocused] = useState(false);
+    const flatListRef = useRef(null);
+
+    useEffect(() => {
+        getPFP(global.userData.uid)
+            .then(url => {
+                setPFP(url);
+            });
+
+        const keyboardDidShowListener = Keyboard.addListener('keyboardDidShow', () => {
+            if (flatListRef.current) {
+                flatListRef.current.scrollToEnd({ animated: true });
+            }
+        });
+
+        const keyboardDidHideListener = Keyboard.addListener('keyboardDidHide', () => {
+            if (flatListRef.current) {
+                flatListRef.current.scrollToEnd({ animated: true });
+            }
+        });
+
+        return () => {
+            keyboardDidShowListener.remove();
+            keyboardDidHideListener.remove();
+        };
+    }, []);
+
     function handleLikeComment(index) {
         data[index].likeCount++;
         data[index].likedUsers.push(global.userData.uid);
         updateDoc('posts', pid, {
             comments: data
-        })
+        });
     }
 
     function handleUnlikeComment(index) {
         data[index].likeCount--;
         const i = data[index].likedUsers.indexOf(global.userData.uid);
-        if (index > -1) { // only splice array when item is found
-            data[index].likedUsers.splice(i, 1); // 2nd parameter means remove one item only
+        if (index > -1) {
+            data[index].likedUsers.splice(i, 1);
         }
         updateDoc('posts', pid, {
             comments: data
-        })
+        });
     }
 
+    const handleSend = () => {
+        // Handle the send action here
+    };
+
+    const handleInputFocus = () => {
+        setIsInputFocused(true);
+    };
+
+    const handleInputBlur = () => {
+        setIsInputFocused(false);
+    };
+
     return (
-        <View style={styles.main_ctnr}>
-            {/* <View style={styles.header}>
-                    <Text style={styles.title}>Comments</Text>
-                </View> */}
-            <FlatList
-                data={data}
-                keyExtractor={(item, index) => index.toString()}
-                renderItem={({ item, index }) => (
-                    <CommentCard data={item} likeComment={handleLikeComment} unlikeComment={handleUnlikeComment} index={index} key={index} />
-                )}
-            />
-        </View>
+        <KeyboardAvoidingView
+            style={{ flex: 1 }}
+            behavior={Platform.OS === 'ios' ? 'padding' : null}
+        >
+            <View style={styles.main_ctnr}>
+                <FlatList
+                    ref={flatListRef}
+                    data={data}
+                    keyExtractor={(item, index) => index.toString()}
+                    renderItem={({ item, index }) => (
+                        <CommentCard data={item} likeComment={handleLikeComment} unlikeComment={handleUnlikeComment} index={index} key={index} />
+                    )}
+                />
+                <View style={[styles.footer, { marginBottom: isInputFocused ? 70 : 30 }]}>
+                    <View style={styles.pfp_ctnr}>
+                        <Image
+                            source={{ uri: pfp }}
+                            style={styles.pfp}
+                        />
+                    </View>
+                    <View style={[styles.inputContainer]}>
+                        <TextInput
+                            style={styles.textInput}
+                            value={inputText}
+                            onChangeText={setInputText}
+                            placeholder="Add a comment for itzy.all.in.us"
+                            onFocus={handleInputFocus}
+                            onBlur={handleInputBlur}
+                        />
+                        <TouchableOpacity style={styles.sendButton} onPress={handleSend}>
+                            <Ionicons name="send" size={15} color="#fff" />
+                        </TouchableOpacity>
+                    </View>
+                </View>
+            </View>
+        </KeyboardAvoidingView>
     );
 }
 
 const styles = StyleSheet.create({
     main_ctnr: {
         flex: 1,
-        paddingHorizontal: 15
+        paddingHorizontal: 15,
     },
-    // header: {
-    //     flexDirection: 'row',
-    //     justifyContent: 'space-between',
-    //     alignItems: 'center',
-    //     borderBottomWidth: 1,
-    //     borderBottomColor: '#ddd',
-    //     paddingBottom: 10,
-    //     marginBottom: 10,
-    // },
-    // title: {
-    //     fontSize: 16,
-    //     fontFamily: 'Poppins_500Medium'
-    // },
-    card: {
+    footer: {
         flexDirection: 'row',
-        paddingVertical: 10,
+        alignItems: 'flex-end',
+        paddingHorizontal: 3,
+        paddingBottom: 25,
     },
     pfp_ctnr: {
-        width: 36,
-        borderRadius: 20,
+        width: 40,
         aspectRatio: 1,
-        backgroundColor: '#ccc',
-        marginRight: 10
+        marginBottom: 3
     },
-    card_texts_ctnr: {
-        flex: 1
+    pfp: {
+        flex: 1,
+        borderRadius: 22,
     },
-    card_header: {
-        flexDirection: 'row'
-    },
-    handle_text: {
-        fontSize: 12.5,
-        fontFamily: 'Poppins_500Medium',
-        fontWeight: 'bold',
-        paddingBottom: 6
-    },
-    timestamp_ctnr: {
-        paddingHorizontal: 5
-    },
-    content_text_ctnr: {
+    inputContainer: {
+        flex: 1,
         flexDirection: 'row',
-        marginBottom: 2
+        alignItems: 'center',
+        borderWidth: 1,
+        borderColor: '#ababab',
+        paddingHorizontal: 10,
+        paddingVertical: 2.5,
+        borderRadius: 30,
+        marginLeft: 8,
+        marginRight: 5,
+        ...(Platform.OS === 'android' && { elevation: 5 }),
     },
-    content_text: {
-        fontFamily: 'Poppins_400Regular',
-        fontSize: 11,
-        flexWrap: 'wrap',
+    textInput: {
+        flex: 1,
+        borderRadius: 20,
+        paddingHorizontal: 15,
+        paddingVertical: 10,
+        marginRight: 10,
+        color: '#000',
     },
-    card_footer: {
-        flexDirection: 'row'
+    sendButton: {
+        backgroundColor: '#0499FE',
+        borderRadius: 25,
+        padding: 10,
+        justifyContent: 'center',
+        alignItems: 'center',
     },
-    helper_text: {
-        fontSize: 9.5,
-        fontFamily: 'Poppins_400Regular',
-        color: '#888',
-        paddingVertical: 3
-    },
-    likes_ctnr: {
-        paddingRight: 15
-    },
-    heart_icon_ctnr: {
-        paddingHorizontal: 5,
-        paddingBottom: 8,
-        justifyContent: 'center'
-    }
 });
