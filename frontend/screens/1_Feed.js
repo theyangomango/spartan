@@ -22,8 +22,7 @@ export default function Feed({ navigation }) {
     const [messages, setMessages] = useState(null);
     const userDataRef = useRef(0);
 
-    const [currentPID, setCurrentPID] = useState(null);
-    const [comments, setComments] = useState(null);
+    const [currentPost, setCurrentPost] = useState(null);
     const commentsBottomSheet = useRef();
     const [commentsBottomSheetBackgroundColor, setCommentsBottomSheetBackgroundColor] = useState('#000');
 
@@ -64,8 +63,7 @@ export default function Feed({ navigation }) {
     }
 
     function openCommentsModal(index) {
-        setComments(posts[index].comments);
-        setCurrentPID(posts[index].pid);
+        setCurrentPost(posts[index]);
         commentsBottomSheet.current.show();
     }
 
@@ -82,7 +80,7 @@ export default function Feed({ navigation }) {
                 backgroundColor={commentsBottomSheetBackgroundColor}
                 draggable={false}
             >
-                <CommentsModal pid={currentPID} data={comments} />
+                <CommentsModal postData={currentPost} />
             </BottomSheet>
 
             <FeedHeader toMessagesScreen={toMessagesScreen} />

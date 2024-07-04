@@ -4,8 +4,10 @@ import CommentCard from './CommentCard';
 import updateDoc from '../../../backend/helper/firebase/updateDoc';
 import { Ionicons } from '@expo/vector-icons'; // Import Ionicons from @expo/vector-icons
 import getPFP from '../../../backend/storage/getPFP';
+import incrementDocValue from '../../../backend/helper/firebase/incrementDocValue';
 
-export default function CommentsModal({ pid, data }) {
+export default function CommentsModal({ postData }) {
+    const comments = postData.comments;
     const [pfp, setPFP] = useState(null);
     const [inputText, setInputText] = useState('');
     const [isInputFocused, setIsInputFocused] = useState(false);
@@ -36,26 +38,40 @@ export default function CommentsModal({ pid, data }) {
     }, []);
 
     function handleLikeComment(index) {
-        data[index].likeCount++;
-        data[index].likedUsers.push(global.userData.uid);
-        updateDoc('posts', pid, {
-            comments: data
+        comments[index].likeCount++;
+        comments[index].likedUsers.push(global.userData.uid);
+        updateDoc('posts', postData.pid, {
+            comments: comments
         });
     }
 
     function handleUnlikeComment(index) {
-        data[index].likeCount--;
-        const i = data[index].likedUsers.indexOf(global.userData.uid);
+        comments[index].likeCount--;
+        const i = comments[index].likedUsers.indexOf(global.userData.uid);
         if (index > -1) {
-            data[index].likedUsers.splice(i, 1);
+            comments[index].likedUsers.splice(i, 1);
         }
-        updateDoc('posts', pid, {
-            comments: data
+        updateDoc('posts', postData.pid, {
+            comments: comments
         });
     }
 
     const handleSend = () => {
-        // Handle the send action here
+        if (!inputText) return;
+        comments.push({
+            handle: global.userData.handle,
+            uid: global.userData.uid,
+            content: inputText,
+            timestamp: Date.now(),
+            likeCount: 0,
+            likedUsers: [],
+            replies: []
+        });
+        updateDoc('posts', postData.pid, {
+            comments: comments
+        });
+        incrementDocValue('posts', postData.pid, 'commentCount');
+        setInputText('');
     };
 
     const handleInputFocus = () => {
@@ -74,7 +90,7 @@ export default function CommentsModal({ pid, data }) {
             <View style={styles.main_ctnr}>
                 <FlatList
                     ref={flatListRef}
-                    data={data}
+                    data={comments}
                     keyExtractor={(item, index) => index.toString()}
                     renderItem={({ item, index }) => (
                         <CommentCard data={item} likeComment={handleLikeComment} unlikeComment={handleUnlikeComment} index={index} key={index} />
@@ -92,13 +108,13 @@ export default function CommentsModal({ pid, data }) {
                             style={styles.textInput}
                             value={inputText}
                             onChangeText={setInputText}
-                            placeholder="Add a comment for itzy.all.in.us"
+                            placeholder={`Add a comment for ${postData.handle}`}
                             onFocus={handleInputFocus}
                             onBlur={handleInputBlur}
                         />
-                        <TouchableOpacity style={styles.sendButton} onPress={handleSend}>
+                        {inputText && <TouchableOpacity style={styles.sendButton} onPress={handleSend}>
                             <Ionicons name="send" size={15} color="#fff" />
-                        </TouchableOpacity>
+                        </TouchableOpacity>}
                     </View>
                 </View>
             </View>
