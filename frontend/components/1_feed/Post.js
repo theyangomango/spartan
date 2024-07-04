@@ -2,11 +2,10 @@ import React, { useEffect, useRef, useState } from "react";
 import { StyleSheet, View, Image, TextInput, TouchableOpacity, Text } from "react-native";
 import PostHeader from "./PostHeader";
 import PostFooter from "./PostFooter";
-import PostCommentPreview from "./PostCommentPreview";
 import getPFP from "../../../backend/storage/getPFP";
 import getPostImage from "../../../backend/storage/getPostImage";
 
-export default function Post({ data, uid, onPressCommentButton }) {
+export default function Post({ data, uid, onPressCommentButton, index }) {
     const [pfp, setPFP] = useState(null);
     const [image, setImage] = useState(null);
 
@@ -39,7 +38,7 @@ export default function Post({ data, uid, onPressCommentButton }) {
                     <Text style={styles.caption_handle}>rithvikpunati</Text>
                     <Text> </Text>
                     <Text style={styles.caption_content}>
-                        Lorem Ipsum is simply dummy text of the printing and typesetting industry 🗣️🗣️🗣️
+                        {data.caption}
                     </Text>
                 </Text>
             </View>
@@ -56,7 +55,7 @@ export default function Post({ data, uid, onPressCommentButton }) {
                 }
             </View> */}
 
-            <PostFooter data={data} uid={uid} onPressCommentButton={onPressCommentButton} />
+            <PostFooter data={data} uid={uid} onPressCommentButton={() => onPressCommentButton(index)} />
         </View>
     );
 }
@@ -68,7 +67,7 @@ const styles = StyleSheet.create({
         paddingTop: 12,
         paddingBottom: 10,
         borderRadius: 12,
-        borderColor: '#CFCFCF',
+        borderColor: '#DDD',
         borderWidth: 1.2,
         marginBottom: 16,
         backgroundColor: '#fff', // Added background color for better visibility

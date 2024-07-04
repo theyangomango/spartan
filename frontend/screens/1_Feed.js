@@ -11,6 +11,7 @@ import retrieveUserFeed from "../../backend/retreiveUserFeed";
 import Stories from "../components/1_feed/Stories";
 import BottomSheet from "react-native-gesture-bottom-sheet";
 import CommentsModal from "../components/1_feed/CommentsModal";
+// import { BlurView } from 'expo-blur';
 
 // Todo - store uid on phone storage
 const UID = '6b176d7d-4d89-4cb5-beb0-0f19b47a10a2'; // Hard set UID 
@@ -21,6 +22,7 @@ export default function Feed({ navigation }) {
     const [messages, setMessages] = useState(null);
     const userDataRef = useRef(0);
 
+    const [comments, setComments] = useState(null);
     const commentsBottomSheet = useRef();
     const [commentsBottomSheetBackgroundColor, setCommentsBottomSheetBackgroundColor] = useState('#000');
 
@@ -60,7 +62,8 @@ export default function Feed({ navigation }) {
         })
     }
 
-    function openCommentsModal() {
+    function openCommentsModal(index) {
+        setComments(posts[index].comments);
         commentsBottomSheet.current.show();
     }
 
@@ -74,7 +77,7 @@ export default function Feed({ navigation }) {
                 backgroundColor={commentsBottomSheetBackgroundColor}
                 draggable={false}
             >
-                <CommentsModal />
+                <CommentsModal data={comments}/>
             </BottomSheet>
 
             <FeedHeader toMessagesScreen={toMessagesScreen} />
@@ -83,7 +86,7 @@ export default function Feed({ navigation }) {
                 <View style={styles.posts_view_ctnr}>
                     {
                         posts.map((content, index) => {
-                            return <Post data={content} uid={UID} onPressCommentButton={openCommentsModal} key={index} />
+                            return <Post data={content} uid={UID} index={index} onPressCommentButton={openCommentsModal} key={index} />
                         })
                     }
                 </View>

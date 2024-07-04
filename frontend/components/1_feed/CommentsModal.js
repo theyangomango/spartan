@@ -3,8 +3,7 @@ import { View, Text, FlatList, StyleSheet, TouchableOpacity } from 'react-native
 import { Heart } from 'iconsax-react-native'
 import CommentCard from './CommentCard';
 
-export default function CommentsModal() {
-    let comments = [{ handle: 'user1', content: 'Lorem Ipsum is simply dummy text of the printing and typesetting industry.' }, { handle: 'user2', content: 'Lorem Ipsum is simply dummy' }];
+export default function CommentsModal({ data }) {
 
     return (
         <View style={styles.main_ctnr}>
@@ -12,7 +11,7 @@ export default function CommentsModal() {
                     <Text style={styles.title}>Comments</Text>
                 </View> */}
             <FlatList
-                data={comments}
+                data={data}
                 keyExtractor={(item, index) => index.toString()}
                 renderItem={({ item }) => (
                     <CommentCard data={item} />
@@ -25,7 +24,7 @@ export default function CommentsModal() {
 const styles = StyleSheet.create({
     main_ctnr: {
         flex: 1,
-        paddingHorizontal: 13
+        paddingHorizontal: 15
     },
     // header: {
     //     flexDirection: 'row',

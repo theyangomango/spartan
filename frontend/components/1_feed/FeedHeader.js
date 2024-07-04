@@ -48,11 +48,11 @@ const styles = StyleSheet.create({
         justifyContent: 'center',
         alignItems: 'center',
         paddingLeft: 10,
-        paddingRight: 5,
+        paddingRight: 2,
     },
     logo_image: {
-        width: 30,
-        height: 22,
+        width: 33,
+        height: 24,
     },
     logo_text: {
         fontSize: 21,
@@ -68,7 +68,7 @@ const styles = StyleSheet.create({
         backgroundColor: '#fff3',
         justifyContent: 'center',
         alignItems: 'center',
-        marginBottom: 2
+        marginBottom: 3
     },
     red_circle_ctnr: {
         width: 14,

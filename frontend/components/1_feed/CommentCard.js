@@ -1,9 +1,22 @@
-import React, { useState } from 'react';
-import { View, Text, FlatList, StyleSheet, TouchableOpacity, Pressable } from 'react-native';
+import React, { useEffect, useState } from 'react';
+import { View, Text, FlatList, StyleSheet, TouchableOpacity, Pressable, Image } from 'react-native';
 import { Heart } from 'iconsax-react-native'
+import getDisplayTimeDifference from '../../helper/getDisplayTimeDifference';
+import getPFP from '../../../backend/storage/getPFP';
+
+console.log(Date.now());
 
 export default function CommentCard({ data }) {
     const [isLiked, setIsLiked] = useState(false);
+    const [pfp, setPFP] = useState(null);
+
+
+    useEffect(() => {
+        getPFP(data.uid)
+            .then(url => {
+                setPFP(url);
+            });
+    }, []);
 
     function handlePressLikeButton() {
         setIsLiked(!isLiked);
@@ -12,6 +25,10 @@ export default function CommentCard({ data }) {
     return (
         <View style={styles.card}>
             <View style={styles.pfp_ctnr}>
+                <Image
+                    source={{ uri: pfp }}
+                    style={styles.pfp}
+                />
             </View>
             <View style={styles.card_texts_ctnr}>
                 <View style={styles.card_header}>
@@ -19,7 +36,7 @@ export default function CommentCard({ data }) {
                         <Text style={styles.handle_text}>{data.handle}</Text>
                     </View>
                     <View style={styles.timestamp_ctnr}>
-                        <Text style={styles.helper_text}>6h</Text>
+                        <Text style={styles.helper_text}>{getDisplayTimeDifference(Date.now(), data.timestamp)}</Text>
                     </View>
                 </View>
                 <View style={styles.content_text_ctnr}>
@@ -27,7 +44,7 @@ export default function CommentCard({ data }) {
                 </View>
                 <View style={styles.card_footer}>
                     <View style={styles.likes_ctnr}>
-                        <Text style={styles.helper_text}>496 likes</Text>
+                        <Text style={styles.helper_text}>{data.likeCount} likes</Text>
                     </View>
                     <View style={styles.reply_text_ctnr}>
                         <Text style={styles.helper_text}>Reply</Text>
@@ -54,10 +71,12 @@ const styles = StyleSheet.create({
     },
     pfp_ctnr: {
         width: 36,
-        borderRadius: 20,
         aspectRatio: 1,
-        backgroundColor: '#ccc',
         marginRight: 10
+    },
+    pfp: {
+        flex: 1,
+        borderRadius: 20,
     },
     card_texts_ctnr: {
         flex: 1
