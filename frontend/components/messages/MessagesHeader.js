@@ -22,18 +22,18 @@ export default function MessagesHeader({ toFeedScreen, handle }) {
 const styles = StyleSheet.create({
     main_ctnr: {
         width: '100%',
-        height: 110,
+        height: 95,
         backgroundColor: '#2D9EFF',
         paddingHorizontal: 15,
-        paddingBottom: 10,
         flexDirection: 'row',
         alignItems: 'flex-end',
     },
     arrow_icon_ctnr: {
-        padding: 6
+        paddingHorizontal: 6,
+        paddingVertical: 10
     },
     title_ctnr: {
-        padding: 9,
+        padding: 12,
         flex: 1,
         alignItems: 'center',
     },

@@ -88,7 +88,7 @@ export default function CommentsModal({ postData }) {
             behavior={Platform.OS === 'ios' ? 'padding' : null}
         >
             <View style={styles.main_ctnr}>
-                <View>
+                <View style={styles.header}>
                     <Text style={styles.headerText}>Comments</Text>
                 </View>
                 <FlatList
@@ -138,16 +138,18 @@ const styles = StyleSheet.create({
         paddingHorizontal: 15,
     },
     header: {
-        height: 60,
-        justifyContent: 'center',
+        height: 50,
+        justifyContent: 'flex-end',
         alignItems: 'center',
         backgroundColor: '#fff',
-        borderBottomWidth: 1,
-        borderBottomColor: '#ccc',
+        borderBottomWidth: 0.2,
+        borderBottomColor: '#eee',
     },
     headerText: {
+        padding: 5,
         fontSize: 18,
         fontWeight: 'bold',
+        fontFamily: 'Poppins_400Regular'
     },
     footer: {
         flexDirection: 'row',

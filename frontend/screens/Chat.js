@@ -135,18 +135,20 @@ const styles = StyleSheet.create({
     },
     header: {
         backgroundColor: '#0499FE', // Blue background color
-        paddingHorizontal: 20,
-        paddingTop: Platform.OS === 'ios' ? 55 : 45, // Increased header height
+        // paddingHorizontal: 20,
+        // paddingTop: Platform.OS === 'ios' ? 55 : 45, // Increased header height
+        height: 95,
         flexDirection: 'row', // Align items horizontally
-        alignItems: 'center', // Center items vertically
+        alignItems: 'flex-end', // Center items vertically
     },
     backButton: {
-        marginRight: 10,
+        paddingHorizontal: 15,
+        paddingVertical: 10
     },
     headerContent: {
         flexDirection: 'row',
         alignItems: 'center',
-        paddingVertical: 10,
+        paddingVertical: 4,
     },
     pfp_ctnr: {
         width: 35,
