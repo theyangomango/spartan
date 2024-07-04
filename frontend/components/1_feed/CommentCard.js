@@ -6,8 +6,8 @@ import getPFP from '../../../backend/storage/getPFP';
 
 console.log(Date.now());
 
-export default function CommentCard({ data }) {
-    const [isLiked, setIsLiked] = useState(false);
+export default function CommentCard({ data, likeComment, unlikeComment, index }) {
+    const [isLiked, setIsLiked] = useState(data.likedUsers.includes(global.userData.uid));
     const [pfp, setPFP] = useState(null);
 
 
@@ -19,6 +19,8 @@ export default function CommentCard({ data }) {
     }, []);
 
     function handlePressLikeButton() {
+        if (!isLiked) likeComment(index);
+        else if (isLiked) unlikeComment(index);
         setIsLiked(!isLiked);
     }
 

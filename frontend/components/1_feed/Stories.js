@@ -28,13 +28,12 @@ export default function Stories({ displayStories }) {
 const styles = StyleSheet.create({
     stories_ctnr: {
         backgroundColor: '#2D9EFF',
-        // paddingLeft: 8,
+        paddingBottom: 8,
     },
     story_text: {
         fontFamily: 'Inter_500Medium',
         fontSize: 10,
         paddingTop: 3,
-        paddingBottom: 5,
         marginLeft: 5,
     },
     story_image: {

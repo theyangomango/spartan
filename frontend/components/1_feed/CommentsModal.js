@@ -1,9 +1,27 @@
 import React from 'react';
 import { View, Text, FlatList, StyleSheet, TouchableOpacity } from 'react-native';
-import { Heart } from 'iconsax-react-native'
 import CommentCard from './CommentCard';
+import updateDoc from '../../../backend/helper/firebase/updateDoc';
 
-export default function CommentsModal({ data }) {
+export default function CommentsModal({ pid, data }) {
+    function handleLikeComment(index) {
+        data[index].likeCount++;
+        data[index].likedUsers.push(global.userData.uid);
+        updateDoc('posts', pid, {
+            comments: data
+        })
+    }
+
+    function handleUnlikeComment(index) {
+        data[index].likeCount--;
+        const i = data[index].likedUsers.indexOf(global.userData.uid);
+        if (index > -1) { // only splice array when item is found
+            data[index].likedUsers.splice(i, 1); // 2nd parameter means remove one item only
+        }
+        updateDoc('posts', pid, {
+            comments: data
+        })
+    }
 
     return (
         <View style={styles.main_ctnr}>
@@ -13,8 +31,8 @@ export default function CommentsModal({ data }) {
             <FlatList
                 data={data}
                 keyExtractor={(item, index) => index.toString()}
-                renderItem={({ item }) => (
-                    <CommentCard data={item} />
+                renderItem={({ item, index }) => (
+                    <CommentCard data={item} likeComment={handleLikeComment} unlikeComment={handleUnlikeComment} index={index} key={index} />
                 )}
             />
         </View>

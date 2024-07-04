@@ -22,6 +22,7 @@ export default function Feed({ navigation }) {
     const [messages, setMessages] = useState(null);
     const userDataRef = useRef(0);
 
+    const [currentPID, setCurrentPID] = useState(null);
     const [comments, setComments] = useState(null);
     const commentsBottomSheet = useRef();
     const [commentsBottomSheetBackgroundColor, setCommentsBottomSheetBackgroundColor] = useState('#000');
@@ -64,6 +65,7 @@ export default function Feed({ navigation }) {
 
     function openCommentsModal(index) {
         setComments(posts[index].comments);
+        setCurrentPID(posts[index].pid);
         commentsBottomSheet.current.show();
     }
 
@@ -80,7 +82,7 @@ export default function Feed({ navigation }) {
                 backgroundColor={commentsBottomSheetBackgroundColor}
                 draggable={false}
             >
-                <CommentsModal data={comments} />
+                <CommentsModal pid={currentPID} data={comments} />
             </BottomSheet>
 
             <FeedHeader toMessagesScreen={toMessagesScreen} />
@@ -100,7 +102,7 @@ export default function Feed({ navigation }) {
                 <WorkoutFooter userData={userDataRef} />
             }
             <Footer navigation={navigation} currentScreenName={'Feed'} />
-            <BlurView intensity={1.8} style={styles.blurview}/>
+            <BlurView intensity={2} style={styles.blurview}/>
         </View >
     )
 }
@@ -118,10 +120,10 @@ const styles = StyleSheet.create({
     },
     blurview: {
         position: 'absolute',
-        top: 80,
+        top: 90,
         left: 0,
         width: '100%',
-        height: 20,
-        // backgroundColor: 'red'
+        height: 10,
+        // backgroundColor: '#2D9EFF'
     }
 });
