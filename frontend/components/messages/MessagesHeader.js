@@ -29,7 +29,6 @@ const styles = StyleSheet.create({
         alignItems: 'flex-end',
     },
     arrow_icon_ctnr: {
-        paddingHorizontal: 6,
         paddingVertical: 10
     },
     title_ctnr: {

@@ -1,6 +1,6 @@
 import { StyleSheet, View, Text, Image, Pressable, TouchableOpacity } from "react-native";
 import { Ionicons } from '@expo/vector-icons'
-import { BlurView } from 'expo-blur';
+import { AddSquare, Notification } from 'iconsax-react-native'
 
 export default function FeedHeader({ toMessagesScreen }) {
     return (
@@ -14,16 +14,26 @@ export default function FeedHeader({ toMessagesScreen }) {
                 </View>
                 <Text style={styles.logo_text}>SPARTAN</Text>
             </View>
-            <TouchableOpacity onPress={toMessagesScreen}>
-                <View style={styles.right}>
+            <View style={styles.right}>
+                {/* <TouchableOpacity>
+                    <View style={styles.create_btn_ctnr}>
+                        <AddSquare size={21} color="#fff" />
+                    </View>
+                </TouchableOpacity> */}
+                <TouchableOpacity>
+                    <View style={styles.notifications_btn_ctnr}>
+                        <Notification size={18.5} color="#fff" />
+                    </View>
+                </TouchableOpacity>
+                <TouchableOpacity onPress={toMessagesScreen}>
                     <View style={styles.msg_btn_ctnr}>
                         <Ionicons name='chatbubble-outline' size={15.5} color={'#fff'} />
                     </View>
                     <View style={styles.red_circle_ctnr}>
                         <Text style={styles.red_circle_text}>15</Text>
                     </View>
-                </View>
-            </TouchableOpacity>
+                </TouchableOpacity>
+            </View>
         </View>
     )
 }
@@ -60,7 +70,26 @@ const styles = StyleSheet.create({
         color: '#fff',
     },
     right: {
-        // flexDirection: 'row'
+        flexDirection: 'row'
+    },
+    create_btn_ctnr: {
+        width: 30,
+        height: 30,
+        borderRadius: 20,
+        backgroundColor: '#fff3',
+        justifyContent: 'center',
+        alignItems: 'center',
+        marginBottom: 3,
+    },
+    notifications_btn_ctnr: {
+        width: 30,
+        height: 30,
+        borderRadius: 20,
+        backgroundColor: '#fff3',
+        justifyContent: 'center',
+        alignItems: 'center',
+        marginBottom: 3,
+        marginHorizontal: 12
     },
     msg_btn_ctnr: {
         width: 30,
@@ -77,8 +106,8 @@ const styles = StyleSheet.create({
         borderRadius: 7,
         backgroundColor: 'red',
         position: 'absolute',
-        top: 0,
-        left: 21,
+        top: -3,
+        right: -5,
         alignItems: 'center',
         justifyContent: 'center',
     },

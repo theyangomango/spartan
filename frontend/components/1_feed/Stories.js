@@ -8,7 +8,7 @@ export default function Stories({ displayStories }) {
         <View style={styles.stories_ctnr}>
             {displayStories && <InstaStory
                 data={displayStories}
-                avatarSize={45}
+                avatarSize={50}
                 unPressedBorderColor={'#fff'}
                 pressedBorderColor={'#8dcbfc'}
                 unPressedAvatarTextColor={'#fff'}
@@ -34,7 +34,7 @@ const styles = StyleSheet.create({
         fontFamily: 'Inter_500Medium',
         fontSize: 10,
         paddingTop: 3,
-        marginLeft: 5,
+        marginLeft: 3,
     },
     story_image: {
         width: 44,
@@ -44,6 +44,6 @@ const styles = StyleSheet.create({
         width: 52,
         height: 52,
         borderWidth: 2,
-        marginLeft: 5,
+        marginLeft: 3,
     },
 });

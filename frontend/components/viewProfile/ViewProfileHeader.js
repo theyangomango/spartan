@@ -21,7 +21,6 @@ export default function ViewProfileHeader() {
             </View>
         </View>
     )
-
 }
 
 const styles = StyleSheet.create({
