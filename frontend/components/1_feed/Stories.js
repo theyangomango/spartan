@@ -3,6 +3,7 @@ import { FlatList, Modal, Pressable, StyleSheet, View, ActivityIndicator } from 
 import CachedImage from 'expo-cached-image';
 import StoryHeaderButtons from "./StoryHeaderButtons";
 import Story from "./Story";
+import { BlurView } from 'expo-blur';
 
 export default function Stories({ data }) {
     const [selectedStory, setSelectedStory] = useState(null);
@@ -56,9 +57,7 @@ export default function Stories({ data }) {
                     onRequestClose={() => setModalVisible(false)}
                 >
                     <View style={styles.modalContainer}>
-                        <View style={styles.modalHeader}>
-                            <StoryHeaderButtons data={selectedStory} />
-                        </View>
+
                         <View style={styles.modalContent}>
                             <CachedImage
                                 key={selectedStory.sid}
@@ -71,6 +70,11 @@ export default function Stories({ data }) {
                         <Pressable onPress={handlePressLeft} style={styles.screen_left} />
                         <Pressable onPress={() => setModalVisible(false)} style={styles.screen_center} />
                         <Pressable onPress={handlePressRight} style={styles.screen_right} />
+                    </View>
+
+                    <BlurView intensity={5} style={styles.blurview} />
+                    <View style={styles.modalHeader}>
+                        <StoryHeaderButtons data={selectedStory} />
                     </View>
                 </Modal>
             )}
@@ -96,11 +100,27 @@ const styles = StyleSheet.create({
     },
     modalHeader: {
         position: 'absolute',
-        top: 50,
-        left: 20,
-        right: 20,
+        top: 0,
+        left: 0,
+        right: 0,
         zIndex: 1,
     },
+    blurview: {
+        position: 'absolute',
+        top: 0,
+        left: 0,
+        width: '100%',
+        height: 85,
+        zIndex: 1,
+    },
+    // pfp: {
+    //     width: 44,
+    //     height: 44,
+    //     borderRadius: 22,
+    //     top: 50,
+    //     left: 20,
+    //     zIndex: 1,
+    // },
     modalContent: {
         flex: 1,
         justifyContent: 'center',
