@@ -28,63 +28,70 @@ export default function Footer({ navigation, currentScreenName }) {
     }
 
     return (
-        <View style={styles.main_ctnr}>
-            <View style={styles.icon_ctnr}>
-                <Pressable onPress={toFeedScreen}>
-                    {currentScreenName != 'Feed' &&
-                        <Home size="26" color="#888" variant="Broken" />
-                    }
-                    {currentScreenName == 'Feed' &&
-                        < Home size="26" color="#0499fe" variant="Broken" />
-                    }
-                </Pressable>
+        <View style={styles.outer_view}>
+            <View style={styles.main_ctnr}>
+                <View style={styles.icon_ctnr}>
+                    <Pressable onPress={toFeedScreen}>
+                        {currentScreenName != 'Feed' &&
+                            <Home size="26" color="#888" variant="Broken" />
+                        }
+                        {currentScreenName == 'Feed' &&
+                            < Home size="26" color="#0499fe" variant="Broken" />
+                        }
+                    </Pressable>
 
-            </View>
-            <View style={styles.icon_ctnr}>
-                <Pressable onPress={toCompetitionScreen}>
-                    {currentScreenName != 'Competition' &&
-                        <Cup size="26" color="#888" />
-                    }
-                    {currentScreenName == 'Competition' &&
-                        <Cup size="26" color="#0499fe" />
-                    }
-                </Pressable>
-            </View>
-            <View style={[styles.icon_ctnr, styles.workout_icon_ctnr]}>
-                <Pressable onPress={toWorkoutScreen}>
-                    {currentScreenName != 'Workout' &&
-                        <Weight size="30" color="#888" />
-                    }
-                    {currentScreenName == 'Workout' &&
-                        <Weight size="30" color="#0499fe" />
-                    }
-                </Pressable>
-            </View>
-            <View style={styles.icon_ctnr}>
-                <Pressable onPress={toExploreScreen}>
-                    {currentScreenName != 'Explore' &&
-                        <SearchNormal1 size="24" color="#888" />
-                    }
-                    {currentScreenName == 'Explore' &&
-                        <SearchNormal1 size="24" color="#0499fe" />
-                    }
-                </Pressable>
-            </View>
-            <View style={styles.icon_ctnr}>
-                <Pressable onPress={toProfileScreen}>
-                    {currentScreenName != 'Profile' &&
-                        <Profile size="26" color="#888" variant="Broken" />
-                    }
-                    {currentScreenName == 'Profile' &&
-                        < Profile size="26" color="#0499fe" variant="Broken" />
-                    }
-                </Pressable>
+                </View>
+                <View style={styles.icon_ctnr}>
+                    <Pressable onPress={toCompetitionScreen}>
+                        {currentScreenName != 'Competition' &&
+                            <Cup size="26" color="#888" />
+                        }
+                        {currentScreenName == 'Competition' &&
+                            <Cup size="26" color="#0499fe" />
+                        }
+                    </Pressable>
+                </View>
+                <View style={[styles.icon_ctnr, styles.workout_icon_ctnr]}>
+                    <Pressable onPress={toWorkoutScreen}>
+                        {currentScreenName != 'Workout' &&
+                            <Weight size="30" color="#888" />
+                        }
+                        {currentScreenName == 'Workout' &&
+                            <Weight size="30" color="#0499fe" />
+                        }
+                    </Pressable>
+                </View>
+                <View style={styles.icon_ctnr}>
+                    <Pressable onPress={toExploreScreen}>
+                        {currentScreenName != 'Explore' &&
+                            <SearchNormal1 size="24" color="#888" />
+                        }
+                        {currentScreenName == 'Explore' &&
+                            <SearchNormal1 size="24" color="#0499fe" />
+                        }
+                    </Pressable>
+                </View>
+                <View style={styles.icon_ctnr}>
+                    <Pressable onPress={toProfileScreen}>
+                        {currentScreenName != 'Profile' &&
+                            <Profile size="26" color="#888" variant="Broken" />
+                        }
+                        {currentScreenName == 'Profile' &&
+                            < Profile size="26" color="#0499fe" variant="Broken" />
+                        }
+                    </Pressable>
+                </View>
             </View>
         </View>
     )
 }
 
 const styles = StyleSheet.create({
+    outer_view: {
+        width: '100%',
+        height: 86,
+        backgroundColor: '#fff'
+    },
     main_ctnr: {
         width: '100%',
         height: 86,
