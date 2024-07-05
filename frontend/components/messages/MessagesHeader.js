@@ -33,7 +33,7 @@ const styles = StyleSheet.create({
         paddingVertical: 10
     },
     title_ctnr: {
-        padding: 12,
+        padding: 10,
         flex: 1,
         alignItems: 'center',
     },

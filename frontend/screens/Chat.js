@@ -8,7 +8,7 @@ import sendMessage from '../../backend/messages/sendMessage';
 const Chat = ({ navigation, route }) => {
     const { pfp_uid, handle, data } = route.params;
     const [image, setImage] = useState(null);
-    const [messages, setMessages] = useState([]);
+    const [messages, setMessages] = useState(data.content);
     const [inputText, setInputText] = useState('');
     const [isScrolled, setIsScrolled] = useState(false);
     const [isInputFocused, setIsInputFocused] = useState(false); // State to track input focus
@@ -43,14 +43,14 @@ const Chat = ({ navigation, route }) => {
     const handleSend = () => {
         if (inputText.trim() === '') return;
         const newMessage = {
-            id: messages.length + 1,
             text: inputText,
-            sender: 'user', // Assuming user sends the message
+            uid: global.userData.uid,
+            handle: global.userData.handle,
             timestamp: new Date().getTime(),
         };
 
         setMessages([newMessage, ...messages]); // Append new message to the beginning of the array
-        sendMessage(global.userData.uid, data.cid, inputText);
+        sendMessage(global.userData.uid, global.userData.handle, data.cid, inputText);
         setInputText('');
     };
 
@@ -98,12 +98,12 @@ const Chat = ({ navigation, route }) => {
                     <FlatList
                         ref={flatListRef}
                         data={messages}
-                        renderItem={({ item }) => (
-                            <View style={item.sender === 'user' ? styles.userMessageContainer : styles.otherMessageContainer}>
-                                <Text style={styles.messageText}>{item.text}</Text>
+                        renderItem={({ item, index }) => (
+                            <View style={item.uid === global.userData.uid ? styles.userMessageContainer : styles.otherMessageContainer}>
+                                <Text style={item.uid === global.userData.uid ? styles.userMessageText : styles.otherMessageText}>{item.text}</Text>
                             </View>
                         )}
-                        keyExtractor={(item) => item.id.toString()}
+                        keyExtractor={(item, index) => index}
                         inverted // To display messages from bottom to top
                         onScroll={handleScroll}
                         onScrollEndDrag={handleScrollEnd}
@@ -135,8 +135,6 @@ const styles = StyleSheet.create({
     },
     header: {
         backgroundColor: '#0499FE', // Blue background color
-        // paddingHorizontal: 20,
-        // paddingTop: Platform.OS === 'ios' ? 55 : 45, // Increased header height
         height: 95,
         flexDirection: 'row', // Align items horizontally
         alignItems: 'flex-end', // Center items vertically
@@ -148,13 +146,11 @@ const styles = StyleSheet.create({
     headerContent: {
         flexDirection: 'row',
         alignItems: 'center',
-        paddingVertical: 4,
+        paddingVertical: 6,
     },
     pfp_ctnr: {
-        width: 35,
-        height: 35,
-        // borderRadius: 20,
-        // backgroundColor: '#ccc', // Gray background color
+        width: 33,
+        aspectRatio: 1,
         marginRight: 10,
     },
     pfp: {
@@ -163,7 +159,7 @@ const styles = StyleSheet.create({
     },
     handleText: {
         fontFamily: 'SourceSansPro_600SemiBold',
-        fontSize: 20,
+        fontSize: 19,
         color: '#fff'
     },
     content: {
@@ -180,16 +176,22 @@ const styles = StyleSheet.create({
     },
     otherMessageContainer: {
         alignSelf: 'flex-start',
-        backgroundColor: '#0499FE', // Blue background color for other messages
+        backgroundColor: '#C8D9FA', // Blue background color for other messages
         borderRadius: 10,
         marginHorizontal: 20,
         marginVertical: 4,
         padding: 10,
         maxWidth: '70%',
     },
-    messageText: {
+    userMessageText: {
         fontSize: 16,
         color: '#fff', // White text color for message text
+        fontFamily: 'Lato_400Regular'
+    },
+    otherMessageText: {
+        fontSize: 16,
+        color: '#000', // White text color for message text
+        fontFamily: 'Lato_400Regular'
     },
     inputContainer: {
         flexDirection: 'row',
