@@ -1,13 +1,18 @@
 import { Pressable, StyleSheet, View } from "react-native";
 import { Heart } from 'iconsax-react-native'
 import { useState } from "react";
+import { likeStory } from "../../../backend/stories/likeStory";
+import { unlikeStory } from "../../../backend/stories/unlikeStory";
 
 export default function StoryHeaderButtons({ data }) {
-    console.log(data);
-
-    const [isLiked, setIsLiked] = useState(false);
+    const [isLiked, setIsLiked] = useState(data.likedUsers.includes(global.userData.uid));
 
     function handlePressLikeButton() {
+        if (!isLiked) {
+            likeStory(data.sid, global.userData.uid);
+        } else {
+            unlikeStory(data.sid, global.userData.uid);
+        }
         setIsLiked(!isLiked);
     }
 

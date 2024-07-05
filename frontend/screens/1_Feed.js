@@ -17,7 +17,7 @@ import { BlurView } from 'expo-blur';
 const UID = '6b176d7d-4d89-4cb5-beb0-0f19b47a10a2'; // Hard set UID 
 
 export default function Feed({ navigation }) {
-    const [storiesDisplay, setStoriesDisplay] = useState(null);
+    const [stories, setStories] = useState(null);
     const [posts, setPosts] = useState([]);
     const [messages, setMessages] = useState(null);
     const userDataRef = useRef(0);
@@ -48,7 +48,7 @@ export default function Feed({ navigation }) {
     async function init() {
         userDataRef.current = await readDoc('users', UID);
         let feedData = await retrieveUserFeed(userDataRef.current);
-        setStoriesDisplay(await getStoriesDisplayFormat(feedData[0]));
+        setStories(feedData[0]);
         setPosts(feedData[1]);
         setMessages(feedData[2]);
         global.userData = userDataRef.current;
@@ -82,7 +82,7 @@ export default function Feed({ navigation }) {
 
             <FeedHeader toMessagesScreen={toMessagesScreen} />
             <ScrollView scrollEnabled={true} showsVerticalScrollIndicator={false} bounces={false}>
-                <Stories displayStories={storiesDisplay} />
+                {stories && <Stories data={stories} />}
                 <View style={styles.posts_view_ctnr}>
                     {
                         posts.map((content, index) => {
@@ -115,10 +115,10 @@ const styles = StyleSheet.create({
     },
     blurview: {
         position: 'absolute',
-        top: 95,
+        top: 90,
         left: 0,
         width: '100%',
-        height: 10,
+        height: 11.5,
         // backgroundColor: '#2D9EFF'
     }
 });
