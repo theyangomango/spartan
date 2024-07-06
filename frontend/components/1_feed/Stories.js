@@ -6,12 +6,13 @@ import Story from "./Story";
 import { BlurView } from 'expo-blur';
 
 export default function Stories({ data }) {
-    const [selectedStory, setSelectedStory] = useState(null);
+    console.log(data);
+
     const [modalVisible, setModalVisible] = useState(false);
     const [currentIndex, setCurrentIndex] = useState(null);
 
     function handlePress(index) {
-        setSelectedStory(data[index]);
+        // setSelectedStory(data[index]);
         setCurrentIndex(index);
         setModalVisible(true);
     }
@@ -25,17 +26,18 @@ export default function Stories({ data }) {
     function handlePressLeft() {
         if (currentIndex > 0) {
             const newIndex = currentIndex - 1;
-            setSelectedStory(data[newIndex]);
+            // setSelectedStory(data[newIndex]);
             setCurrentIndex(newIndex);
         } else {
-            setModalVisible(false)
+            setModalVisible(false);
+            setCurrentIndex(null);
         }
     }
 
     function handlePressRight() {
         if (currentIndex < data.length - 1) {
             const newIndex = currentIndex + 1;
-            setSelectedStory(data[newIndex]);
+            // setSelectedStory(data[newIndex]);
             setCurrentIndex(newIndex);
         } else {
             setModalVisible(false)
@@ -54,7 +56,7 @@ export default function Stories({ data }) {
                 style={styles.flatlist}
             />
 
-            {selectedStory && (
+            {(currentIndex !== null) && (
                 <Modal
                     animationType="fade"
                     transparent={true}
@@ -64,10 +66,10 @@ export default function Stories({ data }) {
                     <View style={styles.modalContainer}>
                         <View style={styles.modalContent}>
                             <CachedImage
-                                key={selectedStory.sid}
-                                source={{ uri: selectedStory.image }}
+                                key={data[currentIndex].sid}
+                                source={{ uri: data[currentIndex].image }}
                                 style={styles.fullScreenImage}
-                                cacheKey={selectedStory.sid}
+                                cacheKey={data[currentIndex].sid}
                                 placeholderContent={<ActivityIndicator />}
                             />
                         </View>
@@ -78,7 +80,7 @@ export default function Stories({ data }) {
 
                     <BlurView intensity={5} style={styles.blurview} />
                     <View style={styles.modalHeader}>
-                        <StoryHeaderButtons data={selectedStory} />
+                        <StoryHeaderButtons stories={data} index={currentIndex}/>
                     </View>
                 </Modal>
             )}

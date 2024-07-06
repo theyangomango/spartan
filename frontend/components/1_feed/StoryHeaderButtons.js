@@ -1,19 +1,28 @@
 import { Pressable, StyleSheet, Text, View } from "react-native";
 import { Blur, Heart } from 'iconsax-react-native'
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { likeStory } from "../../../backend/stories/likeStory";
 import { unlikeStory } from "../../../backend/stories/unlikeStory";
 import CachedImage from 'expo-cached-image';
 import { BlurView } from 'expo-blur';
 
-export default function StoryHeaderButtons({ data }) {
-    const [isLiked, setIsLiked] = useState(data.likedUsers.includes(global.userData.uid));
+export default function StoryHeaderButtons({ stories, index }) {
+    const [isLiked, setIsLiked] = useState(stories[index].likedUsers.includes(global.userData.uid));
+
+    useEffect(() => {
+        setIsLiked(stories[index].likedUsers.includes(global.userData.uid));
+    }, [index])
 
     function handlePressLikeButton() {
         if (!isLiked) {
-            likeStory(data.sid, global.userData.uid);
+            likeStory(stories[index].sid, global.userData.uid);
+            stories[index].likedUsers.push(global.userData.uid);
         } else {
-            unlikeStory(data.sid, global.userData.uid);
+            unlikeStory(stories[index].sid, global.userData.uid);
+            const i = stories[index].likedUsers.indexOf(global.userData.uid);
+            if (i > -1) {
+                stories[index].likedUsers.splice(i, 1);
+            }
         }
         setIsLiked(!isLiked);
     }
@@ -22,12 +31,12 @@ export default function StoryHeaderButtons({ data }) {
         <View style={styles.main_ctnr}>
             <View style={styles.left}>
                 <CachedImage
-                    key={data.uid}
-                    source={{ uri: data.pfp }}
+                    key={stories[index].uid}
+                    source={{ uri: stories[index].pfp }}
                     style={styles.pfp}
-                    cacheKey={data.uid}
+                    cacheKey={stories[index].uid}
                 />
-                <Text style={styles.handle_text}>{data.handle}</Text>
+                <Text style={styles.handle_text}>{stories[index].handle}</Text>
             </View>
 
             <View style={styles.right}>

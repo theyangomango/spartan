@@ -48,7 +48,7 @@ export default function CommentsModal({ postData }) {
     function handleUnlikeComment(index) {
         comments[index].likeCount--;
         const i = comments[index].likedUsers.indexOf(global.userData.uid);
-        if (index > -1) {
+        if (i > -1) {
             comments[index].likedUsers.splice(i, 1);
         }
         updateDoc('posts', postData.pid, {
