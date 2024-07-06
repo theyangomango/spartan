@@ -60,7 +60,7 @@ const styles = StyleSheet.create({
     },
     cards_ctnr: {
         flex: 1,
-        paddingHorizontal: 16,
+        paddingHorizontal: 18,
     },
     cards_scrollview: {
         paddingTop: 16

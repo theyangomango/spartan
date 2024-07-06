@@ -2,6 +2,7 @@ import { View, StyleSheet, Text, Image, TouchableOpacity } from "react-native"
 import getDisplayTime from '../../helper/getDisplayTime'
 import { useEffect, useState } from "react";
 import getPFP from '../../../backend/storage/getPFP'
+import RNBounceable from '@freakycoder/react-native-bounceable';
 
 export default function MessageCard({ uid, handle, content, timestamp, toChat, index }) {
     const [image, setImage] = useState(null);
@@ -14,7 +15,7 @@ export default function MessageCard({ uid, handle, content, timestamp, toChat, i
     }, []);
     
     return (
-        <TouchableOpacity onPress={() => toChat(index, uid, handle)} style={styles.main_ctnr}>
+        <RNBounceable onPress={() => toChat(index, uid, handle)} style={styles.main_ctnr}>
             <View style={styles.left_ctnr}>
                 <View style={styles.pfp_ctnr}>
                     <Image
@@ -30,21 +31,21 @@ export default function MessageCard({ uid, handle, content, timestamp, toChat, i
             <View style={styles.right_ctnr}>
                 <Text style={styles.date_text}>{getDisplayTime(timestamp)}</Text>
             </View>
-        </TouchableOpacity>
+        </RNBounceable>
     )
 }
 
 const styles = StyleSheet.create({
     main_ctnr: {
         width: '100%',
-        height: 58,
-        marginVertical: 9,
+        height: 78,
         paddingHorizontal: 3,
         flexDirection: 'row',
-        justifyContent: 'space-between'
+        justifyContent: 'space-between',
+        alignItems: 'center'
     },
     pfp_ctnr: {
-        width: 52,
+        width: 48,
         aspectRatio: 1,
         marginRight: 12,
         // backgroundColor: 'red',
