@@ -155,12 +155,12 @@ const styles = StyleSheet.create({
         flexDirection: 'row',
         alignItems: 'flex-end',
         paddingHorizontal: 18,
-        paddingTop: 12,
-        paddingBottom: 30,
+        paddingTop: 14,
+        paddingBottom: 32,
         backgroundColor: '#fff',
 
         borderTopColor: '#ddd',
-        borderTopWidth: 0.5,
+        borderTopWidth: 0.75,
     },
     pfp_ctnr: {
         width: 36,

@@ -3,7 +3,7 @@ import { Image, StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import getPFP from "../../../backend/storage/getPFP";
 import { FontAwesome6 } from '@expo/vector-icons'
 
-export default function Story({ data, handlePress, index, isViewed }) {
+export default function Story({ data, handlePress, index, isViewed, handlePressCreateButton }) {
     const [pfp, setPFP] = useState(null);
 
     useEffect(() => {
@@ -24,7 +24,7 @@ export default function Story({ data, handlePress, index, isViewed }) {
                 <Text style={styles.handle_text}>{data.handle}</Text>
             </View>
             {index === 0 &&
-                <TouchableOpacity activeOpacity={0.7} style={styles.create_icon}>
+                <TouchableOpacity onPress={handlePressCreateButton} activeOpacity={0.7} style={styles.create_icon}>
                     <FontAwesome6 name='plus' size={9} color={'#000'} />
                 </TouchableOpacity>
             }

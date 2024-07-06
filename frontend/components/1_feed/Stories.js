@@ -4,43 +4,62 @@ import CachedImage from 'expo-cached-image';
 import StoryHeaderButtons from "./StoryHeaderButtons";
 import Story from "./Story";
 import { BlurView } from 'expo-blur';
+import CreateStoryScreen from './CreateStoryScreen';
 
 export default function Stories({ data }) {
-    const [modalVisible, setModalVisible] = useState(false);
+    const [viewModalVisible, setViewModal] = useState(false);
+    const [createModalVisible, setCreateModal] = useState(false);
     const [currentIndex, setCurrentIndex] = useState(null);
     const [viewedStories, setViewedStories] = useState({});
 
     function handlePress(index) {
         setCurrentIndex(index);
-        setModalVisible(true);
+        setViewModal(true);
         setViewedStories((prev) => ({ ...prev, [data[index].sid]: true }));
     }
 
     const renderItem = ({ item, index }) => (
         <Pressable onPress={() => handlePress(index)}>
-            <Story data={item} index={index} handlePress={handlePress} isViewed={!!viewedStories[item.sid]} />
+            <Story data={item} index={index} handlePress={handlePress} isViewed={!!viewedStories[item.sid]} handlePressCreateButton={handlePressCreateButton} />
         </Pressable>
     );
 
     function handlePressLeft() {
         if (currentIndex > 0) {
-            const newIndex = currentIndex - 1;
+            let newIndex = currentIndex - 1;
+            while (newIndex >= 0 && viewedStories[data[newIndex].sid]) {
+                newIndex -= 1;
+            }
+            if (newIndex < 0) {
+                newIndex = currentIndex - 1;
+            }
             setCurrentIndex(newIndex);
             setViewedStories((prev) => ({ ...prev, [data[newIndex].sid]: true }));
         } else {
-            setModalVisible(false);
+            setViewModal(false);
             setCurrentIndex(null);
         }
     }
 
     function handlePressRight() {
         if (currentIndex < data.length - 1) {
-            const newIndex = currentIndex + 1;
+            let newIndex = currentIndex + 1;
+            while (newIndex < data.length && viewedStories[data[newIndex].sid]) {
+                newIndex += 1;
+            }
+            if (newIndex >= data.length) {
+                newIndex = currentIndex + 1;
+            }
             setCurrentIndex(newIndex);
             setViewedStories((prev) => ({ ...prev, [data[newIndex].sid]: true }));
         } else {
-            setModalVisible(false);
+            setViewModal(false);
         }
+    }
+
+    function handlePressCreateButton() {
+        console.log('create');
+        setCreateModal(true);
     }
 
     return (
@@ -59,8 +78,8 @@ export default function Stories({ data }) {
                 <Modal
                     animationType="fade"
                     transparent={true}
-                    visible={modalVisible}
-                    onRequestClose={() => setModalVisible(false)}
+                    visible={viewModalVisible}
+                    onRequestClose={() => setViewModal(false)}
                 >
                     <View style={styles.modalContainer}>
                         <View style={styles.modalContent}>
@@ -73,16 +92,25 @@ export default function Stories({ data }) {
                             />
                         </View>
                         <Pressable onPress={handlePressLeft} style={styles.screen_left} />
-                        <Pressable onPress={() => setModalVisible(false)} style={styles.screen_center} />
+                        <Pressable onPress={() => setViewModal(false)} style={styles.screen_center} />
                         <Pressable onPress={handlePressRight} style={styles.screen_right} />
                     </View>
 
                     <BlurView intensity={5} style={styles.blurview} />
                     <View style={styles.modalHeader}>
-                        <StoryHeaderButtons stories={data} index={currentIndex}/>
+                        <StoryHeaderButtons stories={data} index={currentIndex} />
                     </View>
                 </Modal>
             )}
+
+            <Modal
+                animationType='slide'
+                transparent={false}
+                visible={createModalVisible}
+                onRequestClose={() => setCreateModal(false)}
+            >
+                {/* <CreateStoryScreen /> */}
+            </Modal>
         </View>
     );
 }
