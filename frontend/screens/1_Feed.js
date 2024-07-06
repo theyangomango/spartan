@@ -88,7 +88,7 @@ export default function Feed({ navigation }) {
                 <View style={styles.posts_view_ctnr}>
                     {
                         posts.map((content, index) => {
-                            return <Post data={content} uid={UID} index={index} onPressCommentButton={openCommentsModal} key={index} />
+                            return <Post data={content} index={index} onPressCommentButton={openCommentsModal} key={index} />
                         })
                     }
                 </View>

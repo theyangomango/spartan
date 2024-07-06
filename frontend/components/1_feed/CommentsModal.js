@@ -1,8 +1,8 @@
 import React, { useEffect, useState, useRef } from 'react';
-import { View, Text, FlatList, StyleSheet, TouchableOpacity, TextInput, Platform, Image, KeyboardAvoidingView, Keyboard, PanResponder, Pressable } from 'react-native';
+import { View, Text, FlatList, StyleSheet, TouchableOpacity, TextInput, Platform, Image, KeyboardAvoidingView, Keyboard, Pressable } from 'react-native';
 import CommentCard from './CommentCard';
 import updateDoc from '../../../backend/helper/firebase/updateDoc';
-import { Ionicons } from '@expo/vector-icons'; // Import Ionicons from @expo/vector-icons
+import { Ionicons } from '@expo/vector-icons';
 import getPFP from '../../../backend/storage/getPFP';
 import incrementDocValue from '../../../backend/helper/firebase/incrementDocValue';
 
@@ -14,26 +14,18 @@ export default function CommentsModal({ postData }) {
     const flatListRef = useRef(null);
 
     useEffect(() => {
-        getPFP(global.userData.uid)
-            .then(url => {
-                setPFP(url);
-            });
+        getPFP(global.userData.uid).then(url => {
+            setPFP(url);
+        });
 
         const keyboardDidShowListener = Keyboard.addListener('keyboardDidShow', () => {
             if (flatListRef.current) {
-                flatListRef.current.scrollToEnd({ animated: true });
-            }
-        });
-
-        const keyboardDidHideListener = Keyboard.addListener('keyboardDidHide', () => {
-            if (flatListRef.current) {
-                flatListRef.current.scrollToEnd({ animated: true });
+                flatListRef.current.scrollToIndex({index: 3, animated: true})
             }
         });
 
         return () => {
             keyboardDidShowListener.remove();
-            keyboardDidHideListener.remove();
         };
     }, []);
 
@@ -101,10 +93,10 @@ export default function CommentsModal({ postData }) {
                             <CommentCard data={item} likeComment={handleLikeComment} unlikeComment={handleUnlikeComment} index={index} key={index} />
                         </Pressable>
                     )}
+                    contentContainerStyle={styles.comments_list_ctnr}
                 />
-
                 <Pressable>
-                    <View style={[styles.footer, { marginBottom: isInputFocused ? 70 : 30 }]}>
+                    <View style={[styles.footer, { marginBottom: isInputFocused ? 65 : 0 }]}>
                         <View style={styles.pfp_ctnr}>
                             <Image
                                 source={{ uri: pfp }}
@@ -121,12 +113,11 @@ export default function CommentsModal({ postData }) {
                                 onBlur={handleInputBlur}
                             />
                             {inputText && <TouchableOpacity style={styles.sendButton} onPress={handleSend}>
-                                <Ionicons name="send" size={15} color="#fff" />
+                                <Ionicons name="send" size={15} color="#2D9EFF" />
                             </TouchableOpacity>}
                         </View>
                     </View>
                 </Pressable>
-
             </View>
         </KeyboardAvoidingView>
     );
@@ -135,7 +126,6 @@ export default function CommentsModal({ postData }) {
 const styles = StyleSheet.create({
     main_ctnr: {
         flex: 1,
-        paddingHorizontal: 15,
     },
     header: {
         height: 50,
@@ -144,6 +134,7 @@ const styles = StyleSheet.create({
         backgroundColor: '#fff',
         borderBottomWidth: 0.2,
         borderBottomColor: '#eee',
+        marginHorizontal: 15,
     },
     headerText: {
         padding: 5,
@@ -151,14 +142,28 @@ const styles = StyleSheet.create({
         fontWeight: 'bold',
         fontFamily: 'Poppins_400Regular'
     },
+    comments_list_ctnr: {
+        paddingHorizontal: 15,
+        paddingBottom: 200,
+        flexGrow: 1,
+    },
     footer: {
+        position: 'absolute',
+        bottom: 0,
+        left: 0,
+        right: 0,
         flexDirection: 'row',
         alignItems: 'flex-end',
-        paddingHorizontal: 3,
-        paddingBottom: 25,
+        paddingHorizontal: 18,
+        paddingTop: 12,
+        paddingBottom: 30,
+        backgroundColor: '#fff',
+
+        borderTopColor: '#ddd',
+        borderTopWidth: 0.5,
     },
     pfp_ctnr: {
-        width: 40,
+        width: 36,
         aspectRatio: 1,
         marginBottom: 3
     },
@@ -171,7 +176,7 @@ const styles = StyleSheet.create({
         flexDirection: 'row',
         alignItems: 'center',
         borderWidth: 1,
-        borderColor: '#ababab',
+        borderColor: '#bbb',
         paddingHorizontal: 10,
         paddingVertical: 2.5,
         borderRadius: 30,
@@ -183,14 +188,15 @@ const styles = StyleSheet.create({
         flex: 1,
         borderRadius: 20,
         paddingHorizontal: 15,
-        paddingVertical: 10,
-        marginRight: 10,
+        paddingVertical: 7,
         color: '#000',
+        fontFamily: 'Poppins_400Regular',
+        fontSize: 12,
     },
     sendButton: {
-        backgroundColor: '#0499FE',
-        borderRadius: 25,
-        padding: 10,
+        // backgroundColor: '#0499FE',
+        // borderRadius: 25,
+        paddingHorizontal: 10,
         justifyContent: 'center',
         alignItems: 'center',
     },
