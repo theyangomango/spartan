@@ -66,14 +66,12 @@ const styles = StyleSheet.create({
     main_ctnr: {
         width: '100%',
         backgroundColor: '#fff',
-        paddingHorizontal: 15,
-        paddingBottom: 2,
+        paddingHorizontal: 30,
     },
     top_row: {
         width: '100%',
         height: 103,
         backgroundColor: '#fff',
-        paddingHorizontal: 15,
         flexDirection: 'row',
         alignItems: 'flex-end',
     },

@@ -63,6 +63,6 @@ const styles = StyleSheet.create({
         paddingHorizontal: 18,
     },
     cards_scrollview: {
-        paddingTop: 16
+        paddingTop: 12
     }
 });

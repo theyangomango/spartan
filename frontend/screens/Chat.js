@@ -81,8 +81,8 @@ const Chat = ({ navigation, route }) => {
         >
             <View style={styles.container}>
                 <View style={styles.header}>
-                    <TouchableOpacity onPress={toMessages} style={styles.backButton}>
-                        <ArrowLeft2 size="24" color="#fff" />
+                    <TouchableOpacity activeOpacity={0.5} onPress={toMessages} style={styles.backButton}>
+                        <ArrowLeft2 size="20" color="#2D9EFF" />
                     </TouchableOpacity>
                     <View style={styles.headerContent}>
                         <View style={styles.pfp_ctnr}>
@@ -96,6 +96,7 @@ const Chat = ({ navigation, route }) => {
                 </View>
                 <View style={styles.content}>
                     <FlatList
+                        showsVerticalScrollIndicator={false}
                         ref={flatListRef}
                         data={messages}
                         renderItem={({ item, index }) => (
@@ -103,14 +104,20 @@ const Chat = ({ navigation, route }) => {
                                 <Text style={item.uid === global.userData.uid ? styles.userMessageText : styles.otherMessageText}>{item.text}</Text>
                             </View>
                         )}
-                        keyExtractor={(item, index) => index}
+                        style={styles.flatlist}
+                        keyExtractor={(item, index) => index.toString()}
                         inverted // To display messages from bottom to top
                         onScroll={handleScroll}
                         onScrollEndDrag={handleScrollEnd}
                         scrollEventThrottle={16} // Adjust scroll event throttle for smoother scrolling
+                        ListHeaderComponent={<View style={{ height: 15 }} />} // Add a footer with 20 pixels of height
+                        ListFooterComponent={<View style={{ height: 15 }} />} // Add a footer with 20 pixels of height
                     />
                 </View>
-                <View style={[styles.inputContainer, { marginBottom: isInputFocused ? 8 : 30 }]}>
+                <View style={[styles.inputContainer, { marginBottom: isInputFocused ? 11 : 30 }]}>
+                    <TouchableOpacity style={styles.emojiButton}>
+                        <Ionicons name="happy-outline" size={24} color="#999" />
+                    </TouchableOpacity>
                     <TextInput
                         style={styles.textInput}
                         value={inputText}
@@ -120,7 +127,7 @@ const Chat = ({ navigation, route }) => {
                         onBlur={handleInputBlur} // Handle input blur
                     />
                     <TouchableOpacity style={styles.sendButton} onPress={handleSend}>
-                        <Ionicons name="send" size={15} color="#fff" />
+                        <Ionicons name="send" size={11} color="#fff" />
                     </TouchableOpacity>
                 </View>
             </View>
@@ -134,36 +141,48 @@ const styles = StyleSheet.create({
         backgroundColor: '#fff',
     },
     header: {
-        backgroundColor: '#0499FE', // Blue background color
-        height: 95,
+        height: 108,
         flexDirection: 'row', // Align items horizontally
         alignItems: 'flex-end', // Center items vertically
+        paddingBottom: 5,
+        backgroundColor: '#fff', // Add background color to header
+        // Add shadow properties
+        shadowColor: '#aaa',
+        shadowOffset: { width: 0, height: 3 },
+        shadowOpacity: 0.2,
+        shadowRadius: 3.84,
+        elevation: 5, // For Android
     },
     backButton: {
-        paddingHorizontal: 15,
+        paddingLeft: 30,
+        paddingRight: 15,
         paddingVertical: 10
     },
     headerContent: {
         flexDirection: 'row',
         alignItems: 'center',
-        paddingVertical: 6,
+        paddingVertical: 5,
     },
     pfp_ctnr: {
         width: 33,
         aspectRatio: 1,
-        marginRight: 10,
+        marginRight: 7,
     },
     pfp: {
         flex: 1,
         borderRadius: 20,
     },
     handleText: {
-        fontFamily: 'SourceSansPro_600SemiBold',
-        fontSize: 19,
-        color: '#fff'
+        fontFamily: 'Outfit_400Regular',
+        fontSize: 19.5,
+        color: '#2D9EFF'
     },
     content: {
         flex: 1,
+        marginTop: 4,
+        backgroundColor: '#F3F6FA'
+    },
+    flatlist: {
     },
     userMessageContainer: {
         alignSelf: 'flex-end',
@@ -184,38 +203,41 @@ const styles = StyleSheet.create({
         maxWidth: '70%',
     },
     userMessageText: {
-        fontSize: 16,
+        fontSize: 12.5,
         color: '#fff', // White text color for message text
-        fontFamily: 'Lato_400Regular'
+        fontFamily: 'Poppins_400Regular'
     },
     otherMessageText: {
-        fontSize: 16,
+        fontSize: 12.5,
         color: '#000', // White text color for message text
-        fontFamily: 'Lato_400Regular'
+        fontFamily: 'Poppins_400Regular'
     },
     inputContainer: {
         flexDirection: 'row',
         alignItems: 'center',
-        borderWidth: 1,
-        borderColor: '#ccc',
         paddingHorizontal: 10,
-        paddingVertical: 5,
+        paddingVertical: 1.5,
         borderRadius: 30,
         marginTop: 10,
         marginHorizontal: 15,
+        backgroundColor: '#fff', // Add background color to input container
         ...(Platform.OS === 'android' && { elevation: 5 }), // Add elevation only for Android
+    },
+    emojiButton: {
+        marginLeft: 8,
+        marginRight: 5,
     },
     textInput: {
         flex: 1,
         borderRadius: 20,
         paddingHorizontal: 15,
-        paddingVertical: 10,
         marginRight: 10,
-        color: '#000', // Text color
+        color: '#000', // Text color,
+        fontFamily: 'SourceSansPro_400Regular'
     },
     sendButton: {
         backgroundColor: '#0499FE', // Blue background color
-        borderRadius: 25, // Make it circular
+        borderRadius: 20, // Make it circular
         padding: 10, // Adjust padding
         justifyContent: 'center', // Center content vertically
         alignItems: 'center', // Center content horizontally
