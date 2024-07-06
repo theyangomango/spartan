@@ -67,8 +67,8 @@ const styles = StyleSheet.create({
         width: '100%',
         borderColor: '#DDD',
         marginBottom: 25,
-        // backgroundColor: '#fff', // Added background color for better visibility
-        backgroundColor: '#FAFCFF',
+        backgroundColor: '#fff', // Added background color for better visibility
+        // backgroundColor: '#FAFCFF',
 
         // shadowColor: '#300',
         // shadowOffset: { width: 0, height: 1 },

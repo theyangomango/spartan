@@ -42,7 +42,8 @@ const styles = StyleSheet.create({
     main_ctnr: {
         width: '100%',
         height: 100,
-        backgroundColor: '#F7FCFF',
+        // backgroundColor: '#F7FCFF',
+        backgroundColor: '#fff',
         paddingLeft: 5,
         paddingRight: 20,
         paddingBottom: 10,

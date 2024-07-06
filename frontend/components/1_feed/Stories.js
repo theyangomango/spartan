@@ -12,7 +12,6 @@ export default function Stories({ data }) {
     const [currentIndex, setCurrentIndex] = useState(null);
 
     function handlePress(index) {
-        // setSelectedStory(data[index]);
         setCurrentIndex(index);
         setModalVisible(true);
     }
@@ -90,9 +89,9 @@ export default function Stories({ data }) {
 
 const styles = StyleSheet.create({
     stories_ctnr: {
-        // backgroundColor: '#fff',
+        backgroundColor: '#fff',
         // backgroundColor: '#2D9EFF',
-        backgroundColor: '#FAFCFF',
+        // backgroundColor: '#FAFCFF',
         paddingBottom: 11,
         paddingTop: 2,
     },

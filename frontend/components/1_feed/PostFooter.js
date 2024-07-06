@@ -10,7 +10,6 @@ export default function PostFooter({ data, onPressCommentButton, image }) {
     const [isLiked, setIsLiked] = useState(false);
 
     useState(() => {
-        console.log(global.userData);
         if (global.userData) {
             setIsLiked(data.likes.includes(global.userData.uid));
         }
@@ -19,8 +18,15 @@ export default function PostFooter({ data, onPressCommentButton, image }) {
     function handlePressLikeButton() {
         if (!isLiked) {
             likePost(data.pid, global.userData.uid);
+            data.likeCount ++;
+            data.likes.push(global.userData.uid);
         } else {
             unlikePost(data.pid, global.userData.uid);
+            data.likeCount --;
+            const i = data.likes.indexOf(global.userData.uid);
+            if (i > -1) {
+                data.likes.splice(i, 1);
+            }
         }
         setIsLiked(!isLiked);
     }
@@ -43,19 +49,23 @@ export default function PostFooter({ data, onPressCommentButton, image }) {
                                 <Heart size={20} color="#FF8A65" variant="Bold" /> :
                                 <Heart size={20} color="#FF8A65" />
                             }
+                            <Text style={styles.like_text}>{data.likeCount}</Text>
                         </View>
                     </Pressable>
-                    <View style={styles.messages_ctnr}>
-                        <View style={styles.left_border}></View>
-                        <View style={styles.right_border}></View>
-                        <Message size={20} color="#fff" />
-                    </View>
+                    <RNBounceable onPress={onPressCommentButton}>
+                        <View style={styles.messages_ctnr}>
+                            <Message size={20} color="#fff" />
+                            <Text style={styles.comment_text}>{data.commentCount}</Text>
+                            <View style={styles.left_border}></View>
+                            <View style={styles.right_border}></View>
+                        </View>
+                    </RNBounceable>
                     <RNBounceable>
                         <View style={styles.share_ctnr}>
                             <Send2 size={20} color="#fff" />
+                            <Text style={styles.share_text}>{data.shareCount}</Text>
                         </View>
                     </RNBounceable>
-
                 </View>
             </BlurView>
         </RNBounceable>
@@ -112,9 +122,13 @@ const styles = StyleSheet.create({
     },
     likes_ctnr: {
         padding: 8,
+        height: '100%',
+        justifyContent: 'flex-end'
     },
     messages_ctnr: {
         padding: 8,
+        height: '100%',
+        justifyContent: 'flex-end'
     },
     left_border: {
         position: 'absolute',
@@ -133,5 +147,28 @@ const styles = StyleSheet.create({
     },
     share_ctnr: {
         padding: 8,
+        height: '100%',
+        justifyContent: 'flex-end'
     },
+    like_text: {
+        color: '#fff',
+        fontSize: 11,
+        textAlign: 'center',
+        paddingBottom: 2,
+        paddingTop: 3
+    },
+    comment_text: {
+        color: '#fff',
+        fontSize: 11,
+        textAlign: 'center',
+        paddingBottom: 2,
+        paddingTop: 2.5
+    },
+    share_text: {
+        color: '#fff',
+        fontSize: 11,
+        textAlign: 'center',
+        paddingBottom: 2,
+        paddingTop: 2.5
+    }
 });
