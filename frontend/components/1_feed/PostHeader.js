@@ -1,8 +1,9 @@
 import React, { useEffect, useState } from 'react';
-import { View, Text, Image, StyleSheet, Pressable } from 'react-native';
+import { View, Text, Image, StyleSheet, Pressable, TouchableOpacity } from 'react-native';
 import { SimpleLineIcons } from '@expo/vector-icons';
 import followUser from '../../../backend/user/followUser';
 import unfollowUser from '../../../backend/user/unfollowUser';
+import { BlurView } from 'expo-blur';
 
 export default function PostHeader({ data, url }) {
     const [isFollowing, setIsFollowing] = useState(false);
@@ -23,56 +24,72 @@ export default function PostHeader({ data, url }) {
     };
 
     return (
-        <View style={styles.main_ctnr}>
-            <View style={styles.left}>
-                <View style={styles.pfp_ctnr}>
-                    <Image
-                        source={{ uri: url }}
-                        style={styles.pfp}
-                    />
-                </View>
-                <View style={styles.text_ctnr}>
-                    <View>
+        <View style={styles.outer}>
+            <BlurView intensity={1} style={styles.main_ctnr}>
+                <View style={styles.left}>
+                    <View style={styles.pfp_ctnr}>
+                        <Image
+                            source={{ uri: url }}
+                            style={styles.pfp}
+                        />
+                    </View>
+                    <View style={styles.text_ctnr}>
                         <Text style={styles.handle_text}>
                             {data.handle}
                         </Text>
+                        <TouchableOpacity activeOpacity={0.5}>
+                            <View>
+                                <Text style={styles.workout_text}>
+                                    {'Morning Workout 7/5'}
+                                </Text>
+                            </View>
+                        </TouchableOpacity>
                     </View>
-                    <View>
-                        <Text style={styles.date_text}>
-                            {data.location}
+                </View>
+                <View style={styles.right}>
+                    <Pressable
+                        style={[styles.follow_btn, isFollowing && styles.following_btn]}
+                        onPress={handleFollowPress}
+                    >
+                        <Text style={isFollowing ? styles.following_btn_text : styles.follow_text}>
+                            {isFollowing ? 'Following' : 'Follow'}
                         </Text>
-                    </View>
-                </View>
-            </View>
-            <View style={styles.right}>
-                <Pressable
-                    style={[styles.follow_btn, isFollowing && styles.following_btn]}
-                    onPress={handleFollowPress}
-                >
-                    <Text style={isFollowing ? styles.following_btn_text : styles.follow_text}>
-                        {isFollowing ? 'Following' : 'Follow'}
-                    </Text>
-                </Pressable>
-                <View style={styles.options_icon_ctnr}>
+                    </Pressable>
+                    {/* <View style={styles.options_icon_ctnr}>
                     <SimpleLineIcons name='options-vertical' size={14} />
+                </View> */}
                 </View>
-            </View>
+            </BlurView>
         </View>
     );
 }
 
 const styles = StyleSheet.create({
+    outer: {
+        position: 'absolute',
+        zIndex: 1,
+        top: 0,
+        left: 0,
+        right: 0,
+        borderTopLeftRadius: 40,
+        borderTopRightRadius: 40,
+        overflow: 'hidden'
+    },
     main_ctnr: {
+        backgroundColor: 'rgba(37,42,54,0.3)',
+        paddingTop: 16,
+        paddingLeft: 22,
+        paddingRight: 13,
         paddingVertical: 5,
         flexDirection: 'row',
-        justifyContent: 'space-between'
+        justifyContent: 'space-between',
     },
     left: {
-        flexDirection: 'row'
+        flexDirection: 'row',
     },
     pfp_ctnr: {
-        width: 42,
-        height: 42,
+        width: 38,
+        aspectRatio: 1,
         marginRight: 5,
     },
     pfp: {
@@ -81,15 +98,18 @@ const styles = StyleSheet.create({
     },
     text_ctnr: {
         padding: 4,
+        justifyContent: 'center'
     },
     handle_text: {
         fontSize: 12.5,
         paddingBottom: 5,
         fontFamily: 'Lato_700Bold',
+        color: '#fff'
     },
-    date_text: {
+    workout_text: {
         fontSize: 10.5,
-        fontFamily: 'Lato_400Regular'
+        fontFamily: 'Lato_400Regular',
+        color: '#90D2FF'
     },
     right: {
         flexDirection: 'row'
@@ -109,9 +129,9 @@ const styles = StyleSheet.create({
         borderRadius: 30,
         marginHorizontal: 10,
         marginVertical: 4,
-        backgroundColor: '#fff',
+        backgroundColor: '#F7FCFF',
         justifyContent: 'center',
-        borderWidth: 1.5,
+        // borderWidth: 1.5,
         borderColor: '#0699FF'
     },
     follow_text: {
@@ -123,7 +143,7 @@ const styles = StyleSheet.create({
     following_btn_text: {
         textAlign: 'center',
         color: '#0699FF',
-        fontSize: 11,
+        fontSize: 10.5,
         fontFamily: 'Lato_700Bold',
     },
     options_icon_ctnr: {

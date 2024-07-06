@@ -6,12 +6,12 @@ export default function FeedHeader({ toMessagesScreen }) {
     return (
         <View style={styles.main_ctnr}>
             <View style={styles.logo}>
-                <View style={styles.logo_image_ctnr}>
+                {/* <View style={styles.logo_image_ctnr}>
                     <Image
                         source={require('../../../frontend/assets/logo.png')}
                         style={styles.logo_image}
                     />
-                </View>
+                </View> */}
                 <Text style={styles.logo_text}>SPARTAN</Text>
             </View>
             <View style={styles.right}>
@@ -22,12 +22,12 @@ export default function FeedHeader({ toMessagesScreen }) {
                 </TouchableOpacity> */}
                 <TouchableOpacity>
                     <View style={styles.notifications_btn_ctnr}>
-                        <Notification size={18.5} color="#fff" />
+                        <Notification size={18.5} color="#2D9EFF" />
                     </View>
                 </TouchableOpacity>
                 <TouchableOpacity onPress={toMessagesScreen}>
                     <View style={styles.msg_btn_ctnr}>
-                        <Ionicons name='chatbubble-outline' size={15.5} color={'#fff'} />
+                        <Ionicons name='chatbubble-outline' size={15.5} color={'#2D9EFF'} />
                     </View>
                     <View style={styles.red_circle_ctnr}>
                         <Text style={styles.red_circle_text}>15</Text>
@@ -42,7 +42,7 @@ const styles = StyleSheet.create({
     main_ctnr: {
         width: '100%',
         height: 100,
-        backgroundColor: '#2D9EFF',
+        backgroundColor: '#F7FCFF',
         paddingLeft: 5,
         paddingRight: 20,
         paddingBottom: 10,
@@ -67,7 +67,8 @@ const styles = StyleSheet.create({
     },
     logo_text: {
         fontSize: 21,
-        color: '#fff',
+        color: '#2D9EFF',
+        paddingLeft: 18,
     },
     right: {
         flexDirection: 'row'
@@ -85,17 +86,17 @@ const styles = StyleSheet.create({
         width: 30,
         height: 30,
         borderRadius: 20,
-        backgroundColor: '#fff3',
+        backgroundColor: '#E0F1FF',
         justifyContent: 'center',
         alignItems: 'center',
         marginBottom: 3,
-        marginHorizontal: 12
+        marginHorizontal: 13
     },
     msg_btn_ctnr: {
         width: 30,
         height: 30,
         borderRadius: 20,
-        backgroundColor: '#fff3',
+        backgroundColor: '#E0F1FF',
         justifyContent: 'center',
         alignItems: 'center',
         marginBottom: 3

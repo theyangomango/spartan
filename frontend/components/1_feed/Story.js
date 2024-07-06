@@ -35,17 +35,19 @@ const styles = StyleSheet.create({
     },
     handle_text: {
         fontFamily: 'Inter_500Medium',
-        fontSize: 10,
+        fontSize: 10.25,
         paddingTop: 8,
         marginLeft: 3,
-        color: '#fff'
+        // color: '#fff'
+        color: '#666'
     },
     pfp_ctnr: {
         width: 53,
         height: 53,
         borderRadius: 50,
         borderWidth: 2,
-        borderColor: '#fff',
+        // borderColor: '#fff',
+        borderColor: '#2D9EFF',
         justifyContent: 'center',
         alignItems: 'center'
     },

@@ -147,7 +147,7 @@ const styles = StyleSheet.create({
     },
     headerText: {
         padding: 5,
-        fontSize: 18,
+        fontSize: 16,
         fontWeight: 'bold',
         fontFamily: 'Poppins_400Regular'
     },

@@ -27,6 +27,8 @@ export default function Stories({ data }) {
             const newIndex = currentIndex - 1;
             setSelectedStory(data[newIndex]);
             setCurrentIndex(newIndex);
+        } else {
+            setModalVisible(false)
         }
     }
 
@@ -35,11 +37,14 @@ export default function Stories({ data }) {
             const newIndex = currentIndex + 1;
             setSelectedStory(data[newIndex]);
             setCurrentIndex(newIndex);
+        } else {
+            setModalVisible(false)
         }
     }
 
     return (
         <View style={styles.stories_ctnr}>
+            <View style={styles.border}></View>
             <FlatList
                 data={data}
                 renderItem={renderItem}
@@ -57,7 +62,6 @@ export default function Stories({ data }) {
                     onRequestClose={() => setModalVisible(false)}
                 >
                     <View style={styles.modalContainer}>
-
                         <View style={styles.modalContent}>
                             <CachedImage
                                 key={selectedStory.sid}
@@ -84,9 +88,11 @@ export default function Stories({ data }) {
 
 const styles = StyleSheet.create({
     stories_ctnr: {
-        backgroundColor: '#2D9EFF',
-        paddingBottom: 8,
-        paddingTop: 2
+        // backgroundColor: '#fff',
+        // backgroundColor: '#2D9EFF',
+        backgroundColor: '#FAFCFF',
+        paddingBottom: 11,
+        paddingTop: 2,
     },
     flatlist: {
         paddingLeft: 15,
@@ -113,14 +119,6 @@ const styles = StyleSheet.create({
         height: 85,
         zIndex: 1,
     },
-    // pfp: {
-    //     width: 44,
-    //     height: 44,
-    //     borderRadius: 22,
-    //     top: 50,
-    //     left: 20,
-    //     zIndex: 1,
-    // },
     modalContent: {
         flex: 1,
         justifyContent: 'center',

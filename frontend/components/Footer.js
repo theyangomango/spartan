@@ -88,9 +88,12 @@ export default function Footer({ navigation, currentScreenName }) {
 
 const styles = StyleSheet.create({
     outer_view: {
+        position: 'absolute',
+        bottom: 0,
+        left: 0,
         width: '100%',
         height: 86,
-        backgroundColor: '#fff'
+        backgroundColor: 'transparent'
     },
     main_ctnr: {
         width: '100%',
@@ -103,8 +106,8 @@ const styles = StyleSheet.create({
         paddingHorizontal: 16,
 
         // Todo Box Shadow
-        shadowColor: '#cbcbcb',
-        shadowOffset: { width: 0, height: 0.25 },
+        shadowColor: '#777',
+        shadowOffset: { width: 0, height: 0.4 },
         shadowOpacity: 1,
         shadowRadius: 2,
     },

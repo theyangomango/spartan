@@ -1,128 +1,137 @@
-import { StyleSheet, View, Text, Pressable } from "react-native"
-import { AntDesign, Fontisto, Ionicons } from '@expo/vector-icons';
-import { likePost } from "../../../backend/posts/likePost";
-import { unlikePost } from "../../../backend/posts/unlikePost";
-import { useState } from "react";
+import React, { useState } from 'react';
+import { View, Text, Image, StyleSheet, Pressable } from 'react-native';
+import { BlurView } from 'expo-blur';
+import { Heart, Message, Send2 } from 'iconsax-react-native'; // Adjust this import as needed
+import { likePost } from '../../../backend/posts/likePost';
+import { unlikePost } from '../../../backend/posts/unlikePost';
+import RNBounceable from '@freakycoder/react-native-bounceable';
 
-export default function PostFooter({ data, uid, onPressCommentButton }) {
-    const db_liked = data.likes.includes(uid);
-    const [liked, setLiked] = useState(db_liked);
+export default function PostFooter({ data, onPressCommentButton, image }) {
+    const [isLiked, setIsLiked] = useState(false);
 
-    function handleLikeBtnPress() {
-        setLiked(!liked);
-        if (!liked) {
-            likePost(data.pid, uid);
-        } else {
-            unlikePost(data.pid, uid)
+    useState(() => {
+        console.log(global.userData);
+        if (global.userData) {
+            setIsLiked(data.likes.includes(global.userData.uid));
         }
+    }, [global.userData]);
+
+    function handlePressLikeButton() {
+        if (!isLiked) {
+            likePost(data.pid, global.userData.uid);
+        } else {
+            unlikePost(data.pid, global.userData.uid);
+        }
+        setIsLiked(!isLiked);
     }
 
     return (
-        <View style={styles.main_ctnr}>
-            <View style={styles.left}>
-                <Pressable onPress={handleLikeBtnPress}>
-                    <View style={styles.likes_ctnr}>
-                        <View style={styles.like_icon_ctnr}>
-                            {!liked && <AntDesign
-                                name="like2"
-                                size={20}
-                            />}
-                            {liked && <AntDesign
-                                name="like2"
-                                size={20}
-                                color='#0499fe'
-                            />}
+        <RNBounceable onPress={onPressCommentButton} style={styles.outer}>
+            <BlurView intensity={25} style={styles.main_ctnr}>
+                <View style={styles.left}>
+                    <View style={styles.pfp_ctnr}>
+                        <Image source={{ uri: image }} style={styles.pfp} />
+                    </View>
+                    <View style={styles.caption}>
+                        <Text numberOfLines={2} style={styles.caption_text}>{data.caption}</Text>
+                    </View>
+                </View>
+                <View style={styles.right}>
+                    <Pressable onPress={handlePressLikeButton}>
+                        <View style={styles.likes_ctnr}>
+                            {isLiked ?
+                                <Heart size={20} color="#FF8A65" variant="Bold" /> :
+                                <Heart size={20} color="#FF8A65" />
+                            }
                         </View>
-                        <Text style={styles.count_text}>
-                            {db_liked == liked && data.likeCount}
-                            {db_liked && (!liked) && data.likeCount - 1}
-                            {!(db_liked) && liked && data.likeCount + 1}
-                        </Text>
-                        <Text> </Text>
-                        <Text style={styles.text}>Likes</Text>
+                    </Pressable>
+                    <View style={styles.messages_ctnr}>
+                        <View style={styles.left_border}></View>
+                        <View style={styles.right_border}></View>
+                        <Message size={20} color="#fff" />
                     </View>
-                </Pressable>
-                <Pressable onPress={onPressCommentButton} style={styles.comments_ctnr}>
-                    <View style={styles.comment_icon_ctnr}>
-                        <Fontisto
-                            name="comment"
-                            size={17}
-                        />
-                    </View>
-                    <Text style={styles.count_text}>
-                        {data.commentCount}
-                    </Text>
-                    <Text> </Text>
-                    <Text style={styles.text}>Comments</Text>
-                </Pressable>
-            </View>
-            <View style={styles.right}>
-                <View style={styles.share_icon_ctnr}>
-                    <Ionicons
-                        name="share-outline"
-                        size={22}
-                    />
+                    <RNBounceable>
+                        <View style={styles.share_ctnr}>
+                            <Send2 size={20} color="#fff" />
+                        </View>
+                    </RNBounceable>
+
                 </View>
-                <View style={styles.bookmark_icon_ctnr}>
-                    <Ionicons
-                        name="bookmarks-outline"
-                        size={19}
-                    />
-                </View>
-            </View>
-        </View>
-    )
+            </BlurView>
+        </RNBounceable>
+    );
 }
 
 const styles = StyleSheet.create({
-    main_ctnr: {
-        borderTopColor: '#CFCFCF',
-        borderTopWidth: 1,
+    outer: {
+        position: 'absolute',
+        bottom: 30,
         flexDirection: 'row',
-        justifyContent: 'space-between',
-        paddingTop: 10,
+        left: 20,
+        right: 20,
+        height: 60,
+        borderRadius: 50,
+        overflow: 'hidden',
+    },
+    main_ctnr: {
+        flex: 1,
+        flexDirection: 'row',
+        alignItems: 'center',
     },
     left: {
-        flexDirection: 'row'
-    },
-    likes_ctnr: {
         flexDirection: 'row',
-        alignItems: 'center'
-    },
-    like_icon_ctnr: {
-        justifyContent: 'center',
         alignItems: 'center',
-        paddingHorizontal: 5,
-    },
-    comments_ctnr: {
-        paddingLeft: 15,
-        flexDirection: 'row',
-        alignItems: 'center'
-    },
-    comment_icon_ctnr: {
-        justifyContent: 'center',
-        alignItems: 'center',
-        paddingHorizontal: 5,
-    },
-    count_text: {
-        fontFamily: 'Lato_700Bold',
-        fontSize: 12
-    },
-    text: {
-        color: '#616977',
-        fontFamily: 'Lato_400Regular',
-        fontSize: 12
+        flex: 1, // Ensure the left section takes up available space
     },
     right: {
-        flexDirection: 'row'
-    },
-    share_icon_ctnr: {
-        justifyContent: 'center',
+        flexDirection: 'row',
         alignItems: 'center',
+        paddingLeft: 5,
+        paddingRight: 8
+        // marginLeft: 'auto', // Push icons to the right
     },
-    bookmark_icon_ctnr: {
-        justifyContent: 'center',
-        alignItems: 'center',
-        paddingLeft: 12
-    }
+    pfp_ctnr: {
+        paddingLeft: 12,
+        paddingRight: 10
+        // paddingHorizontal: 12
+    },
+    pfp: {
+        width: 38,
+        aspectRatio: 1,
+        borderRadius: 22,
+    },
+    caption: {
+        flex: 1,
+        // marginLeft: 12, // Adjust spacing between profile picture and caption
+    },
+    caption_text: {
+        fontFamily: 'Lato_400Regular',
+        color: '#fff',
+        fontSize: 11.5,
+        flexWrap: 'wrap',
+    },
+    likes_ctnr: {
+        padding: 8,
+    },
+    messages_ctnr: {
+        padding: 8,
+    },
+    left_border: {
+        position: 'absolute',
+        borderRightColor: '#666',
+        borderRightWidth: .5,
+        top: 11,
+        bottom: 11,
+    },
+    right_border: {
+        position: 'absolute',
+        borderLeftColor: '#666',
+        borderLeftWidth: 0.6,
+        top: 11,
+        bottom: 11,
+        right: 0
+    },
+    share_ctnr: {
+        padding: 8,
+    },
 });

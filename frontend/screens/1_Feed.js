@@ -12,7 +12,9 @@ import Stories from "../components/1_feed/Stories";
 import BottomSheet from "react-native-gesture-bottom-sheet";
 import CommentsModal from "../components/1_feed/CommentsModal";
 import { BlurView } from 'expo-blur';
+import createPost from "../../backend/posts/createPost";
 
+ 
 // Todo - store uid on phone storage
 const UID = '6b176d7d-4d89-4cb5-beb0-0f19b47a10a2'; // Hard set UID 
 
@@ -48,10 +50,10 @@ export default function Feed({ navigation }) {
     async function init() {
         userDataRef.current = await readDoc('users', UID);
         let feedData = await retrieveUserFeed(userDataRef.current);
+        global.userData = userDataRef.current;
         setStories(feedData[0]);
         setPosts(feedData[1]);
         setMessages(feedData[2]);
-        global.userData = userDataRef.current;
     }
 
     function toMessagesScreen() {
@@ -108,10 +110,13 @@ const styles = StyleSheet.create({
         // backgroundColor: '#fff'
     },
     posts_view_ctnr: {
-        paddingTop: 20,
-        paddingHorizontal: 16,
+        paddingTop: 10,
+        paddingHorizontal: 18,
+        // paddingHorizontal: 3,
         flex: 1,
-        backgroundColor: '#fff',
+        // backgroundColor: '#fff',
+        backgroundColor: '#FAFCFF',
+        marginBottom: 70
     },
     blurview: {
         position: 'absolute',

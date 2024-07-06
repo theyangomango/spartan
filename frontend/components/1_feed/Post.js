@@ -33,7 +33,8 @@ export default function Post({ data, uid, onPressCommentButton, index }) {
                 </View>
             </View>
 
-            <View style={styles.caption}>
+
+            {/* <View style={styles.caption}>
                 <Text style={styles.caption_text}>
                     <Text style={styles.caption_handle}>rithvikpunati</Text>
                     <Text> </Text>
@@ -41,7 +42,7 @@ export default function Post({ data, uid, onPressCommentButton, index }) {
                         {data.caption}
                     </Text>
                 </Text>
-            </View>
+            </View> */}
 
             {/* <View style={styles.comments}>
                 {data.commentCount == 1 &&
@@ -55,7 +56,8 @@ export default function Post({ data, uid, onPressCommentButton, index }) {
                 }
             </View> */}
 
-            <PostFooter data={data} uid={uid} onPressCommentButton={() => onPressCommentButton(index)} />
+            <PostFooter data={data} uid={uid} onPressCommentButton={() => onPressCommentButton(index)} image={pfp} />
+
         </View>
     );
 }
@@ -63,27 +65,28 @@ export default function Post({ data, uid, onPressCommentButton, index }) {
 const styles = StyleSheet.create({
     main_ctnr: {
         width: '100%',
-        paddingHorizontal: 18,
-        paddingTop: 12,
-        paddingBottom: 10,
-        borderRadius: 12,
         borderColor: '#DDD',
-        borderWidth: 1.2,
-        marginBottom: 16,
-        backgroundColor: '#fff', // Added background color for better visibility
+        marginBottom: 25,
+        // backgroundColor: '#fff', // Added background color for better visibility
+        backgroundColor: '#FAFCFF',
+
+        // shadowColor: '#300',
+        // shadowOffset: { width: 0, height: 1 },
+        // shadowOpacity: 0.8,
+        // shadowRadius: 2,  
+        // elevation: 5,
+        borderRadius: 30,
     },
     body_ctnr: {
         flex: 1,
-        paddingTop: 8,
-        paddingBottom: 6,
     },
     image_ctnr: {
-        width: '100%',
-        aspectRatio: 1.2
+        aspectRatio: 0.8
     },
     image: {
         flex: 1,
-        borderRadius: 10,
+        borderRadius: 40,
+        // borderRadius: 15,
     },
     caption: {
         marginBottom: 7,
@@ -100,9 +103,12 @@ const styles = StyleSheet.create({
         fontFamily: 'Lato_400Regular',
         fontSize: 11.5,
         color: '#777'
+    },
+    top_blurview: {
+        position: 'absolute',
+        top: 0,
+        left: 0,
+        height: 100,
+        right: 0
     }
-    // comments: {
-    //     paddingBottom: 5,
-    //     paddingHorizontal: 5
-    // },
 });
