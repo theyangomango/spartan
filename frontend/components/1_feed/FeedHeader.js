@@ -6,12 +6,12 @@ export default function FeedHeader({ toMessagesScreen }) {
     return (
         <View style={styles.main_ctnr}>
             <View style={styles.logo}>
-                {/* <View style={styles.logo_image_ctnr}>
+                <View style={styles.logo_image_ctnr}>
                     <Image
-                        source={require('../../../frontend/assets/logo.png')}
+                        source={require('../../../frontend/assets/inverted_logo.png')}
                         style={styles.logo_image}
                     />
-                </View> */}
+                </View>
                 <Text style={styles.logo_text}>SPARTAN</Text>
             </View>
             <View style={styles.right}>
@@ -60,16 +60,16 @@ const styles = StyleSheet.create({
         justifyContent: 'center',
         alignItems: 'center',
         paddingLeft: 10,
-        paddingRight: 2,
     },
     logo_image: {
         width: 33,
         height: 24,
+        marginBottom: 1
     },
     logo_text: {
         fontSize: 21,
         color: '#2D9EFF',
-        paddingLeft: 18,
+        paddingLeft: 2,
     },
     right: {
         flexDirection: 'row'

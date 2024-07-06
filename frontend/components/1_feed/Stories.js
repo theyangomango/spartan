@@ -6,27 +6,27 @@ import Story from "./Story";
 import { BlurView } from 'expo-blur';
 
 export default function Stories({ data }) {
-    console.log(data);
-
     const [modalVisible, setModalVisible] = useState(false);
     const [currentIndex, setCurrentIndex] = useState(null);
+    const [viewedStories, setViewedStories] = useState({});
 
     function handlePress(index) {
         setCurrentIndex(index);
         setModalVisible(true);
+        setViewedStories((prev) => ({ ...prev, [data[index].sid]: true }));
     }
 
     const renderItem = ({ item, index }) => (
         <Pressable onPress={() => handlePress(index)}>
-            <Story data={item} handlePress={handlePress} index={index} />
+            <Story data={item} index={index} handlePress={handlePress} isViewed={!!viewedStories[item.sid]} />
         </Pressable>
     );
 
     function handlePressLeft() {
         if (currentIndex > 0) {
             const newIndex = currentIndex - 1;
-            // setSelectedStory(data[newIndex]);
             setCurrentIndex(newIndex);
+            setViewedStories((prev) => ({ ...prev, [data[newIndex].sid]: true }));
         } else {
             setModalVisible(false);
             setCurrentIndex(null);
@@ -36,10 +36,10 @@ export default function Stories({ data }) {
     function handlePressRight() {
         if (currentIndex < data.length - 1) {
             const newIndex = currentIndex + 1;
-            // setSelectedStory(data[newIndex]);
             setCurrentIndex(newIndex);
+            setViewedStories((prev) => ({ ...prev, [data[newIndex].sid]: true }));
         } else {
-            setModalVisible(false)
+            setModalVisible(false);
         }
     }
 
@@ -90,8 +90,6 @@ export default function Stories({ data }) {
 const styles = StyleSheet.create({
     stories_ctnr: {
         backgroundColor: '#fff',
-        // backgroundColor: '#2D9EFF',
-        // backgroundColor: '#FAFCFF',
         paddingBottom: 11,
         paddingTop: 2,
     },
