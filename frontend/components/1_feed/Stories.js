@@ -105,11 +105,10 @@ export default function Stories({ data }) {
 
             <Modal
                 animationType='slide'
-                transparent={false}
+                transparent={true}
                 visible={createModalVisible}
-                onRequestClose={() => setCreateModal(false)}
             >
-                {/* <CreateStoryScreen /> */}
+                <CreateStoryScreen closeModal={() => setCreateModal(false)}/>
             </Modal>
         </View>
     );
