@@ -7,7 +7,7 @@ import getPFP from '../../../backend/storage/getPFP';
 console.log(Date.now());
 
 export default function CommentCard({ data, likeComment, unlikeComment, index }) {
-    const [isLiked, setIsLiked] = useState(data.likedUsers.includes(global.userData.uid));
+    const [isLiked, setIsLiked] = useState(data.isCaption ? false : data.likedUsers.includes(global.userData.uid));
     const [pfp, setPFP] = useState(null);
 
 
@@ -45,22 +45,32 @@ export default function CommentCard({ data, likeComment, unlikeComment, index })
                     <Text style={styles.content_text}>{data.content}</Text>
                 </View>
                 <View style={styles.card_footer}>
-                    <View style={styles.likes_ctnr}>
-                        <Text style={styles.helper_text}>{data.likeCount} likes</Text>
-                    </View>
-                    <View style={styles.reply_text_ctnr}>
-                        <Text style={styles.helper_text}>Reply</Text>
-                    </View>
+                    {
+                        !data.isCaption &&
+                        <>
+                            <View style={styles.likes_ctnr}>
+                                <Text style={styles.helper_text}>{data.likeCount} likes</Text>
+                            </View>
+                            <View style={styles.reply_text_ctnr}>
+                                <Text style={styles.helper_text}>Reply</Text>
+                            </View>
+                        </>
+                    }
+
                 </View>
             </View>
-            <View style={styles.heart_icon_ctnr}>
-                <Pressable onPress={handlePressLikeButton}>
-                    {isLiked ?
-                        <Heart size={15} color="#FF8A65" variant="Bold" /> :
-                        <Heart size={15} color="#FF8A65" />
-                    }
-                </Pressable>
-            </View>
+            {
+                !data.isCaption &&
+                <View style={styles.heart_icon_ctnr}>
+                    <Pressable onPress={handlePressLikeButton}>
+                        {isLiked ?
+                            <Heart size={15} color="#FF8A65" variant="Bold" /> :
+                            <Heart size={15} color="#FF8A65" />
+                        }
+                    </Pressable>
+                </View>
+            }
+
         </View>
     )
 }

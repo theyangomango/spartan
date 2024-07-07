@@ -53,11 +53,13 @@ export default function CommentsModal({ postData }) {
         comments.push({
             handle: global.userData.handle,
             uid: global.userData.uid,
+            pfp: global.userData.image,
             content: inputText,
             timestamp: Date.now(),
             likeCount: 0,
             likedUsers: [],
-            replies: []
+            replies: [],
+            isCaption: false
         });
         updateDoc('posts', postData.pid, {
             comments: comments
