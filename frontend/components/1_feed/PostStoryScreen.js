@@ -79,7 +79,7 @@ export default function PostStoryScreen({ selectedImage, goBack }) {
                         </View>
                     </ScrollView>
                     <View style={styles.send_btn_ctnr}>
-                        <TouchableOpacity style={styles.sendButton}>
+                        <TouchableOpacity activeOpacity={0.5} style={styles.sendButton}>
                             <Text style={styles.sendButtonText}>Post Story</Text>
                         </TouchableOpacity>
                     </View>

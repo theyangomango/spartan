@@ -126,6 +126,8 @@ export default function CommentsModal({ postData }) {
 const styles = StyleSheet.create({
     main_ctnr: {
         flex: 1,
+        // backgroundColor: '#F3F6FA'
+        backgroundColor: '#F6F8FB'
     },
     header: {
         height: 50,
@@ -134,7 +136,7 @@ const styles = StyleSheet.create({
         backgroundColor: '#fff',
         borderBottomWidth: 0.2,
         borderBottomColor: '#eee',
-        marginHorizontal: 15,
+        paddingHorizontal: 15,
     },
     headerText: {
         padding: 5,
@@ -154,13 +156,13 @@ const styles = StyleSheet.create({
         right: 0,
         flexDirection: 'row',
         alignItems: 'flex-end',
-        paddingHorizontal: 18,
-        paddingTop: 14,
-        paddingBottom: 32,
+        paddingHorizontal: 22,
+        paddingTop: 10,
+        paddingBottom: 24,
         backgroundColor: '#fff',
 
-        borderTopColor: '#ddd',
-        borderTopWidth: 0.75,
+        // borderTopColor: '#ddd',
+        // borderTopWidth: 0.75,
     },
     pfp_ctnr: {
         width: 36,
@@ -176,7 +178,7 @@ const styles = StyleSheet.create({
         flexDirection: 'row',
         alignItems: 'center',
         borderWidth: 1,
-        borderColor: '#bbb',
+        borderColor: '#ddd',
         paddingHorizontal: 10,
         paddingVertical: 2.5,
         borderRadius: 30,

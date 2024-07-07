@@ -1,9 +1,9 @@
 import { Pressable, StyleSheet, Text, View } from "react-native";
-import { Blur, Heart } from 'iconsax-react-native'
+import { Heart } from 'iconsax-react-native';
 import { useEffect, useState } from "react";
 import { likeStory } from "../../../backend/stories/likeStory";
 import { unlikeStory } from "../../../backend/stories/unlikeStory";
-import CachedImage from 'expo-cached-image';
+import FastImage from 'react-native-fast-image'; // Import FastImage
 import { BlurView } from 'expo-blur';
 
 export default function StoryHeaderButtons({ stories, index }) {
@@ -11,7 +11,7 @@ export default function StoryHeaderButtons({ stories, index }) {
 
     useEffect(() => {
         setIsLiked(stories[index].likedUsers.includes(global.userData.uid));
-    }, [index])
+    }, [index]);
 
     function handlePressLikeButton() {
         if (!isLiked) {
@@ -30,11 +30,11 @@ export default function StoryHeaderButtons({ stories, index }) {
     return (
         <View style={styles.main_ctnr}>
             <View style={styles.left}>
-                <CachedImage
-                    key={stories[index].uid}
+                <FastImage
+                    key={stories[index].sid}
                     source={{ uri: stories[index].pfp }}
                     style={styles.pfp}
-                    cacheKey={stories[index].uid}
+                    resizeMode={FastImage.resizeMode.cover} // Adjust resizeMode as needed
                 />
                 <Text style={styles.handle_text}>{stories[index].handle}</Text>
             </View>
@@ -48,7 +48,7 @@ export default function StoryHeaderButtons({ stories, index }) {
                 </Pressable>
             </View>
         </View>
-    )
+    );
 }
 
 const styles = StyleSheet.create({
@@ -76,4 +76,4 @@ const styles = StyleSheet.create({
     right: {
         justifyContent: 'center'
     },
-})
+});

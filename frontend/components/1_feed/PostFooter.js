@@ -1,15 +1,17 @@
-import React, { useState } from 'react';
-import { View, Text, Image, StyleSheet, Pressable } from 'react-native';
+import React, { useState, useEffect } from 'react';
+import { View, Text, StyleSheet, Pressable } from 'react-native';
 import { BlurView } from 'expo-blur';
 import { Heart, Message, Send2 } from 'iconsax-react-native'; // Adjust this import as needed
 import { likePost } from '../../../backend/posts/likePost';
 import { unlikePost } from '../../../backend/posts/unlikePost';
 import RNBounceable from '@freakycoder/react-native-bounceable';
+import CachedImage from 'expo-cached-image';
 
-export default function PostFooter({ data, onPressCommentButton, image }) {
+export default function PostFooter({ data, onPressCommentButton }) {
     const [isLiked, setIsLiked] = useState(false);
+    const [currentCommentIndex, setCurrentCommentIndex] = useState(0);
 
-    useState(() => {
+    useEffect(() => {
         if (global.userData) {
             setIsLiked(data.likes.includes(global.userData.uid));
         }
@@ -18,11 +20,11 @@ export default function PostFooter({ data, onPressCommentButton, image }) {
     function handlePressLikeButton() {
         if (!isLiked) {
             likePost(data.pid, global.userData.uid);
-            data.likeCount ++;
+            data.likeCount++;
             data.likes.push(global.userData.uid);
         } else {
             unlikePost(data.pid, global.userData.uid);
-            data.likeCount --;
+            data.likeCount--;
             const i = data.likes.indexOf(global.userData.uid);
             if (i > -1) {
                 data.likes.splice(i, 1);
@@ -31,15 +33,26 @@ export default function PostFooter({ data, onPressCommentButton, image }) {
         setIsLiked(!isLiked);
     }
 
+    function handlePressFooter() {
+        setCurrentCommentIndex((prevIndex) => (prevIndex + 1) % data.comments.length);
+    }
+
+    const currentComment = data.comments[currentCommentIndex];
+
     return (
-        <RNBounceable onPress={onPressCommentButton} style={styles.outer}>
+        <RNBounceable onPress={handlePressFooter} style={styles.outer}>
             <BlurView intensity={25} style={styles.main_ctnr}>
                 <View style={styles.left}>
                     <View style={styles.pfp_ctnr}>
-                        <Image source={{ uri: image }} style={styles.pfp} />
+                        <CachedImage
+                            key={`${currentCommentIndex}-${currentComment.pfp}`}
+                            source={{ uri: currentComment.pfp }}
+                            style={styles.pfp}
+                            cacheKey={`${currentComment.uid}-${currentCommentIndex}`}
+                        />
                     </View>
                     <View style={styles.caption}>
-                        <Text numberOfLines={2} style={styles.caption_text}>{data.caption}</Text>
+                        <Text numberOfLines={2} style={styles.caption_text}>{currentComment.content}</Text>
                     </View>
                 </View>
                 <View style={styles.right}>
@@ -91,28 +104,25 @@ const styles = StyleSheet.create({
     left: {
         flexDirection: 'row',
         alignItems: 'center',
-        flex: 1, // Ensure the left section takes up available space
+        flex: 1,
     },
     right: {
         flexDirection: 'row',
         alignItems: 'center',
         paddingLeft: 5,
-        paddingRight: 8
-        // marginLeft: 'auto', // Push icons to the right
+        paddingRight: 8,
     },
     pfp_ctnr: {
         paddingLeft: 12,
-        paddingRight: 10
-        // paddingHorizontal: 12
+        paddingRight: 8,
     },
     pfp: {
-        width: 38,
+        width: 35,
         aspectRatio: 1,
         borderRadius: 22,
     },
     caption: {
         flex: 1,
-        // marginLeft: 12, // Adjust spacing between profile picture and caption
     },
     caption_text: {
         fontFamily: 'Lato_400Regular',

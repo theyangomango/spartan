@@ -39,7 +39,7 @@ export default function Feed({ navigation }) {
                 let animatedHeight = parseInt(JSON.stringify(commentsBottomSheet.current.state.animatedHeight));
                 let realHeight = Math.max(panY, 1000 - animatedHeight);
                 setCommentsBottomSheetBackgroundColor(`rgba(0, 0, 0, ${0.7 - 0.75 * (realHeight / 600)})`)
-            }, 50);
+            }, 10);
 
             return () => {
                 clearInterval(interval);

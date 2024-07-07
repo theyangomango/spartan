@@ -1,9 +1,9 @@
 import React, { useState } from 'react';
 import { FlatList, Modal, Pressable, StyleSheet, View, ActivityIndicator } from 'react-native';
-import CachedImage from 'expo-cached-image';
+import FastImage from 'react-native-fast-image'; // Import FastImage
 import StoryHeaderButtons from "./StoryHeaderButtons";
 import Story from "./Story";
-import { BlurView } from 'expo-blur';
+import { BlurView } from 'expo-blur'; // Make sure BlurView is imported correctly
 import CreateStoryScreen from './CreateStoryScreen';
 
 export default function Stories({ data }) {
@@ -83,12 +83,12 @@ export default function Stories({ data }) {
                 >
                     <View style={styles.modalContainer}>
                         <View style={styles.modalContent}>
-                            <CachedImage
+                            <FastImage // Replace CachedImage with FastImage
                                 key={data[currentIndex].sid}
                                 source={{ uri: data[currentIndex].image }}
                                 style={styles.fullScreenImage}
-                                cacheKey={data[currentIndex].sid}
-                                placeholderContent={<ActivityIndicator />}
+                                resizeMode={FastImage.resizeMode.cover}
+                                placeholder={<ActivityIndicator />}
                             />
                         </View>
                         <Pressable onPress={handlePressLeft} style={styles.screen_left} />
@@ -128,7 +128,7 @@ const styles = StyleSheet.create({
     },
     modalContainer: {
         flex: 1,
-        backgroundColor: 'rgba(0,0,0,0.9)',
+        // backgroundColor: 'rgba(0,0,0,0.9)',
     },
     modalHeader: {
         position: 'absolute',
