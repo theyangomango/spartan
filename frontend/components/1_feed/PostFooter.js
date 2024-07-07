@@ -59,15 +59,15 @@ export default function PostFooter({ data, onPressCommentButton }) {
                     <Pressable onPress={handlePressLikeButton}>
                         <View style={styles.likes_ctnr}>
                             {isLiked ?
-                                <Heart size={20} color="#FF8A65" variant="Bold" /> :
-                                <Heart size={20} color="#FF8A65" />
+                                <Heart size={18} color="#FF8A65" variant="Bold" /> :
+                                <Heart size={18} color="#FF8A65" />
                             }
                             <Text style={styles.like_text}>{data.likeCount}</Text>
                         </View>
                     </Pressable>
                     <RNBounceable onPress={onPressCommentButton}>
                         <View style={styles.messages_ctnr}>
-                            <Message size={20} color="#fff" />
+                            <Message size={18} color="#fff" />
                             <Text style={styles.comment_text}>{data.commentCount}</Text>
                             <View style={styles.left_border}></View>
                             <View style={styles.right_border}></View>
@@ -75,7 +75,7 @@ export default function PostFooter({ data, onPressCommentButton }) {
                     </RNBounceable>
                     <RNBounceable>
                         <View style={styles.share_ctnr}>
-                            <Send2 size={20} color="#fff" />
+                            <Send2 size={18} color="#fff" />
                             <Text style={styles.share_text}>{data.shareCount}</Text>
                         </View>
                     </RNBounceable>
@@ -125,9 +125,9 @@ const styles = StyleSheet.create({
         flex: 1,
     },
     caption_text: {
-        fontFamily: 'Lato_400Regular',
+        fontFamily: 'Mulish_400Regular',
         color: '#fff',
-        fontSize: 11.5,
+        fontSize: 11,
         flexWrap: 'wrap',
     },
     likes_ctnr: {
@@ -136,7 +136,8 @@ const styles = StyleSheet.create({
         justifyContent: 'flex-end'
     },
     messages_ctnr: {
-        padding: 8,
+        paddingVertical: 8,
+        paddingHorizontal: 9,
         height: '100%',
         justifyContent: 'flex-end'
     },
@@ -144,16 +145,18 @@ const styles = StyleSheet.create({
         position: 'absolute',
         borderRightColor: '#666',
         borderRightWidth: .5,
-        top: 11,
-        bottom: 11,
+        top: 26,
+        bottom: 18,
+        opacity: 0.5
     },
     right_border: {
         position: 'absolute',
         borderLeftColor: '#666',
         borderLeftWidth: 0.6,
-        top: 11,
-        bottom: 11,
-        right: 0
+        top: 26,
+        bottom: 18,
+        right: 0,
+        opacity: 0.5
     },
     share_ctnr: {
         padding: 8,
@@ -165,20 +168,23 @@ const styles = StyleSheet.create({
         fontSize: 11,
         textAlign: 'center',
         paddingBottom: 2,
-        paddingTop: 3
+        paddingTop: 4,
+        fontFamily: 'Outfit_300Light'
     },
     comment_text: {
         color: '#fff',
         fontSize: 11,
         textAlign: 'center',
         paddingBottom: 2,
-        paddingTop: 2.5
+        paddingTop: 3.5,
+        fontFamily: 'Outfit_300Light'
     },
     share_text: {
         color: '#fff',
         fontSize: 11,
         textAlign: 'center',
         paddingBottom: 2,
-        paddingTop: 2.5
+        paddingTop: 3.5,
+        fontFamily: 'Outfit_300Light'
     }
 });
