@@ -14,8 +14,8 @@ export default function CompetitionCard({ uid, pfp, handle, value, rank }) {
                 <Text style={styles.handle_text}>{handle}</Text>
             </View>
             <View style={styles.card_right}>
-                <Text style={styles.stat_text}>{value}lbs</Text>
-                <Text style={styles.rank_text}>{getOrdinalString(rank)}</Text>
+                {/* <Text style={styles.stat_text}>{value}lbs</Text> */}
+                {/* <Text style={styles.rank_text}>{getOrdinalString(rank)}</Text> */}
                 <ArrowDown2 size={20} color="red" style={styles.arrow_icon} />
             </View>
         </View>

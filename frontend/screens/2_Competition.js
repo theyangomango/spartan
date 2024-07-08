@@ -12,22 +12,17 @@ import getPFPs from "../../backend/storage/getPFPs";
 
 export default function Competition({ navigation, route }) {
     const userData = global.userData;
-    const [users, setUsers] = useState(null);
-    const [userList, setUserList] = useState(null);
-    const [pfps, setPFPs] = useState(null);
+    const [users, setUsers] = useState([]);
+    const [userList, setUserList] = useState([]);
     const [categoryCompared, setCategoryCompared] = useState('benchPress');
 
     useEffect(() => {
         retrieveFollowingUsers(userData.following)
             .then(data => {
-                let users = [userData, ...data];
-                setUsers(users);
-                setUserList(rankUsers(users, categoryCompared));
+                let db_users = [userData, data[3]]; // only take one data point
+                setUsers(db_users);
 
-                getPFPs([userData.uid, userData.following])
-                    .then(data => {
-                        setPFPs(data);
-                    })
+                setUserList(rankUsers(db_users, categoryCompared));
             })
     }, []);
 
@@ -35,6 +30,10 @@ export default function Competition({ navigation, route }) {
         setCategoryCompared(category)
         setUserList(rankUsers(users, category));
     }
+
+    useEffect(() => {
+        console.log(userList)
+    }, [userList])
 
 
     return (
@@ -45,18 +44,18 @@ export default function Competition({ navigation, route }) {
                         <ComparingDropdown selectCategoryCompared={selectCategoryCompared} />
                     </View>
 
-                    <Podium data={(userList && pfps) ? ([
+                    <Podium data={(userList.length > 0) ? ([
                         {
                             handle: userList[0].handle,
-                            pfp: pfps[0]
+                            pfp: userList[0].image
                         },
                         (userList.length > 1) && {
                             handle: userList[1].handle,
-                            pfp: pfps[1]
+                            pfp: userList[1].image
                         },
                         (userList.length > 2) && {
                             handle: userList[2].handle,
-                            pfp: pfps[2]
+                            pfp: userList[2].image
                         }
                     ]) : null} />
                 </View>
@@ -67,12 +66,12 @@ export default function Competition({ navigation, route }) {
                     </View>
 
                     <ScrollView style={styles.scrollview_ctnr}>
-                        {(userList && pfps) && userList.map((user, index) => {
+                        {(userList) && userList.map((user, index) => {
                             return <CompetitionCard
                                 uid={user.uid}
-                                pfp={pfps[index]}
+                                pfp={user.image}
                                 handle={user.handle}
-                                value={user.stats.exercises[categoryCompared]}
+                                // value={user.stats.exercises[categoryCompared]}
                                 rank={index + 1}
                                 key={index}
                             />
