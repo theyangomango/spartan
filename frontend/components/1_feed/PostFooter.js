@@ -7,7 +7,7 @@ import { unlikePost } from '../../../backend/posts/unlikePost';
 import RNBounceable from '@freakycoder/react-native-bounceable';
 import CachedImage from 'expo-cached-image';
 
-export default function PostFooter({ data, onPressCommentButton }) {
+export default function PostFooter({ data, onPressCommentButton, onPressShareButton }) {
     const [isLiked, setIsLiked] = useState(false);
     const [currentCommentIndex, setCurrentCommentIndex] = useState(0);
 
@@ -73,7 +73,7 @@ export default function PostFooter({ data, onPressCommentButton }) {
                             <View style={styles.right_border}></View>
                         </View>
                     </RNBounceable>
-                    <RNBounceable>
+                    <RNBounceable onPress={onPressShareButton}>
                         <View style={styles.share_ctnr}>
                             <Send2 size={18} color="#fff" />
                             <Text style={styles.share_text}>{data.shareCount}</Text>

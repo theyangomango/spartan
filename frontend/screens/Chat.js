@@ -5,10 +5,19 @@ import { ArrowLeft2 } from 'iconsax-react-native';
 import getPFP from '../../backend/storage/getPFP';
 import sendMessage from '../../backend/messages/sendMessage';
 
+function getReverse(arr) {
+    let list = [];
+    arr.forEach(element => {
+        list.push(element);
+    });
+    list.reverse();
+    return list;
+}
+
 const Chat = ({ navigation, route }) => {
     const { pfp_uid, handle, data } = route.params;
     const [image, setImage] = useState(null);
-    const [messages, setMessages] = useState(data.content);
+    const [messages, setMessages] = useState(getReverse(data.content));
     const [inputText, setInputText] = useState('');
     const [isScrolled, setIsScrolled] = useState(false);
     const [isInputFocused, setIsInputFocused] = useState(false); // State to track input focus
@@ -195,7 +204,7 @@ const styles = StyleSheet.create({
     },
     otherMessageContainer: {
         alignSelf: 'flex-start',
-        backgroundColor: '#C8D9FA', // Blue background color for other messages
+        backgroundColor: '#CEE4F9', // Blue background color for other messages
         borderRadius: 10,
         marginHorizontal: 20,
         marginVertical: 4,

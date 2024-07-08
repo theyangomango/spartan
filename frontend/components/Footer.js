@@ -33,10 +33,10 @@ export default function Footer({ navigation, currentScreenName }) {
                 <View style={styles.icon_ctnr}>
                     <Pressable onPress={toFeedScreen}>
                         {currentScreenName != 'Feed' &&
-                            <Home size="26" color="#888" variant="Broken" />
+                            <Home size="23" color="#888" variant="Broken" />
                         }
                         {currentScreenName == 'Feed' &&
-                            < Home size="26" color="#0499fe" variant="Broken" />
+                            < Home size="23" color="#0499fe" variant="Broken" />
                         }
                     </Pressable>
 
@@ -44,40 +44,40 @@ export default function Footer({ navigation, currentScreenName }) {
                 <View style={styles.icon_ctnr}>
                     <Pressable onPress={toCompetitionScreen}>
                         {currentScreenName != 'Competition' &&
-                            <Cup size="26" color="#888" />
+                            <Cup size="23" color="#888" />
                         }
                         {currentScreenName == 'Competition' &&
-                            <Cup size="26" color="#0499fe" />
+                            <Cup size="23" color="#0499fe" />
                         }
                     </Pressable>
                 </View>
                 <View style={[styles.icon_ctnr, styles.workout_icon_ctnr]}>
                     <Pressable onPress={toWorkoutScreen}>
                         {currentScreenName != 'Workout' &&
-                            <Weight size="30" color="#888" />
+                            <Weight size="27" color="#888" />
                         }
                         {currentScreenName == 'Workout' &&
-                            <Weight size="30" color="#0499fe" />
+                            <Weight size="27" color="#0499fe" />
                         }
                     </Pressable>
                 </View>
                 <View style={styles.icon_ctnr}>
                     <Pressable onPress={toExploreScreen}>
                         {currentScreenName != 'Explore' &&
-                            <SearchNormal1 size="24" color="#888" />
+                            <SearchNormal1 size="21" color="#888" />
                         }
                         {currentScreenName == 'Explore' &&
-                            <SearchNormal1 size="24" color="#0499fe" />
+                            <SearchNormal1 size="21" color="#0499fe" />
                         }
                     </Pressable>
                 </View>
                 <View style={styles.icon_ctnr}>
                     <Pressable onPress={toProfileScreen}>
                         {currentScreenName != 'Profile' &&
-                            <Profile size="26" color="#888" variant="Broken" />
+                            <Profile size="23" color="#888" variant="Broken" />
                         }
                         {currentScreenName == 'Profile' &&
-                            < Profile size="26" color="#0499fe" variant="Broken" />
+                            < Profile size="23" color="#0499fe" variant="Broken" />
                         }
                     </Pressable>
                 </View>
@@ -92,7 +92,7 @@ const styles = StyleSheet.create({
         bottom: 0,
         left: 0,
         width: '100%',
-        height: 86,
+        height: 79,
         backgroundColor: 'transparent'
     },
     main_ctnr: {

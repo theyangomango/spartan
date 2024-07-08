@@ -4,7 +4,7 @@ import CachedImage from 'expo-cached-image';
 import PostHeader from "./PostHeader";
 import PostFooter from "./PostFooter";
 
-export default function Post({ data, onPressCommentButton, index }) {
+export default function Post({ data, onPressCommentButton, onPressShareButton, index }) {
     const pfp = data.pfp;
     const image = data.images[0];
 
@@ -20,7 +20,7 @@ export default function Post({ data, onPressCommentButton, index }) {
                 </View>
             </View>
             <PostHeader data={data} url={pfp} />
-            <PostFooter data={data} onPressCommentButton={() => onPressCommentButton(index)} image={pfp} />
+            <PostFooter data={data} onPressCommentButton={() => onPressCommentButton(index)} onPressShareButton={() => onPressShareButton(index)} image={pfp} />
         </View>
     );
 }

@@ -18,15 +18,15 @@ export default function CommentsModal({ postData }) {
             setPFP(url);
         });
 
-        const keyboardDidShowListener = Keyboard.addListener('keyboardDidShow', () => {
-            if (flatListRef.current) {
-                flatListRef.current.scrollToIndex({index: 3, animated: true})
-            }
-        });
+        // const keyboardDidShowListener = Keyboard.addListener('keyboardDidShow', () => {
+        //     if (flatListRef.current) {
+        //         flatListRef.current.scrollToIndex({index: 3, animated: true})
+        //     }
+        // });
 
-        return () => {
-            keyboardDidShowListener.remove();
-        };
+        // return () => {
+        //     keyboardDidShowListener.remove();
+        // };
     }, []);
 
     function handleLikeComment(index) {

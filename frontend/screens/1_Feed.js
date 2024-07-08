@@ -1,6 +1,6 @@
 import React, { useEffect, useRef, useState } from "react";
 import { useFocusEffect } from "@react-navigation/native";
-import { StyleSheet, View, ScrollView } from "react-native";
+import { StyleSheet, View, ScrollView, Dimensions } from "react-native";
 import Footer from "../components/Footer";
 import Post from "../components/1_feed/Post";
 import FeedHeader from "../components/1_feed/FeedHeader";
@@ -13,10 +13,14 @@ import BottomSheet from "react-native-gesture-bottom-sheet";
 import CommentsModal from "../components/1_feed/CommentsModal";
 import { BlurView } from 'expo-blur';
 import createPost from "../../backend/posts/createPost";
+import ShareModal from "../components/1_feed/ShareModal";
 
- 
+
 // Todo - store uid on phone storage
 const UID = '6b176d7d-4d89-4cb5-beb0-0f19b47a10a2'; // Hard set UID 
+
+const { width, height } = Dimensions.get('window');
+
 
 export default function Feed({ navigation }) {
     const [stories, setStories] = useState(null);
@@ -27,6 +31,9 @@ export default function Feed({ navigation }) {
     const [currentPost, setCurrentPost] = useState(null);
     const commentsBottomSheet = useRef();
     const [commentsBottomSheetBackgroundColor, setCommentsBottomSheetBackgroundColor] = useState('#000');
+
+    const shareBottomSheet = useRef();
+    const [shareBottomSheetBackgroundColor, setShareBottomSheetBackgroundColor] = useState('#000');
 
     useEffect(() => {
         init();
@@ -39,6 +46,11 @@ export default function Feed({ navigation }) {
                 let animatedHeight = parseInt(JSON.stringify(commentsBottomSheet.current.state.animatedHeight));
                 let realHeight = Math.max(panY, 1000 - animatedHeight);
                 setCommentsBottomSheetBackgroundColor(`rgba(0, 0, 0, ${0.7 - 0.75 * (realHeight / 600)})`)
+
+                let panY2 = parseInt(JSON.stringify(shareBottomSheet.current.state.pan.y));
+                let animatedHeight2 = parseInt(JSON.stringify(shareBottomSheet.current.state.animatedHeight));
+                let realHeight2 = Math.max(panY2, 1000 - animatedHeight2);
+                setShareBottomSheetBackgroundColor(`rgba(0, 0, 0, ${0.7 - 0.75 * (realHeight2 / 600)})`)
             }, 10);
 
             return () => {
@@ -69,17 +81,33 @@ export default function Feed({ navigation }) {
         commentsBottomSheet.current.show();
     }
 
+    function openShareModal(index) {
+        setCurrentPost(posts[index]);
+        shareBottomSheet.current.show();
+    }
+
     return (
         <View style={styles.main_ctnr}>
             <BottomSheet
                 hasDraggableIcon
                 ref={commentsBottomSheet}
-                height={850}
+                height={height - 65}
                 sheetBackgroundColor={'#fff'}
                 backgroundColor={commentsBottomSheetBackgroundColor}
                 draggable={true} // Optional, as it's true by default
             >
                 <CommentsModal postData={currentPost} />
+            </BottomSheet>
+
+            <BottomSheet
+                hasDraggableIcon
+                ref={shareBottomSheet}
+                height={height - 65}
+                sheetBackgroundColor={'#fff'}
+                backgroundColor={shareBottomSheetBackgroundColor}
+                draggable={true} // Optional, as it's true by default
+            >
+                <ShareModal />
             </BottomSheet>
 
             <FeedHeader toMessagesScreen={toMessagesScreen} />
@@ -88,7 +116,7 @@ export default function Feed({ navigation }) {
                 <View style={styles.posts_view_ctnr}>
                     {
                         posts.map((content, index) => {
-                            return <Post data={content} index={index} onPressCommentButton={openCommentsModal} key={index} />
+                            return <Post data={content} index={index} onPressCommentButton={openCommentsModal} onPressShareButton={openShareModal} key={index} />
                         })
                     }
                 </View>
@@ -99,7 +127,7 @@ export default function Feed({ navigation }) {
                 <WorkoutFooter userData={userDataRef} />
             }
             <Footer navigation={navigation} currentScreenName={'Feed'} />
-            <BlurView intensity={1.5} style={styles.blurview}/>
+            <BlurView intensity={1.5} style={styles.blurview} />
         </View >
     )
 }
