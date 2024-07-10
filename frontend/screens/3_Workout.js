@@ -13,6 +13,7 @@ import eraseDoc from "../../backend/helper/firebase/eraseDoc";
 import updateDoc from "../../backend/helper/firebase/updateDoc";
 import WorkoutFooter from "../components/3_workout/WorkoutFooter";
 import JoinWorkoutModal from "../components/3_workout/JoinWorkoutModal";
+import WorkoutHeader from "../components/3_workout/WorkoutHeader";
 
 export default function Workout({ navigation }) {
     const [workout, setWorkout] = useState(null);
@@ -82,6 +83,8 @@ export default function Workout({ navigation }) {
 
     return (
         <View style={styles.main_ctnr}>
+            <WorkoutHeader />
+
             <BottomSheet
                 hasDraggableIcon
                 ref={newWorkoutBottomSheet}
@@ -115,7 +118,8 @@ export default function Workout({ navigation }) {
 
 
             <View style={styles.body}>
-                <Text style={styles.title_text}>Workouts</Text>
+                <View style={{height: 45}}/>
+                {/* <Text style={styles.title_text}>Workouts</Text> */}
                 <StartWorkoutButton startWorkout={startNewWorkout} />
                 <JoinWorkoutButton joinWorkout={() => joinWorkoutBottomSheet.current.show()} />
 
@@ -142,7 +146,7 @@ const styles = StyleSheet.create({
     },
     body: {
         flex: 1,
-        paddingHorizontal: 18,
+        paddingHorizontal: 20,
         marginTop: 60
     },
     title_text: {
@@ -153,9 +157,9 @@ const styles = StyleSheet.create({
     },
     subtitle_text: {
         marginTop: 24,
-        fontFamily: 'Poppins_600SemiBold',
-        fontSize: 18,
-        paddingHorizontal: 4,
-        paddingBottom: 6
+        fontFamily: 'Lato_700Bold',
+        fontSize: 20,
+        paddingHorizontal: 5,
+        paddingBottom: 6,
     }
 });
