@@ -2,6 +2,8 @@
 import { NavigationContainer } from '@react-navigation/native'
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
+import 'react-native-gesture-handler';
+import { GestureHandlerRootView } from 'react-native-gesture-handler';
 
 import Feed from "./frontend/screens/1_Feed";
 import Profile from './frontend/screens/5_Profile';
@@ -204,23 +206,26 @@ export default function App() {
         return <></>
     }
     else return (
-        <NavigationContainer>
-            <Tab.Navigator initialRouteName='Feed' screenOptions={{
-                headerShown: false,
-                tabBarStyle: {
-                    display: 'none'
-                }
-            }}>
-                <Tab.Screen name='Feed' component={Feed} />
-                <Tab.Screen name='Messages' component={Messages} />
-                <Tab.Screen name='Chat' component={Chat} />
-                <Tab.Screen name='Competition' component={Competition} />
-                <Tab.Screen name='Workout' component={Workout} />
-                <Tab.Screen name='Explore' component={Explore} />
-                <Tab.Screen name='ProfileStack' component={ProfileStack} />
-                <Tab.Screen name='PostList' component={PostList} />
-                <Tab.Screen name='ViewProfile' component={ViewProfile} />
-            </Tab.Navigator>
-        </NavigationContainer>
+        <GestureHandlerRootView style={{ flex: 1 }}>
+            <NavigationContainer>
+                <Tab.Navigator initialRouteName='Feed' screenOptions={{
+                    headerShown: false,
+                    tabBarStyle: {
+                        display: 'none'
+                    }
+                }}>
+                    <Tab.Screen name='Feed' component={Feed} />
+                    <Tab.Screen name='Messages' component={Messages} />
+                    <Tab.Screen name='Chat' component={Chat} />
+                    <Tab.Screen name='Competition' component={Competition} />
+                    <Tab.Screen name='Workout' component={Workout} />
+                    <Tab.Screen name='Explore' component={Explore} />
+                    <Tab.Screen name='ProfileStack' component={ProfileStack} />
+                    <Tab.Screen name='PostList' component={PostList} />
+                    <Tab.Screen name='ViewProfile' component={ViewProfile} />
+                </Tab.Navigator>
+            </NavigationContainer>
+        </GestureHandlerRootView>
+
     )
 }

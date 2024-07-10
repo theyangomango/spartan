@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react';
 import getPFP from '../../../backend/storage/getPFP';
 import getOrdinalString from '../../helper/getOrdinalString';
 
-export default function CompetitionCard({ uid, pfp, handle, value, rank }) {
+export default function LeaderboardPreviewCard({ uid, pfp, handle, value, rank }) {
     return (
         <View style={styles.card_ctnr}>
             <View style={styles.card_left}>
@@ -24,14 +24,14 @@ export default function CompetitionCard({ uid, pfp, handle, value, rank }) {
 
 const styles = StyleSheet.create({
     card_ctnr: {
-        height: 65,
+        height: 55,
         borderRadius: 20,
-        borderWidth: 1.5,
-        borderColor: '#ccc',
+        // borderWidth: 1.5,
+        // borderColor: '#ccc',
         flexDirection: 'row',
         justifyContent: 'space-between',
         paddingHorizontal: 15,
-        marginBottom: 15,
+        // marginBottom: 15,
     },
     card_left: {
         flexDirection: 'row',

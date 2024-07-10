@@ -135,15 +135,16 @@ export default function Feed({ navigation }) {
 const styles = StyleSheet.create({
     main_ctnr: {
         flex: 1,
-        // backgroundColor: '#fff'
+        backgroundColor: '#fff'
     },
     posts_view_ctnr: {
         paddingTop: 10,
         paddingHorizontal: 18,
         // paddingHorizontal: 3,
         flex: 1,
-        // backgroundColor: '#fff',
-        backgroundColor: '#FAFCFF',
+        // backgroundColor: '#E9F1FB',
+        // backgroundColor: '#FAFCFF',
+        backgroundColor: '#fff',
         marginBottom: 70
     },
     blurview: {

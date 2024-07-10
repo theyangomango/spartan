@@ -38,7 +38,10 @@ export default function Podium({ data }) {
 
 const styles = StyleSheet.create({
     leaderboard_ctnr: {
+        position: 'absolute',
+        top: 0,
         width: '100%',
+        height: 310,
         justifyContent: 'center',
         flexDirection: 'row',
         alignItems: 'flex-end',

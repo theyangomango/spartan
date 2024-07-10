@@ -93,7 +93,7 @@ const styles = StyleSheet.create({
         left: 0,
         width: '100%',
         height: 79,
-        backgroundColor: 'transparent'
+        backgroundColor: 'transparent',
     },
     main_ctnr: {
         width: '100%',
