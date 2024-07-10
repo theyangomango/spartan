@@ -14,7 +14,6 @@ export default function JoinWorkoutButton({ joinWorkout }) {
 
 const styles = StyleSheet.create({
     main_ctnr: {
-        width: '100%',
         // height: 35,
         height: 43,
         marginVertical: 4,
@@ -23,6 +22,7 @@ const styles = StyleSheet.create({
         justifyContent: 'center',
         // alignItems: 'center'
         paddingHorizontal: 28,
+        marginHorizontal: 18,
 
         alignItems: 'center',
         flexDirection: 'row',

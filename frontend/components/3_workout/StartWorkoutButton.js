@@ -18,7 +18,6 @@ export default function StartWorkoutButton({ startWorkout }) {
 const styles = StyleSheet.create({
     main_ctnr: {
         backgroundColor: '#6FB8FF',
-        width: '100%',
         height: 43,
         paddingHorizontal: 28,
         marginVertical: 4,
@@ -26,6 +25,7 @@ const styles = StyleSheet.create({
         alignItems: 'center',
         flexDirection: 'row',
         justifyContent: 'space-between',
+        marginHorizontal: 18,
     },
     left: {
         flexDirection: 'row',

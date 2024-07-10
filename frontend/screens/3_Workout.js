@@ -14,6 +14,19 @@ import updateDoc from "../../backend/helper/firebase/updateDoc";
 import WorkoutFooter from "../components/3_workout/WorkoutFooter";
 import JoinWorkoutModal from "../components/3_workout/JoinWorkoutModal";
 import WorkoutHeader from "../components/3_workout/WorkoutHeader";
+import GoalBanner from "../components/3_workout/GoalBanner";
+
+const lastUsedDate = "July 6th";
+const exercises = [
+    { name: "3 x Incline Bench (Barbell)", muscle: "Chest" },
+    { name: "3 x Decline Bench (Barbell)", muscle: "Chest" },
+    { name: "3 x Chest Flys", muscle: "Chest" },
+    { name: "5 x Pull Ups", muscle: "Back" },
+    { name: "3 x Bicep Curls (Dumbell)", muscle: "Biceps" },
+    { name: "3 x Lateral Raises", muscle: "Shoulders" },
+    { name: "3 x Shoulder Press (Dumbell)", muscle: "Shoulders" },
+    { name: "5 x Reverse Curls (Barbell)", muscle: "Biceps" }
+];
 
 export default function Workout({ navigation }) {
     const [workout, setWorkout] = useState(null);
@@ -118,16 +131,25 @@ export default function Workout({ navigation }) {
 
 
             <View style={styles.body}>
-                <View style={{height: 45}}/>
-                {/* <Text style={styles.title_text}>Workouts</Text> */}
-                <StartWorkoutButton startWorkout={startNewWorkout} />
-                <JoinWorkoutButton joinWorkout={() => joinWorkoutBottomSheet.current.show()} />
+                <ScrollView showsVerticalScrollIndicator={false}>
+                    <View style={{ height: 45 }} />
+                    <GoalBanner workoutsLeft={12} progress={56} />
 
-                <Text style={styles.subtitle_text}>Templates</Text>
-                <ScrollView>
-                    <TemplateCard />
-                    <TemplateCard />
+                    <Text style={styles.templates_text}>Quick Start</Text>
+                    <StartWorkoutButton startWorkout={startNewWorkout} />
+                    <JoinWorkoutButton joinWorkout={() => joinWorkoutBottomSheet.current.show()} />
+
+                    <Text style={styles.templates_text}>Templates</Text>
+                    <TemplateCard lastUsedDate={lastUsedDate} exercises={exercises} name={'Chest & Back'}/>
+                    <TemplateCard lastUsedDate={lastUsedDate} exercises={exercises} name={'Full Upper Body'}/>
+                    <TemplateCard lastUsedDate={lastUsedDate} exercises={exercises} name={'Leg Day!!!'}/>
+                    <TemplateCard lastUsedDate={lastUsedDate} exercises={exercises} name={'Full Body'}/>
+                    <TemplateCard lastUsedDate={lastUsedDate} exercises={exercises} name={'Cardio'}/>
+                    <TemplateCard lastUsedDate={lastUsedDate} exercises={exercises} name={'Full Upper Body'}/>
+
+                    <View style={{ height: 100 }} />
                 </ScrollView>
+
             </View>
 
             {workout &&
@@ -146,7 +168,7 @@ const styles = StyleSheet.create({
     },
     body: {
         flex: 1,
-        paddingHorizontal: 20,
+        // paddingHorizontal: 20,
         marginTop: 60
     },
     title_text: {
@@ -155,11 +177,12 @@ const styles = StyleSheet.create({
         paddingHorizontal: 4,
         paddingBottom: 6
     },
-    subtitle_text: {
+    templates_text: {
         marginTop: 24,
         fontFamily: 'Lato_700Bold',
         fontSize: 20,
-        paddingHorizontal: 5,
         paddingBottom: 6,
-    }
+        paddingHorizontal: 19
+    },
+
 });

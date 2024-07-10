@@ -1,95 +1,117 @@
-import { StyleSheet, View, Text } from "react-native"
-import { Send, More } from 'iconsax-react-native'
+import React, { useRef } from 'react';
+import { StyleSheet, View, Text, ScrollView, TouchableWithoutFeedback, Animated } from "react-native";
 
-export default function TemplateCard() {
+export default function TemplateCard({ lastUsedDate, exercises, name }) {
+    const muscleColors = {
+        Chest: '#FFAFB8',
+        Shoulders: '#A1CDEE',
+        Biceps: '#CBBCFF',
+        Back: '#95E0C8'
+    };
+
+    const scaleAnim = useRef(new Animated.Value(1)).current;
+
+    const handlePressIn = () => {
+        Animated.spring(scaleAnim, {
+            toValue: 0.92,
+            friction: 3,
+            useNativeDriver: true,
+        }).start();
+    };
+
+    const handlePressOut = () => {
+        Animated.spring(scaleAnim, {
+            toValue: 1,
+            friction: 3,
+            useNativeDriver: true,
+        }).start();
+    };
+
     return (
-        <View style={styles.main_ctnr}>
-            <View style={styles.header}>
-                <Text style={styles.title_text}>Chest + Arms</Text>
-                <View style={styles.header_right}>
-                    <View style={styles.send_icon_ctnr}>
-                        <Send size={21} color="#000" />
-                    </View>
-                    <View style={styles.options_icon_ctnr}>
-                        <More size={22} color="#000" />
-                    </View>
+        <Animated.View style={[styles.main_ctnr, { transform: [{ scale: scaleAnim }] }]}>
+            <TouchableWithoutFeedback onPressIn={handlePressIn} onPressOut={handlePressOut}>
+                <View style={styles.left_ctnr}>
+                    <Text style={styles.title_text}>{name}</Text>
+                    <Text style={styles.date_text}>{lastUsedDate}</Text>
                 </View>
+            </TouchableWithoutFeedback>
+            <View style={styles.right_ctnr}>
+                <ScrollView contentContainerStyle={styles.scroll_ctnr} showsVerticalScrollIndicator={false}>
+                    {exercises.map((exercise, index) => (
+                        <View key={index} style={styles.entry_ctnr}>
+                            <Text style={styles.exercise_text}>{exercise.name}</Text>
+                            <View style={[styles.muscle_ctnr, { backgroundColor: muscleColors[exercise.muscle] }]}>
+                                <Text style={styles.muscle_text}>{exercise.muscle}</Text>
+                            </View>
+                        </View>
+                    ))}
+                </ScrollView>
             </View>
-            <View style={styles.labels_ctnr}>
-                <Text style={styles.exercise_label_text}>Exercise</Text>
-                <Text style={styles.best_set_label_text}>Best Set</Text>
-            </View>
-            <View style={styles.entry_ctnr}>
-                <Text style={styles.exercise_text}>Bench Press x 3</Text>
-                <Text style={styles.best_set_text}>8 x 150kg</Text>
-            </View>
-            <View style={styles.entry_ctnr}>
-                <Text style={styles.exercise_text}>Dips x 3</Text>
-                <Text style={styles.best_set_text}>N/A</Text>
-            </View>
-            <View style={styles.entry_ctnr}>
-                <Text style={styles.exercise_text}>Bicep Curls x 3</Text>
-                <Text style={styles.best_set_text}>8 x 150kg</Text>
-            </View>
-        </View>
-    )
+        </Animated.View>
+    );
 }
 
 const styles = StyleSheet.create({
     main_ctnr: {
-        borderWidth: 1,
-        borderRadius: 10,
-        paddingHorizontal: 18,
-        marginVertical: 6,
-        paddingTop: 12,
-        paddingBottom: 7,
-        borderColor: '#ccc'
-    },
-    header: {
         flexDirection: 'row',
-        justifyContent: 'space-between',
-        borderBottomWidth: 1,
-        borderColor: '#ccc',
-        paddingBottom: 3
+        borderRadius: 15,
+        paddingLeft: 18,
+        paddingRight: 3,
+        marginVertical: 6,
+        marginHorizontal: 14,
+        backgroundColor: '#fff',
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 1.5 },
+        shadowOpacity: 0.2,
+        shadowRadius: 3,
+        elevation: 15,
+        height: 104.5,
+        justifyContent: 'space-between'
     },
-    header_right: {
-        flexDirection: 'row'
+    left_ctnr: {
+        width: '33%',
+        paddingVertical: 12,
+        justifyContent: 'center',
+        marginRight: 8
     },
-    send_icon_ctnr: {
-    },
-    options_icon_ctnr: {
-        marginLeft: 10
+    right_ctnr: {
+        flex: 1,
+        paddingBottom: 1
     },
     title_text: {
-        fontFamily: 'Mulish_700Bold',
-        fontSize: 15,
+        fontFamily: 'Outfit_500Medium',
+        fontSize: 17,
+        color: '#2D9EFF'
     },
-    labels_ctnr: {
-        flexDirection: 'row',
-        paddingBottom: 2,
-        paddingTop: 4
-    },
-    exercise_label_text: {
-        fontFamily: 'SourceSansPro_600SemiBold',
+    date_text: {
+        fontFamily: 'Outfit_300Light',
+        fontSize: 12,
         color: '#666',
-        fontSize: 15,
-        width: '55%'
     },
-    best_set_label_text: {
-        fontFamily: 'SourceSansPro_600SemiBold',
-        color: '#666',
-        fontSize: 15,
+    scroll_ctnr: {
+        flexGrow: 1,
+        justifyContent: 'center',
+        paddingTop: 12,
+        paddingBottom: 10
     },
     entry_ctnr: {
         flexDirection: 'row',
+        paddingBottom: 4.5
     },
     exercise_text: {
-        width: '55%',
-        fontFamily: 'SourceSansPro_400Regular',
-        paddingBottom: 1,
+        fontFamily: 'Outfit_300Light',
+        fontSize: 14.5,
+        marginRight: 5
     },
-    best_set_text: {
-        fontFamily: 'SourceSansPro_400Regular',
-        paddingBottom: 1,
-    }
-})
+    muscle_ctnr: {
+        borderRadius: 10,
+        paddingHorizontal: 8.5,
+        alignItems: 'center',
+        justifyContent: 'center'
+    },
+    muscle_text: {
+        fontFamily: 'Poppins_700Bold',
+        fontSize: 10.5,
+        color: '#fff'
+    },
+});
