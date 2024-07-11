@@ -1,20 +1,30 @@
-import { View, StyleSheet, Text, TextInput, Pressable, TouchableOpacity } from "react-native";
+import { View, StyleSheet, Text, Pressable, Image } from "react-native";
 import { useState } from "react";
 import SetRow from "./SetRow";
-import { FontAwesome5 } from '@expo/vector-icons'
+import { FontAwesome5, MaterialCommunityIcons, Entypo } from '@expo/vector-icons';
 import DoubleSetRow from "./DoubleSetRow";
+import RNBounceable from "@freakycoder/react-native-bounceable";
 
 export default function ExerciseLog({ name }) {
+    const muscle = name == 'Lateral Raise' ? 'Shoulders' : 'Chest';
+
     const canTrackBothSides = true;
     const [isTrackingBothSides, setIsTrackingBothSides] = useState(false);
     const [sets, setSets] = useState([
-        { previous: '405lb x 12' }
+        { previous: '405 lb x 12' }
     ]);
+
+    const muscleColors = {
+        Chest: '#FFAFB8',
+        Shoulders: '#A1CDEE',
+        Biceps: '#CBBCFF',
+        Back: '#95E0C8'
+    };
 
     function addSet() {
         setSets([...sets, {
-            previous: '405lb x 12'
-        }])
+            previous: '405 lb x 12'
+        }]);
     }
 
     function handlePressTrackingBothSidesButton() {
@@ -22,117 +32,132 @@ export default function ExerciseLog({ name }) {
     }
 
     return (
-        <View style={styles.main_ctnr}>
-            <View style={styles.header}>
-                <Text style={styles.exercise_text}>{name}</Text>
-                {
-                    canTrackBothSides && <Pressable onPress={handlePressTrackingBothSidesButton}>
-                        <View style={isTrackingBothSides ? styles.track_both_button_on_ctnr : styles.track_both_button_off_ctnr}>
-                            <FontAwesome5 name='grip-lines-vertical' size={10} color={isTrackingBothSides ? '#0699FF' : '#0699FF'} />
-                        </View>
-                    </Pressable>
-                }
-            </View>
-            <View style={styles.labels}>
-                <View style={styles.set_ctnr}>
-                    <Text style={styles.label_text}>SET</Text>
+        <Pressable>
+            <View style={styles.main_ctnr}>
+                <View style={styles.header}>
+                    <Text style={styles.exercise_text}>{name}</Text>
+                    <View style={[styles.muscle_ctnr, { backgroundColor: muscleColors[muscle] }]}>
+                        <Text style={styles.muscle_text}>{muscle}</Text>
+                    </View>
+                    <View style={styles.pfpContainer}>
+                        <Image style={styles.pfp} source={{ uri: global.userData.image }} />
+                        <Image style={[styles.pfp, styles.pfpOverlap]} source={{ uri: global.userData.image }} />
+                        <Image style={[styles.pfp, styles.pfpOverlap]} source={{ uri: global.userData.image }} />
+                    </View>
                 </View>
-                <View style={styles.previous_ctnr}>
-                    <Text style={styles.label_text}>PREVIOUS</Text>
+                <View style={styles.labels}>
+                    <View style={styles.set_ctnr}>
+                        <Text style={styles.label_text}>Set</Text>
+                    </View>
+                    <View style={styles.previous_ctnr}>
+                        <Text style={styles.label_text}>Previous</Text>
+                    </View>
+                    <View style={styles.weight_unit_ctnr}>
+                        <Text style={styles.label_text}>lbs</Text>
+                    </View>
+                    <View style={styles.reps_ctnr}>
+                        <Text style={styles.label_text}>Reps</Text>
+                    </View>
                 </View>
-                <View style={styles.weight_unit_ctnr}>
-                    <Text style={styles.label_text}>LBS</Text>
+                <View>
+                    {isTrackingBothSides ?
+                        sets.map((set, index) => {
+                            return (
+                                <DoubleSetRow set={set} index={index} key={index} />
+                            );
+                        })
+                        :
+                        sets.map((set, index) => {
+                            return (
+                                <SetRow set={set} index={index} key={index} />
+                            );
+                        })
+                    }
                 </View>
-                <View style={styles.reps_ctnr}>
-                    <Text style={styles.label_text}>REPS</Text>
+                <View style={styles.add_set_btn_ctnr}>
+                    <RNBounceable activeOpacity={0.5} onPress={addSet} style={styles.add_set_btn}>
+                        <Entypo name="plus" size={18} color={'#000'} />
+                        <Text style={styles.add_set_text}>Add Set</Text>
+                        <MaterialCommunityIcons name="arm-flex" size={20} color={'#8f8f8f'} />
+                    </RNBounceable>
                 </View>
             </View>
-            <View>
-                {isTrackingBothSides ?
-                    sets.map((set, index) => {
-                        return (
-                            <DoubleSetRow set={set} index={index} key={index} />
-                        )
-                    })
-                    :
-                    sets.map((set, index) => {
-                        return (
-                            <SetRow set={set} index={index} key={index} />
-                        )
-                    })
-                }
-            </View>
-            <View style={styles.add_set_btn_ctnr}>
-                <TouchableOpacity onPress={addSet} style={styles.add_set_btn}>
-                    <Text style={styles.add_set_text}>Add Set</Text>
-                </TouchableOpacity>
-            </View>
-        </View>
-    )
+        </Pressable>
+    );
 }
 
 const styles = StyleSheet.create({
     main_ctnr: {
-        marginVertical: 16,
+        marginTop: 16,
+        marginBottom: 6,
     },
     header: {
         flexDirection: 'row',
-    },
-    track_both_button_off_ctnr: {
-        paddingVertical: 2,
-        paddingHorizontal: 9,
-        marginTop: 1,
-        marginHorizontal: 8,
-        borderRadius: 4,
-        borderWidth: 1.2,
-        borderColor: '#0699FF',
-    },
-    track_both_button_on_ctnr: {
-        paddingVertical: 2,
-        paddingHorizontal: 9,
-        marginTop: 1,
-        marginHorizontal: 8,
-        borderRadius: 4,
-        borderWidth: 1.2,
-        borderColor: '#0699FF',
-        backgroundColor: '#ADE4FF'
+        alignItems: 'center',
+        paddingLeft: 20,
+        paddingBottom: 10,
     },
     exercise_text: {
-        fontFamily: 'Mulish_700Bold',
+        fontFamily: 'Mulish_800ExtraBold',
         color: '#0699FF',
-        fontSize: 14,
-        paddingBottom: 10,
-        paddingLeft: 22,
+        fontSize: 18,
+        marginRight: 8,
+    },
+    muscle_ctnr: {
+        borderRadius: 15,
+        height: 22,
+        paddingHorizontal: 12,
+        alignItems: 'center',
+        justifyContent: 'center'
+    },
+    muscle_text: {
+        fontFamily: 'Poppins_700Bold',
+        fontSize: 12.5,
+        color: '#fff'
+    },
+    pfpContainer: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        marginLeft: 'auto',
+        marginRight: 10,
+    },
+    pfp: {
+        width: 34,
+        aspectRatio: 1,
+        borderRadius: 20,
+        borderWidth: 2,
+        borderColor: '#f4f4f4',
+    },
+    pfpOverlap: {
+        marginLeft: -24,
     },
     labels: {
         flexDirection: 'row',
-        paddingBottom: 8,
+        paddingBottom: 5,
         paddingHorizontal: 22,
     },
     set_ctnr: {
-        width: 40,
+        width: 28,
+        marginRight: 5,
     },
     previous_ctnr: {
-        width: 110,
+        width: 165,
         alignItems: 'center',
-        marginRight: 10,
     },
     weight_unit_ctnr: {
-        width: 70,
-        alignItems: 'center'
-
+        width: 75,
+        alignItems: 'center',
     },
     reps_ctnr: {
-        width: 70,
+        width: 75,
         alignItems: 'center',
     },
     label_text: {
-        fontWeight: '500',
-        fontSize: 11,
-        color: '#888'
+        fontFamily: 'Poppins_600SemiBold',
+        fontSize: 15.5,
     },
     add_set_btn_ctnr: {
-        paddingHorizontal: 30
+        paddingHorizontal: 20,
     },
     add_set_btn: {
         width: '100%',
@@ -140,13 +165,16 @@ const styles = StyleSheet.create({
         alignSelf: 'center',
         height: 28,
         borderRadius: 20,
-        backgroundColor: '#aaa',
+        backgroundColor: '#eaeaea',
         justifyContent: 'center',
-        alignItems: 'center'
+        alignItems: 'center',
+        flexDirection: 'row'
     },
     add_set_text: {
-        fontFamily: 'Mulish_700Bold',
-        color: '#fff',
-        fontSize: 13,
+        fontFamily: 'Outfit_600SemiBold',
+        color: '#000',
+        fontSize: 15,
+        marginLeft: 1,
+        marginRight: 5
     }
-})
+});

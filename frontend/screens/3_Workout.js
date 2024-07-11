@@ -1,5 +1,5 @@
 import React, { useRef, useState } from "react";
-import { Text, StyleSheet, View, ScrollView } from "react-native";
+import { Text, StyleSheet, View, ScrollView, Dimensions } from "react-native";
 import { useFocusEffect } from '@react-navigation/native';
 import BottomSheet from "react-native-gesture-bottom-sheet";
 import NewWorkoutModal from "../components/3_workout/new_workout/NewWorkoutModal";
@@ -15,6 +15,8 @@ import WorkoutFooter from "../components/3_workout/WorkoutFooter";
 import JoinWorkoutModal from "../components/3_workout/JoinWorkoutModal";
 import WorkoutHeader from "../components/3_workout/WorkoutHeader";
 import GoalBanner from "../components/3_workout/GoalBanner";
+
+const { height } = Dimensions.get('window');
 
 const lastUsedDate = "July 6th";
 const exercises = [
@@ -96,12 +98,12 @@ export default function Workout({ navigation }) {
 
     return (
         <View style={styles.main_ctnr}>
-            <WorkoutHeader />
+            {/* <WorkoutHeader /> */}
 
             <BottomSheet
                 hasDraggableIcon
                 ref={newWorkoutBottomSheet}
-                height={800}
+                height={height - 60}
                 sheetBackgroundColor={'#fff'}
                 backgroundColor={newWorkoutBkgColor}
             // Todo edit draggable option to allow scrolling
@@ -132,20 +134,20 @@ export default function Workout({ navigation }) {
 
             <View style={styles.body}>
                 <ScrollView showsVerticalScrollIndicator={false}>
-                    <View style={{ height: 45 }} />
+                    <View style={{ height: 10 }} />
                     <GoalBanner workoutsLeft={12} progress={56} />
 
-                    <Text style={styles.templates_text}>Quick Start</Text>
+                    <Text style={styles.quick_start_text}>Quick Start</Text>
                     <StartWorkoutButton startWorkout={startNewWorkout} />
                     <JoinWorkoutButton joinWorkout={() => joinWorkoutBottomSheet.current.show()} />
 
                     <Text style={styles.templates_text}>Templates</Text>
-                    <TemplateCard lastUsedDate={lastUsedDate} exercises={exercises} name={'Chest & Back'}/>
-                    <TemplateCard lastUsedDate={lastUsedDate} exercises={exercises} name={'Full Upper Body'}/>
-                    <TemplateCard lastUsedDate={lastUsedDate} exercises={exercises} name={'Leg Day!!!'}/>
-                    <TemplateCard lastUsedDate={lastUsedDate} exercises={exercises} name={'Full Body'}/>
-                    <TemplateCard lastUsedDate={lastUsedDate} exercises={exercises} name={'Cardio'}/>
-                    <TemplateCard lastUsedDate={lastUsedDate} exercises={exercises} name={'Full Upper Body'}/>
+                    <TemplateCard lastUsedDate={lastUsedDate} exercises={exercises} name={'Chest & Back'} />
+                    <TemplateCard lastUsedDate={lastUsedDate} exercises={exercises} name={'Full Upper Body'} />
+                    <TemplateCard lastUsedDate={lastUsedDate} exercises={exercises} name={'Leg Day!!!'} />
+                    <TemplateCard lastUsedDate={lastUsedDate} exercises={exercises} name={'Full Body'} />
+                    <TemplateCard lastUsedDate={lastUsedDate} exercises={exercises} name={'Cardio'} />
+                    <TemplateCard lastUsedDate={lastUsedDate} exercises={exercises} name={'Full Upper Body'} />
 
                     <View style={{ height: 100 }} />
                 </ScrollView>
@@ -176,6 +178,13 @@ const styles = StyleSheet.create({
         fontSize: 22,
         paddingHorizontal: 4,
         paddingBottom: 6
+    },
+    quick_start_text: {
+        marginTop: 24,
+        fontFamily: 'Lato_700Bold',
+        fontSize: 20,
+        paddingBottom: 8,
+        paddingHorizontal: 19
     },
     templates_text: {
         marginTop: 24,

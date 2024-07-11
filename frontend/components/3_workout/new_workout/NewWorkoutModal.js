@@ -1,12 +1,17 @@
 import { useEffect, useState } from "react";
-import { StyleSheet, View, Text, Modal, TouchableOpacity, ScrollView } from "react-native";
+import { StyleSheet, View, Text, Modal, TouchableOpacity, ScrollView, Pressable } from "react-native";
 import millisToMinutesAndSeconds from "../../../helper/milliesToMinutesAndSeconds";
+import ProgressBanner from "./ProgressBanner";
 import ExerciseLog from "./ExerciseLog";
-import SelectExerciseModal from "./SelectExerciseModal";
+import SelectExerciseModal from './SelectExerciseModal'
+import RNBounceable from "@freakycoder/react-native-bounceable";
+import { Weight } from 'iconsax-react-native';
+import { MaterialCommunityIcons } from '@expo/vector-icons';
 
 export default function NewWorkoutModal({ workout, setWorkout, closeModal, cancelWorkout, updateWorkout, finishWorkout }) {
     const [selectExerciseModalVisible, setSelectExerciseModalVisible] = useState(false);
     const [timer, setTimer] = useState('0:00');
+    const [headerShadow, setHeaderShadow] = useState(false);
 
     useEffect(() => {
         init();
@@ -28,17 +33,60 @@ export default function NewWorkoutModal({ workout, setWorkout, closeModal, cance
     }
 
     function appendExercises(exercises) {
-        for (exercise of exercises) {
+        for (let exercise of exercises) {
             workout.exercises.push({
                 name: exercise,
                 sets: []
-            })
+            });
         }
         updateWorkout(workout);
     }
 
+    function handleScroll(event) {
+        const scrollPosition = event.nativeEvent.contentOffset.y;
+        if (scrollPosition > 98) {
+            setHeaderShadow(true);
+        } else {
+            setHeaderShadow(false);
+        }
+    }
+
     return (
-        <ScrollView showsVerticalScrollIndicator={false} style={styles.main_ctnr}>
+        <View style={styles.main_ctnr}>
+            <View style={[styles.header, headerShadow && styles.headerShadow]}>
+                <View style={styles.iconWrapper}>
+                    <MaterialCommunityIcons name="timer-outline" size={24} color="#0499FE" />
+                </View>
+                <Text style={styles.header_time_text}>{timer}</Text>
+                <TouchableOpacity onPress={finishWorkout} style={styles.finish_btn}>
+                    <Text style={styles.finish_btn_text}>Finish</Text>
+                </TouchableOpacity>
+            </View>
+
+            <ScrollView
+                showsVerticalScrollIndicator={false}
+                onScroll={handleScroll}
+                scrollEventThrottle={16} // This ensures the onScroll event is called at a reasonable rate
+            >
+                <ProgressBanner />
+                {
+                    workout.exercises.map((ex, index) => (
+                        <ExerciseLog name={ex.name} key={index} />
+                    ))
+                }
+                <RNBounceable onPress={showSelectExerciseModal} style={styles.add_exercise_btn}>
+                    <Text style={styles.add_exercise_text}>Add Exercises</Text>
+                    <Weight size="22" color="#5DBDFF" variant='Bold' />
+                </RNBounceable>
+
+                <RNBounceable onPress={cancelWorkout} style={styles.cancel_btn}>
+                    <Text style={styles.cancel_btn_text}>Cancel Workout</Text>
+                    {/* <Weight size="22" color="#5DBDFF" variant='Bold' /> */}
+                </RNBounceable>
+
+                <View style={{height: 150}}></View>
+            </ScrollView>
+
             <Modal
                 animationType='fade'
                 transparent={true}
@@ -48,33 +96,7 @@ export default function NewWorkoutModal({ workout, setWorkout, closeModal, cance
                     appendExercises={appendExercises}
                 />
             </Modal>
-
-            <View style={styles.header}>
-                <TouchableOpacity onPress={cancelWorkout} style={styles.cancel_btn}>
-                    <Text style={styles.cancel_btn_text}>Cancel</Text>
-                </TouchableOpacity>
-                <TouchableOpacity onPress={finishWorkout} style={styles.finish_btn}>
-                    <Text style={styles.finish_btn_text}>Finish</Text>
-                </TouchableOpacity>
-            </View>
-
-            <View>
-                <Text style={styles.title_text}>April 20th Workout</Text>
-                <Text style={styles.stopwatch_text}>{timer}</Text>
-            </View>
-
-            {
-                workout.exercises.map((ex, index) => {
-                    return (
-                        <ExerciseLog name={ex.name} key={index} />
-                    )
-                })
-            }
-
-            <TouchableOpacity onPress={showSelectExerciseModal} style={styles.add_exercise_btn}>
-                <Text style={styles.add_exercise_text}>Add Exercise</Text>
-            </TouchableOpacity>
-        </ScrollView >
+        </View>
     )
 }
 
@@ -84,37 +106,50 @@ const styles = StyleSheet.create({
         backgroundColor: '#fff',
     },
     header: {
-        height: 40,
+        height: 48,
         paddingHorizontal: 22,
         flexDirection: 'row',
-        alignItems: 'flex-end',
-        justifyContent: 'space-between'
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        paddingBottom: 8,
+        backgroundColor: '#fff', // To ensure the shadow is visible
+        zIndex: 1, // Make sure the header is above the ScrollView content
     },
-    cancel_btn: {
-        width: 70,
-        height: 30,
-        borderRadius: 6,
-        backgroundColor: '#E34040',
-        justifyContent: 'center',
-        alignItems: 'center'
+    headerShadow: {
+        // shadowColor: '#000',
+        // shadowOffset: { width: 0, height: 2 },
+        // shadowOpacity: 0.3,
+        // shadowRadius: 5,
+        // elevation: 4,
+        borderBottomWidth: 2,
+        borderBottomColor: '#eaeaea'
     },
-    cancel_btn_text: {
-        fontFamily: 'Lato_700Bold',
-        fontSize: 14,
-        color: 'white',
+    iconWrapper: {
+        padding: 6,
+        borderRadius: 12,
+        backgroundColor: '#E1F0FF',
+    },
+    header_time_text: {
+        fontFamily: 'Outfit_700Bold',
+        fontSize: 18,
+        color: '#aaa',
+        position: 'absolute',
+        left: 0,
+        right: 0,
+        textAlign: 'center'
     },
     finish_btn: {
-        width: 70,
-        height: 30,
-        borderRadius: 6,
-        backgroundColor: '#51c971',
+        width: 80,
+        height: 35,
+        borderRadius: 12,
+        backgroundColor: '#DCFFDA',
         justifyContent: 'center',
         alignItems: 'center'
     },
     finish_btn_text: {
-        fontFamily: 'Lato_700Bold',
-        fontSize: 14,
-        color: 'white',
+        fontFamily: 'Outfit_700Bold',
+        fontSize: 15.5,
+        color: '#4ACF59',
     },
     title_text: {
         fontFamily: 'Poppins_700Bold',
@@ -129,17 +164,35 @@ const styles = StyleSheet.create({
         paddingHorizontal: 22,
     },
     add_exercise_btn: {
-        marginHorizontal: 22,
+        marginHorizontal: 20,
+        marginTop: 18,
         height: 35,
-        marginVertical: 16,
-        borderRadius: 15,
-        backgroundColor: '#51B8FF',
+        borderRadius: 12,
+        backgroundColor: '#E1F0FF',
         justifyContent: 'center',
-        alignItems: 'center'
+        alignItems: 'center',
+        flexDirection: 'row'
     },
     add_exercise_text: {
         fontSize: 16,
-        fontFamily: 'SourceSansPro_600SemiBold',
-        color: 'white'
+        fontFamily: 'Outfit_700Bold',
+        color: '#0499FE',
+        marginRight: 4.5
+    },
+    cancel_btn: {
+        marginHorizontal: 20,
+        marginTop: 18,
+        height: 35,
+        borderRadius: 12,
+        backgroundColor: '#FFECEC',
+        justifyContent: 'center',
+        alignItems: 'center',
+        flexDirection: 'row'
+    },
+    cancel_btn_text: {
+        fontSize: 16,
+        fontFamily: 'Outfit_700Bold',
+        color: '#F27171',
+        marginRight: 4.5
     }
 });
