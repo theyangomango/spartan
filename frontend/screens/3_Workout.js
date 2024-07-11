@@ -15,6 +15,7 @@ import WorkoutFooter from "../components/3_workout/WorkoutFooter";
 import JoinWorkoutModal from "../components/3_workout/JoinWorkoutModal";
 import WorkoutHeader from "../components/3_workout/WorkoutHeader";
 import GoalBanner from "../components/3_workout/GoalBanner";
+import CalendarBanner from "../components/3_workout/CalendarBanner";
 
 const { height } = Dimensions.get('window');
 
@@ -131,13 +132,21 @@ export default function Workout({ navigation }) {
                 <JoinWorkoutModal />
             </BottomSheet>
 
+            <WorkoutHeader />
+
 
             <View style={styles.body}>
+
                 <ScrollView showsVerticalScrollIndicator={false}>
-                    <View style={{ height: 10 }} />
+                    {/* <View style={{ height: 10 }} /> */}
+                    <View style={{ height: 45 }} />
+
                     <GoalBanner workoutsLeft={12} progress={56} />
 
+                    <CalendarBanner />
+
                     <Text style={styles.quick_start_text}>Quick Start</Text>
+
                     <StartWorkoutButton startWorkout={startNewWorkout} />
                     <JoinWorkoutButton joinWorkout={() => joinWorkoutBottomSheet.current.show()} />
 

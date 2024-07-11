@@ -1,12 +1,15 @@
 import { StyleSheet, View, Text, TouchableOpacity } from "react-native";
-import { AntDesign } from '@expo/vector-icons'
+import { AntDesign, SimpleLineIcons } from '@expo/vector-icons'
 import RNBounceable from "@freakycoder/react-native-bounceable";
 
 export default function JoinWorkoutButton({ joinWorkout }) {
     return (
         <RNBounceable onPress={joinWorkout} style={styles.main_ctnr}>
-            <Text style={styles.text}>Join Workout</Text>
-            <AntDesign name="addusergroup" size={24} color={'#fff'} />
+            <Text style={styles.text}>Log Past Workout</Text>
+            {/* <AntDesign name="addusergroup" size={24} color={'#fff'} /> */}
+            {/* <AntDesign name="book" size={23.5} color={'#fff'} /> */}
+            <SimpleLineIcons name="notebook" size={21} color={'#fff'} style={{ paddingRight: 1 }} />
+
 
         </RNBounceable>
     )

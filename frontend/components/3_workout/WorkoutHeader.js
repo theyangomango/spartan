@@ -21,7 +21,7 @@ export default function WorkoutHeader({ toMessagesScreen }) {
                         <AddSquare size={21} color="#fff" />
                     </View>
                 </TouchableOpacity> */}
-                {/* <TouchableOpacity>
+                <TouchableOpacity>
                     <View style={styles.notifications_btn_ctnr}>
                         <Notification size={18.5} color="#2D9EFF" />
                     </View>
@@ -33,7 +33,7 @@ export default function WorkoutHeader({ toMessagesScreen }) {
                     <View style={styles.red_circle_ctnr}>
                         <Text style={styles.red_circle_text}>15</Text>
                     </View>
-                </TouchableOpacity> */}
+                </TouchableOpacity>
             </View>
         </View>
     )
@@ -86,4 +86,40 @@ const styles = StyleSheet.create({
     right: {
         flexDirection: 'row'
     },
+
+    notifications_btn_ctnr: {
+        width: 30,
+        height: 30,
+        borderRadius: 20,
+        backgroundColor: '#E0F1FF',
+        justifyContent: 'center',
+        alignItems: 'center',
+        marginBottom: 3,
+        marginHorizontal: 13
+    },
+    msg_btn_ctnr: {
+        width: 30,
+        height: 30,
+        borderRadius: 20,
+        backgroundColor: '#E0F1FF',
+        justifyContent: 'center',
+        alignItems: 'center',
+        marginBottom: 3
+    },
+    red_circle_ctnr: {
+        width: 14,
+        height: 14,
+        borderRadius: 7,
+        backgroundColor: 'red',
+        position: 'absolute',
+        top: -3,
+        right: -5,
+        alignItems: 'center',
+        justifyContent: 'center',
+    },
+    red_circle_text: {
+        fontFamily: 'Mulish_800ExtraBold',
+        fontSize: 8,
+        color: '#fff'
+    }
 });

@@ -6,7 +6,7 @@ import RNBounceable from '@freakycoder/react-native-bounceable';
 export default function StartWorkoutButton({ startWorkout }) {
     return (
         <RNBounceable onPress={startWorkout} style={styles.main_ctnr}>
-                <Text style={styles.text}>Start New Workout</Text>
+                <Text style={styles.text}>Start Empty Workout</Text>
                 <View style={styles.icon_ctnr}>
                     <Weight size="25.5" color="white" variant='Broken' />
                 </View>
