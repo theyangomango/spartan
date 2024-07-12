@@ -133,14 +133,14 @@ export default function Workout({ navigation }) {
                 <JoinWorkoutModal />
             </BottomSheet>
 
-            <WorkoutHeader />
+            {/* <WorkoutHeader /> */}
 
 
             <View style={styles.body}>
 
                 <ScrollView showsVerticalScrollIndicator={false}>
                     {/* <View style={{ height: 10 }} /> */}
-                    <View style={{ height: 45 }} />
+                    <View style={{ height: 90 }} />
 
                     <GoalBanner workoutsLeft={12} progress={56} />
 
@@ -181,7 +181,7 @@ const styles = StyleSheet.create({
     body: {
         flex: 1,
         // paddingHorizontal: 20,
-        marginTop: 60
+        // marginTop: 60
     },
     title_text: {
         fontFamily: 'Poppins_700Bold',

@@ -52,7 +52,7 @@ const SearchBarComponent = ({ navigation, onFilteredHandlesChange }) => {
     return (
         <View style={styles.container}>
             <View style={styles.searchBarContainer}>
-                <Ionicons name="search" size={20} color="#c6c6c6" style={styles.icon} />
+                <Ionicons name="search" size={18} color="#c6c6c6" style={styles.icon} />
                 <TextInput
                     style={styles.textInput}
                     placeholder="Search"
@@ -62,7 +62,7 @@ const SearchBarComponent = ({ navigation, onFilteredHandlesChange }) => {
                 />
                 {searchString.length > 0 && (
                     <TouchableOpacity activeOpacity={0.5} onPress={() => { setSearchString(''); setFilteredUsers([]); onFilteredHandlesChange([]); }} style={styles.clearButton}>
-                        <Ionicons name="close-circle" size={22} color="#c6c6c6" />
+                        <Ionicons name="close-circle" size={18} color="#c6c6c6" />
                     </TouchableOpacity>
                 )}
             </View>
@@ -89,26 +89,27 @@ const styles = StyleSheet.create({
         alignItems: 'center',
         backgroundColor: '#fff',
         borderRadius: 50,
-        borderWidth: 1,
-        borderColor: '#ccc',
-        paddingVertical: 12,
+        // borderWidth: 1,
+        // borderColor: '#ccc',
+        paddingVertical: 10,
         paddingHorizontal: 22,
         marginHorizontal: 16,
-        shadowColor: '#666',
-        shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.3,
-        shadowRadius: 3,
+        marginBottom: 1,
+        shadowColor: '#999',
+        shadowOffset: { width: 0, height: 1 },
+        shadowOpacity: 0.4,
+        shadowRadius: 4,
         elevation: 3,
     },
     textInput: {
         flex: 1,
         color: '#333',
-        fontSize: 17.5,
+        fontSize: 16,
         fontFamily: 'Mulish_600SemiBold',
     },
     icon: {
-        marginRight: 11,
-        marginTop: 2
+        marginRight: 12,
+        marginTop: 1.5
     },
     clearButton: {
         marginLeft: 10,

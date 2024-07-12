@@ -1,24 +1,28 @@
-import React, { useState } from 'react';
-import { StyleSheet, View, TouchableWithoutFeedback, Keyboard, FlatList } from 'react-native';
+import React, { useEffect, useState } from 'react';
+import { StyleSheet, View, TouchableWithoutFeedback, Keyboard, ScrollView, Text, TouchableOpacity } from 'react-native';
+import MasonryList from '@react-native-seoul/masonry-list';
 import Footer from "../components/Footer";
 import WorkoutFooter from "../components/3_workout/WorkoutFooter";
 import PostPreview from '../components/4_explore/PostPreview';
 import ExploreHeader from '../components/4_explore/ExploreHeader';
 import SearchBarComponent from '../components/4_explore/SearchBarComponent';
+import retrieveUserExploreFeed from '../../backend/retreiveUserExploreFeed';
+import RNBounceable from '@freakycoder/react-native-bounceable';
 
 export default function Explore({ navigation }) {
     const userData = global.userData;
-    
-
+    const [explorePosts, setExplorePosts] = useState([]);
     const [filteredHandles, setFilteredHandles] = useState([]);
-    const [photos, setPhotos] = useState([
-        { id: '1', uri: 'https://placeimg.com/640/640/nature' },
-        { id: '2', uri: 'https://placeimg.com/640/640/people' },
-        { id: '3', uri: 'https://placeimg.com/640/640/animals' },
-        { id: '4', uri: 'https://placeimg.com/640/640/tech' },
-        { id: '5', uri: 'https://placeimg.com/640/640/arch' },
-        { id: '6', uri: 'https://placeimg.com/640/640/any' }
-    ]);
+    const [selectedCategory, setSelectedCategory] = useState(null);
+
+    useEffect(() => {
+        init();
+    }, []);
+
+    async function init() {
+        let exploreFeedData = await retrieveUserExploreFeed(userData);
+        setExplorePosts(exploreFeedData);
+    }
 
     const toPostList = () => {
         navigation.navigate('PostList');
@@ -28,24 +32,53 @@ export default function Explore({ navigation }) {
         <PostPreview toPostList={toPostList} item={item} />
     );
 
+    const categories = ['For You', 'Leg Day', 'Progress Pictures', 'Bulking', 'Workout Splits'];
+
     return (
         <TouchableWithoutFeedback onPress={Keyboard.dismiss} accessible={false}>
             <View style={styles.mainContainer}>
-                <ExploreHeader />
+                {/* <ExploreHeader /> */}
+                <View style={{ height: 57 }} />
 
                 <SearchBarComponent
                     navigation={navigation}
                     onFilteredHandlesChange={setFilteredHandles}
                 />
 
-                <FlatList
-                    data={photos}
+                <View style={styles.scrollViewWrapper}>
+                    <ScrollView 
+                        horizontal 
+                        showsHorizontalScrollIndicator={false} 
+                        contentContainerStyle={styles.scrollViewContent}
+                        style={styles.scrollview}
+                    >
+                        {categories.map((category, index) => (
+                            <RNBounceable
+                                key={index}
+                                style={[
+                                    styles.filterButton,
+                                    selectedCategory === category && styles.selectedFilterButton
+                                ]}
+                                onPress={() => setSelectedCategory(category)}
+                            >
+                                <Text style={[
+                                    styles.filterButtonText,
+                                    selectedCategory === category ? styles.selectedFilterButtonText : styles.unselectedFilterButtonText
+                                ]}>
+                                    {category}
+                                </Text>
+                            </RNBounceable>
+                        ))}
+                    </ScrollView>
+                </View>
+
+                <MasonryList
+                    data={explorePosts}
                     renderItem={renderPostPreview}
-                    keyExtractor={item => item.id.toString()}
+                    keyExtractor={item => item.pid.toString()}
                     numColumns={2}
-                    columnWrapperStyle={styles.row}
-                    style={styles.postsFlatlist}
-                    keyboardShouldPersistTaps="handled"
+                    style={styles.postsMasonryList}
+                    showsVerticalScrollIndicator={false}
                 />
 
                 {global.workout && <WorkoutFooter userData={userData} />}
@@ -61,13 +94,45 @@ const styles = StyleSheet.create({
         flex: 1,
         backgroundColor: '#fff',
     },
-    row: {
+    postsMasonryList: {
         flex: 1,
-        justifyContent: 'space-around',
+        paddingHorizontal: 10,
+        // marginVertical: 5,
     },
-    postsFlatlist: {
-        flex: 1,
-        paddingHorizontal: 9,
-        marginVertical: 10
+    scrollViewWrapper: {
+        // marginVertical: 10,
+        marginTop: 8,
+        marginBottom: 8,
+        height: 'auto',
+    },
+    scrollview: {
+        paddingHorizontal: 16,
+    },
+    scrollViewContent: {
+        alignItems: 'center',
+    },
+    filterButton: {
+        backgroundColor: '#DCDCDC',
+        borderRadius: 15,
+        paddingVertical: 8,
+        paddingHorizontal: 12,
+        marginRight: 8,
+    },
+    selectedFilterButton: {
+        backgroundColor: '#6FB8FF',
+    },
+    filterButtonText: {
+        fontSize: 14,
+        fontWeight: '600',
+    },
+    selectedFilterButtonText: {
+        color: '#fff',
+        fontFamily: 'Inter_600SemiBold',
+        fontSize: 13.5
+    },
+    unselectedFilterButtonText: {
+        color: '#000',
+        fontFamily: 'Inter_600SemiBold',
+        fontSize: 13.5
     },
 });

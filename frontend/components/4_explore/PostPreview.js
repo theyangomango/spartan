@@ -1,26 +1,35 @@
-import { Image, StyleSheet } from "react-native"
+import React, { useEffect, useState } from "react";
+import { Image, StyleSheet, View } from "react-native";
 import RNBounceable from "@freakycoder/react-native-bounceable";
 
 export default function PostPreview({ item, toPostList }) {
+    const [aspectRatio, setAspectRatio] = useState(1);
+
+    useEffect(() => {
+        Image.getSize(item.images[0], (width, height) => {
+            setAspectRatio(width / height);
+        });
+    }, [item.images]);
+
     return (
-        <RNBounceable onPress={toPostList} style={styles.image_ctnr}>
-            <Image source={{ uri: null }} style={styles.image} />
+        <RNBounceable onPress={toPostList} style={[styles.image_ctnr, { aspectRatio }]}>
+            <Image source={{ uri: item.images[0] }} style={styles.image} />
         </RNBounceable>
-    )
+    );
 }
 
 const styles = StyleSheet.create({
     image_ctnr: {
         flex: 1,
         flexDirection: 'column',
-        margin: 6, // Adjust spacing between images
-        aspectRatio: 1,
-        backgroundColor: 'red', // This is just to visualize the container, remove if not needed
-        borderRadius: 25
+        margin: 3.75, // Adjust spacing between images
+        // backgroundColor: 'red', // This is just to visualize the container, remove if not needed
+        borderRadius: 20,
+        overflow: 'hidden',
     },
     image: {
-        width: '100%', // Makes each image fill the container
-        // height: 100,
-        resizeMode: 'cover' // Ensures the image covers the specified area without distortion
+        flex: 1,
+        borderRadius: 20,
+        resizeMode: 'cover', // Ensures the image covers the specified area without distortion
     },
-})
+});

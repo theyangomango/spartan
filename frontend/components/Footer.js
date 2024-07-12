@@ -47,7 +47,7 @@ export default function Footer({ navigation, currentScreenName }) {
                 <View style={[styles.workout_icon_ctnr]}>
                     <Pressable onPress={toWorkoutScreen}>
                         <View style={currentScreenName === 'Workout' ? styles.selectedIcon : styles.icon}>
-                            <Weight size="26.5" color="#fff" />
+                            <Weight size="27" color="#fff" />
                         </View>
                     </Pressable>
                 </View>
@@ -76,14 +76,14 @@ const styles = StyleSheet.create({
         bottom: 0,
         left: 0,
         width: '100%',
-        height: 120,
+        height: 110,
         backgroundColor: 'transparent',
         alignItems: 'center',
-        justifyContent: 'center'
+        // justifyContent: 'center'
     },
     main_ctnr: {
         width: '90.5%',
-        height: 72,
+        height: 69.69696969696969696969,
         borderRadius: 60,
         backgroundColor: '#B3D2EE',
         flexDirection: 'row',
