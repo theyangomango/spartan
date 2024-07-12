@@ -32,53 +32,37 @@ export default function Footer({ navigation, currentScreenName }) {
             <View style={styles.main_ctnr}>
                 <View style={styles.icon_ctnr}>
                     <Pressable onPress={toFeedScreen}>
-                        {currentScreenName != 'Feed' &&
-                            <Home size="23" color="#888" variant="Broken" />
-                        }
-                        {currentScreenName == 'Feed' &&
-                            < Home size="23" color="#0499fe" variant="Broken" />
-                        }
+                        <View style={currentScreenName === 'Feed' ? styles.selectedIcon : styles.icon}>
+                            <Home size="23" color="#fff" variant="Broken" />
+                        </View>
                     </Pressable>
-
                 </View>
                 <View style={styles.icon_ctnr}>
                     <Pressable onPress={toCompetitionScreen}>
-                        {currentScreenName != 'Competition' &&
-                            <Cup size="23" color="#888" />
-                        }
-                        {currentScreenName == 'Competition' &&
-                            <Cup size="23" color="#0499fe" />
-                        }
+                        <View style={currentScreenName === 'Competition' ? styles.selectedIcon : styles.icon}>
+                            <Cup size="23" color="#fff" />
+                        </View>
                     </Pressable>
                 </View>
-                <View style={[styles.icon_ctnr, styles.workout_icon_ctnr]}>
+                <View style={[styles.workout_icon_ctnr]}>
                     <Pressable onPress={toWorkoutScreen}>
-                        {currentScreenName != 'Workout' &&
-                            <Weight size="27" color="#888" />
-                        }
-                        {currentScreenName == 'Workout' &&
-                            <Weight size="27" color="#0499fe" />
-                        }
+                        <View style={currentScreenName === 'Workout' ? styles.selectedIcon : styles.icon}>
+                            <Weight size="26.5" color="#fff" />
+                        </View>
                     </Pressable>
                 </View>
                 <View style={styles.icon_ctnr}>
                     <Pressable onPress={toExploreScreen}>
-                        {currentScreenName != 'Explore' &&
-                            <SearchNormal1 size="21" color="#888" />
-                        }
-                        {currentScreenName == 'Explore' &&
-                            <SearchNormal1 size="21" color="#0499fe" />
-                        }
+                        <View style={currentScreenName === 'Explore' ? styles.selectedIcon : styles.icon}>
+                            <SearchNormal1 size="21" color="#fff" />
+                        </View>
                     </Pressable>
                 </View>
                 <View style={styles.icon_ctnr}>
                     <Pressable onPress={toProfileScreen}>
-                        {currentScreenName != 'Profile' &&
-                            <Profile size="23" color="#888" variant="Broken" />
-                        }
-                        {currentScreenName == 'Profile' &&
-                            < Profile size="23" color="#0499fe" variant="Broken" />
-                        }
+                        <View style={currentScreenName === 'Profile' ? styles.selectedIcon : styles.icon}>
+                            <Profile size="23" color="#fff" variant="Broken" />
+                        </View>
                     </Pressable>
                 </View>
             </View>
@@ -92,31 +76,46 @@ const styles = StyleSheet.create({
         bottom: 0,
         left: 0,
         width: '100%',
-        height: 79,
+        height: 120,
         backgroundColor: 'transparent',
+        alignItems: 'center',
+        justifyContent: 'center'
     },
     main_ctnr: {
-        width: '100%',
-        height: 86,
-        borderTopLeftRadius: 24,
-        borderTopRightRadius: 24,
-        backgroundColor: '#fff',
+        width: '90.5%',
+        height: 72,
+        borderRadius: 60,
+        backgroundColor: '#B3D2EE',
         flexDirection: 'row',
         justifyContent: 'center',
-        paddingHorizontal: 16,
+        paddingHorizontal: 2,
 
-        // Todo Box Shadow
-        shadowColor: '#777',
-        shadowOffset: { width: 0, height: 0.4 },
-        shadowOpacity: 1,
-        shadowRadius: 2,
+        // // Todo Box Shadow
+        // shadowColor: '#777',
+        // shadowOffset: { width: 0, height: 0.4 },
+        // shadowOpacity: 1,
+        // shadowRadius: 2,
     },
     icon_ctnr: {
         flex: 1,
         alignItems: 'center',
-        paddingTop: 20,
+        // paddingTop: 20,
+        padding: 10,
     },
     workout_icon_ctnr: {
-        paddingTop: 18.5
+        flex: 1,
+        alignItems: 'center',
+        // paddingTop: 20,
+        paddingHorizontal: 10,
+        paddingVertical: 8.2,
+    },
+    icon: {
+        padding: 13.5,
+        borderRadius: 25,
+    },
+    selectedIcon: {
+        padding: 13.5,
+        backgroundColor: '#6FB8FF',
+        borderRadius: 25,
     }
 });

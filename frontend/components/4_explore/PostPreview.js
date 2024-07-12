@@ -13,9 +13,10 @@ const styles = StyleSheet.create({
     image_ctnr: {
         flex: 1,
         flexDirection: 'column',
-        margin: 1, // Adjust spacing between images
+        margin: 6, // Adjust spacing between images
         aspectRatio: 1,
-        backgroundColor: 'red' // This is just to visualize the container, remove if not needed
+        backgroundColor: 'red', // This is just to visualize the container, remove if not needed
+        borderRadius: 25
     },
     image: {
         width: '100%', // Makes each image fill the container
