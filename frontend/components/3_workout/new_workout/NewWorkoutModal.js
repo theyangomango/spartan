@@ -1,15 +1,17 @@
 import { useEffect, useState } from "react";
-import { StyleSheet, View, Text, Modal, TouchableOpacity, ScrollView, Pressable } from "react-native";
+import { StyleSheet, View, Text, Modal, TouchableOpacity, ScrollView } from "react-native";
 import millisToMinutesAndSeconds from "../../../helper/milliesToMinutesAndSeconds";
 import ProgressBanner from "./ProgressBanner";
 import ExerciseLog from "./ExerciseLog";
 import SelectExerciseModal from './SelectExerciseModal'
 import RNBounceable from "@freakycoder/react-native-bounceable";
 import { Weight } from 'iconsax-react-native';
-import { MaterialCommunityIcons } from '@expo/vector-icons';
+import { MaterialCommunityIcons, FontAwesome } from '@expo/vector-icons';
+import GroupModal from "./GroupModal";
 
 export default function NewWorkoutModal({ workout, setWorkout, closeModal, cancelWorkout, updateWorkout, finishWorkout }) {
     const [selectExerciseModalVisible, setSelectExerciseModalVisible] = useState(false);
+    const [groupModalVisible, setGroupModalVisible] = useState(false);
     const [timer, setTimer] = useState('0:00');
     const [headerShadow, setHeaderShadow] = useState(false);
 
@@ -30,6 +32,14 @@ export default function NewWorkoutModal({ workout, setWorkout, closeModal, cance
 
     function closeSelectExerciseModal() {
         setSelectExerciseModalVisible(false);
+    }
+
+    function showGroupModal() {
+        setGroupModalVisible(true);
+    }
+
+    function closeGroupModal() {
+        setGroupModalVisible(false);
     }
 
     function appendExercises(exercises) {
@@ -58,15 +68,21 @@ export default function NewWorkoutModal({ workout, setWorkout, closeModal, cance
                     <MaterialCommunityIcons name="timer-outline" size={24} color="#0499FE" />
                 </View>
                 <Text style={styles.header_time_text}>{timer}</Text>
-                <TouchableOpacity onPress={finishWorkout} style={styles.finish_btn}>
-                    <Text style={styles.finish_btn_text}>Finish</Text>
-                </TouchableOpacity>
+                <View style={styles.header_right}>
+                    <TouchableOpacity style={styles.group_btn} onPress={showGroupModal}>
+                        <FontAwesome name="group" size={17} color="#FFBB3D" />
+                    </TouchableOpacity>
+                    <TouchableOpacity onPress={finishWorkout} style={styles.finish_btn}>
+                        <Text style={styles.finish_btn_text}>Finish</Text>
+                    </TouchableOpacity>
+                </View>
             </View>
 
             <ScrollView
                 showsVerticalScrollIndicator={false}
                 onScroll={handleScroll}
                 scrollEventThrottle={16} // This ensures the onScroll event is called at a reasonable rate
+                style={styles.scrollview}
             >
                 <ProgressBanner />
                 {
@@ -81,10 +97,9 @@ export default function NewWorkoutModal({ workout, setWorkout, closeModal, cance
 
                 <RNBounceable onPress={cancelWorkout} style={styles.cancel_btn}>
                     <Text style={styles.cancel_btn_text}>Cancel Workout</Text>
-                    {/* <Weight size="22" color="#5DBDFF" variant='Bold' /> */}
                 </RNBounceable>
 
-                <View style={{height: 150}}></View>
+                <View style={{ height: 150 }}></View>
             </ScrollView>
 
             <Modal
@@ -96,7 +111,16 @@ export default function NewWorkoutModal({ workout, setWorkout, closeModal, cance
                     appendExercises={appendExercises}
                 />
             </Modal>
-        </View>
+
+            <Modal
+                animationType='fade'
+                transparent={true}
+                visible={groupModalVisible}
+                onRequestClose={closeGroupModal}
+            >
+                <GroupModal closeGroupModal={closeGroupModal}/>
+            </Modal>
+        </View >
     )
 }
 
@@ -104,6 +128,7 @@ const styles = StyleSheet.create({
     main_ctnr: {
         flex: 1,
         backgroundColor: '#fff',
+        // zIndex: 1
     },
     header: {
         height: 48,
@@ -111,16 +136,10 @@ const styles = StyleSheet.create({
         flexDirection: 'row',
         alignItems: 'center',
         justifyContent: 'space-between',
-        paddingBottom: 8,
         backgroundColor: '#fff', // To ensure the shadow is visible
         zIndex: 1, // Make sure the header is above the ScrollView content
     },
     headerShadow: {
-        // shadowColor: '#000',
-        // shadowOffset: { width: 0, height: 2 },
-        // shadowOpacity: 0.3,
-        // shadowRadius: 5,
-        // elevation: 4,
         borderBottomWidth: 2,
         borderBottomColor: '#eaeaea'
     },
@@ -138,6 +157,19 @@ const styles = StyleSheet.create({
         right: 0,
         textAlign: 'center'
     },
+    header_right: {
+        flexDirection: 'row',
+        alignItems: 'center',
+    },
+    group_btn: {
+        width: 35,
+        height: 35,
+        borderRadius: 12,
+        backgroundColor: '#FFE8BC',
+        justifyContent: 'center',
+        alignItems: 'center',
+        marginRight: 10,
+    },
     finish_btn: {
         width: 80,
         height: 35,
@@ -151,17 +183,8 @@ const styles = StyleSheet.create({
         fontSize: 15.5,
         color: '#4ACF59',
     },
-    title_text: {
-        fontFamily: 'Poppins_700Bold',
-        fontSize: 22,
-        paddingTop: 40,
-        paddingHorizontal: 22,
-    },
-    stopwatch_text: {
-        fontFamily: 'Outfit_400Regular',
-        fontSize: 18,
-        color: '#888',
-        paddingHorizontal: 22,
+    scrollview: {
+        paddingTop: 5
     },
     add_exercise_btn: {
         marginHorizontal: 20,
@@ -194,5 +217,6 @@ const styles = StyleSheet.create({
         fontFamily: 'Outfit_700Bold',
         color: '#F27171',
         marginRight: 4.5
-    }
+    },
+
 });
