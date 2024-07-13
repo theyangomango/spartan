@@ -1,12 +1,13 @@
+import RNBounceable from "@freakycoder/react-native-bounceable";
 import { StyleSheet, View, Text, TouchableOpacity } from "react-native";
 
 export default function EditProfileButton() {
     return (
-        <TouchableOpacity>
+        <RNBounceable>
             <View style={styles.main_ctnr}>
                 <Text style={styles.edit_profile_text}>Edit Profile</Text>
             </View>
-        </TouchableOpacity>
+        </RNBounceable>
     )
 }
 
@@ -18,11 +19,11 @@ const styles = StyleSheet.create({
         backgroundColor: '#0499FE',
         justifyContent: 'center',
         alignItems: 'center',
-        marginHorizontal: 4,
+        marginHorizontal: 9,
     },
     edit_profile_text: {
         fontFamily: 'Mulish_700Bold',
-        fontSize: 16,
+        fontSize: 15.5,
         color: '#fff'
     },
 });

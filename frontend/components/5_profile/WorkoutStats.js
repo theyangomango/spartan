@@ -26,7 +26,8 @@ const styles = StyleSheet.create({
         paddingVertical: 8,
     },
     workout_stat: {
-        width: 104,
+        // width: 104,
+        width: '28%',
         height: 68,
         borderRadius: 8,
         margin: 9,

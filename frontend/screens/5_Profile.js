@@ -1,8 +1,9 @@
 import React, { useEffect, useState, useRef } from "react";
 import { StyleSheet, View, Pressable } from "react-native";
 import { useFocusEffect } from '@react-navigation/native';
-import { Grid2, Activity } from 'iconsax-react-native'
+import { Grid2, Activity, Clock } from 'iconsax-react-native';
 import BottomSheet from "react-native-gesture-bottom-sheet";
+import MasonryList from '@react-native-seoul/masonry-list';
 import Footer from "../components/Footer";
 import ProfileHeader from "../components/5_profile/ProfileHeader";
 import ProfileInfo from "../components/5_profile/ProfileInfo";
@@ -16,7 +17,7 @@ import WorkoutFooter from "../components/3_workout/WorkoutFooter";
 export default function Profile({ navigation }) {
     const userData = global.userData;
     const [posts, setPosts] = useState([]);
-    const [postsSelected, setPostsSelected] = useState(true);
+    const [selectedPanel, setSelectedPanel] = useState('posts');
     const [bkgColor, setBkgColor] = useState('#000');
     const bottomSheet = useRef();
 
@@ -40,9 +41,8 @@ export default function Profile({ navigation }) {
     );
 
     async function getPosts() {
-        // * Posts
         let db_posts = [];
-        for (pid of userData.posts) {
+        for (const pid of userData.posts) {
             let postData = await readDoc('posts', pid);
             db_posts.push(postData);
         }
@@ -65,12 +65,8 @@ export default function Profile({ navigation }) {
         })
     }
 
-    function selectPosts() {
-        setPostsSelected(true);
-    }
-
-    function selectActivity() {
-        setPostsSelected(false);
+    function selectPanel(panel) {
+        setSelectedPanel(panel);
     }
 
     function toOptionsScreen() {
@@ -81,7 +77,6 @@ export default function Profile({ navigation }) {
     }
 
     return (
-
         <View style={styles.main_ctnr}>
             <View style={styles.body_ctnr}>
                 <BottomSheet
@@ -100,25 +95,32 @@ export default function Profile({ navigation }) {
                 <WorkoutStats userData={userData} />
 
                 <View style={styles.panel_btns}>
-                    <View style={styles.posts_btn}>
-                        <Pressable onPress={selectPosts}>
-                            {!postsSelected && <Grid2 size="28" color="#888" />}
-                            {postsSelected && <Grid2 size="28" color="#359ffc" />}
+                    <View style={styles.panel_btn}>
+                        <Pressable onPress={() => selectPanel('posts')}>
+                            <Grid2 size="28" color={selectedPanel === 'posts' ? "#359ffc" : "#888"} />
                         </Pressable>
                     </View>
-                    <View style={styles.activity_btn}>
-                        <Pressable onPress={selectActivity}>
-                            {!postsSelected && <Activity size="28" color="#359ffc" />}
-                            {postsSelected && <Activity size="28" color="#888" />}
+                    <View style={styles.panel_btn}>
+                        <Pressable onPress={() => selectPanel('history')}>
+                            <Clock size="28" color={selectedPanel === 'history' ? "#359ffc" : "#888"} />
+                        </Pressable>
+                    </View>
+                    <View style={styles.panel_btn}>
+                        <Pressable onPress={() => selectPanel('activity')}>
+                            <Activity size="28" color={selectedPanel === 'activity' ? "#359ffc" : "#888"} />
                         </Pressable>
                     </View>
                 </View>
+            </View>
 
-                <View style={[styles.posts_ctnr, !postsSelected && { display: 'none' }]}>
-                    {posts.map((post, index) => {
-                        return <PostPreview postData={post} key={index} />
-                    })}
-                </View>
+            <View style={[styles.posts_ctnr, selectedPanel !== 'posts' && { display: 'none' }]}>
+                <MasonryList
+                    data={posts}
+                    keyExtractor={(item, index) => index.toString()}
+                    renderItem={({ item }) => <PostPreview postData={item} />}
+                    numColumns={3}
+                    contentContainerStyle={{ paddingHorizontal: 4 }}
+                />
             </View>
 
             {global.workout &&
@@ -127,8 +129,7 @@ export default function Profile({ navigation }) {
 
             <Footer navigation={navigation} currentScreenName={'Profile'} />
         </View>
-
-    )
+    );
 }
 
 const styles = StyleSheet.create({
@@ -137,7 +138,6 @@ const styles = StyleSheet.create({
         backgroundColor: '#fff'
     },
     body_ctnr: {
-        flex: 1,
         paddingHorizontal: 16,
     },
     panel_btns: {
@@ -145,21 +145,15 @@ const styles = StyleSheet.create({
         borderBottomWidth: 1.5,
         paddingBottom: 5,
         borderColor: '#82bbed',
-        marginHorizontal: 6,
+        // marginHorizontal: 6,
         marginTop: 10,
+        justifyContent: 'space-around'        
     },
-    posts_btn: {
-        width: '50%',
-        alignItems: 'center'
-    },
-    activity_btn: {
-        width: '50%',
-        alignItems: 'center'
+    panel_btn: {
+        // paddingHorizontal: 100
     },
     posts_ctnr: {
-        marginTop: 8,
-        flexDirection: 'row',
-        flexWrap: 'wrap',
-        paddingHorizontal: 4,
+        marginTop: 5,
+        flex: 1,
     }
 });

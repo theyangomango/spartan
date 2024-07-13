@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { StyleSheet, View, Text, Image } from "react-native";
+import { Entypo } from '@expo/vector-icons';
 import getPFP from "../../../backend/storage/getPFP";
 
 export default function ProfileInfo({ userData }) {
@@ -13,12 +14,17 @@ export default function ProfileInfo({ userData }) {
     }, []);
 
     return (
-        <View>
+        <View style={styles.main_ctnr}>
             <View style={styles.top_row}>
-                <Image
-                    source={{ uri: pfp }}
-                    style={styles.pfp}
-                />
+                <View style={styles.pfp_ctnr}>
+                    <Image
+                        source={{ uri: pfp }}
+                        style={styles.pfp}
+                    />
+                    <View style={styles.plus_icon_ctnr}>
+                        <Entypo name="plus" size={14.5} color="white" />
+                    </View>
+                </View>
                 <View style={styles.user_stats_ctnr}>
                     <View style={styles.user_stat}>
                         <Text style={styles.user_stat_count_text}>{userData.postCount}</Text>
@@ -48,25 +54,47 @@ export default function ProfileInfo({ userData }) {
 }
 
 const styles = StyleSheet.create({
+    main_ctnr: {
+        paddingHorizontal: 3
+    },
     top_row: {
         flexDirection: 'row',
         justifyContent: 'space-between',
         height: 80,
         alignItems: 'center',
-        paddingHorizontal: 10
+        paddingHorizontal: 10,
+    },
+    pfp_ctnr: {
+        position: 'relative',
     },
     pfp: {
-        width: 64,
-        height: 64,
-        borderRadius: 32,
-        // backgroundColor: 'red',
+        marginTop: 6,
+        width: 69,
+        aspectRatio: 1,
+        borderRadius: 50,
+    },
+    plus_icon_ctnr: {
+        position: 'absolute',
+        bottom: 3,
+        right: 0,
+        backgroundColor: '#0098FF',
+        width: 18,
+        aspectRatio: 1,
+        borderRadius: 10,
+        justifyContent: 'center',
+        alignItems: 'center',
+    },
+    plus_icon: {
+        // color: 'white',
+        // fontSize: 17,
+        // lineHeight: 20,
     },
     user_stats_ctnr: {
         flexDirection: 'row',
-        paddingHorizontal: 20
+        paddingHorizontal: 2
     },
     user_stat: {
-        padding: 12,
+        paddingHorizontal: 16.5,
         alignItems: 'center'
     },
     user_stat_count_text: {
@@ -78,7 +106,8 @@ const styles = StyleSheet.create({
         fontSize: 14
     },
     profile_info_ctnr: {
-        paddingHorizontal: 10
+        marginTop: 5,
+        paddingHorizontal: 12
     },
     name_ctnr: {
         paddingVertical: 5
