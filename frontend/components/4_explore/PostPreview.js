@@ -7,7 +7,9 @@ export default function PostPreview({ item, toPostList }) {
 
     useEffect(() => {
         Image.getSize(item.images[0], (width, height) => {
-            setAspectRatio(width / height);
+            // setAspectRatio(width / height);
+            // setAspectRatio(1);
+            Math.random() < 0.7 ? setAspectRatio(1) : setAspectRatio(0.5);
         });
     }, [item.images]);
 
@@ -22,14 +24,13 @@ const styles = StyleSheet.create({
     image_ctnr: {
         flex: 1,
         flexDirection: 'column',
-        margin: 3.75, // Adjust spacing between images
+        margin: 1.5, // Adjust spacing between images
         // backgroundColor: 'red', // This is just to visualize the container, remove if not needed
-        borderRadius: 20,
         overflow: 'hidden',
     },
     image: {
         flex: 1,
-        borderRadius: 20,
+        borderRadius: 10,
         resizeMode: 'cover', // Ensures the image covers the specified area without distortion
     },
 });

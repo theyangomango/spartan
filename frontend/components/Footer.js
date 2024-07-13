@@ -76,7 +76,7 @@ const styles = StyleSheet.create({
         bottom: 0,
         left: 0,
         width: '100%',
-        height: 110,
+        height: 100,
         backgroundColor: 'transparent',
         alignItems: 'center',
         // justifyContent: 'center'
@@ -85,7 +85,7 @@ const styles = StyleSheet.create({
         width: '90.5%',
         height: 69.69696969696969696969,
         borderRadius: 60,
-        backgroundColor: '#B3D2EE',
+        backgroundColor: '#A9CAEE',
         flexDirection: 'row',
         justifyContent: 'center',
         paddingHorizontal: 2,
@@ -115,7 +115,7 @@ const styles = StyleSheet.create({
     },
     selectedIcon: {
         padding: 13.5,
-        backgroundColor: '#6FB8FF',
-        borderRadius: 25,
+        backgroundColor: '#6AB2F8',
+        borderRadius: 30,
     }
 });

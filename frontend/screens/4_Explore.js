@@ -1,10 +1,9 @@
 import React, { useEffect, useState } from 'react';
-import { StyleSheet, View, TouchableWithoutFeedback, Keyboard, ScrollView, Text, TouchableOpacity } from 'react-native';
+import { StyleSheet, View, TouchableWithoutFeedback, Keyboard, ScrollView, Text, TouchableOpacity, KeyboardAvoidingView, Platform } from 'react-native';
 import MasonryList from '@react-native-seoul/masonry-list';
 import Footer from "../components/Footer";
 import WorkoutFooter from "../components/3_workout/WorkoutFooter";
 import PostPreview from '../components/4_explore/PostPreview';
-import ExploreHeader from '../components/4_explore/ExploreHeader';
 import SearchBarComponent from '../components/4_explore/SearchBarComponent';
 import retrieveUserExploreFeed from '../../backend/retreiveUserExploreFeed';
 import RNBounceable from '@freakycoder/react-native-bounceable';
@@ -14,9 +13,22 @@ export default function Explore({ navigation }) {
     const [explorePosts, setExplorePosts] = useState([]);
     const [filteredHandles, setFilteredHandles] = useState([]);
     const [selectedCategory, setSelectedCategory] = useState(null);
+    const [keyboardVisible, setKeyboardVisible] = useState(false);
 
     useEffect(() => {
+        const keyboardDidShowListener = Keyboard.addListener('keyboardDidShow', () => {
+            setKeyboardVisible(true);
+        });
+        const keyboardDidHideListener = Keyboard.addListener('keyboardDidHide', () => {
+            setKeyboardVisible(false);
+        });
+
         init();
+
+        return () => {
+            keyboardDidShowListener.remove();
+            keyboardDidHideListener.remove();
+        };
     }, []);
 
     async function init() {
@@ -35,57 +47,60 @@ export default function Explore({ navigation }) {
     const categories = ['For You', 'Leg Day', 'Progress Pictures', 'Bulking', 'Workout Splits'];
 
     return (
-        <TouchableWithoutFeedback onPress={Keyboard.dismiss} accessible={false}>
-            <View style={styles.mainContainer}>
-                {/* <ExploreHeader /> */}
-                <View style={{ height: 57 }} />
+        <KeyboardAvoidingView style={styles.mainContainer} behavior={Platform.OS === "ios" ? "padding" : "height"}>
+            <View style={{ height: 58 }} />
 
-                <SearchBarComponent
-                    navigation={navigation}
-                    onFilteredHandlesChange={setFilteredHandles}
-                />
+            <SearchBarComponent
+                navigation={navigation}
+                onFilteredHandlesChange={setFilteredHandles}
+            />
 
-                <View style={styles.scrollViewWrapper}>
-                    <ScrollView 
-                        horizontal 
-                        showsHorizontalScrollIndicator={false} 
-                        contentContainerStyle={styles.scrollViewContent}
-                        style={styles.scrollview}
-                    >
-                        {categories.map((category, index) => (
-                            <RNBounceable
-                                key={index}
-                                style={[
-                                    styles.filterButton,
-                                    selectedCategory === category && styles.selectedFilterButton
-                                ]}
-                                onPress={() => setSelectedCategory(category)}
-                            >
-                                <Text style={[
-                                    styles.filterButtonText,
-                                    selectedCategory === category ? styles.selectedFilterButtonText : styles.unselectedFilterButtonText
-                                ]}>
-                                    {category}
-                                </Text>
-                            </RNBounceable>
-                        ))}
-                    </ScrollView>
-                </View>
-
-                <MasonryList
-                    data={explorePosts}
-                    renderItem={renderPostPreview}
-                    keyExtractor={item => item.pid.toString()}
-                    numColumns={2}
-                    style={styles.postsMasonryList}
-                    showsVerticalScrollIndicator={false}
-                />
-
-                {global.workout && <WorkoutFooter userData={userData} />}
-
-                <Footer navigation={navigation} currentScreenName="Explore" />
+            <View style={styles.scrollViewWrapper}>
+                <ScrollView 
+                    horizontal 
+                    showsHorizontalScrollIndicator={false} 
+                    contentContainerStyle={styles.scrollViewContent}
+                    style={styles.scrollview}
+                >
+                    {categories.map((category, index) => (
+                        <RNBounceable
+                            key={index}
+                            style={[
+                                styles.filterButton,
+                                selectedCategory === category && styles.selectedFilterButton
+                            ]}
+                            onPress={() => setSelectedCategory(category)}
+                        >
+                            <Text style={[
+                                styles.filterButtonText,
+                                selectedCategory === category ? styles.selectedFilterButtonText : styles.unselectedFilterButtonText
+                            ]}>
+                                {category}
+                            </Text>
+                        </RNBounceable>
+                    ))}
+                </ScrollView>
             </View>
-        </TouchableWithoutFeedback>
+
+            <MasonryList
+                data={explorePosts}
+                renderItem={renderPostPreview}
+                keyExtractor={(item, index) => index.toString()}
+                numColumns={3}
+                style={styles.postsMasonryList}
+                showsVerticalScrollIndicator={false}
+            />
+
+            {global.workout && <WorkoutFooter userData={userData} />}
+
+            <Footer navigation={navigation} currentScreenName="Explore" />
+
+            {keyboardVisible && (
+                <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
+                    <View style={styles.keyboardDismissOverlay} />
+                </TouchableWithoutFeedback>
+            )}
+        </KeyboardAvoidingView>
     );
 }
 
@@ -96,11 +111,9 @@ const styles = StyleSheet.create({
     },
     postsMasonryList: {
         flex: 1,
-        paddingHorizontal: 10,
-        // marginVertical: 5,
+        paddingHorizontal: 3.5,
     },
     scrollViewWrapper: {
-        // marginVertical: 10,
         marginTop: 8,
         marginBottom: 8,
         height: 'auto',
@@ -114,25 +127,29 @@ const styles = StyleSheet.create({
     filterButton: {
         backgroundColor: '#DCDCDC',
         borderRadius: 15,
-        paddingVertical: 8,
+        paddingVertical: 6.5,
         paddingHorizontal: 12,
         marginRight: 8,
     },
     selectedFilterButton: {
-        backgroundColor: '#6FB8FF',
-    },
-    filterButtonText: {
-        fontSize: 14,
-        fontWeight: '600',
+        backgroundColor: '#6AB2F8',
     },
     selectedFilterButtonText: {
         color: '#fff',
-        fontFamily: 'Inter_600SemiBold',
-        fontSize: 13.5
+        fontFamily: 'Mulish_700Bold',
+        fontSize: 13,
     },
     unselectedFilterButtonText: {
         color: '#000',
-        fontFamily: 'Inter_600SemiBold',
-        fontSize: 13.5
+        fontFamily: 'Mulish_700Bold',
+        fontSize: 13,
+    },
+    keyboardDismissOverlay: {
+        position: 'absolute',
+        top: 0,
+        left: 0,
+        right: 0,
+        bottom: 0,
+        backgroundColor: 'transparent',
     },
 });
