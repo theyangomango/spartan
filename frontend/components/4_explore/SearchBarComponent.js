@@ -41,12 +41,12 @@ const SearchBarComponent = ({ navigation, onFilteredHandlesChange }) => {
                     )}
                 </View>
             </TouchableWithoutFeedback>
-            <TouchableOpacity
+            {isFocused && <TouchableOpacity
                 style={styles.searchButton}
                 onPress={() => filterHandles(searchString)}
             >
                 <Text style={styles.searchButtonText}>Search</Text>
-            </TouchableOpacity>
+            </TouchableOpacity>}
 
             {isFocused && (
                 <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
@@ -70,12 +70,12 @@ const styles = StyleSheet.create({
         alignItems: 'center',
         backgroundColor: '#fff',
         borderRadius: 12,
-        paddingVertical: 8.5,
+        paddingVertical: 9.5,
         paddingHorizontal: 22,
-        marginLeft: 16,
+        marginHorizontal: 16,
         marginBottom: 1,
         shadowColor: '#999',
-        shadowOffset: { width: 0, height: 1 },
+        shadowOffset: { width: 0, height: 0.5 },
         shadowOpacity: 0.4,
         shadowRadius: 2,
         elevation: 3,
@@ -91,13 +91,13 @@ const styles = StyleSheet.create({
         marginTop: 1.5,
     },
     clearButton: {
-        marginLeft: 10,
+        // marginLeft: 10,
     },
     searchButton: {
         borderRadius: 50,
         paddingVertical: 8,
-        paddingHorizontal: 11,
-        marginRight: 2,
+        paddingRight: 11,
+        marginRight: 8,
         alignItems: 'center',
         justifyContent: 'center'
     },

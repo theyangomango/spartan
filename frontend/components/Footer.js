@@ -82,7 +82,7 @@ const styles = StyleSheet.create({
         // justifyContent: 'center'
     },
     main_ctnr: {
-        width: '90.5%',
+        width: '93.5%',
         height: 69.69696969696969696969,
         borderRadius: 60,
         backgroundColor: '#A9CAEE',

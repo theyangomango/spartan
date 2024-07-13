@@ -12,7 +12,7 @@ export default function Explore({ navigation }) {
     const userData = global.userData;
     const [explorePosts, setExplorePosts] = useState([]);
     const [filteredHandles, setFilteredHandles] = useState([]);
-    const [selectedCategory, setSelectedCategory] = useState(null);
+    const [selectedCategory, setSelectedCategory] = useState('For You');
     const [keyboardVisible, setKeyboardVisible] = useState(false);
 
     useEffect(() => {
@@ -125,11 +125,11 @@ const styles = StyleSheet.create({
         alignItems: 'center',
     },
     filterButton: {
-        backgroundColor: '#DCDCDC',
-        borderRadius: 15,
-        paddingVertical: 6.5,
-        paddingHorizontal: 12,
-        marginRight: 8,
+        backgroundColor: '#e9e9e9',
+        borderRadius: 12,
+        paddingVertical: 8,
+        paddingHorizontal: 13,
+        marginRight: 6,
     },
     selectedFilterButton: {
         backgroundColor: '#6AB2F8',
@@ -137,12 +137,12 @@ const styles = StyleSheet.create({
     selectedFilterButtonText: {
         color: '#fff',
         fontFamily: 'Mulish_700Bold',
-        fontSize: 13,
+        fontSize: 13.25,
     },
     unselectedFilterButtonText: {
-        color: '#000',
+        color: '#222',
         fontFamily: 'Mulish_700Bold',
-        fontSize: 13,
+        fontSize: 13.25,
     },
     keyboardDismissOverlay: {
         position: 'absolute',

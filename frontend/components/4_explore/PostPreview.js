@@ -24,13 +24,13 @@ const styles = StyleSheet.create({
     image_ctnr: {
         flex: 1,
         flexDirection: 'column',
-        margin: 1.5, // Adjust spacing between images
+        margin: 2, // Adjust spacing between images
         // backgroundColor: 'red', // This is just to visualize the container, remove if not needed
         overflow: 'hidden',
     },
     image: {
         flex: 1,
-        borderRadius: 10,
+        borderRadius: 15,
         resizeMode: 'cover', // Ensures the image covers the specified area without distortion
     },
 });
