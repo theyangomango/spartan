@@ -31,7 +31,7 @@ export default function ProfileHeader({ onPressCreateBtn }) {
 
 const styles = StyleSheet.create({
     main_ctnr: {
-        height: 85,
+        height: 90,
         alignItems: 'flex-end',
         flexDirection: 'row',
         justifyContent: 'space-between',

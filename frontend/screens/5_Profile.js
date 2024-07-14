@@ -13,6 +13,23 @@ import PostPreview from "../components/5_profile/PostPreview";
 import readDoc from "../../backend/helper/firebase/readDoc";
 import CreateModal from "../components/5_profile/CreateModal";
 import WorkoutFooter from "../components/3_workout/WorkoutFooter";
+import ExerciseGraph from "../components/5_profile/ExerciseGraph";
+import HexagonalStats from "../components/5_profile/HexagonalStats";
+import { ScrollView } from "react-native-gesture-handler";
+import PastWorkoutCard from "../components/5_profile/PastWorkoutCard";
+
+const lastUsedDate = "July 6th";
+const exercises = [
+    { name: "3 x Incline Bench (Barbell)", muscle: "Chest" },
+    { name: "3 x Decline Bench (Barbell)", muscle: "Chest" },
+    { name: "3 x Chest Flys", muscle: "Chest" },
+    { name: "5 x Pull Ups", muscle: "Back" },
+    { name: "3 x Bicep Curls (Dumbell)", muscle: "Biceps" },
+    { name: "3 x Lateral Raises", muscle: "Shoulders" },
+    { name: "3 x Shoulder Press (Dumbell)", muscle: "Shoulders" },
+    { name: "5 x Reverse Curls (Barbell)", muscle: "Biceps" }
+];
+
 
 export default function Profile({ navigation }) {
     const userData = global.userData;
@@ -94,38 +111,63 @@ export default function Profile({ navigation }) {
                 <EditProfileButton />
                 <WorkoutStats userData={userData} />
 
-                <View style={styles.panel_btns}>
-                    <View style={styles.panel_btn}>
-                        <Pressable onPress={() => selectPanel('posts')}>
-                            <Grid2 size="28" color={selectedPanel === 'posts' ? "#359ffc" : "#888"} />
-                        </Pressable>
-                    </View>
-                    <View style={styles.panel_btn}>
-                        <Pressable onPress={() => selectPanel('history')}>
-                            <Clock size="28" color={selectedPanel === 'history' ? "#359ffc" : "#888"} />
-                        </Pressable>
-                    </View>
-                    <View style={styles.panel_btn}>
-                        <Pressable onPress={() => selectPanel('activity')}>
-                            <Activity size="28" color={selectedPanel === 'activity' ? "#359ffc" : "#888"} />
-                        </Pressable>
-                    </View>
+            </View>
+
+            <View style={styles.panel_btns}>
+                <View style={styles.panel_btn}>
+                    <Pressable onPress={() => selectPanel('posts')}>
+                        <Grid2 size="28" color={selectedPanel === 'posts' ? "#359ffc" : "#888"} />
+                    </Pressable>
+                </View>
+                <View style={styles.panel_btn}>
+                    <Pressable onPress={() => selectPanel('history')}>
+                        <Clock size="28" color={selectedPanel === 'history' ? "#359ffc" : "#888"} />
+                    </Pressable>
+                </View>
+                <View style={styles.panel_btn}>
+                    <Pressable onPress={() => selectPanel('activity')}>
+                        <Activity size="28" color={selectedPanel === 'activity' ? "#359ffc" : "#888"} />
+                    </Pressable>
                 </View>
             </View>
+            <View style={styles.panel_border}></View>
 
-            <View style={[styles.posts_ctnr, selectedPanel !== 'posts' && { display: 'none' }]}>
-                <MasonryList
-                    data={posts}
-                    keyExtractor={(item, index) => index.toString()}
-                    renderItem={({ item }) => <PostPreview postData={item} />}
-                    numColumns={3}
-                    contentContainerStyle={{ paddingHorizontal: 4 }}
-                />
-            </View>
 
-            {global.workout &&
-                <WorkoutFooter userData={userData} />
-            }
+            <ScrollView showsVerticalScrollIndicator={false}>
+                <View style={[styles.scrollable_ctnr, selectedPanel !== 'posts' && { display: 'none' }]}>
+                    <MasonryList
+                        data={posts}
+                        keyExtractor={(item, index) => index.toString()}
+                        renderItem={({ item }) => <PostPreview postData={item} />}
+                        numColumns={3}
+                        contentContainerStyle={{ paddingHorizontal: 4 }}
+                    />
+                </View>
+
+                <View style={[styles.scrollable_ctnr, selectedPanel !== 'history' && { display: 'none' }]}>
+                    <PastWorkoutCard lastUsedDate={lastUsedDate} exercises={exercises} name={'Chest & Back'} />
+                    <PastWorkoutCard lastUsedDate={lastUsedDate} exercises={exercises} name={'Full Upper Body'} />
+                    <PastWorkoutCard lastUsedDate={lastUsedDate} exercises={exercises} name={'Leg Day!!!'} />
+                    <PastWorkoutCard lastUsedDate={lastUsedDate} exercises={exercises} name={'Full Body'} />
+                    <PastWorkoutCard lastUsedDate={lastUsedDate} exercises={exercises} name={'Cardio'} />
+                    <PastWorkoutCard lastUsedDate={lastUsedDate} exercises={exercises} name={'Full Upper Body'} />
+                </View>
+
+
+                <View style={[styles.scrollable_ctnr, selectedPanel !== 'activity' && { display: 'none' }]}>
+                    {/* <HexagonalStats /> */}
+                    <ExerciseGraph />
+                    <ExerciseGraph />
+                    <ExerciseGraph />
+                </View>
+
+
+
+
+
+
+                <View style={{ height: 120 }} />
+            </ScrollView>
 
             <Footer navigation={navigation} currentScreenName={'Profile'} />
         </View>
@@ -140,19 +182,24 @@ const styles = StyleSheet.create({
     body_ctnr: {
         paddingHorizontal: 16,
     },
+    panel_border: {
+        borderColor: '#82bbed',
+        borderBottomWidth: 1.5,
+        paddingTop: 8,
+        marginHorizontal: 16
+    },
     panel_btns: {
         flexDirection: 'row',
-        borderBottomWidth: 1.5,
-        paddingBottom: 5,
-        borderColor: '#82bbed',
-        // marginHorizontal: 6,
+        marginHorizontal: 16,
         marginTop: 10,
-        justifyContent: 'space-around'        
+        justifyContent: 'space-between',
+        // paddingHorizontal: 20, // Add horizontal padding to space out the buttons
     },
     panel_btn: {
-        // paddingHorizontal: 100
+        flex: 1,
+        alignItems: 'center',
     },
-    posts_ctnr: {
+    scrollable_ctnr: {
         marginTop: 5,
         flex: 1,
     }

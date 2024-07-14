@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { StyleSheet, View, Image } from "react-native";
 import getPostImage from "../../../backend/storage/getPostImage";
+import RNBounceable from "@freakycoder/react-native-bounceable";
 
 export default function PostPreview({ postData }) {
     const image = postData.images[0];
@@ -14,12 +15,12 @@ export default function PostPreview({ postData }) {
     }, [image]);
 
     return (
-        <View style={[styles.main_ctnr, { aspectRatio }]}>
+        <RNBounceable style={[styles.main_ctnr, { aspectRatio }]}>
             <Image
                 source={{ uri: image }}
                 style={styles.image}
             />
-        </View>
+        </RNBounceable>
     );
 }
 

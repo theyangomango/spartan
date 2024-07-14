@@ -68,8 +68,8 @@ const styles = StyleSheet.create({
         position: 'relative',
     },
     pfp: {
-        marginTop: 6,
-        width: 69,
+        // marginTop: 6,
+        width: 68,
         aspectRatio: 1,
         borderRadius: 50,
     },
@@ -91,10 +91,11 @@ const styles = StyleSheet.create({
     },
     user_stats_ctnr: {
         flexDirection: 'row',
-        paddingHorizontal: 2
+        // paddingHorizontal: 2
+        marginRight: 12
     },
     user_stat: {
-        paddingHorizontal: 16.5,
+        paddingHorizontal: 17.5,
         alignItems: 'center'
     },
     user_stat_count_text: {
