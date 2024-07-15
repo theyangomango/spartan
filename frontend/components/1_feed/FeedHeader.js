@@ -75,7 +75,7 @@ const styles = StyleSheet.create({
         flexDirection: 'row'
     },
     notifications_btn_ctnr: {
-        width: 39,
+        width: 38.5,
         aspectRatio: 1,
         borderRadius: 20,
         backgroundColor: '#E0F1FF',
@@ -85,7 +85,7 @@ const styles = StyleSheet.create({
         marginHorizontal: 15
     },
     msg_btn_ctnr: {
-        width: 39,
+        width: 38.5,
         aspectRatio: 1,
         borderRadius: 20,
         backgroundColor: '#E0F1FF',

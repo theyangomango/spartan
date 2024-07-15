@@ -64,7 +64,6 @@ export default function Stories({ data }) {
 
     return (
         <View style={styles.stories_ctnr}>
-            <View style={styles.border}></View>
             <FlatList
                 data={data}
                 renderItem={renderItem}
@@ -77,7 +76,7 @@ export default function Stories({ data }) {
             {(currentIndex !== null) && (
                 <Modal
                     animationType="fade"
-                    transparent={true}
+                    transparent={false}
                     visible={viewModalVisible}
                     onRequestClose={() => setViewModal(false)}
                 >
