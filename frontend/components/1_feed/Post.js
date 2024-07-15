@@ -29,7 +29,7 @@ const styles = StyleSheet.create({
     main_ctnr: {
         width: '100%',
         borderColor: '#DDD',
-        marginBottom: 25,
+        marginBottom: 14.5,
         backgroundColor: '#fff', // Added background color for better visibility
         borderRadius: 30,
     },

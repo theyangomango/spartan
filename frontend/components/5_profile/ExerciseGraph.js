@@ -17,7 +17,7 @@ const CustomLabel = ({ val }) => {
             <Text style={styles.customLabelText}>{val}</Text>
         </View>
     );
-}
+};
 
 const getPast30DaysData = (inputs) => {
     const currentDate = new Date();
@@ -31,41 +31,68 @@ const getPast30DaysData = (inputs) => {
     });
 
     const dataPoints = [];
-    let lastValue = null;
-    let lastInputDate = null;
-    let sundayCount = 0;
+    let firstValue = null;
 
-    // Find the last input date
     if (filteredData.length > 0) {
-        const lastInput = filteredData[filteredData.length - 1];
-        const [lastMonth, lastDay] = lastInput.date.split('/');
-        lastInputDate = new Date(currentDate.getFullYear(), parseInt(lastMonth) - 1, parseInt(lastDay));
+        firstValue = filteredData[0].value;
     }
+
+    let prevValue = firstValue;
+    let nextValue = null;
+    let nextDataPointIndex = 0;
+    let interpolating = false;
+    let daysBetween = 0;
+    let diff = 0;
+    let currentDays = 0;
+    let sundayCount = 0;
 
     for (let d = new Date(past30DaysDate); d <= currentDate; d.setDate(d.getDate() + 1)) {
         const formattedDate = `${d.getMonth() + 1}/${d.getDate()}`;
         const dataPoint = filteredData.find(input => input.date === formattedDate);
 
         if (dataPoint) {
-            lastValue = dataPoint.value;
             dataPoints.push({
                 value: dataPoint.value,
                 customDataPoint: customDataPoint,
             });
-        } else if (lastInputDate && d > lastInputDate) {
-            dataPoints.push({
-                value: lastValue,
-                hideDataPoint: 'true'
-            });
+            prevValue = dataPoint.value;
+            interpolating = false;
+            nextDataPointIndex++;
         } else {
-            dataPoints.push({
-                // value: null
-            });
+            if (!interpolating) {
+                const nextDataPoint = filteredData[nextDataPointIndex];
+                if (nextDataPoint) {
+                    nextValue = nextDataPoint.value;
+                    const [nextMonth, nextDay] = nextDataPoint.date.split('/');
+                    const nextDate = new Date(currentDate.getFullYear(), parseInt(nextMonth) - 1, parseInt(nextDay));
+                    daysBetween = (nextDate - d) / (1000 * 60 * 60 * 24);
+                    diff = (nextValue - prevValue) / (daysBetween + 1);
+                    currentDays = 1;
+                    interpolating = true;
+                } else {
+                    nextValue = null;
+                }
+            }
+
+            if (interpolating && nextValue !== null) {
+                const interpolatedValue = prevValue + diff * currentDays;
+                dataPoints.push({
+                    value: interpolatedValue,
+                    hideDataPoint: 'true'
+                });
+                currentDays++;
+            } else {
+                dataPoints.push({
+                    value: prevValue,
+                    hideDataPoint: 'true'
+                });
+            }
         }
 
-        if (d.getDay() === 0 && sundayCount < 4) { // Check if the day is Sunday and ensure only 4 Sundays
+        if (d.getDay() === 0 && dataPoints.length > 0) { // Ensure we add labels only for Sundays
+            if (sundayCount >= 4) continue;
             dataPoints[dataPoints.length - 1].labelComponent = () => <CustomLabel val={formattedDate} />;
-            sundayCount++;
+            sundayCount ++;
         }
     }
 
@@ -192,7 +219,6 @@ const styles = StyleSheet.create({
         marginRight: 5
     },
     selectedButton: {
-        // backgroundColor: '#0499FE',
         backgroundColor: '#ddd'
     },
     buttonText: {

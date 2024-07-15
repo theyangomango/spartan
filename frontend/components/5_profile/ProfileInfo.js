@@ -55,7 +55,7 @@ export default function ProfileInfo({ userData }) {
 
 const styles = StyleSheet.create({
     main_ctnr: {
-        paddingHorizontal: 3
+        paddingHorizontal: 1.5
     },
     top_row: {
         flexDirection: 'row',
@@ -69,7 +69,7 @@ const styles = StyleSheet.create({
     },
     pfp: {
         // marginTop: 6,
-        width: 68,
+        width: 69,
         aspectRatio: 1,
         borderRadius: 50,
     },
@@ -92,19 +92,22 @@ const styles = StyleSheet.create({
     user_stats_ctnr: {
         flexDirection: 'row',
         // paddingHorizontal: 2
-        marginRight: 12
+        // marginRight: 12
     },
     user_stat: {
-        paddingHorizontal: 17.5,
+        paddingHorizontal: 15.5,
         alignItems: 'center'
     },
     user_stat_count_text: {
-        fontFamily: 'SourceSansPro_600SemiBold',
-        fontSize: 20
+        fontFamily: 'Outfit_600SemiBold',
+        fontSize: 20.5,
+        color: '#222',
+        paddingBottom: 1.5
     },
     user_stat_text: {
-        fontFamily: 'SourceSansPro_400Regular',
-        fontSize: 14
+        fontFamily: 'Outfit_500Medium',
+        fontSize: 15.5,
+        color: '#666'
     },
     profile_info_ctnr: {
         marginTop: 5,
@@ -114,15 +117,15 @@ const styles = StyleSheet.create({
         paddingVertical: 5
     },
     name_text: {
-        fontFamily: 'Poppins_600SemiBold',
-        fontSize: 18
+        fontFamily: 'Outfit_600SemiBold',
+        fontSize: 24
     },
     bio_ctnr: {
 
     },
     bio_text: {
-        fontFamily: 'SourceSansPro_400Regular',
-        fontSize: 14,
+        fontFamily: 'Outfit_400Regular',
+        fontSize: 16,
         color: '#848484'
     },
 });

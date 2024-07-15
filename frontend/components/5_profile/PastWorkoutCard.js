@@ -111,7 +111,7 @@ const styles = StyleSheet.create({
         alignItems: 'center',
     },
     stats_text: {
-        fontFamily: 'Outfit_300Light',
+        fontFamily: 'Outfit_400Regular',
         fontSize: 13.5,
         marginLeft: 5,
         color: '#666'

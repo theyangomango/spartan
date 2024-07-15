@@ -16,6 +16,7 @@ import JoinWorkoutModal from "../components/3_workout/JoinWorkoutModal";
 import WorkoutHeader from "../components/3_workout/WorkoutHeader";
 import GoalBanner from "../components/3_workout/GoalBanner";
 import CalendarBanner from "../components/3_workout/CalendarBanner";
+import { SafeAreaView } from "react-native-safe-area-context";
 
 const { height } = Dimensions.get('window');
 
@@ -137,10 +138,10 @@ export default function Workout({ navigation }) {
 
 
             <View style={styles.body}>
+                <View style={{ height: 55 }} />
 
                 <ScrollView showsVerticalScrollIndicator={false}>
-                    {/* <View style={{ height: 10 }} /> */}
-                    <View style={{ height: 90 }} />
+                    <View style={{ height: 10 }} />
 
                     <GoalBanner workoutsLeft={12} progress={56} />
 
@@ -176,29 +177,24 @@ export default function Workout({ navigation }) {
 const styles = StyleSheet.create({
     main_ctnr: {
         flex: 1,
-        backgroundColor: '#fff'
+        backgroundColor: '#fff',
+        paddingHorizontal: 4
     },
     body: {
         flex: 1,
         // paddingHorizontal: 20,
         // marginTop: 60
     },
-    title_text: {
-        fontFamily: 'Poppins_700Bold',
-        fontSize: 22,
-        paddingHorizontal: 4,
-        paddingBottom: 6
-    },
     quick_start_text: {
         marginTop: 24,
-        fontFamily: 'Lato_700Bold',
+        fontFamily: 'Mulish_700Bold',
         fontSize: 20,
         paddingBottom: 8,
-        paddingHorizontal: 19
+        paddingHorizontal: 19,
     },
     templates_text: {
         marginTop: 24,
-        fontFamily: 'Lato_700Bold',
+        fontFamily: 'Mulish_700Bold',
         fontSize: 20,
         paddingBottom: 6,
         paddingHorizontal: 19

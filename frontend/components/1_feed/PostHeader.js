@@ -88,26 +88,26 @@ const styles = StyleSheet.create({
         flexDirection: 'row',
     },
     pfp_ctnr: {
-        width: 38,
+        width: 46,
         aspectRatio: 1,
         marginRight: 5,
     },
     pfp: {
         flex: 1,
-        borderRadius: 21
+        borderRadius: 30
     },
     text_ctnr: {
         padding: 4,
         justifyContent: 'center'
     },
     handle_text: {
-        fontSize: 12.5,
+        fontSize: 14.5,
         paddingBottom: 5,
         fontFamily: 'Lato_700Bold',
         color: '#fff'
     },
     workout_text: {
-        fontSize: 10.5,
+        fontSize: 12.5,
         fontFamily: 'Lato_400Regular',
         color: '#90D2FF'
     },
@@ -115,8 +115,8 @@ const styles = StyleSheet.create({
         flexDirection: 'row'
     },
     follow_btn: {
-        width: 70,
-        height: 33,
+        width: 83,
+        height: 38,
         borderRadius: 30,
         marginHorizontal: 10,
         marginVertical: 4,
@@ -124,27 +124,26 @@ const styles = StyleSheet.create({
         justifyContent: 'center'
     },
     following_btn: {
-        width: 75,
-        height: 33,
+        width: 90,
+        height: 38,
         borderRadius: 30,
         marginHorizontal: 10,
         marginVertical: 4,
         backgroundColor: '#F7FCFF',
-        justifyContent: 'center',
-        // borderWidth: 1.5,
-        borderColor: '#0699FF'
+        justifyContent: 'center'
     },
     follow_text: {
         textAlign: 'center',
         color: 'white',
-        fontSize: 11,
-        fontFamily: 'Lato_700Bold',
+        fontSize: 15.5,
+        // fontWeight: '700'
+        fontFamily: 'SourceSansPro_600SemiBold',
     },
     following_btn_text: {
         textAlign: 'center',
         color: '#0699FF',
-        fontSize: 10.5,
-        fontFamily: 'Lato_700Bold',
+        fontSize: 14.5,
+        fontFamily: 'SourceSansPro_600SemiBold',
     },
     options_icon_ctnr: {
         justifyContent: 'center',

@@ -92,7 +92,7 @@ const styles = StyleSheet.create({
         flexDirection: 'row',
         left: 20,
         right: 20,
-        height: 60,
+        height: 70,
         borderRadius: 50,
         overflow: 'hidden',
     },
@@ -111,13 +111,14 @@ const styles = StyleSheet.create({
         alignItems: 'center',
         paddingLeft: 5,
         paddingRight: 8,
+        // backgroundColor: 'red',
     },
     pfp_ctnr: {
-        paddingLeft: 12,
+        paddingLeft: 13,
         paddingRight: 8,
     },
     pfp: {
-        width: 35,
+        width: 42,
         aspectRatio: 1,
         borderRadius: 22,
     },
@@ -127,45 +128,48 @@ const styles = StyleSheet.create({
     caption_text: {
         fontFamily: 'Mulish_400Regular',
         color: '#fff',
-        fontSize: 11,
+        fontSize: 12.5,
         flexWrap: 'wrap',
     },
     likes_ctnr: {
         padding: 8,
-        height: '100%',
+        // height: '100%',
+        marginTop: 8,
         justifyContent: 'flex-end'
     },
     messages_ctnr: {
         paddingVertical: 8,
         paddingHorizontal: 9,
-        height: '100%',
+        // height: '100%',
+        marginTop: 8,
         justifyContent: 'flex-end'
     },
     left_border: {
         position: 'absolute',
         borderRightColor: '#666',
-        borderRightWidth: .5,
-        top: 26,
-        bottom: 18,
+        borderRightWidth: 0.8,
+        top: 10,
+        bottom: 26,
         opacity: 0.5
     },
     right_border: {
         position: 'absolute',
         borderLeftColor: '#666',
         borderLeftWidth: 0.6,
-        top: 26,
-        bottom: 18,
+        top: 10,
+        bottom: 26,
         right: 0,
-        opacity: 0.5
+        opacity: 0.6
     },
     share_ctnr: {
         padding: 8,
-        height: '100%',
+        // height: '100%',
+        marginTop: 8,
         justifyContent: 'flex-end'
     },
     like_text: {
         color: '#fff',
-        fontSize: 11,
+        fontSize: 12.5,
         textAlign: 'center',
         paddingBottom: 2,
         paddingTop: 4,
@@ -173,7 +177,7 @@ const styles = StyleSheet.create({
     },
     comment_text: {
         color: '#fff',
-        fontSize: 11,
+        fontSize: 12.5,
         textAlign: 'center',
         paddingBottom: 2,
         paddingTop: 3.5,
@@ -181,7 +185,7 @@ const styles = StyleSheet.create({
     },
     share_text: {
         color: '#fff',
-        fontSize: 11,
+        fontSize: 12.5,
         textAlign: 'center',
         paddingBottom: 2,
         paddingTop: 3.5,

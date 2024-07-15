@@ -25,7 +25,7 @@ export default function Story({ data, handlePress, index, isViewed, handlePressC
             </View>
             {index === 0 &&
                 <TouchableOpacity onPress={handlePressCreateButton} activeOpacity={0.7} style={styles.create_icon}>
-                    <FontAwesome6 name='plus' size={9} color={'#000'} />
+                    <FontAwesome6 name='plus' size={11} color={'#222'} />
                 </TouchableOpacity>
             }
         </View>
@@ -34,23 +34,22 @@ export default function Story({ data, handlePress, index, isViewed, handlePressC
 
 const styles = StyleSheet.create({
     main_ctnr: {
-        paddingTop: 1.5,
-        width: 66,
-        height: 76,
+        width: 77,
+        height: 86,
         alignItems: 'center',
     },
     handle_text: {
         fontFamily: 'Poppins_500Medium',
-        fontSize: 10,
-        paddingTop: 8,
+        fontSize: 12,
+        paddingTop: 4,
         marginLeft: 3,
         color: '#666'
     },
     pfp_ctnr: {
-        width: 53,
-        height: 53,
-        borderRadius: 50,
-        borderWidth: 2,
+        width: 61,
+        aspectRatio: 1,
+        borderRadius: 49,
+        borderWidth: 3,
         borderColor: '#2D9EFF',
         justifyContent: 'center',
         alignItems: 'center'
@@ -59,15 +58,15 @@ const styles = StyleSheet.create({
         borderColor: '#BEE1FF', // Change this color to indicate the story has been viewed
     },
     pfp: {
-        width: 45,
-        height: 45,
+        width: 50.5,
+        aspectRatio: 1,
         borderRadius: 50
     },
     create_icon: {
         position: 'absolute',
         top: 37,
         right: 5,
-        width: 18,
+        width: 20,
         aspectRatio: 1,
         backgroundColor: '#FCF375',
         borderRadius: 9,

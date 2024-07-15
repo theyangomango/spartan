@@ -50,13 +50,13 @@ const styles = StyleSheet.create({
     container: {
         // height: 170,
         marginHorizontal: 17,
-        borderBottomLeftRadius: 25,
-        borderBottomRightRadius: 25,
+        borderBottomLeftRadius: 28,
+        borderBottomRightRadius: 28,
         // borderRadius: 35,
         backgroundColor: '#fff',
         paddingHorizontal: 15,
-        paddingTop: 18,
-        paddingBottom: 11,
+        paddingTop: 14,
+        paddingBottom: 10,
         justifyContent: 'center',
 
         shadowColor: '#cdcdcd',

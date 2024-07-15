@@ -22,12 +22,12 @@ export default function FeedHeader({ toMessagesScreen }) {
                 </TouchableOpacity> */}
                 <TouchableOpacity>
                     <View style={styles.notifications_btn_ctnr}>
-                        <Notification size={18.5} color="#2D9EFF" />
+                        <Notification size={21} color="#2D9EFF" />
                     </View>
                 </TouchableOpacity>
                 <TouchableOpacity onPress={toMessagesScreen}>
                     <View style={styles.msg_btn_ctnr}>
-                        <Ionicons name='chatbubble-outline' size={15.5} color={'#2D9EFF'} />
+                        <Ionicons name='chatbubble-outline' size={18.5} color={'#2D9EFF'} />
                     </View>
                     <View style={styles.red_circle_ctnr}>
                         <Text style={styles.red_circle_text}>15</Text>
@@ -45,57 +45,48 @@ const styles = StyleSheet.create({
         // backgroundColor: '#F7FCFF',
         backgroundColor: '#fff',
         paddingLeft: 5,
-        paddingRight: 20,
-        paddingBottom: 10,
+        paddingRight: 25,
+        paddingBottom: 5,
         flexDirection: 'row',
         alignItems: 'flex-end',
-        justifyContent: 'space-between'
+        justifyContent: 'space-between',
     },
     logo: {
         // height: 40,
         flexDirection: 'row',
-        marginBottom: 5,
+        marginBottom: 8,
     },
     logo_image_ctnr: {
         justifyContent: 'center',
         alignItems: 'center',
-        paddingLeft: 10,
+        paddingLeft: 20,
     },
     logo_image: {
-        width: 33,
-        height: 24,
-        marginBottom: 1
+        width: 36,
+        height: 28,
+        marginTop: 1.5
     },
     logo_text: {
-        fontSize: 21,
+        fontSize: 24,
         color: '#2D9EFF',
         paddingLeft: 2,
     },
     right: {
         flexDirection: 'row'
     },
-    create_btn_ctnr: {
-        width: 30,
-        height: 30,
-        borderRadius: 20,
-        backgroundColor: '#fff3',
-        justifyContent: 'center',
-        alignItems: 'center',
-        marginBottom: 3,
-    },
     notifications_btn_ctnr: {
-        width: 30,
-        height: 30,
+        width: 39,
+        aspectRatio: 1,
         borderRadius: 20,
         backgroundColor: '#E0F1FF',
         justifyContent: 'center',
         alignItems: 'center',
         marginBottom: 3,
-        marginHorizontal: 13
+        marginHorizontal: 15
     },
     msg_btn_ctnr: {
-        width: 30,
-        height: 30,
+        width: 39,
+        aspectRatio: 1,
         borderRadius: 20,
         backgroundColor: '#E0F1FF',
         justifyContent: 'center',
@@ -103,9 +94,9 @@ const styles = StyleSheet.create({
         marginBottom: 3
     },
     red_circle_ctnr: {
-        width: 14,
-        height: 14,
-        borderRadius: 7,
+        width: 19,
+        aspectRatio: 1,
+        borderRadius: 10,
         backgroundColor: 'red',
         position: 'absolute',
         top: -3,
@@ -115,7 +106,7 @@ const styles = StyleSheet.create({
     },
     red_circle_text: {
         fontFamily: 'Mulish_800ExtraBold',
-        fontSize: 8,
+        fontSize: 10,
         color: '#fff'
     }
 });
