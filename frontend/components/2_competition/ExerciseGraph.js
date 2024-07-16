@@ -5,9 +5,17 @@ import { LineChart } from 'react-native-gifted-charts';
 
 const screenWidth = Dimensions.get('window').width;
 
-const customDataPoint = () => {
+const customDataPoint1 = () => {
     return (
-        <View style={styles.customDataPoint} />
+        // <></>
+        <View style={styles.customDataPoint1} />
+    );
+};
+
+const customDataPoint2 = () => {
+    return (
+        // <></>
+        <View style={styles.customDataPoint2} />
     );
 };
 
@@ -19,7 +27,7 @@ const CustomLabel = ({ val }) => {
     );
 };
 
-const getPast30DaysData = (inputs) => {
+const getPast30DaysData = (inputs, customDataPoint) => {
     const currentDate = new Date();
     const past30DaysDate = new Date();
     past30DaysDate.setDate(currentDate.getDate() - 30);
@@ -92,7 +100,7 @@ const getPast30DaysData = (inputs) => {
         if (d.getDay() === 0 && dataPoints.length > 0) { // Ensure we add labels only for Sundays
             if (sundayCount >= 4) continue;
             dataPoints[dataPoints.length - 1].labelComponent = () => <CustomLabel val={formattedDate} />;
-            sundayCount ++;
+            sundayCount++;
         }
     }
 
@@ -100,7 +108,7 @@ const getPast30DaysData = (inputs) => {
 };
 
 // Sample input data
-const inputData = [
+const inputData1 = [
     { date: '6/15', value: 100 },
     { date: '6/17', value: 140 },
     { date: '6/20', value: 250 },
@@ -109,12 +117,25 @@ const inputData = [
     { date: '6/28', value: 440 },
     { date: '7/1', value: 280 },
     { date: '7/4', value: 180 },
-    { date: '7/7', value: 150 },
+    { date: '7/9', value: 150 },
 ];
 
-const data = getPast30DaysData(inputData);
+const inputData2 = [
+    { date: '6/15', value: 80 },
+    { date: '6/17', value: 130 },
+    { date: '6/20', value: 200 },
+    { date: '6/23', value: 250 },
+    { date: '6/25', value: 300 },
+    { date: '6/28', value: 350 },
+    { date: '7/1', value: 200 },
+    { date: '7/4', value: 160 },
+    { date: '7/7', value: 100 },
+];
 
-export default function ExerciseGraph() {
+const data1 = getPast30DaysData(inputData1, customDataPoint1);
+const data2 = getPast30DaysData(inputData2, customDataPoint2);
+
+export default function ExerciseGraph({ exerciseName }) {
     const [selectedOption, setSelectedOption] = useState('2 Weeks');
 
     const handleButtonPress = () => {
@@ -128,7 +149,7 @@ export default function ExerciseGraph() {
         <View style={styles.main_ctnr}>
             <View style={styles.header}>
                 <View style={styles.headerLeft}>
-                    <Text style={styles.title}>Lateral Raises</Text>
+                    <Text style={styles.title}>{exerciseName}</Text>
                     <Text style={styles.subtitle}>1 Rep Max</Text>
                 </View>
                 <View style={styles.headerRight}>
@@ -142,27 +163,26 @@ export default function ExerciseGraph() {
             </View>
             <View style={styles.chart_ctnr}>
                 <LineChart
-                    width={screenWidth - 105}
-                    height={125}
+                    width={screenWidth - 55}
+                    height={175}
                     adjustToWidth
-                    thickness={4}
-                    color="rgba(89, 168, 255, 1)"
-                    maxValue={550}
+                    thickness={6}
+                    maxValue={500}
                     noOfSections={3}
-                    areaChart
                     yAxisThickness={0}
                     yAxisTextStyle={styles.yAxisTextStyle}
                     xAxisTextStyle={styles.xAxisTextStyle}
-                    data={data}
-                    startFillColor={'rgb(89, 168, 255)'}
-                    endFillColor={'rgb(89, 168, 255)'}
-                    startOpacity={0.4}
-                    endOpacity={0.4}
                     backgroundColor="#fff"
-                    initialSpacing={0}
+                    initialSpacing={12}
                     yAxisColor="lightgray"
                     xAxisColor="lightgray"
                     disableScroll
+                    data={data1}
+                    data2={data2}
+                    color1='rgba(89, 168, 255, 1)'
+                    color2='#ddd'
+                    dataPointsHeight={8}
+                    dataPointsWidth={8}
                 />
             </View>
         </View>
@@ -174,23 +194,15 @@ const styles = StyleSheet.create({
         alignItems: 'center',
         backgroundColor: '#fff',
         borderRadius: 20,
-        paddingTop: 18,
+        paddingTop: 5,
         paddingBottom: 15,
-        marginHorizontal: 15,
-        marginVertical: 8,
-        shadowColor: '#999',
-        shadowOffset: { width: 0, height: 1 },
-        shadowOpacity: 0.5,
-        shadowRadius: 2,
-        elevation: 5
     },
     header: {
         width: '100%',
         flexDirection: 'row',
         justifyContent: 'space-between',
         alignItems: 'center',
-        paddingLeft: 20,
-        paddingRight: 10,
+        paddingLeft: 2,
         paddingBottom: 18
     },
     headerLeft: {
@@ -229,13 +241,21 @@ const styles = StyleSheet.create({
     chart_ctnr: {
         paddingRight: 30,
     },
-    customDataPoint: {
-        width: 14,
+    customDataPoint1: {
+        width: 12.5,
+        marginBottom: 7,
+        marginLeft: 5,
         aspectRatio: 1,
-        backgroundColor: 'white',
-        borderWidth: 3,
+        backgroundColor: '#358EF1',
         borderRadius: 10,
-        borderColor: 'rgba(89, 168, 255, 1)',
+    },
+    customDataPoint2: {
+        width: 12.5,
+        marginBottom: 7,
+        marginLeft: 5,
+        aspectRatio: 1,
+        backgroundColor: '#ccc',
+        borderRadius: 10,
     },
     customLabelContainer: {
         width: 70,

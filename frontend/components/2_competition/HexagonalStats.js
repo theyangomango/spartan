@@ -110,12 +110,14 @@ const styles = StyleSheet.create({
         strokeWidth: 1,
     },
     polygon1: {
-        fill: 'rgba(89, 168, 255, 0.35)',
+        fill: 'rgba(89, 168, 255, 0.4)',
         strokeWidth: 2.5,
     },
     polygon2: {
         // fill: 'rgba(255, 99, 132, 0.4)',
-        fill: 'rgba(100, 100, 100, 0.2)',
+        // fill: 'rgba(100, 100, 100, 0.2)',
+        fill: '#ccc',
+        opacity: 0.7,
         strokeWidth: 2.5,
     },
     line: {
@@ -125,7 +127,7 @@ const styles = StyleSheet.create({
     text: {
         fill: '#888',
         fontFamily: 'Poppins_700Bold',
-        fontSize: 15,
+        fontSize: 16,
     },
 });
 
