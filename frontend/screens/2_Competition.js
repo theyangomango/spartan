@@ -1,34 +1,38 @@
-import React, { useEffect, useState } from 'react';
-import { StyleSheet, View, Text, ScrollView } from "react-native";
-import { LinearGradient } from 'expo-linear-gradient';
+import React, { useEffect, useState, useRef } from "react";
+import { StyleSheet, View, Text, ScrollView, TouchableOpacity, Modal, Dimensions } from "react-native";
+import { useFocusEffect } from '@react-navigation/native';
 import Footer from "../components/Footer";
+import Podium from "../components/2_competition/Podium";
+import ComparingDropdown from "../components/2_competition/ComparingDropdown";
+import ComparedWithDropdown from "../components/2_competition/ComparedWithDropdown";
+import WorkoutFooter from "../components/3_workout/WorkoutFooter";
+import CompetitionCard from "../components/2_competition/CompetitionCard";
 import retrieveFollowingUsers from "../../backend/retrieveFollowingUsers";
 import rankUsers from "../helper/rankUsers";
-import LeaderboardPreviewCard from '../components/2_competition/LeaderboardPreviewCard';
+import StatsRow from "../components/2_competition/StatsRow";
 import RNBounceable from '@freakycoder/react-native-bounceable';
-import { BlurView } from 'expo-blur';
-import Streaks from '../components/2_competition/Streaks';
-import StatsRow from '../components/2_competition/StatsRow';
-import FeedHeader from '../components/1_feed/FeedHeader';
-import CompetitionHeader from '../components/2_competition/CompetitionHeader';
-import LeaderboardPreview from '../components/2_competition/LeaderboardPreview';
-import ExerciseGraph from '../components/2_competition/ExerciseGraph';
-import GoalsBanner from '../components/2_competition/AlbumBanner';
-import AlbumBanner from '../components/2_competition/AlbumBanner';
+import UserStats from "../components/2_competition/UserStats";
+import BottomSheet from "react-native-gesture-bottom-sheet";
+
+const { height } = Dimensions.get('window');
 
 export default function Competition({ navigation, route }) {
     const userData = global.userData;
-    const [users, setUsers] = useState([]);
-    const [userList, setUserList] = useState([]);
+    const [users, setUsers] = useState(null);
+    const [userList, setUserList] = useState(null);
     const [categoryCompared, setCategoryCompared] = useState('benchPress');
+    const [showFollowers, setShowFollowers] = useState('All Followers');
+    const [selectExerciseModalVisible, setSelectExerciseModalVisible] = useState(false);
+    const bottomSheet = useRef();
+    const [selectedUser, setSelectedUser] = useState(null);
+    const [bottomSheetBkgColor, setBottomSheetBkgColor] = useState('#000');
 
     useEffect(() => {
         retrieveFollowingUsers(userData.following)
             .then(data => {
-                let db_users = [userData, ...data]; // get data points
-                setUsers(db_users);
-
-                setUserList(rankUsers(db_users, categoryCompared));
+                let users = [userData, ...data];
+                setUsers(users);
+                setUserList(rankUsers(users, categoryCompared));
             });
     }, []);
 
@@ -37,133 +41,195 @@ export default function Competition({ navigation, route }) {
         setUserList(rankUsers(users, category));
     }
 
-    // useEffect(() => {
-    //     console.log(userList);
-    // }, [userList]);
+    function toggleFollowers() {
+        setShowFollowers(prev => prev === 'All Followers' ? 'Close Friends' : 'All Followers');
+    }
 
-    const renderLeaderboard = (title, date) => (
-        <RNBounceable style={styles.leaderboard_preview}>
-            <View style={styles.leaderboard_preview_header}>
-                <Text style={styles.title_text}>{title}</Text>
-                {date && <Text style={styles.subtitle_text}>{date}</Text>}
-            </View>
-            <ScrollView nestedScrollEnabled showsVerticalScrollIndicator={false}>
-                {userList.map((user, index) => (
-                    <LeaderboardPreviewCard
-                        key={user.uid}
-                        uid={user.uid}
-                        pfp={user.image}
-                        handle={user.handle}
-                        value={user.stats.exercises[categoryCompared]}
-                        rank={index + 1}
-                    />
-                ))}
-            </ScrollView>
-        </RNBounceable>
+    function openModal() {
+        setSelectExerciseModalVisible(true);
+    }
+
+    function closeModal() {
+        setSelectExerciseModalVisible(false);
+    }
+
+    function openBottomSheet(user) {
+        setSelectedUser(user);
+        bottomSheet.current.show();
+    }
+
+    useFocusEffect(
+        React.useCallback(() => {
+            const interval = setInterval(() => {
+                if (bottomSheet.current) {
+                    let panY = parseInt(JSON.stringify(bottomSheet.current.state.pan.y));
+                    let animatedHeight = parseInt(JSON.stringify(bottomSheet.current.state.animatedHeight));
+                    let realHeight = Math.max(panY, 1100 - animatedHeight);
+                    setBottomSheetBkgColor(`rgba(0, 0, 0, ${0.7 - 0.75 * (realHeight / 800)})`);
+                }
+            }, 10);
+
+            return () => {
+                clearInterval(interval);
+            };
+        }, [])
     );
 
     return (
-        // <LinearGradient
-        //     colors={['#CCEBFA', '#D7EDFF']}
-        //     start={{ x: Math.random(), y: Math.random() }}
-        //     end={{ x: Math.random(), y: Math.random() }}
-        //     style={styles.gradient}
-        // >
         <View style={styles.main_ctnr}>
+            <View style={styles.body}>
+                <View style={styles.top_ctnr}>
+                    <View style={styles.stats_rows_ctnr}>
+                        <StatsRow />
+                    </View>
 
-
-            <ScrollView showsVerticalScrollIndicator={false}>
-                <View style={{ height: 105 }} />
-                <Streaks />
-                <StatsRow />
-
-
-
-                {/* <ScrollView contentContainerStyle={styles.scrollViewContent} nestedScrollEnabled showsVerticalScrollIndicator={false}>
-                <View style={styles.header}></View>
-
-
-
-                <View style={styles.leaderboard_previews_ctnr}>
-                    {renderLeaderboard("Friends Leaderboard")}
-                    {renderLeaderboard("Global Leaderboard", "July 8th, 2024")}
+                    <Podium data={userList ? ([
+                        {
+                            handle: userList[0].handle,
+                            pfp: userList[0].image
+                        },
+                        userList.length > 1 && {
+                            handle: userList[1].handle,
+                            pfp: userList[1].image
+                        },
+                        userList.length > 2 && {
+                            handle: userList[2].handle,
+                            pfp: userList[2].image
+                        }
+                    ]) : null} />
                 </View>
-            </ScrollView>
-            // <Footer navigation={navigation} currentScreenName={'Competition'} /> */}
 
-                {
-                    userList.length > 0 && <LeaderboardPreview userList={userList} />
-                }
+                <View style={styles.bottom_ctnr}>
+                    <View style={styles.buttonContainer}>
+                        <RNBounceable
+                            style={[styles.button, styles.selectedButton]}
+                            onPress={openModal}
+                        >
+                            <Text style={styles.buttonText}>Bench Press</Text>
+                        </RNBounceable>
+                        <RNBounceable
+                            style={[styles.button, styles.selectedButton]}
+                            onPress={toggleFollowers}
+                        >
+                            <Text style={styles.buttonText}>{showFollowers}</Text>
+                        </RNBounceable>
+                    </View>
 
-                <ExerciseGraph />
-                {/* <GoalsBanner /> */}
-                {/* <AlbumBanner /> */}
+                    <ScrollView showsVerticalScrollIndicator={false} style={styles.scrollview_ctnr}>
+                        <View style={{ height: 2 }} />
+                        {userList && userList.map((user, index) => (
+                            <CompetitionCard
+                                uid={user.uid}
+                                pfp={user.image}
+                                handle={user.handle}
+                                value={user.stats.exercises[categoryCompared]}
+                                rank={index + 1}
+                                key={index}
+                                handlePress={() => openBottomSheet(user)}
+                            />
+                        ))}
+                        <View style={{ height: 100 }} />
+                    </ScrollView>
+                </View>
+            </View>
 
-                <View style={{ height: 110 }} />
-            </ScrollView>
+            {global.workout &&
+                <WorkoutFooter userData={userData} />
+            }
             <Footer navigation={navigation} currentScreenName={'Competition'} />
 
-            <BlurView intensity={10} style={styles.blurview} />
-            <CompetitionHeader />
+            <Modal
+                animationType="slide"
+                transparent={true}
+                visible={selectExerciseModalVisible}
+                onRequestClose={closeModal}
+            >
+                <View style={styles.modalContainer}>
+                    <View style={styles.modalContent}>
+                        <Text style={styles.modalText}>Modal Content</Text>
+                        <TouchableOpacity onPress={closeModal}>
+                            <Text style={styles.closeModalText}>Close</Text>
+                        </TouchableOpacity>
+                    </View>
+                </View>
+            </Modal>
+
+            <BottomSheet
+                hasDraggableIcon
+                ref={bottomSheet}
+                height={height - 60}
+                sheetBackgroundColor={'#fff'}
+                backgroundColor={bottomSheetBkgColor}
+            >
+                {selectedUser && <UserStats user={selectedUser} />}
+            </BottomSheet>
         </View>
-        // </LinearGradient>
     );
 }
 
 const styles = StyleSheet.create({
-    blurview: {
-        position: 'absolute',
-        height: 1,
-        left: 0,
-        right: 0,
-        top: 100,
-        // backgroundColor: 'red',
-        zIndex: 1
-    },
-    gradient: {
-        flex: 1
-    },
-    header: {
-        height: 150
-    },
     main_ctnr: {
         flex: 1,
-        // backgroundColor: '#E9F1FB'
-        backgroundColor: "#fff"
+        backgroundColor: '#fff'
     },
-    leaderboard_previews_ctnr: {
+    stats_rows_ctnr: {
+        marginTop: 45
+    },
+    body: {
+        flex: 1
+    },
+    top_ctnr: {
+        justifyContent: 'space-between',
+        height: 395
+    },
+    bottom_ctnr: {
         flex: 1,
-        paddingHorizontal: 20,
     },
-    leaderboard_preview: {
-        width: '100%',
-        // backgroundColor: 'rgba(240, 240, 240, 0.7)',
-        backgroundColor: '#fff',
+    scrollview_ctnr: {
+        flex: 1,
+    },
+    buttonContainer: {
+        flexDirection: 'row',
+        justifyContent: 'flex-end',
+        marginBottom: 10,
+        paddingTop: 10,
+        paddingHorizontal: 15
+    },
+    button: {
         borderRadius: 20,
-        paddingTop: 15,
-        marginBottom: 20,
-
-        shadowColor: '#ddd',
-        shadowOffset: { width: 0, height: 1 },
-        shadowOpacity: 0.8,
-        shadowRadius: 2,
-        elevation: 5
+        paddingHorizontal: 12.5,
+        paddingVertical: 9.5,
+        backgroundColor: '#BCDDFF',
+        marginHorizontal: 3.5,
+        alignItems: 'center',
     },
-    leaderboard_preview_header: {
-        paddingBottom: 12,
+    selectedButton: {
+        backgroundColor: '#ddd'
     },
-    title_text: {
-        paddingHorizontal: 20,
-        paddingVertical: 8,
-        fontSize: 15.5,
-        fontFamily: 'Mulish_600SemiBold'
+    buttonText: {
+        color: '#666',
+        fontSize: 14.5,
+        fontFamily: 'Outfit_700Bold',
     },
-    subtitle_text: {
-        paddingHorizontal: 20,
-        fontSize: 13,
-        fontFamily: 'Mulish_400Regular'
+    modalContainer: {
+        flex: 1,
+        justifyContent: 'center',
+        alignItems: 'center',
+        backgroundColor: 'rgba(0,0,0,0.5)'
     },
-    scrollViewContent: {
-        paddingBottom: 20,
+    modalContent: {
+        width: 300,
+        padding: 20,
+        backgroundColor: '#fff',
+        borderRadius: 10,
+        alignItems: 'center'
     },
+    modalText: {
+        fontSize: 18,
+        marginBottom: 10
+    },
+    closeModalText: {
+        color: 'blue',
+        marginTop: 10
+    }
 });

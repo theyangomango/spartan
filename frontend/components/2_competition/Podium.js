@@ -1,10 +1,13 @@
 import { StyleSheet, View, Text, Image } from "react-native";
+import StatsRow from "./StatsRow";
 
 export default function Podium({ data }) {
     console.log(data);
 
     return (
         <View style={styles.leaderboard_ctnr}>
+
+
             <View style={styles.left}>
                 <View style={styles.left_pfp}>
                     {data && <Image source={{ uri: data[1].pfp }} style={styles.pfp} />}
@@ -41,13 +44,15 @@ const styles = StyleSheet.create({
         position: 'absolute',
         top: 0,
         width: '100%',
-        height: 310,
+        height: 395,
         justifyContent: 'center',
         flexDirection: 'row',
         alignItems: 'flex-end',
+        backgroundColor: '#59AAEE',
+        zIndex: -1
     },
     bar_ctnr: {
-        width: 75,
+        width: 80,
         borderTopLeftRadius: 10,
         borderTopRightRadius: 10,
         marginHorizontal: 12,
@@ -64,31 +69,31 @@ const styles = StyleSheet.create({
 
     },
     silver_ctnr: {
-        height: 80,
+        height: 95,
         backgroundColor: '#C0C0C0'
     },
     gold_ctnr: {
-        height: 110,
+        height: 125,
         backgroundColor: '#FFD700'
     },
     bronze_ctnr: {
-        height: 65,
+        height: 80,
         backgroundColor: '#ff7e33'
     },
     left_pfp: {
-        width: 43,
-        height: 43,
-        borderRadius: 22
+        width: 58,
+        aspectRatio: 1,
+        borderRadius: 50
     },
     center_pfp: {
-        width: 46,
-        height: 46,
-        borderRadius: 23
+        width: 60,
+        aspectRatio: 1,
+        borderRadius: 50
     },
     right_pfp: {
-        width: 40,
-        height: 40,
-        borderRadius: 20
+        width: 55,
+        aspectRatio: 1,
+        borderRadius: 50
     },
     pfp: {
         flex: 1,
@@ -97,8 +102,9 @@ const styles = StyleSheet.create({
     leaderboard_handle_text: {
         fontFamily: 'Mulish_700Bold',
         color: '#fff',
-        paddingTop: 1,
-        paddingBottom: 10
+        paddingTop: 3,
+        paddingBottom: 10,
+        fontSize: 16
     },
     bar_text: {
         fontFamily: 'Outfit_800ExtraBold',

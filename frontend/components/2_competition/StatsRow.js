@@ -8,10 +8,9 @@ export default function StatsRow() {
     const [selectedOption, setSelectedOption] = useState('star');
 
     const stats = [
-        { number: '132', text: 'New PRs', backgroundColor: '#D7B7F5' },
-        { number: '20k', text: 'Lbs lifted', backgroundColor: '#FFAFB8' },
-        { number: '5.5h', text: 'Spent In Gym', backgroundColor: '#FFC97F' },
-        // { number: '5.5h', text: 'Spent in gym', backgroundColor: '#FFE0B7' },
+        { number: '132', text: 'New PRs' },
+        { number: '20k', text: 'Lbs Lifted' },
+        { number: '5.5h', text: 'Spent In Gym' },
     ];
 
     const getHeaderText = () => {
@@ -29,59 +28,14 @@ export default function StatsRow() {
 
     return (
         <View style={styles.container}>
-            <View style={styles.header}>
-                <View>
-                    <Text style={styles.header_text}>{getHeaderText()}</Text>
-                    {/* <Text>Past 14 Days</Text> */}
-
-                </View>
-                <View style={styles.scope_options}>
-                    <TouchableOpacity
-                        activeOpacity={1}
-                        style={styles.iconButton}
-                        onPress={() => setSelectedOption('star')}
-                    >
-                        <MaterialCommunityIcons
-                            name='star-circle'
-                            size={26}
-                            color={'#2D9EFF'}
-                            style={{ opacity: selectedOption === 'star' ? 1 : 0.35 }}
-                        />
-                    </TouchableOpacity>
-                    <TouchableOpacity
-                        activeOpacity={1}
-                        style={styles.iconButton}
-                        onPress={() => setSelectedOption('profile')}
-                    >
-                        <Profile2User
-                            size="24"
-                            color={'#2D9EFF'}
-                            variant='Bold'
-                            style={{ opacity: selectedOption === 'profile' ? 1 : 0.5 }}
-                        />
-                    </TouchableOpacity>
-                    <TouchableOpacity
-                        activeOpacity={1}
-                        style={styles.iconButton}
-                        onPress={() => setSelectedOption('globe')}
-                    >
-                        <Entypo
-                            color={'#2D9EFF'}
-                            name='globe'
-                            size={24}
-                            style={{ opacity: selectedOption === 'globe' ? 1 : 0.3 }}
-                        />
-                    </TouchableOpacity>
-                </View>
-            </View>
-            <ScrollView horizontal={true} showsHorizontalScrollIndicator={false} style={styles.scrollview}>
+            <View style={styles.statBox}>
                 {stats.map((stat, index) => (
-                    <RNBounceable key={index} style={[styles.statBox, { backgroundColor: stat.backgroundColor }]}>
-                        <Text style={styles.statNumber}>{stat.number}</Text>
-                        <Text style={styles.statText}>{stat.text}</Text>
+                    <RNBounceable key={index} style={styles.stat}>
+                        <Text style={styles.bigNumber}>{stat.number}</Text>
+                        <Text style={styles.smallText}>{stat.text}</Text>
                     </RNBounceable>
                 ))}
-            </ScrollView>
+            </View>
         </View>
     );
 }
@@ -89,22 +43,19 @@ export default function StatsRow() {
 const styles = StyleSheet.create({
     container: {
         paddingTop: 15,
-        marginBottom: 15,
+        marginBottom: 10,
     },
     header: {
-        marginTop: 10,
         flexDirection: 'row',
         justifyContent: 'space-between',
         alignItems: 'center',
         marginBottom: 10,
-        paddingLeft: 26,
-        paddingRight: 25,
         paddingBottom: 5,
-        alignItems: 'center',
     },
     header_text: {
         fontFamily: 'Lato_700Bold',
         fontSize: 20,
+        color: '#000',
     },
     scope_options: {
         flexDirection: 'row',
@@ -112,29 +63,34 @@ const styles = StyleSheet.create({
     iconButton: {
         marginLeft: 10,
     },
-    scrollview: {
-        paddingLeft: 20,
-    },
     statBox: {
-        width: 120,
-        aspectRatio: 1,
-        marginRight: 15,
-        justifyContent: 'center',
+        backgroundColor: '#1F1F1F',
+        flexDirection: 'row',
+        padding: 10,
+        justifyContent: 'space-around',
         alignItems: 'center',
-        borderRadius: 30,
+        borderRadius: 25,
+        marginHorizontal: 16,
+        height: 100,
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.1,
+        shadowRadius: 8,
+        elevation: 5,
     },
-    statNumber: {
-        fontSize: 29,
-        fontWeight: 'bold',
-        marginBottom: 10,
-        color: '#fff',
-        fontFamily: 'Outfit_700Bold',
+    stat: {
+        width: '33%',
+        alignItems: 'center',
     },
-    statText: {
+    bigNumber: {
+        fontSize: 24,
+        color: '#B9DCFF',
+        fontFamily: 'Poppins_800ExtraBold',
+    },
+    smallText: {
+        paddingTop: 1,
         fontSize: 14.5,
-        color: '#fff',
-        position: 'absolute',
-        bottom: 28,
-        fontFamily: 'SourceSansPro_600SemiBold',
+        color: '#eee',
+        fontFamily: 'Lato_700Bold'
     },
 });

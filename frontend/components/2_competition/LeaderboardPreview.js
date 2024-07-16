@@ -2,7 +2,7 @@ import React, { useRef } from "react";
 import { StyleSheet, View, Text, Image, ScrollView, Animated, TouchableWithoutFeedback } from "react-native";
 import { FontAwesome } from '@expo/vector-icons';
 import LeaderboardPreviewCard from "./LeaderboardPreviewCard";
-
+ 
 export default function LeaderboardPreview({ userList }) {
     const bounceValue = useRef(new Animated.Value(1)).current;
 
@@ -66,7 +66,8 @@ export default function LeaderboardPreview({ userList }) {
 const styles = StyleSheet.create({
     main_view: {
         marginHorizontal: 15,
-        height: 280,
+        // height: 335,
+        height: 260,
         borderRadius: 25,
         shadowColor: '#666',
         shadowOffset: { width: 0, height: 1 },
@@ -76,7 +77,7 @@ const styles = StyleSheet.create({
         backgroundColor: 'white', // Ensure background color is set
     },
     leaderboard_preview: {
-        height: 110,
+        height: 93,
         borderTopLeftRadius: 25,
         borderTopRightRadius: 25,
         backgroundColor: '#6FB8FF',
@@ -91,7 +92,7 @@ const styles = StyleSheet.create({
         height: '100%',
     },
     pfpContainer: {
-        width: 72,
+        width: 62,
         aspectRatio: 1,
         borderRadius: 40,
         marginRight: 8,
@@ -105,7 +106,7 @@ const styles = StyleSheet.create({
     trophyIcon: {
         position: 'absolute',
         bottom: -10,
-        right: 20,
+        right: 16,
         zIndex: 1,
         borderRadius: 12,
         padding: 2,
@@ -131,7 +132,7 @@ const styles = StyleSheet.create({
         fontFamily: 'Outfit_700Bold',
     },
     statNumberText: {
-        fontSize: 38,
+        fontSize: 34,
         fontFamily: 'Outfit_700Bold',
         color: '#fff',
     },

@@ -1,109 +1,168 @@
+import RNBounceable from '@freakycoder/react-native-bounceable';
 import React, { useState } from 'react';
-import { View, Dimensions, StyleSheet, Text, TouchableOpacity, Pressable } from 'react-native';
-import { LineChart } from 'react-native-chart-kit';
-import { Entypo } from '@expo/vector-icons';
+import { View, Text, Dimensions, StyleSheet } from 'react-native';
+import { LineChart } from 'react-native-gifted-charts';
 
-const data1 = [
-    { date: '9/1', max: 254 },
-    { date: '9/3', max: 265 },
-    { date: '9/5', max: 290 },
-    { date: '9/7', max: 295 },
+const screenWidth = Dimensions.get('window').width;
+
+const customDataPoint = () => {
+    return (
+        <View style={styles.customDataPoint} />
+    );
+};
+
+const CustomLabel = ({ val }) => {
+    return (
+        <View style={styles.customLabelContainer}>
+            <Text style={styles.customLabelText}>{val}</Text>
+        </View>
+    );
+};
+
+const getPast30DaysData = (inputs) => {
+    const currentDate = new Date();
+    const past30DaysDate = new Date();
+    past30DaysDate.setDate(currentDate.getDate() - 30);
+
+    const filteredData = inputs.filter(input => {
+        const [month, day] = input.date.split('/');
+        const inputDate = new Date(currentDate.getFullYear(), parseInt(month) - 1, parseInt(day));
+        return inputDate >= past30DaysDate;
+    });
+
+    const dataPoints = [];
+    let firstValue = null;
+
+    if (filteredData.length > 0) {
+        firstValue = filteredData[0].value;
+    }
+
+    let prevValue = firstValue;
+    let nextValue = null;
+    let nextDataPointIndex = 0;
+    let interpolating = false;
+    let daysBetween = 0;
+    let diff = 0;
+    let currentDays = 0;
+    let sundayCount = 0;
+
+    for (let d = new Date(past30DaysDate); d <= currentDate; d.setDate(d.getDate() + 1)) {
+        const formattedDate = `${d.getMonth() + 1}/${d.getDate()}`;
+        const dataPoint = filteredData.find(input => input.date === formattedDate);
+
+        if (dataPoint) {
+            dataPoints.push({
+                value: dataPoint.value,
+                customDataPoint: customDataPoint,
+            });
+            prevValue = dataPoint.value;
+            interpolating = false;
+            nextDataPointIndex++;
+        } else {
+            if (!interpolating) {
+                const nextDataPoint = filteredData[nextDataPointIndex];
+                if (nextDataPoint) {
+                    nextValue = nextDataPoint.value;
+                    const [nextMonth, nextDay] = nextDataPoint.date.split('/');
+                    const nextDate = new Date(currentDate.getFullYear(), parseInt(nextMonth) - 1, parseInt(nextDay));
+                    daysBetween = (nextDate - d) / (1000 * 60 * 60 * 24);
+                    diff = (nextValue - prevValue) / (daysBetween + 1);
+                    currentDays = 1;
+                    interpolating = true;
+                } else {
+                    nextValue = null;
+                }
+            }
+
+            if (interpolating && nextValue !== null) {
+                const interpolatedValue = prevValue + diff * currentDays;
+                dataPoints.push({
+                    value: interpolatedValue,
+                    hideDataPoint: 'true'
+                });
+                currentDays++;
+            } else {
+                dataPoints.push({
+                    value: prevValue,
+                    hideDataPoint: 'true'
+                });
+            }
+        }
+
+        if (d.getDay() === 0 && dataPoints.length > 0) { // Ensure we add labels only for Sundays
+            if (sundayCount >= 4) continue;
+            dataPoints[dataPoints.length - 1].labelComponent = () => <CustomLabel val={formattedDate} />;
+            sundayCount ++;
+        }
+    }
+
+    return dataPoints;
+};
+
+// Sample input data
+const inputData = [
+    { date: '6/15', value: 100 },
+    { date: '6/17', value: 140 },
+    { date: '6/20', value: 250 },
+    { date: '6/23', value: 290 },
+    { date: '6/25', value: 410 },
+    { date: '6/28', value: 440 },
+    { date: '7/1', value: 280 },
+    { date: '7/4', value: 180 },
+    { date: '7/7', value: 150 },
 ];
 
-const data2 = [
-    { date: '8/29', max: 240 },
-    { date: '9/3', max: 250 },
-    { date: '9/5', max: 275 },
-    { date: '9/7', max: 285 },
-];
+const data = getPast30DaysData(inputData);
 
 export default function ExerciseGraph() {
-    const screenWidth = Dimensions.get('window').width;
-    const [isShowingMultipleUsers, setIsShowingMultipleUsers] = useState(false);
+    const [selectedOption, setSelectedOption] = useState('2 Weeks');
 
-    // Extract dates and max weights for the chart
-    const labels = data1.map(item => item.date);
-    const datasets = [
-        {
-            data: data1.map(item => item.max),
-            color: (opacity = 1) => `rgba(134, 65, 244, ${opacity})`, // Optional line color
-            strokeWidth: 2 // Optional line width
-        },
-        {
-            data: data2.map(item => item.max),
-            color: (opacity = 1) => `rgba(255, 99, 132, ${opacity})`, // Optional line color
-            strokeWidth: 2 // Optional line width
-        }
-    ];
+    const handleButtonPress = () => {
+        const options = ['2 Weeks', '2 Months', 'All Time'];
+        const currentIndex = options.indexOf(selectedOption);
+        const nextIndex = (currentIndex + 1) % options.length;
+        setSelectedOption(options[nextIndex]);
+    };
 
     return (
-        <View>
+        <View style={styles.main_ctnr}>
             <View style={styles.header}>
-                <View>
-                    <Text style={styles.header_text}>Progress</Text>
-                    {/* <Text>Past 14 Days</Text> */}
+                <View style={styles.headerLeft}>
+                    <Text style={styles.title}>Lateral Raises</Text>
+                    <Text style={styles.subtitle}>1 Rep Max</Text>
+                </View>
+                <View style={styles.headerRight}>
+                    <RNBounceable
+                        style={[styles.button, styles.selectedButton]}
+                        onPress={handleButtonPress}
+                    >
+                        <Text style={styles.buttonText}>{selectedOption}</Text>
+                    </RNBounceable>
                 </View>
             </View>
-
-            <View style={styles.graph_title_ctnr}>
-                <TouchableOpacity activeOpacity={0.3}>
-                    <Text style={styles.graph_title_text}>Lateral Raises</Text>
-                </TouchableOpacity>
-                <Pressable
-                    style={{ ...styles.graphIcon, opacity: isShowingMultipleUsers ? 1: 0.5 }}
-                    onPress={() => setIsShowingMultipleUsers(!isShowingMultipleUsers)}
-                >
-                    <Entypo name='line-graph' size={15} color={'#2D9EFF'} />
-                </Pressable>
-            </View>
-
-            <View style={styles.container}>
+            <View style={styles.chart_ctnr}>
                 <LineChart
-                    data={{
-                        labels: labels,
-                        datasets: datasets
-                    }}
-                    width={screenWidth - 40} // from react-native
-                    height={200}
-                    yAxisLabel=""
-                    yAxisSuffix=" lbs"
-                    yAxisInterval={1} // optional, defaults to 1
-                    fromZero={true} // Starts y-axis from zero
-                    chartConfig={{
-                        backgroundColor: '#fff',
-                        backgroundGradientFrom: '#fff',
-                        backgroundGradientTo: '#fff',
-                        decimalPlaces: 0, // optional, defaults to 2dp
-                        color: (opacity = 1) => `rgba(134, 65, 244, ${opacity})`,
-                        labelColor: (opacity = 1) => `rgba(0, 0, 0, ${opacity})`,
-                        style: {
-                            borderRadius: 16
-                        },
-                        propsForDots: {
-                            r: '6',
-                            strokeWidth: '2',
-                            stroke: '#ffa726'
-                        },
-                        propsForBackgroundLines: {
-                            strokeDasharray: "", // Remove dashed lines
-                        },
-                        propsForLabels: {
-                            fontSize: 10, // Smaller font size for labels
-                        }
-                    }}
-                    bezier // Use bezier prop for a smoother curve
-                    style={{
-                        marginVertical: 8,
-                        borderRadius: 16
-                    }}
-                    withHorizontalLabels={true}
-                    withVerticalLabels={true}
-                    withInnerLines={true}
-                    withOuterLines={true}
-                    withDots={true}
-                    withShadow={false}
-                    withHorizontalLines={true}
-                    withVerticalLines={true}
+                    width={screenWidth - 105}
+                    height={125}
+                    adjustToWidth
+                    thickness={4}
+                    color="rgba(89, 168, 255, 1)"
+                    maxValue={550}
+                    noOfSections={3}
+                    areaChart
+                    yAxisThickness={0}
+                    yAxisTextStyle={styles.yAxisTextStyle}
+                    xAxisTextStyle={styles.xAxisTextStyle}
+                    data={data}
+                    startFillColor={'rgb(89, 168, 255)'}
+                    endFillColor={'rgb(89, 168, 255)'}
+                    startOpacity={0.4}
+                    endOpacity={0.4}
+                    backgroundColor="#fff"
+                    initialSpacing={0}
+                    yAxisColor="lightgray"
+                    xAxisColor="lightgray"
+                    disableScroll
                 />
             </View>
         </View>
@@ -111,51 +170,89 @@ export default function ExerciseGraph() {
 }
 
 const styles = StyleSheet.create({
-    container: {
-        paddingTop: 10,
-        paddingBottom: 5,
+    main_ctnr: {
         alignItems: 'center',
+        backgroundColor: '#fff',
+        borderRadius: 20,
+        paddingTop: 18,
+        paddingBottom: 15,
         marginHorizontal: 15,
-        borderRadius: 25,
-        shadowColor: '#555',
+        marginVertical: 8,
+        shadowColor: '#999',
         shadowOffset: { width: 0, height: 1 },
-        shadowOpacity: 0.3,
+        shadowOpacity: 0.5,
         shadowRadius: 2,
-        elevation: 5,
-        backgroundColor: '#fff'
-        // backgroundColor: '#6FB8FF', // Ensure background color is set
+        elevation: 5
     },
     header: {
-        marginTop: 30,
+        width: '100%',
         flexDirection: 'row',
         justifyContent: 'space-between',
         alignItems: 'center',
-        // marginBottom: 10,
-        paddingLeft: 26,
-        paddingRight: 25,
-        paddingBottom: 5,
-        alignItems: 'center',
+        paddingLeft: 20,
+        paddingRight: 10,
+        paddingBottom: 18
     },
-    header_text: {
-        fontFamily: 'Lato_700Bold',
-        fontSize: 20,
+    headerLeft: {
+        flexDirection: 'column',
     },
-    graph_title_ctnr: {
-        flexDirection: 'row',
-        justifyContent: 'space-between',
-        paddingHorizontal: 25,
-        paddingTop: 5,
-        paddingBottom: 6,
-        alignItems: 'flex-end'
+    headerRight: {
+        height: '100%',
     },
-    graph_title_text: {
+    title: {
+        color: "#0499FE",
         fontSize: 17,
-        color: '#2D9EFF',
-        fontFamily: 'SourceSansPro_600SemiBold',
+        marginBottom: 2,
+        fontFamily: 'Outfit_700Bold'
+    },
+    subtitle: {
+        color: "#aaa",
+        fontSize: 15,
+        fontFamily: 'Outfit_700Bold'
+    },
+    button: {
+        borderRadius: 20,
+        paddingHorizontal: 11,
+        paddingVertical: 7,
+        marginLeft: 5,
+        backgroundColor: '#BCDDFF',
         marginRight: 5
     },
-    graphIcon: {
-        paddingHorizontal: 5,
-        paddingBottom: 2
-    }
+    selectedButton: {
+        backgroundColor: '#ddd'
+    },
+    buttonText: {
+        color: '#666',
+        fontFamily: 'Outfit_700Bold',
+        fontSize: 13,
+    },
+    chart_ctnr: {
+        paddingRight: 30,
+    },
+    customDataPoint: {
+        width: 14,
+        aspectRatio: 1,
+        backgroundColor: 'white',
+        borderWidth: 3,
+        borderRadius: 10,
+        borderColor: 'rgba(89, 168, 255, 1)',
+    },
+    customLabelContainer: {
+        width: 70,
+    },
+    customLabelText: {
+        color: '#aaa',
+        fontFamily: 'Outfit_600SemiBold',
+        fontSize: 14
+    },
+    yAxisTextStyle: {
+        color: '#aaa',
+        fontFamily: 'Outfit_600SemiBold',
+        fontSize: 14,
+    },
+    xAxisTextStyle: {
+        color: 'blue',
+        fontSize: 12,
+        fontWeight: 'bold',
+    },
 });
