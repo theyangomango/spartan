@@ -165,9 +165,9 @@ export default function Workout({ navigation }) {
 
             </View>
 
-            {workout &&
+            {/* {workout &&
                 <WorkoutFooter userData={userData} />
-            }
+            } */}
 
             <Footer navigation={navigation} currentScreenName={'Workout'} />
         </View>
