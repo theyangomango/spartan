@@ -16,6 +16,24 @@ const ExerciseImagePreview = ({ exercise }) => {
         case 'shrug-dumbell':
             source = require('../../../assets/exercises/shrug-dumbell/large.png');
             break;
+        case 'lateral-raise-dumbell':
+            source = require('../../../assets/exercises/lateral-raise-dumbell/large.png');
+            break;
+        case 'incline-bench-press-dumbell':
+            source = require('../../../assets/exercises/incline-bench-press-dumbell/large.png');
+            break;
+        case 'front-raise-dumbell':
+            source = require('../../../assets/exercises/front-raise-dumbell/large.png');
+            break;
+        case 'chest-fly-dumbell':
+            source = require('../../../assets/exercises/chest-fly-dumbell/large.png');
+            break;
+        case 'bicep-curl-dumbell':
+            source = require('../../../assets/exercises/bicep-curl-dumbell/large.png');
+            break;
+        case 'bench-press-dumbell':
+            source = require('../../../assets/exercises/bench-press-dumbell/large.png');
+            break;
     }
 
     return (
