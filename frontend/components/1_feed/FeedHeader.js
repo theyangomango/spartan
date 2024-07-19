@@ -1,6 +1,7 @@
 import { StyleSheet, View, Text, Image, Pressable, TouchableOpacity } from "react-native";
 import { Ionicons } from '@expo/vector-icons'
 import { AddSquare, Notification } from 'iconsax-react-native'
+import RNBounceable from '@freakycoder/react-native-bounceable';
 
 export default function FeedHeader({ toMessagesScreen }) {
     return (
@@ -20,19 +21,19 @@ export default function FeedHeader({ toMessagesScreen }) {
                         <AddSquare size={21} color="#fff" />
                     </View>
                 </TouchableOpacity> */}
-                <TouchableOpacity>
+                <RNBounceable>
                     <View style={styles.notifications_btn_ctnr}>
-                        <Notification size={21} color="#2D9EFF" />
+                        <Notification size={20.5} color="#2D9EFF" />
                     </View>
-                </TouchableOpacity>
-                <TouchableOpacity onPress={toMessagesScreen}>
+                </RNBounceable>
+                <RNBounceable onPress={toMessagesScreen}>
                     <View style={styles.msg_btn_ctnr}>
-                        <Ionicons name='chatbubble-outline' size={18.5} color={'#2D9EFF'} />
+                        <Ionicons name='chatbubble-outline' size={18} color={'#2D9EFF'} />
                     </View>
                     <View style={styles.red_circle_ctnr}>
                         <Text style={styles.red_circle_text}>15</Text>
                     </View>
-                </TouchableOpacity>
+                </RNBounceable>
             </View>
         </View>
     )
@@ -75,7 +76,7 @@ const styles = StyleSheet.create({
         flexDirection: 'row'
     },
     notifications_btn_ctnr: {
-        width: 38.5,
+        width: 38,
         aspectRatio: 1,
         borderRadius: 20,
         backgroundColor: '#E0F1FF',
@@ -85,7 +86,7 @@ const styles = StyleSheet.create({
         marginHorizontal: 15
     },
     msg_btn_ctnr: {
-        width: 38.5,
+        width: 38,
         aspectRatio: 1,
         borderRadius: 20,
         backgroundColor: '#E0F1FF',

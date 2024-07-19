@@ -91,7 +91,7 @@ const Chat = ({ navigation, route }) => {
             <View style={styles.container}>
                 <View style={styles.header}>
                     <TouchableOpacity activeOpacity={0.5} onPress={toMessages} style={styles.backButton}>
-                        <ArrowLeft2 size="20" color="#2D9EFF" />
+                        <ArrowLeft2 size="24" color="#2D9EFF" />
                     </TouchableOpacity>
                     <View style={styles.headerContent}>
                         <View style={styles.pfp_ctnr}>
@@ -125,7 +125,7 @@ const Chat = ({ navigation, route }) => {
                 </View>
                 <View style={[styles.inputContainer, { marginBottom: isInputFocused ? 11 : 30 }]}>
                     <TouchableOpacity style={styles.emojiButton}>
-                        <Ionicons name="happy-outline" size={24} color="#999" />
+                        <Ionicons name="happy-outline" size={26} color="#999" />
                     </TouchableOpacity>
                     <TextInput
                         style={styles.textInput}
@@ -136,7 +136,7 @@ const Chat = ({ navigation, route }) => {
                         onBlur={handleInputBlur} // Handle input blur
                     />
                     <TouchableOpacity style={styles.sendButton} onPress={handleSend}>
-                        <Ionicons name="send" size={11} color="#fff" />
+                        <Ionicons name="send" size={14.5} color="#fff" />
                     </TouchableOpacity>
                 </View>
             </View>
@@ -173,7 +173,7 @@ const styles = StyleSheet.create({
         paddingVertical: 5,
     },
     pfp_ctnr: {
-        width: 33,
+        width: 38,
         aspectRatio: 1,
         marginRight: 7,
     },
@@ -182,8 +182,8 @@ const styles = StyleSheet.create({
         borderRadius: 20,
     },
     handleText: {
-        fontFamily: 'Outfit_400Regular',
-        fontSize: 19.5,
+        fontFamily: 'Mulish_600SemiBold',
+        fontSize: 21.5,
         color: '#2D9EFF'
     },
     content: {
@@ -198,7 +198,7 @@ const styles = StyleSheet.create({
         backgroundColor: '#0499FE', // Blue background color for user messages
         borderRadius: 10,
         marginHorizontal: 20,
-        marginVertical: 4,
+        marginVertical: 3,
         padding: 10,
         maxWidth: '70%',
     },
@@ -207,17 +207,17 @@ const styles = StyleSheet.create({
         backgroundColor: '#CEE4F9', // Blue background color for other messages
         borderRadius: 10,
         marginHorizontal: 20,
-        marginVertical: 4,
+        marginVertical: 3,
         padding: 10,
         maxWidth: '70%',
     },
     userMessageText: {
-        fontSize: 12.5,
+        fontSize: 16,
         color: '#fff', // White text color for message text
         fontFamily: 'Poppins_400Regular'
     },
     otherMessageText: {
-        fontSize: 12.5,
+        fontSize: 16,
         color: '#000', // White text color for message text
         fontFamily: 'Poppins_400Regular'
     },
@@ -225,7 +225,8 @@ const styles = StyleSheet.create({
         flexDirection: 'row',
         alignItems: 'center',
         paddingHorizontal: 10,
-        paddingVertical: 1.5,
+        paddingTop: 6,
+        paddingBottom: 10,
         borderRadius: 30,
         marginTop: 10,
         marginHorizontal: 15,
@@ -240,6 +241,7 @@ const styles = StyleSheet.create({
         flex: 1,
         borderRadius: 20,
         paddingHorizontal: 15,
+        fontSize: 16,
         marginRight: 10,
         color: '#000', // Text color,
         fontFamily: 'SourceSansPro_400Regular'

@@ -30,7 +30,7 @@ export default function ExerciseCard({ name, muscleGroup, lastDone = 'July 13th'
         <Pressable onPress={toggleSelected} style={[styles.card, isSelected && styles.selected]}>
             <View style={styles.leftContainer}>
                 {/* <ExerciseImagePreview exercise={'shrug-dumbell'} /> */}
-                <ExerciseImagePreview exercise={'standing-preacher-curl-dumbell'} />
+                <ExerciseImagePreview exercise={'standing-preacher-curl-dumbbell'} />
 
                 <View style={styles.textContainer}>
                     <View style={styles.row}>

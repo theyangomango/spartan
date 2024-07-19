@@ -5,6 +5,7 @@ import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import 'react-native-gesture-handler';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 
+import Authentication from './frontend/screens/Authentication'
 import Feed from "./frontend/screens/1_Feed";
 import Profile from './frontend/screens/5_Profile';
 import SelectPhotosScreen from './frontend/components/5_profile/CreatePostModal/SelectPhotosScreen';
@@ -226,6 +227,6 @@ export default function App() {
                 </Tab.Navigator>
             </NavigationContainer>
         </GestureHandlerRootView>
-
+        // <Authentication />
     )
 }
