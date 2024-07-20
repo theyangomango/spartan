@@ -213,7 +213,7 @@ const styles = StyleSheet.create({
     },
     title: {
         color: "#0499FE",
-        fontSize: 17,
+        fontSize: 16,
         marginBottom: 2,
         fontFamily: 'Outfit_700Bold'
     },
@@ -263,12 +263,12 @@ const styles = StyleSheet.create({
     customLabelText: {
         color: '#aaa',
         fontFamily: 'Outfit_600SemiBold',
-        fontSize: 14
+        fontSize: 13
     },
     yAxisTextStyle: {
         color: '#aaa',
         fontFamily: 'Outfit_600SemiBold',
-        fontSize: 14,
+        fontSize: 13,
     },
     xAxisTextStyle: {
         color: 'blue',

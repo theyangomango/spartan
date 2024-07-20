@@ -45,15 +45,43 @@ export default function Explore({ navigation }) {
 
     const categories = ['For You', 'Leg Day', 'Progress Pictures', 'Bulking', 'Workout Splits'];
 
-    const renderGrid = (posts) => {
+    const renderGrid = (posts, index) => {
         if (posts.length < 6) return null;
 
-        return (
+        if (index % 2 == 0) {
+            return (
+                <View style={styles.gridContainer}>
+                    <View style={styles.gridRow}>
+                        <View style={styles.gridItemLarge}>
+                            {renderPostPreview(posts[0], true)}
+                        </View>
+                        <View style={styles.gridColumn}>
+                            <View style={styles.gridItemSmall}>
+                                {renderPostPreview(posts[1])}
+                            </View>
+                            <View style={styles.gridItemSmall}>
+                                {renderPostPreview(posts[2])}
+                            </View>
+                        </View>
+                    </View>
+                    <View style={styles.gridRow}>
+                        <View style={styles.gridItem}>
+                            {renderPostPreview(posts[3])}
+                        </View>
+                        <View style={styles.gridItem}>
+                            {renderPostPreview(posts[4])}
+                        </View>
+                        <View style={styles.gridItem}>
+                            {renderPostPreview(posts[5])}
+                        </View>
+                    </View>
+                </View>
+            );
+        }
+
+        else return (
             <View style={styles.gridContainer}>
                 <View style={styles.gridRow}>
-                    <View style={styles.gridItemLarge}>
-                        {renderPostPreview(posts[0], true)}
-                    </View>
                     <View style={styles.gridColumn}>
                         <View style={styles.gridItemSmall}>
                             {renderPostPreview(posts[1])}
@@ -61,6 +89,9 @@ export default function Explore({ navigation }) {
                         <View style={styles.gridItemSmall}>
                             {renderPostPreview(posts[2])}
                         </View>
+                    </View>
+                    <View style={styles.gridItemLarge}>
+                        {renderPostPreview(posts[0], true)}
                     </View>
                 </View>
                 <View style={styles.gridRow}>
@@ -88,9 +119,9 @@ export default function Explore({ navigation }) {
             />
 
             <View style={styles.scrollViewWrapper}>
-                <ScrollView 
-                    horizontal 
-                    showsHorizontalScrollIndicator={false} 
+                <ScrollView
+                    horizontal
+                    showsHorizontalScrollIndicator={false}
                     contentContainerStyle={styles.scrollViewContent}
                     style={styles.scrollview}
                 >
@@ -117,7 +148,7 @@ export default function Explore({ navigation }) {
             <ScrollView contentContainerStyle={styles.gridScrollView} showsVerticalScrollIndicator={false}>
                 {explorePosts.length > 0 && explorePosts.map((_, index) => (
                     <View key={index}>
-                        {renderGrid(explorePosts.slice(index * 6, index * 6 + 6))}
+                        {renderGrid(explorePosts.slice(index * 6, index * 6 + 6), index)}
                     </View>
                 ))}
             </ScrollView>

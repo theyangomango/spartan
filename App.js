@@ -207,26 +207,26 @@ export default function App() {
         return <></>
     }
     else return (
-        <GestureHandlerRootView style={{ flex: 1 }}>
-            <NavigationContainer>
-                <Tab.Navigator initialRouteName='Feed' screenOptions={{
-                    headerShown: false,
-                    tabBarStyle: {
-                        display: 'none'
-                    }
-                }}>
-                    <Tab.Screen name='Feed' component={Feed} />
-                    <Tab.Screen name='Messages' component={Messages} />
-                    <Tab.Screen name='Chat' component={Chat} />
-                    <Tab.Screen name='Competition' component={Competition} />
-                    <Tab.Screen name='Workout' component={Workout} />
-                    <Tab.Screen name='Explore' component={Explore} />
-                    <Tab.Screen name='ProfileStack' component={ProfileStack} />
-                    <Tab.Screen name='PostList' component={PostList} />
-                    <Tab.Screen name='ViewProfile' component={ViewProfile} />
-                </Tab.Navigator>
-            </NavigationContainer>
-        </GestureHandlerRootView>
-        // <Authentication />
+        // <GestureHandlerRootView style={{ flex: 1 }}>
+        //     <NavigationContainer>
+        //         <Tab.Navigator initialRouteName='Feed' screenOptions={{
+        //             headerShown: false,
+        //             tabBarStyle: {
+        //                 display: 'none'
+        //             }
+        //         }}>
+        //             <Tab.Screen name='Feed' component={Feed} />
+        //             <Tab.Screen name='Messages' component={Messages} />
+        //             <Tab.Screen name='Chat' component={Chat} />
+        //             <Tab.Screen name='Competition' component={Competition} />
+        //             <Tab.Screen name='Workout' component={Workout} />
+        //             <Tab.Screen name='Explore' component={Explore} />
+        //             <Tab.Screen name='ProfileStack' component={ProfileStack} />
+        //             <Tab.Screen name='PostList' component={PostList} />
+        //             <Tab.Screen name='ViewProfile' component={ViewProfile} />
+        //         </Tab.Navigator>
+        //     </NavigationContainer>
+        // </GestureHandlerRootView>
+        <Authentication />
     )
 }

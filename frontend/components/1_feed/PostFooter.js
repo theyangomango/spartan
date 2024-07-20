@@ -92,7 +92,7 @@ const styles = StyleSheet.create({
         flexDirection: 'row',
         left: 20,
         right: 20,
-        height: 70,
+        height: 66,
         borderRadius: 50,
         overflow: 'hidden',
     },
@@ -118,7 +118,7 @@ const styles = StyleSheet.create({
         paddingRight: 8,
     },
     pfp: {
-        width: 42,
+        width: 37,
         aspectRatio: 1,
         borderRadius: 22,
     },
@@ -128,7 +128,7 @@ const styles = StyleSheet.create({
     caption_text: {
         fontFamily: 'Mulish_400Regular',
         color: '#fff',
-        fontSize: 12.5,
+        fontSize: 11,
         flexWrap: 'wrap',
     },
     likes_ctnr: {

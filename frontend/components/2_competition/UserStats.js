@@ -1,7 +1,9 @@
 import React, { useState } from "react";
-import { StyleSheet, View, Text, Image, ScrollView, Pressable, LayoutAnimation, UIManager, Platform } from "react-native";
+import { StyleSheet, View, Text, Image, ScrollView, Pressable, LayoutAnimation, UIManager, Platform, Dimensions } from "react-native";
 import HexagonalStats from "./HexagonalStats";
 import ExerciseGraph from "./ExerciseGraph";
+
+const { width, height } = Dimensions.get('screen');
 
 // Enable LayoutAnimation on Android
 if (Platform.OS === 'android' && UIManager.setLayoutAnimationEnabledExperimental) {
@@ -18,7 +20,7 @@ const exercises = [
     // Add more exercises as needed
 ];
 
-const barMaxWidth = 200; // Fixed width of the bar in pixels
+const barMaxWidth = width * 0.5; // Fixed width of the bar in pixels
 
 export default function UserStats({ user }) {
     const [expandedIndex, setExpandedIndex] = useState(null);
@@ -29,15 +31,15 @@ export default function UserStats({ user }) {
     };
 
     return (
-        <View style={{flex: 1}}>
+        <View style={{ flex: 1 }}>
             {/* <Pressable> */}
-                <View style={styles.header}>
-                    <View style={styles.headerLeft}>
-                        <Image source={{ uri: user.image }} style={styles.pfp} />
-                        <Text style={styles.handle}>{user.handle}</Text>
-                    </View>
-                    <Text style={styles.overallScore}>94 overall</Text>
+            <View style={styles.header}>
+                <View style={styles.headerLeft}>
+                    <Image source={{ uri: user.image }} style={styles.pfp} />
+                    <Text style={styles.handle}>{user.handle}</Text>
                 </View>
+                <Text style={styles.overallScore}>94 overall</Text>
+            </View>
             {/* </Pressable> */}
             <ScrollView style={styles.scrollview} showsVerticalScrollIndicator={false}>
 
@@ -114,17 +116,17 @@ const styles = StyleSheet.create({
         alignItems: 'center',
     },
     pfp: {
-        width: 44,
+        width: 43,
         aspectRatio: 1,
         borderRadius: 25,
         marginRight: 12
     },
     handle: {
-        fontSize: 21,
+        fontSize: 20,
         fontFamily: 'Outfit_600SemiBold'
     },
     overallScore: {
-        fontSize: 21,
+        fontSize: 20,
         fontFamily: 'Outfit_600SemiBold',
         color: '#59AAEE'
     },
@@ -141,7 +143,7 @@ const styles = StyleSheet.create({
         borderBottomColor: '#eee'
     },
     exerciseName: {
-        fontSize: 17,
+        fontSize: 16.5,
         fontFamily: 'Outfit_500Medium',
         flex: 1,
         paddingBottom: 2,

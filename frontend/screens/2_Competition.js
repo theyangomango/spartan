@@ -208,7 +208,7 @@ const styles = StyleSheet.create({
     },
     buttonText: {
         color: '#666',
-        fontSize: 14.5,
+        fontSize: 13,
         fontFamily: 'Outfit_700Bold',
     },
     modalContainer: {

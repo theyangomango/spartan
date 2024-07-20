@@ -34,13 +34,13 @@ export default function Story({ data, handlePress, index, isViewed, handlePressC
 
 const styles = StyleSheet.create({
     main_ctnr: {
-        width: 77,
+        width: 76,
         height: 86,
         alignItems: 'center',
     },
     handle_text: {
         fontFamily: 'Poppins_500Medium',
-        fontSize: 12,
+        fontSize: 11,
         paddingTop: 4,
         marginLeft: 3,
         color: '#666'

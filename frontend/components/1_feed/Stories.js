@@ -116,7 +116,6 @@ export default function Stories({ data }) {
 const styles = StyleSheet.create({
     stories_ctnr: {
         backgroundColor: '#fff',
-        paddingBottom: 11,
         paddingTop: 2,
     },
     flatlist: {

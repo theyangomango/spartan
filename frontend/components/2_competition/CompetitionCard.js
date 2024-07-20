@@ -25,7 +25,7 @@ export default function CompetitionCard({ uid, pfp, handle, value, rank, handleP
 
 const styles = StyleSheet.create({
     card_ctnr: {
-        height: 72,
+        height: 67,
         borderRadius: 20,
         // borderWidth: 1.5,
         // borderColor: '#ccc',
@@ -33,10 +33,10 @@ const styles = StyleSheet.create({
         justifyContent: 'space-between',
         paddingHorizontal: 15,
         marginHorizontal: 15,
-        marginBottom: 13,
+        marginBottom: 12.5,
 
         backgroundColor: '#fff',
-        shadowColor: '#888',
+        shadowColor: '#aaa',
         shadowOffset: { width: 0, height: 0.8 },
         shadowOpacity: 0.6,
         shadowRadius: 2,  
@@ -54,7 +54,7 @@ const styles = StyleSheet.create({
         borderRadius: 100
     },
     handle_text: {
-        fontSize: 17,
+        fontSize: 16,
         fontFamily: 'Outfit_500Medium',
         paddingHorizontal: 12,
         color: '#333'
@@ -66,12 +66,12 @@ const styles = StyleSheet.create({
     stat_text: {
         fontFamily: 'Mulish_700Bold',
         color: '#2D9EFF',
-        fontSize: 16
+        fontSize: 14.78
     },
     rank_text: {
         fontFamily: 'Mulish_700Bold',
         paddingLeft: 14,
-        fontSize: 14.5
+        fontSize: 13.5
     },
     arrow_icon: {
         marginLeft: 3.5

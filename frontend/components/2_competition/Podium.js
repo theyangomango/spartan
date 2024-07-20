@@ -69,29 +69,29 @@ const styles = StyleSheet.create({
 
     },
     silver_ctnr: {
-        height: 95,
+        height: 105,
         backgroundColor: '#C0C0C0'
     },
     gold_ctnr: {
-        height: 125,
+        height: 133,
         backgroundColor: '#FFD700'
     },
     bronze_ctnr: {
-        height: 80,
+        height: 83,
         backgroundColor: '#ff7e33'
     },
     left_pfp: {
-        width: 58,
+        width: 54,
         aspectRatio: 1,
         borderRadius: 50
     },
     center_pfp: {
-        width: 60,
+        width: 56,
         aspectRatio: 1,
         borderRadius: 50
     },
     right_pfp: {
-        width: 55,
+        width: 53,
         aspectRatio: 1,
         borderRadius: 50
     },
@@ -102,9 +102,9 @@ const styles = StyleSheet.create({
     leaderboard_handle_text: {
         fontFamily: 'Mulish_700Bold',
         color: '#fff',
-        paddingTop: 3,
+        paddingTop: 3.5,
         paddingBottom: 10,
-        fontSize: 16
+        fontSize: 14
     },
     bar_text: {
         fontFamily: 'Outfit_800ExtraBold',

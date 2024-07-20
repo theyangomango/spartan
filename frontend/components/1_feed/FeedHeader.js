@@ -16,11 +16,6 @@ export default function FeedHeader({ toMessagesScreen }) {
                 <Text style={styles.logo_text}>SPARTAN</Text>
             </View>
             <View style={styles.right}>
-                {/* <TouchableOpacity>
-                    <View style={styles.create_btn_ctnr}>
-                        <AddSquare size={21} color="#fff" />
-                    </View>
-                </TouchableOpacity> */}
                 <RNBounceable>
                     <View style={styles.notifications_btn_ctnr}>
                         <Notification size={20.5} color="#2D9EFF" />
@@ -56,6 +51,7 @@ const styles = StyleSheet.create({
         // height: 40,
         flexDirection: 'row',
         marginBottom: 8,
+        alignItems: 'center'
     },
     logo_image_ctnr: {
         justifyContent: 'center',
@@ -68,25 +64,27 @@ const styles = StyleSheet.create({
         marginTop: 1.5
     },
     logo_text: {
-        fontSize: 24,
+        fontSize: 22,
         color: '#2D9EFF',
         paddingLeft: 2,
+        fontFamily: 'Inter_400Regular'
     },
     right: {
-        flexDirection: 'row'
+        flexDirection: 'row',
+        marginBottom: 3
     },
     notifications_btn_ctnr: {
-        width: 38,
+        width: 36,
         aspectRatio: 1,
         borderRadius: 20,
         backgroundColor: '#E0F1FF',
         justifyContent: 'center',
         alignItems: 'center',
         marginBottom: 3,
-        marginHorizontal: 15
+        marginHorizontal: 12
     },
     msg_btn_ctnr: {
-        width: 38,
+        width: 36,
         aspectRatio: 1,
         borderRadius: 20,
         backgroundColor: '#E0F1FF',
@@ -100,14 +98,14 @@ const styles = StyleSheet.create({
         borderRadius: 10,
         backgroundColor: 'red',
         position: 'absolute',
-        top: -3,
-        right: -5,
+        top: -5,
+        right: -6,
         alignItems: 'center',
         justifyContent: 'center',
     },
     red_circle_text: {
         fontFamily: 'Mulish_800ExtraBold',
-        fontSize: 10,
+        fontSize: 8.5,
         color: '#fff'
     }
 });

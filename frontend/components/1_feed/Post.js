@@ -28,7 +28,7 @@ export default function Post({ data, onPressCommentButton, onPressShareButton, i
 const styles = StyleSheet.create({
     main_ctnr: {
         width: '100%',
-        borderColor: '#DDD',
+        borderColor: '#ddd',
         marginBottom: 12.5,
         backgroundColor: '#fff', // Added background color for better visibility
         borderRadius: 30,
@@ -37,7 +37,7 @@ const styles = StyleSheet.create({
         flex: 1,
     },
     image_ctnr: {
-        aspectRatio: 0.8
+        aspectRatio: 0.75
     },
     image: {
         flex: 1,

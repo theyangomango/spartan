@@ -50,7 +50,7 @@ const HexagonalStats = () => {
     );
 
     const labelPoints = categories.map((_, index) => {
-        const labelRadius = radius + 30; // Adjust the label radius to position the labels outside the chart
+        const labelRadius = radius + 32; // Adjust the label radius to position the labels outside the chart
         const x = centerX + labelRadius * Math.cos(angle * index - Math.PI / 2);
         const y = centerY + labelRadius * Math.sin(angle * index - Math.PI / 2);
         return { x, y };
@@ -127,7 +127,7 @@ const styles = StyleSheet.create({
     text: {
         fill: '#888',
         fontFamily: 'Poppins_700Bold',
-        fontSize: 16,
+        fontSize: 15.5,
     },
 });
 
