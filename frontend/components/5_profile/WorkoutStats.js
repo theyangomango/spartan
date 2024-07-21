@@ -4,16 +4,16 @@ export default function WorkoutStats({ userData }) {
     return (
         <View style={styles.main_ctnr}>
             <View style={[styles.workout_stat, styles.total_workouts_stat_ctnr]}>
-                <Text style={styles.workout_stat_text}>Total Workouts</Text>
                 <Text style={[styles.workout_stat_number, styles.total_workouts_stat_number]}>{userData.stats.workoutCount}</Text>
+                <Text style={styles.workout_stat_text}>Workouts</Text>
             </View>
             <View style={[styles.workout_stat, styles.total_volume_stat_ctnr]}>
-                <Text style={styles.workout_stat_text}>Total Volume</Text>
-                <Text style={[styles.workout_stat_number, styles.total_volume_stat_number]}>{userData.stats.totalVolume} lb</Text>
+                <Text style={[styles.workout_stat_number, styles.total_volume_stat_number]}>{userData.stats.totalVolume}</Text>
+                <Text style={styles.workout_stat_text}>Lbs Lifted</Text>
             </View>
             <View style={[styles.workout_stat, styles.gym_time_stat_ctnr]}>
-                <Text style={styles.workout_stat_text}>Time in Gym</Text>
                 <Text style={[styles.workout_stat_number, styles.gym_time_stat_number]}>{userData.stats.totalTime}</Text>
+                <Text style={styles.workout_stat_text}>Hours in Gym</Text>
             </View>
         </View>
     )
@@ -27,10 +27,11 @@ const styles = StyleSheet.create({
     },
     workout_stat: {
         // width: 104,
-        width: '28%',
+        width: '30%',
         height: 68,
         borderRadius: 8,
-        margin: 9,
+        marginVertical: 9,
+        marginHorizontal: 5.5,
         justifyContent: 'center',
         alignItems: 'center'
     },
@@ -44,9 +45,9 @@ const styles = StyleSheet.create({
         backgroundColor: '#FFECE1'
     },
     workout_stat_text: {
-        fontFamily: 'SourceSansPro_400Regular',
-        fontSize: 12,
-        color: '#515151'
+        fontFamily: 'Poppins_500Medium',
+        fontSize: 10.5,
+        color: '#808080'
     },
     workout_stat_number: {
         fontFamily: 'Outfit_600SemiBold',

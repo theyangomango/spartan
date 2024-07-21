@@ -17,6 +17,7 @@ import WorkoutHeader from "../components/3_workout/WorkoutHeader";
 import GoalBanner from "../components/3_workout/GoalBanner";
 import CalendarBanner from "../components/3_workout/CalendarBanner";
 import { SafeAreaView } from "react-native-safe-area-context";
+import WorkoutDates from "../components/3_workout/WorkoutDates";
 
 const { height } = Dimensions.get('window');
 
@@ -143,9 +144,9 @@ export default function Workout({ navigation }) {
                 <ScrollView showsVerticalScrollIndicator={false}>
                     <View style={{ height: 10 }} />
 
-                    <GoalBanner workoutsLeft={12} progress={56} />
-
-                    <CalendarBanner />
+                    <WorkoutDates />
+                    {/* <GoalBanner workoutsLeft={12} progress={56} /> */}
+                    {/* <CalendarBanner /> */}
 
                     <Text style={styles.quick_start_text}>Quick Start</Text>
 
@@ -153,12 +154,12 @@ export default function Workout({ navigation }) {
                     <JoinWorkoutButton joinWorkout={() => joinWorkoutBottomSheet.current.show()} />
 
                     <Text style={styles.templates_text}>Templates</Text>
-                    <TemplateCard lastUsedDate={lastUsedDate} exercises={exercises} name={'Chest & Back'} />
+                    {/* <TemplateCard lastUsedDate={lastUsedDate} exercises={exercises} name={'Chest & Back'} />
                     <TemplateCard lastUsedDate={lastUsedDate} exercises={exercises} name={'Full Upper Body'} />
                     <TemplateCard lastUsedDate={lastUsedDate} exercises={exercises} name={'Leg Day!!!'} />
                     <TemplateCard lastUsedDate={lastUsedDate} exercises={exercises} name={'Full Body'} />
                     <TemplateCard lastUsedDate={lastUsedDate} exercises={exercises} name={'Cardio'} />
-                    <TemplateCard lastUsedDate={lastUsedDate} exercises={exercises} name={'Full Upper Body'} />
+                    <TemplateCard lastUsedDate={lastUsedDate} exercises={exercises} name={'Full Upper Body'} /> */}
 
                     <View style={{ height: 100 }} />
                 </ScrollView>
@@ -187,17 +188,17 @@ const styles = StyleSheet.create({
     },
     quick_start_text: {
         marginTop: 24,
-        fontFamily: 'Mulish_700Bold',
-        fontSize: 20,
+        fontFamily: 'Poppins_600SemiBold',
+        fontSize: 16,
         paddingBottom: 8,
-        paddingHorizontal: 19,
+        paddingHorizontal: 14,
     },
     templates_text: {
         marginTop: 24,
-        fontFamily: 'Mulish_700Bold',
-        fontSize: 20,
+        fontFamily: 'Poppins_600SemiBold',
+        fontSize: 16,
         paddingBottom: 6,
-        paddingHorizontal: 19
+        paddingHorizontal: 14
     },
 
 });

@@ -8,7 +8,7 @@ export default function JoinWorkoutButton({ joinWorkout }) {
             <Text style={styles.text}>Log Past Workout</Text>
             {/* <AntDesign name="addusergroup" size={24} color={'#fff'} /> */}
             {/* <AntDesign name="book" size={23.5} color={'#fff'} /> */}
-            <SimpleLineIcons name="notebook" size={21} color={'#fff'} style={{ paddingRight: 1 }} />
+            <SimpleLineIcons name="notebook" size={20} color={'#fff'} style={{ paddingRight: 1 }} />
 
 
         </RNBounceable>
@@ -18,27 +18,23 @@ export default function JoinWorkoutButton({ joinWorkout }) {
 const styles = StyleSheet.create({
     main_ctnr: {
         // height: 35,
-        height: 43,
+        backgroundColor: '#c9c9c9',
+        height: 42,
+        paddingHorizontal: 28,
         marginVertical: 4,
         borderRadius: 15,
-        backgroundColor: '#c9c9c9',
-        justifyContent: 'center',
-        // alignItems: 'center'
-        paddingHorizontal: 28,
-        marginHorizontal: 18,
-
         alignItems: 'center',
         flexDirection: 'row',
         justifyContent: 'space-between',
+        marginHorizontal: 14,
     },
     left: {
         flexDirection: 'row',
         alignItems: 'center'
     },
     text: {
-        fontSize: 18,
+        fontSize: 16,
         fontFamily: 'SourceSansPro_600SemiBold',
         color: 'white',
-        marginRight: 8
     },
 });

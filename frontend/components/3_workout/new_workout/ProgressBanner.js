@@ -47,14 +47,14 @@ const styles = StyleSheet.create({
         alignItems: 'center',
     },
     bigNumber: {
-        fontSize: 24,
+        fontSize: 22.5,
         color: '#B9DCFF',
         // color: '#fff',
         fontFamily: 'Poppins_800ExtraBold',
     },
     smallText: {
         paddingTop: 1,
-        fontSize: 14.5,
+        fontSize: 13.5,
         // color: '#A5A5A5',
         color: '#eee',
         fontFamily: 'Lato_700Bold'

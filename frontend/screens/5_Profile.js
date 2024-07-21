@@ -14,7 +14,6 @@ import readDoc from "../../backend/helper/firebase/readDoc";
 import CreateModal from "../components/5_profile/CreateModal";
 import WorkoutFooter from "../components/3_workout/WorkoutFooter";
 import ExerciseGraph from "../components/5_profile/ExerciseGraph";
-import HexagonalStats from "../components/5_profile/HexagonalStats";
 import { ScrollView } from "react-native-gesture-handler";
 import PastWorkoutCard from "../components/5_profile/PastWorkoutCard";
 

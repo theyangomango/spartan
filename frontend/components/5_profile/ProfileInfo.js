@@ -22,7 +22,7 @@ export default function ProfileInfo({ userData }) {
                         style={styles.pfp}
                     />
                     <View style={styles.plus_icon_ctnr}>
-                        <Entypo name="plus" size={14.5} color="white" />
+                        <Entypo name="plus" size={15} color="white" />
                     </View>
                 </View>
                 <View style={styles.user_stats_ctnr}>
@@ -55,14 +55,14 @@ export default function ProfileInfo({ userData }) {
 
 const styles = StyleSheet.create({
     main_ctnr: {
-        paddingHorizontal: 1.5
+        paddingLeft: 1.5
     },
     top_row: {
         flexDirection: 'row',
         justifyContent: 'space-between',
         height: 80,
         alignItems: 'center',
-        paddingHorizontal: 10,
+        paddingLeft: 10,
     },
     pfp_ctnr: {
         position: 'relative',
@@ -78,9 +78,9 @@ const styles = StyleSheet.create({
         bottom: 3,
         right: 0,
         backgroundColor: '#0098FF',
-        width: 18,
+        width: 21,
         aspectRatio: 1,
-        borderRadius: 10,
+        borderRadius: 100,
         justifyContent: 'center',
         alignItems: 'center',
     },
@@ -95,18 +95,18 @@ const styles = StyleSheet.create({
         // marginRight: 12
     },
     user_stat: {
-        paddingHorizontal: 15.5,
+        paddingLeft: '7.5%',
         alignItems: 'center'
     },
     user_stat_count_text: {
         fontFamily: 'Outfit_600SemiBold',
-        fontSize: 20.5,
+        fontSize: 19.5,
         color: '#222',
         paddingBottom: 1.5
     },
     user_stat_text: {
         fontFamily: 'Outfit_500Medium',
-        fontSize: 15.5,
+        fontSize: 15,
         color: '#666'
     },
     profile_info_ctnr: {
@@ -118,14 +118,14 @@ const styles = StyleSheet.create({
     },
     name_text: {
         fontFamily: 'Outfit_600SemiBold',
-        fontSize: 24
+        fontSize: 22
     },
     bio_ctnr: {
 
     },
     bio_text: {
         fontFamily: 'Outfit_400Regular',
-        fontSize: 16,
+        fontSize: 14,
         color: '#848484'
     },
 });

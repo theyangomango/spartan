@@ -5,7 +5,9 @@ import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import 'react-native-gesture-handler';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 
-import Authentication from './frontend/screens/Authentication'
+import SignUp from './frontend/screens/SignUp'
+import LogIn from './frontend/screens/LogIn';
+
 import Feed from "./frontend/screens/1_Feed";
 import Profile from './frontend/screens/5_Profile';
 import SelectPhotosScreen from './frontend/components/5_profile/CreatePostModal/SelectPhotosScreen';
@@ -121,6 +123,17 @@ const ProfileStack = (({ navigation, route }) => {
     )
 });
 
+const AuthenticationStack = (({ navigation, route }) => {
+    return (
+        <Stack.Navigator initialRouteName='SignUp' screenOptions={{
+            headerShown: false
+        }}>
+            <Stack.Screen name='SignUp' component={SignUp} />
+            <Stack.Screen name='LogIn' component={LogIn} />
+        </Stack.Navigator>
+    )
+});
+
 export default function App() {
     let [fontsLoaded] = useFonts({
         Inter_100Thin,
@@ -207,26 +220,27 @@ export default function App() {
         return <></>
     }
     else return (
-        // <GestureHandlerRootView style={{ flex: 1 }}>
-        //     <NavigationContainer>
-        //         <Tab.Navigator initialRouteName='Feed' screenOptions={{
-        //             headerShown: false,
-        //             tabBarStyle: {
-        //                 display: 'none'
-        //             }
-        //         }}>
-        //             <Tab.Screen name='Feed' component={Feed} />
-        //             <Tab.Screen name='Messages' component={Messages} />
-        //             <Tab.Screen name='Chat' component={Chat} />
-        //             <Tab.Screen name='Competition' component={Competition} />
-        //             <Tab.Screen name='Workout' component={Workout} />
-        //             <Tab.Screen name='Explore' component={Explore} />
-        //             <Tab.Screen name='ProfileStack' component={ProfileStack} />
-        //             <Tab.Screen name='PostList' component={PostList} />
-        //             <Tab.Screen name='ViewProfile' component={ViewProfile} />
-        //         </Tab.Navigator>
-        //     </NavigationContainer>
-        // </GestureHandlerRootView>
-        <Authentication />
+        <GestureHandlerRootView style={{ flex: 1 }}>
+            <NavigationContainer>
+                <Tab.Navigator initialRouteName='Feed' screenOptions={{
+                    headerShown: false,
+                    tabBarStyle: {
+                        display: 'none'
+                    }
+                }}>
+                    <Tab.Screen name='AuthenticationStack' component={AuthenticationStack}/>
+                    <Tab.Screen name='Feed' component={Feed} />
+                    <Tab.Screen name='Messages' component={Messages} />
+                    <Tab.Screen name='Chat' component={Chat} />
+                    <Tab.Screen name='Competition' component={Competition} />
+                    <Tab.Screen name='Workout' component={Workout} />
+                    <Tab.Screen name='Explore' component={Explore} />
+                    <Tab.Screen name='ProfileStack' component={ProfileStack} />
+                    <Tab.Screen name='PostList' component={PostList} />
+                    <Tab.Screen name='ViewProfile' component={ViewProfile} />
+                </Tab.Navigator>
+            </NavigationContainer>
+        </GestureHandlerRootView>
+        // <Authentication />
     )
 }

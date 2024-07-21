@@ -54,9 +54,9 @@ const styles = StyleSheet.create({
         backgroundColor: '#DCFFDA'
     },
     set_ctnr: {
-        marginLeft: 20,
-        marginRight: 5,
-        width: 30,
+        marginLeft: '5%',
+        // width: 30,
+        width: '8%',
         height: 21,
         borderRadius: 6,
         backgroundColor: '#eaeaea',
@@ -65,7 +65,7 @@ const styles = StyleSheet.create({
         justifyContent: 'center',
     },
     previous_ctnr: {
-        width: 165,
+        width: '38.5%',
         alignItems: 'center',
         justifyContent: 'center',
         // borderWidth: 1
@@ -74,12 +74,13 @@ const styles = StyleSheet.create({
 
     },
     weight_unit_ctnr: {
-        width: 75,
+        // width: 75,
+        width: '18%',
         alignItems: 'center',
         // backgroundColor: 'red'
     },
     reps_ctnr: {
-        width: 75,
+        width: '18%',
         alignItems: 'center',
     },
     set_number_text: {
@@ -106,13 +107,13 @@ const styles = StyleSheet.create({
     //     paddingVertical: 6,
     // },
     done_ctnr: {
-        width: 36,
+        width: '10%',
         height: 22,
-        marginLeft: 6,
+        // marginLeft: 6,
         alignItems: 'center',
     },
     checkmark_ctnr: {
-        paddingHorizontal: 8,
+        paddingHorizontal: 10,
         height: '100%',
         borderRadius: 7,
         backgroundColor: '#eee',

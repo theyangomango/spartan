@@ -8,6 +8,8 @@ const GroupModal = ({ closeGroupModal }) => {
     const [selectedUsers, setSelectedUsers] = useState([]);
     const [keyboardOpen, setKeyboardOpen] = useState(false);
 
+    console.log(followingUsers[4])
+
     useEffect(() => {
         if (global.userData) {
             setFollowingUsers(global.userData.following);
@@ -102,7 +104,7 @@ const GroupModal = ({ closeGroupModal }) => {
                                                 resizeMode={FastImage.resizeMode.cover}
                                             />
                                         </View>
-                                        <Text style={styles.handle_text}>{user.handle}</Text>
+                                        <Text numberOfLines={1} style={styles.handle_text}>{user.handle}</Text>
                                     </Pressable>
                                 );
                             })}
@@ -150,13 +152,13 @@ const styles = StyleSheet.create({
     },
     modalText: {
         fontFamily: 'Poppins_600SemiBold',
-        fontSize: 16,
+        fontSize: 14,
     },
     inviteButton: {
         position: 'absolute',
         right: 0,
         backgroundColor: '#E1F0FF',
-        paddingHorizontal: 12.5,
+        paddingHorizontal: 10.5,
         height: 29,
         borderRadius: 8,
         alignItems: 'center',
@@ -166,7 +168,7 @@ const styles = StyleSheet.create({
     inviteButtonText: {
         color: '#0499FE',
         fontFamily: 'Outfit_700Bold',
-        fontSize: 15.5,
+        fontSize: 14,
     },
     searchContainer: {
         flexDirection: 'row',

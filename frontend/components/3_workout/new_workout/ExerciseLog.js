@@ -134,22 +134,27 @@ const styles = StyleSheet.create({
     labels: {
         flexDirection: 'row',
         paddingBottom: 5,
-        paddingHorizontal: 22,
+        // paddingHorizontal: 22,
     },
     set_ctnr: {
-        width: 28,
-        marginRight: 5,
+        // width: 28,
+        marginLeft: '5%',
+        // width: 30,
+        width: '8%',
+        // backgroundColor: 'red',
+        alignItems: 'center'
     },
     previous_ctnr: {
-        width: 165,
+        // width: 165,
+        width: '38.5%',
         alignItems: 'center',
     },
     weight_unit_ctnr: {
-        width: 75,
+        width: '18%',
         alignItems: 'center',
     },
     reps_ctnr: {
-        width: 75,
+        width: '18%',
         alignItems: 'center',
     },
     label_text: {

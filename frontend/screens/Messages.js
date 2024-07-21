@@ -13,7 +13,7 @@ export default function Messages({ navigation, route }) {
     }, []);
 
     function toFeedScreen() {
-        navigation.goBack();
+        navigation.navigate('Feed');
     }
 
     function toChat(key, pfp_uid, handle) {

@@ -18,14 +18,14 @@ export default function StartWorkoutButton({ startWorkout }) {
 const styles = StyleSheet.create({
     main_ctnr: {
         backgroundColor: '#6FB8FF',
-        height: 43,
+        height: 42,
         paddingHorizontal: 28,
         marginVertical: 4,
         borderRadius: 15,
         alignItems: 'center',
         flexDirection: 'row',
         justifyContent: 'space-between',
-        marginHorizontal: 18,
+        marginHorizontal: 14,
     },
     left: {
         flexDirection: 'row',
@@ -33,10 +33,10 @@ const styles = StyleSheet.create({
         alignItems: 'center'
     },
     text: {
-        fontSize: 18,
+        fontSize: 16,
         fontFamily: 'SourceSansPro_600SemiBold',
         color: 'white',
-        marginRight: 8
+        // marginRight: 8
     },
     icon_ctnr: {
         paddingBottom: 1
