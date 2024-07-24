@@ -1,60 +1,47 @@
 import React, { useState } from "react";
 import { StyleSheet, View, Pressable, Text, TouchableOpacity } from "react-native";
 import { ArrowLeft2 } from 'iconsax-react-native';
+import { Feather, FontAwesome6 } from '@expo/vector-icons';
 
-export default function MessagesHeader({ toFeedScreen, handle }) {
+export default function MessagesHeader({ toFeedScreen, handle, setScope }) {
     const [selectedButton, setSelectedButton] = useState('All');
 
     const handleButtonPress = (button) => {
         setSelectedButton(button);
+        setScope(button);
     };
 
     return (
         <View style={styles.main_ctnr}>
-            <View style={styles.top_row}>
-                <TouchableOpacity activeOpacity={0.5} onPress={toFeedScreen}>
-                    <View style={styles.arrow_icon_ctnr}>
-                        <ArrowLeft2 size="20" color="#2D9EFF" />
-                        {/* <ArrowLeft2 size="24" color="#fff" /> */}
-                    </View>
-                </TouchableOpacity>
-                <View style={styles.title_ctnr}>
-                    <Text style={styles.title}>Messages</Text>
-                </View>
-                <View style={[styles.arrow_icon_ctnr, styles.hidden]}>
-                    {/* <ArrowLeft2 size="24" color="#2D9EFF" />  */}
-                    <ArrowLeft2 size="20" color="#fff" />
-                </View>
-            </View>
+            <View style={styles.row}>
+                <View style={styles.arrow_icon_ctnr}>
+                    <TouchableOpacity activeOpacity={0.5} onPress={toFeedScreen}>
 
-            <View style={styles.bottom_row}>
+                        <FontAwesome6 name='chevron-left' size={18.5} color="#2D9EFF"/>
+
+                    </TouchableOpacity>
+                </View>
+
                 <View style={styles.overlay}>
                     <Pressable
                         style={[
                             styles.button_ctnr,
-                            { backgroundColor: selectedButton === 'All' ? '#fff' : '#eee' }
+                            styles.left_button_ctnr,
+                            { backgroundColor: selectedButton === 'All' ? '#2D9EFF' : '#eee' }
                         ]}
                         onPress={() => handleButtonPress('All')}
                     >
-                        <Text style={styles.button_text}>All</Text>
+                        <Text style={[styles.button_text, { color: selectedButton == 'All' ? '#fff' : '#888' }]}>All</Text>
                     </Pressable>
                     <Pressable
                         style={[
                             styles.button_ctnr,
-                            { backgroundColor: selectedButton === 'Direct' ? '#fff' : '#eee' }
-                        ]}
-                        onPress={() => handleButtonPress('Direct')}
-                    >
-                        <Text style={styles.button_text}>Direct</Text>
-                    </Pressable>
-                    <Pressable
-                        style={[
-                            styles.button_ctnr,
-                            { backgroundColor: selectedButton === 'Group' ? '#fff' : '#eee' }
+                            styles.right_button_ctnr,
+                            { backgroundColor: selectedButton === 'Group' ? '#2D9EFF' : '#eee' }
                         ]}
                         onPress={() => handleButtonPress('Group')}
                     >
-                        <Text style={styles.button_text}>Group</Text>
+                        <Text style={[styles.button_text, { color: selectedButton == 'Group' ? '#fff' : '#888' }]}>Group</Text>
                     </Pressable>
                 </View>
             </View>
@@ -64,19 +51,16 @@ export default function MessagesHeader({ toFeedScreen, handle }) {
 
 const styles = StyleSheet.create({
     main_ctnr: {
-        width: '100%',
         backgroundColor: '#fff',
-        paddingHorizontal: 30,
-    },
-    top_row: {
-        width: '100%',
-        height: 103,
-        backgroundColor: '#fff',
-        flexDirection: 'row',
-        alignItems: 'flex-end',
+        paddingTop: 60,
     },
     arrow_icon_ctnr: {
-        paddingVertical: 10
+        position: 'absolute',
+        zIndex: 1,
+        left: 32,
+        height: 55,
+        // alignItems: 'center'
+        justifyContent: 'center'
     },
     title_ctnr: {
         padding: 10,
@@ -88,26 +72,38 @@ const styles = StyleSheet.create({
         fontSize: 18,
         color: '#2D9EFF'
     },
-    bottom_row: {
+    row: {
         flexDirection: 'row',
         justifyContent: 'center',
-        paddingTop: 5
+        paddingTop: 5,
+        // width: 'auto',
+        width: '100%',
+        // backgroundColor: 'red',
+        paddingHorizontal: 30,
+        paddingBottom: 5
     },
     overlay: {
         flexDirection: 'row',
         backgroundColor: '#eee',
-        borderRadius: 40
+        borderRadius: 40,
+        // backgroundColor: 'blue'
     },
     button_ctnr: {
-        width: 115,
-        height: 20,
+        width: 113,
+        height: 39,
         borderRadius: 40,
         justifyContent: 'center',
         alignItems: 'center',
-        margin: 2.5
+        marginVertical: 4
+    },
+    left_button_ctnr: {
+        marginLeft: 4,
+    },
+    right_button_ctnr: {
+        marginRight: 4,
     },
     button_text: {
         fontFamily: 'Mulish_700Bold',
-        fontSize: 12,
+        fontSize: 12.5,
     }
 });

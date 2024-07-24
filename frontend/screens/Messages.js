@@ -6,7 +6,7 @@ import MessagesHeader from "../components/messages/MessagesHeader";
 export default function Messages({ navigation, route }) {
     const userData = global.userData;
     const [messages, setMessages] = useState([]);
-    // const messages = route.params.messages;
+    const [scope, setScope] = useState('All');
 
     useEffect(() => {
         setMessages(route.params.messages);
@@ -23,7 +23,7 @@ export default function Messages({ navigation, route }) {
     if (userData) {
         return (
             <View style={styles.main_ctnr}>
-                <MessagesHeader handle={userData.handle} toFeedScreen={toFeedScreen} />
+                <MessagesHeader handle={userData.handle} toFeedScreen={toFeedScreen} setScope={setScope} />
                 <View style={styles.cards_ctnr}>
                     <ScrollView style={styles.cards_scrollview}>
                         {
@@ -33,15 +33,16 @@ export default function Messages({ navigation, route }) {
                                 });
 
                                 return (
-                                    <MessageCard
-                                        uid={usersExcludingSelf[0].uid}
-                                        handle={usersExcludingSelf[0].handle}
-                                        content={msg.content[msg.content.length - 1].text}
-                                        timestamp={msg.content[msg.content.length - 1].timestamp}
-                                        toChat={toChat}
-                                        index={index}
-                                        key={index}
-                                    />
+                                    <View key={index} style={(scope == 'Group' && !msg.isGroup) && {display: 'none'}}>
+                                        <MessageCard
+                                            uid={usersExcludingSelf[0].uid}
+                                            handle={usersExcludingSelf[0].handle}
+                                            content={msg.content[msg.content.length - 1].text}
+                                            timestamp={msg.content[msg.content.length - 1].timestamp}
+                                            toChat={toChat}
+                                            index={index}
+                                        />
+                                    </View>
                                 )
                             })
                         }
@@ -60,9 +61,9 @@ const styles = StyleSheet.create({
     },
     cards_ctnr: {
         flex: 1,
-        paddingHorizontal: 18,
+        // paddingHorizontal: 18,
     },
     cards_scrollview: {
-        paddingTop: 12
+        paddingTop: 15
     }
 });

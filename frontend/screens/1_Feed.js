@@ -139,7 +139,7 @@ const styles = StyleSheet.create({
     },
     posts_view_ctnr: {
         paddingTop: 10,
-        paddingHorizontal: 13.5,
+        paddingHorizontal: 10,
         // paddingHorizontal: 3,
         flex: 1,
         // backgroundColor: '#E9F1FB',

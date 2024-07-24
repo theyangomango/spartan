@@ -37,12 +37,14 @@ export default function MessageCard({ uid, handle, content, timestamp, toChat, i
 
 const styles = StyleSheet.create({
     main_ctnr: {
-        width: '100%',
-        height: 78,
-        paddingHorizontal: 3,
+        height: 80,
+        marginHorizontal: 15,
+        paddingHorizontal: 15,
+        borderRadius: 25,
         flexDirection: 'row',
         justifyContent: 'space-between',
-        alignItems: 'center'
+        backgroundColor: '#f8f8f8',
+        marginBottom: 8
     },
     pfp_ctnr: {
         width: 48,
@@ -52,29 +54,35 @@ const styles = StyleSheet.create({
     },
     pfp: {
         flex: 1,
-        borderRadius: 29
+        borderRadius: 100
     },
     left_ctnr: {
-        flexDirection: 'row'
+        flexDirection: 'row',
+        alignItems: 'center',
     },
     handle_text: {
-        fontSize: 16.2,
-        color: '#707078',
+        fontSize: 16,
+        // color: '#707078',
         paddingVertical: 5,
-        fontFamily: 'SourceSansPro_600SemiBold'
+        fontFamily: 'Outfit_500Medium',
+        letterSpacing: 0.2
     },
     content_text: {
-        fontSize: 12.5,
-        fontFamily: 'SourceSansPro_400Regular',
-        color: '#707078',
+        fontSize: 12,
+        fontFamily: 'Outfit_400Regular',
+        color: '#999',
+        marginBottom: 7
     },
     right_ctnr: {
-        justifyContent: 'center'
+        // justifyContent: 'center'
+        paddingTop: 15
     },
     date_text: {
         padding: 5,
         color: '#707078',
-        fontSize: 12.5,
-        fontFamily: 'SourceSansPro_400Regular',
+        fontSize: 12,
+        fontFamily: 'Outfit_400Regular',
+        letterSpacing: 0.1,
+        color: '#999',
     }
 });
