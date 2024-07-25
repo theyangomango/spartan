@@ -1,9 +1,10 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { View, Text, TextInput, TouchableOpacity, StyleSheet, FlatList, KeyboardAvoidingView, Platform, Keyboard, StatusBar, Image } from 'react-native';
-import { Ionicons } from '@expo/vector-icons'; // Import Ionicons from @expo/vector-icons
-import { ArrowLeft2 } from 'iconsax-react-native';
+import { View, Text, TextInput, TouchableOpacity, StyleSheet, FlatList, KeyboardAvoidingView, Platform, Keyboard, Image } from 'react-native';
+import { Ionicons, FontAwesome6 } from '@expo/vector-icons';
 import getPFP from '../../backend/storage/getPFP';
 import sendMessage from '../../backend/messages/sendMessage';
+import getChatDisplayTime from '../helper/getChatDisplayTime';
+import getDisplayTime from '../helper/getDisplayTime';
 
 function getReverse(arr) {
     let list = [];
@@ -83,16 +84,32 @@ const Chat = ({ navigation, route }) => {
         navigation.navigate('Messages');
     }
 
+    const formatDate = (timestamp) => {
+        const date = new Date(timestamp);
+        return `${date.getHours()}:${date.getMinutes()}`;
+    };
+
+    const shouldDisplayTime = (currentMessage, lastMessage) => {
+        if (!lastMessage) return true; // Display time for the first message
+        return ((currentMessage.timestamp - lastMessage.timestamp)) > 1000 * 60 * 60 * 4; // More than 2 minutes apart
+    };
+
+    // Hardcoded lastTimestamp for the other user
+    const otherUserLastTimestamp = 1721880100874; // Replace with actual timestamp
+
     return (
         <KeyboardAvoidingView
             style={{ flex: 1 }}
             behavior={Platform.OS === 'ios' ? 'padding' : null}
         >
             <View style={styles.container}>
-                <View style={styles.header}>
-                    <TouchableOpacity activeOpacity={0.5} onPress={toMessages} style={styles.backButton}>
-                        <ArrowLeft2 size="24" color="#2D9EFF" />
+                <View style={styles.arrow_icon_ctnr}>
+                    <TouchableOpacity activeOpacity={0.5} onPress={toMessages}>
+                        <FontAwesome6 name='chevron-left' size={18.5} color="#2D9EFF" />
                     </TouchableOpacity>
+                </View>
+
+                <View style={styles.header}>
                     <View style={styles.headerContent}>
                         <View style={styles.pfp_ctnr}>
                             <Image
@@ -100,7 +117,10 @@ const Chat = ({ navigation, route }) => {
                                 style={styles.pfp}
                             />
                         </View>
-                        <Text style={styles.handleText}>{handle}</Text>
+                        <View>
+                            <Text style={styles.nameText}>Sam Suluk</Text>
+                            <Text style={styles.handleText}>{handle}</Text>
+                        </View>
                     </View>
                 </View>
                 <View style={styles.content}>
@@ -108,11 +128,31 @@ const Chat = ({ navigation, route }) => {
                         showsVerticalScrollIndicator={false}
                         ref={flatListRef}
                         data={messages}
-                        renderItem={({ item, index }) => (
-                            <View style={item.uid === global.userData.uid ? styles.userMessageContainer : styles.otherMessageContainer}>
-                                <Text style={item.uid === global.userData.uid ? styles.userMessageText : styles.otherMessageText}>{item.text}</Text>
-                            </View>
-                        )}
+                        renderItem={({ item, index }) => {
+                            const nextItem = messages[index + 1];
+                            const displayTime = shouldDisplayTime(item, nextItem);
+
+                            // Determine if this message is the last one read by the other user
+                            const isLastReadMessage = item.timestamp >= otherUserLastTimestamp && (!nextItem || nextItem.timestamp > otherUserLastTimestamp);
+
+                            return (
+                                <>
+                                    <View style={item.uid === global.userData.uid ? styles.userMessageContainer : styles.otherMessageContainer}>
+                                        <Text style={item.uid === global.userData.uid ? styles.userMessageText : styles.otherMessageText}>{item.text}</Text>
+                                    </View>
+                                    {displayTime && (
+                                        <View style={styles.timeContainer}>
+                                            <Text style={styles.timeText}>{getChatDisplayTime(item.timestamp)}</Text>
+                                        </View>
+                                    )}
+                                    {isLastReadMessage && (
+                                        <View style={styles.readReceiptContainer}>
+                                            <Text style={styles.readReceiptText}>Read {getDisplayTime(otherUserLastTimestamp)}</Text>
+                                        </View>
+                                    )}
+                                </>
+                            );
+                        }}
                         style={styles.flatlist}
                         keyExtractor={(item, index) => index.toString()}
                         inverted // To display messages from bottom to top
@@ -123,7 +163,7 @@ const Chat = ({ navigation, route }) => {
                         ListFooterComponent={<View style={{ height: 15 }} />} // Add a footer with 20 pixels of height
                     />
                 </View>
-                <View style={[styles.inputContainer, { marginBottom: isInputFocused ? 11 : 30 }]}>
+                <View style={[styles.inputContainer, { marginBottom: isInputFocused ? 4 : 22 }]}>
                     <TouchableOpacity style={styles.emojiButton}>
                         <Ionicons name="happy-outline" size={26} color="#999" />
                     </TouchableOpacity>
@@ -150,10 +190,7 @@ const styles = StyleSheet.create({
         backgroundColor: '#fff',
     },
     header: {
-        height: 108,
-        flexDirection: 'row', // Align items horizontally
-        alignItems: 'flex-end', // Center items vertically
-        paddingBottom: 5,
+        paddingTop: 53,
         backgroundColor: '#fff', // Add background color to header
         // Add shadow properties
         shadowColor: '#aaa',
@@ -161,44 +198,52 @@ const styles = StyleSheet.create({
         shadowOpacity: 0.2,
         shadowRadius: 3.84,
         elevation: 5, // For Android
+        paddingLeft: '16.5%'
     },
-    backButton: {
-        paddingLeft: 30,
-        paddingRight: 15,
-        paddingVertical: 10
+    arrow_icon_ctnr: {
+        position: 'absolute',
+        top: 51,
+        zIndex: 1,
+        left: 32,
+        height: 58,
+        width: 50,
+        justifyContent: 'center'
     },
     headerContent: {
         flexDirection: 'row',
-        alignItems: 'center',
-        paddingVertical: 5,
+        alignItems: 'flex-end',
+        paddingBottom: 7,
+        paddingTop: 2
     },
     pfp_ctnr: {
-        width: 38,
+        width: 42,
         aspectRatio: 1,
         marginRight: 7,
     },
     pfp: {
         flex: 1,
-        borderRadius: 20,
+        borderRadius: 100,
+    },
+    nameText: {
+        fontFamily: 'Poppins_600SemiBold',
+        fontSize: 15,
     },
     handleText: {
-        fontFamily: 'Mulish_600SemiBold',
-        fontSize: 21.5,
-        color: '#2D9EFF'
+        fontFamily: 'Poppins_500Medium',
+        fontSize: 12.5,
+        color: '#888'
     },
     content: {
         flex: 1,
-        marginTop: 4,
-        backgroundColor: '#F3F6FA'
+        backgroundColor: '#f8f8f8'
     },
-    flatlist: {
-    },
+    flatlist: {},
     userMessageContainer: {
         alignSelf: 'flex-end',
         backgroundColor: '#0499FE', // Blue background color for user messages
         borderRadius: 10,
         marginHorizontal: 20,
-        marginVertical: 3,
+        marginVertical: 2,
         padding: 10,
         maxWidth: '70%',
     },
@@ -207,19 +252,42 @@ const styles = StyleSheet.create({
         backgroundColor: '#CEE4F9', // Blue background color for other messages
         borderRadius: 10,
         marginHorizontal: 20,
-        marginVertical: 3,
+        marginVertical: 2,
         padding: 10,
         maxWidth: '70%',
     },
     userMessageText: {
-        fontSize: 16,
+        fontSize: 14,
         color: '#fff', // White text color for message text
-        fontFamily: 'Poppins_400Regular'
+        fontFamily: 'Poppins_500Medium'
     },
     otherMessageText: {
-        fontSize: 16,
-        color: '#000', // White text color for message text
-        fontFamily: 'Poppins_400Regular'
+        fontSize: 14,
+        color: '#222', // Black text color for message text
+        fontFamily: 'Poppins_500Medium'
+    },
+    timeContainer: {
+        alignSelf: 'center',
+        marginVertical: 25,
+        backgroundColor: '#EEE',
+        paddingVertical: 5,
+        paddingHorizontal: 10,
+        borderRadius: 20,
+    },
+    timeText: {
+        fontSize: 12,
+        color: '#666',
+        fontFamily: 'Poppins_500Medium'
+    },
+    readReceiptContainer: {
+        alignSelf: 'flex-end',
+        marginRight: 20,
+        marginTop: 5,
+    },
+    readReceiptText: {
+        fontSize: 12,
+        color: '#888',
+        fontFamily: 'Poppins_500Medium'
     },
     inputContainer: {
         flexDirection: 'row',
@@ -228,7 +296,7 @@ const styles = StyleSheet.create({
         paddingTop: 6,
         paddingBottom: 10,
         borderRadius: 30,
-        marginTop: 10,
+        marginTop: 6,
         marginHorizontal: 15,
         backgroundColor: '#fff', // Add background color to input container
         ...(Platform.OS === 'android' && { elevation: 5 }), // Add elevation only for Android
@@ -241,10 +309,10 @@ const styles = StyleSheet.create({
         flex: 1,
         borderRadius: 20,
         paddingHorizontal: 15,
-        fontSize: 16,
+        fontSize: 13,
         marginRight: 10,
-        color: '#000', // Text color,
-        fontFamily: 'SourceSansPro_400Regular'
+        color: '#000', // Text color
+        fontFamily: 'Poppins_500Medium'
     },
     sendButton: {
         backgroundColor: '#0499FE', // Blue background color

@@ -63,12 +63,12 @@ const styles = StyleSheet.create({
     handle_text: {
         fontSize: 16,
         // color: '#707078',
-        paddingVertical: 5,
+        paddingVertical: 3,
         fontFamily: 'Outfit_500Medium',
         letterSpacing: 0.2
     },
     content_text: {
-        fontSize: 12,
+        fontSize: 12.5,
         fontFamily: 'Outfit_400Regular',
         color: '#999',
         marginBottom: 7

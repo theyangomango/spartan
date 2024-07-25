@@ -40,7 +40,7 @@ export default function getDisplayTime(dateMiliseconds) {
     } else if (diff > 86400000) {
         returnString = 'Yesterday';
     } else {
-        returnString = `${d_hours <= 12 ? d_hours : d_hours - 12}:${d_minutes} ${d_hours < 12 ? 'AM' : 'PM'}`;
+        returnString = `${d_hours <= 12 ? d_hours : d_hours - 12}:${d_minutes < 10 ? '0' + d_minutes : d_minutes} ${d_hours < 12 ? 'AM' : 'PM'}`;
     }
 
     return returnString;

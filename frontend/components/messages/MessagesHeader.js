@@ -1,29 +1,59 @@
-import React, { useState } from "react";
-import { StyleSheet, View, Pressable, Text, TouchableOpacity } from "react-native";
-import { ArrowLeft2 } from 'iconsax-react-native';
-import { Feather, FontAwesome6 } from '@expo/vector-icons';
+import React, { useState, useRef, useEffect } from "react";
+import { StyleSheet, View, Text, TouchableOpacity, Dimensions } from "react-native";
+import { FontAwesome6, FontAwesome5 } from '@expo/vector-icons';
+import RNBounceable from "@freakycoder/react-native-bounceable";
+import BottomSheet from "react-native-gesture-bottom-sheet";
+import CreateGroupChatModal from './CreateGroupChatModal'; // Assuming ShareModal is in the same directory
+
+const { height } = Dimensions.get('window');
 
 export default function MessagesHeader({ toFeedScreen, handle, setScope }) {
     const [selectedButton, setSelectedButton] = useState('All');
+    const [shareBottomSheetBackgroundColor, setShareBottomSheetBackgroundColor] = useState('rgba(0, 0, 0, 0.5)');
+    const shareBottomSheet = useRef();
 
     const handleButtonPress = (button) => {
         setSelectedButton(button);
         setScope(button);
     };
 
+    const openShareModal = () => {
+        shareBottomSheet.current.show();
+    };
+
+    useEffect(() => {
+        const interval = setInterval(() => {
+            if (shareBottomSheet.current) {
+                let panY = parseInt(JSON.stringify(shareBottomSheet.current.state.pan.y));
+                let animatedHeight = parseInt(JSON.stringify(shareBottomSheet.current.state.animatedHeight));
+                let realHeight = Math.max(panY, 1000 - animatedHeight);
+                setShareBottomSheetBackgroundColor(`rgba(0, 0, 0, ${0.7 - 0.75 * (realHeight / 600)})`);
+            }
+        }, 10);
+
+        return () => {
+            clearInterval(interval);
+        };
+    }, []);
+
     return (
         <View style={styles.main_ctnr}>
             <View style={styles.row}>
-                <View style={styles.arrow_icon_ctnr}>
-                    <TouchableOpacity activeOpacity={0.5} onPress={toFeedScreen}>
-
-                        <FontAwesome6 name='chevron-left' size={18.5} color="#2D9EFF"/>
-
+                <TouchableOpacity activeOpacity={0.5} onPress={toFeedScreen} style={styles.arrow_icon_ctnr}>
+                    {/* <TouchableOpacity activeOpacity={0.5} onPress={toFeedScreen}> */}
+                        <FontAwesome6 name='chevron-left' size={18.5} color="#2D9EFF" />
+                    {/* </TouchableOpacity> */}
+                </TouchableOpacity>
+                <View style={styles.group_icon_ctnr}>
+                    <TouchableOpacity activeOpacity={0.5} onPress={openShareModal}>
+                        <FontAwesome5 name='users' size={20.5} color="#2D9EFF" />
                     </TouchableOpacity>
                 </View>
-
+                <View style={styles.plus_icon_ctnr}>
+                    <FontAwesome5 name='plus' size={12.5} color="#2D9EFF" />
+                </View>
                 <View style={styles.overlay}>
-                    <Pressable
+                    <RNBounceable
                         style={[
                             styles.button_ctnr,
                             styles.left_button_ctnr,
@@ -32,8 +62,8 @@ export default function MessagesHeader({ toFeedScreen, handle, setScope }) {
                         onPress={() => handleButtonPress('All')}
                     >
                         <Text style={[styles.button_text, { color: selectedButton == 'All' ? '#fff' : '#888' }]}>All</Text>
-                    </Pressable>
-                    <Pressable
+                    </RNBounceable>
+                    <RNBounceable
                         style={[
                             styles.button_ctnr,
                             styles.right_button_ctnr,
@@ -42,9 +72,19 @@ export default function MessagesHeader({ toFeedScreen, handle, setScope }) {
                         onPress={() => handleButtonPress('Group')}
                     >
                         <Text style={[styles.button_text, { color: selectedButton == 'Group' ? '#fff' : '#888' }]}>Group</Text>
-                    </Pressable>
+                    </RNBounceable>
                 </View>
             </View>
+            <BottomSheet
+                hasDraggableIcon
+                ref={shareBottomSheet}
+                height={height - 65}
+                sheetBackgroundColor={'#fff'}
+                backgroundColor={shareBottomSheetBackgroundColor}
+                draggable={true} // Optional, as it's true by default
+            >
+                <CreateGroupChatModal />
+            </BottomSheet>
         </View>
     );
 }
@@ -52,33 +92,37 @@ export default function MessagesHeader({ toFeedScreen, handle, setScope }) {
 const styles = StyleSheet.create({
     main_ctnr: {
         backgroundColor: '#fff',
-        paddingTop: 60,
+        paddingTop: 51,
     },
     arrow_icon_ctnr: {
         position: 'absolute',
         zIndex: 1,
         left: 32,
+        height: 58,
+        justifyContent: 'center',
+        width: 50
+    },
+    group_icon_ctnr: {
+        position: 'absolute',
+        zIndex: 1,
+        right: 30,
         height: 55,
-        // alignItems: 'center'
         justifyContent: 'center'
     },
-    title_ctnr: {
-        padding: 10,
-        flex: 1,
-        alignItems: 'center',
-    },
-    title: {
-        fontFamily: 'Outfit_400Regular',
-        fontSize: 18,
-        color: '#2D9EFF'
+    plus_icon_ctnr: {
+        position: 'absolute',
+        zIndex: 1,
+        top: 28,
+        right: 21.5,
+        borderRadius: 100,
+        justifyContent: 'center',
+        backgroundColor: '#fff',
     },
     row: {
         flexDirection: 'row',
         justifyContent: 'center',
         paddingTop: 5,
-        // width: 'auto',
         width: '100%',
-        // backgroundColor: 'red',
         paddingHorizontal: 30,
         paddingBottom: 5
     },
@@ -86,7 +130,6 @@ const styles = StyleSheet.create({
         flexDirection: 'row',
         backgroundColor: '#eee',
         borderRadius: 40,
-        // backgroundColor: 'blue'
     },
     button_ctnr: {
         width: 113,
