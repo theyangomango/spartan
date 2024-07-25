@@ -1,7 +1,8 @@
 import React, { useRef, useState } from "react";
-import { Text, StyleSheet, View, ScrollView, Dimensions } from "react-native";
+import { Text, StyleSheet, View, TouchableOpacity, Dimensions } from "react-native";
 import { useFocusEffect } from '@react-navigation/native';
 import BottomSheet from "react-native-gesture-bottom-sheet";
+import DraggableFlatList, { ScaleDecorator } from "react-native-draggable-flatlist";
 import NewWorkoutModal from "../components/3_workout/new_workout/NewWorkoutModal";
 import Footer from "../components/Footer";
 import TemplateCard from "../components/3_workout/TemplateCard";
@@ -18,11 +19,12 @@ import GoalBanner from "../components/3_workout/GoalBanner";
 import CalendarBanner from "../components/3_workout/CalendarBanner";
 import { SafeAreaView } from "react-native-safe-area-context";
 import WorkoutDates from "../components/3_workout/WorkoutDates";
+import RNBounceable from "@freakycoder/react-native-bounceable";
 
 const { height } = Dimensions.get('window');
 
 const lastUsedDate = "July 6th";
-const exercises = [
+const initialExercises = [
     { name: "3 x Incline Bench (Barbell)", muscle: "Chest" },
     { name: "3 x Decline Bench (Barbell)", muscle: "Chest" },
     { name: "3 x Chest Flys", muscle: "Chest" },
@@ -33,8 +35,18 @@ const exercises = [
     { name: "5 x Reverse Curls (Barbell)", muscle: "Biceps" }
 ];
 
+const initialTemplates = [
+    { id: '1', lastUsedDate, exercises: initialExercises, name: 'Chest & Back' },
+    { id: '2', lastUsedDate, exercises: initialExercises, name: 'Full Upper Body' },
+    { id: '3', lastUsedDate, exercises: initialExercises, name: 'Leg Day!!!' },
+    { id: '4', lastUsedDate, exercises: initialExercises, name: 'Full Body' },
+    { id: '5', lastUsedDate, exercises: initialExercises, name: 'Cardio' },
+    { id: '6', lastUsedDate, exercises: initialExercises, name: 'Full Upper Body' }
+];
+
 export default function Workout({ navigation }) {
     const [workout, setWorkout] = useState(null);
+    const [templates, setTemplates] = useState(initialTemplates);
     const newWorkoutBottomSheet = useRef();
     const joinWorkoutBottomSheet = useRef();
     const [newWorkoutBkgColor, setNewWorkoutBkgColor] = useState('#000');
@@ -99,19 +111,32 @@ export default function Workout({ navigation }) {
         }, [])
     );
 
+    const renderItem = ({ item, drag, isActive }) => {
+        return (
+            <ScaleDecorator>
+                <RNBounceable
+                    onLongPress={drag}
+                    disabled={isActive}
+                // style={{ opacity: isActive ? 0.8 : 1 }}
+                >
+                    <TemplateCard
+                        lastUsedDate={item.lastUsedDate}
+                        exercises={item.exercises}
+                        name={item.name}
+                    />
+                </RNBounceable>
+            </ScaleDecorator>
+        );
+    };
+
     return (
         <View style={styles.main_ctnr}>
-            {/* <WorkoutHeader /> */}
-
             <BottomSheet
                 hasDraggableIcon
                 ref={newWorkoutBottomSheet}
                 height={height - 60}
                 sheetBackgroundColor={'#fff'}
-                // backgroundColor={newWorkoutBkgColor}
                 backgroundColor={newWorkoutBkgColor}
-            // Todo edit draggable option to allow scrolling
-            // draggable={false} 
             >
                 <NewWorkoutModal
                     workout={workout}
@@ -129,51 +154,36 @@ export default function Workout({ navigation }) {
                 height={275}
                 sheetBackgroundColor={'#fff'}
                 backgroundColor={joinWorkoutBkgColor}
-            // Todo edit draggable option to allow scrolling
-            // draggable={false} 
             >
                 <JoinWorkoutModal />
             </BottomSheet>
 
-            {/* <WorkoutHeader /> */}
-
-
             <View style={styles.body}>
                 <View style={{ height: 55 }} />
 
-                <ScrollView showsVerticalScrollIndicator={false}>
-                    <View style={{ height: 10 }} />
+                <WorkoutDates />
+                <Text style={styles.quick_start_text}>Quick Start</Text>
 
-                    <WorkoutDates />
-                    {/* <GoalBanner workoutsLeft={12} progress={56} /> */}
-                    {/* <CalendarBanner /> */}
+                <StartWorkoutButton startWorkout={startNewWorkout} />
+                <JoinWorkoutButton joinWorkout={() => joinWorkoutBottomSheet.current.show()} />
 
-                    <Text style={styles.quick_start_text}>Quick Start</Text>
-
-                    <StartWorkoutButton startWorkout={startNewWorkout} />
-                    <JoinWorkoutButton joinWorkout={() => joinWorkoutBottomSheet.current.show()} />
-
-                    <Text style={styles.templates_text}>Templates</Text>
-                    <TemplateCard lastUsedDate={lastUsedDate} exercises={exercises} name={'Chest & Back'} />
-                    <TemplateCard lastUsedDate={lastUsedDate} exercises={exercises} name={'Full Upper Body'} />
-                    <TemplateCard lastUsedDate={lastUsedDate} exercises={exercises} name={'Leg Day!!!'} />
-                    <TemplateCard lastUsedDate={lastUsedDate} exercises={exercises} name={'Full Body'} />
-                    <TemplateCard lastUsedDate={lastUsedDate} exercises={exercises} name={'Cardio'} />
-                    <TemplateCard lastUsedDate={lastUsedDate} exercises={exercises} name={'Full Upper Body'} />
-
-                    <View style={{ height: 100 }} />
-                </ScrollView>
+                <Text style={styles.templates_text}>Templates</Text>
+                <DraggableFlatList
+                    data={templates}
+                    onDragEnd={({ data }) => setTemplates(data)}
+                    keyExtractor={(item) => item.id}
+                    renderItem={renderItem}
+                    ListFooterComponent={<View style={{height: templates.length * 90}}/>}
+                    showsVerticalScrollIndicator={false}
+                >
+                </DraggableFlatList>
 
             </View>
-
-            {/* {workout &&
-                <WorkoutFooter userData={userData} />
-            } */}
 
             <Footer navigation={navigation} currentScreenName={'Workout'} />
         </View>
     );
-};
+}
 
 const styles = StyleSheet.create({
     main_ctnr: {
@@ -183,8 +193,6 @@ const styles = StyleSheet.create({
     },
     body: {
         flex: 1,
-        // paddingHorizontal: 20,
-        // marginTop: 60
     },
     quick_start_text: {
         marginTop: 24,
@@ -200,5 +208,4 @@ const styles = StyleSheet.create({
         paddingBottom: 6,
         paddingHorizontal: 14
     },
-
 });

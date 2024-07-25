@@ -13,7 +13,7 @@ export default function TemplateCard({ lastUsedDate, exercises, name }) {
     };
 
     return (
-        <RNBounceable style={styles.main_ctnr}>
+        <View style={styles.main_ctnr}>
             <Image 
                 source={require('./../../assets/logo_lighter.png')} 
                 style={styles.image} 
@@ -26,7 +26,7 @@ export default function TemplateCard({ lastUsedDate, exercises, name }) {
                 </View>
             </View>
             <Ionicons name="chevron-forward" size={22} color="#999" style={styles.chevron_icon} />
-        </RNBounceable>
+        </View>
     );
 }
 
