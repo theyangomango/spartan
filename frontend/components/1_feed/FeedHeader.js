@@ -1,7 +1,8 @@
 import { StyleSheet, View, Text, Image, Pressable, TouchableOpacity } from "react-native";
-import { Ionicons } from '@expo/vector-icons'
+import { Ionicons, Feather } from '@expo/vector-icons'
 import { AddSquare, Notification } from 'iconsax-react-native'
 import RNBounceable from '@freakycoder/react-native-bounceable';
+import { Message, Sms } from 'iconsax-react-native'
 
 export default function FeedHeader({ toMessagesScreen }) {
     return (
@@ -9,21 +10,26 @@ export default function FeedHeader({ toMessagesScreen }) {
             <View style={styles.logo}>
                 <View style={styles.logo_image_ctnr}>
                     <Image
-                        source={require('../../../frontend/assets/inverted_logo.png')}
+                        source={require('../../../frontend/assets/logo_black.png')}
                         style={styles.logo_image}
                     />
                 </View>
                 <Text style={styles.logo_text}>SPARTAN</Text>
             </View>
             <View style={styles.right}>
-                <RNBounceable>
+                {/* <RNBounceable>
                     <View style={styles.notifications_btn_ctnr}>
-                        <Notification size={20.5} color="#2D9EFF" />
+                        <Notification size={22.5} color="#2D9EFF" />
                     </View>
-                </RNBounceable>
+                </RNBounceable> */}
                 <RNBounceable onPress={toMessagesScreen}>
                     <View style={styles.msg_btn_ctnr}>
-                        <Ionicons name='chatbubble-outline' size={18} color={'#2D9EFF'} />
+                        {/* <Ionicons name='chatbubble-outline' size={22} color={'#2D9EFF'} /> */}
+                        {/* <Sms size="26" color="#2D9EFF"/> */}
+                        <Sms size="26" color="#888"/>
+                        {/* <Feather name="mail" size={22} color={'#2D9EFF'}/> */}
+
+                        {/* <Message size="24" color="#2D9EFF" /> */}
                     </View>
                     <View style={styles.red_circle_ctnr}>
                         <Text style={styles.red_circle_text}>15</Text>
@@ -37,7 +43,7 @@ export default function FeedHeader({ toMessagesScreen }) {
 const styles = StyleSheet.create({
     main_ctnr: {
         width: '100%',
-        height: 100,
+        height: 96,
         // backgroundColor: '#F7FCFF',
         backgroundColor: '#fff',
         paddingLeft: 5,
@@ -65,11 +71,17 @@ const styles = StyleSheet.create({
     },
     logo_text: {
         fontSize: 22,
-        color: '#2D9EFF',
+        // color: '#2D9EFF',
+        color: '#000',
         paddingLeft: 2,
-        fontFamily: 'Inter_400Regular'
+        fontFamily: 'Outfit_400Regular',
+        // fontFamily: 'Inter_400Regular',
+
     },
     right: {
+        // position: 'absolute',
+        // top: 50,
+        // right: 20,
         flexDirection: 'row',
         marginBottom: 3
     },
@@ -77,7 +89,7 @@ const styles = StyleSheet.create({
         width: 36,
         aspectRatio: 1,
         borderRadius: 20,
-        backgroundColor: '#E0F1FF',
+        // backgroundColor: '#E0F1FF',
         justifyContent: 'center',
         alignItems: 'center',
         marginBottom: 3,
@@ -87,7 +99,7 @@ const styles = StyleSheet.create({
         width: 36,
         aspectRatio: 1,
         borderRadius: 20,
-        backgroundColor: '#E0F1FF',
+        // backgroundColor: '#E0F1FF',
         justifyContent: 'center',
         alignItems: 'center',
         marginBottom: 3
@@ -98,7 +110,7 @@ const styles = StyleSheet.create({
         borderRadius: 10,
         backgroundColor: 'red',
         position: 'absolute',
-        top: -5,
+        top: -2,
         right: -6,
         alignItems: 'center',
         justifyContent: 'center',
