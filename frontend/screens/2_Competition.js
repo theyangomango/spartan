@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useRef } from "react";
-import { StyleSheet, View, Text, ScrollView, TouchableOpacity, Modal, Dimensions } from "react-native";
+import { StyleSheet, View, Text, ScrollView, TouchableOpacity, Modal, Dimensions, Animated, Easing } from "react-native";
 import { useFocusEffect } from '@react-navigation/native';
 import Footer from "../components/Footer";
 import Podium from "../components/2_competition/Podium";
@@ -13,6 +13,8 @@ import StatsRow from "../components/2_competition/StatsRow";
 import RNBounceable from '@freakycoder/react-native-bounceable';
 import UserStats from "../components/2_competition/UserStats";
 import BottomSheet from "react-native-gesture-bottom-sheet";
+import { MaterialIcons, FontAwesome6 } from '@expo/vector-icons';
+import { ArrowUp2, ArrowDown2 } from 'iconsax-react-native'
 
 const { height } = Dimensions.get('window');
 
@@ -26,6 +28,9 @@ export default function Competition({ navigation, route }) {
     const bottomSheet = useRef();
     const [selectedUser, setSelectedUser] = useState(null);
     const [bottomSheetBkgColor, setBottomSheetBkgColor] = useState('#000');
+    const [isExpanded, setIsExpanded] = useState(false);
+    const animatedHeight = useRef(new Animated.Value(height - 395)).current; // Initial height
+    const animatedOpacity = useRef(new Animated.Value(1)).current; // Initial opacity
 
     useEffect(() => {
         retrieveFollowingUsers(userData.following)
@@ -75,9 +80,29 @@ export default function Competition({ navigation, route }) {
         }, [])
     );
 
+    function toggleExpand() {
+        const toValue = isExpanded ? height - 395 : height * 0.95; // Adjust for space at the top
+        const opacityValue = isExpanded ? 1 : 0.7;
+        Animated.parallel([
+            Animated.timing(animatedHeight, {
+                toValue,
+                duration: 300,
+                easing: Easing.inOut(Easing.ease),
+                useNativeDriver: false,
+            }),
+            Animated.timing(animatedOpacity, {
+                toValue: opacityValue,
+                duration: 300,
+                easing: Easing.inOut(Easing.ease),
+                useNativeDriver: false,
+            })
+        ]).start();
+        setIsExpanded(prev => !prev);
+    }
+
     return (
         <View style={styles.main_ctnr}>
-            <View style={styles.body}>
+            <Animated.View style={[styles.body, { opacity: animatedOpacity }]}>
                 <View style={styles.top_ctnr}>
                     <View style={styles.stats_rows_ctnr}>
                         <StatsRow />
@@ -98,9 +123,24 @@ export default function Competition({ navigation, route }) {
                         }
                     ]) : null} />
                 </View>
+            </Animated.View>
 
-                <View style={styles.bottom_ctnr}>
-                    <View style={styles.buttonContainer}>
+            <Animated.View style={[styles.bottom_ctnr, { height: animatedHeight }]}>
+                <View style={styles.buttons_ctnr}>
+                    <RNBounceable
+                        style={styles.expandButton}
+                        onPress={toggleExpand}
+                    >
+                        {
+                            isExpanded ?
+                                // <ArrowDown2 size="28" color="#FF8A65" />
+                                <FontAwesome6 name='chevron-down' size={20} color='#aaa'/>
+                                :
+                                <FontAwesome6 name='chevron-up' size={20} color='#aaa'/>
+                        }
+                        {/* <MaterialIcons name={isExpanded ? "expand-more" : "expand-less"} size={28} color="black" /> */}
+                    </RNBounceable>
+                    <View style={styles.right_buttons}>
                         <RNBounceable
                             style={[styles.button, styles.selectedButton]}
                             onPress={openModal}
@@ -114,24 +154,24 @@ export default function Competition({ navigation, route }) {
                             <Text style={styles.buttonText}>{showFollowers}</Text>
                         </RNBounceable>
                     </View>
-
-                    <ScrollView showsVerticalScrollIndicator={false} style={styles.scrollview_ctnr}>
-                        <View style={{ height: 2 }} />
-                        {userList && userList.map((user, index) => (
-                            <CompetitionCard
-                                uid={user.uid}
-                                pfp={user.image}
-                                handle={user.handle}
-                                value={user.stats.exercises[categoryCompared]}
-                                rank={index + 1}
-                                key={index}
-                                handlePress={() => openBottomSheet(user)}
-                            />
-                        ))}
-                        <View style={{ height: 100 }} />
-                    </ScrollView>
                 </View>
-            </View>
+
+                <ScrollView showsVerticalScrollIndicator={false} style={styles.scrollview_ctnr}>
+                    <View style={{ height: 2 }} />
+                    {userList && userList.map((user, index) => (
+                        <CompetitionCard
+                            uid={user.uid}
+                            pfp={user.image}
+                            handle={user.handle}
+                            value={user.stats.exercises[categoryCompared]}
+                            rank={index + 1}
+                            key={index}
+                            handlePress={() => openBottomSheet(user)}
+                        />
+                    ))}
+                    <View style={{ height: 100 }} />
+                </ScrollView>
+            </Animated.View>
 
             {global.workout &&
                 <WorkoutFooter userData={userData} />
@@ -183,17 +223,28 @@ const styles = StyleSheet.create({
         height: 395
     },
     bottom_ctnr: {
+        position: 'absolute',
+        bottom: 0,
+        left: 0,
+        right: 0,
+        backgroundColor: '#fff',
+    },
+    right_buttons: {
         flex: 1,
+        flexDirection: 'row',
+        justifyContent: 'flex-end'
     },
     scrollview_ctnr: {
         flex: 1,
     },
-    buttonContainer: {
+    buttons_ctnr: {
         flexDirection: 'row',
-        justifyContent: 'flex-end',
+        // justifyContent: 'flex-end',
         marginBottom: 10,
         paddingTop: 10,
-        paddingHorizontal: 15
+        paddingRight: 15,
+        paddingLeft: 32,
+        alignItems: 'center'
     },
     button: {
         borderRadius: 20,
@@ -231,5 +282,9 @@ const styles = StyleSheet.create({
     closeModalText: {
         color: 'blue',
         marginTop: 10
-    }
+    },
+    expandButton: {
+        marginRight: 10,
+        // padding: 5,
+    },
 });

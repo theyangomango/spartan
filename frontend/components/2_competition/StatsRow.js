@@ -8,7 +8,7 @@ export default function StatsRow() {
     const stats = [
         { number: '132', text: 'New PRs' },
         { number: '20k', text: 'Lbs Lifted' },
-        { number: '5.5h', text: 'Spent In Gym' },
+        { number: '5.5', text: 'Hrs In Gym' },
     ];
 
     return (
@@ -58,13 +58,13 @@ const styles = StyleSheet.create({
         alignItems: 'center',
     },
     bigNumber: {
-        fontSize: 21.9,
+        fontSize: 22,
         color: '#B9DCFF',
         fontFamily: 'Poppins_800ExtraBold',
     },
     smallText: {
         paddingTop: 1.5,
-        fontSize: 12.5,
+        fontSize: 13.5,
         color: '#eee',
         fontFamily: 'Lato_700Bold'
     },

@@ -25,7 +25,7 @@ export default function CompetitionCard({ uid, pfp, handle, value, rank, handleP
 
 const styles = StyleSheet.create({
     card_ctnr: {
-        height: 67,
+        height: 72,
         borderRadius: 20,
         // borderWidth: 1.5,
         // borderColor: '#ccc',
@@ -46,7 +46,7 @@ const styles = StyleSheet.create({
         alignItems: 'center',
     },
     pfp_ctnr: {
-        width: 36,
+        width: 38,
         aspectRatio: 1
     },
     pfp: {
@@ -66,12 +66,12 @@ const styles = StyleSheet.create({
     stat_text: {
         fontFamily: 'Mulish_700Bold',
         color: '#2D9EFF',
-        fontSize: 14.78
+        fontSize: 16
     },
     rank_text: {
         fontFamily: 'Mulish_700Bold',
         paddingLeft: 14,
-        fontSize: 13.5
+        fontSize: 14
     },
     arrow_icon: {
         marginLeft: 3.5
