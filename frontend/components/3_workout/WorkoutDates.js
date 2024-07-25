@@ -1,7 +1,7 @@
 import RNBounceable from '@freakycoder/react-native-bounceable';
 import React, { useEffect, useRef, useState } from 'react';
 import { View, Text, ScrollView, StyleSheet } from 'react-native';
-import { MaterialIcons } from '@expo/vector-icons';
+import { MaterialIcons, Ionicons } from '@expo/vector-icons';
 import { Calendar } from 'iconsax-react-native'
 
 const WorkoutDates = () => {

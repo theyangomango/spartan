@@ -154,12 +154,12 @@ export default function Workout({ navigation }) {
                     <JoinWorkoutButton joinWorkout={() => joinWorkoutBottomSheet.current.show()} />
 
                     <Text style={styles.templates_text}>Templates</Text>
-                    {/* <TemplateCard lastUsedDate={lastUsedDate} exercises={exercises} name={'Chest & Back'} />
+                    <TemplateCard lastUsedDate={lastUsedDate} exercises={exercises} name={'Chest & Back'} />
                     <TemplateCard lastUsedDate={lastUsedDate} exercises={exercises} name={'Full Upper Body'} />
                     <TemplateCard lastUsedDate={lastUsedDate} exercises={exercises} name={'Leg Day!!!'} />
                     <TemplateCard lastUsedDate={lastUsedDate} exercises={exercises} name={'Full Body'} />
                     <TemplateCard lastUsedDate={lastUsedDate} exercises={exercises} name={'Cardio'} />
-                    <TemplateCard lastUsedDate={lastUsedDate} exercises={exercises} name={'Full Upper Body'} /> */}
+                    <TemplateCard lastUsedDate={lastUsedDate} exercises={exercises} name={'Full Upper Body'} />
 
                     <View style={{ height: 100 }} />
                 </ScrollView>

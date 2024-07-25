@@ -10,7 +10,7 @@ export default function FeedHeader({ toMessagesScreen }) {
             <View style={styles.logo}>
                 <View style={styles.logo_image_ctnr}>
                     <Image
-                        source={require('../../../frontend/assets/logo_black.png')}
+                        source={require('../../../frontend/assets/inverted_logo.png')}
                         style={styles.logo_image}
                     />
                 </View>
@@ -26,7 +26,7 @@ export default function FeedHeader({ toMessagesScreen }) {
                     <View style={styles.msg_btn_ctnr}>
                         {/* <Ionicons name='chatbubble-outline' size={22} color={'#2D9EFF'} /> */}
                         {/* <Sms size="26" color="#2D9EFF"/> */}
-                        <Sms size="26" color="#888"/>
+                        <Sms size="25" color="#888"/>
                         {/* <Feather name="mail" size={22} color={'#2D9EFF'}/> */}
 
                         {/* <Message size="24" color="#2D9EFF" /> */}
@@ -43,12 +43,12 @@ export default function FeedHeader({ toMessagesScreen }) {
 const styles = StyleSheet.create({
     main_ctnr: {
         width: '100%',
-        height: 96,
+        height: 92,
         // backgroundColor: '#F7FCFF',
         backgroundColor: '#fff',
         paddingLeft: 5,
         paddingRight: 25,
-        paddingBottom: 5,
+        // paddingBottom: 5,
         flexDirection: 'row',
         alignItems: 'flex-end',
         justifyContent: 'space-between',
@@ -71,8 +71,8 @@ const styles = StyleSheet.create({
     },
     logo_text: {
         fontSize: 22,
-        // color: '#2D9EFF',
-        color: '#000',
+        color: '#2D9EFF',
+        // color: '#000',
         paddingLeft: 2,
         fontFamily: 'Outfit_400Regular',
         // fontFamily: 'Inter_400Regular',
@@ -102,7 +102,7 @@ const styles = StyleSheet.create({
         // backgroundColor: '#E0F1FF',
         justifyContent: 'center',
         alignItems: 'center',
-        marginBottom: 3
+        marginBottom: 3.5
     },
     red_circle_ctnr: {
         width: 19,

@@ -139,7 +139,7 @@ const styles = StyleSheet.create({
     },
     posts_view_ctnr: {
         paddingTop: 10,
-        paddingHorizontal: 10,
+        paddingHorizontal: 10.5,
         // paddingHorizontal: 3,
         flex: 1,
         // backgroundColor: '#E9F1FB',
@@ -149,7 +149,7 @@ const styles = StyleSheet.create({
     },
     blurview: {
         position: 'absolute',
-        top: 90,
+        top: 85,
         left: 0,
         width: '100%',
         height: 11.5,
