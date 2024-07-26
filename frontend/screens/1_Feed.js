@@ -15,6 +15,7 @@ import { BlurView } from 'expo-blur';
 import createPost from "../../backend/posts/createPost";
 import ShareModal from "../components/1_feed/ShareModal";
 import NotificationsModal from "../components/1_feed/NotificationsModal"; // Import the new modal component
+import { StatusBar } from "expo-status-bar";
 
 const UID = '6b176d7d-4d89-4cb5-beb0-0f19b47a10a2'; // Hard set UID
 
@@ -98,6 +99,8 @@ export default function Feed({ navigation }) {
 
     return (
         <View style={styles.main_ctnr}>
+            <StatusBar style="dark"/>
+
             <BottomSheet
                 hasDraggableIcon
                 ref={commentsBottomSheet}

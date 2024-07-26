@@ -66,10 +66,10 @@ const styles = StyleSheet.create({
         position: 'absolute',
         top: 37,
         right: 5,
-        width: 20,
+        width: 22,
         aspectRatio: 1,
         backgroundColor: '#FCF375',
-        borderRadius: 9,
+        borderRadius: 100,
         justifyContent: 'center',
         alignItems: 'center'
     }

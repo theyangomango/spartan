@@ -26,14 +26,18 @@ export default function FeedHeader({ toMessagesScreen, onOpenNotifications }) {
                     <View style={styles.msg_btn_ctnr}>
                         {/* <Ionicons name='chatbubble-outline' size={22} color={'#2D9EFF'} /> */}
                         {/* <Sms size="26" color="#2D9EFF"/> */}
-                        <Sms size="25" color="#2D9EFF"/>
+                        <Sms size="26" color="#2D9EFF" />
                         {/* <Feather name="mail" size={22} color={'#2D9EFF'}/> */}
 
                         {/* <Message size="24" color="#2D9EFF" /> */}
                     </View>
-                    <View style={styles.red_circle_ctnr}>
-                        <Text style={styles.red_circle_text}>{global.userData.messages.length}</Text>
-                    </View>
+                    {
+                        global.userData &&
+                        <View style={styles.red_circle_ctnr}>
+                            <Text style={styles.red_circle_text}>{global.userData.messages.length}</Text>
+                        </View>
+                    }
+
                 </RNBounceable>
             </View>
         </View>
