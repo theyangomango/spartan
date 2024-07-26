@@ -1,6 +1,6 @@
 import React, { useEffect, useRef, useState } from "react";
 import { useFocusEffect } from "@react-navigation/native";
-import { StyleSheet, View, ScrollView, Dimensions } from "react-native";
+import { StyleSheet, View, ScrollView, Dimensions, Animated } from "react-native";
 import Footer from "../components/Footer";
 import Post from "../components/1_feed/Post";
 import FeedHeader from "../components/1_feed/FeedHeader";
@@ -14,13 +14,11 @@ import CommentsModal from "../components/1_feed/CommentsModal";
 import { BlurView } from 'expo-blur';
 import createPost from "../../backend/posts/createPost";
 import ShareModal from "../components/1_feed/ShareModal";
+import NotificationsModal from "../components/1_feed/NotificationsModal"; // Import the new modal component
 
-
-// Todo - store uid on phone storage
-const UID = '6b176d7d-4d89-4cb5-beb0-0f19b47a10a2'; // Hard set UID 
+const UID = '6b176d7d-4d89-4cb5-beb0-0f19b47a10a2'; // Hard set UID
 
 const { width, height } = Dimensions.get('window');
-
 
 export default function Feed({ navigation }) {
     const [stories, setStories] = useState(null);
@@ -35,6 +33,9 @@ export default function Feed({ navigation }) {
     const shareBottomSheet = useRef();
     const [shareBottomSheetBackgroundColor, setShareBottomSheetBackgroundColor] = useState('#000');
 
+    const notificationsBottomSheet = useRef(); // Reference for the notifications bottom sheet
+    const [notificationsBottomSheetBackgroundColor, setNotificationsBottomSheetBackgroundColor] = useState('#000');
+
     useEffect(() => {
         init();
     }, []);
@@ -45,12 +46,17 @@ export default function Feed({ navigation }) {
                 let panY = parseInt(JSON.stringify(commentsBottomSheet.current.state.pan.y));
                 let animatedHeight = parseInt(JSON.stringify(commentsBottomSheet.current.state.animatedHeight));
                 let realHeight = Math.max(panY, 1000 - animatedHeight);
-                setCommentsBottomSheetBackgroundColor(`rgba(0, 0, 0, ${0.7 - 0.75 * (realHeight / 600)})`)
+                setCommentsBottomSheetBackgroundColor(`rgba(0, 0, 0, ${0.7 - 0.75 * (realHeight / 600)})`);
 
                 let panY2 = parseInt(JSON.stringify(shareBottomSheet.current.state.pan.y));
                 let animatedHeight2 = parseInt(JSON.stringify(shareBottomSheet.current.state.animatedHeight));
                 let realHeight2 = Math.max(panY2, 1000 - animatedHeight2);
-                setShareBottomSheetBackgroundColor(`rgba(0, 0, 0, ${0.7 - 0.75 * (realHeight2 / 600)})`)
+                setShareBottomSheetBackgroundColor(`rgba(0, 0, 0, ${0.7 - 0.75 * (realHeight2 / 600)})`);
+
+                let panY3 = parseInt(JSON.stringify(notificationsBottomSheet.current.state.pan.y));
+                let animatedHeight3 = parseInt(JSON.stringify(notificationsBottomSheet.current.state.animatedHeight));
+                let realHeight3 = Math.max(panY3, 1000 - animatedHeight3);
+                setNotificationsBottomSheetBackgroundColor(`rgba(0, 0, 0, ${0.7 - 0.75 * (realHeight3 / 600)})`);
             }, 10);
 
             return () => {
@@ -73,7 +79,7 @@ export default function Feed({ navigation }) {
         navigation.navigate('Messages', {
             userData: userDataRef.current,
             messages: messages
-        })
+        });
     }
 
     function openCommentsModal(index) {
@@ -86,6 +92,10 @@ export default function Feed({ navigation }) {
         shareBottomSheet.current.show();
     }
 
+    function handleOpenNotifications() {
+        notificationsBottomSheet.current.show();
+    }
+
     return (
         <View style={styles.main_ctnr}>
             <BottomSheet
@@ -94,7 +104,7 @@ export default function Feed({ navigation }) {
                 height={height - 65}
                 sheetBackgroundColor={'#fff'}
                 backgroundColor={commentsBottomSheetBackgroundColor}
-                draggable={true} // Optional, as it's true by default
+                draggable={true}
             >
                 <CommentsModal postData={currentPost} />
             </BottomSheet>
@@ -105,12 +115,23 @@ export default function Feed({ navigation }) {
                 height={height - 65}
                 sheetBackgroundColor={'#fff'}
                 backgroundColor={shareBottomSheetBackgroundColor}
-                draggable={true} // Optional, as it's true by default
+                draggable={true}
             >
                 <ShareModal />
             </BottomSheet>
 
-            <FeedHeader toMessagesScreen={toMessagesScreen} />
+            <BottomSheet
+                hasDraggableIcon
+                ref={notificationsBottomSheet}
+                height={height - 65}
+                sheetBackgroundColor={'#fff'}
+                backgroundColor={notificationsBottomSheetBackgroundColor}
+                draggable={true}
+            >
+                <NotificationsModal />
+            </BottomSheet>
+
+            <FeedHeader toMessagesScreen={toMessagesScreen} onOpenNotifications={handleOpenNotifications} />
             <ScrollView scrollEnabled={true} showsVerticalScrollIndicator={false} bounces={false}>
                 {stories && <Stories data={stories} />}
                 <View style={styles.posts_view_ctnr}>
@@ -122,14 +143,11 @@ export default function Feed({ navigation }) {
                 </View>
             </ScrollView>
 
-            {
-                global.workout &&
-                <WorkoutFooter userData={userDataRef} />
-            }
+            {global.workout && <WorkoutFooter userData={userDataRef} />}
             <Footer navigation={navigation} currentScreenName={'Feed'} />
             <BlurView intensity={1.5} style={styles.blurview} />
-        </View >
-    )
+        </View>
+    );
 }
 
 const styles = StyleSheet.create({
@@ -140,10 +158,7 @@ const styles = StyleSheet.create({
     posts_view_ctnr: {
         paddingTop: 10,
         paddingHorizontal: 10.5,
-        // paddingHorizontal: 3,
         flex: 1,
-        // backgroundColor: '#E9F1FB',
-        // backgroundColor: '#FAFCFF',
         backgroundColor: '#fff',
         marginBottom: 70
     },
@@ -153,6 +168,5 @@ const styles = StyleSheet.create({
         left: 0,
         width: '100%',
         height: 11.5,
-        // backgroundColor: '#2D9EFF'
     }
 });

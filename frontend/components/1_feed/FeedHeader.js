@@ -1,10 +1,10 @@
 import { StyleSheet, View, Text, Image, Pressable, TouchableOpacity } from "react-native";
 import { Ionicons, Feather } from '@expo/vector-icons'
-import { AddSquare, Notification } from 'iconsax-react-native'
+import { AddSquare, Heart } from 'iconsax-react-native'
 import RNBounceable from '@freakycoder/react-native-bounceable';
 import { Message, Sms } from 'iconsax-react-native'
 
-export default function FeedHeader({ toMessagesScreen }) {
+export default function FeedHeader({ toMessagesScreen, onOpenNotifications }) {
     return (
         <View style={styles.main_ctnr}>
             <View style={styles.logo}>
@@ -17,22 +17,22 @@ export default function FeedHeader({ toMessagesScreen }) {
                 <Text style={styles.logo_text}>SPARTAN</Text>
             </View>
             <View style={styles.right}>
-                {/* <RNBounceable>
+                <RNBounceable onPress={onOpenNotifications}>
                     <View style={styles.notifications_btn_ctnr}>
-                        <Notification size={22.5} color="#2D9EFF" />
+                        <Heart size={26} color="#2D9EFF" />
                     </View>
-                </RNBounceable> */}
+                </RNBounceable>
                 <RNBounceable onPress={toMessagesScreen}>
                     <View style={styles.msg_btn_ctnr}>
                         {/* <Ionicons name='chatbubble-outline' size={22} color={'#2D9EFF'} /> */}
                         {/* <Sms size="26" color="#2D9EFF"/> */}
-                        <Sms size="25" color="#888"/>
+                        <Sms size="25" color="#2D9EFF"/>
                         {/* <Feather name="mail" size={22} color={'#2D9EFF'}/> */}
 
                         {/* <Message size="24" color="#2D9EFF" /> */}
                     </View>
                     <View style={styles.red_circle_ctnr}>
-                        <Text style={styles.red_circle_text}>15</Text>
+                        <Text style={styles.red_circle_text}>{global.userData.messages.length}</Text>
                     </View>
                 </RNBounceable>
             </View>
@@ -82,6 +82,7 @@ const styles = StyleSheet.create({
         // position: 'absolute',
         // top: 50,
         // right: 20,
+        marginRight: 3,
         flexDirection: 'row',
         marginBottom: 3
     },
