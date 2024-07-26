@@ -20,7 +20,7 @@ export default function MediaLibraryScreen({ closeModal, onSelectImage }) {
 
             const media = await MediaLibrary.getAssetsAsync({
                 mediaType: MediaLibrary.MediaType.photo,
-                first: 20, // Adjust the number of photos you want to fetch
+                first: 10000, // Adjust the number of photos you want to fetch
             });
             setPhotos(media.assets);
         })();
@@ -49,9 +49,9 @@ export default function MediaLibraryScreen({ closeModal, onSelectImage }) {
     const renderHeader = () => (
         <View style={styles.header}>
             <TouchableOpacity style={styles.close_button_ctnr} onPress={handlePressCloseButton}>
-                <EvilIcons name="close" size={22} color="#fff" />
+                <EvilIcons name="close" size={30} color="#fff" />
             </TouchableOpacity>
-            <Text style={styles.headerText}>Select Image</Text>
+            {/* <Text style={styles.headerText}>Select Image</Text> */}
         </View>
     );
 
@@ -86,8 +86,14 @@ const styles = StyleSheet.create({
     },
     close_button_ctnr: {
         position: 'absolute',
-        top: 65,
-        left: 17,
+        top: 40,
+        left: 23,
+        width: 40,
+        height: 40,
+        justifyContent: 'center',
+        alignItems: 'center',
+        borderRadius: 100,
+        backgroundColor: '#rgba(0, 0, 0, 0.1)'
     },
     header: {
         position: 'absolute',
