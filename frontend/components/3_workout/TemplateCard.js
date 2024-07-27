@@ -15,7 +15,7 @@ export default function TemplateCard({ lastUsedDate, exercises, name }) {
     return (
         <View style={styles.main_ctnr}>
             <Image 
-                source={require('./../../assets/logo_lighter.png')} 
+                source={require('./../../assets/logo_template.png')} 
                 style={styles.image} 
             />
             <View style={styles.text_container}>
@@ -39,14 +39,14 @@ const styles = StyleSheet.create({
         marginHorizontal: 13,
         backgroundColor: '#f8f8f8',
         borderRadius: 15,
-        height: 92,
+        height: 89,
         justifyContent: 'center',
         position: 'relative', // Added to position the chevron icon
         flexDirection: 'row',
         alignItems: 'center'
     },
     image: {
-        width: 56,
+        width: 55,
         aspectRatio: 1,
         borderRadius: 15,
         marginRight: 13
@@ -58,6 +58,7 @@ const styles = StyleSheet.create({
         fontFamily: 'Outfit_500Medium',
         fontSize: 17,
         color: '#2D9EFF',
+        // color: '#444',
         paddingBottom: 5.5
     },
     date_ctnr: {

@@ -1,5 +1,5 @@
-import React, { useRef, useState } from "react";
-import { Text, StyleSheet, View, TouchableOpacity, Dimensions } from "react-native";
+import React, { useCallback, useRef, useState, useEffect } from "react";
+import { Text, StyleSheet, View, TouchableOpacity, Dimensions, Animated, Image } from "react-native";
 import { useFocusEffect } from '@react-navigation/native';
 import BottomSheet from "react-native-gesture-bottom-sheet";
 import DraggableFlatList, { ScaleDecorator } from "react-native-draggable-flatlist";
@@ -20,6 +20,7 @@ import CalendarBanner from "../components/3_workout/CalendarBanner";
 import { SafeAreaView } from "react-native-safe-area-context";
 import WorkoutDates from "../components/3_workout/WorkoutDates";
 import RNBounceable from "@freakycoder/react-native-bounceable";
+import { Feather } from '@expo/vector-icons';
 
 const { height } = Dimensions.get('window');
 
@@ -51,12 +52,15 @@ export default function Workout({ navigation }) {
     const joinWorkoutBottomSheet = useRef();
     const [newWorkoutBkgColor, setNewWorkoutBkgColor] = useState('#000');
     const [joinWorkoutBkgColor, setJoinWorkoutBkgColor] = useState('#000');
+    const [isPanelVisible, setIsPanelVisible] = useState(false);
+    const [panelZIndex, setPanelZIndex] = useState(0);
+    const panelOpacity = useRef(new Animated.Value(0)).current;
 
     const userData = global.userData;
     global.openWorkoutModal = (user) => {
         navigation.navigate('Workout');
-        newWorkoutBottomSheet.current.show()
-    }
+        newWorkoutBottomSheet.current.show();
+    };
 
     async function startNewWorkout() {
         let newWID = makeID();
@@ -91,18 +95,38 @@ export default function Workout({ navigation }) {
         }, 1000);
     }
 
+    const scheduleWorkout = useCallback(() => {
+        setPanelZIndex(1);
+        Animated.timing(panelOpacity, {
+            toValue: 1,
+            duration: 300,
+            useNativeDriver: true,
+        }).start(() => setIsPanelVisible(true));
+    });
+
+    const descheduleWorkout = useCallback(() => {
+        Animated.timing(panelOpacity, {
+            toValue: 0,
+            duration: 300,
+            useNativeDriver: true,
+        }).start(() => {
+            setIsPanelVisible(false);
+            setPanelZIndex(0);
+        });
+    });
+
     useFocusEffect(
         React.useCallback(() => {
             const interval = setInterval(() => {
                 let panY1 = parseInt(JSON.stringify(newWorkoutBottomSheet.current.state.pan.y));
                 let animatedHeight1 = parseInt(JSON.stringify(newWorkoutBottomSheet.current.state.animatedHeight));
                 let realHeight1 = Math.max(panY1, 1100 - animatedHeight1);
-                setNewWorkoutBkgColor(`rgba(0, 0, 0, ${0.7 - 0.75 * (realHeight1 / 800)})`)
+                setNewWorkoutBkgColor(`rgba(0, 0, 0, ${0.7 - 0.75 * (realHeight1 / 800)})`);
 
                 let panY2 = parseInt(JSON.stringify(joinWorkoutBottomSheet.current.state.pan.y));
                 let animatedHeight2 = parseInt(JSON.stringify(joinWorkoutBottomSheet.current.state.animatedHeight));
                 let realHeight2 = Math.max(panY2, 325 - animatedHeight2);
-                setJoinWorkoutBkgColor(`rgba(0, 0, 0, ${0.55 - 0.6 * (realHeight2 / 275)})`)
+                setJoinWorkoutBkgColor(`rgba(0, 0, 0, ${0.55 - 0.6 * (realHeight2 / 275)})`);
             }, 10);
 
             return () => {
@@ -117,7 +141,6 @@ export default function Workout({ navigation }) {
                 <RNBounceable
                     onLongPress={drag}
                     disabled={isActive}
-                // style={{ opacity: isActive ? 0.8 : 1 }}
                 >
                     <TemplateCard
                         lastUsedDate={item.lastUsedDate}
@@ -161,7 +184,35 @@ export default function Workout({ navigation }) {
             <View style={styles.body}>
                 <View style={{ height: 55 }} />
 
-                <WorkoutDates />
+                <WorkoutDates
+                    scheduleWorkout={scheduleWorkout}
+                    descheduleWorkout={descheduleWorkout}
+                    isPanelVisible={isPanelVisible}
+                />
+                <Animated.View style={[styles.panel, { opacity: panelOpacity, zIndex: panelZIndex }]}>
+                    <View style={styles.panelHeader}>
+                        <View style={styles.panelHeaderTextContainer}>
+                            <Text style={styles.panelHeaderText}>7/9 Workout</Text>
+                            <View style={styles.pfp_ctnr}>
+                                <Image
+                                    source={{ uri: global.userData.image }}
+                                    style={styles.profileImage}
+                                />
+                            </View>
+                        </View>
+                        <RNBounceable onPress={descheduleWorkout}>
+                            <Feather name="check-circle" size={22} color="#000" />
+                        </RNBounceable>
+                    </View>
+                    <View style={styles.panelButtonsRow}>
+                        <RNBounceable style={styles.panelButton}>
+                            <Text style={styles.panelButtonText}>Select Template</Text>
+                        </RNBounceable>
+                        <RNBounceable style={styles.panelButton}>
+                            <Text style={styles.panelButtonText}>6:00 - 7:00 PM</Text>
+                        </RNBounceable>
+                    </View>
+                </Animated.View>
                 <Text style={styles.quick_start_text}>Quick Start</Text>
 
                 <StartWorkoutButton startWorkout={startNewWorkout} />
@@ -173,11 +224,9 @@ export default function Workout({ navigation }) {
                     onDragEnd={({ data }) => setTemplates(data)}
                     keyExtractor={(item) => item.id}
                     renderItem={renderItem}
-                    ListFooterComponent={<View style={{height: templates.length * 90}}/>}
+                    ListFooterComponent={<View style={{ height: templates.length * 90 }} />}
                     showsVerticalScrollIndicator={false}
-                >
-                </DraggableFlatList>
-
+                />
             </View>
 
             <Footer navigation={navigation} currentScreenName={'Workout'} />
@@ -193,6 +242,7 @@ const styles = StyleSheet.create({
     },
     body: {
         flex: 1,
+        paddingTop: 100
     },
     quick_start_text: {
         marginTop: 24,
@@ -207,5 +257,57 @@ const styles = StyleSheet.create({
         fontSize: 16,
         paddingBottom: 6,
         paddingHorizontal: 14
+    },
+    panel: {
+        position: 'absolute',
+        top: 170,
+        left: 10,
+        right: 10,
+        height: 90,
+        borderRadius: 15,
+        backgroundColor: '#f6f6f6',
+        flexDirection: 'column',
+        paddingLeft: 10,
+        paddingTop: 12,
+    },
+    panelHeader: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        marginBottom: 7,
+        paddingLeft: 8,
+        paddingRight: 14
+    },
+    panelHeaderTextContainer: {
+        flexDirection: 'row',
+        alignItems: 'center',
+    },
+    panelHeaderText: {
+        fontSize: 15,
+        fontFamily: 'Poppins_600SemiBold',
+        marginRight: 8,
+    },
+    pfp_ctnr: {
+        paddingBottom: 2
+    },
+    profileImage: {
+        width: 26,
+        aspectRatio: 1,
+        borderRadius: 15,
+    },
+    panelButtonsRow: {
+        flexDirection: 'row',
+        alignItems: 'center',
+    },
+    panelButton: {
+        borderRadius: 12,
+        backgroundColor: '#ddd',
+        paddingVertical: 8,
+        paddingHorizontal: 14,
+        marginRight: 6,
+    },
+    panelButtonText: {
+        fontSize: 13,
+        fontFamily: 'Inter_600SemiBold'
     },
 });
