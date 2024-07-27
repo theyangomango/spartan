@@ -35,11 +35,11 @@ const styles = StyleSheet.create({
         borderRadius: 15,
         paddingLeft: 15,
         paddingRight: 3,
-        marginVertical: 6,
+        marginVertical: 5,
         marginHorizontal: 13,
         backgroundColor: '#f8f8f8',
         borderRadius: 15,
-        height: 89,
+        height: 87,
         justifyContent: 'center',
         position: 'relative', // Added to position the chevron icon
         flexDirection: 'row',

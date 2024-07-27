@@ -16,6 +16,9 @@ const Panel = ({ isVisible, onClose, date }) => {
                 useNativeDriver: true,
             }).start();
         } else {
+            setTimeout(() => {
+                setPanelZIndex(0);
+            }, 300);
             Animated.timing(panelOpacity, {
                 toValue: 0,
                 duration: 300,
@@ -47,8 +50,8 @@ const Panel = ({ isVisible, onClose, date }) => {
                 </RNBounceable>
             </View>
             <View style={styles.panelButtonsRow}>
-                <RNBounceable style={styles.panelButton}>
-                    <Text style={styles.panelButtonText}>Select Template</Text>
+                <RNBounceable style={styles.templateButton}>
+                    <Text style={styles.templateButtonText}>No Template Selected</Text>
                 </RNBounceable>
                 <RNBounceable style={styles.panelButton}>
                     <Text style={styles.panelButtonText}>6:00 - 7:00 PM</Text>
@@ -77,7 +80,7 @@ const styles = StyleSheet.create({
         alignItems: 'center',
         marginBottom: 7,
         paddingLeft: 8,
-        paddingRight: 14
+        paddingRight: 18
     },
     panelHeaderTextContainer: {
         flexDirection: 'row',
@@ -110,6 +113,18 @@ const styles = StyleSheet.create({
     panelButtonText: {
         fontSize: 13,
         fontFamily: 'Inter_600SemiBold'
+    },
+    templateButton: {
+        borderRadius: 12,
+        backgroundColor: '#e8e8e8',
+        paddingVertical: 8,
+        paddingHorizontal: 14,
+        marginRight: 6,
+    },
+    templateButtonText: {
+        fontSize: 13,
+        fontFamily: 'Inter_600SemiBold',
+        color: '#b8b8b8'
     },
 });
 
