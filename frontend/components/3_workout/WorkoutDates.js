@@ -3,7 +3,7 @@ import { View, Text, FlatList, StyleSheet, Dimensions } from 'react-native';
 import { Calendar } from 'iconsax-react-native';
 import DateSquare from './DateSquare';
 
-const WorkoutDates = ({ scheduleWorkout, descheduleWorkout, isPanelVisible }) => {
+const WorkoutDates = ({ scheduleWorkout, descheduleWorkout, isPanelVisible, selectedDate }) => {
     const flatListRef = useRef(null);
     const [dates, setDates] = useState([]);
     const [currentMonthYear, setCurrentMonthYear] = useState('');
@@ -80,6 +80,7 @@ const WorkoutDates = ({ scheduleWorkout, descheduleWorkout, isPanelVisible }) =>
                 descheduleWorkout={descheduleWorkout}
                 // setShowPanel={setShowPanel}
                 isPanelVisible={isPanelVisible}
+                selectedDate={selectedDate}
             />
         );
     }, [highlightedDates, today, scheduledDates, scheduleWorkout, descheduleWorkout]);

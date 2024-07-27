@@ -1,0 +1,116 @@
+import React, { useEffect, useRef, useState } from 'react';
+import { View, Text, Image, StyleSheet, Animated } from 'react-native';
+import RNBounceable from "@freakycoder/react-native-bounceable";
+import { Feather } from '@expo/vector-icons';
+
+const Panel = ({ isVisible, onClose, date }) => {
+    const panelOpacity = useRef(new Animated.Value(0)).current;
+    const [panelZIndex, setPanelZIndex] = useState(0);
+
+    useEffect(() => {
+        if (isVisible) {
+            setPanelZIndex(1);
+            Animated.timing(panelOpacity, {
+                toValue: 1,
+                duration: 300,
+                useNativeDriver: true,
+            }).start();
+        } else {
+            Animated.timing(panelOpacity, {
+                toValue: 0,
+                duration: 300,
+                useNativeDriver: true,
+            }).start();
+        }
+    }, [isVisible]);
+
+    // Parse and format the date
+    const formattedDate = new Date(date).toLocaleDateString('en-US', {
+        month: 'numeric',
+        day: 'numeric',
+    });
+
+    return (
+        <Animated.View style={[styles.panel, { opacity: panelOpacity, zIndex: panelZIndex }]}>
+            <View style={styles.panelHeader}>
+                <View style={styles.panelHeaderTextContainer}>
+                    <Text style={styles.panelHeaderText}>{formattedDate} Workout</Text>
+                    <View style={styles.pfp_ctnr}>
+                        <Image
+                            source={{ uri: global.userData.image }}
+                            style={styles.profileImage}
+                        />
+                    </View>
+                </View>
+                <RNBounceable onPress={onClose}>
+                    <Feather name="check-circle" size={22} color="#000" />
+                </RNBounceable>
+            </View>
+            <View style={styles.panelButtonsRow}>
+                <RNBounceable style={styles.panelButton}>
+                    <Text style={styles.panelButtonText}>Select Template</Text>
+                </RNBounceable>
+                <RNBounceable style={styles.panelButton}>
+                    <Text style={styles.panelButtonText}>6:00 - 7:00 PM</Text>
+                </RNBounceable>
+            </View>
+        </Animated.View>
+    );
+};
+
+const styles = StyleSheet.create({
+    panel: {
+        position: 'absolute',
+        top: 170,
+        left: 10,
+        right: 10,
+        height: 90,
+        borderRadius: 15,
+        backgroundColor: '#f6f6f6',
+        flexDirection: 'column',
+        paddingLeft: 10,
+        paddingTop: 12,
+    },
+    panelHeader: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        marginBottom: 7,
+        paddingLeft: 8,
+        paddingRight: 14
+    },
+    panelHeaderTextContainer: {
+        flexDirection: 'row',
+        alignItems: 'center',
+    },
+    panelHeaderText: {
+        fontSize: 15,
+        fontFamily: 'Poppins_600SemiBold',
+        marginRight: 8,
+    },
+    pfp_ctnr: {
+        paddingBottom: 2
+    },
+    profileImage: {
+        width: 26,
+        aspectRatio: 1,
+        borderRadius: 15,
+    },
+    panelButtonsRow: {
+        flexDirection: 'row',
+        alignItems: 'center',
+    },
+    panelButton: {
+        borderRadius: 12,
+        backgroundColor: '#ddd',
+        paddingVertical: 8,
+        paddingHorizontal: 14,
+        marginRight: 6,
+    },
+    panelButtonText: {
+        fontSize: 13,
+        fontFamily: 'Inter_600SemiBold'
+    },
+});
+
+export default Panel;

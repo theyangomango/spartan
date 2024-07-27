@@ -3,7 +3,7 @@ import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import RNBounceable from '@freakycoder/react-native-bounceable';
 
-const DateSquare = ({ date, isToday, isHighlighted, initialSelected, onPress, scheduleWorkout, descheduleWorkout, isPanelVisible }) => {
+const DateSquare = ({ date, isToday, isHighlighted, initialSelected, scheduleWorkout, descheduleWorkout, isPanelVisible, selectedDate }) => {
     const [isSelected, setIsSelected] = useState(initialSelected);
     const [flag, setFlag] = useState(false);
 
@@ -12,7 +12,7 @@ const DateSquare = ({ date, isToday, isHighlighted, initialSelected, onPress, sc
         if (!isSelected) {
             descheduleWorkout();
         } else {
-            scheduleWorkout();
+            scheduleWorkout(date);
         }
 
     }, [isSelected, flag]);
@@ -20,7 +20,7 @@ const DateSquare = ({ date, isToday, isHighlighted, initialSelected, onPress, sc
     const handlePress = () => {
         if (date > new Date()) {
 
-            if (isPanelVisible) {
+            if (isPanelVisible && selectedDate == date) {
                 setIsSelected(false);
             } else {
                 setIsSelected(true);
@@ -66,6 +66,11 @@ const DateSquare = ({ date, isToday, isHighlighted, initialSelected, onPress, sc
                 ]}>
                     {date.getDate().toString().padStart(2, '0')}
                 </Text>
+                {date == selectedDate && (
+                    <View style={styles.dotContainer}>
+                        <Ionicons name="ellipse" size={6} color="#fff" />
+                    </View>
+                )}
                 {isToday && (
                     <View style={styles.dotContainer}>
                         <Ionicons name="ellipse" size={6} color="red" />
@@ -119,7 +124,6 @@ const styles = StyleSheet.create({
         position: 'absolute',
         bottom: 5,
     },
-
     panel: {
         position: 'absolute',
         top: 70,
