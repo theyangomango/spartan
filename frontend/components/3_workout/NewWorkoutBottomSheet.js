@@ -113,8 +113,8 @@ const NewWorkoutBottomSheet = ({ workout, isVisible, setIsVisible, cancelNewWork
                         cancelNewWorkout();
                         bottomSheetRef.current.close();
                     }}
-                    updateWorkout={() => {
-                        updateNewWorkout();
+                    updateWorkout={(newWorkout) => {
+                        updateNewWorkout(newWorkout);
                     }}
                     finishWorkout={() => {
                         finishNewWorkout();

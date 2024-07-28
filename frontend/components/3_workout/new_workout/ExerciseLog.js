@@ -1,11 +1,11 @@
 import { View, StyleSheet, Text, Pressable, Image } from "react-native";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import SetRow from "./SetRow";
 import { FontAwesome5, MaterialCommunityIcons, Entypo } from '@expo/vector-icons';
 import DoubleSetRow from "./DoubleSetRow";
 import RNBounceable from "@freakycoder/react-native-bounceable";
 
-export default function ExerciseLog({ name }) {
+export default function ExerciseLog({ name, index, updateSets }) {
     const muscle = name == 'Lateral Raise' ? 'Shoulders' : 'Chest';
 
     const canTrackBothSides = true;
@@ -20,6 +20,10 @@ export default function ExerciseLog({ name }) {
         Biceps: '#CBBCFF',
         Back: '#95E0C8'
     };
+
+    useEffect(() => {
+        updateSets(index, sets);
+    }, [sets]);
 
     function addSet() {
         setSets([...sets, {

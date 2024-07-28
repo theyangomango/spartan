@@ -48,20 +48,26 @@ export default function Workout({ navigation }) {
     const userData = global.userData;
 
     async function startNewWorkout() {
-        let newWID = makeID();
-        // initWorkout(newWID, userData.uid);
-        await setWorkout({
-            wid: newWID,
-            creatorUID: userData.uid,
-            created: Date.now(),
-            users: [],
-            exercises: []
-        });
-        // global.workout = workout;
-        setIsBottomSheetVisible(true);
+        if (!workout) {
+            let newWID = makeID();
+            // initWorkout(newWID, userData.uid);
+            await setWorkout({
+                wid: newWID,
+                creatorUID: userData.uid,
+                created: Date.now(),
+                users: [],
+                exercises: []
+            });
+            // global.workout = workout;
+            setIsBottomSheetVisible(true);
+        } else {
+            setIsBottomSheetVisible(true);
+        }
     }
 
-    function updateNewWorkout(workout) {
+    function updateNewWorkout(newWorkout) {
+        console.log(newWorkout);
+        setWorkout(newWorkout);
         // updateDoc('workouts', workout.wid, workout);
     }
 

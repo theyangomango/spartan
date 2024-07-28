@@ -43,13 +43,20 @@ export default function NewWorkoutModal({ workout, setWorkout, closeModal, cance
     }
 
     function appendExercises(exercises) {
+        let newWorkout = workout;
         for (let exercise of exercises) {
-            workout.exercises.push({
+            newWorkout.exercises.push({
                 name: exercise,
                 sets: []
             });
         }
-        updateWorkout(workout);
+        updateWorkout(newWorkout);
+    }
+
+    function updateSets(index, newSets) {
+        let newWorkout = workout;
+        newWorkout.exercises[index].sets = newSets;
+        updateWorkout(newWorkout);
     }
 
     function handleScroll(event) {
@@ -87,7 +94,7 @@ export default function NewWorkoutModal({ workout, setWorkout, closeModal, cance
                 <ProgressBanner />
                 {
                     workout.exercises.map((ex, index) => (
-                        <ExerciseLog name={ex.name} key={index} />
+                        <ExerciseLog name={ex.name} index={index} key={index} updateSets={updateSets}/>
                     ))
                 }
                 <RNBounceable onPress={showSelectExerciseModal} style={styles.add_exercise_btn}>
@@ -131,8 +138,8 @@ const styles = StyleSheet.create({
         // zIndex: 1
     },
     header: {
-        height: 34,
-        marginBottom: 8,
+        paddingBottom: 6,
+        // marginBottom: 8,
         paddingHorizontal: 22,
         flexDirection: 'row',
         alignItems: 'center',
@@ -156,6 +163,7 @@ const styles = StyleSheet.create({
         position: 'absolute',
         left: 0,
         right: 0,
+        top: 5,
         textAlign: 'center'
     },
     header_right: {
