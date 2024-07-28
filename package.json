@@ -59,6 +59,7 @@
     "react-native-screens": "~3.29.0",
     "react-native-svg": "14.1.0",
     "react-native-uuid": "^2.0.2",
+    "reanimated-bottom-sheet": "^1.0.0-alpha.22",
     "use-debounce": "^10.0.1"
   },
   "devDependencies": {
