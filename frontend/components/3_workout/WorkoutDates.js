@@ -14,7 +14,7 @@ const WorkoutDates = ({ scheduleWorkout, descheduleWorkout, isPanelVisible, sele
     const weekAfterToday = new Date(today);
     weekAfterToday.setDate(today.getDate() + 7);
 
-    const highlightedDates = new Set(['2024-07-10', '2024-07-15', '2024-07-20']); // Example hard-coded dates
+    const highlightedDates = new Set(['2024-07-26', '2024-07-28', '2024-07-20']); // Example hard-coded dates
 
     useEffect(() => {
         const initialDates = generateDates(startDate, weekAfterToday);
@@ -112,8 +112,8 @@ const styles = StyleSheet.create({
     container: {
         position: 'absolute',
         top: 60,
-        left: 10,
-        right: 10,
+        left: 3,
+        right: 3,
         // height: 300,
         zIndex: 1,
         backgroundColor: 'transparent'
@@ -122,11 +122,12 @@ const styles = StyleSheet.create({
         flexDirection: 'row',
         alignItems: 'center',
         justifyContent: 'space-between',
-        paddingLeft: 12,
-        paddingRight: 12,
-        marginBottom: 8,
+        paddingLeft: 21,
+        paddingRight: 21,
+        marginBottom: 10,
     },
-    scrollContainer: {},
+    scrollContainer: {
+    },
     monthYear: {
         fontSize: 16,
         fontFamily: 'Poppins_600SemiBold',

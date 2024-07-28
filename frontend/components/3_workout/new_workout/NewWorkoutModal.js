@@ -9,22 +9,22 @@ import { Weight } from 'iconsax-react-native';
 import { MaterialCommunityIcons, FontAwesome } from '@expo/vector-icons';
 import GroupModal from "./GroupModal";
 
-export default function NewWorkoutModal({ workout, setWorkout, closeModal, cancelWorkout, updateWorkout, finishWorkout }) {
+export default function NewWorkoutModal({ workout, setWorkout, closeModal, cancelWorkout, updateWorkout, finishWorkout, timer }) {
     const [selectExerciseModalVisible, setSelectExerciseModalVisible] = useState(false);
     const [groupModalVisible, setGroupModalVisible] = useState(false);
-    const [timer, setTimer] = useState('0:00');
+    // const [timer, setTimer] = useState('0:00');
     const [headerShadow, setHeaderShadow] = useState(false);
 
-    useEffect(() => {
-        init();
-    }, []);
+    // useEffect(() => {
+    //     init();
+    // }, []);
 
-    async function init() {
-        setInterval(() => {
-            let diff = Date.now() - workout.created;
-            setTimer(millisToMinutesAndSeconds(diff));
-        }, 1000);
-    }
+    // async function init() {
+    //     setInterval(() => {
+    //         let diff = Date.now() - workout.created;
+    //         setTimer(millisToMinutesAndSeconds(diff));
+    //     }, 1000);
+    // }
 
     function showSelectExerciseModal() {
         setSelectExerciseModalVisible(true);

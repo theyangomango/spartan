@@ -82,7 +82,7 @@ const styles = StyleSheet.create({
         borderRadius: 10,
     },
     highlightedDateContainer: {
-        backgroundColor: '#70DC8D', // Highlighted date background color
+        backgroundColor: '#40D99B', // Highlighted date background color
     },
     selectedDateContainer: {
         backgroundColor: '#82BDFE', // Selected date background color

@@ -25,7 +25,7 @@ const styles = StyleSheet.create({
         alignItems: 'center',
         flexDirection: 'row',
         justifyContent: 'space-between',
-        marginHorizontal: 14,
+        marginHorizontal: 16,
     },
     left: {
         flexDirection: 'row',
@@ -33,8 +33,8 @@ const styles = StyleSheet.create({
         alignItems: 'center'
     },
     text: {
-        fontSize: 16,
-        fontFamily: 'SourceSansPro_600SemiBold',
+        fontSize: 13,
+        fontFamily: 'Poppins_600SemiBold',
         color: 'white',
         // marginRight: 8
     },

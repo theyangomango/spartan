@@ -14,6 +14,8 @@ import WorkoutDates from "../components/3_workout/WorkoutDates";
 import RNBounceable from "@freakycoder/react-native-bounceable";
 import Panel from "../components/3_workout/Panel";
 import NewWorkoutBottomSheet from "../components/3_workout/NewWorkoutBottomSheet"; // Import the new component
+import CurrentWorkoutPanel from "../components/3_workout/CurrentWorkoutPanel";
+import millisToMinutesAndSeconds from "../helper/milliesToMinutesAndSeconds";
 
 const { height } = Dimensions.get('window');
 
@@ -40,10 +42,13 @@ const initialTemplates = [
 
 export default function Workout({ navigation }) {
     const [workout, setWorkout] = useState(null);
+    const [workoutTimer, setWorkoutTimer] = useState('00:00');
     const [templates, setTemplates] = useState(initialTemplates);
     const [isPanelVisible, setIsPanelVisible] = useState(false);
     const [panelDate, setPanelDate] = useState(null);
     const [isBottomSheetVisible, setIsBottomSheetVisible] = useState(false);
+    const workoutTimeInterval = useRef(null);
+    const [isCurrentWorkoutPanelVisible, setIsCurrentWorkoutPanelVisible] = useState(false);
 
     const userData = global.userData;
 
@@ -60,6 +65,15 @@ export default function Workout({ navigation }) {
             });
             // global.workout = workout;
             setIsBottomSheetVisible(true);
+
+            let initialTime = Date.now();
+            workoutTimeInterval.current = setInterval(() => {
+                let diff = Date.now() - initialTime;
+                setWorkoutTimer(millisToMinutesAndSeconds(diff));
+            }, 1000);
+            setTimeout(() => {
+                setIsCurrentWorkoutPanelVisible(true);
+            }, 500);
         } else {
             setIsBottomSheetVisible(true);
         }
@@ -75,11 +89,17 @@ export default function Workout({ navigation }) {
         // eraseDoc('workouts', workout.wid);
         setWorkout(null);
         setIsBottomSheetVisible(false);
+        clearInterval(workoutTimeInterval.current);
+        setIsCurrentWorkoutPanelVisible(false);
+        setWorkoutTimer('00:00');
     }
 
     function finishNewWorkout() {
         setWorkout(null);
         setIsBottomSheetVisible(false);
+        clearInterval(workoutTimeInterval.current);
+        setIsCurrentWorkoutPanelVisible(false);
+        setWorkoutTimer('00:00')
     }
 
     const scheduleWorkout = useCallback((date) => {
@@ -112,6 +132,9 @@ export default function Workout({ navigation }) {
                     selectedDate={panelDate}
                 />
                 <Panel isVisible={isPanelVisible} onClose={descheduleWorkout} date={panelDate} />
+                {isCurrentWorkoutPanelVisible &&
+                    <CurrentWorkoutPanel exerciseName={'8/8 Workout'} time={workoutTimer} openWorkout={startNewWorkout}/>
+                }
                 <Text style={styles.quick_start_text}>Quick Start</Text>
 
                 <StartWorkoutButton startWorkout={startNewWorkout} />
@@ -138,6 +161,7 @@ export default function Workout({ navigation }) {
                 finishNewWorkout={finishNewWorkout}
                 isVisible={isBottomSheetVisible}
                 setIsVisible={setIsBottomSheetVisible}
+                timer={workoutTimer}
             />
         </View>
     );
@@ -147,24 +171,24 @@ const styles = StyleSheet.create({
     main_ctnr: {
         flex: 1,
         backgroundColor: '#fff',
-        paddingHorizontal: 4
     },
     body: {
         flex: 1,
-        paddingTop: 100
+        paddingTop: 125
     },
     quick_start_text: {
-        marginTop: 24,
         fontFamily: 'Poppins_600SemiBold',
+        letterSpacing: -0.2,
         fontSize: 16,
         paddingBottom: 8,
-        paddingHorizontal: 14,
+        paddingHorizontal: 20,
     },
     templates_text: {
         marginTop: 24,
         fontFamily: 'Poppins_600SemiBold',
+        letterSpacing: -0.3,
         fontSize: 16,
         paddingBottom: 6,
-        paddingHorizontal: 14
+        paddingHorizontal: 20
     },
 });

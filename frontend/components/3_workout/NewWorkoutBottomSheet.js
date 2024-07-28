@@ -54,7 +54,7 @@ import React, { useCallback, useEffect, useMemo, useRef } from "react";
 import { View, Text, StyleSheet } from "react-native";
 import BottomSheet, { BottomSheetBackdrop } from "@gorhom/bottom-sheet";
 
-const NewWorkoutBottomSheet = ({ workout, isVisible, setIsVisible, cancelNewWorkout, updateNewWorkout, finishNewWorkout }) => {
+const NewWorkoutBottomSheet = ({ workout, isVisible, setIsVisible, cancelNewWorkout, updateNewWorkout, finishNewWorkout, timer }) => {
     // ref
     const bottomSheetRef = useRef(null);
 
@@ -106,6 +106,7 @@ const NewWorkoutBottomSheet = ({ workout, isVisible, setIsVisible, cancelNewWork
         >
             {workout &&
                 <NewWorkoutModal
+                    timer={timer}
                     workout={workout}
                     // setWorkout={setWorkout}
                     // closeModal={() => bottomSheetRef.current.snapTo(1)}
