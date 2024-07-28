@@ -9,21 +9,26 @@ const Panel = ({ isVisible, onClose, date }) => {
 
     useEffect(() => {
         if (isVisible) {
+            Animated.timing(panelOpacity, {
+                toValue: 0,
+                duration: 300,
+                useNativeDriver: true,
+            }).stop();
             setPanelZIndex(1);
             Animated.timing(panelOpacity, {
                 toValue: 1,
                 duration: 300,
                 useNativeDriver: true,
-            }).start();
+            }).start(() => {
+            });
         } else {
-            setTimeout(() => {
-                setPanelZIndex(0);
-            }, 300);
             Animated.timing(panelOpacity, {
                 toValue: 0,
                 duration: 300,
                 useNativeDriver: true,
-            }).start();
+            }).start(() => {
+                    setPanelZIndex(0);
+            });
         }
     }, [isVisible]);
 

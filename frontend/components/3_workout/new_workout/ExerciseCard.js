@@ -33,13 +33,17 @@ export default function ExerciseCard({ name, muscleGroup, lastDone = 'July 13th'
                 <ExerciseImagePreview exercise={'standing-preacher-curl-dumbbell'} />
 
                 <View style={styles.textContainer}>
-                    <View style={styles.row}>
+                    {/* <View style={styles.row}> */}
                         <Text style={styles.exerciseName}>{name}</Text>
+
+                    {/* </View> */}
+                    <View style={styles.row}>
+                        <Text style={styles.lastDone}>{lastDone}</Text>
                         <View style={[styles.muscle_ctnr, { backgroundColor: muscleColors[muscleGroup] || '#ccc' }]}>
                             <Text style={styles.muscle_text}>{muscleGroup}</Text>
                         </View>
                     </View>
-                    <Text style={styles.lastDone}>{lastDone}</Text>
+
                 </View>
             </View>
             <View style={styles.rightContainer}>
@@ -57,8 +61,10 @@ const styles = StyleSheet.create({
     card: {
         flexDirection: 'row',
         alignItems: 'center',
-        height: 75,
-        paddingHorizontal: 18,
+        height: 66,
+        paddingLeft: 12,
+        paddingRight: 8,
+        // paddingHorizontal: 8,
         justifyContent: 'space-between',
         position: 'relative', // Added to ensure border is positioned relative to the card
     },
@@ -83,34 +89,36 @@ const styles = StyleSheet.create({
     row: {
         flexDirection: 'row',
         alignItems: 'center',
+        justifyContent: 'space-between'
     },
     selected: {
         backgroundColor: '#E1F0FF',
     },
     exerciseName: {
         fontFamily: 'Outfit_600SemiBold',
-        fontSize: 19,
-        marginRight: 6, // Added margin to separate from muscle group
+        fontSize: 16,
+        // marginRight: 4, // Added margin to separate from muscle group
         marginLeft: 0.8,
         marginVertical: 5,
     },
     muscle_ctnr: {
+        marginLeft: 5,
         borderRadius: 20,
         paddingHorizontal: 10,
-        height: 25,
+        height: 20,
         alignItems: 'center',
         justifyContent: 'center',
     },
     muscle_text: {
         fontFamily: 'Poppins_700Bold',
-        fontSize: 13.5,
+        fontSize: 10,
         color: '#fff',
     },
     lastDone: {
         fontFamily: 'Outfit_400Regular',
-        fontSize: 17,
+        fontSize: 14,
         color: '#666',
-        marginTop: 2,
+        // marginTop: 2,
     },
     rightContainer: {
         flexDirection: 'row',

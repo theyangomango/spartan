@@ -45,8 +45,8 @@ const ExerciseImagePreview = ({ exercise }) => {
 
 const styles = StyleSheet.create({
     imageContainer: {
-        width: 65,
-        height: 65,
+        width: 50,
+        aspectRatio: 1,
         overflow: 'hidden',
     },
     image: {
@@ -55,7 +55,7 @@ const styles = StyleSheet.create({
         resizeMode: 'cover',
         transform: [
             { scale: 1 },
-            { translateX: -70.5 },
+            { translateX: -80.5 },
             { translateY: -20.5 }
         ],
     },

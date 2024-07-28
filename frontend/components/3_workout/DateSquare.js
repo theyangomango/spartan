@@ -8,7 +8,6 @@ const DateSquare = ({ date, isToday, isHighlighted, initialSelected, scheduleWor
     const [flag, setFlag] = useState(false);
 
     useEffect(() => {
-
         if (!isSelected) {
             descheduleWorkout();
         } else {
@@ -19,22 +18,12 @@ const DateSquare = ({ date, isToday, isHighlighted, initialSelected, scheduleWor
 
     const handlePress = () => {
         if (date > new Date()) {
-
             if (isPanelVisible && selectedDate == date) {
                 setIsSelected(false);
             } else {
                 setIsSelected(true);
                 setFlag(!flag);
             }
-
-            // setIsSelected(!isSelected);
-
-            // if (isSelected) {
-            //     descheduleWorkout();
-            // } else {
-            //     scheduleWorkout();
-            // }
-
         }
     };
 

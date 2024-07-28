@@ -83,7 +83,7 @@ export default function Workout({ navigation }) {
 
     const descheduleWorkout = useCallback(() => {
         setIsPanelVisible(false);
-        setPanelDate(null);
+        // setPanelDate(null);
     }, []);
 
     const renderItem = ({ item, drag, isActive }) => (
