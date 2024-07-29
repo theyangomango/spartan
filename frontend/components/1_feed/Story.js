@@ -34,21 +34,21 @@ export default function Story({ data, handlePress, index, isViewed, handlePressC
 
 const styles = StyleSheet.create({
     main_ctnr: {
-        width: 76,
+        width: 77,
         height: 86,
         alignItems: 'center',
     },
     handle_text: {
-        fontFamily: 'Poppins_500Medium',
-        fontSize: 11,
+        fontFamily: 'Outfit_500Medium',
+        fontSize: 12.5,
         paddingTop: 4,
         marginLeft: 3,
         color: '#666'
     },
     pfp_ctnr: {
-        width: 61,
+        width: 60,
         aspectRatio: 1,
-        borderRadius: 49,
+        borderRadius: 26,
         borderWidth: 3,
         borderColor: '#2D9EFF',
         justifyContent: 'center',
@@ -58,9 +58,9 @@ const styles = StyleSheet.create({
         borderColor: '#BEE1FF', // Change this color to indicate the story has been viewed
     },
     pfp: {
-        width: 50.5,
+        width: 49.5,
         aspectRatio: 1,
-        borderRadius: 50
+        borderRadius: 22
     },
     create_icon: {
         position: 'absolute',

@@ -1,27 +1,27 @@
 import React, { useEffect, useState } from "react";
-import { StyleSheet, View } from "react-native";
-import CachedImage from 'expo-cached-image';
+import { Image, StyleSheet, View } from "react-native";
 import PostHeader from "./PostHeader";
 import PostFooter from "./PostFooter";
+import RNBounceable from "@freakycoder/react-native-bounceable";
 
-export default function Post({ data, onPressCommentButton, onPressShareButton, index }) {
+export default function Post({ data, onPressCommentButton, onPressShareButton, index, focusedPostIndex, handlePressPost }) {
     const pfp = data.pfp;
     const image = data.images[0];
 
     return (
-        <View style={styles.main_ctnr}>
+        <RNBounceable bounceEffectIn={1.02} style={[styles.main_ctnr, focusedPostIndex == index && { zIndex: 1 }]} onPress={() => handlePressPost(index)}>
             <View style={styles.body_ctnr}>
                 <View style={styles.image_ctnr}>
-                    <CachedImage
+                    <Image
                         source={{ uri: image }}
                         cacheKey={data.pid} // Use a unique cache key for each image
-                        style={styles.image}
+                        style={[styles.image, focusedPostIndex == index && { borderRadius: 35 }]}
                     />
                 </View>
             </View>
             <PostHeader data={data} url={pfp} />
             <PostFooter data={data} onPressCommentButton={() => onPressCommentButton(index)} onPressShareButton={() => onPressShareButton(index)} image={pfp} />
-        </View>
+        </RNBounceable>
     );
 }
 
@@ -29,9 +29,10 @@ const styles = StyleSheet.create({
     main_ctnr: {
         width: '100%',
         borderColor: '#ddd',
-        marginBottom: 10,
-        backgroundColor: '#fff', // Added background color for better visibility
-        borderRadius: 30,
+        // marginBottom: 10,
+        marginBottom: -33,
+        // backgroundColor: '#fff', // Added background color for better visibility
+
     },
     body_ctnr: {
         flex: 1,
@@ -41,7 +42,9 @@ const styles = StyleSheet.create({
     },
     image: {
         flex: 1,
-        borderRadius: 40,
+        // borderRadius: 40,
+        borderTopRightRadius: 35,
+        borderTopLeftRadius: 35
     },
     caption: {
         marginBottom: 7,

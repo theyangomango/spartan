@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, Pressable } from 'react-native';
 import { BlurView } from 'expo-blur';
-import { Heart, Message, Send2 } from 'iconsax-react-native'; // Adjust this import as needed
+import { Heart, Messages1, Send2 } from 'iconsax-react-native'; // Adjust this import as needed
+import { Feather, FontAwesome } from '@expo/vector-icons'
 import { likePost } from '../../../backend/posts/likePost';
 import { unlikePost } from '../../../backend/posts/unlikePost';
 import RNBounceable from '@freakycoder/react-native-bounceable';
@@ -40,8 +41,9 @@ export default function PostFooter({ data, onPressCommentButton, onPressShareBut
     const currentComment = data.comments[currentCommentIndex];
 
     return (
-        <RNBounceable onPress={handlePressFooter} style={styles.outer}>
-            <BlurView intensity={25} style={styles.main_ctnr}>
+        <View style={styles.main_ctnr}>
+
+            {/* <BlurView intensity={25} style={styles.main_ctnr}>
                 <View style={styles.left}>
                     <View style={styles.pfp_ctnr}>
                         <CachedImage
@@ -80,115 +82,202 @@ export default function PostFooter({ data, onPressCommentButton, onPressShareBut
                         </View>
                     </RNBounceable>
                 </View>
-            </BlurView>
-        </RNBounceable>
+            </BlurView> */}
+            <View style={styles.left}>
+                <RNBounceable style={styles.like_button} onPress={handlePressLikeButton}>
+                    <BlurView style={styles.like_button_blurview}>
+                        <Heart size="24" color="#fff" variant='Bold' />
+                        <Text style={styles.like_button_text}>7.9k</Text>
+                    </BlurView>
+                </RNBounceable>
+                <View style={styles.comment_button}>
+                    <Messages1 size={24} color="#fff" variant='Bold' />
+                    <Text style={styles.comment_button_text}>249</Text>
+
+                </View>
+                <View style={styles.share_button}>
+                    <Send2 size={20} color="#fff" variant='Bold' />
+                    <Text style={styles.share_button_text}>187</Text>
+                </View>
+            </View>
+
+
+            <RNBounceable style={styles.save_button}>
+                <Feather name='bookmark' color={'#fff'} size={23}/>
+            </RNBounceable>
+        </View>
     );
 }
 
 const styles = StyleSheet.create({
-    outer: {
-        position: 'absolute',
-        bottom: 30,
-        flexDirection: 'row',
-        left: 20,
-        right: 20,
-        height: 66,
-        borderRadius: 50,
-        overflow: 'hidden',
-    },
     main_ctnr: {
-        flex: 1,
+        position: 'absolute',
+        bottom: 42,
+        left: 10,
+        right: 13,
         flexDirection: 'row',
-        alignItems: 'center',
+        // left: 20,
+        // right: 20,
+        // height: 66,
+        // borderRadius: 50,
+        // overflow: 'hidden',
+        justifyContent: 'space-between'
     },
     left: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        flex: 1,
+        flexDirection: 'row'
     },
-    right: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        paddingLeft: 5,
-        paddingRight: 8,
+    like_button: {
         // backgroundColor: 'red',
+        borderRadius: 30,
+        overflow: 'hidden'
     },
-    pfp_ctnr: {
-        paddingLeft: 13,
-        paddingRight: 8,
+    like_button_blurview: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        paddingHorizontal: 12,
+        paddingVertical: 12,
     },
-    pfp: {
-        width: 37,
-        aspectRatio: 1,
-        borderRadius: 22,
-    },
-    caption: {
-        flex: 1,
-    },
-    caption_text: {
-        fontFamily: 'Mulish_400Regular',
+    like_button_text: {
         color: '#fff',
-        fontSize: 11,
-        flexWrap: 'wrap',
+        fontFamily: 'Poppins_700Bold',
+        fontSize: 12,
+        paddingHorizontal: 5,
     },
-    likes_ctnr: {
-        padding: 8,
-        // height: '100%',
-        marginTop: 8,
-        justifyContent: 'flex-end'
+    comment_button: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        paddingHorizontal: 12,
+        paddingVertical: 12,
     },
-    messages_ctnr: {
-        paddingVertical: 8,
-        paddingHorizontal: 9,
-        // height: '100%',
-        marginTop: 8,
-        justifyContent: 'flex-end'
-    },
-    left_border: {
-        position: 'absolute',
-        borderRightColor: '#666',
-        borderRightWidth: 0.8,
-        top: 10,
-        bottom: 26,
-        opacity: 0.5
-    },
-    right_border: {
-        position: 'absolute',
-        borderLeftColor: '#666',
-        borderLeftWidth: 0.6,
-        top: 10,
-        bottom: 26,
-        right: 0,
-        opacity: 0.6
-    },
-    share_ctnr: {
-        padding: 8,
-        // height: '100%',
-        marginTop: 8,
-        justifyContent: 'flex-end'
-    },
-    like_text: {
+    comment_button_text: {
         color: '#fff',
-        fontSize: 12.5,
-        textAlign: 'center',
-        paddingBottom: 2,
-        paddingTop: 4,
-        fontFamily: 'Outfit_300Light'
+        fontFamily: 'Poppins_700Bold',
+        fontSize: 12,
+        paddingVertical: 1,
+        paddingHorizontal: 5,
     },
-    comment_text: {
-        color: '#fff',
-        fontSize: 12.5,
-        textAlign: 'center',
-        paddingBottom: 2,
-        paddingTop: 3.5,
-        fontFamily: 'Outfit_300Light'
+    share_button: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        paddingHorizontal: 8,
+        paddingVertical: 12,
     },
-    share_text: {
+    share_button_text: {
         color: '#fff',
-        fontSize: 12.5,
-        textAlign: 'center',
-        paddingBottom: 2,
-        paddingTop: 3.5,
-        fontFamily: 'Outfit_300Light'
+        fontFamily: 'Poppins_700Bold',
+        fontSize: 12,
+        paddingVertical: 1,
+        paddingHorizontal: 5,
+    },
+    save_button: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        paddingHorizontal: 12,
+        paddingVertical: 12,
     }
+    // outer: {
+    //     position: 'absolute',
+    //     bottom: 30,
+    //     flexDirection: 'row',
+    //     left: 20,
+    //     right: 20,
+    //     height: 66,
+    //     borderRadius: 50,
+    //     overflow: 'hidden',
+    // },
+    // main_ctnr: {
+    //     flex: 1,
+    //     flexDirection: 'row',
+    //     alignItems: 'center',
+    // },
+    // left: {
+    //     flexDirection: 'row',
+    //     alignItems: 'center',
+    //     flex: 1,
+    // },
+    // right: {
+    //     flexDirection: 'row',
+    //     alignItems: 'center',
+    //     paddingLeft: 5,
+    //     paddingRight: 8,
+    //     // backgroundColor: 'red',
+    // },
+    // pfp_ctnr: {
+    //     paddingLeft: 13,
+    //     paddingRight: 8,
+    // },
+    // pfp: {
+    //     width: 37,
+    //     aspectRatio: 1,
+    //     borderRadius: 22,
+    // },
+    // caption: {
+    //     flex: 1,
+    // },
+    // caption_text: {
+    //     fontFamily: 'Mulish_400Regular',
+    //     color: '#fff',
+    //     fontSize: 11,
+    //     flexWrap: 'wrap',
+    // },
+    // likes_ctnr: {
+    //     padding: 8,
+    //     // height: '100%',
+    //     marginTop: 8,
+    //     justifyContent: 'flex-end'
+    // },
+    // messages_ctnr: {
+    //     paddingVertical: 8,
+    //     paddingHorizontal: 9,
+    //     // height: '100%',
+    //     marginTop: 8,
+    //     justifyContent: 'flex-end'
+    // },
+    // left_border: {
+    //     position: 'absolute',
+    //     borderRightColor: '#666',
+    //     borderRightWidth: 0.8,
+    //     top: 10,
+    //     bottom: 26,
+    //     opacity: 0.5
+    // },
+    // right_border: {
+    //     position: 'absolute',
+    //     borderLeftColor: '#666',
+    //     borderLeftWidth: 0.6,
+    //     top: 10,
+    //     bottom: 26,
+    //     right: 0,
+    //     opacity: 0.6
+    // },
+    // share_ctnr: {
+    //     padding: 8,
+    //     // height: '100%',
+    //     marginTop: 8,
+    //     justifyContent: 'flex-end'
+    // },
+    // like_text: {
+    //     color: '#fff',
+    //     fontSize: 12.5,
+    //     textAlign: 'center',
+    //     paddingBottom: 2,
+    //     paddingTop: 4,
+    //     fontFamily: 'Outfit_300Light'
+    // },
+    // comment_text: {
+    //     color: '#fff',
+    //     fontSize: 12.5,
+    //     textAlign: 'center',
+    //     paddingBottom: 2,
+    //     paddingTop: 3.5,
+    //     fontFamily: 'Outfit_300Light'
+    // },
+    // share_text: {
+    //     color: '#fff',
+    //     fontSize: 12.5,
+    //     textAlign: 'center',
+    //     paddingBottom: 2,
+    //     paddingTop: 3.5,
+    //     fontFamily: 'Outfit_300Light'
+    // }
 });

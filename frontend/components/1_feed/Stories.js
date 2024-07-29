@@ -117,6 +117,7 @@ const styles = StyleSheet.create({
     stories_ctnr: {
         backgroundColor: '#fff',
         paddingTop: 6,
+        paddingBottom: 5
     },
     flatlist: {
         paddingLeft: 15,

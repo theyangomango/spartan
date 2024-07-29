@@ -25,7 +25,7 @@ export default function PostHeader({ data, url }) {
 
     return (
         <View style={styles.outer}>
-            <BlurView intensity={1} style={styles.main_ctnr}>
+            <BlurView intensity={0} style={styles.main_ctnr}>
                 <View style={styles.left}>
                     <View style={styles.pfp_ctnr}>
                         <Image
@@ -37,24 +37,24 @@ export default function PostHeader({ data, url }) {
                         <Text style={styles.handle_text}>
                             {data.handle}
                         </Text>
-                        <TouchableOpacity activeOpacity={0.5}>
+                        {/* <TouchableOpacity activeOpacity={0.5}>
                             <View>
                                 <Text style={styles.workout_text}>
                                     {'Morning Workout 7/5'}
                                 </Text>
                             </View>
-                        </TouchableOpacity>
+                        </TouchableOpacity> */}
                     </View>
                 </View>
                 <View style={styles.right}>
-                    <Pressable
+                    {/* <Pressable
                         style={[styles.follow_btn, isFollowing && styles.following_btn]}
                         onPress={handleFollowPress}
                     >
                         <Text style={isFollowing ? styles.following_btn_text : styles.follow_text}>
                             {isFollowing ? 'Following' : 'Follow'}
                         </Text>
-                    </Pressable>
+                    </Pressable> */}
                     {/* <View style={styles.options_icon_ctnr}>
                     <SimpleLineIcons name='options-vertical' size={14} />
                 </View> */}
@@ -76,7 +76,7 @@ const styles = StyleSheet.create({
         overflow: 'hidden'
     },
     main_ctnr: {
-        backgroundColor: 'rgba(37,42,54,0.3)',
+        backgroundColor: 'rgba(37,42,54,0.1)',
         paddingTop: 16,
         paddingLeft: 22,
         paddingRight: 13,
@@ -102,9 +102,9 @@ const styles = StyleSheet.create({
         justifyContent: 'center'
     },
     handle_text: {
-        fontSize: 13,
+        fontSize: 12.5,
         paddingBottom: 5,
-        fontFamily: 'Lato_700Bold',
+        fontFamily: 'Poppins_600SemiBold',
         color: '#fff'
     },
     workout_text: {
