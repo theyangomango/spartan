@@ -6,7 +6,7 @@ import { Ionicons, Feather, Entypo } from '@expo/vector-icons';
 import getPFP from '../../../backend/storage/getPFP';
 import incrementDocValue from '../../../backend/helper/firebase/incrementDocValue';
 
-export default function CommentsModal({ postData, handleTouchHeader, handlePressUpIcon, isSheetDown }) {
+export default function CommentsModal({ postData, handleTouchHeader, handlePressUpIcon, isSheetExpanded }) {
     const comments = postData.comments;
     const [pfp, setPFP] = useState(null);
     const [inputText, setInputText] = useState('');
@@ -97,7 +97,7 @@ export default function CommentsModal({ postData, handleTouchHeader, handlePress
                             <CommentCard data={item} likeComment={handleLikeComment} unlikeComment={handleUnlikeComment} index={index} key={index} />
                         </Pressable>
                     )}
-                    contentContainerStyle={styles.comments_list_ctnr}
+                    contentContainerStyle={[styles.comments_list_ctnr, { paddingBottom: isSheetExpanded ? 100 : 525 }]}
                 />
                 {/* <Pressable>
                     <View style={[styles.footer, { marginBottom: isInputFocused ? 65 : 0 }]}>
@@ -138,7 +138,7 @@ const styles = StyleSheet.create({
         top: 0,
         left: 0,
         right: 0,
-        height: 35,
+        height: 25,
         // justifyContent: 'flex-end',
         alignItems: 'center',
         // justifyContent: 'center',
@@ -157,7 +157,7 @@ const styles = StyleSheet.create({
     comments_list_ctnr: {
         paddingTop: 12,
         paddingHorizontal: 15,
-        paddingBottom: 550,
+        // paddingBottom: 550,
         flexGrow: 1,
     },
     footer: {

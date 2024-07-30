@@ -9,7 +9,7 @@ import RNBounceable from '@freakycoder/react-native-bounceable';
 import CachedImage from 'expo-cached-image';
 
 
-export default function PostFooter({ data, onPressCommentButton, onPressShareButton }) {
+export default function PostFooter({ data, onPressCommentButton, onPressShareButton, isPostsVisible }) {
     const [isLiked, setIsLiked] = useState(false);
     const [currentCommentIndex, setCurrentCommentIndex] = useState(0);
 
@@ -92,15 +92,15 @@ export default function PostFooter({ data, onPressCommentButton, onPressShareBut
                         <Text style={styles.like_button_text}>7.9k</Text>
                     </BlurView>
                 </RNBounceable>
-                <View style={styles.comment_button}>
+                <Pressable disabled={isPostsVisible} onPress={onPressCommentButton} style={styles.comment_button}>
                     <Messages1 size={24} color="#fff" variant='Bold' />
                     <Text style={styles.comment_button_text}>249</Text>
 
-                </View>
-                <View style={styles.share_button}>
+                </Pressable>
+                <Pressable disabled={isPostsVisible} onPress={onPressShareButton} style={styles.share_button}>
                     <Send2 size={20} color="#fff" variant='Bold' />
                     <Text style={styles.share_button_text}>187</Text>
-                </View>
+                </Pressable>
             </View>
 
 

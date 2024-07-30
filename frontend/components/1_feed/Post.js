@@ -27,10 +27,13 @@ export default function Post({ data, onPressCommentButton, onPressShareButton, i
     }, [isPostsVisible]);
 
     const handlePress = () => {
-        if (focusedPostIndex.current != -1) return;
-        viewRef.current.measure((x, y, width, height, pageX, pageY) => {
-            handlePressPost(index, pageY);
-        });
+        if (focusedPostIndex.current === index) {
+
+        } else if (focusedPostIndex.current === -1) {
+            viewRef.current.measure((x, y, width, height, pageX, pageY) => {
+                handlePressPost(index, pageY);
+            });
+        }
     };
 
     return (
@@ -53,7 +56,13 @@ export default function Post({ data, onPressCommentButton, onPressShareButton, i
                     </View>
                 </View>
                 <PostHeader data={data} url={pfp} />
-                <PostFooter data={data} onPressCommentButton={() => onPressCommentButton(index)} onPressShareButton={() => onPressShareButton(index)} image={pfp} />
+                <PostFooter
+                    data={data}
+                    onPressCommentButton={() => onPressCommentButton(index)}
+                    onPressShareButton={() => onPressShareButton(index)}
+                    image={pfp}
+                    isPostsVisible={isPostsVisible}
+                />
             </RNBounceable>
         </Animated.View>
     );
@@ -72,7 +81,7 @@ const styles = StyleSheet.create({
         flex: 1,
     },
     image_ctnr: {
-        aspectRatio: 0.81
+        aspectRatio: 0.8
     },
     image: {
         flex: 1,

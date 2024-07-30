@@ -1,29 +1,25 @@
-import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { View, Text, StyleSheet, TextInput, Platform, Image, KeyboardAvoidingView, Animated, Keyboard, TouchableWithoutFeedback, Pressable, TouchableOpacity } from "react-native";
-import BottomSheet, { BottomSheetBackdrop } from "@gorhom/bottom-sheet";
-import { Ionicons } from '@expo/vector-icons'
+import React, { useEffect, useMemo, useRef, useState } from "react";
+import { View, StyleSheet, TextInput, Platform, Image, KeyboardAvoidingView, Animated, Keyboard, Pressable, Dimensions } from "react-native";
+import BottomSheet from "@gorhom/bottom-sheet";
+import { Ionicons } from '@expo/vector-icons';
 import CommentsModal from "./CommentsModal";
-import { updateDoc } from "firebase/firestore";
 import incrementDocValue from "../../../backend/helper/firebase/incrementDocValue";
+import updateDoc from "../../../backend/helper/firebase/updateDoc";
 
-const CommentsBottomSheet = ({ isVisible, setIsVisible, postData }) => {
+const { width, height } = Dimensions.get('screen');
+
+const CommentsBottomSheet = ({ isVisible, setIsVisible, postData, commentsBottomSheetExpandFlag }) => {
     const [isInputFocused, setIsInputFocused] = useState(false);
     const bottomSheetRef = useRef(null);
-    const footerMarginBottom = useRef(new Animated.Value(0)).current;
+    const footerTranslateY = useRef(new Animated.Value(0)).current;
 
-    const snapPoints = useMemo(() => ["37%", "92"], []);
-    const [isSheetDown, setisSheetDown] = useState(true);
-
+    const snapPoints = useMemo(() => ["36%", "92%"], []);
+    const [isSheetExpanded, setIsSheetExpanded] = useState(false);
     const [inputText, setInputText] = useState('');
-
-
-    // const handleSheetChanges = useCallback((index) => {
-    //     console.log("handleSheetChanges", index);
-    // }, []);
 
     const handleSend = () => {
         if (!inputText) return;
-        comments.push({
+        postData.comments.push({
             handle: global.userData.handle,
             uid: global.userData.uid,
             pfp: global.userData.image,
@@ -35,51 +31,52 @@ const CommentsBottomSheet = ({ isVisible, setIsVisible, postData }) => {
             isCaption: false
         });
         updateDoc('posts', postData.pid, {
-            comments: comments
+            comments: postData.comments
         });
         incrementDocValue('posts', postData.pid, 'commentCount');
         setInputText('');
     };
 
-    const renderBackdrop = useCallback(
-        (props) => (
-            <BottomSheetBackdrop
-                {...props}
-                disappearsOnIndex={-1}
-                appearsOnIndex={0}
-                opacity={0.6}
-            />
-        ),
-        []
-    );
-
     const handleInputFocus = () => {
         setIsInputFocused(true);
         bottomSheetRef.current.expand();
-        Animated.timing(footerMarginBottom, {
-            toValue: 315,
-            duration: 300,
-            useNativeDriver: false
+        Animated.timing(footerTranslateY, {
+            toValue: -315,
+            duration: 225,
+            useNativeDriver: true
         }).start();
     };
 
     const handleInputBlur = () => {
         setIsInputFocused(false);
-        Animated.timing(footerMarginBottom, {
+        Animated.timing(footerTranslateY, {
             toValue: 0,
-            duration: 300,
-            useNativeDriver: false
+            duration: 200,
+            useNativeDriver: true
         }).start();
     };
 
     useEffect(() => {
-        console.log(isVisible);
+        const keyboardDidShowListener = Keyboard.addListener('keyboardDidShow', handleInputFocus);
+        const keyboardDidHideListener = Keyboard.addListener('keyboardDidHide', handleInputBlur);
+
+        return () => {
+            keyboardDidHideListener.remove();
+            keyboardDidShowListener.remove();
+        };
+    }, []);
+
+    useEffect(() => {
         if (isVisible) {
             bottomSheetRef.current.snapToIndex(0);
         } else {
             bottomSheetRef.current.close();
         }
     }, [isVisible]);
+
+    useEffect(() => {
+        bottomSheetRef.current.expand();
+    }, [commentsBottomSheetExpandFlag]);
 
     function handleTouchHeader() {
         if (isInputFocused) {
@@ -92,6 +89,15 @@ const CommentsBottomSheet = ({ isVisible, setIsVisible, postData }) => {
         bottomSheetRef.current.expand();
     }
 
+    function handleSheetIndexChange(index) {
+        if (index === 1) {
+            setIsSheetExpanded(true);
+        } else {
+            setIsSheetExpanded(false);
+        }
+
+    }
+
     return (
         <KeyboardAvoidingView
             style={styles.container}
@@ -102,18 +108,22 @@ const CommentsBottomSheet = ({ isVisible, setIsVisible, postData }) => {
                 ref={bottomSheetRef}
                 index={-1}
                 snapPoints={snapPoints}
-                // onChange={handleSheetChanges}
+                onChange={handleSheetIndexChange}
                 handleStyle={{ display: 'none' }}
                 detached
                 backgroundStyle={{ backgroundColor: '#f3f3f3' }}
-
             >
                 {postData &&
-                    <CommentsModal postData={postData} handleTouchHeader={handleTouchHeader} handlePressUpIcon={handlePressUpIcon} />
+                    <CommentsModal
+                        postData={postData}
+                        handleTouchHeader={handleTouchHeader}
+                        handlePressUpIcon={handlePressUpIcon}
+                        isSheetExpanded={isSheetExpanded}
+                    />
                 }
             </BottomSheet>
             {isVisible && (
-                <Animated.View style={[styles.footer, { marginBottom: footerMarginBottom }]}>
+                <Animated.View style={[styles.footer, { transform: [{ translateY: footerTranslateY }] }]}>
                     <View style={styles.inputContainer}>
                         <View style={styles.image_ctnr}>
                             <Image source={{ uri: global.userData.image }} style={styles.pfp} />
@@ -126,9 +136,9 @@ const CommentsBottomSheet = ({ isVisible, setIsVisible, postData }) => {
                             value={inputText}
                             onChangeText={setInputText}
                         />
-                        {<Pressable style={styles.sendButton} onPress={handleSend}>
+                        <Pressable style={styles.sendButton} onPress={handleSend}>
                             <Ionicons name="send" size={17.5} color="#111" />
-                        </Pressable>}
+                        </Pressable>
                     </View>
                 </Animated.View>
             )}
@@ -145,20 +155,12 @@ const styles = StyleSheet.create({
         right: 0,
         zIndex: 999
     },
-    main_ctnr: {
-        flex: 1,
-    },
-    contentContainer: {
-        flex: 1,
-        alignItems: "center",
-    },
-    bottom_sheet: {
-        zIndex: 30
-    },
     footer: {
         position: 'absolute',
-        bottom: 0,
-        height: 95,
+        // bottom: 0,
+        top: height - 180,
+        height: 95 + width / 2,
+        paddingBottom: width / 2,
         backgroundColor: '#fff',
         width: '100%',
         borderRadius: 40
@@ -188,12 +190,10 @@ const styles = StyleSheet.create({
         paddingHorizontal: 15,
         paddingVertical: 7,
         color: '#000',
-        fontFamily: 'Mulish_600SemiBold',
+        fontFamily: 'Outfit_500Medium',
         fontSize: 13.5,
     },
     sendButton: {
-        // backgroundColor: '#0499FE',
-        // borderRadius: 25,
         paddingHorizontal: 10,
         justifyContent: 'center',
         alignItems: 'center',

@@ -61,22 +61,24 @@ export default function CommentCard({ data, likeComment, unlikeComment, index })
             </View>
             {
                 !data.isCaption &&
-                <View style={styles.heart_icon_ctnr}>
-                    <RNBounceable onPress={handlePressLikeButton}>
+                <View style={styles.right}>
+                    <RNBounceable style={styles.reply_button}>
+                        <Text style={styles.reply_text}>Reply</Text>
+                    </RNBounceable>
+                    <RNBounceable onPress={handlePressLikeButton} style={styles.heart_icon_ctnr}>
                         {isLiked ?
                             // <Heart size={20} color="#FF8A65" variant="Bold" /> :
                             // <Heart size={20} color="#000" />
-                            <Svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="#FF8A65">
+                            <Svg xmlns="http://www.w3.org/2000/svg" width="18.5" height="18.5" viewBox="0 0 24 24" fill="#FF8A65">
                                 <Path d="M12.62 20.81c-.34.12-.9.12-1.24 0C8.48 19.82 2 15.69 2 8.69 2 5.6 4.49 3.1 7.56 3.1c1.82 0 3.43.88 4.44 2.24a5.53 5.53 0 0 1 4.44-2.24C19.51 3.1 22 5.6 22 8.69c0 7-6.48 11.13-9.38 12.12Z" stroke="#FF8A65" strokeWidth="2.1" strokeLinecap="round" strokeLinejoin="round"></Path>
                             </Svg>
                             :
 
 
-                            <Svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none">
+                            <Svg xmlns="http://www.w3.org/2000/svg" width="18.5" height="18.5" viewBox="0 0 24 24" fill="none">
                                 <Path d="M12.62 20.81c-.34.12-.9.12-1.24 0C8.48 19.82 2 15.69 2 8.69 2 5.6 4.49 3.1 7.56 3.1c1.82 0 3.43.88 4.44 2.24a5.53 5.53 0 0 1 4.44-2.24C19.51 3.1 22 5.6 22 8.69c0 7-6.48 11.13-9.38 12.12Z" stroke="#000" strokeWidth="2.1" strokeLinecap="round" strokeLinejoin="round"></Path>
                             </Svg>
                         }
-
                     </RNBounceable>
                 </View>
             }
@@ -90,11 +92,11 @@ const styles = StyleSheet.create({
     card: {
         flexDirection: 'row',
         alignItems: 'center',
-        paddingVertical: 8,
-        paddingHorizontal: 8,
+        paddingVertical: 9.5,
+        paddingHorizontal: 4,
     },
     pfp_ctnr: {
-        width: 40,
+        width: 38,
         aspectRatio: 1,
         marginRight: 10
     },
@@ -113,7 +115,7 @@ const styles = StyleSheet.create({
         fontFamily: 'Outfit_500Medium',
         // fontWeight: 'bold',
         color: '#999',
-        paddingBottom: 1.5
+        // paddingBottom: 1.5
     },
     timestamp_ctnr: {
         paddingHorizontal: 5
@@ -123,8 +125,8 @@ const styles = StyleSheet.create({
         marginBottom: 2
     },
     content_text: {
-        fontFamily: 'Lato_700Bold',
-        fontSize: 13,
+        fontFamily: 'Outfit_500Medium',
+        fontSize: 14,
         flexWrap: 'wrap',
         color: '#111'
     },
@@ -140,13 +142,37 @@ const styles = StyleSheet.create({
     likes_ctnr: {
         paddingRight: 15
     },
-    heart_icon_ctnr: {
-        width: 40,
+    right: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        marginTop: 7
+    },
+    reply_button: {
+        height: 34,
+        width: 75,
+        backgroundColor: '#e6e6e6',
         alignItems: 'center',
         justifyContent: 'center',
+        borderRadius: 30,
+    },
+    reply_text: {
+        fontSize: 12
+    },
+    heart_icon_ctnr: {
+        // width: 35,
+        // paddingHorizontal: 8,
+        // paddingUp: 10,
+        // paddingRight: 7,
+        // marginTop: 8,
+        width: 34,
         aspectRatio: 1,
+        marginLeft: 8,
+
+        // alignItems: 'center',
+        // justifyContent: 'center',
         borderRadius: 100,
-        backgroundColor: '#f3f3f3',
-        justifyContent: 'center'
+        backgroundColor: '#e6e6e6',
+        justifyContent: 'center',
+        alignItems: 'center'
     }
 });
