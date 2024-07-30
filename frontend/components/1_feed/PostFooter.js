@@ -8,6 +8,7 @@ import { unlikePost } from '../../../backend/posts/unlikePost';
 import RNBounceable from '@freakycoder/react-native-bounceable';
 import CachedImage from 'expo-cached-image';
 
+
 export default function PostFooter({ data, onPressCommentButton, onPressShareButton }) {
     const [isLiked, setIsLiked] = useState(false);
     const [currentCommentIndex, setCurrentCommentIndex] = useState(0);
@@ -19,6 +20,7 @@ export default function PostFooter({ data, onPressCommentButton, onPressShareBut
     }, [global.userData]);
 
     function handlePressLikeButton() {
+        console.log(isLiked);
         if (!isLiked) {
             likePost(data.pid, global.userData.uid);
             data.likeCount++;
@@ -86,7 +88,7 @@ export default function PostFooter({ data, onPressCommentButton, onPressShareBut
             <View style={styles.left}>
                 <RNBounceable style={styles.like_button} onPress={handlePressLikeButton}>
                     <BlurView style={styles.like_button_blurview}>
-                        <Heart size="24" color="#fff" variant='Bold' />
+                        <Heart size="24" color={isLiked ? 'red' : "#fff"} variant='Bold' />
                         <Text style={styles.like_button_text}>7.9k</Text>
                     </BlurView>
                 </RNBounceable>

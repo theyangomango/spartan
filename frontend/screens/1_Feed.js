@@ -1,6 +1,6 @@
 import React, { useEffect, useRef, useState } from "react";
 import { useFocusEffect } from "@react-navigation/native";
-import { StyleSheet, View, ScrollView, Dimensions, Text } from "react-native";
+import { StyleSheet, View, Dimensions, Animated, FlatList } from "react-native";
 import Footer from "../components/Footer";
 import Post from "../components/1_feed/Post";
 import FeedHeader from "../components/1_feed/FeedHeader";
@@ -18,6 +18,7 @@ import NotificationsModal from "../components/1_feed/NotificationsModal";
 import MaskedView from '@react-native-masked-view/masked-view';
 
 import { StatusBar } from "expo-status-bar";
+import CommentsBottomSheet from "../components/1_feed/CommentsBottomSheet";
 
 const UID = '6b176d7d-4d89-4cb5-beb0-0f19b47a10a2'; // Hard set UID
 
@@ -27,6 +28,7 @@ export default function Feed({ navigation }) {
     const [stories, setStories] = useState(null);
     const [posts, setPosts] = useState([]);
     const [messages, setMessages] = useState(null);
+    const [isPostsVisible, setIsPostsVisible] = useState(true);
     const userDataRef = useRef(0);
 
     const [currentPost, setCurrentPost] = useState(null);
@@ -41,20 +43,101 @@ export default function Feed({ navigation }) {
 
     const [isScrolledPast90, setIsScrolledPast90] = useState(false);
 
-    const [focusedPostIndex, setFocusedPostIndex] = useState(-1);
+    // const [focusedPostIndex, setFocusedPostIndex] = useState(-1);
+    const focusedPostIndex = useRef(-1);
+
+    const [isCommentsBottomSheetVisible, setIsCommentsBottomSheetVisible] = useState(false);
 
 
-    function handlePressPost(index) {
-        setFocusedPostIndex(index);
-    }
+
+
+    const translateY = useRef(new Animated.Value(0)).current;
+    const headerOpacity = useRef(new Animated.Value(1)).current;
+    const footerOpacity = useRef(new Animated.Value(1)).current;
+    const storiesOpacity = useRef(new Animated.Value(1)).current;
+
+    const handlePressPost = (index, postPositionY) => {
+        // setFocusedPostIndex(index);
+        focusedPostIndex.current = index;
+        const targetPosition = 85; // The desired distance from the top of the screen
+        const translateYValue = postPositionY - targetPosition;
+
+        const animations = [
+            Animated.timing(translateY, {
+                toValue: -translateYValue,
+                duration: 300,
+                useNativeDriver: true,
+            }),
+            // Animated.timing(headerOpacity, {
+            //     toValue: 0,
+            //     duration: 300,
+            //     useNativeDriver: true,
+            // }),
+            Animated.timing(footerOpacity, {
+                toValue: 0,
+                duration: 300,
+                useNativeDriver: true,
+            }),
+            Animated.timing(storiesOpacity, {
+                toValue: 0,
+                duration: 300,
+                useNativeDriver: true,
+            })
+        ];
+
+        setIsPostsVisible(false);
+        Animated.parallel(animations).start();
+        // setIsCommentsBottomSheetVisible(true);
+    };
+
+    const handleBackPress = () => {
+        const animations = [
+            Animated.timing(translateY, {
+                toValue: 0,
+                duration: 300,
+                useNativeDriver: true,
+            }),
+            Animated.timing(headerOpacity, {
+                toValue: 1,
+                duration: 300,
+                useNativeDriver: true,
+            }),
+            Animated.timing(footerOpacity, {
+                toValue: 1,
+                duration: 300,
+                useNativeDriver: true,
+            }),
+            Animated.timing(storiesOpacity, {
+                toValue: 1,
+                duration: 300,
+                useNativeDriver: true,
+            })
+        ];
+        setIsPostsVisible(true);
+        setIsCommentsBottomSheetVisible(false);
+
+        Animated.parallel(animations).start(() => {
+            // setFocusedPostIndex(-1);
+            focusedPostIndex.current = -1;
+        });
+        // setTimeout(() => {
+        //     focusedPostIndex.current = -1;
+        //     focusedPostIndex.current = -1;
+
+        // }, 300);
+    };
 
     useEffect(() => {
         init();
     }, []);
 
     useEffect(() => {
-        console.log(isScrolledPast90);
-    }, [isScrolledPast90]);
+        console.log(focusedPostIndex.current);
+    }, [focusedPostIndex.current]);
+
+    // useEffect(() => {
+    //     console.log(isScrolledPast90);
+    // }, [isScrolledPast90]);
 
     useFocusEffect(
         React.useCallback(() => {
@@ -90,32 +173,54 @@ export default function Feed({ navigation }) {
         setMessages(feedData[2]);
     }
 
-    function toMessagesScreen() {
+    const toMessagesScreen = () => {
         if (global.userData == null || messages == null) return;
         navigation.navigate('Messages', {
             userData: userDataRef.current,
             messages: messages
         });
-    }
+    };
 
-    function openCommentsModal(index) {
+    const openCommentsModal = (index) => {
         setCurrentPost(posts[index]);
         commentsBottomSheet.current.show();
-    }
+    };
 
-    function openShareModal(index) {
+    const openShareModal = (index) => {
         setCurrentPost(posts[index]);
         shareBottomSheet.current.show();
-    }
+    };
 
-    function handleOpenNotifications() {
+    const handleOpenNotifications = () => {
         notificationsBottomSheet.current.show();
-    }
+    };
 
     const handleScroll = (event) => {
         const yOffset = event.nativeEvent.contentOffset.y;
         setIsScrolledPast90(yOffset > 85);
     };
+
+    const renderItem = ({ item, index }) => (
+        <Animated.View
+            style={[
+                styles.postWrapper,
+                focusedPostIndex.current === index && {
+                    transform: [{ translateY }],
+                    zIndex: 1,
+                }
+            ]}
+        >
+            <Post
+                data={item}
+                index={index}
+                onPressCommentButton={openCommentsModal}
+                onPressShareButton={openShareModal}
+                focusedPostIndex={focusedPostIndex}
+                handlePressPost={handlePressPost}
+                isPostsVisible={isPostsVisible}
+            />
+        </Animated.View>
+    );
 
     return (
         <View style={{ flex: 1, backgroundColor: '#fff' }}>
@@ -124,8 +229,6 @@ export default function Feed({ navigation }) {
                 maskElement={
                     <View pointerEvents="none"
                         style={{
-                            // Transparent background because mask is based off alpha channel.
-                            // backgroundColor: '#fff',
                             flex: 1,
                         }}
                     >
@@ -134,13 +237,11 @@ export default function Feed({ navigation }) {
                             backgroundColor: '#fff',
                         }} />
                         <View style={{
-                            // marginTop: 90,
                             flex: 1,
                             backgroundColor: '#fff',
                             borderTopRightRadius: (isScrolledPast90 ? 35 : 0),
                             borderTopLeftRadius: (isScrolledPast90 ? 35 : 0)
                         }} />
-
                     </View>
                 }
             >
@@ -180,38 +281,36 @@ export default function Feed({ navigation }) {
                         <NotificationsModal />
                     </BottomSheet>
 
-                    <FeedHeader toMessagesScreen={toMessagesScreen} onOpenNotifications={handleOpenNotifications} />
-                    <ScrollView
-                        scrollEnabled={true}
+                    <CommentsBottomSheet
+                        isVisible={!isPostsVisible}
+                        setIsVisible={setIsCommentsBottomSheetVisible}
+                        postData={(focusedPostIndex.current == -1) ? null : posts[focusedPostIndex.current]}
+                    />
+
+                    <FeedHeader
+                        toMessagesScreen={toMessagesScreen}
+                        onOpenNotifications={handleOpenNotifications}
+                        backButton={!isPostsVisible}
+                        onBackPress={handleBackPress}
+                        style={{ opacity: headerOpacity }}
+                    />
+                    <Animated.FlatList
+                        scrollEnabled={isPostsVisible}
                         showsVerticalScrollIndicator={false}
-                        bounces={false}
+                        data={posts}
+                        renderItem={renderItem}
+                        keyExtractor={(item, index) => index.toString()}
                         onScroll={handleScroll}
                         scrollEventThrottle={16}
-                    >
-                        {stories && <Stories data={stories} />}
+                        ListHeaderComponent={<Animated.View style={{ opacity: storiesOpacity }}><Stories data={stories} /></Animated.View>}
+                    />
 
-                        <View style={styles.posts_view_ctnr}>
-                            <View style={styles.posts_inner}></View>
-                            {
-                                posts.map((content, index) => {
-                                    return <Post
-                                        data={content}
-                                        index={index}
-                                        onPressCommentButton={openCommentsModal}
-                                        onPressShareButton={openShareModal}
-                                        key={index}
-                                        focusedPostIndex={focusedPostIndex}
-                                        handlePressPost={handlePressPost}
-                                    />
-                                })
-                            }
-                        </View>
-                    </ScrollView>
-
-                    {global.workout && <WorkoutFooter userData={userDataRef} />}
-                    <Footer navigation={navigation} currentScreenName={'Feed'} />
-                    {/* <BlurView intensity={1.5} style={styles.blurview} /> */}
+                    <Animated.View style={{ opacity: footerOpacity }}>
+                        {/* {global.workout && <WorkoutFooter userData={userDataRef} />} */}
+                        <Footer navigation={navigation} currentScreenName={'Feed'} />
+                    </Animated.View>
                 </View>
+
             </MaskedView>
         </View>
     );
@@ -250,5 +349,8 @@ const styles = StyleSheet.create({
         top: 0,
         overflow: 'hidden',
         backgroundColor: 'transparent'
+    },
+    postWrapper: {
+        width: '100%',
     }
 });

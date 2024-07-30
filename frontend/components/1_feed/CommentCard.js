@@ -3,8 +3,8 @@ import { View, Text, FlatList, StyleSheet, TouchableOpacity, Pressable, Image } 
 import { Heart } from 'iconsax-react-native'
 import getDisplayTimeDifference from '../../helper/getDisplayTimeDifference';
 import getPFP from '../../../backend/storage/getPFP';
-
-console.log(Date.now());
+import Svg, { Path } from "react-native-svg";
+import RNBounceable from '@freakycoder/react-native-bounceable';
 
 export default function CommentCard({ data, likeComment, unlikeComment, index }) {
     const [isLiked, setIsLiked] = useState(data.isCaption ? false : data.likedUsers.includes(global.userData.uid));
@@ -37,14 +37,14 @@ export default function CommentCard({ data, likeComment, unlikeComment, index })
                     <View>
                         <Text style={styles.handle_text}>{data.handle}</Text>
                     </View>
-                    <View style={styles.timestamp_ctnr}>
+                    {/* <View style={styles.timestamp_ctnr}>
                         <Text style={styles.helper_text}>{getDisplayTimeDifference(Date.now(), data.timestamp)}</Text>
-                    </View>
+                    </View> */}
                 </View>
                 <View style={styles.content_text_ctnr}>
                     <Text style={styles.content_text}>{data.content}</Text>
                 </View>
-                <View style={styles.card_footer}>
+                {/* <View style={styles.card_footer}>
                     {
                         !data.isCaption &&
                         <>
@@ -57,17 +57,27 @@ export default function CommentCard({ data, likeComment, unlikeComment, index })
                         </>
                     }
 
-                </View>
+                </View> */}
             </View>
             {
                 !data.isCaption &&
                 <View style={styles.heart_icon_ctnr}>
-                    <Pressable onPress={handlePressLikeButton}>
+                    <RNBounceable onPress={handlePressLikeButton}>
                         {isLiked ?
-                            <Heart size={15} color="#FF8A65" variant="Bold" /> :
-                            <Heart size={15} color="#FF8A65" />
+                            // <Heart size={20} color="#FF8A65" variant="Bold" /> :
+                            // <Heart size={20} color="#000" />
+                            <Svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="#FF8A65">
+                                <Path d="M12.62 20.81c-.34.12-.9.12-1.24 0C8.48 19.82 2 15.69 2 8.69 2 5.6 4.49 3.1 7.56 3.1c1.82 0 3.43.88 4.44 2.24a5.53 5.53 0 0 1 4.44-2.24C19.51 3.1 22 5.6 22 8.69c0 7-6.48 11.13-9.38 12.12Z" stroke="#FF8A65" strokeWidth="2.1" strokeLinecap="round" strokeLinejoin="round"></Path>
+                            </Svg>
+                            :
+
+
+                            <Svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none">
+                                <Path d="M12.62 20.81c-.34.12-.9.12-1.24 0C8.48 19.82 2 15.69 2 8.69 2 5.6 4.49 3.1 7.56 3.1c1.82 0 3.43.88 4.44 2.24a5.53 5.53 0 0 1 4.44-2.24C19.51 3.1 22 5.6 22 8.69c0 7-6.48 11.13-9.38 12.12Z" stroke="#000" strokeWidth="2.1" strokeLinecap="round" strokeLinejoin="round"></Path>
+                            </Svg>
                         }
-                    </Pressable>
+
+                    </RNBounceable>
                 </View>
             }
 
@@ -79,16 +89,18 @@ export default function CommentCard({ data, likeComment, unlikeComment, index })
 const styles = StyleSheet.create({
     card: {
         flexDirection: 'row',
-        paddingVertical: 10,
+        alignItems: 'center',
+        paddingVertical: 8,
+        paddingHorizontal: 8,
     },
     pfp_ctnr: {
-        width: 36,
+        width: 40,
         aspectRatio: 1,
         marginRight: 10
     },
     pfp: {
         flex: 1,
-        borderRadius: 20,
+        borderRadius: 100,
     },
     card_texts_ctnr: {
         flex: 1
@@ -97,10 +109,11 @@ const styles = StyleSheet.create({
         flexDirection: 'row'
     },
     handle_text: {
-        fontSize: 12.5,
-        fontFamily: 'Poppins_500Medium',
-        fontWeight: 'bold',
-        paddingBottom: 6
+        fontSize: 14,
+        fontFamily: 'Outfit_500Medium',
+        // fontWeight: 'bold',
+        color: '#999',
+        paddingBottom: 1.5
     },
     timestamp_ctnr: {
         paddingHorizontal: 5
@@ -110,16 +123,17 @@ const styles = StyleSheet.create({
         marginBottom: 2
     },
     content_text: {
-        fontFamily: 'Poppins_400Regular',
-        fontSize: 11,
+        fontFamily: 'Lato_700Bold',
+        fontSize: 13,
         flexWrap: 'wrap',
+        color: '#111'
     },
     card_footer: {
         flexDirection: 'row'
     },
     helper_text: {
         fontSize: 9.5,
-        fontFamily: 'Poppins_400Regular',
+        fontFamily: 'Outfit_500Medium',
         color: '#888',
         paddingVertical: 3
     },
@@ -127,8 +141,12 @@ const styles = StyleSheet.create({
         paddingRight: 15
     },
     heart_icon_ctnr: {
-        paddingHorizontal: 5,
-        paddingBottom: 8,
+        width: 40,
+        alignItems: 'center',
+        justifyContent: 'center',
+        aspectRatio: 1,
+        borderRadius: 100,
+        backgroundColor: '#f3f3f3',
         justifyContent: 'center'
     }
 });

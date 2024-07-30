@@ -2,11 +2,11 @@ import React, { useEffect, useState, useRef } from 'react';
 import { View, Text, FlatList, StyleSheet, TouchableOpacity, TextInput, Platform, Image, KeyboardAvoidingView, Keyboard, Pressable } from 'react-native';
 import CommentCard from './CommentCard';
 import updateDoc from '../../../backend/helper/firebase/updateDoc';
-import { Ionicons } from '@expo/vector-icons';
+import { Ionicons, Feather, Entypo } from '@expo/vector-icons';
 import getPFP from '../../../backend/storage/getPFP';
 import incrementDocValue from '../../../backend/helper/firebase/incrementDocValue';
 
-export default function CommentsModal({ postData }) {
+export default function CommentsModal({ postData, handleTouchHeader, handlePressUpIcon, isSheetDown }) {
     const comments = postData.comments;
     const [pfp, setPFP] = useState(null);
     const [inputText, setInputText] = useState('');
@@ -82,9 +82,11 @@ export default function CommentsModal({ postData }) {
             behavior={Platform.OS === 'ios' ? 'padding' : null}
         >
             <View style={styles.main_ctnr}>
-                <View style={styles.header}>
-                    <Text style={styles.headerText}>Comments</Text>
-                </View>
+                <Pressable style={styles.header} onTouchStart={handleTouchHeader}>
+                    {/* {<Pressable onPress={handlePressUpIcon}>
+                        <Ionicons name='chevron-up' size={30} />
+                    </Pressable>} */}
+                </Pressable>
                 <FlatList
                     showsVerticalScrollIndicator={false}
                     ref={flatListRef}
@@ -97,7 +99,7 @@ export default function CommentsModal({ postData }) {
                     )}
                     contentContainerStyle={styles.comments_list_ctnr}
                 />
-                <Pressable>
+                {/* <Pressable>
                     <View style={[styles.footer, { marginBottom: isInputFocused ? 65 : 0 }]}>
                         <View style={styles.pfp_ctnr}>
                             <Image
@@ -115,11 +117,11 @@ export default function CommentsModal({ postData }) {
                                 onBlur={handleInputBlur}
                             />
                             {inputText && <TouchableOpacity style={styles.sendButton} onPress={handleSend}>
-                                <Ionicons name="send" size={15} color="#2D9EFF" />
+                                <Ionicons name="send" size={20} color="#2D9EFF" />
                             </TouchableOpacity>}
                         </View>
                     </View>
-                </Pressable>
+                </Pressable> */}
             </View>
         </KeyboardAvoidingView>
     );
@@ -129,16 +131,22 @@ const styles = StyleSheet.create({
     main_ctnr: {
         flex: 1,
         // backgroundColor: '#F3F6FA'
-        backgroundColor: '#F6F8FB'
+        // backgroundColor: '#F6F8FB',
     },
     header: {
-        height: 50,
-        justifyContent: 'flex-end',
+        position: 'absolute',
+        top: 0,
+        left: 0,
+        right: 0,
+        height: 35,
+        // justifyContent: 'flex-end',
         alignItems: 'center',
-        backgroundColor: '#fff',
-        borderBottomWidth: 0.2,
-        borderBottomColor: '#eee',
-        paddingHorizontal: 15,
+        // justifyContent: 'center',
+        // backgroundColor: 'red',
+        zIndex: 1
+        // borderBottomWidth: 0.2,
+        // borderBottomColor: '#eee',
+        // paddingHorizontal: 15,
     },
     headerText: {
         padding: 5,
@@ -147,8 +155,9 @@ const styles = StyleSheet.create({
         fontFamily: 'Poppins_400Regular'
     },
     comments_list_ctnr: {
+        paddingTop: 12,
         paddingHorizontal: 15,
-        paddingBottom: 200,
+        paddingBottom: 550,
         flexGrow: 1,
     },
     footer: {

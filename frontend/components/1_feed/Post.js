@@ -1,48 +1,81 @@
-import React, { useEffect, useState } from "react";
-import { Image, StyleSheet, View } from "react-native";
+import React, { useEffect, useRef } from "react";
+import { Image, StyleSheet, View, Animated } from "react-native";
 import PostHeader from "./PostHeader";
 import PostFooter from "./PostFooter";
 import RNBounceable from "@freakycoder/react-native-bounceable";
 
-export default function Post({ data, onPressCommentButton, onPressShareButton, index, focusedPostIndex, handlePressPost }) {
+export default function Post({ data, onPressCommentButton, onPressShareButton, index, focusedPostIndex, handlePressPost, isPostsVisible }) {
     const pfp = data.pfp;
     const image = data.images[0];
+    const opacity = useRef(new Animated.Value(1)).current;
+    const viewRef = useRef(null);
+
+    useEffect(() => {
+        if (isPostsVisible) {
+            Animated.timing(opacity, {
+                toValue: 1,
+                duration: 300,
+                useNativeDriver: true,
+            }).start();
+        } else if (!isPostsVisible && index != focusedPostIndex.current) {
+            Animated.timing(opacity, {
+                toValue: 0,
+                duration: 300,
+                useNativeDriver: true,
+            }).start();
+        }
+    }, [isPostsVisible]);
+
+    const handlePress = () => {
+        if (focusedPostIndex.current != -1) return;
+        viewRef.current.measure((x, y, width, height, pageX, pageY) => {
+            handlePressPost(index, pageY);
+        });
+    };
 
     return (
-        <RNBounceable bounceEffectIn={1.02} style={[styles.main_ctnr, focusedPostIndex == index && { zIndex: 1 }]} onPress={() => handlePressPost(index)}>
-            <View style={styles.body_ctnr}>
-                <View style={styles.image_ctnr}>
-                    <Image
-                        source={{ uri: image }}
-                        cacheKey={data.pid} // Use a unique cache key for each image
-                        style={[styles.image, focusedPostIndex == index && { borderRadius: 35 }]}
-                    />
+        <Animated.View ref={viewRef} style={[styles.wrapper, { opacity }]}>
+            <RNBounceable
+                bounceEffectIn={1.02}
+                style={[
+                    styles.main_ctnr,
+                    focusedPostIndex.current == index && { zIndex: 1 }
+                ]}
+                onPress={handlePress}
+            >
+                <View style={styles.body_ctnr}>
+                    <View style={styles.image_ctnr}>
+                        <Image
+                            source={{ uri: image }}
+                            cacheKey={data.pid} // Use a unique cache key for each image
+                            style={[styles.image, !isPostsVisible && focusedPostIndex.current == index && { borderRadius: 35 }]}
+                        />
+                    </View>
                 </View>
-            </View>
-            <PostHeader data={data} url={pfp} />
-            <PostFooter data={data} onPressCommentButton={() => onPressCommentButton(index)} onPressShareButton={() => onPressShareButton(index)} image={pfp} />
-        </RNBounceable>
+                <PostHeader data={data} url={pfp} />
+                <PostFooter data={data} onPressCommentButton={() => onPressCommentButton(index)} onPressShareButton={() => onPressShareButton(index)} image={pfp} />
+            </RNBounceable>
+        </Animated.View>
     );
 }
 
 const styles = StyleSheet.create({
+    wrapper: {
+        width: '100%',
+    },
     main_ctnr: {
         width: '100%',
         borderColor: '#ddd',
-        // marginBottom: 10,
         marginBottom: -33,
-        // backgroundColor: '#fff', // Added background color for better visibility
-
     },
     body_ctnr: {
         flex: 1,
     },
     image_ctnr: {
-        aspectRatio: 0.75
+        aspectRatio: 0.81
     },
     image: {
         flex: 1,
-        // borderRadius: 40,
         borderTopRightRadius: 35,
         borderTopLeftRadius: 35
     },
