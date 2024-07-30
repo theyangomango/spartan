@@ -6,11 +6,13 @@ import { Feather, FontAwesome } from '@expo/vector-icons'
 import { likePost } from '../../../backend/posts/likePost';
 import { unlikePost } from '../../../backend/posts/unlikePost';
 import RNBounceable from '@freakycoder/react-native-bounceable';
+import Svg, { Path } from "react-native-svg";
 import CachedImage from 'expo-cached-image';
 
 
 export default function PostFooter({ data, onPressCommentButton, onPressShareButton, isPostsVisible }) {
     const [isLiked, setIsLiked] = useState(false);
+    const [isSaved, setIsSaved] = useState(false);
     const [currentCommentIndex, setCurrentCommentIndex] = useState(0);
 
     useEffect(() => {
@@ -40,7 +42,11 @@ export default function PostFooter({ data, onPressCommentButton, onPressShareBut
         setCurrentCommentIndex((prevIndex) => (prevIndex + 1) % data.comments.length);
     }
 
-    const currentComment = data.comments[currentCommentIndex];
+    function handleSave() {
+        setIsSaved(!isSaved);
+    }
+
+    // const currentComment = data.comments[currentCommentIndex];
 
     return (
         <View style={styles.main_ctnr}>
@@ -88,7 +94,7 @@ export default function PostFooter({ data, onPressCommentButton, onPressShareBut
             <View style={styles.left}>
                 <RNBounceable style={styles.like_button} onPress={handlePressLikeButton}>
                     <BlurView style={styles.like_button_blurview}>
-                        <Heart size="24" color={isLiked ? 'red' : "#fff"} variant='Bold' />
+                        <Heart size="24" color={isLiked ? '#FE5555' : "#fff"} variant='Bold' />
                         <Text style={styles.like_button_text}>7.9k</Text>
                     </BlurView>
                 </RNBounceable>
@@ -104,8 +110,14 @@ export default function PostFooter({ data, onPressCommentButton, onPressShareBut
             </View>
 
 
-            <RNBounceable style={styles.save_button}>
-                <Feather name='bookmark' color={'#fff'} size={23}/>
+            <RNBounceable style={styles.save_button} onPress={handleSave}>
+                {
+                    isSaved ?
+                        <Svg xmlns="http://www.w3.org/2000/svg" width="23" height="23" viewBox="0 0 24 24" fill="#FDF764" stroke="#FDF764" strokeWidth={2.2} strokeLinecap='round' strokeLinejoin='round' class="feather feather-bookmark"><Path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"></Path></Svg>
+                        :
+                        <Svg xmlns="http://www.w3.org/2000/svg" width="23" height="23" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth={2.2} strokeLinecap='round' strokeLinejoin='round' class="feather feather-bookmark"><Path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"></Path></Svg>
+
+                }
             </RNBounceable>
         </View>
     );

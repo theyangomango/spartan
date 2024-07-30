@@ -19,6 +19,7 @@ import MaskedView from '@react-native-masked-view/masked-view';
 
 import { StatusBar } from "expo-status-bar";
 import CommentsBottomSheet from "../components/1_feed/CommentsBottomSheet";
+import ShareBottomSheet from "../components/1_feed/ShareBottomSheet";
 
 const UID = '6b176d7d-4d89-4cb5-beb0-0f19b47a10a2'; // Hard set UID
 
@@ -49,6 +50,11 @@ export default function Feed({ navigation }) {
     const [isCommentsBottomSheetVisible, setIsCommentsBottomSheetVisible] = useState(false);
     const [commentsBottomSheetExpandFlag, setCommentsBottomSheetExpandFlag] = useState(false);
 
+
+
+    const [isShareBottomSheetVisible, setIsShareBottomSheetVisible] = useState(false);
+    const [shareBottomSheetExpandFlag, setShareBottomSheetExpandFlag] = useState(false);
+    // const [commentsBottomSheetExpandFlag, setCommentsBottomSheetExpandFlag] = useState(false);ƒ
 
 
     const translateY = useRef(new Animated.Value(0)).current;
@@ -115,16 +121,13 @@ export default function Feed({ navigation }) {
         ];
         setIsPostsVisible(true);
         setIsCommentsBottomSheetVisible(false);
+        setIsShareBottomSheetVisible(false);
 
         Animated.parallel(animations).start(() => {
             // setFocusedPostIndex(-1);
             focusedPostIndex.current = -1;
         });
-        // setTimeout(() => {
-        //     focusedPostIndex.current = -1;
-        //     focusedPostIndex.current = -1;
 
-        // }, 300);
     };
 
     useEffect(() => {
@@ -134,35 +137,6 @@ export default function Feed({ navigation }) {
     useEffect(() => {
         console.log(focusedPostIndex.current);
     }, [focusedPostIndex.current]);
-
-    // useEffect(() => {
-    //     console.log(isScrolledPast90);
-    // }, [isScrolledPast90]);
-
-    // useFocusEffect(
-    //     React.useCallback(() => {
-    //         const interval = setInterval(() => {
-    //             let panY = parseInt(JSON.stringify(commentsBottomSheet.current.state.pan.y));
-    //             let animatedHeight = parseInt(JSON.stringify(commentsBottomSheet.current.state.animatedHeight));
-    //             let realHeight = Math.max(panY, 1000 - animatedHeight);
-    //             setCommentsBottomSheetBackgroundColor(`rgba(0, 0, 0, ${0.7 - 0.75 * (realHeight / 600)})`);
-
-    //             let panY2 = parseInt(JSON.stringify(shareBottomSheet.current.state.pan.y));
-    //             let animatedHeight2 = parseInt(JSON.stringify(shareBottomSheet.current.state.animatedHeight));
-    //             let realHeight2 = Math.max(panY2, 1000 - animatedHeight2);
-    //             setShareBottomSheetBackgroundColor(`rgba(0, 0, 0, ${0.7 - 0.75 * (realHeight2 / 600)})`);
-
-    //             let panY3 = parseInt(JSON.stringify(notificationsBottomSheet.current.state.pan.y));
-    //             let animatedHeight3 = parseInt(JSON.stringify(notificationsBottomSheet.current.state.animatedHeight));
-    //             let realHeight3 = Math.max(panY3, 1000 - animatedHeight3);
-    //             setNotificationsBottomSheetBackgroundColor(`rgba(0, 0, 0, ${0.7 - 0.75 * (realHeight3 / 600)})`);
-    //         }, 10);
-
-    //         return () => {
-    //             clearInterval(interval);
-    //         };
-    //     }, [])
-    // );
 
     async function init() {
         userDataRef.current = await readDoc('users', UID);
@@ -188,8 +162,9 @@ export default function Feed({ navigation }) {
     };
 
     const openShareModal = (index) => {
-        setCurrentPost(posts[index]);
-        shareBottomSheet.current.show();
+        // setCurrentPost(posts[index]);
+        // shareBottomSheet.current.show();
+        setShareBottomSheetExpandFlag(!shareBottomSheetExpandFlag);
     };
 
     const handleOpenNotifications = () => {
@@ -276,6 +251,14 @@ export default function Feed({ navigation }) {
                         setIsVisible={setIsCommentsBottomSheetVisible}
                         postData={(focusedPostIndex.current == -1) ? null : posts[focusedPostIndex.current]}
                         commentsBottomSheetExpandFlag={commentsBottomSheetExpandFlag}
+                    />
+
+                    <ShareBottomSheet
+                        isVisible={isShareBottomSheetVisible}
+                        setIsVisible={setIsShareBottomSheetVisible}
+                        shareBottomSheetExpandFlag={shareBottomSheetExpandFlag}
+                        // postData={(focusedPostIndex.current == -1) ? null : posts[focusedPostIndex.current]}
+                        // commentsBottomSheetExpandFlag={commentsBottomSheetExpandFlag}
                     />
 
                     <FeedHeader

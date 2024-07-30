@@ -1,10 +1,11 @@
 import { BlurView } from 'expo-blur';
 import React, { useEffect, useState } from 'react';
-import { View, Text, FlatList, StyleSheet, Pressable, Dimensions, TextInput, TouchableOpacity } from 'react-native';
-import FastImage from 'react-native-fast-image';
+import { View, Text, FlatList, StyleSheet, Dimensions, TextInput, TouchableOpacity } from 'react-native';
 import Icon from 'react-native-vector-icons/Ionicons';
+import ProfilePicture from './ProfilePicture';
+import RNBounceable from '@freakycoder/react-native-bounceable';
 
-export default function ShareModal() {
+export default function ShareModal({ closeBottomSheet }) {
     const [followingUsers, setFollowingUsers] = useState([]);
     const [selectedUsers, setSelectedUsers] = useState([]);
 
@@ -31,7 +32,7 @@ export default function ShareModal() {
     }, [searchQuery, followingUsers]);
 
     const handleSelectUser = (userUid) => {
-        setSelectedUsers(prevSelectedUsers => 
+        setSelectedUsers(prevSelectedUsers =>
             prevSelectedUsers.includes(userUid)
                 ? prevSelectedUsers.filter(uid => uid !== userUid)
                 : [...prevSelectedUsers, userUid]
@@ -41,18 +42,18 @@ export default function ShareModal() {
     const renderItem = ({ item }) => {
         const isSelected = selectedUsers.includes(item.uid);
         return (
-            <Pressable style={styles.itemContainer} onPress={() => handleSelectUser(item.uid)}>
-                <View style={[styles.pfp_ctnr, { opacity: isSelected ? 1 : 0.7 }]}>
-                    <FastImage 
-                        source={{ uri: item.pfp }} 
-                        style={styles.pfp} 
-                        resizeMode={FastImage.resizeMode.cover} 
-                    />
-                </View>
-                <Text style={styles.handle_text}>{item.handle}</Text>
-            </Pressable>
+            <ProfilePicture
+                user={item}
+                onSelect={handleSelectUser}
+                isSelected={isSelected}
+            />
         );
     };
+
+    function handlePressSend() {
+        closeBottomSheet();
+        setSelectedUsers([]);
+    }
 
     return (
         <View style={styles.container}>
@@ -74,13 +75,14 @@ export default function ShareModal() {
                 numColumns={3}
                 contentContainerStyle={styles.flatlistContainer}
             />
-            <TouchableOpacity 
+            <RNBounceable
                 activeOpacity={0.5}
-                style={[styles.sendButton, { opacity: selectedUsers.length === 0 ? 0.5 : 1 }]}
+                style={[styles.sendButton]}
                 disabled={selectedUsers.length === 0}
+                onPress={handlePressSend}
             >
-                <Text style={styles.sendButtonText}>Send</Text>
-            </TouchableOpacity>
+                <Text style={styles.sendButtonText}>Share</Text>
+            </RNBounceable>
         </View>
     );
 }
@@ -92,7 +94,9 @@ const ITEM_WIDTH = (width - ITEM_MARGIN * 6) / 3; // Adjusting margin calculatio
 const styles = StyleSheet.create({
     container: {
         flex: 1,
-        backgroundColor: 'white',
+        borderTopLeftRadius: 25,
+        borderTopRightRadius: 25,
+        paddingTop: 5,
     },
     header: {
         paddingHorizontal: 16,
@@ -118,43 +122,21 @@ const styles = StyleSheet.create({
     flatlistContainer: {
         paddingHorizontal: ITEM_MARGIN, // Adjust horizontal padding
     },
-    itemContainer: {
-        width: ITEM_WIDTH,
-        alignItems: 'center',
-        marginHorizontal: ITEM_MARGIN / 2,
-        marginVertical: 11,
-    },
-    pfp_ctnr: {
-        width: 78,
-        aspectRatio: 1,
-        borderRadius: 40,
-        backgroundColor: 'gray',
-    },
-    pfp: {
-        width: '100%',
-        height: '100%',
-        borderRadius: 40,
-    },
-    handle_text: {
-        marginTop: 8,
-        textAlign: 'center',
-        fontFamily: 'Poppins_400Regular',
-        fontSize: 11,
-        color: '#555'
-    },
     sendButton: {
         position: 'absolute',
-        bottom: 35,
+        bottom: 40,
+        left: 25,
         right: 25,
         backgroundColor: '#2D9EFF',
-        borderRadius: 25,
+        borderRadius: 15,
         paddingVertical: 15,
         paddingHorizontal: 30,
+        alignItems: 'center',
+        justifyContent: 'center'
     },
     sendButtonText: {
         color: 'white',
         fontSize: 16,
-        fontWeight: 'bold',
-        fontFamily: 'Mulish_700Bold'
+        fontFamily: 'Mulish_800ExtraBold'
     },
 });
