@@ -3,6 +3,8 @@ import React, { useEffect, useState } from 'react';
 import { View, Text, FlatList, StyleSheet, Pressable, Dimensions, TextInput, TouchableOpacity, ScrollView } from 'react-native';
 import FastImage from 'react-native-fast-image';
 import Icon from 'react-native-vector-icons/Ionicons';
+import ProfileCard from '../ProfileCard';
+import RNBounceable from '@freakycoder/react-native-bounceable';
 
 export default function CreateGroupChatModal() {
     const [followingUsers, setFollowingUsers] = useState([]);
@@ -31,10 +33,10 @@ export default function CreateGroupChatModal() {
         }
     }, [searchQuery, followingUsers]);
 
-    const handleSelectUser = (user) => {
-        const newSelectedUsers = selectedUsers.includes(user.uid)
-            ? selectedUsers.filter(uid => uid !== user.uid)
-            : [...selectedUsers, user.uid];
+    const handleSelectUser = (userUid) => {
+        const newSelectedUsers = selectedUsers.includes(userUid)
+            ? selectedUsers.filter(uid => uid !== userUid)
+            : [...selectedUsers, userUid];
 
         setSelectedUsers(newSelectedUsers);
 
@@ -49,16 +51,11 @@ export default function CreateGroupChatModal() {
     const renderItem = ({ item }) => {
         const isSelected = selectedUsers.includes(item.uid);
         return (
-            <Pressable style={styles.itemContainer} onPress={() => handleSelectUser(item)}>
-                <View style={[styles.pfp_ctnr, { opacity: isSelected ? 1 : 0.7 }]}>
-                    <FastImage
-                        source={{ uri: item.pfp }}
-                        style={styles.pfp}
-                        resizeMode={FastImage.resizeMode.cover}
-                    />
-                </View>
-                <Text style={styles.handle_text}>{item.handle}</Text>
-            </Pressable>
+            <ProfileCard
+                user={item}
+                onSelect={handleSelectUser}
+                isSelected={isSelected}
+            />
         );
     };
 
@@ -94,25 +91,19 @@ export default function CreateGroupChatModal() {
                 data={filteredUsers}
                 renderItem={renderItem}
                 keyExtractor={(item) => item.uid}
-                numColumns={3}
-                contentContainerStyle={styles.flatlistContainer}
+                style={styles.flatlistContainer}
             />
-            <TouchableOpacity
-                activeOpacity={0.5}
-                style={[styles.sendButton, { opacity: selectedUsers.length < 2 ? 0.5 : 1 }]}
-                disabled={selectedUsers.length === 0}
+            <RNBounceable
+                style={[styles.sendButton]}
+                disabled={selectedUsers.length <= 1}
             >
                 <Text style={styles.sendButtonText}>
                     {`Create Group Chat${selectedUsers.length > 1 ? ` (${selectedUsers.length})` : ''}`}
                 </Text>
-            </TouchableOpacity>
+            </RNBounceable>
         </View>
     );
 }
-
-const { width } = Dimensions.get('window');
-const ITEM_MARGIN = 5;
-const ITEM_WIDTH = (width - ITEM_MARGIN * 6) / 3; // Adjusting margin calculation
 
 const styles = StyleSheet.create({
     container: {
@@ -163,50 +154,29 @@ const styles = StyleSheet.create({
         marginRight: 8,
     },
     searchBar: {
-        flex: 1,
+        // flex: 1,
         padding: 8,
     },
     flatlistContainer: {
-        paddingHorizontal: ITEM_MARGIN, // Adjust horizontal padding
-    },
-    itemContainer: {
-        width: ITEM_WIDTH,
-        alignItems: 'center',
-        marginHorizontal: ITEM_MARGIN / 2,
-        marginVertical: 11,
-    },
-    pfp_ctnr: {
-        width: 78,
-        aspectRatio: 1,
-        borderRadius: 40,
-        backgroundColor: 'gray',
-    },
-    pfp: {
-        width: '100%',
-        height: '100%',
-        borderRadius: 40,
-    },
-    handle_text: {
-        marginTop: 8,
-        textAlign: 'center',
-        fontFamily: 'Poppins_400Regular',
-        fontSize: 11,
-        color: '#555'
+        // flex: 1,
+        width: '100%'
     },
     sendButton: {
         position: 'absolute',
-        bottom: 38,
+        bottom: 45,
         left: 22,
         right: 22,
-        backgroundColor: '#67B0FF',
-        borderRadius: 20,
-        paddingVertical: 18,
-        alignItems: 'center'
+        backgroundColor: '#2D9EFF',
+        borderRadius: 15,
+        paddingVertical: 13,
+        paddingHorizontal: 30,
+        alignItems: 'center',
+        justifyContent: 'center'
     },
     sendButtonText: {
         color: 'white',
-        fontSize: 16,
-        fontFamily: 'Mulish_800ExtraBold',
-        letterSpacing: 0.08
+        fontSize: 14,
+        fontFamily: 'Poppins_600SemiBold'
     },
 });
+

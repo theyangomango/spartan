@@ -4,6 +4,8 @@ import FastImage from 'react-native-fast-image';
 import { Send2 } from 'iconsax-react-native';
 
 const ProfileCard = ({ user, onSelect, isSelected }) => {
+    console.log(user);
+
     return (
         <Pressable style={styles.itemContainer} onPress={() => onSelect(user.uid)}>
             <View style={[styles.pfp_ctnr, isSelected && styles.selected_pfp]}>

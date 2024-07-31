@@ -107,7 +107,6 @@ import {
     Mulish_800ExtraBold_Italic,
     Mulish_900Black_Italic,
 } from '@expo-google-fonts/mulish';
-import Notifications from './frontend/components/Notifications';
 
 const Tab = createBottomTabNavigator();
 const Stack = createNativeStackNavigator();
@@ -143,7 +142,6 @@ const FeedStack = (({ navigation, route }) => {
             <Stack.Screen name='Feed' component={Feed} />
             <Tab.Screen name='Messages' component={Messages} />
             <Tab.Screen name='Chat' component={Chat} />
-            <Tab.Screen name='Notifications' component={Notifications} />
         </Stack.Navigator>
     )
 });

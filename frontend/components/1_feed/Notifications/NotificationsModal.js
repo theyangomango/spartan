@@ -38,7 +38,7 @@ export default function NotificationsModal({ closeBottomSheet }) {
     return (
         <View style={styles.container}>
             <View style={styles.header}>
-                <Pressable
+                {/* <Pressable
                     onPress={closeBottomSheet}
                 >
                     <Ionicons
@@ -46,13 +46,13 @@ export default function NotificationsModal({ closeBottomSheet }) {
                         size={24}
                         color="black"
                     />
-                </Pressable>
-                <Text style={styles.title}>Activity</Text>
-                <Ionicons
+                </Pressable> */}
+                <Text style={styles.title}>Notifications</Text>
+                {/* <Ionicons
                     name="chevron-down"
                     size={24}
                     color="#f6f6f6"
-                />
+                /> */}
             </View>
             <View style={styles.buttonRowContainer}>
                 <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.buttonRow}>
@@ -124,30 +124,34 @@ export default function NotificationsModal({ closeBottomSheet }) {
 const styles = StyleSheet.create({
     container: {
         flex: 1,
-        backgroundColor: '#f6f6f6'
+        // backgroundColor: '#f6f6f6',
+        backgroundColor: '#fff',
+        borderTopLeftRadius: 25,
+        borderTopRightRadius: 25,
+    
     },
     header: {
-        paddingTop: 55,
+        paddingTop: 23,
         paddingHorizontal: 25,
-        flexDirection: 'row',
+        // flexDirection: 'row',
         alignItems: 'center',
-        justifyContent: 'space-between',
-        paddingBottom: 8
+        // justifyContent: 'space-between',
     },
     title: {
         fontFamily: 'Outfit_600SemiBold',
-        fontSize: 17
+        fontSize: 16
     },
     buttonRowContainer: {
-        height: 65,
-        marginVertical: 3,
+        // height: 70,
     },
     buttonRow: {
+        paddingTop: 23,
+        paddingBottom: 7,
         alignItems: 'center',
         paddingHorizontal: 12,
     },
     button: {
-        backgroundColor: '#fff',
+        backgroundColor: '#f3f3f3',
         paddingVertical: 12,
         paddingHorizontal: 20,
         borderRadius: 20,
@@ -186,10 +190,10 @@ const styles = StyleSheet.create({
     card: {
         flexDirection: 'row',
         alignItems: 'center',
-        marginVertical: 5,
+        marginVertical: 5.5,
         paddingHorizontal: 16,
         paddingVertical: 12,
-        backgroundColor: '#fff',
+        backgroundColor: '#f8f8f8',
         borderRadius: 25,
     },
     flatlist: {

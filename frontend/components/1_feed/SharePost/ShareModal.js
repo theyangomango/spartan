@@ -2,7 +2,7 @@ import { BlurView } from 'expo-blur';
 import React, { useEffect, useState } from 'react';
 import { View, Text, FlatList, StyleSheet, Dimensions, TextInput, TouchableOpacity } from 'react-native';
 import Icon from 'react-native-vector-icons/Ionicons';
-import ProfileCard from './ProfileCard';
+import ProfileCard from '../../ProfileCard';
 import RNBounceable from '@freakycoder/react-native-bounceable';
 
 export default function ShareModal({ closeBottomSheet }) {
@@ -94,6 +94,7 @@ const styles = StyleSheet.create({
         borderTopLeftRadius: 25,
         borderTopRightRadius: 25,
         paddingTop: 5,
+        backgroundColor: '#fff'
     },
     header: {
         paddingHorizontal: 16,
@@ -104,7 +105,7 @@ const styles = StyleSheet.create({
     searchContainer: {
         flexDirection: 'row',
         alignItems: 'center',
-        backgroundColor: '#f3f3f3',
+        backgroundColor: '#f0f0f0',
         borderRadius: 8,
         width: '100%',
         paddingHorizontal: 8,
@@ -125,7 +126,7 @@ const styles = StyleSheet.create({
         right: 22,
         backgroundColor: '#2D9EFF',
         borderRadius: 15,
-        paddingVertical: 14,
+        paddingVertical: 13,
         paddingHorizontal: 30,
         alignItems: 'center',
         justifyContent: 'center'
