@@ -2,7 +2,7 @@ import { BlurView } from 'expo-blur';
 import React, { useEffect, useState } from 'react';
 import { View, Text, FlatList, StyleSheet, Dimensions, TextInput, TouchableOpacity } from 'react-native';
 import Icon from 'react-native-vector-icons/Ionicons';
-import ProfilePicture from './ProfilePicture';
+import ProfileCard from './ProfileCard';
 import RNBounceable from '@freakycoder/react-native-bounceable';
 
 export default function ShareModal({ closeBottomSheet }) {
@@ -42,7 +42,7 @@ export default function ShareModal({ closeBottomSheet }) {
     const renderItem = ({ item }) => {
         const isSelected = selectedUsers.includes(item.uid);
         return (
-            <ProfilePicture
+            <ProfileCard
                 user={item}
                 onSelect={handleSelectUser}
                 isSelected={isSelected}
@@ -72,7 +72,7 @@ export default function ShareModal({ closeBottomSheet }) {
                 data={filteredUsers}
                 renderItem={renderItem}
                 keyExtractor={(item) => item.uid}
-                numColumns={3}
+                numColumns={1} // Set to 1 for vertical list
                 contentContainerStyle={styles.flatlistContainer}
             />
             <RNBounceable
@@ -87,9 +87,6 @@ export default function ShareModal({ closeBottomSheet }) {
     );
 }
 
-const { width } = Dimensions.get('window');
-const ITEM_MARGIN = 5;
-const ITEM_WIDTH = (width - ITEM_MARGIN * 6) / 3; // Adjusting margin calculation
 
 const styles = StyleSheet.create({
     container: {
@@ -107,7 +104,7 @@ const styles = StyleSheet.create({
     searchContainer: {
         flexDirection: 'row',
         alignItems: 'center',
-        backgroundColor: '#e0e0e0',
+        backgroundColor: '#f3f3f3',
         borderRadius: 8,
         width: '100%',
         paddingHorizontal: 8,
@@ -120,23 +117,23 @@ const styles = StyleSheet.create({
         padding: 8,
     },
     flatlistContainer: {
-        paddingHorizontal: ITEM_MARGIN, // Adjust horizontal padding
     },
     sendButton: {
         position: 'absolute',
-        bottom: 40,
-        left: 25,
-        right: 25,
+        bottom: 45,
+        left: 22,
+        right: 22,
         backgroundColor: '#2D9EFF',
         borderRadius: 15,
-        paddingVertical: 15,
+        paddingVertical: 14,
         paddingHorizontal: 30,
         alignItems: 'center',
         justifyContent: 'center'
     },
     sendButtonText: {
         color: 'white',
-        fontSize: 16,
-        fontFamily: 'Mulish_800ExtraBold'
+        fontSize: 15.5,
+        fontFamily: 'Poppins_600SemiBold'
     },
 });
+

@@ -9,17 +9,13 @@ import ShareModal from "./ShareModal";
 
 const { width, height } = Dimensions.get('screen');
 
-const ShareBottomSheet = ({ isVisible, setIsVisible, shareBottomSheetExpandFlag }) => {
+const ShareBottomSheet = ({ shareBottomSheetCloseFlag, shareBottomSheetExpandFlag }) => {
     const bottomSheetRef = useRef(null);
     const snapPoints = useMemo(() => ["96%"], []);
 
     useEffect(() => {
-        if (isVisible) {
-            bottomSheetRef.current.expand();
-        } else {
-            bottomSheetRef.current.close();
-        }
-    }, [isVisible]);
+        bottomSheetRef.current.close();
+    }, [shareBottomSheetCloseFlag]);
 
     useEffect(() => {
         bottomSheetRef.current.expand();
@@ -37,11 +33,10 @@ const ShareBottomSheet = ({ isVisible, setIsVisible, shareBottomSheetExpandFlag 
                 snapPoints={snapPoints}
                 // onChange={handleSheetIndexChange}
                 handleStyle={{ display: 'none' }}
-                backgroundStyle={{ backgroundColor: '#f3f3f3' }}
+                backgroundStyle={{ backgroundColor: '#fff' }}
                 enablePanDownToClose
-                onClose={() => setIsVisible(false)}
             >
-                <ShareModal closeBottomSheet={() => bottomSheetRef.current.close()}/>
+                <ShareModal closeBottomSheet={() => bottomSheetRef.current.close()} />
             </BottomSheet>
         </KeyboardAvoidingView>
     );
@@ -71,7 +66,7 @@ const styles = StyleSheet.create({
         marginHorizontal: 18,
         marginTop: 14,
         marginBottom: 26,
-        backgroundColor: '#f3f3f3',
+        backgroundColor: '#f6f6f6',
         borderRadius: 30,
         flexDirection: 'row',
         alignItems: 'center',

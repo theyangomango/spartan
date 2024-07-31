@@ -111,7 +111,7 @@ const CommentsBottomSheet = ({ isVisible, postData, commentsBottomSheetExpandFla
                 onChange={handleSheetIndexChange}
                 handleStyle={{ display: 'none' }}
                 detached
-                backgroundStyle={{ backgroundColor: '#f3f3f3' }}
+                backgroundStyle={{ backgroundColor: '#fff' }}
             >
                 {postData &&
                     <CommentsModal

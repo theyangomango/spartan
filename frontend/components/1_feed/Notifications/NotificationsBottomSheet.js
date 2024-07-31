@@ -6,7 +6,7 @@ import NotificationsModal from "./NotificationsModal";
 
 const NotificationsBottomSheet = ({ notificationsBottomSheetExpandFlag }) => {
     const bottomSheetRef = useRef(null);
-    const snapPoints = useMemo(() => ["90%"], []);
+    const snapPoints = useMemo(() => ["100%"], []);
 
     useEffect(() => {
         console.log('dfsd');
@@ -33,10 +33,10 @@ const NotificationsBottomSheet = ({ notificationsBottomSheetExpandFlag }) => {
                 index={-1}
                 snapPoints={snapPoints}
                 backdropComponent={renderBackdrop}
-                enablePanDownToClose
+                handleStyle={{ display: 'none' }}
             >
-                {global.userData && 
-                    <NotificationsModal />
+                {global.userData &&
+                    <NotificationsModal closeBottomSheet={() => bottomSheetRef.current.close()}/>
                 }
             </BottomSheet>
         </View>

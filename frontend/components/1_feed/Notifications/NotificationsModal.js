@@ -1,6 +1,8 @@
 import RNBounceable from '@freakycoder/react-native-bounceable';
-import React from 'react';
-import { View, Text, StyleSheet, FlatList, Image, TouchableOpacity, Pressable } from 'react-native';
+import React, { useState } from 'react';
+import { View, Text, StyleSheet, FlatList, Image, Pressable, ScrollView } from 'react-native';
+import { Ionicons } from '@expo/vector-icons'; // Make sure to install @expo/vector-icons
+import { useNavigation } from '@react-navigation/native';
 
 const notifications = [
     {
@@ -25,16 +27,75 @@ const notifications = [
     // Add more notifications as needed
 ];
 
-export default function NotificationsModal() {
+export default function NotificationsModal({ closeBottomSheet }) {
+    const navigation = useNavigation();
+    const [selectedButton, setSelectedButton] = useState('All Activity');
+
+    const buttons = ['All Activity', 'Likes', 'Comments', 'Mentions'];
+    const newLikes = 58; // Hardcoded number for new likes
+    const newComments = 32; // Hardcoded number for new comments
+
     return (
         <View style={styles.container}>
-            <Text style={styles.title}>Inbox</Text>
+            <View style={styles.header}>
+                <Pressable
+                    onPress={closeBottomSheet}
+                >
+                    <Ionicons
+                        name="chevron-down"
+                        size={24}
+                        color="black"
+                    />
+                </Pressable>
+                <Text style={styles.title}>Activity</Text>
+                <Ionicons
+                    name="chevron-down"
+                    size={24}
+                    color="#f6f6f6"
+                />
+            </View>
+            <View style={styles.buttonRowContainer}>
+                <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.buttonRow}>
+                    {buttons.map((button) => (
+                        <RNBounceable
+                            key={button}
+                            style={[
+                                styles.button,
+                                selectedButton === button && styles.selectedButton
+                            ]}
+                            onPress={() => setSelectedButton(button)}
+                        >
+                            <Text
+                                style={[
+                                    styles.buttonText,
+                                    selectedButton === button && styles.selectedButtonText
+                                ]}
+                            >
+                                {button}
+                            </Text>
+                            {(button === 'Likes' && newLikes > 0) && (
+                                <View style={styles.badge_ctnr}>
+                                    <View style={styles.badge}>
+                                        <Text style={styles.badgeText}>{newLikes}</Text>
+                                    </View>
+                                </View>
+                            )}
+                            {(button === 'Comments' && newComments > 0) && (
+                                <View style={styles.badge_ctnr}>
+                                    <View style={styles.badge}>
+                                        <Text style={styles.badgeText}>{newComments}</Text>
+                                    </View>
+                                </View>
+                            )}
+                        </RNBounceable>
+                    ))}
+                </ScrollView>
+            </View>
             <FlatList
                 showsVerticalScrollIndicator={false}
                 data={notifications}
                 renderItem={({ item }) => (
                     <Pressable>
-
                         <View style={styles.card}>
                             <Image source={{ uri: global.userData.image }} style={styles.pfp} />
                             <View style={styles.textContainer}>
@@ -50,10 +111,8 @@ export default function NotificationsModal() {
                                     <Text style={styles.followButtonText}>Follow Back</Text>
                                 </RNBounceable>
                             }
-
                         </View>
                     </Pressable>
-
                 )}
                 keyExtractor={item => item.id}
                 style={styles.flatlist}
@@ -65,67 +124,116 @@ export default function NotificationsModal() {
 const styles = StyleSheet.create({
     container: {
         flex: 1,
+        backgroundColor: '#f6f6f6'
+    },
+    header: {
+        paddingTop: 55,
+        paddingHorizontal: 25,
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        paddingBottom: 8
     },
     title: {
-        fontSize: 18,
-        textAlign: 'center',
-        paddingTop: 12,
-        paddingBottom: 8,
-        fontFamily: 'Outfit_500Medium'
+        fontFamily: 'Outfit_600SemiBold',
+        fontSize: 17
+    },
+    buttonRowContainer: {
+        height: 65,
+        marginVertical: 3,
+    },
+    buttonRow: {
+        alignItems: 'center',
+        paddingHorizontal: 12,
+    },
+    button: {
+        backgroundColor: '#fff',
+        paddingVertical: 12,
+        paddingHorizontal: 20,
+        borderRadius: 20,
+        marginRight: 8,
+        position: 'relative', // Needed to position the badge
+    },
+    selectedButton: {
+        backgroundColor: '#000',
+    },
+    buttonText: {
+        color: '#000',
+        fontSize: 12.5,
+        fontFamily: 'Outfit_600SemiBold',
+    },
+    selectedButtonText: {
+        color: '#fff',
+    },
+    badge_ctnr: {
+        position: 'absolute',
+        alignItems: 'center',
+        left: 0,
+        right: 0,
+        top: -12
+    },
+    badge: {
+        backgroundColor: '#FF387E',
+        borderRadius: 10,
+        paddingHorizontal: 8,
+        paddingVertical: 5,
+    },
+    badgeText: {
+        color: 'white',
+        fontSize: 10,
+        fontFamily: 'Outfit_600SemiBold',
     },
     card: {
         flexDirection: 'row',
         alignItems: 'center',
-        marginBottom: 13,
-        paddingHorizontal: 8,
-        paddingTop: 5,
-        paddingBottom: 8,
-        // backgroundColor: '#fff',
-        borderRadius: 8,
+        marginVertical: 5,
+        paddingHorizontal: 16,
+        paddingVertical: 12,
+        backgroundColor: '#fff',
+        borderRadius: 25,
     },
     flatlist: {
-        paddingHorizontal: 10,
-    },
-    bottom_row: {
-        flexDirection: 'row',
-        alignItems: 'center',
+        paddingHorizontal: 12,
     },
     pfp: {
-        width: 53,
+        width: 47,
         aspectRatio: 1,
-        borderRadius: 100,
+        borderRadius: 20,
         marginRight: 11.5,
     },
     textContainer: {
         flex: 1,
     },
     handle: {
-        fontSize: 16,
+        fontSize: 14,
         fontFamily: 'Outfit_600SemiBold',
         paddingVertical: 1.5
     },
     message: {
-        fontSize: 13,
+        fontSize: 12.5,
         color: '#555',
-        fontFamily: 'Outfit_400Regular'
+        fontFamily: 'Outfit_500Medium'
     },
     time: {
-        fontSize: 13,
-        color: '#888',
-        fontFamily: 'Outfit_400Regular'
+        fontSize: 12.5,
+        color: '#aaa',
+        fontFamily: 'Outfit_500Medium'
     },
     followButton: {
-        backgroundColor: '#4AA1FF',
-        marginTop: 4,
-        paddingVertical: 5,
-        paddingHorizontal: 10,
-        borderRadius: 5,
+        backgroundColor: '#2D92FF',
+        paddingVertical: 13.5,
+        paddingHorizontal: 16,
+        borderRadius: 20,
         marginLeft: 10,
-        
+        shadowColor: '#2D92FF',
+        shadowOffset: { width: 0, height: 1 },
+        shadowOpacity: 0.8,
+        shadowRadius: 3,
+        elevation: 5
     },
     followButtonText: {
         color: '#fff',
-        fontSize: 13,
-        fontFamily: 'Poppins_500Medium',
+        fontSize: 12.5,
+        fontFamily: 'Outfit_600SemiBold',
     },
 });

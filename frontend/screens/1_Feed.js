@@ -25,7 +25,7 @@ export default function Feed({ navigation }) {
     const [messages, setMessages] = useState(null);
     const [isPostsVisible, setIsPostsVisible] = useState(true);
     const [isScrolledPast90, setIsScrolledPast90] = useState(false);
-    const [isShareBottomSheetVisible, setIsShareBottomSheetVisible] = useState(false);
+    const [shareBottomSheetCloseFlag, setShareBottomSheetCloseFlag] = useState(false);
     const [notificationsBottomSheetExpandFlag, setNotificationsBottomSheetExpandFlag] = useState(false);
     const [commentsBottomSheetExpandFlag, setCommentsBottomSheetExpandFlag] = useState(false);
     const [shareBottomSheetExpandFlag, setShareBottomSheetExpandFlag] = useState(false);
@@ -60,7 +60,7 @@ export default function Feed({ navigation }) {
 
     const handleBackPress = () => {
         setIsPostsVisible(true);
-        setIsShareBottomSheetVisible(false);
+        setShareBottomSheetCloseFlag(!shareBottomSheetCloseFlag);
         animateView(0, 1);
     };
 
@@ -160,8 +160,7 @@ export default function Feed({ navigation }) {
                         commentsBottomSheetExpandFlag={commentsBottomSheetExpandFlag}
                     />
                     <ShareBottomSheet
-                        isVisible={isShareBottomSheetVisible}
-                        setIsVisible={setIsShareBottomSheetVisible}
+                        shareBottomSheetCloseFlag={shareBottomSheetCloseFlag}
                         shareBottomSheetExpandFlag={shareBottomSheetExpandFlag}
                     />
                     <FeedHeader
