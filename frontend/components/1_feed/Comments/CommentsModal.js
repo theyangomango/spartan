@@ -1,10 +1,10 @@
 import React, { useEffect, useState, useRef } from 'react';
 import { View, Text, FlatList, StyleSheet, TouchableOpacity, TextInput, Platform, Image, KeyboardAvoidingView, Keyboard, Pressable } from 'react-native';
 import CommentCard from './CommentCard';
-import updateDoc from '../../../backend/helper/firebase/updateDoc';
+import updateDoc from '../../../../backend/helper/firebase/updateDoc';
 import { Ionicons, Feather, Entypo } from '@expo/vector-icons';
-import getPFP from '../../../backend/storage/getPFP';
-import incrementDocValue from '../../../backend/helper/firebase/incrementDocValue';
+import getPFP from '../../../../backend/storage/getPFP';
+import incrementDocValue from '../../../../backend/helper/firebase/incrementDocValue';
 
 export default function CommentsModal({ postData, handleTouchHeader, handlePressUpIcon, isSheetExpanded }) {
     const comments = postData.comments;

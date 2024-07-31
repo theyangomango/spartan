@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { Image, StyleSheet, Text, TouchableOpacity, View } from "react-native";
-import getPFP from "../../../backend/storage/getPFP";
+import getPFP from "../../../../backend/storage/getPFP";
 import { FontAwesome6 } from '@expo/vector-icons'
 
 export default function Story({ data, handlePress, index, isViewed, handlePressCreateButton }) {

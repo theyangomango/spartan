@@ -3,23 +3,24 @@ import getDisplayTime from '../../helper/getDisplayTime'
 import { useEffect, useState } from "react";
 import getPFP from '../../../backend/storage/getPFP'
 import RNBounceable from '@freakycoder/react-native-bounceable';
+import FastImage from "react-native-fast-image";
 
 export default function MessageCard({ uid, handle, content, timestamp, toChat, index }) {
     const [image, setImage] = useState(null);
-    
+
     useEffect(() => {
         getPFP(uid)
             .then(url => {
                 setImage(url);
             });
     }, []);
-    
+
     return (
         <RNBounceable onPress={() => toChat(index, uid, handle)} style={styles.main_ctnr}>
             <View style={styles.left_ctnr}>
                 <View style={styles.pfp_ctnr}>
-                    <Image
-                        source={{uri: image}}
+                    <FastImage
+                        source={{ uri: image }}
                         style={styles.pfp}
                     />
                 </View>

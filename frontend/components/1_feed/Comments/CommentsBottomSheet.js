@@ -3,12 +3,12 @@ import { View, StyleSheet, TextInput, Platform, Image, KeyboardAvoidingView, Ani
 import BottomSheet from "@gorhom/bottom-sheet";
 import { Ionicons } from '@expo/vector-icons';
 import CommentsModal from "./CommentsModal";
-import incrementDocValue from "../../../backend/helper/firebase/incrementDocValue";
-import updateDoc from "../../../backend/helper/firebase/updateDoc";
+import incrementDocValue from "../../../../backend/helper/firebase/incrementDocValue";
+import updateDoc from "../../../../backend/helper/firebase/updateDoc";
 
 const { width, height } = Dimensions.get('screen');
 
-const CommentsBottomSheet = ({ isVisible, setIsVisible, postData, commentsBottomSheetExpandFlag }) => {
+const CommentsBottomSheet = ({ isVisible, postData, commentsBottomSheetExpandFlag }) => {
     const [isInputFocused, setIsInputFocused] = useState(false);
     const bottomSheetRef = useRef(null);
     const footerTranslateY = useRef(new Animated.Value(0)).current;

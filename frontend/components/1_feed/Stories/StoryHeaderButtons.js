@@ -1,8 +1,8 @@
 import { Pressable, StyleSheet, Text, View } from "react-native";
 import { Heart } from 'iconsax-react-native';
 import { useEffect, useState } from "react";
-import { likeStory } from "../../../backend/stories/likeStory";
-import { unlikeStory } from "../../../backend/stories/unlikeStory";
+import { likeStory } from "../../../../backend/stories/likeStory";
+import { unlikeStory } from "../../../../backend/stories/unlikeStory";
 import FastImage from 'react-native-fast-image'; // Import FastImage
 import { BlurView } from 'expo-blur';
 

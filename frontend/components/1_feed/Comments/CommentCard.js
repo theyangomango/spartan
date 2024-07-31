@@ -1,8 +1,8 @@
 import React, { useEffect, useState } from 'react';
 import { View, Text, FlatList, StyleSheet, TouchableOpacity, Pressable, Image } from 'react-native';
 import { Heart } from 'iconsax-react-native'
-import getDisplayTimeDifference from '../../helper/getDisplayTimeDifference';
-import getPFP from '../../../backend/storage/getPFP';
+import getDisplayTimeDifference from '../../../helper/getDisplayTimeDifference';
+import getPFP from '../../../../backend/storage/getPFP';
 import Svg, { Path } from "react-native-svg";
 import RNBounceable from '@freakycoder/react-native-bounceable';
 

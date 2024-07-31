@@ -134,6 +134,18 @@ const AuthenticationStack = (({ navigation, route }) => {
     )
 });
 
+const FeedStack = (({ navigation, route }) => {
+    return (
+        <Stack.Navigator initialRouteName='Feed' screenOptions={{
+            headerShown: false
+        }}>
+            <Stack.Screen name='Feed' component={Feed} />
+            <Tab.Screen name='Messages' component={Messages} />
+            <Tab.Screen name='Chat' component={Chat} />
+        </Stack.Navigator>
+    )
+});
+
 export default function App() {
     let [fontsLoaded] = useFonts({
         Inter_100Thin,
@@ -222,16 +234,14 @@ export default function App() {
     else return (
         <GestureHandlerRootView style={{ flex: 1 }}>
             <NavigationContainer>
-                <Tab.Navigator initialRouteName='Feed' screenOptions={{
+                <Tab.Navigator initialRouteName='FeedStack' screenOptions={{
                     headerShown: false,
                     tabBarStyle: {
                         display: 'none'
                     }
                 }}>
-                    <Tab.Screen name='AuthenticationStack' component={AuthenticationStack}/>
-                    <Tab.Screen name='Feed' component={Feed} />
-                    <Tab.Screen name='Messages' component={Messages} />
-                    <Tab.Screen name='Chat' component={Chat} />
+                    <Tab.Screen name='AuthenticationStack' component={AuthenticationStack} />
+                    <Tab.Screen name='FeedStack' component={FeedStack} />
                     <Tab.Screen name='Competition' component={Competition} />
                     <Tab.Screen name='Workout' component={Workout} />
                     <Tab.Screen name='Explore' component={Explore} />

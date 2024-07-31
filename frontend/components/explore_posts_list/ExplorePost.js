@@ -2,7 +2,6 @@ import { useEffect, useState } from "react";
 import { StyleSheet, View, Image } from "react-native"
 import ExplorePostHeader from "./ExplorePostHeader";
 import ExplorePostFooter from "./ExplorePostFooter";
-import PostCommentPreview from "../1_feed/PostCommentPreview";
 import getPFP from "../../../backend/storage/getPFP";
 import getPostImage from "../../../backend/storage/getPostImage";
 
@@ -24,7 +23,7 @@ export default function ExplorePost({ data }) {
 
     return (
         <View style={styles.main_ctnr}>
-            <ExplorePostHeader data={data} url={pfp} />
+            {/* <ExplorePostHeader data={data} url={pfp} />
 
             <View style={styles.body_ctnr}>
                 <View style={styles.image_ctnr}>
@@ -47,7 +46,7 @@ export default function ExplorePost({ data }) {
                         <PostCommentPreview handle={data.comments[1].handle} content={data.comments[1].content} />
                     </>
                 }
-            </View>
+            </View> */}
 
         </View>
     )

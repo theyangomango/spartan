@@ -1,7 +1,7 @@
 import { useDebugValue, useEffect, useReducer, useState } from "react";
 import { ScrollView, StyleSheet, View } from "react-native";
-import MessageCard from "../components/messages/MessageCard";
-import MessagesHeader from "../components/messages/MessagesHeader";
+import MessageCard from "../components/1.1_Messages/MessageCard";
+import MessagesHeader from "../components/1.1_Messages/MessagesHeader";
 
 export default function Messages({ navigation, route }) {
     const userData = global.userData;
