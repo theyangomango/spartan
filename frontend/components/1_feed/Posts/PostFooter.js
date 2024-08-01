@@ -6,6 +6,8 @@ import RNBounceable from '@freakycoder/react-native-bounceable';
 import Svg, { Path } from "react-native-svg";
 import FooterBottom from './FooterBottom';
 import updateDoc from '../../../../backend/helper/firebase/updateDoc';
+import arrayAppend from '../../../../backend/helper/firebase/arrayAppend';
+import arrayErase from '../../../../backend/helper/firebase/arrayErase';
 
 export default function PostFooter({ data, onPressCommentButton, onPressShareButton, isPostsVisible }) {
     const [isLiked, setIsLiked] = useState(false);
@@ -49,7 +51,13 @@ export default function PostFooter({ data, onPressCommentButton, onPressShareBut
         setIsLiked(!isLiked);
     }
 
-    function handleSave() {
+    function handlePressSaveButton() {
+        if (!isSaved) {
+            arrayAppend('users', global.userData.uid, 'savedPosts', data.pid);
+        } else {
+            arrayErase('users', global.userData.uid, 'savedPosts', data.pid);
+        }
+
         setIsSaved(!isSaved);
     }
 
@@ -73,7 +81,7 @@ export default function PostFooter({ data, onPressCommentButton, onPressShareBut
                     </Pressable>
                 </View>
 
-                <RNBounceable style={styles.saveButton} onPress={handleSave}>
+                <RNBounceable style={styles.saveButton} onPress={handlePressSaveButton}>
                     {
                         isSaved ?
                             <Svg xmlns="http://www.w3.org/2000/svg" width="23" height="23" viewBox="0 0 24 24" fill="#FDF764" stroke="#FDF764" strokeWidth={2.2} strokeLinecap='round' strokeLinejoin='round'>
