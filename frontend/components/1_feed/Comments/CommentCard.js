@@ -1,15 +1,12 @@
 import React, { useEffect, useState } from 'react';
-import { View, Text, FlatList, StyleSheet, TouchableOpacity, Pressable, Image } from 'react-native';
-import { Heart } from 'iconsax-react-native'
-import getDisplayTimeDifference from '../../../helper/getDisplayTimeDifference';
-import getPFP from '../../../../backend/storage/getPFP';
+import { View, Text, StyleSheet, Pressable, Image } from 'react-native';
 import Svg, { Path } from "react-native-svg";
 import RNBounceable from '@freakycoder/react-native-bounceable';
+import getPFP from '../../../../backend/storage/getPFP';
 
-export default function CommentCard({ data, likeComment, unlikeComment, index }) {
+export default function CommentCard({ data, likeComment, unlikeComment, index, setReplyingToIndex, isReply, replyIndex }) {
     const [isLiked, setIsLiked] = useState(data.isCaption ? false : data.likedUsers.includes(global.userData.uid));
     const [pfp, setPFP] = useState(null);
-
 
     useEffect(() => {
         getPFP(data.uid)
@@ -19,13 +16,18 @@ export default function CommentCard({ data, likeComment, unlikeComment, index })
     }, []);
 
     function handlePressLikeButton() {
-        if (!isLiked) likeComment(index);
-        else if (isLiked) unlikeComment(index);
+        if (!isLiked) {
+            console.log(index, replyIndex);
+            likeComment(index, replyIndex);
+        }
+        else {
+            unlikeComment(index, replyIndex);
+        }
         setIsLiked(!isLiked);
     }
 
     return (
-        <View style={styles.card}>
+        <View style={[styles.card, isReply && styles.replyCard]}>
             <View style={styles.pfp_ctnr}>
                 <Image
                     source={{ uri: pfp }}
@@ -37,56 +39,36 @@ export default function CommentCard({ data, likeComment, unlikeComment, index })
                     <View>
                         <Text style={styles.handle_text}>{data.handle}</Text>
                     </View>
-                    {/* <View style={styles.timestamp_ctnr}>
-                        <Text style={styles.helper_text}>{getDisplayTimeDifference(Date.now(), data.timestamp)}</Text>
-                    </View> */}
                 </View>
                 <View style={styles.content_text_ctnr}>
                     <Text style={styles.content_text}>{data.content}</Text>
                 </View>
-                {/* <View style={styles.card_footer}>
-                    {
-                        !data.isCaption &&
-                        <>
-                            <View style={styles.likes_ctnr}>
-                                <Text style={styles.helper_text}>{data.likeCount} likes</Text>
-                            </View>
-                            <View style={styles.reply_text_ctnr}>
-                                <Text style={styles.helper_text}>Reply</Text>
-                            </View>
-                        </>
-                    }
-
-                </View> */}
             </View>
-            {
-                !data.isCaption &&
+            {!data.isCaption && (
                 <View style={styles.right}>
-                    <RNBounceable style={styles.reply_button}>
-                        <Text style={styles.reply_text}>Reply</Text>
-                    </RNBounceable>
+                    {
+                        !isReply &&
+                        <RNBounceable style={styles.reply_button} onPress={() => setReplyingToIndex(index)}>
+                            <Text style={styles.reply_text}>Reply</Text>
+                        </RNBounceable>
+                    }
                     <RNBounceable onPress={handlePressLikeButton} style={styles.heart_icon_ctnr}>
-                        {isLiked ?
-                            // <Heart size={20} color="#FF8A65" variant="Bold" /> :
-                            // <Heart size={20} color="#000" />
+                        {isLiked ? (
                             <Svg xmlns="http://www.w3.org/2000/svg" width="18.5" height="18.5" viewBox="0 0 24 24" fill="#FE5555">
                                 <Path d="M12.62 20.81c-.34.12-.9.12-1.24 0C8.48 19.82 2 15.69 2 8.69 2 5.6 4.49 3.1 7.56 3.1c1.82 0 3.43.88 4.44 2.24a5.53 5.53 0 0 1 4.44-2.24C19.51 3.1 22 5.6 22 8.69c0 7-6.48 11.13-9.38 12.12Z" stroke="#FE5555" strokeWidth="2.1" strokeLinecap="round" strokeLinejoin="round"></Path>
                             </Svg>
-                            :
-
-
+                        ) : (
                             <Svg xmlns="http://www.w3.org/2000/svg" width="18.5" height="18.5" viewBox="0 0 24 24" fill="none">
                                 <Path d="M12.62 20.81c-.34.12-.9.12-1.24 0C8.48 19.82 2 15.69 2 8.69 2 5.6 4.49 3.1 7.56 3.1c1.82 0 3.43.88 4.44 2.24a5.53 5.53 0 0 1 4.44-2.24C19.51 3.1 22 5.6 22 8.69c0 7-6.48 11.13-9.38 12.12Z" stroke="#333" strokeWidth="2.1" strokeLinecap="round" strokeLinejoin="round"></Path>
                             </Svg>
-                        }
+                        )}
+                        <Text style={styles.likeCount}>{data.likeCount}</Text>
                     </RNBounceable>
                 </View>
-            }
-
+            )}
         </View>
-    )
+    );
 }
-
 
 const styles = StyleSheet.create({
     card: {
@@ -94,6 +76,9 @@ const styles = StyleSheet.create({
         alignItems: 'center',
         paddingVertical: 9.5,
         paddingHorizontal: 4,
+    },
+    replyCard: {
+        marginLeft: 25,
     },
     pfp_ctnr: {
         width: 38,
@@ -113,12 +98,7 @@ const styles = StyleSheet.create({
     handle_text: {
         fontSize: 14,
         fontFamily: 'Outfit_500Medium',
-        // fontWeight: 'bold',
         color: '#999',
-        // paddingBottom: 1.5
-    },
-    timestamp_ctnr: {
-        paddingHorizontal: 5
     },
     content_text_ctnr: {
         flexDirection: 'row',
@@ -129,18 +109,6 @@ const styles = StyleSheet.create({
         fontSize: 14,
         flexWrap: 'wrap',
         color: '#111'
-    },
-    card_footer: {
-        flexDirection: 'row'
-    },
-    helper_text: {
-        fontSize: 9.5,
-        fontFamily: 'Outfit_500Medium',
-        color: '#888',
-        paddingVertical: 3
-    },
-    likes_ctnr: {
-        paddingRight: 15
     },
     right: {
         flexDirection: 'row',
@@ -159,20 +127,22 @@ const styles = StyleSheet.create({
         fontSize: 12
     },
     heart_icon_ctnr: {
-        // width: 35,
-        // paddingHorizontal: 8,
-        // paddingUp: 10,
-        // paddingRight: 7,
-        // marginTop: 8,
         width: 34,
         aspectRatio: 1,
         marginLeft: 8,
-
-        // alignItems: 'center',
-        // justifyContent: 'center',
         borderRadius: 100,
-        backgroundColor: '#e6e6e6',
         justifyContent: 'center',
-        alignItems: 'center'
-    }
+        alignItems: 'center',
+        position: 'relative'
+    },
+    likeCount: {
+        position: 'absolute',
+        bottom: -7,
+        // backgroundColor: '#fff',
+        borderRadius: 10,
+        paddingHorizontal: 4,
+        fontSize: 10,
+        color: '#333',
+        fontFamily: 'Outfit_600SemiBold',
+    },
 });

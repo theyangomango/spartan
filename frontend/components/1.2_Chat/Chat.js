@@ -1,10 +1,10 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { View, Text, TextInput, TouchableOpacity, StyleSheet, FlatList, KeyboardAvoidingView, Platform, Keyboard, Image } from 'react-native';
 import { Ionicons, FontAwesome6 } from '@expo/vector-icons';
-import getPFP from '../../backend/storage/getPFP';
-import sendMessage from '../../backend/messages/sendMessage';
-import getChatDisplayTime from '../helper/getChatDisplayTime';
-import getDisplayTime from '../helper/getDisplayTime';
+import getPFP from '../../../backend/storage/getPFP';
+import sendMessage from '../../../backend/messages/sendMessage';
+import getChatDisplayTime from '../../helper/getChatDisplayTime';
+import getDisplayTime from '../../helper/getDisplayTime';
 
 function getReverse(arr) {
     let list = [];

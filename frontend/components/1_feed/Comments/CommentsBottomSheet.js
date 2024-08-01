@@ -12,14 +12,16 @@ const CommentsBottomSheet = ({ isVisible, postData, commentsBottomSheetExpandFla
     const [isInputFocused, setIsInputFocused] = useState(false);
     const bottomSheetRef = useRef(null);
     const footerTranslateY = useRef(new Animated.Value(0)).current;
-
     const snapPoints = useMemo(() => ["36%", "92%"], []);
     const [isSheetExpanded, setIsSheetExpanded] = useState(false);
     const [inputText, setInputText] = useState('');
+    const [replyingToIndex, setReplyingToIndex] = useState(null);
+    const textInputRef = useRef(null);
 
+    // Handle send comment
     const handleSend = () => {
         if (!inputText) return;
-        postData.comments.push({
+        const newComment = {
             handle: global.userData.handle,
             uid: global.userData.uid,
             pfp: global.userData.image,
@@ -29,7 +31,15 @@ const CommentsBottomSheet = ({ isVisible, postData, commentsBottomSheetExpandFla
             likedUsers: [],
             replies: [],
             isCaption: false
-        });
+        }
+
+        if (replyingToIndex == null) {
+            postData.comments.push(newComment);
+
+        } else {
+            postData.comments[replyingToIndex].replies.push(newComment);
+        }
+
         updateDoc('posts', postData.pid, {
             comments: postData.comments
         });
@@ -37,6 +47,7 @@ const CommentsBottomSheet = ({ isVisible, postData, commentsBottomSheetExpandFla
         setInputText('');
     };
 
+    // Handle input focus
     const handleInputFocus = () => {
         setIsInputFocused(true);
         bottomSheetRef.current.expand();
@@ -47,8 +58,10 @@ const CommentsBottomSheet = ({ isVisible, postData, commentsBottomSheetExpandFla
         }).start();
     };
 
+    // Handle input blur
     const handleInputBlur = () => {
         setIsInputFocused(false);
+        setReplyingToIndex(null);
         Animated.timing(footerTranslateY, {
             toValue: 0,
             duration: 200,
@@ -56,6 +69,7 @@ const CommentsBottomSheet = ({ isVisible, postData, commentsBottomSheetExpandFla
         }).start();
     };
 
+    // Handle visibility of the bottom sheet
     useEffect(() => {
         if (isVisible) {
             bottomSheetRef.current.snapToIndex(0);
@@ -64,10 +78,18 @@ const CommentsBottomSheet = ({ isVisible, postData, commentsBottomSheetExpandFla
         }
     }, [isVisible]);
 
+    // Expand the bottom sheet when flagged
     useEffect(() => {
         bottomSheetRef.current.expand();
     }, [commentsBottomSheetExpandFlag]);
 
+    useEffect(() => {
+        if (replyingToIndex != null) {
+            textInputRef.current.focus(); // Focus the TextInput
+        }
+    }, [replyingToIndex]);
+
+    // Handle header touch
     function handleTouchHeader() {
         if (isInputFocused) {
             handleInputBlur();
@@ -75,17 +97,9 @@ const CommentsBottomSheet = ({ isVisible, postData, commentsBottomSheetExpandFla
         }
     }
 
-    function handlePressUpIcon() {
-        bottomSheetRef.current.expand();
-    }
-
+    // Handle sheet index change
     function handleSheetIndexChange(index) {
-        if (index === 1) {
-            setIsSheetExpanded(true);
-        } else {
-            setIsSheetExpanded(false);
-        }
-
+        setIsSheetExpanded(index === 1);
     }
 
     return (
@@ -103,14 +117,14 @@ const CommentsBottomSheet = ({ isVisible, postData, commentsBottomSheetExpandFla
                 detached
                 backgroundStyle={{ backgroundColor: '#fff' }}
             >
-                {postData &&
+                {postData && (
                     <CommentsModal
                         postData={postData}
                         handleTouchHeader={handleTouchHeader}
-                        handlePressUpIcon={handlePressUpIcon}
                         isSheetExpanded={isSheetExpanded}
+                        setReplyingToIndex={setReplyingToIndex}
                     />
-                }
+                )}
             </BottomSheet>
             {isVisible && (
                 <Animated.View style={[styles.footer, { transform: [{ translateY: footerTranslateY }] }]}>
@@ -119,7 +133,8 @@ const CommentsBottomSheet = ({ isVisible, postData, commentsBottomSheetExpandFla
                             <Image source={{ uri: global.userData.image }} style={styles.pfp} />
                         </View>
                         <TextInput
-                            placeholder="Add comment"
+                            ref={textInputRef} // Add ref to TextInput
+                            placeholder={replyingToIndex == null ? "Add comment" : `Replying to ${postData.comments[replyingToIndex].handle}`}
                             style={styles.textInput}
                             onFocus={handleInputFocus}
                             onBlur={handleInputBlur}
@@ -147,7 +162,6 @@ const styles = StyleSheet.create({
     },
     footer: {
         position: 'absolute',
-        // bottom: 0,
         top: height - 180,
         height: 95 + width / 2,
         paddingBottom: width / 2,

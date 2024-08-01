@@ -16,7 +16,7 @@ import Explore from './frontend/screens/4_Explore';
 import Workout from './frontend/screens/3_Workout';
 import Competition from './frontend/screens/2_Competition';
 import Messages from './frontend/screens/Messages';
-import Chat from './frontend/screens/Chat';
+import Chat from './frontend/components/1.2_Chat/Chat';
 import PostList from './frontend/screens/PostList';
 import ViewProfile from './frontend/screens/ViewProfile';
 
