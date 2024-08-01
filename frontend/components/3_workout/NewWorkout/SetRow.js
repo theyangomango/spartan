@@ -3,10 +3,16 @@ import EditableStat from "./EditableStat";
 import { Ionicons, FontAwesome6 } from '@expo/vector-icons'
 import { useState } from "react";
 
-export default function SetRow({ set, index }) {
+export default function SetRow({ set, updateSet, index }) {
     const [isDone, setIsDone] = useState(false);
+    const [weight, setWeight] = useState(set.weight);
+    const [reps, setReps] = useState(set.reps);
 
     function toggleDone() {
+        if (!isDone) {
+            updateSet(index, { previous: '405 lb x 12', weight: weight, reps: reps });
+        }
+
         setIsDone(!isDone);
     }
 
@@ -19,10 +25,10 @@ export default function SetRow({ set, index }) {
                 <Text style={[styles.previous_stat_text, , isDone && { color: '#afafaf' }]}>{set.previous}</Text>
             </View>
             <View style={styles.weight_unit_ctnr}>
-                <EditableStat isFinished={isDone} />
+                <EditableStat isFinished={isDone} value={weight} setValue={(value) => setWeight(parseInt(value))}/>
             </View>
             <View style={styles.reps_ctnr}>
-                <EditableStat isFinished={isDone} />
+                <EditableStat isFinished={isDone} value={reps} setValue={(value) => setReps(parseInt(value))}/>
             </View>
             <View style={styles.done_ctnr}>
                 <Pressable style={isDone ? styles.checkmark_ctnr_selected : styles.checkmark_ctnr} onPress={toggleDone}>
@@ -36,31 +42,18 @@ export default function SetRow({ set, index }) {
 const styles = StyleSheet.create({
     stat_row: {
         flexDirection: 'row',
-        // paddingHorizontal: 22,
-        // marginVertical: 7,
-        paddingVertical: 7,
-        // backgroundColor: 'red'
-        // borderWidth: 1,
+        paddingVertical: 8,
         alignItems: 'center',
-
     },
     done: {
-        // flexDirection: 'row',
-        // // paddingHorizontal: 22,
-        // paddingVertical: 7,
-        // // backgroundColor: 'red'
-        // // borderWidth: 1,
-        // alignItems: 'center',
         backgroundColor: '#DCFFDA'
     },
     set_ctnr: {
         marginLeft: '5%',
-        // width: 30,
         width: '8%',
         height: 21,
         borderRadius: 6,
         backgroundColor: '#eaeaea',
-        // paddingLeft: 8,
         alignItems: 'center',
         justifyContent: 'center',
     },
@@ -68,16 +61,10 @@ const styles = StyleSheet.create({
         width: '38%',
         alignItems: 'center',
         justifyContent: 'center',
-        // borderWidth: 1
-        // marginRight: 10,
-        // backgroundColor: 'green'
-
     },
     weight_unit_ctnr: {
-        // width: 75,
         width: '18%',
         alignItems: 'center',
-        // backgroundColor: 'red'
     },
     reps_ctnr: {
         width: '18%',
@@ -86,11 +73,6 @@ const styles = StyleSheet.create({
     set_number_text: {
         fontFamily: 'Poppins_700Bold',
         fontSize: 14,
-        // backgroundColor: '#ccc',
-
-        // color: '#0699FF',
-        // paddingVertical: 3,
-
     },
     previous_stat_text: {
         fontFamily: 'Poppins_700Bold',
@@ -98,18 +80,9 @@ const styles = StyleSheet.create({
         // paddingVertical: 6,
         color: '#ccc'
     },
-    // weight_unit_stat_text: {
-    //     fontFamily: 'Mulish_700Bold',
-    //     paddingVertical: 6,
-    // },
-    // reps_number_text: {
-    //     fontFamily: 'Mulish_700Bold',
-    //     paddingVertical: 6,
-    // },
     done_ctnr: {
         width: '10.5%',
         height: 22,
-        // marginLeft: 6,
         alignItems: 'center',
     },
     checkmark_ctnr: {

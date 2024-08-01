@@ -5,13 +5,16 @@ import { FontAwesome5, MaterialCommunityIcons, Entypo } from '@expo/vector-icons
 import DoubleSetRow from "./DoubleSetRow";
 import RNBounceable from "@freakycoder/react-native-bounceable";
 
-export default function ExerciseLog({ name, index, updateSets }) {
+export default function ExerciseLog({ name, exerciseIndex, updateSets, calculateStats }) {
     const muscle = name == 'Lateral Raise' ? 'Shoulders' : 'Chest';
 
-    const canTrackBothSides = true;
     const [isTrackingBothSides, setIsTrackingBothSides] = useState(false);
     const [sets, setSets] = useState([
-        { previous: '405 lb x 12' }
+        {
+            previous: '405 lb x 12',
+            weight: 0,
+            reps: 0
+        }
     ]);
 
     const muscleColors = {
@@ -22,13 +25,22 @@ export default function ExerciseLog({ name, index, updateSets }) {
     };
 
     useEffect(() => {
-        updateSets(index, sets);
+        updateSets(exerciseIndex, sets);
     }, [sets]);
 
     function addSet() {
         setSets([...sets, {
-            previous: '405 lb x 12'
+            previous: '405 lb x 12',
+            weight: 0,
+            reps: 0
         }]);
+    }
+
+    async function updateSet(index, set) {
+        var newSets = sets;
+        newSets[index] = set;
+        setSets(newSets)
+        updateSets(exerciseIndex, newSets);
     }
 
     function handlePressTrackingBothSidesButton() {
@@ -73,7 +85,7 @@ export default function ExerciseLog({ name, index, updateSets }) {
                         :
                         sets.map((set, index) => {
                             return (
-                                <SetRow set={set} index={index} key={index} />
+                                <SetRow set={set} index={index} key={index} updateSet={updateSet} />
                             );
                         })
                     }
@@ -110,7 +122,7 @@ const styles = StyleSheet.create({
     },
     muscle_ctnr: {
         borderRadius: 15,
-        height: 22,
+        height: 23.5,
         paddingHorizontal: 12,
         alignItems: 'center',
         justifyContent: 'center'

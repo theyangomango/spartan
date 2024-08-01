@@ -1,9 +1,8 @@
 import React, { useState, useRef } from "react";
 import { TextInput, StyleSheet, View, Pressable } from "react-native";
 
-export default function EditableStat({ placeholder = '0', isFinished }) {
+export default function EditableStat({ placeholder = '0', isFinished, value, setValue }) {
     const [isSelected, setIsSelected] = useState(false);
-    const [value, setValue] = useState('');
     const inputRef = useRef(null);
 
     return (

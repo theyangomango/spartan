@@ -1,10 +1,10 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import { StyleSheet, View, Text, Modal, TouchableOpacity, ScrollView } from "react-native";
 import ProgressBanner from "./ProgressBanner";
 import ExerciseLog from "./ExerciseLog";
 import SelectExerciseModal from './SelectExerciseModal'
 import RNBounceable from "@freakycoder/react-native-bounceable";
-import { Weight } from 'iconsax-react-native';
+import { Nexo, Weight } from 'iconsax-react-native';
 import { MaterialCommunityIcons, FontAwesome } from '@expo/vector-icons';
 import GroupModal from "./GroupModal";
 
@@ -12,6 +12,28 @@ export default function NewWorkoutModal({ workout, setWorkout, closeModal, cance
     const [selectExerciseModalVisible, setSelectExerciseModalVisible] = useState(false);
     const [groupModalVisible, setGroupModalVisible] = useState(false);
     const [headerShadow, setHeaderShadow] = useState(false);
+
+    // stats
+    const [totalReps, setTotalReps] = useState(0);
+    const [totalVolume, setTotalVolume] = useState(0);
+    const [personalBests, setPersonalBests] = useState(0);
+
+
+    function calculateStats() {
+        var reps = 0;
+        var volume = 0;
+
+        workout.exercises.forEach(exercise => {
+            exercise.sets.forEach(set => {
+                reps += set.reps;
+                volume += (set.reps * set.weight);
+            })
+        });
+
+
+        setTotalReps(reps);
+        setTotalVolume(volume);
+    }
 
     function showSelectExerciseModal() {
         setSelectExerciseModalVisible(true);
@@ -44,11 +66,13 @@ export default function NewWorkoutModal({ workout, setWorkout, closeModal, cance
         let newWorkout = workout;
         newWorkout.exercises[index].sets = newSets;
         updateWorkout(newWorkout);
+        calculateStats();
     }
 
     function handleScroll(event) {
         const scrollPosition = event.nativeEvent.contentOffset.y;
         setHeaderShadow(scrollPosition > 98);
+        calculateStats();
     }
 
     return (
@@ -74,9 +98,9 @@ export default function NewWorkoutModal({ workout, setWorkout, closeModal, cance
                 scrollEventThrottle={16}
                 style={styles.scrollview}
             >
-                <ProgressBanner />
+                <ProgressBanner totalReps={totalReps} totalVolume={totalVolume} personalBests={personalBests} />
                 {workout.exercises.map((ex, index) => (
-                    <ExerciseLog name={ex.name} index={index} key={index} updateSets={updateSets}/>
+                    <ExerciseLog name={ex.name} exerciseIndex={index} key={index} updateSets={updateSets} calculateStats={calculateStats}/>
                 ))}
                 <RNBounceable onPress={showSelectExerciseModal} style={styles.add_exercise_btn}>
                     <Text style={styles.add_exercise_text}>Add Exercises</Text>
@@ -106,7 +130,7 @@ export default function NewWorkoutModal({ workout, setWorkout, closeModal, cance
                 visible={groupModalVisible}
                 onRequestClose={closeGroupModal}
             >
-                <GroupModal closeGroupModal={closeGroupModal}/>
+                <GroupModal closeGroupModal={closeGroupModal} />
             </Modal>
         </View>
     )

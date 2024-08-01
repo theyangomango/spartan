@@ -134,7 +134,6 @@ export default function Workout({ navigation }) {
     }
 
     function updateNewWorkout(newWorkout) {
-        console.log(newWorkout);
         setWorkout(newWorkout);
     }
 

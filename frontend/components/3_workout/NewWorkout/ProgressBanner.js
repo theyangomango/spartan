@@ -2,10 +2,7 @@ import RNBounceable from '@freakycoder/react-native-bounceable';
 import React from 'react';
 import { StyleSheet, View, Text } from 'react-native';
 
-export default function ProgressBanner() {
-    const totalReps = 70;
-    const totalVolume = 1200;
-    const personalRecords = 2;
+export default function ProgressBanner({ totalReps, totalVolume, personalBests }) {
 
     return (
         <RNBounceable style={styles.container}>
@@ -18,7 +15,7 @@ export default function ProgressBanner() {
                 <Text style={styles.smallText}>Lbs Lifted</Text>
             </View>
             <View style={styles.column}>
-                <Text style={styles.bigNumber}>{personalRecords}</Text>
+                <Text style={styles.bigNumber}>{personalBests}</Text>
                 <Text style={styles.smallText}>Personal Bests</Text>
             </View>
         </RNBounceable>
@@ -40,24 +37,21 @@ const styles = StyleSheet.create({
         shadowOpacity: 0.1,
         shadowRadius: 8,
         elevation: 5,
-        // marginBottom: 10,
     },
     column: {
         width: '33%',
         alignItems: 'center',
     },
     bigNumber: {
-        fontSize: 22.5,
+        fontSize: 23,
         color: '#B9DCFF',
         // color: '#fff',
         fontFamily: 'Poppins_800ExtraBold',
     },
     smallText: {
         paddingTop: 1,
-        fontSize: 14,
-        // color: '#A5A5A5',
+        fontSize: 12.8,
         color: '#eee',
-        // fontFamily: 'Lato_700Bold'
-        fontFamily: 'SourceSansPro_600SemiBold'
+        fontFamily: 'Poppins_600SemiBold'
     },
 });
