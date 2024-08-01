@@ -8,36 +8,27 @@ export default function CommentsModal({ postData, handleTouchHeader, isSheetExpa
     const flatListRef = useRef(null);
 
     function handleLikeComment(index, replyIndex) {
-        if (replyIndex == -1) {
+        if (replyIndex === -1) {
             comments[index].likeCount++;
             comments[index].likedUsers.push(global.userData.uid);
         } else {
             comments[index].replies[replyIndex].likeCount++;
             comments[index].replies[replyIndex].likedUsers.push(global.userData.uid);
         }
-
-        updateDoc('posts', postData.pid, {
-            comments: comments
-        });
+        updateDoc('posts', postData.pid, { comments });
     }
 
     function handleUnlikeComment(index, replyIndex) {
-        if (replyIndex == -1) {
-            comments[index].likeCount --;
+        if (replyIndex === -1) {
+            comments[index].likeCount--;
             const i = comments[index].likedUsers.indexOf(global.userData.uid);
-            if (i > -1) {
-                comments[index].likedUsers.splice(i, 1);
-            }
+            if (i > -1) comments[index].likedUsers.splice(i, 1);
         } else {
-            comments[index].replies[replyIndex].likeCount --;
+            comments[index].replies[replyIndex].likeCount--;
             const i = comments[index].replies[replyIndex].likedUsers.indexOf(global.userData.uid);
-            if (i > -1) {
-                comments[index].replies[replyIndex].likedUsers.splice(i, 1);
-            }
+            if (i > -1) comments[index].replies[replyIndex].likedUsers.splice(i, 1);
         }
-        updateDoc('posts', postData.pid, {
-            comments: comments
-        });
+        updateDoc('posts', postData.pid, { comments });
     }
 
     return (
@@ -45,7 +36,7 @@ export default function CommentsModal({ postData, handleTouchHeader, isSheetExpa
             style={{ flex: 1 }}
             behavior={Platform.OS === 'ios' ? 'padding' : null}
         >
-            <View style={styles.main_ctnr}>
+            <View style={styles.mainContainer}>
                 <Pressable style={styles.header} onTouchStart={handleTouchHeader}></Pressable>
                 <FlatList
                     showsVerticalScrollIndicator={false}
@@ -79,7 +70,7 @@ export default function CommentsModal({ postData, handleTouchHeader, isSheetExpa
                             ))}
                         </>
                     )}
-                    contentContainerStyle={[styles.comments_list_ctnr, { paddingBottom: isSheetExpanded ? 100 : 525 }]}
+                    contentContainerStyle={[styles.commentsListContainer, { paddingBottom: isSheetExpanded ? 100 : 525 }]}
                 />
             </View>
         </KeyboardAvoidingView>
@@ -87,7 +78,7 @@ export default function CommentsModal({ postData, handleTouchHeader, isSheetExpa
 }
 
 const styles = StyleSheet.create({
-    main_ctnr: {
+    mainContainer: {
         flex: 1,
     },
     header: {
@@ -99,7 +90,7 @@ const styles = StyleSheet.create({
         alignItems: 'center',
         zIndex: 1,
     },
-    comments_list_ctnr: {
+    commentsListContainer: {
         paddingTop: 12,
         paddingHorizontal: 15,
         flexGrow: 1,
