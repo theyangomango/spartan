@@ -21,7 +21,6 @@ export default function CreateStoryScreen({ closeModal }) {
     const [isRefreshing, setIsRefreshing] = useState(false);
     const [lastTap, setLastTap] = useState(null);
     const cameraRef = useRef(null);
-    const takePictureButtonRef = useRef(null);
     const scaleValue = useRef(new Animated.Value(1)).current;
 
     useEffect(() => {
@@ -149,14 +148,13 @@ export default function CreateStoryScreen({ closeModal }) {
                                 type={cameraType}
                                 ref={cameraRef}
                                 zoom={zoom}
-                                useCamera2Api={true}
                                 ratio="16:9"
                                 autoFocus={!isRefreshing ? Camera.Constants.AutoFocus.on : Camera.Constants.AutoFocus.off}
                                 onStartShouldSetResponder={() => true}
                                 onResponderRelease={handleTouch}
                             >
                                 <View style={styles.header}>
-                                    <TouchableOpacity style={styles.close_button_ctnr} onPress={handlePressCloseButton}>
+                                    <TouchableOpacity style={styles.closeButton} onPress={handlePressCloseButton}>
                                         <EvilIcons name="close" size={30} color="#fff" />
                                     </TouchableOpacity>
                                 </View>
@@ -164,7 +162,6 @@ export default function CreateStoryScreen({ closeModal }) {
                                     <TouchableOpacity
                                         style={styles.cameraButton}
                                         onPress={handleTakePicture}
-                                        ref={takePictureButtonRef}
                                     >
                                         <View style={styles.innerCameraButton} />
                                     </TouchableOpacity>
@@ -197,10 +194,10 @@ export default function CreateStoryScreen({ closeModal }) {
                 <Modal
                     visible={!!selectedImage}
                     transparent={true}
-                    onRequestClose={() => setSelectedImage(null)}
+                    onRequestClose={deselectImage}
                     animationType='fade'
                 >
-                    <PostStoryScreen selectedImage={selectedImage} goBack={deselectImage} />
+                    <PostStoryScreen selectedImage={selectedImage} goBack={deselectImage} endStoryCreation={closeModal}/>
                 </Modal>
                 <Modal
                     visible={showMediaLibrary}
@@ -252,7 +249,7 @@ const styles = StyleSheet.create({
         left: 23,
         zIndex: 1,
     },
-    close_button_ctnr: {
+    closeButton: {
         width: 40,
         height: 40,
         justifyContent: 'center',

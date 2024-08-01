@@ -1,9 +1,9 @@
-import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
+import React, { useState, useEffect, memo } from 'react';
+import { View, Text, StyleSheet } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import RNBounceable from '@freakycoder/react-native-bounceable';
 
-const DateSquare = ({ date, isToday, isHighlighted, initialSelected, scheduleWorkout, descheduleWorkout, isPanelVisible, selectedDate }) => {
+const DateSquare = memo(({ date, isToday, isHighlighted, initialSelected, scheduleWorkout, descheduleWorkout, isPanelVisible, selectedDate }) => {
     const [isSelected, setIsSelected] = useState(initialSelected);
     const [flag, setFlag] = useState(false);
 
@@ -13,7 +13,6 @@ const DateSquare = ({ date, isToday, isHighlighted, initialSelected, scheduleWor
         } else {
             scheduleWorkout(date);
         }
-
     }, [isSelected, flag]);
 
     const handlePress = () => {
@@ -67,9 +66,8 @@ const DateSquare = ({ date, isToday, isHighlighted, initialSelected, scheduleWor
                 )}
             </RNBounceable>
         </View>
-
     );
-};
+});
 
 const styles = StyleSheet.create({
     dateContainer: {
@@ -82,10 +80,10 @@ const styles = StyleSheet.create({
         borderRadius: 10,
     },
     highlightedDateContainer: {
-        backgroundColor: '#40D99B', // Highlighted date background color
+        backgroundColor: '#40D99B',
     },
     selectedDateContainer: {
-        backgroundColor: '#82BDFE', // Selected date background color
+        backgroundColor: '#82BDFE',
     },
     dayOfWeek: {
         fontSize: 12,
@@ -98,43 +96,20 @@ const styles = StyleSheet.create({
         fontFamily: 'Poppins_500Medium',
     },
     highlightedDateNumber: {
-        color: '#fff', // Text color for highlighted dates
+        color: '#fff',
     },
     highlightedDayOfWeek: {
         color: '#eee',
     },
     selectedText: {
-        color: '#eee', // Text color for selected dates
+        color: '#eee',
     },
     selectedDateNumber: {
-        color: '#fff', // Text color for selected dates
+        color: '#fff',
     },
     dotContainer: {
         position: 'absolute',
         bottom: 5,
-    },
-    panel: {
-        position: 'absolute',
-        top: 70,
-        width: 300,
-        height: 50,
-        borderRadius: 15,
-        backgroundColor: '#eee',
-        flexDirection: 'row',
-        justifyContent: 'space-around',
-        // alignItems: 'center',
-        // borderTopWidth: 1,
-        // borderColor: '#ccc',
-        zIndex: 1,
-    },
-    panelButton: {
-        // padding: 10,
-        height: 40,
-        backgroundColor: '#f0f0f0',
-        borderRadius: 5,
-    },
-    panelButtonText: {
-        fontSize: 14,
     },
 });
 

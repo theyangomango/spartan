@@ -1,11 +1,42 @@
 import React, { useState } from 'react';
-import { BlurView } from "expo-blur";
 import { StatusBar } from "expo-status-bar";
 import { Image, ScrollView, StyleSheet, Text, TouchableOpacity, TouchableWithoutFeedback, View } from "react-native";
 import { EvilIcons, FontAwesome } from '@expo/vector-icons';
+import RNBounceable from "@freakycoder/react-native-bounceable";
+import { storage } from '../../../../firebase.config';
+import { ref, uploadBytes } from 'firebase/storage';
+import makeID from '../../../../backend/helper/makeID';
+import getStoryImage from '../../../../backend/storage/getStoryImage';
+import createDoc from '../../../../backend/helper/firebase/createDoc';
+import arrayAppend from '../../../../backend/helper/firebase/arrayAppend';
 
-export default function PostStoryScreen({ selectedImage, goBack }) {
+export default function PostStoryScreen({ selectedImage, goBack, endStoryCreation }) {
     const [isVisible, setIsVisible] = useState(true);
+
+    async function handlePostStory() {
+        const sid = makeID();
+        const res = await fetch(selectedImage)
+        const bytes = await res.blob();
+
+
+        await uploadBytes(ref(storage, `stories/${sid}`), bytes);
+        const firebaseURI = await getStoryImage(sid);
+        const newStory = {
+            sid: sid,
+            uid: global.userData.uid,
+            created: Date.now(),
+            image: firebaseURI,
+            likes: [],
+            tagged: [], // Todo
+            likeCount: 0
+        }
+        createDoc('stories', sid, newStory);
+        arrayAppend('users', global.userData.uid, 'feedStories', sid)
+
+        setTimeout(() => {
+            endStoryCreation();
+        }, 100);
+    }
 
     return (
         <View style={styles.mainContainer}>
@@ -18,24 +49,24 @@ export default function PostStoryScreen({ selectedImage, goBack }) {
                     <Image
                         source={{ uri: selectedImage }}
                         style={styles.fullscreenImage}
-                        resizeMode='contain' // Ensure the image maintains its aspect ratio
+                        resizeMode='contain'
                     />
                 </View>
             </TouchableWithoutFeedback>
 
             <View style={styles.header}>
-                <TouchableOpacity style={styles.close_button_ctnr} onPress={goBack}>
+                <TouchableOpacity style={styles.closeButtonContainer} onPress={goBack}>
                     <EvilIcons name="close" size={30} color="#fff" />
                 </TouchableOpacity>
             </View>
 
             {isVisible && (
-                <View style={styles.modal_footer}>
-                    <ScrollView horizontal={true} style={styles.footer_scrollview}>
-                        <View style={styles.story_options_ctnr}>
-                            <TouchableOpacity activeOpacity={0.5} style={styles.story_option_ctnr}>
+                <View style={styles.modalFooter}>
+                    <ScrollView horizontal={true} style={styles.footerScrollView}>
+                        <View style={styles.storyOptionsContainer}>
+                            <RNBounceable activeOpacity={0.5} style={styles.storyOptionContainer} onPress={handlePostStory}>
                                 <View style={styles.optionRectangle}>
-                                    <View style={styles.pfp_ctnr}>
+                                    <View style={styles.pfpContainer}>
                                         <Image
                                             source={{ uri: global.userData.image }}
                                             style={styles.pfp}
@@ -43,15 +74,15 @@ export default function PostStoryScreen({ selectedImage, goBack }) {
                                     </View>
                                     <Text style={styles.optionText}>Your Story</Text>
                                 </View>
-                            </TouchableOpacity>
-                            <TouchableOpacity activeOpacity={0.5} style={styles.story_option_ctnr}>
+                            </RNBounceable>
+                            <RNBounceable activeOpacity={0.5} style={styles.storyOptionContainer}>
                                 <View style={styles.optionRectangle}>
-                                    <View style={styles.icon_ctnr}>
+                                    <View style={styles.iconContainer}>
                                         <FontAwesome name='star' size={16} color={'#fff'} />
                                     </View>
                                     <Text style={styles.optionText}>Close Friends</Text>
                                 </View>
-                            </TouchableOpacity>
+                            </RNBounceable>
                         </View>
                     </ScrollView>
                 </View>
@@ -62,7 +93,7 @@ export default function PostStoryScreen({ selectedImage, goBack }) {
 
 const styles = StyleSheet.create({
     mainContainer: {
-        flex: 1
+        flex: 1,
     },
     header: {
         position: 'absolute',
@@ -72,36 +103,32 @@ const styles = StyleSheet.create({
     },
     fullscreenContainer: {
         flex: 1,
-        // backgroundColor: 'black',
         justifyContent: 'center',
         alignItems: 'center',
     },
     fullscreenImage: {
         width: '100%',
         height: '100%',
-        resizeMode: 'contain'
+        resizeMode: 'contain',
     },
-    modal_footer: {
+    modalFooter: {
         position: 'absolute',
         bottom: 0,
         left: 0,
         right: 0,
         height: '11%',
-        // backgroundColor: 'rgba(25, 25, 25, 0.4)',
         zIndex: 1,
         flexDirection: 'row',
         paddingVertical: 10,
         justifyContent: 'space-between',
     },
-    footer_scrollview: {
+    footerScrollView: {
         paddingHorizontal: 15,
     },
-    story_options_ctnr: {
+    storyOptionsContainer: {
         flexDirection: 'row',
     },
-    story_option_ctnr: {
-        // alignItems: 'center',
-        // width: 140,
+    storyOptionContainer: {
         marginRight: 8,
     },
     optionRectangle: {
@@ -109,18 +136,17 @@ const styles = StyleSheet.create({
         alignItems: 'center',
         backgroundColor: 'rgba(25, 25, 25, 0.4)',
         borderRadius: 20,
-        // padding: 5,
         paddingVertical: 8.5,
-        paddingHorizontal: 15
+        paddingHorizontal: 15,
     },
-    pfp_ctnr: {
+    pfpContainer: {
         width: 30,
         aspectRatio: 1,
         borderRadius: 18,
         overflow: 'hidden',
         marginRight: 10,
     },
-    icon_ctnr: {
+    iconContainer: {
         width: 30,
         aspectRatio: 1,
         alignItems: 'center',
@@ -137,12 +163,12 @@ const styles = StyleSheet.create({
         color: '#fff',
         fontSize: 13,
     },
-    close_button_ctnr: {
+    closeButtonContainer: {
         width: 40,
         height: 40,
         justifyContent: 'center',
         alignItems: 'center',
-        backgroundColor: '#rgba(0, 0, 0, 0.1)',
+        backgroundColor: 'rgba(0, 0, 0, 0.1)',
         borderRadius: 100,
     },
 });

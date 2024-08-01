@@ -9,17 +9,16 @@ const WorkoutDates = ({ scheduleWorkout, descheduleWorkout, isPanelVisible, sele
     const [currentMonthYear, setCurrentMonthYear] = useState('');
     const [scheduledDates, setScheduledDates] = useState([]);
     const [layoutComplete, setLayoutComplete] = useState(false);
-    const startDate = new Date('2024-07-01');
+    const startDate = new Date('2024-01-01');
     const today = new Date();
-    const weekAfterToday = new Date(today);
-    weekAfterToday.setDate(today.getDate() + 7);
+    const monthAfterToday = new Date(today);
+    monthAfterToday.setDate(today.getDate() + 30);
 
     const highlightedDates = new Set(['2024-07-26', '2024-07-28', '2024-07-20']); // Example hard-coded dates
 
     useEffect(() => {
-        const initialDates = generateDates(startDate, weekAfterToday);
+        const initialDates = generateDates(startDate, monthAfterToday);
         setDates(initialDates);
-        updateMonthYear(initialDates[initialDates.length - 8]);
     }, []);
 
     useEffect(() => {
@@ -54,14 +53,9 @@ const WorkoutDates = ({ scheduleWorkout, descheduleWorkout, isPanelVisible, sele
         if (todayIndex !== -1) {
             const screenWidth = Dimensions.get('window').width;
             const scrollToX = (todayIndex * 60) - (screenWidth / 2) + 25; // Center today’s date
-            flatListRef.current?.scrollToOffset({ offset: scrollToX, animated: true });
+            flatListRef.current?.scrollToOffset({ offset: scrollToX, animated: false });
         }
     };
-
-    // const handleDatePress = useCallback((date) => {
-    //     setShowPanel(true);
-    //     // Your press handling logic
-    // }, [setShowPanel]);
 
     const renderItem = useCallback(({ item, index }) => {
         const isHighlighted = highlightedDates.has(item.toISOString().split('T')[0]);
@@ -75,10 +69,8 @@ const WorkoutDates = ({ scheduleWorkout, descheduleWorkout, isPanelVisible, sele
                 isToday={isToday}
                 isHighlighted={isHighlighted}
                 initialSelected={isSelected}
-                // onPress={handleDatePress}
                 scheduleWorkout={scheduleWorkout}
                 descheduleWorkout={descheduleWorkout}
-                // setShowPanel={setShowPanel}
                 isPanelVisible={isPanelVisible}
                 selectedDate={selectedDate}
             />
@@ -114,7 +106,6 @@ const styles = StyleSheet.create({
         top: 60,
         left: 3,
         right: 3,
-        // height: 300,
         zIndex: 1,
         backgroundColor: 'transparent'
     },
@@ -126,22 +117,10 @@ const styles = StyleSheet.create({
         paddingRight: 21,
         marginBottom: 10,
     },
-    scrollContainer: {
-    },
+    scrollContainer: {},
     monthYear: {
         fontSize: 16,
         fontFamily: 'Poppins_600SemiBold',
-    },
-    panel: {
-        position: 'absolute',
-        top: 70,
-        width: '100%',
-        height: 50,
-        borderRadius: 15,
-        backgroundColor: '#eee',
-        flexDirection: 'row',
-        justifyContent: 'space-around',
-        zIndex: 1,
     },
 });
 

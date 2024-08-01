@@ -3,7 +3,7 @@ import { View, Text, Image, StyleSheet, Animated } from 'react-native';
 import RNBounceable from "@freakycoder/react-native-bounceable";
 import { Feather } from '@expo/vector-icons';
 
-const Panel = ({ isVisible, onClose, date }) => {
+const WorkoutInfoPanel = ({ isVisible, onClose, date }) => {
     const panelOpacity = useRef(new Animated.Value(0)).current;
     const [panelZIndex, setPanelZIndex] = useState(0);
 
@@ -27,7 +27,7 @@ const Panel = ({ isVisible, onClose, date }) => {
                 duration: 300,
                 useNativeDriver: true,
             }).start(() => {
-                    setPanelZIndex(0);
+                setPanelZIndex(0);
             });
         }
     }, [isVisible]);
@@ -133,4 +133,4 @@ const styles = StyleSheet.create({
     },
 });
 
-export default Panel;
+export default WorkoutInfoPanel;

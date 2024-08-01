@@ -1,9 +1,9 @@
 import React, { useState } from 'react';
 import { FlatList, Modal, Pressable, StyleSheet, View, ActivityIndicator } from 'react-native';
-import FastImage from 'react-native-fast-image'; // Import FastImage
+import FastImage from 'react-native-fast-image';
 import StoryHeaderButtons from "./StoryHeaderButtons";
 import Story from "./Story";
-import { BlurView } from 'expo-blur'; // Make sure BlurView is imported correctly
+import { BlurView } from 'expo-blur';
 import CreateStoryScreen from './CreateStoryScreen';
 
 export default function Stories({ data }) {
@@ -20,7 +20,7 @@ export default function Stories({ data }) {
 
     const renderItem = ({ item, index }) => (
         <Pressable onPress={() => handlePress(index)}>
-            <Story data={item} index={index} handlePress={handlePress} isViewed={!!viewedStories[item.sid]} handlePressCreateButton={handlePressCreateButton} />
+            <Story data={item} index={index} isViewed={!!viewedStories[item.sid]} handlePressCreateButton={handlePressCreateButton} handlePress={handlePress}/>
         </Pressable>
     );
 
@@ -58,12 +58,11 @@ export default function Stories({ data }) {
     }
 
     function handlePressCreateButton() {
-        console.log('create');
         setCreateModal(true);
     }
 
     return (
-        <View style={styles.stories_ctnr}>
+        <View style={styles.storiesContainer}>
             <FlatList
                 data={data}
                 renderItem={renderItem}
@@ -82,7 +81,7 @@ export default function Stories({ data }) {
                 >
                     <View style={styles.modalContainer}>
                         <View style={styles.modalContent}>
-                            <FastImage // Replace CachedImage with FastImage
+                            <FastImage
                                 key={data[currentIndex].sid}
                                 source={{ uri: data[currentIndex].image }}
                                 style={styles.fullScreenImage}
@@ -90,9 +89,9 @@ export default function Stories({ data }) {
                                 placeholder={<ActivityIndicator />}
                             />
                         </View>
-                        <Pressable onPress={handlePressLeft} style={styles.screen_left} />
-                        <Pressable onPress={() => setViewModal(false)} style={styles.screen_center} />
-                        <Pressable onPress={handlePressRight} style={styles.screen_right} />
+                        <Pressable onPress={handlePressLeft} style={styles.screenLeft} />
+                        <Pressable onPress={() => setViewModal(false)} style={styles.screenCenter} />
+                        <Pressable onPress={handlePressRight} style={styles.screenRight} />
                     </View>
 
                     <BlurView intensity={5} style={styles.blurview} />
@@ -107,17 +106,17 @@ export default function Stories({ data }) {
                 transparent={true}
                 visible={createModalVisible}
             >
-                <CreateStoryScreen closeModal={() => setCreateModal(false)}/>
+                <CreateStoryScreen closeModal={() => setCreateModal(false)} />
             </Modal>
         </View>
     );
 }
 
 const styles = StyleSheet.create({
-    stories_ctnr: {
+    storiesContainer: {
         backgroundColor: '#fff',
         paddingTop: 6,
-        paddingBottom: 5
+        paddingBottom: 5,
     },
     flatlist: {
         paddingLeft: 15,
@@ -127,7 +126,6 @@ const styles = StyleSheet.create({
     },
     modalContainer: {
         flex: 1,
-        // backgroundColor: 'rgba(0,0,0,0.9)',
     },
     modalHeader: {
         position: 'absolute',
@@ -151,23 +149,23 @@ const styles = StyleSheet.create({
     },
     fullScreenImage: {
         width: '100%',
-        height: '100%'
+        height: '100%',
     },
-    screen_left: {
+    screenLeft: {
         position: 'absolute',
         top: 100,
         left: 0,
         height: '100%',
         width: '25%',
     },
-    screen_center: {
+    screenCenter: {
         position: 'absolute',
         top: 100,
         left: '25%',
         width: '50%',
         height: '100%',
     },
-    screen_right: {
+    screenRight: {
         position: 'absolute',
         top: 100,
         right: 0,

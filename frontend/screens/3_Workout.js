@@ -10,9 +10,9 @@ import makeID from "../../backend/helper/makeID";
 import eraseDoc from "../../backend/helper/firebase/eraseDoc";
 import updateDoc from "../../backend/helper/firebase/updateDoc";
 import JoinWorkoutModal from "../components/3_workout/JoinWorkoutModal";
-import WorkoutDates from "../components/3_workout/WorkoutDates";
+import WorkoutDates from "../components/3_workout/WorkoutDates/WorkoutDates";
 import RNBounceable from "@freakycoder/react-native-bounceable";
-import Panel from "../components/3_workout/Panel";
+import WorkoutInfoPanel from "../components/3_workout/WorkoutDates/WorkoutInfoPanel";
 import NewWorkoutBottomSheet from "../components/3_workout/NewWorkoutBottomSheet"; // Import the new component
 import CurrentWorkoutPanel from "../components/3_workout/CurrentWorkoutPanel";
 import millisToMinutesAndSeconds from "../helper/milliesToMinutesAndSeconds";
@@ -131,7 +131,7 @@ export default function Workout({ navigation }) {
                     isPanelVisible={isPanelVisible}
                     selectedDate={panelDate}
                 />
-                <Panel isVisible={isPanelVisible} onClose={descheduleWorkout} date={panelDate} />
+                <WorkoutInfoPanel isVisible={isPanelVisible} onClose={descheduleWorkout} date={panelDate} />
                 {isCurrentWorkoutPanelVisible &&
                     <CurrentWorkoutPanel exerciseName={'8/8 Workout'} time={workoutTimer} openWorkout={startNewWorkout}/>
                 }
