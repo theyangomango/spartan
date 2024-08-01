@@ -12,6 +12,7 @@ import ShareBottomSheet from "../components/1_feed/SharePost/ShareBottomSheet";
 import NotificationsBottomSheet from "../components/1_feed/Notifications/NotificationsBottomSheet";
 import MaskedView from '@react-native-masked-view/masked-view';
 import { StatusBar } from "expo-status-bar";
+import SettingsBottomSheet from "../components/1_feed/SettingsBottomSheet";
 
 // Constants
 const UID = '6b176d7d-4d89-4cb5-beb0-0f19b47a10a2'; // Hard set UID
@@ -25,7 +26,10 @@ export default function Feed({ navigation }) {
     const [messages, setMessages] = useState(null);
     const [isPostsVisible, setIsPostsVisible] = useState(true);
     const [isScrolledPast90, setIsScrolledPast90] = useState(false);
+
     const [shareBottomSheetCloseFlag, setShareBottomSheetCloseFlag] = useState(false);
+
+    const [settingsBottomSheetExpandFlag, setSettingsBottomSheetExpandFlag] = useState(false);
     const [notificationsBottomSheetExpandFlag, setNotificationsBottomSheetExpandFlag] = useState(false);
     const [commentsBottomSheetExpandFlag, setCommentsBottomSheetExpandFlag] = useState(false);
     const [shareBottomSheetExpandFlag, setShareBottomSheetExpandFlag] = useState(false);
@@ -105,6 +109,10 @@ export default function Feed({ navigation }) {
         setShareBottomSheetExpandFlag(!shareBottomSheetExpandFlag);
     };
 
+    const handleOpenSettings = () => {
+        setSettingsBottomSheetExpandFlag(!settingsBottomSheetExpandFlag);
+    };
+
     const handleOpenNotifications = () => {
         setNotificationsBottomSheetExpandFlag(!notificationsBottomSheetExpandFlag);
     };
@@ -153,6 +161,7 @@ export default function Feed({ navigation }) {
             >
                 <View style={styles.mainContainer}>
                     <StatusBar style="dark" />
+                    <SettingsBottomSheet settingsBottomSheetExpandFlag={settingsBottomSheetExpandFlag} />
                     <NotificationsBottomSheet notificationsBottomSheetExpandFlag={notificationsBottomSheetExpandFlag} />
                     <CommentsBottomSheet
                         isVisible={!isPostsVisible}
@@ -166,6 +175,7 @@ export default function Feed({ navigation }) {
                     <FeedHeader
                         toMessagesScreen={toMessagesScreen}
                         onOpenNotifications={handleOpenNotifications}
+                        onOpenSettings={handleOpenSettings}
                         backButton={!isPostsVisible}
                         onBackPress={handleBackPress}
                         style={{ opacity: headerOpacity }}

@@ -57,16 +57,6 @@ const CommentsBottomSheet = ({ isVisible, postData, commentsBottomSheetExpandFla
     };
 
     useEffect(() => {
-        const keyboardDidShowListener = Keyboard.addListener('keyboardDidShow', handleInputFocus);
-        const keyboardDidHideListener = Keyboard.addListener('keyboardDidHide', handleInputBlur);
-
-        return () => {
-            keyboardDidHideListener.remove();
-            keyboardDidShowListener.remove();
-        };
-    }, []);
-
-    useEffect(() => {
         if (isVisible) {
             bottomSheetRef.current.snapToIndex(0);
         } else {

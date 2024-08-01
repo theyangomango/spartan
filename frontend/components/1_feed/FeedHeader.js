@@ -3,7 +3,7 @@ import { Ionicons, Octicons, MaterialIcons } from '@expo/vector-icons';
 import RNBounceable from '@freakycoder/react-native-bounceable';
 import Svg, { Path } from "react-native-svg";
 
-export default function FeedHeader({ toMessagesScreen, onOpenNotifications, backButton, onBackPress, style }) {
+export default function FeedHeader({ toMessagesScreen, onOpenNotifications, onOpenSettings, backButton, onBackPress, style }) {
     if (backButton) {
         return (
             <Animated.View style={[styles.back_header, style]}>
@@ -37,9 +37,9 @@ export default function FeedHeader({ toMessagesScreen, onOpenNotifications, back
                     <MaterialIcons name="alternate-email" size={25.5} color={'#ccc'} />
                 </RNBounceable>
             </View>
-            <View style={styles.options_btn_ctnr}>
+            <RNBounceable onPress={onOpenSettings} style={styles.options_btn_ctnr}>
                 <Octicons name="gear" size={22.5} color={'#ccc'} />
-            </View>
+            </RNBounceable>
         </Animated.View>
     );
 }
