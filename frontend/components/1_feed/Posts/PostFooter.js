@@ -14,7 +14,12 @@ export default function PostFooter({ data, onPressCommentButton, onPressShareBut
 
     useEffect(() => {
         if (global.userData) {
-            setIsLiked(data.likes.includes(global.userData.uid));
+            data.likes.forEach(item => {
+                if (item.uid == global.userData.uid) {
+                    setIsLiked(true);
+                    return;
+                }
+            });
         }
     }, [global.userData]);
 

@@ -2,16 +2,38 @@ import React from 'react';
 import { View, Text, StyleSheet, Image, Animated } from 'react-native';
 
 const FooterBottom = ({ data, opacityAnim }) => {
-    console.log(data.likes);
+    // Filter the likes to find those who are also in the user's following list
+    const filteredLikes = data.likes.filter(like =>
+        global.userData.following.some(following => following.uid === like.uid)
+    ).slice(0, 3); // Take up to 3 elements
+
+    // Extract the handles of the filtered likes
+    const handles = filteredLikes.map(like => like.handle);
 
     return (
         <Animated.View style={[styles.container, { opacity: opacityAnim }]}>
             <View style={styles.profilePictures}>
-                <Image source={{ uri: global.userData.image }} style={[styles.profilePicture, styles.profilePicture1]} />
-                <Image source={{ uri: global.userData.image }} style={[styles.profilePicture, styles.profilePicture2]} />
-                <Image source={{ uri: global.userData.image }} style={[styles.profilePicture, styles.profilePicture3]} />
+                {filteredLikes.length > 0 ? (
+                    filteredLikes.map((like, index) => (
+                        <Image
+                            key={index}
+                            source={{ uri: like.pfp }}
+                            style={[
+                                styles.profilePicture,
+                                index === 0 ? styles.profilePicture1 : index === 1 ? styles.profilePicture2 : styles.profilePicture3
+                            ]}
+                        />
+                    ))
+                ) : (
+                    <Image
+                        source={{ uri: data.pfp }}
+                        style={styles.profilePicture}
+                    />
+                )}
             </View>
-            <Text style={styles.likedByText}>Liked by</Text>
+            <Text numberOfLines={1} style={styles.likedByText}>
+                {filteredLikes.length > 0 ? `Liked by ${handles.join(', ')}` : data.caption}
+            </Text>
         </Animated.View>
     );
 };
