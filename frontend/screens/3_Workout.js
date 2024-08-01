@@ -1,34 +1,91 @@
 import React, { useCallback, useRef, useState } from "react";
-import { Text, StyleSheet, View, Dimensions } from "react-native";
-import DraggableFlatList, { ScaleDecorator } from "react-native-draggable-flatlist";
+import { Text, StyleSheet, View, Pressable, TouchableOpacity } from "react-native";
+import DraggableFlatList, { RenderItemParams, ScaleDecorator } from "react-native-draggable-flatlist";
 import Footer from "../components/Footer";
-import TemplateCard from "../components/3_workout/TemplateCard";
+import TemplateCard from "../components/3_workout/Template/TemplateCard";
 import StartWorkoutButton from "../components/3_workout/StartWorkoutButton";
 import JoinWorkoutButton from "../components/3_workout/JoinWorkoutButton";
-import initWorkout from "../../backend/initWorkout";
 import makeID from "../../backend/helper/makeID";
-import eraseDoc from "../../backend/helper/firebase/eraseDoc";
-import updateDoc from "../../backend/helper/firebase/updateDoc";
-import JoinWorkoutModal from "../components/3_workout/JoinWorkoutModal";
 import WorkoutDates from "../components/3_workout/WorkoutDates/WorkoutDates";
-import RNBounceable from "@freakycoder/react-native-bounceable";
 import WorkoutInfoPanel from "../components/3_workout/WorkoutDates/WorkoutInfoPanel";
 import NewWorkoutBottomSheet from "../components/3_workout/NewWorkoutBottomSheet"; // Import the new component
 import CurrentWorkoutPanel from "../components/3_workout/CurrentWorkoutPanel";
 import millisToMinutesAndSeconds from "../helper/milliesToMinutesAndSeconds";
 
-const { height } = Dimensions.get('window');
-
 const lastUsedDate = "July 6th";
 const initialExercises = [
-    { name: "3 x Incline Bench (Barbell)", muscle: "Chest" },
-    { name: "3 x Decline Bench (Barbell)", muscle: "Chest" },
-    { name: "3 x Chest Flys", muscle: "Chest" },
-    { name: "5 x Pull Ups", muscle: "Back" },
-    { name: "3 x Bicep Curls (Dumbell)", muscle: "Biceps" },
-    { name: "3 x Lateral Raises", muscle: "Shoulders" },
-    { name: "3 x Shoulder Press (Dumbell)", muscle: "Shoulders" },
-    { name: "5 x Reverse Curls (Barbell)", muscle: "Biceps" }
+    {
+        name: "Incline Bench (Barbell)",
+        muscle: "Chest",
+        sets: [
+            { reps: 10, weight: 12 },
+            { reps: 10, weight: 12 },
+            { reps: 10, weight: 12 }
+        ]
+    },
+    {
+        name: "Decline Bench (Barbell)",
+        muscle: "Chest",
+        sets: [
+            { reps: 8, weight: 10 },
+            { reps: 8, weight: 10 },
+            { reps: 8, weight: 10 }
+        ]
+    },
+    {
+        name: "Chest Flys",
+        muscle: "Chest",
+        sets: [
+            { reps: 12, weight: 8 },
+            { reps: 12, weight: 8 },
+            { reps: 12, weight: 8 }
+        ]
+    },
+    {
+        name: "Pull Ups",
+        muscle: "Back",
+        sets: [
+            { reps: 5, weight: 'bodyweight' },
+            { reps: 5, weight: 'bodyweight' },
+            { reps: 5, weight: 'bodyweight' }
+        ]
+    },
+    {
+        name: "Bicep Curls (Dumbell)",
+        muscle: "Biceps",
+        sets: [
+            { reps: 10, weight: 15 },
+            { reps: 10, weight: 15 },
+            { reps: 10, weight: 15 }
+        ]
+    },
+    {
+        name: "Lateral Raises",
+        muscle: "Shoulders",
+        sets: [
+            { reps: 12, weight: 10 },
+            { reps: 12, weight: 10 },
+            { reps: 12, weight: 10 }
+        ]
+    },
+    {
+        name: "Shoulder Press (Dumbell)",
+        muscle: "Shoulders",
+        sets: [
+            { reps: 8, weight: 20 },
+            { reps: 8, weight: 20 },
+            { reps: 8, weight: 20 }
+        ]
+    },
+    {
+        name: "Reverse Curls (Barbell)",
+        muscle: "Biceps",
+        sets: [
+            { reps: 10, weight: 12 },
+            { reps: 10, weight: 12 },
+            { reps: 10, weight: 12 }
+        ]
+    }
 ];
 
 const initialTemplates = [
@@ -49,13 +106,11 @@ export default function Workout({ navigation }) {
     const [isBottomSheetVisible, setIsBottomSheetVisible] = useState(false);
     const workoutTimeInterval = useRef(null);
     const [isCurrentWorkoutPanelVisible, setIsCurrentWorkoutPanelVisible] = useState(false);
-
     const userData = global.userData;
 
     async function startNewWorkout() {
         if (!workout) {
             let newWID = makeID();
-            // initWorkout(newWID, userData.uid);
             await setWorkout({
                 wid: newWID,
                 creatorUID: userData.uid,
@@ -63,7 +118,6 @@ export default function Workout({ navigation }) {
                 users: [],
                 exercises: []
             });
-            // global.workout = workout;
             setIsBottomSheetVisible(true);
 
             let initialTime = Date.now();
@@ -82,11 +136,9 @@ export default function Workout({ navigation }) {
     function updateNewWorkout(newWorkout) {
         console.log(newWorkout);
         setWorkout(newWorkout);
-        // updateDoc('workouts', workout.wid, workout);
     }
 
     function cancelNewWorkout() {
-        // eraseDoc('workouts', workout.wid);
         setWorkout(null);
         setIsBottomSheetVisible(false);
         clearInterval(workoutTimeInterval.current);
@@ -109,22 +161,21 @@ export default function Workout({ navigation }) {
 
     const descheduleWorkout = useCallback(() => {
         setIsPanelVisible(false);
-        // setPanelDate(null);
     }, []);
 
-    const renderItem = ({ item, drag, isActive }) => (
+    const renderItem = useCallback(({ item, drag, isActive }) => (
         <ScaleDecorator>
-            <RNBounceable onLongPress={drag} disabled={isActive}>
-                <TemplateCard lastUsedDate={item.lastUsedDate} exercises={item.exercises} name={item.name} />
-            </RNBounceable>
+            {/* <TouchableOpacity onLongPress={drag}> */}
+            {/* <View style={{borderWidth: 1, height: 100}}></View> */}
+            <TemplateCard lastUsedDate={item.lastUsedDate} exercises={item.exercises} name={item.name} handleLongPress={drag} />
+            {/* </TouchableOpacity> */}
         </ScaleDecorator>
-    );
+    ), []);
 
     return (
         <View style={styles.main_ctnr}>
             <View style={styles.body}>
                 <View style={{ height: 55 }} />
-
                 <WorkoutDates
                     scheduleWorkout={scheduleWorkout}
                     descheduleWorkout={descheduleWorkout}
@@ -133,29 +184,25 @@ export default function Workout({ navigation }) {
                 />
                 <WorkoutInfoPanel isVisible={isPanelVisible} onClose={descheduleWorkout} date={panelDate} />
                 {isCurrentWorkoutPanelVisible &&
-                    <CurrentWorkoutPanel exerciseName={'8/8 Workout'} time={workoutTimer} openWorkout={startNewWorkout}/>
+                    <CurrentWorkoutPanel exerciseName={'8/8 Workout'} time={workoutTimer} openWorkout={startNewWorkout} />
                 }
                 <Text style={styles.quick_start_text}>Quick Start</Text>
-
                 <StartWorkoutButton startWorkout={startNewWorkout} />
                 <JoinWorkoutButton joinWorkout={() => joinWorkoutBottomSheet.current.expand()} />
-
                 <Text style={styles.templates_text}>Templates</Text>
                 <DraggableFlatList
                     data={templates}
                     onDragEnd={({ data }) => setTemplates(data)}
                     keyExtractor={(item) => item.id}
                     renderItem={renderItem}
-                    ListFooterComponent={<View style={{ height: templates.length * 90 }} />}
                     showsVerticalScrollIndicator={false}
+                    ListFooterComponent={<View/>}
+                    ListFooterComponentStyle={{height: templates.length * 70}}
                 />
             </View>
-
             <Footer navigation={navigation} currentScreenName={'Workout'} />
-
             <NewWorkoutBottomSheet
                 workout={workout}
-                // setWorkout={setWorkout}
                 cancelNewWorkout={cancelNewWorkout}
                 updateNewWorkout={updateNewWorkout}
                 finishNewWorkout={finishNewWorkout}
@@ -188,7 +235,6 @@ const styles = StyleSheet.create({
         fontFamily: 'Poppins_600SemiBold',
         letterSpacing: -0.3,
         fontSize: 16,
-        paddingBottom: 6,
         paddingHorizontal: 20
     },
 });
