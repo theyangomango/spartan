@@ -37,7 +37,7 @@ export default function TemplateCard({ lastUsedDate, name, exercises, handleLong
                         </View>
                     </View>
                 </View>
-                <Ionicons name="chevron-forward" size={22} color="#999" style={styles.chevron_icon} />
+                <Ionicons name="chevron-down" size={22} color="#999" style={styles.chevron_icon} />
             </Animated.View>
 
             <Collapsible collapsed={isCollapsed} style={styles.collapsibleContainer}>

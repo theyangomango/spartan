@@ -8,7 +8,7 @@ import JoinWorkoutButton from "../components/3_workout/JoinWorkoutButton";
 import makeID from "../../backend/helper/makeID";
 import WorkoutDates from "../components/3_workout/WorkoutDates/WorkoutDates";
 import WorkoutInfoPanel from "../components/3_workout/WorkoutDates/WorkoutInfoPanel";
-import NewWorkoutBottomSheet from "../components/3_workout/NewWorkoutBottomSheet"; // Import the new component
+import NewWorkoutBottomSheet from "../components/3_workout/NewWorkout/NewWorkoutBottomSheet"; // Import the new component
 import CurrentWorkoutPanel from "../components/3_workout/CurrentWorkoutPanel";
 import millisToMinutesAndSeconds from "../helper/milliesToMinutesAndSeconds";
 
@@ -165,10 +165,7 @@ export default function Workout({ navigation }) {
 
     const renderItem = useCallback(({ item, drag, isActive }) => (
         <ScaleDecorator>
-            {/* <TouchableOpacity onLongPress={drag}> */}
-            {/* <View style={{borderWidth: 1, height: 100}}></View> */}
             <TemplateCard lastUsedDate={item.lastUsedDate} exercises={item.exercises} name={item.name} handleLongPress={drag} />
-            {/* </TouchableOpacity> */}
         </ScaleDecorator>
     ), []);
 
@@ -196,8 +193,8 @@ export default function Workout({ navigation }) {
                     keyExtractor={(item) => item.id}
                     renderItem={renderItem}
                     showsVerticalScrollIndicator={false}
-                    ListFooterComponent={<View/>}
-                    ListFooterComponentStyle={{height: templates.length * 70}}
+                    ListFooterComponent={<View />}
+                    ListFooterComponentStyle={{ height: templates.length * 70 }}
                 />
             </View>
             <Footer navigation={navigation} currentScreenName={'Workout'} />

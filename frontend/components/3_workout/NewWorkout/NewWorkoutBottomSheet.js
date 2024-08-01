@@ -1,7 +1,7 @@
 // import React, { useRef } from 'react';
 // import { Dimensions, StyleSheet, View } from 'react-native';
 // import BottomSheet from 'reanimated-bottom-sheet';
-import NewWorkoutModal from './new_workout/NewWorkoutModal';
+import NewWorkoutModal from './NewWorkoutModal';
 
 // console.log(BottomSheet);
 

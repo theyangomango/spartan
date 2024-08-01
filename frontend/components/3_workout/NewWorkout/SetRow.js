@@ -65,7 +65,7 @@ const styles = StyleSheet.create({
         justifyContent: 'center',
     },
     previous_ctnr: {
-        width: '38.5%',
+        width: '38%',
         alignItems: 'center',
         justifyContent: 'center',
         // borderWidth: 1
@@ -107,7 +107,7 @@ const styles = StyleSheet.create({
     //     paddingVertical: 6,
     // },
     done_ctnr: {
-        width: '10%',
+        width: '10.5%',
         height: 22,
         // marginLeft: 6,
         alignItems: 'center',

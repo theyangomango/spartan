@@ -1,6 +1,5 @@
-import { useEffect, useState } from "react";
+import React, { useState } from "react";
 import { StyleSheet, View, Text, Modal, TouchableOpacity, ScrollView } from "react-native";
-import millisToMinutesAndSeconds from "../../../helper/milliesToMinutesAndSeconds";
 import ProgressBanner from "./ProgressBanner";
 import ExerciseLog from "./ExerciseLog";
 import SelectExerciseModal from './SelectExerciseModal'
@@ -12,19 +11,7 @@ import GroupModal from "./GroupModal";
 export default function NewWorkoutModal({ workout, setWorkout, closeModal, cancelWorkout, updateWorkout, finishWorkout, timer }) {
     const [selectExerciseModalVisible, setSelectExerciseModalVisible] = useState(false);
     const [groupModalVisible, setGroupModalVisible] = useState(false);
-    // const [timer, setTimer] = useState('0:00');
     const [headerShadow, setHeaderShadow] = useState(false);
-
-    // useEffect(() => {
-    //     init();
-    // }, []);
-
-    // async function init() {
-    //     setInterval(() => {
-    //         let diff = Date.now() - workout.created;
-    //         setTimer(millisToMinutesAndSeconds(diff));
-    //     }, 1000);
-    // }
 
     function showSelectExerciseModal() {
         setSelectExerciseModalVisible(true);
@@ -61,42 +48,36 @@ export default function NewWorkoutModal({ workout, setWorkout, closeModal, cance
 
     function handleScroll(event) {
         const scrollPosition = event.nativeEvent.contentOffset.y;
-        if (scrollPosition > 98) {
-            setHeaderShadow(true);
-        } else {
-            setHeaderShadow(false);
-        }
+        setHeaderShadow(scrollPosition > 98);
     }
 
     return (
         <View style={styles.main_ctnr}>
             <View style={[styles.header, headerShadow && styles.headerShadow]}>
-                <View style={styles.iconWrapper}>
+                <RNBounceable style={styles.iconWrapper}>
                     <MaterialCommunityIcons name="timer-outline" size={24} color="#0499FE" />
-                </View>
+                </RNBounceable>
                 <Text style={styles.header_time_text}>{timer}</Text>
                 <View style={styles.header_right}>
-                    <TouchableOpacity style={styles.group_btn} onPress={showGroupModal}>
+                    <RNBounceable style={styles.group_btn} onPress={showGroupModal}>
                         <FontAwesome name="group" size={17} color="#FFBB3D" />
-                    </TouchableOpacity>
-                    <TouchableOpacity onPress={finishWorkout} style={styles.finish_btn}>
+                    </RNBounceable>
+                    <RNBounceable onPress={finishWorkout} style={styles.finish_btn}>
                         <Text style={styles.finish_btn_text}>Finish</Text>
-                    </TouchableOpacity>
+                    </RNBounceable>
                 </View>
             </View>
 
             <ScrollView
                 showsVerticalScrollIndicator={false}
                 onScroll={handleScroll}
-                scrollEventThrottle={16} // This ensures the onScroll event is called at a reasonable rate
+                scrollEventThrottle={16}
                 style={styles.scrollview}
             >
                 <ProgressBanner />
-                {
-                    workout.exercises.map((ex, index) => (
-                        <ExerciseLog name={ex.name} index={index} key={index} updateSets={updateSets}/>
-                    ))
-                }
+                {workout.exercises.map((ex, index) => (
+                    <ExerciseLog name={ex.name} index={index} key={index} updateSets={updateSets}/>
+                ))}
                 <RNBounceable onPress={showSelectExerciseModal} style={styles.add_exercise_btn}>
                     <Text style={styles.add_exercise_text}>Add Exercises</Text>
                     <Weight size="22" color="#5DBDFF" variant='Bold' />
@@ -106,7 +87,7 @@ export default function NewWorkoutModal({ workout, setWorkout, closeModal, cance
                     <Text style={styles.cancel_btn_text}>Cancel Workout</Text>
                 </RNBounceable>
 
-                <View style={{ height: 150 }}></View>
+                <View style={{ height: 150 }} />
             </ScrollView>
 
             <Modal
@@ -127,7 +108,7 @@ export default function NewWorkoutModal({ workout, setWorkout, closeModal, cance
             >
                 <GroupModal closeGroupModal={closeGroupModal}/>
             </Modal>
-        </View >
+        </View>
     )
 }
 
@@ -135,17 +116,15 @@ const styles = StyleSheet.create({
     main_ctnr: {
         flex: 1,
         backgroundColor: '#fff',
-        // zIndex: 1
     },
     header: {
         paddingBottom: 6,
-        // marginBottom: 8,
         paddingHorizontal: 22,
         flexDirection: 'row',
         alignItems: 'center',
         justifyContent: 'space-between',
-        backgroundColor: '#fff', // To ensure the shadow is visible
-        zIndex: 1, // Make sure the header is above the ScrollView content
+        backgroundColor: '#fff',
+        zIndex: 1,
     },
     headerShadow: {
         borderBottomWidth: 2,
@@ -183,14 +162,14 @@ const styles = StyleSheet.create({
         width: 80,
         height: 35,
         borderRadius: 12,
-        backgroundColor: '#DCFFDA',
+        backgroundColor: '#DCFFE3',
         justifyContent: 'center',
         alignItems: 'center'
     },
     finish_btn_text: {
         fontFamily: 'Outfit_700Bold',
         fontSize: 15.5,
-        color: '#4ACF59',
+        color: '#40D99B',
     },
     scrollview: {
         paddingTop: 5
@@ -227,5 +206,5 @@ const styles = StyleSheet.create({
         color: '#F27171',
         marginRight: 4.5
     },
-
 });
+

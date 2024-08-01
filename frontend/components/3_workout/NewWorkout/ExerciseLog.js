@@ -82,7 +82,7 @@ export default function ExerciseLog({ name, index, updateSets }) {
                     <RNBounceable activeOpacity={0.5} onPress={addSet} style={styles.add_set_btn}>
                         <Entypo name="plus" size={18} color={'#000'} />
                         <Text style={styles.add_set_text}>Add Set</Text>
-                        <MaterialCommunityIcons name="arm-flex" size={20} color={'#8f8f8f'} />
+                        <MaterialCommunityIcons name="arm-flex" size={20} color={'#aaa'} />
                     </RNBounceable>
                 </View>
             </View>
@@ -94,6 +94,7 @@ const styles = StyleSheet.create({
     main_ctnr: {
         marginTop: 16,
         marginBottom: 6,
+        marginHorizontal: 2.5,
     },
     header: {
         flexDirection: 'row',
@@ -138,19 +139,14 @@ const styles = StyleSheet.create({
     labels: {
         flexDirection: 'row',
         paddingBottom: 5,
-        // paddingHorizontal: 22,
     },
     set_ctnr: {
-        // width: 28,
         marginLeft: '5%',
-        // width: 30,
         width: '8%',
-        // backgroundColor: 'red',
         alignItems: 'center'
     },
     previous_ctnr: {
-        // width: 165,
-        width: '38.5%',
+        width: '38%',
         alignItems: 'center',
     },
     weight_unit_ctnr: {

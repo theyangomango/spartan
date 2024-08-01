@@ -1,30 +1,41 @@
-import { useState } from "react";
-import { TextInput, StyleSheet, View } from "react-native";
+import React, { useState, useRef } from "react";
+import { TextInput, StyleSheet, View, Pressable } from "react-native";
 
 export default function EditableStat({ placeholder = '0', isFinished }) {
     const [isSelected, setIsSelected] = useState(false);
-    const [value, setValue] = useState(placeholder);
+    const [value, setValue] = useState('');
+    const inputRef = useRef(null);
 
     return (
-        <View style={[styles.editing, isFinished && styles.finished, isSelected && styles.selected]}>
+        <Pressable 
+            onPress={() => {
+                inputRef.current.focus();
+                setIsSelected(true);
+            }}
+            style={[
+                styles.editing, 
+                isFinished && styles.finished, 
+                isSelected && styles.selected
+            ]}
+        >
             <TextInput
+                ref={inputRef}
                 editable
                 keyboardType="numeric"
-                placeholder='0'
+                placeholder={placeholder}
                 placeholderTextColor={isFinished ? '#000' : '#888'}
-                onFocus={setIsSelected}
+                onFocus={() => setIsSelected(true)}
                 onEndEditing={() => setIsSelected(false)}
                 style={styles.text}
+                value={value}
+                onChangeText={setValue}
             />
-        </View>
+        </Pressable>
     )
 }
 
 const styles = StyleSheet.create({
     editing: {
-        // paddingVertical: 2,
-        // marginVertical: 3,
-        // paddingHorizontal: 18,
         width: 63,
         height: 23,
         borderRadius: 8,
@@ -32,15 +43,10 @@ const styles = StyleSheet.create({
         alignItems: 'center',
         justifyContent: 'center'
     },
-
     selected: {
         borderColor: '#0699FF'
     },
     finished: {
-        // paddingBottom: 0.5
-        // paddingVertical: 3,
-        // marginVertical: 3,
-        // paddingHorizontal: 16,
         backgroundColor: '#DCFFDA'
     },
     text: {
