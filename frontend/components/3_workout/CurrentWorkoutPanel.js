@@ -1,10 +1,20 @@
-import React, { useState, useEffect } from 'react';
-import { StyleSheet, View, Text, Pressable } from 'react-native';
-import { Clock } from 'iconsax-react-native'
-import { Ionicons, MaterialCommunityIcons, FontAwesome6 } from '@expo/vector-icons';
+import React, { useEffect, useState } from 'react';
+import { StyleSheet, View, Text } from 'react-native';
+import { Clock } from 'iconsax-react-native';
+import { MaterialCommunityIcons, FontAwesome6 } from '@expo/vector-icons';
 import RNBounceable from '@freakycoder/react-native-bounceable';
 
-const CurrentWorkoutPanel = ({ exerciseName, time, openWorkout }) => {
+const CurrentWorkoutPanel = ({ exerciseName, timerRef, openWorkout }) => {
+    const [time, setTime] = useState(timerRef.current);
+
+    useEffect(() => {
+        const intervalId = setInterval(() => {
+            setTime(timerRef.current);
+        }, 1000);
+
+        return () => clearInterval(intervalId);
+    }, [timerRef]);
+
     return (
         <View style={styles.container}>
             <View style={styles.topHalf}>
@@ -15,9 +25,7 @@ const CurrentWorkoutPanel = ({ exerciseName, time, openWorkout }) => {
                         <Text style={styles.stats_text}>{time}</Text>
                     </View>
                     <View style={styles.stats_entry}>
-                        <View style={{ paddingBottom: 1.2 }}>
-                            <MaterialCommunityIcons name='weight' size={17} color={'#666'} />
-                        </View>
+                        <MaterialCommunityIcons name='weight' size={17} color={'#666'} />
                         <Text style={styles.stats_text}>5,000 lb</Text>
                     </View>
                     <View style={styles.stats_entry}>
@@ -35,10 +43,10 @@ const CurrentWorkoutPanel = ({ exerciseName, time, openWorkout }) => {
     );
 };
 
+export default React.memo(CurrentWorkoutPanel);
+
 const styles = StyleSheet.create({
     container: {
-        // marginTop: 20,
-        // marginBottom: 16,
         paddingHorizontal: 16,
         paddingTop: 16,
         paddingBottom: 16,
@@ -48,7 +56,7 @@ const styles = StyleSheet.create({
         shadowColor: '#ccc',
         shadowOffset: { width: 0, height: 0 },
         shadowOpacity: 0.8,
-        shadowRadius: 2,  
+        shadowRadius: 2,
         elevation: 5
     },
     topHalf: {
@@ -90,7 +98,6 @@ const styles = StyleSheet.create({
         fontSize: 12.5,
         fontFamily: 'Poppins_600SemiBold'
     },
-
     stats_row: {
         flexDirection: 'row',
         marginBottom: 10,
@@ -107,5 +114,3 @@ const styles = StyleSheet.create({
         color: '#666'
     },
 });
-
-export default CurrentWorkoutPanel;

@@ -1,6 +1,6 @@
 import React, { useCallback, useEffect, useRef, useState } from "react";
-import { Text, StyleSheet, View, Pressable, TouchableOpacity } from "react-native";
-import DraggableFlatList, { RenderItemParams, ScaleDecorator } from "react-native-draggable-flatlist";
+import { Text, StyleSheet, View } from "react-native";
+import DraggableFlatList, { ScaleDecorator } from "react-native-draggable-flatlist";
 import Footer from "../components/Footer";
 import TemplateCard from "../components/3_Workout/Template/TemplateCard";
 import StartWorkoutButton from "../components/3_Workout/StartWorkoutButton";
@@ -8,84 +8,20 @@ import JoinWorkoutButton from "../components/3_Workout/JoinWorkoutButton";
 import makeID from "../../backend/helper/makeID";
 import WorkoutDates from "../components/3_Workout/WorkoutDates/WorkoutDates";
 import WorkoutInfoPanel from "../components/3_Workout/WorkoutDates/WorkoutInfoPanel";
-import NewWorkoutBottomSheet from "../components/3_Workout/NewWorkout/NewWorkoutBottomSheet"; // Import the new component
+import NewWorkoutBottomSheet from "../components/3_Workout/NewWorkout/NewWorkoutBottomSheet";
 import CurrentWorkoutPanel from "../components/3_Workout/CurrentWorkoutPanel";
 import millisToMinutesAndSeconds from "../helper/milliesToMinutesAndSeconds";
 
 const lastUsedDate = "July 6th";
 const initialExercises = [
-    {
-        name: "Incline Bench (Barbell)",
-        muscle: "Chest",
-        sets: [
-            { reps: 10, weight: 12 },
-            { reps: 10, weight: 12 },
-            { reps: 10, weight: 12 }
-        ]
-    },
-    {
-        name: "Decline Bench (Barbell)",
-        muscle: "Chest",
-        sets: [
-            { reps: 8, weight: 10 },
-            { reps: 8, weight: 10 },
-            { reps: 8, weight: 10 }
-        ]
-    },
-    {
-        name: "Chest Flys",
-        muscle: "Chest",
-        sets: [
-            { reps: 12, weight: 8 },
-            { reps: 12, weight: 8 },
-            { reps: 12, weight: 8 }
-        ]
-    },
-    {
-        name: "Pull Ups",
-        muscle: "Back",
-        sets: [
-            { reps: 5, weight: 'bodyweight' },
-            { reps: 5, weight: 'bodyweight' },
-            { reps: 5, weight: 'bodyweight' }
-        ]
-    },
-    {
-        name: "Bicep Curls (Dumbell)",
-        muscle: "Biceps",
-        sets: [
-            { reps: 10, weight: 15 },
-            { reps: 10, weight: 15 },
-            { reps: 10, weight: 15 }
-        ]
-    },
-    {
-        name: "Lateral Raises",
-        muscle: "Shoulders",
-        sets: [
-            { reps: 12, weight: 10 },
-            { reps: 12, weight: 10 },
-            { reps: 12, weight: 10 }
-        ]
-    },
-    {
-        name: "Shoulder Press (Dumbell)",
-        muscle: "Shoulders",
-        sets: [
-            { reps: 8, weight: 20 },
-            { reps: 8, weight: 20 },
-            { reps: 8, weight: 20 }
-        ]
-    },
-    {
-        name: "Reverse Curls (Barbell)",
-        muscle: "Biceps",
-        sets: [
-            { reps: 10, weight: 12 },
-            { reps: 10, weight: 12 },
-            { reps: 10, weight: 12 }
-        ]
-    }
+    { name: "Incline Bench (Barbell)", muscle: "Chest", sets: [ { reps: 10, weight: 12 }, { reps: 10, weight: 12 }, { reps: 10, weight: 12 } ] },
+    { name: "Decline Bench (Barbell)", muscle: "Chest", sets: [ { reps: 8, weight: 10 }, { reps: 8, weight: 10 }, { reps: 8, weight: 10 } ] },
+    { name: "Chest Flys", muscle: "Chest", sets: [ { reps: 12, weight: 8 }, { reps: 12, weight: 8 }, { reps: 12, weight: 8 } ] },
+    { name: "Pull Ups", muscle: "Back", sets: [ { reps: 5, weight: 'bodyweight' }, { reps: 5, weight: 'bodyweight' }, { reps: 5, weight: 'bodyweight' } ] },
+    { name: "Bicep Curls (Dumbell)", muscle: "Biceps", sets: [ { reps: 10, weight: 15 }, { reps: 10, weight: 15 }, { reps: 10, weight: 15 } ] },
+    { name: "Lateral Raises", muscle: "Shoulders", sets: [ { reps: 12, weight: 10 }, { reps: 12, weight: 10 }, { reps: 12, weight: 10 } ] },
+    { name: "Shoulder Press (Dumbell)", muscle: "Shoulders", sets: [ { reps: 8, weight: 20 }, { reps: 8, weight: 20 }, { reps: 8, weight: 20 } ] },
+    { name: "Reverse Curls (Barbell)", muscle: "Biceps", sets: [ { reps: 10, weight: 12 }, { reps: 10, weight: 12 }, { reps: 10, weight: 12 } ] }
 ];
 
 const initialTemplates = [
@@ -97,9 +33,8 @@ const initialTemplates = [
     { id: '6', lastUsedDate, exercises: initialExercises, name: 'Full Upper Body' }
 ];
 
-export default function Workout({ navigation }) {
+function Workout({ navigation }) {
     const [workout, setWorkout] = useState(null);
-    const [workoutTimer, setWorkoutTimer] = useState('00:00');
     const [templates, setTemplates] = useState(initialTemplates);
     const [isPanelVisible, setIsPanelVisible] = useState(false);
     const [panelDate, setPanelDate] = useState(null);
@@ -108,11 +43,12 @@ export default function Workout({ navigation }) {
     const [isCurrentWorkoutPanelVisible, setIsCurrentWorkoutPanelVisible] = useState(false);
     const [selectedTemplate, setSelectedTemplate] = useState(null);
     const userData = global.userData;
+    const timerRef = useRef('00:00');
 
-    async function startNewWorkout() {
+    const startNewWorkout = useCallback(async () => {
         if (!workout) {
-            let newWID = makeID();
-            await setWorkout({
+            const newWID = makeID();
+            setWorkout({
                 wid: newWID,
                 creatorUID: userData.uid,
                 created: Date.now(),
@@ -120,11 +56,10 @@ export default function Workout({ navigation }) {
                 exercises: []
             });
             setIsBottomSheetVisible(true);
-
-            let initialTime = Date.now();
+            const initialTime = Date.now();
             workoutTimeInterval.current = setInterval(() => {
-                let diff = Date.now() - initialTime;
-                setWorkoutTimer(millisToMinutesAndSeconds(diff));
+                const diff = Date.now() - initialTime;
+                timerRef.current = millisToMinutesAndSeconds(diff);
             }, 1000);
             setTimeout(() => {
                 setIsCurrentWorkoutPanelVisible(true);
@@ -132,42 +67,38 @@ export default function Workout({ navigation }) {
         } else {
             setIsBottomSheetVisible(true);
         }
-    }
+    }, [workout, userData]);
 
-    function updateNewWorkout(newWorkout) {
+    const updateNewWorkout = useCallback((newWorkout) => {
         setWorkout(newWorkout);
-    }
+    }, []);
 
-    function cancelNewWorkout() {
+    const cancelNewWorkout = useCallback(() => {
         setWorkout(null);
         setIsBottomSheetVisible(false);
         clearInterval(workoutTimeInterval.current);
         setIsCurrentWorkoutPanelVisible(false);
-        setWorkoutTimer('00:00');
-    }
+        timerRef.current = '00:00';
+    }, []);
 
-    function finishNewWorkout() {
+    const finishNewWorkout = useCallback(() => {
         setWorkout(null);
         setIsBottomSheetVisible(false);
         clearInterval(workoutTimeInterval.current);
         setIsCurrentWorkoutPanelVisible(false);
-        setWorkoutTimer('00:00')
-    }
+        timerRef.current = '00:00';
+    }, []);
 
-    const scheduleWorkout = ((date) => {
+    const scheduleWorkout = useCallback((date) => {
         setIsPanelVisible(true);
         setPanelDate(date);
-    });
+    }, []);
 
-    const descheduleWorkout = (() => {
+    const descheduleWorkout = useCallback(() => {
         setIsPanelVisible(false);
-    });
+    }, []);
 
-    useEffect(() => {
-        console.log({ isPanelVisible });
-    }, [isPanelVisible]);
-
-    const renderItem = (({ item, drag, isActive }) => (
+    const renderItem = useCallback(({ item, drag }) => (
         <ScaleDecorator>
             <TemplateCard
                 lastUsedDate={item.lastUsedDate}
@@ -178,7 +109,7 @@ export default function Workout({ navigation }) {
                 setSelectedTemplate={setSelectedTemplate}
             />
         </ScaleDecorator>
-    ));
+    ), [isPanelVisible, setSelectedTemplate]);
 
     return (
         <View style={styles.main_ctnr}>
@@ -200,11 +131,10 @@ export default function Workout({ navigation }) {
                 {isCurrentWorkoutPanelVisible &&
                     <CurrentWorkoutPanel
                         exerciseName={'8/8 Workout'}
-                        time={workoutTimer}
+                        timerRef={timerRef}
                         openWorkout={startNewWorkout}
                     />
                 }
-
                 {!isCurrentWorkoutPanelVisible && 
                     <>
                         <Text style={styles.quick_start_text}>Quick Start</Text>
@@ -212,7 +142,6 @@ export default function Workout({ navigation }) {
                         <JoinWorkoutButton joinWorkout={() => joinWorkoutBottomSheet.current.expand()} />
                     </>
                 }
-
                 <Text style={styles.templates_text}>Templates</Text>
                 <DraggableFlatList
                     data={templates}
@@ -232,11 +161,13 @@ export default function Workout({ navigation }) {
                 finishNewWorkout={finishNewWorkout}
                 isVisible={isBottomSheetVisible}
                 setIsVisible={setIsBottomSheetVisible}
-                timer={workoutTimer}
+                timerRef={timerRef}
             />
         </View>
     );
 }
+
+export default React.memo(Workout);
 
 const styles = StyleSheet.create({
     main_ctnr: {

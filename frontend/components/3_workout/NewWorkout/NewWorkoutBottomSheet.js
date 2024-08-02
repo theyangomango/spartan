@@ -1,9 +1,9 @@
-import NewWorkoutModal from './NewWorkoutModal';
 import React, { useCallback, useEffect, useMemo, useRef } from "react";
-import { View, Text, StyleSheet } from "react-native";
+import { StyleSheet } from "react-native";
 import BottomSheet, { BottomSheetBackdrop } from "@gorhom/bottom-sheet";
+import NewWorkoutModal from './NewWorkoutModal';
 
-const NewWorkoutBottomSheet = ({ workout, isVisible, setIsVisible, cancelNewWorkout, updateNewWorkout, finishNewWorkout, timer }) => {
+const NewWorkoutBottomSheet = ({ workout, isVisible, setIsVisible, cancelNewWorkout, updateNewWorkout, finishNewWorkout, timerRef }) => {
     const bottomSheetRef = useRef(null);
     const snapPoints = useMemo(() => ["94%"], []);
 
@@ -17,7 +17,6 @@ const NewWorkoutBottomSheet = ({ workout, isVisible, setIsVisible, cancelNewWork
                 {...props}
                 disappearsOnIndex={-1}
                 appearsOnIndex={0}
-                // enableTouchThrough
                 opacity={0.6}
             />
         ),
@@ -30,7 +29,6 @@ const NewWorkoutBottomSheet = ({ workout, isVisible, setIsVisible, cancelNewWork
         }
     }, [isVisible]);
 
-
     return (
         <BottomSheet
             ref={bottomSheetRef}
@@ -42,20 +40,17 @@ const NewWorkoutBottomSheet = ({ workout, isVisible, setIsVisible, cancelNewWork
             onClose={() => {
                 setIsVisible(false);
             }}
-            handleStyle={{display: 'none'}}
+            handleStyle={{ display: 'none' }}
         >
             {workout &&
                 <NewWorkoutModal
-                    // timer={timer}
-                    timer={timer}
+                    timerRef={timerRef}
                     workout={workout}
                     cancelWorkout={() => {
                         cancelNewWorkout();
                         bottomSheetRef.current.close();
                     }}
-                    updateWorkout={(newWorkout) => {
-                        updateNewWorkout(newWorkout);
-                    }}
+                    updateWorkout={updateNewWorkout}
                     finishWorkout={() => {
                         finishNewWorkout();
                         bottomSheetRef.current.close();
@@ -63,8 +58,7 @@ const NewWorkoutBottomSheet = ({ workout, isVisible, setIsVisible, cancelNewWork
                 />
             }
         </BottomSheet>
-        // </View>
     );
 };
 
-export default NewWorkoutBottomSheet;
+export default React.memo(NewWorkoutBottomSheet);

@@ -1,81 +1,75 @@
-import React, { useEffect, useState } from "react";
-import { StyleSheet, View, Text, Modal, TouchableOpacity, ScrollView } from "react-native";
+import React, { useEffect, useState, useCallback } from "react";
+import { StyleSheet, View, Modal, ScrollView, Text } from "react-native";
 import ProgressBanner from "./Tracking/ProgressBanner";
 import ExerciseLog from "./Tracking/ExerciseLog";
-import SelectExerciseModal from './SelectExercise/SelectExerciseModal'
+import SelectExerciseModal from './SelectExercise/SelectExerciseModal';
 import RNBounceable from "@freakycoder/react-native-bounceable";
-import { Nexo, Weight } from 'iconsax-react-native';
+import { Weight } from 'iconsax-react-native';
 import { MaterialCommunityIcons, FontAwesome } from '@expo/vector-icons';
-import GroupModal from "./Group/GroupModal";
 import GroupModalBottomSheet from "./Group/GroupModalBottomSheet";
+import TimerDisplay from "./TimerDisplay";
 
-export default function NewWorkoutModal({ workout, setWorkout, closeModal, cancelWorkout, updateWorkout, finishWorkout, timer }) {
+const NewWorkoutModal = ({ workout, setWorkout, closeModal, cancelWorkout, updateWorkout, finishWorkout, timerRef }) => {
     const [selectExerciseModalVisible, setSelectExerciseModalVisible] = useState(false);
     const [groupModalExpandFlag, setGroupModalExpandFlag] = useState(false);
     const [headerShadow, setHeaderShadow] = useState(false);
 
-    // stats
     const [totalReps, setTotalReps] = useState(0);
     const [totalVolume, setTotalVolume] = useState(0);
     const [personalBests, setPersonalBests] = useState(0);
-    
 
-
-    function calculateStats() {
-        var reps = 0;
-        var volume = 0;
+    const calculateStats = useCallback(() => {
+        let reps = 0;
+        let volume = 0;
 
         workout.exercises.forEach(exercise => {
             exercise.sets.forEach(set => {
                 reps += set.reps;
                 volume += (set.reps * set.weight);
-            })
+            });
         });
-
 
         setTotalReps(reps);
         setTotalVolume(volume);
-    }
+    }, [workout.exercises]);
 
-    function showSelectExerciseModal() {
+    const showSelectExerciseModal = useCallback(() => {
         setSelectExerciseModalVisible(true);
-    }
+    }, []);
 
-    function closeSelectExerciseModal() {
+    const closeSelectExerciseModal = useCallback(() => {
         setSelectExerciseModalVisible(false);
-    }
+    }, []);
 
-    function showGroupModal() {
-        setGroupModalExpandFlag(!groupModalExpandFlag);
-    }
+    const showGroupModal = useCallback(() => {
+        setGroupModalExpandFlag(prev => !prev);
+    }, []);
 
-    function closeGroupModal() {
-        setGroupModalVisible(false);
-    }
+    const closeGroupModal = useCallback(() => {
+        setGroupModalExpandFlag(false);
+    }, []);
 
-    function appendExercises(exercises) {
-        let newWorkout = workout;
-        for (let exercise of exercises) {
-            newWorkout.exercises.push({
-                name: exercise,
-                sets: []
-            });
-        }
+    const appendExercises = useCallback((exercises) => {
+        const newWorkout = { ...workout, exercises: [...workout.exercises, ...exercises.map(ex => ({ name: ex, sets: [] }))] };
         updateWorkout(newWorkout);
-    }
+    }, [workout, updateWorkout]);
 
-    function updateSets(index, newSets) {
-        let newWorkout = workout;
+    const updateSets = useCallback((index, newSets) => {
+        const newWorkout = { ...workout };
         newWorkout.exercises[index].sets = newSets;
         updateWorkout(newWorkout);
         calculateStats();
-    }
+    }, [workout, updateWorkout, calculateStats]);
 
-    function handleScroll(event) {
+    const handleScroll = useCallback((event) => {
         const scrollPosition = event.nativeEvent.contentOffset.y;
         setHeaderShadow(scrollPosition > 98);
         calculateStats();
-    }
+    }, [calculateStats]);
+
+    useEffect(() => {
+        calculateStats();
+    }, [calculateStats]);
 
     return (
         <View style={styles.main_ctnr}>
@@ -84,7 +78,9 @@ export default function NewWorkoutModal({ workout, setWorkout, closeModal, cance
                 <RNBounceable style={styles.iconWrapper}>
                     <MaterialCommunityIcons name="timer-outline" size={24} color="#0499FE" />
                 </RNBounceable>
-                <Text style={styles.header_time_text}>{timer}</Text>
+                <View style={styles.timer_text_ctnr}>
+                    <TimerDisplay timerRef={timerRef} />
+                </View>
                 <View style={styles.header_right}>
                     <RNBounceable style={styles.group_btn} onPress={showGroupModal}>
                         <FontAwesome name="group" size={17} color="#FFBB3D" />
@@ -132,8 +128,8 @@ export default function NewWorkoutModal({ workout, setWorkout, closeModal, cance
                 closeGroupModal={closeGroupModal}
             />
         </View>
-    )
-}
+    );
+};
 
 const styles = StyleSheet.create({
     main_ctnr: {
@@ -162,15 +158,14 @@ const styles = StyleSheet.create({
         borderRadius: 12,
         backgroundColor: '#E1F0FF',
     },
-    header_time_text: {
-        fontFamily: 'Outfit_700Bold',
-        fontSize: 18,
-        color: '#aaa',
+    timer_text_ctnr: {
+        // fontFamily: 'Outfit_700Bold',
+        // fontSize: 18,
+        // color: '#aaa',
         position: 'absolute',
         left: 0,
         right: 0,
         top: 5,
-        textAlign: 'center'
     },
     header_right: {
         flexDirection: 'row',
@@ -235,3 +230,4 @@ const styles = StyleSheet.create({
     },
 });
 
+export default React.memo(NewWorkoutModal);
