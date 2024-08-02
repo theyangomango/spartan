@@ -1,6 +1,5 @@
-import React, { useState, useEffect, useRef } from 'react';
-import { StyleSheet, View, Text, TouchableWithoutFeedback, Animated, Pressable } from "react-native";
-import { Ionicons } from '@expo/vector-icons';
+import React, { useState, useRef } from 'react';
+import { StyleSheet, View, Text, Pressable, Animated } from "react-native";
 import { Calendar, Weight } from 'iconsax-react-native';
 import Collapsible from 'react-native-collapsible';
 import TemplateDetails from './TemplateDetails';
@@ -8,33 +7,44 @@ import RNBounceable from '@freakycoder/react-native-bounceable';
 
 export default function TemplateCard({ lastUsedDate, name, exercises, handleLongPress, isPanelVisible, setSelectedTemplate }) {
     const [isCollapsed, setIsCollapsed] = useState(true);
-    const borderRadiusAnim = useRef(new Animated.Value(15)).current; // Initial border radius value
+    const scaleValue = useRef(new Animated.Value(1)).current;
 
     const handlePress = () => {
-        console.log(isPanelVisible);
-
         if (isPanelVisible) {
             setSelectedTemplate(name);
-        }
-
-        else {
+        } else {
             setIsCollapsed(!isCollapsed);
         }
     };
 
-    // useEffect(() => {
-    //     Animated.timing(borderRadiusAnim, {
-    //         toValue: isCollapsed ? 15 : 0, // Animate to 0 when expanded, 15 when collapsed
-    //         duration: 300, // Duration of the animation
-    //         useNativeDriver: false,
-    //     }).start();
-    // }, [isCollapsed]);
+    const handleStartButtonPressIn = () => {
+        Animated.spring(scaleValue, {
+            toValue: 0.8,
+            friction: 3,
+            tension: 40,
+            useNativeDriver: true,
+        }).start();
+    };
+
+    const handleStartButtonPressOut = () => {
+        Animated.spring(scaleValue, {
+            toValue: 1,
+            friction: 3,
+            tension: 40,
+            useNativeDriver: true,
+        }).start();
+    };
 
     return (
         <RNBounceable onPress={handlePress} onLongPress={handleLongPress} delayLongPress={200}>
-            <Animated.View style={[styles.main_ctnr, { borderBottomLeftRadius: borderRadiusAnim, borderBottomRightRadius: borderRadiusAnim }]}>
+            <View style={styles.main_ctnr}>
                 <View style={styles.text_container}>
-                    <Text style={styles.title_text}>{name}</Text>
+                    <View style={styles.titleContainer}>
+                        <Text style={styles.title_text}>{name}</Text>
+                        <RNBounceable bounceEffectIn={0.7} style={styles.editButton}>
+                            <Text style={styles.editButtonText}>Edit</Text>
+                        </RNBounceable>
+                    </View>
                     <View style={styles.info_ctnr}>
                         <View style={styles.date_ctnr}>
                             <Calendar size="18.5" color={'#666'} />
@@ -46,8 +56,15 @@ export default function TemplateCard({ lastUsedDate, name, exercises, handleLong
                         </View>
                     </View>
                 </View>
-                <Ionicons name="chevron-down" size={22} color="#999" style={styles.chevron_icon} />
-            </Animated.View>
+                <Pressable
+                    onPressIn={handleStartButtonPressIn}
+                    onPressOut={handleStartButtonPressOut}
+                >
+                    <Animated.View style={[styles.startButton, { transform: [{ scale: scaleValue }] }]}>
+                        <Text style={styles.startButtonText}>Start</Text>
+                    </Animated.View>
+                </Pressable>
+            </View>
 
             <Collapsible collapsed={isCollapsed} style={styles.collapsibleContainer}>
                 <TemplateDetails exercises={exercises} />
@@ -67,30 +84,47 @@ const styles = StyleSheet.create({
         height: 85,
         justifyContent: 'center',
         flexDirection: 'row',
-        alignItems: 'center'
+        alignItems: 'center',
     },
     text_container: {
         flex: 1,
+        justifyContent: 'center',
+    },
+    titleContainer: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        paddingBottom: 5.5,
     },
     title_text: {
         fontFamily: 'Outfit_500Medium',
-        fontSize: 16,
+        fontSize: 15,
         color: '#2D9EFF',
-        paddingBottom: 5.5
+    },
+    editButton: {
+        backgroundColor: '#ccc',
+        paddingVertical: 3,
+        paddingHorizontal: 8,
+        borderRadius: 8,
+        marginLeft: 4,
+    },
+    editButtonText: {
+        color: '#fff',
+        fontFamily: 'Outfit_700Bold',
+        fontSize: 12,
     },
     info_ctnr: {
         flexDirection: 'row',
         alignItems: 'center',
-        marginBottom: 2
+        marginBottom: 2,
     },
     date_ctnr: {
         flexDirection: 'row',
         alignItems: 'center',
-        marginRight: 20
+        marginRight: 15,
     },
     date_text: {
         fontFamily: 'Outfit_500Medium',
-        fontSize: 13,
+        fontSize: 12.5,
         color: '#666',
     },
     exercises_ctnr: {
@@ -101,16 +135,22 @@ const styles = StyleSheet.create({
         fontFamily: 'Outfit_500Medium',
         fontSize: 13,
         color: '#666',
-        marginLeft: 1
+        marginLeft: 1,
     },
-    chevron_icon: {
-        position: 'absolute',
+    startButton: {
+        backgroundColor: '#32CD32',
+        paddingVertical: 5,
+        paddingHorizontal: 15,
+        borderRadius: 8,
         right: 20,
-        top: '50%',
         transform: [{ translateY: -10 }],
+    },
+    startButtonText: {
+        color: '#fff',
+        fontFamily: 'Outfit_700Bold',
+        fontSize: 14,
     },
     collapsibleContainer: {
         overflow: 'hidden',
     },
 });
-

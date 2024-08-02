@@ -38,7 +38,7 @@ const CurrentWorkoutPanel = ({ exerciseName, time, openWorkout }) => {
 const styles = StyleSheet.create({
     container: {
         // marginTop: 20,
-        marginBottom: 16,
+        // marginBottom: 16,
         paddingHorizontal: 16,
         paddingTop: 16,
         paddingBottom: 16,

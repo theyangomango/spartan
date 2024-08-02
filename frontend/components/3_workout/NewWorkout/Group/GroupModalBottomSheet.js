@@ -21,7 +21,8 @@ const GroupModalBottomSheet = ({ groupModalExpandFlag, closeGroupModal }) => {
                 {...props}
                 disappearsOnIndex={-1}
                 appearsOnIndex={0}
-                opacity={0.6}
+                opacity={0.45}
+                style={{borderTopLeftRadius: 15, borderTopRightRadius: 15}}
             />
         ),
         []

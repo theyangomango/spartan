@@ -79,6 +79,7 @@ export default function NewWorkoutModal({ workout, setWorkout, closeModal, cance
 
     return (
         <View style={styles.main_ctnr}>
+            <View style={styles.handle}></View>
             <View style={[styles.header, headerShadow && styles.headerShadow]}>
                 <RNBounceable style={styles.iconWrapper}>
                     <MaterialCommunityIcons name="timer-outline" size={24} color="#0499FE" />
@@ -137,7 +138,11 @@ export default function NewWorkoutModal({ workout, setWorkout, closeModal, cance
 const styles = StyleSheet.create({
     main_ctnr: {
         flex: 1,
-        backgroundColor: '#fff',
+    },
+    handle: {
+        height: 20,
+        borderTopLeftRadius: 10,
+        borderTopRightRadius: 10
     },
     header: {
         paddingBottom: 6,

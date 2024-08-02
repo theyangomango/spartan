@@ -6,7 +6,7 @@ import BottomSheet, { BottomSheetBackdrop } from "@gorhom/bottom-sheet";
 const NewWorkoutBottomSheet = ({ workout, isVisible, setIsVisible, cancelNewWorkout, updateNewWorkout, finishNewWorkout, timer }) => {
     const bottomSheetRef = useRef(null);
     const snapPoints = useMemo(() => ["94%"], []);
-    
+
     const handleSheetChanges = useCallback((index) => {
         console.log("handleSheetChanges", index);
     }, []);
@@ -42,9 +42,11 @@ const NewWorkoutBottomSheet = ({ workout, isVisible, setIsVisible, cancelNewWork
             onClose={() => {
                 setIsVisible(false);
             }}
+            handleStyle={{display: 'none'}}
         >
             {workout &&
                 <NewWorkoutModal
+                    // timer={timer}
                     timer={timer}
                     workout={workout}
                     cancelWorkout={() => {
