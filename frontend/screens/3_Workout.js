@@ -1,4 +1,4 @@
-import React, { useCallback, useRef, useState } from "react";
+import React, { useCallback, useEffect, useRef, useState } from "react";
 import { Text, StyleSheet, View, Pressable, TouchableOpacity } from "react-native";
 import DraggableFlatList, { RenderItemParams, ScaleDecorator } from "react-native-draggable-flatlist";
 import Footer from "../components/Footer";
@@ -106,6 +106,7 @@ export default function Workout({ navigation }) {
     const [isBottomSheetVisible, setIsBottomSheetVisible] = useState(false);
     const workoutTimeInterval = useRef(null);
     const [isCurrentWorkoutPanelVisible, setIsCurrentWorkoutPanelVisible] = useState(false);
+    const [selectedTemplate, setSelectedTemplate] = useState(null);
     const userData = global.userData;
 
     async function startNewWorkout() {
@@ -153,20 +154,31 @@ export default function Workout({ navigation }) {
         setWorkoutTimer('00:00')
     }
 
-    const scheduleWorkout = useCallback((date) => {
+    const scheduleWorkout = ((date) => {
         setIsPanelVisible(true);
         setPanelDate(date);
-    }, []);
+    });
 
-    const descheduleWorkout = useCallback(() => {
+    const descheduleWorkout = (() => {
         setIsPanelVisible(false);
-    }, []);
+    });
 
-    const renderItem = useCallback(({ item, drag, isActive }) => (
+    useEffect(() => {
+        console.log({ isPanelVisible });
+    }, [isPanelVisible]);
+
+    const renderItem = (({ item, drag, isActive }) => (
         <ScaleDecorator>
-            <TemplateCard lastUsedDate={item.lastUsedDate} exercises={item.exercises} name={item.name} handleLongPress={drag} />
+            <TemplateCard
+                lastUsedDate={item.lastUsedDate}
+                exercises={item.exercises}
+                name={item.name}
+                handleLongPress={drag}
+                isPanelVisible={isPanelVisible}
+                setSelectedTemplate={setSelectedTemplate}
+            />
         </ScaleDecorator>
-    ), []);
+    ));
 
     return (
         <View style={styles.main_ctnr}>
@@ -178,13 +190,29 @@ export default function Workout({ navigation }) {
                     isPanelVisible={isPanelVisible}
                     selectedDate={panelDate}
                 />
-                <WorkoutInfoPanel isVisible={isPanelVisible} onClose={descheduleWorkout} date={panelDate} />
+                <WorkoutInfoPanel
+                    isVisible={isPanelVisible}
+                    onClose={descheduleWorkout}
+                    date={panelDate}
+                    selectedTemplate={selectedTemplate}
+                    setSelectedTemplate={setSelectedTemplate}
+                />
                 {isCurrentWorkoutPanelVisible &&
-                    <CurrentWorkoutPanel exerciseName={'8/8 Workout'} time={workoutTimer} openWorkout={startNewWorkout} />
+                    <CurrentWorkoutPanel
+                        exerciseName={'8/8 Workout'}
+                        time={workoutTimer}
+                        openWorkout={startNewWorkout}
+                    />
                 }
-                <Text style={styles.quick_start_text}>Quick Start</Text>
-                <StartWorkoutButton startWorkout={startNewWorkout} />
-                <JoinWorkoutButton joinWorkout={() => joinWorkoutBottomSheet.current.expand()} />
+
+                {!isCurrentWorkoutPanelVisible && 
+                    <>
+                        <Text style={styles.quick_start_text}>Quick Start</Text>
+                        <StartWorkoutButton startWorkout={startNewWorkout} />
+                        <JoinWorkoutButton joinWorkout={() => joinWorkoutBottomSheet.current.expand()} />
+                    </>
+                }
+
                 <Text style={styles.templates_text}>Templates</Text>
                 <DraggableFlatList
                     data={templates}

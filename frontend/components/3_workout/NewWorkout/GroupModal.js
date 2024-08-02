@@ -1,18 +1,21 @@
-import { useEffect, useState } from "react";
-import { View, Text, StyleSheet, TouchableOpacity, TextInput, Dimensions, TouchableWithoutFeedback, Keyboard, ScrollView, Pressable } from "react-native";
-import FastImage from 'react-native-fast-image';
+import React, { useEffect, useState } from "react";
+import { View, Text, StyleSheet, TextInput, Keyboard, ScrollView, Pressable, Dimensions } from "react-native";
 import Icon from 'react-native-vector-icons/Ionicons';
-
+import ProfileCard from "../../ProfileCard";
+import RNBounceable from '@freakycoder/react-native-bounceable';
+ 
 const GroupModal = ({ closeGroupModal }) => {
     const [followingUsers, setFollowingUsers] = useState([]);
     const [selectedUsers, setSelectedUsers] = useState([]);
+    const [selectedHandles, setSelectedHandles] = useState([]);
     const [keyboardOpen, setKeyboardOpen] = useState(false);
-
-    console.log(followingUsers[4])
+    const [searchQuery, setSearchQuery] = useState('');
+    const [filteredUsers, setFilteredUsers] = useState([]);
 
     useEffect(() => {
         if (global.userData) {
             setFollowingUsers(global.userData.following);
+            setFilteredUsers(global.userData.following);
         }
 
         const keyboardDidShowListener = Keyboard.addListener('keyboardDidShow', () => {
@@ -29,19 +32,6 @@ const GroupModal = ({ closeGroupModal }) => {
         };
     }, [global.userData]);
 
-    const handleOutsidePress = () => {
-        closeGroupModal();
-    };
-
-    const handleGroupModalPress = () => {
-        if (keyboardOpen) {
-            Keyboard.dismiss();
-        }
-    };
-
-    const [searchQuery, setSearchQuery] = useState('');
-    const [filteredUsers, setFilteredUsers] = useState([]);
-
     useEffect(() => {
         if (searchQuery === '') {
             setFilteredUsers(followingUsers);
@@ -55,28 +45,56 @@ const GroupModal = ({ closeGroupModal }) => {
     }, [searchQuery, followingUsers]);
 
     const handleSelectUser = (userUid) => {
-        setSelectedUsers(prevSelectedUsers =>
-            prevSelectedUsers.includes(userUid)
-                ? prevSelectedUsers.filter(uid => uid !== userUid)
-                : [...prevSelectedUsers, userUid]
+        const newSelectedUsers = selectedUsers.includes(userUid)
+            ? selectedUsers.filter(uid => uid !== userUid)
+            : [...selectedUsers, userUid];
+
+        setSelectedUsers(newSelectedUsers);
+
+        const newHandles = newSelectedUsers.map(uid => {
+            const selectedUser = followingUsers.find(u => u.uid === uid);
+            return selectedUser ? selectedUser.handle : '';
+        });
+
+        setSelectedHandles(newHandles);
+    };
+
+    const handleOutsidePress = () => {
+        closeGroupModal();
+    };
+
+    const renderItem = ({ item }) => {
+        const isSelected = selectedUsers.includes(item.uid);
+        return (
+            <ProfileCard
+                user={item}
+                onSelect={handleSelectUser}
+                isSelected={isSelected}
+            />
         );
     };
 
     return (
         <View style={styles.modalOverlay}>
             <Pressable onPress={handleOutsidePress} style={{ height: '14%' }} />
-            <View style={styles.group_modal_ctnr}>
+            <View style={styles.groupModalContainer}>
                 <View style={styles.groupModal}>
                     <View style={styles.header}>
-                        <Text style={styles.modalText}>Invite to Workout</Text>
-                        <TouchableOpacity
-                            style={[styles.inviteButton, { opacity: selectedUsers.length === 0 ? 0.5 : 1 }]}
-                            disabled={selectedUsers.length === 0}
-                        >
-                            <Text style={styles.inviteButtonText}>
-                                Invite {selectedUsers.length > 0 && `(${selectedUsers.length})`}
-                            </Text>
-                        </TouchableOpacity>
+                        {selectedHandles.length === 0 ? (
+                            <Text style={styles.modalText}>Invite to Workout</Text>
+                        ) : (
+                            <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.selectedHandlesContainer}>
+                                <View style={{ width: 20 }} />
+                                {selectedHandles.map((handle, index) => (
+                                    <Pressable key={index}>
+                                        <View style={styles.selectedHandleView}>
+                                            <Text style={styles.selectedHandleText}>{handle}</Text>
+                                        </View>
+                                    </Pressable>
+                                ))}
+                                <View style={{ width: 5 }} />
+                            </ScrollView>
+                        )}
                     </View>
                     <View style={styles.searchContainer}>
                         <Icon name="search" size={20} color="#888" style={styles.searchIcon} />
@@ -87,29 +105,17 @@ const GroupModal = ({ closeGroupModal }) => {
                             onChangeText={setSearchQuery}
                         />
                     </View>
-                    <ScrollView>
-                        <View style={styles.flatlistContainer}>
-                            {filteredUsers.slice(0, 9).map((user, index) => {
-                                const isSelected = selectedUsers.includes(user.uid);
-                                return (
-                                    <Pressable
-                                        key={index}
-                                        style={styles.itemContainer}
-                                        onPress={() => handleSelectUser(user.uid)}
-                                    >
-                                        <View style={[styles.pfp_ctnr, { opacity: isSelected ? 1 : 0.7 }]}>
-                                            <FastImage
-                                                source={{ uri: user.pfp }}
-                                                style={styles.pfp}
-                                                resizeMode={FastImage.resizeMode.cover}
-                                            />
-                                        </View>
-                                        <Text numberOfLines={1} style={styles.handle_text}>{user.handle}</Text>
-                                    </Pressable>
-                                );
-                            })}
-                        </View>
+                    <ScrollView style={styles.flatlistContainer}>
+                        {filteredUsers.slice(0, 9).map((user, index) => renderItem({ item: user, index }))}
                     </ScrollView>
+                    <RNBounceable
+                        style={[styles.sendButton, { opacity: selectedUsers.length <= 1 ? 0.5 : 1 }]}
+                        disabled={selectedUsers.length <= 1}
+                    >
+                        <Text style={styles.sendButtonText}>
+                            {`Invite${selectedUsers.length > 1 ? ` (${selectedUsers.length})` : ''}`}
+                        </Text>
+                    </RNBounceable>
                 </View>
             </View>
             <Pressable onPress={handleOutsidePress} style={{ height: '14%' }} />
@@ -120,16 +126,14 @@ const GroupModal = ({ closeGroupModal }) => {
 export default GroupModal;
 
 const { width } = Dimensions.get('window');
-const modalWidth = width * 0.92; // Modal width as a percentage of the screen width
-const ITEM_MARGIN = 5;
-const ITEM_WIDTH = (modalWidth - ITEM_MARGIN * 6) / 3; // Adjusting margin calculation
+const modalWidth = width * 0.92;
 
 const styles = StyleSheet.create({
     modalOverlay: {
         flex: 1,
         backgroundColor: 'rgba(0,0,0,0.5)',
     },
-    group_modal_ctnr: {
+    groupModalContainer: {
         width: '100%',
         height: '72%',
         alignItems: 'center',
@@ -143,29 +147,32 @@ const styles = StyleSheet.create({
         alignItems: 'center',
     },
     header: {
+        height: 45,
+        paddingTop: 15,
         flexDirection: 'row',
         alignItems: 'center',
         justifyContent: 'center',
-        width: '90%',
-        marginBottom: 15,
+        marginBottom: 10,
         position: 'relative',
     },
     modalText: {
         fontFamily: 'Poppins_600SemiBold',
         fontSize: 14,
     },
-    inviteButton: {
-        position: 'absolute',
-        right: 0,
+    selectedHandlesContainer: {
+        flexDirection: 'row',
+        alignItems: 'center',
+    },
+    selectedHandleView: {
         backgroundColor: '#E1F0FF',
         paddingHorizontal: 10.5,
         height: 29,
         borderRadius: 8,
         alignItems: 'center',
         justifyContent: 'center',
-        marginRight: 2
+        marginRight: 5,
     },
-    inviteButtonText: {
+    selectedHandleText: {
         color: '#0499FE',
         fontFamily: 'Outfit_700Bold',
         fontSize: 14,
@@ -188,32 +195,24 @@ const styles = StyleSheet.create({
         paddingVertical: 6,
     },
     flatlistContainer: {
-        flexDirection: 'row',
-        flexWrap: 'wrap',
-        width: '100%', // Ensure the container takes full width
-    },
-    itemContainer: {
-        width: ITEM_WIDTH,
-        alignItems: 'center',
-        marginHorizontal: ITEM_MARGIN / 2,
-        marginVertical: ITEM_MARGIN,
-    },
-    pfp_ctnr: {
-        width: 82,
-        aspectRatio: 1,
-        borderRadius: 40,
-        backgroundColor: 'gray',
-    },
-    pfp: {
+        flex: 1,
         width: '100%',
-        height: '100%',
-        borderRadius: 40,
     },
-    handle_text: {
-        marginTop: 8,
-        textAlign: 'center',
-        fontFamily: 'Poppins_400Regular',
-        fontSize: 11,
-        color: '#555',
+    sendButton: {
+        position: 'absolute',
+        bottom: 45,
+        left: 22,
+        right: 22,
+        backgroundColor: '#2D9EFF',
+        borderRadius: 15,
+        paddingVertical: 13,
+        paddingHorizontal: 30,
+        alignItems: 'center',
+        justifyContent: 'center',
+    },
+    sendButtonText: {
+        color: 'white',
+        fontSize: 14,
+        fontFamily: 'Poppins_600SemiBold',
     },
 });

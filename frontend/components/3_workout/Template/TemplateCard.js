@@ -4,31 +4,40 @@ import { Ionicons } from '@expo/vector-icons';
 import { Calendar, Weight } from 'iconsax-react-native';
 import Collapsible from 'react-native-collapsible';
 import TemplateDetails from './TemplateDetails';
+import RNBounceable from '@freakycoder/react-native-bounceable';
 
-export default function TemplateCard({ lastUsedDate, name, exercises, handleLongPress }) {
+export default function TemplateCard({ lastUsedDate, name, exercises, handleLongPress, isPanelVisible, setSelectedTemplate }) {
     const [isCollapsed, setIsCollapsed] = useState(true);
     const borderRadiusAnim = useRef(new Animated.Value(15)).current; // Initial border radius value
 
-    const toggleBottomSheet = () => {
-        setIsCollapsed(!isCollapsed);
+    const handlePress = () => {
+        console.log(isPanelVisible);
+
+        if (isPanelVisible) {
+            setSelectedTemplate(name);
+        }
+
+        else {
+            setIsCollapsed(!isCollapsed);
+        }
     };
 
-    useEffect(() => {
-        Animated.timing(borderRadiusAnim, {
-            toValue: isCollapsed ? 15 : 0, // Animate to 0 when expanded, 15 when collapsed
-            duration: 300, // Duration of the animation
-            useNativeDriver: false,
-        }).start();
-    }, [isCollapsed]);
+    // useEffect(() => {
+    //     Animated.timing(borderRadiusAnim, {
+    //         toValue: isCollapsed ? 15 : 0, // Animate to 0 when expanded, 15 when collapsed
+    //         duration: 300, // Duration of the animation
+    //         useNativeDriver: false,
+    //     }).start();
+    // }, [isCollapsed]);
 
     return (
-        <Pressable onPress={toggleBottomSheet} onLongPress={handleLongPress} delayLongPress={200}>
+        <RNBounceable onPress={handlePress} onLongPress={handleLongPress} delayLongPress={200}>
             <Animated.View style={[styles.main_ctnr, { borderBottomLeftRadius: borderRadiusAnim, borderBottomRightRadius: borderRadiusAnim }]}>
                 <View style={styles.text_container}>
                     <Text style={styles.title_text}>{name}</Text>
                     <View style={styles.info_ctnr}>
                         <View style={styles.date_ctnr}>
-                            <Calendar size="18.5" variant="Broken" color={'#666'} />
+                            <Calendar size="18.5" color={'#666'} />
                             <Text style={styles.date_text}> {lastUsedDate}</Text>
                         </View>
                         <View style={styles.exercises_ctnr}>
@@ -43,7 +52,7 @@ export default function TemplateCard({ lastUsedDate, name, exercises, handleLong
             <Collapsible collapsed={isCollapsed} style={styles.collapsibleContainer}>
                 <TemplateDetails exercises={exercises} />
             </Collapsible>
-        </Pressable>
+        </RNBounceable>
     );
 }
 

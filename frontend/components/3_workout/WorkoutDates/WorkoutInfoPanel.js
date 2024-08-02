@@ -1,11 +1,15 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { View, Text, Image, StyleSheet, Animated } from 'react-native';
 import RNBounceable from "@freakycoder/react-native-bounceable";
-import { Feather } from '@expo/vector-icons';
+import { Feather, Octicons } from '@expo/vector-icons';
 
-const WorkoutInfoPanel = ({ isVisible, onClose, date }) => {
+const WorkoutInfoPanel = ({ isVisible, onClose, date, selectedTemplate, setSelectedTemplate }) => {
     const panelOpacity = useRef(new Animated.Value(0)).current;
     const [panelZIndex, setPanelZIndex] = useState(0);
+
+    function deselectTemplate() {
+        setSelectedTemplate(null);
+    }
 
     useEffect(() => {
         if (isVisible) {
@@ -51,12 +55,15 @@ const WorkoutInfoPanel = ({ isVisible, onClose, date }) => {
                     </View>
                 </View>
                 <RNBounceable onPress={onClose}>
-                    <Feather name="check-circle" size={22} color="#000" />
+                    {/* <Feather name="check-circle" size={22} color="#000" /> */}
+                    <Octicons name='check-circle-fill' size={22} color={'#bbb'}/>
                 </RNBounceable>
             </View>
             <View style={styles.panelButtonsRow}>
-                <RNBounceable style={styles.templateButton}>
-                    <Text style={styles.templateButtonText}>No Template Selected</Text>
+                <RNBounceable style={[styles.templateButton, selectedTemplate && styles.selectedTemplateButton]} onPress={deselectTemplate}>
+                    <Text style={[styles.templateButtonText, selectedTemplate && styles.selectedTemplateButtonText]}>
+                        {selectedTemplate ? selectedTemplate : 'No Template Selected'}
+                    </Text>
                 </RNBounceable>
                 <RNBounceable style={styles.panelButton}>
                     <Text style={styles.panelButtonText}>6:00 - 7:00 PM</Text>
@@ -130,6 +137,12 @@ const styles = StyleSheet.create({
         fontSize: 13,
         fontFamily: 'Inter_600SemiBold',
         color: '#b8b8b8'
+    },
+    selectedTemplateButton: {
+        backgroundColor: '#82BDFE',
+    },
+    selectedTemplateButtonText: {
+        color: '#fff',
     },
 });
 

@@ -1,6 +1,6 @@
 import { View, StyleSheet, Text, Pressable, Image } from "react-native";
 import { useEffect, useState } from "react";
-import SetRow from "./SetRow";
+import SetRow from "../SetRow";
 import { FontAwesome5, MaterialCommunityIcons, Entypo } from '@expo/vector-icons';
 import DoubleSetRow from "./DoubleSetRow";
 import RNBounceable from "@freakycoder/react-native-bounceable";

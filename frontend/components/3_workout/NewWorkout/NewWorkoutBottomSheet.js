@@ -81,7 +81,6 @@ const NewWorkoutBottomSheet = ({ workout, isVisible, setIsVisible, cancelNewWork
     );
 
     useEffect(() => {
-        console.log(isVisible);
         if (isVisible) {
             bottomSheetRef.current.expand();
         }
@@ -100,7 +99,6 @@ const NewWorkoutBottomSheet = ({ workout, isVisible, setIsVisible, cancelNewWork
             onChange={handleSheetChanges}
             enablePanDownToClose
             onClose={() => {
-                console.log('hi')
                 setIsVisible(false);
             }}
         >

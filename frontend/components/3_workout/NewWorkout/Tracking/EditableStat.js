@@ -1,7 +1,7 @@
 import React, { useState, useRef } from "react";
 import { TextInput, StyleSheet, View, Pressable } from "react-native";
 
-export default function EditableStat({ placeholder = '0', isFinished, value, setValue }) {
+export default function EditableStat({ placeholder='0', isFinished, value, setValue }) {
     const [isSelected, setIsSelected] = useState(false);
     const inputRef = useRef(null);
 
@@ -21,7 +21,7 @@ export default function EditableStat({ placeholder = '0', isFinished, value, set
                 ref={inputRef}
                 editable
                 keyboardType="numeric"
-                placeholder={placeholder}
+                placeholder={placeholder.toString()}
                 placeholderTextColor={isFinished ? '#000' : '#888'}
                 onFocus={() => setIsSelected(true)}
                 onEndEditing={() => setIsSelected(false)}

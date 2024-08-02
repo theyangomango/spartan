@@ -1,22 +1,24 @@
 import React, { useEffect, useState } from "react";
 import { StyleSheet, View, Text, Modal, TouchableOpacity, ScrollView } from "react-native";
 import ProgressBanner from "./ProgressBanner";
-import ExerciseLog from "./ExerciseLog";
+import ExerciseLog from "./Tracking/ExerciseLog";
 import SelectExerciseModal from './SelectExerciseModal'
 import RNBounceable from "@freakycoder/react-native-bounceable";
 import { Nexo, Weight } from 'iconsax-react-native';
 import { MaterialCommunityIcons, FontAwesome } from '@expo/vector-icons';
 import GroupModal from "./GroupModal";
+import GroupModalBottomSheet from "./GroupModalBottomSheet";
 
 export default function NewWorkoutModal({ workout, setWorkout, closeModal, cancelWorkout, updateWorkout, finishWorkout, timer }) {
     const [selectExerciseModalVisible, setSelectExerciseModalVisible] = useState(false);
-    const [groupModalVisible, setGroupModalVisible] = useState(false);
+    const [groupModalExpandFlag, setGroupModalExpandFlag] = useState(false);
     const [headerShadow, setHeaderShadow] = useState(false);
 
     // stats
     const [totalReps, setTotalReps] = useState(0);
     const [totalVolume, setTotalVolume] = useState(0);
     const [personalBests, setPersonalBests] = useState(0);
+    
 
 
     function calculateStats() {
@@ -44,7 +46,7 @@ export default function NewWorkoutModal({ workout, setWorkout, closeModal, cance
     }
 
     function showGroupModal() {
-        setGroupModalVisible(true);
+        setGroupModalExpandFlag(!groupModalExpandFlag);
     }
 
     function closeGroupModal() {
@@ -100,7 +102,7 @@ export default function NewWorkoutModal({ workout, setWorkout, closeModal, cance
             >
                 <ProgressBanner totalReps={totalReps} totalVolume={totalVolume} personalBests={personalBests} />
                 {workout.exercises.map((ex, index) => (
-                    <ExerciseLog name={ex.name} exerciseIndex={index} key={index} updateSets={updateSets} calculateStats={calculateStats}/>
+                    <ExerciseLog name={ex.name} exerciseIndex={index} key={index} updateSets={updateSets} calculateStats={calculateStats} />
                 ))}
                 <RNBounceable onPress={showSelectExerciseModal} style={styles.add_exercise_btn}>
                     <Text style={styles.add_exercise_text}>Add Exercises</Text>
@@ -124,14 +126,19 @@ export default function NewWorkoutModal({ workout, setWorkout, closeModal, cance
                 />
             </Modal>
 
-            <Modal
+            {/* <Modal
                 animationType='fade'
                 transparent={true}
                 visible={groupModalVisible}
                 onRequestClose={closeGroupModal}
             >
                 <GroupModal closeGroupModal={closeGroupModal} />
-            </Modal>
+            </Modal> */}
+
+            <GroupModalBottomSheet
+                groupModalExpandFlag={groupModalExpandFlag}
+                // closeGroupModal={closeGroupModal}
+            />
         </View>
     )
 }
