@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { StyleSheet, View, TouchableWithoutFeedback, Keyboard, ScrollView, Text, KeyboardAvoidingView, Platform } from 'react-native';
 import Footer from "../components/Footer";
-import WorkoutFooter from "../components/3_workout/WorkoutFooter";
+import WorkoutFooter from "../components/3_Workout/WorkoutFooter";
 import PostPreview from '../components/4_explore/PostPreview';
 import SearchBarComponent from '../components/4_explore/SearchBarComponent';
 import retrieveUserExploreFeed from '../../backend/retreiveUserExploreFeed';

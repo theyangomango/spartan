@@ -12,7 +12,7 @@ import WorkoutStats from "../components/5_profile/WorkoutStats";
 import PostPreview from "../components/5_profile/PostPreview";
 import readDoc from "../../backend/helper/firebase/readDoc";
 import CreateModal from "../components/5_profile/CreateModal";
-import WorkoutFooter from "../components/3_workout/WorkoutFooter";
+import WorkoutFooter from "../components/3_Workout/WorkoutFooter";
 import ExerciseGraph from "../components/5_profile/ExerciseGraph";
 import { ScrollView } from "react-native-gesture-handler";
 import PastWorkoutCard from "../components/5_profile/PastWorkoutCard";

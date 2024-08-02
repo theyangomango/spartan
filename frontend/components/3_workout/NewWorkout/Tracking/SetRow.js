@@ -1,5 +1,5 @@
 import { Pressable, StyleSheet, Text, View } from "react-native";
-import EditableStat from "./Tracking/EditableStat";
+import EditableStat from "./EditableStat";
 import { Ionicons, FontAwesome6 } from '@expo/vector-icons'
 import { useState } from "react";
 

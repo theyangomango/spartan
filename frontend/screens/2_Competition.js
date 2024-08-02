@@ -5,7 +5,7 @@ import Footer from "../components/Footer";
 import Podium from "../components/2_competition/Podium";
 import ComparingDropdown from "../components/2_competition/ComparingDropdown";
 import ComparedWithDropdown from "../components/2_competition/ComparedWithDropdown";
-import WorkoutFooter from "../components/3_workout/WorkoutFooter";
+import WorkoutFooter from "../components/3_Workout/WorkoutFooter";
 import CompetitionCard from "../components/2_competition/CompetitionCard";
 import retrieveFollowingUsers from "../../backend/retrieveFollowingUsers";
 import rankUsers from "../helper/rankUsers";

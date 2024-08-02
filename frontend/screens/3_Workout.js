@@ -2,14 +2,14 @@ import React, { useCallback, useEffect, useRef, useState } from "react";
 import { Text, StyleSheet, View, Pressable, TouchableOpacity } from "react-native";
 import DraggableFlatList, { RenderItemParams, ScaleDecorator } from "react-native-draggable-flatlist";
 import Footer from "../components/Footer";
-import TemplateCard from "../components/3_workout/Template/TemplateCard";
-import StartWorkoutButton from "../components/3_workout/StartWorkoutButton";
-import JoinWorkoutButton from "../components/3_workout/JoinWorkoutButton";
+import TemplateCard from "../components/3_Workout/Template/TemplateCard";
+import StartWorkoutButton from "../components/3_Workout/StartWorkoutButton";
+import JoinWorkoutButton from "../components/3_Workout/JoinWorkoutButton";
 import makeID from "../../backend/helper/makeID";
-import WorkoutDates from "../components/3_workout/WorkoutDates/WorkoutDates";
-import WorkoutInfoPanel from "../components/3_workout/WorkoutDates/WorkoutInfoPanel";
-import NewWorkoutBottomSheet from "../components/3_workout/NewWorkout/NewWorkoutBottomSheet"; // Import the new component
-import CurrentWorkoutPanel from "../components/3_workout/CurrentWorkoutPanel";
+import WorkoutDates from "../components/3_Workout/WorkoutDates/WorkoutDates";
+import WorkoutInfoPanel from "../components/3_Workout/WorkoutDates/WorkoutInfoPanel";
+import NewWorkoutBottomSheet from "../components/3_Workout/NewWorkout/NewWorkoutBottomSheet"; // Import the new component
+import CurrentWorkoutPanel from "../components/3_Workout/CurrentWorkoutPanel";
 import millisToMinutesAndSeconds from "../helper/milliesToMinutesAndSeconds";
 
 const lastUsedDate = "July 6th";

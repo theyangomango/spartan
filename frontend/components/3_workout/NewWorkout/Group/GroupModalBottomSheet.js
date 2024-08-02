@@ -5,7 +5,7 @@ import GroupModal from "./GroupModal";
 
 const GroupModalBottomSheet = ({ groupModalExpandFlag, closeGroupModal }) => {
     const bottomSheetRef = useRef(null);
-    const snapPoints = useMemo(() => ["100%"], []);
+    const snapPoints = useMemo(() => ["80%"], []);
 
     useEffect(() => {
         if (groupModalExpandFlag) {
@@ -35,6 +35,7 @@ const GroupModalBottomSheet = ({ groupModalExpandFlag, closeGroupModal }) => {
                 snapPoints={snapPoints}
                 backdropComponent={renderBackdrop}
                 handleStyle={{ display: 'none' }}
+                enablePanDownToClose
             >
                 <GroupModal closeGroupModal={closeGroupModal} />
             </BottomSheet>

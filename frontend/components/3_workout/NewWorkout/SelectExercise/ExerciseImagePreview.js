@@ -5,34 +5,34 @@ const ExerciseImagePreview = ({ exercise }) => {
     let source;
     switch (exercise) {
         case 'standing-tricep-extention-dumbbell':
-            source = require('../../../assets/exercises/standing-tricep-extention-dumbbell/large.png');
+            source = require('../../../../assets/exercises/standing-tricep-extention-dumbbell/large.png');
             break;
         case 'standing-preacher-curl-dumbbell':
-            source = require('../../../assets/exercises/standing-preacher-curl-dumbbell/large.png');
+            source = require('../../../../assets/exercises/standing-preacher-curl-dumbbell/large.png');
             break;
         case 'squat-dumbbell':
-            source = require('../../../assets/exercises/squat-dumbbell/large.png');
+            source = require('../../../../assets/exercises/squat-dumbbell/large.png');
             break;
         case 'shrug-dumbbell':
-            source = require('../../../assets/exercises/shrug-dumbbell/large.png');
+            source = require('../../../../assets/exercises/shrug-dumbbell/large.png');
             break;
         case 'lateral-raise-dumbbell':
-            source = require('../../../assets/exercises/lateral-raise-dumbbell/large.png');
+            source = require('../../../../assets/exercises/lateral-raise-dumbbell/large.png');
             break;
         case 'incline-bench-press-dumbbell':
-            source = require('../../../assets/exercises/incline-bench-press-dumbbell/large.png');
+            source = require('../../../../assets/exercises/incline-bench-press-dumbbell/large.png');
             break;
         case 'front-raise-dumbbell':
-            source = require('../../../assets/exercises/front-raise-dumbbell/large.png');
+            source = require('../../../../assets/exercises/front-raise-dumbbell/large.png');
             break;
         case 'chest-fly-dumbbell':
-            source = require('../../../assets/exercises/chest-fly-dumbbell/large.png');
+            source = require('../../../../assets/exercises/chest-fly-dumbbell/large.png');
             break;
         case 'bicep-curl-dumbbell':
-            source = require('../../../assets/exercises/bicep-curl-dumbbell/large.png');
+            source = require('../../../../assets/exercises/bicep-curl-dumbbell/large.png');
             break;
         case 'bench-press-dumbbell':
-            source = require('../../../assets/exercises/bench-press-dumbbell/large.png');
+            source = require('../../../../assets/exercises/bench-press-dumbbell/large.png');
             break;
     }
 

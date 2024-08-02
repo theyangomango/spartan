@@ -1,13 +1,13 @@
 import React, { useEffect, useState } from "react";
 import { StyleSheet, View, Text, Modal, TouchableOpacity, ScrollView } from "react-native";
-import ProgressBanner from "./ProgressBanner";
+import ProgressBanner from "./Tracking/ProgressBanner";
 import ExerciseLog from "./Tracking/ExerciseLog";
-import SelectExerciseModal from './SelectExerciseModal'
+import SelectExerciseModal from './SelectExercise/SelectExerciseModal'
 import RNBounceable from "@freakycoder/react-native-bounceable";
 import { Nexo, Weight } from 'iconsax-react-native';
 import { MaterialCommunityIcons, FontAwesome } from '@expo/vector-icons';
-import GroupModal from "./GroupModal";
-import GroupModalBottomSheet from "./GroupModalBottomSheet";
+import GroupModal from "./Group/GroupModal";
+import GroupModalBottomSheet from "./Group/GroupModalBottomSheet";
 
 export default function NewWorkoutModal({ workout, setWorkout, closeModal, cancelWorkout, updateWorkout, finishWorkout, timer }) {
     const [selectExerciseModalVisible, setSelectExerciseModalVisible] = useState(false);
@@ -126,18 +126,9 @@ export default function NewWorkoutModal({ workout, setWorkout, closeModal, cance
                 />
             </Modal>
 
-            {/* <Modal
-                animationType='fade'
-                transparent={true}
-                visible={groupModalVisible}
-                onRequestClose={closeGroupModal}
-            >
-                <GroupModal closeGroupModal={closeGroupModal} />
-            </Modal> */}
-
             <GroupModalBottomSheet
                 groupModalExpandFlag={groupModalExpandFlag}
-                // closeGroupModal={closeGroupModal}
+                closeGroupModal={closeGroupModal}
             />
         </View>
     )
