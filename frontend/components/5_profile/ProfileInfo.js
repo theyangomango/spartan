@@ -7,125 +7,133 @@ export default function ProfileInfo({ userData }) {
     const [pfp, setPFP] = useState(null);
 
     useEffect(() => {
-        getPFP(userData.uid)
-            .then(url => {
-                setPFP(url)
-            })
-    }, []);
+        getPFP(userData.uid).then(url => {
+            setPFP(url);
+        });
+    }, [userData.uid]);
 
     return (
         <View style={styles.main_ctnr}>
             <View style={styles.top_row}>
+                <View style={styles.followers_stat_ctnr}>
+                    <Text style={styles.user_stat_count_text}>{userData.followerCount}</Text>
+                    <Text style={styles.user_stat_text}>Followers</Text>
+                </View>
                 <View style={styles.pfp_ctnr}>
-                    <Image
-                        source={{ uri: pfp }}
-                        style={styles.pfp}
-                    />
+                    <Image source={{ uri: pfp }} style={styles.pfp} />
                     <View style={styles.plus_icon_ctnr}>
-                        <Entypo name="plus" size={15} color="white" />
+                        <Entypo name="plus" size={16} color="#222" />
                     </View>
                 </View>
-                <View style={styles.user_stats_ctnr}>
-                    <View style={styles.user_stat}>
-                        <Text style={styles.user_stat_count_text}>{userData.postCount}</Text>
-                        <Text style={styles.user_stat_text}>Posts</Text>
-                    </View>
-                    <View style={styles.user_stat}>
-                        <Text style={styles.user_stat_count_text}>{userData.followerCount}</Text>
-                        <Text style={styles.user_stat_text}>Followers</Text>
-                    </View>
-                    <View style={styles.user_stat}>
-                        <Text style={styles.user_stat_count_text}>{userData.followingCount}</Text>
-                        <Text style={styles.user_stat_text}>Following</Text>
-                    </View>
+                <View style={styles.following_stat_ctnr}>
+                    <Text style={styles.user_stat_count_text}>{userData.followingCount}</Text>
+                    <Text style={styles.user_stat_text}>Following</Text>
                 </View>
             </View>
-
             <View style={styles.profile_info_ctnr}>
-                <View style={styles.name_ctnr}>
-                    <Text style={styles.name_text}>{userData.handle}</Text>
+                <View style={styles.name_and_score_ctnr}>
+                    <Text style={styles.name_text}>Yang Bai</Text>
+                    <View style={styles.border_line}></View>
+                    <Text style={styles.score_text}>100 overall</Text>
                 </View>
                 <View style={styles.bio_ctnr}>
                     <Text style={styles.bio_text}>{userData.bio}</Text>
                 </View>
             </View>
         </View>
-    )
+    );
 }
 
 const styles = StyleSheet.create({
     main_ctnr: {
-        paddingLeft: 1.5
+        marginBottom: 8,
     },
     top_row: {
         flexDirection: 'row',
-        justifyContent: 'space-between',
-        height: 80,
-        alignItems: 'center',
-        paddingLeft: 10,
-    },
-    pfp_ctnr: {
-        position: 'relative',
-    },
-    pfp: {
-        // marginTop: 6,
-        width: 69,
-        aspectRatio: 1,
-        borderRadius: 50,
-    },
-    plus_icon_ctnr: {
-        position: 'absolute',
-        bottom: 3,
-        right: 0,
-        backgroundColor: '#0098FF',
-        width: 21,
-        aspectRatio: 1,
-        borderRadius: 100,
         justifyContent: 'center',
         alignItems: 'center',
     },
-    plus_icon: {
-        // color: 'white',
-        // fontSize: 17,
-        // lineHeight: 20,
+    pfp_ctnr: {
+        marginHorizontal: 12,
+        alignItems: 'center',
+        position: 'relative',
+        borderWidth: 3,
+        borderRadius: 26.5,
+        padding: 2.25,
+        borderColor: '#ccc',
     },
-    user_stats_ctnr: {
-        flexDirection: 'row',
-        // paddingHorizontal: 2
-        // marginRight: 12
+    pfp: {
+        width: 54,
+        aspectRatio: 1,
+        borderRadius: 22.5,
     },
-    user_stat: {
-        paddingLeft: '7.5%',
-        alignItems: 'center'
+    plus_icon_ctnr: {
+        position: 'absolute',
+        bottom: -8,
+        backgroundColor: '#FCF375',
+        width: 35,
+        height: 20,
+        borderRadius: 10,
+        justifyContent: 'center',
+        alignItems: 'center',
+        shadowColor: '#EBDF38',
+        shadowOffset: { width: 0, height: 0.5 },
+        shadowOpacity: 1,
+        shadowRadius: 2,
+        elevation: 5,
+    },
+    followers_stat_ctnr: {
+        alignItems: 'flex-end',
+    },
+    following_stat_ctnr: {
+        alignItems: 'flex-start'
     },
     user_stat_count_text: {
         fontFamily: 'Outfit_600SemiBold',
-        fontSize: 19.5,
-        color: '#222',
-        paddingBottom: 1.5
+        fontSize: 17,
+        color: '#555',
+        paddingBottom: 1,
     },
     user_stat_text: {
-        fontFamily: 'Outfit_500Medium',
-        fontSize: 15,
-        color: '#666'
+        fontFamily: 'Outfit_600SemiBold',
+        fontSize: 14.5,
+        color: '#bfbfbf',
     },
     profile_info_ctnr: {
-        marginTop: 5,
-        paddingHorizontal: 12
+        alignItems: 'center',
     },
-    name_ctnr: {
-        paddingVertical: 5
+    name_and_score_ctnr: {
+        marginTop: 20,
+        flexDirection: 'row',
+        paddingBottom: 2.5,
+        width: '100%',
+        justifyContent: 'center',
+        alignItems: 'center',
+    },
+    border_line: {
+        height: '60%',
+        alignSelf: 'center',
+        borderWidth: 1,
+        marginHorizontal: 10,
+        borderColor: '#e7e7e7',
     },
     name_text: {
         fontFamily: 'Outfit_600SemiBold',
-        fontSize: 22
+        fontSize: 16,
+        flex: 1,
+        textAlign: 'right',
     },
-    bio_ctnr: {
-
+    score_text: {
+        fontFamily: 'Outfit_600SemiBold',
+        fontSize: 16,
+        color: '#0499FE',
+        flex: 1,
+        textAlign: 'left',
     },
+    bio_ctnr: {},
     bio_text: {
-        fontFamily: 'Outfit_400Regular',
-        fontSize: 14,
-        color: '#848484'
+        fontFamily: 'Outfit_600SemiBold',
+        fontSize: 15,
+        color: '#999',
     },
 });

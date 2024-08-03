@@ -22,16 +22,15 @@ export default function WorkoutStats({ userData }) {
 const styles = StyleSheet.create({
     main_ctnr: {
         flexDirection: 'row',
-        justifyContent: 'center',
-        paddingVertical: 8,
+        justifyContent: 'space-around'
     },
     workout_stat: {
         // width: 104,
-        width: '30%',
+        width: '31.5%',
         height: 68,
         borderRadius: 8,
         marginVertical: 9,
-        marginHorizontal: 5.5,
+        marginHorizontal: 3.5,
         justifyContent: 'center',
         alignItems: 'center'
     },

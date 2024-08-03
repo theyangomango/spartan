@@ -23,7 +23,6 @@ export default function Photo({ uri, images, setImages }) {
 
     useEffect(() => {
         setOrder(images.indexOf(uri) + 1);
-        console.log(images);
     }, [images])
 
     return (
