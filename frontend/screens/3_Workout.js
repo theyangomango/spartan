@@ -13,25 +13,24 @@ import CurrentWorkoutPanel from "../components/3_Workout/CurrentWorkoutPanel";
 import millisToMinutesAndSeconds from "../helper/milliesToMinutesAndSeconds";
 import EditTemplateBottomSheet from "../components/3_Workout/Template/EditTemplateBottomSheet";
 
-const lastUsedDate = "July 6th";
 const initialExercises = [
-    { name: "Incline Bench (Barbell)", muscle: "Chest", sets: [{ reps: 10, weight: 12 }, { reps: 10, weight: 12 }, { reps: 10, weight: 12 }] },
-    { name: "Decline Bench (Barbell)", muscle: "Chest", sets: [{ reps: 8, weight: 10 }, { reps: 8, weight: 10 }, { reps: 8, weight: 10 }] },
-    { name: "Chest Flys", muscle: "Chest", sets: [{ reps: 12, weight: 8 }, { reps: 12, weight: 8 }, { reps: 12, weight: 8 }] },
-    { name: "Pull Ups", muscle: "Back", sets: [{ reps: 5, weight: 'bodyweight' }, { reps: 5, weight: 'bodyweight' }, { reps: 5, weight: 'bodyweight' }] },
-    { name: "Bicep Curls (Dumbell)", muscle: "Biceps", sets: [{ reps: 10, weight: 15 }, { reps: 10, weight: 15 }, { reps: 10, weight: 15 }] },
-    { name: "Lateral Raises", muscle: "Shoulders", sets: [{ reps: 12, weight: 10 }, { reps: 12, weight: 10 }, { reps: 12, weight: 10 }] },
-    { name: "Shoulder Press (Dumbell)", muscle: "Shoulders", sets: [{ reps: 8, weight: 20 }, { reps: 8, weight: 20 }, { reps: 8, weight: 20 }] },
-    { name: "Reverse Curls (Barbell)", muscle: "Biceps", sets: [{ reps: 10, weight: 12 }, { reps: 10, weight: 12 }, { reps: 10, weight: 12 }] }
+    { name: "Incline Bench (Barbell)", muscle: "Chest", sets: [{ previous: '405 lb x 12', reps: 10, weight: 12 }, { previous: '405 lb x 12', reps: 10, weight: 12 }, { previous: '405 lb x 12', reps: 10, weight: 12 }] },
+    { name: "Decline Bench (Barbell)", muscle: "Chest", sets: [{ previous: '405 lb x 12', reps: 8, weight: 10 }, { previous: '405 lb x 12', reps: 8, weight: 10 }, { previous: '405 lb x 12', reps: 8, weight: 10 }] },
+    { name: "Chest Flys", muscle: "Chest", sets: [{ previous: '405 lb x 12', reps: 12, weight: 8 }, { previous: '405 lb x 12', reps: 12, weight: 8 }, { previous: '405 lb x 12', reps: 12, weight: 8 }] },
+    { name: "Pull Ups", muscle: "Back", sets: [{ previous: '405 lb x 12', reps: 5, weight: 'bodyweight' }, { previous: '405 lb x 12', reps: 5, weight: 'bodyweight' }, { previous: '405 lb x 12', reps: 5, weight: 'bodyweight' }] },
+    { name: "Bicep Curls (Dumbell)", muscle: "Biceps", sets: [{ previous: '405 lb x 12', reps: 10, weight: 15 }, { previous: '405 lb x 12', reps: 10, weight: 15 }, { previous: '405 lb x 12', reps: 10, weight: 15 }] },
+    { name: "Lateral Raises", muscle: "Shoulders", sets: [{ previous: '405 lb x 12', reps: 12, weight: 10 }, { previous: '405 lb x 12', reps: 12, weight: 10 }, { previous: '405 lb x 12', reps: 12, weight: 10 }] },
+    { name: "Shoulder Press (Dumbell)", muscle: "Shoulders", sets: [{ previous: '405 lb x 12', reps: 8, weight: 20 }, { previous: '405 lb x 12', reps: 8, weight: 20 }, { previous: '405 lb x 12', reps: 8, weight: 20 }] },
+    { name: "Reverse Curls (Barbell)", muscle: "Biceps", sets: [{ previous: '405 lb x 12', reps: 10, weight: 12 }, { previous: '405 lb x 12', reps: 10, weight: 12 }, { previous: '405 lb x 12', reps: 10, weight: 12 }] }
 ];
 
 const initialTemplates = [
-    { id: '1', lastUsedDate, exercises: initialExercises, name: 'Chest & Back' },
-    { id: '2', lastUsedDate, exercises: initialExercises, name: 'Full Upper Body' },
-    { id: '3', lastUsedDate, exercises: initialExercises, name: 'Leg Day!!!' },
-    { id: '4', lastUsedDate, exercises: initialExercises, name: 'Full Body' },
-    { id: '5', lastUsedDate, exercises: initialExercises, name: 'Cardio' },
-    { id: '6', lastUsedDate, exercises: initialExercises, name: 'Full Upper Body' }
+    { lastUsedDate: 'July 6th', exercises: initialExercises, name: 'Chest & Back' },
+    { lastUsedDate: 'July 6th', exercises: initialExercises, name: 'Full Upper Body' },
+    { lastUsedDate: 'July 6th', exercises: initialExercises, name: 'Leg Day!!!' },
+    { lastUsedDate: 'July 6th', exercises: initialExercises, name: 'Full Body' },
+    { lastUsedDate: 'July 6th', exercises: initialExercises, name: 'Cardio' },
+    { lastUsedDate: 'July 6th', exercises: initialExercises, name: 'Full Upper Body' }
 ];
 
 function Workout({ navigation }) {
@@ -43,7 +42,8 @@ function Workout({ navigation }) {
     const [isEditTemplateBottomSheetVisible, setIsEditTemplateBottomSheetVisible] = useState(false);
     const workoutTimeInterval = useRef(null);
     const [isCurrentWorkoutPanelVisible, setIsCurrentWorkoutPanelVisible] = useState(false);
-    const [selectedTemplate, setSelectedTemplate] = useState(null);
+    const [selectedScheduleTemplate, setSelectedScheduleTemplate] = useState(null);
+    const openedTemplateRef = useRef(null);
     const userData = global.userData;
     const timerRef = useRef('00:00');
 
@@ -101,22 +101,27 @@ function Workout({ navigation }) {
     }, []);
 
     const openEditTemplateBottomSheet = useCallback((index) => {
+        openedTemplateRef.current = templates[index];
         setIsEditTemplateBottomSheetVisible(true);
-    });
+    }, [templates]);
 
-    const renderItem = useCallback(({ item, drag, index }) => (
-        <ScaleDecorator>
-            <TemplateCard
-                lastUsedDate={item.lastUsedDate}
-                exercises={item.exercises}
-                name={item.name}
-                handleLongPress={drag}
-                isPanelVisible={isPanelVisible}
-                setSelectedTemplate={setSelectedTemplate}
-                handlePressEditButton={() => openEditTemplateBottomSheet(index)}
-            />
-        </ScaleDecorator>
-    ), [isPanelVisible, setSelectedTemplate]);
+    const renderItem = useCallback(({ item, drag }) => {
+        const index = templates.findIndex(template => template.id === item.id);
+        return (
+            <ScaleDecorator>
+                <TemplateCard
+                    lastUsedDate={item.lastUsedDate}
+                    exercises={item.exercises}
+                    name={item.name}
+                    handleLongPress={drag}
+                    isPanelVisible={isPanelVisible}
+                    setSelectedTemplate={setSelectedScheduleTemplate}
+                    handlePressEditButton={() => openEditTemplateBottomSheet(index)}
+                    index={index} // Pass the index to TemplateCard
+                />
+            </ScaleDecorator>
+        );
+    }, [isPanelVisible, setSelectedScheduleTemplate, openEditTemplateBottomSheet, templates]);
 
     return (
         <View style={styles.main_ctnr}>
@@ -132,8 +137,8 @@ function Workout({ navigation }) {
                     isVisible={isPanelVisible}
                     onClose={descheduleWorkout}
                     date={panelDate}
-                    selectedTemplate={selectedTemplate}
-                    setSelectedTemplate={setSelectedTemplate}
+                    selectedTemplate={selectedScheduleTemplate}
+                    setSelectedTemplate={setSelectedScheduleTemplate}
                 />
                 {isCurrentWorkoutPanelVisible &&
                     <CurrentWorkoutPanel
@@ -153,7 +158,7 @@ function Workout({ navigation }) {
                 <DraggableFlatList
                     data={templates}
                     onDragEnd={({ data }) => setTemplates(data)}
-                    keyExtractor={(item) => item.id}
+                    keyExtractor={(item, index) => index}
                     renderItem={renderItem}
                     showsVerticalScrollIndicator={false}
                     ListFooterComponent={<View />}
@@ -174,12 +179,11 @@ function Workout({ navigation }) {
             <EditTemplateBottomSheet 
                 isVisible={isEditTemplateBottomSheetVisible}
                 setIsVisible={setIsEditTemplateBottomSheetVisible}
+                openedTemplateRef={openedTemplateRef}
             />
         </View>
     );
 }
-
-export default React.memo(Workout);
 
 const styles = StyleSheet.create({
     main_ctnr: {
@@ -205,3 +209,5 @@ const styles = StyleSheet.create({
         paddingHorizontal: 20
     },
 });
+
+export default React.memo(Workout);

@@ -2,20 +2,19 @@ import { View, StyleSheet, Text, Pressable, Image } from "react-native";
 import { useEffect, useState } from "react";
 import SetRow from "./SetRow";
 import { FontAwesome5, MaterialCommunityIcons, Entypo } from '@expo/vector-icons';
-import DoubleSetRow from "./DoubleSetRow";
 import RNBounceable from "@freakycoder/react-native-bounceable";
 
-export default function ExerciseLog({ name, exerciseIndex, updateSets }) {
+export default function ExerciseLog({ name, exerciseIndex, updateSets, initialSets }) {
     const muscle = name === 'Lateral Raise' ? 'Shoulders' : 'Chest';
 
     const [isTrackingBothSides, setIsTrackingBothSides] = useState(false);
-    const [sets, setSets] = useState([
+    const [sets, setSets] = useState(initialSets.length === 0 ? [
         {
             previous: '405 lb x 12',
             weight: 0,
             reps: 0
         }
-    ]);
+    ] : initialSets);
 
     const muscleColors = {
         Chest: '#FFAFB8',
@@ -36,15 +35,17 @@ export default function ExerciseLog({ name, exerciseIndex, updateSets }) {
         }]);
     }
 
-    async function updateSet(index, set) {
+    function updateSet(index, newSet) {
         const newSets = [...sets];
-        newSets[index] = set;
+        newSets[index] = newSet;
         setSets(newSets);
         updateSets(exerciseIndex, newSets);
     }
 
-    function handlePressTrackingBothSidesButton() {
-        setIsTrackingBothSides(!isTrackingBothSides);
+    function deleteSet(index) {
+        const newSets = sets.filter((_, i) => i !== index);
+        setSets(newSets);
+        updateSets(exerciseIndex, newSets);
     }
 
     return (
@@ -78,19 +79,11 @@ export default function ExerciseLog({ name, exerciseIndex, updateSets }) {
                     </View>
                 </View>
                 <View>
-                    {isTrackingBothSides ?
-                        sets.map((set, index) => {
-                            return (
-                                <DoubleSetRow set={set} index={index} key={index} />
-                            );
-                        })
-                        :
-                        sets.map((set, index) => {
-                            return (
-                                <SetRow set={set} index={index} key={index} updateSet={updateSet} />
-                            );
-                        })
-                    }
+                    {sets.map((set, index) => {
+                        return (
+                            <SetRow set={set} index={index} key={index} updateSet={updateSet} handleDelete={() => deleteSet(index)} />
+                        );
+                    })}
                 </View>
                 <View style={styles.add_set_btn_ctnr}>
                     <RNBounceable activeOpacity={0.5} onPress={addSet} style={styles.add_set_btn}>
@@ -108,13 +101,14 @@ const styles = StyleSheet.create({
     main_ctnr: {
         marginTop: 16,
         marginBottom: 6,
-        marginHorizontal: 2.5,
+        // marginHorizontal: 2.5,
     },
     header: {
         flexDirection: 'row',
         alignItems: 'center',
         paddingLeft: 20,
         paddingBottom: 10,
+        marginHorizontal: 2.5,
     },
     nameContainer: {
         flexDirection: 'row',
@@ -160,6 +154,7 @@ const styles = StyleSheet.create({
     labels: {
         flexDirection: 'row',
         paddingBottom: 5,
+        marginHorizontal: 2.5,
     },
     set_ctnr: {
         marginLeft: '5%',

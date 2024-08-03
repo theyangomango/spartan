@@ -72,7 +72,6 @@ const NewWorkoutModal = ({ workout, setWorkout, closeModal, cancelWorkout, updat
 
     return (
         <View style={styles.main_ctnr}>
-            <View style={styles.handle}></View>
             <View style={styles.header}>
                 <RNBounceable style={styles.iconWrapper}>
                     <MaterialCommunityIcons name="timer-outline" size={24} color="#0499FE" />
@@ -102,7 +101,7 @@ const NewWorkoutModal = ({ workout, setWorkout, closeModal, cancelWorkout, updat
             >
                 <ProgressBanner totalReps={totalReps} totalVolume={totalVolume} personalBests={personalBests} />
                 {workout.exercises.map((ex, index) => (
-                    <ExerciseLog name={ex.name} exerciseIndex={index} key={index} updateSets={updateSets} calculateStats={calculateStats} />
+                    <ExerciseLog name={ex.name} exerciseIndex={index} key={index} updateSets={updateSets} initialSets={ex.sets} />
                 ))}
                 <RNBounceable onPress={showSelectExerciseModal} style={styles.add_exercise_btn}>
                     <Text style={styles.add_exercise_text}>Add Exercises</Text>
@@ -137,11 +136,6 @@ const NewWorkoutModal = ({ workout, setWorkout, closeModal, cancelWorkout, updat
 const styles = StyleSheet.create({
     main_ctnr: {
         flex: 1,
-    },
-    handle: {
-        height: 20,
-        borderTopLeftRadius: 10,
-        borderTopRightRadius: 10
     },
     header: {
         paddingBottom: 6,

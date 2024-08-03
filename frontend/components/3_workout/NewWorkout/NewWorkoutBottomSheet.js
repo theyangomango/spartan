@@ -37,10 +37,11 @@ const NewWorkoutBottomSheet = ({ workout, isVisible, setIsVisible, cancelNewWork
             backdropComponent={renderBackdrop}
             onChange={handleSheetChanges}
             enablePanDownToClose
+            enableContentPanningGesture={false}
             onClose={() => {
                 setIsVisible(false);
             }}
-            handleStyle={{ display: 'none' }}
+            // handleStyle={{ display: 'none' }}
         >
             {workout &&
                 <NewWorkoutModal

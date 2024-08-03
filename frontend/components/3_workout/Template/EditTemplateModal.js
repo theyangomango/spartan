@@ -5,9 +5,10 @@ import SelectExerciseModal from "../NewWorkout/SelectExercise/SelectExerciseModa
 import RNBounceable from "@freakycoder/react-native-bounceable";
 import { Weight } from 'iconsax-react-native';
 
-const EditTemplateModal = () => {
+const EditTemplateModal = ({ openedTemplateRef }) => {
     const [selectExerciseModalVisible, setSelectExerciseModalVisible] = useState(false);
-    const [workout, setWorkout] = useState({ exercises: [] });
+    const [template, setTemplate] = useState(openedTemplateRef.current);
+    console.log(template);
     const [templateTitle, setTemplateTitle] = useState('');
 
     const showSelectExerciseModal = useCallback(() => {
@@ -19,19 +20,18 @@ const EditTemplateModal = () => {
     }, []);
 
     const appendExercises = useCallback((exercises) => {
-        const newWorkout = { ...workout, exercises: [...workout.exercises, ...exercises.map(ex => ({ name: ex, sets: [] }))] };
-        setWorkout(newWorkout);
-    }, [workout]);
+        const newWorkout = { ...template, exercises: [...template.exercises, ...exercises.map(ex => ({ name: ex, sets: [] }))] };
+        setTemplate(newWorkout);
+    }, [template]);
 
     const updateSets = useCallback((index, newSets) => {
-        const newWorkout = { ...workout };
+        const newWorkout = { ...template };
         newWorkout.exercises[index].sets = newSets;
-        setWorkout(newWorkout);
-    }, [workout]);
+        setTemplate(newWorkout);
+    }, [template]);
 
     return (
         <View style={styles.mainContainer}>
-            <View style={styles.handle}></View>
             <View style={styles.header}>
                 <TextInput
                     style={styles.titleInput}
@@ -51,8 +51,8 @@ const EditTemplateModal = () => {
                 showsVerticalScrollIndicator={false}
                 style={styles.scrollView}
             >
-                {workout.exercises.map((ex, index) => (
-                    <ExerciseLog name={ex.name} exerciseIndex={index} key={index} updateSets={updateSets} />
+                {template.exercises.map((ex, index) => (
+                    <ExerciseLog name={ex.name} initialSets={ex.sets} exerciseIndex={index} key={index} updateSets={updateSets} />
                 ))}
                 <RNBounceable onPress={showSelectExerciseModal} style={styles.addExerciseButton}>
                     <Text style={styles.addExerciseText}>Add Exercises</Text>
@@ -82,11 +82,6 @@ const EditTemplateModal = () => {
 const styles = StyleSheet.create({
     mainContainer: {
         flex: 1,
-    },
-    handle: {
-        height: 20,
-        borderTopLeftRadius: 10,
-        borderTopRightRadius: 10
     },
     header: {
         paddingBottom: 6,

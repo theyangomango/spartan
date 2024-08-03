@@ -3,7 +3,9 @@ import { StyleSheet } from "react-native";
 import BottomSheet, { BottomSheetBackdrop } from "@gorhom/bottom-sheet";
 import EditTemplateModal from "./EditTemplateModal";
 
-const EditTemplateBottomSheet = ({ isVisible, setIsVisible }) => {
+const EditTemplateBottomSheet = ({ isVisible, setIsVisible, openedTemplateRef }) => {
+    console.log(openedTemplateRef.current);
+
     const bottomSheetRef = useRef(null);
     const snapPoints = useMemo(() => ["94%"], []);
 
@@ -37,12 +39,14 @@ const EditTemplateBottomSheet = ({ isVisible, setIsVisible }) => {
             backdropComponent={renderBackdrop}
             onChange={handleSheetChanges}
             enablePanDownToClose
+            enableContentPanningGesture={false}
             onClose={() => {
                 setIsVisible(false);
             }}
-            handleStyle={{ display: 'none' }}
         >
-            <EditTemplateModal />
+            {isVisible &&
+                <EditTemplateModal openedTemplateRef={openedTemplateRef} />
+            }
         </BottomSheet>
     );
 };

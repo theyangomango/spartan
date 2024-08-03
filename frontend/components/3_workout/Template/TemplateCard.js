@@ -1,13 +1,15 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, memo } from 'react';
 import { StyleSheet, View, Text, Pressable, Animated } from 'react-native';
 import { Calendar, Weight } from 'iconsax-react-native';
 import Collapsible from 'react-native-collapsible';
 import RNBounceable from '@freakycoder/react-native-bounceable';
 import TemplateDetails from './TemplateDetails';
 
-export default function TemplateCard({ lastUsedDate, name, exercises, handleLongPress, isPanelVisible, setSelectedTemplate, handlePressEditButton }) {
+const TemplateCard = memo(({ lastUsedDate, name, exercises, handleLongPress, isPanelVisible, setSelectedTemplate, handlePressEditButton, index }) => {
     const [isCollapsed, setIsCollapsed] = useState(true);
     const scaleValue = useRef(new Animated.Value(1)).current;
+
+    console.log({ index });
 
     const handlePress = () => {
         if (isPanelVisible) {
@@ -71,7 +73,9 @@ export default function TemplateCard({ lastUsedDate, name, exercises, handleLong
             </Collapsible>
         </RNBounceable>
     );
-}
+});
+
+export default TemplateCard;
 
 const styles = StyleSheet.create({
     mainContainer: {
