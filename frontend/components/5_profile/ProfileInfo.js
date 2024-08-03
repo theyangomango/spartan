@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { StyleSheet, View, Text, Image } from "react-native";
 import { Entypo } from '@expo/vector-icons';
 import getPFP from "../../../backend/storage/getPFP";
+import RNBounceable from "@freakycoder/react-native-bounceable";
 
 export default function ProfileInfo({ userData }) {
     const [pfp, setPFP] = useState(null);
@@ -21,9 +22,9 @@ export default function ProfileInfo({ userData }) {
                 </View>
                 <View style={styles.pfp_ctnr}>
                     <Image source={{ uri: pfp }} style={styles.pfp} />
-                    <View style={styles.plus_icon_ctnr}>
+                    <RNBounceable style={styles.plus_icon_ctnr}>
                         <Entypo name="plus" size={16} color="#222" />
-                    </View>
+                    </RNBounceable>
                 </View>
                 <View style={styles.following_stat_ctnr}>
                     <Text style={styles.user_stat_count_text}>{userData.followingCount}</Text>

@@ -9,7 +9,7 @@ export default function ProfileHeader({ onPressCreateBtn }) {
             <RNBounceable style={styles.options_btn_ctnr}>
                 <Octicons name="gear" size={22.5} color={'#ccc'} />
             </RNBounceable>
-            <TouchableOpacity>
+            <RNBounceable>
                 <View style={styles.center}>
                     <Entypo name="chevron-down" size={18} color="#fff" />
                     <Text style={styles.handle_text}>yangbai</Text>
@@ -17,13 +17,13 @@ export default function ProfileHeader({ onPressCreateBtn }) {
                         <Entypo name="chevron-down" size={18} color="#666" />
                     </View>
                 </View>
-            </TouchableOpacity>
+            </RNBounceable>
             <View style={styles.right}>
-                <TouchableOpacity onPress={onPressCreateBtn}>
+                <RNBounceable onPress={onPressCreateBtn}>
                     <View style={styles.create_btn_ctnr}>
                         <FontAwesome6 name='plus' size={13} color="#bbb" />
                     </View>
-                </TouchableOpacity>
+                </RNBounceable>
                 {/* <TouchableOpacity>
                     <View style={styles.options_btn_ctnr}>
                         <HambergerMenu size="24" color="#000" />

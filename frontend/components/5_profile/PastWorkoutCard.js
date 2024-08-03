@@ -1,17 +1,39 @@
+import React, { useCallback, useMemo } from 'react';
+import { StyleSheet, View, Text, FlatList } from "react-native";
 import RNBounceable from '@freakycoder/react-native-bounceable';
-import React, { useRef } from 'react';
-import { StyleSheet, View, Text, ScrollView } from "react-native";
-import Icon from 'react-native-vector-icons/FontAwesome';
-import { MaterialCommunityIcons, FontAwesome6 } from '@expo/vector-icons'
-import { Clock } from 'iconsax-react-native'
+import { MaterialCommunityIcons } from '@expo/vector-icons';
+import { Clock } from 'iconsax-react-native';
 
-export default function PastWorkoutCard({ lastUsedDate, exercises, name }) {
-    const muscleColors = {
+const PastWorkoutCard = ({ lastUsedDate, exercises, name }) => {
+    console.log('renders');
+
+    const muscleColors = useMemo(() => ({
         Chest: '#FFAFB8',
         Shoulders: '#A1CDEE',
         Biceps: '#CBBCFF',
         Back: '#95E0C8'
-    };
+    }), []);
+
+    const renderExercise = useCallback(({ item }) => (
+        <View style={styles.entry_ctnr}>
+            <View style={styles.entry_left}>
+                <Text
+                    style={styles.entry_text}
+                    numberOfLines={1}
+                    ellipsizeMode="tail"
+                >
+                    {item.name}
+                </Text>
+                <View style={[styles.muscle_ctnr, { backgroundColor: muscleColors[item.muscle] }]}>
+                    <Text style={styles.muscle_text}>{item.muscle}</Text>
+                </View>
+            </View>
+
+            <View style={styles.entry_right}>
+                <Text style={styles.entry_text}>25lb x 12</Text>
+            </View>
+        </View>
+    ), [muscleColors]);
 
     return (
         <RNBounceable>
@@ -26,14 +48,13 @@ export default function PastWorkoutCard({ lastUsedDate, exercises, name }) {
                             <Text style={styles.stats_text}>45 min</Text>
                         </View>
                         <View style={styles.stats_entry}>
-                            <View style={{paddingBottom: 1.2}}>
+                            <View style={{ paddingBottom: 1.2 }}>
                                 <MaterialCommunityIcons name='weight' size={17} color={'#666'} />
                             </View>
                             <Text style={styles.stats_text}>5,000 lb</Text>
                         </View>
                         <View style={styles.stats_entry}>
-                            {/* <Icon name="trophy" size={16} color="#666" /> */}
-                            <FontAwesome6 name="trophy" color={"#666"} size={14} />
+                            <MaterialCommunityIcons name="trophy" color={"#666"} size={14} />
                             <Text style={styles.stats_text}>3 PRs</Text>
                         </View>
                     </View>
@@ -45,31 +66,17 @@ export default function PastWorkoutCard({ lastUsedDate, exercises, name }) {
                             <Text style={styles.stats_header_text}>Best Set</Text>
                         </View>
                     </View>
-                    {exercises.map((exercise, index) => (
-                        <View key={index} style={styles.entry_ctnr}>
-                            <View style={styles.entry_left}>
-                                <Text
-                                    style={styles.entry_text}
-                                    numberOfLines={1}
-                                    ellipsizeMode="tail"
-                                >
-                                    {exercise.name}
-                                </Text>
-                                <View style={[styles.muscle_ctnr, { backgroundColor: muscleColors[exercise.muscle] }]}>
-                                    <Text style={styles.muscle_text}>{exercise.muscle}</Text>
-                                </View>
-                            </View>
-
-                            <View style={styles.entry_right}>
-                                <Text style={styles.entry_text}>25lb x 12</Text>
-                            </View>
-                        </View>
-                    ))}
+                    <FlatList
+                        data={exercises}
+                        renderItem={renderExercise}
+                        keyExtractor={(item, index) => index.toString()}
+                        contentContainerStyle={{ paddingBottom: 10 }}
+                    />
                 </View>
             </View>
         </RNBounceable>
     );
-}
+};
 
 const styles = StyleSheet.create({
     main_ctnr: {
@@ -93,7 +100,6 @@ const styles = StyleSheet.create({
         paddingBottom: 10
     },
     header: {
-        // alignItems: 'center',
         marginBottom: 6
     },
     date_text: {
@@ -160,3 +166,5 @@ const styles = StyleSheet.create({
         justifyContent: 'center',
     },
 });
+
+export default React.memo(PastWorkoutCard);
