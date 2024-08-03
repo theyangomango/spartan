@@ -1,0 +1,176 @@
+import React, { useState, useCallback } from "react";
+import { StyleSheet, View, Modal, ScrollView, Text, TextInput } from "react-native";
+import ExerciseLog from "../NewWorkout/Tracking/ExerciseLog";
+import SelectExerciseModal from "../NewWorkout/SelectExercise/SelectExerciseModal";
+import RNBounceable from "@freakycoder/react-native-bounceable";
+import { Weight } from 'iconsax-react-native';
+
+const EditTemplateModal = () => {
+    const [selectExerciseModalVisible, setSelectExerciseModalVisible] = useState(false);
+    const [headerShadow, setHeaderShadow] = useState(false);
+    const [workout, setWorkout] = useState({ exercises: [] });
+    const [templateTitle, setTemplateTitle] = useState('');
+    const [isFocused, setIsFocused] = useState(false);
+
+    const showSelectExerciseModal = useCallback(() => {
+        setSelectExerciseModalVisible(true);
+    }, []);
+
+    const closeSelectExerciseModal = useCallback(() => {
+        setSelectExerciseModalVisible(false);
+    }, []);
+
+    const appendExercises = useCallback((exercises) => {
+        const newWorkout = { ...workout, exercises: [...workout.exercises, ...exercises.map(ex => ({ name: ex, sets: [] }))] };
+        setWorkout(newWorkout);
+    }, [workout]);
+
+    const updateSets = useCallback((index, newSets) => {
+        const newWorkout = { ...workout };
+        newWorkout.exercises[index].sets = newSets;
+        setWorkout(newWorkout);
+    }, [workout]);
+
+    return (
+        <View style={styles.mainContainer}>
+            <View style={styles.handle}></View>
+            <View style={[styles.header, headerShadow && styles.headerShadow]}>
+                <TextInput
+                    style={styles.titleInput}
+                    value={templateTitle}
+                    onChangeText={setTemplateTitle}
+                    placeholder={isFocused ? '' : 'Untitled Template'}
+                    placeholderTextColor="#aaa"
+                    onFocus={() => setIsFocused(true)}
+                    onBlur={() => setIsFocused(false)}
+                    autoFocus
+                />
+                <View style={styles.headerRight}>
+                    <RNBounceable style={styles.finishButton}>
+                        <Text style={styles.finishButtonText}>Finish</Text>
+                    </RNBounceable>
+                </View>
+            </View>
+
+            <ScrollView
+                showsVerticalScrollIndicator={false}
+                style={styles.scrollView}
+            >
+                {workout.exercises.map((ex, index) => (
+                    <ExerciseLog name={ex.name} exerciseIndex={index} key={index} updateSets={updateSets} />
+                ))}
+                <RNBounceable onPress={showSelectExerciseModal} style={styles.addExerciseButton}>
+                    <Text style={styles.addExerciseText}>Add Exercises</Text>
+                    <Weight size="22" color="#5DBDFF" variant='Bold' />
+                </RNBounceable>
+
+                <RNBounceable style={styles.cancelButton}>
+                    <Text style={styles.cancelButtonText}>Cancel Workout</Text>
+                </RNBounceable>
+
+                <View style={{ height: 150 }} />
+            </ScrollView>
+
+            <Modal
+                animationType='fade'
+                transparent={true}
+                visible={selectExerciseModalVisible}>
+                <SelectExerciseModal
+                    closeModal={closeSelectExerciseModal}
+                    appendExercises={appendExercises}
+                />
+            </Modal>
+        </View>
+    );
+};
+
+const styles = StyleSheet.create({
+    mainContainer: {
+        flex: 1,
+    },
+    handle: {
+        height: 20,
+        borderTopLeftRadius: 10,
+        borderTopRightRadius: 10
+    },
+    header: {
+        paddingBottom: 6,
+        paddingLeft: 15,
+        paddingRight: 22,
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        zIndex: 1,
+    },
+    headerShadow: {
+        borderBottomWidth: 2,
+        borderBottomColor: '#eaeaea'
+    },
+    iconWrapper: {
+        padding: 6,
+        borderRadius: 12,
+        backgroundColor: '#E1F0FF',
+    },
+    titleInput: {
+        flex: 1,
+        fontFamily: 'Outfit_700Bold',
+        fontSize: 18.5,
+        color: '#333',
+        paddingVertical: 5,
+        paddingHorizontal: 10,
+    },
+    headerRight: {
+        flexDirection: 'row',
+        alignItems: 'center',
+    },
+    finishButton: {
+        width: 80,
+        height: 35,
+        borderRadius: 12,
+        backgroundColor: '#DCFFE3',
+        justifyContent: 'center',
+        alignItems: 'center'
+    },
+    finishButtonText: {
+        fontFamily: 'Outfit_700Bold',
+        fontSize: 15.5,
+        color: '#40D99B',
+    },
+    scrollView: {
+        paddingTop: 5
+    },
+    addExerciseButton: {
+        marginHorizontal: 20,
+        marginTop: 18,
+        height: 35,
+        borderRadius: 12,
+        backgroundColor: '#E1F0FF',
+        justifyContent: 'center',
+        alignItems: 'center',
+        flexDirection: 'row'
+    },
+    addExerciseText: {
+        fontSize: 16,
+        fontFamily: 'Outfit_700Bold',
+        color: '#0499FE',
+        marginRight: 4.5
+    },
+    cancelButton: {
+        marginHorizontal: 20,
+        marginTop: 18,
+        height: 35,
+        borderRadius: 12,
+        backgroundColor: '#FFECEC',
+        justifyContent: 'center',
+        alignItems: 'center',
+        flexDirection: 'row'
+    },
+    cancelButtonText: {
+        fontSize: 16,
+        fontFamily: 'Outfit_700Bold',
+        color: '#F27171',
+        marginRight: 4.5
+    },
+});
+
+export default React.memo(EditTemplateModal);

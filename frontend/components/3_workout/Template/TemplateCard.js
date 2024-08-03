@@ -1,11 +1,11 @@
 import React, { useState, useRef } from 'react';
-import { StyleSheet, View, Text, Pressable, Animated } from "react-native";
+import { StyleSheet, View, Text, Pressable, Animated } from 'react-native';
 import { Calendar, Weight } from 'iconsax-react-native';
 import Collapsible from 'react-native-collapsible';
-import TemplateDetails from './TemplateDetails';
 import RNBounceable from '@freakycoder/react-native-bounceable';
+import TemplateDetails from './TemplateDetails';
 
-export default function TemplateCard({ lastUsedDate, name, exercises, handleLongPress, isPanelVisible, setSelectedTemplate }) {
+export default function TemplateCard({ lastUsedDate, name, exercises, handleLongPress, isPanelVisible, setSelectedTemplate, handlePressEditButton }) {
     const [isCollapsed, setIsCollapsed] = useState(true);
     const scaleValue = useRef(new Animated.Value(1)).current;
 
@@ -19,7 +19,7 @@ export default function TemplateCard({ lastUsedDate, name, exercises, handleLong
 
     const handleStartButtonPressIn = () => {
         Animated.spring(scaleValue, {
-            toValue: 0.8,
+            toValue: 0.9,
             friction: 3,
             tension: 40,
             useNativeDriver: true,
@@ -37,22 +37,22 @@ export default function TemplateCard({ lastUsedDate, name, exercises, handleLong
 
     return (
         <RNBounceable onPress={handlePress} onLongPress={handleLongPress} delayLongPress={200}>
-            <View style={styles.main_ctnr}>
-                <View style={styles.text_container}>
+            <View style={styles.mainContainer}>
+                <View style={styles.textContainer}>
                     <View style={styles.titleContainer}>
-                        <Text style={styles.title_text}>{name}</Text>
-                        <RNBounceable bounceEffectIn={0.7} style={styles.editButton}>
+                        <Text style={styles.titleText}>{name}</Text>
+                        <RNBounceable bounceEffectIn={0.7} style={styles.editButton} onPress={handlePressEditButton}>
                             <Text style={styles.editButtonText}>Edit</Text>
                         </RNBounceable>
                     </View>
-                    <View style={styles.info_ctnr}>
-                        <View style={styles.date_ctnr}>
-                            <Calendar size="18.5" color={'#666'} />
-                            <Text style={styles.date_text}> {lastUsedDate}</Text>
+                    <View style={styles.infoContainer}>
+                        <View style={styles.dateContainer}>
+                            <Calendar size="18.5" color='#666' />
+                            <Text style={styles.dateText}> {lastUsedDate}</Text>
                         </View>
-                        <View style={styles.exercises_ctnr}>
-                            <Weight size="21.5" color="#666" />
-                            <Text style={styles.exercises_text}> {exercises.length} Exercises</Text>
+                        <View style={styles.exercisesContainer}>
+                            <Weight size="21.5" color='#666' />
+                            <Text style={styles.exercisesText}> {exercises.length} Exercises</Text>
                         </View>
                     </View>
                 </View>
@@ -74,7 +74,7 @@ export default function TemplateCard({ lastUsedDate, name, exercises, handleLong
 }
 
 const styles = StyleSheet.create({
-    main_ctnr: {
+    mainContainer: {
         borderRadius: 15,
         paddingLeft: 27,
         paddingRight: 3,
@@ -86,7 +86,7 @@ const styles = StyleSheet.create({
         flexDirection: 'row',
         alignItems: 'center',
     },
-    text_container: {
+    textContainer: {
         flex: 1,
         justifyContent: 'center',
     },
@@ -95,7 +95,7 @@ const styles = StyleSheet.create({
         alignItems: 'center',
         paddingBottom: 5.5,
     },
-    title_text: {
+    titleText: {
         fontFamily: 'Outfit_500Medium',
         fontSize: 15,
         color: '#2D9EFF',
@@ -112,33 +112,33 @@ const styles = StyleSheet.create({
         fontFamily: 'Outfit_700Bold',
         fontSize: 12,
     },
-    info_ctnr: {
+    infoContainer: {
         flexDirection: 'row',
         alignItems: 'center',
         marginBottom: 2,
     },
-    date_ctnr: {
+    dateContainer: {
         flexDirection: 'row',
         alignItems: 'center',
         marginRight: 15,
     },
-    date_text: {
+    dateText: {
         fontFamily: 'Outfit_500Medium',
         fontSize: 12.5,
         color: '#666',
     },
-    exercises_ctnr: {
+    exercisesContainer: {
         flexDirection: 'row',
         alignItems: 'center',
     },
-    exercises_text: {
+    exercisesText: {
         fontFamily: 'Outfit_500Medium',
         fontSize: 13,
         color: '#666',
         marginLeft: 1,
     },
     startButton: {
-        backgroundColor: '#32CD32',
+        backgroundColor: '#6FD5AC',
         paddingVertical: 5,
         paddingHorizontal: 15,
         borderRadius: 8,
@@ -148,7 +148,7 @@ const styles = StyleSheet.create({
     startButtonText: {
         color: '#fff',
         fontFamily: 'Outfit_700Bold',
-        fontSize: 14,
+        fontSize: 13.5,
     },
     collapsibleContainer: {
         overflow: 'hidden',

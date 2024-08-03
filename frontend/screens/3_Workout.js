@@ -11,17 +11,18 @@ import WorkoutInfoPanel from "../components/3_Workout/WorkoutDates/WorkoutInfoPa
 import NewWorkoutBottomSheet from "../components/3_Workout/NewWorkout/NewWorkoutBottomSheet";
 import CurrentWorkoutPanel from "../components/3_Workout/CurrentWorkoutPanel";
 import millisToMinutesAndSeconds from "../helper/milliesToMinutesAndSeconds";
+import EditTemplateBottomSheet from "../components/3_Workout/Template/EditTemplateBottomSheet";
 
 const lastUsedDate = "July 6th";
 const initialExercises = [
-    { name: "Incline Bench (Barbell)", muscle: "Chest", sets: [ { reps: 10, weight: 12 }, { reps: 10, weight: 12 }, { reps: 10, weight: 12 } ] },
-    { name: "Decline Bench (Barbell)", muscle: "Chest", sets: [ { reps: 8, weight: 10 }, { reps: 8, weight: 10 }, { reps: 8, weight: 10 } ] },
-    { name: "Chest Flys", muscle: "Chest", sets: [ { reps: 12, weight: 8 }, { reps: 12, weight: 8 }, { reps: 12, weight: 8 } ] },
-    { name: "Pull Ups", muscle: "Back", sets: [ { reps: 5, weight: 'bodyweight' }, { reps: 5, weight: 'bodyweight' }, { reps: 5, weight: 'bodyweight' } ] },
-    { name: "Bicep Curls (Dumbell)", muscle: "Biceps", sets: [ { reps: 10, weight: 15 }, { reps: 10, weight: 15 }, { reps: 10, weight: 15 } ] },
-    { name: "Lateral Raises", muscle: "Shoulders", sets: [ { reps: 12, weight: 10 }, { reps: 12, weight: 10 }, { reps: 12, weight: 10 } ] },
-    { name: "Shoulder Press (Dumbell)", muscle: "Shoulders", sets: [ { reps: 8, weight: 20 }, { reps: 8, weight: 20 }, { reps: 8, weight: 20 } ] },
-    { name: "Reverse Curls (Barbell)", muscle: "Biceps", sets: [ { reps: 10, weight: 12 }, { reps: 10, weight: 12 }, { reps: 10, weight: 12 } ] }
+    { name: "Incline Bench (Barbell)", muscle: "Chest", sets: [{ reps: 10, weight: 12 }, { reps: 10, weight: 12 }, { reps: 10, weight: 12 }] },
+    { name: "Decline Bench (Barbell)", muscle: "Chest", sets: [{ reps: 8, weight: 10 }, { reps: 8, weight: 10 }, { reps: 8, weight: 10 }] },
+    { name: "Chest Flys", muscle: "Chest", sets: [{ reps: 12, weight: 8 }, { reps: 12, weight: 8 }, { reps: 12, weight: 8 }] },
+    { name: "Pull Ups", muscle: "Back", sets: [{ reps: 5, weight: 'bodyweight' }, { reps: 5, weight: 'bodyweight' }, { reps: 5, weight: 'bodyweight' }] },
+    { name: "Bicep Curls (Dumbell)", muscle: "Biceps", sets: [{ reps: 10, weight: 15 }, { reps: 10, weight: 15 }, { reps: 10, weight: 15 }] },
+    { name: "Lateral Raises", muscle: "Shoulders", sets: [{ reps: 12, weight: 10 }, { reps: 12, weight: 10 }, { reps: 12, weight: 10 }] },
+    { name: "Shoulder Press (Dumbell)", muscle: "Shoulders", sets: [{ reps: 8, weight: 20 }, { reps: 8, weight: 20 }, { reps: 8, weight: 20 }] },
+    { name: "Reverse Curls (Barbell)", muscle: "Biceps", sets: [{ reps: 10, weight: 12 }, { reps: 10, weight: 12 }, { reps: 10, weight: 12 }] }
 ];
 
 const initialTemplates = [
@@ -38,7 +39,8 @@ function Workout({ navigation }) {
     const [templates, setTemplates] = useState(initialTemplates);
     const [isPanelVisible, setIsPanelVisible] = useState(false);
     const [panelDate, setPanelDate] = useState(null);
-    const [isBottomSheetVisible, setIsBottomSheetVisible] = useState(false);
+    const [isNewWorkoutBottomSheetVisible, setIsNewWorkoutBottomSheetVisible] = useState(false);
+    const [isEditTemplateBottomSheetVisible, setIsEditTemplateBottomSheetVisible] = useState(false);
     const workoutTimeInterval = useRef(null);
     const [isCurrentWorkoutPanelVisible, setIsCurrentWorkoutPanelVisible] = useState(false);
     const [selectedTemplate, setSelectedTemplate] = useState(null);
@@ -55,7 +57,7 @@ function Workout({ navigation }) {
                 users: [],
                 exercises: []
             });
-            setIsBottomSheetVisible(true);
+            setIsNewWorkoutBottomSheetVisible(true);
             const initialTime = Date.now();
             workoutTimeInterval.current = setInterval(() => {
                 const diff = Date.now() - initialTime;
@@ -65,7 +67,7 @@ function Workout({ navigation }) {
                 setIsCurrentWorkoutPanelVisible(true);
             }, 500);
         } else {
-            setIsBottomSheetVisible(true);
+            setIsNewWorkoutBottomSheetVisible(true);
         }
     }, [workout, userData]);
 
@@ -75,7 +77,7 @@ function Workout({ navigation }) {
 
     const cancelNewWorkout = useCallback(() => {
         setWorkout(null);
-        setIsBottomSheetVisible(false);
+        setIsNewWorkoutBottomSheetVisible(false);
         clearInterval(workoutTimeInterval.current);
         setIsCurrentWorkoutPanelVisible(false);
         timerRef.current = '00:00';
@@ -83,7 +85,7 @@ function Workout({ navigation }) {
 
     const finishNewWorkout = useCallback(() => {
         setWorkout(null);
-        setIsBottomSheetVisible(false);
+        setIsNewWorkoutBottomSheetVisible(false);
         clearInterval(workoutTimeInterval.current);
         setIsCurrentWorkoutPanelVisible(false);
         timerRef.current = '00:00';
@@ -98,7 +100,11 @@ function Workout({ navigation }) {
         setIsPanelVisible(false);
     }, []);
 
-    const renderItem = useCallback(({ item, drag }) => (
+    const openEditTemplateBottomSheet = useCallback((index) => {
+        setIsEditTemplateBottomSheetVisible(true);
+    });
+
+    const renderItem = useCallback(({ item, drag, index }) => (
         <ScaleDecorator>
             <TemplateCard
                 lastUsedDate={item.lastUsedDate}
@@ -107,6 +113,7 @@ function Workout({ navigation }) {
                 handleLongPress={drag}
                 isPanelVisible={isPanelVisible}
                 setSelectedTemplate={setSelectedTemplate}
+                handlePressEditButton={() => openEditTemplateBottomSheet(index)}
             />
         </ScaleDecorator>
     ), [isPanelVisible, setSelectedTemplate]);
@@ -135,7 +142,7 @@ function Workout({ navigation }) {
                         openWorkout={startNewWorkout}
                     />
                 }
-                {!isCurrentWorkoutPanelVisible && 
+                {!isCurrentWorkoutPanelVisible &&
                     <>
                         <Text style={styles.quick_start_text}>Quick Start</Text>
                         <StartWorkoutButton startWorkout={startNewWorkout} />
@@ -159,9 +166,14 @@ function Workout({ navigation }) {
                 cancelNewWorkout={cancelNewWorkout}
                 updateNewWorkout={updateNewWorkout}
                 finishNewWorkout={finishNewWorkout}
-                isVisible={isBottomSheetVisible}
-                setIsVisible={setIsBottomSheetVisible}
+                isVisible={isNewWorkoutBottomSheetVisible}
+                setIsVisible={setIsNewWorkoutBottomSheetVisible}
                 timerRef={timerRef}
+            />
+
+            <EditTemplateBottomSheet 
+                isVisible={isEditTemplateBottomSheetVisible}
+                setIsVisible={setIsEditTemplateBottomSheetVisible}
             />
         </View>
     );

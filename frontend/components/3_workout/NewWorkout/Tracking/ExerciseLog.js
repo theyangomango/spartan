@@ -5,7 +5,7 @@ import { FontAwesome5, MaterialCommunityIcons, Entypo } from '@expo/vector-icons
 import DoubleSetRow from "./DoubleSetRow";
 import RNBounceable from "@freakycoder/react-native-bounceable";
 
-export default function ExerciseLog({ name, exerciseIndex, updateSets, calculateStats }) {
+export default function ExerciseLog({ name, exerciseIndex, updateSets }) {
     const muscle = name == 'Lateral Raise' ? 'Shoulders' : 'Chest';
 
     const [isTrackingBothSides, setIsTrackingBothSides] = useState(false);
