@@ -26,7 +26,7 @@ export default function EditableStat({ placeholder='0', isFinished, value, setVa
                 onFocus={() => setIsSelected(true)}
                 onEndEditing={() => setIsSelected(false)}
                 style={styles.text}
-                value={value}
+                value={value.toString()}
                 onChangeText={setValue}
             />
         </Pressable>

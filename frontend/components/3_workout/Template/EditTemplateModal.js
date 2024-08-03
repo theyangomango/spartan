@@ -7,10 +7,8 @@ import { Weight } from 'iconsax-react-native';
 
 const EditTemplateModal = () => {
     const [selectExerciseModalVisible, setSelectExerciseModalVisible] = useState(false);
-    const [headerShadow, setHeaderShadow] = useState(false);
     const [workout, setWorkout] = useState({ exercises: [] });
     const [templateTitle, setTemplateTitle] = useState('');
-    const [isFocused, setIsFocused] = useState(false);
 
     const showSelectExerciseModal = useCallback(() => {
         setSelectExerciseModalVisible(true);
@@ -34,20 +32,17 @@ const EditTemplateModal = () => {
     return (
         <View style={styles.mainContainer}>
             <View style={styles.handle}></View>
-            <View style={[styles.header, headerShadow && styles.headerShadow]}>
+            <View style={styles.header}>
                 <TextInput
                     style={styles.titleInput}
                     value={templateTitle}
                     onChangeText={setTemplateTitle}
-                    placeholder={isFocused ? '' : 'Untitled Template'}
+                    placeholder="Untitled Template"
                     placeholderTextColor="#aaa"
-                    onFocus={() => setIsFocused(true)}
-                    onBlur={() => setIsFocused(false)}
-                    autoFocus
                 />
                 <View style={styles.headerRight}>
-                    <RNBounceable style={styles.finishButton}>
-                        <Text style={styles.finishButtonText}>Finish</Text>
+                    <RNBounceable style={styles.savedButton}>
+                        <Text style={styles.savedButtonText}>Saved</Text>
                     </RNBounceable>
                 </View>
             </View>
@@ -65,7 +60,7 @@ const EditTemplateModal = () => {
                 </RNBounceable>
 
                 <RNBounceable style={styles.cancelButton}>
-                    <Text style={styles.cancelButtonText}>Cancel Workout</Text>
+                    <Text style={styles.cancelButtonText}>Delete Template</Text>
                 </RNBounceable>
 
                 <View style={{ height: 150 }} />
@@ -106,11 +101,6 @@ const styles = StyleSheet.create({
         borderBottomWidth: 2,
         borderBottomColor: '#eaeaea'
     },
-    iconWrapper: {
-        padding: 6,
-        borderRadius: 12,
-        backgroundColor: '#E1F0FF',
-    },
     titleInput: {
         flex: 1,
         fontFamily: 'Outfit_700Bold',
@@ -123,18 +113,20 @@ const styles = StyleSheet.create({
         flexDirection: 'row',
         alignItems: 'center',
     },
-    finishButton: {
+    savedButton: {
         width: 80,
         height: 35,
         borderRadius: 12,
-        backgroundColor: '#DCFFE3',
+        // backgroundColor: '#DCFFE3',
+        backgroundColor: '#eee',
         justifyContent: 'center',
         alignItems: 'center'
     },
-    finishButtonText: {
+    savedButtonText: {
         fontFamily: 'Outfit_700Bold',
         fontSize: 15.5,
-        color: '#40D99B',
+        // color: '#40D99B',
+        color: '#999',
     },
     scrollView: {
         paddingTop: 5

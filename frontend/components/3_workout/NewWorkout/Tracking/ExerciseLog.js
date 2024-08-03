@@ -6,7 +6,7 @@ import DoubleSetRow from "./DoubleSetRow";
 import RNBounceable from "@freakycoder/react-native-bounceable";
 
 export default function ExerciseLog({ name, exerciseIndex, updateSets }) {
-    const muscle = name == 'Lateral Raise' ? 'Shoulders' : 'Chest';
+    const muscle = name === 'Lateral Raise' ? 'Shoulders' : 'Chest';
 
     const [isTrackingBothSides, setIsTrackingBothSides] = useState(false);
     const [sets, setSets] = useState([
@@ -37,9 +37,9 @@ export default function ExerciseLog({ name, exerciseIndex, updateSets }) {
     }
 
     async function updateSet(index, set) {
-        var newSets = sets;
+        const newSets = [...sets];
         newSets[index] = set;
-        setSets(newSets)
+        setSets(newSets);
         updateSets(exerciseIndex, newSets);
     }
 
@@ -51,9 +51,11 @@ export default function ExerciseLog({ name, exerciseIndex, updateSets }) {
         <Pressable>
             <View style={styles.main_ctnr}>
                 <View style={styles.header}>
-                    <Text style={styles.exercise_text}>{name}</Text>
-                    <View style={[styles.muscle_ctnr, { backgroundColor: muscleColors[muscle] }]}>
-                        <Text style={styles.muscle_text}>{muscle}</Text>
+                    <View style={styles.nameContainer}>
+                        <Text style={styles.exercise_text} numberOfLines={1}>{name}</Text>
+                        <View style={[styles.muscle_ctnr, { backgroundColor: muscleColors[muscle] }]}>
+                            <Text style={styles.muscle_text}>{muscle}</Text>
+                        </View>
                     </View>
                     <View style={styles.pfpContainer}>
                         <Image style={styles.pfp} source={{ uri: global.userData.image }} />
@@ -114,22 +116,29 @@ const styles = StyleSheet.create({
         paddingLeft: 20,
         paddingBottom: 10,
     },
+    nameContainer: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        flexShrink: 1,
+        marginRight: 10,
+    },
     exercise_text: {
         fontFamily: 'Mulish_800ExtraBold',
         color: '#0699FF',
-        fontSize: 18,
-        marginRight: 8,
+        fontSize: 15,
+        flexShrink: 1,
     },
     muscle_ctnr: {
         borderRadius: 15,
         height: 23.5,
         paddingHorizontal: 12,
         alignItems: 'center',
-        justifyContent: 'center'
+        justifyContent: 'center',
+        marginLeft: 5,
     },
     muscle_text: {
         fontFamily: 'Poppins_700Bold',
-        fontSize: 12.5,
+        fontSize: 12,
         color: '#fff'
     },
     pfpContainer: {
@@ -170,8 +179,8 @@ const styles = StyleSheet.create({
         alignItems: 'center',
     },
     label_text: {
-        fontFamily: 'Poppins_600SemiBold',
-        fontSize: 15.5,
+        fontFamily: 'Mulish_800ExtraBold',
+        fontSize: 14,
     },
     add_set_btn_ctnr: {
         paddingHorizontal: 20,

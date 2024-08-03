@@ -1,5 +1,5 @@
-import React, { useEffect, useState, useCallback } from "react";
-import { StyleSheet, View, Modal, ScrollView, Text } from "react-native";
+import React, { useEffect, useState, useCallback, useRef } from "react";
+import { StyleSheet, View, Modal, ScrollView, Text, Animated } from "react-native";
 import ProgressBanner from "./Tracking/ProgressBanner";
 import ExerciseLog from "./Tracking/ExerciseLog";
 import SelectExerciseModal from './SelectExercise/SelectExerciseModal';
@@ -12,11 +12,10 @@ import TimerDisplay from "./TimerDisplay";
 const NewWorkoutModal = ({ workout, setWorkout, closeModal, cancelWorkout, updateWorkout, finishWorkout, timerRef }) => {
     const [selectExerciseModalVisible, setSelectExerciseModalVisible] = useState(false);
     const [groupModalExpandFlag, setGroupModalExpandFlag] = useState(false);
-    const [headerShadow, setHeaderShadow] = useState(false);
-
     const [totalReps, setTotalReps] = useState(0);
     const [totalVolume, setTotalVolume] = useState(0);
     const [personalBests, setPersonalBests] = useState(0);
+    const scrollY = useRef(new Animated.Value(0)).current;
 
     const calculateStats = useCallback(() => {
         let reps = 0;
@@ -61,20 +60,20 @@ const NewWorkoutModal = ({ workout, setWorkout, closeModal, cancelWorkout, updat
         calculateStats();
     }, [workout, updateWorkout, calculateStats]);
 
-    const handleScroll = useCallback((event) => {
-        const scrollPosition = event.nativeEvent.contentOffset.y;
-        setHeaderShadow(scrollPosition > 98);
-        calculateStats();
-    }, [calculateStats]);
-
     useEffect(() => {
         calculateStats();
     }, [calculateStats]);
 
+    const borderOpacity = scrollY.interpolate({
+        inputRange: [0, 98],
+        outputRange: [0, 1],
+        extrapolate: 'clamp',
+    });
+
     return (
         <View style={styles.main_ctnr}>
             <View style={styles.handle}></View>
-            <View style={[styles.header, headerShadow && styles.headerShadow]}>
+            <View style={styles.header}>
                 <RNBounceable style={styles.iconWrapper}>
                     <MaterialCommunityIcons name="timer-outline" size={24} color="#0499FE" />
                 </RNBounceable>
@@ -89,11 +88,15 @@ const NewWorkoutModal = ({ workout, setWorkout, closeModal, cancelWorkout, updat
                         <Text style={styles.finish_btn_text}>Finish</Text>
                     </RNBounceable>
                 </View>
+                <Animated.View style={[styles.headerShadow, { opacity: borderOpacity }]} />
             </View>
 
-            <ScrollView
+            <Animated.ScrollView
                 showsVerticalScrollIndicator={false}
-                onScroll={handleScroll}
+                onScroll={Animated.event(
+                    [{ nativeEvent: { contentOffset: { y: scrollY } } }],
+                    { useNativeDriver: false }
+                )}
                 scrollEventThrottle={16}
                 style={styles.scrollview}
             >
@@ -111,7 +114,7 @@ const NewWorkoutModal = ({ workout, setWorkout, closeModal, cancelWorkout, updat
                 </RNBounceable>
 
                 <View style={{ height: 150 }} />
-            </ScrollView>
+            </Animated.ScrollView>
 
             <Modal
                 animationType='fade'
@@ -148,10 +151,15 @@ const styles = StyleSheet.create({
         justifyContent: 'space-between',
         backgroundColor: '#fff',
         zIndex: 1,
+        position: 'relative'
     },
     headerShadow: {
-        borderBottomWidth: 2,
-        borderBottomColor: '#eaeaea'
+        position: 'absolute',
+        left: 0,
+        right: 0,
+        bottom: 0,
+        height: 2,
+        backgroundColor: '#eaeaea',
     },
     iconWrapper: {
         padding: 6,
@@ -159,9 +167,6 @@ const styles = StyleSheet.create({
         backgroundColor: '#E1F0FF',
     },
     timer_text_ctnr: {
-        // fontFamily: 'Outfit_700Bold',
-        // fontSize: 18,
-        // color: '#aaa',
         position: 'absolute',
         left: 0,
         right: 0,

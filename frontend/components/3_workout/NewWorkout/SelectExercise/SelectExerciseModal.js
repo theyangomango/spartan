@@ -1,20 +1,29 @@
-import { StyleSheet, View, Text, Pressable, ScrollView, TouchableOpacity, TextInput } from "react-native";
+import React, { useState, useEffect, useRef } from "react";
+import { StyleSheet, View, Text, Pressable, ScrollView, TextInput, Animated } from "react-native";
 import ExerciseCard from "./ExerciseCard";
-import { Add } from 'iconsax-react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { useState } from "react";
+import RNBounceable from "@freakycoder/react-native-bounceable";
 
 export default function SelectExerciseModal({ closeModal, appendExercises }) {
     const [selectedExercises, setSelectedExercises] = useState([]);
     const [searchQuery, setSearchQuery] = useState('');
+    const opacity = useRef(new Animated.Value(1)).current;
 
     const exercises = [
-        { name: 'Lateral Raise', muscleGroup: 'Shoulders' },
-        { name: 'Bench Press', muscleGroup: 'Chest' },
-        { name: 'Dumbell Press', muscleGroup: 'Chest' },
-        { name: 'Ab Wheel', muscleGroup: 'Abs' },
+        { name: 'Standing Tricep Extension (Dumbell)', muscleGroup: 'Shoulders' },
+        { name: 'Dumbell Squat', muscleGroup: 'Chest' },
+        { name: 'Standing Preacher Curl (Dumbell)', muscleGroup: 'Chest' },
+        { name: 'Lateral Raise (Dumbell)', muscleGroup: 'Abs' },
         // Add more exercises as needed
     ];
+
+    useEffect(() => {
+        Animated.timing(opacity, {
+            toValue: selectedExercises.length === 0 ? 0.5 : 1,
+            duration: 300,
+            useNativeDriver: true,
+        }).start();
+    }, [selectedExercises]);
 
     function selectExercise(name) {
         setSelectedExercises([...selectedExercises, name]);
@@ -43,18 +52,19 @@ export default function SelectExerciseModal({ closeModal, appendExercises }) {
             <Pressable onPress={() => closeModal()} style={styles.outside_pressable} />
             <View style={styles.main_ctnr}>
                 <View style={styles.header}>
-                    <View style={styles.add_icon_ctnr}>
-                        <Add size={30} color={'#777'} />
-                    </View>
-                    <TouchableOpacity onPress={handleFinish} style={styles.done_icon_ctnr}>
-                        <Ionicons
-                            name="checkmark-done"
-                            size={26}
-                            color={selectedExercises.length === 0 ? '#777' : '#0699FF'}
-                        />
-                    </TouchableOpacity>
+                    <RNBounceable style={styles.newButton}>
+                        <Text style={styles.newButtonText}>New</Text>
+                    </RNBounceable>
+                    <Animated.View style={{ opacity }}>
+                        <RNBounceable onPress={handleFinish} style={styles.addButton}>
+                            <Text style={styles.addButtonText}>
+                                {`Add${selectedExercises.length > 0 ? ` (${selectedExercises.length})` : ''}`}
+                            </Text>
+                        </RNBounceable>
+                    </Animated.View>
                 </View>
                 <View style={styles.searchContainer}>
+                    <Ionicons name="search" size={20} color="#888" style={styles.searchIcon} />
                     <TextInput
                         style={styles.searchInput}
                         placeholder="Search exercises..."
@@ -63,12 +73,12 @@ export default function SelectExerciseModal({ closeModal, appendExercises }) {
                     />
                 </View>
                 <View style={styles.filterContainer}>
-                    <TouchableOpacity style={styles.filterButton}>
+                    <RNBounceable style={styles.filterButton}>
                         <Text style={styles.filterButtonText}>Any Body Part</Text>
-                    </TouchableOpacity>
-                    <TouchableOpacity style={styles.filterButton}>
-                        <Text style={styles.filterButtonText}>Any Category</Text>
-                    </TouchableOpacity>
+                    </RNBounceable>
+                    <RNBounceable style={styles.filterButton}>
+                        <Text style={styles.filterButtonText}>All Equipment</Text>
+                    </RNBounceable>
                 </View>
                 <ScrollView>
                     {filteredExercises.map((exercise, index) => (
@@ -99,11 +109,10 @@ const styles = StyleSheet.create({
         width: '100%',
     },
     main_ctnr: {
-        width: '92%',
+        width: '94%',
         height: '81%',
         backgroundColor: '#fff',
         borderRadius: 20,
-        backgroundColor: 'white',
         shadowColor: '#000',
         shadowOffset: { width: 0, height: 2 },
         shadowOpacity: 0.8,
@@ -113,24 +122,52 @@ const styles = StyleSheet.create({
     header: {
         flexDirection: 'row',
         justifyContent: 'space-between',
-        paddingHorizontal: 10
+        paddingHorizontal: 15,
+        paddingTop: 10,
+        paddingBottom: 10
     },
-    add_icon_ctnr: {
-        padding: 3
+    newButton: {
+        backgroundColor: '#e0e0e0',
+        paddingHorizontal: 20,
+        paddingVertical: 4.5,
+        borderRadius: 8,
+        justifyContent: 'center',
+        alignItems: 'center'
     },
-    done_icon_ctnr: {
-        padding: 5
+    newButtonText: {
+        color: '#333',
+        fontFamily: 'Outfit_700Bold',
+        fontSize: 14,
+    },
+    addButton: {
+        backgroundColor: '#51A9FF',
+        paddingHorizontal: 20,
+        paddingVertical: 4.5,
+        borderRadius: 8,
+        justifyContent: 'center',
+        alignItems: 'center'
+    },
+    addButtonText: {
+        color: '#fff',
+        fontFamily: 'Outfit_700Bold',
+        fontSize: 14,
     },
     searchContainer: {
-        paddingHorizontal: 10,
-        marginVertical: 10
+        flexDirection: 'row',
+        alignItems: 'center',
+        backgroundColor: '#e0e0e0',
+        borderRadius: 8,
+        marginHorizontal: 15,
+        paddingHorizontal: 8,
+        marginBottom: 10,
+        alignSelf: 'center',
+    },
+    searchIcon: {
+        marginRight: 8,
     },
     searchInput: {
-        height: 40,
-        borderColor: '#ccc',
-        borderWidth: 1,
-        borderRadius: 5,
-        paddingHorizontal: 10
+        flex: 1,
+        padding: 8,
     },
     filterContainer: {
         flexDirection: 'row',
@@ -141,13 +178,14 @@ const styles = StyleSheet.create({
     filterButton: {
         flex: 1,
         alignItems: 'center',
-        padding: 10,
+        padding: 5,
         marginHorizontal: 5,
-        borderRadius: 5,
+        borderRadius: 10,
         backgroundColor: '#E1E1E1'
     },
     filterButtonText: {
-        fontSize: 16,
-        color: '#333'
+        fontSize: 13,
+        color: '#333',
+        fontFamily: 'Outfit_700Bold'
     }
 });

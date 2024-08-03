@@ -29,21 +29,15 @@ export default function ExerciseCard({ name, muscleGroup, lastDone = 'July 13th'
     return (
         <Pressable onPress={toggleSelected} style={[styles.card, isSelected && styles.selected]}>
             <View style={styles.leftContainer}>
-                {/* <ExerciseImagePreview exercise={'shrug-dumbell'} /> */}
                 <ExerciseImagePreview exercise={'standing-preacher-curl-dumbbell'} />
-
                 <View style={styles.textContainer}>
-                    {/* <View style={styles.row}> */}
-                        <Text style={styles.exerciseName}>{name}</Text>
-
-                    {/* </View> */}
+                    <Text style={styles.exerciseName}>{name}</Text>
                     <View style={styles.row}>
                         <Text style={styles.lastDone}>{lastDone}</Text>
                         <View style={[styles.muscle_ctnr, { backgroundColor: muscleColors[muscleGroup] || '#ccc' }]}>
                             <Text style={styles.muscle_text}>{muscleGroup}</Text>
                         </View>
                     </View>
-
                 </View>
             </View>
             <View style={styles.rightContainer}>
@@ -61,45 +55,43 @@ const styles = StyleSheet.create({
     card: {
         flexDirection: 'row',
         alignItems: 'center',
-        height: 66,
-        paddingLeft: 12,
-        paddingRight: 8,
-        // paddingHorizontal: 8,
+        paddingLeft: 15,
+        paddingRight: 12,
         justifyContent: 'space-between',
-        position: 'relative', // Added to ensure border is positioned relative to the card
+        position: 'relative',
     },
     leftContainer: {
         flexDirection: 'row',
         alignItems: 'center',
+        flex: 1, // Ensure leftContainer takes available space
     },
     border: {
         position: 'absolute',
         bottom: 0,
         left: 13,
         right: 13,
-        height: 0.7,
-        backgroundColor: '#ccc',
+        height: 1.5,
+        backgroundColor: '#eaeaea',
     },
     textContainer: {
-        flexDirection: 'column', // Changed to column to stack name, muscle group, and last done date
-        height: '100%',
-        paddingVertical: 10,
+        flexDirection: 'column',
+        paddingVertical: 8,
         justifyContent: 'center',
+        flex: 1, // Ensure textContainer takes available space
+        paddingLeft: 10, // Add padding to avoid overlap with image
     },
     row: {
         flexDirection: 'row',
         alignItems: 'center',
-        justifyContent: 'space-between'
     },
     selected: {
         backgroundColor: '#E1F0FF',
     },
     exerciseName: {
         fontFamily: 'Outfit_600SemiBold',
-        fontSize: 16,
-        // marginRight: 4, // Added margin to separate from muscle group
-        marginLeft: 0.8,
-        marginVertical: 5,
+        fontSize: 14,
+        marginVertical: 3.5,
+        flexWrap: 'wrap', // Ensure text wraps
     },
     muscle_ctnr: {
         marginLeft: 5,
@@ -111,23 +103,22 @@ const styles = StyleSheet.create({
     },
     muscle_text: {
         fontFamily: 'Poppins_700Bold',
-        fontSize: 10,
+        fontSize: 11,
         color: '#fff',
     },
     lastDone: {
-        fontFamily: 'Outfit_400Regular',
+        fontFamily: 'Outfit_500Medium',
         fontSize: 14,
-        color: '#666',
-        // marginTop: 2,
+        color: '#999',
     },
     rightContainer: {
         flexDirection: 'row',
         alignItems: 'center',
-        marginRight: 5,
+        marginLeft: 10, // Add margin to separate from textContainer
     },
     timesCompleted: {
         fontFamily: 'Outfit_600SemiBold',
-        fontSize: 19,
+        fontSize: 17,
         marginRight: 8,
         color: '#888'
     },
