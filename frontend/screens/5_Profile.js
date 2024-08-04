@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useCallback, memo } from "react";
+import React, { useEffect, useState, useRef } from "react";
 import { StyleSheet, View, Pressable, FlatList } from "react-native";
 import { Grid2, Activity, Clock } from 'iconsax-react-native';
 import MasonryList from '@react-native-seoul/masonry-list';
@@ -11,6 +11,7 @@ import PostPreview from "../components/5_profile/PostPreview";
 import readDoc from "../../backend/helper/firebase/readDoc";
 import ExerciseGraph from "../components/5_profile/ExerciseGraph";
 import PastWorkoutCard from "../components/5_profile/PastWorkoutCard";
+import EditProfileBottomSheet from "../components/5_profile/EditProfileBottomSheet";
 
 const lastUsedDate = "July 6th";
 const exercises = [
@@ -24,16 +25,17 @@ const exercises = [
     { name: "5 x Reverse Curls (Barbell)", muscle: "Biceps" }
 ];
 
-const Profile = ({ navigation }) => {
+export default function Profile({ navigation }) {
     const userData = global.userData;
     const [posts, setPosts] = useState([]);
     const [selectedPanel, setSelectedPanel] = useState('posts');
+    const [isEditProfileBottomSheetVisible, setIsEditProfileBottomSheetVisible] = useState(false);/*  */
 
     useEffect(() => {
         getPosts();
     }, []);
 
-    const getPosts = async () => {
+    async function getPosts() {
         let db_posts = [];
         for (const pid of userData.posts) {
             let postData = await readDoc('posts', pid);
@@ -42,32 +44,46 @@ const Profile = ({ navigation }) => {
         setPosts(db_posts);
     }
 
-    const uploadPost = useCallback(() => {
-        navigation.navigate('SelectPhotos', { userData });
-    }, [navigation, userData]);
+    function uploadPost() {
+        console.log('Upload Post');
+        navigation.navigate('SelectPhotos', {
+            userData: userData
+        });
+    }
 
-    const selectPanel = useCallback((panel) => {
+    function selectPanel(panel) {
         setSelectedPanel(panel);
-    }, []);
+    }
 
-    const renderPost = useCallback(({ item }) => (
+    function toOptionsScreen() {
+        console.log('Options');
+        navigation.navigate('PostOptions', {
+            userData: userData
+        });
+    }
+
+    const renderPost = ({ item }) => (
         <PostPreview postData={item} />
-    ), []);
+    );
 
-    const renderWorkout = useCallback(({ item }) => (
+    const renderWorkout = ({ item }) => (
         <PastWorkoutCard lastUsedDate={item.lastUsedDate} exercises={item.exercises} name={item.name} />
-    ), []);
+    );
 
-    const renderExerciseGraph = useCallback(() => (
+    const renderExerciseGraph = ({ item }) => (
         <ExerciseGraph />
-    ), []);
+    );
+
+    function handleOpenEditProfile() {
+        setIsEditProfileBottomSheetVisible(true);
+    }
 
     return (
         <View style={styles.main_ctnr}>
             <View style={styles.body_ctnr}>
                 <ProfileHeader onPressCreateBtn={uploadPost} />
                 <ProfileInfo userData={userData} />
-                <ProfileRowButtons />
+                <ProfileRowButtons handleOpenEditProfile={handleOpenEditProfile}/>
                 <WorkoutStats userData={userData} />
             </View>
 
@@ -90,63 +106,53 @@ const Profile = ({ navigation }) => {
             </View>
             <View style={styles.panel_border}></View>
 
-            <View style={styles.scrollable_ctnr}>
-                {selectedPanel === 'posts' && (
-                    <PostsPanel posts={posts} renderPost={renderPost} />
-                )}
-                {selectedPanel === 'history' && (
-                    <HistoryPanel renderWorkout={renderWorkout} />
-                )}
-                {selectedPanel === 'activity' && (
-                    <ActivityPanel renderExerciseGraph={renderExerciseGraph} />
-                )}
-            </View>
+            {selectedPanel === 'posts' &&
+                <View style={styles.scrollable_ctnr}>
+                    <MasonryList
+                        data={posts}
+                        keyExtractor={(item, index) => index.toString()}
+                        renderItem={renderPost}
+                        numColumns={3}
+                        contentContainerStyle={{ paddingHorizontal: 4 }}
+                    />
+                </View>
+            }
+
+            {selectedPanel === 'history' &&
+                <FlatList
+                    data={[
+                        { lastUsedDate, exercises, name: 'Chest & Back' },
+                        { lastUsedDate, exercises, name: 'Full Upper Body' },
+                        { lastUsedDate, exercises, name: 'Leg Day!!!' },
+                        { lastUsedDate, exercises, name: 'Full Body' },
+                        { lastUsedDate, exercises, name: 'Cardio' },
+                        { lastUsedDate, exercises, name: 'Full Upper Body' }
+                    ]}
+                    keyExtractor={(item, index) => index.toString()}
+                    renderItem={renderWorkout}
+                    contentContainerStyle={styles.scrollable_ctnr}
+                    ListFooterComponent={<View style={{ height: 120 }} />}
+                    initialNumToRender={1}
+                />
+            }
+
+            {selectedPanel === 'activity' &&
+                <FlatList
+                    data={[{}, {}, {}]}
+                    keyExtractor={(item, index) => index.toString()}
+                    renderItem={renderExerciseGraph}
+                    contentContainerStyle={styles.scrollable_ctnr}
+                    ListFooterComponent={<View style={{ height: 120 }} />}
+                    initialNumToRender={1}
+                />
+            }
 
             <Footer navigation={navigation} currentScreenName={'Profile'} />
+
+            <EditProfileBottomSheet isVisible={isEditProfileBottomSheetVisible} setIsVisible={setIsEditProfileBottomSheetVisible}/>
         </View>
     );
 }
-
-const PostsPanel = memo(({ posts, renderPost }) => (
-    <MasonryList
-        data={posts}
-        keyExtractor={(item, index) => index.toString()}
-        renderItem={renderPost}
-        numColumns={3}
-        contentContainerStyle={{ paddingHorizontal: 4, paddingBottom: 120 }}
-    />
-));
-
-const HistoryPanel = memo(({ renderWorkout }) => (
-    <FlatList
-        data={[
-            { lastUsedDate, exercises, name: 'Chest & Back' },
-            { lastUsedDate, exercises, name: 'Full Upper Body' },
-            { lastUsedDate, exercises, name: 'Leg Day!!!' },
-            { lastUsedDate, exercises, name: 'Full Body' },
-            { lastUsedDate, exercises, name: 'Cardio' },
-            { lastUsedDate, exercises, name: 'Full Upper Body' }
-        ]}
-        keyExtractor={(item, index) => index.toString()}
-        renderItem={renderWorkout}
-        ListFooterComponent={<View style={{ height: 120 }} />}
-        contentContainerStyle={{ paddingBottom: 500 }}
-        initialNumToRender={1}
-        maxToRenderPerBatch={1}
-    />
-));
-
-const ActivityPanel = memo(({ renderExerciseGraph }) => (
-    <FlatList
-        data={[{}, {}, {}]}
-        keyExtractor={(item, index) => index.toString()}
-        renderItem={renderExerciseGraph}
-        ListFooterComponent={<View style={{ height: 120 }} />}
-        contentContainerStyle={{ paddingBottom: 400 }}
-        initialNumToRender={1}
-        maxToRenderPerBatch={1}
-    />
-));
 
 const styles = StyleSheet.create({
     main_ctnr: {
@@ -177,5 +183,3 @@ const styles = StyleSheet.create({
         flexGrow: 1,
     }
 });
-
-export default Profile;

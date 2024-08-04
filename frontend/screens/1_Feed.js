@@ -189,6 +189,7 @@ export default function Feed({ navigation }) {
                         onScroll={handleScroll}
                         scrollEventThrottle={16}
                         ListHeaderComponent={<Animated.View style={{ opacity: storiesOpacity }}><Stories data={stories} /></Animated.View>}
+                        initialNumToRender={2}
                     />
                     <Animated.View style={{ opacity: footerOpacity }}>
                         <Footer navigation={navigation} currentScreenName={'Feed'} />

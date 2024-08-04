@@ -2,8 +2,9 @@ import { StyleSheet, View, Text, Image, TouchableOpacity, Animated } from "react
 import { Ionicons, Octicons, MaterialIcons } from '@expo/vector-icons';
 import RNBounceable from '@freakycoder/react-native-bounceable';
 import Svg, { Path } from "react-native-svg";
+import { memo } from "react";
 
-export default function FeedHeader({ toMessagesScreen, onOpenNotifications, onOpenSettings, backButton, onBackPress, style }) {
+const FeedHeader = (({ toMessagesScreen, onOpenNotifications, onOpenSettings, backButton, onBackPress, style }) => {
     if (backButton) {
         return (
             <Animated.View style={[styles.back_header, style]}>
@@ -42,7 +43,9 @@ export default function FeedHeader({ toMessagesScreen, onOpenNotifications, onOp
             </RNBounceable>
         </Animated.View>
     );
-}
+});
+
+export default memo(FeedHeader);
 
 const styles = StyleSheet.create({
     main_ctnr: {

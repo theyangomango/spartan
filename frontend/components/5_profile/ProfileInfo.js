@@ -47,7 +47,7 @@ export default function ProfileInfo({ userData }) {
 
 const styles = StyleSheet.create({
     main_ctnr: {
-        marginBottom: 8,
+        marginBottom: 5,
     },
     top_row: {
         flexDirection: 'row',
@@ -104,9 +104,9 @@ const styles = StyleSheet.create({
         alignItems: 'center',
     },
     name_and_score_ctnr: {
-        marginTop: 20,
+        marginTop: 25,
         flexDirection: 'row',
-        paddingBottom: 2.5,
+        paddingBottom: 3.5,
         width: '100%',
         justifyContent: 'center',
         alignItems: 'center',
@@ -134,7 +134,7 @@ const styles = StyleSheet.create({
     bio_ctnr: {},
     bio_text: {
         fontFamily: 'Outfit_600SemiBold',
-        fontSize: 15,
-        color: '#999',
+        fontSize: 14,
+        color: '#b3b3b3',
     },
 });
