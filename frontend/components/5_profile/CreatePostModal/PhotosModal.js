@@ -1,32 +1,33 @@
 import React from 'react';
-import { View, ScrollView, Text, StyleSheet } from 'react-native';
+import { View, FlatList, StyleSheet } from 'react-native';
 import Photo from './Photo';
 
 const PhotosModal = ({ assets, images, setImages }) => {
+    const renderPhoto = ({ item }) => (
+        <Photo
+            uri={item.uri}
+            images={images}
+            setImages={setImages}
+        />
+    );
+
     return (
-        <>
-            {/* <View style={styles.images_header_ctnr}>
-                <Text style={styles.images_header_text}>Photos</Text>
-            </View> */}
-            <ScrollView style={styles.images_scrollview}>
-                <View style={styles.images_ctnr}>
-                    {assets && assets.map((asset, index) => (
-                        <Photo
-                            uri={asset.uri}
-                            images={images}
-                            setImages={setImages}
-                            key={index}
-                        />
-                    ))}
-                </View>
-            </ScrollView>
-        </>
+        <FlatList
+            data={assets}
+            renderItem={renderPhoto}
+            keyExtractor={(item, index) => index.toString()}
+            numColumns={3}
+            contentContainerStyle={styles.images_ctnr}
+            initialNumToRender={10}
+            maxToRenderPerBatch={10}
+            style={styles.flatlist}
+        />
     );
 }
 
 const styles = StyleSheet.create({
-    images_scrollview: {
-        backgroundColor: '#e7e7e7'
+    flatlist: {
+        backgroundColor: '#e7e7e7',
     },
     images_header_ctnr: {},
     images_header_text: {
@@ -34,11 +35,6 @@ const styles = StyleSheet.create({
         fontSize: 18,
         paddingHorizontal: 12,
         paddingVertical: 12,
-    },
-    images_ctnr: {
-        flex: 1,
-        flexDirection: 'row',
-        flexWrap: 'wrap',
     },
 });
 
