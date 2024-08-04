@@ -58,6 +58,7 @@ const styles = StyleSheet.create({
         alignItems: 'center'
     },
     blue_icon_text: {
+        fontSize: 10,
         color: '#fff',
         fontFamily: 'Inter_700Bold'
     }
