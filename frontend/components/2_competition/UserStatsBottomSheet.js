@@ -33,7 +33,7 @@ const LeaderboardBottomSheet = ({ isVisible, setIsVisible, user }) => {
     return (
         <BottomSheet
             ref={bottomSheetRef}
-            index={0}
+            index={-1}
             backdropComponent={renderBackdrop}
             snapPoints={snapPoints}
             onChange={handleSheetChanges}
@@ -41,7 +41,9 @@ const LeaderboardBottomSheet = ({ isVisible, setIsVisible, user }) => {
             enablePanDownToClose
             onClose={() => setIsVisible(false)}
         >
-            <UserStatsModal user={user}/>
+            {user && 
+                <UserStatsModal user={user} />
+            }
         </BottomSheet>
     );
 };

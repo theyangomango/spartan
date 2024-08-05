@@ -100,14 +100,18 @@ const styles = StyleSheet.create({
     scrollview: {
         flex: 1,
         backgroundColor: '#fff',
+        borderTopLeftRadius: 25,
+        borderTopRightRadius: 25,
         paddingHorizontal: 3,
-        paddingTop: 20
+        paddingTop: 20,
+
+      
     },
     header: {
         flexDirection: 'row',
         alignItems: 'center',
         paddingHorizontal: 20,
-        paddingTop: 15,
+        paddingTop: 25,
         // marginBottom: 20,
         justifyContent: 'space-between',
     },

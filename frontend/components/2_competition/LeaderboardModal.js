@@ -1,9 +1,9 @@
 import React from "react";
-import { StyleSheet, View, Text, ScrollView } from "react-native";
+import { StyleSheet, View, Text, FlatList } from "react-native";
 import RNBounceable from '@freakycoder/react-native-bounceable';
-import CompetitionCard from "./CompetitionCard";
+import LeaderboardCard from "./LeaderboardCard";
 
-const LeaderboardModal = ({ userList, categoryCompared, showFollowers, toggleFollowers, openModal, openBottomSheet }) => {
+const LeaderboardModal = ({ userList, categoryCompared, showFollowers, toggleFollowers, openModal, openBottomSheet, isBottomSheetExpanded }) => {
     return (
         <View style={[styles.bottom_ctnr]}>
             <View style={styles.buttons_ctnr}>
@@ -22,41 +22,40 @@ const LeaderboardModal = ({ userList, categoryCompared, showFollowers, toggleFol
                     </RNBounceable>
                 </View>
             </View>
-            <ScrollView showsVerticalScrollIndicator={false} style={styles.scrollview_ctnr}>
-                <View style={{ height: 2 }} />
-                {userList && userList.map((user, index) => (
-                    <CompetitionCard
-                        uid={user.uid}
-                        pfp={user.image}
-                        handle={user.handle}
-                        value={user.stats.exercises[categoryCompared]}
+            <FlatList
+                data={userList}
+                keyExtractor={(item, index) => index.toString()}
+                showsVerticalScrollIndicator={false}
+                contentContainerStyle={styles.flatlist_ctnr}
+                ListHeaderComponent={<View style={{ height: 2 }} />}
+                ListFooterComponent={<View style={{ height: isBottomSheetExpanded ? 100 : 400 }} />}
+                renderItem={({ item, index }) => (
+                    <LeaderboardCard
+                        uid={item.uid}
+                        pfp={item.image}
+                        handle={item.handle}
+                        value={item.stats.exercises[categoryCompared]}
                         rank={index + 1}
-                        key={index}
-                        handlePress={() => openBottomSheet(user)}
+                        handlePress={() => openBottomSheet(item)}
                     />
-                ))}
-                <View style={{ height: 100 }} />
-            </ScrollView>
+                )}
+            />
         </View>
     );
 }
 
 const styles = StyleSheet.create({
     bottom_ctnr: {
-        // position: 'absolute',
-        // bottom: 0,
-        // left: 0,
-        // right: 0,
-        backgroundColor: '#fff',
         flex: 1,
+        paddingTop: 10,
     },
     right_buttons: {
         flex: 1,
         flexDirection: 'row',
         justifyContent: 'flex-end'
     },
-    scrollview_ctnr: {
-        flex: 1,
+    flatlist_ctnr: {
+        flexGrow: 1,
     },
     buttons_ctnr: {
         flexDirection: 'row',

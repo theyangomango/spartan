@@ -1,44 +1,47 @@
-import { Image, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
-import { ArrowDown2 } from 'iconsax-react-native';
-import { useEffect, useState } from 'react';
-import getPFP from '../../../backend/storage/getPFP';
-import getOrdinalString from '../../helper/getOrdinalString';
+import { Image, StyleSheet, Text, View } from 'react-native';
+import { Entypo } from '@expo/vector-icons';
+import RNBounceable from '@freakycoder/react-native-bounceable';
 
-export default function LeaderboardCard({ uid, pfp, handle, value, rank }) {
+export default function LeaderboardCard({ uid, pfp, handle, value, rank, handlePress }) {
     return (
-        <View style={styles.card_ctnr}>
+        <RNBounceable onPress={handlePress} style={styles.card_ctnr}>
             <View style={styles.card_left}>
+                <Text style={styles.rank_text}>{rank}</Text>
+                <Entypo name='chevron-down' size={20} color={'red'} style={styles.arrow_icon} />
                 <View style={styles.pfp_ctnr}>
                     <Image source={{ uri: pfp }} style={styles.pfp} />
                 </View>
-                <Text style={styles.handle_text}>{handle}</Text>
+                <View>
+                    <Text style={styles.handle_text}>{handle}</Text>
+                    <Text style={styles.name_text}>Yang Bai</Text>
+                </View>
             </View>
             <View style={styles.card_right}>
                 <Text style={styles.stat_text}>{value}lbs</Text>
-                <Text style={styles.rank_text}>{getOrdinalString(rank)}</Text>
-                <ArrowDown2 size={20} color="red" style={styles.arrow_icon} />
             </View>
-        </View>
+        </RNBounceable>
     )
 };
 
 const styles = StyleSheet.create({
     card_ctnr: {
-        height: 55,
+        height: 77,
+        // backgroundColor: 'red',
         borderRadius: 20,
-        // borderWidth: 1.5,
-        // borderColor: '#ccc',
         flexDirection: 'row',
         justifyContent: 'space-between',
-        paddingHorizontal: 15,
-        // marginBottom: 15,
+        // paddingHorizontal: 10,
+        paddingLeft: 10,
+        paddingRight: 12,
+        marginHorizontal: 15,
+        marginBottom: 12.5,
     },
     card_left: {
         flexDirection: 'row',
         alignItems: 'center',
     },
     pfp_ctnr: {
-        width: 32,
+        width: 54,
         aspectRatio: 1
     },
     pfp: {
@@ -47,23 +50,33 @@ const styles = StyleSheet.create({
     },
     handle_text: {
         fontSize: 15,
-        fontFamily: 'Outfit_500Medium',
-        paddingHorizontal: 10,
+        fontFamily: 'Outfit_600SemiBold',
+        paddingHorizontal: 12,
         color: '#333'
+    },
+    name_text: {
+        marginTop: 1.5,
+        fontSize: 14,
+        fontFamily: 'Outfit_500Medium',
+        paddingHorizontal: 12,
+        color: '#999'
     },
     card_right: {
         flexDirection: 'row',
         alignItems: 'center',
     },
     stat_text: {
-        fontFamily: 'Mulish_700Bold',
+        fontFamily: 'Outfit_600SemiBold',
         color: '#2D9EFF',
+        fontSize: 15
     },
     rank_text: {
-        fontFamily: 'Mulish_700Bold',
-        paddingLeft: 14,
+        fontFamily: 'Poppins_600SemiBold',
+        fontSize: 13,
+        color: '#333',
     },
     arrow_icon: {
-        marginLeft: 3.5
+        marginLeft: 1,
+        marginRight: 7,
     },
 });

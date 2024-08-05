@@ -58,9 +58,9 @@ export default function Competition({ navigation, route }) {
         <View style={styles.main_ctnr}>
             <View style={[styles.body]}>
                 <View style={styles.top_ctnr}>
-                    <View style={styles.stats_rows_ctnr}>
+                    {/* <View style={styles.stats_rows_ctnr}>
                         <StatsRow />
-                    </View>
+                    </View> */}
                     <Podium data={userList ? ([
                         {
                             handle: userList[0].handle,
@@ -116,7 +116,7 @@ export default function Competition({ navigation, route }) {
 const styles = StyleSheet.create({
     main_ctnr: {
         flex: 1,
-        backgroundColor: '#fff'
+        backgroundColor: '#59AAEE'
     },
     stats_rows_ctnr: {
         marginTop: 45
