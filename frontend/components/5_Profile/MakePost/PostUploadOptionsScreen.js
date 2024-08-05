@@ -4,85 +4,58 @@ import { FontAwesome6, AntDesign } from '@expo/vector-icons';
 import { Location, Weight } from 'iconsax-react-native';
 import { Feather } from '@expo/vector-icons';
 import makeID from "../../../../backend/helper/makeID";
-import { ref, uploadBytesResumable } from "firebase/storage";
+import { getDownloadURL, ref, uploadBytes } from "firebase/storage";
 import { storage } from "../../../../firebase.config";
+import * as ImageManipulator from 'expo-image-manipulator';
+import createPost from "../../../../backend/posts/createPost";
 
-export default function PostUploadOptionsScreen({ navigation, route }) {
-    const { userData, images } = route.params;
+export default function PostOptionsScreen({ navigation, route }) {
+    const { images } = route.params;
     const [caption, setCaption] = useState('');
+    const [isShareDisabled, setIsShareDisabled] = useState(false);
 
     function goBack() {
         navigation.goBack();
     }
 
+    async function compressImage(uri) {
+        const compressedImage = await ImageManipulator.manipulateAsync(
+            uri,
+            [],
+            { compress: 0.01, format: ImageManipulator.SaveFormat.JPEG }
+        );
+        return compressedImage.uri;
+    }
+
     async function sharePost() {
+        setIsShareDisabled(true);
         console.log("Caption:", caption);
         const pid = makeID();
-        const imagesIDs = [];
+        var downloadedImageURLs = [];
 
-        try {
-            for (const [index, image] of images.entries()) {
-                const id = makeID();
-                imagesIDs.push(id);
-
-                console.log(`Fetching image ${index + 1}: ${image}`);
-                let res;
-                try {
-                    res = await fetch(image);
-                } catch (fetchError) {
-                    console.error(`Error fetching image ${index + 1}:`, fetchError);
-                    throw fetchError;
-                }
-
-                if (!res.ok) {
-                    throw new Error(`Failed to fetch image ${index + 1}`);
-                }
-
-                let bytes;
-                try {
-                    bytes = await res.blob();
-                } catch (blobError) {
-                    console.error(`Error converting image ${index + 1} to blob:`, blobError);
-                    throw blobError;
-                }
-
+        for (let index = 0; index < images.length; index++) {
+            const image = images[index];
+            console.log(`Fetching image ${index + 1}: ${image}`);
+            
+            try {
+                const compressedUri = await compressImage(image);
+                const res = await fetch(compressedUri);
+                const bytes = await res.blob();
                 console.log(`Image ${index + 1} Blob:`, bytes);
 
-                if (bytes.size === 0) {
-                    throw new Error(`Blob size is 0 for image ${index + 1}`);
-                }
+                const id = makeID();
+                const imageRef = ref(storage, `posts/${pid}-${id}.jpeg`);
+                await uploadBytes(imageRef, bytes);
+                const url = await getDownloadURL(imageRef);
+                downloadedImageURLs.push(url);
 
-                try {
-                    const storageRef = ref(storage, `posts/${pid}-${id}.png`);
-                    const metadata = {
-                        contentType: 'image/jpeg',
-                    };
-                    console.log(`Uploading image ${index + 1}: ${id}`);
-                    const uploadTask = uploadBytesResumable(storageRef, bytes, metadata);
-
-                    uploadTask.on('state_changed',
-                        (snapshot) => {
-                            // Handle progress
-                            const progress = (snapshot.bytesTransferred / snapshot.totalBytes) * 100;
-                            console.log(`Upload is ${progress}% done`);
-                        },
-                        (error) => {
-                            // Handle unsuccessful uploads
-                            console.error(`Error uploading image ${index + 1}:`, error);
-                        },
-                        () => {
-                            // Handle successful uploads on complete
-                            console.log(`Image ${index + 1} uploaded successfully.`);
-                        }
-                    );
-                } catch (uploadError) {
-                    console.error(`Error uploading image ${index + 1}:`, uploadError);
-                    throw uploadError;
-                }
+                console.log(`Image ${index + 1} uploaded successfully.`);
+            } catch (error) {
+                console.error(`Error processing image ${index + 1}:`, error);
             }
-        } catch (error) {
-            console.error("Error processing image:", error);
         }
+
+        createPost(global.userData.uid, global.userData.handle, global.userData.image, caption, downloadedImageURLs, pid);
     }
 
     return (
@@ -96,7 +69,11 @@ export default function PostUploadOptionsScreen({ navigation, route }) {
                 <View pointerEvents="none" style={styles.title_text_ctnr}>
                     <Text style={styles.header_text}>New Post</Text>
                 </View>
-                <TouchableOpacity onPress={sharePost} style={styles.share_btn}>
+                <TouchableOpacity
+                    onPress={sharePost}
+                    style={[styles.share_btn, isShareDisabled && styles.share_btn_disabled]}
+                    disabled={isShareDisabled}
+                >
                     <Text style={styles.share_btn_text}>Share</Text>
                 </TouchableOpacity>
             </View>
@@ -159,6 +136,7 @@ export default function PostUploadOptionsScreen({ navigation, route }) {
                         </View>
                     </View>
                 </Pressable>
+
             </ScrollView>
         </View>
     );
@@ -205,6 +183,9 @@ const styles = StyleSheet.create({
         fontSize: 14.5,
         color: '#0699FF',
     },
+    share_btn_disabled: {
+        opacity: 0.5,
+    },
     body_scrollview: {
         paddingTop: 20,
     },
@@ -227,7 +208,6 @@ const styles = StyleSheet.create({
         fontSize: 15,
         fontFamily: 'Outfit_600SemiBold',
     },
-    // ─── Btns ────────────────────────────────────────────────────────────
     btn_ctnr: {
         paddingVertical: 4,
         borderBottomWidth: 0.25,

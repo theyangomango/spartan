@@ -5,8 +5,6 @@ import * as MediaLibrary from 'expo-media-library';
 import Gallery from 'react-native-awesome-gallery';
 import PreviewPhotosBottomSheet from './PreviewPhotosBottomSheet';
 
-const { width, height } = Dimensions.get('screen');
-
 export default function SelectPhotosScreen({ navigation, route }) {
     const { userData } = route.params;
     const [assets, setAssets] = useState([]);
@@ -21,7 +19,7 @@ export default function SelectPhotosScreen({ navigation, route }) {
         if (!permissionResponse || permissionResponse.status !== 'granted') {
             await requestPermission();
         }
-        const fetchedObj = await MediaLibrary.getAssetsAsync({ mediaType: 'photo', first: 10000 });
+        const fetchedObj = await MediaLibrary.getAssetsAsync({ mediaType: ['photo'], first: 10000 });
         setAssets(fetchedObj.assets);
     }
 
