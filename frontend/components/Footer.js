@@ -78,7 +78,7 @@ const styles = StyleSheet.create({
 
         shadowColor: '#bbb',
         shadowOffset: { width: 0, height: -1 },
-        shadowOpacity: 0.4,
+        shadowOpacity: 0.5,
         shadowRadius: 2,  
         elevation: 5
     },

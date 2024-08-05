@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react';
 import getPFP from '../../../backend/storage/getPFP';
 import getOrdinalString from '../../helper/getOrdinalString';
 
-export default function LeaderboardPreviewCard({ uid, pfp, handle, value, rank }) {
+export default function LeaderboardCard({ uid, pfp, handle, value, rank }) {
     return (
         <View style={styles.card_ctnr}>
             <View style={styles.card_left}>

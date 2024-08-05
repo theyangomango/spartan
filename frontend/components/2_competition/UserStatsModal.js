@@ -22,7 +22,7 @@ const exercises = [
 
 const barMaxWidth = width * 0.5; // Fixed width of the bar in pixels
 
-export default function UserStats({ user }) {
+export default function UserStatsModal({ user }) {
     const [expandedIndex, setExpandedIndex] = useState(null);
 
     const toggleExpand = (index) => {
