@@ -2,17 +2,17 @@ import React, { useEffect, useRef, useState } from "react";
 import { useFocusEffect } from "@react-navigation/native";
 import { StyleSheet, View, Dimensions, Animated, FlatList } from "react-native";
 import Footer from "../components/Footer";
-import Post from "../components/1_feed/Posts/Post";
-import FeedHeader from "../components/1_feed/FeedHeader";
+import Post from "../components/1_Feed/Posts/Post";
+import FeedHeader from "../components/1_Feed/FeedHeader";
 import readDoc from "../../backend/helper/firebase/readDoc";
 import retrieveUserFeed from "../../backend/retreiveUserFeed";
-import Stories from "../components/1_feed/Stories/Stories";
-import CommentsBottomSheet from "../components/1_feed/Comments/CommentsBottomSheet";
-import ShareBottomSheet from "../components/1_feed/SharePost/ShareBottomSheet";
-import NotificationsBottomSheet from "../components/1_feed/Notifications/NotificationsBottomSheet";
+import Stories from "../components/1_Feed/Stories/Stories";
+import CommentsBottomSheet from "../components/1_Feed/Comments/CommentsBottomSheet";
+import ShareBottomSheet from "../components/1_Feed/SharePost/ShareBottomSheet";
+import NotificationsBottomSheet from "../components/1_Feed/Notifications/NotificationsBottomSheet";
 import MaskedView from '@react-native-masked-view/masked-view';
 import { StatusBar } from "expo-status-bar";
-import SettingsBottomSheet from "../components/1_feed/SettingsBottomSheet";
+import SettingsBottomSheet from "../components/1_Feed/SettingsBottomSheet";
 
 // Constants
 const UID = '6b176d7d-4d89-4cb5-beb0-0f19b47a10a2'; // Hard set UID

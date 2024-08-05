@@ -10,8 +10,8 @@ import LogIn from './frontend/screens/LogIn';
 
 import Feed from "./frontend/screens/1_Feed";
 import Profile from './frontend/screens/5_Profile';
-import SelectPhotosScreen from './frontend/components/5_profile/CreatePostModal/SelectPhotosScreen';
-import PostOptionsScreen from './frontend/components/5_profile/CreatePostModal/PostOptionsScreen';
+import SelectPhotosScreen from './frontend/components/5_Profile/MakePost/SelectPhotosScreen';
+import PostUploadOptionsScreen from './frontend/components/5_Profile/MakePost/PostUploadOptionsScreen';
 import Explore from './frontend/screens/4_Explore';
 import Workout from './frontend/screens/3_Workout';
 import Competition from './frontend/screens/2_Competition';
@@ -118,7 +118,7 @@ const ProfileStack = (({ navigation, route }) => {
         }}>
             <Stack.Screen name='Profile' component={Profile} />
             <Stack.Screen name='SelectPhotos' component={SelectPhotosScreen} />
-            <Stack.Screen name='PostOptions' component={PostOptionsScreen} />
+            <Stack.Screen name='PostOptions' component={PostUploadOptionsScreen} />
         </Stack.Navigator>
     )
 });

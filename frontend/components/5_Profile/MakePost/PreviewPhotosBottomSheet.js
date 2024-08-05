@@ -1,9 +1,9 @@
 import React, { useCallback, useEffect, useMemo, useRef } from "react";
 import { StyleSheet } from "react-native";
 import BottomSheet, { BottomSheetBackdrop } from "@gorhom/bottom-sheet";
-import PhotosModal from "./PhotosModal";
+import PreviewPhotosModal from "./PreviewPhotosModal";
 
-const PhotosBottomSheet = ({ assets, images, setImages }) => {
+const PreviewPhotosBottomSheet = ({ assets, images, setImages }) => {
     const bottomSheetRef = useRef(null);
     const snapPoints = useMemo(() => ["35", "94%"], []);
 
@@ -34,12 +34,12 @@ const PhotosBottomSheet = ({ assets, images, setImages }) => {
             }}
             handleStyle={styles.handle}
         >
-            <PhotosModal assets={assets} images={images} setImages={setImages} />
+            <PreviewPhotosModal assets={assets} images={images} setImages={setImages} />
         </BottomSheet>
     );
 };
 
-export default React.memo(PhotosBottomSheet);
+export default React.memo(PreviewPhotosBottomSheet);
 
 const styles = StyleSheet.create({
     handle: {

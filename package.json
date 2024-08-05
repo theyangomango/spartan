@@ -64,7 +64,9 @@
     "react-native-swipeable-item": "^2.0.9",
     "react-native-uuid": "^2.0.2",
     "reanimated-bottom-sheet": "^1.0.0-alpha.22",
-    "use-debounce": "^10.0.1"
+    "use-debounce": "^10.0.1",
+    "expo-file-system": "~16.0.9",
+    "expo-image-manipulator": "~11.8.0"
   },
   "devDependencies": {
     "@babel/core": "^7.20.0",

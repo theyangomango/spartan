@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { StyleSheet, View, Text, Image } from "react-native";
 import { Entypo } from '@expo/vector-icons';
-import getPFP from "../../../backend/storage/getPFP";
+import getPFP from "../../../../backend/storage/getPFP";
 import RNBounceable from "@freakycoder/react-native-bounceable";
 
 export default function ProfileInfo({ userData }) {

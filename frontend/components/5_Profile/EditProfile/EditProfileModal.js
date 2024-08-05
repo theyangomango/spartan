@@ -23,7 +23,7 @@ const EditProfileModal = () => {
                 </View>
                 <View style={styles.inputContainer}>
                     <Text style={styles.label}>Bio</Text>
-                    <TextInput style={styles.input} placeholder={global.userData.bio} placeholderTextColor={'#888'}/>
+                    <TextInput style={styles.input} placeholder={global.userData.bio} placeholderTextColor={'#777'}/>
                 </View>
                 <View style={styles.inputContainer}>
                     <Text style={styles.label}>Email</Text>

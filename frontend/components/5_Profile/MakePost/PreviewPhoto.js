@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { StyleSheet, View, Image, Pressable, Text } from "react-native";
 
-export default function Photo({ uri, images, setImages }) {
+export default function PreviewPhoto({ uri, images, setImages }) {
     const [isSelected, setIsSelected] = useState(false);
     const [order, setOrder] = useState(images.length);
 

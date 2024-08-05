@@ -1,10 +1,10 @@
 import React from 'react';
 import { View, FlatList, StyleSheet } from 'react-native';
-import Photo from './Photo';
+import PreviewPhoto from './PreviewPhoto';
 
-const PhotosModal = ({ assets, images, setImages }) => {
+const PreviewPhotosModal = ({ assets, images, setImages }) => {
     const renderPhoto = ({ item }) => (
-        <Photo
+        <PreviewPhoto
             uri={item.uri}
             images={images}
             setImages={setImages}
@@ -38,4 +38,4 @@ const styles = StyleSheet.create({
     },
 });
 
-export default PhotosModal;
+export default PreviewPhotosModal;

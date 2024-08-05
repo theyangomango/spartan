@@ -3,15 +3,15 @@ import { StyleSheet, View, Pressable, FlatList } from "react-native";
 import { Grid2, Activity, Clock } from 'iconsax-react-native';
 import MasonryList from '@react-native-seoul/masonry-list';
 import Footer from "../components/Footer";
-import ProfileHeader from "../components/5_profile/ProfileHeader";
-import ProfileInfo from "../components/5_profile/ProfileInfo";
-import ProfileRowButtons from "../components/5_profile/ProfileRowButtons";
-import WorkoutStats from "../components/5_profile/WorkoutStats";
-import PostPreview from "../components/5_profile/PostPreview";
+import ProfileHeader from "../components/5_Profile//ProfileTop/ProfileHeader";
+import ProfileInfo from "../components/5_Profile/ProfileTop/ProfileInfo";
+import ProfileRowButtons from "../components/5_Profile/ProfileTop/ProfileRowButtons";
+import WorkoutStats from "../components/5_Profile/ProfileTop/WorkoutStats";
+import PostPreview from "../components/5_Profile/ProfileBottom/PostPreview";
 import readDoc from "../../backend/helper/firebase/readDoc";
-import ExerciseGraph from "../components/5_profile/ExerciseGraph";
-import PastWorkoutCard from "../components/5_profile/PastWorkoutCard";
-import EditProfileBottomSheet from "../components/5_profile/EditProfileBottomSheet";
+import ExerciseGraph from "../components/5_Profile/ProfileBottom/ExerciseGraph";
+import PastWorkoutCard from "../components/5_Profile/ProfileBottom/PastWorkoutCard";
+import EditProfileBottomSheet from "../components/5_Profile/EditProfile/EditProfileBottomSheet";
 
 const lastUsedDate = "July 6th";
 const exercises = [
