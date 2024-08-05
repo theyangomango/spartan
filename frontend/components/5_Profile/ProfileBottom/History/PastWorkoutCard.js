@@ -36,45 +36,43 @@ const PastWorkoutCard = ({ lastUsedDate, exercises, name }) => {
     ), [muscleColors]);
 
     return (
-        <RNBounceable>
-            <View style={styles.main_ctnr}>
-                <View style={styles.scroll_ctnr}>
-                    <View style={styles.header}>
-                        <Text style={styles.date_text}>Thursday, June 11th</Text>
-                    </View>
-                    <View style={styles.stats_row}>
-                        <View style={styles.stats_entry}>
-                            <Clock color='#666' size={16} variant='Bold' />
-                            <Text style={styles.stats_text}>45 min</Text>
-                        </View>
-                        <View style={styles.stats_entry}>
-                            <View style={{ paddingBottom: 1.2 }}>
-                                <MaterialCommunityIcons name='weight' size={17} color={'#666'} />
-                            </View>
-                            <Text style={styles.stats_text}>5,000 lb</Text>
-                        </View>
-                        <View style={styles.stats_entry}>
-                            <MaterialCommunityIcons name="trophy" color={"#666"} size={14} />
-                            <Text style={styles.stats_text}>3 PRs</Text>
-                        </View>
-                    </View>
-                    <View style={styles.stats_header}>
-                        <View style={styles.stats_header_left}>
-                            <Text style={styles.stats_header_text}>Exercise</Text>
-                        </View>
-                        <View style={styles.stats_header_right}>
-                            <Text style={styles.stats_header_text}>Best Set</Text>
-                        </View>
-                    </View>
-                    <FlatList
-                        data={exercises}
-                        renderItem={renderExercise}
-                        keyExtractor={(item, index) => index.toString()}
-                        contentContainerStyle={{ paddingBottom: 10 }}
-                    />
+        <View style={styles.main_ctnr}>
+            <View style={styles.scroll_ctnr}>
+                <View style={styles.header}>
+                    <Text style={styles.date_text}>Thursday, June 11th</Text>
                 </View>
+                <View style={styles.stats_row}>
+                    <View style={styles.stats_entry}>
+                        <Clock color='#666' size={16} variant='Bold' />
+                        <Text style={styles.stats_text}>45 min</Text>
+                    </View>
+                    <View style={styles.stats_entry}>
+                        <View style={{ paddingBottom: 1.2 }}>
+                            <MaterialCommunityIcons name='weight' size={17} color={'#666'} />
+                        </View>
+                        <Text style={styles.stats_text}>5,000 lb</Text>
+                    </View>
+                    <View style={styles.stats_entry}>
+                        <MaterialCommunityIcons name="trophy" color={"#666"} size={14} />
+                        <Text style={styles.stats_text}>3 PRs</Text>
+                    </View>
+                </View>
+                <View style={styles.stats_header}>
+                    <View style={styles.stats_header_left}>
+                        <Text style={styles.stats_header_text}>Exercise</Text>
+                    </View>
+                    <View style={styles.stats_header_right}>
+                        <Text style={styles.stats_header_text}>Best Set</Text>
+                    </View>
+                </View>
+                <FlatList
+                    data={exercises}
+                    renderItem={renderExercise}
+                    keyExtractor={(item, index) => index.toString()}
+                    contentContainerStyle={{ paddingBottom: 10 }}
+                />
             </View>
-        </RNBounceable>
+        </View>
     );
 };
 
@@ -117,7 +115,7 @@ const styles = StyleSheet.create({
         alignItems: 'center',
     },
     stats_text: {
-        fontFamily: 'Outfit_400Regular',
+        fontFamily: 'Outfit_500Medium',
         fontSize: 13.5,
         marginLeft: 5,
         color: '#666'

@@ -2,6 +2,8 @@ import RNBounceable from '@freakycoder/react-native-bounceable';
 import React, { useState } from 'react';
 import { View, Text, Dimensions, StyleSheet } from 'react-native';
 import { LineChart } from 'react-native-gifted-charts';
+import { FontAwesome, MaterialCommunityIcons } from '@expo/vector-icons';
+import { TouchableOpacity } from 'react-native-gesture-handler';
 
 const screenWidth = Dimensions.get('window').width;
 
@@ -92,7 +94,7 @@ const getPast30DaysData = (inputs) => {
         if (d.getDay() === 0 && dataPoints.length > 0) { // Ensure we add labels only for Sundays
             if (sundayCount >= 4) continue;
             dataPoints[dataPoints.length - 1].labelComponent = () => <CustomLabel val={formattedDate} />;
-            sundayCount ++;
+            sundayCount++;
         }
     }
 
@@ -128,7 +130,12 @@ export default function ExerciseGraph() {
         <View style={styles.main_ctnr}>
             <View style={styles.header}>
                 <View style={styles.headerLeft}>
-                    <Text style={styles.title}>Lateral Raises</Text>
+                    <TouchableOpacity activeOpacity={0.5}>
+                        <View style={styles.titleContainer}>
+                            <Text style={styles.title}>Lateral Raises</Text>
+                            <MaterialCommunityIcons name="arrow-u-left-top" size={21} color="#0499FE" style={styles.uTurnIcon} />
+                        </View>
+                    </TouchableOpacity>
                     <Text style={styles.subtitle}>1 Rep Max</Text>
                 </View>
                 <View style={styles.headerRight}>
@@ -152,7 +159,6 @@ export default function ExerciseGraph() {
                     areaChart
                     yAxisThickness={0}
                     yAxisTextStyle={styles.yAxisTextStyle}
-                    xAxisTextStyle={styles.xAxisTextStyle}
                     data={data}
                     startFillColor={'rgb(89, 168, 255)'}
                     endFillColor={'rgb(89, 168, 255)'}
@@ -199,15 +205,23 @@ const styles = StyleSheet.create({
     headerRight: {
         height: '100%',
     },
+    titleContainer: {
+        flexDirection: 'row',
+        alignItems: 'center',
+    },
     title: {
         color: "#0499FE",
-        fontSize: 17,
+        fontSize: 15,
         marginBottom: 2,
         fontFamily: 'Outfit_700Bold'
     },
+    uTurnIcon: {
+        marginLeft: 5,
+        marginBottom: 1
+    },
     subtitle: {
         color: "#aaa",
-        fontSize: 15,
+        fontSize: 13,
         fontFamily: 'Outfit_700Bold'
     },
     button: {
@@ -224,7 +238,7 @@ const styles = StyleSheet.create({
     buttonText: {
         color: '#666',
         fontFamily: 'Outfit_700Bold',
-        fontSize: 13,
+        fontSize: 12.5,
     },
     chart_ctnr: {
         paddingRight: 30,
@@ -243,16 +257,11 @@ const styles = StyleSheet.create({
     customLabelText: {
         color: '#aaa',
         fontFamily: 'Outfit_600SemiBold',
-        fontSize: 14
+        fontSize: 13
     },
     yAxisTextStyle: {
         color: '#aaa',
         fontFamily: 'Outfit_600SemiBold',
-        fontSize: 14,
-    },
-    xAxisTextStyle: {
-        color: 'blue',
-        fontSize: 12,
-        fontWeight: 'bold',
+        fontSize: 13,
     },
 });

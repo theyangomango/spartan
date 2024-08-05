@@ -3,7 +3,7 @@ import { StyleSheet } from "react-native";
 import BottomSheet, { BottomSheetBackdrop } from "@gorhom/bottom-sheet";
 import EditProfileModal from "./EditProfileModal";
 
-const EditTemplateBottomSheet = ({ isVisible, setIsVisible }) => {
+const EditProfileBottomSheet = ({ isVisible, setIsVisible }) => {
     const bottomSheetRef = useRef(null);
     const snapPoints = useMemo(() => ["94%"], []);
 
@@ -46,4 +46,4 @@ const EditTemplateBottomSheet = ({ isVisible, setIsVisible }) => {
     );
 };
 
-export default React.memo(EditTemplateBottomSheet);
+export default React.memo(EditProfileBottomSheet);

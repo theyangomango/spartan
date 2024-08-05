@@ -20,7 +20,8 @@ export default function PostPreview({ postData }) {
 const styles = StyleSheet.create({
     main_ctnr: {
         flex: 1,
-        margin: 1,
+        // backgroundColor: 'green'
+        margin: 2,
     },
     image: {
         flex: 1,

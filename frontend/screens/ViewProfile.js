@@ -1,39 +1,25 @@
 import React, { useEffect, useState, useRef } from "react";
-import { StyleSheet, View, Pressable, FlatList } from "react-native";
-import { Grid2, Activity, Clock } from 'iconsax-react-native';
-import MasonryList from '@react-native-seoul/masonry-list';
+import { StyleSheet, View, Pressable, Text, TouchableOpacity } from "react-native";
+import { Grid2, Activity } from 'iconsax-react-native'
 import Footer from "../components/Footer";
-import ProfileHeader from "../components/5_Profile//ProfileTop/ProfileHeader";
-import ProfileInfo from "../components/5_Profile/ProfileTop/ProfileInfo";
-import ProfileRowButtons from "../components/5_Profile/ProfileTop/ProfileRowButtons";
 import WorkoutStats from "../components/5_Profile/ProfileTop/WorkoutStats";
-import PostPreview from "../components/5_Profile/ProfileBottom/PostPreview";
+import PostPreview from "../components/5_Profile/ProfileBottom/Posts/PostPreview";
 import readDoc from "../../backend/helper/firebase/readDoc";
-import ExerciseGraph from "../components/5_Profile/ProfileBottom/ExerciseGraph";
-import PastWorkoutCard from "../components/5_Profile/ProfileBottom/PastWorkoutCard";
-import EditProfileBottomSheet from "../components/5_Profile/EditProfile/EditProfileBottomSheet";
+import WorkoutFooter from "../components/3_Workout/WorkoutFooter";
+import ViewProfileInfo from '../components/ViewProfile/ViewProfileInfo';
+import ViewProfileHeader from '../components/ViewProfile/ViewProfileHeader'
 
-const lastUsedDate = "July 6th";
-const exercises = [
-    { name: "3 x Incline Bench (Barbell)", muscle: "Chest" },
-    { name: "3 x Decline Bench (Barbell)", muscle: "Chest" },
-    { name: "3 x Chest Flys", muscle: "Chest" },
-    { name: "5 x Pull Ups", muscle: "Back" },
-    { name: "3 x Bicep Curls (Dumbell)", muscle: "Biceps" },
-    { name: "3 x Lateral Raises", muscle: "Shoulders" },
-    { name: "3 x Shoulder Press (Dumbell)", muscle: "Shoulders" },
-    { name: "5 x Reverse Curls (Barbell)", muscle: "Biceps" }
-];
-
-export default function ViewProfile({ navigation }) {
+export default function ViewProfile({ navigation, route }) {
+    // const { userData } = route.params; // Pass the user data of the other user through navigation params
     const userData = global.userData;
+
     const [posts, setPosts] = useState([]);
-    const [selectedPanel, setSelectedPanel] = useState('posts');
-    const [isEditProfileBottomSheetVisible, setIsEditProfileBottomSheetVisible] = useState(false);/*  */
+    const [postsSelected, setPostsSelected] = useState(true);
 
     useEffect(() => {
         getPosts();
     }, []);
+
 
     async function getPosts() {
         let db_posts = [];
@@ -44,112 +30,57 @@ export default function ViewProfile({ navigation }) {
         setPosts(db_posts);
     }
 
-    function uploadPost() {
-        console.log('Upload Post');
-        navigation.navigate('SelectPhotos', {
-            userData: userData
-        });
+    function selectPosts() {
+        setPostsSelected(true);
     }
 
-    function selectPanel(panel) {
-        setSelectedPanel(panel);
+    function selectActivity() {
+        setPostsSelected(false);
     }
 
-    function toOptionsScreen() {
-        console.log('Options');
-        navigation.navigate('PostOptions', {
-            userData: userData
-        });
+    function followUser() {
+        console.log('Follow User');
     }
 
-    const renderPost = ({ item }) => (
-        <PostPreview postData={item} />
-    );
-
-    const renderWorkout = ({ item }) => (
-        <PastWorkoutCard lastUsedDate={item.lastUsedDate} exercises={item.exercises} name={item.name} />
-    );
-
-    const renderExerciseGraph = ({ item }) => (
-        <ExerciseGraph />
-    );
-
-    function handleOpenEditProfile() {
-        setIsEditProfileBottomSheetVisible(true);
+    function messageUser() {
+        console.log('Message User');
     }
 
     return (
         <View style={styles.main_ctnr}>
             <View style={styles.body_ctnr}>
-                <ProfileHeader onPressCreateBtn={uploadPost} />
-                <ProfileInfo userData={userData} />
-                <ProfileRowButtons handleOpenEditProfile={handleOpenEditProfile} />
+                <ViewProfileHeader />
+                <ViewProfileInfo userData={userData} />
+
                 <WorkoutStats userData={userData} />
+
+                <View style={styles.panel_btns}>
+                    <View style={styles.posts_btn}>
+                        <Pressable onPress={selectPosts}>
+                            {!postsSelected && <Grid2 size="28" color="#888" />}
+                            {postsSelected && <Grid2 size="28" color="#359ffc" />}
+                        </Pressable>
+                    </View>
+                    <View style={styles.activity_btn}>
+                        <Pressable onPress={selectActivity}>
+                            {!postsSelected && <Activity size="28" color="#359ffc" />}
+                            {postsSelected && <Activity size="28" color="#888" />}
+                        </Pressable>
+                    </View>
+                </View>
+
+                <View style={[styles.posts_ctnr, !postsSelected && { display: 'none' }]}>
+                    {posts.map((post, index) => {
+                        return <PostPreview postData={post} key={index} />
+                    })}
+                </View>
             </View>
 
-            <View style={styles.panel_btns}>
-                <View style={styles.panel_btn}>
-                    <Pressable onPress={() => selectPanel('posts')}>
-                        <Grid2 size="28" color={selectedPanel === 'posts' ? "#359ffc" : "#888"} />
-                    </Pressable>
-                </View>
-                <View style={styles.panel_btn}>
-                    <Pressable onPress={() => selectPanel('history')}>
-                        <Clock size="28" color={selectedPanel === 'history' ? "#359ffc" : "#888"} />
-                    </Pressable>
-                </View>
-                <View style={styles.panel_btn}>
-                    <Pressable onPress={() => selectPanel('activity')}>
-                        <Activity size="28" color={selectedPanel === 'activity' ? "#359ffc" : "#888"} />
-                    </Pressable>
-                </View>
-            </View>
-            <View style={styles.panel_border}></View>
-
-            {selectedPanel === 'posts' &&
-                <View style={styles.scrollable_ctnr}>
-                    <MasonryList
-                        data={posts}
-                        keyExtractor={(item, index) => index.toString()}
-                        renderItem={renderPost}
-                        numColumns={3}
-                        contentContainerStyle={{ paddingHorizontal: 4 }}
-                    />
-                </View>
+            {global.workout &&
+                <WorkoutFooter userData={userData} />
             }
 
-            {selectedPanel === 'history' &&
-                <FlatList
-                    data={[
-                        { lastUsedDate, exercises, name: 'Chest & Back' },
-                        { lastUsedDate, exercises, name: 'Full Upper Body' },
-                        { lastUsedDate, exercises, name: 'Leg Day!!!' },
-                        { lastUsedDate, exercises, name: 'Full Body' },
-                        { lastUsedDate, exercises, name: 'Cardio' },
-                        { lastUsedDate, exercises, name: 'Full Upper Body' }
-                    ]}
-                    keyExtractor={(item, index) => index.toString()}
-                    renderItem={renderWorkout}
-                    contentContainerStyle={styles.scrollable_ctnr}
-                    ListFooterComponent={<View style={{ height: 120 }} />}
-                    initialNumToRender={1}
-                />
-            }
-
-            {selectedPanel === 'activity' &&
-                <FlatList
-                    data={[{}, {}, {}]}
-                    keyExtractor={(item, index) => index.toString()}
-                    renderItem={renderExerciseGraph}
-                    contentContainerStyle={styles.scrollable_ctnr}
-                    ListFooterComponent={<View style={{ height: 120 }} />}
-                    initialNumToRender={1}
-                />
-            }
-
-            <Footer navigation={navigation} currentScreenName={'Profile'} />
-
-            <EditProfileBottomSheet isVisible={isEditProfileBottomSheetVisible} setIsVisible={setIsEditProfileBottomSheetVisible} />
+            <Footer navigation={navigation} currentScreenName={'Explore'} />
         </View>
     );
 }
@@ -160,26 +91,29 @@ const styles = StyleSheet.create({
         backgroundColor: '#fff'
     },
     body_ctnr: {
-        paddingHorizontal: 10,
-    },
-    panel_border: {
-        borderColor: '#82bbed',
-        borderBottomWidth: 1.5,
-        paddingTop: 8,
-        marginHorizontal: 16
+        flex: 1,
+        paddingHorizontal: 16,
     },
     panel_btns: {
         flexDirection: 'row',
-        marginHorizontal: 16,
+        borderBottomWidth: 1.5,
+        paddingBottom: 5,
+        borderColor: '#82bbed',
+        marginHorizontal: 6,
+        marginTop: 10,
+    },
+    posts_btn: {
+        width: '50%',
+        alignItems: 'center'
+    },
+    activity_btn: {
+        width: '50%',
+        alignItems: 'center'
+    },
+    posts_ctnr: {
         marginTop: 8,
-        justifyContent: 'space-between',
+        flexDirection: 'row',
+        flexWrap: 'wrap',
+        paddingHorizontal: 4,
     },
-    panel_btn: {
-        flex: 1,
-        alignItems: 'center',
-    },
-    scrollable_ctnr: {
-        marginTop: 5,
-        flexGrow: 1,
-    }
 });
