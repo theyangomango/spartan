@@ -15,8 +15,8 @@ import PostUploadOptionsScreen from './frontend/components/5_Profile/MakePost/Po
 import Explore from './frontend/screens/4_Explore';
 import Workout from './frontend/screens/3_Workout';
 import Competition from './frontend/screens/2_Competition';
-import Messages from './frontend/screens/Messages';
-import Chat from './frontend/components/1.2_Chat/Chat';
+import Messages from './frontend/screens/1.1_Messages';
+import Chat from './frontend/screens/1.2_Chat';
 import PostList from './frontend/screens/PostList';
 import ViewProfile from './frontend/screens/ViewProfile';
 

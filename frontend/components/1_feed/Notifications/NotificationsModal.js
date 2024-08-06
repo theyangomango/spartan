@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { View, StyleSheet, FlatList, ScrollView } from 'react-native';
+import { View, StyleSheet, FlatList } from 'react-native';
 import ButtonRow from './ButtonRow';
 import NotificationCard from './NotificationCard';
 
