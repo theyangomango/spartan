@@ -95,7 +95,7 @@ const Chat = ({ navigation, route }) => {
     };
 
     // Hardcoded lastTimestamp for the other user
-    const otherUserLastTimestamp = 1721880100874; // Replace with actual timestamp
+    // const otherUserLastTimestamp = 1721880100874; // Replace with actual timestamp
 
     return (
         <KeyboardAvoidingView
@@ -133,7 +133,7 @@ const Chat = ({ navigation, route }) => {
                             const displayTime = shouldDisplayTime(item, nextItem);
 
                             // Determine if this message is the last one read by the other user
-                            const isLastReadMessage = item.timestamp >= otherUserLastTimestamp && (!nextItem || nextItem.timestamp > otherUserLastTimestamp);
+                            // const isLastReadMessage = item.timestamp >= otherUserLastTimestamp && (!nextItem || nextItem.timestamp > otherUserLastTimestamp);
 
                             return (
                                 <>
@@ -145,11 +145,11 @@ const Chat = ({ navigation, route }) => {
                                             <Text style={styles.timeText}>{getChatDisplayTime(item.timestamp)}</Text>
                                         </View>
                                     )}
-                                    {isLastReadMessage && (
+                                    {/* {isLastReadMessage && (
                                         <View style={styles.readReceiptContainer}>
                                             <Text style={styles.readReceiptText}>Read {getDisplayTime(otherUserLastTimestamp)}</Text>
                                         </View>
-                                    )}
+                                    )} */}
                                 </>
                             );
                         }}
