@@ -11,7 +11,7 @@ export default function Podium({ data }) {
                 <View style={styles.left_pfp}>
                     {data && <Image source={{ uri: data[1].pfp }} style={styles.pfp} />}
                 </View>
-                <Text style={styles.leaderboard_handle_text}>{data && data[1].handle}</Text>
+                <Text numberOfLines={1} ellipsizeMode="tail" style={styles.leaderboard_handle_text}>{data && data[1].handle}</Text>
                 <View style={[styles.bar_ctnr, styles.silver_ctnr]}>
                     <Text style={styles.bar_text}>2</Text>
                 </View>
@@ -20,7 +20,7 @@ export default function Podium({ data }) {
                 <View style={styles.center_pfp}>
                     {data && <Image source={{ uri: data[0].pfp }} style={styles.pfp} />}
                 </View>
-                <Text style={styles.leaderboard_handle_text}>{data && data[0].handle}</Text>
+                <Text numberOfLines={1} ellipsizeMode="tail" style={styles.leaderboard_handle_text}>{data && data[0].handle}</Text>
                 <View style={[styles.bar_ctnr, styles.gold_ctnr]}>
                     <Text style={styles.bar_text}>1</Text>
                 </View>
@@ -29,7 +29,7 @@ export default function Podium({ data }) {
                 <View style={styles.right_pfp}>
                     {data && <Image source={{ uri: data[2].pfp }} style={styles.pfp} />}
                 </View>
-                <Text style={styles.leaderboard_handle_text}>{data && data[2].handle}</Text>
+                <Text numberOfLines={1} ellipsizeMode="tail" style={styles.leaderboard_handle_text}>{data && data[2].handle}</Text>
                 <View style={[styles.bar_ctnr, styles.bronze_ctnr]}>
                     <Text style={styles.bar_text}>3</Text>
                 </View>
@@ -58,14 +58,16 @@ const styles = StyleSheet.create({
         alignItems: 'center'
     },
     left: {
-        alignItems: 'center'
+        alignItems: 'center',
+        width: '28%'
     },
     center: {
-        alignItems: 'center'
+        alignItems: 'center',
+        width: '28%'
     },
     right: {
-        alignItems: 'center'
-
+        alignItems: 'center',
+        width: '28%'
     },
     silver_ctnr: {
         height: 105,
@@ -103,7 +105,7 @@ const styles = StyleSheet.create({
         color: '#fff',
         paddingTop: 4,
         paddingBottom: 10,
-        fontSize: 15
+        fontSize: 15,
     },
     bar_text: {
         fontFamily: 'Outfit_800ExtraBold',

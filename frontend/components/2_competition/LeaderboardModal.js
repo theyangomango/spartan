@@ -31,11 +31,11 @@ const LeaderboardModal = ({ userList, categoryCompared, showFollowers, toggleFol
                 ListFooterComponent={<View style={{ height: isBottomSheetExpanded ? 100 : 400 }} />}
                 renderItem={({ item, index }) => (
                     <LeaderboardCard
-                        uid={item.uid}
                         pfp={item.image}
                         handle={item.handle}
-                        value={item.stats.exercises[categoryCompared]}
+                        value={item.statsExercises[categoryCompared]['1RM']}
                         rank={index + 1}
+                        lastRank={item.statsExercises[categoryCompared]['lastFollowersRank']}
                         handlePress={() => openBottomSheet(item)}
                     />
                 )}

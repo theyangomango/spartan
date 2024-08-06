@@ -1,13 +1,23 @@
 import { Image, StyleSheet, Text, View } from 'react-native';
-import { Entypo } from '@expo/vector-icons';
+import { Entypo, FontAwesome } from '@expo/vector-icons';
 import RNBounceable from '@freakycoder/react-native-bounceable';
 
-export default function LeaderboardCard({ uid, pfp, handle, value, rank, handlePress }) {
+export default function LeaderboardCard({ pfp, handle, value, rank, lastRank, handlePress }) {
+    console.log(rank, lastRank);
+
     return (
         <RNBounceable onPress={handlePress} style={styles.card_ctnr}>
             <View style={styles.card_left}>
                 <Text style={styles.rank_text}>{rank}</Text>
-                <Entypo name='chevron-down' size={20} color={'red'} style={styles.arrow_icon} />
+                {lastRank < rank &&
+                    <Entypo name='chevron-down' size={20} color={'red'} style={styles.arrow_icon} />
+                }
+                {lastRank > rank &&
+                    <Entypo name='chevron-up' size={20} color={'#23B665'} style={styles.arrow_icon} />
+                }
+                {lastRank == rank &&
+                    <FontAwesome name='minus' size={16} color={'#aaa'} style={styles.minus_icon} />
+                }
                 <View style={styles.pfp_ctnr}>
                     <Image source={{ uri: pfp }} style={styles.pfp} />
                 </View>
@@ -79,4 +89,8 @@ const styles = StyleSheet.create({
         marginLeft: 1,
         marginRight: 7,
     },
+    minus_icon:  {
+        marginLeft: 7,
+        marginRight: 10
+    }
 });
