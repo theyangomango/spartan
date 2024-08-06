@@ -1,15 +1,15 @@
-import { BlurView } from 'expo-blur';
 import React, { useEffect, useState } from 'react';
-import { View, Text, FlatList, StyleSheet, Pressable, Dimensions, TextInput, TouchableOpacity, ScrollView } from 'react-native';
-import FastImage from 'react-native-fast-image';
+import { View, Text, FlatList, StyleSheet, Pressable, TextInput, ScrollView } from 'react-native';
 import Icon from 'react-native-vector-icons/Ionicons';
 import ProfileCard from '../ProfileCard';
 import RNBounceable from '@freakycoder/react-native-bounceable';
 
-export default function CreateGroupChatModal() {
+export default function CreateGroupChatModal({ createGroupChat }) {
     const [followingUsers, setFollowingUsers] = useState([]);
     const [selectedUsers, setSelectedUsers] = useState([]);
     const [selectedHandles, setSelectedHandles] = useState([]);
+    const [searchQuery, setSearchQuery] = useState('');
+    const [filteredUsers, setFilteredUsers] = useState([]);
 
     useEffect(() => {
         if (global.userData) {
@@ -18,38 +18,32 @@ export default function CreateGroupChatModal() {
         }
     }, [global.userData]);
 
-    const [searchQuery, setSearchQuery] = useState('');
-    const [filteredUsers, setFilteredUsers] = useState([]);
-
     useEffect(() => {
-        if (searchQuery === '') {
-            setFilteredUsers(followingUsers);
-        } else {
-            setFilteredUsers(
-                followingUsers.filter(user =>
+        setFilteredUsers(
+            searchQuery === ''
+                ? followingUsers
+                : followingUsers.filter(user =>
                     user.handle.toLowerCase().includes(searchQuery.toLowerCase())
                 )
-            );
-        }
+        );
     }, [searchQuery, followingUsers]);
 
-    const handleSelectUser = (userUid) => {
-        const newSelectedUsers = selectedUsers.includes(userUid)
-            ? selectedUsers.filter(uid => uid !== userUid)
-            : [...selectedUsers, userUid];
+    const handleSelectUser = (user) => {
+        const newSelectedUsers = selectedUsers.includes(user)
+            ? selectedUsers.filter(u => u.uid !== user.uid)
+            : [...selectedUsers, user];
 
         setSelectedUsers(newSelectedUsers);
 
-        const newHandles = newSelectedUsers.map(uid => {
-            const selectedUser = followingUsers.find(u => u.uid === uid);
-            return selectedUser ? selectedUser.handle : '';
+        const newHandles = newSelectedUsers.map(user => {
+            return user ? user.handle : '';
         });
 
         setSelectedHandles(newHandles);
     };
 
     const renderItem = ({ item }) => {
-        const isSelected = selectedUsers.includes(item.uid);
+        const isSelected = selectedUsers.includes(item);
         return (
             <ProfileCard
                 user={item}
@@ -91,13 +85,14 @@ export default function CreateGroupChatModal() {
                 data={filteredUsers}
                 renderItem={renderItem}
                 keyExtractor={(item) => item.uid}
-                style={styles.flatlistContainer}
+                style={styles.flatListContainer}
             />
             <RNBounceable
-                style={[styles.sendButton]}
+                style={styles.createButton}
                 disabled={selectedUsers.length <= 1}
+                onPress={() => createGroupChat(selectedUsers)}
             >
-                <Text style={styles.sendButtonText}>
+                <Text style={styles.createButtonText}>
                     {`Create Group Chat${selectedUsers.length > 1 ? ` (${selectedUsers.length})` : ''}`}
                 </Text>
             </RNBounceable>
@@ -154,14 +149,13 @@ const styles = StyleSheet.create({
         marginRight: 8,
     },
     searchBar: {
-        // flex: 1,
+        flex: 1,
         padding: 8,
     },
-    flatlistContainer: {
-        // flex: 1,
-        width: '100%'
+    flatListContainer: {
+        width: '100%',
     },
-    sendButton: {
+    createButton: {
         position: 'absolute',
         bottom: 45,
         left: 22,
@@ -173,10 +167,9 @@ const styles = StyleSheet.create({
         alignItems: 'center',
         justifyContent: 'center'
     },
-    sendButtonText: {
+    createButtonText: {
         color: 'white',
         fontSize: 14,
         fontFamily: 'Poppins_600SemiBold'
     },
 });
-

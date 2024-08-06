@@ -1,10 +1,8 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { View, Text, TextInput, TouchableOpacity, StyleSheet, FlatList, KeyboardAvoidingView, Platform, Keyboard, Image } from 'react-native';
 import { Ionicons, FontAwesome6 } from '@expo/vector-icons';
-import getPFP from '../../../backend/storage/getPFP';
 import sendMessage from '../../../backend/messages/sendMessage';
 import getChatDisplayTime from '../../helper/getChatDisplayTime';
-import getDisplayTime from '../../helper/getDisplayTime';
 
 function getReverse(arr) {
     let list = [];
@@ -16,20 +14,12 @@ function getReverse(arr) {
 }
 
 const Chat = ({ navigation, route }) => {
-    const { pfp_uid, handle, data } = route.params;
-    const [image, setImage] = useState(null);
+    const { data, usersExcludingSelf } = route.params;
     const [messages, setMessages] = useState(getReverse(data.content));
     const [inputText, setInputText] = useState('');
     const [isScrolled, setIsScrolled] = useState(false);
-    const [isInputFocused, setIsInputFocused] = useState(false); // State to track input focus
+    const [isInputFocused, setIsInputFocused] = useState(false);
     const flatListRef = useRef(null);
-
-    useEffect(() => {
-        getPFP(pfp_uid)
-            .then(url => {
-                setImage(url);
-            });
-    }, []);
 
     useEffect(() => {
         const keyboardDidShowListener = Keyboard.addListener('keyboardDidShow', () => {
@@ -57,9 +47,10 @@ const Chat = ({ navigation, route }) => {
             uid: global.userData.uid,
             handle: global.userData.handle,
             timestamp: new Date().getTime(),
+            name: global.userData.name,
         };
 
-        setMessages([newMessage, ...messages]); // Append new message to the beginning of the array
+        setMessages([newMessage, ...messages]);
         sendMessage(global.userData.uid, global.userData.handle, data.cid, inputText);
         setInputText('');
     };
@@ -73,29 +64,24 @@ const Chat = ({ navigation, route }) => {
     };
 
     const handleInputFocus = () => {
-        setIsInputFocused(true); // Input container is focused
+        setIsInputFocused(true);
     };
 
     const handleInputBlur = () => {
-        setIsInputFocused(false); // Input container is blurred
+        setIsInputFocused(false);
     };
 
-    function toMessages() {
+    const toMessages = () => {
         navigation.navigate('Messages');
-    }
-
-    const formatDate = (timestamp) => {
-        const date = new Date(timestamp);
-        return `${date.getHours()}:${date.getMinutes()}`;
     };
 
     const shouldDisplayTime = (currentMessage, lastMessage) => {
-        if (!lastMessage) return true; // Display time for the first message
-        return ((currentMessage.timestamp - lastMessage.timestamp)) > 1000 * 60 * 60 * 4; // More than 2 minutes apart
+        if (!lastMessage) return true;
+        return ((currentMessage.timestamp - lastMessage.timestamp)) > 1000 * 60 * 60 * 4; // More than 4 hours apart
     };
 
-    // Hardcoded lastTimestamp for the other user
-    // const otherUserLastTimestamp = 1721880100874; // Replace with actual timestamp
+    const handles = usersExcludingSelf.map(user => user.handle).join(', ');
+    const names = usersExcludingSelf.map(user => user.name).join(', ');
 
     return (
         <KeyboardAvoidingView
@@ -103,7 +89,7 @@ const Chat = ({ navigation, route }) => {
             behavior={Platform.OS === 'ios' ? 'padding' : null}
         >
             <View style={styles.container}>
-                <View style={styles.arrow_icon_ctnr}>
+                <View style={styles.arrowIconContainer}>
                     <TouchableOpacity activeOpacity={0.5} onPress={toMessages}>
                         <FontAwesome6 name='chevron-left' size={18.5} color="#2D9EFF" />
                     </TouchableOpacity>
@@ -111,15 +97,18 @@ const Chat = ({ navigation, route }) => {
 
                 <View style={styles.header}>
                     <View style={styles.headerContent}>
-                        <View style={styles.pfp_ctnr}>
-                            <Image
-                                source={{ uri: image }}
-                                style={styles.pfp}
-                            />
+                        <View style={[styles.pfpContainer, { width: 42 + 15 * (usersExcludingSelf.length - 1) }]}>
+                            {usersExcludingSelf.map((user, idx) => (
+                                <Image
+                                    key={user.uid}
+                                    source={{ uri: user.pfp }}
+                                    style={[styles.pfp, { left: idx * 15 }]}
+                                />
+                            ))}
                         </View>
-                        <View>
-                            <Text style={styles.nameText}>Sam Suluk</Text>
-                            <Text style={styles.handleText}>{handle}</Text>
+                        <View style={styles.textContainer}>
+                            <Text style={styles.nameText} numberOfLines={1} ellipsizeMode='tail'>{names}</Text>
+                            <Text style={styles.handleText} numberOfLines={1} ellipsizeMode='tail'>{handles}</Text>
                         </View>
                     </View>
                 </View>
@@ -131,36 +120,33 @@ const Chat = ({ navigation, route }) => {
                         renderItem={({ item, index }) => {
                             const nextItem = messages[index + 1];
                             const displayTime = shouldDisplayTime(item, nextItem);
-
-                            // Determine if this message is the last one read by the other user
-                            // const isLastReadMessage = item.timestamp >= otherUserLastTimestamp && (!nextItem || nextItem.timestamp > otherUserLastTimestamp);
+                            const isOtherUserMessage = item.uid !== global.userData.uid;
+                            const showHandle = usersExcludingSelf.length > 1 && isOtherUserMessage;
 
                             return (
                                 <>
-                                    <View style={item.uid === global.userData.uid ? styles.userMessageContainer : styles.otherMessageContainer}>
-                                        <Text style={item.uid === global.userData.uid ? styles.userMessageText : styles.otherMessageText}>{item.text}</Text>
+                                    <View style={isOtherUserMessage ? styles.otherMessageContainer : styles.userMessageContainer}>
+                                        <Text style={isOtherUserMessage ? styles.otherMessageText : styles.userMessageText}>{item.text}</Text>
                                     </View>
+                                    {showHandle && (
+                                        <Text style={styles.messageHandleText}>{item.handle}</Text>
+                                    )}
                                     {displayTime && (
                                         <View style={styles.timeContainer}>
                                             <Text style={styles.timeText}>{getChatDisplayTime(item.timestamp)}</Text>
                                         </View>
                                     )}
-                                    {/* {isLastReadMessage && (
-                                        <View style={styles.readReceiptContainer}>
-                                            <Text style={styles.readReceiptText}>Read {getDisplayTime(otherUserLastTimestamp)}</Text>
-                                        </View>
-                                    )} */}
                                 </>
                             );
                         }}
                         style={styles.flatlist}
                         keyExtractor={(item, index) => index.toString()}
-                        inverted // To display messages from bottom to top
+                        inverted
                         onScroll={handleScroll}
                         onScrollEndDrag={handleScrollEnd}
-                        scrollEventThrottle={16} // Adjust scroll event throttle for smoother scrolling
-                        ListHeaderComponent={<View style={{ height: 15 }} />} // Add a footer with 20 pixels of height
-                        ListFooterComponent={<View style={{ height: 15 }} />} // Add a footer with 20 pixels of height
+                        scrollEventThrottle={16}
+                        ListHeaderComponent={<View style={{ height: 15 }} />}
+                        ListFooterComponent={<View style={{ height: 15 }} />}
                     />
                 </View>
                 <View style={[styles.inputContainer, { marginBottom: isInputFocused ? 4 : 22 }]}>
@@ -172,8 +158,8 @@ const Chat = ({ navigation, route }) => {
                         value={inputText}
                         onChangeText={setInputText}
                         placeholder="Type a message..."
-                        onFocus={handleInputFocus} // Handle input focus
-                        onBlur={handleInputBlur} // Handle input blur
+                        onFocus={handleInputFocus}
+                        onBlur={handleInputBlur}
                     />
                     <TouchableOpacity style={styles.sendButton} onPress={handleSend}>
                         <Ionicons name="send" size={14.5} color="#fff" />
@@ -191,38 +177,47 @@ const styles = StyleSheet.create({
     },
     header: {
         paddingTop: 53,
-        backgroundColor: '#fff', // Add background color to header
-        // Add shadow properties
+        backgroundColor: '#fff',
         shadowColor: '#aaa',
         shadowOffset: { width: 0, height: 3 },
         shadowOpacity: 0.2,
         shadowRadius: 3.84,
-        elevation: 5, // For Android
-        paddingLeft: '16.5%'
+        elevation: 5,
+        paddingLeft: '16.5%',
     },
-    arrow_icon_ctnr: {
+    arrowIconContainer: {
         position: 'absolute',
         top: 51,
         zIndex: 1,
         left: 32,
         height: 58,
         width: 50,
-        justifyContent: 'center'
+        justifyContent: 'center',
     },
     headerContent: {
         flexDirection: 'row',
-        alignItems: 'flex-end',
+        alignItems: 'center',
         paddingBottom: 7,
-        paddingTop: 2
+        paddingTop: 2,
     },
-    pfp_ctnr: {
-        width: 42,
-        aspectRatio: 1,
+    pfpContainer: {
+        flexDirection: 'row',
+        position: 'relative',
+        alignItems: 'center',
         marginRight: 7,
     },
     pfp: {
+        width: 42,
+        height: 42,
+        borderRadius: 21,
+        position: 'absolute',
+        borderWidth: 2,
+        borderColor: '#fff',
+    },
+    textContainer: {
+        justifyContent: 'center',
         flex: 1,
-        borderRadius: 100,
+        marginRight: 10
     },
     nameText: {
         fontFamily: 'Poppins_600SemiBold',
@@ -231,16 +226,16 @@ const styles = StyleSheet.create({
     handleText: {
         fontFamily: 'Poppins_500Medium',
         fontSize: 12.5,
-        color: '#888'
+        color: '#888',
     },
     content: {
         flex: 1,
-        backgroundColor: '#f8f8f8'
+        backgroundColor: '#f8f8f8',
     },
     flatlist: {},
     userMessageContainer: {
         alignSelf: 'flex-end',
-        backgroundColor: '#0499FE', // Blue background color for user messages
+        backgroundColor: '#0499FE',
         borderRadius: 10,
         marginHorizontal: 20,
         marginVertical: 2,
@@ -249,7 +244,7 @@ const styles = StyleSheet.create({
     },
     otherMessageContainer: {
         alignSelf: 'flex-start',
-        backgroundColor: '#CEE4F9', // Blue background color for other messages
+        backgroundColor: '#CEE4F9',
         borderRadius: 10,
         marginHorizontal: 20,
         marginVertical: 2,
@@ -258,13 +253,21 @@ const styles = StyleSheet.create({
     },
     userMessageText: {
         fontSize: 14,
-        color: '#fff', // White text color for message text
-        fontFamily: 'Poppins_500Medium'
+        color: '#fff',
+        fontFamily: 'Poppins_500Medium',
     },
     otherMessageText: {
         fontSize: 14,
-        color: '#222', // Black text color for message text
-        fontFamily: 'Poppins_500Medium'
+        color: '#222',
+        fontFamily: 'Poppins_500Medium',
+    },
+    messageHandleText: {
+        alignSelf: 'flex-start',
+        marginLeft: 24,
+        marginBottom: 2,
+        fontSize: 12,
+        color: '#888',
+        fontFamily: 'Poppins_500Medium',
     },
     timeContainer: {
         alignSelf: 'center',
@@ -277,17 +280,7 @@ const styles = StyleSheet.create({
     timeText: {
         fontSize: 12,
         color: '#666',
-        fontFamily: 'Poppins_500Medium'
-    },
-    readReceiptContainer: {
-        alignSelf: 'flex-end',
-        marginRight: 20,
-        marginTop: 5,
-    },
-    readReceiptText: {
-        fontSize: 12,
-        color: '#888',
-        fontFamily: 'Poppins_500Medium'
+        fontFamily: 'Poppins_500Medium',
     },
     inputContainer: {
         flexDirection: 'row',
@@ -298,8 +291,8 @@ const styles = StyleSheet.create({
         borderRadius: 30,
         marginTop: 6,
         marginHorizontal: 15,
-        backgroundColor: '#fff', // Add background color to input container
-        ...(Platform.OS === 'android' && { elevation: 5 }), // Add elevation only for Android
+        backgroundColor: '#fff',
+        ...(Platform.OS === 'android' && { elevation: 5 }),
     },
     emojiButton: {
         marginLeft: 8,
@@ -311,15 +304,15 @@ const styles = StyleSheet.create({
         paddingHorizontal: 15,
         fontSize: 13,
         marginRight: 10,
-        color: '#000', // Text color
-        fontFamily: 'Poppins_500Medium'
+        color: '#000',
+        fontFamily: 'Poppins_500Medium',
     },
     sendButton: {
-        backgroundColor: '#0499FE', // Blue background color
-        borderRadius: 20, // Make it circular
-        padding: 10, // Adjust padding
-        justifyContent: 'center', // Center content vertically
-        alignItems: 'center', // Center content horizontally
+        backgroundColor: '#0499FE',
+        borderRadius: 20,
+        padding: 10,
+        justifyContent: 'center',
+        alignItems: 'center',
     },
 });
 

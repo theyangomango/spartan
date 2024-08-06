@@ -1,43 +1,40 @@
-import { View, StyleSheet, Text, Image, TouchableOpacity } from "react-native"
-import getDisplayTime from '../../helper/getDisplayTime'
-import { useEffect, useState } from "react";
-import getPFP from '../../../backend/storage/getPFP'
+import { View, StyleSheet, Text } from "react-native";
 import RNBounceable from '@freakycoder/react-native-bounceable';
 import FastImage from "react-native-fast-image";
+import getDisplayTime from '../../helper/getDisplayTime';
 
-export default function MessageCard({ uid, handle, content, timestamp, toChat, index }) {
-    const [image, setImage] = useState(null);
-
-    useEffect(() => {
-        getPFP(uid)
-            .then(url => {
-                setImage(url);
-            });
-    }, []);
+export default function MessageCard({ usersExcludingSelf, content, timestamp, toChat, index }) {
+    const handles = usersExcludingSelf.map(user => user.handle).join(', ');
+    const maxProfilePics = 5; // Set a maximum number of profile pictures to show at full size
+    const profilePicSize = usersExcludingSelf.length > maxProfilePics ? 40 : 48; // Adjust size based on the number of users
+    const profilePicOverlap = 20; // Overlap amount
 
     return (
-        <RNBounceable onPress={() => toChat(index, uid, handle)} style={styles.main_ctnr}>
-            <View style={styles.left_ctnr}>
-                <View style={styles.pfp_ctnr}>
-                    <FastImage
-                        source={{ uri: image }}
-                        style={styles.pfp}
-                    />
+        <RNBounceable onPress={() => toChat(index, usersExcludingSelf)} style={styles.mainContainer}>
+            <View style={styles.leftContainer}>
+                <View style={[styles.profilePicturesContainer, { width: profilePicSize + profilePicOverlap * (usersExcludingSelf.length - 1) }]}>
+                    {usersExcludingSelf.map((user, idx) => (
+                        <FastImage
+                            key={user.uid}
+                            source={{ uri: user.pfp }}
+                            style={[styles.profilePicture, { left: idx * profilePicOverlap, width: profilePicSize, height: profilePicSize }]}
+                        />
+                    ))}
                 </View>
-                <View>
-                    <Text style={styles.handle_text}>{handle}</Text>
-                    <Text style={styles.content_text}>{content}</Text>
+                <View style={styles.textContainer}>
+                    <Text style={styles.handleText} numberOfLines={1} ellipsizeMode="tail">{handles}</Text>
+                    <Text style={styles.contentText}>{content}</Text>
                 </View>
             </View>
-            <View style={styles.right_ctnr}>
-                <Text style={styles.date_text}>{getDisplayTime(timestamp)}</Text>
+            <View style={styles.rightContainer}>
+                <Text style={styles.dateText}>{getDisplayTime(timestamp)}</Text>
             </View>
         </RNBounceable>
-    )
+    );
 }
 
 const styles = StyleSheet.create({
-    main_ctnr: {
+    mainContainer: {
         height: 80,
         marginHorizontal: 15,
         paddingHorizontal: 15,
@@ -45,45 +42,49 @@ const styles = StyleSheet.create({
         flexDirection: 'row',
         justifyContent: 'space-between',
         backgroundColor: '#f8f8f8',
-        marginBottom: 8
+        marginBottom: 8,
     },
-    pfp_ctnr: {
-        width: 48,
-        aspectRatio: 1,
-        marginRight: 12,
-        // backgroundColor: 'red',
-    },
-    pfp: {
-        flex: 1,
-        borderRadius: 100
-    },
-    left_ctnr: {
+    profilePicturesContainer: {
         flexDirection: 'row',
+        marginRight: 12,
+        position: 'relative',
         alignItems: 'center',
     },
-    handle_text: {
+    profilePicture: {
+        borderRadius: 24,
+        position: 'absolute',
+        borderWidth: 2,
+        borderColor: '#fff',
+    },
+    leftContainer: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        flex: 1,
+    },
+    textContainer: {
+        flexShrink: 1,
+    },
+    handleText: {
         fontSize: 16,
-        // color: '#707078',
         paddingVertical: 3,
         fontFamily: 'Outfit_500Medium',
-        letterSpacing: 0.2
+        letterSpacing: 0.2,
     },
-    content_text: {
+    contentText: {
         fontSize: 12.5,
         fontFamily: 'Outfit_400Regular',
         color: '#999',
-        marginBottom: 7
+        marginBottom: 7,
     },
-    right_ctnr: {
-        // justifyContent: 'center'
-        paddingTop: 15
+    rightContainer: {
+        paddingTop: 15,
+        justifyContent: 'flex-start',
+        alignItems: 'flex-end',
     },
-    date_text: {
-        padding: 5,
-        color: '#707078',
+    dateText: {
+        color: '#999',
         fontSize: 12,
         fontFamily: 'Outfit_400Regular',
         letterSpacing: 0.1,
-        color: '#999',
-    }
+    },
 });

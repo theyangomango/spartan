@@ -31,16 +31,16 @@ export default function ShareModal({ closeBottomSheet }) {
         }
     }, [searchQuery, followingUsers]);
 
-    const handleSelectUser = (userUid) => {
+    const handleSelectUser = (user) => {
         setSelectedUsers(prevSelectedUsers =>
-            prevSelectedUsers.includes(userUid)
-                ? prevSelectedUsers.filter(uid => uid !== userUid)
-                : [...prevSelectedUsers, userUid]
+            prevSelectedUsers.includes(user)
+                ? prevSelectedUsers.filter(u => u.uid !== user.uid)
+                : [...prevSelectedUsers, user]
         );
     };
 
     const renderItem = ({ item }) => {
-        const isSelected = selectedUsers.includes(item.uid);
+        const isSelected = selectedUsers.includes(item);
         return (
             <ProfileCard
                 user={item}

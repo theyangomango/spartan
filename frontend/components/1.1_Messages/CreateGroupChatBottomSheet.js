@@ -3,7 +3,7 @@ import { StyleSheet, Text, View } from "react-native";
 import BottomSheet, { BottomSheetBackdrop, BottomSheetFooter } from "@gorhom/bottom-sheet";
 import CreateGroupChatModal from "./CreateGroupChatModal";
 
-const CreateGroupChatBottomSheet = ({ isVisible, setIsVisible }) => {
+const CreateGroupChatBottomSheet = ({ isVisible, setIsVisible, createGroupChat }) => {
     const bottomSheetRef = useRef(null);
     const snapPoints = useMemo(() => ["94%"], []);
 
@@ -40,7 +40,7 @@ const CreateGroupChatBottomSheet = ({ isVisible, setIsVisible }) => {
             enablePanDownToClose
             onClose={() => setIsVisible(false)}
         >
-            <CreateGroupChatModal />
+            <CreateGroupChatModal createGroupChat={createGroupChat}/>
         </BottomSheet>
     );
 };
