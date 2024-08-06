@@ -2,11 +2,13 @@ import { useDebugValue, useEffect, useReducer, useState } from "react";
 import { ScrollView, StyleSheet, View } from "react-native";
 import MessageCard from "../components/1.1_Messages/MessageCard";
 import MessagesHeader from "../components/1.1_Messages/MessagesHeader";
+import CreateGroupChatBottomSheet from "../components/1.1_Messages/CreateGroupChatBottomSheet";
 
 export default function Messages({ navigation, route }) {
     const userData = global.userData;
     const [messages, setMessages] = useState([]);
     const [scope, setScope] = useState('All');
+    const [isCreateGroupChatBottomSheetVisible, setIsCreateGroupChatBottomSheetVisible] = useState(false);
 
     useEffect(() => {
         setMessages(route.params.messages);
@@ -20,10 +22,19 @@ export default function Messages({ navigation, route }) {
         navigation.navigate('Chat', { data: messages[key], pfp_uid: pfp_uid, handle: handle });
     }
 
+    function openCreateGroupChatBottomSheet() {
+        setIsCreateGroupChatBottomSheetVisible(true);
+    }
+
     if (userData) {
         return (
             <View style={styles.main_ctnr}>
-                <MessagesHeader handle={userData.handle} toFeedScreen={toFeedScreen} setScope={setScope} />
+                <MessagesHeader
+                    handle={userData.handle}
+                    toFeedScreen={toFeedScreen}
+                    setScope={setScope}
+                    openCreateGroupChatBottomSheet={openCreateGroupChatBottomSheet}
+                />
                 <View style={styles.cards_ctnr}>
                     <ScrollView style={styles.cards_scrollview}>
                         {
@@ -33,7 +44,7 @@ export default function Messages({ navigation, route }) {
                                 });
 
                                 return (
-                                    <View key={index} style={(scope == 'Group' && !msg.isGroup) && {display: 'none'}}>
+                                    <View key={index} style={(scope == 'Group' && !msg.isGroup) && { display: 'none' }}>
                                         <MessageCard
                                             uid={usersExcludingSelf[0].uid}
                                             handle={usersExcludingSelf[0].handle}
@@ -48,6 +59,8 @@ export default function Messages({ navigation, route }) {
                         }
                     </ScrollView>
                 </View>
+
+                <CreateGroupChatBottomSheet isVisible={isCreateGroupChatBottomSheetVisible} setIsVisible={setIsCreateGroupChatBottomSheetVisible} />
             </View>
         )
     }

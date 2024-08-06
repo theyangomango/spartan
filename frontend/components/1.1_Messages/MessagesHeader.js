@@ -7,45 +7,22 @@ import CreateGroupChatModal from './CreateGroupChatModal'; // Assuming ShareModa
 
 const { height } = Dimensions.get('window');
 
-export default function MessagesHeader({ toFeedScreen, handle, setScope }) {
+export default function MessagesHeader({ toFeedScreen, openCreateGroupChatBottomSheet, setScope }) {
     const [selectedButton, setSelectedButton] = useState('All');
-    const [shareBottomSheetBackgroundColor, setShareBottomSheetBackgroundColor] = useState('rgba(0, 0, 0, 0.5)');
-    const shareBottomSheet = useRef();
 
     const handleButtonPress = (button) => {
         setSelectedButton(button);
         setScope(button);
     };
 
-    const openShareModal = () => {
-        shareBottomSheet.current.show();
-    };
-
-    useEffect(() => {
-        const interval = setInterval(() => {
-            if (shareBottomSheet.current) {
-                let panY = parseInt(JSON.stringify(shareBottomSheet.current.state.pan.y));
-                let animatedHeight = parseInt(JSON.stringify(shareBottomSheet.current.state.animatedHeight));
-                let realHeight = Math.max(panY, 1000 - animatedHeight);
-                setShareBottomSheetBackgroundColor(`rgba(0, 0, 0, ${0.7 - 0.75 * (realHeight / 600)})`);
-            }
-        }, 10);
-
-        return () => {
-            clearInterval(interval);
-        };
-    }, []);
-
     return (
         <View style={styles.main_ctnr}>
             <View style={styles.row}>
                 <TouchableOpacity activeOpacity={0.5} onPress={toFeedScreen} style={styles.arrow_icon_ctnr}>
-                    {/* <TouchableOpacity activeOpacity={0.5} onPress={toFeedScreen}> */}
-                        <FontAwesome6 name='chevron-left' size={18.5} color="#2D9EFF" />
-                    {/* </TouchableOpacity> */}
+                    <FontAwesome6 name='chevron-left' size={18.5} color="#2D9EFF" />
                 </TouchableOpacity>
                 <View style={styles.group_icon_ctnr}>
-                    <TouchableOpacity activeOpacity={0.5} onPress={openShareModal}>
+                    <TouchableOpacity activeOpacity={0.5} onPress={openCreateGroupChatBottomSheet}>
                         <FontAwesome5 name='users' size={20.5} color="#2D9EFF" />
                     </TouchableOpacity>
                 </View>
@@ -75,16 +52,6 @@ export default function MessagesHeader({ toFeedScreen, handle, setScope }) {
                     </RNBounceable>
                 </View>
             </View>
-            <BottomSheet
-                hasDraggableIcon
-                ref={shareBottomSheet}
-                height={height - 65}
-                sheetBackgroundColor={'#fff'}
-                backgroundColor={shareBottomSheetBackgroundColor}
-                draggable={true} // Optional, as it's true by default
-            >
-                <CreateGroupChatModal />
-            </BottomSheet>
         </View>
     );
 }

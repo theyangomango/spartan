@@ -27,12 +27,11 @@ export default function Feed({ navigation }) {
     const [isPostsVisible, setIsPostsVisible] = useState(true);
     const [isScrolledPast90, setIsScrolledPast90] = useState(false);
 
+    const [shareBottomSheetExpandFlag, setShareBottomSheetExpandFlag] = useState(false);
     const [shareBottomSheetCloseFlag, setShareBottomSheetCloseFlag] = useState(false);
-
     const [settingsBottomSheetExpandFlag, setSettingsBottomSheetExpandFlag] = useState(false);
     const [notificationsBottomSheetExpandFlag, setNotificationsBottomSheetExpandFlag] = useState(false);
     const [commentsBottomSheetExpandFlag, setCommentsBottomSheetExpandFlag] = useState(false);
-    const [shareBottomSheetExpandFlag, setShareBottomSheetExpandFlag] = useState(false);
 
     const userDataRef = useRef(0);
     const focusedPostIndex = useRef(-1);
