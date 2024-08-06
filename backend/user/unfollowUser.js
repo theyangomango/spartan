@@ -1,10 +1,10 @@
 import arrayErase from '../helper/firebase/arrayErase'
 import incrementDocValue from '../helper/firebase/incrementDocValue'
 
-export default async function unfollowUser(my_uid, user_uid) {
-    arrayErase('users', my_uid, 'following', user_uid);
-    incrementDocValue('users', my_uid, 'followingCount', -1);
+export default async function unfollowUser(this_user, user) {
+    arrayErase('users', this_user.uid, 'following', user);
+    incrementDocValue('users', this_user.uid, 'followingCount', -1);
 
-    arrayErase('users', user_uid, 'followers', my_uid);
-    incrementDocValue('users', user_uid, 'followerCount', -1);
+    arrayErase('users', user.uid, 'followers', this_user);
+    incrementDocValue('users', user.uid, 'followerCount', -1);
 }

@@ -2,6 +2,7 @@ import React, { useRef } from 'react';
 import { View, FlatList, StyleSheet, Pressable, KeyboardAvoidingView, Platform } from 'react-native';
 import CommentCard from './CommentCard';
 import updateDoc from '../../../../backend/helper/firebase/updateDoc';
+import sendNotification from '../../../../backend/sendNotification';
 
 export default function CommentsModal({ postData, handleTouchHeader, isSheetExpanded, setReplyingToIndex }) {
     const comments = postData.comments;
@@ -16,6 +17,18 @@ export default function CommentsModal({ postData, handleTouchHeader, isSheetExpa
             comments[index].replies[replyIndex].likedUsers.push(global.userData.uid);
         }
         updateDoc('posts', postData.pid, { comments });
+
+        const notif = {
+            uid: global.userData.uid,
+            pfp: global.userData.image,
+            handle: global.userData.handle,
+            name: global.userData.name,
+            type: 'liked-comment',
+            content: comments[index].content,
+            timestamp: Date.now()
+        }
+
+        sendNotification(comments[index].uid, notif);
     }
 
     function handleUnlikeComment(index, replyIndex) {

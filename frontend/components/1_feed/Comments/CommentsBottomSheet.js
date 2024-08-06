@@ -5,6 +5,7 @@ import { Ionicons } from '@expo/vector-icons';
 import CommentsModal from "./CommentsModal";
 import incrementDocValue from "../../../../backend/helper/firebase/incrementDocValue";
 import updateDoc from "../../../../backend/helper/firebase/updateDoc";
+import sendNotification from "../../../../backend/sendNotification";
 
 const { width, height } = Dimensions.get('screen');
 
@@ -38,12 +39,39 @@ const CommentsBottomSheet = ({ isVisible, postData, commentsBottomSheetExpandFla
 
         } else {
             postData.comments[replyingToIndex].replies.push(newComment);
+
+            const replyNotif = {
+                uid: global.userData.uid,
+                pfp: global.userData.image,
+                handle: global.userData.handle,
+                name: global.userData.name,
+                type: 'replied-comment',
+                content: inputText,
+                timestamp: Date.now()
+            }
+
+            sendNotification(postData.comments[replyingToIndex].uid, replyNotif);
         }
 
         updateDoc('posts', postData.pid, {
             comments: postData.comments
         });
         incrementDocValue('posts', postData.pid, 'commentCount');
+
+
+        const notif = {
+            uid: global.userData.uid,
+            pfp: global.userData.image,
+            handle: global.userData.handle,
+            name: global.userData.name,
+            type: 'comment',
+            content: inputText,
+            timestamp: Date.now()
+        }
+
+        sendNotification(postData.uid, notif);
+
+
         setInputText('');
     };
 

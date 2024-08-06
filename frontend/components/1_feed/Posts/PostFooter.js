@@ -8,6 +8,7 @@ import FooterBottom from './FooterBottom';
 import updateDoc from '../../../../backend/helper/firebase/updateDoc';
 import arrayAppend from '../../../../backend/helper/firebase/arrayAppend';
 import arrayErase from '../../../../backend/helper/firebase/arrayErase';
+import sendNotification from '../../../../backend/sendNotification';
 
 export default function PostFooter({ data, onPressCommentButton, onPressShareButton, isPostsVisible }) {
     const [isLiked, setIsLiked] = useState(false);
@@ -35,14 +36,25 @@ export default function PostFooter({ data, onPressCommentButton, onPressShareBut
 
     function handlePressLikeButton() {
         if (!isLiked) {
-            console.log('ho');
             data.likeCount++;
             data.likes.push({
                 uid: global.userData.uid,
                 pfp: global.userData.image,
-                handle: global.userData.handle
+                handle: global.userData.handle,
+                name: global.userData.name
             });
             updateDoc('posts', data.pid, data);
+
+            const notif = {
+                uid: global.userData.uid,
+                pfp: global.userData.image,
+                handle: global.userData.handle,
+                name: global.userData.name,
+                type: 'liked-post',
+                timestamp: Date.now()
+            }
+
+            sendNotification(data.uid, notif);
         } else {
             data.likeCount--;
             data.likes = data.likes.filter(item => item.uid !== global.userData.uid);
