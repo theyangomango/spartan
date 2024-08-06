@@ -7,7 +7,7 @@ export default function MessageCard({ usersExcludingSelf, content, timestamp, to
     const handles = usersExcludingSelf.map(user => user.handle).join(', ');
     const maxProfilePics = 5; // Set a maximum number of profile pictures to show at full size
     const profilePicSize = usersExcludingSelf.length > maxProfilePics ? 40 : 48; // Adjust size based on the number of users
-    const profilePicOverlap = 20; // Overlap amount
+    const profilePicOverlap = 15; // Overlap amount
 
     return (
         <RNBounceable onPress={() => toChat(index, usersExcludingSelf)} style={styles.mainContainer}>

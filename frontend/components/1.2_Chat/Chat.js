@@ -150,9 +150,9 @@ const Chat = ({ navigation, route }) => {
                     />
                 </View>
                 <View style={[styles.inputContainer, { marginBottom: isInputFocused ? 4 : 22 }]}>
-                    <TouchableOpacity style={styles.emojiButton}>
+                    {/* <TouchableOpacity style={styles.emojiButton}>
                         <Ionicons name="happy-outline" size={26} color="#999" />
-                    </TouchableOpacity>
+                    </TouchableOpacity> */}
                     <TextInput
                         style={styles.textInput}
                         value={inputText}
@@ -304,6 +304,7 @@ const styles = StyleSheet.create({
         paddingHorizontal: 15,
         fontSize: 13,
         marginRight: 10,
+        marginLeft: 15,
         color: '#000',
         fontFamily: 'Poppins_500Medium',
     },
