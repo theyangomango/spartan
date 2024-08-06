@@ -47,7 +47,7 @@ export default function NotificationsModal({ closeBottomSheet }) {
                         color="black"
                     />
                 </Pressable> */}
-                <Text style={styles.title}>Notifications</Text>
+                {/* <Text style={styles.title}>Notifications</Text> */}
                 {/* <Ionicons
                     name="chevron-down"
                     size={24}
@@ -131,7 +131,7 @@ const styles = StyleSheet.create({
     
     },
     header: {
-        paddingTop: 23,
+        paddingTop: 8,
         paddingHorizontal: 25,
         // flexDirection: 'row',
         alignItems: 'center',
@@ -146,13 +146,13 @@ const styles = StyleSheet.create({
     },
     buttonRow: {
         paddingTop: 23,
-        paddingBottom: 7,
+        paddingBottom: 9,
         alignItems: 'center',
         paddingHorizontal: 12,
     },
     button: {
         backgroundColor: '#f3f3f3',
-        paddingVertical: 12,
+        paddingVertical: 14,
         paddingHorizontal: 20,
         borderRadius: 20,
         marginRight: 8,
