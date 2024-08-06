@@ -1,7 +1,7 @@
 import React, { useCallback, useEffect, useMemo, useRef } from "react";
 import { StyleSheet, Text, View } from "react-native";
 import BottomSheet, { BottomSheetBackdrop, BottomSheetFooter } from "@gorhom/bottom-sheet";
-import LeaderboardModal from "./LeaderboardModal";
+import LeaderboardModal from "../LeaderboardModal";
 import UserStatsModal from "./UserStatsModal";
 
 const LeaderboardBottomSheet = ({ isVisible, setIsVisible, user }) => {

@@ -1,18 +1,15 @@
-import React, { useEffect, useState, useRef } from "react";
-import { StyleSheet, View, Text, ScrollView, TouchableOpacity, Modal, Dimensions, Animated } from "react-native";
-import { useFocusEffect } from '@react-navigation/native';
+import React, { useEffect, useState } from "react";
+import { StyleSheet, View, Text, Modal, TouchableOpacity } from "react-native";
 import Footer from "../components/Footer";
 import Podium from "../components/2_Competition/Podium";
-import StatsRow from "../components/2_Competition/StatsRow";
 import WorkoutFooter from "../components/3_Workout/WorkoutFooter";
 import retrieveFollowingUsers from "../../backend/retrieveFollowingUsers";
 import rankUsers from "../helper/rankUsers";
 import LeaderboardBottomSheet from "../components/2_Competition/LeaderboardBottomSheet";
-import UserStatsBottomSheet from "../components/2_Competition/UserStatsBottomSheet";
+import UserStatsBottomSheet from "../components/2_Competition/UserStats/UserStatsBottomSheet";
+import { Octicons, Ionicons } from '@expo/vector-icons'
 
-const { height } = Dimensions.get('window');
-
-export default function Competition({ navigation, route }) {
+export default function Competition({ navigation }) {
     const userData = global.userData;
     const [users, setUsers] = useState(null);
     const [userList, setUserList] = useState(null);
@@ -23,61 +20,44 @@ export default function Competition({ navigation, route }) {
     const [isUserStatsBottomSheetVisible, setIsUserStatsBottomSheetVisible] = useState(false);
 
     useEffect(() => {
-        retrieveFollowingUsers(userData.following)
-            .then(data => {
-                let users = [userData, ...data];
-                setUsers(users);
-                setUserList(rankUsers(users, categoryCompared));
-            });
-    }, []);
+        const fetchData = async () => {
+            const data = await retrieveFollowingUsers(userData.following);
+            const users = [userData, ...data];
+            setUsers(users);
+            setUserList(rankUsers(users, categoryCompared));
+        };
+        fetchData();
+    }, [userData, categoryCompared]);
 
-    function selectCategoryCompared(category) {
-        setCategoryCompared(category);
-        setUserList(rankUsers(users, category));
-    }
-
-    function toggleFollowers() {
+    const toggleFollowers = () => {
         setShowFollowers(prev => prev === 'All Followers' ? 'Close Friends' : 'All Followers');
-    }
+    };
 
-    function openModal() {
+    const openModal = () => {
         setSelectExerciseModalVisible(true);
-    }
+    };
 
-    function closeModal() {
+    const closeModal = () => {
         setSelectExerciseModalVisible(false);
-    }
+    };
 
-    function openBottomSheet(user) {
+    const openBottomSheet = user => {
         setSelectedUser(user);
         setIsUserStatsBottomSheetVisible(true);
-    }
-
+    };
 
     return (
-        <View style={styles.main_ctnr}>
-            <View style={[styles.body]}>
-                <View style={styles.top_ctnr}>
-                    {/* <View style={styles.stats_rows_ctnr}>
-                        <StatsRow />
-                    </View> */}
-                    <Podium data={userList ? ([
-                        {
-                            handle: userList[0].handle,
-                            pfp: userList[0].image
-                        },
-                        userList.length > 1 && {
-                            handle: userList[1].handle,
-                            pfp: userList[1].image
-                        },
-                        userList.length > 2 && {
-                            handle: userList[2].handle,
-                            pfp: userList[2].image
-                        }
-                    ]) : null} />
-                </View>
+        <View style={styles.mainContainer}>
+            <View style={styles.header}>
+                <Octicons name="gear" size={22.5} color={'#ddd'} style={{paddingBottom: 4}}/>
+                <Ionicons name="information-circle" size={26.5} color={'#dcdcdc'}/>
             </View>
 
+            <Podium data={userList && userList.length > 0 ? [
+                { handle: userList[0]?.handle, pfp: userList[0]?.image },
+                userList[1] && { handle: userList[1]?.handle, pfp: userList[1]?.image },
+                userList[2] && { handle: userList[2]?.handle, pfp: userList[2]?.image }
+            ] : null} />
 
             <LeaderboardBottomSheet
                 userList={userList}
@@ -88,11 +68,15 @@ export default function Competition({ navigation, route }) {
                 openBottomSheet={openBottomSheet}
             />
 
-            <UserStatsBottomSheet user={selectedUser} isVisible={isUserStatsBottomSheetVisible} setIsVisible={setIsUserStatsBottomSheetVisible} />
-
+            <UserStatsBottomSheet
+                user={selectedUser}
+                isVisible={isUserStatsBottomSheetVisible}
+                setIsVisible={setIsUserStatsBottomSheetVisible}
+            />
 
             {global.workout && <WorkoutFooter userData={userData} />}
             <Footer navigation={navigation} currentScreenName={'Competition'} />
+
             <Modal
                 animationType="slide"
                 transparent={true}
@@ -108,45 +92,46 @@ export default function Competition({ navigation, route }) {
                     </View>
                 </View>
             </Modal>
-
         </View>
     );
 }
 
 const styles = StyleSheet.create({
-    main_ctnr: {
+    mainContainer: {
         flex: 1,
-        backgroundColor: '#59AAEE'
+        backgroundColor: '#59AAEE',
     },
-    stats_rows_ctnr: {
-        marginTop: 45
-    },
-    body: {
-        flex: 1
-    },
-    top_ctnr: {
-        justifyContent: 'space-between',
-        height: 395
+    header: {
+        position: 'absolute',
+        // backgroundColor: 'red',
+        top: 0,
+        height: 79,
+        left: 0,
+        right: 0,
+        alignItems: 'flex-end',
+        justifyContent: 'space-between', 
+        paddingHorizontal: 30,
+        flexDirection: 'row'
     },
     modalContainer: {
         flex: 1,
         justifyContent: 'center',
         alignItems: 'center',
-        backgroundColor: 'rgba(0,0,0,0.5)'
+        backgroundColor: 'rgba(0,0,0,0.5)',
     },
     modalContent: {
         width: 300,
         padding: 20,
         backgroundColor: '#fff',
         borderRadius: 10,
-        alignItems: 'center'
+        alignItems: 'center',
     },
     modalText: {
         fontSize: 18,
-        marginBottom: 10
+        marginBottom: 10,
     },
     closeModalText: {
         color: 'blue',
-        marginTop: 10
-    }
+        marginTop: 10,
+    },
 });

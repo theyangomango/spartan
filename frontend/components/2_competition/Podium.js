@@ -1,5 +1,4 @@
 import { StyleSheet, View, Text, Image } from "react-native";
-import StatsRow from "./StatsRow";
 
 export default function Podium({ data }) {
     console.log(data);
@@ -44,7 +43,7 @@ const styles = StyleSheet.create({
         position: 'absolute',
         top: 0,
         width: '100%',
-        height: 310,
+        height: 320,
         justifyContent: 'center',
         flexDirection: 'row',
         alignItems: 'flex-end',
