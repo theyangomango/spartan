@@ -84,7 +84,7 @@ const HexagonalStats = () => {
                             y={index == 0 ? point.y + 15 : point.y + 10} // Adjust the y position for the number
                             textAnchor="middle"
                             alignmentBaseline="middle"
-                            style={styles.text}
+                            style={styles.numberText}
                         >
                             {data1[index]}
                         </SvgText>
@@ -114,9 +114,7 @@ const styles = StyleSheet.create({
         strokeWidth: 2.5,
     },
     polygon2: {
-        // fill: 'rgba(255, 99, 132, 0.4)',
-        // fill: 'rgba(100, 100, 100, 0.2)',
-        fill: '#ccc',
+        fill: '#d3d3d3',
         opacity: 0.7,
         strokeWidth: 2.5,
     },
@@ -125,9 +123,14 @@ const styles = StyleSheet.create({
         strokeWidth: 1,
     },
     text: {
-        fill: '#888',
+        fill: '#999',
         fontFamily: 'Poppins_700Bold',
         fontSize: 15.5,
+    },
+    numberText: {
+        fill: '#4FAEFF',
+        fontFamily: 'Poppins_700Bold',
+        fontSize: 17,
     },
 });
 
