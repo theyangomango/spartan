@@ -2,9 +2,7 @@ import { Image, StyleSheet, Text, View } from 'react-native';
 import { Entypo, FontAwesome } from '@expo/vector-icons';
 import RNBounceable from '@freakycoder/react-native-bounceable';
 
-export default function LeaderboardCard({ pfp, handle, value, rank, lastRank, handlePress, userIsSelf = false }) {
-    console.log(rank, lastRank);
-
+export default function LeaderboardCard({ pfp, handle, value, rank, lastRank, handlePress, userIsSelf = false, bestSet }) {
     return (
         <RNBounceable onPress={handlePress} style={userIsSelf ? styles.self_card_ctnr : styles.card_ctnr}>
             <View style={styles.card_left}>
@@ -27,7 +25,10 @@ export default function LeaderboardCard({ pfp, handle, value, rank, lastRank, ha
                 </View>
             </View>
             <View style={styles.card_right}>
-                <Text style={styles.stat_text}>{value}lbs</Text>
+                <View>
+                    <Text style={styles.stat_text}>{value} lbs</Text>
+                    <Text style={styles.best_set_text}>{bestSet.reps} x {bestSet.weight} lbs</Text>
+                </View>
             </View>
         </RNBounceable>
     )
@@ -40,7 +41,7 @@ const styles = StyleSheet.create({
         flexDirection: 'row',
         justifyContent: 'space-between',
         paddingLeft: 10,
-        paddingRight: 12,
+        paddingRight: 14,
         marginHorizontal: 15,
         marginBottom: 12.5,
     },
@@ -50,7 +51,7 @@ const styles = StyleSheet.create({
         flexDirection: 'row',
         justifyContent: 'space-between',
         paddingLeft: 10,
-        paddingRight: 12,
+        paddingRight: 14,
         marginHorizontal: 15,
         borderWidth: 2.5,
         borderColor: '#57B2FF',
@@ -82,13 +83,24 @@ const styles = StyleSheet.create({
         color: '#999'
     },
     card_right: {
-        flexDirection: 'row',
-        alignItems: 'center',
+        flexDirection: 'column',
+        alignItems: 'flex-end',
+        justifyContent: 'center',
     },
     stat_text: {
         fontFamily: 'Outfit_600SemiBold',
         color: '#2D9EFF',
-        fontSize: 15
+        fontSize: 15,
+        textAlign: 'right'
+    },
+    best_set_text: {
+        fontFamily: 'Outfit_500Medium',
+        // color: '#2D9EFF',
+        color: '#777',
+        fontSize: 12.5,
+        marginTop: 4, // Add some spacing between the value and best set text
+        textAlign: 'right'
+
     },
     rank_text: {
         fontFamily: 'Poppins_600SemiBold',

@@ -35,18 +35,20 @@ const LeaderboardBottomSheet = ({ userList, categoryCompared, showFollowers, tog
             onChange={handleSheetChanges}
             handleStyle={{ display: 'none' }}
             style={styles.bottomsheet}
-            backgroundStyle={{borderTopLeftRadius: 30, borderTopRightRadius: 30}}
+            backgroundStyle={{ borderTopLeftRadius: 30, borderTopRightRadius: 30 }}
             enablePanDownToClose={false}
         >
-            <LeaderboardModal
-                userList={userList}
-                categoryCompared={categoryCompared}
-                showFollowers={showFollowers}
-                toggleFollowers={toggleFollowers}
-                openModal={openModal}
-                openBottomSheet={openBottomSheet}
-                isBottomSheetExpanded={isBottomSheetExpanded}
-            />
+            {userList &&
+                <LeaderboardModal
+                    userList={userList}
+                    categoryCompared={categoryCompared}
+                    showFollowers={showFollowers}
+                    toggleFollowers={toggleFollowers}
+                    openModal={openModal}
+                    openBottomSheet={openBottomSheet}
+                    isBottomSheetExpanded={isBottomSheetExpanded}
+                />
+            }
         </BottomSheet>
     );
 };
@@ -58,7 +60,7 @@ const styles = StyleSheet.create({
         shadowColor: '#ddd',
         shadowOffset: { width: 0, height: -5 },
         shadowOpacity: 0.8,
-        shadowRadius: 5, 
+        shadowRadius: 5,
         elevation: 5,
     }
 })

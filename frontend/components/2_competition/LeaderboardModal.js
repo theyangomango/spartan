@@ -33,6 +33,7 @@ const LeaderboardModal = ({ userList, categoryCompared, showFollowers, toggleFol
                 lastRank={global.userData.statsExercises[categoryCompared]['lastFollowersRank']}
                 handlePress={() => openBottomSheet(global.userData)}
                 userIsSelf={true}
+                bestSet={global.userData.statsExercises[categoryCompared]['bestSet']}
             />
             <FlatList
                 data={userList}
@@ -49,6 +50,7 @@ const LeaderboardModal = ({ userList, categoryCompared, showFollowers, toggleFol
                         rank={index + 1}
                         lastRank={item.statsExercises[categoryCompared]['lastFollowersRank']}
                         handlePress={() => openBottomSheet(item)}
+                        bestSet={item.statsExercises[categoryCompared]['bestSet']}
                     />
                 )}
             />
@@ -71,8 +73,8 @@ const styles = StyleSheet.create({
     },
     buttons_ctnr: {
         flexDirection: 'row',
-        marginBottom: 10,
-        paddingTop: 10,
+        marginBottom: 11,
+        paddingTop: 6,
         paddingRight: 15,
         paddingLeft: 32,
         alignItems: 'center'
