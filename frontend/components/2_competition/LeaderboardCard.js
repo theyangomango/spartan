@@ -2,11 +2,11 @@ import { Image, StyleSheet, Text, View } from 'react-native';
 import { Entypo, FontAwesome } from '@expo/vector-icons';
 import RNBounceable from '@freakycoder/react-native-bounceable';
 
-export default function LeaderboardCard({ pfp, handle, value, rank, lastRank, handlePress }) {
+export default function LeaderboardCard({ pfp, handle, value, rank, lastRank, handlePress, userIsSelf = false }) {
     console.log(rank, lastRank);
 
     return (
-        <RNBounceable onPress={handlePress} style={styles.card_ctnr}>
+        <RNBounceable onPress={handlePress} style={userIsSelf ? styles.self_card_ctnr : styles.card_ctnr}>
             <View style={styles.card_left}>
                 <Text style={styles.rank_text}>{rank}</Text>
                 {lastRank < rank &&
@@ -36,15 +36,25 @@ export default function LeaderboardCard({ pfp, handle, value, rank, lastRank, ha
 const styles = StyleSheet.create({
     card_ctnr: {
         height: 77,
-        // backgroundColor: 'red',
         borderRadius: 20,
         flexDirection: 'row',
         justifyContent: 'space-between',
-        // paddingHorizontal: 10,
         paddingLeft: 10,
         paddingRight: 12,
         marginHorizontal: 15,
         marginBottom: 12.5,
+    },
+    self_card_ctnr: {
+        height: 87,
+        borderRadius: 20,
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        paddingLeft: 10,
+        paddingRight: 12,
+        marginHorizontal: 15,
+        borderWidth: 2.5,
+        borderColor: '#57B2FF',
+        backgroundColor: '#F7FBFF'
     },
     card_left: {
         flexDirection: 'row',
@@ -89,7 +99,7 @@ const styles = StyleSheet.create({
         marginLeft: 1,
         marginRight: 7,
     },
-    minus_icon:  {
+    minus_icon: {
         marginLeft: 7,
         marginRight: 10
     }

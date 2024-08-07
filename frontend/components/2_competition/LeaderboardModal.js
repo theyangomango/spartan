@@ -4,6 +4,9 @@ import RNBounceable from '@freakycoder/react-native-bounceable';
 import LeaderboardCard from "./LeaderboardCard";
 
 const LeaderboardModal = ({ userList, categoryCompared, showFollowers, toggleFollowers, openModal, openBottomSheet, isBottomSheetExpanded }) => {
+    const userIndex = userList.findIndex(item => item.uid === global.userData.uid);
+    const userRank = userIndex !== -1 ? userIndex + 1 : 1; // Default to 1 if not found
+
     return (
         <View style={[styles.bottom_ctnr]}>
             <View style={styles.buttons_ctnr}>
@@ -22,12 +25,21 @@ const LeaderboardModal = ({ userList, categoryCompared, showFollowers, toggleFol
                     </RNBounceable>
                 </View>
             </View>
+            <LeaderboardCard
+                pfp={global.userData.image}
+                handle={global.userData.handle}
+                value={global.userData.statsExercises[categoryCompared]['1RM']}
+                rank={userRank}
+                lastRank={global.userData.statsExercises[categoryCompared]['lastFollowersRank']}
+                handlePress={() => openBottomSheet(global.userData)}
+                userIsSelf={true}
+            />
             <FlatList
                 data={userList}
                 keyExtractor={(item, index) => index.toString()}
                 showsVerticalScrollIndicator={false}
                 contentContainerStyle={styles.flatlist_ctnr}
-                ListHeaderComponent={<View style={{ height: 2 }} />}
+                ListHeaderComponent={<View style={{ height: 8 }} />}
                 ListFooterComponent={<View style={{ height: isBottomSheetExpanded ? 100 : 400 }} />}
                 renderItem={({ item, index }) => (
                     <LeaderboardCard
@@ -80,7 +92,7 @@ const styles = StyleSheet.create({
         color: '#666',
         fontSize: 13,
         fontFamily: 'Outfit_700Bold',
-    }
+    },
 });
 
 export default LeaderboardModal;
