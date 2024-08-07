@@ -4,7 +4,11 @@ import RNBounceable from "@freakycoder/react-native-bounceable";
 
 export default function PostPreview({ item, toPostList, large }) {
     return (
-        <RNBounceable onPress={toPostList} style={[styles.image_ctnr, large && styles.large]}>
+        <RNBounceable
+            // ! Disabled for Beta
+            // onPress={toPostList} 
+            style={[styles.image_ctnr, large && styles.large]}
+        >
             <Image source={{ uri: item.images[0] }} style={styles.image} />
         </RNBounceable>
     );

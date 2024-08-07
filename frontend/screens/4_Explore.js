@@ -1,10 +1,11 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { StyleSheet, View, TouchableWithoutFeedback, Keyboard, ScrollView, Text, KeyboardAvoidingView, Platform } from 'react-native';
 import Footer from "../components/Footer";
 import WorkoutFooter from "../components/3_Workout/WorkoutFooter";
 import PostPreview from '../components/4_explore/PostPreview';
 import SearchBarComponent from '../components/4_explore/SearchBarComponent';
 import retrieveUserExploreFeed from '../../backend/retreiveUserExploreFeed';
+import retreiveAllUsers from '../../backend/retreiveAllUsers';
 import RNBounceable from '@freakycoder/react-native-bounceable';
 
 export default function Explore({ navigation }) {
@@ -13,30 +14,26 @@ export default function Explore({ navigation }) {
     const [filteredHandles, setFilteredHandles] = useState([]);
     const [selectedCategory, setSelectedCategory] = useState('For You');
     const [keyboardVisible, setKeyboardVisible] = useState(false);
+    const allUsers = useRef(null);
 
     useEffect(() => {
-        const keyboardDidShowListener = Keyboard.addListener('keyboardDidShow', () => {
-            setKeyboardVisible(true);
-        });
-        const keyboardDidHideListener = Keyboard.addListener('keyboardDidHide', () => {
-            setKeyboardVisible(false);
-        });
-
-        init();
-
-        return () => {
-            keyboardDidShowListener.remove();
-            keyboardDidHideListener.remove();
-        };
+        initExploreFeed();
+        initGlobalUsers();
     }, []);
 
-    async function init() {
-        let exploreFeedData = await retrieveUserExploreFeed(userData);
+    async function initExploreFeed() {
+        const exploreFeedData = await retrieveUserExploreFeed(userData);
         setExplorePosts(exploreFeedData);
     }
 
+    async function initGlobalUsers() {
+        const globalUsers = await retreiveAllUsers();
+        allUsers.current = globalUsers;
+    }
+
+    // ! Removed from Beta
     const toPostList = () => {
-        navigation.navigate('PostList');
+        // navigation.navigate('PostList');
     };
 
     const renderPostPreview = (item, large = false) => (
@@ -116,6 +113,7 @@ export default function Explore({ navigation }) {
             <SearchBarComponent
                 navigation={navigation}
                 onFilteredHandlesChange={setFilteredHandles}
+                allUsers={allUsers}
             />
 
             <View style={styles.scrollViewWrapper}>

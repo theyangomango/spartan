@@ -1,24 +1,31 @@
 import React, { useState } from 'react';
-import { StyleSheet, View, TextInput, TouchableOpacity, TouchableWithoutFeedback, Keyboard, Dimensions, Text } from 'react-native';
+import { StyleSheet, View, TextInput, TouchableOpacity, TouchableWithoutFeedback, Keyboard, Dimensions, Text, FlatList } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import SearchPanel from './SearchPanel';
+import UserCard from './UserCard'; // Import the UserCard component
 
 const { height: screenHeight } = Dimensions.get('window');
 
-const SearchBarComponent = ({ navigation, onFilteredHandlesChange }) => {
+const SearchBarComponent = ({ navigation, onFilteredHandlesChange, allUsers }) => {
     const [searchString, setSearchString] = useState('');
     const [isFocused, setIsFocused] = useState(false);
+    const [filteredUsers, setFilteredUsers] = useState([]);
 
     const filterHandles = (text) => {
         setSearchString(text);
-        // Your existing filter logic here...
+        const filtered = allUsers.current.filter(user =>
+            user.handle.toLowerCase().includes(text.toLowerCase()) ||
+            user.name.toLowerCase().includes(text.toLowerCase())
+        );
+        setFilteredUsers(filtered);
+        onFilteredHandlesChange(filtered);
     };
 
-    const handleSelectSearch = (search) => {
-        setSearchString(search);
-        filterHandles(search);
-        setIsFocused(false);
-    };
+    // ! Removed from Beta
+    // const handleSelectSearch = (search) => {
+    //     setSearchString(search);
+    //     filterHandles(search);
+    //     setIsFocused(false);
+    // };
 
     return (
         <View style={styles.container}>
@@ -35,26 +42,30 @@ const SearchBarComponent = ({ navigation, onFilteredHandlesChange }) => {
                         onBlur={() => { /* Do nothing on blur */ }}
                     />
                     {searchString.length > 0 && (
-                        <TouchableOpacity activeOpacity={0.5} onPress={() => { setSearchString(''); onFilteredHandlesChange([]); }} style={styles.clearButton}>
+                        <TouchableOpacity activeOpacity={0.5} onPress={() => { setSearchString(''); setFilteredUsers([]); onFilteredHandlesChange([]); }} style={styles.clearButton}>
                             <Ionicons name="close-circle" size={18} color="#c6c6c6" />
                         </TouchableOpacity>
                     )}
                 </View>
             </TouchableWithoutFeedback>
-            {isFocused && <TouchableOpacity
-                style={styles.searchButton}
-                onPress={() => filterHandles(searchString)}
-            >
-                <Text style={styles.searchButtonText}>Search</Text>
-            </TouchableOpacity>}
-
             {isFocused && (
-                <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
-                    <View style={[styles.fullScreenPanel, { height: screenHeight }]}>
-                        <SearchPanel onSelectSearch={handleSelectSearch} />
-                    </View>
-                </TouchableWithoutFeedback>
+                <TouchableOpacity
+                    style={styles.searchButton}
+                    onPress={() => filterHandles(searchString)}
+                >
+                    <Text style={styles.searchButtonText}>Search</Text>
+                </TouchableOpacity>
             )}
+
+            <View style={styles.userCardsContainer}>
+                <FlatList
+                    data={filteredUsers}
+                    keyExtractor={(item) => item.handle}
+                    renderItem={({ item }) => (
+                        <UserCard user={item} />
+                    )}
+                />
+            </View>
         </View>
     );
 };
@@ -106,13 +117,13 @@ const styles = StyleSheet.create({
         fontSize: 13,
         fontWeight: 'bold',
     },
-    fullScreenPanel: {
+    userCardsContainer: {
+        zIndex: 2,
         position: 'absolute',
         top: 40, // So that it doesn't cover the search bar
         left: 0,
         right: 0,
-        // backgroundColor: 'red',
-        zIndex: 2,
+        backgroundColor: '#fff'
     }
 });
 
