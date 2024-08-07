@@ -5,15 +5,16 @@ import { Svg, Polygon, Line, Text as SvgText } from 'react-native-svg';
 const screenWidth = Dimensions.get('window').width;
 const chartSize = screenWidth * 0.7;
 const categories = ['SHOULDERS', 'CHEST', 'ARMS', 'LEGS', 'BACK', 'ABS'];
-const data1 = [80, 85, 75, 90, 95, 70];
-const data2 = [70, 75, 85, 80, 90, 85];
 const maxValue = 100;
 
-const HexagonalStats = () => {
+const HexagonalStats = ({ statsHexagon }) => {
     const radius = chartSize / 2;
     const centerX = screenWidth / 2;
     const centerY = chartSize / 2 + 50; // Adjusted centerY to add padding at the top
     const angle = (2 * Math.PI) / categories.length;
+    const data1 = [statsHexagon.shoulders, statsHexagon.chest, statsHexagon.arms, statsHexagon.legs, statsHexagon.back, statsHexagon.abs];
+    const data2 = [global.userData.statsHexagon.shoulders, global.userData.statsHexagon.chest, global.userData.statsHexagon.arms, global.userData.statsHexagon.legs, global.userData.statsHexagon.back, global.userData.statsHexagon.abs];
+
 
     const points1 = data1
         .map((value, index) => {

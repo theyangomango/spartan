@@ -18,6 +18,7 @@ const LeaderboardModal = ({ userList, categoryCompared, showFollowers, toggleFol
                         <Text style={styles.buttonText}>Bench Press</Text>
                     </RNBounceable>
                     <RNBounceable
+                        disabled // Disabled for Beta
                         style={[styles.button, styles.selectedButton]}
                         onPress={toggleFollowers}
                     >

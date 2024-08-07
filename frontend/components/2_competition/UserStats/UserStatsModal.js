@@ -32,20 +32,17 @@ export default function UserStatsModal({ user }) {
 
     return (
         <View style={{ flex: 1 }}>
-            {/* <Pressable> */}
             <View style={styles.header}>
                 <View style={styles.headerLeft}>
                     <Image source={{ uri: user.image }} style={styles.pfp} />
-                    <Text style={styles.handle}>{user.handle}</Text>
+                    <Text numberOfLines={1} ellipsizeMode="tail" style={styles.handle}>{user.handle}</Text>
                 </View>
-                <Text style={styles.overallScore}>94 overall</Text>
+                <View style={styles.header_right}>
+                    <Text style={styles.overallScore}>94 overall</Text>
+                </View>
             </View>
-            {/* </Pressable> */}
             <ScrollView style={styles.scrollview} showsVerticalScrollIndicator={false}>
-
-                <Pressable>
-                    <HexagonalStats />
-                </Pressable>
+                <HexagonalStats statsHexagon={user.statsHexagon} />
                 <View style={styles.exercisesContainer}>
                     {exercises.map((exercise, index) => {
                         const maxRecord = Math.max(exercise.recordUser1 || 0, exercise.recordUser2 || 0);
@@ -104,8 +101,6 @@ const styles = StyleSheet.create({
         borderTopRightRadius: 25,
         paddingHorizontal: 3,
         paddingTop: 20,
-
-      
     },
     header: {
         flexDirection: 'row',
@@ -118,6 +113,10 @@ const styles = StyleSheet.create({
     headerLeft: {
         flexDirection: 'row',
         alignItems: 'center',
+        width: '54%'
+    },
+    header_right: {
+        marginLeft: 15
     },
     pfp: {
         width: 43,
@@ -126,8 +125,8 @@ const styles = StyleSheet.create({
         marginRight: 12
     },
     handle: {
-        fontSize: 20,
-        fontFamily: 'Outfit_600SemiBold'
+        fontSize: 19,
+        fontFamily: 'Outfit_600SemiBold',
     },
     overallScore: {
         fontSize: 20,
