@@ -4,15 +4,15 @@ export default function WorkoutStats({ userData }) {
     return (
         <View style={styles.main_ctnr}>
             <View style={[styles.workout_stat, styles.total_workouts_stat_ctnr]}>
-                <Text style={[styles.workout_stat_number, styles.total_workouts_stat_number]}>{userData.stats.workoutCount}</Text>
+                <Text style={[styles.workout_stat_number, styles.total_workouts_stat_number]}>{userData && userData.statsTotalWorkouts}</Text>
                 <Text style={styles.workout_stat_text}>Workouts</Text>
             </View>
             <View style={[styles.workout_stat, styles.total_volume_stat_ctnr]}>
-                <Text style={[styles.workout_stat_number, styles.total_volume_stat_number]}>{userData.stats.totalVolume}</Text>
+                <Text style={[styles.workout_stat_number, styles.total_volume_stat_number]}>{userData && userData.statsTotalVolume}</Text>
                 <Text style={styles.workout_stat_text}>Lbs Lifted</Text>
             </View>
             <View style={[styles.workout_stat, styles.gym_time_stat_ctnr]}>
-                <Text style={[styles.workout_stat_number, styles.gym_time_stat_number]}>{userData.stats.totalTime}</Text>
+                <Text style={[styles.workout_stat_number, styles.gym_time_stat_number]}>{userData && userData.statsTotalHours}</Text>
                 <Text style={styles.workout_stat_text}>Hours in Gym</Text>
             </View>
         </View>

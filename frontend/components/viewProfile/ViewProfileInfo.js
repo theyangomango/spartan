@@ -5,18 +5,7 @@ import getPFP from "../../../backend/storage/getPFP";
 import RNBounceable from "@freakycoder/react-native-bounceable";
 import readDoc from "../../../backend/helper/firebase/readDoc";
 
-export default function ViewProfileInfo({ user }) {
-    const [userData, setUserData] = useState(null);
-
-    useEffect(() => {
-        getFullUserData();
-    }, [user]);
-
-    async function getFullUserData() {
-        const data = await readDoc('users', user.uid);
-        setUserData(data);
-        console.log(data);
-    }
+export default function ViewProfileInfo({ userData }) {
 
     return (
         <View style={styles.main_ctnr}>
@@ -26,7 +15,7 @@ export default function ViewProfileInfo({ user }) {
                     <Text style={styles.user_stat_text}>Followers</Text>
                 </View>
                 <View style={styles.pfp_ctnr}>
-                    <Image source={{ uri: user.pfp }} style={styles.pfp} />
+                    <Image source={{ uri: userData && userData.image }} style={styles.pfp} />
                     <RNBounceable style={styles.plus_icon_ctnr}>
                         <Entypo name="plus" size={16} color="#222" />
                     </RNBounceable>
@@ -38,7 +27,7 @@ export default function ViewProfileInfo({ user }) {
             </View>
             <View style={styles.profile_info_ctnr}>
                 <View style={styles.name_and_score_ctnr}>
-                    <Text style={styles.name_text}>{user.name}</Text>
+                    <Text style={styles.name_text}>{userData && userData.name}</Text>
                     <View style={styles.border_line}></View>
                     <Text style={styles.score_text}>100 overall</Text>
                 </View>

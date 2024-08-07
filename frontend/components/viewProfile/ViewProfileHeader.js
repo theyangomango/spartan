@@ -1,5 +1,5 @@
 import { StyleSheet, View, Text, TouchableOpacity } from "react-native";
-import { FontAwesome6, Octicons, Entypo } from '@expo/vector-icons';
+import { FontAwesome6, Octicons, Entypo, Ionicons } from '@expo/vector-icons';
 import { ArrowDown2, AddSquare, HambergerMenu } from 'iconsax-react-native'
 import RNBounceable from "@freakycoder/react-native-bounceable";
 
@@ -17,7 +17,7 @@ export default function ViewProfileHeader({ handle }) {
             <View style={styles.right}>
                 <RNBounceable>
                     <View style={styles.create_btn_ctnr}>
-                        <FontAwesome6 name='plus' size={13} color="#bbb" />
+                        <Ionicons name='menu' size={22.5} color="#bbb" />
                     </View>
                 </RNBounceable>
                 {/* <TouchableOpacity>
@@ -33,8 +33,9 @@ export default function ViewProfileHeader({ handle }) {
 
 const styles = StyleSheet.create({
     main_ctnr: {
-        height: 87,
-        alignItems: 'flex-end',
+        paddingTop: 50,
+        alignItems: 'center',
+        // alignItems: 'flex-end',
         flexDirection: 'row',
         justifyContent: 'space-between',
         paddingHorizontal: 17,
@@ -56,13 +57,14 @@ const styles = StyleSheet.create({
         flexDirection: 'row',
     },
     create_btn_ctnr: {
-        borderWidth: 1.5,
-        width: 21.5,
-        borderRadius: 5,
-        aspectRatio: 1,
-        alignItems: 'center',
-        justifyContent: 'center',
-        borderColor: '#bbb'
+        // borderWidth: 1.5,
+        // width: 21.5,
+        // borderRadius: 5,
+        // aspectRatio: 1,
+        // alignItems: 'center',
+        // justifyContent: 'center',
+        // borderColor: '#bbb',
+        marginBottom: 1
     },
     options_btn_ctnr: {
     }
