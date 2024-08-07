@@ -18,7 +18,7 @@ import Competition from './frontend/screens/2_Competition';
 import Messages from './frontend/screens/1.1_Messages';
 import Chat from './frontend/screens/1.2_Chat';
 import PostList from './frontend/screens/PostList';
-import ViewProfile from './frontend/screens/ViewProfile';
+import ViewProfile from './frontend/screens/5.1_ViewProfile';
 
 import {
     useFonts,

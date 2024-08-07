@@ -2,9 +2,9 @@ import React from 'react';
 import { View, Text, StyleSheet, Pressable } from 'react-native';
 import FastImage from 'react-native-fast-image';
 
-const UserCard = ({ user }) => {
+const UserCard = ({ user, toViewProfile }) => {
     return (
-        <Pressable style={styles.itemContainer}>
+        <Pressable style={styles.itemContainer} onPress={() => toViewProfile(user)}>
             <View style={styles.pfp_ctnr}>
                 <FastImage
                     source={{ uri: user.pfp }}

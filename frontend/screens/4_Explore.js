@@ -2,8 +2,8 @@ import React, { useEffect, useRef, useState } from 'react';
 import { StyleSheet, View, TouchableWithoutFeedback, Keyboard, ScrollView, Text, KeyboardAvoidingView, Platform } from 'react-native';
 import Footer from "../components/Footer";
 import WorkoutFooter from "../components/3_Workout/WorkoutFooter";
-import PostPreview from '../components/4_explore/PostPreview';
-import SearchBarComponent from '../components/4_explore/SearchBarComponent';
+import PostPreview from '../components/4_Explore/PostPreview';
+import SearchBarComponent from '../components/4_Explore/SearchBarComponent';
 import retrieveUserExploreFeed from '../../backend/retreiveUserExploreFeed';
 import retreiveAllUsers from '../../backend/retreiveAllUsers';
 import RNBounceable from '@freakycoder/react-native-bounceable';
@@ -11,7 +11,6 @@ import RNBounceable from '@freakycoder/react-native-bounceable';
 export default function Explore({ navigation }) {
     const userData = global.userData;
     const [explorePosts, setExplorePosts] = useState([]);
-    const [filteredHandles, setFilteredHandles] = useState([]);
     const [selectedCategory, setSelectedCategory] = useState('For You');
     const [keyboardVisible, setKeyboardVisible] = useState(false);
     const allUsers = useRef(null);
@@ -112,7 +111,6 @@ export default function Explore({ navigation }) {
 
             <SearchBarComponent
                 navigation={navigation}
-                onFilteredHandlesChange={setFilteredHandles}
                 allUsers={allUsers}
             />
 

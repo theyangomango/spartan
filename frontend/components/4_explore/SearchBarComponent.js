@@ -5,7 +5,7 @@ import UserCard from './UserCard'; // Import the UserCard component
 
 const { height: screenHeight } = Dimensions.get('window');
 
-const SearchBarComponent = ({ navigation, onFilteredHandlesChange, allUsers }) => {
+const SearchBarComponent = ({ navigation, allUsers }) => {
     const [searchString, setSearchString] = useState('');
     const [isFocused, setIsFocused] = useState(false);
     const [filteredUsers, setFilteredUsers] = useState([]);
@@ -17,7 +17,6 @@ const SearchBarComponent = ({ navigation, onFilteredHandlesChange, allUsers }) =
             user.name.toLowerCase().includes(text.toLowerCase())
         );
         setFilteredUsers(filtered);
-        onFilteredHandlesChange(filtered);
     };
 
     // ! Removed from Beta
@@ -27,6 +26,10 @@ const SearchBarComponent = ({ navigation, onFilteredHandlesChange, allUsers }) =
     //     setIsFocused(false);
     // };
 
+    function toViewProfile(user) {
+        navigation.navigate('ViewProfile', {user: user});
+    }
+
     return (
         <View style={styles.container}>
             <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
@@ -34,7 +37,7 @@ const SearchBarComponent = ({ navigation, onFilteredHandlesChange, allUsers }) =
                     <Ionicons name="search" size={16.5} color="#c6c6c6" style={styles.icon} />
                     <TextInput
                         style={styles.textInput}
-                        placeholder="How much protein should I eat?..."
+                        placeholder="Search for a person..."
                         placeholderTextColor="#bbb"
                         value={searchString}
                         onChangeText={filterHandles}
@@ -42,7 +45,7 @@ const SearchBarComponent = ({ navigation, onFilteredHandlesChange, allUsers }) =
                         onBlur={() => { /* Do nothing on blur */ }}
                     />
                     {searchString.length > 0 && (
-                        <TouchableOpacity activeOpacity={0.5} onPress={() => { setSearchString(''); setFilteredUsers([]); onFilteredHandlesChange([]); }} style={styles.clearButton}>
+                        <TouchableOpacity activeOpacity={0.5} onPress={() => { setSearchString(''); setFilteredUsers([]); }} style={styles.clearButton}>
                             <Ionicons name="close-circle" size={18} color="#c6c6c6" />
                         </TouchableOpacity>
                     )}
@@ -62,7 +65,7 @@ const SearchBarComponent = ({ navigation, onFilteredHandlesChange, allUsers }) =
                     data={filteredUsers}
                     keyExtractor={(item) => item.handle}
                     renderItem={({ item }) => (
-                        <UserCard user={item} />
+                        <UserCard user={item} toViewProfile={toViewProfile}/>
                     )}
                 />
             </View>
