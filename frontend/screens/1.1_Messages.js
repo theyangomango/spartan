@@ -14,7 +14,9 @@ export default function Messages({ navigation, route }) {
     const [isCreateGroupChatBottomSheetVisible, setIsCreateGroupChatBottomSheetVisible] = useState(false);
 
     useEffect(() => {
-        setMessages(route.params.messages);
+        if ('messages' in route.params) {
+            setMessages(route.params.messages);
+        }
     }, []);
 
     const toFeedScreen = () => {
@@ -42,7 +44,10 @@ export default function Messages({ navigation, route }) {
         };
 
         const cid = makeID();
-        arrayAppend('users', userData.uid, 'messages', cid);
+        arrayAppend('users', userData.uid, 'messages', {
+            mid: cid,
+            otherUsers: usersExcludingSelf
+        });
 
         // Append to Messages List
         const newChat = await initChat(userData.uid, [...usersExcludingSelf, selfUser], cid);

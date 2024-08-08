@@ -16,8 +16,8 @@ export default async function retrieveUserFeed(userData) {
     // }
 
     let db_messages = [];
-    for (mid of userData.messages) {
-        let messageData = await readDoc('messages', mid);
+    for (msg of userData.messages) {
+        let messageData = await readDoc('messages', msg.mid);
         db_messages.push(messageData);
     }
 

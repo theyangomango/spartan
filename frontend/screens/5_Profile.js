@@ -65,6 +65,8 @@ export default function Profile({ navigation }) {
             <EditProfileBottomSheet
                 isVisible={isEditProfileBottomSheetVisible}
                 setIsVisible={setIsEditProfileBottomSheetVisible} />
+
+            <Footer currentScreenName={'Profile'} navigation={navigation}/>
         </View>
     );
 }

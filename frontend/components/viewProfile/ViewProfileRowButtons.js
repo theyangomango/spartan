@@ -1,10 +1,10 @@
 import RNBounceable from "@freakycoder/react-native-bounceable";
 import { StyleSheet, View, Text } from "react-native";
 
-export default function ViewProfileRowButtons() {
+export default function ViewProfileRowButtons({ toMessages }) {
     return (
         <View style={styles.row}>
-            <RNBounceable style={styles.flex}>
+            <RNBounceable style={styles.flex} onPress={toMessages}>
                 <View style={[styles.message_button, styles.flex]}>
                     <Text style={styles.message_text}>Message</Text>
                 </View>

@@ -6,6 +6,7 @@ import ViewProfileInfo from "../components/ViewProfile/ViewProfileInfo";
 import ViewProfileHeader from "../components/ViewProfile/ViewProfileHeader";
 import readDoc from "../../backend/helper/firebase/readDoc";
 import WorkoutStats from "../components/5_Profile/ProfileTop/WorkoutStats";
+import Footer from "../components/Footer";
 
 export default function ViewProfile({ navigation, route }) {
     const user = route.params.user;
@@ -39,12 +40,21 @@ export default function ViewProfile({ navigation, route }) {
         setPosts(db_posts);
     }
 
+    async function toMessages() {
+        for (msg of global.userData.messages) {
+            if (msg.otherUsers.length == 1 && msg.otherUsers[0].uid == user.uid) { // This DM
+                const chatData = await readDoc('messages', msg.mid);
+                navigation.navigate('Chat', { data: chatData, usersExcludingSelf: msg.otherUsers });
+            }
+        }
+    }
+
     return (
         <View style={styles.main_ctnr}>
             <View style={styles.body_ctnr}>
-                <ViewProfileHeader handle={user.handle}/>
+                <ViewProfileHeader handle={user.handle} />
                 <ViewProfileInfo userData={userData} />
-                <ViewProfileRowButtons />
+                <ViewProfileRowButtons toMessages={toMessages} />
                 <WorkoutStats userData={userData} />
             </View>
 
@@ -52,6 +62,8 @@ export default function ViewProfile({ navigation, route }) {
                 setSelectedPanel={setSelectedPanel}
                 posts={posts}
                 navigation={navigation} />
+
+            <Footer currentScreenName={'Explore'} navigation={navigation} />
         </View>
     );
 }

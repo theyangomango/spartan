@@ -24,24 +24,13 @@ const ProfileBottomBottomSheet = ({ selectedPanel, setSelectedPanel, posts, navi
         []
     );
 
-    const renderFooter = useCallback(
-        props => (
-            <BottomSheetFooter {...props}>
-                <Footer navigation={navigation} currentScreenName={'Profile'} />
-            </BottomSheetFooter>
-        ),
-        []
-    );
-
     return (
         <BottomSheet
             ref={bottomSheetRef}
             index={0}
             backdropComponent={renderBackdrop}
-            footerComponent={renderFooter}
             snapPoints={snapPoints}
             onChange={handleSheetChanges}
-            // handleStyle={styles.handle}
             handleStyle={{ display: 'none' }}
             detached
         >

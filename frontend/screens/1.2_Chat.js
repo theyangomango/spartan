@@ -66,7 +66,8 @@ const Chat = ({ navigation, route }) => {
     };
 
     const toMessages = () => {
-        navigation.navigate('Messages');
+        // navigation.navigate('Messages');
+        navigation.goBack();
     };
 
     return (
