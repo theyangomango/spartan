@@ -81,7 +81,7 @@ const WorkoutDates = ({ scheduleWorkout, descheduleWorkout, isPanelVisible, sele
         <View style={styles.container}>
             <View style={styles.header}>
                 <Text style={styles.monthYear}>{currentMonthYear}</Text>
-                <Calendar size="26.5" variant="Broken" color={'#000'} />
+                {/* <Calendar size="26.5" variant="Broken" color={'#000'} /> */}
             </View>
             <FlatList
                 horizontal

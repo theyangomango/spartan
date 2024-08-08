@@ -1,13 +1,13 @@
-import { View, StyleSheet, Text, Pressable, Image } from "react-native";
-import { useEffect, useState } from "react";
+import { View, StyleSheet, Text, Pressable, Image, Animated } from "react-native";
+import { useState, useEffect, useRef } from "react";
 import SetRow from "./SetRow";
-import { FontAwesome5, MaterialCommunityIcons, Entypo } from '@expo/vector-icons';
+import { MaterialCommunityIcons, Entypo } from '@expo/vector-icons';
 import RNBounceable from "@freakycoder/react-native-bounceable";
+import ExerciseOptionsPanel from "./ExerciseOptionsPanel";
 
 export default function ExerciseLog({ name, exerciseIndex, updateSets, initialSets }) {
     const muscle = name === 'Lateral Raise' ? 'Shoulders' : 'Chest';
 
-    const [isTrackingBothSides, setIsTrackingBothSides] = useState(false);
     const [sets, setSets] = useState(initialSets.length === 0 ? [
         {
             previous: '405 lb x 12',
@@ -15,6 +15,9 @@ export default function ExerciseLog({ name, exerciseIndex, updateSets, initialSe
             reps: 0
         }
     ] : initialSets);
+    const [isPanelVisible, setIsPanelVisible] = useState(false);
+    const [panelPosition, setPanelPosition] = useState({ top: 0, left: 0 });
+    const fadeAnim = useRef(new Animated.Value(1)).current;
 
     const muscleColors = {
         Chest: '#FFAFB8',
@@ -26,6 +29,18 @@ export default function ExerciseLog({ name, exerciseIndex, updateSets, initialSe
     useEffect(() => {
         updateSets(exerciseIndex, sets);
     }, [sets]);
+
+    const togglePanel = (event) => {
+        if (isPanelVisible) {
+            setIsPanelVisible(false);
+        } else {
+            setIsPanelVisible(true);
+            setPanelPosition({
+                top: event.nativeEvent.pageY + 25,
+                left: 18
+            });
+        }
+    };
 
     function addSet() {
         setSets([...sets, {
@@ -49,51 +64,57 @@ export default function ExerciseLog({ name, exerciseIndex, updateSets, initialSe
     }
 
     return (
-        <Pressable>
-            <View style={styles.main_ctnr}>
-                <View style={styles.header}>
-                    <View style={styles.nameContainer}>
-                        <Text style={styles.exercise_text} numberOfLines={1}>{name}</Text>
-                        <View style={[styles.muscle_ctnr, { backgroundColor: muscleColors[muscle] }]}>
-                            <Text style={styles.muscle_text}>{muscle}</Text>
-                        </View>
+        <View style={styles.main_ctnr}>
+            <ExerciseOptionsPanel
+                visible={isPanelVisible}
+                onClose={() => {
+                    setIsPanelVisible(false);
+                }}
+                position={panelPosition}
+            />
+            <Animated.View style={[styles.header, { opacity: fadeAnim }]}>
+                <Pressable style={styles.nameContainer} onPress={togglePanel}>
+                    <Text style={styles.exercise_text} numberOfLines={1}>{name}</Text>
+                    <View style={[styles.muscle_ctnr, { backgroundColor: muscleColors[muscle] }]}>
+                        <Text style={styles.muscle_text}>{muscle}</Text>
                     </View>
-                    <View style={styles.pfpContainer}>
-                        <Image style={styles.pfp} source={{ uri: global.userData.image }} />
-                        <Image style={[styles.pfp, styles.pfpOverlap]} source={{ uri: global.userData.image }} />
-                        <Image style={[styles.pfp, styles.pfpOverlap]} source={{ uri: global.userData.image }} />
-                    </View>
+                </Pressable>
+
+                <View style={styles.pfpContainer}>
+                    <Image style={styles.pfp} source={{ uri: global.userData.image }} />
+                    <Image style={[styles.pfp, styles.pfpOverlap]} source={{ uri: global.userData.image }} />
+                    <Image style={[styles.pfp, styles.pfpOverlap]} source={{ uri: global.userData.image }} />
                 </View>
-                <View style={styles.labels}>
-                    <View style={styles.set_ctnr}>
-                        <Text style={styles.label_text}>Set</Text>
-                    </View>
-                    <View style={styles.previous_ctnr}>
-                        <Text style={styles.label_text}>Previous</Text>
-                    </View>
-                    <View style={styles.weight_unit_ctnr}>
-                        <Text style={styles.label_text}>lbs</Text>
-                    </View>
-                    <View style={styles.reps_ctnr}>
-                        <Text style={styles.label_text}>Reps</Text>
-                    </View>
+            </Animated.View>
+            <Animated.View style={[styles.labels, { opacity: fadeAnim }]}>
+                <View style={styles.set_ctnr}>
+                    <Text style={styles.label_text}>Set</Text>
                 </View>
-                <View>
-                    {sets.map((set, index) => {
-                        return (
-                            <SetRow set={set} index={index} key={index} updateSet={updateSet} handleDelete={() => deleteSet(index)} />
-                        );
-                    })}
+                <View style={styles.previous_ctnr}>
+                    <Text style={styles.label_text}>Previous</Text>
                 </View>
-                <View style={styles.add_set_btn_ctnr}>
-                    <RNBounceable activeOpacity={0.5} onPress={addSet} style={styles.add_set_btn}>
-                        <Entypo name="plus" size={18} color={'#000'} />
-                        <Text style={styles.add_set_text}>Add Set</Text>
-                        <MaterialCommunityIcons name="arm-flex" size={20} color={'#aaa'} />
-                    </RNBounceable>
+                <View style={styles.weight_unit_ctnr}>
+                    <Text style={styles.label_text}>lbs</Text>
                 </View>
-            </View>
-        </Pressable>
+                <View style={styles.reps_ctnr}>
+                    <Text style={styles.label_text}>Reps</Text>
+                </View>
+            </Animated.View>
+            <Animated.View style={{ opacity: fadeAnim }}>
+                {sets.map((set, index) => {
+                    return (
+                        <SetRow set={set} index={index} key={index} updateSet={updateSet} handleDelete={() => deleteSet(index)} />
+                    );
+                })}
+            </Animated.View>
+            <Animated.View style={[styles.add_set_btn_ctnr, { opacity: fadeAnim }]}>
+                <RNBounceable activeOpacity={0.5} onPress={addSet} style={styles.add_set_btn}>
+                    <Entypo name="plus" size={18} color={'#000'} />
+                    <Text style={styles.add_set_text}>Add Set</Text>
+                    <MaterialCommunityIcons name="arm-flex" size={20} color={'#aaa'} />
+                </RNBounceable>
+            </Animated.View>
+        </View>
     );
 }
 
@@ -101,7 +122,7 @@ const styles = StyleSheet.create({
     main_ctnr: {
         marginTop: 16,
         marginBottom: 6,
-        // marginHorizontal: 2.5,
+        position: 'relative', // To ensure the panel is positioned correctly
     },
     header: {
         flexDirection: 'row',
