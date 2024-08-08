@@ -1,23 +1,13 @@
 import { useEffect, useState } from "react";
 import { Image, StyleSheet, Text, TouchableOpacity, View } from "react-native";
-import getPFP from "../../../../backend/storage/getPFP";
 import { FontAwesome6 } from '@expo/vector-icons'
 
 export default function Story({ data, handlePress, index, isViewed, handlePressCreateButton }) {
-    const [pfp, setPFP] = useState(null);
-
-    useEffect(() => {
-        getPFP(data.uid)
-            .then(pfp => {
-                setPFP(pfp);
-            });
-    }, []);
-
     return (
         <View style={styles.main_ctnr}>
-            <TouchableOpacity onPress={() => handlePress(index)} activeOpacity={0.5}>
-                <View style={[styles.pfp_ctnr, isViewed && styles.pfp_ctnr_viewed]}>
-                    <Image source={{ uri: pfp }} style={styles.pfp} />
+            <TouchableOpacity disabled={data.stories.length === 0} onPress={handlePress} activeOpacity={0.5}>
+                <View style={data.stories.length === 0 ? styles.pfp_no_border : [styles.pfp_ctnr, isViewed && styles.pfp_ctnr_viewed]}>
+                    <Image source={{ uri: data.pfp }} style={styles.pfp} />
                 </View>
             </TouchableOpacity>
             <View style={styles.handle_ctnr}>
@@ -51,6 +41,15 @@ const styles = StyleSheet.create({
         borderRadius: 26,
         borderWidth: 3,
         borderColor: '#2D9EFF',
+        justifyContent: 'center',
+        alignItems: 'center'
+    },
+    pfp_no_border: {
+        width: 60,
+        aspectRatio: 1,
+        borderRadius: 26,
+        borderWidth: 3,
+        borderColor: '#eee',
         justifyContent: 'center',
         alignItems: 'center'
     },

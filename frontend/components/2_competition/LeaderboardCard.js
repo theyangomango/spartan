@@ -2,7 +2,7 @@ import { Image, StyleSheet, Text, View } from 'react-native';
 import { Entypo, FontAwesome } from '@expo/vector-icons';
 import RNBounceable from '@freakycoder/react-native-bounceable';
 
-export default function LeaderboardCard({ pfp, handle, value, rank, lastRank, handlePress, userIsSelf = false, bestSet }) {
+export default function LeaderboardCard({ pfp, handle, name, value, rank, lastRank, handlePress, userIsSelf = false, bestSet }) {
     return (
         <RNBounceable onPress={handlePress} style={userIsSelf ? styles.self_card_ctnr : styles.card_ctnr}>
             <View style={styles.card_left}>
@@ -21,7 +21,7 @@ export default function LeaderboardCard({ pfp, handle, value, rank, lastRank, ha
                 </View>
                 <View>
                     <Text style={styles.handle_text}>{handle}</Text>
-                    <Text style={styles.name_text}>Yang Bai</Text>
+                    <Text style={styles.name_text}>{name}</Text>
                 </View>
             </View>
             <View style={styles.card_right}>

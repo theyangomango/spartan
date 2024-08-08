@@ -3,9 +3,11 @@ import retrievePosts from "./posts/retrievePosts";
 
 export default async function retrieveUserFeed(userData) {
     let db_stories = [];
-    for (sid of userData.feedStories) {
-        let storyData = await readDoc('stories', sid);
-        db_stories.push(storyData);
+    for (user of userData.feedStories) {
+        for (sid of user.stories) {
+            let storyData = await readDoc('stories', sid);
+            db_stories.push(storyData);
+        }
     }
 
     let db_posts = await retrievePosts(userData.feedPosts);
@@ -21,6 +23,6 @@ export default async function retrieveUserFeed(userData) {
         db_messages.push(messageData);
     }
 
-    let feedData = [db_stories, db_posts, db_messages];
+    let feedData = [{storiesData: db_stories, storiesUserList: userData.feedStories}, db_posts, db_messages];
     return feedData;
 }

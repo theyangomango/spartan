@@ -28,6 +28,7 @@ const LeaderboardModal = ({ userList, categoryCompared, showFollowers, toggleFol
             </View>
             <LeaderboardCard
                 pfp={global.userData.image}
+                name={global.userData.name}
                 handle={global.userData.handle}
                 value={global.userData.statsExercises[categoryCompared]['1RM']}
                 rank={userRank}
@@ -47,6 +48,7 @@ const LeaderboardModal = ({ userList, categoryCompared, showFollowers, toggleFol
                     <LeaderboardCard
                         pfp={item.image}
                         handle={item.handle}
+                        name={item.name}
                         value={item.statsExercises[categoryCompared]['1RM']}
                         rank={index + 1}
                         lastRank={item.statsExercises[categoryCompared]['lastFollowersRank']}

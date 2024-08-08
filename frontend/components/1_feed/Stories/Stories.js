@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useRef, useState } from 'react';
 import { FlatList, Modal, Pressable, StyleSheet, View, ActivityIndicator } from 'react-native';
 import FastImage from 'react-native-fast-image';
 import StoryHeaderButtons from "./StoryHeaderButtons";
@@ -6,52 +6,94 @@ import Story from "./Story";
 import { BlurView } from 'expo-blur';
 import CreateStoryScreen from './CreateStoryScreen';
 
-export default function Stories({ data }) {
+function sortDataByUserList(data, userList) {
+    // Create a map to store the order of each ID in the userList
+    const idOrderMap = new Map();
+
+    // Iterate through the userList to map each ID to its order
+    userList.forEach((user, userIndex) => {
+        user.stories.forEach((id, storyIndex) => {
+            idOrderMap.set(id, userIndex * 1000 + storyIndex); // Combine userIndex and storyIndex for ordering
+        });
+    });
+
+    // Sort the data array based on the orders in the idOrderMap
+    data.sort((a, b) => {
+        const orderA = idOrderMap.get(a);
+        const orderB = idOrderMap.get(b);
+
+        // If either ID is not found in the map, place it at the end
+        if (orderA === undefined) return 1;
+        if (orderB === undefined) return -1;
+
+        return orderA - orderB;
+    });
+
+    return data;
+}
+
+function generatePrefixSumArray(userList) {
+    const prefixSumArray = [];
+    let currentSum = 0;
+
+    userList.forEach((user, index) => {
+        currentSum += user.stories.length;
+        prefixSumArray.push(currentSum);
+    });
+
+    return prefixSumArray;
+}
+
+export default function Stories({ data, userList }) {
+    const storiesData = sortDataByUserList(data, userList);
+    const storiesPrefixSums = generatePrefixSumArray(userList);
     const [viewModalVisible, setViewModal] = useState(false);
     const [createModalVisible, setCreateModal] = useState(false);
     const [currentIndex, setCurrentIndex] = useState(null);
-    const [viewedStories, setViewedStories] = useState({});
+    const viewedStories = useRef([]);
 
     function handlePress(index) {
         setCurrentIndex(index);
         setViewModal(true);
-        setViewedStories((prev) => ({ ...prev, [data[index].sid]: true }));
+        viewedStories.current = ([...viewedStories.current, storiesData[index].sid]);
+        console.log(viewedStories);
     }
 
     const renderItem = ({ item, index }) => (
-        <Pressable onPress={() => handlePress(index)}>
-            <Story data={item} index={index} isViewed={!!viewedStories[item.sid]} handlePressCreateButton={handlePressCreateButton} handlePress={handlePress}/>
-        </Pressable>
+        <Story
+            data={item}
+            index={index}
+            isViewed={item.stories.every(sid => {
+                return viewedStories.current.includes(sid);
+            })}
+            handlePressCreateButton={handlePressCreateButton}
+            handlePress={() => handlePress(storiesPrefixSums[index] - 1)}
+        />
     );
 
     function handlePressLeft() {
         if (currentIndex > 0) {
             let newIndex = currentIndex - 1;
-            while (newIndex >= 0 && viewedStories[data[newIndex].sid]) {
-                newIndex -= 1;
-            }
             if (newIndex < 0) {
                 newIndex = currentIndex - 1;
             }
             setCurrentIndex(newIndex);
-            setViewedStories((prev) => ({ ...prev, [data[newIndex].sid]: true }));
+            viewedStories.current = ([...viewedStories.current, storiesData[newIndex].sid]);
         } else {
             setViewModal(false);
             setCurrentIndex(null);
         }
     }
 
+
     function handlePressRight() {
-        if (currentIndex < data.length - 1) {
+        if (currentIndex < storiesData.length - 1) {
             let newIndex = currentIndex + 1;
-            while (newIndex < data.length && viewedStories[data[newIndex].sid]) {
-                newIndex += 1;
-            }
-            if (newIndex >= data.length) {
+            if (newIndex >= storiesData.length) {
                 newIndex = currentIndex + 1;
             }
             setCurrentIndex(newIndex);
-            setViewedStories((prev) => ({ ...prev, [data[newIndex].sid]: true }));
+            viewedStories.current = ([...viewedStories.current, storiesData[newIndex].sid]);
         } else {
             setViewModal(false);
         }
@@ -64,7 +106,7 @@ export default function Stories({ data }) {
     return (
         <View style={styles.storiesContainer}>
             <FlatList
-                data={data}
+                data={userList}
                 renderItem={renderItem}
                 keyExtractor={(item, index) => index.toString()}
                 horizontal
@@ -82,8 +124,8 @@ export default function Stories({ data }) {
                     <View style={styles.modalContainer}>
                         <View style={styles.modalContent}>
                             <FastImage
-                                key={data[currentIndex].sid}
-                                source={{ uri: data[currentIndex].image }}
+                                key={storiesData[currentIndex].sid}
+                                source={{ uri: storiesData[currentIndex].image }}
                                 style={styles.fullScreenImage}
                                 resizeMode={FastImage.resizeMode.cover}
                                 placeholder={<ActivityIndicator />}
@@ -96,7 +138,7 @@ export default function Stories({ data }) {
 
                     <BlurView intensity={5} style={styles.blurview} />
                     <View style={styles.modalHeader}>
-                        <StoryHeaderButtons stories={data} index={currentIndex} />
+                        <StoryHeaderButtons stories={storiesData} index={currentIndex} />
                     </View>
                 </Modal>
             )}

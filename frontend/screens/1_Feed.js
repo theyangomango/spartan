@@ -187,7 +187,11 @@ export default function Feed({ navigation }) {
                         keyExtractor={(item, index) => index.toString()}
                         onScroll={handleScroll}
                         scrollEventThrottle={16}
-                        ListHeaderComponent={<Animated.View style={{ opacity: storiesOpacity }}><Stories data={stories} /></Animated.View>}
+                        ListHeaderComponent={<Animated.View style={{ opacity: storiesOpacity }}>
+                            {stories &&
+                                <Stories data={stories.storiesData} userList={stories.storiesUserList} />
+                            }
+                        </Animated.View>}
                         initialNumToRender={2}
                     />
                     <Animated.View style={{ opacity: footerOpacity }}>
