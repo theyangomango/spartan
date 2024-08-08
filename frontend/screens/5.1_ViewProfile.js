@@ -7,10 +7,14 @@ import ViewProfileHeader from "../components/ViewProfile/ViewProfileHeader";
 import readDoc from "../../backend/helper/firebase/readDoc";
 import WorkoutStats from "../components/5_Profile/ProfileTop/WorkoutStats";
 import Footer from "../components/Footer";
+import followUser from "../../backend/user/followUser";
+import initChat from "../../backend/messages/initChat";
+import makeID from "../../backend/helper/makeID";
+import arrayAppend from "../../backend/helper/firebase/arrayAppend";
 
 export default function ViewProfile({ navigation, route }) {
     const user = route.params.user;
-    const [userData, setUserData] = useState(null);
+    const [profileUserData, setProfileUserData] = useState(null);
     const [posts, setPosts] = useState([]);
     const [selectedPanel, setSelectedPanel] = useState('posts');
 
@@ -20,20 +24,19 @@ export default function ViewProfile({ navigation, route }) {
 
     async function getFullUserData() {
         const data = await readDoc('users', user.uid);
-        setUserData(data);
-        console.log(data);
+        setProfileUserData(data);
     }
 
     useEffect(() => {
-        if (userData) {
+        if (profileUserData) {
             getPosts();
         }
-    }, [userData]);
+    }, [profileUserData]);
 
 
     async function getPosts() {
         let db_posts = [];
-        for (const pid of userData.posts) {
+        for (const pid of profileUserData.posts) {
             let postData = await readDoc('posts', pid);
             db_posts.push(postData);
         }
@@ -45,17 +48,38 @@ export default function ViewProfile({ navigation, route }) {
             if (msg.otherUsers.length == 1 && msg.otherUsers[0].uid == user.uid) { // This DM
                 const chatData = await readDoc('messages', msg.mid);
                 navigation.navigate('Chat', { data: chatData, usersExcludingSelf: msg.otherUsers });
+                return;
             }
         }
+
+        const selfUser = {
+            uid: global.userData.uid,
+            handle: global.userData.handle,
+            pfp: global.userData.image,
+            name: global.userData.name
+        };
+
+        const cid = makeID();
+        arrayAppend('users', global.userData.uid, 'messages', {
+            mid: cid,
+            otherUsers: [user]
+        });
+        arrayAppend('users', profileUserData.uid, 'messages', {
+            mid: cid,
+            otherUsers: [selfUser]
+        });
+
+        const newChat = await initChat(global.userData.uid, [user, selfUser], cid);
+        navigation.navigate('Chat', { data: newChat, usersExcludingSelf: [user] });
     }
 
     return (
         <View style={styles.main_ctnr}>
             <View style={styles.body_ctnr}>
                 <ViewProfileHeader handle={user.handle} />
-                <ViewProfileInfo userData={userData} />
-                <ViewProfileRowButtons toMessages={toMessages} />
-                <WorkoutStats userData={userData} />
+                <ViewProfileInfo userData={profileUserData} />
+                <ViewProfileRowButtons toMessages={toMessages} user={user} />
+                <WorkoutStats userData={profileUserData} />
             </View>
 
             <ProfileBottomBottomSheet selectedPanel={selectedPanel}
