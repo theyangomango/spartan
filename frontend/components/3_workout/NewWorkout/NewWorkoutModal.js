@@ -17,20 +17,31 @@ const NewWorkoutModal = ({ workout, closeModal, cancelWorkout, updateWorkout, fi
     const [personalBests, setPersonalBests] = useState(0);
     const scrollY = useRef(new Animated.Value(0)).current;
 
+    // Initialize the isDone state
+    const [isDoneState, setIsDoneState] = useState(() =>
+        workout.exercises.map(exercise =>
+            exercise.sets.map(() => false)
+        )
+    );
+
+    console.log({ isDoneState });
+
     const calculateStats = useCallback(() => {
         let reps = 0;
         let volume = 0;
 
-        workout.exercises.forEach(exercise => {
-            exercise.sets.forEach(set => {
-                reps += set.reps;
-                volume += (set.reps * set.weight);
+        workout.exercises.forEach((exercise, exerciseIndex) => {
+            exercise.sets.forEach((set, setIndex) => {
+                if (isDoneState[exerciseIndex][setIndex]) { // Check if the set is done
+                    reps += set.reps;
+                    volume += (set.reps * set.weight);
+                }
             });
         });
 
         setTotalReps(reps);
         setTotalVolume(volume);
-    }, [workout.exercises]);
+    }, [workout.exercises, isDoneState]);
 
     const showSelectExerciseModal = useCallback(() => {
         setSelectExerciseModalVisible(true);
@@ -49,16 +60,41 @@ const NewWorkoutModal = ({ workout, closeModal, cancelWorkout, updateWorkout, fi
     }, []);
 
     const appendExercises = useCallback((exercises) => {
-        const newWorkout = { ...workout, exercises: [...workout.exercises, ...exercises.map(ex => ({ name: ex, sets: [] }))] };
+        const newWorkout = {
+            ...workout, exercises: [...workout.exercises, ...exercises.map(ex => ({
+                name: ex, sets: [{
+                    weight: 0,
+                    reps: 0,
+                    previous: '405 lb x 12'
+                }]
+            }))]
+        };
         updateWorkout(newWorkout);
+        setIsDoneState(prevState =>
+            prevState.concat(exercises.map(() => [false]))
+        );
     }, [workout, updateWorkout]);
 
     const updateSets = useCallback((index, newSets) => {
-        const newWorkout = { ...workout };
-        newWorkout.exercises[index].sets = newSets;
-        updateWorkout(newWorkout);
-        calculateStats();
-    }, [workout, updateWorkout, calculateStats]);
+        updateWorkout(prevWorkout => {
+            // Create a new workout object with updated exercises
+            const updatedExercises = prevWorkout.exercises.map((exercise, i) => {
+                if (i === index) {
+                    // Replace the sets of the specific exercise
+                    return { ...exercise, sets: newSets };
+                }
+                return exercise; // Return other exercises unchanged
+            });
+
+            // Return the new workout object with updated exercises
+            return { ...prevWorkout, exercises: updatedExercises };
+        });
+
+        newSets.forEach(nset => {
+            
+        });
+    }, [updateWorkout]);
+
 
     useEffect(() => {
         calculateStats();
@@ -70,16 +106,27 @@ const NewWorkoutModal = ({ workout, closeModal, cancelWorkout, updateWorkout, fi
         extrapolate: 'clamp',
     });
 
-    function replaceExercise() {
-        
-    }
+    const replaceExercise = useCallback((index) => {
+
+    }, [workout, updateWorkout, calculateStats]);
 
     const deleteExercise = useCallback((index) => {
         const newWorkout = { ...workout };
         newWorkout.exercises = newWorkout.exercises.filter((_, i) => i !== index);
         updateWorkout(newWorkout);
+        setIsDoneState(prevState => prevState.filter((_, i) => i !== index)); // Remove isDone states for deleted exercise
         calculateStats(); // Update stats after deletion
     }, [workout, updateWorkout, calculateStats]);
+
+    const toggleIsDone = useCallback((exerciseIndex, setIndex) => {
+        setIsDoneState(prevState => {
+            const newState = [...prevState];
+            newState[exerciseIndex][setIndex] = !newState[exerciseIndex][setIndex];
+            return newState;
+        });
+        calculateStats();
+    }, [calculateStats]);
+
 
     return (
         <View style={styles.main_ctnr}>
@@ -111,15 +158,18 @@ const NewWorkoutModal = ({ workout, closeModal, cancelWorkout, updateWorkout, fi
                 style={styles.scrollview}
             >
                 <ProgressBanner totalReps={totalReps} totalVolume={totalVolume} personalBests={personalBests} />
-                {workout.exercises.map((ex, index) => (
+                {workout.exercises.map((ex, exerciseIndex) => (
                     <ExerciseLog
                         name={ex.name}
-                        exerciseIndex={index}
-                        key={ex.name + index} // Unique key to force re-render
+                        exerciseIndex={exerciseIndex}
+                        key={ex.name + exerciseIndex} // Unique key to force re-render
                         updateSets={updateSets}
                         sets={ex.sets}
                         replaceExercise={replaceExercise}
-                        deleteExercise={() => deleteExercise(index)}
+                        deleteExercise={() => deleteExercise(exerciseIndex)}
+                        calculateStats={calculateStats} // Pass calculateStats function
+                        isDoneState={isDoneState[exerciseIndex]} // Pass isDone state
+                        toggleIsDone={toggleIsDone} // Pass toggleIsDone function
                     />
                 ))}
                 <RNBounceable onPress={showSelectExerciseModal} style={styles.add_exercise_btn}>

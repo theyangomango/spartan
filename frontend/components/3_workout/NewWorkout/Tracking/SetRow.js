@@ -1,23 +1,15 @@
-import React, { useState, useRef } from 'react';
+import React, { useRef } from 'react';
 import { View, StyleSheet, Text, Pressable } from 'react-native';
 import EditableStat from "./EditableStat";
 import { FontAwesome5 } from '@expo/vector-icons';
 import SwipeableItem, { OpenDirection, useSwipeableItemParams } from 'react-native-swipeable-item';
 import Animated, { useAnimatedStyle } from 'react-native-reanimated';
 
-export default function SetRow({ set, updateSet, index, handleDelete }) {
-    const [isDone, setIsDone] = useState(false);
+export default function SetRow({ set, updateSet, index, handleDelete, calculateStats, isDone, toggleIsDone }) {
     const weight = set.weight;
     const reps = set.reps;
 
     const itemRefs = useRef(new Map());
-
-    function toggleDone() {
-        if (!isDone) {
-            updateSet(index, { previous: '405 lb x 12', weight, reps });
-        }
-        setIsDone(!isDone);
-    }
 
     const renderUnderlayLeft = () => (
         <UnderlayLeft handleDelete={handleDelete} />
@@ -67,7 +59,7 @@ export default function SetRow({ set, updateSet, index, handleDelete }) {
                         />
                     </View>
                     <View style={styles.done_ctnr}>
-                        <Pressable style={isDone ? styles.checkmark_ctnr_selected : styles.checkmark_ctnr} onPress={toggleDone}>
+                        <Pressable style={isDone ? styles.checkmark_ctnr_selected : styles.checkmark_ctnr} onPress={toggleIsDone}>
                             <FontAwesome5 name="check" size={14} style={styles.checkmark} color={isDone ? '#fff' : '#444'} />
                         </Pressable>
                     </View>

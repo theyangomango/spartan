@@ -5,6 +5,8 @@ export default function EditableStat({ placeholder = '0', isFinished, value, set
     const [isSelected, setIsSelected] = useState(false);
     const inputRef = useRef(null);
 
+    console.log(value)
+
     return (
         <Pressable
             onPress={() => {
@@ -21,7 +23,7 @@ export default function EditableStat({ placeholder = '0', isFinished, value, set
                 ref={inputRef}
                 editable
                 keyboardType="numeric"
-                placeholder={placeholder.toString()}
+                placeholder={placeholder}
                 placeholderTextColor={isFinished ? '#000' : '#888'}
                 onFocus={() => setIsSelected(true)}
                 onEndEditing={() => setIsSelected(false)}

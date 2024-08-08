@@ -1,16 +1,18 @@
-import React, { useState, useRef } from "react";
 import { View, StyleSheet, Text, Pressable, Image, Animated } from "react-native";
+import { useState, useEffect, useRef } from "react";
 import SetRow from "./SetRow";
 import { MaterialCommunityIcons, Entypo } from '@expo/vector-icons';
 import RNBounceable from "@freakycoder/react-native-bounceable";
 import ExerciseOptionsPanel from "./ExerciseOptionsPanel";
 
-export default function ExerciseLog({ name, exerciseIndex, updateSets, sets, replaceExercise, deleteExercise }) {
+export default function ExerciseLog({ name, exerciseIndex, updateSets, sets, replaceExercise, deleteExercise, isDoneState, toggleIsDone }) {
     const muscle = name === 'Lateral Raise' ? 'Shoulders' : 'Chest';
 
     const [isPanelVisible, setIsPanelVisible] = useState(false);
     const [panelPosition, setPanelPosition] = useState({ top: 0, left: 0 });
     const fadeAnim = useRef(new Animated.Value(1)).current;
+
+    console.log('Exercise Log Render ' + name, { sets });
 
     const muscleColors = {
         Chest: '#FFAFB8',
@@ -54,10 +56,12 @@ export default function ExerciseLog({ name, exerciseIndex, updateSets, sets, rep
         <View style={styles.main_ctnr}>
             <ExerciseOptionsPanel
                 visible={isPanelVisible}
-                onClose={() => setIsPanelVisible(false)}
+                onClose={() => {
+                    setIsPanelVisible(false);
+                }}
                 position={panelPosition}
-                replaceExercise={replaceExercise}
-                deleteExercise={deleteExercise}
+                replaceExercise={() => replaceExercise(exerciseIndex)}
+                deleteExercise={() => deleteExercise(exerciseIndex)}
             />
             <Animated.View style={[styles.header, { opacity: fadeAnim }]}>
                 <Pressable style={styles.nameContainer} onPress={togglePanel}>
@@ -66,6 +70,7 @@ export default function ExerciseLog({ name, exerciseIndex, updateSets, sets, rep
                         <Text style={styles.muscle_text}>{muscle}</Text>
                     </View>
                 </Pressable>
+
                 <View style={styles.pfpContainer}>
                     <Image style={styles.pfp} source={{ uri: global.userData.image }} />
                     <Image style={[styles.pfp, styles.pfpOverlap]} source={{ uri: global.userData.image }} />
@@ -87,15 +92,11 @@ export default function ExerciseLog({ name, exerciseIndex, updateSets, sets, rep
                 </View>
             </Animated.View>
             <Animated.View style={{ opacity: fadeAnim }}>
-                {sets.map((set, index) => (
-                    <SetRow
-                        set={set}
-                        index={index}
-                        key={set.id || `${exerciseIndex}-${index}`} // Unique key for each SetRow
-                        updateSet={updateSet}
-                        handleDelete={() => deleteSet(index)}
-                    />
-                ))}
+                {sets.map((set, index) => {
+                    return (
+                        <SetRow set={set} index={index} key={index} updateSet={updateSet} handleDelete={() => deleteSet(index)} isDone={isDoneState[index]} toggleIsDone={() => toggleIsDone(exerciseIndex, index)}/>
+                    );
+                })}
             </Animated.View>
             <Animated.View style={[styles.add_set_btn_ctnr, { opacity: fadeAnim }]}>
                 <RNBounceable activeOpacity={0.5} onPress={addSet} style={styles.add_set_btn}>
@@ -175,7 +176,6 @@ const styles = StyleSheet.create({
     previous_ctnr: {
         width: '38%',
         alignItems: 'center',
-        justifyContent: 'center',
     },
     weight_unit_ctnr: {
         width: '18%',
