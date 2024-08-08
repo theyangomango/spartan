@@ -5,7 +5,7 @@ import { MaterialCommunityIcons, Entypo } from '@expo/vector-icons';
 import RNBounceable from "@freakycoder/react-native-bounceable";
 import ExerciseOptionsPanel from "./ExerciseOptionsPanel";
 
-export default function ExerciseLog({ name, exerciseIndex, updateSets, initialSets }) {
+export default function ExerciseLog({ name, exerciseIndex, updateSets, initialSets, replaceExercise, deleteExercise }) {
     const muscle = name === 'Lateral Raise' ? 'Shoulders' : 'Chest';
 
     const [sets, setSets] = useState(initialSets.length === 0 ? [
@@ -71,6 +71,8 @@ export default function ExerciseLog({ name, exerciseIndex, updateSets, initialSe
                     setIsPanelVisible(false);
                 }}
                 position={panelPosition}
+                replaceExercise={() => replaceExercise(exerciseIndex)}
+                deleteExercise={() => deleteExercise(exerciseIndex)}
             />
             <Animated.View style={[styles.header, { opacity: fadeAnim }]}>
                 <Pressable style={styles.nameContainer} onPress={togglePanel}>

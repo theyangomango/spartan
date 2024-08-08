@@ -47,6 +47,8 @@ function Workout({ navigation }) {
     const userData = global.userData;
     const timerRef = useRef('00:00');
 
+    console.log('Workout Screen Render');
+
     const startNewWorkout = useCallback(async () => {
         if (!workout) {
             const newWID = makeID();
@@ -168,6 +170,7 @@ function Workout({ navigation }) {
             <Footer navigation={navigation} currentScreenName={'Workout'} />
             <NewWorkoutBottomSheet
                 workout={workout}
+                // setWorkout={setWorkout}
                 cancelNewWorkout={cancelNewWorkout}
                 updateNewWorkout={updateNewWorkout}
                 finishNewWorkout={finishNewWorkout}
@@ -210,4 +213,4 @@ const styles = StyleSheet.create({
     },
 });
 
-export default React.memo(Workout);
+export default Workout;

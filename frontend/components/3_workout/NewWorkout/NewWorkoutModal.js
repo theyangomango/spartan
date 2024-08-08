@@ -9,7 +9,7 @@ import { MaterialCommunityIcons, FontAwesome } from '@expo/vector-icons';
 import GroupModalBottomSheet from "./Group/GroupModalBottomSheet";
 import TimerDisplay from "./TimerDisplay";
 
-const NewWorkoutModal = ({ workout, setWorkout, closeModal, cancelWorkout, updateWorkout, finishWorkout, timerRef }) => {
+const NewWorkoutModal = ({ workout, closeModal, cancelWorkout, updateWorkout, finishWorkout, timerRef }) => {
     const [selectExerciseModalVisible, setSelectExerciseModalVisible] = useState(false);
     const [groupModalExpandFlag, setGroupModalExpandFlag] = useState(false);
     const [totalReps, setTotalReps] = useState(0);
@@ -70,6 +70,15 @@ const NewWorkoutModal = ({ workout, setWorkout, closeModal, cancelWorkout, updat
         extrapolate: 'clamp',
     });
 
+    function replaceExercise() {
+    }
+
+    function deleteExercise(index) {
+        const newWorkout = { ...workout };
+        newWorkout.exercises.splice(index, 1)
+        updateWorkout(newWorkout);
+    }
+
     return (
         <View style={styles.main_ctnr}>
             <View style={styles.header}>
@@ -101,7 +110,15 @@ const NewWorkoutModal = ({ workout, setWorkout, closeModal, cancelWorkout, updat
             >
                 <ProgressBanner totalReps={totalReps} totalVolume={totalVolume} personalBests={personalBests} />
                 {workout.exercises.map((ex, index) => (
-                    <ExerciseLog name={ex.name} exerciseIndex={index} key={index} updateSets={updateSets} initialSets={ex.sets} />
+                    <ExerciseLog
+                        name={ex.name}
+                        exerciseIndex={index}
+                        key={index}
+                        updateSets={updateSets}
+                        initialSets={ex.sets}
+                        replaceExercise={replaceExercise}
+                        deleteExercise={deleteExercise}
+                    />
                 ))}
                 <RNBounceable onPress={showSelectExerciseModal} style={styles.add_exercise_btn}>
                     <Text style={styles.add_exercise_text}>Add Exercises</Text>
@@ -229,4 +246,4 @@ const styles = StyleSheet.create({
     },
 });
 
-export default React.memo(NewWorkoutModal);
+export default NewWorkoutModal;

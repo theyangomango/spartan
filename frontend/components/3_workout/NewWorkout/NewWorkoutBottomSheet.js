@@ -3,10 +3,11 @@ import { StyleSheet } from "react-native";
 import BottomSheet, { BottomSheetBackdrop } from "@gorhom/bottom-sheet";
 import NewWorkoutModal from './NewWorkoutModal';
 
-const NewWorkoutBottomSheet = ({ workout, isVisible, setIsVisible, cancelNewWorkout, updateNewWorkout, finishNewWorkout, timerRef }) => {
+const NewWorkoutBottomSheet = ({ workout, setWorkout, isVisible, setIsVisible, cancelNewWorkout, updateNewWorkout, finishNewWorkout, timerRef }) => {
+    console.log(workout);
+    
     const bottomSheetRef = useRef(null);
     const snapPoints = useMemo(() => ["94%"], []);
-
     const handleSheetChanges = useCallback((index) => {
         console.log("handleSheetChanges", index);
     }, []);
@@ -47,6 +48,7 @@ const NewWorkoutBottomSheet = ({ workout, isVisible, setIsVisible, cancelNewWork
                 <NewWorkoutModal
                     timerRef={timerRef}
                     workout={workout}
+                    // setWorkout={setWorkout}
                     cancelWorkout={() => {
                         cancelNewWorkout();
                         bottomSheetRef.current.close();
@@ -62,4 +64,4 @@ const NewWorkoutBottomSheet = ({ workout, isVisible, setIsVisible, cancelNewWork
     );
 };
 
-export default React.memo(NewWorkoutBottomSheet);
+export default NewWorkoutBottomSheet;

@@ -6,7 +6,7 @@ import { MaterialCommunityIcons, FontAwesome6 } from '@expo/vector-icons';
 
 
 
-const ExerciseOptionsPanel = ({ visible, onClose, position }) => {
+const ExerciseOptionsPanel = ({ visible, onClose, position, replaceExercise, deleteExercise }) => {
     return (
         <Modal
             transparent={true}
@@ -16,11 +16,11 @@ const ExerciseOptionsPanel = ({ visible, onClose, position }) => {
         >
             <TouchableOpacity style={styles.modalOverlay} onPress={onClose}>
                 <View style={[styles.panel, { top: position.top, left: position.left }]}>
-                    <RNBounceable style={styles.button}>
+                    <RNBounceable style={styles.button} onPress={replaceExercise}>
                         <Text style={styles.button_text}>Replace Exercise</Text>
                         <MaterialCommunityIcons name="arrow-u-left-top" size={20} color="#000" style={styles.uTurnIcon} />
                     </RNBounceable>
-                    <RNBounceable style={styles.button}>
+                    <RNBounceable style={styles.button} onPress={deleteExercise}>
                         <Text style={styles.button_text}>Remove Exercise</Text>
                         <FontAwesome6 name={'trash-can'} size={16} style={styles.trash_icon} />
                     </RNBounceable>
