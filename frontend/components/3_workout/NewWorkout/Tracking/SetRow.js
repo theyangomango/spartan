@@ -1,20 +1,20 @@
 import React, { useState, useRef } from 'react';
-import { Dimensions, Pressable, StyleSheet, Text, View } from 'react-native';
+import { View, StyleSheet, Text, Pressable } from 'react-native';
 import EditableStat from "./EditableStat";
 import { FontAwesome5 } from '@expo/vector-icons';
 import SwipeableItem, { OpenDirection, useSwipeableItemParams } from 'react-native-swipeable-item';
 import Animated, { useAnimatedStyle } from 'react-native-reanimated';
-import { TouchableOpacity } from 'react-native-gesture-handler';
 
 export default function SetRow({ set, updateSet, index, handleDelete }) {
     const [isDone, setIsDone] = useState(false);
-    const [weight, setWeight] = useState(set.weight);
-    const [reps, setReps] = useState(set.reps);
+    const weight = set.weight;
+    const reps = set.reps;
+
     const itemRefs = useRef(new Map());
 
     function toggleDone() {
         if (!isDone) {
-            updateSet(index, { previous: '405 lb x 12', weight: weight, reps: reps });
+            updateSet(index, { previous: '405 lb x 12', weight, reps });
         }
         setIsDone(!isDone);
     }
@@ -34,7 +34,6 @@ export default function SetRow({ set, updateSet, index, handleDelete }) {
                     }
                 }}
                 onChange={({ openDirection }) => {
-                    console.log(openDirection);
                     if (openDirection !== OpenDirection.NONE) {
                         [...itemRefs.current.entries()].forEach(([key, ref]) => {
                             if (key !== index && ref) ref.close();
@@ -51,13 +50,21 @@ export default function SetRow({ set, updateSet, index, handleDelete }) {
                         <Text style={styles.set_number_text}>{index + 1}</Text>
                     </View>
                     <View style={styles.previous_ctnr}>
-                        <Text style={[styles.previous_stat_text, isDone && { color: '#afafaf' }]}>{set.previous}</Text>
+                        <Text style={[styles.previous_stat_text, isDone && { color: '#afafaf' }]}>{set.previous ? set.previous : 'N/A'}</Text>
                     </View>
                     <View style={styles.weight_unit_ctnr}>
-                        <EditableStat isFinished={isDone} value={weight} setValue={(value) => setWeight(parseInt(value))} />
+                        <EditableStat
+                            isFinished={isDone}
+                            value={weight.toString()}
+                            setValue={(value) => updateSet(index, { ...set, weight: parseInt(value, 10) })}
+                        />
                     </View>
                     <View style={styles.reps_ctnr}>
-                        <EditableStat isFinished={isDone} value={reps} setValue={(value) => setReps(parseInt(value))} />
+                        <EditableStat
+                            isFinished={isDone}
+                            value={reps.toString()}
+                            setValue={(value) => updateSet(index, { ...set, reps: parseInt(value, 10) })}
+                        />
                     </View>
                     <View style={styles.done_ctnr}>
                         <Pressable style={isDone ? styles.checkmark_ctnr_selected : styles.checkmark_ctnr} onPress={toggleDone}>
@@ -163,7 +170,6 @@ const styles = StyleSheet.create({
         paddingRight: 20,
     },
     trashButton: {
-        // marginRight: 15,
         flex: 1,
         alignItems: 'center',
         justifyContent: 'center'

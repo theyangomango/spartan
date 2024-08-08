@@ -35,7 +35,7 @@ const initialTemplates = [
 
 function Workout({ navigation }) {
     const [workout, setWorkout] = useState(null);
-    const [templates, setTemplates] = useState(initialTemplates);
+    const [templates, setTemplates] = useState(global.userData.templates);
     const [isPanelVisible, setIsPanelVisible] = useState(false);
     const [panelDate, setPanelDate] = useState(null);
     const [isNewWorkoutBottomSheetVisible, setIsNewWorkoutBottomSheetVisible] = useState(false);
@@ -112,7 +112,7 @@ function Workout({ navigation }) {
         return (
             <ScaleDecorator>
                 <TemplateCard
-                    lastUsedDate={item.lastUsedDate}
+                    lastUsedDate={item.lastDate}
                     exercises={item.exercises}
                     name={item.name}
                     handleLongPress={drag}

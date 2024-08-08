@@ -109,12 +109,12 @@ const styles = StyleSheet.create({
         paddingVertical: 3,
         paddingHorizontal: 8,
         borderRadius: 8,
-        marginLeft: 4,
+        marginLeft: 5.5,
     },
     editButtonText: {
         color: '#fff',
         fontFamily: 'Outfit_700Bold',
-        fontSize: 12,
+        fontSize: 11,
     },
     infoContainer: {
         flexDirection: 'row',

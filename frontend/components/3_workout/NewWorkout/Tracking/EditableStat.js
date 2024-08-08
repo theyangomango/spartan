@@ -1,19 +1,19 @@
 import React, { useState, useRef } from "react";
-import { TextInput, StyleSheet, View, Pressable } from "react-native";
+import { TextInput, StyleSheet, Pressable } from "react-native";
 
-export default function EditableStat({ placeholder='0', isFinished, value, setValue }) {
+export default function EditableStat({ placeholder = '0', isFinished, value, setValue }) {
     const [isSelected, setIsSelected] = useState(false);
     const inputRef = useRef(null);
 
     return (
-        <Pressable 
+        <Pressable
             onPress={() => {
                 inputRef.current.focus();
                 setIsSelected(true);
             }}
             style={[
-                styles.editing, 
-                isFinished && styles.finished, 
+                styles.editing,
+                isFinished && styles.finished,
                 isSelected && styles.selected
             ]}
         >
@@ -26,7 +26,7 @@ export default function EditableStat({ placeholder='0', isFinished, value, setVa
                 onFocus={() => setIsSelected(true)}
                 onEndEditing={() => setIsSelected(false)}
                 style={styles.text}
-                value={value.toString()}
+                value={value == 0 ? '' : value.toString()}
                 onChangeText={setValue}
             />
         </Pressable>

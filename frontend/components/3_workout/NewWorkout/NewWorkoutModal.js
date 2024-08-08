@@ -71,13 +71,15 @@ const NewWorkoutModal = ({ workout, closeModal, cancelWorkout, updateWorkout, fi
     });
 
     function replaceExercise() {
+        
     }
 
-    function deleteExercise(index) {
+    const deleteExercise = useCallback((index) => {
         const newWorkout = { ...workout };
-        newWorkout.exercises.splice(index, 1)
+        newWorkout.exercises = newWorkout.exercises.filter((_, i) => i !== index);
         updateWorkout(newWorkout);
-    }
+        calculateStats(); // Update stats after deletion
+    }, [workout, updateWorkout, calculateStats]);
 
     return (
         <View style={styles.main_ctnr}>
@@ -113,11 +115,11 @@ const NewWorkoutModal = ({ workout, closeModal, cancelWorkout, updateWorkout, fi
                     <ExerciseLog
                         name={ex.name}
                         exerciseIndex={index}
-                        key={index}
+                        key={ex.name + index} // Unique key to force re-render
                         updateSets={updateSets}
-                        initialSets={ex.sets}
+                        sets={ex.sets}
                         replaceExercise={replaceExercise}
-                        deleteExercise={deleteExercise}
+                        deleteExercise={() => deleteExercise(index)}
                     />
                 ))}
                 <RNBounceable onPress={showSelectExerciseModal} style={styles.add_exercise_btn}>

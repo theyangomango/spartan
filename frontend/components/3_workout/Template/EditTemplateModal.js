@@ -8,7 +8,6 @@ import { Weight } from 'iconsax-react-native';
 const EditTemplateModal = ({ openedTemplateRef }) => {
     const [selectExerciseModalVisible, setSelectExerciseModalVisible] = useState(false);
     const [template, setTemplate] = useState(openedTemplateRef.current);
-    console.log(template);
     const [templateTitle, setTemplateTitle] = useState('');
 
     const showSelectExerciseModal = useCallback(() => {

@@ -1,20 +1,13 @@
+import React, { useState, useRef } from "react";
 import { View, StyleSheet, Text, Pressable, Image, Animated } from "react-native";
-import { useState, useEffect, useRef } from "react";
 import SetRow from "./SetRow";
 import { MaterialCommunityIcons, Entypo } from '@expo/vector-icons';
 import RNBounceable from "@freakycoder/react-native-bounceable";
 import ExerciseOptionsPanel from "./ExerciseOptionsPanel";
 
-export default function ExerciseLog({ name, exerciseIndex, updateSets, initialSets, replaceExercise, deleteExercise }) {
+export default function ExerciseLog({ name, exerciseIndex, updateSets, sets, replaceExercise, deleteExercise }) {
     const muscle = name === 'Lateral Raise' ? 'Shoulders' : 'Chest';
 
-    const [sets, setSets] = useState(initialSets.length === 0 ? [
-        {
-            previous: '405 lb x 12',
-            weight: 0,
-            reps: 0
-        }
-    ] : initialSets);
     const [isPanelVisible, setIsPanelVisible] = useState(false);
     const [panelPosition, setPanelPosition] = useState({ top: 0, left: 0 });
     const fadeAnim = useRef(new Animated.Value(1)).current;
@@ -25,10 +18,6 @@ export default function ExerciseLog({ name, exerciseIndex, updateSets, initialSe
         Biceps: '#CBBCFF',
         Back: '#95E0C8'
     };
-
-    useEffect(() => {
-        updateSets(exerciseIndex, sets);
-    }, [sets]);
 
     const togglePanel = (event) => {
         if (isPanelVisible) {
@@ -43,7 +32,7 @@ export default function ExerciseLog({ name, exerciseIndex, updateSets, initialSe
     };
 
     function addSet() {
-        setSets([...sets, {
+        updateSets(exerciseIndex, [...sets, {
             previous: '405 lb x 12',
             weight: 0,
             reps: 0
@@ -53,13 +42,11 @@ export default function ExerciseLog({ name, exerciseIndex, updateSets, initialSe
     function updateSet(index, newSet) {
         const newSets = [...sets];
         newSets[index] = newSet;
-        setSets(newSets);
         updateSets(exerciseIndex, newSets);
     }
 
     function deleteSet(index) {
         const newSets = sets.filter((_, i) => i !== index);
-        setSets(newSets);
         updateSets(exerciseIndex, newSets);
     }
 
@@ -67,12 +54,10 @@ export default function ExerciseLog({ name, exerciseIndex, updateSets, initialSe
         <View style={styles.main_ctnr}>
             <ExerciseOptionsPanel
                 visible={isPanelVisible}
-                onClose={() => {
-                    setIsPanelVisible(false);
-                }}
+                onClose={() => setIsPanelVisible(false)}
                 position={panelPosition}
-                replaceExercise={() => replaceExercise(exerciseIndex)}
-                deleteExercise={() => deleteExercise(exerciseIndex)}
+                replaceExercise={replaceExercise}
+                deleteExercise={deleteExercise}
             />
             <Animated.View style={[styles.header, { opacity: fadeAnim }]}>
                 <Pressable style={styles.nameContainer} onPress={togglePanel}>
@@ -81,7 +66,6 @@ export default function ExerciseLog({ name, exerciseIndex, updateSets, initialSe
                         <Text style={styles.muscle_text}>{muscle}</Text>
                     </View>
                 </Pressable>
-
                 <View style={styles.pfpContainer}>
                     <Image style={styles.pfp} source={{ uri: global.userData.image }} />
                     <Image style={[styles.pfp, styles.pfpOverlap]} source={{ uri: global.userData.image }} />
@@ -103,11 +87,15 @@ export default function ExerciseLog({ name, exerciseIndex, updateSets, initialSe
                 </View>
             </Animated.View>
             <Animated.View style={{ opacity: fadeAnim }}>
-                {sets.map((set, index) => {
-                    return (
-                        <SetRow set={set} index={index} key={index} updateSet={updateSet} handleDelete={() => deleteSet(index)} />
-                    );
-                })}
+                {sets.map((set, index) => (
+                    <SetRow
+                        set={set}
+                        index={index}
+                        key={set.id || `${exerciseIndex}-${index}`} // Unique key for each SetRow
+                        updateSet={updateSet}
+                        handleDelete={() => deleteSet(index)}
+                    />
+                ))}
             </Animated.View>
             <Animated.View style={[styles.add_set_btn_ctnr, { opacity: fadeAnim }]}>
                 <RNBounceable activeOpacity={0.5} onPress={addSet} style={styles.add_set_btn}>
@@ -187,6 +175,7 @@ const styles = StyleSheet.create({
     previous_ctnr: {
         width: '38%',
         alignItems: 'center',
+        justifyContent: 'center',
     },
     weight_unit_ctnr: {
         width: '18%',
