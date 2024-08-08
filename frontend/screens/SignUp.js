@@ -14,8 +14,6 @@ const SignUp = ({ navigation, route }) => {
 
     return (
         <View style={styles.container}>
-            {/* <StatusBar style='light' /> */}
-            {/* <View style={styles.circle} /> */}
             <View style={styles.iconContainer}>
                 <RNBounceable>
                     <Ionicons name="close" size={24} color="#666" style={styles.closeIcon} />
@@ -25,11 +23,6 @@ const SignUp = ({ navigation, route }) => {
                 </RNBounceable>
             </View>
             <View style={styles.top_ctnr}>
-                {/* <View style={styles.logo}>
-                    <Image source={require('../assets/inverted_logo.png')} style={styles.logo_image} />
-                    <Text style={styles.title}>SPARTAN</Text>
-                </View> */}
-                {/* <Text style={styles.motto}>Embrace Greatness. Together.</Text> */}
                 <Text style={styles.title}>Sign Up for Spartan</Text>
                 <Text style={styles.subtitle}>Create an account to view posts, track workouts, connect with friends, and more.</Text>
             </View>
@@ -40,26 +33,30 @@ const SignUp = ({ navigation, route }) => {
                     text="Phone / Email"
                     onPress={() => { }}
                 />
-                <AuthButton
-                    icon="logo-google"
-                    text="Continue with Google"
-                    onPress={() => { }}
-                />
-                <AuthButton
-                    icon="logo-apple"
-                    text="Continue with Apple"
-                    onPress={() => { }}
-                />
-                <AuthButton
-                    icon="logo-instagram"
-                    text="Continue with Instagram"
-                    onPress={() => { }}
-                />
-                <AuthButton
-                    icon="logo-facebook"
-                    text="Continue with Facebook"
-                    onPress={() => { }}
-                />
+
+                {/* // ! Disabled for Beta */}
+                <View pointerEvents='none' style={{opacity: 0.4}}>
+                    <AuthButton
+                        icon="logo-google"
+                        text="Continue with Google"
+                        onPress={() => { }}
+                    />
+                    <AuthButton
+                        icon="logo-apple"
+                        text="Continue with Apple"
+                        onPress={() => { }}
+                    />
+                    <AuthButton
+                        icon="logo-instagram"
+                        text="Continue with Instagram"
+                        onPress={() => { }}
+                    />
+                    <AuthButton
+                        icon="logo-facebook"
+                        text="Continue with Facebook"
+                        onPress={() => { }}
+                    />
+                </View>
             </View>
 
             <View style={styles.footer}>

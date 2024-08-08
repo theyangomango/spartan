@@ -9,7 +9,7 @@ import { PinchGestureHandler, GestureHandlerRootView, State } from 'react-native
 const windowWidth = Dimensions.get('window').width;
 const windowHeight = Dimensions.get('window').height;
 
-export default function CreateStoryScreen({ closeModal }) {
+export default function CreateStoryScreen({ closeModal, postStoryToFeeds }) {
     const [hasCameraPermission, setHasCameraPermission] = useState(null);
     const [isCameraActive, setIsCameraActive] = useState(true);
     const [selectedImage, setSelectedImage] = useState(null);
@@ -197,7 +197,7 @@ export default function CreateStoryScreen({ closeModal }) {
                     onRequestClose={deselectImage}
                     animationType='fade'
                 >
-                    <PostStoryScreen selectedImage={selectedImage} goBack={deselectImage} endStoryCreation={closeModal}/>
+                    <PostStoryScreen selectedImage={selectedImage} goBack={deselectImage} endStoryCreation={closeModal} postStoryToFeeds={postStoryToFeeds}/>
                 </Modal>
                 <Modal
                     visible={showMediaLibrary}

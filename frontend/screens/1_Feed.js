@@ -189,7 +189,7 @@ export default function Feed({ navigation }) {
                         scrollEventThrottle={16}
                         ListHeaderComponent={<Animated.View style={{ opacity: storiesOpacity }}>
                             {stories &&
-                                <Stories data={stories.storiesData} userList={stories.storiesUserList} />
+                                <Stories data={stories.storiesData} userList={stories.storiesUserList} setStories={setStories}/>
                             }
                         </Animated.View>}
                         initialNumToRender={2}

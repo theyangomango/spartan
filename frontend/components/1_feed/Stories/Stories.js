@@ -5,6 +5,7 @@ import StoryHeaderButtons from "./StoryHeaderButtons";
 import Story from "./Story";
 import { BlurView } from 'expo-blur';
 import CreateStoryScreen from './CreateStoryScreen';
+import updateDoc from '../../../../backend/helper/firebase/updateDoc';
 
 function sortDataByUserList(data, userList) {
     // Create a map to store the order of each ID in the userList
@@ -52,6 +53,18 @@ export default function Stories({ data, userList }) {
     const [currentIndex, setCurrentIndex] = useState(null);
     const viewedStories = useRef([]);
 
+    function postStoryToFeeds(sid) {
+        const newUserList = userList;
+        newUserList[0].stories.push(sid);
+        updateDoc('users', global.userData.uid, {
+            feedStories: userList
+        });
+
+        // for (user of global.userData.followers) {
+
+        // }
+    }    
+
     function handlePress(index) {
         setCurrentIndex(index);
         setViewModal(true);
@@ -67,7 +80,7 @@ export default function Stories({ data, userList }) {
                 return viewedStories.current.includes(sid);
             })}
             handlePressCreateButton={handlePressCreateButton}
-            handlePress={() => handlePress(storiesPrefixSums[index] - 1)}
+            handlePress={() => handlePress(index === 0 ? index : storiesPrefixSums[index - 1])}
         />
     );
 
@@ -148,7 +161,7 @@ export default function Stories({ data, userList }) {
                 transparent={true}
                 visible={createModalVisible}
             >
-                <CreateStoryScreen closeModal={() => setCreateModal(false)} />
+                <CreateStoryScreen closeModal={() => setCreateModal(false)} postStoryToFeeds={postStoryToFeeds}/>
             </Modal>
         </View>
     );

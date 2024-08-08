@@ -9,13 +9,24 @@ import makeID from '../../../../backend/helper/makeID';
 import getStoryImage from '../../../../backend/storage/getStoryImage';
 import createDoc from '../../../../backend/helper/firebase/createDoc';
 import arrayAppend from '../../../../backend/helper/firebase/arrayAppend';
+import * as ImageManipulator from 'expo-image-manipulator';
 
-export default function PostStoryScreen({ selectedImage, goBack, endStoryCreation }) {
+export default function PostStoryScreen({ selectedImage, goBack, endStoryCreation, postStoryToFeeds }) {
+    async function compressImage(uri) {
+        const compressedImage = await ImageManipulator.manipulateAsync(
+            uri,
+            [],
+            { compress: 0.01, format: ImageManipulator.SaveFormat.JPEG }
+        );
+        return compressedImage.uri;
+    }
+
     const [isVisible, setIsVisible] = useState(true);
 
     async function handlePostStory() {
         const sid = makeID();
-        const res = await fetch(selectedImage)
+        const compressedURI = await compressImage(selectedImage);
+        const res = await fetch(compressedURI)
         const bytes = await res.blob();
 
 
@@ -24,14 +35,17 @@ export default function PostStoryScreen({ selectedImage, goBack, endStoryCreatio
         const newStory = {
             sid: sid,
             uid: global.userData.uid,
+            pfp: global.userData.image,
+            name: global.userData.name,
+            handle: global.userData.handle,
             created: Date.now(),
             image: firebaseURI,
-            likes: [],
+            likedUsers: [],
             tagged: [], // Todo
             likeCount: 0
         }
         createDoc('stories', sid, newStory);
-        arrayAppend('users', global.userData.uid, 'feedStories', sid)
+        postStoryToFeeds(sid);
 
         setTimeout(() => {
             endStoryCreation();
