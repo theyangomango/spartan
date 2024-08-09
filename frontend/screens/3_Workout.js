@@ -53,6 +53,36 @@ function Workout({ navigation }) {
         }
     }, [workout, userData]);
 
+    const startWorkoutFromTemplate = useCallback(async (index) => {
+        if (!workout) {
+            const newWID = makeID();
+            const selectedTemplate = { ...templates[index] }; // Create a shallow copy of the selected template
+            const newWorkout = {
+                wid: newWID,
+                creatorUID: userData.uid,
+                created: Date.now(),
+                users: [], // Assuming this is intended to be an empty array initially
+                exercises: [...selectedTemplate.exercises], // Create a shallow copy of the exercises array
+            };
+
+            setWorkout(newWorkout);
+            setIsNewWorkoutBottomSheetVisible(true);
+
+            const initialTime = Date.now();
+            workoutTimeInterval.current = setInterval(() => {
+                const diff = Date.now() - initialTime;
+                timerRef.current = millisToMinutesAndSeconds(diff);
+            }, 1000);
+
+            setTimeout(() => {
+                setIsCurrentWorkoutPanelVisible(true);
+            }, 500);
+        } else {
+            setIsNewWorkoutBottomSheetVisible(true);
+        }
+    }, [workout, templates]);
+
+
     const updateNewWorkout = useCallback((newWorkout) => {
         setWorkout(newWorkout);
     }, []);
@@ -133,6 +163,7 @@ function Workout({ navigation }) {
                     isPanelVisible={isPanelVisible}
                     setSelectedTemplate={setSelectedScheduleTemplate}
                     handlePressEditButton={() => openEditTemplateBottomSheet(index)}
+                    handlePressStartButton={() => startWorkoutFromTemplate(index)}
                     index={index} // Pass the index to TemplateCard
                 />
             </ScaleDecorator>

@@ -5,7 +5,7 @@ import Collapsible from 'react-native-collapsible';
 import RNBounceable from '@freakycoder/react-native-bounceable';
 import TemplateDetails from './TemplateDetails';
 
-const TemplateCard = memo(({ lastUsedDate, name, exercises, handleLongPress, isPanelVisible, setSelectedTemplate, handlePressEditButton, index }) => {
+const TemplateCard = memo(({ lastUsedDate, name, exercises, handleLongPress, isPanelVisible, setSelectedTemplate, handlePressEditButton, handlePressStartButton, index }) => {
     const [isCollapsed, setIsCollapsed] = useState(true);
     const scaleValue = useRef(new Animated.Value(1)).current;
 
@@ -59,6 +59,7 @@ const TemplateCard = memo(({ lastUsedDate, name, exercises, handleLongPress, isP
                     </View>
                 </View>
                 <Pressable
+                    onPress={handlePressStartButton}
                     onPressIn={handleStartButtonPressIn}
                     onPressOut={handleStartButtonPressOut}
                 >
