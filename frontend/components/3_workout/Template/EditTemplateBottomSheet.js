@@ -3,7 +3,7 @@ import { StyleSheet } from "react-native";
 import BottomSheet, { BottomSheetBackdrop } from "@gorhom/bottom-sheet";
 import EditTemplateModal from "./EditTemplateModal";
 
-const EditTemplateBottomSheet = ({ isVisible, setIsVisible, openedTemplateRef }) => {
+const EditTemplateBottomSheet = ({ isVisible, setIsVisible, openedTemplateRef, updateTemplate }) => {
     console.log(openedTemplateRef.current);
 
     const bottomSheetRef = useRef(null);
@@ -45,7 +45,7 @@ const EditTemplateBottomSheet = ({ isVisible, setIsVisible, openedTemplateRef })
             }}
         >
             {isVisible &&
-                <EditTemplateModal openedTemplateRef={openedTemplateRef} />
+                <EditTemplateModal openedTemplateRef={openedTemplateRef} updateTemplate={updateTemplate}/>
             }
         </BottomSheet>
     );

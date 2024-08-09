@@ -1,11 +1,11 @@
-import React, { useState, useCallback } from "react";
+import React, { useState, useCallback, useEffect } from "react";
 import { StyleSheet, View, Modal, ScrollView, Text, TextInput } from "react-native";
 import SelectExerciseModal from "../NewWorkout/SelectExercise/SelectExerciseModal";
 import RNBounceable from "@freakycoder/react-native-bounceable";
 import EditTemplateExerciseLog from "./EditTemplateExerciseLog";
 import { Weight } from 'iconsax-react-native';
 
-const EditTemplateModal = ({ openedTemplateRef }) => {
+const EditTemplateModal = ({ openedTemplateRef, updateTemplate }) => {
     const [selectExerciseModalVisible, setSelectExerciseModalVisible] = useState(false);
     const [template, setTemplate] = useState(openedTemplateRef.current);
     const [templateTitle, setTemplateTitle] = useState(openedTemplateRef.current.name);
@@ -44,6 +44,11 @@ const EditTemplateModal = ({ openedTemplateRef }) => {
         newTemplate.exercises = newTemplate.exercises.filter((_, i) => i !== index);
         setTemplate(newTemplate);
     }, [template, setTemplate]);
+
+    useEffect(() => {
+        openedTemplateRef.current = template;
+        updateTemplate();
+    }, [template]);
 
 
     return (

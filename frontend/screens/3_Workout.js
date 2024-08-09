@@ -12,26 +12,7 @@ import NewWorkoutBottomSheet from "../components/3_Workout/NewWorkout/NewWorkout
 import CurrentWorkoutPanel from "../components/3_Workout/CurrentWorkoutPanel";
 import millisToMinutesAndSeconds from "../helper/milliesToMinutesAndSeconds";
 import EditTemplateBottomSheet from "../components/3_Workout/Template/EditTemplateBottomSheet";
-
-const initialExercises = [
-    { name: "Incline Bench (Barbell)", muscle: "Chest", sets: [{ previous: '405 lb x 12', reps: 10, weight: 12 }, { previous: '405 lb x 12', reps: 10, weight: 12 }, { previous: '405 lb x 12', reps: 10, weight: 12 }] },
-    { name: "Decline Bench (Barbell)", muscle: "Chest", sets: [{ previous: '405 lb x 12', reps: 8, weight: 10 }, { previous: '405 lb x 12', reps: 8, weight: 10 }, { previous: '405 lb x 12', reps: 8, weight: 10 }] },
-    { name: "Chest Flys", muscle: "Chest", sets: [{ previous: '405 lb x 12', reps: 12, weight: 8 }, { previous: '405 lb x 12', reps: 12, weight: 8 }, { previous: '405 lb x 12', reps: 12, weight: 8 }] },
-    { name: "Pull Ups", muscle: "Back", sets: [{ previous: '405 lb x 12', reps: 5, weight: 'bodyweight' }, { previous: '405 lb x 12', reps: 5, weight: 'bodyweight' }, { previous: '405 lb x 12', reps: 5, weight: 'bodyweight' }] },
-    { name: "Bicep Curls (Dumbell)", muscle: "Biceps", sets: [{ previous: '405 lb x 12', reps: 10, weight: 15 }, { previous: '405 lb x 12', reps: 10, weight: 15 }, { previous: '405 lb x 12', reps: 10, weight: 15 }] },
-    { name: "Lateral Raises", muscle: "Shoulders", sets: [{ previous: '405 lb x 12', reps: 12, weight: 10 }, { previous: '405 lb x 12', reps: 12, weight: 10 }, { previous: '405 lb x 12', reps: 12, weight: 10 }] },
-    { name: "Shoulder Press (Dumbell)", muscle: "Shoulders", sets: [{ previous: '405 lb x 12', reps: 8, weight: 20 }, { previous: '405 lb x 12', reps: 8, weight: 20 }, { previous: '405 lb x 12', reps: 8, weight: 20 }] },
-    { name: "Reverse Curls (Barbell)", muscle: "Biceps", sets: [{ previous: '405 lb x 12', reps: 10, weight: 12 }, { previous: '405 lb x 12', reps: 10, weight: 12 }, { previous: '405 lb x 12', reps: 10, weight: 12 }] }
-];
-
-const initialTemplates = [
-    { lastUsedDate: 'July 6th', exercises: initialExercises, name: 'Chest & Back' },
-    { lastUsedDate: 'July 6th', exercises: initialExercises, name: 'Full Upper Body' },
-    { lastUsedDate: 'July 6th', exercises: initialExercises, name: 'Leg Day!!!' },
-    { lastUsedDate: 'July 6th', exercises: initialExercises, name: 'Full Body' },
-    { lastUsedDate: 'July 6th', exercises: initialExercises, name: 'Cardio' },
-    { lastUsedDate: 'July 6th', exercises: initialExercises, name: 'Full Upper Body' }
-];
+import updateDoc from '../../backend/helper/firebase/updateDoc'
 
 function Workout({ navigation }) {
     const [workout, setWorkout] = useState(null);
@@ -40,11 +21,11 @@ function Workout({ navigation }) {
     const [panelDate, setPanelDate] = useState(null);
     const [isNewWorkoutBottomSheetVisible, setIsNewWorkoutBottomSheetVisible] = useState(false);
     const [isEditTemplateBottomSheetVisible, setIsEditTemplateBottomSheetVisible] = useState(false);
-    const workoutTimeInterval = useRef(null);
     const [isCurrentWorkoutPanelVisible, setIsCurrentWorkoutPanelVisible] = useState(false);
     const [selectedScheduleTemplate, setSelectedScheduleTemplate] = useState(null);
     const openedTemplateRef = useRef(null);
     const userData = global.userData;
+    const workoutTimeInterval = useRef(null);
     const timerRef = useRef('00:00');
 
     console.log('Workout Screen Render');
@@ -105,6 +86,25 @@ function Workout({ navigation }) {
     const openEditTemplateBottomSheet = useCallback((index) => {
         openedTemplateRef.current = templates[index];
         setIsEditTemplateBottomSheetVisible(true);
+    }, [templates]);
+
+    function updateTemplate() {
+        setTemplates(prevTemplates => {
+            const index = prevTemplates.findIndex(template => template.tid === openedTemplateRef.current.tid);
+            if (index !== -1) {
+                // Create a new array with the updated template
+                const updatedTemplates = [...prevTemplates];
+                updatedTemplates[index] = { ...openedTemplateRef.current };
+                return updatedTemplates;
+            }
+            return prevTemplates; // If not found, return the original state
+        });
+    }
+
+    useEffect(() => {
+        updateDoc('users', global.userData.uid, {
+            templates: templates
+        });
     }, [templates]);
 
     const renderItem = useCallback(({ item, drag }) => {
@@ -179,10 +179,11 @@ function Workout({ navigation }) {
                 timerRef={timerRef}
             />
 
-            <EditTemplateBottomSheet 
+            <EditTemplateBottomSheet
                 isVisible={isEditTemplateBottomSheetVisible}
                 setIsVisible={setIsEditTemplateBottomSheetVisible}
                 openedTemplateRef={openedTemplateRef}
+                updateTemplate={updateTemplate}
             />
         </View>
     );
