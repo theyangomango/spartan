@@ -1,14 +1,14 @@
 import React, { useState, useCallback } from "react";
 import { StyleSheet, View, Modal, ScrollView, Text, TextInput } from "react-native";
-import ExerciseLog from "../NewWorkout/Tracking/ExerciseLog";
 import SelectExerciseModal from "../NewWorkout/SelectExercise/SelectExerciseModal";
 import RNBounceable from "@freakycoder/react-native-bounceable";
+import EditTemplateExerciseLog from "./EditTemplateExerciseLog";
 import { Weight } from 'iconsax-react-native';
 
 const EditTemplateModal = ({ openedTemplateRef }) => {
     const [selectExerciseModalVisible, setSelectExerciseModalVisible] = useState(false);
     const [template, setTemplate] = useState(openedTemplateRef.current);
-    const [templateTitle, setTemplateTitle] = useState('');
+    const [templateTitle, setTemplateTitle] = useState(openedTemplateRef.current.name);
 
     const showSelectExerciseModal = useCallback(() => {
         setSelectExerciseModalVisible(true);
@@ -19,15 +19,32 @@ const EditTemplateModal = ({ openedTemplateRef }) => {
     }, []);
 
     const appendExercises = useCallback((exercises) => {
-        const newWorkout = { ...template, exercises: [...template.exercises, ...exercises.map(ex => ({ name: ex, sets: [] }))] };
-        setTemplate(newWorkout);
+        const newTemplate = { ...template, exercises: [...template.exercises, ...exercises.map(ex => ({ name: ex, sets: [] }))] };
+        setTemplate(newTemplate);
     }, [template]);
 
-    const updateSets = useCallback((index, newSets) => {
-        const newWorkout = { ...template };
-        newWorkout.exercises[index].sets = newSets;
-        setTemplate(newWorkout);
-    }, [template]);
+    const updateSets = useCallback((exerciseIndex, newSets) => {
+        setTemplate(prevTemplate => {
+            const updatedExercises = prevTemplate.exercises.map((exercise, index) => {
+                if (index === exerciseIndex) {
+                    return { ...exercise, sets: newSets }; // Replace sets for the specific exercise
+                }
+                return exercise;
+            });
+            return { ...prevTemplate, exercises: updatedExercises }; // Return a new template object
+        });
+    }, []);
+
+    const replaceExercise = useCallback((index) => {
+
+    }, [template, setTemplate]);
+
+    const deleteExercise = useCallback((index) => {
+        const newTemplate = { ...template };
+        newTemplate.exercises = newTemplate.exercises.filter((_, i) => i !== index);
+        setTemplate(newTemplate);
+    }, [template, setTemplate]);
+
 
     return (
         <View style={styles.mainContainer}>
@@ -51,7 +68,7 @@ const EditTemplateModal = ({ openedTemplateRef }) => {
                 style={styles.scrollView}
             >
                 {template.exercises.map((ex, index) => (
-                    <ExerciseLog name={ex.name} initialSets={ex.sets} exerciseIndex={index} key={index} updateSets={updateSets} />
+                    <EditTemplateExerciseLog name={ex.name} sets={ex.sets} exerciseIndex={index} key={index} updateSets={updateSets} replaceExercise={replaceExercise} deleteExercise={deleteExercise} />
                 ))}
                 <RNBounceable onPress={showSelectExerciseModal} style={styles.addExerciseButton}>
                     <Text style={styles.addExerciseText}>Add Exercises</Text>
