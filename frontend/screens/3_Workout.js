@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useRef, useState } from "react";
-import { Text, StyleSheet, View } from "react-native";
+import { Text, StyleSheet, View, Pressable } from "react-native";
 import DraggableFlatList, { ScaleDecorator } from "react-native-draggable-flatlist";
 import Footer from "../components/Footer";
 import TemplateCard from "../components/3_Workout/Template/TemplateCard";
@@ -12,7 +12,8 @@ import NewWorkoutBottomSheet from "../components/3_Workout/NewWorkout/NewWorkout
 import CurrentWorkoutPanel from "../components/3_Workout/CurrentWorkoutPanel";
 import millisToMinutesAndSeconds from "../helper/milliesToMinutesAndSeconds";
 import EditTemplateBottomSheet from "../components/3_Workout/Template/EditTemplateBottomSheet";
-import updateDoc from '../../backend/helper/firebase/updateDoc'
+import updateDoc from '../../backend/helper/firebase/updateDoc';
+import { Entypo } from '@expo/vector-icons';
 
 function Workout({ navigation }) {
     const [workout, setWorkout] = useState(null);
@@ -27,8 +28,6 @@ function Workout({ navigation }) {
     const userData = global.userData;
     const workoutTimeInterval = useRef(null);
     const timerRef = useRef('00:00');
-
-    console.log('Workout Screen Render');
 
     const startNewWorkout = useCallback(async () => {
         if (!workout) {
@@ -101,6 +100,21 @@ function Workout({ navigation }) {
         });
     }
 
+    function initTemplate() {
+        const tid = makeID();
+        const newTemplate = {
+            name: 'Untitled Template',
+            exerciseCount: 0,
+            exercises: [],
+            lastDate: 'August 3rd',
+            tid: tid
+        }
+
+        setTemplates([...templates, newTemplate]);
+        openedTemplateRef.current = newTemplate;
+        setIsEditTemplateBottomSheetVisible(true);
+    }
+
     useEffect(() => {
         updateDoc('users', global.userData.uid, {
             templates: templates
@@ -108,7 +122,7 @@ function Workout({ navigation }) {
     }, [templates]);
 
     const renderItem = useCallback(({ item, drag }) => {
-        const index = templates.findIndex(template => template.id === item.id);
+        const index = templates.findIndex(template => template.tid === item.tid);
         return (
             <ScaleDecorator>
                 <TemplateCard
@@ -156,7 +170,12 @@ function Workout({ navigation }) {
                         <JoinWorkoutButton joinWorkout={() => joinWorkoutBottomSheet.current.expand()} />
                     </>
                 }
-                <Text style={styles.templates_text}>Templates</Text>
+                <View style={styles.templates_heading_row}>
+                    <Text style={styles.templates_text}>Templates</Text>
+                    <Pressable onPress={initTemplate}>
+                        <Entypo name="plus" size={22} style={styles.add_icon} color={'#888'} />
+                    </Pressable>
+                </View>
                 <DraggableFlatList
                     data={templates}
                     onDragEnd={({ data }) => setTemplates(data)}
@@ -205,6 +224,11 @@ const styles = StyleSheet.create({
         paddingBottom: 8,
         paddingHorizontal: 20,
     },
+    templates_heading_row: {
+        flexDirection: 'row',
+        alignItems: 'flex-end',
+        justifyContent: 'space-between'
+    },
     templates_text: {
         marginTop: 24,
         fontFamily: 'Poppins_600SemiBold',
@@ -212,6 +236,9 @@ const styles = StyleSheet.create({
         fontSize: 16,
         paddingHorizontal: 20
     },
+    add_icon: {
+        paddingHorizontal: 28
+    }
 });
 
 export default Workout;

@@ -50,6 +50,11 @@ const EditTemplateModal = ({ openedTemplateRef, updateTemplate }) => {
         updateTemplate();
     }, [template]);
 
+    useEffect(() => {
+        openedTemplateRef.current.name = templateTitle;
+        updateTemplate();
+    }, [templateTitle]);
+
 
     return (
         <View style={styles.mainContainer}>
