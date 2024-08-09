@@ -9,12 +9,13 @@ import { MaterialCommunityIcons, FontAwesome } from '@expo/vector-icons';
 import GroupModalBottomSheet from "./Group/GroupModalBottomSheet";
 import TimerDisplay from "./TimerDisplay";
 
-const NewWorkoutModal = ({ workout, closeModal, cancelWorkout, updateWorkout, finishWorkout, timerRef }) => {
+const NewWorkoutModal = ({ workout, cancelWorkout, updateWorkout, finishWorkout, timerRef }) => {
     const [selectExerciseModalVisible, setSelectExerciseModalVisible] = useState(false);
     const [groupModalExpandFlag, setGroupModalExpandFlag] = useState(false);
     const [totalReps, setTotalReps] = useState(0);
     const [totalVolume, setTotalVolume] = useState(0);
     const [personalBests, setPersonalBests] = useState(0);
+    const [countdown, setCountdown] = useState(0); // State for the countdown timer
     const scrollY = useRef(new Animated.Value(0)).current;
 
     // Initialize the isDone state
@@ -24,7 +25,19 @@ const NewWorkoutModal = ({ workout, closeModal, cancelWorkout, updateWorkout, fi
         )
     );
 
-    console.log({ isDoneState });
+    useEffect(() => {
+        let timerInterval = null;
+        if (countdown > 0) {
+            timerInterval = setInterval(() => {
+                setCountdown(prevCountdown => Math.max(prevCountdown - 1, 0));
+            }, 1000);
+        }
+        return () => clearInterval(timerInterval);
+    }, [countdown]);
+
+    const handleAddTime = () => {
+        setCountdown(prevCountdown => prevCountdown + 30); // Add 30 seconds to the countdown
+    };
 
     const calculateStats = useCallback(() => {
         let reps = 0;
@@ -91,10 +104,9 @@ const NewWorkoutModal = ({ workout, closeModal, cancelWorkout, updateWorkout, fi
         });
 
         newSets.forEach(nset => {
-            
+
         });
     }, [updateWorkout]);
-
 
     useEffect(() => {
         calculateStats();
@@ -131,10 +143,21 @@ const NewWorkoutModal = ({ workout, closeModal, cancelWorkout, updateWorkout, fi
     return (
         <View style={styles.main_ctnr}>
             <View style={styles.header}>
-                <RNBounceable style={styles.iconWrapper}>
-                    <MaterialCommunityIcons name="timer-outline" size={24} color="#0499FE" />
-                </RNBounceable>
-                <View style={styles.timer_text_ctnr}>
+                <View style={styles.rest_timer_ctnr}>
+                    <RNBounceable style={styles.iconWrapper} onPress={handleAddTime}>
+                        <MaterialCommunityIcons name="timer-outline" size={24} color="#0499FE" />
+
+                    </RNBounceable>
+
+                    {countdown > 0 && (
+                        <Text style={styles.countdownText}>
+                            {Math.floor(countdown / 60)}:{String(countdown % 60).padStart(2, '0')}
+                        </Text>
+                    )}
+                </View>
+
+
+                <View style={styles.timer_text_ctnr} pointerEvents="none">
                     <TimerDisplay timerRef={timerRef} />
                 </View>
                 <View style={styles.header_right}>
@@ -224,10 +247,22 @@ const styles = StyleSheet.create({
         height: 2,
         backgroundColor: '#eaeaea',
     },
-    iconWrapper: {
-        padding: 6,
+    rest_timer_ctnr: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        paddingVertical: 6,
+        paddingHorizontal: 10,
         borderRadius: 12,
         backgroundColor: '#E1F0FF',
+        position: 'relative', // Add relative positioning for countdown display
+    },
+    iconWrapper: {
+    },
+    countdownText: {
+        fontSize: 16,
+        color: '#0499FE',
+        fontFamily: 'Outfit_700Bold',
+        marginLeft: 6                                  
     },
     timer_text_ctnr: {
         position: 'absolute',
