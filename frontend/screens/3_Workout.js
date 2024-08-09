@@ -1,8 +1,6 @@
 import React, { useCallback, useEffect, useRef, useState } from "react";
 import { Text, StyleSheet, View, Pressable } from "react-native";
-import DraggableFlatList, { ScaleDecorator } from "react-native-draggable-flatlist";
 import Footer from "../components/Footer";
-import TemplateCard from "../components/3_Workout/Template/TemplateCard";
 import StartWorkoutButton from "../components/3_Workout/StartWorkoutButton";
 import JoinWorkoutButton from "../components/3_Workout/JoinWorkoutButton";
 import makeID from "../../backend/helper/makeID";
@@ -14,37 +12,46 @@ import millisToMinutesAndSeconds from "../helper/milliesToMinutesAndSeconds";
 import EditTemplateBottomSheet from "../components/3_Workout/Template/EditTemplateBottomSheet";
 import updateDoc from '../../backend/helper/firebase/updateDoc';
 import { Entypo } from '@expo/vector-icons';
+import arrayAppend from '../../backend/helper/firebase/arrayAppend'
+import TemplateList from "../components/3_Workout/Template/TemplateList";
 
 function Workout({ navigation }) {
-    const [workout, setWorkout] = useState(null);
+    const [workout, setWorkout] = useState(global.userData.currentWorkout);
     const [templates, setTemplates] = useState(global.userData.templates);
     const [isPanelVisible, setIsPanelVisible] = useState(false);
     const [panelDate, setPanelDate] = useState(null);
     const [isNewWorkoutBottomSheetVisible, setIsNewWorkoutBottomSheetVisible] = useState(false);
     const [isEditTemplateBottomSheetVisible, setIsEditTemplateBottomSheetVisible] = useState(false);
-    const [isCurrentWorkoutPanelVisible, setIsCurrentWorkoutPanelVisible] = useState(false);
+    const [isCurrentWorkoutPanelVisible, setIsCurrentWorkoutPanelVisible] = useState(!!workout);
     const [selectedScheduleTemplate, setSelectedScheduleTemplate] = useState(null);
     const openedTemplateRef = useRef(null);
-    const userData = global.userData;
     const workoutTimeInterval = useRef(null);
-    const timerRef = useRef('00:00');
+    const timerRef = useRef(workout ? millisToMinutesAndSeconds(Date.now() - workout.created) : '00:00');
+
+    // Update the timerRef every second when workout is not null
+    useEffect(() => {
+        if (workout) {
+            workoutTimeInterval.current = setInterval(() => {
+                const diff = Date.now() - workout.created;
+                timerRef.current = millisToMinutesAndSeconds(diff);
+            }, 1000);
+        }
+
+        return () => clearInterval(workoutTimeInterval.current);
+    }, [workout]);
 
     const startNewWorkout = useCallback(async () => {
         if (!workout) {
             const newWID = makeID();
-            setWorkout({
+            const newWorkout = {
                 wid: newWID,
                 creatorUID: userData.uid,
                 created: Date.now(),
                 users: [],
                 exercises: []
-            });
+            };
+            setWorkout(newWorkout);
             setIsNewWorkoutBottomSheetVisible(true);
-            const initialTime = Date.now();
-            workoutTimeInterval.current = setInterval(() => {
-                const diff = Date.now() - initialTime;
-                timerRef.current = millisToMinutesAndSeconds(diff);
-            }, 1000);
             setTimeout(() => {
                 setIsCurrentWorkoutPanelVisible(true);
             }, 500);
@@ -67,13 +74,6 @@ function Workout({ navigation }) {
 
             setWorkout(newWorkout);
             setIsNewWorkoutBottomSheetVisible(true);
-
-            const initialTime = Date.now();
-            workoutTimeInterval.current = setInterval(() => {
-                const diff = Date.now() - initialTime;
-                timerRef.current = millisToMinutesAndSeconds(diff);
-            }, 1000);
-
             setTimeout(() => {
                 setIsCurrentWorkoutPanelVisible(true);
             }, 500);
@@ -82,12 +82,11 @@ function Workout({ navigation }) {
         }
     }, [workout, templates]);
 
-
     const updateNewWorkout = useCallback((newWorkout) => {
         setWorkout(newWorkout);
     }, []);
 
-    const cancelNewWorkout = useCallback(() => {
+    const cancelWorkout = useCallback(() => {
         setWorkout(null);
         setIsNewWorkoutBottomSheetVisible(false);
         clearInterval(workoutTimeInterval.current);
@@ -95,7 +94,9 @@ function Workout({ navigation }) {
         timerRef.current = '00:00';
     }, []);
 
-    const finishNewWorkout = useCallback(() => {
+    const finishWorkout = useCallback(() => {
+        arrayAppend('users', global.userData.uid, 'completedWorkouts', workout);
+
         setWorkout(null);
         setIsNewWorkoutBottomSheetVisible(false);
         clearInterval(workoutTimeInterval.current);
@@ -117,6 +118,21 @@ function Workout({ navigation }) {
         setIsEditTemplateBottomSheetVisible(true);
     }, [templates]);
 
+    function initTemplate() {
+        const tid = makeID();
+        const newTemplate = {
+            name: 'Untitled Template',
+            exerciseCount: 0,
+            exercises: [],
+            lastDate: 'August 3rd',
+            tid: tid
+        };
+
+        setTemplates([...templates, newTemplate]);
+        openedTemplateRef.current = newTemplate;
+        setIsEditTemplateBottomSheetVisible(true);
+    }
+
     function updateTemplate() {
         setTemplates(prevTemplates => {
             const index = prevTemplates.findIndex(template => template.tid === openedTemplateRef.current.tid);
@@ -130,20 +146,11 @@ function Workout({ navigation }) {
         });
     }
 
-    function initTemplate() {
-        const tid = makeID();
-        const newTemplate = {
-            name: 'Untitled Template',
-            exerciseCount: 0,
-            exercises: [],
-            lastDate: 'August 3rd',
-            tid: tid
-        }
-
-        setTemplates([...templates, newTemplate]);
-        openedTemplateRef.current = newTemplate;
-        setIsEditTemplateBottomSheetVisible(true);
-    }
+    useEffect(() => {
+        updateDoc('users', global.userData.uid, {
+            currentWorkout: workout
+        });
+    }, [workout]);
 
     useEffect(() => {
         updateDoc('users', global.userData.uid, {
@@ -151,27 +158,8 @@ function Workout({ navigation }) {
         });
     }, [templates]);
 
-    const renderItem = useCallback(({ item, drag }) => {
-        const index = templates.findIndex(template => template.tid === item.tid);
-        return (
-            <ScaleDecorator>
-                <TemplateCard
-                    lastUsedDate={item.lastDate}
-                    exercises={item.exercises}
-                    name={item.name}
-                    handleLongPress={drag}
-                    isPanelVisible={isPanelVisible}
-                    setSelectedTemplate={setSelectedScheduleTemplate}
-                    handlePressEditButton={() => openEditTemplateBottomSheet(index)}
-                    handlePressStartButton={() => startWorkoutFromTemplate(index)}
-                    index={index} // Pass the index to TemplateCard
-                />
-            </ScaleDecorator>
-        );
-    }, [isPanelVisible, setSelectedScheduleTemplate, openEditTemplateBottomSheet, templates]);
-
     return (
-        <View style={styles.main_ctnr}>
+        <View style={styles.mainContainer}>
             <View style={styles.body}>
                 <View style={{ height: 55 }} />
                 <WorkoutDates
@@ -187,43 +175,41 @@ function Workout({ navigation }) {
                     selectedTemplate={selectedScheduleTemplate}
                     setSelectedTemplate={setSelectedScheduleTemplate}
                 />
-                {isCurrentWorkoutPanelVisible &&
+                {isCurrentWorkoutPanelVisible && (
                     <CurrentWorkoutPanel
                         exerciseName={'8/8 Workout'}
                         timerRef={timerRef}
                         openWorkout={startNewWorkout}
                     />
-                }
-                {!isCurrentWorkoutPanelVisible &&
+                )}
+                {!isCurrentWorkoutPanelVisible && (
                     <>
-                        <Text style={styles.quick_start_text}>Quick Start</Text>
+                        <Text style={styles.quickStartText}>Quick Start</Text>
                         <StartWorkoutButton startWorkout={startNewWorkout} />
                         <JoinWorkoutButton joinWorkout={() => joinWorkoutBottomSheet.current.expand()} />
                     </>
-                }
-                <View style={styles.templates_heading_row}>
-                    <Text style={styles.templates_text}>Templates</Text>
+                )}
+                <View style={styles.templatesHeadingRow}>
+                    <Text style={styles.templatesText}>Templates</Text>
                     <Pressable onPress={initTemplate}>
-                        <Entypo name="plus" size={22} style={styles.add_icon} color={'#888'} />
+                        <Entypo name="plus" size={22} style={styles.addIcon} color={'#888'} />
                     </Pressable>
                 </View>
-                <DraggableFlatList
-                    data={templates}
-                    onDragEnd={({ data }) => setTemplates(data)}
-                    keyExtractor={(item, index) => index}
-                    renderItem={renderItem}
-                    showsVerticalScrollIndicator={false}
-                    ListFooterComponent={<View />}
-                    ListFooterComponentStyle={{ height: templates.length * 70 }}
+                <TemplateList
+                    templates={templates}
+                    setTemplates={setTemplates}
+                    isPanelVisible={isPanelVisible}
+                    setSelectedScheduleTemplate={setSelectedScheduleTemplate}
+                    openEditTemplateBottomSheet={openEditTemplateBottomSheet}
+                    startWorkoutFromTemplate={startWorkoutFromTemplate}
                 />
             </View>
             <Footer navigation={navigation} currentScreenName={'Workout'} />
             <NewWorkoutBottomSheet
                 workout={workout}
-                // setWorkout={setWorkout}
-                cancelNewWorkout={cancelNewWorkout}
+                cancelNewWorkout={cancelWorkout}
                 updateNewWorkout={updateNewWorkout}
-                finishNewWorkout={finishNewWorkout}
+                finishNewWorkout={finishWorkout}
                 isVisible={isNewWorkoutBottomSheetVisible}
                 setIsVisible={setIsNewWorkoutBottomSheetVisible}
                 timerRef={timerRef}
@@ -240,7 +226,7 @@ function Workout({ navigation }) {
 }
 
 const styles = StyleSheet.create({
-    main_ctnr: {
+    mainContainer: {
         flex: 1,
         backgroundColor: '#fff',
     },
@@ -248,26 +234,24 @@ const styles = StyleSheet.create({
         flex: 1,
         paddingTop: 125
     },
-    quick_start_text: {
+    quickStartText: {
         fontFamily: 'Poppins_600SemiBold',
-        letterSpacing: -0.2,
         fontSize: 16,
         paddingBottom: 8,
         paddingHorizontal: 20,
     },
-    templates_heading_row: {
+    templatesHeadingRow: {
         flexDirection: 'row',
         alignItems: 'flex-end',
         justifyContent: 'space-between'
     },
-    templates_text: {
+    templatesText: {
         marginTop: 24,
         fontFamily: 'Poppins_600SemiBold',
-        letterSpacing: -0.3,
         fontSize: 16,
         paddingHorizontal: 20
     },
-    add_icon: {
+    addIcon: {
         paddingHorizontal: 28
     }
 });

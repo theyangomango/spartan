@@ -25,7 +25,7 @@ const TemplateCard = memo(({ lastUsedDate, name, exercises, handleLongPress, isP
             friction: 3,
             tension: 40,
             useNativeDriver: true,
-        }).start();
+        }).start()
     };
 
     const handleStartButtonPressOut = () => {
