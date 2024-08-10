@@ -11,7 +11,6 @@ import { Octicons, Ionicons } from '@expo/vector-icons'
 
 export default function Competition({ navigation }) {
     const userData = global.userData;
-    // const [users, setUsers] = useState(null);
     const [userList, setUserList] = useState(null);
     const [categoryCompared, setCategoryCompared] = useState('benchPress');
     const [showFollowers, setShowFollowers] = useState('All Followers');

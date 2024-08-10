@@ -1,9 +1,9 @@
-import React, { useState } from 'react';
+import React, { memo, useState } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import ExerciseImagePreview from './ExerciseImagePreview';
 
-export default function ExerciseCard({ name, muscleGroup, lastDone = 'July 13th', timesCompleted = 12, selectExercise, deselectExercise, showExerciseInfo }) {
+const ExerciseCard = memo(({ name, muscleGroup, lastDone = 'July 13th', timesCompleted = 12, selectExercise, deselectExercise, showExerciseInfo }) => {
     const [isSelected, setIsSelected] = useState(false);
 
     const muscleColors = {
@@ -29,7 +29,7 @@ export default function ExerciseCard({ name, muscleGroup, lastDone = 'July 13th'
     return (
         <Pressable onPress={toggleSelected} style={[styles.card, isSelected && styles.selected]}>
             <View style={styles.leftContainer}>
-                <ExerciseImagePreview exercise={'standing-preacher-curl-dumbbell'} />
+                <ExerciseImagePreview exercise={name} />
                 <View style={styles.textContainer}>
                     <Text style={styles.exerciseName}>{name}</Text>
                     <View style={styles.row}>
@@ -49,16 +49,16 @@ export default function ExerciseCard({ name, muscleGroup, lastDone = 'July 13th'
             <View style={styles.border} />
         </Pressable>
     );
-}
+});
+
+export default ExerciseCard;
 
 const styles = StyleSheet.create({
     card: {
         flexDirection: 'row',
-        alignItems: 'center',
         paddingLeft: 15,
         paddingRight: 12,
         justifyContent: 'space-between',
-        position: 'relative',
     },
     leftContainer: {
         flexDirection: 'row',

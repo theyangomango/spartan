@@ -1,11 +1,11 @@
 import { View, StyleSheet, Text, Pressable, Image, Animated } from "react-native";
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, memo } from "react";
 import SetRow from "./SetRow";
 import { MaterialCommunityIcons, Entypo } from '@expo/vector-icons';
 import RNBounceable from "@freakycoder/react-native-bounceable";
 import ExerciseOptionsPanel from "./ExerciseOptionsPanel";
 
-export default function ExerciseLog({ name, exerciseIndex, updateSets, sets, replaceExercise, deleteExercise, isDoneState, toggleIsDone }) {
+const ExerciseLog = memo(({ name, exerciseIndex, updateSets, sets, replaceExercise, deleteExercise, isDoneState, toggleIsDone }) => {
     const muscle = name === 'Lateral Raise' ? 'Shoulders' : 'Chest';
 
     const [isPanelVisible, setIsPanelVisible] = useState(false);
@@ -107,7 +107,9 @@ export default function ExerciseLog({ name, exerciseIndex, updateSets, sets, rep
             </Animated.View>
         </View>
     );
-}
+});
+
+export default ExerciseLog;
 
 const styles = StyleSheet.create({
     main_ctnr: {

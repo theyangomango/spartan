@@ -143,7 +143,6 @@ function Workout({ navigation }) {
         });
     }, [templates, setSelectedScheduleTemplate]);
 
-
     const descheduleWorkout = useCallback((date) => {
         setIsPanelVisible(false);
         setPanelDate(null);

@@ -1,46 +1,47 @@
 import React, { useState, useEffect, useRef } from "react";
-import { StyleSheet, View, Text, Pressable, ScrollView, TextInput, Animated } from "react-native";
-import ExerciseCard from "./ExerciseCard";
+import { StyleSheet, View, Text, Pressable, TextInput, Animated } from "react-native";
 import { Ionicons } from '@expo/vector-icons';
 import RNBounceable from "@freakycoder/react-native-bounceable";
+import { exercises } from './EXERCISES';
+import ExercisesFlatlist from './ExercisesFlatlist';
+import AnimatedButton from './AnimatedButton';
 
 export default function SelectExerciseModal({ closeModal, appendExercises }) {
-    const [selectedExercises, setSelectedExercises] = useState([]);
+    const selectedExercisesRef = useRef([]); // Use ref for selected exercises
     const [searchQuery, setSearchQuery] = useState('');
     const opacity = useRef(new Animated.Value(1)).current;
 
-    const exercises = [
-        { name: 'Standing Tricep Extension (Dumbell)', muscleGroup: 'Shoulders' },
-        { name: 'Dumbell Squat', muscleGroup: 'Chest' },
-        { name: 'Standing Preacher Curl (Dumbell)', muscleGroup: 'Chest' },
-        { name: 'Lateral Raise (Dumbell)', muscleGroup: 'Abs' },
-        // Add more exercises as needed
-    ];
-
     useEffect(() => {
         Animated.timing(opacity, {
-            toValue: selectedExercises.length === 0 ? 0.5 : 1,
+            toValue: selectedExercisesRef.current.length === 0 ? 0.5 : 1,
             duration: 300,
             useNativeDriver: true,
         }).start();
-    }, [selectedExercises]);
+    }, [searchQuery]); // Re-trigger animation when search query changes
 
     function selectExercise(name) {
-        setSelectedExercises([...selectedExercises, name]);
+        selectedExercisesRef.current = [...selectedExercisesRef.current, name];
+        triggerOpacityUpdate();
     }
 
     function deselectExercise(name) {
-        setSelectedExercises(selectedExercises.filter(exercise => exercise !== name));
+        selectedExercisesRef.current = selectedExercisesRef.current.filter(exercise => exercise !== name);
+        triggerOpacityUpdate();
     }
 
     function handleFinish() {
-        if (selectedExercises.length === 0) return;
-        appendExercises(selectedExercises);
+        if (selectedExercisesRef.current.length === 0) return;
+        appendExercises(selectedExercisesRef.current);
         closeModal();
     }
 
     function handleSearch(query) {
         setSearchQuery(query);
+    }
+
+    function triggerOpacityUpdate() {
+        // Force re-render to update opacity
+        opacity.setValue(selectedExercisesRef.current.length === 0 ? 0.5 : 1);
     }
 
     const filteredExercises = exercises.filter(exercise =>
@@ -55,13 +56,11 @@ export default function SelectExerciseModal({ closeModal, appendExercises }) {
                     <RNBounceable style={styles.newButton}>
                         <Text style={styles.newButtonText}>New</Text>
                     </RNBounceable>
-                    <Animated.View style={{ opacity }}>
-                        <RNBounceable onPress={handleFinish} style={styles.addButton}>
-                            <Text style={styles.addButtonText}>
-                                {`Add${selectedExercises.length > 0 ? ` (${selectedExercises.length})` : ''}`}
-                            </Text>
-                        </RNBounceable>
-                    </Animated.View>
+                    <AnimatedButton 
+                        opacity={opacity} 
+                        selectedExercisesLength={selectedExercisesRef.current.length} 
+                        handleFinish={handleFinish} 
+                    />
                 </View>
                 <View style={styles.searchContainer}>
                     <Ionicons name="search" size={20} color="#888" style={styles.searchIcon} />
@@ -80,17 +79,11 @@ export default function SelectExerciseModal({ closeModal, appendExercises }) {
                         <Text style={styles.filterButtonText}>All Equipment</Text>
                     </RNBounceable>
                 </View>
-                <ScrollView>
-                    {filteredExercises.map((exercise, index) => (
-                        <ExerciseCard
-                            key={index}
-                            name={exercise.name}
-                            muscleGroup={exercise.muscleGroup}
-                            selectExercise={selectExercise}
-                            deselectExercise={deselectExercise}
-                        />
-                    ))}
-                </ScrollView>
+                <ExercisesFlatlist 
+                    exercises={filteredExercises}
+                    selectExercise={selectExercise}
+                    deselectExercise={deselectExercise}
+                />
             </View>
             <Pressable onPress={() => closeModal()} style={styles.outside_pressable} />
         </View>
@@ -136,19 +129,6 @@ const styles = StyleSheet.create({
     },
     newButtonText: {
         color: '#333',
-        fontFamily: 'Outfit_700Bold',
-        fontSize: 14,
-    },
-    addButton: {
-        backgroundColor: '#51A9FF',
-        paddingHorizontal: 20,
-        paddingVertical: 4.5,
-        borderRadius: 8,
-        justifyContent: 'center',
-        alignItems: 'center'
-    },
-    addButtonText: {
-        color: '#fff',
         fontFamily: 'Outfit_700Bold',
         fontSize: 14,
     },
