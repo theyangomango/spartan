@@ -8,10 +8,6 @@ const LeaderboardBottomSheet = ({ isVisible, setIsVisible, user }) => {
     const bottomSheetRef = useRef(null);
     const snapPoints = useMemo(() => ["94%"], []);
 
-    const handleSheetChanges = useCallback((index) => {
-        console.log("handleSheetChanges", index);
-    }, []);
-
     const renderBackdrop = useCallback(
         (props) => (
             <BottomSheetBackdrop
@@ -36,7 +32,6 @@ const LeaderboardBottomSheet = ({ isVisible, setIsVisible, user }) => {
             index={-1}
             backdropComponent={renderBackdrop}
             snapPoints={snapPoints}
-            onChange={handleSheetChanges}
             handleStyle={{ display: 'none' }}
             enablePanDownToClose
             onClose={() => setIsVisible(false)}

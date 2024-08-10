@@ -27,7 +27,11 @@ export default function LeaderboardCard({ pfp, handle, name, value, rank, lastRa
             <View style={styles.card_right}>
                 <View>
                     <Text style={styles.stat_text}>{value} lbs</Text>
-                    <Text style={styles.best_set_text}>{bestSet.reps} x {bestSet.weight} lbs</Text>
+                    {bestSet.reps == 0 && bestSet.weight == 0 ?
+                        <Text style={styles.best_set_text}>N/A</Text>
+                        :
+                        <Text style={styles.best_set_text}>{bestSet.reps} x {bestSet.weight} lbs</Text>
+                    }
                 </View>
             </View>
         </RNBounceable>

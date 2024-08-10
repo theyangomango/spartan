@@ -15,7 +15,7 @@ const LeaderboardModal = ({ userList, categoryCompared, showFollowers, toggleFol
                         style={[styles.button, styles.selectedButton]}
                         onPress={openModal}
                     >
-                        <Text style={styles.buttonText}>Bench Press</Text>
+                        <Text style={styles.buttonText}>{categoryCompared}</Text>
                     </RNBounceable>
                     <RNBounceable
                         disabled // Disabled for Beta
@@ -30,13 +30,14 @@ const LeaderboardModal = ({ userList, categoryCompared, showFollowers, toggleFol
                 pfp={global.userData.image}
                 name={global.userData.name}
                 handle={global.userData.handle}
-                value={global.userData.statsExercises[categoryCompared]['1RM']}
+                value={(categoryCompared in global.userData.statsExercises && '1RM' in global.userData.statsExercises[categoryCompared]) ? global.userData.statsExercises[categoryCompared]['1RM'] : 0}
                 rank={userRank}
-                lastRank={global.userData.statsExercises[categoryCompared]['lastFollowersRank']}
+                lastRank={(categoryCompared in global.userData.statsExercises && 'lastFollowersRank' in global.userData.statsExercises[categoryCompared]) ? global.userData.statsExercises[categoryCompared]['lastFollowersRank'] : null}
                 handlePress={() => openBottomSheet(global.userData)}
                 userIsSelf={true}
-                bestSet={global.userData.statsExercises[categoryCompared]['bestSet']}
+                bestSet={(categoryCompared in global.userData.statsExercises && 'bestSet' in global.userData.statsExercises[categoryCompared]) ? global.userData.statsExercises[categoryCompared]['bestSet'] : { weight: 0, reps: 0 }}
             />
+
             <FlatList
                 data={userList}
                 keyExtractor={(item, index) => index.toString()}
@@ -49,11 +50,11 @@ const LeaderboardModal = ({ userList, categoryCompared, showFollowers, toggleFol
                         pfp={item.image}
                         handle={item.handle}
                         name={item.name}
-                        value={item.statsExercises[categoryCompared]['1RM']}
+                        value={(categoryCompared in item.statsExercises && '1RM' in item.statsExercises[categoryCompared]) ? item.statsExercises[categoryCompared]['1RM'] : 0}
                         rank={index + 1}
-                        lastRank={item.statsExercises[categoryCompared]['lastFollowersRank']}
+                        lastRank={(categoryCompared in item.statsExercises && 'lastFollowersRank' in item.statsExercises[categoryCompared]) ? item.statsExercises[categoryCompared]['lastFollowersRank'] : null}
                         handlePress={() => openBottomSheet(item)}
-                        bestSet={item.statsExercises[categoryCompared]['bestSet']}
+                        bestSet={(categoryCompared in item.statsExercises && 'bestSet' in item.statsExercises[categoryCompared]) ? item.statsExercises[categoryCompared]['bestSet'] : { weight: 0, reps: 0 }}
                     />
                 )}
             />

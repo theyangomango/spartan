@@ -1,12 +1,8 @@
 import { StyleSheet, View, Text, Image } from "react-native";
 
 export default function Podium({ data }) {
-    console.log(data);
-
     return (
         <View style={styles.leaderboard_ctnr}>
-
-
             <View style={styles.left}>
                 <View style={styles.left_pfp}>
                     {data && <Image source={{ uri: data[1].pfp }} style={styles.pfp} />}
