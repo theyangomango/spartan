@@ -16,6 +16,7 @@ import arrayAppend from '../../backend/helper/firebase/arrayAppend'
 import TemplateList from "../components/3_Workout/Template/TemplateList";
 import WorkoutSummaryModal from "../components/3_Workout/WorkoutSummaryModal";
 import GroupModalBottomSheet from '../components/3_Workout/NewWorkout/Group/GroupModalBottomSheet'
+import calculate1RM from "../helper/calculate1RM";
 
 function Workout({ navigation }) {
     const [workout, setWorkout] = useState(global.userData.currentWorkout);
@@ -177,6 +178,42 @@ function Workout({ navigation }) {
         openedTemplateRef.current = newTemplate;
         setIsEditTemplateBottomSheetVisible(true);
     }
+
+    useEffect(() => {
+        if (completedWorkout) {
+            let newExerciseStats = { ...global.userData.statsExercises };
+
+            completedWorkout.exercises.forEach(ex => {
+                const prev1RM = ('1RM' in newExerciseStats[ex.name]) ? newExerciseStats[ex.name]['1RM'] : 0;
+
+                // Ensure newExerciseStats[ex.name] and its sets array are initialized
+                newExerciseStats[ex.name] = newExerciseStats[ex.name] || { sets: [] };
+                newExerciseStats[ex.name].sets = newExerciseStats[ex.name].sets || [];
+
+                ex.sets.forEach(set => {
+                    newExerciseStats[ex.name].sets.push({
+                        weight: set.weight,
+                        reps: set.reps
+                    });
+
+                    const set1RM = calculate1RM(set.weight, set.reps);
+                    console.log(prev1RM, set1RM);
+
+                    if (set1RM > prev1RM) {
+                        newExerciseStats[ex.name]['1RM'] = set1RM;
+                        newExerciseStats[ex.name]['bestSet'] = {
+                            weight: set.weight,
+                            reps: set.reps
+                        }
+                    }
+                });
+            });
+
+            updateDoc('users', global.userData.uid, {
+                statsExercises: newExerciseStats
+            })
+        }
+    }, [completedWorkout]);
 
     function updateTemplate() {
         setTemplates(prevTemplates => {
