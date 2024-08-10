@@ -5,7 +5,23 @@ export default function EditableStat({ placeholder = '0', isFinished, value, set
     const [isSelected, setIsSelected] = useState(false);
     const inputRef = useRef(null);
 
-    console.log(value)
+    const handleChangeText = (text) => {
+        // If the text is empty, set the value to 0
+        if (text === '') {
+            setValue('0');
+            return;
+        }
+
+        // Remove non-numeric characters (except for a decimal point)
+        const numericValue = text.replace(/[^0-9.]/g, '');
+
+        // Prevent multiple decimals
+        const validValue = numericValue.split('.').length > 2
+            ? numericValue.slice(0, -1)
+            : numericValue;
+
+        setValue(validValue);
+    };
 
     return (
         <Pressable
@@ -28,8 +44,8 @@ export default function EditableStat({ placeholder = '0', isFinished, value, set
                 onFocus={() => setIsSelected(true)}
                 onEndEditing={() => setIsSelected(false)}
                 style={styles.text}
-                value={value == 0 ? '' : value.toString()}
-                onChangeText={setValue}
+                value={value === '0' ? '' : value.toString()}
+                onChangeText={handleChangeText}
             />
         </Pressable>
     )
