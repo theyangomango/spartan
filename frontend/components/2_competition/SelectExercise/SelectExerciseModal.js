@@ -3,7 +3,6 @@ import { StyleSheet, View, Text, Pressable, TextInput, Animated } from "react-na
 import { Ionicons } from '@expo/vector-icons';
 import RNBounceable from "@freakycoder/react-native-bounceable";
 import ExercisesFlatlist from './ExercisesFlatlist';
-import AnimatedButton from './AnimatedButton';
 import { exercises } from "../../3_Workout/NewWorkout/SelectExercise/EXERCISES";
 
 const SelectExerciseModal = memo(({ closeModal, setComparedExercise }) => {

@@ -19,7 +19,17 @@ const EditTemplateModal = ({ openedTemplateRef, updateTemplate }) => {
     }, []);
 
     const appendExercises = useCallback((exercises) => {
-        const newTemplate = { ...template, exercises: [...template.exercises, ...exercises.map(ex => ({ name: ex, sets: [] }))] };
+        const newTemplate = {
+            ...template, exercises: [...template.exercises, ...exercises.map(ex => ({
+                name: ex.name,
+                muscle: ex.muscle,
+                sets: [{
+                    weight: 0,
+                    reps: 0,
+                    previous: '405 lb x 12'
+                }]
+            }))]
+        };
         setTemplate(newTemplate);
     }, [template]);
 

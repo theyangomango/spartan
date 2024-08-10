@@ -6,7 +6,7 @@ import PostsSection from "./Posts/PostsSection";
 import HistorySection from "./History/HistorySection";
 import ActivitySection from "./Activity/ActivitySection";
 
-const ProfileBottomModal = ({ selectedPanel, setSelectedPanel, posts }) => {
+const ProfileBottomModal = ({ selectedPanel, setSelectedPanel, posts, isBottomSheetExpanded }) => {
     return (
         <View style={styles.container}>
             <View style={styles.panel_btns}>
@@ -28,9 +28,9 @@ const ProfileBottomModal = ({ selectedPanel, setSelectedPanel, posts }) => {
             </View>
             <View style={styles.panel_border}></View>
 
-            <PostsSection posts={posts} isVisible={selectedPanel === 'posts'} />
-            <HistorySection isVisible={selectedPanel === 'history'} />
-            <ActivitySection isVisible={selectedPanel === 'activity'} />
+            <PostsSection posts={posts} isVisible={selectedPanel === 'posts'} isBottomSheetExpanded={isBottomSheetExpanded}/>
+            <HistorySection isVisible={selectedPanel === 'history'}  isBottomSheetExpanded={isBottomSheetExpanded}/>
+            <ActivitySection isVisible={selectedPanel === 'activity'}  isBottomSheetExpanded={isBottomSheetExpanded}/>
         </View>
     );
 };

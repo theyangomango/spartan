@@ -19,13 +19,13 @@ export default function SelectExerciseModal({ closeModal, appendExercises }) {
         }).start();
     }, [searchQuery]); // Re-trigger animation when search query changes
 
-    function selectExercise(name) {
-        selectedExercisesRef.current = [...selectedExercisesRef.current, name];
+    function selectExercise(ex) {
+        selectedExercisesRef.current = [...selectedExercisesRef.current, { ...ex }];
         triggerOpacityUpdate();
     }
 
-    function deselectExercise(name) {
-        selectedExercisesRef.current = selectedExercisesRef.current.filter(exercise => exercise !== name);
+    function deselectExercise(ex) {
+        selectedExercisesRef.current = selectedExercisesRef.current.filter(exercise => exercise.name !== ex.name);
         triggerOpacityUpdate();
     }
 
@@ -56,10 +56,10 @@ export default function SelectExerciseModal({ closeModal, appendExercises }) {
                     <RNBounceable style={styles.newButton}>
                         <Text style={styles.newButtonText}>New</Text>
                     </RNBounceable>
-                    <AnimatedButton 
-                        opacity={opacity} 
-                        selectedExercisesLength={selectedExercisesRef.current.length} 
-                        handleFinish={handleFinish} 
+                    <AnimatedButton
+                        opacity={opacity}
+                        selectedExercisesLength={selectedExercisesRef.current.length}
+                        handleFinish={handleFinish}
                     />
                 </View>
                 <View style={styles.searchContainer}>
@@ -79,7 +79,7 @@ export default function SelectExerciseModal({ closeModal, appendExercises }) {
                         <Text style={styles.filterButtonText}>All Equipment</Text>
                     </RNBounceable>
                 </View>
-                <ExercisesFlatlist 
+                <ExercisesFlatlist
                     exercises={filteredExercises}
                     selectExercise={selectExercise}
                     deselectExercise={deselectExercise}

@@ -109,27 +109,27 @@ const getPast30DaysData = (inputs, customDataPoint) => {
 
 // Sample input data
 const inputData1 = [
-    { date: '6/15', value: 100 },
-    { date: '6/17', value: 140 },
-    { date: '6/20', value: 250 },
-    { date: '6/23', value: 290 },
-    { date: '6/25', value: 410 },
-    { date: '6/28', value: 440 },
-    { date: '7/1', value: 280 },
-    { date: '7/4', value: 180 },
-    { date: '7/9', value: 150 },
+    { date: '7/15', value: 100 },
+    { date: '7/17', value: 140 },
+    { date: '7/20', value: 250 },
+    { date: '7/23', value: 290 },
+    { date: '7/25', value: 410 },
+    { date: '7/28', value: 440 },
+    { date: '8/1', value: 280 },
+    { date: '8/4', value: 180 },
+    { date: '8/5', value: 150 },
 ];
 
 const inputData2 = [
-    { date: '6/15', value: 80 },
-    { date: '6/17', value: 130 }, 
-    { date: '6/20', value: 200 },
-    { date: '6/23', value: 250 },
-    { date: '6/25', value: 300 },
-    { date: '6/28', value: 350 },
-    { date: '7/1', value: 200 },
-    { date: '7/4', value: 160 },
-    { date: '7/7', value: 100 },
+    { date: '7/15', value: 80 },
+    { date: '7/17', value: 130 }, 
+    { date: '7/20', value: 200 },
+    { date: '7/23', value: 250 },
+    { date: '7/25', value: 300 },
+    { date: '7/28', value: 350 },
+    { date: '8/1', value: 200 },
+    { date: '8/4', value: 160 },
+    { date: '8/7', value: 100 },
 ];
 
 const data1 = getPast30DaysData(inputData1, customDataPoint1);

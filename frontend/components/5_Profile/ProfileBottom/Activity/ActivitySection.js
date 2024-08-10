@@ -3,7 +3,7 @@ import React, { memo } from "react";
 import { StyleSheet, FlatList, View } from "react-native";
 import ExerciseGraph from "./ExerciseGraph";
 
-const ActivitySection = ({ isVisible }) => {
+const ActivitySection = ({ isVisible, isBottomSheetExpanded }) => {
     const renderExerciseGraph = () => (
         <ExerciseGraph />
     );
@@ -14,7 +14,7 @@ const ActivitySection = ({ isVisible }) => {
             keyExtractor={(item, index) => index.toString()}
             renderItem={renderExerciseGraph}
             contentContainerStyle={[styles.scrollable_ctnr, !isVisible && styles.hidden]}
-            ListFooterComponent={<View style={{ height: 120 }} />}
+            ListFooterComponent={<View style={{ height: isBottomSheetExpanded ? 100 : 400 }} />}
             initialNumToRender={1}
         />
     );

@@ -62,12 +62,12 @@ const NewWorkoutModal = ({ workout, cancelWorkout, updateWorkout, finishWorkout,
         setSelectExerciseModalVisible(false);
     }, []);
 
-   
-
     const appendExercises = useCallback((exercises) => {
         const newWorkout = {
             ...workout, exercises: [...workout.exercises, ...exercises.map(ex => ({
-                name: ex, sets: [{
+                name: ex.name, 
+                muscle: ex.muscle,
+                sets: [{
                     weight: 0,
                     reps: 0,
                     previous: '405 lb x 12'

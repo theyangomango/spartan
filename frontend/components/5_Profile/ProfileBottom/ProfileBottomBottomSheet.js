@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useMemo, useRef } from "react";
+import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { StyleSheet, Text, View } from "react-native";
 import BottomSheet, { BottomSheetBackdrop, BottomSheetFooter } from "@gorhom/bottom-sheet";
 import ProfileBottomModal from "./ProfileBottomModal";
@@ -7,9 +7,10 @@ import Footer from "../../Footer";
 const ProfileBottomBottomSheet = ({ selectedPanel, setSelectedPanel, posts, navigation }) => {
     const bottomSheetRef = useRef(null);
     const snapPoints = useMemo(() => ["58%", "94%"], []);
+    const [isBottomSheetExpanded, setIsBottomSheetExpanded] = useState(false);
 
     const handleSheetChanges = useCallback((index) => {
-        console.log("handleSheetChanges", index);
+        setIsBottomSheetExpanded(index);
     }, []);
 
     const renderBackdrop = useCallback(
@@ -38,6 +39,7 @@ const ProfileBottomBottomSheet = ({ selectedPanel, setSelectedPanel, posts, navi
                 selectedPanel={selectedPanel}
                 setSelectedPanel={setSelectedPanel}
                 posts={posts}
+                isBottomSheetExpanded={isBottomSheetExpanded}
             />
 
         </BottomSheet>
@@ -45,6 +47,3 @@ const ProfileBottomBottomSheet = ({ selectedPanel, setSelectedPanel, posts, navi
 };
 
 export default React.memo(ProfileBottomBottomSheet);
-
-const styles = StyleSheet.create({
-})

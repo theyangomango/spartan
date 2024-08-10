@@ -15,7 +15,7 @@ const exercises = [
     { name: "5 x Reverse Curls (Barbell)", muscle: "Biceps" }
 ];
 
-const HistorySection = ({ isVisible }) => {
+const HistorySection = ({ isVisible, isBottomSheetExpanded }) => {
     const renderWorkout = ({ item }) => (
         <PastWorkoutCard lastUsedDate={item.lastUsedDate} exercises={item.exercises} name={item.name} />
     );
@@ -33,7 +33,7 @@ const HistorySection = ({ isVisible }) => {
             keyExtractor={(item, index) => index.toString()}
             renderItem={renderWorkout}
             contentContainerStyle={[styles.scrollable_ctnr, !isVisible && styles.hidden]}
-            ListFooterComponent={<View style={{ height: 120 }} />}
+            ListFooterComponent={<View style={{ height: isBottomSheetExpanded ? 100 : 400 }} />}
             initialNumToRender={1}
         />
     );

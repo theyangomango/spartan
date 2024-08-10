@@ -21,7 +21,7 @@ const ExerciseCard = memo(({ name, muscleGroup, lastDone = 'July 13th', timesCom
         if (isSelected) {
             deselectExercise(name);
         } else {
-            selectExercise(name);
+            selectExercise({ name: name, muscle: muscleGroup });
         }
         setIsSelected(!isSelected);
     }

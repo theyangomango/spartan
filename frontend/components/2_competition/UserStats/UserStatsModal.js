@@ -38,7 +38,7 @@ export default function UserStatsModal({ user }) {
                     <Text numberOfLines={1} ellipsizeMode="tail" style={styles.handle}>{user.handle}</Text>
                 </View>
                 <View style={styles.header_right}>
-                    <Text style={styles.overallScore}>94 overall</Text>
+                    <Text style={styles.overallScore}>{user.statsHexagon.overall} overall</Text>
                 </View>
             </View>
             <ScrollView style={styles.scrollview} showsVerticalScrollIndicator={false}>

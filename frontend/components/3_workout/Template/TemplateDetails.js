@@ -5,8 +5,12 @@ const TemplateDetails = ({ exercises }) => {
     const muscleColors = {
         Chest: '#FFAFB8',
         Shoulders: '#A1CDEE',
-        Biceps: '#CBBCFF',
-        Back: '#95E0C8'
+        Arms: '#CBBCFF',
+        Back: '#95E0C8',
+        Triceps: '#FFD580',
+        Legs: '#FFB347',
+        Abs: '#FF6961',
+        // Add more muscle groups and colors as needed
     };
 
     return (

@@ -29,7 +29,7 @@ export default function ViewProfileInfo({ userData }) {
                 <View style={styles.name_and_score_ctnr}>
                     <Text style={styles.name_text}>{userData && userData.name}</Text>
                     <View style={styles.border_line}></View>
-                    <Text style={styles.score_text}>100 overall</Text>
+                    <Text style={styles.score_text}>{userData && userData.statsHexagon.overall} overall</Text>
                 </View>
                 <View style={styles.bio_ctnr}>
                     <Text style={styles.bio_text}>{userData && userData.bio}</Text>

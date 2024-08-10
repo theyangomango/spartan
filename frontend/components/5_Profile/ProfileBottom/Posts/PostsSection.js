@@ -4,7 +4,7 @@ import { StyleSheet, View } from "react-native";
 import MasonryList from '@react-native-seoul/masonry-list';
 import PostPreview from "./PostPreview";
 
-const PostsSection = ({ posts, isVisible }) => {
+const PostsSection = ({ posts, isVisible, isBottomSheetExpanded }) => {
     const renderPost = ({ item }) => (
         <PostPreview postData={item} />
     );
@@ -17,7 +17,7 @@ const PostsSection = ({ posts, isVisible }) => {
                 renderItem={renderPost}
                 numColumns={3}
                 showsVerticalScrollIndicator={false}
-                style={{flex: 1}}
+                style={{ flex: 1 }}
             />
         </View>
     );
