@@ -6,12 +6,10 @@ import SelectExerciseModal from './SelectExercise/SelectExerciseModal';
 import RNBounceable from "@freakycoder/react-native-bounceable";
 import { Weight } from 'iconsax-react-native';
 import { MaterialCommunityIcons, FontAwesome } from '@expo/vector-icons';
-import GroupModalBottomSheet from "./Group/GroupModalBottomSheet";
 import TimerDisplay from "./TimerDisplay";
 
-const NewWorkoutModal = ({ workout, cancelWorkout, updateWorkout, finishWorkout, timerRef }) => {
+const NewWorkoutModal = ({ workout, cancelWorkout, updateWorkout, finishWorkout, timerRef, showGroupModal }) => {
     const [selectExerciseModalVisible, setSelectExerciseModalVisible] = useState(false);
-    const [groupModalExpandFlag, setGroupModalExpandFlag] = useState(false);
     const [totalReps, setTotalReps] = useState(0);
     const [totalVolume, setTotalVolume] = useState(0);
     const [personalBests, setPersonalBests] = useState(0);
@@ -64,13 +62,7 @@ const NewWorkoutModal = ({ workout, cancelWorkout, updateWorkout, finishWorkout,
         setSelectExerciseModalVisible(false);
     }, []);
 
-    const showGroupModal = useCallback(() => {
-        setGroupModalExpandFlag(prev => !prev);
-    }, []);
-
-    const closeGroupModal = useCallback(() => {
-        setGroupModalExpandFlag(false);
-    }, []);
+   
 
     const appendExercises = useCallback((exercises) => {
         const newWorkout = {
@@ -217,10 +209,7 @@ const NewWorkoutModal = ({ workout, cancelWorkout, updateWorkout, finishWorkout,
                 />
             </Modal>
 
-            <GroupModalBottomSheet
-                groupModalExpandFlag={groupModalExpandFlag}
-                closeGroupModal={closeGroupModal}
-            />
+           
         </View>
     );
 };

@@ -3,9 +3,9 @@ import { StyleSheet } from "react-native";
 import BottomSheet, { BottomSheetBackdrop } from "@gorhom/bottom-sheet";
 import NewWorkoutModal from './NewWorkoutModal';
 
-const NewWorkoutBottomSheet = ({ workout, setWorkout, isVisible, setIsVisible, cancelNewWorkout, updateNewWorkout, finishNewWorkout, timerRef }) => {
+const NewWorkoutBottomSheet = ({ workout, setWorkout, isVisible, setIsVisible, cancelNewWorkout, updateNewWorkout, finishNewWorkout, timerRef, showGroupModal }) => {
     console.log(workout);
-    
+
     const bottomSheetRef = useRef(null);
     const snapPoints = useMemo(() => ["94%"], []);
     const handleSheetChanges = useCallback((index) => {
@@ -42,7 +42,7 @@ const NewWorkoutBottomSheet = ({ workout, setWorkout, isVisible, setIsVisible, c
             onClose={() => {
                 setIsVisible(false);
             }}
-            // handleStyle={{ display: 'none' }}
+        // handleStyle={{ display: 'none' }}
         >
             {workout &&
                 <NewWorkoutModal
@@ -58,6 +58,7 @@ const NewWorkoutBottomSheet = ({ workout, setWorkout, isVisible, setIsVisible, c
                         finishNewWorkout();
                         bottomSheetRef.current.close();
                     }}
+                    showGroupModal={showGroupModal}
                 />
             }
         </BottomSheet>

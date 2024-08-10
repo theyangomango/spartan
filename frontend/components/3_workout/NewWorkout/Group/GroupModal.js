@@ -24,27 +24,23 @@ const GroupModal = ({ closeGroupModal }) => {
         }
     }, [searchQuery, followingUsers]);
 
-    const handleSelectUser = (userUid) => {
-        const newSelectedUsers = selectedUsers.includes(userUid)
-            ? selectedUsers.filter(uid => uid !== userUid)
-            : [...selectedUsers, userUid];
+    const handleSelectUser = (user) => {
+        const newSelectedUsers = selectedUsers.includes(user)
+            ? selectedUsers.filter(u => u.uid !== user.uid)
+            : [...selectedUsers, user];
 
         setSelectedUsers(newSelectedUsers);
 
-        const newHandles = newSelectedUsers.map(uid => {
-            const selectedUser = followingUsers.find(u => u.uid === uid);
+        const newHandles = newSelectedUsers.map(user => {
+            const selectedUser = followingUsers.find(u => u.uid === user.uid);
             return selectedUser ? selectedUser.handle : '';
         });
 
         setSelectedHandles(newHandles);
     };
 
-    const handleOutsidePress = () => {
-        closeGroupModal();
-    };
-
     const renderItem = ({ item, index }) => {
-        const isSelected = selectedUsers.includes(item.uid);
+        const isSelected = selectedUsers.includes(item);
         return (
             <ProfileCard
                 user={item}
@@ -87,11 +83,11 @@ const GroupModal = ({ closeGroupModal }) => {
                 {filteredUsers.slice(0, 9).map((user, index) => renderItem({ item: user, index }))}
             </ScrollView>
             <RNBounceable
-                style={[styles.sendButton, { opacity: selectedUsers.length <= 1 ? 0.5 : 1 }]}
-                disabled={selectedUsers.length <= 1}
+                style={[styles.sendButton, { opacity: selectedUsers.length < 1 ? 0.5 : 1 }]}
+                disabled={selectedUsers.length == 0}
             >
                 <Text style={styles.sendButtonText}>
-                    {`Invite${selectedUsers.length > 1 ? ` (${selectedUsers.length})` : ''}`}
+                    {`Invite${selectedUsers.length > 0 ? ` (${selectedUsers.length})` : ''}`}
                 </Text>
             </RNBounceable>
         </View>
@@ -100,11 +96,11 @@ const GroupModal = ({ closeGroupModal }) => {
 
 export default GroupModal;
 
-const { width } = Dimensions.get('window');
-
 const styles = StyleSheet.create({
     modalOverlay: {
         flex: 1,
+        alignItems: 'center',
+
     },
     header: {
         height: 45,

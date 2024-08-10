@@ -15,6 +15,7 @@ import { Entypo } from '@expo/vector-icons';
 import arrayAppend from '../../backend/helper/firebase/arrayAppend'
 import TemplateList from "../components/3_Workout/Template/TemplateList";
 import WorkoutSummaryModal from "../components/3_Workout/WorkoutSummaryModal";
+import GroupModalBottomSheet from '../components/3_Workout/NewWorkout/Group/GroupModalBottomSheet'
 
 function Workout({ navigation }) {
     const [workout, setWorkout] = useState(global.userData.currentWorkout);
@@ -30,6 +31,8 @@ function Workout({ navigation }) {
     const workoutTimeInterval = useRef(null);
     const timerRef = useRef(workout ? millisToMinutesAndSeconds(Date.now() - workout.created) : '00:00');
     const [completedWorkout, setCompletedWorkout] = useState(null);
+    const [groupModalExpandFlag, setGroupModalExpandFlag] = useState(false);
+
 
     const [scheduledDates, setScheduledDates] = useState(global.userData.scheduledWorkouts.map(scheduled => ({
         ...scheduled,
@@ -225,6 +228,15 @@ function Workout({ navigation }) {
         });
     }, [scheduledDates]);
 
+
+    const showGroupModal = useCallback(() => {
+        setGroupModalExpandFlag(prev => !prev);
+    }, []);
+
+    const closeGroupModal = useCallback(() => {
+        setGroupModalExpandFlag(false);
+    }, []);
+
     return (
         <View style={styles.mainContainer}>
             <View style={styles.body}>
@@ -281,6 +293,7 @@ function Workout({ navigation }) {
                 isVisible={isNewWorkoutBottomSheetVisible}
                 setIsVisible={setIsNewWorkoutBottomSheetVisible}
                 timerRef={timerRef}
+                showGroupModal={showGroupModal}
             />
 
             <EditTemplateBottomSheet
@@ -297,7 +310,10 @@ function Workout({ navigation }) {
                 postWorkout={postWorkout}
             />
 
-
+            <GroupModalBottomSheet
+                groupModalExpandFlag={groupModalExpandFlag}
+                closeGroupModal={closeGroupModal}
+            />
         </View>
     );
 }

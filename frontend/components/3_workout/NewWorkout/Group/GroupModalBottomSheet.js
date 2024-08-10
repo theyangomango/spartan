@@ -5,7 +5,7 @@ import GroupModal from "./GroupModal";
 
 const GroupModalBottomSheet = ({ groupModalExpandFlag, closeGroupModal }) => {
     const bottomSheetRef = useRef(null);
-    const snapPoints = useMemo(() => ["80%"], []);
+    const snapPoints = useMemo(() => ["85%"], []);
 
     useEffect(() => {
         if (groupModalExpandFlag) {
@@ -21,7 +21,7 @@ const GroupModalBottomSheet = ({ groupModalExpandFlag, closeGroupModal }) => {
                 {...props}
                 disappearsOnIndex={-1}
                 appearsOnIndex={0}
-                opacity={0.45}
+                opacity={0.35}
                 style={{borderTopLeftRadius: 15, borderTopRightRadius: 15}}
             />
         ),

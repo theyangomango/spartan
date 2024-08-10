@@ -1,7 +1,6 @@
 import React from 'react';
 import { View, Text, StyleSheet, Pressable } from 'react-native';
 import FastImage from 'react-native-fast-image';
-import { Send2 } from 'iconsax-react-native';
 
 const ProfileCard = ({ user, onSelect, isSelected }) => {
     return (
@@ -15,7 +14,7 @@ const ProfileCard = ({ user, onSelect, isSelected }) => {
             </View>
             <View style={styles.text_ctnr}>
                 <Text numberOfLines={1} style={styles.handle_text}>{user.handle}</Text>
-                <Text style={styles.name_text}>Yang Bai</Text>
+                <Text style={styles.name_text}>{user.name}</Text>
             </View>
             <View style={[styles.iconOutline, isSelected && styles.selectedIcon]}>
                 {isSelected && <View style={styles.filledIcon} />}
