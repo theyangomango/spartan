@@ -4,7 +4,7 @@ import RNBounceable from "@freakycoder/react-native-bounceable";
 
 export default function JoinWorkoutButton({ joinWorkout }) {
     return (
-        <RNBounceable onPress={joinWorkout} style={styles.main_ctnr}>
+        <RNBounceable style={styles.main_ctnr}>
             <Text style={styles.text}>Log Past Workout</Text>
             {/* <AntDesign name="addusergroup" size={24} color={'#fff'} /> */}
             {/* <AntDesign name="book" size={23.5} color={'#fff'} /> */}
@@ -18,6 +18,7 @@ export default function JoinWorkoutButton({ joinWorkout }) {
 const styles = StyleSheet.create({
     main_ctnr: {
         // height: 35,
+        opacity: 0.5,
         backgroundColor: '#c9c9c9',
         height: 42,
         paddingHorizontal: 28,

@@ -52,7 +52,7 @@ const TemplateCard = memo(({ template, handleLongPress, isPanelVisible, setSelec
                         </View>
                         <View style={styles.exercisesContainer}>
                             <Weight size="21.5" color='#666' />
-                            <Text style={styles.exercisesText}> {template.exercises.length.length} Exercises</Text>
+                            <Text style={styles.exercisesText}> {template.exercises.length} {`Exercise${template.exercises.length == 1 ? '' : 's'}`}</Text>
                         </View>
                     </View>
                 </View>

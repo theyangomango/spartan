@@ -14,15 +14,6 @@ export default function PostHeader({ data, url }) {
         }
     }, [global.userData])
 
-    const handleFollowPress = () => {
-        if (!isFollowing) {
-            followUser(global.userData.uid, data.uid);
-        } else {
-            unfollowUser(global.userData.uid, data.uid);
-        }
-        setIsFollowing((prev) => !prev);
-    };
-
     return (
         <View style={styles.outer}>
             <BlurView intensity={0} style={styles.main_ctnr}>
@@ -37,27 +28,9 @@ export default function PostHeader({ data, url }) {
                         <Text style={styles.handle_text}>
                             {data.handle}
                         </Text>
-                        {/* <TouchableOpacity activeOpacity={0.5}>
-                            <View>
-                                <Text style={styles.workout_text}>
-                                    {'Morning Workout 7/5'}
-                                </Text>
-                            </View>
-                        </TouchableOpacity> */}
                     </View>
                 </View>
                 <View style={styles.right}>
-                    {/* <Pressable
-                        style={[styles.follow_btn, isFollowing && styles.following_btn]}
-                        onPress={handleFollowPress}
-                    >
-                        <Text style={isFollowing ? styles.following_btn_text : styles.follow_text}>
-                            {isFollowing ? 'Following' : 'Follow'}
-                        </Text>
-                    </Pressable> */}
-                    {/* <View style={styles.options_icon_ctnr}>
-                    <SimpleLineIcons name='options-vertical' size={14} />
-                </View> */}
                 </View>
             </BlurView>
         </View>

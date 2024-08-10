@@ -46,17 +46,21 @@ const WorkoutInfoPanel = ({ isVisible, onClose, date, selectedTemplate, setSelec
         <Animated.View style={[styles.panel, { opacity: panelOpacity, zIndex: panelZIndex }]}>
             <View style={styles.panelHeader}>
                 <View style={styles.panelHeaderTextContainer}>
-                    <Text style={styles.panelHeaderText}>{formattedDate} Workout</Text>
-                    <View style={styles.pfp_ctnr}>
-                        <Image
-                            source={{ uri: global.userData.image }}
-                            style={styles.profileImage}
-                        />
-                    </View>
+                    {isVisible &&
+                        <>
+                            <Text style={styles.panelHeaderText}>{formattedDate} Workout</Text>
+                            <View style={styles.pfp_ctnr}>
+                                <Image
+                                    source={{ uri: global.userData.image }}
+                                    style={styles.profileImage}
+                                />
+                            </View>
+                        </>
+                    }
                 </View>
                 <RNBounceable onPress={onClose}>
                     {/* <Feather name="check-circle" size={22} color="#000" /> */}
-                    <Octicons name='check-circle-fill' size={22} color={'#bbb'}/>
+                    <Octicons name='check-circle-fill' size={22} color={'#bbb'} />
                 </RNBounceable>
             </View>
             <View style={styles.panelButtonsRow}>
