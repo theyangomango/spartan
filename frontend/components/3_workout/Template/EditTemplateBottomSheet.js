@@ -4,14 +4,8 @@ import BottomSheet, { BottomSheetBackdrop } from "@gorhom/bottom-sheet";
 import EditTemplateModal from "./EditTemplateModal";
 
 const EditTemplateBottomSheet = ({ isVisible, setIsVisible, openedTemplateRef, updateTemplate }) => {
-    console.log(openedTemplateRef.current);
-
     const bottomSheetRef = useRef(null);
     const snapPoints = useMemo(() => ["94%"], []);
-
-    const handleSheetChanges = useCallback((index) => {
-        console.log("handleSheetChanges", index);
-    }, []);
 
     const renderBackdrop = useCallback(
         (props) => (
@@ -37,7 +31,6 @@ const EditTemplateBottomSheet = ({ isVisible, setIsVisible, openedTemplateRef, u
             index={-1}
             snapPoints={snapPoints}
             backdropComponent={renderBackdrop}
-            onChange={handleSheetChanges}
             enablePanDownToClose
             enableContentPanningGesture={false}
             onClose={() => {

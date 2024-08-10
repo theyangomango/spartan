@@ -5,8 +5,6 @@ export default function TemplateEditableStat({ placeholder = '0', value, setValu
     const [isSelected, setIsSelected] = useState(false);
     const inputRef = useRef(null);
 
-    console.log(value)
-
     return (
         <Pressable
             onPress={() => {

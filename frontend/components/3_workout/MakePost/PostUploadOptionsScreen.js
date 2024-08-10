@@ -10,10 +10,7 @@ import * as ImageManipulator from 'expo-image-manipulator';
 import createPost from "../../../../backend/posts/createPost";
 
 export default function PostOptionsScreen({ navigation, route }) {
-    const { images, workout } = route.params;
-    console.log(workout);
-    
-
+    const { images } = route.params;
     const [caption, setCaption] = useState('');
     const [isShareDisabled, setIsShareDisabled] = useState(false);
 

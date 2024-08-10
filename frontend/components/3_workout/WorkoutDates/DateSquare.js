@@ -9,9 +9,7 @@ const DateSquare = memo(({ date, isToday, isHighlighted, initialSelected, schedu
 
     useEffect(() => {
         if (!isSelected) {
-            descheduleWorkout();
         } else {
-            scheduleWorkout(date);
         }
     }, [isSelected, flag]);
 
@@ -19,9 +17,12 @@ const DateSquare = memo(({ date, isToday, isHighlighted, initialSelected, schedu
         if (date > new Date()) {
             if (isPanelVisible && selectedDate == date) {
                 setIsSelected(false);
+                descheduleWorkout(date);
+
             } else {
                 setIsSelected(true);
-                setFlag(!flag);
+                scheduleWorkout(date);
+
             }
         }
     };

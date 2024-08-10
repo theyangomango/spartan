@@ -122,7 +122,7 @@ const inputData1 = [
 
 const inputData2 = [
     { date: '6/15', value: 80 },
-    { date: '6/17', value: 130 },
+    { date: '6/17', value: 130 }, 
     { date: '6/20', value: 200 },
     { date: '6/23', value: 250 },
     { date: '6/25', value: 300 },

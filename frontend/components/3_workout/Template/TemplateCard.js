@@ -5,15 +5,13 @@ import Collapsible from 'react-native-collapsible';
 import RNBounceable from '@freakycoder/react-native-bounceable';
 import TemplateDetails from './TemplateDetails';
 
-const TemplateCard = memo(({ lastUsedDate, name, exercises, handleLongPress, isPanelVisible, setSelectedTemplate, handlePressEditButton, handlePressStartButton, index }) => {
+const TemplateCard = memo(({ template, handleLongPress, isPanelVisible, setSelectedTemplate, handlePressEditButton, handlePressStartButton, index }) => {
     const [isCollapsed, setIsCollapsed] = useState(true);
     const scaleValue = useRef(new Animated.Value(1)).current;
 
-    console.log({ index });
-
     const handlePress = () => {
         if (isPanelVisible) {
-            setSelectedTemplate(name);
+            setSelectedTemplate(template);
         } else {
             setIsCollapsed(!isCollapsed);
         }
@@ -42,7 +40,7 @@ const TemplateCard = memo(({ lastUsedDate, name, exercises, handleLongPress, isP
             <View style={styles.mainContainer}>
                 <View style={styles.textContainer}>
                     <View style={styles.titleContainer}>
-                        <Text style={styles.titleText}>{name}</Text>
+                        <Text style={styles.titleText}>{template.name}</Text>
                         <RNBounceable bounceEffectIn={0.7} style={styles.editButton} onPress={handlePressEditButton}>
                             <Text style={styles.editButtonText}>Edit</Text>
                         </RNBounceable>
@@ -50,11 +48,11 @@ const TemplateCard = memo(({ lastUsedDate, name, exercises, handleLongPress, isP
                     <View style={styles.infoContainer}>
                         <View style={styles.dateContainer}>
                             <Calendar size="18.5" color='#666' />
-                            <Text style={styles.dateText}> {lastUsedDate}</Text>
+                            <Text style={styles.dateText}> {template.lastDate}</Text>
                         </View>
                         <View style={styles.exercisesContainer}>
                             <Weight size="21.5" color='#666' />
-                            <Text style={styles.exercisesText}> {exercises.length} Exercises</Text>
+                            <Text style={styles.exercisesText}> {template.exercises.length.length} Exercises</Text>
                         </View>
                     </View>
                 </View>
@@ -70,7 +68,7 @@ const TemplateCard = memo(({ lastUsedDate, name, exercises, handleLongPress, isP
             </View>
 
             <Collapsible collapsed={isCollapsed} style={styles.collapsibleContainer}>
-                <TemplateDetails exercises={exercises} />
+                <TemplateDetails exercises={template.exercises} />
             </Collapsible>
         </RNBounceable>
     );

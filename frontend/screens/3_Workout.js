@@ -14,6 +14,7 @@ import updateDoc from '../../backend/helper/firebase/updateDoc';
 import { Entypo } from '@expo/vector-icons';
 import arrayAppend from '../../backend/helper/firebase/arrayAppend'
 import TemplateList from "../components/3_Workout/Template/TemplateList";
+import WorkoutSummaryModal from "../components/3_Workout/WorkoutSummaryModal";
 
 function Workout({ navigation }) {
     const [workout, setWorkout] = useState(global.userData.currentWorkout);
@@ -24,9 +25,16 @@ function Workout({ navigation }) {
     const [isEditTemplateBottomSheetVisible, setIsEditTemplateBottomSheetVisible] = useState(false);
     const [isCurrentWorkoutPanelVisible, setIsCurrentWorkoutPanelVisible] = useState(!!workout);
     const [selectedScheduleTemplate, setSelectedScheduleTemplate] = useState(null);
+    const [isSummaryModalVisible, setIsSummaryModalVisible] = useState(false);
     const openedTemplateRef = useRef(null);
     const workoutTimeInterval = useRef(null);
     const timerRef = useRef(workout ? millisToMinutesAndSeconds(Date.now() - workout.created) : '00:00');
+    const [completedWorkout, setCompletedWorkout] = useState(null);
+
+    const [scheduledDates, setScheduledDates] = useState(global.userData.scheduledWorkouts.map(scheduled => ({
+        ...scheduled,
+        date: new Date(scheduled.date.seconds * 1000)
+    })));
 
     // Update the timerRef every second when workout is not null
     useEffect(() => {
@@ -95,22 +103,57 @@ function Workout({ navigation }) {
     }, []);
 
     const finishWorkout = useCallback(() => {
-        arrayAppend('users', global.userData.uid, 'completedWorkouts', workout);
+        if (!workout) return;
+
+        // Make a deep copy of the workout object to avoid issues with immutability
+        const workoutCopy = JSON.parse(JSON.stringify(workout));
+        setCompletedWorkout(workoutCopy);
+        arrayAppend('users', global.userData.uid, 'completedWorkouts', workoutCopy);
 
         setWorkout(null);
         setIsNewWorkoutBottomSheetVisible(false);
         clearInterval(workoutTimeInterval.current);
         setIsCurrentWorkoutPanelVisible(false);
         timerRef.current = '00:00';
-    }, []);
+        setIsSummaryModalVisible(true); // Show the summary modal when the workout is finished
+    }, [workout]);
 
     const scheduleWorkout = useCallback((date) => {
         setIsPanelVisible(true);
         setPanelDate(date);
+
+        setScheduledDates(prevDates => {
+            const existingSchedule = prevDates.find(scheduled =>
+                new Date(scheduled.date).toDateString() === date.toDateString()
+            );
+
+            if (existingSchedule) {
+                // If the date is already scheduled, update the selected template
+                const correspondingTemplate = templates.find(template => template.tid === existingSchedule.tid);
+                setSelectedScheduleTemplate(correspondingTemplate);
+                return prevDates; // No need to update the scheduledDates array
+            } else {
+                // If the date is not already scheduled, schedule it and clear the selected template
+                setSelectedScheduleTemplate(null);
+                return [...prevDates, { date: date, tid: null }];
+            }
+        });
+    }, [templates, setSelectedScheduleTemplate]);
+
+
+    const descheduleWorkout = useCallback((date) => {
+        setIsPanelVisible(false);
+        setPanelDate(null);
+        setScheduledDates(prevDates =>
+            prevDates.filter(scheduled => {
+                return new Date(scheduled.date).toDateString() !== date.toDateString();
+            })
+        );
     }, []);
 
-    const descheduleWorkout = useCallback(() => {
+    const finishSchedulingWorkout = useCallback((date) => {
         setIsPanelVisible(false);
+        setPanelDate(null);
     }, []);
 
     const openEditTemplateBottomSheet = useCallback((index) => {
@@ -146,6 +189,11 @@ function Workout({ navigation }) {
         });
     }
 
+    function postWorkout() {
+        setIsSummaryModalVisible(false);
+        navigation.navigate('SelectPhotos', { workout: completedWorkout });
+    }
+
     useEffect(() => {
         updateDoc('users', global.userData.uid, {
             currentWorkout: workout
@@ -158,11 +206,31 @@ function Workout({ navigation }) {
         });
     }, [templates]);
 
+    useEffect(() => {
+        if (selectedScheduleTemplate && panelDate) {
+            setScheduledDates(prevDates => {
+                return prevDates.map(scheduled => {
+                    const scheduledDate = new Date(scheduled.date); // Convert the string back to a Date object
+                    return scheduledDate.toDateString() === panelDate.toDateString()
+                        ? { ...scheduled, tid: selectedScheduleTemplate.tid }
+                        : scheduled;
+                });
+            });
+        }
+    }, [selectedScheduleTemplate, panelDate]);
+
+    useEffect(() => {
+        updateDoc('users', global.userData.uid, {
+            scheduledWorkouts: scheduledDates
+        });
+    }, [scheduledDates]);
+
     return (
         <View style={styles.mainContainer}>
             <View style={styles.body}>
                 <View style={{ height: 55 }} />
                 <WorkoutDates
+                    scheduledDates={scheduledDates}
                     scheduleWorkout={scheduleWorkout}
                     descheduleWorkout={descheduleWorkout}
                     isPanelVisible={isPanelVisible}
@@ -170,7 +238,7 @@ function Workout({ navigation }) {
                 />
                 <WorkoutInfoPanel
                     isVisible={isPanelVisible}
-                    onClose={descheduleWorkout}
+                    onClose={finishSchedulingWorkout}
                     date={panelDate}
                     selectedTemplate={selectedScheduleTemplate}
                     setSelectedTemplate={setSelectedScheduleTemplate}
@@ -221,6 +289,15 @@ function Workout({ navigation }) {
                 openedTemplateRef={openedTemplateRef}
                 updateTemplate={updateTemplate}
             />
+
+            <WorkoutSummaryModal
+                isVisible={isSummaryModalVisible}
+                workout={completedWorkout} // Pass the completed workout data
+                onClose={() => setIsSummaryModalVisible(false)}
+                postWorkout={postWorkout}
+            />
+
+
         </View>
     );
 }

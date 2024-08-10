@@ -12,8 +12,6 @@ export default function EditTemplateExerciseLog({ name, exerciseIndex, updateSet
     const [panelPosition, setPanelPosition] = useState({ top: 0, left: 0 });
     const fadeAnim = useRef(new Animated.Value(1)).current;
 
-    console.log('Exercise Log Render ' + name, { sets });
-
     const muscleColors = {
         Chest: '#FFAFB8',
         Shoulders: '#A1CDEE',
@@ -49,7 +47,6 @@ export default function EditTemplateExerciseLog({ name, exerciseIndex, updateSet
 
     function deleteSet(index) {
         const newSets = sets.filter((_, i) => i !== index);
-        console.log(newSets.length);
         updateSets(exerciseIndex, newSets);
     }
 

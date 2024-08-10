@@ -111,18 +111,6 @@ import {
 const Tab = createBottomTabNavigator();
 const Stack = createNativeStackNavigator();
 
-const ProfileStack = (({ navigation, route }) => {
-    return (
-        <Stack.Navigator initialRouteName='Profile' screenOptions={{
-            headerShown: false
-        }}>
-            <Stack.Screen name='Profile' component={Profile} />
-            <Stack.Screen name='SelectPhotos' component={SelectPhotosScreen} />
-            <Stack.Screen name='PostOptions' component={PostUploadOptionsScreen} />
-        </Stack.Navigator>
-    )
-});
-
 const AuthenticationStack = (({ navigation, route }) => {
     return (
         <Stack.Navigator initialRouteName='SignUp' screenOptions={{
@@ -145,6 +133,32 @@ const FeedStack = (({ navigation, route }) => {
         </Stack.Navigator>
     )
 });
+
+// const WorkoutStack = (({ navigation, route }) => {
+//     return (
+//         <Stack.Navigator initialRouteName='Workout' screenOptions={{
+//             headerShown: false
+//         }}>
+//             <Stack.Screen name='Workout' component={Feed} />
+//             <Tab.Screen name='SelectPhotos' component={Messages} />
+//             <Tab.Screen name='PostOptions' component={Chat} />
+//         </Stack.Navigator>
+//     )
+// });
+
+const ProfileStack = (({ navigation, route }) => {
+    return (
+        <Stack.Navigator initialRouteName='Profile' screenOptions={{
+            headerShown: false
+        }}>
+            <Stack.Screen name='Profile' component={Profile} />
+            <Stack.Screen name='SelectPhotos' component={SelectPhotosScreen} />
+            <Stack.Screen name='PostOptions' component={PostUploadOptionsScreen} />
+        </Stack.Navigator>
+    )
+});
+
+
 
 export default function App() {
     let [fontsLoaded] = useFonts({

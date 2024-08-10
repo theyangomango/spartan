@@ -6,6 +6,7 @@ import Gallery from 'react-native-awesome-gallery';
 import PreviewPhotosBottomSheet from './PreviewPhotosBottomSheet';
 
 export default function SelectPhotosScreen({ navigation, route }) {
+    const { userData } = route.params;
     const [assets, setAssets] = useState([]);
     const [images, setImages] = useState([]);
     const [permissionResponse, requestPermission] = MediaLibrary.usePermissions();
@@ -29,9 +30,8 @@ export default function SelectPhotosScreen({ navigation, route }) {
     function next() {
         if (images.length === 0) return;
         navigation.navigate('PostOptions', {
-            userData: global.userData,
-            images: images,
-            workout: 'workout' in route.params ? route.params.workout : null
+            userData: userData,
+            images: images
         });
     }
 

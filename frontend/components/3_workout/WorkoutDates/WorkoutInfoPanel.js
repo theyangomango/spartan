@@ -62,12 +62,14 @@ const WorkoutInfoPanel = ({ isVisible, onClose, date, selectedTemplate, setSelec
             <View style={styles.panelButtonsRow}>
                 <RNBounceable style={[styles.templateButton, selectedTemplate && styles.selectedTemplateButton]} onPress={deselectTemplate}>
                     <Text style={[styles.templateButtonText, selectedTemplate && styles.selectedTemplateButtonText]}>
-                        {selectedTemplate ? selectedTemplate : 'No Template Selected'}
+                        {selectedTemplate ? selectedTemplate.name : 'No Template Selected'}
                     </Text>
                 </RNBounceable>
-                <RNBounceable style={styles.panelButton}>
+
+                {/* // ! Removed from Beta */}
+                {/* <RNBounceable style={styles.panelButton}>
                     <Text style={styles.panelButtonText}>6:00 - 7:00 PM</Text>
-                </RNBounceable>
+                </RNBounceable> */}
             </View>
         </Animated.View>
     );

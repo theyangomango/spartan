@@ -3,11 +3,10 @@ import { View, Text, FlatList, StyleSheet, Dimensions } from 'react-native';
 import { Calendar } from 'iconsax-react-native';
 import DateSquare from './DateSquare';
 
-const WorkoutDates = ({ scheduleWorkout, descheduleWorkout, isPanelVisible, selectedDate }) => {
+const WorkoutDates = ({ scheduledDates, scheduleWorkout, descheduleWorkout, isPanelVisible, selectedDate }) => {
     const flatListRef = useRef(null);
     const [dates, setDates] = useState([]);
     const [currentMonthYear, setCurrentMonthYear] = useState('');
-    const [scheduledDates, setScheduledDates] = useState([]);
     const [layoutComplete, setLayoutComplete] = useState(false);
     const startDate = new Date('2024-01-01');
     const today = new Date();
@@ -60,7 +59,10 @@ const WorkoutDates = ({ scheduleWorkout, descheduleWorkout, isPanelVisible, sele
     const renderItem = useCallback(({ item, index }) => {
         const isHighlighted = highlightedDates.has(item.toISOString().split('T')[0]);
         const isToday = item.toDateString() === today.toDateString();
-        const isSelected = scheduledDates.includes(item.toDateString());
+        const isSelected = scheduledDates.some(scheduled => {
+            const scheduledDate = new Date(scheduled.date); // Convert the string back to a Date object
+            return scheduledDate.toDateString() == item.toDateString();
+        });
 
         return (
             <DateSquare

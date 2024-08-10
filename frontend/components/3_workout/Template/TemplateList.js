@@ -9,9 +9,7 @@ const TemplateList = ({ templates, setTemplates, isPanelVisible, setSelectedSche
         const index = templates.findIndex(template => template.tid === item.tid);
         return (
             <TemplateCard
-                lastUsedDate={item.lastDate}
-                exercises={item.exercises}
-                name={item.name}
+                template={item}
                 handleLongPress={drag}
                 isPanelVisible={isPanelVisible}
                 setSelectedTemplate={setSelectedScheduleTemplate}
