@@ -3,13 +3,11 @@ import { View, StyleSheet } from "react-native";
 import BottomSheet, { BottomSheetBackdrop } from "@gorhom/bottom-sheet";
 import SettingsScreen from "./SettingsScreen";
 
-
 const SettingsBottomSheet = ({ settingsBottomSheetExpandFlag }) => {
     const bottomSheetRef = useRef(null);
     const snapPoints = useMemo(() => ["100%"], []);
 
     useEffect(() => {
-        console.log('dfsd');
         bottomSheetRef.current.expand();
     }, [settingsBottomSheetExpandFlag]);
 

@@ -6,6 +6,7 @@ import Story from "./Story";
 import { BlurView } from 'expo-blur';
 import CreateStoryScreen from './CreateStoryScreen';
 import updateDoc from '../../../../backend/helper/firebase/updateDoc';
+import getFollowers from '../../../../backend/getFollowers';
 
 function sortDataByUserList(data, userList) {
     // Create a map to store the order of each ID in the userList
@@ -53,17 +54,40 @@ export default function Stories({ data, userList }) {
     const [currentIndex, setCurrentIndex] = useState(null);
     const viewedStories = useRef([]);
 
-    function postStoryToFeeds(sid) {
+    async function postStoryToFeeds(sid) {
         const newUserList = userList;
         newUserList[0].stories.push(sid);
         updateDoc('users', global.userData.uid, {
             feedStories: userList
         });
 
-        // for (user of global.userData.followers) {
+        const followers = await getFollowers(global.userData.followers);
+        followers.forEach(follower => {
+            const newFeedStories = [...follower.feedStories];
 
-        // }
-    }    
+            // Check if the user is already in the newFeedStories
+            const userIndex = newFeedStories.findIndex(story => story.uid === global.userData.uid);
+
+            if (userIndex !== -1) {
+                // If user exists, append the story id
+                newFeedStories[userIndex].stories.push(sid);
+            } else {
+                // If user does not exist, create a new entry
+                newFeedStories.push({
+                    name: global.userData.name,
+                    uid: global.userData.uid,
+                    handle: global.userData.handle,
+                    pfp: global.userData.image,
+                    stories: [sid]
+                });
+            }
+
+            // Update the follower's feedStories in the database
+            updateDoc('users', follower.uid, {
+                feedStories: newFeedStories
+            });
+        });
+    }
 
     function handlePress(index) {
         setCurrentIndex(index);
@@ -161,7 +185,7 @@ export default function Stories({ data, userList }) {
                 transparent={true}
                 visible={createModalVisible}
             >
-                <CreateStoryScreen closeModal={() => setCreateModal(false)} postStoryToFeeds={postStoryToFeeds}/>
+                <CreateStoryScreen closeModal={() => setCreateModal(false)} postStoryToFeeds={postStoryToFeeds} />
             </Modal>
         </View>
     );
