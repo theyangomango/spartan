@@ -6,8 +6,6 @@ import PostFooter from "./PostFooter";
 import RNBounceable from "@freakycoder/react-native-bounceable";
 
 const Post = (({ data, onPressCommentButton, onPressShareButton, index, focusedPostIndex, handlePressPost, isPostsVisible }) => {
-    console.log('render');
-
     const pfp = data.pfp;
     const image = data.images[0];
     const opacity = useRef(new Animated.Value(1)).current;

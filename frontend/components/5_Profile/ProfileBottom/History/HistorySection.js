@@ -17,19 +17,12 @@ const exercises = [
 
 const HistorySection = ({ isVisible, isBottomSheetExpanded }) => {
     const renderWorkout = ({ item }) => (
-        <PastWorkoutCard lastUsedDate={item.lastUsedDate} exercises={item.exercises} name={item.name} />
+        <PastWorkoutCard workout={item} />
     );
 
     return (
         <FlatList
-            data={[
-                { lastUsedDate, exercises, name: 'Chest & Back' },
-                { lastUsedDate, exercises, name: 'Full Upper Body' },
-                { lastUsedDate, exercises, name: 'Leg Day!!!' },
-                { lastUsedDate, exercises, name: 'Full Body' },
-                { lastUsedDate, exercises, name: 'Cardio' },
-                { lastUsedDate, exercises, name: 'Full Upper Body' }
-            ]}
+            data={global.userData.completedWorkouts}
             keyExtractor={(item, index) => index.toString()}
             renderItem={renderWorkout}
             contentContainerStyle={[styles.scrollable_ctnr, !isVisible && styles.hidden]}

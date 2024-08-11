@@ -1,8 +1,5 @@
 import React, { useEffect, useState } from 'react';
 import { View, Text, Image, StyleSheet, Pressable, TouchableOpacity } from 'react-native';
-import { SimpleLineIcons } from '@expo/vector-icons';
-import followUser from '../../../../backend/user/followUser';
-import unfollowUser from '../../../../backend/user/unfollowUser';
 import { BlurView } from 'expo-blur';
 
 export default function PostHeader({ data, url }) {

@@ -12,7 +12,7 @@ import SelectExerciseModal from "../components/2_Competition/SelectExercise/Sele
 export default function Competition({ navigation }) {
     const usersRef = useRef([]);
     const [userList, setUserList] = useState(null);
-    const [comparedExercise, setComparedExercise] = useState('benchPress');
+    const [comparedExercise, setComparedExercise] = useState('Bench Press (Barbell)');
     const [showFollowers, setShowFollowers] = useState('All Followers');
     const [selectExerciseModalVisible, setSelectExerciseModalVisible] = useState(false);
     const [selectedUser, setSelectedUser] = useState(null);

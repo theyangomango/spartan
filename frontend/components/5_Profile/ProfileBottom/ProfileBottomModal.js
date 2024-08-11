@@ -20,7 +20,7 @@ const ProfileBottomModal = ({ selectedPanel, setSelectedPanel, posts, isBottomSh
                         <Clock size="28" color={selectedPanel === 'history' ? "#359ffc" : "#888"} />
                     </Pressable>
                 </View>
-                <View style={styles.panel_btn}>
+                <View style={[styles.panel_btn]}>
                     <Pressable onPress={() => setSelectedPanel('activity')}>
                         <Activity size="28" color={selectedPanel === 'activity' ? "#359ffc" : "#888"} />
                     </Pressable>

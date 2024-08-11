@@ -7,13 +7,13 @@ export default function LeaderboardCard({ pfp, handle, name, value, rank, lastRa
         <RNBounceable onPress={handlePress} style={userIsSelf ? styles.self_card_ctnr : styles.card_ctnr}>
             <View style={styles.card_left}>
                 <Text style={styles.rank_text}>{rank}</Text>
-                {lastRank < rank &&
+                {lastRank && lastRank < rank &&
                     <Entypo name='chevron-down' size={20} color={'red'} style={styles.arrow_icon} />
                 }
-                {lastRank > rank &&
+                {lastRank && lastRank > rank &&
                     <Entypo name='chevron-up' size={20} color={'#23B665'} style={styles.arrow_icon} />
                 }
-                {lastRank == rank &&
+                {(!lastRank || lastRank == rank) &&
                     <FontAwesome name='minus' size={16} color={'#aaa'} style={styles.minus_icon} />
                 }
                 <View style={styles.pfp_ctnr}>

@@ -3,6 +3,7 @@ import { Modal, View, Text, StyleSheet, FlatList } from 'react-native';
 import { Clock } from 'iconsax-react-native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import RNBounceable from '@freakycoder/react-native-bounceable';
+import roundToNearestMinute from '../../helper/roundToNearestMinute';
 
 const WorkoutSummaryModal = ({ isVisible, workout, onClose, postWorkout }) => {
     if (!workout) return null;
@@ -46,11 +47,11 @@ const WorkoutSummaryModal = ({ isVisible, workout, onClose, postWorkout }) => {
                     <View style={styles.stats_row}>
                         <View style={styles.stats_entry}>
                             <Clock color='#666' size={16} variant='Bold' />
-                            <Text style={styles.stats_text}>45 min</Text>
+                            <Text style={styles.stats_text}>{roundToNearestMinute(workout.duration)} min</Text>
                         </View>
                         <View style={styles.stats_entry}>
                             <MaterialCommunityIcons name='weight' size={17} color={'#666'} />
-                            <Text style={styles.stats_text}>{calculateTotalVolume(exercises)} lb</Text>
+                            <Text style={styles.stats_text}>{workout.volume} lb</Text>
                         </View>
                         <View style={styles.stats_entry}>
                             <MaterialCommunityIcons name="trophy" color={"#666"} size={14} />
@@ -83,12 +84,6 @@ const WorkoutSummaryModal = ({ isVisible, workout, onClose, postWorkout }) => {
             </View>
         </Modal>
     );
-};
-
-const calculateTotalVolume = (exercises) => {
-    return exercises.reduce((total, exercise) => {
-        return total + exercise.sets.reduce((setTotal, set) => setTotal + (set.weight * set.reps), 0);
-    }, 0);
 };
 
 const styles = StyleSheet.create({

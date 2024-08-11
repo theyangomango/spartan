@@ -33,8 +33,6 @@ function Workout({ navigation }) {
     const timerRef = useRef(workout ? millisToMinutesAndSeconds(Date.now() - workout.created) : '00:00');
     const [completedWorkout, setCompletedWorkout] = useState(null);
     const [groupModalExpandFlag, setGroupModalExpandFlag] = useState(false);
-
-
     const [scheduledDates, setScheduledDates] = useState(global.userData.scheduledWorkouts.map(scheduled => ({
         ...scheduled,
         date: new Date(scheduled.date.seconds * 1000)
@@ -111,9 +109,31 @@ function Workout({ navigation }) {
 
         // Make a deep copy of the workout object to avoid issues with immutability
         const workoutCopy = JSON.parse(JSON.stringify(workout));
-        setCompletedWorkout(workoutCopy);
-        arrayAppend('users', global.userData.uid, 'completedWorkouts', workoutCopy);
 
+        // Calculate the duration and add it to the workout object
+        const duration = Date.now() - workoutCopy.created;
+
+        // Calculate the total volume of the workout
+        const volume = workoutCopy.exercises.reduce((totalVolume, exercise) => {
+            const exerciseVolume = exercise.sets.reduce((exerciseTotal, set) => {
+                return exerciseTotal + (set.weight * set.reps);
+            }, 0);
+            return totalVolume + exerciseVolume;
+        }, 0);
+
+        // Add the duration and volume to the copied workout object
+        const completedWorkoutData = { ...workoutCopy, duration, volume };
+
+        // Update the state with the completed workout
+        setCompletedWorkout(completedWorkoutData);
+
+        // Append the completed workout to the user's data
+        arrayAppend('users', global.userData.uid, 'completedWorkouts', completedWorkoutData);
+
+        // Log the completed workout to check if the duration and volume are being added correctly
+        console.log('Completed Workout:', completedWorkoutData);
+
+        // Reset the workout state
         setWorkout(null);
         setIsNewWorkoutBottomSheetVisible(false);
         clearInterval(workoutTimeInterval.current);
@@ -184,7 +204,7 @@ function Workout({ navigation }) {
             let newExerciseStats = { ...global.userData.statsExercises };
 
             completedWorkout.exercises.forEach(ex => {
-                const prev1RM = ('1RM' in newExerciseStats[ex.name]) ? newExerciseStats[ex.name]['1RM'] : 0;
+                const prev1RM = (ex.name in newExerciseStats && '1RM' in newExerciseStats[ex.name]) ? newExerciseStats[ex.name]['1RM'] : 0;
 
                 // Ensure newExerciseStats[ex.name] and its sets array are initialized
                 newExerciseStats[ex.name] = newExerciseStats[ex.name] || { sets: [] };

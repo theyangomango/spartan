@@ -1,18 +1,24 @@
 import React, { useCallback, useMemo } from 'react';
 import { StyleSheet, View, Text, FlatList } from "react-native";
-import RNBounceable from '@freakycoder/react-native-bounceable';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { Clock } from 'iconsax-react-native';
+import formatTimestampToDateString from '../../../../helper/formatTimestampToDateString';
+import roundToNearestMinute from '../../../../helper/roundToNearestMinute';
 
-const PastWorkoutCard = ({ lastUsedDate, exercises, name }) => {
+const PastWorkoutCard = ({ workout }) => {
     console.log('renders');
+    console.log(workout.created);
 
-    const muscleColors = useMemo(() => ({
+    const muscleColors = {
         Chest: '#FFAFB8',
         Shoulders: '#A1CDEE',
-        Biceps: '#CBBCFF',
-        Back: '#95E0C8'
-    }), []);
+        Arms: '#CBBCFF',
+        Back: '#95E0C8',
+        Triceps: '#FFD580',
+        Legs: '#FFB347',
+        Abs: '#FF6961',
+        // Add more muscle groups and colors as needed
+    };
 
     const renderExercise = useCallback(({ item }) => (
         <View style={styles.entry_ctnr}>
@@ -39,18 +45,18 @@ const PastWorkoutCard = ({ lastUsedDate, exercises, name }) => {
         <View style={styles.main_ctnr}>
             <View style={styles.scroll_ctnr}>
                 <View style={styles.header}>
-                    <Text style={styles.date_text}>Thursday, June 11th</Text>
+                    <Text style={styles.date_text}>{formatTimestampToDateString(workout.created)}</Text>
                 </View>
                 <View style={styles.stats_row}>
                     <View style={styles.stats_entry}>
                         <Clock color='#666' size={16} variant='Bold' />
-                        <Text style={styles.stats_text}>45 min</Text>
+                        <Text style={styles.stats_text}>{roundToNearestMinute(workout.duration)} min</Text>
                     </View>
                     <View style={styles.stats_entry}>
                         <View style={{ paddingBottom: 1.2 }}>
                             <MaterialCommunityIcons name='weight' size={17} color={'#666'} />
                         </View>
-                        <Text style={styles.stats_text}>5,000 lb</Text>
+                        <Text style={styles.stats_text}>{workout.volume} lb</Text>
                     </View>
                     <View style={styles.stats_entry}>
                         <MaterialCommunityIcons name="trophy" color={"#666"} size={14} />
@@ -66,7 +72,7 @@ const PastWorkoutCard = ({ lastUsedDate, exercises, name }) => {
                     </View>
                 </View>
                 <FlatList
-                    data={exercises}
+                    data={workout.exercises}
                     renderItem={renderExercise}
                     keyExtractor={(item, index) => index.toString()}
                     contentContainerStyle={{ paddingBottom: 10 }}
@@ -129,8 +135,8 @@ const styles = StyleSheet.create({
         marginRight: 30,
     },
     stats_header_text: {
-        fontSize: 16,
-        fontFamily: 'SourceSansPro_600SemiBold'
+        fontSize: 14,
+        fontFamily: 'Outfit_500Medium'
     },
     entry_ctnr: {
         flexDirection: 'row'
@@ -143,8 +149,8 @@ const styles = StyleSheet.create({
         alignItems: 'center'
     },
     entry_text: {
-        fontFamily: 'Outfit_300Light',
-        fontSize: 14.5,
+        fontFamily: 'Outfit_400Regular',
+        fontSize: 13.5,
         marginRight: 5,
         flex: 1,
         color: '#666'
@@ -152,6 +158,7 @@ const styles = StyleSheet.create({
     muscle_ctnr: {
         borderRadius: 10,
         paddingHorizontal: 8.5,
+        paddingVertical: 1.5,
         alignItems: 'center',
         justifyContent: 'center'
     },

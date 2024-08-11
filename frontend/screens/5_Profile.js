@@ -9,13 +9,14 @@ import WorkoutStats from "../components/5_Profile/ProfileTop/WorkoutStats";
 import readDoc from "../../backend/helper/firebase/readDoc";
 import EditProfileBottomSheet from "../components/5_Profile/EditProfile/EditProfileBottomSheet";
 import ProfileBottomBottomSheet from "../components/5_Profile/ProfileBottom/ProfileBottomBottomSheet";
-import ProfileBottomModal from "../components/5_Profile/ProfileBottom/ProfileBottomModal"; // Import the new component
+import ViewStatsBottomSheet from "../components/5_Profile/ViewStats/ViewStatsBottomSheet";
 
 export default function Profile({ navigation }) {
     const userData = global.userData;
     const [posts, setPosts] = useState([]);
     const [selectedPanel, setSelectedPanel] = useState('posts');
     const [isEditProfileBottomSheetVisible, setIsEditProfileBottomSheetVisible] = useState(false);
+    const [isViewStatsBottomSheetVisible, setIsViewStatsBottomSheetVisible] = useState(false);
 
     useEffect(() => {
         getPosts();
@@ -37,15 +38,12 @@ export default function Profile({ navigation }) {
         });
     }
 
-    function toOptionsScreen() {
-        console.log('Options');
-        navigation.navigate('PostOptions', {
-            userData: userData
-        });
-    }
-
     function handleOpenEditProfile() {
         setIsEditProfileBottomSheetVisible(true);
+    }
+
+    function handleOpenViewStats() {
+        setIsViewStatsBottomSheetVisible(true);
     }
 
     return (
@@ -53,20 +51,27 @@ export default function Profile({ navigation }) {
             <View style={styles.body_ctnr}>
                 <ProfileHeader onPressCreateBtn={uploadPost} />
                 <ProfileInfo userData={userData} />
-                <ProfileRowButtons handleOpenEditProfile={handleOpenEditProfile} />
+                <ProfileRowButtons handleOpenEditProfile={handleOpenEditProfile} handleOpenViewStats={handleOpenViewStats} />
                 <WorkoutStats userData={userData} />
             </View>
 
             <ProfileBottomBottomSheet selectedPanel={selectedPanel}
                 setSelectedPanel={setSelectedPanel}
                 posts={posts}
-                navigation={navigation} />
+                navigation={navigation}
+            />
 
             <EditProfileBottomSheet
                 isVisible={isEditProfileBottomSheetVisible}
-                setIsVisible={setIsEditProfileBottomSheetVisible} />
+                setIsVisible={setIsEditProfileBottomSheetVisible}
+            />
 
-            <Footer currentScreenName={'Profile'} navigation={navigation}/>
+            <ViewStatsBottomSheet
+                isVisible={isViewStatsBottomSheetVisible}
+                setIsVisible={setIsViewStatsBottomSheetVisible}
+            />
+
+            <Footer currentScreenName={'Profile'} navigation={navigation} />
         </View>
     );
 }

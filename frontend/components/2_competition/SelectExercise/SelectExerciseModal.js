@@ -6,7 +6,6 @@ import ExercisesFlatlist from './ExercisesFlatlist';
 import { exercises } from "../../3_Workout/NewWorkout/SelectExercise/EXERCISES";
 
 const SelectExerciseModal = memo(({ closeModal, setComparedExercise }) => {
-    // const selectedExercisesRef = useRef([]); // Use ref for selected exercises
     const [searchQuery, setSearchQuery] = useState('');
 
     function selectExercise(name) {

@@ -1,7 +1,7 @@
 import RNBounceable from "@freakycoder/react-native-bounceable";
 import { StyleSheet, View, Text } from "react-native";
 
-export default function ProfileRowButtons({ handleOpenEditProfile }) {
+export default function ProfileRowButtons({ handleOpenEditProfile, handleOpenViewStats }) {
     return (
         <View style={styles.row}>
             <RNBounceable style={styles.flex} onPress={handleOpenEditProfile}>
@@ -9,7 +9,8 @@ export default function ProfileRowButtons({ handleOpenEditProfile }) {
                     <Text style={styles.edit_profile_text}>Edit Profile</Text>
                 </View>
             </RNBounceable>
-            <RNBounceable style={styles.flex}>
+            {/* // ! Disabled for Beta */}
+            <RNBounceable style={[styles.flex, {opacity: 0.5}]} onPress={handleOpenViewStats} disabled>
                 <View style={[styles.button, styles.flex]}>
                     <Text style={styles.edit_profile_text}>View Stats</Text>
                 </View>

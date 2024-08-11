@@ -1,25 +1,90 @@
-import RNBounceable from '@freakycoder/react-native-bounceable';
 import React, { useState } from 'react';
 import { View, Text, Dimensions, StyleSheet } from 'react-native';
 import { LineChart } from 'react-native-gifted-charts';
-import { FontAwesome, MaterialCommunityIcons } from '@expo/vector-icons';
 import { TouchableOpacity } from 'react-native-gesture-handler';
+import RNBounceable from '@freakycoder/react-native-bounceable';
 
 const screenWidth = Dimensions.get('window').width;
 
-const customDataPoint = () => {
-    return (
-        <View style={styles.customDataPoint} />
-    );
-};
+const ExerciseGraph = () => {
+    const [selectedOption, setSelectedOption] = useState('2 Weeks');
 
-const CustomLabel = ({ val }) => {
+    const handleButtonPress = () => {
+        const options = ['2 Weeks', '2 Months', 'All Time'];
+        const currentIndex = options.indexOf(selectedOption);
+        const nextIndex = (currentIndex + 1) % options.length;
+        setSelectedOption(options[nextIndex]);
+    };
+
+    const data = getPast30DaysData(inputData);
+
     return (
-        <View style={styles.customLabelContainer}>
-            <Text style={styles.customLabelText}>{val}</Text>
+        <View style={styles.mainContainer}>
+            <Header
+                title="Lateral Raises"
+                subtitle="1 Rep Max"
+                selectedOption={selectedOption}
+                onButtonPress={handleButtonPress}
+            />
+            <View style={styles.chartContainer}>
+                <LineChart
+                    width={screenWidth - 105}
+                    height={125}
+                    adjustToWidth
+                    thickness={4}
+                    color="rgba(89, 168, 255, 1)"
+                    maxValue={550}
+                    noOfSections={3}
+                    areaChart
+                    yAxisThickness={0}
+                    yAxisTextStyle={styles.yAxisTextStyle}
+                    data={data}
+                    startFillColor={'rgb(89, 168, 255)'}
+                    endFillColor={'rgb(89, 168, 255)'}
+                    startOpacity={0.4}
+                    endOpacity={0.4}
+                    backgroundColor="#fff"
+                    initialSpacing={0}
+                    yAxisColor="lightgray"
+                    xAxisColor="lightgray"
+                    disableScroll
+                />
+            </View>
         </View>
     );
 };
+
+const Header = ({ title, subtitle, selectedOption, onButtonPress }) => (
+    <View style={styles.header}>
+        <View style={styles.headerLeft}>
+            <TouchableOpacity activeOpacity={0.5}>
+                <View style={styles.titleContainer}>
+                    <Text style={styles.title}>{title}</Text>
+                </View>
+            </TouchableOpacity>
+            <Text style={styles.subtitle}>{subtitle}</Text>
+        </View>
+        <View style={styles.headerRight}>
+            <RNBounceable
+                disabled
+                style={[styles.button, styles.selectedButton]}
+                onPress={onButtonPress}
+            >
+                <Text style={styles.buttonText}>{selectedOption}</Text>
+            </RNBounceable>
+        </View>
+    </View>
+);
+
+const customDataPoint = () => (
+    <View style={styles.customDataPoint} />
+);
+
+const CustomLabel = ({ val }) => (
+    <View style={styles.customLabelContainer}>
+        <Text style={styles.customLabelText}>{val}</Text>
+    </View>
+);
 
 const getPast30DaysData = (inputs) => {
     const currentDate = new Date();
@@ -33,13 +98,7 @@ const getPast30DaysData = (inputs) => {
     });
 
     const dataPoints = [];
-    let firstValue = null;
-
-    if (filteredData.length > 0) {
-        firstValue = filteredData[0].value;
-    }
-
-    let prevValue = firstValue;
+    let prevValue = filteredData.length > 0 ? filteredData[0].value : null;
     let nextValue = null;
     let nextDataPointIndex = 0;
     let interpolating = false;
@@ -76,23 +135,15 @@ const getPast30DaysData = (inputs) => {
                 }
             }
 
-            if (interpolating && nextValue !== null) {
-                const interpolatedValue = prevValue + diff * currentDays;
-                dataPoints.push({
-                    value: interpolatedValue,
-                    hideDataPoint: 'true'
-                });
-                currentDays++;
-            } else {
-                dataPoints.push({
-                    value: prevValue,
-                    hideDataPoint: 'true'
-                });
-            }
+            const interpolatedValue = interpolating && nextValue !== null ? prevValue + diff * currentDays : prevValue;
+            dataPoints.push({
+                value: interpolatedValue,
+                hideDataPoint: true
+            });
+            currentDays++;
         }
 
-        if (d.getDay() === 0 && dataPoints.length > 0) { // Ensure we add labels only for Sundays
-            if (sundayCount >= 4) continue;
+        if (d.getDay() === 0 && dataPoints.length > 0 && sundayCount < 4) { // Ensure we add labels only for Sundays
             dataPoints[dataPoints.length - 1].labelComponent = () => <CustomLabel val={formattedDate} />;
             sundayCount++;
         }
@@ -114,69 +165,8 @@ const inputData = [
     { date: '8/5', value: 150 },
 ];
 
-const data = getPast30DaysData(inputData);
-
-export default function ExerciseGraph() {
-    const [selectedOption, setSelectedOption] = useState('2 Weeks');
-
-    const handleButtonPress = () => {
-        const options = ['2 Weeks', '2 Months', 'All Time'];
-        const currentIndex = options.indexOf(selectedOption);
-        const nextIndex = (currentIndex + 1) % options.length;
-        setSelectedOption(options[nextIndex]);
-    };
-
-    return (
-        <View style={styles.main_ctnr}>
-            <View style={styles.header}>
-                <View style={styles.headerLeft}>
-                    <TouchableOpacity activeOpacity={0.5}>
-                        <View style={styles.titleContainer}>
-                            <Text style={styles.title}>Lateral Raises</Text>
-                            <MaterialCommunityIcons name="arrow-u-left-top" size={21} color="#0499FE" style={styles.uTurnIcon} />
-                        </View>
-                    </TouchableOpacity>
-                    <Text style={styles.subtitle}>1 Rep Max</Text>
-                </View>
-                <View style={styles.headerRight}>
-                    <RNBounceable
-                        style={[styles.button, styles.selectedButton]}
-                        onPress={handleButtonPress}
-                    >
-                        <Text style={styles.buttonText}>{selectedOption}</Text>
-                    </RNBounceable>
-                </View>
-            </View>
-            <View style={styles.chart_ctnr}>
-                <LineChart
-                    width={screenWidth - 105}
-                    height={125}
-                    adjustToWidth
-                    thickness={4}
-                    color="rgba(89, 168, 255, 1)"
-                    maxValue={550}
-                    noOfSections={3}
-                    areaChart
-                    yAxisThickness={0}
-                    yAxisTextStyle={styles.yAxisTextStyle}
-                    data={data}
-                    startFillColor={'rgb(89, 168, 255)'}
-                    endFillColor={'rgb(89, 168, 255)'}
-                    startOpacity={0.4}
-                    endOpacity={0.4}
-                    backgroundColor="#fff"
-                    initialSpacing={0}
-                    yAxisColor="lightgray"
-                    xAxisColor="lightgray"
-                    disableScroll
-                />
-            </View>
-        </View>
-    );
-}
-
 const styles = StyleSheet.create({
-    main_ctnr: {
+    mainContainer: {
         alignItems: 'center',
         backgroundColor: '#fff',
         borderRadius: 20,
@@ -215,10 +205,6 @@ const styles = StyleSheet.create({
         marginBottom: 2,
         fontFamily: 'Outfit_700Bold'
     },
-    uTurnIcon: {
-        marginLeft: 5,
-        marginBottom: 1
-    },
     subtitle: {
         color: "#aaa",
         fontSize: 13,
@@ -240,7 +226,7 @@ const styles = StyleSheet.create({
         fontFamily: 'Outfit_700Bold',
         fontSize: 12.5,
     },
-    chart_ctnr: {
+    chartContainer: {
         paddingRight: 30,
     },
     customDataPoint: {
@@ -265,3 +251,5 @@ const styles = StyleSheet.create({
         fontSize: 13,
     },
 });
+
+export default ExerciseGraph;
