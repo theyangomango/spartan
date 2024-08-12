@@ -18,6 +18,13 @@ import WorkoutSummaryModal from "../components/3_Workout/WorkoutSummaryModal";
 import GroupModalBottomSheet from '../components/3_Workout/NewWorkout/Group/GroupModalBottomSheet'
 import calculate1RM from "../helper/calculate1RM";
 
+function formatDate(date) {
+    // Format the date to "M/D" format
+    const month = date.getMonth() + 1;
+    const day = date.getDate();
+    return `${month}/${day}`;
+}
+
 function Workout({ navigation }) {
     const [workout, setWorkout] = useState(global.userData.currentWorkout);
     const [templates, setTemplates] = useState(global.userData.templates);
@@ -202,13 +209,17 @@ function Workout({ navigation }) {
     useEffect(() => {
         if (completedWorkout) {
             let newExerciseStats = { ...global.userData.statsExercises };
+            const today = formatDate(new Date());
 
             completedWorkout.exercises.forEach(ex => {
                 const prev1RM = (ex.name in newExerciseStats && '1RM' in newExerciseStats[ex.name]) ? newExerciseStats[ex.name]['1RM'] : 0;
 
                 // Ensure newExerciseStats[ex.name] and its sets array are initialized
-                newExerciseStats[ex.name] = newExerciseStats[ex.name] || { sets: [] };
+                newExerciseStats[ex.name] = newExerciseStats[ex.name] || { sets: [], progress1RM: [] };
                 newExerciseStats[ex.name].sets = newExerciseStats[ex.name].sets || [];
+                newExerciseStats[ex.name].progress1RM = newExerciseStats[ex.name].progress1RM || [];
+
+                let maxSet1RM = prev1RM; // Track the max 1RM for today's sets
 
                 ex.sets.forEach(set => {
                     newExerciseStats[ex.name].sets.push({
@@ -226,12 +237,23 @@ function Workout({ navigation }) {
                             reps: set.reps
                         }
                     }
+
+                    // Update maxSet1RM if the current set1RM is greater
+                    if (set1RM > maxSet1RM) {
+                        maxSet1RM = set1RM;
+                    }
+                });
+
+                // Add today's date and max 1RM to the progress1RM array
+                newExerciseStats[ex.name].progress1RM.push({
+                    date: today,
+                    '1RM': maxSet1RM
                 });
             });
 
             updateDoc('users', global.userData.uid, {
                 statsExercises: newExerciseStats
-            })
+            });
         }
     }, [completedWorkout]);
 

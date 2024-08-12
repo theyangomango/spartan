@@ -7,14 +7,12 @@ const screenWidth = Dimensions.get('window').width;
 
 const customDataPoint1 = () => {
     return (
-        // <></>
         <View style={styles.customDataPoint1} />
     );
 };
 
 const customDataPoint2 = () => {
     return (
-        // <></>
         <View style={styles.customDataPoint2} />
     );
 };
@@ -42,7 +40,7 @@ const getPast30DaysData = (inputs, customDataPoint) => {
     let firstValue = null;
 
     if (filteredData.length > 0) {
-        firstValue = filteredData[0].value;
+        firstValue = filteredData[0]['1RM'];
     }
 
     let prevValue = firstValue;
@@ -60,17 +58,17 @@ const getPast30DaysData = (inputs, customDataPoint) => {
 
         if (dataPoint) {
             dataPoints.push({
-                value: dataPoint.value,
+                value: dataPoint['1RM'],  // Use '1RM' as the value
                 customDataPoint: customDataPoint,
             });
-            prevValue = dataPoint.value;
+            prevValue = dataPoint['1RM'];
             interpolating = false;
             nextDataPointIndex++;
         } else {
             if (!interpolating) {
                 const nextDataPoint = filteredData[nextDataPointIndex];
                 if (nextDataPoint) {
-                    nextValue = nextDataPoint.value;
+                    nextValue = nextDataPoint['1RM'];
                     const [nextMonth, nextDay] = nextDataPoint.date.split('/');
                     const nextDate = new Date(currentDate.getFullYear(), parseInt(nextMonth) - 1, parseInt(nextDay));
                     daysBetween = (nextDate - d) / (1000 * 60 * 60 * 24);
@@ -107,36 +105,21 @@ const getPast30DaysData = (inputs, customDataPoint) => {
     return dataPoints;
 };
 
-// Sample input data
-const inputData1 = [
-    { date: '7/15', value: 100 },
-    { date: '7/17', value: 140 },
-    { date: '7/20', value: 250 },
-    { date: '7/23', value: 290 },
-    { date: '7/25', value: 410 },
-    { date: '7/28', value: 440 },
-    { date: '8/1', value: 280 },
-    { date: '8/4', value: 180 },
-    { date: '8/5', value: 150 },
-];
-
-const inputData2 = [
-    { date: '7/15', value: 80 },
-    { date: '7/17', value: 130 }, 
-    { date: '7/20', value: 200 },
-    { date: '7/23', value: 250 },
-    { date: '7/25', value: 300 },
-    { date: '7/28', value: 350 },
-    { date: '8/1', value: 200 },
-    { date: '8/4', value: 160 },
-    { date: '8/7', value: 100 },
-];
-
-const data1 = getPast30DaysData(inputData1, customDataPoint1);
-const data2 = getPast30DaysData(inputData2, customDataPoint2);
-
-export default function ExerciseGraph({ exerciseName }) {
+export default function ExerciseGraph({ name, exercise }) {
     const [selectedOption, setSelectedOption] = useState('2 Weeks');
+
+    // Check if exercise.progress1RM exists; if not, return an empty array for data1
+    const data1 = exercise.progress1RM ? getPast30DaysData(exercise.progress1RM, customDataPoint1) : [];
+
+    // Get data for data2 from global.userData.statsExercises[name].progress1RM
+    let data2 = [];
+    if (global.userData && global.userData.statsExercises && global.userData.statsExercises[name]) {
+        const exerciseData = global.userData.statsExercises[name];
+        if (exerciseData && exerciseData.progress1RM && exerciseData.progress1RM.length > 0) {
+            // console.log(exerciseData.progress1RM);
+            data2 = getPast30DaysData(exerciseData.progress1RM, customDataPoint2);
+        }
+    }
 
     const handleButtonPress = () => {
         const options = ['2 Weeks', '2 Months', 'All Time'];
@@ -149,7 +132,7 @@ export default function ExerciseGraph({ exerciseName }) {
         <View style={styles.main_ctnr}>
             <View style={styles.header}>
                 <View style={styles.headerLeft}>
-                    <Text style={styles.title}>{exerciseName}</Text>
+                    <Text style={styles.title}>{name}</Text>
                     <Text style={styles.subtitle}>1 Rep Max</Text>
                 </View>
                 <View style={styles.headerRight}>
@@ -188,6 +171,7 @@ export default function ExerciseGraph({ exerciseName }) {
         </View>
     );
 }
+
 
 const styles = StyleSheet.create({
     main_ctnr: {

@@ -15,17 +15,20 @@ const barMaxWidth = width * 0.45; // Fixed width of the bar in pixels
 function getTopExercisesByPopularity(user) {
     // Convert the map (object) into an array of [key, value] pairs
     const exercisesArray = Object.entries(user.statsExercises);
+
+    // Filter out exercises where sets length is 0
+    const filteredExercises = exercisesArray.filter(([, exercise]) => exercise.sets.length > 0);
     
     // Sort the array by the length of the 'sets' array in each exercise object
-    const sortedExercises = exercisesArray.sort(([, a], [, b]) => b.sets.length - a.sets.length);
+    const sortedExercises = filteredExercises.sort(([, a], [, b]) => b.sets.length - a.sets.length);
     
-    // Get the top 10 exercises and return them as an array of objects with the name and exercise data
-    const topExercises = sortedExercises.slice(0, 10).map(([name, exercise]) => ({
+    // Return them as an array of objects with the name and exercise data
+    const exercises = sortedExercises.map(([name, exercise]) => ({
         name: name,
         exercise: exercise
     }));
     
-    return topExercises;
+    return exercises;
 }
 
 export default function UserStatsModal({ user }) {
@@ -96,7 +99,7 @@ export default function UserStatsModal({ user }) {
                                     </View>
                                 </View>
                                 {expandedIndex === index && (
-                                    <ExerciseGraph exerciseName={exerciseName} />
+                                    <ExerciseGraph name={exerciseName} exercise={exercise}/>
                                 )}
                             </Pressable>
                         );
