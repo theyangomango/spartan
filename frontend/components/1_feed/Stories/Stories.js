@@ -46,7 +46,7 @@ function generatePrefixSumArray(userList) {
     return prefixSumArray;
 }
 
-export default function Stories({ data, userList }) {
+export default function Stories({ data, userList, initStories }) {
     const storiesData = sortDataByUserList(data, userList);
     const storiesPrefixSums = generatePrefixSumArray(userList);
     const [viewModalVisible, setViewModal] = useState(false);
@@ -59,7 +59,9 @@ export default function Stories({ data, userList }) {
         newUserList[0].stories.push(sid);
         updateDoc('users', global.userData.uid, {
             feedStories: userList
-        });
+        }).then(() => {
+            initStories();
+        })
 
         const followers = await getFollowers(global.userData.followers);
         followers.forEach(follower => {

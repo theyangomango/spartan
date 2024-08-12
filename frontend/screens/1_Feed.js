@@ -53,6 +53,11 @@ export default function Feed({ navigation }) {
         setMessages(feedData[2]);
     };
 
+    const initStories = async () => {
+        const feedData = await retrieveUserFeed(userDataRef.current);
+        setStories(feedData[0]);
+    }
+
     const handlePressPost = (index, postPositionY) => {
         focusedPostIndex.current = index;
         const translateYValue = postPositionY - TARGET_POSITION;
@@ -189,7 +194,7 @@ export default function Feed({ navigation }) {
                         scrollEventThrottle={16}
                         ListHeaderComponent={<Animated.View style={{ opacity: storiesOpacity }}>
                             {stories &&
-                                <Stories data={stories.storiesData} userList={stories.storiesUserList} setStories={setStories}/>
+                                <Stories data={stories.storiesData} userList={stories.storiesUserList} initStories={initStories}/>
                             }
                         </Animated.View>}
                         initialNumToRender={2}

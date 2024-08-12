@@ -23,7 +23,7 @@ export default function SelectPhotosScreen({ navigation, route }) {
     }
 
     function goBack() {
-        navigation.goBack();
+        navigation.navigate('ProfileStack', { screen: 'Profile' });
     }
 
     function next() {

@@ -250,7 +250,7 @@ function Workout({ navigation }) {
 
     function postWorkout() {
         setIsSummaryModalVisible(false);
-        navigation.navigate('SelectPhotos', { workout: completedWorkout });
+        navigation.navigate('ProfileStack', { screen: 'SelectPhotos', workout: completedWorkout });
     }
 
     useEffect(() => {

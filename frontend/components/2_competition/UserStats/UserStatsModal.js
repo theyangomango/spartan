@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import { StyleSheet, View, Text, Image, ScrollView, Pressable, LayoutAnimation, UIManager, Platform, Dimensions } from "react-native";
 import HexagonalStats from "./HexagonalStats";
 import ExerciseGraph from "./ExerciseGraph";
@@ -10,25 +10,36 @@ if (Platform.OS === 'android' && UIManager.setLayoutAnimationEnabledExperimental
     UIManager.setLayoutAnimationEnabledExperimental(true);
 }
 
-const exercises = [
-    { name: "Bench Press (Dumbell)", recordUser1: 100, recordUser2: 85 },
-    { name: "Shoulder Press", recordUser1: 70, recordUser2: 75 },
-    { name: "Lateral Raises", recordUser1: 20 },
-    { name: "Reverse Bicep Curls (Barbell)", recordUser1: 100, recordUser2: 105 },
-    { name: "Deadlift", recordUser1: 120 },
-    { name: "Bicep Curls", recordUser1: 30, recordUser2: 35 },
-    // Add more exercises as needed
-];
+const barMaxWidth = width * 0.45; // Fixed width of the bar in pixels
 
-const barMaxWidth = width * 0.5; // Fixed width of the bar in pixels
+function getTopExercisesByPopularity(user) {
+    // Convert the map (object) into an array of [key, value] pairs
+    const exercisesArray = Object.entries(user.statsExercises);
+    
+    // Sort the array by the length of the 'sets' array in each exercise object
+    const sortedExercises = exercisesArray.sort(([, a], [, b]) => b.sets.length - a.sets.length);
+    
+    // Get the top 10 exercises and return them as an array of objects with the name and exercise data
+    const topExercises = sortedExercises.slice(0, 10).map(([name, exercise]) => ({
+        name: name,
+        exercise: exercise
+    }));
+    
+    return topExercises;
+}
 
 export default function UserStatsModal({ user }) {
     const [expandedIndex, setExpandedIndex] = useState(null);
+    const data = getTopExercisesByPopularity(user); // Get the top exercises
 
     const toggleExpand = (index) => {
         LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
         setExpandedIndex(expandedIndex === index ? null : index);
     };
+
+    useEffect(() => {
+        console.log(data);
+    }, [data]);
 
     return (
         <View style={{ flex: 1 }}>
@@ -44,17 +55,21 @@ export default function UserStatsModal({ user }) {
             <ScrollView style={styles.scrollview} showsVerticalScrollIndicator={false}>
                 <HexagonalStats statsHexagon={user.statsHexagon} />
                 <View style={styles.exercisesContainer}>
-                    {exercises.map((exercise, index) => {
-                        const maxRecord = Math.max(exercise.recordUser1 || 0, exercise.recordUser2 || 0);
-                        const minRecord = Math.min(exercise.recordUser1 || 0, exercise.recordUser2 || 0);
-                        const user1IsMax = exercise.recordUser1 >= (exercise.recordUser2 || 0);
+                    {data.map((exerciseData, index) => {
+                        const exercise = exerciseData.exercise;
+                        const exerciseName = exerciseData.name;
+                        const recordUser1 = Math.round(exercise['1RM']); // Round 1RM to the nearest whole number
+                        
+                        const maxRecord = Math.max(recordUser1 || 0, exercise.recordUser2 || 0);
+                        const minRecord = Math.min(recordUser1 || 0, exercise.recordUser2 || 0);
+                        const user1IsMax = recordUser1 >= (exercise.recordUser2 || 0);
                         const proportionalWidth = (minRecord / maxRecord) * barMaxWidth;
-                        const inverted = exercise.recordUser1 > exercise.recordUser2;
+                        const inverted = recordUser1 > exercise.recordUser2;
 
                         return (
                             <Pressable key={index} onPress={() => toggleExpand(index)}>
                                 <View style={styles.exerciseRow}>
-                                    <Text numberOfLines={1} style={styles.exerciseName}>{exercise.name}</Text>
+                                    <Text numberOfLines={1} style={styles.exerciseName}>{exerciseName}</Text>
                                     <View style={[styles.barContainer, { backgroundColor: inverted ? '#59AAEE' : 'rgba(89, 170, 238, 0.3)' }]}>
                                         {exercise.recordUser2 ? (
                                             <>
@@ -77,11 +92,11 @@ export default function UserStatsModal({ user }) {
                                         )}
                                     </View>
                                     <View style={styles.stat_text_ctnr}>
-                                        <Text style={styles.user1Stat}>{exercise.recordUser1}</Text>
+                                        <Text style={styles.user1Stat}>{recordUser1}</Text>
                                     </View>
                                 </View>
                                 {expandedIndex === index && (
-                                    <ExerciseGraph exerciseName={exercises[index].name} />
+                                    <ExerciseGraph exerciseName={exerciseName} />
                                 )}
                             </Pressable>
                         );
