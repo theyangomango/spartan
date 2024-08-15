@@ -15,15 +15,8 @@ const ExercisesFlatlist = React.memo(({ exercises, selectExercise, deselectExerc
                     deselectExercise={deselectExercise}
                 />
             )}
-            contentContainerStyle={styles.listContainer}
         />
     );
-});
-
-const styles = StyleSheet.create({
-    listContainer: {
-        paddingHorizontal: 10,
-    },
 });
 
 export default ExercisesFlatlist;

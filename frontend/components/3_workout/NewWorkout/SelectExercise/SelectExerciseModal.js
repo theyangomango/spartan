@@ -12,20 +12,23 @@ export default function SelectExerciseModal({ closeModal, appendExercises }) {
     const opacity = useRef(new Animated.Value(1)).current;
 
     useEffect(() => {
+        // Only update the opacity based on the number of selected exercises
         Animated.timing(opacity, {
             toValue: selectedExercisesRef.current.length === 0 ? 0.5 : 1,
             duration: 300,
             useNativeDriver: true,
         }).start();
-    }, [searchQuery]); // Re-trigger animation when search query changes
+    }, [searchQuery]);
 
     function selectExercise(ex) {
+        console.log(ex);
         selectedExercisesRef.current = [...selectedExercisesRef.current, { ...ex }];
         triggerOpacityUpdate();
     }
 
     function deselectExercise(ex) {
-        selectedExercisesRef.current = selectedExercisesRef.current.filter(exercise => exercise.name !== ex.name);
+        console.log(ex);
+        selectedExercisesRef.current = selectedExercisesRef.current.filter(e => e.name !== ex.name);
         triggerOpacityUpdate();
     }
 
@@ -41,6 +44,7 @@ export default function SelectExerciseModal({ closeModal, appendExercises }) {
 
     function triggerOpacityUpdate() {
         // Force re-render to update opacity
+        // console.log(selectedExercisesRef.current);
         opacity.setValue(selectedExercisesRef.current.length === 0 ? 0.5 : 1);
     }
 
@@ -110,7 +114,7 @@ const styles = StyleSheet.create({
         shadowOffset: { width: 0, height: 2 },
         shadowOpacity: 0.8,
         shadowRadius: 3,
-        paddingVertical: 10
+        paddingTop: 10
     },
     header: {
         flexDirection: 'row',
@@ -125,7 +129,8 @@ const styles = StyleSheet.create({
         paddingVertical: 4.5,
         borderRadius: 8,
         justifyContent: 'center',
-        alignItems: 'center'
+        alignItems: 'center',
+        opacity: 0.5
     },
     newButtonText: {
         color: '#333',
@@ -161,7 +166,8 @@ const styles = StyleSheet.create({
         padding: 5,
         marginHorizontal: 5,
         borderRadius: 10,
-        backgroundColor: '#E1E1E1'
+        backgroundColor: '#E1E1E1',
+        opacity: 0.5
     },
     filterButtonText: {
         fontSize: 13,

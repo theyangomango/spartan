@@ -19,7 +19,7 @@ const ExerciseCard = memo(({ name, muscleGroup, lastDone = 'July 13th', timesCom
 
     function toggleSelected() {
         if (isSelected) {
-            deselectExercise(name);
+            deselectExercise({ name: name, muscle: muscleGroup });
         } else {
             selectExercise({ name: name, muscle: muscleGroup });
         }
@@ -56,8 +56,8 @@ export default ExerciseCard;
 const styles = StyleSheet.create({
     card: {
         flexDirection: 'row',
-        paddingLeft: 15,
-        paddingRight: 12,
+        paddingLeft: 20,
+        paddingRight: 18,
         justifyContent: 'space-between',
     },
     leftContainer: {
@@ -120,9 +120,10 @@ const styles = StyleSheet.create({
         fontFamily: 'Outfit_600SemiBold',
         fontSize: 17,
         marginRight: 8,
-        color: '#888'
+        color: '#aaa'
     },
     icon_ctnr: {
-        marginTop: 1
+        marginTop: 1,
+        opacity: 0.3
     }
 });
