@@ -3,19 +3,31 @@ import React from 'react';
 import { StyleSheet, View, Text } from 'react-native';
 
 export default function ProgressBanner({ totalReps, totalVolume, personalBests }) {
+    const formatNumber = (number) => {
+        if (number >= 1000000) {
+            // Divide by 1,000,000 and round to 3 significant figures for millions
+            return `${(number / 1000000).toPrecision(3)}m`;
+        } else if (number >= 10000) {
+            // Divide by 1,000 and round to 3 significant figures for thousands
+            return `${(number / 1000).toPrecision(3)}k`;
+        } else {
+            // Round to 3 significant figures for smaller numbers
+            return Number(number.toPrecision(3)).toString();
+        }
+    };
 
     return (
         <RNBounceable style={styles.container}>
             <View style={styles.column}>
-                <Text style={styles.bigNumber}>{totalReps}</Text>
+                <Text style={styles.bigNumber}>{formatNumber(totalReps)}</Text>
                 <Text style={styles.smallText}>Total Reps</Text>
             </View>
             <View style={styles.column}>
-                <Text style={styles.bigNumber}>{totalVolume}</Text>
+                <Text style={styles.bigNumber}>{formatNumber(totalVolume)}</Text>
                 <Text style={styles.smallText}>Lbs Lifted</Text>
             </View>
             <View style={styles.column}>
-                <Text style={styles.bigNumber}>{personalBests}</Text>
+                <Text style={styles.bigNumber}>{formatNumber(personalBests)}</Text>
                 <Text style={styles.smallText}>Personal Bests</Text>
             </View>
         </RNBounceable>
@@ -45,7 +57,6 @@ const styles = StyleSheet.create({
     bigNumber: {
         fontSize: 23,
         color: '#B9DCFF',
-        // color: '#fff',
         fontFamily: 'Poppins_800ExtraBold',
     },
     smallText: {

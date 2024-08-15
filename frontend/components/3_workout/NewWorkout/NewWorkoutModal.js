@@ -44,14 +44,15 @@ const NewWorkoutModal = ({ workout, cancelWorkout, updateWorkout, finishWorkout,
         workout.exercises.forEach((exercise, exerciseIndex) => {
             exercise.sets.forEach((set, setIndex) => {
                 if (isDoneState[exerciseIndex][setIndex]) { // Check if the set is done
-                    reps += set.reps;
-                    volume += (set.reps * set.weight);
+                    reps += Number(set.reps);
+                    volume += (Number(set.reps) * Number(set.weight));
                 }
             });
         });
 
         setTotalReps(reps);
         setTotalVolume(volume);
+
     }, [workout.exercises, isDoneState]);
 
     const showSelectExerciseModal = useCallback(() => {
