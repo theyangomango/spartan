@@ -1,9 +1,8 @@
 import React, { useCallback, useEffect, useMemo, useRef } from "react";
-import { StyleSheet } from "react-native";
 import BottomSheet, { BottomSheetBackdrop } from "@gorhom/bottom-sheet";
 import EditTemplateModal from "./EditTemplateModal";
 
-const EditTemplateBottomSheet = ({ isVisible, setIsVisible, openedTemplateRef, updateTemplate }) => {
+const EditTemplateBottomSheet = ({ isVisible, setIsVisible, openedTemplateRef, updateTemplate, deleteTemplate }) => {
     const bottomSheetRef = useRef(null);
     const snapPoints = useMemo(() => ["94%"], []);
 
@@ -22,6 +21,8 @@ const EditTemplateBottomSheet = ({ isVisible, setIsVisible, openedTemplateRef, u
     useEffect(() => {
         if (isVisible) {
             bottomSheetRef.current.expand();
+        } else {
+            bottomSheetRef.current.close();
         }
     }, [isVisible]);
 
@@ -38,7 +39,11 @@ const EditTemplateBottomSheet = ({ isVisible, setIsVisible, openedTemplateRef, u
             }}
         >
             {isVisible &&
-                <EditTemplateModal openedTemplateRef={openedTemplateRef} updateTemplate={updateTemplate}/>
+                <EditTemplateModal
+                    openedTemplateRef={openedTemplateRef}
+                    updateTemplate={updateTemplate}
+                    deleteTemplate={deleteTemplate}
+                />
             }
         </BottomSheet>
     );

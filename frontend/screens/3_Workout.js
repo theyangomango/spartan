@@ -35,7 +35,7 @@ function Workout({ navigation }) {
         const unsubscribe = navigation.addListener('focus', () => {
             if (workout) {
                 setTimeout(() => {
-                    setIsNewWorkoutBottomSheetVisible(true);                    
+                    setIsNewWorkoutBottomSheetVisible(true);
                 }, 100);
             }
         });
@@ -189,6 +189,19 @@ function Workout({ navigation }) {
         });
     }
 
+    function deleteTemplate() {
+        setTemplates(prevTemplates => {
+            const index = prevTemplates.findIndex(template => template.tid === openedTemplateRef.current.tid);
+            if (index !== -1) {
+                return prevTemplates.filter((_, i) => {
+                    return i != index;
+                })
+            }
+        });
+        setIsEditTemplateBottomSheetVisible(false);
+        openedTemplateRef.current = null;
+    }
+
     useEffect(() => {
         updateDoc('users', global.userData.uid, {
             currentWorkout: workout
@@ -307,6 +320,7 @@ function Workout({ navigation }) {
                 setIsVisible={setIsEditTemplateBottomSheetVisible}
                 openedTemplateRef={openedTemplateRef}
                 updateTemplate={updateTemplate}
+                deleteTemplate={deleteTemplate}
             />
 
             <WorkoutSummaryModal

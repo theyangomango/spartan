@@ -5,7 +5,7 @@ import RNBounceable from "@freakycoder/react-native-bounceable";
 import EditTemplateExerciseLog from "./EditTemplateExerciseLog";
 import { Weight } from 'iconsax-react-native';
 
-const EditTemplateModal = ({ openedTemplateRef, updateTemplate }) => {
+const EditTemplateModal = ({ openedTemplateRef, updateTemplate, deleteTemplate }) => {
     const [selectExerciseModalVisible, setSelectExerciseModalVisible] = useState(false);
     const [template, setTemplate] = useState(openedTemplateRef.current);
     const [templateTitle, setTemplateTitle] = useState(openedTemplateRef.current.name);
@@ -95,8 +95,8 @@ const EditTemplateModal = ({ openedTemplateRef, updateTemplate }) => {
                     <Weight size="22" color="#5DBDFF" variant='Bold' />
                 </RNBounceable>
 
-                <RNBounceable style={styles.cancelButton}>
-                    <Text style={styles.cancelButtonText}>Delete Template</Text>
+                <RNBounceable style={styles.cancelButton} onPress={deleteTemplate}>
+                    <Text style={styles.deleteButtonText}>Delete Template</Text>
                 </RNBounceable>
 
                 <View style={{ height: 150 }} />
@@ -188,7 +188,7 @@ const styles = StyleSheet.create({
         alignItems: 'center',
         flexDirection: 'row'
     },
-    cancelButtonText: {
+    deleteButtonText: {
         fontSize: 16,
         fontFamily: 'Outfit_700Bold',
         color: '#F27171',

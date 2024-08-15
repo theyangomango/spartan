@@ -35,7 +35,6 @@ const NewWorkoutBottomSheet = ({ workout, isVisible, setIsVisible, cancelNewWork
             onClose={() => {
                 setIsVisible(false);
             }}
-        // handleStyle={{ display: 'none' }}
         >
             {workout &&
                 <NewWorkoutModal
