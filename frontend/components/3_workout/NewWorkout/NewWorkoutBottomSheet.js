@@ -1,16 +1,10 @@
 import React, { useCallback, useEffect, useMemo, useRef } from "react";
-import { StyleSheet } from "react-native";
 import BottomSheet, { BottomSheetBackdrop } from "@gorhom/bottom-sheet";
 import NewWorkoutModal from './NewWorkoutModal';
 
-const NewWorkoutBottomSheet = ({ workout, setWorkout, isVisible, setIsVisible, cancelNewWorkout, updateNewWorkout, finishNewWorkout, timerRef, showGroupModal }) => {
-    console.log(workout);
-
+const NewWorkoutBottomSheet = ({ workout, isVisible, setIsVisible, cancelNewWorkout, updateNewWorkout, finishNewWorkout, timerRef, showGroupModal }) => {
     const bottomSheetRef = useRef(null);
     const snapPoints = useMemo(() => ["94%"], []);
-    const handleSheetChanges = useCallback((index) => {
-        console.log("handleSheetChanges", index);
-    }, []);
 
     const renderBackdrop = useCallback(
         (props) => (
@@ -36,7 +30,6 @@ const NewWorkoutBottomSheet = ({ workout, setWorkout, isVisible, setIsVisible, c
             index={-1}
             snapPoints={snapPoints}
             backdropComponent={renderBackdrop}
-            onChange={handleSheetChanges}
             enablePanDownToClose
             enableContentPanningGesture={false}
             onClose={() => {

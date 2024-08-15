@@ -1,8 +1,7 @@
-// Profile.js
 import React, { useEffect, useState } from "react";
 import { StyleSheet, View } from "react-native";
 import Footer from "../components/Footer";
-import ProfileHeader from "../components/5_Profile//ProfileTop/ProfileHeader";
+import ProfileHeader from "../components/5_Profile/ProfileTop/ProfileHeader";
 import ProfileInfo from "../components/5_Profile/ProfileTop/ProfileInfo";
 import ProfileRowButtons from "../components/5_Profile/ProfileTop/ProfileRowButtons";
 import WorkoutStats from "../components/5_Profile/ProfileTop/WorkoutStats";
@@ -17,10 +16,21 @@ export default function Profile({ navigation }) {
     const [selectedPanel, setSelectedPanel] = useState('posts');
     const [isEditProfileBottomSheetVisible, setIsEditProfileBottomSheetVisible] = useState(false);
     const [isViewStatsBottomSheetVisible, setIsViewStatsBottomSheetVisible] = useState(false);
+    const [footerKey, setFooterKey] = useState(0); // State to force footer re-render
 
     useEffect(() => {
         getPosts();
     }, []);
+
+    useEffect(() => {
+        const unsubscribe = navigation.addListener('focus', () => {
+            // Trigger a state change to force the Footer to re-render
+            setFooterKey(prevKey => prevKey + 1);
+        });
+
+        // Return the function to unsubscribe from the event so it gets removed on unmount
+        return unsubscribe;
+    }, [navigation]);
 
     async function getPosts() {
         let db_posts = [];
@@ -55,7 +65,8 @@ export default function Profile({ navigation }) {
                 <WorkoutStats userData={userData} />
             </View>
 
-            <ProfileBottomBottomSheet selectedPanel={selectedPanel}
+            <ProfileBottomBottomSheet
+                selectedPanel={selectedPanel}
                 setSelectedPanel={setSelectedPanel}
                 posts={posts}
                 navigation={navigation}
@@ -71,7 +82,7 @@ export default function Profile({ navigation }) {
                 setIsVisible={setIsViewStatsBottomSheetVisible}
             />
 
-            <Footer currentScreenName={'Profile'} navigation={navigation} />
+            <Footer key={footerKey} currentScreenName={'Profile'} navigation={navigation} />
         </View>
     );
 }

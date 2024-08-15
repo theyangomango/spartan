@@ -21,13 +21,11 @@ export default function SelectExerciseModal({ closeModal, appendExercises }) {
     }, [searchQuery]);
 
     function selectExercise(ex) {
-        console.log(ex);
         selectedExercisesRef.current = [...selectedExercisesRef.current, { ...ex }];
         triggerOpacityUpdate();
     }
 
     function deselectExercise(ex) {
-        console.log(ex);
         selectedExercisesRef.current = selectedExercisesRef.current.filter(e => e.name !== ex.name);
         triggerOpacityUpdate();
     }

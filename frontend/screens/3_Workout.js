@@ -31,6 +31,19 @@ function Workout({ navigation }) {
     const workoutTimeInterval = useRef(null);
     const timerRef = useRef(workout ? millisToMinutesAndSeconds(Date.now() - workout.created) : '00:00');
 
+    useEffect(() => {
+        const unsubscribe = navigation.addListener('focus', () => {
+            if (workout) {
+                setTimeout(() => {
+                    setIsNewWorkoutBottomSheetVisible(true);                    
+                }, 100);
+            }
+        });
+
+        return unsubscribe;
+    }, [navigation]);
+
+
     // Update the timerRef every second when workout is not null
     useEffect(() => {
         if (workout) {
@@ -46,6 +59,7 @@ function Workout({ navigation }) {
     // New Workout
     const startNewWorkout = useCallback(async () => {
         if (!workout) {
+            global.isCurrentlyWorkingOut = true;
             const newWID = makeID();
             const newWorkout = {
                 wid: newWID,
@@ -66,6 +80,7 @@ function Workout({ navigation }) {
 
     const startWorkoutFromTemplate = useCallback(async (index) => {
         if (!workout) {
+            global.isCurrentlyWorkingOut = true;
             const newWID = makeID();
             const selectedTemplate = { ...templates[index] }; // Create a shallow copy of the selected template
             const newWorkout = {
@@ -91,6 +106,7 @@ function Workout({ navigation }) {
     }, []);
 
     const cancelWorkout = useCallback(() => {
+        global.isCurrentlyWorkingOut = false;
         setWorkout(null);
         setIsNewWorkoutBottomSheetVisible(false);
         clearInterval(workoutTimeInterval.current);
@@ -99,6 +115,7 @@ function Workout({ navigation }) {
     }, []);
 
     const finishWorkout = useCallback(() => {
+        global.isCurrentlyWorkingOut = false;
         if (!workout) return;
 
         // Make a deep copy of the workout object to avoid issues with immutability
@@ -123,9 +140,6 @@ function Workout({ navigation }) {
 
         // Append the completed workout to the user's data
         arrayAppend('users', global.userData.uid, 'completedWorkouts', completedWorkoutData);
-
-        // Log the completed workout to check if the duration and volume are being added correctly
-        console.log('Completed Workout:', completedWorkoutData);
 
         // Reset the workout state
         setWorkout(null);
@@ -203,7 +217,6 @@ function Workout({ navigation }) {
                     });
 
                     const set1RM = calculate1RM(set.weight, set.reps);
-                    console.log(prev1RM, set1RM);
 
                     if (set1RM > prev1RM) {
                         newExerciseStats[ex.name]['1RM'] = set1RM;

@@ -1,6 +1,5 @@
 import React, { useEffect, useRef, useState } from "react";
-import { useFocusEffect } from "@react-navigation/native";
-import { StyleSheet, View, Dimensions, Animated, FlatList } from "react-native";
+import { StyleSheet, View, Animated } from "react-native";
 import Footer from "../components/Footer";
 import Post from "../components/1_Feed/Posts/Post";
 import FeedHeader from "../components/1_Feed/FeedHeader";
@@ -26,6 +25,7 @@ export default function Feed({ navigation }) {
     const [messages, setMessages] = useState(null);
     const [isPostsVisible, setIsPostsVisible] = useState(true);
     const [isScrolledPast90, setIsScrolledPast90] = useState(false);
+    const [footerKey, setFooterKey] = useState(0); // State to force footer re-render
 
     const [shareBottomSheetExpandFlag, setShareBottomSheetExpandFlag] = useState(false);
     const [shareBottomSheetCloseFlag, setShareBottomSheetCloseFlag] = useState(false);
@@ -44,6 +44,14 @@ export default function Feed({ navigation }) {
         init();
     }, []);
 
+    useEffect(() => {
+        const unsubscribe = navigation.addListener('focus', () => {
+            setFooterKey(prevKey => prevKey + 1);
+        });
+
+        return unsubscribe;
+    }, [navigation]);
+
     const init = async () => {
         userDataRef.current = await readDoc('users', UID);
         const feedData = await retrieveUserFeed(userDataRef.current);
@@ -51,6 +59,10 @@ export default function Feed({ navigation }) {
         setStories(feedData[0]);
         setPosts(feedData[1]);
         setMessages(feedData[2]);
+        if (userDataRef.current.currentWorkout) {
+            global.isCurrentlyWorkingOut = true;
+            setFooterKey(prevKey => prevKey + 1);
+        }
     };
 
     const initStories = async () => {
@@ -194,14 +206,12 @@ export default function Feed({ navigation }) {
                         scrollEventThrottle={16}
                         ListHeaderComponent={<Animated.View style={{ opacity: storiesOpacity }}>
                             {stories &&
-                                <Stories data={stories.storiesData} userList={stories.storiesUserList} initStories={initStories}/>
+                                <Stories data={stories.storiesData} userList={stories.storiesUserList} initStories={initStories} />
                             }
                         </Animated.View>}
                         initialNumToRender={2}
                     />
-                    <Animated.View style={{ opacity: footerOpacity }}>
-                        <Footer navigation={navigation} currentScreenName={'Feed'} />
-                    </Animated.View>
+                    <Footer key={footerKey} navigation={navigation} currentScreenName={'Feed'} />
                 </View>
             </MaskedView>
         </View>

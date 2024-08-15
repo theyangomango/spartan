@@ -2,7 +2,6 @@ import React from 'react';
 import { Pressable, StyleSheet, View } from 'react-native';
 import { Home, Cup, Weight, Profile } from 'iconsax-react-native';
 import { Feather } from '@expo/vector-icons';
-import { BlurView } from 'expo-blur';
 
 const Footer = ({ navigation, currentScreenName }) => {
     function navigateTo(screen) {
@@ -11,7 +10,16 @@ const Footer = ({ navigation, currentScreenName }) => {
     }
 
     const getIconColor = (screenName) => {
+        if (screenName === 'Workout' && global.isCurrentlyWorkingOut) {
+            return '#2291FF';
+        }
         return currentScreenName === screenName ? '#000' : '#bbb';
+    };
+
+    const getWorkoutIndicatorStyle = () => {
+        return {
+            backgroundColor: global.isCurrentlyWorkingOut ? '#CCE7FF' : 'transparent',
+        };
     };
 
     return (
@@ -32,11 +40,13 @@ const Footer = ({ navigation, currentScreenName }) => {
                     </Pressable>
                 </View>
                 <View style={styles.workout_icon_ctnr}>
-                    <Pressable onPress={() => navigateTo('Workout')}>
-                        <View style={currentScreenName === 'Workout' ? styles.selectedIcon : styles.icon}>
-                            <Weight size="25.5" color={getIconColor('Workout')} variant='Bold' />
-                        </View>
-                    </Pressable>
+                    <View style={[styles.workout_indicator_ctnr, getWorkoutIndicatorStyle()]}>
+                        <Pressable onPress={() => navigateTo('Workout')}>
+                            <View style={currentScreenName === 'Workout' ? styles.selectedIcon : styles.icon}>
+                                <Weight size="25.5" color={getIconColor('Workout')} variant='Bold'/>
+                            </View>
+                        </Pressable>
+                    </View>
                 </View>
                 <View style={styles.icon_ctnr}>
                     <Pressable onPress={() => navigateTo('Explore')}>
@@ -79,7 +89,7 @@ const styles = StyleSheet.create({
         shadowColor: '#bbb',
         shadowOffset: { width: 0, height: -1 },
         shadowOpacity: 0.5,
-        shadowRadius: 2,  
+        shadowRadius: 2,
         elevation: 5
     },
     icon_ctnr: {
@@ -92,6 +102,10 @@ const styles = StyleSheet.create({
         alignItems: 'center',
         paddingHorizontal: 10,
         paddingVertical: 8.2,
+    },
+    workout_indicator_ctnr: {
+        borderRadius: 100,
+        padding: 3
     },
     icon: {
         padding: 13.5,

@@ -14,11 +14,22 @@ export default function Explore({ navigation }) {
     const [selectedCategory, setSelectedCategory] = useState('For You');
     const [keyboardVisible, setKeyboardVisible] = useState(false);
     const allUsers = useRef(null);
+    const [footerKey, setFooterKey] = useState(0); // State to force footer re-render
 
     useEffect(() => {
         initExploreFeed();
         initGlobalUsers();
     }, []);
+
+    useEffect(() => {
+        const unsubscribe = navigation.addListener('focus', () => {
+            // Trigger a state change to force the Footer to re-render
+            setFooterKey(prevKey => prevKey + 1);
+        });
+
+        // Return the function to unsubscribe from the event so it gets removed on unmount
+        return unsubscribe;
+    }, [navigation]);
 
     async function initExploreFeed() {
         const exploreFeedData = await retrieveUserExploreFeed(userData);
@@ -44,7 +55,7 @@ export default function Explore({ navigation }) {
     const renderGrid = (posts, index) => {
         if (posts.length < 6) return null;
 
-        if (index % 2 == 0) {
+        if (index % 2 === 0) {
             return (
                 <View style={styles.gridContainer}>
                     <View style={styles.gridRow}>
@@ -73,36 +84,36 @@ export default function Explore({ navigation }) {
                     </View>
                 </View>
             );
+        } else {
+            return (
+                <View style={styles.gridContainer}>
+                    <View style={styles.gridRow}>
+                        <View style={styles.gridColumn}>
+                            <View style={styles.gridItemSmall}>
+                                {renderPostPreview(posts[1])}
+                            </View>
+                            <View style={styles.gridItemSmall}>
+                                {renderPostPreview(posts[2])}
+                            </View>
+                        </View>
+                        <View style={styles.gridItemLarge}>
+                            {renderPostPreview(posts[0], true)}
+                        </View>
+                    </View>
+                    <View style={styles.gridRow}>
+                        <View style={styles.gridItem}>
+                            {renderPostPreview(posts[3])}
+                        </View>
+                        <View style={styles.gridItem}>
+                            {renderPostPreview(posts[4])}
+                        </View>
+                        <View style={styles.gridItem}>
+                            {renderPostPreview(posts[5])}
+                        </View>
+                    </View>
+                </View>
+            );
         }
-
-        else return (
-            <View style={styles.gridContainer}>
-                <View style={styles.gridRow}>
-                    <View style={styles.gridColumn}>
-                        <View style={styles.gridItemSmall}>
-                            {renderPostPreview(posts[1])}
-                        </View>
-                        <View style={styles.gridItemSmall}>
-                            {renderPostPreview(posts[2])}
-                        </View>
-                    </View>
-                    <View style={styles.gridItemLarge}>
-                        {renderPostPreview(posts[0], true)}
-                    </View>
-                </View>
-                <View style={styles.gridRow}>
-                    <View style={styles.gridItem}>
-                        {renderPostPreview(posts[3])}
-                    </View>
-                    <View style={styles.gridItem}>
-                        {renderPostPreview(posts[4])}
-                    </View>
-                    <View style={styles.gridItem}>
-                        {renderPostPreview(posts[5])}
-                    </View>
-                </View>
-            </View>
-        );
     };
 
     return (
@@ -151,7 +162,7 @@ export default function Explore({ navigation }) {
 
             {global.workout && <WorkoutFooter userData={userData} />}
 
-            <Footer navigation={navigation} currentScreenName="Explore" />
+            <Footer key={footerKey} navigation={navigation} currentScreenName="Explore" />
 
             {keyboardVisible && (
                 <TouchableWithoutFeedback onPress={Keyboard.dismiss}>

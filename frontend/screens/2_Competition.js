@@ -17,6 +17,7 @@ export default function Competition({ navigation }) {
     const [selectExerciseModalVisible, setSelectExerciseModalVisible] = useState(false);
     const [selectedUser, setSelectedUser] = useState(null);
     const [isUserStatsBottomSheetVisible, setIsUserStatsBottomSheetVisible] = useState(false);
+    const [footerKey, setFooterKey] = useState(0); // State to force footer re-render
 
     useEffect(() => {
         init();
@@ -25,6 +26,16 @@ export default function Competition({ navigation }) {
     useEffect(() => {
         setUserList(rankUsers(usersRef.current, comparedExercise));
     }, [comparedExercise]);
+
+    useEffect(() => {
+        const unsubscribe = navigation.addListener('focus', () => {
+            // Trigger a state change to force the Footer to re-render
+            setFooterKey(prevKey => prevKey + 1);
+        });
+
+        // Return the function to unsubscribe from the event so it gets removed on unmount
+        return unsubscribe;
+    }, [navigation]);
 
     async function init() {
         const data = await retrieveFollowingUsers(global.userData.following);
@@ -77,7 +88,7 @@ export default function Competition({ navigation }) {
                 setIsVisible={setIsUserStatsBottomSheetVisible}
             />
 
-            <Footer navigation={navigation} currentScreenName={'Competition'} />
+            <Footer key={footerKey} navigation={navigation} currentScreenName={'Competition'} />
 
             <Modal
                 animationType="fade"
