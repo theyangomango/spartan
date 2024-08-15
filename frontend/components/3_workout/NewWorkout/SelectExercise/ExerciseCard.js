@@ -3,8 +3,11 @@ import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import ExerciseImagePreview from './ExerciseImagePreview';
 
-const ExerciseCard = memo(({ name, muscleGroup, lastDone = 'July 13th', timesCompleted = 12, selectExercise, deselectExercise, showExerciseInfo }) => {
+const ExerciseCard = memo(({ name, muscleGroup, selectExercise, deselectExercise, showExerciseInfo, userStats }) => {
     const [isSelected, setIsSelected] = useState(false);
+
+    const lastDone = userStats ? userStats.sets[userStats.sets.length - 1].date : 'N/A';
+    const timesCompleted = userStats ? userStats.sets.length : '';
 
     const muscleColors = {
         Chest: '#FFAFB8',

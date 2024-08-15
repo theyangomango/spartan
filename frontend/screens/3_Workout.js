@@ -226,7 +226,8 @@ function Workout({ navigation }) {
                 ex.sets.forEach(set => {
                     newExerciseStats[ex.name].sets.push({
                         weight: set.weight,
-                        reps: set.reps
+                        reps: set.reps,
+                        date: today,
                     });
 
                     const set1RM = calculate1RM(set.weight, set.reps);
