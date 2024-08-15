@@ -47,13 +47,13 @@ export default function TemplateSetRow({ set, updateSet, index, handleDelete }) 
                     <View style={styles.weight_unit_ctnr}>
                         <TemplateEditableStat
                             value={weight.toString()}
-                            setValue={(value) => updateSet(index, { ...set, weight: parseInt(value, 10) })}
+                            setValue={(value) => updateSet(index, { ...set, weight: value })}
                         />
                     </View>
                     <View style={styles.reps_ctnr}>
                         <TemplateEditableStat
                             value={reps.toString()}
-                            setValue={(value) => updateSet(index, { ...set, reps: parseInt(value, 10) })}
+                            setValue={(value) => updateSet(index, { ...set, reps: value })}
                         />
                     </View>
                     <View style={styles.done_ctnr}>

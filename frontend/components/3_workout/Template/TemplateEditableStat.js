@@ -5,6 +5,24 @@ export default function TemplateEditableStat({ placeholder = '0', value, setValu
     const [isSelected, setIsSelected] = useState(false);
     const inputRef = useRef(null);
 
+    const handleChangeText = (text) => {
+        // If the text is empty, set the value to 0
+        if (text === '') {
+            setValue('0');
+            return;
+        }
+
+        // Remove non-numeric characters (except for a decimal point)
+        const numericValue = text.replace(/[^0-9.]/g, '');
+
+        // Prevent multiple decimals
+        const validValue = numericValue.split('.').length > 2
+            ? numericValue.slice(0, -1)
+            : numericValue;
+
+        setValue(validValue);
+    };
+
     return (
         <Pressable
             onPress={() => {
@@ -25,8 +43,8 @@ export default function TemplateEditableStat({ placeholder = '0', value, setValu
                 onFocus={() => setIsSelected(true)}
                 onEndEditing={() => setIsSelected(false)}
                 style={styles.text}
-                value={value == 0 ? '' : value.toString()}
-                onChangeText={setValue}
+                value={value === '0' ? '' : value.toString()}
+                onChangeText={handleChangeText}
             />
         </Pressable>
     )

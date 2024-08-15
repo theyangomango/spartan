@@ -5,7 +5,7 @@ import { FontAwesome5 } from '@expo/vector-icons';
 import SwipeableItem, { OpenDirection, useSwipeableItemParams } from 'react-native-swipeable-item';
 import Animated, { useAnimatedStyle } from 'react-native-reanimated';
 
-export default function SetRow({ set, updateSet, index, handleDelete, calculateStats, isDone, toggleIsDone }) {
+export default function SetRow({ set, updateSet, index, handleDelete, isDone, toggleIsDone }) {
     const weight = set.weight;
     const reps = set.reps;
 
@@ -48,14 +48,14 @@ export default function SetRow({ set, updateSet, index, handleDelete, calculateS
                         <EditableStat
                             isFinished={isDone}
                             value={weight.toString()}
-                            setValue={(value) => updateSet(index, { ...set, weight: parseInt(value, 10) })}
+                            setValue={(value) => updateSet(index, { ...set, weight: value})}
                         />
                     </View>
                     <View style={styles.reps_ctnr}>
                         <EditableStat
                             isFinished={isDone}
                             value={reps.toString()}
-                            setValue={(value) => updateSet(index, { ...set, reps: parseInt(value, 10) })}
+                            setValue={(value) => updateSet(index, { ...set, reps: value })}
                         />
                     </View>
                     <View style={styles.done_ctnr}>

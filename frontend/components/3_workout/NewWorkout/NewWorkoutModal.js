@@ -123,6 +123,11 @@ const NewWorkoutModal = ({ workout, cancelWorkout, updateWorkout, finishWorkout,
     }, [workout, updateWorkout, calculateStats]);
 
     const toggleIsDone = useCallback((exerciseIndex, setIndex) => {
+        if (isDoneState[exerciseIndex][setIndex] === false) {
+            if (isNaN(workout.exercises[exerciseIndex].sets[setIndex].weight) || isNaN(workout.exercises[exerciseIndex].sets[setIndex].reps)) {
+                return;
+            }
+        }
         setIsDoneState(prevState => {
             const newState = [...prevState];
             newState[exerciseIndex][setIndex] = !newState[exerciseIndex][setIndex];
