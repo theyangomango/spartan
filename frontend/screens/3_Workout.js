@@ -67,7 +67,11 @@ function Workout({ navigation }) {
                 created: Date.now(),
                 users: [],
                 exercises: [],
-                tid: null
+                tid: null,
+
+                volume: 0,
+                reps: 0,
+                PBs: 0
             };
             setWorkout(newWorkout);
             setIsNewWorkoutBottomSheetVisible(true);
@@ -90,7 +94,11 @@ function Workout({ navigation }) {
                 created: Date.now(),
                 users: [], // Assuming this is intended to be an empty array initially
                 exercises: [...selectedTemplate.exercises], // Create a shallow copy of the exercises array
-                tid: selectedTemplate.tid
+                tid: selectedTemplate.tid,
+
+                volume: 0,
+                reps: 0,
+                PBs: 0
             };
 
             setWorkout(newWorkout);
@@ -299,7 +307,7 @@ function Workout({ navigation }) {
                 <View style={{ height: 55 }} />
                 {isCurrentWorkoutPanelVisible && (
                     <CurrentWorkoutPanel
-                        exerciseName={'8/8 Workout'}
+                        workout={workout}
                         timerRef={timerRef}
                         openWorkout={startNewWorkout}
                     />

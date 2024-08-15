@@ -4,7 +4,15 @@ import { Clock } from 'iconsax-react-native';
 import { MaterialCommunityIcons, FontAwesome6 } from '@expo/vector-icons';
 import RNBounceable from '@freakycoder/react-native-bounceable';
 
-const CurrentWorkoutPanel = ({ exerciseName, timerRef, openWorkout }) => {
+function timestampToDateString(timestamp) {
+    const date = new Date(timestamp);
+    const month = date.getMonth() + 1; // Months are zero-indexed, so add 1
+    const day = date.getDate();
+
+    return `${month}/${day}`;
+}
+
+const CurrentWorkoutPanel = ({ workout, timerRef, openWorkout }) => {
     const [time, setTime] = useState(timerRef.current);
 
     useEffect(() => {
@@ -18,7 +26,7 @@ const CurrentWorkoutPanel = ({ exerciseName, timerRef, openWorkout }) => {
     return (
         <View style={styles.container}>
             <View style={styles.topHalf}>
-                <Text style={styles.exerciseName}>{exerciseName}</Text>
+                <Text style={styles.exerciseName}>{`${timestampToDateString(workout.created)} Workout`}</Text>
                 <View style={styles.stats_row}>
                     <View style={styles.stats_entry}>
                         <Clock color='#666' size={16} variant='Bold' />
@@ -26,11 +34,11 @@ const CurrentWorkoutPanel = ({ exerciseName, timerRef, openWorkout }) => {
                     </View>
                     <View style={styles.stats_entry}>
                         <MaterialCommunityIcons name='weight' size={17} color={'#666'} />
-                        <Text style={styles.stats_text}>5,000 lb</Text>
+                        <Text style={styles.stats_text}>{workout.volume} lb</Text>
                     </View>
                     <View style={styles.stats_entry}>
                         <FontAwesome6 name="trophy" color={"#666"} size={14} />
-                        <Text style={styles.stats_text}>3 PRs</Text>
+                        <Text style={styles.stats_text}>{workout.PBs} PBs</Text>
                     </View>
                 </View>
             </View>

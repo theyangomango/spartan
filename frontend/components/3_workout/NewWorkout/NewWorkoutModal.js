@@ -53,7 +53,14 @@ const NewWorkoutModal = ({ workout, cancelWorkout, updateWorkout, finishWorkout,
         setTotalReps(reps);
         setTotalVolume(volume);
 
-    }, [workout.exercises, isDoneState]);
+        // Update the workout object with the new total reps and volume
+        updateWorkout(prevWorkout => ({
+            ...prevWorkout,
+            reps,   // Update the reps property
+            volume, // Update the volume property
+        }));
+    }, [workout.exercises, isDoneState, updateWorkout]);
+
 
     const showSelectExerciseModal = useCallback(() => {
         setSelectExerciseModalVisible(true);
@@ -66,7 +73,7 @@ const NewWorkoutModal = ({ workout, cancelWorkout, updateWorkout, finishWorkout,
     const appendExercises = useCallback((exercises) => {
         const newWorkout = {
             ...workout, exercises: [...workout.exercises, ...exercises.map(ex => ({
-                name: ex.name, 
+                name: ex.name,
                 muscle: ex.muscle,
                 sets: [{
                     weight: 0,
@@ -215,7 +222,7 @@ const NewWorkoutModal = ({ workout, cancelWorkout, updateWorkout, finishWorkout,
                 />
             </Modal>
 
-           
+
         </View>
     );
 };
@@ -257,7 +264,7 @@ const styles = StyleSheet.create({
         fontSize: 16,
         color: '#0499FE',
         fontFamily: 'Outfit_700Bold',
-        marginLeft: 6                                  
+        marginLeft: 6
     },
     timer_text_ctnr: {
         position: 'absolute',
