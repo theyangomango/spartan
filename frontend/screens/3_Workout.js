@@ -66,7 +66,8 @@ function Workout({ navigation }) {
                 creatorUID: userData.uid,
                 created: Date.now(),
                 users: [],
-                exercises: []
+                exercises: [],
+                tid: null
             };
             setWorkout(newWorkout);
             setIsNewWorkoutBottomSheetVisible(true);
@@ -89,6 +90,7 @@ function Workout({ navigation }) {
                 created: Date.now(),
                 users: [], // Assuming this is intended to be an empty array initially
                 exercises: [...selectedTemplate.exercises], // Create a shallow copy of the exercises array
+                tid: selectedTemplate.tid
             };
 
             setWorkout(newWorkout);
@@ -162,7 +164,7 @@ function Workout({ navigation }) {
             name: 'Untitled Template',
             exerciseCount: 0,
             exercises: [],
-            lastDate: 'August 3rd',
+            lastDate: null,
             tid: tid
         };
 
@@ -256,6 +258,24 @@ function Workout({ navigation }) {
             updateDoc('users', global.userData.uid, {
                 statsExercises: newExerciseStats
             });
+
+
+            console.log(completedWorkout);
+            if (completedWorkout.tid) {
+                const index = global.userData.templates.findIndex(t => {
+                    return t.tid == completedWorkout.tid;
+                });
+                if (index > -1) {
+                    setTemplates(prevTemplates => {
+                        const updatedTemplates = [...prevTemplates];
+                        updatedTemplates[index] = {
+                            ...updatedTemplates[index],
+                            lastDate: today,
+                        };
+                        return updatedTemplates;
+                    });
+                }
+            }
         }
     }, [completedWorkout]);
 
