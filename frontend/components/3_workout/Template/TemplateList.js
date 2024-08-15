@@ -3,7 +3,7 @@ import DraggableFlatList from "react-native-draggable-flatlist";
 import TemplateCard from "./TemplateCard";
 import { View } from "react-native";
 
-const TemplateList = ({ templates, setTemplates, isPanelVisible, setSelectedScheduleTemplate, openEditTemplateBottomSheet, startWorkoutFromTemplate }) => {
+const TemplateList = ({ templates, setTemplates, openEditTemplateBottomSheet, startWorkoutFromTemplate }) => {
 
     const renderItem = useCallback(({ item, drag }) => {
         const index = templates.findIndex(template => template.tid === item.tid);
@@ -11,14 +11,12 @@ const TemplateList = ({ templates, setTemplates, isPanelVisible, setSelectedSche
             <TemplateCard
                 template={item}
                 handleLongPress={drag}
-                isPanelVisible={isPanelVisible}
-                setSelectedTemplate={setSelectedScheduleTemplate}
                 handlePressEditButton={() => openEditTemplateBottomSheet(index)}
                 handlePressStartButton={() => startWorkoutFromTemplate(index)}
                 index={index}
             />
         );
-    }, [isPanelVisible, setSelectedScheduleTemplate, openEditTemplateBottomSheet, templates]);
+    }, [openEditTemplateBottomSheet, templates]);
 
     return (
         <DraggableFlatList

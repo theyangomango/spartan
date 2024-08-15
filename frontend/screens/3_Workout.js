@@ -4,8 +4,6 @@ import Footer from "../components/Footer";
 import StartWorkoutButton from "../components/3_Workout/StartWorkoutButton";
 import JoinWorkoutButton from "../components/3_Workout/JoinWorkoutButton";
 import makeID from "../../backend/helper/makeID";
-import WorkoutDates from "../components/3_Workout/WorkoutDates/WorkoutDates";
-import WorkoutInfoPanel from "../components/3_Workout/WorkoutDates/WorkoutInfoPanel";
 import NewWorkoutBottomSheet from "../components/3_Workout/NewWorkout/NewWorkoutBottomSheet";
 import CurrentWorkoutPanel from "../components/3_Workout/CurrentWorkoutPanel";
 import millisToMinutesAndSeconds from "../helper/milliesToMinutesAndSeconds";
@@ -17,33 +15,21 @@ import TemplateList from "../components/3_Workout/Template/TemplateList";
 import WorkoutSummaryModal from "../components/3_Workout/WorkoutSummaryModal";
 import GroupModalBottomSheet from '../components/3_Workout/NewWorkout/Group/GroupModalBottomSheet'
 import calculate1RM from "../helper/calculate1RM";
-
-function formatDate(date) {
-    // Format the date to "M/D" format
-    const month = date.getMonth() + 1;
-    const day = date.getDate();
-    return `${month}/${day}`;
-}
+import formatDate from "../helper/formatDate";
 
 function Workout({ navigation }) {
     const [workout, setWorkout] = useState(global.userData.currentWorkout);
     const [templates, setTemplates] = useState(global.userData.templates);
-    const [isPanelVisible, setIsPanelVisible] = useState(false);
-    const [panelDate, setPanelDate] = useState(null);
-    const [isNewWorkoutBottomSheetVisible, setIsNewWorkoutBottomSheetVisible] = useState(false);
-    const [isEditTemplateBottomSheetVisible, setIsEditTemplateBottomSheetVisible] = useState(false);
     const [isCurrentWorkoutPanelVisible, setIsCurrentWorkoutPanelVisible] = useState(!!workout);
-    const [selectedScheduleTemplate, setSelectedScheduleTemplate] = useState(null);
+    const [isNewWorkoutBottomSheetVisible, setIsNewWorkoutBottomSheetVisible] = useState(false);
+    const [groupModalExpandFlag, setGroupModalExpandFlag] = useState(false);
+    const [isEditTemplateBottomSheetVisible, setIsEditTemplateBottomSheetVisible] = useState(false);
+    const [completedWorkout, setCompletedWorkout] = useState(null);
     const [isSummaryModalVisible, setIsSummaryModalVisible] = useState(false);
+
     const openedTemplateRef = useRef(null);
     const workoutTimeInterval = useRef(null);
     const timerRef = useRef(workout ? millisToMinutesAndSeconds(Date.now() - workout.created) : '00:00');
-    const [completedWorkout, setCompletedWorkout] = useState(null);
-    const [groupModalExpandFlag, setGroupModalExpandFlag] = useState(false);
-    const [scheduledDates, setScheduledDates] = useState(global.userData.scheduledWorkouts.map(scheduled => ({
-        ...scheduled,
-        date: new Date(scheduled.date.seconds * 1000)
-    })));
 
     // Update the timerRef every second when workout is not null
     useEffect(() => {
@@ -57,6 +43,7 @@ function Workout({ navigation }) {
         return () => clearInterval(workoutTimeInterval.current);
     }, [workout]);
 
+    // New Workout
     const startNewWorkout = useCallback(async () => {
         if (!workout) {
             const newWID = makeID();
@@ -149,48 +136,12 @@ function Workout({ navigation }) {
         setIsSummaryModalVisible(true); // Show the summary modal when the workout is finished
     }, [workout]);
 
-    const scheduleWorkout = useCallback((date) => {
-        setIsPanelVisible(true);
-        setPanelDate(date);
+    function postWorkout() {
+        setIsSummaryModalVisible(false);
+        navigation.navigate('ProfileStack', { screen: 'SelectPhotos', workout: completedWorkout });
+    }
 
-        setScheduledDates(prevDates => {
-            const existingSchedule = prevDates.find(scheduled =>
-                new Date(scheduled.date).toDateString() === date.toDateString()
-            );
-
-            if (existingSchedule) {
-                // If the date is already scheduled, update the selected template
-                const correspondingTemplate = templates.find(template => template.tid === existingSchedule.tid);
-                setSelectedScheduleTemplate(correspondingTemplate);
-                return prevDates; // No need to update the scheduledDates array
-            } else {
-                // If the date is not already scheduled, schedule it and clear the selected template
-                setSelectedScheduleTemplate(null);
-                return [...prevDates, { date: date, tid: null }];
-            }
-        });
-    }, [templates, setSelectedScheduleTemplate]);
-
-    const descheduleWorkout = useCallback((date) => {
-        setIsPanelVisible(false);
-        setPanelDate(null);
-        setScheduledDates(prevDates =>
-            prevDates.filter(scheduled => {
-                return new Date(scheduled.date).toDateString() !== date.toDateString();
-            })
-        );
-    }, []);
-
-    const finishSchedulingWorkout = useCallback((date) => {
-        setIsPanelVisible(false);
-        setPanelDate(null);
-    }, []);
-
-    const openEditTemplateBottomSheet = useCallback((index) => {
-        openedTemplateRef.current = templates[index];
-        setIsEditTemplateBottomSheetVisible(true);
-    }, [templates]);
-
+    // Templates
     function initTemplate() {
         const tid = makeID();
         const newTemplate = {
@@ -205,6 +156,30 @@ function Workout({ navigation }) {
         openedTemplateRef.current = newTemplate;
         setIsEditTemplateBottomSheetVisible(true);
     }
+
+    const openEditTemplateBottomSheet = useCallback((index) => {
+        openedTemplateRef.current = templates[index];
+        setIsEditTemplateBottomSheetVisible(true);
+    }, [templates]);
+
+    function updateTemplate() {
+        setTemplates(prevTemplates => {
+            const index = prevTemplates.findIndex(template => template.tid === openedTemplateRef.current.tid);
+            if (index !== -1) {
+                // Create a new array with the updated template
+                const updatedTemplates = [...prevTemplates];
+                updatedTemplates[index] = { ...openedTemplateRef.current };
+                return updatedTemplates;
+            }
+            return prevTemplates; // If not found, return the original state
+        });
+    }
+
+    useEffect(() => {
+        updateDoc('users', global.userData.uid, {
+            currentWorkout: workout
+        });
+    }, [workout]);
 
     useEffect(() => {
         if (completedWorkout) {
@@ -257,55 +232,11 @@ function Workout({ navigation }) {
         }
     }, [completedWorkout]);
 
-    function updateTemplate() {
-        setTemplates(prevTemplates => {
-            const index = prevTemplates.findIndex(template => template.tid === openedTemplateRef.current.tid);
-            if (index !== -1) {
-                // Create a new array with the updated template
-                const updatedTemplates = [...prevTemplates];
-                updatedTemplates[index] = { ...openedTemplateRef.current };
-                return updatedTemplates;
-            }
-            return prevTemplates; // If not found, return the original state
-        });
-    }
-
-    function postWorkout() {
-        setIsSummaryModalVisible(false);
-        navigation.navigate('ProfileStack', { screen: 'SelectPhotos', workout: completedWorkout });
-    }
-
-    useEffect(() => {
-        updateDoc('users', global.userData.uid, {
-            currentWorkout: workout
-        });
-    }, [workout]);
-
     useEffect(() => {
         updateDoc('users', global.userData.uid, {
             templates: templates
         });
     }, [templates]);
-
-    useEffect(() => {
-        if (selectedScheduleTemplate && panelDate) {
-            setScheduledDates(prevDates => {
-                return prevDates.map(scheduled => {
-                    const scheduledDate = new Date(scheduled.date); // Convert the string back to a Date object
-                    return scheduledDate.toDateString() === panelDate.toDateString()
-                        ? { ...scheduled, tid: selectedScheduleTemplate.tid }
-                        : scheduled;
-                });
-            });
-        }
-    }, [selectedScheduleTemplate, panelDate]);
-
-    useEffect(() => {
-        updateDoc('users', global.userData.uid, {
-            scheduledWorkouts: scheduledDates
-        });
-    }, [scheduledDates]);
-
 
     const showGroupModal = useCallback(() => {
         setGroupModalExpandFlag(prev => !prev);
@@ -319,20 +250,6 @@ function Workout({ navigation }) {
         <View style={styles.mainContainer}>
             <View style={styles.body}>
                 <View style={{ height: 55 }} />
-                <WorkoutDates
-                    scheduledDates={scheduledDates}
-                    scheduleWorkout={scheduleWorkout}
-                    descheduleWorkout={descheduleWorkout}
-                    isPanelVisible={isPanelVisible}
-                    selectedDate={panelDate}
-                />
-                <WorkoutInfoPanel
-                    isVisible={isPanelVisible}
-                    onClose={finishSchedulingWorkout}
-                    date={panelDate}
-                    selectedTemplate={selectedScheduleTemplate}
-                    setSelectedTemplate={setSelectedScheduleTemplate}
-                />
                 {isCurrentWorkoutPanelVisible && (
                     <CurrentWorkoutPanel
                         exerciseName={'8/8 Workout'}
@@ -356,8 +273,6 @@ function Workout({ navigation }) {
                 <TemplateList
                     templates={templates}
                     setTemplates={setTemplates}
-                    isPanelVisible={isPanelVisible}
-                    setSelectedScheduleTemplate={setSelectedScheduleTemplate}
                     openEditTemplateBottomSheet={openEditTemplateBottomSheet}
                     startWorkoutFromTemplate={startWorkoutFromTemplate}
                 />
@@ -403,7 +318,7 @@ const styles = StyleSheet.create({
     },
     body: {
         flex: 1,
-        paddingTop: 125
+        paddingTop: 10
     },
     quickStartText: {
         fontFamily: 'Poppins_600SemiBold',
