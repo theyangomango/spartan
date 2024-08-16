@@ -12,14 +12,18 @@ const SignUp = ({ navigation, route }) => {
         navigation.navigate('LogIn')
     }
 
+    function toNewUserCreationScreen() {
+        navigation.navigate('NewUserCreation');
+    }
+
     return (
         <View style={styles.container}>
             <View style={styles.iconContainer}>
                 <RNBounceable>
-                    <Ionicons name="close" size={24} color="#666" style={styles.closeIcon} />
+                    <Ionicons name="close" size={24} color="#888" style={styles.closeIcon} />
                 </RNBounceable>
                 <RNBounceable>
-                    <Octicons name="question" size={23} color="#666" style={styles.helpIcon} />
+                    <Octicons name="question" size={22} color="#888" style={styles.helpIcon} />
                 </RNBounceable>
             </View>
             <View style={styles.top_ctnr}>
@@ -31,7 +35,7 @@ const SignUp = ({ navigation, route }) => {
                 <AuthButton
                     icon="person"
                     text="Phone / Email"
-                    onPress={() => { }}
+                    onPress={toNewUserCreationScreen}
                 />
 
                 {/* // ! Disabled for Beta */}

@@ -40,26 +40,30 @@ const LogIn = ({ navigation, route }) => {
                     text="Phone / Email / Username"
                     onPress={() => { }}
                 />
-                <AuthButton
-                    icon="logo-google"
-                    text="Continue with Google"
-                    onPress={() => { }}
-                />
-                <AuthButton
-                    icon="logo-apple"
-                    text="Continue with Apple"
-                    onPress={() => { }}
-                />
-                <AuthButton
-                    icon="logo-instagram"
-                    text="Continue with Instagram"
-                    onPress={() => { }}
-                />
-                <AuthButton
-                    icon="logo-facebook"
-                    text="Continue with Facebook"
-                    onPress={() => { }}
-                />
+
+                {/* // ! Disabled for Beta */}
+                <View pointerEvents='none' style={{ opacity: 0.4 }}>
+                    <AuthButton
+                        icon="logo-google"
+                        text="Continue with Google"
+                        onPress={() => { }}
+                    />
+                    <AuthButton
+                        icon="logo-apple"
+                        text="Continue with Apple"
+                        onPress={() => { }}
+                    />
+                    <AuthButton
+                        icon="logo-instagram"
+                        text="Continue with Instagram"
+                        onPress={() => { }}
+                    />
+                    <AuthButton
+                        icon="logo-facebook"
+                        text="Continue with Facebook"
+                        onPress={() => { }}
+                    />
+                </View>
             </View>
 
             <View style={styles.footer}>

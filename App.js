@@ -5,8 +5,9 @@ import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import 'react-native-gesture-handler';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 
-import SignUp from './frontend/screens/SignUp'
-import LogIn from './frontend/screens/LogIn';
+import SignUp from './frontend/screens/0.0_SignUp'
+import LogIn from './frontend/screens/0.1_LogIn';
+import NewUserCreation from './frontend/screens/0.2_NewUserCreation';
 
 import Feed from "./frontend/screens/1_Feed";
 import Profile from './frontend/screens/5_Profile';
@@ -118,6 +119,7 @@ const AuthenticationStack = (({ navigation, route }) => {
         }}>
             <Stack.Screen name='SignUp' component={SignUp} />
             <Stack.Screen name='LogIn' component={LogIn} />
+            <Stack.Screen name='NewUserCreation' component={NewUserCreation} />
         </Stack.Navigator>
     )
 });
@@ -248,7 +250,7 @@ export default function App() {
     else return (
         <GestureHandlerRootView style={{ flex: 1 }}>
             <NavigationContainer>
-                <Tab.Navigator initialRouteName='FeedStack' screenOptions={{
+                <Tab.Navigator initialRouteName='AuthenticationStack' screenOptions={{
                     headerShown: false,
                     tabBarStyle: {
                         display: 'none'
