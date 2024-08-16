@@ -154,6 +154,7 @@ const styles = StyleSheet.create({
         alignItems: 'center',
         marginLeft: 'auto',
         marginRight: 10,
+        opacity: 0.4
     },
     pfp: {
         width: 34,

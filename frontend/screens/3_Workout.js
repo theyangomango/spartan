@@ -222,26 +222,26 @@ function Workout({ navigation }) {
         if (completedWorkout) {
             let newExerciseStats = { ...global.userData.statsExercises };
             const today = formatDate(new Date());
-    
+
             completedWorkout.exercises.forEach(ex => {
                 const prev1RM = ([ex.name] in newExerciseStats && '1RM' in newExerciseStats[ex.name]) ? newExerciseStats[ex.name]['1RM'] : 0;
-    
+
                 // Ensure newExerciseStats[ex.name] and its sets array are initialized
                 newExerciseStats[ex.name] = newExerciseStats[ex.name] || { sets: [], progress1RM: [] };
                 newExerciseStats[ex.name].sets = newExerciseStats[ex.name].sets || [];
                 newExerciseStats[ex.name].progress1RM = newExerciseStats[ex.name].progress1RM || [];
-    
+
                 let maxSet1RM = prev1RM; // Track the max 1RM for today's sets
-    
+
                 ex.sets.forEach(set => {
                     newExerciseStats[ex.name].sets.push({
                         weight: Number(set.weight),
                         reps: Number(set.reps),
                         date: today,
                     });
-    
+
                     const set1RM = calculate1RM(Number(set.weight), Number(set.reps));
-    
+
                     if (set1RM > prev1RM) {
                         newExerciseStats[ex.name]['1RM'] = set1RM;
                         newExerciseStats[ex.name]['bestSet'] = {
@@ -249,16 +249,16 @@ function Workout({ navigation }) {
                             reps: Number(set.reps)
                         }
                     }
-    
+
                     // Update maxSet1RM if the current set1RM is greater
                     if (set1RM > maxSet1RM) {
                         maxSet1RM = set1RM;
                     }
                 });
-    
+
                 const progress1RMArray = newExerciseStats[ex.name].progress1RM;
                 const lastEntry = progress1RMArray[progress1RMArray.length - 1];
-    
+
                 if (lastEntry && lastEntry.date === today) {
                     // If the last entry is for today, update the 1RM value
                     lastEntry['1RM'] = Math.max(lastEntry['1RM'], maxSet1RM);
@@ -270,11 +270,11 @@ function Workout({ navigation }) {
                     });
                 }
             });
-    
+
             updateDoc('users', global.userData.uid, {
                 statsExercises: newExerciseStats
             });
-    
+
             if (completedWorkout.tid) {
                 const index = global.userData.templates.findIndex(t => {
                     return t.tid == completedWorkout.tid;
@@ -291,7 +291,7 @@ function Workout({ navigation }) {
                 }
             }
         }
-    }, [completedWorkout]);    
+    }, [completedWorkout]);
 
     useEffect(() => {
         updateDoc('users', global.userData.uid, {
@@ -311,19 +311,17 @@ function Workout({ navigation }) {
         <View style={styles.mainContainer}>
             <View style={styles.body}>
                 <View style={{ height: 55 }} />
+
+                <Text style={styles.quickStartText}>Quick Start</Text>
+                <StartWorkoutButton startWorkout={startNewWorkout} />
+                <JoinWorkoutButton />
+
                 {isCurrentWorkoutPanelVisible && (
                     <CurrentWorkoutPanel
                         workout={workout}
                         timerRef={timerRef}
                         openWorkout={startNewWorkout}
                     />
-                )}
-                {!isCurrentWorkoutPanelVisible && (
-                    <>
-                        <Text style={styles.quickStartText}>Quick Start</Text>
-                        <StartWorkoutButton startWorkout={startNewWorkout} />
-                        <JoinWorkoutButton />
-                    </>
                 )}
                 <View style={styles.templatesHeadingRow}>
                     <Text style={styles.templatesText}>Templates</Text>
