@@ -3,7 +3,10 @@ import { Pressable, StyleSheet, Text, TouchableOpacity, View } from 'react-nativ
 import { Ionicons } from '@expo/vector-icons';
 import ExerciseImagePreview from '../../3_Workout/NewWorkout/SelectExercise/ExerciseImagePreview';
 
-const ExerciseCard = memo(({ name, muscleGroup, lastDone = 'July 13th', timesCompleted = 12, selectExercise, showExerciseInfo }) => {
+const ExerciseCard = memo(({ name, muscleGroup, selectExercise, showExerciseInfo, userStats }) => {
+
+    const lastDone = userStats ? userStats.sets[userStats.sets.length - 1].date : 'N/A';
+    const timesCompleted = userStats ? userStats.sets.length : '';
 
     const muscleColors = {
         Chest: '#FFAFB8',
@@ -113,6 +116,7 @@ const styles = StyleSheet.create({
         color: '#888'
     },
     icon_ctnr: {
-        marginTop: 1
+        marginTop: 1,
+        opacity: 0.3
     }
 });

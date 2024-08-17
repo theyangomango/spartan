@@ -67,11 +67,21 @@ export default function Competition({ navigation }) {
                 <Ionicons name="information-circle" size={26.5} color={'#dcdcdc'} />
             </View>
 
-            <Podium data={userList && userList.length > 0 ? [
-                { handle: userList[0]?.handle, pfp: userList[0]?.image },
-                userList[1] && { handle: userList[1]?.handle, pfp: userList[1]?.image },
-                userList[2] && { handle: userList[2]?.handle, pfp: userList[2]?.image }
-            ] : null} />
+            <Podium
+                data={userList && userList.length > 0 ? userList
+                    .slice(0, 3) // Limit to the first three users
+                    .map(user => user && user.handle && user.image && user.statsExercises ? {
+                        handle: user.handle,
+                        pfp: user.image,
+                        stat: user.statsExercises[comparedExercise]?.['1RM'] || 0
+                    } : null)
+                    .filter(Boolean) // Filter out any null values
+                    : null}
+            />
+
+
+
+
 
             <LeaderboardBottomSheet
                 userList={userList}

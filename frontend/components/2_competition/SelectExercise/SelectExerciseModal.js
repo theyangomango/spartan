@@ -76,7 +76,7 @@ const styles = StyleSheet.create({
         shadowOffset: { width: 0, height: 2 },
         shadowOpacity: 0.8,
         shadowRadius: 3,
-        paddingVertical: 10
+        paddingTop: 5
     },
     header: {
         flexDirection: 'row',
@@ -127,7 +127,8 @@ const styles = StyleSheet.create({
         padding: 5,
         marginHorizontal: 5,
         borderRadius: 10,
-        backgroundColor: '#E1E1E1'
+        backgroundColor: '#E1E1E1',
+        opacity: 0.5
     },
     filterButtonText: {
         fontSize: 13,
