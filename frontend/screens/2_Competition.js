@@ -1,13 +1,14 @@
 import React, { useEffect, useRef, useState } from "react";
-import { StyleSheet, View, Text, Modal, TouchableOpacity } from "react-native";
+import { StyleSheet, View, Modal, TouchableOpacity, Animated } from "react-native";
 import Footer from "../components/Footer";
 import Podium from "../components/2_Competition/Podium";
 import retrieveFollowingUsers from "../../backend/retrieveFollowingUsers";
 import rankUsers from "../helper/rankUsers";
 import LeaderboardBottomSheet from "../components/2_Competition/LeaderboardBottomSheet";
 import UserStatsBottomSheet from "../components/2_Competition/UserStats/UserStatsBottomSheet";
-import { Octicons, Ionicons } from '@expo/vector-icons'
+import { Octicons, Ionicons } from '@expo/vector-icons';
 import SelectExerciseModal from "../components/2_Competition/SelectExercise/SelectExerciseModal";
+import InfoPanel from "../components/2_Competition/InfoPanel"; // Import the InfoPanel component
 
 export default function Competition({ navigation }) {
     const usersRef = useRef([]);
@@ -18,6 +19,9 @@ export default function Competition({ navigation }) {
     const [selectedUser, setSelectedUser] = useState(null);
     const [isUserStatsBottomSheetVisible, setIsUserStatsBottomSheetVisible] = useState(false);
     const [footerKey, setFooterKey] = useState(0); // State to force footer re-render
+
+    const [infoPanelVisible, setInfoPanelVisible] = useState(false); // State to toggle info panel
+    const infoPanelOpacity = useRef(new Animated.Value(0)).current; // Initial opacity value of 0
 
     useEffect(() => {
         init();
@@ -60,12 +64,35 @@ export default function Competition({ navigation }) {
         setIsUserStatsBottomSheetVisible(true);
     };
 
+    const toggleInfoPanel = () => {
+        if (infoPanelVisible) {
+            // Fade out
+            Animated.timing(infoPanelOpacity, {
+                toValue: 0,
+                duration: 300,
+                useNativeDriver: true,
+            }).start(() => setInfoPanelVisible(false)); // Hide after animation
+        } else {
+            // Show and fade in
+            setInfoPanelVisible(true);
+            Animated.timing(infoPanelOpacity, {
+                toValue: 1,
+                duration: 300,
+                useNativeDriver: true,
+            }).start();
+        }
+    };
+
     return (
         <View style={styles.mainContainer}>
             <View style={styles.header}>
-                <Octicons name="gear" size={22.5} color={'#ddd'} style={{ paddingBottom: 4 }} />
-                <Ionicons name="information-circle" size={26.5} color={'#dcdcdc'} />
+                <Octicons name="gear" size={22.5} color={'#eee'} style={{ paddingBottom: 4 }} />
+                <TouchableOpacity onPress={toggleInfoPanel}>
+                    <Ionicons name="information-circle" size={26.5} color={'#fff'} />
+                </TouchableOpacity>
             </View>
+
+            <InfoPanel isVisible={infoPanelVisible} opacity={infoPanelOpacity} />
 
             <Podium
                 data={userList && userList.length > 0 ? userList
@@ -78,10 +105,6 @@ export default function Competition({ navigation }) {
                     .filter(Boolean) // Filter out any null values
                     : null}
             />
-
-
-
-
 
             <LeaderboardBottomSheet
                 userList={userList}
@@ -119,7 +142,6 @@ const styles = StyleSheet.create({
     },
     header: {
         position: 'absolute',
-        // backgroundColor: 'red',
         top: 0,
         height: 79,
         left: 0,
@@ -128,26 +150,5 @@ const styles = StyleSheet.create({
         justifyContent: 'space-between',
         paddingHorizontal: 30,
         flexDirection: 'row'
-    },
-    modalContainer: {
-        flex: 1,
-        justifyContent: 'center',
-        alignItems: 'center',
-        backgroundColor: 'rgba(0,0,0,0.5)',
-    },
-    modalContent: {
-        width: 300,
-        padding: 20,
-        backgroundColor: '#fff',
-        borderRadius: 10,
-        alignItems: 'center',
-    },
-    modalText: {
-        fontSize: 18,
-        marginBottom: 10,
-    },
-    closeModalText: {
-        color: 'blue',
-        marginTop: 10,
     },
 });
