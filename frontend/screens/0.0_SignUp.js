@@ -19,12 +19,12 @@ const SignUp = ({ navigation, route }) => {
     return (
         <View style={styles.container}>
             <View style={styles.iconContainer}>
-                <RNBounceable>
+                {/* <RNBounceable>
                     <Ionicons name="close" size={24} color="#888" style={styles.closeIcon} />
                 </RNBounceable>
                 <RNBounceable>
                     <Octicons name="question" size={22} color="#888" style={styles.helpIcon} />
-                </RNBounceable>
+                </RNBounceable> */}
             </View>
             <View style={styles.top_ctnr}>
                 <Text style={styles.title}>Sign Up for Spartan</Text>

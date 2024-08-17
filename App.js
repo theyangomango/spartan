@@ -8,6 +8,7 @@ import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import SignUp from './frontend/screens/0.0_SignUp'
 import LogIn from './frontend/screens/0.1_LogIn';
 import NewUserCreation from './frontend/screens/0.2_NewUserCreation';
+import UserLogInCredentials from './frontend/screens/0.3_UserLogInCredentials';
 
 import Feed from "./frontend/screens/1_Feed";
 import Profile from './frontend/screens/5_Profile';
@@ -19,7 +20,7 @@ import Competition from './frontend/screens/2_Competition';
 import Messages from './frontend/screens/1.1_Messages';
 import Chat from './frontend/screens/1.2_Chat';
 import PostList from './frontend/screens/PostList';
-import ViewProfile from './frontend/screens/5.1_ViewProfile';
+import ViewProfile from './frontend/screens/4.1_ViewProfile';
 
 import {
     useFonts,
@@ -120,6 +121,7 @@ const AuthenticationStack = (({ navigation, route }) => {
             <Stack.Screen name='SignUp' component={SignUp} />
             <Stack.Screen name='LogIn' component={LogIn} />
             <Stack.Screen name='NewUserCreation' component={NewUserCreation} />
+            <Stack.Screen name='UserLogInCredentials' component={UserLogInCredentials} />
         </Stack.Navigator>
     )
 });

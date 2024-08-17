@@ -12,24 +12,21 @@ const LogIn = ({ navigation, route }) => {
         navigation.navigate('SignUp')
     }
 
+    function toUserLogInCredentials() {
+        navigation.navigate('UserLogInCredentials');
+    }
+
     return (
         <View style={styles.container}>
-            {/* <StatusBar style='light' /> */}
-            {/* <View style={styles.circle} /> */}
             <View style={styles.iconContainer}>
                 <RNBounceable onPress={toSignUpScreen}>
                     <Ionicons name="chevron-back" size={24} color="#666" style={styles.closeIcon} />
                 </RNBounceable>
-                <RNBounceable>
+                {/* <RNBounceable>
                     <Octicons name="question" size={23} color="#666" style={styles.helpIcon} />
-                </RNBounceable>
+                </RNBounceable> */}
             </View>
             <View style={styles.top_ctnr}>
-                {/* <View style={styles.logo}>
-                    <Image source={require('../assets/inverted_logo.png')} style={styles.logo_image} />
-                    <Text style={styles.title}>SPARTAN</Text>
-                </View> */}
-                {/* <Text style={styles.motto}>Embrace Greatness. Together.</Text> */}
                 <Text style={styles.title}>Log In to Spartan</Text>
                 <Text style={styles.subtitle}>Log in to see past posts and workouts, message friends, see notifications, and more.</Text>
             </View>
@@ -38,7 +35,7 @@ const LogIn = ({ navigation, route }) => {
                 <AuthButton
                     icon="person"
                     text="Phone / Email / Username"
-                    onPress={() => { }}
+                    onPress={toUserLogInCredentials}
                 />
 
                 {/* // ! Disabled for Beta */}

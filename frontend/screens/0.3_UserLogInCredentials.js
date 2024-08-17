@@ -5,7 +5,7 @@ import { Ionicons, Octicons, Feather } from '@expo/vector-icons';
 
 const { width, height } = Dimensions.get('window');
 
-const NewUserCreation = ({ navigation }) => {
+const UserLogInCredentials = ({ navigation }) => {
     const [emailOrPhone, setEmailOrPhone] = useState('');
     const [username, setUsername] = useState('');
     const [password, setPassword] = useState('');
@@ -44,17 +44,7 @@ const NewUserCreation = ({ navigation }) => {
 
                 <View style={styles.formWrapper}>
                     <View style={styles.formContainer}>
-                        <Text style={styles.title}>Create a Username</Text>
-                        <TextInput
-                            style={styles.input}
-                            placeholder="Username"
-                            placeholderTextColor="#ccc"
-                            value={username}
-                            onChangeText={setUsername}
-                            autoFocus={true}  // Autofocus on this TextInput
-                        />
-
-                        <Text style={styles.title}>Email / Phone Number</Text>
+                        <Text style={styles.title}>Username / Email / Phone Number</Text>
                         <TextInput
                             ref={emailOrPhoneInputRef}
                             style={styles.input}
@@ -63,9 +53,19 @@ const NewUserCreation = ({ navigation }) => {
                             value={emailOrPhone}
                             onChangeText={setEmailOrPhone}
                             keyboardType="email-address"
+                            autoFocus={true}  // Autofocus on this TextInput
                         />
+{/* 
+                        <Text style={styles.title}>Create a Username</Text>
+                        <TextInput
+                            style={styles.input}
+                            placeholder="Username"
+                            placeholderTextColor="#ccc"
+                            value={username}
+                            onChangeText={setUsername}
+                        /> */}
 
-                        <Text style={styles.title}>Create a Password</Text>
+                        <Text style={styles.title}>Password</Text>
                         <TextInput
                             style={styles.input}
                             placeholder="Password"
@@ -163,4 +163,4 @@ const styles = StyleSheet.create({
     },
 });
 
-export default NewUserCreation;
+export default UserLogInCredentials;
