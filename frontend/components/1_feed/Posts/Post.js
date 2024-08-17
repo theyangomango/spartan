@@ -9,6 +9,7 @@ const aspectRatio = 0.8; // Original aspect ratio for the image container
 
 const Post = (({ data, onPressCommentButton, onPressShareButton, index, focusedPostIndex, handlePressPost, isPostsVisible }) => {
     const pfp = data.pfp;
+    const images = data.images;
     const [position, setPosition] = useState(0);
     const opacity = useRef(new Animated.Value(1)).current;
     const scaleValue = useRef(new Animated.Value(1)).current;
@@ -65,6 +66,20 @@ const Post = (({ data, onPressCommentButton, onPressShareButton, index, focusedP
     const handlePress = (event) => {
         const { locationX } = event.nativeEvent;
 
+        if (images.length == 1) {
+            handleMiddlePressIn(); // Start the press-in animation
+            if (focusedPostIndex.current === index) {
+                // Handle post press when it's already focused
+            } else if (focusedPostIndex.current === -1) {
+                viewRef.current.measure((x, y, width, height, pageX, pageY) => {
+                    handlePressPost(index, pageY);
+                });
+            }
+
+            setTimeout(handleMiddlePressOut, 100); // Start the press-out animation after a short delay
+            return;
+        }
+
         if (locationX <= 75) {
             handlePressLeft();
         } else if (locationX >= screenWidth - 75) {
@@ -83,7 +98,6 @@ const Post = (({ data, onPressCommentButton, onPressShareButton, index, focusedP
         }
     };
 
-    const images = data.images;
 
     return (
         <Animated.View ref={viewRef} style={[styles.wrapper, { opacity }]}>
@@ -117,7 +131,7 @@ const Post = (({ data, onPressCommentButton, onPressShareButton, index, focusedP
                             emptySpaceWidth={0}
                         />
                     </View>
-                    <PostHeader data={data} url={pfp} />
+                    <PostHeader data={data} url={pfp} position={position} totalImages={images.length} />
                     <PostFooter
                         data={data}
                         onPressCommentButton={() => onPressCommentButton(index)}

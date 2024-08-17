@@ -1,16 +1,8 @@
-import React, { useEffect, useState } from 'react';
-import { View, Text, Image, StyleSheet, Pressable, TouchableOpacity } from 'react-native';
+import React from 'react';
+import { View, Text, Image, StyleSheet } from 'react-native';
 import { BlurView } from 'expo-blur';
 
-export default function PostHeader({ data, url }) {
-    const [isFollowing, setIsFollowing] = useState(false);
-
-    useEffect(() => {
-        if (global.userData) {
-            setIsFollowing(global.userData.following.includes(data.uid));
-        }
-    }, [global.userData])
-
+export default function PostHeader({ data, url, position, totalImages }) {
     return (
         <View style={styles.outer}>
             <BlurView intensity={0} style={styles.main_ctnr}>
@@ -28,6 +20,17 @@ export default function PostHeader({ data, url }) {
                     </View>
                 </View>
                 <View style={styles.right}>
+                    {/* Render the dots and dash */}
+                    {totalImages > 1 &&
+                        <View style={styles.dotsContainer}>
+                            {Array.from({ length: totalImages }).map((_, i) => (
+                                <View
+                                    key={i}
+                                    style={i === position ? styles.dash : styles.dot}
+                                />
+                            ))}
+                        </View>
+                    }
                 </View>
             </BlurView>
         </View>
@@ -77,47 +80,28 @@ const styles = StyleSheet.create({
         fontFamily: 'Poppins_600SemiBold',
         color: '#fff'
     },
-    workout_text: {
-        fontSize: 10.5,
-        fontFamily: 'Lato_400Regular',
-        color: '#90D2FF'
-    },
     right: {
-        flexDirection: 'row'
-    },
-    follow_btn: {
-        width: 75,
-        height: 38,
-        borderRadius: 30,
-        marginHorizontal: 10,
-        marginVertical: 4,
-        backgroundColor: '#0699FF',
-        justifyContent: 'center'
-    },
-    following_btn: {
-        width: 90,
-        height: 38,
-        borderRadius: 30,
-        marginHorizontal: 10,
-        marginVertical: 4,
-        backgroundColor: '#F7FCFF',
-        justifyContent: 'center'
-    },
-    follow_text: {
-        textAlign: 'center',
-        color: 'white',
-        fontSize: 12.8,
-        fontFamily: 'SourceSansPro_600SemiBold',
-    },
-    following_btn_text: {
-        textAlign: 'center',
-        color: '#0699FF',
-        fontSize: 12.8,
-        fontFamily: 'SourceSansPro_600SemiBold',
-    },
-    options_icon_ctnr: {
-        justifyContent: 'center',
+        flexDirection: 'row',
         alignItems: 'center',
-        paddingRight: 3
+    },
+    dotsContainer: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        marginRight: 10,
+    },
+    dot: {
+        width: 9,
+        height: 5,
+        borderRadius: 5,
+        backgroundColor: '#fff',
+        opacity: 0.5,
+        marginHorizontal: 3.5,
+    },
+    dash: {
+        width: 25,
+        height: 5,
+        borderRadius: 5,
+        backgroundColor: '#fff',
+        marginHorizontal: 3.5,
     },
 });
