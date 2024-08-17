@@ -98,6 +98,22 @@ const Post = (({ data, onPressCommentButton, onPressShareButton, index, focusedP
         }
     };
 
+    // Conditional styles for bottom border radius
+    const containerStyle = [
+        styles.gallery,
+        focusedPostIndex.current === index && !isPostsVisible && {
+            borderBottomLeftRadius: 35,
+            borderBottomRightRadius: 35,
+        },
+    ];
+
+    const imageStyle = [
+        styles.image,
+        focusedPostIndex.current === index && !isPostsVisible && {
+            borderBottomLeftRadius: 35,
+            borderBottomRightRadius: 35,
+        },
+    ];
 
     return (
         <Animated.View ref={viewRef} style={[styles.wrapper, { opacity }]}>
@@ -114,13 +130,13 @@ const Post = (({ data, onPressCommentButton, onPressShareButton, index, focusedP
                             ref={galleryRef} // Attach the reference
                             data={images}
                             onIndexChange={setPosition}
-                            style={styles.gallery}
+                            style={containerStyle}
                             containerDimensions={{ width: screenWidth, height: screenWidth / aspectRatio }} // Set container dimensions
                             renderItem={({ item }) => (
                                 <View style={styles.imageWrapper}>
                                     <Image
                                         source={{ uri: item }}
-                                        style={styles.image}
+                                        style={imageStyle}
                                         resizeMode="cover"
                                     />
                                 </View>

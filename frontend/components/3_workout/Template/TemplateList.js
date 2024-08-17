@@ -4,7 +4,6 @@ import TemplateCard from "./TemplateCard";
 import { View } from "react-native";
 
 const TemplateList = ({ templates, setTemplates, openEditTemplateBottomSheet, startWorkoutFromTemplate }) => {
-
     const renderItem = useCallback(({ item, drag }) => {
         const index = templates.findIndex(template => template.tid === item.tid);
         return (
@@ -25,8 +24,7 @@ const TemplateList = ({ templates, setTemplates, openEditTemplateBottomSheet, st
             keyExtractor={(item) => item.tid}
             renderItem={renderItem}
             showsVerticalScrollIndicator={false}
-            ListFooterComponent={<View />}
-            ListFooterComponentStyle={{ height: templates.length * 70 }}
+            style={{ height: 510 }}
         />
     );
 };
