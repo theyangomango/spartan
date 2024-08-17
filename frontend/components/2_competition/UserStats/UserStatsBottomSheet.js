@@ -4,7 +4,7 @@ import BottomSheet, { BottomSheetBackdrop, BottomSheetFooter } from "@gorhom/bot
 import LeaderboardModal from "../LeaderboardModal";
 import UserStatsModal from "./UserStatsModal";
 
-const LeaderboardBottomSheet = ({ isVisible, setIsVisible, user }) => {
+const LeaderboardBottomSheet = ({ isVisible, setIsVisible, user, navigation }) => {
     const bottomSheetRef = useRef(null);
     const snapPoints = useMemo(() => ["94%"], []);
 
@@ -26,6 +26,18 @@ const LeaderboardBottomSheet = ({ isVisible, setIsVisible, user }) => {
         }
     }, [isVisible]);
 
+    function toViewProfile() {
+        // bottomSheetRef.current.close();
+        navigation.navigate('ViewProfile', {
+            user: {
+                handle: user.handle,
+                name: user.name,
+                pfp: user.pfp,
+                uid: user.uid
+            }
+        });
+    }
+
     return (
         <BottomSheet
             ref={bottomSheetRef}
@@ -37,7 +49,7 @@ const LeaderboardBottomSheet = ({ isVisible, setIsVisible, user }) => {
             onClose={() => setIsVisible(false)}
         >
             {user && 
-                <UserStatsModal user={user} />
+                <UserStatsModal user={user} toViewProfile={toViewProfile}/>
             }
         </BottomSheet>
     );

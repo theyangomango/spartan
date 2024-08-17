@@ -73,7 +73,8 @@ export default function ViewProfile({ navigation, route }) {
     }
 
     async function goBack() {
-        navigation.navigate('Explore');
+        // navigation.navigate('Explore');
+        navigation.goBack();
     }
 
     return (

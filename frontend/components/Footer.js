@@ -33,7 +33,7 @@ const Footer = ({ navigation, currentScreenName }) => {
                     </Pressable>
                 </View>
                 <View style={styles.icon_ctnr}>
-                    <Pressable onPress={() => navigateTo('Competition')}>
+                    <Pressable onPress={() => navigateTo('CompetitionStack')}>
                         <View style={currentScreenName === 'Competition' ? styles.selectedIcon : styles.icon}>
                             <Cup size="24.5" color={getIconColor('Competition')} variant='Bold' />
                         </View>

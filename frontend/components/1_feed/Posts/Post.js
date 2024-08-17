@@ -7,7 +7,7 @@ import PostFooter from "./PostFooter";
 const screenWidth = Dimensions.get('window').width;
 const aspectRatio = 0.8; // Original aspect ratio for the image container
 
-const Post = (({ data, onPressCommentButton, onPressShareButton, index, focusedPostIndex, handlePressPost, isPostsVisible }) => {
+const Post = (({ data, onPressCommentButton, onPressShareButton, index, focusedPostIndex, handlePressPost, isPostsVisible, toViewProfile }) => {
     const pfp = data.pfp;
     const images = data.images;
     const [position, setPosition] = useState(0);
@@ -147,7 +147,7 @@ const Post = (({ data, onPressCommentButton, onPressShareButton, index, focusedP
                             emptySpaceWidth={0}
                         />
                     </View>
-                    <PostHeader data={data} url={pfp} position={position} totalImages={images.length} />
+                    <PostHeader data={data} url={pfp} position={position} totalImages={images.length} toViewProfile={() => toViewProfile(index)}/>
                     <PostFooter
                         data={data}
                         onPressCommentButton={() => onPressCommentButton(index)}

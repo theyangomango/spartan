@@ -138,6 +138,17 @@ export default function Feed({ navigation }) {
         setIsScrolledPast90(yOffset > SCROLL_THRESHOLD);
     };
 
+    function toViewProfilePosts(index) {
+        const user = {
+            handle: posts[index].handle,
+            uid: posts[index].uid,
+            pfp: posts[index].pfp,
+            name: posts[index].name
+        }
+
+        navigation.navigate('ViewProfile', { user: user })
+    }
+
     const renderItem = ({ item, index }) => (
         <Animated.View
             style={[
@@ -156,6 +167,7 @@ export default function Feed({ navigation }) {
                 focusedPostIndex={focusedPostIndex}
                 handlePressPost={handlePressPost}
                 isPostsVisible={isPostsVisible}
+                toViewProfile={toViewProfilePosts}
             />
         </Animated.View>
     );
@@ -206,7 +218,7 @@ export default function Feed({ navigation }) {
                         scrollEventThrottle={16}
                         ListHeaderComponent={<Animated.View style={{ opacity: storiesOpacity }}>
                             {stories &&
-                                <Stories data={stories.storiesData} userList={stories.storiesUserList} initStories={initStories} />
+                                <Stories navigation={navigation} data={stories.storiesData} userList={stories.storiesUserList} initStories={initStories} />
                             }
                         </Animated.View>}
                         initialNumToRender={2}

@@ -31,7 +31,7 @@ function getTopExercisesByPopularity(user) {
     return exercises;
 }
 
-export default function UserStatsModal({ user }) {
+export default function UserStatsModal({ user, toViewProfile }) {
     const [expandedIndex, setExpandedIndex] = useState(null);
     const data = getTopExercisesByPopularity(user); // Get the top exercises
 
@@ -47,10 +47,10 @@ export default function UserStatsModal({ user }) {
     return (
         <View style={{ flex: 1 }}>
             <View style={styles.header}>
-                <View style={styles.headerLeft}>
+                <Pressable onPress={toViewProfile} style={styles.headerLeft}>
                     <Image source={{ uri: user.image }} style={styles.pfp} />
                     <Text numberOfLines={1} ellipsizeMode="tail" style={styles.handle}>{user.handle}</Text>
-                </View>
+                </Pressable>
                 <View style={styles.header_right}>
                     <Text style={styles.overallScore}>{user.statsHexagon.overall} overall</Text>
                 </View>

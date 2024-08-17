@@ -1,7 +1,6 @@
 import React, { useCallback } from "react";
 import DraggableFlatList from "react-native-draggable-flatlist";
 import TemplateCard from "./TemplateCard";
-import { View } from "react-native";
 
 const TemplateList = ({ templates, setTemplates, openEditTemplateBottomSheet, startWorkoutFromTemplate }) => {
     const renderItem = useCallback(({ item, drag }) => {

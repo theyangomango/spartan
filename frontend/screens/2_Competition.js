@@ -117,6 +117,7 @@ export default function Competition({ navigation }) {
 
             <UserStatsBottomSheet
                 user={selectedUser}
+                navigation={navigation}
                 isVisible={isUserStatsBottomSheetVisible}
                 setIsVisible={setIsUserStatsBottomSheetVisible}
             />

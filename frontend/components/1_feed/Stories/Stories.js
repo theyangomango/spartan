@@ -46,7 +46,7 @@ function generatePrefixSumArray(userList) {
     return prefixSumArray;
 }
 
-export default function Stories({ data, userList, initStories }) {
+export default function Stories({ data, userList, initStories, navigation }) {
     const storiesData = sortDataByUserList(data, userList);
     const storiesPrefixSums = generatePrefixSumArray(userList);
     const [viewModalVisible, setViewModal] = useState(false);
@@ -177,7 +177,18 @@ export default function Stories({ data, userList, initStories }) {
 
                     <BlurView intensity={5} style={styles.blurview} />
                     <View style={styles.modalHeader}>
-                        <StoryHeaderButtons stories={storiesData} index={currentIndex} />
+                        <StoryHeaderButtons stories={storiesData} index={currentIndex} toViewProfile={index => {
+                            setViewModal(false);
+                            const user = {
+                                handle: storiesData[index].handle,
+                                uid: storiesData[index].uid,
+                                pfp: storiesData[index].pfp,
+                                name: storiesData[index].name
+                            }
+
+                            navigation.navigate('ViewProfile', { user: user })
+                        }
+                        } />
                     </View>
                 </Modal>
             )}

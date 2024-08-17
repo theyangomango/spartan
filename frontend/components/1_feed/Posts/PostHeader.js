@@ -1,12 +1,12 @@
 import React from 'react';
-import { View, Text, Image, StyleSheet } from 'react-native';
+import { View, Text, Image, StyleSheet, Pressable } from 'react-native';
 import { BlurView } from 'expo-blur';
 
-export default function PostHeader({ data, url, position, totalImages }) {
+export default function PostHeader({ data, url, position, totalImages, toViewProfile }) {
     return (
         <View style={styles.outer}>
             <BlurView intensity={0} style={styles.main_ctnr}>
-                <View style={styles.left}>
+                <Pressable onPress={toViewProfile} style={styles.left}>
                     <View style={styles.pfp_ctnr}>
                         <Image
                             source={{ uri: url }}
@@ -18,7 +18,7 @@ export default function PostHeader({ data, url, position, totalImages }) {
                             {data.handle}
                         </Text>
                     </View>
-                </View>
+                </Pressable>
                 <View style={styles.right}>
                     {/* Render the dots and dash */}
                     {totalImages > 1 &&
@@ -98,7 +98,7 @@ const styles = StyleSheet.create({
         marginHorizontal: 3.5,
     },
     dash: {
-        width: 25,
+        width: 21,
         height: 5,
         borderRadius: 5,
         backgroundColor: '#fff',

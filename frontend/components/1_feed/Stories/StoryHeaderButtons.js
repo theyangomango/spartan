@@ -4,9 +4,8 @@ import { useEffect, useState } from "react";
 import { likeStory } from "../../../../backend/stories/likeStory";
 import { unlikeStory } from "../../../../backend/stories/unlikeStory";
 import FastImage from 'react-native-fast-image'; // Import FastImage
-import { BlurView } from 'expo-blur';
 
-export default function StoryHeaderButtons({ stories, index }) {
+export default function StoryHeaderButtons({ stories, index, toViewProfile }) {
     const [isLiked, setIsLiked] = useState(stories[index].likedUsers.includes(global.userData.uid));
 
     useEffect(() => {
@@ -29,7 +28,7 @@ export default function StoryHeaderButtons({ stories, index }) {
 
     return (
         <View style={styles.main_ctnr}>
-            <View style={styles.left}>
+            <Pressable onPress={() => toViewProfile(index)} style={styles.left}>
                 <FastImage
                     key={stories[index].sid}
                     source={{ uri: stories[index].pfp }}
@@ -37,7 +36,7 @@ export default function StoryHeaderButtons({ stories, index }) {
                     resizeMode={FastImage.resizeMode.cover} // Adjust resizeMode as needed
                 />
                 <Text style={styles.handle_text}>{stories[index].handle}</Text>
-            </View>
+            </Pressable>
 
             <View style={styles.right}>
                 <Pressable onPress={handlePressLikeButton}>
