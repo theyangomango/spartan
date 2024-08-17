@@ -252,7 +252,7 @@ export default function App() {
     else return (
         <GestureHandlerRootView style={{ flex: 1 }}>
             <NavigationContainer>
-                <Tab.Navigator initialRouteName='AuthenticationStack' screenOptions={{
+                <Tab.Navigator initialRouteName='FeedStack' screenOptions={{
                     headerShown: false,
                     tabBarStyle: {
                         display: 'none'

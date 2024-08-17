@@ -134,16 +134,8 @@ function Workout({ navigation }) {
         // Calculate the duration and add it to the workout object
         const duration = Date.now() - workoutCopy.created;
 
-        // Calculate the total volume of the workout
-        const volume = workoutCopy.exercises.reduce((totalVolume, exercise) => {
-            const exerciseVolume = exercise.sets.reduce((exerciseTotal, set) => {
-                return exerciseTotal + (set.weight * set.reps);
-            }, 0);
-            return totalVolume + exerciseVolume;
-        }, 0);
-
         // Add the duration and volume to the copied workout object
-        const completedWorkoutData = { ...workoutCopy, duration, volume };
+        const completedWorkoutData = { ...workoutCopy, duration };
 
         // Update the state with the completed workout
         setCompletedWorkout(completedWorkoutData);
