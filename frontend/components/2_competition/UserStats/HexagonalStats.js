@@ -100,7 +100,8 @@ const HexagonalStats = ({ statsHexagon }) => {
 
 const styles = StyleSheet.create({
     main_view: {
-        flex: 1
+        flex: 1,
+        opacity: 0.4
     },
     svg: {
         alignSelf: 'center',

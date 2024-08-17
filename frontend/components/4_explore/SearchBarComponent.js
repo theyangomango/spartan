@@ -1,9 +1,7 @@
 import React, { useState } from 'react';
-import { StyleSheet, View, TextInput, TouchableOpacity, TouchableWithoutFeedback, Keyboard, Dimensions, Text, FlatList } from 'react-native';
+import { StyleSheet, View, TextInput, TouchableOpacity, TouchableWithoutFeedback, Keyboard, Text, FlatList } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import UserCard from './UserCard'; // Import the UserCard component
-
-const { height: screenHeight } = Dimensions.get('window');
 
 const SearchBarComponent = ({ navigation, allUsers }) => {
     const [searchString, setSearchString] = useState('');
@@ -12,22 +10,19 @@ const SearchBarComponent = ({ navigation, allUsers }) => {
 
     const filterHandles = (text) => {
         setSearchString(text);
-        const filtered = allUsers.current.filter(user =>
-            user.handle.toLowerCase().includes(text.toLowerCase()) ||
-            user.name.toLowerCase().includes(text.toLowerCase())
-        );
-        setFilteredUsers(filtered);
+        if (text) {
+            const filtered = allUsers.current.filter(user =>
+                user.handle.toLowerCase().includes(text.toLowerCase()) ||
+                user.name.toLowerCase().includes(text.toLowerCase())
+            );
+            setFilteredUsers(filtered);
+        } else {
+            setFilteredUsers([]); // Clear the filtered users if the search string is empty
+        }
     };
 
-    // ! Removed from Beta
-    // const handleSelectSearch = (search) => {
-    //     setSearchString(search);
-    //     filterHandles(search);
-    //     setIsFocused(false);
-    // };
-
     function toViewProfile(user) {
-        navigation.navigate('ViewProfile', {user: user});
+        navigation.navigate('ViewProfile', { user: user });
     }
 
     return (
@@ -45,13 +40,17 @@ const SearchBarComponent = ({ navigation, allUsers }) => {
                         onBlur={() => { /* Do nothing on blur */ }}
                     />
                     {searchString.length > 0 && (
-                        <TouchableOpacity activeOpacity={0.5} onPress={() => { setSearchString(''); setFilteredUsers([]); }} style={styles.clearButton}>
+                        <TouchableOpacity
+                            activeOpacity={0.5}
+                            onPress={() => { setSearchString(''); setFilteredUsers([]); }}
+                            style={styles.clearButton}
+                        >
                             <Ionicons name="close-circle" size={18} color="#c6c6c6" />
                         </TouchableOpacity>
                     )}
                 </View>
             </TouchableWithoutFeedback>
-            {isFocused && (
+            {isFocused && searchString.length > 0 && (
                 <TouchableOpacity
                     style={styles.searchButton}
                     onPress={() => filterHandles(searchString)}
@@ -60,15 +59,17 @@ const SearchBarComponent = ({ navigation, allUsers }) => {
                 </TouchableOpacity>
             )}
 
-            <View style={styles.userCardsContainer}>
-                <FlatList
-                    data={filteredUsers}
-                    keyExtractor={(item) => item.handle}
-                    renderItem={({ item }) => (
-                        <UserCard user={item} toViewProfile={toViewProfile}/>
-                    )}
-                />
-            </View>
+            {searchString.length > 0 && (
+                <View style={styles.userCardsContainer}>
+                    <FlatList
+                        data={filteredUsers}
+                        keyExtractor={(item) => item.handle}
+                        renderItem={({ item }) => (
+                            <UserCard user={item} toViewProfile={toViewProfile} />
+                        )}
+                    />
+                </View>
+            )}
         </View>
     );
 };
@@ -104,9 +105,7 @@ const styles = StyleSheet.create({
         marginRight: 12,
         marginTop: 1.5,
     },
-    clearButton: {
-        // marginLeft: 10,
-    },
+    clearButton: {},
     searchButton: {
         borderRadius: 50,
         paddingVertical: 8,

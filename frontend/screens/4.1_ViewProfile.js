@@ -7,7 +7,6 @@ import ViewProfileHeader from "../components/ViewProfile/ViewProfileHeader";
 import readDoc from "../../backend/helper/firebase/readDoc";
 import WorkoutStats from "../components/5_Profile/ProfileTop/WorkoutStats";
 import Footer from "../components/Footer";
-import followUser from "../../backend/user/followUser";
 import initChat from "../../backend/messages/initChat";
 import makeID from "../../backend/helper/makeID";
 import arrayAppend from "../../backend/helper/firebase/arrayAppend";
@@ -73,10 +72,14 @@ export default function ViewProfile({ navigation, route }) {
         navigation.navigate('Chat', { data: newChat, usersExcludingSelf: [user] });
     }
 
+    async function goBack() {
+        navigation.navigate('Explore');
+    }
+
     return (
         <View style={styles.main_ctnr}>
             <View style={styles.body_ctnr}>
-                <ViewProfileHeader handle={user.handle} />
+                <ViewProfileHeader handle={user.handle} goBack={goBack} />
                 <ViewProfileInfo userData={profileUserData} />
                 <ViewProfileRowButtons toMessages={toMessages} user={user} />
                 <WorkoutStats userData={profileUserData} />
@@ -85,8 +88,8 @@ export default function ViewProfile({ navigation, route }) {
             <ProfileBottomBottomSheet selectedPanel={selectedPanel}
                 setSelectedPanel={setSelectedPanel}
                 posts={posts}
+                completedWorkouts={profileUserData && profileUserData.completedWorkouts}
                 navigation={navigation} />
-
             <Footer currentScreenName={'Explore'} navigation={navigation} />
         </View>
     );

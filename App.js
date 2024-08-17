@@ -138,17 +138,16 @@ const FeedStack = (({ navigation, route }) => {
     )
 });
 
-// const WorkoutStack = (({ navigation, route }) => {
-//     return (
-//         <Stack.Navigator initialRouteName='Workout' screenOptions={{
-//             headerShown: false
-//         }}>
-//             <Stack.Screen name='Workout' component={Feed} />
-//             <Tab.Screen name='SelectPhotos' component={Messages} />
-//             <Tab.Screen name='PostOptions' component={Chat} />
-//         </Stack.Navigator>
-//     )
-// });
+const ExploreStack = (({ navigation, route }) => {
+    return (
+        <Stack.Navigator initialRouteName='Explore' screenOptions={{
+            headerShown: false
+        }}>
+            <Tab.Screen name='Explore' component={Explore} />
+            <Tab.Screen name='ViewProfile' component={ViewProfile} />
+        </Stack.Navigator>
+    )
+});
 
 const ProfileStack = (({ navigation, route }) => {
     return (
@@ -262,10 +261,11 @@ export default function App() {
                     <Tab.Screen name='FeedStack' component={FeedStack} />
                     <Tab.Screen name='Competition' component={Competition} />
                     <Tab.Screen name='Workout' component={Workout} />
-                    <Tab.Screen name='Explore' component={Explore} />
+                    <Tab.Screen name='ExploreStack' component={ExploreStack}/>
+                    {/* <Tab.Screen name='Explore' component={Explore} /> */}
                     <Tab.Screen name='ProfileStack' component={ProfileStack} />
                     <Tab.Screen name='PostList' component={PostList} />
-                    <Tab.Screen name='ViewProfile' component={ViewProfile} />
+                    {/* <Tab.Screen name='ViewProfile' component={ViewProfile} /> */}
                 </Tab.Navigator>
             </NavigationContainer>
         </GestureHandlerRootView>

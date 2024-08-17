@@ -49,7 +49,7 @@ const Footer = ({ navigation, currentScreenName }) => {
                     </View>
                 </View>
                 <View style={styles.icon_ctnr}>
-                    <Pressable onPress={() => navigateTo('Explore')}>
+                    <Pressable onPress={() => navigateTo('ExploreStack')}>
                         <View style={currentScreenName === 'Explore' ? styles.selectedIcon : styles.icon}>
                             <Feather name='search' size={23.5} color={getIconColor('Explore')} />
                         </View>

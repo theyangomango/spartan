@@ -4,7 +4,7 @@ import BottomSheet, { BottomSheetBackdrop, BottomSheetFooter } from "@gorhom/bot
 import ProfileBottomModal from "./ProfileBottomModal";
 import Footer from "../../Footer";
 
-const ProfileBottomBottomSheet = ({ selectedPanel, setSelectedPanel, posts, navigation }) => {
+const ProfileBottomBottomSheet = ({ selectedPanel, setSelectedPanel, posts, completedWorkouts }) => {
     const bottomSheetRef = useRef(null);
     const snapPoints = useMemo(() => ["58%", "94%"], []);
     const [isBottomSheetExpanded, setIsBottomSheetExpanded] = useState(false);
@@ -39,6 +39,7 @@ const ProfileBottomBottomSheet = ({ selectedPanel, setSelectedPanel, posts, navi
                 selectedPanel={selectedPanel}
                 setSelectedPanel={setSelectedPanel}
                 posts={posts}
+                completedWorkouts={completedWorkouts}
                 isBottomSheetExpanded={isBottomSheetExpanded}
             />
 

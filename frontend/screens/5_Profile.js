@@ -69,6 +69,7 @@ export default function Profile({ navigation }) {
                 selectedPanel={selectedPanel}
                 setSelectedPanel={setSelectedPanel}
                 posts={posts}
+                completedWorkouts={global.userData.completedWorkouts}
                 navigation={navigation}
             />
 

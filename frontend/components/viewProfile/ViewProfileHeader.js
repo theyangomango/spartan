@@ -1,13 +1,12 @@
 import { StyleSheet, View, Text, TouchableOpacity } from "react-native";
-import { FontAwesome6, Octicons, Entypo, Ionicons } from '@expo/vector-icons';
-import { ArrowDown2, AddSquare, HambergerMenu } from 'iconsax-react-native'
+import { FontAwesome6, Octicons, Feather, Ionicons } from '@expo/vector-icons';
 import RNBounceable from "@freakycoder/react-native-bounceable";
 
-export default function ViewProfileHeader({ handle }) {
+export default function ViewProfileHeader({ handle, goBack }) {
     return (
         <View style={styles.main_ctnr}>
-            <RNBounceable style={styles.options_btn_ctnr}>
-                <Octicons name="gear" size={22.5} color={'#ccc'} />
+            <RNBounceable style={styles.options_btn_ctnr} onPress={goBack}>
+                <Feather name="chevron-left" size={27} color={'#ccc'} style={{marginLeft: -5}}/>
             </RNBounceable>
             <RNBounceable>
                 <View style={styles.center}>

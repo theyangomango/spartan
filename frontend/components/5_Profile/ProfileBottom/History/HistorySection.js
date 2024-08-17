@@ -15,14 +15,14 @@ const exercises = [
     { name: "5 x Reverse Curls (Barbell)", muscle: "Biceps" }
 ];
 
-const HistorySection = ({ isVisible, isBottomSheetExpanded }) => {
+const HistorySection = ({ isVisible, isBottomSheetExpanded, completedWorkouts }) => {
     const renderWorkout = ({ item }) => (
         <PastWorkoutCard workout={item} />
     );
 
     return (
         <FlatList
-            data={global.userData.completedWorkouts}
+            data={completedWorkouts}
             keyExtractor={(item, index) => index.toString()}
             renderItem={renderWorkout}
             contentContainerStyle={[styles.scrollable_ctnr, !isVisible && styles.hidden]}

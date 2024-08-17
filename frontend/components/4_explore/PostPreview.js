@@ -20,6 +20,7 @@ const styles = StyleSheet.create({
         aspectRatio: 1,
         margin: 2, // Adjust spacing between images
         overflow: 'hidden',
+        opacity: 0.5
     },
     large: {
         flex: 1,
