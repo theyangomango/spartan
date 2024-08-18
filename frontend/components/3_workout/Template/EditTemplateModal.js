@@ -7,6 +7,7 @@ import { Weight } from 'iconsax-react-native';
 
 const EditTemplateModal = ({ openedTemplateRef, updateTemplate, deleteTemplate }) => {
     const [selectExerciseModalVisible, setSelectExerciseModalVisible] = useState(false);
+    const [deleteConfirmModalVisible, setDeleteConfirmModalVisible] = useState(false); // State for delete confirmation modal
     const [template, setTemplate] = useState(openedTemplateRef.current);
     const [templateTitle, setTemplateTitle] = useState(openedTemplateRef.current.name);
 
@@ -65,6 +66,15 @@ const EditTemplateModal = ({ openedTemplateRef, updateTemplate, deleteTemplate }
         updateTemplate();
     }, [templateTitle]);
 
+    const confirmDeleteTemplate = (() => {
+        if (template.exercises.length == 0) handleDeleteTemplate();
+        else setDeleteConfirmModalVisible(true); // Show the delete confirmation modal
+    });
+
+    const handleDeleteTemplate = useCallback(() => {
+        setDeleteConfirmModalVisible(false); // Hide the modal after confirmation
+        deleteTemplate(); // Proceed with the original delete template functionality
+    }, [deleteTemplate]);
 
     return (
         <View style={styles.mainContainer}>
@@ -88,14 +98,22 @@ const EditTemplateModal = ({ openedTemplateRef, updateTemplate, deleteTemplate }
                 style={styles.scrollView}
             >
                 {template.exercises.map((ex, index) => (
-                    <EditTemplateExerciseLog name={ex.name} sets={ex.sets} exerciseIndex={index} key={index} updateSets={updateSets} replaceExercise={replaceExercise} deleteExercise={deleteExercise} />
+                    <EditTemplateExerciseLog
+                        name={ex.name}
+                        sets={ex.sets}
+                        exerciseIndex={index}
+                        key={index}
+                        updateSets={updateSets}
+                        replaceExercise={replaceExercise}
+                        deleteExercise={deleteExercise}
+                    />
                 ))}
                 <RNBounceable onPress={showSelectExerciseModal} style={styles.addExerciseButton}>
                     <Text style={styles.addExerciseText}>Add Exercises</Text>
                     <Weight size="22" color="#5DBDFF" variant='Bold' />
                 </RNBounceable>
 
-                <RNBounceable style={styles.cancelButton} onPress={deleteTemplate}>
+                <RNBounceable style={styles.cancelButton} onPress={confirmDeleteTemplate}>
                     <Text style={styles.deleteButtonText}>Delete Template</Text>
                 </RNBounceable>
 
@@ -110,6 +128,25 @@ const EditTemplateModal = ({ openedTemplateRef, updateTemplate, deleteTemplate }
                     closeModal={closeSelectExerciseModal}
                     appendExercises={appendExercises}
                 />
+            </Modal>
+
+            <Modal
+                animationType="fade"
+                transparent={true}
+                visible={deleteConfirmModalVisible}
+                onRequestClose={() => setDeleteConfirmModalVisible(false)} // Hide modal if back button is pressed
+            >
+                <View style={styles.modalOverlay}>
+                    <View style={styles.modalContainer}>
+                        <Text style={styles.modalText}>Are you sure you want to delete this template?</Text>
+                        <RNBounceable onPress={handleDeleteTemplate} style={styles.deleteTemplateBtn}>
+                            <Text style={styles.deleteTemplateText}>Delete Template</Text>
+                        </RNBounceable>
+                        <RNBounceable onPress={() => setDeleteConfirmModalVisible(false)} style={styles.cancelDeleteBtn}>
+                            <Text style={styles.cancelDeleteText}>Cancel</Text>
+                        </RNBounceable>
+                    </View>
+                </View>
             </Modal>
         </View>
     );
@@ -148,7 +185,6 @@ const styles = StyleSheet.create({
         width: 80,
         height: 35,
         borderRadius: 12,
-        // backgroundColor: '#DCFFE3',
         backgroundColor: '#eee',
         justifyContent: 'center',
         alignItems: 'center'
@@ -156,7 +192,6 @@ const styles = StyleSheet.create({
     savedButtonText: {
         fontFamily: 'Outfit_700Bold',
         fontSize: 15.5,
-        // color: '#40D99B',
         color: '#999',
     },
     scrollView: {
@@ -193,6 +228,51 @@ const styles = StyleSheet.create({
         fontFamily: 'Outfit_700Bold',
         color: '#F27171',
         marginRight: 4.5
+    },
+    modalOverlay: {
+        flex: 1,
+        justifyContent: 'center',
+        alignItems: 'center',
+        backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    },
+    modalContainer: {
+        width: '80%',
+        padding: 20,
+        backgroundColor: '#fff',
+        borderRadius: 15,
+        alignItems: 'center',
+    },
+    modalText: {
+        fontSize: 16,
+        color: '#333',
+        fontFamily: 'Outfit_700Bold',
+        marginBottom: 20,
+        textAlign: 'center',
+    },
+    deleteTemplateBtn: {
+        width: '100%',
+        paddingVertical: 8,
+        backgroundColor: '#FFECEC',
+        borderRadius: 8,
+        alignItems: 'center',
+        marginBottom: 10,
+    },
+    deleteTemplateText: {
+        color: '#F27171',
+        fontSize: 14,
+        fontFamily: 'Outfit_700Bold',
+    },
+    cancelDeleteBtn: {
+        width: '100%',
+        paddingVertical: 8,
+        backgroundColor: '#eee',
+        borderRadius: 8,
+        alignItems: 'center',
+    },
+    cancelDeleteText: {
+        color: '#666',
+        fontSize: 14,
+        fontFamily: 'Outfit_700Bold',
     },
 });
 

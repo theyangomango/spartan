@@ -10,6 +10,7 @@ import TimerDisplay from "./TimerDisplay";
 
 const NewWorkoutModal = ({ workout, cancelWorkout, updateWorkout, finishWorkout, timerRef, showGroupModal }) => {
     const [selectExerciseModalVisible, setSelectExerciseModalVisible] = useState(false);
+    const [deleteConfirmModalVisible, setDeleteConfirmModalVisible] = useState(false); // State for delete confirmation modal
     const [totalReps, setTotalReps] = useState(0);
     const [totalVolume, setTotalVolume] = useState(0);
     const [personalBests, setPersonalBests] = useState(0);
@@ -60,7 +61,6 @@ const NewWorkoutModal = ({ workout, cancelWorkout, updateWorkout, finishWorkout,
             volume, // Update the volume property
         }));
     }, [workout.exercises, isDoneState, updateWorkout]);
-
 
     const showSelectExerciseModal = useCallback(() => {
         setSelectExerciseModalVisible(true);
@@ -144,6 +144,15 @@ const NewWorkoutModal = ({ workout, cancelWorkout, updateWorkout, finishWorkout,
         calculateStats();
     }, [calculateStats]);
 
+    const confirmCancelWorkout = (() => {
+        if (workout.exercises.length === 0) handleDeleteWorkout();
+        else setDeleteConfirmModalVisible(true); // Show the delete confirmation modal
+    });
+
+    const handleDeleteWorkout = useCallback(() => {
+        setDeleteConfirmModalVisible(false); // Hide the modal after confirmation
+        cancelWorkout(); // Proceed with the original cancel workout functionality
+    }, [cancelWorkout]);
 
     return (
         <View style={styles.main_ctnr}>
@@ -151,7 +160,6 @@ const NewWorkoutModal = ({ workout, cancelWorkout, updateWorkout, finishWorkout,
                 <View style={styles.rest_timer_ctnr}>
                     <RNBounceable style={styles.iconWrapper} onPress={handleAddTime}>
                         <MaterialCommunityIcons name="timer-outline" size={24} color="#0499FE" />
-
                     </RNBounceable>
 
                     {countdown > 0 && (
@@ -160,7 +168,6 @@ const NewWorkoutModal = ({ workout, cancelWorkout, updateWorkout, finishWorkout,
                         </Text>
                     )}
                 </View>
-
 
                 <View style={styles.timer_text_ctnr} pointerEvents="none">
                     <TimerDisplay timerRef={timerRef} />
@@ -205,7 +212,7 @@ const NewWorkoutModal = ({ workout, cancelWorkout, updateWorkout, finishWorkout,
                     <Weight size="22" color="#5DBDFF" variant='Bold' />
                 </RNBounceable>
 
-                <RNBounceable onPress={cancelWorkout} style={styles.cancel_btn}>
+                <RNBounceable onPress={confirmCancelWorkout} style={styles.cancel_btn}>
                     <Text style={styles.cancel_btn_text}>Cancel Workout</Text>
                 </RNBounceable>
 
@@ -222,7 +229,24 @@ const NewWorkoutModal = ({ workout, cancelWorkout, updateWorkout, finishWorkout,
                 />
             </Modal>
 
-
+            <Modal
+                animationType="fade"
+                transparent={true}
+                visible={deleteConfirmModalVisible}
+                onRequestClose={() => setDeleteConfirmModalVisible(false)} // Hide modal if back button is pressed
+            >
+                <View style={styles.modalOverlay}>
+                    <View style={styles.modalContainer}>
+                        <Text style={styles.modalText}>Are you sure you want to delete this workout?</Text>
+                        <RNBounceable onPress={handleDeleteWorkout} style={styles.deleteWorkoutBtn}>
+                            <Text style={styles.deleteWorkoutText}>Delete Workout</Text>
+                        </RNBounceable>
+                        <RNBounceable onPress={() => setDeleteConfirmModalVisible(false)} style={styles.cancelDeleteBtn}>
+                            <Text style={styles.cancelDeleteText}>Cancel</Text>
+                        </RNBounceable>
+                    </View>
+                </View>
+            </Modal>
         </View>
     );
 };
@@ -332,6 +356,51 @@ const styles = StyleSheet.create({
         fontFamily: 'Outfit_700Bold',
         color: '#F27171',
         marginRight: 4.5
+    },
+    modalOverlay: {
+        flex: 1,
+        justifyContent: 'center',
+        alignItems: 'center',
+        backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    },
+    modalContainer: {
+        width: '80%',
+        padding: 20,
+        backgroundColor: '#fff',
+        borderRadius: 15,
+        alignItems: 'center',
+    },
+    modalText: {
+        fontSize: 16,
+        color: '#333',
+        fontFamily: 'Outfit_700Bold',
+        marginBottom: 20,
+        textAlign: 'center',
+    },
+    deleteWorkoutBtn: {
+        width: '100%',
+        paddingVertical: 8,
+        backgroundColor: '#FFECEC',
+        borderRadius: 8,
+        alignItems: 'center',
+        marginBottom: 10,
+    },
+    deleteWorkoutText: {
+        color: '#F27171',
+        fontSize: 14,
+        fontFamily: 'Outfit_700Bold',
+    },
+    cancelDeleteBtn: {
+        width: '100%',
+        paddingVertical: 8,
+        backgroundColor: '#eee',
+        borderRadius: 8,
+        alignItems: 'center',
+    },
+    cancelDeleteText: {
+        color: '#666',
+        fontSize: 14,
+        fontFamily: 'Outfit_700Bold',
     },
 });
 

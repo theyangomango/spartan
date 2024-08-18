@@ -116,7 +116,7 @@ const Post = (({ data, onPressCommentButton, onPressShareButton, index, focusedP
     ];
 
     return (
-        <Animated.View ref={viewRef} style={[styles.wrapper, { opacity }]}>
+        <Animated.View ref={viewRef} style={[styles.wrapper, { opacity }]} pointerEvents={!isPostsVisible && (index !== focusedPostIndex) && false}>
             <Pressable onPress={handlePress}>
                 <Animated.View
                     style={[
