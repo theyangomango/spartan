@@ -55,7 +55,7 @@ const WorkoutSummaryModal = ({ isVisible, workout, onClose, postWorkout }) => {
                         </View>
                         <View style={styles.stats_entry}>
                             <MaterialCommunityIcons name="trophy" color={"#666"} size={14} />
-                            <Text style={styles.stats_text}>3 PRs</Text>
+                            <Text style={styles.stats_text}>{workout.PBs} PB{workout.PBs == 1 ? '' : 's'}</Text>
                         </View>
                     </View>
                     <View style={styles.stats_header}>

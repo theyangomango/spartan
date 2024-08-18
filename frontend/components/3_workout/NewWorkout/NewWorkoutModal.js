@@ -7,6 +7,7 @@ import RNBounceable from "@freakycoder/react-native-bounceable";
 import { Weight } from 'iconsax-react-native';
 import { MaterialCommunityIcons, FontAwesome } from '@expo/vector-icons';
 import TimerDisplay from "./TimerDisplay";
+import calculate1RM from "../../../helper/calculate1RM";
 
 const NewWorkoutModal = ({ workout, cancelWorkout, updateWorkout, finishWorkout, timerRef, showGroupModal }) => {
     const [selectExerciseModalVisible, setSelectExerciseModalVisible] = useState(false);
@@ -41,22 +42,34 @@ const NewWorkoutModal = ({ workout, cancelWorkout, updateWorkout, finishWorkout,
     const calculateStats = useCallback(() => {
         let reps = 0;
         let volume = 0;
+        let PBs = 0;
 
         workout.exercises.forEach((exercise, exerciseIndex) => {
+            let isPB = false;
             exercise.sets.forEach((set, setIndex) => {
                 if (isDoneState[exerciseIndex][setIndex]) { // Check if the set is done
                     reps += Number(set.reps);
                     volume += (Number(set.reps) * Number(set.weight));
+                    const max = calculate1RM(Number(set.weight), Number(set.reps));
+                    const prevMax = (exercise.name in global.userData.statsExercises && '1RM' in global.userData.statsExercises[exercise.name]) ? global.userData.statsExercises[exercise.name]['1RM'] : 0;
+                    console.log(prevMax);
+
+                    if (max > prevMax && !isPB) {
+                        PBs++;
+                        isPB = true;
+                    }
                 }
             });
         });
 
         setTotalReps(reps);
         setTotalVolume(volume);
+        setPersonalBests(PBs);
 
         // Update the workout object with the new total reps and volume
         updateWorkout(prevWorkout => ({
             ...prevWorkout,
+            PBs,
             reps,   // Update the reps property
             volume, // Update the volume property
         }));
@@ -75,6 +88,7 @@ const NewWorkoutModal = ({ workout, cancelWorkout, updateWorkout, finishWorkout,
             ...workout, exercises: [...workout.exercises, ...exercises.map(ex => ({
                 name: ex.name,
                 muscle: ex.muscle,
+                isPB: false,
                 sets: [{
                     weight: 0,
                     reps: 0,
