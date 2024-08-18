@@ -4,7 +4,7 @@ import Svg, { Path } from "react-native-svg";
 import RNBounceable from '@freakycoder/react-native-bounceable';
 import getPFP from '../../../../backend/storage/getPFP';
 
-export default function CommentCard({ data, likeComment, unlikeComment, index, setReplyingToIndex, isReply, replyIndex }) {
+export default function CommentCard({ data, likeComment, unlikeComment, index, setReplyingToIndex, isReply, replyIndex, toViewProfile }) {
     const [isLiked, setIsLiked] = useState(data.isCaption ? false : data.likedUsers.includes(global.userData.uid));
     const [pfp, setPFP] = useState(null);
 
@@ -27,7 +27,7 @@ export default function CommentCard({ data, likeComment, unlikeComment, index, s
     }
 
     return (
-        <View style={[styles.card, isReply && styles.replyCard]}>
+        <Pressable onPress={() => toViewProfile(data)} style={[styles.card, isReply && styles.replyCard]}>
             <View style={styles.pfp_ctnr}>
                 <Image
                     source={{ uri: pfp }}
@@ -66,7 +66,7 @@ export default function CommentCard({ data, likeComment, unlikeComment, index, s
                     </RNBounceable>
                 </View>
             )}
-        </View>
+        </Pressable>
     );
 }
 

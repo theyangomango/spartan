@@ -4,7 +4,7 @@ import CommentCard from './CommentCard';
 import updateDoc from '../../../../backend/helper/firebase/updateDoc';
 import sendNotification from '../../../../backend/sendNotification';
 
-export default function CommentsModal({ postData, handleTouchHeader, isSheetExpanded, setReplyingToIndex }) {
+export default function CommentsModal({ postData, handleTouchHeader, isSheetExpanded, setReplyingToIndex, toViewProfile }) {
     const comments = postData.comments;
     const flatListRef = useRef(null);
 
@@ -67,6 +67,7 @@ export default function CommentsModal({ postData, handleTouchHeader, isSheetExpa
                                     setReplyingToIndex={setReplyingToIndex}
                                     isReply={false}
                                     replyIndex={-1}
+                                    toViewProfile={toViewProfile}
                                 />
                             </Pressable>
                             {item.replies && item.replies.map((reply, replyIndex) => (
@@ -77,6 +78,7 @@ export default function CommentsModal({ postData, handleTouchHeader, isSheetExpa
                                     unlikeComment={handleUnlikeComment}
                                     index={index}
                                     setReplyingToIndex={setReplyingToIndex}
+                                    toViewProfile={toViewProfile}
                                     isReply={true}
                                     replyIndex={replyIndex}
                                 />

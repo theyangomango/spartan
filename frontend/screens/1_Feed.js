@@ -149,6 +149,17 @@ export default function Feed({ navigation }) {
         navigation.navigate('ViewProfile', { user: user })
     }
 
+    function toViewProfileComments(data) {
+        const user = {
+            handle: data.handle,
+            uid: data.uid,
+            pfp: data.pfp,
+            name: data.name
+        }
+
+        navigation.navigate('ViewProfile', { user: user })
+    }
+
     const renderItem = ({ item, index }) => (
         <Animated.View
             style={[
@@ -195,6 +206,7 @@ export default function Feed({ navigation }) {
                         isVisible={!isPostsVisible}
                         postData={focusedPostIndex.current === -1 ? null : posts[focusedPostIndex.current]}
                         commentsBottomSheetExpandFlag={commentsBottomSheetExpandFlag}
+                        toViewProfile={toViewProfileComments}
                     />
                     <ShareBottomSheet
                         shareBottomSheetCloseFlag={shareBottomSheetCloseFlag}

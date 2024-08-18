@@ -9,7 +9,7 @@ import sendNotification from "../../../../backend/sendNotification";
 
 const { width, height } = Dimensions.get('screen');
 
-const CommentsBottomSheet = ({ isVisible, postData, commentsBottomSheetExpandFlag }) => {
+const CommentsBottomSheet = ({ isVisible, postData, commentsBottomSheetExpandFlag, toViewProfile }) => {
     const [isInputFocused, setIsInputFocused] = useState(false);
     const bottomSheetRef = useRef(null);
     const footerTranslateY = useRef(new Animated.Value(0)).current;
@@ -151,6 +151,7 @@ const CommentsBottomSheet = ({ isVisible, postData, commentsBottomSheetExpandFla
                         handleTouchHeader={handleTouchHeader}
                         isSheetExpanded={isSheetExpanded}
                         setReplyingToIndex={setReplyingToIndex}
+                        toViewProfile={toViewProfile}
                     />
                 )}
             </BottomSheet>
