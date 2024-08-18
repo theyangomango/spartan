@@ -92,11 +92,39 @@ export default function Stories({ data, userList, initStories, navigation }) {
     }
 
     function handlePress(index) {
-        setCurrentIndex(index);
-        setViewModal(true);
-        viewedStories.current = ([...viewedStories.current, storiesData[index].sid]);
-        console.log(viewedStories);
+        // Determine the section based on the index using the prefix sum array
+        let sectionIndex = storiesPrefixSums.findIndex(sum => index < sum);
+        let sectionStartIndex = sectionIndex === 0 ? 0 : storiesPrefixSums[sectionIndex - 1];
+        let sectionEndIndex = storiesPrefixSums[sectionIndex] - 1;
+
+        // Check if all stories in the section have been viewed
+        const allViewed = storiesData.slice(sectionStartIndex, sectionEndIndex + 1).every(story =>
+            viewedStories.current.includes(story.sid)
+        );
+
+        if (allViewed) {
+            // Start with the first story in the section if all are viewed
+            index = sectionStartIndex;
+        } else {
+            // Otherwise, find the next unviewed story in the section
+            while (index <= sectionEndIndex && viewedStories.current.includes(storiesData[index].sid)) {
+                index++;
+            }
+        }
+
+        // If an unviewed story is found, open it
+        if (index <= sectionEndIndex) {
+            setCurrentIndex(index);
+            setViewModal(true);
+            viewedStories.current = [...viewedStories.current, storiesData[index].sid];
+            console.log(viewedStories.current);
+        } else {
+            // If no unviewed stories are found, close the modal
+            setViewModal(false);
+            setCurrentIndex(null);
+        }
     }
+
 
     const renderItem = ({ item, index }) => (
         <Story
