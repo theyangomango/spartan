@@ -1,10 +1,10 @@
+import React, { memo } from "react";
 import { StyleSheet, View, Text, Image, TouchableOpacity, Animated } from "react-native";
 import { Ionicons, Octicons, MaterialIcons } from '@expo/vector-icons';
 import RNBounceable from '@freakycoder/react-native-bounceable';
 import Svg, { Path } from "react-native-svg";
-import { memo } from "react";
 
-const FeedHeader = (({ toMessagesScreen, onOpenNotifications, onOpenSettings, backButton, onBackPress, style }) => {
+const FeedHeader = ({ toMessagesScreen, onOpenNotifications, onOpenSettings, backButton, onBackPress, style }) => {
     if (backButton) {
         return (
             <Animated.View style={[styles.back_header, style]}>
@@ -32,6 +32,11 @@ const FeedHeader = (({ toMessagesScreen, onOpenNotifications, onOpenSettings, ba
                     <Svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none">
                         <Path d="M12.62 20.81c-.34.12-.9.12-1.24 0C8.48 19.82 2 15.69 2 8.69 2 5.6 4.49 3.1 7.56 3.1c1.82 0 3.43.88 4.44 2.24a5.53 5.53 0 0 1 4.44-2.24C19.51 3.1 22 5.6 22 8.69c0 7-6.48 11.13-9.38 12.12Z" stroke="#ccc" strokeWidth="2.1" strokeLinecap="round" strokeLinejoin="round"></Path>
                     </Svg>
+                    {global.userData && global.userData.notificationNewEvents > 0 && (
+                        <View style={styles.notificationBadge}>
+                            <Text style={styles.notificationText}>{global.userData.notificationNewEvents}</Text>
+                        </View>
+                    )}
                 </RNBounceable>
 
                 <RNBounceable onPress={toMessagesScreen} style={styles.message_button}>
@@ -43,7 +48,7 @@ const FeedHeader = (({ toMessagesScreen, onOpenNotifications, onOpenSettings, ba
             </RNBounceable>
         </Animated.View>
     );
-});
+};
 
 export default memo(FeedHeader);
 
@@ -92,6 +97,23 @@ const styles = StyleSheet.create({
     },
     heart_button: {
         marginRight: 20,
+        position: 'relative',
+    },
+    notificationBadge: {
+        position: 'absolute',
+        right: -7.5,
+        top: -5,
+        backgroundColor: 'red',
+        borderRadius: 8,
+        width: 16,
+        height: 16,
+        justifyContent: 'center',
+        alignItems: 'center',
+    },
+    notificationText: {
+        color: '#fff',
+        fontSize: 8,
+        fontFamily: 'Outfit_600SemiBold'
     },
     options_btn_ctnr: {
         position: 'absolute',

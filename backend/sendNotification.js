@@ -13,5 +13,6 @@ export default async function sendNotification(uid, event) {
             incrementDocValue('users', uid, 'notificationNewComments');
             break;
     }
+    incrementDocValue('users', uid, 'notificationNewEvents');
     arrayAppend('users', uid, 'notificationEvents', event);
 }

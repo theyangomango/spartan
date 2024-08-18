@@ -2,10 +2,11 @@ import React, { useState } from 'react';
 import { View, StyleSheet, FlatList } from 'react-native';
 import ButtonRow from './ButtonRow';
 import NotificationCard from './NotificationCard';
+import getReverse from '../../../helper/getReverse';
 
 export default function NotificationsModal() {
     const [selectedButton, setSelectedButton] = useState('All Activity');
-    const events = global.userData.notificationEvents;
+    const events = getReverse(global.userData.notificationEvents);
     const newLikes = global.userData.notificationNewLikes;
     const newComments = global.userData.notificationNewComments;
 

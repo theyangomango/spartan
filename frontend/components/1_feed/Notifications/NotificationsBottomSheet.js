@@ -2,6 +2,7 @@ import React, { useCallback, useEffect, useMemo, useRef, useState } from "react"
 import { View, StyleSheet } from "react-native";
 import BottomSheet, { BottomSheetBackdrop } from "@gorhom/bottom-sheet";
 import NotificationsModal from "./NotificationsModal";
+import updateDoc from "../../../../backend/helper/firebase/updateDoc";
 
 
 const NotificationsBottomSheet = ({ notificationsBottomSheetExpandFlag }) => {
@@ -26,6 +27,14 @@ const NotificationsBottomSheet = ({ notificationsBottomSheetExpandFlag }) => {
         []
     );
 
+    function resetNewNotifications() {
+        updateDoc('users', global.userData.uid, {
+            notificationNewLikes: 0,
+            notificationNewComments: 0,
+            notificationNewEvents: 0
+        });
+    }
+
     return (
         <View style={styles.outer_ctnr} pointerEvents="box-none">
             <BottomSheet
@@ -35,10 +44,11 @@ const NotificationsBottomSheet = ({ notificationsBottomSheetExpandFlag }) => {
                 backdropComponent={renderBackdrop}
                 enablePanDownToClose
                 handleStyle={{ display: 'none' }}
-                backgroundStyle={{borderTopLeftRadius: 25, borderTopRightRadius: 25}}
+                backgroundStyle={{ borderTopLeftRadius: 25, borderTopRightRadius: 25 }}
+                onClose={resetNewNotifications}
             >
                 {global.userData &&
-                    <NotificationsModal closeBottomSheet={() => bottomSheetRef.current.close()}/>
+                    <NotificationsModal closeBottomSheet={() => bottomSheetRef.current.close()} />
                 }
             </BottomSheet>
         </View>
