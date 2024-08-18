@@ -5,7 +5,7 @@ import { FontAwesome5 } from '@expo/vector-icons';
 import SwipeableItem, { OpenDirection, useSwipeableItemParams } from 'react-native-swipeable-item';
 import Animated, { useAnimatedStyle } from 'react-native-reanimated';
 
-export default function SetRow({ set, updateSet, index, handleDelete, isDone, toggleIsDone }) {
+export default function SetRow({ previousSet, set, updateSet, index, handleDelete, isDone, toggleIsDone }) {
     const weight = set.weight;
     const reps = set.reps;
 
@@ -42,7 +42,7 @@ export default function SetRow({ set, updateSet, index, handleDelete, isDone, to
                         <Text style={styles.set_number_text}>{index + 1}</Text>
                     </View>
                     <View style={styles.previous_ctnr}>
-                        <Text style={[styles.previous_stat_text, isDone && { color: '#afafaf' }]}>{set.previous ? set.previous : 'N/A'}</Text>
+                        <Text style={[styles.previous_stat_text, isDone && { color: '#afafaf' }]}>{previousSet ? `${previousSet.reps} x ${previousSet.weight}lbs` : 'N/A'}</Text>
                     </View>
                     <View style={styles.weight_unit_ctnr}>
                         <EditableStat

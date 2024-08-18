@@ -88,11 +88,9 @@ const NewWorkoutModal = ({ workout, cancelWorkout, updateWorkout, finishWorkout,
             ...workout, exercises: [...workout.exercises, ...exercises.map(ex => ({
                 name: ex.name,
                 muscle: ex.muscle,
-                isPB: false,
                 sets: [{
                     weight: 0,
                     reps: 0,
-                    previous: '405 lb x 12'
                 }]
             }))]
         };

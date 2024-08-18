@@ -7,6 +7,29 @@ import ExerciseOptionsPanel from "./ExerciseOptionsPanel";
 
 const ExerciseLog = memo(({ name, exerciseIndex, updateSets, sets, replaceExercise, deleteExercise, isDoneState, toggleIsDone }) => {
     const muscle = name === 'Lateral Raise' ? 'Shoulders' : 'Chest';
+    const previousSetsRef = useRef([]);
+
+    useEffect(() => {
+        if (global.userData.statsExercises && global.userData.statsExercises[name]) {
+            const exerciseSets = global.userData.statsExercises[name].sets;
+            const lastWid = exerciseSets[exerciseSets.length - 1]?.wid;
+
+            // Initialize previousSetsRef as an empty array
+            const matchingSets = [];
+
+            // Iterate from the last element backwards
+            for (let i = exerciseSets.length - 1; i >= 0; i--) {
+                if (exerciseSets[i].wid === lastWid) {
+                    matchingSets.push(exerciseSets[i]);
+                } else {
+                    break; // Stop if we encounter a different `wid`
+                }
+            }
+
+            // Update the previousSetsRef with the matched sets
+            previousSetsRef.current = matchingSets;
+        }
+    }, [name]);
 
     const [isPanelVisible, setIsPanelVisible] = useState(false);
     const [panelPosition, setPanelPosition] = useState({ top: 0, left: 0 });
@@ -35,7 +58,6 @@ const ExerciseLog = memo(({ name, exerciseIndex, updateSets, sets, replaceExerci
 
     function addSet() {
         updateSets(exerciseIndex, [...sets, {
-            previous: '405 lb x 12',
             weight: 0,
             reps: 0
         }]);
@@ -94,7 +116,7 @@ const ExerciseLog = memo(({ name, exerciseIndex, updateSets, sets, replaceExerci
             <Animated.View style={{ opacity: fadeAnim }}>
                 {sets.map((set, index) => {
                     return (
-                        <SetRow set={set} index={index} key={index} updateSet={updateSet} handleDelete={() => deleteSet(index)} isDone={isDoneState[index]} toggleIsDone={() => toggleIsDone(exerciseIndex, index)}/>
+                        <SetRow previousSet={previousSetsRef.current[index]} set={set} index={index} key={index} updateSet={updateSet} handleDelete={() => deleteSet(index)} isDone={isDoneState[index]} toggleIsDone={() => toggleIsDone(exerciseIndex, index)}/>
                     );
                 })}
             </Animated.View>

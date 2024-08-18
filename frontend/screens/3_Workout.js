@@ -230,6 +230,7 @@ function Workout({ navigation }) {
                         weight: Number(set.weight),
                         reps: Number(set.reps),
                         date: today,
+                        wid: completedWorkout.wid
                     });
 
                     const set1RM = calculate1RM(Number(set.weight), Number(set.reps));

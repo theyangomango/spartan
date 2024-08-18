@@ -12,7 +12,7 @@ const ExerciseCard = memo(({ name, muscleGroup, selectExercise, deselectExercise
     const muscleColors = {
         Chest: '#FFAFB8',
         Shoulders: '#A1CDEE',
-        Biceps: '#CBBCFF',
+        Arms: '#CBBCFF',
         Back: '#95E0C8',
         Triceps: '#FFD580',
         Legs: '#FFB347',
