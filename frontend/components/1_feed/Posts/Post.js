@@ -20,13 +20,13 @@ const Post = (({ data, onPressCommentButton, onPressShareButton, index, focusedP
         if (isPostsVisible) {
             Animated.timing(opacity, {
                 toValue: 1,
-                duration: 300,
+                duration: 200,
                 useNativeDriver: true,
             }).start();
         } else if (!isPostsVisible && index !== focusedPostIndex.current) {
             Animated.timing(opacity, {
                 toValue: 0,
-                duration: 300,
+                duration: 200,
                 useNativeDriver: true,
             }).start();
         }

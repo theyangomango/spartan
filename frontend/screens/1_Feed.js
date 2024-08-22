@@ -12,6 +12,8 @@ import NotificationsBottomSheet from "../components/1_Feed/Notifications/Notific
 import MaskedView from '@react-native-masked-view/masked-view';
 import { StatusBar } from "expo-status-bar";
 import SettingsBottomSheet from "../components/1_Feed/SettingsBottomSheet";
+import { doc, onSnapshot } from "firebase/firestore";
+import { db } from "../../firebase.config";
 
 // Constants
 const UID = '6b176d7d-4d89-4cb5-beb0-0f19b47a10a2'; // Hard set UID
@@ -19,7 +21,7 @@ const ANIMATION_DURATION = 300;
 const TARGET_POSITION = 85;
 const SCROLL_THRESHOLD = 85;
 
-export default function Feed({ navigation }) {
+export default function Feed({ navigation, route }) {
     const [stories, setStories] = useState(null);
     const [posts, setPosts] = useState([]);
     const [messages, setMessages] = useState(null);
@@ -42,6 +44,12 @@ export default function Feed({ navigation }) {
 
     useEffect(() => {
         init();
+        const unsub = onSnapshot(doc(db, 'users', UID), async (doc) => {
+            userDataRef.current = doc.data();
+            global.userData = userDataRef.current;
+        });
+
+        return () => unsub();
     }, []);
 
     useEffect(() => {
@@ -51,6 +59,12 @@ export default function Feed({ navigation }) {
 
         return unsubscribe;
     }, [navigation]);
+
+    useEffect(() => {
+        if (route.params) {
+            setMessages(route.params.messages);
+        }
+    }, [route]);
 
     const init = async () => {
         userDataRef.current = await readDoc('users', UID);
@@ -200,18 +214,7 @@ export default function Feed({ navigation }) {
             >
                 <View style={styles.mainContainer}>
                     <StatusBar style="dark" />
-                    <SettingsBottomSheet settingsBottomSheetExpandFlag={settingsBottomSheetExpandFlag} />
-                    <NotificationsBottomSheet notificationsBottomSheetExpandFlag={notificationsBottomSheetExpandFlag} />
-                    <CommentsBottomSheet
-                        isVisible={!isPostsVisible}
-                        postData={focusedPostIndex.current === -1 ? null : posts[focusedPostIndex.current]}
-                        commentsBottomSheetExpandFlag={commentsBottomSheetExpandFlag}
-                        toViewProfile={toViewProfileComments}
-                    />
-                    <ShareBottomSheet
-                        shareBottomSheetCloseFlag={shareBottomSheetCloseFlag}
-                        shareBottomSheetExpandFlag={shareBottomSheetExpandFlag}
-                    />
+
                     <FeedHeader
                         toMessagesScreen={toMessagesScreen}
                         onOpenNotifications={handleOpenNotifications}
@@ -234,10 +237,24 @@ export default function Feed({ navigation }) {
                             }
                         </Animated.View>}
                         initialNumToRender={2}
+                        removeClippedSubviews
                     />
                     <Footer key={footerKey} navigation={navigation} currentScreenName={'Feed'} />
                 </View>
             </MaskedView>
+
+            <NotificationsBottomSheet notificationsBottomSheetExpandFlag={notificationsBottomSheetExpandFlag} />
+            <SettingsBottomSheet settingsBottomSheetExpandFlag={settingsBottomSheetExpandFlag} />
+            <CommentsBottomSheet
+                isVisible={!isPostsVisible}
+                postData={focusedPostIndex.current === -1 ? null : posts[focusedPostIndex.current]}
+                commentsBottomSheetExpandFlag={commentsBottomSheetExpandFlag}
+                toViewProfile={toViewProfileComments}
+            />
+            <ShareBottomSheet
+                shareBottomSheetCloseFlag={shareBottomSheetCloseFlag}
+                shareBottomSheetExpandFlag={shareBottomSheetExpandFlag}
+            />
         </View>
     );
 }

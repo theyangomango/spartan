@@ -14,14 +14,24 @@ const ChatHeader = ({ usersExcludingSelf, toMessages }) => {
                 </TouchableOpacity>
             </View>
             <View style={styles.headerContent}>
-                <View style={[styles.pfpContainer, { width: 42 + 15 * (usersExcludingSelf.length - 1) }]}>
-                    {usersExcludingSelf.map((user, idx) => (
+                <View style={styles.pfpContainer}>
+                    {usersExcludingSelf.length > 1 ? (
+                        <>
+                            <Image
+                                source={{ uri: usersExcludingSelf[0].pfp }}
+                                style={[styles.pfp, styles.topLeftPfp]}
+                            />
+                            <Image
+                                source={{ uri: usersExcludingSelf[1].pfp }}
+                                style={[styles.pfp, styles.bottomRightPfp]}
+                            />
+                        </>
+                    ) : (
                         <Image
-                            key={user.uid}
-                            source={{ uri: user.pfp }}
-                            style={[styles.pfp, { left: idx * 15 }]}
+                            source={{ uri: usersExcludingSelf[0].pfp }}
+                            style={styles.singlePfp}
                         />
-                    ))}
+                    )}
                 </View>
                 <View style={styles.textContainer}>
                     <Text style={styles.nameText} numberOfLines={1} ellipsizeMode='tail'>{names}</Text>
@@ -41,7 +51,7 @@ const styles = StyleSheet.create({
         shadowOpacity: 0.2,
         shadowRadius: 3.84,
         elevation: 5,
-        paddingLeft: '16.5%',
+        paddingLeft: '16%',
     },
     arrowIconContainer: {
         position: 'absolute',
@@ -49,28 +59,40 @@ const styles = StyleSheet.create({
         zIndex: 1,
         left: 32,
         height: 58,
-        width: 50,
         justifyContent: 'center',
     },
     headerContent: {
         flexDirection: 'row',
-        alignItems: 'center',
         paddingBottom: 7,
         paddingTop: 2,
     },
     pfpContainer: {
-        flexDirection: 'row',
+        width: 48,
+        height: 48,
         position: 'relative',
-        alignItems: 'center',
         marginRight: 7,
     },
     pfp: {
-        width: 42,
-        height: 42,
-        borderRadius: 21,
+        width: 35,
+        height: 35,
+        borderRadius: 30,
         position: 'absolute',
         borderWidth: 2,
         borderColor: '#fff',
+    },
+    topLeftPfp: {
+        top: 0,
+        left: 0,
+    },
+    bottomRightPfp: {
+        bottom: 0,
+        right: 0,
+    },
+    singlePfp: {
+        width: 42,
+        height: 42,
+        borderRadius: 21,
+        marginTop: 4
     },
     textContainer: {
         justifyContent: 'center',

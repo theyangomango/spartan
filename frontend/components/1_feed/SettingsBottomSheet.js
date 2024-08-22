@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import React, { memo, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { View, StyleSheet } from "react-native";
 import BottomSheet, { BottomSheetBackdrop } from "@gorhom/bottom-sheet";
 import SettingsScreen from "./SettingsScreen";
@@ -51,4 +51,4 @@ const styles = StyleSheet.create({
     }
 });
 
-export default SettingsBottomSheet;
+export default memo(SettingsBottomSheet);

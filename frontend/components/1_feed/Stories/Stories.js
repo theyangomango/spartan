@@ -1,4 +1,4 @@
-import React, { useRef, useState } from 'react';
+import React, { memo, useEffect, useRef, useState } from 'react';
 import { FlatList, Modal, Pressable, StyleSheet, View, ActivityIndicator } from 'react-native';
 import FastImage from 'react-native-fast-image';
 import StoryHeaderButtons from "./StoryHeaderButtons";
@@ -46,7 +46,7 @@ function generatePrefixSumArray(userList) {
     return prefixSumArray;
 }
 
-export default function Stories({ data, userList, initStories, navigation }) {
+const Stories = ({ data, userList, initStories, navigation }) => {
     const storiesData = sortDataByUserList(data, userList);
     const storiesPrefixSums = generatePrefixSumArray(userList);
     const [viewModalVisible, setViewModal] = useState(false);
@@ -117,7 +117,6 @@ export default function Stories({ data, userList, initStories, navigation }) {
             setCurrentIndex(index);
             setViewModal(true);
             viewedStories.current = [...viewedStories.current, storiesData[index].sid];
-            console.log(viewedStories.current);
         } else {
             // If no unviewed stories are found, close the modal
             setViewModal(false);
@@ -141,9 +140,6 @@ export default function Stories({ data, userList, initStories, navigation }) {
     function handlePressLeft() {
         if (currentIndex > 0) {
             let newIndex = currentIndex - 1;
-            if (newIndex < 0) {
-                newIndex = currentIndex - 1;
-            }
             setCurrentIndex(newIndex);
             viewedStories.current = ([...viewedStories.current, storiesData[newIndex].sid]);
         } else {
@@ -152,17 +148,14 @@ export default function Stories({ data, userList, initStories, navigation }) {
         }
     }
 
-
     function handlePressRight() {
         if (currentIndex < storiesData.length - 1) {
             let newIndex = currentIndex + 1;
-            if (newIndex >= storiesData.length) {
-                newIndex = currentIndex + 1;
-            }
             setCurrentIndex(newIndex);
             viewedStories.current = ([...viewedStories.current, storiesData[newIndex].sid]);
         } else {
             setViewModal(false);
+            setCurrentIndex(null);
         }
     }
 
@@ -231,6 +224,8 @@ export default function Stories({ data, userList, initStories, navigation }) {
         </View>
     );
 }
+
+export default Stories;
 
 const styles = StyleSheet.create({
     storiesContainer: {

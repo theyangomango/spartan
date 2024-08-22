@@ -19,7 +19,7 @@ export default function MessagesHeader({ toFeedScreen, openCreateGroupChatBottom
                 </TouchableOpacity>
                 <View style={styles.groupIconContainer}>
                     <TouchableOpacity activeOpacity={0.5} onPress={openCreateGroupChatBottomSheet}>
-                        <FontAwesome5 name='users' size={20.5} color="#2D9EFF" />
+                        <FontAwesome5 name='users' size={18.5} color="#2D9EFF" />
                     </TouchableOpacity>
                 </View>
                 <View style={styles.plusIconContainer}>
@@ -68,10 +68,11 @@ const styles = StyleSheet.create({
     arrowIconContainer: {
         position: 'absolute',
         zIndex: 1,
-        left: 32,
+        left: 27,
         height: 58,
         justifyContent: 'center',
         width: 50,
+        padding: 5
     },
     groupIconContainer: {
         position: 'absolute',

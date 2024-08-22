@@ -38,7 +38,7 @@ export default function ProfileInfo({ userData }) {
                     <Text style={styles.score_text}>{userData.statsHexagon.overall} overall</Text>
                 </View>
                 <View style={styles.bio_ctnr}>
-                    <Text style={styles.bio_text}>{userData.bio}</Text>
+                <Text style={styles.bio_text}>{(userData.bio ? userData.bio : 'No bio yet...')}</Text>
                 </View>
             </View>
         </View>

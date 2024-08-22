@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import React, { memo, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { View, StyleSheet } from "react-native";
 import BottomSheet, { BottomSheetBackdrop } from "@gorhom/bottom-sheet";
 import NotificationsModal from "./NotificationsModal";
@@ -10,7 +10,6 @@ const NotificationsBottomSheet = ({ notificationsBottomSheetExpandFlag }) => {
     const snapPoints = useMemo(() => ["94%"], []);
 
     useEffect(() => {
-        console.log('dfsd');
         bottomSheetRef.current.expand();
     }, [notificationsBottomSheetExpandFlag]);
 
@@ -66,4 +65,4 @@ const styles = StyleSheet.create({
     }
 });
 
-export default NotificationsBottomSheet;
+export default memo(NotificationsBottomSheet);

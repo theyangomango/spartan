@@ -5,21 +5,28 @@ import getDisplayTime from '../../helper/getDisplayTime';
 
 export default function MessageCard({ usersExcludingSelf, content, timestamp, toChat, index }) {
     const handles = usersExcludingSelf.map(user => user.handle).join(', ');
-    const maxProfilePics = 5; // Set a maximum number of profile pictures to show at full size
-    const profilePicSize = usersExcludingSelf.length > maxProfilePics ? 40 : 48; // Adjust size based on the number of users
-    const profilePicOverlap = 15; // Overlap amount
 
     return (
         <RNBounceable onPress={() => toChat(index, usersExcludingSelf)} style={styles.mainContainer}>
             <View style={styles.leftContainer}>
-                <View style={[styles.profilePicturesContainer, { width: profilePicSize + profilePicOverlap * (usersExcludingSelf.length - 1) }]}>
-                    {usersExcludingSelf.map((user, idx) => (
+                <View style={styles.profilePicturesContainer}>
+                    {usersExcludingSelf.length > 1 ? (
+                        <>
+                            <FastImage
+                                source={{ uri: usersExcludingSelf[0].pfp }}
+                                style={[styles.profilePicture, styles.topLeftProfilePicture]}
+                            />
+                            <FastImage
+                                source={{ uri: usersExcludingSelf[1].pfp }}
+                                style={[styles.profilePicture, styles.bottomRightProfilePicture]}
+                            />
+                        </>
+                    ) : (
                         <FastImage
-                            key={user.uid}
-                            source={{ uri: user.pfp }}
-                            style={[styles.profilePicture, { left: idx * profilePicOverlap, width: profilePicSize, height: profilePicSize }]}
+                            source={{ uri: usersExcludingSelf[0].pfp }}
+                            style={styles.singleProfilePicture}
                         />
-                    ))}
+                    )}
                 </View>
                 <View style={styles.textContainer}>
                     <Text style={styles.handleText} numberOfLines={1} ellipsizeMode="tail">{handles}</Text>
@@ -45,16 +52,31 @@ const styles = StyleSheet.create({
         marginBottom: 8,
     },
     profilePicturesContainer: {
-        flexDirection: 'row',
-        marginRight: 12,
+        width: 48,
+        height: 48,
         position: 'relative',
-        alignItems: 'center',
+        marginRight: 12,
     },
     profilePicture: {
-        borderRadius: 24,
+        width: 35,
+        height: 35,
+        borderRadius: 30,
         position: 'absolute',
         borderWidth: 2,
         borderColor: '#fff',
+    },
+    topLeftProfilePicture: {
+        top: 0,
+        left: 0,
+    },
+    bottomRightProfilePicture: {
+        bottom: 0,
+        right: 0,
+    },
+    singleProfilePicture: {
+        width: 48,
+        height: 48,
+        borderRadius: 24,
     },
     leftContainer: {
         flexDirection: 'row',

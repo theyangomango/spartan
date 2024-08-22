@@ -1,10 +1,6 @@
-import React, { useEffect, useMemo, useRef, useState } from "react";
+import React, { useEffect, useMemo, useRef, memo, useState } from "react";
 import { View, StyleSheet, TextInput, Platform, Image, KeyboardAvoidingView, Animated, Keyboard, Pressable, Dimensions } from "react-native";
 import BottomSheet from "@gorhom/bottom-sheet";
-import { Ionicons } from '@expo/vector-icons';
-import CommentsModal from "../Comments/CommentsModal";
-import incrementDocValue from "../../../../backend/helper/firebase/incrementDocValue";
-import updateDoc from "../../../../backend/helper/firebase/updateDoc";
 import ShareModal from "./ShareModal";
 
 const { width, height } = Dimensions.get('screen');
@@ -96,4 +92,4 @@ const styles = StyleSheet.create({
     },
 });
 
-export default ShareBottomSheet;
+export default memo(ShareBottomSheet);

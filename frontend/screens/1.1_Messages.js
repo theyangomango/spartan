@@ -4,8 +4,8 @@ import MessageCard from "../components/1.1_Messages/MessageCard";
 import MessagesHeader from "../components/1.1_Messages/MessagesHeader";
 import CreateGroupChatBottomSheet from "../components/1.1_Messages/CreateGroupChatBottomSheet";
 import initChat from "../../backend/messages/initChat";
-import makeID from '../../backend/helper/makeID'
-import arrayAppend from '../../backend/helper/firebase/arrayAppend'
+import makeID from '../../backend/helper/makeID';
+import arrayAppend from '../../backend/helper/firebase/arrayAppend';
 
 export default function Messages({ navigation, route }) {
     const userData = global.userData;
@@ -15,45 +15,77 @@ export default function Messages({ navigation, route }) {
 
     useEffect(() => {
         if ('messages' in route.params) {
-            setMessages(route.params.messages);
+            // Sort messages before setting them
+            const sortedMessages = [...route.params.messages].sort((a, b) => {
+                const timestampA = a.content.length > 0 ? a.content[a.content.length - 1].timestamp : null;
+                const timestampB = b.content.length > 0 ? b.content[b.content.length - 1].timestamp : null;
+
+                if (timestampA && timestampB) {
+                    return timestampB - timestampA;
+                }
+                if (!timestampA) return 1;
+                if (!timestampB) return -1;
+                return 0;
+            });
+            setMessages(sortedMessages);
         }
-    }, []);
+    }, [route.params.messages]);
+
+    useEffect(() => {
+        if ('message' in route.params) {
+            const data = route.params.message;
+            const index = route.params.index;
+
+            // Create a new array with the updated message
+            const updatedMessages = [...messages];
+            updatedMessages[index] = data;
+
+            // Sort the messages after updating
+            const sortedMessages = updatedMessages.sort((a, b) => {
+                const timestampA = a.content.length > 0 ? a.content[a.content.length - 1].timestamp : null;
+                const timestampB = b.content.length > 0 ? b.content[b.content.length - 1].timestamp : null;
+
+                if (timestampA && timestampB) {
+                    return timestampB - timestampA;
+                }
+                if (!timestampA) return 1;
+                if (!timestampB) return -1;
+                return 0;
+            });
+
+            setMessages(sortedMessages);
+        }
+    }, [route.params]);
 
     const toFeedScreen = () => {
-        // Navigate to the Feed screen
-        navigation.navigate('Feed');
+        navigation.navigate('Feed', { messages: messages });
     };
 
     const toChat = (key, usersExcludingSelf) => {
-        // Navigate to the Chat screen with selected message data
-        navigation.navigate('Chat', { data: messages[key], usersExcludingSelf });
+        navigation.navigate('Chat', { data: messages[key], index: key, usersExcludingSelf });
     };
 
     const openCreateGroupChatBottomSheet = () => {
-        // Show the create group chat bottom sheet
         setIsCreateGroupChatBottomSheetVisible(true);
     };
 
     const createGroupChat = async (usersExcludingSelf) => {
-        // Update Firestore
         const selfUser = {
             uid: userData.uid,
             handle: userData.handle,
             pfp: userData.image,
-            name: userData.name
+            name: userData.name,
         };
 
         const cid = makeID();
         arrayAppend('users', userData.uid, 'messages', {
             mid: cid,
-            otherUsers: usersExcludingSelf
+            otherUsers: usersExcludingSelf,
         });
 
-        // Append to Messages List
         const newChat = await initChat(userData.uid, [...usersExcludingSelf, selfUser], cid);
         setMessages([...messages, newChat]);
 
-        // Navigate
         setIsCreateGroupChatBottomSheetVisible(false);
         navigation.navigate('Chat', { data: newChat, usersExcludingSelf });
     };
@@ -71,17 +103,13 @@ export default function Messages({ navigation, route }) {
             <View style={styles.cardsContainer}>
                 <ScrollView style={styles.cardsScrollView}>
                     {messages.map((msg, index) => {
-                        // Skip rendering if scope is 'Group' and message is not a group message
                         if (scope === 'Group' && !msg.isGroup) return null;
 
-                        // Filter out the current user from the message users list
                         const usersExcludingSelf = msg.users.filter(usr => usr.uid !== userData.uid);
 
                         return (
                             <View key={index}>
                                 <MessageCard
-                                    // pfp={usersExcludingSelf[0].pfp}
-                                    // handle={usersExcludingSelf[0].handle}
                                     usersExcludingSelf={usersExcludingSelf}
                                     content={msg.content.length > 0 && msg.content[msg.content.length - 1].text}
                                     timestamp={msg.content.length > 0 && msg.content[msg.content.length - 1].timestamp}

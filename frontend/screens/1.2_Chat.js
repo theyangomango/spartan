@@ -5,33 +5,26 @@ import MessageInput from '../components/1.2_Chat/MessageInput';
 import MessageItem from '../components/1.2_Chat/MessageItem';
 import getReverse from '../helper/getReverse';
 import sendMessage from '../../backend/messages/sendMessage';
+import { doc, onSnapshot } from 'firebase/firestore';
+import { db } from '../../firebase.config';
 
 const Chat = ({ navigation, route }) => {
-    const { data, usersExcludingSelf } = route.params;
+    const { usersExcludingSelf } = route.params;
+    const [data, setData] = useState(route.params.data)
     const [messages, setMessages] = useState(getReverse(data.content));
     const [inputText, setInputText] = useState('');
-    const [isScrolled, setIsScrolled] = useState(false);
     const [isInputFocused, setIsInputFocused] = useState(false);
     const flatListRef = useRef(null);
 
     useEffect(() => {
-        const keyboardDidShowListener = Keyboard.addListener('keyboardDidShow', () => {
-            if (!isScrolled) {
-                flatListRef.current.scrollToEnd({ animated: true });
-            }
+        const unsub = onSnapshot(doc(db, 'messages', data.cid), d => {
+            const newData = d.data();
+            setData({ ...newData });
+            setMessages(getReverse(newData.content));
         });
 
-        const keyboardDidHideListener = Keyboard.addListener('keyboardDidHide', () => {
-            if (!isScrolled) {
-                flatListRef.current.scrollToEnd({ animated: true });
-            }
-        });
-
-        return () => {
-            keyboardDidShowListener.remove();
-            keyboardDidHideListener.remove();
-        };
-    }, [isScrolled]);
+        return () => unsub();
+    }, []);
 
     const handleSend = () => {
         if (inputText.trim() === '') return;
@@ -49,14 +42,6 @@ const Chat = ({ navigation, route }) => {
         setInputText('');
     };
 
-    const handleScroll = () => {
-        setIsScrolled(true);
-    };
-
-    const handleScrollEnd = () => {
-        setIsScrolled(false);
-    };
-
     const handleInputFocus = () => {
         setIsInputFocused(true);
     };
@@ -66,8 +51,10 @@ const Chat = ({ navigation, route }) => {
     };
 
     const toMessages = () => {
-        // navigation.navigate('Messages');
-        navigation.goBack();
+        navigation.navigate('Messages', {
+            message: data,
+            index: route.params.index
+        });
     };
 
     return (
@@ -89,8 +76,6 @@ const Chat = ({ navigation, route }) => {
                         )}
                         keyExtractor={(item, index) => index.toString()}
                         inverted
-                        onScroll={handleScroll}
-                        onScrollEndDrag={handleScrollEnd}
                         scrollEventThrottle={16}
                         ListHeaderComponent={<View style={{ height: 15 }} />}
                         ListFooterComponent={<View style={{ height: 15 }} />}
