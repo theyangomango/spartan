@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { ScrollView, StyleSheet, View } from "react-native";
+import { SafeAreaView, ScrollView, StyleSheet, View } from "react-native";
 import MessageCard from "../components/1.1_Messages/MessageCard";
 import MessagesHeader from "../components/1.1_Messages/MessagesHeader";
 import CreateGroupChatBottomSheet from "../components/1.1_Messages/CreateGroupChatBottomSheet";
@@ -93,7 +93,7 @@ export default function Messages({ navigation, route }) {
     if (!userData) return null;
 
     return (
-        <View style={styles.mainContainer}>
+        <SafeAreaView style={styles.mainContainer}>
             <MessagesHeader
                 handle={userData.handle}
                 toFeedScreen={toFeedScreen}
@@ -126,7 +126,7 @@ export default function Messages({ navigation, route }) {
                 setIsVisible={setIsCreateGroupChatBottomSheetVisible}
                 createGroupChat={createGroupChat}
             />
-        </View>
+        </SafeAreaView>
     );
 }
 

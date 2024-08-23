@@ -9,6 +9,44 @@ import sendNotification from "../../../../backend/sendNotification";
 
 const { width, height } = Dimensions.get('screen');
 
+const getDynamicStyles = () => {
+    if (width >= 430 && height >= 932) { // iPhone 14 Pro Max and similar
+        return {
+            inputFontSize: 15,
+            inputPaddingVertical: 8,
+            inputHeight: 55,
+            pfpSize: 40,
+            sendButtonSize: 19,
+        };
+    } else if (width >= 390 && height >= 844) { // iPhone 13/14 and similar
+        return {
+            inputFontSize: 14,
+            inputPaddingVertical: 7,
+            inputHeight: 52,
+            pfpSize: 37,
+            sendButtonSize: 18,
+        };
+    } else if (width >= 375 && height >= 812) { // iPhone X/XS/11 Pro and similar
+        return {
+            inputFontSize: 13.5,
+            inputPaddingVertical: 7,
+            inputHeight: 50,
+            pfpSize: 35,
+            sendButtonSize: 17.5,
+        };
+    } else { // Smaller iPhone models (like iPhone SE)
+        return {
+            inputFontSize: 13,
+            inputPaddingVertical: 6,
+            inputHeight: 48,
+            pfpSize: 33,
+            sendButtonSize: 17,
+        };
+    }
+};
+
+const dynamicStyles = getDynamicStyles();
+
 const CommentsBottomSheet = ({ isVisible, postData, commentsBottomSheetExpandFlag, toViewProfile }) => {
     const [isInputFocused, setIsInputFocused] = useState(false);
     const bottomSheetRef = useRef(null);
@@ -32,11 +70,10 @@ const CommentsBottomSheet = ({ isVisible, postData, commentsBottomSheetExpandFla
             likedUsers: [],
             replies: [],
             isCaption: false
-        }
+        };
 
         if (replyingToIndex == null) {
             postData.comments.push(newComment);
-
         } else {
             postData.comments[replyingToIndex].replies.push(newComment);
 
@@ -48,7 +85,7 @@ const CommentsBottomSheet = ({ isVisible, postData, commentsBottomSheetExpandFla
                 type: 'replied-comment',
                 content: inputText,
                 timestamp: Date.now()
-            }
+            };
 
             sendNotification(postData.comments[replyingToIndex].uid, replyNotif);
         }
@@ -58,7 +95,6 @@ const CommentsBottomSheet = ({ isVisible, postData, commentsBottomSheetExpandFla
         });
         incrementDocValue('posts', postData.pid, 'commentCount');
 
-
         const notif = {
             uid: global.userData.uid,
             pfp: global.userData.image,
@@ -67,10 +103,9 @@ const CommentsBottomSheet = ({ isVisible, postData, commentsBottomSheetExpandFla
             type: 'comment',
             content: inputText,
             timestamp: Date.now()
-        }
+        };
 
         sendNotification(postData.uid, notif);
-
 
         setInputText('');
     };
@@ -162,7 +197,7 @@ const CommentsBottomSheet = ({ isVisible, postData, commentsBottomSheetExpandFla
                             <Image source={{ uri: global.userData.image }} style={styles.pfp} />
                         </View>
                         <TextInput
-                            ref={textInputRef} // Add ref to TextInput
+                            ref={textInputRef}
                             placeholder={replyingToIndex == null ? "Add comment" : `Replying to ${postData.comments[replyingToIndex].handle}`}
                             style={styles.textInput}
                             onFocus={handleInputFocus}
@@ -171,7 +206,7 @@ const CommentsBottomSheet = ({ isVisible, postData, commentsBottomSheetExpandFla
                             onChangeText={setInputText}
                         />
                         <Pressable style={styles.sendButton} onPress={handleSend}>
-                            <Ionicons name="send" size={17.5} color="#111" />
+                            <Ionicons name="send" size={dynamicStyles.sendButtonSize} color="#111" />
                         </Pressable>
                     </View>
                 </Animated.View>
@@ -207,10 +242,11 @@ const styles = StyleSheet.create({
         borderRadius: 30,
         flexDirection: 'row',
         alignItems: 'center',
-        paddingHorizontal: 12
+        paddingHorizontal: 12,
+        height: dynamicStyles.inputHeight,
     },
     image_ctnr: {
-        width: 37,
+        width: dynamicStyles.pfpSize,
         aspectRatio: 1
     },
     pfp: {
@@ -221,10 +257,10 @@ const styles = StyleSheet.create({
         flex: 1,
         borderRadius: 20,
         paddingHorizontal: 15,
-        paddingVertical: 7,
+        paddingVertical: dynamicStyles.inputPaddingVertical,
         color: '#000',
         fontFamily: 'Outfit_500Medium',
-        fontSize: 13.5,
+        fontSize: dynamicStyles.inputFontSize,
     },
     sendButton: {
         paddingHorizontal: 10,

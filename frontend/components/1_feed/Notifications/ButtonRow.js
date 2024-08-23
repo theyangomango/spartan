@@ -1,6 +1,51 @@
 import React from 'react';
-import { View, Text, StyleSheet, ScrollView } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, Dimensions } from 'react-native';
 import RNBounceable from '@freakycoder/react-native-bounceable';
+
+const { width, height } = Dimensions.get('window');
+
+// Function to determine the styles based on screen size
+const getDynamicStyles = () => {
+    if (width >= 430 && height >= 932) { // iPhone 14 Pro Max and similar
+        return {
+            buttonPaddingVertical: 15,
+            buttonPaddingHorizontal: 22,
+            buttonFontSize: 14,
+            badgePaddingHorizontal: 9,
+            badgePaddingVertical: 6,
+            badgeFontSize: 11,
+        };
+    } else if (width >= 390 && height >= 844) { // iPhone 13/14 and similar
+        return {
+            buttonPaddingVertical: 14,
+            buttonPaddingHorizontal: 20,
+            buttonFontSize: 13,
+            badgePaddingHorizontal: 8,
+            badgePaddingVertical: 5,
+            badgeFontSize: 10,
+        };
+    } else if (width >= 375 && height >= 812) { // iPhone X/XS/11 Pro and similar
+        return {
+            buttonPaddingVertical: 13.5,
+            buttonPaddingHorizontal: 19,
+            buttonFontSize: 12.5,
+            badgePaddingHorizontal: 7,
+            badgePaddingVertical: 5,
+            badgeFontSize: 10,
+        };
+    } else { // Smaller iPhone models (like iPhone SE)
+        return {
+            buttonPaddingVertical: 13,
+            buttonPaddingHorizontal: 18,
+            buttonFontSize: 12,
+            badgePaddingHorizontal: 7,
+            badgePaddingVertical: 5,
+            badgeFontSize: 9.5,
+        };
+    }
+};
+
+const dynamicStyles = getDynamicStyles();
 
 export default function ButtonRow({ buttons, selectedButton, setSelectedButton, newLikes, newComments }) {
     return (
@@ -54,8 +99,8 @@ const styles = StyleSheet.create({
     },
     button: {
         backgroundColor: '#f3f3f3',
-        paddingVertical: 13.5,
-        paddingHorizontal: 20,
+        paddingVertical: dynamicStyles.buttonPaddingVertical,
+        paddingHorizontal: dynamicStyles.buttonPaddingHorizontal,
         borderRadius: 20,
         marginRight: 8,
         position: 'relative', // Needed to position the badge
@@ -65,7 +110,7 @@ const styles = StyleSheet.create({
     },
     buttonText: {
         color: '#000',
-        fontSize: 12.5,
+        fontSize: dynamicStyles.buttonFontSize,
         fontFamily: 'Outfit_600SemiBold',
     },
     selectedButtonText: {
@@ -81,12 +126,12 @@ const styles = StyleSheet.create({
     badge: {
         backgroundColor: '#FF387E',
         borderRadius: 10,
-        paddingHorizontal: 8,
-        paddingVertical: 5,
+        paddingHorizontal: dynamicStyles.badgePaddingHorizontal,
+        paddingVertical: dynamicStyles.badgePaddingVertical,
     },
     badgeText: {
         color: 'white',
-        fontSize: 10,
+        fontSize: dynamicStyles.badgeFontSize,
         fontFamily: 'Outfit_600SemiBold',
     },
 });

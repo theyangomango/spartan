@@ -20,7 +20,7 @@ const Chat = ({ navigation, route }) => {
         const unsub = onSnapshot(doc(db, 'messages', data.cid), d => {
             const newData = d.data();
             setData({ ...newData });
-            setMessages(getReverse(newData.content));
+            setMessages(getReverse(data.content));
         });
 
         return () => unsub();

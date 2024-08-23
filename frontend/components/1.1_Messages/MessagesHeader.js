@@ -1,7 +1,56 @@
 import React, { useState } from "react";
-import { StyleSheet, View, Text, TouchableOpacity } from "react-native";
+import { StyleSheet, View, Text, TouchableOpacity, Dimensions } from "react-native";
 import { FontAwesome6, FontAwesome5 } from '@expo/vector-icons';
 import RNBounceable from "@freakycoder/react-native-bounceable";
+
+const { width, height } = Dimensions.get('window');
+
+// Function to determine the styles based on screen size
+const getDynamicStyles = () => {
+    if (width >= 430 && height >= 932) { // iPhone 14 Pro Max and similar
+        return {
+            iconSize: 20.5,
+            buttonWidth: 120,
+            buttonHeight: 42,
+            buttonTextSize: 13.5,
+            paddingHorizontal: 35,
+            iconContainerSize: 60,
+            plusIconSize: 14,
+        };
+    } else if (width >= 390 && height >= 844) { // iPhone 13/14 and similar
+        return {
+            iconSize: 19.5,
+            buttonWidth: 113,
+            buttonHeight: 39,
+            buttonTextSize: 12.5,
+            paddingHorizontal: 30,
+            iconContainerSize: 58,
+            plusIconSize: 12.5,
+        };
+    } else if (width >= 375 && height >= 812) { // iPhone X/XS/11 Pro and similar
+        return {
+            iconSize: 18.5,
+            buttonWidth: 110,
+            buttonHeight: 38,
+            buttonTextSize: 12.5,
+            paddingHorizontal: 28,
+            iconContainerSize: 56,
+            plusIconSize: 12.5,
+        };
+    } else { // Smaller iPhone models (like iPhone SE)
+        return {
+            iconSize: 17.5,
+            buttonWidth: 105,
+            buttonHeight: 37,
+            buttonTextSize: 12,
+            paddingHorizontal: 25,
+            iconContainerSize: 54,
+            plusIconSize: 12,
+        };
+    }
+};
+
+const dynamicStyles = getDynamicStyles();
 
 export default function MessagesHeader({ toFeedScreen, openCreateGroupChatBottomSheet, setScope }) {
     const [selectedButton, setSelectedButton] = useState('All');
@@ -15,36 +64,50 @@ export default function MessagesHeader({ toFeedScreen, openCreateGroupChatBottom
         <View style={styles.mainContainer}>
             <View style={styles.row}>
                 <TouchableOpacity activeOpacity={0.5} onPress={toFeedScreen} style={styles.arrowIconContainer}>
-                    <FontAwesome6 name='chevron-left' size={18.5} color="#2D9EFF" />
+                    <FontAwesome6 name='chevron-left' size={dynamicStyles.iconSize} color="#2D9EFF" />
                 </TouchableOpacity>
                 <View style={styles.groupIconContainer}>
                     <TouchableOpacity activeOpacity={0.5} onPress={openCreateGroupChatBottomSheet}>
-                        <FontAwesome5 name='users' size={18.5} color="#2D9EFF" />
+                        <FontAwesome5 name='users' size={dynamicStyles.iconSize} color="#2D9EFF" />
                     </TouchableOpacity>
                 </View>
                 <View style={styles.plusIconContainer}>
-                    <FontAwesome5 name='plus' size={12.5} color="#2D9EFF" />
+                    <FontAwesome5 name='plus' size={dynamicStyles.plusIconSize} color="#2D9EFF" />
                 </View>
                 <View style={styles.overlay}>
                     <RNBounceable
                         style={[
                             styles.buttonContainer,
                             styles.leftButtonContainer,
-                            { backgroundColor: selectedButton === 'All' ? '#2D9EFF' : '#eee' }
+                            { 
+                                backgroundColor: selectedButton === 'All' ? '#2D9EFF' : '#eee',
+                                width: dynamicStyles.buttonWidth,
+                                height: dynamicStyles.buttonHeight,
+                            }
                         ]}
                         onPress={() => handleButtonPress('All')}
                     >
-                        <Text style={[styles.buttonText, { color: selectedButton === 'All' ? '#fff' : '#888' }]}>All</Text>
+                        <Text style={[styles.buttonText, { 
+                            color: selectedButton === 'All' ? '#fff' : '#888',
+                            fontSize: dynamicStyles.buttonTextSize
+                        }]}>All</Text>
                     </RNBounceable>
                     <RNBounceable
                         style={[
                             styles.buttonContainer,
                             styles.rightButtonContainer,
-                            { backgroundColor: selectedButton === 'Group' ? '#2D9EFF' : '#eee' }
+                            { 
+                                backgroundColor: selectedButton === 'Group' ? '#2D9EFF' : '#eee',
+                                width: dynamicStyles.buttonWidth,
+                                height: dynamicStyles.buttonHeight,
+                            }
                         ]}
                         onPress={() => handleButtonPress('Group')}
                     >
-                        <Text style={[styles.buttonText, { color: selectedButton === 'Group' ? '#fff' : '#888' }]}>Group</Text>
+                        <Text style={[styles.buttonText, { 
+                            color: selectedButton === 'Group' ? '#fff' : '#888',
+                            fontSize: dynamicStyles.buttonTextSize
+                        }]}>Group</Text>
                     </RNBounceable>
                 </View>
             </View>
@@ -55,21 +118,20 @@ export default function MessagesHeader({ toFeedScreen, openCreateGroupChatBottom
 const styles = StyleSheet.create({
     mainContainer: {
         backgroundColor: '#fff',
-        paddingTop: 51,
     },
     row: {
         flexDirection: 'row',
         justifyContent: 'center',
         paddingTop: 5,
         width: '100%',
-        paddingHorizontal: 30,
+        paddingHorizontal: dynamicStyles.paddingHorizontal,
         paddingBottom: 5,
     },
     arrowIconContainer: {
         position: 'absolute',
         zIndex: 1,
         left: 27,
-        height: 58,
+        height: dynamicStyles.iconContainerSize,
         justifyContent: 'center',
         width: 50,
         padding: 5
@@ -78,7 +140,7 @@ const styles = StyleSheet.create({
         position: 'absolute',
         zIndex: 1,
         right: 30,
-        height: 55,
+        height: dynamicStyles.iconContainerSize,
         justifyContent: 'center',
     },
     plusIconContainer: {
@@ -96,8 +158,6 @@ const styles = StyleSheet.create({
         borderRadius: 40,
     },
     buttonContainer: {
-        width: 113,
-        height: 39,
         borderRadius: 40,
         justifyContent: 'center',
         alignItems: 'center',
@@ -111,6 +171,5 @@ const styles = StyleSheet.create({
     },
     buttonText: {
         fontFamily: 'Mulish_700Bold',
-        fontSize: 12.5,
     },
 });

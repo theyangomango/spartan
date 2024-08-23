@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState } from "react";
-import { StyleSheet, View, Animated } from "react-native";
+import { StyleSheet, View, Animated, SafeAreaView } from "react-native";
 import Footer from "../components/Footer";
 import Post from "../components/1_Feed/Posts/Post";
 import FeedHeader from "../components/1_Feed/FeedHeader";
@@ -14,11 +14,26 @@ import { StatusBar } from "expo-status-bar";
 import SettingsBottomSheet from "../components/1_Feed/SettingsBottomSheet";
 import { doc, onSnapshot } from "firebase/firestore";
 import { db } from "../../firebase.config";
+import { Dimensions } from "react-native";
 
 // Constants
 const UID = '6b176d7d-4d89-4cb5-beb0-0f19b47a10a2'; // Hard set UID
 const ANIMATION_DURATION = 300;
-const TARGET_POSITION = 85;
+const { width, height } = Dimensions.get("window");
+
+const getTargetPosition = () => {
+    if (width >= 430 && height >= 932) { // iPhone 14 Pro Max and similar
+        return 105; // Adjusted for iPhone 14 Pro Max
+    } else if (width >= 390 && height >= 844) { // iPhone 13/14 and similar
+        return 95; // Adjusted for iPhone 13/14
+    } else if (width >= 375 && height >= 812) { // iPhone X/XS/11 Pro and similar
+        return 90; // Adjusted for iPhone X/XS/11 Pro
+    } else { // Smaller iPhone models (like iPhone SE)
+        return 85; // Adjusted for smaller iPhone models
+    }
+};
+
+const TARGET_POSITION = getTargetPosition();
 const SCROLL_THRESHOLD = 85;
 
 export default function Feed({ navigation, route }) {
@@ -198,7 +213,16 @@ export default function Feed({ navigation, route }) {
     );
 
     return (
-        <View style={{ flex: 1, backgroundColor: '#fff' }}>
+        <SafeAreaView style={{ flex: 1, backgroundColor: '#fff' }}>
+            <FeedHeader
+                toMessagesScreen={toMessagesScreen}
+                onOpenNotifications={handleOpenNotifications}
+                onOpenSettings={handleOpenSettings}
+                backButton={!isPostsVisible}
+                onBackPress={handleBackPress}
+                style={{ opacity: headerOpacity }}
+            />
+
             <MaskedView
                 pointerEvents="box-none"
                 style={{ flex: 1, flexDirection: 'row', height: '100%' }}
@@ -207,22 +231,14 @@ export default function Feed({ navigation, route }) {
                         pointerEvents="none"
                         style={{ flex: 1 }}
                     >
-                        <View style={styles.headerSpacer(isPostsVisible)} />
                         <View style={styles.maskSpacer(isScrolledPast90)} />
                     </View>
                 }
             >
-                <View style={styles.mainContainer}>
+                <SafeAreaView style={styles.mainContainer}>
                     <StatusBar style="dark" />
 
-                    <FeedHeader
-                        toMessagesScreen={toMessagesScreen}
-                        onOpenNotifications={handleOpenNotifications}
-                        onOpenSettings={handleOpenSettings}
-                        backButton={!isPostsVisible}
-                        onBackPress={handleBackPress}
-                        style={{ opacity: headerOpacity }}
-                    />
+
                     <Animated.FlatList
                         scrollEnabled={isPostsVisible}
                         showsVerticalScrollIndicator={false}
@@ -239,8 +255,7 @@ export default function Feed({ navigation, route }) {
                         initialNumToRender={2}
                         removeClippedSubviews
                     />
-                    <Footer key={footerKey} navigation={navigation} currentScreenName={'Feed'} />
-                </View>
+                </SafeAreaView>
             </MaskedView>
 
             <NotificationsBottomSheet notificationsBottomSheetExpandFlag={notificationsBottomSheetExpandFlag} />
@@ -255,7 +270,9 @@ export default function Feed({ navigation, route }) {
                 shareBottomSheetCloseFlag={shareBottomSheetCloseFlag}
                 shareBottomSheetExpandFlag={shareBottomSheetExpandFlag}
             />
-        </View>
+
+            <Footer key={footerKey} navigation={navigation} currentScreenName={'Feed'} />
+        </SafeAreaView>
     );
 }
 
@@ -267,10 +284,6 @@ const styles = StyleSheet.create({
     postWrapper: {
         width: '100%',
     },
-    headerSpacer: (isPostsVisible) => ({
-        paddingTop: isPostsVisible ? 86 : 83,
-        backgroundColor: '#fff',
-    }),
     maskSpacer: (isScrolledPast90) => ({
         flex: 1,
         backgroundColor: '#fff',

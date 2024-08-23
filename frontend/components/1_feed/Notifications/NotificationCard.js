@@ -1,9 +1,58 @@
 import React, { useEffect, useState } from 'react';
-import { View, Text, StyleSheet, Image, Pressable } from 'react-native';
+import { View, Text, StyleSheet, Image, Pressable, Dimensions } from 'react-native';
 import RNBounceable from '@freakycoder/react-native-bounceable';
 import getDisplayTime from '../../../helper/getDisplayTime';
 import followUser from '../../../../backend/user/followUser';
 import unfollowUser from '../../../../backend/user/unfollowUser';
+
+const { width, height } = Dimensions.get('window');
+
+// Function to determine the styles based on screen size
+const getDynamicStyles = () => {
+    if (width >= 430 && height >= 932) { // iPhone 14 Pro Max and similar
+        return {
+            pfpSize: 50,
+            handleFontSize: 15,
+            messageFontSize: 13.5,
+            timeFontSize: 13.5,
+            followButtonPaddingVertical: 14,
+            followButtonPaddingHorizontal: 18,
+            followButtonTextFontSize: 13.5,
+        };
+    } else if (width >= 390 && height >= 844) { // iPhone 13/14 and similar
+        return {
+            pfpSize: 47,
+            handleFontSize: 14,
+            messageFontSize: 12.5,
+            timeFontSize: 12.5,
+            followButtonPaddingVertical: 13.5,
+            followButtonPaddingHorizontal: 16,
+            followButtonTextFontSize: 12.5,
+        };
+    } else if (width >= 375 && height >= 812) { // iPhone X/XS/11 Pro and similar
+        return {
+            pfpSize: 45,
+            handleFontSize: 14,
+            messageFontSize: 12,
+            timeFontSize: 12,
+            followButtonPaddingVertical: 13,
+            followButtonPaddingHorizontal: 15,
+            followButtonTextFontSize: 12,
+        };
+    } else { // Smaller iPhone models (like iPhone SE)
+        return {
+            pfpSize: 43,
+            handleFontSize: 13.5,
+            messageFontSize: 11.5,
+            timeFontSize: 11.5,
+            followButtonPaddingVertical: 12.5,
+            followButtonPaddingHorizontal: 14,
+            followButtonTextFontSize: 11.5,
+        };
+    }
+};
+
+const dynamicStyles = getDynamicStyles();
 
 function getDisplayMessage(item) {
     switch (item.type) {
@@ -12,7 +61,7 @@ function getDisplayMessage(item) {
         case 'liked-post':
             return 'liked your post';
         case 'liked-comment':
-            return `liked your comment "${item.content}"`
+            return `liked your comment "${item.content}"`;
         case 'comment':
             return `commented "${item.content}"`;
         case 'replied-comment':
@@ -35,21 +84,20 @@ export default function NotificationCard({ item }) {
         }
     }, [item]);
 
-
     const handleFollowToggle = () => {
         const this_user = {
             name: global.userData.name,
             handle: global.userData.handle,
             pfp: global.userData.image,
             uid: global.userData.uid
-        }
+        };
 
         const user = {
             name: item.name,
             handle: item.handle,
             pfp: item.pfp,
             uid: item.uid,
-        }
+        };
 
         if (!isFollowing) {
             followUser(this_user, user);
@@ -97,7 +145,7 @@ const styles = StyleSheet.create({
         borderRadius: 25,
     },
     pfp: {
-        width: 47,
+        width: dynamicStyles.pfpSize,
         aspectRatio: 1,
         borderRadius: 20,
         marginRight: 11.5,
@@ -106,24 +154,24 @@ const styles = StyleSheet.create({
         flex: 1,
     },
     handle: {
-        fontSize: 14,
+        fontSize: dynamicStyles.handleFontSize,
         fontFamily: 'Outfit_600SemiBold',
         paddingVertical: 1.5,
     },
     message: {
-        fontSize: 12.5,
+        fontSize: dynamicStyles.messageFontSize,
         color: '#555',
         fontFamily: 'Outfit_500Medium',
     },
     time: {
-        fontSize: 12.5,
+        fontSize: dynamicStyles.timeFontSize,
         color: '#aaa',
         fontFamily: 'Outfit_500Medium',
     },
     followButton: {
         backgroundColor: '#2D92FF',
-        paddingVertical: 13.5,
-        paddingHorizontal: 16,
+        paddingVertical: dynamicStyles.followButtonPaddingVertical,
+        paddingHorizontal: dynamicStyles.followButtonPaddingHorizontal,
         borderRadius: 20,
         marginLeft: 10,
         shadowColor: '#2D92FF',
@@ -136,9 +184,8 @@ const styles = StyleSheet.create({
         backgroundColor: '#fff',
         borderColor: '#2D92FF',
         borderWidth: 2,
-
-        paddingVertical: 11,
-        paddingHorizontal: 16,
+        paddingVertical: dynamicStyles.followButtonPaddingVertical - 2,
+        paddingHorizontal: dynamicStyles.followButtonPaddingHorizontal,
         borderRadius: 20,
         marginLeft: 10,
         shadowColor: '#2D92FF',
@@ -149,7 +196,7 @@ const styles = StyleSheet.create({
     },
     followButtonText: {
         color: '#fff',
-        fontSize: 12.5,
+        fontSize: dynamicStyles.followButtonTextFontSize,
         fontFamily: 'Outfit_600SemiBold',
     },
     followButtonTextPressed: {

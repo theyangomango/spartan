@@ -1,8 +1,57 @@
 import React, { useEffect, useState } from 'react';
-import { View, Text, StyleSheet, Pressable, Image } from 'react-native';
+import { View, Text, StyleSheet, Pressable, Image, Dimensions } from 'react-native';
 import Svg, { Path } from "react-native-svg";
 import RNBounceable from '@freakycoder/react-native-bounceable';
 import getPFP from '../../../../backend/storage/getPFP';
+
+const { width, height } = Dimensions.get("window");
+
+// Function to determine the styles based on screen size
+const getDynamicStyles = () => {
+    if (width >= 430 && height >= 932) { // iPhone 14 Pro Max and similar
+        return {
+            pfpSize: 42,
+            fontSize: 15,
+            replyButtonWidth: 80,
+            heartIconSize: 20,
+            likeCountFontSize: 11,
+            likeCountBottom: -3.5,
+            replyFontSize: 13,
+        };
+    } else if (width >= 390 && height >= 844) { // iPhone 13/14 and similar
+        return {
+            pfpSize: 38,
+            fontSize: 14,
+            replyButtonWidth: 75,
+            heartIconSize: 18.5,
+            likeCountFontSize: 10,
+            likeCountBottom: -3,
+            replyFontSize: 12.5,
+        };
+    } else if (width >= 375 && height >= 812) { // iPhone X/XS/11 Pro and similar
+        return {
+            pfpSize: 36,
+            fontSize: 13.5,
+            replyButtonWidth: 72,
+            heartIconSize: 18,
+            likeCountFontSize: 9.5,
+            likeCountBottom: -2.5,
+            replyFontSize: 12,
+        };
+    } else { // Smaller iPhone models (like iPhone SE)
+        return {
+            pfpSize: 34,
+            fontSize: 13,
+            replyButtonWidth: 70,
+            heartIconSize: 17.5,
+            likeCountFontSize: 9,
+            likeCountBottom: -2,
+            replyFontSize: 11.5,
+        };
+    }
+};
+
+const dynamicStyles = getDynamicStyles();
 
 export default function CommentCard({ data, likeComment, unlikeComment, index, setReplyingToIndex, isReply, replyIndex, toViewProfile }) {
     const [isLiked, setIsLiked] = useState(data.isCaption ? false : data.likedUsers.includes(global.userData.uid));
@@ -19,8 +68,7 @@ export default function CommentCard({ data, likeComment, unlikeComment, index, s
         if (!isLiked) {
             console.log(index, replyIndex);
             likeComment(index, replyIndex);
-        }
-        else {
+        } else {
             unlikeComment(index, replyIndex);
         }
         setIsLiked(!isLiked);
@@ -54,11 +102,11 @@ export default function CommentCard({ data, likeComment, unlikeComment, index, s
                     }
                     <RNBounceable onPress={handlePressLikeButton} style={styles.heart_icon_ctnr}>
                         {isLiked ? (
-                            <Svg xmlns="http://www.w3.org/2000/svg" width="18.5" height="18.5" viewBox="0 0 24 24" fill="#FE5555">
+                            <Svg xmlns="http://www.w3.org/2000/svg" width={dynamicStyles.heartIconSize} height={dynamicStyles.heartIconSize} viewBox="0 0 24 24" fill="#FE5555">
                                 <Path d="M12.62 20.81c-.34.12-.9.12-1.24 0C8.48 19.82 2 15.69 2 8.69 2 5.6 4.49 3.1 7.56 3.1c1.82 0 3.43.88 4.44 2.24a5.53 5.53 0 0 1 4.44-2.24C19.51 3.1 22 5.6 22 8.69c0 7-6.48 11.13-9.38 12.12Z" stroke="#FE5555" strokeWidth="2.1" strokeLinecap="round" strokeLinejoin="round"></Path>
                             </Svg>
                         ) : (
-                            <Svg xmlns="http://www.w3.org/2000/svg" width="18.5" height="18.5" viewBox="0 0 24 24" fill="none">
+                            <Svg xmlns="http://www.w3.org/2000/svg" width={dynamicStyles.heartIconSize} height={dynamicStyles.heartIconSize} viewBox="0 0 24 24" fill="none">
                                 <Path d="M12.62 20.81c-.34.12-.9.12-1.24 0C8.48 19.82 2 15.69 2 8.69 2 5.6 4.49 3.1 7.56 3.1c1.82 0 3.43.88 4.44 2.24a5.53 5.53 0 0 1 4.44-2.24C19.51 3.1 22 5.6 22 8.69c0 7-6.48 11.13-9.38 12.12Z" stroke="#333" strokeWidth="2.1" strokeLinecap="round" strokeLinejoin="round"></Path>
                             </Svg>
                         )}
@@ -81,7 +129,7 @@ const styles = StyleSheet.create({
         marginLeft: 25,
     },
     pfp_ctnr: {
-        width: 38,
+        width: dynamicStyles.pfpSize,
         aspectRatio: 1,
         marginRight: 10
     },
@@ -96,7 +144,7 @@ const styles = StyleSheet.create({
         flexDirection: 'row'
     },
     handle_text: {
-        fontSize: 14,
+        fontSize: dynamicStyles.fontSize,
         fontFamily: 'Outfit_500Medium',
         color: '#999',
     },
@@ -106,43 +154,43 @@ const styles = StyleSheet.create({
     },
     content_text: {
         fontFamily: 'Outfit_500Medium',
-        fontSize: 14,
+        fontSize: dynamicStyles.fontSize,
         flexWrap: 'wrap',
         color: '#111'
     },
     right: {
         flexDirection: 'row',
         alignItems: 'center',
-        marginTop: 7
+        marginTop: 8
     },
     reply_button: {
         height: 34,
-        width: 75,
+        width: dynamicStyles.replyButtonWidth,
         backgroundColor: '#e6e6e6',
         alignItems: 'center',
         justifyContent: 'center',
         borderRadius: 30,
     },
     reply_text: {
-        fontSize: 12
+        fontSize: dynamicStyles.replyFontSize,
+        fontFamily: 'Outfit_600SemiBold',
+        color: '#333',
     },
     heart_icon_ctnr: {
-        width: 34,
-        aspectRatio: 1,
+        width: dynamicStyles.heartIconSize * 1.7,
+        height: dynamicStyles.heartIconSize * 1.7,
         marginLeft: 8,
-        borderRadius: 100,
-        justifyContent: 'center',
+        borderRadius: dynamicStyles.heartIconSize * 0.85,
         alignItems: 'center',
-        position: 'relative'
+        position: 'relative',
     },
     likeCount: {
         position: 'absolute',
-        bottom: -7,
-        // backgroundColor: '#fff',
-        borderRadius: 10,
-        paddingHorizontal: 4,
-        fontSize: 10,
+        bottom: dynamicStyles.likeCountBottom,
+        fontSize: dynamicStyles.likeCountFontSize,
         color: '#333',
         fontFamily: 'Outfit_600SemiBold',
+        paddingHorizontal: 4,
+        borderRadius: 10,
     },
 });
