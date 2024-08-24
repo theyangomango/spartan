@@ -1,9 +1,14 @@
 import React, { useRef } from 'react';
-import { View, StyleSheet, Text, Pressable } from 'react-native';
+import { View, StyleSheet, Text, Pressable, Dimensions } from 'react-native';
 import { FontAwesome5 } from '@expo/vector-icons';
 import SwipeableItem, { OpenDirection, useSwipeableItemParams } from 'react-native-swipeable-item';
 import Animated, { useAnimatedStyle } from 'react-native-reanimated';
 import TemplateEditableStat from './TemplateEditableStat';
+
+const { height: screenHeight } = Dimensions.get('window');
+const scale = screenHeight / 844; // Scaling factor based on iPhone 13 height
+
+const scaledSize = (size) => Math.round(size * scale);
 
 export default function TemplateSetRow({ set, updateSet, index, handleDelete }) {
     const weight = set.weight;
@@ -34,7 +39,7 @@ export default function TemplateSetRow({ set, updateSet, index, handleDelete }) 
                 }}
                 overSwipe={40}
                 renderUnderlayLeft={renderUnderlayLeft}
-                snapPointsLeft={[60]}
+                snapPointsLeft={[scaledSize(60)]}
                 onSwipeableLeftOpen={() => handleDelete(index)}
             >
                 <View style={[styles.stat_row]} key={index}>
@@ -58,7 +63,7 @@ export default function TemplateSetRow({ set, updateSet, index, handleDelete }) 
                     </View>
                     <View style={styles.done_ctnr}>
                         <Pressable disabled style={styles.checkmark_ctnr}>
-                            <FontAwesome5 name="check" size={14} style={styles.checkmark} color={'#444'} />
+                            <FontAwesome5 name="check" size={scaledSize(14)} style={styles.checkmark} color={'#444'} />
                         </Pressable>
                     </View>
                 </View>
@@ -80,7 +85,7 @@ const UnderlayLeft = ({ handleDelete }) => {
     return (
         <Animated.View style={[styles.underlayLeft, animStyle]}>
             <Pressable onPressOut={handleDelete} style={styles.trashButton}>
-                <FontAwesome5 name="trash" size={19} color="#fff" />
+                <FontAwesome5 name="trash" size={scaledSize(19)} color="#fff" />
             </Pressable>
         </Animated.View>
     );
@@ -88,22 +93,19 @@ const UnderlayLeft = ({ handleDelete }) => {
 
 const styles = StyleSheet.create({
     container: {
-        flex: 1
+        flex: 1,
     },
     stat_row: {
         flexDirection: 'row',
-        paddingVertical: 8,
+        paddingVertical: scaledSize(8),
         alignItems: 'center',
         position: 'relative',
-    },
-    done: {
-        backgroundColor: '#DCFFDA'
     },
     set_ctnr: {
         marginLeft: '5%',
         width: '8%',
-        height: 21,
-        borderRadius: 6,
+        height: scaledSize(21),
+        borderRadius: scaledSize(6),
         backgroundColor: '#eaeaea',
         alignItems: 'center',
         justifyContent: 'center',
@@ -123,25 +125,25 @@ const styles = StyleSheet.create({
     },
     set_number_text: {
         fontFamily: 'Poppins_700Bold',
-        fontSize: 14,
+        fontSize: scaledSize(14),
     },
     previous_stat_text: {
         fontFamily: 'Poppins_700Bold',
-        fontSize: 15,
-        color: '#ccc'
+        fontSize: scaledSize(15),
+        color: '#ccc',
     },
     done_ctnr: {
         width: '10.5%',
-        height: 22,
+        height: scaledSize(22),
         alignItems: 'center',
     },
     checkmark_ctnr: {
-        paddingHorizontal: 10,
+        paddingHorizontal: scaledSize(10),
         height: '100%',
-        borderRadius: 7,
+        borderRadius: scaledSize(7),
         backgroundColor: '#eee',
         justifyContent: 'center',
-        opacity: 0.5
+        opacity: 0.5,
     },
     underlayLeft: {
         position: 'absolute',
@@ -150,17 +152,13 @@ const styles = StyleSheet.create({
         bottom: 0,
         justifyContent: 'center',
         alignItems: 'flex-end',
-        marginVertical: 2,
-        paddingRight: 20,
+        marginVertical: scaledSize(2),
+        paddingRight: scaledSize(20),
     },
     trashButton: {
         flex: 1,
         alignItems: 'center',
-        justifyContent: 'center'
-    },
-    text: {
-        fontWeight: "bold",
-        color: "white",
-        fontSize: 32,
+        justifyContent: 'center',
     },
 });
+

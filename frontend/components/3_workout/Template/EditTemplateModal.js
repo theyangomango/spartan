@@ -1,13 +1,18 @@
 import React, { useState, useCallback, useEffect } from "react";
-import { StyleSheet, View, Modal, ScrollView, Text, TextInput } from "react-native";
+import { StyleSheet, View, Modal, ScrollView, Text, TextInput, Dimensions } from "react-native";
 import SelectExerciseModal from "../NewWorkout/SelectExercise/SelectExerciseModal";
 import RNBounceable from "@freakycoder/react-native-bounceable";
 import EditTemplateExerciseLog from "./EditTemplateExerciseLog";
 import { Weight } from 'iconsax-react-native';
 
+const { height: screenHeight } = Dimensions.get('window');
+const scale = screenHeight / 844; // Scaling factor based on iPhone 13 height
+
+const scaledSize = (size) => Math.round(size * scale);
+
 const EditTemplateModal = ({ openedTemplateRef, updateTemplate, deleteTemplate }) => {
     const [selectExerciseModalVisible, setSelectExerciseModalVisible] = useState(false);
-    const [deleteConfirmModalVisible, setDeleteConfirmModalVisible] = useState(false); // State for delete confirmation modal
+    const [deleteConfirmModalVisible, setDeleteConfirmModalVisible] = useState(false);
     const [template, setTemplate] = useState(openedTemplateRef.current);
     const [templateTitle, setTemplateTitle] = useState(openedTemplateRef.current.name);
 
@@ -38,16 +43,16 @@ const EditTemplateModal = ({ openedTemplateRef, updateTemplate, deleteTemplate }
         setTemplate(prevTemplate => {
             const updatedExercises = prevTemplate.exercises.map((exercise, index) => {
                 if (index === exerciseIndex) {
-                    return { ...exercise, sets: newSets }; // Replace sets for the specific exercise
+                    return { ...exercise, sets: newSets };
                 }
                 return exercise;
             });
-            return { ...prevTemplate, exercises: updatedExercises }; // Return a new template object
+            return { ...prevTemplate, exercises: updatedExercises };
         });
     }, []);
 
     const replaceExercise = useCallback((index) => {
-
+        // Replace exercise logic can be implemented here
     }, [template, setTemplate]);
 
     const deleteExercise = useCallback((index) => {
@@ -66,14 +71,14 @@ const EditTemplateModal = ({ openedTemplateRef, updateTemplate, deleteTemplate }
         updateTemplate();
     }, [templateTitle]);
 
-    const confirmDeleteTemplate = (() => {
-        if (template.exercises.length == 0) handleDeleteTemplate();
-        else setDeleteConfirmModalVisible(true); // Show the delete confirmation modal
-    });
+    const confirmDeleteTemplate = () => {
+        if (template.exercises.length === 0) handleDeleteTemplate();
+        else setDeleteConfirmModalVisible(true);
+    };
 
     const handleDeleteTemplate = useCallback(() => {
-        setDeleteConfirmModalVisible(false); // Hide the modal after confirmation
-        deleteTemplate(); // Proceed with the original delete template functionality
+        setDeleteConfirmModalVisible(false);
+        deleteTemplate();
     }, [deleteTemplate]);
 
     return (
@@ -110,14 +115,14 @@ const EditTemplateModal = ({ openedTemplateRef, updateTemplate, deleteTemplate }
                 ))}
                 <RNBounceable onPress={showSelectExerciseModal} style={styles.addExerciseButton}>
                     <Text style={styles.addExerciseText}>Add Exercises</Text>
-                    <Weight size="22" color="#5DBDFF" variant='Bold' />
+                    <Weight size={scaledSize(22)} color="#5DBDFF" variant='Bold' />
                 </RNBounceable>
 
                 <RNBounceable style={styles.cancelButton} onPress={confirmDeleteTemplate}>
                     <Text style={styles.deleteButtonText}>Delete Template</Text>
                 </RNBounceable>
 
-                <View style={{ height: 150 }} />
+                <View style={{ height: scaledSize(150) }} />
             </ScrollView>
 
             <Modal
@@ -134,7 +139,7 @@ const EditTemplateModal = ({ openedTemplateRef, updateTemplate, deleteTemplate }
                 animationType="fade"
                 transparent={true}
                 visible={deleteConfirmModalVisible}
-                onRequestClose={() => setDeleteConfirmModalVisible(false)} // Hide modal if back button is pressed
+                onRequestClose={() => setDeleteConfirmModalVisible(false)}
             >
                 <View style={styles.modalOverlay}>
                     <View style={styles.modalContainer}>
@@ -157,77 +162,77 @@ const styles = StyleSheet.create({
         flex: 1,
     },
     header: {
-        paddingBottom: 6,
-        paddingLeft: 15,
-        paddingRight: 22,
+        paddingBottom: scaledSize(6),
+        paddingLeft: scaledSize(15),
+        paddingRight: scaledSize(22),
         flexDirection: 'row',
         alignItems: 'center',
         justifyContent: 'space-between',
         zIndex: 1,
     },
     headerShadow: {
-        borderBottomWidth: 2,
+        borderBottomWidth: scaledSize(2),
         borderBottomColor: '#eaeaea'
     },
     titleInput: {
         flex: 1,
         fontFamily: 'Outfit_700Bold',
-        fontSize: 18.5,
+        fontSize: scaledSize(18.5),
         color: '#333',
-        paddingVertical: 5,
-        paddingHorizontal: 10,
+        paddingVertical: scaledSize(5),
+        paddingHorizontal: scaledSize(10),
     },
     headerRight: {
         flexDirection: 'row',
         alignItems: 'center',
     },
     savedButton: {
-        width: 80,
-        height: 35,
-        borderRadius: 12,
+        width: scaledSize(80),
+        height: scaledSize(35),
+        borderRadius: scaledSize(12),
         backgroundColor: '#eee',
         justifyContent: 'center',
         alignItems: 'center'
     },
     savedButtonText: {
         fontFamily: 'Outfit_700Bold',
-        fontSize: 15.5,
+        fontSize: scaledSize(15.5),
         color: '#999',
     },
     scrollView: {
-        paddingTop: 5
+        paddingTop: scaledSize(5)
     },
     addExerciseButton: {
-        marginHorizontal: 20,
-        marginTop: 18,
-        height: 35,
-        borderRadius: 12,
+        marginHorizontal: scaledSize(20),
+        marginTop: scaledSize(18),
+        height: scaledSize(35),
+        borderRadius: scaledSize(12),
         backgroundColor: '#E1F0FF',
         justifyContent: 'center',
         alignItems: 'center',
         flexDirection: 'row'
     },
     addExerciseText: {
-        fontSize: 16,
+        fontSize: scaledSize(16),
         fontFamily: 'Outfit_700Bold',
         color: '#0499FE',
-        marginRight: 4.5
+        marginRight: scaledSize(4.5)
     },
     cancelButton: {
-        marginHorizontal: 20,
-        marginTop: 18,
-        height: 35,
-        borderRadius: 12,
+        marginHorizontal: scaledSize(20),
+        marginTop: scaledSize(18),
+        height: scaledSize(35),
+        borderRadius: scaledSize(12),
         backgroundColor: '#FFECEC',
         justifyContent: 'center',
         alignItems: 'center',
         flexDirection: 'row'
     },
     deleteButtonText: {
-        fontSize: 16,
+        fontSize: scaledSize(16),
         fontFamily: 'Outfit_700Bold',
         color: '#F27171',
-        marginRight: 4.5
+        marginRight: scaledSize(4.5)
     },
     modalOverlay: {
         flex: 1,
@@ -237,41 +242,41 @@ const styles = StyleSheet.create({
     },
     modalContainer: {
         width: '80%',
-        padding: 20,
+        padding: scaledSize(20),
         backgroundColor: '#fff',
-        borderRadius: 15,
+        borderRadius: scaledSize(15),
         alignItems: 'center',
     },
     modalText: {
-        fontSize: 16,
+        fontSize: scaledSize(16),
         color: '#333',
         fontFamily: 'Outfit_700Bold',
-        marginBottom: 20,
+        marginBottom: scaledSize(20),
         textAlign: 'center',
     },
     deleteTemplateBtn: {
         width: '100%',
-        paddingVertical: 8,
+        paddingVertical: scaledSize(8),
         backgroundColor: '#FFECEC',
-        borderRadius: 8,
+        borderRadius: scaledSize(8),
         alignItems: 'center',
-        marginBottom: 10,
+        marginBottom: scaledSize(10),
     },
     deleteTemplateText: {
         color: '#F27171',
-        fontSize: 14,
+        fontSize: scaledSize(14),
         fontFamily: 'Outfit_700Bold',
     },
     cancelDeleteBtn: {
         width: '100%',
-        paddingVertical: 8,
+        paddingVertical: scaledSize(8),
         backgroundColor: '#eee',
-        borderRadius: 8,
+        borderRadius: scaledSize(8),
         alignItems: 'center',
     },
     cancelDeleteText: {
         color: '#666',
-        fontSize: 14,
+        fontSize: scaledSize(14),
         fontFamily: 'Outfit_700Bold',
     },
 });

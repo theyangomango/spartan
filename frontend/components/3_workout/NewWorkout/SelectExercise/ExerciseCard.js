@@ -1,7 +1,12 @@
 import React, { memo, useState } from 'react';
-import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { Pressable, StyleSheet, Text, View, Dimensions } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import ExerciseImagePreview from './ExerciseImagePreview';
+
+const { height: screenHeight } = Dimensions.get('window');
+const scale = screenHeight / 844; // Scaling factor based on iPhone 13 height
+
+const scaledSize = (size) => Math.round(size * scale);
 
 const ExerciseCard = memo(({ name, muscleGroup, selectExercise, deselectExercise, showExerciseInfo, userStats }) => {
     const [isSelected, setIsSelected] = useState(false);
@@ -17,7 +22,6 @@ const ExerciseCard = memo(({ name, muscleGroup, selectExercise, deselectExercise
         Triceps: '#FFD580',
         Legs: '#FFB347',
         Abs: '#FF6961',
-        // Add more muscle groups and colors as needed
     };
 
     function toggleSelected() {
@@ -46,7 +50,7 @@ const ExerciseCard = memo(({ name, muscleGroup, selectExercise, deselectExercise
             <View style={styles.rightContainer}>
                 <Text style={styles.timesCompleted}>{timesCompleted}</Text>
                 <Pressable onPress={() => showExerciseInfo(name)} style={styles.icon_ctnr}>
-                    <Ionicons name="information-circle-outline" size={26} color="#2D9EFF" />
+                    <Ionicons name="information-circle-outline" size={scaledSize(26)} color="#2D9EFF" />
                 </Pressable>
             </View>
             <View style={styles.border} />
@@ -59,29 +63,29 @@ export default ExerciseCard;
 const styles = StyleSheet.create({
     card: {
         flexDirection: 'row',
-        paddingLeft: 20,
-        paddingRight: 18,
+        paddingLeft: scaledSize(20),
+        paddingRight: scaledSize(18),
         justifyContent: 'space-between',
     },
     leftContainer: {
         flexDirection: 'row',
         alignItems: 'center',
-        flex: 1, // Ensure leftContainer takes available space
+        flex: 1,
     },
     border: {
         position: 'absolute',
         bottom: 0,
-        left: 13,
-        right: 13,
-        height: 1.5,
+        left: scaledSize(13),
+        right: scaledSize(13),
+        height: scaledSize(1.5),
         backgroundColor: '#eaeaea',
     },
     textContainer: {
         flexDirection: 'column',
-        paddingVertical: 8,
+        paddingVertical: scaledSize(8),
         justifyContent: 'center',
-        flex: 1, // Ensure textContainer takes available space
-        paddingLeft: 10, // Add padding to avoid overlap with image
+        flex: 1,
+        paddingLeft: scaledSize(10),
     },
     row: {
         flexDirection: 'row',
@@ -92,41 +96,41 @@ const styles = StyleSheet.create({
     },
     exerciseName: {
         fontFamily: 'Outfit_600SemiBold',
-        fontSize: 14,
-        marginVertical: 3.5,
-        flexWrap: 'wrap', // Ensure text wraps
+        fontSize: scaledSize(14),
+        marginVertical: scaledSize(3.5),
+        flexWrap: 'wrap',
     },
     muscle_ctnr: {
-        marginLeft: 5,
-        borderRadius: 20,
-        paddingHorizontal: 10,
-        height: 20,
+        marginLeft: scaledSize(5),
+        borderRadius: scaledSize(20),
+        paddingHorizontal: scaledSize(10),
+        height: scaledSize(20),
         alignItems: 'center',
         justifyContent: 'center',
     },
     muscle_text: {
         fontFamily: 'Poppins_700Bold',
-        fontSize: 11,
+        fontSize: scaledSize(11),
         color: '#fff',
     },
     lastDone: {
         fontFamily: 'Outfit_500Medium',
-        fontSize: 14,
+        fontSize: scaledSize(14),
         color: '#999',
     },
     rightContainer: {
         flexDirection: 'row',
         alignItems: 'center',
-        marginLeft: 10, // Add margin to separate from textContainer
+        marginLeft: scaledSize(10),
     },
     timesCompleted: {
         fontFamily: 'Outfit_600SemiBold',
-        fontSize: 17,
-        marginRight: 8,
-        color: '#aaa'
+        fontSize: scaledSize(17),
+        marginRight: scaledSize(8),
+        color: '#aaa',
     },
     icon_ctnr: {
-        marginTop: 1,
-        opacity: 0.3
-    }
+        marginTop: scaledSize(1),
+        opacity: 0.3,
+    },
 });

@@ -1,33 +1,114 @@
-import { StyleSheet, View, Text, Image } from "react-native";
+import { StyleSheet, View, Text, Image, Dimensions } from "react-native";
+
+const { width, height } = Dimensions.get("window");
+
+// Function to determine dynamic styles based on screen size
+const getDynamicStyles = () => {
+    if (width >= 430 && height >= 932) { // iPhone 14 Pro Max and similar
+        return {
+            pfpSize: {
+                left: 70,
+                center: 74,
+                right: 66,
+            },
+            barHeight: {
+                left: 115,
+                center: 143,
+                right: 93,
+            },
+            barWidth: 90,
+            fontSize: {
+                handleText: 17,
+                barText: 35,
+            },
+        };
+    } else if (width >= 390 && height >= 844) { // iPhone 13/14 and similar
+        return {
+            pfpSize: {
+                left: 60,
+                center: 64,
+                right: 56,
+            },
+            barHeight: {
+                left: 105,
+                center: 133,
+                right: 83,
+            },
+            barWidth: 80,
+            fontSize: {
+                handleText: 15,
+                barText: 31,
+            },
+        };
+    } else if (width >= 375 && height >= 812) { // iPhone X/XS/11 Pro and similar
+        return {
+            pfpSize: {
+                left: 58,
+                center: 62,
+                right: 54,
+            },
+            barHeight: {
+                left: 100,
+                center: 125,
+                right: 80,
+            },
+            barWidth: 75,
+            fontSize: {
+                handleText: 14.5,
+                barText: 30,
+            },
+        };
+    } else { // Smaller iPhone models (like iPhone SE)
+        return {
+            pfpSize: {
+                left: 54,
+                center: 58,
+                right: 50,
+            },
+            barHeight: {
+                left: 95,
+                center: 118,
+                right: 75,
+            },
+            barWidth: 70,
+            fontSize: {
+                handleText: 14,
+                barText: 28,
+            },
+        };
+    }
+};
+
+const dynamicStyles = getDynamicStyles();
 
 export default function Podium({ data }) {
     return (
         <View style={styles.leaderboard_ctnr}>
             <View style={styles.left}>
-                <View style={styles.left_pfp}>
+                <View style={[styles.pfp_ctnr, { width: dynamicStyles.pfpSize.left }]}>
                     {data && <Image source={{ uri: data[1].pfp }} style={styles.pfp} />}
                 </View>
-                <Text numberOfLines={1} ellipsizeMode="tail" style={styles.leaderboard_handle_text}>{data && data[1].handle}</Text>
-                <View style={[styles.bar_ctnr, styles.silver_ctnr]}>
-                    <Text style={styles.bar_text}>2</Text>
+                <Text numberOfLines={1} ellipsizeMode="tail" style={[styles.leaderboard_handle_text, { fontSize: dynamicStyles.fontSize.handleText }]}>{data && data[1].handle}</Text>
+                <View style={[styles.bar_ctnr, styles.silver_ctnr, { height: dynamicStyles.barHeight.left, width: dynamicStyles.barWidth }]}>
+                    <Text style={[styles.bar_text, { fontSize: dynamicStyles.fontSize.barText }]}>2</Text>
                 </View>
             </View>
             <View style={styles.center}>
-                <View style={styles.center_pfp}>
+                <View style={[styles.pfp_ctnr, { width: dynamicStyles.pfpSize.center }]}>
                     {data && <Image source={{ uri: data[0].pfp }} style={styles.pfp} />}
                 </View>
-                <Text numberOfLines={1} ellipsizeMode="tail" style={styles.leaderboard_handle_text}>{data && data[0].handle}</Text>
-                <View style={[styles.bar_ctnr, styles.gold_ctnr]}>
-                    <Text style={styles.bar_text}>1</Text>
+                <Text numberOfLines={1} ellipsizeMode="tail" style={[styles.leaderboard_handle_text, { fontSize: dynamicStyles.fontSize.handleText }]}>{data && data[0].handle}</Text>
+                <View style={[styles.bar_ctnr, styles.gold_ctnr, { height: dynamicStyles.barHeight.center, width: dynamicStyles.barWidth }]}>
+                    <Text style={[styles.bar_text, { fontSize: dynamicStyles.fontSize.barText }]}>1</Text>
                 </View>
             </View>
             <View style={styles.right}>
-                <View style={styles.right_pfp}>
+                <View style={[styles.pfp_ctnr, { width: dynamicStyles.pfpSize.right }]}>
                     {data && <Image source={{ uri: data[2].pfp }} style={styles.pfp} />}
                 </View>
-                <Text numberOfLines={1} ellipsizeMode="tail" style={styles.leaderboard_handle_text}>{data && data[2].handle}</Text>
-                <View style={[styles.bar_ctnr, styles.bronze_ctnr]}>
-                    <Text style={styles.bar_text}>3</Text>
+                <Text numberOfLines={1} ellipsizeMode="tail" style={[styles.leaderboard_handle_text, { fontSize: dynamicStyles.fontSize.handleText }]}>{data && data[2].handle}</Text>
+                <View style={[styles.bar_ctnr, styles.bronze_ctnr, { height: dynamicStyles.barHeight.right, width: dynamicStyles.barWidth }]}>
+                    <Text style={[styles.bar_text, { fontSize: dynamicStyles.fontSize.barText }]}>3</Text>
                 </View>
             </View>
         </View>
@@ -39,7 +120,7 @@ const styles = StyleSheet.create({
         position: 'absolute',
         top: 0,
         width: '100%',
-        height: 320,
+        height: '38%',
         justifyContent: 'center',
         flexDirection: 'row',
         alignItems: 'flex-end',
@@ -47,7 +128,6 @@ const styles = StyleSheet.create({
         zIndex: -1
     },
     bar_ctnr: {
-        width: 80,
         borderTopLeftRadius: 10,
         borderTopRightRadius: 10,
         marginHorizontal: 13,
@@ -66,29 +146,15 @@ const styles = StyleSheet.create({
         width: '28%'
     },
     silver_ctnr: {
-        height: 105,
         backgroundColor: '#C0C0C0'
     },
     gold_ctnr: {
-        height: 133,
         backgroundColor: '#FFD700'
     },
     bronze_ctnr: {
-        height: 83,
         backgroundColor: '#ff7e33'
     },
-    left_pfp: {
-        width: 60,
-        aspectRatio: 1,
-        borderRadius: 50
-    },
-    center_pfp: {
-        width: 64,
-        aspectRatio: 1,
-        borderRadius: 50
-    },
-    right_pfp: {
-        width: 56,
+    pfp_ctnr: {
         aspectRatio: 1,
         borderRadius: 50
     },
@@ -101,12 +167,10 @@ const styles = StyleSheet.create({
         color: '#fff',
         paddingTop: 4,
         paddingBottom: 10,
-        fontSize: 15,
     },
     bar_text: {
         fontFamily: 'Outfit_800ExtraBold',
         paddingTop: 6,
-        fontSize: 31,
         color: '#fff'
     },
 });

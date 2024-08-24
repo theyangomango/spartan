@@ -1,18 +1,22 @@
 import React, { useState, useEffect, useRef } from "react";
-import { StyleSheet, View, Text, Pressable, TextInput, Animated } from "react-native";
+import { StyleSheet, View, Text, Pressable, TextInput, Animated, Dimensions } from "react-native";
 import { Ionicons } from '@expo/vector-icons';
 import RNBounceable from "@freakycoder/react-native-bounceable";
 import { exercises } from './EXERCISES';
 import ExercisesFlatlist from './ExercisesFlatlist';
 import AnimatedButton from './AnimatedButton';
 
+const { height: screenHeight } = Dimensions.get('window');
+const scale = screenHeight / 844; // Scaling factor based on iPhone 13 height
+
+const scaledSize = (size) => Math.round(size * scale);
+
 export default function SelectExerciseModal({ closeModal, appendExercises }) {
-    const selectedExercisesRef = useRef([]); // Use ref for selected exercises
+    const selectedExercisesRef = useRef([]);
     const [searchQuery, setSearchQuery] = useState('');
     const opacity = useRef(new Animated.Value(1)).current;
 
     useEffect(() => {
-        // Only update the opacity based on the number of selected exercises
         Animated.timing(opacity, {
             toValue: selectedExercisesRef.current.length === 0 ? 0.5 : 1,
             duration: 300,
@@ -41,8 +45,6 @@ export default function SelectExerciseModal({ closeModal, appendExercises }) {
     }
 
     function triggerOpacityUpdate() {
-        // Force re-render to update opacity
-        // console.log(selectedExercisesRef.current);
         opacity.setValue(selectedExercisesRef.current.length === 0 ? 0.5 : 1);
     }
 
@@ -65,10 +67,11 @@ export default function SelectExerciseModal({ closeModal, appendExercises }) {
                     />
                 </View>
                 <View style={styles.searchContainer}>
-                    <Ionicons name="search" size={20} color="#888" style={styles.searchIcon} />
+                    <Ionicons name="search" size={scaledSize(20)} color="#888" style={styles.searchIcon} />
                     <TextInput
                         style={styles.searchInput}
                         placeholder="Search exercises..."
+                        placeholderTextColor="#999"
                         value={searchQuery}
                         onChangeText={handleSearch}
                     />
@@ -97,7 +100,7 @@ const styles = StyleSheet.create({
         flex: 1,
         justifyContent: 'center',
         alignItems: 'center',
-        backgroundColor: 'rgba(0, 0, 0, 0.4)'
+        backgroundColor: 'rgba(0, 0, 0, 0.4)',
     },
     outside_pressable: {
         flex: 1,
@@ -107,69 +110,72 @@ const styles = StyleSheet.create({
         width: '94%',
         height: '81%',
         backgroundColor: '#fff',
-        borderRadius: 20,
+        borderRadius: scaledSize(20),
         shadowColor: '#000',
-        shadowOffset: { width: 0, height: 2 },
+        shadowOffset: { width: 0, height: scaledSize(2) },
         shadowOpacity: 0.8,
-        shadowRadius: 3,
-        paddingTop: 10
+        shadowRadius: scaledSize(3),
+        paddingTop: scaledSize(10),
     },
     header: {
         flexDirection: 'row',
         justifyContent: 'space-between',
-        paddingHorizontal: 15,
-        paddingTop: 10,
-        paddingBottom: 10
+        paddingHorizontal: scaledSize(15),
+        paddingTop: scaledSize(10),
+        paddingBottom: scaledSize(10),
     },
     newButton: {
         backgroundColor: '#e0e0e0',
-        paddingHorizontal: 20,
-        paddingVertical: 4.5,
-        borderRadius: 8,
+        paddingHorizontal: scaledSize(20),
+        paddingVertical: scaledSize(4.5),
+        borderRadius: scaledSize(8),
         justifyContent: 'center',
         alignItems: 'center',
-        opacity: 0.5
+        opacity: 0.5,
     },
     newButtonText: {
         color: '#333',
         fontFamily: 'Outfit_700Bold',
-        fontSize: 14,
+        fontSize: scaledSize(14),
     },
     searchContainer: {
         flexDirection: 'row',
         alignItems: 'center',
         backgroundColor: '#e0e0e0',
-        borderRadius: 8,
-        marginHorizontal: 15,
-        paddingHorizontal: 8,
-        marginBottom: 10,
+        borderRadius: scaledSize(8),
+        marginHorizontal: scaledSize(15),
+        paddingHorizontal: scaledSize(8),
+        marginBottom: scaledSize(10),
         alignSelf: 'center',
     },
     searchIcon: {
-        marginRight: 8,
+        marginRight: scaledSize(8),
     },
     searchInput: {
         flex: 1,
-        padding: 8,
+        padding: scaledSize(8),
+        fontSize: scaledSize(14),
+        color: '#333',
+        fontFamily: 'Outfit_700Bold',
     },
     filterContainer: {
         flexDirection: 'row',
         justifyContent: 'space-around',
-        paddingHorizontal: 10,
-        marginBottom: 10
+        paddingHorizontal: scaledSize(10),
+        marginBottom: scaledSize(10),
     },
     filterButton: {
         flex: 1,
         alignItems: 'center',
-        padding: 5,
-        marginHorizontal: 5,
-        borderRadius: 10,
+        padding: scaledSize(5),
+        marginHorizontal: scaledSize(5),
+        borderRadius: scaledSize(10),
         backgroundColor: '#E1E1E1',
-        opacity: 0.5
+        opacity: 0.5,
     },
     filterButtonText: {
-        fontSize: 13,
+        fontSize: scaledSize(13),
         color: '#333',
-        fontFamily: 'Outfit_700Bold'
-    }
+        fontFamily: 'Outfit_700Bold',
+    },
 });

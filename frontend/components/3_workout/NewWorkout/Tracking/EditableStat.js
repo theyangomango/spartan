@@ -1,5 +1,10 @@
 import React, { useState, useRef } from "react";
-import { TextInput, StyleSheet, Pressable } from "react-native";
+import { TextInput, StyleSheet, Pressable, Dimensions } from "react-native";
+
+const { height: screenHeight } = Dimensions.get('window');
+const scale = screenHeight / 844; // Scaling factor based on iPhone 13 height
+
+const scaledSize = (size) => Math.round(size * scale);
 
 export default function EditableStat({ placeholder = '0', isFinished, value, setValue }) {
     const [isSelected, setIsSelected] = useState(false);
@@ -53,21 +58,21 @@ export default function EditableStat({ placeholder = '0', isFinished, value, set
 
 const styles = StyleSheet.create({
     editing: {
-        width: 63,
-        height: 23,
-        borderRadius: 8,
+        width: scaledSize(63),
+        height: scaledSize(23),
+        borderRadius: scaledSize(8),
         backgroundColor: '#eee',
         alignItems: 'center',
-        justifyContent: 'center'
+        justifyContent: 'center',
     },
     selected: {
-        borderColor: '#0699FF'
+        borderColor: '#0699FF',
     },
     finished: {
-        backgroundColor: '#DCFFDA'
+        backgroundColor: '#DCFFDA',
     },
     text: {
         fontFamily: 'Poppins_700Bold',
-        fontSize: 15
+        fontSize: scaledSize(15),
     },
 });

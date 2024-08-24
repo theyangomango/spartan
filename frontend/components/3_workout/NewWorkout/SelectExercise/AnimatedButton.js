@@ -1,13 +1,18 @@
 import React, { useEffect } from 'react';
-import { StyleSheet, Text, Animated } from 'react-native';
+import { StyleSheet, Text, Animated, Dimensions } from 'react-native';
 import RNBounceable from "@freakycoder/react-native-bounceable";
+
+const { height: screenHeight } = Dimensions.get('window');
+const scale = screenHeight / 844; // Scaling factor based on iPhone 13 height
+
+const scaledSize = (size) => Math.round(size * scale);
 
 const AnimatedButton = ({ opacity, selectedExercisesLength, handleFinish }) => {
     
     useEffect(() => {
         // Trigger fade-out or fade-in animation based on selectedExercisesLength
         Animated.timing(opacity, {
-            toValue: selectedExercisesLength > 0 ? 1 : 0, // Fade out when no exercises are selected
+            toValue: selectedExercisesLength > 0 ? 1 : 0.5, // Fade out when no exercises are selected
             duration: 300,
             useNativeDriver: true,
         }).start();
@@ -31,16 +36,16 @@ const styles = StyleSheet.create({
     },
     addButton: {
         backgroundColor: '#51A9FF',
-        paddingHorizontal: 20,
-        paddingVertical: 4.5,
-        borderRadius: 8,
+        paddingHorizontal: scaledSize(20),
+        paddingVertical: scaledSize(4.5),
+        borderRadius: scaledSize(8),
         justifyContent: 'center',
         alignItems: 'center'
     },
     addButtonText: {
         color: '#fff',
         fontFamily: 'Outfit_700Bold',
-        fontSize: 14,
+        fontSize: scaledSize(14),
     },
 });
 

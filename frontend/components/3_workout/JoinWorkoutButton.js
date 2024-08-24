@@ -1,27 +1,58 @@
-import { StyleSheet, View, Text, TouchableOpacity } from "react-native";
-import { AntDesign, SimpleLineIcons } from '@expo/vector-icons'
+import React from 'react';
+import { StyleSheet, View, Text, Dimensions } from "react-native";
+import { SimpleLineIcons } from '@expo/vector-icons'
 import RNBounceable from "@freakycoder/react-native-bounceable";
+
+const { width, height } = Dimensions.get('screen');
+
+// Function to determine dynamic styles based on screen size
+const getDynamicStyles = () => {
+    if (width >= 430 && height >= 932) { // iPhone 14 Pro Max and similar
+        return {
+            fontSize: 15,
+            paddingHorizontal: 30,
+            iconSize: 22,
+            height: 46,
+        };
+    } else if (width >= 390 && height >= 844) { // iPhone 13/14 and similar
+        return {
+            fontSize: 14,
+            paddingHorizontal: 28,
+            iconSize: 21,
+            height: 44,
+        };
+    } else if (width >= 375 && height >= 812) { // iPhone X/XS/11 Pro and similar
+        return {
+            fontSize: 13.5,
+            paddingHorizontal: 26,
+            iconSize: 20.5,
+            height: 43,
+        };
+    } else { // Smaller iPhone models (like iPhone SE)
+        return {
+            fontSize: 13,
+            paddingHorizontal: 24,
+            iconSize: 20,
+            height: 42,
+        };
+    }
+};
+
+const dynamicStyles = getDynamicStyles();
 
 export default function JoinWorkoutButton({ joinWorkout }) {
     return (
-        <RNBounceable style={styles.main_ctnr}>
-            <Text style={styles.text}>Log Past Workout</Text>
-            {/* <AntDesign name="addusergroup" size={24} color={'#fff'} /> */}
-            {/* <AntDesign name="book" size={23.5} color={'#fff'} /> */}
-            <SimpleLineIcons name="notebook" size={20} color={'#fff'} style={{ paddingRight: 1 }} />
-
-
+        <RNBounceable style={[styles.main_ctnr, { height: dynamicStyles.height, paddingHorizontal: dynamicStyles.paddingHorizontal }]}>
+            <Text style={[styles.text, { fontSize: dynamicStyles.fontSize }]}>Log Past Workout</Text>
+            <SimpleLineIcons name="notebook" size={dynamicStyles.iconSize} color={'#fff'} style={{ paddingRight: 1 }} />
         </RNBounceable>
     )
 }
 
 const styles = StyleSheet.create({
     main_ctnr: {
-        // height: 35,
         opacity: 0.5,
         backgroundColor: '#c9c9c9',
-        height: 42,
-        paddingHorizontal: 28,
         marginVertical: 4,
         borderRadius: 15,
         alignItems: 'center',
@@ -29,12 +60,7 @@ const styles = StyleSheet.create({
         justifyContent: 'space-between',
         marginHorizontal: 16,
     },
-    left: {
-        flexDirection: 'row',
-        alignItems: 'center'
-    },
     text: {
-        fontSize: 13,
         fontFamily: 'Poppins_600SemiBold',
         color: 'white',
     },

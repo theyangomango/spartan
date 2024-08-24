@@ -1,9 +1,14 @@
-import { View, StyleSheet, Text, Pressable, Image, Animated } from "react-native";
-import { useState, useEffect, useRef } from "react";
+import React, { useState, useRef } from "react";
+import { View, StyleSheet, Text, Pressable, Image, Animated, Dimensions } from "react-native";
 import { MaterialCommunityIcons, Entypo } from '@expo/vector-icons';
 import RNBounceable from "@freakycoder/react-native-bounceable";
 import ExerciseOptionsPanel from "../NewWorkout/Tracking/ExerciseOptionsPanel";
 import TemplateSetRow from "./TemplateSetRow";
+
+const { height: screenHeight } = Dimensions.get('window');
+const scale = screenHeight / 844; // Scaling factor based on iPhone 13 height
+
+const scaledSize = (size) => Math.round(size * scale);
 
 export default function EditTemplateExerciseLog({ name, exerciseIndex, updateSets, sets, replaceExercise, deleteExercise }) {
     const muscle = name === 'Lateral Raise' ? 'Shoulders' : 'Chest';
@@ -26,7 +31,7 @@ export default function EditTemplateExerciseLog({ name, exerciseIndex, updateSet
             setIsPanelVisible(true);
             setPanelPosition({
                 top: event.nativeEvent.pageY + 25,
-                left: 18
+                left: scaledSize(18)
             });
         }
     };
@@ -98,9 +103,9 @@ export default function EditTemplateExerciseLog({ name, exerciseIndex, updateSet
             </Animated.View>
             <Animated.View style={[styles.add_set_btn_ctnr, { opacity: fadeAnim }]}>
                 <RNBounceable activeOpacity={0.5} onPress={addSet} style={styles.add_set_btn}>
-                    <Entypo name="plus" size={18} color={'#000'} />
+                    <Entypo name="plus" size={scaledSize(18)} color={'#000'} />
                     <Text style={styles.add_set_text}>Add Set</Text>
-                    <MaterialCommunityIcons name="arm-flex" size={20} color={'#aaa'} />
+                    <MaterialCommunityIcons name="arm-flex" size={scaledSize(20)} color={'#aaa'} />
                 </RNBounceable>
             </Animated.View>
         </View>
@@ -109,67 +114,67 @@ export default function EditTemplateExerciseLog({ name, exerciseIndex, updateSet
 
 const styles = StyleSheet.create({
     main_ctnr: {
-        marginTop: 16,
-        marginBottom: 6,
-        position: 'relative', // To ensure the panel is positioned correctly
+        marginTop: scaledSize(16),
+        marginBottom: scaledSize(6),
+        position: 'relative',
     },
     header: {
         flexDirection: 'row',
         alignItems: 'center',
-        paddingLeft: 20,
-        paddingBottom: 10,
-        marginHorizontal: 2.5,
+        paddingLeft: scaledSize(20),
+        paddingBottom: scaledSize(10),
+        marginHorizontal: scaledSize(2.5),
     },
     nameContainer: {
         flexDirection: 'row',
         alignItems: 'center',
         flexShrink: 1,
-        marginRight: 10,
+        marginRight: scaledSize(10),
     },
     exercise_text: {
         fontFamily: 'Mulish_800ExtraBold',
         color: '#0699FF',
-        fontSize: 15,
+        fontSize: scaledSize(15),
         flexShrink: 1,
     },
     muscle_ctnr: {
-        borderRadius: 15,
-        height: 23.5,
-        paddingHorizontal: 12,
+        borderRadius: scaledSize(15),
+        height: scaledSize(23.5),
+        paddingHorizontal: scaledSize(12),
         alignItems: 'center',
         justifyContent: 'center',
-        marginLeft: 5,
+        marginLeft: scaledSize(5),
     },
     muscle_text: {
         fontFamily: 'Poppins_700Bold',
-        fontSize: 12,
-        color: '#fff'
+        fontSize: scaledSize(12),
+        color: '#fff',
     },
     pfpContainer: {
         flexDirection: 'row',
         alignItems: 'center',
         marginLeft: 'auto',
-        marginRight: 10,
+        marginRight: scaledSize(10),
     },
     pfp: {
-        width: 34,
+        width: scaledSize(34),
         aspectRatio: 1,
-        borderRadius: 20,
-        borderWidth: 2,
+        borderRadius: scaledSize(20),
+        borderWidth: scaledSize(2),
         borderColor: '#f4f4f4',
     },
     pfpOverlap: {
-        marginLeft: -24,
+        marginLeft: scaledSize(-24),
     },
     labels: {
         flexDirection: 'row',
-        paddingBottom: 5,
-        marginHorizontal: 2.5,
+        paddingBottom: scaledSize(5),
+        marginHorizontal: scaledSize(2.5),
     },
     set_ctnr: {
         marginLeft: '5%',
         width: '8%',
-        alignItems: 'center'
+        alignItems: 'center',
     },
     previous_ctnr: {
         width: '38%',
@@ -185,27 +190,28 @@ const styles = StyleSheet.create({
     },
     label_text: {
         fontFamily: 'Mulish_800ExtraBold',
-        fontSize: 14,
+        fontSize: scaledSize(14),
     },
     add_set_btn_ctnr: {
-        paddingHorizontal: 20,
+        paddingHorizontal: scaledSize(20),
     },
     add_set_btn: {
         width: '100%',
-        marginTop: 8,
+        marginTop: scaledSize(8),
         alignSelf: 'center',
-        height: 28,
-        borderRadius: 20,
+        height: scaledSize(28),
+        borderRadius: scaledSize(20),
         backgroundColor: '#eaeaea',
         justifyContent: 'center',
         alignItems: 'center',
-        flexDirection: 'row'
+        flexDirection: 'row',
     },
     add_set_text: {
         fontFamily: 'Outfit_600SemiBold',
         color: '#000',
-        fontSize: 15,
-        marginLeft: 1,
-        marginRight: 5
-    }
+        fontSize: scaledSize(15),
+        marginLeft: scaledSize(1),
+        marginRight: scaledSize(5),
+    },
 });
+

@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState } from "react";
-import { StyleSheet, View, Modal, TouchableOpacity, Animated } from "react-native";
+import { StyleSheet, View, Modal, TouchableOpacity, Animated, SafeAreaView, Dimensions } from "react-native";
 import Footer from "../components/Footer";
 import Podium from "../components/2_Competition/Podium";
 import retrieveFollowingUsers from "../../backend/retrieveFollowingUsers";
@@ -9,6 +9,38 @@ import UserStatsBottomSheet from "../components/2_Competition/UserStats/UserStat
 import { Octicons, Ionicons } from '@expo/vector-icons';
 import SelectExerciseModal from "../components/2_Competition/SelectExercise/SelectExerciseModal";
 import InfoPanel from "../components/2_Competition/InfoPanel"; // Import the InfoPanel component
+
+const { width, height } = Dimensions.get('window');
+
+// Function to determine dynamic styles based on screen size
+const getDynamicStyles = () => {
+    if (width >= 430 && height >= 932) { // iPhone 14 Pro Max and similar
+        return {
+            headerIconSize: 26.5,
+            headerPaddingHorizontal: 35,
+        };
+    } else if (width >= 390 && height >= 844) { // iPhone 13/14 and similar
+        return {
+            headerIconSize: 24.5,
+            headerPaddingHorizontal: 30,
+            headerPaddingTop: 5,
+        };
+    } else if (width >= 375 && height >= 812) { // iPhone X/XS/11 Pro and similar
+        return {
+            headerIconSize: 24,
+            headerPaddingHorizontal: 28,
+            headerPaddingTop: 10,
+        };
+    } else { // Smaller iPhone models (like iPhone SE)
+        return {
+            headerIconSize: 22.5,
+            headerPaddingHorizontal: 25,
+            headerPaddingTop: 8,
+        };
+    }
+};
+
+const dynamicStyles = getDynamicStyles();
 
 export default function Competition({ navigation }) {
     const usersRef = useRef([]);
@@ -37,7 +69,6 @@ export default function Competition({ navigation }) {
             setFooterKey(prevKey => prevKey + 1);
         });
 
-        // Return the function to unsubscribe from the event so it gets removed on unmount
         return unsubscribe;
     }, [navigation]);
 
@@ -85,12 +116,15 @@ export default function Competition({ navigation }) {
 
     return (
         <View style={styles.mainContainer}>
-            <View style={styles.header}>
-                <Octicons name="gear" size={22.5} color={'#eee'} style={{ paddingBottom: 4 }} />
-                <TouchableOpacity onPress={toggleInfoPanel}>
-                    <Ionicons name="information-circle" size={26.5} color={'#fff'} />
-                </TouchableOpacity>
-            </View>
+            <SafeAreaView>
+                <View style={[styles.header, { paddingHorizontal: dynamicStyles.headerPaddingHorizontal, paddingTop: dynamicStyles.headerPaddingTop }]}>
+                    <Octicons name="gear" size={dynamicStyles.headerIconSize - 2} color={'#eee'} style={{ paddingBottom: 4 }} />
+                    <TouchableOpacity onPress={toggleInfoPanel}>
+                        <Ionicons name="information-circle" size={dynamicStyles.headerIconSize + 3} color={'#fff'} />
+                    </TouchableOpacity>
+                </View>
+            </SafeAreaView>
+
 
             <InfoPanel isVisible={infoPanelVisible} opacity={infoPanelOpacity} />
 
@@ -104,6 +138,7 @@ export default function Competition({ navigation }) {
                     } : null)
                     .filter(Boolean) // Filter out any null values
                     : null}
+                style={{ paddingTop: dynamicStyles.podiumTopPadding }}
             />
 
             <LeaderboardBottomSheet
@@ -142,14 +177,8 @@ const styles = StyleSheet.create({
         backgroundColor: '#59AAEE',
     },
     header: {
-        position: 'absolute',
-        top: 0,
-        height: 79,
-        left: 0,
-        right: 0,
         alignItems: 'flex-end',
         justifyContent: 'space-between',
-        paddingHorizontal: 30,
         flexDirection: 'row'
     },
 });

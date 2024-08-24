@@ -1,5 +1,10 @@
 import React, { useEffect, useState } from 'react';
-import { Text, StyleSheet } from 'react-native';
+import { Text, StyleSheet, Dimensions } from 'react-native';
+
+const { height: screenHeight } = Dimensions.get('window');
+const scale = screenHeight / 844; // Scaling factor based on iPhone 13 height
+
+const scaledSize = (size) => Math.round(size * scale);
 
 const TimerDisplay = ({ timerRef }) => {
     const [timer, setTimer] = useState(timerRef.current);
@@ -20,9 +25,9 @@ const TimerDisplay = ({ timerRef }) => {
 const styles = StyleSheet.create({
     timer_text: {
         fontFamily: 'Outfit_700Bold',
-        fontSize: 18,
+        fontSize: scaledSize(18),
         color: '#aaa',
-        textAlign: 'center'
+        textAlign: 'center',
     }
 });
 

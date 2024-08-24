@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useRef, useState } from "react";
-import { Text, StyleSheet, View, Pressable } from "react-native";
+import { Text, StyleSheet, View, Pressable, Dimensions } from "react-native";
 import Footer from "../components/Footer";
 import StartWorkoutButton from "../components/3_Workout/StartWorkoutButton";
 import JoinWorkoutButton from "../components/3_Workout/JoinWorkoutButton";
@@ -16,6 +16,14 @@ import WorkoutSummaryModal from "../components/3_Workout/WorkoutSummaryModal";
 import GroupModalBottomSheet from '../components/3_Workout/NewWorkout/Group/GroupModalBottomSheet'
 import calculate1RM from "../helper/calculate1RM";
 import formatDate from "../helper/formatDate";
+
+const { height: screenHeight } = Dimensions.get('window');
+
+// Scale factor based on a base height (e.g., iPhone 13 height ~844)
+const scale = screenHeight / 844;
+
+const scaledSize = (size) => Math.round(size * scale);
+
 
 function Workout({ navigation }) {
     const [workout, setWorkout] = useState(global.userData.currentWorkout);
@@ -371,13 +379,13 @@ const styles = StyleSheet.create({
     },
     body: {
         flex: 1,
-        paddingTop: 5,
+        paddingTop: scaledSize(5),
     },
     quickStartText: {
         fontFamily: 'Poppins_600SemiBold',
-        fontSize: 16,
-        paddingBottom: 8,
-        paddingHorizontal: 20,
+        fontSize: scaledSize(16),
+        paddingBottom: scaledSize(8),
+        paddingHorizontal: scaledSize(20),
     },
     templatesHeadingRow: {
         flexDirection: 'row',
@@ -385,13 +393,13 @@ const styles = StyleSheet.create({
         justifyContent: 'space-between'
     },
     templatesText: {
-        marginTop: 24,
+        marginTop: scaledSize(24),
         fontFamily: 'Poppins_600SemiBold',
-        fontSize: 16,
-        paddingHorizontal: 20
+        fontSize: scaledSize(16),
+        paddingHorizontal: scaledSize(20)
     },
     addIcon: {
-        paddingHorizontal: 28
+        paddingHorizontal: scaledSize(28)
     }
 });
 

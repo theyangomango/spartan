@@ -1,9 +1,14 @@
 import React, { useRef } from 'react';
-import { View, StyleSheet, Text, Pressable } from 'react-native';
+import { View, StyleSheet, Text, Pressable, Dimensions } from 'react-native';
 import EditableStat from "./EditableStat";
 import { FontAwesome5 } from '@expo/vector-icons';
 import SwipeableItem, { OpenDirection, useSwipeableItemParams } from 'react-native-swipeable-item';
 import Animated, { useAnimatedStyle } from 'react-native-reanimated';
+
+const { height: screenHeight } = Dimensions.get('window');
+const scale = screenHeight / 844; // Scaling factor based on iPhone 13 height
+
+const scaledSize = (size) => Math.round(size * scale);
 
 export default function SetRow({ previousSet, set, updateSet, index, handleDelete, isDone, toggleIsDone }) {
     const weight = set.weight;
@@ -32,9 +37,9 @@ export default function SetRow({ previousSet, set, updateSet, index, handleDelet
                         });
                     }
                 }}
-                overSwipe={40}
+                overSwipe={scaledSize(40)}
                 renderUnderlayLeft={renderUnderlayLeft}
-                snapPointsLeft={[60]}
+                snapPointsLeft={[scaledSize(60)]}
                 onSwipeableLeftOpen={() => handleDelete(index)}
             >
                 <View style={[styles.stat_row, isDone && styles.done]} key={index}>
@@ -48,7 +53,7 @@ export default function SetRow({ previousSet, set, updateSet, index, handleDelet
                         <EditableStat
                             isFinished={isDone}
                             value={weight.toString()}
-                            setValue={(value) => updateSet(index, { ...set, weight: value})}
+                            setValue={(value) => updateSet(index, { ...set, weight: value })}
                         />
                     </View>
                     <View style={styles.reps_ctnr}>
@@ -60,7 +65,7 @@ export default function SetRow({ previousSet, set, updateSet, index, handleDelet
                     </View>
                     <View style={styles.done_ctnr}>
                         <Pressable style={isDone ? styles.checkmark_ctnr_selected : styles.checkmark_ctnr} onPress={toggleIsDone}>
-                            <FontAwesome5 name="check" size={14} style={styles.checkmark} color={isDone ? '#fff' : '#444'} />
+                            <FontAwesome5 name="check" size={scaledSize(14)} style={styles.checkmark} color={isDone ? '#fff' : '#444'} />
                         </Pressable>
                     </View>
                 </View>
@@ -82,7 +87,7 @@ const UnderlayLeft = ({ handleDelete }) => {
     return (
         <Animated.View style={[styles.underlayLeft, animStyle]}>
             <Pressable onPressOut={handleDelete} style={styles.trashButton}>
-                <FontAwesome5 name="trash" size={19} color="#fff" />
+                <FontAwesome5 name="trash" size={scaledSize(19)} color="#fff" />
             </Pressable>
         </Animated.View>
     );
@@ -94,7 +99,7 @@ const styles = StyleSheet.create({
     },
     stat_row: {
         flexDirection: 'row',
-        paddingVertical: 8,
+        paddingVertical: scaledSize(8),
         alignItems: 'center',
         position: 'relative',
     },
@@ -104,8 +109,8 @@ const styles = StyleSheet.create({
     set_ctnr: {
         marginLeft: '5%',
         width: '8%',
-        height: 21,
-        borderRadius: 6,
+        height: scaledSize(21),
+        borderRadius: scaledSize(6),
         backgroundColor: '#eaeaea',
         alignItems: 'center',
         justifyContent: 'center',
@@ -125,29 +130,29 @@ const styles = StyleSheet.create({
     },
     set_number_text: {
         fontFamily: 'Poppins_700Bold',
-        fontSize: 14,
+        fontSize: scaledSize(14),
     },
     previous_stat_text: {
         fontFamily: 'Poppins_700Bold',
-        fontSize: 15,
+        fontSize: scaledSize(15),
         color: '#ccc'
     },
     done_ctnr: {
         width: '10.5%',
-        height: 22,
+        height: scaledSize(22),
         alignItems: 'center',
     },
     checkmark_ctnr: {
-        paddingHorizontal: 10,
+        paddingHorizontal: scaledSize(10),
         height: '100%',
-        borderRadius: 7,
+        borderRadius: scaledSize(7),
         backgroundColor: '#eee',
         justifyContent: 'center'
     },
     checkmark_ctnr_selected: {
-        paddingHorizontal: 8,
+        paddingHorizontal: scaledSize(8),
         height: '100%',
-        borderRadius: 7,
+        borderRadius: scaledSize(7),
         justifyContent: 'center',
         backgroundColor: '#58DD6F',
     },
@@ -158,8 +163,8 @@ const styles = StyleSheet.create({
         bottom: 0,
         justifyContent: 'center',
         alignItems: 'flex-end',
-        marginVertical: 2,
-        paddingRight: 20,
+        marginVertical: scaledSize(2),
+        paddingRight: scaledSize(20),
     },
     trashButton: {
         flex: 1,
@@ -169,6 +174,6 @@ const styles = StyleSheet.create({
     text: {
         fontWeight: "bold",
         color: "white",
-        fontSize: 32,
+        fontSize: scaledSize(32),
     },
 });

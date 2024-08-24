@@ -1,8 +1,13 @@
 import React, { useEffect, useState } from "react";
-import { View, Text, StyleSheet, TextInput, Keyboard, ScrollView, Pressable, Dimensions } from "react-native";
+import { View, Text, StyleSheet, TextInput, ScrollView, Pressable, Dimensions } from "react-native";
 import Icon from 'react-native-vector-icons/Ionicons';
 import ProfileCard from "../../../ProfileCard";
 import RNBounceable from '@freakycoder/react-native-bounceable';
+
+const { height: screenHeight } = Dimensions.get('window');
+const scale = screenHeight / 844; // Scaling factor based on iPhone 13 height
+
+const scaledSize = (size) => Math.round(size * scale);
 
 const GroupModal = ({ closeGroupModal }) => {
     const followingUsers = global.userData.following;
@@ -58,7 +63,7 @@ const GroupModal = ({ closeGroupModal }) => {
                     <Text style={styles.modalText}>Invite to Workout</Text>
                 ) : (
                     <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.selectedHandlesContainer}>
-                        <View style={{ width: 20 }} />
+                        <View style={{ width: scaledSize(20) }} />
                         {selectedHandles.map((handle, index) => (
                             <Pressable key={index}>
                                 <View style={styles.selectedHandleView}>
@@ -66,15 +71,16 @@ const GroupModal = ({ closeGroupModal }) => {
                                 </View>
                             </Pressable>
                         ))}
-                        <View style={{ width: 5 }} />
+                        <View style={{ width: scaledSize(5) }} />
                     </ScrollView>
                 )}
             </View>
             <View style={styles.searchContainer}>
-                <Icon name="search" size={20} color="#888" style={styles.searchIcon} />
+                <Icon name="search" size={scaledSize(20)} color="#888" style={styles.searchIcon} />
                 <TextInput
                     style={styles.searchBar}
                     placeholder="Search"
+                    placeholderTextColor="#999"
                     value={searchQuery}
                     onChangeText={setSearchQuery}
                 />
@@ -100,20 +106,19 @@ const styles = StyleSheet.create({
     modalOverlay: {
         flex: 1,
         alignItems: 'center',
-
     },
     header: {
-        height: 45,
-        paddingTop: 15,
+        height: scaledSize(45),
+        paddingTop: scaledSize(15),
         flexDirection: 'row',
         alignItems: 'center',
         justifyContent: 'center',
-        marginBottom: 10,
+        marginBottom: scaledSize(10),
         position: 'relative',
     },
     modalText: {
         fontFamily: 'Poppins_600SemiBold',
-        fontSize: 14,
+        fontSize: scaledSize(14),
     },
     selectedHandlesContainer: {
         flexDirection: 'row',
@@ -121,34 +126,37 @@ const styles = StyleSheet.create({
     },
     selectedHandleView: {
         backgroundColor: '#E1F0FF',
-        paddingHorizontal: 10.5,
-        height: 29,
-        borderRadius: 8,
+        paddingHorizontal: scaledSize(10.5),
+        height: scaledSize(29),
+        borderRadius: scaledSize(8),
         alignItems: 'center',
         justifyContent: 'center',
-        marginRight: 5,
+        marginRight: scaledSize(5),
     },
     selectedHandleText: {
         color: '#0499FE',
         fontFamily: 'Outfit_700Bold',
-        fontSize: 14,
+        fontSize: scaledSize(14),
     },
     searchContainer: {
         flexDirection: 'row',
         alignItems: 'center',
         backgroundColor: '#e0e0e0',
-        borderRadius: 8,
+        borderRadius: scaledSize(8),
         width: '90%',
-        paddingHorizontal: 8,
-        marginBottom: 10,
+        paddingHorizontal: scaledSize(8),
+        marginBottom: scaledSize(10),
     },
     searchIcon: {
-        marginRight: 8,
+        marginRight: scaledSize(8),
     },
     searchBar: {
         flex: 1,
-        paddingHorizontal: 8,
-        paddingVertical: 6,
+        paddingHorizontal: scaledSize(8),
+        paddingVertical: scaledSize(6),
+        fontSize: scaledSize(14),
+        color: '#333',
+        fontFamily: 'Poppins_400Regular',
     },
     flatlistContainer: {
         flex: 1,
@@ -156,19 +164,19 @@ const styles = StyleSheet.create({
     },
     sendButton: {
         position: 'absolute',
-        bottom: 45,
-        left: 22,
-        right: 22,
+        bottom: scaledSize(45),
+        left: scaledSize(22),
+        right: scaledSize(22),
         backgroundColor: '#2D9EFF',
-        borderRadius: 15,
-        paddingVertical: 13,
-        paddingHorizontal: 30,
+        borderRadius: scaledSize(15),
+        paddingVertical: scaledSize(13),
+        paddingHorizontal: scaledSize(30),
         alignItems: 'center',
         justifyContent: 'center',
     },
     sendButtonText: {
         color: 'white',
-        fontSize: 14,
+        fontSize: scaledSize(14),
         fontFamily: 'Poppins_600SemiBold',
     },
 });

@@ -1,7 +1,44 @@
 import React from "react";
-import { StyleSheet, View, Text, FlatList } from "react-native";
+import { StyleSheet, View, Text, FlatList, Dimensions } from "react-native";
 import RNBounceable from '@freakycoder/react-native-bounceable';
 import LeaderboardCard from "./LeaderboardCard";
+
+const { width, height } = Dimensions.get("window");
+
+// Function to determine dynamic styles based on screen size
+const getDynamicStyles = () => {
+    if (width >= 430 && height >= 932) { // iPhone 14 Pro Max and similar
+        return {
+            buttonTextFontSize: 15,
+            buttonPaddingHorizontal: 15,
+            buttonPaddingVertical: 11,
+            buttonMarginHorizontal: 4.5,
+        };
+    } else if (width >= 390 && height >= 844) { // iPhone 13/14 and similar
+        return {
+            buttonTextFontSize: 13,
+            buttonPaddingHorizontal: 12.5,
+            buttonPaddingVertical: 9.5,
+            buttonMarginHorizontal: 3.5,
+        };
+    } else if (width >= 375 && height >= 812) { // iPhone X/XS/11 Pro and similar
+        return {
+            buttonTextFontSize: 13.5,
+            buttonPaddingHorizontal: 12,
+            buttonPaddingVertical: 9.5,
+            buttonMarginHorizontal: 3.5,
+        };
+    } else { // Smaller iPhone models (like iPhone SE)
+        return {
+            buttonTextFontSize: 12,
+            buttonPaddingHorizontal: 11,
+            buttonPaddingVertical: 8.5,
+            buttonMarginHorizontal: 3,
+        };
+    }
+};
+
+const dynamicStyles = getDynamicStyles();
 
 const LeaderboardModal = ({ userList, categoryCompared, showFollowers, toggleFollowers, openModal, openBottomSheet, isBottomSheetExpanded }) => {
     const userIndex = userList.findIndex(item => item.uid === global.userData.uid);
@@ -12,17 +49,17 @@ const LeaderboardModal = ({ userList, categoryCompared, showFollowers, toggleFol
             <View style={styles.buttons_ctnr}>
                 <View style={styles.right_buttons}>
                     <RNBounceable
-                        style={[styles.button, styles.selectedButton]}
+                        style={[styles.button, styles.selectedButton, { paddingHorizontal: dynamicStyles.buttonPaddingHorizontal, paddingVertical: dynamicStyles.buttonPaddingVertical, marginHorizontal: dynamicStyles.buttonMarginHorizontal }]}
                         onPress={openModal}
                     >
-                        <Text style={styles.buttonText}>{categoryCompared}</Text>
+                        <Text style={[styles.buttonText, { fontSize: dynamicStyles.buttonTextFontSize }]}>{categoryCompared}</Text>
                     </RNBounceable>
                     <RNBounceable
                         disabled // Disabled for Beta
-                        style={[styles.button, styles.selectedButton]}
+                        style={[styles.button, styles.selectedButton, { paddingHorizontal: dynamicStyles.buttonPaddingHorizontal, paddingVertical: dynamicStyles.buttonPaddingVertical, marginHorizontal: dynamicStyles.buttonMarginHorizontal }]}
                         onPress={toggleFollowers}
                     >
-                        <Text style={styles.buttonText}>{showFollowers}</Text>
+                        <Text style={[styles.buttonText, { fontSize: dynamicStyles.buttonTextFontSize }]}>{showFollowers}</Text>
                     </RNBounceable>
                 </View>
             </View>
@@ -85,10 +122,7 @@ const styles = StyleSheet.create({
     },
     button: {
         borderRadius: 20,
-        paddingHorizontal: 12.5,
-        paddingVertical: 9.5,
         backgroundColor: '#BCDDFF',
-        marginHorizontal: 3.5,
         alignItems: 'center',
     },
     selectedButton: {
@@ -96,7 +130,6 @@ const styles = StyleSheet.create({
     },
     buttonText: {
         color: '#666',
-        fontSize: 13,
         fontFamily: 'Outfit_700Bold',
     },
 });

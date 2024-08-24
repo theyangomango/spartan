@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useCallback, useRef } from "react";
-import { StyleSheet, View, Modal, ScrollView, Text, Animated } from "react-native";
+import { StyleSheet, View, Modal, ScrollView, Text, Animated, Dimensions } from "react-native";
 import ProgressBanner from "./Tracking/ProgressBanner";
 import ExerciseLog from "./Tracking/ExerciseLog";
 import SelectExerciseModal from './SelectExercise/SelectExerciseModal';
@@ -8,6 +8,11 @@ import { Weight } from 'iconsax-react-native';
 import { MaterialCommunityIcons, FontAwesome } from '@expo/vector-icons';
 import TimerDisplay from "./TimerDisplay";
 import calculate1RM from "../../../helper/calculate1RM";
+
+const { height: screenHeight } = Dimensions.get('window');
+const scale = screenHeight / 844; // Scaling factor based on iPhone 13 height
+
+const scaledSize = (size) => Math.round(size * scale);
 
 const NewWorkoutModal = ({ workout, cancelWorkout, updateWorkout, finishWorkout, timerRef, showGroupModal }) => {
     const [selectExerciseModalVisible, setSelectExerciseModalVisible] = useState(false);
@@ -171,7 +176,7 @@ const NewWorkoutModal = ({ workout, cancelWorkout, updateWorkout, finishWorkout,
             <View style={styles.header}>
                 <View style={styles.rest_timer_ctnr}>
                     <RNBounceable style={styles.iconWrapper} onPress={handleAddTime}>
-                        <MaterialCommunityIcons name="timer-outline" size={24} color="#0499FE" />
+                        <MaterialCommunityIcons name="timer-outline" size={scaledSize(24)} color="#0499FE" />
                     </RNBounceable>
 
                     {countdown > 0 && (
@@ -186,7 +191,7 @@ const NewWorkoutModal = ({ workout, cancelWorkout, updateWorkout, finishWorkout,
                 </View>
                 <View style={styles.header_right}>
                     <RNBounceable style={styles.group_btn} onPress={showGroupModal}>
-                        <FontAwesome name="group" size={17} color="#FFBB3D" />
+                        <FontAwesome name="group" size={scaledSize(17)} color="#FFBB3D" />
                     </RNBounceable>
                     <RNBounceable onPress={finishWorkout} style={styles.finish_btn}>
                         <Text style={styles.finish_btn_text}>Finish</Text>
@@ -209,26 +214,26 @@ const NewWorkoutModal = ({ workout, cancelWorkout, updateWorkout, finishWorkout,
                     <ExerciseLog
                         name={ex.name}
                         exerciseIndex={exerciseIndex}
-                        key={ex.name + exerciseIndex} // Unique key to force re-render
+                        key={ex.name + exerciseIndex}
                         updateSets={updateSets}
                         sets={ex.sets}
                         replaceExercise={replaceExercise}
                         deleteExercise={() => deleteExercise(exerciseIndex)}
-                        calculateStats={calculateStats} // Pass calculateStats function
-                        isDoneState={isDoneState[exerciseIndex]} // Pass isDone state
-                        toggleIsDone={toggleIsDone} // Pass toggleIsDone function
+                        calculateStats={calculateStats}
+                        isDoneState={isDoneState[exerciseIndex]}
+                        toggleIsDone={toggleIsDone}
                     />
                 ))}
                 <RNBounceable onPress={showSelectExerciseModal} style={styles.add_exercise_btn}>
                     <Text style={styles.add_exercise_text}>Add Exercises</Text>
-                    <Weight size="22" color="#5DBDFF" variant='Bold' />
+                    <Weight size={scaledSize(22)} color="#5DBDFF" variant='Bold' />
                 </RNBounceable>
 
                 <RNBounceable onPress={confirmCancelWorkout} style={styles.cancel_btn}>
                     <Text style={styles.cancel_btn_text}>Cancel Workout</Text>
                 </RNBounceable>
 
-                <View style={{ height: 150 }} />
+                <View style={{ height: scaledSize(150) }} />
             </Animated.ScrollView>
 
             <Modal
@@ -245,7 +250,7 @@ const NewWorkoutModal = ({ workout, cancelWorkout, updateWorkout, finishWorkout,
                 animationType="fade"
                 transparent={true}
                 visible={deleteConfirmModalVisible}
-                onRequestClose={() => setDeleteConfirmModalVisible(false)} // Hide modal if back button is pressed
+                onRequestClose={() => setDeleteConfirmModalVisible(false)}
             >
                 <View style={styles.modalOverlay}>
                     <View style={styles.modalContainer}>
@@ -261,15 +266,15 @@ const NewWorkoutModal = ({ workout, cancelWorkout, updateWorkout, finishWorkout,
             </Modal>
         </View>
     );
-};
+}
 
 const styles = StyleSheet.create({
     main_ctnr: {
         flex: 1,
     },
     header: {
-        paddingBottom: 6,
-        paddingHorizontal: 22,
+        paddingBottom: scaledSize(6),
+        paddingHorizontal: scaledSize(22),
         flexDirection: 'row',
         alignItems: 'center',
         justifyContent: 'space-between',
@@ -282,92 +287,91 @@ const styles = StyleSheet.create({
         left: 0,
         right: 0,
         bottom: 0,
-        height: 2,
+        height: scaledSize(2),
         backgroundColor: '#eaeaea',
     },
     rest_timer_ctnr: {
         flexDirection: 'row',
         alignItems: 'center',
-        paddingVertical: 6,
-        paddingHorizontal: 10,
-        borderRadius: 12,
+        paddingVertical: scaledSize(6),
+        paddingHorizontal: scaledSize(10),
+        borderRadius: scaledSize(12),
         backgroundColor: '#E1F0FF',
-        position: 'relative', // Add relative positioning for countdown display
+        position: 'relative',
     },
-    iconWrapper: {
-    },
+    iconWrapper: {},
     countdownText: {
-        fontSize: 16,
+        fontSize: scaledSize(16),
         color: '#0499FE',
         fontFamily: 'Outfit_700Bold',
-        marginLeft: 6
+        marginLeft: scaledSize(6)
     },
     timer_text_ctnr: {
         position: 'absolute',
         left: 0,
         right: 0,
-        top: 5,
+        top: scaledSize(5),
     },
     header_right: {
         flexDirection: 'row',
         alignItems: 'center',
     },
     group_btn: {
-        width: 35,
-        height: 35,
-        borderRadius: 12,
+        width: scaledSize(35),
+        height: scaledSize(35),
+        borderRadius: scaledSize(12),
         backgroundColor: '#FFE8BC',
         justifyContent: 'center',
         alignItems: 'center',
-        marginRight: 10,
+        marginRight: scaledSize(10),
     },
     finish_btn: {
-        width: 80,
-        height: 35,
-        borderRadius: 12,
+        width: scaledSize(80),
+        height: scaledSize(35),
+        borderRadius: scaledSize(12),
         backgroundColor: '#DCFFE3',
         justifyContent: 'center',
         alignItems: 'center'
     },
     finish_btn_text: {
         fontFamily: 'Outfit_700Bold',
-        fontSize: 15.5,
+        fontSize: scaledSize(15.5),
         color: '#40D99B',
     },
     scrollview: {
-        paddingTop: 5
+        paddingTop: scaledSize(5)
     },
     add_exercise_btn: {
-        marginHorizontal: 20,
-        marginTop: 18,
-        height: 35,
-        borderRadius: 12,
+        marginHorizontal: scaledSize(20),
+        marginTop: scaledSize(18),
+        height: scaledSize(35),
+        borderRadius: scaledSize(12),
         backgroundColor: '#E1F0FF',
         justifyContent: 'center',
         alignItems: 'center',
         flexDirection: 'row'
     },
     add_exercise_text: {
-        fontSize: 16,
+        fontSize: scaledSize(16),
         fontFamily: 'Outfit_700Bold',
         color: '#0499FE',
-        marginRight: 4.5
+        marginRight: scaledSize(4.5)
     },
     cancel_btn: {
-        marginHorizontal: 20,
-        marginTop: 18,
-        height: 35,
-        borderRadius: 12,
+        marginHorizontal: scaledSize(20),
+        marginTop: scaledSize(18),
+        height: scaledSize(35),
+        borderRadius: scaledSize(12),
         backgroundColor: '#FFECEC',
         justifyContent: 'center',
         alignItems: 'center',
         flexDirection: 'row'
     },
     cancel_btn_text: {
-        fontSize: 16,
+        fontSize: scaledSize(16),
         fontFamily: 'Outfit_700Bold',
         color: '#F27171',
-        marginRight: 4.5
+        marginRight: scaledSize(4.5)
     },
     modalOverlay: {
         flex: 1,
@@ -377,41 +381,41 @@ const styles = StyleSheet.create({
     },
     modalContainer: {
         width: '80%',
-        padding: 20,
+        padding: scaledSize(20),
         backgroundColor: '#fff',
-        borderRadius: 15,
+        borderRadius: scaledSize(15),
         alignItems: 'center',
     },
     modalText: {
-        fontSize: 16,
+        fontSize: scaledSize(16),
         color: '#333',
         fontFamily: 'Outfit_700Bold',
-        marginBottom: 20,
+        marginBottom: scaledSize(20),
         textAlign: 'center',
     },
     deleteWorkoutBtn: {
         width: '100%',
-        paddingVertical: 8,
+        paddingVertical: scaledSize(8),
         backgroundColor: '#FFECEC',
-        borderRadius: 8,
+        borderRadius: scaledSize(8),
         alignItems: 'center',
-        marginBottom: 10,
+        marginBottom: scaledSize(10),
     },
     deleteWorkoutText: {
         color: '#F27171',
-        fontSize: 14,
+        fontSize: scaledSize(14),
         fontFamily: 'Outfit_700Bold',
     },
     cancelDeleteBtn: {
         width: '100%',
-        paddingVertical: 8,
+        paddingVertical: scaledSize(8),
         backgroundColor: '#eee',
-        borderRadius: 8,
+        borderRadius: scaledSize(8),
         alignItems: 'center',
     },
     cancelDeleteText: {
         color: '#666',
-        fontSize: 14,
+        fontSize: scaledSize(14),
         fontFamily: 'Outfit_700Bold',
     },
 });
