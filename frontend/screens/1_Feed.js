@@ -36,7 +36,7 @@ const TARGET_POSITION = getTargetPosition();
 const SCROLL_THRESHOLD = 85;
 
 export default function Feed({ navigation, route }) {
-    const UID = 'userData' in global ? route.params.uid : global.userData.uid; // Hard set UID
+    const UID = 'userData' in global ? global.userData.uid : route.params.uid; // Hard set UID
     const [stories, setStories] = useState(null);
     const [posts, setPosts] = useState([]);
     const [messages, setMessages] = useState(null);

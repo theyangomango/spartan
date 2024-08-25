@@ -11,7 +11,9 @@ export default async function retrieveUserFeed(userData) {
         }
     }
 
-    let db_posts = await retrievePosts(getReverse(userData.feedPosts));
+    // let db_posts = await retrievePosts(getReverse(userData.feedPosts));
+    postsDoc = await readDoc('global', 'posts');
+    let db_posts = await retrievePosts(getReverse(postsDoc.PIDs));
     
     // let db_posts = [];
     // for (pid of userData.feedPosts) {

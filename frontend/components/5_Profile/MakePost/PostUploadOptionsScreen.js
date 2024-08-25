@@ -59,6 +59,7 @@ export default function PostOptionsScreen({ navigation, route }) {
 
         createPost(global.userData.uid, global.userData.handle, global.userData.image, caption, downloadedImageURLs, pid);
         arrayAppend('users', global.userData.uid, 'posts', pid);
+        await arrayAppend('global', 'posts', 'PIDs', pid);
         navigation.navigate('FeedStack');
     }
 
