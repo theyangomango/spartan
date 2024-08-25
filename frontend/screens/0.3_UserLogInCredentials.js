@@ -3,6 +3,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { View, Text, StyleSheet, TextInput, Dimensions, Keyboard, TouchableWithoutFeedback, Platform } from 'react-native';
 import { Ionicons, Octicons, Feather } from '@expo/vector-icons';
 import readDoc from '../../backend/helper/firebase/readDoc';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 const { width: screenWidth, height: screenHeight } = Dimensions.get('window');
 
@@ -62,6 +63,9 @@ const UserLogInCredentials = ({ navigation }) => {
                 console.log('Login successful', user.uid);
                 // You can navigate to another screen or update the UI here
                 // For example:
+                AsyncStorage.setItem('uid', user.uid, () => {
+                    console.log('async storage set uid');
+                });
                 navigation.navigate('FeedStack', { uid: user.uid }); // Replace with your home screen or dashboard
             } else {
                 // No matching user found

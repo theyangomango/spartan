@@ -1,4 +1,4 @@
-// import Authentication from "./frontend/screens/Authentication";
+import { useEffect, useRef, useState } from 'react';
 import { NavigationContainer } from '@react-navigation/native'
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
@@ -9,7 +9,7 @@ import SignUp from './frontend/screens/0.0_SignUp'
 import LogIn from './frontend/screens/0.1_LogIn';
 import NewUserCreation from './frontend/screens/0.2_NewUserCreation';
 import UserLogInCredentials from './frontend/screens/0.3_UserLogInCredentials';
-// import AsyncStorage from '@react-native-async-storage/async-storage';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 import Feed from "./frontend/screens/1_Feed";
 import Profile from './frontend/screens/5_Profile';
@@ -132,7 +132,7 @@ const FeedStack = (({ navigation, route }) => {
         <Stack.Navigator initialRouteName='Feed' screenOptions={{
             headerShown: false
         }}>
-            <Stack.Screen name='Feed' component={Feed} initialParams={route.params}/>
+            <Stack.Screen name='Feed' component={Feed} initialParams={route.params} />
             <Stack.Screen name='Messages' component={Messages} />
             <Stack.Screen name='Chat' component={Chat} />
             <Stack.Screen name='ViewProfile' component={ViewProfile} />
@@ -259,43 +259,76 @@ export default function App() {
         Mulish_800ExtraBold_Italic,
         Mulish_900Black_Italic,
     });
+    const [isAuthenticated, setIsAuthenticated] = useState(false);
+    const uidRef = useRef(null);
 
+    useEffect(() => {
+        init();
+    }, []);
 
-    // useEffect(async () => {
-    //     const value = await AsyncStorage.getItem('uid', () => {
-    //         console.log(value);
-    //     }).then(() => {
-    //         console.log('df')
-    //     })
-    // }, []);
+    async function init() {
+        try {
+            let uid = await AsyncStorage.getItem('uid');
 
+            if (uid) {
+                console.log(uid);
+                uidRef.current = uid;
+                setIsAuthenticated(true);
+            }
+            else {
+            }
+        }
+        catch (err) {
+            console.log(err);
+        }
 
+    }
 
     if (!fontsLoaded) {
         return <></>
     }
-
-
-
-    else return (
-        <GestureHandlerRootView style={{ flex: 1 }}>
-            <NavigationContainer>
-                <Tab.Navigator initialRouteName='AuthenticationStack' screenOptions={{
-                    headerShown: false,
-                    tabBarStyle: {
-                        display: 'none'
-                    }
-                }}>
-                    <Tab.Screen name='AuthenticationStack' component={AuthenticationStack} />
-                    <Tab.Screen name='FeedStack' component={FeedStack} />
-                    <Tab.Screen name='CompetitionStack' component={CompetitionStack} />
-                    <Tab.Screen name='Workout' component={Workout} />
-                    <Tab.Screen name='ExploreStack' component={ExploreStack} />
-                    <Tab.Screen name='ProfileStack' component={ProfileStack} />
-                    <Tab.Screen name='PostList' component={PostList} />
-                </Tab.Navigator>
-            </NavigationContainer>
-        </GestureHandlerRootView>
-        // <Authentication />
-    )
+    if (!isAuthenticated) {
+        return (
+            <GestureHandlerRootView style={{ flex: 1 }}>
+                <NavigationContainer>
+                    <Tab.Navigator initialRouteName='AuthenticationStack' screenOptions={{
+                        headerShown: false,
+                        tabBarStyle: {
+                            display: 'none'
+                        }
+                    }}>
+                        <Tab.Screen name='AuthenticationStack' component={AuthenticationStack} />
+                        <Tab.Screen name='FeedStack' component={FeedStack} />
+                        <Tab.Screen name='CompetitionStack' component={CompetitionStack} />
+                        <Tab.Screen name='Workout' component={Workout} />
+                        <Tab.Screen name='ExploreStack' component={ExploreStack} />
+                        <Tab.Screen name='ProfileStack' component={ProfileStack} />
+                        <Tab.Screen name='PostList' component={PostList} />
+                    </Tab.Navigator>
+                </NavigationContainer>
+            </GestureHandlerRootView>
+        );
+    }
+    else {
+        return (
+            <GestureHandlerRootView style={{ flex: 1 }}>
+                <NavigationContainer>
+                    <Tab.Navigator initialRouteName='FeedStack' screenOptions={{
+                        headerShown: false,
+                        tabBarStyle: {
+                            display: 'none'
+                        },
+                    }}>
+                        <Tab.Screen name='AuthenticationStack' component={AuthenticationStack} />
+                        <Tab.Screen name='FeedStack' initialParams={{ uid: uidRef.current }} component={FeedStack} />
+                        <Tab.Screen name='CompetitionStack' component={CompetitionStack} />
+                        <Tab.Screen name='Workout' component={Workout} />
+                        <Tab.Screen name='ExploreStack' component={ExploreStack} />
+                        <Tab.Screen name='ProfileStack' component={ProfileStack} />
+                        <Tab.Screen name='PostList' component={PostList} />
+                    </Tab.Navigator>
+                </NavigationContainer>
+            </GestureHandlerRootView>
+        );
+    }
 }

@@ -5,6 +5,7 @@ import { Ionicons, Octicons, Feather } from '@expo/vector-icons';
 import createDoc from '../../backend/helper/firebase/createDoc'
 import readDoc from '../../backend/helper/firebase/readDoc'; // Import the function to read from Firestore
 import makeID from '../../backend/helper/makeID';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 const { width: screenWidth, height: screenHeight } = Dimensions.get('window');
 
@@ -92,6 +93,10 @@ const NewUserCreation = ({ navigation }) => {
             templates: [],
             uid: newID,
         };
+
+        AsyncStorage.setItem('uid', newID, () => {
+            console.log('async storage set uid');
+        });
 
         // Proceed with the account creation
         await createDoc('users', newID, newUser);
