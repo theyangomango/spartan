@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import { StyleSheet, View } from "react-native";
+import { SafeAreaView, StyleSheet, View } from "react-native";
 import Footer from "../components/Footer";
 import ProfileHeader from "../components/5_Profile/ProfileTop/ProfileHeader";
 import ProfileInfo from "../components/5_Profile/ProfileTop/ProfileInfo";
@@ -17,6 +17,7 @@ export default function Profile({ navigation }) {
     const [isEditProfileBottomSheetVisible, setIsEditProfileBottomSheetVisible] = useState(false);
     const [isViewStatsBottomSheetVisible, setIsViewStatsBottomSheetVisible] = useState(false);
     const [footerKey, setFooterKey] = useState(0); // State to force footer re-render
+    const [pfp, setPFP] = useState(global.userData.image);
 
     useEffect(() => {
         getPosts();
@@ -57,10 +58,10 @@ export default function Profile({ navigation }) {
     }
 
     return (
-        <View style={styles.main_ctnr}>
+        <SafeAreaView style={styles.main_ctnr}>
             <View style={styles.body_ctnr}>
                 <ProfileHeader onPressCreateBtn={uploadPost} />
-                <ProfileInfo userData={userData} />
+                <ProfileInfo userData={userData} pfp={pfp} />
                 <ProfileRowButtons handleOpenEditProfile={handleOpenEditProfile} handleOpenViewStats={handleOpenViewStats} />
                 <WorkoutStats userData={userData} />
             </View>
@@ -76,6 +77,7 @@ export default function Profile({ navigation }) {
             <EditProfileBottomSheet
                 isVisible={isEditProfileBottomSheetVisible}
                 setIsVisible={setIsEditProfileBottomSheetVisible}
+                setPFP={setPFP}
             />
 
             <ViewStatsBottomSheet
@@ -84,7 +86,7 @@ export default function Profile({ navigation }) {
             />
 
             <Footer key={footerKey} currentScreenName={'Profile'} navigation={navigation} />
-        </View>
+        </SafeAreaView>
     );
 }
 

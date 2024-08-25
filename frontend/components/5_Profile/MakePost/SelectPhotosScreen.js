@@ -1,9 +1,14 @@
 import { useState, useEffect } from 'react';
-import { Text, View, StyleSheet, TouchableOpacity, Image, Dimensions } from 'react-native';
+import { Text, View, StyleSheet, TouchableOpacity, Image, Dimensions, SafeAreaView } from 'react-native';
 import { FontAwesome6, Ionicons } from '@expo/vector-icons';
 import * as MediaLibrary from 'expo-media-library';
 import Gallery from 'react-native-awesome-gallery';
 import PreviewPhotosBottomSheet from './PreviewPhotosBottomSheet';
+
+const screenHeight = Dimensions.get('window').height;
+const scale = screenHeight / 844; // Scaling based on iPhone 13 screen height
+
+const scaledSize = (size) => Math.round(size * scale);
 
 export default function SelectPhotosScreen({ navigation, route }) {
     const [assets, setAssets] = useState([]);
@@ -38,11 +43,11 @@ export default function SelectPhotosScreen({ navigation, route }) {
     const selectedImages = images.length > 0 ? images.map((img, index) => ({ uri: img })) : assets.map((asset) => ({ uri: asset.uri }));
 
     return (
-        <View style={styles.container}>
+        <SafeAreaView style={styles.container}>
             <View style={styles.header_ctnr}>
                 <TouchableOpacity onPress={goBack}>
                     <View style={styles.close_icon_ctnr}>
-                        <Ionicons name='close' size={23} color={'#aaa'} />
+                        <Ionicons name='close' size={scaledSize(23)} color={'#aaa'} />
                     </View>
                 </TouchableOpacity>
                 <View style={styles.header_text_ctnr}>
@@ -50,7 +55,7 @@ export default function SelectPhotosScreen({ navigation, route }) {
                 </View>
                 <TouchableOpacity onPress={next}>
                     <View style={styles.next_icon_ctnr}>
-                        <FontAwesome6 name='chevron-right' size={17} color={images.length > 0 ? '#0699FF' : '#aaa'} />
+                        <FontAwesome6 name='chevron-right' size={scaledSize(17)} color={images.length > 0 ? '#0699FF' : '#aaa'} />
                     </View>
                 </TouchableOpacity>
             </View>
@@ -87,7 +92,7 @@ export default function SelectPhotosScreen({ navigation, route }) {
             </View>
 
             <PreviewPhotosBottomSheet assets={assets} images={images} setImages={setImages} />
-        </View>
+        </SafeAreaView>
     );
 }
 
@@ -98,25 +103,24 @@ const styles = StyleSheet.create({
     },
     header_ctnr: {
         alignItems: 'center',
-        paddingTop: 43,
-        height: 92,
-        paddingHorizontal: 5,
-        paddingBottom: 4,
+        paddingHorizontal: scaledSize(5),
+        paddingTop: scaledSize(5),
+        paddingBottom: scaledSize(15),
         flexDirection: 'row',
         justifyContent: 'space-between',
         backgroundColor: '#f3f3f3'
     },
     close_icon_ctnr: {
-        paddingHorizontal: 18
+        paddingHorizontal: scaledSize(18)
     },
     header_text_ctnr: {
     },
     next_icon_ctnr: {
-        paddingHorizontal: 23
+        paddingHorizontal: scaledSize(23)
     },
     title_text: {
         fontFamily: 'Outfit_600SemiBold',
-        fontSize: 16,
+        fontSize: scaledSize(16),
     },
     preview_ctnr: {
         width: '100%',

@@ -1,5 +1,11 @@
+import React from 'react';
 import RNBounceable from "@freakycoder/react-native-bounceable";
-import { StyleSheet, View, Text } from "react-native";
+import { StyleSheet, View, Text, Dimensions } from "react-native";
+
+const { height: screenHeight } = Dimensions.get('window');
+const scale = screenHeight / 844; // Scaling factor based on iPhone 13 height
+
+const scaledSize = (size) => Math.round(size * scale);
 
 export default function ProfileRowButtons({ handleOpenEditProfile, handleOpenViewStats }) {
     return (
@@ -10,7 +16,7 @@ export default function ProfileRowButtons({ handleOpenEditProfile, handleOpenVie
                 </View>
             </RNBounceable>
             {/* // ! Disabled for Beta */}
-            <RNBounceable style={[styles.flex, {opacity: 0.5}]} onPress={handleOpenViewStats} disabled>
+            <RNBounceable style={[styles.flex, { opacity: 0.5 }]} onPress={handleOpenViewStats} disabled>
                 <View style={[styles.button, styles.flex]}>
                     <Text style={styles.edit_profile_text}>View Stats</Text>
                 </View>
@@ -21,26 +27,26 @@ export default function ProfileRowButtons({ handleOpenEditProfile, handleOpenVie
 
 const styles = StyleSheet.create({
     row: {
-        marginHorizontal: 5,
-        marginTop: 10,
+        marginHorizontal: scaledSize(5),
+        marginTop: scaledSize(10),
         flexDirection: 'row',
         justifyContent: 'space-around',
-        height: 32,
+        height: scaledSize(32),
     },
     flex: {
         flex: 1,
     },
     button: {
-        paddingHorizontal: 20,
-        paddingVertical: 7,
-        borderRadius: 10,
+        paddingHorizontal: scaledSize(20),
+        paddingVertical: scaledSize(7),
+        borderRadius: scaledSize(10),
         backgroundColor: '#f2f2f2',
         justifyContent: 'center',
         alignItems: 'center',
-        marginHorizontal: 3,
+        marginHorizontal: scaledSize(3),
     },
     edit_profile_text: {
         fontFamily: 'Poppins_600SemiBold',
-        fontSize: 12.5,
+        fontSize: scaledSize(12.5),
     },
 });

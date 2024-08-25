@@ -1,10 +1,15 @@
-// ! Currently Not in Use for Spartan's Beta
+// ! Currently Depricated
 
 import React, { useState } from 'react';
-import { StyleSheet, View, Text, FlatList, TouchableOpacity } from 'react-native';
+import { StyleSheet, View, Text, FlatList, TouchableOpacity, Dimensions } from 'react-native';
 import RNBounceable from '@freakycoder/react-native-bounceable';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { Clock } from 'iconsax-react-native';
+
+const { height: screenHeight } = Dimensions.get('window');
+const scale = screenHeight / 844; // Scaling factor based on iPhone 13 height
+
+const scaledSize = (size) => Math.round(size * scale);
 
 const recentSearches = [
     'abs workouts',
@@ -29,7 +34,7 @@ const SearchPanel = ({ onSelectSearch }) => {
 
     const renderSearchItem = ({ item }) => (
         <View style={styles.searchItem}>
-            <Clock size="18" color="#aaa" variant='Broken' style={styles.iconLeft} />
+            <Clock size={scaledSize(18)} color="#aaa" variant='Broken' style={styles.iconLeft} />
             <RNBounceable
                 onPress={() => onSelectSearch(item)}
                 style={styles.searchItemTextContainer}
@@ -37,7 +42,7 @@ const SearchPanel = ({ onSelectSearch }) => {
                 <Text style={styles.searchItemText}>{item}</Text>
             </RNBounceable>
             <TouchableOpacity style={styles.iconRightContainer}>
-                <MaterialCommunityIcons name="close" size={14} color="#888" style={styles.iconRight} />
+                <MaterialCommunityIcons name="close" size={scaledSize(14)} color="#888" style={styles.iconRight} />
             </TouchableOpacity>
         </View>
     );
@@ -95,71 +100,69 @@ const styles = StyleSheet.create({
         backgroundColor: '#fff',
     },
     sectionTitle: {
-        fontSize: 18,
+        fontSize: scaledSize(18),
         fontWeight: 'bold',
-        marginBottom: 10,
-        paddingHorizontal: 25,
+        marginBottom: scaledSize(10),
+        paddingHorizontal: scaledSize(25),
     },
     trendingTitle: {
-        fontSize: 16,
+        fontSize: scaledSize(16),
         fontFamily: 'Mulish_700Bold',
-        marginBottom: 8,
-        paddingHorizontal: 25,
+        marginBottom: scaledSize(8),
+        paddingHorizontal: scaledSize(25),
     },
     recentList: {
-        paddingHorizontal: 25,
+        paddingHorizontal: scaledSize(25),
     },
     trendingList: {
         // paddingHorizontal: 32,
     },
     recentSearchContainer: {
-        marginBottom: 20,
+        marginBottom: scaledSize(20),
     },
     searchItem: {
-        height: 28,
+        height: scaledSize(28),
         flexDirection: 'row',
         alignItems: 'center',
-        marginBottom: 10,
+        marginBottom: scaledSize(10),
     },
     trendingItem: {
-        height: 34,
+        height: scaledSize(34),
         flexDirection: 'row',
         alignItems: 'center',
-        paddingVertical: 7,
-        marginBottom: 3,
-        marginHorizontal: 8,
-        paddingHorizontal: 22,
-
+        paddingVertical: scaledSize(7),
+        marginBottom: scaledSize(3),
+        marginHorizontal: scaledSize(8),
+        paddingHorizontal: scaledSize(22),
     },
     superTrendingItem: {
         backgroundColor: '#e6f7ff',
-        borderRadius: 5,
-        // paddingHorizontal: 5,
+        borderRadius: scaledSize(5),
     },
     searchItemTextContainer: {
         flex: 1,
         justifyContent: 'center',
     },
     searchItemText: {
-        fontSize: 14.5,
+        fontSize: scaledSize(14.5),
         color: '#333',
         fontFamily: 'Mulish_700Bold',
     },
     iconLeft: {
-        marginRight: 10,
-        marginTop: 3.5,
+        marginRight: scaledSize(10),
+        marginTop: scaledSize(3.5),
     },
     iconRightContainer: {
-        marginTop: 4,
+        marginTop: scaledSize(4),
     },
     iconRight: {
-        marginLeft: 10,
+        marginLeft: scaledSize(10),
     },
     bulletPoint: {
-        width: 6,
-        height: 6,
-        borderRadius: 3,
-        marginRight: 10,
+        width: scaledSize(6),
+        height: scaledSize(6),
+        borderRadius: scaledSize(3),
+        marginRight: scaledSize(10),
     },
     blueBulletPoint: {
         backgroundColor: '#007BFF',
@@ -171,7 +174,7 @@ const styles = StyleSheet.create({
         alignItems: 'center',
     },
     seeMoreButtonText: {
-        fontSize: 13.5,
+        fontSize: scaledSize(13.5),
         color: '#999',
         fontFamily: 'Mulish_700Bold',
     },

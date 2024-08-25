@@ -1,7 +1,12 @@
 import React, { useState } from 'react';
-import { StyleSheet, View, TextInput, TouchableOpacity, TouchableWithoutFeedback, Keyboard, Text, FlatList } from 'react-native';
+import { StyleSheet, View, TextInput, TouchableOpacity, TouchableWithoutFeedback, Keyboard, Text, FlatList, Dimensions } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import UserCard from './UserCard'; // Import the UserCard component
+
+const { height: screenHeight } = Dimensions.get('window');
+const scale = screenHeight / 844; // Scaling factor based on iPhone 13 height
+
+const scaledSize = (size) => Math.round(size * scale);
 
 const SearchBarComponent = ({ navigation, allUsers }) => {
     const [searchString, setSearchString] = useState('');
@@ -29,7 +34,7 @@ const SearchBarComponent = ({ navigation, allUsers }) => {
         <View style={styles.container}>
             <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
                 <View style={styles.searchBarContainer}>
-                    <Ionicons name="search" size={16.5} color="#c6c6c6" style={styles.icon} />
+                    <Ionicons name="search" size={scaledSize(16.5)} color="#c6c6c6" style={styles.icon} />
                     <TextInput
                         style={styles.textInput}
                         placeholder="Search for a person..."
@@ -45,7 +50,7 @@ const SearchBarComponent = ({ navigation, allUsers }) => {
                             onPress={() => { setSearchString(''); setFilteredUsers([]); }}
                             style={styles.clearButton}
                         >
-                            <Ionicons name="close-circle" size={18} color="#c6c6c6" />
+                            <Ionicons name="close-circle" size={scaledSize(18)} color="#c6c6c6" />
                         </TouchableOpacity>
                     )}
                 </View>
@@ -84,48 +89,48 @@ const styles = StyleSheet.create({
         flexDirection: 'row',
         alignItems: 'center',
         backgroundColor: '#fff',
-        borderRadius: 12,
-        paddingVertical: 9.5,
-        paddingHorizontal: 22,
-        marginHorizontal: 16,
-        marginBottom: 1,
+        borderRadius: scaledSize(12),
+        paddingVertical: scaledSize(9.5),
+        paddingHorizontal: scaledSize(22),
+        marginHorizontal: scaledSize(16),
+        marginBottom: scaledSize(1),
         shadowColor: '#999',
-        shadowOffset: { width: 0, height: 0.5 },
+        shadowOffset: { width: 0, height: scaledSize(0.5) },
         shadowOpacity: 0.4,
-        shadowRadius: 2,
+        shadowRadius: scaledSize(2),
         elevation: 3,
     },
     textInput: {
         flex: 1,
         color: '#333',
-        fontSize: 13.5,
+        fontSize: scaledSize(13.5),
         fontFamily: 'Mulish_700Bold',
     },
     icon: {
-        marginRight: 12,
-        marginTop: 1.5,
+        marginRight: scaledSize(12),
+        marginTop: scaledSize(1.5),
     },
     clearButton: {},
     searchButton: {
-        borderRadius: 50,
-        paddingVertical: 8,
-        paddingRight: 11,
-        marginRight: 8,
+        borderRadius: scaledSize(50),
+        paddingVertical: scaledSize(8),
+        paddingRight: scaledSize(11),
+        marginRight: scaledSize(8),
         alignItems: 'center',
         justifyContent: 'center'
     },
     searchButtonText: {
         color: '#6AB2F8',
-        fontSize: 13,
+        fontSize: scaledSize(13),
         fontWeight: 'bold',
     },
     userCardsContainer: {
         zIndex: 2,
         position: 'absolute',
-        top: 40, // So that it doesn't cover the search bar
+        top: scaledSize(40), // So that it doesn't cover the search bar
         left: 0,
         right: 0,
-        backgroundColor: '#fff'
+        backgroundColor: '#fff',
     }
 });
 

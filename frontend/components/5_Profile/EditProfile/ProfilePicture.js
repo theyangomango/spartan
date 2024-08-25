@@ -9,7 +9,7 @@ import { storage } from "../../../../firebase.config";
 import * as ImageManipulator from 'expo-image-manipulator';
 
 
-const ProfilePicture = ({ imageUri }) => {
+const ProfilePicture = ({ imageUri, setPFP }) => {
     const [profileImage, setProfileImage] = useState(imageUri);
 
     async function compressImage(uri) {
@@ -41,13 +41,18 @@ const ProfilePicture = ({ imageUri }) => {
             const pfpURI = result.assets[0].uri;
             setProfileImage(pfpURI);
             const pfpRef = ref(storage, `pfps/${global.userData.uid}.png`);
-            await deleteObject(pfpRef); 
+            try {
+                await deleteObject(pfpRef);
+            } catch {
+                // nothing
+            }
             const compressedURI = await compressImage(pfpURI);
             const res = await fetch(compressedURI);
             const bytes = await res.blob();
+            setPFP(compressedURI);
             await uploadBytes(pfpRef, bytes);
             const firebaseURI = await getPFP(global.userData.uid);
-            await updateDoc('users', global.userData.uid, {image: firebaseURI});
+            await updateDoc('users', global.userData.uid, { image: firebaseURI });
             console.log('done');
         }
     };

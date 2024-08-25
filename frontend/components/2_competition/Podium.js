@@ -82,33 +82,47 @@ const getDynamicStyles = () => {
 const dynamicStyles = getDynamicStyles();
 
 export default function Podium({ data }) {
-    return (
+
+    if (!data) return <></>;
+    else return (
         <View style={styles.leaderboard_ctnr}>
             <View style={styles.left}>
                 <View style={[styles.pfp_ctnr, { width: dynamicStyles.pfpSize.left }]}>
-                    {data && <Image source={{ uri: data[1].pfp }} style={styles.pfp} />}
+                    {data.length >= 2 && <Image source={{ uri: data[1].pfp }} style={styles.pfp} />}
                 </View>
-                <Text numberOfLines={1} ellipsizeMode="tail" style={[styles.leaderboard_handle_text, { fontSize: dynamicStyles.fontSize.handleText }]}>{data && data[1].handle}</Text>
+                {data.length >= 2 &&
+                    <Text numberOfLines={1} ellipsizeMode="tail" style={[styles.leaderboard_handle_text, { fontSize: dynamicStyles.fontSize.handleText }]}>{data && data[1].handle}</Text>
+                }
                 <View style={[styles.bar_ctnr, styles.silver_ctnr, { height: dynamicStyles.barHeight.left, width: dynamicStyles.barWidth }]}>
-                    <Text style={[styles.bar_text, { fontSize: dynamicStyles.fontSize.barText }]}>2</Text>
+                    {data.length >= 2 &&
+                        <Text style={[styles.bar_text, { fontSize: dynamicStyles.fontSize.barText }]}>2</Text>
+                    }
                 </View>
             </View>
             <View style={styles.center}>
                 <View style={[styles.pfp_ctnr, { width: dynamicStyles.pfpSize.center }]}>
-                    {data && <Image source={{ uri: data[0].pfp }} style={styles.pfp} />}
+                    {data.length >= 1 && <Image source={{ uri: data[0].pfp }} style={styles.pfp} />}
                 </View>
-                <Text numberOfLines={1} ellipsizeMode="tail" style={[styles.leaderboard_handle_text, { fontSize: dynamicStyles.fontSize.handleText }]}>{data && data[0].handle}</Text>
+                {data.length >= 1 &&
+                    <Text numberOfLines={1} ellipsizeMode="tail" style={[styles.leaderboard_handle_text, { fontSize: dynamicStyles.fontSize.handleText }]}>{data && data[0].handle}</Text>
+                }
                 <View style={[styles.bar_ctnr, styles.gold_ctnr, { height: dynamicStyles.barHeight.center, width: dynamicStyles.barWidth }]}>
-                    <Text style={[styles.bar_text, { fontSize: dynamicStyles.fontSize.barText }]}>1</Text>
+                    {data.length >= 1 &&
+                        <Text style={[styles.bar_text, { fontSize: dynamicStyles.fontSize.barText }]}>1</Text>
+                    }
                 </View>
             </View>
             <View style={styles.right}>
                 <View style={[styles.pfp_ctnr, { width: dynamicStyles.pfpSize.right }]}>
-                    {data && <Image source={{ uri: data[2].pfp }} style={styles.pfp} />}
+                    {data.length >= 3 && <Image source={{ uri: data[2].pfp }} style={styles.pfp} />}
                 </View>
-                <Text numberOfLines={1} ellipsizeMode="tail" style={[styles.leaderboard_handle_text, { fontSize: dynamicStyles.fontSize.handleText }]}>{data && data[2].handle}</Text>
+                {data.length >= 3 &&
+                    <Text numberOfLines={1} ellipsizeMode="tail" style={[styles.leaderboard_handle_text, { fontSize: dynamicStyles.fontSize.handleText }]}>{data && data[2].handle}</Text>
+                }
                 <View style={[styles.bar_ctnr, styles.bronze_ctnr, { height: dynamicStyles.barHeight.right, width: dynamicStyles.barWidth }]}>
-                    <Text style={[styles.bar_text, { fontSize: dynamicStyles.fontSize.barText }]}>3</Text>
+                    {data.length >= 3 &&
+                        <Text style={[styles.bar_text, { fontSize: dynamicStyles.fontSize.barText }]}>3</Text>
+                    }
                 </View>
             </View>
         </View>

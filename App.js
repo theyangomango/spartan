@@ -9,6 +9,7 @@ import SignUp from './frontend/screens/0.0_SignUp'
 import LogIn from './frontend/screens/0.1_LogIn';
 import NewUserCreation from './frontend/screens/0.2_NewUserCreation';
 import UserLogInCredentials from './frontend/screens/0.3_UserLogInCredentials';
+// import AsyncStorage from '@react-native-async-storage/async-storage';
 
 import Feed from "./frontend/screens/1_Feed";
 import Profile from './frontend/screens/5_Profile';
@@ -131,10 +132,10 @@ const FeedStack = (({ navigation, route }) => {
         <Stack.Navigator initialRouteName='Feed' screenOptions={{
             headerShown: false
         }}>
-            <Stack.Screen name='Feed' component={Feed} />
-            <Tab.Screen name='Messages' component={Messages} />
-            <Tab.Screen name='Chat' component={Chat} />
-            <Tab.Screen name='ViewProfile' component={ViewProfile} />
+            <Stack.Screen name='Feed' component={Feed} initialParams={route.params}/>
+            <Stack.Screen name='Messages' component={Messages} />
+            <Stack.Screen name='Chat' component={Chat} />
+            <Stack.Screen name='ViewProfile' component={ViewProfile} />
         </Stack.Navigator>
     )
 });
@@ -172,6 +173,7 @@ const ProfileStack = (({ navigation, route }) => {
         </Stack.Navigator>
     )
 });
+
 
 
 
@@ -257,13 +259,28 @@ export default function App() {
         Mulish_800ExtraBold_Italic,
         Mulish_900Black_Italic,
     });
+
+
+    // useEffect(async () => {
+    //     const value = await AsyncStorage.getItem('uid', () => {
+    //         console.log(value);
+    //     }).then(() => {
+    //         console.log('df')
+    //     })
+    // }, []);
+
+
+
     if (!fontsLoaded) {
         return <></>
     }
+
+
+
     else return (
         <GestureHandlerRootView style={{ flex: 1 }}>
             <NavigationContainer>
-                <Tab.Navigator initialRouteName='FeedStack' screenOptions={{
+                <Tab.Navigator initialRouteName='AuthenticationStack' screenOptions={{
                     headerShown: false,
                     tabBarStyle: {
                         display: 'none'

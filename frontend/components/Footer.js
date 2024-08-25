@@ -4,9 +4,9 @@ import { Home, Cup, Weight, Profile } from 'iconsax-react-native';
 import { Feather } from '@expo/vector-icons';
 
 const Footer = ({ navigation, currentScreenName }) => {
-    function navigateTo(screen) {
+    function navigateTo(screen, params = {}) {
         if (!global.userData) return;
-        navigation.navigate(screen);
+        navigation.navigate(screen, params);
     }
 
     const getIconColor = (screenName) => {
@@ -56,7 +56,7 @@ const Footer = ({ navigation, currentScreenName }) => {
                     </Pressable>
                 </View>
                 <View style={styles.icon_ctnr}>
-                    <Pressable onPress={() => navigateTo('ProfileStack')}>
+                    <Pressable onPress={() => navigateTo('ProfileStack', { screen: 'Profile' })}>
                         <View style={currentScreenName === 'Profile' ? styles.selectedIcon : styles.icon}>
                             <Profile size="22.5" color={getIconColor('Profile')} variant="Bold" />
                         </View>

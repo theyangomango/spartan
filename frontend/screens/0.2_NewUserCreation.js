@@ -1,49 +1,129 @@
 import RNBounceable from '@freakycoder/react-native-bounceable';
-import React, { useState, useEffect, useRef } from 'react';
-import { View, Text, StyleSheet, TextInput, Dimensions, Keyboard, TouchableWithoutFeedback, Platform } from 'react-native';
+import React, { useState, useRef } from 'react';
+import { View, Text, StyleSheet, TextInput, Dimensions, Keyboard, TouchableWithoutFeedback, Platform, Alert } from 'react-native';
 import { Ionicons, Octicons, Feather } from '@expo/vector-icons';
+import createDoc from '../../backend/helper/firebase/createDoc'
+import readDoc from '../../backend/helper/firebase/readDoc'; // Import the function to read from Firestore
+import makeID from '../../backend/helper/makeID';
 
-const { width, height } = Dimensions.get('window');
+const { width: screenWidth, height: screenHeight } = Dimensions.get('window');
+
+const scale = screenWidth / 375; // Base screen width assumed as 375
+
+function scaleSize(size) {
+    return Math.round(size * scale);
+}
 
 const NewUserCreation = ({ navigation }) => {
     const [emailOrPhone, setEmailOrPhone] = useState('');
     const [username, setUsername] = useState('');
+    const [name, setName] = useState('');
     const [password, setPassword] = useState('');
 
     const emailOrPhoneInputRef = useRef(null);
-
-    // Ensure keyboard is always open
-    useEffect(() => {
-        const showSubscription = Keyboard.addListener('keyboardDidHide', () => {
-            if (Platform.OS === 'android') {
-                // Re-focus the first TextInput to keep the keyboard open
-                emailOrPhoneInputRef.current?.focus();
-            }
-        });
-
-        return () => {
-            showSubscription.remove();
-        };
-    }, []);
 
     function goBack() {
         navigation.goBack();
     }
 
+    async function signUp() {
+        // Trim and check if any field is empty
+        if (!emailOrPhone.trim() || !username.trim() || !name.trim() || !password.trim()) {
+            return; // Return early if any field is empty
+        }
+
+        // Convert inputs to lowercase and trim spaces
+        const trimmedEmailOrPhone = emailOrPhone.toLowerCase().trim();
+        const trimmedUsername = username.toLowerCase().trim();
+        const trimmedName = name.trim();
+
+        // Fetch existing users to check for duplicate email or phone number
+        const users = await readDoc('global', 'users'); // Fetch all users
+
+        // Check if the email or phone number is already in use
+        const userExists = users.all.some(user => {
+            return user.email === trimmedEmailOrPhone || user.phoneNumber === trimmedEmailOrPhone;
+        });
+
+        if (userExists) {
+            return; // Return early if email or phone number is already in use
+        }
+
+        const newID = makeID();
+        const newUser = {
+            bio: "",
+            completedWorkouts: [],
+            currentWorkout: null,
+            email: trimmedEmailOrPhone.includes('@') ? trimmedEmailOrPhone : null, // Store as email if it's an email
+            phoneNumber: trimmedEmailOrPhone.includes('@') ? null : trimmedEmailOrPhone, // Store as phone number if it's not an email
+            exploreFeedPosts: [],
+            feedPosts: [],
+            feedStories: [{
+                handle: trimmedUsername,
+                name: trimmedName,
+                pfp: 'https://firebasestorage.googleapis.com/v0/b/spartan-8a55f.appspot.com/o/pfps%2Fdefault.jpg?alt=media&token=32983ee5-4732-446d-9484-d551c0aae1d1',
+                stories: [],
+                uid: newID
+            }],
+            followerCount: 0,
+            followers: [],
+            following: [],
+            followingCount: 0,
+            handle: trimmedUsername,
+            image: 'https://firebasestorage.googleapis.com/v0/b/spartan-8a55f.appspot.com/o/pfps%2Fdefault.jpg?alt=media&token=32983ee5-4732-446d-9484-d551c0aae1d1',
+            joined: Date.now(),
+            lastActive: Date.now(),
+            messages: [],
+            name: trimmedName,
+            notificationEvents: [],
+            notificationNewComments: 0,
+            notificationNewEvents: 0,
+            notificationNewLikes: 0,
+            password: password,
+            postCount: 0,
+            posts: [],
+            progressPhotos: [],
+            savedPosts: [],
+            statsExercises: [],
+            statsHexagon: [],
+            statsTotalHours: 0,
+            statsTotalVolume: 0,
+            statsTotalWorkouts: 0,
+            templates: [],
+            uid: newID,
+        };
+
+        // Proceed with the account creation
+        await createDoc('users', newID, newUser);
+        navigation.navigate('FeedStack', { uid: newID });
+    }
+
+
     return (
-        <TouchableWithoutFeedback onPress={() => { }}>
+        <TouchableWithoutFeedback onPress={Keyboard.dismiss} accessible={false}>
             <View style={styles.container}>
                 <View style={styles.iconContainer}>
                     <RNBounceable onPress={goBack}>
-                        <Feather name="chevron-left" size={27} color="#888" style={styles.backIcon} />
+                        <Feather name="chevron-left" size={scaleSize(27)} color="#888" style={styles.backIcon} />
                     </RNBounceable>
                     <RNBounceable>
-                        <Octicons name="question" size={22} color="#888" style={styles.helpIcon} />
+                        <Octicons name="question" size={scaleSize(22)} color="#888" style={styles.helpIcon} />
                     </RNBounceable>
                 </View>
 
                 <View style={styles.formWrapper}>
                     <View style={styles.formContainer}>
+
+                        <Text style={styles.title}>Enter Name</Text>
+                        <TextInput
+                            style={styles.input}
+                            placeholder="Enter your name"
+                            placeholderTextColor="#ccc"
+                            value={name}
+                            onChangeText={setName}
+                            autoFocus={true}
+                        />
+
                         <Text style={styles.title}>Create a Username</Text>
                         <TextInput
                             style={styles.input}
@@ -51,7 +131,6 @@ const NewUserCreation = ({ navigation }) => {
                             placeholderTextColor="#ccc"
                             value={username}
                             onChangeText={setUsername}
-                            autoFocus={true}  // Autofocus on this TextInput
                         />
 
                         <Text style={styles.title}>Email / Phone Number</Text>
@@ -77,7 +156,7 @@ const NewUserCreation = ({ navigation }) => {
                     </View>
 
                     <View style={styles.footerContainer}>
-                        <RNBounceable style={styles.button}>
+                        <RNBounceable style={styles.button} onPress={signUp}>
                             <Text style={styles.auth_button_text}>Continue</Text>
                         </RNBounceable>
                     </View>
@@ -87,79 +166,77 @@ const NewUserCreation = ({ navigation }) => {
     );
 };
 
-
 const styles = StyleSheet.create({
     container: {
         flex: 1,
         backgroundColor: '#fff',
-        justifyContent: 'center',
     },
     iconContainer: {
         position: 'absolute',
         top: '6%',
-        left: 15,
-        right: 15,
+        left: scaleSize(15),
+        right: scaleSize(15),
         flexDirection: 'row',
         justifyContent: 'space-between',
         zIndex: 1,
     },
     backIcon: {
-        paddingHorizontal: 8,
-        paddingVertical: 6,
+        paddingHorizontal: scaleSize(8),
+        paddingVertical: scaleSize(6),
     },
     helpIcon: {
-        padding: 8,
+        padding: scaleSize(8),
     },
     formWrapper: {
         flex: 1,
-        paddingTop: height * 0.15, // Adjusted padding for a better layout
+        paddingTop: scaleSize(screenHeight * 0.15),
     },
     formContainer: {
         alignItems: 'center',
-        paddingHorizontal: 22,
+        paddingHorizontal: scaleSize(22),
     },
     title: {
-        fontSize: 15,
+        fontSize: scaleSize(15),
         fontWeight: '400',
         color: '#000',
-        paddingLeft: 3,
-        marginBottom: 8,
+        paddingLeft: scaleSize(3),
+        marginBottom: scaleSize(8),
         fontFamily: 'Outfit_500Medium',
         alignSelf: 'flex-start',
     },
     input: {
         width: '100%',
-        paddingVertical: 11.5,
-        paddingHorizontal: 12,
-        borderRadius: 6,
+        paddingVertical: scaleSize(11.5),
+        paddingHorizontal: scaleSize(12),
+        borderRadius: scaleSize(6),
         backgroundColor: '#f2f2f2',
-        fontSize: 14,
+        fontSize: scaleSize(14),
         color: '#000',
         fontFamily: 'Outfit_500Medium',
-        marginBottom: 20,
+        marginBottom: scaleSize(20),
     },
     footerContainer: {
         alignItems: 'center',
-        marginTop: 10,
-        marginHorizontal: 22,
-        marginBottom: 20, // Added bottom margin to ensure proper spacing with the keyboard
+        marginTop: scaleSize(10),
+        marginHorizontal: scaleSize(22),
+        marginBottom: scaleSize(20),
     },
     button: {
         backgroundColor: '#55A8FF',
         flexDirection: 'row',
         justifyContent: 'center',
         alignItems: 'center',
-        paddingVertical: 12,
-        paddingHorizontal: 22,
-        borderRadius: 8,
+        paddingVertical: scaleSize(12),
+        paddingHorizontal: scaleSize(22),
+        borderRadius: scaleSize(8),
         width: '100%',
     },
     auth_button_text: {
         color: '#fff',
-        fontSize: 15,
+        fontSize: scaleSize(15),
         fontWeight: '500',
         fontFamily: 'Outfit_600SemiBold',
-        marginLeft: 6,
+        marginLeft: scaleSize(6),
     },
 });
 

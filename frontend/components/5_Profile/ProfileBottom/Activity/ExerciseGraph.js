@@ -1,10 +1,13 @@
 import React, { useState } from 'react';
 import { View, Text, Dimensions, StyleSheet } from 'react-native';
 import { LineChart } from 'react-native-gifted-charts';
-import { TouchableOpacity } from 'react-native-gesture-handler';
 import RNBounceable from '@freakycoder/react-native-bounceable';
 
 const screenWidth = Dimensions.get('window').width;
+const screenHeight = Dimensions.get('window').height;
+const scale = screenHeight / 844; // Scaling based on iPhone 13 screen height
+
+const scaledSize = (size) => Math.round(size * scale);
 
 const ExerciseGraph = () => {
     const [selectedOption, setSelectedOption] = useState('2 Weeks');
@@ -28,10 +31,10 @@ const ExerciseGraph = () => {
             />
             <View style={styles.chartContainer}>
                 <LineChart
-                    width={screenWidth - 105}
-                    height={125}
+                    width={screenWidth - scaledSize(105)}
+                    height={scaledSize(125)}
                     adjustToWidth
-                    thickness={4}
+                    thickness={scaledSize(4)}
                     color="rgba(89, 168, 255, 1)"
                     maxValue={550}
                     noOfSections={3}
@@ -57,16 +60,13 @@ const ExerciseGraph = () => {
 const Header = ({ title, subtitle, selectedOption, onButtonPress }) => (
     <View style={styles.header}>
         <View style={styles.headerLeft}>
-            <TouchableOpacity activeOpacity={0.5}>
-                <View style={styles.titleContainer}>
-                    <Text style={styles.title}>{title}</Text>
-                </View>
-            </TouchableOpacity>
+            <View style={styles.titleContainer}>
+                <Text style={styles.title}>{title}</Text>
+            </View>
             <Text style={styles.subtitle}>{subtitle}</Text>
         </View>
         <View style={styles.headerRight}>
             <RNBounceable
-                disabled
                 style={[styles.button, styles.selectedButton]}
                 onPress={onButtonPress}
             >
@@ -114,7 +114,7 @@ const getPast30DaysData = (inputs) => {
         if (dataPoint) {
             dataPoints.push({
                 value: dataPoint.value,
-                customDataPoint: customDataPoint,
+                customDataPoint: customDataPoint, // Use custom data point
             });
             prevValue = dataPoint.value;
             interpolating = false;
@@ -144,7 +144,7 @@ const getPast30DaysData = (inputs) => {
         }
 
         if (d.getDay() === 0 && dataPoints.length > 0 && sundayCount < 4) { // Ensure we add labels only for Sundays
-            dataPoints[dataPoints.length - 1].labelComponent = () => <CustomLabel val={formattedDate} />;
+            dataPoints[dataPoints.length - 1].labelComponent = () => <CustomLabel val={formattedDate} />; // Use custom label
             sundayCount++;
         }
     }
@@ -169,15 +169,15 @@ const styles = StyleSheet.create({
     mainContainer: {
         alignItems: 'center',
         backgroundColor: '#fff',
-        borderRadius: 20,
-        paddingTop: 18,
-        paddingBottom: 15,
-        marginHorizontal: 20,
-        marginVertical: 8,
+        borderRadius: scaledSize(20),
+        paddingTop: scaledSize(18),
+        paddingBottom: scaledSize(15),
+        marginHorizontal: scaledSize(20),
+        marginVertical: scaledSize(8),
         shadowColor: '#999',
-        shadowOffset: { width: 0, height: 1 },
+        shadowOffset: { width: 0, height: scaledSize(1) },
         shadowOpacity: 0.5,
-        shadowRadius: 2,
+        shadowRadius: scaledSize(2),
         elevation: 5
     },
     header: {
@@ -185,9 +185,9 @@ const styles = StyleSheet.create({
         flexDirection: 'row',
         justifyContent: 'space-between',
         alignItems: 'center',
-        paddingLeft: 20,
-        paddingRight: 10,
-        paddingBottom: 18
+        paddingLeft: scaledSize(20),
+        paddingRight: scaledSize(10),
+        paddingBottom: scaledSize(18)
     },
     headerLeft: {
         flexDirection: 'column',
@@ -201,22 +201,22 @@ const styles = StyleSheet.create({
     },
     title: {
         color: "#0499FE",
-        fontSize: 15,
-        marginBottom: 2,
+        fontSize: scaledSize(15),
+        marginBottom: scaledSize(2),
         fontFamily: 'Outfit_700Bold'
     },
     subtitle: {
         color: "#aaa",
-        fontSize: 13,
+        fontSize: scaledSize(13),
         fontFamily: 'Outfit_700Bold'
     },
     button: {
-        borderRadius: 20,
-        paddingHorizontal: 11,
-        paddingVertical: 7,
-        marginLeft: 5,
+        borderRadius: scaledSize(20),
+        paddingHorizontal: scaledSize(11),
+        paddingVertical: scaledSize(7),
+        marginLeft: scaledSize(5),
         backgroundColor: '#BCDDFF',
-        marginRight: 5
+        marginRight: scaledSize(5)
     },
     selectedButton: {
         backgroundColor: '#ddd'
@@ -224,31 +224,31 @@ const styles = StyleSheet.create({
     buttonText: {
         color: '#666',
         fontFamily: 'Outfit_700Bold',
-        fontSize: 12.5,
+        fontSize: scaledSize(12.5),
     },
     chartContainer: {
-        paddingRight: 30,
+        paddingRight: scaledSize(30),
     },
     customDataPoint: {
-        width: 14,
+        width: scaledSize(14),
         aspectRatio: 1,
         backgroundColor: 'white',
-        borderWidth: 3,
-        borderRadius: 10,
+        borderWidth: scaledSize(3),
+        borderRadius: scaledSize(10),
         borderColor: 'rgba(89, 168, 255, 1)',
     },
     customLabelContainer: {
-        width: 70,
+        width: scaledSize(70),
     },
     customLabelText: {
         color: '#aaa',
         fontFamily: 'Outfit_600SemiBold',
-        fontSize: 13
+        fontSize: scaledSize(13)
     },
     yAxisTextStyle: {
         color: '#aaa',
         fontFamily: 'Outfit_600SemiBold',
-        fontSize: 13,
+        fontSize: scaledSize(13),
     },
 });
 

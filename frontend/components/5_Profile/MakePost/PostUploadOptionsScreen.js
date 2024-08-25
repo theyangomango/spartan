@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { StyleSheet, View, ScrollView, Text, TouchableOpacity, Image, TextInput, Pressable } from "react-native";
+import { StyleSheet, View, ScrollView, Text, TouchableOpacity, Image, TextInput, Pressable, SafeAreaView, Dimensions } from "react-native";
 import { FontAwesome6, AntDesign } from '@expo/vector-icons';
 import { Location, Weight } from 'iconsax-react-native';
 import { Feather } from '@expo/vector-icons';
@@ -8,14 +8,19 @@ import { getDownloadURL, ref, uploadBytes } from "firebase/storage";
 import { storage } from "../../../../firebase.config";
 import * as ImageManipulator from 'expo-image-manipulator';
 import createPost from "../../../../backend/posts/createPost";
+import arrayAppend from "../../../../backend/helper/firebase/arrayAppend";
+
+const { width: screenWidth, height: screenHeight } = Dimensions.get('window');
+const scale = screenWidth / 375; // Assuming a base screen width of 375 (like iPhone X)
+
+function scaleSize(size) {
+    return Math.round(size * scale);
+}
 
 export default function PostOptionsScreen({ navigation, route }) {
     const { images, workout } = route.params;
-    console.log(workout);
-    
 
     const [caption, setCaption] = useState('');
-    const [isShareDisabled, setIsShareDisabled] = useState(false);
 
     function goBack() {
         navigation.goBack();
@@ -31,55 +36,54 @@ export default function PostOptionsScreen({ navigation, route }) {
     }
 
     async function sharePost() {
-        setIsShareDisabled(true);
-        console.log("Caption:", caption);
         const pid = makeID();
         var downloadedImageURLs = [];
 
         for (let index = 0; index < images.length; index++) {
             const image = images[index];
-            console.log(`Fetching image ${index + 1}: ${image}`);
-            
+
             try {
                 const compressedUri = await compressImage(image);
                 const res = await fetch(compressedUri);
                 const bytes = await res.blob();
-                console.log(`Image ${index + 1} Blob:`, bytes);
 
                 const id = makeID();
                 const imageRef = ref(storage, `posts/${pid}-${id}.jpeg`);
                 await uploadBytes(imageRef, bytes);
                 const url = await getDownloadURL(imageRef);
                 downloadedImageURLs.push(url);
-
-                console.log(`Image ${index + 1} uploaded successfully.`);
             } catch (error) {
                 console.error(`Error processing image ${index + 1}:`, error);
             }
         }
 
         createPost(global.userData.uid, global.userData.handle, global.userData.image, caption, downloadedImageURLs, pid);
+        arrayAppend('users', global.userData.uid, 'posts', pid);
+        navigation.navigate('FeedStack');
     }
 
     return (
         <View style={styles.main_ctnr}>
-            <View style={styles.header}>
-                <TouchableOpacity onPress={goBack}>
-                    <View style={styles.back_icon_ctnr}>
-                        <FontAwesome6 name='chevron-left' size={17} />
+            <SafeAreaView>
+                <View style={styles.header}>
+                    <TouchableOpacity onPress={goBack} style={styles.back_icon_ctnr}>
+                        <FontAwesome6 name='chevron-left' size={scaleSize(17)} />
+                    </TouchableOpacity>
+                    <View style={styles.title_text_ctnr}>
+                        <Text style={styles.header_text}>New Post</Text>
                     </View>
-                </TouchableOpacity>
-                <View pointerEvents="none" style={styles.title_text_ctnr}>
-                    <Text style={styles.header_text}>New Post</Text>
+                    <View style={styles.share_button_ctnr}>
+                        <TouchableOpacity
+                            onPress={sharePost}
+                            style={[styles.share_btn, caption.length == 0 && styles.share_btn_disabled]}
+                            disabled={caption.length == 0}
+                        >
+                            <Text style={styles.share_btn_text}>Share</Text>
+                        </TouchableOpacity>
+                    </View>
+
                 </View>
-                <TouchableOpacity
-                    onPress={sharePost}
-                    style={[styles.share_btn, isShareDisabled && styles.share_btn_disabled]}
-                    disabled={isShareDisabled}
-                >
-                    <Text style={styles.share_btn_text}>Share</Text>
-                </TouchableOpacity>
-            </View>
+            </SafeAreaView>
 
             <ScrollView style={styles.body_scrollview}>
                 <View style={styles.post_preview_ctnr}>
@@ -102,12 +106,12 @@ export default function PostOptionsScreen({ navigation, route }) {
                     <View style={[styles.btn_ctnr, styles.top_btn_ctnr]}>
                         <View style={styles.btn_left}>
                             <View style={[styles.btn_icon_ctnr, styles.workout_icon_ctnr]}>
-                                <Weight size={25} color="#0699FF" />
+                                <Weight size={scaleSize(25)} color="#0699FF" />
                             </View>
                             <Text style={styles.btn_text}>Add Workout</Text>
                         </View>
                         <View style={styles.right_icon_ctnr}>
-                            <FontAwesome6 name='chevron-right' size={15} color="#444" />
+                            <FontAwesome6 name='chevron-right' size={scaleSize(15)} color="#444" />
                         </View>
                     </View>
                 </Pressable>
@@ -116,12 +120,12 @@ export default function PostOptionsScreen({ navigation, route }) {
                     <View style={styles.btn_ctnr}>
                         <View style={styles.btn_left}>
                             <View style={[styles.btn_icon_ctnr, styles.user_icon_ctnr]}>
-                                <Feather name="user" size={22} color={'#0699FF'} />
+                                <Feather name="user" size={scaleSize(22)} color={'#0699FF'} />
                             </View>
                             <Text style={styles.btn_text}>Tag People</Text>
                         </View>
                         <View style={styles.right_icon_ctnr}>
-                            <FontAwesome6 name='chevron-right' size={15} color="#444" />
+                            <FontAwesome6 name='chevron-right' size={scaleSize(15)} color="#444" />
                         </View>
                     </View>
                 </Pressable>
@@ -130,12 +134,12 @@ export default function PostOptionsScreen({ navigation, route }) {
                     <View style={styles.btn_ctnr}>
                         <View style={styles.btn_left}>
                             <View style={[styles.btn_icon_ctnr, styles.location_icon_ctnr]}>
-                                <Location size="22" color={'#0699FF'} />
+                                <Location size={scaleSize(22)} color={'#0699FF'} />
                             </View>
                             <Text style={styles.btn_text}>Add Location</Text>
                         </View>
                         <View style={styles.right_icon_ctnr}>
-                            <FontAwesome6 name='chevron-right' size={15} color="#444" />
+                            <FontAwesome6 name='chevron-right' size={scaleSize(15)} color="#444" />
                         </View>
                     </View>
                 </Pressable>
@@ -148,75 +152,78 @@ export default function PostOptionsScreen({ navigation, route }) {
 const styles = StyleSheet.create({
     main_ctnr: {
         flex: 1,
-        backgroundColor: '#fff'
+        backgroundColor: '#f3f3f3'
     },
     header: {
         alignItems: 'center',
-        paddingTop: 43,
-        height: 92,
-        paddingHorizontal: 5,
+        paddingHorizontal: scaleSize(12),
         flexDirection: 'row',
-        justifyContent: 'space-between',
-        backgroundColor: '#f3f3f3'
+        backgroundColor: '#f3f3f3',
+        paddingTop: scaleSize(2),
+        paddingBottom: scaleSize(10)
     },
     back_icon_ctnr: {
-        paddingHorizontal: 23
+        paddingHorizontal: scaleSize(23),
+        width: '33.33%'
     },
     title_text_ctnr: {
-        position: 'absolute',
-        bottom: 12,
-        width: '100%',
+        alignItems: 'center',
+        width: '33.33%'
     },
     header_text: {
-        textAlign: 'center',
         fontFamily: 'Outfit_600SemiBold',
-        fontSize: 16,
+        fontSize: scaleSize(16),
+        textAlign: 'center',
+    },
+    share_button_ctnr: {
+        width: '33.33%',
+        alignItems: 'flex-end',
     },
     share_btn: {
-        width: 75,
-        height: 32,
-        borderRadius: 12,
+        width: scaleSize(75),
+        height: scaleSize(32),
+        borderRadius: scaleSize(12),
         backgroundColor: '#D3EDFF',
         justifyContent: 'center',
         alignItems: 'center',
-        marginRight: 15,
     },
     share_btn_text: {
         fontFamily: 'Outfit_700Bold',
-        fontSize: 14.5,
+        fontSize: scaleSize(14.5),
         color: '#0699FF',
     },
     share_btn_disabled: {
         opacity: 0.5,
     },
     body_scrollview: {
-        paddingTop: 20,
+        paddingTop: scaleSize(20),
+        backgroundColor: '#fff'
     },
     post_preview_ctnr: {
-        height: 100,
+        height: scaleSize(100),
         flexDirection: 'row',
-        paddingHorizontal: 15
+        paddingHorizontal: scaleSize(15)
     },
     post_preview_image: {
-        width: 80,
+        width: scaleSize(80),
         aspectRatio: 1,
-        borderRadius: 15
+        borderRadius: scaleSize(15)
     },
     caption_input_ctnr: {
         flex: 1,
-        paddingTop: 10,
-        marginLeft: 15,
+        paddingTop: scaleSize(10),
+        marginLeft: scaleSize(15),
     },
     caption_text: {
-        fontSize: 15,
+        fontSize: scaleSize(15),
         fontFamily: 'Outfit_600SemiBold',
     },
     btn_ctnr: {
-        paddingVertical: 4,
+        paddingVertical: scaleSize(4),
         borderBottomWidth: 0.25,
         borderColor: '#ccc',
         flexDirection: 'row',
-        paddingHorizontal: 17,
+        paddingHorizontal: scaleSize(17),
         justifyContent: 'space-between'
     },
     top_btn_ctnr: {
@@ -228,24 +235,24 @@ const styles = StyleSheet.create({
     },
     btn_text: {
         fontFamily: 'Outfit_400Regular',
-        fontSize: 15.5,
-        paddingVertical: 7,
+        fontSize: scaleSize(15.5),
+        paddingVertical: scaleSize(7),
     },
     btn_icon_ctnr: {
         justifyContent: 'center',
         alignContent: 'center',
     },
     workout_icon_ctnr: {
-        marginRight: 9
+        marginRight: scaleSize(9)
     },
     user_icon_ctnr: {
-        marginRight: 11
+        marginRight: scaleSize(11)
     },
     location_icon_ctnr: {
-        marginRight: 12
+        marginRight: scaleSize(12)
     },
     right_icon_ctnr: {
-        paddingHorizontal: 8,
+        paddingHorizontal: scaleSize(8),
         justifyContent: 'center'
     }
 });

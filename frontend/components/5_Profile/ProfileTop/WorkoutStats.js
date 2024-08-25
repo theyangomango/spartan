@@ -1,64 +1,75 @@
-import { StyleSheet, View, Text } from "react-native"
+import React from 'react';
+import { StyleSheet, View, Text, Dimensions } from "react-native";
+
+const { height: screenHeight } = Dimensions.get('window');
+const scale = screenHeight / 844; // Scaling factor based on iPhone 13 height
+
+const scaledSize = (size) => Math.round(size * scale);
 
 export default function WorkoutStats({ userData }) {
     return (
         <View style={styles.main_ctnr}>
             <View style={[styles.workout_stat, styles.total_workouts_stat_ctnr]}>
-                <Text style={[styles.workout_stat_number, styles.total_workouts_stat_number]}>{userData && userData.statsTotalWorkouts}</Text>
+                <Text style={[styles.workout_stat_number, styles.total_workouts_stat_number]}>
+                    {userData && userData.statsTotalWorkouts}
+                </Text>
                 <Text style={styles.workout_stat_text}>Workouts</Text>
             </View>
             <View style={[styles.workout_stat, styles.total_volume_stat_ctnr]}>
-                <Text style={[styles.workout_stat_number, styles.total_volume_stat_number]}>{userData && userData.statsTotalVolume}</Text>
+                <Text style={[styles.workout_stat_number, styles.total_volume_stat_number]}>
+                    {userData && userData.statsTotalVolume}
+                </Text>
                 <Text style={styles.workout_stat_text}>Lbs Lifted</Text>
             </View>
             <View style={[styles.workout_stat, styles.gym_time_stat_ctnr]}>
-                <Text style={[styles.workout_stat_number, styles.gym_time_stat_number]}>{userData && userData.statsTotalHours}</Text>
+                <Text style={[styles.workout_stat_number, styles.gym_time_stat_number]}>
+                    {userData && userData.statsTotalHours}
+                </Text>
                 <Text style={styles.workout_stat_text}>Hours in Gym</Text>
             </View>
         </View>
-    )
+    );
 }
 
 const styles = StyleSheet.create({
     main_ctnr: {
         flexDirection: 'row',
-        justifyContent: 'space-around'
+        justifyContent: 'space-around',
     },
     workout_stat: {
-        // width: 104,
         width: '31.5%',
-        height: 68,
-        borderRadius: 8,
-        marginVertical: 9,
-        marginHorizontal: 3.5,
+        height: scaledSize(68),
+        borderRadius: scaledSize(8),
+        marginVertical: scaledSize(9),
+        marginHorizontal: scaledSize(3.5),
         justifyContent: 'center',
-        alignItems: 'center'
+        alignItems: 'center',
     },
     total_workouts_stat_ctnr: {
-        backgroundColor: '#E1F0FF'
+        backgroundColor: '#E1F0FF',
     },
     total_volume_stat_ctnr: {
-        backgroundColor: '#E1FFE8'
+        backgroundColor: '#E1FFE8',
     },
     gym_time_stat_ctnr: {
-        backgroundColor: '#FFECE1'
+        backgroundColor: '#FFECE1',
     },
     workout_stat_text: {
         fontFamily: 'Poppins_500Medium',
-        fontSize: 10.5,
-        color: '#808080'
+        fontSize: scaledSize(10.5),
+        color: '#808080',
     },
     workout_stat_number: {
         fontFamily: 'Outfit_600SemiBold',
-        fontSize: 16
+        fontSize: scaledSize(16),
     },
     total_workouts_stat_number: {
-        color: '#0499FE'
+        color: '#0499FE',
     },
     total_volume_stat_number: {
-        color: '#3DC575'
+        color: '#3DC575',
     },
     gym_time_stat_number: {
-        color: '#E95060'
+        color: '#E95060',
     },
 });

@@ -1,9 +1,14 @@
 import React, { useCallback, useMemo } from 'react';
-import { StyleSheet, View, Text, FlatList } from "react-native";
+import { StyleSheet, View, Text, FlatList, Dimensions } from "react-native";
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { Clock } from 'iconsax-react-native';
 import formatTimestampToDateString from '../../../../helper/formatTimestampToDateString';
 import roundToNearestMinute from '../../../../helper/roundToNearestMinute';
+
+const { height: screenHeight } = Dimensions.get('window');
+const scale = screenHeight / 844; // Scaling factor based on iPhone 13 height
+
+const scaledSize = (size) => Math.round(size * scale);
 
 const PastWorkoutCard = ({ workout }) => {
     console.log('renders');
@@ -49,17 +54,17 @@ const PastWorkoutCard = ({ workout }) => {
                 </View>
                 <View style={styles.stats_row}>
                     <View style={styles.stats_entry}>
-                        <Clock color='#666' size={16} variant='Bold' />
+                        <Clock color='#666' size={scaledSize(16)} variant='Bold' />
                         <Text style={styles.stats_text}>{roundToNearestMinute(workout.duration)} min</Text>
                     </View>
                     <View style={styles.stats_entry}>
-                        <View style={{ paddingBottom: 1.2 }}>
-                            <MaterialCommunityIcons name='weight' size={17} color={'#666'} />
+                        <View style={{ paddingBottom: scaledSize(1.2) }}>
+                            <MaterialCommunityIcons name='weight' size={scaledSize(17)} color={'#666'} />
                         </View>
                         <Text style={styles.stats_text}>{workout.volume} lb</Text>
                     </View>
                     <View style={styles.stats_entry}>
-                        <MaterialCommunityIcons name="trophy" color={"#666"} size={14} />
+                        <MaterialCommunityIcons name="trophy" color={"#666"} size={scaledSize(14)} />
                         <Text style={styles.stats_text}>3 PRs</Text>
                     </View>
                 </View>
@@ -75,7 +80,7 @@ const PastWorkoutCard = ({ workout }) => {
                     data={workout.exercises}
                     renderItem={renderExercise}
                     keyExtractor={(item, index) => index.toString()}
-                    contentContainerStyle={{ paddingBottom: 10 }}
+                    contentContainerStyle={{ paddingBottom: scaledSize(10) }}
                 />
             </View>
         </View>
@@ -85,57 +90,57 @@ const PastWorkoutCard = ({ workout }) => {
 const styles = StyleSheet.create({
     main_ctnr: {
         flexDirection: 'row',
-        borderRadius: 25,
-        paddingHorizontal: 25,
-        marginVertical: 9,
-        marginHorizontal: 20,
+        borderRadius: scaledSize(25),
+        paddingHorizontal: scaledSize(25),
+        marginVertical: scaledSize(9),
+        marginHorizontal: scaledSize(20),
         backgroundColor: '#fff',
         shadowColor: '#000',
-        shadowOffset: { width: 0, height: 1.5 },
+        shadowOffset: { width: 0, height: scaledSize(1.5) },
         shadowOpacity: 0.2,
-        shadowRadius: 3,
+        shadowRadius: scaledSize(3),
         elevation: 15,
         justifyContent: 'space-between'
     },
     scroll_ctnr: {
         flexGrow: 1,
         justifyContent: 'center',
-        paddingTop: 12,
-        paddingBottom: 10
+        paddingTop: scaledSize(12),
+        paddingBottom: scaledSize(10)
     },
     header: {
-        marginBottom: 6
+        marginBottom: scaledSize(6)
     },
     date_text: {
         fontFamily: 'Outfit_500Medium',
-        fontSize: 17,
+        fontSize: scaledSize(17),
         color: '#2D9EFF'
     },
     stats_row: {
         flexDirection: 'row',
-        marginBottom: 10,
+        marginBottom: scaledSize(10),
     },
     stats_entry: {
-        marginRight: 15,
+        marginRight: scaledSize(15),
         flexDirection: 'row',
         alignItems: 'center',
     },
     stats_text: {
         fontFamily: 'Outfit_500Medium',
-        fontSize: 13.5,
-        marginLeft: 5,
+        fontSize: scaledSize(13.5),
+        marginLeft: scaledSize(5),
         color: '#666'
     },
     stats_header: {
         flexDirection: 'row',
-        paddingBottom: 3,
+        paddingBottom: scaledSize(3),
     },
     stats_header_left: {
         width: '65%',
-        marginRight: 30,
+        marginRight: scaledSize(30),
     },
     stats_header_text: {
-        fontSize: 14,
+        fontSize: scaledSize(14),
         fontFamily: 'Outfit_500Medium'
     },
     entry_ctnr: {
@@ -144,27 +149,27 @@ const styles = StyleSheet.create({
     entry_left: {
         flexDirection: 'row',
         width: '65%',
-        marginRight: 30,
-        paddingBottom: 4.5,
+        marginRight: scaledSize(30),
+        paddingBottom: scaledSize(4.5),
         alignItems: 'center'
     },
     entry_text: {
         fontFamily: 'Outfit_400Regular',
-        fontSize: 13.5,
-        marginRight: 5,
+        fontSize: scaledSize(13.5),
+        marginRight: scaledSize(5),
         flex: 1,
         color: '#666'
     },
     muscle_ctnr: {
-        borderRadius: 10,
-        paddingHorizontal: 8.5,
-        paddingVertical: 1.5,
+        borderRadius: scaledSize(10),
+        paddingHorizontal: scaledSize(8.5),
+        paddingVertical: scaledSize(1.5),
         alignItems: 'center',
         justifyContent: 'center'
     },
     muscle_text: {
         fontFamily: 'Poppins_700Bold',
-        fontSize: 10.5,
+        fontSize: scaledSize(10.5),
         color: '#fff'
     },
     entry_right: {

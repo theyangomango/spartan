@@ -9,6 +9,8 @@ import UserStatsBottomSheet from "../components/2_Competition/UserStats/UserStat
 import { Octicons, Ionicons } from '@expo/vector-icons';
 import SelectExerciseModal from "../components/2_Competition/SelectExercise/SelectExerciseModal";
 import InfoPanel from "../components/2_Competition/InfoPanel"; // Import the InfoPanel component
+import { doc, onSnapshot } from "firebase/firestore";
+import { db } from "../../firebase.config";
 
 const { width, height } = Dimensions.get('window');
 
@@ -66,6 +68,10 @@ export default function Competition({ navigation }) {
     useEffect(() => {
         const unsubscribe = navigation.addListener('focus', () => {
             // Trigger a state change to force the Footer to re-render
+            onSnapshot(doc(db, 'users', global.userData.uid), async (doc) => {
+                global.userData = doc.data();
+            });
+            init();
             setFooterKey(prevKey => prevKey + 1);
         });
 

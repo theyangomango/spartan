@@ -1,4 +1,5 @@
 import readDoc from "./helper/firebase/readDoc";
+import getReverse from "./helper/getReverse";
 import retrievePosts from "./posts/retrievePosts";
 
 export default async function retrieveUserFeed(userData) {
@@ -10,7 +11,8 @@ export default async function retrieveUserFeed(userData) {
         }
     }
 
-    let db_posts = await retrievePosts(userData.feedPosts);
+    let db_posts = await retrievePosts(getReverse(userData.feedPosts));
+    
     // let db_posts = [];
     // for (pid of userData.feedPosts) {
     //     let postData = await readDoc('posts', pid);

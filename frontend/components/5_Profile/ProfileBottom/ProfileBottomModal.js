@@ -1,10 +1,14 @@
-// ProfileBottomModal.js
 import React, { memo } from "react";
-import { StyleSheet, View, Pressable } from "react-native";
+import { StyleSheet, View, Pressable, Dimensions } from "react-native";
 import { Grid2, Activity, Clock } from 'iconsax-react-native';
 import PostsSection from "./Posts/PostsSection";
 import HistorySection from "./History/HistorySection";
 import ActivitySection from "./Activity/ActivitySection";
+
+const { height: screenHeight } = Dimensions.get('window');
+const scale = screenHeight / 844; // Scaling factor based on iPhone 13 height
+
+const scaledSize = (size) => Math.round(size * scale);
 
 const ProfileBottomModal = ({ selectedPanel, setSelectedPanel, posts, completedWorkouts, isBottomSheetExpanded }) => {
     return (
@@ -12,17 +16,17 @@ const ProfileBottomModal = ({ selectedPanel, setSelectedPanel, posts, completedW
             <View style={styles.panel_btns}>
                 <View style={styles.panel_btn}>
                     <Pressable onPress={() => setSelectedPanel('posts')}>
-                        <Grid2 size="28" color={selectedPanel === 'posts' ? "#359ffc" : "#888"} />
+                        <Grid2 size={scaledSize(28)} color={selectedPanel === 'posts' ? "#359ffc" : "#888"} />
                     </Pressable>
                 </View>
                 <View style={styles.panel_btn}>
                     <Pressable onPress={() => setSelectedPanel('history')}>
-                        <Clock size="28" color={selectedPanel === 'history' ? "#359ffc" : "#888"} />
+                        <Clock size={scaledSize(28)} color={selectedPanel === 'history' ? "#359ffc" : "#888"} />
                     </Pressable>
                 </View>
                 <View style={[styles.panel_btn]}>
                     <Pressable onPress={() => setSelectedPanel('activity')}>
-                        <Activity size="28" color={selectedPanel === 'activity' ? "#359ffc" : "#888"} />
+                        <Activity size={scaledSize(28)} color={selectedPanel === 'activity' ? "#359ffc" : "#888"} />
                     </Pressable>
                 </View>
             </View>
@@ -42,14 +46,14 @@ const styles = StyleSheet.create({
     },
     panel_border: {
         borderColor: '#82bbed',
-        borderBottomWidth: 1.5,
-        paddingTop: 8,
-        marginHorizontal: 16
+        borderBottomWidth: scaledSize(1.5),
+        paddingTop: scaledSize(8),
+        marginHorizontal: scaledSize(16)
     },
     panel_btns: {
         flexDirection: 'row',
-        marginHorizontal: 16,
-        marginTop: 8,
+        marginHorizontal: scaledSize(16),
+        marginTop: scaledSize(8),
         justifyContent: 'space-between',
     },
     panel_btn: {
@@ -57,7 +61,7 @@ const styles = StyleSheet.create({
         alignItems: 'center',
     },
     scrollable_ctnr: {
-        marginTop: 5,
+        marginTop: scaledSize(5),
         flexGrow: 1,
     },
     hidden: {

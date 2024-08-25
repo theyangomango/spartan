@@ -1,6 +1,11 @@
 import React from 'react';
-import { View, Text, StyleSheet, Pressable } from 'react-native';
+import { View, Text, StyleSheet, Pressable, Dimensions } from 'react-native';
 import FastImage from 'react-native-fast-image';
+
+const { height: screenHeight } = Dimensions.get('window');
+const scale = screenHeight / 844; // Scaling factor based on iPhone 13 height
+
+const scaledSize = (size) => Math.round(size * scale);
 
 const UserCard = ({ user, toViewProfile }) => {
     return (
@@ -23,59 +28,59 @@ const UserCard = ({ user, toViewProfile }) => {
 
 const styles = StyleSheet.create({
     itemContainer: {
-        marginHorizontal: 8,
-        paddingHorizontal: 11,
-        paddingVertical: 9,
+        marginHorizontal: scaledSize(8),
+        paddingHorizontal: scaledSize(11),
+        paddingVertical: scaledSize(9),
         flexDirection: 'row',
         alignItems: 'center',
-        borderBottomWidth: 1.5,
-        borderBottomColor: '#eee'
+        borderBottomWidth: scaledSize(1.5),
+        borderBottomColor: '#eee',
     },
     pfp_ctnr: {
-        width: 47,
+        width: scaledSize(47),
         aspectRatio: 1,
-        borderRadius: 40,
+        borderRadius: scaledSize(40),
         position: 'relative',
     },
     text_ctnr: {
-        marginLeft: 12,
+        marginLeft: scaledSize(12),
         flex: 1,
     },
     pfp: {
         width: '100%',
         height: '100%',
-        borderRadius: 40,
+        borderRadius: scaledSize(40),
     },
     handle_text: {
         fontFamily: 'Poppins_600SemiBold',
-        fontSize: 12.5,
+        fontSize: scaledSize(12.5),
         color: '#000',
-        marginBottom: 1.5
+        marginBottom: scaledSize(1.5),
     },
     name_text: {
         fontFamily: 'Poppins_500Medium',
-        fontSize: 12.5,
-        color: '#888'
+        fontSize: scaledSize(12.5),
+        color: '#888',
     },
     iconOutline: {
-        width: 24,
-        height: 24,
+        width: scaledSize(24),
+        height: scaledSize(24),
         borderRadius: 100,
-        borderWidth: 2,
+        borderWidth: scaledSize(2),
         borderColor: '#888',
         justifyContent: 'center',
         alignItems: 'center',
-        marginRight: 8
+        marginRight: scaledSize(8),
     },
     selectedIcon: {
         borderColor: '#2D9EFF',
     },
     filledIcon: {
-        width: 16,
+        width: scaledSize(16),
         aspectRatio: 1,
         borderRadius: 100,
         backgroundColor: '#2D9EFF',
-    }
+    },
 });
 
 export default UserCard;

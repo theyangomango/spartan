@@ -17,7 +17,6 @@ import { db } from "../../firebase.config";
 import { Dimensions } from "react-native";
 
 // Constants
-const UID = '6b176d7d-4d89-4cb5-beb0-0f19b47a10a2'; // Hard set UID
 const ANIMATION_DURATION = 300;
 const { width, height } = Dimensions.get("window");
 
@@ -37,6 +36,7 @@ const TARGET_POSITION = getTargetPosition();
 const SCROLL_THRESHOLD = 85;
 
 export default function Feed({ navigation, route }) {
+    const UID = 'userData' in global ? route.params.uid : global.userData.uid; // Hard set UID
     const [stories, setStories] = useState(null);
     const [posts, setPosts] = useState([]);
     const [messages, setMessages] = useState(null);
@@ -70,6 +70,12 @@ export default function Feed({ navigation, route }) {
     useEffect(() => {
         const unsubscribe = navigation.addListener('focus', () => {
             setFooterKey(prevKey => prevKey + 1);
+
+            init();
+            onSnapshot(doc(db, 'users', UID), async (doc) => {
+                userDataRef.current = doc.data();
+                global.userData = userDataRef.current;
+            });
         });
 
         return unsubscribe;
