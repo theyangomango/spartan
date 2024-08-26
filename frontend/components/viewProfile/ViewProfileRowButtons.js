@@ -1,8 +1,15 @@
 import RNBounceable from "@freakycoder/react-native-bounceable";
 import { useState } from "react";
-import { StyleSheet, View, Text } from "react-native";
+import { StyleSheet, View, Text, Dimensions } from "react-native";
 import followUser from "../../../backend/user/followUser";
 import unfollowUser from "../../../backend/user/unfollowUser";
+
+const { width: screenWidth } = Dimensions.get('window');
+const scale = screenWidth / 375; // Base screen width assumed as 375
+
+function scaleSize(size) {
+    return Math.round(size * scale);
+}
 
 export default function ViewProfileRowButtons({ toMessages, user }) {
     const [isFollowing, setIsFollowing] = useState(global.userData.following.some(follower => follower.uid === user.uid));
@@ -44,54 +51,54 @@ export default function ViewProfileRowButtons({ toMessages, user }) {
 
 const styles = StyleSheet.create({
     row: {
-        marginHorizontal: 5,
-        marginTop: 10,
+        marginHorizontal: scaleSize(5),
+        marginTop: scaleSize(10),
         flexDirection: 'row',
         justifyContent: 'space-around',
-        height: 32,
+        height: scaleSize(32),
     },
     flex: {
         flex: 1,
     },
     follow_button: {
-        paddingHorizontal: 20,
-        borderRadius: 10,
+        paddingHorizontal: scaleSize(20),
+        borderRadius: scaleSize(10),
         backgroundColor: '#3CA5FF',
         justifyContent: 'center',
         alignItems: 'center',
-        marginHorizontal: 3,
+        marginHorizontal: scaleSize(3),
     },
     following_button: {
-        paddingHorizontal: 20,
-        borderRadius: 10,
+        paddingHorizontal: scaleSize(20),
+        borderRadius: scaleSize(10),
         backgroundColor: '#fff',
-        borderWidth: 1.8,
+        borderWidth: scaleSize(1.8),
         borderColor: '#3CA5FF',
         justifyContent: 'center',
         alignItems: 'center',
-        marginHorizontal: 3,
+        marginHorizontal: scaleSize(3),
     },
     message_button: {
-        paddingHorizontal: 20,
-        paddingVertical: 7,
-        borderRadius: 10,
+        paddingHorizontal: scaleSize(20),
+        paddingVertical: scaleSize(7),
+        borderRadius: scaleSize(10),
         backgroundColor: '#f2f2f2',
         justifyContent: 'center',
         alignItems: 'center',
-        marginHorizontal: 3,
+        marginHorizontal: scaleSize(3),
     },
     follow_button_text: {
         fontFamily: 'Poppins_600SemiBold',
-        fontSize: 12.5,
+        fontSize: scaleSize(12.5),
         color: '#fff',
     },
     following_button_text: {
         fontFamily: 'Poppins_600SemiBold',
-        fontSize: 12.5,
+        fontSize: scaleSize(12.5),
         color: '#3CA5FF',
     },
     message_button_text: {
         fontFamily: 'Poppins_600SemiBold',
-        fontSize: 12.5,
+        fontSize: scaleSize(12.5),
     },
 });

@@ -21,6 +21,7 @@ export default function PostOptionsScreen({ navigation, route }) {
     const { images, workout } = route.params;
 
     const [caption, setCaption] = useState('');
+    const [isSharing, setIsSharing] = useState(false); // New state for tracking share progress
 
     function goBack() {
         navigation.goBack();
@@ -36,6 +37,8 @@ export default function PostOptionsScreen({ navigation, route }) {
     }
 
     async function sharePost() {
+        setIsSharing(true); // Disable the button
+
         const pid = makeID();
         var downloadedImageURLs = [];
 
@@ -61,6 +64,8 @@ export default function PostOptionsScreen({ navigation, route }) {
         arrayAppend('users', global.userData.uid, 'posts', pid);
         await arrayAppend('global', 'posts', 'PIDs', pid);
         navigation.navigate('FeedStack');
+
+        setIsSharing(false); // Re-enable the button
     }
 
     return (
@@ -76,13 +81,12 @@ export default function PostOptionsScreen({ navigation, route }) {
                     <View style={styles.share_button_ctnr}>
                         <TouchableOpacity
                             onPress={sharePost}
-                            style={[styles.share_btn, caption.length == 0 && styles.share_btn_disabled]}
-                            disabled={caption.length == 0}
+                            style={[styles.share_btn, (caption.length === 0 || isSharing) && styles.share_btn_disabled]}
+                            disabled={caption.length === 0 || isSharing}
                         >
-                            <Text style={styles.share_btn_text}>Share</Text>
+                            <Text style={styles.share_btn_text}>{isSharing ? 'Sharing...' : 'Share'}</Text>
                         </TouchableOpacity>
                     </View>
-
                 </View>
             </SafeAreaView>
 

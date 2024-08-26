@@ -53,6 +53,7 @@ export default function PostFooter({ data, onPressCommentButton, onPressShareBut
     const opacityAnim = useRef(new Animated.Value(isPostsVisible ? 0 : 1)).current;
 
     useEffect(() => {
+        setIsLiked(false);
         if (global.userData) {
             data.likes.forEach(item => {
                 if (item.uid == global.userData.uid) {

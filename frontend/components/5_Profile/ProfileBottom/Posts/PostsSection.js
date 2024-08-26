@@ -35,4 +35,4 @@ const styles = StyleSheet.create({
     }
 });
 
-export default memo(PostsSection);
+export default PostsSection;

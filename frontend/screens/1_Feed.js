@@ -46,7 +46,6 @@ export default function Feed({ navigation, route }) {
 
     const [shareBottomSheetExpandFlag, setShareBottomSheetExpandFlag] = useState(false);
     const [shareBottomSheetCloseFlag, setShareBottomSheetCloseFlag] = useState(false);
-    const [settingsBottomSheetExpandFlag, setSettingsBottomSheetExpandFlag] = useState(false);
     const [notificationsBottomSheetExpandFlag, setNotificationsBottomSheetExpandFlag] = useState(false);
     const [commentsBottomSheetExpandFlag, setCommentsBottomSheetExpandFlag] = useState(false);
 
@@ -161,7 +160,7 @@ export default function Feed({ navigation, route }) {
     };
 
     const handleOpenSettings = () => {
-        setSettingsBottomSheetExpandFlag(!settingsBottomSheetExpandFlag);
+        // setSettingsBottomSheetExpandFlag(!settingsBottomSheetExpandFlag);
     };
 
     const handleOpenNotifications = () => {
@@ -259,13 +258,13 @@ export default function Feed({ navigation, route }) {
                             }
                         </Animated.View>}
                         initialNumToRender={2}
-                        removeClippedSubviews
+                        removeClippedSubviews={true}
+                        windowSize={5}
                     />
                 </SafeAreaView>
             </MaskedView>
 
             <NotificationsBottomSheet notificationsBottomSheetExpandFlag={notificationsBottomSheetExpandFlag} />
-            <SettingsBottomSheet settingsBottomSheetExpandFlag={settingsBottomSheetExpandFlag} />
             <CommentsBottomSheet
                 isVisible={!isPostsVisible}
                 postData={focusedPostIndex.current === -1 ? null : posts[focusedPostIndex.current]}

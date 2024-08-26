@@ -1,12 +1,19 @@
-import { StyleSheet, View, Text, TouchableOpacity } from "react-native";
-import { FontAwesome6, Octicons, Feather, Ionicons } from '@expo/vector-icons';
+import { StyleSheet, View, Text, Dimensions } from "react-native";
+import { Feather, Ionicons } from '@expo/vector-icons';
 import RNBounceable from "@freakycoder/react-native-bounceable";
+
+const { width: screenWidth, height: screenHeight } = Dimensions.get('window');
+const scale = screenWidth / 375; // Base screen width assumed as 375
+
+function scaleSize(size) {
+    return Math.round(size * scale);
+}
 
 export default function ViewProfileHeader({ handle, goBack }) {
     return (
         <View style={styles.main_ctnr}>
             <RNBounceable style={styles.options_btn_ctnr} onPress={goBack}>
-                <Feather name="chevron-left" size={27} color={'#ccc'} style={{marginLeft: -5}}/>
+                <Feather name="chevron-left" size={scaleSize(27)} color={'#ccc'} style={{ marginLeft: scaleSize(-5) }} />
             </RNBounceable>
             <RNBounceable>
                 <View style={styles.center}>
@@ -16,55 +23,39 @@ export default function ViewProfileHeader({ handle, goBack }) {
             <View style={styles.right}>
                 <RNBounceable>
                     <View style={styles.create_btn_ctnr}>
-                        <Ionicons name='menu' size={22.5} color="#bbb" />
+                        <Ionicons name='menu' size={scaleSize(22.5)} color="#bbb" />
                     </View>
                 </RNBounceable>
-                {/* <TouchableOpacity>
-                    <View style={styles.options_btn_ctnr}>
-                        <HambergerMenu size="24" color="#000" />
-                    </View>
-                </TouchableOpacity> */}
             </View>
         </View>
-    )
-
+    );
 }
 
 const styles = StyleSheet.create({
     main_ctnr: {
-        paddingTop: 50,
+        paddingTop: scaleSize(50),
         alignItems: 'center',
-        // alignItems: 'flex-end',
         flexDirection: 'row',
         justifyContent: 'space-between',
-        paddingHorizontal: 17,
-        paddingVertical: 12
+        paddingHorizontal: scaleSize(17),
+        paddingVertical: scaleSize(12),
     },
     center: {
-        flexDirection: 'row'
+        flexDirection: 'row',
     },
     handle_text: {
         fontFamily: 'Outfit_600SemiBold',
-        fontSize: 16,
-        padding: 2,
-        color: '#666'
-    },
-    down_arrow_ctnr: {
-        justifyContent: 'center'
+        fontSize: scaleSize(16),
+        padding: scaleSize(2),
+        color: '#666',
     },
     right: {
         flexDirection: 'row',
     },
     create_btn_ctnr: {
-        // borderWidth: 1.5,
-        // width: 21.5,
-        // borderRadius: 5,
-        // aspectRatio: 1,
-        // alignItems: 'center',
-        // justifyContent: 'center',
-        // borderColor: '#bbb',
-        marginBottom: 1
+        marginBottom: scaleSize(1),
     },
     options_btn_ctnr: {
-    }
+        // Additional styling if needed
+    },
 });

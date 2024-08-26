@@ -31,7 +31,7 @@ const FooterBottom = ({ data, opacityAnim }) => {
                     />
                 )}
             </View>
-            <Text numberOfLines={1} style={styles.likedByText}>
+            <Text numberOfLines={1} ellipsizeMode='tail' style={styles.likedByText}>
                 {filteredLikes.length > 0 ? `Liked by ${handles.join(', ')}` : data.caption}
             </Text>
         </Animated.View>
@@ -74,6 +74,7 @@ const styles = StyleSheet.create({
         color: '#fff',
         fontFamily: 'Poppins_700Bold',
         fontSize: 12.5,
+        width: '85%'
     },
 });
 

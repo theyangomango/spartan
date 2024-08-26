@@ -32,7 +32,9 @@ const ProfileBottomModal = ({ selectedPanel, setSelectedPanel, posts, completedW
             </View>
             <View style={styles.panel_border}></View>
 
-            <PostsSection posts={posts} isVisible={selectedPanel === 'posts'} isBottomSheetExpanded={isBottomSheetExpanded} />
+            {posts &&
+                <PostsSection posts={posts} isVisible={selectedPanel === 'posts'} isBottomSheetExpanded={isBottomSheetExpanded} />
+            }
             <HistorySection completedWorkouts={completedWorkouts} isVisible={selectedPanel === 'history'} isBottomSheetExpanded={isBottomSheetExpanded} />
             <ActivitySection isVisible={selectedPanel === 'activity'} isBottomSheetExpanded={isBottomSheetExpanded} />
         </View>

@@ -1,7 +1,17 @@
 import React, { useState } from 'react';
-import { View, Text, StyleSheet, Pressable, TextInput, TouchableOpacity, Image, TouchableWithoutFeedback, Keyboard } from 'react-native';
+import { View, Text, Dimensions, PixelRatio, StyleSheet, Pressable, TextInput, TouchableOpacity, Image, Keyboard, TouchableWithoutFeedback } from 'react-native';
 import { Ionicons } from '@expo/vector-icons'; // Make sure to install @expo/vector-icons
 import * as ImagePicker from 'expo-image-picker';
+import { SafeAreaView as SafeAreaContextView } from 'react-native-safe-area-context'; // Import SafeAreaView from safe-area-context
+
+const { width: SCREEN_WIDTH } = Dimensions.get('window');
+
+// Scale factor based on iPhone 13 width
+const scale = SCREEN_WIDTH / 390;
+
+function normalize(size) {
+    return Math.round(PixelRatio.roundToNearestPixel(size * scale));
+}
 
 export default function SettingsScreen({ closeBottomSheet }) {
     const [feedback, setFeedback] = useState('');
@@ -25,13 +35,13 @@ export default function SettingsScreen({ closeBottomSheet }) {
 
     return (
         <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
-            <View style={styles.container}>
+            <SafeAreaContextView style={styles.container}>
                 <View style={styles.header}>
                     <Pressable onPress={closeBottomSheet}>
                         <Ionicons name="chevron-down" size={24} color="black" />
                     </Pressable>
                     <Text style={styles.title}>Beta Testing</Text>
-                    <View style={{ width: 24 }} />
+                    <View style={{ width: normalize(24) }} />
                 </View>
 
                 <View style={styles.feedbackContainer}>
@@ -75,7 +85,7 @@ export default function SettingsScreen({ closeBottomSheet }) {
                         Spartan's Founder
                     </Text>
                 </View>
-            </View>
+            </SafeAreaContextView>
         </TouchableWithoutFeedback>
     );
 }
@@ -84,109 +94,110 @@ const styles = StyleSheet.create({
     container: {
         flex: 1,
         backgroundColor: '#fff',
-        paddingTop: 55,
+        paddingTop: normalize(8),
     },
     header: {
         flexDirection: 'row',
         alignItems: 'center',
         justifyContent: 'space-between',
-        paddingBottom: 10,
-        paddingHorizontal: 20,
+        paddingBottom: normalize(10),
+        paddingHorizontal: normalize(20),
     },
     title: {
-        fontSize: 16,
+        fontSize: normalize(16),
         fontFamily: 'Mulish_800ExtraBold',
     },
     body: {
         position: 'absolute',
-        bottom: 125,
-        paddingHorizontal: 55,
+        bottom: normalize(150),
+        paddingHorizontal: normalize(55),
     },
     body_text: {
         fontFamily: 'Mulish_700Bold',
-        fontSize: 14,
+        fontSize: normalize(14),
         textAlign: 'center',
-        lineHeight: 23
+        lineHeight: normalize(23),
     },
     name_text: {
-        marginTop: 13,
+        marginTop: normalize(13),
         fontFamily: 'Mulish_700Bold',
-        fontSize: 14,
+        fontSize: normalize(14),
         textAlign: 'right',
     },
     name_title_text: {
         fontFamily: 'Mulish_700Bold',
-        fontSize: 13,
+        fontSize: normalize(13),
         textAlign: 'right',
-        lineHeight: 23,
-        color: '#888'
+        lineHeight: normalize(23),
+        color: '#888',
     },
     feedbackContainer: {
-        marginTop: 30,
-        paddingHorizontal: 20,
+        marginTop: normalize(30),
+        paddingHorizontal: normalize(20),
     },
     feedbackTitle: {
         fontFamily: 'Mulish_800ExtraBold',
-        fontSize: 14,
-        marginBottom: 10,
+        fontSize: normalize(14),
+        paddingHorizontal: normalize(4),
+        marginBottom: normalize(10),
     },
     textInput: {
-        borderWidth: 1.5,
+        borderWidth: normalize(1.5),
         borderColor: '#ddd',
-        borderRadius: 8,
-        padding: 10,
-        textAlignVertical: 'top',
-        height: 100,
-        marginBottom: 10,
+        borderRadius: normalize(8),
+        paddingHorizontal: normalize(10),
+        // textAlignVertical: 'top',
+        height: normalize(100),
+        marginBottom: normalize(10),
 
-        fontFamily: 'Mulish_700Bold',
-        color: '#444'
+        fontFamily: 'Mulish_600SemiBold',
+        color: '#444',
     },
     imagePickerButton: {
         flexDirection: 'row',
         alignItems: 'center',
         backgroundColor: '#f3f3f3',
-        padding: 10,
-        borderRadius: 8,
-        marginBottom: 10,
+        padding: normalize(12),
+        borderRadius: normalize(8),
+        marginBottom: normalize(8),
     },
     imagePickerButtonText: {
         fontFamily: 'Mulish_600SemiBold',
-        fontSize: 14,
-        marginRight: 10,
+        fontSize: normalize(14),
+        marginRight: normalize(10),
     },
     imagePreviewContainer: {
         flexDirection: 'row',
         flexWrap: 'wrap',
-        marginBottom: 10,
+        marginBottom: normalize(10),
     },
     imageWrapper: {
         position: 'relative',
-        marginRight: 10,
-        marginBottom: 10,
+        marginRight: normalize(10),
+        marginBottom: normalize(10),
     },
     imagePreview: {
-        width: 50,
-        height: 50,
-        borderRadius: 8,
+        width: normalize(50),
+        height: normalize(50),
+        borderRadius: normalize(8),
     },
     removeImageButton: {
         position: 'absolute',
-        top: -5,
-        right: -5,
+        top: normalize(-5),
+        right: normalize(-5),
         backgroundColor: 'red',
-        borderRadius: 10,
-        padding: 2,
+        borderRadius: normalize(10),
+        padding: normalize(2),
     },
     submitButton: {
         backgroundColor: '#2D9EFF',
-        paddingVertical: 13,
-        borderRadius: 8,
+        paddingVertical: normalize(13),
+        borderRadius: normalize(8),
         alignItems: 'center',
     },
     submitButtonText: {
         color: '#fff',
         fontFamily: 'Mulish_800ExtraBold',
-        fontSize: 15,
+        fontSize: normalize(15),
     },
 });

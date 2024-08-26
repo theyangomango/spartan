@@ -6,6 +6,7 @@ import createDoc from '../../backend/helper/firebase/createDoc'
 import readDoc from '../../backend/helper/firebase/readDoc'; // Import the function to read from Firestore
 import makeID from '../../backend/helper/makeID';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import arrayAppend from '../../backend/helper/firebase/arrayAppend';
 
 const { width: screenWidth, height: screenHeight } = Dimensions.get('window');
 
@@ -71,6 +72,7 @@ const NewUserCreation = ({ navigation }) => {
             following: [],
             followingCount: 0,
             handle: trimmedUsername,
+            pfp: 'https://firebasestorage.googleapis.com/v0/b/spartan-8a55f.appspot.com/o/pfps%2Fdefault.jpg?alt=media&token=32983ee5-4732-446d-9484-d551c0aae1d1',
             image: 'https://firebasestorage.googleapis.com/v0/b/spartan-8a55f.appspot.com/o/pfps%2Fdefault.jpg?alt=media&token=32983ee5-4732-446d-9484-d551c0aae1d1',
             joined: Date.now(),
             lastActive: Date.now(),
@@ -85,8 +87,16 @@ const NewUserCreation = ({ navigation }) => {
             posts: [],
             progressPhotos: [],
             savedPosts: [],
-            statsExercises: [],
-            statsHexagon: [],
+            statsExercises: {},
+            statsHexagon: {
+                overall: 69,
+                abs: 33,
+                legs: 76,
+                chest: 54,
+                back: 39,
+                arms: 80,
+                shoulders: 55
+            },
             statsTotalHours: 0,
             statsTotalVolume: 0,
             statsTotalWorkouts: 0,
@@ -99,6 +109,7 @@ const NewUserCreation = ({ navigation }) => {
         });
 
         // Proceed with the account creation
+        arrayAppend('global', 'users', 'all', newUser);
         await createDoc('users', newID, newUser);
         navigation.navigate('FeedStack', { uid: newID });
     }

@@ -127,7 +127,7 @@ const styles = StyleSheet.create({
     userCardsContainer: {
         zIndex: 2,
         position: 'absolute',
-        top: scaledSize(40), // So that it doesn't cover the search bar
+        top: scaledSize(42), // So that it doesn't cover the search bar
         left: 0,
         right: 0,
         backgroundColor: '#fff',
