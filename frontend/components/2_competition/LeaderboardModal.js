@@ -56,7 +56,7 @@ const LeaderboardModal = ({ userList, categoryCompared, showFollowers, toggleFol
                     </RNBounceable>
                     <RNBounceable
                         disabled // Disabled for Beta
-                        style={[styles.button, styles.selectedButton, { paddingHorizontal: dynamicStyles.buttonPaddingHorizontal, paddingVertical: dynamicStyles.buttonPaddingVertical, marginHorizontal: dynamicStyles.buttonMarginHorizontal }]}
+                        style={[styles.button, styles.selectedButton, { paddingHorizontal: dynamicStyles.buttonPaddingHorizontal, paddingVertical: dynamicStyles.buttonPaddingVertical, marginHorizontal: dynamicStyles.buttonMarginHorizontal, opacity: 0.5 }]}
                         onPress={toggleFollowers}
                     >
                         <Text style={[styles.buttonText, { fontSize: dynamicStyles.buttonTextFontSize }]}>{showFollowers}</Text>

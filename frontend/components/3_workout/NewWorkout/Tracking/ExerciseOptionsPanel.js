@@ -16,11 +16,11 @@ const ExerciseOptionsPanel = ({ visible, onClose, position, replaceExercise, del
         >
             <TouchableOpacity style={styles.modalOverlay} onPress={onClose}>
                 <View style={[styles.panel, { top: position.top, left: position.left }]}>
-                    <RNBounceable style={styles.button} onPress={() => {replaceExercise(); onClose()}}>
+                    <RNBounceable style={[styles.button, { opacity: 0.3 }]} disabled onPress={() => { replaceExercise(); onClose() }}>
                         <Text style={styles.button_text}>Replace Exercise</Text>
                         <MaterialCommunityIcons name="arrow-u-left-top" size={20} color="#000" style={styles.uTurnIcon} />
                     </RNBounceable>
-                    <RNBounceable style={styles.button} onPress={() => {deleteExercise(); onClose()}}>
+                    <RNBounceable style={styles.button} onPress={() => { deleteExercise(); onClose() }}>
                         <Text style={styles.button_text}>Remove Exercise</Text>
                         <FontAwesome6 name={'trash-can'} size={16} style={styles.trash_icon} />
                     </RNBounceable>

@@ -10,9 +10,7 @@ const scale = screenHeight / 844; // Scaling factor based on iPhone 13 height
 
 const scaledSize = (size) => Math.round(size * scale);
 
-export default function EditTemplateExerciseLog({ name, exerciseIndex, updateSets, sets, replaceExercise, deleteExercise }) {
-    const muscle = name === 'Lateral Raise' ? 'Shoulders' : 'Chest';
-
+export default function EditTemplateExerciseLog({ name, muscle, exerciseIndex, updateSets, sets, replaceExercise, deleteExercise }) {
     const [isPanelVisible, setIsPanelVisible] = useState(false);
     const [panelPosition, setPanelPosition] = useState({ top: 0, left: 0 });
     const fadeAnim = useRef(new Animated.Value(1)).current;
@@ -20,8 +18,12 @@ export default function EditTemplateExerciseLog({ name, exerciseIndex, updateSet
     const muscleColors = {
         Chest: '#FFAFB8',
         Shoulders: '#A1CDEE',
-        Biceps: '#CBBCFF',
-        Back: '#95E0C8'
+        Arms: '#CBBCFF',
+        Back: '#95E0C8',
+        Triceps: '#FFD580',
+        Legs: '#FFB347',
+        Abs: '#FF6961',
+        // Add more muscle groups and colors as needed
     };
 
     const togglePanel = (event) => {
@@ -155,6 +157,7 @@ const styles = StyleSheet.create({
         alignItems: 'center',
         marginLeft: 'auto',
         marginRight: scaledSize(10),
+        opacity: 0.5
     },
     pfp: {
         width: scaledSize(34),

@@ -67,5 +67,7 @@ const styles = StyleSheet.create({
         justifyContent: 'center',
         borderColor: '#bbb',
     },
-    options_btn_ctnr: {},
+    options_btn_ctnr: {
+        opacity: 0.5
+    },
 });

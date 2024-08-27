@@ -16,6 +16,7 @@ import WorkoutSummaryModal from "../components/3_Workout/WorkoutSummaryModal";
 import GroupModalBottomSheet from '../components/3_Workout/NewWorkout/Group/GroupModalBottomSheet'
 import calculate1RM from "../helper/calculate1RM";
 import formatDate from "../helper/formatDate";
+import incrementDocValue from "../../backend/helper/firebase/incrementDocValue";
 
 const { height: screenHeight } = Dimensions.get('window');
 
@@ -274,8 +275,11 @@ function Workout({ navigation }) {
             });
 
             updateDoc('users', global.userData.uid, {
-                statsExercises: newExerciseStats
+                statsExercises: newExerciseStats,
             });
+            incrementDocValue('users', global.userData.uid, 'statsTotalWorkouts');
+            incrementDocValue('users', global.userData.uid, 'statsTotalVolume', completedWorkout.volume);
+            incrementDocValue('users', global.userData.uid, 'statsTotalHours', completedWorkout.duration / 3600000);
 
             if (completedWorkout.tid) {
                 const index = global.userData.templates.findIndex(t => {

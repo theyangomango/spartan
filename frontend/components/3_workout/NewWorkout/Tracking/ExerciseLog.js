@@ -10,8 +10,7 @@ const scale = screenHeight / 844; // Scaling factor based on iPhone 13 height
 
 const scaledSize = (size) => Math.round(size * scale);
 
-const ExerciseLog = memo(({ name, exerciseIndex, updateSets, sets, replaceExercise, deleteExercise, isDoneState, toggleIsDone }) => {
-    const muscle = name === 'Lateral Raise' ? 'Shoulders' : 'Chest';
+const ExerciseLog = memo(({ name, muscle, exerciseIndex, updateSets, sets, replaceExercise, deleteExercise, isDoneState, toggleIsDone }) => {
     const previousSetsRef = useRef([]);
 
     useEffect(() => {
@@ -40,8 +39,12 @@ const ExerciseLog = memo(({ name, exerciseIndex, updateSets, sets, replaceExerci
     const muscleColors = {
         Chest: '#FFAFB8',
         Shoulders: '#A1CDEE',
-        Biceps: '#CBBCFF',
-        Back: '#95E0C8'
+        Arms: '#CBBCFF',
+        Back: '#95E0C8',
+        Triceps: '#FFD580',
+        Legs: '#FFB347',
+        Abs: '#FF6961',
+        // Add more muscle groups and colors as needed
     };
 
     const togglePanel = (event) => {

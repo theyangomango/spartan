@@ -6,6 +6,18 @@ const scale = screenHeight / 844; // Scaling factor based on iPhone 13 height
 
 const scaledSize = (size) => Math.round(size * scale);
 
+function formatNumber(number) {
+    if (number < 1000) {
+        return number.toString();
+    } else if (number < 1000000) {
+        return (number / 1000).toFixed(3 - Math.floor(Math.log10(number / 1000)) - 1) + 'k';
+    } else if (number < 1000000000) {
+        return (number / 1000000).toFixed(3 - Math.floor(Math.log10(number / 1000000)) - 1) + 'm';
+    } else {
+        return (number / 1000000000).toFixed(3 - Math.floor(Math.log10(number / 1000000000)) - 1) + 'b';
+    }
+}
+
 export default function WorkoutStats({ userData }) {
     return (
         <View style={styles.main_ctnr}>
@@ -17,13 +29,13 @@ export default function WorkoutStats({ userData }) {
             </View>
             <View style={[styles.workout_stat, styles.total_volume_stat_ctnr]}>
                 <Text style={[styles.workout_stat_number, styles.total_volume_stat_number]}>
-                    {userData && userData.statsTotalVolume}
+                    {userData && formatNumber(userData.statsTotalVolume)}
                 </Text>
                 <Text style={styles.workout_stat_text}>Lbs Lifted</Text>
             </View>
             <View style={[styles.workout_stat, styles.gym_time_stat_ctnr]}>
                 <Text style={[styles.workout_stat_number, styles.gym_time_stat_number]}>
-                    {userData && userData.statsTotalHours}
+                    {userData && userData.statsTotalHours.toFixed(1)}
                 </Text>
                 <Text style={styles.workout_stat_text}>Hours in Gym</Text>
             </View>

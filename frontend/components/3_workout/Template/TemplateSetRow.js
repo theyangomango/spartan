@@ -47,7 +47,8 @@ export default function TemplateSetRow({ set, updateSet, index, handleDelete }) 
                         <Text style={styles.set_number_text}>{index + 1}</Text>
                     </View>
                     <View style={styles.previous_ctnr}>
-                        <Text style={[styles.previous_stat_text]}>{set.previous ? set.previous : 'N/A'}</Text>
+                        <Text style={[styles.previous_stat_text]}>{'N/A'}</Text>
+                        {/* <Text style={[styles.previous_stat_text]}>{set.previous ? set.previous : 'N/A'}</Text> */}
                     </View>
                     <View style={styles.weight_unit_ctnr}>
                         <TemplateEditableStat

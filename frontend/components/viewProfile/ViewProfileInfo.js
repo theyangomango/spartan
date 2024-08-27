@@ -62,9 +62,9 @@ const styles = StyleSheet.create({
         borderColor: '#ccc',
     },
     pfp: {
-        width: scaleSize(54),
+        width: scaleSize(50),
         aspectRatio: 1,
-        borderRadius: scaleSize(22.5),
+        borderRadius: scaleSize(20.5),
     },
     plus_icon_ctnr: {
         position: 'absolute',
@@ -118,13 +118,13 @@ const styles = StyleSheet.create({
     },
     name_text: {
         fontFamily: 'Outfit_600SemiBold',
-        fontSize: scaleSize(16),
+        fontSize: scaleSize(15.5),
         flex: 1,
         textAlign: 'right',
     },
     score_text: {
         fontFamily: 'Outfit_600SemiBold',
-        fontSize: scaleSize(16),
+        fontSize: scaleSize(15.5),
         color: '#0499FE',
         flex: 1,
         textAlign: 'left',

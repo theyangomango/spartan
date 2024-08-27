@@ -22,7 +22,7 @@ export default function ViewProfileHeader({ handle, goBack }) {
             </RNBounceable>
             <View style={styles.right}>
                 <RNBounceable>
-                    <View style={styles.create_btn_ctnr}>
+                    <View style={styles.options_btn_ctnr}>
                         <Ionicons name='menu' size={scaleSize(22.5)} color="#bbb" />
                     </View>
                 </RNBounceable>
@@ -52,10 +52,7 @@ const styles = StyleSheet.create({
     right: {
         flexDirection: 'row',
     },
-    create_btn_ctnr: {
-        marginBottom: scaleSize(1),
-    },
     options_btn_ctnr: {
-        // Additional styling if needed
+        opacity: 0.5
     },
 });

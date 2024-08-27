@@ -1,5 +1,6 @@
 import React from "react";
-import { Image, StyleSheet, View } from "react-native";
+import { StyleSheet, View } from "react-native";
+import FastImage from 'react-native-fast-image';
 import RNBounceable from "@freakycoder/react-native-bounceable";
 
 export default function PostPreview({ item, toPostList, large }) {
@@ -9,7 +10,11 @@ export default function PostPreview({ item, toPostList, large }) {
             // onPress={toPostList} 
             style={[styles.image_ctnr, large && styles.large]}
         >
-            <Image source={{ uri: item.images[0] }} style={styles.image} />
+            <FastImage
+                style={styles.image}
+                source={{ uri: item.images[0] }}
+                resizeMode={FastImage.resizeMode.cover}
+            />
         </RNBounceable>
     );
 }
@@ -29,6 +34,5 @@ const styles = StyleSheet.create({
     image: {
         flex: 1,
         borderRadius: 10,
-        resizeMode: 'cover', // Ensures the image covers the specified area without distortion
     },
 });

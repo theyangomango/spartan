@@ -70,8 +70,8 @@ export default function Competition({ navigation }) {
             // Trigger a state change to force the Footer to re-render
             onSnapshot(doc(db, 'users', global.userData.uid), async (doc) => {
                 global.userData = doc.data();
+                init();
             });
-            init();
             setFooterKey(prevKey => prevKey + 1);
         });
 
@@ -124,7 +124,7 @@ export default function Competition({ navigation }) {
         <View style={styles.mainContainer}>
             <SafeAreaView>
                 <View style={[styles.header, { paddingHorizontal: dynamicStyles.headerPaddingHorizontal, paddingTop: dynamicStyles.headerPaddingTop }]}>
-                    <Octicons name="gear" size={dynamicStyles.headerIconSize - 2} color={'#eee'} style={{ paddingBottom: 4 }} />
+                    <Octicons name="gear" size={dynamicStyles.headerIconSize - 2} color={'#eee'} style={{ paddingBottom: 4, opacity: 0.5 }} />
                     <TouchableOpacity onPress={toggleInfoPanel}>
                         <Ionicons name="information-circle" size={dynamicStyles.headerIconSize + 3} color={'#fff'} />
                     </TouchableOpacity>

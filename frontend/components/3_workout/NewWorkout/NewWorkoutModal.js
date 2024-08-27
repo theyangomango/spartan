@@ -213,6 +213,7 @@ const NewWorkoutModal = ({ workout, cancelWorkout, updateWorkout, finishWorkout,
                 {workout.exercises.map((ex, exerciseIndex) => (
                     <ExerciseLog
                         name={ex.name}
+                        muscle={ex.muscle}
                         exerciseIndex={exerciseIndex}
                         key={ex.name + exerciseIndex}
                         updateSets={updateSets}

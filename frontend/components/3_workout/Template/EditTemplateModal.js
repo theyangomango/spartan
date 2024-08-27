@@ -105,6 +105,7 @@ const EditTemplateModal = ({ openedTemplateRef, updateTemplate, deleteTemplate }
                 {template.exercises.map((ex, index) => (
                     <EditTemplateExerciseLog
                         name={ex.name}
+                        muscle={ex.muscle}
                         sets={ex.sets}
                         exerciseIndex={index}
                         key={index}

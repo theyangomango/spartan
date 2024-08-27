@@ -17,8 +17,9 @@ const SearchBarComponent = ({ navigation, allUsers }) => {
         setSearchString(text);
         if (text) {
             const filtered = allUsers.current.filter(user =>
-                user.handle.toLowerCase().includes(text.toLowerCase()) ||
-                user.name.toLowerCase().includes(text.toLowerCase())
+                user.uid !== global.userData.uid &&
+                (user.handle.toLowerCase().includes(text.toLowerCase()) ||
+                    user.name.toLowerCase().includes(text.toLowerCase()))
             );
             setFilteredUsers(filtered);
         } else {
