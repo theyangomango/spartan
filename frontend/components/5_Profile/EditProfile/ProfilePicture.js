@@ -53,6 +53,7 @@ const ProfilePicture = ({ imageUri, setPFP }) => {
             await uploadBytes(pfpRef, bytes);
             const firebaseURI = await getPFP(global.userData.uid);
             await updateDoc('users', global.userData.uid, { image: firebaseURI });
+            
             console.log('done');
         }
     };

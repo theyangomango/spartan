@@ -15,6 +15,8 @@ export default function Messages({ navigation, route }) {
 
     useEffect(() => {
         if ('messages' in route.params) {
+            console.log(route.params.messages);
+
             // Sort messages before setting them
             const sortedMessages = [...route.params.messages].sort((a, b) => {
                 const timestampA = a.content.length > 0 ? a.content[a.content.length - 1].timestamp : null;
@@ -90,7 +92,7 @@ export default function Messages({ navigation, route }) {
         navigation.navigate('Chat', { data: newChat, usersExcludingSelf });
     };
 
-    if (!userData) return null;
+    if (!userData || !messages) return null;
 
     return (
         <SafeAreaView style={styles.mainContainer}>
@@ -104,6 +106,8 @@ export default function Messages({ navigation, route }) {
                 <ScrollView style={styles.cardsScrollView}>
                     {messages.map((msg, index) => {
                         if (scope === 'Group' && !msg.isGroup) return null;
+
+                        // console.log(messages);
 
                         const usersExcludingSelf = msg.users.filter(usr => usr.uid !== userData.uid);
 

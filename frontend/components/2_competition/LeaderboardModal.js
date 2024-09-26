@@ -69,7 +69,7 @@ const LeaderboardModal = ({ userList, categoryCompared, showFollowers, toggleFol
                 handle={global.userData.handle}
                 value={(categoryCompared in global.userData.statsExercises && '1RM' in global.userData.statsExercises[categoryCompared]) ? global.userData.statsExercises[categoryCompared]['1RM'] : 0}
                 rank={userRank}
-                lastRank={(categoryCompared in global.userData.statsExercises && 'lastFollowersRank' in global.userData.statsExercises[categoryCompared]) ? global.userData.statsExercises[categoryCompared]['lastFollowersRank'] : null}
+                lastRank={(categoryCompared in global.userData.statsExercises && 'lastFollowerRank' in global.userData.statsExercises[categoryCompared]) ? global.userData.statsExercises[categoryCompared]['lastFollowerRank'] : null}
                 handlePress={() => openBottomSheet(global.userData)}
                 userIsSelf={true}
                 bestSet={(categoryCompared in global.userData.statsExercises && 'bestSet' in global.userData.statsExercises[categoryCompared]) ? global.userData.statsExercises[categoryCompared]['bestSet'] : { weight: 0, reps: 0 }}
@@ -89,7 +89,7 @@ const LeaderboardModal = ({ userList, categoryCompared, showFollowers, toggleFol
                         name={item.name}
                         value={(categoryCompared in item.statsExercises && '1RM' in item.statsExercises[categoryCompared]) ? item.statsExercises[categoryCompared]['1RM'] : 0}
                         rank={index + 1}
-                        lastRank={(categoryCompared in item.statsExercises && 'lastFollowersRank' in item.statsExercises[categoryCompared]) ? item.statsExercises[categoryCompared]['lastFollowersRank'] : null}
+                        lastRank={(categoryCompared in item.statsExercises && 'lastFollowerRank' in item.statsExercises[categoryCompared]) ? item.statsExercises[categoryCompared]['lastFollowerRank'] : null}
                         handlePress={() => openBottomSheet(item)}
                         bestSet={(categoryCompared in item.statsExercises && 'bestSet' in item.statsExercises[categoryCompared]) ? item.statsExercises[categoryCompared]['bestSet'] : { weight: 0, reps: 0 }}
                     />

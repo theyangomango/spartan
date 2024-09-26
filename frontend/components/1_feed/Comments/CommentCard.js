@@ -69,7 +69,7 @@ export default function CommentCard({ data, likeComment, unlikeComment, index, s
         <Pressable onPress={() => toViewProfile(data)} style={[styles.card, isReply && styles.replyCard]}>
             <View style={styles.pfp_ctnr}>
                 <Image
-                    source={{ uri: global.userData.image }}
+                    source={{ uri: data.pfp }}
                     style={styles.pfp}
                 />
             </View>

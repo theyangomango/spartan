@@ -93,6 +93,8 @@ export default function Feed({ navigation, route }) {
         setStories(feedData[0]);
         setPosts(feedData[1]);
         setMessages(feedData[2]);
+
+        console.log(feedData[2]); 
         if (userDataRef.current.currentWorkout) {
             global.isCurrentlyWorkingOut = true;
             setFooterKey(prevKey => prevKey + 1);
@@ -180,7 +182,8 @@ export default function Feed({ navigation, route }) {
             name: posts[index].name
         }
 
-        navigation.navigate('ViewProfile', { user: user })
+        if (posts[index].uid === global.userData.uid) navigation.navigate('Profile');
+        else navigation.navigate('ViewProfile', { user: user })
     }
 
     function toViewProfileComments(data) {
@@ -191,7 +194,8 @@ export default function Feed({ navigation, route }) {
             name: data.name
         }
 
-        navigation.navigate('ViewProfile', { user: user })
+        if (posts[index].uid === global.userData.uid) navigation.navigate('Profile');
+        else navigation.navigate('ViewProfile', { user: user })
     }
 
     const renderItem = ({ item, index }) => (

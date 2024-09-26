@@ -16,7 +16,10 @@
         ],
         "ios": {
             "supportsTablet": true,
-            "bundleIdentifier": "com.yangbai.spartan"
+            "bundleIdentifier": "com.yangbai.spartan",
+            "config": {
+                "usesNonExemptEncryption": "false"
+            }
         },
         "android": {
             "adaptiveIcon": {

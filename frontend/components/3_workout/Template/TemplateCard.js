@@ -140,7 +140,8 @@ const styles = StyleSheet.create({
         marginLeft: scaleSize(1),
     },
     startButton: {
-        backgroundColor: '#84E1B5',
+        backgroundColor: '#71D6A6',
+        // backgroundColor: '#2D9EFF',
         paddingVertical: scaleSize(5),
         paddingHorizontal: scaleSize(15),
         borderRadius: scaleSize(8),

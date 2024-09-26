@@ -11,18 +11,32 @@ export default function TemplateEditableStat({ placeholder = '0', value, setValu
     const inputRef = useRef(null);
 
     const handleChangeText = (text) => {
+        // If the text is empty, set the value to 0
         if (text === '') {
             setValue('0');
             return;
         }
 
-        const numericValue = text.replace(/[^0-9.]/g, '');
+        // Remove non-numeric characters (except for a decimal point)
+        let numericValue = text.replace(/[^0-9.]/g, '');
 
-        const validValue = numericValue.split('.').length > 2
-            ? numericValue.slice(0, -1)
-            : numericValue;
+        // Prevent multiple decimals
+        if (numericValue.split('.').length > 2) {
+            numericValue = numericValue.slice(0, -1);
+        }
 
-        setValue(validValue);
+        // Ensure the value doesn't exceed 999
+        let parsedValue = parseFloat(numericValue);
+        if (parsedValue >= 1000) {
+            setValue('999');
+        } else {
+            // Limit to one decimal place if there's a decimal
+            if (numericValue.includes('.')) {
+                const [wholePart, decimalPart] = numericValue.split('.');
+                numericValue = `${wholePart}.${decimalPart.slice(0, 1)}`;
+            }
+            setValue(numericValue);
+        }
     };
 
     return (
@@ -58,8 +72,6 @@ const styles = StyleSheet.create({
         height: scaledSize(23),
         borderRadius: scaledSize(8),
         backgroundColor: '#eee',
-        alignItems: 'center',
-        justifyContent: 'center',
     },
     selected: {
         borderColor: '#0699FF',
@@ -70,5 +82,7 @@ const styles = StyleSheet.create({
     text: {
         fontFamily: 'Poppins_700Bold',
         fontSize: scaledSize(15),
+        flex: 1,
+        textAlign: 'center'
     },
 });

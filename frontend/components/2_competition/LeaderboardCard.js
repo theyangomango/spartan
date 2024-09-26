@@ -57,6 +57,8 @@ const getDynamicStyles = () => {
 const dynamicStyles = getDynamicStyles();
 
 export default function LeaderboardCard({ pfp, handle, name, value, rank, lastRank, handlePress, userIsSelf = false, bestSet }) {
+    console.log(rank, lastRank);
+
     return (
         <RNBounceable onPress={handlePress} style={userIsSelf ? [styles.self_card_ctnr, { height: dynamicStyles.selfCardHeight }] : [styles.card_ctnr, { height: dynamicStyles.cardHeight }]}>
             <View style={styles.card_left}>
@@ -67,7 +69,10 @@ export default function LeaderboardCard({ pfp, handle, name, value, rank, lastRa
                 {lastRank && lastRank > rank &&
                     <Entypo name='chevron-up' size={20} color={'#23B665'} style={styles.arrow_icon} />
                 }
-                {(!lastRank || lastRank == rank) &&
+                {!lastRank && value &&
+                    <Entypo name='chevron-up' size={20} color={'#23B665'} style={styles.arrow_icon} />
+                }
+                {((!lastRank && !value) || lastRank == rank) &&
                     <FontAwesome name='minus' size={16} color={'#aaa'} style={styles.minus_icon} />
                 }
                 <View style={[styles.pfp_ctnr, { width: dynamicStyles.pfpSize }]}>
