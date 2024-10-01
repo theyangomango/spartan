@@ -79,7 +79,8 @@ const ProfileCard = ({ user, onSelect, isSelected }) => {
 
 const styles = StyleSheet.create({
     itemContainer: {
-        paddingHorizontal: 16,
+        paddingLeft: 20,
+        paddingRight: 22,
         paddingVertical: 9,
         flexDirection: 'row',
         alignItems: 'center',
@@ -108,7 +109,6 @@ const styles = StyleSheet.create({
     iconOutline: {
         justifyContent: 'center',
         alignItems: 'center',
-        marginRight: 8,
     },
     selectedIcon: {
         borderColor: '#2D9EFF',

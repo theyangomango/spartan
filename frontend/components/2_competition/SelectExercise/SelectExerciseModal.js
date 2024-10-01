@@ -10,6 +10,7 @@ const SelectExerciseModal = memo(({ closeModal, setComparedExercise }) => {
 
     function selectExercise(name) {
         closeModal();
+        console.log({name});
         setComparedExercise(name);
     }
 
@@ -113,7 +114,10 @@ const styles = StyleSheet.create({
     },
     searchInput: {
         flex: 1,
-        padding: 8,
+        paddingHorizontal: 8,
+        paddingVertical: 7,
+        fontSize: 15,
+        fontFamily: 'Outfit_700Bold'
     },
     filterContainer: {
         flexDirection: 'row',
@@ -131,7 +135,8 @@ const styles = StyleSheet.create({
         opacity: 0.5
     },
     filterButtonText: {
-        fontSize: 13,
+        fontSize: 14,
+        paddingVertical: 1,
         color: '#333',
         fontFamily: 'Outfit_700Bold'
     }

@@ -69,12 +69,16 @@ export default function LeaderboardCard({ pfp, handle, name, value, rank, lastRa
                 {lastRank && lastRank > rank &&
                     <Entypo name='chevron-up' size={20} color={'#23B665'} style={styles.arrow_icon} />
                 }
-                {!lastRank && value &&
+                {(lastRank == null) && (value > 0) &&
                     <Entypo name='chevron-up' size={20} color={'#23B665'} style={styles.arrow_icon} />
                 }
-                {((!lastRank && !value) || lastRank == rank) &&
+                {(lastRank == null) && (value == 0) &&
                     <FontAwesome name='minus' size={16} color={'#aaa'} style={styles.minus_icon} />
                 }
+                {lastRank && (lastRank == rank) &&
+                    <FontAwesome name='minus' size={16} color={'#aaa'} style={styles.minus_icon} />
+                }
+
                 <View style={[styles.pfp_ctnr, { width: dynamicStyles.pfpSize }]}>
                     <Image source={{ uri: pfp }} style={styles.pfp} />
                 </View>

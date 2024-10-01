@@ -1,77 +1,44 @@
 import React from 'react';
-import { View, Text, Image, StyleSheet, Pressable, Dimensions } from 'react-native';
+import { View, Text, Image, StyleSheet, Pressable, Dimensions, TouchableOpacity } from 'react-native';
 import { BlurView } from 'expo-blur';
 
 const { width, height } = Dimensions.get("window");
 
-// Function to determine the styles based on screen size
-const getDynamicStyles = () => {
-    if (width >= 430 && height >= 932) { // iPhone 14 Pro Max and similar
-        return {
-            pfpSize: 50,
-            fontSize: 14,
-            dotSize: { width: 10, height: 6, marginHorizontal: 4 },
-            dashSize: { width: 24, height: 6, marginHorizontal: 4 },
-            paddingTop: 18,
-            paddingVertical: 6,
-            paddingLeft: 25,
-            paddingRight: 15,
-        };
-    } else if (width >= 390 && height >= 844) { // iPhone 13/14 and similar
-        return {
-            pfpSize: 43.5,
-            fontSize: 12.5,
-            dotSize: { width: 9, height: 5, marginHorizontal: 3.5 },
-            dashSize: { width: 21, height: 5, marginHorizontal: 3.5 },
-            paddingTop: 16,
-            paddingVertical: 5,
-            paddingLeft: 22,
-            paddingRight: 13,
-        };
-    } else if (width >= 375 && height >= 812) { // iPhone X/XS/11 Pro and similar
-        return {
-            pfpSize: 42,
-            fontSize: 12,
-            dotSize: { width: 8.5, height: 5, marginHorizontal: 3 },
-            dashSize: { width: 20, height: 5, marginHorizontal: 3 },
-            paddingTop: 15,
-            paddingVertical: 5,
-            paddingLeft: 21,
-            paddingRight: 12,
-        };
-    } else { // Smaller iPhone models (like iPhone SE)
-        return {
-            pfpSize: 40,
-            fontSize: 11.5,
-            dotSize: { width: 8, height: 4.5, marginHorizontal: 2.5 },
-            dashSize: { width: 19, height: 4.5, marginHorizontal: 2.5 },
-            paddingTop: 14,
-            paddingVertical: 4.5,
-            paddingLeft: 20,
-            paddingRight: 11,
-        };
-    }
+const BASE_WIDTH = 390;  // Reference width (e.g., iPhone 14)
+const BASE_HEIGHT = 844; // Reference height (e.g., iPhone 14)
+
+// Scaled size function based on the reference device size
+const scaledSize = (size) => {
+    const scaleWidth = width / BASE_WIDTH;
+    const scaleHeight = height / BASE_HEIGHT;
+    const scale = Math.min(scaleWidth, scaleHeight); // Maintain aspect ratio
+    return Math.round(size * scale);
 };
 
-const dynamicStyles = getDynamicStyles();
-
-export default function PostHeader({ data, url, position, totalImages, toViewProfile }) {
+export default function PostHeader({ data, url, position, totalImages, toViewProfile, openViewWorkout }) {
     return (
         <View style={styles.outer}>
             <BlurView intensity={0} style={styles.main_ctnr}>
-                <Pressable onPress={toViewProfile} style={styles.left}>
-                    <View style={styles.pfp_ctnr}>
+                <View style={styles.left}>
+                    <Pressable onPress={toViewProfile} style={styles.pfp_ctnr}>
                         <Image
                             source={{ uri: url }}
                             style={styles.pfp}
                         />
-                    </View>
+                    </Pressable>
                     <View style={styles.text_ctnr}>
-                        <Text style={styles.handle_text}>
-                            {data.handle}
-                        </Text>
+                        <Pressable onPress={toViewProfile}>
+                            <Text style={styles.handle_text}>
+                                {data.handle}
+                            </Text>
+                        </Pressable>
+                        <TouchableOpacity activeOpacity={0.5} onPress={openViewWorkout}>
+                            <Text style={styles.date_text}>
+                                9/30 Workout
+                            </Text>
+                        </TouchableOpacity>
                     </View>
-                </Pressable>
+                </View>
                 <View style={styles.right}>
                     {totalImages > 1 &&
                         <View style={styles.dotsContainer}>
@@ -96,16 +63,16 @@ const styles = StyleSheet.create({
         top: 0,
         left: 0,
         right: 0,
-        borderTopLeftRadius: 40,
-        borderTopRightRadius: 40,
+        borderTopLeftRadius: scaledSize(40),
+        borderTopRightRadius: scaledSize(40),
         overflow: 'hidden'
     },
     main_ctnr: {
         backgroundColor: 'rgba(37,42,54,0.1)',
-        paddingTop: dynamicStyles.paddingTop,
-        paddingLeft: dynamicStyles.paddingLeft,
-        paddingRight: dynamicStyles.paddingRight,
-        paddingVertical: dynamicStyles.paddingVertical,
+        paddingTop: scaledSize(14),
+        paddingBottom: scaledSize(9),
+        paddingLeft: scaledSize(22),
+        paddingRight: scaledSize(13),
         flexDirection: 'row',
         justifyContent: 'space-between',
     },
@@ -114,23 +81,28 @@ const styles = StyleSheet.create({
         alignItems: 'center',
     },
     pfp_ctnr: {
-        width: dynamicStyles.pfpSize,
+        width: scaledSize(42.5),
         aspectRatio: 1,
-        marginRight: 5,
+        marginRight: scaledSize(5),
     },
     pfp: {
         flex: 1,
-        borderRadius: dynamicStyles.pfpSize / 2,
+        borderRadius: scaledSize(43.5) / 2,
     },
     text_ctnr: {
-        padding: 4,
+        padding: scaledSize(4),
         justifyContent: 'center'
     },
     handle_text: {
-        fontSize: dynamicStyles.fontSize,
-        paddingBottom: 5,
+        fontSize: scaledSize(12.5),
+        paddingBottom: scaledSize(2),
         fontFamily: 'Poppins_600SemiBold',
         color: '#fff'
+    },
+    date_text: {
+        fontSize: scaledSize(11),  // Make it smaller than the handle text
+        color: '#7EB9F2',  // Blue color
+        fontFamily: 'Poppins_700Bold',
     },
     right: {
         flexDirection: 'row',
@@ -139,21 +111,21 @@ const styles = StyleSheet.create({
     dotsContainer: {
         flexDirection: 'row',
         alignItems: 'center',
-        marginRight: 10,
+        marginRight: scaledSize(10),
     },
     dot: {
-        width: dynamicStyles.dotSize.width,
-        height: dynamicStyles.dotSize.height,
-        borderRadius: dynamicStyles.dotSize.height / 2,
+        width: scaledSize(9),
+        height: scaledSize(5),
+        borderRadius: scaledSize(5) / 2,
         backgroundColor: '#fff',
         opacity: 0.5,
-        marginHorizontal: dynamicStyles.dotSize.marginHorizontal,
+        marginHorizontal: scaledSize(3.5),
     },
     dash: {
-        width: dynamicStyles.dashSize.width,
-        height: dynamicStyles.dashSize.height,
-        borderRadius: dynamicStyles.dashSize.height / 2,
+        width: scaledSize(21),
+        height: scaledSize(5),
+        borderRadius: scaledSize(5) / 2,
         backgroundColor: '#fff',
-        marginHorizontal: dynamicStyles.dashSize.marginHorizontal,
+        marginHorizontal: scaledSize(3.5),
     },
 });

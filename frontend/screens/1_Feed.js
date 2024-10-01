@@ -11,10 +11,10 @@ import ShareBottomSheet from "../components/1_Feed/SharePost/ShareBottomSheet";
 import NotificationsBottomSheet from "../components/1_Feed/Notifications/NotificationsBottomSheet";
 import MaskedView from '@react-native-masked-view/masked-view';
 import { StatusBar } from "expo-status-bar";
-import SettingsBottomSheet from "../components/1_Feed/SettingsBottomSheet";
 import { doc, onSnapshot } from "firebase/firestore";
 import { db } from "../../firebase.config";
 import { Dimensions } from "react-native";
+import ViewWorkoutBottomSheet from "../components/1_Feed/ViewWorkoutBottomSheet";
 
 // Constants
 const ANIMATION_DURATION = 300;
@@ -48,6 +48,7 @@ export default function Feed({ navigation, route }) {
     const [shareBottomSheetCloseFlag, setShareBottomSheetCloseFlag] = useState(false);
     const [notificationsBottomSheetExpandFlag, setNotificationsBottomSheetExpandFlag] = useState(false);
     const [commentsBottomSheetExpandFlag, setCommentsBottomSheetExpandFlag] = useState(false);
+    const [viewWorkoutBottomSheetExpandFlag, setViewWorkoutBottomSheetExpandFlag] = useState(false);
 
     const userDataRef = useRef(0);
     const focusedPostIndex = useRef(-1);
@@ -94,7 +95,7 @@ export default function Feed({ navigation, route }) {
         setPosts(feedData[1]);
         setMessages(feedData[2]);
 
-        console.log(feedData[2]); 
+        console.log(feedData[2]);
         if (userDataRef.current.currentWorkout) {
             global.isCurrentlyWorkingOut = true;
             setFooterKey(prevKey => prevKey + 1);
@@ -198,6 +199,11 @@ export default function Feed({ navigation, route }) {
         else navigation.navigate('ViewProfile', { user: user })
     }
 
+    function openViewWorkoutModal() {
+        console.log('View Workout Modal');
+        setViewWorkoutBottomSheetExpandFlag(!viewWorkoutBottomSheetExpandFlag);
+    }
+
     const renderItem = ({ item, index }) => (
         <Animated.View
             style={[
@@ -217,6 +223,7 @@ export default function Feed({ navigation, route }) {
                 handlePressPost={handlePressPost}
                 isPostsVisible={isPostsVisible}
                 toViewProfile={toViewProfilePosts}
+                openViewWorkoutModal={openViewWorkoutModal}
             />
         </Animated.View>
     );
@@ -278,6 +285,9 @@ export default function Feed({ navigation, route }) {
             <ShareBottomSheet
                 shareBottomSheetCloseFlag={shareBottomSheetCloseFlag}
                 shareBottomSheetExpandFlag={shareBottomSheetExpandFlag}
+            />
+            <ViewWorkoutBottomSheet 
+                viewWorkoutBottomSheetExpandFlag={viewWorkoutBottomSheetExpandFlag}
             />
 
             <Footer key={footerKey} navigation={navigation} currentScreenName={'Feed'} />

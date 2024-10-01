@@ -9,7 +9,7 @@ const scale = screenHeight / 844; // Scaling factor based on iPhone 13 height
 
 const scaledSize = (size) => Math.round(size * scale);
 
-const GroupModal = ({ closeGroupModal }) => {
+const GroupModal = () => {
     const followingUsers = global.userData.following;
     const [filteredUsers, setFilteredUsers] = useState(global.userData.following);
 
@@ -118,7 +118,7 @@ const styles = StyleSheet.create({
     },
     modalText: {
         fontFamily: 'Poppins_600SemiBold',
-        fontSize: scaledSize(14),
+        fontSize: scaledSize(14.5),
     },
     selectedHandlesContainer: {
         flexDirection: 'row',
@@ -136,7 +136,7 @@ const styles = StyleSheet.create({
     selectedHandleText: {
         color: '#0499FE',
         fontFamily: 'Outfit_700Bold',
-        fontSize: scaledSize(14),
+        fontSize: scaledSize(14.5),
     },
     searchContainer: {
         flexDirection: 'row',
@@ -156,7 +156,7 @@ const styles = StyleSheet.create({
         paddingVertical: scaledSize(6),
         fontSize: scaledSize(14),
         color: '#333',
-        fontFamily: 'Poppins_400Regular',
+        fontFamily: 'Poppins_500Medium',
     },
     flatlistContainer: {
         flex: 1,
