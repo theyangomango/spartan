@@ -1,18 +1,32 @@
 import { Pressable, StyleSheet, Text, View } from "react-native";
 import { Heart } from 'iconsax-react-native';
 import { useEffect, useState } from "react";
-import { likeStory } from "../../../../backend/stories/likeStory";
-import { unlikeStory } from "../../../../backend/stories/unlikeStory";
-import FastImage from 'react-native-fast-image'; // Import FastImage
+import FastImage from 'react-native-fast-image';
+import getStoriesPrefixSums from '../../../helper/getStoriesPrefixSums'
 
-export default function StoryHeaderButtons({ stories, index, toViewProfile }) {
+export default function StoryHeaderButtons({ stories, userList, index, toViewProfile }) {
     const [isLiked, setIsLiked] = useState(stories[index].likedUsers.includes(global.userData.uid));
+    const prefixSum = getStoriesPrefixSums(userList);
+
+    const getUserIndexForStory = (storyIndex) => {
+        for (let i = 0; i < prefixSum.length; i++) {
+            if (storyIndex < prefixSum[i]) {
+                return i; 
+            }
+        }
+        return -1;
+    };
+
+    const userIndex = getUserIndexForStory(index);
+    const numOfStories = userList[userIndex].stories.length; 
+    const storyStartIndex = prefixSum[userIndex] - userList[userIndex].stories.length;
+    const relativeStoryIndex = index - storyStartIndex;
 
     useEffect(() => {
         setIsLiked(stories[index].likedUsers.includes(global.userData.uid));
     }, [index]);
 
-    function handlePressLikeButton() {
+    const handlePressLikeButton = () => {
         if (!isLiked) {
             likeStory(stories[index].sid, global.userData.uid);
             stories[index].likedUsers.push(global.userData.uid);
@@ -24,7 +38,7 @@ export default function StoryHeaderButtons({ stories, index, toViewProfile }) {
             }
         }
         setIsLiked(!isLiked);
-    }
+    };
 
     return (
         <View style={styles.main_ctnr}>
@@ -33,16 +47,27 @@ export default function StoryHeaderButtons({ stories, index, toViewProfile }) {
                     key={stories[index].sid}
                     source={{ uri: stories[index].pfp }}
                     style={styles.pfp}
-                    resizeMode={FastImage.resizeMode.cover} // Adjust resizeMode as needed
+                    resizeMode={FastImage.resizeMode.cover}
                 />
                 <Text style={styles.handle_text}>{stories[index].handle}</Text>
             </Pressable>
 
             <View style={styles.right}>
+                <View style={styles.dashContainer}>
+                    {Array(numOfStories).fill(null).map((_, i) => (
+                        <View
+                            key={i}
+                            style={[
+                                styles.dash,
+                                i === relativeStoryIndex ? styles.activeDash : styles.inactiveDash
+                            ]}
+                        />
+                    ))}
+                </View>
                 <Pressable onPress={handlePressLikeButton}>
                     {isLiked ?
-                        <Heart size={21} color="#FF8A65" variant="Bold" /> :
-                        <Heart size={21} color="#FF8A65" />
+                        <Heart size={23} color="#FF8A65" variant="Bold" /> :
+                        <Heart size={23} color="#FF8A65" />
                     }
                 </Pressable>
             </View>
@@ -53,9 +78,12 @@ export default function StoryHeaderButtons({ stories, index, toViewProfile }) {
 const styles = StyleSheet.create({
     main_ctnr: {
         flexDirection: 'row',
+        width: '100%',
         justifyContent: 'space-between',
         paddingHorizontal: 20,
-        paddingTop: 50 
+        paddingTop: 50,
+        position: 'absolute',
+        zIndex: 999
     },
     left: {
         flexDirection: 'row',
@@ -73,6 +101,23 @@ const styles = StyleSheet.create({
         fontFamily: 'SourceSansPro_600SemiBold'
     },
     right: {
-        justifyContent: 'center'
+        flexDirection: 'row',
+        alignItems: 'center'
     },
+    dashContainer: {
+        flexDirection: 'row',
+        marginRight: 10
+    },
+    dash: {
+        width: 33, 
+        height: 3.5, 
+        borderRadius: 50, 
+        marginHorizontal: 2.5  
+    },
+    activeDash: {
+        backgroundColor: '#ffffff'
+    },
+    inactiveDash: {
+        backgroundColor: '#bbb'
+    }
 });

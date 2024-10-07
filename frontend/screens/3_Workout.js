@@ -6,7 +6,7 @@ import JoinWorkoutButton from "../components/3_Workout/JoinWorkoutButton";
 import makeID from "../../backend/helper/makeID";
 import NewWorkoutBottomSheet from "../components/3_Workout/NewWorkout/NewWorkoutBottomSheet";
 import CurrentWorkoutPanel from "../components/3_Workout/CurrentWorkoutPanel";
-import millisToMinutesAndSeconds from "../helper/milliesToMinutesAndSeconds";
+import millisToMinutesAndSeconds from "../helper/millisToHoursMinutesSeconds";
 import EditTemplateBottomSheet from "../components/3_Workout/Template/EditTemplateBottomSheet";
 import updateDoc from '../../backend/helper/firebase/updateDoc';
 import { Entypo } from '@expo/vector-icons';
