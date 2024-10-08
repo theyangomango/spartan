@@ -1,6 +1,7 @@
 import React from 'react';
 import { View, Text, Image, StyleSheet, Pressable, Dimensions, TouchableOpacity } from 'react-native';
 import { BlurView } from 'expo-blur';
+import formatDate from '../../../helper/formatDate';
 
 const { width, height } = Dimensions.get("window");
 
@@ -35,7 +36,7 @@ export default function PostHeader({ data, url, position, totalImages, toViewPro
                         {data.workout &&
                             <TouchableOpacity activeOpacity={0.5} onPress={openViewWorkout}>
                                 <Text style={styles.date_text}>
-                                    9/30 Workout
+                                    {formatDate(new Date(data.workout.created))} Workout
                                 </Text>
                             </TouchableOpacity>
                         }

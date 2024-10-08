@@ -162,9 +162,10 @@ function Workout({ navigation }) {
         setIsSummaryModalVisible(true); // Show the summary modal when the workout is finished
     }, [workout]);
 
-    function postWorkout() {
+    async function postWorkout() {
         setIsSummaryModalVisible(false);
-        navigation.navigate('ProfileStack', { screen: 'SelectPhotos', workout: completedWorkout });
+        await navigation.navigate('ProfileStack', {screen: 'Profile'}); // double navigations to perserve stack
+        navigation.navigate('ProfileStack', { screen: 'SelectPhotos', params: { workout: completedWorkout } });
     }
 
     // Templates

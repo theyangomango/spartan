@@ -1,7 +1,6 @@
 import createDoc from '../helper/firebase/createDoc'
 
-export default async function createPost(uid, handle, pfp, caption, images, pid, wid = null) {
-    console.log(uid, caption, images, wid);
+export default async function createPost(uid, handle, pfp, caption, images, pid, workout) {
     await createDoc('posts', pid, {
         pid: pid,
         uid: uid,
@@ -9,7 +8,7 @@ export default async function createPost(uid, handle, pfp, caption, images, pid,
         pfp: pfp,
         created: Date.now(),
         caption: caption,
-        wid: wid,
+        workout: workout,
         images: images,
         likes: [],
         comments: [

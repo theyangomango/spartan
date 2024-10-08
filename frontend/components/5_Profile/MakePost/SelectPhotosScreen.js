@@ -36,7 +36,7 @@ export default function SelectPhotosScreen({ navigation, route }) {
         navigation.navigate('PostOptions', {
             userData: global.userData,
             images: images,
-            workout: 'workout' in route.params ? route.params.workout : null
+            workout: (('workout' in route.params) ? route.params.workout : null)
         });
     }
 

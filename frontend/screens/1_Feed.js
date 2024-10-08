@@ -49,6 +49,7 @@ export default function Feed({ navigation, route }) {
     const [notificationsBottomSheetExpandFlag, setNotificationsBottomSheetExpandFlag] = useState(false);
     const [commentsBottomSheetExpandFlag, setCommentsBottomSheetExpandFlag] = useState(false);
     const [viewWorkoutBottomSheetExpandFlag, setViewWorkoutBottomSheetExpandFlag] = useState(false);
+    const [viewingWorkoutIndex, setViewingWorkoutIndex] = useState(null);
 
     const userDataRef = useRef(0);
     const focusedPostIndex = useRef(-1);
@@ -199,8 +200,9 @@ export default function Feed({ navigation, route }) {
         else navigation.navigate('ViewProfile', { user: user })
     }
 
-    function openViewWorkoutModal() {
-        console.log('View Workout Modal');
+    function openViewWorkoutModal(workout) {
+        console.log({ workout });
+        setViewingWorkoutIndex(workout);
         setViewWorkoutBottomSheetExpandFlag(!viewWorkoutBottomSheetExpandFlag);
     }
 
@@ -286,7 +288,8 @@ export default function Feed({ navigation, route }) {
                 shareBottomSheetCloseFlag={shareBottomSheetCloseFlag}
                 shareBottomSheetExpandFlag={shareBottomSheetExpandFlag}
             />
-            <ViewWorkoutBottomSheet 
+            <ViewWorkoutBottomSheet
+                workout={viewingWorkoutIndex !== null && posts[viewingWorkoutIndex].workout}
                 viewWorkoutBottomSheetExpandFlag={viewWorkoutBottomSheetExpandFlag}
             />
 

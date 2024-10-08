@@ -9,6 +9,7 @@ import { storage } from "../../../../firebase.config";
 import * as ImageManipulator from 'expo-image-manipulator';
 import createPost from "../../../../backend/posts/createPost";
 import arrayAppend from "../../../../backend/helper/firebase/arrayAppend";
+import formatDate from '../../../helper/formatDate';
 
 const { width: screenWidth, height: screenHeight } = Dimensions.get('window');
 const scale = screenWidth / 375; // Assuming a base screen width of 375 (like iPhone X)
@@ -60,7 +61,7 @@ export default function PostOptionsScreen({ navigation, route }) {
             }
         }
 
-        createPost(global.userData.uid, global.userData.handle, global.userData.image, caption, downloadedImageURLs, pid);
+        createPost(global.userData.uid, global.userData.handle, global.userData.image, caption, downloadedImageURLs, pid, workout);
         arrayAppend('users', global.userData.uid, 'posts', pid);
         await arrayAppend('global', 'posts', 'PIDs', pid);
         navigation.navigate('FeedStack');
@@ -113,13 +114,18 @@ export default function PostOptionsScreen({ navigation, route }) {
                             <View style={[styles.btn_icon_ctnr, styles.workout_icon_ctnr]}>
                                 <Weight size={scaleSize(25)} color="#0699FF" />
                             </View>
-                            <Text style={styles.btn_text}>Add Workout</Text>
+                            <Text style={[styles.btn_text, workout ? styles.dark_text : {}]}>
+                                {
+                                    workout ? formatDate(new Date(workout.created)) + " Workout" : "Add Workout"
+                                }
+                            </Text>
                         </View>
                         <View style={styles.right_icon_ctnr}>
                             <FontAwesome6 name='chevron-right' size={scaleSize(15)} color="#444" />
                         </View>
                     </View>
                 </Pressable>
+
 
                 <Pressable>
                     <View style={styles.btn_ctnr}>
@@ -239,9 +245,14 @@ const styles = StyleSheet.create({
         flexDirection: 'row'
     },
     btn_text: {
-        fontFamily: 'Outfit_400Regular',
-        fontSize: scaleSize(15.5),
+        fontFamily: 'Outfit_500Medium',
+        color: '#888', // Default lighter color
+        fontSize: scaleSize(15),
         paddingVertical: scaleSize(7),
+    },
+    dark_text: {
+        color: '#444', // Darker color when workout is present
+        fontFamily: 'Outfit_600SemiBold',
     },
     btn_icon_ctnr: {
         justifyContent: 'center',
