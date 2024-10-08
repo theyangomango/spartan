@@ -32,11 +32,13 @@ export default function PostHeader({ data, url, position, totalImages, toViewPro
                                 {data.handle}
                             </Text>
                         </Pressable>
-                        <TouchableOpacity activeOpacity={0.5} onPress={openViewWorkout}>
-                            <Text style={styles.date_text}>
-                                9/30 Workout
-                            </Text>
-                        </TouchableOpacity>
+                        {data.workout &&
+                            <TouchableOpacity activeOpacity={0.5} onPress={openViewWorkout}>
+                                <Text style={styles.date_text}>
+                                    9/30 Workout
+                                </Text>
+                            </TouchableOpacity>
+                        }
                     </View>
                 </View>
                 <View style={styles.right}>

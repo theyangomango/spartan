@@ -1,5 +1,5 @@
 import React from 'react';
-import { Modal, View, Text, StyleSheet, FlatList, Dimensions } from 'react-native';
+import { Modal, View, Text, StyleSheet, FlatList, Dimensions, Pressable } from 'react-native';
 import { Clock } from 'iconsax-react-native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import RNBounceable from '@freakycoder/react-native-bounceable';
@@ -17,7 +17,7 @@ const muscleColors = {
     Back: '#95E0C8',
     Triceps: '#FFD580',
     Legs: '#FFB347',
-    Abs: '#FF6961',
+    Abs: '#FF7561',
     // Add more muscle groups and colors as needed
 };
 
@@ -31,10 +31,10 @@ const WorkoutSummaryModal = ({ isVisible, workout, onClose, postWorkout }) => {
             <View style={styles.entry_left}>
                 <Text
                     style={styles.entry_text}
-                    numberOfLines={1}
-                    ellipsizeMode="tail"
+                    numberOfLines={1} // Truncate to a single line
+                    ellipsizeMode="tail" // Show '...' when the text overflows
                 >
-                    {`${item.sets.length} x ${item.name}`} {/* Display the number of sets before the exercise name */}
+                    {`${item.sets.length} x ${item.name}`}
                 </Text>
                 <View style={[styles.muscle_ctnr, { backgroundColor: muscleColors[item.muscle] || '#ccc' }]}>
                     <Text style={styles.muscle_text}>{item.muscle}</Text>
@@ -55,8 +55,8 @@ const WorkoutSummaryModal = ({ isVisible, workout, onClose, postWorkout }) => {
             visible={isVisible}
             onRequestClose={onClose}
         >
-            <View style={styles.centeredView}>
-                <View style={styles.modalView}>
+            <Pressable style={styles.centeredView} onPress={onClose}>
+                <Pressable style={styles.modalView} onPress={() => { }}>
                     <View style={styles.header}>
                         <Text style={styles.date_text}>{new Date(created).toLocaleDateString()}</Text>
                     </View>
@@ -89,15 +89,13 @@ const WorkoutSummaryModal = ({ isVisible, workout, onClose, postWorkout }) => {
                         contentContainerStyle={{ paddingBottom: scaledSize(10) }}
                     />
                     <View style={styles.buttonRow}>
-                        <RNBounceable style={styles.closeButton} onPress={onClose}>
-                            <Text style={styles.buttonText}>Close</Text>
-                        </RNBounceable>
                         <RNBounceable style={styles.shareButton} onPress={postWorkout}>
-                            <Text style={styles.buttonText}>Post</Text>
+                            <Text style={styles.buttonText}>Share Post </Text>
+                            <MaterialCommunityIcons name="arm-flex" size={scaledSize(18)} color={'#fff'} />
                         </RNBounceable>
                     </View>
-                </View>
-            </View>
+                </Pressable>
+            </Pressable>
         </Modal>
     );
 };
@@ -113,7 +111,6 @@ const styles = StyleSheet.create({
         width: '90%',
         backgroundColor: "#fff",
         borderRadius: scaledSize(25),
-        paddingHorizontal: scaledSize(25),
         paddingTop: scaledSize(15),
         paddingBottom: scaledSize(14),
         shadowColor: '#000',
@@ -124,6 +121,7 @@ const styles = StyleSheet.create({
     },
     header: {
         marginBottom: scaledSize(6),
+        paddingHorizontal: scaledSize(25),
     },
     date_text: {
         fontFamily: 'Outfit_600SemiBold',
@@ -133,6 +131,7 @@ const styles = StyleSheet.create({
     stats_row: {
         flexDirection: 'row',
         marginBottom: scaledSize(10),
+        paddingHorizontal: scaledSize(25),
     },
     stats_entry: {
         marginRight: scaledSize(15),
@@ -146,34 +145,41 @@ const styles = StyleSheet.create({
         color: '#666',
     },
     stats_header: {
+        paddingHorizontal: scaledSize(25),
         flexDirection: 'row',
         paddingBottom: scaledSize(3),
     },
-    stats_header_left: {
-        width: '65%',
-        marginRight: scaledSize(30),
-    },
     stats_header_text: {
-        fontSize: scaledSize(16),
-        fontFamily: 'Outfit_500Medium',
+        fontFamily: 'Outfit_600SemiBold',
+    },
+    stats_header_left: {
+        width: '73%',
+        marginRight: scaledSize(10)
+    },
+    stats_header_right: {
+        width: '26%',
     },
     entry_ctnr: {
+        paddingHorizontal: scaledSize(25),
         flexDirection: 'row',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        paddingBottom: scaledSize(5),
     },
     entry_left: {
+        width: '73%', // Fixed to 75% of the screen width
         flexDirection: 'row',
-        width: '65%',
-        marginRight: scaledSize(30),
-        paddingBottom: scaledSize(4.5),
         alignItems: 'center',
+        marginRight: scaledSize(10)
     },
     entry_text: {
-        fontFamily: 'Outfit_400Regular',
-        fontSize: scaledSize(14.5),
-        marginRight: scaledSize(5),
-        flex: 1,
-        color: '#666',
-    },
+        fontFamily: 'Outfit_500Medium',
+        fontSize: scaledSize(13),
+        color: '#888',
+        flexShrink: 1, // Ensure the text shrinks when needed
+        padding: 0,    // Avoid any padding that might add space around text
+        margin: 0,     // Remove any margin that might cause extra space
+    },    
     muscle_ctnr: {
         borderRadius: scaledSize(10),
         paddingHorizontal: scaledSize(8.5),
@@ -182,10 +188,13 @@ const styles = StyleSheet.create({
     },
     muscle_text: {
         fontFamily: 'Poppins_700Bold',
-        fontSize: scaledSize(10.5),
+        fontSize: scaledSize(10),
         color: '#fff',
+        margin: scaledSize(1),
+        paddingVertical: scaledSize(0.5)
     },
     entry_right: {
+        width: '26%', // Fixed to 25% of the screen width
         justifyContent: 'center',
     },
     buttonRow: {
@@ -194,24 +203,18 @@ const styles = StyleSheet.create({
     },
     shareButton: {
         flex: 1,
+        flexDirection: 'row',
         justifyContent: 'center',
         alignItems: 'center',
         backgroundColor: '#40D99B',
-        borderRadius: scaledSize(10),
+        borderRadius: scaledSize(15),
         paddingVertical: scaledSize(10),
-    },
-    closeButton: {
-        flex: 1,
-        justifyContent: 'center',
-        alignItems: 'center',
-        backgroundColor: '#ccc',
-        borderRadius: scaledSize(10),
-        marginRight: scaledSize(8),
+        marginHorizontal: scaledSize(20)
     },
     buttonText: {
         color: '#fff',
         fontSize: scaledSize(14),
-        fontFamily: 'Poppins_600SemiBold',
+        fontFamily: 'Outfit_600SemiBold',
     },
 });
 

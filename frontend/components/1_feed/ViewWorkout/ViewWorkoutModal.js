@@ -82,10 +82,10 @@ const styles = StyleSheet.create({
     },
     shareIcon: {
         position: 'absolute', // Align absolutely on the left
-        left: scaledSize(24),
+        left: scaledSize(25),
     },
     heartIcon: {
         position: 'absolute', // Align absolutely on the right
-        right: scaledSize(26),
+        right: scaledSize(28),
     },
 });
