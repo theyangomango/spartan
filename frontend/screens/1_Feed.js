@@ -14,7 +14,7 @@ import { StatusBar } from "expo-status-bar";
 import { doc, onSnapshot } from "firebase/firestore";
 import { db } from "../../firebase.config";
 import { Dimensions } from "react-native";
-import ViewWorkoutBottomSheet from "../components/1_Feed/ViewWorkoutBottomSheet";
+import ViewWorkoutBottomSheet from "../components/1_Feed/ViewWorkout/ViewWorkoutBottomSheet";
 
 // Constants
 const ANIMATION_DURATION = 300;

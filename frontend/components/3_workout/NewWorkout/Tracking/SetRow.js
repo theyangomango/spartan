@@ -101,7 +101,7 @@ const styles = StyleSheet.create({
         flexDirection: 'row',
         paddingVertical: scaledSize(8),
         alignItems: 'center',
-        position: 'relative',
+        // position: 'relative',
     },
     done: {
         backgroundColor: '#DCFFDA'

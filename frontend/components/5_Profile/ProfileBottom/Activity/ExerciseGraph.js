@@ -153,16 +153,17 @@ const getPast30DaysData = (inputs) => {
 };
 
 // Sample input data
+// ! Need to make sure dummy data is within the range of the graph
 const inputData = [
-    { date: '8/15', value: 100 },
-    { date: '8/17', value: 140 },
-    { date: '8/20', value: 250 },
-    { date: '8/23', value: 290 },
-    { date: '8/25', value: 410 },
-    { date: '8/28', value: 440 },
-    { date: '9/1', value: 280 },
-    { date: '9/4', value: 180 },
-    { date: '9/5', value: 150 },
+    { date: '9/15', value: 100 },
+    { date: '9/17', value: 140 },
+    { date: '9/20', value: 250 },
+    { date: '9/23', value: 290 },
+    { date: '9/25', value: 410 },
+    { date: '9/28', value: 440 },
+    { date: '10/1', value: 280 },
+    { date: '10/4', value: 180 },
+    { date: '10/5', value: 150 },
 ];
 
 const styles = StyleSheet.create({

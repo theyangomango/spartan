@@ -1,6 +1,7 @@
 import React, { memo, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { View, StyleSheet } from "react-native";
 import BottomSheet, { BottomSheetBackdrop } from "@gorhom/bottom-sheet";
+import ViewWorkoutModal from "./ViewWorkoutModal";
 
 const ViewWorkoutBottomSheet = ({ viewWorkoutBottomSheetExpandFlag }) => {
     const bottomSheetRef = useRef(null);
@@ -31,8 +32,10 @@ const ViewWorkoutBottomSheet = ({ viewWorkoutBottomSheetExpandFlag }) => {
                 snapPoints={snapPoints}
                 backdropComponent={renderBackdrop}
                 enablePanDownToClose
-                handleStyle={{ display: 'none' }}
             >
+                {global.userData &&
+                    <ViewWorkoutModal workout={global.userData.completedWorkouts[11]} />
+                }
             </BottomSheet>
         </View>
     );

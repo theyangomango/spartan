@@ -15,14 +15,14 @@ const Stories = ({ data, userList, initStories, navigation }) => {
     const [createModalVisible, setCreateModal] = useState(false);
     const [currentIndex, setCurrentIndex] = useState(null);
     const viewedStories = useRef([]);
-    
+
     const storiesPrefixSums = getStoriesPrefixSums(userList);
-    const storiesData = sortStoriesDataByUserList(data, userList); 
+    const storiesData = sortStoriesDataByUserList(data, userList);
 
     const postStoryToFeeds = async (sid) => {
         const updatedUserList = [...userList];
         updatedUserList[0].stories.push(sid);
-        
+
         await updateDoc('users', global.userData.uid, { feedStories: updatedUserList });
         initStories();
 
@@ -59,10 +59,11 @@ const Stories = ({ data, userList, initStories, navigation }) => {
     };
 
     const handlePress = (index) => {
-        const sectionIndex = storiesPrefixSums.findIndex(sum => index < sum);
+        const storyIndex = index === 0 ? 0 : storiesPrefixSums[index - 1];
+        const sectionIndex = storiesPrefixSums.findIndex(sum => storyIndex < sum);
         const sectionStartIndex = sectionIndex === 0 ? 0 : storiesPrefixSums[sectionIndex - 1];
         const sectionEndIndex = storiesPrefixSums[sectionIndex] - 1;
-        
+
         const allViewed = storiesData.slice(sectionStartIndex, sectionEndIndex + 1).every(story =>
             viewedStories.current.includes(story.sid)
         );
