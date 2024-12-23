@@ -1,315 +1,246 @@
+/**
+ * Feed Screen. Retrieves and displays stories and posts. 
+ * Handles Navigation to the Messages Screen.
+ * Handles the NotificationsBottomSheet, CommentsBottomSheet, ShareBottomSheet, and ViewWorkoutBottomSheet
+ * * Does NOT handle backend calls from user interactions
+ */
+
 import React, { useEffect, useRef, useState } from "react";
-import { StyleSheet, View, Animated, SafeAreaView } from "react-native";
+import { Animated, Dimensions, SafeAreaView, StyleSheet, View } from "react-native";
+import { StatusBar } from "expo-status-bar";
+import MaskedView from "@react-native-masked-view/masked-view";
+import { doc, onSnapshot } from "firebase/firestore";
+
 import Footer from "../components/Footer";
 import Post from "../components/1_Feed/Posts/Post";
 import FeedHeader from "../components/1_Feed/FeedHeader";
-import readDoc from "../../backend/helper/firebase/readDoc";
-import retrieveUserFeed from "../../backend/retreiveUserFeed";
 import Stories from "../components/1_Feed/Stories/Stories";
+import NotificationsBottomSheet from "../components/1_Feed/Notifications/NotificationsBottomSheet";
 import CommentsBottomSheet from "../components/1_Feed/Comments/CommentsBottomSheet";
 import ShareBottomSheet from "../components/1_Feed/SharePost/ShareBottomSheet";
-import NotificationsBottomSheet from "../components/1_Feed/Notifications/NotificationsBottomSheet";
-import MaskedView from '@react-native-masked-view/masked-view';
-import { StatusBar } from "expo-status-bar";
-import { doc, onSnapshot } from "firebase/firestore";
-import { db } from "../../firebase.config";
-import { Dimensions } from "react-native";
 import ViewWorkoutBottomSheet from "../components/1_Feed/ViewWorkout/ViewWorkoutBottomSheet";
 
-// Constants
-const ANIMATION_DURATION = 300;
+import readDoc from "../../backend/helper/firebase/readDoc";
+import retrieveUserFeed from "../../backend/retreiveUserFeed";
+import { db } from "../../firebase.config";
+import getScrollTargetPosition from "../helper/getScrollTargetPosition";
+import isThisUser from "../helper/isThisUser";
+
 const { width, height } = Dimensions.get("window");
-
-const getTargetPosition = () => {
-    if (width >= 430 && height >= 932) { // iPhone 14 Pro Max and similar
-        return 105; // Adjusted for iPhone 14 Pro Max
-    } else if (width >= 390 && height >= 844) { // iPhone 13/14 and similar
-        return 95; // Adjusted for iPhone 13/14
-    } else if (width >= 375 && height >= 812) { // iPhone X/XS/11 Pro and similar
-        return 90; // Adjusted for iPhone X/XS/11 Pro
-    } else { // Smaller iPhone models (like iPhone SE)
-        return 85; // Adjusted for smaller iPhone models
-    }
-};
-
-const TARGET_POSITION = getTargetPosition();
-const SCROLL_THRESHOLD = 85;
+const TARGET_POSITION = getScrollTargetPosition(width, height), SCROLL_THRESHOLD = 85, ANIMATION_DURATION = 300;
 
 export default function Feed({ navigation, route }) {
-    const UID = 'userData' in global ? global.userData.uid : route.params.uid; // Hard set UID
-    const [stories, setStories] = useState(null);
-    const [posts, setPosts] = useState([]);
-    const [messages, setMessages] = useState(null);
-    const [isPostsVisible, setIsPostsVisible] = useState(true);
-    const [isScrolledPast90, setIsScrolledPast90] = useState(false);
-    const [footerKey, setFooterKey] = useState(0); // State to force footer re-render
+    // Use UID from global or route params
+    const UID = "userData" in global ? global.userData.uid : route.params.uid;
 
-    const [shareBottomSheetExpandFlag, setShareBottomSheetExpandFlag] = useState(false);
-    const [shareBottomSheetCloseFlag, setShareBottomSheetCloseFlag] = useState(false);
-    const [notificationsBottomSheetExpandFlag, setNotificationsBottomSheetExpandFlag] = useState(false);
-    const [commentsBottomSheetExpandFlag, setCommentsBottomSheetExpandFlag] = useState(false);
-    const [viewWorkoutBottomSheetExpandFlag, setViewWorkoutBottomSheetExpandFlag] = useState(false);
-    const [viewingWorkoutIndex, setViewingWorkoutIndex] = useState(null);
+    // State
+    const [stories, setStories] = useState(null), [posts, setPosts] = useState([]), [messages, setMessages] = useState(null), 
+        [isSomePostFocused, setIsSomePostFocused] = useState(false),
+        [isScrolledPastTopClip, setIsScrolledPastTopClip] = useState(false),
+        [footerKey, setFooterKey] = useState(0),
+        [shareBottomSheetExpandFlag, setShareBottomSheetExpandFlag] = useState(false),
+        [shareBottomSheetCloseFlag, setShareBottomSheetCloseFlag] = useState(false),
+        [notificationsBottomSheetExpandFlag, setNotificationsBottomSheetExpandFlag] = useState(false),
+        [commentsBottomSheetExpandFlag, setCommentsBottomSheetExpandFlag] = useState(false),
+        [viewWorkoutBottomSheetExpandFlag, setViewWorkoutBottomSheetExpandFlag] = useState(false),
+        [viewingWorkoutIndex, setViewingWorkoutIndex] = useState(null);
 
-    const userDataRef = useRef(0);
-    const focusedPostIndex = useRef(-1);
-    const translateY = useRef(new Animated.Value(0)).current;
-    const headerOpacity = useRef(new Animated.Value(1)).current;
-    const footerOpacity = useRef(new Animated.Value(1)).current;
-    const storiesOpacity = useRef(new Animated.Value(1)).current;
+    // Refs
+    const userDataRef = useRef(null), 
+        focusedPostIndex = useRef(-1);
 
+    // Animated values
+    const translateY = useRef(new Animated.Value(0)).current,
+        footerOpacity = useRef(new Animated.Value(1)).current,
+        storiesOpacity = useRef(new Animated.Value(1)).current;
+
+    // Load user data from Firestore once
     useEffect(() => {
         init();
-        const unsub = onSnapshot(doc(db, 'users', UID), async (doc) => {
-            userDataRef.current = doc.data();
-            global.userData = userDataRef.current;
+        const unsub = onSnapshot(doc(db, "users", UID), snap => {
+            userDataRef.current = snap.data();
+            global.userData = userDataRef.current; // init of userData has global variable
         });
-
         return () => unsub();
     }, []);
 
+    // Re-init when screen gains focus
     useEffect(() => {
-        const unsubscribe = navigation.addListener('focus', () => {
-            setFooterKey(prevKey => prevKey + 1);
-
+        const unsub = navigation.addListener("focus", () => {
+            setFooterKey(k => k + 1); // state update for footer style
             init();
-            onSnapshot(doc(db, 'users', UID), async (doc) => {
-                userDataRef.current = doc.data();
+            onSnapshot(doc(db, "users", UID), snap => {
+                userDataRef.current = snap.data();
                 global.userData = userDataRef.current;
             });
         });
-
-        return unsubscribe;
+        return unsub;
     }, [navigation]);
 
-    useEffect(() => {
-        if (route.params) {
-            setMessages(route.params.messages);
-        }
-    }, [route]);
+    // If messages are passed from route, set them
+    useEffect(() => { if (route.params) setMessages(route.params.messages); }, [route]);
 
+    // Initialize stories, posts, messages
     const init = async () => {
-        userDataRef.current = await readDoc('users', UID);
+        userDataRef.current = await readDoc("users", UID);
         const feedData = await retrieveUserFeed(userDataRef.current);
         global.userData = userDataRef.current;
-        setStories(feedData[0]);
-        setPosts(feedData[1]);
-        setMessages(feedData[2]);
-
-        console.log(feedData[2]);
+        setStories(feedData[0]); setPosts(feedData[1]); setMessages(feedData[2]);
         if (userDataRef.current.currentWorkout) {
             global.isCurrentlyWorkingOut = true;
-            setFooterKey(prevKey => prevKey + 1);
+            setFooterKey(k => k + 1); // state update for footer style
         }
     };
 
+    // Update stories only
     const initStories = async () => {
         const feedData = await retrieveUserFeed(userDataRef.current);
         setStories(feedData[0]);
-    }
-
-    const handlePressPost = (index, postPositionY) => {
-        focusedPostIndex.current = index;
-        const translateYValue = postPositionY - TARGET_POSITION;
-
-        setIsPostsVisible(false);
-        animateView(translateYValue, 0);
     };
 
+    // Focus on a single post
+    const handleFocusPost = (index, postY) => {
+        focusedPostIndex.current = index;
+        setIsSomePostFocused(true);
+        animateView(postY - TARGET_POSITION, 0);
+    };
+
+    // Go back from single post
     const handleBackPress = () => {
-        setIsPostsVisible(true);
+        setIsSomePostFocused(false);
         setShareBottomSheetCloseFlag(!shareBottomSheetCloseFlag);
         animateView(0, 1);
     };
 
+    // Animate view
     const animateView = (translateYValue, opacityValue) => {
         Animated.parallel([
-            Animated.timing(translateY, {
-                toValue: -translateYValue,
-                duration: ANIMATION_DURATION,
-                useNativeDriver: true,
-            }),
-            Animated.timing(footerOpacity, {
-                toValue: opacityValue,
-                duration: ANIMATION_DURATION,
-                useNativeDriver: true,
-            }),
-            Animated.timing(storiesOpacity, {
-                toValue: opacityValue,
-                duration: ANIMATION_DURATION,
-                useNativeDriver: true,
-            })
-        ]).start(() => {
-            if (translateYValue === 0) {
-                focusedPostIndex.current = -1;
-            }
-        });
+            Animated.timing(translateY, { toValue: -translateYValue, duration: ANIMATION_DURATION, useNativeDriver: true }),
+            Animated.timing(footerOpacity, { toValue: opacityValue, duration: ANIMATION_DURATION, useNativeDriver: true }),
+            Animated.timing(storiesOpacity, { toValue: opacityValue, duration: ANIMATION_DURATION, useNativeDriver: true })
+        ]).start(() => { if (translateYValue === 0) focusedPostIndex.current = -1; });
     };
 
+    // Go to Messages screen
     const toMessagesScreen = () => {
-        if (global.userData && messages) {
-            navigation.navigate('Messages', {
-                userData: userDataRef.current,
-                messages: messages
-            });
-        }
+        if (global.userData && messages) navigation.navigate("Messages", { userData: userDataRef.current, messages });
     };
 
-    const openCommentsModal = () => {
-        setCommentsBottomSheetExpandFlag(!commentsBottomSheetExpandFlag);
-    };
+    // Bottom sheet toggles
+    const openCommentsModal = () => setCommentsBottomSheetExpandFlag(!commentsBottomSheetExpandFlag);
+    const openShareModal = () => setShareBottomSheetExpandFlag(!shareBottomSheetExpandFlag);
+    const handleOpenNotifications = () => setNotificationsBottomSheetExpandFlag(!notificationsBottomSheetExpandFlag);
 
-    const openShareModal = () => {
-        setShareBottomSheetExpandFlag(!shareBottomSheetExpandFlag);
-    };
+    // Scroll-based top mask
+    const handleScroll = e => setIsScrolledPastTopClip(e.nativeEvent.contentOffset.y > SCROLL_THRESHOLD);
 
-    const handleOpenSettings = () => {
-        // setSettingsBottomSheetExpandFlag(!settingsBottomSheetExpandFlag);
-    };
-
-    const handleOpenNotifications = () => {
-        setNotificationsBottomSheetExpandFlag(!notificationsBottomSheetExpandFlag);
-    };
-
-    const handleScroll = (event) => {
-        const yOffset = event.nativeEvent.contentOffset.y;
-        setIsScrolledPast90(yOffset > SCROLL_THRESHOLD);
-    };
-
-    function toViewProfilePosts(index) {
-        const user = {
-            handle: posts[index].handle,
-            uid: posts[index].uid,
-            pfp: posts[index].pfp,
-            name: posts[index].name
-        }
-
-        if (posts[index].uid === global.userData.uid) navigation.navigate('Profile');
-        else navigation.navigate('ViewProfile', { user: user })
+    // Profile navigation from posts
+    function toViewProfilePosts(idx) {
+        const user = { handle: posts[idx].handle, uid: posts[idx].uid, pfp: posts[idx].pfp, name: posts[idx].name };
+        isThisUser(posts[idx].uid) ? navigation.navigate("Profile") : navigation.navigate("ViewProfile", { user });
     }
 
+    // Profile navigation from comments
     function toViewProfileComments(data) {
-        const user = {
-            handle: data.handle,
-            uid: data.uid,
-            pfp: data.pfp,
-            name: data.name
-        }
-
-        if (posts[index].uid === global.userData.uid) navigation.navigate('Profile');
-        else navigation.navigate('ViewProfile', { user: user })
+        const user = { handle: data.handle, uid: data.uid, pfp: data.pfp, name: data.name };
+        isThisUser(data.uid) ? navigation.navigate("Profile") : navigation.navigate("ViewProfile", { user });
     }
 
-    function openViewWorkoutModal(workout) {
-        console.log({ workout });
-        setViewingWorkoutIndex(workout);
+    // View workout details
+    function openViewWorkoutModal(workoutIndex) {
+        setViewingWorkoutIndex(workoutIndex);
         setViewWorkoutBottomSheetExpandFlag(!viewWorkoutBottomSheetExpandFlag);
     }
 
-    const renderItem = ({ item, index }) => (
-        <Animated.View
-            style={[
-                styles.postWrapper,
-                focusedPostIndex.current === index && {
-                    transform: [{ translateY }],
-                    zIndex: 1,
-                }
-            ]}
-        >
-            <Post
-                data={item}
-                index={index}
-                onPressCommentButton={openCommentsModal}
-                onPressShareButton={openShareModal}
-                focusedPostIndex={focusedPostIndex}
-                handlePressPost={handlePressPost}
-                isPostsVisible={isPostsVisible}
-                toViewProfile={toViewProfilePosts}
-                openViewWorkoutModal={openViewWorkoutModal}
-            />
-        </Animated.View>
-    );
+    // Render a single post
+    function renderPost({ item, index }) {
+        const isFocusedPost = index === focusedPostIndex.current;
+        // const isNearFocusedPost = Math.abs(index - focusedPostIndex.current) > 1; // only update/rerender nearby posts when a post is focused
+
+        return (
+            <Animated.View style={[styles.postWrapper, isFocusedPost && { transform: [{ translateY }], zIndex: 1 }]}>
+                <Post
+                    data={item}
+                    index={index}
+                    onPressCommentButton={openCommentsModal}
+                    onPressShareButton={openShareModal}
+                    isFocused={isSomePostFocused && isFocusedPost}
+                    handleFocusPost={handleFocusPost}
+                    isSomePostFocused={isSomePostFocused}
+                    toViewProfile={toViewProfilePosts}
+                    openViewWorkoutModal={openViewWorkoutModal}
+                />
+            </Animated.View>
+        );
+    };
 
     return (
-        <SafeAreaView style={{ flex: 1, backgroundColor: '#fff' }}>
+        <SafeAreaView style={{ flex: 1, backgroundColor: "#fff" }}>
             <FeedHeader
                 toMessagesScreen={toMessagesScreen}
                 onOpenNotifications={handleOpenNotifications}
-                onOpenSettings={handleOpenSettings}
-                backButton={!isPostsVisible}
+                backButton={isSomePostFocused}
                 onBackPress={handleBackPress}
-                style={{ opacity: headerOpacity }}
             />
 
             <MaskedView
                 pointerEvents="box-none"
-                style={{ flex: 1, flexDirection: 'row', height: '100%' }}
-                maskElement={
-                    <View
-                        pointerEvents="none"
-                        style={{ flex: 1 }}
-                    >
-                        <View style={styles.maskSpacer(isScrolledPast90)} />
-                    </View>
-                }
+                style={{ flex: 1, flexDirection: "row", height: "100%" }}
+                maskElement={<View style={styles.maskContainer(isScrolledPastTopClip)} />}
             >
                 <SafeAreaView style={styles.mainContainer}>
                     <StatusBar style="dark" />
-
-
                     <Animated.FlatList
-                        scrollEnabled={isPostsVisible}
+                        scrollEnabled={!isSomePostFocused}
                         showsVerticalScrollIndicator={false}
                         data={posts}
-                        renderItem={renderItem}
-                        keyExtractor={(item, index) => index.toString()}
+                        renderItem={renderPost}
+                        keyExtractor={(_, i) => i.toString()}
                         onScroll={handleScroll}
                         scrollEventThrottle={16}
-                        ListHeaderComponent={<Animated.View style={{ opacity: storiesOpacity }}>
-                            {stories &&
-                                <Stories navigation={navigation} data={stories.storiesData} userList={stories.storiesUserList} initStories={initStories} />
-                            }
-                        </Animated.View>}
+                        ListHeaderComponent={
+                            <Animated.View style={{ opacity: storiesOpacity }}>
+                                {stories && (
+                                    <Stories
+                                        navigation={navigation}
+                                        data={stories.storiesData}
+                                        userList={stories.storiesUserList}
+                                        initStories={initStories}
+                                    />
+                                )}
+                            </Animated.View>
+                        }
                         initialNumToRender={2}
-                        removeClippedSubviews={true}
-                        windowSize={5}
+                        removeClippedSubviews
+                        windowSize={4}
                     />
                 </SafeAreaView>
             </MaskedView>
 
             <NotificationsBottomSheet notificationsBottomSheetExpandFlag={notificationsBottomSheetExpandFlag} />
             <CommentsBottomSheet
-                isVisible={!isPostsVisible}
+                isVisible={isSomePostFocused}
                 postData={focusedPostIndex.current === -1 ? null : posts[focusedPostIndex.current]}
                 commentsBottomSheetExpandFlag={commentsBottomSheetExpandFlag}
                 toViewProfile={toViewProfileComments}
             />
-            <ShareBottomSheet
-                shareBottomSheetCloseFlag={shareBottomSheetCloseFlag}
-                shareBottomSheetExpandFlag={shareBottomSheetExpandFlag}
-            />
+            <ShareBottomSheet shareBottomSheetCloseFlag={shareBottomSheetCloseFlag} shareBottomSheetExpandFlag={shareBottomSheetExpandFlag} />
             <ViewWorkoutBottomSheet
-                workout={viewingWorkoutIndex !== null && posts[viewingWorkoutIndex].workout}
+                workout={viewingWorkoutIndex !== null ? posts[viewingWorkoutIndex].workout : null}
                 viewWorkoutBottomSheetExpandFlag={viewWorkoutBottomSheetExpandFlag}
             />
-
-            <Footer key={footerKey} navigation={navigation} currentScreenName={'Feed'} />
+            <Footer key={footerKey} navigation={navigation} currentScreenName="Feed" />
         </SafeAreaView>
     );
 }
 
 const styles = StyleSheet.create({
-    mainContainer: {
+    mainContainer: { flex: 1, backgroundColor: "#fff" },
+    postWrapper: { width: "100%" },
+    maskContainer: isScrolledPastTopClip => ({ // * Mask used to prevent clipping effect when posts are scrolled to top
         flex: 1,
-        backgroundColor: '#fff',
-    },
-    postWrapper: {
-        width: '100%',
-    },
-    maskSpacer: (isScrolledPast90) => ({
-        flex: 1,
-        backgroundColor: '#fff',
-        borderTopRightRadius: isScrolledPast90 ? 35 : 0,
-        borderTopLeftRadius: isScrolledPast90 ? 35 : 0,
-    }),
+        backgroundColor: "#fff",
+        borderTopRightRadius: isScrolledPastTopClip ? 35 : 0,
+        borderTopLeftRadius: isScrolledPastTopClip ? 35 : 0
+    })
 });

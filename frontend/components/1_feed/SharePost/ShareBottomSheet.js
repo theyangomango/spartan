@@ -1,36 +1,72 @@
-import React, { useEffect, useMemo, useRef, memo, useState } from "react";
-import { View, StyleSheet, TextInput, Platform, Image, KeyboardAvoidingView, Animated, Keyboard, Pressable, Dimensions } from "react-native";
-import BottomSheet from "@gorhom/bottom-sheet";
+/**
+ * Displays a bottom sheet for sharing content.
+ */
+
+import React, { useEffect, useMemo, useRef, memo, useCallback } from "react";
+import {
+    View,
+    StyleSheet,
+    KeyboardAvoidingView,
+    Platform,
+    Dimensions
+} from "react-native";
+import BottomSheet, { BottomSheetBackdrop } from "@gorhom/bottom-sheet";
 import ShareModal from "./ShareModal";
+import scaleSize from "../../../helper/scaleSize"; // Import the scaleSize utility
 
-const { width, height } = Dimensions.get('screen');
+const { width, height } = Dimensions.get("screen");
 
-const ShareBottomSheet = ({ shareBottomSheetCloseFlag, shareBottomSheetExpandFlag }) => {
+const ShareBottomSheet = ({
+    shareBottomSheetCloseFlag,
+    shareBottomSheetExpandFlag
+}) => {
     const bottomSheetRef = useRef(null);
-    const snapPoints = useMemo(() => ["96%"], []);
 
+    // Define snap points with scaling
+    const snapPoints = useMemo(() => [scaleSize(600)], []); // Adjust based on design
+
+    // Render a custom backdrop with adjusted opacity
+    const renderBackdrop = useCallback(
+        (props) => (
+            <BottomSheetBackdrop
+                {...props}
+                disappearsOnIndex={-1}
+                appearsOnIndex={0}
+                opacity={0.6}
+            />
+        ),
+        []
+    );
+
+    // Close the bottom sheet when the close flag changes
     useEffect(() => {
-        bottomSheetRef.current.close();
+        if (bottomSheetRef.current) {
+            bottomSheetRef.current.close();
+        }
     }, [shareBottomSheetCloseFlag]);
 
+    // Expand the bottom sheet when the expand flag changes
     useEffect(() => {
-        bottomSheetRef.current.expand();
+        if (bottomSheetRef.current && shareBottomSheetExpandFlag) {
+            bottomSheetRef.current.expand();
+        }
     }, [shareBottomSheetExpandFlag]);
 
     return (
         <KeyboardAvoidingView
             style={styles.container}
-            behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-            pointerEvents='box-none'
+            behavior={Platform.OS === "ios" ? "padding" : "height"}
+            pointerEvents="box-none"
         >
+            {/* Bottom Sheet for Sharing */}
             <BottomSheet
                 ref={bottomSheetRef}
-                index={-1}
+                index={-1} // Initially closed
                 snapPoints={snapPoints}
-                // onChange={handleSheetIndexChange}
-                handleStyle={{ display: 'none' }}
-                backgroundStyle={{ backgroundColor: '#fff' }}
+                backdropComponent={renderBackdrop}
                 enablePanDownToClose
+                handleStyle={styles.hiddenHandle}
+                backgroundStyle={styles.bottomSheetBackground}
             >
                 <ShareModal closeBottomSheet={() => bottomSheetRef.current.close()} />
             </BottomSheet>
@@ -40,56 +76,21 @@ const ShareBottomSheet = ({ shareBottomSheetCloseFlag, shareBottomSheetExpandFla
 
 const styles = StyleSheet.create({
     container: {
-        position: 'absolute',
-        top: 85,
+        position: "absolute",
+        top: scaleSize(85),
         bottom: 0,
         left: 0,
         right: 0,
         zIndex: 999
     },
-    footer: {
-        position: 'absolute',
-        // bottom: 0,
-        top: height - 180,
-        height: 95 + width / 2,
-        paddingBottom: width / 2,
-        backgroundColor: '#fff',
-        width: '100%',
-        borderRadius: 40
+    hiddenHandle: {
+        display: "none" // Hide the default handle
     },
-    inputContainer: {
-        flex: 1,
-        marginHorizontal: 18,
-        marginTop: 14,
-        marginBottom: 26,
-        backgroundColor: '#f6f6f6',
-        borderRadius: 30,
-        flexDirection: 'row',
-        alignItems: 'center',
-        paddingHorizontal: 12
-    },
-    image_ctnr: {
-        width: 37,
-        aspectRatio: 1
-    },
-    pfp: {
-        flex: 1,
-        borderRadius: 100
-    },
-    textInput: {
-        flex: 1,
-        borderRadius: 20,
-        paddingHorizontal: 15,
-        paddingVertical: 7,
-        color: '#000',
-        fontFamily: 'Outfit_500Medium',
-        fontSize: 13.5,
-    },
-    sendButton: {
-        paddingHorizontal: 10,
-        justifyContent: 'center',
-        alignItems: 'center',
-    },
+    bottomSheetBackground: {
+        backgroundColor: "#fff",
+        borderTopLeftRadius: scaleSize(25),
+        borderTopRightRadius: scaleSize(25)
+    }
 });
 
 export default memo(ShareBottomSheet);

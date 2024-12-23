@@ -1,144 +1,145 @@
+/**
+ * Displays a Post.
+ * Contains a PostHeader, PostFooter, and a Gallery for images
+ * * Does NOT handle backend calls from user interactions
+ */
+
 import React, { memo, useEffect, useRef, useState } from "react";
 import { StyleSheet, View, Animated, Pressable, Dimensions, Image } from "react-native";
-import Gallery, { GalleryRef } from 'react-native-awesome-gallery';
+import Gallery from "react-native-awesome-gallery";
 import PostHeader from "./PostHeader";
 import PostFooter from "./PostFooter";
 
-const screenWidth = Dimensions.get('window').width;
-const aspectRatio = 0.8; // Original aspect ratio for the image container
+const { width: SCREEN_WIDTH } = Dimensions.get("window");
 
-const Post = (({ data, onPressCommentButton, onPressShareButton, index, focusedPostIndex, handlePressPost, isPostsVisible, toViewProfile, openViewWorkoutModal}) => {
-    const pfp = data.pfp;
-    const images = data.images;
+// Post Dimensions
+const POST_ASPECT_RATIO = 0.8;
+const BORDER_RADIUS = 35;
+const SWIPE_EDGE_THRESHOLD = 75;
+
+// Animation
+const FADE_DURATION = 200;
+const BOUNCE_SCALE_IN = 1.05;
+const BOUNCE_SCALE_OUT = 1;
+const BOUNCE_FRICTION = 100;
+
+const Post = ({
+    data,
+    onPressCommentButton,
+    onPressShareButton,
+    index,
+    isFocused,
+    handleFocusPost,
+    isSomePostFocused,
+    toViewProfile,
+    openViewWorkoutModal
+}) => {
+    console.log({ index, isFocused, isSomePostFocused });
+
+    const { pfp, images } = data;
     const [position, setPosition] = useState(0);
     const opacity = useRef(new Animated.Value(1)).current;
     const scaleValue = useRef(new Animated.Value(1)).current;
     const viewRef = useRef(null);
-    const galleryRef = useRef(null); // Create a reference to the Gallery component
+    const galleryRef = useRef(null);
 
+    // Fade out this post if another post is focused
     useEffect(() => {
-        if (isPostsVisible) {
-            Animated.timing(opacity, {
-                toValue: 1,
-                duration: 200,
-                useNativeDriver: true,
-            }).start();
-        } else if (!isPostsVisible && index !== focusedPostIndex.current) {
-            Animated.timing(opacity, {
-                toValue: 0,
-                duration: 200,
-                useNativeDriver: true,
-            }).start();
-        }
-    }, [isPostsVisible]);
+        Animated.timing(opacity, {
+            toValue: !isSomePostFocused ? 1 : isFocused ? 1 : 0,
+            duration: FADE_DURATION,
+            useNativeDriver: true,
+        }).start();
+    }, [isSomePostFocused]);
 
     const handlePressLeft = () => {
         if (position > 0) {
-            const newPosition = position - 1;
-            setPosition(newPosition);
-            galleryRef.current?.setIndex(newPosition, true); // Update the Gallery index
+            const newPos = position - 1;
+            setPosition(newPos);
+            galleryRef.current?.setIndex(newPos, true);
         }
     };
 
     const handlePressRight = () => {
-        if (position < data.images.length - 1) {
-            const newPosition = position + 1;
-            setPosition(newPosition);
-            galleryRef.current?.setIndex(newPosition, true); // Update the Gallery index
+        if (position < images.length - 1) {
+            const newPos = position + 1;
+            setPosition(newPos);
+            galleryRef.current?.setIndex(newPos, true);
         }
     };
 
-    const handleMiddlePressIn = () => {
+    const handleMiddlePressInAnim = () =>
         Animated.spring(scaleValue, {
-            toValue: 1.05,
-            useNativeDriver: true,
+            toValue: BOUNCE_SCALE_IN,
+            useNativeDriver: true
         }).start();
-    };
 
-    const handleMiddlePressOut = () => {
+    const handleMiddlePressOutAnim = () =>
         Animated.spring(scaleValue, {
-            toValue: 1,
-            friction: 100,
-            useNativeDriver: true,
+            toValue: BOUNCE_SCALE_OUT,
+            friction: BOUNCE_FRICTION,
+            useNativeDriver: true
         }).start();
-    };
 
+    const pressPostMiddle = async () => {
+        handleMiddlePressInAnim();
+        setTimeout(handleMiddlePressOutAnim, 100);
+
+        if (!isFocused) {
+            viewRef.current.measure((_, __, ___, ____, _____, pageY) => handleFocusPost(index, pageY));
+        }
+    }
+
+    // Manage left/right press (swipe) or middle press (focus post)
     const handlePress = (event) => {
         const { locationX } = event.nativeEvent;
-
-        if (images.length == 1) {
-            handleMiddlePressIn(); // Start the press-in animation
-            if (focusedPostIndex.current === index) {
-                // Handle post press when it's already focused
-            } else if (focusedPostIndex.current === -1) {
-                viewRef.current.measure((x, y, width, height, pageX, pageY) => {
-                    handlePressPost(index, pageY);
-                });
-            }
-
-            setTimeout(handleMiddlePressOut, 100); // Start the press-out animation after a short delay
-            return;
-        }
-
-        if (locationX <= 75) {
-            handlePressLeft();
-        } else if (locationX >= screenWidth - 75) {
-            handlePressRight();
-        } else {
-            handleMiddlePressIn(); // Start the press-in animation
-            if (focusedPostIndex.current === index) {
-                // Handle post press when it's already focused
-            } else if (focusedPostIndex.current === -1) {
-                viewRef.current.measure((x, y, width, height, pageX, pageY) => {
-                    handlePressPost(index, pageY);
-                });
-            }
-
-            setTimeout(handleMiddlePressOut, 100); // Start the press-out animation after a short delay
-        }
+        if (images.length > 1) {
+            if (locationX <= SWIPE_EDGE_THRESHOLD) handlePressLeft();
+            else if (locationX >= SCREEN_WIDTH - SWIPE_EDGE_THRESHOLD) handlePressRight();
+            else pressPostMiddle();
+        } else pressPostMiddle();
     };
 
-    // Conditional styles for bottom border radius
+    // Styles that depend on whether this post is focused
     const containerStyle = [
         styles.gallery,
-        focusedPostIndex.current === index && !isPostsVisible && {
-            borderBottomLeftRadius: 35,
-            borderBottomRightRadius: 35,
-        },
+        isFocused && isSomePostFocused && {
+            borderBottomLeftRadius: BORDER_RADIUS,
+            borderBottomRightRadius: BORDER_RADIUS,
+        }
     ];
-
     const imageStyle = [
         styles.image,
-        focusedPostIndex.current === index && !isPostsVisible && {
-            borderBottomLeftRadius: 35,
-            borderBottomRightRadius: 35,
-        },
+        isFocused && isSomePostFocused && {
+            borderBottomLeftRadius: BORDER_RADIUS,
+            borderBottomRightRadius: BORDER_RADIUS,
+        }
     ];
 
     return (
-        <Animated.View ref={viewRef} style={[styles.wrapper, { opacity }]} pointerEvents={!isPostsVisible && (index !== focusedPostIndex) && false}>
+        <Animated.View
+            ref={viewRef}
+            style={[styles.wrapper, { opacity }]}
+            pointerEvents={isSomePostFocused && !isFocused ? "none" : "auto"}
+        >
             <Pressable onPress={handlePress}>
                 <Animated.View
                     style={[
                         styles.main_ctnr,
-                        focusedPostIndex.current === index && { zIndex: 1 },
-                        { transform: [{ scale: scaleValue }] } // Apply bounce effect
+                        isFocused && { zIndex: 1 },
+                        { transform: [{ scale: scaleValue }] }
                     ]}
                 >
                     <View style={styles.body_ctnr}>
                         <Gallery
-                            ref={galleryRef} // Attach the reference
+                            ref={galleryRef}
                             data={images}
                             onIndexChange={setPosition}
                             style={containerStyle}
-                            containerDimensions={{ width: screenWidth, height: screenWidth / aspectRatio }} // Set container dimensions
+                            containerDimensions={{ width: SCREEN_WIDTH, height: SCREEN_WIDTH / POST_ASPECT_RATIO }}
                             renderItem={({ item }) => (
                                 <View style={styles.imageWrapper}>
-                                    <Image
-                                        source={{ uri: item }}
-                                        style={imageStyle}
-                                        resizeMode="cover"
-                                    />
+                                    <Image source={{ uri: item }} style={imageStyle} resizeMode="cover" />
                                 </View>
                             )}
                             pinchEnabled={false}
@@ -147,51 +148,50 @@ const Post = (({ data, onPressCommentButton, onPressShareButton, index, focusedP
                             emptySpaceWidth={0}
                         />
                     </View>
-                    <PostHeader data={data} url={pfp} position={position} totalImages={images.length} toViewProfile={() => toViewProfile(index)} openViewWorkout={() => openViewWorkoutModal(index)}/>
+                    <PostHeader
+                        data={data}
+                        url={pfp}
+                        position={position}
+                        totalImages={images.length}
+                        toViewProfile={() => toViewProfile(index)}
+                        openViewWorkout={() => openViewWorkoutModal(index)}
+                    />
                     <PostFooter
                         data={data}
                         onPressCommentButton={() => onPressCommentButton(index)}
                         onPressShareButton={() => onPressShareButton(index)}
                         image={pfp}
-                        isPostsVisible={isPostsVisible}
+                        isSomePostFocused={isSomePostFocused}
                     />
                 </Animated.View>
             </Pressable>
         </Animated.View>
     );
-});
+};
 
 export default memo(Post);
 
 const styles = StyleSheet.create({
-    wrapper: {
-        width: '100%',
-    },
+    wrapper: { width: "100%" },
     main_ctnr: {
-        width: '100%',
-        borderColor: '#ddd',
-        marginBottom: -33,
+        width: "100%",
+        borderColor: "#ddd",
+        marginBottom: -33
     },
-    body_ctnr: {
-        width: '100%',
-        height: screenWidth / aspectRatio, // Calculate height based on the aspect ratio
-    },
+    body_ctnr: { width: "100%", height: SCREEN_WIDTH / POST_ASPECT_RATIO },
     gallery: {
-        width: '100%',
-        height: '100%', // Ensure it covers the entire container's height
-        borderTopRightRadius: 35,
-        borderTopLeftRadius: 35,
-        backgroundColor: '#fff'
+        width: "100%",
+        height: "100%",
+        borderTopRightRadius: BORDER_RADIUS,
+        borderTopLeftRadius: BORDER_RADIUS,
+        backgroundColor: "#fff"
     },
-    imageWrapper: {
-        width: '100%',
-        height: '100%',
-    },
+    imageWrapper: { width: "100%", height: "100%" },
     image: {
-        width: '100%',
-        height: '100%',
-        borderTopRightRadius: 35,
-        borderTopLeftRadius: 35,
-        overflow: 'hidden', // Ensure rounded corners are applied to the gallery
-    },
+        width: "100%",
+        height: "100%",
+        borderTopRightRadius: BORDER_RADIUS,
+        borderTopLeftRadius: BORDER_RADIUS,
+        overflow: "hidden"
+    }
 });

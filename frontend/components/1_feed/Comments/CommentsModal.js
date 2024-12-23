@@ -1,113 +1,143 @@
-import React, { useRef } from 'react';
-import { View, FlatList, StyleSheet, Pressable, KeyboardAvoidingView, Platform } from 'react-native';
-import CommentCard from './CommentCard';
-import updateDoc from '../../../../backend/helper/firebase/updateDoc';
-import sendNotification from '../../../../backend/sendNotification';
+/**
+ * Renders a list of comments and their replies for a post.
+ * Allows users to like/unlike comments and navigate to user profiles.
+ * * Handles backend functionality for liking/unliking comments 
+ * TODO standardize component for backend functionality
+ */
 
-export default function CommentsModal({ postData, handleTouchHeader, isSheetExpanded, setReplyingToIndex, toViewProfile }) {
+import React, { useRef } from "react";
+import {
+    View,
+    FlatList,
+    StyleSheet,
+    Pressable,
+    KeyboardAvoidingView,
+    Platform
+} from "react-native";
+import CommentCard from "./CommentCard";
+import updateDoc from "../../../../backend/helper/firebase/updateDoc";
+import sendNotification from "../../../../backend/sendNotification";
+import scaleSize from "../../../helper/scaleSize"; // Import the scaleSize utility
+
+export default function CommentsModal({
+    postData,
+    handleTouchHeader,
+    isSheetExpanded,
+    setReplyingToIndex,
+    toViewProfile
+}) {
     const comments = postData.comments;
     const flatListRef = useRef(null);
 
-    function handleLikeComment(index, replyIndex) {
-        if (replyIndex === -1) {
-            comments[index].likeCount++;
-            comments[index].likedUsers.push(global.userData.uid);
-        } else {
-            comments[index].replies[replyIndex].likeCount++;
-            comments[index].replies[replyIndex].likedUsers.push(global.userData.uid);
-        }
-        updateDoc('posts', postData.pid, { comments });
+    /**
+     * Handles liking a comment or reply.
+     * @param {number} index - Index of the comment.
+     * @param {number} replyIndex - Index of the reply (-1 if not a reply).
+     */
+    const handleLikeComment = (index, replyIndex) => {
+        const target = replyIndex === -1 ? comments[index] : comments[index].replies[replyIndex];
+        target.likeCount += 1;
+        target.likedUsers.push(global.userData.uid);
+
+        updateDoc("posts", postData.pid, { comments });
 
         const notif = {
             uid: global.userData.uid,
             pfp: global.userData.image,
             handle: global.userData.handle,
             name: global.userData.name,
-            type: 'liked-comment',
-            content: comments[index].content,
+            type: "liked-comment",
+            content: target.content,
             timestamp: Date.now()
+        };
+
+        sendNotification(target.uid, notif);
+    };
+
+    /**
+     * Handles unliking a comment or reply.
+     * @param {number} index - Index of the comment.
+     * @param {number} replyIndex - Index of the reply (-1 if not a reply).
+     */
+    const handleUnlikeComment = (index, replyIndex) => {
+        const target = replyIndex === -1 ? comments[index] : comments[index].replies[replyIndex];
+        target.likeCount -= 1;
+        const userIndex = target.likedUsers.indexOf(global.userData.uid);
+        if (userIndex > -1) {
+            target.likedUsers.splice(userIndex, 1);
         }
 
-        sendNotification(comments[index].uid, notif);
-    }
-
-    function handleUnlikeComment(index, replyIndex) {
-        if (replyIndex === -1) {
-            comments[index].likeCount--;
-            const i = comments[index].likedUsers.indexOf(global.userData.uid);
-            if (i > -1) comments[index].likedUsers.splice(i, 1);
-        } else {
-            comments[index].replies[replyIndex].likeCount--;
-            const i = comments[index].replies[replyIndex].likedUsers.indexOf(global.userData.uid);
-            if (i > -1) comments[index].replies[replyIndex].likedUsers.splice(i, 1);
-        }
-        updateDoc('posts', postData.pid, { comments });
-    }
+        updateDoc("posts", postData.pid, { comments });
+    };
 
     return (
         <KeyboardAvoidingView
-            style={{ flex: 1 }}
-            behavior={Platform.OS === 'ios' ? 'padding' : null}
+            style={styles.container}
+            behavior={Platform.OS === "ios" ? "padding" : undefined}
         >
-            <View style={styles.mainContainer}>
-                <Pressable style={styles.header} onTouchStart={handleTouchHeader}></Pressable>
-                <FlatList
-                    showsVerticalScrollIndicator={false}
-                    ref={flatListRef}
-                    data={comments}
-                    keyExtractor={(item, index) => index.toString()}
-                    renderItem={({ item, index }) => (
-                        <>
-                            <Pressable>
-                                <CommentCard
-                                    data={item}
-                                    likeComment={handleLikeComment}
-                                    unlikeComment={handleUnlikeComment}
-                                    index={index}
-                                    setReplyingToIndex={setReplyingToIndex}
-                                    isReply={false}
-                                    replyIndex={-1}
-                                    toViewProfile={toViewProfile}
-                                />
-                            </Pressable>
-                            {item.replies && item.replies.map((reply, replyIndex) => (
-                                <CommentCard
-                                    key={`${index}-${replyIndex}`}
-                                    data={reply}
-                                    likeComment={handleLikeComment}
-                                    unlikeComment={handleUnlikeComment}
-                                    index={index}
-                                    setReplyingToIndex={setReplyingToIndex}
-                                    toViewProfile={toViewProfile}
-                                    isReply={true}
-                                    replyIndex={replyIndex}
-                                />
-                            ))}
-                        </>
-                    )}
-                    contentContainerStyle={[styles.commentsListContainer, { paddingBottom: isSheetExpanded ? 100 : 525 }]}
-                />
-            </View>
+            {/* Header Pressable to handle touch events */}
+            <Pressable style={styles.header} onTouchStart={handleTouchHeader} />
+
+            {/* FlatList to render comments and their replies */}
+            <FlatList
+                ref={flatListRef}
+                showsVerticalScrollIndicator={false}
+                data={comments}
+                keyExtractor={(item, index) => `${item.uid}-${index}`}
+                renderItem={({ item, index }) => (
+                    <View>
+                        {/* Main Comment */}
+                        <CommentCard
+                            data={item}
+                            likeComment={handleLikeComment}
+                            unlikeComment={handleUnlikeComment}
+                            index={index}
+                            setReplyingToIndex={setReplyingToIndex}
+                            isReply={false}
+                            replyIndex={-1}
+                            toViewProfile={toViewProfile}
+                        />
+
+                        {/* Render Replies if any */}
+                        {item.replies && item.replies.map((reply, replyIndex) => (
+                            <CommentCard
+                                key={`${index}-${replyIndex}`}
+                                data={reply}
+                                likeComment={handleLikeComment}
+                                unlikeComment={handleUnlikeComment}
+                                index={index}
+                                setReplyingToIndex={setReplyingToIndex}
+                                isReply={true}
+                                replyIndex={replyIndex}
+                                toViewProfile={toViewProfile}
+                            />
+                        ))}
+                    </View>
+                )}
+                contentContainerStyle={[
+                    styles.commentsListContainer,
+                    { paddingBottom: isSheetExpanded ? scaleSize(100) : scaleSize(525) }
+                ]}
+            />
         </KeyboardAvoidingView>
     );
 }
 
 const styles = StyleSheet.create({
-    mainContainer: {
-        flex: 1,
+    container: {
+        flex: 1
     },
     header: {
-        position: 'absolute',
+        position: "absolute",
         top: 0,
         left: 0,
         right: 0,
-        height: 25,
-        alignItems: 'center',
-        zIndex: 1,
+        height: scaleSize(25),
+        alignItems: "center",
+        zIndex: 1
     },
     commentsListContainer: {
-        paddingTop: 12,
-        paddingHorizontal: 15,
-        flexGrow: 1,
-    },
+        paddingHorizontal: scaleSize(15),
+        flexGrow: 1
+    }
 });

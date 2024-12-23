@@ -1,77 +1,53 @@
+/**
+ * Contains Like, Comment and Share/Bookmark Buttons
+ * * Handles backend calls from user interactions
+ */
+
 import React, { useState, useEffect, useRef } from 'react';
 import { View, Text, StyleSheet, Pressable, Animated, Dimensions } from 'react-native';
 import { BlurView } from 'expo-blur';
 import { Heart, Messages1, Send2 } from 'iconsax-react-native';
 import RNBounceable from '@freakycoder/react-native-bounceable';
 import Svg, { Path } from "react-native-svg";
-import FooterBottom from './FooterBottom';
+
+import PostFooterInfoPanel from './PostFooterInfoPanel';
 import updateDoc from '../../../../backend/helper/firebase/updateDoc';
 import arrayAppend from '../../../../backend/helper/firebase/arrayAppend';
 import arrayErase from '../../../../backend/helper/firebase/arrayErase';
 import sendNotification from '../../../../backend/sendNotification';
+import { getPostFooterStyles } from '../../../helper/getPostFooterStyles';
+import isThisUser from '../../../helper/isThisUser'
 
-const { width, height } = Dimensions.get("window");
+const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get("window");
+const dynamicStyles = getPostFooterStyles(SCREEN_WIDTH, SCREEN_HEIGHT);
 
-// Function to determine the styles based on screen size
-const getDynamicStyles = () => {
-    if (width >= 430 && height >= 932) { // iPhone 14 Pro Max and similar
-        return {
-            buttonPaddingHorizontal: 14,
-            buttonPaddingVertical: 14,
-            fontSize: 13,
-            iconSize: 26,
-        };
-    } else if (width >= 390 && height >= 844) { // iPhone 13/14 and similar
-        return {
-            buttonPaddingHorizontal: 12,
-            buttonPaddingVertical: 12,
-            fontSize: 12,
-            iconSize: 24,
-        };
-    } else if (width >= 375 && height >= 812) { // iPhone X/XS/11 Pro and similar
-        return {
-            buttonPaddingHorizontal: 11,
-            buttonPaddingVertical: 11,
-            fontSize: 11.5,
-            iconSize: 22,
-        };
-    } else { // Smaller iPhone models (like iPhone SE)
-        return {
-            buttonPaddingHorizontal: 10,
-            buttonPaddingVertical: 10,
-            fontSize: 11,
-            iconSize: 21,
-        };
-    }
-};
-
-const dynamicStyles = getDynamicStyles();
-
-export default function PostFooter({ data, onPressCommentButton, onPressShareButton, isPostsVisible }) {
+export default function PostFooter({ data, onPressCommentButton, onPressShareButton, isSomePostFocused }) {
     const [isLiked, setIsLiked] = useState(false);
     const [isSaved, setIsSaved] = useState(false);
-    const opacityAnim = useRef(new Animated.Value(isPostsVisible ? 0 : 1)).current;
+    const opacityAnim = useRef(new Animated.Value(isSomePostFocused ? 1 : 0)).current;
 
+    // Determine if post is already liked by current user
     useEffect(() => {
-        setIsLiked(false);
         if (global.userData) {
             data.likes.forEach(item => {
-                if (item.uid == global.userData.uid) {
-                    setIsLiked(true);
-                    return;
-                }
+                if (isThisUser(item.uid)) setIsLiked(true);
+            });
+            global.userData.savedPosts.forEach(pid => {
+                if (pid === data.pid) setIsSaved(true); // TODO standardize backend storage for saved posts
             });
         }
     }, [global.userData]);
 
+    // Animate appearance/disappearance when post is focused/unfocused
     useEffect(() => {
         Animated.timing(opacityAnim, {
-            toValue: isPostsVisible ? 0 : 1,
+            toValue: isSomePostFocused ? 1 : 0,
             duration: 300,
             useNativeDriver: true,
         }).start();
-    }, [isPostsVisible]);
+    }, [isSomePostFocused]);
 
+    // Toggle "like" status & update Firestore
     function handlePressLikeButton() {
         if (!isLiked) {
             data.likeCount++;
@@ -90,8 +66,7 @@ export default function PostFooter({ data, onPressCommentButton, onPressShareBut
                 name: global.userData.name,
                 type: 'liked-post',
                 timestamp: Date.now()
-            }
-
+            };
             sendNotification(data.uid, notif);
         } else {
             data.likeCount--;
@@ -101,59 +76,90 @@ export default function PostFooter({ data, onPressCommentButton, onPressShareBut
         setIsLiked(!isLiked);
     }
 
+    // Toggle "save" status & update user doc
     function handlePressSaveButton() {
-        if (!isSaved) {
-            arrayAppend('users', global.userData.uid, 'savedPosts', data.pid);
-        } else {
-            arrayErase('users', global.userData.uid, 'savedPosts', data.pid);
-        }
-
+        if (!isSaved) arrayAppend('users', global.userData.uid, 'savedPosts', data.pid);
+        else arrayErase('users', global.userData.uid, 'savedPosts', data.pid);
         setIsSaved(!isSaved);
     }
 
     return (
         <View style={styles.mainContainer}>
             <View style={styles.top}>
+                {/* Left portion: like, comment, share */}
                 <View style={styles.left}>
                     <RNBounceable style={styles.likeButton} onPress={handlePressLikeButton}>
                         <BlurView style={styles.likeButtonBlurView}>
-                            <Heart size={dynamicStyles.iconSize} color={isLiked ? '#FE5555' : "#fff"} variant='Bold' />
+                            <Heart
+                                size={dynamicStyles.iconSize}
+                                color={isLiked ? '#FE5555' : '#fff'}
+                                variant="Bold"
+                            />
                             <Text style={styles.likeButtonText}>{data.likeCount}</Text>
                         </BlurView>
                     </RNBounceable>
-                    <Pressable disabled={isPostsVisible} onPress={onPressCommentButton} style={styles.commentButton}>
-                        <Messages1 size={dynamicStyles.iconSize} color="#fff" variant='Bold' />
+
+                    <Pressable
+                        disabled={!isSomePostFocused}
+                        onPress={onPressCommentButton}
+                        style={styles.commentButton}
+                    >
+                        <Messages1 size={dynamicStyles.iconSize} color="#fff" variant="Bold" />
                         <Text style={styles.commentButtonText}>{data.commentCount}</Text>
                     </Pressable>
-                    <Pressable disabled={isPostsVisible} onPress={onPressShareButton} style={styles.shareButton}>
-                        <Send2 size={dynamicStyles.iconSize - 4} color="#fff" variant='Bold' />
+
+                    <Pressable
+                        disabled={!isSomePostFocused}
+                        onPress={onPressShareButton}
+                        style={styles.shareButton}
+                    >
+                        <Send2 size={dynamicStyles.iconSize - 4} color="#fff" variant="Bold" />
                         <Text style={styles.shareButtonText}>{data.shareCount}</Text>
                     </Pressable>
                 </View>
 
+                {/* Right portion: save button */}
                 <RNBounceable style={styles.saveButton} onPress={handlePressSaveButton}>
-                    {
-                        isSaved ?
-                            <Svg xmlns="http://www.w3.org/2000/svg" width={dynamicStyles.iconSize} height={dynamicStyles.iconSize} viewBox="0 0 24 24" fill="#FDF764" stroke="#FDF764" strokeWidth={2.2} strokeLinecap='round' strokeLinejoin='round'>
-                                <Path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"></Path>
-                            </Svg>
-                            :
-                            <Svg xmlns="http://www.w3.org/2000/svg" width={dynamicStyles.iconSize} height={dynamicStyles.iconSize} viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth={2.2} strokeLinecap='round' strokeLinejoin='round'>
-                                <Path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"></Path>
-                            </Svg>
-                    }
+                    {isSaved ? (
+                        <Svg
+                            xmlns="http://www.w3.org/2000/svg"
+                            width={dynamicStyles.iconSize}
+                            height={dynamicStyles.iconSize}
+                            viewBox="0 0 24 24"
+                            fill="#FDF764"
+                            stroke="#FDF764"
+                            strokeWidth={2.2}
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                        >
+                            <Path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z" />
+                        </Svg>
+                    ) : (
+                        <Svg
+                            xmlns="http://www.w3.org/2000/svg"
+                            width={dynamicStyles.iconSize}
+                            height={dynamicStyles.iconSize}
+                            viewBox="0 0 24 24"
+                            fill="none"
+                            stroke="#fff"
+                            strokeWidth={2.2}
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                        >
+                            <Path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z" />
+                        </Svg>
+                    )}
                 </RNBounceable>
             </View>
 
-            <FooterBottom opacityAnim={opacityAnim} data={data} />
+            {/* Footer with animated comment text, user handle, etc. */}
+            <PostFooterInfoPanel opacityAnim={opacityAnim} data={data} />
         </View>
     );
 }
 
 const styles = StyleSheet.create({
-    mainContainer: {
-        position: 'relative',
-    },
+    mainContainer: { position: 'relative' },
     top: {
         flexDirection: 'row',
         justifyContent: 'space-between',
@@ -162,13 +168,8 @@ const styles = StyleSheet.create({
         left: 10,
         right: 13,
     },
-    left: {
-        flexDirection: 'row'
-    },
-    likeButton: {
-        borderRadius: 30,
-        overflow: 'hidden'
-    },
+    left: { flexDirection: 'row' },
+    likeButton: { borderRadius: 30, overflow: 'hidden' },
     likeButtonBlurView: {
         flexDirection: 'row',
         alignItems: 'center',

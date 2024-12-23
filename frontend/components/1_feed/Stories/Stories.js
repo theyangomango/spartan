@@ -1,40 +1,62 @@
-import React, { useEffect, useRef, useState } from 'react';
-import { FlatList, Modal, Pressable, StyleSheet, View, ActivityIndicator } from 'react-native';
-import FastImage from 'react-native-fast-image';
-import StoryHeaderButtons from "./StoryHeaderButtons";
-import Story from "./Story";
-import { BlurView } from 'expo-blur';
-import CreateStoryScreen from './CreateStoryScreen';
-import updateDoc from '../../../../backend/helper/firebase/updateDoc';
-import getFollowers from '../../../../backend/getFollowers';
-import getStoriesPrefixSums from '../../../helper/getStoriesPrefixSums'
-import sortStoriesDataByUserList from '../../../helper/sortStoriesDataByUserList'
+/**
+ * Handles user-created stories within the feed.
+ * Displays a list of stories, modals for viewing & creating, and updates Firestore.
+ * * Handles all the viewing stories logic
+ * Todo - story images loading, take down stories after 24 hrs
+ */
 
-const Stories = ({ data, userList, initStories, navigation }) => {
+import React, { useRef, useState } from "react";
+import {
+    ActivityIndicator,
+    FlatList,
+    Modal,
+    Pressable,
+    StyleSheet,
+    View
+} from "react-native";
+import FastImage from "react-native-fast-image";
+import { BlurView } from "expo-blur";
+
+import StoryHeaderButtons from "./StoryHeaderButtons";
+import StoryTile from "./StoryTile";
+import CreateStoryScreen from "./CreateStoryScreen";
+
+import updateDoc from "../../../../backend/helper/firebase/updateDoc";
+import getFollowers from "../../../../backend/getFollowers";
+import getStoriesPrefixSums from "../../../helper/getStoriesPrefixSums";
+import sortStoriesDataByUserList from "../../../helper/sortStoriesDataByUserList";
+
+export default function Stories({ data, userList, initStories, navigation }) {
+    // Manage modals & current story index
     const [viewModalVisible, setViewModal] = useState(false);
     const [createModalVisible, setCreateModal] = useState(false);
     const [currentIndex, setCurrentIndex] = useState(null);
+
+    // Keep track of viewed stories
     const viewedStories = useRef([]);
 
+    // Precompute sums & sorted data for story sections
     const storiesPrefixSums = getStoriesPrefixSums(userList);
     const storiesData = sortStoriesDataByUserList(data, userList);
 
-    const postStoryToFeeds = async (sid) => {
+    // Add a new story (sid) to the user's feed and propagate to followers.
+    async function postStoryToFeeds(sid) {
+        // Update current user's feed
         const updatedUserList = [...userList];
         updatedUserList[0].stories.push(sid);
+        await updateDoc("users", global.userData.uid, { feedStories: updatedUserList });
+        initStories(); // Refresh user’s feed
 
-        await updateDoc('users', global.userData.uid, { feedStories: updatedUserList });
-        initStories();
-
+        // Update followers' feeds
         const followers = await getFollowers(global.userData.followers);
-        for (const follower of followers) {
-            const newFeedStories = [...follower.feedStories];
-            const userIndex = newFeedStories.findIndex(story => story.uid === global.userData.uid);
+        for (const f of followers) {
+            const newFeed = [...f.feedStories];
+            const idx = newFeed.findIndex(st => st.uid === global.userData.uid);
 
-            if (userIndex !== -1) {
-                newFeedStories[userIndex].stories.push(sid);
+            if (idx !== -1) {
+                newFeed[idx].stories.push(sid);
             } else {
-                newFeedStories.push({
+                newFeed.push({
                     name: global.userData.name,
                     uid: global.userData.uid,
                     handle: global.userData.handle,
@@ -42,67 +64,77 @@ const Stories = ({ data, userList, initStories, navigation }) => {
                     stories: [sid]
                 });
             }
-
-            await updateDoc('users', follower.uid, { feedStories: newFeedStories });
+            await updateDoc("users", f.uid, { feedStories: newFeed });
         }
-    };
+    }
 
-    const handleStoryNavigation = (direction) => {
+    // Navigate to next/previous story; close if out of range.
+    function handleStoryNavigation(direction) {
         const newIndex = currentIndex + direction;
         if (newIndex >= 0 && newIndex < storiesData.length) {
             setCurrentIndex(newIndex);
-            viewedStories.current = [...viewedStories.current, storiesData[newIndex].sid];
+            viewedStories.current.push(storiesData[newIndex].sid);
         } else {
             setViewModal(false);
             setCurrentIndex(null);
         }
-    };
+    }
 
-    const handlePress = (index) => {
+    // Open the story at index; skip already viewed sections.
+    function handlePress(index) {
         const storyIndex = index === 0 ? 0 : storiesPrefixSums[index - 1];
-        const sectionIndex = storiesPrefixSums.findIndex(sum => storyIndex < sum);
-        const sectionStartIndex = sectionIndex === 0 ? 0 : storiesPrefixSums[sectionIndex - 1];
-        const sectionEndIndex = storiesPrefixSums[sectionIndex] - 1;
+        const sectionIndex = storiesPrefixSums.findIndex(s => storyIndex < s);
+        const sectionStart = sectionIndex === 0 ? 0 : storiesPrefixSums[sectionIndex - 1];
+        const sectionEnd = storiesPrefixSums[sectionIndex] - 1;
 
-        const allViewed = storiesData.slice(sectionStartIndex, sectionEndIndex + 1).every(story =>
-            viewedStories.current.includes(story.sid)
-        );
+        // Check if entire section is viewed
+        const allViewed = storiesData
+            .slice(sectionStart, sectionEnd + 1)
+            .every(st => viewedStories.current.includes(st.sid));
 
         if (allViewed) {
-            setCurrentIndex(sectionStartIndex);
+            setCurrentIndex(sectionStart); // If all viewed, start at beginning
         } else {
             let nextUnviewed = index;
-            while (nextUnviewed <= sectionEndIndex && viewedStories.current.includes(storiesData[nextUnviewed].sid)) {
+            while (
+                nextUnviewed <= sectionEnd &&
+                viewedStories.current.includes(storiesData[nextUnviewed].sid)
+            ) {
                 nextUnviewed++;
             }
-            setCurrentIndex(nextUnviewed <= sectionEndIndex ? nextUnviewed : null);
+            setCurrentIndex(nextUnviewed <= sectionEnd ? nextUnviewed : null);
         }
-
         if (currentIndex !== null) setViewModal(true);
-    };
+    }
 
-    const renderItem = ({ item, index }) => (
-        <Story
-            data={item}
-            index={index}
-            isViewed={item.stories.every(sid => viewedStories.current.includes(sid))}
-            handlePressCreateButton={() => setCreateModal(true)}
-            handlePress={() => handlePress(index)}
-        />
-    );
+    // Render each Story thumbnail in a horizontal list.
+    function renderItem({ item, index }) {
+        const isViewed = item.stories.every(sid => viewedStories.current.includes(sid));
+        return (
+            <StoryTile
+                data={item}
+                index={index}
+                isViewed={isViewed}
+                handlePressCreateButton={() => setCreateModal(true)}
+                handlePress={() => handlePress(index)}
+            />
+        );
+    }
 
     return (
         <View style={styles.storiesContainer}>
+            {/* Horizontal list of user stories */}
             <FlatList
                 data={userList}
                 renderItem={renderItem}
-                keyExtractor={(item, index) => index.toString()}
+                keyExtractor={(_, idx) => idx.toString()}
                 horizontal
                 contentContainerStyle={styles.flatlistContent}
                 style={styles.flatlist}
             />
 
-            {(currentIndex !== null) && (
+            {/* Fullscreen Story Modal */}
+            {currentIndex !== null && (
                 <Modal
                     animationType="fade"
                     transparent={false}
@@ -129,78 +161,74 @@ const Stories = ({ data, userList, initStories, navigation }) => {
                         stories={storiesData}
                         userList={userList}
                         index={currentIndex}
-                        toViewProfile={(profileIndex) => {
+                        toViewProfile={pi => {
                             setViewModal(false);
-                            navigation.navigate('ViewProfile', { user: storiesData[profileIndex] });
+                            navigation.navigate("ViewProfile", { user: storiesData[pi] });
                         }}
                     />
                 </Modal>
             )}
 
+            {/* Create Story Modal */}
             <Modal
-                animationType='slide'
-                transparent={true}
+                animationType="slide"
+                transparent
                 visible={createModalVisible}
             >
-                <CreateStoryScreen closeModal={() => setCreateModal(false)} postStoryToFeeds={postStoryToFeeds} />
+                <CreateStoryScreen
+                    closeModal={() => setCreateModal(false)}
+                    postStoryToFeeds={postStoryToFeeds}
+                />
             </Modal>
         </View>
     );
-};
-
-export default Stories;
+}
 
 const styles = StyleSheet.create({
     storiesContainer: {
-        backgroundColor: '#fff',
+        backgroundColor: "#fff",
         paddingTop: 6,
         paddingBottom: 5,
     },
-    flatlist: {
-        paddingLeft: 15,
-    },
-    flatlistContent: {
-        flexDirection: 'row',
-    },
-    modalContainer: {
-        flex: 1,
-    },
+    flatlist: { paddingLeft: 15 },
+    flatlistContent: { flexDirection: "row" },
+    modalContainer: { flex: 1 },
     blurview: {
-        position: 'absolute',
+        position: "absolute",
         top: 0,
         left: 0,
-        width: '100%',
+        width: "100%",
         height: 85,
         zIndex: 1,
     },
     modalContent: {
         flex: 1,
-        justifyContent: 'center',
-        alignItems: 'center',
+        justifyContent: "center",
+        alignItems: "center",
     },
     fullScreenImage: {
-        width: '100%',
-        height: '100%',
+        width: "100%",
+        height: "100%",
     },
     screenLeft: {
-        position: 'absolute',
+        position: "absolute",
         top: 100,
         left: 0,
-        height: '100%',
-        width: '25%',
+        height: "100%",
+        width: "25%",
     },
     screenCenter: {
-        position: 'absolute',
+        position: "absolute",
         top: 100,
-        left: '25%',
-        width: '50%',
-        height: '100%',
+        left: "25%",
+        width: "50%",
+        height: "100%",
     },
     screenRight: {
-        position: 'absolute',
+        position: "absolute",
         top: 100,
         right: 0,
-        height: '100%',
-        width: '25%',
+        height: "100%",
+        width: "25%",
     },
 });

@@ -1,7 +1,13 @@
+/**
+ * Displays additional information about the post
+ * Shows "Liked by..." or the post's caption if not liked by any friends
+ * * No user interactivity
+ */
+
 import React from 'react';
 import { View, Text, StyleSheet, Image, Animated } from 'react-native';
 
-const FooterBottom = ({ data, opacityAnim }) => {
+const PostFooterInfoPanel = ({ data, opacityAnim }) => {
     // Filter the likes to find those who are also in the user's following list
     const filteredLikes = data.likes.filter(like =>
         global.userData.following.some(following => following.uid === like.uid)
@@ -78,4 +84,4 @@ const styles = StyleSheet.create({
     },
 });
 
-export default FooterBottom;
+export default PostFooterInfoPanel;

@@ -6,52 +6,16 @@ import CommentsModal from "./CommentsModal";
 import incrementDocValue from "../../../../backend/helper/firebase/incrementDocValue";
 import updateDoc from "../../../../backend/helper/firebase/updateDoc";
 import sendNotification from "../../../../backend/sendNotification";
+import { getCommentsBottomSheetStyles } from "../../../helper/getCommentsBottomSheetStyles";
 
-const { width, height } = Dimensions.get('screen');
-
-const getDynamicStyles = () => {
-    if (width >= 430 && height >= 932) { // iPhone 14 Pro Max and similar
-        return {
-            inputFontSize: 15,
-            inputPaddingVertical: 8,
-            inputHeight: 55,
-            pfpSize: 40,
-            sendButtonSize: 19,
-        };
-    } else if (width >= 390 && height >= 844) { // iPhone 13/14 and similar
-        return {
-            inputFontSize: 14,
-            inputPaddingVertical: 7,
-            inputHeight: 52,
-            pfpSize: 37,
-            sendButtonSize: 18,
-        };
-    } else if (width >= 375 && height >= 812) { // iPhone X/XS/11 Pro and similar
-        return {
-            inputFontSize: 13.5,
-            inputPaddingVertical: 7,
-            inputHeight: 50,
-            pfpSize: 35,
-            sendButtonSize: 17.5,
-        };
-    } else { // Smaller iPhone models (like iPhone SE)
-        return {
-            inputFontSize: 13,
-            inputPaddingVertical: 6,
-            inputHeight: 48,
-            pfpSize: 33,
-            sendButtonSize: 17,
-        };
-    }
-};
-
-const dynamicStyles = getDynamicStyles();
+const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('screen');
+const dynamicStyles = getCommentsBottomSheetStyles(SCREEN_WIDTH, SCREEN_HEIGHT);
 
 const CommentsBottomSheet = ({ isVisible, postData, commentsBottomSheetExpandFlag, toViewProfile }) => {
     const [isInputFocused, setIsInputFocused] = useState(false);
     const bottomSheetRef = useRef(null);
     const footerTranslateY = useRef(new Animated.Value(0)).current;
-    const snapPoints = useMemo(() => ["36%", "92%"], []);
+    const snapPoints = useMemo(() => ["35.5%", "92%"], []);
     const [isSheetExpanded, setIsSheetExpanded] = useState(false);
     const [inputText, setInputText] = useState('');
     const [replyingToIndex, setReplyingToIndex] = useState(null);
@@ -226,9 +190,9 @@ const styles = StyleSheet.create({
     },
     footer: {
         position: 'absolute',
-        top: height - 180,
-        height: 95 + width / 2,
-        paddingBottom: width / 2,
+        top: SCREEN_HEIGHT - 180,
+        height: 95 + SCREEN_WIDTH / 2,
+        paddingBottom: SCREEN_WIDTH / 2,
         backgroundColor: '#fff',
         width: '100%',
         borderRadius: 40

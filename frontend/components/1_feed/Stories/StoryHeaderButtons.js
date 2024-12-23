@@ -1,47 +1,56 @@
+/**
+ * Displays header (pfp, handle) for a story, with a "like" button and progress dash indicators.
+ * Pressing on the pfp/handle redirects to the creator's Profile
+ */
+
 import { Pressable, StyleSheet, Text, View } from "react-native";
 import { Heart } from 'iconsax-react-native';
 import { useEffect, useState } from "react";
 import FastImage from 'react-native-fast-image';
 import getStoriesPrefixSums from '../../../helper/getStoriesPrefixSums'
+import { likeStory } from './../../../../backend/stories/likeStory'
+import { unlikeStory } from './../../../../backend/stories/unlikeStory'
 
 export default function StoryHeaderButtons({ stories, userList, index, toViewProfile }) {
+    // Track whether the user has liked the current story
     const [isLiked, setIsLiked] = useState(stories[index].likedUsers.includes(global.userData.uid));
+
     const prefixSum = getStoriesPrefixSums(userList);
 
-    const getUserIndexForStory = (storyIndex) => {
+    // Find the user index for this story within userList
+    function getUserIndexForStory(storyIndex) {
         for (let i = 0; i < prefixSum.length; i++) {
-            if (storyIndex < prefixSum[i]) {
-                return i; 
-            }
+            if (storyIndex < prefixSum[i]) return i;
         }
         return -1;
-    };
+    }
 
     const userIndex = getUserIndexForStory(index);
-    const numOfStories = userList[userIndex].stories.length; 
-    const storyStartIndex = prefixSum[userIndex] - userList[userIndex].stories.length;
+    const numOfStories = userList[userIndex].stories.length;
+    const storyStartIndex = prefixSum[userIndex] - numOfStories;
     const relativeStoryIndex = index - storyStartIndex;
 
+    // Update the local `isLiked` state whenever the story index changes
     useEffect(() => {
         setIsLiked(stories[index].likedUsers.includes(global.userData.uid));
     }, [index]);
 
-    const handlePressLikeButton = () => {
+    // Toggle like status in local state + call appropriate backend functions
+    function handlePressLikeButton() {
         if (!isLiked) {
             likeStory(stories[index].sid, global.userData.uid);
             stories[index].likedUsers.push(global.userData.uid);
         } else {
             unlikeStory(stories[index].sid, global.userData.uid);
             const i = stories[index].likedUsers.indexOf(global.userData.uid);
-            if (i > -1) {
-                stories[index].likedUsers.splice(i, 1);
-            }
+            if (i > -1) stories[index].likedUsers.splice(i, 1);
         }
         setIsLiked(!isLiked);
-    };
+    }
 
     return (
-        <View style={styles.main_ctnr}>
+        <View style={styles.mainContainer}>
+            {/* Left side: pfp + handle */}
             <Pressable onPress={() => toViewProfile(index)} style={styles.left}>
                 <FastImage
                     key={stories[index].sid}
@@ -49,9 +58,10 @@ export default function StoryHeaderButtons({ stories, userList, index, toViewPro
                     style={styles.pfp}
                     resizeMode={FastImage.resizeMode.cover}
                 />
-                <Text style={styles.handle_text}>{stories[index].handle}</Text>
+                <Text style={styles.handleText}>{stories[index].handle}</Text>
             </Pressable>
 
+            {/* Right side: dash indicators + like button */}
             <View style={styles.right}>
                 <View style={styles.dashContainer}>
                     {Array(numOfStories).fill(null).map((_, i) => (
@@ -64,60 +74,63 @@ export default function StoryHeaderButtons({ stories, userList, index, toViewPro
                         />
                     ))}
                 </View>
+
                 <Pressable onPress={handlePressLikeButton}>
-                    {isLiked ?
-                        <Heart size={23} color="#FF8A65" variant="Bold" /> :
+                    {isLiked ? (
+                        <Heart size={23} color="#FF8A65" variant="Bold" />
+                    ) : (
                         <Heart size={23} color="#FF8A65" />
-                    }
+                    )}
                 </Pressable>
             </View>
         </View>
     );
 }
 
+// Styles
 const styles = StyleSheet.create({
-    main_ctnr: {
-        flexDirection: 'row',
-        width: '100%',
-        justifyContent: 'space-between',
+    mainContainer: {
+        flexDirection: "row",
+        width: "100%",
+        justifyContent: "space-between",
         paddingHorizontal: 20,
         paddingTop: 50,
-        position: 'absolute',
+        position: "absolute",
         zIndex: 999
     },
     left: {
-        flexDirection: 'row',
-        alignItems: 'center'
+        flexDirection: "row",
+        alignItems: "center"
     },
     pfp: {
         width: 32,
         aspectRatio: 1,
-        borderRadius: 22,
+        borderRadius: 22
     },
-    handle_text: {
-        color: '#fff',
+    handleText: {
+        color: "#fff",
         padding: 8,
         fontSize: 16,
-        fontFamily: 'SourceSansPro_600SemiBold'
+        fontFamily: "SourceSansPro_600SemiBold"
     },
     right: {
-        flexDirection: 'row',
-        alignItems: 'center'
+        flexDirection: "row",
+        alignItems: "center"
     },
     dashContainer: {
-        flexDirection: 'row',
+        flexDirection: "row",
         marginRight: 10
     },
     dash: {
-        width: 33, 
-        height: 3.5, 
-        borderRadius: 50, 
-        marginHorizontal: 2.5  
+        width: 33,
+        height: 3.5,
+        borderRadius: 50,
+        marginHorizontal: 2.5
     },
     activeDash: {
-        backgroundColor: '#ffffff'
+        backgroundColor: "#fff"
     },
     inactiveDash: {
-        backgroundColor: '#bbb'
+        backgroundColor: "#bbb"
     }
 });

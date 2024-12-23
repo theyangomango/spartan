@@ -1,57 +1,11 @@
-import React, { useEffect, useState } from 'react';
+import React, { useState } from 'react';
 import { View, Text, StyleSheet, Pressable, Image, Dimensions } from 'react-native';
 import Svg, { Path } from "react-native-svg";
 import RNBounceable from '@freakycoder/react-native-bounceable';
-import getPFP from '../../../../backend/storage/getPFP';
+import { getCommentCardStyles } from '../../../helper/getCommentCardStyles';
 
-const { width, height } = Dimensions.get("window");
-
-// Function to determine the styles based on screen size
-const getDynamicStyles = () => {
-    if (width >= 430 && height >= 932) { // iPhone 14 Pro Max and similar
-        return {
-            pfpSize: 42,
-            fontSize: 15,
-            replyButtonWidth: 80,
-            heartIconSize: 20,
-            likeCountFontSize: 11,
-            likeCountBottom: -3.5,
-            replyFontSize: 13,
-        };
-    } else if (width >= 390 && height >= 844) { // iPhone 13/14 and similar
-        return {
-            pfpSize: 38,
-            fontSize: 14,
-            replyButtonWidth: 75,
-            heartIconSize: 18.5,
-            likeCountFontSize: 10,
-            likeCountBottom: -3,
-            replyFontSize: 12.5,
-        };
-    } else if (width >= 375 && height >= 812) { // iPhone X/XS/11 Pro and similar
-        return {
-            pfpSize: 36,
-            fontSize: 13.5,
-            replyButtonWidth: 72,
-            heartIconSize: 18,
-            likeCountFontSize: 9.5,
-            likeCountBottom: -2.5,
-            replyFontSize: 12,
-        };
-    } else { // Smaller iPhone models (like iPhone SE)
-        return {
-            pfpSize: 34,
-            fontSize: 13,
-            replyButtonWidth: 70,
-            heartIconSize: 17.5,
-            likeCountFontSize: 9,
-            likeCountBottom: -2,
-            replyFontSize: 11.5,
-        };
-    }
-};
-
-const dynamicStyles = getDynamicStyles();
+const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get("window");
+const dynamicStyles = getCommentCardStyles(SCREEN_WIDTH, SCREEN_HEIGHT);
 
 export default function CommentCard({ data, likeComment, unlikeComment, index, setReplyingToIndex, isReply, replyIndex, toViewProfile }) {
     const [isLiked, setIsLiked] = useState(data.isCaption ? false : data.likedUsers.includes(global.userData.uid));

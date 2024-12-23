@@ -1,81 +1,50 @@
-import React from 'react';
-import { View, Text, StyleSheet, ScrollView, Dimensions } from 'react-native';
-import RNBounceable from '@freakycoder/react-native-bounceable';
+/**
+ * Top Button Row across the Notifications Modal
+ * Contains "All Activity", "Likes", "Comments", "Mensions" as filters
+ */
 
-const { width, height } = Dimensions.get('window');
-
-// Function to determine the styles based on screen size
-const getDynamicStyles = () => {
-    if (width >= 430 && height >= 932) { // iPhone 14 Pro Max and similar
-        return {
-            buttonPaddingVertical: 15,
-            buttonPaddingHorizontal: 22,
-            buttonFontSize: 14,
-            badgePaddingHorizontal: 9,
-            badgePaddingVertical: 6,
-            badgeFontSize: 11,
-        };
-    } else if (width >= 390 && height >= 844) { // iPhone 13/14 and similar
-        return {
-            buttonPaddingVertical: 14,
-            buttonPaddingHorizontal: 20,
-            buttonFontSize: 13,
-            badgePaddingHorizontal: 8,
-            badgePaddingVertical: 5,
-            badgeFontSize: 10,
-        };
-    } else if (width >= 375 && height >= 812) { // iPhone X/XS/11 Pro and similar
-        return {
-            buttonPaddingVertical: 13.5,
-            buttonPaddingHorizontal: 19,
-            buttonFontSize: 12.5,
-            badgePaddingHorizontal: 7,
-            badgePaddingVertical: 5,
-            badgeFontSize: 10,
-        };
-    } else { // Smaller iPhone models (like iPhone SE)
-        return {
-            buttonPaddingVertical: 13,
-            buttonPaddingHorizontal: 18,
-            buttonFontSize: 12,
-            badgePaddingHorizontal: 7,
-            badgePaddingVertical: 5,
-            badgeFontSize: 9.5,
-        };
-    }
-};
-
-const dynamicStyles = getDynamicStyles();
+import React from "react";
+import { View, Text, StyleSheet, ScrollView } from "react-native";
+import RNBounceable from "@freakycoder/react-native-bounceable";
+import scaleSize from "../../../helper/scaleSize";
 
 export default function ButtonRow({ buttons, selectedButton, setSelectedButton, newLikes, newComments }) {
     return (
         <View style={styles.buttonRowContainer}>
-            <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.buttonRow}>
+            <ScrollView
+                horizontal
+                showsHorizontalScrollIndicator={false}
+                contentContainerStyle={styles.buttonRow}
+            >
                 {buttons.map((button) => (
                     <RNBounceable
                         key={button}
                         style={[
                             styles.button,
-                            selectedButton === button && styles.selectedButton
+                            selectedButton === button && styles.selectedButton,
                         ]}
                         onPress={() => setSelectedButton(button)}
                     >
                         <Text
                             style={[
                                 styles.buttonText,
-                                selectedButton === button && styles.selectedButtonText
+                                selectedButton === button && styles.selectedButtonText,
                             ]}
                         >
                             {button}
                         </Text>
-                        {(button === 'Likes' && newLikes > 0) && (
+
+                        {/* Badge for new 'Likes' */}
+                        {button === "Likes" && newLikes > 0 && (
                             <View style={styles.badgeContainer}>
                                 <View style={styles.badge}>
                                     <Text style={styles.badgeText}>{newLikes}</Text>
                                 </View>
                             </View>
                         )}
-                        {(button === 'Comments' && newComments > 0) && (
+
+                        {/* Badge for new 'Comments' */}
+                        {button === "Comments" && newComments > 0 && (
                             <View style={styles.badgeContainer}>
                                 <View style={styles.badge}>
                                     <Text style={styles.badgeText}>{newComments}</Text>
@@ -89,49 +58,50 @@ export default function ButtonRow({ buttons, selectedButton, setSelectedButton, 
     );
 }
 
+// 2. Convert your dimension logic to scaleSize
 const styles = StyleSheet.create({
     buttonRowContainer: {},
     buttonRow: {
-        paddingTop: 30,
-        paddingBottom: 9,
-        alignItems: 'center',
-        paddingHorizontal: 15,
+        paddingTop: scaleSize(30),
+        paddingBottom: scaleSize(9),
+        alignItems: "center",
+        paddingHorizontal: scaleSize(15),
     },
     button: {
-        backgroundColor: '#f3f3f3',
-        paddingVertical: dynamicStyles.buttonPaddingVertical,
-        paddingHorizontal: dynamicStyles.buttonPaddingHorizontal,
-        borderRadius: 20,
-        marginRight: 8,
-        position: 'relative', // Needed to position the badge
+        backgroundColor: "#f3f3f3",
+        paddingVertical: scaleSize(14),
+        paddingHorizontal: scaleSize(20),
+        borderRadius: scaleSize(20),
+        marginRight: scaleSize(8),
+        position: "relative",
     },
     selectedButton: {
-        backgroundColor: '#000',
+        backgroundColor: "#000",
     },
     buttonText: {
-        color: '#000',
-        fontSize: dynamicStyles.buttonFontSize,
-        fontFamily: 'Outfit_600SemiBold',
+        color: "#000",
+        fontSize: scaleSize(13),
+        fontFamily: "Outfit_600SemiBold",
     },
     selectedButtonText: {
-        color: '#fff',
+        color: "#fff",
     },
     badgeContainer: {
-        position: 'absolute',
-        alignItems: 'center',
+        position: "absolute",
+        alignItems: "center",
         left: 0,
         right: 0,
-        top: -12,
+        top: scaleSize(-12),
     },
     badge: {
-        backgroundColor: '#FF387E',
-        borderRadius: 10,
-        paddingHorizontal: dynamicStyles.badgePaddingHorizontal,
-        paddingVertical: dynamicStyles.badgePaddingVertical,
+        backgroundColor: "#FF387E",
+        borderRadius: scaleSize(10),
+        paddingHorizontal: scaleSize(8),
+        paddingVertical: scaleSize(5),
     },
     badgeText: {
-        color: 'white',
-        fontSize: dynamicStyles.badgeFontSize,
-        fontFamily: 'Outfit_600SemiBold',
+        color: "#fff",
+        fontSize: scaleSize(10),
+        fontFamily: "Outfit_600SemiBold",
     },
 });

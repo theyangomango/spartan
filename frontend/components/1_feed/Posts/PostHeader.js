@@ -1,20 +1,14 @@
+/**
+ * Displays post creator's pfp/handle. Pressing on it redirects to that user's profile
+ * Displays link to post's workout (if applicable)
+ * Displays image navigation bars (if multiple images)
+ */
+
 import React from 'react';
 import { View, Text, Image, StyleSheet, Pressable, Dimensions, TouchableOpacity } from 'react-native';
 import { BlurView } from 'expo-blur';
 import formatDate from '../../../helper/formatDate';
-
-const { width, height } = Dimensions.get("window");
-
-const BASE_WIDTH = 390;  // Reference width (e.g., iPhone 14)
-const BASE_HEIGHT = 844; // Reference height (e.g., iPhone 14)
-
-// Scaled size function based on the reference device size
-const scaledSize = (size) => {
-    const scaleWidth = width / BASE_WIDTH;
-    const scaleHeight = height / BASE_HEIGHT;
-    const scale = Math.min(scaleWidth, scaleHeight); // Maintain aspect ratio
-    return Math.round(size * scale);
-};
+import scaleSize from '../../../helper/scaleSize';
 
 export default function PostHeader({ data, url, position, totalImages, toViewProfile, openViewWorkout }) {
     return (
@@ -66,16 +60,16 @@ const styles = StyleSheet.create({
         top: 0,
         left: 0,
         right: 0,
-        borderTopLeftRadius: scaledSize(40),
-        borderTopRightRadius: scaledSize(40),
+        borderTopLeftRadius: scaleSize(40),
+        borderTopRightRadius: scaleSize(40),
         overflow: 'hidden'
     },
     main_ctnr: {
         backgroundColor: 'rgba(37,42,54,0.1)',
-        paddingTop: scaledSize(14),
-        paddingBottom: scaledSize(9),
-        paddingLeft: scaledSize(22),
-        paddingRight: scaledSize(13),
+        paddingTop: scaleSize(14),
+        paddingBottom: scaleSize(9),
+        paddingLeft: scaleSize(22),
+        paddingRight: scaleSize(13),
         flexDirection: 'row',
         justifyContent: 'space-between',
     },
@@ -84,26 +78,26 @@ const styles = StyleSheet.create({
         alignItems: 'center',
     },
     pfp_ctnr: {
-        width: scaledSize(42.5),
+        width: scaleSize(42.5),
         aspectRatio: 1,
-        marginRight: scaledSize(5),
+        marginRight: scaleSize(5),
     },
     pfp: {
         flex: 1,
-        borderRadius: scaledSize(43.5) / 2,
+        borderRadius: scaleSize(43.5) / 2,
     },
     text_ctnr: {
-        padding: scaledSize(4),
+        padding: scaleSize(4),
         justifyContent: 'center'
     },
     handle_text: {
-        fontSize: scaledSize(12.5),
-        paddingBottom: scaledSize(2),
+        fontSize: scaleSize(12.5),
+        paddingBottom: scaleSize(2),
         fontFamily: 'Poppins_600SemiBold',
         color: '#fff'
     },
     date_text: {
-        fontSize: scaledSize(11),  // Make it smaller than the handle text
+        fontSize: scaleSize(11),  // Make it smaller than the handle text
         color: '#7EB9F2',  // Blue color
         fontFamily: 'Poppins_700Bold',
     },
@@ -114,21 +108,21 @@ const styles = StyleSheet.create({
     dotsContainer: {
         flexDirection: 'row',
         alignItems: 'center',
-        marginRight: scaledSize(10),
+        marginRight: scaleSize(10),
     },
     dot: {
-        width: scaledSize(9),
-        height: scaledSize(5),
-        borderRadius: scaledSize(5) / 2,
+        width: scaleSize(9),
+        height: scaleSize(5),
+        borderRadius: scaleSize(5) / 2,
         backgroundColor: '#fff',
         opacity: 0.5,
-        marginHorizontal: scaledSize(3.5),
+        marginHorizontal: scaleSize(3.5),
     },
     dash: {
-        width: scaledSize(21),
-        height: scaledSize(5),
-        borderRadius: scaledSize(5) / 2,
+        width: scaleSize(21),
+        height: scaleSize(5),
+        borderRadius: scaleSize(5) / 2,
         backgroundColor: '#fff',
-        marginHorizontal: scaledSize(3.5),
+        marginHorizontal: scaleSize(3.5),
     },
 });
