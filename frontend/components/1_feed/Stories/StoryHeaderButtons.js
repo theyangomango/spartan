@@ -122,9 +122,9 @@ const styles = StyleSheet.create({
         marginRight: 10
     },
     dash: {
-        width: 33,
-        height: 3.5,
-        borderRadius: 50,
+        width: 42,
+        height: 4.,
+        borderRadius: 90,
         marginHorizontal: 2.5
     },
     activeDash: {

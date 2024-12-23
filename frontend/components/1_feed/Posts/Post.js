@@ -34,8 +34,6 @@ const Post = ({
     toViewProfile,
     openViewWorkoutModal
 }) => {
-    console.log({ index, isFocused, isSomePostFocused });
-
     const { pfp, images } = data;
     const [position, setPosition] = useState(0);
     const opacity = useRef(new Animated.Value(1)).current;

@@ -1,25 +1,21 @@
 /**
  * Handles user-created stories within the feed.
  * Displays a list of stories, modals for viewing & creating, and updates Firestore.
- * * Handles all the viewing stories logic
- * Todo - story images loading, take down stories after 24 hrs
+ * Handles the logic for directing/navigating the user through stories
+ * * Stories are rendered using FullStoryModal
  */
 
 import React, { useRef, useState } from "react";
 import {
-    ActivityIndicator,
     FlatList,
     Modal,
-    Pressable,
     StyleSheet,
     View
 } from "react-native";
-import FastImage from "react-native-fast-image";
-import { BlurView } from "expo-blur";
 
-import StoryHeaderButtons from "./StoryHeaderButtons";
 import StoryTile from "./StoryTile";
 import CreateStoryScreen from "./CreateStoryScreen";
+import FullStoryModal from "./FullStoryModal";
 
 import updateDoc from "../../../../backend/helper/firebase/updateDoc";
 import getFollowers from "../../../../backend/getFollowers";
@@ -82,6 +78,8 @@ export default function Stories({ data, userList, initStories, navigation }) {
 
     // Open the story at index; skip already viewed sections.
     function handlePress(index) {
+        console.log("handle press", index);
+
         const storyIndex = index === 0 ? 0 : storiesPrefixSums[index - 1];
         const sectionIndex = storiesPrefixSums.findIndex(s => storyIndex < s);
         const sectionStart = sectionIndex === 0 ? 0 : storiesPrefixSums[sectionIndex - 1];
@@ -92,19 +90,28 @@ export default function Stories({ data, userList, initStories, navigation }) {
             .slice(sectionStart, sectionEnd + 1)
             .every(st => viewedStories.current.includes(st.sid));
 
+        let renderedIndex;
         if (allViewed) {
-            setCurrentIndex(sectionStart); // If all viewed, start at beginning
+            // If all viewed, start at beginning of that section
+            renderedIndex = sectionStart;
         } else {
-            let nextUnviewed = index;
+            // Otherwise, jump to the next unviewed story
+            let temp = index;
             while (
-                nextUnviewed <= sectionEnd &&
-                viewedStories.current.includes(storiesData[nextUnviewed].sid)
+                temp <= sectionEnd &&
+                viewedStories.current.includes(storiesData[temp].sid)
             ) {
-                nextUnviewed++;
+                temp++;
             }
-            setCurrentIndex(nextUnviewed <= sectionEnd ? nextUnviewed : null);
+            renderedIndex = temp <= sectionEnd ? temp : null;
         }
-        if (currentIndex !== null) setViewModal(true);
+
+        // Only open the modal if `renderedIndex` is valid
+        if (renderedIndex !== null) {
+            setCurrentIndex(renderedIndex);
+            setViewModal(true);
+            viewedStories.current.push(storiesData[renderedIndex].sid);
+        }
     }
 
     // Render each Story thumbnail in a horizontal list.
@@ -133,41 +140,18 @@ export default function Stories({ data, userList, initStories, navigation }) {
                 style={styles.flatlist}
             />
 
-            {/* Fullscreen Story Modal */}
-            {currentIndex !== null && (
-                <Modal
-                    animationType="fade"
-                    transparent={false}
-                    visible={viewModalVisible}
-                    onRequestClose={() => setViewModal(false)}
-                >
-                    <View style={styles.modalContainer}>
-                        <View style={styles.modalContent}>
-                            <FastImage
-                                key={storiesData[currentIndex].sid}
-                                source={{ uri: storiesData[currentIndex].image }}
-                                style={styles.fullScreenImage}
-                                resizeMode={FastImage.resizeMode.cover}
-                                placeholder={<ActivityIndicator />}
-                            />
-                        </View>
-                        <Pressable onPress={() => handleStoryNavigation(-1)} style={styles.screenLeft} />
-                        <Pressable onPress={() => setViewModal(false)} style={styles.screenCenter} />
-                        <Pressable onPress={() => handleStoryNavigation(1)} style={styles.screenRight} />
-                    </View>
-
-                    <BlurView intensity={5} style={styles.blurview} />
-                    <StoryHeaderButtons
-                        stories={storiesData}
-                        userList={userList}
-                        index={currentIndex}
-                        toViewProfile={pi => {
-                            setViewModal(false);
-                            navigation.navigate("ViewProfile", { user: storiesData[pi] });
-                        }}
-                    />
-                </Modal>
-            )}
+            <FullStoryModal
+                isVisible={viewModalVisible}
+                onClose={() => {
+                    setViewModal(false);
+                    setCurrentIndex(null);
+                }}
+                currentIndex={currentIndex}
+                storiesData={storiesData}
+                userList={userList}
+                handleStoryNavigation={handleStoryNavigation}
+                navigation={navigation}
+            />
 
             {/* Create Story Modal */}
             <Modal
@@ -190,45 +174,10 @@ const styles = StyleSheet.create({
         paddingTop: 6,
         paddingBottom: 5,
     },
-    flatlist: { paddingLeft: 15 },
-    flatlistContent: { flexDirection: "row" },
-    modalContainer: { flex: 1 },
-    blurview: {
-        position: "absolute",
-        top: 0,
-        left: 0,
-        width: "100%",
-        height: 85,
-        zIndex: 1,
+    flatlist: {
+        paddingLeft: 15
     },
-    modalContent: {
-        flex: 1,
-        justifyContent: "center",
-        alignItems: "center",
-    },
-    fullScreenImage: {
-        width: "100%",
-        height: "100%",
-    },
-    screenLeft: {
-        position: "absolute",
-        top: 100,
-        left: 0,
-        height: "100%",
-        width: "25%",
-    },
-    screenCenter: {
-        position: "absolute",
-        top: 100,
-        left: "25%",
-        width: "50%",
-        height: "100%",
-    },
-    screenRight: {
-        position: "absolute",
-        top: 100,
-        right: 0,
-        height: "100%",
-        width: "25%",
+    flatlistContent: {
+        flexDirection: "row"
     },
 });
