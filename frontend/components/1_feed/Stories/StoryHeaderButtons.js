@@ -3,17 +3,20 @@
  * Pressing on the pfp/handle redirects to the creator's Profile
  */
 
-import { Pressable, StyleSheet, Text, View } from "react-native";
+import { Pressable, StatusBar, StyleSheet, Text, View } from "react-native";
 import { Heart } from 'iconsax-react-native';
 import { useEffect, useState } from "react";
 import FastImage from 'react-native-fast-image';
 import getStoriesPrefixSums from '../../../helper/getStoriesPrefixSums'
 import { likeStory } from './../../../../backend/stories/likeStory'
 import { unlikeStory } from './../../../../backend/stories/unlikeStory'
+import scaleSize from "../../../helper/scaleSize";
 
 export default function StoryHeaderButtons({ stories, userList, index, toViewProfile }) {
     // Track whether the user has liked the current story
-    const [isLiked, setIsLiked] = useState(stories[index].likedUsers.includes(global.userData.uid));
+    const [isLiked, setIsLiked] = useState(
+        stories[index].likedUsers.includes(global.userData.uid)
+    );
 
     const prefixSum = getStoriesPrefixSums(userList);
 
@@ -50,6 +53,7 @@ export default function StoryHeaderButtons({ stories, userList, index, toViewPro
 
     return (
         <View style={styles.mainContainer}>
+
             {/* Left side: pfp + handle */}
             <Pressable onPress={() => toViewProfile(index)} style={styles.left}>
                 <FastImage
@@ -77,9 +81,9 @@ export default function StoryHeaderButtons({ stories, userList, index, toViewPro
 
                 <Pressable onPress={handlePressLikeButton}>
                     {isLiked ? (
-                        <Heart size={23} color="#FF8A65" variant="Bold" />
+                        <Heart size={scaleSize(23)} color="#FF8A65" variant="Bold" />
                     ) : (
-                        <Heart size={23} color="#FF8A65" />
+                        <Heart size={scaleSize(23)} color="#FF8A65" />
                     )}
                 </Pressable>
             </View>
@@ -93,8 +97,8 @@ const styles = StyleSheet.create({
         flexDirection: "row",
         width: "100%",
         justifyContent: "space-between",
-        paddingHorizontal: 20,
-        paddingTop: 50,
+        paddingHorizontal: scaleSize(20),
+        paddingTop: scaleSize(37),
         position: "absolute",
         zIndex: 999
     },
@@ -103,14 +107,14 @@ const styles = StyleSheet.create({
         alignItems: "center"
     },
     pfp: {
-        width: 32,
+        width: scaleSize(32),
         aspectRatio: 1,
-        borderRadius: 22
+        borderRadius: scaleSize(22)
     },
     handleText: {
         color: "#fff",
-        padding: 8,
-        fontSize: 16,
+        padding: scaleSize(8),
+        fontSize: scaleSize(16),
         fontFamily: "SourceSansPro_600SemiBold"
     },
     right: {
@@ -119,13 +123,13 @@ const styles = StyleSheet.create({
     },
     dashContainer: {
         flexDirection: "row",
-        marginRight: 10
+        marginRight: scaleSize(10)
     },
     dash: {
-        width: 42,
-        height: 4.,
-        borderRadius: 90,
-        marginHorizontal: 2.5
+        width: scaleSize(42),
+        height: scaleSize(4),
+        borderRadius: scaleSize(90),
+        marginHorizontal: scaleSize(2.5)
     },
     activeDash: {
         backgroundColor: "#fff"

@@ -2,8 +2,8 @@ import { StyleSheet, View, Text, Dimensions } from "react-native";
 import { Feather, Ionicons } from '@expo/vector-icons';
 import RNBounceable from "@freakycoder/react-native-bounceable";
 
-const { width: screenWidth, height: screenHeight } = Dimensions.get('window');
-const scale = screenWidth / 375; // Base screen width assumed as 375
+const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
+const scale = SCREEN_WIDTH / 375; // Base screen width assumed as 375
 
 function scaleSize(size) {
     return Math.round(size * scale);

@@ -1,10 +1,11 @@
-import React from "react";
+import React, { useEffect } from "react";
 import {
     Modal,
     View,
     Pressable,
     ActivityIndicator,
-    StyleSheet
+    StyleSheet,
+    StatusBar
 } from "react-native";
 import { BlurView } from "expo-blur";
 import FastImage from "react-native-fast-image";
@@ -20,6 +21,15 @@ export default function FullStoryModal({
     handleStoryNavigation,
     navigation
 }) {
+    // Hide/show the status bar whenever 'isVisible' changes
+    useEffect(() => {
+        if (isVisible) {
+            StatusBar.setHidden(true, "fade");
+        } else {
+            StatusBar.setHidden(false, "fade");
+        }
+    }, [isVisible]);
+
     // If no current story index, do not render anything
     if (currentIndex === null) return null;
 
@@ -40,13 +50,16 @@ export default function FullStoryModal({
                         placeholder={<ActivityIndicator />}
                     />
                 </View>
+
                 {/* Left side - go to previous story */}
                 <Pressable
                     onPress={() => handleStoryNavigation(-1)}
                     style={styles.screenLeft}
                 />
+
                 {/* Center - close the modal */}
                 <Pressable onPress={onClose} style={styles.screenCenter} />
+
                 {/* Right side - go to next story */}
                 <Pressable
                     onPress={() => handleStoryNavigation(1)}

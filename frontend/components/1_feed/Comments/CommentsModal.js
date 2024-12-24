@@ -137,6 +137,7 @@ const styles = StyleSheet.create({
         zIndex: 1
     },
     commentsListContainer: {
+        paddingTop: scaleSize(10),
         paddingHorizontal: scaleSize(15),
         flexGrow: 1
     }

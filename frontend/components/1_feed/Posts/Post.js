@@ -5,8 +5,10 @@
  */
 
 import React, { memo, useEffect, useRef, useState } from "react";
-import { StyleSheet, View, Animated, Pressable, Dimensions, Image } from "react-native";
+import { StyleSheet, View, Animated, Pressable, Dimensions } from "react-native";
 import Gallery from "react-native-awesome-gallery";
+import FastImage from "react-native-fast-image";  // <-- Import FastImage here
+
 import PostHeader from "./PostHeader";
 import PostFooter from "./PostFooter";
 
@@ -86,7 +88,7 @@ const Post = ({
         if (!isFocused) {
             viewRef.current.measure((_, __, ___, ____, _____, pageY) => handleFocusPost(index, pageY));
         }
-    }
+    };
 
     // Manage left/right press (swipe) or middle press (focus post)
     const handlePress = (event) => {
@@ -95,7 +97,9 @@ const Post = ({
             if (locationX <= SWIPE_EDGE_THRESHOLD) handlePressLeft();
             else if (locationX >= SCREEN_WIDTH - SWIPE_EDGE_THRESHOLD) handlePressRight();
             else pressPostMiddle();
-        } else pressPostMiddle();
+        } else {
+            pressPostMiddle();
+        }
     };
 
     // Styles that depend on whether this post is focused
@@ -134,10 +138,21 @@ const Post = ({
                             data={images}
                             onIndexChange={setPosition}
                             style={containerStyle}
-                            containerDimensions={{ width: SCREEN_WIDTH, height: SCREEN_WIDTH / POST_ASPECT_RATIO }}
+                            containerDimensions={{
+                                width: SCREEN_WIDTH,
+                                height: SCREEN_WIDTH / POST_ASPECT_RATIO,
+                            }}
                             renderItem={({ item }) => (
                                 <View style={styles.imageWrapper}>
-                                    <Image source={{ uri: item }} style={imageStyle} resizeMode="cover" />
+                                    <FastImage
+                                        source={{
+                                            uri: item,
+                                            priority: FastImage.priority.normal,
+                                            cache: FastImage.cacheControl.immutable,
+                                        }}
+                                        style={imageStyle}
+                                        resizeMode={FastImage.resizeMode.cover}
+                                    />
                                 </View>
                             )}
                             pinchEnabled={false}
@@ -170,13 +185,18 @@ const Post = ({
 export default memo(Post);
 
 const styles = StyleSheet.create({
-    wrapper: { width: "100%" },
+    wrapper: {
+        width: "100%"
+    },
     main_ctnr: {
         width: "100%",
         borderColor: "#ddd",
         marginBottom: -33
     },
-    body_ctnr: { width: "100%", height: SCREEN_WIDTH / POST_ASPECT_RATIO },
+    body_ctnr: {
+        width: "100%",
+        height: SCREEN_WIDTH / POST_ASPECT_RATIO
+    },
     gallery: {
         width: "100%",
         height: "100%",
@@ -184,7 +204,10 @@ const styles = StyleSheet.create({
         borderTopLeftRadius: BORDER_RADIUS,
         backgroundColor: "#fff"
     },
-    imageWrapper: { width: "100%", height: "100%" },
+    imageWrapper: {
+        width: "100%",
+        height: "100%"
+    },
     image: {
         width: "100%",
         height: "100%",
