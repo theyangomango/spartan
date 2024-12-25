@@ -100,7 +100,7 @@ export default function PostFooter({ data, onPressCommentButton, onPressShareBut
                     </RNBounceable>
 
                     <Pressable
-                        disabled={!isSomePostFocused}
+                        // disabled={!isSomePostFocused}
                         onPress={onPressCommentButton}
                         style={styles.commentButton}
                     >
@@ -109,7 +109,7 @@ export default function PostFooter({ data, onPressCommentButton, onPressShareBut
                     </Pressable>
 
                     <Pressable
-                        disabled={!isSomePostFocused}
+                        // disabled={!isSomePostFocused}
                         onPress={onPressShareButton}
                         style={styles.shareButton}
                     >

@@ -27,8 +27,8 @@ const BOUNCE_FRICTION = 100;
 
 const Post = ({
     data,
-    onPressCommentButton,
-    onPressShareButton,
+    openCommentsModal,
+    openShareModal,
     index,
     isFocused,
     handleFocusPost,
@@ -171,8 +171,14 @@ const Post = ({
                     />
                     <PostFooter
                         data={data}
-                        onPressCommentButton={() => onPressCommentButton(index)}
-                        onPressShareButton={() => onPressShareButton(index)}
+                        onPressCommentButton={() => {
+                            if (!isSomePostFocused) pressPostMiddle();
+                            if (isFocused) openCommentsModal(index);
+                        }}
+                        onPressShareButton={() => {
+                            if (!isSomePostFocused) pressPostMiddle();
+                            if (isFocused) openShareModal(index);
+                        }}
                         image={pfp}
                         isSomePostFocused={isSomePostFocused}
                     />

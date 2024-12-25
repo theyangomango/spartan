@@ -23,20 +23,20 @@ const ShareBottomSheet = ({
     const bottomSheetRef = useRef(null);
 
     // Define snap points with scaling
-    const snapPoints = useMemo(() => [scaleSize(600)], []); // Adjust based on design
+    const snapPoints = useMemo(() => ['92%'], []); // Adjust based on design
 
-    // Render a custom backdrop with adjusted opacity
-    const renderBackdrop = useCallback(
-        (props) => (
-            <BottomSheetBackdrop
-                {...props}
-                disappearsOnIndex={-1}
-                appearsOnIndex={0}
-                opacity={0.6}
-            />
-        ),
-        []
-    );
+    // // Render a custom backdrop with adjusted opacity
+    // const renderBackdrop = useCallback(
+    //     (props) => (
+    //         <BottomSheetBackdrop
+    //             {...props}
+    //             disappearsOnIndex={-1}
+    //             appearsOnIndex={0}
+    //             opacity={0.6}
+    //         />
+    //     ),
+    //     []
+    // );
 
     // Close the bottom sheet when the close flag changes
     useEffect(() => {
@@ -63,7 +63,7 @@ const ShareBottomSheet = ({
                 ref={bottomSheetRef}
                 index={-1} // Initially closed
                 snapPoints={snapPoints}
-                backdropComponent={renderBackdrop}
+                // backdropComponent={renderBackdrop}
                 enablePanDownToClose
                 handleStyle={styles.hiddenHandle}
                 backgroundStyle={styles.bottomSheetBackground}

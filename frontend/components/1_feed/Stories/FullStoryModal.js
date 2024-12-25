@@ -1,9 +1,26 @@
+/**
+ * Full Story Modal Component
+ * 
+ * - Displays a full-screen story image in a modal.
+ * - Allows navigation between stories (previous/next).
+ * - Shows a loading indicator while the image is loading.
+ * - Includes a blurred header with story-related buttons.
+ * 
+ * Props:
+ * - isVisible (boolean): Controls modal visibility.
+ * - onClose (function): Callback to close the modal.
+ * - currentIndex (number): Index of the currently displayed story.
+ * - storiesData (array): Array of story objects.
+ * - userList (array): List of users associated with the stories.
+ * - handleStoryNavigation (function): Function to navigate between stories.
+ * - navigation (object): React Navigation object for navigating to other screens.
+ */
+
 import React, { useEffect, useState } from "react";
 import {
     Modal,
     View,
     Pressable,
-    ActivityIndicator,
     StyleSheet,
     StatusBar
 } from "react-native";
@@ -21,20 +38,20 @@ export default function FullStoryModal({
     handleStoryNavigation,
     navigation
 }) {
+    // State to manage loading indicator visibility
     const [isLoading, setIsLoading] = useState(true);
 
-    // Hide/show the status bar whenever 'isVisible' changes
+    /**
+     * Toggle the visibility of the status bar based on modal visibility.
+     */
     useEffect(() => {
-        if (isVisible) {
-            StatusBar.setHidden(true, "fade");
-        } else {
-            StatusBar.setHidden(false, "fade");
-        }
+        StatusBar.setHidden(isVisible, "fade");
     }, [isVisible]);
 
-    // If no current story index, do not render anything
+    // Do not render the modal if there is no current story index
     if (currentIndex === null) return null;
 
+    // Current story data
     const currentStory = storiesData[currentIndex];
 
     return (
@@ -45,52 +62,47 @@ export default function FullStoryModal({
             onRequestClose={onClose}
         >
             <View style={styles.modalContainer}>
+                {/* Story Image with Loading Indicator */}
                 <View style={styles.modalContent}>
                     <FastImage
                         key={currentStory.sid}
                         source={{
                             uri: currentStory.image,
                             priority: FastImage.priority.normal,
+                            // Optional: Add cache control if needed
+                            // cache: FastImage.cacheControl.immutable,
                         }}
                         style={styles.fullScreenImage}
                         resizeMode={FastImage.resizeMode.cover}
                         onLoadStart={() => setIsLoading(true)}
                         onLoad={() => setIsLoading(false)}
                     />
-                    {isLoading && (
-                        <ActivityIndicator
-                            style={StyleSheet.absoluteFill}
-                            size="large"
-                            color="#ffffff"
-                        />
-                    )}
                 </View>
 
-                {/* Left side - go to previous story */}
+                {/* Gesture Areas for Story Navigation */}
                 <Pressable
                     onPress={() => handleStoryNavigation(-1)}
                     style={styles.screenLeft}
                 />
-
-                {/* Center - close the modal */}
-                <Pressable onPress={onClose} style={styles.screenCenter} />
-
-                {/* Right side - go to next story */}
+                <Pressable
+                    onPress={onClose}
+                    style={styles.screenCenter}
+                />
                 <Pressable
                     onPress={() => handleStoryNavigation(1)}
                     style={styles.screenRight}
                 />
             </View>
 
-            {/* BlurView for the top header area */}
+            {/* Blurred Header Area */}
             <BlurView intensity={5} style={styles.blurview} />
 
-            {/* Header: pfp / handle / dash/dot indicators / like button */}
+            {/* Story Header Buttons */}
             <StoryHeaderButtons
                 stories={storiesData}
                 userList={userList}
                 index={currentIndex}
-                toViewProfile={(pi) => {
+                toViewProfile={pi => {
                     onClose();
                     navigation.navigate("ViewProfile", { user: storiesData[pi] });
                 }}
