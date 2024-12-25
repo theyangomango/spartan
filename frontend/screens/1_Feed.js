@@ -27,7 +27,7 @@ import getScrollTargetPosition from "../helper/getScrollTargetPosition";
 import isThisUser from "../helper/isThisUser";
 
 const { width, height } = Dimensions.get("window");
-const TARGET_POSITION = getScrollTargetPosition(width, height), SCROLL_THRESHOLD = 85, ANIMATION_DURATION = 300;
+const TARGET_POSITION = getScrollTargetPosition(width, height), SCROLL_THRESHOLD = 30, ANIMATION_DURATION = 300;
 
 export default function Feed({ navigation, route }) {
     // Use UID from global or route params
@@ -191,13 +191,15 @@ export default function Feed({ navigation, route }) {
                 <SafeAreaView style={styles.mainContainer}>
                     <StatusBar style="dark" />
                     <Animated.FlatList
+                        bounces={false}
+
                         scrollEnabled={!isSomePostFocused}
                         showsVerticalScrollIndicator={false}
                         data={posts}
                         renderItem={renderPost}
                         keyExtractor={(_, i) => i.toString()}
                         onScroll={handleScroll}
-                        scrollEventThrottle={16}
+                        scrollEventThrottle={10}
                         ListHeaderComponent={
                             <Animated.View style={{ opacity: storiesOpacity }}>
                                 {stories && (

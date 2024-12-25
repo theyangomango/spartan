@@ -1,7 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { StyleSheet, View, TouchableWithoutFeedback, Keyboard, ScrollView, Text, KeyboardAvoidingView, Platform } from 'react-native';
 import Footer from "../components/Footer";
-import WorkoutFooter from "../components/3_Workout/WorkoutFooter";
 import PostPreview from '../components/4_Explore/PostPreview';
 import SearchBarComponent from '../components/4_Explore/SearchBarComponent';
 import retrieveUserExploreFeed from '../../backend/retreiveUserExploreFeed';
@@ -45,6 +44,10 @@ export default function Explore({ navigation }) {
     const toPostList = () => {
         // navigation.navigate('PostList');
     };
+
+    const handleSearchExpandChange = () => {
+
+    }
 
     const renderPostPreview = (item, large = false) => (
         <PostPreview toPostList={toPostList} item={item} large={large} />
@@ -121,6 +124,7 @@ export default function Explore({ navigation }) {
             <View style={{ height: 58 }} />
 
             <SearchBarComponent
+                onSearchExpandChange={handleSearchExpandChange}
                 navigation={navigation}
                 allUsers={allUsers}
             />
@@ -159,8 +163,6 @@ export default function Explore({ navigation }) {
                     </View>
                 ))}
             </ScrollView>
-
-            {global.workout && <WorkoutFooter userData={userData} />}
 
             <Footer key={footerKey} navigation={navigation} currentScreenName="Explore" />
 

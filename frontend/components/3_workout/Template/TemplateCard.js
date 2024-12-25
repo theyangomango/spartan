@@ -52,7 +52,7 @@ const TemplateCard = memo(({ template, handleLongPress, handlePressEditButton, h
                     <View style={styles.infoContainer}>
                         <View style={styles.dateContainer}>
                             <Calendar size={scaleSize(18.5)} color='#666' />
-                            <Text style={[styles.dateText, { fontSize: scaleSize(14) }]}> {template.lastDate ? template.lastDate : 'New'}</Text>
+                            <Text style={[styles.dateText, { fontSize: scaleSize(14) }]}> {template.lastDate ? template.lastDate : 'New!'}</Text>
                         </View>
                         <View style={styles.exercisesContainer}>
                             <Weight size={scaleSize(21.5)} color='#666' />
