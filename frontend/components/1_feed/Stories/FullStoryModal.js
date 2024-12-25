@@ -1,4 +1,4 @@
-import React, { useEffect } from "react";
+import React, { useEffect, useState } from "react";
 import {
     Modal,
     View,
@@ -21,6 +21,8 @@ export default function FullStoryModal({
     handleStoryNavigation,
     navigation
 }) {
+    const [isLoading, setIsLoading] = useState(true);
+
     // Hide/show the status bar whenever 'isVisible' changes
     useEffect(() => {
         if (isVisible) {
@@ -33,6 +35,8 @@ export default function FullStoryModal({
     // If no current story index, do not render anything
     if (currentIndex === null) return null;
 
+    const currentStory = storiesData[currentIndex];
+
     return (
         <Modal
             animationType="fade"
@@ -43,12 +47,23 @@ export default function FullStoryModal({
             <View style={styles.modalContainer}>
                 <View style={styles.modalContent}>
                     <FastImage
-                        key={storiesData[currentIndex].sid}
-                        source={{ uri: storiesData[currentIndex].image }}
+                        key={currentStory.sid}
+                        source={{
+                            uri: currentStory.image,
+                            priority: FastImage.priority.normal,
+                        }}
                         style={styles.fullScreenImage}
                         resizeMode={FastImage.resizeMode.cover}
-                        placeholder={<ActivityIndicator />}
+                        onLoadStart={() => setIsLoading(true)}
+                        onLoad={() => setIsLoading(false)}
                     />
+                    {isLoading && (
+                        <ActivityIndicator
+                            style={StyleSheet.absoluteFill}
+                            size="large"
+                            color="#ffffff"
+                        />
+                    )}
                 </View>
 
                 {/* Left side - go to previous story */}

@@ -6,10 +6,11 @@
  */
 
 import React, { useEffect, useRef, useState } from "react";
-import { Animated, Dimensions, SafeAreaView, StyleSheet, View } from "react-native";
+import { Animated, Dimensions, SafeAreaView, StyleSheet, View, Image } from "react-native";
 import { StatusBar } from "expo-status-bar";
 import MaskedView from "@react-native-masked-view/masked-view";
 import { doc, onSnapshot } from "firebase/firestore";
+import FastImage from "react-native-fast-image";
 
 import Footer from "../components/Footer";
 import Post from "../components/1_Feed/Posts/Post";
@@ -34,7 +35,7 @@ export default function Feed({ navigation, route }) {
     const UID = "userData" in global ? global.userData.uid : route.params.uid;
 
     // State
-    const [stories, setStories] = useState(null), [posts, setPosts] = useState([]), [messages, setMessages] = useState(null), 
+    const [stories, setStories] = useState(null), [posts, setPosts] = useState([]), [messages, setMessages] = useState(null),
         [isSomePostFocused, setIsSomePostFocused] = useState(false),
         [isScrolledPastTopClip, setIsScrolledPastTopClip] = useState(false),
         [footerKey, setFooterKey] = useState(0),
@@ -46,7 +47,7 @@ export default function Feed({ navigation, route }) {
         [viewingWorkoutIndex, setViewingWorkoutIndex] = useState(null);
 
     // Refs
-    const userDataRef = useRef(null), 
+    const userDataRef = useRef(null),
         focusedPostIndex = useRef(-1);
 
     // Animated values
@@ -82,15 +83,35 @@ export default function Feed({ navigation, route }) {
 
     // Initialize stories, posts, messages
     const init = async () => {
-        userDataRef.current = await readDoc("users", UID);
-        const feedData = await retrieveUserFeed(userDataRef.current);
-        global.userData = userDataRef.current;
-        setStories(feedData[0]); setPosts(feedData[1]); setMessages(feedData[2]);
-        if (userDataRef.current.currentWorkout) {
-            global.isCurrentlyWorkingOut = true;
-            setFooterKey(k => k + 1); // state update for footer style
+        try {
+            userDataRef.current = await readDoc("users", UID);
+            const feedData = await retrieveUserFeed(userDataRef.current);
+            global.userData = userDataRef.current;
+            setStories(feedData[0]);
+            setPosts(feedData[1]);
+            setMessages(feedData[2]);
+
+            if (userDataRef.current.currentWorkout) {
+                global.isCurrentlyWorkingOut = true;
+                setFooterKey(k => k + 1); // Update footer style
+            }
+
+            // Preload Stories Images using FastImage
+            const preloadImages = feedData[0].storiesData.map(story => ({
+                uri: story.image,
+                priority: FastImage.priority.normal,
+                // Optionally add cache control
+                // cache: FastImage.cacheControl.immutable,
+            }));
+
+            FastImage.preload(preloadImages);
+            console.log("All story images have been preloaded with FastImage.");
+        } catch (error) {
+            console.error("Error initializing feed data:", error);
         }
     };
+
+
 
     // Update stories only
     const initStories = async () => {
@@ -192,7 +213,6 @@ export default function Feed({ navigation, route }) {
                     <StatusBar style="dark" />
                     <Animated.FlatList
                         bounces={false}
-
                         scrollEnabled={!isSomePostFocused}
                         showsVerticalScrollIndicator={false}
                         data={posts}
