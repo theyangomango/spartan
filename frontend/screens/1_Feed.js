@@ -6,7 +6,7 @@
  */
 
 import React, { useEffect, useRef, useState } from "react";
-import { Animated, Dimensions, SafeAreaView, StyleSheet, View, Image } from "react-native";
+import { Animated, Dimensions, SafeAreaView, StyleSheet, View } from "react-native";
 import { StatusBar } from "expo-status-bar";
 import MaskedView from "@react-native-masked-view/masked-view";
 import { doc, onSnapshot } from "firebase/firestore";
@@ -28,14 +28,18 @@ import getScrollTargetPosition from "../helper/getScrollTargetPosition";
 import isThisUser from "../helper/isThisUser";
 
 const { width, height } = Dimensions.get("window");
-const TARGET_POSITION = getScrollTargetPosition(width, height), SCROLL_THRESHOLD = 30, ANIMATION_DURATION = 300;
+const TARGET_POSITION = getScrollTargetPosition(width, height),
+    SCROLL_THRESHOLD = 30,
+    ANIMATION_DURATION = 300;
 
 export default function Feed({ navigation, route }) {
     // Use UID from global or route params
     const UID = "userData" in global ? global.userData.uid : route.params.uid;
 
     // State
-    const [stories, setStories] = useState(null), [posts, setPosts] = useState([]), [messages, setMessages] = useState(null),
+    const [stories, setStories] = useState(null),
+        [posts, setPosts] = useState([]),
+        [messages, setMessages] = useState(null),
         [isSomePostFocused, setIsSomePostFocused] = useState(false),
         [isScrolledPastTopClip, setIsScrolledPastTopClip] = useState(false),
         [footerKey, setFooterKey] = useState(0),
@@ -48,7 +52,8 @@ export default function Feed({ navigation, route }) {
 
     // Refs
     const userDataRef = useRef(null),
-        focusedPostIndex = useRef(-1);
+        focusedPostIndex = useRef(-1),
+        flatListRef = useRef(null); // Reference to FlatList
 
     // Animated values
     const translateY = useRef(new Animated.Value(0)).current,
@@ -111,8 +116,6 @@ export default function Feed({ navigation, route }) {
         }
     };
 
-
-
     // Update stories only
     const initStories = async () => {
         const feedData = await retrieveUserFeed(userDataRef.current);
@@ -173,6 +176,13 @@ export default function Feed({ navigation, route }) {
         setViewWorkoutBottomSheetExpandFlag(!viewWorkoutBottomSheetExpandFlag);
     }
 
+    // Implement scrollToTop function
+    const scrollToTop = () => {
+        if (flatListRef.current) {
+            flatListRef.current.scrollToOffset({ offset: 0, animated: true });
+        }
+    };
+
     // Render a single post
     function renderPost({ item, index }) {
         const isFocusedPost = index === focusedPostIndex.current;
@@ -183,8 +193,8 @@ export default function Feed({ navigation, route }) {
                 <Post
                     data={item}
                     index={index}
-                    openCommentsModal={openCommentsModal}
-                    openShareModal={openShareModal}
+                    onPressCommentButton={openCommentsModal}
+                    onPressShareButton={openShareModal}
                     isFocused={isSomePostFocused && isFocusedPost}
                     handleFocusPost={handleFocusPost}
                     isSomePostFocused={isSomePostFocused}
@@ -202,6 +212,7 @@ export default function Feed({ navigation, route }) {
                 onOpenNotifications={handleOpenNotifications}
                 backButton={isSomePostFocused}
                 onBackPress={handleBackPress}
+                scrollToTop={scrollToTop} // Pass scrollToTop function to FeedHeader
             />
 
             <MaskedView
@@ -212,6 +223,7 @@ export default function Feed({ navigation, route }) {
                 <SafeAreaView style={styles.mainContainer}>
                     <StatusBar style="dark" />
                     <Animated.FlatList
+                        ref={flatListRef} // Assign ref to FlatList
                         bounces={false}
                         scrollEnabled={!isSomePostFocused}
                         showsVerticalScrollIndicator={false}
@@ -254,6 +266,7 @@ export default function Feed({ navigation, route }) {
             <Footer key={footerKey} navigation={navigation} currentScreenName="Feed" />
         </SafeAreaView>
     );
+
 }
 
 const styles = StyleSheet.create({

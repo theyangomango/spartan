@@ -3,44 +3,15 @@ import { StyleSheet, View, Text, Image, TouchableOpacity, Animated, Dimensions }
 import { Ionicons, Octicons, MaterialIcons } from '@expo/vector-icons';
 import RNBounceable from '@freakycoder/react-native-bounceable';
 import Svg, { Path } from "react-native-svg";
+import { getFeedHeaderStyles } from "../../helper/getFeedHeaderStyles";
 
-const { width, height } = Dimensions.get("window");
+const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get("window");
+const dynamicStyles = getFeedHeaderStyles(SCREEN_WIDTH, SCREEN_HEIGHT);
 
-// Function to determine the styles based on screen size
-const getDynamicStyles = () => {
-    if (width >= 430 && height >= 932) { // iPhone 14 Pro Max and similar
-        return {
-            logoTextFontSize: 20,
-            iconSize: 26,
-            paddingHorizontal: 35,
-        };
-    } else if (width >= 390 && height >= 844) { // iPhone 13/14 and similar
-        return {
-            logoTextFontSize: 17,
-            iconSize: 24,
-            paddingHorizontal: 30,
-        };
-    } else if (width >= 375 && height >= 812) { // iPhone X/XS/11 Pro and similar
-        return {
-            logoTextFontSize: 16,
-            iconSize: 22,
-            paddingHorizontal: 25,
-        };
-    } else { // Smaller iPhone models (like iPhone SE)
-        return {
-            logoTextFontSize: 14,
-            iconSize: 20,
-            paddingHorizontal: 20,
-        };
-    }
-};
-
-const dynamicStyles = getDynamicStyles();
-
-const FeedHeader = ({ toMessagesScreen, onOpenNotifications, onOpenSettings, backButton, onBackPress, style }) => {
+const FeedHeader = ({ toMessagesScreen, onOpenNotifications, onOpenSettings, backButton, onBackPress, scrollToTop }) => {
     if (backButton) {
         return (
-            <Animated.View style={[styles.back_header, style]}>
+            <Animated.View style={[styles.back_header]}>
                 <TouchableOpacity onPress={onBackPress}>
                     <Ionicons name="chevron-back" size={dynamicStyles.iconSize} color="#000" />
                 </TouchableOpacity>
@@ -49,16 +20,18 @@ const FeedHeader = ({ toMessagesScreen, onOpenNotifications, onOpenSettings, bac
     }
 
     return (
-        <Animated.View style={[styles.main_ctnr, style]}>
-            <View style={styles.logo}>
-                <View style={styles.logo_image_ctnr}>
-                    <Image
-                        source={require('../../../frontend/assets/logo_black.png')}
-                        style={styles.logo_image}
-                    />
+        <Animated.View style={[styles.main_ctnr]}>
+            <RNBounceable onPress={scrollToTop}>
+                <View style={styles.logo}>
+                    <View style={styles.logo_image_ctnr}>
+                        <Image
+                            source={require('../../../frontend/assets/logo_black.png')}
+                            style={styles.logo_image}
+                        />
+                    </View>
+                    <Text style={[styles.logo_text, { fontSize: dynamicStyles.logoTextFontSize }]}>SPARTAN</Text>
                 </View>
-                <Text style={[styles.logo_text, { fontSize: dynamicStyles.logoTextFontSize }]}>SPARTAN</Text>
-            </View>
+            </RNBounceable>
 
             <View style={styles.right_icons}>
                 <RNBounceable onPress={onOpenNotifications} style={styles.heart_button}>
