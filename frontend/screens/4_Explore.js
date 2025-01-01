@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { StyleSheet, View, TouchableWithoutFeedback, Keyboard, ScrollView, Text, KeyboardAvoidingView, Platform } from 'react-native';
+import { StyleSheet, View, ScrollView, KeyboardAvoidingView, Platform, Text, Animated } from 'react-native';
 import Footer from "../components/Footer";
 import PostPreview from '../components/4_Explore/PostPreview';
 import SearchBarComponent from '../components/4_Explore/SearchBarComponent';
@@ -11,9 +11,10 @@ export default function Explore({ navigation }) {
     const userData = global.userData;
     const [explorePosts, setExplorePosts] = useState([]);
     const [selectedCategory, setSelectedCategory] = useState('For You');
-    const [keyboardVisible, setKeyboardVisible] = useState(false);
     const allUsers = useRef(null);
     const [footerKey, setFooterKey] = useState(0); // State to force footer re-render
+    const [searchBarExpanded, setSearchBarExpanded] = useState(false);
+    const filterButtonsOpacity = useRef(new Animated.Value(1)).current;
 
     useEffect(() => {
         initExploreFeed();
@@ -30,6 +31,22 @@ export default function Explore({ navigation }) {
         return unsubscribe;
     }, [navigation]);
 
+    useEffect(() => {
+        if (searchBarExpanded) {
+            Animated.timing(filterButtonsOpacity, {
+                toValue: 0,
+                duration: 200,
+                useNativeDriver: true,
+            }).start();
+        } else {
+            Animated.timing(filterButtonsOpacity, {
+                toValue: 1,
+                duration: 200,
+                useNativeDriver: true,
+            }).start();
+        }
+    }, [searchBarExpanded]);
+
     async function initExploreFeed() {
         const exploreFeedData = await retrieveUserExploreFeed(userData);
         setExplorePosts(exploreFeedData);
@@ -45,9 +62,9 @@ export default function Explore({ navigation }) {
         // navigation.navigate('PostList');
     };
 
-    const handleSearchExpandChange = () => {
-
-    }
+    const handleSearchExpandChange = (isExpanded) => {
+        setSearchBarExpanded(isExpanded);
+    };
 
     const renderPostPreview = (item, large = false) => (
         <PostPreview toPostList={toPostList} item={item} large={large} />
@@ -60,7 +77,7 @@ export default function Explore({ navigation }) {
 
         if (index % 2 === 0) {
             return (
-                <View style={styles.gridContainer}>
+                <View style={styles.gridContainer} key={index}>
                     <View style={styles.gridRow}>
                         <View style={styles.gridItemLarge}>
                             {renderPostPreview(posts[0], true)}
@@ -89,7 +106,7 @@ export default function Explore({ navigation }) {
             );
         } else {
             return (
-                <View style={styles.gridContainer}>
+                <View style={styles.gridContainer} key={index}>
                     <View style={styles.gridRow}>
                         <View style={styles.gridColumn}>
                             <View style={styles.gridItemSmall}>
@@ -121,39 +138,44 @@ export default function Explore({ navigation }) {
 
     return (
         <KeyboardAvoidingView style={styles.mainContainer} behavior={Platform.OS === "ios" ? "padding" : "height"}>
-            <View style={{ height: 58 }} />
+            <View style={{ height: 46 }} />
 
-            <SearchBarComponent
-                onSearchExpandChange={handleSearchExpandChange}
-                navigation={navigation}
-                allUsers={allUsers}
-            />
+            {/* Parent View for SearchBar and Filter Buttons */}
+            <View style={styles.searchAndFiltersContainer}>
+                <SearchBarComponent
+                    onSearchExpandChange={handleSearchExpandChange}
+                    navigation={navigation}
+                    allUsers={allUsers}
+                    style={styles.searchBar}
+                />
 
-            <View style={styles.scrollViewWrapper}>
-                <ScrollView
-                    horizontal
-                    showsHorizontalScrollIndicator={false}
-                    contentContainerStyle={styles.scrollViewContent}
-                    style={styles.scrollview}
-                >
-                    {categories.map((category, index) => (
-                        <RNBounceable
-                            key={index}
-                            style={[
-                                styles.filterButton,
-                                selectedCategory === category && styles.selectedFilterButton
-                            ]}
-                            onPress={() => setSelectedCategory(category)}
-                        >
-                            <Text style={[
-                                styles.filterButtonText,
-                                selectedCategory === category ? styles.selectedFilterButtonText : styles.unselectedFilterButtonText
-                            ]}>
-                                {category}
-                            </Text>
-                        </RNBounceable>
-                    ))}
-                </ScrollView>
+                {/* Animated Filter Buttons */}
+                <Animated.View style={[styles.filterButtonsWrapper, { opacity: filterButtonsOpacity }]}>
+                    <ScrollView
+                        horizontal
+                        showsHorizontalScrollIndicator={false}
+                        contentContainerStyle={styles.scrollViewContent}
+                        style={styles.scrollview}
+                    >
+                        {categories.map((category, index) => (
+                            <RNBounceable
+                                key={index}
+                                style={[
+                                    styles.filterButton,
+                                    selectedCategory === category && styles.selectedFilterButton
+                                ]}
+                                onPress={() => setSelectedCategory(category)}
+                            >
+                                <Text style={[
+                                    styles.filterButtonText,
+                                    selectedCategory === category ? styles.selectedFilterButtonText : styles.unselectedFilterButtonText
+                                ]}>
+                                    {category}
+                                </Text>
+                            </RNBounceable>
+                        ))}
+                    </ScrollView>
+                </Animated.View>
             </View>
 
             <ScrollView contentContainerStyle={styles.gridScrollView} showsVerticalScrollIndicator={false}>
@@ -165,12 +187,6 @@ export default function Explore({ navigation }) {
             </ScrollView>
 
             <Footer key={footerKey} navigation={navigation} currentScreenName="Explore" />
-
-            {keyboardVisible && (
-                <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
-                    <View style={styles.keyboardDismissOverlay} />
-                </TouchableWithoutFeedback>
-            )}
         </KeyboardAvoidingView>
     );
 }
@@ -179,9 +195,26 @@ const styles = StyleSheet.create({
     mainContainer: {
         flex: 1,
         backgroundColor: '#fff',
+        position: 'relative', // Ensure that absolutely positioned children can overlay
+    },
+    searchAndFiltersContainer: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        paddingTop: 6,
+        paddingBottom: 5,
+        paddingLeft: 16,
+        zIndex: 1000, // Ensure it's above other components
+    },
+    searchBar: {
+        flex: 1,
+        marginRight: 8, // Space between SearchBar and filter buttons
+    },
+    filterButtonsWrapper: {
+        flexDirection: 'row',
+        flex: 1, // Adjust as needed
     },
     gridScrollView: {
-        paddingHorizontal: 2,
+        paddingHorizontal: 1,
     },
     gridContainer: {
         // marginBottom: 10,
@@ -216,10 +249,9 @@ const styles = StyleSheet.create({
         height: 'auto',
     },
     scrollview: {
-        paddingHorizontal: 16,
+        marginLeft: 8
     },
     scrollViewContent: {
-        alignItems: 'center',
     },
     filterButton: {
         backgroundColor: '#e9e9e9',
@@ -233,7 +265,7 @@ const styles = StyleSheet.create({
     },
     selectedFilterButtonText: {
         color: '#fff',
-        fontFamily: 'Mulish_700Bold',
+        fontFamily: 'Mulish_800ExtraBold',
         fontSize: 13.25,
     },
     unselectedFilterButtonText: {

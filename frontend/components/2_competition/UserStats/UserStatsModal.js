@@ -4,13 +4,7 @@ import HexagonalStats from "./HexagonalStats";
 import ExerciseGraph from "./ExerciseGraph";
 
 const { width, height } = Dimensions.get('screen');
-
-// Enable LayoutAnimation on Android
-if (Platform.OS === 'android' && UIManager.setLayoutAnimationEnabledExperimental) {
-    UIManager.setLayoutAnimationEnabledExperimental(true);
-}
-
-const barMaxWidth = width * 0.45; // Fixed width of the bar in pixels
+const barMaxWidth = width * 0.35; // Fixed width of the bar in pixels
 
 function getTopExercisesByPopularity(user) {
     // Convert the map (object) into an array of [key, value] pairs

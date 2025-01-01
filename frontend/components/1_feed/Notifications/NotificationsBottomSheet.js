@@ -18,7 +18,7 @@ const NotificationsBottomSheet = ({ notificationsBottomSheetExpandFlag }) => {
 
     // Expand the bottom sheet when the expand flag changes
     useEffect(() => {
-        if (notificationsBottomSheetExpandFlag && bottomSheetRef.current) {
+        if (bottomSheetRef.current) {
             bottomSheetRef.current.expand();
         }
     }, [notificationsBottomSheetExpandFlag]);

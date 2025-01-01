@@ -33,14 +33,8 @@ const styles = StyleSheet.create({
     image_ctnr: {
         flex: 1,
         aspectRatio: 1,
-        margin: 2,
+        margin: 1.5,
         overflow: 'hidden',
-        // Consider removing or modifying opacity if you want clarity
-        opacity: 0.5,
-    },
-    large: {
-        flex: 1,
-        aspectRatio: 1,
     },
     image: {
         flex: 1,

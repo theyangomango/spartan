@@ -141,30 +141,45 @@ function Workout({ navigation }) {
         // Make a deep copy of the workout object to avoid issues with immutability
         const workoutCopy = JSON.parse(JSON.stringify(workout));
 
-        // Calculate the duration and add it to the workout object
+        // 1. Remove any sets where weight = 0 or reps = 0
+        workoutCopy.exercises.forEach((exercise) => {
+            exercise.sets = exercise.sets.filter(
+                (set) => set.weight > 0 && set.reps > 0
+            );
+        });
+
+        // 2. Filter out exercises that have no sets left
+        workoutCopy.exercises = workoutCopy.exercises.filter(
+            (exercise) => exercise.sets && exercise.sets.length > 0
+        );
+
+        // Calculate the duration
         const duration = Date.now() - workoutCopy.created;
 
-        // Add the duration and volume to the copied workout object
+        // Add duration to the workout copy
         const completedWorkoutData = { ...workoutCopy, duration };
 
-        // Update the state with the completed workout
+        // Set completed workout
         setCompletedWorkout(completedWorkoutData);
 
         // Append the completed workout to the user's data
-        arrayAppend('users', global.userData.uid, 'completedWorkouts', completedWorkoutData);
+        arrayAppend("users", global.userData.uid, "completedWorkouts", completedWorkoutData);
 
         // Reset the workout state
         setWorkout(null);
         setIsNewWorkoutBottomSheetVisible(false);
         clearInterval(workoutTimeInterval.current);
         setIsCurrentWorkoutPanelVisible(false);
-        timerRef.current = '00:00';
-        setIsSummaryModalVisible(true); // Show the summary modal when the workout is finished
+        timerRef.current = "00:00";
+        setIsSummaryModalVisible(true);
+
     }, [workout]);
+
+
 
     async function postWorkout() {
         setIsSummaryModalVisible(false);
-        await navigation.navigate('ProfileStack', {screen: 'Profile'}); // double navigations to perserve stack
+        await navigation.navigate('ProfileStack', { screen: 'Profile' }); // double navigations to perserve stack
         navigation.navigate('ProfileStack', { screen: 'SelectPhotos', params: { workout: completedWorkout } });
     }
 

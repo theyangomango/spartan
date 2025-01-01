@@ -1,5 +1,3 @@
-// SearchBarComponent.js
-
 import React, { useState, useRef, useEffect } from 'react';
 import {
     StyleSheet,
@@ -11,9 +9,12 @@ import {
     FlatList,
     Animated,
     Dimensions,
+    Text,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import UserCard from './UserCard'; // Ensure this path is correct
+import { debounce } from 'lodash'; // Install lodash if not already installed
+import RNBounceable from '@freakycoder/react-native-bounceable';
 
 const { width: screenWidth } = Dimensions.get('window');
 const scale = screenWidth / 375; // Adjust scaling based on your design
@@ -26,6 +27,13 @@ const SearchBarComponent = ({ navigation, allUsers, onSearchExpandChange }) => {
     const [isExpanded, setIsExpanded] = useState(false);
 
     const animation = useRef(new Animated.Value(0)).current; // 0: collapsed, 1: expanded
+
+    // Debounce the search input to optimize performance
+    const debouncedSearch = useRef(
+        debounce((text) => {
+            handleSearch(text);
+        }, 300) // 300ms delay
+    ).current;
 
     useEffect(() => {
         // Notify parent about expansion state
@@ -45,7 +53,7 @@ const SearchBarComponent = ({ navigation, allUsers, onSearchExpandChange }) => {
         Keyboard.dismiss();
         Animated.timing(animation, {
             toValue: 0,
-            duration: 300,
+            duration: 200,
             useNativeDriver: false,
         }).start(() => {
             setIsExpanded(false);
@@ -55,7 +63,6 @@ const SearchBarComponent = ({ navigation, allUsers, onSearchExpandChange }) => {
     };
 
     const handleSearch = (text) => {
-        setSearchString(text);
         if (text) {
             const filtered = allUsers.current.filter(user =>
                 user.uid !== global.userData.uid &&
@@ -68,69 +75,85 @@ const SearchBarComponent = ({ navigation, allUsers, onSearchExpandChange }) => {
         }
     };
 
+    const handleSearchInputChange = (text) => {
+        setSearchString(text);
+        debouncedSearch(text);
+    };
+
     const toViewProfile = (user) => {
         navigation.navigate('ViewProfile', { user });
     };
 
+    // Unified handler for the rightmost "X" button
+    const handleActionPress = () => {
+        if (searchString.length > 0) {
+            // If there's text, clear it
+            setSearchString('');
+            setFilteredUsers([]);
+        } else {
+            // If no text, close the search bar
+            handleClosePress();
+        }
+    };
+
     return (
-        <Animated.View
-            style={[
-                styles.container,
-                {
-                    width: animation.interpolate({
-                        inputRange: [0, 1],
-                        outputRange: [scaledSize(40), screenWidth - scaledSize(32)], // Adjust margins as needed
-                    }),
-                },
-            ]}
-        >
-            {!isExpanded ? (
-                // Collapsed state: Show only the search icon
-                <TouchableOpacity
-                    onPress={handleIconPress}
-                    style={styles.iconButton}
-                    accessibilityLabel="Expand search bar"
-                    accessibilityRole="button"
-                >
-                    <Ionicons name="search" size={scaledSize(20)} color="#555" />
-                </TouchableOpacity>
-            ) : (
-                // Expanded state: Show the search input and close icon
-                <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
-                    <View style={styles.expandedContainer}>
-                        <Ionicons name="search" size={scaledSize(16)} color="#c6c6c6" style={styles.searchIcon} />
-                        <TextInput
-                            style={styles.textInput}
-                            placeholder="Search for a person..."
-                            placeholderTextColor="#bbb"
-                            value={searchString}
-                            onChangeText={handleSearch}
-                            autoFocus={true}
-                            accessibilityLabel="Search input"
-                        />
-                        {searchString.length > 0 && (
+        <View style={styles.container}>
+            {/* Fixed Search Icon */}
+            <RNBounceable
+                bounceEffectIn={0.5}
+                onPress={handleIconPress}
+                style={styles.iconButton}
+                accessibilityLabel="Expand search bar"
+                accessibilityRole="button"
+            >
+                <Ionicons name="search" size={scaledSize(20)} color="#555" />
+            </RNBounceable>
+
+            {/* Animated Search Input */}
+            <Animated.View
+                style={[
+                    styles.animatedContainer,
+                    {
+                        width: animation.interpolate({
+                            inputRange: [0, 1],
+                            outputRange: [0, screenWidth - scaledSize(24) - scaledSize(16) - scaledSize(32)], // Adjust based on icon size and margins
+                        }),
+                        marginLeft: animation.interpolate({
+                            inputRange: [0, 1],
+                            outputRange: [0, scaledSize(8)],
+                        }),
+                        opacity: animation,
+                    },
+                ]}
+            >
+                {isExpanded && (
+                    <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
+                        <View style={styles.expandedContainer}>
+                            <TextInput
+                                style={styles.textInput}
+                                placeholder="Search for a person..."
+                                placeholderTextColor="#bbb"
+                                value={searchString}
+                                onChangeText={handleSearchInputChange}
+                                autoFocus={true}
+                                accessibilityLabel="Search input"
+                            />
+                            {/* Unified "X" Button */}
                             <TouchableOpacity
-                                onPress={() => handleSearch('')}
-                                style={styles.clearButton}
-                                accessibilityLabel="Clear search"
+                                onPress={handleActionPress}
+                                style={styles.actionButton}
+                                accessibilityLabel={searchString.length > 0 ? "Clear search" : "Close search bar"}
                                 accessibilityRole="button"
                             >
-                                <Ionicons name="close-circle" size={scaledSize(18)} color="#c6c6c6" />
+                                <Ionicons name="close" size={scaledSize(18)} color="#555" />
                             </TouchableOpacity>
-                        )}
-                        <TouchableOpacity
-                            onPress={handleClosePress}
-                            style={styles.closeButton}
-                            accessibilityLabel="Close search bar"
-                            accessibilityRole="button"
-                        >
-                            <Ionicons name="close" size={scaledSize(18)} color="#555" />
-                        </TouchableOpacity>
-                    </View>
-                </TouchableWithoutFeedback>
-            )}
+                        </View>
+                    </TouchableWithoutFeedback>
+                )}
+            </Animated.View>
 
-            {isExpanded && searchString.length > 0 && (
+            {/* Search Results Dropdown */}
+            {isExpanded && searchString.length > 0 && filteredUsers.length > 0 && (
                 <View style={styles.userCardsContainer}>
                     <FlatList
                         data={filteredUsers}
@@ -142,56 +165,58 @@ const SearchBarComponent = ({ navigation, allUsers, onSearchExpandChange }) => {
                     />
                 </View>
             )}
-        </Animated.View>
+        </View>
     );
+
 };
 
 const styles = StyleSheet.create({
     container: {
+        flexDirection: 'row',
+        alignItems: 'center',
         height: scaledSize(40),
         backgroundColor: '#fff',
         borderRadius: scaledSize(20),
-        flexDirection: 'row',
-        alignItems: 'center',
         paddingHorizontal: scaledSize(8),
         shadowColor: '#999',
         shadowOffset: { width: 0, height: scaledSize(1) },
-        shadowOpacity: 0.4,
-        shadowRadius: scaledSize(2),
+        shadowOpacity: 0.3,
+        shadowRadius: scaledSize(1.5),
         elevation: 3,
+        position: 'relative', // Ensure positioning context for dropdown
     },
     iconButton: {
         justifyContent: 'center',
         alignItems: 'center',
-        width: '100%',
-        height: '100%',
+        width: scaledSize(24), // Fixed width to prevent shifting
+        height: scaledSize(24), // Set height equal to width for a perfect circle
+        borderRadius: scaledSize(12), // Half of width/height to make it circular
+    },
+    animatedContainer: {
+        overflow: 'hidden',
+        flexDirection: 'row',
+        alignItems: 'center',
     },
     expandedContainer: {
         flexDirection: 'row',
         alignItems: 'center',
         flex: 1,
     },
-    searchIcon: {
-        marginRight: scaledSize(8),
-    },
     textInput: {
         flex: 1,
         fontSize: scaledSize(14),
         color: '#333',
-        fontFamily: 'Mulish_700Bold',
+        fontFamily: 'Mulish_700Bold', // Ensure this font is loaded and bold
+        fontWeight: '700', // Make text bold
     },
-    clearButton: {
+    actionButton: {
         padding: scaledSize(4),
-    },
-    closeButton: {
-        padding: scaledSize(4),
-        marginLeft: scaledSize(8),
     },
     userCardsContainer: {
         position: 'absolute',
         top: scaledSize(50), // Adjust based on your layout
-        left: scaledSize(0),
-        right: scaledSize(0),
+        left: 0,
+        right: 0,
         backgroundColor: '#fff',
         maxHeight: scaledSize(300),
         borderRadius: scaledSize(10),
@@ -201,7 +226,9 @@ const styles = StyleSheet.create({
         shadowRadius: scaledSize(4),
         elevation: 5,
         zIndex: 10,
+        marginTop: scaledSize(8),
     },
+    // Removed noResults and noResultsText styles as they are no longer used
 });
 
 export default SearchBarComponent;

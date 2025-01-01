@@ -7,9 +7,9 @@ import { Pressable, StatusBar, StyleSheet, Text, View } from "react-native";
 import { Heart } from 'iconsax-react-native';
 import { useEffect, useState } from "react";
 import FastImage from 'react-native-fast-image';
-import getStoriesPrefixSums from '../../../helper/getStoriesPrefixSums'
-import { likeStory } from './../../../../backend/stories/likeStory'
-import { unlikeStory } from './../../../../backend/stories/unlikeStory'
+import getStoriesPrefixSums from '../../../helper/getStoriesPrefixSums';
+import { likeStory } from './../../../../backend/stories/likeStory';
+import { unlikeStory } from './../../../../backend/stories/unlikeStory';
 import scaleSize from "../../../helper/scaleSize";
 
 export default function StoryHeaderButtons({ stories, userList, index, toViewProfile }) {
@@ -51,6 +51,10 @@ export default function StoryHeaderButtons({ stories, userList, index, toViewPro
         setIsLiked(!isLiked);
     }
 
+    // Determine dash size based on the number of stories
+    const dashWidth = numOfStories > 4 ? scaleSize(30) : scaleSize(42);
+    const dashMargin = numOfStories > 4 ? scaleSize(1.5) : scaleSize(2.5);
+
     return (
         <View style={styles.mainContainer}>
 
@@ -73,6 +77,7 @@ export default function StoryHeaderButtons({ stories, userList, index, toViewPro
                             key={i}
                             style={[
                                 styles.dash,
+                                { width: dashWidth, marginHorizontal: dashMargin },
                                 i === relativeStoryIndex ? styles.activeDash : styles.inactiveDash
                             ]}
                         />
@@ -126,10 +131,8 @@ const styles = StyleSheet.create({
         marginRight: scaleSize(10)
     },
     dash: {
-        width: scaleSize(42),
         height: scaleSize(4),
         borderRadius: scaleSize(90),
-        marginHorizontal: scaleSize(2.5)
     },
     activeDash: {
         backgroundColor: "#fff"

@@ -39,7 +39,6 @@ export default function FullStoryModal({
     navigation
 }) {
     // State to manage loading indicator visibility
-    const [isLoading, setIsLoading] = useState(true);
 
     /**
      * Toggle the visibility of the status bar based on modal visibility.
@@ -74,8 +73,6 @@ export default function FullStoryModal({
                         }}
                         style={styles.fullScreenImage}
                         resizeMode={FastImage.resizeMode.cover}
-                        onLoadStart={() => setIsLoading(true)}
-                        onLoad={() => setIsLoading(false)}
                     />
                 </View>
 

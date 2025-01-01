@@ -23,6 +23,8 @@ import getStoriesPrefixSums from "../../../helper/getStoriesPrefixSums";
 import sortStoriesDataByUserList from "../../../helper/sortStoriesDataByUserList";
 
 export default function Stories({ data, userList, initStories, navigation }) {
+    console.log(userList);
+
     // Manage modals & current story index
     const [viewModalVisible, setViewModal] = useState(false);
     const [createModalVisible, setCreateModal] = useState(false);
@@ -117,6 +119,9 @@ export default function Stories({ data, userList, initStories, navigation }) {
     // Render each Story thumbnail in a horizontal list.
     function renderItem({ item, index }) {
         const isViewed = item.stories.every(sid => viewedStories.current.includes(sid));
+
+        console.log({ item });
+
         return (
             <StoryTile
                 data={item}
