@@ -19,14 +19,25 @@ export default function CommentCard({ data, likeComment, unlikeComment, index, s
         setIsLiked(!isLiked);
     }
 
+    function handleNavigateToProfile() {
+        if (data.uid == global.userData.uid) {
+            // Todo
+        } else { // someone else's profile
+            toViewProfile(data);
+        }
+    }
+
     return (
-        <Pressable onPress={() => toViewProfile(data)} style={[styles.card, isReply && styles.replyCard]}>
-            <View style={styles.pfp_ctnr}>
-                <Image
-                    source={{ uri: data.pfp }}
-                    style={styles.pfp}
-                />
-            </View>
+        <View style={[styles.card, isReply && styles.replyCard]}>
+            <Pressable onPress={handleNavigateToProfile}>
+                <View style={styles.pfp_ctnr}>
+                    <Image
+                        source={{ uri: data.pfp }}
+                        style={styles.pfp}
+                    />
+                </View>
+            </Pressable>
+
             <View style={styles.card_texts_ctnr}>
                 <View style={styles.card_header}>
                     <View>
@@ -59,7 +70,7 @@ export default function CommentCard({ data, likeComment, unlikeComment, index, s
                     </RNBounceable>
                 </View>
             )}
-        </Pressable>
+        </View>
     );
 }
 

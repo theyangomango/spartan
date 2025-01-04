@@ -1,3 +1,6 @@
+// ! DEPRECATED 
+// ! CODE NOT IN USE IN BETA VERSION
+
 import React from 'react';
 import { StyleSheet, View, Text, Dimensions } from 'react-native';
 

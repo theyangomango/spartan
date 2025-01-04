@@ -1,21 +1,55 @@
-import React, { useEffect, useRef, useState } from 'react';
-import { StyleSheet, View, ScrollView, KeyboardAvoidingView, Platform, Text, Animated } from 'react-native';
-import Footer from "../components/Footer";
+import React, { useEffect, useRef, useState, useCallback } from 'react';
+import {
+    StyleSheet,
+    View,
+    ScrollView,
+    KeyboardAvoidingView,
+    Platform,
+    Text,
+    Animated,
+    Dimensions
+} from 'react-native';
+import Footer from '../components/Footer';
 import PostPreview from '../components/4_Explore/PostPreview';
 import SearchBarComponent from '../components/4_Explore/SearchBarComponent';
 import retrieveUserExploreFeed from '../../backend/retreiveUserExploreFeed';
 import retreiveAllUsers from '../../backend/retreiveAllUsers';
 import RNBounceable from '@freakycoder/react-native-bounceable';
+import ExpandedExploreList from '../components/4_Explore/ExpandedExploreList';
+
+const SCREEN_HEIGHT = Dimensions.get('window').height;
+const SLIDE_DURATION = 300;
 
 export default function Explore({ navigation }) {
     const userData = global.userData;
+
+    // The main Explore grid data
     const [explorePosts, setExplorePosts] = useState([]);
-    const [selectedCategory, setSelectedCategory] = useState('For You');
+
+    // The reordered array for the expanded post list
+    const [expandedPosts, setExpandedPosts] = useState(null);
+
+    // Controls if the expanded list is actually visible (mounted on screen)
+    const [isExpandedVisible, setIsExpandedVisible] = useState(false);
+
+    // The "slide up from bottom" animated value
+    const translateY = useRef(new Animated.Value(SCREEN_HEIGHT)).current;
+
+    // The underlying grid’s opacity (for the fade out)
+    const backgroundOpacity = useRef(new Animated.Value(1)).current;
+
     const allUsers = useRef(null);
-    const [footerKey, setFooterKey] = useState(0); // State to force footer re-render
+    const [footerKey, setFooterKey] = useState(0);
+
     const [searchBarExpanded, setSearchBarExpanded] = useState(false);
     const filterButtonsOpacity = useRef(new Animated.Value(1)).current;
 
+    const [selectedCategory, setSelectedCategory] = useState('For You');
+    const categories = ['For You', 'Leg Day', 'Progress Pictures', 'Bulking', 'Workout Splits'];
+
+    /************************************************
+     *                 useEffects
+     ***********************************************/
     useEffect(() => {
         initExploreFeed();
         initGlobalUsers();
@@ -23,15 +57,13 @@ export default function Explore({ navigation }) {
 
     useEffect(() => {
         const unsubscribe = navigation.addListener('focus', () => {
-            // Trigger a state change to force the Footer to re-render
-            setFooterKey(prevKey => prevKey + 1);
+            setFooterKey(k => k + 1);
         });
-
-        // Return the function to unsubscribe from the event so it gets removed on unmount
         return unsubscribe;
     }, [navigation]);
 
     useEffect(() => {
+        // Example of animating filter buttons away if the search bar expands
         if (searchBarExpanded) {
             Animated.timing(filterButtonsOpacity, {
                 toValue: 0,
@@ -47,6 +79,9 @@ export default function Explore({ navigation }) {
         }
     }, [searchBarExpanded]);
 
+    /************************************************
+     *              Data Initialization
+     ***********************************************/
     async function initExploreFeed() {
         const exploreFeedData = await retrieveUserExploreFeed(userData);
         setExplorePosts(exploreFeedData);
@@ -57,78 +92,132 @@ export default function Explore({ navigation }) {
         allUsers.current = globalUsers;
     }
 
-    // ! Removed from Beta
-    const toPostList = () => {
-        // navigation.navigate('PostList');
+    /************************************************
+     *         Show (slide up) Expanded List
+     ***********************************************/
+    const handlePreviewPress = (index) => {
+        // 1) Reorder the array so tapped post is first
+        const reordered = [...explorePosts];
+        const [tappedPost] = reordered.splice(index, 1);
+        reordered.unshift(tappedPost);
+
+        // 2) Store it
+        setExpandedPosts(reordered);
+
+        // 3) Make the expanded list visible
+        setIsExpandedVisible(true);
+
+        // 4) Reset the animation values
+        translateY.setValue(SCREEN_HEIGHT);
+        backgroundOpacity.setValue(1);
+
+        // 5) Slide the expanded up & fade out the grid
+        Animated.parallel([
+            Animated.timing(translateY, {
+                toValue: 0,
+                duration: SLIDE_DURATION,
+                useNativeDriver: true,
+            }),
+            Animated.timing(backgroundOpacity, {
+                toValue: 0, // fade out
+                duration: SLIDE_DURATION,
+                useNativeDriver: true,
+            }),
+        ]).start();
     };
 
-    const handleSearchExpandChange = (isExpanded) => {
-        setSearchBarExpanded(isExpanded);
-    };
+    /************************************************
+     *         Hide (slide down) Expanded List
+     ***********************************************/
+    const handleCloseExpanded = useCallback(() => {
+        // Animate downward & fade the background back in
+        Animated.parallel([
+            Animated.timing(translateY, {
+                toValue: SCREEN_HEIGHT,
+                duration: SLIDE_DURATION,
+                useNativeDriver: true,
+            }),
+            Animated.timing(backgroundOpacity, {
+                toValue: 1,
+                duration: SLIDE_DURATION,
+                useNativeDriver: true,
+            }),
+        ]).start(() => {
+            // Actually unmount after animation completes
+            setIsExpandedVisible(false);
+            setExpandedPosts(null);
+        });
+    }, []);
 
-    const renderPostPreview = (item, large = false) => (
-        <PostPreview toPostList={toPostList} item={item} large={large} />
+    /************************************************
+     *       Render the Grid of PostPreviews
+     ***********************************************/
+    const renderPostPreview = (item, index, large = false) => (
+        <PostPreview
+            item={item}
+            large={large}
+            onPress={() => handlePreviewPress(index)}
+        />
     );
 
-    const categories = ['For You', 'Leg Day', 'Progress Pictures', 'Bulking', 'Workout Splits'];
-
-    const renderGrid = (posts, index) => {
+    const renderGrid = (posts, sliceIndex) => {
         if (posts.length < 6) return null;
 
-        if (index % 2 === 0) {
+        // Example “2 up” pattern
+        if (sliceIndex % 2 === 0) {
             return (
-                <View style={styles.gridContainer} key={index}>
+                <View style={styles.gridContainer} key={sliceIndex}>
                     <View style={styles.gridRow}>
                         <View style={styles.gridItemLarge}>
-                            {renderPostPreview(posts[0], true)}
+                            {renderPostPreview(posts[0], sliceIndex * 6)}
                         </View>
                         <View style={styles.gridColumn}>
                             <View style={styles.gridItemSmall}>
-                                {renderPostPreview(posts[1])}
+                                {renderPostPreview(posts[1], sliceIndex * 6 + 1)}
                             </View>
                             <View style={styles.gridItemSmall}>
-                                {renderPostPreview(posts[2])}
+                                {renderPostPreview(posts[2], sliceIndex * 6 + 2)}
                             </View>
                         </View>
                     </View>
                     <View style={styles.gridRow}>
                         <View style={styles.gridItem}>
-                            {renderPostPreview(posts[3])}
+                            {renderPostPreview(posts[3], sliceIndex * 6 + 3)}
                         </View>
                         <View style={styles.gridItem}>
-                            {renderPostPreview(posts[4])}
+                            {renderPostPreview(posts[4], sliceIndex * 6 + 4)}
                         </View>
                         <View style={styles.gridItem}>
-                            {renderPostPreview(posts[5])}
+                            {renderPostPreview(posts[5], sliceIndex * 6 + 5)}
                         </View>
                     </View>
                 </View>
             );
         } else {
             return (
-                <View style={styles.gridContainer} key={index}>
+                <View style={styles.gridContainer} key={sliceIndex}>
                     <View style={styles.gridRow}>
                         <View style={styles.gridColumn}>
                             <View style={styles.gridItemSmall}>
-                                {renderPostPreview(posts[1])}
+                                {renderPostPreview(posts[1], sliceIndex * 6 + 1)}
                             </View>
                             <View style={styles.gridItemSmall}>
-                                {renderPostPreview(posts[2])}
+                                {renderPostPreview(posts[2], sliceIndex * 6 + 2)}
                             </View>
                         </View>
                         <View style={styles.gridItemLarge}>
-                            {renderPostPreview(posts[0], true)}
+                            {renderPostPreview(posts[0], sliceIndex * 6)}
                         </View>
                     </View>
                     <View style={styles.gridRow}>
                         <View style={styles.gridItem}>
-                            {renderPostPreview(posts[3])}
+                            {renderPostPreview(posts[3], sliceIndex * 6 + 3)}
                         </View>
                         <View style={styles.gridItem}>
-                            {renderPostPreview(posts[4])}
+                            {renderPostPreview(posts[4], sliceIndex * 6 + 4)}
                         </View>
                         <View style={styles.gridItem}>
-                            {renderPostPreview(posts[5])}
+                            {renderPostPreview(posts[5], sliceIndex * 6 + 5)}
                         </View>
                     </View>
                 </View>
@@ -136,56 +225,89 @@ export default function Explore({ navigation }) {
         }
     };
 
+    /************************************************
+     *                 Main Render
+     ***********************************************/
     return (
-        <KeyboardAvoidingView style={styles.mainContainer} behavior={Platform.OS === "ios" ? "padding" : "height"}>
-            <View style={{ height: 46 }} />
+        <KeyboardAvoidingView
+            style={styles.mainContainer}
+            behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+        >
+            {/* Underlying grid content => fade out with backgroundOpacity */}
+            <Animated.View style={[styles.underlyingContent, { opacity: backgroundOpacity }]}>
+                <View style={{ height: 46 }} />
 
-            {/* Parent View for SearchBar and Filter Buttons */}
-            <View style={styles.searchAndFiltersContainer}>
-                <SearchBarComponent
-                    onSearchExpandChange={handleSearchExpandChange}
-                    navigation={navigation}
-                    allUsers={allUsers}
-                    style={styles.searchBar}
-                />
+                <View style={styles.searchAndFiltersContainer}>
+                    <SearchBarComponent
+                        onSearchExpandChange={setSearchBarExpanded}
+                        navigation={navigation}
+                        allUsers={allUsers}
+                        style={styles.searchBar}
+                    />
+                    <Animated.View style={[styles.filterButtonsWrapper, { opacity: filterButtonsOpacity }]}>
+                        <ScrollView
+                            horizontal
+                            showsHorizontalScrollIndicator={false}
+                            contentContainerStyle={styles.scrollViewContent}
+                            style={styles.scrollview}
+                        >
+                            {categories.map((category, idx) => (
+                                <RNBounceable
+                                    key={idx}
+                                    style={[
+                                        styles.filterButton,
+                                        selectedCategory === category && styles.selectedFilterButton
+                                    ]}
+                                    onPress={() => setSelectedCategory(category)}
+                                >
+                                    <Text
+                                        style={[
+                                            styles.filterButtonText,
+                                            selectedCategory === category
+                                                ? styles.selectedFilterButtonText
+                                                : styles.unselectedFilterButtonText
+                                        ]}
+                                    >
+                                        {category}
+                                    </Text>
+                                </RNBounceable>
+                            ))}
+                        </ScrollView>
+                    </Animated.View>
+                </View>
 
-                {/* Animated Filter Buttons */}
-                <Animated.View style={[styles.filterButtonsWrapper, { opacity: filterButtonsOpacity }]}>
-                    <ScrollView
-                        horizontal
-                        showsHorizontalScrollIndicator={false}
-                        contentContainerStyle={styles.scrollViewContent}
-                        style={styles.scrollview}
-                    >
-                        {categories.map((category, index) => (
-                            <RNBounceable
-                                key={index}
-                                style={[
-                                    styles.filterButton,
-                                    selectedCategory === category && styles.selectedFilterButton
-                                ]}
-                                onPress={() => setSelectedCategory(category)}
-                            >
-                                <Text style={[
-                                    styles.filterButtonText,
-                                    selectedCategory === category ? styles.selectedFilterButtonText : styles.unselectedFilterButtonText
-                                ]}>
-                                    {category}
-                                </Text>
-                            </RNBounceable>
-                        ))}
-                    </ScrollView>
+                <ScrollView
+                    contentContainerStyle={styles.gridScrollView}
+                    showsVerticalScrollIndicator={false}
+                >
+                    {explorePosts.length > 0 &&
+                        explorePosts.map((_, index) => {
+                            const start = index * 6;
+                            const end = start + 6;
+                            if (start >= explorePosts.length) return null;
+                            const chunk = explorePosts.slice(start, end);
+                            return chunk.length === 6 ? renderGrid(chunk, index) : null;
+                        })}
+                </ScrollView>
+            </Animated.View>
+
+            {/* The expanded list, sliding up from the bottom. 
+          Inside it, we do the “Feed-like” focusing logic. */}
+            {isExpandedVisible && (
+                <Animated.View
+                    style={[
+                        styles.expandedListContainer,
+                        { transform: [{ translateY }] }
+                    ]}
+                >
+                    <ExpandedExploreList
+                        posts={expandedPosts}
+                        onClose={handleCloseExpanded}
+                    />
                 </Animated.View>
-            </View>
+            )}
 
-            <ScrollView contentContainerStyle={styles.gridScrollView} showsVerticalScrollIndicator={false}>
-                {explorePosts.length > 0 && explorePosts.map((_, index) => (
-                    <View key={index}>
-                        {renderGrid(explorePosts.slice(index * 6, index * 6 + 6), index)}
-                    </View>
-                ))}
-            </ScrollView>
-
+            {/* Footer (like the Feed). We don't fade the footer here, but you could if you wish. */}
             <Footer key={footerKey} navigation={navigation} currentScreenName="Explore" />
         </KeyboardAvoidingView>
     );
@@ -195,7 +317,10 @@ const styles = StyleSheet.create({
     mainContainer: {
         flex: 1,
         backgroundColor: '#fff',
-        position: 'relative', // Ensure that absolutely positioned children can overlay
+        position: 'relative'
+    },
+    underlyingContent: {
+        flex: 1
     },
     searchAndFiltersContainer: {
         flexDirection: 'row',
@@ -203,55 +328,19 @@ const styles = StyleSheet.create({
         paddingTop: 6,
         paddingBottom: 5,
         paddingLeft: 16,
-        zIndex: 1000, // Ensure it's above other components
+        zIndex: 1000,
     },
     searchBar: {
         flex: 1,
-        marginRight: 8, // Space between SearchBar and filter buttons
+        marginRight: 8,
     },
     filterButtonsWrapper: {
         flexDirection: 'row',
-        flex: 1, // Adjust as needed
+        flex: 1,
     },
-    gridScrollView: {
-        paddingHorizontal: 1,
-    },
-    gridContainer: {
-        // marginBottom: 10,
-    },
-    gridRow: {
-        flexDirection: 'row',
-        flexWrap: 'nowrap',
-    },
-    gridColumn: {
-        flexDirection: 'column',
-        flexWrap: 'nowrap',
-        width: '33.33%',
-    },
-    gridItemLarge: {
-        width: '66.66%',
-        height: 'auto',
-        aspectRatio: 1,
-    },
-    gridItemSmall: {
-        width: '100%',
-        height: 'auto',
-        aspectRatio: 1,
-    },
-    gridItem: {
-        width: '33.33%',
-        height: 'auto',
-        aspectRatio: 1,
-    },
-    scrollViewWrapper: {
-        marginTop: 8,
-        marginBottom: 8,
-        height: 'auto',
-    },
+    scrollViewContent: {},
     scrollview: {
-        marginLeft: 8
-    },
-    scrollViewContent: {
+        marginLeft: 8,
     },
     filterButton: {
         backgroundColor: '#e9e9e9',
@@ -273,12 +362,37 @@ const styles = StyleSheet.create({
         fontFamily: 'Mulish_700Bold',
         fontSize: 13.25,
     },
-    keyboardDismissOverlay: {
+    gridScrollView: {
+        paddingHorizontal: 1,
+    },
+    gridContainer: {},
+    gridRow: {
+        flexDirection: 'row',
+        flexWrap: 'nowrap',
+    },
+    gridColumn: {
+        flexDirection: 'column',
+        flexWrap: 'nowrap',
+        width: '33.33%',
+    },
+    gridItemLarge: {
+        width: '66.66%',
+        aspectRatio: 1,
+    },
+    gridItemSmall: {
+        width: '100%',
+        aspectRatio: 1,
+    },
+    gridItem: {
+        width: '33.33%',
+        aspectRatio: 1,
+    },
+    expandedListContainer: {
         position: 'absolute',
-        top: 0,
         left: 0,
         right: 0,
         bottom: 0,
-        backgroundColor: 'transparent',
+        top: 0,
+        zIndex: 999,
     },
 });

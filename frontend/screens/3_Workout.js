@@ -41,17 +41,15 @@ function Workout({ navigation }) {
     const timerRef = useRef(workout ? millisToMinutesAndSeconds(Date.now() - workout.created) : '00:00');
 
     // ! Not in Beta
-    // useEffect(() => {
-    //     const unsubscribe = navigation.addListener('focus', () => {
-    //         if (workout) {
-    //             setTimeout(() => {
-    //                 setIsNewWorkoutBottomSheetVisible(true);
-    //             }, 100);
-    //         }
-    //     });
+    useEffect(() => {
+        const unsubscribe = navigation.addListener('focus', () => {
+            if (workout) {
+                setIsNewWorkoutBottomSheetVisible(true);
+            }
+        });
 
-    //     return unsubscribe;
-    // }, [navigation]);
+        return unsubscribe;
+    }, [navigation]);
 
 
     // Update the timerRef every second when workout is not null

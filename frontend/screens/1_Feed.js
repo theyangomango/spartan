@@ -109,6 +109,8 @@ export default function Feed({ navigation, route }) {
                 // cache: FastImage.cacheControl.immutable,
             }));
 
+            
+
             FastImage.preload(preloadImages);
             console.log("All story images have been preloaded with FastImage.");
         } catch (error) {
@@ -193,8 +195,8 @@ export default function Feed({ navigation, route }) {
                 <Post
                     data={item}
                     index={index}
-                    onPressCommentButton={openCommentsModal}
-                    onPressShareButton={openShareModal}
+                    openCommentsModal={openCommentsModal}
+                    openShareModal={openShareModal}
                     isFocused={isSomePostFocused && isFocusedPost}
                     handleFocusPost={handleFocusPost}
                     isSomePostFocused={isSomePostFocused}
