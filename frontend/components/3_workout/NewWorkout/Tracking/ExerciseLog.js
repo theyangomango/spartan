@@ -96,11 +96,11 @@ const ExerciseLog = memo(({ name, muscle, exerciseIndex, updateSets, sets, repla
                     </View>
                 </Pressable>
 
-                <View style={styles.pfpContainer}>
+                {/* <View style={styles.pfpContainer}>
                     <Image style={styles.pfp} source={{ uri: global.userData.image }} />
                     <Image style={[styles.pfp, styles.pfpOverlap]} source={{ uri: global.userData.image }} />
                     <Image style={[styles.pfp, styles.pfpOverlap]} source={{ uri: global.userData.image }} />
-                </View>
+                </View> */}
             </Animated.View>
             <Animated.View style={[styles.labels, { opacity: fadeAnim }]}>
                 <View style={styles.set_ctnr}>

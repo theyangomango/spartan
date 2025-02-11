@@ -40,6 +40,8 @@ function Workout({ navigation }) {
     const workoutTimeInterval = useRef(null);
     const timerRef = useRef(workout ? millisToMinutesAndSeconds(Date.now() - workout.created) : '00:00');
 
+
+
     // ! Not in Beta
     useEffect(() => {
         const unsubscribe = navigation.addListener('focus', () => {

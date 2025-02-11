@@ -1,13 +1,14 @@
+// PostPreview.js
 import React from "react";
-import { StyleSheet, View } from "react-native";
+import { StyleSheet } from "react-native";
 import FastImage from 'react-native-fast-image';
 import RNBounceable from "@freakycoder/react-native-bounceable";
 
-export default function PostPreview({ postData }) {
+export default function PostPreview({ postData, onPress }) {
     const image = postData.images[0];
 
     return (
-        <RNBounceable style={styles.main_ctnr}>
+        <RNBounceable style={styles.main_ctnr} onPress={onPress}>
             <FastImage
                 source={{ uri: image }}
                 style={styles.image}
@@ -20,7 +21,6 @@ export default function PostPreview({ postData }) {
 const styles = StyleSheet.create({
     main_ctnr: {
         flex: 1,
-        // backgroundColor: 'green'
         margin: 2,
     },
     image: {
