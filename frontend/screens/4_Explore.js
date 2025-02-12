@@ -12,8 +12,8 @@ import {
 import Footer from '../components/Footer';
 import PostPreview from '../components/4_Explore/PostPreview';
 import SearchBarComponent from '../components/4_Explore/SearchBarComponent';
-import retrieveUserExploreFeed from '../../backend/retreiveUserExploreFeed';
-import retreiveAllUsers from '../../backend/retreiveAllUsers';
+import retrieveUserExploreFeed from '../../backend/retrieveUserExploreFeed';
+import retreiveAllUsers from '../../backend/retrieveAllUsers';
 import RNBounceable from '@freakycoder/react-native-bounceable';
 import ExpandedExploreList from '../components/4_Explore/ExpandedExploreList';
 
@@ -83,8 +83,14 @@ export default function Explore({ navigation }) {
      *              Data Initialization
      ***********************************************/
     async function initExploreFeed() {
-        const exploreFeedData = await retrieveUserExploreFeed(userData);
-        setExplorePosts(exploreFeedData);
+        if (global.exploreFeedPosts) {
+            setExplorePosts(global.exploreFeedPosts);
+        }
+        else {
+            const exploreFeedData = await retrieveUserExploreFeed(userData);
+            global.exploreFeedPosts = exploreFeedData;
+            setExplorePosts(exploreFeedData);
+        }
     }
 
     async function initGlobalUsers() {

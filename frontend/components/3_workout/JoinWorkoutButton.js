@@ -40,10 +40,10 @@ const getDynamicStyles = () => {
 
 const dynamicStyles = getDynamicStyles();
 
-export default function JoinWorkoutButton({ joinWorkout }) {
+export default function LogWorkoutButton({ joinWorkout }) {
     return (
         <RNBounceable style={[styles.main_ctnr, { height: dynamicStyles.height, paddingHorizontal: dynamicStyles.paddingHorizontal }]}>
-            <Text style={[styles.text, { fontSize: dynamicStyles.fontSize }]}>Log Past Workout</Text>
+            <Text style={[styles.text, { fontSize: dynamicStyles.fontSize }]}>Log Past Workout (Coming Soon)</Text>
             <SimpleLineIcons name="notebook" size={dynamicStyles.iconSize} color={'#fff'} style={{ paddingRight: 1 }} />
         </RNBounceable>
     )

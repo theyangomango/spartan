@@ -877,7 +877,7 @@ const styles = StyleSheet.create({
     },
     ab_wheel_rollout: {
         transform: [
-            { scale: 0.9 },
+            { scale: 0.9 }, 
             { translateX: -85 },
             { translateY: -25 }
         ],

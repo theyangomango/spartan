@@ -43,15 +43,16 @@ function Workout({ navigation }) {
 
 
     // ! Not in Beta
-    useEffect(() => {
-        const unsubscribe = navigation.addListener('focus', () => {
-            if (workout) {
-                setIsNewWorkoutBottomSheetVisible(true);
-            }
-        });
+    // useEffect(() => {
+    //     const unsubscribe = navigation.addListener('focus', () => {
+    //         setIsNewWorkoutBottomSheetVisible(false);
+    //         if (workout) {
+    //             setIsNewWorkoutBottomSheetVisible(true);
+    //         }
+    //     });
 
-        return unsubscribe;
-    }, [navigation]);
+    //     return unsubscribe;
+    // }, [navigation]);
 
 
     // Update the timerRef every second when workout is not null

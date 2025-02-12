@@ -22,7 +22,8 @@ import ShareBottomSheet from "../components/1_Feed/SharePost/ShareBottomSheet";
 import ViewWorkoutBottomSheet from "../components/1_Feed/ViewWorkout/ViewWorkoutBottomSheet";
 
 import readDoc from "../../backend/helper/firebase/readDoc";
-import retrieveUserFeed from "../../backend/retreiveUserFeed";
+import retrieveUserFeed from "../../backend/retrieveUserFeed";
+import retrieveUserExploreFeed from '../../backend/retrieveUserExploreFeed'
 import { db } from "../../firebase.config";
 import getScrollTargetPosition from "../helper/getScrollTargetPosition";
 import isThisUser from "../helper/isThisUser";
@@ -91,7 +92,9 @@ export default function Feed({ navigation, route }) {
         try {
             userDataRef.current = await readDoc("users", UID);
             const feedData = await retrieveUserFeed(userDataRef.current);
+            const exploreFeedData = await retrieveUserExploreFeed(userData);
             global.userData = userDataRef.current;
+            global.exploreFeedPosts = exploreFeedData;
             setStories(feedData[0]);
             setPosts(feedData[1]);
             setMessages(feedData[2]);
@@ -102,16 +105,21 @@ export default function Feed({ navigation, route }) {
             }
 
             // Preload Stories Images using FastImage
-            const preloadImages = feedData[0].storiesData.map(story => ({
+            const storiesPreloadImages = feedData[0].storiesData.map(story => ({
                 uri: story.image,
                 priority: FastImage.priority.normal,
                 // Optionally add cache control
                 // cache: FastImage.cacheControl.immutable,
             }));
 
-            
+            const exploreFeedPreloadImages = exploreFeedData.map(post => ({
+                uri: post.images[0],
+                priority: FastImage.priority.normal,
+            }));
 
-            FastImage.preload(preloadImages);
+            FastImage.preload(storiesPreloadImages);
+            FastImage.preload(exploreFeedPreloadImages);
+
             console.log("All story images have been preloaded with FastImage.");
         } catch (error) {
             console.error("Error initializing feed data:", error);
