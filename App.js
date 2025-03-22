@@ -99,7 +99,9 @@ export default function App() {
   if (!fontsLoaded) return null;
 
   return (
+    
     <GestureHandlerRootView style={{ flex: 1 }}>
+        
       <NavigationContainer>
         <Tab.Navigator
           initialRouteName={isAuthenticated ? 'FeedStack' : 'AuthenticationStack'}

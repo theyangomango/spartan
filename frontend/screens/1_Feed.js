@@ -74,7 +74,7 @@ export default function Feed({ navigation, route }) {
     // Re-init when screen gains focus
     useEffect(() => {
         const unsub = navigation.addListener("focus", () => {
-            console.log({ messages });
+            // console.log({ messages });
             setFooterKey(k => k + 1); // state update for footer style
             // Todo figure ts out
             // init();

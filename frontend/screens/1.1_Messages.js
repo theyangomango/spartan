@@ -6,6 +6,7 @@ import CreateGroupChatBottomSheet from "../components/1.1_Messages/CreateGroupCh
 import initChat from "../../backend/messages/initChat";
 import makeID from '../../backend/helper/makeID';
 import arrayAppend from '../../backend/helper/firebase/arrayAppend';
+import scaleSize from "../helper/scaleSize";
 
 export default function Messages({ navigation, route }) {
     const userData = global.userData;
@@ -95,7 +96,7 @@ export default function Messages({ navigation, route }) {
     if (!userData || !messages) return null;
 
     return (
-        <SafeAreaView style={styles.mainContainer}>
+        <View style={styles.mainContainer}>
             <MessagesHeader
                 handle={userData.handle}
                 toFeedScreen={toFeedScreen}
@@ -130,7 +131,7 @@ export default function Messages({ navigation, route }) {
                 setIsVisible={setIsCreateGroupChatBottomSheetVisible}
                 createGroupChat={createGroupChat}
             />
-        </SafeAreaView>
+        </View>
     );
 }
 
@@ -138,6 +139,7 @@ const styles = StyleSheet.create({
     mainContainer: {
         flex: 1,
         backgroundColor: '#fff',
+        paddingTop: scaleSize(50)
     },
     cardsContainer: {
         flex: 1,
