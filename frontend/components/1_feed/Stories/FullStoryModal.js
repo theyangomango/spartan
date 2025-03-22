@@ -27,6 +27,7 @@ export default function FullStoryModal({
     handleStoryNavigation,
     navigation
 }) {
+    const thisUser = global.userData;
     const [replyText, setReplyText] = useState("");
 
     // Hide/show the status bar based on modal visibility
@@ -43,12 +44,12 @@ export default function FullStoryModal({
         if (!replyText.trim()) return;
 
         console.log("Reply sent:", replyText);
-        console.log(global.userData.uid, currentStory.uid);
+        console.log(thisUser.uid, currentStory.uid);
 
         // Locate the message whose otherUsers array contains exactly one ID 
         // and that ID matches currentStory.uid
-        console.log(global.userData.messages[0]);
-        const targetMessage = global.userData.messages.find(
+        console.log(thisUser.messages[0]);
+        const targetMessage = thisUser.messages.find(
             (msg) =>
                 Array.isArray(msg.otherUsers) &&
                 msg.otherUsers.length === 1 &&
@@ -57,7 +58,7 @@ export default function FullStoryModal({
 
         if (targetMessage) {
             const cid = targetMessage.mid;
-            sendMessage(global.userData.uid, global.userData.handle, cid, 'Replied to your story: ' + replyText);
+            sendMessage(thisUser.uid, thisUser.handle, cid, 'Replied to your story: ' + replyText);
         }
 
         // Clear the reply text field

@@ -74,18 +74,20 @@ export default function Feed({ navigation, route }) {
     // Re-init when screen gains focus
     useEffect(() => {
         const unsub = navigation.addListener("focus", () => {
+            console.log({ messages });
             setFooterKey(k => k + 1); // state update for footer style
-            init();
-            onSnapshot(doc(db, "users", UID), snap => {
-                userDataRef.current = snap.data();
-                global.userData = userDataRef.current;
-            });
+            // Todo figure ts out
+            // init();
+            // onSnapshot(doc(db, "users", UID), snap => {
+            //     userDataRef.current = snap.data();
+            //     global.userData = userDataRef.current;
+            // });
         });
         return unsub;
     }, [navigation]);
 
     // If messages are passed from route, set them
-    useEffect(() => { if (route.params) setMessages(route.params.messages); }, [route]);
+    useEffect(() => { if ('messages' in route.params) setMessages(route.params.messages); }, [route]);
 
     // Initialize stories, posts, messages
     const init = async () => {
@@ -109,7 +111,7 @@ export default function Feed({ navigation, route }) {
                 uri: story.image,
                 priority: FastImage.priority.high,
                 // Optionally add cache control
-                // cache: FastImage.cacheControl.immutable,
+                cache: FastImage.cacheControl.immutable,
             }));
 
             const exploreFeedPreloadImages = exploreFeedData.map(post => ({
@@ -157,7 +159,9 @@ export default function Feed({ navigation, route }) {
 
     // Go to Messages screen
     const toMessagesScreen = () => {
-        if (global.userData && messages) navigation.navigate("Messages", { userData: userDataRef.current, messages });
+        if (global.userData && messages) {
+            navigation.navigate("Messages", { userData: userDataRef.current, messages });
+        };
     };
 
     // Bottom sheet toggles

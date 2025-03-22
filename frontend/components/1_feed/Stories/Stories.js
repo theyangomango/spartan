@@ -23,8 +23,6 @@ import getStoriesPrefixSums from "../../../helper/getStoriesPrefixSums";
 import sortStoriesDataByUserList from "../../../helper/sortStoriesDataByUserList";
 
 export default function Stories({ data, userList, initStories, navigation }) {
-    console.log(userList);
-
     // Manage modals & current story index
     const [viewModalVisible, setViewModal] = useState(false);
     const [createModalVisible, setCreateModal] = useState(false);
@@ -80,8 +78,6 @@ export default function Stories({ data, userList, initStories, navigation }) {
 
     // Open the story at index; skip already viewed sections.
     function handlePress(index) {
-        console.log("handle press", index);
-
         const storyIndex = index === 0 ? 0 : storiesPrefixSums[index - 1];
         const sectionIndex = storiesPrefixSums.findIndex(s => storyIndex < s);
         const sectionStart = sectionIndex === 0 ? 0 : storiesPrefixSums[sectionIndex - 1];
@@ -119,8 +115,6 @@ export default function Stories({ data, userList, initStories, navigation }) {
     // Render each Story thumbnail in a horizontal list.
     function renderItem({ item, index }) {
         const isViewed = item.stories.every(sid => viewedStories.current.includes(sid));
-
-        console.log({ item });
 
         return (
             <StoryTile
