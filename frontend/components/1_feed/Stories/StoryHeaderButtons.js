@@ -112,19 +112,20 @@ const styles = StyleSheet.create({
         alignItems: "center"
     },
     pfp: {
-        width: scaleSize(32),
+        width: scaleSize(38),
         aspectRatio: 1,
         borderRadius: scaleSize(22)
     },
     handleText: {
         color: "#fff",
         padding: scaleSize(8),
-        fontSize: scaleSize(16),
+        fontSize: scaleSize(18),
         fontFamily: "SourceSansPro_600SemiBold"
     },
     right: {
         flexDirection: "row",
-        alignItems: "center"
+        alignItems: "center",
+        marginRight: 5
     },
     dashContainer: {
         flexDirection: "row",

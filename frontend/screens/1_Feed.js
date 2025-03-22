@@ -107,7 +107,7 @@ export default function Feed({ navigation, route }) {
             // Preload Stories Images using FastImage
             const storiesPreloadImages = feedData[0].storiesData.map(story => ({
                 uri: story.image,
-                priority: FastImage.priority.normal,
+                priority: FastImage.priority.high,
                 // Optionally add cache control
                 // cache: FastImage.cacheControl.immutable,
             }));
