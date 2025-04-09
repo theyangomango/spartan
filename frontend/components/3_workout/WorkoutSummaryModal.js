@@ -94,6 +94,8 @@ const WorkoutSummaryModal = ({ isVisible, workout, onClose, postWorkout }) => {
                             <MaterialCommunityIcons name="arm-flex" size={scaledSize(18)} color={'#fff'} />
                         </RNBounceable>
                     </View>
+
+                   
                 </Pressable>
             </Pressable>
         </Modal>
@@ -170,6 +172,7 @@ const styles = StyleSheet.create({
         width: '73%', // Fixed to 75% of the screen width
         flexDirection: 'row',
         alignItems: 'center',
+        justifyContent: 'space-between',
         marginRight: scaledSize(10)
     },
     entry_text: {
@@ -179,7 +182,7 @@ const styles = StyleSheet.create({
         flexShrink: 1, // Ensure the text shrinks when needed
         padding: 0,    // Avoid any padding that might add space around text
         margin: 0,     // Remove any margin that might cause extra space
-    },    
+    },
     muscle_ctnr: {
         borderRadius: scaledSize(10),
         paddingHorizontal: scaledSize(8.5),

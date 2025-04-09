@@ -117,29 +117,31 @@ export default function FullStoryModal({
                     />
 
                     {/* Reply Input + Send Icon */}
-                    <KeyboardAvoidingView
-                        behavior={Platform.OS === "ios" ? "padding" : "height"}
-                        style={styles.replyContainer}
-                    >
-                        <View style={styles.inputRow}>
-                            <TextInput
-                                style={styles.replyInput}
-                                placeholder="Send a reply..."
-                                placeholderTextColor="gray"
-                                value={replyText}
-                                onChangeText={setReplyText}
-                                returnKeyType="send"
-                                onSubmitEditing={handleSendReply}
-                            />
-                            <Pressable onPress={handleSendReply} style={styles.sendIcon}>
-                                <Send2
-                                    size={27}
-                                    // Light up (white) if there's text, else gray
-                                    color={replyText.trim() ? "white" : "gray"}
+                    { storiesData[currentIndex].uid !== thisUser.uid &&
+                        <KeyboardAvoidingView
+                            behavior={Platform.OS === "ios" ? "padding" : "height"}
+                            style={styles.replyContainer}
+                        >
+                            <View style={styles.inputRow}>
+                                <TextInput
+                                    style={styles.replyInput}
+                                    placeholder="Send a reply..."
+                                    placeholderTextColor="gray"
+                                    value={replyText}
+                                    onChangeText={setReplyText}
+                                    returnKeyType="send"
+                                    onSubmitEditing={handleSendReply}
                                 />
-                            </Pressable>
-                        </View>
-                    </KeyboardAvoidingView>
+                                <Pressable onPress={handleSendReply} style={styles.sendIcon}>
+                                    <Send2
+                                        size={27}
+                                        // Light up (white) if there's text, else gray
+                                        color={replyText.trim() ? "white" : "gray"}
+                                    />
+                                </Pressable>
+                            </View>
+                        </KeyboardAvoidingView>
+                    }
                 </View>
             </TouchableWithoutFeedback>
         </Modal>

@@ -84,13 +84,15 @@ export default function StoryHeaderButtons({ stories, userList, index, toViewPro
                     ))}
                 </View>
 
-                <Pressable onPress={handlePressLikeButton}>
-                    {isLiked ? (
-                        <Heart size={scaleSize(23)} color="#FF8A65" variant="Bold" />
-                    ) : (
-                        <Heart size={scaleSize(23)} color="#FF8A65" />
-                    )}
-                </Pressable>
+                {stories[index].uid !== global.userData.uid &&
+                    <Pressable onPress={handlePressLikeButton}>
+                        {isLiked ? (
+                            <Heart size={scaleSize(23)} color="#FF8A65" variant="Bold" />
+                        ) : (
+                            <Heart size={scaleSize(23)} color="#FF8A65" />
+                        )}
+                    </Pressable>
+                }
             </View>
         </View>
     );
