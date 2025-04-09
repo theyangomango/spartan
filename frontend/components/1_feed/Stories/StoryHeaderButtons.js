@@ -1,146 +1,138 @@
-/**
- * Displays header (pfp, handle) for a story, with a "like" button and progress dash indicators.
- * Pressing on the pfp/handle redirects to the creator's Profile
- */
-
-import { Pressable, StatusBar, StyleSheet, Text, View } from "react-native";
-import { Heart } from 'iconsax-react-native';
+import { Pressable, StyleSheet, Text, View, Dimensions } from "react-native";
+import { Heart } from "iconsax-react-native";
 import { useEffect, useState } from "react";
-import FastImage from 'react-native-fast-image';
-import getStoriesPrefixSums from '../../../helper/getStoriesPrefixSums';
-import { likeStory } from './../../../../backend/stories/likeStory';
-import { unlikeStory } from './../../../../backend/stories/unlikeStory';
+import FastImage from "react-native-fast-image";
+import getStoriesPrefixSums from "../../../helper/getStoriesPrefixSums";
+import { likeStory } from "./../../../../backend/stories/likeStory";
+import { unlikeStory } from "./../../../../backend/stories/unlikeStory";
 import scaleSize from "../../../helper/scaleSize";
 
-export default function StoryHeaderButtons({ stories, userList, index, toViewProfile }) {
-    // Track whether the user has liked the current story
+export default function StoryHeaderButtons({
+    stories,
+    userList,
+    index,
+    toViewProfile,
+}) {
+    /** ---------- like‑state ---------- */
     const [isLiked, setIsLiked] = useState(
         stories[index].likedUsers.includes(global.userData.uid)
     );
 
-    const prefixSum = getStoriesPrefixSums(userList);
-
-    // Find the user index for this story within userList
-    function getUserIndexForStory(storyIndex) {
-        for (let i = 0; i < prefixSum.length; i++) {
-            if (storyIndex < prefixSum[i]) return i;
-        }
-        return -1;
-    }
-
-    const userIndex = getUserIndexForStory(index);
-    const numOfStories = userList[userIndex].stories.length;
-    const storyStartIndex = prefixSum[userIndex] - numOfStories;
-    const relativeStoryIndex = index - storyStartIndex;
-
-    // Update the local `isLiked` state whenever the story index changes
     useEffect(() => {
         setIsLiked(stories[index].likedUsers.includes(global.userData.uid));
     }, [index]);
 
-    // Toggle like status in local state + call appropriate backend functions
     function handlePressLikeButton() {
-        if (!isLiked) {
+        if (isLiked) {
+            unlikeStory(stories[index].sid, global.userData.uid);
+            stories[index].likedUsers = stories[index].likedUsers.filter(
+                (uid) => uid !== global.userData.uid
+            );
+        } else {
             likeStory(stories[index].sid, global.userData.uid);
             stories[index].likedUsers.push(global.userData.uid);
-        } else {
-            unlikeStory(stories[index].sid, global.userData.uid);
-            const i = stories[index].likedUsers.indexOf(global.userData.uid);
-            if (i > -1) stories[index].likedUsers.splice(i, 1);
         }
         setIsLiked(!isLiked);
     }
 
-    // Determine dash size based on the number of stories
-    const dashWidth = numOfStories > 4 ? scaleSize(30) : scaleSize(42);
-    const dashMargin = numOfStories > 4 ? scaleSize(1.5) : scaleSize(2.5);
+    /** ---------- dash math ---------- */
+    const prefixSum = getStoriesPrefixSums(userList);
+    const userIndex = prefixSum.findIndex((p) => index < p);
+    const numOfStories = userList[userIndex].stories.length;
+    const storyStartIndex = prefixSum[userIndex] - numOfStories;
+    const relativeStoryIndex = index - storyStartIndex;
 
+    /** ---------- render ---------- */
     return (
         <View style={styles.mainContainer}>
-
-            {/* Left side: pfp + handle */}
+            {/*  LEFT  */}
             <Pressable onPress={() => toViewProfile(index)} style={styles.left}>
                 <FastImage
                     key={stories[index].sid}
                     source={{ uri: stories[index].pfp }}
                     style={styles.pfp}
-                    resizeMode={FastImage.resizeMode.cover}
                 />
                 <Text style={styles.handleText}>{stories[index].handle}</Text>
             </Pressable>
 
-            {/* Right side: dash indicators + like button */}
-            <View style={styles.right}>
-                <View style={styles.dashContainer}>
-                    {Array(numOfStories).fill(null).map((_, i) => (
-                        <View
-                            key={i}
-                            style={[
-                                styles.dash,
-                                { width: dashWidth, marginHorizontal: dashMargin },
-                                i === relativeStoryIndex ? styles.activeDash : styles.inactiveDash
-                            ]}
-                        />
-                    ))}
-                </View>
-
-                {stories[index].uid !== global.userData.uid &&
-                    <Pressable onPress={handlePressLikeButton}>
-                        {isLiked ? (
-                            <Heart size={scaleSize(23)} color="#FF8A65" variant="Bold" />
-                        ) : (
-                            <Heart size={scaleSize(23)} color="#FF8A65" />
-                        )}
-                    </Pressable>
-                }
+            {/*  DASH STRIP  */}
+            <View style={styles.dashContainer}>
+                {Array.from({ length: numOfStories }).map((_, i) => (
+                    <View
+                        key={i}
+                        style={[
+                            styles.dash,
+                            i === relativeStoryIndex ? styles.activeDash : styles.inactiveDash,
+                            {
+                                // flex grows/shrinks each dash evenly.
+                                flex: 1,
+                                // thin margins so we don’t waste space when many stories exist
+                                marginHorizontal: numOfStories > 10 ? scaleSize(1) : scaleSize(2),
+                                // cap width when there are only a few stories
+                                maxWidth: scaleSize(42),
+                            },
+                        ]}
+                    />
+                ))}
             </View>
+
+            {/*  RIGHT (Like button)  */}
+            {stories[index].uid !== global.userData.uid &&
+                <Pressable onPress={handlePressLikeButton} style={styles.likeBtn}>
+                    {isLiked ? (
+                        <Heart size={scaleSize(23)} color="#FF8A65" variant="Bold" />
+                    ) : (
+                        <Heart size={scaleSize(23)} color="#FF8A65" />
+                    )}
+                </Pressable>
+            }
         </View>
     );
 }
 
-// Styles
+/* ---------------- styles ---------------- */
 const styles = StyleSheet.create({
     mainContainer: {
-        flexDirection: "row",
-        width: "100%",
-        justifyContent: "space-between",
-        paddingHorizontal: scaleSize(20),
-        paddingTop: scaleSize(37),
         position: "absolute",
-        zIndex: 999
-    },
-    left: {
+        zIndex: 999,
+        top: scaleSize(37),
+        paddingHorizontal: scaleSize(20),
+
         flexDirection: "row",
-        alignItems: "center"
+        alignItems: "center",
+        width: "100%",
     },
+
+    /* left block */
+    left: { flexDirection: "row", alignItems: "center" },
     pfp: {
         width: scaleSize(38),
         aspectRatio: 1,
-        borderRadius: scaleSize(22)
+        borderRadius: scaleSize(22),
     },
     handleText: {
         color: "#fff",
-        padding: scaleSize(8),
+        paddingHorizontal: scaleSize(8),
         fontSize: scaleSize(18),
-        fontFamily: "SourceSansPro_600SemiBold"
+        fontFamily: "SourceSansPro_600SemiBold",
     },
-    right: {
+
+    /* dash strip takes up all spare room */
+    dashContainer: {
+        flex: 1,                 // takes all spare room
         flexDirection: "row",
         alignItems: "center",
-        marginRight: 5
-    },
-    dashContainer: {
-        flexDirection: "row",
-        marginRight: scaleSize(10)
+        justifyContent: "flex-end", // ⟵ new: push dashes to the right
     },
     dash: {
         height: scaleSize(4),
         borderRadius: scaleSize(90),
     },
-    activeDash: {
-        backgroundColor: "#fff"
+    activeDash: { backgroundColor: "#fff" },
+    inactiveDash: { backgroundColor: "#bbb" },
+
+    /* right block */
+    likeBtn: {
+        paddingLeft: scaleSize(10),
     },
-    inactiveDash: {
-        backgroundColor: "#bbb"
-    }
 });
