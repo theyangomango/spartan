@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import {
     Modal,
     View,
@@ -7,16 +7,16 @@ import {
     StatusBar,
     TextInput,
     Keyboard,
-    TouchableWithoutFeedback,
-    KeyboardAvoidingView,
-    Platform
+    Platform,
+    ActivityIndicator,
+    ScrollView,
 } from "react-native";
 import { BlurView } from "expo-blur";
 import FastImage from "react-native-fast-image";
-import { Send2 } from 'iconsax-react-native'
+import { Send2 } from "iconsax-react-native";
 
-import sendMessage from '../../../../backend/messages/sendMessage'
-import StoryHeaderButtons from "./StoryHeaderButtons"; // Adjust path as needed
+import sendMessage from "../../../../backend/messages/sendMessage";
+import StoryHeaderButtons from "./StoryHeaderButtons";
 
 export default function FullStoryModal({
     isVisible,
@@ -24,48 +24,91 @@ export default function FullStoryModal({
     currentIndex,
     storiesData,
     userList,
-    handleStoryNavigation,
-    navigation
+    handleStoryNavigation,   // <- comes from Stories.jsx
+    navigation,
 }) {
     const thisUser = global.userData;
     const [replyText, setReplyText] = useState("");
 
-    // Hide/show the status bar based on modal visibility
+    /** image‑loading state */
+    const [isReady, setIsReady] = useState(false);
+    const pendingDirection = useRef(null); // -1 or +1 while waiting
+
+    /** hide / show status‑bar */
     useEffect(() => {
         StatusBar.setHidden(isVisible, "fade");
     }, [isVisible]);
 
+    /** reset loading flag every time index changes */
+    useEffect(() => {
+        if (isVisible) setIsReady(false);
+    }, [currentIndex, isVisible]);
+
+    /** pre‑load neighbours once the current image is ready */
+    useEffect(() => {
+        if (!isReady) return;
+
+        const toPreload = [];
+        const prev = storiesData[currentIndex - 1];
+        const next = storiesData[currentIndex + 1];
+
+        if (prev) toPreload.push({ uri: prev.image });
+        if (next) toPreload.push({ uri: next.image });
+
+        if (toPreload.length) FastImage.preload(toPreload);
+    }, [isReady, currentIndex, storiesData]);
+
+    /** guard */
     if (currentIndex === null) return null;
     const currentStory = storiesData[currentIndex];
 
-    // Send handler for typed replies
+    /* ------------ reply handler ------------ */
     const handleSendReply = () => {
-        // Return early if there is no reply text
-        if (!replyText.trim()) return;
+        const trimmed = replyText.trim();
+        if (!trimmed) return;
 
-        console.log("Reply sent:", replyText);
-        console.log(thisUser.uid, currentStory.uid);
-
-        // Locate the message whose otherUsers array contains exactly one ID 
-        // and that ID matches currentStory.uid
-        console.log(thisUser.messages[0]);
-        const targetMessage = thisUser.messages.find(
-            (msg) =>
-                Array.isArray(msg.otherUsers) &&
-                msg.otherUsers.length === 1 &&
-                msg.otherUsers[0].uid === currentStory.uid
+        const target = thisUser.messages.find(
+            (m) =>
+                Array.isArray(m.otherUsers) &&
+                m.otherUsers.length === 1 &&
+                m.otherUsers[0].uid === currentStory.uid
         );
-
-        if (targetMessage) {
-            const cid = targetMessage.mid;
-            sendMessage(thisUser.uid, thisUser.handle, cid, 'Replied to your story: ' + replyText);
+        if (target) {
+            sendMessage(
+                thisUser.uid,
+                thisUser.handle,
+                target.mid,
+                `Replied to your story: ${trimmed}`
+            );
         }
 
-        // Clear the reply text field
         setReplyText("");
+        Keyboard.dismiss();
     };
 
+    /* ------------ navigation with waiting logic ------------ */
+    const tryNavigate = (direction) => {
+        if (isReady) {
+            handleStoryNavigation(direction);
+        } else {
+            pendingDirection.current = direction;  // remember the request
+        }
+    };
 
+    /** when current image finishes loading */
+    const handleImageLoaded = () => {
+        setIsReady(true);
+
+        // if user already tapped, execute queued navigation now
+        if (pendingDirection.current !== null) {
+            const dir = pendingDirection.current;
+            pendingDirection.current = null;
+            // allow React state to settle, then navigate
+            requestAnimationFrame(() => handleStoryNavigation(dir));
+        }
+    };
+
+    /* ======================= render ======================= */
     return (
         <Modal
             animationType="fade"
@@ -73,115 +116,94 @@ export default function FullStoryModal({
             visible={isVisible}
             onRequestClose={onClose}
         >
-            <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
-                <View style={styles.modalContainer}>
-                    {/* Story Image */}
-                    <View style={styles.modalContent}>
-                        <FastImage
-                            key={currentStory.sid}
-                            source={{
-                                uri: currentStory.image,
-                                priority: FastImage.priority.normal,
-                            }}
-                            style={styles.fullScreenImage}
-                            resizeMode={FastImage.resizeMode.cover}
+            <ScrollView
+                contentContainerStyle={styles.modalContainer}
+                keyboardShouldPersistTaps="always"
+                scrollEnabled={false}
+            >
+                {/* story image */}
+                <View style={styles.modalContent}>
+                    <FastImage
+                        key={currentStory.sid}           // force remount on story change
+                        source={{ uri: currentStory.image, priority: FastImage.priority.high }}
+                        style={styles.fullScreenImage}
+                        resizeMode={FastImage.resizeMode.cover}
+                        onLoadEnd={handleImageLoaded}   // ← sets isReady = true
+                    />
+
+                    {!isReady && (
+                        <ActivityIndicator
+                            size="large"
+                            color="#fff"
+                            style={StyleSheet.absoluteFill}
                         />
-                    </View>
-
-                    {/* Gesture Areas for Navigation */}
-                    <Pressable
-                        onPress={() => handleStoryNavigation(-1)}
-                        style={styles.screenLeft}
-                    />
-                    <Pressable
-                        onPress={onClose}
-                        style={styles.screenCenter}
-                    />
-                    <Pressable
-                        onPress={() => handleStoryNavigation(1)}
-                        style={styles.screenRight}
-                    />
-
-                    {/* Blurred Header */}
-                    <BlurView intensity={10} style={styles.blurview} />
-
-                    {/* Story Header Buttons */}
-                    <StoryHeaderButtons
-                        stories={storiesData}
-                        userList={userList}
-                        index={currentIndex}
-                        toViewProfile={pi => {
-                            onClose();
-                            navigation.navigate("ViewProfile", { user: storiesData[pi] });
-                        }}
-                    />
-
-                    {/* Reply Input + Send Icon */}
-                    { storiesData[currentIndex].uid !== thisUser.uid &&
-                        <KeyboardAvoidingView
-                            behavior={Platform.OS === "ios" ? "padding" : "height"}
-                            style={styles.replyContainer}
-                        >
-                            <View style={styles.inputRow}>
-                                <TextInput
-                                    style={styles.replyInput}
-                                    placeholder="Send a reply..."
-                                    placeholderTextColor="gray"
-                                    value={replyText}
-                                    onChangeText={setReplyText}
-                                    returnKeyType="send"
-                                    onSubmitEditing={handleSendReply}
-                                />
-                                <Pressable onPress={handleSendReply} style={styles.sendIcon}>
-                                    <Send2
-                                        size={27}
-                                        // Light up (white) if there's text, else gray
-                                        color={replyText.trim() ? "white" : "gray"}
-                                    />
-                                </Pressable>
-                            </View>
-                        </KeyboardAvoidingView>
-                    }
+                    )}
                 </View>
-            </TouchableWithoutFeedback>
+
+                {/* navigation zones (disabled while loading) */}
+                <Pressable
+                    onPress={() => tryNavigate(-1)}
+                    style={styles.screenLeft}
+                    disabled={!isReady}
+                />
+                <Pressable
+                    onPress={onClose}
+                    style={styles.screenCenter}
+                    disabled={!isReady}
+                />
+                <Pressable
+                    onPress={() => tryNavigate(1)}
+                    style={styles.screenRight}
+                    disabled={!isReady}
+                />
+
+                {/* blurred header */}
+                <BlurView intensity={10} style={styles.blurview} pointerEvents="box-none" />
+
+                {/* header buttons */}
+                <StoryHeaderButtons
+                    stories={storiesData}
+                    userList={userList}
+                    index={currentIndex}
+                    toViewProfile={(pi) => {
+                        onClose();
+                        navigation.navigate("ViewProfile", { user: storiesData[pi] });
+                    }}
+                />
+
+                {/* reply bar */}
+                {storiesData[currentIndex].uid !== thisUser.uid && (
+                    <View style={styles.replyContainer}>
+                        <TextInput
+                            style={styles.replyInput}
+                            placeholder="Send a reply..."
+                            placeholderTextColor="gray"
+                            value={replyText}
+                            onChangeText={setReplyText}
+                            returnKeyType="send"
+                            onSubmitEditing={handleSendReply}
+                        />
+                        <Pressable onPress={handleSendReply} style={styles.sendIcon}>
+                            <Send2 size={27} color={replyText.trim() ? "white" : "gray"} />
+                        </Pressable>
+                    </View>
+                )}
+            </ScrollView>
         </Modal>
     );
 }
 
+/* ---------------- styles ---------------- */
 const styles = StyleSheet.create({
-    modalContainer: {
-        flex: 1
-    },
-    modalContent: {
-        flex: 1,
-        justifyContent: "center",
-        alignItems: "center",
-    },
-    fullScreenImage: {
-        width: "100%",
-        height: "100%",
-    },
-    screenLeft: {
-        position: "absolute",
-        top: 100,
-        left: 0,
-        height: "100%",
-        width: "25%",
-    },
-    screenCenter: {
-        position: "absolute",
-        top: 100,
-        left: "25%",
-        width: "50%",
-        height: "100%",
-    },
-    screenRight: {
-        position: "absolute",
-        top: 100,
-        right: 0,
-        height: "100%",
-        width: "25%",
-    },
+    modalContainer: { flex: 1 },
+
+    modalContent: { flex: 1, justifyContent: "center", alignItems: "center" },
+    fullScreenImage: { width: "100%", height: "100%" },
+
+    screenLeft: { position: "absolute", top: 100, left: 0, width: "25%", height: "100%" },
+    screenCenter: { position: "absolute", top: 100, left: "25%", width: "50%", height: "100%" },
+    screenRight: { position: "absolute", top: 100, right: 0, width: "25%", height: "100%" },
+
     blurview: {
         position: "absolute",
         top: 0,
@@ -189,32 +211,27 @@ const styles = StyleSheet.create({
         width: "100%",
         height: 85,
         zIndex: 1,
-        backgroundColor: "rgba(0, 0, 0, 0.05)"
+        backgroundColor: "rgba(0,0,0,0.05)",
     },
+
     replyContainer: {
         position: "absolute",
         left: 10,
         right: 10,
         bottom: 40,
-        backgroundColor: "rgba(0, 0, 0, 0.6)",
+        flexDirection: "row",
+        alignItems: "center",
+        backgroundColor: "rgba(0,0,0,0.6)",
         borderRadius: 25,
         paddingHorizontal: 15,
-        justifyContent: "center",
-    },
-    inputRow: {
-        flexDirection: "row",
-        alignItems: "center"
     },
     replyInput: {
         flex: 1,
         color: "white",
         fontFamily: "Mulish_700Bold",
         fontSize: 16,
-        paddingVertical: 20,
-        paddingHorizontal: 12
+        paddingVertical: 18,
+        paddingHorizontal: 12,
     },
-    sendIcon: {
-        paddingLeft: 10,
-        paddingRight: 12,
-    },
+    sendIcon: { paddingLeft: 10, paddingVertical: 10 },
 });
