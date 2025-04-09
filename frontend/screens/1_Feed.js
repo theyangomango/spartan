@@ -11,6 +11,8 @@ import { StatusBar } from "expo-status-bar";
 import MaskedView from "@react-native-masked-view/masked-view";
 import { doc, onSnapshot } from "firebase/firestore";
 import FastImage from "react-native-fast-image";
+import { InteractionManager } from "react-native";  // ⬅︎ add
+
 
 import Footer from "../components/Footer";
 import Post from "../components/1_Feed/Posts/Post";
@@ -36,6 +38,14 @@ const TARGET_POSITION = getScrollTargetPosition(width, height),
 export default function Feed({ navigation, route }) {
     // Use UID from global or route params
     const UID = "userData" in global ? global.userData.uid : route.params.uid;
+
+    const scrollOffsetY = useRef(0);          // ← new
+
+    const handleScroll = e => {
+        const y = e.nativeEvent.contentOffset.y;
+        scrollOffsetY.current = y;                             // remember position
+        setIsScrolledPastTopClip(y > SCROLL_THRESHOLD);
+    };
 
     // State
     const [stories, setStories] = useState(null),
@@ -134,27 +144,73 @@ export default function Feed({ navigation, route }) {
         setStories(feedData[0]);
     };
 
-    // Focus on a single post
-    const handleFocusPost = (index, postY) => {
+    const handleFocusPost = (index, postYAtPress) => {
         focusedPostIndex.current = index;
         setIsSomePostFocused(true);
-        animateView(postY - TARGET_POSITION, 0);
+
+        freezeFlatList(() => {
+            // list is 100 % idle here
+            const targetTranslateY = TARGET_POSITION - postYAtPress;
+            animateView(targetTranslateY, 0);
+        });
     };
 
     // Go back from single post
     const handleBackPress = () => {
         setIsSomePostFocused(false);
-        setShareBottomSheetCloseFlag(!shareBottomSheetCloseFlag);
+        flatListRef.current?.setNativeProps({ scrollEnabled: true });
+        setShareBottomSheetCloseFlag(flag => !flag);
         animateView(0, 1);
     };
 
+    const freezeFlatList = (afterFreeze) => {
+        if (!flatListRef.current) return;
+
+        // 1.  lock touch scrolling instantly
+        flatListRef.current.setNativeProps({ scrollEnabled: false });
+
+        // 2.  force‑stop any current fling
+        flatListRef.current.scrollToOffset({
+            offset: scrollOffsetY.current,
+            animated: false,
+        });
+
+        /* 3.  wait until *all* native interactions (fling decel, rubber‑band,
+               etc.) are done, then call the callback */
+        InteractionManager.runAfterInteractions(() => {
+            // one more snap for good measure
+            flatListRef.current?.scrollToOffset({
+                offset: scrollOffsetY.current,
+                animated: false,
+            });
+            afterFreeze();          // ← safe to measure & animate now
+        });
+    };
+
     // Animate view
-    const animateView = (translateYValue, opacityValue) => {
+    const animateView = (targetTranslateY, opacityValue) => {
         Animated.parallel([
-            Animated.timing(translateY, { toValue: -translateYValue, duration: ANIMATION_DURATION, useNativeDriver: true }),
-            Animated.timing(footerOpacity, { toValue: opacityValue, duration: ANIMATION_DURATION, useNativeDriver: true }),
-            Animated.timing(storiesOpacity, { toValue: opacityValue, duration: ANIMATION_DURATION, useNativeDriver: true })
-        ]).start(() => { if (translateYValue === 0) focusedPostIndex.current = -1; });
+            Animated.timing(translateY, {
+                toValue: targetTranslateY,          // absolute destination
+                duration: ANIMATION_DURATION,
+                useNativeDriver: true,
+            }),
+            Animated.timing(footerOpacity, {
+                toValue: opacityValue,
+                duration: ANIMATION_DURATION,
+                useNativeDriver: true,
+            }),
+            Animated.timing(storiesOpacity, {
+                toValue: opacityValue,
+                duration: ANIMATION_DURATION,
+                useNativeDriver: true,
+            }),
+        ]).start(() => {
+            if (targetTranslateY === 0) {
+                // when we’ve returned to the normal feed
+                focusedPostIndex.current = -1;
+            }
+        });
     };
 
     // Go to Messages screen
@@ -168,9 +224,6 @@ export default function Feed({ navigation, route }) {
     const openCommentsModal = () => setCommentsBottomSheetExpandFlag(!commentsBottomSheetExpandFlag);
     const openShareModal = () => setShareBottomSheetExpandFlag(!shareBottomSheetExpandFlag);
     const handleOpenNotifications = () => setNotificationsBottomSheetExpandFlag(!notificationsBottomSheetExpandFlag);
-
-    // Scroll-based top mask
-    const handleScroll = e => setIsScrolledPastTopClip(e.nativeEvent.contentOffset.y > SCROLL_THRESHOLD);
 
     // Profile navigation from posts
     function toViewProfilePosts(idx) {
@@ -239,7 +292,7 @@ export default function Feed({ navigation, route }) {
                     <Animated.FlatList
                         ref={flatListRef} // Assign ref to FlatList
                         bounces={false}
-                        scrollEnabled={!isSomePostFocused}
+                        // scrollEnabled={!isSomePostFocused}
                         showsVerticalScrollIndicator={false}
                         data={posts}
                         renderItem={renderPost}
