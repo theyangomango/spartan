@@ -108,10 +108,12 @@ export default function PostFooter({ data, onPressCommentButton, onPressShareBut
                         <Text style={styles.commentButtonText}>{data.commentCount}</Text>
                     </Pressable>
 
+                    {/* // ! Disabled in Beta Version */}
                     <Pressable
                         // disabled={!isSomePostFocused}
-                        onPress={onPressShareButton}
-                        style={styles.shareButton}
+                        disabled
+                        // onPress={onPressShareButton}
+                        style={[styles.shareButton]}
                     >
                         <Send2 size={dynamicStyles.iconSize - 4} color="#fff" variant="Bold" />
                         <Text style={styles.shareButtonText}>{data.shareCount}</Text>

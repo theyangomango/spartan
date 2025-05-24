@@ -11,8 +11,6 @@ import { StatusBar } from "expo-status-bar";
 import MaskedView from "@react-native-masked-view/masked-view";
 import { doc, onSnapshot } from "firebase/firestore";
 import FastImage from "react-native-fast-image";
-import { InteractionManager } from "react-native";  // ⬅︎ add
-
 
 import Footer from "../components/Footer";
 import Post from "../components/1_Feed/Posts/Post";
@@ -144,73 +142,41 @@ export default function Feed({ navigation, route }) {
         setStories(feedData[0]);
     };
 
-    const handleFocusPost = (index, postYAtPress) => {
+    // Focus on a single post
+    const handleFocusPost = (index, postY) => {
         focusedPostIndex.current = index;
         setIsSomePostFocused(true);
-
-        freezeFlatList(() => {
-            // list is 100 % idle here
-            const targetTranslateY = TARGET_POSITION - postYAtPress;
-            animateView(targetTranslateY, 0);
-        });
+        stopFlatListMomentum();           // ⟵ stop fling immediately
+        setTimeout(() => {
+            animateView(postY - TARGET_POSITION, 0);
+        }, 50);
     };
 
     // Go back from single post
     const handleBackPress = () => {
         setIsSomePostFocused(false);
-        flatListRef.current?.setNativeProps({ scrollEnabled: true });
-        setShareBottomSheetCloseFlag(flag => !flag);
+        setShareBottomSheetCloseFlag(!shareBottomSheetCloseFlag);
         animateView(0, 1);
     };
 
-    const freezeFlatList = (afterFreeze) => {
-        if (!flatListRef.current) return;
-
-        // 1.  lock touch scrolling instantly
-        flatListRef.current.setNativeProps({ scrollEnabled: false });
-
-        // 2.  force‑stop any current fling
-        flatListRef.current.scrollToOffset({
-            offset: scrollOffsetY.current,
-            animated: false,
-        });
-
-        /* 3.  wait until *all* native interactions (fling decel, rubber‑band,
-               etc.) are done, then call the callback */
-        InteractionManager.runAfterInteractions(() => {
-            // one more snap for good measure
-            flatListRef.current?.scrollToOffset({
+    // Stop any ongoing fling by jumping to the current offset with animation off
+    const stopFlatListMomentum = () => {
+        if (flatListRef.current) {
+            flatListRef.current.scrollToOffset({
                 offset: scrollOffsetY.current,
-                animated: false,
+                animated: false,          // ⟵ cancels momentum
             });
-            afterFreeze();          // ← safe to measure & animate now
-        });
+        }
     };
 
+
     // Animate view
-    const animateView = (targetTranslateY, opacityValue) => {
+    const animateView = (translateYValue, opacityValue) => {
         Animated.parallel([
-            Animated.timing(translateY, {
-                toValue: targetTranslateY,          // absolute destination
-                duration: ANIMATION_DURATION,
-                useNativeDriver: true,
-            }),
-            Animated.timing(footerOpacity, {
-                toValue: opacityValue,
-                duration: ANIMATION_DURATION,
-                useNativeDriver: true,
-            }),
-            Animated.timing(storiesOpacity, {
-                toValue: opacityValue,
-                duration: ANIMATION_DURATION,
-                useNativeDriver: true,
-            }),
-        ]).start(() => {
-            if (targetTranslateY === 0) {
-                // when we’ve returned to the normal feed
-                focusedPostIndex.current = -1;
-            }
-        });
+            Animated.timing(translateY, { toValue: -translateYValue, duration: ANIMATION_DURATION, useNativeDriver: true }),
+            Animated.timing(footerOpacity, { toValue: opacityValue, duration: ANIMATION_DURATION, useNativeDriver: true }),
+            Animated.timing(storiesOpacity, { toValue: opacityValue, duration: ANIMATION_DURATION, useNativeDriver: true })
+        ]).start(() => { if (translateYValue === 0) focusedPostIndex.current = -1; });
     };
 
     // Go to Messages screen
@@ -292,7 +258,7 @@ export default function Feed({ navigation, route }) {
                     <Animated.FlatList
                         ref={flatListRef} // Assign ref to FlatList
                         bounces={false}
-                        // scrollEnabled={!isSomePostFocused}
+                        scrollEnabled={!isSomePostFocused}
                         showsVerticalScrollIndicator={false}
                         data={posts}
                         renderItem={renderPost}

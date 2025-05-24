@@ -56,7 +56,7 @@ export default function NotificationsModal() {
                 showsVerticalScrollIndicator={false}
                 data={filteredEvents}
                 renderItem={({ item }) => <NotificationCard item={item} />}
-                keyExtractor={(_, index) => index.toString()}
+                keyExtractor={(item) => `${item.type}-${item.timestamp}`}
                 style={styles.flatList}
             />
         </View>

@@ -3,6 +3,7 @@ import { View, Text, StyleSheet, Pressable, Image, Dimensions } from 'react-nati
 import Svg, { Path } from "react-native-svg";
 import RNBounceable from '@freakycoder/react-native-bounceable';
 import { getCommentCardStyles } from '../../../helper/getCommentCardStyles';
+import getDisplayTimeDifference from '../../../helper/getDisplayTimeDifference'
 
 const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get("window");
 const dynamicStyles = getCommentCardStyles(SCREEN_WIDTH, SCREEN_HEIGHT);
@@ -40,9 +41,8 @@ export default function CommentCard({ data, likeComment, unlikeComment, index, s
 
             <View style={styles.card_texts_ctnr}>
                 <View style={styles.card_header}>
-                    <View>
-                        <Text style={styles.handle_text}>{data.handle}</Text>
-                    </View>
+                    <Text style={styles.handle_text}>{data.handle}</Text>
+                    <Text style={styles.time_text}>· {getDisplayTimeDifference(data.timestamp, Date.now())}</Text>
                 </View>
                 <View style={styles.content_text_ctnr}>
                     <Text style={styles.content_text}>{data.content}</Text>
@@ -97,12 +97,22 @@ const styles = StyleSheet.create({
         flex: 1
     },
     card_header: {
-        flexDirection: 'row'
+        flexDirection: 'row',      // already present – keeps items on the same line
+        alignItems: 'center',
     },
+
     handle_text: {
         fontSize: dynamicStyles.fontSize,
         fontFamily: 'Outfit_500Medium',
         color: '#999',
+    },
+
+    /** new style for the timestamp */
+    time_text: {
+        fontSize: dynamicStyles.fontSize - 1,   // same size as handle
+        fontFamily: 'Outfit_500Medium',     // same weight
+        color: '#999',                      // same colour
+        marginLeft: 6,                      // a little breathing room
     },
     content_text_ctnr: {
         flexDirection: 'row',

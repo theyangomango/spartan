@@ -1,19 +1,24 @@
 export default function getDisplayTimeDifference(initialTimestamp, finalTimestamp) {
-    var difference = initialTimestamp - finalTimestamp;
+    // Work with a positive difference no matter which timestamp is earlier
+    let difference = Math.abs(finalTimestamp - initialTimestamp);
 
-    var daysDifference = Math.floor(difference / 1000 / 60 / 60 / 24);
-    difference -= daysDifference * 1000 * 60 * 60 * 24
+    const weeks   = Math.floor(difference / (1000 * 60 * 60 * 24 * 7));
+    difference   -= weeks * 1000 * 60 * 60 * 24 * 7;
 
-    var hoursDifference = Math.floor(difference / 1000 / 60 / 60);
-    difference -= hoursDifference * 1000 * 60 * 60
+    const days    = Math.floor(difference / (1000 * 60 * 60 * 24));
+    difference   -= days * 1000 * 60 * 60 * 24;
 
-    var minutesDifference = Math.floor(difference / 1000 / 60);
-    difference -= minutesDifference * 1000 * 60
+    const hours   = Math.floor(difference / (1000 * 60 * 60));
+    difference   -= hours * 1000 * 60 * 60;
 
-    var secondsDifference = Math.floor(difference / 1000);
+    const minutes = Math.floor(difference / (1000 * 60));
+    difference   -= minutes * 1000 * 60;
 
-    if (daysDifference > 0) return `${daysDifference}d`;
-    else if (hoursDifference > 0) return `${hoursDifference}h`
-    else if (minutesDifference > 0) return `${minutesDifference}m`
-    else return `${secondsDifference}s`
+    const seconds = Math.floor(difference / 1000);
+
+    if (weeks   > 0) return `${weeks}w`;
+    if (days    > 0) return `${days}d`;
+    if (hours   > 0) return `${hours}h`;
+    if (minutes > 0) return `${minutes}m`;
+    return `${seconds}s`;
 }

@@ -68,7 +68,7 @@ const TemplateCard = memo(
                         onPressOut={handleStartButtonPressOut}
                     >
                         <Animated.View style={[styles.startButton, { transform: [{ scale: scaleValue }] }]}>
-                            <MaterialCommunityIcons name="arm-flex" size={scaleSize(24.5)} color="#fff" />
+                            <MaterialCommunityIcons name="play" size={scaleSize(24.5)} color="#fff" />
                         </Animated.View>
                     </Pressable>
                 </View>
