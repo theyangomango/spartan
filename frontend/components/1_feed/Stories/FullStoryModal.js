@@ -17,6 +17,7 @@ import { Send2 } from "iconsax-react-native";
 
 import sendMessage from "../../../../backend/messages/sendMessage";
 import StoryHeaderButtons from "./StoryHeaderButtons";
+import Svg, { Path } from "react-native-svg";
 
 export default function FullStoryModal({
     isVisible,
@@ -177,14 +178,17 @@ export default function FullStoryModal({
                         <TextInput
                             style={styles.replyInput}
                             placeholder="Send a reply..."
-                            placeholderTextColor="gray"
+                            placeholderTextColor="#999"
                             value={replyText}
                             onChangeText={setReplyText}
                             returnKeyType="send"
                             onSubmitEditing={handleSendReply}
                         />
                         <Pressable onPress={handleSendReply} style={styles.sendIcon}>
-                            <Send2 size={27} color={replyText.trim() ? "white" : "gray"} />
+                            {/* <Send2 size={27} color={replyText.trim() ? "white" : "gray"} /> */}
+                            <Svg xmlns="http://www.w3.org/2000/svg" width="29" height="29" viewBox="0 0 24 24" fill="none">
+                                <Path d="m7.4 6.32 8.49-2.83c3.81-1.27 5.88.81 4.62 4.62l-2.83 8.49c-1.9 5.71-5.02 5.71-6.92 0l-.84-2.52-2.52-.84c-5.71-1.9-5.71-5.01 0-6.92ZM10.11 13.65l3.58-3.59" stroke={replyText.trim() ? "white" : "gray"} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"></Path>
+                            </Svg>
                         </Pressable>
                     </View>
                 )}
@@ -209,25 +213,26 @@ const styles = StyleSheet.create({
         top: 0,
         left: 0,
         width: "100%",
-        height: 85,
+        height: 107,
         zIndex: 1,
-        backgroundColor: "rgba(0,0,0,0.05)",
+        backgroundColor: "rgba(0,0,0,0.11)",
     },
 
     replyContainer: {
         position: "absolute",
-        left: 10,
-        right: 10,
+        left: 15,
+        right: 15,
         bottom: 40,
         flexDirection: "row",
         alignItems: "center",
-        backgroundColor: "rgba(0,0,0,0.6)",
+        backgroundColor: "rgba(0,0,0,0.45)",
         borderRadius: 25,
-        paddingHorizontal: 15,
+        paddingLeft: 15,
+        paddingRight: 21
     },
     replyInput: {
         flex: 1,
-        color: "white",
+        color: "#eee",
         fontFamily: "Mulish_700Bold",
         fontSize: 16,
         paddingVertical: 18,

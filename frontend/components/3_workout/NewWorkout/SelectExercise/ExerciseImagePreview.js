@@ -850,9 +850,11 @@ const styles = StyleSheet.create({
         overflow: 'hidden',
     },
     image: {
-        width: 135,
-        height: 135,
-        resizeMode: 'cover',
+        // width: 135,
+        // height: 135,
+        width: 55,
+        height: 55,
+        resizeMode: 'contain'
     },
     defaultImage: {
         transform: [
@@ -862,18 +864,18 @@ const styles = StyleSheet.create({
         ],
     },
     _45_degree_leg_press_machine: {
-        transform: [
-            { scale: 1 },
-            { translateX: -75 },
-            { translateY: -18 }
-        ],
+        // transform: [
+            // { scale: 1 },
+            // { translateX: -75 },
+            // { translateY: -18 }
+        // ],
     },
     t_bar_row_machine: {
-        transform: [
-            { scale: 1 },
-            { translateX: -80 },
-            { translateY: -20 }
-        ],
+        // transform: [
+        //     { scale: 1 },
+        //     { translateX: -80 },
+        //     { translateY: -20 }
+        // ],
     },
     ab_wheel_rollout: {
         transform: [
