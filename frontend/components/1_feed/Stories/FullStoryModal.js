@@ -130,13 +130,20 @@ export default function FullStoryModal({
                     onLoadEnd={handleImageLoaded}   // ← sets isReady = true
                 />
 
-                {!isReady && (
+                {/* {!isReady && (
                     <ActivityIndicator
                         size="large"
                         color="#fff"
                         style={StyleSheet.absoluteFill}
                     />
-                )}
+                )} */}
+
+                {/* {!isReady && (
+                    <BlurHash
+                        blurhash={currentStory.blurhash}
+                        style={styles.fullScreenImage}
+                    />
+                )} */}
             </View>
 
             {/* navigation zones (disabled while loading) */}
