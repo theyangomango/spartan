@@ -172,25 +172,31 @@ export default function FullStoryModal({
 
             {/* reply bar */}
             {storiesData[currentIndex].uid !== thisUser.uid && (
-                <View style={styles.fullScreenContainer} pointerEvents="box-none">
-                    <View style={styles.replyContainer}>
-                        <TextInput
-                            style={styles.replyInput}
-                            placeholder="Send a reply..."
-                            placeholderTextColor="#999"
-                            value={replyText}
-                            onChangeText={setReplyText}
-                            returnKeyType="send"
-                            onSubmitEditing={handleSendReply}
-                        />
-                        <Pressable onPress={handleSendReply} style={styles.sendIcon}>
-                            {/* <Send2 size={27} color={replyText.trim() ? "white" : "gray"} /> */}
-                            <Svg xmlns="http://www.w3.org/2000/svg" width="29" height="29" viewBox="0 0 24 24" fill="none">
-                                <Path d="m7.4 6.32 8.49-2.83c3.81-1.27 5.88.81 4.62 4.62l-2.83 8.49c-1.9 5.71-5.02 5.71-6.92 0l-.84-2.52-2.52-.84c-5.71-1.9-5.71-5.01 0-6.92ZM10.11 13.65l3.58-3.59" stroke={replyText.trim() ? "white" : "gray"} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"></Path>
-                            </Svg>
-                        </Pressable>
-                    </View>
-                </View>
+                <>
+                    <KeyboardAvoidingView
+                        style={styles.fullScreenContainer}
+                        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+                        pointerEvents="box-none">
+                        <View style={styles.replyContainer}>
+                            <TextInput
+                                style={styles.replyInput}
+                                placeholder="Send a reply..."
+                                placeholderTextColor="#999"
+                                value={replyText}
+                                onChangeText={setReplyText}
+                                returnKeyType="send"
+                                onSubmitEditing={handleSendReply}
+                            />
+                            <Pressable onPress={handleSendReply} style={styles.sendIcon}>
+                                {/* <Send2 size={27} color={replyText.trim() ? "white" : "gray"} /> */}
+                                <Svg xmlns="http://www.w3.org/2000/svg" width="29" height="29" viewBox="0 0 24 24" fill="none">
+                                    <Path d="m7.4 6.32 8.49-2.83c3.81-1.27 5.88.81 4.62 4.62l-2.83 8.49c-1.9 5.71-5.02 5.71-6.92 0l-.84-2.52-2.52-.84c-5.71-1.9-5.71-5.01 0-6.92ZM10.11 13.65l3.58-3.59" stroke={replyText.trim() ? "white" : "gray"} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"></Path>
+                                </Svg>
+                            </Pressable>
+                        </View>
+                    </KeyboardAvoidingView>
+                    <View style={styles.bottomBuffer}></View>
+                </>
             )}
         </Modal>
     );
@@ -242,8 +248,8 @@ const styles = StyleSheet.create({
         borderRadius: 25,
         paddingLeft: 15,
         paddingRight: 21,
-        marginHorizontal: 15,   // was left/right: 15 when absolute
-        marginBottom: 40,       // was bottom: 40 when absolute
+        marginBottom: 8,
+        marginHorizontal: 12,   // was left/right: 15 when absolute
     },
 
     replyInput: {
@@ -255,6 +261,9 @@ const styles = StyleSheet.create({
         paddingHorizontal: 12,
     },
 
+    bottomBuffer: {
+        height: 32,
+    },
 
     sendIcon: { paddingLeft: 10, paddingVertical: 10 },
 });
