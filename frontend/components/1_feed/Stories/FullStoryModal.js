@@ -10,6 +10,7 @@ import {
     Platform,
     ActivityIndicator,
     ScrollView,
+    KeyboardAvoidingView,
 } from "react-native";
 import { BlurView } from "expo-blur";
 import FastImage from "react-native-fast-image";
@@ -89,6 +90,7 @@ export default function FullStoryModal({
 
     /* ------------ navigation with waiting logic ------------ */
     const tryNavigate = (direction) => {
+        console.log('asefaesf');
         if (isReady) {
             handleStoryNavigation(direction);
         } else {
@@ -117,63 +119,60 @@ export default function FullStoryModal({
             visible={isVisible}
             onRequestClose={onClose}
         >
-            <ScrollView
-                contentContainerStyle={styles.modalContainer}
-                keyboardShouldPersistTaps="always"
-                scrollEnabled={false}
-            >
-                {/* story image */}
-                <View style={styles.modalContent}>
-                    <FastImage
-                        key={currentStory.sid}           // force remount on story change
-                        source={{ uri: currentStory.image, priority: FastImage.priority.high }}
-                        style={styles.fullScreenImage}
-                        resizeMode={FastImage.resizeMode.cover}
-                        onLoadEnd={handleImageLoaded}   // ← sets isReady = true
+
+            {/* story image */}
+            <View style={styles.imageWrapper}>
+                <FastImage
+                    key={currentStory.sid}           // force remount on story change
+                    source={{ uri: currentStory.image, priority: FastImage.priority.high }}
+                    style={styles.fullScreenImage}
+                    resizeMode={FastImage.resizeMode.cover}
+                    onLoadEnd={handleImageLoaded}   // ← sets isReady = true
+                />
+
+                {!isReady && (
+                    <ActivityIndicator
+                        size="large"
+                        color="#fff"
+                        style={StyleSheet.absoluteFill}
                     />
+                )}
+            </View>
 
-                    {!isReady && (
-                        <ActivityIndicator
-                            size="large"
-                            color="#fff"
-                            style={StyleSheet.absoluteFill}
-                        />
-                    )}
-                </View>
+            {/* navigation zones (disabled while loading) */}
+            <Pressable
+                onPress={() => tryNavigate(-1)}
+                style={styles.screenLeft}
+                disabled={!isReady}
+            />
+            <Pressable
+                onPress={onClose}
+                style={styles.screenCenter}
+                disabled={!isReady}
+            />
+            <Pressable
+                onPress={() => tryNavigate(1)}
+                style={styles.screenRight}
+                disabled={!isReady}
+            />
 
-                {/* navigation zones (disabled while loading) */}
-                <Pressable
-                    onPress={() => tryNavigate(-1)}
-                    style={styles.screenLeft}
-                    disabled={!isReady}
-                />
-                <Pressable
-                    onPress={onClose}
-                    style={styles.screenCenter}
-                    disabled={!isReady}
-                />
-                <Pressable
-                    onPress={() => tryNavigate(1)}
-                    style={styles.screenRight}
-                    disabled={!isReady}
-                />
+            {/* blurred header */}
+            <BlurView intensity={10} style={styles.blurview} pointerEvents="box-none" />
 
-                {/* blurred header */}
-                <BlurView intensity={10} style={styles.blurview} pointerEvents="box-none" />
+            {/* header buttons */}
+            <StoryHeaderButtons
+                stories={storiesData}
+                userList={userList}
+                index={currentIndex}
+                toViewProfile={(pi) => {
+                    onClose();
+                    navigation.navigate("ViewProfile", { user: storiesData[pi] });
+                }}
+            />
 
-                {/* header buttons */}
-                <StoryHeaderButtons
-                    stories={storiesData}
-                    userList={userList}
-                    index={currentIndex}
-                    toViewProfile={(pi) => {
-                        onClose();
-                        navigation.navigate("ViewProfile", { user: storiesData[pi] });
-                    }}
-                />
-
-                {/* reply bar */}
-                {storiesData[currentIndex].uid !== thisUser.uid && (
+            {/* reply bar */}
+            {storiesData[currentIndex].uid !== thisUser.uid && (
+                <View style={styles.fullScreenContainer} pointerEvents="box-none">
                     <View style={styles.replyContainer}>
                         <TextInput
                             style={styles.replyInput}
@@ -191,8 +190,8 @@ export default function FullStoryModal({
                             </Svg>
                         </Pressable>
                     </View>
-                )}
-            </ScrollView>
+                </View>
+            )}
         </Modal>
     );
 }
@@ -201,12 +200,23 @@ export default function FullStoryModal({
 const styles = StyleSheet.create({
     modalContainer: { flex: 1 },
 
-    modalContent: { flex: 1, justifyContent: "center", alignItems: "center" },
+    // modalContent: { flex: 1, justifyContent: "center", alignItems: "center" },
     fullScreenImage: { width: "100%", height: "100%" },
 
-    screenLeft: { position: "absolute", top: 100, left: 0, width: "25%", height: "100%" },
-    screenCenter: { position: "absolute", top: 100, left: "25%", width: "50%", height: "100%" },
-    screenRight: { position: "absolute", top: 100, right: 0, width: "25%", height: "100%" },
+    screenLeft: { position: "absolute", top: 100, left: 0, width: "25%", height: "100%", zIndex: 1 },
+    screenCenter: { position: "absolute", top: 100, left: "25%", width: "50%", height: "100%", zIndex: 1 },
+    screenRight: { position: "absolute", top: 100, right: 0, width: "25%", height: "100%", zIndex: 1 },
+
+    imageWrapper: StyleSheet.absoluteFillObject,   // full-screen, no layout impact
+    fullScreenImage: { width: "100%", height: "100%" },
+
+    container: {
+        position: 'absolute',
+        top: 0,
+        bottom: 0,
+        left: 0,
+        right: 0,
+    },
 
     blurview: {
         position: "absolute",
@@ -218,18 +228,24 @@ const styles = StyleSheet.create({
         backgroundColor: "rgba(0,0,0,0.11)",
     },
 
+    fullScreenContainer: {
+        flex: 1,
+        zIndex: 2,
+        justifyContent: 'flex-end'
+    },
+
     replyContainer: {
-        position: "absolute",
-        left: 15,
-        right: 15,
-        bottom: 40,
         flexDirection: "row",
+        justifyContent: 'space-between',
         alignItems: "center",
         backgroundColor: "rgba(0,0,0,0.45)",
         borderRadius: 25,
         paddingLeft: 15,
-        paddingRight: 21
+        paddingRight: 21,
+        marginHorizontal: 15,   // was left/right: 15 when absolute
+        marginBottom: 40,       // was bottom: 40 when absolute
     },
+
     replyInput: {
         flex: 1,
         color: "#eee",
@@ -238,5 +254,7 @@ const styles = StyleSheet.create({
         paddingVertical: 18,
         paddingHorizontal: 12,
     },
+
+
     sendIcon: { paddingLeft: 10, paddingVertical: 10 },
 });
