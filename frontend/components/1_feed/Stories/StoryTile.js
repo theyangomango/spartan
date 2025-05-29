@@ -15,11 +15,12 @@ export default function StoryTile ({
     index,
     isViewed,
     handlePressCreateButton,
+    disabled,
 }) {
     return (
         <View style={styles.main_ctnr}>
             <TouchableOpacity
-                disabled={data.stories.length === 0}
+                disabled={data.stories.length === 0 || disabled}
                 onPress={handlePress}
                 activeOpacity={0.5}
             >

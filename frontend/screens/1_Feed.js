@@ -268,6 +268,7 @@ export default function Feed({ navigation, route }) {
                             <Animated.View style={{ opacity: storiesOpacity }}>
                                 {stories && (
                                     <Stories
+                                        disabled={isSomePostFocused}
                                         navigation={navigation}
                                         data={stories.storiesData}
                                         userList={stories.storiesUserList}

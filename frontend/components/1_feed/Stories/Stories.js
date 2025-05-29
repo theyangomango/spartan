@@ -22,7 +22,7 @@ import getFollowers from "../../../../backend/getFollowers";
 import getStoriesPrefixSums from "../../../helper/getStoriesPrefixSums";
 import sortStoriesDataByUserList from "../../../helper/sortStoriesDataByUserList";
 
-export default function Stories({ data, userList, initStories, navigation }) {
+export default function Stories({ data, userList, initStories, disabled, navigation }) {
     // Manage modals & current story index
     const [viewModalVisible, setViewModal] = useState(false);
     const [createModalVisible, setCreateModal] = useState(false);
@@ -118,6 +118,7 @@ export default function Stories({ data, userList, initStories, navigation }) {
 
         return (
             <StoryTile
+                disabled={disabled}
                 data={item}
                 index={index}
                 isViewed={isViewed}
