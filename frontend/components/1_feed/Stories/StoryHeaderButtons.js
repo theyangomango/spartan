@@ -60,7 +60,6 @@ export default function StoryHeaderButtons({
                             {
                                 flex: 1,
                                 marginHorizontal: numOfStories > 10 ? scaleSize(1) : scaleSize(2),
-                                maxWidth: scaleSize(42),
                             },
                         ]}
                     />

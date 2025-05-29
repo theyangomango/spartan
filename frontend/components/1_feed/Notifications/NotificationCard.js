@@ -1,6 +1,7 @@
 /**
- * Renders a single notification item showing the user's avatar, message, and time.
- * If the notification is a "follow" type, displays a toggleable follow button.
+ * Single notification row.
+ * - Shows avatar, message & time.
+ * - For "follow" events, includes a follow / unfollow button.
  */
 
 import React, { useEffect, useState } from "react";
@@ -12,7 +13,7 @@ import getDisplayTime from "../../../helper/getDisplayTime";
 import followUser from "../../../../backend/user/followUser";
 import unfollowUser from "../../../../backend/user/unfollowUser";
 
-// Returns a text describing the notification type and content.
+/* -------- helper: build the message string -------- */
 function getDisplayMessage(item) {
     switch (item.type) {
         case "follow":
@@ -30,22 +31,21 @@ function getDisplayMessage(item) {
     }
 }
 
-export default function NotificationCard({ item }) {
+function NotificationCard({ item }) {
     const [isFollowing, setIsFollowing] = useState(false);
 
-    // Check if user is already following this item.uid
+    /* check initial follow state */
     useEffect(() => {
         if (item.type === "follow") {
-            const followerUID = item.uid;
             const isFollower = global.userData.following.some(
-                (follower) => follower.uid === followerUID
+                (f) => f.uid === item.uid
             );
-            if (isFollower) setIsFollowing(true);
+            setIsFollowing(isFollower);
         }
     }, [item]);
 
-    // Follow/unfollow toggle for "follow" type notifications.
-    function handleFollowToggle() {
+    /* toggle follow / unfollow */
+    const handleFollowToggle = () => {
         const currentUser = {
             name: global.userData.name,
             handle: global.userData.handle,
@@ -60,27 +60,35 @@ export default function NotificationCard({ item }) {
             uid: item.uid,
         };
 
-        if (!isFollowing) followUser(currentUser, notifUser);
-        else unfollowUser(currentUser, notifUser);
+        if (isFollowing) unfollowUser(currentUser, notifUser);
+        else followUser(currentUser, notifUser);
 
         setIsFollowing((prev) => !prev);
-    }
+    };
 
+    /* -------------- render -------------- */
     return (
         <Pressable>
             <View style={styles.card}>
                 <Image source={{ uri: item.pfp }} style={styles.pfp} />
+
                 <View style={styles.textContainer}>
                     <Text style={styles.handle}>{item.handle}</Text>
                     <Text>
                         <Text style={styles.message}>{getDisplayMessage(item)}</Text>
-                        <Text style={styles.time}> {getDisplayTime(item.timestamp)}</Text>
+                        <Text style={styles.time}>
+                            {" "}
+                            {getDisplayTime(item.timestamp)}
+                        </Text>
                     </Text>
                 </View>
 
                 {item.type === "follow" && (
                     <RNBounceable
-                        style={[styles.followButton, isFollowing && styles.followButtonPressed]}
+                        style={[
+                            styles.followButton,
+                            isFollowing && styles.followButtonPressed,
+                        ]}
                         onPress={handleFollowToggle}
                     >
                         <Text
@@ -98,6 +106,9 @@ export default function NotificationCard({ item }) {
     );
 }
 
+export default NotificationCard;
+
+/* -------------- styles -------------- */
 const styles = StyleSheet.create({
     card: {
         flexDirection: "row",
@@ -114,9 +125,7 @@ const styles = StyleSheet.create({
         borderRadius: scaleSize(20),
         marginRight: scaleSize(11.5),
     },
-    textContainer: {
-        flex: 1,
-    },
+    textContainer: { flex: 1 },
     handle: {
         fontSize: scaleSize(15),
         fontFamily: "Outfit_600SemiBold",
@@ -148,7 +157,7 @@ const styles = StyleSheet.create({
         backgroundColor: "#fff",
         borderColor: "#2D92FF",
         borderWidth: 2,
-        paddingVertical: scaleSize(12), // slightly smaller to accommodate border
+        paddingVertical: scaleSize(12),
         paddingHorizontal: scaleSize(18),
         borderRadius: scaleSize(20),
         marginLeft: scaleSize(10),
