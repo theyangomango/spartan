@@ -2,10 +2,12 @@
  * Single notification row.
  * - Shows avatar, message & time.
  * - For "follow" events, includes a follow / unfollow button.
+ * - Avatar now rendered with FastImage for caching & faster re-use.
  */
 
 import React, { useEffect, useState } from "react";
-import { View, Text, StyleSheet, Image, Pressable } from "react-native";
+import { View, Text, StyleSheet, Pressable } from "react-native";
+import FastImage from "react-native-fast-image";
 import RNBounceable from "@freakycoder/react-native-bounceable";
 
 import scaleSize from "../../../helper/scaleSize";
@@ -70,16 +72,22 @@ function NotificationCard({ item }) {
     return (
         <Pressable>
             <View style={styles.card}>
-                <Image source={{ uri: item.pfp }} style={styles.pfp} />
+                {/* avatar with FastImage (= cached) */}
+                <FastImage
+                    source={{
+                        uri: item.pfp,
+                        priority: FastImage.priority.normal,
+                        cache: FastImage.cacheControl.immutable,
+                    }}
+                    style={styles.pfp}
+                    resizeMode={FastImage.resizeMode.cover}
+                />
 
                 <View style={styles.textContainer}>
                     <Text style={styles.handle}>{item.handle}</Text>
                     <Text>
                         <Text style={styles.message}>{getDisplayMessage(item)}</Text>
-                        <Text style={styles.time}>
-                            {" "}
-                            {getDisplayTime(item.timestamp)}
-                        </Text>
+                        <Text style={styles.time}> {getDisplayTime(item.timestamp)}</Text>
                     </Text>
                 </View>
 
