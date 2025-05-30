@@ -1,120 +1,135 @@
 /**
- * Displays post creator's pfp/handle. Pressing on it redirects to that user's profile
- * Displays link to post's workout (if applicable)
- * Displays image navigation bars (if multiple images)
+ * PostHeader
+ * - Shows user avatar/handle → profile
+ * - Shows workout link (if any)
+ * - Shows page-indicator dots for multi-image posts
  */
 
-import React from 'react';
-import { View, Text, Image, StyleSheet, Pressable, Dimensions, TouchableOpacity } from 'react-native';
-import { BlurView } from 'expo-blur';
-import formatDate from '../../../helper/formatDate';
-import scaleSize from '../../../helper/scaleSize';
+import { View, Text, StyleSheet, Pressable, TouchableOpacity } from "react-native";
+import { BlurView } from "expo-blur";
+import FastImage from "react-native-fast-image";
+import formatDate from "../../../helper/formatDate";
+import scaleSize from "../../../helper/scaleSize";
 
-export default function PostHeader({ data, url, position, totalImages, toViewProfile, openViewWorkout }) {
+export default function PostHeader({
+    data,
+    url,
+    position,
+    totalImages,
+    toViewProfile,
+    openViewWorkout,
+}) {
     return (
         <View style={styles.outer}>
             <BlurView intensity={0} style={styles.main_ctnr}>
+                {/* ---------- left: avatar & handle ---------- */}
                 <View style={styles.left}>
                     <Pressable onPress={toViewProfile} style={styles.pfp_ctnr}>
-                        <Image
-                            source={{ uri: url }}
+                        <FastImage
+                            source={{
+                                uri: url,
+                                priority: FastImage.priority.normal,
+                                cache: FastImage.cacheControl.immutable,
+                            }}
                             style={styles.pfp}
+                            resizeMode={FastImage.resizeMode.cover}
                         />
                     </Pressable>
+
                     <View style={styles.text_ctnr}>
                         <Pressable onPress={toViewProfile}>
-                            <Text style={styles.handle_text}>
-                                {data.handle}
-                            </Text>
+                            <Text style={styles.handle_text}>{data.handle}</Text>
                         </Pressable>
-                        {data.workout &&
+
+                        {data.workout && (
                             <TouchableOpacity activeOpacity={0.5} onPress={openViewWorkout}>
                                 <Text style={styles.date_text}>
                                     {formatDate(new Date(data.workout.created))} Workout
                                 </Text>
                             </TouchableOpacity>
-                        }
+                        )}
                     </View>
                 </View>
+
+                {/* ---------- right: image dots ---------- */}
                 <View style={styles.right}>
-                    {totalImages > 1 &&
+                    {totalImages > 1 && (
                         <View style={styles.dotsContainer}>
                             {Array.from({ length: totalImages }).map((_, i) => (
-                                <View
-                                    key={i}
-                                    style={i === position ? styles.dash : styles.dot}
-                                />
+                                <View key={i} style={i === position ? styles.dash : styles.dot} />
                             ))}
                         </View>
-                    }
+                    )}
                 </View>
             </BlurView>
         </View>
     );
 }
 
+/* ---------------- styles ---------------- */
 const styles = StyleSheet.create({
     outer: {
-        position: 'absolute',
+        position: "absolute",
         zIndex: 1,
         top: 0,
         left: 0,
         right: 0,
         borderTopLeftRadius: scaleSize(40),
         borderTopRightRadius: scaleSize(40),
-        overflow: 'hidden'
+        overflow: "hidden",
     },
     main_ctnr: {
-        backgroundColor: 'rgba(37,42,54,0.1)',
+        backgroundColor: "rgba(37,42,54,0.1)",
         paddingTop: scaleSize(14),
         paddingBottom: scaleSize(9),
         paddingLeft: scaleSize(22),
         paddingRight: scaleSize(13),
-        flexDirection: 'row',
-        justifyContent: 'space-between',
+        flexDirection: "row",
+        justifyContent: "space-between",
     },
     left: {
-        flexDirection: 'row',
-        alignItems: 'center',
+        flexDirection: "row",
+        alignItems: "center",
     },
     pfp_ctnr: {
         width: scaleSize(42.5),
         aspectRatio: 1,
         marginRight: scaleSize(5),
     },
+    /* avatar rendered with FastImage */
     pfp: {
         flex: 1,
         borderRadius: scaleSize(43.5) / 2,
     },
     text_ctnr: {
         padding: scaleSize(4),
-        justifyContent: 'center'
+        justifyContent: "center",
     },
     handle_text: {
         fontSize: scaleSize(12.5),
         paddingBottom: scaleSize(2),
-        fontFamily: 'Poppins_600SemiBold',
-        color: '#fff'
+        fontFamily: "Poppins_600SemiBold",
+        color: "#fff",
     },
     date_text: {
-        fontSize: scaleSize(11),  // Make it smaller than the handle text
-        color: '#7EB9F2',  // Blue color
-        fontFamily: 'Poppins_700Bold',
+        fontSize: scaleSize(11),
+        color: "#7EB9F2",
+        fontFamily: "Poppins_700Bold",
     },
     right: {
-        flexDirection: 'row',
-        alignItems: 'center',
+        flexDirection: "row",
+        alignItems: "center",
     },
     dotsContainer: {
-        flexDirection: 'row',
-        alignItems: 'center',
+        flexDirection: "row",
+        alignItems: "center",
         marginRight: scaleSize(10),
     },
     dot: {
         width: scaleSize(9),
         height: scaleSize(5),
         borderRadius: scaleSize(5) / 2,
-        backgroundColor: '#fff',
+        backgroundColor: "#fff",
         opacity: 0.5,
         marginHorizontal: scaleSize(3.5),
     },
@@ -122,7 +137,7 @@ const styles = StyleSheet.create({
         width: scaleSize(21),
         height: scaleSize(5),
         borderRadius: scaleSize(5) / 2,
-        backgroundColor: '#fff',
+        backgroundColor: "#fff",
         marginHorizontal: scaleSize(3.5),
     },
 });
