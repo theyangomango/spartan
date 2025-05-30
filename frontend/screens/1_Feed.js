@@ -37,14 +37,6 @@ export default function Feed({ navigation, route }) {
     // Use UID from global or route params
     const UID = "userData" in global ? global.userData.uid : route.params.uid;
 
-    const scrollOffsetY = useRef(0);          // ← new
-
-    const handleScroll = e => {
-        const y = e.nativeEvent.contentOffset.y;
-        scrollOffsetY.current = y;                             // remember position
-        setIsScrolledPastTopClip(y > SCROLL_THRESHOLD);
-    };
-
     // State
     const [stories, setStories] = useState(null),
         [posts, setPosts] = useState([]),
@@ -59,15 +51,24 @@ export default function Feed({ navigation, route }) {
         [viewWorkoutBottomSheetExpandFlag, setViewWorkoutBottomSheetExpandFlag] = useState(false),
         [viewingWorkoutIndex, setViewingWorkoutIndex] = useState(null);
 
-    // Refs
-    const userDataRef = useRef(null),
-        focusedPostIndex = useRef(-1),
-        flatListRef = useRef(null); // Reference to FlatList
+    /* ---------- refs ---------- */
+    const scrollOffsetY = useRef(0);
+    const userDataRef = useRef(null);
+    const focusedPostIndex = useRef(-1);
+    const flatListRef = useRef(null);
+    const isTransitioning = useRef(false);      /* 🔒 */
 
-    // Animated values
-    const translateY = useRef(new Animated.Value(0)).current,
-        footerOpacity = useRef(new Animated.Value(1)).current,
-        storiesOpacity = useRef(new Animated.Value(1)).current;
+    /* ---------- animated values ---------- */
+    const translateY = useRef(new Animated.Value(0)).current;
+    const footerOpacity = useRef(new Animated.Value(1)).current;
+    const storiesOpacity = useRef(new Animated.Value(1)).current;
+
+
+    const handleScroll = e => {
+        const y = e.nativeEvent.contentOffset.y;
+        scrollOffsetY.current = y;                             // remember position
+        setIsScrolledPastTopClip(y > SCROLL_THRESHOLD);
+    };
 
     // Load user data from Firestore once
     useEffect(() => {
@@ -141,21 +142,26 @@ export default function Feed({ navigation, route }) {
         setStories(feedData[0]);
     };
 
-    // Focus on a single post
-    const handleFocusPost = (index, postY) => {
+    /* ---------- focus / unfocus handlers ---------- */
+    const handleFocusPost = (index, pageY) => {
+        if (isTransitioning.current) return;            /* 🔒 */
+        isTransitioning.current = true;
+        stopFlatListMomentum();
+
         focusedPostIndex.current = index;
         setIsSomePostFocused(true);
-        stopFlatListMomentum();           // ⟵ stop fling immediately
-        setTimeout(() => {
-            animateView(postY - TARGET_POSITION, 0);
-        }, 50);
+        animateView(pageY - TARGET_POSITION, 0);
     };
 
-    // Go back from single post
     const handleBackPress = () => {
+        if (isTransitioning.current) return;            /* 🔒 */
+        isTransitioning.current = true;
+
         setIsSomePostFocused(false);
-        setShareBottomSheetCloseFlag(!shareBottomSheetCloseFlag);
+        setShareBottomSheetCloseFlag((f) => !f);
         animateView(0, 1);
+
+        flatListRef.current?.setNativeProps({ scrollEnabled: true });
     };
 
     // Stop any ongoing fling by jumping to the current offset with animation off
@@ -165,17 +171,33 @@ export default function Feed({ navigation, route }) {
                 offset: scrollOffsetY.current,
                 animated: false,          // ⟵ cancels momentum
             });
+            flatListRef.current.setNativeProps({ scrollEnabled: false });
         }
     };
 
 
-    // Animate view
+    /* ---------- helper: run the trio animation ---------- */
     const animateView = (translateYValue, opacityValue) => {
         Animated.parallel([
-            Animated.timing(translateY, { toValue: -translateYValue, duration: ANIMATION_DURATION, useNativeDriver: true }),
-            Animated.timing(footerOpacity, { toValue: opacityValue, duration: ANIMATION_DURATION, useNativeDriver: true }),
-            Animated.timing(storiesOpacity, { toValue: opacityValue, duration: ANIMATION_DURATION, useNativeDriver: true })
-        ]).start(() => { if (translateYValue === 0) focusedPostIndex.current = -1; });
+            Animated.timing(translateY, {
+                toValue: -translateYValue,
+                duration: ANIMATION_DURATION,
+                useNativeDriver: true,
+            }),
+            Animated.timing(footerOpacity, {
+                toValue: opacityValue,
+                duration: ANIMATION_DURATION,
+                useNativeDriver: true,
+            }),
+            Animated.timing(storiesOpacity, {
+                toValue: opacityValue,
+                duration: ANIMATION_DURATION,
+                useNativeDriver: true,
+            }),
+        ]).start(() => {
+            isTransitioning.current = false;              /* 🔓 unlock */
+            if (translateYValue === 0) focusedPostIndex.current = -1;
+        });
     };
 
     // Go to Messages screen
@@ -257,7 +279,7 @@ export default function Feed({ navigation, route }) {
                     <Animated.FlatList
                         ref={flatListRef} // Assign ref to FlatList
                         bounces={false}
-                        scrollEnabled={!isSomePostFocused}
+                        // scrollEnabled={!isSomePostFocused}
                         showsVerticalScrollIndicator={false}
                         data={posts}
                         renderItem={renderPost}
