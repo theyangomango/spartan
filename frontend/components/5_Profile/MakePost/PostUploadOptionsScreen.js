@@ -10,6 +10,7 @@ import * as ImageManipulator from 'expo-image-manipulator';
 import createPost from "../../../../backend/posts/createPost";
 import arrayAppend from "../../../../backend/helper/firebase/arrayAppend";
 import formatDate from '../../../helper/formatDate';
+import { compressUnder250KB } from "./compressUnder250KB";
 
 const { width: screenWidth, height: screenHeight } = Dimensions.get('window');
 const scale = screenWidth / 375; // Assuming a base screen width of 375 (like iPhone X)
@@ -32,7 +33,7 @@ export default function PostOptionsScreen({ navigation, route }) {
         const compressedImage = await ImageManipulator.manipulateAsync(
             uri,
             [],
-            { compress: 0.01, format: ImageManipulator.SaveFormat.JPEG }
+            { compress: 0.001, format: ImageManipulator.SaveFormat.JPEG }
         );
         return compressedImage.uri;
     }
@@ -47,7 +48,8 @@ export default function PostOptionsScreen({ navigation, route }) {
             const image = images[index];
 
             try {
-                const compressedUri = await compressImage(image);
+                // const compressedUri = await compressImage(image);
+                compressedUri = await compressUnder250KB(image);
                 const res = await fetch(compressedUri);
                 const bytes = await res.blob();
 

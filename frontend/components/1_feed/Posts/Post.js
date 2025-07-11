@@ -1,159 +1,171 @@
 /**
- * Displays a Post.
- * Contains a PostHeader, PostFooter, and a Gallery for images
- * * Does NOT handle backend calls from user interactions
+ * Post (perf-tuned)
+ * - Header, footer, image gallery
+ * - Minimal re-renders while scrolling
  */
-
-import React, { memo, useEffect, useRef, useState } from "react";
-import { StyleSheet, View, Animated, Pressable, Dimensions } from "react-native";
+import React, {
+    useRef,
+    useState,
+    useEffect,
+    useMemo,
+    useCallback,
+} from "react";
+import {
+    StyleSheet,
+    View,
+    Animated,
+    Pressable,
+    Dimensions,
+} from "react-native";
 import Gallery from "react-native-awesome-gallery";
-import FastImage from "react-native-fast-image";  // <-- Import FastImage here
+import FastImage from "react-native-fast-image";
 
 import PostHeader from "./PostHeader";
 import PostFooter from "./PostFooter";
 
-const { width: SCREEN_WIDTH } = Dimensions.get("window");
+const { width: W } = Dimensions.get("window");
+const AR = 0.8;
+const BORDER = 35;
+const EDGE = 75;
 
-// Post Dimensions
-const POST_ASPECT_RATIO = 0.8;
-const BORDER_RADIUS = 35;
-const SWIPE_EDGE_THRESHOLD = 75;
+/* animation consts */
+const FADE_MS = 100;
+const B_IN = 1.05;
+const B_OUT = 1;
+const B_FRICTION = 50;
 
-// Animation
-const FADE_DURATION = 200;
-const BOUNCE_SCALE_IN = 1.05;
-const BOUNCE_SCALE_OUT = 1;
-const BOUNCE_FRICTION = 100;
+/* ---- one-time render component for each image ---- */
+const ImageSlide = React.memo(({ uri, style }) => (
+    <View style={styles.imageWrapper}>
+        <FastImage
+            source={{
+                uri,
+                priority: FastImage.priority.normal,
+                cache: FastImage.cacheControl.immutable,
+            }}
+            style={style}
+            resizeMode={FastImage.resizeMode.cover}
+        />
+    </View>
+));
 
-const Post = ({
+function Post({
     data,
-    openCommentsModal,
-    openShareModal,
     index,
     isFocused,
-    handleFocusPost,
     isSomePostFocused,
+    handleFocusPost,
+    openCommentsModal,
+    openShareModal,
     toViewProfile,
-    openViewWorkoutModal
-}) => {
+    openViewWorkoutModal,
+}) {
     const { pfp, images } = data;
-    const [position, setPosition] = useState(0);
+
+    /* local state & refs */
+    const [pos, setPos] = useState(0);
     const opacity = useRef(new Animated.Value(1)).current;
-    const scaleValue = useRef(new Animated.Value(1)).current;
+    const scale = useRef(new Animated.Value(1)).current;
     const viewRef = useRef(null);
     const galleryRef = useRef(null);
 
-    // Fade out this post if another post is focused
+    /* ------------ fade when other post is focused ------------ */
     useEffect(() => {
         Animated.timing(opacity, {
-            toValue: !isSomePostFocused ? 1 : isFocused ? 1 : 0,
-            duration: FADE_DURATION,
+            toValue: !isSomePostFocused || isFocused ? 1 : 0,
+            duration: FADE_MS,
             useNativeDriver: true,
         }).start();
-    }, [isSomePostFocused]);
+    }, [isSomePostFocused, isFocused]);
 
-    const handlePressLeft = () => {
-        if (position > 0) {
-            const newPos = position - 1;
-            setPosition(newPos);
-            galleryRef.current?.setIndex(newPos, true);
-        }
-    };
+    /* ------------ style memo (prevents new objects) ------------ */
+    const [containerStyle, imageStyle] = useMemo(() => {
+        const clipStyle =
+            isFocused && isSomePostFocused
+                ? {
+                    borderBottomLeftRadius: BORDER,
+                    borderBottomRightRadius: BORDER,
+                }
+                : undefined;
 
-    const handlePressRight = () => {
-        if (position < images.length - 1) {
-            const newPos = position + 1;
-            setPosition(newPos);
-            galleryRef.current?.setIndex(newPos, true);
-        }
-    };
+        return [
+            [styles.gallery, clipStyle],
+            [styles.image, clipStyle],
+        ];
+    }, [isFocused, isSomePostFocused]);
 
-    const handleMiddlePressInAnim = () =>
-        Animated.spring(scaleValue, {
-            toValue: BOUNCE_SCALE_IN,
-            useNativeDriver: true
-        }).start();
+    /* ------------ animation helpers ------------ */
+    const bounce = useCallback(() => {
+        Animated.sequence([
+            Animated.spring(scale, {
+                toValue: B_IN,
+                useNativeDriver: true,
+            }),
+            Animated.spring(scale, {
+                toValue: B_OUT,
+                friction: B_FRICTION,
+                useNativeDriver: true,
+            }),
+        ]).start();
+    }, [scale]);
 
-    const handleMiddlePressOutAnim = () =>
-        Animated.spring(scaleValue, {
-            toValue: BOUNCE_SCALE_OUT,
-            friction: BOUNCE_FRICTION,
-            useNativeDriver: true
-        }).start();
-
-    const pressPostMiddle = async () => {
-        handleMiddlePressInAnim();
-        setTimeout(handleMiddlePressOutAnim, 100);
-
+    /* ------------ center-tap handler ------------ */
+    const focusMe = useCallback(() => {
+        bounce();
         if (!isFocused) {
-            viewRef.current.measure((_, __, ___, ____, _____, pageY) => handleFocusPost(index, pageY));
+            viewRef.current.measure((_, __, ___, ____, _____, pageY) =>
+                handleFocusPost(index, pageY)
+            );
         }
-    };
+    }, [bounce, isFocused, handleFocusPost, index]);
 
-    // Manage left/right press (swipe) or middle press (focus post)
-    const handlePress = (event) => {
-        const { locationX } = event.nativeEvent;
-        if (images.length > 1) {
-            if (locationX <= SWIPE_EDGE_THRESHOLD) handlePressLeft();
-            else if (locationX >= SCREEN_WIDTH - SWIPE_EDGE_THRESHOLD) handlePressRight();
-            else pressPostMiddle();
-        } else {
-            pressPostMiddle();
-        }
-    };
+    /* ------------ onPress dispatcher ------------ */
+    const onPress = useCallback(
+        e => {
+            const x = e.nativeEvent.locationX;
+            if (images.length > 1) {
+                if (x < EDGE && pos > 0) {
+                    const p = pos - 1;
+                    setPos(p);
+                    galleryRef.current?.setIndex(p, true);
+                } else if (x > W - EDGE && pos < images.length - 1) {
+                    const p = pos + 1;
+                    setPos(p);
+                    galleryRef.current?.setIndex(p, true);
+                } else {
+                    focusMe();
+                }
+            } else {
+                focusMe();
+            }
+        },
+        [pos, images.length, focusMe]
+    );
 
-    // Styles that depend on whether this post is focused
-    const containerStyle = [
-        styles.gallery,
-        isFocused && isSomePostFocused && {
-            borderBottomLeftRadius: BORDER_RADIUS,
-            borderBottomRightRadius: BORDER_RADIUS,
-        }
-    ];
-    const imageStyle = [
-        styles.image,
-        isFocused && isSomePostFocused && {
-            borderBottomLeftRadius: BORDER_RADIUS,
-            borderBottomRightRadius: BORDER_RADIUS,
-        }
-    ];
-
+    /* ------------ render ------------ */
     return (
         <Animated.View
             ref={viewRef}
             style={[styles.wrapper, { opacity }]}
             pointerEvents={isSomePostFocused && !isFocused ? "none" : "auto"}
         >
-            <Pressable onPress={handlePress}>
+            <Pressable onPress={onPress}>
                 <Animated.View
                     style={[
-                        styles.main_ctnr,
+                        styles.card,
                         isFocused && { zIndex: 1 },
-                        { transform: [{ scale: scaleValue }] }
+                        { transform: [{ scale }] },
                     ]}
                 >
-                    <View style={styles.body_ctnr}>
+                    <View style={styles.body}>
                         <Gallery
                             ref={galleryRef}
                             data={images}
-                            onIndexChange={setPosition}
+                            onIndexChange={setPos}
+                            containerDimensions={{ width: W, height: W / AR }}
                             style={containerStyle}
-                            containerDimensions={{
-                                width: SCREEN_WIDTH,
-                                height: SCREEN_WIDTH / POST_ASPECT_RATIO,
-                            }}
                             renderItem={({ item }) => (
-                                <View style={styles.imageWrapper}>
-                                    <FastImage
-                                        source={{
-                                            uri: item,
-                                            priority: FastImage.priority.normal,
-                                            cache: FastImage.cacheControl.immutable,
-                                        }}
-                                        style={imageStyle}
-                                        resizeMode={FastImage.resizeMode.cover}
-                                    />
-                                </View>
+                                <ImageSlide uri={item} style={imageStyle} />
                             )}
                             pinchEnabled={false}
                             swipeEnabled={false}
@@ -161,64 +173,60 @@ const Post = ({
                             emptySpaceWidth={0}
                         />
                     </View>
+
                     <PostHeader
                         data={data}
                         url={pfp}
-                        position={position}
+                        position={pos}
                         totalImages={images.length}
                         toViewProfile={() => toViewProfile(index)}
                         openViewWorkout={() => openViewWorkoutModal(index)}
                     />
                     <PostFooter
                         data={data}
+                        image={pfp}
+                        isSomePostFocused={isSomePostFocused}
                         onPressCommentButton={() => {
-                            if (!isSomePostFocused) pressPostMiddle();
+                            if (!isSomePostFocused) focusMe();
                             if (isFocused) openCommentsModal(index);
                         }}
                         onPressShareButton={() => {
-                            if (!isSomePostFocused) pressPostMiddle();
+                            if (!isSomePostFocused) focusMe();
                             if (isFocused) openShareModal(index);
                         }}
-                        image={pfp}
-                        isSomePostFocused={isSomePostFocused}
                     />
                 </Animated.View>
             </Pressable>
         </Animated.View>
     );
-};
+}
 
-export default memo(Post);
+/* ------------ custom comparison: only re-render when necessary ------------ */
+const areEqual = (prev, next) =>
+    prev.isFocused === next.isFocused &&
+    prev.isSomePostFocused === next.isSomePostFocused &&
+    prev.data === next.data; // feed keeps data objects immutable
 
+export default React.memo(Post, areEqual);
+
+/* ------------ styles ------------ */
 const styles = StyleSheet.create({
-    wrapper: {
-        width: "100%"
-    },
-    main_ctnr: {
-        width: "100%",
-        borderColor: "#ddd",
-        marginBottom: -33
-    },
-    body_ctnr: {
-        width: "100%",
-        height: SCREEN_WIDTH / POST_ASPECT_RATIO
-    },
+    wrapper: { width: "100%" },
+    card: { width: "100%", borderColor: "#ddd", marginBottom: -33 },
+    body: { width: "100%", height: W / AR },
     gallery: {
         width: "100%",
         height: "100%",
-        borderTopRightRadius: BORDER_RADIUS,
-        borderTopLeftRadius: BORDER_RADIUS,
-        backgroundColor: "#fff"
+        borderTopLeftRadius: BORDER,
+        borderTopRightRadius: BORDER,
+        backgroundColor: "#fff",
     },
-    imageWrapper: {
-        width: "100%",
-        height: "100%"
-    },
+    imageWrapper: { width: "100%", height: "100%" },
     image: {
         width: "100%",
         height: "100%",
-        borderTopRightRadius: BORDER_RADIUS,
-        borderTopLeftRadius: BORDER_RADIUS,
-        overflow: "hidden"
-    }
+        borderTopLeftRadius: BORDER,
+        borderTopRightRadius: BORDER,
+        overflow: "hidden",
+    },
 });

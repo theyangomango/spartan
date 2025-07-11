@@ -90,7 +90,6 @@ export default function FullStoryModal({
 
     /* ------------ navigation with waiting logic ------------ */
     const tryNavigate = (direction) => {
-        console.log('asefaesf');
         if (isReady) {
             handleStoryNavigation(direction);
         } else {

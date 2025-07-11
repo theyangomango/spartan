@@ -1,15 +1,17 @@
 /**
- * Displays a Story Tile with the creator's pfp and handle.
- * Uses darker blue border to indicate that the story hasn't been opened
- * Displays a yellow "+" button on the first tile (this user) to create story
+ * StoryTile
+ * - Shows creator’s avatar + handle
+ * - Darker blue ring = unviewed
+ * - Yellow “+” on the first tile for creating a story
  */
 
 import React from "react";
-import { Image, StyleSheet, Text, TouchableOpacity, View } from "react-native";
+import { StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import { FontAwesome6 } from "@expo/vector-icons";
-import scaleSize from '../../../helper/scaleSize'
+import FastImage from "react-native-fast-image";
+import scaleSize from "../../../helper/scaleSize";
 
-export default function StoryTile ({
+export default function StoryTile({
     data,
     handlePress,
     index,
@@ -31,7 +33,15 @@ export default function StoryTile ({
                             : [styles.pfp_ctnr, isViewed && styles.pfp_ctnr_viewed]
                     }
                 >
-                    <Image source={{ uri: data.pfp }} style={styles.pfp} />
+                    <FastImage
+                        source={{
+                            uri: data.pfp,
+                            priority: FastImage.priority.normal,
+                            cache: FastImage.cacheControl.immutable,
+                        }}
+                        style={styles.pfp}
+                        resizeMode={FastImage.resizeMode.cover}
+                    />
                 </View>
             </TouchableOpacity>
 
@@ -45,32 +55,36 @@ export default function StoryTile ({
                     activeOpacity={0.7}
                     style={styles.create_icon}
                 >
-                    <FontAwesome6 name="plus" size={scaledStyles.createIconSize} color="#222" />
+                    <FontAwesome6
+                        name="plus"
+                        size={scaledStyles.createIconSize}
+                        color="#222"
+                    />
                 </TouchableOpacity>
             )}
         </View>
     );
 }
 
+/* ---------- scaled constants ---------- */
 const scaledStyles = {
     pfpSize: scaleSize(61),
     pfpBorderRadius: scaleSize(26),
     borderWidth: scaleSize(4),
     fontSize: scaleSize(14),
     createIconSize: scaleSize(13.5),
-
-    // Position for the "plus" icon
     createIconPositionTop: scaleSize(40),
     createIconPositionRight: scaleSize(7),
 };
 
+/* ---------- styles ---------- */
 const styles = StyleSheet.create({
     main_ctnr: {
         width: scaledStyles.pfpSize + scaleSize(17),
         height: scaledStyles.pfpSize + scaleSize(30),
         alignItems: "center",
     },
-    handle_ctnr: { marginTop: 4 }, // optional container
+    handle_ctnr: { marginTop: 4 },
     handle_text: {
         fontFamily: "Outfit_500Medium",
         fontSize: scaledStyles.fontSize,
@@ -98,6 +112,7 @@ const styles = StyleSheet.create({
     pfp_ctnr_viewed: {
         borderColor: "#BEE1FF",
     },
+    /* avatar with FastImage */
     pfp: {
         width: scaledStyles.pfpSize - scaleSize(10.5),
         aspectRatio: 1,

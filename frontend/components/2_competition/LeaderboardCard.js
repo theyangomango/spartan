@@ -1,13 +1,13 @@
 import React from 'react';
-import { Image, StyleSheet, Text, View, Dimensions } from 'react-native';
+import { StyleSheet, Text, View, Dimensions } from 'react-native';
+import FastImage from 'react-native-fast-image';
 import { Entypo, FontAwesome } from '@expo/vector-icons';
 import RNBounceable from '@freakycoder/react-native-bounceable';
 
 const { width, height } = Dimensions.get("window");
 
-// Function to determine dynamic styles based on screen size
 const getDynamicStyles = () => {
-    if (width >= 430 && height >= 932) { // iPhone 14 Pro Max and similar
+    if (width >= 430 && height >= 932) {
         return {
             cardHeight: 87,
             selfCardHeight: 97,
@@ -18,7 +18,7 @@ const getDynamicStyles = () => {
             rankTextFontSize: 16.5,
             bestSetTextFontSize: 14.5,
         };
-    } else if (width >= 390 && height >= 844) { // iPhone 13/14 and similar
+    } else if (width >= 390 && height >= 844) {
         return {
             cardHeight: 82,
             selfCardHeight: 92,
@@ -29,7 +29,7 @@ const getDynamicStyles = () => {
             rankTextFontSize: 14,
             bestSetTextFontSize: 13,
         };
-    } else if (width >= 375 && height >= 812) { // iPhone X/XS/11 Pro and similar
+    } else if (width >= 375 && height >= 812) {
         return {
             cardHeight: 77,
             selfCardHeight: 87,
@@ -40,7 +40,7 @@ const getDynamicStyles = () => {
             rankTextFontSize: 13.5,
             bestSetTextFontSize: 12.5,
         };
-    } else { // Smaller iPhone models (like iPhone SE)
+    } else {
         return {
             cardHeight: 72,
             selfCardHeight: 82,
@@ -57,30 +57,23 @@ const getDynamicStyles = () => {
 const dynamicStyles = getDynamicStyles();
 
 export default function LeaderboardCard({ pfp, handle, name, value, rank, lastRank, handlePress, userIsSelf = false, bestSet }) {
-    console.log(rank, lastRank);
-
     return (
         <RNBounceable onPress={handlePress} style={userIsSelf ? [styles.self_card_ctnr, { height: dynamicStyles.selfCardHeight }] : [styles.card_ctnr, { height: dynamicStyles.cardHeight }]}>
             <View style={styles.card_left}>
                 <Text style={[styles.rank_text, { fontSize: dynamicStyles.rankTextFontSize }]}>{rank}</Text>
-                {lastRank && lastRank < rank &&
-                    <Entypo name='chevron-down' size={20} color={'red'} style={styles.arrow_icon} />
-                }
-                {lastRank && lastRank > rank &&
-                    <Entypo name='chevron-up' size={20} color={'#23B665'} style={styles.arrow_icon} />
-                }
-                {(lastRank == null) && (value > 0) &&
-                    <Entypo name='chevron-up' size={20} color={'#23B665'} style={styles.arrow_icon} />
-                }
-                {(lastRank == null) && (value == 0) &&
-                    <FontAwesome name='minus' size={16} color={'#aaa'} style={styles.minus_icon} />
-                }
-                {lastRank && (lastRank == rank) &&
-                    <FontAwesome name='minus' size={16} color={'#aaa'} style={styles.minus_icon} />
-                }
+
+                {lastRank && lastRank < rank && <Entypo name='chevron-down' size={20} color='red' style={styles.arrow_icon} />}
+                {lastRank && lastRank > rank && <Entypo name='chevron-up' size={20} color='#23B665' style={styles.arrow_icon} />}
+                {(lastRank == null && value > 0) && <Entypo name='chevron-up' size={20} color='#23B665' style={styles.arrow_icon} />}
+                {(lastRank == null && value === 0) && <FontAwesome name='minus' size={16} color='#aaa' style={styles.minus_icon} />}
+                {(lastRank && lastRank === rank) && <FontAwesome name='minus' size={16} color='#aaa' style={styles.minus_icon} />}
 
                 <View style={[styles.pfp_ctnr, { width: dynamicStyles.pfpSize }]}>
-                    <Image source={{ uri: pfp }} style={styles.pfp} />
+                    <FastImage
+                        source={{ uri: pfp }}
+                        style={styles.pfp}
+                        resizeMode={FastImage.resizeMode.cover}
+                    />
                 </View>
                 <View>
                     <Text style={[styles.handle_text, { fontSize: dynamicStyles.handleTextFontSize }]}>{handle}</Text>
@@ -90,16 +83,18 @@ export default function LeaderboardCard({ pfp, handle, name, value, rank, lastRa
             <View style={styles.card_right}>
                 <View>
                     <Text style={[styles.stat_text, { fontSize: dynamicStyles.statTextFontSize }]}>{value.toFixed(0)} lbs</Text>
-                    {bestSet.reps === 0 && bestSet.weight === 0 ?
+                    {bestSet.reps === 0 && bestSet.weight === 0 ? (
                         <Text style={[styles.best_set_text, { fontSize: dynamicStyles.bestSetTextFontSize }]}>N/A</Text>
-                        :
-                        <Text style={[styles.best_set_text, { fontSize: dynamicStyles.bestSetTextFontSize }]}>{bestSet.reps} x {bestSet.weight} lbs</Text>
-                    }
+                    ) : (
+                        <Text style={[styles.best_set_text, { fontSize: dynamicStyles.bestSetTextFontSize }]}>
+                            {bestSet.reps} x {bestSet.weight} lbs
+                        </Text>
+                    )}
                 </View>
             </View>
         </RNBounceable>
-    )
-};
+    );
+}
 
 const styles = StyleSheet.create({
     card_ctnr: {
@@ -120,29 +115,29 @@ const styles = StyleSheet.create({
         marginHorizontal: 15,
         borderWidth: 2.5,
         borderColor: '#57B2FF',
-        backgroundColor: '#F7FBFF'
+        backgroundColor: '#F7FBFF',
     },
     card_left: {
         flexDirection: 'row',
         alignItems: 'center',
     },
     pfp_ctnr: {
-        aspectRatio: 1
+        aspectRatio: 1,
     },
     pfp: {
         flex: 1,
-        borderRadius: 100
+        borderRadius: 100,
     },
     handle_text: {
         fontFamily: 'Outfit_600SemiBold',
         paddingHorizontal: 12,
-        color: '#333'
+        color: '#333',
     },
     name_text: {
         marginTop: 1.5,
         fontFamily: 'Outfit_500Medium',
         paddingHorizontal: 12,
-        color: '#999'
+        color: '#999',
     },
     card_right: {
         flexDirection: 'column',
@@ -152,13 +147,13 @@ const styles = StyleSheet.create({
     stat_text: {
         fontFamily: 'Outfit_600SemiBold',
         color: '#2D9EFF',
-        textAlign: 'right'
+        textAlign: 'right',
     },
     best_set_text: {
         fontFamily: 'Outfit_500Medium',
         color: '#777',
-        marginTop: 4, // Add some spacing between the value and best set text
-        textAlign: 'right'
+        marginTop: 4,
+        textAlign: 'right',
     },
     rank_text: {
         fontFamily: 'Poppins_600SemiBold',
@@ -170,6 +165,6 @@ const styles = StyleSheet.create({
     },
     minus_icon: {
         marginLeft: 7,
-        marginRight: 10
-    }
+        marginRight: 10,
+    },
 });

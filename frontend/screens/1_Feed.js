@@ -300,7 +300,6 @@ export default function Feed({ navigation, route }) {
                             </Animated.View>
                         }
                         initialNumToRender={2}
-                        removeClippedSubviews
                         windowSize={4}
                     />
                 </SafeAreaView>
