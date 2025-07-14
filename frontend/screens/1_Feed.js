@@ -21,12 +21,11 @@ import CommentsBottomSheet from "../components/1_Feed/Comments/CommentsBottomShe
 import ShareBottomSheet from "../components/1_Feed/SharePost/ShareBottomSheet";
 import ViewWorkoutBottomSheet from "../components/1_Feed/ViewWorkout/ViewWorkoutBottomSheet";
 
-import readDoc from "../../backend/helper/firebase/readDoc";
-import retrieveUserFeed from "../../backend/retrieveUserFeed";
-import retrieveUserExploreFeed from '../../backend/retrieveUserExploreFeed'
+import { initUserFeed, registerFeedSetters } from '../helper/initUserFeed';
 import { db } from "../../firebase.config";
 import getScrollTargetPosition from "../helper/getScrollTargetPosition";
 import isThisUser from "../helper/isThisUser";
+import useFilteredFeed from "../helper/userFilteredFeed";
 
 const { width, height } = Dimensions.get("window");
 const TARGET_POSITION = getScrollTargetPosition(width, height),
@@ -38,18 +37,18 @@ export default function Feed({ navigation, route }) {
     const UID = "userData" in global ? global.userData.uid : route.params.uid;
 
     // State
-    const [stories, setStories] = useState(null),
-        [posts, setPosts] = useState([]),
-        [messages, setMessages] = useState(null),
-        [isSomePostFocused, setIsSomePostFocused] = useState(false),
-        [isScrolledPastTopClip, setIsScrolledPastTopClip] = useState(false),
-        [footerKey, setFooterKey] = useState(0),
-        [shareBottomSheetExpandFlag, setShareBottomSheetExpandFlag] = useState(false),
-        [shareBottomSheetCloseFlag, setShareBottomSheetCloseFlag] = useState(false),
-        [notificationsBottomSheetExpandFlag, setNotificationsBottomSheetExpandFlag] = useState(false),
-        [commentsBottomSheetExpandFlag, setCommentsBottomSheetExpandFlag] = useState(false),
-        [viewWorkoutBottomSheetExpandFlag, setViewWorkoutBottomSheetExpandFlag] = useState(false),
-        [viewingWorkoutIndex, setViewingWorkoutIndex] = useState(null);
+    const posts = useFilteredFeed(global.userData ? global.userData?.following : []);
+    const [stories, setStories] = useState(null);
+    const [messages, setMessages] = useState(null)
+    const [isSomePostFocused, setIsSomePostFocused] = useState(false)
+    const [isScrolledPastTopClip, setIsScrolledPastTopClip] = useState(false)
+    const [footerKey, setFooterKey] = useState(0)
+    const [shareBottomSheetExpandFlag, setShareBottomSheetExpandFlag] = useState(false)
+    const [shareBottomSheetCloseFlag, setShareBottomSheetCloseFlag] = useState(false)
+    const [notificationsBottomSheetExpandFlag, setNotificationsBottomSheetExpandFlag] = useState(false)
+    const [commentsBottomSheetExpandFlag, setCommentsBottomSheetExpandFlag] = useState(false)
+    const [viewWorkoutBottomSheetExpandFlag, setViewWorkoutBottomSheetExpandFlag] = useState(false)
+    const [viewingWorkoutIndex, setViewingWorkoutIndex] = useState(null);
 
     /* ---------- refs ---------- */
     const scrollOffsetY = useRef(0);
@@ -70,77 +69,42 @@ export default function Feed({ navigation, route }) {
         setIsScrolledPastTopClip(y > SCROLL_THRESHOLD);
     };
 
+    const [following, setFollowing] = useState([]);
+    const feed = useFilteredFeed(following);
+
     // Load user data from Firestore once
     useEffect(() => {
-        init();
         const unsub = onSnapshot(doc(db, "users", UID), snap => {
             userDataRef.current = snap.data();
             global.userData = userDataRef.current; // init of userData has global variable
+            setFollowing(global.userData.following);
         });
+
         return () => unsub();
     }, []);
 
-    // Re-init when screen gains focus
+
     useEffect(() => {
-        const unsub = navigation.addListener("focus", () => {
-            // console.log({ messages });
-            setFooterKey(k => k + 1); // state update for footer style
-            // Todo figure ts out
-            // init();
-            // onSnapshot(doc(db, "users", UID), snap => {
-            //     userDataRef.current = snap.data();
-            //     global.userData = userDataRef.current;
-            // });
+        registerFeedSetters({
+            setStories,
+            setMessages,
+            setFooterKey,
         });
-        return unsub;
-    }, [navigation]);
+
+        initUserFeed(UID);
+    }, []);
+
+
+    // Update stories only
+    const initStories = async () => {
+        // Todo: Replace - should just be a client end update
+        const feedData = await retrieveUserFeed(userDataRef.current);
+        setStories(feedData[0]);
+    };
 
     // If messages are passed from route, set them
     useEffect(() => { if ('messages' in route.params) setMessages(route.params.messages); }, [route]);
 
-    // Initialize stories, posts, messages
-    const init = async () => {
-        try {
-            userDataRef.current = await readDoc("users", UID);
-            const feedData = await retrieveUserFeed(userDataRef.current);
-            const exploreFeedData = await retrieveUserExploreFeed(userData);
-            global.userData = userDataRef.current;
-            global.exploreFeedPosts = exploreFeedData;
-            setStories(feedData[0]);
-            setPosts(feedData[1]);
-            setMessages(feedData[2]);
-
-            if (userDataRef.current.currentWorkout) {
-                global.isCurrentlyWorkingOut = true;
-                setFooterKey(k => k + 1); // Update footer style
-            }
-
-            // Preload Stories Images using FastImage
-            const storiesPreloadImages = feedData[0].storiesData.map(story => ({
-                uri: story.image,                        // <-- real image URL
-                priority: FastImage.priority.high,
-                cache: FastImage.cacheControl.immutable, // <-- correct key
-            }));
-
-            const exploreFeedPreloadImages = exploreFeedData.map(post => ({
-                uri: post.images[0],
-                priority: FastImage.priority.normal,
-            }));
-
-            FastImage.preload(storiesPreloadImages);
-            FastImage.preload(exploreFeedPreloadImages);
-
-            console.log("All story images have been preloaded with FastImage.");
-        } catch (error) {
-            console.error("Error initializing feed data:", error);
-        }
-    };
-
-    // Update stories only
-    const initStories = async () => {
-        const feedData = await retrieveUserFeed(userDataRef.current);
-        setStories(feedData[0]);
-    };
 
     /* ---------- focus / unfocus handlers ---------- */
     const handleFocusPost = (index, pageY) => {
