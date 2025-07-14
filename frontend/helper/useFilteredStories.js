@@ -20,8 +20,8 @@ export default function useFilteredStories(followingUsers, max = 30) {
             const filtered = snapshot.docs
                 .map(doc => ({ ...doc.data() }))
                 .filter(s => followingUsers.some(u => {
-                    return u.uid == s.uid;
-                }));
+                    return u.uid == s.uid; // someone you follow
+                }) || global.userData.uid == s.uid); // your own story
 
             const groupedByUser = [{
                 uid: global.userData.uid,
@@ -30,15 +30,7 @@ export default function useFilteredStories(followingUsers, max = 30) {
                 name: global.userData.name,
                 stories: []
             }];
-            // for (const story of filtered) {
-            //     if (!groupedByUser[story.uid]) {
-            //         groupedByUser[story.uid] = {
-            //             uid: story.uid,
-            //             stories: []
-            //         };
-            //     }
-            //     groupedByUser[story.uid].stories.push(story.sid);
-            // }
+          
             for (const story of filtered) {
                 if (groupedByUser.find(u => u.uid == story.uid)) { // existing user
                     groupedByUser.find(u => u.uid == story.uid).stories.push(story.sid);
