@@ -7,7 +7,7 @@ import ViewProfileHeader from "../components/ViewProfile/ViewProfileHeader";
 import readDoc from "../../backend/helper/firebase/readDoc";
 import WorkoutStats from "../components/5_Profile/ProfileTop/WorkoutStats";
 import Footer from "../components/Footer";
-import initChat from "../../backend/messages/initChat";
+import createChat from "../../backend/messages/createChat";
 import makeID from "../../backend/helper/makeID";
 import arrayAppend from "../../backend/helper/firebase/arrayAppend";
 
@@ -68,7 +68,7 @@ export default function ViewProfile({ navigation, route }) {
             otherUsers: [selfUser]
         });
 
-        const newChat = await initChat(global.userData.uid, [user, selfUser], cid);
+        const newChat = await createChat(global.userData.uid, [user, selfUser], cid);
         navigation.navigate('Chat', { data: newChat, usersExcludingSelf: [user] });
     }
 

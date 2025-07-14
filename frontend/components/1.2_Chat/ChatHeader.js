@@ -1,5 +1,5 @@
-import React from 'react';
-import { View, Text, Image, TouchableOpacity, StyleSheet } from 'react-native';
+import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
+import FastImage from 'react-native-fast-image';
 import { FontAwesome6 } from '@expo/vector-icons';
 
 const ChatHeader = ({ usersExcludingSelf, toMessages }) => {
@@ -17,19 +17,22 @@ const ChatHeader = ({ usersExcludingSelf, toMessages }) => {
                 <View style={styles.pfpContainer}>
                     {usersExcludingSelf.length > 1 ? (
                         <>
-                            <Image
+                            <FastImage
                                 source={{ uri: usersExcludingSelf[0].pfp }}
                                 style={[styles.pfp, styles.topLeftPfp]}
+                                resizeMode={FastImage.resizeMode.cover}
                             />
-                            <Image
+                            <FastImage
                                 source={{ uri: usersExcludingSelf[1].pfp }}
                                 style={[styles.pfp, styles.bottomRightPfp]}
+                                resizeMode={FastImage.resizeMode.cover}
                             />
                         </>
                     ) : (
-                        <Image
+                        <FastImage
                             source={{ uri: usersExcludingSelf[0].pfp }}
                             style={styles.singlePfp}
+                            resizeMode={FastImage.resizeMode.cover}
                         />
                     )}
                 </View>

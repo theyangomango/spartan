@@ -37,7 +37,7 @@ const getDynamicStyles = () => {
 
 const dynamicStyles = getDynamicStyles();
 
-export default function CreateGroupChatModal({ createGroupChat }) {
+export default function CreateGroupChatModal({ initChat }) {
     const [followingUsers, setFollowingUsers] = useState([]);
     const [selectedUsers, setSelectedUsers] = useState([]);
     const [selectedHandles, setSelectedHandles] = useState([]);
@@ -123,7 +123,7 @@ export default function CreateGroupChatModal({ createGroupChat }) {
             <RNBounceable
                 style={styles.createButton}
                 disabled={selectedUsers.length <= 1}
-                onPress={() => createGroupChat(selectedUsers)}
+                onPress={() => initChat(selectedUsers)}
             >
                 <Text style={[styles.createButtonText, { fontSize: dynamicStyles.createButtonTextFontSize }]}>
                     {`Create Group Chat${selectedUsers.length > 1 ? ` (${selectedUsers.length})` : ''}`}

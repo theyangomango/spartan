@@ -3,67 +3,58 @@ import { View, FlatList, KeyboardAvoidingView, Platform, Keyboard, StyleSheet } 
 import ChatHeader from '../components/1.2_Chat/ChatHeader';
 import MessageInput from '../components/1.2_Chat/MessageInput';
 import MessageItem from '../components/1.2_Chat/MessageItem';
-import getReverse from '../helper/getReverse';
 import sendMessage from '../../backend/messages/sendMessage';
 import { doc, onSnapshot } from 'firebase/firestore';
 import { db } from '../../firebase.config';
+import useChatMessages from '../helper/useChatMessages';
 
 const Chat = ({ navigation, route }) => {
-    const { usersExcludingSelf } = route.params;
-    const [data, setData] = useState(route.params.data)
-    const [messages, setMessages] = useState(getReverse(data.content));
+    const { usersExcludingSelf, data: initialData, index } = route.params;
+    const [data, setData] = useState(initialData);
     const [inputText, setInputText] = useState('');
     const [isInputFocused, setIsInputFocused] = useState(false);
     const flatListRef = useRef(null);
 
+    // 🔁 Real-time messages from content subcollection
+    const messages = useChatMessages(data.cid);
+
+    // 🔁 Optional: listen to metadata updates (like user list, title, etc.)
     useEffect(() => {
-        const unsub = onSnapshot(doc(db, 'messages', data.cid), d => {
-            const newData = d.data();
-            setData({ ...newData });
-            setMessages(getReverse(newData.content));
+        const unsub = onSnapshot(doc(db, 'messages', data.cid), (docSnap) => {
+            if (docSnap.exists()) {
+                setData({ ...docSnap.data(), cid: data.cid });
+            }
         });
 
         return () => unsub();
-    }, []);
+    }, [data.cid]);
 
     const handleSend = () => {
         if (inputText.trim() === '') return;
-        const newMessage = {
-            text: inputText,
-            uid: global.userData.uid,
-            handle: global.userData.handle,
-            timestamp: new Date().getTime(),
-            name: global.userData.name,
-            isPost: false,
-        };
 
-        setMessages([newMessage, ...messages]);
         sendMessage(global.userData.uid, global.userData.handle, data.cid, inputText);
         setInputText('');
     };
 
-    const handleInputFocus = () => {
-        setIsInputFocused(true);
-    };
-
-    const handleInputBlur = () => {
-        setIsInputFocused(false);
-    };
+    const handleInputFocus = () => setIsInputFocused(true);
+    const handleInputBlur = () => setIsInputFocused(false);
 
     const toMessages = () => {
         navigation.navigate('Messages', {
             message: data,
-            index: route.params.index
+            index: index,
         });
     };
 
     return (
-        <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : null}>
+        <KeyboardAvoidingView
+            style={{ flex: 1 }}
+            behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+        >
             <View style={styles.container}>
                 <ChatHeader usersExcludingSelf={usersExcludingSelf} toMessages={toMessages} />
                 <View style={styles.content}>
                     <FlatList
-                        showsVerticalScrollIndicator={false}
                         ref={flatListRef}
                         data={messages}
                         renderItem={({ item, index }) => (
@@ -74,8 +65,9 @@ const Chat = ({ navigation, route }) => {
                                 usersExcludingSelf={usersExcludingSelf}
                             />
                         )}
-                        keyExtractor={(item, index) => index.toString()}
+                        keyExtractor={(item) => item.id || item.timestamp?.toString() || Math.random().toString()}
                         inverted
+                        showsVerticalScrollIndicator={false}
                         scrollEventThrottle={16}
                         ListHeaderComponent={<View style={{ height: 15 }} />}
                         ListFooterComponent={<View style={{ height: 15 }} />}

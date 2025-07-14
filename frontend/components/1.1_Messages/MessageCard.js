@@ -86,7 +86,7 @@ export default function MessageCard({ usersExcludingSelf, content, timestamp, to
                 </View>
             </View>
             <View style={styles.rightContainer}>
-                <Text style={[styles.dateText, { fontSize: dynamicStyles.dateFontSize }]}>{getDisplayTime(timestamp)}</Text>
+                <Text style={[styles.dateText, { fontSize: dynamicStyles.dateFontSize }]}>{timestamp != null && getDisplayTime(timestamp)}</Text>
             </View>
         </RNBounceable>
     );
