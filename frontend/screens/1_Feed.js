@@ -25,7 +25,9 @@ import { initUserFeed, registerFeedSetters } from '../helper/initUserFeed';
 import { db } from "../../firebase.config";
 import getScrollTargetPosition from "../helper/getScrollTargetPosition";
 import isThisUser from "../helper/isThisUser";
-import useFilteredFeed from "../helper/userFilteredFeed";
+import useFilteredFeed from "../helper/useFilteredFeed";
+import useFilteredStories from '../helper/useFilteredStories';
+
 
 const { width, height } = Dimensions.get("window");
 const TARGET_POSITION = getScrollTargetPosition(width, height),
@@ -38,7 +40,7 @@ export default function Feed({ navigation, route }) {
 
     // State
     const posts = useFilteredFeed(global.userData ? global.userData?.following : []);
-    const [stories, setStories] = useState(null);
+    const { storiesData, storiesUserList } = useFilteredStories(global.userData?.following);
     const [messages, setMessages] = useState(null)
     const [isSomePostFocused, setIsSomePostFocused] = useState(false)
     const [isScrolledPastTopClip, setIsScrolledPastTopClip] = useState(false)
@@ -86,7 +88,6 @@ export default function Feed({ navigation, route }) {
 
     useEffect(() => {
         registerFeedSetters({
-            setStories,
             setMessages,
             setFooterKey,
         });
@@ -97,9 +98,9 @@ export default function Feed({ navigation, route }) {
 
     // Update stories only
     const initStories = async () => {
-        // Todo: Replace - should just be a client end update
-        const feedData = await retrieveUserFeed(userDataRef.current);
-        setStories(feedData[0]);
+        // // Todo: Replace - should just be a client end update
+        // const feedData = await retrieveUserFeed(userDataRef.current);
+        // setStories(feedData[0]);
     };
 
     // If messages are passed from route, set them
@@ -252,12 +253,12 @@ export default function Feed({ navigation, route }) {
                         scrollEventThrottle={10}
                         ListHeaderComponent={
                             <Animated.View style={{ opacity: storiesOpacity }}>
-                                {stories && (
+                                {storiesData && (
                                     <Stories
                                         disabled={isSomePostFocused}
                                         navigation={navigation}
-                                        data={stories.storiesData}
-                                        userList={stories.storiesUserList}
+                                        data={storiesData}
+                                        userList={storiesUserList}
                                         initStories={initStories}
                                     />
                                 )}

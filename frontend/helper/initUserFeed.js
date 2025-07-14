@@ -5,15 +5,13 @@ import FastImage from 'react-native-fast-image';
 
 let userDataRef = { current: null };
 
-// Internal setter references to update React state from outside
-let setStoriesFn, setMessagesFn, setFooterKeyFn;
+let setMessagesFn, setFooterKeyFn;
 
-// Register React state setters from the component
-export function registerFeedSetters({ setStories, setMessages, setFooterKey }) {
-    setStoriesFn = setStories;
+export function registerFeedSetters({ setMessages, setFooterKey }) {
     setMessagesFn = setMessages;
     setFooterKeyFn = setFooterKey;
 }
+
 
 // Main feed initializer
 export async function initUserFeed(UID) {
@@ -23,7 +21,7 @@ export async function initUserFeed(UID) {
         global.userData = userDoc;
 
         // ✅ 1. Prioritize stories (blocking)
-        await initUserStories(userDoc);
+        // await initUserStories(userDoc);
 
         // ✅ 2. Load the rest in parallel (no posts here!)
         await Promise.all([
@@ -39,19 +37,19 @@ export async function initUserFeed(UID) {
     }
 }
 
-// 1️⃣ Stories
-async function initUserStories(userData) {
-    const stories = await getUserStories(userData);
-    setStoriesFn(stories);
+// // 1️⃣ Stories
+// async function initUserStories(userData) {
+//     const stories = await getUserStories(userData);
+//     setStoriesFn(stories);
 
-    const preloadImages = stories.storiesData.map(story => ({
-        uri: story.image,
-        priority: FastImage.priority.high,
-        cache: FastImage.cacheControl.immutable,
-    }));
+//     const preloadImages = stories.storiesData.map(story => ({
+//         uri: story.image,
+//         priority: FastImage.priority.high,
+//         cache: FastImage.cacheControl.immutable,
+//     }));
 
-    FastImage.preload(preloadImages);
-}
+//     FastImage.preload(preloadImages);
+// }
 
 // 2️⃣ Messages
 async function initUserMessages(userData) {
