@@ -83,7 +83,7 @@ export default function Stories({ data, userList, initStories, disabled, navigat
         const sectionStart = sectionIndex === 0 ? 0 : storiesPrefixSums[sectionIndex - 1];
         const sectionEnd = storiesPrefixSums[sectionIndex] - 1;
 
-        // Check if entire section is viewed
+
         const allViewed = storiesData
             .slice(sectionStart, sectionEnd + 1)
             .every(st => viewedStories.current.includes(st.sid));
@@ -94,7 +94,7 @@ export default function Stories({ data, userList, initStories, disabled, navigat
             renderedIndex = sectionStart;
         } else {
             // Otherwise, jump to the next unviewed story
-            let temp = index;
+            let temp = storyIndex;
             while (
                 temp <= sectionEnd &&
                 viewedStories.current.includes(storiesData[temp].sid)
