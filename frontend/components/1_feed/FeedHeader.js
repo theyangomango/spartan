@@ -1,14 +1,32 @@
-import React, { memo } from "react";
+import React, { memo, useEffect, useState } from "react";
 import { StyleSheet, View, Text, Image, TouchableOpacity, Animated, Dimensions } from "react-native";
 import { Ionicons, Octicons, MaterialIcons } from '@expo/vector-icons';
 import RNBounceable from '@freakycoder/react-native-bounceable';
 import Svg, { Path } from "react-native-svg";
 import { getFeedHeaderStyles } from "../../helper/getFeedHeaderStyles";
+import { db } from "../../../firebase.config";
+import { collection, query, where, onSnapshot } from "firebase/firestore";
 
 const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get("window");
 const dynamicStyles = getFeedHeaderStyles(SCREEN_WIDTH, SCREEN_HEIGHT);
 
 const FeedHeader = ({ toMessagesScreen, onOpenNotifications, onOpenSettings, backButton, onBackPress, scrollToTop }) => {
+    const [unreadCount, setUnreadCount] = useState(0);
+    const user = global.userData;
+
+    useEffect(() => {
+        if (!user?.uid) return;
+
+        const notificationsRef = collection(db, 'users', user.uid, 'notifications');
+        const q = query(notificationsRef, where('read', '==', false));
+
+        const unsubscribe = onSnapshot(q, (snapshot) => {
+            setUnreadCount(snapshot.size); // Count of unread notifications
+        });
+
+        return () => unsubscribe();
+    }, [user?.uid]);
+
     if (backButton) {
         return (
             <Animated.View style={[styles.back_header]}>
@@ -38,9 +56,9 @@ const FeedHeader = ({ toMessagesScreen, onOpenNotifications, onOpenSettings, bac
                     <Svg xmlns="http://www.w3.org/2000/svg" width={dynamicStyles.iconSize} height={dynamicStyles.iconSize} viewBox="0 0 24 24" fill="none">
                         <Path d="M12.62 20.81c-.34.12-.9.12-1.24 0C8.48 19.82 2 15.69 2 8.69 2 5.6 4.49 3.1 7.56 3.1c1.82 0 3.43.88 4.44 2.24a5.53 5.53 0 0 1 4.44-2.24C19.51 3.1 22 5.6 22 8.69c0 7-6.48 11.13-9.38 12.12Z" stroke="#ccc" strokeWidth="2.1" strokeLinecap="round" strokeLinejoin="round"></Path>
                     </Svg>
-                    {global.userData && global.userData.notificationNewEvents > 0 && (
+                    {unreadCount > 0 && (
                         <View style={styles.notificationBadge}>
-                            <Text style={styles.notificationText}>{global.userData.notificationNewEvents}</Text>
+                            <Text style={styles.notificationText}>{unreadCount}</Text>
                         </View>
                     )}
                 </RNBounceable>
@@ -49,6 +67,7 @@ const FeedHeader = ({ toMessagesScreen, onOpenNotifications, onOpenSettings, bac
                     <MaterialIcons name="alternate-email" size={dynamicStyles.iconSize + 1.5} color={'#ccc'} />
                 </RNBounceable>
             </View>
+
             <RNBounceable onPress={onOpenSettings} style={styles.options_btn_ctnr}>
                 <Octicons name="gear" size={dynamicStyles.iconSize - 1.5} color={'#ccc'} />
             </RNBounceable>
@@ -57,6 +76,7 @@ const FeedHeader = ({ toMessagesScreen, onOpenNotifications, onOpenSettings, bac
 };
 
 export default memo(FeedHeader);
+
 
 const styles = StyleSheet.create({
     main_ctnr: {

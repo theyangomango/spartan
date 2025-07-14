@@ -2,13 +2,12 @@
  * Displays a bottom sheet containing user notifications.
  * Resets new notification counts upon closing.
  */
-
 import React, { memo, useCallback, useEffect, useMemo, useRef } from "react";
 import { View, StyleSheet } from "react-native";
 import BottomSheet, { BottomSheetBackdrop } from "@gorhom/bottom-sheet";
 import NotificationsModal from "./NotificationsModal";
-import updateDoc from "../../../../backend/helper/firebase/updateDoc";
 import scaleSize from "../../../helper/scaleSize";
+import resetNewNotifications from "../../../helper/resetNewNotifications";
 
 const NotificationsBottomSheet = ({ notificationsBottomSheetExpandFlag }) => {
     const bottomSheetRef = useRef(null);
@@ -35,15 +34,6 @@ const NotificationsBottomSheet = ({ notificationsBottomSheetExpandFlag }) => {
         ),
         []
     );
-
-    // Reset new notification counts when the bottom sheet is closed
-    const resetNewNotifications = () => {
-        updateDoc('users', global.userData.uid, {
-            notificationNewLikes: 0,
-            notificationNewComments: 0,
-            notificationNewEvents: 0,
-        });
-    };
 
     return (
         <View style={styles.outerContainer} pointerEvents="box-none">

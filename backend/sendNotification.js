@@ -1,7 +1,9 @@
-import arrayAppend from "./helper/firebase/arrayAppend";
+import { collection, addDoc } from "firebase/firestore";
 import incrementDocValue from "./helper/firebase/incrementDocValue";
+import { db } from "../firebase.config";
 
 export default async function sendNotification(uid, event) {
+    // Increment notification counters
     switch (event.type) {
         case 'liked-post':
         case 'liked-comment':
@@ -14,5 +16,11 @@ export default async function sendNotification(uid, event) {
             break;
     }
     incrementDocValue('users', uid, 'notificationNewEvents');
-    arrayAppend('users', uid, 'notificationEvents', event);
+
+    // Add event to the user's notifications subcollection
+    const notificationsRef = collection(db, 'users', uid, 'notifications');
+    await addDoc(notificationsRef, {
+        ...event,
+        read: false            // Optional: add `read` flag
+    });
 }

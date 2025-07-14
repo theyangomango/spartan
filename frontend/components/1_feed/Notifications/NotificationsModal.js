@@ -12,6 +12,7 @@ import NotificationCard from "./NotificationCard";
 import getReverse from "../../../helper/getReverse";
 import scaleSize from "../../../helper/scaleSize";
 
+
 export default function NotificationsModal() {
     /* ---------------- constants ---------------- */
     const PAGE_SIZE = 20;                 // number of cards per "page"
