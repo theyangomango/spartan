@@ -1,71 +1,61 @@
-/**
- * Modal that lists user notifications.
- * - Shows the newest first.
- * - Filters by activity type.
- * - Loads 20 cards at a time and appends more as you scroll.
- */
-
-import React, { useState, useMemo, useEffect } from "react";
+import React, { useState, useMemo, useCallback, useEffect } from "react";
 import { View, StyleSheet, FlatList } from "react-native";
+import { collection, query, orderBy, limit, onSnapshot } from "firebase/firestore";
+import { useFocusEffect } from "@react-navigation/native";
+import { db } from "../../../../firebase.config";
 import ButtonRow from "./ButtonRow";
 import NotificationCard from "./NotificationCard";
-import getReverse from "../../../helper/getReverse";
 import scaleSize from "../../../helper/scaleSize";
 
+const PAGE_SIZE = 20;
 
-export default function NotificationsModal() {
-    /* ---------------- constants ---------------- */
-    const PAGE_SIZE = 20;                 // number of cards per "page"
-
-    /* ---------------- state ---------------- */
+export default function NotificationsModal({ visible }) {
     const [selectedButton, setSelectedButton] = useState("All Activity");
-    const [page, setPage] = useState(1);  // how many pages have been loaded
+    const [events, setEvents] = useState([]);
+    const [newLikes, setNewLikes] = useState(0);
+    const [newComments, setNewComments] = useState(0);
 
-    /* ---------------- source data ---------------- */
-    const events = useMemo(
-        () => getReverse(global.userData.notificationEvents),
-        []
-    );
-    const newLikes = global.userData.notificationNewLikes;
-    const newComments = global.userData.notificationNewComments;
+    useEffect(() => {
+        if (!visible) return;
+        const uid = global.userData?.uid;
+        if (!uid) return;
 
-    /* ---------------- filter logic ---------------- */
+        const notifRef = collection(db, "users", uid, "notifications");
+        const notifQuery = query(notifRef, orderBy("timestamp", 'desc'), limit(PAGE_SIZE));
+
+        return onSnapshot(notifQuery, (snapshot) => {
+            const docs = snapshot.docs.map((doc) => doc.data());
+            setEvents(docs);
+
+            // Count unread likes/comments until first read
+            let likes = 0;
+            let comments = 0;
+            for (const doc of docs) {
+                if (doc.read) break;
+                if (doc.type?.startsWith("liked")) likes++;
+                if (["comment", "replied-comment"].includes(doc.type)) comments++;
+            }
+
+            setNewLikes(likes);
+            setNewComments(comments);
+        });
+    }, [visible]);
+
     const filteredEvents = useMemo(() => {
         return events.filter((event) => {
             switch (selectedButton) {
                 case "Likes":
-                    return (
-                        event.type === "liked-post" ||
-                        event.type === "liked-story" ||
-                        event.type === "liked-comment"
-                    );
+                    return ["liked-post", "liked-story", "liked-comment"].includes(event.type);
                 case "Comments":
-                    return event.type === "comment" || event.type === "replied-comment";
+                    return ["comment", "replied-comment"].includes(event.type);
                 case "Mentions":
                     return event.type === "mention";
                 default:
-                    return true; // "All Activity"
+                    return true;
             }
         });
     }, [selectedButton, events]);
 
-    /* ---------------- slice by page ---------------- */
-    const visibleEvents = useMemo(
-        () => filteredEvents.slice(0, page * PAGE_SIZE),
-        [filteredEvents, page]
-    );
-
-    /* ---------------- handlers ---------------- */
-    const handleEndReached = () => {
-        if (page * PAGE_SIZE < filteredEvents.length) {
-            setPage((p) => p + 1);
-        }
-    };
-
-    /* reset pagination whenever filter changes */
-    useEffect(() => setPage(1), [selectedButton]);
-
-    /* ---------------- render ---------------- */
     return (
         <View style={styles.container}>
             <ButtonRow
@@ -75,15 +65,12 @@ export default function NotificationsModal() {
                 newLikes={newLikes}
                 newComments={newComments}
             />
-
             <FlatList
-                data={visibleEvents}
+                data={filteredEvents}
                 renderItem={({ item }) => <MemoNotificationCard item={item} />}
-                keyExtractor={(item) => `${item.type}-${item.timestamp}`}
+                keyExtractor={(item, index) => `${item.type}-${item.timestamp}-${index}`}
                 style={styles.flatList}
                 showsVerticalScrollIndicator={false}
-                onEndReachedThreshold={0.2}
-                onEndReached={handleEndReached}
                 initialNumToRender={10}
                 windowSize={7}
                 removeClippedSubviews
@@ -92,10 +79,8 @@ export default function NotificationsModal() {
     );
 }
 
-/* -------- memoised card to avoid useless re-renders -------- */
 const MemoNotificationCard = React.memo(NotificationCard);
 
-/* ---------------- styles ---------------- */
 const styles = StyleSheet.create({
     container: {
         flex: 1,

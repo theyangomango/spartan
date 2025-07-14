@@ -3,7 +3,6 @@
  * Contains "All Activity", "Likes", "Comments", "Mensions" as filters
  */
 
-import React from "react";
 import { View, Text, StyleSheet, ScrollView } from "react-native";
 import RNBounceable from "@freakycoder/react-native-bounceable";
 import scaleSize from "../../../helper/scaleSize";

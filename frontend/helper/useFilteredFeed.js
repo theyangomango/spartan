@@ -20,7 +20,7 @@ export default function useFilteredFeed(followingUsers, max = 50) {
                 .map(doc => ({ ...doc.data() }))
                 .filter(p => followingUsers.some(u => {
                     return u.uid == p.uid;
-                }));
+                }) || global.userData.uid == p.uid);
 
             setFeed(filtered);
         });
