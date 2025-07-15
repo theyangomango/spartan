@@ -29,10 +29,10 @@ const BORDER = 35;
 const EDGE = 75;
 
 /* animation consts */
-const FADE_MS = 100;
-const B_IN = 1.05;
+const FADE_MS = 80;
+const B_IN = 1.02;
 const B_OUT = 1;
-const B_FRICTION = 50;
+const B_FRICTION = 60;
 
 /* ---- one-time render component for each image ---- */
 const ImageSlide = React.memo(({ uri, style }) => (
@@ -61,6 +61,8 @@ function Post({
     openViewWorkoutModal,
 }) {
     const { pfp, images } = data;
+
+    console.log('Post ' + index + ' render');
 
     /* local state & refs */
     const [pos, setPos] = useState(0);

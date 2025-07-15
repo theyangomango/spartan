@@ -8,7 +8,5 @@ export default getStoriesPrefixSums = (userList) => {
         prefixSum.push(totalStories);
     });
 
-    console.log(prefixSum);
-
     return prefixSum;
 };

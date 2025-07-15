@@ -23,6 +23,8 @@ import getStoriesPrefixSums from "../../../helper/getStoriesPrefixSums";
 import sortStoriesDataByUserList from "../../../helper/sortStoriesDataByUserList";
 
 export default function Stories({ data, userList, initStories, disabled, navigation }) {
+    console.log('stories render');
+    
     // Manage modals & current story index
     const [viewModalVisible, setViewModal] = useState(false);
     const [createModalVisible, setCreateModal] = useState(false);

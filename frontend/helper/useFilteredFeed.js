@@ -13,7 +13,7 @@ export default function useFilteredFeed(followingUsers, max = 50) {
         }
 
         const postsRef = collection(db, 'posts');
-        const q = query(postsRef, orderBy('created'), limit(max));
+        const q = query(postsRef, orderBy('created', 'desc'), limit(max));
 
         const unsub = onSnapshot(q, (snapshot) => {
             const filtered = snapshot.docs

@@ -5,12 +5,11 @@
  * * Does NOT handle backend calls from user interactions
  */
 
-import React, { useEffect, useRef, useState } from "react";
+import React, { useCallback, useEffect, useRef, useState } from "react";
 import { Animated, Dimensions, SafeAreaView, StyleSheet, View } from "react-native";
 import { StatusBar } from "expo-status-bar";
 import MaskedView from "@react-native-masked-view/masked-view";
 import { doc, onSnapshot } from "firebase/firestore";
-import FastImage from "react-native-fast-image";
 
 import Footer from "../components/Footer";
 import Post from "../components/1_Feed/Posts/Post";
@@ -71,15 +70,12 @@ export default function Feed({ navigation, route }) {
         setIsScrolledPastTopClip(y > SCROLL_THRESHOLD);
     };
 
-    const [following, setFollowing] = useState([]);
-    const feed = useFilteredFeed(following);
 
     // Load user data from Firestore once
     useEffect(() => {
         const unsub = onSnapshot(doc(db, "users", UID), snap => {
             userDataRef.current = snap.data();
             global.userData = userDataRef.current; // init of userData has global variable
-            setFollowing(global.userData.following);
         });
 
         return () => unsub();
@@ -203,26 +199,64 @@ export default function Feed({ navigation, route }) {
     };
 
     // Render a single post
-    function renderPost({ item, index }) {
+    const renderPost = useCallback(({ item, index }) => {
         const isFocusedPost = index === focusedPostIndex.current;
-        // const isNearFocusedPost = Math.abs(index - focusedPostIndex.current) > 1; // only update/rerender nearby posts when a post is focused
 
-        return (
-            <Animated.View style={[styles.postWrapper, isFocusedPost && { transform: [{ translateY }], zIndex: 1 }]}>
-                <Post
-                    data={item}
-                    index={index}
-                    openCommentsModal={openCommentsModal}
-                    openShareModal={openShareModal}
-                    isFocused={isSomePostFocused && isFocusedPost}
-                    handleFocusPost={handleFocusPost}
-                    isSomePostFocused={isSomePostFocused}
-                    toViewProfile={toViewProfilePosts}
-                    openViewWorkoutModal={openViewWorkoutModal}
-                />
-            </Animated.View>
-        );
-    };
+        if (!isSomePostFocused) {
+            return (
+                <Animated.View style={[styles.postWrapper, isFocusedPost && { transform: [{ translateY }], zIndex: 1 }]}>
+                    <Post
+                        data={item}
+                        index={index}
+                        openCommentsModal={openCommentsModal}
+                        openShareModal={openShareModal}
+                        isFocused={isSomePostFocused && isFocusedPost}
+                        handleFocusPost={handleFocusPost}
+                        isSomePostFocused={false}
+                        toViewProfile={toViewProfilePosts}
+                        openViewWorkoutModal={openViewWorkoutModal}
+                    />
+                </Animated.View>
+            );
+        }
+
+        else {
+            if (Math.abs(focusedPostIndex.current - index) <= 1) {
+                return (
+                    <Animated.View style={[styles.postWrapper, isFocusedPost && { transform: [{ translateY }], zIndex: 1 }]}>
+                        <Post
+                            data={item}
+                            index={index}
+                            openCommentsModal={openCommentsModal}
+                            openShareModal={openShareModal}
+                            isFocused={isSomePostFocused && isFocusedPost}
+                            handleFocusPost={handleFocusPost}
+                            isSomePostFocused={isSomePostFocused}
+                            toViewProfile={toViewProfilePosts}
+                            openViewWorkoutModal={openViewWorkoutModal}
+                        />
+                    </Animated.View>
+                );
+            }
+
+            return (
+                <Animated.View style={[styles.postWrapper, isFocusedPost && { transform: [{ translateY }], zIndex: 1 }]}>
+                    <Post
+                        data={item}
+                        index={index}
+                        openCommentsModal={openCommentsModal}
+                        openShareModal={openShareModal}
+                        isFocused={isSomePostFocused && isFocusedPost}
+                        handleFocusPost={handleFocusPost}
+                        isSomePostFocused={false}
+                        toViewProfile={toViewProfilePosts}
+                        openViewWorkoutModal={openViewWorkoutModal}
+                    />
+                </Animated.View>
+            );
+        }
+    }, [isSomePostFocused, handleFocusPost, openCommentsModal, openShareModal]);
+
 
     return (
         <SafeAreaView style={{ flex: 1, backgroundColor: "#fff" }}>
@@ -244,7 +278,6 @@ export default function Feed({ navigation, route }) {
                     <Animated.FlatList
                         ref={flatListRef} // Assign ref to FlatList
                         bounces={false}
-                        // scrollEnabled={!isSomePostFocused}
                         showsVerticalScrollIndicator={false}
                         data={posts}
                         renderItem={renderPost}

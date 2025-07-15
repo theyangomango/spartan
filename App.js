@@ -85,6 +85,8 @@ export default function App() {
     }, []);
 
     async function init() {
+        // AsyncStorage.clear();
+
         try {
             const uid = await AsyncStorage.getItem('uid'); // user ID is stored within the device's async storage
             if (uid) {
@@ -94,6 +96,7 @@ export default function App() {
         } catch (err) {
             console.error(err);
         }
+
     }
 
     if (!fontsLoaded) return null;

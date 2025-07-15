@@ -46,8 +46,6 @@ export default function useFilteredStories(followingUsers, max = 30) {
                 }
             }
 
-            console.log(groupedByUser);
-
             setStoriesData(filtered);
             setStoriesUserList(groupedByUser);
         });
