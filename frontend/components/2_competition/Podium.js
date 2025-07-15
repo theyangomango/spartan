@@ -58,9 +58,7 @@ export default function Podium({ data }) {
                     </Text>
                 )}
                 <View style={[styles.bar_ctnr, styles.silver_ctnr, { height: dynamicStyles.barHeight.left, width: dynamicStyles.barWidth }]}>
-                    {data.length >= 2 && (
-                        <Text style={[styles.bar_text, { fontSize: dynamicStyles.fontSize.barText }]}>2</Text>
-                    )}
+                    <Text style={[styles.bar_text, { fontSize: dynamicStyles.fontSize.barText }]}>2</Text>
                 </View>
             </View>
 
@@ -81,9 +79,7 @@ export default function Podium({ data }) {
                     </Text>
                 )}
                 <View style={[styles.bar_ctnr, styles.gold_ctnr, { height: dynamicStyles.barHeight.center, width: dynamicStyles.barWidth }]}>
-                    {data.length >= 1 && (
-                        <Text style={[styles.bar_text, { fontSize: dynamicStyles.fontSize.barText }]}>1</Text>
-                    )}
+                    <Text style={[styles.bar_text, { fontSize: dynamicStyles.fontSize.barText }]}>1</Text>
                 </View>
             </View>
 
@@ -104,9 +100,7 @@ export default function Podium({ data }) {
                     </Text>
                 )}
                 <View style={[styles.bar_ctnr, styles.bronze_ctnr, { height: dynamicStyles.barHeight.right, width: dynamicStyles.barWidth }]}>
-                    {data.length >= 3 && (
-                        <Text style={[styles.bar_text, { fontSize: dynamicStyles.fontSize.barText }]}>3</Text>
-                    )}
+                    <Text style={[styles.bar_text, { fontSize: dynamicStyles.fontSize.barText }]}>3</Text>
                 </View>
             </View>
         </View>

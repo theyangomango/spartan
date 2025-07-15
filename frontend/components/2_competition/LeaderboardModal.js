@@ -7,16 +7,15 @@ import { getLeaderboardModalStyles } from "../../helper/getLeaderboardModalStyle
 const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get("window");
 const dynamicStyles = getLeaderboardModalStyles(SCREEN_WIDTH, SCREEN_HEIGHT);
 
-const getBounceableStyle = (opacity = 1) => ([
+const getBounceableStyle = () => [
     styles.button,
     styles.selectedButton,
     {
         paddingHorizontal: dynamicStyles.buttonPaddingHorizontal,
         paddingVertical: dynamicStyles.buttonPaddingVertical,
-        marginHorizontal: dynamicStyles.buttonMarginHorizontal,
-        opacity,
-    },
-]);
+        marginHorizontal: dynamicStyles.buttonMarginHorizontal
+    }
+];
 
 const getTextStyle = () => ([
     styles.buttonText,
@@ -62,9 +61,8 @@ const LeaderboardModal = ({
                         <Text style={getTextStyle()}>{categoryCompared}</Text>
                     </RNBounceable>
                     <RNBounceable
-                        style={getBounceableStyle(0.5)}
+                        style={getBounceableStyle()}
                         onPress={toggleFollowers}
-                        disabled
                     >
                         <Text style={getTextStyle()}>{showFollowers}</Text>
                     </RNBounceable>

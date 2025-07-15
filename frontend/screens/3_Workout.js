@@ -155,10 +155,8 @@ function Workout({ navigation }) {
         // Set completed workout
         setCompletedWorkout(completedWorkoutData);
 
-        // Add the completed workout to the user's "workouts" subcollection
-        addDoc(
-            collection(db, "users", global.userData.uid, "workouts"),
-            completedWorkoutData);
+        // Append the completed workout to the user's data
+        arrayAppend("users", global.userData.uid, "completedWorkouts", completedWorkoutData);
 
         // Reset the workout state
         setWorkout(null);
@@ -232,25 +230,19 @@ function Workout({ navigation }) {
     }, [workout]);
 
     useEffect(() => {
-        if (!completedWorkout) return;
-
-        const today = formatDate(new Date());
-
-        async function updateWorkoutStats() {
-            // Step 1: Read existing stats
-            const existingStats = await readDoc('workoutStats', global.userData.uid) || {};
-            let newExerciseStats = { ...existingStats };
+        if (completedWorkout) {
+            let newExerciseStats = { ...global.userData.statsExercises };
+            const today = formatDate(new Date());
 
             completedWorkout.exercises.forEach(ex => {
-                const prev1RM = (ex.name in newExerciseStats && '1RM' in newExerciseStats[ex.name])
-                    ? newExerciseStats[ex.name]['1RM']
-                    : 0;
+                const prev1RM = ([ex.name] in newExerciseStats && '1RM' in newExerciseStats[ex.name]) ? newExerciseStats[ex.name]['1RM'] : 0;
 
+                // Ensure newExerciseStats[ex.name] and its sets array are initialized
                 newExerciseStats[ex.name] = newExerciseStats[ex.name] || { sets: [], progress1RM: [] };
                 newExerciseStats[ex.name].sets = newExerciseStats[ex.name].sets || [];
                 newExerciseStats[ex.name].progress1RM = newExerciseStats[ex.name].progress1RM || [];
 
-                let maxSet1RM = prev1RM;
+                let maxSet1RM = prev1RM; // Track the max 1RM for today's sets
 
                 ex.sets.forEach(set => {
                     newExerciseStats[ex.name].sets.push({
@@ -267,9 +259,10 @@ function Workout({ navigation }) {
                         newExerciseStats[ex.name]['bestSet'] = {
                             weight: Number(set.weight),
                             reps: Number(set.reps)
-                        };
+                        }
                     }
 
+                    // Update maxSet1RM if the current set1RM is greater
                     if (set1RM > maxSet1RM) {
                         maxSet1RM = set1RM;
                     }
@@ -279,8 +272,10 @@ function Workout({ navigation }) {
                 const lastEntry = progress1RMArray[progress1RMArray.length - 1];
 
                 if (lastEntry && lastEntry.date === today) {
+                    // If the last entry is for today, update the 1RM value
                     lastEntry['1RM'] = Math.max(lastEntry['1RM'], maxSet1RM);
                 } else {
+                    // Otherwise, add a new entry
                     newExerciseStats[ex.name].progress1RM.push({
                         date: today,
                         '1RM': maxSet1RM
@@ -288,17 +283,17 @@ function Workout({ navigation }) {
                 }
             });
 
-            // Step 2: Update the workoutStats document
-            await updateDoc('workoutStats', global.userData.uid, newExerciseStats);
-
-            // Step 3: Increment summary stats in users document
+            updateDoc('users', global.userData.uid, {
+                statsExercises: newExerciseStats,
+            });
             incrementDocValue('users', global.userData.uid, 'statsTotalWorkouts');
             incrementDocValue('users', global.userData.uid, 'statsTotalVolume', completedWorkout.volume);
             incrementDocValue('users', global.userData.uid, 'statsTotalHours', completedWorkout.duration / 3600000);
 
-            // Step 4: Update template lastDate if applicable
             if (completedWorkout.tid) {
-                const index = global.userData.templates.findIndex(t => t.tid === completedWorkout.tid);
+                const index = global.userData.templates.findIndex(t => {
+                    return t.tid == completedWorkout.tid;
+                });
                 if (index > -1) {
                     setTemplates(prevTemplates => {
                         const updatedTemplates = [...prevTemplates];
@@ -311,8 +306,6 @@ function Workout({ navigation }) {
                 }
             }
         }
-
-        updateWorkoutStats();
     }, [completedWorkout]);
 
 

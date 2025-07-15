@@ -59,7 +59,7 @@ export default function Competition({ navigation }) {
     const usersRef = useRef([]);
     const [userList, setUserList] = useState(null);
     const [comparedExercise, setComparedExercise] = useState('Bench Press (Barbell)');
-    const [showFollowers, setShowFollowers] = useState('All Followers');
+    const [scope, setScope] = useState('Global');
     const [selectExerciseModalVisible, setSelectExerciseModalVisible] = useState(false);
     const [selectedUser, setSelectedUser] = useState(null);
     const [isUserStatsBottomSheetVisible, setIsUserStatsBottomSheetVisible] = useState(false);
@@ -74,8 +74,20 @@ export default function Competition({ navigation }) {
     }, []);
 
     useEffect(() => {
-        setUserList(rankUsers(usersRef.current, comparedExercise));
-    }, [comparedExercise]);
+        if (scope == 'All Followers') {
+            setUserList(rankUsers([global.userData, ...usersRef.current.filter(usr => {
+                return global.userData.following.some(u => {
+                    console.log(usr.uid === u.uid);
+                    return u.uid == usr.uid;
+                });
+            })], comparedExercise));
+        }
+
+        else if (scope == 'Global') {
+            setUserList(rankUsers(usersRef.current, comparedExercise));
+        }
+
+    }, [comparedExercise, scope]);
 
     useEffect(() => {
         const unsubscribe = navigation.addListener('focus', () => {
@@ -96,7 +108,7 @@ export default function Competition({ navigation }) {
     }
 
     const toggleFollowers = () => {
-        setShowFollowers(prev => prev === 'All Followers' ? 'Close Friends' : 'All Followers');
+        setScope(prev => prev === 'All Followers' ? 'Global' : 'All Followers');
     };
 
     const openModal = () => setSelectExerciseModalVisible(true);
@@ -186,7 +198,7 @@ export default function Competition({ navigation }) {
             <LeaderboardBottomSheet
                 userList={userList}
                 categoryCompared={comparedExercise}
-                showFollowers={showFollowers}
+                showFollowers={scope}
                 toggleFollowers={toggleFollowers}
                 openModal={openModal}
                 openBottomSheet={openBottomSheet}
