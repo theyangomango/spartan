@@ -19,6 +19,7 @@ import formatDate from "../helper/formatDate";
 import incrementDocValue from "../../backend/helper/firebase/incrementDocValue";
 import { collection, addDoc } from "firebase/firestore";
 import { db } from "../../firebase.config"; // adjust path as needed
+import readDoc from "../../backend/helper/firebase/readDoc";
 
 const { height: screenHeight } = Dimensions.get('window');
 
@@ -43,18 +44,7 @@ function Workout({ navigation }) {
     const timerRef = useRef(workout ? millisToMinutesAndSeconds(Date.now() - workout.created) : '00:00');
 
 
-
-    // ! Not in Beta
-    // useEffect(() => {
-    //     const unsubscribe = navigation.addListener('focus', () => {
-    //         setIsNewWorkoutBottomSheetVisible(false);
-    //         if (workout) {
-    //             setIsNewWorkoutBottomSheetVisible(true);
-    //         }
-    //     });
-
-    //     return unsubscribe;
-    // }, [navigation]);
+    const userWorkoutStats = useRef(global.userData.statsExercises); // Todo - figure ts out
 
 
     // Update the timerRef every second when workout is not null
@@ -242,19 +232,25 @@ function Workout({ navigation }) {
     }, [workout]);
 
     useEffect(() => {
-        if (completedWorkout) {
-            let newExerciseStats = { ...global.userData.statsExercises };
-            const today = formatDate(new Date());
+        if (!completedWorkout) return;
+
+        const today = formatDate(new Date());
+
+        async function updateWorkoutStats() {
+            // Step 1: Read existing stats
+            const existingStats = await readDoc('workoutStats', global.userData.uid) || {};
+            let newExerciseStats = { ...existingStats };
 
             completedWorkout.exercises.forEach(ex => {
-                const prev1RM = ([ex.name] in newExerciseStats && '1RM' in newExerciseStats[ex.name]) ? newExerciseStats[ex.name]['1RM'] : 0;
+                const prev1RM = (ex.name in newExerciseStats && '1RM' in newExerciseStats[ex.name])
+                    ? newExerciseStats[ex.name]['1RM']
+                    : 0;
 
-                // Ensure newExerciseStats[ex.name] and its sets array are initialized
                 newExerciseStats[ex.name] = newExerciseStats[ex.name] || { sets: [], progress1RM: [] };
                 newExerciseStats[ex.name].sets = newExerciseStats[ex.name].sets || [];
                 newExerciseStats[ex.name].progress1RM = newExerciseStats[ex.name].progress1RM || [];
 
-                let maxSet1RM = prev1RM; // Track the max 1RM for today's sets
+                let maxSet1RM = prev1RM;
 
                 ex.sets.forEach(set => {
                     newExerciseStats[ex.name].sets.push({
@@ -271,10 +267,9 @@ function Workout({ navigation }) {
                         newExerciseStats[ex.name]['bestSet'] = {
                             weight: Number(set.weight),
                             reps: Number(set.reps)
-                        }
+                        };
                     }
 
-                    // Update maxSet1RM if the current set1RM is greater
                     if (set1RM > maxSet1RM) {
                         maxSet1RM = set1RM;
                     }
@@ -284,10 +279,8 @@ function Workout({ navigation }) {
                 const lastEntry = progress1RMArray[progress1RMArray.length - 1];
 
                 if (lastEntry && lastEntry.date === today) {
-                    // If the last entry is for today, update the 1RM value
                     lastEntry['1RM'] = Math.max(lastEntry['1RM'], maxSet1RM);
                 } else {
-                    // Otherwise, add a new entry
                     newExerciseStats[ex.name].progress1RM.push({
                         date: today,
                         '1RM': maxSet1RM
@@ -295,17 +288,17 @@ function Workout({ navigation }) {
                 }
             });
 
-            updateDoc('users', global.userData.uid, {
-                statsExercises: newExerciseStats,
-            });
+            // Step 2: Update the workoutStats document
+            await updateDoc('workoutStats', global.userData.uid, newExerciseStats);
+
+            // Step 3: Increment summary stats in users document
             incrementDocValue('users', global.userData.uid, 'statsTotalWorkouts');
             incrementDocValue('users', global.userData.uid, 'statsTotalVolume', completedWorkout.volume);
             incrementDocValue('users', global.userData.uid, 'statsTotalHours', completedWorkout.duration / 3600000);
 
+            // Step 4: Update template lastDate if applicable
             if (completedWorkout.tid) {
-                const index = global.userData.templates.findIndex(t => {
-                    return t.tid == completedWorkout.tid;
-                });
+                const index = global.userData.templates.findIndex(t => t.tid === completedWorkout.tid);
                 if (index > -1) {
                     setTemplates(prevTemplates => {
                         const updatedTemplates = [...prevTemplates];
@@ -318,7 +311,10 @@ function Workout({ navigation }) {
                 }
             }
         }
+
+        updateWorkoutStats();
     }, [completedWorkout]);
+
 
     useEffect(() => {
         updateDoc('users', global.userData.uid, {
@@ -373,6 +369,7 @@ function Workout({ navigation }) {
                 setIsVisible={setIsNewWorkoutBottomSheetVisible}
                 timerRef={timerRef}
                 showGroupModal={showGroupModal}
+                userWorkoutStats={userWorkoutStats.current}
             />
 
             <EditTemplateBottomSheet

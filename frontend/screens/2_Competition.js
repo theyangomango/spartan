@@ -21,6 +21,7 @@ import InfoPanel from "../components/2_Competition/InfoPanel";
 import { doc, onSnapshot } from "firebase/firestore";
 import { db } from "../../firebase.config";
 import RNBounceable from "@freakycoder/react-native-bounceable";
+import getAllUsers from "../helper/getAllUsers";
 
 const { width, height } = Dimensions.get('window');
 
@@ -89,8 +90,8 @@ export default function Competition({ navigation }) {
     }, [navigation]);
 
     async function init() {
-        const data = await retrieveFollowingUsers(global.userData.following);
-        usersRef.current = [global.userData, ...data];
+        const allUsers = await getAllUsers();
+        usersRef.current = allUsers;
         setUserList(rankUsers(usersRef.current, comparedExercise));
     }
 
@@ -169,14 +170,14 @@ export default function Competition({ navigation }) {
 
             <InfoPanel isVisible={infoPanelVisible} opacity={infoPanelOpacity} />
 
-          
+
             <Podium
                 data={userList && userList.length > 0 ? userList
                     .slice(0, 3)
-                    .map(user => user && user.handle && user.image && user.statsExercises ? {
+                    .map(user => user && user.handle && user.image && global.userData.statsExercises ? {
                         handle: user.handle,
                         pfp: user.image,
-                        stat: user.statsExercises[comparedExercise]?.[exerciseStatKey] || 0
+                        stat: global.userData.statsExercises[comparedExercise]?.[exerciseStatKey] || 0
                     } : null)
                     .filter(Boolean)
                     : null}

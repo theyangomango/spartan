@@ -14,7 +14,7 @@ const scale = screenHeight / 844; // Scaling factor based on iPhone 13 height
 
 const scaledSize = (size) => Math.round(size * scale);
 
-const NewWorkoutModal = ({ workout, cancelWorkout, updateWorkout, finishWorkout, timerRef, showGroupModal }) => {
+const NewWorkoutModal = ({ workout, cancelWorkout, updateWorkout, finishWorkout, timerRef, showGroupModal, userWorkoutStats }) => {
     const [selectExerciseModalVisible, setSelectExerciseModalVisible] = useState(false);
     const [deleteConfirmModalVisible, setDeleteConfirmModalVisible] = useState(false); // State for delete confirmation modal
     const [totalReps, setTotalReps] = useState(0);
@@ -56,7 +56,7 @@ const NewWorkoutModal = ({ workout, cancelWorkout, updateWorkout, finishWorkout,
                     reps += Number(set.reps);
                     volume += (Number(set.reps) * Number(set.weight));
                     const max = calculate1RM(Number(set.weight), Number(set.reps));
-                    const prevMax = (exercise.name in global.userData.statsExercises && '1RM' in global.userData.statsExercises[exercise.name]) ? global.userData.statsExercises[exercise.name]['1RM'] : 0;
+                    const prevMax = (exercise.name in userWorkoutStats && '1RM' in userWorkoutStats[exercise.name]) ? userWorkoutStats[exercise.name]['1RM'] : 0;
                     console.log(prevMax);
 
                     if (max > prevMax && !isPB) {
@@ -223,6 +223,7 @@ const NewWorkoutModal = ({ workout, cancelWorkout, updateWorkout, finishWorkout,
                         calculateStats={calculateStats}
                         isDoneState={isDoneState[exerciseIndex]}
                         toggleIsDone={toggleIsDone}
+                        userWorkoutStats={userWorkoutStats}
                     />
                 ))}
                 <RNBounceable onPress={showSelectExerciseModal} style={styles.add_exercise_btn}>
@@ -244,6 +245,7 @@ const NewWorkoutModal = ({ workout, cancelWorkout, updateWorkout, finishWorkout,
                 <SelectExerciseModal
                     closeModal={closeSelectExerciseModal}
                     appendExercises={appendExercises}
+                    userWorkoutStats={userWorkoutStats}
                 />
             </Modal>
 

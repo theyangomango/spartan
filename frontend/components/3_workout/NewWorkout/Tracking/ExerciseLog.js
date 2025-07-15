@@ -10,12 +10,12 @@ const scale = screenHeight / 844; // Scaling factor based on iPhone 13 height
 
 const scaledSize = (size) => Math.round(size * scale);
 
-const ExerciseLog = memo(({ name, muscle, exerciseIndex, updateSets, sets, replaceExercise, deleteExercise, isDoneState, toggleIsDone }) => {
+const ExerciseLog = memo(({ name, muscle, exerciseIndex, updateSets, sets, replaceExercise, deleteExercise, isDoneState, toggleIsDone, userWorkoutStats }) => {
     const previousSetsRef = useRef([]);
 
     useEffect(() => {
-        if (global.userData.statsExercises && global.userData.statsExercises[name]) {
-            const exerciseSets = global.userData.statsExercises[name].sets;
+        if (userWorkoutStats && userWorkoutStats[name]) {
+            const exerciseSets = userWorkoutStats[name].sets;
             const lastWid = exerciseSets[exerciseSets.length - 1]?.wid;
 
             const matchingSets = [];

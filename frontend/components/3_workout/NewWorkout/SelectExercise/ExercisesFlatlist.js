@@ -2,7 +2,7 @@ import React from 'react';
 import { FlatList } from 'react-native';
 import ExerciseCard from './ExerciseCard';
 
-const ExercisesFlatlist = React.memo(({ exercises, selectExercise, deselectExercise }) => {
+const ExercisesFlatlist = React.memo(({ exercises, selectExercise, deselectExercise, userWorkoutStats }) => {
 
     return (
         <FlatList
@@ -13,7 +13,7 @@ const ExercisesFlatlist = React.memo(({ exercises, selectExercise, deselectExerc
                     name={item.name}
                     muscleGroup={item.muscleGroup}
                     selectExercise={selectExercise}
-                    userStats={[item.name] in global.userData.statsExercises && global.userData.statsExercises[item.name]}
+                    userStats={[item.name] in userWorkoutStats && userWorkoutStats[item.name]}
                     deselectExercise={deselectExercise}
                 />
             )}

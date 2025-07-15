@@ -2,7 +2,7 @@ import React, { useCallback, useEffect, useMemo, useRef } from "react";
 import BottomSheet, { BottomSheetBackdrop } from "@gorhom/bottom-sheet";
 import NewWorkoutModal from './NewWorkoutModal';
 
-const NewWorkoutBottomSheet = ({ workout, isVisible, setIsVisible, cancelNewWorkout, updateNewWorkout, finishNewWorkout, timerRef, showGroupModal }) => {
+const NewWorkoutBottomSheet = ({ workout, isVisible, setIsVisible, cancelNewWorkout, updateNewWorkout, finishNewWorkout, timerRef, showGroupModal, userWorkoutStats }) => {
     const bottomSheetRef = useRef(null);
     const snapPoints = useMemo(() => ["94%"], []);
 
@@ -51,6 +51,7 @@ const NewWorkoutBottomSheet = ({ workout, isVisible, setIsVisible, cancelNewWork
                         bottomSheetRef.current.close();
                     }}
                     showGroupModal={showGroupModal}
+                    userWorkoutStats={userWorkoutStats}
                 />
             }
         </BottomSheet>

@@ -40,7 +40,7 @@ const ExerciseCard = memo(({ name, muscleGroup, selectExercise, deselectExercise
                 <View style={styles.textContainer}>
                     <Text style={styles.exerciseName}>{name}</Text>
                     <View style={styles.row}>
-                        <Text style={styles.lastDone}>{lastDone}</Text>
+                        {/* <Text style={styles.lastDone}>{lastDone}</Text> */}
                         <View style={[styles.muscle_ctnr, { backgroundColor: muscleColors[muscleGroup] || '#ccc' }]}>
                             <Text style={styles.muscle_text}>{muscleGroup}</Text>
                         </View>
@@ -101,7 +101,6 @@ const styles = StyleSheet.create({
         flexWrap: 'wrap',
     },
     muscle_ctnr: {
-        marginLeft: scaledSize(5),
         borderRadius: scaledSize(20),
         paddingHorizontal: scaledSize(10),
         height: scaledSize(20),

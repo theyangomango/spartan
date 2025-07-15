@@ -11,7 +11,7 @@ const scale = screenHeight / 844; // Scaling factor based on iPhone 13 height
 
 const scaledSize = (size) => Math.round(size * scale);
 
-export default function SelectExerciseModal({ closeModal, appendExercises }) {
+export default function SelectExerciseModal({ closeModal, appendExercises, userWorkoutStats }) {
     const selectedExercisesRef = useRef([]);
     const [searchQuery, setSearchQuery] = useState('');
     const opacity = useRef(new Animated.Value(1)).current;
@@ -88,6 +88,7 @@ export default function SelectExerciseModal({ closeModal, appendExercises }) {
                     exercises={filteredExercises}
                     selectExercise={selectExercise}
                     deselectExercise={deselectExercise}
+                    userWorkoutStats={userWorkoutStats}
                 />
             </View>
             <Pressable onPress={() => closeModal()} style={styles.outside_pressable} />
