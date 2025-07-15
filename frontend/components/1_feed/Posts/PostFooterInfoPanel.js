@@ -5,7 +5,8 @@
  */
 
 import React from 'react';
-import { View, Text, StyleSheet, Image, Animated } from 'react-native';
+import { View, Text, StyleSheet, Animated } from 'react-native';
+import FastImage from 'react-native-fast-image';
 
 const PostFooterInfoPanel = ({ data, opacityAnim }) => {
     // Filter the likes to find those who are also in the user's following list
@@ -21,19 +22,29 @@ const PostFooterInfoPanel = ({ data, opacityAnim }) => {
             <View style={styles.profilePictures}>
                 {filteredLikes.length > 0 ? (
                     filteredLikes.map((like, index) => (
-                        <Image
+                        <FastImage
                             key={index}
-                            source={{ uri: like.pfp }}
+                            source={{
+                                uri: like.pfp,
+                                priority: FastImage.priority.normal,
+                                cache: FastImage.cacheControl.immutable,
+                            }}
                             style={[
                                 styles.profilePicture,
                                 index === 0 ? styles.profilePicture1 : index === 1 ? styles.profilePicture2 : styles.profilePicture3
                             ]}
+                            resizeMode={FastImage.resizeMode.cover}
                         />
                     ))
                 ) : (
-                    <Image
-                        source={{ uri: data.pfp }}
+                    <FastImage
+                        source={{
+                            uri: data.pfp,
+                            priority: FastImage.priority.normal,
+                            cache: FastImage.cacheControl.immutable,
+                        }}
                         style={styles.profilePicture}
+                        resizeMode={FastImage.resizeMode.cover}
                     />
                 )}
             </View>
@@ -80,7 +91,7 @@ const styles = StyleSheet.create({
         color: '#fff',
         fontFamily: 'Poppins_700Bold',
         fontSize: 12.5,
-        width: '85%'
+        width: '85%',
     },
 });
 

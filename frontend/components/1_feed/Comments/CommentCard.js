@@ -4,6 +4,7 @@ import Svg, { Path } from "react-native-svg";
 import RNBounceable from '@freakycoder/react-native-bounceable';
 import { getCommentCardStyles } from '../../../helper/getCommentCardStyles';
 import getDisplayTimeDifference from '../../../helper/getDisplayTimeDifference'
+import FastImage from "react-native-fast-image";
 
 const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get("window");
 const dynamicStyles = getCommentCardStyles(SCREEN_WIDTH, SCREEN_HEIGHT);
@@ -32,9 +33,14 @@ export default function CommentCard({ data, likeComment, unlikeComment, index, s
         <View style={[styles.card, isReply && styles.replyCard]}>
             <Pressable onPress={handleNavigateToProfile}>
                 <View style={styles.pfp_ctnr}>
-                    <Image
-                        source={{ uri: data.pfp }}
+                    <FastImage
+                        source={{
+                            uri: data.pfp,
+                            priority: FastImage.priority.normal,
+                            cache: FastImage.cacheControl.immutable,
+                        }}
                         style={styles.pfp}
+                        resizeMode={FastImage.resizeMode.cover}
                     />
                 </View>
             </Pressable>
