@@ -1,5 +1,14 @@
 import React, { useEffect, useRef, useState } from "react";
-import { StyleSheet, View, Modal, TouchableOpacity, Animated, SafeAreaView, Dimensions } from "react-native";
+import {
+    StyleSheet,
+    View,
+    Modal,
+    TouchableOpacity,
+    Animated,
+    SafeAreaView,
+    Dimensions,
+    Text,
+} from "react-native";
 import Footer from "../components/Footer";
 import Podium from "../components/2_Competition/Podium";
 import retrieveFollowingUsers from "../../backend/retrieveFollowingUsers";
@@ -8,32 +17,33 @@ import LeaderboardBottomSheet from "../components/2_Competition/LeaderboardBotto
 import UserStatsBottomSheet from "../components/2_Competition/UserStats/UserStatsBottomSheet";
 import { Octicons, Ionicons } from '@expo/vector-icons';
 import SelectExerciseModal from "../components/2_Competition/SelectExercise/SelectExerciseModal";
-import InfoPanel from "../components/2_Competition/InfoPanel"; // Import the InfoPanel component
+import InfoPanel from "../components/2_Competition/InfoPanel";
 import { doc, onSnapshot } from "firebase/firestore";
 import { db } from "../../firebase.config";
+import RNBounceable from "@freakycoder/react-native-bounceable";
 
 const { width, height } = Dimensions.get('window');
 
 // Function to determine dynamic styles based on screen size
 const getDynamicStyles = () => {
-    if (width >= 430 && height >= 932) { // iPhone 14 Pro Max and similar
+    if (width >= 430 && height >= 932) {
         return {
             headerIconSize: 26.5,
             headerPaddingHorizontal: 35,
         };
-    } else if (width >= 390 && height >= 844) { // iPhone 13/14 and similar
+    } else if (width >= 390 && height >= 844) {
         return {
             headerIconSize: 24.5,
             headerPaddingHorizontal: 30,
             headerPaddingTop: 5,
         };
-    } else if (width >= 375 && height >= 812) { // iPhone X/XS/11 Pro and similar
+    } else if (width >= 375 && height >= 812) {
         return {
             headerIconSize: 24,
             headerPaddingHorizontal: 28,
             headerPaddingTop: 10,
         };
-    } else { // Smaller iPhone models (like iPhone SE)
+    } else {
         return {
             headerIconSize: 22.5,
             headerPaddingHorizontal: 25,
@@ -52,10 +62,11 @@ export default function Competition({ navigation }) {
     const [selectExerciseModalVisible, setSelectExerciseModalVisible] = useState(false);
     const [selectedUser, setSelectedUser] = useState(null);
     const [isUserStatsBottomSheetVisible, setIsUserStatsBottomSheetVisible] = useState(false);
-    const [footerKey, setFooterKey] = useState(0); // State to force footer re-render
+    const [footerKey, setFooterKey] = useState(0);
+    const [infoPanelVisible, setInfoPanelVisible] = useState(false);
+    const infoPanelOpacity = useRef(new Animated.Value(0)).current;
 
-    const [infoPanelVisible, setInfoPanelVisible] = useState(false); // State to toggle info panel
-    const infoPanelOpacity = useRef(new Animated.Value(0)).current; // Initial opacity value of 0
+    const [comparedMetric, setComparedMetric] = useState("1RM");
 
     useEffect(() => {
         init();
@@ -67,7 +78,6 @@ export default function Competition({ navigation }) {
 
     useEffect(() => {
         const unsubscribe = navigation.addListener('focus', () => {
-            // Trigger a state change to force the Footer to re-render
             onSnapshot(doc(db, 'users', global.userData.uid), async (doc) => {
                 global.userData = doc.data();
                 init();
@@ -88,13 +98,8 @@ export default function Competition({ navigation }) {
         setShowFollowers(prev => prev === 'All Followers' ? 'Close Friends' : 'All Followers');
     };
 
-    const openModal = () => {
-        setSelectExerciseModalVisible(true);
-    };
-
-    const closeModal = () => {
-        setSelectExerciseModalVisible(false);
-    };
+    const openModal = () => setSelectExerciseModalVisible(true);
+    const closeModal = () => setSelectExerciseModalVisible(false);
 
     const openBottomSheet = user => {
         setSelectedUser(user);
@@ -103,14 +108,12 @@ export default function Competition({ navigation }) {
 
     const toggleInfoPanel = () => {
         if (infoPanelVisible) {
-            // Fade out
             Animated.timing(infoPanelOpacity, {
                 toValue: 0,
                 duration: 300,
                 useNativeDriver: true,
-            }).start(() => setInfoPanelVisible(false)); // Hide after animation
+            }).start(() => setInfoPanelVisible(false));
         } else {
-            // Show and fade in
             setInfoPanelVisible(true);
             Animated.timing(infoPanelOpacity, {
                 toValue: 1,
@@ -120,31 +123,63 @@ export default function Competition({ navigation }) {
         }
     };
 
+    const toggleComparedMetric = () => {
+        setComparedMetric(prev => {
+            if (prev === "1RM") return "Volume";
+            if (prev === "Volume") return "Reps";
+            return "1RM";
+        });
+    };
+
+    const exerciseStatKey = comparedMetric === '1RM' ? '1RM' : comparedMetric;
+
     return (
         <View style={styles.mainContainer}>
             <SafeAreaView>
-                <View style={[styles.header, { paddingHorizontal: dynamicStyles.headerPaddingHorizontal, paddingTop: dynamicStyles.headerPaddingTop }]}>
-                    <Octicons name="gear" size={dynamicStyles.headerIconSize - 2} color={'#eee'} style={{ paddingBottom: 4, opacity: 0.5 }} />
-                    <TouchableOpacity onPress={toggleInfoPanel}>
-                        <Ionicons name="information-circle" size={dynamicStyles.headerIconSize + 3} color={'#fff'} />
-                    </TouchableOpacity>
+                <View
+                    style={[
+                        styles.header,
+                        {
+                            paddingHorizontal: dynamicStyles.headerPaddingHorizontal,
+                            paddingTop: dynamicStyles.headerPaddingTop,
+                        },
+                    ]}
+                >
+                    <Octicons
+                        name="gear"
+                        size={dynamicStyles.headerIconSize - 2}
+                        color={"#eee"}
+                        style={{ paddingBottom: 4, opacity: 0.5 }}
+                    />
+                    <View style={styles.headerRightContainer}>
+                        <RNBounceable onPress={toggleComparedMetric} style={styles.toggleButton}>
+                            <Text style={styles.toggleButtonText}>{comparedMetric}</Text>
+                        </RNBounceable>
+                        <TouchableOpacity onPress={toggleInfoPanel} style={styles.infoButton}>
+                            <Ionicons
+                                name="information-circle"
+                                size={dynamicStyles.headerIconSize + 3}
+                                color={"#fff"}
+                            />
+                        </TouchableOpacity>
+                    </View>
                 </View>
             </SafeAreaView>
 
 
             <InfoPanel isVisible={infoPanelVisible} opacity={infoPanelOpacity} />
 
+          
             <Podium
                 data={userList && userList.length > 0 ? userList
-                    .slice(0, 3) // Limit to the first three users
+                    .slice(0, 3)
                     .map(user => user && user.handle && user.image && user.statsExercises ? {
                         handle: user.handle,
                         pfp: user.image,
-                        stat: user.statsExercises[comparedExercise]?.['1RM'] || 0
+                        stat: user.statsExercises[comparedExercise]?.[exerciseStatKey] || 0
                     } : null)
-                    .filter(Boolean) // Filter out any null values
+                    .filter(Boolean)
                     : null}
-                style={{ paddingTop: dynamicStyles.podiumTopPadding }}
             />
 
             <LeaderboardBottomSheet
@@ -186,5 +221,29 @@ const styles = StyleSheet.create({
         alignItems: 'flex-end',
         justifyContent: 'space-between',
         flexDirection: 'row'
+    },
+    headerRightContainer: {
+        flexDirection: "row",
+        alignItems: "center",
+    },
+    infoButton: {
+        marginLeft: 10,
+    },
+    toggleButton: {
+        alignSelf: 'center',
+        backgroundColor: '#fff',
+        paddingVertical: 8,
+        paddingHorizontal: 16,
+        borderRadius: 20,
+        elevation: 3,
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.1,
+        shadowRadius: 4,
+    },
+    toggleButtonText: {
+        fontSize: 15,
+        fontFamily: 'Outfit_600SemiBold',
+        color: '#333',
     },
 });

@@ -51,7 +51,7 @@ export default function UserStatsModal({ user, toViewProfile }) {
             </View>
             <ScrollView style={styles.scrollview} showsVerticalScrollIndicator={false}>
                 <HexagonalStats statsHexagon={user.statsHexagon} />
-                <View style={styles.exercisesContainer}>
+                {/* <View style={styles.exercisesContainer}>
                     {data.map((exerciseData, index) => {
                         const exercise = exerciseData.exercise;
                         const exerciseName = exerciseData.name;
@@ -98,7 +98,7 @@ export default function UserStatsModal({ user, toViewProfile }) {
                             </Pressable>
                         );
                     })}
-                </View>
+                </View> */}
                 <View style={{ height: 100 }} />
             </ScrollView>
         </View>

@@ -130,7 +130,6 @@ const HexagonalStats = ({ statsHexagon }) => {
 const styles = StyleSheet.create({
     main_view: {
         flex: 1,
-        opacity: 0.4,
     },
     svg: {
         alignSelf: 'center',
@@ -141,12 +140,12 @@ const styles = StyleSheet.create({
         strokeWidth: 1,
     },
     polygon1: {
-        fill: 'rgba(89, 168, 255, 0.4)',
+        fill: 'rgba(89, 168, 255, 0.55)',
         strokeWidth: 2.5,
     },
     polygon2: {
         fill: '#d3d3d3',
-        opacity: 0.7,
+        opacity: 0.8,
         strokeWidth: 2.5,
     },
     line: {

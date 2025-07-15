@@ -5,7 +5,7 @@ import LeaderboardModal from "./LeaderboardModal";
 
 const LeaderboardBottomSheet = ({ userList, categoryCompared, showFollowers, toggleFollowers, openModal, openBottomSheet, navigation }) => {
     const bottomSheetRef = useRef(null);
-    const snapPoints = useMemo(() => ["62%", "94%"], []);
+    const snapPoints = useMemo(() => ["60%", "94%"], []);
     const [isBottomSheetExpanded, setIsBottomSheetExpanded] = useState(false);
 
     const handleSheetChanges = useCallback((index) => {

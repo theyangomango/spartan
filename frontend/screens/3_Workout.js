@@ -17,6 +17,8 @@ import GroupModalBottomSheet from '../components/3_Workout/NewWorkout/Group/Grou
 import calculate1RM from "../helper/calculate1RM";
 import formatDate from "../helper/formatDate";
 import incrementDocValue from "../../backend/helper/firebase/incrementDocValue";
+import { collection, addDoc } from "firebase/firestore";
+import { db } from "../../firebase.config"; // adjust path as needed
 
 const { height: screenHeight } = Dimensions.get('window');
 
@@ -163,8 +165,10 @@ function Workout({ navigation }) {
         // Set completed workout
         setCompletedWorkout(completedWorkoutData);
 
-        // Append the completed workout to the user's data
-        arrayAppend("users", global.userData.uid, "completedWorkouts", completedWorkoutData);
+        // Add the completed workout to the user's "workouts" subcollection
+        addDoc(
+            collection(db, "users", global.userData.uid, "workouts"),
+            completedWorkoutData);
 
         // Reset the workout state
         setWorkout(null);
