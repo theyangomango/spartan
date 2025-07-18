@@ -96,7 +96,7 @@ const styles = StyleSheet.create({
         marginBottom: 8,
         alignItems: 'center',
         flexDirection: 'row',
-        paddingRight: 15,
+        paddingRight: 11,
     },
     logo_image_ctnr: {
         justifyContent: 'center',
@@ -113,13 +113,9 @@ const styles = StyleSheet.create({
     right_icons: {
         flexDirection: 'row',
         position: 'absolute',
-        right: dynamicStyles.paddingHorizontal,
+        right: 27,
         top: 2,
         alignItems: 'center',
-    },
-    heart_button: {
-        marginRight: 20,
-        position: 'relative',
     },
     notificationBadge: {
         position: 'absolute',
@@ -143,4 +139,14 @@ const styles = StyleSheet.create({
         top: 2.5,
         opacity: 0.5
     },
+    message_button: {
+        // backgroundColor: 'blue',
+        padding: 1
+    },
+    heart_button: {
+        marginRight: 19,
+        padding: 1,
+        position: 'relative',
+        // backgroundColor: 'blue'
+    }
 });
