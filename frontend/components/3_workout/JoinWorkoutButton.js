@@ -1,6 +1,6 @@
 import React from 'react';
 import { StyleSheet, View, Text, Dimensions } from "react-native";
-import { SimpleLineIcons } from '@expo/vector-icons'
+import { SimpleLineIcons, FontAwesome5 } from '@expo/vector-icons'
 import RNBounceable from "@freakycoder/react-native-bounceable";
 
 const { width, height } = Dimensions.get('screen');
@@ -25,14 +25,14 @@ const getDynamicStyles = () => {
         return {
             fontSize: 13.5,
             paddingHorizontal: 26,
-            iconSize: 20.5,
+            iconSize: 21,
             height: 43,
         };
     } else { // Smaller iPhone models (like iPhone SE)
         return {
             fontSize: 13,
             paddingHorizontal: 24,
-            iconSize: 20,
+            iconSize: 20.5,
             height: 42,
         };
     }
@@ -43,8 +43,8 @@ const dynamicStyles = getDynamicStyles();
 export default function LogWorkoutButton({ joinWorkout }) {
     return (
         <RNBounceable style={[styles.main_ctnr, { height: dynamicStyles.height, paddingHorizontal: dynamicStyles.paddingHorizontal }]}>
-            <Text style={[styles.text, { fontSize: dynamicStyles.fontSize }]}>Log Past Workout (Coming Soon)</Text>
-            <SimpleLineIcons name="notebook" size={dynamicStyles.iconSize} color={'#fff'} style={{ paddingRight: 1 }} />
+            <Text style={[styles.text, { fontSize: dynamicStyles.fontSize }]}>Start Cardio Workout</Text>
+            <FontAwesome5 name="running" size={dynamicStyles.iconSize} color={'#fff'} style={{ paddingRight: 4.5 }} />
         </RNBounceable>
     )
 }
@@ -52,13 +52,15 @@ export default function LogWorkoutButton({ joinWorkout }) {
 const styles = StyleSheet.create({
     main_ctnr: {
         opacity: 0.5,
-        backgroundColor: '#c9c9c9',
+        // backgroundColor: '#50C98E',
+        backgroundColor: '#34a48aec',
         marginVertical: 4,
         borderRadius: 15,
         alignItems: 'center',
         flexDirection: 'row',
         justifyContent: 'space-between',
-        marginHorizontal: 16,
+        marginLeft: 16,
+        marginRight: 16,
     },
     text: {
         fontFamily: 'Poppins_600SemiBold',

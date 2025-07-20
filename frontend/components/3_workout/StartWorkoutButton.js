@@ -43,7 +43,7 @@ const dynamicStyles = getDynamicStyles();
 export default function StartWorkoutButton({ startWorkout }) {
     return (
         <RNBounceable onPress={startWorkout} style={[styles.main_ctnr, { height: dynamicStyles.height, paddingHorizontal: dynamicStyles.paddingHorizontal }]}>
-            <Text style={[styles.text, { fontSize: dynamicStyles.fontSize }]}>Start Empty Workout</Text>
+            <Text style={[styles.text, { fontSize: dynamicStyles.fontSize }]}>Start Resistance Workout</Text>
             <View style={styles.icon_ctnr}>
                 <Weight size={dynamicStyles.iconSize} color="white" variant='Broken' />
             </View>

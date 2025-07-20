@@ -1,15 +1,18 @@
 import React, { useRef, memo } from 'react';
 import { StyleSheet, View, Text, Pressable, Animated, Dimensions } from 'react-native';
-import { Calendar, Weight } from 'iconsax-react-native';
-import { MaterialCommunityIcons } from '@expo/vector-icons';
+import { Weight } from 'iconsax-react-native';
+import CalendarIcon from "./CalendarIcon";
+import { FontAwesome5 } from '@expo/vector-icons';
 import RNBounceable from '@freakycoder/react-native-bounceable';
+import WeightIcon from './WeightIcon';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
-const BASE_WIDTH = 375; // Base screen width used for scaling
-
+const BASE_WIDTH = 375;
 function scaleSize(size) {
     return Math.round(size * (SCREEN_WIDTH / BASE_WIDTH));
 }
+
+const CIRCLE_SIZE = scaleSize(41);
 
 const TemplateCard = memo(
     ({ template, handleLongPress, handlePressEditButton, handlePressStartButton }) => {
@@ -48,14 +51,14 @@ const TemplateCard = memo(
                         </View>
                         <View style={styles.infoContainer}>
                             <View style={styles.dateContainer}>
-                                <Calendar size={scaleSize(17.5)} color="#666" />
-                                <Text style={[styles.dateText, { fontSize: scaleSize(13) }]}>
+                                <CalendarIcon width={scaleSize(18)} height={scaleSize(18)} />
+                                <Text style={[styles.dateText, { fontSize: scaleSize(13.5) }]}>
                                     {template.lastDate ? template.lastDate : 'New!'}
                                 </Text>
                             </View>
                             <View style={styles.exercisesContainer}>
-                                <Weight size={scaleSize(19.5)} color="#666" />
-                                <Text style={[styles.exercisesText, { fontSize: scaleSize(13) }]}>
+                                <WeightIcon width={scaleSize(20)} height={scaleSize(20)} />
+                                <Text style={[styles.exercisesText, { fontSize: scaleSize(13.5) }]}>
                                     {template.exercises.length}{' '}
                                     {`Exercise${template.exercises.length === 1 ? '' : 's'}`}
                                 </Text>
@@ -66,9 +69,10 @@ const TemplateCard = memo(
                         onPress={handlePressStartButton}
                         onPressIn={handleStartButtonPressIn}
                         onPressOut={handleStartButtonPressOut}
+                        style={styles.startButton}
                     >
-                        <Animated.View style={[styles.startButton, { transform: [{ scale: scaleValue }] }]}>
-                            <MaterialCommunityIcons name="play" size={scaleSize(24.5)} color="#fff" />
+                        <Animated.View style={[styles.circle, { transform: [{ scale: scaleValue }] }]}>
+                            <FontAwesome5 name="play" size={scaleSize(15)} color="#fff"/>
                         </Animated.View>
                     </Pressable>
                 </View>
@@ -82,8 +86,9 @@ export default TemplateCard;
 const styles = StyleSheet.create({
     mainContainer: {
         borderRadius: scaleSize(15),
-        paddingLeft: scaleSize(25),
+        paddingLeft: scaleSize(30),
         marginTop: scaleSize(10),
+        paddingTop: 2,
         marginHorizontal: scaleSize(16),
         backgroundColor: '#f7f7f7',
         height: scaleSize(85),
@@ -98,26 +103,25 @@ const styles = StyleSheet.create({
     titleContainer: {
         flexDirection: 'row',
         alignItems: 'center',
-        paddingBottom: scaleSize(6.5),
+        paddingBottom: scaleSize(7),
     },
     titleText: {
-        fontFamily: 'Outfit_500Medium',
+        fontFamily: 'Outfit_600SemiBold',
         color: '#2D9EFF',
     },
     infoContainer: {
         flexDirection: 'row',
         alignItems: 'center',
-        marginBottom: scaleSize(2),
     },
     dateContainer: {
         flexDirection: 'row',
         alignItems: 'center',
-        marginRight: scaleSize(11),
+        marginRight: scaleSize(14),
     },
     dateText: {
         fontFamily: 'Outfit_600SemiBold',
-        color: '#777',
-        marginLeft: scaleSize(3)
+        color: '#888',
+        marginLeft: scaleSize(5)
     },
     exercisesContainer: {
         flexDirection: 'row',
@@ -125,34 +129,19 @@ const styles = StyleSheet.create({
     },
     exercisesText: {
         fontFamily: 'Outfit_600SemiBold',
-        color: '#777',
-        marginLeft: scaleSize(3),
+        color: '#888',
+        marginLeft: scaleSize(5),
     },
     startButton: {
-        backgroundColor: '#71D6A6',
         marginRight: scaleSize(25),
-        borderRadius: scaleSize(100),
-        padding: scaleSize(6),
     },
-    startButtonText: {
-        color: '#fff',
-        fontFamily: 'Outfit_700Bold',
+    circle: {
+        backgroundColor: '#6FB8FF',
+        width: CIRCLE_SIZE,
+        height: CIRCLE_SIZE,
+        borderRadius: CIRCLE_SIZE / 2,
+        alignItems: 'center',
+        justifyContent: 'center',
+        paddingLeft: 2,
     },
-    collapsibleContainer: {
-        overflow: 'hidden',
-    },
-    // If you decide to bring back your Edit button, apply scaleSize here:
-    /*
-    editButton: {
-      backgroundColor: '#ccc',
-      paddingVertical: scaleSize(3),
-      paddingHorizontal: scaleSize(8),
-      borderRadius: scaleSize(8),
-      marginLeft: scaleSize(5.5),
-    },
-    editButtonText: {
-      color: '#fff',
-      fontFamily: 'Outfit_700Bold',
-    },
-    */
 });
