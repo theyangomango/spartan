@@ -236,6 +236,7 @@ function Workout({ navigation }) {
 
             completedWorkout.exercises.forEach(ex => {
                 const prev1RM = ([ex.name] in newExerciseStats && '1RM' in newExerciseStats[ex.name]) ? newExerciseStats[ex.name]['1RM'] : 0;
+                const prevTotalVolume = ([ex.name] in newExerciseStats && 'volume' in newExerciseStats[ex.name]) ? newExerciseStats[ex.name]['volume'] : 0;
 
                 // Ensure newExerciseStats[ex.name] and its sets array are initialized
                 newExerciseStats[ex.name] = newExerciseStats[ex.name] || { sets: [], progress1RM: [] };
@@ -243,6 +244,7 @@ function Workout({ navigation }) {
                 newExerciseStats[ex.name].progress1RM = newExerciseStats[ex.name].progress1RM || [];
 
                 let maxSet1RM = prev1RM; // Track the max 1RM for today's sets
+                let newTotalVolume = prevTotalVolume;
 
                 ex.sets.forEach(set => {
                     newExerciseStats[ex.name].sets.push({
@@ -253,6 +255,7 @@ function Workout({ navigation }) {
                     });
 
                     const set1RM = calculate1RM(Number(set.weight), Number(set.reps));
+                    newTotalVolume += (Number(set.weight) * Number(set.reps));
 
                     if (set1RM > prev1RM) {
                         newExerciseStats[ex.name]['1RM'] = set1RM;
@@ -274,11 +277,13 @@ function Workout({ navigation }) {
                 if (lastEntry && lastEntry.date === today) {
                     // If the last entry is for today, update the 1RM value
                     lastEntry['1RM'] = Math.max(lastEntry['1RM'], maxSet1RM);
+                    lastEntry['volume'] = newTotalVolume;
                 } else {
                     // Otherwise, add a new entry
                     newExerciseStats[ex.name].progress1RM.push({
                         date: today,
-                        '1RM': maxSet1RM
+                        '1RM': maxSet1RM,
+                        'volume': newTotalVolume
                     });
                 }
             });

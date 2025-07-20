@@ -1,12 +1,4 @@
-/**
- * PostHeader
- * - Shows user avatar/handle → profile
- * - Shows workout link (if any)
- * - Shows page-indicator dots for multi-image posts
- */
-
 import { View, Text, StyleSheet, Pressable, TouchableOpacity } from "react-native";
-import { BlurView } from "expo-blur";
 import FastImage from "react-native-fast-image";
 import formatDate from "../../../helper/formatDate";
 import scaleSize from "../../../helper/scaleSize";
@@ -21,7 +13,7 @@ export default function PostHeader({
 }) {
     return (
         <View style={styles.outer}>
-            <BlurView intensity={0} style={styles.main_ctnr}>
+            <View style={styles.main_ctnr}>
                 {/* ---------- left: avatar & handle ---------- */}
                 <View style={styles.left}>
                     <Pressable onPress={toViewProfile} style={styles.pfp_ctnr}>
@@ -61,7 +53,7 @@ export default function PostHeader({
                         </View>
                     )}
                 </View>
-            </BlurView>
+            </View>
         </View>
     );
 }
@@ -79,7 +71,6 @@ const styles = StyleSheet.create({
         overflow: "hidden",
     },
     main_ctnr: {
-        backgroundColor: "rgba(37,42,54,0.1)",
         paddingTop: scaleSize(14),
         paddingBottom: scaleSize(9),
         paddingLeft: scaleSize(22),

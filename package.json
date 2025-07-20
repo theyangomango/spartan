@@ -70,6 +70,7 @@
     "react-native-swipeable": "^0.6.0",
     "react-native-swipeable-item": "^2.0.9",
     "react-native-uuid": "^2.0.2",
+    "react-native-video": "^6.16.1",
     "reanimated-bottom-sheet": "^1.0.0-alpha.22",
     "use-debounce": "^10.0.1"
   },

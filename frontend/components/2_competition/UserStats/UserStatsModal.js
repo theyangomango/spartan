@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { StyleSheet, View, Text, Image, ScrollView, Pressable, LayoutAnimation, UIManager, Platform, Dimensions } from "react-native";
 import HexagonalStats from "./HexagonalStats";
+import FastImage from "react-native-fast-image";
 import ExerciseGraph from "./ExerciseGraph";
 
 const { width, height } = Dimensions.get('screen');
@@ -12,16 +13,16 @@ function getTopExercisesByPopularity(user) {
 
     // Filter out exercises where sets length is 0
     const filteredExercises = exercisesArray.filter(([, exercise]) => exercise.sets.length > 0);
-    
+
     // Sort the array by the length of the 'sets' array in each exercise object
     const sortedExercises = filteredExercises.sort(([, a], [, b]) => b.sets.length - a.sets.length);
-    
+
     // Return them as an array of objects with the name and exercise data
     const exercises = sortedExercises.map(([name, exercise]) => ({
         name: name,
         exercise: exercise
     }));
-    
+
     return exercises;
 }
 
@@ -42,7 +43,14 @@ export default function UserStatsModal({ user, toViewProfile }) {
         <View style={{ flex: 1 }}>
             <View style={styles.header}>
                 <Pressable onPress={toViewProfile} style={styles.headerLeft}>
-                    <Image source={{ uri: user.image }} style={styles.pfp} />
+                    <FastImage
+                        source={{
+                            uri: user.image,
+                            priority: FastImage.priority.normal,
+                            cache: FastImage.cacheControl.immutable,
+                        }}
+                        style={styles.pfp}
+                    />
                     <Text numberOfLines={1} ellipsizeMode="tail" style={styles.handle}>{user.handle}</Text>
                 </Pressable>
                 <View style={styles.header_right}>
