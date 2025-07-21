@@ -52,15 +52,20 @@ const TemplateCard = memo(
                         <View style={styles.infoContainer}>
                             <View style={styles.dateContainer}>
                                 <CalendarIcon width={scaleSize(18)} height={scaleSize(18)} />
-                                <Text style={[styles.dateText, { fontSize: scaleSize(13.5) }]}>
+                                <Text style={[styles.dateText, { fontSize: scaleSize(14) }]}>
                                     {template.lastDate ? template.lastDate : 'New!'}
                                 </Text>
                             </View>
                             <View style={styles.exercisesContainer}>
-                                <WeightIcon width={scaleSize(20)} height={scaleSize(20)} />
-                                <Text style={[styles.exercisesText, { fontSize: scaleSize(13.5) }]}>
-                                    {template.exercises.length}{' '}
-                                    {`Exercise${template.exercises.length === 1 ? '' : 's'}`}
+                                <WeightIcon width={scaleSize(21)} height={scaleSize(21)} />
+                                <Text style={[styles.exercisesText]}>
+                                    <Text style={{ fontSize: scaleSize(15) }}>
+                                        {template.exercises.length > 0 && (template.exercises.length + ' ')}
+                                    </Text>
+                                    <Text style={{ fontSize: scaleSize(14) }}>
+                                        {template.exercises.length === 0 && 'No '}
+                                        {`Exercise${template.exercises.length === 1 ? '' : 's'}`}
+                                    </Text>
                                 </Text>
                             </View>
                         </View>
@@ -72,7 +77,7 @@ const TemplateCard = memo(
                         style={styles.startButton}
                     >
                         <Animated.View style={[styles.circle, { transform: [{ scale: scaleValue }] }]}>
-                            <FontAwesome5 name="play" size={scaleSize(15)} color="#fff"/>
+                            <FontAwesome5 name="play" size={scaleSize(15)} color="#fff" />
                         </Animated.View>
                     </Pressable>
                 </View>
@@ -103,7 +108,8 @@ const styles = StyleSheet.create({
     titleContainer: {
         flexDirection: 'row',
         alignItems: 'center',
-        paddingBottom: scaleSize(7),
+        paddingBottom: scaleSize(5),
+        marginTop: scaleSize(4)
     },
     titleText: {
         fontFamily: 'Outfit_600SemiBold',
@@ -116,21 +122,24 @@ const styles = StyleSheet.create({
     dateContainer: {
         flexDirection: 'row',
         alignItems: 'center',
-        marginRight: scaleSize(14),
+        marginRight: scaleSize(13),
     },
     dateText: {
-        fontFamily: 'Outfit_600SemiBold',
+        fontFamily: 'SourceSansPro_700Bold',
         color: '#888',
-        marginLeft: scaleSize(5)
+        marginLeft: scaleSize(5),
+        marginBottom: scaleSize(0.2)
     },
     exercisesContainer: {
         flexDirection: 'row',
         alignItems: 'center',
+        paddingTop: scaleSize(1.8)
     },
     exercisesText: {
-        fontFamily: 'Outfit_600SemiBold',
+        fontFamily: 'SourceSansPro_700Bold',
         color: '#888',
         marginLeft: scaleSize(5),
+        marginBottom: scaleSize(1.35)
     },
     startButton: {
         marginRight: scaleSize(25),
