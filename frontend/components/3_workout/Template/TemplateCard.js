@@ -1,6 +1,7 @@
 import React, { useRef, memo } from 'react';
 import { StyleSheet, View, Text, Pressable, Animated, Dimensions } from 'react-native';
 import { Weight } from 'iconsax-react-native';
+import PlayIcon from './PlayIcon';
 import CalendarIcon from "./CalendarIcon";
 import { FontAwesome5 } from '@expo/vector-icons';
 import RNBounceable from '@freakycoder/react-native-bounceable';
@@ -77,7 +78,8 @@ const TemplateCard = memo(
                         style={styles.startButton}
                     >
                         <Animated.View style={[styles.circle, { transform: [{ scale: scaleValue }] }]}>
-                            <FontAwesome5 name="play" size={scaleSize(15)} color="#fff" />
+                            {/* <FontAwesome5 name="play" size={scaleSize(15)} color="#fff" /> */}
+                            <PlayIcon size={scaleSize(15)} color="#fff" />
                         </Animated.View>
                     </Pressable>
                 </View>
