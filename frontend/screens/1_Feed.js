@@ -221,7 +221,7 @@ export default function Feed({ navigation, route }) {
         }
 
         else {
-            if (Math.abs(focusedPostIndex.current - index) <= 1) {
+            if (Math.abs(focusedPostIndex.current - index) <= 2) {
                 return (
                     <Animated.View style={[styles.postWrapper, isFocusedPost && { transform: [{ translateY }], zIndex: 1 }]}>
                         <Post
