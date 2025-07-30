@@ -115,7 +115,7 @@ const styles = StyleSheet.create({
     titleContainer: {
         flexDirection: 'row',
         alignItems: 'center',
-        paddingBottom: scaleSize(4.5),
+        paddingBottom: scaleSize(3.4),
     },
     titleText: {
         fontFamily: 'Outfit_600SemiBold',

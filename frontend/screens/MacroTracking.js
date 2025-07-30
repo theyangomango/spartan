@@ -1,21 +1,28 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
     View,
     Text,
     StyleSheet,
-    Pressable,
-    Image,
+    TextInput,
     ScrollView,
+    FlatList,
+    Pressable,
 } from 'react-native';
-import { AnimatedCircularProgress } from 'react-native-circular-progress';
 import { Ionicons } from '@expo/vector-icons';
+import { AnimatedCircularProgress } from 'react-native-circular-progress';
+import { searchFood } from './fatsecretClient';
 import Footer from '../components/Footer';
+import PlusIcon from '../assets/PlusIcon';
+
+// Components
+import MacroBar from '../components/2_MacroTracking/MacroBar';
+import MealCard from '../components/2_MacroTracking/MealCard';
 
 // Local icons
 import breakfastIcon from '../assets/breakfast.png';
 import lunchIcon from '../assets/lunch.png';
 import dinnerIcon from '../assets/dinner.png';
-import PlusIcon from '../assets/PlusIcon';
+import SearchResultCard from '../components/2_MacroTracking/SearchResultCard';
 
 const COLORS = {
     background: '#f5f6fa',
@@ -65,37 +72,13 @@ const meals = [
     },
 ];
 
-const MacroBar = ({ label, value, goal, color }) => {
-    const progress = Math.min(value / goal, 1);
-    return (
-        <View style={{ marginBottom: 12 }}>
-            <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: 2, marginTop: 5, alignItems: 'flex-end' }}>
-                <Text style={{ fontFamily: 'Outfit_500Medium', color: COLORS.textPrimary, fontSize: 14 }}>{label}</Text>
-                <Text style={{ fontFamily: 'Outfit_500Medium', color: COLORS.textSecondary, fontSize: 13 }}>
-                    {value} / {goal}g
-                </Text>
-            </View>
-            <View style={{
-                height: 7,
-                borderRadius: 7,
-                backgroundColor: '#f0f0f0',
-                overflow: 'hidden',
-            }}>
-                <View style={{
-                    height: 7,
-                    width: `${progress * 100}%`,
-                    backgroundColor: color,
-                    borderRadius: 7,
-                }} />
-            </View>
-        </View>
-    );
-};
-
 export default function MacroTracking({ navigation }) {
     const [focusedDate, setFocusedDate] = useState(new Date());
+    const [searchQuery, setSearchQuery] = useState('');
+    const [searchResults, setSearchResults] = useState([]);
 
-    const calorieProgress = (currentMacros.calories / MACRO_GOALS.calories) * 100;
+    const calorieProgress =
+        (currentMacros.calories / MACRO_GOALS.calories) * 100;
 
     const formatDate = (date) =>
         date.toLocaleDateString('en-US', {
@@ -110,8 +93,22 @@ export default function MacroTracking({ navigation }) {
         setFocusedDate(newDate);
     };
 
+    useEffect(() => {
+        if (searchQuery.trim().length > 0) {
+            searchFood(searchQuery)
+                .then((res) => {
+                    console.log(res.foods);
+                    setSearchResults(res.foods.food);
+                })
+                .catch(console.error);
+        } else {
+            setSearchResults([]);
+        }
+    }, [searchQuery]);
+
     return (
-        <View style={styles.container}>
+        <View style={{ flex: 1 }}>
+            {/* Header */}
             <View style={styles.stickyHeader}>
                 <Pressable onPress={() => shiftDate(-1)}>
                     <Ionicons name="chevron-back" size={25} color={COLORS.textPrimary} />
@@ -122,11 +119,32 @@ export default function MacroTracking({ navigation }) {
                 </Pressable>
             </View>
 
+            {/* Scrollable Main Content */}
             <ScrollView
                 showsVerticalScrollIndicator={false}
-                contentContainerStyle={{ paddingTop: 50, paddingBottom: 100 }}
+                contentContainerStyle={{ paddingTop: 100, paddingBottom: 100 }}
                 style={styles.body}
             >
+                {/* Search Bar */}
+                <View style={styles.searchContainer}>
+                    <View style={styles.searchBox}>
+                        <Ionicons name="search" size={18} color="#999" style={{ marginRight: 10 }} />
+                        <TextInput
+                            placeholder="Search for a food..."
+                            placeholderTextColor="#999"
+                            value={searchQuery}
+                            onChangeText={setSearchQuery}
+                            style={styles.searchInput}
+                        />
+                        {searchQuery.length > 0 && (
+                            <Pressable onPress={() => setSearchQuery('')}>
+                                <Ionicons name="close-circle" size={20} color="#999" style={{ marginRight: 5 }} />
+                            </Pressable>
+                        )}
+                    </View>
+                </View>
+
+                {/* Nutrition Tracker */}
                 <Text style={styles.sectionTitle}>Nutrition</Text>
                 <View style={styles.trackerCard}>
                     <View style={styles.trackerRow}>
@@ -146,39 +164,68 @@ export default function MacroTracking({ navigation }) {
                                         <Text style={styles.valueText}>
                                             {(MACRO_GOALS.calories - currentMacros.calories).toLocaleString()}
                                         </Text>
-                                        {/* <Text style={styles.valueSubtitleText}>kcal remaining</Text> */}
-                                        <Text style={styles.valueSubtitleText}>/{MACRO_GOALS.calories.toLocaleString()} Kcal</Text>
+                                        <Text style={styles.valueSubtitleText}>
+                                            /{MACRO_GOALS.calories.toLocaleString()} Kcal
+                                        </Text>
                                     </View>
                                 )}
                             </AnimatedCircularProgress>
                         </View>
 
                         <View style={styles.macroSummary}>
-                            <MacroBar label="Protein" value={currentMacros.protein} goal={MACRO_GOALS.protein} color={COLORS.protein} />
-                            <MacroBar label="Carbs" value={currentMacros.carbs} goal={MACRO_GOALS.carbs} color={COLORS.carbs} />
-                            <MacroBar label="Fat" value={currentMacros.fat} goal={MACRO_GOALS.fat} color={COLORS.fat} />
+                            <MacroBar
+                                label="Protein"
+                                value={currentMacros.protein}
+                                goal={MACRO_GOALS.protein}
+                                color={COLORS.protein}
+                                textPrimary={COLORS.textPrimary}
+                                textSecondary={COLORS.textSecondary}
+                            />
+                            <MacroBar
+                                label="Carbs"
+                                value={currentMacros.carbs}
+                                goal={MACRO_GOALS.carbs}
+                                color={COLORS.carbs}
+                                textPrimary={COLORS.textPrimary}
+                                textSecondary={COLORS.textSecondary}
+                            />
+                            <MacroBar
+                                label="Fat"
+                                value={currentMacros.fat}
+                                goal={MACRO_GOALS.fat}
+                                color={COLORS.fat}
+                                textPrimary={COLORS.textPrimary}
+                                textSecondary={COLORS.textSecondary}
+                            />
                         </View>
                     </View>
                 </View>
 
+                {/* Meals */}
                 <Text style={styles.sectionTitle}>Daily meals</Text>
                 {meals.map((item) => (
-                    <View style={styles.mealCard} key={item.name}>
-                        <View style={styles.mealInfo}>
-                            <View style={[styles.iconWrapper, { backgroundColor: item.bgColor }]}>
-                                <Image source={item.icon} style={styles.mealIcon} />
-                            </View>
-                            <View>
-                                <Text style={styles.mealTitle}>{item.name}</Text>
-                                <Text style={styles.mealSubtitle}>{item.subtitle}</Text>
-                            </View>
-                        </View>
-                        <Pressable style={styles.addButton}>
-                            <PlusIcon color='#414422ff' />
-                        </Pressable>
-                    </View>
+                    <MealCard
+                        key={item.name}
+                        item={item}
+                        PlusIcon={PlusIcon}
+                        COLORS={COLORS}
+                    />
                 ))}
+
             </ScrollView>
+
+            {/* Floating Search Results */}
+            {searchResults.length > 0 && (
+                <View style={styles.searchOverlay}>
+                    <FlatList
+                        data={searchResults}
+                        keyExtractor={(item) => item.food_id}
+                        renderItem={({ item }) => (
+                            <SearchResultCard item={item} />
+                        )}
+                    />
+                </View>
+            )}
 
             <Footer navigation={navigation} currentScreenName={'MacroTracking'} />
         </View>
@@ -186,11 +233,6 @@ export default function MacroTracking({ navigation }) {
 }
 
 const styles = StyleSheet.create({
-    container: {
-        flex: 1,
-        paddingTop: 48,
-        backgroundColor: COLORS.background,
-    },
     stickyHeader: {
         position: 'absolute',
         top: 48,
@@ -213,6 +255,38 @@ const styles = StyleSheet.create({
         color: COLORS.textPrimary,
         fontFamily: 'Outfit_600SemiBold',
     },
+    searchContainer: {
+        paddingHorizontal: 18,
+        marginBottom: 20,
+    },
+    searchBox: {
+        backgroundColor: '#fff',
+        flexDirection: 'row',
+        alignItems: 'center',
+        borderRadius: 20,
+        paddingHorizontal: 14,
+        paddingVertical: 13,
+        shadowColor: '#000',
+        shadowOpacity: 0.05,
+        shadowOffset: { width: 0, height: 1 },
+        shadowRadius: 3,
+        elevation: 2,
+    },
+    searchInput: {
+        flex: 1,
+        fontFamily: 'Outfit_400Regular',
+        fontSize: 15,
+        color: COLORS.textPrimary,
+        paddingVertical: 0,
+    },
+    sectionTitle: {
+        fontSize: 19,
+        marginBottom: 12,
+        fontFamily: 'Outfit_700Bold',
+        marginLeft: 18,
+        color: COLORS.textPrimary,
+        letterSpacing: 0.2,
+    },
     trackerCard: {
         backgroundColor: '#fff',
         borderRadius: 36,
@@ -223,7 +297,6 @@ const styles = StyleSheet.create({
         paddingRight: 25,
         marginBottom: 30,
         marginHorizontal: 16,
-
         shadowColor: COLORS.mealCardShadow,
         shadowOpacity: 0.1,
         shadowRadius: 8,
@@ -232,10 +305,7 @@ const styles = StyleSheet.create({
         flexDirection: 'row',
         gap: 20,
     },
-    progressContainer: {
-        // justifyContent: 'center',
-        // alignItems: 'center',
-    },
+    progressContainer: {},
     centerContent: {
         alignItems: 'center',
         justifyContent: 'center',
@@ -245,84 +315,25 @@ const styles = StyleSheet.create({
         fontSize: 26,
         color: '#18181A',
         fontFamily: 'Outfit_600SemiBold',
-        // letterSpacing: 0.7,
         marginBottom: -2.5,
     },
     valueSubtitleText: {
         fontFamily: 'Outfit_400Regular',
         fontSize: 13,
         color: COLORS.textSecondary,
-        marginBottom: 4
+        marginBottom: 4,
     },
     macroSummary: {
         flex: 1,
-        // justifyContent: 'center',
     },
-    sectionTitle: {
-        fontSize: 19,
-        marginBottom: 12,
-        fontFamily: 'Outfit_700Bold',
-        marginLeft: 18,
-        color: COLORS.textPrimary,
-        letterSpacing: 0.2,
-    },
-    mealCard: {
-        backgroundColor: COLORS.card,
-        borderRadius: 18,
-        paddingLeft: 16,
-        paddingRight: 18,
-        paddingVertical: 15,
-        marginBottom: 12,
-        flexDirection: 'row',
-        justifyContent: 'space-between',
-        alignItems: 'center',
-        shadowColor: COLORS.mealCardShadow,
-        shadowOpacity: 0.1,
-        shadowRadius: 8,
-        shadowOffset: { width: 0, height: 2 },
-        elevation: 6,
-        marginHorizontal: 12,
-    },
-    mealInfo: {
-        flexDirection: 'row',
-        alignItems: 'center',
-    },
-    iconWrapper: {
-        width: 44,
-        height: 44,
-        borderRadius: 15,
-        justifyContent: 'center',
-        alignItems: 'center',
-        marginRight: 10,
-    },
-    mealIcon: {
-        width: 26,
-        height: 26,
-        resizeMode: 'contain',
-    },
-    mealTitle: {
-        fontSize: 16,
-        fontWeight: '700',
-        color: COLORS.textPrimary,
-        fontFamily: 'Outfit_600SemiBold',
-        marginBottom: 2,
-        letterSpacing: 0.1,
-    },
-    mealSubtitle: {
-        fontSize: 13,
-        color: COLORS.textSecondary,
-        marginTop: 2,
-        fontFamily: 'Outfit_400Regular',
-        letterSpacing: 0.1,
-    },
-    addButton: {
-        backgroundColor: COLORS.addButton,
-        padding: 7,
-        borderRadius: 13,
-        shadowColor: COLORS.mealCardShadow,
-        shadowOpacity: 0.13,
-        shadowRadius: 7,
-        shadowOffset: { width: 0, height: 1.5 },
-        elevation: 3,
+    searchOverlay: {
+        position: 'absolute',
+        top: 160,
+        left: 0,
+        right: 0,
+        bottom: 0,
+        backgroundColor: COLORS.background,
+        paddingHorizontal: 18,
+        zIndex: 50,
     },
 });
