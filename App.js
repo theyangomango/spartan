@@ -22,6 +22,7 @@ import Messages from './frontend/screens/1.1_Messages';
 import Chat from './frontend/screens/1.2_Chat';
 import PostList from './frontend/screens/PostList';
 import ViewProfile from './frontend/screens/4.1_ViewProfile';
+import MacroTracking from './frontend/screens/MacroTracking';
 
 const Tab = createBottomTabNavigator();
 const Stack = createNativeStackNavigator();
@@ -59,8 +60,8 @@ const CompetitionStack = ({ route }) => {
 
 const ExploreStack = ({ route }) => {
     return (
-        <Stack.Navigator initialRouteName='Explore' screenOptions={{ headerShown: false }}>
-            <Stack.Screen name='Explore' component={Explore} />
+        <Stack.Navigator initialRouteName='MacroTracking' screenOptions={{ headerShown: false }}>
+            <Stack.Screen name='MacroTracking' component={MacroTracking} />
             <Stack.Screen name='ViewProfile' component={ViewProfile} />
         </Stack.Navigator>
     );

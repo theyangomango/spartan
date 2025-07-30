@@ -42,10 +42,10 @@ const dynamicStyles = getDynamicStyles();
 
 export default function StartWorkoutButton({ startWorkout }) {
     return (
-        <RNBounceable onPress={startWorkout} style={[styles.main_ctnr, { height: dynamicStyles.height, paddingHorizontal: dynamicStyles.paddingHorizontal }]}>
-            <Text style={[styles.text, { fontSize: dynamicStyles.fontSize }]}>Start Resistance Workout</Text>
+        <RNBounceable onPress={startWorkout} style={[styles.main_ctnr, { height: 43, paddingHorizontal: dynamicStyles.paddingHorizontal }]}>
+            <Text style={[styles.text, { fontSize: 16 }]}>Start Resistance Workout</Text>
             <View style={styles.icon_ctnr}>
-                <Weight size={dynamicStyles.iconSize} color="white" variant='Broken' />
+                <Weight size={26} color="white" variant='Broken' />
             </View>
         </RNBounceable>
     );
@@ -55,15 +55,16 @@ const styles = StyleSheet.create({
     main_ctnr: {
         backgroundColor: '#6FB8FF',
         marginVertical: 4,
-        borderRadius: 15,
+        borderRadius: 18,
         alignItems: 'center',
         flexDirection: 'row',
         justifyContent: 'space-between',
-        marginHorizontal: 16,
+        marginHorizontal: 18,
     },
     text: {
-        fontFamily: 'Poppins_600SemiBold',
+        fontFamily: 'Outfit_600SemiBold',
         color: 'white',
+        letterSpacing: 0.25
     },
     icon_ctnr: {
         paddingBottom: 1,

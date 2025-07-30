@@ -347,7 +347,7 @@ function Workout({ navigation }) {
                 <View style={styles.templatesHeadingRow}>
                     <Text style={styles.templatesText}>Templates</Text>
                     <Pressable onPress={initTemplate}>
-                        <Entypo name="plus" size={22} style={styles.addIcon} color={'#888'} />
+                        <Entypo name="plus" size={26} style={styles.addIcon} color={'#888'} />
                     </Pressable>
                 </View>
                 <TemplateList
@@ -396,17 +396,20 @@ function Workout({ navigation }) {
 const styles = StyleSheet.create({
     mainContainer: {
         flex: 1,
-        backgroundColor: '#fff',
+        backgroundColor: '#f5f6fa',
     },
     body: {
         flex: 1,
-        paddingTop: scaledSize(5),
+        paddingTop: scaledSize(15),
     },
     quickStartText: {
-        fontFamily: 'Poppins_600SemiBold',
-        fontSize: scaledSize(16),
+        fontSize: scaledSize(19),
         paddingBottom: scaledSize(8),
         paddingHorizontal: scaledSize(20),
+
+        fontFamily: 'Outfit_700Bold',
+        letterSpacing: 0.2,
+        paddingHorizontal: scaledSize(20)
     },
     templatesHeadingRow: {
         flexDirection: 'row',
@@ -414,9 +417,13 @@ const styles = StyleSheet.create({
         justifyContent: 'space-between'
     },
     templatesText: {
-        marginTop: scaledSize(24),
-        fontFamily: 'Poppins_600SemiBold',
-        fontSize: scaledSize(16),
+        marginTop: scaledSize(28),
+        // fontFamily: 'Outfit_600SemiBold',
+        fontSize: scaledSize(19),
+        marginBottom: 2,
+
+        fontFamily: 'Outfit_700Bold',
+        letterSpacing: 0.2,
         paddingHorizontal: scaledSize(20)
     },
     addIcon: {

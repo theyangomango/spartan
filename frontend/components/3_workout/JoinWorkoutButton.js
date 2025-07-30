@@ -42,8 +42,8 @@ const dynamicStyles = getDynamicStyles();
 
 export default function LogWorkoutButton({ joinWorkout }) {
     return (
-        <RNBounceable style={[styles.main_ctnr, { height: dynamicStyles.height, paddingHorizontal: dynamicStyles.paddingHorizontal }]}>
-            <Text style={[styles.text, { fontSize: dynamicStyles.fontSize }]}>Start Cardio Workout</Text>
+        <RNBounceable style={[styles.main_ctnr, { height: 43, paddingHorizontal: dynamicStyles.paddingHorizontal }]}>
+            <Text style={[styles.text, { fontSize: 16 }]}>Start Cardio Workout</Text>
             <FontAwesome5 name="running" size={dynamicStyles.iconSize} color={'#fff'} style={{ paddingRight: 4.5 }} />
         </RNBounceable>
     )
@@ -54,16 +54,18 @@ const styles = StyleSheet.create({
         opacity: 0.5,
         // backgroundColor: '#50C98E',
         backgroundColor: '#34a48aec',
-        marginVertical: 4,
-        borderRadius: 15,
+        marginVertical: 3,
+        borderRadius: 18,
         alignItems: 'center',
         flexDirection: 'row',
         justifyContent: 'space-between',
-        marginLeft: 16,
-        marginRight: 16,
+        marginLeft: 18,
+        marginRight: 18,
     },
     text: {
-        fontFamily: 'Poppins_600SemiBold',
+        fontFamily: 'Outfit_600SemiBold',
+        color: 'white',
+        letterSpacing: 0.25,
         color: 'white',
     },
 });

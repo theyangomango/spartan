@@ -13,7 +13,7 @@ function scaleSize(size) {
     return Math.round(size * (SCREEN_WIDTH / BASE_WIDTH));
 }
 
-const CIRCLE_SIZE = scaleSize(41);
+const CIRCLE_SIZE = scaleSize(40);
 
 const TemplateCard = memo(
     ({ template, handleLongPress, handlePressEditButton, handlePressStartButton }) => {
@@ -52,18 +52,18 @@ const TemplateCard = memo(
                         </View>
                         <View style={styles.infoContainer}>
                             <View style={styles.dateContainer}>
-                                <CalendarIcon width={scaleSize(18)} height={scaleSize(18)} />
-                                <Text style={[styles.dateText, { fontSize: scaleSize(14) }]}>
+                                <CalendarIcon width={scaleSize(15.6)} height={scaleSize(15.6)} />
+                                <Text style={[styles.dateText, { fontSize: scaleSize(13) }]}>
                                     {template.lastDate ? template.lastDate : 'New!'}
                                 </Text>
                             </View>
                             <View style={styles.exercisesContainer}>
-                                <WeightIcon width={scaleSize(21)} height={scaleSize(21)} />
+                                <WeightIcon width={scaleSize(18)} height={scaleSize(18)} />
                                 <Text style={[styles.exercisesText]}>
-                                    <Text style={{ fontSize: scaleSize(15) }}>
+                                    <Text style={{ fontSize: scaleSize(13) }}>
                                         {template.exercises.length > 0 && (template.exercises.length + ' ')}
                                     </Text>
-                                    <Text style={{ fontSize: scaleSize(14) }}>
+                                    <Text style={{ fontSize: scaleSize(13) }}>
                                         {template.exercises.length === 0 && 'No '}
                                         {`Exercise${template.exercises.length === 1 ? '' : 's'}`}
                                     </Text>
@@ -92,16 +92,21 @@ export default TemplateCard;
 
 const styles = StyleSheet.create({
     mainContainer: {
-        borderRadius: scaleSize(15),
-        paddingLeft: scaleSize(30),
-        marginTop: scaleSize(10),
-        paddingTop: 2,
+        borderRadius: scaleSize(20),
+        paddingLeft: scaleSize(31),
+        marginTop: scaleSize(11),
+        paddingTop: 5,
+        paddingBottom: 1,
         marginHorizontal: scaleSize(16),
-        backgroundColor: '#f7f7f7',
-        height: scaleSize(85),
+        backgroundColor: '#fff',
+        height: scaleSize(79),
         justifyContent: 'center',
         flexDirection: 'row',
         alignItems: 'center',
+
+        shadowColor: '#99a5b7ff',
+        shadowOpacity: 0.1,
+        shadowRadius: 8,
     },
     textContainer: {
         flex: 1,
@@ -110,12 +115,13 @@ const styles = StyleSheet.create({
     titleContainer: {
         flexDirection: 'row',
         alignItems: 'center',
-        paddingBottom: scaleSize(5),
-        marginTop: scaleSize(4)
+        paddingBottom: scaleSize(4.5),
     },
     titleText: {
         fontFamily: 'Outfit_600SemiBold',
         color: '#2D9EFF',
+        // color: '#000',
+
     },
     infoContainer: {
         flexDirection: 'row',
@@ -124,13 +130,15 @@ const styles = StyleSheet.create({
     dateContainer: {
         flexDirection: 'row',
         alignItems: 'center',
-        marginRight: scaleSize(13),
+        marginRight: scaleSize(11),
     },
     dateText: {
-        fontFamily: 'SourceSansPro_700Bold',
+        fontFamily: 'Outfit_500Medium',
         color: '#888',
-        marginLeft: scaleSize(5),
-        marginBottom: scaleSize(0.2)
+        marginLeft: scaleSize(4),
+        marginBottom: scaleSize(0.2),
+        letterSpacing: -0.1
+
     },
     exercisesContainer: {
         flexDirection: 'row',
@@ -138,16 +146,18 @@ const styles = StyleSheet.create({
         paddingTop: scaleSize(1.8)
     },
     exercisesText: {
-        fontFamily: 'SourceSansPro_700Bold',
+        fontFamily: 'Outfit_500Medium',
         color: '#888',
-        marginLeft: scaleSize(5),
-        marginBottom: scaleSize(1.35)
+        marginLeft: scaleSize(4),
+        marginBottom: scaleSize(1.35),
+        letterSpacing: -0.1
     },
     startButton: {
-        marginRight: scaleSize(25),
+        marginRight: scaleSize(26),
     },
     circle: {
-        backgroundColor: '#6FB8FF',
+        backgroundColor: '#6fb7ffd1',
+        // backgroundColor: '#5786e5a1',
         width: CIRCLE_SIZE,
         height: CIRCLE_SIZE,
         borderRadius: CIRCLE_SIZE / 2,

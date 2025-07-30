@@ -1,7 +1,7 @@
 import React from 'react';
 import { Pressable, StyleSheet, View } from 'react-native';
 import { Home, Cup, Weight, Profile } from 'iconsax-react-native';
-import { Feather } from '@expo/vector-icons';
+import { Feather, MaterialCommunityIcons } from '@expo/vector-icons';
 
 const Footer = ({ navigation, currentScreenName }) => {
     function navigateTo(screen, params = {}) {
@@ -32,6 +32,27 @@ const Footer = ({ navigation, currentScreenName }) => {
                         </View>
                     </Pressable>
                 </View>
+
+                <View style={styles.icon_ctnr}>
+                    <Pressable onPress={() => navigateTo('ExploreStack')}>
+                        <View style={currentScreenName === 'MacroTracking' ? styles.selectedIcon : styles.icon}>
+                            {/* <Feather name='search' size={23.5} color={getIconColor('Explore')} /> */}
+                            <MaterialCommunityIcons name='food-apple' size={26} color={getIconColor('MacroTracking')} />
+
+                        </View>
+                    </Pressable>
+                </View>
+
+                <View style={styles.workout_icon_ctnr}>
+                    <View style={[styles.workout_indicator_ctnr, getWorkoutIndicatorStyle()]}>
+                        <Pressable onPress={() => navigateTo('Workout')}>
+                            <View style={currentScreenName === 'Workout' ? styles.selectedIcon : styles.icon}>
+                                <Weight size="27.5" color={getIconColor('Workout')} variant='Bold' />
+                            </View>
+                        </Pressable>
+                    </View>
+                </View>
+
                 <View style={styles.icon_ctnr}>
                     <Pressable onPress={() => navigateTo('CompetitionStack')}>
                         <View style={currentScreenName === 'Competition' ? styles.selectedIcon : styles.icon}>
@@ -39,22 +60,7 @@ const Footer = ({ navigation, currentScreenName }) => {
                         </View>
                     </Pressable>
                 </View>
-                <View style={styles.workout_icon_ctnr}>
-                    <View style={[styles.workout_indicator_ctnr, getWorkoutIndicatorStyle()]}>
-                        <Pressable onPress={() => navigateTo('Workout')}>
-                            <View style={currentScreenName === 'Workout' ? styles.selectedIcon : styles.icon}>
-                                <Weight size="25.5" color={getIconColor('Workout')} variant='Bold'/>
-                            </View>
-                        </Pressable>
-                    </View>
-                </View>
-                <View style={styles.icon_ctnr}>
-                    <Pressable onPress={() => navigateTo('ExploreStack')}>
-                        <View style={currentScreenName === 'Explore' ? styles.selectedIcon : styles.icon}>
-                            <Feather name='search' size={23.5} color={getIconColor('Explore')} />
-                        </View>
-                    </Pressable>
-                </View>
+
                 <View style={styles.icon_ctnr}>
                     <Pressable onPress={() => navigateTo('ProfileStack', { screen: 'Profile' })}>
                         <View style={currentScreenName === 'Profile' ? styles.selectedIcon : styles.icon}>

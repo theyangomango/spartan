@@ -5,7 +5,7 @@ import FastImage from 'react-native-fast-image';
 import RNBounceable from "@freakycoder/react-native-bounceable";
 
 export default function PostPreview({ postData, onPress }) {
-    const image = postData.images[0];
+    const image = postData.media[0].uri;
 
     return (
         <RNBounceable style={styles.main_ctnr} onPress={onPress}>
