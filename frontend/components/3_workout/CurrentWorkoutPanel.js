@@ -52,7 +52,7 @@ const CurrentWorkoutPanel = ({ workout, timerRef, openWorkout }) => {
                     <Text style={styles.buttonText}>Back to Workout</Text>
                 </RNBounceable>
             </View>
-        </View>
+        </View> 
     );
 };
 
