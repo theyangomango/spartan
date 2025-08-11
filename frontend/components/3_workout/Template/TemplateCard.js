@@ -46,24 +46,24 @@ const TemplateCard = memo(
                 <View style={styles.mainContainer}>
                     <View style={styles.textContainer}>
                         <View style={styles.titleContainer}>
-                            <Text style={[styles.titleText, { fontSize: scaleSize(16) }]}>
+                            <Text style={[styles.titleText]}>
                                 {template.name}
                             </Text>
                         </View>
                         <View style={styles.infoContainer}>
                             <View style={styles.dateContainer}>
-                                <CalendarIcon width={scaleSize(15.6)} height={scaleSize(15.6)} />
-                                <Text style={[styles.dateText, { fontSize: scaleSize(13) }]}>
+                                <CalendarIcon width={scaleSize(15.9)} height={scaleSize(15.9)} />
+                                <Text style={[styles.dateText]}>
                                     {template.lastDate ? template.lastDate : 'New!'}
                                 </Text>
                             </View>
                             <View style={styles.exercisesContainer}>
-                                <WeightIcon width={scaleSize(18)} height={scaleSize(18)} />
+                                <WeightIcon width={scaleSize(18.9)} height={scaleSize(18.9)} />
                                 <Text style={[styles.exercisesText]}>
-                                    <Text style={{ fontSize: scaleSize(13) }}>
+                                    <Text>
                                         {template.exercises.length > 0 && (template.exercises.length + ' ')}
                                     </Text>
-                                    <Text style={{ fontSize: scaleSize(13) }}>
+                                    <Text>
                                         {template.exercises.length === 0 && 'No '}
                                         {`Exercise${template.exercises.length === 1 ? '' : 's'}`}
                                     </Text>
@@ -115,12 +115,14 @@ const styles = StyleSheet.create({
     titleContainer: {
         flexDirection: 'row',
         alignItems: 'center',
-        paddingBottom: scaleSize(3.4),
+        paddingBottom: scaleSize(3),
     },
     titleText: {
-        fontFamily: 'Outfit_600SemiBold',
-        color: '#2D9EFF',
+        fontFamily: 'Nunito_800ExtraBold',
+        color: '#2d9dffcc',
         // color: '#000',
+        fontSize: 15,
+        // letterSpacing: 0.25
 
     },
     infoContainer: {
@@ -130,14 +132,15 @@ const styles = StyleSheet.create({
     dateContainer: {
         flexDirection: 'row',
         alignItems: 'center',
-        marginRight: scaleSize(11),
+        marginRight: scaleSize(10),
     },
     dateText: {
-        fontFamily: 'Outfit_500Medium',
+        fontFamily: 'Nunito_800ExtraBold',
         color: '#888',
         marginLeft: scaleSize(4),
         marginBottom: scaleSize(0.2),
-        letterSpacing: -0.1
+        letterSpacing: -0.1,
+        fontSize: 13
 
     },
     exercisesContainer: {
@@ -146,11 +149,12 @@ const styles = StyleSheet.create({
         paddingTop: scaleSize(1.8)
     },
     exercisesText: {
-        fontFamily: 'Outfit_500Medium',
+        fontFamily: 'Nunito_800ExtraBold',
         color: '#888',
         marginLeft: scaleSize(4),
-        marginBottom: scaleSize(1.35),
-        letterSpacing: -0.1
+        marginBottom: scaleSize(0.47),
+        letterSpacing: -0.1,
+        fontSize: 13
     },
     startButton: {
         marginRight: scaleSize(26),

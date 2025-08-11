@@ -403,11 +403,11 @@ const styles = StyleSheet.create({
         paddingTop: scaledSize(15),
     },
     quickStartText: {
-        fontSize: scaledSize(19),
+        fontSize: scaledSize(18),
         paddingBottom: scaledSize(8),
         paddingHorizontal: scaledSize(20),
 
-        fontFamily: 'Outfit_700Bold',
+        fontFamily: 'Nunito_800ExtraBold',
         letterSpacing: 0.2,
         paddingHorizontal: scaledSize(20)
     },
@@ -419,10 +419,10 @@ const styles = StyleSheet.create({
     templatesText: {
         marginTop: scaledSize(28),
         // fontFamily: 'Outfit_600SemiBold',
-        fontSize: scaledSize(19),
+        fontSize: scaledSize(18),
         marginBottom: 2,
 
-        fontFamily: 'Outfit_700Bold',
+        fontFamily: 'Nunito_800ExtraBold',
         letterSpacing: 0.2,
         paddingHorizontal: scaledSize(20)
     },
