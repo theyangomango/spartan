@@ -2,7 +2,7 @@ import React from 'react';
 import { FlatList } from 'react-native';
 import ExerciseCard from './ExerciseCard';
 
-const ExercisesFlatlist = React.memo(({ exercises, selectExercise, deselectExercise, userWorkoutStats }) => {
+const ExercisesFlatlist = React.memo(({ exercises, selectExercise, deselectExercise }) => {
 
     return (
         <FlatList
