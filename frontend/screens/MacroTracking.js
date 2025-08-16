@@ -304,14 +304,14 @@ const styles = StyleSheet.create({
         backgroundColor: COLORS.background,
     },
     headerText: {
-        fontSize: 18,
+        fontSize: 16,
         color: COLORS.textPrimary,
-        fontFamily: 'Outfit_600SemiBold',
+        fontFamily: 'Nunito_800ExtraBold',
     },
     sectionTitle: {
         fontSize: 19,
-        marginBottom: 12,
-        fontFamily: 'Outfit_700Bold',
+        marginBottom: 8,
+        fontFamily: 'Nunito_800ExtraBold',
         marginLeft: 18,
         color: COLORS.textPrimary,
         letterSpacing: 0.2,

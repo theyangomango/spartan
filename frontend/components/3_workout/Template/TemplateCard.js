@@ -115,13 +115,13 @@ const styles = StyleSheet.create({
     titleContainer: {
         flexDirection: 'row',
         alignItems: 'center',
-        paddingBottom: scaleSize(3),
+        paddingBottom: scaleSize(5),
     },
     titleText: {
-        fontFamily: 'Nunito_800ExtraBold',
+        fontFamily: 'Outfit_600SemiBold',
         color: '#2d9dffcc',
         // color: '#000',
-        fontSize: 15,
+        fontSize: 16,
         // letterSpacing: 0.25
 
     },
@@ -135,8 +135,8 @@ const styles = StyleSheet.create({
         marginRight: scaleSize(10),
     },
     dateText: {
-        fontFamily: 'Nunito_800ExtraBold',
-        color: '#888',
+        fontFamily: 'Outfit_500Medium',
+        color: '#777',
         marginLeft: scaleSize(4),
         marginBottom: scaleSize(0.2),
         letterSpacing: -0.1,
@@ -149,8 +149,8 @@ const styles = StyleSheet.create({
         paddingTop: scaleSize(1.8)
     },
     exercisesText: {
-        fontFamily: 'Nunito_800ExtraBold',
-        color: '#888',
+        fontFamily: 'Outfit_500Medium',
+        color: '#777',
         marginLeft: scaleSize(4),
         marginBottom: scaleSize(0.47),
         letterSpacing: -0.1,
