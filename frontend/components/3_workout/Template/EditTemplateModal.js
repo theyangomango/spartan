@@ -92,9 +92,9 @@ const EditTemplateModal = ({ openedTemplateRef, updateTemplate, deleteTemplate }
                     placeholderTextColor="#aaa"
                 />
                 <View style={styles.headerRight}>
-                    <RNBounceable style={styles.savedButton}>
+                    {/* <RNBounceable style={styles.savedButton}>
                         <Text style={styles.savedButtonText}>Saved</Text>
-                    </RNBounceable>
+                    </RNBounceable> */}
                 </View>
             </View>
 
