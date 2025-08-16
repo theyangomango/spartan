@@ -13,7 +13,7 @@ const ExercisesFlatlist = React.memo(({ exercises, selectExercise, deselectExerc
                     name={item.name}
                     muscleGroup={item.muscleGroup}
                     selectExercise={selectExercise}
-                    userStats={[item.name] in userWorkoutStats && userWorkoutStats[item.name]}
+                    userStats={[item.name] in global.userData.statsExercises && global.userData.statsExercises[item.name]}
                     deselectExercise={deselectExercise}
                 />
             )}
