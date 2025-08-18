@@ -1,4 +1,4 @@
-// components/FoodSearchOverlay.js
+// components/2_MacroTracking/FoodSearchOverlay.js
 import React, { useMemo } from 'react';
 import {
     View,
@@ -12,7 +12,6 @@ import {
     FlatList,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-// NOTE: path is relative to /components since this file lives in /components
 import SearchResultCard from './SearchResultCard';
 
 export default function FoodSearchOverlay({
@@ -22,7 +21,8 @@ export default function FoodSearchOverlay({
     setSearchQuery,
     searchResults,
     onClose,
-    COLORS, // <- pass the same COLORS object from the parent
+    COLORS,
+    onSelectResult, // NEW
 }) {
     const styles = useMemo(() => makeStyles(COLORS), [COLORS]);
 
@@ -34,7 +34,6 @@ export default function FoodSearchOverlay({
             onRequestClose={onClose}
         >
             <View style={styles.overlayContainer}>
-                {/* Overlay Header */}
                 <View style={styles.overlayHeader}>
                     <Pressable onPress={onClose} hitSlop={10}>
                         <Ionicons name="chevron-back" size={26} color={COLORS.textPrimary} />
@@ -45,7 +44,6 @@ export default function FoodSearchOverlay({
                     <View style={{ width: 26 }} />
                 </View>
 
-                {/* Search Bar (only visible in overlay) */}
                 <View style={styles.searchContainer}>
                     <View style={styles.searchBox}>
                         <Ionicons name="search" size={18} color="#999" style={{ marginRight: 10 }} />
@@ -66,7 +64,6 @@ export default function FoodSearchOverlay({
                     </View>
                 </View>
 
-                {/* Results */}
                 <KeyboardAvoidingView
                     style={{ flex: 1 }}
                     behavior={Platform.OS === 'ios' ? 'padding' : undefined}
@@ -76,7 +73,9 @@ export default function FoodSearchOverlay({
                         data={searchResults}
                         keyExtractor={(item) => String(item.food_id)}
                         keyboardShouldPersistTaps="handled"
-                        renderItem={({ item }) => <SearchResultCard item={item} />}
+                        renderItem={({ item }) => (
+                            <SearchResultCard item={item} onPressPlus={() => onSelectResult?.(item)} />
+                        )}
                         ListEmptyComponent={
                             <Text style={styles.emptyText}>
                                 {searchQuery ? 'Searching…' : 'Start typing to search foods'}
@@ -104,7 +103,7 @@ const makeStyles = (COLORS) =>
         overlayTitle: {
             fontSize: 18,
             color: COLORS.textPrimary,
-            fontFamily: 'Outfit_600SemiBold', // ← unchanged
+            fontFamily: 'Outfit_600SemiBold',
         },
         searchContainer: { paddingHorizontal: 18, marginBottom: 20 },
         searchBox: {
@@ -122,7 +121,7 @@ const makeStyles = (COLORS) =>
         },
         searchInput: {
             flex: 1,
-            fontFamily: 'Outfit_400Regular', // ← unchanged
+            fontFamily: 'Outfit_400Regular',
             fontSize: 15,
             color: COLORS.textPrimary,
             paddingVertical: 0,
@@ -131,6 +130,6 @@ const makeStyles = (COLORS) =>
             textAlign: 'center',
             marginTop: 24,
             color: COLORS.textSecondary,
-            fontFamily: 'Outfit_400Regular', // ← unchanged
+            fontFamily: 'Outfit_400Regular',
         },
     });

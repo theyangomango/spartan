@@ -13,28 +13,50 @@ const COLORS = {
 };
 
 export default function SearchResultCard({ item, onPressPlus }) {
+    const formatPortion = (qty, unit) => {
+        const u = (unit || '').trim().toLowerCase();
+        if (/^g(ram|rams)?$/.test(u)) return `${qty}g`;
+        if (/^(mg|milligram|milligrams)$/.test(u)) return `${qty}mg`;
+        if (/^(kg|kilogram|kilograms)$/.test(u)) return `${qty}kg`;
+        return `${qty} ${unit.trim()}`; // default keeps a space
+    };
+
     const getSummary = () => {
         const desc = item.food_description || '';
-        const isPerServing = /per\s+1\s+serving/i.test(desc);
-        const isPerUnit = /per\s+1\s+(\w+)/i.exec(desc); // e.g., cracker, slice
-        const kcalMatch = desc.match(/(\d+)\s?kcal/i);
-        const gramMatch = desc.match(/(\d+)\s?g/i);
+
+        const kcalMatch = desc.match(/(\d+)\s?(?:kcal|cal(?:ories)?)\b/i);
         const calories = kcalMatch ? `${kcalMatch[1]} kcal` : '';
         const brand = item.brand_name || '';
 
-        if (isPerServing) {
-            return [calories, brand].filter(Boolean).join(', ');
+        const perServing = /\bper\b\s*(?:\d+(?:\s*\/\s*\d+)?(?:\.\d+)?)?\s*serving\b/i.test(desc);
+        if (perServing) return [calories, brand].filter(Boolean).join(', ');
+
+        // Prefer fractions: "Per 1/4 cup"
+        const perFraction = desc.match(/\bper\b\s*(\d+\s*\/\s*\d+)\s*([a-zA-Z]+(?:\s+[a-zA-Z]+){0,2})/i);
+        if (perFraction) {
+            const qty = perFraction[1].replace(/\s*/g, '');
+            const unit = perFraction[2].trim();
+            if (unit.toLowerCase() !== 'serving') {
+                return [calories, formatPortion(qty, unit), brand].filter(Boolean).join(', ');
+            }
         }
 
-        if (isPerUnit && isPerUnit[1] && isPerUnit[1].toLowerCase() !== 'serving') {
-            const unit = `1 ${isPerUnit[1]}`;
-            return [calories, unit, brand].filter(Boolean).join(', ');
+        // Then decimals/integers: "Per 100 g", "Per 2 tbsp"
+        const perUnit = desc.match(/\bper\b\s*(\d+(?:\.\d+)?)\s*([a-zA-Z]+(?:\s+[a-zA-Z]+){0,2})/i);
+        if (perUnit) {
+            const qty = perUnit[1];
+            const unit = perUnit[2].trim();
+            if (unit.toLowerCase() !== 'serving') {
+                return [calories, formatPortion(qty, unit), brand].filter(Boolean).join(', ');
+            }
         }
 
+        // Fallback grams already no-space
+        const gramMatch = desc.match(/(\d+)\s?g\b/i);
         const grams = gramMatch ? `${gramMatch[1]}g` : '';
+
         return [calories, grams, brand].filter(Boolean).join(', ');
     };
-
 
     return (
         <RNBounceable bounceEffectIn={0.95} style={styles.resultCard} onPress={onPressPlus}>
@@ -43,7 +65,7 @@ export default function SearchResultCard({ item, onPressPlus }) {
                     <Text style={styles.resultTitle}>{item.food_name}</Text>
                     <Text style={styles.resultDescription}>{getSummary()}</Text>
                 </View>
-                <PlusIcon size={24} color='#79b3ffff'/>
+                <PlusIcon size={24} color="#79b3ffff" />
             </View>
         </RNBounceable>
     );

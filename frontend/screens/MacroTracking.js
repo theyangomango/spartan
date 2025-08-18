@@ -1,6 +1,7 @@
+// screens/MacroTracking.js
 import React, { useState, useEffect } from 'react';
 import {
-    View, Text, StyleSheet, ScrollView, Pressable,
+    View, Text, StyleSheet, ScrollView, Pressable, UIManager, Platform, LayoutAnimation,
 } from 'react-native';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { Ionicons } from '@expo/vector-icons';
@@ -19,6 +20,16 @@ import dinnerIcon from '../assets/dinner.png';
 
 import FoodSearchOverlay from '../components/2_MacroTracking/FoodSearchOverlay';
 import MacroGoalsSheet from '../components/2_MacroTracking/MacroGoalsSheet';
+
+// ---- FIREBASE
+import { db } from '../../firebase.config';
+import {
+    collection, doc, getDocs, orderBy, query, setDoc, serverTimestamp, addDoc,
+} from 'firebase/firestore';
+
+if (Platform.OS === 'android' && UIManager.setLayoutAnimationEnabledExperimental) {
+    UIManager.setLayoutAnimationEnabledExperimental(true);
+}
 
 const COLORS = {
     background: '#f5f6fa',
@@ -39,12 +50,62 @@ const meals = [
     { name: 'Dinner', subtitle: 'Dinner completes your nutrition', icon: dinnerIcon, bgColor: '#eaefce' },
 ];
 
-const currentMacros = { calories: 1210, carbs: 100, fat: 25, protein: 60 };
+const pad2 = (n) => String(n).padStart(2, '0');
+const toDayKey = (d) => `${d.getFullYear()}-${pad2(d.getMonth() + 1)}-${pad2(d.getDate())}`;
+
+const normalizeMealKey = (t = '') => {
+    const s = t.toLowerCase();
+    if (s.startsWith('break')) return 'Breakfast';
+    if (s.startsWith('lunch')) return 'Lunch';
+    if (s.startsWith('dinn')) return 'Dinner';
+    return 'Dinner';
+};
+
+// ---- Parse macros from FatSecret-style description text
+const parseMacrosFromDescription = (desc = '') => {
+    const text = String(desc);
+
+    // Calories
+    // Matches: "Calories: 206kcal", "Calories: 206 cal", "206kcal"
+    let cal = 0;
+    const calLabel = text.match(/calories?\s*:\s*(\d+(?:\.\d+)?)/i);
+    const calBare = text.match(/(\d+(?:\.\d+)?)\s*(?:kcal|cal)\b/i);
+    if (calLabel) cal = parseFloat(calLabel[1]);
+    else if (calBare) cal = parseFloat(calBare[1]);
+
+    // Grams
+    const prot = (() => {
+        const m = text.match(/protein\s*:\s*(\d+(?:\.\d+)?)\s*g/i);
+        return m ? parseFloat(m[1]) : 0;
+    })();
+    const carbs = (() => {
+        const m = text.match(/carb(?:s|ohydrate)?\s*:\s*(\d+(?:\.\d+)?)\s*g/i);
+        return m ? parseFloat(m[1]) : 0;
+    })();
+    const fat = (() => {
+        const m = text.match(/fat\s*:\s*(\d+(?:\.\d+)?)\s*g/i);
+        return m ? parseFloat(m[1]) : 0;
+    })();
+
+    return {
+        calories: Number.isFinite(cal) ? cal : 0,
+        protein: Number.isFinite(prot) ? prot : 0,
+        carbs: Number.isFinite(carbs) ? carbs : 0,
+        fat: Number.isFinite(fat) ? fat : 0,
+    };
+};
 
 export default function MacroTracking({ navigation }) {
     const [focusedDate, setFocusedDate] = useState(new Date());
 
-    // ---- Macro goals stored as numbers
+    // ---- LIVE daily totals (this is what the UI shows)
+    const [trackedMacros, setTrackedMacros] = useState({
+        calories: 0,
+        carbs: 0,
+        fat: 0,
+        protein: 0,
+    });
+
     const [macroGoals, setMacroGoals] = useState({
         calories: 2340,
         carbs: 285,
@@ -52,7 +113,6 @@ export default function MacroTracking({ navigation }) {
         protein: 140,
     });
 
-    // ---- Goal form stored as strings (for TextInputs)
     const [goalForm, setGoalForm] = useState({
         gender: 'male',
         weight: '',
@@ -72,9 +132,24 @@ export default function MacroTracking({ navigation }) {
     const [searchQuery, setSearchQuery] = useState('');
     const [searchResults, setSearchResults] = useState([]);
 
+    // foods per meal (for rendering)
+    const [mealFoods, setMealFoods] = useState(() =>
+        Object.fromEntries(meals.map((m) => [m.name, []]))
+    );
+
+    // collapsed state per meal (false = expanded)
+    const [collapsed, setCollapsed] = useState(() =>
+        Object.fromEntries(meals.map((m) => [m.name, false]))
+    );
+
+    const toggleMeal = (name) => {
+        LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
+        setCollapsed((prev) => ({ ...prev, [name]: !prev[name] }));
+    };
+
     const calorieProgress = Math.min(
         100,
-        (currentMacros.calories / Math.max(1, macroGoals.calories)) * 100
+        (trackedMacros.calories / Math.max(1, macroGoals.calories)) * 100
     );
 
     const formatDate = (date) =>
@@ -85,6 +160,66 @@ export default function MacroTracking({ navigation }) {
         newDate.setDate(focusedDate.getDate() + days);
         setFocusedDate(newDate);
     };
+
+    // ---- Load entries & rebuild totals on date change
+    useEffect(() => {
+        const userId = global?.userData?.id || global?.userData?.uid;
+        if (!userId) return;
+
+        (async () => {
+            try {
+                const dayKey = toDayKey(focusedDate);
+
+                const dayRef = doc(db, 'users', userId, 'foodLogs', dayKey);
+                await setDoc(dayRef, { dayKey, updatedAt: serverTimestamp() }, { merge: true });
+
+                const entriesRef = collection(dayRef, 'entries');
+                const q = query(entriesRef, orderBy('createdAt', 'asc'));
+                const snap = await getDocs(q);
+
+                const byMeal = { Breakfast: [], Lunch: [], Dinner: [] };
+                const totals = { calories: 0, protein: 0, carbs: 0, fat: 0 };
+
+                snap.forEach((d) => {
+                    const data = d.data() || {};
+                    const bucket = normalizeMealKey(data.mealType);
+
+                    // prefer stored macros; else try to parse from description
+                    const m = data.macros || parseMacrosFromDescription(data.description || data.desc || '');
+
+                    totals.calories += m?.calories || 0;
+                    totals.protein += m?.protein || 0;
+                    totals.carbs += m?.carbs || 0;
+                    totals.fat += m?.fat || 0;
+
+                    byMeal[bucket] = [
+                        ...byMeal[bucket],
+                        {
+                            key: d.id,
+                            food_id: data.foodId || '',
+                            name: data.name || '',
+                            brand: data.brand || '',
+                            desc: data.description || data.desc || '',
+                        },
+                    ];
+                });
+
+                setMealFoods({
+                    Breakfast: byMeal.Breakfast,
+                    Lunch: byMeal.Lunch,
+                    Dinner: byMeal.Dinner,
+                });
+                setTrackedMacros({
+                    calories: Math.round(totals.calories),
+                    protein: Math.round(totals.protein),
+                    carbs: Math.round(totals.carbs),
+                    fat: Math.round(totals.fat),
+                });
+            } catch (e) {
+                console.log('Failed to load food entries:', e);
+            }
+        })();
+    }, [focusedDate]);
 
     // ---- Food search
     useEffect(() => {
@@ -114,7 +249,105 @@ export default function MacroTracking({ navigation }) {
         setSearchResults([]);
     };
 
-    // ---- Open goals sheet
+    // ---- Add & persist; then update local totals immediately
+    const addFoodToActiveMeal = async (food) => {
+        if (!activeMeal) return;
+
+        const userId = global?.userData?.id || global?.userData?.uid;
+        if (!userId) {
+            console.log('No user id found on global.userData');
+            return;
+        }
+
+        try {
+            const dayKey = toDayKey(focusedDate);
+            const dayRef = doc(db, 'users', userId, 'foodLogs', dayKey);
+            await setDoc(dayRef, { dayKey, updatedAt: serverTimestamp() }, { merge: true });
+
+            const macros = parseMacrosFromDescription(food.food_description || '');
+
+            const payload = {
+                mealType: activeMeal.toLowerCase(),   // "breakfast" | "lunch" | "dinner"
+                name: food.food_name || '',
+                brand: food.brand_name || '',
+                foodId: String(food.food_id ?? ''),
+                description: food.food_description || '',
+                source: 'fatsecret',
+                quantity: 1,
+                macros,                               // store snapshot of macros on the entry
+                createdAt: serverTimestamp(),
+                updatedAt: serverTimestamp(),
+            };
+
+            const created = await addDoc(collection(dayRef, 'entries'), payload);
+
+            // Update UI list
+            const entryForUi = {
+                key: created.id,
+                food_id: payload.foodId,
+                name: payload.name,
+                brand: payload.brand,
+                desc: payload.description,
+            };
+            setMealFoods((prev) => {
+                const nextList = prev[activeMeal] ? [...prev[activeMeal], entryForUi] : [entryForUi];
+                return { ...prev, [activeMeal]: nextList };
+            });
+
+            // Update daily totals shown in the ring & MacroBars
+            setTrackedMacros((prev) => ({
+                calories: Math.round(prev.calories + (macros.calories || 0)),
+                protein: Math.round(prev.protein + (macros.protein || 0)),
+                carbs: Math.round(prev.carbs + (macros.carbs || 0)),
+                fat: Math.round(prev.fat + (macros.fat || 0)),
+            }));
+        } catch (e) {
+            console.log('Failed to add food entry:', e);
+        } finally {
+            closeSearch();
+        }
+    };
+
+    // ---- Summary helpers for under-meal rows
+    const formatPortion = (qty, unit) => {
+        const u = (unit || '').trim().toLowerCase();
+        if (/^g(ram|rams)?$/.test(u)) return `${qty}g`;
+        if (/^(mg|milligram|milligrams)$/.test(u)) return `${qty}mg`;
+        if (/^(kg|kilogram|kilograms)$/.test(u)) return `${qty}kg`;
+        return `${qty} ${unit.trim()}`;
+    };
+
+    const summarizeFood = (desc = '', brand = '') => {
+        const kcalMatch = desc.match(/(\d+)\s?(?:kcal|cal(?:ories)?)\b/i);
+        const calories = kcalMatch ? `${kcalMatch[1]} kcal` : '';
+
+        const perServing = /\bper\b\s*(?:\d+(?:\s*\/\s*\d+)?(?:\.\d+)?)?\s*serving\b/i.test(desc);
+        if (perServing) return [calories, brand].filter(Boolean).join(', ');
+
+        const perFraction = desc.match(/\bper\b\s*(\d+\s*\/\s*\d+)\s*([a-zA-Z]+(?:\s+[a-zA-Z]+){0,2})/i);
+        if (perFraction) {
+            const qty = perFraction[1].replace(/\s*/g, '');
+            const unit = perFraction[2].trim();
+            if (unit.toLowerCase() !== 'serving') {
+                return [calories, formatPortion(qty, unit), brand].filter(Boolean).join(', ');
+            }
+        }
+
+        const perUnit = desc.match(/\bper\b\s*(\d+(?:\.\d+)?)\s*([a-zA-Z]+(?:\s+[a-zA-Z]+){0,2})/i);
+        if (perUnit) {
+            const qty = perUnit[1];
+            const unit = perUnit[2].trim();
+            if (unit.toLowerCase() !== 'serving') {
+                return [calories, formatPortion(qty, unit), brand].filter(Boolean).join(', ');
+            }
+        }
+
+        const gramMatch = desc.match(/(\d+)\s?g\b/i);
+        const grams = gramMatch ? `${gramMatch[1]}g` : '';
+
+        return [calories, grams, brand].filter(Boolean).join(', ');
+    };
+
     const openGoalsSheet = () => setSheetIndex(1);
     const closeGoalsSheet = () => setSheetIndex(-1);
 
@@ -155,7 +388,7 @@ export default function MacroTracking({ navigation }) {
                     contentContainerStyle={{ paddingTop: 16, paddingBottom: 100 }}
                     style={styles.body}
                 >
-                    <Text style={styles.sectionTitle}>Nutrition</Text>
+                    <Text style={[styles.sectionTitle, { marginBottom: 8 }]}>Nutrition</Text>
 
                     {/* Tap to open Goals sheet */}
                     <RNBounceable style={styles.trackerCard} onPress={openGoalsSheet}>
@@ -174,7 +407,7 @@ export default function MacroTracking({ navigation }) {
                                     {() => (
                                         <View style={styles.centerContent}>
                                             <Text style={styles.valueText}>
-                                                {(Math.max(0, currentMacros.calories)).toLocaleString()}
+                                                {Math.max(0, trackedMacros.calories).toLocaleString()}
                                             </Text>
                                             <Text style={styles.valueSubtitleText}>
                                                 /{macroGoals.calories.toLocaleString()} kcal
@@ -185,22 +418,39 @@ export default function MacroTracking({ navigation }) {
                             </View>
 
                             <View style={styles.macroSummary}>
-                                <MacroBar label="Protein" value={currentMacros.protein} goal={macroGoals.protein} color={COLORS.protein} textPrimary={COLORS.textPrimary} textSecondary={COLORS.textSecondary} />
-                                <MacroBar label="Carbs" value={currentMacros.carbs} goal={macroGoals.carbs} color={COLORS.carbs} textPrimary={COLORS.textPrimary} textSecondary={COLORS.textSecondary} />
-                                <MacroBar label="Fat" value={currentMacros.fat} goal={macroGoals.fat} color={COLORS.fat} textPrimary={COLORS.textPrimary} textSecondary={COLORS.textSecondary} />
+                                <MacroBar label="Protein" value={trackedMacros.protein} goal={macroGoals.protein} color={COLORS.protein} textPrimary={COLORS.textPrimary} textSecondary={COLORS.textSecondary} />
+                                <MacroBar label="Carbs" value={trackedMacros.carbs} goal={macroGoals.carbs} color={COLORS.carbs} textPrimary={COLORS.textPrimary} textSecondary={COLORS.textSecondary} />
+                                <MacroBar label="Fat" value={trackedMacros.fat} goal={macroGoals.fat} color={COLORS.fat} textPrimary={COLORS.textPrimary} textSecondary={COLORS.textSecondary} />
                             </View>
                         </View>
                     </RNBounceable>
 
                     <Text style={styles.sectionTitle}>Daily meals</Text>
                     {meals.map((item) => (
-                        <MealCard
-                            key={item.name}
-                            item={item}
-                            PlusIcon={PlusIcon}
-                            COLORS={COLORS}
-                            onAddPress={openSearchForMeal}
-                        />
+                        <React.Fragment key={item.name}>
+                            <MealCard
+                                item={item}
+                                PlusIcon={PlusIcon}
+                                COLORS={COLORS}
+                                onAddPress={openSearchForMeal}
+                                onToggle={() => toggleMeal(item.name)}
+                                collapsed={collapsed[item.name]}
+                            />
+
+                            {/* UNDER-MEAL LIST */}
+                            {!collapsed[item.name] && (
+                                <View style={styles.underMealList}>
+                                    {(mealFoods[item.name] ?? []).map((f) => (
+                                        <View key={f.key} style={styles.underMealCard}>
+                                            <View style={{ flex: 1 }}>
+                                                <Text style={styles.foodName}>{f.name}</Text>
+                                                <Text style={styles.foodSummary}>{summarizeFood(f.desc, f.brand)}</Text>
+                                            </View>
+                                        </View>
+                                    ))}
+                                </View>
+                            )}
+                        </React.Fragment>
                     ))}
                 </ScrollView>
 
@@ -213,6 +463,7 @@ export default function MacroTracking({ navigation }) {
                     searchResults={searchResults}
                     onClose={closeSearch}
                     COLORS={COLORS}
+                    onSelectResult={addFoodToActiveMeal}
                 />
 
                 <MacroGoalsSheet
@@ -249,7 +500,6 @@ const styles = StyleSheet.create({
     },
     sectionTitle: {
         fontSize: 19,
-        marginBottom: 8,
         marginLeft: 18,
         color: COLORS.textPrimary,
         letterSpacing: 0.2,
@@ -275,4 +525,34 @@ const styles = StyleSheet.create({
     valueText: { fontSize: 26, color: '#18181A', fontFamily: 'Outfit_600SemiBold', marginBottom: -2.5 },
     valueSubtitleText: { fontSize: 13, color: COLORS.textSecondary, fontFamily: 'Outfit_400Regular', marginBottom: 4 },
     macroSummary: { flex: 1 },
+
+    /* Under-meal cards */
+    foodName: {
+        fontSize: 13.5,
+        color: COLORS.textPrimary,
+        fontFamily: 'Mulish_700Bold',
+        marginBottom: 3,
+    },
+    foodSummary: {
+        fontSize: 12.5,
+        color: COLORS.textSecondary,
+        fontFamily: 'Mulish_500Medium',
+    },
+    underMealList: {
+        paddingHorizontal: 18,
+        marginTop: 2,
+        marginBottom: 8,
+    },
+    underMealCard: {
+        backgroundColor: COLORS.card,
+        borderRadius: 12,
+        paddingVertical: 12,
+        paddingHorizontal: 20,
+        marginVertical: 2,
+        shadowColor: COLORS.mealCardShadow,
+        shadowOpacity: 0.04,
+        shadowRadius: 4,
+        shadowOffset: { width: 0, height: 1 },
+        elevation: 1,
+    },
 });

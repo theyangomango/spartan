@@ -1,88 +1,85 @@
+// components/2_MacroTracking/MealCard.js
 import React from 'react';
-import { View, Text, Pressable, Image, StyleSheet } from 'react-native';
+import { View, Text, StyleSheet, Image, Pressable } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
 
-const MealCard = ({ item, PlusIcon, COLORS, onAddPress }) => (
-    <View style={styles(COLORS).mealCard}>
-        <View style={styles(COLORS).mealInfo}>
-            <View style={[styles(COLORS).iconWrapper, { backgroundColor: item.bgColor }]}>
-                <Image source={item.icon} style={styles(COLORS).mealIcon} />
-            </View>
-            <View>
-                <Text style={styles(COLORS).mealTitle}>{item.name}</Text>
-                <Text style={styles(COLORS).mealSubtitle}>{item.subtitle}</Text>
+export default function MealCard({
+    item,
+    PlusIcon,
+    COLORS,
+    onAddPress,
+    onToggle,
+    collapsed = false,
+}) {
+    const styles = makeStyles(COLORS);
+
+    return (
+        <View style={styles.card}>
+            <View style={styles.row}>
+                <Pressable style={styles.left} onPress={onToggle} hitSlop={8}>
+                    <Image source={item.icon} style={styles.icon} />
+                    <View style={{ flex: 1 }}>
+                        <Text style={styles.title}>{item.name}</Text>
+                        <Text style={styles.subtitle}>{item.subtitle}</Text>
+                    </View>
+                    <Ionicons
+                        name={collapsed ? 'chevron-down' : 'chevron-up'}
+                        size={20}
+                        color={COLORS.textSecondary}
+                        style={{ marginLeft: 6 }}
+                    />
+                </Pressable>
+
+                <Pressable style={styles.addBtn} onPress={() => onAddPress(item)} hitSlop={10}>
+                    <PlusIcon size={22} color="#79b3ff" />
+                </Pressable>
             </View>
         </View>
-        <Pressable
-            style={styles(COLORS).addButton}
-            onPress={() => onAddPress?.(item)}
-            hitSlop={8}
-        >
-            <PlusIcon color="#414422ff" />
-        </Pressable>
-    </View>
-);
+    );
+}
 
-const styles = (COLORS) =>
+const makeStyles = (COLORS) =>
     StyleSheet.create({
-        mealCard: {
-            backgroundColor: COLORS.card,
-            borderRadius: 18,
-            paddingLeft: 16,
-            paddingRight: 18,
-            paddingVertical: 15,
-            marginBottom: 12,
-            flexDirection: 'row',
-            justifyContent: 'space-between',
-            alignItems: 'center',
+        card: {
+            backgroundColor: '#fff',
+            borderRadius: 24,
+            paddingVertical: 14,
+            paddingHorizontal: 16,
+            marginHorizontal: 16,
+            marginTop: 10,
             shadowColor: COLORS.mealCardShadow,
-            shadowOpacity: 0.1,
-            shadowRadius: 8,
-            shadowOffset: { width: 0, height: 2 },
-            elevation: 6,
-            marginHorizontal: 12,
+            shadowOpacity: 0.08,
+            shadowRadius: 6,
+            elevation: 2,
         },
-        mealInfo: {
+        row: {
             flexDirection: 'row',
             alignItems: 'center',
         },
-        iconWrapper: {
-            width: 44,
-            height: 44,
-            borderRadius: 15,
-            justifyContent: 'center',
+        left: {
+            flexDirection: 'row',
             alignItems: 'center',
-            marginRight: 10,
+            flex: 1,
         },
-        mealIcon: {
-            width: 26,
-            height: 26,
-            resizeMode: 'contain',
-        },
-        mealTitle: {
-            fontSize: 16,
-            fontWeight: '700',
+        icon: { width: 36, height: 36, marginRight: 12, borderRadius: 8, resizeMode: 'contain' },
+        title: {
+            fontSize: 15.5,
             color: COLORS.textPrimary,
-            fontFamily: 'Outfit_600SemiBold',
+            fontFamily: 'Nunito_800ExtraBold',
             marginBottom: 2,
-            letterSpacing: 0.1,
         },
-        mealSubtitle: {
-            fontSize: 13,
+        subtitle: {
+            fontSize: 12.5,
             color: COLORS.textSecondary,
-            marginTop: 2,
             fontFamily: 'Outfit_400Regular',
-            letterSpacing: 0.1,
         },
-        addButton: {
-            backgroundColor: COLORS.addButton,
-            padding: 7,
-            borderRadius: 13,
-            shadowColor: COLORS.mealCardShadow,
-            shadowOpacity: 0.13,
-            shadowRadius: 7,
-            shadowOffset: { width: 0, height: 1.5 },
-            elevation: 3,
+        addBtn: {
+            height: 34,
+            width: 34,
+            borderRadius: 17,
+            backgroundColor: '#eaeeffb0',
+            alignItems: 'center',
+            justifyContent: 'center',
+            marginLeft: 10,
         },
     });
-
-export default MealCard;
