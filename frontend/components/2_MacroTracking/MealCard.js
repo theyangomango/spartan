@@ -17,7 +17,9 @@ export default function MealCard({
         <View style={styles.card}>
             <View style={styles.row}>
                 <Pressable style={styles.left} onPress={onToggle} hitSlop={8}>
-                    <Image source={item.icon} style={styles.icon} />
+                    <View style={[styles.iconWrapper, { backgroundColor: item.bgColor }]}>
+                        <Image source={item.icon} style={styles.icon} />
+                    </View>
                     <View style={{ flex: 1 }}>
                         <Text style={styles.title}>{item.name}</Text>
                         <Text style={styles.subtitle}>{item.subtitle}</Text>
@@ -61,7 +63,19 @@ const makeStyles = (COLORS) =>
             alignItems: 'center',
             flex: 1,
         },
-        icon: { width: 36, height: 36, marginRight: 12, borderRadius: 8, resizeMode: 'contain' },
+        iconWrapper: {
+            width: 44,
+            height: 44,
+            borderRadius: 15,
+            justifyContent: 'center',
+            alignItems: 'center',
+            marginRight: 10,
+        },
+        icon: {
+            height: 26,
+            width: 26,
+            resizeMode: 'contain',
+        },
         title: {
             fontSize: 15.5,
             color: COLORS.textPrimary,
