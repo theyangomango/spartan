@@ -10,6 +10,7 @@ import {
     serverTimestamp,
     addDoc,
     deleteDoc,
+    increment,
     onSnapshot,
 } from 'firebase/firestore';
 import { db } from '../../firebase.config'; // <-- adjust if needed
@@ -193,6 +194,25 @@ export function useFoodLogs(dateObj) {
             try {
                 await setDoc(dayRef, { dayKey: dk, updatedAt: serverTimestamp() }, { merge: true });
                 await setDoc(entryRef, payload); // use setDoc so we keep our pre-generated ID
+
+                try {
+                    const recentRef = doc(db, 'users', userId, 'recentFoods', String(payload.foodId || payload.name));
+                    await setDoc(
+                        recentRef,
+                        {
+                            // store a normalized snapshot for quick display
+                            foodId: payload.foodId,
+                            name: payload.name,
+                            brand: payload.brand,
+                            description: payload.description,
+                            usedCount: increment(1),
+                            lastUsedAt: serverTimestamp(),
+                        },
+                        { merge: true }
+                    );
+                } catch (e) {
+                    // non-critical, ignore
+                }
             } catch (e) {
                 console.log('Persist failed, rolling back optimistic entry:', e);
 

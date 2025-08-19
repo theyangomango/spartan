@@ -335,7 +335,7 @@ function Workout({ navigation }) {
 
                 <Text style={styles.quickStartText}>Quick Start</Text>
                 <StartWorkoutButton startWorkout={startNewWorkout} />
-                <JoinWorkoutButton />
+                {/* <JoinWorkoutButton /> */}
 
                 {isCurrentWorkoutPanelVisible && (
                     <CurrentWorkoutPanel
