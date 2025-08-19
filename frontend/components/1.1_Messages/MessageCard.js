@@ -100,7 +100,7 @@ const styles = StyleSheet.create({
         borderRadius: 25,
         flexDirection: 'row',
         justifyContent: 'space-between',
-        backgroundColor: '#f8f8f8',
+        backgroundColor: '#fff',
         marginBottom: 8,
     },
     profilePicturesContainer: {

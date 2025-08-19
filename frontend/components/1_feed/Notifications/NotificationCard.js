@@ -124,7 +124,7 @@ const styles = StyleSheet.create({
         marginVertical: scaleSize(5.5),
         paddingHorizontal: scaleSize(16),
         paddingVertical: scaleSize(17),
-        backgroundColor: "#f8f8f8",
+        backgroundColor: "#fff",
         borderRadius: scaleSize(25),
     },
     pfp: {

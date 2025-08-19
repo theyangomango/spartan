@@ -80,7 +80,7 @@ export default function MessagesHeader({ toFeedScreen, openCreateGroupChatBottom
                             styles.buttonContainer,
                             styles.leftButtonContainer,
                             { 
-                                backgroundColor: selectedButton === 'All' ? '#2D9EFF' : '#eee',
+                                backgroundColor: selectedButton === 'All' ? '#2D9EFF' : '#fff',
                                 width: dynamicStyles.buttonWidth,
                                 height: dynamicStyles.buttonHeight,
                             }
@@ -97,7 +97,7 @@ export default function MessagesHeader({ toFeedScreen, openCreateGroupChatBottom
                             styles.buttonContainer,
                             styles.rightButtonContainer,
                             { 
-                                backgroundColor: selectedButton === 'Group' ? '#2D9EFF' : '#eee',
+                                backgroundColor: selectedButton === 'Group' ? '#2D9EFF' : '#fff',
                                 width: dynamicStyles.buttonWidth,
                                 height: dynamicStyles.buttonHeight,
                             }
@@ -117,7 +117,7 @@ export default function MessagesHeader({ toFeedScreen, openCreateGroupChatBottom
 
 const styles = StyleSheet.create({
     mainContainer: {
-        backgroundColor: '#fff',
+        backgroundColor: '#f5f6fa',
     },
     row: {
         flexDirection: 'row',
@@ -154,7 +154,7 @@ const styles = StyleSheet.create({
     },
     overlay: {
         flexDirection: 'row',
-        backgroundColor: '#eee',
+        backgroundColor: '#fff',
         borderRadius: 40,
     },
     buttonContainer: {
