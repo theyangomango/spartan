@@ -1,29 +1,255 @@
 import React, { memo, useEffect, useRef, useState } from "react";
-import { StyleSheet, View, Text, Image, TouchableOpacity, Animated, Dimensions } from "react-native";
-import { Ionicons, Octicons, MaterialIcons } from '@expo/vector-icons';
+import {
+    StyleSheet,
+    View,
+    Text,
+    Image,
+    TouchableOpacity,
+    Animated,
+    Dimensions,
+    TextInput,
+    FlatList,
+    Modal,
+    TouchableWithoutFeedback,
+    SafeAreaView,
+} from "react-native";
+import { Ionicons, MaterialIcons } from '@expo/vector-icons';
 import RNBounceable from '@freakycoder/react-native-bounceable';
 import Svg, { Path } from "react-native-svg";
 import { getFeedHeaderStyles } from "../../helper/getFeedHeaderStyles";
 import { db } from "../../../firebase.config";
-import { collection, query, where, onSnapshot } from "firebase/firestore";
+import {
+    collection,
+    query,
+    where,
+    onSnapshot,
+    getDocs,
+    orderBy,
+    limit,
+} from "firebase/firestore";
 
 const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get("window");
 const dynamicStyles = getFeedHeaderStyles(SCREEN_WIDTH, SCREEN_HEIGHT);
+const scale = SCREEN_WIDTH / 375;
+const s = (n) => Math.round(n * scale);
 
-const FeedHeader = ({ toMessagesScreen, onOpenNotifications, onOpenSettings, backButton, onBackPress, scrollToTop }) => {
+/* ------------------------------ Debounce ------------------------------ */
+const useDebounce = (fn, delay = 250) => {
+    const t = useRef(null);
+    return (...args) => {
+        if (t.current) clearTimeout(t.current);
+        t.current = setTimeout(() => fn(...args), delay);
+    };
+};
+
+/* --------------------------- SearchUsersBar --------------------------- */
+/**
+ * Full-screen overlay search:
+ * - Keeps the search icon FIXED in the header position
+ * - Slides the input horizontally from LEFT → RIGHT when expanding
+ * - Uses local `allUsersRef` if provided; otherwise Firestore prefix queries
+ */
+const SearchUsersBar = ({
+    navigation,
+    allUsersRef,     // optional Ref<{uid, handle, name, pfp}[]>
+    disabled = false // hidden if true (e.g., when back button header is shown)
+}) => {
+    const [visible, setVisible] = useState(false);
+    const [qStr, setQStr] = useState('');
+    const [results, setResults] = useState([]);
+
+    // 0 collapsed, 1 expanded
+    const progress = useRef(new Animated.Value(0)).current;
+
+    const FULL_W = SCREEN_WIDTH - (dynamicStyles.paddingHorizontal * 2);
+    const ICON_W = dynamicStyles.iconSize + 6;
+    const GAP = s(0);
+    const INPUT_MAX_W = FULL_W - ICON_W - GAP;
+
+    const inputW = progress.interpolate({
+        inputRange: [0, 1],
+        outputRange: [0, INPUT_MAX_W],
+    });
+    const backdropOpacity = progress.interpolate({
+        inputRange: [0, 1],
+        outputRange: [0, 0.06],
+    });
+
+    const open = () => {
+        if (disabled) return;
+        setVisible(true);
+        requestAnimationFrame(() => {
+            Animated.timing(progress, { toValue: 1, duration: 240, useNativeDriver: false }).start();
+        });
+    };
+
+    const close = () => {
+        Animated.timing(progress, { toValue: 0, duration: 200, useNativeDriver: false }).start(() => {
+            setVisible(false);
+            setQStr('');
+            setResults([]);
+        });
+    };
+
+    // Search sources
+    const localFilter = (text) => {
+        const all = allUsersRef?.current || [];
+        const needle = (text || '').toLowerCase();
+        const out = all
+            .filter(u => u?.uid !== global?.userData?.uid)
+            .filter(u =>
+                (u?.handle || '').toLowerCase().includes(needle) ||
+                (u?.name || '').toLowerCase().includes(needle)
+            )
+            .slice(0, 30);
+        setResults(out);
+    };
+
+    const remotePrefixQuery = async (text) => {
+        const needle = (text || '').toLowerCase();
+        if (!needle) return setResults([]);
+
+        const usersCol = collection(db, 'users');
+        const handleQ = query(
+            usersCol,
+            orderBy('handle_lower'),
+            where('handle_lower', '>=', needle),
+            where('handle_lower', '<=', needle + '\uf8ff'),
+            limit(15)
+        );
+        const nameQ = query(
+            usersCol,
+            orderBy('name_lower'),
+            where('name_lower', '>=', needle),
+            where('name_lower', '<=', needle + '\uf8ff'),
+            limit(15)
+        );
+
+        const [hSnap, nSnap] = await Promise.all([getDocs(handleQ), getDocs(nameQ)]);
+        const map = new Map();
+        hSnap.forEach(d => map.set(d.id, d.data()));
+        nSnap.forEach(d => map.set(d.id, d.data()));
+
+        const me = global?.userData?.uid;
+        const merged = Array.from(map.entries())
+            .map(([uid, data]) => ({
+                uid,
+                handle: data?.handle ?? '',
+                name: data?.name ?? '',
+                pfp: data?.pfp ?? '',
+            }))
+            .filter(u => u.uid !== me)
+            .slice(0, 30);
+
+        setResults(merged);
+    };
+
+    const doSearch = useDebounce((text) => {
+        if (!text) return setResults([]);
+        if (allUsersRef?.current?.length) localFilter(text);
+        else remotePrefixQuery(text).catch(() => setResults([]));
+    }, 250);
+
+    if (disabled) return <View style={styles.left_placeholder} />;
+
+    return (
+        <>
+            {/* Header icon (fixed) */}
+            <RNBounceable
+                onPress={open}
+                bounceEffectIn={0.5}
+                style={styles.searchIconBtn}
+                accessibilityLabel="Search users"
+            >
+                <Ionicons name="search" size={dynamicStyles.iconSize} color="#777" />
+            </RNBounceable>
+
+            {/* Overlay with horizontal slide input */}
+            <Modal visible={visible} transparent animationType="none" onRequestClose={close}>
+                <View style={styles.modalContainer}>
+                    <TouchableWithoutFeedback onPress={close}>
+                        <Animated.View style={[styles.backdrop, { opacity: backdropOpacity }]} />
+                    </TouchableWithoutFeedback>
+
+                    <SafeAreaView style={styles.modalContent} pointerEvents="box-none">
+                        <View style={styles.overlayBar}>
+                            {/* Fixed icon aligned to header position */}
+
+                            {/* Sliding input from icon → right */}
+                            <Animated.View style={[styles.overlayInputWrap, { width: inputW }]}>
+                                <TextInput
+                                    style={styles.overlayInput}
+                                    placeholder="Search for a person…"
+                                    placeholderTextColor="#bbb"
+                                    value={qStr}
+                                    onChangeText={(t) => { setQStr(t); doSearch(t); }}
+                                    autoFocus
+                                    returnKeyType="search"
+                                />
+                                <TouchableOpacity
+                                    onPress={() => (qStr ? (setQStr(''), setResults([])) : close())}
+                                    style={styles.clearBtn}
+                                    accessibilityLabel={qStr ? "Clear search" : "Close search"}
+                                >
+                                    <Ionicons name="close" size={s(18)} color="#555" />
+                                </TouchableOpacity>
+                            </Animated.View>
+                        </View>
+
+                        {/* Results */}
+                        {qStr.length > 0 && results.length > 0 && (
+                            <View style={styles.resultsWrap}>
+                                <FlatList
+                                    keyboardShouldPersistTaps="handled"
+                                    data={results}
+                                    keyExtractor={(item) => item.uid}
+                                    renderItem={({ item }) => (
+                                        <TouchableOpacity
+                                            style={styles.resultRow}
+                                            onPress={() => {
+                                                if (item.uid === global?.userData?.uid) navigation?.navigate('Profile');
+                                                else navigation?.navigate('ViewProfile', { user: { uid: item.uid, handle: item.handle, name: item.name, pfp: item.pfp } });
+                                                close();
+                                            }}
+                                        >
+                                            <View style={styles.avatarPlaceholder}>
+                                                <Ionicons name="person-circle" size={s(28)} color="#888" />
+                                            </View>
+                                            <View style={{ flex: 1 }}>
+                                                <Text numberOfLines={1} style={styles.resultHandle}>@{item.handle}</Text>
+                                                <Text numberOfLines={1} style={styles.resultName}>{item.name}</Text>
+                                            </View>
+                                        </TouchableOpacity>
+                                    )}
+                                />
+                            </View>
+                        )}
+                    </SafeAreaView>
+                </View>
+            </Modal>
+        </>
+    );
+};
+
+/* ----------------------------- FeedHeader ----------------------------- */
+
+const FeedHeader = ({
+    toMessagesScreen,
+    onOpenNotifications,
+    backButton,
+    onBackPress,
+    scrollToTop,
+    navigation,
+    allUsersRef, // optional; pass a preloaded ref for instant local filter
+}) => {
     const [unreadCount, setUnreadCount] = useState(0);
     const user = global.userData;
 
     useEffect(() => {
         if (!user?.uid) return;
-
         const notificationsRef = collection(db, 'users', user.uid, 'notifications');
         const q = query(notificationsRef, where('read', '==', false));
-
-        const unsubscribe = onSnapshot(q, (snapshot) => {
-            setUnreadCount(snapshot.size); // Count of unread notifications
-        });
-
+        const unsubscribe = onSnapshot(q, (snapshot) => setUnreadCount(snapshot.size));
         return () => unsubscribe();
     }, [user?.uid]);
 
@@ -39,7 +265,13 @@ const FeedHeader = ({ toMessagesScreen, onOpenNotifications, onOpenSettings, bac
 
     return (
         <Animated.View style={[styles.main_ctnr]}>
-            <RNBounceable onPress={scrollToTop}>
+            {/* Left: Search (replaces gear) */}
+            <View style={styles.leftArea}>
+                <SearchUsersBar navigation={navigation} allUsersRef={allUsersRef} />
+            </View>
+
+            {/* Center: Logo/title (tap to scroll-to-top) */}
+            <RNBounceable onPress={scrollToTop} style={styles.centerArea}>
                 <View style={styles.logo}>
                     <View style={styles.logo_image_ctnr}>
                         <Image
@@ -51,10 +283,11 @@ const FeedHeader = ({ toMessagesScreen, onOpenNotifications, onOpenSettings, bac
                 </View>
             </RNBounceable>
 
+            {/* Right: notifications + messages */}
             <View style={styles.right_icons}>
                 <RNBounceable onPress={onOpenNotifications} style={styles.heart_button}>
                     <Svg xmlns="http://www.w3.org/2000/svg" width={dynamicStyles.iconSize} height={dynamicStyles.iconSize} viewBox="0 0 24 24" fill="none">
-                        <Path d="M12.62 20.81c-.34.12-.9.12-1.24 0C8.48 19.82 2 15.69 2 8.69 2 5.6 4.49 3.1 7.56 3.1c1.82 0 3.43.88 4.44 2.24a5.53 5.53 0 0 1 4.44-2.24C19.51 3.1 22 5.6 22 8.69c0 7-6.48 11.13-9.38 12.12Z" stroke="#ccc" strokeWidth="2.1" strokeLinecap="round" strokeLinejoin="round"></Path>
+                        <Path d="M12.62 20.81c-.34.12-.9.12-1.24 0C8.48 19.82 2 15.69 2 8.69 2 5.6 4.49 3.1 7.56 3.1c1.82 0 3.43.88 4.44 2.24a5.53 5.53 0 0 1 4.44-2.24C19.51 3.1 22 5.6 22 8.69c0 7-6.48 11.13-9.38 12.12Z" stroke="#ccc" strokeWidth="2.1" strokeLinecap="round" strokeLinejoin="round" />
                     </Svg>
                     {unreadCount > 0 && (
                         <View style={styles.notificationBadge}>
@@ -67,16 +300,13 @@ const FeedHeader = ({ toMessagesScreen, onOpenNotifications, onOpenSettings, bac
                     <MaterialIcons name="alternate-email" size={dynamicStyles.iconSize + 1.5} color={'#ccc'} />
                 </RNBounceable>
             </View>
-
-            <RNBounceable onPress={onOpenSettings} style={styles.options_btn_ctnr}>
-                <Octicons name="gear" size={dynamicStyles.iconSize - 1.5} color={'#ccc'} />
-            </RNBounceable>
         </Animated.View>
     );
 };
 
 export default memo(FeedHeader);
 
+/* -------------------------------- Styles ------------------------------- */
 
 const styles = StyleSheet.create({
     main_ctnr: {
@@ -84,32 +314,33 @@ const styles = StyleSheet.create({
         backgroundColor: '#fff',
         flexDirection: 'row',
         justifyContent: 'center',
-        paddingTop: 1.5
+        paddingTop: 1.5,
+        alignItems: 'center',
     },
     back_header: {
         width: '100%',
         backgroundColor: '#fff',
         flexDirection: 'row',
         paddingLeft: dynamicStyles.paddingHorizontal,
+        paddingTop: 2,
+        paddingBottom: 2,
+        alignItems: 'center',
     },
+    leftArea: {
+        position: 'absolute',
+        left: dynamicStyles.paddingHorizontal,
+        top: 2.5,
+    },
+    centerArea: { justifyContent: 'center', alignItems: 'center' },
     logo: {
         marginBottom: 8,
         alignItems: 'center',
         flexDirection: 'row',
         paddingRight: 11,
     },
-    logo_image_ctnr: {
-        justifyContent: 'center',
-        alignItems: 'center',
-    },
-    logo_image: {
-        width: 27,
-        height: 28,
-    },
-    logo_text: {
-        paddingLeft: 2,
-        fontFamily: 'Inter_600SemiBold',
-    },
+    logo_image_ctnr: { justifyContent: 'center', alignItems: 'center' },
+    logo_image: { width: 27, height: 28 },
+    logo_text: { paddingLeft: 2, fontFamily: 'Inter_600SemiBold' },
     right_icons: {
         flexDirection: 'row',
         position: 'absolute',
@@ -128,25 +359,93 @@ const styles = StyleSheet.create({
         justifyContent: 'center',
         alignItems: 'center',
     },
-    notificationText: {
-        color: '#fff',
-        fontSize: 8,
-        fontFamily: 'Outfit_600SemiBold'
+    notificationText: { color: '#fff', fontSize: 8, fontFamily: 'Outfit_600SemiBold' },
+    message_button: { padding: 1 },
+    heart_button: { marginRight: 19, padding: 1, position: 'relative' },
+
+    /* Collapsed search icon placeholder (when disabled) */
+    left_placeholder: { width: dynamicStyles.iconSize + 6, height: dynamicStyles.iconSize + 6 },
+
+    /* Modal overlay */
+    modalContainer: { flex: 1, justifyContent: 'flex-start' },
+    backdrop: { ...StyleSheet.absoluteFillObject, backgroundColor: 'black' },
+    modalContent: {
+        flex: 1,
+        paddingHorizontal: dynamicStyles.paddingHorizontal,
     },
-    options_btn_ctnr: {
-        position: 'absolute',
-        left: dynamicStyles.paddingHorizontal,
-        top: 2.5,
-        opacity: 0.5
+
+    /* Overlay bar (align with header icon) */
+    overlayBar: {
+        marginTop: 2.5, // matches header icon top
+        flexDirection: 'row',
+        alignItems: 'center',
+        width: '100%',
     },
-    message_button: {
-        // backgroundColor: 'blue',
-        padding: 1
+    overlayIconHitbox: {
+        width: dynamicStyles.iconSize + 6,
+        height: dynamicStyles.iconSize + 6,
+        borderRadius: (dynamicStyles.iconSize + 6) / 2,
+        alignItems: 'center',
+        justifyContent: 'center',
     },
-    heart_button: {
-        marginRight: 19,
-        padding: 1,
-        position: 'relative',
-        // backgroundColor: 'blue'
-    }
+    overlayInputWrap: {
+        marginLeft: s(64),
+        marginTop: s(-5),
+        height: s(36),
+        borderRadius: s(22),
+        backgroundColor: '#fff',
+        flexDirection: 'row',
+        alignItems: 'center',
+        paddingHorizontal: s(12),
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: s(2) },
+        shadowOpacity: 0.1,
+        shadowRadius: s(4),
+        elevation: 3,
+        overflow: 'hidden',
+
+    },
+    overlayInput: {
+        marginLeft: 10,
+        flex: 1,
+        fontSize: s(12.5),
+        color: '#222',
+        fontWeight: '700',
+        fontFamily: 'Poppins_500Medium'
+
+    },
+    clearBtn: { padding: s(6), marginLeft: s(4) },
+
+    /* Results */
+    resultsWrap: {
+        marginTop: s(10),
+        backgroundColor: '#fff',
+        borderRadius: s(12),
+        maxHeight: SCREEN_HEIGHT * 0.6,
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: s(2) },
+        shadowOpacity: 0.15,
+        shadowRadius: s(5),
+        elevation: 4,
+        overflow: 'hidden',
+    },
+    resultRow: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        paddingVertical: s(12),
+        paddingHorizontal: s(12),
+        gap: s(10),
+    },
+    avatarPlaceholder: { width: s(30), alignItems: 'center' },
+    resultHandle: { fontWeight: '700', color: '#111' },
+    resultName: { color: '#666', marginTop: s(2) },
+
+    /* Header search icon */
+    searchIconBtn: {
+        width: dynamicStyles.iconSize + 6,
+        height: dynamicStyles.iconSize + 6,
+        borderRadius: (dynamicStyles.iconSize + 6) / 2,
+        alignItems: 'center',
+        justifyContent: 'center',
+    },
 });

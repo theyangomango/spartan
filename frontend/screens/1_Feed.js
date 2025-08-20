@@ -27,7 +27,6 @@ import isThisUser from "../helper/isThisUser";
 import useFilteredFeed from "../helper/useFilteredFeed";
 import useFilteredStories from '../helper/useFilteredStories';
 
-
 const { width, height } = Dimensions.get("window");
 const TARGET_POSITION = getScrollTargetPosition(width, height),
     SCROLL_THRESHOLD = 30,
@@ -35,7 +34,7 @@ const TARGET_POSITION = getScrollTargetPosition(width, height),
 
 export default function Feed({ navigation, route }) {
     // Use UID from global or route params
-    const UID = "userData" in global ? global.userData.uid : route.params.uid;
+    const UID = "userData" in global ? global.userData.uid : route?.params?.uid;
 
     // State
     const posts = useFilteredFeed(global.userData ? global.userData?.following : []);
@@ -58,11 +57,13 @@ export default function Feed({ navigation, route }) {
     const flatListRef = useRef(null);
     const isTransitioning = useRef(false);      /* 🔒 */
 
+    // Optional: if you keep a local cache of users, pass it to FeedHeader for instant filtering
+    const allUsersRef = useRef([]); // allUsersRef.current = global?.allUsers ?? [];
+
     /* ---------- animated values ---------- */
     const translateY = useRef(new Animated.Value(0)).current;
     const footerOpacity = useRef(new Animated.Value(1)).current;
     const storiesOpacity = useRef(new Animated.Value(1)).current;
-
 
     const handleScroll = e => {
         const y = e.nativeEvent.contentOffset.y;
@@ -70,16 +71,16 @@ export default function Feed({ navigation, route }) {
         setIsScrolledPastTopClip(y > SCROLL_THRESHOLD);
     };
 
-
     // Load user data from Firestore once
     useEffect(() => {
+        if (!UID) return;
         const unsub = onSnapshot(doc(db, "users", UID), snap => {
             userDataRef.current = snap.data();
             global.userData = userDataRef.current; // init of userData has global variable
         });
 
         return () => unsub();
-    }, []);
+    }, [UID]);
 
 
     useEffect(() => {
@@ -88,19 +89,12 @@ export default function Feed({ navigation, route }) {
             setFooterKey,
         });
 
-        initUserFeed(UID);
-    }, []);
+        if (UID) initUserFeed(UID);
+    }, [UID]);
 
-
-    // Update stories only
-    const initStories = async () => {
-        // // Todo: Replace - should just be a client end update
-        // const feedData = await retrieveUserFeed(userDataRef.current);
-        // setStories(feedData[0]);
-    };
 
     // If messages are passed from route, set them
-    useEffect(() => { if ('messages' in route.params) setMessages(route.params.messages); }, [route]);
+    useEffect(() => { if (route?.params?.messages) setMessages(route.params.messages); }, [route?.params?.messages]);
 
 
     /* ---------- focus / unfocus handlers ---------- */
@@ -220,25 +214,7 @@ export default function Feed({ navigation, route }) {
             );
         }
 
-        else {
-            if (Math.abs(focusedPostIndex.current - index) <= 2) {
-                return (
-                    <Animated.View style={[styles.postWrapper, isFocusedPost && { transform: [{ translateY }], zIndex: 1 }]}>
-                        <Post
-                            data={item}
-                            index={index}
-                            openCommentsModal={openCommentsModal}
-                            openShareModal={openShareModal}
-                            isFocused={isSomePostFocused && isFocusedPost}
-                            handleFocusPost={handleFocusPost}
-                            isSomePostFocused={isSomePostFocused}
-                            toViewProfile={toViewProfilePosts}
-                            openViewWorkoutModal={openViewWorkoutModal}
-                        />
-                    </Animated.View>
-                );
-            }
-
+        if (Math.abs(focusedPostIndex.current - index) <= 2) {
             return (
                 <Animated.View style={[styles.postWrapper, isFocusedPost && { transform: [{ translateY }], zIndex: 1 }]}>
                     <Post
@@ -248,24 +224,42 @@ export default function Feed({ navigation, route }) {
                         openShareModal={openShareModal}
                         isFocused={isSomePostFocused && isFocusedPost}
                         handleFocusPost={handleFocusPost}
-                        isSomePostFocused={false}
+                        isSomePostFocused={isSomePostFocused}
                         toViewProfile={toViewProfilePosts}
                         openViewWorkoutModal={openViewWorkoutModal}
                     />
                 </Animated.View>
             );
         }
+
+        return (
+            <Animated.View style={[styles.postWrapper, isFocusedPost && { transform: [{ translateY }], zIndex: 1 }]}>
+                <Post
+                    data={item}
+                    index={index}
+                    openCommentsModal={openCommentsModal}
+                    openShareModal={openShareModal}
+                    isFocused={isSomePostFocused && isFocusedPost}
+                    handleFocusPost={handleFocusPost}
+                    isSomePostFocused={false}
+                    toViewProfile={toViewProfilePosts}
+                    openViewWorkoutModal={openViewWorkoutModal}
+                />
+            </Animated.View>
+        );
     }, [isSomePostFocused, handleFocusPost, openCommentsModal, openShareModal]);
 
 
     return (
         <SafeAreaView style={{ flex: 1, backgroundColor: "#fff" }}>
             <FeedHeader
+                navigation={navigation}
                 toMessagesScreen={toMessagesScreen}
                 onOpenNotifications={handleOpenNotifications}
                 backButton={isSomePostFocused}
                 onBackPress={handleBackPress}
-                scrollToTop={scrollToTop} // Pass scrollToTop function to FeedHeader
+                scrollToTop={scrollToTop}
+                allUsersRef={allUsersRef} // optional; remove to rely on Firestore-only search
             />
 
             <MaskedView
@@ -292,7 +286,7 @@ export default function Feed({ navigation, route }) {
                                         navigation={navigation}
                                         data={storiesData}
                                         userList={storiesUserList}
-                                        initStories={initStories}
+                                        initStories={() => { }}
                                     />
                                 )}
                             </Animated.View>
@@ -324,7 +318,7 @@ export default function Feed({ navigation, route }) {
 const styles = StyleSheet.create({
     mainContainer: { flex: 1, backgroundColor: "#fff" },
     postWrapper: { width: "100%" },
-    maskContainer: isScrolledPastTopClip => ({ // * Mask used to prevent clipping effect when posts are scrolled to top
+    maskContainer: isScrolledPastTopClip => ({
         flex: 1,
         backgroundColor: "#fff",
         borderTopRightRadius: isScrolledPastTopClip ? 35 : 0,
