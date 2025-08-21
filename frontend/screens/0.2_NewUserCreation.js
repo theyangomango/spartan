@@ -1,456 +1,149 @@
 import RNBounceable from '@freakycoder/react-native-bounceable';
 import React, { useState, useRef } from 'react';
-import { View, Text, StyleSheet, TextInput, Dimensions, Keyboard, TouchableWithoutFeedback, Platform, Alert } from 'react-native';
+import { View, Text, StyleSheet, TextInput, Dimensions, Keyboard, TouchableWithoutFeedback } from 'react-native';
 import { Ionicons, Octicons, Feather } from '@expo/vector-icons';
-import createDoc from '../../backend/helper/firebase/createDoc'
-import readDoc from '../../backend/helper/firebase/readDoc'; // Import the function to read from Firestore
+import createDoc from '../../backend/helper/firebase/createDoc';
+import readDoc from '../../backend/helper/firebase/readDoc';
 import makeID from '../../backend/helper/makeID';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import arrayAppend from '../../backend/helper/firebase/arrayAppend';
 
+/* --- NEW: default PFP upload on sign-up --- */
+import uploadImage from '../../backend/storage/uploadImage';
+import { Image as RNImage } from 'react-native';
+import DEFAULT_PFP from '../assets/DEFAULT_PFP.png';
+
 const { width: screenWidth, height: screenHeight } = Dimensions.get('window');
-
 const scale = screenWidth / 375; // Base screen width assumed as 375
-
-function scaleSize(size) {
-    return Math.round(size * scale);
-}
+function scaleSize(size) { return Math.round(size * scale); }
 
 const NewUserCreation = ({ navigation }) => {
     const [emailOrPhone, setEmailOrPhone] = useState('');
     const [username, setUsername] = useState('');
     const [name, setName] = useState('');
     const [password, setPassword] = useState('');
-
     const emailOrPhoneInputRef = useRef(null);
 
-    function goBack() {
-        navigation.goBack();
-    }
+    function goBack() { navigation.goBack(); }
 
     async function signUp() {
-        // Trim and check if any field is empty
-        if (!emailOrPhone.trim() || !username.trim() || !name.trim() || !password.trim()) {
-            return; // Return early if any field is empty
-        }
+        try {
+            // Basic validation
+            if (!emailOrPhone.trim() || !username.trim() || !name.trim() || !password.trim()) return;
 
-        // Convert inputs to lowercase and trim spaces
-        const trimmedEmailOrPhone = emailOrPhone.toLowerCase().trim();
-        const trimmedUsername = username.toLowerCase().trim();
-        const trimmedName = name.trim();
+            const trimmedEmailOrPhone = emailOrPhone.toLowerCase().trim();
+            const trimmedUsername = username.toLowerCase().trim();
+            const trimmedName = name.trim();
 
-        // Fetch existing users to check for duplicate email or phone number
-        const users = await readDoc('global', 'users'); // Fetch all users
+            // Check duplicates
+            const users = await readDoc('global', 'users');
+            const existing = Array.isArray(users?.all) ? users.all : [];
+            const userExists = existing.some(
+                (u) => u.email === trimmedEmailOrPhone || u.phoneNumber === trimmedEmailOrPhone
+            );
+            if (userExists) return;
 
-        // Check if the email or phone number is already in use
-        const userExists = users.all.some(user => {
-            return user.email === trimmedEmailOrPhone || user.phoneNumber === trimmedEmailOrPhone;
-        });
+            const newID = makeID();
 
-        if (userExists) {
-            return; // Return early if email or phone number is already in use
-        }
+            // --- DEFAULT PFP: resolve local asset URI & upload ---
+            // This avoids Asset.downloadAsync; works in Expo & bare RN.
+            const defaultPfpLocalUri = RNImage.resolveAssetSource(DEFAULT_PFP)?.uri;
+            let defaultPfpUrl = '';
+            if (defaultPfpLocalUri) {
+                // Ensure your uploadImage returns the download URL!
+                // e.g., return await getDownloadURL(ref)
+                defaultPfpUrl = await uploadImage(defaultPfpLocalUri, `pfps/${newID}.png`);
+            }
 
-        const newID = makeID();
-        const newUser = {
-            bio: "",
-            completedWorkouts: [],
-            currentWorkout: null,
-            email: trimmedEmailOrPhone.includes('@') ? trimmedEmailOrPhone : null, // Store as email if it's an email
-            phoneNumber: trimmedEmailOrPhone.includes('@') ? null : trimmedEmailOrPhone, // Store as phone number if it's not an email
-            exploreFeedPosts: [],
-            feedPosts: [],
-            feedStories: [{
+            const newUser = {
+                bio: "",
+                completedWorkouts: [],
+                currentWorkout: null,
+                email: trimmedEmailOrPhone.includes('@') ? trimmedEmailOrPhone : null,
+                phoneNumber: trimmedEmailOrPhone.includes('@') ? null : trimmedEmailOrPhone,
+                exploreFeedPosts: [],
+                feedPosts: [],
+                feedStories: [{
+                    handle: trimmedUsername,
+                    name: trimmedName,
+                    pfp: defaultPfpUrl || '',   // use uploaded default
+                    stories: [],
+                    uid: newID
+                }],
+                followerCount: 0,
+                followers: [],
+                following: [],
+                followingCount: 0,
                 handle: trimmedUsername,
+                pfp: defaultPfpUrl || '',
+                image: defaultPfpUrl || '',
+                joined: Date.now(),
+                lastActive: Date.now(),
+                messages: [],
                 name: trimmedName,
-                pfp: 'https://firebasestorage.googleapis.com/v0/b/spartan-8a55f.appspot.com/o/pfps%2Fdefault.jpg?alt=media&token=32983ee5-4732-446d-9484-d551c0aae1d1',
-                stories: [],
-                uid: newID
-            }],
-            followerCount: 0,
-            followers: [],
-            following: [],
-            followingCount: 0,
-            handle: trimmedUsername,
-            pfp: 'https://firebasestorage.googleapis.com/v0/b/spartan-8a55f.appspot.com/o/pfps%2Fdefault.jpg?alt=media&token=32983ee5-4732-446d-9484-d551c0aae1d1',
-            image: 'https://firebasestorage.googleapis.com/v0/b/spartan-8a55f.appspot.com/o/pfps%2Fdefault.jpg?alt=media&token=32983ee5-4732-446d-9484-d551c0aae1d1',
-            joined: Date.now(),
-            lastActive: Date.now(),
-            messages: [],
-            name: trimmedName,
-            notificationEvents: [],
-            notificationNewComments: 0,
-            notificationNewEvents: 0,
-            notificationNewLikes: 0,
-            password: password,
-            postCount: 0,
-            posts: [],
-            progressPhotos: [],
-            savedPosts: [],
-            statsExercises: {},
-            statsHexagon: {
-                overall: 69,
-                abs: 33,
-                legs: 76,
-                chest: 54,
-                back: 39,
-                arms: 80,
-                shoulders: 55
-            },
-            statsTotalHours: 0,
-            statsTotalVolume: 0,
-            statsTotalWorkouts: 0,
-            templates: [
-                {
-                    exercises: [
-                        {
-                            muscle: 'Chest',
-                            name: 'Bench Press (Barbell)',
-                            sets: [
-                                {
-                                    previous: null,
-                                    reps: 0,
-                                    weight: 0,
-                                },
-                                {
-                                    previous: null,
-                                    reps: 0,
-                                    weight: 0,
-                                },
-                                {
-                                    previous: null,
-                                    reps: 0,
-                                    weight: 0,
-                                },
-                            ]
-                        },
-                        {
-                            muscle: 'Chest',
-                            name: 'Incline Bench (Barbell)',
-                            sets: [
-                                {
-                                    previous: null,
-                                    reps: 0,
-                                    weight: 0,
-                                },
-                                {
-                                    previous: null,
-                                    reps: 0,
-                                    weight: 0,
-                                },
-                                {
-                                    previous: null,
-                                    reps: 0,
-                                    weight: 0,
-                                },
-                            ]
-                        },
-                        {
-                            muscle: 'Chest',
-                            name: 'Chest Fly (Machine)',
-                            sets: [
-                                {
-                                    previous: null,
-                                    reps: 0,
-                                    weight: 0,
-                                },
-                                {
-                                    previous: null,
-                                    reps: 0,
-                                    weight: 0,
-                                },
-                                {
-                                    previous: null,
-                                    reps: 0,
-                                    weight: 0,
-                                },
-                            ]
-                        },
-                        {
-                            muscle: 'Shoulders',
-                            name: 'Shoulder Press (Machine)',
-                            sets: [
-                                {
-                                    previous: null,
-                                    reps: 0,
-                                    weight: 0,
-                                },
-                                {
-                                    previous: null,
-                                    reps: 0,
-                                    weight: 0,
-                                },
-                                {
-                                    previous: null,
-                                    reps: 0,
-                                    weight: 0,
-                                },
-                            ]
-                        },
-                        {
-                            muscle: 'Arms',
-                            name: 'Standing Tricep Extension (Dumbbell)',
-                            sets: [
-                                {
-                                    previous: null,
-                                    reps: 0,
-                                    weight: 0,
-                                },
-                                {
-                                    previous: null,
-                                    reps: 0,
-                                    weight: 0,
-                                },
-                                {
-                                    previous: null,
-                                    reps: 0,
-                                    weight: 0,
-                                },
-                            ]
-                        },
-                    ],
-                    lastDate: null,
-                    name: 'Push (Spartan)',
-                    tid: makeID()
+                notificationEvents: [],
+                notificationNewComments: 0,
+                notificationNewEvents: 0,
+                notificationNewLikes: 0,
+                password: password,
+                postCount: 0,
+                posts: [],
+                progressPhotos: [],
+                savedPosts: [],
+                statsExercises: {},
+                statsHexagon: {
+                    overall: 69, abs: 33, legs: 76, chest: 54, back: 39, arms: 80, shoulders: 55
                 },
-                {
-                    exercises: [
-                        {
-                            muscle: 'Back',
-                            name: 'Pull-Up (Assisted)',
-                            sets: [
-                                {
-                                    previous: null,
-                                    reps: 0,
-                                    weight: 0,
-                                },
-                                {
-                                    previous: null,
-                                    reps: 0,
-                                    weight: 0,
-                                },
-                                {
-                                    previous: null,
-                                    reps: 0,
-                                    weight: 0,
-                                },
-                            ]
-                        },
-                        {
-                            muscle: 'Back',
-                            name: 'Seated Row (Machine)',
-                            sets: [
-                                {
-                                    previous: null,
-                                    reps: 0,
-                                    weight: 0,
-                                },
-                                {
-                                    previous: null,
-                                    reps: 0,
-                                    weight: 0,
-                                },
-                                {
-                                    previous: null,
-                                    reps: 0,
-                                    weight: 0,
-                                },
-                            ]
-                        },
-                        {
-                            muscle: 'Shoulders',
-                            name: 'Lateral Raise (Dumbell)',
-                            sets: [
-                                {
-                                    previous: null,
-                                    reps: 0,
-                                    weight: 0,
-                                },
-                                {
-                                    previous: null,
-                                    reps: 0,
-                                    weight: 0,
-                                },
-                                {
-                                    previous: null,
-                                    reps: 0,
-                                    weight: 0,
-                                },
-                            ]
-                        },
-                        {
-                            muscle: 'Shoulders',
-                            name: 'Front Raise (Dumbell)',
-                            sets: [
-                                {
-                                    previous: null,
-                                    reps: 0,
-                                    weight: 0,
-                                },
-                                {
-                                    previous: null,
-                                    reps: 0,
-                                    weight: 0,
-                                },
-                                {
-                                    previous: null,
-                                    reps: 0,
-                                    weight: 0,
-                                },
-                            ]
-                        },
-                        {
-                            muscle: 'Arms',
-                            name: 'Preacher Curl (Machine)',
-                            sets: [
-                                {
-                                    previous: null,
-                                    reps: 0,
-                                    weight: 0,
-                                },
-                                {
-                                    previous: null,
-                                    reps: 0,
-                                    weight: 0,
-                                },
-                                {
-                                    previous: null,
-                                    reps: 0,
-                                    weight: 0,
-                                },
-                            ]
-                        },
-                    ],
-                    lastDate: null,
-                    name: 'Pull (Spartan)',
-                    tid: makeID()
-                },
-                {
-                    exercises: [
-                        {
-                            muscle: 'Legs',
-                            name: 'Leg Press (Machine)',
-                            sets: [
-                                {
-                                    previous: null,
-                                    reps: 0,
-                                    weight: 0,
-                                },
-                                {
-                                    previous: null,
-                                    reps: 0,
-                                    weight: 0,
-                                },
-                                {
-                                    previous: null,
-                                    reps: 0,
-                                    weight: 0,
-                                },
-                            ]
-                        },
-                        {
-                            muscle: 'Legs',
-                            name: 'Calf Raise on Leg Press (Machine)',
-                            sets: [
-                                {
-                                    previous: null,
-                                    reps: 0,
-                                    weight: 0,
-                                },
-                                {
-                                    previous: null,
-                                    reps: 0,
-                                    weight: 0,
-                                },
-                                {
-                                    previous: null,
-                                    reps: 0,
-                                    weight: 0,
-                                },
-                            ]
-                        },
-                        {
-                            muscle: 'Legs',
-                            name: 'Glute-Ham Raise',
-                            sets: [
-                                {
-                                    previous: null,
-                                    reps: 0,
-                                    weight: 0,
-                                },
-                                {
-                                    previous: null,
-                                    reps: 0,
-                                    weight: 0,
-                                },
-                                {
-                                    previous: null,
-                                    reps: 0,
-                                    weight: 0,
-                                },
-                            ]
-                        },
-                        {
-                            muscle: 'Legs',
-                            name: 'Hip Adduction (Machine)',
-                            sets: [
-                                {
-                                    previous: null,
-                                    reps: 0,
-                                    weight: 0,
-                                },
-                                {
-                                    previous: null,
-                                    reps: 0,
-                                    weight: 0,
-                                },
-                                {
-                                    previous: null,
-                                    reps: 0,
-                                    weight: 0,
-                                },
-                            ]
-                        },
-                        {
-                            muscle: 'Legs',
-                            name: 'Leg Extension (Machine)',
-                            sets: [
-                                {
-                                    previous: null,
-                                    reps: 0,
-                                    weight: 0,
-                                },
-                                {
-                                    previous: null,
-                                    reps: 0,
-                                    weight: 0,
-                                },
-                                {
-                                    previous: null,
-                                    reps: 0,
-                                    weight: 0,
-                                },
-                            ]
-                        },
-                    ],
-                    lastDate: null,
-                    name: 'Legs (Spartan)',
-                    tid: makeID()
-                }
-            ],
-            uid: newID,
-        };
+                statsTotalHours: 0,
+                statsTotalVolume: 0,
+                statsTotalWorkouts: 0,
+                templates: [
+                    {
+                        exercises: [
+                            { muscle: 'Chest', name: 'Bench Press (Barbell)', sets: [{ previous: null, reps: 0, weight: 0 }, { previous: null, reps: 0, weight: 0 }, { previous: null, reps: 0, weight: 0 }] },
+                            { muscle: 'Chest', name: 'Incline Bench (Barbell)', sets: [{ previous: null, reps: 0, weight: 0 }, { previous: null, reps: 0, weight: 0 }, { previous: null, reps: 0, weight: 0 }] },
+                            { muscle: 'Chest', name: 'Chest Fly (Machine)', sets: [{ previous: null, reps: 0, weight: 0 }, { previous: null, reps: 0, weight: 0 }, { previous: null, reps: 0, weight: 0 }] },
+                            { muscle: 'Shoulders', name: 'Shoulder Press (Machine)', sets: [{ previous: null, reps: 0, weight: 0 }, { previous: null, reps: 0, weight: 0 }, { previous: null, reps: 0, weight: 0 }] },
+                            { muscle: 'Arms', name: 'Standing Tricep Extension (Dumbbell)', sets: [{ previous: null, reps: 0, weight: 0 }, { previous: null, reps: 0, weight: 0 }, { previous: null, reps: 0, weight: 0 }] },
+                        ],
+                        lastDate: null, name: 'Push (Spartan)', tid: makeID()
+                    },
+                    {
+                        exercises: [
+                            { muscle: 'Back', name: 'Pull-Up (Assisted)', sets: [{ previous: null, reps: 0, weight: 0 }, { previous: null, reps: 0, weight: 0 }, { previous: null, reps: 0, weight: 0 }] },
+                            { muscle: 'Back', name: 'Seated Row (Machine)', sets: [{ previous: null, reps: 0, weight: 0 }, { previous: null, reps: 0, weight: 0 }, { previous: null, reps: 0, weight: 0 }] },
+                            { muscle: 'Shoulders', name: 'Lateral Raise (Dumbell)', sets: [{ previous: null, reps: 0, weight: 0 }, { previous: null, reps: 0, weight: 0 }, { previous: null, reps: 0, weight: 0 }] },
+                            { muscle: 'Shoulders', name: 'Front Raise (Dumbell)', sets: [{ previous: null, reps: 0, weight: 0 }, { previous: null, reps: 0, weight: 0 }, { previous: null, reps: 0, weight: 0 }] },
+                            { muscle: 'Arms', name: 'Preacher Curl (Machine)', sets: [{ previous: null, reps: 0, weight: 0 }, { previous: null, reps: 0, weight: 0 }, { previous: null, reps: 0, weight: 0 }] },
+                        ],
+                        lastDate: null, name: 'Pull (Spartan)', tid: makeID()
+                    },
+                    {
+                        exercises: [
+                            { muscle: 'Legs', name: 'Leg Press (Machine)', sets: [{ previous: null, reps: 0, weight: 0 }, { previous: null, reps: 0, weight: 0 }, { previous: null, reps: 0, weight: 0 }] },
+                            { muscle: 'Legs', name: 'Calf Raise on Leg Press (Machine)', sets: [{ previous: null, reps: 0, weight: 0 }, { previous: null, reps: 0, weight: 0 }, { previous: null, reps: 0, weight: 0 }] },
+                            { muscle: 'Legs', name: 'Glute-Ham Raise', sets: [{ previous: null, reps: 0, weight: 0 }, { previous: null, reps: 0, weight: 0 }, { previous: null, reps: 0, weight: 0 }] },
+                            { muscle: 'Legs', name: 'Hip Adduction (Machine)', sets: [{ previous: null, reps: 0, weight: 0 }, { previous: null, reps: 0, weight: 0 }, { previous: null, reps: 0, weight: 0 }] },
+                            { muscle: 'Legs', name: 'Leg Extension (Machine)', sets: [{ previous: null, reps: 0, weight: 0 }, { previous: null, reps: 0, weight: 0 }, { previous: null, reps: 0, weight: 0 }] },
+                        ],
+                        lastDate: null, name: 'Legs (Spartan)', tid: makeID()
+                    }
+                ],
+                uid: newID,
+            };
 
-        AsyncStorage.setItem('uid', newID, () => {
-            console.log('async storage set uid');
-        });
+            // Persist uid (await so errors don’t surface as unhandled)
+            await AsyncStorage.setItem('uid', newID);
 
-        // Proceed with the account creation
-        arrayAppend('global', 'users', 'all', newUser);
-        await createDoc('users', newID, newUser);
-        navigation.navigate('FeedStack', { uid: newID });
+            // Write to Firestore (await BOTH)
+            await arrayAppend('global', 'users', 'all', newUser);
+            await createDoc('users', newID, newUser);
+
+            navigation.navigate('FeedStack', { uid: newID });
+        } catch (err) {
+            console.warn('Sign-up failed:', err?.message || err);
+        }
     }
-
 
     return (
         <TouchableWithoutFeedback onPress={Keyboard.dismiss} accessible={false}>
@@ -466,7 +159,6 @@ const NewUserCreation = ({ navigation }) => {
 
                 <View style={styles.formWrapper}>
                     <View style={styles.formContainer}>
-
                         <Text style={styles.title}>Enter Name</Text>
                         <TextInput
                             style={styles.input}
@@ -520,10 +212,7 @@ const NewUserCreation = ({ navigation }) => {
 };
 
 const styles = StyleSheet.create({
-    container: {
-        flex: 1,
-        backgroundColor: '#fff',
-    },
+    container: { flex: 1, backgroundColor: '#fff' },
     iconContainer: {
         position: 'absolute',
         top: '6%',
@@ -533,21 +222,10 @@ const styles = StyleSheet.create({
         justifyContent: 'space-between',
         zIndex: 1,
     },
-    backIcon: {
-        paddingHorizontal: scaleSize(8),
-        paddingVertical: scaleSize(6),
-    },
-    helpIcon: {
-        padding: scaleSize(8),
-    },
-    formWrapper: {
-        flex: 1,
-        paddingTop: scaleSize(screenHeight * 0.15),
-    },
-    formContainer: {
-        alignItems: 'center',
-        paddingHorizontal: scaleSize(22),
-    },
+    backIcon: { paddingHorizontal: scaleSize(8), paddingVertical: scaleSize(6) },
+    helpIcon: { padding: scaleSize(8) },
+    formWrapper: { flex: 1, paddingTop: scaleSize(screenHeight * 0.15) },
+    formContainer: { alignItems: 'center', paddingHorizontal: scaleSize(22) },
     title: {
         fontSize: scaleSize(15),
         fontWeight: '400',
