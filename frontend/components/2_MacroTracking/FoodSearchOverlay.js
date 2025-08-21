@@ -12,17 +12,12 @@ import {
     FlatList,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import RNBounceable from '@freakycoder/react-native-bounceable';
 import SearchResultCard from './SearchResultCard';
 
 // 🔥 FIREBASE (adjust path if your firebase.config is elsewhere)
 import { db } from '../../../firebase.config';
-import {
-    collection,
-    getDocs,
-    orderBy,
-    query,
-    limit,
-} from 'firebase/firestore';
+import { collection, getDocs, orderBy, query, limit } from 'firebase/firestore';
 
 export default function FoodSearchOverlay({
     visible,
@@ -32,7 +27,7 @@ export default function FoodSearchOverlay({
     searchResults,
     onClose,
     COLORS,
-    onSelectResult, // <- make sure you pass this from the parent (MacroTracking)
+    onSelectResult, // parent still handles add + closing overlay
 }) {
     const styles = useMemo(() => makeStyles(COLORS), [COLORS]);
 
@@ -56,45 +51,68 @@ export default function FoodSearchOverlay({
             }));
 
             setRecentFoods(items);
-        } catch (e) {
-            // fail silently (history is optional)
+        } catch {
             setRecentFoods([]);
         }
     }, []);
 
-    // Load history whenever overlay opens (and when user clears search)
     useEffect(() => {
         if (!visible) return;
         loadRecentFoods();
     }, [visible, loadRecentFoods]);
 
+    /* ---------------- Portion Picker (inside this overlay) ---------------- */
+    const [portionVisible, setPortionVisible] = useState(false);
+    const [pendingFood, setPendingFood] = useState(null);
+    const [portionInput, setPortionInput] = useState('1'); // accepts "0.5" or "1/3"
+
+    const openPortion = (food) => {
+        setPendingFood(food);
+        setPortionInput('1');
+        setPortionVisible(true);
+    };
+    const cancelPortion = () => {
+        setPortionVisible(false);
+        setPendingFood(null);
+    };
+    const quickSet = (v) => setPortionInput(v);
+
+    const parsePortion = (s) => {
+        const t = String(s || '').trim();
+        if (!t) return 1;
+        if (t.includes('/')) {
+            const [a, b] = t.split('/').map((x) => parseFloat(x));
+            const v = (a && b) ? (a / b) : NaN;
+            return Number.isFinite(v) && v > 0 ? v : 1;
+        }
+        const v = parseFloat(t);
+        return Number.isFinite(v) && v > 0 ? v : 1;
+    };
+
+    const confirmPortion = () => {
+        const factor = parsePortion(portionInput);
+        // Pass the multiplier back to parent; parent will add + close overlay
+        onSelectResult?.({ ...pendingFood, __portionMultiplier: factor });
+        setPortionVisible(false);
+        setPendingFood(null);
+    };
+
     // ---- Renderers
     const renderSearchItem = ({ item }) => (
-        <SearchResultCard
-            item={item}
-            onPressPlus={() => onSelectResult?.(item)}
-        />
+        <SearchResultCard item={item} onPressPlus={() => openPortion(item)} />
     );
 
     const renderHistoryItem = ({ item }) => {
-        // map history shape to the search card shape
         const mapped = {
             food_id: item.foodId || item.id,
             food_name: item.name || '',
             brand_name: item.brand || '',
             food_description: item.description || '',
         };
-        return (
-            <SearchResultCard
-                item={mapped}
-                onPressPlus={() => onSelectResult?.(mapped)}
-            />
-        );
+        return <SearchResultCard item={mapped} onPressPlus={() => openPortion(mapped)} />;
     };
 
-    // Footer that shows recent foods below the results
     const HistoryFooter = () => {
-        // Only show when there's no active query (cleaner UX)
         if (!visible || (searchQuery && searchQuery.trim().length > 0)) return null;
         if (!recentFoods?.length) return null;
 
@@ -171,6 +189,58 @@ export default function FoodSearchOverlay({
                         ListFooterComponent={<HistoryFooter />}
                     />
                 </KeyboardAvoidingView>
+
+                {/* -------- Portion Picker (inline modal over this overlay) -------- */}
+                <Modal
+                    visible={portionVisible}
+                    transparent
+                    animationType="fade"
+                    onRequestClose={cancelPortion}
+                >
+                    <View style={styles.modalBackdrop}>
+                        <View style={styles.modalCard}>
+                            <Text style={styles.modalTitle}>How much did you eat?</Text>
+
+                            <View style={styles.quickRow}>
+                                {['1/4', '1/3', '1/2', '2/3', '3/4', '1'].map((v) => (
+                                    <RNBounceable
+                                        key={v}
+                                        style={[styles.chip, portionInput === v && styles.chipActive]}
+                                        onPress={() => quickSet(v)}
+                                    >
+                                        <Text style={[styles.chipText, portionInput === v && styles.chipTextActive]}>
+                                            {v}
+                                        </Text>
+                                    </RNBounceable>
+                                ))}
+                            </View>
+
+                            <View style={styles.customRow}>
+                                <Text style={styles.customLabel}>Custom</Text>
+                                <TextInput
+                                    value={portionInput}
+                                    onChangeText={setPortionInput}
+                                    placeholder="e.g. 0.4 or 1/3"
+                                    placeholderTextColor="#aaa"
+                                    style={styles.customInput}
+                                    keyboardType="decimal-pad"
+                                />
+                            </View>
+
+                            <View style={styles.modalButtons}>
+                                <RNBounceable style={[styles.modalBtn, styles.cancelBtn]} onPress={cancelPortion}>
+                                    <Text style={[styles.modalBtnText, styles.cancelBtnText]}>Cancel</Text>
+                                </RNBounceable>
+                                <RNBounceable
+                                    style={[styles.modalBtn, styles.confirmBtn]}
+                                    onPress={confirmPortion}
+                                >
+                                    <Text style={[styles.modalBtnText, styles.confirmBtnText]}>Add</Text>
+                                </RNBounceable>
+                            </View>
+                        </View>
+                    </View>
+                </Modal>
             </View>
         </Modal>
     );
@@ -229,4 +299,71 @@ const makeStyles = (COLORS) =>
             color: COLORS.textSecondary,
             fontFamily: 'Outfit_600SemiBold',
         },
+
+        /* Portion modal styles */
+        modalBackdrop: {
+            flex: 1,
+            backgroundColor: 'rgba(0,0,0,0.35)',
+            alignItems: 'center',
+            justifyContent: 'center',
+        },
+        modalCard: {
+            width: '86%',
+            backgroundColor: '#fff',
+            borderRadius: 18,
+            paddingVertical: 18,
+            paddingHorizontal: 16,
+        },
+        modalTitle: {
+            fontFamily: 'Outfit_600SemiBold',
+            fontSize: 16,
+            color: '#111',
+            marginBottom: 12,
+        },
+        quickRow: {
+            flexDirection: 'row',
+            flexWrap: 'wrap',
+            gap: 8,
+            marginBottom: 12,
+        },
+        chip: {
+            paddingVertical: 8,
+            paddingHorizontal: 12,
+            borderRadius: 999,
+            backgroundColor: '#f1f4f7',
+        },
+        chipActive: { backgroundColor: '#dbeafe' },
+        chipText: { fontFamily: 'Outfit_500Medium', color: '#333' },
+        chipTextActive: { color: '#1d4ed8' },
+        customRow: {
+            flexDirection: 'row',
+            alignItems: 'center',
+            gap: 10,
+            marginBottom: 14,
+        },
+        customLabel: { fontFamily: 'Outfit_500Medium', color: '#555' },
+        customInput: {
+            flex: 1,
+            paddingVertical: 10,
+            paddingHorizontal: 12,
+            borderRadius: 10,
+            backgroundColor: '#f6f6f6',
+            fontFamily: 'Outfit_500Medium',
+            color: '#111',
+        },
+        modalButtons: {
+            flexDirection: 'row',
+            justifyContent: 'flex-end',
+            gap: 10,
+        },
+        modalBtn: {
+            paddingVertical: 10,
+            paddingHorizontal: 16,
+            borderRadius: 10,
+        },
+        cancelBtn: { backgroundColor: '#efefef' },
+        confirmBtn: { backgroundColor: '#55A8FF' },
+        modalBtnText: { fontFamily: 'Outfit_600SemiBold', fontSize: 14 },
+        cancelBtnText: { color: '#333' },
+        confirmBtnText: { color: '#fff' },
     });

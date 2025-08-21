@@ -87,7 +87,7 @@ export default function App() {
     }, []);
 
     async function init() {
-        AsyncStorage.clear();
+        // AsyncStorage.clear();
 
         try {
             const uid = await AsyncStorage.getItem('uid'); // user ID is stored within the device's async storage

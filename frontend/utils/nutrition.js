@@ -1,5 +1,72 @@
 // utils/nutrition.js
-export const parseMacrosFromDescription = (desc = '') => {
+
+/** Turn "0.5" or "1/3" (or number) into a positive number; defaults to 1 */
+export const coercePortion = (q) => {
+    if (q == null) return 1;
+    if (typeof q === 'number') return Number.isFinite(q) && q > 0 ? q : 1;
+    const s = String(q).trim();
+    if (!s) return 1;
+    if (s.includes('/')) {
+        const [a, b] = s.split('/').map(Number);
+        const v = a && b ? a / b : NaN;
+        return Number.isFinite(v) && v > 0 ? v : 1;
+    }
+    const v = Number(s);
+    return Number.isFinite(v) && v > 0 ? v : 1;
+};
+
+const toNumberString = (n) => {
+    // show integers without decimals; else up to 2 decimals
+    return Math.abs(n - Math.round(n)) < 1e-6 ? String(Math.round(n)) : String(+n.toFixed(2));
+};
+
+const gcd = (a, b) => {
+    a = Math.abs(a); b = Math.abs(b);
+    while (b) { const t = b; b = a % b; a = t; }
+    return a || 1;
+};
+
+const toSimpleFraction = (x, maxDen = 64) => {
+    if (!Number.isFinite(x) || x <= 0) return null;
+    // handle whole numbers simply
+    if (Math.abs(x - Math.round(x)) < 1e-6) return String(Math.round(x));
+    // try rational approximation
+    let bestNum = 1, bestDen = 1, bestErr = Infinity;
+    for (let den = 1; den <= maxDen; den++) {
+        const num = Math.round(x * den);
+        const err = Math.abs(x - num / den);
+        if (err < bestErr) { bestNum = num; bestDen = den; bestErr = err; }
+        if (bestErr < 1e-6) break;
+    }
+    const g = gcd(bestNum, bestDen);
+    bestNum /= g; bestDen /= g;
+
+    // represent as mixed or proper fraction (favor simple “a/b” for < 1)
+    if (bestNum >= bestDen) {
+        const whole = Math.floor(bestNum / bestDen);
+        const rem = bestNum % bestDen;
+        if (rem === 0) return String(whole);
+        return `${whole} ${rem}/${bestDen}`;
+    }
+    return `${bestNum}/${bestDen}`;
+};
+
+export const scaleMacros = (m = {}, quantity = 1) => {
+    const q = coercePortion(quantity);
+    const c = m.calories || 0, p = m.protein || 0, cb = m.carbs || 0, f = m.fat || 0;
+    return {
+        calories: c * q,
+        protein: p * q,
+        carbs: cb * q,
+        fat: f * q,
+    };
+};
+
+/**
+ * Parse macros from a description string (FatSecret-style) and scale by `quantity`.
+ * - `quantity` can be a number (e.g., 0.5) or a string ("1/3", "0.4").
+ */
+export const parseMacrosFromDescription = (desc = '', quantity = 1) => {
     const text = String(desc);
 
     let cal = 0;
@@ -21,12 +88,14 @@ export const parseMacrosFromDescription = (desc = '') => {
         return m ? parseFloat(m[1]) : 0;
     })();
 
-    return {
+    const base = {
         calories: Number.isFinite(cal) ? cal : 0,
         protein: Number.isFinite(prot) ? prot : 0,
         carbs: Number.isFinite(carbs) ? carbs : 0,
         fat: Number.isFinite(fat) ? fat : 0,
     };
+
+    return scaleMacros(base, quantity);
 };
 
 export const formatPortion = (qty, unit) => {
@@ -37,33 +106,53 @@ export const formatPortion = (qty, unit) => {
     return `${qty} ${unit?.trim?.() ?? ''}`;
 };
 
-export const summarizeFood = (desc = '', brand = '') => {
-    const kcalMatch = desc.match(/(\d+)\s?(?:kcal|cal(?:ories)?)\b/i);
-    const calories = kcalMatch ? `${kcalMatch[1]} kcal` : '';
+/**
+ * Summarize a description string and SCALE all numerics by `quantity`.
+ * Examples when quantity = 0.5:
+ *  - "100 g"      -> "50 g"
+ *  - "20 kcal"    -> "10 kcal"
+ *  - "Per 1/4 cup"-> "Per 1/8 cup"
+ */
+export const summarizeFood = (desc = '', brand = '', quantity = 1) => {
+    const q = coercePortion(quantity);
+    const text = String(desc);
 
-    const perServing = /\bper\b\s*(?:\d+(?:\s*\/\s*\d+)?(?:\.\d+)?)?\s*serving\b/i.test(desc);
-    if (perServing) return [calories, brand].filter(Boolean).join(', ');
+    // Calories anywhere (prefer first seen)
+    const kcalMatch = text.match(/(\d+(?:\.\d+)?)\s?(?:kcal|cal(?:ories)?)\b/i);
+    const scaledCalories = kcalMatch ? `${toNumberString(parseFloat(kcalMatch[1]) * q)} kcal` : '';
 
-    const perFraction = desc.match(/\bper\b\s*(\d+\s*\/\s*\d+)\s*([a-zA-Z]+(?:\s+[a-zA-Z]+){0,2})/i);
+    // "per serving" case → just show scaled calories + brand
+    const perServing = /\bper\b\s*(?:\d+(?:\s*\/\s*\d+)?(?:\.\d+)?)?\s*serving\b/i.test(text);
+    if (perServing) return [scaledCalories, brand].filter(Boolean).join(', ');
+
+    // Prefer fraction units: "Per 1/4 cup"
+    const perFraction = text.match(/\bper\b\s*(\d+\s*\/\s*\d+)\s*([a-zA-Z]+(?:\s+[a-zA-Z]+){0,2})/i);
     if (perFraction) {
-        const qty = perFraction[1].replace(/\s*/g, '');
-        const unit = perFraction[2].trim();
+        const [_, frac, unitRaw] = perFraction;
+        const [num, den] = frac.replace(/\s*/g, '').split('/').map(Number);
+        const baseQty = (num && den) ? (num / den) : 1;
+        const scaledQty = baseQty * q;
+        const fracOut = toSimpleFraction(scaledQty) || toNumberString(scaledQty);
+        const unit = unitRaw.trim();
         if (unit.toLowerCase() !== 'serving') {
-            return [calories, formatPortion(qty, unit), brand].filter(Boolean).join(', ');
+            return [scaledCalories, formatPortion(fracOut, unit), brand].filter(Boolean).join(', ');
         }
     }
 
-    const perUnit = desc.match(/\bper\b\s*(\d+(?:\.\d+)?)\s*([a-zA-Z]+(?:\s+[a-zA-Z]+){0,2})/i);
+    // Then decimals/integers: "Per 100 g", "Per 2 tbsp"
+    const perUnit = text.match(/\bper\b\s*(\d+(?:\.\d+)?)\s*([a-zA-Z]+(?:\s+[a-zA-Z]+){0,2})/i);
     if (perUnit) {
-        const qty = perUnit[1];
+        const qty = parseFloat(perUnit[1]);
         const unit = perUnit[2].trim();
+        const scaledQty = qty * q;
         if (unit.toLowerCase() !== 'serving') {
-            return [calories, formatPortion(qty, unit), brand].filter(Boolean).join(', ');
+            return [scaledCalories, formatPortion(toNumberString(scaledQty), unit), brand].filter(Boolean).join(', ');
         }
     }
 
-    const gramMatch = desc.match(/(\d+)\s?g\b/i);
-    const grams = gramMatch ? `${gramMatch[1]}g` : '';
+    // Fallback grams anywhere → scale them
+    const gramMatch = text.match(/(\d+(?:\.\d+)?)\s?g\b/i);
+    const grams = gramMatch ? `${toNumberString(parseFloat(gramMatch[1]) * q)}g` : '';
 
-    return [calories, grams, brand].filter(Boolean).join(', ');
+    return [scaledCalories, grams, brand].filter(Boolean).join(', ');
 };

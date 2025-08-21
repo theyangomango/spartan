@@ -104,9 +104,10 @@ export default function MacroTracking({ navigation }) {
         setSearchQuery('');
         setSearchResults([]);
     };
+    // IMPORTANT: overlay now provides __portionMultiplier on food
     const onSelectResult = async (food) => {
         if (!activeMeal) return;
-        addFood(activeMeal, food);
+        await addFood(activeMeal, food);  // food may contain __portionMultiplier
         closeSearch();
     };
 
@@ -194,7 +195,7 @@ export default function MacroTracking({ navigation }) {
                                     COLORS={COLORS}
                                     listStyle={styles.underMealList}
                                     cardStyle={styles.underMealCard}
-                                    renderSummary={(entry) => summarizeFood(entry.desc, entry.brand)}
+                                    renderSummary={(entry) => summarizeFood(entry.desc, entry.brand, entry.quantity ?? 1)}
                                     onDelete={(entry) => deleteFood(m.name, entry)}
                                 />
                             )}

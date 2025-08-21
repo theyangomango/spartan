@@ -8,7 +8,6 @@ import {
     query,
     setDoc,
     serverTimestamp,
-    addDoc,
     deleteDoc,
     increment,
     onSnapshot,
@@ -18,7 +17,7 @@ import { toDayKey } from '../utils/date';
 import { parseMacrosFromDescription } from '../utils/nutrition';
 
 const normalizeMealKey = (t = '') => {
-    const s = t.toLowerCase();
+    const s = String(t || '').toLowerCase();
     if (s.startsWith('break')) return 'Breakfast';
     if (s.startsWith('lunch')) return 'Lunch';
     if (s.startsWith('dinn')) return 'Dinner';
@@ -27,6 +26,11 @@ const normalizeMealKey = (t = '') => {
 
 const emptyBuckets = () => ({ Breakfast: [], Lunch: [], Dinner: [] });
 
+/**
+ * Build meals/totals from a Firestore snapshot of entries.
+ * - If the entry already stored `macros`, we trust those (assumed scaled).
+ * - Otherwise, we parse and scale by its `quantity` (default 1).
+ */
 const buildFromSnap = (snap) => {
     const meals = emptyBuckets();
     const totals = { calories: 0, protein: 0, carbs: 0, fat: 0 };
@@ -34,12 +38,22 @@ const buildFromSnap = (snap) => {
     snap.forEach((d) => {
         const data = d.data() || {};
         const bucket = normalizeMealKey(data.mealType);
-        const m = data.macros || parseMacrosFromDescription(data.description || data.desc || '');
 
-        totals.calories += m?.calories || 0;
-        totals.protein += m?.protein || 0;
-        totals.carbs += m?.carbs || 0;
-        totals.fat += m?.fat || 0;
+        const qty = typeof data.quantity === 'number' ? data.quantity : 1;
+        // Use stored macros if present (they may already be scaled). Otherwise parse+scale now.
+        const m = data.macros
+            ? {
+                calories: Number(data.macros.calories) || 0,
+                protein: Number(data.macros.protein) || 0,
+                carbs: Number(data.macros.carbs) || 0,
+                fat: Number(data.macros.fat) || 0,
+            }
+            : parseMacrosFromDescription(data.description || data.desc || '', qty);
+
+        totals.calories += m.calories || 0;
+        totals.protein += m.protein || 0;
+        totals.carbs += m.carbs || 0;
+        totals.fat += m.fat || 0;
 
         meals[bucket].push({
             key: d.id,
@@ -47,7 +61,8 @@ const buildFromSnap = (snap) => {
             name: data.name || '',
             brand: data.brand || '',
             desc: data.description || data.desc || '',
-            macros: m,
+            macros: m,       // display-ready (scaled if needed)
+            quantity: qty,   // keep for badge/UX if desired
         });
     });
 
@@ -76,7 +91,7 @@ export function useFoodLogs(dateObj) {
 
         const dk = toDayKey(dateObj);
 
-        // 1) show cached immediately if present
+        // show cached immediately if present
         const cached = cacheRef.current.get(dk);
         if (cached) {
             setMeals(cached.meals);
@@ -87,7 +102,7 @@ export function useFoodLogs(dateObj) {
             setTotals({ calories: 0, protein: 0, carbs: 0, fat: 0 });
         }
 
-        // 2) realtime subscribe for focused day
+        // realtime subscribe for focused day
         if (unsubRef.current) {
             unsubRef.current();
             unsubRef.current = null;
@@ -108,7 +123,7 @@ export function useFoodLogs(dateObj) {
             () => { }
         );
 
-        // 3) preload neighbors
+        // preload neighbors
         preloadNeighbors(userId, dateObj, cacheRef);
 
         return () => {
@@ -119,7 +134,12 @@ export function useFoodLogs(dateObj) {
         };
     }, [dateObj]);
 
-    // Replace your existing addFood with this version
+    /**
+     * Add a food entry.
+     * - Expects `food` in FatSecret shape.
+     * - If `food.__portionMultiplier` is provided, we pass it to parseMacrosFromDescription
+     *   so numbers are already scaled when saved & displayed.
+     */
     const addFood = async (mealName, food) => {
         const userId = global?.userData?.id || global?.userData?.uid;
         if (!userId || !mealName) return;
@@ -127,33 +147,37 @@ export function useFoodLogs(dateObj) {
         const dk = toDayKey(dateObj);
         const dayRef = doc(db, 'users', userId, 'foodLogs', dk);
 
-        // Build payload + macros
-        const macros = parseMacrosFromDescription(food.food_description || '');
+        const factor = food?.__portionMultiplier ?? 1;
+
+        // Parse & SCALE macros directly here (per the new utils behavior)
+        const macros = parseMacrosFromDescription(food.food_description || '', factor);
+
         const payload = {
-            mealType: mealName.toLowerCase(),
+            mealType: String(mealName || '').toLowerCase(), // 'breakfast'|'lunch'|'dinner'
             name: food.food_name || '',
             brand: food.brand_name || '',
             foodId: String(food.food_id ?? ''),
             description: food.food_description || '',
             source: 'fatsecret',
-            quantity: 1,
-            macros,
+            quantity: factor,                 // store chosen portion
+            macros,                           // store scaled macros for fast reads
             createdAt: serverTimestamp(),
             updatedAt: serverTimestamp(),
         };
 
-        // Pre-generate a doc ID so we can update UI instantly (no waiting)
+        // Pre-generate a doc ID so UI updates instantly
         const entryRef = doc(collection(dayRef, 'entries'));
         const newId = entryRef.id;
 
-        // ---- Optimistic UI update (instant)
+        // Optimistic UI entry
         const entry = {
             key: newId,
             food_id: payload.foodId,
             name: payload.name,
             brand: payload.brand,
             desc: payload.description,
-            macros,
+            macros,          // scaled
+            quantity: factor,
         };
 
         setMeals((prev) => ({
@@ -168,7 +192,7 @@ export function useFoodLogs(dateObj) {
             fat: Math.round(prev.fat + (macros.fat || 0)),
         }));
 
-        // Update cache immediately too
+        // Update cache immediately
         {
             const existing = cacheRef.current.get(dk) || {
                 meals: emptyBuckets(),
@@ -189,18 +213,18 @@ export function useFoodLogs(dateObj) {
             cacheRef.current.set(dk, updated);
         }
 
-        // ---- Persist in the background (no await -> function returns immediately)
+        // Persist in the background
         (async () => {
             try {
                 await setDoc(dayRef, { dayKey: dk, updatedAt: serverTimestamp() }, { merge: true });
-                await setDoc(entryRef, payload); // use setDoc so we keep our pre-generated ID
+                await setDoc(entryRef, payload);
 
+                // best-effort recent-foods
                 try {
                     const recentRef = doc(db, 'users', userId, 'recentFoods', String(payload.foodId || payload.name));
                     await setDoc(
                         recentRef,
                         {
-                            // store a normalized snapshot for quick display
                             foodId: payload.foodId,
                             name: payload.name,
                             brand: payload.brand,
@@ -210,13 +234,9 @@ export function useFoodLogs(dateObj) {
                         },
                         { merge: true }
                     );
-                } catch (e) {
-                    // non-critical, ignore
-                }
+                } catch { }
             } catch (e) {
-                console.log('Persist failed, rolling back optimistic entry:', e);
-
-                // Roll back UI
+                // Roll back UI if persist fails
                 setMeals((prev) => ({
                     ...prev,
                     [mealName]: (prev[mealName] || []).filter((x) => x.key !== newId),
@@ -228,7 +248,6 @@ export function useFoodLogs(dateObj) {
                     fat: Math.max(0, Math.round(prev.fat - (macros.fat || 0))),
                 }));
 
-                // Roll back cache
                 const existing = cacheRef.current.get(dk);
                 if (existing) {
                     const rolled = {
@@ -248,22 +267,39 @@ export function useFoodLogs(dateObj) {
             }
         })();
 
-        // Return immediately so caller can close the overlay without delay
+        // Return immediately so caller can close overlay without delay
         return entry;
     };
-
 
     const deleteFood = async (mealName, entry) => {
         const userId = global?.userData?.id || global?.userData?.uid;
         if (!userId) return;
 
         const dk = toDayKey(dateObj);
-        const ref = doc(db, 'users', userId, 'foodLogs', dk, 'entries', entry.key);
-        await deleteDoc(ref);
 
-        // optimistic update — realtime will reconcile
-        setMeals((prev) => ({ ...prev, [mealName]: (prev[mealName] || []).filter((x) => x.key !== entry.key) }));
-        const m = entry.macros || parseMacrosFromDescription(entry.desc || '');
+        // Try to get the authoritative entry (with scaled macros) from cache
+        const findCachedEntry = () => {
+            const existing = cacheRef.current.get(dk);
+            const list = existing?.meals?.[mealName] || [];
+            return list.find((x) => x.key === entry.key);
+        };
+
+        // Choose the best source of truth for macros
+        let chosen = findCachedEntry() || entry;
+
+        // Use stored (scaled) macros if present; otherwise parse + scale using quantity
+        const m =
+            (chosen && chosen.macros) ||
+            parseMacrosFromDescription(
+                chosen?.desc || entry?.desc || '',
+                typeof chosen?.quantity === 'number' ? chosen.quantity : (typeof entry?.quantity === 'number' ? entry.quantity : 1)
+            );
+
+        // Optimistic UI removal
+        setMeals((prev) => ({
+            ...prev,
+            [mealName]: (prev[mealName] || []).filter((x) => x.key !== entry.key),
+        }));
         setTotals((prev) => ({
             calories: Math.max(0, Math.round(prev.calories - (m.calories || 0))),
             protein: Math.max(0, Math.round(prev.protein - (m.protein || 0))),
@@ -271,19 +307,27 @@ export function useFoodLogs(dateObj) {
             fat: Math.max(0, Math.round(prev.fat - (m.fat || 0))),
         }));
 
+        // Keep cache in sync immediately
         const existing = cacheRef.current.get(dk);
         if (existing) {
             const updated = {
-                meals: { ...existing.meals, [mealName]: (existing.meals[mealName] || []).filter((x) => x.key !== entry.key) },
+                meals: {
+                    ...existing.meals,
+                    [mealName]: (existing.meals[mealName] || []).filter((x) => x.key !== entry.key),
+                },
                 totals: {
-                    calories: Math.max(0, Math.round(existing.totals.calories - (m.calories || 0))),
-                    protein: Math.max(0, Math.round(existing.totals.protein - (m.protein || 0))),
-                    carbs: Math.max(0, Math.round(existing.totals.carbs - (m.carbs || 0))),
-                    fat: Math.max(0, Math.round(existing.totals.fat - (m.fat || 0))),
+                    calories: Math.max(0, Math.round((existing.totals.calories || 0) - (m.calories || 0))),
+                    protein: Math.max(0, Math.round((existing.totals.protein || 0) - (m.protein || 0))),
+                    carbs: Math.max(0, Math.round((existing.totals.carbs || 0) - (m.carbs || 0))),
+                    fat: Math.max(0, Math.round((existing.totals.fat || 0) - (m.fat || 0))),
                 },
             };
             cacheRef.current.set(dk, updated);
         }
+
+        // Persist deletion
+        const ref = doc(db, 'users', userId, 'foodLogs', dk, 'entries', entry.key);
+        await deleteDoc(ref);
     };
 
     return { meals, totals, addFood, deleteFood };
@@ -303,7 +347,7 @@ async function preloadNeighbors(userId, centerDate, cacheRef) {
                 const snap = await getDocs(qy);
                 const built = buildFromSnap(snap);
                 cacheRef.current.set(dk, built);
-            } catch (_) {
+            } catch {
                 /* ignore */
             }
         })
