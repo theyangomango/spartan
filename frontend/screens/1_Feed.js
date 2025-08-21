@@ -9,7 +9,7 @@ import React, { useCallback, useEffect, useRef, useState } from "react";
 import { Animated, Dimensions, SafeAreaView, StyleSheet, View } from "react-native";
 import { StatusBar } from "expo-status-bar";
 import MaskedView from "@react-native-masked-view/masked-view";
-import { doc, onSnapshot } from "firebase/firestore";
+import { doc, onSnapshot, collection, where, query, getDocs, orderBy, limit } from "firebase/firestore";
 
 import Footer from "../components/Footer";
 import Post from "../components/1_Feed/Posts/Post";
@@ -57,8 +57,8 @@ export default function Feed({ navigation, route }) {
     const flatListRef = useRef(null);
     const isTransitioning = useRef(false);      /* 🔒 */
 
-    // Optional: if you keep a local cache of users, pass it to FeedHeader for instant filtering
-    const allUsersRef = useRef([]); // allUsersRef.current = global?.allUsers ?? [];
+    // ✅ Local user cache for instant search in header
+    const allUsersRef = useRef([]); // SearchUsersBar reads .current
 
     /* ---------- animated values ---------- */
     const translateY = useRef(new Animated.Value(0)).current;
@@ -249,6 +249,99 @@ export default function Feed({ navigation, route }) {
         );
     }, [isSomePostFocused, handleFocusPost, openCommentsModal, openShareModal]);
 
+    /* -------------------- HYDRATE allUsersRef.current -------------------- */
+
+    // Utility to merge unique users into the ref (by uid)
+    const mergeUsersIntoRef = (arr) => {
+        if (!Array.isArray(arr) || arr.length === 0) return;
+        const map = new Map(allUsersRef.current.map(u => [u.uid, u]));
+        for (const u of arr) {
+            if (!u?.uid) continue;
+            const cur = map.get(u.uid) || {};
+            map.set(u.uid, {
+                uid: u.uid,
+                handle: u.handle ?? cur.handle ?? '',
+                name: u.name ?? cur.name ?? '',
+                pfp: u.pfp ?? cur.pfp ?? '',
+            });
+        }
+        allUsersRef.current = Array.from(map.values());
+        // console.log('allUsersRef size:', allUsersRef.current.length);
+    };
+
+    // 1) Seed from currently loaded feed posts (cheap & instant)
+    useEffect(() => {
+        if (!posts || posts.length === 0) return;
+        const seeded = posts
+            .map(p => ({ uid: p?.uid, handle: p?.handle, name: p?.name, pfp: p?.pfp }))
+            .filter(u => !!u.uid);
+        mergeUsersIntoRef(seeded);
+    }, [posts]);
+
+    // 2) Seed from story users (also already loaded)
+    useEffect(() => {
+        if (!storiesUserList || storiesUserList.length === 0) return;
+        const seeded = storiesUserList
+            .map(u => ({ uid: u?.uid, handle: u?.handle, name: u?.name, pfp: u?.pfp }))
+            .filter(u => !!u.uid);
+        mergeUsersIntoRef(seeded);
+    }, [storiesUserList]);
+
+    // 3) Fetch your "following" that aren't already cached (chunks of 10 using '__name__' in)
+    useEffect(() => {
+        const run = async () => {
+            const following = Array.isArray(global.userData?.following) ? global.userData.following : [];
+            if (!following || following.length === 0) return;
+
+            const existing = new Set(allUsersRef.current.map(u => u.uid));
+            const missing = following.filter(uid => uid && !existing.has(uid));
+            if (missing.length === 0) return;
+
+            const usersCol = collection(db, 'users');
+            const chunks = [];
+            for (let i = 0; i < missing.length; i += 10) chunks.push(missing.slice(i, i + 10));
+
+            const fetched = [];
+            await Promise.all(chunks.map(async (ids) => {
+                const q = query(usersCol, where('__name__', 'in', ids));
+                const snap = await getDocs(q);
+                snap.forEach(d => {
+                    const data = d.data();
+                    fetched.push({
+                        uid: d.id,
+                        handle: data?.handle ?? '',
+                        name: data?.name ?? '',
+                        pfp: data?.pfp ?? '',
+                    });
+                });
+            }));
+
+            mergeUsersIntoRef(fetched);
+        };
+        run().catch(() => { /* noop */ });
+    }, [global.userData?.following, UID]);
+
+    // 4) Small universal prefetch (first ~100 handles) so local search works even with 0 following
+    useEffect(() => {
+        if ((allUsersRef.current?.length || 0) > 25) return; // already seeded enough
+        const prefetch = async () => {
+            const usersCol = collection(db, 'users');
+            const q = query(usersCol, orderBy('handle_lower'), limit(100));
+            const snap = await getDocs(q);
+            const arr = [];
+            snap.forEach(d => {
+                const data = d.data();
+                arr.push({
+                    uid: d.id,
+                    handle: data?.handle ?? '',
+                    name: data?.name ?? '',
+                    pfp: data?.pfp ?? '',
+                });
+            });
+            mergeUsersIntoRef(arr);
+        };
+        prefetch().catch(() => { /* noop */ });
+    }, []);
 
     return (
         <SafeAreaView style={{ flex: 1, backgroundColor: "#fff" }}>
@@ -259,7 +352,7 @@ export default function Feed({ navigation, route }) {
                 backButton={isSomePostFocused}
                 onBackPress={handleBackPress}
                 scrollToTop={scrollToTop}
-                allUsersRef={allUsersRef} // optional; remove to rely on Firestore-only search
+                allUsersRef={allUsersRef} // ✅ now hydrated
             />
 
             <MaskedView

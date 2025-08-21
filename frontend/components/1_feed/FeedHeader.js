@@ -42,6 +42,34 @@ const useDebounce = (fn, delay = 250) => {
     };
 };
 
+/* --------------------------- ProfileCard --------------------------- */
+const ProfileCard = ({ user, onPress }) => {
+    const avatarSize = s(42);
+    const hasPfp = !!user?.pfp;
+
+    console.log(user);
+
+    return (
+        <RNBounceable onPress={onPress} style={styles.profileCard} bounceEffectIn={0.9}>
+            <View style={styles.profileLeft}>
+                {hasPfp ? (
+                    <Image
+                        source={{ uri: user.pfp }}
+                        style={{ width: avatarSize, height: avatarSize, borderRadius: avatarSize / 2, backgroundColor: '#eee' }}
+                    />
+                ) : (
+                    <Ionicons name="person-circle" size={avatarSize + s(6)} color="#C7C7CC" style={{ marginLeft: s(-3) }} />
+                )}
+                <View style={{ marginLeft: s(10), flex: 1 }}>
+                    <Text numberOfLines={1} style={styles.cardHandle}>@{user.handle || 'user'}</Text>
+                    {!!user.name && <Text numberOfLines={1} style={styles.cardName}>{user.name}</Text>}
+                </View>
+            </View>
+            <Ionicons name="chevron-forward" size={s(18)} color="#A0A0A0" />
+        </RNBounceable>
+    );
+};
+
 /* --------------------------- SearchUsersBar --------------------------- */
 /**
  * Full-screen overlay search:
@@ -51,8 +79,8 @@ const useDebounce = (fn, delay = 250) => {
  */
 const SearchUsersBar = ({
     navigation,
-    allUsersRef,     // optional Ref<{uid, handle, name, pfp}[]>
-    disabled = false // hidden if true (e.g., when back button header is shown)
+    allUsersRef,
+    disabled = false
 }) => {
     const [visible, setVisible] = useState(false);
     const [qStr, setQStr] = useState('');
@@ -173,8 +201,6 @@ const SearchUsersBar = ({
 
                     <SafeAreaView style={styles.modalContent} pointerEvents="box-none">
                         <View style={styles.overlayBar}>
-                            {/* Fixed icon aligned to header position */}
-
                             {/* Sliding input from icon → right */}
                             <Animated.View style={[styles.overlayInputWrap, { width: inputW }]}>
                                 <TextInput
@@ -196,31 +222,29 @@ const SearchUsersBar = ({
                             </Animated.View>
                         </View>
 
-                        {/* Results */}
-                        {qStr.length > 0 && results.length > 0 && (
+                        {/* Results → Profile Cards */}
+                        {!!qStr && results.length > 0 && (
                             <View style={styles.resultsWrap}>
                                 <FlatList
                                     keyboardShouldPersistTaps="handled"
                                     data={results}
                                     keyExtractor={(item) => item.uid}
                                     renderItem={({ item }) => (
-                                        <TouchableOpacity
-                                            style={styles.resultRow}
+                                        <ProfileCard
+                                            user={item}
                                             onPress={() => {
-                                                if (item.uid === global?.userData?.uid) navigation?.navigate('Profile');
-                                                else navigation?.navigate('ViewProfile', { user: { uid: item.uid, handle: item.handle, name: item.name, pfp: item.pfp } });
+                                                if (item.uid === global?.userData?.uid) {
+                                                    navigation?.navigate('Profile');
+                                                } else {
+                                                    navigation?.navigate('ViewProfile', { user: { uid: item.uid, handle: item.handle, name: item.name, pfp: item.pfp } });
+                                                }
                                                 close();
                                             }}
-                                        >
-                                            <View style={styles.avatarPlaceholder}>
-                                                <Ionicons name="person-circle" size={s(28)} color="#888" />
-                                            </View>
-                                            <View style={{ flex: 1 }}>
-                                                <Text numberOfLines={1} style={styles.resultHandle}>@{item.handle}</Text>
-                                                <Text numberOfLines={1} style={styles.resultName}>{item.name}</Text>
-                                            </View>
-                                        </TouchableOpacity>
+                                        />
                                     )}
+                                    ItemSeparatorComponent={() => <View style={{ height: s(8) }} />}
+                                    contentContainerStyle={{ padding: s(10) }}
+                                    showsVerticalScrollIndicator={false}
                                 />
                             </View>
                         )}
@@ -240,7 +264,7 @@ const FeedHeader = ({
     onBackPress,
     scrollToTop,
     navigation,
-    allUsersRef, // optional; pass a preloaded ref for instant local filter
+    allUsersRef,
 }) => {
     const [unreadCount, setUnreadCount] = useState(0);
     const user = global.userData;
@@ -265,12 +289,12 @@ const FeedHeader = ({
 
     return (
         <Animated.View style={[styles.main_ctnr]}>
-            {/* Left: Search (replaces gear) */}
+            {/* Left: Search */}
             <View style={styles.leftArea}>
                 <SearchUsersBar navigation={navigation} allUsersRef={allUsersRef} />
             </View>
 
-            {/* Center: Logo/title (tap to scroll-to-top) */}
+            {/* Center: Logo/title */}
             <RNBounceable onPress={scrollToTop} style={styles.centerArea}>
                 <View style={styles.logo}>
                     <View style={styles.logo_image_ctnr}>
@@ -311,7 +335,7 @@ export default memo(FeedHeader);
 const styles = StyleSheet.create({
     main_ctnr: {
         width: '100%',
-        backgroundColor: '#fff',
+        backgroundColor: '#fff', 
         flexDirection: 'row',
         justifyContent: 'center',
         paddingTop: 1.5,
@@ -376,17 +400,10 @@ const styles = StyleSheet.create({
 
     /* Overlay bar (align with header icon) */
     overlayBar: {
-        marginTop: 2.5, // matches header icon top
+        marginTop: 2.5,
         flexDirection: 'row',
         alignItems: 'center',
         width: '100%',
-    },
-    overlayIconHitbox: {
-        width: dynamicStyles.iconSize + 6,
-        height: dynamicStyles.iconSize + 6,
-        borderRadius: (dynamicStyles.iconSize + 6) / 2,
-        alignItems: 'center',
-        justifyContent: 'center',
     },
     overlayInputWrap: {
         marginLeft: s(64),
@@ -403,7 +420,6 @@ const styles = StyleSheet.create({
         shadowRadius: s(4),
         elevation: 3,
         overflow: 'hidden',
-
     },
     overlayInput: {
         marginLeft: 10,
@@ -412,7 +428,6 @@ const styles = StyleSheet.create({
         color: '#222',
         fontWeight: '700',
         fontFamily: 'Poppins_500Medium'
-
     },
     clearBtn: { padding: s(6), marginLeft: s(4) },
 
@@ -429,16 +444,40 @@ const styles = StyleSheet.create({
         elevation: 4,
         overflow: 'hidden',
     },
-    resultRow: {
+
+    /* Profile card styles */
+    profileCard: {
         flexDirection: 'row',
         alignItems: 'center',
-        paddingVertical: s(12),
+        backgroundColor: '#FFFFFF',
+        borderRadius: s(14),
+        paddingVertical: s(10),
         paddingHorizontal: s(12),
-        gap: s(10),
+        borderWidth: StyleSheet.hairlineWidth,
+        borderColor: 'rgba(0,0,0,0.08)',
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: s(1) },
+        shadowOpacity: 0.06,
+        shadowRadius: s(3),
+        elevation: 2,
     },
-    avatarPlaceholder: { width: s(30), alignItems: 'center' },
-    resultHandle: { fontWeight: '700', color: '#111' },
-    resultName: { color: '#666', marginTop: s(2) },
+    profileLeft: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        flex: 1,
+        minWidth: 0,
+    },
+    cardHandle: {
+        fontFamily: 'Outfit_600SemiBold',
+        fontSize: s(13),
+        color: '#111',
+    },
+    cardName: {
+        marginTop: s(2),
+        fontFamily: 'Outfit_400Regular',
+        fontSize: s(12),
+        color: '#666',
+    },
 
     /* Header search icon */
     searchIconBtn: {

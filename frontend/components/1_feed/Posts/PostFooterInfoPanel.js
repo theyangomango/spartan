@@ -7,14 +7,35 @@
 import React from 'react';
 import { View, Text, StyleSheet, Animated } from 'react-native';
 import FastImage from 'react-native-fast-image';
+import { usePfp } from '../../../helper/usePFPs';
+
+/* Small helper that resolves & renders a PFP with immutable caching */
+const Pfp = ({ uid, version = 0, style }) => {
+    const uri = usePfp(uid, version);
+    return uri ? (
+        <FastImage
+            source={{
+                uri,
+                priority: FastImage.priority.normal,
+                cache: FastImage.cacheControl.immutable,
+            }}
+            style={style}
+            resizeMode={FastImage.resizeMode.cover}
+        />
+    ) : (
+        <View style={[style, styles.pfpPlaceholder]} />
+    );
+};
 
 const PostFooterInfoPanel = ({ data, opacityAnim }) => {
-    // Filter the likes to find those who are also in the user's following list
-    const filteredLikes = data.likes.filter(like =>
-        global.userData.following.some(following => following.uid === like.uid)
-    ).slice(0, 3); // Take up to 3 elements
+    const following = global?.userData?.following ?? [];
+    const likes = Array.isArray(data?.likes) ? data.likes : [];
 
-    // Extract the handles of the filtered likes
+    // up to 3 likes from people the user follows
+    const filteredLikes = likes
+        .filter(like => following.some(f => f?.uid === like?.uid))
+        .slice(0, 3);
+
     const handles = filteredLikes.map(like => like.handle);
 
     return (
@@ -22,34 +43,33 @@ const PostFooterInfoPanel = ({ data, opacityAnim }) => {
             <View style={styles.profilePictures}>
                 {filteredLikes.length > 0 ? (
                     filteredLikes.map((like, index) => (
-                        <FastImage
-                            key={index}
-                            source={{
-                                uri: like.pfp,
-                                priority: FastImage.priority.normal,
-                                cache: FastImage.cacheControl.immutable,
-                            }}
+                        <Pfp
+                            key={`${like.uid}-${index}`}
+                            uid={like.uid}
+                            version={like.pfpVersion ?? 0}
                             style={[
                                 styles.profilePicture,
-                                index === 0 ? styles.profilePicture1 : index === 1 ? styles.profilePicture2 : styles.profilePicture3
+                                index === 0
+                                    ? styles.profilePicture1
+                                    : index === 1
+                                        ? styles.profilePicture2
+                                        : styles.profilePicture3,
                             ]}
-                            resizeMode={FastImage.resizeMode.cover}
                         />
                     ))
                 ) : (
-                    <FastImage
-                        source={{
-                            uri: data.pfp,
-                            priority: FastImage.priority.normal,
-                            cache: FastImage.cacheControl.immutable,
-                        }}
+                    <Pfp
+                        uid={data.uid}
+                        version={data.pfpVersion ?? 0}
                         style={styles.profilePicture}
-                        resizeMode={FastImage.resizeMode.cover}
                     />
                 )}
             </View>
-            <Text numberOfLines={1} ellipsizeMode='tail' style={styles.likedByText}>
-                {filteredLikes.length > 0 ? `Liked by ${handles.join(', ')}` : data.caption}
+
+            <Text numberOfLines={1} ellipsizeMode="tail" style={styles.likedByText}>
+                {filteredLikes.length > 0
+                    ? `Liked by ${handles.join(', ')}`
+                    : data.caption}
             </Text>
         </Animated.View>
     );
@@ -85,6 +105,9 @@ const styles = StyleSheet.create({
     profilePicture3: {
         marginLeft: -8,
         zIndex: 1,
+    },
+    pfpPlaceholder: {
+        backgroundColor: '#EEE',
     },
     likedByText: {
         marginLeft: 8,

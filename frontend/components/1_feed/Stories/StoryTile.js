@@ -1,8 +1,7 @@
 /**
  * StoryTile
- * - Shows creator’s avatar + handle
- * - Darker blue ring = unviewed
- * - Yellow “+” on the first tile for creating a story
+ * - Uses versioned PFP URLs with immutable caching via FastImage
+ * - Resolves URL via usePfp (de-duped + persisted cache)
  */
 
 import React from "react";
@@ -10,6 +9,7 @@ import { StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import { FontAwesome6 } from "@expo/vector-icons";
 import FastImage from "react-native-fast-image";
 import scaleSize from "../../../helper/scaleSize";
+import { usePfp } from "../../../helper/usePFPs";
 
 export default function StoryTile({
     data,
@@ -19,6 +19,9 @@ export default function StoryTile({
     handlePressCreateButton,
     disabled,
 }) {
+    // Use a stable version (e.g., user.updatedAt or an incrementing int) to bust cache only when PFP changes
+    const pfpUri = usePfp(data.uid, data.pfpVersion ?? 0);
+
     return (
         <View style={styles.main_ctnr}>
             <TouchableOpacity
@@ -33,15 +36,23 @@ export default function StoryTile({
                             : [styles.pfp_ctnr, isViewed && styles.pfp_ctnr_viewed]
                     }
                 >
-                    <FastImage
-                        source={{
-                            uri: data.pfp,
-                            priority: FastImage.priority.normal,
-                            cache: FastImage.cacheControl.immutable,
-                        }}
-                        style={styles.pfp}
-                        resizeMode={FastImage.resizeMode.cover}
-                    />
+                    {pfpUri ? (
+                        <FastImage
+                            source={{
+                                uri: pfpUri,
+                                priority: FastImage.priority.normal,
+                                cache: FastImage.cacheControl.immutable,
+                            }}
+                            style={styles.pfp}
+                            resizeMode={FastImage.resizeMode.cover}
+                            onError={() => {
+                                // If token rotated after overwrite, this will render placeholder;
+                                // once data.pfpVersion bumps, usePfp will resolve a fresh URL.
+                            }}
+                        />
+                    ) : (
+                        <View style={[styles.pfp, styles.pfp_placeholder]} />
+                    )}
                 </View>
             </TouchableOpacity>
 
@@ -117,6 +128,9 @@ const styles = StyleSheet.create({
         width: scaledStyles.pfpSize - scaleSize(10.5),
         aspectRatio: 1,
         borderRadius: scaledStyles.pfpBorderRadius - scaleSize(4),
+    },
+    pfp_placeholder: {
+        backgroundColor: "#EEE",
     },
     create_icon: {
         position: "absolute",

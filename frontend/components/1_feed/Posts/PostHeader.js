@@ -2,6 +2,7 @@ import { View, Text, StyleSheet, Pressable, TouchableOpacity } from "react-nativ
 import FastImage from "react-native-fast-image";
 import formatDate from "../../../helper/formatDate";
 import scaleSize from "../../../helper/scaleSize";
+import { usePfp } from "../../../helper/usePFPs";
 
 export default function PostHeader({
     data,
@@ -11,21 +12,31 @@ export default function PostHeader({
     toViewProfile,
     openViewWorkout,
 }) {
+    // Use a stable version (e.g., user.updatedAt or incrementing int) to bust cache only when PFP changes
+    const pfpUri = usePfp(data.uid, data.pfpVersion ?? 0);
+
     return (
         <View style={styles.outer}>
             <View style={styles.main_ctnr}>
                 {/* ---------- left: avatar & handle ---------- */}
                 <View style={styles.left}>
                     <Pressable onPress={toViewProfile} style={styles.pfp_ctnr}>
-                        <FastImage
-                            source={{
-                                uri: url,
-                                priority: FastImage.priority.normal,
-                                cache: FastImage.cacheControl.immutable,
-                            }}
-                            style={styles.pfp}
-                            resizeMode={FastImage.resizeMode.cover}
-                        />
+                        {pfpUri ? (
+                            <FastImage
+                                source={{
+                                    uri: pfpUri,
+                                    priority: FastImage.priority.normal,
+                                    cache: FastImage.cacheControl.immutable,
+                                }}
+                                style={styles.pfp}
+                                resizeMode={FastImage.resizeMode.cover}
+                                onError={() => {
+                                    // Show placeholder if token rotated; once data.pfpVersion bumps, usePfp will re-resolve.
+                                }}
+                            />
+                        ) : (
+                            <View style={[styles.pfp, { backgroundColor: "#D9E6F7" }]} />
+                        )}
                     </Pressable>
 
                     <View style={styles.text_ctnr}>

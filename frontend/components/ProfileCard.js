@@ -1,6 +1,7 @@
 import React from 'react';
 import { View, Text, StyleSheet, Pressable, Dimensions } from 'react-native';
 import FastImage from 'react-native-fast-image';
+import { usePfp } from '../helper/usePFPs';
 
 const { width, height } = Dimensions.get('window');
 
@@ -48,30 +49,65 @@ const getDynamicStyles = () => {
 const dynamicStyles = getDynamicStyles();
 
 const ProfileCard = ({ user, onSelect, isSelected }) => {
+    // ONLY CHANGE: resolve PFP via uid (+ optional version) with immutable caching
+    const pfpUri = usePfp(user.uid, user.pfpVersion ?? 0);
+
     return (
         <Pressable style={styles.itemContainer} onPress={() => onSelect(user)}>
-            <View style={[styles.pfp_ctnr, { width: dynamicStyles.pfpSize, borderRadius: dynamicStyles.pfpSize / 2 }, isSelected && styles.selected_pfp]}>
-                <FastImage
-                    source={{ uri: user.pfp }}
-                    style={[styles.pfp, { borderRadius: dynamicStyles.pfpSize / 2 }]}
-                    resizeMode={FastImage.resizeMode.cover}
-                />
+            <View
+                style={[
+                    styles.pfp_ctnr,
+                    { width: dynamicStyles.pfpSize, borderRadius: dynamicStyles.pfpSize / 2 },
+                    isSelected && styles.selected_pfp,
+                ]}
+            >
+                {pfpUri ? (
+                    <FastImage
+                        source={{
+                            uri: pfpUri,
+                            priority: FastImage.priority.normal,
+                            cache: FastImage.cacheControl.immutable,
+                        }}
+                        style={[styles.pfp, { borderRadius: dynamicStyles.pfpSize / 2 }]}
+                        resizeMode={FastImage.resizeMode.cover}
+                    />
+                ) : (
+                    <View
+                        style={[
+                            styles.pfp,
+                            { borderRadius: dynamicStyles.pfpSize / 2, backgroundColor: '#EEE' },
+                        ]}
+                    />
+                )}
             </View>
+
             <View style={styles.text_ctnr}>
-                <Text numberOfLines={1} style={[styles.handle_text, { fontSize: dynamicStyles.handleFontSize }]}>{user.handle}</Text>
+                <Text numberOfLines={1} style={[styles.handle_text, { fontSize: dynamicStyles.handleFontSize }]}>
+                    {user.handle}
+                </Text>
                 <Text style={[styles.name_text, { fontSize: dynamicStyles.nameFontSize }]}>{user.name}</Text>
             </View>
-            <View style={[
-                styles.iconOutline, 
-                { 
-                    width: dynamicStyles.iconSize, 
-                    height: dynamicStyles.iconSize, 
-                    borderRadius: dynamicStyles.iconSize / 2, 
-                    borderWidth: dynamicStyles.iconBorderWidth 
-                },
-                isSelected && styles.selectedIcon
-            ]}>
-                {isSelected && <View style={[styles.filledIcon, { width: dynamicStyles.filledIconSize, borderRadius: dynamicStyles.filledIconSize / 2 }]} />}
+
+            <View
+                style={[
+                    styles.iconOutline,
+                    {
+                        width: dynamicStyles.iconSize,
+                        height: dynamicStyles.iconSize,
+                        borderRadius: dynamicStyles.iconSize / 2,
+                        borderWidth: dynamicStyles.iconBorderWidth,
+                    },
+                    isSelected && styles.selectedIcon,
+                ]}
+            >
+                {isSelected && (
+                    <View
+                        style={[
+                            styles.filledIcon,
+                            { width: dynamicStyles.filledIconSize, borderRadius: dynamicStyles.filledIconSize / 2 },
+                        ]}
+                    />
+                )}
             </View>
         </Pressable>
     );

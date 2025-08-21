@@ -14,6 +14,8 @@ import scaleSize from "../../../helper/scaleSize";
 import getDisplayTime from "../../../helper/getDisplayTime";
 import followUser from "../../../../backend/user/followUser";
 import unfollowUser from "../../../../backend/user/unfollowUser";
+import getPFP from "../../../../backend/storage/getPFP";
+import { usePfp } from "../../../helper/usePFPs";
 
 /* -------- helper: build the message string -------- */
 function getDisplayMessage(item) {
@@ -35,12 +37,29 @@ function getDisplayMessage(item) {
 
 function NotificationCard({ item }) {
     const [isFollowing, setIsFollowing] = useState(false);
+    const pfpUri = usePfp(item.uid, item.pfpVersion ?? 0);
+
+    /* resolve async PFP url */
+    useEffect(() => {
+        let cancelled = false;
+        (async () => {
+            try {
+                const url = await getPFP(item.uid); // returns Promise<string>
+                if (!cancelled) setPfpUri(url || null);
+            } catch {
+                if (!cancelled) setPfpUri(null);
+            }
+        })();
+        return () => {
+            cancelled = true;
+        };
+    }, [item.uid]);
 
     /* check initial follow state */
     useEffect(() => {
         if (item.type === "follow") {
-            const isFollower = global.userData.following.some(
-                (f) => f.uid === item.uid
+            const isFollower = !!global?.userData?.following?.some(
+                (f) => f?.uid === item.uid
             );
             setIsFollowing(isFollower);
         }
@@ -49,10 +68,10 @@ function NotificationCard({ item }) {
     /* toggle follow / unfollow */
     const handleFollowToggle = () => {
         const currentUser = {
-            name: global.userData.name,
-            handle: global.userData.handle,
-            pfp: global.userData.image,
-            uid: global.userData.uid,
+            name: global?.userData?.name,
+            handle: global?.userData?.handle,
+            pfp: global?.userData?.image,
+            uid: global?.userData?.uid,
         };
 
         const notifUser = {
@@ -72,16 +91,21 @@ function NotificationCard({ item }) {
     return (
         <Pressable>
             <View style={styles.card}>
-                {/* avatar with FastImage (= cached) */}
-                <FastImage
-                    source={{
-                        uri: item.pfp,
-                        priority: FastImage.priority.normal,
-                        cache: FastImage.cacheControl.immutable,
-                    }}
-                    style={styles.pfp}
-                    resizeMode={FastImage.resizeMode.cover}
-                />
+                {/* avatar with FastImage (= cached). Show placeholder until we have a URL */}
+                {pfpUri ? (
+                    <FastImage
+                        source={{
+                            uri: pfpUri,
+                            priority: FastImage.priority.normal,
+                            cache: FastImage.cacheControl.web, // or .immutable if you version the URL
+                        }}
+                        style={styles.pfp}
+                        resizeMode={FastImage.resizeMode.cover}
+                        onError={() => setPfpUri(null)} // fallback to placeholder on fetch error
+                    />
+                ) : (
+                    <View style={[styles.pfp, styles.pfpPlaceholder]} />
+                )}
 
                 <View style={styles.textContainer}>
                     <Text style={styles.handle}>{item.handle}</Text>
@@ -132,6 +156,9 @@ const styles = StyleSheet.create({
         aspectRatio: 1,
         borderRadius: scaleSize(20),
         marginRight: scaleSize(11.5),
+    },
+    pfpPlaceholder: {
+        backgroundColor: "#EEE",
     },
     textContainer: { flex: 1 },
     handle: {
