@@ -10,6 +10,7 @@ import {
     KeyboardAvoidingView,
     Platform,
     FlatList,
+    Keyboard,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import RNBounceable from '@freakycoder/react-native-bounceable';
@@ -39,8 +40,7 @@ export default function FoodSearchOverlay({
             const userId = global?.userData?.id || global?.userData?.uid;
             if (!userId) return;
 
-            // We expect a per-user collection: users/{uid}/recentFoods
-            // Each doc contains: { name, brand, description, foodId, usedCount, lastUsedAt }
+            // users/{uid}/recentFoods : { name, brand, description, foodId, usedCount, lastUsedAt }
             const recentRef = collection(db, 'users', userId, 'recentFoods');
             const qy = query(recentRef, orderBy('lastUsedAt', 'desc'), limit(20));
             const snap = await getDocs(qy);
@@ -61,22 +61,7 @@ export default function FoodSearchOverlay({
         loadRecentFoods();
     }, [visible, loadRecentFoods]);
 
-    /* ---------------- Portion Picker (inside this overlay) ---------------- */
-    const [portionVisible, setPortionVisible] = useState(false);
-    const [pendingFood, setPendingFood] = useState(null);
-    const [portionInput, setPortionInput] = useState('1'); // accepts "0.5" or "1/3"
-
-    const openPortion = (food) => {
-        setPendingFood(food);
-        setPortionInput('1');
-        setPortionVisible(true);
-    };
-    const cancelPortion = () => {
-        setPortionVisible(false);
-        setPendingFood(null);
-    };
-    const quickSet = (v) => setPortionInput(v);
-
+    /* ---------------- Portion parse helper (fractions/decimals) ---------------- */
     const parsePortion = (s) => {
         const t = String(s || '').trim();
         if (!t) return 1;
@@ -89,12 +74,80 @@ export default function FoodSearchOverlay({
         return Number.isFinite(v) && v > 0 ? v : 1;
     };
 
+    /* ---------------- Portion picker (for search results) ---------------- */
+    const [portionVisible, setPortionVisible] = useState(false);
+    const [pendingFood, setPendingFood] = useState(null);
+    const [portionInput, setPortionInput] = useState('1');
+    const openPortion = (food) => {
+        setPendingFood(food);
+        setPortionInput('1');
+        setPortionVisible(true);
+    };
+    const cancelPortion = () => {
+        setPortionVisible(false);
+        setPendingFood(null);
+    };
+    const quickSet = (v) => setPortionInput(v);
     const confirmPortion = () => {
         const factor = parsePortion(portionInput);
-        // Pass the multiplier back to parent; parent will add + close overlay
         onSelectResult?.({ ...pendingFood, __portionMultiplier: factor });
         setPortionVisible(false);
         setPendingFood(null);
+    };
+
+    /* ---------------- QUICK ADD (custom macros) ---------------- */
+    const [quickVisible, setQuickVisible] = useState(false);
+    const [qaName, setQaName] = useState('');
+    const [qaBrand, setQaBrand] = useState('');
+    const [qaCalories, setQaCalories] = useState('');
+    const [qaProtein, setQaProtein] = useState('');
+    const [qaCarbs, setQaCarbs] = useState('');
+    const [qaFat, setQaFat] = useState('');
+    const [qaPortion, setQaPortion] = useState('1');
+
+    const openQuick = () => {
+        setQaName('');
+        setQaBrand('');
+        setQaCalories('');
+        setQaProtein('');
+        setQaCarbs('');
+        setQaFat('');
+        setQaPortion('1');
+        setQuickVisible(true);
+    };
+    const closeQuick = () => {
+        Keyboard.dismiss();
+        setQuickVisible(false);
+    };
+
+    const num = (s) => {
+        const n = parseFloat(String(s || '').replace(',', '.'));
+        return Number.isFinite(n) ? n : 0;
+    };
+
+    const submitQuickAdd = () => {
+        const name = qaName?.trim() || 'Custom item';
+        const brand = qaBrand?.trim() || '';
+        const cals = Math.max(0, num(qaCalories));
+        const prot = Math.max(0, num(qaProtein));
+        const carbs = Math.max(0, num(qaCarbs));
+        const fat = Math.max(0, num(qaFat));
+        const factor = parsePortion(qaPortion);
+
+        // Build a parser-friendly description
+        const desc = `Calories: ${cals}, Protein: ${prot} g, Carbs: ${carbs} g, Fat: ${fat} g`;
+
+        const item = {
+            food_id: `custom-${Date.now()}`,
+            food_name: name,
+            brand_name: brand,
+            food_description: desc,
+            source: 'custom',
+            __portionMultiplier: factor,
+        };
+
+        onSelectResult?.(item);
+        setQuickVisible(false);
     };
 
     // ---- Renderers
@@ -137,16 +190,26 @@ export default function FoodSearchOverlay({
             presentationStyle="fullScreen"
             onRequestClose={onClose}
         >
-            <View style={styles.overlayContainer}>
-                {/* Overlay Header */}
+            {/* Tap anywhere blank to dismiss keyboard */}
+            <Pressable style={styles.overlayContainer} onPress={Keyboard.dismiss}>
+                {/* Header */}
                 <View style={styles.overlayHeader}>
-                    <Pressable onPress={onClose} hitSlop={10}>
+                    {/* Left: back */}
+                    <Pressable onPress={onClose} hitSlop={10} style={styles.headerLeft}>
                         <Ionicons name="chevron-back" size={26} color={COLORS.textPrimary} />
                     </Pressable>
-                    <Text style={styles.overlayTitle}>
-                        {activeMeal ? `Add to ${activeMeal}` : 'Add food'}
-                    </Text>
-                    <View style={{ width: 26 }} />
+
+                    {/* Centered title (absolute so it stays centered regardless of right content width) */}
+                    <View style={styles.titleCenterWrap} pointerEvents="none">
+                        <Text style={styles.overlayTitle}>
+                            {activeMeal ? `Add to ${activeMeal}` : 'Add food'}
+                        </Text>
+                    </View>
+
+                    {/* Right: Quick Add */}
+                    <Pressable onPress={openQuick} hitSlop={8} style={styles.headerRight}>
+                        <Text style={styles.headerActionText}>Quick Add</Text>
+                    </Pressable>
                 </View>
 
                 {/* Search Bar */}
@@ -190,7 +253,7 @@ export default function FoodSearchOverlay({
                     />
                 </KeyboardAvoidingView>
 
-                {/* -------- Portion Picker (inline modal over this overlay) -------- */}
+                {/* -------- Portion Picker (for search results) -------- */}
                 <Modal
                     visible={portionVisible}
                     transparent
@@ -241,7 +304,127 @@ export default function FoodSearchOverlay({
                         </View>
                     </View>
                 </Modal>
-            </View>
+
+                {/* -------- QUICK ADD modal (custom macros) -------- */}
+                <Modal
+                    visible={quickVisible}
+                    transparent
+                    animationType="fade"
+                    onRequestClose={closeQuick}
+                >
+                    {/* Backdrop: tap to close quick add */}
+                    <Pressable style={styles.modalBackdrop} onPress={closeQuick}>
+                        {/* Card: tap inside to dismiss keyboard only */}
+                        <Pressable style={styles.modalCard} onPress={Keyboard.dismiss}>
+                            <Text style={styles.modalTitle}>Quick add</Text>
+
+                            <Text style={styles.inputLabel}>Name</Text>
+                            <TextInput
+                                value={qaName}
+                                onChangeText={setQaName}
+                                placeholder="e.g., Homemade smoothie"
+                                placeholderTextColor="#aaa"
+                                style={styles.inputField}
+                            />
+
+                            <Text style={styles.inputLabel}>Brand (optional)</Text>
+                            <TextInput
+                                value={qaBrand}
+                                onChangeText={setQaBrand}
+                                placeholder="e.g., Custom"
+                                placeholderTextColor="#aaa"
+                                style={styles.inputField}
+                            />
+
+                            <View style={styles.row2}>
+                                <View style={styles.col}>
+                                    <Text style={styles.inputLabel}>Calories</Text>
+                                    <TextInput
+                                        value={qaCalories}
+                                        onChangeText={setQaCalories}
+                                        placeholder="kcal"
+                                        placeholderTextColor="#aaa"
+                                        style={styles.inputField}
+                                        keyboardType="numeric"
+                                    />
+                                </View>
+                                <View style={styles.col}>
+                                    <Text style={styles.inputLabel}>Protein</Text>
+                                    <TextInput
+                                        value={qaProtein}
+                                        onChangeText={setQaProtein}
+                                        placeholder="g"
+                                        placeholderTextColor="#aaa"
+                                        style={styles.inputField}
+                                        keyboardType="numeric"
+                                    />
+                                </View>
+                            </View>
+
+                            <View style={styles.row2}>
+                                <View className="col" style={styles.col}>
+                                    <Text style={styles.inputLabel}>Carbs</Text>
+                                    <TextInput
+                                        value={qaCarbs}
+                                        onChangeText={setQaCarbs}
+                                        placeholder="g"
+                                        placeholderTextColor="#aaa"
+                                        style={styles.inputField}
+                                        keyboardType="numeric"
+                                    />
+                                </View>
+                                <View style={styles.col}>
+                                    <Text style={styles.inputLabel}>Fat</Text>
+                                    <TextInput
+                                        value={qaFat}
+                                        onChangeText={setQaFat}
+                                        placeholder="g"
+                                        placeholderTextColor="#aaa"
+                                        style={styles.inputField}
+                                        keyboardType="numeric"
+                                    />
+                                </View>
+                            </View>
+
+                            <Text style={[styles.inputLabel, { marginTop: 6 }]}>Portion</Text>
+                            <View style={styles.quickRow}>
+                                {['1/4', '1/3', '1/2', '2/3', '3/4', '1'].map((v) => (
+                                    <RNBounceable
+                                        key={v}
+                                        style={[styles.chip, qaPortion === v && styles.chipActive]}
+                                        onPress={() => setQaPortion(v)}
+                                    >
+                                        <Text style={[styles.chipText, qaPortion === v && styles.chipTextActive]}>
+                                            {v}
+                                        </Text>
+                                    </RNBounceable>
+                                ))}
+                            </View>
+
+                            <View style={styles.customRow}>
+                                <Text style={styles.customLabel}>Custom</Text>
+                                <TextInput
+                                    value={qaPortion}
+                                    onChangeText={setQaPortion}
+                                    placeholder="e.g. 0.5 or 1/3"
+                                    placeholderTextColor="#aaa"
+                                    style={styles.customInput}
+                                    keyboardType="decimal-pad"
+                                />
+                            </View>
+
+                            <View style={styles.modalButtons}>
+                                <RNBounceable style={[styles.modalBtn, styles.cancelBtn]} onPress={closeQuick}>
+                                    <Text style={[styles.modalBtnText, styles.cancelBtnText]}>Cancel</Text>
+                                </RNBounceable>
+                                <RNBounceable style={[styles.modalBtn, styles.confirmBtn]} onPress={submitQuickAdd}>
+                                    <Text style={[styles.modalBtnText, styles.confirmBtnText]}>Add</Text>
+                                </RNBounceable>
+                            </View>
+                        </Pressable>
+                    </Pressable>
+                </Modal>
+            </Pressable>
         </Modal>
     );
 }
@@ -257,12 +440,33 @@ const makeStyles = (COLORS) =>
             alignItems: 'center',
             justifyContent: 'space-between',
             backgroundColor: COLORS.background,
+            position: 'relative',          // <-- important for absolute title
+        },
+        headerLeft: {
+            padding: 6,
+        },
+        headerRight: {
+            paddingHorizontal: 6,
+            paddingVertical: 4,
+        },
+        titleCenterWrap: {
+            position: 'absolute',
+            left: 0,
+            right: 0,
+            top: 62,                        // matches paddingTop so it sits in the header line
+            alignItems: 'center',
         },
         overlayTitle: {
             fontSize: 18,
             color: COLORS.textPrimary,
             fontFamily: 'Outfit_600SemiBold',
         },
+        headerActionText: {
+            fontFamily: 'Outfit_600SemiBold',
+            fontSize: 14,
+            color: '#2D92FF',
+        },
+
         searchContainer: { paddingHorizontal: 18, marginBottom: 12 },
         searchBox: {
             backgroundColor: '#fff',
@@ -300,7 +504,7 @@ const makeStyles = (COLORS) =>
             fontFamily: 'Outfit_600SemiBold',
         },
 
-        /* Portion modal styles */
+        /* Shared modal styles */
         modalBackdrop: {
             flex: 1,
             backgroundColor: 'rgba(0,0,0,0.35)',
@@ -366,4 +570,24 @@ const makeStyles = (COLORS) =>
         modalBtnText: { fontFamily: 'Outfit_600SemiBold', fontSize: 14 },
         cancelBtnText: { color: '#333' },
         confirmBtnText: { color: '#fff' },
+
+        // Quick add inputs
+        inputLabel: {
+            fontFamily: 'Outfit_600SemiBold',
+            color: '#333',
+            marginBottom: 6,
+            marginTop: 4,
+            fontSize: 12.5,
+        },
+        inputField: {
+            backgroundColor: '#f6f6f6',
+            borderRadius: 10,
+            paddingHorizontal: 12,
+            paddingVertical: 10,
+            fontFamily: 'Outfit_500Medium',
+            color: '#111',
+            marginBottom: 10,
+        },
+        row2: { flexDirection: 'row', gap: 10 },
+        col: { flex: 1 },
     });
