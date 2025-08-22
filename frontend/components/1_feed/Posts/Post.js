@@ -21,7 +21,6 @@ import PostFooter from "./PostFooter";
 const { width: W } = Dimensions.get("window");
 const AR = 0.8;
 const BORDER = 35;
-const EDGE = 75;
 
 const FADE_MS = 80;
 const B_IN = 1.02;
@@ -42,19 +41,23 @@ const ImageSlide = React.memo(({ uri, style }) => (
     </View>
 ));
 
+/** 🔊 Audio fix: ignoreSilentSwitch + explicit volume */
 const VideoSlide = React.memo(({ uri, style, paused, isActive }) => (
     <View style={styles.imageWrapper}>
         <Video
-            source={
-                typeof uri === "string" && uri.startsWith("http")
-                    ? { uri }
-                    : uri // local require
-            }
+            source={typeof uri === "string" && uri.startsWith("http") ? { uri } : uri}
             style={style}
             resizeMode="cover"
-            muted={false}
             paused={!isActive || paused}
             repeat
+            muted={false}
+            volume={1.0}
+            /** iOS: play sound even if hardware mute is on */
+            ignoreSilentSwitch="ignore"
+            /** Keep background/inactive behavior as before */
+            playInBackground={false}
+            playWhenInactive={false}
+            controls={false}
         />
     </View>
 ));
@@ -69,8 +72,9 @@ function Post({
     openShareModal,
     toViewProfile,
     openViewWorkoutModal,
+    shouldPlay, // when NO post is focused: true if this post is centered
 }) {
-    const { pfp, media } = data; // images: [{ uri, type }]
+    const { pfp, media } = data; // media: [{ uri, type: "image" | "video" }]
     const opacity = useRef(new Animated.Value(1)).current;
     const scale = useRef(new Animated.Value(1)).current;
     const viewRef = useRef(null);
@@ -98,13 +102,10 @@ function Post({
                 }
                 : undefined;
 
-        return [
-            [styles.gallery, clipStyle],
-            [styles.image, clipStyle],
-        ];
+        return [[styles.gallery, clipStyle], [styles.image, clipStyle]];
     }, [isFocused, isSomePostFocused]);
 
-    // Bounce animation
+    // Bounce animation (kept if you use it elsewhere)
     const bounce = useCallback(() => {
         Animated.sequence([
             Animated.spring(scale, {
@@ -128,17 +129,12 @@ function Post({
         }
     }, [isFocused, handleFocusPost, index]);
 
-    // Toggle pause for a video slide
-    const togglePauseAtIndex = useCallback(
-        (idx) => {
-            setPausedList((prev) =>
-                prev.map((v, i) => (i === idx ? !v : v))
-            );
-        },
-        []
-    );
+    // Manual pause toggle (tap)
+    const togglePauseAtIndex = useCallback((idx) => {
+        setPausedList((prev) => prev.map((v, i) => (i === idx ? !v : v)));
+    }, []);
 
-    // FlatList swipe: update index on scroll
+    // Horizontal swipe inside the post
     const onScroll = useCallback(
         (e) => {
             const offsetX = e.nativeEvent.contentOffset.x;
@@ -148,17 +144,13 @@ function Post({
         [currentIndex]
     );
 
-    // When images count changes
+    // Keep pausedList length in sync with media length
     useEffect(() => {
-        setPausedList((prev) =>
-            media.map((_, i) => prev[i] ?? false)
-        );
+        setPausedList((prev) => media.map((_, i) => prev[i] ?? false));
     }, [media.length]);
-    
-    // Key extractor for FlatList
+
     const keyExtractor = (item, idx) => (item.uri || "") + idx;
 
-    // FlatList getItemLayout
     const getItemLayout = (_, index) => ({
         length: W,
         offset: W * index,
@@ -172,11 +164,7 @@ function Post({
             pointerEvents={isSomePostFocused && !isFocused ? "none" : "auto"}
         >
             <Animated.View
-                style={[
-                    styles.card,
-                    isFocused && { zIndex: 1 },
-                    { transform: [{ scale }] },
-                ]}
+                style={[styles.card, isFocused && { zIndex: 1 }, { transform: [{ scale }] }]}
             >
                 <View style={styles.body}>
                     <FlatList
@@ -193,23 +181,30 @@ function Post({
                         getItemLayout={getItemLayout}
                         style={containerStyle}
                         renderItem={({ item, index: i }) => {
-                            // Move the handler inside so it can "see" item and i
                             const handlePress = (e) => {
                                 const x = e.nativeEvent.locationX;
                                 if (x > W * 0.1 && x < W * 0.9) {
                                     // Only handle pause toggle if focused, current, and video
-                                    if (
-                                        isFocused &&
-                                        item.type === "video" &&
-                                        i === currentIndex
-                                    ) {
+                                    if (isFocused && item.type === "video" && i === currentIndex) {
                                         togglePauseAtIndex(i);
                                     } else if (!isFocused) {
                                         focusMe();
                                     }
-                                    // if isFocused but not a video/current, do nothing
                                 }
                             };
+
+                            // EXACT RULES:
+                            // 1) If a post is focused:
+                            //    - play ONLY if this post is focused AND this slide is the current slide AND it's a video.
+                            //    - otherwise pause.
+                            // 2) If no post is focused:
+                            //    - play ONLY if this post is centered (shouldPlay) AND this slide is the current slide AND it's a video.
+                            //    - otherwise pause.
+                            const isCurrentSlide = i === currentIndex;
+                            const allowAutoplay = isSomePostFocused ? isFocused : !!shouldPlay;
+                            const meetsRule = allowAutoplay && isCurrentSlide && item.type === "video";
+                            const isManuallyPaused = pausedList[i];
+                            const actuallyPaused = !meetsRule || isManuallyPaused;
 
                             if (item.type === "video") {
                                 return (
@@ -217,18 +212,16 @@ function Post({
                                         <VideoSlide
                                             uri={item.uri}
                                             style={imageStyle}
-                                            paused={pausedList[i]}
-                                            isActive={i === currentIndex}
+                                            paused={actuallyPaused}
+                                            isActive={!actuallyPaused}
                                         />
                                     </Pressable>
                                 );
                             }
+
                             return (
                                 <Pressable onPress={handlePress}>
-                                    <ImageSlide
-                                        uri={item.uri}
-                                        style={imageStyle}
-                                    />
+                                    <ImageSlide uri={item.uri} style={imageStyle} />
                                 </Pressable>
                             );
                         }}
@@ -267,7 +260,8 @@ function Post({
 const areEqual = (prev, next) =>
     prev.isFocused === next.isFocused &&
     prev.isSomePostFocused === next.isSomePostFocused &&
-    prev.data === next.data;
+    prev.data === next.data &&
+    prev.shouldPlay === next.shouldPlay;
 
 export default React.memo(Post, areEqual);
 
