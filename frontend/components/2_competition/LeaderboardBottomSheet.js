@@ -1,16 +1,23 @@
-import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { StyleSheet, Text, View } from "react-native";
-import BottomSheet, { BottomSheetBackdrop, BottomSheetFooter } from "@gorhom/bottom-sheet";
+// components/2_Competition/LeaderboardBottomSheet.jsx
+import React, { useCallback, useMemo, useRef, useState } from "react";
+import { StyleSheet } from "react-native";
+import BottomSheet, { BottomSheetBackdrop } from "@gorhom/bottom-sheet";
 import LeaderboardModal from "./LeaderboardModal";
 
-const LeaderboardBottomSheet = ({ userList, categoryCompared, showFollowers, toggleFollowers, openModal, openBottomSheet, navigation }) => {
+const LeaderboardBottomSheet = ({
+    userList,
+    categoryCompared,
+    comparedMetric,     // NEW
+    onToggleMetric,     // NEW
+    openModal,
+    openBottomSheet,
+}) => {
     const bottomSheetRef = useRef(null);
     const snapPoints = useMemo(() => ["60%", "94%"], []);
     const [isBottomSheetExpanded, setIsBottomSheetExpanded] = useState(false);
 
     const handleSheetChanges = useCallback((index) => {
-        if (index == 1) setIsBottomSheetExpanded(true);
-        else setIsBottomSheetExpanded(false);
+        setIsBottomSheetExpanded(index === 1);
     }, []);
 
     const renderBackdrop = useCallback(
@@ -33,22 +40,22 @@ const LeaderboardBottomSheet = ({ userList, categoryCompared, showFollowers, tog
             backdropComponent={renderBackdrop}
             snapPoints={snapPoints}
             onChange={handleSheetChanges}
-            handleStyle={{ display: 'none' }}
+            handleStyle={{ display: "none" }}
             style={styles.bottomsheet}
             backgroundStyle={{ borderTopLeftRadius: 30, borderTopRightRadius: 30 }}
             enablePanDownToClose={false}
         >
-            {userList &&
+            {userList && (
                 <LeaderboardModal
                     userList={userList}
                     categoryCompared={categoryCompared}
-                    showFollowers={showFollowers}
-                    toggleFollowers={toggleFollowers}
+                    comparedMetric={comparedMetric}     // NEW
+                    onToggleMetric={onToggleMetric}     // NEW
                     openModal={openModal}
                     openBottomSheet={openBottomSheet}
                     isBottomSheetExpanded={isBottomSheetExpanded}
                 />
-            }
+            )}
         </BottomSheet>
     );
 };
@@ -57,13 +64,13 @@ export default React.memo(LeaderboardBottomSheet);
 
 const styles = StyleSheet.create({
     bottomsheet: {
-        shadowColor: '#ddd',
+        shadowColor: "#ddd",
         shadowOffset: { width: 0, height: -5 },
         shadowOpacity: 0.8,
         shadowRadius: 5,
         elevation: 5,
         borderTopRightRadius: 25,
         borderTopLeftRadius: 25,
-        backgroundColor: '#fff'
-    }
-})
+        backgroundColor: "#fff",
+    },
+});
