@@ -10,12 +10,13 @@ import {
     Dimensions,
     Text,
 } from "react-native";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 import Footer from "../components/Footer";
 import Podium from "../components/2_Competition/Podium";
 import rankUsers from "../helper/rankUsers";
 import LeaderboardBottomSheet from "../components/2_Competition/LeaderboardBottomSheet";
 import UserStatsBottomSheet from "../components/2_Competition/UserStats/UserStatsBottomSheet";
-import { Octicons, Ionicons } from "@expo/vector-icons";
+import { Ionicons } from "@expo/vector-icons";
 import SelectExerciseModal from "../components/2_Competition/SelectExercise/SelectExerciseModal";
 import InfoPanel from "../components/2_Competition/InfoPanel";
 import {
@@ -34,15 +35,14 @@ import {
 import { db } from "../../firebase.config";
 import getAllUsers from "../helper/getAllUsers";
 
-// Tribe subcomponents
 import TribeMenu from "../components/2_Competition/TribeMenu";
 import CreateTribeModal from "../components/2_Competition/CreateTribeModal";
 import JoinTribeModal from "../components/2_Competition/JoinTribeModal";
 import ManageTribeModal from "../components/2_Competition/ManageTribeModal";
+import TribeComparisonModal from "../components/2_Competition/TribeComparisonModal";
 
 const { width, height } = Dimensions.get("window");
 
-// Responsive header sizes
 const getDynamicStyles = () => {
     if (width >= 430 && height >= 932) {
         return { headerIconSize: 26.5, headerPaddingHorizontal: 30 };
@@ -56,8 +56,11 @@ const getDynamicStyles = () => {
 };
 const dynamicStyles = getDynamicStyles();
 
-/* -------- Helpers -------- */
-// Codes use A–Z + 0–9
+const STORAGE_KEYS = {
+    lastScope: "competition:lastScope", // "Global" | "All Followers"
+    lastTribeId: "competition:lastTribeId",
+};
+
 const genCode = (len = 6) => {
     const chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
     let out = "";
@@ -65,19 +68,54 @@ const genCode = (len = 6) => {
     return out;
 };
 
+function safeBodyweight(u) {
+    return (
+        u?.bodyweight ||
+        u?.bodyWeight ||
+        u?.weight ||
+        u?.stats?.bodyweight ||
+        u?.stats?.weight ||
+        0
+    );
+}
+
+function computeTribeRanking(users, comparison) {
+    const { exercise, metric, normalizeByBodyweight } = comparison || {};
+    const list = (users || []).map((u) => {
+        const ex = u?.statsExercises?.[exercise] || {};
+        const raw =
+            metric === "1RM" ? ex?.["1RM"] ?? 0 : metric === "Volume" ? ex?.["Volume"] ?? 0 : ex?.["Reps"] ?? 0;
+        const bw = normalizeByBodyweight ? Math.max(1, Number(safeBodyweight(u)) || 1) : 1;
+        const val = Number(raw) / bw;
+        return { ...u, _tribeValue: Number.isFinite(val) ? val : 0 };
+    });
+    list.sort((a, b) => (b._tribeValue || 0) - (a._tribeValue || 0));
+    return list;
+}
+
+const summaryOf = (c) => {
+    if (!c) return "Not set";
+    const parts = [c.exercise, c.metric];
+    if (c.normalizeByBodyweight) parts.push("per lb bodyweight");
+    return parts.join(" • ");
+};
+
 export default function Competition({ navigation }) {
     const usersRef = useRef([]);
-    const userUnsubRef = useRef(null); // single Firestore listener
+    const userUnsubRef = useRef(null);
+
+    const pendingTribeIdRef = useRef(null); // tribe to restore once snapshot arrives
+    const [isBootstrapping, setIsBootstrapping] = useState(true); // pause recompute until selection restored
 
     const [userList, setUserList] = useState(null);
     const [comparedExercise, setComparedExercise] = useState("Bench Press (Barbell)");
-    const [scope, setScope] = useState("Global"); // "Global" | "All Followers"
+    const [scope, setScope] = useState("Global");
     const [selectExerciseModalVisible, setSelectExerciseModalVisible] = useState(false);
     const [selectedUser, setSelectedUser] = useState(null);
     const [isUserStatsBottomSheetVisible, setIsUserStatsBottomSheetVisible] = useState(false);
     const [footerKey, setFooterKey] = useState(0);
 
-    const [infoPanelVisible, setInfoPanelVisible] = useState(false);
+    const [infoPanelVisible] = useState(false);
     const infoPanelOpacity = useRef(new Animated.Value(0)).current;
 
     const [comparedMetric, setComparedMetric] = useState("1RM");
@@ -98,10 +136,31 @@ export default function Competition({ navigation }) {
     const [joinCode, setJoinCode] = useState("");
     const [renameInput, setRenameInput] = useState("");
 
-    /* init */
+    // Comparison manager
+    const [comparisonManagerVisible, setComparisonManagerVisible] = useState(false);
+    const [activeCompIndex, setActiveCompIndex] = useState(0);
+
+    // ---- Restore last selection on mount ----
     useEffect(() => {
-        init();
+        (async () => {
+            try {
+                const [savedTribeId, savedScope] = await Promise.all([
+                    AsyncStorage.getItem(STORAGE_KEYS.lastTribeId),
+                    AsyncStorage.getItem(STORAGE_KEYS.lastScope),
+                ]);
+                if (savedTribeId) {
+                    // Defer applying until tribes snapshot arrives
+                    pendingTribeIdRef.current = savedTribeId;
+                } else if (savedScope === "All Followers" || savedScope === "Global") {
+                    setScope(savedScope);
+                }
+            } catch { }
+            // keep isBootstrapping true until we process tribes snapshot (or no uid)
+        })();
     }, []);
+
+    // ---- Initial load of users ----
+    useEffect(() => { init(); }, []);
 
     useEffect(() => {
         const navUnsub = navigation.addListener("focus", () => {
@@ -124,63 +183,121 @@ export default function Competition({ navigation }) {
     async function init() {
         const allUsers = await getAllUsers();
         usersRef.current = allUsers;
-        recomputeBaseList();
+        recomputeBaseList(); // will no-op while bootstrapping
     }
 
-    /* base list by scope */
+    const currentTribe = useMemo(
+        () => tribes.find((x) => x.id === selectedTribeId) || null,
+        [tribes, selectedTribeId]
+    );
+
+    // Backward-compat: if older single `comparison` exists, treat it as array of one
+    const tribeComparisons = useMemo(() => {
+        const arr = currentTribe?.comparisons;
+        if (Array.isArray(arr) && arr.length) return arr;
+        return currentTribe?.comparison ? [currentTribe.comparison] : [];
+    }, [currentTribe]);
+
+    const isCustomTribe = !!selectedTribeId;
+    const activeComparison =
+        isCustomTribe && tribeComparisons.length > 0
+            ? tribeComparisons[Math.min(activeCompIndex, tribeComparisons.length - 1)]
+            : null;
+
+    // Keep active index in range when comparisons change
+    useEffect(() => {
+        if (activeCompIndex >= tribeComparisons.length) setActiveCompIndex(0);
+    }, [tribeComparisons.length, activeCompIndex]);
+
     const recomputeBaseList = useCallback(() => {
+        if (isBootstrapping) return; // wait until selection restored
+        const all = usersRef.current || [];
+
+        if (isCustomTribe && currentTribe) {
+            const memberSet = new Set(currentTribe.members || []);
+            const tribeUsers = all.filter((u) => memberSet.has(u?.uid));
+            if (activeComparison) {
+                setUserList(computeTribeRanking(tribeUsers, activeComparison));
+            } else {
+                setUserList(rankUsers(tribeUsers, comparedExercise));
+            }
+            return;
+        }
+
         if (scope === "All Followers") {
             const followersSet = new Set((global.userData?.following || []).map((u) => u.uid));
-            const base = usersRef.current.filter(
-                (usr) => usr?.uid === global.userData?.uid || followersSet.has(usr?.uid)
-            );
+            const base = all.filter((usr) => usr?.uid === global.userData?.uid || followersSet.has(usr?.uid));
             setUserList(rankUsers(base, comparedExercise));
         } else {
-            setUserList(rankUsers(usersRef.current, comparedExercise));
+            setUserList(rankUsers(all, comparedExercise));
         }
-    }, [scope, comparedExercise]);
+    }, [isBootstrapping, scope, comparedExercise, isCustomTribe, currentTribe, activeComparison]);
 
-    useEffect(() => {
-        recomputeBaseList();
-    }, [recomputeBaseList]);
+    useEffect(() => { recomputeBaseList(); }, [recomputeBaseList]);
 
-    /* tribes subscription */
+    // ---- Tribes subscription & apply pending selection ----
     useEffect(() => {
         const uid = global?.userData?.uid;
-        if (!uid) return;
+        if (!uid) {
+            // No user yet; stop bootstrapping to avoid indefinite pause
+            setIsBootstrapping(false);
+            return;
+        }
         const tribesRef = collection(db, "tribes");
         const q = query(tribesRef, where("members", "array-contains", uid));
-        const unsub = onSnapshot(q, (snap) => {
+        const unsub = onSnapshot(q, async (snap) => {
             const t = snap.docs.map((d) => ({ id: d.id, ...d.data() }));
             setTribes(t);
+
+            // If a previously selected tribe vanished, clear it
             if (selectedTribeId && !t.find((x) => x.id === selectedTribeId)) {
                 setSelectedTribeId(null);
+                await AsyncStorage.removeItem(STORAGE_KEYS.lastTribeId).catch(() => { });
+                // fall back to saved scope or Global
+                const savedScope = await AsyncStorage.getItem(STORAGE_KEYS.lastScope).catch(() => null);
+                if (savedScope === "All Followers" || savedScope === "Global") {
+                    setScope(savedScope);
+                } else {
+                    setScope("Global");
+                    await AsyncStorage.setItem(STORAGE_KEYS.lastScope, "Global").catch(() => { });
+                }
             }
+
+            // Apply pending tribe restore if any
+            const pending = pendingTribeIdRef.current;
+            if (!selectedTribeId && pending) {
+                const found = t.find((x) => x.id === pending);
+                if (found) {
+                    setSelectedTribeId(pending);
+                } else {
+                    // invalid pending tribe; clear and fall back to saved scope or Global
+                    pendingTribeIdRef.current = null;
+                    await AsyncStorage.removeItem(STORAGE_KEYS.lastTribeId).catch(() => { });
+                    const savedScope = await AsyncStorage.getItem(STORAGE_KEYS.lastScope).catch(() => null);
+                    if (savedScope === "All Followers" || savedScope === "Global") {
+                        setScope(savedScope);
+                    } else {
+                        setScope("Global");
+                        await AsyncStorage.setItem(STORAGE_KEYS.lastScope, "Global").catch(() => { });
+                    }
+                }
+            }
+            // We have processed snapshot; lift bootstrapping guard
+            setIsBootstrapping(false);
         });
         return unsub;
+        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [selectedTribeId]);
 
-    /* final list (tribe filter) */
-    const rankedDisplay = useMemo(() => {
-        if (!userList) return [];
-        if (!selectedTribeId) return userList;
-        const tribe = tribes.find((t) => t.id === selectedTribeId);
-        if (!tribe) return [];
-        const memberSet = new Set(tribe.members || []);
-        const tribeUsers = usersRef.current.filter((u) => memberSet.has(u.uid));
-        return rankUsers(tribeUsers, comparedExercise);
-    }, [userList, selectedTribeId, tribes, comparedExercise]);
+    const rankedDisplay = useMemo(() => userList || [], [userList]);
 
-    /* header actions */
     const openModal = () => setSelectExerciseModalVisible(true);
     const closeModal = () => setSelectExerciseModalVisible(false);
-
     const openBottomSheet = (user) => {
         setSelectedUser(user);
         setIsUserStatsBottomSheetVisible(true);
     };
 
-    /* tribe flows triggered from menu */
     const onOpenCreateFromMenu = useCallback(() => {
         setTribeMenuVisible(false);
         requestAnimationFrame(() => setCreateModalVisible(true));
@@ -194,16 +311,16 @@ export default function Competition({ navigation }) {
         requestAnimationFrame(() => setManageModalVisible(true));
     }, []);
 
-    /* tribe CRUD */
     const handleCreateTribe = async () => {
         const uid = global?.userData?.uid;
         if (!uid || !newTribeName.trim()) return;
-        const code = genCode(6); // A-Z + 0-9
+        const code = genCode(6);
         const ref = await addDoc(collection(db, "tribes"), {
             name: newTribeName.trim(),
             code,
             ownerUid: uid,
             members: [uid],
+            comparisons: [], // start empty
             createdAt: serverTimestamp(),
             updatedAt: serverTimestamp(),
         });
@@ -211,11 +328,12 @@ export default function Competition({ navigation }) {
         setCreateModalVisible(false);
         setNewTribeName("");
         setSelectedTribeId(ref.id);
+        await AsyncStorage.setItem(STORAGE_KEYS.lastTribeId, ref.id).catch(() => { });
+        await AsyncStorage.removeItem(STORAGE_KEYS.lastScope).catch(() => { });
     };
 
     const handleJoinTribe = async () => {
         const uid = global?.userData?.uid;
-        // Uppercase and restrict to A-Z0-9 only
         const code = (joinCode || "").toUpperCase().replace(/[^A-Z0-9]/g, "");
         if (!uid || !code) return;
 
@@ -225,41 +343,74 @@ export default function Competition({ navigation }) {
         const d = snap.docs[0];
         const target = { id: d.id, ...d.data() };
 
-        await updateDoc(doc(db, "tribes", target.id), { members: arrayUnion(uid), updatedAt: serverTimestamp() });
+        await updateDoc(doc(db, "tribes", target.id), {
+            members: arrayUnion(uid),
+            updatedAt: serverTimestamp(),
+        });
         await updateDoc(doc(db, "users", uid), { tribeIds: arrayUnion(target.id) }).catch(() => { });
         setJoinModalVisible(false);
         setJoinCode("");
         setSelectedTribeId(target.id);
+        await AsyncStorage.setItem(STORAGE_KEYS.lastTribeId, target.id).catch(() => { });
+        await AsyncStorage.removeItem(STORAGE_KEYS.lastScope).catch(() => { });
     };
 
     const handleLeaveTribe = async () => {
         const uid = global?.userData?.uid;
         if (!uid || !selectedTribeId) return;
-        await updateDoc(doc(db, "tribes", selectedTribeId), { members: arrayRemove(uid), updatedAt: serverTimestamp() });
+        await updateDoc(doc(db, "tribes", selectedTribeId), {
+            members: arrayRemove(uid),
+            updatedAt: serverTimestamp(),
+        });
         await updateDoc(doc(db, "users", uid), { tribeIds: arrayRemove(selectedTribeId) }).catch(() => { });
         setManageModalVisible(false);
         setSelectedTribeId(null);
+        setScope("Global");
+        await AsyncStorage.removeItem(STORAGE_KEYS.lastTribeId).catch(() => { });
+        await AsyncStorage.setItem(STORAGE_KEYS.lastScope, "Global").catch(() => { });
     };
 
     const handleRenameTribe = async () => {
         const uid = global?.userData?.uid;
         const t = tribes.find((x) => x.id === selectedTribeId);
         if (!uid || !t || t.ownerUid !== uid || !renameInput.trim()) return;
-        await updateDoc(doc(db, "tribes", selectedTribeId), { name: renameInput.trim(), updatedAt: serverTimestamp() });
+        await updateDoc(doc(db, "tribes", selectedTribeId), {
+            name: renameInput.trim(),
+            updatedAt: serverTimestamp(),
+        });
         setRenameInput("");
         setManageModalVisible(false);
     };
 
-    const currentTribe = useMemo(
-        () => tribes.find((x) => x.id === selectedTribeId) || null,
-        [tribes, selectedTribeId]
-    );
+    const onSaveTribeComparisons = async (list) => {
+        if (!selectedTribeId) return;
+        await updateDoc(doc(db, "tribes", selectedTribeId), {
+            comparisons: list,
+            updatedAt: serverTimestamp(),
+        });
+        setComparisonManagerVisible(false);
+        if (activeCompIndex >= list.length) setActiveCompIndex(0);
+    };
 
-    // Header label text: Global | Followers | <Tribe Name>
     const scopeLabel = useMemo(() => {
         if (selectedTribeId) return currentTribe?.name || "Tribe";
         return scope === "All Followers" ? "Followers" : "Global";
     }, [selectedTribeId, currentTribe, scope]);
+
+    const podiumData = useMemo(() => {
+        if (!rankedDisplay || rankedDisplay.length === 0) return null;
+        const top3 = rankedDisplay.slice(0, 3).map((u) => {
+            let stat = 0;
+            if (activeComparison && isCustomTribe) {
+                stat = u?._tribeValue ?? 0;
+            } else {
+                const exStats = u?.statsExercises?.[comparedExercise] || {};
+                stat = exStats?.[exerciseStatKey] ?? 0;
+            }
+            return { handle: u?.handle, pfp: u?.image, stat };
+        });
+        return top3.filter(Boolean);
+    }, [rankedDisplay, activeComparison, isCustomTribe, comparedExercise, exerciseStatKey]);
 
     return (
         <View style={styles.mainContainer}>
@@ -273,14 +424,7 @@ export default function Competition({ navigation }) {
                         },
                     ]}
                 >
-                    {/* <Octicons
-                        name="gear"
-                        size={dynamicStyles.headerIconSize - 2}
-                        color={"#eee"}
-                        style={{ opacity: 0.5 }}
-                    /> */}
                     <View style={styles.headerRightContainer}>
-                        {/* Label then icon (icon on the RIGHT) */}
                         <TouchableOpacity
                             onPress={() => setTribeMenuVisible(true)}
                             style={styles.tribeButtonRow}
@@ -291,7 +435,7 @@ export default function Competition({ navigation }) {
                             </Text>
                             <Ionicons
                                 name="people-circle"
-                                size={dynamicStyles.headerIconSize + 3}
+                                size={getDynamicStyles().headerIconSize + 3}
                                 color={"#fff"}
                                 style={styles.tribeIcon}
                             />
@@ -301,41 +445,35 @@ export default function Competition({ navigation }) {
             </SafeAreaView>
 
             <InfoPanel isVisible={infoPanelVisible} opacity={infoPanelOpacity} />
+            <Podium data={podiumData} />
 
-            <Podium
-                data={
-                    rankedDisplay && rankedDisplay.length > 0
-                        ? rankedDisplay
-                            .slice(0, 3)
-                            .map((user) =>
-                                user && user.handle && user.image && global.userData.statsExercises
-                                    ? {
-                                        handle: user.handle,
-                                        pfp: user.image,
-                                        stat:
-                                            global.userData.statsExercises[comparedExercise]?.[
-                                            exerciseStatKey
-                                            ] || 0,
-                                    }
-                                    : null
-                            )
-                            .filter(Boolean)
-                        : null
-                }
-            />
-
-            {/* Metric toggle lives in the bottom sheet */}
             <LeaderboardBottomSheet
                 userList={rankedDisplay}
                 categoryCompared={comparedExercise}
                 comparedMetric={comparedMetric}
                 onToggleMetric={() =>
-                    setComparedMetric((prev) =>
-                        prev === "1RM" ? "Volume" : prev === "Volume" ? "Reps" : "1RM"
-                    )
+                    setComparedMetric((prev) => (prev === "1RM" ? "Volume" : prev === "Volume" ? "Reps" : "1RM"))
                 }
-                openModal={openModal}
+                openModal={() => setSelectExerciseModalVisible(true)}
                 openBottomSheet={openBottomSheet}
+                isBottomSheetExpanded={undefined}
+                // tribe-aware
+                isTribeFocused={!!selectedTribeId}
+                tribeComparisons={tribeComparisons}
+                activeCompIndex={activeCompIndex}
+                onActiveCompChange={(idx) => {
+                    setActiveCompIndex(idx);
+                    // recompute list immediately for responsiveness
+                    const all = usersRef.current || [];
+                    if (selectedTribeId && currentTribe) {
+                        const memberSet = new Set(currentTribe.members || []);
+                        const tribeUsers = all.filter((u) => memberSet.has(u?.uid));
+                        const comp = tribeComparisons[idx];
+                        if (comp) setUserList(computeTribeRanking(tribeUsers, comp));
+                    }
+                }}
+                tribeComparisonSummary={activeComparison ? summaryOf(activeComparison) : "Not set"}
+                onOpenTribeComparison={() => setComparisonManagerVisible(true)}
             />
 
             <UserStatsBottomSheet
@@ -358,26 +496,31 @@ export default function Competition({ navigation }) {
                 <SelectExerciseModal closeModal={closeModal} setComparedExercise={setComparedExercise} />
             </Modal>
 
-            {/* Tribe UI */}
             <TribeMenu
                 visible={tribeMenuVisible}
                 tribes={tribes}
                 selectedTribeId={selectedTribeId}
                 scope={scope}
                 onClose={() => setTribeMenuVisible(false)}
-                onSelectGlobal={() => {
+                onSelectGlobal={async () => {
                     setSelectedTribeId(null);
                     setScope("Global");
                     setTribeMenuVisible(false);
+                    await AsyncStorage.setItem(STORAGE_KEYS.lastScope, "Global").catch(() => { });
+                    await AsyncStorage.removeItem(STORAGE_KEYS.lastTribeId).catch(() => { });
                 }}
-                onSelectFollowers={() => {
+                onSelectFollowers={async () => {
                     setSelectedTribeId(null);
                     setScope("All Followers");
                     setTribeMenuVisible(false);
+                    await AsyncStorage.setItem(STORAGE_KEYS.lastScope, "All Followers").catch(() => { });
+                    await AsyncStorage.removeItem(STORAGE_KEYS.lastTribeId).catch(() => { });
                 }}
-                onSelectTribe={(id) => {
+                onSelectTribe={async (id) => {
                     setSelectedTribeId(id);
                     setTribeMenuVisible(false);
+                    await AsyncStorage.setItem(STORAGE_KEYS.lastTribeId, id).catch(() => { });
+                    await AsyncStorage.removeItem(STORAGE_KEYS.lastScope).catch(() => { });
                 }}
                 onCreatePress={onOpenCreateFromMenu}
                 onJoinPress={onOpenJoinFromMenu}
@@ -410,6 +553,13 @@ export default function Competition({ navigation }) {
                 onRename={handleRenameTribe}
                 onLeave={handleLeaveTribe}
             />
+
+            <TribeComparisonModal
+                visible={comparisonManagerVisible}
+                onClose={() => setComparisonManagerVisible(false)}
+                initialList={tribeComparisons}
+                onSaveList={onSaveTribeComparisons}
+            />
         </View>
     );
 }
@@ -419,7 +569,6 @@ const styles = StyleSheet.create({
     header: { alignItems: "flex-end", justifyContent: "flex-end", flexDirection: "row" },
     headerRightContainer: { flexDirection: "row", alignItems: "center" },
 
-    // Label + icon row (icon on right)
     tribeButtonRow: {
         flexDirection: "row",
         alignItems: "center",
@@ -427,18 +576,14 @@ const styles = StyleSheet.create({
         paddingHorizontal: 10,
         paddingVertical: 6,
         borderRadius: 14,
-        // Optional subtle background:
-        // backgroundColor: "rgba(255,255,255,0.12)",
     },
     tribeLabel: {
         color: "#fff",
         fontFamily: "Outfit_600SemiBold",
-        fontSize: 14,
+        fontSize: 15,
         includeFontPadding: false,
         maxWidth: 160,
-        marginRight: 6, // space between text and icon
+        marginRight: 6,
     },
-    tribeIcon: {
-        marginTop: 1,
-    },
+    tribeIcon: { marginTop: 1 },
 });

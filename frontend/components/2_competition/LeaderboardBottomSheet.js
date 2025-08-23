@@ -1,4 +1,3 @@
-// components/2_Competition/LeaderboardBottomSheet.jsx
 import React, { useCallback, useMemo, useRef, useState } from "react";
 import { StyleSheet } from "react-native";
 import BottomSheet, { BottomSheetBackdrop } from "@gorhom/bottom-sheet";
@@ -7,10 +6,18 @@ import LeaderboardModal from "./LeaderboardModal";
 const LeaderboardBottomSheet = ({
     userList,
     categoryCompared,
-    comparedMetric,     // NEW
-    onToggleMetric,     // NEW
+    comparedMetric,
+    onToggleMetric,
     openModal,
     openBottomSheet,
+
+    // Tribe-aware
+    isTribeFocused,
+    tribeComparisons,          // NEW: array
+    activeCompIndex,           // NEW: number
+    onActiveCompChange,        // NEW: (idx)=>void
+    tribeComparisonSummary,    // optional display of active
+    onOpenTribeComparison,     // open manager modal
 }) => {
     const bottomSheetRef = useRef(null);
     const snapPoints = useMemo(() => ["60%", "94%"], []);
@@ -49,11 +56,19 @@ const LeaderboardBottomSheet = ({
                 <LeaderboardModal
                     userList={userList}
                     categoryCompared={categoryCompared}
-                    comparedMetric={comparedMetric}     // NEW
-                    onToggleMetric={onToggleMetric}     // NEW
+                    comparedMetric={comparedMetric}
+                    onToggleMetric={onToggleMetric}
                     openModal={openModal}
                     openBottomSheet={openBottomSheet}
                     isBottomSheetExpanded={isBottomSheetExpanded}
+
+                    // NEW
+                    isTribeFocused={isTribeFocused}
+                    tribeComparisons={tribeComparisons}
+                    activeCompIndex={activeCompIndex}
+                    onActiveCompChange={onActiveCompChange}
+                    tribeComparisonSummary={tribeComparisonSummary}
+                    onOpenTribeComparison={onOpenTribeComparison}
                 />
             )}
         </BottomSheet>
