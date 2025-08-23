@@ -8,7 +8,7 @@ import roundToNearestMinute from '../../helper/roundToNearestMinute';
 
 const { height: screenHeight } = Dimensions.get('window');
 const scale = screenHeight / 844; // iPhone 13 baseline
-const scaledSize = (size: number) => Math.round(size * scale);
+const scaledSize = (size) => Math.round(size * scale);
 
 const COLORS = {
     bgDim: 'rgba(15, 23, 42, 0.45)',
@@ -23,7 +23,7 @@ const COLORS = {
     icon: '#6366F1',
 };
 
-const muscleColors: Record<string, string> = {
+const muscleColors = {
     Chest: '#FFAFB8',
     Shoulders: '#A1CDEE',
     Arms: '#CBBCFF',
@@ -33,17 +33,7 @@ const muscleColors: Record<string, string> = {
     Abs: '#FF7561',
 };
 
-type SetType = { weight?: number | string; reps?: number | string };
-type ExerciseType = { name: string; muscle?: string; sets: SetType[] };
-type WorkoutType = {
-    created: any;
-    duration?: number;
-    volume?: number;
-    PBs?: number;
-    exercises: ExerciseType[];
-};
-
-function toDate(d: any) {
+function toDate(d) {
     try {
         if (d?.toDate) return d.toDate();
         const maybe = new Date(d);
@@ -53,39 +43,33 @@ function toDate(d: any) {
     }
 }
 
-function formatDateNice(d: Date) {
-    const opts: Intl.DateTimeFormatOptions = { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' };
+function formatDateNice(d) {
+    const opts = { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' };
     return d.toLocaleDateString(undefined, opts);
 }
-function formatNumber(n?: number) {
+
+function formatNumber(n) {
     if (n === undefined || n === null) return '0';
-    try { return Number(n).toLocaleString(); } catch { return String(n); }
+    try {
+        return Number(n).toLocaleString();
+    } catch {
+        return String(n);
+    }
 }
 
-function bestSet(sets: SetType[]) {
+function bestSet(sets) {
     if (!Array.isArray(sets) || sets.length === 0) return null;
-    // Rank primarily by weight, then reps
-    const parsed = sets.map(s => ({
+    const parsed = sets.map((s) => ({
         weight: Number(s.weight ?? 0),
         reps: Number(s.reps ?? 0),
     }));
-    parsed.sort((a, b) => (b.weight - a.weight) || (b.reps - a.reps));
+    parsed.sort((a, b) => b.weight - a.weight || b.reps - a.reps);
     return parsed[0];
 }
 
 const Divider = () => <View style={styles.divider} />;
 
-const WorkoutSummaryModal = ({
-    isVisible,
-    workout,
-    onClose,
-    postWorkout,
-}: {
-    isVisible: boolean;
-    workout?: WorkoutType;
-    onClose: () => void;
-    postWorkout: () => void;
-}) => {
+const WorkoutSummaryModal = ({ isVisible, workout, onClose, postWorkout }) => {
     const scaleAnim = useRef(new Animated.Value(0.96)).current;
     const opacityAnim = useRef(new Animated.Value(0)).current;
 
@@ -99,7 +83,7 @@ const WorkoutSummaryModal = ({
             scaleAnim.setValue(0.96);
             opacityAnim.setValue(0);
         }
-    }, [isVisible]);
+    }, [isVisible, opacityAnim, scaleAnim]);
 
     const createdDate = useMemo(() => toDate(workout?.created), [workout?.created]);
 
@@ -109,17 +93,13 @@ const WorkoutSummaryModal = ({
 
     if (!workout) return null;
 
-    const renderExercise = ({ item }: { item: ExerciseType }) => {
+    const renderExercise = ({ item }) => {
         const chipColor = muscleColors[item.muscle || ''] || '#CBD5E1';
         const top = bestSet(item.sets);
         return (
             <View style={styles.row}>
                 <View style={styles.rowLeft}>
-                    <Text
-                        style={styles.exerciseName}
-                        numberOfLines={1}
-                        ellipsizeMode="tail"
-                    >
+                    <Text style={styles.exerciseName} numberOfLines={1} ellipsizeMode="tail">
                         {`${item.sets?.length || 0} x ${item.name}`}
                     </Text>
                     {!!item.muscle && (
@@ -132,9 +112,7 @@ const WorkoutSummaryModal = ({
                     {top ? (
                         <View style={styles.bestPill}>
                             <MaterialCommunityIcons name="weight" size={scaledSize(14)} color={COLORS.text} />
-                            <Text style={styles.bestPillText}>
-                                {`${top.weight} lb × ${top.reps}`}
-                            </Text>
+                            <Text style={styles.bestPillText}>{`${top.weight} lb × ${top.reps}`}</Text>
                         </View>
                     ) : (
                         <Text style={styles.naText}>N/A</Text>
@@ -145,16 +123,9 @@ const WorkoutSummaryModal = ({
     };
 
     return (
-        <Modal
-            animationType="fade"
-            transparent
-            visible={isVisible}
-            onRequestClose={onClose}
-        >
+        <Modal animationType="fade" transparent visible={isVisible} onRequestClose={onClose}>
             <Pressable style={styles.backdrop} onPress={onClose}>
-                <Animated.View
-                    style={[styles.card, { transform: [{ scale: scaleAnim }], opacity: opacityAnim }]}
-                >
+                <Animated.View style={[styles.card, { transform: [{ scale: scaleAnim }], opacity: opacityAnim }]}>
                     {/* Header */}
                     <View style={styles.header}>
                         <View>

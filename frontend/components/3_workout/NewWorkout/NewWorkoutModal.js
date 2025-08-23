@@ -1,257 +1,338 @@
-import React, { useEffect, useState, useCallback, useRef } from "react";
-import { StyleSheet, View, Modal, ScrollView, Text, Animated, Dimensions } from "react-native";
+import React, { useEffect, useState, useRef, useMemo, useCallback } from "react";
+import {
+    StyleSheet,
+    View,
+    Modal,
+    Text,
+    Animated,
+    Dimensions,
+} from "react-native";
+import RNBounceable from "@freakycoder/react-native-bounceable";
+import { Weight } from "iconsax-react-native";
 import ProgressBanner from "./Tracking/ProgressBanner";
 import ExerciseLog from "./Tracking/ExerciseLog";
-import SelectExerciseModal from './SelectExercise/SelectExerciseModal';
-import RNBounceable from "@freakycoder/react-native-bounceable";
-import { Weight } from 'iconsax-react-native';
-import { MaterialCommunityIcons, FontAwesome } from '@expo/vector-icons';
+import SelectExerciseModal from "./SelectExercise/SelectExerciseModal";
 import TimerDisplay from "./TimerDisplay";
 import calculate1RM from "../../../helper/calculate1RM";
 
-const { height: screenHeight } = Dimensions.get('window');
-const scale = screenHeight / 844; // Scaling factor based on iPhone 13 height
+// Group bits
+import { useGroupViewing } from "./Group/useGroupViewing";
+import GroupHeader from "./Group/GroupHeader";
+import GroupMenu from "./Group/GroupMenu";
 
+const { height: screenHeight } = Dimensions.get("window");
+const scale = screenHeight / 844; // iPhone 13 baseline
 const scaledSize = (size) => Math.round(size * scale);
 
-const NewWorkoutModal = ({ workout, cancelWorkout, updateWorkout, finishWorkout, timerRef, showGroupModal, userWorkoutStats }) => {
+const NewWorkoutModal = ({
+    workout,
+    cancelWorkout,
+    updateWorkout,
+    finishWorkout,
+    timerRef,
+    showGroupModal,
+    userWorkoutStats,
+    // NEW: notify parent so it can tint the BottomSheet handle
+    onViewingChange,
+}) => {
+    // UI
     const [selectExerciseModalVisible, setSelectExerciseModalVisible] = useState(false);
-    const [deleteConfirmModalVisible, setDeleteConfirmModalVisible] = useState(false); // State for delete confirmation modal
+    const [deleteConfirmModalVisible, setDeleteConfirmModalVisible] = useState(false);
+    const [countdown, setCountdown] = useState(0);
+    const scrollY = useRef(new Animated.Value(0)).current;
+
+    // banner totals
     const [totalReps, setTotalReps] = useState(0);
     const [totalVolume, setTotalVolume] = useState(0);
     const [personalBests, setPersonalBests] = useState(0);
-    const [countdown, setCountdown] = useState(0); // State for the countdown timer
-    const scrollY = useRef(new Animated.Value(0)).current;
 
-    // Initialize the isDone state
+    // done flags (self only)
     const [isDoneState, setIsDoneState] = useState(() =>
-        workout.exercises.map(exercise =>
-            exercise.sets.map(() => false)
-        )
+        (workout?.exercises || []).map((ex) => (ex.sets || []).map(() => false))
     );
 
+    // Group hook (participants, viewing, friend cache + menu)
+    const {
+        viewing,
+        viewingSelf,
+        participants,
+        menuVisible,
+        openMenu,
+        closeMenu,
+        overlayPfp,
+        activeWorkout,       // friend's workout (null when viewing self)
+        activeStats,         // stats for whoever is being viewed
+        friendDoneDerived,   // derived "done" for friend sets
+        waitingFriend,       // true when waiting for friend's workout
+    } = useGroupViewing({
+        wid: workout?.wid,
+        meUid: global?.userData?.uid,
+        userImage: global?.userData?.image,
+        userHandle: global?.userData?.handle,
+        userWorkoutStats,
+    });
+
+    // Let parent know when we flip self/friend
     useEffect(() => {
-        let timerInterval = null;
-        if (countdown > 0) {
-            timerInterval = setInterval(() => {
-                setCountdown(prevCountdown => Math.max(prevCountdown - 1, 0));
-            }, 1000);
-        }
-        return () => clearInterval(timerInterval);
+        onViewingChange?.(viewingSelf);
+    }, [viewingSelf, onViewingChange]);
+
+    /** TIMERS */
+    useEffect(() => {
+        let t = null;
+        if (countdown > 0) t = setInterval(() => setCountdown((s) => Math.max(0, s - 1)), 1000);
+        return () => t && clearInterval(t);
     }, [countdown]);
+    const handleAddTime = () => setCountdown((s) => s + 30);
 
-    const handleAddTime = () => {
-        setCountdown(prevCountdown => prevCountdown + 30); // Add 30 seconds to the countdown
-    };
+    /** keep isDoneState in sync with self workout sets */
+    useEffect(() => {
+        if (!viewingSelf) return;
+        const ex = workout?.exercises || [];
+        setIsDoneState((prev) =>
+            ex.map((e, i) => {
+                const sets = e.sets || [];
+                const row = prev[i] || [];
+                if (row.length === sets.length) return row;
+                return sets.map((_, si) => row[si] || false);
+            })
+        );
+    }, [workout?.exercises, viewingSelf]);
 
-    const calculateStats = useCallback(() => {
+    /** 🔑 Use SELF workout when viewingSelf, else use FRIEND workout */
+    const baseWorkout = viewingSelf ? workout : activeWorkout;
+
+    /** Lists for render */
+    const exercisesToRender = baseWorkout?.exercises || [];
+    const doneForRender = viewingSelf ? isDoneState : (friendDoneDerived || []);
+
+    /** Totals (compute from baseWorkout for both self & friend) */
+    const totals = useMemo(() => {
+        const w = baseWorkout;
+        if (!w?.exercises) return { reps: 0, volume: 0, PBs: 0 };
+
         let reps = 0;
         let volume = 0;
         let PBs = 0;
 
-        workout.exercises.forEach((exercise, exerciseIndex) => {
-            let isPB = false;
-            exercise.sets.forEach((set, setIndex) => {
-                if (isDoneState[exerciseIndex][setIndex]) { // Check if the set is done
-                    reps += Number(set.reps);
-                    volume += (Number(set.reps) * Number(set.weight));
-                    const max = calculate1RM(Number(set.weight), Number(set.reps));
-                    const prevMax = (exercise.name in userWorkoutStats && '1RM' in userWorkoutStats[exercise.name]) ? userWorkoutStats[exercise.name]['1RM'] : 0;
-                    console.log(prevMax);
+        (w.exercises || []).forEach((exercise, exIdx) => {
+            let hitPB = false;
+            (exercise.sets || []).forEach((set, setIdx) => {
+                const done = viewingSelf
+                    ? (isDoneState[exIdx] && isDoneState[exIdx][setIdx]) || false
+                    : (Number(set?.weight) > 0 && Number(set?.reps) > 0);
 
-                    if (max > prevMax && !isPB) {
-                        PBs++;
-                        isPB = true;
-                    }
+                if (!done) return;
+                const r = Number(set?.reps) || 0;
+                const wt = Number(set?.weight) || 0;
+
+                reps += r;
+                volume += r * wt;
+
+                const prevMax = activeStats?.[exercise?.name]?.["1RM"] || 0;
+                const maxNow = calculate1RM(wt, r);
+                if (!hitPB && maxNow > prevMax) {
+                    hitPB = true;
+                    PBs += 1;
                 }
             });
         });
 
-        setTotalReps(reps);
-        setTotalVolume(volume);
-        setPersonalBests(PBs);
+        return { reps, volume, PBs };
+    }, [baseWorkout, activeStats, isDoneState, viewingSelf]);
 
-        // Update the workout object with the new total reps and volume
-        updateWorkout(prevWorkout => ({
-            ...prevWorkout,
-            PBs,
-            reps,   // Update the reps property
-            volume, // Update the volume property
-        }));
-    }, [workout.exercises, isDoneState, updateWorkout]);
-
-    const showSelectExerciseModal = useCallback(() => {
-        setSelectExerciseModalVisible(true);
-    }, []);
-
-    const closeSelectExerciseModal = useCallback(() => {
-        setSelectExerciseModalVisible(false);
-    }, []);
-
-    const appendExercises = useCallback((exercises) => {
-        const newWorkout = {
-            ...workout, exercises: [...workout.exercises, ...exercises.map(ex => ({
-                name: ex.name,
-                muscle: ex.muscle,
-                sets: [{
-                    weight: 0,
-                    reps: 0,
-                }]
-            }))]
-        };
-        updateWorkout(newWorkout);
-        setIsDoneState(prevState =>
-            prevState.concat(exercises.map(() => [false]))
-        );
-    }, [workout, updateWorkout]);
-
-    const updateSets = useCallback((index, newSets) => {
-        updateWorkout(prevWorkout => {
-            // Create a new workout object with updated exercises
-            const updatedExercises = prevWorkout.exercises.map((exercise, i) => {
-                if (i === index) {
-                    // Replace the sets of the specific exercise
-                    return { ...exercise, sets: newSets };
-                }
-                return exercise; // Return other exercises unchanged
-            });
-
-            // Return the new workout object with updated exercises
-            return { ...prevWorkout, exercises: updatedExercises };
-        });
-
-        newSets.forEach(nset => {
-
-        });
-    }, [updateWorkout]);
-
+    // Mirror totals to banner + only update self workout if changed
     useEffect(() => {
-        calculateStats();
-    }, [calculateStats]);
+        setTotalReps(totals.reps);
+        setTotalVolume(totals.volume);
+        setPersonalBests(totals.PBs);
 
+        if (
+            viewingSelf &&
+            workout &&
+            (workout.reps !== totals.reps ||
+                workout.volume !== totals.volume ||
+                workout.PBs !== totals.PBs)
+        ) {
+            updateWorkout({ ...workout, reps: totals.reps, volume: totals.volume, PBs: totals.PBs });
+        }
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [totals.reps, totals.volume, totals.PBs, viewingSelf]);
+
+    /** editing actions (disabled when viewing friend) */
+    const showSelectExerciseModal = useCallback(() => {
+        if (!viewingSelf) return;
+        setSelectExerciseModalVisible(true);
+    }, [viewingSelf]);
+    const closeSelectExerciseModal = useCallback(() => setSelectExerciseModalVisible(false), []);
+
+    const appendExercises = useCallback(
+        (exercises) => {
+            if (!viewingSelf || !workout) return;
+            const next = {
+                ...workout,
+                exercises: [
+                    ...(workout.exercises || []),
+                    ...exercises.map((ex) => ({
+                        name: ex.name,
+                        muscle: ex.muscle,
+                        sets: [{ weight: 0, reps: 0 }],
+                    })),
+                ],
+            };
+            updateWorkout(next);
+            setIsDoneState((prev) => prev.concat(exercises.map(() => [false])));
+        },
+        [workout, updateWorkout, viewingSelf]
+    );
+
+    const updateSets = useCallback(
+        (index, newSets) => {
+            if (!viewingSelf || !workout) return;
+            const updated = (workout.exercises || []).map((ex, i) =>
+                i === index ? { ...ex, sets: newSets } : ex
+            );
+            updateWorkout({ ...workout, exercises: updated });
+        },
+        [workout, updateWorkout, viewingSelf]
+    );
+
+    const replaceExercise = useCallback(() => { }, []);
+
+    const deleteExercise = useCallback(
+        (index) => {
+            if (!viewingSelf || !workout) return;
+            const filtered = (workout.exercises || []).filter((_, i) => i !== index);
+            updateWorkout({ ...workout, exercises: filtered });
+            setIsDoneState((prev) => prev.filter((_, i) => i !== index));
+        },
+        [workout, updateWorkout, viewingSelf]
+    );
+
+    const toggleIsDone = useCallback(
+        (exerciseIndex, setIndex) => {
+            if (!viewingSelf || !workout) return;
+            const curr = workout.exercises?.[exerciseIndex]?.sets?.[setIndex];
+            if (!curr) return;
+            if (isDoneState[exerciseIndex][setIndex] === false) {
+                if (isNaN(curr.weight) || isNaN(curr.reps)) return;
+            }
+            setIsDoneState((prev) => {
+                const next = prev.map((row) => row.slice());
+                next[exerciseIndex][setIndex] = !next[exerciseIndex][setIndex];
+                return next;
+            });
+        },
+        [isDoneState, workout, viewingSelf]
+    );
+
+    const confirmCancelWorkout = () => {
+        if (!viewingSelf) return; // no cancel when viewing friend
+        if (!workout || (workout.exercises || []).length === 0) {
+            setDeleteConfirmModalVisible(false);
+            cancelWorkout();
+        } else {
+            setDeleteConfirmModalVisible(true);
+        }
+    };
+    const handleDeleteWorkout = useCallback(() => {
+        setDeleteConfirmModalVisible(false);
+        cancelWorkout();
+    }, [cancelWorkout]);
+
+    /** visuals */
     const borderOpacity = scrollY.interpolate({
         inputRange: [0, 98],
         outputRange: [0, 1],
-        extrapolate: 'clamp',
+        extrapolate: "clamp",
     });
-
-    const replaceExercise = useCallback((index) => {
-
-    }, [workout, updateWorkout, calculateStats]);
-
-    const deleteExercise = useCallback((index) => {
-        const newWorkout = { ...workout };
-        newWorkout.exercises = newWorkout.exercises.filter((_, i) => i !== index);
-        updateWorkout(newWorkout);
-        setIsDoneState(prevState => prevState.filter((_, i) => i !== index)); // Remove isDone states for deleted exercise
-        calculateStats(); // Update stats after deletion
-    }, [workout, updateWorkout, calculateStats]);
-
-    const toggleIsDone = useCallback((exerciseIndex, setIndex) => {
-        if (isDoneState[exerciseIndex][setIndex] === false) {
-            if (isNaN(workout.exercises[exerciseIndex].sets[setIndex].weight) || isNaN(workout.exercises[exerciseIndex].sets[setIndex].reps)) {
-                return;
-            }
-        }
-        setIsDoneState(prevState => {
-            const newState = [...prevState];
-            newState[exerciseIndex][setIndex] = !newState[exerciseIndex][setIndex];
-            return newState;
-        });
-        calculateStats();
-    }, [calculateStats]);
-
-    const confirmCancelWorkout = (() => {
-        if (workout.exercises.length === 0) handleDeleteWorkout();
-        else setDeleteConfirmModalVisible(true); // Show the delete confirmation modal
-    });
-
-    const handleDeleteWorkout = useCallback(() => {
-        setDeleteConfirmModalVisible(false); // Hide the modal after confirmation
-        cancelWorkout(); // Proceed with the original cancel workout functionality
-    }, [cancelWorkout]);
+    const overallOpacity = viewingSelf ? 1 : 0.74;
 
     return (
         <View style={styles.main_ctnr}>
-            <View style={styles.header}>
-                <View style={styles.rest_timer_ctnr}>
-                    <RNBounceable style={styles.iconWrapper} onPress={handleAddTime}>
-                        <MaterialCommunityIcons name="timer-outline" size={scaledSize(24)} color="#0499FE" />
-                    </RNBounceable>
-
-                    {countdown > 0 && (
-                        <Text style={styles.countdownText}>
-                            {Math.floor(countdown / 60)}:{String(countdown % 60).padStart(2, '0')}
-                        </Text>
-                    )}
-                </View>
-
-                <View style={styles.timer_text_ctnr} pointerEvents="none">
-                    <TimerDisplay timerRef={timerRef} />
-                </View>
-                <View style={styles.header_right}>
-                    <RNBounceable style={styles.group_btn} onPress={showGroupModal}>
-                        <FontAwesome name="group" size={scaledSize(17)} color="#FFBB3D" />
-                    </RNBounceable>
-                    <RNBounceable onPress={finishWorkout} style={styles.finish_btn}>
-                        <Text style={styles.finish_btn_text}>Finish</Text>
-                    </RNBounceable>
-                </View>
-                <Animated.View style={[styles.headerShadow, { opacity: borderOpacity }]} />
+            {/* Header (gold when viewing friend) */}
+            <View style={[styles.header, { opacity: overallOpacity }]}>
+                <GroupHeader
+                    viewingSelf={viewingSelf}
+                    overlayPfp={overlayPfp}
+                    onOpenMenu={openMenu}
+                    onLongPressInvite={showGroupModal}
+                    onFinish={finishWorkout}
+                    countdown={countdown}
+                    onAddTime={handleAddTime}
+                    timerRef={timerRef}
+                    headerStyle={[
+                        styles.headerInner,
+                    ]}
+                />
             </View>
+            <Animated.View style={[styles.headerShadow, { opacity: borderOpacity }]} />
 
-            <Animated.ScrollView
-                showsVerticalScrollIndicator={false}
-                onScroll={Animated.event(
-                    [{ nativeEvent: { contentOffset: { y: scrollY } } }],
-                    { useNativeDriver: false }
-                )}
-                scrollEventThrottle={16}
-                style={styles.scrollview}
-            >
-                <ProgressBanner totalReps={totalReps} totalVolume={totalVolume} personalBests={personalBests} />
-                {workout.exercises.map((ex, exerciseIndex) => (
-                    <ExerciseLog
-                        name={ex.name}
-                        muscle={ex.muscle}
-                        exerciseIndex={exerciseIndex}
-                        key={ex.name + exerciseIndex}
-                        updateSets={updateSets}
-                        sets={ex.sets}
-                        replaceExercise={replaceExercise}
-                        deleteExercise={() => deleteExercise(exerciseIndex)}
-                        calculateStats={calculateStats}
-                        isDoneState={isDoneState[exerciseIndex]}
-                        toggleIsDone={toggleIsDone}
-                        userWorkoutStats={userWorkoutStats}
-                    />
-                ))}
-                <RNBounceable onPress={showSelectExerciseModal} style={styles.add_exercise_btn}>
-                    <Text style={styles.add_exercise_text}>Add Exercises</Text>
-                    <Weight size={scaledSize(22)} color="#5DBDFF" variant='Bold' />
-                </RNBounceable>
+            {/* Body */}
+            {!viewingSelf && waitingFriend ? (
+                <View style={[styles.waitingWrap, { opacity: overallOpacity }]}>
+                    <Text style={styles.waitingText}>Loading friend…</Text>
+                </View>
+            ) : (
+                <Animated.ScrollView
+                    showsVerticalScrollIndicator={false}
+                    onScroll={Animated.event([{ nativeEvent: { contentOffset: { y: scrollY } } }], { useNativeDriver: false })}
+                    scrollEventThrottle={16}
+                    style={[styles.scrollview, { opacity: overallOpacity }]}
+                >
+                    <ProgressBanner totalReps={totalReps} totalVolume={totalVolume} personalBests={personalBests} />
 
-                <RNBounceable onPress={confirmCancelWorkout} style={styles.cancel_btn}>
-                    <Text style={styles.cancel_btn_text}>Cancel Workout</Text>
-                </RNBounceable>
+                    {(exercisesToRender || []).map((ex, exerciseIndex) => (
+                        <ExerciseLog
+                            key={ex.name + exerciseIndex}
+                            name={ex.name}
+                            muscle={ex.muscle}
+                            exerciseIndex={exerciseIndex}
+                            sets={ex.sets}
+                            updateSets={updateSets}
+                            replaceExercise={replaceExercise}
+                            deleteExercise={() => deleteExercise(exerciseIndex)}
+                            calculateStats={() => { }}
+                            isDoneState={(doneForRender && doneForRender[exerciseIndex]) || []}
+                            toggleIsDone={toggleIsDone}
+                            userWorkoutStats={activeStats}
+                        />
+                    ))}
 
-                <View style={{ height: scaledSize(150) }} />
-            </Animated.ScrollView>
+                    <RNBounceable
+                        onPress={showSelectExerciseModal}
+                        style={[styles.add_exercise_btn, !viewingSelf && { opacity: 0.5 }]}
+                        disabled={!viewingSelf}
+                    >
+                        <Text style={styles.add_exercise_text}>Add Exercises</Text>
+                        <Weight size={scaledSize(22)} color="#5DBDFF" variant="Bold" />
+                    </RNBounceable>
 
-            <Modal
-                animationType='fade'
-                transparent={true}
-                visible={selectExerciseModalVisible}>
+                    <RNBounceable
+                        onPress={confirmCancelWorkout}
+                        style={[styles.cancel_btn, !viewingSelf && { opacity: 0.5 }]}
+                        disabled={!viewingSelf}
+                    >
+                        <Text style={styles.cancel_btn_text}>Cancel Workout</Text>
+                    </RNBounceable>
+
+                    <View style={{ height: scaledSize(150) }} />
+                </Animated.ScrollView>
+            )}
+
+            {/* Add Exercises */}
+            <Modal animationType="fade" transparent visible={selectExerciseModalVisible}>
                 <SelectExerciseModal
                     closeModal={closeSelectExerciseModal}
                     appendExercises={appendExercises}
-                    userWorkoutStats={userWorkoutStats}
+                    userWorkoutStats={activeStats}
                 />
             </Modal>
 
+            {/* Delete confirm */}
             <Modal
                 animationType="fade"
-                transparent={true}
+                transparent
                 visible={deleteConfirmModalVisible}
                 onRequestClose={() => setDeleteConfirmModalVisible(false)}
             >
@@ -267,160 +348,103 @@ const NewWorkoutModal = ({ workout, cancelWorkout, updateWorkout, finishWorkout,
                     </View>
                 </View>
             </Modal>
+
+            {/* Group Menu (invite + switch) */}
+            <GroupMenu
+                visible={menuVisible}
+                onClose={closeMenu}
+                participants={participants}
+                viewing={viewing}
+                onInvite={() => {
+                    closeMenu();
+                    showGroupModal();
+                }}
+                onSelectParticipant={() => { }}
+            />
         </View>
     );
-}
+};
 
 const styles = StyleSheet.create({
-    main_ctnr: {
-        flex: 1,
-    },
+    main_ctnr: { flex: 1 },
+
     header: {
+        backgroundColor: "#fff",
+    },
+    headerInner: {
         paddingBottom: scaledSize(6),
         paddingHorizontal: scaledSize(22),
-        flexDirection: 'row',
-        alignItems: 'center',
-        justifyContent: 'space-between',
-        backgroundColor: '#fff',
-        zIndex: 1,
-        position: 'relative'
+        paddingTop: scaledSize(6),
+        flexDirection: "row",
+        alignItems: "center",
+        justifyContent: "space-between",
+        backgroundColor: "#fff",
+        zIndex: 5,
     },
-    headerShadow: {
-        position: 'absolute',
-        left: 0,
-        right: 0,
-        bottom: 0,
-        height: scaledSize(2),
-        backgroundColor: '#eaeaea',
-    },
-    rest_timer_ctnr: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        paddingVertical: scaledSize(6),
-        paddingHorizontal: scaledSize(10),
-        borderRadius: scaledSize(12),
-        backgroundColor: '#E1F0FF',
-        position: 'relative',
-    },
-    iconWrapper: {},
-    countdownText: {
-        fontSize: scaledSize(16),
-        color: '#0499FE',
-        fontFamily: 'Outfit_700Bold',
-        marginLeft: scaledSize(6)
-    },
-    timer_text_ctnr: {
-        position: 'absolute',
-        left: 0,
-        right: 0,
-        top: scaledSize(5),
-    },
-    header_right: {
-        flexDirection: 'row',
-        alignItems: 'center',
-    },
-    group_btn: {
-        width: scaledSize(35),
-        height: scaledSize(35),
-        borderRadius: scaledSize(12),
-        backgroundColor: '#FFE8BC',
-        justifyContent: 'center',
-        alignItems: 'center',
-        marginRight: scaledSize(10),
-    },
-    finish_btn: {
-        width: scaledSize(80),
-        height: scaledSize(35),
-        borderRadius: scaledSize(12),
-        backgroundColor: '#DCFFE3',
-        justifyContent: 'center',
-        alignItems: 'center'
-    },
-    finish_btn_text: {
-        fontFamily: 'Outfit_700Bold',
-        fontSize: scaledSize(15.5),
-        color: '#40D99B',
-    },
-    scrollview: {
-        paddingTop: scaledSize(5)
-    },
+    headerShadow: { height: scaledSize(2), backgroundColor: "#eaeaea" },
+
+    scrollview: { paddingTop: scaledSize(5), backgroundColor: "#fff" },
+
+    waitingWrap: { flex: 1, alignItems: "center", justifyContent: "center", backgroundColor: "#fff" },
+    waitingText: { marginTop: 6, fontFamily: "Nunito_700Bold", color: "#444" },
+
     add_exercise_btn: {
         marginHorizontal: scaledSize(20),
         marginTop: scaledSize(18),
         height: scaledSize(35),
         borderRadius: scaledSize(12),
-        backgroundColor: '#E1F0FF',
-        justifyContent: 'center',
-        alignItems: 'center',
-        flexDirection: 'row'
+        backgroundColor: "#E1F0FF",
+        justifyContent: "center",
+        alignItems: "center",
+        flexDirection: "row",
     },
     add_exercise_text: {
         fontSize: scaledSize(16),
-        fontFamily: 'Outfit_700Bold',
-        color: '#0499FE',
-        marginRight: scaledSize(4.5)
+        fontFamily: "Outfit_700Bold",
+        color: "#0499FE",
+        marginRight: scaledSize(4.5),
     },
+
     cancel_btn: {
         marginHorizontal: scaledSize(20),
         marginTop: scaledSize(18),
         height: scaledSize(35),
         borderRadius: scaledSize(12),
-        backgroundColor: '#FFECEC',
-        justifyContent: 'center',
-        alignItems: 'center',
-        flexDirection: 'row'
+        backgroundColor: "#FFECEC",
+        justifyContent: "center",
+        alignItems: "center",
+        flexDirection: "row",
     },
     cancel_btn_text: {
         fontSize: scaledSize(16),
-        fontFamily: 'Outfit_700Bold',
-        color: '#F27171',
-        marginRight: scaledSize(4.5)
+        fontFamily: "Outfit_700Bold",
+        color: "#F27171",
+        marginRight: scaledSize(4.5),
     },
+
+    // delete modal
     modalOverlay: {
-        flex: 1,
-        justifyContent: 'center',
-        alignItems: 'center',
-        backgroundColor: 'rgba(0, 0, 0, 0.5)',
+        flex: 1, justifyContent: "center", alignItems: "center",
+        backgroundColor: "rgba(0,0,0,0.5)",
     },
     modalContainer: {
-        width: '80%',
-        padding: scaledSize(20),
-        backgroundColor: '#fff',
-        borderRadius: scaledSize(15),
-        alignItems: 'center',
+        width: "80%", padding: scaledSize(20), backgroundColor: "#fff",
+        borderRadius: scaledSize(15), alignItems: "center",
     },
     modalText: {
-        fontSize: scaledSize(16),
-        color: '#333',
-        fontFamily: 'Outfit_700Bold',
-        marginBottom: scaledSize(20),
-        textAlign: 'center',
+        fontSize: scaledSize(16), color: "#333", fontFamily: "Outfit_700Bold",
+        marginBottom: scaledSize(20), textAlign: "center",
     },
     deleteWorkoutBtn: {
-        width: '100%',
-        paddingVertical: scaledSize(8),
-        backgroundColor: '#FFECEC',
-        borderRadius: scaledSize(8),
-        alignItems: 'center',
-        marginBottom: scaledSize(10),
+        width: "100%", paddingVertical: scaledSize(8), backgroundColor: "#FFECEC",
+        borderRadius: scaledSize(8), alignItems: "center", marginBottom: scaledSize(10),
     },
-    deleteWorkoutText: {
-        color: '#F27171',
-        fontSize: scaledSize(14),
-        fontFamily: 'Outfit_700Bold',
-    },
+    deleteWorkoutText: { color: "#F27171", fontSize: scaledSize(14), fontFamily: "Outfit_700Bold" },
     cancelDeleteBtn: {
-        width: '100%',
-        paddingVertical: scaledSize(8),
-        backgroundColor: '#eee',
-        borderRadius: scaledSize(8),
-        alignItems: 'center',
+        width: "100%", paddingVertical: scaledSize(8), backgroundColor: "#eee",
+        borderRadius: scaledSize(8), alignItems: "center",
     },
-    cancelDeleteText: {
-        color: '#666',
-        fontSize: scaledSize(14),
-        fontFamily: 'Outfit_700Bold',
-    },
+    cancelDeleteText: { color: "#666", fontSize: scaledSize(14), fontFamily: "Outfit_700Bold" },
 });
 
 export default NewWorkoutModal;

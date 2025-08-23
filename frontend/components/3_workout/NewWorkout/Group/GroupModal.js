@@ -5,25 +5,24 @@ import ProfileCard from "../../../ProfileCard";
 import RNBounceable from '@freakycoder/react-native-bounceable';
 
 const { height: screenHeight } = Dimensions.get('window');
-const scale = screenHeight / 844; // Scaling factor based on iPhone 13 height
-
+const scale = screenHeight / 844;
 const scaledSize = (size) => Math.round(size * scale);
 
-const GroupModal = () => {
+const GroupModal = ({ onInvite }) => {
     const followingUsers = global.userData.following;
     const [filteredUsers, setFilteredUsers] = useState(global.userData.following);
-
     const [selectedUsers, setSelectedUsers] = useState([]);
-    const [selectedHandles, setSelectedHandles] = useState([]);
     const [searchQuery, setSearchQuery] = useState('');
 
     useEffect(() => {
         if (searchQuery === '') {
             setFilteredUsers(followingUsers);
         } else {
+            const q = searchQuery.toLowerCase();
             setFilteredUsers(
                 followingUsers.filter(user =>
-                    user.handle.toLowerCase().includes(searchQuery.toLowerCase())
+                    (user.handle || '').toLowerCase().includes(q) ||
+                    (user.name || '').toLowerCase().includes(q)
                 )
             );
         }
@@ -33,15 +32,7 @@ const GroupModal = () => {
         const newSelectedUsers = selectedUsers.includes(user)
             ? selectedUsers.filter(u => u.uid !== user.uid)
             : [...selectedUsers, user];
-
         setSelectedUsers(newSelectedUsers);
-
-        const newHandles = newSelectedUsers.map(user => {
-            const selectedUser = followingUsers.find(u => u.uid === user.uid);
-            return selectedUser ? selectedUser.handle : '';
-        });
-
-        setSelectedHandles(newHandles);
     };
 
     const renderItem = ({ item, index }) => {
@@ -56,41 +47,40 @@ const GroupModal = () => {
         );
     };
 
+    const clearSearch = () => setSearchQuery('');
+
     return (
         <View style={styles.modalOverlay}>
             <View style={styles.header}>
-                {selectedHandles.length === 0 ? (
-                    <Text style={styles.modalText}>Invite to Workout</Text>
-                ) : (
-                    <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.selectedHandlesContainer}>
-                        <View style={{ width: scaledSize(20) }} />
-                        {selectedHandles.map((handle, index) => (
-                            <Pressable key={index}>
-                                <View style={styles.selectedHandleView}>
-                                    <Text style={styles.selectedHandleText}>{handle}</Text>
-                                </View>
-                            </Pressable>
-                        ))}
-                        <View style={{ width: scaledSize(5) }} />
-                    </ScrollView>
-                )}
+                <Text style={styles.modalText}>Invite to Workout</Text>
             </View>
+
+            {/* Sleek search */}
             <View style={styles.searchContainer}>
-                <Icon name="search" size={scaledSize(20)} color="#888" style={styles.searchIcon} />
+                <Icon name="search" size={scaledSize(18)} color="#2A65D9" style={styles.searchIcon} />
                 <TextInput
                     style={styles.searchBar}
-                    placeholder="Search"
-                    placeholderTextColor="#999"
+                    placeholder="Search by handle or name"
+                    placeholderTextColor="#8AA0BF"
                     value={searchQuery}
                     onChangeText={setSearchQuery}
+                    returnKeyType="search"
                 />
+                {searchQuery.length > 0 && (
+                    <Pressable onPress={clearSearch} hitSlop={8}>
+                        <Icon name="close-circle" size={scaledSize(18)} color="#9BB6E9" />
+                    </Pressable>
+                )}
             </View>
+
             <ScrollView style={styles.flatlistContainer}>
                 {filteredUsers.slice(0, 9).map((user, index) => renderItem({ item: user, index }))}
             </ScrollView>
+
             <RNBounceable
                 style={[styles.sendButton, { opacity: selectedUsers.length < 1 ? 0.5 : 1 }]}
                 disabled={selectedUsers.length == 0}
+                onPress={() => onInvite?.(selectedUsers)}
             >
                 <Text style={styles.sendButtonText}>
                     {`Invite${selectedUsers.length > 0 ? ` (${selectedUsers.length})` : ''}`}
@@ -103,80 +93,73 @@ const GroupModal = () => {
 export default GroupModal;
 
 const styles = StyleSheet.create({
-    modalOverlay: {
-        flex: 1,
-        alignItems: 'center',
-    },
+    modalOverlay: { flex: 1, alignItems: 'center' },
+
     header: {
-        height: scaledSize(45),
-        paddingTop: scaledSize(15),
+        height: scaledSize(48),
+        paddingTop: scaledSize(16),
         flexDirection: 'row',
         alignItems: 'center',
         justifyContent: 'center',
         marginBottom: scaledSize(10),
-        position: 'relative',
     },
     modalText: {
-        fontFamily: 'Poppins_600SemiBold',
-        fontSize: scaledSize(14.5),
+        fontFamily: 'Nunito_800ExtraBold',
+        fontSize: scaledSize(15),
+        color: '#111',
+        includeFontPadding: false,
+        letterSpacing: 0.2,
     },
-    selectedHandlesContainer: {
-        flexDirection: 'row',
-        alignItems: 'center',
-    },
-    selectedHandleView: {
-        backgroundColor: '#E1F0FF',
-        paddingHorizontal: scaledSize(10.5),
-        height: scaledSize(29),
-        borderRadius: scaledSize(8),
-        alignItems: 'center',
-        justifyContent: 'center',
-        marginRight: scaledSize(5),
-    },
-    selectedHandleText: {
-        color: '#0499FE',
-        fontFamily: 'Outfit_700Bold',
-        fontSize: scaledSize(14.5),
-    },
+
+    // search
     searchContainer: {
         flexDirection: 'row',
         alignItems: 'center',
-        backgroundColor: '#e0e0e0',
-        borderRadius: scaledSize(8),
+        backgroundColor: '#F1F6FF',
+        borderRadius: scaledSize(12),
+        borderWidth: StyleSheet.hairlineWidth,
+        borderColor: '#DBE9FF',
         width: '90%',
-        paddingHorizontal: scaledSize(8),
+        paddingHorizontal: scaledSize(10),
+        paddingVertical: scaledSize(6),
         marginBottom: scaledSize(10),
     },
-    searchIcon: {
-        marginRight: scaledSize(8),
-    },
+    searchIcon: { marginRight: scaledSize(8) },
     searchBar: {
         flex: 1,
         paddingHorizontal: scaledSize(8),
         paddingVertical: scaledSize(6),
         fontSize: scaledSize(14),
-        color: '#333',
-        fontFamily: 'Poppins_500Medium',
+        color: '#233',
+        fontFamily: 'Nunito_600SemiBold',
+        includeFontPadding: false,
     },
-    flatlistContainer: {
-        flex: 1,
-        width: '100%',
-    },
+
+    flatlistContainer: { flex: 1, width: '100%' },
+
+    // invite CTA
     sendButton: {
         position: 'absolute',
         bottom: scaledSize(45),
         left: scaledSize(22),
         right: scaledSize(22),
-        backgroundColor: '#2D9EFF',
-        borderRadius: scaledSize(15),
+        backgroundColor: '#59AAEE',
+        borderRadius: scaledSize(16),
         paddingVertical: scaledSize(13),
         paddingHorizontal: scaledSize(30),
         alignItems: 'center',
         justifyContent: 'center',
+        shadowColor: '#000',
+        shadowOpacity: 0.08,
+        shadowRadius: 10,
+        shadowOffset: { width: 0, height: 4 },
+        elevation: 3,
     },
     sendButtonText: {
-        color: 'white',
-        fontSize: scaledSize(14),
-        fontFamily: 'Poppins_600SemiBold',
+        color: '#fff',
+        fontSize: scaledSize(15),
+        fontFamily: 'Nunito_800ExtraBold',
+        includeFontPadding: false,
+        letterSpacing: 0.25,
     },
 });

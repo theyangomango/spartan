@@ -1,10 +1,26 @@
-import React, { useCallback, useEffect, useMemo, useRef } from "react";
+import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import BottomSheet, { BottomSheetBackdrop } from "@gorhom/bottom-sheet";
-import NewWorkoutModal from './NewWorkoutModal';
+import NewWorkoutModal from "./NewWorkoutModal";
 
-const NewWorkoutBottomSheet = ({ workout, isVisible, setIsVisible, cancelNewWorkout, updateNewWorkout, finishNewWorkout, timerRef, showGroupModal, userWorkoutStats }) => {
+// subtle gray for self, warm gold for friend
+const HANDLE_SELF = "#D0D7E2";
+const HANDLE_FRIEND_ACCENT = "#E0A500";
+const HANDLE_FRIEND_BACKGROUND = "#e0a4002c";
+
+const NewWorkoutBottomSheet = ({
+    workout,
+    isVisible,
+    setIsVisible,
+    cancelNewWorkout,
+    updateNewWorkout,
+    finishNewWorkout,
+    timerRef,
+    showGroupModal,
+    userWorkoutStats,
+}) => {
     const bottomSheetRef = useRef(null);
     const snapPoints = useMemo(() => ["94%"], []);
+    const [isViewingSelf, setIsViewingSelf] = useState(true);
 
     const renderBackdrop = useCallback(
         (props) => (
@@ -20,7 +36,7 @@ const NewWorkoutBottomSheet = ({ workout, isVisible, setIsVisible, cancelNewWork
 
     useEffect(() => {
         if (isVisible) {
-            bottomSheetRef.current.expand();
+            bottomSheetRef.current?.expand();
         }
     }, [isVisible]);
 
@@ -32,28 +48,34 @@ const NewWorkoutBottomSheet = ({ workout, isVisible, setIsVisible, cancelNewWork
             backdropComponent={renderBackdrop}
             enablePanDownToClose
             enableContentPanningGesture={false}
-            onClose={() => {
-                setIsVisible(false);
+            onClose={() => setIsVisible(false)}
+            // GOLD handle when viewing a friend
+            handleIndicatorStyle={{
+                backgroundColor: isViewingSelf ? HANDLE_SELF : HANDLE_FRIEND_ACCENT,
+            }}
+            handleStyle={{
+                backgroundColor: isViewingSelf ? 'transparent' : HANDLE_FRIEND_BACKGROUND,
             }}
         >
-            {workout &&
+            {workout && (
                 <NewWorkoutModal
                     timerRef={timerRef}
                     workout={workout}
-                    // setWorkout={setWorkout}
                     cancelWorkout={() => {
                         cancelNewWorkout();
-                        bottomSheetRef.current.close();
+                        bottomSheetRef.current?.close();
                     }}
                     updateWorkout={updateNewWorkout}
                     finishWorkout={() => {
                         finishNewWorkout();
-                        bottomSheetRef.current.close();
+                        bottomSheetRef.current?.close();
                     }}
                     showGroupModal={showGroupModal}
                     userWorkoutStats={userWorkoutStats}
+                    // NEW: tell us whether we're viewing self or friend
+                    onViewingChange={setIsViewingSelf}
                 />
-            }
+            )}
         </BottomSheet>
     );
 };

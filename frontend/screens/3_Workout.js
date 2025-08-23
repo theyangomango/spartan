@@ -17,17 +17,22 @@ import GroupModalBottomSheet from '../components/3_Workout/NewWorkout/Group/Grou
 import calculate1RM from "../helper/calculate1RM";
 import formatDate from "../helper/formatDate";
 import incrementDocValue from "../../backend/helper/firebase/incrementDocValue";
-import { collection, addDoc } from "firebase/firestore";
-import { db } from "../../firebase.config"; // adjust path as needed
+import { db } from "../../firebase.config";
+
+// 🔥 Firestore (native) imports for new features
+import {
+    collection, addDoc, doc, setDoc,
+    onSnapshot, query, where, updateDoc as fsUpdateDoc,
+    serverTimestamp, arrayUnion, getDoc
+} from "firebase/firestore";
+
 import readDoc from "../../backend/helper/firebase/readDoc";
+import InviteBanner from "../components/3_Workout/InviteBanner";
+import ParticipantsDropdown from "../components/3_Workout/ParticipantsDropdown";
 
 const { height: screenHeight } = Dimensions.get('window');
-
-// Scale factor based on a base height (e.g., iPhone 13 height ~844)
 const scale = screenHeight / 844;
-
 const scaledSize = (size) => Math.round(size * scale);
-
 
 function Workout({ navigation }) {
     const [workout, setWorkout] = useState(global.userData.currentWorkout);
@@ -39,15 +44,31 @@ function Workout({ navigation }) {
     const [completedWorkout, setCompletedWorkout] = useState(null);
     const [isSummaryModalVisible, setIsSummaryModalVisible] = useState(false);
 
+    const [pendingInvites, setPendingInvites] = useState([]); // <-- invites for me
+
     const openedTemplateRef = useRef(null);
     const workoutTimeInterval = useRef(null);
     const timerRef = useRef(workout ? millisToMinutesAndSeconds(Date.now() - workout.created) : '00:00');
 
+    const userWorkoutStats = useRef(global.userData.statsExercises);
 
-    const userWorkoutStats = useRef(global.userData.statsExercises); // Todo - figure ts out
+    // Invite listener
+    useEffect(() => {
+        const uid = global.userData?.uid;
+        if (!uid) return;
+        const qInv = query(
+            collection(db, "workoutInvites"),
+            where("toUid", "==", uid),
+            where("status", "==", "pending")
+        );
+        const unsub = onSnapshot(qInv, (snap) => {
+            const list = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+            setPendingInvites(list);
+        });
+        return unsub;
+    }, []);
 
-
-    // Update the timerRef every second when workout is not null
+    // Timer
     useEffect(() => {
         if (workout) {
             workoutTimeInterval.current = setInterval(() => {
@@ -55,7 +76,6 @@ function Workout({ navigation }) {
                 timerRef.current = millisToMinutesAndSeconds(diff);
             }, 1000);
         }
-
         return () => clearInterval(workoutTimeInterval.current);
     }, [workout]);
 
@@ -66,16 +86,26 @@ function Workout({ navigation }) {
             const newWID = makeID();
             const newWorkout = {
                 wid: newWID,
-                creatorUID: userData.uid,
+                creatorUID: global.userData.uid,
                 created: Date.now(),
                 users: [],
                 exercises: [],
                 tid: null,
-
                 volume: 0,
                 reps: 0,
                 PBs: 0
             };
+
+            // Ensure central workout doc exists
+            await setDoc(doc(db, "workouts", newWID), {
+                wid: newWID,
+                creatorUid: global.userData.uid,
+                createdAt: serverTimestamp(),
+                active: true,
+                members: [global.userData.uid],
+                updatedAt: serverTimestamp(),
+            }, { merge: true });
+
             setWorkout(newWorkout);
             setIsNewWorkoutBottomSheetVisible(true);
             setTimeout(() => {
@@ -84,25 +114,33 @@ function Workout({ navigation }) {
         } else {
             setIsNewWorkoutBottomSheetVisible(true);
         }
-    }, [workout, userData]);
+    }, [workout]);
 
     const startWorkoutFromTemplate = useCallback(async (index) => {
         if (!workout) {
             global.isCurrentlyWorkingOut = true;
             const newWID = makeID();
-            const selectedTemplate = { ...templates[index] }; // Create a shallow copy of the selected template
+            const selectedTemplate = { ...templates[index] };
             const newWorkout = {
                 wid: newWID,
-                creatorUID: userData.uid,
+                creatorUID: global.userData.uid,
                 created: Date.now(),
-                users: [], // Assuming this is intended to be an empty array initially
-                exercises: [...selectedTemplate.exercises], // Create a shallow copy of the exercises array
+                users: [],
+                exercises: [...selectedTemplate.exercises],
                 tid: selectedTemplate.tid,
-
                 volume: 0,
                 reps: 0,
                 PBs: 0
             };
+
+            await setDoc(doc(db, "workouts", newWID), {
+                wid: newWID,
+                creatorUid: global.userData.uid,
+                createdAt: serverTimestamp(),
+                active: true,
+                members: [global.userData.uid],
+                updatedAt: serverTimestamp(),
+            }, { merge: true });
 
             setWorkout(newWorkout);
             setIsNewWorkoutBottomSheetVisible(true);
@@ -131,34 +169,20 @@ function Workout({ navigation }) {
         global.isCurrentlyWorkingOut = false;
         if (!workout) return;
 
-        // Make a deep copy of the workout object to avoid issues with immutability
         const workoutCopy = JSON.parse(JSON.stringify(workout));
 
-        // 1. Remove any sets where weight = 0 or reps = 0
+        // Clean sets
         workoutCopy.exercises.forEach((exercise) => {
-            exercise.sets = exercise.sets.filter(
-                (set) => set.weight > 0 && set.reps > 0
-            );
+            exercise.sets = exercise.sets.filter((set) => set.weight > 0 && set.reps > 0);
         });
+        workoutCopy.exercises = workoutCopy.exercises.filter((exercise) => exercise.sets && exercise.sets.length > 0);
 
-        // 2. Filter out exercises that have no sets left
-        workoutCopy.exercises = workoutCopy.exercises.filter(
-            (exercise) => exercise.sets && exercise.sets.length > 0
-        );
-
-        // Calculate the duration
         const duration = Date.now() - workoutCopy.created;
-
-        // Add duration to the workout copy
         const completedWorkoutData = { ...workoutCopy, duration };
 
-        // Set completed workout
         setCompletedWorkout(completedWorkoutData);
-
-        // Append the completed workout to the user's data
         arrayAppend("users", global.userData.uid, "completedWorkouts", completedWorkoutData);
 
-        // Reset the workout state
         setWorkout(null);
         setIsNewWorkoutBottomSheetVisible(false);
         clearInterval(workoutTimeInterval.current);
@@ -168,11 +192,9 @@ function Workout({ navigation }) {
 
     }, [workout]);
 
-
-
     async function postWorkout() {
         setIsSummaryModalVisible(false);
-        await navigation.navigate('ProfileStack', { screen: 'Profile' }); // double navigations to perserve stack
+        await navigation.navigate('ProfileStack', { screen: 'Profile' });
         navigation.navigate('ProfileStack', { screen: 'SelectPhotos', params: { workout: completedWorkout } });
     }
 
@@ -201,12 +223,11 @@ function Workout({ navigation }) {
         setTemplates(prevTemplates => {
             const index = prevTemplates.findIndex(template => template.tid === openedTemplateRef.current.tid);
             if (index !== -1) {
-                // Create a new array with the updated template
                 const updatedTemplates = [...prevTemplates];
                 updatedTemplates[index] = { ...openedTemplateRef.current };
                 return updatedTemplates;
             }
-            return prevTemplates; // If not found, return the original state
+            return prevTemplates;
         });
     }
 
@@ -214,9 +235,7 @@ function Workout({ navigation }) {
         setTemplates(prevTemplates => {
             const index = prevTemplates.findIndex(template => template.tid === openedTemplateRef.current.tid);
             if (index !== -1) {
-                return prevTemplates.filter((_, i) => {
-                    return i != index;
-                })
+                return prevTemplates.filter((_, i) => i != index);
             }
         });
         setIsEditTemplateBottomSheetVisible(false);
@@ -238,12 +257,11 @@ function Workout({ navigation }) {
                 const prev1RM = ([ex.name] in newExerciseStats && '1RM' in newExerciseStats[ex.name]) ? newExerciseStats[ex.name]['1RM'] : 0;
                 const prevTotalVolume = ([ex.name] in newExerciseStats && 'volume' in newExerciseStats[ex.name]) ? newExerciseStats[ex.name]['volume'] : 0;
 
-                // Ensure newExerciseStats[ex.name] and its sets array are initialized
                 newExerciseStats[ex.name] = newExerciseStats[ex.name] || { sets: [], progress1RM: [] };
                 newExerciseStats[ex.name].sets = newExerciseStats[ex.name].sets || [];
                 newExerciseStats[ex.name].progress1RM = newExerciseStats[ex.name].progress1RM || [];
 
-                let maxSet1RM = prev1RM; // Track the max 1RM for today's sets
+                let maxSet1RM = prev1RM;
                 let newTotalVolume = prevTotalVolume;
 
                 ex.sets.forEach(set => {
@@ -264,22 +282,16 @@ function Workout({ navigation }) {
                             reps: Number(set.reps)
                         }
                     }
-
-                    // Update maxSet1RM if the current set1RM is greater
-                    if (set1RM > maxSet1RM) {
-                        maxSet1RM = set1RM;
-                    }
+                    if (set1RM > maxSet1RM) maxSet1RM = set1RM;
                 });
 
                 const progress1RMArray = newExerciseStats[ex.name].progress1RM;
                 const lastEntry = progress1RMArray[progress1RMArray.length - 1];
 
                 if (lastEntry && lastEntry.date === today) {
-                    // If the last entry is for today, update the 1RM value
                     lastEntry['1RM'] = Math.max(lastEntry['1RM'], maxSet1RM);
                     lastEntry['volume'] = newTotalVolume;
                 } else {
-                    // Otherwise, add a new entry
                     newExerciseStats[ex.name].progress1RM.push({
                         date: today,
                         '1RM': maxSet1RM,
@@ -296,9 +308,7 @@ function Workout({ navigation }) {
             incrementDocValue('users', global.userData.uid, 'statsTotalHours', completedWorkout.duration / 3600000);
 
             if (completedWorkout.tid) {
-                const index = global.userData.templates.findIndex(t => {
-                    return t.tid == completedWorkout.tid;
-                });
+                const index = global.userData.templates.findIndex(t => t.tid == completedWorkout.tid);
                 if (index > -1) {
                     setTemplates(prevTemplates => {
                         const updatedTemplates = [...prevTemplates];
@@ -313,43 +323,161 @@ function Workout({ navigation }) {
         }
     }, [completedWorkout]);
 
-
     useEffect(() => {
-        updateDoc('users', global.userData.uid, {
-            templates: templates
-        });
+        updateDoc('users', global.userData.uid, { templates: templates });
     }, [templates]);
 
+    // Open/close group sheet
     const showGroupModal = useCallback(() => {
         setGroupModalExpandFlag(prev => !prev);
     }, []);
-
     const closeGroupModal = useCallback(() => {
         setGroupModalExpandFlag(false);
     }, []);
+
+    // 🔔 Invite selected users
+    const handleInviteSelected = useCallback(async (selectedUsers) => {
+        try {
+            if (!workout?.wid) return;
+            const wid = workout.wid;
+
+            // Ensure workout doc exists & add self to members
+            await setDoc(doc(db, "workouts", wid), {
+                wid,
+                creatorUid: global.userData.uid,
+                active: true,
+                members: arrayUnion(global.userData.uid),
+                updatedAt: serverTimestamp(),
+            }, { merge: true });
+
+            // Create invites
+            const batch = selectedUsers.map(u => addDoc(collection(db, "workoutInvites"), {
+                wid,
+                fromUid: global.userData.uid,
+                fromHandle: global.userData.handle,
+                toUid: u.uid,
+                status: "pending",
+                createdAt: serverTimestamp(),
+            }));
+            await Promise.all(batch);
+
+            setGroupModalExpandFlag(false);
+        } catch (e) {
+            console.log("Invite error", e);
+        }
+    }, [workout?.wid]);
+
+    // ✅ Accept / Decline
+    const acceptInvite = useCallback(async (inv) => {
+        try {
+            await fsUpdateDoc(doc(db, "workouts", inv.wid), {
+                members: arrayUnion(global.userData.uid),
+                updatedAt: serverTimestamp(),
+                active: true,
+            });
+            await fsUpdateDoc(doc(db, "workoutInvites", inv.id), {
+                status: "accepted",
+                actedAt: serverTimestamp(),
+            });
+
+            const wSnap = await getDoc(doc(db, "workouts", inv.wid));
+            const seed = wSnap.exists() ? wSnap.data() : null;
+
+            const joined = {
+                wid: inv.wid,
+                creatorUID: seed?.creatorUid || inv.fromUid,
+                created: Date.now(),
+                users: [],
+                exercises: [],
+                tid: null,
+                volume: 0, reps: 0, PBs: 0,
+            };
+            setWorkout(joined);
+            setIsNewWorkoutBottomSheetVisible(true);
+            setIsCurrentWorkoutPanelVisible(true);
+            updateDoc('users', global.userData.uid, { currentWorkout: joined });
+        } catch (e) {
+            console.log("Accept invite error", e);
+        }
+    }, []);
+
+    const declineInvite = useCallback(async (inv) => {
+        try {
+            await fsUpdateDoc(doc(db, "workoutInvites", inv.id), {
+                status: "declined",
+                actedAt: serverTimestamp(),
+            });
+        } catch (e) {
+            console.log("Decline invite error", e);
+        }
+    }, []);
+
+    // 📡 Publish my live top-line to workouts/{wid}/live/{uid}
+    useEffect(() => {
+        if (!workout?.wid) return;
+        const uid = global.userData?.uid;
+        let t = null;
+
+        const publish = async () => {
+            try {
+                await setDoc(
+                    doc(db, "workouts", workout.wid, "live", uid),
+                    {
+                        uid,
+                        handle: global.userData?.handle,
+                        image: global.userData?.image,
+                        volume: workout.volume || 0,
+                        reps: workout.reps || 0,
+                        PBs: workout.PBs || 0,
+                        updatedAt: serverTimestamp(),
+                    },
+                    { merge: true }
+                );
+            } catch (e) {
+                console.log("live publish error", e);
+            }
+        };
+
+        t = setTimeout(publish, 400);
+        return () => t && clearTimeout(t);
+    }, [workout?.wid, workout?.volume, workout?.reps, workout?.PBs, workout?.exercises]);
 
     return (
         <View style={styles.mainContainer}>
             <View style={styles.body}>
                 <View style={{ height: 55 }} />
 
+                {/* Invite banners */}
+                {pendingInvites.map((inv) => (
+                    <InviteBanner
+                        key={inv.id}
+                        invite={inv}
+                        onAccept={() => acceptInvite(inv)}
+                        onDecline={() => declineInvite(inv)}
+                    />
+                ))}
+
                 <Text style={styles.quickStartText}>Quick Start</Text>
                 <StartWorkoutButton startWorkout={startNewWorkout} />
-                {/* <JoinWorkoutButton /> */}
 
                 {isCurrentWorkoutPanelVisible && (
-                    <CurrentWorkoutPanel
-                        workout={workout}
-                        timerRef={timerRef}
-                        openWorkout={startNewWorkout}
-                    />
+                    <>
+                        {/* Removed ParticipantsDropdown here since it now lives inside NewWorkoutModal header */}
+                        <CurrentWorkoutPanel
+                            workout={workout}
+                            timerRef={timerRef}
+                            openWorkout={startNewWorkout}
+                        />
+                    </>
                 )}
+
                 <View style={styles.templatesHeadingRow}>
                     <Text style={styles.templatesText}>Templates</Text>
                     <Pressable onPress={initTemplate}>
                         <Entypo name="plus" size={26} style={styles.addIcon} color={'#888'} />
                     </Pressable>
                 </View>
+
                 <TemplateList
                     templates={templates}
                     setTemplates={setTemplates}
@@ -357,7 +485,9 @@ function Workout({ navigation }) {
                     startWorkoutFromTemplate={startWorkoutFromTemplate}
                 />
             </View>
+
             <Footer navigation={navigation} currentScreenName={'Workout'} />
+
             <NewWorkoutBottomSheet
                 workout={workout}
                 cancelNewWorkout={cancelWorkout}
@@ -380,7 +510,7 @@ function Workout({ navigation }) {
 
             <WorkoutSummaryModal
                 isVisible={isSummaryModalVisible}
-                workout={completedWorkout} // Pass the completed workout data
+                workout={completedWorkout}
                 onClose={() => setIsSummaryModalVisible(false)}
                 postWorkout={postWorkout}
             />
@@ -388,6 +518,7 @@ function Workout({ navigation }) {
             <GroupModalBottomSheet
                 groupModalExpandFlag={groupModalExpandFlag}
                 closeGroupModal={closeGroupModal}
+                onInvite={handleInviteSelected}
             />
         </View>
     );
@@ -406,7 +537,6 @@ const styles = StyleSheet.create({
         fontSize: scaledSize(18),
         paddingBottom: scaledSize(8),
         paddingHorizontal: scaledSize(20),
-
         fontFamily: 'Nunito_800ExtraBold',
         letterSpacing: 0.2,
         paddingHorizontal: scaledSize(20)
@@ -418,10 +548,8 @@ const styles = StyleSheet.create({
     },
     templatesText: {
         marginTop: scaledSize(28),
-        // fontFamily: 'Outfit_600SemiBold',
         fontSize: scaledSize(18),
         marginBottom: 2,
-
         fontFamily: 'Nunito_800ExtraBold',
         letterSpacing: 0.2,
         paddingHorizontal: scaledSize(20)

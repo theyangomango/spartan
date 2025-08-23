@@ -3,7 +3,7 @@ import { View, StyleSheet } from "react-native";
 import BottomSheet, { BottomSheetBackdrop } from "@gorhom/bottom-sheet";
 import GroupModal from "./GroupModal";
 
-const GroupModalBottomSheet = ({ groupModalExpandFlag, closeGroupModal }) => {
+const GroupModalBottomSheet = ({ groupModalExpandFlag, closeGroupModal, onInvite }) => {
     const bottomSheetRef = useRef(null);
     const snapPoints = useMemo(() => ["85%"], []);
 
@@ -38,7 +38,7 @@ const GroupModalBottomSheet = ({ groupModalExpandFlag, closeGroupModal }) => {
                 handleStyle={{ display: 'none' }}
                 enablePanDownToClose
             >
-                <GroupModal closeGroupModal={closeGroupModal} />
+                <GroupModal closeGroupModal={closeGroupModal} onInvite={onInvite} />
             </BottomSheet>
         </View>
     );
