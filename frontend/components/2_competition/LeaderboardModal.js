@@ -1,4 +1,4 @@
-import React, { useMemo, useRef, useState } from "react";
+import React, { useMemo } from "react";
 import { View, Text, StyleSheet, FlatList, TouchableOpacity, Dimensions } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import LeaderboardCard from "../2_Competition/LeaderboardCard";
@@ -6,6 +6,13 @@ import LeaderboardCard from "../2_Competition/LeaderboardCard";
 const { width: SCREEN_WIDTH } = Dimensions.get("window");
 const H_PADDING = 16;
 const BANNER_WIDTH = SCREEN_WIDTH - H_PADDING * 2;
+
+// Accent palette (tweak here if you want a different vibe)
+const ACCENT = "#f6b000ff";            // rich gold
+const ACCENT_BG = "#f6b00041";
+const BANNER_BG = "#ffe1685c";       // very light warm wash
+const TITLE_COLOR = "#2F2500";       // deep warm text
+const ICON_MUTED = "#8A8F98";
 
 export default function LeaderboardModal({
     userList,
@@ -58,22 +65,26 @@ export default function LeaderboardModal({
                             onMomentumScrollEnd={onScrollEnd}
                             initialScrollIndex={activeCompIndex}
                             getItemLayout={(_, index) => ({ length: BANNER_WIDTH, offset: BANNER_WIDTH * index, index })}
-                            renderItem={({ item, index }) => (
+                            renderItem={({ item }) => (
                                 <TouchableOpacity
                                     activeOpacity={0.95}
                                     style={[styles.bannerCard, { width: BANNER_WIDTH }]}
                                     onPress={onOpenTribeComparison}
                                 >
-                                    <Ionicons name="trophy" size={18} color="#5B4100" style={{ marginRight: 8 }} />
-                                    <View style={{ flex: 1 }}>
+                                    <View style={styles.iconPill}>
+                                        <Ionicons name="trophy" size={19} color={ACCENT} />
+                                    </View>
+                                    <View style={{ flex: 1, marginRight: 8 }}>
+                                        {/* Line 1: exercise */}
                                         <Text style={styles.bannerTitle} numberOfLines={1}>
-                                            {item.exercise} • {item.metric}{item.normalizeByBodyweight ? " • per lb" : ""}
+                                            {item.exercise}
                                         </Text>
-                                        <Text style={styles.bannerSub} numberOfLines={1}>
-                                            Swipe to switch • Tap to manage
+                                        {/* Line 2: metric + per-lb */}
+                                        <Text style={styles.bannerMeta} numberOfLines={1}>
+                                            {item.metric}{item.normalizeByBodyweight ? " • per lb" : ""}
                                         </Text>
                                     </View>
-                                    {/* <Ionicons name="create-outline" size={18} color="#5B4100" /> */}
+                                    <Ionicons name="chevron-forward" size={18} color={ICON_MUTED} />
                                 </TouchableOpacity>
                             )}
                             contentContainerStyle={{ paddingHorizontal: 0 }}
@@ -91,26 +102,25 @@ export default function LeaderboardModal({
                     </View>
                 );
             }
-            // No comparisons yet → golden CTA
+            // No comparisons yet → simple CTA (no extra explainer line)
             return (
                 <TouchableOpacity
                     activeOpacity={0.9}
                     onPress={onOpenTribeComparison}
                     style={styles.tribeHeaderButton}
                 >
-                    <Ionicons name="trophy" size={18} color="#5B4100" style={{ marginRight: 8 }} />
-                    <View style={{ flex: 1 }}>
-                        <Text style={styles.tribeHeaderTitle}>Set Tribe Comparisons</Text>
-                        <Text style={styles.tribeHeaderSubtitle} numberOfLines={1} ellipsizeMode="tail">
-                            Create multiple targets for the tribe (exercise • metric • per-lb)
-                        </Text>
+                    <View style={styles.iconPill}>
+                        <Ionicons name="trophy" size={20} color={ACCENT} />
                     </View>
-                    <Ionicons name="chevron-forward" size={18} color="#5B4100" />
+                    <Text style={styles.tribeHeaderTitle} numberOfLines={1}>
+                        Set Tribe Comparisons
+                    </Text>
+                    <Ionicons name="chevron-forward" size={18} color={ICON_MUTED} />
                 </TouchableOpacity>
             );
         }
 
-        // Non-tribe: old selector + metric toggle
+        // Non-tribe: selector + metric toggle (unchanged)
         return (
             <View style={styles.headerRow}>
                 <TouchableOpacity onPress={openModal} activeOpacity={0.85} style={styles.selectorPill}>
@@ -205,36 +215,67 @@ const styles = StyleSheet.create({
     },
     metricText: { fontFamily: "Outfit_600SemiBold", fontSize: 14, color: "#2A65D9" },
 
-    // tribe banner
+    // tribe banner — modern warm “gold” card (no border)
     bannerCard: {
         flexDirection: "row",
         alignItems: "center",
-        paddingHorizontal: 16,       // a bit more inset
+        paddingHorizontal: 16,
         paddingVertical: 14,
-        borderRadius: 22,            // increased radius
-        backgroundColor: "#fadf84ff",  // softer, warmer gold
-        borderWidth: 1,
-        borderColor: "#E6BF52",      // complementary edge
-        marginBottom: 6,
-        shadowOffset: { width: 0, height: 4 },
-        elevation: 3,
+        borderRadius: 22,
+        backgroundColor: BANNER_BG,
+        // shadow disabled per your last snippet
+        // elevation: 4,
+        marginBottom: 2,
     },
-    bannerTitle: { fontFamily: "Outfit_700Bold", fontSize: 14, color: "#4C3A00" },
-    bannerSub: { fontFamily: "Outfit_500Medium", fontSize: 12, color: "#4C3A00", opacity: 0.9 },
+    iconPill: {
+        width: 35,
+        height: 35,
+        borderRadius: 20,
+        alignItems: "center",
+        justifyContent: "center",
+        backgroundColor: ACCENT_BG,
+        marginRight: 10,
+    },
+    bannerTitle: { fontFamily: "Outfit_700Bold", fontSize: 14, color: TITLE_COLOR },
+    bannerMeta: { fontFamily: "Outfit_600SemiBold", fontSize: 13, color: TITLE_COLOR, opacity: 0.9, marginTop: 2 },
 
+    // minimal “no comparisons yet” CTA
+    tribeHeaderButton: {
+        flexDirection: "row",
+        alignItems: "center",
+        paddingHorizontal: 16,
+        paddingVertical: 12,
+        borderRadius: 18,
+        backgroundColor: BANNER_BG,
+        shadowColor: "#000",
+        shadowOffset: { width: 0, height: 8 },
+        shadowOpacity: 0.08,
+        shadowRadius: 16,
+        elevation: 4,
+        marginBottom: 10,
+        gap: 10,
+    },
+    tribeHeaderTitle: {
+        flex: 1,
+        fontFamily: "Outfit_700Bold",
+        fontSize: 15,
+        color: TITLE_COLOR,
+    },
+
+    // pager dots
     dotsRow: {
         flexDirection: "row",
         justifyContent: "center",
         alignItems: "center",
         gap: 6,
-        marginTop: 2,
-        marginBottom: 4,
+        marginTop: 4,
+        marginBottom: 2,
     },
     dot: {
         width: 6,
         height: 6,
         borderRadius: 3,
-        backgroundColor: "rgba(91,65,0,0.25)",
+        backgroundColor: "rgba(0,0,0,0.15)",
     },
-    dotActive: { backgroundColor: "#5B4100" },
+    dotActive: { backgroundColor: ACCENT, width: 8, height: 8, borderRadius: 4 },
 });

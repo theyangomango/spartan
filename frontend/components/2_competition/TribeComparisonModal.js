@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from "react";
+import React, { useState } from "react";
 import {
     Modal,
     View,
@@ -12,16 +12,24 @@ import {
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import SelectExerciseModal from "../2_Competition/SelectExercise/SelectExerciseModal";
+import RNBounceable from "@freakycoder/react-native-bounceable";
 
 const METRICS = ["1RM", "Volume", "Reps"];
 const { width } = Dimensions.get("window");
+
+// palette tweaks
+const BLUE_BG = "#F1F6FF";         // lighter card bg (was #E8F0FF)
+const BLUE_ICON_BG = "#E3EDFF";    // lighter icon pill (was #D6E4FF)
+const BLUE_TEXT = "#5794fde3";       // slightly lighter primary blue (was #2A65D9)
+const BLUE_PRIMARY = "rgba(105, 180, 242, 1)";    // lighter save button (was #59AAEE)
+const GOLD = "#f6b00060";
+const GOLD_TEXT = "#2F2500";
 
 export default function TribeComparisonModal({ visible, onClose, initialList = [], onSaveList }) {
     const [items, setItems] = useState(() => sanitize(initialList));
     const [editingIndex, setEditingIndex] = useState(-1);
     const [exercisePickerOpen, setExercisePickerOpen] = useState(false);
 
-    // ensure state sync when re-opened
     React.useEffect(() => {
         if (visible) {
             setItems(sanitize(initialList));
@@ -52,10 +60,8 @@ export default function TribeComparisonModal({ visible, onClose, initialList = [
 
     return (
         <Modal visible={visible} transparent animationType="fade" statusBarTranslucent onRequestClose={onClose}>
-            {/* Tap outside to close main list modal */}
             <TouchableWithoutFeedback onPress={onClose}>
                 <View style={styles.backdrop}>
-                    {/* Stop propagation inside the card */}
                     <TouchableWithoutFeedback onPress={() => { }}>
                         <View style={styles.card}>
                             <View style={styles.headerRow}>
@@ -72,14 +78,20 @@ export default function TribeComparisonModal({ visible, onClose, initialList = [
                                     <TouchableOpacity
                                         activeOpacity={0.9}
                                         onPress={() => startEdit(index)}
-                                        style={styles.itemRow}
+                                        style={styles.itemCard}
                                     >
-                                        <Ionicons name="trophy" size={18} color="#abababff" style={{ marginRight: 10 }} />
-                                        <View style={{ flex: 1 }}>
+                                        <View style={styles.itemIconPill}>
+                                            <Ionicons name="trophy" size={18} color={BLUE_TEXT} />
+                                        </View>
+                                        <View style={{ flex: 1, marginRight: 8 }}>
+                                            {/* line 1: exercise */}
                                             <Text style={styles.itemTitle} numberOfLines={1}>
-                                                {item.exercise} • {item.metric}{item.normalizeByBodyweight ? " • per lb" : ""}
+                                                {item.exercise}
                                             </Text>
-                                            <Text style={styles.itemSub}>Tap to edit</Text>
+                                            {/* line 2: metric + per-lb */}
+                                            <Text style={styles.itemMeta} numberOfLines={1}>
+                                                {item.metric}{item.normalizeByBodyweight ? " • per lb" : ""}
+                                            </Text>
                                         </View>
                                         <TouchableOpacity onPress={() => deleteItem(index)} hitSlop={10} style={{ padding: 6 }}>
                                             <Ionicons name="trash-outline" size={18} color="#B00020" />
@@ -95,17 +107,16 @@ export default function TribeComparisonModal({ visible, onClose, initialList = [
                                 contentContainerStyle={{ paddingBottom: 8 }}
                             />
 
-                            {/* Footer buttons — one line */}
                             <View style={styles.footerRow}>
-                                <TouchableOpacity style={styles.addBtn} activeOpacity={0.9} onPress={startAdd}>
-                                    <Ionicons name="add" size={18} color="#4C3A00" style={{ marginRight: 6 }} />
+                                <RNBounceable style={styles.addBtn} activeOpacity={0.9} onPress={startAdd}>
+                                    <Ionicons name="add" size={18} color={GOLD_TEXT} style={{ marginRight: 6 }} />
                                     <Text style={styles.addText}>Add Comparison</Text>
-                                </TouchableOpacity>
+                                </RNBounceable>
 
-                                <TouchableOpacity style={styles.saveButton} activeOpacity={0.9} onPress={handleSave}>
+                                <RNBounceable style={styles.saveButton} activeOpacity={0.9} onPress={handleSave}>
                                     <Ionicons name="save-outline" size={18} color="#fff" style={{ marginRight: 8 }} />
                                     <Text style={styles.saveText}>Save</Text>
-                                </TouchableOpacity>
+                                </RNBounceable>
                             </View>
 
                         </View>
@@ -121,10 +132,8 @@ export default function TribeComparisonModal({ visible, onClose, initialList = [
                 statusBarTranslucent
                 onRequestClose={() => setEditingIndex(-1)}
             >
-                {/* Tap outside to close editor */}
                 <TouchableWithoutFeedback onPress={() => setEditingIndex(-1)}>
                     <View style={styles.backdrop}>
-                        {/* Stop propagation inside editor card */}
                         <TouchableWithoutFeedback onPress={() => { }}>
                             <View style={styles.editorCard}>
                                 <View style={styles.headerRow}>
@@ -176,7 +185,7 @@ export default function TribeComparisonModal({ visible, onClose, initialList = [
                                             <Ionicons
                                                 name={editing.normalizeByBodyweight ? "checkbox" : "square-outline"}
                                                 size={20}
-                                                color={editing.normalizeByBodyweight ? "#2A65D9" : "#555"}
+                                                color={editing.normalizeByBodyweight ? BLUE_TEXT : "#555"}
                                                 style={{ marginRight: 10 }}
                                             />
                                             <View style={{ flex: 1 }}>
@@ -244,24 +253,42 @@ const styles = StyleSheet.create({
         backgroundColor: "#fff",
         padding: 16,
     },
-    headerRow: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", marginBottom: 4 },
+
+    // extra spacing below the header/title
+    headerRow: {
+        flexDirection: "row",
+        alignItems: "center",
+        justifyContent: "space-between",
+        marginBottom: 14, // was 4
+    },
     title: { fontFamily: "Outfit_700Bold", fontSize: 18, color: "#111" },
 
-    itemRow: {
+    // modern blue cards
+    itemCard: {
         flexDirection: "row",
         alignItems: "center",
         paddingVertical: 12,
-        borderBottomWidth: StyleSheet.hairlineWidth,
-        borderBottomColor: "#eee",
+        paddingHorizontal: 10,
+        backgroundColor: BLUE_BG,
+        borderRadius: 14,
+        marginBottom: 8,
     },
-    itemTitle: { fontFamily: "Outfit_700Bold", fontSize: 14, color: "#59AAEE" },
-    itemSub: { fontFamily: "Outfit_500Medium", fontSize: 12, color: "#6a6a6a" },
+    itemIconPill: {
+        width: 30,
+        height: 30,
+        borderRadius: 15,
+        alignItems: "center",
+        justifyContent: "center",
+        backgroundColor: BLUE_ICON_BG,
+        marginRight: 10,
+    },
+    itemTitle: { fontFamily: "Outfit_700Bold", fontSize: 14, color: "#111" },
+    itemMeta: { fontFamily: "Outfit_600SemiBold", fontSize: 12.5, color: BLUE_TEXT, marginTop: 2 },
 
     emptyBox: { alignItems: "center", paddingVertical: 20 },
     emptyText: { fontFamily: "Outfit_700Bold", color: "#333" },
     emptySub: { fontFamily: "Outfit_400Regular", color: "#777", marginTop: 6 },
 
-    /* Footer: keep on one line and prevent wrapping */
     footerRow: {
         flexDirection: "row",
         alignItems: "center",
@@ -269,32 +296,26 @@ const styles = StyleSheet.create({
         marginTop: 12,
     },
 
+    // gold add button
     addBtn: {
         flexDirection: "row",
         alignItems: "center",
-        backgroundColor: "#fde492ff", // golden (matches tribe banner)
-        borderColor: "#E6BF52",
-        borderWidth: 1,
+        backgroundColor: GOLD,
         borderRadius: 14,
-        paddingHorizontal: 14,
-        paddingVertical: 10,
+        paddingHorizontal: 16,
+        paddingVertical: 12,
         minHeight: 44,
-        shadowColor: "#000",
-        shadowOpacity: 0.06,
-        shadowRadius: 8,
-        shadowOffset: { width: 0, height: 3 },
-        elevation: 2,
         flexShrink: 0,
     },
-    addText: { fontFamily: "Outfit_700Bold", color: "#4C3A00" },
+    addText: { fontFamily: "Outfit_700Bold", color: GOLD_TEXT, fontSize: 13 },
 
-    /* Primary save (blue) */
+    // lighter blue save button
     saveButton: {
         flexDirection: "row",
         alignItems: "center",
-        backgroundColor: "#59AAEE",   // Spartan blue
+        backgroundColor: BLUE_PRIMARY,
         borderRadius: 16,
-        paddingHorizontal: 20,        // extra horizontal padding
+        paddingHorizontal: 20,
         paddingVertical: 10,
         minHeight: 44,
         shadowColor: "#000",
@@ -324,12 +345,12 @@ const styles = StyleSheet.create({
         borderRadius: 999,
         paddingHorizontal: 14,
         paddingVertical: 8,
-        backgroundColor: "#F2F4F8",
+        backgroundColor: "#F6F8FC",
         marginRight: 8,
     },
-    pillActive: { backgroundColor: "#E8F0FF", borderWidth: 1, borderColor: "#CFE0FF" },
+    pillActive: { backgroundColor: BLUE_BG, borderWidth: 1, borderColor: "#DBE9FF" },
     pillText: { fontFamily: "Outfit_600SemiBold", fontSize: 13, color: "#333" },
-    pillTextActive: { color: "#2A65D9" },
+    pillTextActive: { color: BLUE_TEXT },
 
     toggleRow: {
         flexDirection: "row",
