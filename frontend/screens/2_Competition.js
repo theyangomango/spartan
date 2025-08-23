@@ -42,7 +42,7 @@ import TribeComparisonModal from "../components/2_Competition/TribeComparisonMod
 
 const { width, height } = Dimensions.get("window");
 
-// ---------- Tiny persistence (no libs) ----------
+// -------- tiny persistence (no deps) --------
 const GLOBAL_KEY = "__competition_state__";
 const getPersisted = () =>
     (global[GLOBAL_KEY] && typeof global[GLOBAL_KEY] === "object" ? global[GLOBAL_KEY] : {});
@@ -51,7 +51,7 @@ const setPersisted = (patch) => {
     global[GLOBAL_KEY] = { ...curr, ...patch };
 };
 
-// Module-level fallbacks (in case global gets cleared)
+// module fallbacks (if global gets cleared)
 let LAST_SCOPE = "Global";
 let LAST_SELECTED_TRIBE_ID = null;
 let LAST_USERLIST = null;
@@ -118,20 +118,21 @@ export default function Competition({ navigation }) {
     const [userList, setUserList] = useState(persisted.userList ?? LAST_USERLIST);
     const [comparedExercise, setComparedExercise] = useState("Bench Press (Barbell)");
     const [scope, setScope] = useState(persisted.scope ?? LAST_SCOPE);
+
+    // flags to gate recompute
+    const [usersLoaded, setUsersLoaded] = useState(false);
+    const [tribesHydrated, setTribesHydrated] = useState(false);
+
     const [selectExerciseModalVisible, setSelectExerciseModalVisible] = useState(false);
     const [selectedUser, setSelectedUser] = useState(null);
     const [isUserStatsBottomSheetVisible, setIsUserStatsBottomSheetVisible] = useState(false);
     const [footerKey, setFooterKey] = useState(0);
-
-    const [infoPanelVisible] = useState(false);
-    const infoPanelOpacity = useRef(new Animated.Value(0)).current;
 
     const [comparedMetric, setComparedMetric] = useState("1RM");
     const exerciseStatKey = comparedMetric === "1RM" ? "1RM" : comparedMetric;
 
     // Tribes
     const [tribes, setTribes] = useState([]);
-    const [tribesHydrated, setTribesHydrated] = useState(false); // ✅ know when snapshot fired at least once
     const [selectedTribeId, setSelectedTribeId] = useState(
         persisted.selectedTribeId ?? LAST_SELECTED_TRIBE_ID
     );
@@ -151,19 +152,26 @@ export default function Competition({ navigation }) {
     const [comparisonManagerVisible, setComparisonManagerVisible] = useState(false);
     const [activeCompIndex, setActiveCompIndex] = useState(0);
 
-    // keep caches synced
+    // ---- keep caches in sync
     useEffect(() => { LAST_SCOPE = scope; setPersisted({ scope }); }, [scope]);
     useEffect(() => { LAST_SELECTED_TRIBE_ID = selectedTribeId; setPersisted({ selectedTribeId }); }, [selectedTribeId]);
     useEffect(() => { LAST_USERLIST = userList; setPersisted({ userList }); }, [userList]);
 
-    useEffect(() => { init(); }, []);
+    // ---- init users on mount/focus
+    const initUsers = useCallback(async () => {
+        const allUsers = await getAllUsers();
+        usersRef.current = allUsers;
+        setUsersLoaded(true); // let recompute effect decide when to run
+    }, []);
+
+    useEffect(() => { initUsers(); }, [initUsers]);
 
     useEffect(() => {
         const navUnsub = navigation.addListener("focus", () => {
             if (userUnsubRef.current) userUnsubRef.current();
             userUnsubRef.current = onSnapshot(doc(db, "users", global.userData.uid), async (docSnap) => {
                 global.userData = docSnap.data();
-                init(); // uses current scope/tribe
+                initUsers(); // refresh users; recompute gated elsewhere
             });
             setFooterKey((prevKey) => prevKey + 1);
         });
@@ -174,21 +182,14 @@ export default function Competition({ navigation }) {
                 userUnsubRef.current = null;
             }
         };
-    }, [navigation]);
+    }, [navigation, initUsers]);
 
-    async function init() {
-        const allUsers = await getAllUsers();
-        usersRef.current = allUsers;
-        // Recompute now, but don't blow away a tribe view until tribes hydrate
-        recomputeBaseList();
-    }
-
+    // ---- tribes subscription
     const currentTribe = useMemo(
         () => tribes.find((x) => x.id === selectedTribeId) || null,
         [tribes, selectedTribeId]
     );
 
-    // Backward-compat for single 'comparison'
     const tribeComparisons = useMemo(() => {
         const arr = currentTribe?.comparisons;
         if (Array.isArray(arr) && arr.length) return arr;
@@ -201,16 +202,28 @@ export default function Competition({ navigation }) {
             ? tribeComparisons[Math.min(activeCompIndex, tribeComparisons.length - 1)]
             : null;
 
-    // Keep index in range
     useEffect(() => {
-        if (activeCompIndex >= tribeComparisons.length) setActiveCompIndex(0);
-    }, [tribeComparisons.length, activeCompIndex]);
+        const uid = global?.userData?.uid;
+        if (!uid) return;
+        const tribesRef = collection(db, "tribes");
+        const q = query(tribesRef, where("members", "array-contains", uid));
+        const unsub = onSnapshot(q, (snap) => {
+            const t = snap.docs.map((d) => ({ id: d.id, ...d.data() }));
+            setTribes(t);
+            setTribesHydrated(true); // ✅ we now know tribe docs for this user
+            if (selectedTribeId && !t.find((x) => x.id === selectedTribeId)) {
+                setSelectedTribeId(null);
+            }
+        });
+        return unsub;
+    }, [selectedTribeId]);
 
-    const recomputeBaseList = useCallback(() => {
+    // ---- single source of truth recompute (gated)
+    const recompute = useCallback(() => {
         const all = usersRef.current || [];
 
         if (isCustomTribe) {
-            // ✅ Do NOT overwrite with Global until tribes hydrate & we have the tribe doc
+            // if we intend to show a tribe, do NOT recompute until tribe docs are ready
             if (!tribesHydrated || !currentTribe) return;
 
             const memberSet = new Set(currentTribe.members || []);
@@ -223,7 +236,7 @@ export default function Competition({ navigation }) {
             return;
         }
 
-        // Not a custom tribe -> normal scopes
+        // fallback scopes
         if (scope === "All Followers") {
             const followersSet = new Set((global.userData?.following || []).map((u) => u.uid));
             const base = all.filter((usr) => usr?.uid === global.userData?.uid || followersSet.has(usr?.uid));
@@ -231,28 +244,19 @@ export default function Competition({ navigation }) {
         } else {
             setUserList(rankUsers(all, comparedExercise)); // Global
         }
-    }, [scope, comparedExercise, isCustomTribe, currentTribe, activeComparison, tribesHydrated]);
+    }, [isCustomTribe, tribesHydrated, currentTribe, activeComparison, comparedExercise, scope]);
 
-    // Recompute when deps change
-    useEffect(() => { recomputeBaseList(); }, [recomputeBaseList]);
-
-    // Hydrate tribes & trigger recompute once loaded
+    // Run recompute ONLY when ready. Otherwise keep showing cached list.
     useEffect(() => {
-        const uid = global?.userData?.uid;
-        if (!uid) return;
-        const tribesRef = collection(db, "tribes");
-        const q = query(tribesRef, where("members", "array-contains", uid));
-        const unsub = onSnapshot(q, (snap) => {
-            const t = snap.docs.map((d) => ({ id: d.id, ...d.data() }));
-            setTribes(t);
-            setTribesHydrated(true); // ✅ now safe to recompute for tribe
-            // If selected tribe vanished, clear it
-            if (selectedTribeId && !t.find((x) => x.id === selectedTribeId)) {
-                setSelectedTribeId(null);
-            }
-        });
-        return unsub;
-    }, [selectedTribeId]);
+        if (!usersLoaded) return;
+        if (isCustomTribe && (!tribesHydrated || !currentTribe)) return;
+        recompute();
+    }, [usersLoaded, isCustomTribe, tribesHydrated, currentTribe, comparedExercise, activeComparison, scope, recompute]);
+
+    // keep comp index valid
+    useEffect(() => {
+        if (activeCompIndex >= tribeComparisons.length) setActiveCompIndex(0);
+    }, [tribeComparisons.length, activeCompIndex]);
 
     const rankedDisplay = useMemo(() => userList || [], [userList]);
 
@@ -359,7 +363,7 @@ export default function Competition({ navigation }) {
         if (!rankedDisplay || rankedDisplay.length === 0) return null;
         const top3 = rankedDisplay.slice(0, 3).map((u) => {
             let stat = 0;
-            if (activeComparison && isCustomTribe) {
+            if (isCustomTribe && activeComparison) {
                 stat = u?._tribeValue ?? 0;
             } else {
                 const exStats = u?.statsExercises?.[comparedExercise] || {};
@@ -368,7 +372,7 @@ export default function Competition({ navigation }) {
             return { handle: u?.handle, pfp: u?.image, stat };
         });
         return top3.filter(Boolean);
-    }, [rankedDisplay, activeComparison, isCustomTribe, comparedExercise, exerciseStatKey]);
+    }, [rankedDisplay, isCustomTribe, activeComparison, comparedExercise, exerciseStatKey]);
 
     return (
         <View style={styles.mainContainer}>
@@ -402,7 +406,7 @@ export default function Competition({ navigation }) {
                 </View>
             </SafeAreaView>
 
-            <InfoPanel isVisible={infoPanelVisible} opacity={infoPanelOpacity} />
+            <InfoPanel isVisible={false} opacity={useRef(new Animated.Value(0)).current} />
             <Podium data={podiumData} />
 
             <LeaderboardBottomSheet
@@ -413,19 +417,20 @@ export default function Competition({ navigation }) {
                     setComparedMetric((prev) => (prev === "1RM" ? "Volume" : prev === "Volume" ? "Reps" : "1RM"))
                 }
                 openModal={() => setSelectExerciseModalVisible(true)}
-                openBottomSheet={openBottomSheet}
-                isBottomSheetExpanded={undefined}
-                // Tribe-aware
+                openBottomSheet={(u) => {
+                    setSelectedUser(u);
+                    setIsUserStatsBottomSheetVisible(true);
+                }}
                 isTribeFocused={isCustomTribe}
                 tribeComparisons={tribeComparisons}
                 activeCompIndex={activeCompIndex}
                 onActiveCompChange={(idx) => {
                     setActiveCompIndex(idx);
-                    // recompute instantly for responsiveness
+                    // compute immediately if we have tribe members
                     const all = usersRef.current || [];
                     if (isCustomTribe && currentTribe) {
                         const memberSet = new Set(currentTribe.members || []);
-                        const tribeUsers = all.filter((u) => memberSet.has(u?.uid));
+                        const tribeUsers = all.filter((x) => memberSet.has(x?.uid));
                         const comp = tribeComparisons[idx];
                         if (comp) setUserList(computeTribeRanking(tribeUsers, comp));
                     }
@@ -474,9 +479,18 @@ export default function Competition({ navigation }) {
                     setSelectedTribeId(id);
                     setTribeMenuVisible(false);
                 }}
-                onCreatePress={onOpenCreateFromMenu}
-                onJoinPress={onOpenJoinFromMenu}
-                onManagePress={onOpenManageFromMenu}
+                onCreatePress={() => {
+                    setTribeMenuVisible(false);
+                    requestAnimationFrame(() => setCreateModalVisible(true));
+                }}
+                onJoinPress={() => {
+                    setTribeMenuVisible(false);
+                    requestAnimationFrame(() => setJoinModalVisible(true));
+                }}
+                onManagePress={() => {
+                    setTribeMenuVisible(false);
+                    requestAnimationFrame(() => setManageModalVisible(true));
+                }}
             />
 
             <CreateTribeModal
@@ -510,7 +524,15 @@ export default function Competition({ navigation }) {
                 visible={comparisonManagerVisible}
                 onClose={() => setComparisonManagerVisible(false)}
                 initialList={tribeComparisons}
-                onSaveList={onSaveTribeComparisons}
+                onSaveList={async (list) => {
+                    if (!selectedTribeId) return;
+                    await updateDoc(doc(db, "tribes", selectedTribeId), {
+                        comparisons: list,
+                        updatedAt: serverTimestamp(),
+                    });
+                    setComparisonManagerVisible(false);
+                    if (activeCompIndex >= list.length) setActiveCompIndex(0);
+                }}
             />
         </View>
     );
@@ -520,7 +542,6 @@ const styles = StyleSheet.create({
     mainContainer: { flex: 1, backgroundColor: "#59AAEE" },
     header: { alignItems: "flex-end", justifyContent: "flex-end", flexDirection: "row" },
     headerRightContainer: { flexDirection: "row", alignItems: "center" },
-
     tribeButtonRow: {
         flexDirection: "row",
         alignItems: "center",
