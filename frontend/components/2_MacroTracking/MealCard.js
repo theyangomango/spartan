@@ -33,7 +33,7 @@ export default function MealCard({
                 </Pressable>
 
                 <Pressable style={styles.addBtn} onPress={() => onAddPress(item)} hitSlop={10}>
-                    <PlusIcon size={20} color="#79b3ff" />
+                    <Ionicons name="add-circle" size={28} color={COLORS.accent ?? '#64aaf6ff'} />
                 </Pressable>
             </View>
         </View>
@@ -80,14 +80,15 @@ const makeStyles = (COLORS) =>
             fontFamily: 'Outfit_400Regular',
         },
         addBtn: {
-            height: 34,
-            width: 34,
-            borderRadius: 17,
+            height: 40,            // was 34
+            width: 40,             // was 34
+            borderRadius: 20,
             backgroundColor: COLORS.addBtnBg,
             alignItems: 'center',
             justifyContent: 'center',
             marginLeft: 10,
             borderWidth: StyleSheet.hairlineWidth,
             borderColor: COLORS.hairline,
-        },
+        }
+
     });
