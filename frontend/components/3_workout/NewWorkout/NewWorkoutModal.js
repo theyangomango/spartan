@@ -6,6 +6,8 @@ import {
     Text,
     Animated,
     Dimensions,
+    Pressable,
+    InteractionManager,
 } from "react-native";
 import RNBounceable from "@freakycoder/react-native-bounceable";
 import { Weight } from "iconsax-react-native";
@@ -32,12 +34,13 @@ const NewWorkoutModal = ({
     timerRef,
     showGroupModal,
     userWorkoutStats,
-    // NEW: notify parent so it can tint the BottomSheet handle
     onViewingChange,
 }) => {
     // UI
     const [selectExerciseModalVisible, setSelectExerciseModalVisible] = useState(false);
     const [deleteConfirmModalVisible, setDeleteConfirmModalVisible] = useState(false);
+    const [finishConfirmModalVisible, setFinishConfirmModalVisible] = useState(false);
+    const [isFinishing, setIsFinishing] = useState(false); // NEW: prevent double-tap & help UX
     const [countdown, setCountdown] = useState(0);
     const scrollY = useRef(new Animated.Value(0)).current;
 
@@ -51,7 +54,7 @@ const NewWorkoutModal = ({
         (workout?.exercises || []).map((ex) => (ex.sets || []).map(() => false))
     );
 
-    // Group hook (participants, viewing, friend cache + menu)
+    // Group hook
     const {
         viewing,
         viewingSelf,
@@ -99,7 +102,7 @@ const NewWorkoutModal = ({
         );
     }, [workout?.exercises, viewingSelf]);
 
-    /** 🔑 Use SELF workout when viewingSelf, else use FRIEND workout */
+    /** 🔑 Use SELF workout when viewingSelf, else FRIEND workout */
     const baseWorkout = viewingSelf ? workout : activeWorkout;
 
     /** Lists for render */
@@ -240,6 +243,26 @@ const NewWorkoutModal = ({
         cancelWorkout();
     }, [cancelWorkout]);
 
+    // Finish confirm triggers
+    const openFinishConfirm = useCallback(() => {
+        if (!viewingSelf) return;
+        setFinishConfirmModalVisible(true);
+    }, [viewingSelf]);
+
+    const handleFinishWorkout = useCallback(() => {
+        if (isFinishing) return;
+        setIsFinishing(true);
+        // Close modal first, then defer heavy work until interactions/animations are done.
+        setFinishConfirmModalVisible(false);
+        InteractionManager.runAfterInteractions(() => {
+            requestAnimationFrame(() => {
+                Promise.resolve(finishWorkout?.())
+                    .catch(() => { }) // swallow to avoid unhandled promise rejection
+                    .finally(() => setIsFinishing(false));
+            });
+        });
+    }, [finishWorkout, isFinishing]);
+
     /** visuals */
     const borderOpacity = scrollY.interpolate({
         inputRange: [0, 98],
@@ -250,20 +273,18 @@ const NewWorkoutModal = ({
 
     return (
         <View style={styles.main_ctnr}>
-            {/* Header (gold when viewing friend) */}
+            {/* Header */}
             <View style={[styles.header, { opacity: overallOpacity }]}>
                 <GroupHeader
                     viewingSelf={viewingSelf}
                     overlayPfp={overlayPfp}
                     onOpenMenu={openMenu}
                     onLongPressInvite={showGroupModal}
-                    onFinish={finishWorkout}
+                    onFinish={openFinishConfirm} // show confirm modal
                     countdown={countdown}
                     onAddTime={handleAddTime}
                     timerRef={timerRef}
-                    headerStyle={[
-                        styles.headerInner,
-                    ]}
+                    headerStyle={[styles.headerInner]}
                 />
             </View>
             <Animated.View style={[styles.headerShadow, { opacity: borderOpacity }]} />
@@ -335,6 +356,7 @@ const NewWorkoutModal = ({
                 transparent
                 visible={deleteConfirmModalVisible}
                 onRequestClose={() => setDeleteConfirmModalVisible(false)}
+                statusBarTranslucent
             >
                 <View style={styles.modalOverlay}>
                     <View style={styles.modalContainer}>
@@ -349,7 +371,43 @@ const NewWorkoutModal = ({
                 </View>
             </Modal>
 
-            {/* Group Menu (invite + switch) */}
+            {/* Finish confirm (tap outside to cancel) */}
+            <Modal
+                animationType="fade"
+                transparent
+                visible={finishConfirmModalVisible}
+                onRequestClose={() => setFinishConfirmModalVisible(false)}
+                statusBarTranslucent
+            >
+                <Pressable
+                    style={styles.modalOverlay}
+                    onPress={() => setFinishConfirmModalVisible(false)}
+                >
+                    <Pressable
+                        style={styles.finishModalContainer}
+                        onPress={(e) => e.stopPropagation()}
+                    >
+                        <Text style={styles.finishTitle}>Finish workout?</Text>
+
+                        <RNBounceable
+                            onPress={handleFinishWorkout}
+                            style={[styles.finishBtn, isFinishing && { opacity: 0.6 }]}
+                            disabled={isFinishing}
+                        >
+                            <Text style={styles.finishBtnText}>{isFinishing ? "Finishing…" : "Finish Workout"}</Text>
+                        </RNBounceable>
+
+                        <RNBounceable
+                            onPress={() => setFinishConfirmModalVisible(false)}
+                            style={styles.keepEditingBtn}
+                        >
+                            <Text style={styles.keepEditingText}>Keep Working</Text>
+                        </RNBounceable>
+                    </Pressable>
+                </Pressable>
+            </Modal>
+
+            {/* Group Menu */}
             <GroupMenu
                 visible={menuVisible}
                 onClose={closeMenu}
@@ -368,9 +426,7 @@ const NewWorkoutModal = ({
 const styles = StyleSheet.create({
     main_ctnr: { flex: 1 },
 
-    header: {
-        backgroundColor: "#fff",
-    },
+    header: { backgroundColor: "#fff" },
     headerInner: {
         paddingBottom: scaledSize(6),
         paddingHorizontal: scaledSize(22),
@@ -422,29 +478,86 @@ const styles = StyleSheet.create({
         marginRight: scaledSize(4.5),
     },
 
-    // delete modal
+    // generic modal overlay
     modalOverlay: {
-        flex: 1, justifyContent: "center", alignItems: "center",
+        flex: 1,
+        justifyContent: "center",
+        alignItems: "center",
         backgroundColor: "rgba(0,0,0,0.5)",
+        paddingHorizontal: scaledSize(24),
     },
     modalContainer: {
-        width: "80%", padding: scaledSize(20), backgroundColor: "#fff",
-        borderRadius: scaledSize(15), alignItems: "center",
+        width: "100%",
+        padding: scaledSize(20),
+        backgroundColor: "#fff",
+        borderRadius: scaledSize(15),
+        alignItems: "center",
     },
     modalText: {
-        fontSize: scaledSize(16), color: "#333", fontFamily: "Outfit_700Bold",
-        marginBottom: scaledSize(20), textAlign: "center",
+        fontSize: scaledSize(16),
+        color: "#333",
+        fontFamily: "Outfit_700Bold",
+        marginBottom: scaledSize(20),
+        textAlign: "center",
     },
     deleteWorkoutBtn: {
-        width: "100%", paddingVertical: scaledSize(8), backgroundColor: "#FFECEC",
-        borderRadius: scaledSize(8), alignItems: "center", marginBottom: scaledSize(10),
+        width: "100%",
+        paddingVertical: scaledSize(8),
+        backgroundColor: "#FFECEC",
+        borderRadius: scaledSize(8),
+        alignItems: "center",
+        marginBottom: scaledSize(10),
     },
     deleteWorkoutText: { color: "#F27171", fontSize: scaledSize(14), fontFamily: "Outfit_700Bold" },
     cancelDeleteBtn: {
-        width: "100%", paddingVertical: scaledSize(8), backgroundColor: "#eee",
-        borderRadius: scaledSize(8), alignItems: "center",
+        width: "100%",
+        paddingVertical: scaledSize(8),
+        backgroundColor: "#eee",
+        borderRadius: scaledSize(8),
+        alignItems: "center",
     },
     cancelDeleteText: { color: "#666", fontSize: scaledSize(14), fontFamily: "Outfit_700Bold" },
+
+    // Finish modal styles
+    finishModalContainer: {
+        width: "100%",
+        padding: scaledSize(20),
+        backgroundColor: "#fff",
+        borderRadius: scaledSize(16),
+        alignItems: "center",
+    },
+    finishTitle: {
+        fontSize: scaledSize(18),
+        color: "#111827",
+        fontFamily: "Outfit_700Bold",
+        textAlign: "center",
+        marginBottom: scaledSize(16),
+    },
+    finishBtn: {
+        width: "100%",
+        paddingVertical: scaledSize(10),
+        backgroundColor: "#40D99B",
+        borderRadius: scaledSize(10),
+        alignItems: "center",
+        marginBottom: scaledSize(10),
+    },
+    finishBtnText: {
+        color: "#fff",
+        fontSize: scaledSize(14.5),
+        fontFamily: "Outfit_700Bold",
+    },
+    keepEditingBtn: {
+        width: "100%",
+        paddingVertical: scaledSize(10),
+        backgroundColor: "#F1F5F9",
+        borderRadius: scaledSize(10),
+        alignItems: "center",
+    },
+    keepEditingText: {
+        color: "#0F172A",
+        fontSize: scaledSize(14),
+        fontFamily: "Outfit_600SemiBold",
+    },
 });
 
 export default NewWorkoutModal;

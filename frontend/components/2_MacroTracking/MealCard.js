@@ -27,13 +27,13 @@ export default function MealCard({
                     <Ionicons
                         name={collapsed ? 'chevron-down' : 'chevron-up'}
                         size={20}
-                        color={COLORS.textSecondary}
+                        color={COLORS.subtext}
                         style={{ marginLeft: 6 }}
                     />
                 </Pressable>
 
                 <Pressable style={styles.addBtn} onPress={() => onAddPress(item)} hitSlop={10}>
-                    <PlusIcon size={22} color="#79b3ff" />
+                    <PlusIcon size={20} color="#79b3ff" />
                 </Pressable>
             </View>
         </View>
@@ -43,57 +43,51 @@ export default function MealCard({
 const makeStyles = (COLORS) =>
     StyleSheet.create({
         card: {
-            backgroundColor: '#fff',
-            borderRadius: 24,
-            paddingVertical: 14,
-            paddingHorizontal: 16,
+            backgroundColor: COLORS.card,
+            borderRadius: 20,
+            paddingVertical: 12,
+            paddingHorizontal: 14,
             marginHorizontal: 16,
             marginTop: 10,
-            shadowColor: COLORS.mealCardShadow,
-            shadowOpacity: 0.08,
+            borderWidth: StyleSheet.hairlineWidth,
+            borderColor: COLORS.hairline,
+            shadowColor: '#000',
+            shadowOpacity: 0.03,
             shadowRadius: 6,
-            elevation: 2,
+            shadowOffset: { width: 0, height: 2 },
+            elevation: 1,
         },
-        row: {
-            flexDirection: 'row',
-            alignItems: 'center',
-        },
-        left: {
-            flexDirection: 'row',
-            alignItems: 'center',
-            flex: 1,
-        },
+        row: { flexDirection: 'row', alignItems: 'center' },
+        left: { flexDirection: 'row', alignItems: 'center', flex: 1 },
         iconWrapper: {
             width: 44,
             height: 44,
             borderRadius: 15,
             justifyContent: 'center',
             alignItems: 'center',
-            marginRight: 10,
+            marginRight: 12,
         },
-        icon: {
-            height: 26,
-            width: 26,
-            resizeMode: 'contain',
-        },
+        icon: { height: 26, width: 26, resizeMode: 'contain' },
         title: {
             fontSize: 15.5,
-            color: COLORS.textPrimary,
-            fontFamily: 'Nunito_800ExtraBold',
+            color: COLORS.text,
+            fontFamily: 'Outfit_700Bold',
             marginBottom: 2,
         },
         subtitle: {
             fontSize: 12.5,
-            color: COLORS.textSecondary,
+            color: COLORS.subtext,
             fontFamily: 'Outfit_400Regular',
         },
         addBtn: {
             height: 34,
             width: 34,
             borderRadius: 17,
-            backgroundColor: '#eaeeffb0',
+            backgroundColor: COLORS.addBtnBg,
             alignItems: 'center',
             justifyContent: 'center',
             marginLeft: 10,
+            borderWidth: StyleSheet.hairlineWidth,
+            borderColor: COLORS.hairline,
         },
     });

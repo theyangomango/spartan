@@ -92,7 +92,7 @@ const CurrentWorkoutPanel = ({ workout, timerRef, openWorkout }) => {
             <View style={styles.header}>
                 <View style={{ flex: 1 }}>
                     <Text style={styles.title}>{dateLabel}</Text>
-                    <Text style={styles.subtitle}>In progress • Keep it up</Text>
+                    <Text style={styles.subtitle}>In progress • Keep it up!</Text>
                 </View>
 
                 {/* Live timer pill */}

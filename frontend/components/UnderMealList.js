@@ -9,8 +9,8 @@ export default function UnderMealList({
     COLORS,
     listStyle,
     cardStyle,
-    onDelete,               // (entry) => void
-    renderSummary,          // (entry) => string
+    onDelete,
+    renderSummary,
 }) {
     const renderRight = (entry) => (
         <View style={styles.actionsContainer}>
@@ -35,10 +35,16 @@ export default function UnderMealList({
                     rightThreshold={40}
                     renderRightActions={() => renderRight(f)}
                 >
-                    <View style={[styles.card, { backgroundColor: COLORS.card, shadowColor: COLORS.mealCardShadow }, cardStyle]}>
+                    <View
+                        style={[
+                            styles.card,
+                            { backgroundColor: COLORS.card, borderColor: COLORS.hairline },
+                            cardStyle,
+                        ]}
+                    >
                         <View style={{ flex: 1 }}>
-                            <Text style={[styles.name, { color: COLORS.textPrimary }]}>{f.name}</Text>
-                            <Text style={[styles.summary, { color: COLORS.textSecondary }]}>
+                            <Text style={[styles.name, { color: COLORS.text }]}>{f.name}</Text>
+                            <Text style={[styles.summary, { color: COLORS.subtext }]}>
                                 {renderSummary ? renderSummary(f) : ''}
                             </Text>
                         </View>
@@ -50,35 +56,22 @@ export default function UnderMealList({
 }
 
 const styles = StyleSheet.create({
-    list: {
-        paddingHorizontal: 18,
-        marginTop: 2,
-        marginBottom: 8,
-    },
+    list: { paddingHorizontal: 18, marginTop: 2, marginBottom: 8 },
     card: {
-        borderRadius: 12,
+        borderRadius: 14,
         paddingVertical: 12,
-        paddingHorizontal: 20,
-        marginVertical: 2,
-        shadowOpacity: 0.04,
+        paddingHorizontal: 16,
+        marginVertical: 4,
+        borderWidth: StyleSheet.hairlineWidth,
+        shadowOpacity: 0.03,
         shadowRadius: 4,
         shadowOffset: { width: 0, height: 1 },
         elevation: 1,
     },
-    name: {
-        fontSize: 13.5,
-        fontFamily: 'Mulish_700Bold',
-        marginBottom: 3,
-    },
-    summary: {
-        fontSize: 12.5,
-        fontFamily: 'Mulish_500Medium',
-    },
-    actionsContainer: {
-        justifyContent: 'center',
-        alignItems: 'flex-end',
-        marginVertical: 2,
-    },
+
+    name: { fontSize: 13.5, fontFamily: 'Outfit_600SemiBold', marginBottom: 3 },
+    summary: { fontSize: 12.5, fontFamily: 'Outfit_400Regular' },
+    actionsContainer: { justifyContent: 'center', alignItems: 'flex-end', marginVertical: 2 },
     deleteBtn: {
         width: 88,
         height: '90%',
@@ -90,10 +83,5 @@ const styles = StyleSheet.create({
         gap: 2,
         flexDirection: 'column',
     },
-    deleteText: {
-        color: '#fff',
-        fontFamily: 'Outfit_600SemiBold',
-        fontSize: 12,
-        marginTop: 2,
-    },
+    deleteText: { color: '#fff', fontFamily: 'Outfit_600SemiBold', fontSize: 12, marginTop: 2 },
 });
