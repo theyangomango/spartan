@@ -40,7 +40,7 @@ const NewWorkoutModal = ({
     const [selectExerciseModalVisible, setSelectExerciseModalVisible] = useState(false);
     const [deleteConfirmModalVisible, setDeleteConfirmModalVisible] = useState(false);
     const [finishConfirmModalVisible, setFinishConfirmModalVisible] = useState(false);
-    const [isFinishing, setIsFinishing] = useState(false); // NEW: prevent double-tap & help UX
+    const [isFinishing, setIsFinishing] = useState(false); // prevent double-tap & help UX
     const [countdown, setCountdown] = useState(0);
     const scrollY = useRef(new Animated.Value(0)).current;
 
@@ -54,6 +54,9 @@ const NewWorkoutModal = ({
         (workout?.exercises || []).map((ex) => (ex.sets || []).map(() => false))
     );
 
+    // Replace mode index
+    const [replaceIndex, setReplaceIndex] = useState(null);
+
     // Group hook
     const {
         viewing,
@@ -63,10 +66,10 @@ const NewWorkoutModal = ({
         openMenu,
         closeMenu,
         overlayPfp,
-        activeWorkout,       // friend's workout (null when viewing self)
-        activeStats,         // stats for whoever is being viewed
-        friendDoneDerived,   // derived "done" for friend sets
-        waitingFriend,       // true when waiting for friend's workout
+        activeWorkout, // friend's workout (null when viewing self)
+        activeStats, // stats for whoever is being viewed
+        friendDoneDerived, // derived "done" for friend sets
+        waitingFriend, // true when waiting for friend's workout
     } = useGroupViewing({
         wid: workout?.wid,
         meUid: global?.userData?.uid,
@@ -167,7 +170,11 @@ const NewWorkoutModal = ({
         if (!viewingSelf) return;
         setSelectExerciseModalVisible(true);
     }, [viewingSelf]);
-    const closeSelectExerciseModal = useCallback(() => setSelectExerciseModalVisible(false), []);
+
+    const closeSelectExerciseModal = useCallback(() => {
+        setSelectExerciseModalVisible(false);
+        setReplaceIndex(null); // clear replace mode on close
+    }, []);
 
     const appendExercises = useCallback(
         (exercises) => {
@@ -200,7 +207,55 @@ const NewWorkoutModal = ({
         [workout, updateWorkout, viewingSelf]
     );
 
-    const replaceExercise = useCallback(() => { }, []);
+    /** Replace exercise: enter replace mode and open picker */
+    const replaceExercise = useCallback(
+        (index) => {
+            if (!viewingSelf) return;
+            setReplaceIndex(index);
+            setSelectExerciseModalVisible(true);
+        },
+        [viewingSelf]
+    );
+
+    /** Unified handler: if in replace mode, swap; otherwise append */
+    const handleAppendOrReplace = useCallback(
+        (picked) => {
+            if (!viewingSelf || !workout) return;
+
+            const choice = Array.isArray(picked) ? picked[0] : picked;
+            const isReplacing = replaceIndex !== null && replaceIndex >= 0;
+
+            if (isReplacing && choice) {
+                const oldSets =
+                    workout.exercises?.[replaceIndex]?.sets ?? [{ weight: 0, reps: 0 }];
+                const newSets = oldSets.map(() => ({ weight: 0, reps: 0 }));
+
+                const nextExercises = (workout.exercises || []).map((ex, i) =>
+                    i === replaceIndex
+                        ? { name: choice.name, muscle: choice.muscle, sets: newSets }
+                        : ex
+                );
+
+                updateWorkout({ ...workout, exercises: nextExercises });
+
+                // reset done flags for this exercise
+                setIsDoneState((prev) => {
+                    const next = prev.map((row) => row.slice());
+                    next[replaceIndex] = newSets.map(() => false);
+                    return next;
+                });
+
+                setReplaceIndex(null);
+                setSelectExerciseModalVisible(false);
+                return;
+            }
+
+            // default behavior: append
+            appendExercises(Array.isArray(picked) ? picked : [picked]);
+            setSelectExerciseModalVisible(false);
+        },
+        [appendExercises, replaceIndex, viewingSelf, workout, updateWorkout]
+    );
 
     const deleteExercise = useCallback(
         (index) => {
@@ -297,11 +352,18 @@ const NewWorkoutModal = ({
             ) : (
                 <Animated.ScrollView
                     showsVerticalScrollIndicator={false}
-                    onScroll={Animated.event([{ nativeEvent: { contentOffset: { y: scrollY } } }], { useNativeDriver: false })}
+                    onScroll={Animated.event(
+                        [{ nativeEvent: { contentOffset: { y: scrollY } } }],
+                        { useNativeDriver: false }
+                    )}
                     scrollEventThrottle={16}
                     style={[styles.scrollview, { opacity: overallOpacity }]}
                 >
-                    <ProgressBanner totalReps={totalReps} totalVolume={totalVolume} personalBests={personalBests} />
+                    <ProgressBanner
+                        totalReps={totalReps}
+                        totalVolume={totalVolume}
+                        personalBests={personalBests}
+                    />
 
                     {(exercisesToRender || []).map((ex, exerciseIndex) => (
                         <ExerciseLog
@@ -341,11 +403,11 @@ const NewWorkoutModal = ({
                 </Animated.ScrollView>
             )}
 
-            {/* Add Exercises */}
+            {/* Add / Replace Exercises */}
             <Modal animationType="fade" transparent visible={selectExerciseModalVisible}>
                 <SelectExerciseModal
                     closeModal={closeSelectExerciseModal}
-                    appendExercises={appendExercises}
+                    appendExercises={handleAppendOrReplace} // handles both append & replace
                     userWorkoutStats={activeStats}
                 />
             </Modal>
@@ -364,7 +426,10 @@ const NewWorkoutModal = ({
                         <RNBounceable onPress={handleDeleteWorkout} style={styles.deleteWorkoutBtn}>
                             <Text style={styles.deleteWorkoutText}>Delete Workout</Text>
                         </RNBounceable>
-                        <RNBounceable onPress={() => setDeleteConfirmModalVisible(false)} style={styles.cancelDeleteBtn}>
+                        <RNBounceable
+                            onPress={() => setDeleteConfirmModalVisible(false)}
+                            style={styles.cancelDeleteBtn}
+                        >
                             <Text style={styles.cancelDeleteText}>Cancel</Text>
                         </RNBounceable>
                     </View>
@@ -383,10 +448,7 @@ const NewWorkoutModal = ({
                     style={styles.modalOverlay}
                     onPress={() => setFinishConfirmModalVisible(false)}
                 >
-                    <Pressable
-                        style={styles.finishModalContainer}
-                        onPress={(e) => e.stopPropagation()}
-                    >
+                    <Pressable style={styles.finishModalContainer} onPress={(e) => e.stopPropagation()}>
                         <Text style={styles.finishTitle}>Finish workout?</Text>
 
                         <RNBounceable
@@ -394,7 +456,9 @@ const NewWorkoutModal = ({
                             style={[styles.finishBtn, isFinishing && { opacity: 0.6 }]}
                             disabled={isFinishing}
                         >
-                            <Text style={styles.finishBtnText}>{isFinishing ? "Finishing…" : "Finish Workout"}</Text>
+                            <Text style={styles.finishBtnText}>
+                                {isFinishing ? "Finishing…" : "Finish Workout"}
+                            </Text>
                         </RNBounceable>
 
                         <RNBounceable
