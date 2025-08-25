@@ -1,3 +1,4 @@
+// components/Tracking/NewWorkoutModal.jsx
 import React, { useEffect, useState, useRef, useMemo, useCallback } from "react";
 import {
     StyleSheet,
@@ -22,6 +23,8 @@ import { useGroupViewing } from "./Group/useGroupViewing";
 import GroupHeader from "./Group/GroupHeader";
 import GroupMenu from "./Group/GroupMenu";
 
+import RestTimerModal from "./RestTimerModal";
+
 const { height: screenHeight } = Dimensions.get("window");
 const scale = screenHeight / 844; // iPhone 13 baseline
 const scaledSize = (size) => Math.round(size * scale);
@@ -42,6 +45,17 @@ const NewWorkoutModal = ({
     const [finishConfirmModalVisible, setFinishConfirmModalVisible] = useState(false);
     const [isFinishing, setIsFinishing] = useState(false); // prevent double-tap & help UX
     const [countdown, setCountdown] = useState(0);
+
+    // 🔒 Robust rest modal controls
+    const [restModalVisible, setRestModalVisible] = useState(false);
+    const [restModalKey, setRestModalKey] = useState(0); // bump to force remount (guaranteed open)
+    const openRestModal = useCallback(() => {
+        // Always remount the modal so it opens even if RN/native state is mid-dismiss
+        setRestModalKey((k) => k + 1);
+        setRestModalVisible(true);
+    }, []);
+    const closeRestModal = useCallback(() => setRestModalVisible(false), []);
+
     const scrollY = useRef(new Animated.Value(0)).current;
 
     // banner totals
@@ -83,13 +97,12 @@ const NewWorkoutModal = ({
         onViewingChange?.(viewingSelf);
     }, [viewingSelf, onViewingChange]);
 
-    /** TIMERS */
+    /** TIMERS (countdown) */
     useEffect(() => {
         let t = null;
         if (countdown > 0) t = setInterval(() => setCountdown((s) => Math.max(0, s - 1)), 1000);
         return () => t && clearInterval(t);
     }, [countdown]);
-    const handleAddTime = () => setCountdown((s) => s + 30);
 
     /** keep isDoneState in sync with self workout sets */
     useEffect(() => {
@@ -156,9 +169,7 @@ const NewWorkoutModal = ({
         if (
             viewingSelf &&
             workout &&
-            (workout.reps !== totals.reps ||
-                workout.volume !== totals.volume ||
-                workout.PBs !== totals.PBs)
+            (workout.reps !== totals.reps || workout.volume !== totals.volume || workout.PBs !== totals.PBs)
         ) {
             updateWorkout({ ...workout, reps: totals.reps, volume: totals.volume, PBs: totals.PBs });
         }
@@ -199,9 +210,7 @@ const NewWorkoutModal = ({
     const updateSets = useCallback(
         (index, newSets) => {
             if (!viewingSelf || !workout) return;
-            const updated = (workout.exercises || []).map((ex, i) =>
-                i === index ? { ...ex, sets: newSets } : ex
-            );
+            const updated = (workout.exercises || []).map((ex, i) => (i === index ? { ...ex, sets: newSets } : ex));
             updateWorkout({ ...workout, exercises: updated });
         },
         [workout, updateWorkout, viewingSelf]
@@ -226,14 +235,11 @@ const NewWorkoutModal = ({
             const isReplacing = replaceIndex !== null && replaceIndex >= 0;
 
             if (isReplacing && choice) {
-                const oldSets =
-                    workout.exercises?.[replaceIndex]?.sets ?? [{ weight: 0, reps: 0 }];
+                const oldSets = workout.exercises?.[replaceIndex]?.sets ?? [{ weight: 0, reps: 0 }];
                 const newSets = oldSets.map(() => ({ weight: 0, reps: 0 }));
 
                 const nextExercises = (workout.exercises || []).map((ex, i) =>
-                    i === replaceIndex
-                        ? { name: choice.name, muscle: choice.muscle, sets: newSets }
-                        : ex
+                    i === replaceIndex ? { name: choice.name, muscle: choice.muscle, sets: newSets } : ex
                 );
 
                 updateWorkout({ ...workout, exercises: nextExercises });
@@ -337,7 +343,7 @@ const NewWorkoutModal = ({
                     onLongPressInvite={showGroupModal}
                     onFinish={openFinishConfirm} // show confirm modal
                     countdown={countdown}
-                    onAddTime={handleAddTime}
+                    onAddTime={openRestModal} // ✅ robust open
                     timerRef={timerRef}
                     headerStyle={[styles.headerInner]}
                 />
@@ -352,18 +358,13 @@ const NewWorkoutModal = ({
             ) : (
                 <Animated.ScrollView
                     showsVerticalScrollIndicator={false}
-                    onScroll={Animated.event(
-                        [{ nativeEvent: { contentOffset: { y: scrollY } } }],
-                        { useNativeDriver: false }
-                    )}
+                    onScroll={Animated.event([{ nativeEvent: { contentOffset: { y: scrollY } } }], {
+                        useNativeDriver: false,
+                    })}
                     scrollEventThrottle={16}
                     style={[styles.scrollview, { opacity: overallOpacity }]}
                 >
-                    <ProgressBanner
-                        totalReps={totalReps}
-                        totalVolume={totalVolume}
-                        personalBests={personalBests}
-                    />
+                    <ProgressBanner totalReps={totalReps} totalVolume={totalVolume} personalBests={personalBests} />
 
                     {(exercisesToRender || []).map((ex, exerciseIndex) => (
                         <ExerciseLog
@@ -412,6 +413,17 @@ const NewWorkoutModal = ({
                 />
             </Modal>
 
+            {/* Rest Timer Modal — forced to re-mount via key for guaranteed open */}
+            <RestTimerModal
+                key={restModalKey}
+                visible={restModalVisible}
+                onClose={closeRestModal}
+                countdown={countdown}
+                onStart={(secs) => setCountdown(secs)}
+                onAdd={(secs) => setCountdown((s) => s + secs)}
+                onReset={() => setCountdown(0)}
+            />
+
             {/* Delete confirm */}
             <Modal
                 animationType="fade"
@@ -426,10 +438,7 @@ const NewWorkoutModal = ({
                         <RNBounceable onPress={handleDeleteWorkout} style={styles.deleteWorkoutBtn}>
                             <Text style={styles.deleteWorkoutText}>Delete Workout</Text>
                         </RNBounceable>
-                        <RNBounceable
-                            onPress={() => setDeleteConfirmModalVisible(false)}
-                            style={styles.cancelDeleteBtn}
-                        >
+                        <RNBounceable onPress={() => setDeleteConfirmModalVisible(false)} style={styles.cancelDeleteBtn}>
                             <Text style={styles.cancelDeleteText}>Cancel</Text>
                         </RNBounceable>
                     </View>
@@ -444,10 +453,7 @@ const NewWorkoutModal = ({
                 onRequestClose={() => setFinishConfirmModalVisible(false)}
                 statusBarTranslucent
             >
-                <Pressable
-                    style={styles.modalOverlay}
-                    onPress={() => setFinishConfirmModalVisible(false)}
-                >
+                <Pressable style={styles.modalOverlay} onPress={() => setFinishConfirmModalVisible(false)}>
                     <Pressable style={styles.finishModalContainer} onPress={(e) => e.stopPropagation()}>
                         <Text style={styles.finishTitle}>Finish workout?</Text>
 
@@ -456,15 +462,10 @@ const NewWorkoutModal = ({
                             style={[styles.finishBtn, isFinishing && { opacity: 0.6 }]}
                             disabled={isFinishing}
                         >
-                            <Text style={styles.finishBtnText}>
-                                {isFinishing ? "Finishing…" : "Finish Workout"}
-                            </Text>
+                            <Text style={styles.finishBtnText}>{isFinishing ? "Finishing…" : "Finish Workout"}</Text>
                         </RNBounceable>
 
-                        <RNBounceable
-                            onPress={() => setFinishConfirmModalVisible(false)}
-                            style={styles.keepEditingBtn}
-                        >
+                        <RNBounceable onPress={() => setFinishConfirmModalVisible(false)} style={styles.keepEditingBtn}>
                             <Text style={styles.keepEditingText}>Keep Working</Text>
                         </RNBounceable>
                     </Pressable>

@@ -1,7 +1,7 @@
 import React from "react";
 import { Modal, View, Text, StyleSheet, Pressable, FlatList, Dimensions } from "react-native";
 import RNBounceable from "@freakycoder/react-native-bounceable";
-import { Ionicons } from "@expo/vector-icons";
+import { Feather } from "@expo/vector-icons"; // switched to Feather for a sleeker icon
 import ParticipantRow from "./ParticipantRow";
 
 const { height: screenHeight } = Dimensions.get("window");
@@ -24,7 +24,7 @@ const GroupMenu = ({ visible, onClose, participants, viewing, onInvite, onSelect
                     <Text style={styles.menuTitle}>Workout Group</Text>
 
                     <RNBounceable style={styles.menuItem} onPress={onInvite} activeScale={0.98}>
-                        <Ionicons name="person-add-outline" size={18} color="#333" />
+                        <Feather name="user-plus" size={18} color="#333" />
                         <Text style={styles.menuItemText}>Invite people</Text>
                     </RNBounceable>
 

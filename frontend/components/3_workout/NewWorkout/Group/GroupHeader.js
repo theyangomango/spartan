@@ -25,12 +25,12 @@ const GroupHeader = ({
             <View style={styles.rest_timer_ctnr}>
                 <RNBounceable style={styles.iconWrapper} onPress={onAddTime}>
                     <MaterialCommunityIcons name="timer-outline" size={scaledSize(24)} color="#0499FE" />
+                    {countdown > 0 && (
+                        <Text style={styles.countdownText}>
+                            {Math.floor(countdown / 60)}:{String(countdown % 60).padStart(2, "0")}
+                        </Text>
+                    )}
                 </RNBounceable>
-                {countdown > 0 && (
-                    <Text style={styles.countdownText}>
-                        {Math.floor(countdown / 60)}:{String(countdown % 60).padStart(2, "0")}
-                    </Text>
-                )}
             </View>
 
             <View style={styles.timer_text_ctnr} pointerEvents="none">
@@ -72,14 +72,15 @@ const GroupHeader = ({
 
 const styles = StyleSheet.create({
     rest_timer_ctnr: {
-        flexDirection: "row",
         alignItems: "center",
         paddingVertical: scaledSize(6),
         paddingHorizontal: scaledSize(10),
         borderRadius: scaledSize(12),
         backgroundColor: "#E1F0FF",
     },
-    iconWrapper: {},
+    iconWrapper: {
+        flexDirection: "row",
+    },
     countdownText: {
         fontSize: scaledSize(16),
         color: "#0499FE",

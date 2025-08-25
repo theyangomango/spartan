@@ -39,8 +39,25 @@ import CreateTribeModal from "../components/2_Competition/CreateTribeModal";
 import JoinTribeModal from "../components/2_Competition/JoinTribeModal";
 import ManageTribeModal from "../components/2_Competition/ManageTribeModal";
 import TribeComparisonModal from "../components/2_Competition/TribeComparisonModal";
+import RNBounceable from "@freakycoder/react-native-bounceable";
 
 const { width, height } = Dimensions.get("window");
+
+// -------- scaler (replaces getDynamicStyles) --------
+const BASE = { width: 390, height: 844 }; // iPhone 13 baseline
+const scaleSize = (value, axis = "min") => {
+    const wRatio = width / BASE.width;
+    const hRatio = height / BASE.height;
+    const ratio = axis === "w" ? wRatio : axis === "h" ? hRatio : Math.min(wRatio, hRatio);
+    return Math.round(value * ratio);
+};
+// central place for UI sizes
+const SIZES = {
+    headerIconSize: scaleSize(20),                  // base icon size
+    chevronDelta: scaleSize(6),                     // difference for chevron icon
+    headerPaddingHorizontal: scaleSize(24, "w"),    // horizontal padding scales with width
+    headerPaddingTop: scaleSize(8, "h"),            // top padding scales with height
+};
 
 // -------- tiny persistence (no deps) --------
 const GLOBAL_KEY = "__competition_state__";
@@ -55,19 +72,6 @@ const setPersisted = (patch) => {
 let LAST_SCOPE = "Global";
 let LAST_SELECTED_TRIBE_ID = null;
 let LAST_USERLIST = null;
-
-const getDynamicStyles = () => {
-    if (width >= 430 && height >= 932) {
-        return { headerIconSize: 26.5, headerPaddingHorizontal: 30 };
-    } else if (width >= 390 && height >= 844) {
-        return { headerIconSize: 24.5, headerPaddingHorizontal: 25, headerPaddingTop: 5 };
-    } else if (width >= 375 && height >= 812) {
-        return { headerIconSize: 24, headerPaddingHorizontal: 22, headerPaddingTop: 10 };
-    } else {
-        return { headerIconSize: 22.5, headerPaddingHorizontal: 20, headerPaddingTop: 8 };
-    }
-};
-const dynamicStyles = getDynamicStyles();
 
 const genCode = (len = 6) => {
     const chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
@@ -381,27 +385,36 @@ export default function Competition({ navigation }) {
                     style={[
                         styles.header,
                         {
-                            paddingHorizontal: dynamicStyles.headerPaddingHorizontal,
-                            paddingTop: dynamicStyles.headerPaddingTop,
+                            paddingHorizontal: SIZES.headerPaddingHorizontal,
+                            paddingTop: SIZES.headerPaddingTop,
                         },
                     ]}
                 >
                     <View style={styles.headerRightContainer}>
-                        <TouchableOpacity
+                        <RNBounceable
                             onPress={() => setTribeMenuVisible(true)}
-                            style={styles.tribeButtonRow}
-                            activeOpacity={0.8}
+                            style={[styles.tribeButtonRow, styles.tribeButtonPill]}
+                            activeScale={0.96}
+                            hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                            accessibilityRole="button"
+                            accessibilityLabel="Change leaderboard scope"
                         >
+                            <Ionicons
+                                name="people"
+                                size={SIZES.headerIconSize}
+                                color="#fff"
+                                style={{ marginRight: 6, marginTop: 1 }}
+                            />
                             <Text style={styles.tribeLabel} numberOfLines={1} ellipsizeMode="tail">
                                 {scopeLabel}
                             </Text>
                             <Ionicons
-                                name="people-circle"
-                                size={getDynamicStyles().headerIconSize + 3}
-                                color={"#fff"}
-                                style={styles.tribeIcon}
+                                name="chevron-down"
+                                size={Math.max(12, SIZES.headerIconSize - SIZES.chevronDelta)}
+                                color="rgba(255,255,255,0.95)"
+                                style={{ marginLeft: 4, marginTop: 1 }}
                             />
-                        </TouchableOpacity>
+                        </RNBounceable>
                     </View>
                 </View>
             </SafeAreaView>
@@ -546,17 +559,24 @@ const styles = StyleSheet.create({
         flexDirection: "row",
         alignItems: "center",
         marginLeft: 10,
-        paddingHorizontal: 10,
-        paddingVertical: 6,
-        borderRadius: 14,
+        paddingHorizontal: 12,
+        paddingVertical: 8,
+        borderRadius: 16,
     },
+
+    tribeButtonPill: {
+        backgroundColor: "rgba(255, 255, 255, 0.16)",
+        borderWidth: 1,
+        borderColor: "rgba(255,255,255,0.25)",
+    },
+
     tribeLabel: {
         color: "#fff",
         fontFamily: "Outfit_600SemiBold",
-        fontSize: 15,
+        fontSize: 14,
         includeFontPadding: false,
         maxWidth: 160,
-        marginRight: 6,
+        marginRight: 2,
+        letterSpacing: 0.2,
     },
-    tribeIcon: { marginTop: 1 },
 });
