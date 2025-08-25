@@ -98,6 +98,7 @@ const CommentsBottomSheet = ({ isVisible, postData, commentsBottomSheetExpandFla
 
     // Handle visibility of the bottom sheet
     useEffect(() => {
+        console.log(isVisible);
         if (isVisible) {
             bottomSheetRef.current.snapToIndex(0);
         } else {

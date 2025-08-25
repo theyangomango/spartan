@@ -357,7 +357,7 @@ const styles = StyleSheet.create({
     underMealCard: {
         borderRadius: 14,
         paddingVertical: 12,
-        paddingHorizontal: 16,
+        paddingHorizontal: 22,
         marginVertical: 4,
         borderWidth: StyleSheet.hairlineWidth,
         borderColor: COLORS.hairline,
