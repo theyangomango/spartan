@@ -1,165 +1,145 @@
 import React from "react";
-import { StyleSheet, View, Text, Dimensions } from "react-native";
-import { Svg, Polygon, Line, Text as SvgText } from "react-native-svg";
+import { StyleSheet, View, Dimensions } from "react-native";
+import { Svg, Polygon, Text as SvgText, Defs, LinearGradient, Stop, Circle } from "react-native-svg";
 
-const screenWidth = Dimensions.get('window').width;
+const { width: screenWidth, height: screenHeight } = Dimensions.get("window");
+
+// Scaling (iPhone 13 baseline height = 844)
+const scale = screenHeight / 844;
+const scaledSize = (size) => Math.round(size * scale);
+
 const chartSize = screenWidth * 0.7;
-const categories = ['SHOULDERS', 'CHEST', 'ARMS', 'LEGS', 'BACK', 'ABS'];
+const categories = ["SHOULDERS", "CHEST", "ARMS", "LEGS", "BACK", "ABS"];
 const maxValue = 100;
 
-// Function to determine dynamic styles based on screen size
-const getDynamicStyles = () => {
-    if (screenWidth >= 430) { // iPhone 14 Pro Max and similar
-        return {
-            textFontSize: 17,
-            numberTextFontSize: 18.5,
-            labelRadius: chartSize / 2 + 35,
-        };
-    } else if (screenWidth >= 390) { // iPhone 13/14 and similar
-        return {
-            textFontSize: 15.5,
-            numberTextFontSize: 17,
-            labelRadius: chartSize / 2 + 32,
-        };
-    } else if (screenWidth >= 375) { // iPhone X/XS/11 Pro and similar
-        return {
-            textFontSize: 15,
-            numberTextFontSize: 16,
-            labelRadius: chartSize / 2 + 30,
-        };
-    } else { // Smaller iPhone models (like iPhone SE)
-        return {
-            textFontSize: 14,
-            numberTextFontSize: 15,
-            labelRadius: chartSize / 2 + 28,
-        };
-    }
-};
-
-const dynamicStyles = getDynamicStyles();
-
 const HexagonalStats = ({ statsHexagon }) => {
+    // only the selected user's stats
+    const data = [
+        statsHexagon.shoulders,
+        statsHexagon.chest,
+        statsHexagon.arms,
+        statsHexagon.legs,
+        statsHexagon.back,
+        statsHexagon.abs,
+    ];
+
+    // Geometry
     const radius = chartSize / 2;
     const centerX = screenWidth / 2;
-    const centerY = chartSize / 2 + 50;
+    const centerY = chartSize / 2 + scaledSize(50);
     const angle = (2 * Math.PI) / categories.length;
-    const data1 = [statsHexagon.shoulders, statsHexagon.chest, statsHexagon.arms, statsHexagon.legs, statsHexagon.back, statsHexagon.abs];
-    const data2 = [global.userData.statsHexagon.shoulders, global.userData.statsHexagon.chest, global.userData.statsHexagon.arms, global.userData.statsHexagon.legs, global.userData.statsHexagon.back, global.userData.statsHexagon.abs];
 
-    const points1 = data1
-        .map((value, index) => {
-            const x = centerX + radius * (value / maxValue) * Math.cos(angle * index - Math.PI / 2);
-            const y = centerY + radius * (value / maxValue) * Math.sin(angle * index - Math.PI / 2);
-            return `${x},${y}`;
-        })
-        .join(' ');
+    // Scaled styling
+    const labelFont = scaledSize(15);
+    const valueFont = scaledSize(16);
+    const labelRadiusOffset = scaledSize(32);
+    const valueOffset = scaledSize(15);
 
-    const points2 = data2
-        .map((value, index) => {
-            const x = centerX + radius * (value / maxValue) * Math.cos(angle * index - Math.PI / 2);
-            const y = centerY + radius * (value / maxValue) * Math.sin(angle * index - Math.PI / 2);
-            return `${x},${y}`;
-        })
-        .join(' ');
+    const ringStroke = Math.max(1, scaledSize(1));       // keep grid crisp
+    const outlineStroke = Math.max(2, scaledSize(2));    // data polygon outline
+    const dotRadius = Math.max(3, scaledSize(3));        // vertex dots
 
-    const categoryPoints = categories.map((_, index) => {
-        const x = centerX + radius * Math.cos(angle * index - Math.PI / 2);
-        const y = centerY + radius * Math.sin(angle * index - Math.PI / 2);
-        return { x, y };
-    });
-
-    const levels = 5; // Number of levels/rings
-    const levelPoints = Array.from({ length: levels }, (_, level) =>
-        categories
-            .map((_, index) => {
-                const value = (level + 1) / levels;
-                const x = centerX + radius * value * Math.cos(angle * index - Math.PI / 2);
-                const y = centerY + radius * value * Math.sin(angle * index - Math.PI / 2);
+    const levels = 5; // subtle rings
+    const ringPoints = Array.from({ length: levels }, (_, lvl) => {
+        const t = (lvl + 1) / levels;
+        return categories
+            .map((_, i) => {
+                const x = centerX + radius * t * Math.cos(angle * i - Math.PI / 2);
+                const y = centerY + radius * t * Math.sin(angle * i - Math.PI / 2);
                 return `${x},${y}`;
             })
-            .join(' ')
-    );
+            .join(" ");
+    });
 
-    const labelPoints = categories.map((_, index) => {
-        const x = centerX + dynamicStyles.labelRadius * Math.cos(angle * index - Math.PI / 2);
-        const y = centerY + dynamicStyles.labelRadius * Math.sin(angle * index - Math.PI / 2);
-        return { x, y };
+    // Data polygon
+    const dataPoints = data.map((val, i) => {
+        const r = radius * (Math.max(0, Math.min(val, maxValue)) / maxValue);
+        return {
+            x: centerX + r * Math.cos(angle * i - Math.PI / 2),
+            y: centerY + r * Math.sin(angle * i - Math.PI / 2),
+            val,
+            i,
+        };
+    });
+    const polygonPoints = dataPoints.map((p) => `${p.x},${p.y}`).join(" ");
+
+    // Label positions (outside)
+    const labelPts = categories.map((_, i) => {
+        const x = centerX + (radius + labelRadiusOffset) * Math.cos(angle * i - Math.PI / 2);
+        const y = centerY + (radius + labelRadiusOffset) * Math.sin(angle * i - Math.PI / 2);
+        return { x, y, i };
     });
 
     return (
-        <View style={styles.main_view}>
-            <Svg width={screenWidth} height={chartSize + 100} style={styles.svg}>
-                {/* Draw rings */}
-                {levelPoints.map((points, index) => (
-                    <Polygon key={index} points={points} style={styles.ring} />
+        <View style={styles.wrap}>
+            <Svg width={screenWidth} height={chartSize + scaledSize(110)} style={styles.svg}>
+                <Defs>
+                    <LinearGradient id="radarFill" x1="0" y1="0" x2="1" y2="1">
+                        <Stop offset="0" stopColor="#2D9EFF" stopOpacity="0.28" />
+                        <Stop offset="1" stopColor="#68B6FF" stopOpacity="0.18" />
+                    </LinearGradient>
+                </Defs>
+
+                {/* Concentric rings (no cross lines) */}
+                {ringPoints.map((pts, idx) => (
+                    <Polygon
+                        key={`ring-${idx}`}
+                        points={pts}
+                        stroke={idx === levels - 1 ? "#e0ebf6ff" : "#edf3f9ff"}
+                        strokeWidth={2}
+                        fill="none"
+                    />
                 ))}
-                {categoryPoints.map((point, index) => (
-                    <React.Fragment key={index}>
-                        <Line x1={centerX} y1={centerY} x2={point.x} y2={point.y} style={styles.line} />
-                    </React.Fragment>
+
+                {/* Data polygon */}
+                <Polygon
+                    points={polygonPoints}
+                    fill="url(#radarFill)"
+                    stroke="#2D9EFF"
+                    strokeWidth={outlineStroke}
+                />
+
+                {/* Vertex dots */}
+                {dataPoints.map((p, idx) => (
+                    <Circle key={`dot-${idx}`} cx={p.x} cy={p.y} r={dotRadius} fill="#2D9EFF" />
                 ))}
-                {labelPoints.map((point, index) => (
-                    <React.Fragment key={index}>
+
+                {/* Labels + values (outside the shape) */}
+                {labelPts.map(({ x, y, i }) => (
+                    <React.Fragment key={`lbl-${i}`}>
                         <SvgText
-                            x={point.x}
-                            y={index === 0 ? point.y - 5 : point.y - 10}
+                            x={x}
+                            y={y - scaledSize(4)}
                             textAnchor="middle"
                             alignmentBaseline="middle"
-                            style={[styles.text, { fontSize: dynamicStyles.textFontSize }]}
+                            fill="#475569"
+                            fontFamily="Poppins_700Bold"
+                            fontSize={labelFont}
                         >
-                            {categories[index]}
+                            {categories[i]}
                         </SvgText>
+
                         <SvgText
-                            x={point.x}
-                            y={index === 0 ? point.y + 15 : point.y + 10}
+                            x={x}
+                            y={y + valueOffset}
                             textAnchor="middle"
                             alignmentBaseline="middle"
-                            style={[styles.numberText, { fontSize: dynamicStyles.numberTextFontSize }]}
+                            fill="#2D9EFF"
+                            fontFamily="Outfit_700Bold"
+                            fontSize={valueFont}
                         >
-                            {data1[index]}
+                            {data[i]}
                         </SvgText>
                     </React.Fragment>
                 ))}
-                <Polygon points={points2} style={styles.polygon2} />
-                <Polygon points={points1} style={styles.polygon1} />
             </Svg>
         </View>
     );
 };
 
 const styles = StyleSheet.create({
-    main_view: {
-        flex: 1,
-    },
-    svg: {
-        alignSelf: 'center',
-    },
-    ring: {
-        fill: 'none',
-        stroke: '#eaeaea',
-        strokeWidth: 1,
-    },
-    polygon1: {
-        fill: 'rgba(89, 168, 255, 0.55)',
-        strokeWidth: 2.5,
-    },
-    polygon2: {
-        fill: '#d3d3d3',
-        opacity: 0.8,
-        strokeWidth: 2.5,
-    },
-    line: {
-        stroke: '#eaeaea',
-        strokeWidth: 1,
-    },
-    text: {
-        fill: '#999',
-        fontFamily: 'Poppins_700Bold',
-    },
-    numberText: {
-        fill: '#4FAEFF',
-        fontFamily: 'Poppins_700Bold',
-    },
+    wrap: { flex: 1 },
+    svg: { alignSelf: "center" },
 });
 
 export default HexagonalStats;

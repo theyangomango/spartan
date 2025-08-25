@@ -8,17 +8,31 @@ import {
     TextInput,
     Keyboard,
     Platform,
-    ActivityIndicator,
-    ScrollView,
     KeyboardAvoidingView,
+    SafeAreaView,
+    Dimensions,
+    Text,
 } from "react-native";
+import { LinearGradient } from "expo-linear-gradient";
 import { BlurView } from "expo-blur";
 import FastImage from "react-native-fast-image";
-import { Send2 } from "iconsax-react-native";
+import Svg, { Path } from "react-native-svg";
 
 import sendMessage from "../../../../backend/messages/sendMessage";
-import StoryHeaderButtons from "./StoryHeaderButtons";
-import Svg, { Path } from "react-native-svg";
+import { likeStory } from "../../../../backend/stories/likeStory";
+import { unlikeStory } from "../../../../backend/stories/unlikeStory";
+import RNBounceable from "@freakycoder/react-native-bounceable";
+
+const { width: W } = Dimensions.get("window");
+
+const COLORS = {
+    accent: "#2D9EFF",
+    white: "#FFFFFF",
+    text: "#0F172A",
+    subtext: "#9AA6B2",
+    hairline: "rgba(2,6,23,0.08)",
+    red: "#ff7465ff",
+};
 
 export default function FullStoryModal({
     isVisible,
@@ -26,250 +40,301 @@ export default function FullStoryModal({
     currentIndex,
     storiesData,
     userList,
-    handleStoryNavigation,   // <- comes from Stories.jsx
+    handleStoryNavigation,
     navigation,
 }) {
     const thisUser = global.userData;
     const [replyText, setReplyText] = useState("");
-
-    /** image‑loading state */
     const [isReady, setIsReady] = useState(false);
-    const pendingDirection = useRef(null); // -1 or +1 while waiting
+    const [isLiked, setIsLiked] = useState(false);
+    const pendingDirection = useRef(null);
 
-    /** hide / show status‑bar */
     useEffect(() => {
         StatusBar.setHidden(isVisible, "fade");
     }, [isVisible]);
 
-    /** reset loading flag every time index changes */
     useEffect(() => {
-        if (isVisible) setIsReady(false);
+        if (!isVisible || currentIndex === null) return;
+        setIsReady(false);
+        const s = storiesData[currentIndex];
+        setIsLiked(s?.likedUsers?.includes(thisUser.uid));
     }, [currentIndex, isVisible]);
 
-    /** pre‑load neighbours once the current image is ready */
     useEffect(() => {
-        if (!isReady) return;
-
-        const toPreload = [];
+        if (!isReady || currentIndex === null) return;
         const prev = storiesData[currentIndex - 1];
         const next = storiesData[currentIndex + 1];
-
-        if (prev) toPreload.push({ uri: prev.image });
-        if (next) toPreload.push({ uri: next.image });
-
-        if (toPreload.length) FastImage.preload(toPreload);
+        const pre = [];
+        if (prev) pre.push({ uri: prev.image });
+        if (next) pre.push({ uri: next.image });
+        if (pre.length) FastImage.preload(pre);
     }, [isReady, currentIndex, storiesData]);
 
-    /** guard */
     if (currentIndex === null) return null;
-    const currentStory = storiesData[currentIndex];
+    const story = storiesData[currentIndex];
 
-    /* ------------ reply handler ------------ */
-    const handleSendReply = () => {
-        const trimmed = replyText.trim();
-        if (!trimmed) return;
+    // per-user segmented progress (hide when only one)
+    const prefix = [];
+    { let s = 0; for (const u of userList) { s += (u?.stories?.length || 0); prefix.push(s); } }
+    const uIdx = prefix.findIndex((p) => currentIndex < p);
+    const total = userList[uIdx]?.stories?.length || 1;
+    const start = prefix[uIdx] - total;
+    const rel = currentIndex - start; // 0-based
 
-        const target = thisUser.messages.find(
-            (m) =>
-                Array.isArray(m.otherUsers) &&
-                m.otherUsers.length === 1 &&
-                m.otherUsers[0].uid === currentStory.uid
-        );
-        if (target) {
-            sendMessage(
-                thisUser.uid,
-                thisUser.handle,
-                target.mid,
-                `Replied to your story: ${trimmed}`
-            );
-        }
-
-        setReplyText("");
-        Keyboard.dismiss();
+    const tryNavigate = (dir) => {
+        if (isReady) handleStoryNavigation(dir);
+        else pendingDirection.current = dir;
     };
 
-    /* ------------ navigation with waiting logic ------------ */
-    const tryNavigate = (direction) => {
-        if (isReady) {
-            handleStoryNavigation(direction);
-        } else {
-            pendingDirection.current = direction;  // remember the request
-        }
-    };
-
-    /** when current image finishes loading */
     const handleImageLoaded = () => {
         setIsReady(true);
-
-        // if user already tapped, execute queued navigation now
         if (pendingDirection.current !== null) {
             const dir = pendingDirection.current;
             pendingDirection.current = null;
-            // allow React state to settle, then navigate
             requestAnimationFrame(() => handleStoryNavigation(dir));
         }
     };
 
-    /* ======================= render ======================= */
-    return (
-        <Modal
-            animationType="fade"
-            transparent={false}
-            visible={isVisible}
-            onRequestClose={onClose}
-        >
+    const handleSendReply = () => {
+        const trimmed = replyText.trim();
+        if (!trimmed) return;
+        const target = thisUser.messages.find(
+            (m) =>
+                Array.isArray(m.otherUsers) &&
+                m.otherUsers.length === 1 &&
+                m.otherUsers[0].uid === story.uid
+        );
+        if (target) {
+            sendMessage(thisUser.uid, thisUser.handle, target.mid, `Replied to your story: ${trimmed}`);
+        }
+        setReplyText("");
+        Keyboard.dismiss();
+    };
 
-            {/* story image */}
-            <View style={styles.imageWrapper}>
+    const toggleLike = () => {
+        if (isLiked) {
+            unlikeStory(story.sid, thisUser.uid);
+            story.likedUsers = (story.likedUsers || []).filter((u) => u !== thisUser.uid);
+        } else {
+            likeStory(story.sid, thisUser.uid);
+            story.likedUsers = [...(story.likedUsers || []), thisUser.uid];
+        }
+        setIsLiked(!isLiked);
+    };
+
+    return (
+        <Modal animationType="fade" transparent={false} visible={isVisible} onRequestClose={onClose}>
+            <View style={styles.root}>
+                {/* media */}
                 <FastImage
-                    key={currentStory.sid}           // force remount on story change
-                    source={{ uri: currentStory.image, priority: FastImage.priority.high }}
-                    style={styles.fullScreenImage}
+                    key={story.sid}
+                    source={{ uri: story.image, priority: FastImage.priority.high }}
+                    style={StyleSheet.absoluteFill}
                     resizeMode={FastImage.resizeMode.cover}
-                    onLoadEnd={handleImageLoaded}   // ← sets isReady = true
+                    onLoadEnd={handleImageLoaded}
                 />
 
-                {/* {!isReady && (
-                    <ActivityIndicator
-                        size="large"
-                        color="#fff"
-                        style={StyleSheet.absoluteFill}
-                    />
-                )} */}
+                {/* readability gradients */}
+                <LinearGradient pointerEvents="none" colors={["rgba(0,0,0,0.28)", "transparent"]} style={styles.gradTop} />
+                <LinearGradient pointerEvents="none" colors={["transparent", "rgba(0,0,0,0.22)"]} style={styles.gradBottom} />
 
-                {/* {!isReady && (
-                    <BlurHash
-                        blurhash={currentStory.blurhash}
-                        style={styles.fullScreenImage}
-                    />
-                )} */}
-            </View>
+                {/* tap zones */}
+                <Pressable disabled={!isReady} onPress={() => tryNavigate(-1)} style={styles.zoneLeft} />
+                <Pressable disabled={!isReady} onPress={onClose} style={styles.zoneCenter} />
+                <Pressable disabled={!isReady} onPress={() => tryNavigate(1)} style={styles.zoneRight} />
 
-            {/* navigation zones (disabled while loading) */}
-            <Pressable
-                onPress={() => tryNavigate(-1)}
-                style={styles.screenLeft}
-                disabled={!isReady}
-            />
-            <Pressable
-                onPress={onClose}
-                style={styles.screenCenter}
-                disabled={!isReady}
-            />
-            <Pressable
-                onPress={() => tryNavigate(1)}
-                style={styles.screenRight}
-                disabled={!isReady}
-            />
+                {/* header (ABSOLUTE so y-level never moves) */}
+                <SafeAreaView pointerEvents="box-none" style={StyleSheet.absoluteFill}>
+                    {/* segments: absolute ABOVE header, so it never shifts row */}
+                    {total > 1 && (
+                        <View style={styles.segmentsAbs} pointerEvents="none">
+                            {Array.from({ length: total }).map((_, i) => (
+                                <View key={i} style={styles.segmentTrack}>
+                                    <View
+                                        style={[
+                                            styles.segmentFill,
+                                            { width: `${i < rel ? 100 : i === rel ? 100 : 0}%` },
+                                        ]}
+                                    />
+                                </View>
+                            ))}
+                        </View>
+                    )}
 
-            {/* blurred header */}
-            <BlurView intensity={10} style={styles.blurview} pointerEvents="box-none" />
-
-            {/* header buttons */}
-            <StoryHeaderButtons
-                stories={storiesData}
-                userList={userList}
-                index={currentIndex}
-                toViewProfile={(pi) => {
-                    onClose();
-                    navigation.navigate("ViewProfile", { user: storiesData[pi] });
-                }}
-            />
-
-            {/* reply bar */}
-            {storiesData[currentIndex].uid !== thisUser.uid && (
-                <>
-                    <KeyboardAvoidingView
-                        style={styles.fullScreenContainer}
-                        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-                        pointerEvents="box-none">
-                        <View style={styles.replyContainer}>
-                            <TextInput
-                                style={styles.replyInput}
-                                placeholder="Send a reply..."
-                                placeholderTextColor="#999"
-                                value={replyText}
-                                onChangeText={setReplyText}
-                                returnKeyType="send"
-                                onSubmitEditing={handleSendReply}
+                    {/* header row itself */}
+                    <View style={styles.headerAbs}>
+                        {/* left: pfp + handle chip (tap to profile) */}
+                        <Pressable
+                            onPress={() => { onClose(); navigation.navigate("ViewProfile", { user: story }); }}
+                            style={styles.leftChip}
+                        >
+                            <FastImage
+                                source={{ uri: story.pfpUri || story.pfp || story.image, priority: FastImage.priority.normal }}
+                                style={styles.pfp}
                             />
-                            <Pressable onPress={handleSendReply} style={styles.sendIcon}>
-                                {/* <Send2 size={27} color={replyText.trim() ? "white" : "gray"} /> */}
-                                <Svg xmlns="http://www.w3.org/2000/svg" width="29" height="29" viewBox="0 0 24 24" fill="none">
-                                    <Path d="m7.4 6.32 8.49-2.83c3.81-1.27 5.88.81 4.62 4.62l-2.83 8.49c-1.9 5.71-5.02 5.71-6.92 0l-.84-2.52-2.52-.84c-5.71-1.9-5.71-5.01 0-6.92ZM10.11 13.65l3.58-3.59" stroke={replyText.trim() ? "white" : "gray"} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"></Path>
-                                </Svg>
+                            <Text numberOfLines={1} style={styles.handle}>{story.handle}</Text>
+                        </Pressable>
+
+                        {/* right: wider translucent heart + close pill */}
+                        <View style={styles.headerRight}>
+                            <RNBounceable onPress={toggleLike} style={styles.likePill}>
+                                {isLiked ? <HeartFilled /> : <HeartOutline />}
+                            </RNBounceable>
+                            <Pressable onPress={onClose} style={styles.closePill}>
+                                <CloseIcon />
                             </Pressable>
                         </View>
-                    </KeyboardAvoidingView>
-                    <View style={styles.bottomBuffer}></View>
-                </>
-            )}
+                    </View>
+                </SafeAreaView>
+
+                {/* reply bar (sleeker: font, icon size, height slightly reduced) */}
+                {story.uid !== thisUser.uid && (
+                    <>
+                        <KeyboardAvoidingView
+                            style={styles.fullScreenContainer}
+                            behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+                            pointerEvents="box-none">
+                            <View style={styles.replyContainer}>
+                                <TextInput
+                                    style={styles.replyInput}
+                                    placeholder="Send a reply..."
+                                    placeholderTextColor="#999"
+                                    value={replyText}
+                                    onChangeText={setReplyText}
+                                    returnKeyType="send"
+                                    onSubmitEditing={handleSendReply}
+                                />
+                                <Pressable onPress={handleSendReply} style={styles.sendIcon}>
+                                    <Svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none">
+                                        <Path d="m7.4 6.32 8.49-2.83c3.81-1.27 5.88.81 4.62 4.62l-2.83 8.49c-1.9 5.71-5.02 5.71-6.92 0l-.84-2.52-2.52-.84c-5.71-1.9-5.71-5.01 0-6.92ZM10.11 13.65l3.58-3.59" stroke={replyText.trim() ? "white" : "gray"} strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round"></Path>
+                                    </Svg>
+                                </Pressable>
+                            </View>
+                        </KeyboardAvoidingView>
+                        <View style={styles.bottomBuffer}></View>
+                    </>
+                )}
+            </View>
         </Modal>
     );
 }
 
-/* ---------------- styles ---------------- */
+/* ------------ icons ------------ */
+const HeartFilled = () => (
+    <Svg width={20} height={20} viewBox="0 0 24 24" fill="none">
+        <Path d="M12.62 20.81c-.34.12-.9.12-1.24 0C8.48 19.82 2 15.69 2 8.69 2 5.6 4.49 3.1 7.56 3.1c1.82 0 3.43.88 4.44 2.24a5.53 5.53 0 0 1 4.44-2.24C19.51 3.1 22 5.6 22 8.69c0 7-6.48 11.13-9.38 12.12Z" fill={COLORS.red} />
+    </Svg>
+);
+const HeartOutline = () => (
+    <Svg width={20} height={20} viewBox="0 0 24 24" fill="none">
+        <Path d="M12.62 20.81c-.34.12-.9.12-1.24 0C8.48 19.82 2 15.69 2 8.69 2 5.6 4.49 3.1 7.56 3.1c1.82 0 3.43.88 4.44 2.24a5.53 5.53 0 0 1 4.44-2.24C19.51 3.1 22 5.6 22 8.69c0 7-6.48 11.13-9.38 12.12Z" stroke={COLORS.red} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
+    </Svg>
+);
+const CloseIcon = () => (
+    <Svg width={18} height={18} viewBox="0 0 24 24" fill="none">
+        <Path d="M18 6L6 18M6 6l12 12" stroke={COLORS.text} strokeWidth="2.1" strokeLinecap="round" />
+    </Svg>
+);
+
+/* ------------ styles ------------ */
+const SEG_GAP = 4;
+
 const styles = StyleSheet.create({
-    modalContainer: { flex: 1 },
+    root: { flex: 1, backgroundColor: "#000" },
 
-    // modalContent: { flex: 1, justifyContent: "center", alignItems: "center" },
-    fullScreenImage: { width: "100%", height: "100%" },
+    gradTop: { position: "absolute", top: 0, left: 0, right: 0, height: 160 },
+    gradBottom: { position: "absolute", bottom: 0, left: 0, right: 0, height: 180 },
 
-    screenLeft: { position: "absolute", top: 100, left: 0, width: "25%", height: "100%", zIndex: 1 },
-    screenCenter: { position: "absolute", top: 100, left: "25%", width: "50%", height: "100%", zIndex: 1 },
-    screenRight: { position: "absolute", top: 100, right: 0, width: "25%", height: "100%", zIndex: 1 },
+    zoneLeft: { position: "absolute", top: 80, bottom: 0, left: 0, width: "28%" },
+    zoneCenter: { position: "absolute", top: 80, bottom: 0, left: "28%", width: "44%" },
+    zoneRight: { position: "absolute", top: 80, bottom: 0, right: 0, width: "28%" },
 
-    imageWrapper: StyleSheet.absoluteFillObject,   // full-screen, no layout impact
-    fullScreenImage: { width: "100%", height: "100%" },
-
-    container: {
-        position: 'absolute',
-        top: 0,
-        bottom: 0,
-        left: 0,
-        right: 0,
-    },
-
-    blurview: {
+    /* Segments: absolute so they never push header down */
+    segmentsAbs: {
         position: "absolute",
-        top: 0,
-        left: 0,
-        width: "100%",
-        height: 107,
-        zIndex: 1,
-        backgroundColor: "rgba(0,0,0,0.11)",
+        top: 45, left: 8, right: 8,
+        flexDirection: "row",
+        gap: SEG_GAP,
+    },
+    segmentTrack: {
+        flex: 1,
+        height: 4,
+        borderRadius: 999,
+        backgroundColor: "rgba(255,255,255,0.35)",
+        overflow: "hidden",
+    },
+    segmentFill: { height: "100%", backgroundColor: COLORS.white },
+
+    /* Header row: absolute fixed y-level */
+    headerAbs: {
+        position: "absolute",
+        top: 60, left: 12, right: 14,
+        flexDirection: "row",
+        alignItems: "center",
+        justifyContent: "space-between",
     },
 
+    /* Left chip */
+    leftChip: {
+        flexDirection: "row",
+        alignItems: "center",
+        maxWidth: W * 0.6,
+        paddingHorizontal: 10,
+        paddingVertical: 8,
+        borderRadius: 16,
+        backgroundColor: "rgba(255,255,255,0.18)",
+    },
+    pfp: { width: 32, height: 32, borderRadius: 18, backgroundColor: "#EEE" },
+    handle: { marginLeft: 8, color: "#fff", fontSize: 17, fontFamily: "Outfit_600SemiBold" },
+
+    /* Right controls */
+    headerRight: { flexDirection: "row", alignItems: "center", gap: 8 },
+
+    // OG heart vibe: wider translucent pill
+    likePill: {
+        minWidth: 60,
+        height: 38,
+        paddingHorizontal: 14,
+        borderRadius: 18,
+        backgroundColor: "rgba(0,0,0,0.40)",
+        borderWidth: 1,
+        borderColor: "rgba(255,255,255,0.22)",
+        alignItems: "center",
+        justifyContent: "center",
+    },
+    // close = white chip
+    closePill: {
+        width: 36, height: 36, borderRadius: 18,
+        backgroundColor: COLORS.white,
+        borderWidth: 1, borderColor: COLORS.hairline,
+        alignItems: "center", justifyContent: "center",
+    },
+
+    /* Bottom reply bar (slightly sleeker) */
     fullScreenContainer: {
         flex: 1,
         zIndex: 2,
         justifyContent: 'flex-end'
     },
-
     replyContainer: {
         flexDirection: "row",
         justifyContent: 'space-between',
         alignItems: "center",
-        backgroundColor: "rgba(0,0,0,0.45)",
-        borderRadius: 25,
+        backgroundColor: "rgba(0,0,0,0.42)",
+        borderRadius: 22,
         paddingLeft: 15,
-        paddingRight: 21,
+        paddingRight: 18,
         marginBottom: 8,
-        marginHorizontal: 12,   // was left/right: 15 when absolute
+        marginHorizontal: 12,
     },
-
     replyInput: {
         flex: 1,
         color: "#eee",
-        fontFamily: "Mulish_700Bold",
-        fontSize: 16,
-        paddingVertical: 18,
+        fontFamily: "Outfit_600SemiBold",
+        fontSize: 15,
+        paddingVertical: 16,
         paddingHorizontal: 12,
     },
-
-    bottomBuffer: {
-        height: 32,
-    },
-
-    sendIcon: { paddingLeft: 10, paddingVertical: 10 },
+    bottomBuffer: { height: 32 },
+    sendIcon: { paddingLeft: 8, paddingVertical: 8 },
 });

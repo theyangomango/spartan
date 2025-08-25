@@ -1,22 +1,17 @@
+import React, { useEffect, useState } from "react";
 import { Pressable, StyleSheet, Text, View } from "react-native";
-import { Heart } from "iconsax-react-native";
-import { useEffect, useState } from "react";
 import FastImage from "react-native-fast-image";
-import getStoriesPrefixSums from "../../../helper/getStoriesPrefixSums";
-import { likeStory } from "./../../../../backend/stories/likeStory";
-import { unlikeStory } from "./../../../../backend/stories/unlikeStory";
-import scaleSize from "../../../helper/scaleSize";
 import RNBounceable from "@freakycoder/react-native-bounceable";
 import Svg, { Path } from "react-native-svg";
-import { usePfp } from "../../../helper/usePFPs";
+import { likeStory } from "../../../../backend/stories/likeStory";
+import { unlikeStory } from "../../../../backend/stories/unlikeStory";
 
-export default function StoryHeaderButtons({
-    stories,
-    userList,
-    index,
-    toViewProfile,
-}) {
-    /* ---------- like-state ---------- */
+const COLORS = {
+    red: "#FF3B30",
+    hairline: "rgba(255,255,255,0.22)",
+};
+
+export default function StoryHeaderButtons({ stories, index, toViewProfile }) {
     const [isLiked, setIsLiked] = useState(
         stories[index].likedUsers.includes(global.userData.uid)
     );
@@ -25,140 +20,70 @@ export default function StoryHeaderButtons({
         setIsLiked(stories[index].likedUsers.includes(global.userData.uid));
     }, [index]);
 
-    function handlePressLikeButton() {
+    const toggleLike = () => {
+        const s = stories[index];
         if (isLiked) {
-            unlikeStory(stories[index].sid, global.userData.uid);
-            stories[index].likedUsers = stories[index].likedUsers.filter(
-                (uid) => uid !== global.userData.uid
-            );
+            unlikeStory(s.sid, global.userData.uid);
+            s.likedUsers = s.likedUsers.filter((u) => u !== global.userData.uid);
         } else {
-            likeStory(stories[index].sid, global.userData.uid);
-            stories[index].likedUsers.push(global.userData.uid);
+            likeStory(s.sid, global.userData.uid);
+            s.likedUsers.push(global.userData.uid);
         }
         setIsLiked(!isLiked);
-    }
+    };
 
-    /* ---------- dash math ---------- */
-    const prefixSum = getStoriesPrefixSums(userList);
-    const userIndex = prefixSum.findIndex((p) => index < p);
-    const numOfStories = userList[userIndex].stories.length;
-    const storyStartIndex = prefixSum[userIndex] - numOfStories;
-    const relativeStoryIndex = index - storyStartIndex;
-    const showDashes = numOfStories > 1;
+    const s = stories[index];
 
-    /* ---------- PFP (only change) ---------- */
-    const story = stories[index];
-    const pfpUri = usePfp(story.uid, story.pfpVersion ?? 0);
-
-    /* ---------- render ---------- */
     return (
-        <View style={styles.mainContainer}>
-            {/* DASH STRIP (top line) */}
-            <View style={styles.dashContainer}>
-                {showDashes &&
-                    Array.from({ length: numOfStories }).map((_, i) => (
-                        <View
-                            key={i}
-                            style={[
-                                styles.dash,
-                                i === relativeStoryIndex ? styles.activeDash : styles.inactiveDash,
-                                {
-                                    flex: 1,
-                                    marginHorizontal: numOfStories > 10 ? scaleSize(1) : scaleSize(2),
-                                },
-                            ]}
-                        />
-                    ))}
-            </View>
+        <View style={styles.row}>
+            <Pressable onPress={() => toViewProfile(index)} style={styles.leftChip}>
+                <FastImage source={{ uri: s.pfpUri || s.pfp || s.image }} style={styles.pfp} />
+                <Text numberOfLines={1} style={styles.handle}>{s.handle}</Text>
+            </Pressable>
 
-            {/* INFO ROW (second line) */}
-            <View style={styles.infoRow}>
-                {/* LEFT: profile pressable */}
-                <Pressable onPress={() => toViewProfile(index)} style={styles.left}>
-                    {pfpUri ? (
-                        <FastImage
-                            key={stories[index].sid}
-                            source={{
-                                uri: pfpUri,
-                                priority: FastImage.priority.normal,
-                                cache: FastImage.cacheControl.immutable,
-                            }}
-                            style={styles.pfp}
-                            resizeMode={FastImage.resizeMode.cover}
-                        />
-                    ) : (
-                        <View style={[styles.pfp, { backgroundColor: '#EEE' }]} />
-                    )}
-                    <Text style={styles.handleText}>{stories[index].handle}</Text>
-                </Pressable>
-
-                {/* RIGHT: like button (omit if user’s own story) */}
-                {stories[index].uid !== global.userData.uid && (
-                    <RNBounceable onPress={handlePressLikeButton} style={styles.likeBtn}>
-                        {isLiked ? (
-                            <Heart size={scaleSize(22)} color="#FF8A65" variant="Bold" />
-                        ) : (
-                            <Svg xmlns="http://www.w3.org/2000/svg" width={22} height={22} viewBox="0 0 24 24" fill="none">
-                                <Path d="M12.62 20.81c-.34.12-.9.12-1.24 0C8.48 19.82 2 15.69 2 8.69 2 5.6 4.49 3.1 7.56 3.1c1.82 0 3.43.88 4.44 2.24a5.53 5.53 0 0 1 4.44-2.24C19.51 3.1 22 5.6 22 8.69c0 7-6.48 11.13-9.38 12.12Z" stroke="#FF8A65" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round"></Path>
-                            </Svg>
-                        )}
-                    </RNBounceable>
-                )}
-            </View>
+            {s.uid !== global.userData.uid && (
+                <RNBounceable onPress={toggleLike} style={styles.likePill}>
+                    {isLiked ? <HeartFilled /> : <HeartOutline />}
+                </RNBounceable>
+            )}
         </View>
     );
 }
 
-/* ---------------- styles ---------------- */
+const HeartFilled = () => (
+    <Svg width={20} height={20} viewBox="0 0 24 24" fill="none">
+        <Path d="M12.62 20.81c-.34.12-.9.12-1.24 0C8.48 19.82 2 15.69 2 8.69 2 5.6 4.49 3.1 7.56 3.1c1.82 0 3.43.88 4.44 2.24a5.53 5.53 0 0 1 4.44-2.24C19.51 3.1 22 5.6 22 8.69c0 7-6.48 11.13-9.38 12.12Z" fill={COLORS.red} />
+    </Svg>
+);
+const HeartOutline = () => (
+    <Svg width={20} height={20} viewBox="0 0 24 24" fill="none">
+        <Path d="M12.62 20.81c-.34.12-.9.12-1.24 0C8.48 19.82 2 15.69 2 8.69 2 5.6 4.49 3.1 7.56 3.1c1.82 0 3.43.88 4.44 2.24a5.53 5.53 0 0 1 4.44-2.24C19.51 3.1 22 5.6 22 8.69c0 7-6.48 11.13-9.38 12.12Z" stroke={COLORS.red} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
+    </Svg>
+);
+
 const styles = StyleSheet.create({
-    mainContainer: {
-        position: "absolute",
-        top: scaleSize(38),
-        width: "100%",
-        paddingHorizontal: scaleSize(20),
-        zIndex: 999,
-    },
-    dashContainer: {
+    row: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", marginTop },
+    leftChip: {
         flexDirection: "row",
         alignItems: "center",
-        width: "100%",
-        marginTop: scaleSize(7),
-        marginBottom: scaleSize(13),
+        paddingHorizontal: 10,
+        paddingVertical: 8,
+        borderRadius: 16,
+        backgroundColor: "rgba(255,255,255,0.18)",
     },
-    dash: {
-        height: scaleSize(3.5),
-        borderRadius: scaleSize(90),
-    },
-    activeDash: { backgroundColor: "#5bb2ff" },
-    inactiveDash: { backgroundColor: "#ececec" },
+    pfp: { width: 32, height: 32, borderRadius: 18, backgroundColor: "#EEE" },
+    handle: { marginLeft: 8, color: "#fff", fontSize: 17, fontFamily: "Outfit_600SemiBold" },
 
-    /* ---------- info row ---------- */
-    infoRow: {
-        flexDirection: "row",
+    // OG heart vibe: wider translucent pill
+    likePill: {
+        minWidth: 56,
+        height: 36,
+        paddingHorizontal: 14,
+        borderRadius: 18,
+        backgroundColor: "rgba(0,0,0,0.40)",
+        borderWidth: 1,
+        borderColor: COLORS.hairline,
         alignItems: "center",
-        justifyContent: "space-between",
-        width: "100%",
-    },
-
-    /* left block */
-    left: { flexDirection: "row", alignItems: "center" },
-    pfp: {
-        width: scaleSize(38),
-        aspectRatio: 1,
-        borderRadius: scaleSize(22),
-    },
-    handleText: {
-        color: "#fff",
-        paddingHorizontal: scaleSize(8),
-        fontSize: scaleSize(19),
-        fontFamily: "Outfit_600SemiBold",
-    },
-
-    /* right block */
-    likeBtn: {
-        paddingVertical: scaleSize(6),
-        paddingHorizontal: scaleSize(14),
-        borderRadius: 12,
-        backgroundColor: 'rgba(0,0,0,0.4)'
+        justifyContent: "center",
     },
 });

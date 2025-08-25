@@ -463,7 +463,7 @@ const styles = StyleSheet.create({
         backgroundColor: "#fff",
         flexDirection: "row",
         justifyContent: "center",
-        paddingTop: s(6), // small top padding in header
+        paddingTop: s(4), // small top padding in header
         alignItems: "center",
         paddingHorizontal: dynamicStyles.paddingHorizontal,
     },
