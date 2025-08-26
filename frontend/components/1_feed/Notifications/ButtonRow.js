@@ -1,102 +1,113 @@
-/**
- * Top Button Row across the Notifications Modal
- * Contains "All Activity", "Likes", "Comments", "Mensions" as filters
- */
-
+import React from "react";
 import { View, Text, StyleSheet, ScrollView } from "react-native";
 import RNBounceable from "@freakycoder/react-native-bounceable";
 import scaleSize from "../../../helper/scaleSize";
 
-export default function ButtonRow({ buttons, selectedButton, setSelectedButton, newLikes, newComments }) {
+export default function ButtonRow({
+    buttons,
+    selectedButton,
+    setSelectedButton,
+    newLikes,
+    newComments,
+}) {
     return (
-        <View style={styles.buttonRowContainer}>
+        <View style={styles.container}>
             <ScrollView
                 horizontal
                 showsHorizontalScrollIndicator={false}
-                contentContainerStyle={styles.buttonRow}
+                contentContainerStyle={styles.row}
             >
-                {buttons.map((button) => (
-                    <RNBounceable
-                        key={button}
-                        style={[
-                            styles.button,
-                            selectedButton === button && styles.selectedButton,
-                        ]}
-                        onPress={() => setSelectedButton(button)}
-                    >
-                        <Text
-                            style={[
-                                styles.buttonText,
-                                selectedButton === button && styles.selectedButtonText,
-                            ]}
+                {buttons.map((button) => {
+                    const isSelected = selectedButton === button;
+                    return (
+                        <RNBounceable
+                            key={button}
+                            style={[styles.chip, isSelected && styles.chipSelected]}
+                            onPress={() => setSelectedButton(button)}
                         >
-                            {button}
-                        </Text>
+                            <Text style={[styles.chipText, isSelected && styles.chipTextSelected]}>
+                                {button}
+                            </Text>
 
-                        {/* Badge for new 'Likes' */}
-                        {button === "Likes" && newLikes > 0 && (
-                            <View style={styles.badgeContainer}>
-                                <View style={styles.badge}>
-                                    <Text style={styles.badgeText}>{newLikes}</Text>
+                            {button === "Likes" && newLikes > 0 && (
+                                <View style={styles.badgeWrap}>
+                                    <View style={styles.badge}>
+                                        <Text style={styles.badgeText}>{newLikes}</Text>
+                                    </View>
                                 </View>
-                            </View>
-                        )}
+                            )}
 
-                        {/* Badge for new 'Comments' */}
-                        {button === "Comments" && newComments > 0 && (
-                            <View style={styles.badgeContainer}>
-                                <View style={styles.badge}>
-                                    <Text style={styles.badgeText}>{newComments}</Text>
+                            {button === "Comments" && newComments > 0 && (
+                                <View style={styles.badgeWrap}>
+                                    <View style={styles.badge}>
+                                        <Text style={styles.badgeText}>{newComments}</Text>
+                                    </View>
                                 </View>
-                            </View>
-                        )}
-                    </RNBounceable>
-                ))}
+                            )}
+                        </RNBounceable>
+                    );
+                })}
             </ScrollView>
         </View>
     );
 }
 
-// 2. Convert your dimension logic to scaleSize
 const styles = StyleSheet.create({
-    buttonRowContainer: {},
-    buttonRow: {
-        paddingTop: scaleSize(30),
-        paddingBottom: scaleSize(9),
+    container: {},
+    row: {
+        paddingTop: scaleSize(24),
+        paddingBottom: scaleSize(10),
         alignItems: "center",
-        paddingHorizontal: scaleSize(15),
+        paddingHorizontal: scaleSize(14),
     },
-    button: {
-        backgroundColor: "#fff",
-        paddingVertical: scaleSize(14),
-        paddingHorizontal: scaleSize(20),
-        borderRadius: scaleSize(20),
+
+    chip: {
+        backgroundColor: "#FFFFFF",
+        paddingVertical: scaleSize(12),
+        paddingHorizontal: scaleSize(18),
+        borderRadius: scaleSize(18),
         marginRight: scaleSize(8),
         position: "relative",
+        borderWidth: 1,
+        borderColor: "rgba(15,23,42,0.06)",
+        shadowColor: "#0F172A",
+        shadowOpacity: 0.04,
+        shadowRadius: 8,
+        shadowOffset: { width: 0, height: 4 },
+        elevation: 1,
     },
-    selectedButton: {
-        backgroundColor: "#000",
+    chipSelected: {
+        backgroundColor: "#0F172A",
+        borderColor: "rgba(255,255,255,0.12)",
+        shadowOpacity: 0.12,
+        elevation: 2,
     },
-    buttonText: {
-        color: "#000",
+    chipText: {
+        color: "#0F172A",
         fontSize: scaleSize(13),
         fontFamily: "Outfit_600SemiBold",
     },
-    selectedButtonText: {
-        color: "#fff",
+    chipTextSelected: {
+        color: "#FFFFFF",
     },
-    badgeContainer: {
+
+    badgeWrap: {
         position: "absolute",
-        alignItems: "center",
         left: 0,
         right: 0,
         top: scaleSize(-12),
+        alignItems: "center",
     },
     badge: {
         backgroundColor: "#FF387E",
-        borderRadius: scaleSize(10),
-        paddingHorizontal: scaleSize(8),
-        paddingVertical: scaleSize(5),
+        borderRadius: scaleSize(9),
+        paddingHorizontal: scaleSize(7),
+        paddingVertical: scaleSize(4),
+        shadowColor: "#FF387E",
+        shadowOffset: { width: 0, height: 1 },
+        shadowOpacity: 0.35,
+        shadowRadius: 3,
+        elevation: 3,
     },
     badgeText: {
         color: "#fff",

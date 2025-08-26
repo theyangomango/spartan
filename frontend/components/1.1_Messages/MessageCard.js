@@ -1,4 +1,5 @@
-import { View, StyleSheet, Text, Dimensions } from "react-native";
+import React from "react";
+import { View, Text, StyleSheet, Dimensions } from "react-native";
 import RNBounceable from "@freakycoder/react-native-bounceable";
 import FastImage from "react-native-fast-image";
 import getDisplayTime from "../../helper/getDisplayTime";
@@ -6,216 +7,141 @@ import { usePfp } from "../../helper/usePFPs";
 
 const { width, height } = Dimensions.get("window");
 
-// Function to determine dynamic styles based on screen size
+// Dynamic sizing
 const getDynamicStyles = () => {
-    if (width >= 430 && height >= 932) {
-        // iPhone 14 Pro Max and similar
-        return {
-            handleFontSize: 16,
-            contentFontSize: 14,
-            dateFontSize: 13,
-            profilePictureSize: 50,
-            smallProfilePictureSize: 36,
-        };
-    } else if (width >= 390 && height >= 844) {
-        // iPhone 13/14 and similar
-        return {
-            handleFontSize: 15,
-            contentFontSize: 13,
-            dateFontSize: 12,
-            profilePictureSize: 48,
-            smallProfilePictureSize: 35,
-        };
-    } else if (width >= 375 && height >= 812) {
-        // iPhone X/XS/11 Pro and similar
-        return {
-            handleFontSize: 14.5,
-            contentFontSize: 12.5,
-            dateFontSize: 11.5,
-            profilePictureSize: 46,
-            smallProfilePictureSize: 34,
-        };
-    } else {
-        // Smaller iPhone models (like iPhone SE)
-        return {
-            handleFontSize: 14,
-            contentFontSize: 12,
-            dateFontSize: 11,
-            profilePictureSize: 44,
-            smallProfilePictureSize: 33,
-        };
-    }
+  if (width >= 430 && height >= 932) {
+    return { handle: 16, content: 14, date: 13, profile: 50, small: 36, cardH: 78 };
+  } else if (width >= 390 && height >= 844) {
+    return { handle: 15, content: 13, date: 12, profile: 48, small: 35, cardH: 76 };
+  } else if (width >= 375 && height >= 812) {
+    return { handle: 14.5, content: 12.5, date: 11.5, profile: 46, small: 34, cardH: 74 };
+  } else {
+    return { handle: 14, content: 12, date: 11, profile: 44, small: 33, cardH: 72 };
+  }
 };
+const dyn = getDynamicStyles();
 
-const dynamicStyles = getDynamicStyles();
-
-/* Small helper to render a PFP with versioned, immutable caching */
+/* Versioned PFP with immutable caching */
 const Pfp = ({ uid, version = 0, style }) => {
-    const uri = usePfp(uid, version);
-    return uri ? (
-        <FastImage
-            source={{
-                uri,
-                priority: FastImage.priority.normal,
-                cache: FastImage.cacheControl.immutable,
-            }}
-            style={style}
-            resizeMode={FastImage.resizeMode.cover}
-        />
-    ) : (
-        <View style={[style, { backgroundColor: "#EEE" }]} />
-    );
+  const uri = usePfp(uid, version);
+  return uri ? (
+    <FastImage
+      source={{ uri, priority: FastImage.priority.normal, cache: FastImage.cacheControl.immutable }}
+      style={style}
+      resizeMode={FastImage.resizeMode.cover}
+    />
+  ) : (
+    <View style={[style, { backgroundColor: "#EEE" }]} />
+  );
 };
 
-export default function MessageCard({
-    usersExcludingSelf,
-    content,
-    timestamp,
-    toChat,
-    index,
-}) {
-    const handles = usersExcludingSelf.map((user) => user.handle).join(", ");
+export default function MessageCard({ usersExcludingSelf, content, timestamp, toChat, index }) {
+  const handles = usersExcludingSelf.map((user) => user.handle).join(", ");
+  const user0 = usersExcludingSelf[0];
+  const user1 = usersExcludingSelf[1];
 
-    // Resolve up to two profile images (group DM shows first two)
-    const user0 = usersExcludingSelf[0];
-    const user1 = usersExcludingSelf[1];
+  return (
+    <RNBounceable onPress={() => toChat(index, usersExcludingSelf)} style={[styles.card, { height: dyn.cardH }]}>
+      {/* left: avatars */}
+      <View style={[styles.pfpsWrap, { width: dyn.profile, height: dyn.profile }]}>
+        {usersExcludingSelf.length > 1 ? (
+          <>
+            <Pfp
+              uid={user0?.uid}
+              version={user0?.pfpVersion ?? 0}
+              style={[
+                styles.pfp,
+                styles.topLeft,
+                { width: dyn.small, height: dyn.small, borderRadius: dyn.small / 2 },
+              ]}
+            />
+            <Pfp
+              uid={user1?.uid}
+              version={user1?.pfpVersion ?? 0}
+              style={[
+                styles.pfp,
+                styles.bottomRight,
+                { width: dyn.small, height: dyn.small, borderRadius: dyn.small / 2 },
+              ]}
+            />
+          </>
+        ) : (
+          <Pfp
+            uid={user0?.uid}
+            version={user0?.pfpVersion ?? 0}
+            style={[styles.single, { width: dyn.profile, height: dyn.profile, borderRadius: dyn.profile / 2 }]}
+          />
+        )}
+      </View>
 
-    return (
-        <RNBounceable
-            onPress={() => toChat(index, usersExcludingSelf)}
-            style={styles.mainContainer}
-        >
-            <View style={styles.leftContainer}>
-                <View style={styles.profilePicturesContainer}>
-                    {usersExcludingSelf.length > 1 ? (
-                        <>
-                            <Pfp
-                                uid={user0?.uid}
-                                version={user0?.pfpVersion ?? 0}
-                                style={[
-                                    styles.profilePicture,
-                                    styles.topLeftProfilePicture,
-                                    {
-                                        width: dynamicStyles.smallProfilePictureSize,
-                                        height: dynamicStyles.smallProfilePictureSize,
-                                    },
-                                ]}
-                            />
-                            <Pfp
-                                uid={user1?.uid}
-                                version={user1?.pfpVersion ?? 0}
-                                style={[
-                                    styles.profilePicture,
-                                    styles.bottomRightProfilePicture,
-                                    {
-                                        width: dynamicStyles.smallProfilePictureSize,
-                                        height: dynamicStyles.smallProfilePictureSize,
-                                    },
-                                ]}
-                            />
-                        </>
-                    ) : (
-                        <Pfp
-                            uid={user0?.uid}
-                            version={user0?.pfpVersion ?? 0}
-                            style={[
-                                styles.singleProfilePicture,
-                                {
-                                    width: dynamicStyles.profilePictureSize,
-                                    height: dynamicStyles.profilePictureSize,
-                                },
-                            ]}
-                        />
-                    )}
-                </View>
+      {/* middle: text */}
+      <View style={styles.textCol}>
+        <Text style={[styles.handle, { fontSize: dyn.handle }]} numberOfLines={1} ellipsizeMode="tail">
+          {handles}
+        </Text>
+        <Text style={[styles.content, { fontSize: dyn.content }]} numberOfLines={1} ellipsizeMode="tail">
+          {content}
+        </Text>
+      </View>
 
-                <View style={styles.textContainer}>
-                    <Text
-                        style={[styles.handleText, { fontSize: dynamicStyles.handleFontSize }]}
-                        numberOfLines={1}
-                        ellipsizeMode="tail"
-                    >
-                        {handles}
-                    </Text>
-                    <Text
-                        style={[styles.contentText, { fontSize: dynamicStyles.contentFontSize }]}
-                        numberOfLines={1}
-                        ellipsizeMode="tail"
-                    >
-                        {content}
-                    </Text>
-                </View>
-            </View>
-
-            <View style={styles.rightContainer}>
-                <Text style={[styles.dateText, { fontSize: dynamicStyles.dateFontSize }]}>
-                    {timestamp != null && getDisplayTime(timestamp)}
-                </Text>
-            </View>
-        </RNBounceable>
-    );
+      {/* right: time */}
+      <View style={styles.timeCol}>
+        <Text style={[styles.time, { fontSize: dyn.date }]}>{timestamp != null && getDisplayTime(timestamp)}</Text>
+      </View>
+    </RNBounceable>
+  );
 }
 
 const styles = StyleSheet.create({
-    mainContainer: {
-        height: 80,
-        marginHorizontal: 15,
-        paddingHorizontal: 15,
-        borderRadius: 25,
-        flexDirection: "row",
-        justifyContent: "space-between",
-        backgroundColor: "#fff",
-        marginBottom: 8,
-    },
-    profilePicturesContainer: {
-        width: dynamicStyles.profilePictureSize,
-        height: dynamicStyles.profilePictureSize,
-        position: "relative",
-        marginRight: 12,
-    },
-    profilePicture: {
-        borderRadius: 30,
-        position: "absolute",
-        borderWidth: 2,
-        borderColor: "#fff",
-    },
-    topLeftProfilePicture: {
-        top: 0,
-        left: 0,
-    },
-    bottomRightProfilePicture: {
-        bottom: 0,
-        right: 0,
-    },
-    singleProfilePicture: {
-        borderRadius: dynamicStyles.profilePictureSize / 2,
-    },
-    leftContainer: {
-        flexDirection: "row",
-        alignItems: "center",
-        flex: 1,
-    },
-    textContainer: {
-        flexShrink: 1,
-    },
-    handleText: {
-        paddingVertical: 3,
-        fontFamily: "Outfit_500Medium",
-        letterSpacing: 0.2,
-    },
-    contentText: {
-        fontFamily: "Outfit_400Regular",
-        color: "#999",
-        marginBottom: 7,
-    },
-    rightContainer: {
-        paddingTop: 15,
-        justifyContent: "flex-start",
-        alignItems: "flex-end",
-    },
-    dateText: {
-        color: "#999",
-        fontFamily: "Outfit_400Regular",
-        letterSpacing: 0.1,
-    },
+  card: {
+    marginHorizontal: 15,
+    paddingHorizontal: 14,
+    borderRadius: 20,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    backgroundColor: "#FFFFFF",
+    marginBottom: 10,
+    borderWidth: 1,
+    borderColor: "rgba(15,23,42,0.06)",
+    shadowColor: "#0F172A",
+    shadowOpacity: 0.05,
+    shadowRadius: 10,
+    shadowOffset: { width: 0, height: 6 },
+    elevation: 2,
+  },
+
+  pfpsWrap: { position: "relative", marginRight: 12 },
+  pfp: {
+    position: "absolute",
+    borderWidth: 1,
+    borderColor: "rgba(255,255,255,0.85)",
+    backgroundColor: "#EEE",
+  },
+  topLeft: { top: 0, left: 0 },
+  bottomRight: { bottom: 0, right: 0 },
+  single: {
+    backgroundColor: "#EEE",
+    borderWidth: 1,
+    borderColor: "rgba(15,23,42,0.08)",
+  },
+
+  textCol: { flex: 1, minWidth: 0 },
+  handle: {
+    paddingBottom: 3,
+    fontFamily: "Outfit_600SemiBold",
+    color: "#0F172A",
+    letterSpacing: 0.2,
+  },
+  content: {
+    fontFamily: "Outfit_400Regular",
+    color: "#6B7280",
+  },
+
+  timeCol: { paddingLeft: 8, alignItems: "flex-end", justifyContent: "center" },
+  time: {
+    color: "#94A3B8",
+    fontFamily: "Outfit_400Regular",
+    letterSpacing: 0.1,
+  },
 });

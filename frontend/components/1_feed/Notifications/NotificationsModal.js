@@ -1,7 +1,6 @@
-import React, { useState, useMemo, useCallback, useEffect } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import { View, StyleSheet, FlatList } from "react-native";
 import { collection, query, orderBy, limit, onSnapshot } from "firebase/firestore";
-import { useFocusEffect } from "@react-navigation/native";
 import { db } from "../../../../firebase.config";
 import ButtonRow from "./ButtonRow";
 import NotificationCard from "./NotificationCard";
@@ -21,8 +20,7 @@ export default function NotificationsModal({ visible }) {
         if (!uid) return;
 
         const notifRef = collection(db, "users", uid, "notifications");
-        const notifQuery = query(notifRef, orderBy("timestamp", 'desc'), limit(PAGE_SIZE));
-
+        const notifQuery = query(notifRef, orderBy("timestamp", "desc"), limit(PAGE_SIZE));
         return onSnapshot(notifQuery, (snapshot) => {
             const docs = snapshot.docs.map((doc) => doc.data());
             setEvents(docs);
@@ -35,7 +33,6 @@ export default function NotificationsModal({ visible }) {
                 if (doc.type?.startsWith("liked")) likes++;
                 if (["comment", "replied-comment"].includes(doc.type)) comments++;
             }
-
             setNewLikes(likes);
             setNewComments(comments);
         });
@@ -70,6 +67,7 @@ export default function NotificationsModal({ visible }) {
                 renderItem={({ item }) => <MemoNotificationCard item={item} />}
                 keyExtractor={(item, index) => `${item.type}-${item.timestamp}-${index}`}
                 style={styles.flatList}
+                contentContainerStyle={styles.listContent}
                 showsVerticalScrollIndicator={false}
                 initialNumToRender={10}
                 windowSize={7}
@@ -84,11 +82,14 @@ const MemoNotificationCard = React.memo(NotificationCard);
 const styles = StyleSheet.create({
     container: {
         flex: 1,
-        backgroundColor: "#f5f6fa",
-        borderTopLeftRadius: scaleSize(25),
-        borderTopRightRadius: scaleSize(25),
+        backgroundColor: "#F7F8FC",
+        borderTopLeftRadius: scaleSize(26),
+        borderTopRightRadius: scaleSize(26),
     },
     flatList: {
         paddingHorizontal: scaleSize(12),
+    },
+    listContent: {
+        paddingBottom: scaleSize(18),
     },
 });

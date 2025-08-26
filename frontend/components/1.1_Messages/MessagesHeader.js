@@ -1,114 +1,80 @@
+// components/1.1_Messages/MessagesHeader.jsx
 import React, { useState } from "react";
-import { StyleSheet, View, Text, TouchableOpacity, Dimensions } from "react-native";
-import { FontAwesome6, FontAwesome5 } from '@expo/vector-icons';
+import { StyleSheet, View, Text, TouchableOpacity } from "react-native";
+import { FontAwesome6, FontAwesome5 } from "@expo/vector-icons";
 import RNBounceable from "@freakycoder/react-native-bounceable";
+import scaleSize from "../../helper/scaleSize";
 
-const { width, height } = Dimensions.get('window');
+const ACCENT = "#2D9EFF";
+const HAIRLINE = "rgba(15,23,42,0.08)";
 
-// Function to determine the styles based on screen size
-const getDynamicStyles = () => {
-    if (width >= 430 && height >= 932) { // iPhone 14 Pro Max and similar
-        return {
-            iconSize: 20.5,
-            buttonWidth: 120,
-            buttonHeight: 42,
-            buttonTextSize: 13.5,
-            paddingHorizontal: 35,
-            iconContainerSize: 60,
-            plusIconSize: 14,
-        };
-    } else if (width >= 390 && height >= 844) { // iPhone 13/14 and similar
-        return {
-            iconSize: 19.5,
-            buttonWidth: 113,
-            buttonHeight: 39,
-            buttonTextSize: 12.5,
-            paddingHorizontal: 30,
-            iconContainerSize: 58,
-            plusIconSize: 12.5,
-        };
-    } else if (width >= 375 && height >= 812) { // iPhone X/XS/11 Pro and similar
-        return {
-            iconSize: 18.5,
-            buttonWidth: 110,
-            buttonHeight: 38,
-            buttonTextSize: 12.5,
-            paddingHorizontal: 28,
-            iconContainerSize: 56,
-            plusIconSize: 12.5,
-        };
-    } else { // Smaller iPhone models (like iPhone SE)
-        return {
-            iconSize: 17.5,
-            buttonWidth: 105,
-            buttonHeight: 37,
-            buttonTextSize: 12,
-            paddingHorizontal: 25,
-            iconContainerSize: 54,
-            plusIconSize: 12,
-        };
-    }
-};
+export default function MessagesHeader({
+    toFeedScreen,
+    openCreateGroupChatBottomSheet,
+    setScope,
+}) {
+    const [selectedButton, setSelectedButton] = useState("All");
 
-const dynamicStyles = getDynamicStyles();
-
-export default function MessagesHeader({ toFeedScreen, openCreateGroupChatBottomSheet, setScope }) {
-    const [selectedButton, setSelectedButton] = useState('All');
-
-    const handleButtonPress = (button) => {
-        setSelectedButton(button);
-        setScope(button);
+    const onPressTab = (tab) => {
+        setSelectedButton(tab);
+        setScope(tab);
     };
 
+    const Chip = ({ label, active, onPress }) => (
+        <RNBounceable
+            onPress={onPress}
+            style={[
+                styles.chip,
+                active && styles.chipActive,
+                { width: scaleSize(110), height: scaleSize(38) },
+            ]}
+        >
+            <Text style={[styles.chipText, active && styles.chipTextActive]}>
+                {label}
+            </Text>
+        </RNBounceable>
+    );
+
     return (
-        <View style={styles.mainContainer}>
+        <View style={styles.root}>
             <View style={styles.row}>
-                <TouchableOpacity activeOpacity={0.5} onPress={toFeedScreen} style={styles.arrowIconContainer}>
-                    <FontAwesome6 name='chevron-left' size={dynamicStyles.iconSize} color="#2D9EFF" />
+                {/* Back */}
+                <TouchableOpacity
+                    activeOpacity={0.6}
+                    onPress={toFeedScreen}
+                    style={[styles.iconCircle, styles.leftIcon]}
+                >
+                    <FontAwesome6 name="chevron-left" size={scaleSize(16)} color={ACCENT} />
                 </TouchableOpacity>
-                <View style={styles.groupIconContainer}>
-                    <TouchableOpacity activeOpacity={0.5} onPress={openCreateGroupChatBottomSheet}>
-                        <FontAwesome5 name='users' size={dynamicStyles.iconSize} color="#2D9EFF" />
+
+                {/* Group + plus */}
+                <View style={[styles.iconCircle, styles.rightIcon]}>
+                    <TouchableOpacity
+                        activeOpacity={0.6}
+                        onPress={openCreateGroupChatBottomSheet}
+                        style={styles.centerIconHit}
+                    >
+                        <FontAwesome5 name="users" size={scaleSize(16)} color={ACCENT} />
                     </TouchableOpacity>
+                    <View style={styles.plusBubble}>
+                        <FontAwesome5 name="plus" size={scaleSize(9)} color={ACCENT} />
+                    </View>
                 </View>
-                <View style={styles.plusIconContainer}>
-                    <FontAwesome5 name='plus' size={dynamicStyles.plusIconSize} color="#2D9EFF" />
-                </View>
-                <View style={styles.overlay}>
-                    <RNBounceable
-                        style={[
-                            styles.buttonContainer,
-                            styles.leftButtonContainer,
-                            { 
-                                backgroundColor: selectedButton === 'All' ? '#2D9EFF' : '#fff',
-                                width: dynamicStyles.buttonWidth,
-                                height: dynamicStyles.buttonHeight,
-                            }
-                        ]}
-                        onPress={() => handleButtonPress('All')}
-                    >
-                        <Text style={[styles.buttonText, { 
-                            color: selectedButton === 'All' ? '#fff' : '#888',
-                            fontSize: dynamicStyles.buttonTextSize
-                        }]}>All</Text>
-                    </RNBounceable>
-                    <RNBounceable
-                        style={[
-                            styles.buttonContainer,
-                            styles.rightButtonContainer,
-                            { 
-                                backgroundColor: selectedButton === 'Group' ? '#2D9EFF' : '#fff',
-                                width: dynamicStyles.buttonWidth,
-                                height: dynamicStyles.buttonHeight,
-                            }
-                        ]}
-                        onPress={() => handleButtonPress('Group')}
-                    >
-                        <Text style={[styles.buttonText, { 
-                            color: selectedButton === 'Group' ? '#fff' : '#888',
-                            fontSize: dynamicStyles.buttonTextSize
-                        }]}>Group</Text>
-                    </RNBounceable>
+
+                {/* Segmented control */}
+                <View style={styles.segmentWrap}>
+                    <View style={styles.segmentBg}>
+                        <Chip
+                            label="All"
+                            active={selectedButton === "All"}
+                            onPress={() => onPressTab("All")}
+                        />
+                        <Chip
+                            label="Group"
+                            active={selectedButton === "Group"}
+                            onPress={() => onPressTab("Group")}
+                        />
+                    </View>
                 </View>
             </View>
         </View>
@@ -116,60 +82,98 @@ export default function MessagesHeader({ toFeedScreen, openCreateGroupChatBottom
 }
 
 const styles = StyleSheet.create({
-    mainContainer: {
-        backgroundColor: '#f5f6fa',
+    root: {
+        backgroundColor: "#F7F8FC",
     },
     row: {
-        flexDirection: 'row',
-        justifyContent: 'center',
-        paddingTop: 5,
-        width: '100%',
-        paddingHorizontal: dynamicStyles.paddingHorizontal,
-        paddingBottom: 5,
+        flexDirection: "row",
+        justifyContent: "center",
+        width: "100%",
+        paddingTop: scaleSize(3),
+        paddingBottom: scaleSize(6),
+        paddingHorizontal: scaleSize(20),
     },
-    arrowIconContainer: {
-        position: 'absolute',
-        zIndex: 1,
-        left: 27,
-        height: dynamicStyles.iconContainerSize,
-        justifyContent: 'center',
-        width: 50,
-        padding: 5
+
+    /* circular icon containers */
+    iconCircle: {
+        position: "absolute",
+        top: scaleSize(10),
+        width: scaleSize(32),
+        height: scaleSize(32),
+        borderRadius: scaleSize(16),
+        backgroundColor: "#FFFFFF",
+        borderWidth: 1,
+        borderColor: HAIRLINE,
+        alignItems: "center",
+        justifyContent: "center",
+        shadowColor: "#0F172A",
+        shadowOpacity: 0.06,
+        shadowRadius: scaleSize(8),
+        shadowOffset: { width: 0, height: scaleSize(4) },
+        elevation: 2,
     },
-    groupIconContainer: {
-        position: 'absolute',
-        zIndex: 1,
-        right: 30,
-        height: dynamicStyles.iconContainerSize,
-        justifyContent: 'center',
+    leftIcon: { left: scaleSize(20) },
+    rightIcon: { right: scaleSize(23), justifyContent: "center" },
+    centerIconHit: { padding: scaleSize(6) },
+
+    plusBubble: {
+        position: "absolute",
+        right: scaleSize(-5),
+        bottom: scaleSize(-5),
+        width: scaleSize(18),
+        height: scaleSize(18),
+        borderRadius: scaleSize(9),
+        backgroundColor: "#FFFFFF",
+        borderWidth: 1,
+        borderColor: HAIRLINE,
+        alignItems: "center",
+        justifyContent: "center",
+        shadowColor: "#0F172A",
+        shadowOpacity: 0.1,
+        shadowRadius: scaleSize(6),
+        shadowOffset: { width: 0, height: scaleSize(2) },
+        elevation: 2,
     },
-    plusIconContainer: {
-        position: 'absolute',
-        zIndex: 1,
-        top: 28,
-        right: 21.5,
-        borderRadius: 100,
-        justifyContent: 'center',
-        backgroundColor: '#fff',
+
+    /* segmented control */
+    segmentWrap: {
+        borderRadius: 999,
     },
-    overlay: {
-        flexDirection: 'row',
-        backgroundColor: '#fff',
-        borderRadius: 40,
+    segmentBg: {
+        flexDirection: "row",
+        backgroundColor: "#FFFFFF",
+        borderRadius: 999,
+        padding: scaleSize(4),
+        borderWidth: 1,
+        borderColor: HAIRLINE,
+        shadowColor: "#0F172A",
+        shadowOpacity: 0.04,
+        shadowRadius: scaleSize(8),
+        shadowOffset: { width: 0, height: scaleSize(4) },
+        elevation: 1,
     },
-    buttonContainer: {
-        borderRadius: 40,
-        justifyContent: 'center',
-        alignItems: 'center',
-        marginVertical: 4,
+    chip: {
+        borderRadius: 999,
+        alignItems: "center",
+        justifyContent: "center",
+        marginHorizontal: scaleSize(2),
+        backgroundColor: "#FFFFFF",
+        paddingHorizontal: scaleSize(14),
     },
-    leftButtonContainer: {
-        marginLeft: 4,
+    chipActive: {
+        backgroundColor: ACCENT,
+        shadowColor: ACCENT,
+        shadowOpacity: 0.15,
+        shadowRadius: scaleSize(8),
+        shadowOffset: { width: 0, height: scaleSize(3) },
+        elevation: 2,
     },
-    rightButtonContainer: {
-        marginRight: 4,
+    chipText: {
+        fontSize: scaleSize(12.5),
+        fontFamily: "Outfit_600SemiBold",
+        color: "#7C8A9A",
     },
-    buttonText: {
-        fontFamily: 'Mulish_700Bold',
+    chipTextActive: {
+        color: "#FFFFFF",
     },
 });
