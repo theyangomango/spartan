@@ -19,7 +19,7 @@ import formatDate from "../helper/formatDate";
 import incrementDocValue from "../../backend/helper/firebase/incrementDocValue";
 import { db } from "../../firebase.config";
 
-// 🔥 Firestore (native) imports for new features
+// Firestore (native)
 import {
     collection, addDoc, doc, setDoc,
     onSnapshot, query, where, updateDoc as fsUpdateDoc,
@@ -28,7 +28,7 @@ import {
 
 import readDoc from "../../backend/helper/firebase/readDoc";
 import InviteBanner from "../components/3_Workout/InviteBanner";
-import ParticipantsDropdown from "../components/3_Workout/ParticipantsDropdown";
+// import ParticipantsDropdown from "../components/3_Workout/ParticipantsDropdown"; // lives in modal header now
 
 const { height: screenHeight } = Dimensions.get('window');
 const scale = screenHeight / 844;
@@ -36,7 +36,13 @@ const scaledSize = (size) => Math.round(size * scale);
 
 function Workout({ navigation }) {
     const [workout, setWorkout] = useState(global.userData.currentWorkout);
-    const [templates, setTemplates] = useState(global.userData.templates);
+
+    // Ensure every template has a stable tid for keys and lookups
+    const [templates, setTemplates] = useState(() => {
+        const src = Array.isArray(global.userData.templates) ? global.userData.templates : [];
+        return src.map(t => (t?.tid ? t : { ...t, tid: makeID() }));
+    });
+
     const [isCurrentWorkoutPanelVisible, setIsCurrentWorkoutPanelVisible] = useState(!!workout);
     const [isNewWorkoutBottomSheetVisible, setIsNewWorkoutBottomSheetVisible] = useState(false);
     const [groupModalExpandFlag, setGroupModalExpandFlag] = useState(false);
@@ -44,7 +50,7 @@ function Workout({ navigation }) {
     const [completedWorkout, setCompletedWorkout] = useState(null);
     const [isSummaryModalVisible, setIsSummaryModalVisible] = useState(false);
 
-    const [pendingInvites, setPendingInvites] = useState([]); // <-- invites for me
+    const [pendingInvites, setPendingInvites] = useState([]);
 
     const openedTemplateRef = useRef(null);
     const workoutTimeInterval = useRef(null);
@@ -52,7 +58,7 @@ function Workout({ navigation }) {
 
     const userWorkoutStats = useRef(global.userData.statsExercises);
 
-    // Invite listener
+    // ===== Invite listener =====
     useEffect(() => {
         const uid = global.userData?.uid;
         if (!uid) return;
@@ -68,7 +74,7 @@ function Workout({ navigation }) {
         return unsub;
     }, []);
 
-    // Timer
+    // ===== Timer =====
     useEffect(() => {
         if (workout) {
             workoutTimeInterval.current = setInterval(() => {
@@ -79,7 +85,32 @@ function Workout({ navigation }) {
         return () => clearInterval(workoutTimeInterval.current);
     }, [workout]);
 
-    // New Workout
+    // ===== Debounced template save (prevents flicker after drop) =====
+    const saveTemplatesDebounceRef = useRef(null);
+    const lastSavedOrderKeyRef = useRef("");
+    const orderKey = useCallback((arr) => (arr || []).map(t => String(t.tid)).join("|"), []);
+
+    useEffect(() => {
+        lastSavedOrderKeyRef.current = orderKey(templates); // baseline
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, []);
+
+    const queueSaveTemplates = useCallback((nextTemplates) => {
+        if (saveTemplatesDebounceRef.current) clearTimeout(saveTemplatesDebounceRef.current);
+        saveTemplatesDebounceRef.current = setTimeout(async () => {
+            try {
+                const nextKey = orderKey(nextTemplates);
+                if (nextKey !== lastSavedOrderKeyRef.current) {
+                    await updateDoc('users', global.userData.uid, { templates: nextTemplates });
+                    lastSavedOrderKeyRef.current = nextKey;
+                }
+            } catch (e) {
+                console.log("save templates error", e);
+            }
+        }, 550);
+    }, [orderKey]);
+
+    // ===== Start New Workout =====
     const startNewWorkout = useCallback(async () => {
         if (!workout) {
             global.isCurrentlyWorkingOut = true;
@@ -96,7 +127,6 @@ function Workout({ navigation }) {
                 PBs: 0
             };
 
-            // Ensure central workout doc exists
             await setDoc(doc(db, "workouts", newWID), {
                 wid: newWID,
                 creatorUid: global.userData.uid,
@@ -116,17 +146,26 @@ function Workout({ navigation }) {
         }
     }, [workout]);
 
-    const startWorkoutFromTemplate = useCallback(async (index) => {
+    // ===== Start Workout From Template (by tid or object) =====
+    const startWorkoutFromTemplate = useCallback(async (tplOrTid) => {
+        const selectedTemplate = typeof tplOrTid === "string"
+            ? templates.find(t => t.tid === tplOrTid)
+            : tplOrTid;
+
+        if (!selectedTemplate) {
+            console.log("startWorkoutFromTemplate: template not found", tplOrTid);
+            return;
+        }
+
         if (!workout) {
             global.isCurrentlyWorkingOut = true;
             const newWID = makeID();
-            const selectedTemplate = { ...templates[index] };
             const newWorkout = {
                 wid: newWID,
                 creatorUID: global.userData.uid,
                 created: Date.now(),
                 users: [],
-                exercises: [...selectedTemplate.exercises],
+                exercises: [...(selectedTemplate.exercises || [])],
                 tid: selectedTemplate.tid,
                 volume: 0,
                 reps: 0,
@@ -152,6 +191,7 @@ function Workout({ navigation }) {
         }
     }, [workout, templates]);
 
+    // ===== Update/Cancel/Finish Workout =====
     const updateNewWorkout = useCallback((newWorkout) => {
         setWorkout(newWorkout);
     }, []);
@@ -170,10 +210,9 @@ function Workout({ navigation }) {
         if (!workout) return;
 
         const workoutCopy = JSON.parse(JSON.stringify(workout));
-
         // Clean sets
         workoutCopy.exercises.forEach((exercise) => {
-            exercise.sets = exercise.sets.filter((set) => set.weight > 0 && set.reps > 0);
+            exercise.sets = (exercise.sets || []).filter((set) => set.weight > 0 && set.reps > 0);
         });
         workoutCopy.exercises = workoutCopy.exercises.filter((exercise) => exercise.sets && exercise.sets.length > 0);
 
@@ -189,7 +228,6 @@ function Workout({ navigation }) {
         setIsCurrentWorkoutPanelVisible(false);
         timerRef.current = "00:00";
         setIsSummaryModalVisible(true);
-
     }, [workout]);
 
     async function postWorkout() {
@@ -198,7 +236,7 @@ function Workout({ navigation }) {
         navigation.navigate('ProfileStack', { screen: 'SelectPhotos', params: { workout: completedWorkout } });
     }
 
-    // Templates
+    // ===== Templates CRUD =====
     function initTemplate() {
         const tid = makeID();
         const newTemplate = {
@@ -206,16 +244,28 @@ function Workout({ navigation }) {
             exerciseCount: 0,
             exercises: [],
             lastDate: null,
-            tid: tid
+            tid
         };
 
-        setTemplates([...templates, newTemplate]);
+        setTemplates(prev => {
+            const next = [...prev, newTemplate];
+            queueSaveTemplates(next);
+            return next;
+        });
         openedTemplateRef.current = newTemplate;
         setIsEditTemplateBottomSheetVisible(true);
     }
 
-    const openEditTemplateBottomSheet = useCallback((index) => {
-        openedTemplateRef.current = templates[index];
+    const openEditTemplateBottomSheet = useCallback((tplOrTid) => {
+        const tpl = typeof tplOrTid === "string"
+            ? templates.find(t => t.tid === tplOrTid)
+            : tplOrTid;
+
+        if (!tpl) {
+            console.log("openEditTemplateBottomSheet: template not found", tplOrTid);
+            return;
+        }
+        openedTemplateRef.current = tpl;
         setIsEditTemplateBottomSheetVisible(true);
     }, [templates]);
 
@@ -223,9 +273,10 @@ function Workout({ navigation }) {
         setTemplates(prevTemplates => {
             const index = prevTemplates.findIndex(template => template.tid === openedTemplateRef.current.tid);
             if (index !== -1) {
-                const updatedTemplates = [...prevTemplates];
-                updatedTemplates[index] = { ...openedTemplateRef.current };
-                return updatedTemplates;
+                const updated = [...prevTemplates];
+                updated[index] = { ...openedTemplateRef.current };
+                queueSaveTemplates(updated);
+                return updated;
             }
             return prevTemplates;
         });
@@ -233,21 +284,26 @@ function Workout({ navigation }) {
 
     function deleteTemplate() {
         setTemplates(prevTemplates => {
-            const index = prevTemplates.findIndex(template => template.tid === openedTemplateRef.current.tid);
-            if (index !== -1) {
-                return prevTemplates.filter((_, i) => i != index);
+            const idx = prevTemplates.findIndex(template => template.tid === openedTemplateRef.current.tid);
+            if (idx !== -1) {
+                const next = prevTemplates.filter((_, i) => i !== idx);
+                queueSaveTemplates(next);
+                return next;
             }
+            return prevTemplates;
         });
         setIsEditTemplateBottomSheetVisible(false);
         openedTemplateRef.current = null;
     }
 
+    // Keep current workout in user doc
     useEffect(() => {
         updateDoc('users', global.userData.uid, {
             currentWorkout: workout
         });
     }, [workout]);
 
+    // Stats update after completed workout
     useEffect(() => {
         if (completedWorkout) {
             let newExerciseStats = { ...global.userData.statsExercises };
@@ -316,18 +372,15 @@ function Workout({ navigation }) {
                             ...updatedTemplates[index],
                             lastDate: today,
                         };
+                        queueSaveTemplates(updatedTemplates);
                         return updatedTemplates;
                     });
                 }
             }
         }
-    }, [completedWorkout]);
+    }, [completedWorkout, queueSaveTemplates]);
 
-    useEffect(() => {
-        updateDoc('users', global.userData.uid, { templates: templates });
-    }, [templates]);
-
-    // Open/close group sheet
+    // Group modal toggles
     const showGroupModal = useCallback(() => {
         setGroupModalExpandFlag(prev => !prev);
     }, []);
@@ -335,13 +388,12 @@ function Workout({ navigation }) {
         setGroupModalExpandFlag(false);
     }, []);
 
-    // 🔔 Invite selected users
+    // Invite selected users
     const handleInviteSelected = useCallback(async (selectedUsers) => {
         try {
             if (!workout?.wid) return;
             const wid = workout.wid;
 
-            // Ensure workout doc exists & add self to members
             await setDoc(doc(db, "workouts", wid), {
                 wid,
                 creatorUid: global.userData.uid,
@@ -350,7 +402,6 @@ function Workout({ navigation }) {
                 updatedAt: serverTimestamp(),
             }, { merge: true });
 
-            // Create invites
             const batch = selectedUsers.map(u => addDoc(collection(db, "workoutInvites"), {
                 wid,
                 fromUid: global.userData.uid,
@@ -367,7 +418,7 @@ function Workout({ navigation }) {
         }
     }, [workout?.wid]);
 
-    // ✅ Accept / Decline
+    // Accept / Decline
     const acceptInvite = useCallback(async (inv) => {
         try {
             await fsUpdateDoc(doc(db, "workouts", inv.wid), {
@@ -412,7 +463,7 @@ function Workout({ navigation }) {
         }
     }, []);
 
-    // 📡 Publish my live top-line to workouts/{wid}/live/{uid}
+    // Publish live top-line
     useEffect(() => {
         if (!workout?.wid) return;
         const uid = global.userData?.uid;
@@ -442,12 +493,17 @@ function Workout({ navigation }) {
         return () => t && clearTimeout(t);
     }, [workout?.wid, workout?.volume, workout?.reps, workout?.PBs, workout?.exercises]);
 
+    // Reorder handler
+    const handleReorderTemplates = useCallback((next) => {
+        setTemplates(next);
+        queueSaveTemplates(next);
+    }, [queueSaveTemplates]);
+
     return (
         <View style={styles.mainContainer}>
             <View style={styles.body}>
                 <View style={{ height: 55 }} />
 
-                {/* Invite banners */}
                 {pendingInvites.map((inv) => (
                     <InviteBanner
                         key={inv.id}
@@ -461,14 +517,11 @@ function Workout({ navigation }) {
                 <StartWorkoutButton startWorkout={startNewWorkout} />
 
                 {isCurrentWorkoutPanelVisible && (
-                    <>
-                        {/* Removed ParticipantsDropdown here since it now lives inside NewWorkoutModal header */}
-                        <CurrentWorkoutPanel
-                            workout={workout}
-                            timerRef={timerRef}
-                            openWorkout={startNewWorkout}
-                        />
-                    </>
+                    <CurrentWorkoutPanel
+                        workout={workout}
+                        timerRef={timerRef}
+                        openWorkout={startNewWorkout}
+                    />
                 )}
 
                 <View style={styles.templatesHeadingRow}>
@@ -480,7 +533,8 @@ function Workout({ navigation }) {
 
                 <TemplateList
                     templates={templates}
-                    setTemplates={setTemplates}
+                    onReorder={handleReorderTemplates}
+                    setTemplates={handleReorderTemplates} // compat
                     openEditTemplateBottomSheet={openEditTemplateBottomSheet}
                     startWorkoutFromTemplate={startWorkoutFromTemplate}
                 />
@@ -536,7 +590,6 @@ const styles = StyleSheet.create({
     quickStartText: {
         fontSize: scaledSize(18),
         paddingBottom: scaledSize(8),
-        paddingHorizontal: scaledSize(20),
         fontFamily: 'Nunito_800ExtraBold',
         letterSpacing: 0.2,
         paddingHorizontal: scaledSize(20)
