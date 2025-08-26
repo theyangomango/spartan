@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState } from "react";
+import React, { useEffect, useRef, useState, useMemo } from "react";
 import {
     View,
     FlatList,
@@ -9,6 +9,7 @@ import {
     Keyboard,
     ActivityIndicator,
     Dimensions,
+    Text,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { doc, onSnapshot } from "firebase/firestore";
@@ -48,7 +49,7 @@ export default function Chat({ navigation, route }) {
     const [sheet, setSheet] = useState({ visible: false, anchor: null, msg: null });
 
     const flatRef = useRef(null);
-    const messages = useChatMessages(data.cid);
+    const messagesRaw = useChatMessages(data.cid);
     const currentUid = global?.userData?.uid || null;
 
     // keep outer chat doc up-to-date
@@ -201,6 +202,87 @@ export default function Chat({ navigation, route }) {
             mode.value = 0;
         });
 
+    /** ---------------- Date chips (inverted list friendly) ---------------- */
+    const toMs = (t) => {
+        if (!t) return 0;
+        if (typeof t === "number") return t < 1e12 ? t * 1000 : t;
+        if (typeof t === "string") return Date.parse(t) || 0;
+        if (typeof t?.toMillis === "function") return t.toMillis();
+        if (typeof t?.seconds === "number") return t.seconds * 1000;
+        if (t instanceof Date) return t.getTime();
+        return 0;
+    };
+    const dateKey = (t) => {
+        const d =
+            typeof t?.toMillis === "function" ? new Date(t.toMillis())
+                : t?.seconds ? new Date(t.seconds * 1000)
+                    : typeof t === "number" ? new Date(t < 1e12 ? t * 1000 : t)
+                        : typeof t === "string" ? new Date(t)
+                            : new Date(t);
+        if (isNaN(+d)) return "";
+        return d.toLocaleDateString(undefined, { year: "numeric", month: "short", day: "numeric" });
+    };
+
+    // sort newest → oldest, then inject a date item AFTER each day's block
+    const { messagesOnly, withSeparators } = useMemo(() => {
+        const list = Array.isArray(messagesRaw) ? [...messagesRaw] : [];
+        list.sort((a, b) => toMs(b?.timestamp) - toMs(a?.timestamp)); // newest first
+        const out = [];
+        let currentKey = list.length ? dateKey(list[0]?.timestamp) : "";
+        let group = [];
+        let block = 0;
+
+        const flush = () => {
+            if (!group.length) return;
+            out.push(...group);
+            out.push({ type: "date", id: `date-${currentKey}-${block++}`, label: currentKey });
+            group = [];
+        };
+
+        for (let i = 0; i < list.length; i++) {
+            const m = list[i];
+            const k = dateKey(m?.timestamp);
+            if (k !== currentKey) {
+                flush();
+                currentKey = k;
+            }
+            group.push({ type: "msg", ...m });
+        }
+        flush();
+
+        return { messagesOnly: list, withSeparators: out };
+    }, [messagesRaw]);
+
+    const renderItem = ({ item, index }) => {
+        if (item.type === "date") {
+            return (
+                <View style={styles.dateWrap}>
+                    <View style={styles.dateChip}>
+                        <Text style={styles.dateText}>{item.label}</Text>
+                    </View>
+                </View>
+            );
+        }
+
+        // Map this rendered message back to its index within messagesOnly
+        const key = item.clientId || item.id;
+        const msgIndex = messagesOnly.findIndex((m) => (m.clientId || m.id) === key);
+
+        return (
+            <MessageItem
+                item={item}
+                messages={messagesOnly}
+                index={msgIndex >= 0 ? msgIndex : 0}
+                currentUid={currentUid}
+                revealSelf={revealSelf}
+                revealOther={revealOther}
+                revealMax={MAX_REVEAL}
+                onOpenMedia={openMedia}
+                onOpenActions={openActions}
+            />
+        );
+    };
+
     return (
         <KeyboardAvoidingView
             style={styles.flex}
@@ -220,29 +302,27 @@ export default function Chat({ navigation, route }) {
                         <FlatList
                             ref={flatRef}
                             inverted
-                            data={messages}
-                            keyExtractor={(it) => it.id || it.timestamp?.toString() || Math.random().toString()}
-                            renderItem={({ item, index }) => (
-                                <MessageItem
-                                    item={item}
-                                    messages={messages}
-                                    index={index}
-                                    currentUid={currentUid}
-                                    revealSelf={revealSelf}
-                                    revealOther={revealOther}
-                                    revealMax={MAX_REVEAL}
-                                    onOpenMedia={openMedia}
-                                    onOpenActions={openActions}
-                                />
-                            )}
+                            data={withSeparators}
+                            keyExtractor={(it, i) =>
+                                it.type === "date"
+                                    ? it.id
+                                    : it.id || it.clientId || it.timestamp?.toString() || `k-${i}`
+                            }
+                            renderItem={renderItem}
                             style={styles.list}
-                            contentContainerStyle={{ paddingHorizontal: 14, paddingTop: 8, paddingBottom: bottomInset + 72 }}
+                            contentContainerStyle={{
+                                paddingHorizontal: 14,
+                                paddingTop: 8,
+                                paddingBottom: (isFocused ? 4 : 16) + insets.bottom + 72,
+                            }}
                             keyboardShouldPersistTaps="handled"
                             keyboardDismissMode="on-drag"
+                            maintainVisibleContentPosition={{ minIndexForVisible: 1 }}
                             onScrollBeginDrag={Keyboard.dismiss}
                             showsVerticalScrollIndicator={false}
                             ListHeaderComponent={<View style={{ height: 6 }} />}
                             ListFooterComponent={<View style={{ height: 6 }} />}
+                            scrollEventThrottle={16}
                         />
                     </View>
                 </GestureDetector>
@@ -309,5 +389,22 @@ const styles = StyleSheet.create({
         paddingHorizontal: 10,
         borderRadius: 12,
         backgroundColor: "rgba(15,23,42,0.75)",
+    },
+
+    // date chip styles (same sleek vibe)
+    dateWrap: { width: "100%", alignItems: "center", paddingVertical: 10 },
+    dateChip: {
+        paddingHorizontal: 10,
+        paddingVertical: 6,
+        backgroundColor: "#EFF4FF",
+        borderRadius: 14,
+        borderWidth: 1,
+        borderColor: "rgba(45,158,255,0.10)",
+    },
+    dateText: {
+        color: "#3A4A64",
+        fontSize: 12,
+        fontFamily: "Outfit_500Medium",
+        letterSpacing: 0.2,
     },
 });

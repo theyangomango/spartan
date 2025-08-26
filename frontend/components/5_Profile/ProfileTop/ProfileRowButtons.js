@@ -1,10 +1,9 @@
-import React from 'react';
+import React from "react";
 import RNBounceable from "@freakycoder/react-native-bounceable";
 import { StyleSheet, View, Text, Dimensions } from "react-native";
 
-const { height: screenHeight } = Dimensions.get('window');
-const scale = screenHeight / 844; // Scaling factor based on iPhone 13 height
-
+const { height: screenHeight } = Dimensions.get("window");
+const scale = screenHeight / 844; // iPhone 13 baseline
 const scaledSize = (size) => Math.round(size * scale);
 
 export default function ProfileRowButtons({ handleOpenEditProfile, handleOpenViewStats }) {
@@ -15,8 +14,9 @@ export default function ProfileRowButtons({ handleOpenEditProfile, handleOpenVie
                     <Text style={styles.edit_profile_text}>Edit Profile</Text>
                 </View>
             </RNBounceable>
-            {/* // ! Disabled for Beta */}
-            <RNBounceable style={[styles.flex, { opacity: 0.5 }]} onPress={handleOpenViewStats} disabled>
+
+            {/* ✅ Enable View Stats and remove disabled/opacity */}
+            <RNBounceable style={styles.flex} onPress={handleOpenViewStats}>
                 <View style={[styles.button, styles.flex]}>
                     <Text style={styles.edit_profile_text}>View Stats</Text>
                 </View>
@@ -29,8 +29,8 @@ const styles = StyleSheet.create({
     row: {
         marginHorizontal: scaledSize(5),
         marginTop: scaledSize(10),
-        flexDirection: 'row',
-        justifyContent: 'space-around',
+        flexDirection: "row",
+        justifyContent: "space-around",
         height: scaledSize(32),
     },
     flex: {
@@ -40,13 +40,13 @@ const styles = StyleSheet.create({
         paddingHorizontal: scaledSize(20),
         paddingVertical: scaledSize(7),
         borderRadius: scaledSize(10),
-        backgroundColor: '#f2f2f2',
-        justifyContent: 'center',
-        alignItems: 'center',
+        backgroundColor: "#f2f2f2",
+        justifyContent: "center",
+        alignItems: "center",
         marginHorizontal: scaledSize(3),
     },
     edit_profile_text: {
-        fontFamily: 'Poppins_600SemiBold',
+        fontFamily: "Poppins_600SemiBold",
         fontSize: scaledSize(12.5),
     },
 });

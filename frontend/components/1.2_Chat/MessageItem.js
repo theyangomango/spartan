@@ -1,8 +1,20 @@
 import React, { useRef } from "react";
-import { View, Text, StyleSheet, Dimensions, Pressable, findNodeHandle } from "react-native";
+import {
+    View,
+    Text,
+    StyleSheet,
+    Dimensions,
+    Pressable,
+    findNodeHandle,
+} from "react-native";
 import FastImage from "react-native-fast-image";
 import Video from "react-native-video";
-import Animated, { useAnimatedStyle } from "react-native-reanimated";
+import Animated, {
+    useAnimatedStyle,
+    Layout,
+    ZoomIn,
+    ZoomOut,
+} from "react-native-reanimated";
 
 const W = Dimensions.get("window").width;
 const BUBBLE_MAX_W = Math.min(360, W * 0.72);
@@ -18,13 +30,31 @@ export default function MessageItem({
     onOpenMedia,
     onOpenActions,
 }) {
+    // ------- robust sender detection -------
     const senderUid =
-        item?.sender?.uid ?? item?.senderUid ?? item?.fromUid ?? item?.uid ?? item?.userId ?? item?.authorId ?? item?.from?.uid ?? item?.author?.uid ?? null;
+        item?.sender?.uid ??
+        item?.senderUid ??
+        item?.fromUid ??
+        item?.uid ??
+        item?.userId ??
+        item?.authorId ??
+        item?.from?.uid ??
+        item?.author?.uid ??
+        null;
     const isSelf = !!currentUid && senderUid === currentUid;
 
+    // ------- grouping (FlatList is inverted; index+1 is the older neighbor) -------
     const next = messages?.[index + 1];
     const nextSender =
-        next?.sender?.uid ?? next?.senderUid ?? next?.fromUid ?? next?.uid ?? next?.userId ?? next?.authorId ?? next?.from?.uid ?? next?.author?.uid ?? null;
+        next?.sender?.uid ??
+        next?.senderUid ??
+        next?.fromUid ??
+        next?.uid ??
+        next?.userId ??
+        next?.authorId ??
+        next?.from?.uid ??
+        next?.author?.uid ??
+        null;
 
     const toMillis = (t) => {
         if (!t) return 0;
@@ -38,10 +68,14 @@ export default function MessageItem({
 
     const thisMs = toMillis(item?.timestamp);
     const nextMs = toMillis(next?.timestamp);
-    const grouped = next && nextSender === senderUid && Math.abs(thisMs - nextMs) <= 4 * 60 * 1000;
+    const grouped =
+        !!next && nextSender === senderUid && Math.abs(thisMs - nextMs) <= 3 * 60 * 1000;
 
     const microTime = thisMs
-        ? new Date(thisMs).toLocaleTimeString(undefined, { hour: "numeric", minute: "2-digit" })
+        ? new Date(thisMs).toLocaleTimeString(undefined, {
+            hour: "numeric",
+            minute: "2-digit",
+        })
         : "";
 
     const hasText = !!(item?.text && String(item.text).trim().length);
@@ -50,6 +84,7 @@ export default function MessageItem({
 
     const containerRef = useRef(null);
 
+    // ---------------- animations ----------------
     const shift = useAnimatedStyle(() => {
         "worklet";
         const raw = isSelf ? (revealSelf?.value ?? 0) : (revealOther?.value ?? 0);
@@ -64,6 +99,7 @@ export default function MessageItem({
         const dx = Math.max(0, Math.min(revealMax, raw));
         return { opacity: dx / revealMax, transform: [{ translateX: -dx }] };
     });
+
     const timeLeft = useAnimatedStyle(() => {
         "worklet";
         const raw = revealOther?.value ?? 0;
@@ -71,6 +107,7 @@ export default function MessageItem({
         return { opacity: dx / revealMax, transform: [{ translateX: dx }] };
     });
 
+    // ---------------- actions / lightbox anchors ----------------
     const openActionsSheet = () => {
         const node = findNodeHandle(containerRef.current);
         containerRef.current?.measureInWindow?.((x, y, w, h) => {
@@ -80,13 +117,21 @@ export default function MessageItem({
 
     const MediaTile = ({ m }) => {
         const tileRef = useRef(null);
+
         const handlePress = () => {
             tileRef.current?.measureInWindow?.((x, y, w, h) => {
                 onOpenMedia?.({ uri: m.url, type: m.type || "image" }, { x, y, width: w, height: h });
             });
         };
+
+        const handleLongPress = () => {
+            tileRef.current?.measureInWindow?.((x, y, w, h) => {
+                onOpenActions?.(item, { x, y, width: w, height: h });
+            });
+        };
+
         return (
-            <Pressable onPress={handlePress}>
+            <Pressable onPress={handlePress} onLongPress={handleLongPress} delayLongPress={250}>
                 <View ref={tileRef} collapsable={false}>
                     {m.type === "video" ? (
                         <View style={styles.videoOuter}>
@@ -109,20 +154,36 @@ export default function MessageItem({
         );
     };
 
+    // ---------------- reactions ----------------
     const reactions = item?.reactions || {};
-    const entries = Object.entries(reactions).filter(([, arr]) => Array.isArray(arr) && arr.length > 0);
+    const entries = Object.entries(reactions).filter(
+        ([, arr]) => Array.isArray(arr) && arr.length > 0
+    );
     const hasReactions = entries.length > 0;
 
     const reply = item?.replyPreview || null;
 
+    /** dynamic gap: much tighter when grouped within 3 minutes */
+    const rowGap = grouped ? 1 : 12;
+
+    /** NEW: add more headroom above any message that has reactions (bigger if not grouped) */
+    const reactionHeadroom = hasReactions ? (grouped ? 14 : 26) : 0;
+
     return (
-        <View style={[styles.row, isSelf ? styles.rowSelf : styles.rowOther]}>
+        <View
+            style={[
+                styles.row,
+                isSelf ? styles.rowSelf : styles.rowOther,
+                { marginBottom: rowGap },
+            ]}
+        >
             <View
                 ref={containerRef}
                 collapsable={false}
                 style={[
                     styles.wrap,
                     { alignSelf: isSelf ? "flex-end" : "flex-start", maxWidth: BUBBLE_MAX_W },
+                    reactionHeadroom > 0 && { marginTop: reactionHeadroom },
                 ]}
             >
                 {!!reply && (
@@ -130,21 +191,11 @@ export default function MessageItem({
                         style={[
                             styles.replyPreview,
                             isSelf ? styles.replySelf : styles.replyOther,
-                            {
-                                maxWidth: BUBBLE_MAX_W,
-                                alignSelf: isSelf ? "flex-end" : "flex-start",
-                            },
+                            { maxWidth: BUBBLE_MAX_W, alignSelf: isSelf ? "flex-end" : "flex-start" },
                         ]}
                     >
                         <View style={[styles.replyBar, { backgroundColor: isSelf ? "#fff" : "#2D9EFF" }]} />
                         <View style={styles.replyTextCol}>
-                            {/* <Text
-                                numberOfLines={1}
-                                ellipsizeMode="tail"
-                                style={[styles.replyTitle, isSelf ? { color: "#EAF4FF" } : { color: "#0F172A" }]}
-                            >
-                                {reply.senderHandle || "Reply"}
-                            </Text> */}
                             <Text
                                 numberOfLines={1}
                                 ellipsizeMode="tail"
@@ -160,8 +211,30 @@ export default function MessageItem({
                     {mediaOnly ? (
                         <Animated.View style={[styles.mediaOnly, shift]}>
                             <View style={[styles.mediaWrap, { marginTop: 0 }]}>
-                                {item.media.map((m, idx) => <MediaTile key={idx} m={m} />)}
+                                {item.media.map((m, idx) => (
+                                    <MediaTile key={idx} m={m} />
+                                ))}
                             </View>
+
+                            {hasReactions && (
+                                <Animated.View
+                                    pointerEvents="none"
+                                    style={[styles.reactionInline, !isSelf && styles.reactionInlineRight]}
+                                    layout={Layout.springify().damping(18).stiffness(260)}
+                                >
+                                    {entries.map(([emoji, arr], i) => (
+                                        <Animated.Text
+                                            key={`${emoji}-${arr.length}`}
+                                            entering={ZoomIn.springify().damping(12).stiffness(320)}
+                                            exiting={ZoomOut.duration(120)}
+                                            style={[styles.reactionEmoji, i > 0 && { marginLeft: 4 }]}
+                                        >
+                                            {emoji}
+                                            {arr.length > 1 ? ` ${arr.length}` : ""}
+                                        </Animated.Text>
+                                    ))}
+                                </Animated.View>
+                            )}
                         </Animated.View>
                     ) : (
                         <Animated.View
@@ -177,27 +250,37 @@ export default function MessageItem({
                                     {item.text}
                                 </Text>
                             )}
-                            {hasMedia && (
+
+                            {!!hasMedia && (
                                 <View style={styles.mediaWrap}>
-                                    {item.media.map((m, idx) => <MediaTile key={idx} m={m} />)}
+                                    {item.media.map((m, idx) => (
+                                        <MediaTile key={idx} m={m} />
+                                    ))}
                                 </View>
+                            )}
+
+                            {hasReactions && (
+                                <Animated.View
+                                    pointerEvents="none"
+                                    style={[styles.reactionInline, !isSelf && styles.reactionInlineRight]}
+                                    layout={Layout.springify().damping(18).stiffness(260)}
+                                >
+                                    {entries.map(([emoji, arr], i) => (
+                                        <Animated.Text
+                                            key={`${emoji}-${arr.length}`}
+                                            entering={ZoomIn.springify().damping(12).stiffness(320)}
+                                            exiting={ZoomOut.duration(120)}
+                                            style={[styles.reactionEmoji, i > 0 && { marginLeft: 4 }]}
+                                        >
+                                            {emoji}
+                                            {arr.length > 1 ? ` ${arr.length}` : ""}
+                                        </Animated.Text>
+                                    ))}
+                                </Animated.View>
                             )}
                         </Animated.View>
                     )}
                 </Pressable>
-
-                {hasReactions && (
-                    <View style={[styles.reactionBar, isSelf ? { right: 6 } : { left: 6 }]}>
-                        {entries.map(([emoji, arr]) => {
-                            const you = (arr || []).includes(currentUid);
-                            return (
-                                <View key={emoji} style={[styles.reactionPill, you && styles.reactionYou]}>
-                                    <Text style={styles.reactionText}>{emoji} {arr.length > 1 ? arr.length : ""}</Text>
-                                </View>
-                            );
-                        })}
-                    </View>
-                )}
 
                 {isSelf && !!microTime && (
                     <Animated.Text style={[styles.timeRight, timeRight]} numberOfLines={1} pointerEvents="none">
@@ -220,7 +303,7 @@ const styles = StyleSheet.create({
     rowOther: { alignItems: "flex-start" },
     wrap: { position: "relative" },
 
-    bubble: { borderRadius: 18, paddingHorizontal: 12, paddingVertical: 8 },
+    bubble: { borderRadius: 18, paddingHorizontal: 12, paddingVertical: 8, position: "relative" },
     bubbleSelf: {
         backgroundColor: "#2D9EFF",
         shadowColor: "#2D9EFF",
@@ -233,9 +316,10 @@ const styles = StyleSheet.create({
         backgroundColor: "#F2F6FF",
         borderWidth: 1,
         borderColor: "rgba(45,158,255,0.18)",
+        position: "relative",
     },
 
-    mediaOnly: { borderRadius: 12, overflow: "visible" },
+    mediaOnly: { borderRadius: 12, overflow: "visible", position: "relative" },
 
     groupSelf: { borderBottomRightRadius: 7 },
     groupOther: { borderBottomLeftRadius: 7 },
@@ -245,51 +329,74 @@ const styles = StyleSheet.create({
     textOther: { color: "#0F172A" },
 
     mediaWrap: { flexDirection: "row", flexWrap: "wrap", gap: 6, marginTop: 6 },
-    media: { width: (BUBBLE_MAX_W - 6) / 2, height: 180, borderRadius: 12, backgroundColor: "#E5E7EB" },
+    media: {
+        width: (BUBBLE_MAX_W - 6) / 2,
+        height: 180,
+        borderRadius: 12,
+        backgroundColor: "#E5E7EB",
+    },
     videoOuter: { overflow: "hidden", borderRadius: 12, backgroundColor: "#000" },
 
-    // reply preview (more opaque)
+    // reply preview
     replyPreview: {
         flexDirection: "row",
         alignItems: "center",
-        marginBottom: 6,
+        marginBottom: 1,
         paddingHorizontal: 10,
         paddingVertical: 8,
         borderRadius: 12,
     },
-    replySelf: { backgroundColor: "rgba(45,158,255,0.40)" }, // ↑ opacity
-    replyOther: { backgroundColor: "rgba(45,158,255,0.18)" }, // ↑ opacity
+    replySelf: { backgroundColor: "rgba(45,158,255,0.40)" },
+    replyOther: { backgroundColor: "rgba(45,158,255,0.18)" },
     replyBar: { width: 3, height: 30, borderRadius: 2, marginRight: 8 },
-
     replyTextCol: { flexShrink: 1, minWidth: 0 },
-    replyTitle: { fontSize: 12, fontFamily: "Poppins_600SemiBold" },
     replySnippet: { fontSize: 12, fontFamily: "Poppins_500Medium", color: "#64748B" },
 
-    // reactions
-    reactionBar: {
+    // reactions badge
+    reactionInline: {
         position: "absolute",
-        bottom: -14,
+        left: -15,
+        top: -23,
         flexDirection: "row",
-        gap: 6,
+        alignItems: "center",
+        width: 38,
+        height: 38,
+        justifyContent: "center",
+        backgroundColor: "#b9d8ffcc",
+        borderRadius: 100,
+        borderWidth: 2,
+        borderColor: "#ffffff9f",
     },
-    reactionPill: {
-        paddingHorizontal: 6,
-        paddingVertical: 2,
-        borderRadius: 10,
-        backgroundColor: "#FFFFFF",
-        borderWidth: 1,
-        borderColor: "rgba(2,6,23,0.08)",
+    reactionInlineRight: {
+        left: undefined,
+        right: -15,
     },
-    reactionYou: { borderColor: "rgba(45,158,255,0.45)" },
-    reactionText: { fontSize: 11, fontFamily: "Poppins_600SemiBold", color: "#0F172A" },
+    reactionEmoji: {
+        fontSize: 13,
+        color: "#0F172A",
+    },
 
-    // timestamps
+    // timestamps outside bubble, slide in
     timeRight: {
-        position: "absolute", right: -70, bottom: 2, zIndex: 2,
-        fontSize: 11, lineHeight: 13, fontFamily: "Outfit_500Medium", letterSpacing: 0.1, color: "#94A3B8",
+        position: "absolute",
+        right: -70,
+        bottom: 2,
+        zIndex: 2,
+        fontSize: 11,
+        lineHeight: 13,
+        fontFamily: "Outfit_500Medium",
+        letterSpacing: 0.1,
+        color: "#94A3B8",
     },
     timeLeft: {
-        position: "absolute", left: -70, bottom: 2, zIndex: 2,
-        fontSize: 11, lineHeight: 13, fontFamily: "Outfit_500Medium", letterSpacing: 0.1, color: "#94A3B8",
+        position: "absolute",
+        left: -70,
+        bottom: 2,
+        zIndex: 2,
+        fontSize: 11,
+        lineHeight: 13,
+        fontFamily: "Outfit_500Medium",
+        letterSpacing: 0.1,
+        color: "#94A3B8",
     },
 });

@@ -94,14 +94,14 @@ const formatJoinDate = (raw) => {
     const date = toDate(raw ?? null);
     if (!date) return "Joined";
     const months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
-    return `Joined: ${months[date.getMonth()]} ${date.getDate()}, ${date.getFullYear()}`;
+    return `Joined ${months[date.getMonth()]} ${date.getDate()}, ${date.getFullYear()}`;
 };
 
 export default function UserStatsModal({ user, toViewProfile }) {
     const exercises = useMemo(() => getExercisesSorted(user), [user]);
     const overall = Math.round(user?.statsHexagon?.overall ?? 0);
     const joinedLabel = formatJoinDate(
-        user?.joinedAt ?? user?.joinDate ?? user?.createdAt ?? user?.created_at ?? user?.meta?.joinedAt
+        user?.joined
     );
 
     return (
@@ -293,7 +293,7 @@ const styles = StyleSheet.create({
 
     // Hexagon wrapper (no card background)
     hexWrap: {
-        paddingTop: scaledSize(2),
+        paddingTop: scaledSize(10),
     },
 
     sectionTitle: {
