@@ -34,7 +34,7 @@ export default function TemplateList({
     );
 
     return (
-        <DraggableFlatList
+        <DraggableFlatList 
             data={data}
             keyExtractor={keyExtractor}
             renderItem={renderItem}
