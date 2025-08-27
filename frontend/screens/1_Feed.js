@@ -14,7 +14,7 @@ import { doc, onSnapshot, collection, where, query, getDocs, orderBy, limit } fr
 import Footer from "../components/Footer";
 import Post from "../components/1_Feed/Posts/Post";
 import FeedHeader from "../components/1_Feed/FeedHeader";
-import Stories from "../components/1_Feed/Stories/Stories";
+import ActivityChips from "../components/1_Feed/Pulse/ActivityChips";
 import NotificationsBottomSheet from "../components/1_Feed/Notifications/NotificationsBottomSheet";
 import CommentsBottomSheet from "../components/1_Feed/Comments/CommentsBottomSheet";
 import ShareBottomSheet from "../components/1_Feed/SharePost/ShareBottomSheet";
@@ -25,7 +25,6 @@ import { db } from "../../firebase.config";
 import getScrollTargetPosition from "../helper/getScrollTargetPosition";
 import isThisUser from "../helper/isThisUser";
 import useFilteredFeed from "../helper/useFilteredFeed";
-import useFilteredStories from "../helper/useFilteredStories";
 
 const { width, height } = Dimensions.get("window");
 const TARGET_POSITION = getScrollTargetPosition(width, height),
@@ -38,7 +37,6 @@ export default function Feed({ navigation, route }) {
 
     // State
     const posts = useFilteredFeed(global.userData ? global.userData?.following : []);
-    const { storiesData, storiesUserList } = useFilteredStories(global.userData?.following);
     const [messages, setMessages] = useState(null);
     const [isSomePostFocused, setIsSomePostFocused] = useState(false);
     const [isScrolledPastTopClip, setIsScrolledPastTopClip] = useState(false);
@@ -322,14 +320,6 @@ export default function Feed({ navigation, route }) {
     }, [posts]);
 
     useEffect(() => {
-        if (!storiesUserList || storiesUserList.length === 0) return;
-        const seeded = storiesUserList
-            .map((u) => ({ uid: u?.uid, handle: u?.handle, name: u?.name, pfp: u?.pfp }))
-            .filter((u) => !!u.uid);
-        mergeUsersIntoRef(seeded);
-    }, [storiesUserList]);
-
-    useEffect(() => {
         const run = async () => {
             const following = Array.isArray(global.userData?.following) ? global.userData.following : [];
             if (!following || following.length === 0) return;
@@ -386,7 +376,7 @@ export default function Feed({ navigation, route }) {
     }, []);
 
     return (
-        <SafeAreaView style={{ flex: 1, backgroundColor: "#fff" }}>
+        <SafeAreaView style={{ flex: 1, backgroundColor: "#F7FAFF" }}>
             <FeedHeader
                 navigation={navigation}
                 toMessagesScreen={toMessagesScreen}
@@ -424,15 +414,7 @@ export default function Feed({ navigation, route }) {
                         CellRendererComponent={CellRenderer}
                         ListHeaderComponent={
                             <Animated.View style={{ opacity: storiesOpacity }}>
-                                {storiesData && (
-                                    <Stories
-                                        disabled={isSomePostFocused}
-                                        navigation={navigation}
-                                        data={storiesData}
-                                        userList={storiesUserList}
-                                        initStories={() => { }}
-                                    />
-                                )}
+                                <ActivityChips navigation={navigation} />
                             </Animated.View>
                         }
                         initialNumToRender={2}
@@ -462,7 +444,7 @@ export default function Feed({ navigation, route }) {
 }
 
 const styles = StyleSheet.create({
-    mainContainer: { flex: 1, backgroundColor: "#fff" },
+    mainContainer: { flex: 1, backgroundColor: "#f9fbffff" },
     postWrapper: { width: "100%" },
     maskContainer: (isScrolledPastTopClip) => ({
         flex: 1,

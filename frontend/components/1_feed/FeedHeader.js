@@ -406,7 +406,7 @@ const FeedHeader = ({
                 <View style={styles.logo}>
                     <View style={styles.logo_image_ctnr}>
                         <Image
-                            source={require("../../../frontend/assets/logo_black.png")}
+                            source={require("../../../frontend/assets/logo_feed_black.png")}
                             style={styles.logo_image}
                         />
                     </View>
@@ -457,16 +457,21 @@ export default memo(FeedHeader);
 
 /* -------------------------------- Styles ------------------------------- */
 
+const NUDGE_Y = -s(3); // lift ~5px
+
+
 const styles = StyleSheet.create({
     main_ctnr: {
         width: "100%",
-        backgroundColor: "#fff",
+        backgroundColor: "#F7FAFF",
         flexDirection: "row",
         justifyContent: "center",
-        paddingTop: s(4), // small top padding in header
+        paddingTop: s(2),
         alignItems: "center",
         paddingHorizontal: dynamicStyles.paddingHorizontal,
+        transform: [{ translateY: NUDGE_Y }],            // ⬆️ lift
     },
+
     back_header: {
         width: "100%",
         backgroundColor: "#fff",
@@ -475,15 +480,17 @@ const styles = StyleSheet.create({
         paddingTop: s(6),
         paddingBottom: s(4),
         alignItems: "center",
+        transform: [{ translateY: NUDGE_Y }],            // ⬆️ lift
     },
+
     leftArea: {
         position: "absolute",
         left: dynamicStyles.paddingHorizontal,
-        top: s(6), // keep icon position consistent with header padding
+        top: s(6) + NUDGE_Y,                              // ⬆️ lift
     },
     centerArea: { justifyContent: "center", alignItems: "center" },
     logo: {
-        marginBottom: s(8),
+        // marginBottom: s(8),
         alignItems: "center",
         flexDirection: "row",
         paddingRight: s(11),
@@ -495,9 +502,11 @@ const styles = StyleSheet.create({
         flexDirection: "row",
         position: "absolute",
         right: dynamicStyles.paddingHorizontal,
-        top: s(6),
+        top: s(6) + NUDGE_Y,                              // ⬆️ lift
         alignItems: "center",
     },
+
+
     notificationBadge: {
         position: "absolute",
         right: -7.5,
@@ -522,11 +531,14 @@ const styles = StyleSheet.create({
         ...StyleSheet.absoluteFillObject,
         backgroundColor: "#F8FAFC",
     },
+    // (search overlay)
     modalContent: {
         flex: 1,
-        paddingHorizontal: dynamicStyles.paddingHorizontal, // horizontal padding
-        paddingTop: s(8), // top padding on overlay
+        paddingHorizontal: dynamicStyles.paddingHorizontal,
+        paddingTop: s(8),
+        transform: [{ translateY: NUDGE_Y }],            // ⬆️ lift overlay too
     },
+
 
     /* Top row with icon + input (keep icon aligned) */
     overlayBar: {
