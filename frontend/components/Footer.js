@@ -1,70 +1,85 @@
 import React from 'react';
 import { Pressable, StyleSheet, View } from 'react-native';
-import { Home, Cup, Weight, Profile } from 'iconsax-react-native';
-import { Feather, MaterialCommunityIcons } from '@expo/vector-icons';
+import { Home, Cup, Weight, Profile as ProfileIcon } from 'iconsax-react-native';
+import { MaterialCommunityIcons } from '@expo/vector-icons';
+
+const COLORS = {
+    active: '#000',
+    inactive: '#bbb',
+    workoutActive: '#2291FF',
+    workoutHalo: '#CCE7FF',
+    bg: '#fff',
+    hairline: 'rgba(2,6,23,0.06)',
+};
 
 const Footer = ({ navigation, currentScreenName }) => {
-    function navigateTo(screen, params = {}) {
-        if (!global.userData) return;
-        navigation.navigate(screen, params);
-    }
+    // If we're inside a Stack screen (e.g., Feed, MacroTracking), hop to the Tab navigator.
+    const tabNav = navigation.getParent?.() ?? navigation;
+
+    // Helper to navigate to a Tab route, optionally landing on a child screen inside that stack.
+    const goTab = (tabName, screen) => () => {
+        // If you truly need auth gating, guard here instead of hard-blocking all tabs:
+        // if (!global.userData && tabName !== 'AuthenticationStack') return;
+
+        if (screen) tabNav.navigate(tabName, { screen });
+        else tabNav.navigate(tabName);
+    };
 
     const getIconColor = (screenName) => {
-        if (screenName === 'Workout' && global.isCurrentlyWorkingOut) {
-            return '#2291FF';
-        }
-        return currentScreenName === screenName ? '#000' : '#bbb';
+        if (screenName === 'Workout' && global.isCurrentlyWorkingOut) return COLORS.workoutActive;
+        return currentScreenName === screenName ? COLORS.active : COLORS.inactive;
     };
 
-    const getWorkoutIndicatorStyle = () => {
-        return {
-            backgroundColor: global.isCurrentlyWorkingOut ? '#CCE7FF' : 'transparent',
-        };
-    };
+    const getWorkoutIndicatorStyle = () => ({
+        backgroundColor: global.isCurrentlyWorkingOut ? COLORS.workoutHalo : 'transparent',
+    });
 
     return (
-        <View style={styles.outer_view}>
+        <View style={styles.outer_view} pointerEvents="auto">
             <View style={styles.main_ctnr}>
+                {/* Feed (Stack tab → child Feed) */}
                 <View style={styles.icon_ctnr}>
-                    <Pressable onPress={() => navigateTo('Feed')}>
+                    <Pressable onPress={goTab('FeedStack', 'Feed')} hitSlop={10}>
                         <View style={currentScreenName === 'Feed' ? styles.selectedIcon : styles.icon}>
-                            <Home size="24.5" color={getIconColor('Feed')} variant="Bold" />
+                            <Home size={24.5} color={getIconColor('Feed')} variant="Bold" />
                         </View>
                     </Pressable>
                 </View>
 
+                {/* Macros (ExploreStack → MacroTracking) */}
                 <View style={styles.icon_ctnr}>
-                    <Pressable onPress={() => navigateTo('ExploreStack')}>
+                    <Pressable onPress={goTab('ExploreStack', 'MacroTracking')} hitSlop={10}>
                         <View style={currentScreenName === 'MacroTracking' ? styles.selectedIcon : styles.icon}>
-                            {/* <Feather name='search' size={23.5} color={getIconColor('Explore')} /> */}
-                            <MaterialCommunityIcons name='food-apple' size={26} color={getIconColor('MacroTracking')} />
-
+                            <MaterialCommunityIcons name="food-apple" size={26} color={getIconColor('MacroTracking')} />
                         </View>
                     </Pressable>
                 </View>
 
+                {/* Workout (direct tab) */}
                 <View style={styles.workout_icon_ctnr}>
                     <View style={[styles.workout_indicator_ctnr, getWorkoutIndicatorStyle()]}>
-                        <Pressable onPress={() => navigateTo('Workout')}>
+                        <Pressable onPress={goTab('Workout')} hitSlop={10}>
                             <View style={currentScreenName === 'Workout' ? styles.selectedIcon : styles.icon}>
-                                <Weight size="27.5" color={getIconColor('Workout')} variant='Bold' />
+                                <Weight size={27.5} color={getIconColor('Workout')} variant="Bold" />
                             </View>
                         </Pressable>
                     </View>
                 </View>
 
+                {/* Competition (CompetitionStack → Competition) */}
                 <View style={styles.icon_ctnr}>
-                    <Pressable onPress={() => navigateTo('CompetitionStack')}>
+                    <Pressable onPress={goTab('CompetitionStack', 'Competition')} hitSlop={10}>
                         <View style={currentScreenName === 'Competition' ? styles.selectedIcon : styles.icon}>
-                            <Cup size="24.5" color={getIconColor('Competition')} variant='Bold' />
+                            <Cup size={24.5} color={getIconColor('Competition')} variant="Bold" />
                         </View>
                     </Pressable>
                 </View>
 
+                {/* Profile (ProfileStack → Profile) */}
                 <View style={styles.icon_ctnr}>
-                    <Pressable onPress={() => navigateTo('ProfileStack', { screen: 'Profile' })}>
+                    <Pressable onPress={goTab('ProfileStack', 'Profile')} hitSlop={10}>
                         <View style={currentScreenName === 'Profile' ? styles.selectedIcon : styles.icon}>
-                            <Profile size="22.5" color={getIconColor('Profile')} variant="Bold" />
+                            <ProfileIcon size={22.5} color={getIconColor('Profile')} variant="Bold" />
                         </View>
                     </Pressable>
                 </View>
@@ -76,9 +91,7 @@ const Footer = ({ navigation, currentScreenName }) => {
 const styles = StyleSheet.create({
     outer_view: {
         position: 'absolute',
-        bottom: 0,
-        left: 0,
-        right: 0,
+        bottom: 0, left: 0, right: 0,
         height: 87,
     },
     main_ctnr: {
@@ -88,39 +101,24 @@ const styles = StyleSheet.create({
         height: '100%',
         paddingHorizontal: 13,
         paddingBottom: 13,
-        backgroundColor: '#fff',
+        backgroundColor: COLORS.bg,
         borderTopLeftRadius: 40,
         borderTopRightRadius: 40,
+
+        borderTopWidth: StyleSheet.hairlineWidth,
+        borderTopColor: COLORS.hairline,
 
         shadowColor: '#bbb',
         shadowOffset: { width: 0, height: -1 },
         shadowOpacity: 0.5,
         shadowRadius: 2,
-        elevation: 5
+        elevation: 5,
     },
-    icon_ctnr: {
-        flex: 1,
-        alignItems: 'center',
-        padding: 10,
-    },
-    workout_icon_ctnr: {
-        flex: 1,
-        alignItems: 'center',
-        paddingHorizontal: 10,
-        paddingVertical: 8.2,
-    },
-    workout_indicator_ctnr: {
-        borderRadius: 100,
-        padding: 3
-    },
-    icon: {
-        padding: 13.5,
-        borderRadius: 25,
-    },
-    selectedIcon: {
-        padding: 13.5,
-        borderRadius: 30,
-    },
+    icon_ctnr: { flex: 1, alignItems: 'center', padding: 10 },
+    workout_icon_ctnr: { flex: 1, alignItems: 'center', paddingHorizontal: 10, paddingVertical: 8.2 },
+    workout_indicator_ctnr: { borderRadius: 100, padding: 3 },
+    icon: { padding: 13.5, borderRadius: 25 },
+    selectedIcon: { padding: 13.5, borderRadius: 30 },
 });
 
 export default Footer;

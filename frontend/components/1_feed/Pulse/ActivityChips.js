@@ -1,13 +1,22 @@
 // components/1_Feed/Pulse/ActivityChips.js
+// Unified chips with right-aligned time (own line) + accent dot matching badge color.
+
 import React, { useEffect, useMemo, useRef, useState } from "react";
-import { FlatList, StyleSheet, Text, View, Dimensions, Platform, TouchableOpacity } from "react-native";
+import {
+    FlatList,
+    StyleSheet,
+    Text,
+    View,
+    Dimensions,
+    Platform,
+    TouchableOpacity,
+} from "react-native";
 import { collection, limit, onSnapshot, orderBy, query } from "firebase/firestore";
 import { MaterialCommunityIcons as Icon } from "@expo/vector-icons";
 import { Weight } from "iconsax-react-native";
 import FastImage from "react-native-fast-image";
 
 import { db } from "../../../../firebase.config";
-import scaleSize from "../../../helper/scaleSize";
 import { usePfp } from "../../../helper/usePFPs";
 
 /* ---------- sizing ---------- */
@@ -29,14 +38,12 @@ const toMillis = (t) => {
     return Number.isFinite(n) ? n : 0;
 };
 
-/* ---------- two types only ---------- */
 const TYPE_STYLES = {
-    workout: { badgeBg: "#bbd3ffff" },   // blue
-    leaderboard: { badgeBg: "#FDE68A", icon: "podium" },   // gold/yellow
+    workout: { badgeBg: "#2D9EFF", iconColor: "#fff" },
+    leaderboard: { badgeBg: "#FFB020", iconColor: "#fff", icon: "podium" },
 };
 const styleFor = (t) => TYPE_STYLES[t] ?? TYPE_STYLES.workout;
 
-/* ---------- time + text builders ---------- */
 const relTime = (ms) => {
     const d = Date.now() - ms;
     const m = Math.floor(d / 60000);
@@ -47,26 +54,17 @@ const relTime = (ms) => {
     const days = Math.floor(h / 24);
     return `${days}d`;
 };
-const ordinal = (n) => {
-    const x = Number(n);
-    if (!Number.isFinite(x)) return "";
-    const s = ["th", "st", "nd", "rd"], v = x % 100;
-    const suf = s[(v - 20) % 10] || s[v] || s[0];
-    return `${x}${suf}`;
-};
 
-const sentenceFromEvent = (ev) => {
+// Build display title + whether to emphasize
+const buildPrimary = (ev) => {
     if (ev?.type === "workout") {
-        const tpl =
-            ev?.templateName ||
-            ev?.template ||
-            ev?.workoutName ||
-            ev?.detail ||
-            "";
-        const name = String(tpl).trim();
-        return name ? `Hit ${name}` : "Worked out";
+        const raw = ev?.templateName || ev?.template || ev?.workoutName || ev?.detail || "";
+        const name = String(raw).trim();
+        if (name) return { text: name, emphasize: true };
+        return { text: "Workout", emphasize: false };
     }
-}
+    return { text: "Leaderboard", emphasize: false };
+};
 
 export default function ActivityChips({
     following = [...(global?.userData?.following || []), global?.userData].filter(Boolean),
@@ -74,9 +72,8 @@ export default function ActivityChips({
     onPressChip,
     maxUsers = 24,
     fallbackItems = [],
-    perUserLimit = 5, // <-- NEW: how many pulses per user to show
+    perUserLimit = 5,
 }) {
-    // uid -> Pulse[]
     const [map, setMap] = useState(new Map());
     const unsubs = useRef([]);
 
@@ -95,7 +92,7 @@ export default function ActivityChips({
                 const qy = query(
                     collection(db, "users", uid, "pulse"),
                     orderBy("ts", "desc"),
-                    limit(perUserLimit) // <-- CHANGED: grab multiple
+                    limit(perUserLimit)
                 );
                 return onSnapshot(
                     qy,
@@ -120,18 +117,12 @@ export default function ActivityChips({
     }, [JSON.stringify(following), maxUsers, perUserLimit]);
 
     const items = useMemo(() => {
-        // flatten all users' pulses
         const fromLive = Array.from(map.values()).flat();
-
-        // filter to the two supported types
         const filtered = fromLive.filter((e) => e?.type === "workout" || e?.type === "leaderboard");
-
-        // include fallback if nothing found
-        const base = filtered.length === 0 && Array.isArray(fallbackItems) && fallbackItems.length
-            ? fallbackItems.filter((e) => e?.type === "workout" || e?.type === "leaderboard")
-            : filtered;
-
-        // sort newest first
+        const base =
+            filtered.length === 0 && Array.isArray(fallbackItems) && fallbackItems.length
+                ? fallbackItems.filter((e) => e?.type === "workout" || e?.type === "leaderboard")
+                : filtered;
         return base.sort((a, b) => toMillis(b.ts) - toMillis(a.ts));
     }, [map, fallbackItems]);
 
@@ -141,7 +132,9 @@ export default function ActivityChips({
         <View style={styles.wrap}>
             <FlatList
                 data={items}
-                keyExtractor={(it, i) => String(it?.id ? `${it.uid}:${it.id}` : `${it?.uid ?? "f"}:${i}`)} // <-- stable keys
+                keyExtractor={(it, i) =>
+                    String(it?.id ? `${it.uid}:${it.id}` : `${it?.uid ?? "f"}:${i}`)
+                }
                 horizontal
                 showsHorizontalScrollIndicator={false}
                 removeClippedSubviews={false}
@@ -155,74 +148,47 @@ export default function ActivityChips({
     );
 }
 
-/* ---------- Chip (auto-width based on primary sentence; fixed height) ---------- */
-const AVATAR = scaleSize(35);
-const BADGE = ss(20);
-
-const H_PAD = ss(10);
-const GAP_AVATAR_TEXT = ss(8);
-const COPY_LEFT_MARGIN = 3;
-const EXTRA_FUDGE = 2;
-const CHEVRON_W = ss(14);
-const CHEVRON_GAP = ss(8);
-
-const MAX_CHIP_W = Math.round(W * 0.92);
-const MIN_CHIP_W = Math.max(140, AVATAR + 2 * H_PAD + CHEVRON_W + CHEVRON_GAP + 40);
-
+/* ---------- Single Chip ---------- */
+const AVATAR = ss(38);
+const BADGE = ss(21);
 const CHIP_H = AVATAR + ss(20);
 
 function Chip({ ev, navigation, onPressChip }) {
-    const pfpUri = usePfp(ev?.uid, ev?.pfpVersion ?? 0);
     const tint = styleFor(ev?.type);
     const timeMs = toMillis(ev?.ts);
-
-    const [chipW, setChipW] = useState(null);
-
-    const primary = sentenceFromEvent(ev);
     const rel = timeMs ? relTime(timeMs) : "";
 
-    // emphasize template name for workout events
-    const tplName =
-        ev?.type === "workout"
-            ? (ev?.templateName || ev?.template || ev?.workoutName || ev?.detail || "").trim()
-            : "";
+    const pfpHookUri = usePfp(ev?.uid, ev?.pfpVersion ?? ev?.version ?? 0);
+    const pfpUri = pfpHookUri || ev?.pfpUrl || ev?.pfp;
 
-
-    const onPrimaryTextLayout = (e) => {
-        const w = e?.nativeEvent?.lines?.[0]?.width;
-        if (!w) return;
-        const calc =
-            2 * H_PAD +
-            AVATAR + GAP_AVATAR_TEXT +
-            COPY_LEFT_MARGIN +
-            w + EXTRA_FUDGE +
-            CHEVRON_W + CHEVRON_GAP;
-        const finalW = Math.max(MIN_CHIP_W, Math.min(MAX_CHIP_W, Math.round(calc)));
-        if (chipW !== finalW) setChipW(finalW);
-    };
+    const { text, emphasize } = buildPrimary(ev);
 
     const handlePress = () => {
         if (onPressChip) return onPressChip(ev);
-        if (ev?.workoutId) {
-            navigation?.navigate?.("ViewWorkout", { workoutId: ev.workoutId, uid: ev.uid });
-        } else {
-            const user = { uid: ev?.uid, name: ev?.name, handle: ev?.handle };
-            navigation?.navigate?.(ev?.uid === global?.userData?.uid ? "Profile" : "ViewProfile", { user });
-        }
+        const user = { uid: ev?.uid, name: ev?.name, handle: ev?.handle };
+        navigation?.navigate?.(
+            ev?.uid === global?.userData?.uid ? "Profile" : "ViewProfile",
+            { user }
+        );
     };
 
     return (
         <TouchableOpacity
-            activeOpacity={0.85}
+            activeOpacity={0.88}
             onPress={handlePress}
-            style={[styles.chip, { height: CHIP_H }, chipW ? { width: chipW } : null]}
+            style={[styles.chip, { height: CHIP_H }]}
+            hitSlop={{ top: 4, bottom: 4, left: 2, right: 2 }}
         >
-            {/* Left: avatar with colored ring + badge */}
+            {/* Avatar + badge */}
             <View style={styles.avatarWrap}>
-                <View style={[styles.pfpMask, { borderColor: tint.badgeBg, borderWidth: 2.5 }]}>
+                <View style={[styles.pfpMask, { borderColor: "#DCE8FF", borderWidth: 2.5 }]}>
                     {pfpUri ? (
                         <FastImage
-                            source={{ uri: pfpUri, priority: FastImage.priority.normal, cache: FastImage.cacheControl.immutable }}
+                            source={{
+                                uri: pfpUri,
+                                priority: FastImage.priority.normal,
+                                cache: FastImage.cacheControl.immutable,
+                            }}
                             style={styles.pfp}
                             resizeMode={FastImage.resizeMode.cover}
                         />
@@ -231,67 +197,95 @@ function Chip({ ev, navigation, onPressChip }) {
                     )}
                 </View>
 
-                <View style={[styles.badge, { backgroundColor: tint.badgeBg }]}>
+                <View
+                    style={[
+                        styles.badge,
+                        {
+                            backgroundColor: tint.badgeBg,
+                            borderColor: "#FFFFFF",
+                            borderWidth: 2,
+                        },
+                    ]}
+                >
                     {ev?.type === "workout" ? (
-                        <Weight size={ss(11.5)} variant="Bold" color="rgba(0, 0, 0, 0.84)" />
+                        <Weight size={ss(10.5)} variant="Bold" color={tint.iconColor} />
                     ) : (
-                        <Icon name="podium" size={ss(12)} color="#0F172A" />
+                        <Icon name="podium" size={ss(12)} color={tint.iconColor} />
                     )}
                 </View>
             </View>
 
-            {/* Right: copy */}
+            {/* Copy: title (left) + time row (own line, right-aligned with accent dot) */}
             <View style={styles.copyCol}>
-                <Text numberOfLines={1} onTextLayout={onPrimaryTextLayout} style={styles.primary}>
-                    {ev?.type === "workout" && tplName
-                        ? <>{"Hit "}<Text style={styles.primaryEmphasis}>{tplName}</Text></>
-                        : primary}
-                </Text>
+                {emphasize ? (
+                    <Text numberOfLines={1} style={styles.primaryUnified}>
+                        <Text style={styles.primaryEmphasis}>{text}</Text>
+                    </Text>
+                ) : (
+                    <Text numberOfLines={1} style={styles.primaryUnified}>
+                        {text}
+                    </Text>
+                )}
 
                 {!!rel && (
-                    <Text numberOfLines={1} style={styles.secondary}>
-                        <Text style={{ color: tint.badgeBg }}>●</Text> {rel}
-                    </Text>
+                    <View style={styles.timeRowRight}>
+                        <View style={[styles.timeDot, { backgroundColor: tint.badgeBg }]} />
+                        <Text numberOfLines={1} style={styles.timeText}>
+                            {rel}
+                        </Text>
+                    </View>
                 )}
             </View>
 
-            {/* Chevron */}
-            <Icon name="chevron-right" size={ss(16)} color="#93A0B2" style={styles.trailing} />
+            {/* Prominent chevron */}
+            <View style={styles.chevWrap}>
+                <Icon name="chevron-right" size={ss(18)} color="#0F172A" />
+            </View>
         </TouchableOpacity>
     );
 }
 
-/* ---------- styles (unchanged) ---------- */
+/* ---------- styles ---------- */
 const styles = StyleSheet.create({
-    wrap: {
-        backgroundColor: "#F7FAFF",
-        paddingBottom: 10,
-        paddingTop: 6,
-        overflow: "visible",
-    },
+    wrap: { backgroundColor: "#F7FAFF", paddingBottom: 10, paddingTop: 6 },
     list: { overflow: "visible" },
-    listContent: {
-        paddingLeft: 14,
-        paddingRight: 8,
-        columnGap: 6,
-        overflow: "visible",
-    },
+    listContent: { paddingLeft: 14, paddingRight: 8, columnGap: 6 },
 
     chip: {
         flexDirection: "row",
         alignItems: "center",
         paddingVertical: ss(10),
-        paddingHorizontal: ss(10),
+        paddingLeft: ss(12),
+        paddingRight: ss(10),
         borderRadius: ss(16),
         backgroundColor: "#FFFFFF",
+        borderWidth: StyleSheet.hairlineWidth,
+        borderColor: "rgba(2,6,23,0.06)",
         ...Platform.select({
-            ios: { shadowColor: "#0F172A", shadowOpacity: 0.08, shadowRadius: 6, shadowOffset: { width: 2, height: 6 } },
-            android: { elevation: 4 },
+            ios: {
+                shadowColor: "#0F172A",
+                shadowOpacity: 0.06,
+                shadowRadius: 8,
+                shadowOffset: { width: 0, height: 4 },
+            },
+            android: { elevation: 3 },
         }),
     },
 
-    avatarWrap: { width: AVATAR, height: AVATAR, marginRight: GAP_AVATAR_TEXT, position: "relative", overflow: "visible" },
-    pfpMask: { width: AVATAR, height: AVATAR, borderRadius: AVATAR / 2, overflow: "hidden", backgroundColor: "#EDF1F7" },
+    avatarWrap: {
+        width: AVATAR,
+        height: AVATAR,
+        marginRight: ss(9),
+        position: "relative",
+        overflow: "visible",
+    },
+    pfpMask: {
+        width: AVATAR,
+        height: AVATAR,
+        borderRadius: AVATAR / 2.3,
+        overflow: "hidden",
+        backgroundColor: "#EDF1F7",
+    },
     pfp: { width: "100%", height: "100%" },
     pfp_placeholder: { backgroundColor: "#E6EBF2" },
 
@@ -310,26 +304,47 @@ const styles = StyleSheet.create({
         }),
     },
 
-    copyCol: { minWidth: 0, marginLeft: 3 },
-    primary: {
-        fontFamily: "Nunito_700Bold",
-        fontSize: 12.1,
+    copyCol: {
+        minWidth: 0,
+        flex: 1,
+        paddingRight: ss(10),
+    },
+    primaryUnified: {
+        fontFamily: "Outfit_700Bold",
+        fontSize: 13.5,
         color: "#0F172A",
-        alignSelf: "flex-end",
+        letterSpacing: 0.2,
     },
+    primaryEmphasis: { color: "#0499FE", fontFamily: "Outfit_800ExtraBold" },
 
-    primaryEmphasis: {
-        color: "#0499FE",
-        fontFamily: "Nunito_800ExtraBold",
-    },
-
-    secondary: {
+    // Time on its own line, right-aligned + accent dot
+    timeRowRight: {
         marginTop: ss(2),
-        fontFamily: "Nunito_700Bold",
-        fontSize: ss(11),
+        flexDirection: "row",
+        alignItems: "center",
+        justifyContent: "flex-end",
+        alignSelf: "stretch",
+        gap: 6,
+    },
+    timeDot: {
+        width: 6,
+        height: 6,
+        borderRadius: 3,
+    },
+    timeText: {
+        fontFamily: "Outfit_600SemiBold",
+        fontSize: 11.5,
         color: "#6B7280",
-        alignSelf: "flex-end",
     },
 
-    trailing: { marginLeft: ss(8) },
+    // Chevron
+    chevWrap: {
+        width: ss(26),
+        height: ss(26),
+        borderRadius: ss(13),
+        alignItems: "center",
+        justifyContent: "center",
+        backgroundColor: "#EEF3FF",
+        marginLeft: ss(2),
+    },
 });

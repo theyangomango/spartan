@@ -109,7 +109,7 @@ export default function App() {
 
             <NavigationContainer>
                 <Tab.Navigator
-                    initialRouteName={isAuthenticated ? 'FeedStack' : 'AuthenticationStack'}
+                    initialRouteName={isAuthenticated ? 'Workout' : 'AuthenticationStack'}
                     screenOptions={{
                         headerShown: false,
                         tabBarStyle: { display: 'none' },
@@ -122,7 +122,7 @@ export default function App() {
                         initialParams={{ uid: uidRef.current }}
                     />
                     <Tab.Screen name='CompetitionStack' component={CompetitionStack} />
-                    <Tab.Screen name='Workout' component={Workout} />
+                    <Tab.Screen name='Workout' component={Workout} initialParams={{ uid: uidRef.current }}/>
                     <Tab.Screen name='ExploreStack' component={ExploreStack} />
                     <Tab.Screen name='ProfileStack' component={ProfileStack} />
                     <Tab.Screen name='PostList' component={PostList} />
