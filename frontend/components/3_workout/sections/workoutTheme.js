@@ -10,13 +10,13 @@ export const FOOTER_HEIGHT = 87;
 export const BTN_SIZE = Math.round(W * 0.34);
 export const SMALL_SIZE = Math.round(W * 0.132);
 export const BTN_GAP = ss(20);
-export const ROW_WIDTH = BTN_SIZE + SMALL_SIZE * 2 + BTN_GAP * 2;
+export const ROW_WIDTH = BTN_SIZE + SMALL_SIZE * 2 + BTN_GAP * 2 + ss(15);
 
 /* Templates rail sizing — compact */
 export const TPL_HEIGHT = ss(100);
 export const DOTS_H = ss(10);
 export const TPL_CARD_H = TPL_HEIGHT - DOTS_H - ss(8);
-export const TPL_BOTTOM_GAP = ss(30);
+export const TPL_BOTTOM_GAP = ss(26);
 
 /* Blue palette (refined) */
 export const BLUE = {

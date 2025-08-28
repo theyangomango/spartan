@@ -1,8 +1,7 @@
 // screens/Workout.jsx
 // LiveNow + Nudges → (Calories ring, Mini Podium) → Templates rail → Nike-style START
-// START = empty or from selected template → opens NewWorkoutBottomSheet (same logic as your old component)
 
-import React, { useCallback, useEffect, useRef, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
     SafeAreaView,
     View,
@@ -13,30 +12,25 @@ import {
     Text,
     Platform,
     Alert,
+    InteractionManager,
 } from "react-native";
-import { Ionicons } from "@expo/vector-icons";
 import { AddSquare } from "iconsax-react-native";
 import { AnimatedCircularProgress } from "react-native-circular-progress";
-import FastImage from "react-native-fast-image";
 
 // Firestore
-import { setDoc, doc, serverTimestamp, onSnapshot } from "firebase/firestore";
+import { setDoc, doc, serverTimestamp } from "firebase/firestore";
 import { db } from "../../firebase.config";
 
 // Header
 import FeedHeader from "../components/1_Feed/FeedHeader";
-
-// Old-component helpers/components (same signatures)
 import Footer from "../components/Footer";
 
 // Sections
-import LiveNowBanner from "../components/3_Workout/sections/LiveNowBanner";
-import RecentNudges from "../components/3_Workout/sections/RecentNudges";
 import MiniPodium from "../components/3_Workout/sections/MiniPodium";
 import TemplatesRail from "../components/3_Workout/sections/TemplatesRail";
 import WeekCalendar from "../components/3_Workout/sections/WeekCalendar";
 
-// Theme (shared sizing/constants)
+// Theme
 import {
     ss,
     FOOTER_HEIGHT,
@@ -44,17 +38,26 @@ import {
     SMALL_SIZE,
     ROW_WIDTH,
     TPL_BOTTOM_GAP,
-    BLUE,
 } from "../components/3_Workout/sections/workoutTheme";
+
 import makeID from "../../backend/helper/makeID";
 import updateDoc from "../../backend/helper/firebase/updateDoc";
 import NewWorkoutBottomSheet from "../components/3_Workout/NewWorkout/NewWorkoutBottomSheet";
 import millisToHoursMinutesSeconds from "../helper/millisToHoursMinutesSeconds";
 
-// ---------- layout sizing ----------
+// Calories hook
+import { useFoodLogs } from "../hooks/useFoodLogs";
+
+// Hooks
+import useResolvedUid from "../hooks/useResolvedUID";
+import useUserDoc from "../hooks/useUserDoc";
+
+// Live PFP stack
+import LiveStack from "../components/3_Workout/LiveStack";
+
 const { width: W } = Dimensions.get("window");
 
-// Utility: ensure each template has a stable `tid`
+// ensure each template has a stable `tid`
 const normalizeTemplates = (arr) => {
     const list = Array.isArray(arr) ? arr : [];
     return list.map((t) => {
@@ -69,130 +72,16 @@ const normalizeTemplates = (arr) => {
     });
 };
 
-/* -------------------- Centered PFP stack (bigger, pressable-friendly)
-   - Anchored to the exact center of the white circular button via absolute
-     positioning + translate, so it remains centered even if it overflows.
-   - At most 2 visible slots:
-       • 1 user  → 1 big avatar
-       • 2 users → 2 avatars
-       • 3+      → 1 avatar + "+N" counter
-   - No accent dot. Thin white ring keeps overlaps clean. -------------------- */
-function LiveStack({ users = [] }) {
-    if (!users || users.length === 0) {
-        return <Ionicons name="home" size={18} color="#0F172A" />;
-    }
-
-    const hasOverflow = users.length > 2;
-    const show = hasOverflow ? users.slice(0, 1) : users.slice(0, 2);
-    const overflow = hasOverflow ? users.length - 1 : 0;
-    const slots = overflow > 0 ? 2 : show.length;
-
-    // Larger sizes so faces read well
-    const SINGLE_S = Math.round(SMALL_SIZE * 0.86); // one big face
-    const DOUBLE_S = Math.round(SMALL_SIZE * 0.74); // two-slot layout
-    const S = slots === 1 ? SINGLE_S : DOUBLE_S;
-    const OFFSET = Math.round(S * 0.6); // overlap
-
-    // Total width the stack occupies
-    const usedWidth = slots === 1 ? S : S + OFFSET;
-
-    return (
-        <View
-            pointerEvents="none"
-            style={{ width: SMALL_SIZE, height: SMALL_SIZE, overflow: "visible" }}
-        >
-            {/* Center the whole stack to the middle of the button */}
-            <View
-                style={[
-                    liveStack.centerWrap,
-                    {
-                        width: usedWidth,
-                        height: S,
-                        left: SMALL_SIZE / 2,
-                        top: SMALL_SIZE / 2,
-                        transform: [{ translateX: -usedWidth / 2 }, { translateY: -S / 2 }],
-                    },
-                ]}
-            >
-                {show.map((u, i) => (
-                    <View
-                        key={`${u?.pfp || "x"}-${i}`}
-                        style={[
-                            liveStack.pfp,
-                            { width: S, height: S, borderRadius: S / 2, left: i * OFFSET, top: 0 },
-                        ]}
-                    >
-                        <FastImage
-                            source={{
-                                uri: u?.pfp,
-                                priority: FastImage.priority.normal,
-                                cache: FastImage.cacheControl.immutable,
-                            }}
-                            style={{ width: "100%", height: "100%", borderRadius: S / 2 }}
-                        />
-                    </View>
-                ))}
-
-                {overflow > 0 && (
-                    <View
-                        style={[
-                            liveStack.counter,
-                            { width: S, height: S, borderRadius: S / 2, left: OFFSET, top: 0 },
-                        ]}
-                    >
-                        <Text style={liveStack.counterText}>
-                            {overflow > 9 ? "9+" : `+${overflow}`}
-                        </Text>
-                    </View>
-                )}
-            </View>
-        </View>
-    );
-}
-
-const liveStack = StyleSheet.create({
-    centerWrap: {
-        position: "absolute",
-    },
-    pfp: {
-        position: "absolute",
-        overflow: "hidden",
-        borderWidth: 2.5, // thin white ring to separate overlaps
-        borderColor: "#85baffff",
-        backgroundColor: "#fff",
-    },
-    counter: {
-        position: "absolute",
-        alignItems: "center",
-        justifyContent: "center",
-        backgroundColor: "rgba(15,23,42,0.92)",
-        borderWidth: 2.5,
-        borderColor: "#85baffff",
-    },
-    counterText: {
-        fontFamily: "Outfit_800ExtraBold",
-        fontSize: 13,
-        color: "#fff",
-        includeFontPadding: false,
-    },
-});
-
 export default function Workout({ navigation, route }) {
-    const uid = route?.params?.uid || global?.userData?.uid;
+    /* ---------- resolve uid & hydrate user ---------- */
+    const uid = useResolvedUid(route);
+    const user = useUserDoc(uid); // writes to global.userData, returns latest user doc (or null while loading)
+
+    /* ---------- ui & anim ---------- */
     const scaleAnim = useRef(new Animated.Value(0.92)).current;
-
-    // Provide refs for FeedHeader search suggestions (optional)
     const allUsersRef = useRef([]);
-
-    // Header actions
-    const toMessagesScreen = useCallback(() => {
-        navigation?.navigate("Messages");
-    }, [navigation]);
-
-    const onOpenNotifications = useCallback(() => {
-        navigation?.navigate("Notifications");
-    }, [navigation]);
-
+    const toMessagesScreen = useCallback(() => navigation?.navigate("Messages"), [navigation]);
+    const onOpenNotifications = useCallback(() => navigation?.navigate("Notifications"), [navigation]);
     const scrollToTop = useCallback(() => { }, []);
 
     useEffect(() => {
@@ -204,70 +93,38 @@ export default function Workout({ navigation, route }) {
         }).start();
     }, []);
 
-    /* -------- demo data (visuals) -------- */
-    const calories = 740;
-    const caloriesGoal = 2340;
+    /* ---------- calories (bind to uid) ---------- */
+    const baseTodayTs = useMemo(() => {
+        const d = new Date();
+        d.setHours(0, 0, 0, 0);
+        return d.getTime();
+    }, []);
+    const todayForHook = useMemo(() => new Date(baseTodayTs), [baseTodayTs, uid]);
+
+    const { totals } = useFoodLogs(todayForHook, uid);
+    const calories = Math.round(Math.max(0, totals?.calories || 0));
+    const caloriesGoal = useMemo(() => {
+        return (
+            user?.macroGoals?.calories ??
+            user?.macrosGoal?.calories ?? // legacy
+            2340
+        );
+    }, [user?.macroGoals?.calories, user?.macrosGoal?.calories]);
     const fill = Math.min(100, (calories / Math.max(1, caloriesGoal)) * 100);
 
-    const podiumData = [
-        { pfp: "https://i.pravatar.cc/200?img=1" },
-        { pfp: "https://i.pravatar.cc/200?img=2" },
-        { pfp: "https://i.pravatar.cc/200?img=3" },
-    ];
-    const podiumCaption = "Bench Press • 1RM";
-
-    // ---------- Templates (from backend) ----------
-    const [templates, setTemplates] = useState([
-        { id: "none", name: "No template selected", exercises: [], lastDate: null, isNone: true },
-    ]);
+    /* ---------- templates ---------- */
+    const templates = useMemo(() => {
+        const normalized = normalizeTemplates(user?.templates || []);
+        return [{ id: "none", name: "No template selected", exercises: [], lastDate: null, isNone: true }, ...normalized];
+    }, [user?.templates]);
     const [activeIdx, setActiveIdx] = useState(0);
 
-    // Subscribe to user's templates in Firestore (users/{uid}.templates)
-    useEffect(() => {
-        if (!uid) return;
-
-        const userRef = doc(db, "users", uid);
-        const unsub = onSnapshot(userRef, (snap) => {
-            const data = snap.data() || {};
-            const source =
-                Array.isArray(data.templates) && data.templates.length
-                    ? data.templates
-                    : Array.isArray(global?.userData?.templates)
-                        ? global.userData.templates
-                        : [];
-
-            const normalized = normalizeTemplates(source);
-            setTemplates([
-                { id: "none", name: "No template selected", exercises: [], lastDate: null, isNone: true },
-                ...normalized,
-            ]);
-
-            setActiveIdx((idx) => Math.max(0, Math.min(idx, normalized.length)));
-        });
-
-        return () => unsub();
-    }, [uid]);
-
-    // Live/recent now list (use your live source here)
-    const liveNow = [
-        { uid: "a1", pfp: "https://i.pravatar.cc/200?img=11" },
-        { uid: "a2", pfp: "https://i.pravatar.cc/200?img=12" },
-        { uid: "a3", pfp: "https://i.pravatar.cc/200?img=13" },
-    ];
-
-    const nudges = [
-        { id: "n1", primary: "Jess finished", accent: "Push", tail: "45m ago", templateId: "t1" },
-        { id: "n2", primary: "Arun PR’d on", accent: "Bench", tail: "1h ago", templateId: "t1" },
-        { id: "n3", primary: "Maya logged", accent: "Legs • Volume", tail: "2h ago", templateId: "t3" },
-    ];
-
-    /* ---------------- state for workout + bottom sheet (like old component) ---------------- */
+    /* ---------- workout state ---------- */
     const [workout, setWorkout] = useState(null);
     const [isNewWorkoutBottomSheetVisible, setIsNewWorkoutBottomSheetVisible] = useState(false);
-
-    // old-component timer semantics
     const workoutTimeInterval = useRef(null);
     const timerRef = useRef("00:00");
+    const startGuardRef = useRef(false); // tiny press guard
 
     useEffect(() => {
         if (workout?.created) {
@@ -279,7 +136,6 @@ export default function Workout({ navigation, route }) {
         return () => clearInterval(workoutTimeInterval.current);
     }, [workout?.created]);
 
-    // Firestore writer used by both start flows
     const createWorkoutDoc = useCallback(
         async (wid) => {
             await setDoc(
@@ -298,12 +154,17 @@ export default function Workout({ navigation, route }) {
         [uid]
     );
 
-    // ===== START — empty workout =====
-    const startNewWorkout = useCallback(async () => {
+    // ===== START — empty workout (optimistic + background writes) =====
+    const startNewWorkout = useCallback(() => {
+        if (startGuardRef.current) return;
+        startGuardRef.current = true;
+        setTimeout(() => (startGuardRef.current = false), 500);
+
         if (!uid) {
             Alert.alert("Sign in required", "Please log in to start a workout.");
             return;
         }
+
         try {
             if (!workout) {
                 global.isCurrentlyWorkingOut = true;
@@ -320,11 +181,16 @@ export default function Workout({ navigation, route }) {
                     PBs: 0,
                 };
 
-                await createWorkoutDoc(wid);
+                // Instant UI
                 setWorkout(newWorkout);
-                await updateDoc("users", uid, { currentWorkout: newWorkout });
-
                 setIsNewWorkoutBottomSheetVisible(true);
+
+                // Background persistence
+                InteractionManager.runAfterInteractions(() => {
+                    createWorkoutDoc(wid)
+                        .then(() => updateDoc("users", uid, { currentWorkout: newWorkout }))
+                        .catch((e) => console.log("startNewWorkout background writes error", e));
+                });
             } else {
                 setIsNewWorkoutBottomSheetVisible(true);
             }
@@ -334,9 +200,13 @@ export default function Workout({ navigation, route }) {
         }
     }, [uid, workout, createWorkoutDoc]);
 
-    // ===== START — from template =====
+    // ===== START — from template (optimistic + background writes) =====
     const startWorkoutFromTemplate = useCallback(
-        async (tplItem) => {
+        (tplItem) => {
+            if (startGuardRef.current) return;
+            startGuardRef.current = true;
+            setTimeout(() => (startGuardRef.current = false), 500);
+
             if (!uid) {
                 Alert.alert("Sign in required", "Please log in to start a workout.");
                 return;
@@ -360,11 +230,16 @@ export default function Workout({ navigation, route }) {
                         PBs: 0,
                     };
 
-                    await createWorkoutDoc(wid);
+                    // Instant UI
                     setWorkout(newWorkout);
-                    await updateDoc("users", uid, { currentWorkout: newWorkout });
-
                     setIsNewWorkoutBottomSheetVisible(true);
+
+                    // Background persistence
+                    InteractionManager.runAfterInteractions(() => {
+                        createWorkoutDoc(wid)
+                            .then(() => updateDoc("users", uid, { currentWorkout: newWorkout }))
+                            .catch((e) => console.log("startWorkoutFromTemplate background writes error", e));
+                    });
                 } else {
                     setIsNewWorkoutBottomSheetVisible(true);
                 }
@@ -376,17 +251,12 @@ export default function Workout({ navigation, route }) {
         [uid, workout, createWorkoutDoc, startNewWorkout]
     );
 
-    // START handler for the big button — chooses based on selected card
-    const onStartWorkout = useCallback(async () => {
+    const onStartWorkout = useCallback(() => {
         const selected = templates[Math.max(0, Math.min(activeIdx, templates.length - 1))];
-        if (!selected || selected.isNone) {
-            await startNewWorkout();
-        } else {
-            await startWorkoutFromTemplate(selected);
-        }
+        if (!selected || selected.isNone) startNewWorkout();
+        else startWorkoutFromTemplate(selected);
     }, [activeIdx, templates, startNewWorkout, startWorkoutFromTemplate]);
 
-    // ===== Bottom sheet callbacks =====
     const updateNewWorkout = useCallback((next) => setWorkout(next), []);
 
     const cancelWorkout = useCallback(async () => {
@@ -415,10 +285,28 @@ export default function Workout({ navigation, route }) {
         }
     }, [uid]);
 
+    /* ---------------- LONG-PRESS progress ring ---------------- */
+    const HOLD_MS = 650;                     // how long to hold
+    const [holdFill, setHoldFill] = useState(0); // 0..100 for progress ring
+
+    const handlePressIn = () => setHoldFill(100);     // animate to 100%
+    const handlePressOut = () => setHoldFill(0);      // reset if released early
+    const handleLongPress = () => {
+        onStartWorkout();
+        // brief success pause then clear ring
+        setTimeout(() => setHoldFill(0), 250);
+    };
+
     /* ---------------- render ---------------- */
+    const liveNow = [
+        { uid: "a1", pfp: "https://i.pravatar.cc/200?img=11" },
+        { uid: "a2", pfp: "https://i.pravatar.cc/200?img=12" },
+        { uid: "a3", pfp: "https://i.pravatar.cc/200?img=13" },
+    ];
+
     return (
         <SafeAreaView style={styles.root}>
-            {/* Feed Header */}
+            {/* Header */}
             <FeedHeader
                 toMessagesScreen={toMessagesScreen}
                 onOpenNotifications={onOpenNotifications}
@@ -429,7 +317,7 @@ export default function Workout({ navigation, route }) {
                 allUsersRef={allUsersRef}
             />
 
-            {/* Overview cards + Calendar */}
+            {/* Overview + Calendar */}
             <View style={styles.content}>
                 <WeekCalendar
                     macrosMap={global?.userData?.macrosCompleteMap || {}}
@@ -453,8 +341,8 @@ export default function Workout({ navigation, route }) {
                             >
                                 {() => (
                                     <View style={styles.ringCenter}>
-                                        <Text style={styles.kcalValue}>{calories}</Text>
-                                        <Text style={styles.kcalSub}>/ {caloriesGoal} kcal</Text>
+                                        <Text style={styles.kcalValue}>{calories.toLocaleString()}</Text>
+                                        <Text style={styles.kcalSub}>/ {caloriesGoal.toLocaleString()} kcal</Text>
                                     </View>
                                 )}
                             </AnimatedCircularProgress>
@@ -463,8 +351,8 @@ export default function Workout({ navigation, route }) {
 
                     {/* Mini Podium */}
                     <View style={styles.card}>
-                        <Text style={styles.podiumCaption}>{podiumCaption}</Text>
-                        <MiniPodium data={podiumData} />
+                        <Text style={styles.podiumCaption}>Bench Press • 1RM</Text>
+                        <MiniPodium data={[{ pfp: "https://i.pravatar.cc/200?img=1" }, { pfp: "https://i.pravatar.cc/200?img=2" }, { pfp: "https://i.pravatar.cc/200?img=3" }]} />
                     </View>
                 </View>
             </View>
@@ -482,7 +370,7 @@ export default function Workout({ navigation, route }) {
             {/* START cluster */}
             <View style={styles.clusterWrap} pointerEvents="box-none">
                 <View style={styles.actionsRow} pointerEvents="box-none">
-                    {/* Make a Post button */}
+                    {/* Make a Post */}
                     <Pressable
                         hitSlop={8}
                         android_ripple={{ color: "rgba(2,6,23,0.08)", radius: SMALL_SIZE / 2, borderless: true }}
@@ -494,19 +382,40 @@ export default function Workout({ navigation, route }) {
                         <AddSquare size={24} color="#000" />
                     </Pressable>
 
+                    {/* Long-press START with hold-progress ring */}
                     <Animated.View style={{ transform: [{ scale: scaleAnim }] }}>
-                        <Pressable
-                            onPress={onStartWorkout}
-                            hitSlop={10}
-                            style={({ pressed }) => [styles.startBtn, pressed && { transform: [{ scale: 0.98 }] }]}
-                            accessibilityRole="button"
-                            accessibilityLabel="Start workout"
-                        >
-                            <Text style={styles.startText}>START</Text>
-                        </Pressable>
+                        <View style={{ width: BTN_SIZE, height: BTN_SIZE, alignItems: "center", justifyContent: "center" }}>
+                            <Pressable
+                                onLongPress={handleLongPress}
+                                delayLongPress={HOLD_MS}
+                                onPressIn={handlePressIn}
+                                onPressOut={handlePressOut}
+                                hitSlop={10}
+                                style={({ pressed }) => [styles.startBtn, pressed && { transform: [{ scale: 0.98 }] }]}
+                                accessibilityRole="button"
+                                accessibilityLabel="Start workout"
+                            >
+                                <Text style={styles.startText}>START</Text>
+                            </Pressable>
+
+                            {/* progress ring overlay (non-blocking touches) */}
+                            <View style={styles.holdRing} pointerEvents="none">
+                                <AnimatedCircularProgress
+                                    size={BTN_SIZE + 18}
+                                    width={6}
+                                    fill={holdFill}
+                                    tintColor="#60A5FA"
+                                    backgroundColor="rgba(2,6,23,0.12)"
+                                    lineCap="round"
+                                    arcSweepAngle={360}
+                                    rotation={0}
+                                    tweenDuration={HOLD_MS}
+                                />
+                            </View>
+                        </View>
                     </Animated.View>
 
-                    {/* Friends live/recent PFP stack inside white circular button */}
+                    {/* Friends live/recent (in white button) */}
                     <Pressable
                         hitSlop={8}
                         android_ripple={{ color: "rgba(2,6,23,0.08)", radius: SMALL_SIZE / 2, borderless: true }}
@@ -542,13 +451,8 @@ export default function Workout({ navigation, route }) {
 /* ---------------- styles (root + cards + cluster) ---------------- */
 const styles = StyleSheet.create({
     root: { flex: 1, backgroundColor: "#F7FAFF" },
-
-    // Live + Nudges wrapper
-    liveWrap: { paddingTop: 6, paddingBottom: 6, paddingHorizontal: 16 },
-
     content: { flex: 1 },
 
-    /* Cards row under calendar */
     hubRow: { flexDirection: "row", gap: 12, paddingHorizontal: 16, marginTop: 6 },
     card: {
         flex: 1,
@@ -592,7 +496,6 @@ const styles = StyleSheet.create({
         fontFamily: "Outfit_600SemiBold",
     },
 
-    /* Templates rail placement (between cards and START) */
     templatesDock: {
         position: "absolute",
         left: 0,
@@ -600,12 +503,11 @@ const styles = StyleSheet.create({
         bottom: FOOTER_HEIGHT + ss(22) + BTN_SIZE + TPL_BOTTOM_GAP,
     },
 
-    /* START cluster */
     clusterWrap: {
         position: "absolute",
         left: 0,
         right: 0,
-        bottom: FOOTER_HEIGHT + ss(28),
+        bottom: FOOTER_HEIGHT + ss(20),
         alignItems: "center",
     },
     actionsRow: {
@@ -616,7 +518,6 @@ const styles = StyleSheet.create({
         marginBottom: 10,
     },
 
-    // Small circular buttons (now with clearer press feedback)
     smallBtn: {
         width: SMALL_SIZE,
         height: SMALL_SIZE,
@@ -625,18 +526,13 @@ const styles = StyleSheet.create({
         justifyContent: "center",
         backgroundColor: "#FFFFFF",
         ...Platform.select({
-            ios: {
-                shadowColor: "#000",
-                shadowOpacity: 0.08,
-                shadowRadius: 8,
-                shadowOffset: { width: 0, height: 4 },
-            },
+            ios: { shadowColor: "#000", shadowOpacity: 0.08, shadowRadius: 8, shadowOffset: { width: 0, height: 4 } },
             android: { elevation: 3 },
         }),
     },
     smallBtnPressed: {
         transform: [{ scale: 0.96 }],
-        backgroundColor: "#F1F5F9", // subtle tint on press (iOS)
+        backgroundColor: "#F1F5F9",
     },
 
     startBtn: {
@@ -660,5 +556,12 @@ const styles = StyleSheet.create({
         letterSpacing: 0.6,
         fontStyle: "italic",
         transform: [{ skewX: "-7deg" }],
+    },
+
+    // progress ring overlay for long press
+    holdRing: {
+        position: "absolute",
+        alignItems: "center",
+        justifyContent: "center",
     },
 });

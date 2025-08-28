@@ -77,7 +77,7 @@ const buildFromSnap = (snap) => {
     };
 };
 
-export function useFoodLogs(dateObj) {
+export function useFoodLogs(dateObj, userIdOverride) {
     const [meals, setMeals] = useState(emptyBuckets());
     const [totals, setTotals] = useState({ calories: 0, protein: 0, carbs: 0, fat: 0 });
 
@@ -86,7 +86,7 @@ export function useFoodLogs(dateObj) {
     const unsubRef = useRef(null);
 
     useEffect(() => {
-        const userId = global?.userData?.id || global?.userData?.uid;
+        const userId = userIdOverride ?? global?.userData?.id ?? global?.userData?.uid;
         if (!userId) return;
 
         const dk = toDayKey(dateObj);
@@ -132,14 +132,14 @@ export function useFoodLogs(dateObj) {
                 unsubRef.current = null;
             }
         };
-    }, [dateObj]);
+    }, [dateObj, userIdOverride]);
 
     /**
-     * Add a food entry.
-     * - Expects `food` in FatSecret shape.
-     * - If `food.__portionMultiplier` is provided, we pass it to parseMacrosFromDescription
-     *   so numbers are already scaled when saved & displayed.
-     */
+      * Add a food entry.
+      * - Expects `food` in FatSecret shape.
+      * - If `food.__portionMultiplier` is provided, we pass it to parseMacrosFromDescription
+      *   so numbers are already scaled when saved & displayed.
+      */
     const addFood = async (mealName, food) => {
         const userId = global?.userData?.id || global?.userData?.uid;
         if (!userId || !mealName) return;
