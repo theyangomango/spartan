@@ -15,12 +15,16 @@ import {
     Alert,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
+import { AddSquare } from "iconsax-react-native";
 import { AnimatedCircularProgress } from "react-native-circular-progress";
 import FastImage from "react-native-fast-image";
 
 // Firestore
 import { setDoc, doc, serverTimestamp, onSnapshot } from "firebase/firestore";
 import { db } from "../../firebase.config";
+
+// Header
+import FeedHeader from "../components/1_Feed/FeedHeader";
 
 // Old-component helpers/components (same signatures)
 import Footer from "../components/Footer";
@@ -30,6 +34,7 @@ import LiveNowBanner from "../components/3_Workout/sections/LiveNowBanner";
 import RecentNudges from "../components/3_Workout/sections/RecentNudges";
 import MiniPodium from "../components/3_Workout/sections/MiniPodium";
 import TemplatesRail from "../components/3_Workout/sections/TemplatesRail";
+import WeekCalendar from "../components/3_Workout/sections/WeekCalendar";
 
 // Theme (shared sizing/constants)
 import {
@@ -40,14 +45,14 @@ import {
     ROW_WIDTH,
     TPL_BOTTOM_GAP,
     BLUE,
-} from "../components/3_Workout/sections/workoutTheme"
+} from "../components/3_Workout/sections/workoutTheme";
 import makeID from "../../backend/helper/makeID";
 import updateDoc from "../../backend/helper/firebase/updateDoc";
 import NewWorkoutBottomSheet from "../components/3_Workout/NewWorkout/NewWorkoutBottomSheet";
 import millisToHoursMinutesSeconds from "../helper/millisToHoursMinutesSeconds";
 
 // ---------- layout sizing ----------
-const { width: W, height: H } = Dimensions.get("window");
+const { width: W } = Dimensions.get("window");
 
 // Utility: ensure each template has a stable `tid`
 const normalizeTemplates = (arr) => {
@@ -64,9 +69,131 @@ const normalizeTemplates = (arr) => {
     });
 };
 
+/* -------------------- Centered PFP stack (bigger, pressable-friendly)
+   - Anchored to the exact center of the white circular button via absolute
+     positioning + translate, so it remains centered even if it overflows.
+   - At most 2 visible slots:
+       • 1 user  → 1 big avatar
+       • 2 users → 2 avatars
+       • 3+      → 1 avatar + "+N" counter
+   - No accent dot. Thin white ring keeps overlaps clean. -------------------- */
+function LiveStack({ users = [] }) {
+    if (!users || users.length === 0) {
+        return <Ionicons name="home" size={18} color="#0F172A" />;
+    }
+
+    const hasOverflow = users.length > 2;
+    const show = hasOverflow ? users.slice(0, 1) : users.slice(0, 2);
+    const overflow = hasOverflow ? users.length - 1 : 0;
+    const slots = overflow > 0 ? 2 : show.length;
+
+    // Larger sizes so faces read well
+    const SINGLE_S = Math.round(SMALL_SIZE * 0.86); // one big face
+    const DOUBLE_S = Math.round(SMALL_SIZE * 0.74); // two-slot layout
+    const S = slots === 1 ? SINGLE_S : DOUBLE_S;
+    const OFFSET = Math.round(S * 0.6); // overlap
+
+    // Total width the stack occupies
+    const usedWidth = slots === 1 ? S : S + OFFSET;
+
+    return (
+        <View
+            pointerEvents="none"
+            style={{ width: SMALL_SIZE, height: SMALL_SIZE, overflow: "visible" }}
+        >
+            {/* Center the whole stack to the middle of the button */}
+            <View
+                style={[
+                    liveStack.centerWrap,
+                    {
+                        width: usedWidth,
+                        height: S,
+                        left: SMALL_SIZE / 2,
+                        top: SMALL_SIZE / 2,
+                        transform: [{ translateX: -usedWidth / 2 }, { translateY: -S / 2 }],
+                    },
+                ]}
+            >
+                {show.map((u, i) => (
+                    <View
+                        key={`${u?.pfp || "x"}-${i}`}
+                        style={[
+                            liveStack.pfp,
+                            { width: S, height: S, borderRadius: S / 2, left: i * OFFSET, top: 0 },
+                        ]}
+                    >
+                        <FastImage
+                            source={{
+                                uri: u?.pfp,
+                                priority: FastImage.priority.normal,
+                                cache: FastImage.cacheControl.immutable,
+                            }}
+                            style={{ width: "100%", height: "100%", borderRadius: S / 2 }}
+                        />
+                    </View>
+                ))}
+
+                {overflow > 0 && (
+                    <View
+                        style={[
+                            liveStack.counter,
+                            { width: S, height: S, borderRadius: S / 2, left: OFFSET, top: 0 },
+                        ]}
+                    >
+                        <Text style={liveStack.counterText}>
+                            {overflow > 9 ? "9+" : `+${overflow}`}
+                        </Text>
+                    </View>
+                )}
+            </View>
+        </View>
+    );
+}
+
+const liveStack = StyleSheet.create({
+    centerWrap: {
+        position: "absolute",
+    },
+    pfp: {
+        position: "absolute",
+        overflow: "hidden",
+        borderWidth: 2.5, // thin white ring to separate overlaps
+        borderColor: "#85baffff",
+        backgroundColor: "#fff",
+    },
+    counter: {
+        position: "absolute",
+        alignItems: "center",
+        justifyContent: "center",
+        backgroundColor: "rgba(15,23,42,0.92)",
+        borderWidth: 2.5,
+        borderColor: "#85baffff",
+    },
+    counterText: {
+        fontFamily: "Outfit_800ExtraBold",
+        fontSize: 13,
+        color: "#fff",
+        includeFontPadding: false,
+    },
+});
+
 export default function Workout({ navigation, route }) {
     const uid = route?.params?.uid || global?.userData?.uid;
     const scaleAnim = useRef(new Animated.Value(0.92)).current;
+
+    // Provide refs for FeedHeader search suggestions (optional)
+    const allUsersRef = useRef([]);
+
+    // Header actions
+    const toMessagesScreen = useCallback(() => {
+        navigation?.navigate("Messages");
+    }, [navigation]);
+
+    const onOpenNotifications = useCallback(() => {
+        navigation?.navigate("Notifications");
+    }, [navigation]);
+
+    const scrollToTop = useCallback(() => { }, []);
 
     useEffect(() => {
         Animated.spring(scaleAnim, {
@@ -102,11 +229,12 @@ export default function Workout({ navigation, route }) {
         const userRef = doc(db, "users", uid);
         const unsub = onSnapshot(userRef, (snap) => {
             const data = snap.data() || {};
-            // Prefer live user doc; fall back to global cache if missing
             const source =
                 Array.isArray(data.templates) && data.templates.length
                     ? data.templates
-                    : (Array.isArray(global?.userData?.templates) ? global.userData.templates : []);
+                    : Array.isArray(global?.userData?.templates)
+                        ? global.userData.templates
+                        : [];
 
             const normalized = normalizeTemplates(source);
             setTemplates([
@@ -114,19 +242,19 @@ export default function Workout({ navigation, route }) {
                 ...normalized,
             ]);
 
-            // Keep activeIdx in range
             setActiveIdx((idx) => Math.max(0, Math.min(idx, normalized.length)));
         });
 
         return () => unsub();
     }, [uid]);
 
-    // Live/nudges demo (empty arrays show empty states)
+    // Live/recent now list (use your live source here)
     const liveNow = [
         { uid: "a1", pfp: "https://i.pravatar.cc/200?img=11" },
         { uid: "a2", pfp: "https://i.pravatar.cc/200?img=12" },
         { uid: "a3", pfp: "https://i.pravatar.cc/200?img=13" },
     ];
+
     const nudges = [
         { id: "n1", primary: "Jess finished", accent: "Push", tail: "45m ago", templateId: "t1" },
         { id: "n2", primary: "Arun PR’d on", accent: "Bench", tail: "1h ago", templateId: "t1" },
@@ -170,7 +298,7 @@ export default function Workout({ navigation, route }) {
         [uid]
     );
 
-    // ===== START — empty workout (old behavior) =====
+    // ===== START — empty workout =====
     const startNewWorkout = useCallback(async () => {
         if (!uid) {
             Alert.alert("Sign in required", "Please log in to start a workout.");
@@ -206,7 +334,7 @@ export default function Workout({ navigation, route }) {
         }
     }, [uid, workout, createWorkoutDoc]);
 
-    // ===== START — from template (old behavior) =====
+    // ===== START — from template =====
     const startWorkoutFromTemplate = useCallback(
         async (tplItem) => {
             if (!uid) {
@@ -258,7 +386,7 @@ export default function Workout({ navigation, route }) {
         }
     }, [activeIdx, templates, startNewWorkout, startWorkoutFromTemplate]);
 
-    // ===== Bottom sheet callbacks (same names as your old component) =====
+    // ===== Bottom sheet callbacks =====
     const updateNewWorkout = useCallback((next) => setWorkout(next), []);
 
     const cancelWorkout = useCallback(async () => {
@@ -274,7 +402,7 @@ export default function Workout({ navigation, route }) {
         }
     }, [uid]);
 
-    const finishNewWorkout = useCallback(async (completed) => {
+    const finishNewWorkout = useCallback(async () => {
         try {
             global.isCurrentlyWorkingOut = false;
             clearInterval(workoutTimeInterval.current);
@@ -282,7 +410,6 @@ export default function Workout({ navigation, route }) {
             setIsNewWorkoutBottomSheetVisible(false);
             setWorkout(null);
             if (uid) await updateDoc("users", uid, { currentWorkout: null });
-            // Optionally navigate to summary/post flow
         } catch (e) {
             console.log("finishNewWorkout error", e);
         }
@@ -291,24 +418,24 @@ export default function Workout({ navigation, route }) {
     /* ---------------- render ---------------- */
     return (
         <SafeAreaView style={styles.root}>
-            {/* Live + Nudges */}
-            <View style={styles.liveWrap}>
-                <LiveNowBanner
-                    users={liveNow}
-                    onView={() => Alert.alert("View", "Open live view")}
-                    onCheer={() => Alert.alert("Cheer sent!")}
-                />
-                <RecentNudges
-                    items={nudges}
-                    onStartTemplate={(templateId) => {
-                        const tpl = templates.find((t) => (t.tid || t.id) === templateId);
-                        startWorkoutFromTemplate(tpl || { id: templateId });
-                    }}
-                />
-            </View>
+            {/* Feed Header */}
+            <FeedHeader
+                toMessagesScreen={toMessagesScreen}
+                onOpenNotifications={onOpenNotifications}
+                backButton={false}
+                onBackPress={() => navigation?.goBack?.()}
+                scrollToTop={scrollToTop}
+                navigation={navigation}
+                allUsersRef={allUsersRef}
+            />
 
-            {/* Overview cards */}
+            {/* Overview cards + Calendar */}
             <View style={styles.content}>
+                <WeekCalendar
+                    macrosMap={global?.userData?.macrosCompleteMap || {}}
+                    workoutsMap={global?.userData?.workoutsByDate || {}}
+                />
+
                 <View style={styles.hubRow}>
                     {/* Calories */}
                     <View style={styles.card}>
@@ -355,8 +482,16 @@ export default function Workout({ navigation, route }) {
             {/* START cluster */}
             <View style={styles.clusterWrap} pointerEvents="box-none">
                 <View style={styles.actionsRow} pointerEvents="box-none">
-                    <Pressable style={styles.smallBtn} hitSlop={8} onPress={() => Alert.alert("Settings")}>
-                        <Ionicons name="settings-outline" size={18} color="#0F172A" />
+                    {/* Make a Post button */}
+                    <Pressable
+                        hitSlop={8}
+                        android_ripple={{ color: "rgba(2,6,23,0.08)", radius: SMALL_SIZE / 2, borderless: true }}
+                        accessibilityRole="button"
+                        accessibilityLabel="Create a post"
+                        style={({ pressed }) => [styles.smallBtn, pressed && styles.smallBtnPressed]}
+                        onPress={() => navigation?.navigate("ProfileStack", { screen: "SelectPhotos" })}
+                    >
+                        <AddSquare size={24} color="#000" />
                     </Pressable>
 
                     <Animated.View style={{ transform: [{ scale: scaleAnim }] }}>
@@ -371,8 +506,16 @@ export default function Workout({ navigation, route }) {
                         </Pressable>
                     </Animated.View>
 
-                    <Pressable style={styles.smallBtn} hitSlop={8} onPress={() => Alert.alert("Music")}>
-                        <Ionicons name="home" size={18} color="#0F172A" />
+                    {/* Friends live/recent PFP stack inside white circular button */}
+                    <Pressable
+                        hitSlop={8}
+                        android_ripple={{ color: "rgba(2,6,23,0.08)", radius: SMALL_SIZE / 2, borderless: true }}
+                        accessibilityRole="button"
+                        accessibilityLabel="Friends training now"
+                        style={({ pressed }) => [styles.smallBtn, pressed && styles.smallBtnPressed]}
+                        onPress={() => Alert.alert("Friends", "Friends training now")}
+                    >
+                        <LiveStack users={liveNow} />
                     </Pressable>
                 </View>
             </View>
@@ -405,6 +548,7 @@ const styles = StyleSheet.create({
 
     content: { flex: 1 },
 
+    /* Cards row under calendar */
     hubRow: { flexDirection: "row", gap: 12, paddingHorizontal: 16, marginTop: 6 },
     card: {
         flex: 1,
@@ -461,7 +605,7 @@ const styles = StyleSheet.create({
         position: "absolute",
         left: 0,
         right: 0,
-        bottom: FOOTER_HEIGHT + ss(22),
+        bottom: FOOTER_HEIGHT + ss(28),
         alignItems: "center",
     },
     actionsRow: {
@@ -471,6 +615,8 @@ const styles = StyleSheet.create({
         justifyContent: "space-between",
         marginBottom: 10,
     },
+
+    // Small circular buttons (now with clearer press feedback)
     smallBtn: {
         width: SMALL_SIZE,
         height: SMALL_SIZE,
@@ -478,13 +624,21 @@ const styles = StyleSheet.create({
         alignItems: "center",
         justifyContent: "center",
         backgroundColor: "#FFFFFF",
-        borderWidth: StyleSheet.hairlineWidth,
-        borderColor: "rgba(2,6,23,0.08)",
         ...Platform.select({
-            ios: { shadowColor: "#000", shadowOpacity: 0.06, shadowRadius: 8, shadowOffset: { width: 0, height: 4 } },
-            android: { elevation: 2 },
+            ios: {
+                shadowColor: "#000",
+                shadowOpacity: 0.08,
+                shadowRadius: 8,
+                shadowOffset: { width: 0, height: 4 },
+            },
+            android: { elevation: 3 },
         }),
     },
+    smallBtnPressed: {
+        transform: [{ scale: 0.96 }],
+        backgroundColor: "#F1F5F9", // subtle tint on press (iOS)
+    },
+
     startBtn: {
         width: BTN_SIZE,
         height: BTN_SIZE,

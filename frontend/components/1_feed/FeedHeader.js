@@ -457,8 +457,8 @@ export default memo(FeedHeader);
 
 /* -------------------------------- Styles ------------------------------- */
 
-const NUDGE_Y = -s(3); // lift ~5px
-
+/** NUDGE: switch from translateY(-s(3)) to margin-based s(5) (≈8px down) */
+const NUDGE_MARGIN = s(5);
 
 const styles = StyleSheet.create({
     main_ctnr: {
@@ -467,9 +467,10 @@ const styles = StyleSheet.create({
         flexDirection: "row",
         justifyContent: "center",
         paddingTop: s(2),
+        paddingBottom: s(10),
         alignItems: "center",
         paddingHorizontal: dynamicStyles.paddingHorizontal,
-        transform: [{ translateY: NUDGE_Y }],            // ⬆️ lift
+        marginTop: NUDGE_MARGIN,                           // ⬇️ push down
     },
 
     back_header: {
@@ -480,17 +481,16 @@ const styles = StyleSheet.create({
         paddingTop: s(6),
         paddingBottom: s(4),
         alignItems: "center",
-        transform: [{ translateY: NUDGE_Y }],            // ⬆️ lift
+        marginTop: NUDGE_MARGIN,                           // ⬇️ push down
     },
 
     leftArea: {
         position: "absolute",
         left: dynamicStyles.paddingHorizontal,
-        top: s(6) + NUDGE_Y,                              // ⬆️ lift
+        top: NUDGE_MARGIN,                          // keep same spacing, shifted down
     },
     centerArea: { justifyContent: "center", alignItems: "center" },
     logo: {
-        // marginBottom: s(8),
         alignItems: "center",
         flexDirection: "row",
         paddingRight: s(11),
@@ -502,10 +502,9 @@ const styles = StyleSheet.create({
         flexDirection: "row",
         position: "absolute",
         right: dynamicStyles.paddingHorizontal,
-        top: s(6) + NUDGE_Y,                              // ⬆️ lift
+        top: NUDGE_MARGIN,                          // keep same spacing, shifted down
         alignItems: "center",
     },
-
 
     notificationBadge: {
         position: "absolute",
@@ -536,9 +535,8 @@ const styles = StyleSheet.create({
         flex: 1,
         paddingHorizontal: dynamicStyles.paddingHorizontal,
         paddingTop: s(8),
-        transform: [{ translateY: NUDGE_Y }],            // ⬆️ lift overlay too
+        marginTop: NUDGE_MARGIN,                           // ⬇️ align overlay with header shift
     },
-
 
     /* Top row with icon + input (keep icon aligned) */
     overlayBar: {

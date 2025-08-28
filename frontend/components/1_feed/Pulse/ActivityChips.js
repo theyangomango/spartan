@@ -151,7 +151,7 @@ export default function ActivityChips({
 /* ---------- Single Chip ---------- */
 const AVATAR = ss(38);
 const BADGE = ss(21);
-const CHIP_H = AVATAR + ss(20);
+const CHIP_H = AVATAR + ss(28);
 
 function Chip({ ev, navigation, onPressChip }) {
     const tint = styleFor(ev?.type);
@@ -247,7 +247,7 @@ function Chip({ ev, navigation, onPressChip }) {
 
 /* ---------- styles ---------- */
 const styles = StyleSheet.create({
-    wrap: { backgroundColor: "#F7FAFF", paddingBottom: 10, paddingTop: 6 },
+    wrap: { backgroundColor: "#F7FAFF", paddingBottom: 22, paddingTop: 6 },
     list: { overflow: "visible" },
     listContent: { paddingLeft: 14, paddingRight: 8, columnGap: 6 },
 

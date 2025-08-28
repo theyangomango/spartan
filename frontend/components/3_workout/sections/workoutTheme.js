@@ -16,7 +16,7 @@ export const ROW_WIDTH = BTN_SIZE + SMALL_SIZE * 2 + BTN_GAP * 2;
 export const TPL_HEIGHT = ss(100);
 export const DOTS_H = ss(10);
 export const TPL_CARD_H = TPL_HEIGHT - DOTS_H - ss(8);
-export const TPL_BOTTOM_GAP = ss(26);
+export const TPL_BOTTOM_GAP = ss(30);
 
 /* Blue palette (refined) */
 export const BLUE = {
