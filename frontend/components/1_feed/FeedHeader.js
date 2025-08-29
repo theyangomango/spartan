@@ -1,3 +1,4 @@
+// components/1_Feed/FeedHeader.jsx
 import React, { memo, useEffect, useRef, useState, useCallback, useMemo } from "react";
 import {
     StyleSheet,
@@ -17,22 +18,19 @@ import {
 import { Ionicons, MaterialIcons } from "@expo/vector-icons";
 import RNBounceable from "@freakycoder/react-native-bounceable";
 import Svg, { Path } from "react-native-svg";
+import { Weight } from "iconsax-react-native";
 import { getFeedHeaderStyles } from "../../helper/getFeedHeaderStyles";
 import { db } from "../../../firebase.config";
-import {
-    collection,
-    query,
-    where,
-    onSnapshot,
-    getDocs,
-    orderBy,
-    limit,
-} from "firebase/firestore";
+import { collection, query, where, onSnapshot, getDocs, orderBy, limit } from "firebase/firestore";
 
 const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get("window");
 const dynamicStyles = getFeedHeaderStyles(SCREEN_WIDTH, SCREEN_HEIGHT);
 const scale = SCREEN_WIDTH / 375;
 const s = (n) => Math.round(n * scale);
+
+/* ---------- constants to lock header height ---------- */
+const CENTER_SLOT_H = s(32); // fixed center row height (pill/logo fit inside)
+const NUDGE_MARGIN = s(5);   // matches your previous nudge
 
 /* ------------------------------ Debounce ------------------------------ */
 const useDebounce = (fn, delay = 220) => {
@@ -78,8 +76,8 @@ const Highlighted = ({ text = "", query = "", style, highlightStyle }) => {
     );
 };
 
-/* --------------------------- ProfileCard (full-width, internal padding) --------------------------- */
-const ProfileCard = memo(({ user, query, onPress }) => {
+/* --------------------------- ProfileCard --------------------------- */
+const ProfileCard = React.memo(({ user, query, onPress }) => {
     const avatarSize = s(44);
     const hasPfp = !!user?.pfp;
 
@@ -87,10 +85,7 @@ const ProfileCard = memo(({ user, query, onPress }) => {
         <RNBounceable onPress={onPress} style={styles.profileCard} bounceEffectIn={0.96}>
             <View style={styles.profileLeft}>
                 <View
-                    style={[
-                        styles.avatarRing,
-                        { width: avatarSize, height: avatarSize, borderRadius: avatarSize / 2 },
-                    ]}
+                    style={[styles.avatarRing, { width: avatarSize, height: avatarSize, borderRadius: avatarSize / 2 }]}
                 >
                     {hasPfp ? (
                         <Image
@@ -129,14 +124,13 @@ const ProfileCard = memo(({ user, query, onPress }) => {
     );
 });
 
-/* --------------------------- Full-takeover Search (simple, padded) --------------------------- */
+/* --------------------------- Full-takeover Search --------------------------- */
 const SearchUsersBar = ({ navigation, allUsersRef, disabled = false }) => {
     const [visible, setVisible] = useState(false);
-    const [modalKey, setModalKey] = useState(0); // ensure reliable open
+    const [modalKey, setModalKey] = useState(0);
     const [qStr, setQStr] = useState("");
     const [results, setResults] = useState([]);
 
-    // Suggested users (when no query)
     const suggestions = useMemo(() => {
         const arr = (allUsersRef?.current || [])
             .filter((u) => u?.uid && u.uid !== global?.userData?.uid)
@@ -156,7 +150,6 @@ const SearchUsersBar = ({ navigation, allUsersRef, disabled = false }) => {
         setResults([]);
     }, []);
 
-    // Search sources
     const localFilter = (text) => {
         const all = allUsersRef?.current || [];
         const needle = (text || "").toLowerCase();
@@ -220,17 +213,10 @@ const SearchUsersBar = ({ navigation, allUsersRef, disabled = false }) => {
 
     return (
         <>
-            {/* Header icon (always visible, even when searching) */}
-            <RNBounceable
-                onPress={open}
-                bounceEffectIn={0.5}
-                style={styles.searchIconBtn}
-                accessibilityLabel="Search users"
-            >
+            <RNBounceable onPress={open} bounceEffectIn={0.5} style={styles.searchIconBtn} accessibilityLabel="Search users">
                 <Ionicons name="search" size={dynamicStyles.iconSize} color="#6B7280" />
             </RNBounceable>
 
-            {/* Simple full-takeover (no fancy animations) */}
             <Modal
                 key={modalKey}
                 visible={visible}
@@ -240,7 +226,6 @@ const SearchUsersBar = ({ navigation, allUsersRef, disabled = false }) => {
                 onRequestClose={close}
             >
                 <View style={styles.modalContainer}>
-                    {/* Solid canvas hides the feed entirely */}
                     <TouchableWithoutFeedback onPress={close}>
                         <View style={styles.canvasFill} />
                     </TouchableWithoutFeedback>
@@ -250,13 +235,11 @@ const SearchUsersBar = ({ navigation, allUsersRef, disabled = false }) => {
                         behavior={Platform.OS === "ios" ? "padding" : undefined}
                     >
                         <SafeAreaView style={styles.modalContent} pointerEvents="box-none">
-                            {/* Top row: keep the search icon position; add top padding globally */}
                             <View style={styles.overlayBar}>
                                 <View style={styles.overlayLeftIcon}>
                                     <Ionicons name="search" size={dynamicStyles.iconSize} color="#6B7280" />
                                 </View>
 
-                                {/* Clean pill input (no inner icon) */}
                                 <View style={styles.overlayInputWrap}>
                                     <TextInput
                                         style={styles.overlayInput}
@@ -280,7 +263,6 @@ const SearchUsersBar = ({ navigation, allUsersRef, disabled = false }) => {
                                 </View>
                             </View>
 
-                            {/* Content (top + horizontal padding via container styles) */}
                             {qStr ? (
                                 results.length > 0 ? (
                                     <View style={styles.resultsWrap}>
@@ -297,12 +279,7 @@ const SearchUsersBar = ({ navigation, allUsersRef, disabled = false }) => {
                                                             navigation?.navigate("Profile");
                                                         } else {
                                                             navigation?.navigate("ViewProfile", {
-                                                                user: {
-                                                                    uid: item.uid,
-                                                                    handle: item.handle,
-                                                                    name: item.name,
-                                                                    pfp: item.pfp,
-                                                                },
+                                                                user: { uid: item.uid, handle: item.handle, name: item.name, pfp: item.pfp },
                                                             });
                                                         }
                                                         close();
@@ -336,12 +313,7 @@ const SearchUsersBar = ({ navigation, allUsersRef, disabled = false }) => {
                                                         navigation?.navigate("Profile");
                                                     } else {
                                                         navigation?.navigate("ViewProfile", {
-                                                            user: {
-                                                                uid: item.uid,
-                                                                handle: item.handle,
-                                                                name: item.name,
-                                                                pfp: item.pfp,
-                                                            },
+                                                            user: { uid: item.uid, handle: item.handle, name: item.name, pfp: item.pfp },
                                                         });
                                                     }
                                                     close();
@@ -364,6 +336,16 @@ const SearchUsersBar = ({ navigation, allUsersRef, disabled = false }) => {
 
 /* ----------------------------- FeedHeader ----------------------------- */
 
+const formatHMS = (ms) => {
+    const total = Math.max(0, Math.floor(ms / 1000));
+    const h = Math.floor(total / 3600);
+    const m = Math.floor((total % 3600) / 60);
+    const s = total % 60;
+    const pad2 = (n) => String(n).padStart(2, "0");
+    if (h === 0) return `${pad2(m)}:${pad2(s)}`;
+    return `${h}:${pad2(m)}:${pad2(s)}`;
+};
+
 const FeedHeader = ({
     toMessagesScreen,
     onOpenNotifications,
@@ -372,9 +354,39 @@ const FeedHeader = ({
     scrollToTop,
     navigation,
     allUsersRef,
+
+    // workout pill
+    workout,
+    openCurrentWorkout,
+    timerRef,
 }) => {
     const [unreadCount, setUnreadCount] = useState(0);
     const user = global.userData;
+
+    const rawWorkout = workout ?? global?.userData?.currentWorkout ?? null;
+
+    const isWorkoutActive = useMemo(() => {
+        if (!rawWorkout || !rawWorkout.wid) return false;
+        if (global?.isCurrentlyWorkingOut) return true;
+        if (timerRef?.current && timerRef.current !== "00:00") return true;
+        if (typeof rawWorkout.created === "number" && rawWorkout.created > 0) {
+            const twelveHours = 12 * 60 * 60 * 1000;
+            return Date.now() - rawWorkout.created < twelveHours;
+        }
+        return false;
+    }, [rawWorkout?.wid, rawWorkout?.created, timerRef?.current]);
+
+    const [elapsed, setElapsed] = useState("00:00");
+    useEffect(() => {
+        if (!isWorkoutActive) return;
+        if (timerRef?.current) setElapsed(timerRef.current);
+        else if (rawWorkout?.created) setElapsed(formatHMS(Date.now() - rawWorkout.created));
+        const id = setInterval(() => {
+            if (timerRef?.current) setElapsed(timerRef.current);
+            else if (rawWorkout?.created) setElapsed(formatHMS(Date.now() - rawWorkout.created));
+        }, 1000);
+        return () => clearInterval(id);
+    }, [isWorkoutActive, rawWorkout?.created, timerRef]);
 
     useEffect(() => {
         if (!user?.uid) return;
@@ -396,25 +408,37 @@ const FeedHeader = ({
 
     return (
         <View style={[styles.main_ctnr]}>
-            {/* Left: Search (icon always visible) */}
+            {/* Left: Search */}
             <View style={styles.leftArea}>
                 <SearchUsersBar navigation={navigation} allUsersRef={allUsersRef} />
             </View>
 
-            {/* Center: Logo/title */}
-            <RNBounceable onPress={scrollToTop} style={styles.centerArea}>
-                <View style={styles.logo}>
-                    <View style={styles.logo_image_ctnr}>
-                        <Image
-                            source={require("../../../frontend/assets/logo_feed_black.png")}
-                            style={styles.logo_image}
-                        />
-                    </View>
-                    <Text style={[styles.logo_text, { fontSize: dynamicStyles.logoTextFontSize }]}>
-                        SPARTAN
-                    </Text>
+            {/* Center: fixed-height slot so header never changes height */}
+            <View style={styles.centerArea}>
+                <View style={styles.centerSlot}>
+                    {isWorkoutActive ? (
+                        <RNBounceable
+                            onPress={() => (openCurrentWorkout ? openCurrentWorkout() : navigation?.navigate?.("Workout"))}
+                            style={styles.resumeBtnBlue}
+                            accessibilityLabel={`Open ongoing workout, elapsed ${elapsed}`}
+                        >
+                            <Weight size={s(16)} color="#FFFFFF" variant="Bold" />
+                            <View style={styles.dotBlue} />
+                            <Text style={styles.resumeTimeBlue}>{elapsed}</Text>
+                        </RNBounceable>
+                    ) : (
+                        <RNBounceable onPress={scrollToTop} style={styles.logoWrap}>
+                            <View style={styles.logo_image_ctnr}>
+                                <Image
+                                    source={require("../../../frontend/assets/logo_feed_black.png")}
+                                    style={styles.logo_image}
+                                />
+                            </View>
+                            <Text style={styles.logo_text}>SPARTAN</Text>
+                        </RNBounceable>
+                    )}
                 </View>
-            </RNBounceable>
+            </View>
 
             {/* Right: notifications + messages */}
             <View style={styles.right_icons}>
@@ -442,11 +466,7 @@ const FeedHeader = ({
                 </RNBounceable>
 
                 <RNBounceable onPress={toMessagesScreen} style={styles.message_button}>
-                    <MaterialIcons
-                        name="alternate-email"
-                        size={dynamicStyles.iconSize + 1.5}
-                        color={"#cbd5e1"}
-                    />
+                    <MaterialIcons name="alternate-email" size={dynamicStyles.iconSize + 1.5} color={"#cbd5e1"} />
                 </RNBounceable>
             </View>
         </View>
@@ -456,9 +476,6 @@ const FeedHeader = ({
 export default memo(FeedHeader);
 
 /* -------------------------------- Styles ------------------------------- */
-
-/** NUDGE: switch from translateY(-s(3)) to margin-based s(5) (≈8px down) */
-const NUDGE_MARGIN = s(5);
 
 const styles = StyleSheet.create({
     main_ctnr: {
@@ -470,7 +487,7 @@ const styles = StyleSheet.create({
         paddingBottom: s(10),
         alignItems: "center",
         paddingHorizontal: dynamicStyles.paddingHorizontal,
-        marginTop: NUDGE_MARGIN,                           // ⬇️ push down
+        marginTop: NUDGE_MARGIN,
     },
 
     back_header: {
@@ -481,28 +498,80 @@ const styles = StyleSheet.create({
         paddingTop: s(6),
         paddingBottom: s(4),
         alignItems: "center",
-        marginTop: NUDGE_MARGIN,                           // ⬇️ push down
+        marginTop: NUDGE_MARGIN,
     },
 
     leftArea: {
         position: "absolute",
         left: dynamicStyles.paddingHorizontal,
-        top: NUDGE_MARGIN,                          // keep same spacing, shifted down
+        top: NUDGE_MARGIN,
     },
+
     centerArea: { justifyContent: "center", alignItems: "center" },
-    logo: {
+
+    /* Fixed-height slot ensures header height never changes */
+    centerSlot: {
+        height: CENTER_SLOT_H,
+        minWidth: s(140), // keeps layout stable so logo/pill swap doesn't shift neighbors
         alignItems: "center",
+        justifyContent: "center",
+    },
+
+    /* Logo (fit inside fixed slot) */
+    logoWrap: {
+        height: "100%",
         flexDirection: "row",
-        paddingRight: s(11),
+        alignItems: "center",
+        paddingHorizontal: s(10),
     },
     logo_image_ctnr: { justifyContent: "center", alignItems: "center" },
-    logo_image: { width: s(27), height: s(28) },
-    logo_text: { paddingLeft: s(2), fontFamily: "Inter_600SemiBold" },
+    logo_image: { width: s(24), height: s(25) },
+    logo_text: {
+        paddingLeft: s(6),
+        fontFamily: "Inter_600SemiBold",
+        fontSize: s(16),
+        color: "#0f172a",
+        includeFontPadding: false,
+        ...Platform.select({ android: { lineHeight: s(19) } }),
+    },
+
+    /* Blue ongoing workout pill (fits slot exactly) */
+    resumeBtnBlue: {
+        height: "100%",
+        flexDirection: "row",
+        alignItems: "center",
+        paddingHorizontal: s(12),
+        borderRadius: CENTER_SLOT_H / 2,
+        backgroundColor: "#2D9EFF",
+        borderWidth: 1,
+        borderColor: "transparent",
+        ...Platform.select({
+            ios: { shadowColor: "#2D9EFF", shadowOpacity: 0.18, shadowRadius: 4, shadowOffset: { width: 0, height: 3 } },
+            android: { elevation: 3 },
+        }),
+    },
+    dotBlue: {
+        width: s(4),
+        height: s(4),
+        borderRadius: s(2),
+        backgroundColor: "#FFFFFF",
+        marginHorizontal: s(6),
+        opacity: 0.9,
+    },
+    resumeTimeBlue: {
+        fontFamily: "Outfit_700Bold",
+        fontSize: s(12.5),
+        color: "#FFFFFF",
+        letterSpacing: 0.2,
+        includeFontPadding: false,
+        ...Platform.select({ android: { lineHeight: s(15) } }),
+    },
+
     right_icons: {
         flexDirection: "row",
         position: "absolute",
         right: dynamicStyles.paddingHorizontal,
-        top: NUDGE_MARGIN,                          // keep same spacing, shifted down
+        top: NUDGE_MARGIN,
         alignItems: "center",
     },
 
@@ -526,25 +595,20 @@ const styles = StyleSheet.create({
 
     /* Full-takeover modal */
     modalContainer: { flex: 1, justifyContent: "flex-start" },
-    canvasFill: {
-        ...StyleSheet.absoluteFillObject,
-        backgroundColor: "#F8FAFC",
-    },
-    // (search overlay)
+    canvasFill: { ...StyleSheet.absoluteFillObject, backgroundColor: "#F8FAFC" },
     modalContent: {
         flex: 1,
         paddingHorizontal: dynamicStyles.paddingHorizontal,
         paddingTop: s(8),
-        marginTop: NUDGE_MARGIN,                           // ⬇️ align overlay with header shift
+        marginTop: NUDGE_MARGIN,
     },
 
-    /* Top row with icon + input (keep icon aligned) */
     overlayBar: {
         flexDirection: "row",
         alignItems: "center",
         marginBottom: s(10),
         marginLeft: dynamicStyles.paddingHorizontal,
-        marginRight: 10
+        marginRight: 10,
     },
     overlayLeftIcon: {
         width: dynamicStyles.iconSize + 6,
@@ -554,7 +618,6 @@ const styles = StyleSheet.create({
         justifyContent: "center",
     },
 
-    /* Clean pill input */
     overlayInputWrap: {
         flex: 1,
         marginLeft: s(10),
@@ -575,28 +638,18 @@ const styles = StyleSheet.create({
     },
     clearBtn: { padding: s(6), marginLeft: s(4) },
 
-    /* Results / suggestions */
-    resultsWrap: {
-        flex: 1,
-        width: "100%",
-    },
-    listContent: {
-        paddingTop: s(6), // top padding for list content
-    },
-    separatorFull: {
-        height: StyleSheet.hairlineWidth,
-        backgroundColor: "rgba(15,23,42,0.08)",
-    },
+    resultsWrap: { flex: 1, width: "100%" },
+    listContent: { paddingTop: s(6) },
+    separatorFull: { height: StyleSheet.hairlineWidth, backgroundColor: "rgba(15,23,42,0.08)" },
 
     sectionTitle: {
         paddingVertical: s(8),
         fontFamily: "Outfit_700Bold",
         color: "#0f172a",
         fontSize: s(14),
-        paddingHorizontal: 16
+        paddingHorizontal: 16,
     },
 
-    /* Empty state */
     noResultsWrap: {
         marginTop: s(16),
         alignSelf: "center",
@@ -614,14 +667,13 @@ const styles = StyleSheet.create({
         fontFamily: "Outfit_600SemiBold",
     },
 
-    /* Profile card styles (full width w/ internal padding) */
     profileCard: {
         width: "100%",
         flexDirection: "row",
         alignItems: "center",
         backgroundColor: "#FFFFFF",
         paddingVertical: s(12),
-        paddingHorizontal: s(18), // internal padding
+        paddingHorizontal: s(18),
     },
     profileLeft: {
         flexDirection: "row",
@@ -636,21 +688,12 @@ const styles = StyleSheet.create({
         borderColor: "rgba(4,153,254,0.25)",
         backgroundColor: "#fff",
     },
-    cardHandle: {
-        fontFamily: "Outfit_700Bold",
-        fontSize: s(13.5),
-        color: "#0f172a",
-    },
+
+    cardHandle: { fontFamily: "Outfit_700Bold", fontSize: s(13.5), color: "#0f172a" },
     cardHandleHighlight: { color: "#0499FE" },
-    cardName: {
-        marginTop: s(2),
-        fontFamily: "Outfit_400Regular",
-        fontSize: s(12.5),
-        color: "#64748B",
-    },
+    cardName: { marginTop: s(2), fontFamily: "Outfit_400Regular", fontSize: s(12.5), color: "#64748B" },
     cardNameHighlight: { color: "#0f172a", fontFamily: "Outfit_600SemiBold" },
 
-    /* Header search icon */
     searchIconBtn: {
         width: dynamicStyles.iconSize + 6,
         height: dynamicStyles.iconSize + 6,

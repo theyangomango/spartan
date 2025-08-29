@@ -1,3 +1,4 @@
+// screens/Workout.jsx
 // LiveNow + Nudges → (Calories ring, Mini Podium) → Templates rail → Nike-style START
 
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
@@ -29,6 +30,9 @@ import MiniPodium from "../components/3_Workout/sections/MiniPodium";
 import TemplatesRail from "../components/3_Workout/sections/TemplatesRail";
 import WeekCalendar from "../components/3_Workout/sections/WeekCalendar";
 
+// Template editor (bottom sheet)
+import EditTemplateBottomSheet from "../components/3_Workout/Template/EditTemplateBottomSheet";
+
 // Theme
 import {
     ss,
@@ -54,6 +58,17 @@ import useUserDoc from "../hooks/useUserDoc";
 // Live PFP stack
 import LiveStack from "../components/3_Workout/LiveStack";
 
+// NEW split UI
+import SectionDivider from "../components/3_Workout/ui/SectionDivider";
+import StartOpenButton from "../components/3_Workout/ui/StartOpenButton";
+
+// Backend helpers for podium preview
+import getAllUsers from "../helper/getAllUsers";
+import rankUsers from "../helper/rankUsers";
+
+// 🔁 PFP resolver (cache-aware)
+import { usePfp } from "../helper/usePFPs";
+
 const { width: W } = Dimensions.get("window");
 
 // ensure each template has a stable `tid`
@@ -70,6 +85,38 @@ const normalizeTemplates = (arr) => {
         };
     });
 };
+
+const PREVIEW_EXERCISE = "Bench Press (Barbell)";
+const PREVIEW_LABEL = "Bench Press • 1RM";
+
+/* Small bridge that converts top-3 {uid, handle, stat, fallbackPfp} → MiniPodium data using usePfp */
+const PodiumPreview = React.memo(function PodiumPreview({ top3 = [] }) {
+    const p0 = usePfp(top3?.[0]?.uid);
+    const p1 = usePfp(top3?.[1]?.uid);
+    const p2 = usePfp(top3?.[2]?.uid);
+
+    const data = [];
+    if (top3?.[0])
+        data.push({
+            pfp: p0 || top3[0].fallbackPfp || "",
+            handle: top3[0].handle || "",
+            stat: top3[0].stat || 0,
+        });
+    if (top3?.[1])
+        data.push({
+            pfp: p1 || top3[1].fallbackPfp || "",
+            handle: top3[1].handle || "",
+            stat: top3[1].stat || 0,
+        });
+    if (top3?.[2])
+        data.push({
+            pfp: p2 || top3[2].fallbackPfp || "",
+            handle: top3[2].handle || "",
+            stat: top3[2].stat || 0,
+        });
+
+    return <MiniPodium data={data} />;
+});
 
 export default function Workout({ navigation, route }) {
     /* ---------- resolve uid & hydrate user ---------- */
@@ -104,23 +151,42 @@ export default function Workout({ navigation, route }) {
     const { totals } = useFoodLogs(todayForHook, uid);
     const calories = Math.round(Math.max(0, totals?.calories || 0));
     const caloriesGoal = useMemo(() => {
-        return (
-            user?.macroGoals?.calories ??
-            user?.macrosGoal?.calories ?? // legacy
-            2340
-        );
+        return user?.macroGoals?.calories ?? user?.macrosGoal?.calories ?? 2340;
     }, [user?.macroGoals?.calories, user?.macrosGoal?.calories]);
     const fill = Math.min(100, (calories / Math.max(1, caloriesGoal)) * 100);
 
-    /* ---------- templates ---------- */
-    const templates = useMemo(() => {
-        const normalized = normalizeTemplates(user?.templates || []);
-        return [{ id: "none", name: "No template selected", exercises: [], lastDate: null, isNone: true }, ...normalized];
+    /* ---------- templates (local state + sync to user doc) ---------- */
+    const [templates, setTemplates] = useState([]);
+    useEffect(() => {
+        setTemplates(normalizeTemplates(user?.templates || []));
     }, [user?.templates]);
+
+    const templatesWithNone = useMemo(
+        () => [{ id: "none", name: "No template selected", exercises: [], lastDate: null, isNone: true }, ...templates],
+        [templates]
+    );
     const [activeIdx, setActiveIdx] = useState(0);
+
+    // debounced saver for templates
+    const saveDebounceRef = useRef(null);
+    const queueSaveTemplates = useCallback(
+        (nextTemplates) => {
+            if (!uid) return;
+            if (saveDebounceRef.current) clearTimeout(saveDebounceRef.current);
+            saveDebounceRef.current = setTimeout(async () => {
+                try {
+                    await updateDoc("users", uid, { templates: nextTemplates });
+                } catch (e) {
+                    console.log("save templates error", e);
+                }
+            }, 500);
+        },
+        [uid]
+    );
 
     /* ---------- workout state ---------- */
     const [workout, setWorkout] = useState(null);
+    const hasActiveWorkout = !!workout;
     const [isNewWorkoutBottomSheetVisible, setIsNewWorkoutBottomSheetVisible] = useState(false);
     const workoutTimeInterval = useRef(null);
     const timerRef = useRef("00:00");
@@ -181,11 +247,9 @@ export default function Workout({ navigation, route }) {
                     PBs: 0,
                 };
 
-                // Instant UI
                 setWorkout(newWorkout);
                 setIsNewWorkoutBottomSheetVisible(true);
 
-                // Background persistence
                 InteractionManager.runAfterInteractions(() => {
                     createWorkoutDoc(wid)
                         .then(() => updateDoc("users", uid, { currentWorkout: newWorkout }))
@@ -230,11 +294,9 @@ export default function Workout({ navigation, route }) {
                         PBs: 0,
                     };
 
-                    // Instant UI
                     setWorkout(newWorkout);
                     setIsNewWorkoutBottomSheetVisible(true);
 
-                    // Background persistence
                     InteractionManager.runAfterInteractions(() => {
                         createWorkoutDoc(wid)
                             .then(() => updateDoc("users", uid, { currentWorkout: newWorkout }))
@@ -252,10 +314,10 @@ export default function Workout({ navigation, route }) {
     );
 
     const onStartWorkout = useCallback(() => {
-        const selected = templates[Math.max(0, Math.min(activeIdx, templates.length - 1))];
+        const selected = templatesWithNone[Math.max(0, Math.min(activeIdx, templatesWithNone.length - 1))];
         if (!selected || selected.isNone) startNewWorkout();
         else startWorkoutFromTemplate(selected);
-    }, [activeIdx, templates, startNewWorkout, startWorkoutFromTemplate]);
+    }, [activeIdx, templatesWithNone, startNewWorkout, startWorkoutFromTemplate]);
 
     const updateNewWorkout = useCallback((next) => setWorkout(next), []);
 
@@ -285,16 +347,90 @@ export default function Workout({ navigation, route }) {
         }
     }, [uid]);
 
-    /* ---------------- LONG-PRESS progress ring ---------------- */
-    const HOLD_MS = 650;
-    const [holdFill, setHoldFill] = useState(0);
+    /* ---------- Template editor wiring ---------- */
+    const openedTemplateRef = useRef(null);
+    const [isEditTemplateBottomSheetVisible, setIsEditTemplateBottomSheetVisible] = useState(false);
 
-    const handlePressIn = () => setHoldFill(100);
-    const handlePressOut = () => setHoldFill(0);
-    const handleLongPress = () => {
-        onStartWorkout();
-        setTimeout(() => setHoldFill(0), 250);
-    };
+    const initTemplate = useCallback(() => {
+        const tid = makeID();
+        const newTemplate = {
+            id: tid,
+            tid,
+            name: "Untitled Template",
+            exercises: [],
+            lastDate: null,
+        };
+        setTemplates((prev) => {
+            const next = [...prev, newTemplate];
+            queueSaveTemplates(next);
+            return next;
+        });
+        openedTemplateRef.current = newTemplate;
+        setIsEditTemplateBottomSheetVisible(true);
+    }, [queueSaveTemplates]);
+
+    const openEditTemplateBottomSheet = useCallback((tpl) => {
+        if (!tpl || tpl.isNone) return;
+        openedTemplateRef.current = { ...tpl }; // clone
+        setIsEditTemplateBottomSheetVisible(true);
+    }, []);
+
+    const updateTemplate = useCallback(() => {
+        setTemplates((prev) => {
+            const idx = prev.findIndex((t) => t.tid === openedTemplateRef.current?.tid);
+            if (idx === -1) return prev;
+            const next = [...prev];
+            next[idx] = { ...openedTemplateRef.current };
+            queueSaveTemplates(next);
+            return next;
+        });
+    }, [queueSaveTemplates]);
+
+    const deleteTemplate = useCallback(() => {
+        setTemplates((prev) => {
+            const next = prev.filter((t) => t.tid !== openedTemplateRef.current?.tid);
+            queueSaveTemplates(next);
+            return next;
+        });
+        openedTemplateRef.current = null;
+        setIsEditTemplateBottomSheetVisible(false);
+    }, [queueSaveTemplates]);
+
+    /* ---------- Mini podium (backend-driven with cached PFPs) ---------- */
+    const [top3, setTop3] = useState([]);
+
+    useEffect(() => {
+        let mounted = true;
+        (async () => {
+            try {
+                const all = await getAllUsers();
+                if (!mounted) return;
+
+                // hydrate search suggestions for FeedHeader
+                allUsersRef.current = Array.isArray(all) ? all : [];
+
+                // rank for Bench Press (Barbell) by 1RM and take top 3
+                const ranked = rankUsers(allUsersRef.current, PREVIEW_EXERCISE) || [];
+                const top = ranked.slice(0, 3).map((u) => {
+                    const stat = u?.statsExercises?.[PREVIEW_EXERCISE]?.["1RM"] ?? 0;
+                    return {
+                        uid: u?.uid,
+                        handle: u?.handle ?? "",
+                        stat,
+                        // fallback in case pfp cache hasn't resolved yet
+                        fallbackPfp: u?.pfp || u?.image || null,
+                    };
+                });
+                setTop3(top);
+            } catch (e) {
+                console.log("MiniPodium load error", e);
+                setTop3([]);
+            }
+        })();
+        return () => {
+            mounted = false;
+        };
+    }, []);
 
     /* ---------------- render ---------------- */
     const liveNow = [
@@ -314,6 +450,9 @@ export default function Workout({ navigation, route }) {
                 scrollToTop={scrollToTop}
                 navigation={navigation}
                 allUsersRef={allUsersRef}
+                workout={workout}
+                timerRef={timerRef}
+                openCurrentWorkout={() => setIsNewWorkoutBottomSheetVisible(true)}
             />
 
             {/* Overview + Calendar */}
@@ -324,10 +463,10 @@ export default function Workout({ navigation, route }) {
                 />
 
                 <View style={styles.hubRow}>
-                    {/* Calories → navigate to overlay with LEFT slide */}
+                    {/* Calories */}
                     <Pressable
                         style={styles.card}
-                        onPress={() => navigation.navigate('MacroTrackingOverlay')}
+                        onPress={() => navigation.navigate("MacroTrackingOverlay")}
                         android_ripple={{ color: "rgba(2,6,23,0.08)", radius: 120, borderless: false }}
                     >
                         <Text style={styles.macrosCaption}>Today’s Calories</Text>
@@ -352,25 +491,24 @@ export default function Workout({ navigation, route }) {
                         </View>
                     </Pressable>
 
-                    {/* Mini Podium */}
+                    {/* Mini Podium (backend + cached PFPs) */}
                     <View style={styles.card}>
-                        <Text style={styles.podiumCaption}>Bench Press • 1RM</Text>
-                        <MiniPodium data={[
-                            { pfp: "https://i.pravatar.cc/200?img=1" },
-                            { pfp: "https://i.pravatar.cc/200?img=2" },
-                            { pfp: "https://i.pravatar.cc/200?img=3" }
-                        ]} />
+                        <Text style={styles.podiumCaption}>{PREVIEW_LABEL}</Text>
+                        <PodiumPreview top3={top3} />
                     </View>
                 </View>
+
+                {/* Centered divider */}
+                <SectionDivider />
             </View>
 
             {/* Templates Rail */}
             <View style={styles.templatesDock} pointerEvents="box-none">
                 <TemplatesRail
-                    templates={templates}
+                    templates={templatesWithNone}
                     onIndexChange={setActiveIdx}
-                    onAddTemplate={() => Alert.alert("Templates", "Open Create Template")}
-                    onOpenTemplate={(tpl) => Alert.alert("Template", `Open ${tpl.name}`)}
+                    onAddTemplate={initTemplate}
+                    onOpenTemplate={openEditTemplateBottomSheet}
                 />
             </View>
 
@@ -389,37 +527,13 @@ export default function Workout({ navigation, route }) {
                         <AddSquare size={24} color="#000" />
                     </Pressable>
 
-                    {/* Long-press START with hold-progress ring */}
+                    {/* Start / Open button (split) */}
                     <Animated.View style={{ transform: [{ scale: scaleAnim }] }}>
-                        <View style={{ width: BTN_SIZE, height: BTN_SIZE, alignItems: "center", justifyContent: "center" }}>
-                            <Pressable
-                                onLongPress={handleLongPress}
-                                delayLongPress={HOLD_MS}
-                                onPressIn={handlePressIn}
-                                onPressOut={handlePressOut}
-                                hitSlop={10}
-                                style={({ pressed }) => [styles.startBtn, pressed && { transform: [{ scale: 0.98 }] }]}
-                                accessibilityRole="button"
-                                accessibilityLabel="Start workout"
-                            >
-                                <Text style={styles.startText}>START</Text>
-                            </Pressable>
-
-                            {/* progress ring overlay (non-blocking touches) */}
-                            <View style={styles.holdRing} pointerEvents="none">
-                                <AnimatedCircularProgress
-                                    size={BTN_SIZE + 18}
-                                    width={6}
-                                    fill={holdFill}
-                                    tintColor="#60A5FA"
-                                    backgroundColor="rgba(2,6,23,0.12)"
-                                    lineCap="round"
-                                    arcSweepAngle={360}
-                                    rotation={0}
-                                    tweenDuration={HOLD_MS}
-                                />
-                            </View>
-                        </View>
+                        <StartOpenButton
+                            hasActiveWorkout={hasActiveWorkout}
+                            onOpen={() => setIsNewWorkoutBottomSheetVisible(true)}
+                            onStart={onStartWorkout}
+                        />
                     </Animated.View>
 
                     {/* Friends live/recent */}
@@ -439,7 +553,7 @@ export default function Workout({ navigation, route }) {
             {/* Bottom nav */}
             <Footer navigation={navigation} currentScreenName={"Workout"} />
 
-            {/* Bottom Sheet */}
+            {/* Workout Bottom Sheet */}
             <NewWorkoutBottomSheet
                 workout={workout}
                 cancelNewWorkout={cancelWorkout}
@@ -450,6 +564,15 @@ export default function Workout({ navigation, route }) {
                 timerRef={timerRef}
                 showGroupModal={() => { }}
                 userWorkoutStats={global?.userData?.statsExercises || {}}
+            />
+
+            {/* Template Editor Bottom Sheet */}
+            <EditTemplateBottomSheet
+                isVisible={isEditTemplateBottomSheetVisible}
+                setIsVisible={setIsEditTemplateBottomSheetVisible}
+                openedTemplateRef={openedTemplateRef}
+                updateTemplate={updateTemplate}
+                deleteTemplate={deleteTemplate}
             />
         </SafeAreaView>
     );
@@ -503,6 +626,18 @@ const styles = StyleSheet.create({
         fontFamily: "Outfit_600SemiBold",
     },
 
+    /* Divider wrappers (center to rail/actions width) */
+    sectionDividerOuter: {
+        alignItems: "center",
+        marginTop: 14,
+        marginBottom: 12,
+    },
+    sectionDividerInner: {
+        height: 22,
+        justifyContent: "center",
+        alignItems: "center",
+    },
+
     templatesDock: {
         position: "absolute",
         left: 0,
@@ -540,35 +675,5 @@ const styles = StyleSheet.create({
     smallBtnPressed: {
         transform: [{ scale: 0.96 }],
         backgroundColor: "#F1F5F9",
-    },
-
-    startBtn: {
-        width: BTN_SIZE,
-        height: BTN_SIZE,
-        borderRadius: BTN_SIZE / 2,
-        overflow: "hidden",
-        alignItems: "center",
-        justifyContent: "center",
-        backgroundColor: "#0D0D0D",
-        ...Platform.select({
-            ios: { shadowColor: "#000", shadowOpacity: 0.22, shadowRadius: 18, shadowOffset: { width: 0, height: 12 } },
-            android: { elevation: 8 },
-        }),
-    },
-    startText: {
-        color: "#FFFFFF",
-        fontSize: 20,
-        fontWeight: "900",
-        textTransform: "uppercase",
-        letterSpacing: 0.6,
-        fontStyle: "italic",
-        transform: [{ skewX: "-7deg" }],
-    },
-
-    // progress ring overlay for long press
-    holdRing: {
-        position: "absolute",
-        alignItems: "center",
-        justifyContent: "center",
     },
 });

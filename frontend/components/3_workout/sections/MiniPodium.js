@@ -1,7 +1,8 @@
+// components/3_Workout/MiniPodium.js
 import React from "react";
 import { View, StyleSheet, Platform } from "react-native";
 import FastImage from "react-native-fast-image";
-import { ss } from "./workoutTheme";
+import { ss } from "../../../utils/scale";
 
 export default function MiniPodium({ data = [] }) {
     const H_ALL = ss(120);
@@ -11,22 +12,25 @@ export default function MiniPodium({ data = [] }) {
 
     return (
         <View style={styles.podiumRow}>
-            {/* 2nd */}
             <View style={styles.col}>
                 <Avatar uri={data[1]?.pfp} ring="#E5E7EB" />
-                <View style={[styles.plinth, { height: H_L, backgroundColor: "#E8EEF9" }]} />
+                <View style={[styles.plinth, { height: H_L, backgroundColor: "#E8EEF9" }]}>
+                    <View style={[styles.medalDot, { backgroundColor: "#c5c9d1ff" }]} />
+                </View>
             </View>
 
-            {/* 1st */}
             <View style={[styles.col, { marginHorizontal: 10 }]}>
                 <Avatar uri={data[0]?.pfp} ring="#FDE68A" />
-                <View style={[styles.plinth, { height: H_C, backgroundColor: "#E8EEF9" }]} />
+                <View style={[styles.plinth, { height: H_C, backgroundColor: "#E8EEF9" }]}>
+                    <View style={[styles.medalDot, { backgroundColor: "#ffdd61ff" }]} />
+                </View>
             </View>
 
-            {/* 3rd */}
             <View style={styles.col}>
                 <Avatar uri={data[2]?.pfp} ring="#FCD5A5" />
-                <View style={[styles.plinth, { height: H_R, backgroundColor: "#E8EEF9" }]} />
+                <View style={[styles.plinth, { height: H_R, backgroundColor: "#E8EEF9" }]}>
+                    <View style={[styles.medalDot, { backgroundColor: "#ffba98ff" }]} />
+                </View>
             </View>
         </View>
     );
@@ -50,12 +54,7 @@ function Avatar({ uri, ring = "#E5E7EB" }) {
 }
 
 const styles = StyleSheet.create({
-    podiumRow: {
-        flexDirection: "row",
-        alignItems: "flex-end",
-        justifyContent: "space-between",
-        paddingHorizontal: 6,
-    },
+    podiumRow: { flexDirection: "row", alignItems: "flex-end", justifyContent: "space-between", paddingHorizontal: 6 },
     col: { flex: 1, alignItems: "center" },
     avatarWrap: {
         borderWidth: 2.5,
@@ -75,4 +74,5 @@ const styles = StyleSheet.create({
             android: { elevation: 1 },
         }),
     },
+    medalDot: { width: 14, height: 14, borderRadius: 7 },
 });

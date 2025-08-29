@@ -1,356 +1,316 @@
 // components/3_Workout/sections/WeekCalendar.jsx
-import React, { useEffect, useMemo, useRef, useState } from "react";
+import React, { useMemo, useRef, useState, useCallback } from "react";
 import {
-    View,
-    Text,
-    StyleSheet,
-    Dimensions,
-    Platform,
-    ScrollView,
+  View,
+  Text,
+  StyleSheet,
+  Dimensions,
+  Platform,
+  FlatList,
 } from "react-native";
+import RNBounceable from "@freakycoder/react-native-bounceable";
 import { BLUE } from "./workoutTheme";
 
 const { width: W } = Dimensions.get("window");
 
-// One-week calendar (Sun–Sat), stationary card with native-paged swiping.
-// Props:
-//  - macrosMap:   { 'YYYY-MM-DD': true }  -> top bar (green)
-//  - workoutsMap: { 'YYYY-MM-DD': true }  -> bottom bar (blue)
-//  - onWeekChange?: (offset:number) => void
+/**
+ * Smooth, snap-to-week calendar with a simple "Jump to Today" blue link (bouncy).
+ *
+ * Props:
+ *  - macrosMap:   { 'YYYY-MM-DD': true }  -> top bar (green)
+ *  - workoutsMap: { 'YYYY-MM-DD': true }  -> bottom bar (blue)
+ *  - onWeekChange?: (offset:number) => void    offset from "today" in weeks
+ */
 export default function WeekCalendar({ macrosMap = {}, workoutsMap = {}, onWeekChange }) {
-    /* ---- layout constants ---- */
-    const OUTER_HPAD = 16;   // outside card (matches screen padding)
-    const INNER_HPAD = 14;   // inside card (tiny bump for nicer balance with caption)
-    const CELL_GAP = 8;
+  /* ---- layout ---- */
+  const OUTER_HPAD = 16;
+  const INNER_HPAD = 14;
+  const CELL_GAP = 8;
 
-    // Fit 7 cells + 6 gaps into the inner width exactly (no clipping).
-    const cellWidth = useMemo(() => {
-        const usable = W - OUTER_HPAD * 2 - INNER_HPAD * 2 - CELL_GAP * 6;
-        return Math.floor(usable / 7);
-    }, []);
+  const cellWidth = useMemo(() => {
+    const usable = W - OUTER_HPAD * 2 - INNER_HPAD * 2 - CELL_GAP * 6;
+    return Math.floor(usable / 7);
+  }, []);
 
-    // Width of 7 cells + 6 gaps (the page viewport).
-    const pageWidth = useMemo(() => cellWidth * 7 + CELL_GAP * 6, [cellWidth]);
+  const pageWidth = useMemo(() => cellWidth * 7 + CELL_GAP * 6, [cellWidth]);
+  const DAY_LETTERS = ["SU", "MO", "TU", "WE", "TH", "FR", "SA"];
 
-    // Letters for weekdays
-    const DAY_LETTERS = ["SU", "MO", "TU", "WE", "TH", "FR", "SA"];
+  /* ---- virtual weeks ---- */
+  const TOTAL_WEEKS = 5200; // ~100 years
+  const BASE_INDEX = Math.floor(TOTAL_WEEKS / 2); // today's week
+  const [weekIndex, setWeekIndex] = useState(BASE_INDEX);
+  const flatRef = useRef(null);
 
-    /* ---- week offset & data ---- */
-    const [weekOffset, setWeekOffset] = useState(0); // 0 = current week
+  const isSameDay = (a, b) =>
+    a.getFullYear() === b.getFullYear() &&
+    a.getMonth() === b.getMonth() &&
+    a.getDate() === b.getDate();
 
-    const getStartOfWeek = (offset) => {
-        const d = new Date();
-        d.setHours(0, 0, 0, 0);
-        const sundayOffset = d.getDay(); // 0..6
-        d.setDate(d.getDate() - sundayOffset + offset * 7);
-        return d;
-    };
+  const k = (d) =>
+    `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(
+      d.getDate()
+    ).padStart(2, "0")}`;
 
-    const makeWeekDays = (startDate) =>
-        Array.from({ length: 7 }, (_, i) => {
-            const d = new Date(startDate);
-            d.setDate(startDate.getDate() + i);
-            d.setHours(0, 0, 0, 0);
-            return d;
-        });
+  const getStartOfWeekByOffset = (offset) => {
+    const d = new Date();
+    d.setHours(0, 0, 0, 0);
+    const sundayOffset = d.getDay();
+    d.setDate(d.getDate() - sundayOffset + offset * 7);
+    return d;
+  };
 
-    // Build prev / current / next weeks so swiping is seamless.
-    const prevWeekDays = useMemo(() => makeWeekDays(getStartOfWeek(weekOffset - 1)), [weekOffset]);
-    const currWeekDays = useMemo(() => makeWeekDays(getStartOfWeek(weekOffset)), [weekOffset]);
-    const nextWeekDays = useMemo(() => makeWeekDays(getStartOfWeek(weekOffset + 1)), [weekOffset]);
+  const makeWeekDays = (startDate) =>
+    Array.from({ length: 7 }, (_, i) => {
+      const d = new Date(startDate);
+      d.setDate(startDate.getDate() + i);
+      d.setHours(0, 0, 0, 0);
+      return d;
+    });
 
-    // Month label for the CURRENT (center) week — uppercase 3-letter abbrev
-    const monthLabel = useMemo(() => {
-        if (!currWeekDays.length) return "";
-        const start = currWeekDays[0];
-        const end = currWeekDays[currWeekDays.length - 1];
+  // Header month label from current index
+  const currentWeekOffset = useMemo(() => weekIndex - BASE_INDEX, [weekIndex]);
+  const currentStart = useMemo(
+    () => getStartOfWeekByOffset(currentWeekOffset),
+    [currentWeekOffset]
+  );
+  const currentWeekDays = useMemo(() => makeWeekDays(currentStart), [currentStart]);
 
-        const abbr = (d) =>
-            d.toLocaleDateString(undefined, { month: "short" }).slice(0, 3).toUpperCase();
+  const monthLabel = useMemo(() => {
+    if (!currentWeekDays.length) return "";
+    const start = currentWeekDays[0];
+    const end = currentWeekDays[currentWeekDays.length - 1];
+    const abbr = (d) =>
+      d.toLocaleDateString(undefined, { month: "short" }).slice(0, 3).toUpperCase();
+    return start.getMonth() === end.getMonth() && start.getFullYear() === end.getFullYear()
+      ? abbr(start)
+      : `${abbr(start)} & ${abbr(end)}`;
+  }, [currentWeekDays]);
 
-        return start.getMonth() === end.getMonth() && start.getFullYear() === end.getFullYear()
-            ? abbr(start)
-            : `${abbr(start)} & ${abbr(end)}`;
-    }, [currWeekDays]);
+  /* ---- handlers ---- */
+  const handleMomentumEnd = useCallback(
+    (e) => {
+      const x = e.nativeEvent.contentOffset.x;
+      const i = Math.round(x / pageWidth);
+      if (i !== weekIndex) {
+        setWeekIndex(i);
+        onWeekChange?.(i - BASE_INDEX);
+      }
+    },
+    [pageWidth, weekIndex, onWeekChange]
+  );
 
-    const isSameDay = (a, b) =>
-        a.getFullYear() === b.getFullYear() &&
-        a.getMonth() === b.getMonth() &&
-        a.getDate() === b.getDate();
+  const goToToday = useCallback(() => {
+    try {
+      flatRef.current?.scrollToIndex({ index: BASE_INDEX, animated: true });
+      setWeekIndex(BASE_INDEX);
+      onWeekChange?.(0);
+    } catch {
+      requestAnimationFrame(() => {
+        flatRef.current?.scrollToIndex?.({ index: BASE_INDEX, animated: false });
+        setWeekIndex(BASE_INDEX);
+        onWeekChange?.(0);
+      });
+    }
+  }, [onWeekChange]);
 
-    const k = (d) =>
-        `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+  const renderWeek = useCallback(
+    ({ index }) => {
+      const offset = index - BASE_INDEX;
+      const start = getStartOfWeekByOffset(offset);
+      const days = makeWeekDays(start);
 
-    /* ---- native scroll pager (smooth, no lag) ---- */
-    const scrollRef = useRef(null);
-
-    // Jump to the middle page initially and whenever layout changes.
-    useEffect(() => {
-        if (scrollRef.current && pageWidth > 0) {
-            // center page (index 1)
-            scrollRef.current.scrollTo({ x: pageWidth, animated: false });
-        }
-    }, [pageWidth, weekOffset]);
-
-    const onMomentumEnd = (e) => {
-        const x = e.nativeEvent.contentOffset.x;
-        const pageIndex = Math.round(x / pageWidth); // 0, 1, or 2
-        if (pageIndex === 1) return; // stayed on current — nothing to do
-
-        // If user swiped to prev (0) or next (2), update offset then recenter instantly.
-        setWeekOffset((o) => {
-            const next = o + (pageIndex === 2 ? 1 : -1);
-            onWeekChange?.(next);
-            return next;
-        });
-
-        // Instantly jump back to the center page so future swipes are seamless.
-        requestAnimationFrame(() => {
-            if (scrollRef.current) {
-                scrollRef.current.scrollTo({ x: pageWidth, animated: false });
-            }
-        });
-    };
-
-    /* ---- render ---- */
-    const innerWidth = pageWidth; // viewport width
-
-    return (
-        <View style={[styles.wrap, { paddingHorizontal: OUTER_HPAD }]}>
-            {/* Stationary white card */}
-            <View style={[styles.card, { paddingHorizontal: INNER_HPAD }]}>
-                {/* Month caption INSIDE the card (matches other card captions) */}
-                <Text style={styles.calCaption}>{monthLabel}</Text>
-
-                {/* Fixed-width viewport so cells align perfectly */}
-                <View style={[styles.viewport, { width: innerWidth }]}>
-                    <ScrollView
-                        ref={scrollRef}
-                        horizontal
-                        showsHorizontalScrollIndicator={false}
-                        bounces={false}
-                        pagingEnabled
-                        snapToInterval={pageWidth}   // helps Android
-                        decelerationRate="fast"
-                        onMomentumScrollEnd={onMomentumEnd}
-                        contentOffset={{ x: pageWidth, y: 0 }} // start centered
-                    >
-                        {/* Prev page */}
-                        <View style={[styles.page, { width: pageWidth }]}>
-                            <View style={styles.row}>
-                                {prevWeekDays.map((d, idx) => {
-                                    const today = new Date();
-                                    const isToday = isSameDay(d, today);
-                                    const letter = DAY_LETTERS[d.getDay()];
-                                    const macrosOn = !!macrosMap[k(d)];
-                                    const workoutOn = !!workoutsMap[k(d)];
-                                    return (
-                                        <View
-                                            key={`p_${d.toISOString()}_${idx}`}
-                                            style={[
-                                                styles.cell,
-                                                { width: cellWidth, marginRight: idx === 6 ? 0 : CELL_GAP },
-                                            ]}
-                                        >
-                                            <View
-                                                style={[
-                                                    styles.topBar,
-                                                    macrosOn ? styles.topBarOn : styles.topBarOff,
-                                                    { width: Math.round(cellWidth * 0.5) },
-                                                ]}
-                                            />
-                                            <View style={[styles.centerPill, isToday && styles.centerPillToday]}>
-                                                <Text style={styles.dayLetter}>{letter}</Text>
-                                                <Text style={styles.dayNum}>{d.getDate()}</Text>
-                                            </View>
-                                            <View
-                                                style={[
-                                                    styles.bottomBar,
-                                                    workoutOn ? styles.bottomBarOn : styles.bottomBarOff,
-                                                    { width: Math.round(cellWidth * 0.5) },
-                                                ]}
-                                            />
-                                        </View>
-                                    );
-                                })}
-                            </View>
-                        </View>
-
-                        {/* Current page */}
-                        <View style={[styles.page, { width: pageWidth }]}>
-                            <View style={styles.row}>
-                                {currWeekDays.map((d, idx) => {
-                                    const today = new Date();
-                                    const isToday = isSameDay(d, today);
-                                    const letter = DAY_LETTERS[d.getDay()];
-                                    const macrosOn = !!macrosMap[k(d)];
-                                    const workoutOn = !!workoutsMap[k(d)];
-                                    return (
-                                        <View
-                                            key={`c_${d.toISOString()}_${idx}`}
-                                            style={[
-                                                styles.cell,
-                                                { width: cellWidth, marginRight: idx === 6 ? 0 : CELL_GAP },
-                                            ]}
-                                        >
-                                            <View
-                                                style={[
-                                                    styles.topBar,
-                                                    macrosOn ? styles.topBarOn : styles.topBarOff,
-                                                    { width: Math.round(cellWidth * 0.5) },
-                                                ]}
-                                            />
-                                            <View style={[styles.centerPill, isToday && styles.centerPillToday]}>
-                                                <Text style={styles.dayLetter}>{letter}</Text>
-                                                <Text style={styles.dayNum}>{d.getDate()}</Text>
-                                            </View>
-                                            <View
-                                                style={[
-                                                    styles.bottomBar,
-                                                    workoutOn ? styles.bottomBarOn : styles.bottomBarOff,
-                                                    { width: Math.round(cellWidth * 0.5) },
-                                                ]}
-                                            />
-                                        </View>
-                                    );
-                                })}
-                            </View>
-                        </View>
-
-                        {/* Next page */}
-                        <View style={[styles.page, { width: pageWidth }]}>
-                            <View style={styles.row}>
-                                {nextWeekDays.map((d, idx) => {
-                                    const today = new Date();
-                                    const isToday = isSameDay(d, today);
-                                    const letter = DAY_LETTERS[d.getDay()];
-                                    const macrosOn = !!macrosMap[k(d)];
-                                    const workoutOn = !!workoutsMap[k(d)];
-                                    return (
-                                        <View
-                                            key={`n_${d.toISOString()}_${idx}`}
-                                            style={[
-                                                styles.cell,
-                                                { width: cellWidth, marginRight: idx === 6 ? 0 : CELL_GAP },
-                                            ]}
-                                        >
-                                            <View
-                                                style={[
-                                                    styles.topBar,
-                                                    macrosOn ? styles.topBarOn : styles.topBarOff,
-                                                    { width: Math.round(cellWidth * 0.5) },
-                                                ]}
-                                            />
-                                            <View style={[styles.centerPill, isToday && styles.centerPillToday]}>
-                                                <Text style={styles.dayLetter}>{letter}</Text>
-                                                <Text style={styles.dayNum}>{d.getDate()}</Text>
-                                            </View>
-                                            <View
-                                                style={[
-                                                    styles.bottomBar,
-                                                    workoutOn ? styles.bottomBarOn : styles.bottomBarOff,
-                                                    { width: Math.round(cellWidth * 0.5) },
-                                                ]}
-                                            />
-                                        </View>
-                                    );
-                                })}
-                            </View>
-                        </View>
-                    </ScrollView>
+      return (
+        <View style={[styles.page, { width: pageWidth }]}>
+          <View style={styles.row}>
+            {days.map((d, idx) => {
+              const today = new Date();
+              const isToday = isSameDay(d, today);
+              const letter = DAY_LETTERS[d.getDay()];
+              const macrosOn = !!macrosMap[k(d)];
+              const workoutOn = !!workoutsMap[k(d)];
+              return (
+                <View
+                  key={`${d.toISOString()}_${idx}`}
+                  style={[
+                    styles.cell,
+                    { width: cellWidth, marginRight: idx === 6 ? 0 : CELL_GAP },
+                  ]}
+                >
+                  <View
+                    style={[
+                      styles.topBar,
+                      macrosOn ? styles.topBarOn : styles.topBarOff,
+                      { width: Math.round(cellWidth * 0.5) },
+                    ]}
+                  />
+                  <View style={[styles.centerPill, isToday && styles.centerPillToday]}>
+                    <Text style={styles.dayLetter}>{letter}</Text>
+                    <Text style={styles.dayNum}>{d.getDate()}</Text>
+                  </View>
+                  <View
+                    style={[
+                      styles.bottomBar,
+                      workoutOn ? styles.bottomBarOn : styles.bottomBarOff,
+                      { width: Math.round(cellWidth * 0.5) },
+                    ]}
+                  />
                 </View>
-            </View>
+              );
+            })}
+          </View>
         </View>
-    );
+      );
+    },
+    [pageWidth, cellWidth, macrosMap, workoutsMap]
+  );
+
+  const getItemLayout = useCallback(
+    (_data, index) => ({
+      length: pageWidth,
+      offset: pageWidth * index,
+      index,
+    }),
+    [pageWidth]
+  );
+
+  const onScrollToIndexFailed = useCallback((info) => {
+    setTimeout(() => {
+      flatRef.current?.scrollToIndex({
+        index: info.index,
+        animated: false,
+      });
+    }, 10);
+  }, []);
+
+  return (
+    <View style={[styles.wrap, { paddingHorizontal: OUTER_HPAD }]}>
+      <View style={[styles.card, { paddingHorizontal: INNER_HPAD }]}>
+        {/* Caption row with Month + Jump to Today (blue link) */}
+        <View style={styles.captionRow}>
+          <Text style={styles.calCaption}>{monthLabel}</Text>
+
+          <RNBounceable
+            onPress={goToToday}
+            bounceEffectIn={0.95}      // subtle bounce-in
+            bounceEffectOut={1.0}
+            style={styles.jumpLinkTouch}
+            accessibilityRole="button"
+            accessibilityLabel="Jump to Today"
+            hitSlop={6}
+          >
+            <Text style={styles.jumpLink}>Jump to Today</Text>
+          </RNBounceable>
+        </View>
+
+        {/* Smooth, snapping FlatList */}
+        <FlatList
+          ref={flatRef}
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          data={Array.from({ length: TOTAL_WEEKS })}
+          renderItem={renderWeek}
+          keyExtractor={(_, i) => String(i)}
+          initialScrollIndex={BASE_INDEX}
+          getItemLayout={getItemLayout}
+          onScrollToIndexFailed={onScrollToIndexFailed}
+          scrollEventThrottle={16}
+          decelerationRate={Platform.OS === "ios" ? "fast" : 0.98} // smooth glide
+          pagingEnabled={false}                 // free scroll feeling
+          snapToInterval={pageWidth}            // snap to each week
+          snapToAlignment="start"
+          disableIntervalMomentum={false}       // allow natural momentum
+          onMomentumScrollEnd={handleMomentumEnd}
+          overScrollMode="never"
+          windowSize={7}
+          initialNumToRender={3}
+          maxToRenderPerBatch={4}
+          removeClippedSubviews
+        />
+      </View>
+    </View>
+  );
 }
 
 const styles = StyleSheet.create({
-    wrap: {
-        marginTop: 6,
-        marginBottom: 6,
-    },
+  wrap: { marginTop: 6, marginBottom: 6 },
 
-    card: {
-        backgroundColor: "#FFFFFF",
-        borderRadius: 18,
-        paddingVertical: 12, // a touch more space to balance caption + row
-        borderWidth: StyleSheet.hairlineWidth,
-        borderColor: "rgba(2,6,23,0.06)",
-        overflow: "hidden",
-        ...Platform.select({
-            ios: { shadowColor: "#000", shadowOpacity: 0.05, shadowRadius: 8, shadowOffset: { width: 0, height: 3 } },
-            android: { elevation: 1 },
-        }),
-    },
+  card: {
+    backgroundColor: "#FFFFFF",
+    borderRadius: 18,
+    paddingVertical: 12,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: "rgba(2,6,23,0.06)",
+    overflow: "hidden",
+    ...Platform.select({
+      ios: { shadowColor: "#000", shadowOpacity: 0.05, shadowRadius: 8, shadowOffset: { width: 0, height: 3 } },
+      android: { elevation: 1 },
+    }),
+  },
 
-    // Caption inside the card — matches card captions in Workout.jsx
-    calCaption: {
-        color: "#64748B",
-        fontSize: 12,
-        fontFamily: "Outfit_700Bold",
-        marginBottom: 8,
-    },
+  captionRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    marginBottom: 8,
+    paddingHorizontal: 4
+  },
 
-    viewport: {
-        alignSelf: "center", // centers the exact-width viewport
-    },
+  calCaption: {
+    color: "#64748B",
+    fontSize: 12,
+    fontFamily: "Outfit_700Bold",
+  },
 
-    page: {
-        // width is set dynamically
-    },
+  // Blue link-style "Jump to Today"
+  jumpLinkTouch: {
+    // keep touch area predictable without a background
+    paddingHorizontal: 2,
+    paddingVertical: 2,
+  },
+  jumpLink: {
+    color: "#2D9EFF",
+    fontSize: 12,
+    fontFamily: "Outfit_700Bold",
+    letterSpacing: 0.2,
+  },
 
-    row: {
-        flexDirection: "row",
-    },
+  page: {},
+  row: { flexDirection: "row" },
 
-    cell: {
-        alignItems: "center",
-        position: "relative",
-    },
+  cell: { alignItems: "center", position: "relative" },
 
-    /* exact bars (top & bottom identical) */
-    topBar: {
-        position: "absolute",
-        top: 4,
-        height: 6,
-        borderRadius: 3,
-    },
-    topBarOn: { backgroundColor: "#22C55E" },
-    topBarOff: { backgroundColor: "#E6EEF6" },
+  topBar: { position: "absolute", top: 4, height: 6, borderRadius: 3 },
+  topBarOn: { backgroundColor: "#22C55E" },
+  topBarOff: { backgroundColor: "#E6EEF6" },
 
-    bottomBar: {
-        position: "absolute",
-        bottom: 4,
-        height: 6,
-        borderRadius: 3,
-    },
-    bottomBarOn: { backgroundColor: BLUE || "#2D9EFF" },
-    bottomBarOff: { backgroundColor: "#E6EEF6" },
+  bottomBar: { position: "absolute", bottom: 4, height: 6, borderRadius: 3 },
+  bottomBarOn: { backgroundColor: BLUE || "#2D9EFF" },
+  bottomBarOff: { backgroundColor: "#E6EEF6" },
 
-    centerPill: {
-        marginTop: 10,
-        marginBottom: 10,
-        width: "92%",
-        height: 44,
-        borderRadius: 12,
-        alignItems: "center",
-        justifyContent: "center",
-    },
-    centerPillToday: {
-        backgroundColor: "#E9F2FF",
-        borderWidth: 1,
-        borderColor: "#6FB8FF",
-    },
-    dayLetter: {
-        fontFamily: "Outfit_700Bold",
-        fontSize: 9.5,
-        color: "#94A3B8",
-        marginBottom: 2,
-        letterSpacing: 0.3,
-    },
-    dayNum: {
-        fontFamily: "Outfit_800ExtraBold",
-        fontSize: 15,
-        color: "#0F172A",
-    },
+  centerPill: {
+    marginTop: 10,
+    marginBottom: 10,
+    width: "92%",
+    height: 44,
+    borderRadius: 12,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  centerPillToday: {
+    backgroundColor: "#E9F2FF",
+    borderWidth: 1,
+    borderColor: "#6FB8FF",
+  },
+  dayLetter: {
+    fontFamily: "Outfit_700Bold",
+    fontSize: 9.5,
+    color: "#94A3B8",
+    marginBottom: 2,
+    letterSpacing: 0.3,
+  },
+  dayNum: {
+    fontFamily: "Outfit_800ExtraBold",
+    fontSize: 15,
+    color: "#0F172A",
+  },
 });
