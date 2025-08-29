@@ -17,7 +17,7 @@ import { AddSquare } from "iconsax-react-native";
 import { AnimatedCircularProgress } from "react-native-circular-progress";
 
 // Firestore
-import { setDoc, doc, serverTimestamp } from "firebase/firestore";
+import { setDoc, doc, serverTimestamp, getDoc } from "firebase/firestore";
 import { db } from "../../firebase.config";
 
 // Header & Footer
@@ -128,6 +128,7 @@ export default function Workout({ navigation, route }) {
     /* ---------- ui & anim ---------- */
     const scaleAnim = useRef(new Animated.Value(0.92)).current;
     const allUsersRef = useRef([]);
+    const [headerKey, setHeaderKey] = useState(0); // force remount header on end/cancel
 
     const toMessagesScreen = useCallback(() => navigation?.navigate("Messages"), [navigation]);
     const onOpenNotifications = useCallback(() => navigation?.navigate("Notifications"), [navigation]);
@@ -194,7 +195,14 @@ export default function Workout({ navigation, route }) {
     const timerRef = useRef("00:00");
     const startGuardRef = useRef(false); // tiny press guard
 
-    // 🧁 NEW: summary modal state
+    // guards against late updates after ending
+    const isEndingRef = useRef(false);
+
+    // after cancel/finish, suppress stale “resurrection” for a short window
+    const killSwitchUntilRef = useRef(0);
+    const lastServerNulledAtRef = useRef(0);
+
+    // 🧁 Summary modal state
     const [completedWorkout, setCompletedWorkout] = useState(null);
     const [isSummaryModalVisible, setIsSummaryModalVisible] = useState(false);
 
@@ -226,7 +234,36 @@ export default function Workout({ navigation, route }) {
         [uid]
     );
 
-    // ===== START — empty workout (optimistic + background writes) =====
+    // ---------- helpers: rock-solid local cleanup ----------
+    const clearCurrentWorkoutLocally = useCallback(() => {
+        try {
+            isEndingRef.current = true; // block late updates
+            global.isCurrentlyWorkingOut = false;
+            if (global?.userData) {
+                global.userData.currentWorkout = null; // clear global now
+            }
+        } catch { /* ignore */ }
+
+        try {
+            clearInterval(workoutTimeInterval.current);
+            workoutTimeInterval.current = null;
+        } catch { /* ignore */ }
+
+        timerRef.current = "00:00";
+        setIsNewWorkoutBottomSheetVisible(false);
+        setWorkout(null);
+
+        // force header to remount so any internal state/badge resets immediately
+        setHeaderKey((k) => k + 1);
+    }, []);
+
+    // Allow updates again when we *start* a new workout
+    const resetEndingGuard = useCallback(() => {
+        isEndingRef.current = false;
+        killSwitchUntilRef.current = 0;
+    }, []);
+
+    // ===== START — empty workout =====
     const startNewWorkout = useCallback(() => {
         if (startGuardRef.current) return;
         startGuardRef.current = true;
@@ -238,6 +275,7 @@ export default function Workout({ navigation, route }) {
         }
 
         try {
+            resetEndingGuard();
             if (!workout) {
                 global.isCurrentlyWorkingOut = true;
                 const wid = makeID();
@@ -268,9 +306,9 @@ export default function Workout({ navigation, route }) {
             console.log("startNewWorkout error", e);
             Alert.alert("Couldn't start workout", e?.message || "Please try again.");
         }
-    }, [uid, workout, createWorkoutDoc]);
+    }, [uid, workout, createWorkoutDoc, resetEndingGuard]);
 
-    // ===== START — from template (optimistic + background writes) =====
+    // ===== START — from template =====
     const startWorkoutFromTemplate = useCallback(
         (tplItem) => {
             if (startGuardRef.current) return;
@@ -282,6 +320,7 @@ export default function Workout({ navigation, route }) {
                 return;
             }
             try {
+                resetEndingGuard();
                 const selectedTemplate = tplItem?.isNone ? null : tplItem;
                 if (!selectedTemplate) return startNewWorkout();
 
@@ -316,82 +355,86 @@ export default function Workout({ navigation, route }) {
                 Alert.alert("Couldn't start from template", e?.message || "Please try again.");
             }
         },
-        [uid, workout, createWorkoutDoc, startNewWorkout]
+        [uid, workout, createWorkoutDoc, startNewWorkout, resetEndingGuard]
     );
 
+    // ✅ wrapper that picks the selected template or starts empty
     const onStartWorkout = useCallback(() => {
-        const selected = templatesWithNone[Math.max(0, Math.min(activeIdx, templatesWithNone.length - 1))];
+        const selected =
+            templatesWithNone[Math.max(0, Math.min(activeIdx, templatesWithNone.length - 1))];
         if (!selected || selected.isNone) startNewWorkout();
         else startWorkoutFromTemplate(selected);
     }, [activeIdx, templatesWithNone, startNewWorkout, startWorkoutFromTemplate]);
 
-    const updateNewWorkout = useCallback((next) => setWorkout(next), []);
+    // Ignore late updates if ending
+    const updateNewWorkout = useCallback((next) => {
+        if (isEndingRef.current) return; // drop stale writes from sheets/listeners
+        setWorkout(next);
+    }, []);
 
     const cancelWorkout = useCallback(async () => {
         try {
-            global.isCurrentlyWorkingOut = false;
-            clearInterval(workoutTimeInterval.current);
-            timerRef.current = "00:00";
-            setIsNewWorkoutBottomSheetVisible(false);
-            setWorkout(null);
-            if (uid) await updateDoc("users", uid, { currentWorkout: null });
+            // open a short killswitch window to suppress stale snapshots
+            killSwitchUntilRef.current = Date.now() + 15000;
+
+            // 1) Clear locally first (guaranteed UI/state reset)
+            clearCurrentWorkoutLocally();
+
+            // 2) Best-effort backend clear
+            if (uid) {
+                await updateDoc("users", uid, { currentWorkout: null });
+                lastServerNulledAtRef.current = Date.now();
+            }
         } catch (e) {
             console.log("cancelWorkout error", e);
         }
-    }, [uid]);
+    }, [uid, clearCurrentWorkoutLocally]);
 
-    // ✅ Finish: sanitize → compute duration → open summary modal → clear current workout
     const finishNewWorkout = useCallback(async () => {
         try {
-            global.isCurrentlyWorkingOut = false;
+            // open killswitch window
+            killSwitchUntilRef.current = Date.now() + 15000;
 
-            if (!workout) {
-                // nothing to summarize, just close
-                clearInterval(workoutTimeInterval.current);
-                timerRef.current = "00:00";
-                setIsNewWorkoutBottomSheetVisible(false);
-                if (uid) await updateDoc("users", uid, { currentWorkout: null });
-                return;
+            if (workout) {
+                // sanitize sets and compute duration
+                const cleanedExercises = (Array.isArray(workout.exercises) ? workout.exercises : [])
+                    .map((ex) => ({
+                        ...ex,
+                        sets: (Array.isArray(ex.sets) ? ex.sets : []).filter(
+                            (s) => Number(s?.weight) > 0 && Number(s?.reps) > 0
+                        ),
+                    }))
+                    .filter((ex) => ex.sets && ex.sets.length > 0);
+
+                const duration = Math.max(0, Date.now() - (workout.created || Date.now()));
+                const completed = { ...workout, duration, exercises: cleanedExercises };
+
+                // Show summary now
+                setCompletedWorkout(completed);
+                setIsSummaryModalVisible(true);
+
+                // Optimistic: reflect in local global cache for calendar badges
+                try {
+                    const arr = Array.isArray(global?.userData?.completedWorkouts)
+                        ? [...global.userData.completedWorkouts]
+                        : [];
+                    arr.push(completed);
+                    if (global?.userData) global.userData.completedWorkouts = arr;
+                } catch { /* ignore */ }
             }
 
-            // sanitize sets (weight>0 & reps>0) and drop empty exercises (like your old example)
-            const cleanedExercises = (Array.isArray(workout.exercises) ? workout.exercises : [])
-                .map((ex) => ({
-                    ...ex,
-                    sets: (Array.isArray(ex.sets) ? ex.sets : []).filter(
-                        (s) => Number(s?.weight) > 0 && Number(s?.reps) > 0
-                    ),
-                }))
-                .filter((ex) => ex.sets && ex.sets.length > 0);
+            // Clear locally (kills header badge/timer immediately)
+            clearCurrentWorkoutLocally();
 
-            const duration = Math.max(0, Date.now() - (workout.created || Date.now()));
-            const completed = { ...workout, duration, exercises: cleanedExercises };
-
-            // Open modal
-            setCompletedWorkout(completed);
-            setIsSummaryModalVisible(true);
-
-            // Optimistic: add to local global cache so WeekCalendar picks it up immediately
-            try {
-                const arr = Array.isArray(global?.userData?.completedWorkouts)
-                    ? [...global.userData.completedWorkouts]
-                    : [];
-                arr.push(completed);
-                if (global?.userData) global.userData.completedWorkouts = arr;
-            } catch { /* ignore */ }
-
-            // teardown current workout
-            clearInterval(workoutTimeInterval.current);
-            timerRef.current = "00:00";
-            setIsNewWorkoutBottomSheetVisible(false);
-            setWorkout(null);
-
-            // clear from user doc
-            if (uid) await updateDoc("users", uid, { currentWorkout: null });
+            // Backend clear
+            if (uid) {
+                await updateDoc("users", uid, { currentWorkout: null });
+                lastServerNulledAtRef.current = Date.now();
+            }
         } catch (e) {
             console.log("finishNewWorkout error", e);
         }
-    }, [uid, workout]);
+    }, [uid, workout, clearCurrentWorkoutLocally]);
 
     // Share flow (from summary modal)
     const postWorkout = useCallback(async () => {
@@ -402,10 +445,73 @@ export default function Workout({ navigation, route }) {
                 screen: "SelectPhotos",
                 params: { workout: completedWorkout },
             });
-        } catch (e) {
-            // ignore
-        }
+        } catch { /* ignore */ }
     }, [completedWorkout, navigation]);
+
+    /* ---------- HARD SUPPRESSOR: if a stale snapshot rehydrates currentWorkout during killswitch, nuke it again ---------- */
+    useEffect(() => {
+        const now = Date.now();
+        const inKillWindow = now < killSwitchUntilRef.current;
+
+        const docHasWorkout = !!user?.currentWorkout;
+        if (inKillWindow && docHasWorkout) {
+            // prevent flicker/badge reappearance
+            try {
+                if (global?.userData) global.userData.currentWorkout = null;
+            } catch { /* ignore */ }
+            setWorkout(null);
+            setHeaderKey((k) => k + 1);
+
+            // throttle server re-null (avoid hammering)
+            if (uid && now - lastServerNulledAtRef.current > 1500) {
+                updateDoc("users", uid, { currentWorkout: null })
+                    .then(() => { lastServerNulledAtRef.current = Date.now(); })
+                    .catch(() => { });
+            }
+        }
+    }, [user?.currentWorkout, uid]);
+
+    /* ---------- SELF-HEAL ON LOAD: verify user.currentWorkout against workouts/{wid} ---------- */
+    useEffect(() => {
+        const w = user?.currentWorkout;
+        if (!uid || !w?.wid) return;
+
+        let cancelled = false;
+
+        (async () => {
+            try {
+                const snap = await getDoc(doc(db, "workouts", w.wid));
+                const exists = snap.exists();
+                const data = exists ? snap.data() : null;
+
+                const active = !!data?.active;
+                const members = Array.isArray(data?.members) ? data.members : [];
+                const hasMember = members.length === 0 ? true : members.includes(uid);
+                const tooOld =
+                    typeof w?.created === "number" && Date.now() - w.created > 24 * 60 * 60 * 1000; // 24h stale
+
+                if (!exists || !active || !hasMember || tooOld) {
+                    if (cancelled) return;
+
+                    // Clear locally
+                    try { if (global?.userData) global.userData.currentWorkout = null; } catch { }
+                    setWorkout(null);
+                    setHeaderKey((k) => k + 1);
+
+                    // Clear in Firestore so it won't come back
+                    try { await updateDoc("users", uid, { currentWorkout: null }); } catch { }
+                }
+            } catch (e) {
+                // On error reading the workout doc, clear defensively
+                try { if (global?.userData) global.userData.currentWorkout = null; } catch { }
+                setWorkout(null);
+                setHeaderKey((k) => k + 1);
+                try { await updateDoc("users", uid, { currentWorkout: null }); } catch { }
+            }
+        })();
+
+        return () => { cancelled = true; };
+    }, [uid, user?.currentWorkout?.wid]);
 
     /* ---------- Template editor wiring ---------- */
     const openedTemplateRef = useRef(null);
@@ -503,6 +609,7 @@ export default function Workout({ navigation, route }) {
         <SafeAreaView style={styles.root}>
             {/* Header */}
             <FeedHeader
+                key={headerKey} // ← force remount on cancel/finish (and on stale rehydrate suppression)
                 toMessagesScreen={toMessagesScreen}
                 onOpenNotifications={onOpenNotifications}
                 backButton={false}
@@ -618,7 +725,7 @@ export default function Workout({ navigation, route }) {
                 workout={workout}
                 cancelNewWorkout={cancelWorkout}
                 updateNewWorkout={updateNewWorkout}
-                finishNewWorkout={finishNewWorkout}   // ← shows summary modal now
+                finishNewWorkout={finishNewWorkout}
                 isVisible={isNewWorkoutBottomSheetVisible}
                 setIsVisible={setIsNewWorkoutBottomSheetVisible}
                 timerRef={timerRef}
@@ -635,7 +742,7 @@ export default function Workout({ navigation, route }) {
                 deleteTemplate={deleteTemplate}
             />
 
-            {/* ✅ Summary modal */}
+            {/* Summary modal */}
             <WorkoutSummaryModal
                 isVisible={isSummaryModalVisible}
                 workout={completedWorkout}
@@ -694,7 +801,6 @@ const styles = StyleSheet.create({
         fontFamily: "Outfit_600SemiBold",
     },
 
-    /* Divider wrappers (center to rail/actions width) */
     sectionDividerOuter: {
         alignItems: "center",
         marginTop: 14,
