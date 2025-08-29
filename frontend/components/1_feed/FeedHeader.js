@@ -29,7 +29,7 @@ const scale = SCREEN_WIDTH / 375;
 const s = (n) => Math.round(n * scale);
 
 /* ---------- constants to lock header height ---------- */
-const CENTER_SLOT_H = s(30); // fixed center row height (pill/logo fit inside)
+const CENTER_SLOT_H = s(28); // fixed center row height (pill/logo fit inside)
 const NUDGE_MARGIN = s(5);   // matches your previous nudge
 
 /* ------------------------------ Debounce ------------------------------ */
@@ -511,6 +511,7 @@ const styles = StyleSheet.create({
 
     /* Fixed-height slot ensures header height never changes */
     centerSlot: {
+        paddingHorizontal: s(10),
         height: CENTER_SLOT_H,
         minWidth: s(140), // keeps layout stable so logo/pill swap doesn't shift neighbors
         alignItems: "center",
@@ -522,7 +523,7 @@ const styles = StyleSheet.create({
         height: "100%",
         flexDirection: "row",
         alignItems: "center",
-        paddingHorizontal: s(10),
+        paddingTop: s(4),
     },
     logo_image_ctnr: { justifyContent: "center", alignItems: "center" },
     logo_image: { width: s(24), height: s(25) },

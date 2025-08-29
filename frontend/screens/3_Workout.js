@@ -68,6 +68,9 @@ import rankUsers from "../helper/rankUsers";
 // 🔁 PFP resolver (cache-aware)
 import { usePfp } from "../helper/usePFPs";
 
+// 🎉 Summary modal
+import WorkoutSummaryModal from "../components/3_Workout/WorkoutSummaryModal";
+
 const { width: W } = Dimensions.get("window");
 
 // ensure each template has a stable `tid`
@@ -116,24 +119,6 @@ const PodiumPreview = React.memo(function PodiumPreview({ top3 = [] }) {
 
     return <MiniPodium data={data} />;
 });
-
-// YYYY-MM-DD helper
-const toDayKey = (msOrDate) => {
-    if (!msOrDate && msOrDate !== 0) return "";
-    let ms = msOrDate;
-    if (typeof msOrDate === "object") {
-        if (typeof msOrDate?.toMillis === "function") ms = msOrDate.toMillis();
-        else if (msOrDate instanceof Date) ms = msOrDate.getTime();
-        else ms = 0;
-    }
-    const d = new Date(ms);
-    if (Number.isNaN(d.getTime())) return "";
-    d.setHours(0, 0, 0, 0);
-    const y = d.getFullYear();
-    const m = String(d.getMonth() + 1).padStart(2, "0");
-    const day = String(d.getDate()).padStart(2, "0");
-    return `${y}-${m}-${day}`;
-};
 
 export default function Workout({ navigation, route }) {
     /* ---------- resolve uid & hydrate user ---------- */
@@ -208,6 +193,10 @@ export default function Workout({ navigation, route }) {
     const workoutTimeInterval = useRef(null);
     const timerRef = useRef("00:00");
     const startGuardRef = useRef(false); // tiny press guard
+
+    // 🧁 NEW: summary modal state
+    const [completedWorkout, setCompletedWorkout] = useState(null);
+    const [isSummaryModalVisible, setIsSummaryModalVisible] = useState(false);
 
     useEffect(() => {
         if (workout?.created) {
@@ -351,18 +340,72 @@ export default function Workout({ navigation, route }) {
         }
     }, [uid]);
 
+    // ✅ Finish: sanitize → compute duration → open summary modal → clear current workout
     const finishNewWorkout = useCallback(async () => {
         try {
             global.isCurrentlyWorkingOut = false;
+
+            if (!workout) {
+                // nothing to summarize, just close
+                clearInterval(workoutTimeInterval.current);
+                timerRef.current = "00:00";
+                setIsNewWorkoutBottomSheetVisible(false);
+                if (uid) await updateDoc("users", uid, { currentWorkout: null });
+                return;
+            }
+
+            // sanitize sets (weight>0 & reps>0) and drop empty exercises (like your old example)
+            const cleanedExercises = (Array.isArray(workout.exercises) ? workout.exercises : [])
+                .map((ex) => ({
+                    ...ex,
+                    sets: (Array.isArray(ex.sets) ? ex.sets : []).filter(
+                        (s) => Number(s?.weight) > 0 && Number(s?.reps) > 0
+                    ),
+                }))
+                .filter((ex) => ex.sets && ex.sets.length > 0);
+
+            const duration = Math.max(0, Date.now() - (workout.created || Date.now()));
+            const completed = { ...workout, duration, exercises: cleanedExercises };
+
+            // Open modal
+            setCompletedWorkout(completed);
+            setIsSummaryModalVisible(true);
+
+            // Optimistic: add to local global cache so WeekCalendar picks it up immediately
+            try {
+                const arr = Array.isArray(global?.userData?.completedWorkouts)
+                    ? [...global.userData.completedWorkouts]
+                    : [];
+                arr.push(completed);
+                if (global?.userData) global.userData.completedWorkouts = arr;
+            } catch { /* ignore */ }
+
+            // teardown current workout
             clearInterval(workoutTimeInterval.current);
             timerRef.current = "00:00";
             setIsNewWorkoutBottomSheetVisible(false);
             setWorkout(null);
+
+            // clear from user doc
             if (uid) await updateDoc("users", uid, { currentWorkout: null });
         } catch (e) {
             console.log("finishNewWorkout error", e);
         }
-    }, [uid]);
+    }, [uid, workout]);
+
+    // Share flow (from summary modal)
+    const postWorkout = useCallback(async () => {
+        setIsSummaryModalVisible(false);
+        try {
+            await navigation.navigate("ProfileStack", { screen: "Profile" });
+            navigation.navigate("ProfileStack", {
+                screen: "SelectPhotos",
+                params: { workout: completedWorkout },
+            });
+        } catch (e) {
+            // ignore
+        }
+    }, [completedWorkout, navigation]);
 
     /* ---------- Template editor wiring ---------- */
     const openedTemplateRef = useRef(null);
@@ -449,29 +492,6 @@ export default function Workout({ navigation, route }) {
         };
     }, []);
 
-    /* ---------- Build workoutsMap from completedWorkouts (with active workout today) ---------- */
-    const workoutsMap = useMemo(() => {
-        const out = Object.create(null);
-        const list =
-            (Array.isArray(user?.completedWorkouts) && user.completedWorkouts) ||
-            (Array.isArray(global?.userData?.completedWorkouts) && global.userData.completedWorkouts) ||
-            [];
-
-        for (const w of list) {
-            const created = w?.created ?? w?.createdAt ?? 0;
-            const key = toDayKey(created);
-            if (key) out[key] = true;
-        }
-
-        // If there's an active (local) workout, mark that day too.
-        if (workout?.created) {
-            const key = toDayKey(workout.created);
-            if (key) out[key] = true;
-        }
-
-        return out;
-    }, [user?.completedWorkouts, workout?.created]);
-
     /* ---------------- render ---------------- */
     const liveNow = [
         { uid: "a1", pfp: "https://i.pravatar.cc/200?img=11" },
@@ -498,10 +518,8 @@ export default function Workout({ navigation, route }) {
             {/* Overview + Calendar */}
             <View style={styles.content}>
                 <WeekCalendar
-                    // macrosMap kept for compatibility; coloring now handled internally
-                    macrosMap={{}}
-                    // ✅ blue bar data built from completedWorkouts (+ active workout)
-                    workoutsMap={workoutsMap}
+                    macrosMap={global?.userData?.macrosCompleteMap || {}}
+                    workoutsMap={global?.userData?.workoutsByDate || {}}
                 />
 
                 <View style={styles.hubRow}>
@@ -600,7 +618,7 @@ export default function Workout({ navigation, route }) {
                 workout={workout}
                 cancelNewWorkout={cancelWorkout}
                 updateNewWorkout={updateNewWorkout}
-                finishNewWorkout={finishNewWorkout}
+                finishNewWorkout={finishNewWorkout}   // ← shows summary modal now
                 isVisible={isNewWorkoutBottomSheetVisible}
                 setIsVisible={setIsNewWorkoutBottomSheetVisible}
                 timerRef={timerRef}
@@ -615,6 +633,14 @@ export default function Workout({ navigation, route }) {
                 openedTemplateRef={openedTemplateRef}
                 updateTemplate={updateTemplate}
                 deleteTemplate={deleteTemplate}
+            />
+
+            {/* ✅ Summary modal */}
+            <WorkoutSummaryModal
+                isVisible={isSummaryModalVisible}
+                workout={completedWorkout}
+                onClose={() => setIsSummaryModalVisible(false)}
+                postWorkout={postWorkout}
             />
         </SafeAreaView>
     );
