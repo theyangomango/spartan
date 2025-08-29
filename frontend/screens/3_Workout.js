@@ -1,4 +1,3 @@
-// screens/Workout.jsx
 // LiveNow + Nudges → (Calories ring, Mini Podium) → Templates rail → Nike-style START
 
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
@@ -117,6 +116,24 @@ const PodiumPreview = React.memo(function PodiumPreview({ top3 = [] }) {
 
     return <MiniPodium data={data} />;
 });
+
+// YYYY-MM-DD helper
+const toDayKey = (msOrDate) => {
+    if (!msOrDate && msOrDate !== 0) return "";
+    let ms = msOrDate;
+    if (typeof msOrDate === "object") {
+        if (typeof msOrDate?.toMillis === "function") ms = msOrDate.toMillis();
+        else if (msOrDate instanceof Date) ms = msOrDate.getTime();
+        else ms = 0;
+    }
+    const d = new Date(ms);
+    if (Number.isNaN(d.getTime())) return "";
+    d.setHours(0, 0, 0, 0);
+    const y = d.getFullYear();
+    const m = String(d.getMonth() + 1).padStart(2, "0");
+    const day = String(d.getDate()).padStart(2, "0");
+    return `${y}-${m}-${day}`;
+};
 
 export default function Workout({ navigation, route }) {
     /* ---------- resolve uid & hydrate user ---------- */
@@ -432,6 +449,29 @@ export default function Workout({ navigation, route }) {
         };
     }, []);
 
+    /* ---------- Build workoutsMap from completedWorkouts (with active workout today) ---------- */
+    const workoutsMap = useMemo(() => {
+        const out = Object.create(null);
+        const list =
+            (Array.isArray(user?.completedWorkouts) && user.completedWorkouts) ||
+            (Array.isArray(global?.userData?.completedWorkouts) && global.userData.completedWorkouts) ||
+            [];
+
+        for (const w of list) {
+            const created = w?.created ?? w?.createdAt ?? 0;
+            const key = toDayKey(created);
+            if (key) out[key] = true;
+        }
+
+        // If there's an active (local) workout, mark that day too.
+        if (workout?.created) {
+            const key = toDayKey(workout.created);
+            if (key) out[key] = true;
+        }
+
+        return out;
+    }, [user?.completedWorkouts, workout?.created]);
+
     /* ---------------- render ---------------- */
     const liveNow = [
         { uid: "a1", pfp: "https://i.pravatar.cc/200?img=11" },
@@ -458,8 +498,10 @@ export default function Workout({ navigation, route }) {
             {/* Overview + Calendar */}
             <View style={styles.content}>
                 <WeekCalendar
-                    macrosMap={global?.userData?.macrosCompleteMap || {}}
-                    workoutsMap={global?.userData?.workoutsByDate || {}}
+                    // macrosMap kept for compatibility; coloring now handled internally
+                    macrosMap={{}}
+                    // ✅ blue bar data built from completedWorkouts (+ active workout)
+                    workoutsMap={workoutsMap}
                 />
 
                 <View style={styles.hubRow}>

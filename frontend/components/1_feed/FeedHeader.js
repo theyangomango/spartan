@@ -29,7 +29,7 @@ const scale = SCREEN_WIDTH / 375;
 const s = (n) => Math.round(n * scale);
 
 /* ---------- constants to lock header height ---------- */
-const CENTER_SLOT_H = s(32); // fixed center row height (pill/logo fit inside)
+const CENTER_SLOT_H = s(30); // fixed center row height (pill/logo fit inside)
 const NUDGE_MARGIN = s(5);   // matches your previous nudge
 
 /* ------------------------------ Debounce ------------------------------ */

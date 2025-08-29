@@ -23,6 +23,10 @@ import { useFoodLogs } from '../hooks/useFoodLogs';
 import { summarizeFood } from '../utils/nutrition';
 import PersonalInfoSheet from '../components/2_MacroTracking/PersonalInfoSheet';
 
+// 🔥 Firestore (load + save macro goals)
+import { db } from '../../firebase.config';
+import { doc, onSnapshot, updateDoc, serverTimestamp } from 'firebase/firestore';
+
 if (Platform.OS === 'android' && UIManager.setLayoutAnimationEnabledExperimental) {
     UIManager.setLayoutAnimationEnabledExperimental(true);
 }
@@ -53,7 +57,9 @@ export default function MacroTracking({ navigation }) {
     const [focusedDate, setFocusedDate] = useState(new Date());
     const { meals, totals, addFood, deleteFood } = useFoodLogs(focusedDate);
 
+    // -------- goals (load from user doc, save back) --------
     const [macroGoals, setMacroGoals] = useState({ calories: 2340, carbs: 285, fat: 70, protein: 140 });
+
     // Prefill macro fields from current macroGoals so inputs show those values initially
     const [goalForm, setGoalForm] = useState(() => ({
         gender: 'male',
@@ -68,8 +74,46 @@ export default function MacroTracking({ navigation }) {
         protein: String(macroGoals.protein),
     }));
 
-    const [sheetIndex, setSheetIndex] = useState(-1);       // (optional: keep if you still use goals sheet)
-    const [personalIndex, setPersonalIndex] = useState(-1); // NEW: personal info sheet
+    // Subscribe to user's macro goals in Firestore
+    useEffect(() => {
+        const uid = global?.userData?.uid || global?.userData?.id;
+        if (!uid) return;
+
+        const ref = doc(db, 'users', uid);
+        const unsub = onSnapshot(ref, (snap) => {
+            const data = snap.data() || {};
+            const mg = data.macroGoals ?? data.macrosGoal; // keep legacy fallback
+            if (!mg) return;
+
+            const next = {
+                calories: Number(mg.calories) || 0,
+                carbs: Number(mg.carbs) || 0,
+                fat: Number(mg.fat) || 0,
+                protein: Number(mg.protein) || 0,
+            };
+            setMacroGoals(next);
+
+            // If a sheet is open later, another effect (below) will make sure the fields are seeded.
+            // Optionally also mirror into goalForm immediately if empty strings:
+            setGoalForm((s) => ({
+                ...s,
+                calories: s.calories === '' ? String(next.calories) : s.calories,
+                carbs: s.carbs === '' ? String(next.carbs) : s.carbs,
+                fat: s.fat === '' ? String(next.fat) : s.fat,
+                protein: s.protein === '' ? String(next.protein) : s.protein,
+            }));
+
+            // Keep global in sync so other screens (e.g. calendar coloring) see it instantly
+            try {
+                global.userData = { ...(global.userData || {}), macroGoals: next };
+            } catch { }
+        });
+
+        return () => unsub && unsub();
+    }, []);
+
+    const [sheetIndex, setSheetIndex] = useState(-1);       // goals sheet
+    const [personalIndex, setPersonalIndex] = useState(-1); // personal info sheet
 
     const [searchVisible, setSearchVisible] = useState(false);
     const [activeMeal, setActiveMeal] = useState(null);
@@ -83,10 +127,11 @@ export default function MacroTracking({ navigation }) {
         setCollapsed((prev) => ({ ...prev, [name]: !prev[name] }));
     };
 
-    const calorieProgress = Math.min(100, (totals.calories / Math.max(1, macroGoals.calories)) * 100);
+    const calorieProgress = Math.min(100, (Math.max(0, totals.calories) / Math.max(1, macroGoals.calories)) * 100);
 
     const formatDate = (date) =>
         date.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' });
+
     const shiftDate = (days) => {
         const d = new Date(focusedDate);
         d.setDate(d.getDate() + days);
@@ -107,6 +152,7 @@ export default function MacroTracking({ navigation }) {
         }
     }, [searchQuery, searchVisible]);
 
+    // When opening the sheet, seed empty fields from the latest macroGoals
     useEffect(() => {
         if (sheetIndex >= 0) {
             setGoalForm((s) => ({
@@ -118,7 +164,6 @@ export default function MacroTracking({ navigation }) {
             }));
         }
     }, [sheetIndex, macroGoals.calories, macroGoals.carbs, macroGoals.fat, macroGoals.protein]);
-
 
     const openSearchForMeal = (meal) => {
         setActiveMeal(meal?.name ?? null);
@@ -145,7 +190,9 @@ export default function MacroTracking({ navigation }) {
         if (Number.isNaN(n)) return min;
         return Math.max(min, Math.min(max, n));
     };
-    const onSaveGoals = () => {
+
+    // 🔒 Persist macro goals
+    const onSaveGoals = async () => {
         const next = {
             calories: clampInt(goalForm.calories, 1, 100000),
             carbs: clampInt(goalForm.carbs, 0, 2000),
@@ -153,6 +200,24 @@ export default function MacroTracking({ navigation }) {
             protein: clampInt(goalForm.protein, 0, 1000),
         };
         setMacroGoals(next);
+
+        const uid = global?.userData?.uid || global?.userData?.id;
+        if (uid) {
+            try {
+                await updateDoc(doc(db, 'users', uid), {
+                    macroGoals: next,
+                    updatedAt: serverTimestamp(),
+                });
+                // mirror to global immediately for other screens
+                try {
+                    global.userData = { ...(global.userData || {}), macroGoals: next };
+                } catch { }
+            } catch (e) {
+                // if write fails, we still keep local state; optionally you could show a toast
+                console.log('Failed to save macro goals:', e?.message || e);
+            }
+        }
+
         closeGoalsSheet();
     };
 
@@ -259,7 +324,7 @@ export default function MacroTracking({ navigation }) {
                     setGoalForm={setGoalForm}
                     onSave={onSaveGoals}
                     onCancel={closeGoalsSheet}
-                    onOpenPersonalInfo={() => setPersonalIndex(1)}   // NEW
+                    onOpenPersonalInfo={() => setPersonalIndex(1)}
                     COLORS={COLORS}
                 />
 
@@ -272,7 +337,6 @@ export default function MacroTracking({ navigation }) {
                     onSave={() => setPersonalIndex(-1)}
                     COLORS={COLORS}
                 />
-
 
                 <Footer navigation={navigation} currentScreenName={'MacroTracking'} />
             </View>
@@ -288,7 +352,7 @@ const styles = StyleSheet.create({
         justifyContent: 'space-between',
         marginBottom: 8,
     },
-    sectionTitleNoMargin: { marginLeft: 0 }, // use only with sectionHeaderRow
+    sectionTitleNoMargin: { marginLeft: 0 },
 
     stickyHeader: {
         backgroundColor: COLORS.bg,
@@ -305,7 +369,7 @@ const styles = StyleSheet.create({
         color: COLORS.text,
         fontFamily: 'Outfit_700Bold',
     },
-    // existed
+
     sectionTitle: {
         fontSize: 18,
         marginLeft: 18,
@@ -314,7 +378,6 @@ const styles = StyleSheet.create({
         fontFamily: 'Outfit_700Bold',
     },
 
-    // softened card shadow
     trackerCard: {
         backgroundColor: COLORS.card,
         borderRadius: 24,
@@ -348,8 +411,6 @@ const styles = StyleSheet.create({
         paddingHorizontal: 10,
         paddingVertical: 6,
         borderRadius: 999,
-        // borderWidth: StyleSheet.hairlineWidth,
-        // borderColor: 'rgba(99,102,241,0.22)',
     },
     editGoalsText: { fontFamily: 'Outfit_600SemiBold', color: COLORS.text, fontSize: 12.5 },
 
