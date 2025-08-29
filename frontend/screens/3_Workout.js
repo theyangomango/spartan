@@ -1,4 +1,3 @@
-// screens/Workout.jsx
 // LiveNow + Nudges → (Calories ring, Mini Podium) → Templates rail → Nike-style START
 
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
@@ -21,7 +20,7 @@ import { AnimatedCircularProgress } from "react-native-circular-progress";
 import { setDoc, doc, serverTimestamp } from "firebase/firestore";
 import { db } from "../../firebase.config";
 
-// Header
+// Header & Footer
 import FeedHeader from "../components/1_Feed/FeedHeader";
 import Footer from "../components/Footer";
 
@@ -49,7 +48,7 @@ import millisToHoursMinutesSeconds from "../helper/millisToHoursMinutesSeconds";
 import { useFoodLogs } from "../hooks/useFoodLogs";
 
 // Hooks
-import useResolvedUid from "../hooks/useResolvedUID";
+import useResolvedUid from "../hooks/useResolvedUid";
 import useUserDoc from "../hooks/useUserDoc";
 
 // Live PFP stack
@@ -80,6 +79,7 @@ export default function Workout({ navigation, route }) {
     /* ---------- ui & anim ---------- */
     const scaleAnim = useRef(new Animated.Value(0.92)).current;
     const allUsersRef = useRef([]);
+
     const toMessagesScreen = useCallback(() => navigation?.navigate("Messages"), [navigation]);
     const onOpenNotifications = useCallback(() => navigation?.navigate("Notifications"), [navigation]);
     const scrollToTop = useCallback(() => { }, []);
@@ -286,14 +286,13 @@ export default function Workout({ navigation, route }) {
     }, [uid]);
 
     /* ---------------- LONG-PRESS progress ring ---------------- */
-    const HOLD_MS = 650;                     // how long to hold
-    const [holdFill, setHoldFill] = useState(0); // 0..100 for progress ring
+    const HOLD_MS = 650;
+    const [holdFill, setHoldFill] = useState(0);
 
-    const handlePressIn = () => setHoldFill(100);     // animate to 100%
-    const handlePressOut = () => setHoldFill(0);      // reset if released early
+    const handlePressIn = () => setHoldFill(100);
+    const handlePressOut = () => setHoldFill(0);
     const handleLongPress = () => {
         onStartWorkout();
-        // brief success pause then clear ring
         setTimeout(() => setHoldFill(0), 250);
     };
 
@@ -325,8 +324,12 @@ export default function Workout({ navigation, route }) {
                 />
 
                 <View style={styles.hubRow}>
-                    {/* Calories */}
-                    <View style={styles.card}>
+                    {/* Calories → navigate to overlay with LEFT slide */}
+                    <Pressable
+                        style={styles.card}
+                        onPress={() => navigation.navigate('MacroTrackingOverlay')}
+                        android_ripple={{ color: "rgba(2,6,23,0.08)", radius: 120, borderless: false }}
+                    >
                         <Text style={styles.macrosCaption}>Today’s Calories</Text>
                         <View style={styles.ringWrap}>
                             <AnimatedCircularProgress
@@ -347,12 +350,16 @@ export default function Workout({ navigation, route }) {
                                 )}
                             </AnimatedCircularProgress>
                         </View>
-                    </View>
+                    </Pressable>
 
                     {/* Mini Podium */}
                     <View style={styles.card}>
                         <Text style={styles.podiumCaption}>Bench Press • 1RM</Text>
-                        <MiniPodium data={[{ pfp: "https://i.pravatar.cc/200?img=1" }, { pfp: "https://i.pravatar.cc/200?img=2" }, { pfp: "https://i.pravatar.cc/200?img=3" }]} />
+                        <MiniPodium data={[
+                            { pfp: "https://i.pravatar.cc/200?img=1" },
+                            { pfp: "https://i.pravatar.cc/200?img=2" },
+                            { pfp: "https://i.pravatar.cc/200?img=3" }
+                        ]} />
                     </View>
                 </View>
             </View>
@@ -415,7 +422,7 @@ export default function Workout({ navigation, route }) {
                         </View>
                     </Animated.View>
 
-                    {/* Friends live/recent (in white button) */}
+                    {/* Friends live/recent */}
                     <Pressable
                         hitSlop={8}
                         android_ripple={{ color: "rgba(2,6,23,0.08)", radius: SMALL_SIZE / 2, borderless: true }}
