@@ -1,75 +1,387 @@
 // components/3_Workout/FriendsActivitySheet.jsx
 import React, { memo, useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { View, Text, StyleSheet, Image, FlatList, Pressable } from "react-native";
+import {
+    View,
+    Text,
+    StyleSheet,
+    Image,
+    SectionList,
+    Animated,
+    Dimensions,
+} from "react-native";
 import BottomSheet, { BottomSheetBackdrop } from "@gorhom/bottom-sheet";
+import RNBounceable from "@freakycoder/react-native-bounceable";
+import { Clock } from "iconsax-react-native";
+import { MaterialCommunityIcons, FontAwesome6 } from "@expo/vector-icons";
+import { usePfp } from "../../helper/usePFPs";
 
-const timeAgo = (ts) => {
-    const d = typeof ts === "number" ? ts : (ts?.toMillis?.() ?? Date.now());
-    const diff = Math.max(0, Date.now() - d);
-    const s = Math.floor(diff / 1000);
-    if (s < 60) return `${s}s ago`;
-    const m = Math.floor(s / 60);
-    if (m < 60) return `${m}m ago`;
-    const h = Math.floor(m / 60);
-    if (h < 24) return `${h}h ago`;
-    const days = Math.floor(h / 24);
-    return `${days}d ago`;
+/* ------------------------------ scale & theme ------------------------------ */
+const { height: screenHeight } = Dimensions.get("window");
+const scale = screenHeight / 844;
+const s = (n) => Math.round(n * scale);
+
+const COLORS = {
+    bg: "#F6FAFF",
+    card: "#FFFFFF",
+    text: "#0F172A",
+    subtext: "#64748B",
+    hairline: "rgba(2, 6, 23, 0.06)",
+    blue: "#2D9EFF",
+    iconBg: "#EEF2F7",
+    statBg: "#F7FAFF",
+    statBorder: "rgba(100,116,139,0.10)",
 };
 
-const FriendRow = memo(({ item, onJoin, onView }) => {
+/* ------------------------------ utils ------------------------------ */
+const toMillis = (v) => {
+    if (!v) return undefined;
+    try {
+        if (typeof v === "number") return v;
+        if (v?.toMillis) return v.toMillis();
+        const t = new Date(v).getTime();
+        return Number.isFinite(t) ? t : undefined;
+    } catch {
+        return undefined;
+    }
+};
+
+const bestTimestamp = (it) =>
+    Math.max(
+        toMillis(it?.created) ?? 0,
+        toMillis(it?.startedAt) ?? 0,
+        toMillis(it?.finishedAt) ?? 0
+    );
+
+const toSec = (x) => {
+    const n = Number(x ?? 0);
+    return n > 9_999 ? Math.round(n / 1000) : Math.round(n);
+};
+
+const formatTimer = (value) => {
+    if (value == null) return "00:00";
+    if (typeof value === "string") return value;
+    const sec = Number(value) || 0;
+    const h = Math.floor(sec / 3600);
+    const m = Math.floor((sec % 3600) / 60);
+    const s = sec % 60;
+    const mm = String(m).padStart(2, "0");
+    const ss = String(s).padStart(2, "0");
+    return h > 0 ? `${h}:${mm}:${ss}` : `${mm}:${ss}`;
+};
+
+const formatNumber = (n) => {
+    if (n === undefined || n === null) return "0";
+    try {
+        return Number(n).toLocaleString();
+    } catch {
+        return String(n);
+    }
+};
+
+const firstName = (name = "") => {
+    const str = String(name).trim();
+    if (!str) return "Friend";
+    const raw = (str.split(/\s+/)[0] || str).replace(/[.,;:]+$/, "");
+    return raw;
+};
+
+const initials = (name = "") => {
+    const parts = `${name}`.trim().split(/\s+/);
+    const a = parts[0]?.[0] ?? "";
+    const b = parts[1]?.[0] ?? "";
+    return (a + b).toUpperCase() || "F";
+};
+
+const templateName = (item) =>
+    item?.templateName ??
+    item?.template?.name ??
+    item?.template_title ??
+    item?.title ??
+    "Workout";
+
+const handleText = (item) => {
+    const raw =
+        item?.handle ??
+        item?.username ??
+        item?.userName ??
+        firstName(item?.name)?.toLowerCase();
+    if (!raw) return "Friend";
+    const sRaw = String(raw);
+    return sRaw.startsWith("@") ? sRaw : `@${sRaw}`;
+};
+
+const dateLabel = (ts) => {
+    if (!ts) return "";
+    const d = new Date(ts);
+    if (Number.isNaN(d.getTime())) return "";
+    const nowYear = new Date().getFullYear();
+    const opts =
+        d.getFullYear() === nowYear
+            ? { month: "short", day: "numeric" }
+            : { month: "short", day: "numeric", year: "2-digit" };
+    return d.toLocaleDateString(undefined, opts);
+};
+
+/* ------------------------------ time grouping ------------------------------ */
+const startOfToday = (now = new Date()) => {
+    const d = new Date(now);
+    d.setHours(0, 0, 0, 0);
+    return d;
+};
+const startOfYesterday = (now = new Date()) => {
+    const d = startOfToday(now);
+    d.setDate(d.getDate() - 1);
+    return d;
+};
+const startOfWeekSunday = (now = new Date()) => {
+    const d = startOfToday(now);
+    d.setDate(d.getDate() - d.getDay());
+    return d;
+};
+const startOfLastWeek = (now = new Date()) => {
+    const d = startOfWeekSunday(now);
+    d.setDate(d.getDate() - 7);
+    return d;
+};
+const minusMonths = (now, months) => {
+    const d = startOfToday(now);
+    d.setMonth(d.getMonth() - months);
+    return d;
+};
+const minusYears = (now, years) => {
+    const d = startOfToday(now);
+    d.setFullYear(d.getFullYear() - years);
+    return d;
+};
+
+// Build ordered SectionList sections; keep live items in a dedicated top section
+const groupByTime = (items, nowMs) => {
+    const now = new Date(nowMs || Date.now());
+    const T0 = startOfToday(now).getTime();
+    const Y0 = startOfYesterday(now).getTime();
+    const W0 = startOfWeekSunday(now).getTime();
+    const LW0 = startOfLastWeek(now).getTime();
+    const M1 = minusMonths(now, 1).getTime();
+    const M3 = minusMonths(now, 3).getTime();
+    const Y1 = minusYears(now, 1).getTime();
+
+    const live = [];
+    const rest = [];
+    for (const it of items) (it?.live ? live : rest).push(it);
+
+    const buckets = {
+        "Today": [],
+        "Yesterday": [],
+        "This Week": [],
+        "Last Week": [],
+        "Last Month": [],
+        "Last Three Months": [],
+        "Last Year": [],
+        "Older": [],
+    };
+
+    for (const it of rest) {
+        const ts = bestTimestamp(it);
+        if (!ts) {
+            buckets["Older"].push(it);
+            continue;
+        }
+        if (ts >= T0) buckets["Today"].push(it);
+        else if (ts >= Y0) buckets["Yesterday"].push(it);
+        else if (ts >= W0) buckets["This Week"].push(it);
+        else if (ts >= LW0) buckets["Last Week"].push(it);
+        else if (ts >= M1) buckets["Last Month"].push(it);
+        else if (ts >= M3) buckets["Last Three Months"].push(it);
+        else if (ts >= Y1) buckets["Last Year"].push(it);
+        else buckets["Older"].push(it);
+    }
+
+    const ordered = [];
+    if (live.length) ordered.push({ title: "Live Now", data: live });
+    const order = [
+        "Today",
+        "Yesterday",
+        "This Week",
+        "Last Week",
+        "Last Month",
+        "Last Three Months",
+        "Last Year",
+        "Older",
+    ];
+    for (const key of order) {
+        const data = buckets[key];
+        if (data.length) ordered.push({ title: key, data });
+    }
+    return ordered;
+};
+
+/* ------------------------------ Row ------------------------------ */
+const FriendPanel = memo(({ item, now, onJoin, onView }) => {
+    const isLive = !!item?.live;
+
+    // live elapsed
+    let liveElapsed = undefined;
+    if (isLive) {
+        if (item?.timerRef && typeof item.timerRef.current !== "undefined") {
+            liveElapsed = item.timerRef.current;
+        } else if (typeof item?.elapsedSec !== "undefined") {
+            liveElapsed = item.elapsedSec;
+        } else if (typeof item?.elapsedMs !== "undefined") {
+            liveElapsed = item.elapsedMs;
+        } else {
+            const started = toMillis(item?.startedAt) ?? toMillis(item?.created);
+            if (started) liveElapsed = Math.max(0, Math.round((now - started) / 1000));
+        }
+    }
+
+    // pulse animation
+    const pulse = useRef(new Animated.Value(1)).current;
+    const pulseOpacity = useRef(new Animated.Value(1)).current;
+    useEffect(() => {
+        if (!isLive) return;
+        const loop = Animated.loop(
+            Animated.parallel([
+                Animated.sequence([
+                    Animated.timing(pulse, { toValue: 1.25, duration: 900, useNativeDriver: true }),
+                    Animated.timing(pulse, { toValue: 1.0, duration: 900, useNativeDriver: true }),
+                ]),
+                Animated.sequence([
+                    Animated.timing(pulseOpacity, { toValue: 0.6, duration: 900, useNativeDriver: true }),
+                    Animated.timing(pulseOpacity, { toValue: 1.0, duration: 900, useNativeDriver: true }),
+                ]),
+            ])
+        );
+        loop.start();
+        return () => loop.stop();
+    }, [isLive, pulse, pulseOpacity]);
+
+    // stats
+    const durationSec = isLive
+        ? toSec(liveElapsed)
+        : Math.max(0, Math.round(Number(item?.duration || 0) * 60)); // minutes → seconds
+    const volume = item?.volume ?? 0;
+    const pbs = Number(item?.PBs ?? item?.pbs ?? 0);
+
+    const onPrimary = () => (isLive ? onJoin?.(item) : onView?.(item));
+
+    // ✅ Use PFP cache hook with fallback
+    const cachedPfp = usePfp(item?.uid);
+    const pfpUri =
+        cachedPfp ||
+        item?.pfp ||
+        item?.pfpUrl ||
+        item?.photoURL ||
+        item?.photo ||
+        item?.avatar;
+
+    // date label next to handle
+    const when = dateLabel(bestTimestamp(item));
+
     return (
-        <View style={styles.row}>
-            <Image source={{ uri: item.pfp }} style={styles.avatar} />
-            <View style={styles.rowCenter}>
-                <Text style={styles.name} numberOfLines={1}>{item.name}</Text>
-                <Text style={styles.meta} numberOfLines={1}>
-                    {item.live ? "Live now" : "Finished"} • {item.exercises} exercises • {item.duration} min • {timeAgo(item.created)}
-                </Text>
+        <RNBounceable style={styles.panel} onPress={onPrimary} activeScale={0.965}>
+            {/* Header */}
+            <View style={styles.headerRow}>
+                {/* PFP */}
+                {pfpUri ? (
+                    <Image source={{ uri: pfpUri }} style={styles.pfp} />
+                ) : (
+                    <View style={[styles.pfp, styles.pfpFallback]}>
+                        <Text style={styles.pfpInitials}>{initials(item?.name)}</Text>
+                    </View>
+                )}
+
+                {/* Title stack: template/workout (1 line), then handle + date */}
+                <View style={{ flex: 1 }}>
+                    <Text style={styles.templateTitle} numberOfLines={1} ellipsizeMode="tail">
+                        {templateName(item)}
+                    </Text>
+                    <Text style={styles.handleText}>
+                        {handleText(item)}
+                        {when ? ` · ${when}` : ""}
+                    </Text>
+                </View>
+
+                {/* Right accessories: live pill (if any) + chevron (always visible) */}
+                <View style={styles.rightAccessories}>
+                    {isLive && (
+                        <View style={styles.livePill}>
+                            <Animated.View
+                                style={[styles.liveDot, { transform: [{ scale: pulse }], opacity: pulseOpacity }]}
+                            />
+                            <Clock color={COLORS.text} size={s(14)} variant="Bold" />
+                            <Text style={styles.liveText}>{formatTimer(durationSec)}</Text>
+                        </View>
+                    )}
+                    <MaterialCommunityIcons name="chevron-right" size={s(22)} color="rgba(15,23,42,0.45)" />
+                </View>
             </View>
-            {item.live ? (
-                <Pressable style={[styles.cta, styles.joinBtn]} onPress={() => onJoin?.(item)}>
-                    <Text style={[styles.ctaText, styles.joinText]}>Join</Text>
-                </Pressable>
-            ) : (
-                <Pressable style={[styles.cta, styles.viewBtn]} onPress={() => onView?.(item)}>
-                    <Text style={[styles.ctaText, styles.viewText]}>View</Text>
-                </Pressable>
-            )}
-        </View>
+
+            {/* Divider */}
+            <View style={styles.divider} />
+
+            {/* Stat chips (light gray) */}
+            <View style={styles.statsRow}>
+                <View style={styles.statCard}>
+                    <View style={styles.statIconWrap}>
+                        <Clock color={COLORS.text} size={s(13)} variant="Bold" />
+                    </View>
+                    <Text style={styles.statLabel}>Duration</Text>
+                    <Text style={styles.statValue}>{formatTimer(durationSec)}</Text>
+                </View>
+
+                <View style={styles.statCard}>
+                    <View style={styles.statIconWrap}>
+                        <MaterialCommunityIcons name="weight-lifter" size={s(13)} color={COLORS.text} />
+                    </View>
+                    <Text style={styles.statLabel}>Volume</Text>
+                    <Text style={styles.statValue}>{formatNumber(volume)} lb</Text>
+                </View>
+
+                <View style={styles.statCard}>
+                    <View style={styles.statIconWrap}>
+                        <FontAwesome6 name="trophy" size={s(11)} color={COLORS.text} />
+                    </View>
+                    <Text style={styles.statLabel}>PBs</Text>
+                    <Text style={styles.statValue}>{formatNumber(pbs)}</Text>
+                </View>
+            </View>
+        </RNBounceable>
     );
 });
 
+/* ------------------------------ Sheet ------------------------------ */
 const FriendsActivitySheet = ({
-    /** OPTION A: control with boolean */
     visible,
-    /** OPTION B: flip-to-open flag (any change expands) */
     openToggle,
-    /** Array of friend activity objects */
     items = [],
     onClose,
-    onJoin,        // when tapping "Join" on a live workout
-    onView,        // when tapping "View" on a finished workout
+    onJoin,
+    onView,
 }) => {
     const bottomSheetRef = useRef(null);
-    const [isExpanded, setIsExpanded] = useState(false);
     const snapPoints = useMemo(() => ["90%"], []);
+    const sortedItems = useMemo(
+        () => [...(items || [])].sort((a, b) => bestTimestamp(b) - bestTimestamp(a)),
+        [items]
+    );
 
-    // Open/close by explicit visible
+    const hasLive = useMemo(() => sortedItems?.some((it) => it?.live), [sortedItems]);
+    const [now, setNow] = useState(() => Date.now());
+    useEffect(() => {
+        if (!hasLive) return;
+        const id = setInterval(() => setNow(Date.now()), 1000);
+        return () => clearInterval(id);
+    }, [hasLive]);
+
     useEffect(() => {
         if (!bottomSheetRef.current || typeof visible === "undefined") return;
-        if (visible) {
-            bottomSheetRef.current.expand();
-            setIsExpanded(true);
-        } else {
-            bottomSheetRef.current.close();
-        }
+        if (visible) bottomSheetRef.current.expand();
+        else bottomSheetRef.current.close();
     }, [visible]);
 
-    // Expand on ANY toggle flip
     useEffect(() => {
         if (!bottomSheetRef.current || typeof openToggle === "undefined") return;
         bottomSheetRef.current.expand();
-        setIsExpanded(true);
     }, [openToggle]);
 
     const renderBackdrop = useCallback(
@@ -84,17 +396,24 @@ const FriendsActivitySheet = ({
         []
     );
 
-    const handleClose = useCallback(() => {
-        setIsExpanded(false);
-        onClose?.();
-    }, [onClose]);
+    // Build time-based sections (Live Now first, then non-empty time buckets)
+    const sections = useMemo(() => groupByTime(sortedItems, now), [sortedItems, now]);
 
     const keyExtractor = useCallback((it, i) => it.id ?? it.uid ?? `f-${i}`, []);
-
     const renderItem = useCallback(
-        ({ item }) => <FriendRow item={item} onJoin={onJoin} onView={onView} />,
-        [onJoin, onView]
+        ({ item }) => <FriendPanel item={item} now={now} onJoin={onJoin} onView={onView} />,
+        [now, onJoin, onView]
     );
+
+    const renderSectionHeader = useCallback(({ section }) => {
+        return (
+            <View style={styles.sectionHeaderWrap}>
+                <Text style={styles.sectionHeaderText}>{section.title}</Text>
+            </View>
+        );
+    }, []);
+
+    const liveCount = useMemo(() => sortedItems.filter((x) => x?.live).length, [sortedItems]);
 
     return (
         <View style={styles.outer} pointerEvents="box-none">
@@ -106,7 +425,7 @@ const FriendsActivitySheet = ({
                 backdropComponent={renderBackdrop}
                 handleStyle={styles.hiddenHandle}
                 backgroundStyle={styles.sheetBg}
-                onClose={handleClose}
+                onClose={onClose}
             >
                 {/* Grabber */}
                 <View style={styles.handle} />
@@ -114,27 +433,41 @@ const FriendsActivitySheet = ({
                 {/* Header */}
                 <View style={styles.header}>
                     <Text style={styles.headerTitle}>Friends training</Text>
-                    <Text style={styles.headerSub}>{items.length} updates</Text>
+                    <Text style={styles.headerSub}>
+                        {sortedItems.length} updates • {liveCount} live
+                    </Text>
                 </View>
 
-                {/* List */}
-                <FlatList
-                    data={items}
+                {/* Sectioned panels */}
+                <SectionList
+                    sections={sections}
+                    renderSectionHeader={renderSectionHeader}
                     renderItem={renderItem}
                     keyExtractor={keyExtractor}
                     contentContainerStyle={styles.listContent}
-                    ItemSeparatorComponent={() => <View style={styles.sep} />}
+                    ItemSeparatorComponent={() => <View style={{ height: s(10) }} />}
+                    SectionSeparatorComponent={() => <View style={{ height: s(12) }} />}
+                    stickySectionHeadersEnabled={false}
                     showsVerticalScrollIndicator={false}
+                    initialNumToRender={10}
+                    windowSize={10}
+                    maxToRenderPerBatch={12}
+                    removeClippedSubviews
                 />
             </BottomSheet>
         </View>
     );
 };
 
+/* ------------------------------ styles ------------------------------ */
 const styles = StyleSheet.create({
     outer: { position: "absolute", top: 0, left: 0, right: 0, bottom: 0, zIndex: 1 },
     hiddenHandle: { display: "none" },
-    sheetBg: { borderTopLeftRadius: 20, borderTopRightRadius: 20 },
+    sheetBg: {
+        backgroundColor: COLORS.bg,
+        borderTopLeftRadius: 22,
+        borderTopRightRadius: 22,
+    },
     handle: {
         alignSelf: "center",
         width: 46,
@@ -144,38 +477,145 @@ const styles = StyleSheet.create({
         marginTop: 8,
         marginBottom: 6,
     },
+
     header: { paddingHorizontal: 16, paddingVertical: 8 },
-    headerTitle: { fontFamily: "Outfit_700Bold", fontSize: 18, color: "#0F172A" },
-    headerSub: { marginTop: 2, fontFamily: "Outfit_500Medium", fontSize: 12.5, color: "#64748B" },
+    headerTitle: { fontFamily: "Outfit_700Bold", fontSize: 16, color: COLORS.text },
+    headerSub: { marginTop: 2, fontFamily: "Outfit_500Medium", fontSize: 12.5, color: COLORS.subtext },
 
-    listContent: { paddingHorizontal: 12, paddingBottom: 24 },
-    sep: { height: 10 },
+    listContent: { paddingHorizontal: s(16), paddingBottom: s(20) },
 
-    row: {
+    sectionHeaderWrap: {
+        paddingTop: s(6),
+        paddingBottom: s(4),
+    },
+    sectionHeaderText: {
+        fontFamily: "Outfit_700Bold",
+        fontSize: s(12),
+        color: "rgba(15,23,42,0.65)",
+        letterSpacing: 0.3,
+    },
+
+    /* Card */
+    panel: {
+        paddingHorizontal: s(14),
+        paddingVertical: s(10),
+        borderRadius: s(20),
+        backgroundColor: COLORS.card,
+        shadowColor: "#000",
+        shadowOffset: { width: 0, height: s(6) },
+        shadowOpacity: 0.07,
+        shadowRadius: s(12),
+        elevation: 7,
+        borderWidth: StyleSheet.hairlineWidth,
+        borderColor: "rgba(2, 6, 23, 0.03)",
+    },
+
+    headerRow: {
         flexDirection: "row",
         alignItems: "center",
-        backgroundColor: "#FFFFFF",
-        borderRadius: 16,
-        padding: 12,
-        borderWidth: StyleSheet.hairlineWidth,
-        borderColor: "rgba(2,6,23,0.06)",
+        marginBottom: s(6),
+        gap: s(10),
     },
-    avatar: { width: 42, height: 42, borderRadius: 21, marginRight: 12, backgroundColor: "#E2E8F0" },
-    rowCenter: { flex: 1 },
-    name: { fontFamily: "Outfit_700Bold", fontSize: 14.5, color: "#0F172A" },
-    meta: { marginTop: 2, fontFamily: "Outfit_500Medium", fontSize: 12.5, color: "#64748B" },
 
-    cta: {
-        paddingHorizontal: 12,
-        paddingVertical: 8,
-        borderRadius: 12,
-        borderWidth: StyleSheet.hairlineWidth,
+    rightAccessories: {
+        flexDirection: "row",
+        alignItems: "center",
+        gap: s(10),
     },
-    joinBtn: { backgroundColor: "#0F172A", borderColor: "transparent" },
-    joinText: { color: "#fff" },
-    viewBtn: { backgroundColor: "#EEF2FF", borderColor: "rgba(99,102,241,0.35)" },
-    viewText: { color: "#0F172A" },
-    ctaText: { fontFamily: "Outfit_700Bold", fontSize: 12.5 },
+
+    pfp: {
+        width: s(38),
+        height: s(38),
+        borderRadius: s(19),
+        backgroundColor: "#E2E8F0",
+    },
+    pfpFallback: {
+        alignItems: "center",
+        justifyContent: "center",
+    },
+    pfpInitials: {
+        fontFamily: "Outfit_700Bold",
+        fontSize: s(12),
+        color: COLORS.text,
+        opacity: 0.9,
+    },
+
+    templateTitle: {
+        fontSize: s(12.5),
+        fontFamily: "Outfit_700Bold",
+        color: COLORS.text,
+    },
+    handleText: {
+        marginTop: s(2),
+        fontSize: s(12),
+        fontFamily: "Outfit_500Medium",
+        color: COLORS.subtext,
+    },
+
+    // Live pill with blue accent
+    livePill: {
+        flexDirection: "row",
+        alignItems: "center",
+        gap: s(6),
+        backgroundColor: "rgba(45,158,255,0.12)",
+        borderWidth: StyleSheet.hairlineWidth,
+        borderColor: "rgba(45,158,255,0.35)",
+        paddingVertical: s(6),
+        paddingHorizontal: s(9),
+        borderRadius: s(999),
+    },
+    liveDot: {
+        width: s(8),
+        height: s(8),
+        borderRadius: s(4),
+        backgroundColor: "#EF4444",
+    },
+    liveText: {
+        fontFamily: "Outfit_700Bold",
+        fontSize: s(11.5),
+        color: COLORS.text,
+    },
+
+    divider: {
+        height: StyleSheet.hairlineWidth,
+        backgroundColor: COLORS.hairline,
+        marginVertical: s(6),
+    },
+
+    /* Stat chips */
+    statsRow: {
+        flexDirection: "row",
+        gap: s(8),
+    },
+    statCard: {
+        flex: 1,
+        backgroundColor: COLORS.statBg,
+        borderRadius: s(14),
+        paddingVertical: s(8),
+        paddingHorizontal: s(10),
+        borderWidth: StyleSheet.hairlineWidth,
+        borderColor: COLORS.statBorder,
+    },
+    statIconWrap: {
+        width: s(22),
+        height: s(22),
+        borderRadius: s(11),
+        justifyContent: "center",
+        alignItems: "center",
+        backgroundColor: COLORS.iconBg,
+        marginBottom: s(4),
+    },
+    statLabel: {
+        fontFamily: "Outfit_500Medium",
+        fontSize: s(10),
+        color: "rgba(100,116,139,0.9)",
+    },
+    statValue: {
+        marginTop: s(1),
+        fontFamily: "Outfit_700Bold",
+        fontSize: s(13),
+        color: COLORS.text,
+    },
 });
 
 export default memo(FriendsActivitySheet);

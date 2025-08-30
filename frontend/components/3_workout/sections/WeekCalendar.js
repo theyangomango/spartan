@@ -1,10 +1,11 @@
 // components/3_Workout/sections/WeekCalendar.jsx
 import React, { useMemo, useRef, useState, useCallback, memo } from "react";
-import { View, Text, StyleSheet, Dimensions, Platform, FlatList } from "react-native";
+import { View, Text, StyleSheet, Dimensions, Platform, VirtualizedList, Pressable } from "react-native";
 import RNBounceable from "@freakycoder/react-native-bounceable";
 import { useFoodLogs } from "../../../hooks/useFoodLogs";
 
 const { width: W } = Dimensions.get("window");
+const DAY_LETTERS = ["SU", "MO", "TU", "WE", "TH", "FR", "SA"];
 
 // YYYY-MM-DD
 const toDayKey = (msOrDate) => {
@@ -24,6 +25,22 @@ const toDayKey = (msOrDate) => {
     return `${y}-${m}-${day}`;
 };
 
+const sameDay = (a, b) => a.getFullYear() === b.getFullYear() && a.getMonth() === b.getMonth() && a.getDate() === b.getDate();
+const getStartOfWeekByOffset = (offset) => {
+    const d = new Date();
+    d.setHours(0, 0, 0, 0);
+    const sundayOffset = d.getDay();
+    d.setDate(d.getDate() - sundayOffset + offset * 7);
+    return d;
+};
+const makeWeekDays = (startDate) =>
+    Array.from({ length: 7 }, (_, i) => {
+        const d = new Date(startDate);
+        d.setDate(startDate.getDate() + i);
+        d.setHours(0, 0, 0, 0);
+        return d;
+    });
+
 /**
  * Props:
  *  - workoutsMap?: { 'YYYY-MM-DD': true }
@@ -36,52 +53,25 @@ export default function WeekCalendar({ workoutsMap = {}, onWeekChange, onDayPres
     const INNER_HPAD = 14;
     const CELL_GAP = 8;
 
-    // explicit row height so the horizontal FlatList always has height on iOS
     const PILL_H = 44;
-    const CAL_HEIGHT = PILL_H + 20; // margins 10 + 10 (top/bottom)
+    const CAL_HEIGHT = PILL_H + 20;
     const cellWidth = useMemo(() => {
         const usable = W - OUTER_HPAD * 2 - INNER_HPAD * 2 - CELL_GAP * 6;
         return Math.floor(usable / 7);
     }, []);
-
+    const halfBar = useMemo(() => Math.round(cellWidth * 0.5), [cellWidth]);
     const pageWidth = useMemo(() => cellWidth * 7 + CELL_GAP * 6, [cellWidth]);
-    const DAY_LETTERS = ["SU", "MO", "TU", "WE", "TH", "FR", "SA"];
 
     /* ---- virtual weeks ---- */
-    const TOTAL_WEEKS = 5200; // ~100 years
-    const BASE_INDEX = Math.floor(TOTAL_WEEKS / 2); // today's week
+    const TOTAL_WEEKS = 520; // ~10 years (ample + lighter)
+    const BASE_INDEX = Math.floor(TOTAL_WEEKS / 2);
     const [weekIndex, setWeekIndex] = useState(BASE_INDEX);
     const flatRef = useRef(null);
 
-    const isSameDay = (a, b) =>
-        a.getFullYear() === b.getFullYear() &&
-        a.getMonth() === b.getMonth() &&
-        a.getDate() === b.getDate();
-
-    const dayKey = (d) =>
-        `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
-
-    const getStartOfWeekByOffset = (offset) => {
-        const d = new Date();
-        d.setHours(0, 0, 0, 0);
-        const sundayOffset = d.getDay();
-        d.setDate(d.getDate() - sundayOffset + offset * 7);
-        return d;
-    };
-
-    const makeWeekDays = (startDate) =>
-        Array.from({ length: 7 }, (_, i) => {
-            const d = new Date(startDate);
-            d.setDate(startDate.getDate() + i);
-            d.setHours(0, 0, 0, 0);
-            return d;
-        });
-
     // Header month label
-    const currentWeekOffset = useMemo(() => weekIndex - BASE_INDEX, [weekIndex]);
+    const currentWeekOffset = weekIndex - BASE_INDEX;
     const currentStart = useMemo(() => getStartOfWeekByOffset(currentWeekOffset), [currentWeekOffset]);
     const currentWeekDays = useMemo(() => makeWeekDays(currentStart), [currentStart]);
-
     const monthLabel = useMemo(() => {
         if (!currentWeekDays.length) return "";
         const start = currentWeekDays[0];
@@ -92,10 +82,10 @@ export default function WeekCalendar({ workoutsMap = {}, onWeekChange, onDayPres
             : `${abbr(start)} & ${abbr(end)}`;
     }, [currentWeekDays]);
 
-    /* ---- build workouts map (fallback if prop omitted) ---- */
+    /* ---- workouts map (fallback if prop omitted) ---- */
     const computedWorkoutsMap = useMemo(() => {
-        const providedHasKeys = workoutsMap && Object.keys(workoutsMap).length > 0;
-        if (providedHasKeys) return workoutsMap;
+        const hasKeys = workoutsMap && Object.keys(workoutsMap).length > 0;
+        if (hasKeys) return workoutsMap;
 
         const out = Object.create(null);
         const list = Array.isArray(global?.userData?.completedWorkouts) ? global.userData.completedWorkouts : [];
@@ -138,50 +128,53 @@ export default function WeekCalendar({ workoutsMap = {}, onWeekChange, onDayPres
         }
     }, [onWeekChange]);
 
+    // Update weekIndex faster when the centered page is mostly visible.
+    const viewabilityConfig = useRef({ itemVisiblePercentThreshold: 80, minimumViewTime: 40 }).current;
+    const onViewableItemsChanged = useRef(({ viewableItems }) => {
+        if (!viewableItems?.length) return;
+        // pick the item with the largest visibility
+        let best = viewableItems[0];
+        for (const v of viewableItems) {
+            if ((v.isViewable && (v?.index ?? 0) !== undefined) && (v.percentVisible ?? 0) > (best.percentVisible ?? 0)) {
+                best = v;
+            }
+        }
+        const nextIndex = best?.index ?? weekIndex;
+        if (nextIndex !== weekIndex) {
+            setWeekIndex(nextIndex);
+            onWeekChange?.(nextIndex - BASE_INDEX);
+        }
+    }).current;
+
+    // Only the centered week mounts nutrition hooks
+    const isNutritionWeek = useCallback((index) => index === weekIndex, [weekIndex]);
+
+    /* ---- renderer ---- */
     const renderWeek = useCallback(
         ({ index }) => {
-            const offset = index - BASE_INDEX;
-            const start = getStartOfWeekByOffset(offset);
-            const days = makeWeekDays(start);
-
             return (
-                <View style={[styles.page, { width: pageWidth, height: CAL_HEIGHT }]}>
-                    <View style={styles.row}>
-                        {days.map((d, idx) => {
-                            const today = new Date();
-                            const isToday = isSameDay(d, today);
-                            const letter = DAY_LETTERS[d.getDay()];
-                            const k = dayKey(d);
-                            return (
-                                <DayCell
-                                    key={`${k}_${idx}`}
-                                    d={d}
-                                    letter={letter}
-                                    isToday={isToday}
-                                    cellWidth={cellWidth}
-                                    isLast={idx === 6}
-                                    workoutOn={!!computedWorkoutsMap[k]}
-                                    onPress={onDayPress}
-                                />
-                            );
-                        })}
-                    </View>
-                </View>
+                <WeekPage
+                    key={index}
+                    index={index}
+                    baseIndex={BASE_INDEX}
+                    pageWidth={pageWidth}
+                    calHeight={CAL_HEIGHT}
+                    cellWidth={cellWidth}
+                    cellGap={CELL_GAP}
+                    halfBar={halfBar}
+                    workoutsMap={computedWorkoutsMap}
+                    onDayPress={onDayPress}
+                    enableNutrition={isNutritionWeek(index)}
+                />
             );
         },
-        [pageWidth, cellWidth, computedWorkoutsMap, onDayPress]
+        [BASE_INDEX, pageWidth, CAL_HEIGHT, cellWidth, CELL_GAP, halfBar, computedWorkoutsMap, onDayPress, isNutritionWeek]
     );
 
     const getItemLayout = useCallback(
         (_data, index) => ({ length: pageWidth, offset: pageWidth * index, index }),
         [pageWidth]
     );
-
-    const onScrollToIndexFailed = useCallback((info) => {
-        setTimeout(() => {
-            flatRef.current?.scrollToIndex({ index: info.index, animated: false });
-        }, 10);
-    }, []);
 
     return (
         <View style={[styles.wrap, { paddingHorizontal: OUTER_HPAD }]}>
@@ -202,39 +195,116 @@ export default function WeekCalendar({ workoutsMap = {}, onWeekChange, onDayPres
                     </RNBounceable>
                 </View>
 
-                {/* Smooth, snapping FlatList */}
-                <FlatList
+                {/* Smooth, snapping VirtualizedList */}
+                <VirtualizedList
                     ref={flatRef}
                     horizontal
-                    style={{ height: CAL_HEIGHT }}                   // 👈 give it height
-                    contentContainerStyle={{ height: CAL_HEIGHT }}   // 👈 ensure children measure
+                    style={{ height: CAL_HEIGHT }}
+                    contentContainerStyle={{ height: CAL_HEIGHT }}
                     showsHorizontalScrollIndicator={false}
-                    data={Array.from({ length: TOTAL_WEEKS })}
-                    renderItem={renderWeek}
-                    keyExtractor={(_, i) => String(i)}
+                    data={null}
                     initialScrollIndex={BASE_INDEX}
+                    getItemCount={() => TOTAL_WEEKS}
+                    getItem={(_d, index) => index}
+                    renderItem={renderWeek}
+                    keyExtractor={(item) => String(item)}
                     getItemLayout={getItemLayout}
-                    onScrollToIndexFailed={onScrollToIndexFailed}
+                    onScrollToIndexFailed={(info) => {
+                        setTimeout(() => flatRef.current?.scrollToIndex({ index: info.index, animated: false }), 10);
+                    }}
                     scrollEventThrottle={16}
                     decelerationRate={Platform.OS === "ios" ? "fast" : 0.98}
                     pagingEnabled={false}
                     snapToInterval={pageWidth}
                     snapToAlignment="start"
-                    disableIntervalMomentum={false}
+                    disableIntervalMomentum
                     onMomentumScrollEnd={handleMomentumEnd}
+                    onViewableItemsChanged={onViewableItemsChanged}
+                    viewabilityConfig={viewabilityConfig}
                     overScrollMode="never"
-                    windowSize={5}
-                    initialNumToRender={3}
-                    maxToRenderPerBatch={3}
-                    removeClippedSubviews={false}
+                    windowSize={3}
+                    initialNumToRender={1}
+                    maxToRenderPerBatch={1}
+                    removeClippedSubviews
                 />
             </View>
         </View>
     );
 }
 
-/* ---------- Per-day cell ---------- */
-const DayCell = memo(function DayCell({
+/* ---------- A pure memoized "page" of 7 days ---------- */
+const WeekPage = memo(function WeekPage({
+    index,
+    baseIndex,
+    pageWidth,
+    calHeight,
+    cellWidth,
+    cellGap,
+    halfBar,
+    workoutsMap,
+    onDayPress,
+    enableNutrition,
+}) {
+    const offset = index - baseIndex;
+    const start = getStartOfWeekByOffset(offset);
+    const days = makeWeekDays(start);
+    const today = useMemo(() => {
+        const d = new Date();
+        d.setHours(0, 0, 0, 0);
+        return d;
+    }, []);
+
+    return (
+        <View style={[styles.page, { width: pageWidth, height: calHeight }]}>
+            <View style={styles.row}>
+                {days.map((d, idx) => {
+                    const isToday = sameDay(d, today);
+                    const letter = DAY_LETTERS[d.getDay()];
+                    const k = toDayKey(d);
+                    return (
+                        <MemoDayCell
+                            key={`${k}_${idx}`}
+                            d={d}
+                            letter={letter}
+                            isToday={isToday}
+                            cellWidth={cellWidth}
+                            isLast={idx === 6}
+                            workoutOn={!!workoutsMap[k]}
+                            onPress={onDayPress}
+                            enableNutrition={enableNutrition}
+                            halfBar={halfBar}
+                            cellGap={cellGap}
+                        />
+                    );
+                })}
+            </View>
+        </View>
+    );
+}, (prev, next) => {
+    // Only re-render if page identity or nutrition flag changes
+    return (
+        prev.index === next.index &&
+        prev.enableNutrition === next.enableNutrition &&
+        prev.pageWidth === next.pageWidth &&
+        prev.calHeight === next.calHeight &&
+        prev.cellWidth === next.cellWidth &&
+        prev.halfBar === next.halfBar &&
+        prev.workoutsMap === next.workoutsMap
+    );
+});
+
+/* ---------- Nutrition bar ---------- */
+const NutritionBar = memo(function NutritionBar({ d, halfBar }) {
+    const { totals } = useFoodLogs(d);
+    const cals = Math.max(0, Number(totals?.calories || 0));
+    const goal = Number((global?.userData?.macroGoals?.calories ?? global?.userData?.macrosGoal?.calories ?? 0)) || 0;
+
+    const onTarget = cals > 0 && goal > 0 && Math.abs(cals - goal) / Math.max(1, goal) <= 0.2;
+    return <View style={[styles.topBar, onTarget ? styles.topBarGreen : styles.topBarOff, { width: halfBar }]} />;
+});
+
+/* ---------- Per-day cell (pure) ---------- */
+const DayCell = function DayCell({
     d,
     letter,
     isToday,
@@ -242,29 +312,25 @@ const DayCell = memo(function DayCell({
     isLast,
     workoutOn,
     onPress,
+    enableNutrition,
+    halfBar,
+    cellGap,
 }) {
-    const { totals } = useFoodLogs(d);
-    const cals = Math.max(0, Number(totals?.calories || 0));
-    const goal =
-        Number((global?.userData?.macroGoals?.calories ?? global?.userData?.macrosGoal?.calories ?? 0)) || 0;
-
-    // ✅ Only green if tracked and within ±20% of goal; otherwise grey
-    const topStyle =
-        cals > 0 && goal > 0 && Math.abs(cals - goal) / Math.max(1, goal) <= 0.2
-            ? styles.topBarGreen
-            : styles.topBarOff;
-
+    const Container = Platform.OS === "android" ? Pressable : RNBounceable; // lighter on Android
     return (
-        <RNBounceable
+        <Container
             onPress={() => onPress?.(d)}
-            bounceEffectIn={0.96}
-            bounceEffectOut={1}
-            style={[styles.cell, { width: cellWidth, marginRight: isLast ? 0 : 8, height: "100%" }]}
+            {...(Platform.OS !== "android" ? { bounceEffectIn: 0.96, bounceEffectOut: 1 } : {})}
+            style={[styles.cell, { width: cellWidth, marginRight: isLast ? 0 : cellGap, height: "100%" }]}
             accessibilityRole="button"
             accessibilityLabel={`Open details for ${d.toDateString()}`}
         >
-            {/* Top nutrition bar */}
-            <View style={[styles.topBar, topStyle, { width: Math.round(cellWidth * 0.5) }]} />
+            {/* Top nutrition bar: only mount hook on the centered week */}
+            {enableNutrition ? (
+                <NutritionBar d={d} halfBar={halfBar} />
+            ) : (
+                <View style={[styles.topBar, styles.topBarOff, { width: halfBar }]} />
+            )}
 
             {/* Day label */}
             <View style={[styles.centerPill, isToday && styles.centerPillToday]}>
@@ -273,14 +339,23 @@ const DayCell = memo(function DayCell({
             </View>
 
             {/* Bottom workout bar */}
-            <View
-                style={[
-                    styles.bottomBar,
-                    workoutOn ? styles.bottomBarOn : styles.bottomBarOff,
-                    { width: Math.round(cellWidth * 0.5) },
-                ]}
-            />
-        </RNBounceable>
+            <View style={[styles.bottomBar, workoutOn ? styles.bottomBarOn : styles.bottomBarOff, { width: halfBar }]} />
+        </Container>
+    );
+};
+
+// Avoid re-renders unless visual props actually change
+const MemoDayCell = memo(DayCell, (a, b) => {
+    return (
+        a.isToday === b.isToday &&
+        a.cellWidth === b.cellWidth &&
+        a.isLast === b.isLast &&
+        a.workoutOn === b.workoutOn &&
+        a.enableNutrition === b.enableNutrition &&
+        a.letter === b.letter &&
+        a.halfBar === b.halfBar &&
+        a.cellGap === b.cellGap &&
+        toDayKey(a.d) === toDayKey(b.d)
     );
 });
 
@@ -309,19 +384,10 @@ const styles = StyleSheet.create({
         paddingHorizontal: 4,
     },
 
-    calCaption: {
-        color: "#64748B",
-        fontSize: 12,
-        fontFamily: "Outfit_700Bold",
-    },
+    calCaption: { color: "#64748B", fontSize: 12, fontFamily: "Outfit_700Bold" },
 
     jumpLinkTouch: { paddingHorizontal: 2, paddingVertical: 2 },
-    jumpLink: {
-        color: "#2D9EFF",
-        fontSize: 12,
-        fontFamily: "Outfit_700Bold",
-        letterSpacing: 0.2,
-    },
+    jumpLink: { color: "#2D9EFF", fontSize: 12, fontFamily: "Outfit_700Bold", letterSpacing: 0.2 },
 
     page: { justifyContent: "center" },
     row: { flexDirection: "row", alignItems: "center", height: "100%" },
@@ -330,7 +396,7 @@ const styles = StyleSheet.create({
 
     // Top nutrition bar
     topBar: { position: "absolute", top: 4, height: 6, borderRadius: 3 },
-    topBarGreen: { backgroundColor: "#4ce885ff" },
+    topBarGreen: { backgroundColor: "#6fd093ff" },
     topBarOff: { backgroundColor: "#E6EEF6" },
 
     // Bottom workout bar
@@ -352,16 +418,6 @@ const styles = StyleSheet.create({
         borderWidth: 1,
         borderColor: "#6FB8FF",
     },
-    dayLetter: {
-        fontFamily: "Outfit_700Bold",
-        fontSize: 9.5,
-        color: "#94A3B8",
-        marginBottom: 2,
-        letterSpacing: 0.3,
-    },
-    dayNum: {
-        fontFamily: "Outfit_800ExtraBold",
-        fontSize: 15,
-        color: "#0F172A",
-    },
+    dayLetter: { fontFamily: "Outfit_700Bold", fontSize: 9.5, color: "#94A3B8", marginBottom: 2, letterSpacing: 0.3 },
+    dayNum: { fontFamily: "Outfit_800ExtraBold", fontSize: 15, color: "#0F172A" },
 });

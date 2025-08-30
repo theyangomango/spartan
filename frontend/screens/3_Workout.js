@@ -50,18 +50,28 @@ import { useFoodLogs } from "../hooks/useFoodLogs";
 import useResolvedUid from "../hooks/useResolvedUid";
 import useUserDoc from "../hooks/useUserDoc";
 
-// PFP cache bridge
+// PFP cache bridge (used by PodiumPreview wrapper below)
 import { usePfp } from "../helper/usePFPs";
 
 // Backend helpers
 import updateDoc from "../../backend/helper/firebase/updateDoc";
 import makeID from "../../backend/helper/makeID";
-import getAllUsers from "../helper/getAllUsers";
-import rankUsers from "../helper/rankUsers";
 
 // Firestore
-import { setDoc, doc, serverTimestamp } from "firebase/firestore";
+import {
+    setDoc,
+    doc,
+    serverTimestamp,
+    collection,
+    getDocs,
+    query,
+    where,
+    documentId,
+} from "firebase/firestore";
 import { db } from "../../firebase.config";
+
+import getAllUsers from "../helper/getAllUsers";
+import rankUsers from "../helper/rankUsers";
 
 // Utils
 import millisToHoursMinutesSeconds from "../helper/millisToHoursMinutesSeconds";
@@ -69,7 +79,7 @@ import millisToHoursMinutesSeconds from "../helper/millisToHoursMinutesSeconds";
 const PREVIEW_EXERCISE = "Bench Press (Barbell)";
 const PREVIEW_LABEL = "Bench Press • 1RM";
 
-// Day key from date or millis
+/* ---------------- utils ---------------- */
 const toDayKey = (d) => {
     if (!d && d !== 0) return "";
     const x = new Date(d);
@@ -77,13 +87,14 @@ const toDayKey = (d) => {
     x.setHours(0, 0, 0, 0);
     return `${x.getFullYear()}-${String(x.getMonth() + 1).padStart(2, "0")}-${String(x.getDate()).padStart(2, "0")}`;
 };
-// Robust millis converter (number | Date | Firestore TS | {seconds})
+
 const toMillis = (v) => {
     if (typeof v === "number") return v;
     if (v instanceof Date) return v.getTime();
     if (v?.toMillis) return v.toMillis();
     if (typeof v?.seconds === "number") return v.seconds * 1000;
-    return 0;
+    const n = new Date(v).getTime();
+    return Number.isFinite(n) ? n : 0;
 };
 
 /** MiniPodium adapter: {uid, handle, stat, fallbackPfp} -> MiniPodium data via usePfp cache */
@@ -130,6 +141,84 @@ const normalizeTemplates = (arr) => {
     });
 };
 
+/* ---- helpers for friends activity ---- */
+const extractFollowingUids = (userObj) => {
+    const raw =
+        (Array.isArray(userObj?.following) && userObj.following) ||
+        (Array.isArray(global?.userData?.following) && global.userData.following) ||
+        [];
+    // support arrays of {uid} or plain strings
+    const uids = raw.map((x) => (typeof x === "string" ? x : x?.uid)).filter(Boolean);
+    return Array.from(new Set(uids));
+};
+
+const chunk10 = (arr) => {
+    const out = [];
+    for (let i = 0; i < arr.length; i += 10) out.push(arr.slice(i, i + 10));
+    return out;
+};
+
+const normalizeFriendWorkout = (w, profile) => {
+    const created = toMillis(w?.created ?? w?.createdAt);
+    // completed durations are often ms; convert to minutes if needed
+    let durationMin = 0;
+    if (typeof w?.duration === "number") {
+        durationMin = w.duration > 60000 ? Math.round(w.duration / 60000) : Math.round(w.duration);
+    }
+
+    let setCount = 0;
+    if (Array.isArray(w?.exercises)) {
+        for (const ex of w.exercises) {
+            setCount += Array.isArray(ex?.sets) ? ex.sets.length : 0;
+        }
+    }
+
+    return {
+        id: w?.wid || w?.id || `${profile.uid}_${created || makeID()}`,
+        uid: profile.uid,
+        name: profile.name || profile.handle || "Friend",
+        handle: profile.handle || "",
+        pfp: profile.pfp || "",
+        live: false,
+        created: created || 0,
+        finishedAt:
+            toMillis(w?.finishedAt) ||
+            (created || 0) + (typeof w?.duration === "number" ? w.duration : 0),
+        exercises: Array.isArray(w?.exercises) ? w.exercises.length : Number(w?.exercises || 0),
+        sets: setCount || Number(w?.sets || 0),
+        duration: durationMin, // minutes (FriendsActivitySheet expects minutes)
+        volume: Number(w?.volume || 0),
+        reps: Number(w?.reps || 0),
+        PBs: Number(w?.PBs ?? w?.pbs ?? 0),
+        calories: Number(w?.calories || 0),
+        templateName: w?.templateName || w?.template?.name || w?.template || w?.name || "Workout",
+        wid: w?.wid || undefined,
+    };
+};
+
+const normalizeFriendLive = (cw, profile) => {
+    // Access live via `currentWorkout` on the user document
+    const started = toMillis(cw?.startedAt ?? cw?.created);
+    return {
+        id: `live_${profile.uid}_${cw?.wid || cw?.id || started || makeID()}`,
+        uid: profile.uid,
+        name: profile.name || profile.handle || "Friend",
+        handle: profile.handle || "",
+        pfp: profile.pfp || "",
+        live: true,
+        startedAt: started || Date.now(),
+        created: toMillis(cw?.created) || started || Date.now(),
+        // live stats (optional)
+        volume: Number(cw?.volume || 0),
+        PBs: Number(cw?.PBs ?? cw?.pbs ?? 0),
+        duration: typeof cw?.duration === "number"
+            ? Math.round((cw.duration > 60000 ? cw.duration / 60000 : cw.duration))
+            : cw?.duration,
+        templateName: cw?.templateName || cw?.template?.name || cw?.title || "Workout",
+        wid: cw?.wid || cw?.id,
+    };
+};
+
 export default function Workout({ navigation, route }) {
     /* ---------- resolve uid & user ---------- */
     const uid = useResolvedUid(route);
@@ -142,6 +231,37 @@ export default function Workout({ navigation, route }) {
             // DO NOT force-wipe global.userData.currentWorkout here; header relies on local state + timer only.
         } catch { }
     }, []);
+
+    const [top3, setTop3] = useState([]);
+
+    useEffect(() => {
+        let mounted = true;
+        const load = async () => {
+            try {
+                const all = await getAllUsers();
+                if (!mounted) return;
+
+                allUsersRef.current = Array.isArray(all) ? all : [];
+
+                const ranked = rankUsers(allUsersRef.current, PREVIEW_EXERCISE) || [];
+                const top = ranked.slice(0, 3).map((u) => ({
+                    uid: u?.uid,
+                    handle: u?.handle ?? "",
+                    stat: u?.statsExercises?.[PREVIEW_EXERCISE]?.["1RM"] ?? 0,
+                    fallbackPfp: u?.pfp || u?.image || u?.photoURL || null,
+                }));
+                setTop3(top);
+            } catch (e) {
+                console.log("MiniPodium load error", e);
+                setTop3([]);
+            }
+        };
+
+        // keep the screen snappy; fetch after transition
+        InteractionManager.runAfterInteractions(load);
+        return () => { mounted = false; };
+    }, []);
+
 
     /* ---------- UI/anim ---------- */
     const scaleAnim = useRef(new Animated.Value(0.92)).current;
@@ -240,14 +360,12 @@ export default function Workout({ navigation, route }) {
     const [workout, setWorkout] = useState(null);
     const hasActiveWorkout = !!workout;
 
-    // CRITICAL: timerRef must default to empty string (header shows pill only when non-empty)
     const timerRef = useRef(""); // never "00:00"
     const timerIdRef = useRef(null);
 
     const setTimerNow = useCallback((createdMs) => {
         if (!createdMs) return;
         const diff = Date.now() - createdMs;
-        // clamp to at least 1s so we never show "00:00"
         timerRef.current = millisToHoursMinutesSeconds(Math.max(1000, diff));
     }, []);
 
@@ -259,14 +377,16 @@ export default function Workout({ navigation, route }) {
         timerRef.current = ""; // empty = no workout
     }, []);
 
-    const startTimer = useCallback((createdMs) => {
-        stopTimer();
-        setTimerNow(createdMs);
-        timerIdRef.current = setInterval(() => setTimerNow(createdMs), 1000);
-    }, [setTimerNow, stopTimer]);
+    const startTimer = useCallback(
+        (createdMs) => {
+            stopTimer();
+            setTimerNow(createdMs);
+            timerIdRef.current = setInterval(() => setTimerNow(createdMs), 1000);
+        },
+        [setTimerNow, stopTimer]
+    );
 
     useEffect(() => {
-        // Keep timer aligned if workout created changes (open/close screen, etc.)
         if (workout?.created) startTimer(workout.created);
         else stopTimer();
         return () => stopTimer();
@@ -302,7 +422,7 @@ export default function Workout({ navigation, route }) {
         stopTimer();
         setIsNewWorkoutVisible(false);
         setWorkout(null);
-        setHeaderKey((k) => k + 1); // force header to reconsider props just in case
+        setHeaderKey((k) => k + 1);
     }, [stopTimer]);
 
     const startWorkoutBase = useCallback(
@@ -335,7 +455,7 @@ export default function Workout({ navigation, route }) {
 
                     setWorkout(newWorkout);
                     setIsNewWorkoutVisible(true);
-                    startTimer(created); // start immediately → header gets non-empty time
+                    startTimer(created);
 
                     InteractionManager.runAfterInteractions(() => {
                         createWorkoutDoc(wid)
@@ -397,7 +517,6 @@ export default function Workout({ navigation, route }) {
                     if (global?.userData) {
                         global.userData.completedWorkouts = arr;
 
-                        // update calendar dots
                         const dk = toDayKey(completed.created);
                         global.userData.workoutsByDate = {
                             ...(global.userData.workoutsByDate || {}),
@@ -425,7 +544,6 @@ export default function Workout({ navigation, route }) {
         }
     }, [uid, workout, clearCurrentWorkoutLocally]);
 
-    // Share from summary modal
     const postWorkout = useCallback(async () => {
         setIsSummaryModalVisible(false);
         try {
@@ -440,10 +558,8 @@ export default function Workout({ navigation, route }) {
     const [daySheetDate, setDaySheetDate] = useState(null);
     const sheetDate = useMemo(() => daySheetDate ?? stableToday, [daySheetDate, stableToday]);
 
-    // foods for selected day
     const { meals: sheetMeals, totals: sheetTotals } = useFoodLogs(sheetDate, uid);
 
-    // workouts for selected day (from global.userData.currentWorkouts & completedWorkouts)
     const dayWorkouts = useMemo(() => {
         const dk = toDayKey(sheetDate);
         const completed = Array.isArray(global?.userData?.completedWorkouts)
@@ -459,98 +575,87 @@ export default function Workout({ navigation, route }) {
             .sort((a, b) => toMillis(b?.created ?? b?.createdAt) - toMillis(a?.created ?? a?.createdAt));
     }, [sheetDate]);
 
-    /* ---------- Friends Activity bottom sheet ---------- */
+    /* ---------- Friends Activity (from Firestore) ---------- */
     const [friendsSheetToggle, setFriendsSheetToggle] = useState(false);
     const [friendsSheetVisible, setFriendsSheetVisible] = useState(false);
+    const [friendsActivity, setFriendsActivity] = useState([]);
+    const [friendsLoading, setFriendsLoading] = useState(false);
 
-    // Hard-coded friend activity examples for now
-    const friendsActivity = useMemo(
-        () => [
-            {
-                id: "live-jordan",
-                uid: "u_jordan",
-                name: "Jordan P.",
-                handle: "@jordan",
-                pfp: "https://i.pravatar.cc/200?img=5",
-                live: true,
-                created: Date.now() - 8 * 60 * 1000, // 8m ago
-                exercises: 3,
-                duration: 8,
-                wid: "live_123",
-            },
-            {
-                id: "sam-finished",
-                uid: "u_sam",
-                name: "Samira K.",
-                handle: "@samira",
-                pfp: "https://i.pravatar.cc/200?img=15",
-                live: false,
-                created: Date.now() - 2 * 60 * 60 * 1000, // 2h ago
-                exercises: 8,
-                duration: 46,
-                wid: "w_a1",
-            },
-            {
-                id: "lee-finished",
-                uid: "u_lee",
-                name: "Lee H.",
-                handle: "@leeho",
-                pfp: "https://i.pravatar.cc/200?img=23",
-                live: false,
-                created: Date.now() - 7 * 60 * 60 * 1000, // 7h ago
-                exercises: 6,
-                duration: 39,
-                wid: "w_b2",
-            },
-            {
-                id: "maya-live",
-                uid: "u_maya",
-                name: "Maya R.",
-                handle: "@mayar",
-                pfp: "https://i.pravatar.cc/200?img=31",
-                live: true,
-                created: Date.now() - 3 * 60 * 1000, // 3m ago
-                exercises: 2,
-                duration: 3,
-                wid: "live_456",
-            },
-        ],
-        []
-    );
-
-    /* ---------- Mini podium data (inline) ---------- */
-    const [top3, setTop3] = useState([]);
-    const allUsersRef = useRef([]);
-    useEffect(() => {
-        let mounted = true;
-        (async () => {
-            try {
-                const all = await getAllUsers();
-                if (!mounted) return;
-
-                allUsersRef.current = Array.isArray(all) ? all : [];
-                const ranked = rankUsers(allUsersRef.current, PREVIEW_EXERCISE) || [];
-                const top = ranked.slice(0, 3).map((u) => {
-                    const stat = u?.statsExercises?.[PREVIEW_EXERCISE]?.["1RM"] ?? 0;
-                    return {
-                        uid: u?.uid,
-                        handle: u?.handle ?? "",
-                        stat,
-                        fallbackPfp: u?.pfp || u?.image || null,
-                    };
-                });
-                setTop3(top);
-            } catch (e) {
-                console.log("MiniPodium load error", e);
-                setTop3([]);
+    const fetchFriendsActivity = useCallback(async () => {
+        try {
+            const followingUids = extractFollowingUids(user);
+            if (!followingUids.length) {
+                setFriendsActivity([]);
+                return;
             }
-        })();
-        return () => {
-            mounted = false;
-        };
-    }, []);
+            setFriendsLoading(true);
+
+            const chunks = chunk10(followingUids);
+            const results = [];
+
+            for (const group of chunks) {
+                const q = query(collection(db, "users"), where(documentId(), "in", group));
+                const snap = await getDocs(q);
+
+                snap.forEach((docSnap) => {
+                    const data = docSnap.data() || {};
+                    const profile = {
+                        uid: docSnap.id,
+                        name: data.name || data.displayName || "",
+                        handle: data.handle || data.username || "",
+                        pfp: data.pfp || data.image || data.photoURL || "",
+                    };
+
+                    // 1) LIVE via currentWorkout on the user doc
+                    const cw = data?.currentWorkout;
+                    if (cw && (cw.created || cw.startedAt)) {
+                        results.push(normalizeFriendLive(cw, profile));
+                    }
+
+                    // 2) Completed (latest few)
+                    const completed = Array.isArray(data?.completedWorkouts) ? data.completedWorkouts : [];
+                    // keep only the last 5 per user to limit list cost
+                    const recent = completed.slice(-5);
+                    for (const w of recent) {
+                        results.push(normalizeFriendWorkout(w, profile));
+                    }
+                });
+            }
+
+            // Sort by "best" timestamp (started/created/finished)
+            const bestTs = (it) =>
+                Math.max(
+                    toMillis(it?.created) || 0,
+                    toMillis(it?.startedAt) || 0,
+                    toMillis(it?.finishedAt) || 0
+                );
+            results.sort((a, b) => bestTs(b) - bestTs(a));
+
+            setFriendsActivity(results);
+        } catch (e) {
+            console.log("friendsActivity fetch error", e);
+            setFriendsActivity([]);
+        } finally {
+            setFriendsLoading(false);
+        }
+    }, [user]);
+
+    // prefetch after nav transition to keep this screen snappy
+    useEffect(() => {
+        const task = InteractionManager.runAfterInteractions(() => {
+            fetchFriendsActivity();
+        });
+        return () => task?.cancel?.();
+    }, [fetchFriendsActivity]);
+
+    // refresh on open
+    useEffect(() => {
+        if (friendsSheetVisible) fetchFriendsActivity();
+    }, [friendsSheetVisible, fetchFriendsActivity]);
 
     /* ---------------- render ---------------- */
+    const allUsersRef = useRef([]); // FeedHeader expects a ref
+
     const liveNow = [
         { uid: "a1", pfp: "https://i.pravatar.cc/200?img=11" },
         { uid: "a2", pfp: "https://i.pravatar.cc/200?img=12" },
@@ -613,7 +718,7 @@ export default function Workout({ navigation, route }) {
                         </View>
                     </Pressable>
 
-                    {/* Mini podium */}
+                    {/* Mini podium (kept light; no heavy fetch here) */}
                     <View style={styles.card}>
                         <Text style={styles.podiumCaption}>{PREVIEW_LABEL}</Text>
                         <PodiumPreview top3={top3} />
