@@ -29,8 +29,8 @@ const scale = SCREEN_WIDTH / 375;
 const s = (n) => Math.round(n * scale);
 
 /* ---------- constants to lock header height ---------- */
-const CENTER_SLOT_H = s(28); // fixed center row height (pill/logo fit inside)
-const NUDGE_MARGIN = s(5);   // matches your previous nudge
+const CENTER_SLOT_H = s(28);
+const NUDGE_MARGIN = s(5);
 
 /* ------------------------------ Debounce ------------------------------ */
 const useDebounce = (fn, delay = 220) => {
@@ -336,16 +336,6 @@ const SearchUsersBar = ({ navigation, allUsersRef, disabled = false }) => {
 
 /* ----------------------------- FeedHeader ----------------------------- */
 
-const formatHMS = (ms) => {
-    const total = Math.max(0, Math.floor(ms / 1000));
-    const h = Math.floor(total / 3600);
-    const m = Math.floor((total % 3600) / 60);
-    const s = total % 60;
-    const pad2 = (n) => String(n).padStart(2, "0");
-    if (h === 0) return `${pad2(m)}:${pad2(s)}`;
-    return `${h}:${pad2(m)}:${pad2(s)}`;
-};
-
 const FeedHeader = ({
     toMessagesScreen,
     onOpenNotifications,
@@ -356,45 +346,35 @@ const FeedHeader = ({
     allUsersRef,
 
     // workout pill
-    workout,
+    workout,        // ← rely only on this (no globals)
     openCurrentWorkout,
-    timerRef,
+    timerRef,       // ← must be a ref updated by parent; empty string means “no workout”
 }) => {
     const [unreadCount, setUnreadCount] = useState(0);
-    const user = global.userData;
 
-    const rawWorkout = workout ?? global?.userData?.currentWorkout ?? null;
-
-    const isWorkoutActive = useMemo(() => {
-        if (!rawWorkout || !rawWorkout.wid) return false;
-        if (global?.isCurrentlyWorkingOut) return true;
-        if (timerRef?.current && timerRef.current !== "00:00") return true;
-        if (typeof rawWorkout.created === "number" && rawWorkout.created > 0) {
-            const twelveHours = 12 * 60 * 60 * 1000;
-            return Date.now() - rawWorkout.created < twelveHours;
-        }
-        return false;
-    }, [rawWorkout?.wid, rawWorkout?.created, timerRef?.current]);
-
-    const [elapsed, setElapsed] = useState("00:00");
+    // Always mirror timerRef into local state so UI re-renders when ref changes.
+    const [elapsed, setElapsed] = useState(""); // never default to "00:00"
     useEffect(() => {
-        if (!isWorkoutActive) return;
-        if (timerRef?.current) setElapsed(timerRef.current);
-        else if (rawWorkout?.created) setElapsed(formatHMS(Date.now() - rawWorkout.created));
         const id = setInterval(() => {
-            if (timerRef?.current) setElapsed(timerRef.current);
-            else if (rawWorkout?.created) setElapsed(formatHMS(Date.now() - rawWorkout.created));
-        }, 1000);
+            const v = (timerRef?.current || "").trim();
+            if (v !== elapsed) setElapsed(v);
+        }, 400);
         return () => clearInterval(id);
-    }, [isWorkoutActive, rawWorkout?.created, timerRef]);
+    }, [timerRef, elapsed]);
+
+    // Show pill only when:
+    //  - we have a workout prop with a wid
+    //  - and we have a non-empty elapsed string not equal to "00:00"
+    const showPill = !!workout?.wid && !!elapsed && elapsed !== "00:00";
 
     useEffect(() => {
-        if (!user?.uid) return;
-        const notificationsRef = collection(db, "users", user.uid, "notifications");
+        const uid = global?.userData?.uid;
+        if (!uid) return;
+        const notificationsRef = collection(db, "users", uid, "notifications");
         const q = query(notificationsRef, where("read", "==", false));
         const unsubscribe = onSnapshot(q, (snapshot) => setUnreadCount(snapshot.size));
         return () => unsubscribe();
-    }, [user?.uid]);
+    }, []);
 
     if (backButton) {
         return (
@@ -413,10 +393,10 @@ const FeedHeader = ({
                 <SearchUsersBar navigation={navigation} allUsersRef={allUsersRef} />
             </View>
 
-            {/* Center: fixed-height slot so header never changes height */}
+            {/* Center: fixed-height slot */}
             <View style={styles.centerArea}>
                 <View style={styles.centerSlot}>
-                    {isWorkoutActive ? (
+                    {showPill ? (
                         <RNBounceable
                             onPress={() => (openCurrentWorkout ? openCurrentWorkout() : navigation?.navigate?.("Workout"))}
                             style={styles.resumeBtnBlue}
@@ -476,7 +456,6 @@ const FeedHeader = ({
 export default memo(FeedHeader);
 
 /* -------------------------------- Styles ------------------------------- */
-
 const styles = StyleSheet.create({
     main_ctnr: {
         width: "100%",
@@ -509,22 +488,15 @@ const styles = StyleSheet.create({
 
     centerArea: { justifyContent: "center", alignItems: "center" },
 
-    /* Fixed-height slot ensures header height never changes */
     centerSlot: {
         paddingHorizontal: s(10),
         height: CENTER_SLOT_H,
-        minWidth: s(140), // keeps layout stable so logo/pill swap doesn't shift neighbors
+        minWidth: s(140),
         alignItems: "center",
         justifyContent: "center",
     },
 
-    /* Logo (fit inside fixed slot) */
-    logoWrap: {
-        height: "100%",
-        flexDirection: "row",
-        alignItems: "center",
-        paddingTop: s(4),
-    },
+    logoWrap: { height: "100%", flexDirection: "row", alignItems: "center", paddingTop: s(4) },
     logo_image_ctnr: { justifyContent: "center", alignItems: "center" },
     logo_image: { width: s(24), height: s(25) },
     logo_text: {
@@ -536,7 +508,6 @@ const styles = StyleSheet.create({
         ...Platform.select({ android: { lineHeight: s(19) } }),
     },
 
-    /* Blue ongoing workout pill (fits slot exactly) */
     resumeBtnBlue: {
         height: "100%",
         flexDirection: "row",
@@ -551,14 +522,7 @@ const styles = StyleSheet.create({
             android: { elevation: 3 },
         }),
     },
-    dotBlue: {
-        width: s(4),
-        height: s(4),
-        borderRadius: s(2),
-        backgroundColor: "#FFFFFF",
-        marginHorizontal: s(6),
-        opacity: 0.9,
-    },
+    dotBlue: { width: s(4), height: s(4), borderRadius: s(2), backgroundColor: "#FFFFFF", marginHorizontal: s(6), opacity: 0.9 },
     resumeTimeBlue: {
         fontFamily: "Outfit_700Bold",
         fontSize: s(12.5),
@@ -591,18 +555,11 @@ const styles = StyleSheet.create({
     message_button: { padding: 1 },
     heart_button: { marginRight: 19, padding: 1, position: "relative" },
 
-    /* Collapsed search icon placeholder (when disabled) */
     left_placeholder: { width: dynamicStyles.iconSize + 6, height: dynamicStyles.iconSize + 6 },
 
-    /* Full-takeover modal */
     modalContainer: { flex: 1, justifyContent: "flex-start" },
     canvasFill: { ...StyleSheet.absoluteFillObject, backgroundColor: "#F8FAFC" },
-    modalContent: {
-        flex: 1,
-        paddingHorizontal: dynamicStyles.paddingHorizontal,
-        paddingTop: s(8),
-        marginTop: NUDGE_MARGIN,
-    },
+    modalContent: { flex: 1, paddingHorizontal: dynamicStyles.paddingHorizontal, paddingTop: s(8), marginTop: NUDGE_MARGIN },
 
     overlayBar: {
         flexDirection: "row",
@@ -631,25 +588,14 @@ const styles = StyleSheet.create({
         borderWidth: 1,
         borderColor: "rgba(15,23,42,0.08)",
     },
-    overlayInput: {
-        flex: 1,
-        fontSize: s(13),
-        color: "#0f172a",
-        fontFamily: "Poppins_500Medium",
-    },
+    overlayInput: { flex: 1, fontSize: s(13), color: "#0f172a", fontFamily: "Poppins_500Medium" },
     clearBtn: { padding: s(6), marginLeft: s(4) },
 
     resultsWrap: { flex: 1, width: "100%" },
     listContent: { paddingTop: s(6) },
     separatorFull: { height: StyleSheet.hairlineWidth, backgroundColor: "rgba(15,23,42,0.08)" },
 
-    sectionTitle: {
-        paddingVertical: s(8),
-        fontFamily: "Outfit_700Bold",
-        color: "#0f172a",
-        fontSize: s(14),
-        paddingHorizontal: 16,
-    },
+    sectionTitle: { paddingVertical: s(8), fontFamily: "Outfit_700Bold", color: "#0f172a", fontSize: s(14), paddingHorizontal: 16 },
 
     noResultsWrap: {
         marginTop: s(16),
@@ -662,33 +608,11 @@ const styles = StyleSheet.create({
         alignItems: "center",
         gap: s(8),
     },
-    noResultsText: {
-        color: "#64748B",
-        fontSize: s(12.5),
-        fontFamily: "Outfit_600SemiBold",
-    },
+    noResultsText: { color: "#64748B", fontSize: s(12.5), fontFamily: "Outfit_600SemiBold" },
 
-    profileCard: {
-        width: "100%",
-        flexDirection: "row",
-        alignItems: "center",
-        backgroundColor: "#FFFFFF",
-        paddingVertical: s(12),
-        paddingHorizontal: s(18),
-    },
-    profileLeft: {
-        flexDirection: "row",
-        alignItems: "center",
-        flex: 1,
-        minWidth: 0,
-    },
-    avatarRing: {
-        alignItems: "center",
-        justifyContent: "center",
-        borderWidth: 2,
-        borderColor: "rgba(4,153,254,0.25)",
-        backgroundColor: "#fff",
-    },
+    profileCard: { width: "100%", flexDirection: "row", alignItems: "center", backgroundColor: "#FFFFFF", paddingVertical: s(12), paddingHorizontal: s(18) },
+    profileLeft: { flexDirection: "row", alignItems: "center", flex: 1, minWidth: 0 },
+    avatarRing: { alignItems: "center", justifyContent: "center", borderWidth: 2, borderColor: "rgba(4,153,254,0.25)", backgroundColor: "#fff" },
 
     cardHandle: { fontFamily: "Outfit_700Bold", fontSize: s(13.5), color: "#0f172a" },
     cardHandleHighlight: { color: "#0499FE" },

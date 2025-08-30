@@ -1,0 +1,98 @@
+// hooks/useTemplates.js
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import makeID from "../../backend/helper/makeID";
+import updateDoc from "../../backend/helper/firebase/updateDoc";
+
+const normalize = (arr) => {
+    const list = Array.isArray(arr) ? arr : [];
+    return list.map((t) => {
+        const tid = t?.tid || t?.id || makeID();
+        return {
+            id: t?.id || tid,
+            tid,
+            name: t?.name || "Untitled Template",
+            exercises: Array.isArray(t?.exercises) ? t.exercises : [],
+            lastDate: t?.lastDate ?? null,
+        };
+    });
+};
+
+export default function useTemplates({ uid, userTemplates }) {
+    const [templates, setTemplates] = useState([]);
+    useEffect(() => setTemplates(normalize(userTemplates || [])), [userTemplates]);
+
+    const templatesWithNone = useMemo(
+        () => [{ id: "none", name: "No template selected", exercises: [], lastDate: null, isNone: true }, ...templates],
+        [templates]
+    );
+
+    const [activeIdx, setActiveIdx] = useState(0);
+
+    const debounceRef = useRef(null);
+    const saveTemplates = useCallback(
+        (next) => {
+            if (!uid) return;
+            if (debounceRef.current) clearTimeout(debounceRef.current);
+            debounceRef.current = setTimeout(() => {
+                updateDoc("users", uid, { templates: next }).catch((e) => console.log("save templates error", e));
+            }, 500);
+        },
+        [uid]
+    );
+
+    // CRUD
+    const openedTemplateRef = useRef(null);
+    const [isEditVisible, setIsEditVisible] = useState(false);
+
+    const initTemplate = useCallback(() => {
+        const tid = makeID();
+        const t = { id: tid, tid, name: "Untitled Template", exercises: [], lastDate: null };
+        setTemplates((prev) => {
+            const next = [...prev, t];
+            saveTemplates(next);
+            return next;
+        });
+        openedTemplateRef.current = t;
+        setIsEditVisible(true);
+    }, [saveTemplates]);
+
+    const openEditTemplate = useCallback((tpl) => {
+        if (!tpl || tpl.isNone) return;
+        openedTemplateRef.current = { ...tpl };
+        setIsEditVisible(true);
+    }, []);
+
+    const updateTemplate = useCallback(() => {
+        setTemplates((prev) => {
+            const idx = prev.findIndex((t) => t.tid === openedTemplateRef.current?.tid);
+            if (idx === -1) return prev;
+            const next = [...prev];
+            next[idx] = { ...openedTemplateRef.current };
+            saveTemplates(next);
+            return next;
+        });
+    }, [saveTemplates]);
+
+    const deleteTemplate = useCallback(() => {
+        setTemplates((prev) => {
+            const next = prev.filter((t) => t.tid !== openedTemplateRef.current?.tid);
+            saveTemplates(next);
+            return next;
+        });
+        openedTemplateRef.current = null;
+        setIsEditVisible(false);
+    }, [saveTemplates]);
+
+    return {
+        templatesWithNone,
+        activeIdx,
+        setActiveIdx,
+        isEditVisible,
+        setIsEditVisible,
+        openedTemplateRef,
+        initTemplate,
+        openEditTemplate,
+        updateTemplate,
+        deleteTemplate,
+    };
+}

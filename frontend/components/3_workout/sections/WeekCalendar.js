@@ -1,15 +1,7 @@
 // components/3_Workout/sections/WeekCalendar.jsx
 import React, { useMemo, useRef, useState, useCallback, memo } from "react";
-import {
-    View,
-    Text,
-    StyleSheet,
-    Dimensions,
-    Platform,
-    FlatList,
-} from "react-native";
+import { View, Text, StyleSheet, Dimensions, Platform, FlatList } from "react-native";
 import RNBounceable from "@freakycoder/react-native-bounceable";
-import { BLUE } from "./workoutTheme";
 import { useFoodLogs } from "../../../hooks/useFoodLogs";
 
 const { width: W } = Dimensions.get("window");
@@ -33,25 +25,20 @@ const toDayKey = (msOrDate) => {
 };
 
 /**
- * Smooth, snap-to-week calendar with goal-aware nutrition coloring (top) and workout indicator (bottom):
- *  - Top bar:
- *      • Green: within ±20% of calorie goal
- *      • Yellow: tracked calories but outside ±20% (or no goal set)
- *      • Grey: no calories tracked (0)
- *  - Bottom bar:
- *      • Blue: workout on that day
- *      • Grey: no workout on that day
- *
  * Props:
- *  - workoutsMap?: { 'YYYY-MM-DD': true }  (blue bottom bar). If omitted, we derive from global.userData.completedWorkouts.
+ *  - workoutsMap?: { 'YYYY-MM-DD': true }
  *  - onWeekChange?: (offset:number) => void
+ *  - onDayPress?: (date: Date) => void
  */
-export default function WeekCalendar({ workoutsMap = {}, onWeekChange }) {
+export default function WeekCalendar({ workoutsMap = {}, onWeekChange, onDayPress }) {
     /* ---- layout ---- */
     const OUTER_HPAD = 16;
     const INNER_HPAD = 14;
     const CELL_GAP = 8;
 
+    // explicit row height so the horizontal FlatList always has height on iOS
+    const PILL_H = 44;
+    const CAL_HEIGHT = PILL_H + 20; // margins 10 + 10 (top/bottom)
     const cellWidth = useMemo(() => {
         const usable = W - OUTER_HPAD * 2 - INNER_HPAD * 2 - CELL_GAP * 6;
         return Math.floor(usable / 7);
@@ -72,9 +59,7 @@ export default function WeekCalendar({ workoutsMap = {}, onWeekChange }) {
         a.getDate() === b.getDate();
 
     const dayKey = (d) =>
-        `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(
-            d.getDate()
-        ).padStart(2, "0")}`;
+        `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
 
     const getStartOfWeekByOffset = (offset) => {
         const d = new Date();
@@ -92,20 +77,16 @@ export default function WeekCalendar({ workoutsMap = {}, onWeekChange }) {
             return d;
         });
 
-    // Header month label from current index
+    // Header month label
     const currentWeekOffset = useMemo(() => weekIndex - BASE_INDEX, [weekIndex]);
-    const currentStart = useMemo(
-        () => getStartOfWeekByOffset(currentWeekOffset),
-        [currentWeekOffset]
-    );
+    const currentStart = useMemo(() => getStartOfWeekByOffset(currentWeekOffset), [currentWeekOffset]);
     const currentWeekDays = useMemo(() => makeWeekDays(currentStart), [currentStart]);
 
     const monthLabel = useMemo(() => {
         if (!currentWeekDays.length) return "";
         const start = currentWeekDays[0];
         const end = currentWeekDays[currentWeekDays.length - 1];
-        const abbr = (d) =>
-            d.toLocaleDateString(undefined, { month: "short" }).slice(0, 3).toUpperCase();
+        const abbr = (d) => d.toLocaleDateString(undefined, { month: "short" }).slice(0, 3).toUpperCase();
         return start.getMonth() === end.getMonth() && start.getFullYear() === end.getFullYear()
             ? abbr(start)
             : `${abbr(start)} & ${abbr(end)}`;
@@ -117,16 +98,11 @@ export default function WeekCalendar({ workoutsMap = {}, onWeekChange }) {
         if (providedHasKeys) return workoutsMap;
 
         const out = Object.create(null);
-        const list = Array.isArray(global?.userData?.completedWorkouts)
-            ? global.userData.completedWorkouts
-            : [];
-
+        const list = Array.isArray(global?.userData?.completedWorkouts) ? global.userData.completedWorkouts : [];
         for (const w of list) {
             const k = toDayKey(w?.created ?? w?.createdAt ?? 0);
             if (k) out[k] = true;
         }
-
-        // Best-effort: if an active workout is stored on the user object, include it.
         const active = global?.userData?.currentWorkout;
         if (active?.created) {
             const k = toDayKey(active.created);
@@ -169,14 +145,13 @@ export default function WeekCalendar({ workoutsMap = {}, onWeekChange }) {
             const days = makeWeekDays(start);
 
             return (
-                <View style={[styles.page, { width: pageWidth }]}>
+                <View style={[styles.page, { width: pageWidth, height: CAL_HEIGHT }]}>
                     <View style={styles.row}>
                         {days.map((d, idx) => {
                             const today = new Date();
                             const isToday = isSameDay(d, today);
                             const letter = DAY_LETTERS[d.getDay()];
                             const k = dayKey(d);
-
                             return (
                                 <DayCell
                                     key={`${k}_${idx}`}
@@ -185,7 +160,8 @@ export default function WeekCalendar({ workoutsMap = {}, onWeekChange }) {
                                     isToday={isToday}
                                     cellWidth={cellWidth}
                                     isLast={idx === 6}
-                                    workoutOn={!!computedWorkoutsMap[k]} // ✅ blue if true, grey if false
+                                    workoutOn={!!computedWorkoutsMap[k]}
+                                    onPress={onDayPress}
                                 />
                             );
                         })}
@@ -193,34 +169,26 @@ export default function WeekCalendar({ workoutsMap = {}, onWeekChange }) {
                 </View>
             );
         },
-        [pageWidth, cellWidth, computedWorkoutsMap]
+        [pageWidth, cellWidth, computedWorkoutsMap, onDayPress]
     );
 
     const getItemLayout = useCallback(
-        (_data, index) => ({
-            length: pageWidth,
-            offset: pageWidth * index,
-            index,
-        }),
+        (_data, index) => ({ length: pageWidth, offset: pageWidth * index, index }),
         [pageWidth]
     );
 
     const onScrollToIndexFailed = useCallback((info) => {
         setTimeout(() => {
-            flatRef.current?.scrollToIndex({
-                index: info.index,
-                animated: false,
-            });
+            flatRef.current?.scrollToIndex({ index: info.index, animated: false });
         }, 10);
     }, []);
 
     return (
         <View style={[styles.wrap, { paddingHorizontal: OUTER_HPAD }]}>
             <View style={[styles.card, { paddingHorizontal: INNER_HPAD }]}>
-                {/* Caption row with Month + Jump to Today (blue link) */}
+                {/* Caption */}
                 <View style={styles.captionRow}>
                     <Text style={styles.calCaption}>{monthLabel}</Text>
-
                     <RNBounceable
                         onPress={goToToday}
                         bounceEffectIn={0.95}
@@ -238,6 +206,8 @@ export default function WeekCalendar({ workoutsMap = {}, onWeekChange }) {
                 <FlatList
                     ref={flatRef}
                     horizontal
+                    style={{ height: CAL_HEIGHT }}                   // 👈 give it height
+                    contentContainerStyle={{ height: CAL_HEIGHT }}   // 👈 ensure children measure
                     showsHorizontalScrollIndicator={false}
                     data={Array.from({ length: TOTAL_WEEKS })}
                     renderItem={renderWeek}
@@ -256,14 +226,14 @@ export default function WeekCalendar({ workoutsMap = {}, onWeekChange }) {
                     windowSize={5}
                     initialNumToRender={3}
                     maxToRenderPerBatch={3}
-                    removeClippedSubviews
+                    removeClippedSubviews={false}
                 />
             </View>
         </View>
     );
 }
 
-/* ---------- Per-day cell with goal-aware color ---------- */
+/* ---------- Per-day cell ---------- */
 const DayCell = memo(function DayCell({
     d,
     letter,
@@ -271,42 +241,30 @@ const DayCell = memo(function DayCell({
     cellWidth,
     isLast,
     workoutOn,
+    onPress,
 }) {
-    // Logged totals for that day
     const { totals } = useFoodLogs(d);
     const cals = Math.max(0, Number(totals?.calories || 0));
-
-    // User calorie goal (fallback 0)
     const goal =
-        Number(
-            (global?.userData?.macroGoals?.calories ??
-                global?.userData?.macrosGoal?.calories ??
-                0)
-        ) || 0;
+        Number((global?.userData?.macroGoals?.calories ?? global?.userData?.macrosGoal?.calories ?? 0)) || 0;
 
-    // Top bar color: green within ±20% of goal, yellow if tracked but outside that range, grey if 0.
-    const topStyle = (() => {
-        if (cals <= 0) return styles.topBarOff; // no tracking → grey
-        if (goal <= 0) return styles.topBarYellow; // tracked, no goal → yellow
-        const diffRatio = Math.abs(cals - goal) / Math.max(1, goal);
-        return diffRatio <= 0.20 ? styles.topBarGreen : styles.topBarYellow;
-    })();
+    // ✅ Only green if tracked and within ±20% of goal; otherwise grey
+    const topStyle =
+        cals > 0 && goal > 0 && Math.abs(cals - goal) / Math.max(1, goal) <= 0.2
+            ? styles.topBarGreen
+            : styles.topBarOff;
 
     return (
-        <View
-            style={[
-                styles.cell,
-                { width: cellWidth, marginRight: isLast ? 0 : 8 },
-            ]}
+        <RNBounceable
+            onPress={() => onPress?.(d)}
+            bounceEffectIn={0.96}
+            bounceEffectOut={1}
+            style={[styles.cell, { width: cellWidth, marginRight: isLast ? 0 : 8, height: "100%" }]}
+            accessibilityRole="button"
+            accessibilityLabel={`Open details for ${d.toDateString()}`}
         >
             {/* Top nutrition bar */}
-            <View
-                style={[
-                    styles.topBar,
-                    topStyle,
-                    { width: Math.round(cellWidth * 0.5) },
-                ]}
-            />
+            <View style={[styles.topBar, topStyle, { width: Math.round(cellWidth * 0.5) }]} />
 
             {/* Day label */}
             <View style={[styles.centerPill, isToday && styles.centerPillToday]}>
@@ -318,11 +276,11 @@ const DayCell = memo(function DayCell({
             <View
                 style={[
                     styles.bottomBar,
-                    workoutOn ? styles.bottomBarOn : styles.bottomBarOff, // ✅ blue if workout, grey if not
+                    workoutOn ? styles.bottomBarOn : styles.bottomBarOff,
                     { width: Math.round(cellWidth * 0.5) },
                 ]}
             />
-        </View>
+        </RNBounceable>
     );
 });
 
@@ -348,7 +306,7 @@ const styles = StyleSheet.create({
         alignItems: "center",
         justifyContent: "space-between",
         marginBottom: 8,
-        paddingHorizontal: 4
+        paddingHorizontal: 4,
     },
 
     calCaption: {
@@ -365,21 +323,20 @@ const styles = StyleSheet.create({
         letterSpacing: 0.2,
     },
 
-    page: {},
-    row: { flexDirection: "row" },
+    page: { justifyContent: "center" },
+    row: { flexDirection: "row", alignItems: "center", height: "100%" },
 
     cell: { alignItems: "center", position: "relative" },
 
     // Top nutrition bar
     topBar: { position: "absolute", top: 4, height: 6, borderRadius: 3 },
-    topBarGreen: { backgroundColor: "#4ad77eff" },   // green (within ±20% goal)
-    topBarYellow: { backgroundColor: "#ffdb4bff" },  // tracked but outside ±20% (or no goal)
-    topBarOff: { backgroundColor: "#E6EEF6" },       // not tracked (0 cals)
+    topBarGreen: { backgroundColor: "#4ce885ff" },
+    topBarOff: { backgroundColor: "#E6EEF6" },
 
     // Bottom workout bar
     bottomBar: { position: "absolute", bottom: 4, height: 6, borderRadius: 3 },
-    bottomBarOn: { backgroundColor: "#72bdffff" }, // workout day → blue
-    bottomBarOff: { backgroundColor: "#E6EEF6" },        // no workout → grey
+    bottomBarOn: { backgroundColor: "#2D9EFF" },
+    bottomBarOff: { backgroundColor: "#E6EEF6" },
 
     centerPill: {
         marginTop: 10,
