@@ -36,7 +36,7 @@ import useUserDoc from "../hooks/useUserDoc";
 // Backend
 import updateDoc from "../../backend/helper/firebase/updateDoc";
 import makeID from "../../backend/helper/makeID";
-import { setDoc, doc, serverTimestamp } from "firebase/firestore";
+import { setDoc, doc, serverTimestamp, onSnapshot } from "firebase/firestore";
 import { db } from "../../firebase.config";
 
 // utils
@@ -45,7 +45,7 @@ import getAllUsers from "../helper/getAllUsers";
 import rankUsers from "../helper/rankUsers";
 
 // split parts
-import HubRow from "../components/3_Workout/sections/HubRow"
+import HubRow from "../components/3_Workout/sections/HubRow";
 import StartCluster from "../components/3_Workout/sections/StartCluster";
 import useFriendsActivity from "../hooks/useFriendsActivity";
 
@@ -68,6 +68,67 @@ const toMillis = (v) => {
     if (typeof v?.seconds === "number") return v.seconds * 1000;
     const n = new Date(v).getTime();
     return Number.isFinite(n) ? n : 0;
+};
+
+/** Ensure created is numeric and sets contain isDone */
+const sanitizeWorkout = (w) => {
+    if (!w) return null;
+    const created = toMillis(w.created ?? w.createdAt);
+
+    const normalizeSets = (sets) =>
+        Array.isArray(sets) && sets.length
+            ? sets.map((s) => ({
+                weight: Number(s?.weight) || 0,
+                reps: Number(s?.reps) || 0,
+                isDone: !!s?.isDone,
+            }))
+            : [{ weight: 0, reps: 0, isDone: false }];
+
+    const exercises = Array.isArray(w.exercises)
+        ? w.exercises.map((ex) => ({
+            ...ex,
+            sets: normalizeSets(ex?.sets),
+        }))
+        : [];
+
+    return {
+        ...w,
+        created,
+        exercises,
+        volume: Number(w?.volume) || 0,
+        reps: Number(w?.reps) || 0,
+        PBs: Number(w?.PBs) || 0,
+    };
+};
+
+/** Extract followed/friend UIDs from user doc in a resilient way */
+const extractFollowingUids = (u) => {
+    const out = new Set();
+
+    // common shapes
+    const pushMaybe = (v) => {
+        if (!v) return;
+        if (Array.isArray(v)) v.forEach((x) => x && out.add(String(x?.uid || x)));
+        else if (typeof v === "object") {
+            Object.keys(v).forEach((k) => {
+                const val = v[k];
+                if (typeof val === "string") out.add(String(val));
+                else if (val?.uid) out.add(String(val.uid));
+                else out.add(String(k));
+            });
+        }
+    };
+
+    pushMaybe(u?.following);
+    pushMaybe(u?.friends);
+    pushMaybe(u?.followingUids);
+    pushMaybe(u?.friendsUids);
+    pushMaybe(u?.follows);
+    pushMaybe(u?.followingMap);
+
+    // never include self
+    if (u?.uid) out.delete(String(u.uid));
+    return [...out];
 };
 
 export default function Workout({ navigation, route }) {
@@ -174,18 +235,24 @@ export default function Workout({ navigation, route }) {
 
     const openedTemplateRef = useRef(null);
     const [isEditTemplateVisible, setIsEditTemplateVisible] = useState(false);
+    const [editSheetToggle, setEditSheetToggle] = useState(false); // NEW: force expand token
+
     const initTemplate = useCallback(() => {
         const tid = makeID();
         const newTemplate = { id: tid, tid, name: "Untitled Template", exercises: [], lastDate: null };
         setTemplates((prev) => { const next = [...prev, newTemplate]; queueSaveTemplates(next); return next; });
         openedTemplateRef.current = newTemplate;
         setIsEditTemplateVisible(true);
+        setEditSheetToggle((t) => !t); // force expand
     }, [queueSaveTemplates]);
+
     const openEditTemplate = useCallback((tpl) => {
         if (!tpl || tpl.isNone) return;
         openedTemplateRef.current = { ...tpl };
         setIsEditTemplateVisible(true);
+        setEditSheetToggle((t) => !t); // force expand every time
     }, []);
+
     const updateTemplate = useCallback(() => {
         setTemplates((prev) => {
             const idx = prev.findIndex((t) => t.tid === openedTemplateRef.current?.tid);
@@ -193,6 +260,7 @@ export default function Workout({ navigation, route }) {
             const next = [...prev]; next[idx] = { ...openedTemplateRef.current }; queueSaveTemplates(next); return next;
         });
     }, [queueSaveTemplates]);
+
     const deleteTemplate = useCallback(() => {
         setTemplates((prev) => { const next = prev.filter((t) => t.tid !== openedTemplateRef.current?.tid); queueSaveTemplates(next); return next; });
         openedTemplateRef.current = null; setIsEditTemplateVisible(false);
@@ -229,28 +297,64 @@ export default function Workout({ navigation, route }) {
         if (startGuardRef.current) return;
         startGuardRef.current = true; setTimeout(() => (startGuardRef.current = false), 500);
         if (!uid) { Alert.alert("Sign in required", "Please log in to start a workout."); return; }
+
         try {
             if (!workout) {
                 global.isCurrentlyWorkingOut = true;
-                const wid = makeID(); const created = Date.now();
+                const wid = makeID();
+                const created = Date.now();
+
+                // normalize sets with isDone
+                const normalizeSets = (sets) =>
+                    Array.isArray(sets) && sets.length
+                        ? sets.map((s) => ({
+                            weight: Number(s?.weight) || 0,
+                            reps: Number(s?.reps) || 0,
+                            isDone: !!s?.isDone,
+                        }))
+                        : [{ weight: 0, reps: 0, isDone: false }];
+
+                const exercisesFromTpl = tplOrNull?.exercises
+                    ? tplOrNull.exercises.map((ex) => ({ ...ex, sets: normalizeSets(ex?.sets) }))
+                    : [];
+
                 const newWorkout = {
-                    wid, creatorUID: uid, created, users: [],
-                    exercises: tplOrNull?.exercises ? [...tplOrNull.exercises] : [],
-                    tid: tplOrNull?.tid || tplOrNull?.id || null, volume: 0, reps: 0, PBs: 0,
+                    wid,
+                    creatorUID: uid,
+                    created,
+                    users: [],
+                    exercises: exercisesFromTpl,
+                    tid: tplOrNull?.tid || tplOrNull?.id || null,
+                    volume: 0,
+                    reps: 0,
+                    PBs: 0,
                 };
+
+                // local state + UI
                 setWorkout(newWorkout);
                 setIsNewWorkoutVisible(true);
                 startTimer(created);
+
+                // WRITE-THROUGH: save immediately to Firestore (no deferral)
+                setDoc(doc(db, "users", uid), { currentWorkout: newWorkout }, { merge: true })
+                    .catch((e) => {
+                        console.log("setDoc users.currentWorkout error", e);
+                    });
+
+                // Create workouts doc in background
                 InteractionManager.runAfterInteractions(() => {
-                    createWorkoutDoc(wid)
-                        .then(() => updateDoc("users", uid, { currentWorkout: newWorkout }))
-                        .catch((e) => console.log("startWorkout background writes error", e));
+                    requestAnimationFrame(() => {
+                        createWorkoutDoc(wid).catch((e) => {
+                            console.log("createWorkoutDoc error", e);
+                        });
+                    });
                 });
             } else {
                 setIsNewWorkoutVisible(true);
             }
         } catch (e) {
-            console.log("startWorkout error", e); Alert.alert("Couldn't start workout", e?.message || "Please try again.");
+            console.log("startWorkout error", e);
+            Alert.alert("Couldn't start workout", e?.message || "Please try again.");
         }
     }, [uid, workout, createWorkoutDoc, startTimer]);
 
@@ -259,7 +363,30 @@ export default function Workout({ navigation, route }) {
         startWorkoutBase(selected?.isNone ? null : selected);
     }, [activeIdx, templatesWithNone, startWorkoutBase]);
 
-    const updateNewWorkout = useCallback((next) => setWorkout(next), []);
+    // persist current workout (debounced) when it changes
+    const saveCurrentWorkoutDebouncedRef = useRef(null);
+    const persistCurrentWorkout = useCallback((value) => {
+        if (!uid) return;
+        if (saveCurrentWorkoutDebouncedRef.current) clearTimeout(saveCurrentWorkoutDebouncedRef.current);
+        const payload = value ? sanitizeWorkout(value) : null;
+
+        saveCurrentWorkoutDebouncedRef.current = setTimeout(async () => {
+            try {
+                await setDoc(doc(db, "users", uid), { currentWorkout: payload }, { merge: true });
+            } catch (e) {
+                console.log("setDoc users.currentWorkout (debounced) error", e);
+                try { await updateDoc("users", uid, { currentWorkout: payload }); } catch (e2) {
+                    console.log("helper updateDoc fallback error", e2);
+                }
+            }
+        }, 400);
+    }, [uid]);
+
+    const updateNewWorkout = useCallback((next) => {
+        setWorkout(next);
+        persistCurrentWorkout(next); // persist to backend with `isDone`
+    }, [persistCurrentWorkout]);
+
     const cancelWorkout = useCallback(async () => {
         try { clearCurrentWorkoutLocally(); if (uid) await updateDoc("users", uid, { currentWorkout: null }); } catch (e) { console.log("cancelWorkout error", e); }
     }, [uid, clearCurrentWorkoutLocally]);
@@ -308,6 +435,20 @@ export default function Workout({ navigation, route }) {
         } catch { }
     }, [completedWorkout, navigation]);
 
+    /* ---------- Rehydrate local workout from Firestore on load ---------- */
+    useEffect(() => {
+        if (workout) return;
+        const remote = sanitizeWorkout(user?.currentWorkout);
+        if (remote && remote.created) {
+            setWorkout(remote);
+            startTimer(remote.created);
+            try {
+                global.isCurrentlyWorkingOut = true;
+                if (global?.userData) global.userData.currentWorkout = remote;
+            } catch { }
+        }
+    }, [user?.currentWorkout, workout, startTimer]);
+
     /* ---------- Day sheet (toggle-to-open) + data ---------- */
     const [daySheetToggle, setDaySheetToggle] = useState(false);
     const [daySheetVisible, setDaySheetVisible] = useState(false);
@@ -323,54 +464,76 @@ export default function Workout({ navigation, route }) {
             .sort((a, b) => toMillis(b?.created ?? b?.createdAt) - toMillis(a?.created ?? a?.createdAt));
     }, [sheetDate]);
 
-    /* ---------- Friends activity ---------- */
+    /* ---------- Friends activity (for sheet) ---------- */
     const { items: friendsActivity, refresh: refreshFriends } = useFriendsActivity(user);
     const [friendsSheetVisible, setFriendsSheetVisible] = useState(false);
-    const [friendsSheetToggle, setFriendsSheetToggle] = useState(false); // <-- toggle flag
-
-    // PRELOAD immediately (no deferral) so data is ready before the first open
-    useEffect(() => {
-        refreshFriends();
-    }, [refreshFriends]);
-
-    // refresh on open
+    const [friendsSheetToggle, setFriendsSheetToggle] = useState(false);
+    useEffect(() => { refreshFriends(); }, [refreshFriends]);
     useEffect(() => { if (friendsSheetVisible) refreshFriends(); }, [friendsSheetVisible, refreshFriends]);
 
-    // ----- compute "new updates" for the Friends button indicator -----
+    /* ---------- Indicator: realtime listening to followed users ---------- */
     const lastViewedAtMs = toMillis(user?.friendsActivityLastViewedAt);
-    const itemTs = useCallback(
-        (it) => Math.max(
-            toMillis(it?.created) || 0,
-            toMillis(it?.startedAt) || 0,
-            toMillis(it?.finishedAt) || 0
-        ),
-        []
+    const followedUids = useMemo(() => extractFollowingUids(user), [user?.following, user?.friends, user?.uid, user?.followingUids, user?.friendsUids, user?.follows, user?.followingMap]);
+
+    // Map of uid -> { uid, pfp, pfpVersion, live, latestTs }
+    const [friendsState, setFriendsState] = useState({});
+    useEffect(() => {
+        setFriendsState({});
+        if (!followedUids.length) return;
+        const unsubs = followedUids.map((fuid) =>
+            onSnapshot(doc(db, "users", String(fuid)), (snap) => {
+                const d = snap.data() || {};
+                const live = !!(d?.currentWorkout); // treat any currentWorkout as live
+                const liveCreated = toMillis(d?.currentWorkout?.created);
+
+                // latest completed
+                let lastCompleted = 0;
+                if (Array.isArray(d?.completedWorkouts)) {
+                    for (const w of d.completedWorkouts) {
+                        const t = Math.max(
+                            toMillis(w?.finishedAt) || 0,
+                            toMillis(w?.createdAt) || 0,
+                            toMillis(w?.created) || 0
+                        );
+                        if (t > lastCompleted) lastCompleted = t;
+                    }
+                }
+                const latestTs = Math.max(liveCreated || 0, lastCompleted || 0);
+
+                setFriendsState((prev) => ({
+                    ...prev,
+                    [String(fuid)]: {
+                        uid: String(fuid),
+                        pfp: d?.pfp || d?.pfpUrl || d?.photoURL || d?.image || d?.avatar || "",
+                        pfpVersion: d?.pfpVersion || 0,
+                        live,
+                        latestTs,
+                    },
+                }));
+            })
+        );
+        return () => unsubs.forEach((u) => u && u());
+    }, [followedUids]);
+
+    // Compose indicator users:
+    // - include if latestTs > lastViewedAtMs (new) OR live (always)
+    // - sort: live first, then latestTs desc
+    const friendsStackUsers = useMemo(() => {
+        const arr = Object.values(friendsState || {});
+        const filtered = arr.filter((it) => it.live || (it.latestTs || 0) > (lastViewedAtMs || 0));
+        filtered.sort((a, b) => {
+            if (a.live !== b.live) return a.live ? -1 : 1;
+            return (b.latestTs || 0) - (a.latestTs || 0);
+        });
+        return filtered;
+    }, [friendsState, lastViewedAtMs]);
+
+    const anyLiveFriends = useMemo(
+        () => Object.values(friendsState || {}).some((it) => it.live),
+        [friendsState]
     );
 
-    const newItems = useMemo(() => {
-        const v = lastViewedAtMs || 0;
-        const arr = Array.isArray(friendsActivity) ? friendsActivity : [];
-        return arr.filter((it) => itemTs(it) > v);
-    }, [friendsActivity, lastViewedAtMs, itemTs]);
-
-    const recentUsersForStack = useMemo(() => {
-        const seen = new Set();
-        const out = [];
-        const sorted = [...newItems].sort((a, b) => itemTs(b) - itemTs(a));
-        for (const it of sorted) {
-            const uidX = it?.uid;
-            if (!uidX || seen.has(uidX)) continue;
-            seen.add(uidX);
-            out.push({
-                uid: uidX,
-                pfp: it?.pfp || it?.pfpUrl || it?.photoURL || it?.image || it?.avatar || "",
-            });
-            if (out.length >= 3) break;
-        }
-        return out;
-    }, [newItems, itemTs]);
-
-    const hasNewFriendsUpdates = recentUsersForStack.length > 0;
+    const hasNewFriendsUpdates = friendsStackUsers.length > 0;
 
     /* ---------------- render ---------------- */
     const allUsersRef = useRef([]);
@@ -436,11 +599,13 @@ export default function Workout({ navigation, route }) {
                     onStartWorkout={onStartWorkout}
                     onOpenNewWorkout={() => setIsNewWorkoutVisible(true)}
                     onOpenFriends={() => {
-                        setFriendsSheetVisible(true);           // keep mounted + visible
-                        setFriendsSheetToggle((f) => !f);      // flip -> ALWAYS expand (token)
+                        setFriendsSheetVisible(true);
+                        setFriendsSheetToggle((f) => !f);
                     }}
                     hasNewFriendsUpdates={hasNewFriendsUpdates}
-                    friendsStackUsers={recentUsersForStack}
+                    friendsStackUsers={friendsStackUsers}
+                    // ⬇️ Force the stack to show if anyone is live
+                    forceShowStack={anyLiveFriends}
                 />
             </View>
 
@@ -464,10 +629,7 @@ export default function Workout({ navigation, route }) {
             )}
 
             {/* Friends sheet is always mounted but completely inert when hidden */}
-            <View
-                style={StyleSheet.absoluteFill}
-                pointerEvents={friendsSheetVisible ? "auto" : "none"}
-            >
+            <View style={StyleSheet.absoluteFill} pointerEvents={friendsSheetVisible ? "auto" : "none"}>
                 <FriendsActivitySheet
                     visible={friendsSheetVisible}
                     openToggle={friendsSheetToggle}
@@ -499,16 +661,15 @@ export default function Workout({ navigation, route }) {
                 userWorkoutStats={global?.userData?.statsExercises || {}}
             />
 
-            {/* Other modals */}
-            {isEditTemplateVisible && (
-                <EditTemplateBottomSheet
-                    isVisible={isEditTemplateVisible}
-                    setIsVisible={setIsEditTemplateVisible}
-                    openedTemplateRef={openedTemplateRef}
-                    updateTemplate={updateTemplate}
-                    deleteTemplate={deleteTemplate}
-                />
-            )}
+            {/* Template editor: force-expand via openToggle */}
+            <EditTemplateBottomSheet
+                isVisible={isEditTemplateVisible}
+                setIsVisible={setIsEditTemplateVisible}
+                openToggle={editSheetToggle}
+                openedTemplateRef={openedTemplateRef}
+                updateTemplate={updateTemplate}
+                deleteTemplate={deleteTemplate}
+            />
 
             {isSummaryModalVisible && (
                 <WorkoutSummaryModal

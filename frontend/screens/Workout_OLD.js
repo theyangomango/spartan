@@ -1,4 +1,4 @@
-// screens/Workout/index.js
+// DECRECATED
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
     SafeAreaView,

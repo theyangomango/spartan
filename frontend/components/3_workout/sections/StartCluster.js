@@ -1,7 +1,8 @@
 // components/3_Workout/sections/StartCluster.jsx
 import React, { memo } from "react";
 import { View, Pressable, StyleSheet, Platform, Animated } from "react-native";
-import { AddSquare, People } from "iconsax-react-native";
+import { AddSquare } from "iconsax-react-native";
+import { Feather } from "@expo/vector-icons";
 import LiveStack from "../LiveStack";
 import StartOpenButton from "../ui/StartOpenButton";
 import { SMALL_SIZE, ROW_WIDTH } from "./workoutTheme";
@@ -15,13 +16,14 @@ const StartCluster = ({
     onOpenFriends,
     hasNewFriendsUpdates,
     friendsStackUsers,
+    forceShowStack = false, // ⬅️ NEW: show stack if any live users, even without "new" updates
 }) => {
     const scale = scaleAnim || new Animated.Value(1);
 
+    // Show stack when we either have new updates OR we were told to force it (anyone live)
     const showStack =
-        Array.isArray(friendsStackUsers) &&
-        friendsStackUsers.length > 0 &&
-        !!hasNewFriendsUpdates;
+        forceShowStack ||
+        (Array.isArray(friendsStackUsers) && friendsStackUsers.length > 0 && !!hasNewFriendsUpdates);
 
     return (
         <View style={styles.wrap} pointerEvents="box-none">
@@ -44,8 +46,8 @@ const StartCluster = ({
                 <Animated.View style={{ transform: [{ scale }] }}>
                     <StartOpenButton
                         hasActiveWorkout={hasActiveWorkout}
-                        onOpen={onOpenNewWorkout}   // opens the NewWorkout bottom sheet
-                        onStart={onStartWorkout}    // creates workout + opens sheet
+                        onOpen={onOpenNewWorkout}
+                        onStart={onStartWorkout}
                     />
                 </Animated.View>
 
@@ -59,9 +61,9 @@ const StartCluster = ({
                     onPress={onOpenFriends}
                 >
                     {showStack ? (
-                        <LiveStack users={friendsStackUsers.slice(0, 3)} />
+                        <LiveStack users={friendsStackUsers} />
                     ) : (
-                        <People size={24} color="#000" />
+                        <Feather name="users" size={21} color="#000" />
                     )}
                 </Pressable>
             </View>

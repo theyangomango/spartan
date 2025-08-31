@@ -1,8 +1,8 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { collection, query, where, documentId, onSnapshot } from "firebase/firestore";
+import { collection, getDocs, query, where, documentId } from "firebase/firestore";
 import { db } from "../../firebase.config";
 
-/* ---------- utils (scoped) ---------- */
+/* ---------- utils ---------- */
 const toMillis = (v) => {
     if (typeof v === "number") return v;
     if (v instanceof Date) return v.getTime();
@@ -30,15 +30,10 @@ const chunk10 = (arr) => {
 const normalizeFriendWorkout = (w, profile) => {
     const created = toMillis(w?.created ?? w?.createdAt);
 
-    let durationMin = 0;
-    if (typeof w?.duration === "number") {
-        durationMin = w.duration > 60000 ? Math.round(w.duration / 60000) : Math.round(w.duration);
-    }
-
+    // preserve full exercises array for viewer
+    const exercisesArr = Array.isArray(w?.exercises) ? w.exercises : [];
     let setCount = 0;
-    if (Array.isArray(w?.exercises)) {
-        for (const ex of w.exercises) setCount += Array.isArray(ex?.sets) ? ex.sets.length : 0;
-    }
+    for (const ex of exercisesArr) setCount += Array.isArray(ex?.sets) ? ex.sets.length : 0;
 
     return {
         id: w?.wid || w?.id || `${profile.uid}_${created || Math.random().toString(36).slice(2)}`,
@@ -50,15 +45,22 @@ const normalizeFriendWorkout = (w, profile) => {
         created: created || 0,
         finishedAt:
             toMillis(w?.finishedAt) || (created || 0) + (typeof w?.duration === "number" ? w.duration : 0),
-        exercises: Array.isArray(w?.exercises) ? w.exercises.length : Number(w?.exercises || 0),
-        sets: setCount || Number(w?.sets || 0),
-        duration: durationMin,
+
+        // stats
+        duration: typeof w?.duration === "number"
+            ? (w.duration > 60000 ? Math.round(w.duration / 60000) : Math.round(w.duration))
+            : Number(w?.duration || 0),
         volume: Number(w?.volume || 0),
         reps: Number(w?.reps || 0),
         PBs: Number(w?.PBs ?? w?.pbs ?? 0),
-        calories: Number(w?.calories || 0),
+
+        // viewer payload
+        exercises: exercisesArr,
+        exerciseCount: exercisesArr.length,
+        sets: setCount,
         templateName: w?.templateName || w?.template?.name || w?.template || w?.name || "Workout",
         wid: w?.wid || undefined,
+        workout: { ...w }, // pass through the original workout object for the viewer
     };
 };
 
@@ -81,96 +83,74 @@ const normalizeFriendLive = (cw, profile) => {
                 : cw?.duration,
         templateName: cw?.templateName || cw?.template?.name || cw?.title || "Workout",
         wid: cw?.wid || cw?.id,
+
+        // include minimal workout shell so NewWorkoutModal can live-subscribe via wid
+        workout: {
+            wid: cw?.wid || cw?.id,
+            creatorUID: profile.uid,
+            created: started || Date.now(),
+            exercises: Array.isArray(cw?.exercises) ? cw.exercises : [],
+            volume: Number(cw?.volume || 0),
+            PBs: Number(cw?.PBs ?? cw?.pbs ?? 0),
+        },
     };
 };
 
 const bestTs = (it) =>
     Math.max(toMillis(it?.created) || 0, toMillis(it?.startedAt) || 0, toMillis(it?.finishedAt) || 0);
 
-/* ---------- hook (realtime) ---------- */
+/* ---------- hook ---------- */
 export default function useFriendsActivity(user) {
     const [items, setItems] = useState([]);
     const [loading, setLoading] = useState(false);
-    const lastNonEmptyRef = useRef([]);
+    const lastNonEmptyRef = useRef([]); // cache to avoid blank first-open
 
-    // Hold the latest user docs we receive across multiple listeners (chunks of 10)
-    const userDocMapRef = useRef(new Map());
-    const unsubsRef = useRef([]);
+    const refresh = useCallback(async () => {
+        try {
+            const followingUids = extractFollowingUids(user);
+            if (!followingUids.length) {
+                setItems([]);
+                return;
+            }
+            setLoading(true);
 
-    const buildItemsFromMap = useCallback(() => {
-        const results = [];
-        for (const [uid, data] of userDocMapRef.current.entries()) {
-            const profile = {
-                uid,
-                name: data.name || data.displayName || "",
-                handle: data.handle || data.username || "",
-                pfp: data.pfp || data.image || data.photoURL || "",
-            };
+            const results = [];
+            for (const group of chunk10(followingUids)) {
+                const q = query(collection(db, "users"), where(documentId(), "in", group));
+                const snap = await getDocs(q);
 
-            const cw = data?.currentWorkout;
-            if (cw && (cw.created || cw.startedAt)) {
-                results.push(normalizeFriendLive(cw, profile));
+                snap.forEach((docSnap) => {
+                    const data = docSnap.data() || {};
+                    const profile = {
+                        uid: docSnap.id,
+                        name: data.name || data.displayName || "",
+                        handle: data.handle || data.username || "",
+                        pfp: data.pfp || data.image || data.photoURL || "",
+                    };
+
+                    const cw = data?.currentWorkout;
+                    if (cw && (cw.created || cw.startedAt)) results.push(normalizeFriendLive(cw, profile));
+
+                    const completed = Array.isArray(data?.completedWorkouts) ? data.completedWorkouts : [];
+                    const recent = completed.slice(-5);
+                    for (const w of recent) results.push(normalizeFriendWorkout(w, profile));
+                });
             }
 
-            const completed = Array.isArray(data?.completedWorkouts) ? data.completedWorkouts : [];
-            const recent = completed.slice(-5);
-            for (const w of recent) {
-                results.push(normalizeFriendWorkout(w, profile));
-            }
+            results.sort((a, b) => bestTs(b) - bestTs(a));
+            setItems(results);
+            if (results.length) lastNonEmptyRef.current = results;
+        } catch (e) {
+            console.log("friendsActivity fetch error", e);
+        } finally {
+            setLoading(false);
         }
+    }, [user]);
 
-        results.sort((a, b) => bestTs(b) - bestTs(a));
-        setItems(results);
-        if (results.length) lastNonEmptyRef.current = results;
-    }, []);
-
-    const clearListeners = useCallback(() => {
-        for (const u of unsubsRef.current) {
-            try { u(); } catch { }
-        }
-        unsubsRef.current = [];
-        userDocMapRef.current.clear();
-    }, []);
-
-    const refresh = useCallback(() => {
-        const followingUids = extractFollowingUids(user);
-        if (!followingUids.length) {
-            clearListeners();
-            setItems([]);
-            return;
-        }
-
-        setLoading(true);
-        clearListeners();
-
-        const chunks = chunk10(followingUids);
-        for (const group of chunks) {
-            const q = query(collection(db, "users"), where(documentId(), "in", group));
-            const unsub = onSnapshot(
-                q,
-                (snap) => {
-                    snap.forEach((docSnap) => {
-                        userDocMapRef.current.set(docSnap.id, docSnap.data() || {});
-                    });
-                    buildItemsFromMap();
-                },
-                (err) => {
-                    console.log("friendsActivity realtime error", err);
-                }
-            );
-            unsubsRef.current.push(unsub);
-        }
-
-        setLoading(false);
-    }, [user, clearListeners, buildItemsFromMap]);
-
-    // Start realtime subscription when the hook mounts / user changes
     useEffect(() => {
         refresh();
-        return () => clearListeners();
-    }, [refresh, clearListeners]);
+    }, [refresh]);
 
-    // Expose cached items to avoid empty flashes during any intermediary state
     const hydratedItems = useMemo(
         () => (items.length ? items : lastNonEmptyRef.current),
         [items]
