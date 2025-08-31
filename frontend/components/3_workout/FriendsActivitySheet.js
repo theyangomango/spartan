@@ -217,6 +217,7 @@ const groupByTime = (items, nowMs) => {
 
 /* ------------------------------ Row ------------------------------ */
 const FriendPanel = memo(({ item, now, onJoin, onView }) => {
+
     const isLive = !!item?.live;
 
     // live elapsed
@@ -237,6 +238,7 @@ const FriendPanel = memo(({ item, now, onJoin, onView }) => {
     // pulse animation
     const pulse = useRef(new Animated.Value(1)).current;
     const pulseOpacity = useRef(new Animated.Value(1)).current;
+    
     useEffect(() => {
         if (!isLive) return;
         const loop = Animated.loop(
@@ -258,7 +260,7 @@ const FriendPanel = memo(({ item, now, onJoin, onView }) => {
     // stats
     const durationSec = isLive
         ? toSec(liveElapsed)
-        : Math.max(0, Math.round(Number(item?.duration || 0) * 60)); // minutes → seconds
+        : Math.max(0, Math.round(Number(item?.duration || 0) * 60));
     const volume = item?.volume ?? 0;
     const pbs = Number(item?.PBs ?? item?.pbs ?? 0);
 
@@ -274,7 +276,6 @@ const FriendPanel = memo(({ item, now, onJoin, onView }) => {
         item?.photo ||
         item?.avatar;
 
-    // date label next to handle
     const when = dateLabel(bestTimestamp(item));
 
     return (
@@ -290,7 +291,7 @@ const FriendPanel = memo(({ item, now, onJoin, onView }) => {
                     </View>
                 )}
 
-                {/* Title stack: template/workout (1 line), then handle + date */}
+                {/* Title stack */}
                 <View style={{ flex: 1 }}>
                     <Text style={styles.templateTitle} numberOfLines={1} ellipsizeMode="tail">
                         {templateName(item)}
@@ -301,7 +302,7 @@ const FriendPanel = memo(({ item, now, onJoin, onView }) => {
                     </Text>
                 </View>
 
-                {/* Right accessories: live pill (if any) + chevron (always visible) */}
+                {/* Right */}
                 <View style={styles.rightAccessories}>
                     {isLive && (
                         <View style={styles.livePill}>
@@ -319,7 +320,7 @@ const FriendPanel = memo(({ item, now, onJoin, onView }) => {
             {/* Divider */}
             <View style={styles.divider} />
 
-            {/* Stat chips (light gray) */}
+            {/* Stat chips */}
             <View style={styles.statsRow}>
                 <View style={styles.statCard}>
                     <View style={styles.statIconWrap}>
@@ -359,10 +360,17 @@ const FriendsActivitySheet = ({
     onView,
 }) => {
     const bottomSheetRef = useRef(null);
-    const snapPoints = useMemo(() => ["90%"], []);
+    const cacheRef = useRef([]); // keep last non-empty list
+    const openToggleDidMount = useRef(false);
+
+    useEffect(() => {
+        if (Array.isArray(items) && items.length) cacheRef.current = items;
+    }, [items]);
+
+    const displayItems = items.length ? items : cacheRef.current;
     const sortedItems = useMemo(
-        () => [...(items || [])].sort((a, b) => bestTimestamp(b) - bestTimestamp(a)),
-        [items]
+        () => [...(displayItems || [])].sort((a, b) => bestTimestamp(b) - bestTimestamp(a)),
+        [displayItems]
     );
 
     const hasLive = useMemo(() => sortedItems?.some((it) => it?.live), [sortedItems]);
@@ -374,15 +382,26 @@ const FriendsActivitySheet = ({
     }, [hasLive]);
 
     useEffect(() => {
-        if (!bottomSheetRef.current || typeof visible === "undefined") return;
-        if (visible) bottomSheetRef.current.expand();
-        else bottomSheetRef.current.close();
+        if (typeof visible === "undefined") return;
+        const node = bottomSheetRef.current;
+        if (!node) return;
+        if (visible) requestAnimationFrame(() => node?.expand());
+        else node?.close();
     }, [visible]);
 
     useEffect(() => {
-        if (!bottomSheetRef.current || typeof openToggle === "undefined") return;
-        bottomSheetRef.current.expand();
-    }, [openToggle]);
+        // ignore the very first render (prevents auto-expand on app open)
+        if (!openToggleDidMount.current) {
+            openToggleDidMount.current = true;
+            return;
+        }
+        // only expand on toggle if the sheet is already meant to be visible
+        if (!visible) return;
+
+        const node = bottomSheetRef.current;
+        if (!node) return;
+        requestAnimationFrame(() => node?.expand());
+    }, [openToggle, visible]);
 
     const renderBackdrop = useCallback(
         (props) => (
@@ -396,7 +415,6 @@ const FriendsActivitySheet = ({
         []
     );
 
-    // Build time-based sections (Live Now first, then non-empty time buckets)
     const sections = useMemo(() => groupByTime(sortedItems, now), [sortedItems, now]);
 
     const keyExtractor = useCallback((it, i) => it.id ?? it.uid ?? `f-${i}`, []);
@@ -420,17 +438,15 @@ const FriendsActivitySheet = ({
             <BottomSheet
                 ref={bottomSheetRef}
                 index={-1}
-                snapPoints={snapPoints}
+                snapPoints={["90%"]}
                 enablePanDownToClose
                 backdropComponent={renderBackdrop}
                 handleStyle={styles.hiddenHandle}
                 backgroundStyle={styles.sheetBg}
                 onClose={onClose}
             >
-                {/* Grabber */}
                 <View style={styles.handle} />
 
-                {/* Header */}
                 <View style={styles.header}>
                     <Text style={styles.headerTitle}>Friends training</Text>
                     <Text style={styles.headerSub}>
@@ -438,22 +454,27 @@ const FriendsActivitySheet = ({
                     </Text>
                 </View>
 
-                {/* Sectioned panels */}
-                <SectionList
-                    sections={sections}
-                    renderSectionHeader={renderSectionHeader}
-                    renderItem={renderItem}
-                    keyExtractor={keyExtractor}
-                    contentContainerStyle={styles.listContent}
-                    ItemSeparatorComponent={() => <View style={{ height: s(10) }} />}
-                    SectionSeparatorComponent={() => <View style={{ height: s(12) }} />}
-                    stickySectionHeadersEnabled={false}
-                    showsVerticalScrollIndicator={false}
-                    initialNumToRender={10}
-                    windowSize={10}
-                    maxToRenderPerBatch={12}
-                    removeClippedSubviews
-                />
+                {/* >>> This wrapper gives the SectionList HEIGHT inside the sheet <<< */}
+                <View style={styles.listWrap}>
+                    <SectionList
+                        style={styles.list}
+                        sections={sections}
+                        renderSectionHeader={renderSectionHeader}
+                        renderItem={renderItem}
+                        keyExtractor={keyExtractor}
+                        extraData={sortedItems.length}
+                        contentContainerStyle={styles.listContent}
+                        ItemSeparatorComponent={() => <View style={{ height: s(10) }} />}
+                        SectionSeparatorComponent={() => <View style={{ height: s(12) }} />}
+                        stickySectionHeadersEnabled={false}
+                        showsVerticalScrollIndicator={false}
+                        initialNumToRender={10}
+                        windowSize={10}
+                        maxToRenderPerBatch={12}
+                        removeClippedSubviews={false}
+                        keyboardShouldPersistTaps="handled"
+                    />
+                </View>
             </BottomSheet>
         </View>
     );
@@ -481,6 +502,10 @@ const styles = StyleSheet.create({
     header: { paddingHorizontal: 16, paddingVertical: 8 },
     headerTitle: { fontFamily: "Outfit_700Bold", fontSize: 16, color: COLORS.text },
     headerSub: { marginTop: 2, fontFamily: "Outfit_500Medium", fontSize: 12.5, color: COLORS.subtext },
+
+    // <<< new: ensure list fills available space >>>
+    listWrap: { flex: 1, minHeight: 1 },
+    list: { flex: 1, minHeight: 1 },
 
     listContent: { paddingHorizontal: s(16), paddingBottom: s(20) },
 
@@ -552,7 +577,6 @@ const styles = StyleSheet.create({
         color: COLORS.subtext,
     },
 
-    // Live pill with blue accent
     livePill: {
         flexDirection: "row",
         alignItems: "center",

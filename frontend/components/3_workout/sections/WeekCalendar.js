@@ -2,7 +2,6 @@
 import React, { useMemo, useRef, useState, useCallback, memo } from "react";
 import { View, Text, StyleSheet, Dimensions, Platform, VirtualizedList, Pressable } from "react-native";
 import RNBounceable from "@freakycoder/react-native-bounceable";
-import { useFoodLogs } from "../../../hooks/useFoodLogs";
 
 const { width: W } = Dimensions.get("window");
 const DAY_LETTERS = ["SU", "MO", "TU", "WE", "TH", "FR", "SA"];
@@ -25,7 +24,11 @@ const toDayKey = (msOrDate) => {
     return `${y}-${m}-${day}`;
 };
 
-const sameDay = (a, b) => a.getFullYear() === b.getFullYear() && a.getMonth() === b.getMonth() && a.getDate() === b.getDate();
+const sameDay = (a, b) =>
+    a.getFullYear() === b.getFullYear() &&
+    a.getMonth() === b.getMonth() &&
+    a.getDate() === b.getDate();
+
 const getStartOfWeekByOffset = (offset) => {
     const d = new Date();
     d.setHours(0, 0, 0, 0);
@@ -33,6 +36,7 @@ const getStartOfWeekByOffset = (offset) => {
     d.setDate(d.getDate() - sundayOffset + offset * 7);
     return d;
 };
+
 const makeWeekDays = (startDate) =>
     Array.from({ length: 7 }, (_, i) => {
         const d = new Date(startDate);
@@ -128,27 +132,6 @@ export default function WeekCalendar({ workoutsMap = {}, onWeekChange, onDayPres
         }
     }, [onWeekChange]);
 
-    // Update weekIndex faster when the centered page is mostly visible.
-    const viewabilityConfig = useRef({ itemVisiblePercentThreshold: 80, minimumViewTime: 40 }).current;
-    const onViewableItemsChanged = useRef(({ viewableItems }) => {
-        if (!viewableItems?.length) return;
-        // pick the item with the largest visibility
-        let best = viewableItems[0];
-        for (const v of viewableItems) {
-            if ((v.isViewable && (v?.index ?? 0) !== undefined) && (v.percentVisible ?? 0) > (best.percentVisible ?? 0)) {
-                best = v;
-            }
-        }
-        const nextIndex = best?.index ?? weekIndex;
-        if (nextIndex !== weekIndex) {
-            setWeekIndex(nextIndex);
-            onWeekChange?.(nextIndex - BASE_INDEX);
-        }
-    }).current;
-
-    // Only the centered week mounts nutrition hooks
-    const isNutritionWeek = useCallback((index) => index === weekIndex, [weekIndex]);
-
     /* ---- renderer ---- */
     const renderWeek = useCallback(
         ({ index }) => {
@@ -164,11 +147,10 @@ export default function WeekCalendar({ workoutsMap = {}, onWeekChange, onDayPres
                     halfBar={halfBar}
                     workoutsMap={computedWorkoutsMap}
                     onDayPress={onDayPress}
-                    enableNutrition={isNutritionWeek(index)}
                 />
             );
         },
-        [BASE_INDEX, pageWidth, CAL_HEIGHT, cellWidth, CELL_GAP, halfBar, computedWorkoutsMap, onDayPress, isNutritionWeek]
+        [BASE_INDEX, pageWidth, CAL_HEIGHT, cellWidth, CELL_GAP, halfBar, computedWorkoutsMap, onDayPress]
     );
 
     const getItemLayout = useCallback(
@@ -219,8 +201,6 @@ export default function WeekCalendar({ workoutsMap = {}, onWeekChange, onDayPres
                     snapToAlignment="start"
                     disableIntervalMomentum
                     onMomentumScrollEnd={handleMomentumEnd}
-                    onViewableItemsChanged={onViewableItemsChanged}
-                    viewabilityConfig={viewabilityConfig}
                     overScrollMode="never"
                     windowSize={3}
                     initialNumToRender={1}
@@ -233,75 +213,65 @@ export default function WeekCalendar({ workoutsMap = {}, onWeekChange, onDayPres
 }
 
 /* ---------- A pure memoized "page" of 7 days ---------- */
-const WeekPage = memo(function WeekPage({
-    index,
-    baseIndex,
-    pageWidth,
-    calHeight,
-    cellWidth,
-    cellGap,
-    halfBar,
-    workoutsMap,
-    onDayPress,
-    enableNutrition,
-}) {
-    const offset = index - baseIndex;
-    const start = getStartOfWeekByOffset(offset);
-    const days = makeWeekDays(start);
-    const today = useMemo(() => {
-        const d = new Date();
-        d.setHours(0, 0, 0, 0);
-        return d;
-    }, []);
+const WeekPage = memo(
+    function WeekPage({
+        index,
+        baseIndex,
+        pageWidth,
+        calHeight,
+        cellWidth,
+        cellGap,
+        halfBar,
+        workoutsMap,
+        onDayPress,
+    }) {
+        const offset = index - baseIndex;
+        const start = getStartOfWeekByOffset(offset);
+        const days = makeWeekDays(start);
+        const today = useMemo(() => {
+            const d = new Date();
+            d.setHours(0, 0, 0, 0);
+            return d;
+        }, []);
 
-    return (
-        <View style={[styles.page, { width: pageWidth, height: calHeight }]}>
-            <View style={styles.row}>
-                {days.map((d, idx) => {
-                    const isToday = sameDay(d, today);
-                    const letter = DAY_LETTERS[d.getDay()];
-                    const k = toDayKey(d);
-                    return (
-                        <MemoDayCell
-                            key={`${k}_${idx}`}
-                            d={d}
-                            letter={letter}
-                            isToday={isToday}
-                            cellWidth={cellWidth}
-                            isLast={idx === 6}
-                            workoutOn={!!workoutsMap[k]}
-                            onPress={onDayPress}
-                            enableNutrition={enableNutrition}
-                            halfBar={halfBar}
-                            cellGap={cellGap}
-                        />
-                    );
-                })}
+        return (
+            <View style={[styles.page, { width: pageWidth, height: calHeight }]}>
+                <View style={styles.row}>
+                    {days.map((d, idx) => {
+                        const isToday = sameDay(d, today);
+                        const letter = DAY_LETTERS[d.getDay()];
+                        const k = toDayKey(d);
+                        return (
+                            <MemoDayCell
+                                key={`${k}_${idx}`}
+                                d={d}
+                                letter={letter}
+                                isToday={isToday}
+                                cellWidth={cellWidth}
+                                isLast={idx === 6}
+                                workoutOn={!!workoutsMap[k]}
+                                onPress={onDayPress}
+                                halfBar={halfBar}
+                                cellGap={cellGap}
+                            />
+                        );
+                    })}
+                </View>
             </View>
-        </View>
-    );
-}, (prev, next) => {
-    // Only re-render if page identity or nutrition flag changes
-    return (
-        prev.index === next.index &&
-        prev.enableNutrition === next.enableNutrition &&
-        prev.pageWidth === next.pageWidth &&
-        prev.calHeight === next.calHeight &&
-        prev.cellWidth === next.cellWidth &&
-        prev.halfBar === next.halfBar &&
-        prev.workoutsMap === next.workoutsMap
-    );
-});
-
-/* ---------- Nutrition bar ---------- */
-const NutritionBar = memo(function NutritionBar({ d, halfBar }) {
-    const { totals } = useFoodLogs(d);
-    const cals = Math.max(0, Number(totals?.calories || 0));
-    const goal = Number((global?.userData?.macroGoals?.calories ?? global?.userData?.macrosGoal?.calories ?? 0)) || 0;
-
-    const onTarget = cals > 0 && goal > 0 && Math.abs(cals - goal) / Math.max(1, goal) <= 0.2;
-    return <View style={[styles.topBar, onTarget ? styles.topBarGreen : styles.topBarOff, { width: halfBar }]} />;
-});
+        );
+    },
+    (prev, next) => {
+        // Only re-render if page identity changes or size props changed
+        return (
+            prev.index === next.index &&
+            prev.pageWidth === next.pageWidth &&
+            prev.calHeight === next.calHeight &&
+            prev.cellWidth === next.cellWidth &&
+            prev.halfBar === next.halfBar &&
+            prev.workoutsMap === next.workoutsMap
+        );
+    }
+);
 
 /* ---------- Per-day cell (pure) ---------- */
 const DayCell = function DayCell({
@@ -312,7 +282,6 @@ const DayCell = function DayCell({
     isLast,
     workoutOn,
     onPress,
-    enableNutrition,
     halfBar,
     cellGap,
 }) {
@@ -325,21 +294,20 @@ const DayCell = function DayCell({
             accessibilityRole="button"
             accessibilityLabel={`Open details for ${d.toDateString()}`}
         >
-            {/* Top nutrition bar: only mount hook on the centered week */}
-            {enableNutrition ? (
-                <NutritionBar d={d} halfBar={halfBar} />
-            ) : (
-                <View style={[styles.topBar, styles.topBarOff, { width: halfBar }]} />
-            )}
-
-            {/* Day label */}
+            {/* Center pill */}
             <View style={[styles.centerPill, isToday && styles.centerPillToday]}>
                 <Text style={styles.dayLetter}>{letter}</Text>
                 <Text style={styles.dayNum}>{d.getDate()}</Text>
             </View>
 
-            {/* Bottom workout bar */}
-            <View style={[styles.bottomBar, workoutOn ? styles.bottomBarOn : styles.bottomBarOff, { width: halfBar }]} />
+            {/* Bottom workout bar (only) */}
+            <View
+                style={[
+                    styles.bottomBar,
+                    workoutOn ? styles.bottomBarOn : styles.bottomBarOff,
+                    { width: halfBar },
+                ]}
+            />
         </Container>
     );
 };
@@ -351,7 +319,6 @@ const MemoDayCell = memo(DayCell, (a, b) => {
         a.cellWidth === b.cellWidth &&
         a.isLast === b.isLast &&
         a.workoutOn === b.workoutOn &&
-        a.enableNutrition === b.enableNutrition &&
         a.letter === b.letter &&
         a.halfBar === b.halfBar &&
         a.cellGap === b.cellGap &&
@@ -371,7 +338,12 @@ const styles = StyleSheet.create({
         borderColor: "rgba(2,6,23,0.06)",
         overflow: "hidden",
         ...Platform.select({
-            ios: { shadowColor: "#000", shadowOpacity: 0.05, shadowRadius: 8, shadowOffset: { width: 0, height: 3 } },
+            ios: {
+                shadowColor: "#000",
+                shadowOpacity: 0.05,
+                shadowRadius: 8,
+                shadowOffset: { width: 0, height: 3 },
+            },
             android: { elevation: 1 },
         }),
     },
@@ -380,7 +352,7 @@ const styles = StyleSheet.create({
         flexDirection: "row",
         alignItems: "center",
         justifyContent: "space-between",
-        marginBottom: 8,
+        marginBottom: 4,
         paddingHorizontal: 4,
     },
 
@@ -390,22 +362,17 @@ const styles = StyleSheet.create({
     jumpLink: { color: "#2D9EFF", fontSize: 12, fontFamily: "Outfit_700Bold", letterSpacing: 0.2 },
 
     page: { justifyContent: "center" },
-    row: { flexDirection: "row", alignItems: "center", height: "100%" },
+    row: { flexDirection: "row", alignItems: "center" },
 
     cell: { alignItems: "center", position: "relative" },
 
-    // Top nutrition bar
-    topBar: { position: "absolute", top: 4, height: 6, borderRadius: 3 },
-    topBarGreen: { backgroundColor: "#6fd093ff" },
-    topBarOff: { backgroundColor: "#E6EEF6" },
-
     // Bottom workout bar
-    bottomBar: { position: "absolute", bottom: 4, height: 6, borderRadius: 3 },
+    bottomBar: { position: "absolute", bottom: 2, height: 6, borderRadius: 3 },
     bottomBarOn: { backgroundColor: "#2D9EFF" },
     bottomBarOff: { backgroundColor: "#E6EEF6" },
 
     centerPill: {
-        marginTop: 10,
+        marginTop: 4,
         marginBottom: 10,
         width: "92%",
         height: 44,
@@ -418,6 +385,12 @@ const styles = StyleSheet.create({
         borderWidth: 1,
         borderColor: "#6FB8FF",
     },
-    dayLetter: { fontFamily: "Outfit_700Bold", fontSize: 9.5, color: "#94A3B8", marginBottom: 2, letterSpacing: 0.3 },
+    dayLetter: {
+        fontFamily: "Outfit_700Bold",
+        fontSize: 9.5,
+        color: "#94A3B8",
+        marginBottom: 2,
+        letterSpacing: 0.3,
+    },
     dayNum: { fontFamily: "Outfit_800ExtraBold", fontSize: 15, color: "#0F172A" },
 });
