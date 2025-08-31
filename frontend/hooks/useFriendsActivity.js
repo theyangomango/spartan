@@ -1,9 +1,8 @@
-// hooks/useFriendsActivity.js
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { collection, getDocs, query, where, documentId } from "firebase/firestore";
+import { collection, query, where, documentId, onSnapshot } from "firebase/firestore";
 import { db } from "../../firebase.config";
 
-/* ---------- utils copied from your screen (scoped here) ---------- */
+/* ---------- utils (scoped) ---------- */
 const toMillis = (v) => {
     if (typeof v === "number") return v;
     if (v instanceof Date) return v.getTime();
@@ -88,64 +87,90 @@ const normalizeFriendLive = (cw, profile) => {
 const bestTs = (it) =>
     Math.max(toMillis(it?.created) || 0, toMillis(it?.startedAt) || 0, toMillis(it?.finishedAt) || 0);
 
-/* ---------- hook ---------- */
+/* ---------- hook (realtime) ---------- */
 export default function useFriendsActivity(user) {
     const [items, setItems] = useState([]);
     const [loading, setLoading] = useState(false);
-    const lastNonEmptyRef = useRef([]); // cache to avoid blank first-open
+    const lastNonEmptyRef = useRef([]);
 
-    const refresh = useCallback(async () => {
-        try {
-            // Wait for user hydration; don't overwrite with [] prematurely
-            if (user === undefined || user === null) return;
+    // Hold the latest user docs we receive across multiple listeners (chunks of 10)
+    const userDocMapRef = useRef(new Map());
+    const unsubsRef = useRef([]);
 
-            const followingUids = extractFollowingUids(user);
-            if (!followingUids.length) {
-                // keep whatever we had before; avoids blank sheet
-                setItems((prev) => (prev.length ? prev : lastNonEmptyRef.current));
-                return;
+    const buildItemsFromMap = useCallback(() => {
+        const results = [];
+        for (const [uid, data] of userDocMapRef.current.entries()) {
+            const profile = {
+                uid,
+                name: data.name || data.displayName || "",
+                handle: data.handle || data.username || "",
+                pfp: data.pfp || data.image || data.photoURL || "",
+            };
+
+            const cw = data?.currentWorkout;
+            if (cw && (cw.created || cw.startedAt)) {
+                results.push(normalizeFriendLive(cw, profile));
             }
 
-            setLoading(true);
-            const results = [];
-            for (const group of chunk10(followingUids)) {
-                const q = query(collection(db, "users"), where(documentId(), "in", group));
-                const snap = await getDocs(q);
-
-                snap.forEach((docSnap) => {
-                    const data = docSnap.data() || {};
-                    const profile = {
-                        uid: docSnap.id,
-                        name: data.name || data.displayName || "",
-                        handle: data.handle || data.username || "",
-                        pfp: data.pfp || data.image || data.photoURL || "",
-                    };
-
-                    const cw = data?.currentWorkout;
-                    if (cw && (cw.created || cw.startedAt)) results.push(normalizeFriendLive(cw, profile));
-
-                    const completed = Array.isArray(data?.completedWorkouts) ? data.completedWorkouts : [];
-                    const recent = completed.slice(-5);
-                    for (const w of recent) results.push(normalizeFriendWorkout(w, profile));
-                });
+            const completed = Array.isArray(data?.completedWorkouts) ? data.completedWorkouts : [];
+            const recent = completed.slice(-5);
+            for (const w of recent) {
+                results.push(normalizeFriendWorkout(w, profile));
             }
-
-            results.sort((a, b) => bestTs(b) - bestTs(a));
-            setItems(results);
-            if (results.length) lastNonEmptyRef.current = results;
-        } catch (e) {
-            console.log("friendsActivity fetch error", e);
-        } finally {
-            setLoading(false);
         }
-    }, [user]);
 
-    // PRELOAD: fetch immediately when Workout mounts / user changes
+        results.sort((a, b) => bestTs(b) - bestTs(a));
+        setItems(results);
+        if (results.length) lastNonEmptyRef.current = results;
+    }, []);
+
+    const clearListeners = useCallback(() => {
+        for (const u of unsubsRef.current) {
+            try { u(); } catch { }
+        }
+        unsubsRef.current = [];
+        userDocMapRef.current.clear();
+    }, []);
+
+    const refresh = useCallback(() => {
+        const followingUids = extractFollowingUids(user);
+        if (!followingUids.length) {
+            clearListeners();
+            setItems([]);
+            return;
+        }
+
+        setLoading(true);
+        clearListeners();
+
+        const chunks = chunk10(followingUids);
+        for (const group of chunks) {
+            const q = query(collection(db, "users"), where(documentId(), "in", group));
+            const unsub = onSnapshot(
+                q,
+                (snap) => {
+                    snap.forEach((docSnap) => {
+                        userDocMapRef.current.set(docSnap.id, docSnap.data() || {});
+                    });
+                    buildItemsFromMap();
+                },
+                (err) => {
+                    console.log("friendsActivity realtime error", err);
+                }
+            );
+            unsubsRef.current.push(unsub);
+        }
+
+        setLoading(false);
+    }, [user, clearListeners, buildItemsFromMap]);
+
+    // Start realtime subscription when the hook mounts / user changes
     useEffect(() => {
         refresh();
-    }, [refresh]);
+        return () => clearListeners();
+    }, [refresh, clearListeners]);
 
-    // expose cached items to avoid empty flashes if a refresh is in flight
+    // Expose cached items to avoid empty flashes during any intermediary state
     const hydratedItems = useMemo(
         () => (items.length ? items : lastNonEmptyRef.current),
         [items]

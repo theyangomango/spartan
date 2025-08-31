@@ -8,6 +8,7 @@ import {
     SectionList,
     Animated,
     Dimensions,
+    Platform,
 } from "react-native";
 import BottomSheet, { BottomSheetBackdrop } from "@gorhom/bottom-sheet";
 import RNBounceable from "@freakycoder/react-native-bounceable";
@@ -154,7 +155,6 @@ const minusYears = (now, years) => {
     return d;
 };
 
-// Build ordered SectionList sections; keep live items in a dedicated top section
 const groupByTime = (items, nowMs) => {
     const now = new Date(nowMs || Date.now());
     const T0 = startOfToday(now).getTime();
@@ -217,7 +217,6 @@ const groupByTime = (items, nowMs) => {
 
 /* ------------------------------ Row ------------------------------ */
 const FriendPanel = memo(({ item, now, onJoin, onView }) => {
-
     const isLive = !!item?.live;
 
     // live elapsed
@@ -238,7 +237,6 @@ const FriendPanel = memo(({ item, now, onJoin, onView }) => {
     // pulse animation
     const pulse = useRef(new Animated.Value(1)).current;
     const pulseOpacity = useRef(new Animated.Value(1)).current;
-    
     useEffect(() => {
         if (!isLive) return;
         const loop = Animated.loop(
@@ -266,7 +264,7 @@ const FriendPanel = memo(({ item, now, onJoin, onView }) => {
 
     const onPrimary = () => (isLive ? onJoin?.(item) : onView?.(item));
 
-    // ✅ Use PFP cache hook with fallback
+    // PFP via your hook
     const cachedPfp = usePfp(item?.uid);
     const pfpUri =
         cachedPfp ||
@@ -280,9 +278,7 @@ const FriendPanel = memo(({ item, now, onJoin, onView }) => {
 
     return (
         <RNBounceable style={styles.panel} onPress={onPrimary} activeScale={0.965}>
-            {/* Header */}
             <View style={styles.headerRow}>
-                {/* PFP */}
                 {pfpUri ? (
                     <Image source={{ uri: pfpUri }} style={styles.pfp} />
                 ) : (
@@ -291,7 +287,6 @@ const FriendPanel = memo(({ item, now, onJoin, onView }) => {
                     </View>
                 )}
 
-                {/* Title stack */}
                 <View style={{ flex: 1 }}>
                     <Text style={styles.templateTitle} numberOfLines={1} ellipsizeMode="tail">
                         {templateName(item)}
@@ -302,7 +297,6 @@ const FriendPanel = memo(({ item, now, onJoin, onView }) => {
                     </Text>
                 </View>
 
-                {/* Right */}
                 <View style={styles.rightAccessories}>
                     {isLive && (
                         <View style={styles.livePill}>
@@ -317,10 +311,8 @@ const FriendPanel = memo(({ item, now, onJoin, onView }) => {
                 </View>
             </View>
 
-            {/* Divider */}
             <View style={styles.divider} />
 
-            {/* Stat chips */}
             <View style={styles.statsRow}>
                 <View style={styles.statCard}>
                     <View style={styles.statIconWrap}>
@@ -358,10 +350,10 @@ const FriendsActivitySheet = ({
     onClose,
     onJoin,
     onView,
+    onViewed,
 }) => {
     const bottomSheetRef = useRef(null);
-    const cacheRef = useRef([]); // keep last non-empty list
-    const openToggleDidMount = useRef(false);
+    const cacheRef = useRef([]);
 
     useEffect(() => {
         if (Array.isArray(items) && items.length) cacheRef.current = items;
@@ -382,26 +374,27 @@ const FriendsActivitySheet = ({
     }, [hasLive]);
 
     useEffect(() => {
-        if (typeof visible === "undefined") return;
-        const node = bottomSheetRef.current;
-        if (!node) return;
-        if (visible) requestAnimationFrame(() => node?.expand());
-        else node?.close();
+        if (!bottomSheetRef.current || typeof visible === "undefined") return;
+        if (visible) bottomSheetRef.current.expand();
+        else bottomSheetRef.current.close();
     }, [visible]);
 
     useEffect(() => {
-        // ignore the very first render (prevents auto-expand on app open)
-        if (!openToggleDidMount.current) {
-            openToggleDidMount.current = true;
+        if (!bottomSheetRef.current || !visible) return;
+        bottomSheetRef.current.expand();
+    }, [openToggle, visible]);
+
+    const viewedOnceRef = useRef(false);
+    useEffect(() => {
+        if (!visible) {
+            viewedOnceRef.current = false;
             return;
         }
-        // only expand on toggle if the sheet is already meant to be visible
-        if (!visible) return;
-
-        const node = bottomSheetRef.current;
-        if (!node) return;
-        requestAnimationFrame(() => node?.expand());
-    }, [openToggle, visible]);
+        if (!viewedOnceRef.current) {
+            viewedOnceRef.current = true;
+            try { onViewed?.(); } catch { }
+        }
+    }, [visible, openToggle, onViewed]);
 
     const renderBackdrop = useCallback(
         (props) => (
@@ -422,14 +415,11 @@ const FriendsActivitySheet = ({
         ({ item }) => <FriendPanel item={item} now={now} onJoin={onJoin} onView={onView} />,
         [now, onJoin, onView]
     );
-
-    const renderSectionHeader = useCallback(({ section }) => {
-        return (
-            <View style={styles.sectionHeaderWrap}>
-                <Text style={styles.sectionHeaderText}>{section.title}</Text>
-            </View>
-        );
-    }, []);
+    const renderSectionHeader = useCallback(({ section }) => (
+        <View style={styles.sectionHeaderWrap}>
+            <Text style={styles.sectionHeaderText}>{section.title}</Text>
+        </View>
+    ), []);
 
     const liveCount = useMemo(() => sortedItems.filter((x) => x?.live).length, [sortedItems]);
 
@@ -454,15 +444,12 @@ const FriendsActivitySheet = ({
                     </Text>
                 </View>
 
-                {/* >>> This wrapper gives the SectionList HEIGHT inside the sheet <<< */}
-                <View style={styles.listWrap}>
+                <View style={{ flex: 1 }}>
                     <SectionList
-                        style={styles.list}
                         sections={sections}
                         renderSectionHeader={renderSectionHeader}
                         renderItem={renderItem}
                         keyExtractor={keyExtractor}
-                        extraData={sortedItems.length}
                         contentContainerStyle={styles.listContent}
                         ItemSeparatorComponent={() => <View style={{ height: s(10) }} />}
                         SectionSeparatorComponent={() => <View style={{ height: s(12) }} />}
@@ -473,6 +460,7 @@ const FriendsActivitySheet = ({
                         maxToRenderPerBatch={12}
                         removeClippedSubviews={false}
                         keyboardShouldPersistTaps="handled"
+                        style={{ flex: 1 }}
                     />
                 </View>
             </BottomSheet>
@@ -503,16 +491,9 @@ const styles = StyleSheet.create({
     headerTitle: { fontFamily: "Outfit_700Bold", fontSize: 16, color: COLORS.text },
     headerSub: { marginTop: 2, fontFamily: "Outfit_500Medium", fontSize: 12.5, color: COLORS.subtext },
 
-    // <<< new: ensure list fills available space >>>
-    listWrap: { flex: 1, minHeight: 1 },
-    list: { flex: 1, minHeight: 1 },
-
     listContent: { paddingHorizontal: s(16), paddingBottom: s(20) },
 
-    sectionHeaderWrap: {
-        paddingTop: s(6),
-        paddingBottom: s(4),
-    },
+    sectionHeaderWrap: { paddingTop: s(6), paddingBottom: s(4) },
     sectionHeaderText: {
         fontFamily: "Outfit_700Bold",
         fontSize: s(12),
@@ -520,7 +501,6 @@ const styles = StyleSheet.create({
         letterSpacing: 0.3,
     },
 
-    /* Card */
     panel: {
         paddingHorizontal: s(14),
         paddingVertical: s(10),
@@ -542,11 +522,7 @@ const styles = StyleSheet.create({
         gap: s(10),
     },
 
-    rightAccessories: {
-        flexDirection: "row",
-        alignItems: "center",
-        gap: s(10),
-    },
+    rightAccessories: { flexDirection: "row", alignItems: "center", gap: s(10) },
 
     pfp: {
         width: s(38),
@@ -554,28 +530,11 @@ const styles = StyleSheet.create({
         borderRadius: s(19),
         backgroundColor: "#E2E8F0",
     },
-    pfpFallback: {
-        alignItems: "center",
-        justifyContent: "center",
-    },
-    pfpInitials: {
-        fontFamily: "Outfit_700Bold",
-        fontSize: s(12),
-        color: COLORS.text,
-        opacity: 0.9,
-    },
+    pfpFallback: { alignItems: "center", justifyContent: "center" },
+    pfpInitials: { fontFamily: "Outfit_700Bold", fontSize: s(12), color: COLORS.text, opacity: 0.9 },
 
-    templateTitle: {
-        fontSize: s(12.5),
-        fontFamily: "Outfit_700Bold",
-        color: COLORS.text,
-    },
-    handleText: {
-        marginTop: s(2),
-        fontSize: s(12),
-        fontFamily: "Outfit_500Medium",
-        color: COLORS.subtext,
-    },
+    templateTitle: { fontSize: s(12.5), fontFamily: "Outfit_700Bold", color: COLORS.text },
+    handleText: { marginTop: s(2), fontSize: s(12), fontFamily: "Outfit_500Medium", color: COLORS.subtext },
 
     livePill: {
         flexDirection: "row",
@@ -588,29 +547,12 @@ const styles = StyleSheet.create({
         paddingHorizontal: s(9),
         borderRadius: s(999),
     },
-    liveDot: {
-        width: s(8),
-        height: s(8),
-        borderRadius: s(4),
-        backgroundColor: "#EF4444",
-    },
-    liveText: {
-        fontFamily: "Outfit_700Bold",
-        fontSize: s(11.5),
-        color: COLORS.text,
-    },
+    liveDot: { width: s(8), height: s(8), borderRadius: s(4), backgroundColor: "#EF4444" },
+    liveText: { fontFamily: "Outfit_700Bold", fontSize: s(11.5), color: COLORS.text },
 
-    divider: {
-        height: StyleSheet.hairlineWidth,
-        backgroundColor: COLORS.hairline,
-        marginVertical: s(6),
-    },
+    divider: { height: StyleSheet.hairlineWidth, backgroundColor: COLORS.hairline, marginVertical: s(6) },
 
-    /* Stat chips */
-    statsRow: {
-        flexDirection: "row",
-        gap: s(8),
-    },
+    statsRow: { flexDirection: "row", gap: s(8) },
     statCard: {
         flex: 1,
         backgroundColor: COLORS.statBg,
@@ -629,17 +571,8 @@ const styles = StyleSheet.create({
         backgroundColor: COLORS.iconBg,
         marginBottom: s(4),
     },
-    statLabel: {
-        fontFamily: "Outfit_500Medium",
-        fontSize: s(10),
-        color: "rgba(100,116,139,0.9)",
-    },
-    statValue: {
-        marginTop: s(1),
-        fontFamily: "Outfit_700Bold",
-        fontSize: s(13),
-        color: COLORS.text,
-    },
+    statLabel: { fontFamily: "Outfit_500Medium", fontSize: s(10), color: "rgba(100,116,139,0.9)" },
+    statValue: { marginTop: s(1), fontFamily: "Outfit_700Bold", fontSize: s(13), color: COLORS.text },
 });
 
 export default memo(FriendsActivitySheet);

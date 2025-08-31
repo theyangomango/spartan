@@ -75,6 +75,15 @@ export default function Workout({ navigation, route }) {
     const uid = useResolvedUid(route);
     const user = useUserDoc(uid); // hydrates global.userData
 
+    const markFriendsViewed = React.useCallback(async () => {
+        try {
+            if (!uid) return;
+            await updateDoc("users", uid, { friendsActivityLastViewedAt: serverTimestamp() });
+        } catch (e) {
+            console.log("markFriendsViewed error", e);
+        }
+    }, [uid]);
+
     /* ---------- first paint guard (defer heavy mounts) ---------- */
     const [afterPaint, setAfterPaint] = useState(false);
     useEffect(() => {
@@ -229,13 +238,17 @@ export default function Workout({ navigation, route }) {
                     exercises: tplOrNull?.exercises ? [...tplOrNull.exercises] : [],
                     tid: tplOrNull?.tid || tplOrNull?.id || null, volume: 0, reps: 0, PBs: 0,
                 };
-                setWorkout(newWorkout); setIsNewWorkoutVisible(true); startTimer(created);
+                setWorkout(newWorkout);
+                setIsNewWorkoutVisible(true);
+                startTimer(created);
                 InteractionManager.runAfterInteractions(() => {
                     createWorkoutDoc(wid)
                         .then(() => updateDoc("users", uid, { currentWorkout: newWorkout }))
                         .catch((e) => console.log("startWorkout background writes error", e));
                 });
-            } else setIsNewWorkoutVisible(true);
+            } else {
+                setIsNewWorkoutVisible(true);
+            }
         } catch (e) {
             console.log("startWorkout error", e); Alert.alert("Couldn't start workout", e?.message || "Please try again.");
         }
@@ -323,6 +336,42 @@ export default function Workout({ navigation, route }) {
     // refresh on open
     useEffect(() => { if (friendsSheetVisible) refreshFriends(); }, [friendsSheetVisible, refreshFriends]);
 
+    // ----- compute "new updates" for the Friends button indicator -----
+    const lastViewedAtMs = toMillis(user?.friendsActivityLastViewedAt);
+    const itemTs = useCallback(
+        (it) => Math.max(
+            toMillis(it?.created) || 0,
+            toMillis(it?.startedAt) || 0,
+            toMillis(it?.finishedAt) || 0
+        ),
+        []
+    );
+
+    const newItems = useMemo(() => {
+        const v = lastViewedAtMs || 0;
+        const arr = Array.isArray(friendsActivity) ? friendsActivity : [];
+        return arr.filter((it) => itemTs(it) > v);
+    }, [friendsActivity, lastViewedAtMs, itemTs]);
+
+    const recentUsersForStack = useMemo(() => {
+        const seen = new Set();
+        const out = [];
+        const sorted = [...newItems].sort((a, b) => itemTs(b) - itemTs(a));
+        for (const it of sorted) {
+            const uidX = it?.uid;
+            if (!uidX || seen.has(uidX)) continue;
+            seen.add(uidX);
+            out.push({
+                uid: uidX,
+                pfp: it?.pfp || it?.pfpUrl || it?.photoURL || it?.image || it?.avatar || "",
+            });
+            if (out.length >= 3) break;
+        }
+        return out;
+    }, [newItems, itemTs]);
+
+    const hasNewFriendsUpdates = recentUsersForStack.length > 0;
+
     /* ---------------- render ---------------- */
     const allUsersRef = useRef([]);
 
@@ -390,26 +439,67 @@ export default function Workout({ navigation, route }) {
                         setFriendsSheetVisible(true);           // keep mounted + visible
                         setFriendsSheetToggle((f) => !f);      // flip -> ALWAYS expand (token)
                     }}
+                    hasNewFriendsUpdates={hasNewFriendsUpdates}
+                    friendsStackUsers={recentUsersForStack}
                 />
             </View>
 
             <Footer navigation={navigation} currentScreenName={"Workout"} />
 
-            {/* Sheets/Modals — only mount when needed */}
-            {isNewWorkoutVisible && (
-                <NewWorkoutBottomSheet
-                    workout={workout}
-                    cancelNewWorkout={cancelWorkout}
-                    updateNewWorkout={updateNewWorkout}
-                    finishNewWorkout={finishWorkout}
-                    isVisible={isNewWorkoutVisible}
-                    setIsVisible={setIsNewWorkoutVisible}
-                    timerRef={timerRef}
-                    showGroupModal={() => { }}
-                    userWorkoutStats={global?.userData?.statsExercises || {}}
+            {/* Day details (mounted only when needed) */}
+            {daySheetVisible && (
+                <DayDetailsSheet
+                    visible={daySheetVisible}
+                    openToggle={daySheetToggle}
+                    date={sheetDate}
+                    workouts={dayWorkouts}
+                    meals={sheetMeals}
+                    totals={sheetTotals}
+                    calories={sheetTotals?.calories || 0}
+                    workoutOn={(dayWorkouts?.length || 0) > 0}
+                    onClose={() => setDaySheetVisible(false)}
+                    onStartWorkout={onStartWorkout}
+                    onOpenMacros={() => { setDaySheetVisible(false); navigation.navigate("MacroTrackingOverlay"); }}
                 />
             )}
 
+            {/* Friends sheet is always mounted but completely inert when hidden */}
+            <View
+                style={StyleSheet.absoluteFill}
+                pointerEvents={friendsSheetVisible ? "auto" : "none"}
+            >
+                <FriendsActivitySheet
+                    visible={friendsSheetVisible}
+                    openToggle={friendsSheetToggle}
+                    items={friendsActivity}
+                    lastViewedAt={user?.friendsActivityLastViewedAt}
+                    onViewed={markFriendsViewed}
+                    onClose={() => setFriendsSheetVisible(false)}
+                    onJoin={(item) => {
+                        setFriendsSheetVisible(false);
+                        Alert.alert("Join Workout", `Joining ${item.name}'s live session…`);
+                    }}
+                    onView={(item) => {
+                        setFriendsSheetVisible(false);
+                        Alert.alert("Workout", `Opening ${item.name}'s workout (${item.duration} min)…`);
+                    }}
+                />
+            </View>
+
+            {/* New Workout sheet is always mounted and rendered last so it sits on top */}
+            <NewWorkoutBottomSheet
+                workout={workout}
+                cancelNewWorkout={cancelWorkout}
+                updateNewWorkout={updateNewWorkout}
+                finishNewWorkout={finishWorkout}
+                isVisible={isNewWorkoutVisible}
+                setIsVisible={setIsNewWorkoutVisible}
+                timerRef={timerRef}
+                showGroupModal={() => { }}
+                userWorkoutStats={global?.userData?.statsExercises || {}}
+            />
+
+            {/* Other modals */}
             {isEditTemplateVisible && (
                 <EditTemplateBottomSheet
                     isVisible={isEditTemplateVisible}
@@ -428,38 +518,6 @@ export default function Workout({ navigation, route }) {
                     postWorkout={postWorkout}
                 />
             )}
-
-            {daySheetVisible && (
-                <DayDetailsSheet
-                    visible={daySheetVisible}
-                    openToggle={daySheetToggle}
-                    date={sheetDate}
-                    workouts={dayWorkouts}
-                    meals={sheetMeals}
-                    totals={sheetTotals}
-                    calories={sheetTotals?.calories || 0}
-                    workoutOn={(dayWorkouts?.length || 0) > 0}
-                    onClose={() => setDaySheetVisible(false)}
-                    onStartWorkout={onStartWorkout}
-                    onOpenMacros={() => { setDaySheetVisible(false); navigation.navigate("MacroTrackingOverlay"); }}
-                />
-            )}
-
-            {/* Always mounted; expands on toggle every time */}
-            <FriendsActivitySheet
-                visible={friendsSheetVisible}
-                openToggle={friendsSheetToggle}
-                items={friendsActivity}
-                onClose={() => setFriendsSheetVisible(false)}
-                onJoin={(item) => {
-                    setFriendsSheetVisible(false);
-                    Alert.alert("Join Workout", `Joining ${item.name}'s live session…`);
-                }}
-                onView={(item) => {
-                    setFriendsSheetVisible(false);
-                    Alert.alert("Workout", `Opening ${item.name}'s workout (${item.duration} min)…`);
-                }}
-            />
         </SafeAreaView>
     );
 }

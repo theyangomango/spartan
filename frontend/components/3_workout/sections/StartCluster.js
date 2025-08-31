@@ -1,70 +1,82 @@
-// screens/Workout/parts/StartCluster.jsx
-import React from "react";
+// components/3_Workout/sections/StartCluster.jsx
+import React, { memo } from "react";
 import { View, Pressable, StyleSheet, Platform, Animated } from "react-native";
-import { AddSquare } from "iconsax-react-native";
-import StartOpenButton from "../ui/StartOpenButton";
+import { AddSquare, People } from "iconsax-react-native";
 import LiveStack from "../LiveStack";
-import { SMALL_SIZE } from "./workoutTheme";
+import StartOpenButton from "../ui/StartOpenButton";
+import { SMALL_SIZE, ROW_WIDTH } from "./workoutTheme";
 
-export default function StartCluster({
+const StartCluster = ({
     navigation,
     scaleAnim,
     hasActiveWorkout,
     onStartWorkout,
     onOpenNewWorkout,
     onOpenFriends,
-}) {
-    const liveNow = [
-        { uid: "a1", pfp: "https://i.pravatar.cc/200?img=11" },
-        { uid: "a2", pfp: "https://i.pravatar.cc/200?img=12" },
-        { uid: "a3", pfp: "https://i.pravatar.cc/200?img=13" },
-    ];
+    hasNewFriendsUpdates,
+    friendsStackUsers,
+}) => {
+    const scale = scaleAnim || new Animated.Value(1);
+
+    const showStack =
+        Array.isArray(friendsStackUsers) &&
+        friendsStackUsers.length > 0 &&
+        !!hasNewFriendsUpdates;
+
     return (
-        <View style={styles.actionsRow} pointerEvents="box-none">
-            {/* Make a Post */}
-            <Pressable
-                hitSlop={8}
-                android_ripple={{ color: "rgba(2,6,23,0.08)", radius: SMALL_SIZE / 2, borderless: true }}
-                accessibilityRole="button"
-                accessibilityLabel="Create a post"
-                style={({ pressed }) => [styles.smallBtn, pressed && styles.smallBtnPressed]}
-                onPress={() => navigation?.navigate("ProfileStack", { screen: "SelectPhotos" })}
-            >
-                <AddSquare size={24} color="#000" />
-            </Pressable>
+        <View style={styles.wrap} pointerEvents="box-none">
+            <View style={styles.actionsRow} pointerEvents="box-none">
+                {/* Make a Post */}
+                <Pressable
+                    hitSlop={8}
+                    android_ripple={{ color: "rgba(2,6,23,0.08)", radius: SMALL_SIZE / 2, borderless: true }}
+                    accessibilityRole="button"
+                    accessibilityLabel="Create a post"
+                    style={({ pressed }) => [styles.smallBtn, pressed && styles.smallBtnPressed]}
+                    onPress={() =>
+                        navigation?.navigate("ProfileStack", { screen: "SelectPhotos" })
+                    }
+                >
+                    <AddSquare size={24} color="#000" />
+                </Pressable>
 
-            {/* Start / Open button */}
-            <Animated.View style={{ transform: [{ scale: scaleAnim }] }}>
-                <StartOpenButton
-                    hasActiveWorkout={hasActiveWorkout}
-                    onOpen={onOpenNewWorkout}
-                    onStart={onStartWorkout}
-                />
-            </Animated.View>
+                {/* Start / Open */}
+                <Animated.View style={{ transform: [{ scale }] }}>
+                    <StartOpenButton
+                        hasActiveWorkout={hasActiveWorkout}
+                        onOpen={onOpenNewWorkout}   // opens the NewWorkout bottom sheet
+                        onStart={onStartWorkout}    // creates workout + opens sheet
+                    />
+                </Animated.View>
 
-            {/* Friends live */}
-            <Pressable
-                hitSlop={8}
-                android_ripple={{ color: "rgba(2,6,23,0.08)", radius: SMALL_SIZE / 2, borderless: true }}
-                accessibilityRole="button"
-                accessibilityLabel="Friends training now"
-                style={({ pressed }) => [styles.smallBtn, pressed && styles.smallBtnPressed]}
-                onPress={onOpenFriends}
-            >
-                <LiveStack users={liveNow} />
-            </Pressable>
+                {/* Friends button */}
+                <Pressable
+                    hitSlop={8}
+                    android_ripple={{ color: "rgba(2,6,23,0.08)", radius: SMALL_SIZE / 2, borderless: true }}
+                    accessibilityRole="button"
+                    accessibilityLabel="Friends training now"
+                    style={({ pressed }) => [styles.smallBtn, pressed && styles.smallBtnPressed]}
+                    onPress={onOpenFriends}
+                >
+                    {showStack ? (
+                        <LiveStack users={friendsStackUsers.slice(0, 3)} />
+                    ) : (
+                        <People size={24} color="#000" />
+                    )}
+                </Pressable>
+            </View>
         </View>
     );
-}
+};
 
 const styles = StyleSheet.create({
+    wrap: { alignItems: "center" },
     actionsRow: {
+        width: ROW_WIDTH,
         flexDirection: "row",
         alignItems: "center",
         justifyContent: "space-between",
         marginBottom: 10,
-        width: "75%",
-        alignSelf: "center",
     },
     smallBtn: {
         width: SMALL_SIZE,
@@ -80,3 +92,5 @@ const styles = StyleSheet.create({
     },
     smallBtnPressed: { transform: [{ scale: 0.96 }], backgroundColor: "#F1F5F9" },
 });
+
+export default memo(StartCluster);
