@@ -36,7 +36,6 @@ import GroupMenu from "./Group/GroupMenu";
 
 // Invite picker (bottom sheet)
 import GroupModalBottomSheet from "./Group/GroupModalBottomSheet";
-
 import RestTimerModal from "./RestTimerModal";
 
 const { height: screenHeight } = Dimensions.get("window");
@@ -51,9 +50,10 @@ const NewWorkoutModal = ({
     timerRef,
     userWorkoutStats,
     onViewingChange,
-    onPressBack,    // for friend view
-    onCheer,        // for friend view
-    forceViewingFriend = false, // true when opened from FriendsActivitySheet
+    onPressBack, // for friend view
+    onCheer, // for friend view
+    // kept for compatibility with callers, but auto-join now only depends on wid match
+    forceViewingFriend = false,
     friendPfp = null,
 }) => {
     const db = getFirestore();
@@ -90,22 +90,22 @@ const NewWorkoutModal = ({
     // ===== Group / viewing state (single source of truth) =====
     const meUid = String(global?.userData?.uid || "");
 
-    // Is this modal opened as a “viewer of a friend card” AND is that card’s wid the same as my active workout wid?
     const myActiveWid = String(global?.userData?.currentWorkout?.wid || "");
     const cardWid = String(workout?.wid || "");
-    const selfActiveInThisWid = !!(forceViewingFriend && myActiveWid && cardWid && myActiveWid === cardWid);
+
+    // Only auto-join when the card refers to the same group as my currently active workout.
+    const shouldAutoJoin = !!(myActiveWid && cardWid && myActiveWid === cardWid);
 
     // Decide who to look at first:
     // - If it's the same wid as mine → start by viewing myself (full control UI)
-    // - Otherwise, start by viewing the friend (read-only)
+    // - Otherwise, start by viewing the friend (read-only) if available
     const friendUidFromWorkout = String(workout?.creatorUID || workout?.creatorUid || "");
-    const initialViewingUid = selfActiveInThisWid ? meUid : (friendUidFromWorkout && friendUidFromWorkout !== meUid ? friendUidFromWorkout : meUid);
-
-    // Only auto-join when it's actually MY active wid (prevents “phantom” joining on old/canceled group cards)
-    const shouldAutoJoin = !forceViewingFriend ? true : selfActiveInThisWid;
+    const initialViewingUid = shouldAutoJoin
+        ? meUid
+        : (friendUidFromWorkout && friendUidFromWorkout !== meUid ? friendUidFromWorkout : meUid);
 
     const {
-        viewing,          // { uid, handle, image, pfpVersion, updatedAt } for the currently focused user
+        viewing,          // { uid, handle, image, pfpVersion, updatedAt }
         viewingSelf,      // boolean
         participants,     // array of participants ({uid,...})
         menuVisible,
@@ -129,7 +129,6 @@ const NewWorkoutModal = ({
     // keep caller informed (if they care)
     useEffect(() => { onViewingChange?.(!!viewingSelf); }, [viewingSelf, onViewingChange]);
 
-    // can switch if there is at least one other participant
     const canSwitchParticipants = useMemo(() => {
         const others = Array.isArray(participants)
             ? participants.some((p) => p?.uid && String(p.uid) !== meUid)

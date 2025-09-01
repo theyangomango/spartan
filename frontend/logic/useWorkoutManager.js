@@ -1,12 +1,25 @@
-// screens/Workout/logic/useWorkoutManager.js
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Alert } from "react-native";
-import { setDoc, doc, serverTimestamp, getDoc } from "firebase/firestore";
+import {
+    setDoc,
+    doc,
+    serverTimestamp,
+    getDoc,
+    updateDoc as fsUpdateDoc,
+    arrayRemove,
+    deleteDoc,
+    collection,
+    getDocs,
+    query,
+    where,
+    writeBatch,
+    runTransaction,
+} from "firebase/firestore";
 import { db } from "../../firebase.config";
 import updateDoc from "../../backend/helper/firebase/updateDoc";
 import makeID from "../../backend/helper/makeID";
 
-/* -------- sanitize helpers (kept local to avoid extra files) -------- */
+/* ---------------- helpers ---------------- */
 const toMillis = (v) => {
     if (typeof v === "number") return v;
     if (v instanceof Date) return v.getTime();
@@ -29,8 +42,24 @@ const sanitizeWorkout = (w) => {
     const exercises = Array.isArray(w.exercises)
         ? w.exercises.map((ex) => ({ ...ex, sets: normalizeSets(ex?.sets) }))
         : [];
-    return { ...w, created, exercises, volume: Number(w?.volume) || 0, reps: Number(w?.reps) || 0, PBs: Number(w?.PBs) || 0 };
+    return {
+        ...w,
+        created,
+        exercises,
+        volume: Number(w?.volume) || 0,
+        reps: Number(w?.reps) || 0,
+        PBs: Number(w?.PBs) || 0,
+    };
 };
+
+// robust equality against array elements that could be string/number/object
+const asUid = (x) => {
+    if (typeof x === "string" || typeof x === "number") return String(x);
+    if (x && typeof x === "object") return String(x.uid || x.id || "");
+    return "";
+};
+const filterOutUid = (arr, uidStr) =>
+    (Array.isArray(arr) ? arr : []).filter((v) => asUid(v) !== uidStr);
 
 export default function useWorkoutManager({ uid, navigation, millisToHMS }) {
     const [workout, setWorkout] = useState(null);
@@ -41,16 +70,27 @@ export default function useWorkoutManager({ uid, navigation, millisToHMS }) {
     /* ------------ timer ------------ */
     const timerRef = useRef("");
     const timerIdRef = useRef(null);
-    const setTimerNow = useCallback((createdMs) => {
-        if (!createdMs) return;
-        const diff = Date.now() - createdMs;
-        timerRef.current = millisToHMS(Math.max(1000, diff));
-    }, [millisToHMS]);
-    const stopTimer = useCallback(() => { try { if (timerIdRef.current) clearInterval(timerIdRef.current); } catch { } timerIdRef.current = null; timerRef.current = ""; }, []);
-    const startTimer = useCallback((createdMs) => {
-        stopTimer(); setTimerNow(createdMs);
-        timerIdRef.current = setInterval(() => setTimerNow(createdMs), 1000);
-    }, [setTimerNow, stopTimer]);
+    const setTimerNow = useCallback(
+        (createdMs) => {
+            if (!createdMs) return;
+            const diff = Date.now() - createdMs;
+            timerRef.current = millisToHMS(Math.max(1000, diff));
+        },
+        [millisToHMS]
+    );
+    const stopTimer = useCallback(() => {
+        try { if (timerIdRef.current) clearInterval(timerIdRef.current); } catch { }
+        timerIdRef.current = null;
+        timerRef.current = "";
+    }, []);
+    const startTimer = useCallback(
+        (createdMs) => {
+            stopTimer();
+            setTimerNow(createdMs);
+            timerIdRef.current = setInterval(() => setTimerNow(createdMs), 1000);
+        },
+        [setTimerNow, stopTimer]
+    );
 
     /* ------------ persist currentWorkout (debounced) ------------ */
     const saveCurrentWorkoutDebouncedRef = useRef(null);
@@ -60,82 +100,176 @@ export default function useWorkoutManager({ uid, navigation, millisToHMS }) {
             saveCurrentWorkoutDebouncedRef.current = null;
         }
     }, []);
-    const persistCurrentWorkout = useCallback((value) => {
-        if (!uid) return;
-        if (!value) {
+    const persistCurrentWorkout = useCallback(
+        (value) => {
+            if (!uid) return;
+            if (!value) {
+                clearPersistDebounce();
+                (async () => {
+                    try {
+                        await setDoc(doc(db, "users", uid), { currentWorkout: null }, { merge: true });
+                    } catch (e) {
+                        console.log("setDoc users.currentWorkout (clear) error", e);
+                        try { await updateDoc("users", uid, { currentWorkout: null }); } catch { }
+                    }
+                })();
+                return;
+            }
             clearPersistDebounce();
-            (async () => {
-                try { await setDoc(doc(db, "users", uid), { currentWorkout: null }, { merge: true }); }
-                catch (e) { console.log("setDoc users.currentWorkout (clear) error", e); try { await updateDoc("users", uid, { currentWorkout: null }); } catch { } }
-            })();
-            return;
-        }
-        clearPersistDebounce();
-        const payload = sanitizeWorkout(value);
-        saveCurrentWorkoutDebouncedRef.current = setTimeout(async () => {
-            try { await setDoc(doc(db, "users", uid), { currentWorkout: payload }, { merge: true }); }
-            catch (e) { console.log("setDoc users.currentWorkout (debounced) error", e); try { await updateDoc("users", uid, { currentWorkout: payload }); } catch { } }
-        }, 400);
-    }, [uid, clearPersistDebounce]);
+            const payload = sanitizeWorkout(value);
+            saveCurrentWorkoutDebouncedRef.current = setTimeout(async () => {
+                try {
+                    await setDoc(doc(db, "users", uid), { currentWorkout: payload }, { merge: true });
+                } catch (e) {
+                    console.log("setDoc users.currentWorkout (debounced) error", e);
+                    try { await updateDoc("users", uid, { currentWorkout: payload }); } catch { }
+                }
+            }, 400);
+        },
+        [uid, clearPersistDebounce]
+    );
 
     /* ------------ helpers ------------ */
-    const createWorkoutDoc = useCallback(async (wid) => {
-        await setDoc(doc(db, "workouts", wid), {
-            wid, creatorUid: uid, createdAt: serverTimestamp(), active: true, members: [uid], updatedAt: serverTimestamp(),
-        }, { merge: true });
-    }, [uid]);
+    const createWorkoutDoc = useCallback(
+        async (wid) => {
+            await setDoc(
+                doc(db, "workouts", wid),
+                {
+                    wid,
+                    creatorUid: uid,
+                    createdAt: serverTimestamp(),
+                    active: true,
+                    members: [uid],
+                    updatedAt: serverTimestamp(),
+                },
+                { merge: true }
+            );
+        },
+        [uid]
+    );
 
     const clearCurrentWorkoutLocally = useCallback(() => {
-        try { global.isCurrentlyWorkingOut = false; if (global?.userData) global.userData.currentWorkout = null; } catch { }
-        stopTimer(); setIsNewWorkoutVisible(false); setWorkout(null);
+        try {
+            global.isCurrentlyWorkingOut = false;
+            if (global?.userData) global.userData.currentWorkout = null;
+        } catch { }
+        stopTimer();
+        setIsNewWorkoutVisible(false);
+        setWorkout(null);
     }, [stopTimer]);
 
-    /* ------------ public API ------------ */
-    const startNewWorkoutFromTemplate = useCallback((tplOrNull) => {
-        if (!uid) { Alert.alert("Sign in required", "Please log in to start a workout."); return; }
+    /**
+     * Purge *all* traces of this user from a group workout across backend.
+     * Handles mixed-type members arrays (string/number/object).
+     */
+    const leaveWorkoutGroup = useCallback(
+        async (wid) => {
+            if (!wid || !uid) return;
+            const widStr = String(wid);
+            const my = String(uid);
 
-        try {
-            if (!workout) {
-                global.isCurrentlyWorkingOut = true;
-                const wid = makeID();
-                const created = Date.now();
+            // Transactionally rewrite arrays so we remove string/number/object variants
+            try {
+                await runTransaction(db, async (tx) => {
+                    const ref = doc(db, "workouts", widStr);
+                    const snap = await tx.get(ref);
+                    if (!snap.exists()) return;
 
-                const normalizeSets = (sets) =>
-                    Array.isArray(sets) && sets.length
-                        ? sets.map((s) => ({ weight: Number(s?.weight) || 0, reps: Number(s?.reps) || 0, isDone: !!s?.isDone }))
-                        : [{ weight: 0, reps: 0, isDone: false }];
+                    const data = snap.data() || {};
+                    const nextMembers = filterOutUid(data.members, my);
+                    const nextUsers = filterOutUid(data.users, my);
 
-                const exercisesFromTpl = tplOrNull?.exercises
-                    ? tplOrNull.exercises.map((ex) => ({ ...ex, sets: normalizeSets(ex?.sets) }))
-                    : [];
+                    const updatePayload = {
+                        members: nextMembers,
+                        users: nextUsers,
+                        updatedAt: serverTimestamp(),
+                    };
+                    if ((nextMembers.length + nextUsers.length) === 0) {
+                        updatePayload.active = false;
+                    }
 
-                const newWorkout = {
-                    wid,
-                    creatorUID: uid,
-                    created,
-                    users: [],
-                    exercises: exercisesFromTpl,
-                    tid: tplOrNull?.tid || tplOrNull?.id || null,
-                    volume: 0, reps: 0, PBs: 0,
-                };
-
-                setWorkout(newWorkout);
-                setIsNewWorkoutVisible(true);
-                startTimer(created);
-
-                clearPersistDebounce();
-                setDoc(doc(db, "users", uid), { currentWorkout: newWorkout }, { merge: true })
-                    .catch((e) => console.log("setDoc users.currentWorkout error", e));
-
-                createWorkoutDoc(wid).catch((e) => console.log("createWorkoutDoc error", e));
-            } else {
-                setIsNewWorkoutVisible(true);
+                    tx.update(ref, updatePayload);
+                });
+            } catch (e) {
+                console.log("leaveWorkoutGroup: tx rewrite failed, fallback arrayRemove", e);
+                // fallback — best effort
+                try {
+                    await fsUpdateDoc(doc(db, "workouts", widStr), {
+                        members: arrayRemove(my),
+                        users: arrayRemove(my),
+                        updatedAt: serverTimestamp(),
+                    });
+                } catch { }
             }
-        } catch (e) {
-            console.log("startWorkout error", e);
-            Alert.alert("Couldn't start workout", e?.message || "Please try again.");
-        }
-    }, [uid, workout, startTimer, clearPersistDebounce, createWorkoutDoc]);
+
+            // Delete presence
+            try { await deleteDoc(doc(db, "workouts", widStr, "live", my)); } catch { }
+
+            // Delete any invites related to this wid & user (either side)
+            try {
+                const qFrom = query(collection(db, "workoutInvites"), where("wid", "==", widStr), where("fromUid", "==", my));
+                const qTo = query(collection(db, "workoutInvites"), where("wid", "==", widStr), where("toUid", "==", my));
+                const [sFrom, sTo] = await Promise.all([getDocs(qFrom), getDocs(qTo)]);
+                const batch = writeBatch(db);
+                sFrom.forEach((d) => batch.delete(d.ref));
+                sTo.forEach((d) => batch.delete(d.ref));
+                await batch.commit();
+            } catch (e) {
+                console.log("leaveWorkoutGroup: invite cleanup err", e);
+            }
+        },
+        [uid]
+    );
+
+    /* ------------ public API ------------ */
+    const startNewWorkoutFromTemplate = useCallback(
+        (tplOrNull) => {
+            if (!uid) { Alert.alert("Sign in required", "Please log in to start a workout."); return; }
+
+            try {
+                if (!workout) {
+                    global.isCurrentlyWorkingOut = true;
+                    const wid = makeID();
+                    const created = Date.now();
+
+                    const normalizeSets = (sets) =>
+                        Array.isArray(sets) && sets.length
+                            ? sets.map((s) => ({ weight: Number(s?.weight) || 0, reps: Number(s?.reps) || 0, isDone: !!s?.isDone }))
+                            : [{ weight: 0, reps: 0, isDone: false }];
+
+                    const exercisesFromTpl = tplOrNull?.exercises
+                        ? tplOrNull.exercises.map((ex) => ({ ...ex, sets: normalizeSets(ex?.sets) }))
+                        : [];
+
+                    const newWorkout = {
+                        wid,
+                        creatorUID: uid,
+                        created,
+                        users: [],
+                        exercises: exercisesFromTpl,
+                        tid: tplOrNull?.tid || tplOrNull?.id || null,
+                        volume: 0, reps: 0, PBs: 0,
+                    };
+
+                    setWorkout(newWorkout);
+                    setIsNewWorkoutVisible(true);
+                    startTimer(created);
+
+                    clearPersistDebounce();
+                    setDoc(doc(db, "users", uid), { currentWorkout: newWorkout }, { merge: true })
+                        .catch((e) => console.log("setDoc users.currentWorkout error", e));
+
+                    createWorkoutDoc(wid).catch((e) => console.log("createWorkoutDoc error", e));
+                } else {
+                    setIsNewWorkoutVisible(true);
+                }
+            } catch (e) {
+                console.log("startWorkout error", e);
+                Alert.alert("Couldn't start workout", e?.message || "Please try again.");
+            }
+        },
+        [uid, workout, startTimer, clearPersistDebounce, createWorkoutDoc]
+    );
 
     const updateNewWorkout = useCallback((next) => {
         setWorkout(next);
@@ -145,13 +279,25 @@ export default function useWorkoutManager({ uid, navigation, millisToHMS }) {
     const cancelWorkout = useCallback(async () => {
         try {
             clearPersistDebounce();
+
+            // capture now; we clear local state immediately after
+            const wid = String(workout?.wid || global?.userData?.currentWorkout?.wid || "");
+
+            // 1) Local/optimistic clear so *my* UI pops closed immediately
+            clearCurrentWorkoutLocally();
+
+            // 2) Backend purge so everyone else’s GroupMenu updates immediately via snapshots
+            if (wid) await leaveWorkoutGroup(wid);
+
+            // 3) Clear my user doc (authoritative)
             if (uid) {
                 try { await setDoc(doc(db, "users", uid), { currentWorkout: null }, { merge: true }); }
                 catch (e) { console.log("setDoc users.currentWorkout (cancel) error", e); await updateDoc("users", uid, { currentWorkout: null }); }
             }
-            clearCurrentWorkoutLocally();
-        } catch (e) { console.log("cancelWorkout error", e); }
-    }, [uid, clearCurrentWorkoutLocally, clearPersistDebounce]);
+        } catch (e) {
+            console.log("cancelWorkout error", e);
+        }
+    }, [uid, workout?.wid, clearCurrentWorkoutLocally, clearPersistDebounce, leaveWorkoutGroup]);
 
     const finishWorkout = useCallback(async () => {
         try {
@@ -168,13 +314,11 @@ export default function useWorkoutManager({ uid, navigation, millisToHMS }) {
                     arr.push(completed);
                     if (global?.userData) {
                         global.userData.completedWorkouts = arr;
-                        const dk = (() => {
-                            const dd = new Date(completed.created || Date.now()); dd.setHours(0, 0, 0, 0);
-                            return `${dd.getFullYear()}-${String(dd.getMonth() + 1).padStart(2, "0")}-${String(dd.getDate()).padStart(2, "0")}`;
-                        })();
+                        const dd = new Date(completed.created || Date.now()); dd.setHours(0, 0, 0, 0);
+                        const dk = `${dd.getFullYear()}-${String(dd.getMonth() + 1).padStart(2, "0")}-${String(dd.getDate()).padStart(2, "0")}`;
                         global.userData.workoutsByDate = { ...(global.userData.workoutsByDate || {}), [dk]: true };
                     }
-                } catch { /* ignore */ }
+                } catch { }
 
                 setCompletedWorkout(completed);
                 setIsSummaryModalVisible(true);
@@ -183,47 +327,74 @@ export default function useWorkoutManager({ uid, navigation, millisToHMS }) {
                     const arr = Array.isArray(global?.userData?.currentWorkouts) ? [...global.userData.currentWorkouts] : [];
                     arr.push(completed);
                     if (global?.userData) global.userData.currentWorkouts = arr;
-                } catch { /* ignore */ }
+                } catch { }
             }
-            clearCurrentWorkoutLocally();
+
+            const wid = String(workout?.wid || "");
+            if (wid) await leaveWorkoutGroup(wid);
+
             if (uid) await updateDoc("users", uid, { currentWorkout: null });
-        } catch (e) { console.log("finishWorkout error", e); }
-    }, [uid, workout, clearCurrentWorkoutLocally]);
+            clearCurrentWorkoutLocally();
+        } catch (e) {
+            console.log("finishWorkout error", e);
+        }
+    }, [uid, workout, clearCurrentWorkoutLocally, leaveWorkoutGroup]);
 
     const postWorkout = useCallback(async () => {
         setIsSummaryModalVisible(false);
         try {
             await navigation.navigate("ProfileStack", { screen: "Profile" });
             navigation.navigate("ProfileStack", { screen: "SelectPhotos", params: { workout: completedWorkout } });
-        } catch { /* ignore */ }
+        } catch { }
     }, [completedWorkout, navigation]);
 
-    /* ------------ Accept-from-invite helper ------------ */
-    const joinExternalWorkout = useCallback(async (wid, seed) => {
+    /**
+     * Join helper: accepts (wid, seed) or ({ wid, seedWorkout })
+     */
+    const joinExternalWorkout = useCallback(async (arg1, arg2) => {
         try {
             const me = String(uid || global?.userData?.uid || "");
-            if (!me || !wid) return;
+            if (!me) return;
 
-            // Seed local workout
-            const base = seed || (await getDoc(doc(db, "workouts", wid))).data() || {};
-            const joined = {
-                wid: String(wid),
-                creatorUID: base?.creatorUid || me,
+            let wid = null;
+            let seed = null;
+            if (arg1 && typeof arg1 === "object") {
+                wid = String(arg1.wid || "");
+                seed = arg1.seedWorkout || arg1.seed || null;
+            } else {
+                wid = String(arg1 || "");
+                seed = arg2 || null;
+            }
+            if (!wid) return;
+
+            const baseSnap = seed ? null : await getDoc(doc(db, "workouts", wid));
+            const base = seed || (baseSnap.exists() ? baseSnap.data() : {}) || {};
+
+            const joined = sanitizeWorkout({
+                wid,
+                creatorUID: base?.creatorUid || base?.creatorUID || me,
                 created: Date.now(),
                 users: [],
                 exercises: [],
                 tid: null,
                 volume: 0, reps: 0, PBs: 0,
-            };
+            });
+
             setWorkout(joined);
             setIsNewWorkoutVisible(true);
-            persistCurrentWorkout(joined);
+
+            try {
+                await setDoc(doc(db, "users", me), { currentWorkout: joined }, { merge: true });
+            } catch (e) {
+                console.log("joinExternalWorkout: set currentWorkout error", e);
+                try { await updateDoc("users", me, { currentWorkout: joined }); } catch { }
+            }
         } catch (e) {
             console.log("joinExternalWorkout error", e);
         }
-    }, [uid, persistCurrentWorkout]);
+    }, [uid]);
 
-    /* ------------ Rehydrate from Firestore user doc (global.userData) ------------ */
+    /* ------------ Rehydrate from Firestore user doc ------------ */
     useEffect(() => {
         const remote = sanitizeWorkout(global?.userData?.currentWorkout);
         if (!workout && remote && remote.created) {
