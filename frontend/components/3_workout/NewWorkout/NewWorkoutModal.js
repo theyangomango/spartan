@@ -1,3 +1,4 @@
+// components/3_Workout/NewWorkout/NewWorkoutModal.jsx
 import React, { useEffect, useState, useRef, useMemo, useCallback } from "react";
 import {
     StyleSheet,
@@ -52,7 +53,7 @@ const NewWorkoutModal = ({
     onViewingChange,
     onPressBack,    // for friend view
     onCheer,        // for friend view
-    // kept for compatibility with callers, but auto-join now only depends on wid match
+    // 👇 NEW: can be boolean or a string uid — if truthy, we hard-lock friend view
     forceViewingFriend = false,
     friendPfp = null,
 }) => {
@@ -87,36 +88,42 @@ const NewWorkoutModal = ({
     );
     const [replaceIndex, setReplaceIndex] = useState(null);
 
-    // ===== Group / viewing state (single source of truth) =====
+    // ===== Group / viewing state — with friend-lock =====
     const meUid = String(global?.userData?.uid || "");
-
     const myActiveWid = String(global?.userData?.currentWorkout?.wid || "");
     const cardWid = String(workout?.wid || "");
-
-    // Only auto-join when the card refers to the same group as my currently active workout.
-    const shouldAutoJoin = !!(myActiveWid && cardWid && myActiveWid === cardWid);
-
-    // Decide who to look at first:
-    // - If it's the same wid as mine → start by viewing myself (full control UI)
-    // - Otherwise, start by viewing the friend (read-only) if available
     const friendUidFromWorkout = String(workout?.creatorUID || workout?.creatorUid || "");
-    const initialViewingUid = shouldAutoJoin
-        ? meUid
-        : (friendUidFromWorkout && friendUidFromWorkout !== meUid ? friendUidFromWorkout : meUid);
+
+    // If parent passed a uid (preferred), use it; if boolean true, fall back to workout's creator
+    const forcedUid =
+        typeof forceViewingFriend === "string"
+            ? forceViewingFriend
+            : (forceViewingFriend ? friendUidFromWorkout : null);
+    const lockFriend = !!forcedUid;
+
+    // Only auto-join when NOT locked to friend-view and wid matches my active wid
+    const shouldAutoJoin = !lockFriend && !!(myActiveWid && cardWid && myActiveWid === cardWid);
+
+    // Decide initial target for the viewer hook
+    const initialViewingUid = lockFriend
+        ? forcedUid
+        : (shouldAutoJoin
+            ? meUid
+            : (friendUidFromWorkout && friendUidFromWorkout !== meUid ? friendUidFromWorkout : meUid));
 
     const {
-        viewing,          // { uid, handle, image, pfpVersion, updatedAt }
-        viewingSelf,      // boolean
-        participants,     // array of participants ({uid,...})
+        viewing,
+        viewingSelf,
+        participants,
         menuVisible,
         openMenu,
         closeMenu,
-        overlayPfp,       // pfp from the currently viewed user's doc (live)
-        activeWorkout,    // currentWorkout of the currently viewed user
-        activeStats,      // stats of the currently viewed user
+        overlayPfp,
+        activeWorkout,
+        activeStats,
         friendDoneDerived,
         waitingFriend,
-        setViewing,       // switch focus to another participant
+        setViewing,
     } = useGroupViewing({
         wid: cardWid,
         meUid,
@@ -126,8 +133,11 @@ const NewWorkoutModal = ({
         autoJoin: shouldAutoJoin,
     });
 
+    // Effective flags/content when locked
+    const viewingSelfEffective = lockFriend ? false : viewingSelf;
+
     // keep caller informed (if they care)
-    useEffect(() => { onViewingChange?.(!!viewingSelf); }, [viewingSelf, onViewingChange]);
+    useEffect(() => { onViewingChange?.(!!viewingSelfEffective); }, [viewingSelfEffective, onViewingChange]);
 
     const canSwitchParticipants = useMemo(() => {
         const others = Array.isArray(participants)
@@ -144,7 +154,7 @@ const NewWorkoutModal = ({
 
     // Sync toggles from workout data when self
     useEffect(() => {
-        if (!viewingSelf) return;
+        if (!viewingSelfEffective) return;
         const ex = workout?.exercises || [];
         setIsDoneState((prev) =>
             ex.map((e, i) => {
@@ -153,9 +163,9 @@ const NewWorkoutModal = ({
                 return sets.map((s, si) => (typeof row[si] === "boolean" ? row[si] : !!s?.isDone));
             })
         );
-    }, [workout?.exercises, viewingSelf]);
+    }, [workout?.exercises, viewingSelfEffective]);
 
-    const baseWorkout = viewingSelf ? workout : (activeWorkout || workout);
+    const baseWorkout = viewingSelfEffective ? workout : (activeWorkout || workout);
 
     const doneForRender = useMemo(() => {
         const src = baseWorkout?.exercises || [];
@@ -187,7 +197,7 @@ const NewWorkoutModal = ({
         setTotalReps(totals.reps);
         setTotalVolume(totals.volume);
         setPersonalBests(totals.PBs);
-        if (viewingSelf && workout && (
+        if (viewingSelfEffective && workout && (
             workout.reps !== totals.reps ||
             workout.volume !== totals.volume ||
             workout.PBs !== totals.PBs
@@ -195,15 +205,15 @@ const NewWorkoutModal = ({
             updateWorkout({ ...workout, reps: totals.reps, volume: totals.volume, PBs: totals.PBs });
         }
         // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [totals.reps, totals.volume, totals.PBs, viewingSelf]);
+    }, [totals.reps, totals.volume, totals.PBs, viewingSelfEffective]);
 
-    const showSelectExerciseModal = useCallback(() => { if (viewingSelf) setSelectExerciseModalVisible(true); }, [viewingSelf]);
+    const showSelectExerciseModal = useCallback(() => { if (viewingSelfEffective) setSelectExerciseModalVisible(true); }, [viewingSelfEffective]);
     const closeSelectExerciseModal = useCallback(() => { setSelectExerciseModalVisible(false); setReplaceIndex(null); }, []);
 
     const normalizeSet = (s) => ({ weight: Number(s?.weight) || 0, reps: Number(s?.reps) || 0, isDone: !!s?.isDone });
 
     const appendExercises = useCallback((exercises) => {
-        if (!viewingSelf || !workout) return;
+        if (!viewingSelfEffective || !workout) return;
         const next = {
             ...workout,
             exercises: [
@@ -217,20 +227,20 @@ const NewWorkoutModal = ({
         };
         updateWorkout(next);
         setIsDoneState((prev) => prev.concat(exercises.map(() => [false])));
-    }, [workout, updateWorkout, viewingSelf]);
+    }, [workout, updateWorkout, viewingSelfEffective]);
 
     const updateSets = useCallback((index, newSets) => {
-        if (!viewingSelf || !workout) return;
+        if (!viewingSelfEffective || !workout) return;
         const normalized = (newSets || []).map(normalizeSet);
         const updated = (workout.exercises || []).map((ex, i) => (i === index ? { ...ex, sets: normalized } : ex));
         updateWorkout({ ...workout, exercises: updated });
         setIsDoneState((prev) => { const next = prev.map((row) => row.slice()); next[index] = normalized.map((s) => !!s.isDone); return next; });
-    }, [workout, updateWorkout, viewingSelf]);
+    }, [workout, updateWorkout, viewingSelfEffective]);
 
-    const replaceExercise = useCallback((index) => { if (viewingSelf) { setReplaceIndex(index); setSelectExerciseModalVisible(true); } }, [viewingSelf]);
+    const replaceExercise = useCallback((index) => { if (viewingSelfEffective) { setReplaceIndex(index); setSelectExerciseModalVisible(true); } }, [viewingSelfEffective]);
 
     const handleAppendOrReplace = useCallback((picked) => {
-        if (!viewingSelf || !workout) return;
+        if (!viewingSelfEffective || !workout) return;
         const choice = Array.isArray(picked) ? picked[0] : picked;
         const isReplacing = replaceIndex !== null && replaceIndex >= 0;
 
@@ -249,17 +259,17 @@ const NewWorkoutModal = ({
 
         appendExercises(Array.isArray(picked) ? picked : [picked]);
         setSelectExerciseModalVisible(false);
-    }, [appendExercises, replaceIndex, viewingSelf, workout, updateWorkout]);
+    }, [appendExercises, replaceIndex, viewingSelfEffective, workout, updateWorkout]);
 
     const deleteExercise = useCallback((index) => {
-        if (!viewingSelf || !workout) return;
+        if (!viewingSelfEffective || !workout) return;
         const filtered = (workout.exercises || []).filter((_, i) => i !== index);
         updateWorkout({ ...workout, exercises: filtered });
         setIsDoneState((prev) => prev.filter((_, i) => i !== index));
-    }, [workout, updateWorkout, viewingSelf]);
+    }, [workout, updateWorkout, viewingSelfEffective]);
 
     const toggleIsDone = useCallback((exerciseIndex, setIndex) => {
-        if (!viewingSelf || !workout) return;
+        if (!viewingSelfEffective || !workout) return;
         const curr = workout.exercises?.[exerciseIndex]?.sets?.[setIndex];
         if (!curr) return;
         if (!curr.isDone && (isNaN(curr.weight) || isNaN(curr.reps))) return;
@@ -278,10 +288,10 @@ const NewWorkoutModal = ({
             return { ...ex, sets };
         });
         updateWorkout({ ...workout, exercises: updated });
-    }, [isDoneState, workout, updateWorkout, viewingSelf]);
+    }, [isDoneState, workout, updateWorkout, viewingSelfEffective]);
 
     const confirmCancelWorkout = () => {
-        if (!viewingSelf) return;
+        if (!viewingSelfEffective) return;
         if (!workout || (workout.exercises || []).length === 0) {
             setDeleteConfirmModalVisible(false);
             cancelWorkout();
@@ -291,7 +301,7 @@ const NewWorkoutModal = ({
     };
     const handleDeleteWorkout = useCallback(() => { setDeleteConfirmModalVisible(false); cancelWorkout(); }, [cancelWorkout]);
 
-    const openFinishConfirm = useCallback(() => { if (viewingSelf) setFinishConfirmModalVisible(true); }, [viewingSelf]);
+    const openFinishConfirm = useCallback(() => { if (viewingSelfEffective) setFinishConfirmModalVisible(true); }, [viewingSelfEffective]);
 
     const handleFinishWorkout = useCallback(() => {
         if (isFinishing) return;
@@ -307,9 +317,9 @@ const NewWorkoutModal = ({
     const borderOpacity = scrollY.interpolate({ inputRange: [0, 98], outputRange: [0, 1], extrapolate: "clamp" });
     const overallOpacity = 1;
 
-    const friendWaiting = !viewingSelf && waitingFriend && !(baseWorkout?.exercises?.length);
+    const friendWaiting = !viewingSelfEffective && waitingFriend && !(baseWorkout?.exercises?.length);
 
-    // ===== Robust PFPs =====
+    // ===== PFPs (stable) =====
     const selfPfpVersion = global?.userData?.pfpVersion ?? 0;
     const selfPfpUri = usePfp(meUid, selfPfpVersion) ||
         global?.userData?.pfp ||
@@ -317,17 +327,21 @@ const NewWorkoutModal = ({
         global?.userData?.image ||
         "";
 
-    // Use hook for whoever is currently "viewing"
     const viewingPfpUriHook = usePfp(String(viewing?.uid || ""), viewing?.pfpVersion || 0);
-    const headerOverlayPfp = viewingSelf
-        ? selfPfpUri
-        : (viewingPfpUriHook || viewing?.image || friendPfp || "");
+
+    // If locked to friend: prefer the passed friendPfp to prevent any initial flip
+    const headerOverlayPfp = lockFriend
+        ? (friendPfp || viewingPfpUriHook || viewing?.image || "")
+        : (viewingSelfEffective
+            ? selfPfpUri
+            : (viewingPfpUriHook || viewing?.image || friendPfp || ""));
 
     // Being “in an active group” = there is at least one participant other than me
     const inActiveGroup = useMemo(
         () => Array.isArray(participants) && participants.some((p) => String(p?.uid) !== meUid),
         [participants, meUid]
     );
+    const inActiveGroupEffective = lockFriend ? false : inActiveGroup;
 
     // ===== Send invites from the picker =====
     const handleInviteSelected = useCallback(async (selectedUsers = []) => {
@@ -336,7 +350,6 @@ const NewWorkoutModal = ({
             const wid = workout.wid;
             const myUid = global.userData.uid;
 
-            // Ensure workout document exists and add myself to members
             await setDoc(
                 doc(db, "workouts", wid),
                 {
@@ -349,7 +362,6 @@ const NewWorkoutModal = ({
                 { merge: true }
             );
 
-            // Create invite docs
             const batch = selectedUsers.map((u) =>
                 addDoc(collection(db, "workoutInvites"), {
                     wid,
@@ -374,19 +386,19 @@ const NewWorkoutModal = ({
             {/* Header */}
             <View style={[styles.header, { opacity: overallOpacity }]}>
                 <GroupHeader
-                    viewingSelf={viewingSelf}
+                    viewingSelf={viewingSelfEffective}
                     overlayPfp={headerOverlayPfp}
-                    onOpenMenu={openMenu}
-                    onLongPressInvite={viewingSelf ? openInviteSheet : undefined}
-                    onFinish={openFinishConfirm}
-                    onCheer={onCheer}
+                    onOpenMenu={lockFriend ? undefined : openMenu}
+                    onLongPressInvite={lockFriend ? undefined : (viewingSelfEffective ? openInviteSheet : undefined)}
+                    onFinish={viewingSelfEffective ? openFinishConfirm : undefined}
+                    onCheer={viewingSelfEffective ? undefined : onCheer}
                     countdown={countdown}
-                    onAddTime={openRestModal}
+                    onAddTime={viewingSelfEffective ? openRestModal : undefined}
                     timerRef={timerRef}
                     headerStyle={[styles.headerInner]}
                     onBack={onPressBack}
-                    disableGroupPress={!(viewingSelf || inActiveGroup)}
-                    inActiveGroup={inActiveGroup}
+                    disableGroupPress={lockFriend || !(viewingSelfEffective || inActiveGroupEffective)}
+                    inActiveGroup={inActiveGroupEffective}
                 />
             </View>
             <Animated.View style={[styles.headerShadow, { opacity: borderOpacity }]} />
@@ -419,14 +431,14 @@ const NewWorkoutModal = ({
                             isDoneState={(doneForRender && doneForRender[exerciseIndex]) || []}
                             toggleIsDone={toggleIsDone}
                             userWorkoutStats={activeStats}
-                            readOnlyInputs={!viewingSelf}
-                            hideAddSet={!viewingSelf}
-                            disableRowActions={!viewingSelf}
+                            readOnlyInputs={!viewingSelfEffective}
+                            hideAddSet={!viewingSelfEffective}
+                            disableRowActions={!viewingSelfEffective}
                         />
                     ))}
 
                     {/* Editing actions only when viewing self */}
-                    {viewingSelf && (
+                    {viewingSelfEffective && (
                         <>
                             <RNBounceable onPress={showSelectExerciseModal} style={styles.add_exercise_btn}>
                                 <Text style={styles.add_exercise_text}>Add Exercises</Text>
@@ -511,27 +523,30 @@ const NewWorkoutModal = ({
                 </Pressable>
             </Modal>
 
-            {/* Group menu (view switch + invite) */}
-            <GroupMenu
-                visible={menuVisible}
-                onClose={closeMenu}
-                participants={participants}
-                viewing={viewing || { uid: viewingSelf ? meUid : (friendUidFromWorkout || "") }}
-                onInvite={() => { closeMenu(); openInviteSheet(); }}
-                onSelectParticipant={(p) => {
-                    const nextUid = String(p?.uid || meUid);
-                    setViewing(nextUid);        // << single source of truth
-                    onViewingChange?.(nextUid === meUid);
-                    closeMenu();
-                }}
-            />
+            {/* Group menu & invite picker — hidden when locked to friend */}
+            {!lockFriend && (
+                <GroupMenu
+                    visible={menuVisible}
+                    onClose={closeMenu}
+                    participants={participants}
+                    viewing={viewing || { uid: viewingSelfEffective ? meUid : (friendUidFromWorkout || "") }}
+                    onInvite={() => { closeMenu(); openInviteSheet(); }}
+                    onSelectParticipant={(p) => {
+                        const nextUid = String(p?.uid || meUid);
+                        setViewing(nextUid);
+                        onViewingChange?.(nextUid === meUid);
+                        closeMenu();
+                    }}
+                />
+            )}
 
-            {/* Invite people picker (bottom sheet; no backdrop) */}
-            <GroupModalBottomSheet
-                groupModalExpandFlag={inviteSheetOpen}
-                closeGroupModal={closeInviteSheet}
-                onInvite={handleInviteSelected}
-            />
+            {!lockFriend && (
+                <GroupModalBottomSheet
+                    groupModalExpandFlag={inviteSheetOpen}
+                    closeGroupModal={closeInviteSheet}
+                    onInvite={handleInviteSelected}
+                />
+            )}
         </View>
     );
 };
