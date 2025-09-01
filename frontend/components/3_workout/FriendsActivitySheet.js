@@ -1,4 +1,3 @@
-// components/3_Workout/FriendsActivitySheet.js
 import React, { memo, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
     View,
@@ -313,6 +312,10 @@ const FriendsActivitySheet = ({
     const viewerOpacity = useRef(new Animated.Value(0)).current;
 
     const openViewer = useCallback((item, pfpUri) => {
+        const widFromItem = String(item?.wid || item?.id || item?.workout?.wid || "");
+        const myActiveWid = String(global?.userData?.currentWorkout?.wid || "");
+        const selfActive = !!widFromItem && widFromItem === myActiveWid;
+
         const createdMs =
             toMillis(item?.startedAt) ??
             toMillis(item?.created) ??
@@ -330,9 +333,17 @@ const FriendsActivitySheet = ({
             templateName: item?.templateName,
         };
 
-        const wk = (item?.workout && typeof item.workout === "object") ? item.workout : fallbackWorkout;
+        // If I'm actively in THIS workout, prefer my live copy so UI is identical to opening from the Workout screen.
+        const wk = selfActive
+            ? (global?.userData?.currentWorkout || fallbackWorkout)
+            : ((item?.workout && typeof item.workout === "object") ? item.workout : fallbackWorkout);
 
-        setSelectedItem({ ...item, workout: wk, friendPfp: pfpUri || null });
+        setSelectedItem({
+            ...item,
+            workout: wk,
+            friendPfp: pfpUri || null,
+            selfActive,
+        });
 
         Animated.parallel([
             Animated.timing(listOpacity, { toValue: 0, duration: 160, useNativeDriver: true }),
@@ -428,7 +439,6 @@ const FriendsActivitySheet = ({
                         </View>
                     ) : (
                         <View style={{ flex: 1 }}>
-                            {/* No artificial header here — NewWorkoutModal provides its own */}
                             <View style={{ flex: 1 }}>
                                 <NewWorkoutModal
                                     timerRef={timerRef}
@@ -441,8 +451,10 @@ const FriendsActivitySheet = ({
                                     onViewingChange={setViewerSelf}
                                     onPressBack={closeViewer}
                                     onCheer={() => { }}
-                                    forceViewingFriend   // ← force read-only friend view
-                                    friendPfp={selectedItem.friendPfp || null}
+                                    /* KEY: only “self” if I’m actively in this workout; otherwise read-only friend view */
+                                    forceViewingFriend={!selectedItem.selfActive}
+                                    /* friend PFP only matters in friend view */
+                                    friendPfp={selectedItem.selfActive ? null : (selectedItem.friendPfp || null)}
                                 />
                             </View>
                         </View>

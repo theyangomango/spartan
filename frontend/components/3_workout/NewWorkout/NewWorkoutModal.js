@@ -1,4 +1,3 @@
-// components/Tracking/NewWorkoutModal.jsx
 import React, { useEffect, useState, useRef, useMemo, useCallback } from "react";
 import {
     StyleSheet,
@@ -16,6 +15,7 @@ import ProgressBanner from "./Tracking/ProgressBanner";
 import ExerciseLog from "./Tracking/ExerciseLog";
 import SelectExerciseModal from "./SelectExercise/SelectExerciseModal";
 import calculate1RM from "../../../helper/calculate1RM";
+import { usePfp } from "../../../helper/usePFPs"; // keep
 
 // Realtime / Firestore
 import {
@@ -49,7 +49,6 @@ const NewWorkoutModal = ({
     updateWorkout,
     finishWorkout,
     timerRef,
-    // showGroupModal, // no longer needed; handled internally
     userWorkoutStats,
     onViewingChange,
     onPressBack,    // for friend view
@@ -97,7 +96,7 @@ const NewWorkoutModal = ({
         menuVisible,
         openMenu,
         closeMenu,
-        overlayPfp,
+        overlayPfp, // not used directly here for friend view
         activeWorkout,
         activeStats,
         friendDoneDerived,
@@ -112,6 +111,20 @@ const NewWorkoutModal = ({
 
     const [selectedUid, setSelectedUid] = useState(meUid);
     const effViewingSelf = forceViewingFriend ? false : selectedUid === meUid;
+
+    // Am I actively in THIS workout right now?
+    const isSelfActiveInThisWid = useMemo(() => {
+        const myWid = String(global?.userData?.currentWorkout?.wid || "");
+        const widProp = String(workout?.wid || "");
+        return !!myWid && myWid === widProp;
+    }, [workout?.wid]);
+
+    const canSwitchParticipants = useMemo(() => {
+        const others = Array.isArray(participants)
+            ? participants.some((p) => p?.uid && p.uid !== meUid)
+            : false;
+        return others;
+    }, [participants, meUid]);
 
     useEffect(() => { onViewingChange?.(effViewingSelf); }, [effViewingSelf, onViewingChange]);
 
@@ -322,9 +335,47 @@ const NewWorkoutModal = ({
         () => (participants || []).find((p) => p?.uid === friendUid) || null,
         [participants, friendUid]
     );
-    const headerOverlayPfp = !effViewingSelf
-        ? (selectedParticipant?.pfp || selectedParticipant?.image || selectedParticipant?.photoURL || friendPfp || "")
-        : overlayPfp;
+
+    /* ---------- SELF PFP (matches your PostHeader usage) ---------- */
+    const selfUidForPfp = String(global?.userData?.uid || meUid || "");
+    const selfPfpVersion = global?.userData?.pfpVersion ?? 0;
+    const selfPfpUri = usePfp(selfUidForPfp, selfPfpVersion);
+
+    /* ---------- FRIEND / SELF CANDIDATES ---------- */
+    const friendCandidatePfp = useMemo(() => {
+        const u =
+            selectedParticipant?.pfp ||
+            selectedParticipant?.photoURL ||
+            selectedParticipant?.image ||
+            friendPfp ||
+            "";
+        return u || null;
+    }, [selectedParticipant?.pfp, selectedParticipant?.photoURL, selectedParticipant?.image, friendPfp]);
+
+    const selfCandidatePfp = useMemo(() => {
+        const u =
+            selfPfpUri ||
+            global?.userData?.pfp ||
+            global?.userData?.photoURL ||
+            global?.userData?.image ||
+            "";
+        return u || null;
+    }, [selfPfpUri, global?.userData?.pfp, global?.userData?.photoURL, global?.userData?.image]);
+
+    // Decide the current "best guess" for this render
+    const computedOverlay = effViewingSelf ? selfCandidatePfp : (friendCandidatePfp || friendPfp || null);
+
+    /* ---------- HARD-LOCK a non-empty header PFP for the session ---------- */
+    // Seed once with the best we have on first render
+    const headerOverlayRef = useRef(
+        computedOverlay || "" // ensures we don't start falsy if we have a value
+    );
+    // Only update the ref when the new candidate is truthy
+    useEffect(() => {
+        if (computedOverlay) {
+            headerOverlayRef.current = computedOverlay;
+        }
+    }, [computedOverlay]);
 
     // ===== Send invites from the picker =====
     const handleInviteSelected = useCallback(async (selectedUsers = []) => {
@@ -372,7 +423,7 @@ const NewWorkoutModal = ({
             <View style={[styles.header, { opacity: overallOpacity }]}>
                 <GroupHeader
                     viewingSelf={effViewingSelf}
-                    overlayPfp={headerOverlayPfp}
+                    overlayPfp={headerOverlayRef.current} // ← stable non-falsy once set
                     onOpenMenu={openMenu}
                     onLongPressInvite={effViewingSelf ? openInviteSheet : undefined}
                     onFinish={openFinishConfirm}
@@ -382,7 +433,9 @@ const NewWorkoutModal = ({
                     timerRef={timerRef}
                     headerStyle={[styles.headerInner]}
                     onBack={onPressBack}
-                    disableGroupPress={!effViewingSelf}
+                    // Only enable group press if I'm actually in this workout (or viewing self)
+                    disableGroupPress={!(effViewingSelf || isSelfActiveInThisWid)}
+                    inActiveGroup={(effViewingSelf || isSelfActiveInThisWid) && canSwitchParticipants}
                 />
             </View>
             <Animated.View style={[styles.headerShadow, { opacity: borderOpacity }]} />

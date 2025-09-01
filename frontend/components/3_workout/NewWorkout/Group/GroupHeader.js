@@ -1,5 +1,5 @@
 // components/Tracking/Group/GroupHeader.jsx
-import React from "react";
+import React, { useEffect, useRef } from "react";
 import { View, Text, StyleSheet, Dimensions, Pressable } from "react-native";
 import RNBounceable from "@freakycoder/react-native-bounceable";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
@@ -9,6 +9,12 @@ import TimerDisplay from "../TimerDisplay";
 const { height: screenHeight } = Dimensions.get("window");
 const scale = screenHeight / 844;
 const scaledSize = (size) => Math.round(size * scale);
+
+// Small helper so "", "  ", null, undefined are treated as no-URI
+const normalizeUri = (u) => {
+    const s = (u ?? "").toString().trim();
+    return s.length ? s : null;
+};
 
 const GroupHeader = ({
     viewingSelf,
@@ -23,14 +29,31 @@ const GroupHeader = ({
     headerStyle,
     onBack,
     disableGroupPress, // optional; default disables when !viewingSelf
+    inActiveGroup = false, // when in a real group with others
 }) => {
     const disableGroup = disableGroupPress ?? !viewingSelf;
 
+    // --- FIX: lock to the last *non-empty* URI to avoid flicker ---
+    const lastGoodPfpRef = useRef(normalizeUri(overlayPfp));
+    const pendingErrorRef = useRef(false); // if image errors, keep last good instead of clearing
+
+    useEffect(() => {
+        const next = normalizeUri(overlayPfp);
+        // Only update if we actually have a non-empty value and we didn't just hit an onError
+        if (next && !pendingErrorRef.current) {
+            lastGoodPfpRef.current = next;
+        }
+        // Reset the error flag if the parent gives us a new non-empty URI
+        if (next) pendingErrorRef.current = false;
+    }, [overlayPfp]);
+
+    const pfpToShow = lastGoodPfpRef.current;
+
     return (
         <View style={headerStyle}>
-            {/* Left: timer (self) or back chevron (viewing) */}
+            {/* Left: timer (self or active group) OR back chevron */}
             <View style={styles.leftWrap}>
-                {viewingSelf ? (
+                {(viewingSelf || inActiveGroup) ? (
                     <RNBounceable style={styles.rest_timer_ctnr} onPress={onAddTime}>
                         <View style={styles.iconWrapper}>
                             <MaterialCommunityIcons name="timer-outline" size={scaledSize(24)} color="#0499FE" />
@@ -48,7 +71,7 @@ const GroupHeader = ({
                 )}
             </View>
 
-            {/* Center: live workout timer — hidden when viewing others (per request) */}
+            {/* Center: live workout timer — hidden when viewing others */}
             {viewingSelf && (
                 <View style={styles.timer_text_ctnr} pointerEvents="none">
                     <TimerDisplay timerRef={timerRef} />
@@ -64,14 +87,20 @@ const GroupHeader = ({
                     style={[styles.pfpBtn, !viewingSelf && styles.pfpFriend, disableGroup && { opacity: 0.9 }]}
                 >
                     <View style={[styles.pfpWrap, !viewingSelf && styles.pfpFriendRing]}>
-                        {overlayPfp ? (
+                        {pfpToShow ? (
                             <FastImage
                                 source={{
-                                    uri: overlayPfp,
+                                    uri: pfpToShow,
                                     priority: FastImage.priority.normal,
                                     cache: FastImage.cacheControl.immutable,
                                 }}
                                 style={styles.pfp}
+                                resizeMode={FastImage.resizeMode.cover}
+                                onError={() => {
+                                    // If an image fails (e.g., token rotation), keep the last good URI
+                                    // and avoid flipping to placeholder for a frame.
+                                    pendingErrorRef.current = true;
+                                }}
                             />
                         ) : (
                             <View style={[styles.pfp, { backgroundColor: "#EEE" }]} />
@@ -84,12 +113,7 @@ const GroupHeader = ({
                         <Text style={styles.finish_btn_text}>Finish</Text>
                     </RNBounceable>
                 ) : (
-                    <RNBounceable
-                        onPress={onCheer}
-                        style={styles.cheer_btn}
-                    // extra-snappy feel without manual animation
-                    // (RNBounceable gives immediate press-in/out scaling)
-                    >
+                    <RNBounceable onPress={onCheer} style={styles.cheer_btn}>
                         <MaterialCommunityIcons name="arm-flex" size={scaledSize(18)} color="#ffffff" />
                         <Text style={styles.cheer_btn_text}>Cheer</Text>
                     </RNBounceable>
@@ -174,12 +198,12 @@ const styles = StyleSheet.create({
         color: "#40D99B",
     },
 
-    // Viewing: sleeker Cheer pill (solid, smaller, snappy)
+    // Viewing: sleeker Cheer pill
     cheer_btn: {
         height: scaledSize(32),
         paddingHorizontal: scaledSize(12),
         borderRadius: scaledSize(999),
-        backgroundColor: "#0EA5E9", // sky-600
+        backgroundColor: "#0EA5E9",
         flexDirection: "row",
         alignItems: "center",
         gap: scaledSize(6),
@@ -191,7 +215,7 @@ const styles = StyleSheet.create({
     },
     cheer_btn_text: {
         fontFamily: "Outfit_700Bold",
-        fontSize: scaledSize(13.5), // slightly smaller
+        fontSize: scaledSize(13.5),
         color: "#ffffff",
         includeFontPadding: false,
     },
