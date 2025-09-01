@@ -42,6 +42,9 @@ const { height: screenHeight } = Dimensions.get("window");
 const scale = screenHeight / 844;
 const scaledSize = (size) => Math.round(size * scale);
 
+// Presence considered "live" if updated within this window
+const LIVE_TTL_MS = 2 * 60 * 1000; // 2 minutes
+
 const NewWorkoutModal = ({
     workout,
     cancelWorkout,
@@ -50,8 +53,8 @@ const NewWorkoutModal = ({
     timerRef,
     userWorkoutStats,
     onViewingChange,
-    onPressBack, // for friend view
-    onCheer, // for friend view
+    onPressBack,    // for friend view
+    onCheer,        // for friend view
     // kept for compatibility with callers, but auto-join now only depends on wid match
     forceViewingFriend = false,
     friendPfp = null,
@@ -97,8 +100,6 @@ const NewWorkoutModal = ({
     const shouldAutoJoin = !!(myActiveWid && cardWid && myActiveWid === cardWid);
 
     // Decide who to look at first:
-    // - If it's the same wid as mine → start by viewing myself (full control UI)
-    // - Otherwise, start by viewing the friend (read-only) if available
     const friendUidFromWorkout = String(workout?.creatorUID || workout?.creatorUid || "");
     const initialViewingUid = shouldAutoJoin
         ? meUid
@@ -129,11 +130,24 @@ const NewWorkoutModal = ({
     // keep caller informed (if they care)
     useEffect(() => { onViewingChange?.(!!viewingSelf); }, [viewingSelf, onViewingChange]);
 
-    const canSwitchParticipants = useMemo(() => {
-        const others = Array.isArray(participants)
-            ? participants.some((p) => p?.uid && String(p.uid) !== meUid)
+    // Only treat it as an *active* group if there is someone else *live* (fresh presence)
+    const inActiveGroup = useMemo(() => {
+        const now = Date.now();
+        return Array.isArray(participants)
+            ? participants.some((p) => {
+                const isOther = p?.uid && String(p.uid) !== meUid;
+                const fresh = Number(p?.updatedAt || 0) > 0 && (now - Number(p.updatedAt)) <= LIVE_TTL_MS;
+                return isOther && fresh;
+            })
             : false;
-        return others;
+    }, [participants, meUid]);
+
+    const canSwitchParticipants = useMemo(() => {
+        const now = Date.now();
+        const othersLive = Array.isArray(participants)
+            ? participants.some((p) => String(p?.uid) !== meUid && Number(p?.updatedAt || 0) > 0 && (now - Number(p.updatedAt)) <= LIVE_TTL_MS)
+            : false;
+        return othersLive;
     }, [participants, meUid]);
 
     useEffect(() => {
@@ -323,12 +337,6 @@ const NewWorkoutModal = ({
         ? selfPfpUri
         : (viewingPfpUriHook || viewing?.image || friendPfp || "");
 
-    // Being “in an active group” = there is at least one participant other than me
-    const inActiveGroup = useMemo(
-        () => Array.isArray(participants) && participants.some((p) => String(p?.uid) !== meUid),
-        [participants, meUid]
-    );
-
     // ===== Send invites from the picker =====
     const handleInviteSelected = useCallback(async (selectedUsers = []) => {
         try {
@@ -385,6 +393,7 @@ const NewWorkoutModal = ({
                     timerRef={timerRef}
                     headerStyle={[styles.headerInner]}
                     onBack={onPressBack}
+                    /* only show "group" affordances if someone else is actually live */
                     disableGroupPress={!(viewingSelf || inActiveGroup)}
                     inActiveGroup={inActiveGroup}
                 />
@@ -519,6 +528,9 @@ const NewWorkoutModal = ({
                 viewing={viewing || { uid: viewingSelf ? meUid : (friendUidFromWorkout || "") }}
                 onInvite={() => { closeMenu(); openInviteSheet(); }}
                 onSelectParticipant={(p) => {
+                    const now = Date.now();
+                    const fresh = Number(p?.updatedAt || 0) > 0 && (now - Number(p.updatedAt)) <= LIVE_TTL_MS;
+                    if (!fresh) return; // ignore stale selections
                     const nextUid = String(p?.uid || meUid);
                     setViewing(nextUid);        // << single source of truth
                     onViewingChange?.(nextUid === meUid);
