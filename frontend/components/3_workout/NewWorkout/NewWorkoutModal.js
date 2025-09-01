@@ -15,7 +15,7 @@ import ProgressBanner from "./Tracking/ProgressBanner";
 import ExerciseLog from "./Tracking/ExerciseLog";
 import SelectExerciseModal from "./SelectExercise/SelectExerciseModal";
 import calculate1RM from "../../../helper/calculate1RM";
-import { usePfp } from "../../../helper/usePFPs"; // keep
+import { usePfp } from "../../../helper/usePFPs";
 
 // Realtime / Firestore
 import {
@@ -53,7 +53,7 @@ const NewWorkoutModal = ({
     onViewingChange,
     onPressBack,    // for friend view
     onCheer,        // for friend view
-    forceViewingFriend = false,
+    forceViewingFriend = false, // true when opened from FriendsActivitySheet
     friendPfp = null,
 }) => {
     const db = getFirestore();
@@ -87,46 +87,55 @@ const NewWorkoutModal = ({
     );
     const [replaceIndex, setReplaceIndex] = useState(null);
 
-    // ===== Group / viewing state =====
+    // ===== Group / viewing state (single source of truth) =====
     const meUid = String(global?.userData?.uid || "");
+
+    // Is this modal opened as a “viewer of a friend card” AND is that card’s wid the same as my active workout wid?
+    const myActiveWid = String(global?.userData?.currentWorkout?.wid || "");
+    const cardWid = String(workout?.wid || "");
+    const selfActiveInThisWid = !!(forceViewingFriend && myActiveWid && cardWid && myActiveWid === cardWid);
+
+    // Decide who to look at first:
+    // - If it's the same wid as mine → start by viewing myself (full control UI)
+    // - Otherwise, start by viewing the friend (read-only)
+    const friendUidFromWorkout = String(workout?.creatorUID || workout?.creatorUid || "");
+    const initialViewingUid = selfActiveInThisWid ? meUid : (friendUidFromWorkout && friendUidFromWorkout !== meUid ? friendUidFromWorkout : meUid);
+
+    // Only auto-join when it's actually MY active wid (prevents “phantom” joining on old/canceled group cards)
+    const shouldAutoJoin = !forceViewingFriend ? true : selfActiveInThisWid;
+
     const {
-        viewing,
-        viewingSelf,
-        participants,
+        viewing,          // { uid, handle, image, pfpVersion, updatedAt } for the currently focused user
+        viewingSelf,      // boolean
+        participants,     // array of participants ({uid,...})
         menuVisible,
         openMenu,
         closeMenu,
-        overlayPfp, // not used directly here for friend view
-        activeWorkout,
-        activeStats,
+        overlayPfp,       // pfp from the currently viewed user's doc (live)
+        activeWorkout,    // currentWorkout of the currently viewed user
+        activeStats,      // stats of the currently viewed user
         friendDoneDerived,
         waitingFriend,
+        setViewing,       // switch focus to another participant
     } = useGroupViewing({
-        wid: workout?.wid,
+        wid: cardWid,
         meUid,
         userImage: global?.userData?.image,
         userHandle: global?.userData?.handle,
-        userWorkoutStats,
+        initViewingUid: initialViewingUid,
+        autoJoin: shouldAutoJoin,
     });
 
-    const [selectedUid, setSelectedUid] = useState(meUid);
-    const effViewingSelf = forceViewingFriend ? false : selectedUid === meUid;
+    // keep caller informed (if they care)
+    useEffect(() => { onViewingChange?.(!!viewingSelf); }, [viewingSelf, onViewingChange]);
 
-    // Am I actively in THIS workout right now?
-    const isSelfActiveInThisWid = useMemo(() => {
-        const myWid = String(global?.userData?.currentWorkout?.wid || "");
-        const widProp = String(workout?.wid || "");
-        return !!myWid && myWid === widProp;
-    }, [workout?.wid]);
-
+    // can switch if there is at least one other participant
     const canSwitchParticipants = useMemo(() => {
         const others = Array.isArray(participants)
-            ? participants.some((p) => p?.uid && p.uid !== meUid)
+            ? participants.some((p) => p?.uid && String(p.uid) !== meUid)
             : false;
         return others;
     }, [participants, meUid]);
-
-    useEffect(() => { onViewingChange?.(effViewingSelf); }, [effViewingSelf, onViewingChange]);
 
     useEffect(() => {
         let t = null;
@@ -136,7 +145,7 @@ const NewWorkoutModal = ({
 
     // Sync toggles from workout data when self
     useEffect(() => {
-        if (!effViewingSelf) return;
+        if (!viewingSelf) return;
         const ex = workout?.exercises || [];
         setIsDoneState((prev) =>
             ex.map((e, i) => {
@@ -145,39 +154,9 @@ const NewWorkoutModal = ({
                 return sets.map((s, si) => (typeof row[si] === "boolean" ? row[si] : !!s?.isDone));
             })
         );
-    }, [workout?.exercises, effViewingSelf]);
+    }, [workout?.exercises, viewingSelf]);
 
-    // Validate selection when group changes
-    useEffect(() => {
-        if (!selectedUid) setSelectedUid(meUid);
-        const list = Array.isArray(participants) ? participants : [];
-        if (!effViewingSelf && list.length) {
-            const exists = list.some((p) => p?.uid === selectedUid);
-            if (!exists) setSelectedUid(meUid);
-        }
-        // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [participants?.length, workout?.wid]);
-
-    // Live friend subscription: selectedUid
-    const friendUid = useMemo(() => {
-        if (effViewingSelf) return null;
-        if (selectedUid && selectedUid !== meUid) return selectedUid;
-        const others = (participants || []).filter((p) => p?.uid && p.uid !== meUid);
-        if (others.length) return others[0].uid;
-        return activeWorkout?.creatorUID || activeWorkout?.creatorUid || null;
-    }, [effViewingSelf, selectedUid, meUid, participants, activeWorkout?.creatorUID, activeWorkout?.creatorUid]);
-
-    const [friendLiveWorkout, setFriendLiveWorkout] = useState(null);
-    useEffect(() => {
-        if (effViewingSelf || !friendUid) return;
-        const unsub = onSnapshot(doc(db, "users", String(friendUid)), (snap) => {
-            const data = snap.data() || {};
-            setFriendLiveWorkout(data.currentWorkout || null);
-        });
-        return () => unsub();
-    }, [db, effViewingSelf, friendUid]);
-
-    const baseWorkout = effViewingSelf ? workout : (friendLiveWorkout || activeWorkout || workout);
+    const baseWorkout = viewingSelf ? workout : (activeWorkout || workout);
 
     const doneForRender = useMemo(() => {
         const src = baseWorkout?.exercises || [];
@@ -209,7 +188,7 @@ const NewWorkoutModal = ({
         setTotalReps(totals.reps);
         setTotalVolume(totals.volume);
         setPersonalBests(totals.PBs);
-        if (effViewingSelf && workout && (
+        if (viewingSelf && workout && (
             workout.reps !== totals.reps ||
             workout.volume !== totals.volume ||
             workout.PBs !== totals.PBs
@@ -217,15 +196,15 @@ const NewWorkoutModal = ({
             updateWorkout({ ...workout, reps: totals.reps, volume: totals.volume, PBs: totals.PBs });
         }
         // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [totals.reps, totals.volume, totals.PBs, effViewingSelf]);
+    }, [totals.reps, totals.volume, totals.PBs, viewingSelf]);
 
-    const showSelectExerciseModal = useCallback(() => { if (effViewingSelf) setSelectExerciseModalVisible(true); }, [effViewingSelf]);
+    const showSelectExerciseModal = useCallback(() => { if (viewingSelf) setSelectExerciseModalVisible(true); }, [viewingSelf]);
     const closeSelectExerciseModal = useCallback(() => { setSelectExerciseModalVisible(false); setReplaceIndex(null); }, []);
 
     const normalizeSet = (s) => ({ weight: Number(s?.weight) || 0, reps: Number(s?.reps) || 0, isDone: !!s?.isDone });
 
     const appendExercises = useCallback((exercises) => {
-        if (!effViewingSelf || !workout) return;
+        if (!viewingSelf || !workout) return;
         const next = {
             ...workout,
             exercises: [
@@ -239,20 +218,20 @@ const NewWorkoutModal = ({
         };
         updateWorkout(next);
         setIsDoneState((prev) => prev.concat(exercises.map(() => [false])));
-    }, [workout, updateWorkout, effViewingSelf]);
+    }, [workout, updateWorkout, viewingSelf]);
 
     const updateSets = useCallback((index, newSets) => {
-        if (!effViewingSelf || !workout) return;
+        if (!viewingSelf || !workout) return;
         const normalized = (newSets || []).map(normalizeSet);
         const updated = (workout.exercises || []).map((ex, i) => (i === index ? { ...ex, sets: normalized } : ex));
         updateWorkout({ ...workout, exercises: updated });
         setIsDoneState((prev) => { const next = prev.map((row) => row.slice()); next[index] = normalized.map((s) => !!s.isDone); return next; });
-    }, [workout, updateWorkout, effViewingSelf]);
+    }, [workout, updateWorkout, viewingSelf]);
 
-    const replaceExercise = useCallback((index) => { if (effViewingSelf) { setReplaceIndex(index); setSelectExerciseModalVisible(true); } }, [effViewingSelf]);
+    const replaceExercise = useCallback((index) => { if (viewingSelf) { setReplaceIndex(index); setSelectExerciseModalVisible(true); } }, [viewingSelf]);
 
     const handleAppendOrReplace = useCallback((picked) => {
-        if (!effViewingSelf || !workout) return;
+        if (!viewingSelf || !workout) return;
         const choice = Array.isArray(picked) ? picked[0] : picked;
         const isReplacing = replaceIndex !== null && replaceIndex >= 0;
 
@@ -271,17 +250,17 @@ const NewWorkoutModal = ({
 
         appendExercises(Array.isArray(picked) ? picked : [picked]);
         setSelectExerciseModalVisible(false);
-    }, [appendExercises, replaceIndex, effViewingSelf, workout, updateWorkout]);
+    }, [appendExercises, replaceIndex, viewingSelf, workout, updateWorkout]);
 
     const deleteExercise = useCallback((index) => {
-        if (!effViewingSelf || !workout) return;
+        if (!viewingSelf || !workout) return;
         const filtered = (workout.exercises || []).filter((_, i) => i !== index);
         updateWorkout({ ...workout, exercises: filtered });
         setIsDoneState((prev) => prev.filter((_, i) => i !== index));
-    }, [workout, updateWorkout, effViewingSelf]);
+    }, [workout, updateWorkout, viewingSelf]);
 
     const toggleIsDone = useCallback((exerciseIndex, setIndex) => {
-        if (!effViewingSelf || !workout) return;
+        if (!viewingSelf || !workout) return;
         const curr = workout.exercises?.[exerciseIndex]?.sets?.[setIndex];
         if (!curr) return;
         if (!curr.isDone && (isNaN(curr.weight) || isNaN(curr.reps))) return;
@@ -300,10 +279,10 @@ const NewWorkoutModal = ({
             return { ...ex, sets };
         });
         updateWorkout({ ...workout, exercises: updated });
-    }, [isDoneState, workout, updateWorkout, effViewingSelf]);
+    }, [isDoneState, workout, updateWorkout, viewingSelf]);
 
     const confirmCancelWorkout = () => {
-        if (!effViewingSelf) return;
+        if (!viewingSelf) return;
         if (!workout || (workout.exercises || []).length === 0) {
             setDeleteConfirmModalVisible(false);
             cancelWorkout();
@@ -313,7 +292,7 @@ const NewWorkoutModal = ({
     };
     const handleDeleteWorkout = useCallback(() => { setDeleteConfirmModalVisible(false); cancelWorkout(); }, [cancelWorkout]);
 
-    const openFinishConfirm = useCallback(() => { if (effViewingSelf) setFinishConfirmModalVisible(true); }, [effViewingSelf]);
+    const openFinishConfirm = useCallback(() => { if (viewingSelf) setFinishConfirmModalVisible(true); }, [viewingSelf]);
 
     const handleFinishWorkout = useCallback(() => {
         if (isFinishing) return;
@@ -329,53 +308,27 @@ const NewWorkoutModal = ({
     const borderOpacity = scrollY.interpolate({ inputRange: [0, 98], outputRange: [0, 1], extrapolate: "clamp" });
     const overallOpacity = 1;
 
-    const friendWaiting = !effViewingSelf && waitingFriend && !(baseWorkout?.exercises?.length);
+    const friendWaiting = !viewingSelf && waitingFriend && !(baseWorkout?.exercises?.length);
 
-    const selectedParticipant = useMemo(
-        () => (participants || []).find((p) => p?.uid === friendUid) || null,
-        [participants, friendUid]
-    );
-
-    /* ---------- SELF PFP (matches your PostHeader usage) ---------- */
-    const selfUidForPfp = String(global?.userData?.uid || meUid || "");
+    // ===== Robust PFPs =====
     const selfPfpVersion = global?.userData?.pfpVersion ?? 0;
-    const selfPfpUri = usePfp(selfUidForPfp, selfPfpVersion);
+    const selfPfpUri = usePfp(meUid, selfPfpVersion) ||
+        global?.userData?.pfp ||
+        global?.userData?.photoURL ||
+        global?.userData?.image ||
+        "";
 
-    /* ---------- FRIEND / SELF CANDIDATES ---------- */
-    const friendCandidatePfp = useMemo(() => {
-        const u =
-            selectedParticipant?.pfp ||
-            selectedParticipant?.photoURL ||
-            selectedParticipant?.image ||
-            friendPfp ||
-            "";
-        return u || null;
-    }, [selectedParticipant?.pfp, selectedParticipant?.photoURL, selectedParticipant?.image, friendPfp]);
+    // Use hook for whoever is currently "viewing"
+    const viewingPfpUriHook = usePfp(String(viewing?.uid || ""), viewing?.pfpVersion || 0);
+    const headerOverlayPfp = viewingSelf
+        ? selfPfpUri
+        : (viewingPfpUriHook || viewing?.image || friendPfp || "");
 
-    const selfCandidatePfp = useMemo(() => {
-        const u =
-            selfPfpUri ||
-            global?.userData?.pfp ||
-            global?.userData?.photoURL ||
-            global?.userData?.image ||
-            "";
-        return u || null;
-    }, [selfPfpUri, global?.userData?.pfp, global?.userData?.photoURL, global?.userData?.image]);
-
-    // Decide the current "best guess" for this render
-    const computedOverlay = effViewingSelf ? selfCandidatePfp : (friendCandidatePfp || friendPfp || null);
-
-    /* ---------- HARD-LOCK a non-empty header PFP for the session ---------- */
-    // Seed once with the best we have on first render
-    const headerOverlayRef = useRef(
-        computedOverlay || "" // ensures we don't start falsy if we have a value
+    // Being “in an active group” = there is at least one participant other than me
+    const inActiveGroup = useMemo(
+        () => Array.isArray(participants) && participants.some((p) => String(p?.uid) !== meUid),
+        [participants, meUid]
     );
-    // Only update the ref when the new candidate is truthy
-    useEffect(() => {
-        if (computedOverlay) {
-            headerOverlayRef.current = computedOverlay;
-        }
-    }, [computedOverlay]);
 
     // ===== Send invites from the picker =====
     const handleInviteSelected = useCallback(async (selectedUsers = []) => {
@@ -422,10 +375,10 @@ const NewWorkoutModal = ({
             {/* Header */}
             <View style={[styles.header, { opacity: overallOpacity }]}>
                 <GroupHeader
-                    viewingSelf={effViewingSelf}
-                    overlayPfp={headerOverlayRef.current} // ← stable non-falsy once set
+                    viewingSelf={viewingSelf}
+                    overlayPfp={headerOverlayPfp}
                     onOpenMenu={openMenu}
-                    onLongPressInvite={effViewingSelf ? openInviteSheet : undefined}
+                    onLongPressInvite={viewingSelf ? openInviteSheet : undefined}
                     onFinish={openFinishConfirm}
                     onCheer={onCheer}
                     countdown={countdown}
@@ -433,9 +386,8 @@ const NewWorkoutModal = ({
                     timerRef={timerRef}
                     headerStyle={[styles.headerInner]}
                     onBack={onPressBack}
-                    // Only enable group press if I'm actually in this workout (or viewing self)
-                    disableGroupPress={!(effViewingSelf || isSelfActiveInThisWid)}
-                    inActiveGroup={(effViewingSelf || isSelfActiveInThisWid) && canSwitchParticipants}
+                    disableGroupPress={!(viewingSelf || inActiveGroup)}
+                    inActiveGroup={inActiveGroup}
                 />
             </View>
             <Animated.View style={[styles.headerShadow, { opacity: borderOpacity }]} />
@@ -468,14 +420,14 @@ const NewWorkoutModal = ({
                             isDoneState={(doneForRender && doneForRender[exerciseIndex]) || []}
                             toggleIsDone={toggleIsDone}
                             userWorkoutStats={activeStats}
-                            readOnlyInputs={!effViewingSelf}
-                            hideAddSet={!effViewingSelf}
-                            disableRowActions={!effViewingSelf}
+                            readOnlyInputs={!viewingSelf}
+                            hideAddSet={!viewingSelf}
+                            disableRowActions={!viewingSelf}
                         />
                     ))}
 
                     {/* Editing actions only when viewing self */}
-                    {effViewingSelf && (
+                    {viewingSelf && (
                         <>
                             <RNBounceable onPress={showSelectExerciseModal} style={styles.add_exercise_btn}>
                                 <Text style={styles.add_exercise_text}>Add Exercises</Text>
@@ -565,11 +517,11 @@ const NewWorkoutModal = ({
                 visible={menuVisible}
                 onClose={closeMenu}
                 participants={participants}
-                viewing={{ uid: effViewingSelf ? meUid : (friendUid || "") }}
+                viewing={viewing || { uid: viewingSelf ? meUid : (friendUidFromWorkout || "") }}
                 onInvite={() => { closeMenu(); openInviteSheet(); }}
                 onSelectParticipant={(p) => {
-                    const nextUid = p?.uid || meUid;
-                    setSelectedUid(nextUid);
+                    const nextUid = String(p?.uid || meUid);
+                    setViewing(nextUid);        // << single source of truth
                     onViewingChange?.(nextUid === meUid);
                     closeMenu();
                 }}

@@ -1,71 +1,201 @@
-import React from 'react';
-import { StyleSheet, View, Text, Dimensions } from "react-native";
-import { SimpleLineIcons, FontAwesome5 } from '@expo/vector-icons'
-import RNBounceable from "@freakycoder/react-native-bounceable";
+// components/3_Workout/InviteBanner.jsx
+import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { Animated, Pressable, StyleSheet, Text, View } from "react-native";
+import { collection, query, where, onSnapshot, doc, serverTimestamp } from "firebase/firestore";
+import { updateDoc as fsUpdateDoc, getDoc, arrayUnion } from "firebase/firestore";
+import { db } from "../../../firebase.config";
+import { usePfp } from "../../helper/usePFPs";
+import FastImage from "react-native-fast-image";
 
-const { width, height } = Dimensions.get('screen');
+const s = (n) => n; // simple pass-through; your parent coordinates already use scale
 
-// Function to determine dynamic styles based on screen size
-const getDynamicStyles = () => {
-    if (width >= 430 && height >= 932) { // iPhone 14 Pro Max and similar
-        return {
-            fontSize: 15,
-            paddingHorizontal: 30,
-            iconSize: 22,
-            height: 46,
-        };
-    } else if (width >= 390 && height >= 844) { // iPhone 13/14 and similar
-        return {
-            fontSize: 14,
-            paddingHorizontal: 28,
-            iconSize: 21,
-            height: 44,
-        };
-    } else if (width >= 375 && height >= 812) { // iPhone X/XS/11 Pro and similar
-        return {
-            fontSize: 13.5,
-            paddingHorizontal: 26,
-            iconSize: 21,
-            height: 43,
-        };
-    } else { // Smaller iPhone models (like iPhone SE)
-        return {
-            fontSize: 13,
-            paddingHorizontal: 24,
-            iconSize: 20.5,
-            height: 42,
-        };
-    }
-};
+export default function InviteBanner({ uid, headerHeight = 0, onJoin }) {
+    const [invites, setInvites] = useState([]);
+    const [currentInvite, setCurrentInvite] = useState(null);
+    const bannerY = useRef(new Animated.Value(0)).current;
+    const [bannerHeight, setBannerHeight] = useState(0);
 
-const dynamicStyles = getDynamicStyles();
+    useEffect(() => {
+        const me = String(uid || global?.userData?.uid || "");
+        if (!me) return;
 
-export default function LogWorkoutButton({ joinWorkout }) {
+        const qInv = query(
+            collection(db, "workoutInvites"),
+            where("toUid", "==", me),
+            where("status", "==", "pending")
+        );
+
+        const unsub = onSnapshot(qInv, (snap) => {
+            const list = snap.docs.map((d) => ({ id: d.id, ...d.data() }));
+            list.sort((a, b) => {
+                const ta = a?.createdAt?.seconds || 0;
+                const tb = b?.createdAt?.seconds || 0;
+                return tb - ta;
+            });
+            setInvites(list);
+        });
+
+        return () => unsub();
+    }, [uid]);
+
+    useEffect(() => {
+        setCurrentInvite(invites?.[0] || null);
+    }, [invites]);
+
+    useEffect(() => {
+        const hidden = -Math.max((bannerHeight || 80) + 12, 92);
+        Animated.spring(bannerY, {
+            toValue: currentInvite ? 0 : hidden,
+            useNativeDriver: true,
+            friction: 8,
+            tension: 90,
+        }).start();
+    }, [currentInvite, bannerHeight, bannerY]);
+
+    const handleInviteLayout = useCallback((e) => {
+        const h = e?.nativeEvent?.layout?.height || 0;
+        if (h && h !== bannerHeight) setBannerHeight(h);
+    }, [bannerHeight]);
+
+    const inviterPfpUri =
+        usePfp(currentInvite?.fromUid || null, currentInvite?.fromPfpVersion || 0) ||
+        currentInvite?.fromPfp ||
+        "";
+
+    const acceptInvite = useCallback(async () => {
+        if (!currentInvite) return;
+        try {
+            const me = String(uid || global?.userData?.uid || "");
+            const wid = String(currentInvite?.wid || "");
+            if (!me || !wid) return;
+
+            await fsUpdateDoc(doc(db, "workouts", wid), {
+                members: arrayUnion(me),
+                updatedAt: serverTimestamp(),
+                active: true,
+            });
+            await fsUpdateDoc(doc(db, "workoutInvites", currentInvite.id), {
+                status: "accepted",
+                actedAt: serverTimestamp(),
+            });
+
+            // optional: fetch workout doc to pass a seed up (kept same as earlier behavior)
+            let seed = null;
+            try {
+                const snap = await getDoc(doc(db, "workouts", wid));
+                seed = snap.exists() ? snap.data() : null;
+            } catch { }
+
+            onJoin?.(wid, seed);
+
+            // drop this invite locally
+            setInvites((prev) => prev.filter((x) => x.id !== currentInvite.id));
+        } catch (e) {
+            console.log("Accept invite error", e);
+        }
+    }, [currentInvite, uid, onJoin]);
+
+    const declineInvite = useCallback(async () => {
+        if (!currentInvite) return;
+        try {
+            await fsUpdateDoc(doc(db, "workoutInvites", currentInvite.id), {
+                status: "declined",
+                actedAt: serverTimestamp(),
+            });
+            setInvites((prev) => prev.filter((x) => x.id !== currentInvite.id));
+        } catch (e) {
+            console.log("Decline invite error", e);
+            setInvites((prev) => prev.filter((x) => x.id !== currentInvite.id));
+        }
+    }, [currentInvite]);
+
     return (
-        <RNBounceable style={[styles.main_ctnr, { height: 43, paddingHorizontal: dynamicStyles.paddingHorizontal }]}>
-            <Text style={[styles.text, { fontSize: 15 }]}>Start Cardio Workout</Text>
-            <FontAwesome5 name="running" size={dynamicStyles.iconSize} color={'#fff'} style={{ paddingRight: 4.5 }} />
-        </RNBounceable>
-    )
+        <Animated.View
+            style={[
+                styles.inviteBannerWrap,
+                { top: headerHeight + 6, transform: [{ translateY: bannerY }] },
+            ]}
+            pointerEvents={currentInvite ? "auto" : "none"}
+            onLayout={handleInviteLayout}
+        >
+            {currentInvite && (
+                <View style={styles.inviteCard}>
+                    <View style={styles.inviteLeft}>
+                        <View style={styles.invitePfpWrap}>
+                            {inviterPfpUri ? (
+                                <FastImage
+                                    source={{
+                                        uri: inviterPfpUri,
+                                        priority: FastImage.priority.normal,
+                                        cache: FastImage.cacheControl.immutable,
+                                    }}
+                                    style={styles.invitePfp}
+                                />
+                            ) : (
+                                <View style={[styles.invitePfp, { backgroundColor: "#E5E7EB" }]} />
+                            )}
+                        </View>
+                        <View style={{ flex: 1 }}>
+                            <Text style={styles.inviteTitle}>
+                                {currentInvite.fromHandle ? `@${currentInvite.fromHandle} invited you` : "You’ve been invited"}
+                            </Text>
+                            <Text style={styles.inviteSub}>Join their workout?</Text>
+                        </View>
+                    </View>
+                    <View style={styles.inviteActions}>
+                        <Pressable onPress={acceptInvite} style={styles.inviteAccept} hitSlop={8}>
+                            <Text style={styles.inviteAcceptText}>Accept</Text>
+                        </Pressable>
+                        <Pressable onPress={declineInvite} hitSlop={8} style={styles.inviteDismiss}>
+                            <Text style={styles.inviteDismissText}>Dismiss</Text>
+                        </Pressable>
+                    </View>
+                </View>
+            )}
+        </Animated.View>
+    );
 }
 
 const styles = StyleSheet.create({
-    main_ctnr: {
-        opacity: 0.5,
-        // backgroundColor: '#50C98E',
-        backgroundColor: '#34a48aec',
-        marginVertical: 3,
-        borderRadius: 18,
-        alignItems: 'center',
-        flexDirection: 'row',
-        justifyContent: 'space-between',
-        marginLeft: 18,
-        marginRight: 18,
+    inviteBannerWrap: {
+        position: "absolute",
+        left: 0,
+        right: 0,
+        zIndex: 30,
+        alignItems: "center",
+        paddingTop: 0,
     },
-    text: {
-        fontFamily: 'Nunito_800ExtraBold',
-        color: 'white',
-        letterSpacing: 0.25,
-        color: 'white',
+    inviteCard: {
+        width: "92%",
+        borderRadius: 14,
+        backgroundColor: "#F7FAFF",
+        borderWidth: 1,
+        borderColor: "#E5EEF9",
+        paddingVertical: 10,
+        paddingHorizontal: 12,
+        flexDirection: "row",
+        alignItems: "center",
+        justifyContent: "space-between",
+        shadowColor: "#000",
+        shadowOpacity: 0.08,
+        shadowRadius: 10,
+        shadowOffset: { width: 0, height: 6 },
+        elevation: 3,
     },
+    inviteLeft: { flexDirection: "row", alignItems: "center", flex: 1, marginRight: 8 },
+    invitePfpWrap: {
+        width: 36, height: 36, borderRadius: 18, overflow: "hidden",
+        marginRight: 10, backgroundColor: "#fff", borderWidth: 1, borderColor: "#fff",
+    },
+    invitePfp: { width: "100%", height: "100%" },
+    inviteTitle: { fontFamily: "Outfit_700Bold", fontSize: 14.5, color: "#0F172A" },
+    inviteSub: { fontFamily: "Outfit_500Medium", fontSize: 12.5, color: "#64748B", marginTop: 2 },
+    inviteActions: { flexDirection: "row", alignItems: "center" },
+    inviteAccept: {
+        height: 30, paddingHorizontal: 14, borderRadius: 999, backgroundColor: "#10B981",
+        alignItems: "center", justifyContent: "center", marginRight: 8,
+    },
+    inviteAcceptText: { color: "#fff", fontFamily: "Outfit_700Bold", fontSize: 13 },
+    inviteDismiss: { paddingHorizontal: 6, paddingVertical: 4 },
+    inviteDismissText: { color: "#64748B", fontFamily: "Outfit_600SemiBold", fontSize: 12.5 },
 });

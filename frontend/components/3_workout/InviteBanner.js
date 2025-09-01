@@ -1,49 +1,92 @@
+// components/3_Workout/ui/InviteBanner.js
 import React from "react";
 import { View, Text, StyleSheet, Pressable } from "react-native";
-import { Ionicons } from "@expo/vector-icons";
+import FastImage from "react-native-fast-image";
 
-export default function InviteBanner({ invite, onAccept, onDecline }) {
+export default function InviteBanner({ invite, pfpUri, onAccept, onDecline }) {
     return (
-        <View style={styles.wrap}>
-            <Ionicons name="hand-left" size={18} color="#2A65D9" style={{ marginRight: 8 }} />
-            <View style={{ flex: 1 }}>
-                <Text style={styles.title} numberOfLines={1}>Workout invite</Text>
-                <Text style={styles.sub} numberOfLines={1}>
-                    from @{invite.fromHandle || invite.fromUid?.slice(0, 6)}
-                </Text>
+        <View style={styles.inviteCard}>
+            <View style={styles.inviteLeft}>
+                <View style={styles.invitePfpWrap}>
+                    {pfpUri ? (
+                        <FastImage
+                            source={{
+                                uri: pfpUri,
+                                priority: FastImage.priority.normal,
+                                cache: FastImage.cacheControl.immutable,
+                            }}
+                            style={styles.invitePfp}
+                        />
+                    ) : (
+                        <View style={[styles.invitePfp, { backgroundColor: "#E5E7EB" }]} />
+                    )}
+                </View>
+
+                <View style={{ flex: 1 }}>
+                    <Text style={styles.inviteTitle}>
+                        {invite?.fromHandle ? `@${invite.fromHandle} invited you` : "You’ve been invited"}
+                    </Text>
+                    <Text style={styles.inviteSub}>Join their workout?</Text>
+                </View>
             </View>
-            <Pressable style={[styles.btn, styles.accept]} onPress={onAccept}>
-                <Text style={styles.btnText}>Accept</Text>
-            </Pressable>
-            <Pressable style={[styles.btn, styles.decline]} onPress={onDecline}>
-                <Text style={[styles.btnText, { color: "#A33" }]}>Decline</Text>
-            </Pressable>
+
+            <View style={styles.inviteActions}>
+                <Pressable onPress={onAccept} style={styles.inviteAccept} hitSlop={8}>
+                    <Text style={styles.inviteAcceptText}>Accept</Text>
+                </Pressable>
+                <Pressable onPress={onDecline} hitSlop={8} style={styles.inviteDismiss}>
+                    <Text style={styles.inviteDismissText}>Dismiss</Text>
+                </Pressable>
+            </View>
         </View>
     );
 }
 
 const styles = StyleSheet.create({
-    wrap: {
-        marginHorizontal: 20,
-        marginBottom: 8,
-        paddingHorizontal: 12,
+    // EXACT copy from the 900-line screen
+    inviteCard: {
+        width: "92%",
+        borderRadius: 14,
+        backgroundColor: "#F7FAFF",
+        borderWidth: 1,
+        borderColor: "#E5EEF9",
         paddingVertical: 10,
-        borderRadius: 12,
-        backgroundColor: "#F1F6FF",
-        borderColor: "#DBE9FF",
-        borderWidth: StyleSheet.hairlineWidth,
+        paddingHorizontal: 12,
         flexDirection: "row",
         alignItems: "center",
+        justifyContent: "space-between",
+        shadowColor: "#000",
+        shadowOpacity: 0.08,
+        shadowRadius: 10,
+        shadowOffset: { width: 0, height: 6 },
+        elevation: 3,
     },
-    title: { fontFamily: "Nunito_800ExtraBold", color: "#111", fontSize: 14, includeFontPadding: false },
-    sub: { fontFamily: "Nunito_600SemiBold", color: "#47639F", fontSize: 12 },
-    btn: {
-        paddingHorizontal: 12,
-        paddingVertical: 8,
-        borderRadius: 10,
-        marginLeft: 8,
+    inviteLeft: { flexDirection: "row", alignItems: "center", flex: 1, marginRight: 8 },
+    invitePfpWrap: {
+        width: 36,
+        height: 36,
+        borderRadius: 18,
+        overflow: "hidden",
+        marginRight: 10,
+        backgroundColor: "#fff",
+        borderWidth: 1,
+        borderColor: "#fff",
     },
-    accept: { backgroundColor: "#59AAEE" },
-    decline: { backgroundColor: "#F9ECEC" },
-    btnText: { fontFamily: "Nunito_800ExtraBold", color: "#fff", fontSize: 12.5 },
+    invitePfp: { width: "100%", height: "100%" },
+    inviteTitle: { fontFamily: "Outfit_700Bold", fontSize: 14.5, color: "#0F172A" },
+    inviteSub: { fontFamily: "Outfit_500Medium", fontSize: 12.5, color: "#64748B", marginTop: 2 },
+
+    inviteActions: { flexDirection: "row", alignItems: "center" },
+    inviteAccept: {
+        height: 30,
+        paddingHorizontal: 14,
+        borderRadius: 999,
+        backgroundColor: "#10B981",
+        alignItems: "center",
+        justifyContent: "center",
+        marginRight: 8,
+    },
+    inviteAcceptText: { color: "#fff", fontFamily: "Outfit_700Bold", fontSize: 13 },
+    inviteDismiss: { paddingHorizontal: 6, paddingVertical: 4 },
+    inviteDismissText: { color: "#64748B", fontFamily: "Outfit_600SemiBold", fontSize: 12.5 },
 });
