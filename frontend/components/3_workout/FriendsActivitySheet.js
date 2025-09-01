@@ -173,12 +173,23 @@ const FriendPanel = memo(({ item, now, onSelect }) => {
         if (started) liveElapsed = Math.max(0, Math.round((now - started) / 1000));
     }
 
-    const durationSec = isLive ? toSec(liveElapsed) : Math.max(0, Math.round(Number(item?.duration || 0) * 60));
-    const volume = item?.volume ?? 0;
+    const durationSec = isLive
+        ? toSec(liveElapsed)
+        : Math.max(0, Math.round(Number(item?.duration || 0) * 60));
+
+    const volume = Number(item?.volume ?? 0);
+    const reps = Number(item?.reps ?? item?.totalReps ?? 0);
     const pbs = Number(item?.PBs ?? item?.pbs ?? 0);
 
     const cachedPfp = usePfp(item?.uid);
-    const pfpUri = cachedPfp || item?.pfp || item?.pfpUrl || item?.photoURL || item?.photo || item?.avatar;
+    const pfpUri =
+        cachedPfp ||
+        item?.pfp ||
+        item?.pfpUrl ||
+        item?.photoURL ||
+        item?.photo ||
+        item?.avatar;
+
     const when = dateLabel(bestTimestamp(item));
 
     return (
@@ -203,12 +214,20 @@ const FriendPanel = memo(({ item, now, onSelect }) => {
                 </View>
 
                 <View style={styles.rightAccessories}>
-                    {isLive && (
+                    {/* Live badge OR (completed) PR pill */}
+                    {isLive ? (
                         <View style={styles.livePill}>
                             <View style={styles.liveDot} />
                             <Clock color={COLORS.text} size={s(14)} variant="Bold" />
                             <Text style={styles.liveText}>{formatTimer(durationSec)}</Text>
                         </View>
+                    ) : (
+                        pbs > 0 && (
+                            <View style={styles.prPill}>
+                                <FontAwesome6 name="trophy" size={s(11)} color="#6B5B00" />
+                                <Text style={styles.prText}>{pbs} PR{pbs === 1 ? "" : "s"}</Text>
+                            </View>
+                        )
                     )}
                     <MaterialCommunityIcons name="chevron-right" size={s(22)} color="rgba(15,23,42,0.45)" />
                 </View>
@@ -216,6 +235,7 @@ const FriendPanel = memo(({ item, now, onSelect }) => {
 
             <View style={styles.divider} />
 
+            {/* Stat cards: Duration / Volume / Reps */}
             <View style={styles.statsRow}>
                 <View style={styles.statCard}>
                     <View style={styles.statIconWrap}>
@@ -235,15 +255,16 @@ const FriendPanel = memo(({ item, now, onSelect }) => {
 
                 <View style={styles.statCard}>
                     <View style={styles.statIconWrap}>
-                        <FontAwesome6 name="trophy" size={s(11)} color={COLORS.text} />
+                        <MaterialCommunityIcons name="counter" size={s(13)} color={COLORS.text} />
                     </View>
-                    <Text style={styles.statLabel}>PBs</Text>
-                    <Text style={styles.statValue}>{formatNumber(pbs)}</Text>
+                    <Text style={styles.statLabel}>Reps</Text>
+                    <Text style={styles.statValue}>{formatNumber(reps)}</Text>
                 </View>
             </View>
         </RNBounceable>
     );
 });
+
 
 /* ---------------- sheet ---------------- */
 const FriendsActivitySheet = ({
@@ -557,6 +578,24 @@ const styles = StyleSheet.create({
 
     emptyWrap: { paddingVertical: s(24), alignItems: "center" },
     emptyText: { fontFamily: "Outfit_600SemiBold", color: "rgba(15,23,42,0.5)", fontSize: s(12) },
+
+    prPill: {
+        flexDirection: "row",
+        alignItems: "center",
+        gap: s(6),
+        backgroundColor: "rgba(250, 204, 21, 0.18)", // faint yellow
+        borderWidth: StyleSheet.hairlineWidth,
+        borderColor: "rgba(250, 204, 21, 0.45)",
+        paddingVertical: s(4.5),
+        paddingHorizontal: s(8),
+        borderRadius: s(999),
+    },
+    prText: {
+        fontFamily: "Outfit_700Bold",
+        fontSize: s(11.5),
+        color: "#6B5B00", // deep yellow-brown for contrast
+    },
+
 });
 
 export default memo(FriendsActivitySheet);
