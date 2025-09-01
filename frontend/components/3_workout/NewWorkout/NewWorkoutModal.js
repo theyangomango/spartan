@@ -1,4 +1,4 @@
-// components/3_Workout/NewWorkout/NewWorkoutModal.jsx
+// components/3_Workout/NewWorkout/NewWorkoutModal
 import React, { useEffect, useState, useRef, useMemo, useCallback } from "react";
 import {
     StyleSheet,
@@ -6,29 +6,22 @@ import {
     Modal,
     Text,
     Animated,
-    Dimensions,
     Pressable,
     InteractionManager,
+    LayoutAnimation,
+    Platform,
+    UIManager,
 } from "react-native";
 import RNBounceable from "@freakycoder/react-native-bounceable";
 import { Weight } from "iconsax-react-native";
 import ProgressBanner from "./Tracking/ProgressBanner";
 import ExerciseLog from "./Tracking/ExerciseLog";
 import SelectExerciseModal from "./SelectExercise/SelectExerciseModal";
-import calculate1RM from "../../../helper/calculate1RM";
 import { usePfp } from "../../../helper/usePFPs";
+import { ss as scaledSize } from "../../../utils/scale";
 
 // Realtime / Firestore
-import {
-    getFirestore,
-    doc,
-    onSnapshot,
-    setDoc,
-    serverTimestamp,
-    arrayUnion,
-    addDoc,
-    collection,
-} from "firebase/firestore";
+import { getFirestore, doc, setDoc, serverTimestamp, arrayUnion, addDoc, collection } from "firebase/firestore";
 
 // Group bits
 import { useGroupViewing } from "./Group/useGroupViewing";
@@ -38,10 +31,9 @@ import GroupMenu from "./Group/GroupMenu";
 // Invite picker (bottom sheet)
 import GroupModalBottomSheet from "./Group/GroupModalBottomSheet";
 import RestTimerModal from "./RestTimerModal";
-
-const { height: screenHeight } = Dimensions.get("window");
-const scale = screenHeight / 844;
-const scaledSize = (size) => Math.round(size * scale);
+import useRestTimer from "./hooks/useRestTimer";
+import useWorkoutEditing from "./hooks/useWorkoutEditing";
+import useWorkoutTotals from "./hooks/useWorkoutTotals";
 
 const NewWorkoutModal = ({
     workout,
@@ -57,18 +49,27 @@ const NewWorkoutModal = ({
     forceViewingFriend = false,
     friendPfp = null,
 }) => {
+    // Enable LayoutAnimation on Android
+    if (Platform.OS === "android" && UIManager.setLayoutAnimationEnabledExperimental) {
+        try { UIManager.setLayoutAnimationEnabledExperimental(true); } catch {}
+    }
     const db = getFirestore();
 
     const [selectExerciseModalVisible, setSelectExerciseModalVisible] = useState(false);
     const [deleteConfirmModalVisible, setDeleteConfirmModalVisible] = useState(false);
     const [finishConfirmModalVisible, setFinishConfirmModalVisible] = useState(false);
     const [isFinishing, setIsFinishing] = useState(false);
-    const [countdown, setCountdown] = useState(0);
-
-    const [restModalVisible, setRestModalVisible] = useState(false);
-    const [restModalKey, setRestModalKey] = useState(0);
-    const openRestModal = useCallback(() => { setRestModalKey((k) => k + 1); setRestModalVisible(true); }, []);
-    const closeRestModal = useCallback(() => setRestModalVisible(false), []);
+    const {
+        restModalVisible,
+        restModalKey,
+        countdown,
+        openRestModal,
+        closeRestModal,
+        startCountdown,
+        addCountdown,
+        resetCountdown,
+        setCountdown,
+    } = useRestTimer();
 
     // ---- Invite picker (BottomSheet) ----
     const [inviteSheetOpen, setInviteSheetOpen] = useState(false);
@@ -78,15 +79,7 @@ const NewWorkoutModal = ({
 
     const scrollY = useRef(new Animated.Value(0)).current;
 
-    const [totalReps, setTotalReps] = useState(0);
-    const [totalVolume, setTotalVolume] = useState(0);
-    const [personalBests, setPersonalBests] = useState(0);
-
-    // Local UI toggle state but truth lives on set.isDone
-    const [isDoneState, setIsDoneState] = useState(
-        () => (workout?.exercises || []).map((ex) => (ex.sets || []).map((s) => !!s?.isDone))
-    );
-    const [replaceIndex, setReplaceIndex] = useState(null);
+    // Editing helpers/state (initialized after viewingSelfEffective is known)
 
     // ===== Group / viewing state — with friend-lock =====
     const meUid = String(global?.userData?.uid || "");
@@ -118,10 +111,8 @@ const NewWorkoutModal = ({
         menuVisible,
         openMenu,
         closeMenu,
-        overlayPfp,
         activeWorkout,
         activeStats,
-        friendDoneDerived,
         waitingFriend,
         setViewing,
     } = useGroupViewing({
@@ -131,113 +122,51 @@ const NewWorkoutModal = ({
         userHandle: global?.userData?.handle,
         initViewingUid: initialViewingUid,
         autoJoin: shouldAutoJoin,
+        lockToViewingUid: lockFriend,
+        suppressSelfStream: true,
     });
 
     // Effective flags/content when locked
     const viewingSelfEffective = lockFriend ? false : viewingSelf;
 
+    const {
+        replaceIndex,
+        setReplaceIndex,
+        appendExercises,
+        updateSets,
+        deleteExercise,
+        toggleIsDone,
+        normalizeSet,
+        makeBlankSetsLike,
+    } = useWorkoutEditing({ workout, updateWorkout, viewingSelf: viewingSelfEffective });
+
     // keep caller informed (if they care)
     useEffect(() => { onViewingChange?.(!!viewingSelfEffective); }, [viewingSelfEffective, onViewingChange]);
 
-    const canSwitchParticipants = useMemo(() => {
-        const others = Array.isArray(participants)
-            ? participants.some((p) => p?.uid && String(p.uid) !== meUid)
-            : false;
-        return others;
-    }, [participants, meUid]);
+    // derived: whether there are others; currently unused but keep pattern
 
-    useEffect(() => {
-        let t = null;
-        if (countdown > 0) t = setInterval(() => setCountdown((s) => Math.max(0, s - 1)), 1000);
-        return () => t && clearInterval(t);
-    }, [countdown]);
+    // no-op
 
-    // Sync toggles from workout data when self
-    useEffect(() => {
-        if (!viewingSelfEffective) return;
-        const ex = workout?.exercises || [];
-        setIsDoneState((prev) =>
-            ex.map((e, i) => {
-                const sets = e.sets || [];
-                const row = prev[i] || [];
-                return sets.map((s, si) => (typeof row[si] === "boolean" ? row[si] : !!s?.isDone));
-            })
-        );
-    }, [workout?.exercises, viewingSelfEffective]);
+    // Recreate editing hook with correct viewingSelf binding
+    // Note: We re-bind by calling the hook once (above) and only using its functions; viewingSelf gates inside each method
 
-    const baseWorkout = viewingSelfEffective ? workout : (activeWorkout || workout);
+    // When viewing a friend: prefer the passed workout (e.g., a past workout)
+    // Only use friend's activeWorkout if it matches the card's wid to avoid brief flashes
+    const baseWorkout = viewingSelfEffective
+        ? workout
+        : ((activeWorkout && String(activeWorkout?.wid || "") === cardWid) ? activeWorkout : workout);
 
-    const doneForRender = useMemo(() => {
-        const src = baseWorkout?.exercises || [];
-        return src.map((ex) => (ex.sets || []).map((s) => !!s?.isDone));
-    }, [baseWorkout]);
-
-    const totals = useMemo(() => {
-        const w = baseWorkout;
-        if (!w?.exercises) return { reps: 0, volume: 0, PBs: 0 };
-        let reps = 0, volume = 0, PBs = 0;
-
-        (w.exercises || []).forEach((exercise) => {
-            let hitPB = false;
-            (exercise.sets || []).forEach((set) => {
-                if (!set?.isDone) return;
-                const r = Number(set?.reps) || 0;
-                const wt = Number(set?.weight) || 0;
-                reps += r;
-                volume += r * wt;
-                const prevMax = activeStats?.[exercise?.name]?.["1RM"] || 0;
-                const maxNow = calculate1RM(wt, r);
-                if (!hitPB && maxNow > prevMax) { hitPB = true; PBs += 1; }
-            });
-        });
-        return { reps, volume, PBs };
-    }, [baseWorkout, activeStats]);
-
-    useEffect(() => {
-        setTotalReps(totals.reps);
-        setTotalVolume(totals.volume);
-        setPersonalBests(totals.PBs);
-        if (viewingSelfEffective && workout && (
-            workout.reps !== totals.reps ||
-            workout.volume !== totals.volume ||
-            workout.PBs !== totals.PBs
-        )) {
-            updateWorkout({ ...workout, reps: totals.reps, volume: totals.volume, PBs: totals.PBs });
-        }
-        // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [totals.reps, totals.volume, totals.PBs, viewingSelfEffective]);
+    const totals = useWorkoutTotals({
+        baseWorkout,
+        activeStats,
+        viewingSelf: viewingSelfEffective,
+        workout,
+        updateWorkout,
+    });
 
     const showSelectExerciseModal = useCallback(() => { if (viewingSelfEffective) setSelectExerciseModalVisible(true); }, [viewingSelfEffective]);
-    const closeSelectExerciseModal = useCallback(() => { setSelectExerciseModalVisible(false); setReplaceIndex(null); }, []);
-
-    const normalizeSet = (s) => ({ weight: Number(s?.weight) || 0, reps: Number(s?.reps) || 0, isDone: !!s?.isDone });
-
-    const appendExercises = useCallback((exercises) => {
-        if (!viewingSelfEffective || !workout) return;
-        const next = {
-            ...workout,
-            exercises: [
-                ...(workout.exercises || []),
-                ...exercises.map((ex) => ({
-                    name: ex.name,
-                    muscle: ex.muscle,
-                    sets: [normalizeSet({ weight: 0, reps: 0, isDone: false })],
-                })),
-            ],
-        };
-        updateWorkout(next);
-        setIsDoneState((prev) => prev.concat(exercises.map(() => [false])));
-    }, [workout, updateWorkout, viewingSelfEffective]);
-
-    const updateSets = useCallback((index, newSets) => {
-        if (!viewingSelfEffective || !workout) return;
-        const normalized = (newSets || []).map(normalizeSet);
-        const updated = (workout.exercises || []).map((ex, i) => (i === index ? { ...ex, sets: normalized } : ex));
-        updateWorkout({ ...workout, exercises: updated });
-        setIsDoneState((prev) => { const next = prev.map((row) => row.slice()); next[index] = normalized.map((s) => !!s.isDone); return next; });
-    }, [workout, updateWorkout, viewingSelfEffective]);
-
-    const replaceExercise = useCallback((index) => { if (viewingSelfEffective) { setReplaceIndex(index); setSelectExerciseModalVisible(true); } }, [viewingSelfEffective]);
+    const closeSelectExerciseModal = useCallback(() => { setSelectExerciseModalVisible(false); setReplaceIndex(null); }, [setReplaceIndex]);
+    const replaceExercise = useCallback((index) => { if (viewingSelfEffective) { setReplaceIndex(index); setSelectExerciseModalVisible(true); } }, [viewingSelfEffective, setReplaceIndex]);
 
     const handleAppendOrReplace = useCallback((picked) => {
         if (!viewingSelfEffective || !workout) return;
@@ -246,10 +175,11 @@ const NewWorkoutModal = ({
 
         if (isReplacing && choice) {
             const oldSets = workout.exercises?.[replaceIndex]?.sets ?? [normalizeSet({})];
-            const newSets = oldSets.map(() => normalizeSet({ weight: 0, reps: 0, isDone: false }));
+            const newSets = makeBlankSetsLike(oldSets);
             const nextExercises = (workout.exercises || []).map((ex, i) =>
                 i === replaceIndex ? { name: choice.name, muscle: choice.muscle, sets: newSets } : ex
             );
+            try { LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut); } catch {}
             updateWorkout({ ...workout, exercises: nextExercises });
             setIsDoneState((prev) => { const next = prev.map((row) => row.slice()); next[replaceIndex] = newSets.map((s) => !!s.isDone); return next; });
             setReplaceIndex(null);
@@ -257,38 +187,12 @@ const NewWorkoutModal = ({
             return;
         }
 
+        try { LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut); } catch {}
         appendExercises(Array.isArray(picked) ? picked : [picked]);
         setSelectExerciseModalVisible(false);
     }, [appendExercises, replaceIndex, viewingSelfEffective, workout, updateWorkout]);
 
-    const deleteExercise = useCallback((index) => {
-        if (!viewingSelfEffective || !workout) return;
-        const filtered = (workout.exercises || []).filter((_, i) => i !== index);
-        updateWorkout({ ...workout, exercises: filtered });
-        setIsDoneState((prev) => prev.filter((_, i) => i !== index));
-    }, [workout, updateWorkout, viewingSelfEffective]);
-
-    const toggleIsDone = useCallback((exerciseIndex, setIndex) => {
-        if (!viewingSelfEffective || !workout) return;
-        const curr = workout.exercises?.[exerciseIndex]?.sets?.[setIndex];
-        if (!curr) return;
-        if (!curr.isDone && (isNaN(curr.weight) || isNaN(curr.reps))) return;
-
-        setIsDoneState((prev) => {
-            const next = prev.map((row) => row.slice());
-            const val = !!(next[exerciseIndex]?.[setIndex]);
-            if (!next[exerciseIndex]) next[exerciseIndex] = [];
-            next[exerciseIndex][setIndex] = !val;
-            return next;
-        });
-
-        const updated = (workout.exercises || []).map((ex, i) => {
-            if (i !== exerciseIndex) return ex;
-            const sets = (ex.sets || []).map((s, si) => (si === setIndex ? { ...s, isDone: !s?.isDone } : s));
-            return { ...ex, sets };
-        });
-        updateWorkout({ ...workout, exercises: updated });
-    }, [isDoneState, workout, updateWorkout, viewingSelfEffective]);
+    // deleteExercise, updateSets and toggleIsDone provided by hook
 
     const confirmCancelWorkout = () => {
         if (!viewingSelfEffective) return;
@@ -395,7 +299,7 @@ const NewWorkoutModal = ({
                     countdown={countdown}
                     onAddTime={viewingSelfEffective ? openRestModal : undefined}
                     timerRef={timerRef}
-                    headerStyle={[styles.headerInner]}
+                    headerStyle={styles.headerInner}
                     onBack={onPressBack}
                     disableGroupPress={lockFriend || !(viewingSelfEffective || inActiveGroupEffective)}
                     inActiveGroup={inActiveGroupEffective}
@@ -411,11 +315,12 @@ const NewWorkoutModal = ({
             ) : (
                 <Animated.ScrollView
                     showsVerticalScrollIndicator={false}
-                    onScroll={Animated.event([{ nativeEvent: { contentOffset: { y: scrollY } } }], { useNativeDriver: false })}
+                    onScroll={Animated.event([{ nativeEvent: { contentOffset: { y: scrollY } } }], { useNativeDriver: true })}
                     scrollEventThrottle={16}
+                    keyboardShouldPersistTaps="always"
                     style={[styles.scrollview, { opacity: overallOpacity }]}
                 >
-                    <ProgressBanner totalReps={totalReps} totalVolume={totalVolume} personalBests={personalBests} />
+                    <ProgressBanner totalReps={totals.reps} totalVolume={totals.volume} personalBests={totals.PBs} />
 
                     {(baseWorkout?.exercises || []).map((ex, exerciseIndex) => (
                         <ExerciseLog
@@ -428,12 +333,9 @@ const NewWorkoutModal = ({
                             replaceExercise={replaceExercise}
                             deleteExercise={() => deleteExercise(exerciseIndex)}
                             calculateStats={() => { }}
-                            isDoneState={(doneForRender && doneForRender[exerciseIndex]) || []}
                             toggleIsDone={toggleIsDone}
                             userWorkoutStats={activeStats}
-                            readOnlyInputs={!viewingSelfEffective}
-                            hideAddSet={!viewingSelfEffective}
-                            disableRowActions={!viewingSelfEffective}
+                            readOnly={!viewingSelfEffective}
                         />
                     ))}
 
@@ -470,9 +372,9 @@ const NewWorkoutModal = ({
                 visible={restModalVisible}
                 onClose={closeRestModal}
                 countdown={countdown}
-                onStart={(secs) => setCountdown(secs)}
-                onAdd={(secs) => setCountdown((s) => s + secs)}
-                onReset={() => setCountdown(0)}
+                onStart={startCountdown}
+                onAdd={addCountdown}
+                onReset={resetCountdown}
             />
 
             {/* Delete confirm */}
@@ -510,7 +412,7 @@ const NewWorkoutModal = ({
 
                         <RNBounceable
                             onPress={handleFinishWorkout}
-                            style={[styles.finishBtn, isFinishing && { opacity: 0.6 }]}
+                            style={[styles.finishBtn, isFinishing ? styles.finishBtnDisabled : null]}
                             disabled={isFinishing}
                         >
                             <Text style={styles.finishBtnText}>{isFinishing ? "Finishing…" : "Finish Workout"}</Text>
@@ -613,6 +515,7 @@ const styles = StyleSheet.create({
     finishTitle: { fontSize: scaledSize(18), color: "#111827", fontFamily: "Outfit_700Bold", textAlign: "center", marginBottom: scaledSize(16) },
     finishBtn: { width: "100%", paddingVertical: scaledSize(10), backgroundColor: "#40D99B", borderRadius: scaledSize(10), alignItems: "center", marginBottom: scaledSize(10) },
     finishBtnText: { color: "#fff", fontSize: scaledSize(14.5), fontFamily: "Outfit_700Bold" },
+    finishBtnDisabled: { opacity: 0.6 },
     keepEditingBtn: { width: "100%", paddingVertical: scaledSize(10), backgroundColor: "#F1F5F9", borderRadius: scaledSize(10), alignItems: "center" },
     keepEditingText: { color: "#0F172A", fontSize: scaledSize(14), fontFamily: "Outfit_600SemiBold" },
 });

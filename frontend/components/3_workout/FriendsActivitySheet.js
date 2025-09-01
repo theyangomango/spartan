@@ -16,6 +16,8 @@ import { Clock } from "iconsax-react-native";
 import { MaterialCommunityIcons, FontAwesome6 } from "@expo/vector-icons";
 import { usePfp } from "../../helper/usePFPs";
 import NewWorkoutModal from "./NewWorkout/NewWorkoutModal";
+import { onSnapshot, doc } from "firebase/firestore";
+import { db } from "../../../firebase.config";
 
 const { height: screenHeight } = Dimensions.get("window");
 const scale = screenHeight / 844;
@@ -274,10 +276,88 @@ const FriendsActivitySheet = ({ visible, openToggle, items = [], onClose, onView
   }, [items]);
 
   const displayItems = items.length ? items : cacheRef.current;
-  const sortedItems = useMemo(
-    () => [...(displayItems || [])].sort((a, b) => bestTimestamp(b) - bestTimestamp(a)),
-    [displayItems]
-  );
+
+  // Live overlays: subscribe to users/{uid} for items that are live and update stats inline
+  const liveSubsRef = useRef(new Map()); // uid -> unsubscribe
+  const [liveOverlays, setLiveOverlays] = useState({}); // uid -> { volume, reps, PBs, exercises? }
+
+  useEffect(() => {
+    if (!visible) return;
+    const lives = new Set((displayItems || []).filter((it) => it?.live && it?.uid).map((it) => String(it.uid)));
+
+    // unsubscribe removed
+    for (const [uid, unsub] of liveSubsRef.current.entries()) {
+      if (!lives.has(uid)) { try { unsub && unsub(); } catch {} liveSubsRef.current.delete(uid); }
+    }
+
+    // subscribe new
+    lives.forEach((uid) => {
+      if (liveSubsRef.current.has(uid)) return;
+      try {
+        const unsub = onSnapshot(doc(db, "users", uid), (snap) => {
+          const data = snap.data() || {};
+          const cw = data?.currentWorkout || null;
+          if (cw) {
+            setLiveOverlays((prev) => {
+              const nextEntry = {
+                volume: Number(cw?.volume || 0),
+                reps: Number(cw?.reps || 0),
+                PBs: Number(cw?.PBs ?? cw?.pbs ?? 0),
+                exercises: Array.isArray(cw?.exercises) ? cw.exercises : undefined,
+                ts: Date.now(),
+              };
+              const curr = prev[uid];
+              if (
+                curr &&
+                curr.volume === nextEntry.volume &&
+                curr.reps === nextEntry.reps &&
+                curr.PBs === nextEntry.PBs &&
+                ((curr.exercises?.length || 0) === (nextEntry.exercises?.length || 0))
+              ) {
+                return prev; // no change
+              }
+              return { ...prev, [uid]: nextEntry };
+            });
+          } else {
+            setLiveOverlays((prev) => {
+              const next = { ...prev }; delete next[uid]; return next;
+            });
+          }
+        });
+        liveSubsRef.current.set(uid, unsub);
+      } catch {}
+    });
+
+    return () => {
+      for (const [, unsub] of liveSubsRef.current.entries()) { try { unsub && unsub(); } catch {} }
+      liveSubsRef.current.clear();
+    };
+  }, [visible, displayItems]);
+
+  const enhancedItems = useMemo(() => {
+    if (!displayItems || !displayItems.length) return displayItems || [];
+    return displayItems.map((it) => {
+      if (!it?.live || !it?.uid) return it;
+      const o = liveOverlays[String(it.uid)];
+      if (!o) return it;
+      return {
+        ...it,
+        volume: o.volume,
+        reps: o.reps,
+        PBs: o.PBs,
+        _liveSortTs: o.ts || undefined,
+        workout: it.workout ? { ...it.workout, volume: o.volume, reps: o.reps, PBs: o.PBs, exercises: o.exercises ?? it.workout.exercises } : it.workout,
+      };
+    });
+  }, [displayItems, liveOverlays]);
+
+  const sortedItems = useMemo(() => {
+    const score = (it) => {
+      if (it?.live) return it?._liveSortTs || toMillis(it?.startedAt) || bestTimestamp(it);
+      return bestTimestamp(it);
+    };
+    return [...(enhancedItems || [])].sort((a, b) => score(b) - score(a));
+  }, [enhancedItems]);
 
   const hasLive = useMemo(() => sortedItems?.some((it) => it?.live), [sortedItems]);
   const [now, setNow] = useState(() => Date.now());

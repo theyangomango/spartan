@@ -1,5 +1,5 @@
 import React, { useState, useRef } from "react";
-import { TextInput, StyleSheet, Pressable, Dimensions, Keyboard } from "react-native";
+import { TextInput, StyleSheet, Pressable, Dimensions, Keyboard, Platform, InputAccessoryView, View, Text } from "react-native";
 
 const { height: screenHeight } = Dimensions.get('window');
 const scale = screenHeight / 844; // Scaling factor based on iPhone 13 height
@@ -9,6 +9,7 @@ const scaledSize = (size) => Math.round(size * scale);
 export default function EditableStat({ placeholder = '0', isFinished, value, setValue }) {
     const [isSelected, setIsSelected] = useState(false);
     const inputRef = useRef(null);
+    const accessoryIdRef = useRef(`statAccessory_${Math.random().toString(36).slice(2, 9)}`);
 
     const handleChangeText = (text) => {
         // If the text is empty, set the value to 0
@@ -47,28 +48,44 @@ export default function EditableStat({ placeholder = '0', isFinished, value, set
     };
 
     return (
-        <Pressable
-            onPress={handlePress}
-            style={[
-                styles.editing,
-                isFinished && styles.finished,
-                isSelected && styles.selected
-            ]}
-        >
-            <TextInput
-                ref={inputRef}
-                editable
-                keyboardType="numeric"
-                placeholder={placeholder}
-                placeholderTextColor={isFinished ? '#000' : '#888'}
-                onFocus={() => setIsSelected(true)}
-                onBlur={() => setIsSelected(false)} // Ensure blur only happens when necessary
-                style={styles.text}
-                value={value === '0' ? '' : value.toString()}
-                onChangeText={handleChangeText}
-                blurOnSubmit={false} // Keep the keyboard open when switching between inputs
-            />
-        </Pressable>
+        <>
+            <Pressable
+                onPress={handlePress}
+                style={[
+                    styles.editing,
+                    isFinished && styles.finished,
+                    isSelected && styles.selected
+                ]}
+            >
+                <TextInput
+                    ref={inputRef}
+                    editable
+                    keyboardType="numeric"
+                    placeholder={placeholder}
+                    placeholderTextColor={isFinished ? '#000' : '#888'}
+                    onFocus={() => setIsSelected(true)}
+                    onBlur={() => setIsSelected(false)}
+                    style={styles.text}
+                    value={value === '0' ? '' : value.toString()}
+                    onChangeText={handleChangeText}
+                    blurOnSubmit={false}
+                    inputAccessoryViewID={Platform.OS === 'ios' ? accessoryIdRef.current : undefined}
+                    returnKeyType={Platform.OS === 'android' ? 'done' : 'default'}
+                    onSubmitEditing={() => Keyboard.dismiss()}
+                />
+            </Pressable>
+
+            {Platform.OS === 'ios' && (
+                <InputAccessoryView nativeID={accessoryIdRef.current}>
+                    <View style={styles.accessoryBar}>
+                        <View style={{ flex: 1 }} />
+                        <Pressable onPress={() => Keyboard.dismiss()} style={styles.accessoryBtn} hitSlop={8}>
+                            <Text style={styles.accessoryBtnText}>Hide</Text>
+                        </Pressable>
+                    </View>
+                </InputAccessoryView>
+            )}
+        </>
     )
 }
 
@@ -90,5 +107,25 @@ const styles = StyleSheet.create({
         fontSize: scaledSize(15),
         flex: 1,
         textAlign: 'center'
+    },
+    accessoryBar: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        paddingHorizontal: scaledSize(12),
+        paddingVertical: scaledSize(8),
+        borderTopWidth: StyleSheet.hairlineWidth,
+        borderColor: '#D1D5DB',
+        backgroundColor: '#F8FAFC',
+    },
+    accessoryBtn: {
+        backgroundColor: '#E5E7EB',
+        paddingHorizontal: scaledSize(12),
+        paddingVertical: scaledSize(6),
+        borderRadius: scaledSize(8),
+    },
+    accessoryBtnText: {
+        color: '#0F172A',
+        fontFamily: 'Outfit_700Bold',
+        fontSize: scaledSize(13),
     },
 });

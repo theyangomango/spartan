@@ -1,6 +1,7 @@
-import React, { useRef } from "react";
-import { View, StyleSheet, Text, Pressable, Dimensions } from "react-native";
+import React, { memo, useEffect, useState } from "react";
+import { View, StyleSheet, Text, Pressable, Dimensions, LayoutAnimation, Platform, UIManager, Keyboard, InteractionManager } from "react-native";
 import EditableStat from "./EditableStat";
+import SetTypePanel from "./SetTypePanel";
 import { FontAwesome5 } from "@expo/vector-icons";
 import SwipeableItem, { OpenDirection, useSwipeableItemParams } from "react-native-swipeable-item";
 import Animated, { useAnimatedStyle } from "react-native-reanimated";
@@ -9,45 +10,78 @@ const { height: screenHeight } = Dimensions.get("window");
 const scale = screenHeight / 844;
 const scaledSize = (size) => Math.round(size * scale);
 
-export default function SetRow({
+// Enable LayoutAnimation on Android once
+if (Platform.OS === "android" && UIManager.setLayoutAnimationEnabledExperimental) {
+    try { UIManager.setLayoutAnimationEnabledExperimental(true); } catch {}
+}
+
+function SetRow({
     previousSet,
     set,
+    sid,
     updateSet,
+    onUpdateSetById,
     index,
     handleDelete,
+    onDeleteSetById,
     isDone,
     toggleIsDone,
+    onToggleIsDoneById,
     readOnly = false,
+    itemKey,
 }) {
     const weight = set?.weight ?? 0;
     const reps = set?.reps ?? 0;
+    const [doneLocal, setDoneLocal] = useState(!!isDone);
+    useEffect(() => { setDoneLocal(!!isDone); }, [isDone, sid]);
 
-    const itemRefs = useRef(new Map());
-    const renderUnderlayLeft = () => <UnderlayLeft handleDelete={handleDelete} />;
+    const renderUnderlayLeft = (swipeRef) => (
+        <UnderlayLeft
+            onDelete={() => {
+                try { swipeRef?.current?.close?.(); } catch {}
+                try { LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut); } catch {}
+                onDeleteSetById ? onDeleteSetById(sid) : handleDelete(index);
+            }}
+        />
+    );
+
+    const [typePanelOpen, setTypePanelOpen] = useState(false);
+    const [panelPos, setPanelPos] = useState({ top: 0, left: 0 });
+    const openTypePanel = (e) => {
+        if (readOnly) return;
+        const y = e?.nativeEvent?.pageY || 0;
+        setPanelPos({ top: y + scaledSize(8), left: scaledSize(20) });
+        setTypePanelOpen(true);
+    };
+    const onSelectType = (type) => {
+        const nextType = set?.type === type ? null : type;
+        if (onUpdateSetById && sid) onUpdateSetById(sid, { ...set, type: nextType });
+        else updateSet(index, { ...set, type: nextType });
+    };
 
     return (
         <View style={styles.container}>
             <SwipeableItem
-                key={index}
                 item={set}
-                ref={(ref) => { if (ref && !itemRefs.current.get(index)) itemRefs.current.set(index, ref); }}
-                onChange={({ openDirection }) => {
-                    if (openDirection !== OpenDirection.NONE) {
-                        [...itemRefs.current.entries()].forEach(([key, ref]) => { if (key !== index && ref) ref.close(); });
-                    }
-                }}
-                overSwipe={scaledSize(40)}
-                renderUnderlayLeft={readOnly ? undefined : renderUnderlayLeft}
+                itemKey={itemKey || (set && (set.id || String(index))) }
+                overSwipe={scaledSize(36)}
+                renderUnderlayLeft={readOnly ? undefined : (params) => renderUnderlayLeft(params?.ref)}
                 snapPointsLeft={readOnly ? [] : [scaledSize(60)]}
-                onSwipeableLeftOpen={readOnly ? undefined : () => handleDelete(index)}
+                onSwipeableLeftOpen={undefined} // never auto-delete via swipe threshold; explicit tap only
             >
-                <View style={[styles.stat_row, isDone && styles.done]} key={index}>
-                    <View style={[styles.set_ctnr, isDone && { backgroundColor: "#DCFFDA" }]}>
-                        <Text style={styles.set_number_text}>{index + 1}</Text>
-                    </View>
+                <View style={[styles.stat_row, doneLocal && styles.done]}>
+                    <Pressable onPress={openTypePanel} style={[
+                        styles.set_ctnr,
+                        doneLocal && { backgroundColor: "#DCFFDA" },
+                        set?.type && [styles.set_ctnr_typed, typePillBg(set?.type)],
+                    ]}>
+                        <Text style={[styles.set_number_text, set?.type && [styles.set_letter_text, typePillText(set?.type)]]}>
+                            {set?.type ? typeLetter(set?.type) : (index + 1)}
+                        </Text>
+                    </Pressable>
 
                     <View style={styles.previous_ctnr}>
-                        <Text style={[styles.previous_stat_text, isDone && { color: "#afafaf" }]}>
+                        <Text style={[styles.previous_stat_text, doneLocal && { color: "#afafaf" }]}>
                             {previousSet ? `${previousSet.reps} x ${previousSet.weight}lbs` : "N/A"}
                         </Text>
                     </View>
@@ -55,36 +89,69 @@ export default function SetRow({
                     {/* Keep grey visuals, just block focus when read-only */}
                     <View style={styles.weight_unit_ctnr} pointerEvents={readOnly ? "none" : "auto"}>
                         <EditableStat
-                            isFinished={isDone}                          // ← do NOT tie visuals to readOnly
+                            isFinished={doneLocal}                          // ← do NOT tie visuals to readOnly
                             value={String(weight)}
-                            setValue={(value) => updateSet(index, { ...set, weight: value })}
+                            setValue={(value) => (onUpdateSetById ? onUpdateSetById(sid, { ...set, weight: value }) : updateSet(index, { ...set, weight: value }))}
                         />
                     </View>
 
                     <View style={styles.reps_ctnr} pointerEvents={readOnly ? "none" : "auto"}>
                         <EditableStat
-                            isFinished={isDone}                          // ← same here
+                            isFinished={doneLocal}                          // ← same here
                             value={String(reps)}
-                            setValue={(value) => updateSet(index, { ...set, reps: value })}
+                            setValue={(value) => (onUpdateSetById ? onUpdateSetById(sid, { ...set, reps: value }) : updateSet(index, { ...set, reps: value }))}
                         />
                     </View>
 
                     <View style={styles.done_ctnr}>
                         <Pressable
-                            style={isDone ? styles.checkmark_ctnr_selected : styles.checkmark_ctnr}
-                            onPress={toggleIsDone}
-                            disabled={readOnly}                          // cannot toggle in viewing mode
+                            style={doneLocal ? styles.checkmark_ctnr_selected : styles.checkmark_ctnr}
+                            onPress={() => {
+                                if (readOnly) return;
+                                // Optimistic local toggle for immediate UI feedback
+                                setDoneLocal((d) => !d);
+                                // Then trigger upstream state update
+                                try {
+                                    if (onToggleIsDoneById && sid) onToggleIsDoneById(sid);
+                                    else toggleIsDone?.();
+                                } catch {}
+                                // Then dismiss keyboard; doing it second avoids missing the press
+                                try { Keyboard.dismiss(); } catch {}
+                            }}
+                            disabled={readOnly}
                         >
-                            <FontAwesome5 name="check" size={scaledSize(14)} color={isDone ? "#fff" : "#444"} />
+                            <FontAwesome5 name="check" size={scaledSize(14)} color={doneLocal ? "#fff" : "#444"} />
                         </Pressable>
                     </View>
                 </View>
             </SwipeableItem>
+
+            <SetTypePanel
+                visible={typePanelOpen}
+                onClose={() => setTypePanelOpen(false)}
+                position={panelPos}
+                current={set?.type || null}
+                onSelect={onSelectType}
+            />
         </View>
     );
 }
 
-const UnderlayLeft = ({ handleDelete }) => {
+const rowEqual = (prev, next) => {
+    if (prev.sid !== next.sid) return false;
+    if (prev.index !== next.index) return false;
+    const ps = prev.set || {}; const ns = next.set || {};
+    if (ps.weight !== ns.weight) return false;
+    if (ps.reps !== ns.reps) return false;
+    if (!!ps.isDone !== !!ns.isDone) return false;
+    if ((ps.type || null) !== (ns.type || null)) return false;
+    if (!!prev.readOnly !== !!next.readOnly) return false;
+    return true;
+};
+
+export default memo(SetRow, rowEqual);
+
+const UnderlayLeft = ({ onDelete }) => {
     const { percentOpen } = useSwipeableItemParams();
     const animStyle = useAnimatedStyle(
         () => ({
@@ -93,10 +160,24 @@ const UnderlayLeft = ({ handleDelete }) => {
         }),
         [percentOpen]
     );
+    const iconStyle = useAnimatedStyle(
+        () => ({
+            transform: [{ scale: 0.9 + 0.2 * percentOpen.value }],
+            opacity: 0.7 + 0.3 * percentOpen.value,
+        }),
+        [percentOpen]
+    );
+    const onPressTrash = () => {
+        try {
+            if (percentOpen.value >= 0.85) onDelete?.();
+        } catch {}
+    };
     return (
         <Animated.View style={[styles.underlayLeft, animStyle]}>
-            <Pressable onPressOut={handleDelete} style={styles.trashButton}>
-                <FontAwesome5 name="trash" size={scaledSize(19)} color="#fff" />
+            <Pressable onPress={onPressTrash} style={styles.trashButton}>
+                <Animated.View style={iconStyle}>
+                    <FontAwesome5 name="trash" size={scaledSize(19)} color="#fff" />
+                </Animated.View>
             </Pressable>
         </Animated.View>
     );
@@ -118,7 +199,9 @@ const styles = StyleSheet.create({
     previous_ctnr: { width: "38%", alignItems: "center", justifyContent: "center" },
     weight_unit_ctnr: { width: "18%", alignItems: "center" },
     reps_ctnr: { width: "18%", alignItems: "center" },
-    set_number_text: { fontFamily: "Poppins_700Bold", fontSize: scaledSize(14) },
+    set_number_text: { fontFamily: "Poppins_700Bold", fontSize: scaledSize(14), color: "#111827" },
+    set_ctnr_typed: { backgroundColor: "#E5E7EB" },
+    set_letter_text: { fontFamily: "Outfit_700Bold" },
     previous_stat_text: { fontFamily: "Poppins_700Bold", fontSize: scaledSize(15), color: "#ccc" },
     done_ctnr: { width: "10.5%", height: scaledSize(22), alignItems: "center" },
     checkmark_ctnr: {
@@ -142,3 +225,33 @@ const styles = StyleSheet.create({
     },
     trashButton: { flex: 1, alignItems: "center", justifyContent: "center" },
 });
+
+function typePillBg(type) {
+    switch (type) {
+        case "warmup":
+            return { backgroundColor: "#FFEAD5" };
+        case "dropset":
+            return { backgroundColor: "#F3E8FF" };
+        case "failure":
+            return { backgroundColor: "#FEE2E2" };
+        default:
+            return { backgroundColor: "#E5E7EB" };
+    }
+}
+function typeLetter(type) {
+    switch (type) {
+        case "warmup": return "W";
+        case "dropset": return "D";
+        case "failure": return "F";
+        default: return "";
+    }
+}
+
+function typePillText(type) {
+    switch (type) {
+        case "warmup": return { color: "#9A3412" };
+        case "dropset": return { color: "#7C3AED" };
+        case "failure": return { color: "#B91C1C" };
+        default: return { color: "#111827" };
+    }
+}

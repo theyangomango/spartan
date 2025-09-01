@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef, useMemo } from "react";
-import { StyleSheet, View, Text, Pressable, TextInput, Animated, Dimensions } from "react-native";
+import { StyleSheet, View, Text, Pressable, TextInput, Animated, Dimensions, InteractionManager } from "react-native";
 import { Ionicons } from '@expo/vector-icons';
 import RNBounceable from "@freakycoder/react-native-bounceable";
 import { exercises } from './EXERCISES';
@@ -63,6 +63,8 @@ const normalizeEquipment = (raw) => {
 
 export default function SelectExerciseModal({ closeModal, appendExercises }) {
     const selectedExercisesRef = useRef([]);
+    // input text vs debounced value used for filtering
+    const [inputQuery, setInputQuery] = useState('');
     const [searchQuery, setSearchQuery] = useState('');
     const opacity = useRef(new Animated.Value(1)).current;
 
@@ -90,19 +92,44 @@ export default function SelectExerciseModal({ closeModal, appendExercises }) {
         triggerOpacityUpdate();
     }
 
+    const finishingRef = useRef(false);
     function handleFinish() {
+        if (finishingRef.current) return;
         if (selectedExercisesRef.current.length === 0) return;
-        appendExercises(selectedExercisesRef.current);
-        closeModal();
+        finishingRef.current = true;
+        // Close dropdowns and modal first to avoid UI lock while appending
+        closeAllDropdowns();
+        try { closeModal?.(); } catch {}
+        // Defer heavy append to after interactions for smoother closing
+        InteractionManager.runAfterInteractions(() => {
+            try { appendExercises?.(selectedExercisesRef.current); } catch {}
+            finishingRef.current = false;
+            // reset local buffer
+            selectedExercisesRef.current = [];
+        });
     }
 
+    // Debounce search input for smoother typing
+    const debounceRef = useRef(null);
     function handleSearch(query) {
-        setSearchQuery(query);
+        setInputQuery(query);
+        if (debounceRef.current) clearTimeout(debounceRef.current);
+        debounceRef.current = setTimeout(() => setSearchQuery(query), 160);
     }
 
     function triggerOpacityUpdate() {
         opacity.setValue(selectedExercisesRef.current.length === 0 ? 0.5 : 1);
     }
+
+    // Build a normalized index once for fast filtering
+    const indexedExercises = useMemo(() => {
+        return exercises.map((ex) => ({
+            ...ex,
+            nameLc: String(ex?.name || '').toLowerCase(),
+            mgLc: String(ex?.muscleGroup || '').toLowerCase(),
+            equipNorm: normalizeEquipment(ex?.equipment),
+        }));
+    }, []);
 
     // ---- FILTER + SORT
     const filteredExercises = useMemo(() => {
@@ -110,15 +137,10 @@ export default function SelectExerciseModal({ closeModal, appendExercises }) {
         const bodyFilter = bodyPartValue?.toLowerCase() ?? null;
         const equipFilter = equipmentValue ?? null; // already normalized label
 
-        let list = exercises.filter(ex => {
-            const name = String(ex?.name ?? '');
-            const mg = String(ex?.muscleGroup ?? '');
-            const eq = normalizeEquipment(ex?.equipment);
-
-            const nameMatch = name.toLowerCase().includes(q);
-            const groupMatch = !bodyFilter || mg.toLowerCase() === bodyFilter;
-            const equipMatch = !equipFilter || eq === equipFilter;
-
+        let list = indexedExercises.filter(ex => {
+            const nameMatch = ex.nameLc.includes(q);
+            const groupMatch = !bodyFilter || ex.mgLc === bodyFilter;
+            const equipMatch = !equipFilter || ex.equipNorm === equipFilter;
             return nameMatch && groupMatch && equipMatch;
         });
 
@@ -135,7 +157,7 @@ export default function SelectExerciseModal({ closeModal, appendExercises }) {
         }
 
         return list;
-    }, [searchQuery, bodyPartValue, equipmentValue]);
+    }, [searchQuery, bodyPartValue, equipmentValue, indexedExercises]);
 
     const bodyPartButtonLabel = BODY_PART_OPTIONS.find(o => o.value === bodyPartValue)?.label ?? "Any Body Part";
     const equipmentButtonLabel = EQUIPMENT_OPTIONS.find(o => o.value === equipmentValue)?.label ?? "Any Equipment";
@@ -167,7 +189,7 @@ export default function SelectExerciseModal({ closeModal, appendExercises }) {
                         style={styles.searchInput}
                         placeholder="Search exercises..."
                         placeholderTextColor="#999"
-                        value={searchQuery}
+                        value={inputQuery}
                         onChangeText={handleSearch}
                         onFocus={closeAllDropdowns}
                     />

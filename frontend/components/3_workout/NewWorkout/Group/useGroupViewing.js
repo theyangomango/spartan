@@ -29,6 +29,8 @@ export function useGroupViewing({
     userHandle,
     initViewingUid, // default meUid
     autoJoin = true,
+    lockToViewingUid = false,
+    suppressSelfStream = false,
 }) {
     const [menuVisible, setMenuVisible] = useState(false);
     const [members, setMembers] = useState([]); // [uid...]
@@ -183,6 +185,15 @@ export function useGroupViewing({
 
     useEffect(() => {
         if (!viewingUid) return;
+        const isSelf = meUid && String(viewingUid) === String(meUid);
+        if (suppressSelfStream && isSelf) {
+            // when suppressed, clear activeWorkout/overlay to avoid stale friend UI
+            setActiveWorkout(null);
+            setOverlayPfp(null);
+            setActiveStats({});
+            setWaitingFriend(false);
+            return;
+        }
         setWaitingFriend(true);
         const unsub = onSnapshot(doc(db, "users", String(viewingUid)), (snap) => {
             const data = snap.data() || {};
@@ -193,20 +204,21 @@ export function useGroupViewing({
             setWaitingFriend(false);
         });
         return () => unsub();
-    }, [viewingUid]);
+    }, [viewingUid, suppressSelfStream, meUid]);
 
     // --- HARD GUARD 1: if the currently viewed user's currentWorkout is missing or mismatched, jump back to me
     useEffect(() => {
-        if (!wid || viewingSelf) return;
+        if (!wid || viewingSelf || lockToViewingUid) return;
         const currWid = String(activeWorkout?.wid || "");
         const targetWid = String(wid || "");
         if (!activeWorkout || !currWid || currWid !== targetWid) {
             if (meUid) setViewingUid(String(meUid));
         }
-    }, [wid, activeWorkout, viewingSelf, meUid]);
+    }, [wid, activeWorkout, viewingSelf, meUid, lockToViewingUid]);
 
     // --- HARD GUARD 2: if the viewed uid drops out of participants (left/cancelled), jump back to me
     useEffect(() => {
+        if (lockToViewingUid) return;
         if (!participants || !participants.length) return;
         const vu = String(viewingUid || "");
         if (!vu) return;
@@ -214,7 +226,7 @@ export function useGroupViewing({
         if (!present && meUid) {
             setViewingUid(String(meUid));
         }
-    }, [participants, viewingUid, meUid]);
+    }, [participants, viewingUid, meUid, lockToViewingUid]);
 
     const friendDoneDerived = useMemo(() => 0, [activeWorkout]);
 

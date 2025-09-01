@@ -11,8 +11,8 @@ const scaledSize = (size) => Math.round(size * scale);
 const ExerciseCard = memo(({ name, muscleGroup, selectExercise, deselectExercise, showExerciseInfo, userStats }) => {
     const [isSelected, setIsSelected] = useState(false);
 
-    const lastDone = userStats ? userStats.sets[userStats.sets.length - 1].date : 'N/A';
-    const timesCompleted = userStats ? userStats.sets.length : '';
+    const lastDone = userStats && Array.isArray(userStats.sets) && userStats.sets.length ? userStats.sets[userStats.sets.length - 1].date : 'N/A';
+    const timesCompleted = userStats && Array.isArray(userStats.sets) ? userStats.sets.length : '';
 
     const muscleColors = {
         Chest: '#FFAFB8',
@@ -49,7 +49,7 @@ const ExerciseCard = memo(({ name, muscleGroup, selectExercise, deselectExercise
             </View>
             <View style={styles.rightContainer}>
                 <Text style={styles.timesCompleted}>{timesCompleted}</Text>
-                <Pressable onPress={() => showExerciseInfo(name)} style={styles.icon_ctnr}>
+                <Pressable onPress={() => showExerciseInfo?.(name)} style={styles.icon_ctnr}>
                     <Ionicons name="information-circle-outline" size={scaledSize(26)} color="#2D9EFF" />
                 </Pressable>
             </View>

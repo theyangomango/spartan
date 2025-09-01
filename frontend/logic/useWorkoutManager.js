@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import { Alert } from "react-native";
+import { Alert, InteractionManager } from "react-native";
 import {
     setDoc,
     doc,
@@ -32,13 +32,15 @@ const sanitizeWorkout = (w) => {
     if (!w) return null;
     const created = toMillis(w.created ?? w.createdAt);
     const normalizeSets = (sets) =>
-        Array.isArray(sets) && sets.length
+        Array.isArray(sets)
             ? sets.map((s) => ({
+                id: s?.id || undefined,
                 weight: Number(s?.weight) || 0,
                 reps: Number(s?.reps) || 0,
                 isDone: !!s?.isDone,
+                type: s?.type || null,
             }))
-            : [{ weight: 0, reps: 0, isDone: false }];
+            : [];
     const exercises = Array.isArray(w.exercises)
         ? w.exercises.map((ex) => ({ ...ex, sets: normalizeSets(ex?.sets) }))
         : [];
@@ -94,6 +96,7 @@ export default function useWorkoutManager({ uid, navigation, millisToHMS }) {
 
     /* ------------ persist currentWorkout (debounced) ------------ */
     const saveCurrentWorkoutDebouncedRef = useRef(null);
+    const lastPersistValueRef = useRef(null);
     const clearPersistDebounce = useCallback(() => {
         if (saveCurrentWorkoutDebouncedRef.current) {
             clearTimeout(saveCurrentWorkoutDebouncedRef.current);
@@ -103,6 +106,9 @@ export default function useWorkoutManager({ uid, navigation, millisToHMS }) {
     const persistCurrentWorkout = useCallback(
         (value) => {
             if (!uid) return;
+            // Track the most recent value; debounce computes from latest to avoid repeated heavy sanitize work.
+            lastPersistValueRef.current = value || null;
+
             if (!value) {
                 clearPersistDebounce();
                 (async () => {
@@ -115,16 +121,23 @@ export default function useWorkoutManager({ uid, navigation, millisToHMS }) {
                 })();
                 return;
             }
+
             clearPersistDebounce();
-            const payload = sanitizeWorkout(value);
-            saveCurrentWorkoutDebouncedRef.current = setTimeout(async () => {
-                try {
-                    await setDoc(doc(db, "users", uid), { currentWorkout: payload }, { merge: true });
-                } catch (e) {
-                    console.log("setDoc users.currentWorkout (debounced) error", e);
-                    try { await updateDoc("users", uid, { currentWorkout: payload }); } catch { }
-                }
-            }, 400);
+            saveCurrentWorkoutDebouncedRef.current = setTimeout(() => {
+                const latest = lastPersistValueRef.current;
+                if (!latest) return;
+                const payload = sanitizeWorkout(latest);
+                InteractionManager.runAfterInteractions(() => {
+                    (async () => {
+                        try {
+                            await setDoc(doc(db, "users", uid), { currentWorkout: payload }, { merge: true });
+                        } catch (e) {
+                            console.log("setDoc users.currentWorkout (debounced) error", e);
+                            try { await updateDoc("users", uid, { currentWorkout: payload }); } catch { }
+                        }
+                    })();
+                });
+            }, 380);
         },
         [uid, clearPersistDebounce]
     );
@@ -234,8 +247,8 @@ export default function useWorkoutManager({ uid, navigation, millisToHMS }) {
 
                     const normalizeSets = (sets) =>
                         Array.isArray(sets) && sets.length
-                            ? sets.map((s) => ({ weight: Number(s?.weight) || 0, reps: Number(s?.reps) || 0, isDone: !!s?.isDone }))
-                            : [{ weight: 0, reps: 0, isDone: false }];
+                            ? sets.map((s) => ({ id: s?.id || `${Date.now().toString(36)}_${Math.random().toString(36).slice(2,6)}`, weight: Number(s?.weight) || 0, reps: Number(s?.reps) || 0, isDone: !!s?.isDone, type: s?.type || null }))
+                            : [{ id: `${Date.now().toString(36)}_${Math.random().toString(36).slice(2,6)}`, weight: 0, reps: 0, isDone: false, type: null }];
 
                     const exercisesFromTpl = tplOrNull?.exercises
                         ? tplOrNull.exercises.map((ex) => ({ ...ex, sets: normalizeSets(ex?.sets) }))
@@ -373,7 +386,7 @@ export default function useWorkoutManager({ uid, navigation, millisToHMS }) {
             const joined = sanitizeWorkout({
                 wid,
                 creatorUID: base?.creatorUid || base?.creatorUID || me,
-                created: Date.now(),
+                crseated: Date.now(),
                 users: [],
                 exercises: [],
                 tid: null,
@@ -391,7 +404,7 @@ export default function useWorkoutManager({ uid, navigation, millisToHMS }) {
             }
         } catch (e) {
             console.log("joinExternalWorkout error", e);
-        }
+        }it
     }, [uid]);
 
     /* ------------ Rehydrate from Firestore user doc ------------ */

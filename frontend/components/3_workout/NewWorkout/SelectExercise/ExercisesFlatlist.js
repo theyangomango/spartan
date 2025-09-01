@@ -1,22 +1,29 @@
-import React from 'react';
+import React, { useCallback } from 'react';
 import { FlatList } from 'react-native';
 import ExerciseCard from './ExerciseCard';
 
 const ExercisesFlatlist = React.memo(({ exercises, selectExercise, deselectExercise }) => {
+    const renderItem = useCallback(({ item }) => (
+        <ExerciseCard
+            name={item.name}
+            muscleGroup={item.muscleGroup}
+            selectExercise={selectExercise}
+            userStats={(global?.userData?.statsExercises && global.userData.statsExercises[item.name]) || null}
+            deselectExercise={deselectExercise}
+        />
+    ), [selectExercise, deselectExercise]);
 
     return (
         <FlatList
             data={exercises}
-            keyExtractor={(item, index) => index.toString()}
-            renderItem={({ item }) => (
-                <ExerciseCard
-                    name={item.name}
-                    muscleGroup={item.muscleGroup}
-                    selectExercise={selectExercise}
-                    userStats={[item.name] in global.userData.statsExercises && global.userData.statsExercises[item.name]}
-                    deselectExercise={deselectExercise}
-                />
-            )}
+            keyExtractor={(item, index) => String(item?.name || index)}
+            renderItem={renderItem}
+            initialNumToRender={14}
+            windowSize={9}
+            maxToRenderPerBatch={20}
+            removeClippedSubviews
+            keyboardShouldPersistTaps="handled"
+            showsVerticalScrollIndicator={false}
         />
     );
 });
