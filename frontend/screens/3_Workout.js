@@ -1,4 +1,3 @@
-// screens/Workout/index.js
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
     SafeAreaView,
@@ -236,23 +235,44 @@ export default function Workout({ navigation, route }) {
     useEffect(() => { refreshFriends(); }, [refreshFriends]);
     useEffect(() => { if (friendsSheetVisible) refreshFriends(); }, [friendsSheetVisible, refreshFriends]);
 
-    const lastViewedAtMs = (user?.friendsActivityLastViewedAt?.toMillis?.() || new Date(user?.friendsActivityLastViewedAt || 0).getTime()) || 0;
+    const lastViewedAtMs =
+        (user?.friendsActivityLastViewedAt?.toMillis?.() ||
+            new Date(user?.friendsActivityLastViewedAt || 0).getTime()) || 0;
+
     const itemTs = useCallback(
-        (it) => Math.max(toMillis(it?.created) || 0, toMillis(it?.startedAt) || 0, toMillis(it?.finishedAt) || 0),
+        (it) => Math.max(
+            toMillis(it?.created) || 0,
+            toMillis(it?.startedAt) || 0,
+            toMillis(it?.finishedAt) || 0
+        ),
         []
     );
-    const newItems = useMemo(() => {
+
+    // treat as completed only if finishedAt exists and workout has some signal of work
+    const looksCompleted = useCallback((it) => {
+        const fin = toMillis(it?.finishedAt);
+        if (!fin) return false;
+        const vol = Number(it?.volume || 0);
+        const reps = Number(it?.reps || it?.totalReps || 0);
+        const dur = Number(it?.duration || 0);
+        const hasSets =
+            Array.isArray(it?.exercises) &&
+            it.exercises.some((ex) => Array.isArray(ex?.sets) && ex.sets.length > 0);
+        return vol > 0 || reps > 0 || dur > 0 || hasSets;
+    }, []);
+
+    const newCompletedItems = useMemo(() => {
         const v = lastViewedAtMs || 0;
         const arr = Array.isArray(friendsActivity) ? friendsActivity : [];
-        return arr.filter((it) => itemTs(it) > v);
-    }, [friendsActivity, lastViewedAtMs, itemTs]);
+        return arr.filter((it) => itemTs(it) > v && looksCompleted(it));
+    }, [friendsActivity, lastViewedAtMs, itemTs, looksCompleted]);
 
     /* ---------- LIVE FOLLOWING: always treat live as new ---------- */
     const liveNow = useLiveFollowing(user); // [{uid,pfp,pfpVersion,isLive:true,_ts}]
     const nonLiveNew = useMemo(() => {
         const liveSet = new Set(liveNow.map((x) => x.uid));
         const uniq = [];
-        (Array.isArray(newItems) ? newItems : []).forEach((it) => {
+        (Array.isArray(newCompletedItems) ? newCompletedItems : []).forEach((it) => {
             const uidX = it?.uid;
             if (!uidX || liveSet.has(uidX)) return;
             if (uniq.find((u) => u.uid === uidX)) return;
@@ -266,7 +286,7 @@ export default function Workout({ navigation, route }) {
         });
         uniq.sort((a, b) => (b._ts || 0) - (a._ts || 0));
         return uniq;
-    }, [newItems, liveNow, itemTs]);
+    }, [newCompletedItems, liveNow, itemTs]);
 
     const stackUsers = useMemo(() => {
         const merged = [...liveNow, ...nonLiveNew];
@@ -433,11 +453,9 @@ export default function Workout({ navigation, route }) {
                 try {
                     await joinExternalWorkout({ wid, seedWorkout: seed || joined, inviterUid: currentInvite.fromUid });
                 } catch (e) {
-                    // If manager failed for any reason, fall back to direct state
                     setWorkout(joined);
                 }
             } else {
-                // …otherwise set directly
                 setWorkout(joined);
             }
 

@@ -14,20 +14,10 @@ import {
 } from "firebase/firestore";
 import { db } from "../../../../../firebase.config";
 
-/* Normalize any member entry to a UID string */
-const asUid = (x) => {
-    if (typeof x === "string" || typeof x === "number") return String(x);
-    if (x && typeof x === "object") return String(x.uid || x.id || "");
-    return "";
-};
-
-/* A small grace window for considering the group "active-ish" based on workout.updatedAt */
-const GROUP_ACTIVE_GRACE_MS = 2 * 60 * 1000; // 2 min
-
 /**
  * Live group viewing + membership helper
  *
- * - Subscribes to workouts/{wid} (members[], active, updatedAt) & workouts/{wid}/live/* (presence)
+ * - Subscribes to workouts/{wid} (members[]) & workouts/{wid}/live/* (presence)
  * - If `autoJoin`, ensures the caller is added to members and publishes presence
  * - Streams the currently viewed user's currentWorkout & stats
  * - Exposes setViewing(uid) to switch focus
@@ -41,41 +31,38 @@ export function useGroupViewing({
     autoJoin = true,
 }) {
     const [menuVisible, setMenuVisible] = useState(false);
-    const [members, setMembers] = useState([]); // [uid strings]
+    const [members, setMembers] = useState([]); // [uid...]
     const [participants, setParticipants] = useState([]); // [{ uid, handle, image, pfpVersion, updatedAt }]
     const [viewingUid, setViewingUid] = useState(initViewingUid || meUid || null);
-
-    // track group meta to decide whether to synthesize members into participants
-    const [groupActive, setGroupActive] = useState(false);
-    const [groupUpdatedAt, setGroupUpdatedAt] = useState(0);
 
     const viewingSelf = viewingUid && meUid && String(viewingUid) === String(meUid);
 
     const openMenu = useCallback(() => setMenuVisible(true), []);
     const closeMenu = useCallback(() => setMenuVisible(false), []);
 
+    // keep initViewingUid stable on wid change
     useEffect(() => {
         if (!viewingUid && (initViewingUid || meUid)) {
             setViewingUid(initViewingUid || meUid);
         }
     }, [initViewingUid, meUid, viewingUid]);
 
+    // track if we already attempted to join
     const joinedOnceRef = useRef(false);
 
-    // subscribe to workout doc for members array + meta (robust normalization)
+    // --- subscribe to workout doc for members array
     useEffect(() => {
         if (!wid) return;
         const unsub = onSnapshot(doc(db, "workouts", String(wid)), async (snap) => {
             const data = snap.data() || {};
             const arr = Array.isArray(data?.members) ? data.members : [];
-            const norm = arr.map(asUid).filter(Boolean);
+            const norm = arr.map(String);
             setMembers(norm);
 
-            // meta
-            const active = !!data?.active;
-            const upd = data?.updatedAt?.toMillis?.() || 0;
-            setGroupActive(active);
-            setGroupUpdatedAt(upd);
+            // If currently viewing someone who is not a member anymore, jump back to me
+            if (viewingUid && !norm.includes(String(viewingUid)) && meUid) {
+                setViewingUid(String(meUid));
+            }
 
             // If joining is enabled and we aren't in, add us to members (idempotent)
             if (autoJoin && meUid && norm && !norm.includes(String(meUid)) && !joinedOnceRef.current) {
@@ -87,6 +74,7 @@ export function useGroupViewing({
                         members: arrayUnion(meUid),
                     });
                 } catch {
+                    // if doc didn't exist, create it
                     try {
                         await setDoc(
                             doc(db, "workouts", String(wid)),
@@ -107,38 +95,41 @@ export function useGroupViewing({
             }
         });
         return () => unsub();
-    }, [wid, meUid, autoJoin]);
+        // include viewingUid so we can react to member loss cleanly
+    }, [wid, meUid, autoJoin, viewingUid]);
 
-    // presence publisher / cleanup
+    // --- presence publisher: workouts/{wid}/live/{meUid} (only if autoJoin)
     useEffect(() => {
-        if (!wid || !meUid) return;
+        if (!wid || !meUid || !autoJoin) return;
         let t = null;
-        const presenceRef = doc(db, "workouts", String(wid), "live", String(meUid));
 
         const publish = async () => {
             try {
                 await setDoc(
-                    presenceRef,
-                    { uid: String(meUid), handle: userHandle || "", image: userImage || "", updatedAt: serverTimestamp() },
+                    doc(db, "workouts", String(wid), "live", String(meUid)),
+                    {
+                        uid: String(meUid),
+                        handle: userHandle || "",
+                        image: userImage || "",
+                        updatedAt: serverTimestamp(),
+                    },
                     { merge: true }
                 );
-            } catch (e) { console.log("publish presence error", e); }
+            } catch (e) {
+                console.log("publish presence error", e);
+            }
         };
 
-        if (autoJoin) {
-            t = setTimeout(publish, 250);
-            return () => {
-                if (t) clearTimeout(t);
-                try { deleteDoc(presenceRef); } catch { }
-            };
-        }
-
-        // viewing-only: proactively delete any stale presence for me
-        (async () => { try { await deleteDoc(presenceRef); } catch { } })();
-        return () => { };
+        // publish once quickly
+        t = setTimeout(publish, 250);
+        return () => {
+            if (t) clearTimeout(t);
+            // best-effort clean-up when leaving this screen
+            try { deleteDoc(doc(db, "workouts", String(wid), "live", String(meUid))); } catch { }
+        };
     }, [wid, meUid, userHandle, userImage, autoJoin]);
 
-    // subscribe to presence and (conditionally) merge with normalized members
+    // --- subscribe to presence list (live subcollection)
     useEffect(() => {
         if (!wid) return;
         const qLive = query(collection(db, "workouts", String(wid), "live"), orderBy("updatedAt", "desc"));
@@ -146,51 +137,45 @@ export function useGroupViewing({
             const rows = snap.docs.map((d) => ({ id: d.id, ...(d.data() || {}) }));
 
             // Normalize presence entries
-            const normLive = rows.map((r) => ({
-                uid: asUid(r?.uid || r?.id),
+            const norm = rows.map((r) => ({
+                uid: String(r?.uid || r?.id || ""),
                 handle: r?.handle || "",
                 image: r?.image || "",
                 pfpVersion: r?.pfpVersion || 0,
                 updatedAt: r?.updatedAt?.toMillis?.() || 0,
-            })).filter((r) => !!r.uid);
+            }));
 
-            // Only synthesize "missing" members if we are actually live (active/very recent)
-            const now = Date.now();
-            const looksActiveNow = groupActive || (groupUpdatedAt && (now - groupUpdatedAt) <= GROUP_ACTIVE_GRACE_MS);
-            const shouldMergeMembers = autoJoin || looksActiveNow;
+            // Merge with members to ensure everyone shows
+            const seen = new Set(norm.map((n) => n.uid));
+            const missing = (members || []).filter((m) => !seen.has(String(m)));
 
-            let merged = normLive;
-            if (shouldMergeMembers) {
-                const seen = new Set(normLive.map((n) => n.uid));
-                const missing = (members || []).filter((m) => !seen.has(m));
-                if (missing.length) {
-                    const add = await Promise.all(
-                        missing.map(async (uid) => {
-                            try {
-                                const u = await getDoc(doc(db, "users", uid));
-                                const data = u.exists() ? u.data() : {};
-                                return {
-                                    uid,
-                                    handle: data?.handle || "",
-                                    image: data?.pfp || data?.photoURL || data?.image || "",
-                                    pfpVersion: data?.pfpVersion || 0,
-                                    updatedAt: 0, // not live — derived from membership only
-                                };
-                            } catch {
-                                return { uid, handle: "", image: "", pfpVersion: 0, updatedAt: 0 };
-                            }
-                        })
-                    );
-                    merged = [...normLive, ...add];
-                }
+            let merged = norm;
+            if (missing.length) {
+                const add = await Promise.all(
+                    missing.map(async (uid) => {
+                        try {
+                            const u = await getDoc(doc(db, "users", String(uid)));
+                            const data = u.exists() ? u.data() : {};
+                            return {
+                                uid: String(uid),
+                                handle: data?.handle || "",
+                                image: data?.pfp || data?.photoURL || data?.image || "",
+                                pfpVersion: data?.pfpVersion || 0,
+                                updatedAt: 0,
+                            };
+                        } catch {
+                            return { uid: String(uid), handle: "", image: "", pfpVersion: 0, updatedAt: 0 };
+                        }
+                    })
+                );
+                merged = [...norm, ...add];
             }
-
             setParticipants(merged);
         });
         return () => unsub();
-    }, [wid, members, autoJoin, groupActive, groupUpdatedAt]);
+    }, [wid, members]);
 
-    // stream the currently viewed user
+    // --- stream the active user's current workout + stats for viewing
     const [activeWorkout, setActiveWorkout] = useState(null);
     const [activeStats, setActiveStats] = useState({});
     const [overlayPfp, setOverlayPfp] = useState(null);
@@ -209,6 +194,27 @@ export function useGroupViewing({
         });
         return () => unsub();
     }, [viewingUid]);
+
+    // --- HARD GUARD 1: if the currently viewed user's currentWorkout is missing or mismatched, jump back to me
+    useEffect(() => {
+        if (!wid || viewingSelf) return;
+        const currWid = String(activeWorkout?.wid || "");
+        const targetWid = String(wid || "");
+        if (!activeWorkout || !currWid || currWid !== targetWid) {
+            if (meUid) setViewingUid(String(meUid));
+        }
+    }, [wid, activeWorkout, viewingSelf, meUid]);
+
+    // --- HARD GUARD 2: if the viewed uid drops out of participants (left/cancelled), jump back to me
+    useEffect(() => {
+        if (!participants || !participants.length) return;
+        const vu = String(viewingUid || "");
+        if (!vu) return;
+        const present = participants.some((p) => String(p?.uid) === vu);
+        if (!present && meUid) {
+            setViewingUid(String(meUid));
+        }
+    }, [participants, viewingUid, meUid]);
 
     const friendDoneDerived = useMemo(() => 0, [activeWorkout]);
 
