@@ -6,9 +6,9 @@ import {
     StyleSheet,
     Animated,
     Text,
-    Platform,
     Alert,
     InteractionManager,
+    Pressable,
 } from "react-native";
 
 // Header & Footer
@@ -28,7 +28,7 @@ import DayDetailsSheet from "../components/3_Workout/DayDetailsSheet";
 import FriendsActivitySheet from "../components/3_Workout/FriendsActivitySheet";
 
 // Theme & Hooks (project)
-import { ss, FOOTER_HEIGHT, BTN_SIZE, ROW_WIDTH, TPL_BOTTOM_GAP } from "../components/3_Workout/sections/workoutTheme";
+import { ss, FOOTER_HEIGHT, BTN_SIZE, TPL_BOTTOM_GAP } from "../components/3_Workout/sections/workoutTheme";
 import { useFoodLogs } from "../hooks/useFoodLogs";
 import useResolvedUid from "../hooks/useResolvedUid";
 import useUserDoc from "../hooks/useUserDoc";
@@ -36,7 +36,18 @@ import useUserDoc from "../hooks/useUserDoc";
 // Backend
 import updateDoc from "../../backend/helper/firebase/updateDoc";
 import makeID from "../../backend/helper/makeID";
-import { setDoc, doc, serverTimestamp } from "firebase/firestore";
+import {
+    setDoc,
+    doc,
+    serverTimestamp,
+    onSnapshot,
+    collection,
+    query,
+    where,
+    arrayUnion,
+    updateDoc as fsUpdateDoc,
+    getDoc,
+} from "firebase/firestore";
 import { db } from "../../firebase.config";
 
 // utils
@@ -48,6 +59,10 @@ import rankUsers from "../helper/rankUsers";
 import HubRow from "../components/3_Workout/sections/HubRow";
 import StartCluster from "../components/3_Workout/sections/StartCluster";
 import useFriendsActivity from "../hooks/useFriendsActivity";
+
+// pfps
+import { usePfp } from "../helper/usePFPs";
+import FastImage from "react-native-fast-image";
 
 // labels
 const PREVIEW_EXERCISE = "Bench Press (Barbell)";
@@ -74,32 +89,88 @@ const toMillis = (v) => {
 const sanitizeWorkout = (w) => {
     if (!w) return null;
     const created = toMillis(w.created ?? w.createdAt);
-
     const normalizeSets = (sets) =>
         Array.isArray(sets) && sets.length
             ? sets.map((s) => ({
-                weight: Number(s?.weight) || 0,
-                reps: Number(s?.reps) || 0,
-                isDone: !!s?.isDone,
-            }))
+                  weight: Number(s?.weight) || 0,
+                  reps: Number(s?.reps) || 0,
+                  isDone: !!s?.isDone,
+              }))
             : [{ weight: 0, reps: 0, isDone: false }];
-
     const exercises = Array.isArray(w.exercises)
-        ? w.exercises.map((ex) => ({
-            ...ex,
-            sets: normalizeSets(ex?.sets),
-        }))
+        ? w.exercises.map((ex) => ({ ...ex, sets: normalizeSets(ex?.sets) }))
         : [];
-
-    return {
-        ...w,
-        created,
-        exercises,
-        volume: Number(w?.volume) || 0,
-        reps: Number(w?.reps) || 0,
-        PBs: Number(w?.PBs) || 0,
-    };
+    return { ...w, created, exercises, volume: Number(w?.volume) || 0, reps: Number(w?.reps) || 0, PBs: Number(w?.PBs) || 0 };
 };
+
+/* ----------------------------------------------
+   LIVE FOLLOWING: subscribe to each followed user
+   and treat any user with currentWorkout as "Live"
+------------------------------------------------ */
+function useLiveFollowing(user) {
+    const [liveUsers, setLiveUsers] = useState([]); // [{uid, pfp, pfpVersion, isLive:true, _ts:number}]
+    useEffect(() => {
+        const following = (() => {
+            if (Array.isArray(user?.following)) return user.following;
+            if (Array.isArray(user?.friends)) return user.friends.map((f) => f?.uid).filter(Boolean);
+            if (user?.followingMap && typeof user.followingMap === "object") return Object.keys(user.followingMap);
+            return [];
+        })();
+
+        if (!following || following.length === 0) {
+            setLiveUsers([]);
+            return;
+        }
+
+        let mounted = true;
+        const unsubMap = new Map();
+
+        const upsert = (uid, entryOrNull) => {
+            setLiveUsers((prev) => {
+                const next = prev.filter((x) => x.uid !== uid);
+                if (entryOrNull) next.push(entryOrNull);
+                next.sort((a, b) => (b._ts || 0) - (a._ts || 0));
+                return next;
+            });
+        };
+
+        following.forEach((f) => {
+            const fuid = typeof f === "string" ? f : f?.uid;
+            if (!fuid) return;
+            try {
+                const unsub = onSnapshot(doc(db, "users", String(fuid)), (snap) => {
+                    if (!mounted) return;
+                    const data = snap.data() || {};
+                    const cw = data.currentWorkout || null;
+                    if (cw) {
+                        const ts = toMillis(cw.created ?? cw.createdAt);
+                        upsert(String(fuid), {
+                            uid: String(fuid),
+                            pfp: data.pfp || data.photoURL || data.image || data.avatar || "",
+                            pfpVersion: data.pfpVersion || 0,
+                            isLive: true,
+                            currentWorkout: true,
+                            _ts: ts || Date.now(),
+                        });
+                    } else {
+                        upsert(String(fuid), null);
+                    }
+                });
+                unsubMap.set(String(fuid), unsub);
+            } catch {
+                /* ignore */
+            }
+        });
+
+        return () => {
+            mounted = false;
+            unsubMap.forEach((u) => u && u());
+            unsubMap.clear();
+        };
+    }, [user?.following, user?.friends, user?.followingMap]);
+
+    return liveUsers;
+}
 
 export default function Workout({ navigation, route }) {
     /* ---------- resolve uid & user ---------- */
@@ -115,7 +186,7 @@ export default function Workout({ navigation, route }) {
         }
     }, [uid]);
 
-    /* ---------- first paint guard (defer heavy mounts) ---------- */
+    /* ---------- first paint guard ---------- */
     const [afterPaint, setAfterPaint] = useState(false);
     useEffect(() => {
         const task = InteractionManager.runAfterInteractions(() => {
@@ -124,12 +195,12 @@ export default function Workout({ navigation, route }) {
         return () => task?.cancel?.();
     }, []);
 
-    /* ---------- prevent phantom “00:00” at cold app start ---------- */
+    /* ---------- prevent phantom “00:00” ---------- */
     useEffect(() => {
         try { global.isCurrentlyWorkingOut = false; } catch { }
     }, []);
 
-    /* ---------- podium preview load (post-paint) ---------- */
+    /* ---------- podium preview ---------- */
     const [top3, setTop3] = useState([]);
     useEffect(() => {
         let mounted = true;
@@ -156,14 +227,10 @@ export default function Workout({ navigation, route }) {
 
     /* ---------- UI/anim ---------- */
     const scaleAnim = useRef(new Animated.Value(0.92)).current;
-    useEffect(() => {
-        Animated.spring(scaleAnim, { toValue: 1, useNativeDriver: true, friction: 6, tension: 80 }).start();
-    }, []);
+    useEffect(() => { Animated.spring(scaleAnim, { toValue: 1, useNativeDriver: true, friction: 6, tension: 80 }).start(); }, []);
 
     /* ---------- calories (today) ---------- */
-    const stableToday = useMemo(() => {
-        const d = new Date(); d.setHours(0, 0, 0, 0); return d;
-    }, []);
+    const stableToday = useMemo(() => { const d = new Date(); d.setHours(0, 0, 0, 0); return d; }, []);
     const { totals: todayTotals } = useFoodLogs(stableToday, uid);
     const todayCalories = Math.round(Math.max(0, todayTotals?.calories || 0));
     const caloriesGoal = useMemo(
@@ -177,13 +244,7 @@ export default function Workout({ navigation, route }) {
         const list = Array.isArray(arr) ? arr : [];
         return list.map((t) => {
             const tid = t?.tid || t?.id || makeID();
-            return {
-                id: t?.id || tid,
-                tid,
-                name: t?.name || "Untitled Template",
-                exercises: Array.isArray(t?.exercises) ? t.exercises : [],
-                lastDate: t?.lastDate ?? null,
-            };
+            return { id: t?.id || tid, tid, name: t?.name || "Untitled Template", exercises: Array.isArray(t?.exercises) ? t.exercises : [], lastDate: t?.lastDate ?? null };
         });
     };
     const [templates, setTemplates] = useState([]);
@@ -205,7 +266,7 @@ export default function Workout({ navigation, route }) {
 
     const openedTemplateRef = useRef(null);
     const [isEditTemplateVisible, setIsEditTemplateVisible] = useState(false);
-    const [editSheetToggle, setEditSheetToggle] = useState(false); // NEW: force expand token
+    const [editSheetToggle, setEditSheetToggle] = useState(false);
 
     const initTemplate = useCallback(() => {
         const tid = makeID();
@@ -213,14 +274,14 @@ export default function Workout({ navigation, route }) {
         setTemplates((prev) => { const next = [...prev, newTemplate]; queueSaveTemplates(next); return next; });
         openedTemplateRef.current = newTemplate;
         setIsEditTemplateVisible(true);
-        setEditSheetToggle((t) => !t); // force expand
+        setEditSheetToggle((t) => !t);
     }, [queueSaveTemplates]);
 
     const openEditTemplate = useCallback((tpl) => {
         if (!tpl || tpl.isNone) return;
         openedTemplateRef.current = { ...tpl };
         setIsEditTemplateVisible(true);
-        setEditSheetToggle((t) => !t); // force expand every time
+        setEditSheetToggle((t) => !t);
     }, []);
 
     const updateTemplate = useCallback(() => {
@@ -252,6 +313,7 @@ export default function Workout({ navigation, route }) {
     const [isNewWorkoutVisible, setIsNewWorkoutVisible] = useState(false);
     const [headerKey, setHeaderKey] = useState(0);
     const startGuardRef = useRef(false);
+
     const createWorkoutDoc = useCallback(async (wid) => {
         await setDoc(doc(db, "workouts", wid), {
             wid, creatorUid: uid, createdAt: serverTimestamp(), active: true, members: [uid], updatedAt: serverTimestamp(),
@@ -262,6 +324,32 @@ export default function Workout({ navigation, route }) {
         try { global.isCurrentlyWorkingOut = false; if (global?.userData) global.userData.currentWorkout = null; } catch { }
         stopTimer(); setIsNewWorkoutVisible(false); setWorkout(null); setHeaderKey((k) => k + 1);
     }, [stopTimer]);
+
+    // persist current workout (debounced)
+    const saveCurrentWorkoutDebouncedRef = useRef(null);
+    const clearPersistDebounce = useCallback(() => {
+        if (saveCurrentWorkoutDebouncedRef.current) {
+            clearTimeout(saveCurrentWorkoutDebouncedRef.current);
+            saveCurrentWorkoutDebouncedRef.current = null;
+        }
+    }, []);
+    const persistCurrentWorkout = useCallback((value) => {
+        if (!uid) return;
+        if (!value) {
+            clearPersistDebounce();
+            (async () => {
+                try { await setDoc(doc(db, "users", uid), { currentWorkout: null }, { merge: true }); }
+                catch (e) { console.log("setDoc users.currentWorkout (clear) error", e); try { await updateDoc("users", uid, { currentWorkout: null }); } catch { } }
+            })();
+            return;
+        }
+        clearPersistDebounce();
+        const payload = sanitizeWorkout(value);
+        saveCurrentWorkoutDebouncedRef.current = setTimeout(async () => {
+            try { await setDoc(doc(db, "users", uid), { currentWorkout: payload }, { merge: true }); }
+            catch (e) { console.log("setDoc users.currentWorkout (debounced) error", e); try { await updateDoc("users", uid, { currentWorkout: payload }); } catch { } }
+        }, 400);
+    }, [uid, clearPersistDebounce]);
 
     const startWorkoutBase = useCallback((tplOrNull) => {
         if (startGuardRef.current) return;
@@ -274,14 +362,9 @@ export default function Workout({ navigation, route }) {
                 const wid = makeID();
                 const created = Date.now();
 
-                // normalize sets with isDone
                 const normalizeSets = (sets) =>
                     Array.isArray(sets) && sets.length
-                        ? sets.map((s) => ({
-                            weight: Number(s?.weight) || 0,
-                            reps: Number(s?.reps) || 0,
-                            isDone: !!s?.isDone,
-                        }))
+                        ? sets.map((s) => ({ weight: Number(s?.weight) || 0, reps: Number(s?.reps) || 0, isDone: !!s?.isDone }))
                         : [{ weight: 0, reps: 0, isDone: false }];
 
                 const exercisesFromTpl = tplOrNull?.exercises
@@ -300,24 +383,17 @@ export default function Workout({ navigation, route }) {
                     PBs: 0,
                 };
 
-                // local state + UI
                 setWorkout(newWorkout);
                 setIsNewWorkoutVisible(true);
                 startTimer(created);
 
-                // WRITE-THROUGH: save immediately to Firestore (no deferral)
                 clearPersistDebounce();
                 setDoc(doc(db, "users", uid), { currentWorkout: newWorkout }, { merge: true })
-                    .catch((e) => {
-                        console.log("setDoc users.currentWorkout error", e);
-                    });
+                    .catch((e) => console.log("setDoc users.currentWorkout error", e));
 
-                // Create workouts doc in background
                 InteractionManager.runAfterInteractions(() => {
                     requestAnimationFrame(() => {
-                        createWorkoutDoc(wid).catch((e) => {
-                            console.log("createWorkoutDoc error", e);
-                        });
+                        createWorkoutDoc(wid).catch((e) => console.log("createWorkoutDoc error", e));
                     });
                 });
             } else {
@@ -327,79 +403,24 @@ export default function Workout({ navigation, route }) {
             console.log("startWorkout error", e);
             Alert.alert("Couldn't start workout", e?.message || "Please try again.");
         }
-    }, [uid, workout, createWorkoutDoc, startTimer, /* NEW */ clearPersistDebounce]);
+    }, [uid, workout, createWorkoutDoc, startTimer, clearPersistDebounce]);
 
     const onStartWorkout = useCallback(() => {
         const selected = templatesWithNone[Math.max(0, Math.min(activeIdx, templatesWithNone.length - 1))];
         startWorkoutBase(selected?.isNone ? null : selected);
     }, [activeIdx, templatesWithNone, startWorkoutBase]);
 
-    // --- persist current workout (debounced) when it changes
-    const saveCurrentWorkoutDebouncedRef = useRef(null);
-    const clearPersistDebounce = useCallback(() => {
-        if (saveCurrentWorkoutDebouncedRef.current) {
-            clearTimeout(saveCurrentWorkoutDebouncedRef.current);
-            saveCurrentWorkoutDebouncedRef.current = null;
-        }
-    }, []);
-
-    const persistCurrentWorkout = useCallback((value) => {
-        if (!uid) return;
-
-        // If clearing, do it immediately and cancel any pending write that could resurrect the workout
-        if (!value) {
-            clearPersistDebounce();
-            (async () => {
-                try {
-                    await setDoc(doc(db, "users", uid), { currentWorkout: null }, { merge: true });
-                } catch (e) {
-                    console.log("setDoc users.currentWorkout (immediate null) error", e);
-                    try { await updateDoc("users", uid, { currentWorkout: null }); } catch (e2) {
-                        console.log("helper updateDoc fallback error", e2);
-                    }
-                }
-            })();
-            return;
-        }
-
-        clearPersistDebounce();
-        const payload = sanitizeWorkout(value);
-
-        saveCurrentWorkoutDebouncedRef.current = setTimeout(async () => {
-            try {
-                await setDoc(doc(db, "users", uid), { currentWorkout: payload }, { merge: true });
-            } catch (e) {
-                console.log("setDoc users.currentWorkout (debounced) error", e);
-                try { await updateDoc("users", uid, { currentWorkout: payload }); } catch (e2) {
-                    console.log("helper updateDoc fallback error", e2);
-                }
-            }
-        }, 400);
-    }, [uid, clearPersistDebounce]);
-
-    const updateNewWorkout = useCallback((next) => {
-        setWorkout(next);
-        persistCurrentWorkout(next); // persist to backend with `isDone`
-    }, [persistCurrentWorkout]);
+    const updateNewWorkout = useCallback((next) => { setWorkout(next); persistCurrentWorkout(next); }, [persistCurrentWorkout]);
 
     const cancelWorkout = useCallback(async () => {
         try {
-            // 1) stop any pending save of the old workout
             clearPersistDebounce();
-            // 2) clear in backend immediately
             if (uid) {
-                try {
-                    await setDoc(doc(db, "users", uid), { currentWorkout: null }, { merge: true });
-                } catch (e) {
-                    console.log("setDoc users.currentWorkout (cancel) error", e);
-                    await updateDoc("users", uid, { currentWorkout: null });
-                }
+                try { await setDoc(doc(db, "users", uid), { currentWorkout: null }, { merge: true }); }
+                catch (e) { console.log("setDoc users.currentWorkout (cancel) error", e); await updateDoc("users", uid, { currentWorkout: null }); }
             }
-            // 3) clear locally
             clearCurrentWorkoutLocally();
-        } catch (e) {
-            console.log("cancelWorkout error", e);
-        }
+        } catch (e) { console.log("cancelWorkout error", e); }
     }, [uid, clearCurrentWorkoutLocally, clearPersistDebounce]);
 
     const [completedWorkout, setCompletedWorkout] = useState(null);
@@ -446,9 +467,8 @@ export default function Workout({ navigation, route }) {
         } catch { }
     }, [completedWorkout, navigation]);
 
-    /* ---------- Rehydrate local workout from Firestore on load ---------- */
+    /* ---------- Rehydrate from Firestore ---------- */
     useEffect(() => {
-        // only adopt remote when we don't already have a local one
         if (workout) return;
         const remote = sanitizeWorkout(user?.currentWorkout);
         if (remote && remote.created) {
@@ -461,7 +481,7 @@ export default function Workout({ navigation, route }) {
         }
     }, [user?.currentWorkout, workout, startTimer]);
 
-    /* ---------- Day sheet (toggle-to-open) + data ---------- */
+    /* ---------- Day sheet + meals ---------- */
     const [daySheetToggle, setDaySheetToggle] = useState(false);
     const [daySheetVisible, setDaySheetVisible] = useState(false);
     const [daySheetDate, setDaySheetDate] = useState(null);
@@ -479,70 +499,227 @@ export default function Workout({ navigation, route }) {
     /* ---------- Friends activity ---------- */
     const { items: friendsActivity, refresh: refreshFriends } = useFriendsActivity(user);
     const [friendsSheetVisible, setFriendsSheetVisible] = useState(false);
-    const [friendsSheetToggle, setFriendsSheetToggle] = useState(false); // <-- toggle flag
+    const [friendsSheetToggle, setFriendsSheetToggle] = useState(false);
 
-    // PRELOAD immediately (no deferral) so data is ready before the first open
-    useEffect(() => {
-        refreshFriends();
-    }, [refreshFriends]);
-
-    // refresh on open
+    useEffect(() => { refreshFriends(); }, [refreshFriends]);
     useEffect(() => { if (friendsSheetVisible) refreshFriends(); }, [friendsSheetVisible, refreshFriends]);
 
-    // ----- compute "new updates" for the Friends button indicator -----
     const lastViewedAtMs = toMillis(user?.friendsActivityLastViewedAt);
     const itemTs = useCallback(
-        (it) => Math.max(
-            toMillis(it?.created) || 0,
-            toMillis(it?.startedAt) || 0,
-            toMillis(it?.finishedAt) || 0
-        ),
+        (it) => Math.max(toMillis(it?.created) || 0, toMillis(it?.startedAt) || 0, toMillis(it?.finishedAt) || 0),
         []
     );
-
     const newItems = useMemo(() => {
         const v = lastViewedAtMs || 0;
         const arr = Array.isArray(friendsActivity) ? friendsActivity : [];
         return arr.filter((it) => itemTs(it) > v);
     }, [friendsActivity, lastViewedAtMs, itemTs]);
 
-    const recentUsersForStack = useMemo(() => {
-        const seen = new Set();
-        const out = [];
-        const sorted = [...newItems].sort((a, b) => itemTs(b) - itemTs(a));
-        for (const it of sorted) {
+    /* ---------- LIVE FOLLOWING: always treat live as new ---------- */
+    const liveNow = useLiveFollowing(user); // [{uid,pfp,pfpVersion,isLive:true,_ts}]
+    const nonLiveNew = useMemo(() => {
+        const liveSet = new Set(liveNow.map((x) => x.uid));
+        const uniq = [];
+        (Array.isArray(newItems) ? newItems : []).forEach((it) => {
             const uidX = it?.uid;
-            if (!uidX || seen.has(uidX)) continue;
-            seen.add(uidX);
-            out.push({
+            if (!uidX || liveSet.has(uidX)) return;
+            if (uniq.find((u) => u.uid === uidX)) return;
+            uniq.push({
                 uid: uidX,
                 pfp: it?.pfp || it?.pfpUrl || it?.photoURL || it?.image || it?.avatar || "",
+                pfpVersion: it?.pfpVersion || 0,
+                isLive: false,
+                _ts: itemTs(it),
             });
-            if (out.length >= 3) break;
-        }
-        return out;
-    }, [newItems, itemTs]);
+        });
+        uniq.sort((a, b) => (b._ts || 0) - (a._ts || 0));
+        return uniq;
+    }, [newItems, liveNow, itemTs]);
 
-    const hasNewFriendsUpdates = recentUsersForStack.length > 0;
+    const stackUsers = useMemo(() => {
+        const merged = [...liveNow, ...nonLiveNew];
+        return merged.slice(0, 3);
+    }, [liveNow, nonLiveNew]);
+
+    const hasAnyStack = stackUsers.length > 0;
+
+    /* ---------- INVITE BANNER (Workout screen) ---------- */
+    const [invites, setInvites] = useState([]); // pending invites for me
+    const [currentInvite, setCurrentInvite] = useState(null);
+    const bannerY = useRef(new Animated.Value(0)).current; // anchored just below header; animate translateY
+    const [bannerHeight, setBannerHeight] = useState(0);
+
+    // measure header height to anchor banner below it
+    const [headerHeight, setHeaderHeight] = useState(0);
+    const onHeaderLayout = useCallback((e) => {
+        const h = e?.nativeEvent?.layout?.height || 0;
+        if (h && h !== headerHeight) setHeaderHeight(h);
+    }, [headerHeight]);
+
+    // listen for pending invites targeting me
+    useEffect(() => {
+        const me = String(uid || global?.userData?.uid || "");
+        if (!me) return;
+        const qInv = query(
+            collection(db, "workoutInvites"),
+            where("toUid", "==", me),
+            where("status", "==", "pending")
+        );
+        const unsub = onSnapshot(qInv, (snap) => {
+            const list = snap.docs.map((d) => ({ id: d.id, ...d.data() }));
+            list.sort((a, b) => {
+                const ta = a?.createdAt?.seconds || 0;
+                const tb = b?.createdAt?.seconds || 0;
+                return tb - ta;
+            });
+            setInvites(list);
+        });
+        return () => unsub();
+    }, [uid]);
+
+    useEffect(() => {
+        setCurrentInvite(invites?.[0] || null);
+    }, [invites]);
+
+    useEffect(() => {
+        const hidden = -Math.max((bannerHeight || 80) + 12, 92); // slide up just above its own box
+        Animated.spring(bannerY, {
+            toValue: currentInvite ? 0 : hidden,
+            useNativeDriver: true,
+            friction: 8,
+            tension: 90,
+        }).start();
+    }, [currentInvite, bannerHeight, bannerY]);
+
+    const inviterPfpUri = usePfp(currentInvite?.fromUid || null, currentInvite?.fromPfpVersion || 0) || currentInvite?.fromPfp || "";
+
+    const handleInviteLayout = useCallback((e) => {
+        const h = e?.nativeEvent?.layout?.height || 0;
+        if (h && h !== bannerHeight) setBannerHeight(h);
+    }, [bannerHeight]);
+
+    const handleAcceptInvite = useCallback(async () => {
+        if (!currentInvite) return;
+        try {
+            const me = String(uid || global?.userData?.uid || "");
+            const wid = String(currentInvite?.wid || "");
+            if (!me || !wid) return;
+
+            await fsUpdateDoc(doc(db, "workouts", wid), {
+                members: arrayUnion(me),
+                updatedAt: serverTimestamp(),
+                active: true,
+            });
+            await fsUpdateDoc(doc(db, "workoutInvites", currentInvite.id), {
+                status: "accepted",
+                actedAt: serverTimestamp(),
+            });
+
+            // seed local workout from workout doc
+            const wSnap = await getDoc(doc(db, "workouts", wid));
+            const seed = wSnap.exists() ? wSnap.data() : null;
+
+            const joined = {
+                wid,
+                creatorUID: seed?.creatorUid || currentInvite?.fromUid || me,
+                created: Date.now(),
+                users: [],
+                exercises: [],
+                tid: null,
+                volume: 0, reps: 0, PBs: 0,
+            };
+            setWorkout(joined);
+            setIsNewWorkoutVisible(true);
+            persistCurrentWorkout(joined);
+
+            // drop this invite (banner slides up)
+            setInvites((prev) => prev.filter((x) => x.id !== currentInvite.id));
+        } catch (e) {
+            console.log("Accept invite error", e);
+            Alert.alert("Couldn't join", "Please try again.");
+        }
+    }, [currentInvite, uid, persistCurrentWorkout]);
+
+    const handleDeclineInvite = useCallback(async () => {
+        if (!currentInvite) return;
+        try {
+            await fsUpdateDoc(doc(db, "workoutInvites", currentInvite.id), {
+                status: "declined",
+                actedAt: serverTimestamp(),
+            });
+            setInvites((prev) => prev.filter((x) => x.id !== currentInvite.id));
+        } catch (e) {
+            console.log("Decline invite error", e);
+            setInvites((prev) => prev.filter((x) => x.id !== currentInvite.id));
+        }
+    }, [currentInvite]);
 
     /* ---------------- render ---------------- */
     const allUsersRef = useRef([]);
 
     return (
         <SafeAreaView style={styles.root}>
-            <FeedHeader
-                key={headerKey}
-                toMessagesScreen={() => navigation?.navigate("Messages")}
-                onOpenNotifications={() => navigation?.navigate("Notifications")}
-                backButton={false}
-                onBackPress={() => navigation?.goBack?.()}
-                scrollToTop={() => { }}
-                navigation={navigation}
-                allUsersRef={allUsersRef}
-                workout={workout}
-                timerRef={timerRef}
-                openCurrentWorkout={() => setIsNewWorkoutVisible(true)}
-            />
+            {/* Header measured for safe anchoring */}
+            <View onLayout={onHeaderLayout}>
+                <FeedHeader
+                    key={headerKey}
+                    toMessagesScreen={() => navigation?.navigate("Messages")}
+                    onOpenNotifications={() => navigation?.navigate("Notifications")}
+                    backButton={false}
+                    onBackPress={() => navigation?.goBack?.()}
+                    scrollToTop={() => { }}
+                    navigation={navigation}
+                    allUsersRef={allUsersRef}
+                    workout={workout}
+                    timerRef={timerRef}
+                    openCurrentWorkout={() => setIsNewWorkoutVisible(true)}
+                />
+            </View>
+
+            {/* Invite banner (absolute, anchored below header & within SafeArea) */}
+            <Animated.View
+                style={[
+                    styles.inviteBannerWrap,
+                    { top: headerHeight + 6, transform: [{ translateY: bannerY }] },
+                ]}
+                pointerEvents={currentInvite ? "auto" : "none"}
+                onLayout={handleInviteLayout}
+            >
+                {currentInvite && (
+                    <View style={styles.inviteCard}>
+                        <View style={styles.inviteLeft}>
+                            <View style={styles.invitePfpWrap}>
+                                {inviterPfpUri ? (
+                                    <FastImage
+                                        source={{
+                                            uri: inviterPfpUri,
+                                            priority: FastImage.priority.normal,
+                                            cache: FastImage.cacheControl.immutable,
+                                        }}
+                                        style={styles.invitePfp}
+                                    />
+                                ) : (
+                                    <View style={[styles.invitePfp, { backgroundColor: "#E5E7EB" }]} />
+                                )}
+                            </View>
+                            <View style={{ flex: 1 }}>
+                                <Text style={styles.inviteTitle}>
+                                    {currentInvite.fromHandle ? `@${currentInvite.fromHandle} invited you` : "You’ve been invited"}
+                                </Text>
+                                <Text style={styles.inviteSub}>Join their workout?</Text>
+                            </View>
+                        </View>
+                        <View style={styles.inviteActions}>
+                            <Pressable onPress={handleAcceptInvite} style={styles.inviteAccept} hitSlop={8}>
+                                <Text style={styles.inviteAcceptText}>Accept</Text>
+                            </Pressable>
+                            <Pressable onPress={handleDeclineInvite} hitSlop={8} style={styles.inviteDismiss}>
+                                <Text style={styles.inviteDismissText}>Dismiss</Text>
+                            </Pressable>
+                        </View>
+                    </View>
+                )}
+            </Animated.View>
 
             <View style={styles.content}>
                 <WeekCalendar
@@ -589,17 +766,17 @@ export default function Workout({ navigation, route }) {
                     onStartWorkout={onStartWorkout}
                     onOpenNewWorkout={() => setIsNewWorkoutVisible(true)}
                     onOpenFriends={() => {
-                        setFriendsSheetVisible(true);           // keep mounted + visible
-                        setFriendsSheetToggle((f) => !f);      // flip -> ALWAYS expand (token)
+                        setFriendsSheetVisible(true);
+                        setFriendsSheetToggle((f) => !f);
                     }}
-                    hasNewFriendsUpdates={hasNewFriendsUpdates}
-                    friendsStackUsers={recentUsersForStack}
+                    hasNewFriendsUpdates={hasAnyStack}
+                    friendsStackUsers={stackUsers}
                 />
             </View>
 
             <Footer navigation={navigation} currentScreenName={"Workout"} />
 
-            {/* Day details (mounted only when needed) */}
+            {/* Day details */}
             {daySheetVisible && (
                 <DayDetailsSheet
                     visible={daySheetVisible}
@@ -616,7 +793,7 @@ export default function Workout({ navigation, route }) {
                 />
             )}
 
-            {/* Friends sheet is always mounted but completely inert when hidden */}
+            {/* Friends sheet */}
             <View style={StyleSheet.absoluteFill} pointerEvents={friendsSheetVisible ? "auto" : "none"}>
                 <FriendsActivitySheet
                     visible={friendsSheetVisible}
@@ -636,7 +813,7 @@ export default function Workout({ navigation, route }) {
                 />
             </View>
 
-            {/* New Workout sheet is always mounted and rendered last so it sits on top */}
+            {/* New Workout sheet */}
             <NewWorkoutBottomSheet
                 workout={workout}
                 cancelNewWorkout={cancelWorkout}
@@ -649,11 +826,11 @@ export default function Workout({ navigation, route }) {
                 userWorkoutStats={global?.userData?.statsExercises || {}}
             />
 
-            {/* Template editor: force-expand via openToggle */}
+            {/* Template editor */}
             <EditTemplateBottomSheet
                 isVisible={isEditTemplateVisible}
                 setIsVisible={setIsEditTemplateVisible}
-                openToggle={editSheetToggle}               // <<< keeps opening reliably
+                openToggle={editSheetToggle}
                 openedTemplateRef={openedTemplateRef}
                 updateTemplate={updateTemplate}
                 deleteTemplate={deleteTemplate}
@@ -677,6 +854,60 @@ const styles = StyleSheet.create({
     content: { flex: 1 },
 
     templatesDock: { position: "absolute", left: 0, right: 0, bottom: FOOTER_HEIGHT + ss(22) + BTN_SIZE + TPL_BOTTOM_GAP },
-
     clusterWrap: { position: "absolute", left: 0, right: 0, bottom: FOOTER_HEIGHT + ss(20), alignItems: "center" },
+
+    // Invite banner
+    inviteBannerWrap: {
+        position: "absolute",
+        left: 0,
+        right: 0,
+        zIndex: 30,
+        alignItems: "center",
+        paddingTop: 0,
+    },
+    inviteCard: {
+        width: "92%",
+        borderRadius: 14,
+        backgroundColor: "#F7FAFF",
+        borderWidth: 1,
+        borderColor: "#E5EEF9",
+        paddingVertical: 10,
+        paddingHorizontal: 12,
+        flexDirection: "row",
+        alignItems: "center",
+        justifyContent: "space-between",
+        shadowColor: "#000",
+        shadowOpacity: 0.08,
+        shadowRadius: 10,
+        shadowOffset: { width: 0, height: 6 },
+        elevation: 3,
+    },
+    inviteLeft: { flexDirection: "row", alignItems: "center", flex: 1, marginRight: 8 },
+    invitePfpWrap: {
+        width: 36,
+        height: 36,
+        borderRadius: 18,
+        overflow: "hidden",
+        marginRight: 10,
+        backgroundColor: "#fff",
+        borderWidth: 1,
+        borderColor: "#fff",
+    },
+    invitePfp: { width: "100%", height: "100%" },
+    inviteTitle: { fontFamily: "Outfit_700Bold", fontSize: 14.5, color: "#0F172A" },
+    inviteSub: { fontFamily: "Outfit_500Medium", fontSize: 12.5, color: "#64748B", marginTop: 2 },
+
+    inviteActions: { flexDirection: "row", alignItems: "center" },
+    inviteAccept: {
+        height: 30,
+        paddingHorizontal: 14,
+        borderRadius: 999,
+        backgroundColor: "#10B981",
+        alignItems: "center",
+        justifyContent: "center",
+        marginRight: 8,
+    },
+    inviteAcceptText: { color: "#fff", fontFamily: "Outfit_700Bold", fontSize: 13 },
+    inviteDismiss: { paddingHorizontal: 6, paddingVertical: 4 },
+    inviteDismissText: { color: "#64748B", fontFamily: "Outfit_600SemiBold", fontSize: 12.5 },
 });

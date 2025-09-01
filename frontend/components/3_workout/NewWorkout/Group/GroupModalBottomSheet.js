@@ -1,6 +1,7 @@
+// components/Tracking/Group/GroupModalBottomSheet.jsx
 import React, { useCallback, useEffect, useMemo, useRef } from "react";
 import { View, StyleSheet } from "react-native";
-import BottomSheet, { BottomSheetBackdrop } from "@gorhom/bottom-sheet";
+import BottomSheet from "@gorhom/bottom-sheet";
 import GroupModal from "./GroupModal";
 
 const GroupModalBottomSheet = ({ groupModalExpandFlag, closeGroupModal, onInvite }) => {
@@ -9,24 +10,14 @@ const GroupModalBottomSheet = ({ groupModalExpandFlag, closeGroupModal, onInvite
 
     useEffect(() => {
         if (groupModalExpandFlag) {
-            bottomSheetRef.current.expand();
+            bottomSheetRef.current?.expand();
         } else {
-            bottomSheetRef.current.close();
+            bottomSheetRef.current?.close();
         }
     }, [groupModalExpandFlag]);
 
-    const renderBackdrop = useCallback(
-        (props) => (
-            <BottomSheetBackdrop
-                {...props}
-                disappearsOnIndex={-1}
-                appearsOnIndex={0}
-                opacity={0.35}
-                style={{borderTopLeftRadius: 15, borderTopRightRadius: 15}}
-            />
-        ),
-        []
-    );
+    // No backdrop (per your request earlier)
+    const renderBackdrop = useCallback(() => null, []);
 
     return (
         <View style={styles.outerContainer} pointerEvents="box-none">
@@ -35,8 +26,9 @@ const GroupModalBottomSheet = ({ groupModalExpandFlag, closeGroupModal, onInvite
                 index={-1}
                 snapPoints={snapPoints}
                 backdropComponent={renderBackdrop}
-                handleStyle={{ display: 'none' }}
+                handleStyle={{ display: "none" }}
                 enablePanDownToClose
+                onClose={closeGroupModal}
             >
                 <GroupModal closeGroupModal={closeGroupModal} onInvite={onInvite} />
             </BottomSheet>
@@ -46,13 +38,13 @@ const GroupModalBottomSheet = ({ groupModalExpandFlag, closeGroupModal, onInvite
 
 const styles = StyleSheet.create({
     outerContainer: {
-        position: 'absolute',
+        position: "absolute",
         top: 0,
         bottom: 0,
         left: 0,
         right: 0,
-        zIndex: 1
-    }
+        zIndex: 20,
+    },
 });
 
 export default GroupModalBottomSheet;

@@ -1,3 +1,4 @@
+// components/Tracking/NewWorkoutModal.jsx
 import React, { useEffect, useState, useRef, useMemo, useCallback } from "react";
 import {
     StyleSheet,
@@ -15,15 +16,26 @@ import ProgressBanner from "./Tracking/ProgressBanner";
 import ExerciseLog from "./Tracking/ExerciseLog";
 import SelectExerciseModal from "./SelectExercise/SelectExerciseModal";
 import calculate1RM from "../../../helper/calculate1RM";
-import millisToHoursMinutesSeconds from "../../../helper/millisToHoursMinutesSeconds";
 
-// 🔴 Realtime
-import { getFirestore, doc, onSnapshot } from "firebase/firestore";
+// Realtime / Firestore
+import {
+    getFirestore,
+    doc,
+    onSnapshot,
+    setDoc,
+    serverTimestamp,
+    arrayUnion,
+    addDoc,
+    collection,
+} from "firebase/firestore";
 
 // Group bits
 import { useGroupViewing } from "./Group/useGroupViewing";
 import GroupHeader from "./Group/GroupHeader";
 import GroupMenu from "./Group/GroupMenu";
+
+// Invite picker (bottom sheet)
+import GroupModalBottomSheet from "./Group/GroupModalBottomSheet";
 
 import RestTimerModal from "./RestTimerModal";
 
@@ -31,26 +43,17 @@ const { height: screenHeight } = Dimensions.get("window");
 const scale = screenHeight / 844;
 const scaledSize = (size) => Math.round(size * scale);
 
-const toMs = (v) => {
-    if (!v && v !== 0) return 0;
-    if (typeof v === "number") return v;
-    if (v?.toMillis) return v.toMillis();
-    if (typeof v?.seconds === "number") return v.seconds * 1000;
-    const n = new Date(v).getTime();
-    return Number.isFinite(n) ? n : 0;
-};
-
 const NewWorkoutModal = ({
     workout,
     cancelWorkout,
     updateWorkout,
     finishWorkout,
-    timerRef,           // ← self-timer (kept)
-    showGroupModal,
+    timerRef,
+    // showGroupModal, // no longer needed; handled internally
     userWorkoutStats,
     onViewingChange,
-    onPressBack,        // friend view back
-    onCheer,            // friend view cheer
+    onPressBack,    // for friend view
+    onCheer,        // for friend view
     forceViewingFriend = false,
     friendPfp = null,
 }) => {
@@ -64,11 +67,14 @@ const NewWorkoutModal = ({
 
     const [restModalVisible, setRestModalVisible] = useState(false);
     const [restModalKey, setRestModalKey] = useState(0);
-    const openRestModal = useCallback(() => {
-        setRestModalKey((k) => k + 1);
-        setRestModalVisible(true);
-    }, []);
+    const openRestModal = useCallback(() => { setRestModalKey((k) => k + 1); setRestModalVisible(true); }, []);
     const closeRestModal = useCallback(() => setRestModalVisible(false), []);
+
+    // ---- Invite picker (BottomSheet) ----
+    const [inviteSheetOpen, setInviteSheetOpen] = useState(false);
+    const openInviteSheet = useCallback(() => setInviteSheetOpen(true), []);
+    const closeInviteSheet = useCallback(() => setInviteSheetOpen(false), []);
+    // -------------------------------------
 
     const scrollY = useRef(new Animated.Value(0)).current;
 
@@ -76,12 +82,14 @@ const NewWorkoutModal = ({
     const [totalVolume, setTotalVolume] = useState(0);
     const [personalBests, setPersonalBests] = useState(0);
 
-    // Local UI toggle state for snappy feedback (truth lives on set.isDone)
+    // Local UI toggle state but truth lives on set.isDone
     const [isDoneState, setIsDoneState] = useState(
         () => (workout?.exercises || []).map((ex) => (ex.sets || []).map((s) => !!s?.isDone))
     );
     const [replaceIndex, setReplaceIndex] = useState(null);
 
+    // ===== Group / viewing state =====
+    const meUid = String(global?.userData?.uid || "");
     const {
         viewing,
         viewingSelf,
@@ -92,21 +100,20 @@ const NewWorkoutModal = ({
         overlayPfp,
         activeWorkout,
         activeStats,
+        friendDoneDerived,
         waitingFriend,
     } = useGroupViewing({
         wid: workout?.wid,
-        meUid: global?.userData?.uid,
+        meUid,
         userImage: global?.userData?.image,
         userHandle: global?.userData?.handle,
         userWorkoutStats,
     });
 
-    // Force read-only if requested
-    const effViewingSelf = forceViewingFriend ? false : viewingSelf;
+    const [selectedUid, setSelectedUid] = useState(meUid);
+    const effViewingSelf = forceViewingFriend ? false : selectedUid === meUid;
 
-    useEffect(() => {
-        onViewingChange?.(effViewingSelf);
-    }, [effViewingSelf, onViewingChange]);
+    useEffect(() => { onViewingChange?.(effViewingSelf); }, [effViewingSelf, onViewingChange]);
 
     useEffect(() => {
         let t = null;
@@ -114,7 +121,7 @@ const NewWorkoutModal = ({
         return () => t && clearInterval(t);
     }, [countdown]);
 
-    // Keep local toggle array in sync (when self)
+    // Sync toggles from workout data when self
     useEffect(() => {
         if (!effViewingSelf) return;
         const ex = workout?.exercises || [];
@@ -122,102 +129,57 @@ const NewWorkoutModal = ({
             ex.map((e, i) => {
                 const sets = e.sets || [];
                 const row = prev[i] || [];
-                return sets.map((s, si) =>
-                    typeof row[si] === "boolean" ? row[si] : !!s?.isDone
-                );
+                return sets.map((s, si) => (typeof row[si] === "boolean" ? row[si] : !!s?.isDone));
             })
         );
     }, [workout?.exercises, effViewingSelf]);
 
-    /* ------------------------------------------------------------------
-       🔴 DIRECT LIVE SUB USING creatorUID
-       Subscribe to users/{creatorUID}.currentWorkout and only accept
-       the one with wid we’re viewing.
-    -------------------------------------------------------------------*/
-    const targetCreatorUid = useMemo(() => {
-        if (effViewingSelf) return null;
-        return (
-            workout?.creatorUID ??
-            workout?.creatorUid ??
-            activeWorkout?.creatorUID ??
-            activeWorkout?.creatorUid ??
-            (Array.isArray(participants)
-                ? participants.find((p) => p?.uid && p?.uid !== global?.userData?.uid)?.uid
-                : null) ??
-            null
-        );
-    }, [
-        effViewingSelf,
-        workout?.creatorUID, workout?.creatorUid,
-        activeWorkout?.creatorUID, activeWorkout?.creatorUid,
-        participants,
-    ]);
+    // Validate selection when group changes
+    useEffect(() => {
+        if (!selectedUid) setSelectedUid(meUid);
+        const list = Array.isArray(participants) ? participants : [];
+        if (!effViewingSelf && list.length) {
+            const exists = list.some((p) => p?.uid === selectedUid);
+            if (!exists) setSelectedUid(meUid);
+        }
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [participants?.length, workout?.wid]);
 
-    const targetWid = useMemo(() => {
+    // Live friend subscription: selectedUid
+    const friendUid = useMemo(() => {
         if (effViewingSelf) return null;
-        return workout?.wid ?? activeWorkout?.wid ?? null;
-    }, [effViewingSelf, workout?.wid, activeWorkout?.wid]);
+        if (selectedUid && selectedUid !== meUid) return selectedUid;
+        const others = (participants || []).filter((p) => p?.uid && p.uid !== meUid);
+        if (others.length) return others[0].uid;
+        return activeWorkout?.creatorUID || activeWorkout?.creatorUid || null;
+    }, [effViewingSelf, selectedUid, meUid, participants, activeWorkout?.creatorUID, activeWorkout?.creatorUid]);
 
     const [friendLiveWorkout, setFriendLiveWorkout] = useState(null);
-
     useEffect(() => {
-        if (effViewingSelf || !targetCreatorUid || !targetWid) return;
-        const userRef = doc(db, "users", String(targetCreatorUid));
-        const unsub = onSnapshot(userRef, (snap) => {
-            const cw = snap.data()?.currentWorkout || null;
-            if (cw?.wid === targetWid) setFriendLiveWorkout(cw);
+        if (effViewingSelf || !friendUid) return;
+        const unsub = onSnapshot(doc(db, "users", String(friendUid)), (snap) => {
+            const data = snap.data() || {};
+            setFriendLiveWorkout(data.currentWorkout || null);
         });
         return () => unsub();
-    }, [db, effViewingSelf, targetCreatorUid, targetWid]);
+    }, [db, effViewingSelf, friendUid]);
 
-    /** Active workout for rendering */
-    const baseWorkout = useMemo(() => {
-        if (effViewingSelf) return workout;
-        return friendLiveWorkout || activeWorkout || workout || null;
-    }, [effViewingSelf, workout, friendLiveWorkout, activeWorkout]);
+    const baseWorkout = effViewingSelf ? workout : (friendLiveWorkout || activeWorkout || workout);
 
-    /** Booleans from data (local override when self) */
     const doneForRender = useMemo(() => {
         const src = baseWorkout?.exercises || [];
-        const raw = src.map((ex) => (ex.sets || []).map((s) => !!s?.isDone));
-        if (!effViewingSelf) return raw;
-        return raw.map((row, i) =>
-            row.map((v, j) =>
-                Array.isArray(isDoneState[i]) && typeof isDoneState[i][j] === "boolean"
-                    ? isDoneState[i][j]
-                    : v
-            )
-        );
-    }, [baseWorkout, effViewingSelf, isDoneState]);
-
-    // ⏱️ Friend workout timer (top center) — live HH:MM:SS like your self timer
-    const friendTimerRef = useRef("");
-    useEffect(() => {
-        if (effViewingSelf) return; // self uses parent timerRef
-        const createdMs =
-            toMs(baseWorkout?.created) || toMs(baseWorkout?.createdAt) || 0;
-        if (!createdMs) {
-            friendTimerRef.current = "";
-            return;
-        }
-        const tick = () => {
-            const diff = Math.max(0, Date.now() - createdMs);
-            friendTimerRef.current = millisToHoursMinutesSeconds(Math.max(1000, diff));
-        };
-        tick();
-        const id = setInterval(tick, 1000);
-        return () => clearInterval(id);
-    }, [effViewingSelf, baseWorkout?.created, baseWorkout?.createdAt]);
+        return src.map((ex) => (ex.sets || []).map((s) => !!s?.isDone));
+    }, [baseWorkout]);
 
     const totals = useMemo(() => {
         const w = baseWorkout;
         if (!w?.exercises) return { reps: 0, volume: 0, PBs: 0 };
         let reps = 0, volume = 0, PBs = 0;
+
         (w.exercises || []).forEach((exercise) => {
             let hitPB = false;
             (exercise.sets || []).forEach((set) => {
-                const done = !!set?.isDone;
-                if (!done) return;
+                if (!set?.isDone) return;
                 const r = Number(set?.reps) || 0;
                 const wt = Number(set?.weight) || 0;
                 reps += r;
@@ -234,151 +196,98 @@ const NewWorkoutModal = ({
         setTotalReps(totals.reps);
         setTotalVolume(totals.volume);
         setPersonalBests(totals.PBs);
-        if (
-            effViewingSelf &&
-            workout &&
-            (workout.reps !== totals.reps ||
-                workout.volume !== totals.volume ||
-                workout.PBs !== totals.PBs)
-        ) {
-            updateWorkout({
-                ...workout,
-                reps: totals.reps,
-                volume: totals.volume,
-                PBs: totals.PBs,
-            });
+        if (effViewingSelf && workout && (
+            workout.reps !== totals.reps ||
+            workout.volume !== totals.volume ||
+            workout.PBs !== totals.PBs
+        )) {
+            updateWorkout({ ...workout, reps: totals.reps, volume: totals.volume, PBs: totals.PBs });
         }
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [totals.reps, totals.volume, totals.PBs, effViewingSelf]);
 
-    const showSelectExerciseModal = useCallback(() => {
-        if (!effViewingSelf) return;
-        setSelectExerciseModalVisible(true);
-    }, [effViewingSelf]);
+    const showSelectExerciseModal = useCallback(() => { if (effViewingSelf) setSelectExerciseModalVisible(true); }, [effViewingSelf]);
+    const closeSelectExerciseModal = useCallback(() => { setSelectExerciseModalVisible(false); setReplaceIndex(null); }, []);
 
-    const closeSelectExerciseModal = useCallback(() => {
-        setSelectExerciseModalVisible(false);
-        setReplaceIndex(null);
-    }, []);
+    const normalizeSet = (s) => ({ weight: Number(s?.weight) || 0, reps: Number(s?.reps) || 0, isDone: !!s?.isDone });
 
-    const normalizeSet = (s) => ({
-        weight: Number(s?.weight) || 0,
-        reps: Number(s?.reps) || 0,
-        isDone: !!s?.isDone,
-    });
+    const appendExercises = useCallback((exercises) => {
+        if (!effViewingSelf || !workout) return;
+        const next = {
+            ...workout,
+            exercises: [
+                ...(workout.exercises || []),
+                ...exercises.map((ex) => ({
+                    name: ex.name,
+                    muscle: ex.muscle,
+                    sets: [normalizeSet({ weight: 0, reps: 0, isDone: false })],
+                })),
+            ],
+        };
+        updateWorkout(next);
+        setIsDoneState((prev) => prev.concat(exercises.map(() => [false])));
+    }, [workout, updateWorkout, effViewingSelf]);
 
-    const appendExercises = useCallback(
-        (exercises) => {
-            if (!effViewingSelf || !workout) return;
-            const next = {
-                ...workout,
-                exercises: [
-                    ...(workout.exercises || []),
-                    ...exercises.map((ex) => ({
-                        name: ex.name,
-                        muscle: ex.muscle,
-                        sets: [normalizeSet({ weight: 0, reps: 0, isDone: false })],
-                    })),
-                ],
-            };
-            updateWorkout(next);
-            setIsDoneState((prev) => prev.concat(exercises.map(() => [false])));
-        },
-        [workout, updateWorkout, effViewingSelf]
-    );
+    const updateSets = useCallback((index, newSets) => {
+        if (!effViewingSelf || !workout) return;
+        const normalized = (newSets || []).map(normalizeSet);
+        const updated = (workout.exercises || []).map((ex, i) => (i === index ? { ...ex, sets: normalized } : ex));
+        updateWorkout({ ...workout, exercises: updated });
+        setIsDoneState((prev) => { const next = prev.map((row) => row.slice()); next[index] = normalized.map((s) => !!s.isDone); return next; });
+    }, [workout, updateWorkout, effViewingSelf]);
 
-    const updateSets = useCallback(
-        (index, newSets) => {
-            if (!effViewingSelf || !workout) return;
-            const normalized = (newSets || []).map(normalizeSet);
-            const updated = (workout.exercises || []).map((ex, i) =>
-                i === index ? { ...ex, sets: normalized } : ex
+    const replaceExercise = useCallback((index) => { if (effViewingSelf) { setReplaceIndex(index); setSelectExerciseModalVisible(true); } }, [effViewingSelf]);
+
+    const handleAppendOrReplace = useCallback((picked) => {
+        if (!effViewingSelf || !workout) return;
+        const choice = Array.isArray(picked) ? picked[0] : picked;
+        const isReplacing = replaceIndex !== null && replaceIndex >= 0;
+
+        if (isReplacing && choice) {
+            const oldSets = workout.exercises?.[replaceIndex]?.sets ?? [normalizeSet({})];
+            const newSets = oldSets.map(() => normalizeSet({ weight: 0, reps: 0, isDone: false }));
+            const nextExercises = (workout.exercises || []).map((ex, i) =>
+                i === replaceIndex ? { name: choice.name, muscle: choice.muscle, sets: newSets } : ex
             );
-            updateWorkout({ ...workout, exercises: updated });
-            setIsDoneState((prev) => {
-                const next = prev.map((row) => row.slice());
-                next[index] = normalized.map((s) => !!s.isDone);
-                return next;
-            });
-        },
-        [workout, updateWorkout, effViewingSelf]
-    );
-
-    const replaceExercise = useCallback(
-        (index) => {
-            if (!effViewingSelf) return;
-            setReplaceIndex(index);
-            setSelectExerciseModalVisible(true);
-        },
-        [effViewingSelf]
-    );
-
-    const handleAppendOrReplace = useCallback(
-        (picked) => {
-            if (!effViewingSelf || !workout) return;
-            const choice = Array.isArray(picked) ? picked[0] : picked;
-            const isReplacing = replaceIndex !== null && replaceIndex >= 0;
-
-            if (isReplacing && choice) {
-                const oldSets = workout.exercises?.[replaceIndex]?.sets ?? [normalizeSet({})];
-                const newSets = oldSets.map(() => normalizeSet({ weight: 0, reps: 0, isDone: false }));
-                const nextExercises = (workout.exercises || []).map((ex, i) =>
-                    i === replaceIndex ? { name: choice.name, muscle: choice.muscle, sets: newSets } : ex
-                );
-                updateWorkout({ ...workout, exercises: nextExercises });
-                setIsDoneState((prev) => {
-                    const next = prev.map((row) => row.slice());
-                    next[replaceIndex] = newSets.map((s) => !!s.isDone);
-                    return next;
-                });
-                setReplaceIndex(null);
-                setSelectExerciseModalVisible(false);
-                return;
-            }
-
-            appendExercises(Array.isArray(picked) ? picked : [picked]);
+            updateWorkout({ ...workout, exercises: nextExercises });
+            setIsDoneState((prev) => { const next = prev.map((row) => row.slice()); next[replaceIndex] = newSets.map((s) => !!s.isDone); return next; });
+            setReplaceIndex(null);
             setSelectExerciseModalVisible(false);
-        },
-        [appendExercises, replaceIndex, effViewingSelf, workout, updateWorkout]
-    );
+            return;
+        }
 
-    const deleteExercise = useCallback(
-        (index) => {
-            if (!effViewingSelf || !workout) return;
-            const filtered = (workout.exercises || []).filter((_, i) => i !== index);
-            updateWorkout({ ...workout, exercises: filtered });
-            setIsDoneState((prev) => prev.filter((_, i) => i !== index));
-        },
-        [workout, updateWorkout, effViewingSelf]
-    );
+        appendExercises(Array.isArray(picked) ? picked : [picked]);
+        setSelectExerciseModalVisible(false);
+    }, [appendExercises, replaceIndex, effViewingSelf, workout, updateWorkout]);
 
-    const toggleIsDone = useCallback(
-        (exerciseIndex, setIndex) => {
-            if (!effViewingSelf || !workout) return;
-            const curr = workout.exercises?.[exerciseIndex]?.sets?.[setIndex];
-            if (!curr) return;
-            if (!curr.isDone && (isNaN(curr.weight) || isNaN(curr.reps))) return;
+    const deleteExercise = useCallback((index) => {
+        if (!effViewingSelf || !workout) return;
+        const filtered = (workout.exercises || []).filter((_, i) => i !== index);
+        updateWorkout({ ...workout, exercises: filtered });
+        setIsDoneState((prev) => prev.filter((_, i) => i !== index));
+    }, [workout, updateWorkout, effViewingSelf]);
 
-            setIsDoneState((prev) => {
-                const next = prev.map((row) => row.slice());
-                const val = !!(next[exerciseIndex]?.[setIndex]);
-                if (!next[exerciseIndex]) next[exerciseIndex] = [];
-                next[exerciseIndex][setIndex] = !val;
-                return next;
-            });
+    const toggleIsDone = useCallback((exerciseIndex, setIndex) => {
+        if (!effViewingSelf || !workout) return;
+        const curr = workout.exercises?.[exerciseIndex]?.sets?.[setIndex];
+        if (!curr) return;
+        if (!curr.isDone && (isNaN(curr.weight) || isNaN(curr.reps))) return;
 
-            const updated = (workout.exercises || []).map((ex, i) => {
-                if (i !== exerciseIndex) return ex;
-                const sets = (ex.sets || []).map((s, si) =>
-                    si === setIndex ? { ...s, isDone: !s?.isDone } : s
-                );
-                return { ...ex, sets };
-            });
+        setIsDoneState((prev) => {
+            const next = prev.map((row) => row.slice());
+            const val = !!(next[exerciseIndex]?.[setIndex]);
+            if (!next[exerciseIndex]) next[exerciseIndex] = [];
+            next[exerciseIndex][setIndex] = !val;
+            return next;
+        });
 
-            updateWorkout({ ...workout, exercises: updated });
-        },
-        [isDoneState, workout, updateWorkout, effViewingSelf]
-    );
+        const updated = (workout.exercises || []).map((ex, i) => {
+            if (i !== exerciseIndex) return ex;
+            const sets = (ex.sets || []).map((s, si) => (si === setIndex ? { ...s, isDone: !s?.isDone } : s));
+            return { ...ex, sets };
+        });
+        updateWorkout({ ...workout, exercises: updated });
+    }, [isDoneState, workout, updateWorkout, effViewingSelf]);
 
     const confirmCancelWorkout = () => {
         if (!effViewingSelf) return;
@@ -389,15 +298,9 @@ const NewWorkoutModal = ({
             setDeleteConfirmModalVisible(true);
         }
     };
-    const handleDeleteWorkout = useCallback(() => {
-        setDeleteConfirmModalVisible(false);
-        cancelWorkout();
-    }, [cancelWorkout]);
+    const handleDeleteWorkout = useCallback(() => { setDeleteConfirmModalVisible(false); cancelWorkout(); }, [cancelWorkout]);
 
-    const openFinishConfirm = useCallback(() => {
-        if (!effViewingSelf) return;
-        setFinishConfirmModalVisible(true);
-    }, [effViewingSelf]);
+    const openFinishConfirm = useCallback(() => { if (effViewingSelf) setFinishConfirmModalVisible(true); }, [effViewingSelf]);
 
     const handleFinishWorkout = useCallback(() => {
         if (isFinishing) return;
@@ -405,23 +308,63 @@ const NewWorkoutModal = ({
         setFinishConfirmModalVisible(false);
         InteractionManager.runAfterInteractions(() => {
             requestAnimationFrame(() => {
-                Promise.resolve(finishWorkout?.())
-                    .catch(() => { })
-                    .finally(() => setIsFinishing(false));
+                Promise.resolve(finishWorkout?.()).catch(() => { }).finally(() => setIsFinishing(false));
             });
         });
     }, [finishWorkout, isFinishing]);
 
-    const borderOpacity = scrollY.interpolate({
-        inputRange: [0, 98],
-        outputRange: [0, 1],
-        extrapolate: "clamp",
-    });
-
+    const borderOpacity = scrollY.interpolate({ inputRange: [0, 98], outputRange: [0, 1], extrapolate: "clamp" });
     const overallOpacity = 1;
 
-    const friendWaiting =
-        !effViewingSelf && waitingFriend && !(baseWorkout?.exercises?.length);
+    const friendWaiting = !effViewingSelf && waitingFriend && !(baseWorkout?.exercises?.length);
+
+    const selectedParticipant = useMemo(
+        () => (participants || []).find((p) => p?.uid === friendUid) || null,
+        [participants, friendUid]
+    );
+    const headerOverlayPfp = !effViewingSelf
+        ? (selectedParticipant?.pfp || selectedParticipant?.image || selectedParticipant?.photoURL || friendPfp || "")
+        : overlayPfp;
+
+    // ===== Send invites from the picker =====
+    const handleInviteSelected = useCallback(async (selectedUsers = []) => {
+        try {
+            if (!workout?.wid || !global?.userData?.uid) return;
+            const wid = workout.wid;
+            const myUid = global.userData.uid;
+
+            // Ensure workout document exists and add myself to members
+            await setDoc(
+                doc(db, "workouts", wid),
+                {
+                    wid,
+                    creatorUid: workout?.creatorUID || myUid,
+                    active: true,
+                    members: arrayUnion(myUid),
+                    updatedAt: serverTimestamp(),
+                },
+                { merge: true }
+            );
+
+            // Create invite docs
+            const batch = selectedUsers.map((u) =>
+                addDoc(collection(db, "workoutInvites"), {
+                    wid,
+                    fromUid: myUid,
+                    fromHandle: global?.userData?.handle || "",
+                    toUid: String(u?.uid),
+                    status: "pending",
+                    createdAt: serverTimestamp(),
+                })
+            );
+            await Promise.all(batch);
+
+        } catch (e) {
+            console.log("handleInviteSelected error", e);
+        } finally {
+            closeInviteSheet();
+        }
+    }, [db, workout?.wid, workout?.creatorUID, closeInviteSheet]);
 
     return (
         <View style={styles.main_ctnr}>
@@ -429,19 +372,17 @@ const NewWorkoutModal = ({
             <View style={[styles.header, { opacity: overallOpacity }]}>
                 <GroupHeader
                     viewingSelf={effViewingSelf}
-                    overlayPfp={friendPfp || overlayPfp}
+                    overlayPfp={headerOverlayPfp}
                     onOpenMenu={openMenu}
-                    onLongPressInvite={showGroupModal}
+                    onLongPressInvite={effViewingSelf ? openInviteSheet : undefined}
                     onFinish={openFinishConfirm}
                     onCheer={onCheer}
                     countdown={countdown}
                     onAddTime={openRestModal}
-                    // ⏱ Pass friend timer ref when viewing a friend
-                    timerRef={effViewingSelf ? timerRef : friendTimerRef}
+                    timerRef={timerRef}
                     headerStyle={[styles.headerInner]}
                     onBack={onPressBack}
-                    // disable group button while viewing friend (safety double-check inside header too)
-                    disableGroup={!effViewingSelf}
+                    disableGroupPress={!effViewingSelf}
                 />
             </View>
             <Animated.View style={[styles.headerShadow, { opacity: borderOpacity }]} />
@@ -454,18 +395,11 @@ const NewWorkoutModal = ({
             ) : (
                 <Animated.ScrollView
                     showsVerticalScrollIndicator={false}
-                    onScroll={Animated.event(
-                        [{ nativeEvent: { contentOffset: { y: scrollY } } }],
-                        { useNativeDriver: false }
-                    )}
+                    onScroll={Animated.event([{ nativeEvent: { contentOffset: { y: scrollY } } }], { useNativeDriver: false })}
                     scrollEventThrottle={16}
                     style={[styles.scrollview, { opacity: overallOpacity }]}
                 >
-                    <ProgressBanner
-                        totalReps={totalReps}
-                        totalVolume={totalVolume}
-                        personalBests={personalBests}
-                    />
+                    <ProgressBanner totalReps={totalReps} totalVolume={totalVolume} personalBests={personalBests} />
 
                     {(baseWorkout?.exercises || []).map((ex, exerciseIndex) => (
                         <ExerciseLog
@@ -481,10 +415,11 @@ const NewWorkoutModal = ({
                             isDoneState={(doneForRender && doneForRender[exerciseIndex]) || []}
                             toggleIsDone={toggleIsDone}
                             userWorkoutStats={activeStats}
-                            readOnly={!effViewingSelf}   // <<< added
+                            readOnlyInputs={!effViewingSelf}
+                            hideAddSet={!effViewingSelf}
+                            disableRowActions={!effViewingSelf}
                         />
                     ))}
-
 
                     {/* Editing actions only when viewing self */}
                     {effViewingSelf && (
@@ -572,16 +507,26 @@ const NewWorkoutModal = ({
                 </Pressable>
             </Modal>
 
+            {/* Group menu (view switch + invite) */}
             <GroupMenu
                 visible={menuVisible}
                 onClose={closeMenu}
                 participants={participants}
-                viewing={viewing}
-                onInvite={() => {
+                viewing={{ uid: effViewingSelf ? meUid : (friendUid || "") }}
+                onInvite={() => { closeMenu(); openInviteSheet(); }}
+                onSelectParticipant={(p) => {
+                    const nextUid = p?.uid || meUid;
+                    setSelectedUid(nextUid);
+                    onViewingChange?.(nextUid === meUid);
                     closeMenu();
-                    showGroupModal();
                 }}
-                onSelectParticipant={() => { }}
+            />
+
+            {/* Invite people picker (bottom sheet; no backdrop) */}
+            <GroupModalBottomSheet
+                groupModalExpandFlag={inviteSheetOpen}
+                closeGroupModal={closeInviteSheet}
+                onInvite={handleInviteSelected}
             />
         </View>
     );
@@ -635,87 +580,22 @@ const styles = StyleSheet.create({
         alignItems: "center",
         flexDirection: "row",
     },
-    cancel_btn_text: {
-        fontSize: scaledSize(16),
-        fontFamily: "Outfit_700Bold",
-        color: "#F27171",
-        marginRight: scaledSize(4.5),
-    },
+    cancel_btn_text: { fontSize: scaledSize(16), fontFamily: "Outfit_700Bold", color: "#F27171", marginRight: scaledSize(4.5) },
 
-    modalOverlay: {
-        flex: 1,
-        justifyContent: "center",
-        alignItems: "center",
-        backgroundColor: "rgba(0,0,0,0.5)",
-        paddingHorizontal: scaledSize(24),
-    },
-    modalContainer: {
-        width: "100%",
-        padding: scaledSize(20),
-        backgroundColor: "#fff",
-        borderRadius: scaledSize(15),
-        alignItems: "center",
-    },
-    modalText: {
-        fontSize: scaledSize(16),
-        color: "#333",
-        fontFamily: "Outfit_700Bold",
-        marginBottom: scaledSize(20),
-        textAlign: "center",
-    },
-    deleteWorkoutBtn: {
-        width: "100%",
-        paddingVertical: scaledSize(8),
-        backgroundColor: "#FFECEC",
-        borderRadius: scaledSize(8),
-        alignItems: "center",
-        marginBottom: scaledSize(10),
-    },
+    modalOverlay: { flex: 1, justifyContent: "center", alignItems: "center", backgroundColor: "rgba(0,0,0,0.5)", paddingHorizontal: scaledSize(24) },
+    modalContainer: { width: "100%", padding: scaledSize(20), backgroundColor: "#fff", borderRadius: scaledSize(15), alignItems: "center" },
+    modalText: { fontSize: scaledSize(16), color: "#333", fontFamily: "Outfit_700Bold", marginBottom: scaledSize(20), textAlign: "center" },
+    deleteWorkoutBtn: { width: "100%", paddingVertical: scaledSize(8), backgroundColor: "#FFECEC", borderRadius: scaledSize(8), alignItems: "center", marginBottom: scaledSize(10) },
     deleteWorkoutText: { color: "#F27171", fontSize: scaledSize(14), fontFamily: "Outfit_700Bold" },
-    cancelDeleteBtn: {
-        width: "100%",
-        paddingVertical: scaledSize(8),
-        backgroundColor: "#eee",
-        borderRadius: scaledSize(8),
-        alignItems: "center",
-    },
+    cancelDeleteBtn: { width: "100%", paddingVertical: scaledSize(8), backgroundColor: "#eee", borderRadius: scaledSize(8), alignItems: "center" },
     cancelDeleteText: { color: "#666", fontSize: scaledSize(14), fontFamily: "Outfit_700Bold" },
 
-    finishModalContainer: {
-        width: "100%",
-        padding: scaledSize(20),
-        backgroundColor: "#fff",
-        borderRadius: scaledSize(16),
-        alignItems: "center",
-    },
-    finishTitle: {
-        fontSize: scaledSize(18),
-        color: "#111827",
-        fontFamily: "Outfit_700Bold",
-        textAlign: "center",
-        marginBottom: scaledSize(16),
-    },
-    finishBtn: {
-        width: "100%",
-        paddingVertical: scaledSize(10),
-        backgroundColor: "#40D99B",
-        borderRadius: scaledSize(10),
-        alignItems: "center",
-        marginBottom: scaledSize(10),
-    },
+    finishModalContainer: { width: "100%", padding: scaledSize(20), backgroundColor: "#fff", borderRadius: scaledSize(16), alignItems: "center" },
+    finishTitle: { fontSize: scaledSize(18), color: "#111827", fontFamily: "Outfit_700Bold", textAlign: "center", marginBottom: scaledSize(16) },
+    finishBtn: { width: "100%", paddingVertical: scaledSize(10), backgroundColor: "#40D99B", borderRadius: scaledSize(10), alignItems: "center", marginBottom: scaledSize(10) },
     finishBtnText: { color: "#fff", fontSize: scaledSize(14.5), fontFamily: "Outfit_700Bold" },
-    keepEditingBtn: {
-        width: "100%",
-        paddingVertical: scaledSize(10),
-        backgroundColor: "#F1F5F9",
-        borderRadius: scaledSize(10),
-        alignItems: "center",
-    },
-    keepEditingText: {
-        color: "#0F172A",
-        fontSize: scaledSize(14),
-        fontFamily: "Outfit_600SemiBold",
-    },
+    keepEditingBtn: { width: "100%", paddingVertical: scaledSize(10), backgroundColor: "#F1F5F9", borderRadius: scaledSize(10), alignItems: "center" },
+    keepEditingText: { color: "#0F172A", fontSize: scaledSize(14), fontFamily: "Outfit_600SemiBold" },
 });
 
 export default NewWorkoutModal;

@@ -16,14 +16,10 @@ const StartCluster = ({
     onOpenFriends,
     hasNewFriendsUpdates,
     friendsStackUsers,
-    forceShowStack = false, // ⬅️ NEW: show stack if any live users, even without "new" updates
 }) => {
     const scale = scaleAnim || new Animated.Value(1);
-
-    // Show stack when we either have new updates OR we were told to force it (anyone live)
     const showStack =
-        forceShowStack ||
-        (Array.isArray(friendsStackUsers) && friendsStackUsers.length > 0 && !!hasNewFriendsUpdates);
+        Array.isArray(friendsStackUsers) && friendsStackUsers.length > 0 && !!hasNewFriendsUpdates;
 
     return (
         <View style={styles.wrap} pointerEvents="box-none">
@@ -35,23 +31,17 @@ const StartCluster = ({
                     accessibilityRole="button"
                     accessibilityLabel="Create a post"
                     style={({ pressed }) => [styles.smallBtn, pressed && styles.smallBtnPressed]}
-                    onPress={() =>
-                        navigation?.navigate("ProfileStack", { screen: "SelectPhotos" })
-                    }
+                    onPress={() => navigation?.navigate("ProfileStack", { screen: "SelectPhotos" })}
                 >
                     <AddSquare size={24} color="#000" />
                 </Pressable>
 
                 {/* Start / Open */}
                 <Animated.View style={{ transform: [{ scale }] }}>
-                    <StartOpenButton
-                        hasActiveWorkout={hasActiveWorkout}
-                        onOpen={onOpenNewWorkout}
-                        onStart={onStartWorkout}
-                    />
+                    <StartOpenButton hasActiveWorkout={hasActiveWorkout} onOpen={onOpenNewWorkout} onStart={onStartWorkout} />
                 </Animated.View>
 
-                {/* Friends button */}
+                {/* Friends / Live */}
                 <Pressable
                     hitSlop={8}
                     android_ripple={{ color: "rgba(2,6,23,0.08)", radius: SMALL_SIZE / 2, borderless: true }}
@@ -60,11 +50,7 @@ const StartCluster = ({
                     style={({ pressed }) => [styles.smallBtn, pressed && styles.smallBtnPressed]}
                     onPress={onOpenFriends}
                 >
-                    {showStack ? (
-                        <LiveStack users={friendsStackUsers} />
-                    ) : (
-                        <Feather name="users" size={21} color="#000" />
-                    )}
+                    {showStack ? <LiveStack users={friendsStackUsers} /> : <Feather name="users" size={21} color="#000" />}
                 </Pressable>
             </View>
         </View>

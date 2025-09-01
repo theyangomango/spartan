@@ -1,14 +1,46 @@
+// components/Tracking/Group/GroupMenu.jsx
 import React from "react";
 import { Modal, View, Text, StyleSheet, Pressable, FlatList, Dimensions } from "react-native";
 import RNBounceable from "@freakycoder/react-native-bounceable";
-import { Feather } from "@expo/vector-icons"; // switched to Feather for a sleeker icon
-import ParticipantRow from "./ParticipantRow";
+import { Feather } from "@expo/vector-icons";
+import FastImage from "react-native-fast-image";
 
 const { height: screenHeight } = Dimensions.get("window");
 const scale = screenHeight / 844;
 const scaledSize = (size) => Math.round(size * scale);
 
-const GroupMenu = ({ visible, onClose, participants, viewing, onInvite, onSelectParticipant }) => {
+const ParticipantItem = ({ participant, selected, onPress }) => {
+    const uri = participant?.pfp || participant?.image || participant?.photoURL || participant?.avatar || "";
+    return (
+        <Pressable onPress={onPress} style={styles.participantRow}>
+            <View style={styles.participantPfpWrap}>
+                {uri ? (
+                    <FastImage
+                        source={{ uri, priority: FastImage.priority.normal, cache: FastImage.cacheControl.immutable }}
+                        style={styles.participantPfp}
+                    />
+                ) : (
+                    <View style={[styles.participantPfp, { backgroundColor: "#E5E7EB" }]} />
+                )}
+            </View>
+            <View style={{ flex: 1 }}>
+                <Text numberOfLines={1} style={styles.participantHandle}>
+                    {participant?.handle ? `@${participant.handle}` : participant?.name || "Friend"}
+                </Text>
+                {!!participant?.name && participant?.handle && (
+                    <Text numberOfLines={1} style={styles.participantSub}>
+                        {participant?.name}
+                    </Text>
+                )}
+            </View>
+            {selected && <Feather name="check" size={16} color="#10B981" />}
+        </Pressable>
+    );
+};
+
+const GroupMenu = ({ visible, onClose, participants = [], viewing, onInvite, onSelectParticipant }) => {
+    const selectedUid = viewing?.uid || null;
+
     return (
         <Modal
             visible={visible}
@@ -36,9 +68,13 @@ const GroupMenu = ({ visible, onClose, participants, viewing, onInvite, onSelect
                     ) : (
                         <FlatList
                             data={participants}
-                            keyExtractor={(it) => it.uid}
+                            keyExtractor={(it) => String(it?.uid)}
                             renderItem={({ item }) => (
-                                <ParticipantRow participant={item} selectedUid={viewing?.uid} />
+                                <ParticipantItem
+                                    participant={item}
+                                    selected={selectedUid === item?.uid}
+                                    onPress={() => onSelectParticipant?.(item)}
+                                />
                             )}
                             ItemSeparatorComponent={() => <View style={styles.menuHairline} />}
                             style={{ maxHeight: scaledSize(260) }}
@@ -61,7 +97,7 @@ const styles = StyleSheet.create({
         alignItems: "flex-end",
     },
     menuCard: {
-        width: scaledSize(270),
+        width: scaledSize(300),
         backgroundColor: "#fff",
         borderRadius: scaledSize(14),
         paddingVertical: scaledSize(10),
@@ -119,4 +155,24 @@ const styles = StyleSheet.create({
         backgroundColor: "#EEF2F7",
         marginLeft: scaledSize(50),
     },
+
+    participantRow: {
+        flexDirection: "row",
+        alignItems: "center",
+        paddingVertical: scaledSize(8),
+        paddingHorizontal: scaledSize(6),
+    },
+    participantPfpWrap: {
+        width: scaledSize(30),
+        height: scaledSize(30),
+        borderRadius: scaledSize(15),
+        overflow: "hidden",
+        marginRight: scaledSize(10),
+        backgroundColor: "#fff",
+        borderWidth: 1,
+        borderColor: "#fff",
+    },
+    participantPfp: { width: "100%", height: "100%" },
+    participantHandle: { fontFamily: "Outfit_700Bold", fontSize: scaledSize(13.5), color: "#0F172A" },
+    participantSub: { fontFamily: "Outfit_500Medium", fontSize: scaledSize(11.5), color: "#64748B", marginTop: 1 },
 });
