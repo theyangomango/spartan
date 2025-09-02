@@ -45,7 +45,7 @@ const AuthenticationStack = () => (
 );
 
 const FeedStack = ({ route }) => (
-    <NativeStack.Navigator initialRouteName="Feed" screenOptions={{ headerShown: false, gestureEnabled: true, fullScreenGestureEnabled: true }}>
+    <NativeStack.Navigator initialRouteName="Feed" screenOptions={{ headerShown: false, gestureEnabled: true, fullScreenGestureEnabled: true, animation: 'slide_from_right' }}>
         <NativeStack.Screen name="Feed" component={Feed} initialParams={route?.params} />
         <NativeStack.Screen name="Messages" component={Messages} />
         <NativeStack.Screen name="Chat" component={Chat} />
@@ -54,7 +54,7 @@ const FeedStack = ({ route }) => (
 );
 
 const WorkoutStack = ({ route }) => (
-    <NativeStack.Navigator initialRouteName="Workout" screenOptions={{ headerShown: false, gestureEnabled: true, fullScreenGestureEnabled: true }}>
+    <NativeStack.Navigator initialRouteName="Workout" screenOptions={{ headerShown: false, gestureEnabled: true, fullScreenGestureEnabled: true, animation: 'slide_from_right' }}>
         <NativeStack.Screen name="Workout" component={Workout} initialParams={route?.params} />
         <NativeStack.Screen name="Messages" component={Messages} />
         <NativeStack.Screen name="Chat" component={Chat} />
@@ -63,24 +63,32 @@ const WorkoutStack = ({ route }) => (
 );
 
 const CompetitionStack = () => (
-    <NativeStack.Navigator initialRouteName="Competition" screenOptions={{ headerShown: false, gestureEnabled: true, fullScreenGestureEnabled: true }}>
+    <NativeStack.Navigator initialRouteName="Competition" screenOptions={{ headerShown: false, gestureEnabled: true, fullScreenGestureEnabled: true, animation: 'slide_from_right' }}>
         <NativeStack.Screen name="Competition" component={Competition} />
         <NativeStack.Screen name="ViewProfile" component={ViewProfile} />
     </NativeStack.Navigator>
 );
 
 const ExploreStack = () => (
-    <NativeStack.Navigator initialRouteName="MacroTracking" screenOptions={{ headerShown: false, gestureEnabled: true, fullScreenGestureEnabled: true }}>
+    <NativeStack.Navigator initialRouteName="MacroTracking" screenOptions={{ headerShown: false, gestureEnabled: true, fullScreenGestureEnabled: true, animation: 'slide_from_right' }}>
         <NativeStack.Screen name="MacroTracking" component={MacroTracking} />
         <NativeStack.Screen name="ViewProfile" component={ViewProfile} />
     </NativeStack.Navigator>
 );
 
 const ProfileStack = () => (
-    <NativeStack.Navigator initialRouteName="Profile" screenOptions={{ headerShown: false, gestureEnabled: true, fullScreenGestureEnabled: true }}>
-        <NativeStack.Screen name="Profile" component={Profile} />
+    <NativeStack.Navigator initialRouteName="Profile" screenOptions={{ headerShown: false, gestureEnabled: true, fullScreenGestureEnabled: true, animation: 'slide_from_right' }}>
+        <NativeStack.Screen
+            name="Profile"
+            component={Profile}
+            options={({ route }) => ({
+                animation: route?.params?.transition === 'fade' ? 'fade' : 'slide_from_right',
+            })}
+        />
         <NativeStack.Screen name="SelectPhotos" component={SelectPhotosScreen} />
         <NativeStack.Screen name="PostOptions" component={PostUploadOptionsScreen} />
+        <NativeStack.Screen name="SearchUsers" component={require('./frontend/screens/SearchUsers').default} />
+        <NativeStack.Screen name="ViewProfile" component={ViewProfile} />
     </NativeStack.Navigator>
 );
 
@@ -193,6 +201,15 @@ export default function App() {
                                     config: { duration: 1 },
                                 },
                             },
+                        }}
+                    />
+                    <RootOverlayStack.Screen
+                        name="ViewProfileOverlay"
+                        component={ViewProfile}
+                        options={{
+                            gestureEnabled: true,
+                            gestureDirection: 'horizontal',
+                            cardStyleInterpolator: CardStyleInterpolators.forHorizontalIOS,
                         }}
                     />
                 </RootOverlayStack.Navigator>

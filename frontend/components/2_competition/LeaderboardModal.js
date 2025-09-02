@@ -2,6 +2,7 @@ import React, { useMemo } from "react";
 import { View, Text, StyleSheet, FlatList, TouchableOpacity, Dimensions } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import LeaderboardCard from "../2_Competition/LeaderboardCard";
+import scaleSize from "../../helper/scaleSize";
 
 const { width: SCREEN_WIDTH } = Dimensions.get("window");
 const H_PADDING = 16;
@@ -171,6 +172,25 @@ export default function LeaderboardModal({
         );
     };
 
+    // Precompute item lengths/offsets so FlatList knows exact row heights
+    const { rowLengths, rowOffsets } = useMemo(() => {
+        const lengths = [];
+        const offsets = [];
+        let acc = 0;
+        const CARD_H = scaleSize(82);
+        const SELF_CARD_H = scaleSize(92);
+        const GAP = 12.5; // matches marginBottom in LeaderboardCard styles
+        for (let i = 0; i < (userList?.length || 0); i++) {
+            const u = userList[i];
+            const isSelf = u?.uid === global?.userData?.uid;
+            const len = (isSelf ? SELF_CARD_H : CARD_H) + GAP;
+            offsets.push(acc);
+            lengths.push(len);
+            acc += len;
+        }
+        return { rowLengths: lengths, rowOffsets: offsets };
+    }, [userList]);
+
     return (
         <View style={styles.container}>
             {header}
@@ -179,7 +199,14 @@ export default function LeaderboardModal({
                 keyExtractor={(u, i) => u?.uid || String(i)}
                 renderItem={renderItem}
                 contentContainerStyle={{ paddingBottom: 24 }}
+                ListFooterComponent={<View style={{ height: isBottomSheetExpanded ? scaleSize(120) : scaleSize(72) }} />}
+                getItemLayout={(_, index) => ({
+                    length: rowLengths[index] ?? scaleSize(82),
+                    offset: rowOffsets[index] ?? index * scaleSize(82),
+                    index,
+                })}
                 showsVerticalScrollIndicator={false}
+                removeClippedSubviews={false}
             />
             <View style={{ height: isBottomSheetExpanded ? 24 : 8 }} />
         </View>

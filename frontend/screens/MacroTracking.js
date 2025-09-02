@@ -14,6 +14,7 @@ import MealCard from '../components/2_MacroTracking/MealCard';
 import breakfastIcon from '../assets/breakfast.png';
 import lunchIcon from '../assets/lunch.png';
 import dinnerIcon from '../assets/dinner.png';
+import snacksIcon from '../assets/snacks.png'
 
 import FoodSearchOverlay from '../components/2_MacroTracking/FoodSearchOverlay';
 import MacroGoalsSheet from '../components/2_MacroTracking/MacroGoalsSheet';
@@ -51,6 +52,8 @@ const mealsMeta = [
     { name: 'Breakfast', subtitle: 'Breakfast starts your day', icon: breakfastIcon, bgColor: '#FBEDD9' },
     { name: 'Lunch', subtitle: 'Lunch fuels your goals', icon: lunchIcon, bgColor: '#FFE8E9' },
     { name: 'Dinner', subtitle: 'Dinner completes your nutrition', icon: dinnerIcon, bgColor: '#EAEECE' },
+    // Make snack icon slightly smaller by providing an explicit size override
+    { name: 'Snacks', subtitle: 'Snacks keep you energized', icon: snacksIcon, iconSize: 22, bgColor: '#EAE5FF' },
 ];
 
 export default function MacroTracking({ navigation }) {
@@ -245,7 +248,7 @@ export default function MacroTracking({ navigation }) {
                         <Text style={[styles.sectionTitle, styles.sectionTitleNoMargin]}>Nutrition</Text>
                         <Pressable style={styles.editGoalsPill} onPress={() => setSheetIndex(0)} hitSlop={8}>
                             <Ionicons name="settings-outline" size={14} color={COLORS.text} />
-                            <Text style={styles.editGoalsText}>Edit goals</Text>
+                            <Text style={styles.editGoalsText}>Edit Goals</Text>
                         </Pressable>
                     </View>
 
@@ -409,10 +412,10 @@ const styles = StyleSheet.create({
         alignItems: 'center',
         backgroundColor: '#EEF2FF',
         paddingHorizontal: 10,
-        paddingVertical: 6,
+        paddingVertical: 7,
         borderRadius: 999,
     },
-    editGoalsText: { fontFamily: 'Outfit_600SemiBold', color: COLORS.text, fontSize: 12.5 },
+    editGoalsText: { fontFamily: 'Outfit_600SemiBold', color: COLORS.text, fontSize: 12.5, letterSpacing: 0.1 },
 
     underMealList: { paddingHorizontal: 18, marginTop: 0, marginBottom: 8 },
     underMealCard: {

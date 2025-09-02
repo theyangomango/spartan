@@ -3,58 +3,23 @@ import { StyleSheet, Text, View, Dimensions } from 'react-native';
 import FastImage from 'react-native-fast-image';
 import { Entypo, FontAwesome } from '@expo/vector-icons';
 import RNBounceable from '@freakycoder/react-native-bounceable';
+import scaleSize from '../../helper/scaleSize';
 
-const { width, height } = Dimensions.get("window");
+const { width } = Dimensions.get("window");
 
-const getDynamicStyles = () => {
-    if (width >= 430 && height >= 932) {
-        return {
-            cardHeight: 87,
-            selfCardHeight: 97,
-            pfpSize: 60,
-            handleTextFontSize: 18,
-            nameTextFontSize: 17,
-            statTextFontSize: 17,
-            rankTextFontSize: 16.5,
-            bestSetTextFontSize: 14.5,
-        };
-    } else if (width >= 390 && height >= 844) {
-        return {
-            cardHeight: 82,
-            selfCardHeight: 92,
-            pfpSize: 56,
-            handleTextFontSize: 16,
-            nameTextFontSize: 14.5,
-            statTextFontSize: 15.5,
-            rankTextFontSize: 14,
-            bestSetTextFontSize: 13,
-        };
-    } else if (width >= 375 && height >= 812) {
-        return {
-            cardHeight: 77,
-            selfCardHeight: 87,
-            pfpSize: 54,
-            handleTextFontSize: 15,
-            nameTextFontSize: 14,
-            statTextFontSize: 15,
-            rankTextFontSize: 13.5,
-            bestSetTextFontSize: 12.5,
-        };
-    } else {
-        return {
-            cardHeight: 72,
-            selfCardHeight: 82,
-            pfpSize: 52,
-            handleTextFontSize: 14.5,
-            nameTextFontSize: 13.5,
-            statTextFontSize: 14.5,
-            rankTextFontSize: 13,
-            bestSetTextFontSize: 12,
-        };
-    }
-};
+// Scaled sizes (baseline ~ iPhone 12/13: 390x844)
+const CARD_HEIGHT = scaleSize(82);
+const SELF_CARD_HEIGHT = scaleSize(92);
+const PFP_SIZE = scaleSize(52);
 
-const dynamicStyles = getDynamicStyles();
+const FONT_HANDLE = scaleSize(16);
+const FONT_NAME = scaleSize(14);
+const FONT_STAT = scaleSize(15);
+const FONT_RANK = scaleSize(14);
+const FONT_BEST = scaleSize(13);
+
+const ICON_ARROW = scaleSize(20);
+const ICON_MINUS = scaleSize(16);
 
 /**
  * Props (new ones are optional & tribe-aware):
@@ -97,20 +62,20 @@ export default function LeaderboardCard({
             onPress={handlePress}
             style={
                 userIsSelf
-                    ? [styles.self_card_ctnr, { height: dynamicStyles.selfCardHeight }]
-                    : [styles.card_ctnr, { height: dynamicStyles.cardHeight }]
+                    ? [styles.self_card_ctnr, { height: SELF_CARD_HEIGHT }]
+                    : [styles.card_ctnr, { height: CARD_HEIGHT }]
             }
         >
             <View style={styles.card_left}>
-                <Text style={[styles.rank_text, { fontSize: dynamicStyles.rankTextFontSize }]}>{rank}</Text>
+                <Text style={[styles.rank_text, { fontSize: FONT_RANK }]}>{rank}</Text>
 
-                {lastRank && lastRank < rank && <Entypo name='chevron-down' size={20} color='red' style={styles.arrow_icon} />}
-                {lastRank && lastRank > rank && <Entypo name='chevron-up' size={20} color='#23B665' style={styles.arrow_icon} />}
-                {(lastRank == null && value > 0) && <Entypo name='chevron-up' size={20} color='#23B665' style={styles.arrow_icon} />}
-                {(lastRank == null && value === 0) && <FontAwesome name='minus' size={16} color='#aaa' style={styles.minus_icon} />}
-                {(lastRank && lastRank === rank) && <FontAwesome name='minus' size={16} color='#aaa' style={styles.minus_icon} />}
+                {lastRank && lastRank < rank && <Entypo name='chevron-down' size={ICON_ARROW} color='red' style={styles.arrow_icon} />}
+                {lastRank && lastRank > rank && <Entypo name='chevron-up' size={ICON_ARROW} color='#23B665' style={styles.arrow_icon} />}
+                {(lastRank == null && value > 0) && <Entypo name='chevron-up' size={ICON_ARROW} color='#23B665' style={styles.arrow_icon} />}
+                {(lastRank == null && value === 0) && <FontAwesome name='minus' size={ICON_MINUS} color='#aaa' style={styles.minus_icon} />}
+                {(lastRank && lastRank === rank) && <FontAwesome name='minus' size={ICON_MINUS} color='#aaa' style={styles.minus_icon} />}
 
-                <View style={[styles.pfp_ctnr, { width: dynamicStyles.pfpSize }]}>
+                <View style={[styles.pfp_ctnr, { width: PFP_SIZE }]}>
                     <FastImage
                         source={{ uri: pfp }}
                         style={styles.pfp}
@@ -118,10 +83,10 @@ export default function LeaderboardCard({
                     />
                 </View>
                 <View>
-                    <Text style={[styles.handle_text, { fontSize: dynamicStyles.handleTextFontSize }]} numberOfLines={1}>
+                    <Text style={[styles.handle_text, { fontSize: FONT_HANDLE }]} numberOfLines={1}>
                         {handle}
                     </Text>
-                    <Text style={[styles.name_text, { fontSize: dynamicStyles.nameTextFontSize }]} numberOfLines={1}>
+                    <Text style={[styles.name_text, { fontSize: FONT_NAME }]} numberOfLines={1}>
                         {name}
                     </Text>
                 </View>
@@ -129,21 +94,21 @@ export default function LeaderboardCard({
 
             <View style={styles.card_right}>
                 <View style={{ alignItems: 'flex-end' }}>
-                    <Text style={[styles.stat_text, { fontSize: dynamicStyles.statTextFontSize }]}>
+                    <Text style={[styles.stat_text, { fontSize: FONT_STAT }]}>
                         {statText} {unitText}
                     </Text>
 
                     {showMetricSubline ? (
-                        <Text style={[styles.best_set_text, { fontSize: dynamicStyles.bestSetTextFontSize }]} numberOfLines={1}>
+                        <Text style={[styles.best_set_text, { fontSize: FONT_BEST }]} numberOfLines={1}>
                             {metric}
                             {normalizeByBodyweight ? ' • per lb BW' : ''}
                             {exercise ? ` • ${exercise}` : ''}
                         </Text>
                     ) : showBestSetWhenNotTribe ? (
                         bestSetIsNA ? (
-                            <Text style={[styles.best_set_text, { fontSize: dynamicStyles.bestSetTextFontSize }]}>N/A</Text>
+                            <Text style={[styles.best_set_text, { fontSize: FONT_BEST }]}>N/A</Text>
                         ) : (
-                            <Text style={[styles.best_set_text, { fontSize: dynamicStyles.bestSetTextFontSize }]} numberOfLines={1}>
+                            <Text style={[styles.best_set_text, { fontSize: FONT_BEST }]} numberOfLines={1}>
                                 {bestSet.reps} x {bestSet.weight} lbs
                             </Text>
                         )

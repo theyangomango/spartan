@@ -91,7 +91,7 @@ export default function ViewProfile({ navigation, route }) {
                 posts={posts}
                 completedWorkouts={profileUserData && profileUserData.completedWorkouts}
                 navigation={navigation} />
-            <Footer currentScreenName={'Explore'} navigation={navigation} />
+            <Footer currentScreenName={'Profile'} navigation={navigation} />
         </View>
     );
 }

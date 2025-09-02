@@ -23,17 +23,26 @@ import { Weight } from "iconsax-react-native";
 import { getFeedHeaderStyles } from "../../helper/getFeedHeaderStyles";
 import { db } from "../../../firebase.config";
 import { collection, query, where, onSnapshot, getDocs, orderBy, limit } from "firebase/firestore";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get("window");
 const dynamicStyles = getFeedHeaderStyles(SCREEN_WIDTH, SCREEN_HEIGHT);
 const scale = SCREEN_WIDTH / 375;
 const s = (n) => Math.round(n * scale);
 
-/* ---------- constants to lock header height ---------- */
-const CENTER_SLOT_H = s(34);
-const NUDGE_MARGIN = s(5);
-// Vertically center the side icons to the center slot
-const ICON_VCENTER_TOP = NUDGE_MARGIN + Math.round((CENTER_SLOT_H - dynamicStyles.iconSize) / 2);
+// Unified sizing metrics (reduces magic numbers)
+const METRICS = (() => {
+    const paddingH = dynamicStyles.paddingHorizontal;
+    const paddingTop = s(2);
+    const paddingBottom = s(10);
+    const centerH = s(34);
+    const marginTop = s(5);
+    const icon = dynamicStyles.iconSize;
+    const iconTop = Math.round((centerH - icon) / 2);
+    const iconBox = icon + 6; // header/overlay icon wrapper size
+    const logoPadTop = Math.max(0, s(0.5)); // visual alignment
+    return { paddingH, paddingTop, paddingBottom, centerH, marginTop, iconTop, logoPadTop, iconBox };
+})();
 
 /* ------------------------------ Debounce ------------------------------ */
 const useDebounce = (fn, delay = 220) => {
@@ -109,7 +118,7 @@ const ProfileCard = React.memo(({ user, query, onPress }) => {
 
                 <View style={{ marginLeft: s(12), flex: 1, minWidth: 0 }}>
                     <Highlighted
-                        text={`@${user.handle || "user"}`}
+                        text={`${user.handle || "user"}`}
                         query={query}
                         style={styles.cardHandle}
                         highlightStyle={styles.cardHandleHighlight}
@@ -131,10 +140,12 @@ const ProfileCard = React.memo(({ user, query, onPress }) => {
 
 /* --------------------------- Full-takeover Search --------------------------- */
 const SearchUsersBar = ({ navigation, allUsersRef, disabled = false }) => {
+    const insets = useSafeAreaInsets();
     const [visible, setVisible] = useState(false);
     const [modalKey, setModalKey] = useState(0);
     const [qStr, setQStr] = useState("");
     const [results, setResults] = useState([]);
+    const [navigating, setNavigating] = useState(false);
     const [usersCacheTick, setUsersCacheTick] = useState(0);
 
     const suggestions = useMemo(() => {
@@ -144,11 +155,29 @@ const SearchUsersBar = ({ navigation, allUsersRef, disabled = false }) => {
         return arr;
     }, [allUsersRef?.current, usersCacheTick]);
 
+    // Navigate while keeping the overlay visible during the native-stack slide
+    const navigateToUser = useCallback((item) => {
+        if (!item) return;
+        // Present ViewProfile as an overlay route above Tabs to get a clean slide
+        navigation?.navigate('ViewProfileOverlay', {
+            user: { uid: item.uid, handle: item.handle, name: item.name, pfp: item.pfp },
+        });
+    }, [navigation]);
+
+    const iconRef = useRef(null);
+    const [anchor, setAnchor] = useState({ x: 0, y: 0, w: 0, h: 0 });
+    const measureAnchor = useCallback(() => {
+        if (iconRef.current?.measureInWindow) {
+            iconRef.current.measureInWindow((x, y, width, height) => {
+                if (Number.isFinite(x) && Number.isFinite(y)) setAnchor({ x, y, w: width, h: height });
+            });
+        }
+    }, []);
+
     const open = useCallback(() => {
         if (disabled) return;
-        setModalKey((k) => k + 1);
-        setVisible(true);
-    }, [disabled]);
+        navigation?.navigate('Tabs', { screen: 'ProfileStack', params: { screen: 'SearchUsers' } });
+    }, [navigation]);
 
     const close = useCallback(() => {
         setVisible(false);
@@ -257,7 +286,7 @@ const SearchUsersBar = ({ navigation, allUsersRef, disabled = false }) => {
 
     return (
         <>
-            <RNBounceable onPress={open} bounceEffectIn={0.5} style={styles.searchIconBtn} accessibilityLabel="Search users">
+            <RNBounceable onPress={open} bounceEffectIn={0.5} style={[styles.searchIconBtn, visible && { opacity: 0 }]} accessibilityLabel="Search users" ref={iconRef} onLayout={measureAnchor} pointerEvents={visible ? 'none' : 'auto'}>
                 <Ionicons name="search" size={dynamicStyles.iconSize} color="#6B7280" />
             </RNBounceable>
 
@@ -269,20 +298,30 @@ const SearchUsersBar = ({ navigation, allUsersRef, disabled = false }) => {
                 statusBarTranslucent
                 onRequestClose={close}
             >
-                <View style={styles.modalContainer}>
+                <View style={styles.modalContainer} pointerEvents={navigating ? 'none' : 'auto'}>
                     <TouchableWithoutFeedback onPress={close}>
-                        <View style={styles.canvasFill} />
+                        <View style={[styles.canvasFill, navigating && { opacity: 0 }]} />
                     </TouchableWithoutFeedback>
 
                     <KeyboardAvoidingView
                         style={StyleSheet.absoluteFill}
                         behavior={Platform.OS === "ios" ? "padding" : undefined}
                     >
-                        <SafeAreaView style={styles.modalContent} pointerEvents="box-none">
-                            <View style={styles.overlayBar}>
-                                <View style={styles.overlayLeftIcon}>
-                                    <Ionicons name="search" size={dynamicStyles.iconSize} color="#6B7280" />
-                                </View>
+                        <SafeAreaView style={[styles.modalContent, navigating && { opacity: 0 }]} pointerEvents="box-none">
+                            <View
+                                style={[
+                                    styles.overlayBar,
+                                    {
+                                        // Align left edge of input to the right edge of the header icon.
+                                        // anchor.x is absolute screen X; SafeAreaView has horizontal padding = METRICS.paddingH.
+                                        // So subtract paddingH to convert to container-relative, then add icon width (anchor.w).
+                                        marginLeft:
+                                            (anchor.x && anchor.w)
+                                                ? (anchor.x - METRICS.paddingH + anchor.w)
+                                                : (METRICS.paddingH + METRICS.iconBox),
+                                    },
+                                ]}
+                            >
 
                                 <View style={styles.overlayInputWrap}>
                                     <TextInput
@@ -315,20 +354,7 @@ const SearchUsersBar = ({ navigation, allUsersRef, disabled = false }) => {
                                             data={results}
                                             keyExtractor={(item) => item.uid}
                                             renderItem={({ item }) => (
-                                                <ProfileCard
-                                                    user={item}
-                                                    query={qStr}
-                                                    onPress={() => {
-                                                        if (item.uid === global?.userData?.uid) {
-                                                            navigation?.navigate("Profile");
-                                                        } else {
-                                                            navigation?.navigate("ViewProfile", {
-                                                                user: { uid: item.uid, handle: item.handle, name: item.name, pfp: item.pfp },
-                                                            });
-                                                        }
-                                                        close();
-                                                    }}
-                                                />
+                                                <ProfileCard user={item} query={qStr} onPress={() => navigateToUser(item)} />
                                             )}
                                             ItemSeparatorComponent={() => <View style={styles.separatorFull} />}
                                             contentContainerStyle={styles.listContent}
@@ -349,20 +375,7 @@ const SearchUsersBar = ({ navigation, allUsersRef, disabled = false }) => {
                                         data={suggestions}
                                         keyExtractor={(item) => item.uid}
                                         renderItem={({ item }) => (
-                                            <ProfileCard
-                                                user={item}
-                                                query={""}
-                                                onPress={() => {
-                                                    if (item.uid === global?.userData?.uid) {
-                                                        navigation?.navigate("Profile");
-                                                    } else {
-                                                        navigation?.navigate("ViewProfile", {
-                                                            user: { uid: item.uid, handle: item.handle, name: item.name, pfp: item.pfp },
-                                                        });
-                                                    }
-                                                    close();
-                                                }}
-                                            />
+                                            <ProfileCard user={item} query={""} onPress={() => navigateToUser(item)} />
                                         )}
                                         ItemSeparatorComponent={() => <View style={styles.separatorFull} />}
                                         contentContainerStyle={styles.listContent}
@@ -372,6 +385,13 @@ const SearchUsersBar = ({ navigation, allUsersRef, disabled = false }) => {
                             )}
                         </SafeAreaView>
                     </KeyboardAvoidingView>
+
+                    {/* Fixed icon rendered last to guarantee it is on top */}
+                    <View style={[styles.fixedSearchIcon, { left: anchor.x || METRICS.paddingH, top: (anchor.y || (insets.top + METRICS.marginTop + METRICS.paddingTop + METRICS.iconTop)) }]} pointerEvents="none">
+                        <RNBounceable bounceEffectIn={0.5} style={styles.searchIconBtn}>
+                            <Ionicons name="search" size={dynamicStyles.iconSize} color="#6B7280" />
+                        </RNBounceable>
+                    </View>
                 </View>
             </Modal>
         </>
@@ -446,7 +466,7 @@ const FeedHeader = ({
                             style={styles.resumeBtnBlue}
                             accessibilityLabel={`Open ongoing workout, elapsed ${elapsed}`}
                         >
-                            <Weight size={s(19)} color="#FFFFFF" variant="Bold" />
+                            <Weight size={s(18)} color="#FFFFFF" variant="Bold" />
                             <View style={styles.dotBlue} />
                             <Text style={styles.resumeTimeBlue}>{elapsed}</Text>
                         </RNBounceable>
@@ -507,45 +527,36 @@ const styles = StyleSheet.create({
         backgroundColor: "#F7FAFF",
         flexDirection: "row",
         justifyContent: "center",
-        paddingTop: s(2),
-        paddingBottom: s(10),
+        paddingTop: METRICS.paddingTop,
+        paddingBottom: METRICS.paddingBottom,
         alignItems: "center",
-        paddingHorizontal: dynamicStyles.paddingHorizontal,
-        marginTop: NUDGE_MARGIN,
+        paddingHorizontal: METRICS.paddingH,
+        marginTop: METRICS.marginTop,
     },
 
     back_header: {
         width: "100%",
-        backgroundColor: "#fff",
+        backgroundColor: "#F7FAFF",
         flexDirection: "row",
-        paddingLeft: dynamicStyles.paddingHorizontal,
-        paddingTop: s(6),
+        paddingLeft: METRICS.paddingH,
+        paddingTop: METRICS.paddingTop + s(4),
         paddingBottom: s(4),
         alignItems: "center",
-        marginTop: NUDGE_MARGIN,
+        marginTop: METRICS.marginTop,
     },
 
-    leftArea: {
-        position: "absolute",
-        left: dynamicStyles.paddingHorizontal,
-        top: ICON_VCENTER_TOP,
-    },
+    leftArea: { position: "absolute", left: METRICS.paddingH, top: METRICS.iconTop },
 
     centerArea: { justifyContent: "center", alignItems: "center" },
 
-    centerSlot: {
-        paddingHorizontal: s(14),
-        height: CENTER_SLOT_H,
-        minWidth: s(156),
-        alignItems: "center",
-        justifyContent: "center",
-    },
+    centerSlot: { paddingHorizontal: s(14), height: METRICS.centerH, minWidth: s(156), alignItems: "center", justifyContent: "center" },
 
-    logoWrap: { height: "100%", flexDirection: "row", alignItems: "center", paddingTop: s(4) },
+    // Nudge the logo down slightly to align with side icons
+    logoWrap: { height: "100%", flexDirection: "row", alignItems: "center", paddingTop: METRICS.logoPadTop },
     logo_image_ctnr: { justifyContent: "center", alignItems: "center" },
-    logo_image: { width: s(24), height: s(25) },
+    logo_image: { width: s(25), height: s(25) },
     logo_text: {
-        paddingLeft: s(6),
+        paddingLeft: s(4),
         fontFamily: "Inter_600SemiBold",
         fontSize: s(16),
         color: "#0f172a",
@@ -558,7 +569,7 @@ const styles = StyleSheet.create({
         flexDirection: "row",
         alignItems: "center",
         paddingHorizontal: s(14),
-        borderRadius: CENTER_SLOT_H / 2,
+        borderRadius: METRICS.centerH / 2,
         backgroundColor: "#2D9EFF",
         borderWidth: 1,
         borderColor: "transparent",
@@ -570,77 +581,60 @@ const styles = StyleSheet.create({
     dotBlue: { width: s(5), height: s(5), borderRadius: s(2.5), backgroundColor: "#FFFFFF", marginHorizontal: s(7), opacity: 0.9 },
     resumeTimeBlue: {
         fontFamily: "Outfit_700Bold",
-        fontSize: s(14),
+        fontSize: s(13),
         color: "#FFFFFF",
         letterSpacing: 0.2,
         includeFontPadding: false,
         ...Platform.select({ android: { lineHeight: s(15) } }),
     },
 
-    right_icons: {
-        flexDirection: "row",
-        position: "absolute",
-        right: dynamicStyles.paddingHorizontal,
-        top: ICON_VCENTER_TOP,
-        alignItems: "center",
-    },
+    right_icons: { flexDirection: "row", position: "absolute", right: METRICS.paddingH, top: METRICS.iconTop, alignItems: "center" },
 
-    notificationBadge: {
-        position: "absolute",
-        right: -7.5,
-        top: -5,
-        backgroundColor: "#ef4444",
-        borderRadius: 8,
-        width: 16,
-        height: 16,
-        justifyContent: "center",
-        alignItems: "center",
-    },
+    notificationBadge: { position: "absolute", right: -7.5, top: -5, backgroundColor: "#ef4444", borderRadius: 8, width: 16, height: 16, justifyContent: "center", alignItems: "center" },
     notificationText: { color: "#fff", fontSize: 8, fontFamily: "Outfit_600SemiBold" },
     message_button: { padding: 1 },
     heart_button: { marginRight: 19, padding: 1, position: "relative" },
 
     left_placeholder: { width: dynamicStyles.iconSize + 6, height: dynamicStyles.iconSize + 6 },
 
-    modalContainer: { flex: 1, justifyContent: "flex-start" },
+    modalContainer: { flex: 1 },
     canvasFill: { ...StyleSheet.absoluteFillObject, backgroundColor: "#F8FAFC" },
-    modalContent: { flex: 1, paddingHorizontal: dynamicStyles.paddingHorizontal, paddingTop: s(8), marginTop: NUDGE_MARGIN },
+    // Align overlay search icon wrapper top exactly with header's wrapper top
+    // Header wrapper Y = marginTop + paddingTop + iconTop
+    modalContent: { flex: 1, paddingHorizontal: METRICS.paddingH, paddingTop: METRICS.marginTop + METRICS.paddingTop, marginTop: 0 },
 
-    overlayBar: {
-        flexDirection: "row",
-        alignItems: "center",
-        marginBottom: s(10),
-        marginLeft: dynamicStyles.paddingHorizontal,
-        marginRight: 10,
-    },
-    overlayLeftIcon: {
-        width: dynamicStyles.iconSize + 6,
-        height: dynamicStyles.iconSize + 6,
-        borderRadius: (dynamicStyles.iconSize + 6) / 2,
-        alignItems: "center",
-        justifyContent: "center",
-    },
+    // Mirror header container: fixed height + relative for absolute left icon
+    // Taller, modern pill input row
+    overlayBar: { position: 'relative', height: METRICS.centerH + s(19), flexDirection: "row", alignItems: "center", marginBottom: s(10), marginLeft: METRICS.paddingH + METRICS.iconBox, marginRight: 10 },
+    // Parent for overlay icon matches header's leftArea semantics (absolute within bar)
+    // Add a 1px nudge for visual parity across devices
+    // overlayLeftArea removed: single icon approach
+
 
     overlayInputWrap: {
         flex: 1,
-        marginLeft: s(10),
-        height: s(38),
-        borderRadius: s(24),
+        marginLeft: s(12),
+        height: METRICS.centerH + s(6),
+        borderRadius: s(26),
         backgroundColor: "#FFFFFF",
         flexDirection: "row",
         alignItems: "center",
-        paddingHorizontal: s(12),
+        paddingHorizontal: s(16),
         borderWidth: 1,
-        borderColor: "rgba(15,23,42,0.08)",
+        borderColor: "rgba(15,23,42,0.10)",
+        ...Platform.select({
+            ios: { shadowColor: "#000", shadowOpacity: 0.06, shadowRadius: 8, shadowOffset: { width: 0, height: 3 } },
+            android: { elevation: 2 },
+        }),
     },
-    overlayInput: { flex: 1, fontSize: s(13), color: "#0f172a", fontFamily: "Poppins_500Medium" },
+    overlayInput: { flex: 1, fontSize: s(15), color: "#0f172a", fontFamily: "Outfit_600SemiBold", textAlignVertical: 'center', includeFontPadding: false },
     clearBtn: { padding: s(6), marginLeft: s(4) },
 
     resultsWrap: { flex: 1, width: "100%" },
-    listContent: { paddingTop: s(6) },
+    listContent: { paddingTop: s(18) },
     separatorFull: { height: StyleSheet.hairlineWidth, backgroundColor: "rgba(15,23,42,0.08)" },
 
-    sectionTitle: { paddingVertical: s(8), fontFamily: "Outfit_700Bold", color: "#0f172a", fontSize: s(14), paddingHorizontal: 16 },
+    sectionTitle: { marginTop: s(6), paddingVertical: s(8), fontFamily: "Outfit_700Bold", color: "#0f172a", fontSize: s(14), paddingHorizontal: 16 },
 
     noResultsWrap: {
         marginTop: s(16),
@@ -657,12 +651,12 @@ const styles = StyleSheet.create({
 
     profileCard: { width: "100%", flexDirection: "row", alignItems: "center", backgroundColor: "#FFFFFF", paddingVertical: s(12), paddingHorizontal: s(18) },
     profileLeft: { flexDirection: "row", alignItems: "center", flex: 1, minWidth: 0 },
-    avatarRing: { alignItems: "center", justifyContent: "center", borderWidth: 2, borderColor: "rgba(4,153,254,0.25)", backgroundColor: "#fff" },
+    avatarRing: { alignItems: "center", justifyContent: "center", borderWidth: 2.5, borderColor: "rgba(109, 177, 255, 1)", backgroundColor: "#fff" },
 
-    cardHandle: { fontFamily: "Outfit_700Bold", fontSize: s(13.5), color: "#0f172a" },
-    cardHandleHighlight: { color: "#0499FE" },
-    cardName: { marginTop: s(2), fontFamily: "Outfit_400Regular", fontSize: s(12.5), color: "#64748B" },
-    cardNameHighlight: { color: "#0f172a", fontFamily: "Outfit_600SemiBold" },
+    cardHandle: { fontFamily: "Nunito_800ExtraBold", fontSize: s(13.5), color: "#0f172a" },
+    cardHandleHighlight: { color: "#0f172a" },
+    cardName: { marginTop: s(2), fontFamily: "Nunito_600SemiBold", fontSize: s(12.5), color: "#64748B" },
+    cardNameHighlight: { color: "#0f172a", fontFamily: "Nunito_700Bold" },
 
     searchIconBtn: {
         width: dynamicStyles.iconSize + 6,

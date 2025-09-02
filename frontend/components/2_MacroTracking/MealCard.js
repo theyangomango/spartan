@@ -18,7 +18,7 @@ export default function MealCard({
             <View style={styles.row}>
                 <Pressable style={styles.left} onPress={onToggle} hitSlop={8}>
                     <View style={[styles.iconWrapper, { backgroundColor: item.bgColor }]}>
-                        <Image source={item.icon} style={styles.icon} />
+                        <Image source={item.icon} style={[styles.icon, item.iconSize ? { width: item.iconSize, height: item.iconSize } : null]} />
                     </View>
                     <View style={{ flex: 1 }}>
                         <Text style={styles.title}>{item.name}</Text>

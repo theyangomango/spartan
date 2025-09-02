@@ -88,7 +88,7 @@ const Footer = ({ navigation, currentScreenName }) => {
 
                 {/* Profile (ProfileStack → Profile) */}
                 <View style={styles.icon_ctnr}>
-                    <Pressable onPress={goTab('ProfileStack', 'Profile')} hitSlop={10}>
+                    <Pressable onPress={() => navigation.navigate('Tabs', { screen: 'ProfileStack', params: { screen: 'Profile', params: { transition: 'fade' } } })} hitSlop={10}>
                         <View style={currentScreenName === 'Profile' ? styles.selectedIcon : styles.icon}>
                             <ProfileIcon size={22.5} color={getIconColor('Profile')} variant="Bold" />
                         </View>
