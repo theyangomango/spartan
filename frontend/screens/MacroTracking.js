@@ -362,23 +362,23 @@ const styles = StyleSheet.create({
         flexDirection: 'row',
         alignItems: 'center',
         justifyContent: 'space-between',
-        paddingHorizontal: 18,
-        paddingTop: 56,
+        paddingHorizontal: 26,
+        paddingTop: 58,
         paddingBottom: 6,
     },
     body: { backgroundColor: COLORS.bg },
     headerText: {
         fontSize: 16,
         color: COLORS.text,
-        fontFamily: 'Outfit_700Bold',
+        fontFamily: 'Nunito_800ExtraBold',
     },
 
     sectionTitle: {
-        fontSize: 18,
+        fontSize: 17,
         marginLeft: 18,
         color: COLORS.text,
         letterSpacing: 0.2,
-        fontFamily: 'Outfit_700Bold',
+        fontFamily: 'Nunito_800ExtraBold',
     },
 
     trackerCard: {

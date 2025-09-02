@@ -1,8 +1,9 @@
-import React, { useEffect, useState } from "react";
-import { StyleSheet, View, Text, Image, Dimensions } from "react-native";
+import React from "react";
+import { StyleSheet, View, Text, Dimensions } from "react-native";
 import { Entypo } from '@expo/vector-icons';
-import getPFP from "../../../../backend/storage/getPFP";
 import RNBounceable from "@freakycoder/react-native-bounceable";
+import FastImage from 'react-native-fast-image';
+import { usePfp } from "../../../helper/usePFPs";
 
 const { height: screenHeight } = Dimensions.get('window');
 const scale = screenHeight / 844; // Scaling factor based on iPhone 13 height
@@ -10,6 +11,7 @@ const scale = screenHeight / 844; // Scaling factor based on iPhone 13 height
 const scaledSize = (size) => Math.round(size * scale);
 
 export default function ProfileInfo({ userData, pfp }) {
+    const pfpUri = usePfp(String(userData?.uid || ''), userData?.pfpVersion || 0) || pfp || '';
     return (
         <View style={styles.main_ctnr}>
             <View style={styles.top_row}>
@@ -18,7 +20,15 @@ export default function ProfileInfo({ userData, pfp }) {
                     <Text style={styles.user_stat_text}>Followers</Text>
                 </View>
                 <View style={styles.pfp_ctnr}>
-                    <Image source={{ uri: pfp }} style={styles.pfp} />
+                    {pfpUri ? (
+                        <FastImage
+                            source={{ uri: pfpUri, priority: FastImage.priority.normal, cache: FastImage.cacheControl.immutable }}
+                            style={styles.pfp}
+                            resizeMode={FastImage.resizeMode.cover}
+                        />
+                    ) : (
+                        <View style={[styles.pfp, { backgroundColor: '#e5e7eb' }]} />
+                    )}
                     <RNBounceable style={styles.plus_icon_ctnr}>
                         <Entypo name="plus" size={scaledSize(16)} color="#222" />
                     </RNBounceable>

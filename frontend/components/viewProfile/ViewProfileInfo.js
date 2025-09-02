@@ -1,5 +1,7 @@
 import { useEffect, useState } from "react";
-import { StyleSheet, View, Text, Image, Dimensions } from "react-native";
+import { StyleSheet, View, Text, Dimensions } from "react-native";
+import FastImage from 'react-native-fast-image';
+import { usePfp } from "../../helper/usePFPs";
 import { Entypo } from '@expo/vector-icons';
 import RNBounceable from "@freakycoder/react-native-bounceable";
 
@@ -11,6 +13,7 @@ function scaleSize(size) {
 }
 
 export default function ViewProfileInfo({ userData }) {
+    const pfpUri = usePfp(String(userData?.uid || ''), userData?.pfpVersion || 0) || userData?.image || '';
     return (
         <View style={styles.main_ctnr}>
             <View style={styles.top_row}>
@@ -19,7 +22,15 @@ export default function ViewProfileInfo({ userData }) {
                     <Text style={styles.user_stat_text}>Followers</Text>
                 </View>
                 <View style={styles.pfp_ctnr}>
-                    <Image source={{ uri: userData && userData.image }} style={styles.pfp} />
+                    {pfpUri ? (
+                        <FastImage
+                            source={{ uri: pfpUri, priority: FastImage.priority.normal, cache: FastImage.cacheControl.immutable }}
+                            style={styles.pfp}
+                            resizeMode={FastImage.resizeMode.cover}
+                        />
+                    ) : (
+                        <View style={[styles.pfp, { backgroundColor: '#e5e7eb' }]} />
+                    )}
                     <RNBounceable style={styles.plus_icon_ctnr}>
                         <Entypo name="plus" size={scaleSize(16)} color="#222" />
                     </RNBounceable>
