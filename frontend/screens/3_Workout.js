@@ -46,6 +46,7 @@ import makeID from "../../backend/helper/makeID";
 
 // Local logic
 import useWorkoutManager from "../logic/useWorkoutManager";
+import useWorkoutStore from "../state/workoutStore";
 
 // utils
 import millisToHoursMinutesSeconds from "../helper/millisToHoursMinutesSeconds";
@@ -88,7 +89,7 @@ export default function Workout({ navigation, route }) {
         registerFeedSetters({ setMessages, setFooterKey: setFooterKeyDummy });
         if (uid) initUserFeed(uid);
     }, [uid]);
-    const user = useUserDoc(uid); // hydrates global.userData
+    const user = useUserDoc(uid, { ignoreKeys: ['currentWorkout'] }); // avoid rerenders on workout typing
 
     const markFriendsViewed = React.useCallback(async () => {
         try {
@@ -255,8 +256,6 @@ export default function Workout({ navigation, route }) {
     // Track last consumed global open signal
     const openSignalRef = useRef(0);
     const {
-        workout,
-        setWorkout,
         timerRef,
         isNewWorkoutVisible,
         setIsNewWorkoutVisible,
@@ -271,7 +270,8 @@ export default function Workout({ navigation, route }) {
         joinExternalWorkout, // used by InviteBanner accept
     } = useWorkoutManager({ uid, navigation, millisToHMS: millisToHoursMinutesSeconds });
 
-    const hasActiveWorkout = !!workout;
+    const hasActiveWorkout = useWorkoutStore((s) => !!s.workout);
+    const workoutWid = useWorkoutStore((s) => (s.workout ? s.workout.wid : null));
     // Header search users (shared hook)
     const { allUsersRef, mergeUsersIntoRef } = useHeaderSearchUsers({ following: global?.userData?.following, enablePrefetch: true });
 
@@ -310,6 +310,13 @@ export default function Workout({ navigation, route }) {
         const selected = templatesWithNone[Math.max(0, Math.min(activeIdx, templatesWithNone.length - 1))];
         startNewWorkoutFromTemplate(selected?.isNone ? null : selected);
     }, [activeIdx, templatesWithNone, startNewWorkoutFromTemplate]);
+
+    // Stable handlers to avoid re-rendering StartCluster on every parent render
+    const openNewWorkout = useCallback(() => setIsNewWorkoutVisible(true), [setIsNewWorkoutVisible]);
+    const openFriends = useCallback(() => {
+        setFriendsSheetVisible(true);
+        setFriendsSheetToggle((f) => !f);
+    }, []);
 
     /* ---------- Day sheet + meals ---------- */
     const [daySheetToggle, setDaySheetToggle] = useState(false);
@@ -365,10 +372,10 @@ export default function Workout({ navigation, route }) {
                 if (typeof joinExternalWorkout === "function") {
                     await joinExternalWorkout({ wid, seedWorkout: seed || joined, inviterUid: currentInvite?.fromUid });
                 } else {
-                    setWorkout(joined);
+                    try { useWorkoutStore.setState({ workout: joined }); } catch {}
                 }
             } catch {
-                setWorkout(joined);
+                try { useWorkoutStore.setState({ workout: joined }); } catch {}
             }
             setIsNewWorkoutVisible(true);
         },
@@ -393,7 +400,7 @@ export default function Workout({ navigation, route }) {
                     scrollToTop={() => { }}
                     navigation={navigation}
                     allUsersRef={allUsersRef}
-                    workout={workout}
+                    workout={workoutWid ? { wid: workoutWid } : null}
                     timerRef={timerRef}
                     openCurrentWorkout={() => setIsNewWorkoutVisible(true)}
                 />
@@ -461,11 +468,8 @@ export default function Workout({ navigation, route }) {
                     scaleAnim={scaleAnim}
                     hasActiveWorkout={hasActiveWorkout}
                     onStartWorkout={onStartWorkout}
-                    onOpenNewWorkout={() => setIsNewWorkoutVisible(true)}
-                    onOpenFriends={() => {
-                        setFriendsSheetVisible(true);
-                        setFriendsSheetToggle((f) => !f);
-                    }}
+                    onOpenNewWorkout={openNewWorkout}
+                    onOpenFriends={openFriends}
                     hasNewFriendsUpdates={hasAnyStack}
                     friendsStackUsers={stackUsers}
                 />
@@ -516,7 +520,6 @@ export default function Workout({ navigation, route }) {
 
             {/* New Workout sheet */}
             <NewWorkoutBottomSheet
-                workout={workout}
                 cancelNewWorkout={cancelWorkout}
                 updateNewWorkout={updateNewWorkout}
                 finishNewWorkout={finishWorkout}

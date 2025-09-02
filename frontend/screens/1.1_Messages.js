@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
 import { View, StyleSheet, ScrollView } from "react-native";
 import MessageCard from "../components/1.1_Messages/MessageCard";
 import MessagesHeader from "../components/1.1_Messages/MessagesHeader";
@@ -12,48 +12,64 @@ import { db } from "../../firebase.config";
 
 // ✅ Soft global cache for in-memory persistence
 let cachedMessages = [];
+let cachedLatestByCid = Object.create(null); // { [cid]: [latestMessage] }
 
 export default function Messages({ navigation, route }) {
     const userData = global.userData;
-    const [messages, setMessages] = useState(cachedMessages);
+    const [chats, setChats] = useState(cachedMessages);
+    const [latestByCid, setLatestByCid] = useState(cachedLatestByCid);
     const [scope, setScope] = useState("All");
     const [isCreateGroupChatBottomSheetVisible, setIsCreateGroupChatBottomSheetVisible] = useState(false);
 
     // Load from route.params once (initial chat metadata)
     useEffect(() => {
-        if ("messages" in route.params) {
-            const enriched = route.params.messages.map((chat) => ({
+        const incoming = route?.params?.messages;
+        if (Array.isArray(incoming)) {
+            // seed chats and hydrate from cache
+            const enriched = incoming.map((chat) => ({
                 ...chat,
-                content: cachedMessages.find((c) => c.cid === chat.cid)?.content || [],
+                content: cachedLatestByCid[chat.cid] || cachedMessages.find((c) => c.cid === chat.cid)?.content || [],
             }));
-            setMessages(enriched);
+            setChats(enriched);
             cachedMessages = enriched;
         }
-    }, [route.params.messages]);
+    }, [route?.params?.messages]);
 
     // Live snapshot: Listen for latest message in each chat
+    // Live snapshot: listen for latest message per chat, but update by cid (not index) and batch updates
     useEffect(() => {
-        const unsubscribes = messages.map((msg, index) => {
-            const contentRef = collection(db, "messages", msg.cid, "content");
-            const q = query(contentRef, orderBy("timestamp", "desc"));
-            return onSnapshot(q, (snapshot) => {
-                const latestMessage = snapshot.docs[0]?.data();
-                setMessages((prev) => {
-                    const updated = [...prev];
-                    if (updated[index]) {
-                        updated[index] = {
-                            ...updated[index],
-                            content: latestMessage ? [latestMessage] : [],
-                        };
-                        cachedMessages = updated;
-                    }
-                    return updated;
-                });
+        if (!Array.isArray(chats) || chats.length === 0) return;
+        const unsubscribes = [];
+        const bufferRef = { updates: Object.create(null) };
+        let raf = null;
+
+        const flush = () => {
+            raf = null;
+            if (Object.keys(bufferRef.updates).length === 0) return;
+            setLatestByCid((prev) => {
+                const next = { ...prev, ...bufferRef.updates };
+                cachedLatestByCid = next;
+                return next;
             });
+            bufferRef.updates = Object.create(null);
+        };
+
+        chats.forEach((chat) => {
+            const contentRef = collection(db, "messages", chat.cid, "content");
+            const q = query(contentRef, orderBy("timestamp", "desc"));
+            const unsub = onSnapshot(q, (snapshot) => {
+                const latestMessage = snapshot.docs[0]?.data() || null;
+                bufferRef.updates[chat.cid] = latestMessage ? [latestMessage] : [];
+                if (!raf) raf = requestAnimationFrame(flush);
+            });
+            unsubscribes.push(unsub);
         });
 
-        return () => unsubscribes.forEach((unsub) => unsub());
-    }, [messages.length]);
+        return () => {
+            if (raf) cancelAnimationFrame(raf);
+            unsubscribes.forEach((u) => u && u());
+        };
+    }, [chats.map((c) => c.cid).join("|")]);
 
     const toFeedScreen = () => {
         if (route?.params?.returnTo === 'Workout') {
@@ -61,13 +77,13 @@ export default function Messages({ navigation, route }) {
             navigation.goBack();
         } else {
             // Default behavior (opened from Feed stack): go back to Feed
-            navigation.navigate("Feed", { messages });
+            navigation.navigate("Feed", { messages: chats });
         }
     };
 
     const toChat = (key, usersExcludingSelf) => {
         navigation.navigate("Chat", {
-            data: messages[key],
+            data: chats[key],
             index: key,
             usersExcludingSelf,
         });
@@ -95,17 +111,18 @@ export default function Messages({ navigation, route }) {
         const newChat = await createChat(userData.uid, [...usersExcludingSelf, selfUser], cid);
         const chatObj = { ...newChat, content: [] };
 
-        setMessages((prev) => {
+        setChats((prev) => {
             const updated = [...prev, chatObj];
             cachedMessages = updated;
             return updated;
         });
+        setLatestByCid((prev) => ({ ...prev, [cid]: [] }));
 
         setIsCreateGroupChatBottomSheetVisible(false);
         navigation.navigate("Chat", { data: chatObj, usersExcludingSelf });
     };
 
-    if (!userData || !messages) return null;
+    if (!userData || !chats) return null;
 
     // ---- Sort newest first (by latest message timestamp) ----
     const getEpoch = (chat) => {
@@ -123,10 +140,10 @@ export default function Messages({ navigation, route }) {
     };
 
     const sortedMessages = useMemo(() => {
-        const copy = [...messages];
-        copy.sort((a, b) => getEpoch(b) - getEpoch(a));
-        return copy;
-    }, [messages]);
+        const merged = chats.map((c) => ({ ...c, content: latestByCid[c.cid] ?? c.content ?? [] }));
+        merged.sort((a, b) => getEpoch(b) - getEpoch(a));
+        return merged;
+    }, [chats, latestByCid]);
 
     return (
         <View style={styles.mainContainer}>
@@ -146,7 +163,7 @@ export default function Messages({ navigation, route }) {
                     {sortedMessages.map((msg, _sortedIndex) => {
                         if (scope === "Group" && !msg.isGroup) return null;
 
-                        const originalIndex = messages.findIndex((m) => m.cid === msg.cid);
+                        const originalIndex = chats.findIndex((m) => m.cid === msg.cid);
                         const usersExcludingSelf = msg.users.filter((u) => u.uid !== userData.uid);
                         const lastMsg = msg.content?.[0];
 

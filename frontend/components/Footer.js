@@ -1,7 +1,8 @@
-import React, { useEffect, useState } from 'react';
+import React from 'react';
 import { Pressable, StyleSheet, View } from 'react-native';
 import { Home, Cup, Weight, Profile as ProfileIcon } from 'iconsax-react-native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
+import useWorkoutStore from '../state/workoutStore';
 
 const COLORS = {
     active: '#000',
@@ -21,17 +22,8 @@ const Footer = ({ navigation, currentScreenName }) => {
         else navigation.navigate('Tabs', { screen: tabName });
     };
 
-    // Track current workout id to refresh halo across screens
-    const [activeWid, setActiveWid] = useState(() => String(global?.userData?.currentWorkout?.wid || ''));
-    useEffect(() => {
-        const id = setInterval(() => {
-            const w = String(global?.userData?.currentWorkout?.wid || '');
-            setActiveWid((prev) => (prev === w ? prev : w));
-        }, 600);
-        return () => clearInterval(id);
-    }, []);
-
-    const hasActiveWorkout = !!activeWid || !!global?.isCurrentlyWorkingOut;
+    // Subscribe to workout presence only (boolean); avoids polling and reduces rerenders
+    const hasActiveWorkout = useWorkoutStore((s) => !!s.workout) || !!global?.isCurrentlyWorkingOut;
 
     const getIconColor = (screenName) => {
         if (screenName === 'Workout' && hasActiveWorkout) return COLORS.workoutActive;

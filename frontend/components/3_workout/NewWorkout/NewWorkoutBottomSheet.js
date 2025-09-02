@@ -1,6 +1,7 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import BottomSheet, { BottomSheetBackdrop } from "@gorhom/bottom-sheet";
 import NewWorkoutModal from "./NewWorkoutModal";
+import useWorkoutStore from "../../../state/workoutStore";
 
 // subtle gray for self, warm gold for friend
 const HANDLE_SELF = "#D0D7E2";
@@ -40,6 +41,9 @@ const NewWorkoutBottomSheet = ({
         }
     }, [isVisible]);
 
+    const workoutFromStore = useWorkoutStore((s) => s.workout);
+    const effectiveWorkout = workout || workoutFromStore;
+
     return (
         <BottomSheet
             ref={bottomSheetRef}
@@ -57,10 +61,10 @@ const NewWorkoutBottomSheet = ({
                 backgroundColor: isViewingSelf ? 'transparent' : HANDLE_FRIEND_BACKGROUND,
             }}
         >
-            {workout && (
+            {effectiveWorkout && (
                 <NewWorkoutModal
                     timerRef={timerRef}
-                    workout={workout}
+                    workout={effectiveWorkout}
                     cancelWorkout={() => {
                         cancelNewWorkout();
                         bottomSheetRef.current?.close();

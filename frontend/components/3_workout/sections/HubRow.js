@@ -15,7 +15,7 @@ const PodiumPreview = memo(function PodiumPreview({ top3 = [] }) {
     return <MiniPodium data={data} />;
 });
 
-export default function HubRow({
+function HubRowCmp({
     navigation,
     afterPaint,
     fill,
@@ -79,6 +79,17 @@ export default function HubRow({
         </View>
     );
 }
+
+const areEqual = (a, b) => (
+    a.afterPaint === b.afterPaint &&
+    a.fill === b.fill &&
+    a.todayCalories === b.todayCalories &&
+    a.caloriesGoal === b.caloriesGoal &&
+    a.PREVIEW_LABEL === b.PREVIEW_LABEL &&
+    a.top3 === b.top3
+);
+
+export default memo(HubRowCmp, areEqual);
 
 const styles = StyleSheet.create({
     hubRow: { flexDirection: "row", gap: 12, paddingHorizontal: 16, marginTop: 6 },

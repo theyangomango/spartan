@@ -1,4 +1,4 @@
-import React, { useRef } from "react";
+import React, { useRef, memo } from "react";
 import { View, Text, StyleSheet, Pressable, Animated, Dimensions, Platform } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import {
@@ -10,7 +10,7 @@ import {
     SAVED_TPL_BORDER,
 } from "./workoutTheme";
 
-export default function TemplatesRail({ templates = [], onIndexChange, onAddTemplate, onOpenTemplate }) {
+function TemplatesRail({ templates = [], onIndexChange, onAddTemplate, onOpenTemplate }) {
     const { width: PAGE_W } = Dimensions.get("window");
     const x = useRef(new Animated.Value(0)).current;
 
@@ -113,6 +113,15 @@ export default function TemplatesRail({ templates = [], onIndexChange, onAddTemp
         </View>
     );
 }
+
+const eq = (a, b) => {
+    if (a.templates === b.templates && a.onAddTemplate === b.onAddTemplate && a.onOpenTemplate === b.onOpenTemplate && a.onIndexChange === b.onIndexChange) return true;
+    const aIds = Array.isArray(a.templates) ? a.templates.map((t) => t.id || t.tid).join('|') : '';
+    const bIds = Array.isArray(b.templates) ? b.templates.map((t) => t.id || t.tid).join('|') : '';
+    return aIds === bIds && a.onAddTemplate === b.onAddTemplate && a.onOpenTemplate === b.onOpenTemplate && a.onIndexChange === b.onIndexChange;
+};
+
+export default memo(TemplatesRail, eq);
 
 const styles = StyleSheet.create({
     wrap: { justifyContent: "space-between" },

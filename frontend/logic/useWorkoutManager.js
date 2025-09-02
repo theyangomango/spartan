@@ -17,6 +17,7 @@ import {
 } from "firebase/firestore";
 import { db } from "../../firebase.config";
 import updateDoc from "../../backend/helper/firebase/updateDoc";
+import useWorkoutStore from "../state/workoutStore";
 import makeID from "../../backend/helper/makeID";
 
 /* ---------------- helpers ---------------- */
@@ -64,7 +65,6 @@ const filterOutUid = (arr, uidStr) =>
     (Array.isArray(arr) ? arr : []).filter((v) => asUid(v) !== uidStr);
 
 export default function useWorkoutManager({ uid, navigation, millisToHMS }) {
-    const [workout, setWorkout] = useState(null);
     const [completedWorkout, setCompletedWorkout] = useState(null);
     const [isSummaryModalVisible, setIsSummaryModalVisible] = useState(false);
     const [isNewWorkoutVisible, setIsNewWorkoutVisible] = useState(false);
@@ -168,7 +168,7 @@ export default function useWorkoutManager({ uid, navigation, millisToHMS }) {
         } catch { }
         stopTimer();
         setIsNewWorkoutVisible(false);
-        setWorkout(null);
+        try { useWorkoutStore.setState({ workout: null }); } catch {}
     }, [stopTimer]);
 
     /**
@@ -240,7 +240,7 @@ export default function useWorkoutManager({ uid, navigation, millisToHMS }) {
             if (!uid) { Alert.alert("Sign in required", "Please log in to start a workout."); return; }
 
             try {
-                if (!workout) {
+                if (!useWorkoutStore.getState().workout) {
                     global.isCurrentlyWorkingOut = true;
                     const wid = makeID();
                     const created = Date.now();
@@ -264,7 +264,7 @@ export default function useWorkoutManager({ uid, navigation, millisToHMS }) {
                         volume: 0, reps: 0, PBs: 0,
                     };
 
-                    setWorkout(newWorkout);
+                    try { useWorkoutStore.setState({ workout: newWorkout }); } catch {}
                     setIsNewWorkoutVisible(true);
                     startTimer(created);
 
@@ -281,11 +281,11 @@ export default function useWorkoutManager({ uid, navigation, millisToHMS }) {
                 Alert.alert("Couldn't start workout", e?.message || "Please try again.");
             }
         },
-        [uid, workout, startTimer, clearPersistDebounce, createWorkoutDoc]
+        [uid, startTimer, clearPersistDebounce, createWorkoutDoc]
     );
 
     const updateNewWorkout = useCallback((next) => {
-        setWorkout(next);
+        try { useWorkoutStore.setState({ workout: next }); } catch {}
         persistCurrentWorkout(next);
     }, [persistCurrentWorkout]);
 
@@ -294,7 +294,8 @@ export default function useWorkoutManager({ uid, navigation, millisToHMS }) {
             clearPersistDebounce();
 
             // capture now; we clear local state immediately after
-            const wid = String(workout?.wid || global?.userData?.currentWorkout?.wid || "");
+            const curr = useWorkoutStore.getState().workout;
+            const wid = String(curr?.wid || global?.userData?.currentWorkout?.wid || "");
 
             // 1) Local/optimistic clear so *my* UI pops closed immediately
             clearCurrentWorkoutLocally();
@@ -310,17 +311,18 @@ export default function useWorkoutManager({ uid, navigation, millisToHMS }) {
         } catch (e) {
             console.log("cancelWorkout error", e);
         }
-    }, [uid, workout?.wid, clearCurrentWorkoutLocally, clearPersistDebounce, leaveWorkoutGroup]);
+    }, [uid, clearCurrentWorkoutLocally, clearPersistDebounce, leaveWorkoutGroup]);
 
     const finishWorkout = useCallback(async () => {
         try {
-            if (workout) {
-                const cleanedExercises = (Array.isArray(workout.exercises) ? workout.exercises : [])
+            const currW = useWorkoutStore.getState().workout;
+            if (currW) {
+                const cleanedExercises = (Array.isArray(currW.exercises) ? currW.exercises : [])
                     .map((ex) => ({ ...ex, sets: (Array.isArray(ex.sets) ? ex.sets : []).filter((s) => Number(s?.weight) > 0 && Number(s?.reps) > 0) }))
                     .filter((ex) => ex.sets && ex.sets.length > 0);
 
-                const duration = Math.max(0, Date.now() - (workout.created || Date.now()));
-                const completed = { ...workout, duration, exercises: cleanedExercises };
+                const duration = Math.max(0, Date.now() - (currW.created || Date.now()));
+                const completed = { ...currW, duration, exercises: cleanedExercises };
 
                 try {
                     const arr = Array.isArray(global?.userData?.completedWorkouts) ? [...global.userData.completedWorkouts] : [];
@@ -343,7 +345,7 @@ export default function useWorkoutManager({ uid, navigation, millisToHMS }) {
                 } catch { }
             }
 
-            const wid = String(workout?.wid || "");
+            const wid = String((useWorkoutStore.getState().workout?.wid) || "");
             if (wid) await leaveWorkoutGroup(wid);
 
             if (uid) await updateDoc("users", uid, { currentWorkout: null });
@@ -351,7 +353,7 @@ export default function useWorkoutManager({ uid, navigation, millisToHMS }) {
         } catch (e) {
             console.log("finishWorkout error", e);
         }
-    }, [uid, workout, clearCurrentWorkoutLocally, leaveWorkoutGroup]);
+    }, [uid, clearCurrentWorkoutLocally, leaveWorkoutGroup]);
 
     const postWorkout = useCallback(async () => {
         setIsSummaryModalVisible(false);
@@ -386,14 +388,14 @@ export default function useWorkoutManager({ uid, navigation, millisToHMS }) {
             const joined = sanitizeWorkout({
                 wid,
                 creatorUID: base?.creatorUid || base?.creatorUID || me,
-                crseated: Date.now(),
+                created: Date.now(),
                 users: [],
                 exercises: [],
                 tid: null,
                 volume: 0, reps: 0, PBs: 0,
             });
 
-            setWorkout(joined);
+            try { useWorkoutStore.setState({ workout: joined }); } catch {}
             setIsNewWorkoutVisible(true);
 
             try {
@@ -404,14 +406,14 @@ export default function useWorkoutManager({ uid, navigation, millisToHMS }) {
             }
         } catch (e) {
             console.log("joinExternalWorkout error", e);
-        }it
+        }
     }, [uid]);
 
     /* ------------ Rehydrate from Firestore user doc ------------ */
     useEffect(() => {
         const remote = sanitizeWorkout(global?.userData?.currentWorkout);
-        if (!workout && remote && remote.created) {
-            setWorkout(remote);
+        if (!useWorkoutStore.getState().workout && remote && remote.created) {
+            try { useWorkoutStore.setState({ workout: remote }); } catch {}
             startTimer(remote.created);
             try {
                 global.isCurrentlyWorkingOut = true;
@@ -424,7 +426,7 @@ export default function useWorkoutManager({ uid, navigation, millisToHMS }) {
     useEffect(() => () => stopTimer(), [stopTimer]);
 
     return {
-        workout, setWorkout,
+        // Do not return workout to avoid parent rerenders; consumers should subscribe via store
         timerRef,
         isNewWorkoutVisible, setIsNewWorkoutVisible,
         isSummaryModalVisible, setIsSummaryModalVisible,
