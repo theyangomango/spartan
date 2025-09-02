@@ -35,6 +35,19 @@ export default function Profile({ navigation }) {
         return unsubscribe;
     }, [navigation]);
 
+    // If another tab requests opening SelectPhotos, honor it on focus
+    const lastOpenSigRef = React.useRef(0);
+    useEffect(() => {
+        const unsub = navigation.addListener('focus', () => {
+            const sig = Number(global?.profileOpenSelectPhotosSignal || 0);
+            if (sig && sig !== lastOpenSigRef.current) {
+                lastOpenSigRef.current = sig;
+                try { navigation.navigate('SelectPhotos'); } catch {}
+            }
+        });
+        return unsub;
+    }, [navigation]);
+
     async function getPosts() {
         let db_posts = [];
         for (const pid of userData.posts) {

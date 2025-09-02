@@ -28,7 +28,8 @@ export default function SelectPhotosScreen({ navigation, route }) {
     }
 
     function goBack() {
-        navigation.navigate('ProfileStack', { screen: 'Profile' });
+        try { navigation.navigate('Profile'); }
+        catch { try { navigation.goBack(); } catch {} }
     }
 
     function next() {

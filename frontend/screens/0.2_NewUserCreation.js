@@ -134,12 +134,14 @@ const NewUserCreation = ({ navigation }) => {
 
             // Persist uid (await so errors don’t surface as unhandled)
             await AsyncStorage.setItem('uid', newID);
+            try { global.setAuthUid?.(newID); } catch {}
 
             // Write to Firestore (await BOTH)
             await arrayAppend('global', 'users', 'all', newUser);
             await createDoc('users', newID, newUser);
 
-            navigation.navigate('FeedStack', { uid: newID });
+            // Jump to Workout in the top tabs
+            navigation.navigate('Tabs', { screen: 'Workout' });
         } catch (err) {
             console.warn('Sign-up failed:', err?.message || err);
         }

@@ -68,10 +68,14 @@ export default function HubRow({
             </Pressable>
 
             {/* Mini podium */}
-            <View style={styles.card}>
+            <Pressable
+                style={styles.card}
+                onPress={() => navigation.navigate("CompetitionOverlay")}
+                android_ripple={{ color: "rgba(2,6,23,0.08)", radius: 120, borderless: false }}
+            >
                 <Text style={styles.podiumCaption}>{PREVIEW_LABEL}</Text>
                 {afterPaint ? <PodiumPreview top3={top3} /> : null}
-            </View>
+            </Pressable>
         </View>
     );
 }

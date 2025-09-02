@@ -66,7 +66,8 @@ const UserLogInCredentials = ({ navigation }) => {
                 AsyncStorage.setItem('uid', user.uid, () => {
                     console.log('async storage set uid');
                 });
-                navigation.navigate('FeedStack', { uid: user.uid }); // Replace with your home screen or dashboard
+                try { global.setAuthUid?.(user.uid); } catch {}
+                navigation.navigate('Tabs', { screen: 'Workout' });
             } else {
                 // No matching user found
                 console.log('Login failed: Invalid credentials');

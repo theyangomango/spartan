@@ -31,7 +31,9 @@ const StartCluster = ({
                     accessibilityRole="button"
                     accessibilityLabel="Create a post"
                     style={({ pressed }) => [styles.smallBtn, pressed && styles.smallBtnPressed]}
-                    onPress={() => navigation?.navigate("ProfileStack", { screen: "SelectPhotos" })}
+                    onPress={() => {
+                        navigation?.navigate('Tabs', { screen: 'ProfileStack', params: { screen: 'SelectPhotos' } });
+                    }}
                 >
                     <AddSquare size={24} color="#000" />
                 </Pressable>

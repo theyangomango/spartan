@@ -15,16 +15,10 @@ const COLORS = {
 };
 
 const Footer = ({ navigation, currentScreenName }) => {
-    // If we're inside a Stack screen (e.g., Feed, MacroTracking), hop to the Tab navigator.
-    const tabNav = navigation.getParent?.() ?? navigation;
-
-    // Helper to navigate to a Tab route, optionally landing on a child screen inside that stack.
+    // Helper to always target the root Tabs navigator from anywhere (overlay or nested stacks)
     const goTab = (tabName, screen) => () => {
-        // If you truly need auth gating, guard here instead of hard-blocking all tabs:
-        // if (!global.userData && tabName !== 'AuthenticationStack') return;
-
-        if (screen) tabNav.navigate(tabName, { screen });
-        else tabNav.navigate(tabName);
+        if (screen) navigation.navigate('Tabs', { screen: tabName, params: { screen } });
+        else navigation.navigate('Tabs', { screen: tabName });
     };
 
     // Track current workout id to refresh halo across screens
@@ -54,14 +48,14 @@ const Footer = ({ navigation, currentScreenName }) => {
     return (
         <View style={styles.outer_view} pointerEvents="auto">
             <View style={styles.main_ctnr}>
-                {/* Feed (Stack tab → child Feed) */}
-                <View style={styles.icon_ctnr}>
-                    <Pressable onPress={goTab('FeedStack', 'Feed')} hitSlop={10}>
-                        <View style={currentScreenName === 'Feed' ? styles.selectedIcon : styles.icon}>
-                            <Home size={24.5} color={getIconColor('Feed')} variant="Bold" />
-                        </View>
-                    </Pressable>
-                </View>
+                    {/* Feed (Stack tab → child Feed) */}
+                    <View style={styles.icon_ctnr}>
+                        <Pressable onPress={goTab('FeedStack', 'Feed')} hitSlop={10}>
+                            <View style={currentScreenName === 'Feed' ? styles.selectedIcon : styles.icon}>
+                                <Home size={24.5} color={getIconColor('Feed')} variant="Bold" />
+                            </View>
+                        </Pressable>
+                    </View>
 
                 {/* Macros (ExploreStack → MacroTracking) */}
                 <View style={styles.icon_ctnr}>
@@ -79,14 +73,8 @@ const Footer = ({ navigation, currentScreenName }) => {
                             onPress={() => {
                                 if (hasActiveWorkout) {
                                     try { global.openCurrentWorkoutSignal = Date.now(); } catch {}
-                                    // Ensure params reach an already-mounted tab screen
-                                    tabNav.navigate('Workout', {
-                                        merge: true,
-                                        params: { openCurrent: true, _t: Date.now() },
-                                    });
-                                } else {
-                                    goTab('Workout')();
                                 }
+                                goTab('Workout')();
                             }}
                             hitSlop={10}
                         >

@@ -9,11 +9,12 @@ import React, { useCallback, useEffect, useMemo, useRef, useState } from "react"
 import { Animated, Dimensions, SafeAreaView, StyleSheet, View } from "react-native";
 import { StatusBar } from "expo-status-bar";
 import MaskedView from "@react-native-masked-view/masked-view";
-import { doc, onSnapshot, collection, where, query, getDocs, getDoc, orderBy, limit } from "firebase/firestore";
+import { doc, onSnapshot } from "firebase/firestore";
 
 import Footer from "../components/Footer";
 import Post from "../components/1_Feed/Posts/Post";
 import FeedHeader from "../components/1_Feed/FeedHeader";
+import useHeaderSearchUsers from "../hooks/useHeaderSearchUsers";
 import ActivityChips from "../components/1_Feed/Pulse/ActivityChips";
 import NotificationsBottomSheet from "../components/1_Feed/Notifications/NotificationsBottomSheet";
 import CommentsBottomSheet from "../components/1_Feed/Comments/CommentsBottomSheet";
@@ -56,8 +57,11 @@ export default function Feed({ navigation, route }) {
     const flatListRef = useRef(null);
     const isTransitioning = useRef(false); /* 🔒 */
 
-    // ✅ Local user cache for instant search in header
-    const allUsersRef = useRef([]); // SearchUsersBar reads .current
+    // ✅ Shared header users (global/users + following + prefetch)
+    const { allUsersRef, mergeUsersIntoRef } = useHeaderSearchUsers({
+        following: global.userData?.following,
+        enablePrefetch: true,
+    });
 
     // Center detection
     const centeredIndexRef = useRef(-1);
@@ -163,24 +167,7 @@ export default function Feed({ navigation, route }) {
         if (UID) initUserFeed(UID);
     }, [UID]);
 
-    // Build allUsersRef from global/users: { all: [...] }
-    useEffect(() => {
-        const ref = doc(db, "global", "users");
-        const unsub = onSnapshot(ref, (snap) => {
-            const data = snap.data() || {};
-            const arr = Array.isArray(data?.all) ? data.all : [];
-            const mapped = arr
-                .map((u) => ({
-                    uid: String(u?.uid || u?.id || ""),
-                    handle: u?.handle || "",
-                    name: u?.name || "",
-                    pfp: u?.pfp || u?.photoURL || u?.image || "",
-                }))
-                .filter((u) => !!u.uid);
-            allUsersRef.current = mapped;
-        });
-        return () => unsub();
-    }, []);
+    // Baseline subscription handled in useHeaderSearchUsers
 
     // If messages are passed from route, set them
     useEffect(() => {
@@ -354,21 +341,6 @@ export default function Feed({ navigation, route }) {
     );
 
     /* -------------------- HYDRATE allUsersRef.current -------------------- */
-    const mergeUsersIntoRef = (arr) => {
-        if (!Array.isArray(arr) || arr.length === 0) return;
-        const map = new Map(allUsersRef.current.map((u) => [u.uid, u]));
-        for (const u of arr) {
-            if (!u?.uid) continue;
-            const cur = map.get(u.uid) || {};
-            map.set(u.uid, {
-                uid: u.uid,
-                handle: u.handle ?? cur.handle ?? "",
-                name: u.name ?? cur.name ?? "",
-                pfp: u.pfp ?? cur.pfp ?? "",
-            });
-        }
-        allUsersRef.current = Array.from(map.values());
-    };
 
     useEffect(() => {
         if (!posts || posts.length === 0) return;
@@ -378,61 +350,7 @@ export default function Feed({ navigation, route }) {
         mergeUsersIntoRef(seeded);
     }, [posts]);
 
-    useEffect(() => {
-        const run = async () => {
-            const following = Array.isArray(global.userData?.following) ? global.userData.following : [];
-            if (!following || following.length === 0) return;
-
-            const existing = new Set(allUsersRef.current.map((u) => u.uid));
-            const missing = following.filter((uid) => uid && !existing.has(uid));
-            if (missing.length === 0) return;
-
-            const usersCol = collection(db, "users");
-            const chunks = [];
-            for (let i = 0; i < missing.length; i += 10) chunks.push(missing.slice(i, i + 10));
-
-            const fetched = [];
-            await Promise.all(
-                chunks.map(async (ids) => {
-                    const q = query(usersCol, where("__name__", "in", ids));
-                    const snap = await getDocs(q);
-                    snap.forEach((d) => {
-                        const data = d.data();
-                        fetched.push({
-                            uid: d.id,
-                            handle: data?.handle ?? "",
-                            name: data?.name ?? "",
-                            pfp: data?.pfp ?? "",
-                        });
-                    });
-                })
-            );
-
-            mergeUsersIntoRef(fetched);
-        };
-        run().catch(() => { });
-    }, [global.userData?.following, UID]);
-
-    useEffect(() => {
-        if ((allUsersRef.current?.length || 0) > 25) return;
-        const prefetch = async () => {
-            const usersCol = collection(db, "users");
-            const q = query(usersCol, orderBy("handle_lower"), limit(100));
-            const snap = await getDocs(q);
-            const arr = [];
-            snap.forEach((d) => {
-                const data = d.data();
-                arr.push({
-                    uid: d.id,
-                    handle: data?.handle ?? "",
-                    name: data?.name ?? "",
-                    pfp: data?.pfp ?? "",
-                });
-            });
-            mergeUsersIntoRef(arr);
-        };
-        prefetch().catch(() => { });
-    }, []);
+    // Following hydration and small prefetch handled in useHeaderSearchUsers
 
     return (
         <SafeAreaView style={{ flex: 1, backgroundColor: "#F7FAFF" }}>

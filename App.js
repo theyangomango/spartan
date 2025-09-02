@@ -8,6 +8,8 @@ import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useFonts } from 'expo-font';
 import { customFonts } from './fonts';
+import { db } from './firebase.config';
+import { doc, onSnapshot } from 'firebase/firestore';
 
 /* Screens */
 import SignUp from './frontend/screens/0.0_SignUp';
@@ -23,19 +25,18 @@ import Workout from './frontend/screens/3_Workout';
 import Competition from './frontend/screens/2_Competition';
 import Messages from './frontend/screens/1.1_Messages';
 import Chat from './frontend/screens/1.2_Chat';
-import PostList from './frontend/screens/PostList';
 import ViewProfile from './frontend/screens/4.1_ViewProfile';
 import MacroTracking from './frontend/screens/MacroTracking';
 
-const Tab = createBottomTabNavigator();
 const NativeStack = createNativeStackNavigator();
+const Tab = createBottomTabNavigator();
 
 /** JS stack used ONLY for cross-tab overlay with left slide */
 const RootOverlayStack = createStackNavigator();
 
 /* ---------- Sub-stacks (native-stack) ---------- */
 const AuthenticationStack = () => (
-    <NativeStack.Navigator initialRouteName="SignUp" screenOptions={{ headerShown: false }}>
+    <NativeStack.Navigator initialRouteName="SignUp" screenOptions={{ headerShown: false, gestureEnabled: true, fullScreenGestureEnabled: true }}>
         <NativeStack.Screen name="SignUp" component={SignUp} />
         <NativeStack.Screen name="LogIn" component={LogIn} />
         <NativeStack.Screen name="NewUserCreation" component={NewUserCreation} />
@@ -44,7 +45,7 @@ const AuthenticationStack = () => (
 );
 
 const FeedStack = ({ route }) => (
-    <NativeStack.Navigator initialRouteName="Feed" screenOptions={{ headerShown: false }}>
+    <NativeStack.Navigator initialRouteName="Feed" screenOptions={{ headerShown: false, gestureEnabled: true, fullScreenGestureEnabled: true }}>
         <NativeStack.Screen name="Feed" component={Feed} initialParams={route?.params} />
         <NativeStack.Screen name="Messages" component={Messages} />
         <NativeStack.Screen name="Chat" component={Chat} />
@@ -53,7 +54,7 @@ const FeedStack = ({ route }) => (
 );
 
 const WorkoutStack = ({ route }) => (
-    <NativeStack.Navigator initialRouteName="Workout" screenOptions={{ headerShown: false }}>
+    <NativeStack.Navigator initialRouteName="Workout" screenOptions={{ headerShown: false, gestureEnabled: true, fullScreenGestureEnabled: true }}>
         <NativeStack.Screen name="Workout" component={Workout} initialParams={route?.params} />
         <NativeStack.Screen name="Messages" component={Messages} />
         <NativeStack.Screen name="Chat" component={Chat} />
@@ -62,21 +63,21 @@ const WorkoutStack = ({ route }) => (
 );
 
 const CompetitionStack = () => (
-    <NativeStack.Navigator initialRouteName="Competition" screenOptions={{ headerShown: false }}>
+    <NativeStack.Navigator initialRouteName="Competition" screenOptions={{ headerShown: false, gestureEnabled: true, fullScreenGestureEnabled: true }}>
         <NativeStack.Screen name="Competition" component={Competition} />
         <NativeStack.Screen name="ViewProfile" component={ViewProfile} />
     </NativeStack.Navigator>
 );
 
 const ExploreStack = () => (
-    <NativeStack.Navigator initialRouteName="MacroTracking" screenOptions={{ headerShown: false }}>
+    <NativeStack.Navigator initialRouteName="MacroTracking" screenOptions={{ headerShown: false, gestureEnabled: true, fullScreenGestureEnabled: true }}>
         <NativeStack.Screen name="MacroTracking" component={MacroTracking} />
         <NativeStack.Screen name="ViewProfile" component={ViewProfile} />
     </NativeStack.Navigator>
 );
 
 const ProfileStack = () => (
-    <NativeStack.Navigator initialRouteName="Profile" screenOptions={{ headerShown: false }}>
+    <NativeStack.Navigator initialRouteName="Profile" screenOptions={{ headerShown: false, gestureEnabled: true, fullScreenGestureEnabled: true }}>
         <NativeStack.Screen name="Profile" component={Profile} />
         <NativeStack.Screen name="SelectPhotos" component={SelectPhotosScreen} />
         <NativeStack.Screen name="PostOptions" component={PostUploadOptionsScreen} />
@@ -86,47 +87,112 @@ const ProfileStack = () => (
 export default function App() {
     const [fontsLoaded] = useFonts(customFonts);
     const [isAuthenticated, setIsAuthenticated] = useState(false);
+    const [userReady, setUserReady] = useState(false);
     const uidRef = useRef(null);
+    const unsubRef = useRef(null);
 
     useEffect(() => {
+        // Expose a minimal auth setter so login/signup can notify App immediately
+        global.setAuthUid = (uid) => {
+            try { if (uid) AsyncStorage.setItem('uid', uid).catch(() => {}); } catch {}
+            uidRef.current = uid || null;
+            setIsAuthenticated(!!uid);
+        };
+
         (async () => {
             try {
                 const uid = await AsyncStorage.getItem('uid');
                 if (uid) { uidRef.current = uid; setIsAuthenticated(true); }
+                else { setIsAuthenticated(false); setUserReady(false); }
             } catch (err) { console.error(err); }
         })();
     }, []);
+
+    // Hydrate global.userData as early as possible when authenticated
+    useEffect(() => {
+        // cleanup previous subscription
+        if (unsubRef.current) { try { unsubRef.current(); } catch {} unsubRef.current = null; }
+        setUserReady(false);
+
+        const uid = uidRef.current;
+        if (!isAuthenticated || !uid) return;
+        const ref = doc(db, 'users', uid);
+        unsubRef.current = onSnapshot(ref, (snap) => {
+            try { global.userData = { uid, ...(snap.data() || {}) }; } catch {}
+            setUserReady(true);
+        }, (err) => {
+            console.warn('User document subscription error:', err?.message || err);
+            // proceed but keep ready false to avoid crashing screens
+        });
+        return () => { if (unsubRef.current) { try { unsubRef.current(); } catch {} unsubRef.current = null; } };
+    }, [isAuthenticated]);
 
     if (!fontsLoaded) return null;
 
     const Tabs = () => (
         <Tab.Navigator
-            initialRouteName={isAuthenticated ? 'Workout' : 'AuthenticationStack'}
+            initialRouteName="Workout"
             screenOptions={{ headerShown: false, tabBarStyle: { display: 'none' } }}
         >
-            <Tab.Screen name="AuthenticationStack" component={AuthenticationStack} />
             <Tab.Screen name="FeedStack" component={FeedStack} initialParams={{ uid: uidRef.current }} />
-            <Tab.Screen name="CompetitionStack" component={CompetitionStack} />
-            <Tab.Screen name="Workout" component={WorkoutStack} initialParams={{ uid: uidRef.current }} />
             <Tab.Screen name="ExploreStack" component={ExploreStack} />
+            <Tab.Screen name="Workout" component={WorkoutStack} initialParams={{ uid: uidRef.current }} />
+            <Tab.Screen name="CompetitionStack" component={CompetitionStack} />
             <Tab.Screen name="ProfileStack" component={ProfileStack} />
-            <Tab.Screen name="PostList" component={PostList} />
         </Tab.Navigator>
     );
+
+    // Splash/guard until user is hydrated if authenticated
+    if (isAuthenticated && !userReady) {
+        return <GestureHandlerRootView style={{ flex: 1, backgroundColor: '#F7FAFF' }} />;
+    }
 
     return (
         <GestureHandlerRootView style={{ flex: 1 }}>
             <NavigationContainer>
                 {/* Use a JS stack JUST for overlay routes with L←R slide */}
-                <RootOverlayStack.Navigator screenOptions={{ headerShown: false }}>
+                <RootOverlayStack.Navigator initialRouteName={isAuthenticated ? 'Tabs' : 'Auth'} screenOptions={{ headerShown: false }}>
                     <RootOverlayStack.Screen name="Tabs" component={Tabs} />
+                    <RootOverlayStack.Screen name="Auth" component={AuthenticationStack} />
                     <RootOverlayStack.Screen
                         name="MacroTrackingOverlay"
                         component={MacroTracking}
                         options={{
                             gestureEnabled: true,
-                            gestureDirection: 'horizontal-inverted', // 👈 slide from LEFT
+                            gestureDirection: 'horizontal-inverted', // 👈 push slides from LEFT
+                            gestureResponseDistance: 80,
                             cardStyleInterpolator: CardStyleInterpolators.forHorizontalIOS,
+                            transitionSpec: {
+                                open: {
+                                    animation: 'timing',
+                                    config: { duration: 300 },
+                                },
+                                // Close instantly so there is NO slide-back animation
+                                close: {
+                                    animation: 'timing',
+                                    config: { duration: 1 },
+                                },
+                            },
+                        }}
+                    />
+                    <RootOverlayStack.Screen
+                        name="CompetitionOverlay"
+                        component={CompetitionStack}
+                        options={{
+                            gestureEnabled: true,
+                            gestureDirection: 'horizontal', // 👈 push slides from RIGHT
+                            gestureResponseDistance: 80,
+                            cardStyleInterpolator: CardStyleInterpolators.forHorizontalIOS,
+                            transitionSpec: {
+                                open: {
+                                    animation: 'timing',
+                                    config: { duration: 300 },
+                                },
+                                close: {
+                                    animation: 'timing',
+                                    config: { duration: 1 },
+                                },
+                            },
                         }}
                     />
                 </RootOverlayStack.Navigator>
