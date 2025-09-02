@@ -267,7 +267,7 @@ const FriendPanel = memo(({ item, now, onSelect }) => {
 });
 
 /* ---------------- sheet ---------------- */
-const FriendsActivitySheet = ({ visible, openToggle, items = [], onClose, onViewed }) => {
+const FriendsActivitySheet = ({ visible, openToggle, items = [], onClose, onViewed, onCopyTemplate }) => {
   const bottomSheetRef = useRef(null);
   const cacheRef = useRef([]);
 
@@ -542,6 +542,7 @@ const FriendsActivitySheet = ({ visible, openToggle, items = [], onClose, onView
                   userWorkoutStats={global?.userData?.statsExercises || {}}
                   onPressBack={closeViewer}
                   onCheer={() => {}}
+                  onCopyTemplate={(wk) => onCopyTemplate?.(wk)}
                   /* 🔒 LOCK friend view so header/controls don't flip to self */
                   forceViewingFriend={selectedItem.friendUid}
                   friendPfp={selectedItem.friendPfp || null}

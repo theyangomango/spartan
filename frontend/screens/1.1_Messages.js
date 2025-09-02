@@ -56,7 +56,13 @@ export default function Messages({ navigation, route }) {
     }, [messages.length]);
 
     const toFeedScreen = () => {
-        navigation.navigate("Feed", { messages });
+        if (route?.params?.returnTo === 'Workout') {
+            // When opened from the Workout stack, simply go back to Workout
+            navigation.goBack();
+        } else {
+            // Default behavior (opened from Feed stack): go back to Feed
+            navigation.navigate("Feed", { messages });
+        }
     };
 
     const toChat = (key, usersExcludingSelf) => {

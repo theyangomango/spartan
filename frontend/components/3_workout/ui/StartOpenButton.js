@@ -1,6 +1,6 @@
 // components/3_Workout/ui/StartOpenButton.jsx
 import React, { useEffect, useRef, useState } from "react";
-import { View, Pressable, Text, StyleSheet, Platform, Animated, Easing } from "react-native";
+import { View, Pressable, Text, StyleSheet, Platform } from "react-native";
 import { AnimatedCircularProgress } from "react-native-circular-progress";
 import { BTN_SIZE } from "../sections/workoutTheme";
 
@@ -58,85 +58,11 @@ const StartOpenButton = ({ hasActiveWorkout, onOpen, onStart, holdMs = 650 }) =>
         setHoldFill(0);
     };
 
-    /* ------------- Pulsing halo (OPEN state) ------------- */
-    const pulse1 = useRef(new Animated.Value(0)).current;
-    const pulse2 = useRef(new Animated.Value(0)).current;
-    const loop1Ref = useRef(null);
-    const loop2Ref = useRef(null);
-
-    useEffect(() => {
-        if (hasActiveWorkout) {
-            loop1Ref.current = Animated.loop(
-                Animated.sequence([
-                    Animated.timing(pulse1, {
-                        toValue: 1,
-                        duration: 1000,
-                        easing: Easing.out(Easing.quad),
-                        useNativeDriver: true,
-                    }),
-                    Animated.timing(pulse1, { toValue: 0, duration: 0, useNativeDriver: true }),
-                ])
-            );
-            loop2Ref.current = Animated.loop(
-                Animated.sequence([
-                    Animated.delay(700),
-                    Animated.timing(pulse2, {
-                        toValue: 1,
-                        duration: 1000,
-                        easing: Easing.out(Easing.quad),
-                        useNativeDriver: true,
-                    }),
-                    Animated.timing(pulse2, { toValue: 0, duration: 0, useNativeDriver: true }),
-                ])
-            );
-            loop1Ref.current.start();
-            loop2Ref.current.start();
-            return () => {
-                loop1Ref.current && loop1Ref.current.stop();
-                loop2Ref.current && loop2Ref.current.stop();
-                pulse1.setValue(0);
-                pulse2.setValue(0);
-            };
-        } else {
-            loop1Ref.current && loop1Ref.current.stop();
-            loop2Ref.current && loop2Ref.current.stop();
-            pulse1.setValue(0);
-            pulse2.setValue(0);
-        }
-    }, [hasActiveWorkout, pulse1, pulse2]);
-
-    const HALO_SCALE = 1.8;
-    const haloStyle = (val) => ({
-        position: "absolute",
-        width: BTN_SIZE,
-        height: BTN_SIZE,
-        borderRadius: BTN_SIZE / 2,
-        borderWidth: 6,
-        borderColor: "rgba(250, 204, 21, 0.55)", // #FACC15 with alpha
-        transform: [
-            {
-                scale: val.interpolate({
-                    inputRange: [0, 1],
-                    outputRange: [1, HALO_SCALE],
-                }),
-            },
-        ],
-        opacity: val.interpolate({
-            inputRange: [0, 1],
-            outputRange: [0.55, 0],
-        }),
-    });
+    /* ------------- Static halo (OPEN state) ------------- */
+    // Non-pulsing white halo that hugs the black button and extends a few pixels outward.
 
     return (
-        <View style={{ width: BTN_SIZE, height: BTN_SIZE, alignItems: "center", justifyContent: "center" }}>
-            {/* Pulsing halo around OPEN state */}
-            {hasActiveWorkout && (
-                <View pointerEvents="none" style={styles.pulseWrap}>
-                    <Animated.View style={haloStyle(pulse1)} />
-                    <Animated.View style={haloStyle(pulse2)} />
-                </View>
-            )}
-
+        <View style={styles.wrap}>
             <Pressable
                 {...(hasActiveWorkout
                     ? { onPress: onOpen }
@@ -147,12 +73,25 @@ const StartOpenButton = ({ hasActiveWorkout, onOpen, onStart, holdMs = 650 }) =>
                         onPressOut: handlePressOut,
                     })}
                 hitSlop={10}
-                style={({ pressed }) => [styles.startBtn, pressed && { transform: [{ scale: 0.98 }] }]}
+                style={({ pressed }) => [
+                    styles.startBtn,
+                    hasActiveWorkout && styles.startBtnOpen,
+                    pressed && { transform: [{ scale: 0.98 }] },
+                ]}
                 accessibilityRole="button"
                 accessibilityLabel={hasActiveWorkout ? "Open current workout" : "Start workout"}
             >
                 <Text style={styles.startText}>{hasActiveWorkout ? "OPEN" : "START"}</Text>
             </Pressable>
+
+            {/* Static white halo around OPEN state (rendered above button) */}
+            {hasActiveWorkout && (
+                <View pointerEvents="none" style={styles.pulseWrap}>
+                    <View style={styles.openHaloOuter} />
+                    <View style={styles.openHaloInner} />
+                    <View style={styles.openGlow} />
+                </View>
+            )}
 
             {/* START state progress ring */}
             {!hasActiveWorkout && (
@@ -181,6 +120,13 @@ const StartOpenButton = ({ hasActiveWorkout, onOpen, onStart, holdMs = 650 }) =>
 };
 
 const styles = StyleSheet.create({
+    wrap: {
+        width: BTN_SIZE,
+        height: BTN_SIZE,
+        alignItems: "center",
+        justifyContent: "center",
+        overflow: "visible", // ensure halo/glow extending outside is visible
+    },
     // Core black button (minimal)
     startBtn: {
         width: BTN_SIZE,
@@ -193,6 +139,15 @@ const styles = StyleSheet.create({
         ...Platform.select({
             ios: { shadowColor: "#000", shadowOpacity: 0.22, shadowRadius: 18, shadowOffset: { width: 0, height: 12 } },
             android: { elevation: 8 },
+        }),
+    },
+    // Extra styling when OPEN to create a crisp white rim + glow
+    startBtnOpen: {
+        borderWidth: 6,
+        borderColor: "#FFFFFF",
+        ...Platform.select({
+            ios: { shadowColor: "#FFFFFF", shadowOpacity: 0.75, shadowRadius: 12, shadowOffset: { width: 0, height: 0 } },
+            android: {},
         }),
     },
     startText: {
@@ -221,6 +176,35 @@ const styles = StyleSheet.create({
         bottom: 0,
         alignItems: "center",
         justifyContent: "center",
+        zIndex: 2,
+    },
+    // Non-pulsing white halo for OPEN state (outer soft ring)
+    openHaloOuter: {
+        position: "absolute",
+        width: BTN_SIZE + 56,
+        height: BTN_SIZE + 56,
+        borderRadius: (BTN_SIZE + 56) / 2,
+        borderWidth: 22,
+        borderColor: "rgba(255,255,255,0.30)",
+        backgroundColor: "transparent",
+    },
+    // Crisp inner ring that hugs the black button edge
+    openHaloInner: {
+        position: "absolute",
+        width: BTN_SIZE + 18,
+        height: BTN_SIZE + 18,
+        borderRadius: (BTN_SIZE + 18) / 2,
+        borderWidth: 10,
+        borderColor: "#9ac7ffff",
+        backgroundColor: "transparent",
+    },
+    // Extra soft glow just beyond the halo to make it more visible
+    openGlow: {
+        position: "absolute",
+        width: BTN_SIZE + 76,
+        height: BTN_SIZE + 76,
+        borderRadius: (BTN_SIZE + 76) / 2,
+        backgroundColor: "rgba(255,255,255,0.16)",
     },
 });
 

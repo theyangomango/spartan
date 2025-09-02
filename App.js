@@ -52,6 +52,15 @@ const FeedStack = ({ route }) => (
     </NativeStack.Navigator>
 );
 
+const WorkoutStack = ({ route }) => (
+    <NativeStack.Navigator initialRouteName="Workout" screenOptions={{ headerShown: false }}>
+        <NativeStack.Screen name="Workout" component={Workout} initialParams={route?.params} />
+        <NativeStack.Screen name="Messages" component={Messages} />
+        <NativeStack.Screen name="Chat" component={Chat} />
+        <NativeStack.Screen name="ViewProfile" component={ViewProfile} />
+    </NativeStack.Navigator>
+);
+
 const CompetitionStack = () => (
     <NativeStack.Navigator initialRouteName="Competition" screenOptions={{ headerShown: false }}>
         <NativeStack.Screen name="Competition" component={Competition} />
@@ -98,7 +107,7 @@ export default function App() {
             <Tab.Screen name="AuthenticationStack" component={AuthenticationStack} />
             <Tab.Screen name="FeedStack" component={FeedStack} initialParams={{ uid: uidRef.current }} />
             <Tab.Screen name="CompetitionStack" component={CompetitionStack} />
-            <Tab.Screen name="Workout" component={Workout} initialParams={{ uid: uidRef.current }} />
+            <Tab.Screen name="Workout" component={WorkoutStack} initialParams={{ uid: uidRef.current }} />
             <Tab.Screen name="ExploreStack" component={ExploreStack} />
             <Tab.Screen name="ProfileStack" component={ProfileStack} />
             <Tab.Screen name="PostList" component={PostList} />

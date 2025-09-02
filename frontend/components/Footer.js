@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { Pressable, StyleSheet, View } from 'react-native';
 import { Home, Cup, Weight, Profile as ProfileIcon } from 'iconsax-react-native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
@@ -7,7 +7,9 @@ const COLORS = {
     active: '#000',
     inactive: '#bbb',
     workoutActive: '#2291FF',
-    workoutHalo: '#CCE7FF',
+    // Softer, more visible blue halo
+    workoutHalo: '#E1F0FF',
+    workoutHaloBorder: '#B7D7FF',
     bg: '#fff',
     hairline: 'rgba(2,6,23,0.06)',
 };
@@ -25,13 +27,28 @@ const Footer = ({ navigation, currentScreenName }) => {
         else tabNav.navigate(tabName);
     };
 
+    // Track current workout id to refresh halo across screens
+    const [activeWid, setActiveWid] = useState(() => String(global?.userData?.currentWorkout?.wid || ''));
+    useEffect(() => {
+        const id = setInterval(() => {
+            const w = String(global?.userData?.currentWorkout?.wid || '');
+            setActiveWid((prev) => (prev === w ? prev : w));
+        }, 600);
+        return () => clearInterval(id);
+    }, []);
+
+    const hasActiveWorkout = !!activeWid || !!global?.isCurrentlyWorkingOut;
+
     const getIconColor = (screenName) => {
-        if (screenName === 'Workout' && global.isCurrentlyWorkingOut) return COLORS.workoutActive;
+        if (screenName === 'Workout' && hasActiveWorkout) return COLORS.workoutActive;
         return currentScreenName === screenName ? COLORS.active : COLORS.inactive;
     };
 
     const getWorkoutIndicatorStyle = () => ({
-        backgroundColor: global.isCurrentlyWorkingOut ? COLORS.workoutHalo : 'transparent',
+        backgroundColor: hasActiveWorkout ? COLORS.workoutHalo : 'transparent',
+        borderWidth: hasActiveWorkout ? StyleSheet.hairlineWidth : 0,
+        borderColor: hasActiveWorkout ? COLORS.workoutHaloBorder : 'transparent',
+        padding: hasActiveWorkout ? 8 : 3,
     });
 
     return (
@@ -58,7 +75,21 @@ const Footer = ({ navigation, currentScreenName }) => {
                 {/* Workout (direct tab) */}
                 <View style={styles.workout_icon_ctnr}>
                     <View style={[styles.workout_indicator_ctnr, getWorkoutIndicatorStyle()]}>
-                        <Pressable onPress={goTab('Workout')} hitSlop={10}>
+                        <Pressable
+                            onPress={() => {
+                                if (hasActiveWorkout) {
+                                    try { global.openCurrentWorkoutSignal = Date.now(); } catch {}
+                                    // Ensure params reach an already-mounted tab screen
+                                    tabNav.navigate('Workout', {
+                                        merge: true,
+                                        params: { openCurrent: true, _t: Date.now() },
+                                    });
+                                } else {
+                                    goTab('Workout')();
+                                }
+                            }}
+                            hitSlop={10}
+                        >
                             <View style={currentScreenName === 'Workout' ? styles.selectedIcon : styles.icon}>
                                 <Weight size={27.5} color={getIconColor('Workout')} variant="Bold" />
                             </View>

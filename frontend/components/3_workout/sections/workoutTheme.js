@@ -7,7 +7,8 @@ export const ss = (n) => Math.round(n * scale);
 export const FOOTER_HEIGHT = 87;
 
 /* START cluster proportions (Nike-like) */
-export const BTN_SIZE = Math.round(W * 0.34);
+// Slightly smaller central action button
+export const BTN_SIZE = Math.round(W * 0.32);
 export const SMALL_SIZE = Math.round(W * 0.132);
 export const BTN_GAP = ss(20);
 export const ROW_WIDTH = BTN_SIZE + SMALL_SIZE * 2 + BTN_GAP * 2 + ss(15);

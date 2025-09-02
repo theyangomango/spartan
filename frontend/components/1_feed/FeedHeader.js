@@ -4,7 +4,6 @@ import {
     StyleSheet,
     View,
     Text,
-    Image,
     TouchableOpacity,
     Dimensions,
     TextInput,
@@ -15,7 +14,9 @@ import {
     KeyboardAvoidingView,
     Platform,
 } from "react-native";
+import FastImage from "react-native-fast-image";
 import { Ionicons, MaterialIcons } from "@expo/vector-icons";
+import { usePfp } from "../../helper/usePFPs";
 import RNBounceable from "@freakycoder/react-native-bounceable";
 import Svg, { Path } from "react-native-svg";
 import { Weight } from "iconsax-react-native";
@@ -29,8 +30,10 @@ const scale = SCREEN_WIDTH / 375;
 const s = (n) => Math.round(n * scale);
 
 /* ---------- constants to lock header height ---------- */
-const CENTER_SLOT_H = s(28);
+const CENTER_SLOT_H = s(34);
 const NUDGE_MARGIN = s(5);
+// Vertically center the side icons to the center slot
+const ICON_VCENTER_TOP = NUDGE_MARGIN + Math.round((CENTER_SLOT_H - dynamicStyles.iconSize) / 2);
 
 /* ------------------------------ Debounce ------------------------------ */
 const useDebounce = (fn, delay = 220) => {
@@ -79,7 +82,8 @@ const Highlighted = ({ text = "", query = "", style, highlightStyle }) => {
 /* --------------------------- ProfileCard --------------------------- */
 const ProfileCard = React.memo(({ user, query, onPress }) => {
     const avatarSize = s(44);
-    const hasPfp = !!user?.pfp;
+    const pfpUri = usePfp(String(user?.uid || ""), user?.pfpVersion || 0) || user?.pfp || "";
+    const hasPfp = !!pfpUri;
 
     return (
         <RNBounceable onPress={onPress} style={styles.profileCard} bounceEffectIn={0.96}>
@@ -88,14 +92,15 @@ const ProfileCard = React.memo(({ user, query, onPress }) => {
                     style={[styles.avatarRing, { width: avatarSize, height: avatarSize, borderRadius: avatarSize / 2 }]}
                 >
                     {hasPfp ? (
-                        <Image
-                            source={{ uri: user.pfp }}
+                        <FastImage
+                            source={{ uri: pfpUri, priority: FastImage.priority.normal, cache: FastImage.cacheControl.immutable }}
                             style={{
                                 width: avatarSize - 4,
                                 height: avatarSize - 4,
                                 borderRadius: (avatarSize - 4) / 2,
                                 backgroundColor: "#f3f4f6",
                             }}
+                            resizeMode={FastImage.resizeMode.cover}
                         />
                     ) : (
                         <Ionicons name="person-circle" size={avatarSize} color="#C7C7CC" />
@@ -130,13 +135,14 @@ const SearchUsersBar = ({ navigation, allUsersRef, disabled = false }) => {
     const [modalKey, setModalKey] = useState(0);
     const [qStr, setQStr] = useState("");
     const [results, setResults] = useState([]);
+    const [usersCacheTick, setUsersCacheTick] = useState(0);
 
     const suggestions = useMemo(() => {
         const arr = (allUsersRef?.current || [])
             .filter((u) => u?.uid && u.uid !== global?.userData?.uid)
             .slice(0, 10);
         return arr;
-    }, [allUsersRef?.current]);
+    }, [allUsersRef?.current, usersCacheTick]);
 
     const open = useCallback(() => {
         if (disabled) return;
@@ -161,12 +167,12 @@ const SearchUsersBar = ({ navigation, allUsersRef, disabled = false }) => {
                     (u?.name || "").toLowerCase().includes(needle)
             )
             .slice(0, 30);
-        setResults(out);
+        return out;
     };
 
     const remotePrefixQuery = async (text) => {
         const needle = (text || "").toLowerCase();
-        if (!needle) return setResults([]);
+        if (!needle) return [];
 
         const usersCol = collection(db, "users");
         const handleQ = query(
@@ -195,19 +201,57 @@ const SearchUsersBar = ({ navigation, allUsersRef, disabled = false }) => {
                 uid,
                 handle: data?.handle ?? "",
                 name: data?.name ?? "",
-                pfp: data?.pfp ?? "",
+                pfp: data?.pfp || data?.photoURL || data?.image || "",
             }))
-            .filter((u) => u.uid !== me)
-            .slice(0, 30);
+            .filter((u) => u.uid !== me);
 
-        setResults(merged);
+        return merged;
     };
 
-    const doSearch = useDebounce((text) => {
-        if (!text) return setResults([]);
-        if (allUsersRef?.current?.length) localFilter(text);
-        else remotePrefixQuery(text).catch(() => setResults([]));
+    const doSearch = useDebounce(async (text) => {
+        const q = (text || "").trim();
+        if (!q) { setResults([]); return; }
+
+        // Instant local results for responsiveness
+        const local = localFilter(q);
+        if (local && local.length) setResults(local);
+        else setResults([]);
+
+        // Remote query across all users (handle + name prefix)
+        try {
+            const remote = await remotePrefixQuery(q);
+            const map = new Map((remote || []).map((u) => [u.uid, u]));
+            (local || []).forEach((u) => { if (!map.has(u.uid)) map.set(u.uid, u); });
+            setResults(Array.from(map.values()).slice(0, 50));
+        } catch {
+            // keep local
+        }
     }, 220);
+
+    // Ensure "Suggested" always has real data: on open, if cache is tiny, fetch a larger page
+    useEffect(() => {
+        if (!visible) return;
+        const prime = async () => {
+            try {
+                const existing = (allUsersRef?.current || []).length;
+                if (existing >= 10) return; // already enough
+                const usersCol = collection(db, "users");
+                const q = query(usersCol, orderBy("handle_lower"), limit(200));
+                const snap = await getDocs(q);
+                const add = [];
+                snap.forEach((d) => {
+                    const data = d.data() || {};
+                    add.push({ uid: d.id, handle: data?.handle || "", name: data?.name || "", pfp: data?.pfp || data?.photoURL || data?.image || "" });
+                });
+                // Merge/dedupe into the shared ref so both Feed and Workout benefit
+                const map = new Map((allUsersRef?.current || []).map((u) => [u.uid, u]));
+                add.forEach((u) => { if (u?.uid && !map.has(u.uid)) map.set(u.uid, u); });
+                allUsersRef.current = Array.from(map.values());
+                setUsersCacheTick((t) => t + 1);
+            } catch {}
+        };
+        prime();
+    }, [visible, allUsersRef]);
 
     if (disabled) return <View style={styles.left_placeholder} />;
 
@@ -402,16 +446,17 @@ const FeedHeader = ({
                             style={styles.resumeBtnBlue}
                             accessibilityLabel={`Open ongoing workout, elapsed ${elapsed}`}
                         >
-                            <Weight size={s(16)} color="#FFFFFF" variant="Bold" />
+                            <Weight size={s(19)} color="#FFFFFF" variant="Bold" />
                             <View style={styles.dotBlue} />
                             <Text style={styles.resumeTimeBlue}>{elapsed}</Text>
                         </RNBounceable>
                     ) : (
                         <RNBounceable onPress={scrollToTop} style={styles.logoWrap}>
                             <View style={styles.logo_image_ctnr}>
-                                <Image
+                                <FastImage
                                     source={require("../../../frontend/assets/logo_feed_black.png")}
                                     style={styles.logo_image}
+                                    resizeMode={FastImage.resizeMode.contain}
                                 />
                             </View>
                             <Text style={styles.logo_text}>SPARTAN</Text>
@@ -483,15 +528,15 @@ const styles = StyleSheet.create({
     leftArea: {
         position: "absolute",
         left: dynamicStyles.paddingHorizontal,
-        top: NUDGE_MARGIN,
+        top: ICON_VCENTER_TOP,
     },
 
     centerArea: { justifyContent: "center", alignItems: "center" },
 
     centerSlot: {
-        paddingHorizontal: s(10),
+        paddingHorizontal: s(14),
         height: CENTER_SLOT_H,
-        minWidth: s(140),
+        minWidth: s(156),
         alignItems: "center",
         justifyContent: "center",
     },
@@ -512,7 +557,7 @@ const styles = StyleSheet.create({
         height: "100%",
         flexDirection: "row",
         alignItems: "center",
-        paddingHorizontal: s(12),
+        paddingHorizontal: s(14),
         borderRadius: CENTER_SLOT_H / 2,
         backgroundColor: "#2D9EFF",
         borderWidth: 1,
@@ -522,10 +567,10 @@ const styles = StyleSheet.create({
             android: { elevation: 3 },
         }),
     },
-    dotBlue: { width: s(4), height: s(4), borderRadius: s(2), backgroundColor: "#FFFFFF", marginHorizontal: s(6), opacity: 0.9 },
+    dotBlue: { width: s(5), height: s(5), borderRadius: s(2.5), backgroundColor: "#FFFFFF", marginHorizontal: s(7), opacity: 0.9 },
     resumeTimeBlue: {
         fontFamily: "Outfit_700Bold",
-        fontSize: s(12.5),
+        fontSize: s(14),
         color: "#FFFFFF",
         letterSpacing: 0.2,
         includeFontPadding: false,
@@ -536,7 +581,7 @@ const styles = StyleSheet.create({
         flexDirection: "row",
         position: "absolute",
         right: dynamicStyles.paddingHorizontal,
-        top: NUDGE_MARGIN,
+        top: ICON_VCENTER_TOP,
         alignItems: "center",
     },
 

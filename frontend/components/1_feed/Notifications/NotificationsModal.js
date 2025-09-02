@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
 import { View, StyleSheet, FlatList } from "react-native";
 import { collection, query, orderBy, limit, onSnapshot } from "firebase/firestore";
 import { db } from "../../../../firebase.config";
@@ -8,22 +8,27 @@ import scaleSize from "../../../helper/scaleSize";
 
 const PAGE_SIZE = 20;
 
-export default function NotificationsModal({ visible }) {
+export default function NotificationsModal({ visible, uid }) {
     const [selectedButton, setSelectedButton] = useState("All Activity");
     const [events, setEvents] = useState([]);
+    const [refreshTick, setRefreshTick] = useState(0);
+    const listRef = useRef(null);
     const [newLikes, setNewLikes] = useState(0);
     const [newComments, setNewComments] = useState(0);
 
     useEffect(() => {
         if (!visible) return;
-        const uid = global.userData?.uid;
-        if (!uid) return;
+        const effUid = uid || global.userData?.uid;
+        if (!effUid) return;
 
-        const notifRef = collection(db, "users", uid, "notifications");
+        const notifRef = collection(db, "users", effUid, "notifications");
         const notifQuery = query(notifRef, orderBy("timestamp", "desc"), limit(PAGE_SIZE));
         return onSnapshot(notifQuery, (snapshot) => {
-            const docs = snapshot.docs.map((doc) => doc.data());
+            const docs = snapshot.docs.map((d) => ({ id: d.id, ...(d.data() || {}) }));
             setEvents(docs);
+            setRefreshTick((t) => t + 1);
+            // ensure the list re-measures and stays at top on first load
+            try { listRef.current?.scrollToOffset?.({ offset: 0, animated: false }); } catch {}
 
             // Count unread likes/comments until first read
             let likes = 0;
@@ -36,7 +41,7 @@ export default function NotificationsModal({ visible }) {
             setNewLikes(likes);
             setNewComments(comments);
         });
-    }, [visible]);
+    }, [visible, uid]);
 
     const filteredEvents = useMemo(() => {
         return events.filter((event) => {
@@ -63,15 +68,24 @@ export default function NotificationsModal({ visible }) {
                 newComments={newComments}
             />
             <FlatList
+                ref={listRef}
                 data={filteredEvents}
                 renderItem={({ item }) => <MemoNotificationCard item={item} />}
-                keyExtractor={(item, index) => `${item.type}-${item.timestamp}-${index}`}
+                keyExtractor={(item, index) => {
+                    const ts = item?.timestamp;
+                    const ms = (typeof ts === 'number')
+                        ? ts
+                        : (ts?.toMillis?.() || (typeof ts?.seconds === 'number' ? ts.seconds * 1000 : (Date.parse(ts) || 0)));
+                    return `${item?.id || ''}-${item?.type || 'evt'}-${ms || index}-${index}`;
+                }}
                 style={styles.flatList}
                 contentContainerStyle={styles.listContent}
                 showsVerticalScrollIndicator={false}
                 initialNumToRender={10}
                 windowSize={7}
-                removeClippedSubviews
+                removeClippedSubviews={false}
+                extraData={refreshTick}
+                ListEmptyComponent={visible ? <View style={styles.emptyWrap} /> : null}
             />
         </View>
     );
@@ -92,4 +106,5 @@ const styles = StyleSheet.create({
     listContent: {
         paddingBottom: scaleSize(18),
     },
+    emptyWrap: { height: scaleSize(60) },
 });

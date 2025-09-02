@@ -1,5 +1,5 @@
 // components/3_Workout/NewWorkout/NewWorkoutModal
-import React, { useEffect, useState, useRef, useMemo, useCallback } from "react";
+import React, { useEffect, useState, useRef, useMemo, useCallback, memo } from "react";
 import {
     StyleSheet,
     View,
@@ -45,10 +45,12 @@ const NewWorkoutModal = ({
     onViewingChange,
     onPressBack,    // for friend view
     onCheer,        // for friend view
+    onCopyTemplate, // when viewing friend's completed workout
     // 👇 NEW: can be boolean or a string uid — if truthy, we hard-lock friend view
     forceViewingFriend = false,
     friendPfp = null,
 }) => {
+
     // Enable LayoutAnimation on Android
     if (Platform.OS === "android" && UIManager.setLayoutAnimationEnabledExperimental) {
         try { UIManager.setLayoutAnimationEnabledExperimental(true); } catch {}
@@ -247,6 +249,12 @@ const NewWorkoutModal = ({
     );
     const inActiveGroupEffective = lockFriend ? false : inActiveGroup;
 
+    // Friend workout state: ongoing IFF the viewed user's activeWorkout matches this wid
+    const friendOngoing = useMemo(
+        () => (!viewingSelfEffective && String(activeWorkout?.wid || "") === cardWid),
+        [viewingSelfEffective, activeWorkout?.wid, cardWid]
+    );
+
     // ===== Send invites from the picker =====
     const handleInviteSelected = useCallback(async (selectedUsers = []) => {
         try {
@@ -295,7 +303,10 @@ const NewWorkoutModal = ({
                     onOpenMenu={lockFriend ? undefined : openMenu}
                     onLongPressInvite={lockFriend ? undefined : (viewingSelfEffective ? openInviteSheet : undefined)}
                     onFinish={viewingSelfEffective ? openFinishConfirm : undefined}
-                    onCheer={viewingSelfEffective ? undefined : onCheer}
+                    // Only show Cheer when the friend's session is ongoing
+                    onCheer={friendOngoing ? onCheer : undefined}
+                    // When viewing a completed workout, show Copy Template instead
+                    onCopyTemplate={!viewingSelfEffective && !friendOngoing ? (() => onCopyTemplate?.(baseWorkout)) : undefined}
                     countdown={countdown}
                     onAddTime={viewingSelfEffective ? openRestModal : undefined}
                     timerRef={timerRef}
@@ -520,4 +531,21 @@ const styles = StyleSheet.create({
     keepEditingText: { color: "#0F172A", fontSize: scaledSize(14), fontFamily: "Outfit_600SemiBold" },
 });
 
-export default NewWorkoutModal;
+// Prevent unnecessary re-renders: only re-render when meaningful props change.
+// Note: `workout` changes when any exercise/sets change (by design),
+// so we short-circuit on strict equality and avoid extra renders from parent churn.
+const areEqualModalProps = (prev, next) => (
+    prev.workout === next.workout &&
+    prev.userWorkoutStats === next.userWorkoutStats &&
+    prev.timerRef === next.timerRef &&
+    prev.forceViewingFriend === next.forceViewingFriend &&
+    prev.onViewingChange === next.onViewingChange &&
+    prev.onPressBack === next.onPressBack &&
+    prev.onCheer === next.onCheer &&
+    prev.onCopyTemplate === next.onCopyTemplate &&
+    prev.cancelWorkout === next.cancelWorkout &&
+    prev.updateWorkout === next.updateWorkout &&
+    prev.finishWorkout === next.finishWorkout
+);
+
+export default memo(NewWorkoutModal, areEqualModalProps);

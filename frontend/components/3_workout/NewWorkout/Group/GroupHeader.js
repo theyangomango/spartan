@@ -23,6 +23,7 @@ const GroupHeader = ({
     onLongPressInvite,
     onFinish,
     onCheer,
+    onCopyTemplate,
     countdown,
     onAddTime,
     timerRef,
@@ -113,10 +114,17 @@ const GroupHeader = ({
                         <Text style={styles.finish_btn_text}>Finish</Text>
                     </RNBounceable>
                 ) : (
-                    <RNBounceable onPress={onCheer} style={styles.cheer_btn}>
-                        <MaterialCommunityIcons name="arm-flex" size={scaledSize(18)} color="#ffffff" />
-                        <Text style={styles.cheer_btn_text}>Cheer</Text>
-                    </RNBounceable>
+                    onCheer ? (
+                        <RNBounceable onPress={onCheer} style={styles.cheer_btn}>
+                            <MaterialCommunityIcons name="arm-flex" size={scaledSize(18)} color="#ffffff" />
+                            <Text style={styles.cheer_btn_text}>Cheer</Text>
+                        </RNBounceable>
+                    ) : (
+                        <RNBounceable onPress={onCopyTemplate} style={styles.copy_btn}>
+                            <MaterialCommunityIcons name="content-copy" size={scaledSize(18)} color="#ffffff" />
+                            <Text style={styles.copy_btn_text}>Copy Template</Text>
+                        </RNBounceable>
+                    )
                 )}
             </View>
         </View>
@@ -214,6 +222,27 @@ const styles = StyleSheet.create({
         elevation: 3,
     },
     cheer_btn_text: {
+        fontFamily: "Outfit_700Bold",
+        fontSize: scaledSize(13.5),
+        color: "#ffffff",
+        includeFontPadding: false,
+    },
+    // Copy template button – match header pills
+    copy_btn: {
+        height: scaledSize(32),
+        paddingHorizontal: scaledSize(12),
+        borderRadius: scaledSize(999),
+        backgroundColor: "#2D9EFF",
+        flexDirection: "row",
+        alignItems: "center",
+        gap: scaledSize(6),
+        shadowColor: "#0EA5E9",
+        shadowOpacity: 0.2,
+        shadowRadius: 6,
+        shadowOffset: { width: 0, height: 3 },
+        elevation: 3,
+    },
+    copy_btn_text: {
         fontFamily: "Outfit_700Bold",
         fontSize: scaledSize(13.5),
         color: "#ffffff",

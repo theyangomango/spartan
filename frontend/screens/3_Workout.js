@@ -1,4 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useFocusEffect } from "@react-navigation/native";
 import {
     SafeAreaView,
     View,
@@ -26,9 +27,11 @@ import WorkoutSummaryModal from "../components/3_Workout/WorkoutSummaryModal";
 import DayDetailsSheet from "../components/3_Workout/DayDetailsSheet";
 import FriendsActivitySheet from "../components/3_Workout/FriendsActivitySheet";
 import InviteBanner from "../components/3_Workout/InviteBanner";
+import { MaterialCommunityIcons } from "@expo/vector-icons";
+import NotificationsBottomSheet from "../components/1_Feed/Notifications/NotificationsBottomSheet";
 
 // Theme & Hooks (project)
-import { ss, FOOTER_HEIGHT, BTN_SIZE, TPL_BOTTOM_GAP } from "../components/3_Workout/sections/workoutTheme";
+import { ss, FOOTER_HEIGHT, BTN_SIZE, TPL_BOTTOM_GAP, TPL_HEIGHT } from "../components/3_Workout/sections/workoutTheme";
 import { useFoodLogs } from "../hooks/useFoodLogs";
 import useResolvedUid from "../hooks/useResolvedUid";
 import useUserDoc from "../hooks/useUserDoc";
@@ -46,6 +49,7 @@ import useWorkoutManager from "../logic/useWorkoutManager";
 import millisToHoursMinutesSeconds from "../helper/millisToHoursMinutesSeconds";
 import getAllUsers from "../helper/getAllUsers";
 import rankUsers from "../helper/rankUsers";
+import { initUserFeed, registerFeedSetters } from "../helper/initUserFeed";
 
 // Firestore (for invites)
 import {
@@ -58,6 +62,9 @@ import {
     serverTimestamp,
     arrayUnion,
     updateDoc as fsUpdateDoc,
+    orderBy,
+    limit,
+    getDocs,
 } from "firebase/firestore";
 import { db } from "../../firebase.config";
 
@@ -87,6 +94,13 @@ const toDayKey = (d) => {
 export default function Workout({ navigation, route }) {
     /* ---------- resolve uid & user ---------- */
     const uid = useResolvedUid(route);
+    const [messages, setMessages] = useState(null);
+    const [footerKeyDummy, setFooterKeyDummy] = useState(0);
+    useEffect(() => {
+        // Mirror Feed screen setup so header Messages works the same
+        registerFeedSetters({ setMessages, setFooterKey: setFooterKeyDummy });
+        if (uid) initUserFeed(uid);
+    }, [uid]);
     const user = useUserDoc(uid); // hydrates global.userData
 
     const markFriendsViewed = React.useCallback(async () => {
@@ -203,6 +217,44 @@ export default function Workout({ navigation, route }) {
         setIsEditTemplateVisible(false);
     }, [queueSaveTemplates]);
 
+    /* ---------- Copy template (from friend's completed workout) ---------- */
+    const toastAnim = useRef(new Animated.Value(0)).current; // 0 hidden, 1 visible
+    const [toastMsg, setToastMsg] = useState("");
+    const showTemplateToast = useCallback((msg) => {
+        setToastMsg(msg || "Template added");
+        Animated.sequence([
+            Animated.timing(toastAnim, { toValue: 1, duration: 180, useNativeDriver: true }),
+            Animated.delay(1800),
+            Animated.timing(toastAnim, { toValue: 0, duration: 200, useNativeDriver: true }),
+        ]).start();
+    }, [toastAnim]);
+
+    const handleCopyTemplate = useCallback((wk) => {
+        try {
+            if (!wk) return;
+            const tid = makeID();
+            const name = wk?.templateName || "Copied Template";
+            const exercises = (Array.isArray(wk?.exercises) ? wk.exercises : []).map((ex) => ({
+                name: ex?.name || "",
+                muscle: ex?.muscle || "",
+                sets: (Array.isArray(ex?.sets) ? ex.sets : []).map((s) => ({
+                    weight: Number(s?.weight) || 0,
+                    reps: Number(s?.reps) || 0,
+                })),
+            }));
+            const newTemplate = { id: tid, tid, name, exercises, lastDate: null };
+            setTemplates((prev) => {
+                const next = [...prev, newTemplate];
+                queueSaveTemplates(next);
+                return next;
+            });
+            // Emphasize addition
+            showTemplateToast("Template copied ✓");
+        } catch (e) {
+            console.log("handleCopyTemplate error", e);
+        }
+    }, [queueSaveTemplates, showTemplateToast]);
+
     /* ---------- podium preview ---------- */
     const [top3, setTop3] = useState([]);
     useEffect(() => {
@@ -294,8 +346,11 @@ export default function Workout({ navigation, route }) {
     }, [liveNow, nonLiveNew]);
 
     const hasAnyStack = stackUsers.length > 0;
+    const [notificationsBottomSheetExpandFlag, setNotificationsBottomSheetExpandFlag] = useState(false);
 
     /* ---------- Workout Manager (state + persistence + timer) ---------- */
+    // Track last consumed global open signal
+    const openSignalRef = useRef(0);
     const {
         workout,
         setWorkout,
@@ -314,6 +369,84 @@ export default function Workout({ navigation, route }) {
     } = useWorkoutManager({ uid, navigation, millisToHMS: millisToHoursMinutesSeconds });
 
     const hasActiveWorkout = !!workout;
+    
+    // Prefetch first 100 users for instant search suggestions
+    useEffect(() => {
+        const prefetch = async () => {
+            try {
+                const usersCol = collection(db, "users");
+                const q = query(usersCol, orderBy("handle_lower"), limit(100));
+                const snap = await getDocs(q);
+                const arr = [];
+                snap.forEach((d) => {
+                    const data = d.data();
+                    arr.push({ uid: d.id, handle: data?.handle ?? "", name: data?.name ?? "", pfp: data?.pfp ?? "" });
+                });
+                mergeUsersIntoRef(arr);
+            } catch { /* ignore */ }
+        };
+        if ((allUsersRef.current?.length || 0) < 25) prefetch();
+    }, [db, mergeUsersIntoRef]);
+
+    // Seed with people the current user follows (if available via global)
+    useEffect(() => {
+        const run = async () => {
+            try {
+                const following = Array.isArray(global.userData?.following) ? global.userData.following : [];
+                if (!following || following.length === 0) return;
+                const existing = new Set((allUsersRef.current || []).map((u) => u.uid));
+                const missing = following.filter((uid) => uid && !existing.has(uid));
+                if (missing.length === 0) return;
+
+                const usersCol = collection(db, "users");
+                const chunks = [];
+                for (let i = 0; i < missing.length; i += 10) chunks.push(missing.slice(i, i + 10));
+                const fetched = [];
+                await Promise.all(
+                    chunks.map(async (ids) => {
+                        const q = query(usersCol, where("__name__", "in", ids));
+                        const snap = await getDocs(q);
+                        snap.forEach((d) => {
+                            const data = d.data();
+                            fetched.push({ uid: d.id, handle: data?.handle ?? "", name: data?.name ?? "", pfp: data?.pfp ?? "" });
+                        });
+                    })
+                );
+                mergeUsersIntoRef(fetched);
+            } catch { /* ignore */ }
+        };
+        run();
+    }, [db, mergeUsersIntoRef, global?.userData?.following]);
+
+    /* ---------- Auto-open current workout when navigated with intent ---------- */
+    useEffect(() => {
+        const shouldOpen = !!route?.params?.openCurrent;
+        if (shouldOpen && hasActiveWorkout) {
+            const id = setTimeout(() => setIsNewWorkoutVisible(true), 60);
+            navigation.setParams({ openCurrent: false });
+            return () => clearTimeout(id);
+        }
+    }, [route?.params?.openCurrent, route?.params?._t, hasActiveWorkout, navigation, setIsNewWorkoutVisible]);
+
+    // Also react immediately on focus transitions (e.g., when tab is already mounted)
+    useFocusEffect(
+        useCallback(() => {
+            // Param-based trigger
+            if (route?.params?.openCurrent && hasActiveWorkout) {
+                const id = setTimeout(() => setIsNewWorkoutVisible(true), 30);
+                navigation.setParams({ openCurrent: false });
+                return () => clearTimeout(id);
+            }
+            // Global signal trigger (fallback when params don't propagate)
+            const lastRef = openSignalRef.current || 0;
+            const sig = Number(global?.openCurrentWorkoutSignal || 0);
+            if (sig && sig !== lastRef) {
+                openSignalRef.current = sig;
+                const id = setTimeout(() => setIsNewWorkoutVisible(true), 30);
+                return () => clearTimeout(id);
+            }
+        }, [route?.params?.openCurrent, hasActiveWorkout, navigation])
+    );
 
     /* ---------- New workout from current template selection ---------- */
     const onStartWorkout = useCallback(() => {
@@ -344,11 +477,46 @@ export default function Workout({ navigation, route }) {
     }, [headerHeight]);
 
     /* ---------- force header rerender when workout clears ---------- */
-    const [headerKey, setHeaderKey] = useState(0);
-    useEffect(() => { if (!workout) setHeaderKey((k) => k + 1); }, [workout]);
+    // Header renders once; suggestions and timer update via refs and effects
 
     /* ---------- INVITES: subscribe + banner animation ---------- */
-    const allUsersRef = useRef([]); // passed to FeedHeader (unchanged)
+    const allUsersRef = useRef([]); // passed to FeedHeader (for search)
+
+    /* ---------- Hydrate allUsersRef for FeedHeader search ---------- */
+    const mergeUsersIntoRef = useCallback((arr) => {
+        if (!Array.isArray(arr) || arr.length === 0) return;
+        const map = new Map((allUsersRef.current || []).map((u) => [u.uid, u]));
+        for (const u of arr) {
+            if (!u?.uid) continue;
+            const cur = map.get(u.uid) || {};
+            map.set(u.uid, {
+                uid: u.uid,
+                handle: u.handle ?? cur.handle ?? "",
+                name: u.name ?? cur.name ?? "",
+                pfp: u.pfp ?? cur.pfp ?? "",
+            });
+        }
+        allUsersRef.current = Array.from(map.values());
+    }, []);
+
+    // Build allUsersRef from global/users: { all: [...] }
+    useEffect(() => {
+        const ref = doc(db, "global", "users");
+        const unsub = onSnapshot(ref, (snap) => {
+            const data = snap.data() || {};
+            const arr = Array.isArray(data?.all) ? data.all : [];
+            const mapped = arr
+                .map((u) => ({
+                    uid: String(u?.uid || u?.id || ""),
+                    handle: u?.handle || "",
+                    name: u?.name || "",
+                    pfp: u?.pfp || u?.photoURL || u?.image || "",
+                }))
+                .filter((u) => !!u.uid);
+            allUsersRef.current = mapped;
+        });
+        return () => unsub();
+    }, [db]);
     const [invites, setInvites] = useState([]);           // pending invites for me
     const [currentInvite, setCurrentInvite] = useState(null);
 
@@ -490,9 +658,14 @@ export default function Workout({ navigation, route }) {
             {/* Header measured for anchoring */}
             <View onLayout={onHeaderLayout}>
                 <FeedHeader
-                    key={headerKey}
-                    toMessagesScreen={() => navigation?.navigate("Messages")}
-                    onOpenNotifications={() => navigation?.navigate("Notifications")}
+                    toMessagesScreen={() => {
+                        if (global.userData && messages) {
+                            navigation?.navigate("Messages", { userData: global.userData, messages, returnTo: 'Workout' });
+                        } else {
+                            navigation?.navigate("Messages", { returnTo: 'Workout' });
+                        }
+                    }}
+                    onOpenNotifications={() => setNotificationsBottomSheetExpandFlag((f) => !f)}
                     backButton={false}
                     onBackPress={() => navigation?.goBack?.()}
                     scrollToTop={() => { }}
@@ -578,6 +751,9 @@ export default function Workout({ navigation, route }) {
 
             <Footer navigation={navigation} currentScreenName={"Workout"} />
 
+            {/* Notifications (same UX as Feed) */}
+            <NotificationsBottomSheet notificationsBottomSheetExpandFlag={notificationsBottomSheetExpandFlag} />
+
             {/* Day details */}
             {daySheetVisible && (
                 <DayDetailsSheet
@@ -604,6 +780,7 @@ export default function Workout({ navigation, route }) {
                     lastViewedAt={user?.friendsActivityLastViewedAt}
                     onViewed={markFriendsViewed}
                     onClose={() => setFriendsSheetVisible(false)}
+                    onCopyTemplate={handleCopyTemplate}
                     onJoin={(item) => {
                         setFriendsSheetVisible(false);
                         Alert.alert("Join Workout", `Joining ${item.name}'s live session…`);
@@ -646,6 +823,23 @@ export default function Workout({ navigation, route }) {
                     postWorkout={postWorkout}
                 />
             )}
+
+            {/* Copy Template toast (above Templates rail) */}
+            <Animated.View
+                pointerEvents="none"
+                style={[
+                    styles.toastWrap,
+                    {
+                        opacity: toastAnim,
+                        transform: [{ translateY: toastAnim.interpolate({ inputRange: [0, 1], outputRange: [12, 0] }) }],
+                    },
+                ]}
+            >
+                <View style={styles.toastInner}>
+                    <MaterialCommunityIcons name="check-circle" size={ss(16)} color="#fff" style={{ marginRight: ss(8) }} />
+                    <Animated.Text style={styles.toastText}>{toastMsg || "Template added"}</Animated.Text>
+                </View>
+            </Animated.View>
         </SafeAreaView>
     );
 }
@@ -667,4 +861,27 @@ const styles = StyleSheet.create({
         alignItems: "center",
         paddingTop: 0,
     },
+    // Toast positioned above Templates rail
+    toastWrap: {
+        position: "absolute",
+        left: 0,
+        right: 0,
+        bottom: FOOTER_HEIGHT + ss(22) + BTN_SIZE + TPL_BOTTOM_GAP + TPL_HEIGHT + ss(10),
+        alignItems: "center",
+        zIndex: 40,
+    },
+    toastInner: {
+        paddingHorizontal: ss(14),
+        paddingVertical: ss(10),
+        borderRadius: ss(999),
+        backgroundColor: "rgba(15,23,42,0.92)",
+        flexDirection: "row",
+        alignItems: "center",
+        shadowColor: "#000",
+        shadowOpacity: 0.16,
+        shadowRadius: 12,
+        shadowOffset: { width: 0, height: 6 },
+        elevation: 6,
+    },
+    toastText: { color: "#fff", fontFamily: "Outfit_700Bold", fontSize: ss(12.5) },
 });

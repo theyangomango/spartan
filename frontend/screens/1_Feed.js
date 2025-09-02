@@ -9,7 +9,7 @@ import React, { useCallback, useEffect, useMemo, useRef, useState } from "react"
 import { Animated, Dimensions, SafeAreaView, StyleSheet, View } from "react-native";
 import { StatusBar } from "expo-status-bar";
 import MaskedView from "@react-native-masked-view/masked-view";
-import { doc, onSnapshot, collection, where, query, getDocs, orderBy, limit } from "firebase/firestore";
+import { doc, onSnapshot, collection, where, query, getDocs, getDoc, orderBy, limit } from "firebase/firestore";
 
 import Footer from "../components/Footer";
 import Post from "../components/1_Feed/Posts/Post";
@@ -23,6 +23,7 @@ import ViewWorkoutBottomSheet from "../components/1_Feed/ViewWorkout/ViewWorkout
 import { initUserFeed, registerFeedSetters } from "../helper/initUserFeed";
 import { db } from "../../firebase.config";
 import getScrollTargetPosition from "../helper/getScrollTargetPosition";
+import millisToHoursMinutesSeconds from "../helper/millisToHoursMinutesSeconds";
 import isThisUser from "../helper/isThisUser";
 import useFilteredFeed from "../helper/useFilteredFeed";
 
@@ -68,6 +69,18 @@ export default function Feed({ navigation, route }) {
     const translateY = useRef(new Animated.Value(0)).current;
     const footerOpacity = useRef(new Animated.Value(1)).current;
     const storiesOpacity = useRef(new Animated.Value(1)).current;
+    
+    // Header workout pill state
+    const [activeWorkout, setActiveWorkout] = useState(null);
+    const headerTimerRef = useRef("");
+    const headerTimerIdRef = useRef(null);
+    const toMillis = (v) => {
+        if (typeof v === "number") return v;
+        if (v?.toMillis) return v.toMillis();
+        if (typeof v?.seconds === "number") return v.seconds * 1000;
+        const n = new Date(v).getTime();
+        return Number.isFinite(n) ? n : 0;
+    };
 
     const handleScroll = (e) => {
         const y = e.nativeEvent.contentOffset.y;
@@ -109,10 +122,37 @@ export default function Feed({ navigation, route }) {
         const unsub = onSnapshot(doc(db, "users", UID), (snap) => {
             userDataRef.current = snap.data();
             global.userData = userDataRef.current; // init of userData has global variable
+            // keep header in sync with current workout
+            setActiveWorkout(userDataRef.current?.currentWorkout || null);
         });
 
         return () => unsub();
     }, [UID]);
+
+    // Drive a local timer for the header pill when there is an active workout
+    useEffect(() => {
+        if (headerTimerIdRef.current) {
+            try { clearInterval(headerTimerIdRef.current); } catch {}
+            headerTimerIdRef.current = null;
+        }
+        headerTimerRef.current = "";
+        const wid = String(activeWorkout?.wid || "");
+        const createdMs = toMillis(activeWorkout?.created ?? activeWorkout?.createdAt);
+        if (!wid || !createdMs) return;
+
+        const tick = () => {
+            const diff = Math.max(1000, Date.now() - createdMs);
+            headerTimerRef.current = millisToHoursMinutesSeconds(diff);
+        };
+        tick();
+        headerTimerIdRef.current = setInterval(tick, 1000);
+        return () => {
+            if (headerTimerIdRef.current) {
+                try { clearInterval(headerTimerIdRef.current); } catch {}
+                headerTimerIdRef.current = null;
+            }
+        };
+    }, [activeWorkout?.wid, activeWorkout?.created, activeWorkout?.createdAt]);
 
     useEffect(() => {
         registerFeedSetters({
@@ -122,6 +162,25 @@ export default function Feed({ navigation, route }) {
 
         if (UID) initUserFeed(UID);
     }, [UID]);
+
+    // Build allUsersRef from global/users: { all: [...] }
+    useEffect(() => {
+        const ref = doc(db, "global", "users");
+        const unsub = onSnapshot(ref, (snap) => {
+            const data = snap.data() || {};
+            const arr = Array.isArray(data?.all) ? data.all : [];
+            const mapped = arr
+                .map((u) => ({
+                    uid: String(u?.uid || u?.id || ""),
+                    handle: u?.handle || "",
+                    name: u?.name || "",
+                    pfp: u?.pfp || u?.photoURL || u?.image || "",
+                }))
+                .filter((u) => !!u.uid);
+            allUsersRef.current = mapped;
+        });
+        return () => unsub();
+    }, []);
 
     // If messages are passed from route, set them
     useEffect(() => {
@@ -385,6 +444,8 @@ export default function Feed({ navigation, route }) {
                 onBackPress={handleBackPress}
                 scrollToTop={scrollToTop}
                 allUsersRef={allUsersRef}
+                workout={activeWorkout}
+                timerRef={headerTimerRef}
             />
 
             <MaskedView
