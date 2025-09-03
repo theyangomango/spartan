@@ -142,17 +142,6 @@ function ExerciseLog({
         scheduleSync(next);
     }, [scheduleSync]);
 
-    // ----- UI -----
-    const muscleColors = {
-        Chest: "#FFAFB8",
-        Shoulders: "#A1CDEE",
-        Arms: "#CBBCFF",
-        Back: "#95E0C8",
-        Triceps: "#FFD580",
-        Legs: "#FFB347",
-        Abs: "#FF6961",
-    };
-
     return (
         <View style={styles.main_ctnr}>
             {!readOnly && (
@@ -168,9 +157,6 @@ function ExerciseLog({
             <Animated.View style={[styles.header, { opacity: fadeAnim }]}>
                 <Pressable style={styles.nameContainer} onPress={togglePanel} disabled={readOnly}>
                     <Text style={styles.exercise_text} numberOfLines={1}>{name}</Text>
-                    <View style={[styles.muscle_ctnr, { backgroundColor: muscleColors[muscle] || "#CBD5E1" }]}>
-                        <Text style={styles.muscle_text}>{muscle}</Text>
-                    </View>
                 </Pressable>
             </Animated.View>
 
