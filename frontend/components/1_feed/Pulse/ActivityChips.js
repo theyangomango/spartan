@@ -172,7 +172,12 @@ function Chip({ ev, navigation, onPressChip }) {
             try {
                 navigation?.navigate?.('Workout', {
                     screen: 'Workout',
-                    params: { openFriends: true, focusFriendUid: String(ev?.uid || ''), _t: Date.now() },
+                    params: {
+                        openFriends: true,
+                        focusFriendUid: String(ev?.uid || ''),
+                        focusWorkoutWid: String(ev?.workoutID || ''),
+                        _t: Date.now(),
+                    },
                 });
                 return;
             } catch {}

@@ -201,6 +201,7 @@ export default function Workout({ navigation, route }) {
     const [friendsSheetVisible, setFriendsSheetVisible] = useState(false);
     const [friendsSheetToggle, setFriendsSheetToggle] = useState(false);
     const [focusFriendUid, setFocusFriendUid] = useState(null);
+    const [focusWorkoutWid, setFocusWorkoutWid] = useState(null);
     useEffect(() => { refreshFriends(); }, [refreshFriends]);
     useEffect(() => { if (friendsSheetVisible) refreshFriends(); }, [friendsSheetVisible, refreshFriends]);
 
@@ -303,11 +304,13 @@ export default function Workout({ navigation, route }) {
                 setFriendsSheetToggle((f) => !f);
                 const uidHint = route?.params?.focusFriendUid;
                 if (uidHint) setFocusFriendUid(String(uidHint));
+                const widHint = route?.params?.focusWorkoutWid;
+                if (widHint) setFocusWorkoutWid(String(widHint));
             }, 30);
-            navigation.setParams({ openFriends: false, focusFriendUid: undefined });
+            navigation.setParams({ openFriends: false, focusFriendUid: undefined, focusWorkoutWid: undefined });
             return () => clearTimeout(id);
         }
-    }, [route?.params?.openCurrent, route?.params?.openFriends, route?.params?.focusFriendUid, route?.params?._t, hasActiveWorkout, navigation, setIsNewWorkoutVisible]);
+    }, [route?.params?.openCurrent, route?.params?.openFriends, route?.params?.focusFriendUid, route?.params?.focusWorkoutWid, route?.params?._t, hasActiveWorkout, navigation, setIsNewWorkoutVisible]);
 
     // Also react immediately on focus transitions (e.g., when tab is already mounted)
     useFocusEffect(
@@ -323,7 +326,9 @@ export default function Workout({ navigation, route }) {
                 setFriendsSheetToggle((f) => !f);
                 const uidHint = route?.params?.focusFriendUid;
                 if (uidHint) setFocusFriendUid(String(uidHint));
-                navigation.setParams({ openFriends: false, focusFriendUid: undefined });
+                const widHint = route?.params?.focusWorkoutWid;
+                if (widHint) setFocusWorkoutWid(String(widHint));
+                navigation.setParams({ openFriends: false, focusFriendUid: undefined, focusWorkoutWid: undefined });
             }
             // Global signal trigger (fallback when params don't propagate)
             const lastRef = openSignalRef.current || 0;
@@ -333,7 +338,7 @@ export default function Workout({ navigation, route }) {
                 const id = setTimeout(() => setIsNewWorkoutVisible(true), 30);
                 return () => clearTimeout(id);
             }
-        }, [route?.params?.openCurrent, route?.params?.openFriends, route?.params?.focusFriendUid, hasActiveWorkout, navigation])
+        }, [route?.params?.openCurrent, route?.params?.openFriends, route?.params?.focusFriendUid, route?.params?.focusWorkoutWid, hasActiveWorkout, navigation])
     );
 
     /* ---------- New workout from current template selection ---------- */
@@ -566,7 +571,8 @@ export default function Workout({ navigation, route }) {
                     visible={friendsSheetVisible}
                     openToggle={friendsSheetToggle}
                     focusUid={focusFriendUid}
-                    onConsumedFocus={() => setFocusFriendUid(null)}
+                    focusWid={focusWorkoutWid}
+                    onConsumedFocus={() => { setFocusFriendUid(null); setFocusWorkoutWid(null); }}
                     items={friendsActivity}
                     lastViewedAt={user?.friendsActivityLastViewedAt}
                     onViewed={markFriendsViewed}

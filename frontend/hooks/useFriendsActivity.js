@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { collection, getDocs, query, where, documentId } from "firebase/firestore";
+import { collection, getDocs, query, where, documentId, orderBy, limit } from "firebase/firestore";
 import { db } from "../../firebase.config";
 
 /* ---------- utils ---------- */
@@ -114,30 +114,81 @@ export default function useFriendsActivity(user) {
             }
             setLoading(true);
 
-            const results = [];
+            // Collect profiles (batched) first
+            const profiles = [];
             for (const group of chunk10(followingUids)) {
                 const q = query(collection(db, "users"), where(documentId(), "in", group));
                 const snap = await getDocs(q);
-
                 snap.forEach((docSnap) => {
                     const data = docSnap.data() || {};
-                    const profile = {
+                    profiles.push({
                         uid: docSnap.id,
                         name: data.name || data.displayName || "",
                         handle: data.handle || data.username || "",
                         pfp: data.pfp || data.image || data.photoURL || "",
-                    };
-
-                    const cw = data?.currentWorkout;
-                    if (cw && (cw.created || cw.startedAt)) results.push(normalizeFriendLive(cw, profile));
-
-                    const completed = Array.isArray(data?.completedWorkouts) ? data.completedWorkouts : [];
-                    const recent = completed.slice(-5);
-                    for (const w of recent) results.push(normalizeFriendWorkout(w, profile));
+                        currentWorkout: data?.currentWorkout || null,
+                        completedWorkouts: Array.isArray(data?.completedWorkouts) ? data.completedWorkouts : [],
+                    });
                 });
             }
 
-            results.sort((a, b) => bestTs(b) - bestTs(a));
+            // Build a map keyed by uid:wid to dedupe multiple sources (completed vs pulses)
+            const map = new Map();
+            const keyOf = (u, w) => `${u}:${String(w?.wid || w?.id || '')}`;
+
+            // From current + recent completed (last 5)
+            for (const p of profiles) {
+                if (p.currentWorkout && (p.currentWorkout.created || p.currentWorkout.startedAt)) {
+                    const item = normalizeFriendLive(p.currentWorkout, p);
+                    map.set(`live:${p.uid}`, item);
+                }
+                const recent = p.completedWorkouts.slice(-5);
+                for (const w of recent) {
+                    const item = normalizeFriendWorkout(w, p);
+                    if (item.wid) map.set(keyOf(p.uid, item), item); else map.set(`${p.uid}:${bestTs(item)}`, item);
+                }
+            }
+
+            // Also hydrate from workout pulses (ensures we don't miss workouts if completedWorkouts wasn't updated)
+            const pulsePromises = profiles.map(async (p) => {
+                try {
+                    const pq = query(collection(db, "users", p.uid, "pulse"), orderBy("ts", "desc"), limit(10));
+                    const ps = await getDocs(pq);
+                    ps.forEach((d) => {
+                        const pv = d.data() || {};
+                        if ((pv?.type || '').toLowerCase() !== 'workout') return;
+                        const wid = String(pv?.workoutID || "");
+                        const tsNum = toMillis(pv?.ts || 0) || Date.now();
+                        const k = wid ? `${p.uid}:${wid}` : `${p.uid}:${tsNum}`;
+                        if (map.has(k)) return; // already have a richer object
+                        // Minimal fallback item from pulse
+                        const item = {
+                            id: wid || `pulse_${p.uid}_${tsNum}`,
+                            uid: p.uid,
+                            name: p.name || p.handle || 'Friend',
+                            handle: p.handle || '',
+                            pfp: p.pfp || '',
+                            live: false,
+                            created: tsNum,
+                            finishedAt: tsNum,
+                            duration: 0,
+                            volume: 0,
+                            reps: 0,
+                            PBs: 0,
+                            exercises: [],
+                            exerciseCount: 0,
+                            sets: 0,
+                            templateName: pv?.detail || 'Workout',
+                            wid: wid || undefined,
+                            workout: { wid: wid || undefined, creatorUID: p.uid, created: tsNum, exercises: [] },
+                        };
+                        map.set(k, item);
+                    });
+                } catch {}
+            });
+            await Promise.all(pulsePromises);
+
+            const results = Array.from(map.values()).sort((a, b) => bestTs(b) - bestTs(a));
             setItems(results);
             if (results.length) lastNonEmptyRef.current = results;
         } catch (e) {

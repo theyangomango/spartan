@@ -18,6 +18,7 @@ import {
 } from "firebase/firestore";
 import { db } from "../../firebase.config";
 import updateDoc from "../../backend/helper/firebase/updateDoc";
+import arrayAppend from "../../backend/helper/firebase/arrayAppend";
 import useWorkoutStore from "../state/workoutStore";
 import makeID from "../../backend/helper/makeID";
 
@@ -325,45 +326,59 @@ export default function useWorkoutManager({ uid, navigation, millisToHMS }) {
                 const duration = Math.max(0, Date.now() - (currW.created || Date.now()));
                 const completed = { ...currW, duration, exercises: cleanedExercises };
 
-                try {
-                    const arr = Array.isArray(global?.userData?.completedWorkouts) ? [...global.userData.completedWorkouts] : [];
-                    arr.push(completed);
-                    if (global?.userData) {
-                        global.userData.completedWorkouts = arr;
-                        const dd = new Date(completed.created || Date.now()); dd.setHours(0, 0, 0, 0);
-                        const dk = `${dd.getFullYear()}-${String(dd.getMonth() + 1).padStart(2, "0")}-${String(dd.getDate()).padStart(2, "0")}`;
-                        global.userData.workoutsByDate = { ...(global.userData.workoutsByDate || {}), [dk]: true };
-                    }
-                } catch { }
+                // Only persist/share if there's meaningful work
+                const hasWork = cleanedExercises.length > 0 || Number(currW?.volume) > 0 || Number(currW?.reps) > 0;
 
-                setCompletedWorkout(completed);
-                setIsSummaryModalVisible(true);
+                if (hasWork) {
+                    try {
+                        const arr = Array.isArray(global?.userData?.completedWorkouts) ? [...global.userData.completedWorkouts] : [];
+                        arr.push(completed);
+                        if (global?.userData) {
+                            global.userData.completedWorkouts = arr;
+                            const dd = new Date(completed.created || Date.now()); dd.setHours(0, 0, 0, 0);
+                            const dk = `${dd.getFullYear()}-${String(dd.getMonth() + 1).padStart(2, "0")}-${String(dd.getDate()).padStart(2, "0")}`;
+                            global.userData.workoutsByDate = { ...(global.userData.workoutsByDate || {}), [dk]: true };
+                        }
+                    } catch { }
 
-                // Publish a pulse for ActivityChips (non-blocking)
-                try {
-                    const me = String(uid || global?.userData?.uid || "");
-                    if (me) {
-                        const pulse = {
-                            type: 'workout',
-                            ts: String(toMillis(completed?.created) || Date.now()),
-                            uid: me,
-                            handle: global?.userData?.handle || '',
-                            name: global?.userData?.name || '',
-                            pfpVersion: 0,
-                            detail: '',
-                            workoutID: completed?.wid,
-                        };
-                        addDoc(collection(db, 'users', me, 'pulse'), pulse).catch(() => {});
+                    setCompletedWorkout(completed);
+                    setIsSummaryModalVisible(true);
+
+                    // Publish a pulse for ActivityChips (non-blocking)
+                    try {
+                        const me = String(uid || global?.userData?.uid || "");
+                        if (me) {
+                            const pulse = {
+                                type: 'workout',
+                                ts: String(toMillis(completed?.created) || Date.now()),
+                                uid: me,
+                                handle: global?.userData?.handle || '',
+                                name: global?.userData?.name || '',
+                                pfpVersion: 0,
+                                detail: '',
+                                workoutID: completed?.wid,
+                            };
+                            addDoc(collection(db, 'users', me, 'pulse'), pulse).catch(() => {});
+                        }
+                    } catch (e) {
+                        // best-effort; do not block finish flow
                     }
-                } catch (e) {
-                    // best-effort; do not block finish flow
+
+                    // Persist to the user's completedWorkouts array in Firestore
+                    try {
+                        if (uid) {
+                            await arrayAppend("users", uid, "completedWorkouts", completed);
+                        }
+                    } catch (e) {
+                        console.log("append completedWorkouts error", e);
+                    }
+
+                    try {
+                        const arr = Array.isArray(global?.userData?.currentWorkouts) ? [...global.userData.currentWorkouts] : [];
+                        arr.push(completed);
+                        if (global?.userData) global.userData.currentWorkouts = arr;
+                    } catch { }
                 }
-
-                try {
-                    const arr = Array.isArray(global?.userData?.currentWorkouts) ? [...global.userData.currentWorkouts] : [];
-                    arr.push(completed);
-                    if (global?.userData) global.userData.currentWorkouts = arr;
-                } catch { }
             }
 
             const wid = String((useWorkoutStore.getState().workout?.wid) || "");

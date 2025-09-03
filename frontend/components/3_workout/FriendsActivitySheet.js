@@ -168,7 +168,7 @@ const groupByTime = (items, nowMs) => {
 };
 
 /* ---------------- row ---------------- */
-const FriendPanel = memo(({ item, now, onSelect }) => {
+const FriendPanel = memo(({ item, now, onSelect, highlight = false }) => {
   const isLive = !!item?.live;
   let liveElapsed;
   if (isLive) {
@@ -196,7 +196,14 @@ const FriendPanel = memo(({ item, now, onSelect }) => {
   const when = dateLabel(bestTimestamp(item));
 
   return (
-    <RNBounceable style={styles.panel} onPress={() => onSelect?.(item, pfpUri)} activeScale={0.965}>
+    <RNBounceable
+      style={[
+        styles.panel,
+        highlight && { borderColor: 'rgba(45,158,255,0.55)', shadowColor: '#2D9EFF', shadowOpacity: 0.18 }
+      ]}
+      onPress={() => onSelect?.(item, pfpUri)}
+      activeScale={0.965}
+    >
       <View style={styles.headerRow}>
         {pfpUri ? (
           <Image source={{ uri: pfpUri }} style={styles.pfp} />
@@ -267,7 +274,7 @@ const FriendPanel = memo(({ item, now, onSelect }) => {
 });
 
 /* ---------------- sheet ---------------- */
-const FriendsActivitySheet = ({ visible, openToggle, items = [], onClose, onViewed, onCopyTemplate, focusUid, onConsumedFocus }) => {
+const FriendsActivitySheet = ({ visible, openToggle, items = [], onClose, onViewed, onCopyTemplate, focusUid, focusWid, onConsumedFocus }) => {
   const bottomSheetRef = useRef(null);
   const cacheRef = useRef([]);
 
@@ -393,22 +400,34 @@ const FriendsActivitySheet = ({ visible, openToggle, items = [], onClose, onView
     try { onViewed?.(); } catch {}
   }, [openToggle, onViewed]);
 
-  // If a specific friend uid is provided, auto-open the viewer focused on that friend
+  // If a specific friend uid or workout id is provided, auto-open the viewer focused on it
   const consumedFocusRef = useRef("");
+  const [highlightWid, setHighlightWid] = useState(null);
   useEffect(() => {
-    const target = String(focusUid || "").trim();
-    if (!target || consumedFocusRef.current === target) return;
-    const it = (sortedItems || []).find((x) => String(x?.uid) === target);
-    if (!it) return; // wait until items are available
+    const uidTarget = String(focusUid || "").trim();
+    const widTarget = String(focusWid || "").trim();
+    const token = widTarget ? `w:${widTarget}` : (uidTarget ? `u:${uidTarget}` : "");
+    if (!token || consumedFocusRef.current === token) return;
+
+    const findByWid = (arr) => arr.find((x) => String(x?.wid || x?.id || x?.workout?.wid || "") === widTarget);
+    const findByUid = (arr) => arr.find((x) => String(x?.uid || "") === uidTarget);
+    const it = widTarget ? findByWid(sortedItems || []) : findByUid(sortedItems || []);
+    if (!it) return; // wait until items available
     try { bottomSheetRef.current?.expand?.(); } catch {}
+    if (widTarget) {
+      setHighlightWid(widTarget);
+      setTimeout(() => setHighlightWid(null), 1200);
+    }
+
     // Slight delay to ensure the sheet is fully presented before animating the viewer
     const id = setTimeout(() => {
+      console.log('Auto focusing workout card', it);
       openViewer(it, it?.pfp || it?.pfpUrl || it?.photoURL || null);
-      consumedFocusRef.current = target;
+      consumedFocusRef.current = token;
       try { onConsumedFocus?.(); } catch {}
-    }, 40);
+    }, 80);
     return () => clearTimeout(id);
-  }, [openToggle, focusUid, sortedItems, openViewer, onConsumedFocus]);
+  }, [openToggle, focusUid, focusWid, sortedItems, openViewer, onConsumedFocus]);
 
   const renderBackdrop = useCallback(
     (props) => (
@@ -485,8 +504,12 @@ const FriendsActivitySheet = ({ visible, openToggle, items = [], onClose, onView
   const sections = useMemo(() => groupByTime(sortedItems, now), [sortedItems, now]);
   const keyExtractor = useCallback((it, i) => it.id ?? it.uid ?? `f-${i}`, []);
   const renderItem = useCallback(
-    ({ item }) => <FriendPanel item={item} now={now} onSelect={openViewer} />,
-    [now, openViewer]
+    ({ item }) => {
+      const widHere = String(item?.wid || item?.id || item?.workout?.wid || "");
+      const isHighlighted = !!highlightWid && widHere === String(highlightWid);
+      return <FriendPanel item={item} now={now} onSelect={openViewer} highlight={isHighlighted} />;
+    },
+    [now, openViewer, highlightWid]
   );
   const renderSectionHeader = useCallback(({ section }) => {
     return (
