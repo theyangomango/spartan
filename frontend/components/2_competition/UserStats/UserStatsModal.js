@@ -1,5 +1,6 @@
 import React, { useMemo } from "react";
 import { StyleSheet, View, Text, ScrollView, Pressable, Dimensions } from "react-native";
+import { MaterialCommunityIcons } from "@expo/vector-icons";
 import FastImage from "react-native-fast-image";
 import HexagonalStats from "./HexagonalStats";
 
@@ -15,6 +16,9 @@ const COLORS = {
     subtext: "#64748B",
     accent: "#2D9EFF",
     hairline: "#E6EEF6",
+    iconBg: "#EEF2F7",
+    statBg: "#F7FAFF",
+    statBorder: "rgba(100,116,139,0.10)",
 };
 
 // ---------- helpers ----------
@@ -97,6 +101,24 @@ const formatJoinDate = (raw) => {
     return `Joined ${months[date.getMonth()]} ${date.getDate()}, ${date.getFullYear()}`;
 };
 
+// Accent utilities (light touch of personality per exercise)
+const ACCENTS = ["#2D9EFF", "#F59E0B", "#10B981", "#EF4444", "#8B5CF6", "#06B6D4"];
+const pickAccent = (name = "") => {
+    const str = String(name);
+    let h = 0;
+    for (let i = 0; i < str.length; i++) h = (h * 31 + str.charCodeAt(i)) >>> 0;
+    return ACCENTS[h % ACCENTS.length];
+};
+const hexToRgb = (hex) => {
+    const m = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
+    if (!m) return { r: 45, g: 158, b: 255 };
+    return { r: parseInt(m[1], 16), g: parseInt(m[2], 16), b: parseInt(m[3], 16) };
+};
+const rgba = (hex, a) => {
+    const { r, g, b } = hexToRgb(hex);
+    return `rgba(${r}, ${g}, ${b}, ${a})`;
+};
+
 export default function UserStatsModal({ user, toViewProfile }) {
     const exercises = useMemo(() => getExercisesSorted(user), [user]);
     const overall = Math.round(user?.statsHexagon?.overall ?? 0);
@@ -158,43 +180,57 @@ export default function UserStatsModal({ user, toViewProfile }) {
                             const volume = computeVolume(exercise);
                             const setsCount = Array.isArray(exercise?.sets) ? exercise.sets.length : 0;
                             const top = bestTopSet(exercise);
+                            const ACC = pickAccent(name);
 
                             return (
-                                <Pressable key={`${name}-${idx}`} style={({ pressed }) => [
-                                    styles.exerciseCard,
-                                    pressed && styles.exerciseCardPressed
-                                ]}>
-                                    {/* Row: name + 1RM pill */}
+                                <Pressable
+                                    key={`${name}-${idx}`}
+                                    style={({ pressed }) => [
+                                        styles.exerciseCard,
+                                        { position: "relative" },
+                                        pressed && styles.exerciseCardPressed,
+                                    ]}
+                                >
+                                    {/* Accent bar */}
+                                    <View style={[styles.accentBar, { backgroundColor: ACC }]} />
+
+                                    {/* Row: icon + name + 1RM pill */}
                                     <View style={styles.exerciseHeader}>
                                         <View style={styles.nameRow}>
-                                            {/* <View style={styles.accentDot} /> */}
+                                            <View style={[styles.iconCircle, { backgroundColor: rgba(ACC, 0.12) }]}>
+                                                <MaterialCommunityIcons name="dumbbell" size={scaledSize(13)} color={ACC} />
+                                            </View>
                                             <Text numberOfLines={1} style={styles.exerciseName}>{name}</Text>
                                         </View>
                                         {!!oneRM && oneRM > 0 && (
-                                            <View style={styles.oneRMPill}>
+                                            <View style={[styles.oneRMPill, { borderColor: rgba(ACC, 0.35), backgroundColor: rgba(ACC, 0.12) }]}>
                                                 <Text style={styles.oneRMLabel}>1RM</Text>
-                                                <Text style={styles.oneRMValue}>{oneRM}</Text>
+                                                <Text style={[styles.oneRMValue, { color: ACC }]}>{oneRM}</Text>
                                             </View>
                                         )}
                                     </View>
 
-                                    {/* Divider */}
-                                    <View style={styles.divider} />
-
-                                    {/* Stat row: 3 equal columns */}
+                                    {/* Stat row: 3 compact columns with icons */}
                                     <View style={styles.metaRow}>
                                         <View style={styles.metaCell}>
+                                            <View style={[styles.metaIconWrap, { backgroundColor: COLORS.iconBg }]}>
+                                                <MaterialCommunityIcons name="weight-lifter" size={scaledSize(12)} color={COLORS.text} />
+                                            </View>
                                             <Text style={styles.metaLabel}>Volume</Text>
                                             <Text style={styles.metaValue}>{fmtK(volume)}</Text>
                                         </View>
-                                        <View style={styles.vDivider} />
                                         <View style={styles.metaCell}>
+                                            <View style={[styles.metaIconWrap, { backgroundColor: COLORS.iconBg }]}>
+                                                <MaterialCommunityIcons name="view-grid-outline" size={scaledSize(12)} color={COLORS.text} />
+                                            </View>
                                             <Text style={styles.metaLabel}>Sets</Text>
                                             <Text style={styles.metaValue}>{setsCount}</Text>
                                         </View>
-                                        <View style={styles.vDivider} />
                                         <View style={styles.metaCell}>
-                                            <Text style={styles.metaLabel}>Top set</Text>
+                                            <View style={[styles.metaIconWrap, { backgroundColor: COLORS.iconBg }]}>
+                                                <MaterialCommunityIcons name="trending-up" size={scaledSize(12)} color={COLORS.text} />
+                                            </View>
+                                            <Text style={styles.metaLabel}>Top Set</Text>
                                             <Text style={styles.metaValue}>{top ? `${top.weight}×${top.reps}` : "-"}</Text>
                                         </View>
                                     </View>
@@ -328,20 +364,34 @@ const styles = StyleSheet.create({
     // Modern exercise card
     exerciseCard: {
         backgroundColor: COLORS.card,
-        borderRadius: scaledSize(14),
+        borderRadius: scaledSize(16),
         borderWidth: 1,
         borderColor: COLORS.hairline,
-        paddingHorizontal: scaledSize(14),
-        paddingVertical: scaledSize(10),
+        paddingHorizontal: scaledSize(12),
+        paddingVertical: scaledSize(8),
+        shadowColor: "#000",
+        shadowOffset: { width: 0, height: scaledSize(4) },
+        shadowOpacity: 0.05,
+        shadowRadius: scaledSize(10),
+        elevation: 4,
     },
     exerciseCardPressed: {
         backgroundColor: "#FCFDFF",
+    },
+    accentBar: {
+        position: "absolute",
+        left: 0,
+        top: 0,
+        bottom: 0,
+        width: scaledSize(3),
+        borderTopLeftRadius: scaledSize(16),
+        borderBottomLeftRadius: scaledSize(16),
     },
 
     exerciseHeader: {
         flexDirection: "row",
         alignItems: "center",
-        marginBottom: scaledSize(8),
+        marginBottom: scaledSize(6),
     },
     nameRow: {
         flexDirection: "row",
@@ -349,16 +399,17 @@ const styles = StyleSheet.create({
         flex: 1,
         minWidth: 0,
     },
-    accentDot: {
-        width: scaledSize(6),
-        height: scaledSize(6),
-        borderRadius: scaledSize(3),
-        backgroundColor: COLORS.accent,
+    iconCircle: {
+        width: scaledSize(22),
+        height: scaledSize(22),
+        borderRadius: scaledSize(11),
+        alignItems: "center",
+        justifyContent: "center",
         marginRight: scaledSize(8),
     },
     exerciseName: {
         flex: 1,
-        fontSize: scaledSize(13.5), // compact, sleek
+        fontSize: scaledSize(12.5), // slightly smaller to reduce heft
         fontFamily: "Outfit_600SemiBold",
         color: COLORS.text,
     },
@@ -367,53 +418,57 @@ const styles = StyleSheet.create({
         flexDirection: "row",
         alignItems: "baseline",
         paddingHorizontal: scaledSize(8),
-        paddingVertical: scaledSize(5),
+        paddingVertical: scaledSize(4.5),
         borderRadius: scaledSize(999),
         borderWidth: 1,
         borderColor: COLORS.hairline,
         backgroundColor: "#FFFFFF",
     },
     oneRMLabel: {
-        fontSize: scaledSize(10.5),
+        fontSize: scaledSize(10),
         fontFamily: "Outfit_600SemiBold",
         color: COLORS.subtext,
         marginRight: scaledSize(5),
         letterSpacing: 0.6,
     },
     oneRMValue: {
-        fontSize: scaledSize(13),
+        fontSize: scaledSize(12),
         fontFamily: "Outfit_700Bold",
         color: COLORS.accent,
-    },
-
-    divider: {
-        height: 1,
-        backgroundColor: COLORS.hairline,
-        marginBottom: scaledSize(8),
     },
 
     metaRow: {
         flexDirection: "row",
         alignItems: "stretch",
+        gap: scaledSize(6),
     },
     metaCell: {
         flex: 1,
         alignItems: "center",
+        paddingVertical: scaledSize(6),
+        borderRadius: scaledSize(12),
+        backgroundColor: COLORS.statBg,
+        borderWidth: StyleSheet.hairlineWidth,
+        borderColor: COLORS.statBorder,
     },
-    vDivider: {
-        width: 1,
-        backgroundColor: COLORS.hairline,
-        marginHorizontal: scaledSize(6),
+    metaIconWrap: {
+        width: scaledSize(20),
+        height: scaledSize(20),
+        borderRadius: scaledSize(10),
+        alignItems: "center",
+        justifyContent: "center",
+        marginBottom: scaledSize(4),
+        backgroundColor: COLORS.iconBg,
     },
     metaLabel: {
-        fontSize: scaledSize(11.5),
+        fontSize: scaledSize(10.5),
         fontFamily: "Outfit_500Medium",
         color: COLORS.subtext,
-        marginBottom: scaledSize(2),
+        marginBottom: scaledSize(1),
         letterSpacing: 0.3,
     },
     metaValue: {
-        fontSize: scaledSize(12.5),
+        fontSize: scaledSize(11.5),
         fontFamily: "Outfit_700Bold",
         color: COLORS.text,
     },

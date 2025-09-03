@@ -278,6 +278,7 @@ export default function MacroTracking({ navigation }) {
                     setGoalForm={setGoalForm}
                     onSave={onSaveGoals}
                     onCancel={closeGoalsSheet}
+                    onOpenPersonalInfo={() => setPersonalSheetIndex(1)}
                     COLORS={COLORS}
                 />
 

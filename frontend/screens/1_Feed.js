@@ -6,7 +6,7 @@
  */
 
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { Animated, Dimensions, SafeAreaView, StyleSheet, View, Easing as RNEasing } from "react-native";
+import { Animated, Dimensions, SafeAreaView, StyleSheet, View, Easing as RNEasing, Text } from "react-native";
 import { StatusBar } from "expo-status-bar";
 import { doc, onSnapshot } from "firebase/firestore";
 import { useSafeAreaInsets, SafeAreaView as SafeAreaInsetsView } from "react-native-safe-area-context";
@@ -17,6 +17,7 @@ import Post from "../components/1_Feed/Posts/Post";
 import FeedHeader from "../components/1_Feed/FeedHeader";
 import useHeaderSearchUsers from "../hooks/useHeaderSearchUsers";
 import ActivityChips from "../components/1_Feed/Pulse/ActivityChips";
+import ChipsRoundMask from "../components/1_Feed/Pulse/ChipsRoundMask";
 import NotificationsBottomSheet from "../components/1_Feed/Notifications/NotificationsBottomSheet";
 import CommentsBottomSheet from "../components/1_Feed/Comments/CommentsBottomSheet";
 import ShareBottomSheet from "../components/1_Feed/SharePost/ShareBottomSheet";
@@ -28,6 +29,7 @@ import getScrollTargetPosition from "../helper/getScrollTargetPosition";
 import millisToHoursMinutesSeconds from "../helper/millisToHoursMinutesSeconds";
 import isThisUser from "../helper/isThisUser";
 import useFilteredFeed from "../helper/useFilteredFeed";
+import MaskedView from "@react-native-masked-view/masked-view";
 
 const { width, height } = Dimensions.get("window");
 const TARGET_POSITION = getScrollTargetPosition(width, height),
@@ -80,6 +82,7 @@ export default function Feed({ navigation, route }) {
     // Reanimated header reveal values (UI thread)
     const headerH = useSharedValue(0);
     const chipsH = useSharedValue(0); // minimum visible height (keep chips in view)
+    const maskH = useSharedValue(0);  // height of rounded mask under chips
     const hidden = useSharedValue(0); // 0..(H - chipsH)
     const prevY = useSharedValue(0);
     const focusHide = useSharedValue(0); // when focusing a post, fully hide header
@@ -93,7 +96,7 @@ export default function Feed({ navigation, route }) {
         const totalHidden = Math.min(headerH.value, hidden.value + focusHide.value);
         return { height: Math.max(0, headerH.value - totalHidden) };
     });
-    
+
     // Header workout pill state
     const [activeWorkout, setActiveWorkout] = useState(null);
     const headerTimerRef = useRef("");
@@ -151,7 +154,7 @@ export default function Feed({ navigation, route }) {
             prevY.value = y;
             const H = headerH.value;
             if (H > 0) {
-                const minVisible = Math.min(Math.max(chipsH.value, 0), H);
+                const minVisible = Math.min(Math.max(chipsH.value + maskH.value, 0), H);
                 const maxHidden = Math.max(0, H - minVisible);
                 let next = hidden.value + dy; // dy>0 hide; dy<0 reveal
                 if (next < 0) next = 0;
@@ -159,7 +162,7 @@ export default function Feed({ navigation, route }) {
                 hidden.value = next;
                 const visibleNow = Math.max(0, H - next);
                 if (isFocusSV.value === 0) {
-                runOnJS(setVisibleHeaderJS)(visibleNow);
+                    runOnJS(setVisibleHeaderJS)(visibleNow);
                 }
             }
             runOnJS(handleScroll)({ nativeEvent: { contentOffset: { y } } });
@@ -182,7 +185,7 @@ export default function Feed({ navigation, route }) {
     // Drive a local timer for the header pill when there is an active workout
     useEffect(() => {
         if (headerTimerIdRef.current) {
-            try { clearInterval(headerTimerIdRef.current); } catch {}
+            try { clearInterval(headerTimerIdRef.current); } catch { }
             headerTimerIdRef.current = null;
         }
         headerTimerRef.current = "";
@@ -198,7 +201,7 @@ export default function Feed({ navigation, route }) {
         headerTimerIdRef.current = setInterval(tick, 1000);
         return () => {
             if (headerTimerIdRef.current) {
-                try { clearInterval(headerTimerIdRef.current); } catch {}
+                try { clearInterval(headerTimerIdRef.current); } catch { }
                 headerTimerIdRef.current = null;
             }
         };
@@ -419,33 +422,55 @@ export default function Feed({ navigation, route }) {
         <SafeAreaView style={{ flex: 1, backgroundColor: "#F7FAFF" }}>
             <SafeAreaView style={styles.mainContainer}>
                 <StatusBar style="dark" />
-                <Reanimated.FlatList
-                    ref={flatListRef}
-                    bounces={false}
-                    showsVerticalScrollIndicator={false}
-                    data={listData}
-                    keyExtractor={(item, i) => String(i)}
-                    renderItem={({ item, index }) => {
-                        return renderPost({ item, index });
+                <MaskedView
+                    style={{
+                        flex: 1,
+                        top: 100,
+                        height: '100%',
+                        position: 'absolute',
                     }}
-                    onScroll={onScrollRe}
-                    scrollEventThrottle={16}
-                    // No sticky items; overlay + spacer manage layout
-                    stickyHeaderIndices={[]}
-                    viewabilityConfig={{ itemVisiblePercentThreshold: 20 }}
-                    onViewableItemsChanged={({ viewableItems }) => {
-                        const s = new Set();
-                        viewableItems.forEach((v) => {
-                            // Track list indices; posts start at index 0
-                            if (typeof v.index === "number" && v.index >= 0) s.add(v.index);
-                        });
-                        viewableSetRef.current = s;
-                    }}
-                    CellRendererComponent={CellRenderer}
-                    ListHeaderComponent={<Reanimated.View style={spacerStyle} />}
-                    initialNumToRender={3}
-                    windowSize={5}
-                />
+                    maskElement={
+                        <View style={{ flex: 1, backgroundColor: 'transparent' }}>
+                            <View
+                                style={{
+                                    width: '100%',
+                                    height: '100%',
+                                    backgroundColor: 'black',
+                                    borderRadius: 24, // <- rounded corners on all four sides
+                                    // or individual corners:
+                                    // borderTopLeftRadius: 24,
+                                    // borderTopRightRadius: 24,
+                                    // borderBottomLeftRadius: 24,
+                                    // borderBottomRightRadius: 24,
+                                }}
+                            />
+                        </View>
+                    }
+                >
+                    <Reanimated.FlatList
+                        ref={flatListRef}
+                        bounces={false}
+                        showsVerticalScrollIndicator={false}
+                        data={listData}
+                        keyExtractor={(item, i) => String(i)}
+                        renderItem={({ item, index }) => renderPost({ item, index })}
+                        onScroll={onScrollRe}
+                        scrollEventThrottle={16}
+                        stickyHeaderIndices={[]}
+                        viewabilityConfig={{ itemVisiblePercentThreshold: 20 }}
+                        onViewableItemsChanged={({ viewableItems }) => {
+                            const s = new Set();
+                            viewableItems.forEach((v) => {
+                                if (typeof v.index === "number" && v.index >= 0) s.add(v.index);
+                            });
+                            viewableSetRef.current = s;
+                        }}
+                        CellRendererComponent={CellRenderer}
+                        ListHeaderComponent={<Reanimated.View style={spacerStyle} />}
+                        initialNumToRender={3}
+                        windowSize={5}
+                    />
+                </MaskedView>
             </SafeAreaView>
 
             {/* Overlay header (FeedHeader + ActivityChips) that reveals/collapses; spacer keeps posts pushed */}
@@ -457,7 +482,7 @@ export default function Feed({ navigation, route }) {
                         if (h && Math.abs(h - headerH.value) > 1) {
                             headerH.value = h;
                             hidden.value = 0; // start visible
-                            try { visibleHeaderHRef.current = h; } catch {}
+                            try { visibleHeaderHRef.current = h; } catch { }
                         }
                     }}
                     style={[{
@@ -487,36 +512,41 @@ export default function Feed({ navigation, route }) {
                     >
                         <ActivityChips navigation={navigation} />
                     </Animated.View>
+                    {/* Rounded separator mask to keep a smooth transition into posts */}
+                    {/* <ChipsRoundMask onLayout={(e) => {
+                        const h = e.nativeEvent.layout.height || 0;
+                        if (h && Math.abs(h - maskH.value) > 1) maskH.value = h;
+                    }} /> */}
                 </Reanimated.View>
-            
 
-            {isSomePostFocused && (
-                <SafeAreaInsetsView
-                    edges={['top']}
-                    onLayout={(e) => { backHeaderHRef.current = e.nativeEvent.layout.height || 0; }}
-                    style={{ position: 'absolute', top: 0, left: 0, right: 0, zIndex: 30, backgroundColor: '#F7FAFF' }}
-                >
-                    <FeedHeader
-                        navigation={navigation}
-                        toMessagesScreen={toMessagesScreen}
-                        onOpenNotifications={handleOpenNotifications}
-                        backButton={true}
-                        onBackPress={handleBackPress}
-                        scrollToTop={scrollToTop}
-                        allUsersRef={allUsersRef}
-                        workout={activeWorkout}
-                        timerRef={headerTimerRef}
-                    />
-                </SafeAreaInsetsView>
-            )}
-</SafeAreaInsetsView>
+
+                {isSomePostFocused && (
+                    <SafeAreaInsetsView
+                        edges={['top']}
+                        onLayout={(e) => { backHeaderHRef.current = e.nativeEvent.layout.height || 0; }}
+                        style={{ position: 'absolute', top: 0, left: 0, right: 0, zIndex: 30, backgroundColor: '#F7FAFF' }}
+                    >
+                        <FeedHeader
+                            navigation={navigation}
+                            toMessagesScreen={toMessagesScreen}
+                            onOpenNotifications={handleOpenNotifications}
+                            backButton={true}
+                            onBackPress={handleBackPress}
+                            scrollToTop={scrollToTop}
+                            allUsersRef={allUsersRef}
+                            workout={activeWorkout}
+                            timerRef={headerTimerRef}
+                        />
+                    </SafeAreaInsetsView>
+                )}
+            </SafeAreaInsetsView>
 
             {/* Top safe-area mask to hide content above inset */}
             <View pointerEvents="none" style={{ position: 'absolute', top: 0, left: 0, right: 0, height: insets.top, backgroundColor: '#F7FAFF', zIndex: 25 }} />
 
 
 
-        <NotificationsBottomSheet notificationsBottomSheetExpandFlag={notificationsBottomSheetExpandFlag} />
+            <NotificationsBottomSheet notificationsBottomSheetExpandFlag={notificationsBottomSheetExpandFlag} />
             <CommentsBottomSheet
                 isVisible={isSomePostFocused}
                 postData={focusedPostIndex.current === -1 ? null : posts[focusedPostIndex.current]}

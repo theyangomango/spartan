@@ -6,6 +6,7 @@ import { ss } from "./workoutTheme"; // keep path consistent with your project
 import MiniPodium from "./MiniPodium";
 import { navigationRef } from "../../../../navigationRef";
 import { StackActions } from "@react-navigation/native";
+// Removed unused bounceable/touchable imports to keep things lean
 
 const PodiumPreview = memo(function PodiumPreview({ top3 = [] }) {
     // keep this super cheap
@@ -36,8 +37,10 @@ function HubRowCmp({
         <View style={styles.hubRow}>
             {/* Calories card */}
             <Pressable
-                style={styles.card}
-                onPress={() => {
+                accessibilityRole="button"
+                android_ripple={{ color: "rgba(2,6,23,0.08)", radius: 140, borderless: false }}
+                style={({ pressed }) => [styles.card, pressed && styles.cardPressed]}
+                onPressIn={() => {
                     // Prefer root ref push to ensure correct transition
                     try {
                         if (navigationRef?.isReady?.()) {
@@ -55,9 +58,11 @@ function HubRowCmp({
                         navigation.navigate('MacroTrackingOverlay');
                     }
                 }}
-                android_ripple={{ color: "rgba(2,6,23,0.08)", radius: 120, borderless: false }}
             >
-                <Text style={styles.macrosCaption}>Today’s Calories</Text>
+                <View style={[styles.headerRow, styles.headerRowStart]}>
+                    <Text style={styles.chevronLeft}>‹</Text>
+                    <Text style={styles.macrosCaption}>Today’s Calories</Text>
+                </View>
                 <View style={styles.ringWrap}>
                     {afterPaint ? (
                         <AnimatedCircularProgress
@@ -88,11 +93,15 @@ function HubRowCmp({
 
             {/* Mini podium */}
             <Pressable
-                style={styles.card}
+                accessibilityRole="button"
+                android_ripple={{ color: "rgba(2,6,23,0.08)", radius: 140, borderless: false }}
+                style={({ pressed }) => [styles.card, pressed && styles.cardPressed]}
                 onPressIn={() => navigation.navigate("CompetitionOverlay")}
-                android_ripple={{ color: "rgba(2,6,23,0.08)", radius: 120, borderless: false }}
             >
-                <Text style={styles.podiumCaption}>{PREVIEW_LABEL}</Text>
+                <View style={styles.headerRow}>
+                    <Text style={styles.podiumCaption}>{PREVIEW_LABEL}</Text>
+                    <Text style={styles.chevronRight}>›</Text>
+                </View>
                 {afterPaint ? <PodiumPreview top3={top3} /> : null}
             </Pressable>
         </View>
@@ -124,9 +133,23 @@ const styles = StyleSheet.create({
             android: { elevation: 2 },
         }),
     },
+    cardPressed: {
+        transform: [{ scale: 0.985 }],
+        backgroundColor: "#F8FAFC",
+        borderColor: "rgba(2,6,23,0.12)",
+        ...Platform.select({
+            ios: { shadowOpacity: 0.09, shadowRadius: 12, shadowOffset: { width: 0, height: 6 } },
+            android: { elevation: 4 },
+        }),
+    },
 
-    macrosCaption: { color: "#64748B", fontSize: 12, fontFamily: "Outfit_700Bold", marginBottom: 18 },
-    podiumCaption: { color: "#64748B", fontSize: 12, fontFamily: "Outfit_700Bold", marginBottom: 8 },
+    headerRow: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", marginBottom: 12 },
+    headerRowStart: { justifyContent: "flex-start", gap: 6 },
+
+    macrosCaption: { color: "#64748B", fontSize: 12, fontFamily: "Outfit_700Bold" },
+    podiumCaption: { color: "#64748B", fontSize: 12, fontFamily: "Outfit_700Bold" },
+    chevronRight: { color: "#94A3B8", fontSize: 18, lineHeight: 18, includeFontPadding: false },
+    chevronLeft: { color: "#94A3B8", fontSize: 18, lineHeight: 18, includeFontPadding: false },
 
     ringWrap: { alignItems: "center", justifyContent: "center" },
     ringCenter: { alignItems: "center", justifyContent: "center" },
