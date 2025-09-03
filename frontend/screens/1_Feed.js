@@ -9,14 +9,14 @@ import React, { useCallback, useEffect, useMemo, useRef, useState } from "react"
 import { Animated, Dimensions, SafeAreaView, StyleSheet, View } from "react-native";
 import { StatusBar } from "expo-status-bar";
 import { doc, onSnapshot } from "firebase/firestore";
-// import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { useSafeAreaInsets, SafeAreaView as SafeAreaInsetsView } from "react-native-safe-area-context";
+import Reanimated, { useSharedValue, useAnimatedScrollHandler, useAnimatedStyle, runOnJS } from 'react-native-reanimated';
 
 import Footer from "../components/Footer";
 import Post from "../components/1_Feed/Posts/Post";
 import FeedHeader from "../components/1_Feed/FeedHeader";
 import useHeaderSearchUsers from "../hooks/useHeaderSearchUsers";
 import ActivityChips from "../components/1_Feed/Pulse/ActivityChips";
-import TopRoundOverlay from "../components/1_Feed/TopRoundOverlay";
 import NotificationsBottomSheet from "../components/1_Feed/Notifications/NotificationsBottomSheet";
 import CommentsBottomSheet from "../components/1_Feed/Comments/CommentsBottomSheet";
 import ShareBottomSheet from "../components/1_Feed/SharePost/ShareBottomSheet";
@@ -34,6 +34,7 @@ const TARGET_POSITION = getScrollTargetPosition(width, height),
     ANIMATION_DURATION = 300;
 
 export default function Feed({ navigation, route }) {
+    const insets = useSafeAreaInsets();
     // Use UID from global or route params
     const UID = "userData" in global ? global.userData.uid : route?.params?.uid;
 
@@ -71,6 +72,14 @@ export default function Feed({ navigation, route }) {
     /* ---------- animated values ---------- */
     const translateY = useRef(new Animated.Value(0)).current;
     const storiesOpacity = useRef(new Animated.Value(1)).current;
+    // Reanimated header reveal values (UI thread)
+    const headerH = useSharedValue(0);
+    const chipsH = useSharedValue(0); // minimum visible height (keep chips in view)
+    const hidden = useSharedValue(0); // 0..(H - chipsH)
+    const prevY = useSharedValue(0);
+    // Animated styles: overlay header translate + spacer height
+    const overlayHeaderStyle = useAnimatedStyle(() => ({ transform: [{ translateY: -hidden.value }] }));
+    const spacerStyle = useAnimatedStyle(() => ({ height: Math.max(0, headerH.value - hidden.value) }));
     
     // Header workout pill state
     const [activeWorkout, setActiveWorkout] = useState(null);
@@ -107,7 +116,7 @@ export default function Feed({ navigation, route }) {
                 }
             });
 
-            const bestPost = best === -1 ? -1 : best - 2; // convert data index -> posts index (chips + overlay)
+            const bestPost = best === -1 ? -1 : best; // list index equals posts index
             if (bestPost !== centeredIndexRef.current) {
                 centeredIndexRef.current = bestPost;
                 setCenteredIndex(bestPost); // ⟵ triggers Post props update => pause/play swap
@@ -117,6 +126,28 @@ export default function Feed({ navigation, route }) {
             setCenteredIndex(-1);
         }
     };
+
+    // Reanimated scroll handler: UI-thread header control + forward to JS logic
+    const onScrollRe = useAnimatedScrollHandler({
+        onBeginDrag: (e) => {
+            prevY.value = e.contentOffset.y;
+        },
+        onScroll: (e) => {
+            const y = e.contentOffset.y;
+            const dy = y - prevY.value;
+            prevY.value = y;
+            const H = headerH.value;
+            if (H > 0) {
+                const minVisible = Math.min(Math.max(chipsH.value, 0), H);
+                const maxHidden = Math.max(0, H - minVisible);
+                let next = hidden.value + dy; // dy>0 hide; dy<0 reveal
+                if (next < 0) next = 0;
+                if (next > maxHidden) next = maxHidden;
+                hidden.value = next;
+            }
+            runOnJS(handleScroll)({ nativeEvent: { contentOffset: { y } } });
+        },
+    });
 
     // Load user data from Firestore once
     useEffect(() => {
@@ -345,74 +376,88 @@ export default function Feed({ navigation, route }) {
 
     // Following hydration and small prefetch handled in useHeaderSearchUsers
 
-    // Build data so chips and the static rounded overlay can be sticky while the header scrolls naturally
-    const listData = useMemo(() => [{ __kind: 'chips' }, { __kind: 'round' }, ...(posts || [])], [posts]);
-
-    // Rounded mask is rendered as a sticky item directly after chips; no dynamic measurements needed.
-
-    // The mask height is derived purely via Animated nodes (no per-frame JS setValue),
-    // so it keeps up with fast downward flings without jitter.
+    // Build data: posts only; header+chips are handled by overlay + spacer
+    const listData = useMemo(() => ([...(posts || [])]), [posts]);
 
     return (
         <SafeAreaView style={{ flex: 1, backgroundColor: "#F7FAFF" }}>
             <SafeAreaView style={styles.mainContainer}>
                 <StatusBar style="dark" />
-                <Animated.FlatList
+                <Reanimated.FlatList
                     ref={flatListRef}
                     bounces={false}
                     showsVerticalScrollIndicator={false}
                     data={listData}
-                    keyExtractor={(item, i) => (i === 0 ? '__chips__' : i === 1 ? '__round__' : String(i - 2))}
+                    keyExtractor={(item, i) => String(i)}
                     renderItem={({ item, index }) => {
-                        if (index === 0) {
-                            return (
-                                <Animated.View
-                                    style={{ opacity: storiesOpacity }}
-                                >
-                                    <ActivityChips navigation={navigation} />
-                                </Animated.View>
-                            );
-                        }
-                        if (index === 1) {
-                            // A small, sticky overlay with rounded corners glues to chips without scroll math
-                            return <TopRoundOverlay />;
-                        }
-                        return renderPost({ item, index: index - 2 });
+                        return renderPost({ item, index });
                     }}
-                    onScroll={handleScroll}
-                    scrollEventThrottle={10}
-                    // Keep both chips and rounded overlay sticky (header is index 0)
-                    stickyHeaderIndices={[1, 2]}
+                    onScroll={onScrollRe}
+                    scrollEventThrottle={16}
+                    // No sticky items; overlay + spacer manage layout
+                    stickyHeaderIndices={[]}
                     viewabilityConfig={{ itemVisiblePercentThreshold: 20 }}
                     onViewableItemsChanged={({ viewableItems }) => {
                         const s = new Set();
                         viewableItems.forEach((v) => {
-                            if (typeof v.index === "number" && v.index > 1) s.add(v.index - 2);
+                            // Track list indices; posts start at index 0
+                            if (typeof v.index === "number" && v.index >= 0) s.add(v.index);
                         });
                         viewableSetRef.current = s;
                     }}
                     CellRendererComponent={CellRenderer}
-                    ListHeaderComponent={
-                        <View>
-                            <FeedHeader
-                                navigation={navigation}
-                                toMessagesScreen={toMessagesScreen}
-                                onOpenNotifications={handleOpenNotifications}
-                                backButton={isSomePostFocused}
-                                onBackPress={handleBackPress}
-                                scrollToTop={scrollToTop}
-                                allUsersRef={allUsersRef}
-                                workout={activeWorkout}
-                                timerRef={headerTimerRef}
-                            />
-                        </View>
-                    }
+                    ListHeaderComponent={<Reanimated.View style={spacerStyle} />}
                     initialNumToRender={3}
                     windowSize={5}
                 />
             </SafeAreaView>
-        
-            <NotificationsBottomSheet notificationsBottomSheetExpandFlag={notificationsBottomSheetExpandFlag} />
+
+            {/* Overlay header (FeedHeader + ActivityChips) that reveals/collapses; spacer keeps posts pushed */}
+            <SafeAreaInsetsView edges={['top']} pointerEvents="box-none" style={{ position: 'absolute', top: 0, left: 0, right: 0 }}>
+                <Reanimated.View
+                    onLayout={(e) => {
+                        const h = e.nativeEvent.layout.height || 0;
+                        if (h && Math.abs(h - headerH.value) > 1) {
+                            headerH.value = h;
+                            hidden.value = 0; // start visible
+                        }
+                    }}
+                    style={[{
+                        backgroundColor: '#F7FAFF',
+                        zIndex: 20,
+                        borderBottomWidth: StyleSheet.hairlineWidth,
+                        borderBottomColor: 'rgba(0,0,0,0.05)'
+                    }, overlayHeaderStyle]}
+                >
+                    <FeedHeader
+                        navigation={navigation}
+                        toMessagesScreen={toMessagesScreen}
+                        onOpenNotifications={handleOpenNotifications}
+                        backButton={isSomePostFocused}
+                        onBackPress={handleBackPress}
+                        scrollToTop={scrollToTop}
+                        allUsersRef={allUsersRef}
+                        workout={activeWorkout}
+                        timerRef={headerTimerRef}
+                    />
+                    <Animated.View
+                        onLayout={(e) => {
+                            const h = e.nativeEvent.layout.height || 0;
+                            if (h && Math.abs(h - chipsH.value) > 1) chipsH.value = h;
+                        }}
+                        style={{ opacity: storiesOpacity }}
+                    >
+                        <ActivityChips navigation={navigation} />
+                    </Animated.View>
+                </Reanimated.View>
+            </SafeAreaInsetsView>
+
+            {/* Top safe-area mask to hide content above inset */}
+            <View pointerEvents="none" style={{ position: 'absolute', top: 0, left: 0, right: 0, height: insets.top, backgroundColor: '#F7FAFF', zIndex: 25 }} />
+
+
+
+        <NotificationsBottomSheet notificationsBottomSheetExpandFlag={notificationsBottomSheetExpandFlag} />
             <CommentsBottomSheet
                 isVisible={isSomePostFocused}
                 postData={focusedPostIndex.current === -1 ? null : posts[focusedPostIndex.current]}
