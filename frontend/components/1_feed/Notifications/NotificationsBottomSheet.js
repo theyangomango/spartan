@@ -13,14 +13,19 @@ import resetNewNotifications from "../../../helper/resetNewNotifications";
 const NotificationsBottomSheet = ({ notificationsBottomSheetExpandFlag }) => {
     const bottomSheetRef = useRef(null);
     const insets = useSafeAreaInsets();
-    // Define snap points for the bottom sheet
-    const snapPoints = useMemo(() => ['90%'], []);
+    // Define snap points for the bottom sheet (approximate modal height)
+    const snapPoints = useMemo(() => [scaleSize(800)], []);
     const [isExpanded, setIsExpanded] = useState(false);
 
-    // Only open/close when the flag toggles; stay fully closed on mount
+    // Expand only when the flag toggles AFTER mount; remain fully closed initially
+    const didMountRef = useRef(false);
     useEffect(() => {
+        if (!didMountRef.current) { didMountRef.current = true; return; }
         const ref = bottomSheetRef.current;
-        ref.expand();
+        if (ref) {
+            ref.expand();
+            setIsExpanded(true);
+        }
     }, [notificationsBottomSheetExpandFlag]);
 
     // Custom backdrop component with adjusted opacity
@@ -42,19 +47,7 @@ const NotificationsBottomSheet = ({ notificationsBottomSheetExpandFlag }) => {
     }
 
     return (
-        <View
-            style={[
-                styles.outerContainer,
-                // Extend to cover safe-area padding applied by parent SafeAreaView
-                {
-                    top: -insets.top,
-                    bottom: -insets.bottom,
-                    left: -insets.left,
-                    right: -insets.right,
-                },
-            ]}
-            pointerEvents="box-none"
-        >
+        <View style={styles.outerContainer} pointerEvents="box-none">
             <BottomSheet
                 ref={bottomSheetRef}
                 index={-1} // Initially closed
