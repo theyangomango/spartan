@@ -4,6 +4,8 @@ import { AnimatedCircularProgress } from "react-native-circular-progress";
 import { usePfp } from "../../../helper/usePFPs";
 import { ss } from "./workoutTheme"; // keep path consistent with your project
 import MiniPodium from "./MiniPodium";
+import { navigationRef } from "../../../../navigationRef";
+import { StackActions } from "@react-navigation/native";
 
 const PodiumPreview = memo(function PodiumPreview({ top3 = [] }) {
     // keep this super cheap
@@ -35,7 +37,24 @@ function HubRowCmp({
             {/* Calories card */}
             <Pressable
                 style={styles.card}
-                onPress={() => navigation.navigate("MacroTrackingOverlay")}
+                onPress={() => {
+                    // Prefer root ref push to ensure correct transition
+                    try {
+                        if (navigationRef?.isReady?.()) {
+                            navigationRef.dispatch(StackActions.push('MacroTrackingOverlay'));
+                            return;
+                        }
+                    } catch {}
+                    // Fallbacks to reach the root overlay in nested stacks
+                    try {
+                        const rootNav = navigation?.getParent?.('ROOT');
+                        if (rootNav?.push) rootNav.push('MacroTrackingOverlay');
+                        else if (rootNav?.navigate) rootNav.navigate('MacroTrackingOverlay');
+                        else navigation.navigate('MacroTrackingOverlay');
+                    } catch {
+                        navigation.navigate('MacroTrackingOverlay');
+                    }
+                }}
                 android_ripple={{ color: "rgba(2,6,23,0.08)", radius: 120, borderless: false }}
             >
                 <Text style={styles.macrosCaption}>Today’s Calories</Text>
@@ -70,7 +89,7 @@ function HubRowCmp({
             {/* Mini podium */}
             <Pressable
                 style={styles.card}
-                onPress={() => navigation.navigate("CompetitionOverlay")}
+                onPressIn={() => navigation.navigate("CompetitionOverlay")}
                 android_ripple={{ color: "rgba(2,6,23,0.08)", radius: 120, borderless: false }}
             >
                 <Text style={styles.podiumCaption}>{PREVIEW_LABEL}</Text>

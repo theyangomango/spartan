@@ -33,7 +33,7 @@ export default function MessageInput({
             <View style={styles.row}>
                 {/* UI-only change: use the image icon (same onPress behavior) */}
                 <TouchableOpacity style={styles.iconBtn} onPress={onOpenPicker} activeOpacity={0.85}>
-                    <Ionicons name="image" size={18} color="#517eb6ff" />
+                    <Ionicons name="image" size={18} color="#2D9EFF" />
                 </TouchableOpacity>
 
                 <TextInput
@@ -63,7 +63,7 @@ const styles = StyleSheet.create({
         alignItems: "center",
         backgroundColor: "#FFFFFF",
         borderWidth: 1,
-        borderColor: "rgba(15,23,42,0.06)",
+        borderColor: "#EEF3FF",
         borderRadius: 28,
         paddingVertical: 10,
         paddingHorizontal: 8,
@@ -79,19 +79,19 @@ const styles = StyleSheet.create({
         borderRadius: 17,
         alignItems: "center",
         justifyContent: "center",
-        backgroundColor: "rgba(45,158,255,0.10)",
+        backgroundColor: "#E9F3FF",
     },
     input: {
         flex: 1,
         paddingHorizontal: 12,
         fontSize: 14.5,
         color: "#0F172A",
-        fontFamily: "Poppins_500Medium",
+        fontFamily: "Outfit_500Medium",
     },
     sendBtn: {
         width: 36, height: 36, borderRadius: 18,
         alignItems: "center", justifyContent: "center",
-        backgroundColor: "#0499FE",
+        backgroundColor: "#2D9EFF",
         marginLeft: 6,
     },
 
@@ -101,14 +101,14 @@ const styles = StyleSheet.create({
         alignItems: "center",
         backgroundColor: "#F5F8FF",
         borderWidth: 1,
-        borderColor: "rgba(45,158,255,0.15)",
+        borderColor: "#EEF3FF",
         borderRadius: 14,
         paddingHorizontal: 10,
         paddingVertical: 8,
         marginBottom: 8,
     },
     replyBar: { width: 3, height: 26, borderRadius: 2, backgroundColor: "#2D9EFF", marginRight: 8 },
-    replyTitle: { fontSize: 12, color: "#0F172A", fontFamily: "Poppins_600SemiBold" },
-    replySnippet: { fontSize: 12, color: "#64748B", fontFamily: "Poppins_500Medium" },
+    replyTitle: { fontSize: 12, color: "#0F172A", fontFamily: "Outfit_600SemiBold" },
+    replySnippet: { fontSize: 12, color: "#64748B", fontFamily: "Outfit_500Medium" },
     closeReply: { padding: 6, marginLeft: 6 },
 });

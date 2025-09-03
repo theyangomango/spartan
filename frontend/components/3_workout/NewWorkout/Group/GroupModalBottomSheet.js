@@ -1,7 +1,7 @@
 // components/Tracking/Group/GroupModalBottomSheet.jsx
 import React, { useCallback, useEffect, useMemo, useRef } from "react";
 import { View, StyleSheet } from "react-native";
-import BottomSheet from "@gorhom/bottom-sheet";
+import BottomSheet, { BottomSheetBackdrop } from "@gorhom/bottom-sheet";
 import GroupModal from "./GroupModal";
 
 const GroupModalBottomSheet = ({ groupModalExpandFlag, closeGroupModal, onInvite }) => {
@@ -16,8 +16,19 @@ const GroupModalBottomSheet = ({ groupModalExpandFlag, closeGroupModal, onInvite
         }
     }, [groupModalExpandFlag]);
 
-    // No backdrop (per your request earlier)
-    const renderBackdrop = useCallback(() => null, []);
+    // Soft dimmed backdrop that closes on press
+    const renderBackdrop = useCallback(
+        (props) => (
+            <BottomSheetBackdrop
+                {...props}
+                appearsOnIndex={0}
+                disappearsOnIndex={-1}
+                pressBehavior="close"
+                style={[props?.style, { backgroundColor: "rgba(2, 6, 23, 0.45)" }]}
+            />
+        ),
+        []
+    );
 
     return (
         <View style={styles.outerContainer} pointerEvents="box-none">

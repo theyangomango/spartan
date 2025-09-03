@@ -9,6 +9,7 @@ import {
   Animated,
   Dimensions,
   ActivityIndicator,
+  InteractionManager,
 } from "react-native";
 import BottomSheet, { BottomSheetBackdrop } from "@gorhom/bottom-sheet";
 import RNBounceable from "@freakycoder/react-native-bounceable";
@@ -360,12 +361,19 @@ const FriendsActivitySheet = ({ visible, openToggle, items = [], onClose, onView
   }, [enhancedItems]);
 
   const hasLive = useMemo(() => sortedItems?.some((it) => it?.live), [sortedItems]);
+  // Move viewer-related state above effects that depend on it to avoid TDZ issues
+  const [selectedItem, setSelectedItem] = useState(null);
+  const [viewerReady, setViewerReady] = useState(false);
+  const listOpacity = useRef(new Animated.Value(1)).current;
+  const viewerOpacity = useRef(new Animated.Value(0)).current;
+
   const [now, setNow] = useState(() => Date.now());
   useEffect(() => {
-    if (!hasLive) return;
+    // Pause live ticker while viewer is open to avoid extra re-renders
+    if (!hasLive || selectedItem) return;
     const id = setInterval(() => setNow(Date.now()), 1000);
     return () => clearInterval(id);
-  }, [hasLive]);
+  }, [hasLive, selectedItem]);
 
   useEffect(() => {
     if (!bottomSheetRef.current || typeof visible === "undefined") return;
@@ -399,9 +407,7 @@ const FriendsActivitySheet = ({ visible, openToggle, items = [], onClose, onView
     []
   );
 
-  const [selectedItem, setSelectedItem] = useState(null);
-  const listOpacity = useRef(new Animated.Value(1)).current;
-  const viewerOpacity = useRef(new Animated.Value(0)).current;
+  // (moved up above)
 
   const openViewer = useCallback((item, pfpUri) => {
     const widFromItem = String(item?.wid || item?.id || item?.workout?.wid || "");
@@ -435,12 +441,18 @@ const FriendsActivitySheet = ({ visible, openToggle, items = [], onClose, onView
       friendPfp: pfpUri || null,
       friendUid: String(item?.uid || item?.userId || item?.user?.uid || ""), // pass concrete friend uid
       selfActive,
+      // stream live activity only if this item is marked live
+      streamLive: !!item?.live,
     });
-
+    setViewerReady(false);
     Animated.parallel([
       Animated.timing(listOpacity, { toValue: 0, duration: 160, useNativeDriver: true }),
       Animated.timing(viewerOpacity, { toValue: 1, duration: 220, useNativeDriver: true }),
-    ]).start();
+    ]).start(({ finished }) => {
+      if (!finished) return;
+      // Mount right after the next frame for responsiveness
+      requestAnimationFrame(() => setViewerReady(true));
+    });
   }, [listOpacity, viewerOpacity]);
 
   const closeViewer = useCallback(() => {
@@ -448,7 +460,7 @@ const FriendsActivitySheet = ({ visible, openToggle, items = [], onClose, onView
       Animated.timing(viewerOpacity, { toValue: 0, duration: 140, useNativeDriver: true }),
       Animated.timing(listOpacity, { toValue: 1, duration: 200, useNativeDriver: true }),
     ]).start(({ finished }) => {
-      if (finished) setSelectedItem(null);
+      if (finished) { setSelectedItem(null); setViewerReady(false); }
     });
   }, [listOpacity, viewerOpacity]);
 
@@ -470,7 +482,9 @@ const FriendsActivitySheet = ({ visible, openToggle, items = [], onClose, onView
   }, []);
 
   const liveCount = useMemo(() => sortedItems.filter((x) => x?.live).length, [sortedItems]);
-  const noop = () => { };
+  const noop = React.useCallback(() => { }, []);
+  const noopCheer = React.useCallback(() => { }, []);
+  const handleCopyTemplateCb = React.useCallback((wk) => onCopyTemplate?.(wk), [onCopyTemplate]);
   const timerRef = useRef("");
 
   return (
@@ -508,6 +522,7 @@ const FriendsActivitySheet = ({ visible, openToggle, items = [], onClose, onView
             keyExtractor={keyExtractor}
             style={{ flex: 1 }}
             contentContainerStyle={styles.listContent}
+            removeClippedSubviews
             ItemSeparatorComponent={() => <View style={{ height: s(10) }} />}
             SectionSeparatorComponent={() => <View style={{ height: s(12) }} />}
             stickySectionHeadersEnabled={false}
@@ -525,7 +540,7 @@ const FriendsActivitySheet = ({ visible, openToggle, items = [], onClose, onView
         </Animated.View>
 
         <Animated.View style={[styles.viewerContainer, { opacity: viewerOpacity }]} pointerEvents={selectedItem ? "auto" : "none"}>
-          {!selectedItem ? (
+          {!selectedItem || !viewerReady ? (
             <View style={styles.loadingWrap}>
               <ActivityIndicator />
             </View>
@@ -541,11 +556,13 @@ const FriendsActivitySheet = ({ visible, openToggle, items = [], onClose, onView
                   showGroupModal={noop}
                   userWorkoutStats={global?.userData?.statsExercises || {}}
                   onPressBack={closeViewer}
-                  onCheer={() => {}}
-                  onCopyTemplate={(wk) => onCopyTemplate?.(wk)}
+                  onCheer={noopCheer}
+                  onCopyTemplate={handleCopyTemplateCb}
                   /* 🔒 LOCK friend view so header/controls don't flip to self */
                   forceViewingFriend={selectedItem.friendUid}
                   friendPfp={selectedItem.friendPfp || null}
+                  /* 🚀 Stream live only when the item is live */
+                  streamLive={!!selectedItem.streamLive}
                 />
               </View>
             </View>

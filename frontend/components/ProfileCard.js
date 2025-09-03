@@ -2,6 +2,8 @@ import React from 'react';
 import { View, Text, StyleSheet, Pressable, Dimensions } from 'react-native';
 import FastImage from 'react-native-fast-image';
 import { usePfp } from '../helper/usePFPs';
+import Icon from 'react-native-vector-icons/Ionicons';
+import { LinearGradient } from 'expo-linear-gradient';
 
 const { height } = Dimensions.get('window');
 
@@ -11,15 +13,15 @@ const scale = (size) => Math.round(size * (height / 844));
 // Tunables via scale
 const SIZES = {
     pfp: scale(44),
-    handleFont: scale(14),
+    handleFont: scale(15),
     nameFont: scale(12.5),
     icon: scale(24),
-    iconBorder: Math.max(1, Math.round(scale(2))),
     iconFilled: scale(16),
-    paddingV: scale(9),
-    paddingL: scale(21),
+    paddingV: scale(10),
+    paddingL: scale(20),
     paddingR: scale(22),
     cardRadius: scale(12),
+    ring: 2,
 };
 
 const ProfileCard = ({ user, onSelect, isSelected }) => {
@@ -29,20 +31,32 @@ const ProfileCard = ({ user, onSelect, isSelected }) => {
 
     return (
         <Pressable
-            style={[styles.itemContainer, isSelected && styles.itemContainerSelected]}
             onPress={() => onSelect(user)}
+            style={({ pressed }) => [
+                styles.itemContainer,
+                pressed && styles.itemPressed,
+                isSelected && styles.itemContainerSelected,
+            ]}
+            android_ripple={{ color: 'rgba(2,132,199,0.08)' }}
         >
-            <View style={[styles.pfp_ctnr, { width: SIZES.pfp, borderRadius: radius }]}>
-                {pfpUri ? (
-                    <FastImage
-                        source={{ uri: pfpUri, priority: FastImage.priority.normal, cache: FastImage.cacheControl.immutable }}
-                        style={[styles.pfp, { borderRadius: radius }]}
-                        resizeMode={FastImage.resizeMode.cover}
-                    />
-                ) : (
-                    <View style={[styles.pfp, { borderRadius: radius, backgroundColor: '#EEE' }]} />
-                )}
-            </View>
+            <LinearGradient
+                colors={["#2A65D9", "#59AAEE"]}
+                start={{ x: 0, y: 0 }}
+                end={{ x: 1, y: 1 }}
+                style={{ width: SIZES.pfp, height: SIZES.pfp, borderRadius: radius, padding: SIZES.ring }}
+            >
+                <View style={{ flex: 1, borderRadius: radius - SIZES.ring, backgroundColor: '#FFFFFF', alignItems: 'center', justifyContent: 'center' }}>
+                    {pfpUri ? (
+                        <FastImage
+                            source={{ uri: pfpUri, priority: FastImage.priority.normal, cache: FastImage.cacheControl.immutable }}
+                            style={{ width: SIZES.pfp - 2 * (SIZES.ring + 2), height: SIZES.pfp - 2 * (SIZES.ring + 2), borderRadius: (SIZES.pfp - 2 * (SIZES.ring + 2)) / 2, backgroundColor: '#F1F5F9' }}
+                            resizeMode={FastImage.resizeMode.cover}
+                        />
+                    ) : (
+                        <View style={{ width: SIZES.pfp - 2 * (SIZES.ring + 2), height: SIZES.pfp - 2 * (SIZES.ring + 2), borderRadius: (SIZES.pfp - 2 * (SIZES.ring + 2)) / 2, backgroundColor: '#E9EDF5' }} />
+                    )}
+                </View>
+            </LinearGradient>
 
             <View style={styles.text_ctnr}>
                 <Text numberOfLines={1} style={[styles.handle_text, { fontSize: SIZES.handleFont }]}>
@@ -53,27 +67,18 @@ const ProfileCard = ({ user, onSelect, isSelected }) => {
                 </Text>
             </View>
 
-            <View
-                style={[
-                    styles.iconOutline,
-                    {
-                        width: SIZES.icon,
-                        height: SIZES.icon,
-                        borderRadius: SIZES.icon / 2,
-                        borderWidth: SIZES.iconBorder,
-                        borderColor: isSelected ? '#2D9EFF' : '#D0D7E2',
-                    },
-                ]}
-            >
-                {isSelected && (
-                    <View
-                        style={[
-                            styles.filledIcon,
-                            { width: SIZES.iconFilled, borderRadius: SIZES.iconFilled / 2 },
-                        ]}
-                    />
-                )}
-            </View>
+            {isSelected ? (
+                <LinearGradient
+                    colors={["#2A65D9", "#59AAEE"]}
+                    start={{ x: 0, y: 0 }}
+                    end={{ x: 1, y: 1 }}
+                    style={{ width: SIZES.icon, height: SIZES.icon, borderRadius: SIZES.icon / 2, alignItems: 'center', justifyContent: 'center' }}
+                >
+                    <Icon name="checkmark" size={Math.max(14, SIZES.iconFilled - 2)} color="#fff" />
+                </LinearGradient>
+            ) : (
+                <View style={{ width: SIZES.icon, height: SIZES.icon, borderRadius: SIZES.icon / 2, borderWidth: StyleSheet.hairlineWidth * 2, borderColor: '#CBD5E1' }} />
+            )}
         </Pressable>
     );
 };
@@ -86,38 +91,33 @@ const styles = StyleSheet.create({
         flexDirection: 'row',
         alignItems: 'center',
         borderRadius: SIZES.cardRadius,
+        backgroundColor: '#FFFFFF',
+        borderBottomWidth: StyleSheet.hairlineWidth,
+        borderBottomColor: '#EEF3FF',
     },
     itemContainerSelected: {
-        backgroundColor: '#E8F0FF', // light blue highlight for full card
+        backgroundColor: '#F8FAFF',
     },
-    pfp_ctnr: {
-        aspectRatio: 1,
-        position: 'relative',
-    },
-    pfp: {
-        width: '100%',
-        height: '100%',
+    itemPressed: {
+        backgroundColor: '#F8FAFF',
     },
     text_ctnr: {
         marginLeft: scale(12),
         flex: 1,
     },
     handle_text: {
-        fontFamily: 'Nunito_700Bold',
-        color: '#000',
+        fontFamily: 'Outfit_700Bold',
+        color: '#0F172A',
         marginBottom: scale(2),
+        letterSpacing: 0.2,
     },
     name_text: {
-        fontFamily: 'Nunito_600SemiBold',
-        color: '#888',
+        fontFamily: 'Outfit_500Medium',
+        color: '#6B7280',
     },
-    iconOutline: {
+    tickCircle: {
         justifyContent: 'center',
         alignItems: 'center',
-    },
-    filledIcon: {
-        aspectRatio: 1,
-        backgroundColor: '#2D9EFF',
     },
 });
 

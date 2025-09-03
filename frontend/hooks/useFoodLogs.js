@@ -77,7 +77,7 @@ const buildFromSnap = (snap) => {
     };
 };
 
-export function useFoodLogs(dateObj, userIdOverride) {
+export function useFoodLogs(dateObj, userIdOverride, shouldSubscribe = true) {
     const [meals, setMeals] = useState(emptyBuckets());
     const [totals, setTotals] = useState({ calories: 0, protein: 0, carbs: 0, fat: 0 });
 
@@ -86,6 +86,7 @@ export function useFoodLogs(dateObj, userIdOverride) {
     const unsubRef = useRef(null);
 
     useEffect(() => {
+        if (!shouldSubscribe) return;
         const userId = userIdOverride ?? global?.userData?.id ?? global?.userData?.uid;
         if (!userId) return;
 
@@ -132,7 +133,7 @@ export function useFoodLogs(dateObj, userIdOverride) {
                 unsubRef.current = null;
             }
         };
-    }, [dateObj, userIdOverride]);
+    }, [dateObj, userIdOverride, shouldSubscribe]);
 
     /**
       * Add a food entry.

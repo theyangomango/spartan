@@ -29,7 +29,7 @@ import GroupHeader from "./Group/GroupHeader";
 import GroupMenu from "./Group/GroupMenu";
 
 // Invite picker (bottom sheet)
-import GroupModalBottomSheet from "./Group/GroupModalBottomSheet";
+// Invite picker moved to screen level for full-screen backdrop
 import RestTimerModal from "./RestTimerModal";
 import useRestTimer from "./hooks/useRestTimer";
 import useWorkoutEditing from "./hooks/useWorkoutEditing";
@@ -49,6 +49,11 @@ const NewWorkoutModal = ({
     // 👇 NEW: can be boolean or a string uid — if truthy, we hard-lock friend view
     forceViewingFriend = false,
     friendPfp = null,
+    showGroupModal,                 // parent-controlled invite picker opener
+    registerInviteHandler,          // parent setter to receive (users)=>Promise
+    // Stream live state from Firestore (participants/presence/currentWorkout)?
+    // For viewing completed workouts, pass false to reduce startup cost.
+    streamLive = true,
 }) => {
 
     // Enable LayoutAnimation on Android
@@ -73,11 +78,8 @@ const NewWorkoutModal = ({
         setCountdown,
     } = useRestTimer();
 
-    // ---- Invite picker (BottomSheet) ----
-    const [inviteSheetOpen, setInviteSheetOpen] = useState(false);
-    const openInviteSheet = useCallback(() => setInviteSheetOpen(true), []);
-    const closeInviteSheet = useCallback(() => setInviteSheetOpen(false), []);
-    // -------------------------------------
+    // Invite picker now controlled by parent (Workout screen)
+    // Parent provides showGroupModal() to open, and registerInviteHandler(fn) to receive callback.
 
     const scrollY = useRef(new Animated.Value(0)).current;
 
@@ -97,7 +99,7 @@ const NewWorkoutModal = ({
     const lockFriend = !!forcedUid;
 
     // Only auto-join when NOT locked to friend-view and wid matches my active wid
-    const shouldAutoJoin = !lockFriend && !!(myActiveWid && cardWid && myActiveWid === cardWid);
+    const shouldAutoJoin = streamLive && !lockFriend && !!(myActiveWid && cardWid && myActiveWid === cardWid);
 
     // Decide initial target for the viewer hook
     const initialViewingUid = lockFriend
@@ -118,7 +120,7 @@ const NewWorkoutModal = ({
         waitingFriend,
         setViewing,
     } = useGroupViewing({
-        wid: cardWid,
+        wid: streamLive ? cardWid : null,
         meUid,
         userImage: global?.userData?.image,
         userHandle: global?.userData?.handle,
@@ -126,6 +128,7 @@ const NewWorkoutModal = ({
         autoJoin: shouldAutoJoin,
         lockToViewingUid: lockFriend,
         suppressSelfStream: true,
+        enabled: !!streamLive,
     });
 
     // Effective flags/content when locked
@@ -223,7 +226,7 @@ const NewWorkoutModal = ({
     const borderOpacity = scrollY.interpolate({ inputRange: [0, 98], outputRange: [0, 1], extrapolate: "clamp" });
     const overallOpacity = 1;
 
-    const friendWaiting = !viewingSelfEffective && waitingFriend && !(baseWorkout?.exercises?.length);
+    const friendWaiting = streamLive && !viewingSelfEffective && waitingFriend && !(baseWorkout?.exercises?.length);
 
     // ===== PFPs (stable) =====
     const selfPfpVersion = global?.userData?.pfpVersion ?? 0;
@@ -288,10 +291,13 @@ const NewWorkoutModal = ({
 
         } catch (e) {
             console.log("handleInviteSelected error", e);
-        } finally {
-            closeInviteSheet();
         }
-    }, [db, workout?.wid, workout?.creatorUID, closeInviteSheet]);
+    }, [db, workout?.wid, workout?.creatorUID]);
+
+    // Expose invite handler to parent so screen-level sheet can call it
+    useEffect(() => {
+        registerInviteHandler?.(handleInviteSelected);
+    }, [registerInviteHandler, handleInviteSelected]);
 
     return (
         <View style={styles.main_ctnr}>
@@ -301,7 +307,7 @@ const NewWorkoutModal = ({
                     viewingSelf={viewingSelfEffective}
                     overlayPfp={headerOverlayPfp}
                     onOpenMenu={lockFriend ? undefined : openMenu}
-                    onLongPressInvite={lockFriend ? undefined : (viewingSelfEffective ? openInviteSheet : undefined)}
+                    onLongPressInvite={lockFriend ? undefined : (viewingSelfEffective ? showGroupModal : undefined)}
                     onFinish={viewingSelfEffective ? openFinishConfirm : undefined}
                     // Only show Cheer when the friend's session is ongoing
                     onCheer={friendOngoing ? onCheer : undefined}
@@ -443,7 +449,7 @@ const NewWorkoutModal = ({
                     onClose={closeMenu}
                     participants={participants}
                     viewing={viewing || { uid: viewingSelfEffective ? meUid : (friendUidFromWorkout || "") }}
-                    onInvite={() => { closeMenu(); openInviteSheet(); }}
+                    onInvite={() => { closeMenu(); showGroupModal?.(); }}
                     onSelectParticipant={(p) => {
                         const nextUid = String(p?.uid || meUid);
                         setViewing(nextUid);
@@ -453,13 +459,6 @@ const NewWorkoutModal = ({
                 />
             )}
 
-            {!lockFriend && (
-                <GroupModalBottomSheet
-                    groupModalExpandFlag={inviteSheetOpen}
-                    closeGroupModal={closeInviteSheet}
-                    onInvite={handleInviteSelected}
-                />
-            )}
         </View>
     );
 };

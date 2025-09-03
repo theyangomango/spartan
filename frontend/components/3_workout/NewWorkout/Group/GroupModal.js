@@ -1,9 +1,13 @@
 // components/Tracking/Group/GroupModal.jsx
-import React, { useEffect, useState } from "react";
-import { View, Text, StyleSheet, TextInput, ScrollView, Pressable, Dimensions } from "react-native";
+import React, { useEffect, useMemo, useState } from "react";
+import { View, Text, StyleSheet, TextInput, SectionList, Pressable, Dimensions } from "react-native";
 import Icon from "react-native-vector-icons/Ionicons";
 import ProfileCard from "../../../ProfileCard";
 import RNBounceable from "@freakycoder/react-native-bounceable";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { LinearGradient } from "expo-linear-gradient";
+import useFriendsActivity from "../../../../hooks/useFriendsActivity";
+import useLiveFollowing from "../../../../hooks/useLiveFollowing";
 
 const { height: screenHeight } = Dimensions.get("window");
 const scale = screenHeight / 844;
@@ -14,6 +18,76 @@ const GroupModal = ({ closeGroupModal, onInvite }) => {
     const [filteredUsers, setFilteredUsers] = useState(followingUsers);
     const [selectedUsers, setSelectedUsers] = useState([]);
     const [searchQuery, setSearchQuery] = useState("");
+    const insets = useSafeAreaInsets();
+
+    // --- Reference FriendsActivitySheet: time bucketing helpers ---
+    const toMillis = (v) => {
+        if (!v && v !== 0) return undefined;
+        if (typeof v === "number") return v;
+        if (v?.toMillis) return v.toMillis();
+        const t = new Date(v).getTime();
+        return Number.isFinite(t) ? t : undefined;
+    };
+    const bestTimestamp = (it) =>
+        Math.max(
+            toMillis(it?.created) ?? 0,
+            toMillis(it?.startedAt) ?? 0,
+            toMillis(it?.finishedAt) ?? 0
+        );
+    const startOfToday = (now = new Date()) => { const d = new Date(now); d.setHours(0, 0, 0, 0); return d; };
+    const startOfYesterday = (now = new Date()) => { const d = startOfToday(now); d.setDate(d.getDate() - 1); return d; };
+    const startOfWeekSunday = (now = new Date()) => { const d = startOfToday(now); d.setDate(d.getDate() - d.getDay()); return d; };
+    const startOfLastWeek = (now = new Date()) => { const d = startOfWeekSunday(now); d.setDate(d.getDate() - 7); return d; };
+    const minusMonths = (now, months) => { const d = startOfToday(now); d.setMonth(d.getMonth() - months); return d; };
+    const minusYears = (now, years) => { const d = startOfToday(now); d.setFullYear(d.getFullYear() - years); return d; };
+
+    const groupByTime = (items, nowMs) => {
+        const now = new Date(nowMs || Date.now());
+        const T0 = startOfToday(now).getTime();
+        const Y0 = startOfYesterday(now).getTime();
+        const W0 = startOfWeekSunday(now).getTime();
+        const LW0 = startOfLastWeek(now).getTime();
+        const M1 = minusMonths(now, 1).getTime();
+        const M3 = minusMonths(now, 3).getTime();
+        const Y1 = minusYears(now, 1).getTime();
+
+        const live = [];
+        const rest = [];
+        for (const it of items) (it?.live ? live : rest).push(it);
+
+        const buckets = {
+            Today: [],
+            Yesterday: [],
+            "This Week": [],
+            "Last Week": [],
+            "Last Month": [],
+            "Last Three Months": [],
+            "Last Year": [],
+            Older: [],
+        };
+
+        for (const it of rest) {
+            const ts = bestTimestamp(it);
+            if (!ts) { buckets["Older"].push(it); continue; }
+            if (ts >= T0) buckets["Today"].push(it);
+            else if (ts >= Y0) buckets["Yesterday"].push(it);
+            else if (ts >= W0) buckets["This Week"].push(it);
+            else if (ts >= LW0) buckets["Last Week"].push(it);
+            else if (ts >= M1) buckets["Last Month"].push(it);
+            else if (ts >= M3) buckets["Last Three Months"].push(it);
+            else if (ts >= Y1) buckets["Last Year"].push(it);
+            else buckets["Older"].push(it);
+        }
+
+        const ordered = [];
+        if (live.length) ordered.push({ title: "Live Now", data: live });
+        const order = ["Today", "Yesterday", "This Week", "Last Week", "Last Month", "Last Three Months", "Last Year", "Older"];
+        for (const key of order) {
+            const data = buckets[key];
+            if (data.length) ordered.push({ title: key, data });
+        }
+        return ordered;
+    };
 
     useEffect(() => {
         if (!searchQuery) {
@@ -28,6 +102,57 @@ const GroupModal = ({ closeGroupModal, onInvite }) => {
             );
         }
     }, [searchQuery, followingUsers]);
+
+    // Load friends' recent activity and live status for time grouping
+    const { items: friendActivityItems } = useFriendsActivity(global?.userData);
+    const liveNow = useLiveFollowing(global?.userData); // [{uid, _ts, isLive:true}]
+
+    const sections = useMemo(() => {
+        // Build a lookup of latest timestamp and live flag per uid
+        const tsByUid = new Map();
+        const liveSet = new Set();
+        try {
+            (Array.isArray(friendActivityItems) ? friendActivityItems : []).forEach((it) => {
+                const uid = String(it?.uid || "");
+                if (!uid) return;
+                const ts = bestTimestamp(it) || 0;
+                const prev = tsByUid.get(uid) || 0;
+                if (ts > prev) tsByUid.set(uid, ts);
+                if (it?.live) liveSet.add(uid);
+            });
+        } catch {}
+        try {
+            (Array.isArray(liveNow) ? liveNow : []).forEach((it) => {
+                const uid = String(it?.uid || "");
+                if (!uid) return;
+                const ts = Number(it?._ts || Date.now());
+                const prev = tsByUid.get(uid) || 0;
+                if (ts > prev) tsByUid.set(uid, ts);
+                liveSet.add(uid);
+            });
+        } catch {}
+
+        const groupable = (Array.isArray(filteredUsers) ? filteredUsers : []).map((u) => {
+            const uid = String(u?.uid || "");
+            const ts = tsByUid.get(uid) || 0;
+            const isLive = liveSet.has(uid);
+            // Create an item compatible with groupByTime’s bestTimestamp
+            return {
+                ...u,
+                live: isLive,
+                created: ts || undefined,
+                startedAt: isLive ? ts : undefined,
+                finishedAt: !isLive && ts ? ts : undefined,
+            };
+        });
+
+        // Sort within buckets by recency similar to FriendsActivitySheet
+        const now = Date.now();
+        const orderedSections = groupByTime(groupable, now);
+        // Within each section, sort descending by timestamp
+        orderedSections.forEach((s) => s.data.sort((a, b) => (bestTimestamp(b) || 0) - (bestTimestamp(a) || 0)));
+        return orderedSections;
+    }, [filteredUsers, friendActivityItems, liveNow]);
 
     const toggleUser = (user) => {
         setSelectedUsers((prev) =>
@@ -63,26 +188,48 @@ const GroupModal = ({ closeGroupModal, onInvite }) => {
                 )}
             </View>
 
-            <ScrollView style={styles.list}>
-                {filteredUsers.map((user, idx) => (
+            <SectionList
+                sections={sections}
+                keyExtractor={(item, idx) => item?.uid || `u-${idx}`}
+                renderItem={({ item }) => (
                     <ProfileCard
-                        key={user?.uid || idx}
-                        user={user}
+                        user={item}
                         onSelect={toggleUser}
-                        isSelected={selectedUsers.some((u) => u.uid === user.uid)}
+                        isSelected={selectedUsers.some((u) => u.uid === item.uid)}
                     />
-                ))}
-                <View style={{ height: scaledSize(110) }} />
-            </ScrollView>
+                )}
+                renderSectionHeader={({ section }) => (
+                    <View style={styles.sectionHeaderWrap}>
+                        <Text style={styles.sectionHeaderText}>{section.title}</Text>
+                    </View>
+                )}
+                style={styles.list}
+                contentContainerStyle={{ paddingBottom: Math.max(insets.bottom, scaledSize(24)) + scaledSize(96) }}
+                stickySectionHeadersEnabled={false}
+                initialNumToRender={15}
+                windowSize={15}
+                showsVerticalScrollIndicator={false}
+            />
 
             <RNBounceable
-                style={[styles.sendButton, { opacity: selectedUsers.length < 1 ? 0.5 : 1 }]}
+                style={[
+                    styles.sendButtonWrap,
+                    { bottom: insets.bottom + scaledSize(24), opacity: selectedUsers.length < 1 ? 0.5 : 1 },
+                ]}
                 disabled={selectedUsers.length === 0}
                 onPress={() => onInvite?.(selectedUsers)}
             >
-                <Text style={styles.sendButtonText}>
-                    {`Invite${selectedUsers.length > 0 ? ` (${selectedUsers.length})` : ""}`}
-                </Text>
+                <LinearGradient
+                    colors={["#2A65D9", "#59AAEE"]}
+                    start={{ x: 0, y: 0 }}
+                    end={{ x: 1, y: 1 }}
+                    style={styles.sendButton}
+                >
+                    <Icon name="person-add-outline" size={scaledSize(18)} color="#fff" style={{ marginRight: scaledSize(8) }} />
+                    <Text style={styles.sendButtonText}>
+                        {`Invite${selectedUsers.length > 0 ? ` (${selectedUsers.length})` : ""}`}
+                    </Text>
+                </LinearGradient>
             </RNBounceable>
         </View>
     );
@@ -133,23 +280,32 @@ const styles = StyleSheet.create({
     },
 
     list: { flex: 1, width: "100%" },
+    sectionHeaderWrap: { width: "100%", paddingHorizontal: scaledSize(22), paddingTop: scaledSize(10), paddingBottom: scaledSize(6) },
+    sectionHeaderText: {
+        fontFamily: "Outfit_700Bold",
+        fontSize: scaledSize(12),
+        color: "rgba(15,23,42,0.65)",
+        letterSpacing: 0.3,
+    },
 
-    sendButton: {
+    sendButtonWrap: {
         position: "absolute",
-        bottom: scaledSize(20),
         left: scaledSize(22),
         right: scaledSize(22),
-        backgroundColor: "#59AAEE",
-        borderRadius: scaledSize(16),
-        paddingVertical: scaledSize(13),
-        paddingHorizontal: scaledSize(30),
+        borderRadius: scaledSize(18),
+        shadowColor: "#000",
+        shadowOpacity: 0.12,
+        shadowRadius: 12,
+        shadowOffset: { width: 0, height: 6 },
+        elevation: 4,
+    },
+    sendButton: {
+        flexDirection: "row",
         alignItems: "center",
         justifyContent: "center",
-        shadowColor: "#000",
-        shadowOpacity: 0.08,
-        shadowRadius: 10,
-        shadowOffset: { width: 0, height: 4 },
-        elevation: 3,
+        borderRadius: scaledSize(18),
+        paddingVertical: scaledSize(14),
+        paddingHorizontal: scaledSize(30),
     },
     sendButtonText: {
         color: "#fff",

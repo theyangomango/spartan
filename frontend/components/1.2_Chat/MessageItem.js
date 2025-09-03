@@ -313,9 +313,9 @@ const styles = StyleSheet.create({
         elevation: 2,
     },
     bubbleOther: {
-        backgroundColor: "#F2F6FF",
+        backgroundColor: "#FFFFFF",
         borderWidth: 1,
-        borderColor: "rgba(45,158,255,0.18)",
+        borderColor: "#EEF3FF",
         position: "relative",
     },
 
@@ -324,7 +324,7 @@ const styles = StyleSheet.create({
     groupSelf: { borderBottomRightRadius: 7 },
     groupOther: { borderBottomLeftRadius: 7 },
 
-    text: { fontSize: 14, lineHeight: 19, letterSpacing: 0.1, fontFamily: "Mulish_600SemiBold" },
+    text: { fontSize: 14, lineHeight: 19, letterSpacing: 0.1, fontFamily: "Outfit_500Medium" },
     textSelf: { color: "#FFFFFF" },
     textOther: { color: "#0F172A" },
 
@@ -350,29 +350,35 @@ const styles = StyleSheet.create({
     replyOther: { backgroundColor: "rgba(45,158,255,0.18)" },
     replyBar: { width: 3, height: 30, borderRadius: 2, marginRight: 8 },
     replyTextCol: { flexShrink: 1, minWidth: 0 },
-    replySnippet: { fontSize: 12, fontFamily: "Poppins_500Medium", color: "#64748B" },
+    replySnippet: { fontSize: 12, fontFamily: "Outfit_500Medium", color: "#64748B" },
 
     // reactions badge
     reactionInline: {
         position: "absolute",
-        left: -15,
-        top: -23,
+        left: -12,
+        top: -18,
         flexDirection: "row",
         alignItems: "center",
-        width: 38,
-        height: 38,
+        minWidth: 28,
+        height: 28,
+        paddingHorizontal: 8,
         justifyContent: "center",
-        backgroundColor: "#b9d8ffcc",
-        borderRadius: 100,
-        borderWidth: 2,
-        borderColor: "#ffffff9f",
+        backgroundColor: "#FFFFFF",
+        borderRadius: 999,
+        borderWidth: 1,
+        borderColor: "#EEF3FF",
+        shadowColor: "#0F172A",
+        shadowOpacity: 0.06,
+        shadowRadius: 8,
+        shadowOffset: { width: 0, height: 3 },
+        elevation: 2,
     },
     reactionInlineRight: {
         left: undefined,
-        right: -15,
+        right: -12,
     },
     reactionEmoji: {
-        fontSize: 13,
+        fontSize: 12.5,
         color: "#0F172A",
     },
 

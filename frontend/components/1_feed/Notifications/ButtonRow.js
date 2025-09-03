@@ -1,15 +1,52 @@
-import React from "react";
+import React, { memo, useMemo } from "react";
 import { View, Text, StyleSheet, ScrollView } from "react-native";
 import RNBounceable from "@freakycoder/react-native-bounceable";
 import scaleSize from "../../../helper/scaleSize";
 
-export default function ButtonRow({
+function Chip({ label, selected, onPress, badgeCount }) {
+    return (
+        <RNBounceable
+            key={label}
+            style={[styles.chip, selected && styles.chipSelected]}
+            onPress={onPress}
+        >
+            <Text style={[styles.chipText, selected && styles.chipTextSelected]}>
+                {label}
+            </Text>
+
+            {badgeCount > 0 && (
+                <View style={styles.badgeWrap}>
+                    <View style={styles.badge}>
+                        <Text style={styles.badgeText}>{badgeCount}</Text>
+                    </View>
+                </View>
+            )}
+        </RNBounceable>
+    );
+}
+
+const MemoChip = memo(
+    Chip,
+    (prev, next) => (
+        prev.label === next.label &&
+        prev.selected === next.selected &&
+        prev.badgeCount === next.badgeCount
+    )
+);
+
+function ButtonRow({
     buttons,
     selectedButton,
     setSelectedButton,
     newLikes,
     newComments,
 }) {
+    // normalize badges per label with stable mapping
+    const badgesByLabel = useMemo(() => ({
+        Likes: newLikes || 0,
+        Comments: newComments || 0,
+    }), [newLikes, newComments]);
+
     return (
         <View style={styles.container}>
             <ScrollView
@@ -17,40 +54,31 @@ export default function ButtonRow({
                 showsHorizontalScrollIndicator={false}
                 contentContainerStyle={styles.row}
             >
-                {buttons.map((button) => {
-                    const isSelected = selectedButton === button;
-                    return (
-                        <RNBounceable
-                            key={button}
-                            style={[styles.chip, isSelected && styles.chipSelected]}
-                            onPress={() => setSelectedButton(button)}
-                        >
-                            <Text style={[styles.chipText, isSelected && styles.chipTextSelected]}>
-                                {button}
-                            </Text>
-
-                            {button === "Likes" && newLikes > 0 && (
-                                <View style={styles.badgeWrap}>
-                                    <View style={styles.badge}>
-                                        <Text style={styles.badgeText}>{newLikes}</Text>
-                                    </View>
-                                </View>
-                            )}
-
-                            {button === "Comments" && newComments > 0 && (
-                                <View style={styles.badgeWrap}>
-                                    <View style={styles.badge}>
-                                        <Text style={styles.badgeText}>{newComments}</Text>
-                                    </View>
-                                </View>
-                            )}
-                        </RNBounceable>
-                    );
-                })}
+                {buttons.map((label) => (
+                    <MemoChip
+                        key={label}
+                        label={label}
+                        selected={selectedButton === label}
+                        badgeCount={badgesByLabel[label] || 0}
+                        onPress={() => setSelectedButton(label)}
+                    />
+                ))}
             </ScrollView>
         </View>
     );
 }
+
+export default memo(
+    ButtonRow,
+    (prev, next) => (
+        prev.selectedButton === next.selectedButton &&
+        prev.newLikes === next.newLikes &&
+        prev.newComments === next.newComments &&
+        // keep buttons equal if same labels and order (should be stable)
+        prev.buttons.length === next.buttons.length &&
+        prev.buttons.every((b, i) => b === next.buttons[i])
+    )
+);
 
 const styles = StyleSheet.create({
     container: {},

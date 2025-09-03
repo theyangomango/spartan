@@ -1,7 +1,5 @@
 import React from "react";
 import { StyleSheet, View, Text, Dimensions } from "react-native";
-import { Entypo } from '@expo/vector-icons';
-import RNBounceable from "@freakycoder/react-native-bounceable";
 import FastImage from 'react-native-fast-image';
 import { usePfp } from "../../../helper/usePFPs";
 
@@ -29,9 +27,6 @@ export default function ProfileInfo({ userData, pfp }) {
                     ) : (
                         <View style={[styles.pfp, { backgroundColor: '#e5e7eb' }]} />
                     )}
-                    <RNBounceable style={styles.plus_icon_ctnr}>
-                        <Entypo name="plus" size={scaledSize(16)} color="#222" />
-                    </RNBounceable>
                 </View>
                 <View style={styles.following_stat_ctnr}>
                     <Text style={styles.user_stat_count_text}>{userData.followingCount}</Text>
@@ -74,21 +69,6 @@ const styles = StyleSheet.create({
         width: scaledSize(54),
         aspectRatio: 1,
         borderRadius: scaledSize(22.5),
-    },
-    plus_icon_ctnr: {
-        position: 'absolute',
-        bottom: scaledSize(-8),
-        backgroundColor: '#FCF375',
-        width: scaledSize(35),
-        height: scaledSize(20),
-        borderRadius: scaledSize(10),
-        justifyContent: 'center',
-        alignItems: 'center',
-        shadowColor: '#EBDF38',
-        shadowOffset: { width: 0, height: scaledSize(0.5) },
-        shadowOpacity: 1,
-        shadowRadius: scaledSize(2),
-        elevation: 5,
     },
     followers_stat_ctnr: {
         alignItems: 'flex-end',

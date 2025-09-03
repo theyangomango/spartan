@@ -1,10 +1,13 @@
 import 'expo-dev-client';
 import React, { useEffect, useRef, useState } from 'react';
 import { NavigationContainer } from '@react-navigation/native';
+import { navigationRef } from './navigationRef';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { createStackNavigator, CardStyleInterpolators } from '@react-navigation/stack';
+import { Platform } from 'react-native';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
+import { enableScreens } from 'react-native-screens';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useFonts } from 'expo-font';
 import { customFonts } from './fonts';
@@ -27,12 +30,21 @@ import Messages from './frontend/screens/1.1_Messages';
 import Chat from './frontend/screens/1.2_Chat';
 import ViewProfile from './frontend/screens/4.1_ViewProfile';
 import MacroTracking from './frontend/screens/MacroTracking';
+import SearchUsers from './frontend/screens/SearchUsers';
 
 const NativeStack = createNativeStackNavigator();
 const Tab = createBottomTabNavigator();
 
-/** JS stack used ONLY for cross-tab overlay with left slide */
-const RootOverlayStack = createStackNavigator();
+/**
+ * Root overlays: use native-stack on Android, classic stack on iOS
+ * because native-stack doesn't support slide_from_left on iOS.
+ */
+const RootOverlayStack = Platform.OS === 'ios' ? createStackNavigator() : createNativeStackNavigator();
+
+// Enable native screens for reduced memory and faster transitions
+enableScreens(true);
+
+// (no screens optimization toggles — use defaults)
 
 /* ---------- Sub-stacks (native-stack) ---------- */
 const AuthenticationStack = () => (
@@ -70,7 +82,7 @@ const CompetitionStack = () => (
 );
 
 const ExploreStack = () => (
-    <NativeStack.Navigator initialRouteName="MacroTracking" screenOptions={{ headerShown: false, gestureEnabled: true, fullScreenGestureEnabled: true, animation: 'slide_from_right' }}>
+    <NativeStack.Navigator initialRouteName="MacroTracking" screenOptions={{ headerShown: false, gestureEnabled: true, fullScreenGestureEnabled: true, animation: 'slide_from_left', stackAnimation: 'slide_from_left' }}>
         <NativeStack.Screen name="MacroTracking" component={MacroTracking} />
         <NativeStack.Screen name="ViewProfile" component={ViewProfile} />
     </NativeStack.Navigator>
@@ -157,60 +169,83 @@ export default function App() {
 
     return (
         <GestureHandlerRootView style={{ flex: 1 }}>
-            <NavigationContainer>
-                {/* Use a JS stack JUST for overlay routes with L←R slide */}
-                <RootOverlayStack.Navigator initialRouteName={isAuthenticated ? 'Tabs' : 'Auth'} screenOptions={{ headerShown: false }}>
+            <NavigationContainer ref={navigationRef}>
+                {/* Overlay routes using native-stack for snappier animations */}
+                <RootOverlayStack.Navigator
+                    id="ROOT"
+                    initialRouteName={isAuthenticated ? 'Tabs' : 'Auth'}
+                    screenOptions={{ headerShown: false }}
+                >
                     <RootOverlayStack.Screen name="Tabs" component={Tabs} />
                     <RootOverlayStack.Screen name="Auth" component={AuthenticationStack} />
                     <RootOverlayStack.Screen
                         name="MacroTrackingOverlay"
                         component={MacroTracking}
-                        options={{
-                            gestureEnabled: true,
-                            gestureDirection: 'horizontal-inverted', // 👈 push slides from LEFT
-                            gestureResponseDistance: 80,
-                            cardStyleInterpolator: CardStyleInterpolators.forHorizontalIOS,
-                            transitionSpec: {
-                                open: {
-                                    animation: 'timing',
-                                    config: { duration: 300 },
-                                },
-                                // Close instantly so there is NO slide-back animation
-                                close: {
-                                    animation: 'timing',
-                                    config: { duration: 1 },
-                                },
+                        options={Platform.select({
+                            ios: {
+                                gestureEnabled: true,
+                                // Invert horizontal gesture to push from left
+                                gestureDirection: 'horizontal-inverted',
+                                cardStyleInterpolator: CardStyleInterpolators.forHorizontalIOS,
                             },
-                        }}
+                            android: {
+                                gestureEnabled: true,
+                                fullScreenGestureEnabled: true,
+                                animation: 'slide_from_left',
+                            },
+                            default: { gestureEnabled: true },
+                        })}
                     />
                     <RootOverlayStack.Screen
                         name="CompetitionOverlay"
                         component={CompetitionStack}
-                        options={{
-                            gestureEnabled: true,
-                            gestureDirection: 'horizontal', // 👈 push slides from RIGHT
-                            gestureResponseDistance: 80,
-                            cardStyleInterpolator: CardStyleInterpolators.forHorizontalIOS,
-                            transitionSpec: {
-                                open: {
-                                    animation: 'timing',
-                                    config: { duration: 300 },
-                                },
-                                close: {
-                                    animation: 'timing',
-                                    config: { duration: 1 },
-                                },
+                        options={Platform.select({
+                            ios: {
+                                gestureEnabled: true,
+                                gestureDirection: 'horizontal',
+                                cardStyleInterpolator: CardStyleInterpolators.forHorizontalIOS,
                             },
-                        }}
+                            android: {
+                                gestureEnabled: true,
+                                fullScreenGestureEnabled: true,
+                                animation: 'slide_from_right',
+                            },
+                            default: { gestureEnabled: true },
+                        })}
                     />
-                    <RootOverlayStack.Screen
+                <RootOverlayStack.Screen
                         name="ViewProfileOverlay"
                         component={ViewProfile}
-                        options={{
-                            gestureEnabled: true,
-                            gestureDirection: 'horizontal',
-                            cardStyleInterpolator: CardStyleInterpolators.forHorizontalIOS,
-                        }}
+                        options={Platform.select({
+                            ios: {
+                                gestureEnabled: true,
+                                gestureDirection: 'horizontal',
+                                cardStyleInterpolator: CardStyleInterpolators.forHorizontalIOS,
+                            },
+                            android: {
+                                gestureEnabled: true,
+                                fullScreenGestureEnabled: true,
+                                animation: 'slide_from_right',
+                            },
+                            default: { gestureEnabled: true },
+                        })}
+                    />
+                    <RootOverlayStack.Screen
+                        name="SearchUsersOverlay"
+                        component={SearchUsers}
+                        options={Platform.select({
+                            ios: {
+                                gestureEnabled: true,
+                                // Fade in/out on iOS using classic stack interpolator
+                                cardStyleInterpolator: CardStyleInterpolators.forFadeFromCenter,
+                            },
+                            android: {
+                                gestureEnabled: true,
+                                fullScreenGestureEnabled: true,
+                                animation: 'fade',
+                            },
+                            default: { gestureEnabled: true },
+                        })}
                     />
                 </RootOverlayStack.Navigator>
             </NavigationContainer>

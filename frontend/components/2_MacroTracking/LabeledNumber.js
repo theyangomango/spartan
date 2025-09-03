@@ -2,7 +2,17 @@
 import React from 'react';
 import { View, Text, TextInput } from 'react-native';
 
-export default function LabeledNumber({ label, value, onChangeText, suffix, styles, onFocus }) {
+export default function LabeledNumber({
+    label,
+    value,
+    onChangeText,
+    suffix,
+    styles,
+    onFocus,
+    placeholder = '0',
+    placeholderTextColor,
+    selectionColor,
+}) {
     return (
         <View style={{ flex: 1 }}>
             <Text style={styles.inputLabel}>{label}</Text>
@@ -10,10 +20,12 @@ export default function LabeledNumber({ label, value, onChangeText, suffix, styl
                 <TextInput
                     keyboardType="number-pad"
                     returnKeyType="done"
-                    value={value}
+                    value={String(value ?? '')}
                     onChangeText={onChangeText}
                     style={styles.input}
-                    placeholder="0"
+                    placeholder={String(placeholder)}
+                    placeholderTextColor={placeholderTextColor}
+                    selectionColor={selectionColor}
                     onFocus={onFocus}
                 />
                 {suffix ? <Text style={styles.inputSuffix}>{suffix}</Text> : null}

@@ -18,6 +18,7 @@ const NewWorkoutBottomSheet = ({
     timerRef,
     showGroupModal,
     userWorkoutStats,
+    registerInviteHandler,
 }) => {
     const bottomSheetRef = useRef(null);
     const snapPoints = useMemo(() => ["94%"], []);
@@ -78,6 +79,7 @@ const NewWorkoutBottomSheet = ({
                     userWorkoutStats={userWorkoutStats}
                     // NEW: tell us whether we're viewing self or friend
                     onViewingChange={setIsViewingSelf}
+                    registerInviteHandler={registerInviteHandler}
                 />
             )}
         </BottomSheet>

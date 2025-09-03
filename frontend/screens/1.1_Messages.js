@@ -193,7 +193,7 @@ export default function Messages({ navigation, route }) {
 const styles = StyleSheet.create({
     mainContainer: {
         flex: 1,
-        backgroundColor: "#f7f9ffff",
+        backgroundColor: "#F7F8FC",
         paddingTop: scaleSize(50),
     },
     cardsContainer: {

@@ -8,14 +8,15 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Animated, Dimensions, SafeAreaView, StyleSheet, View } from "react-native";
 import { StatusBar } from "expo-status-bar";
-import MaskedView from "@react-native-masked-view/masked-view";
 import { doc, onSnapshot } from "firebase/firestore";
+// import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import Footer from "../components/Footer";
 import Post from "../components/1_Feed/Posts/Post";
 import FeedHeader from "../components/1_Feed/FeedHeader";
 import useHeaderSearchUsers from "../hooks/useHeaderSearchUsers";
 import ActivityChips from "../components/1_Feed/Pulse/ActivityChips";
+import TopRoundOverlay from "../components/1_Feed/TopRoundOverlay";
 import NotificationsBottomSheet from "../components/1_Feed/Notifications/NotificationsBottomSheet";
 import CommentsBottomSheet from "../components/1_Feed/Comments/CommentsBottomSheet";
 import ShareBottomSheet from "../components/1_Feed/SharePost/ShareBottomSheet";
@@ -30,7 +31,6 @@ import useFilteredFeed from "../helper/useFilteredFeed";
 
 const { width, height } = Dimensions.get("window");
 const TARGET_POSITION = getScrollTargetPosition(width, height),
-    SCROLL_THRESHOLD = 30,
     ANIMATION_DURATION = 300;
 
 export default function Feed({ navigation, route }) {
@@ -41,7 +41,6 @@ export default function Feed({ navigation, route }) {
     const posts = useFilteredFeed(global.userData ? global.userData?.following : []);
     const [messages, setMessages] = useState(null);
     const [isSomePostFocused, setIsSomePostFocused] = useState(false);
-    const [isScrolledPastTopClip, setIsScrolledPastTopClip] = useState(false);
     const [footerKey, setFooterKey] = useState(0);
     const [shareBottomSheetExpandFlag, setShareBottomSheetExpandFlag] = useState(false);
     const [shareBottomSheetCloseFlag, setShareBottomSheetCloseFlag] = useState(false);
@@ -71,7 +70,6 @@ export default function Feed({ navigation, route }) {
 
     /* ---------- animated values ---------- */
     const translateY = useRef(new Animated.Value(0)).current;
-    const footerOpacity = useRef(new Animated.Value(1)).current;
     const storiesOpacity = useRef(new Animated.Value(1)).current;
     
     // Header workout pill state
@@ -89,7 +87,6 @@ export default function Feed({ navigation, route }) {
     const handleScroll = (e) => {
         const y = e.nativeEvent.contentOffset.y;
         scrollOffsetY.current = y;
-        setIsScrolledPastTopClip(y > SCROLL_THRESHOLD);
 
         // Only manage center-based playback when NO post is focused
         if (!isSomePostFocused) {
@@ -110,9 +107,10 @@ export default function Feed({ navigation, route }) {
                 }
             });
 
-            if (best !== centeredIndexRef.current) {
-                centeredIndexRef.current = best;
-                setCenteredIndex(best); // ⟵ triggers Post props update => pause/play swap
+            const bestPost = best === -1 ? -1 : best - 2; // convert data index -> posts index (chips + overlay)
+            if (bestPost !== centeredIndexRef.current) {
+                centeredIndexRef.current = bestPost;
+                setCenteredIndex(bestPost); // ⟵ triggers Post props update => pause/play swap
             }
         } else if (centeredIndexRef.current !== -1) {
             centeredIndexRef.current = -1;
@@ -212,11 +210,6 @@ export default function Feed({ navigation, route }) {
         Animated.parallel([
             Animated.timing(translateY, {
                 toValue: -translateYValue,
-                duration: ANIMATION_DURATION,
-                useNativeDriver: true,
-            }),
-            Animated.timing(footerOpacity, {
-                toValue: opacityValue,
                 duration: ANIMATION_DURATION,
                 useNativeDriver: true,
             }),
@@ -352,56 +345,73 @@ export default function Feed({ navigation, route }) {
 
     // Following hydration and small prefetch handled in useHeaderSearchUsers
 
+    // Build data so chips and the static rounded overlay can be sticky while the header scrolls naturally
+    const listData = useMemo(() => [{ __kind: 'chips' }, { __kind: 'round' }, ...(posts || [])], [posts]);
+
+    // Rounded mask is rendered as a sticky item directly after chips; no dynamic measurements needed.
+
+    // The mask height is derived purely via Animated nodes (no per-frame JS setValue),
+    // so it keeps up with fast downward flings without jitter.
+
     return (
         <SafeAreaView style={{ flex: 1, backgroundColor: "#F7FAFF" }}>
-            <FeedHeader
-                navigation={navigation}
-                toMessagesScreen={toMessagesScreen}
-                onOpenNotifications={handleOpenNotifications}
-                backButton={isSomePostFocused}
-                onBackPress={handleBackPress}
-                scrollToTop={scrollToTop}
-                allUsersRef={allUsersRef}
-                workout={activeWorkout}
-                timerRef={headerTimerRef}
-            />
-
-            <MaskedView
-                pointerEvents="box-none"
-                style={{ flex: 1, flexDirection: "row", height: "100%" }}
-                maskElement={<View style={styles.maskContainer(isScrolledPastTopClip)} />}
-            >
-                <SafeAreaView style={styles.mainContainer}>
-                    <StatusBar style="dark" />
-                    <Animated.FlatList
-                        ref={flatListRef}
-                        bounces={false}
-                        showsVerticalScrollIndicator={false}
-                        data={posts}
-                        renderItem={renderPost}
-                        keyExtractor={(_, i) => i.toString()}
-                        onScroll={handleScroll}
-                        scrollEventThrottle={10}
-                        viewabilityConfig={{ itemVisiblePercentThreshold: 20 }}
-                        onViewableItemsChanged={({ viewableItems }) => {
-                            const s = new Set();
-                            viewableItems.forEach((v) => {
-                                if (typeof v.index === "number") s.add(v.index);
-                            });
-                            viewableSetRef.current = s;
-                        }}
-                        CellRendererComponent={CellRenderer}
-                        ListHeaderComponent={
-                            <Animated.View style={{ opacity: storiesOpacity }}>
-                                <ActivityChips navigation={navigation} />
-                            </Animated.View>
+            <SafeAreaView style={styles.mainContainer}>
+                <StatusBar style="dark" />
+                <Animated.FlatList
+                    ref={flatListRef}
+                    bounces={false}
+                    showsVerticalScrollIndicator={false}
+                    data={listData}
+                    keyExtractor={(item, i) => (i === 0 ? '__chips__' : i === 1 ? '__round__' : String(i - 2))}
+                    renderItem={({ item, index }) => {
+                        if (index === 0) {
+                            return (
+                                <Animated.View
+                                    style={{ opacity: storiesOpacity }}
+                                >
+                                    <ActivityChips navigation={navigation} />
+                                </Animated.View>
+                            );
                         }
-                        initialNumToRender={2}
-                        windowSize={4}
-                    />
-                </SafeAreaView>
-            </MaskedView>
-
+                        if (index === 1) {
+                            // A small, sticky overlay with rounded corners glues to chips without scroll math
+                            return <TopRoundOverlay />;
+                        }
+                        return renderPost({ item, index: index - 2 });
+                    }}
+                    onScroll={handleScroll}
+                    scrollEventThrottle={10}
+                    // Keep both chips and rounded overlay sticky (header is index 0)
+                    stickyHeaderIndices={[1, 2]}
+                    viewabilityConfig={{ itemVisiblePercentThreshold: 20 }}
+                    onViewableItemsChanged={({ viewableItems }) => {
+                        const s = new Set();
+                        viewableItems.forEach((v) => {
+                            if (typeof v.index === "number" && v.index > 1) s.add(v.index - 2);
+                        });
+                        viewableSetRef.current = s;
+                    }}
+                    CellRendererComponent={CellRenderer}
+                    ListHeaderComponent={
+                        <View>
+                            <FeedHeader
+                                navigation={navigation}
+                                toMessagesScreen={toMessagesScreen}
+                                onOpenNotifications={handleOpenNotifications}
+                                backButton={isSomePostFocused}
+                                onBackPress={handleBackPress}
+                                scrollToTop={scrollToTop}
+                                allUsersRef={allUsersRef}
+                                workout={activeWorkout}
+                                timerRef={headerTimerRef}
+                            />
+                        </View>
+                    }
+                    initialNumToRender={3}
+                    windowSize={5}
+                />
+            </SafeAreaView>
+        
             <NotificationsBottomSheet notificationsBottomSheetExpandFlag={notificationsBottomSheetExpandFlag} />
             <CommentsBottomSheet
                 isVisible={isSomePostFocused}
@@ -425,10 +435,4 @@ export default function Feed({ navigation, route }) {
 const styles = StyleSheet.create({
     mainContainer: { flex: 1, backgroundColor: "#f9fbffff" },
     postWrapper: { width: "100%" },
-    maskContainer: (isScrolledPastTopClip) => ({
-        flex: 1,
-        backgroundColor: "#fff",
-        borderTopRightRadius: isScrolledPastTopClip ? 35 : 0,
-        borderTopLeftRadius: isScrolledPastTopClip ? 35 : 0,
-    }),
 });

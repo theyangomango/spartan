@@ -1,16 +1,15 @@
 // screens/MacroTracking.js
 import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, ScrollView, Pressable, UIManager, Platform, LayoutAnimation } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, Pressable, UIManager, Platform, LayoutAnimation, InteractionManager } from 'react-native';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { Ionicons } from '@expo/vector-icons';
-import { AnimatedCircularProgress } from 'react-native-circular-progress';
-import RNBounceable from '@freakycoder/react-native-bounceable';
 
 import { searchFood } from './fatsecretClient';
 import Footer from '../components/Footer';
 import PlusIcon from '../assets/PlusIcon';
-import MacroBar from '../components/2_MacroTracking/MacroBar';
-import MealCard from '../components/2_MacroTracking/MealCard';
+import DateHeader from '../components/2_MacroTracking/DateHeader';
+import NutritionSummaryCard from '../components/2_MacroTracking/NutritionSummaryCard';
+import MealsSection from '../components/2_MacroTracking/MealsSection';
 import breakfastIcon from '../assets/breakfast.png';
 import lunchIcon from '../assets/lunch.png';
 import dinnerIcon from '../assets/dinner.png';
@@ -19,9 +18,7 @@ import snacksIcon from '../assets/snacks.png'
 import FoodSearchOverlay from '../components/2_MacroTracking/FoodSearchOverlay';
 import MacroGoalsSheet from '../components/2_MacroTracking/MacroGoalsSheet';
 
-import UnderMealList from '../components/UnderMealList';
 import { useFoodLogs } from '../hooks/useFoodLogs';
-import { summarizeFood } from '../utils/nutrition';
 import PersonalInfoSheet from '../components/2_MacroTracking/PersonalInfoSheet';
 
 // 🔥 Firestore (load + save macro goals)
@@ -58,7 +55,13 @@ const mealsMeta = [
 
 export default function MacroTracking({ navigation }) {
     const [focusedDate, setFocusedDate] = useState(new Date());
-    const { meals, totals, addFood, deleteFood } = useFoodLogs(focusedDate);
+    // Defer heavy Firestore subscriptions until after the transition starts
+    const [logsReady, setLogsReady] = useState(false);
+    useEffect(() => {
+        const task = InteractionManager.runAfterInteractions(() => setLogsReady(true));
+        return () => task?.cancel?.();
+    }, []);
+    const { meals, totals, addFood, deleteFood } = useFoodLogs(focusedDate, undefined, logsReady);
 
     // -------- goals (load from user doc, save back) --------
     const [macroGoals, setMacroGoals] = useState({ calories: 2340, carbs: 285, fat: 70, protein: 140 });
@@ -77,8 +80,9 @@ export default function MacroTracking({ navigation }) {
         protein: String(macroGoals.protein),
     }));
 
-    // Subscribe to user's macro goals in Firestore
+    // Subscribe to user's macro goals in Firestore AFTER transition starts
     useEffect(() => {
+        if (!logsReady) return;
         const uid = global?.userData?.uid || global?.userData?.id;
         if (!uid) return;
 
@@ -96,8 +100,6 @@ export default function MacroTracking({ navigation }) {
             };
             setMacroGoals(next);
 
-            // If a sheet is open later, another effect (below) will make sure the fields are seeded.
-            // Optionally also mirror into goalForm immediately if empty strings:
             setGoalForm((s) => ({
                 ...s,
                 calories: s.calories === '' ? String(next.calories) : s.calories,
@@ -106,17 +108,16 @@ export default function MacroTracking({ navigation }) {
                 protein: s.protein === '' ? String(next.protein) : s.protein,
             }));
 
-            // Keep global in sync so other screens (e.g. calendar coloring) see it instantly
             try {
                 global.userData = { ...(global.userData || {}), macroGoals: next };
             } catch { }
         });
 
         return () => unsub && unsub();
-    }, []);
+    }, [logsReady]);
 
-    const [sheetIndex, setSheetIndex] = useState(-1);       // goals sheet
-    const [personalIndex, setPersonalIndex] = useState(-1); // personal info sheet
+    const [goalsSheetIndex, setGoalsSheetIndex] = useState(-1);
+    const [personalSheetIndex, setPersonalSheetIndex] = useState(-1);
 
     const [searchVisible, setSearchVisible] = useState(false);
     const [activeMeal, setActiveMeal] = useState(null);
@@ -129,8 +130,6 @@ export default function MacroTracking({ navigation }) {
         LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
         setCollapsed((prev) => ({ ...prev, [name]: !prev[name] }));
     };
-
-    const calorieProgress = Math.min(100, (Math.max(0, totals.calories) / Math.max(1, macroGoals.calories)) * 100);
 
     const formatDate = (date) =>
         date.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' });
@@ -157,7 +156,7 @@ export default function MacroTracking({ navigation }) {
 
     // When opening the sheet, seed empty fields from the latest macroGoals
     useEffect(() => {
-        if (sheetIndex >= 0) {
+        if (goalsSheetIndex >= 0) {
             setGoalForm((s) => ({
                 ...s,
                 calories: s.calories === '' ? String(macroGoals.calories) : s.calories,
@@ -166,7 +165,7 @@ export default function MacroTracking({ navigation }) {
                 protein: s.protein === '' ? String(macroGoals.protein) : s.protein,
             }));
         }
-    }, [sheetIndex, macroGoals.calories, macroGoals.carbs, macroGoals.fat, macroGoals.protein]);
+    }, [goalsSheetIndex, macroGoals.calories, macroGoals.carbs, macroGoals.fat, macroGoals.protein]);
 
     const openSearchForMeal = (meal) => {
         setActiveMeal(meal?.name ?? null);
@@ -186,8 +185,8 @@ export default function MacroTracking({ navigation }) {
         closeSearch();
     };
 
-    const openGoalsSheet = () => setSheetIndex(1);
-    const closeGoalsSheet = () => setSheetIndex(-1);
+    const openGoalsSheet = () => setGoalsSheetIndex(1);
+    const closeGoalsSheet = () => setGoalsSheetIndex(-1);
     const clampInt = (s, min, max) => {
         const n = parseInt(s || '0', 10);
         if (Number.isNaN(n)) return min;
@@ -228,84 +227,36 @@ export default function MacroTracking({ navigation }) {
         <GestureHandlerRootView style={{ flex: 1 }}>
             <View style={{ flex: 1 }}>
                 {/* Header */}
-                <View style={styles.stickyHeader}>
-                    <Pressable onPress={() => shiftDate(-1)} hitSlop={8}>
-                        <Ionicons name="chevron-back" size={24} color={COLORS.text} />
-                    </Pressable>
-                    <Text style={styles.headerText}>{formatDate(focusedDate)}</Text>
-                    <Pressable onPress={() => shiftDate(1)} hitSlop={8}>
-                        <Ionicons name="chevron-forward" size={24} color={COLORS.text} />
-                    </Pressable>
-                </View>
+                <DateHeader title={formatDate(focusedDate)} onPrev={() => shiftDate(-1)} onNext={() => shiftDate(1)} COLORS={COLORS} />
 
                 {/* Body */}
                 <ScrollView
                     showsVerticalScrollIndicator={false}
                     contentContainerStyle={{ paddingTop: 14, paddingBottom: 120 }}
                     style={styles.body}
+                    removeClippedSubviews
+                    keyboardShouldPersistTaps="handled"
                 >
                     <View style={styles.sectionHeaderRow}>
                         <Text style={[styles.sectionTitle, styles.sectionTitleNoMargin]}>Nutrition</Text>
-                        <Pressable style={styles.editGoalsPill} onPress={() => setSheetIndex(0)} hitSlop={8}>
+                        <Pressable style={styles.editGoalsPill} onPress={() => setGoalsSheetIndex(0)} hitSlop={8}>
                             <Ionicons name="settings-outline" size={14} color={COLORS.text} />
                             <Text style={styles.editGoalsText}>Edit Goals</Text>
                         </Pressable>
                     </View>
 
-                    <View style={styles.trackerCard}>
-                        <View style={styles.trackerRow}>
-                            <View style={styles.progressContainer}>
-                                <AnimatedCircularProgress
-                                    size={138}
-                                    width={12}
-                                    fill={calorieProgress}
-                                    tintColor={COLORS.ringTint}
-                                    backgroundColor={COLORS.ringBg}
-                                    lineCap="round"
-                                    arcSweepAngle={360}
-                                    rotation={0}
-                                >
-                                    {() => (
-                                        <View style={styles.centerContent}>
-                                            <Text style={styles.valueText}>{Math.max(0, totals.calories).toLocaleString()}</Text>
-                                            <Text style={styles.valueSubtitleText}>/{macroGoals.calories.toLocaleString()} kcal</Text>
-                                        </View>
-                                    )}
-                                </AnimatedCircularProgress>
-                            </View>
+                    <NutritionSummaryCard totals={totals} goals={macroGoals} COLORS={COLORS} />
 
-                            <View style={styles.macroSummary}>
-                                <MacroBar label="Protein" value={totals.protein} goal={macroGoals.protein} color={COLORS.protein} textPrimary={COLORS.text} textSecondary={COLORS.subtext} />
-                                <MacroBar label="Carbs" value={totals.carbs} goal={macroGoals.carbs} color={COLORS.carbs} textPrimary={COLORS.text} textSecondary={COLORS.subtext} />
-                                <MacroBar label="Fat" value={totals.fat} goal={macroGoals.fat} color={COLORS.fat} textPrimary={COLORS.text} textSecondary={COLORS.subtext} />
-                            </View>
-                        </View>
-                    </View>
-
-                    <Text style={styles.sectionTitle}>Daily meals</Text>
-                    {mealsMeta.map((m) => (
-                        <React.Fragment key={m.name}>
-                            <MealCard
-                                item={m}
-                                PlusIcon={PlusIcon}
-                                COLORS={COLORS}
-                                onAddPress={openSearchForMeal}
-                                onToggle={() => toggleMeal(m.name)}
-                                collapsed={collapsed[m.name]}
-                            />
-
-                            {!collapsed[m.name] && (
-                                <UnderMealList
-                                    items={meals[m.name] ?? []}
-                                    COLORS={COLORS}
-                                    listStyle={styles.underMealList}
-                                    cardStyle={styles.underMealCard}
-                                    renderSummary={(entry) => summarizeFood(entry.desc, entry.brand, entry.quantity ?? 1)}
-                                    onDelete={(entry) => deleteFood(m.name, entry)}
-                                />
-                            )}
-                        </React.Fragment>
-                    ))}
+                    <MealsSection
+                        mealsMeta={mealsMeta}
+                        meals={meals}
+                        collapsed={collapsed}
+                        toggleMeal={toggleMeal}
+                        onAddPress={openSearchForMeal}
+                        onDelete={deleteFood}
+                        COLORS={COLORS}
+                        PlusIcon={PlusIcon}
+                    />
                 </ScrollView>
 
                 {/* Modals */}
@@ -321,23 +272,22 @@ export default function MacroTracking({ navigation }) {
                 />
 
                 <MacroGoalsSheet
-                    index={sheetIndex}
-                    onChangeIndex={setSheetIndex}
+                    index={goalsSheetIndex}
+                    onChangeIndex={setGoalsSheetIndex}
                     goalForm={goalForm}
                     setGoalForm={setGoalForm}
                     onSave={onSaveGoals}
                     onCancel={closeGoalsSheet}
-                    onOpenPersonalInfo={() => setPersonalIndex(1)}
                     COLORS={COLORS}
                 />
 
                 <PersonalInfoSheet
-                    index={personalIndex}
-                    onChangeIndex={setPersonalIndex}
+                    index={personalSheetIndex}
+                    onChangeIndex={setPersonalSheetIndex}
                     goalForm={goalForm}
                     setGoalForm={setGoalForm}
-                    onClose={() => setPersonalIndex(-1)}
-                    onSave={() => setPersonalIndex(-1)}
+                    onClose={() => setPersonalSheetIndex(-1)}
+                    onSave={() => setPersonalSheetIndex(-1)}
                     COLORS={COLORS}
                 />
 
@@ -356,55 +306,14 @@ const styles = StyleSheet.create({
         marginBottom: 8,
     },
     sectionTitleNoMargin: { marginLeft: 0 },
-
-    stickyHeader: {
-        backgroundColor: COLORS.bg,
-        flexDirection: 'row',
-        alignItems: 'center',
-        justifyContent: 'space-between',
-        paddingHorizontal: 26,
-        paddingTop: 58,
-        paddingBottom: 6,
-    },
     body: { backgroundColor: COLORS.bg },
-    headerText: {
-        fontSize: 16,
-        color: COLORS.text,
-        fontFamily: 'Nunito_800ExtraBold',
-    },
 
     sectionTitle: {
         fontSize: 17,
         marginLeft: 18,
         color: COLORS.text,
-        letterSpacing: 0.2,
         fontFamily: 'Nunito_800ExtraBold',
     },
-
-    trackerCard: {
-        backgroundColor: COLORS.card,
-        borderRadius: 24,
-        paddingTop: 16,
-        paddingBottom: 16,
-        paddingLeft: 18,
-        paddingRight: 18,
-        marginBottom: 18,
-        marginHorizontal: 16,
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: 4 },
-        shadowOpacity: 0.04,
-        shadowRadius: 10,
-        elevation: 2,
-        borderWidth: StyleSheet.hairlineWidth,
-        borderColor: COLORS.hairline,
-    },
-
-    trackerRow: { flexDirection: 'row', gap: 18 },
-    progressContainer: { paddingRight: 6 },
-    centerContent: { alignItems: 'center', justifyContent: 'center', marginTop: 2 },
-    valueText: { fontSize: 26, color: COLORS.text, fontFamily: 'Outfit_700Bold', marginBottom: -2.5 },
-    valueSubtitleText: { fontSize: 12.5, color: COLORS.subtext, fontFamily: 'Outfit_500Medium', marginBottom: 4 },
-    macroSummary: { flex: 1, paddingTop: 2 },
 
     editGoalsPill: {
         flexDirection: 'row',
@@ -415,20 +324,5 @@ const styles = StyleSheet.create({
         paddingVertical: 7,
         borderRadius: 999,
     },
-    editGoalsText: { fontFamily: 'Outfit_600SemiBold', color: COLORS.text, fontSize: 12.5, letterSpacing: 0.1 },
-
-    underMealList: { paddingHorizontal: 18, marginTop: 0, marginBottom: 8 },
-    underMealCard: {
-        borderRadius: 14,
-        paddingVertical: 12,
-        paddingHorizontal: 22,
-        marginVertical: 4,
-        borderWidth: StyleSheet.hairlineWidth,
-        borderColor: COLORS.hairline,
-        shadowOpacity: 0.03,
-        shadowRadius: 4,
-        shadowOffset: { width: 0, height: 2 },
-        elevation: 1,
-        backgroundColor: COLORS.card,
-    },
+    editGoalsText: { fontFamily: 'Outfit_600SemiBold', color: COLORS.text, fontSize: 12.5 },
 });

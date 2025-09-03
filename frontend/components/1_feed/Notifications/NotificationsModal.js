@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
-import { View, StyleSheet, FlatList } from "react-native";
+import { View, StyleSheet, SectionList, Text } from "react-native";
 import { collection, query, orderBy, limit, onSnapshot } from "firebase/firestore";
 import { db } from "../../../../firebase.config";
 import ButtonRow from "./ButtonRow";
@@ -7,6 +7,9 @@ import NotificationCard from "./NotificationCard";
 import scaleSize from "../../../helper/scaleSize";
 
 const PAGE_SIZE = 20;
+
+// keep buttons identity stable across renders
+const NOTIF_BUTTONS = ["All Activity", "Likes", "Comments", "Mentions"];
 
 export default function NotificationsModal({ visible, uid }) {
     const [selectedButton, setSelectedButton] = useState("All Activity");
@@ -43,48 +46,108 @@ export default function NotificationsModal({ visible, uid }) {
         });
     }, [visible, uid]);
 
-    const filteredEvents = useMemo(() => {
-        return events.filter((event) => {
-            switch (selectedButton) {
-                case "Likes":
-                    return ["liked-post", "liked-story", "liked-comment"].includes(event.type);
-                case "Comments":
-                    return ["comment", "replied-comment"].includes(event.type);
-                case "Mentions":
-                    return event.type === "mention";
-                default:
-                    return true;
-            }
-        });
-    }, [selectedButton, events]);
+    // --- time grouping helpers (reference FriendsActivitySheet) ---
+    const toMillis = (ts) => {
+        if (typeof ts === "number") return ts;
+        if (ts?.toMillis) return ts.toMillis();
+        if (typeof ts?.seconds === "number") return ts.seconds * 1000;
+        const n = Date.parse(ts);
+        return Number.isFinite(n) ? n : 0;
+    };
+    const startOfToday = (now = new Date()) => { const d = new Date(now); d.setHours(0, 0, 0, 0); return d; };
+    const startOfYesterday = (now = new Date()) => { const d = startOfToday(now); d.setDate(d.getDate() - 1); return d; };
+    const startOfWeekSunday = (now = new Date()) => { const d = startOfToday(now); d.setDate(d.getDate() - d.getDay()); return d; };
+    const startOfLastWeek = (now = new Date()) => { const d = startOfWeekSunday(now); d.setDate(d.getDate() - 7); return d; };
+    const minusMonths = (now, months) => { const d = startOfToday(now); d.setMonth(d.getMonth() - months); return d; };
+    const minusYears = (now, years) => { const d = startOfToday(now); d.setFullYear(d.getFullYear() - years); return d; };
+
+    const groupByTime = (items, nowMs) => {
+        const now = new Date(nowMs || Date.now());
+        const T0 = startOfToday(now).getTime();
+        const Y0 = startOfYesterday(now).getTime();
+        const W0 = startOfWeekSunday(now).getTime();
+        const LW0 = startOfLastWeek(now).getTime();
+        const M1 = minusMonths(now, 1).getTime();
+        const M3 = minusMonths(now, 3).getTime();
+        const Y1 = minusYears(now, 1).getTime();
+
+        const buckets = {
+            Today: [],
+            Yesterday: [],
+            "This Week": [],
+            "Last Week": [],
+            "Last Month": [],
+            "Last Three Months": [],
+            "Last Year": [],
+            Older: [],
+        };
+
+        for (const it of items) {
+            const ts = toMillis(it?.timestamp);
+            if (!ts) { buckets["Older"].push(it); continue; }
+            if (ts >= T0) buckets["Today"].push(it);
+            else if (ts >= Y0) buckets["Yesterday"].push(it);
+            else if (ts >= W0) buckets["This Week"].push(it);
+            else if (ts >= LW0) buckets["Last Week"].push(it);
+            else if (ts >= M1) buckets["Last Month"].push(it);
+            else if (ts >= M3) buckets["Last Three Months"].push(it);
+            else if (ts >= Y1) buckets["Last Year"].push(it);
+            else buckets["Older"].push(it);
+        }
+
+        const order = ["Today", "Yesterday", "This Week", "Last Week", "Last Month", "Last Three Months", "Last Year", "Older"];
+        const sections = [];
+        for (const key of order) {
+            const data = buckets[key];
+            if (data.length) sections.push({ title: key, data: data.sort((a, b) => toMillis(b.timestamp) - toMillis(a.timestamp)) });
+        }
+        return sections;
+    };
+
+    // Precompute sections for all filters when events change; switch is then instant
+    const groupedByFilter = useMemo(() => {
+        const filters = {
+            "All Activity": (e) => true,
+            Likes: (e) => ["liked-post", "liked-story", "liked-comment"].includes(e.type),
+            Comments: (e) => ["comment", "replied-comment"].includes(e.type),
+            Mentions: (e) => e.type === "mention",
+        };
+        const res = {};
+        for (const key of Object.keys(filters)) {
+            const filtered = events.filter(filters[key]);
+            res[key] = groupByTime(filtered, Date.now());
+        }
+        return res;
+    }, [events, refreshTick]);
+
+    const sections = groupedByFilter[selectedButton] || [];
 
     return (
         <View style={styles.container}>
             <ButtonRow
-                buttons={["All Activity", "Likes", "Comments", "Mentions"]}
+                buttons={NOTIF_BUTTONS}
                 selectedButton={selectedButton}
                 setSelectedButton={setSelectedButton}
                 newLikes={newLikes}
                 newComments={newComments}
             />
-            <FlatList
+            <SectionList
                 ref={listRef}
-                data={filteredEvents}
+                sections={sections}
                 renderItem={({ item }) => <MemoNotificationCard item={item} />}
-                keyExtractor={(item, index) => {
-                    const ts = item?.timestamp;
-                    const ms = (typeof ts === 'number')
-                        ? ts
-                        : (ts?.toMillis?.() || (typeof ts?.seconds === 'number' ? ts.seconds * 1000 : (Date.parse(ts) || 0)));
-                    return `${item?.id || ''}-${item?.type || 'evt'}-${ms || index}-${index}`;
-                }}
+                renderSectionHeader={({ section }) => (
+                    <View style={styles.sectionHeaderWrap}>
+                        <Text style={styles.sectionHeaderText}>{section.title}</Text>
+                    </View>
+                )}
+                keyExtractor={(item) => String(item?.id || `${item?.type || 'evt'}-${item?.timestamp}`)}
                 style={styles.flatList}
                 contentContainerStyle={styles.listContent}
                 showsVerticalScrollIndicator={false}
                 initialNumToRender={10}
-                windowSize={7}
+                windowSize={9}
                 removeClippedSubviews={false}
-                extraData={refreshTick}
+                stickySectionHeadersEnabled={false}
                 ListEmptyComponent={visible ? <View style={styles.emptyWrap} /> : null}
             />
         </View>
@@ -107,4 +170,11 @@ const styles = StyleSheet.create({
         paddingBottom: scaleSize(18),
     },
     emptyWrap: { height: scaleSize(60) },
+    sectionHeaderWrap: { paddingHorizontal: scaleSize(14), paddingTop: scaleSize(10), paddingBottom: scaleSize(6) },
+    sectionHeaderText: {
+        fontFamily: "Outfit_700Bold",
+        fontSize: scaleSize(12),
+        color: "rgba(15,23,42,0.65)",
+        letterSpacing: 0.3,
+    },
 });

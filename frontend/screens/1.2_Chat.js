@@ -373,7 +373,7 @@ export default function Chat({ navigation, route }) {
 
 const styles = StyleSheet.create({
     flex: { flex: 1 },
-    container: { flex: 1, backgroundColor: "#fff" },
+    container: { flex: 1, backgroundColor: "#F7F8FC" },
     surface: {
         flex: 1,
         backgroundColor: COLORS.surface,

@@ -1,6 +1,6 @@
 import React, { useCallback, useEffect, useMemo, useRef } from "react";
-import { StyleSheet, Text, View } from "react-native";
-import BottomSheet, { BottomSheetBackdrop, BottomSheetFooter } from "@gorhom/bottom-sheet";
+import { StyleSheet } from "react-native";
+import BottomSheet, { BottomSheetBackdrop } from "@gorhom/bottom-sheet";
 import CreateGroupChatModal from "./CreateGroupChatModal";
 
 const CreateGroupChatBottomSheet = ({ isVisible, setIsVisible, initChat }) => {
@@ -36,11 +36,13 @@ const CreateGroupChatBottomSheet = ({ isVisible, setIsVisible, initChat }) => {
             backdropComponent={renderBackdrop}
             snapPoints={snapPoints}
             onChange={handleSheetChanges}
-            handleStyle={{ display: 'none' }}
             enablePanDownToClose
             onClose={() => setIsVisible(false)}
+            backgroundStyle={styles.sheetBackground}
+            handleIndicatorStyle={styles.handleIndicator}
+            keyboardBehavior="interactive"
         >
-            <CreateGroupChatModal initChat={initChat}/>
+            <CreateGroupChatModal initChat={initChat} />
         </BottomSheet>
     );
 };
@@ -48,4 +50,17 @@ const CreateGroupChatBottomSheet = ({ isVisible, setIsVisible, initChat }) => {
 export default React.memo(CreateGroupChatBottomSheet);
 
 const styles = StyleSheet.create({
+    sheetBackground: {
+        backgroundColor: "#FFFFFF",
+        borderTopLeftRadius: 22,
+        borderTopRightRadius: 22,
+    },
+    handleIndicator: {
+        backgroundColor: "#CBD5E1",
+        width: 44,
+        height: 5,
+        borderRadius: 3,
+        marginTop: 6,
+        marginBottom: 6,
+    },
 })

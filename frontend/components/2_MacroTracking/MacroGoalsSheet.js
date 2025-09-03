@@ -10,33 +10,11 @@ import {
     Pressable,
     Animated,
     Easing,
-    TextInput,
 } from 'react-native';
 import BottomSheet, { BottomSheetBackdrop } from '@gorhom/bottom-sheet';
 import { Ionicons } from '@expo/vector-icons';
 import { PersonalInfoContent } from './PersonalInfoSheet'; // reuse content-only component
-
-/** Numeric field with unit suffix — UI unchanged, now accepts `placeholder` */
-function LabeledNumber({ label, value, onChangeText, suffix, styles, placeholder = '0' }) {
-    return (
-        <View style={{ flex: 1 }}>
-            <Text style={styles.inputLabel}>{label}</Text>
-            <View style={styles.inputBox}>
-                <TextInput
-                    value={String(value ?? '')}
-                    onChangeText={onChangeText}
-                    keyboardType="number-pad"
-                    returnKeyType="done"
-                    style={styles.input}
-                    placeholder={String(placeholder)}
-                    placeholderTextColor={styles.placeholder.color}
-                    selectionColor={styles.accent.color}
-                />
-                {!!suffix && <Text style={styles.inputSuffix}>{suffix}</Text>}
-            </View>
-        </View>
-    );
-}
+import LabeledNumber from './LabeledNumber';
 
 export default function MacroGoalsSheet({
     index,
@@ -296,6 +274,8 @@ export default function MacroGoalsSheet({
                                     suffix="kcal"
                                     styles={styles}
                                     placeholder={effectivePlaceholders.calories}
+                                    placeholderTextColor={styles.placeholder.color}
+                                    selectionColor={styles.accent.color}
                                 />
                             </View>
 
@@ -307,6 +287,8 @@ export default function MacroGoalsSheet({
                                     suffix="g"
                                     styles={styles}
                                     placeholder={effectivePlaceholders.protein}
+                                    placeholderTextColor={styles.placeholder.color}
+                                    selectionColor={styles.accent.color}
                                 />
 
                                 <View style={{ width: 12 }} />
@@ -317,6 +299,8 @@ export default function MacroGoalsSheet({
                                     suffix="g"
                                     styles={styles}
                                     placeholder={effectivePlaceholders.carbs}
+                                    placeholderTextColor={styles.placeholder.color}
+                                    selectionColor={styles.accent.color}
                                 />
                                 <View style={{ width: 12 }} />
 
@@ -327,6 +311,8 @@ export default function MacroGoalsSheet({
                                     suffix="g"
                                     styles={styles}
                                     placeholder={effectivePlaceholders.fat}
+                                    placeholderTextColor={styles.placeholder.color}
+                                    selectionColor={styles.accent.color}
                                 />
                             </View>
 

@@ -3,6 +3,7 @@ import { View, Text, StyleSheet, FlatList, TouchableOpacity, Dimensions } from "
 import { Ionicons } from "@expo/vector-icons";
 import LeaderboardCard from "../2_Competition/LeaderboardCard";
 import scaleSize from "../../helper/scaleSize";
+import { Weight } from "iconsax-react-native";
 
 const { width: SCREEN_WIDTH } = Dimensions.get("window");
 const H_PADDING = 16;
@@ -125,7 +126,8 @@ export default function LeaderboardModal({
         return (
             <View style={styles.headerRow}>
                 <TouchableOpacity onPress={openModal} activeOpacity={0.85} style={styles.selectorPill}>
-                    <Ionicons name="barbell" size={16} color="#222" />
+                    {/* <Ionicons name="barbell" size={16} color="#222" /> */}
+                    <Weight size={21} color="#222" variant='Broken' />
                     <Text style={styles.selectorText} numberOfLines={1}>{categoryCompared}</Text>
                 </TouchableOpacity>
                 <TouchableOpacity onPress={onToggleMetric} activeOpacity={0.85} style={styles.metricPill}>
@@ -204,7 +206,8 @@ const styles = StyleSheet.create({
     selectorPill: {
         flexDirection: "row",
         alignItems: "center",
-        paddingHorizontal: 12,
+        paddingRight: 12,
+        paddingLeft: 16,
         paddingVertical: 8,
         backgroundColor: "#F2F4F8",
         borderRadius: 999,

@@ -9,6 +9,7 @@ import {
     SAVED_TPL_TINT,
     SAVED_TPL_BORDER,
 } from "./workoutTheme";
+import { Weight } from "iconsax-react-native";
 
 function TemplatesRail({ templates = [], onIndexChange, onAddTemplate, onOpenTemplate }) {
     const { width: PAGE_W } = Dimensions.get("window");
@@ -62,7 +63,7 @@ function TemplatesRail({ templates = [], onIndexChange, onAddTemplate, onOpenTem
                                             isNone ? styles.dumbbellEmpty : { backgroundColor: "rgba(255,255,255,0.82)" },
                                         ]}
                                     >
-                                        {!isNone && <Ionicons name="barbell-outline" size={18} color={BLUE.ACCENT} />}
+                                        {!isNone && <Weight size={23} color={'#000'} variant='Broken' />}
                                     </View>
 
                                     <View style={{ flex: 1, minWidth: 0 }}>
@@ -79,7 +80,7 @@ function TemplatesRail({ templates = [], onIndexChange, onAddTemplate, onOpenTem
                                             ) : (
                                                 <>
                                                     <View style={styles.metaChunk}>
-                                                        <Ionicons name="barbell-outline" size={12.5} color={BLUE.ACCENT} />
+                                                        <Weight size={19} color={BLUE.ACCENT} variant='Broken' />
                                                         <Text style={styles.metaLabel}>
                                                             {(Array.isArray(item.exercises) ? item.exercises.length : item.exercises || 0)} exercises
                                                         </Text>

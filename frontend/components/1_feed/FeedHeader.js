@@ -24,6 +24,8 @@ import { getFeedHeaderStyles } from "../../helper/getFeedHeaderStyles";
 import { db } from "../../../firebase.config";
 import { collection, query, where, onSnapshot, getDocs, orderBy, limit } from "firebase/firestore";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { StackActions } from "@react-navigation/native";
+import { navigationRef } from "../../../navigationRef";
 
 const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get("window");
 const dynamicStyles = getFeedHeaderStyles(SCREEN_WIDTH, SCREEN_HEIGHT);
@@ -176,7 +178,21 @@ const SearchUsersBar = ({ navigation, allUsersRef, disabled = false }) => {
 
     const open = useCallback(() => {
         if (disabled) return;
-        navigation?.navigate('Tabs', { screen: 'ProfileStack', params: { screen: 'SearchUsers' } });
+        // Open as a root overlay so back returns to the current screen
+        try {
+            if (navigationRef?.isReady?.()) {
+                navigationRef.dispatch(StackActions.push('SearchUsersOverlay'));
+                return;
+            }
+        } catch {}
+        try {
+            const rootNav = navigation?.getParent?.('ROOT');
+            if (rootNav?.push) rootNav.push('SearchUsersOverlay');
+            else if (rootNav?.navigate) rootNav.navigate('SearchUsersOverlay');
+            else navigation?.navigate?.('SearchUsersOverlay');
+        } catch {
+            navigation?.navigate?.('SearchUsersOverlay');
+        }
     }, [navigation]);
 
     const close = useCallback(() => {

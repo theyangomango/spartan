@@ -57,7 +57,7 @@ export default function MessagesHeader({
                         <FontAwesome5 name="users" size={scaleSize(16)} color={ACCENT} />
                     </TouchableOpacity>
                     <View style={styles.plusBubble}>
-                        <FontAwesome5 name="plus" size={scaleSize(9)} color={ACCENT} />
+                        <FontAwesome5 name="plus" size={scaleSize(9)} color="#FFFFFF" />
                     </View>
                 </View>
 
@@ -123,16 +123,15 @@ const styles = StyleSheet.create({
         width: scaleSize(18),
         height: scaleSize(18),
         borderRadius: scaleSize(9),
-        backgroundColor: "#FFFFFF",
-        borderWidth: 1,
-        borderColor: HAIRLINE,
+        backgroundColor: ACCENT,
+        borderWidth: 0,
         alignItems: "center",
         justifyContent: "center",
-        shadowColor: "#0F172A",
-        shadowOpacity: 0.1,
+        shadowColor: ACCENT,
+        shadowOpacity: 0.18,
         shadowRadius: scaleSize(6),
         shadowOffset: { width: 0, height: scaleSize(2) },
-        elevation: 2,
+        elevation: 3,
     },
 
     /* segmented control */

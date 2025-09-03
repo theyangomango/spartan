@@ -127,8 +127,8 @@ const styles = StyleSheet.create({
     pfpPh: { backgroundColor: "#EAEAEA" },
 
     textWrap: { flex: 1, justifyContent: "center" },
-    nameText: { fontFamily: "Poppins_600SemiBold", fontSize: scaleSize(16.5), color: "#0F172A", letterSpacing: 0.2 },
-    handleText: { fontFamily: "Poppins_500Medium", fontSize: scaleSize(12.5), color: "#7C889A", marginTop: 1 },
+    nameText: { fontFamily: "Outfit_600SemiBold", fontSize: scaleSize(16.5), color: "#0F172A", letterSpacing: 0.2 },
+    handleText: { fontFamily: "Outfit_500Medium", fontSize: scaleSize(12.5), color: "#7C889A", marginTop: 1 },
 });
 
 export default ChatHeader;

@@ -3,6 +3,7 @@ import { StyleSheet, View, Text } from "react-native";
 import { FontAwesome6, Octicons, Entypo } from '@expo/vector-icons';
 import RNBounceable from "@freakycoder/react-native-bounceable";
 import { Dimensions } from 'react-native';
+import { AddSquare } from "iconsax-react-native";
 
 const { height: screenHeight } = Dimensions.get('window');
 const scale = screenHeight / 844; // Scaling factor based on iPhone 13 height
@@ -13,7 +14,7 @@ export default function ProfileHeader({ onPressCreateBtn }) {
     return (
         <View style={styles.main_ctnr}>
             <RNBounceable style={styles.options_btn_ctnr}>
-                <Octicons name="gear" size={scaledSize(22.5)} color={'#ccc'} />
+                <Octicons name="gear" size={scaledSize(22.5)} color={'#bbb'} />
             </RNBounceable>
             <RNBounceable>
                 <View style={styles.center}>
@@ -27,7 +28,8 @@ export default function ProfileHeader({ onPressCreateBtn }) {
             <View style={styles.right}>
                 <RNBounceable onPress={onPressCreateBtn}>
                     <View style={styles.create_btn_ctnr}>
-                        <FontAwesome6 name='plus' size={scaledSize(13)} color="#bbb" />
+                        {/* <FontAwesome6 name='plus' size={scaledSize(13)} color="#bbb" /> */}
+                        <AddSquare size={24} color="#aaa" />
                     </View>
                 </RNBounceable>
             </View>
@@ -40,8 +42,9 @@ const styles = StyleSheet.create({
         alignItems: 'flex-end',
         flexDirection: 'row',
         justifyContent: 'space-between',
-        paddingHorizontal: scaledSize(17),
+        paddingHorizontal: scaledSize(22),
         paddingBottom: scaledSize(15),
+        paddingTop: scaledSize(2)
     },
     center: {
         flexDirection: 'row',
@@ -68,6 +71,6 @@ const styles = StyleSheet.create({
         borderColor: '#bbb',
     },
     options_btn_ctnr: {
-        opacity: 0.5
+        paddingTop: scaledSize(3)
     },
 });

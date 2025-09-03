@@ -31,6 +31,7 @@ export function useGroupViewing({
     autoJoin = true,
     lockToViewingUid = false,
     suppressSelfStream = false,
+    enabled = true,
 }) {
     const [menuVisible, setMenuVisible] = useState(false);
     const [members, setMembers] = useState([]); // [uid...]
@@ -54,6 +55,7 @@ export function useGroupViewing({
 
     // --- subscribe to workout doc for members array
     useEffect(() => {
+        if (!enabled) return;
         if (!wid) return;
         const unsub = onSnapshot(doc(db, "workouts", String(wid)), async (snap) => {
             const data = snap.data() || {};
@@ -98,10 +100,11 @@ export function useGroupViewing({
         });
         return () => unsub();
         // include viewingUid so we can react to member loss cleanly
-    }, [wid, meUid, autoJoin, viewingUid]);
+    }, [wid, meUid, autoJoin, viewingUid, enabled]);
 
     // --- presence publisher: workouts/{wid}/live/{meUid} (only if autoJoin)
     useEffect(() => {
+        if (!enabled) return;
         if (!wid || !meUid || !autoJoin) return;
         let t = null;
 
@@ -129,10 +132,11 @@ export function useGroupViewing({
             // best-effort clean-up when leaving this screen
             try { deleteDoc(doc(db, "workouts", String(wid), "live", String(meUid))); } catch { }
         };
-    }, [wid, meUid, userHandle, userImage, autoJoin]);
+    }, [wid, meUid, userHandle, userImage, autoJoin, enabled]);
 
     // --- subscribe to presence list (live subcollection)
     useEffect(() => {
+        if (!enabled) return;
         if (!wid) return;
         const qLive = query(collection(db, "workouts", String(wid), "live"), orderBy("updatedAt", "desc"));
         const unsub = onSnapshot(qLive, async (snap) => {
@@ -175,7 +179,7 @@ export function useGroupViewing({
             setParticipants(merged);
         });
         return () => unsub();
-    }, [wid, members]);
+    }, [wid, members, enabled]);
 
     // --- stream the active user's current workout + stats for viewing
     const [activeWorkout, setActiveWorkout] = useState(null);
@@ -184,6 +188,7 @@ export function useGroupViewing({
     const [waitingFriend, setWaitingFriend] = useState(false);
 
     useEffect(() => {
+        if (!enabled) return;
         if (!viewingUid) return;
         const isSelf = meUid && String(viewingUid) === String(meUid);
         if (suppressSelfStream && isSelf) {
@@ -204,20 +209,22 @@ export function useGroupViewing({
             setWaitingFriend(false);
         });
         return () => unsub();
-    }, [viewingUid, suppressSelfStream, meUid]);
+    }, [viewingUid, suppressSelfStream, meUid, enabled]);
 
     // --- HARD GUARD 1: if the currently viewed user's currentWorkout is missing or mismatched, jump back to me
     useEffect(() => {
+        if (!enabled) return;
         if (!wid || viewingSelf || lockToViewingUid) return;
         const currWid = String(activeWorkout?.wid || "");
         const targetWid = String(wid || "");
         if (!activeWorkout || !currWid || currWid !== targetWid) {
             if (meUid) setViewingUid(String(meUid));
         }
-    }, [wid, activeWorkout, viewingSelf, meUid, lockToViewingUid]);
+    }, [wid, activeWorkout, viewingSelf, meUid, lockToViewingUid, enabled]);
 
     // --- HARD GUARD 2: if the viewed uid drops out of participants (left/cancelled), jump back to me
     useEffect(() => {
+        if (!enabled) return;
         if (lockToViewingUid) return;
         if (!participants || !participants.length) return;
         const vu = String(viewingUid || "");
@@ -226,7 +233,7 @@ export function useGroupViewing({
         if (!present && meUid) {
             setViewingUid(String(meUid));
         }
-    }, [participants, viewingUid, meUid, lockToViewingUid]);
+    }, [participants, viewingUid, meUid, lockToViewingUid, enabled]);
 
     const friendDoneDerived = useMemo(() => 0, [activeWorkout]);
 

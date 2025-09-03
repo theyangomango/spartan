@@ -22,6 +22,7 @@ import StartCluster from "../components/3_Workout/sections/StartCluster";
 
 // Modals / Sheets
 import NewWorkoutBottomSheet from "../components/3_Workout/NewWorkout/NewWorkoutBottomSheet";
+import GroupModalBottomSheet from "../components/3_Workout/NewWorkout/Group/GroupModalBottomSheet";
 import EditTemplateBottomSheet from "../components/3_Workout/Template/EditTemplateBottomSheet";
 import WorkoutSummaryModal from "../components/3_Workout/WorkoutSummaryModal";
 import DayDetailsSheet from "../components/3_Workout/DayDetailsSheet";
@@ -58,6 +59,8 @@ import { serverTimestamp } from "firebase/firestore";
 
 // UI
 import CopyTemplateToast from "../components/3_Workout/ui/CopyTemplateToast";
+import { navigationRef } from "../../navigationRef";
+import { StackActions } from "@react-navigation/native";
 
 const PREVIEW_EXERCISE = "Bench Press (Barbell)";
 const PREVIEW_LABEL = "Bench Press • 1RM";
@@ -113,6 +116,10 @@ export default function Workout({ navigation, route }) {
     useEffect(() => {
         try { global.isCurrentlyWorkingOut = false; } catch { /* ignore */ }
     }, []);
+
+    /* ---------- Invite picker (screen-level) ---------- */
+    const [inviteSheetOpen, setInviteSheetOpen] = useState(false);
+    const inviteHandlerRef = useRef(null);
 
     /* ---------- UI/anim ---------- */
     const scaleAnim = useRef(new Animated.Value(0.92)).current;
@@ -493,7 +500,23 @@ export default function Workout({ navigation, route }) {
                     workoutOn={(dayWorkouts?.length || 0) > 0}
                     onClose={() => setDaySheetVisible(false)}
                     onStartWorkout={onStartWorkout}
-                    onOpenMacros={() => { setDaySheetVisible(false); navigation.navigate("MacroTrackingOverlay"); }}
+                    onOpenMacros={() => {
+                        setDaySheetVisible(false);
+                        try {
+                            if (navigationRef?.isReady?.()) {
+                                navigationRef.dispatch(StackActions.push('MacroTrackingOverlay'));
+                                return;
+                            }
+                        } catch {}
+                        try {
+                            const rootNav = navigation?.getParent?.('ROOT');
+                            if (rootNav?.push) rootNav.push('MacroTrackingOverlay');
+                            else if (rootNav?.navigate) rootNav.navigate('MacroTrackingOverlay');
+                            else navigation.navigate('MacroTrackingOverlay');
+                        } catch {
+                            navigation.navigate('MacroTrackingOverlay');
+                        }
+                    }}
                 />
             )}
 
@@ -526,7 +549,8 @@ export default function Workout({ navigation, route }) {
                 isVisible={isNewWorkoutVisible}
                 setIsVisible={setIsNewWorkoutVisible}
                 timerRef={timerRef}
-                showGroupModal={() => { }}
+                showGroupModal={() => setInviteSheetOpen(true)}
+                registerInviteHandler={(fn) => { inviteHandlerRef.current = fn; }}
                 userWorkoutStats={global?.userData?.statsExercises || {}}
             />
 
@@ -553,6 +577,19 @@ export default function Workout({ navigation, route }) {
             <Animated.View pointerEvents="none" style={styles.toastWrap}>
                 <CopyTemplateToast anim={toastAnim} text={toastMsg || "Template added"} />
             </Animated.View>
+
+            {/* Invite picker mounted at screen level so backdrop covers everything */}
+            <GroupModalBottomSheet
+                groupModalExpandFlag={inviteSheetOpen}
+                closeGroupModal={() => setInviteSheetOpen(false)}
+                onInvite={(users) => {
+                    const fn = inviteHandlerRef.current;
+                    if (typeof fn === 'function') {
+                        try { fn(users); } catch (e) { console.log('invite error', e); }
+                    }
+                    setInviteSheetOpen(false);
+                }}
+            />
         </SafeAreaView>
     );
 }
