@@ -249,7 +249,7 @@ function Chip({ ev, navigation, onPressChip }) {
 const styles = StyleSheet.create({
     // Elevated to ensure it sits above post overlays when used as sticky header
     // Use white background so the MaskedView's rounded corners are visible against the outer light bg
-    wrap: { backgroundColor: "#FFFFFF", paddingBottom: 10, paddingTop: 0, marginTop: -6, zIndex: 100, elevation: 7 },
+    wrap: { backgroundColor: "#f9fbffff", paddingBottom: 10, paddingTop: 8, marginTop: -6, zIndex: 100, elevation: 7 },
     list: { overflow: "visible" },
     listContent: { paddingLeft: 14, paddingRight: 8, columnGap: 6 },
 

@@ -42,7 +42,21 @@ const Footer = ({ navigation, currentScreenName }) => {
             <View style={styles.main_ctnr}>
                     {/* Feed (Stack tab → child Feed) */}
                     <View style={styles.icon_ctnr}>
-                        <Pressable onPress={goTab('FeedStack', 'Feed')} hitSlop={10}>
+                        <Pressable
+                            onPress={() => {
+                                if (currentScreenName === 'Feed') {
+                                    try { global.scrollFeedToTopSignal = Date.now(); } catch {}
+                                    // Also navigate with a param to cover cases where the screen listens to params
+                                    navigation.navigate('Tabs', {
+                                        screen: 'FeedStack',
+                                        params: { screen: 'Feed', params: { scrollToTop: true, _t: Date.now() } },
+                                    });
+                                } else {
+                                    goTab('FeedStack', 'Feed')();
+                                }
+                            }}
+                            hitSlop={10}
+                        >
                             <View style={currentScreenName === 'Feed' ? styles.selectedIcon : styles.icon}>
                                 <Home size={24.5} color={getIconColor('Feed')} variant="Bold" />
                             </View>

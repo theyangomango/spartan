@@ -7,6 +7,7 @@
 
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Animated, Dimensions, SafeAreaView, StyleSheet, View, Easing as RNEasing, Text } from "react-native";
+import { useFocusEffect } from '@react-navigation/native';
 import { StatusBar } from "expo-status-bar";
 import { doc, onSnapshot } from "firebase/firestore";
 import { useSafeAreaInsets, SafeAreaView as SafeAreaInsetsView } from "react-native-safe-area-context";
@@ -75,6 +76,8 @@ export default function Feed({ navigation, route }) {
     const setVisibleHeaderJS = (v) => { visibleHeaderHRef.current = v || 0; };
     // Measure the compact back header shown during focus
     const backHeaderHRef = useRef(0);
+    // Track last consumed global scroll-to-top signal
+    const feedTopSignalRef = useRef(0);
 
     /* ---------- animated values ---------- */
     const translateY = useRef(new Animated.Value(0)).current;
@@ -96,6 +99,12 @@ export default function Feed({ navigation, route }) {
         const totalHidden = Math.min(headerH.value, hidden.value + focusHide.value);
         return { height: Math.max(0, headerH.value - totalHidden) };
     });
+    // Animated container for MaskedView to track visible header height smoothly
+    const maskContainerStyle = useAnimatedStyle(() => {
+        const totalHidden = Math.min(headerH.value, hidden.value + focusHide.value);
+        const visible = Math.max(0, headerH.value - totalHidden);
+        return { top: visible };
+    });
 
     // Header workout pill state
     const [activeWorkout, setActiveWorkout] = useState(null);
@@ -115,7 +124,8 @@ export default function Feed({ navigation, route }) {
 
         // Only manage center-based playback when NO post is focused
         if (!isSomePostFocused) {
-            const viewportCenter = y + height / 2;
+            const vHeader = visibleHeaderHRef.current || 0;
+            const viewportCenter = y + (height - vHeader) / 2;
 
             let best = -1;
             let bestDist = Number.POSITIVE_INFINITY;
@@ -331,6 +341,36 @@ export default function Feed({ navigation, route }) {
         }
     };
 
+    // Respond to param-based scrollToTop when navigated with intent
+    useEffect(() => {
+        if (route?.params?.scrollToTop) {
+            const id = setTimeout(() => scrollToTop(), 30);
+            try { navigation.setParams({ scrollToTop: false }); } catch {}
+            return () => clearTimeout(id);
+        }
+    }, [route?.params?.scrollToTop]);
+
+    // Scroll to top when triggered by Footer reselection (param or global signal)
+    useFocusEffect(
+        useCallback(() => {
+            // Param-based trigger
+            if (route?.params?.scrollToTop) {
+                const id = setTimeout(() => scrollToTop(), 30);
+                // reset param so it doesn't re-trigger on next focus
+                try { navigation.setParams({ scrollToTop: false }); } catch {}
+                return () => clearTimeout(id);
+            }
+            // Global-signal fallback
+            const lastRef = feedTopSignalRef.current || 0;
+            const sig = Number(global?.scrollFeedToTopSignal || 0);
+            if (sig && sig !== lastRef) {
+                feedTopSignalRef.current = sig;
+                const id = setTimeout(() => scrollToTop(), 30);
+                return () => clearTimeout(id);
+            }
+        }, [route?.params?.scrollToTop, navigation])
+    );
+
     // Custom CellRenderer to capture y/height of each cell in content coordinates
     const CellRenderer = useMemo(() => {
         const Comp = ({ index, style, onLayout, children, ...rest }) => {
@@ -422,55 +462,56 @@ export default function Feed({ navigation, route }) {
         <SafeAreaView style={{ flex: 1, backgroundColor: "#F7FAFF" }}>
             <SafeAreaView style={styles.mainContainer}>
                 <StatusBar style="dark" />
-                <MaskedView
-                    style={{
-                        flex: 1,
-                        top: 100,
-                        height: '100%',
+
+                <Reanimated.View
+                    style={[{
                         position: 'absolute',
-                    }}
-                    maskElement={
-                        <View style={{ flex: 1, backgroundColor: 'transparent' }}>
-                            <View
-                                style={{
-                                    width: '100%',
-                                    height: '100%',
-                                    backgroundColor: 'black',
-                                    borderRadius: 24, // <- rounded corners on all four sides
-                                    // or individual corners:
-                                    // borderTopLeftRadius: 24,
-                                    // borderTopRightRadius: 24,
-                                    // borderBottomLeftRadius: 24,
-                                    // borderBottomRightRadius: 24,
-                                }}
-                            />
-                        </View>
-                    }
+                        left: 0,
+                        right: 0,
+                        bottom: 0,
+                    }, maskContainerStyle]}
                 >
-                    <Reanimated.FlatList
-                        ref={flatListRef}
-                        bounces={false}
-                        showsVerticalScrollIndicator={false}
-                        data={listData}
-                        keyExtractor={(item, i) => String(i)}
-                        renderItem={({ item, index }) => renderPost({ item, index })}
-                        onScroll={onScrollRe}
-                        scrollEventThrottle={16}
-                        stickyHeaderIndices={[]}
-                        viewabilityConfig={{ itemVisiblePercentThreshold: 20 }}
-                        onViewableItemsChanged={({ viewableItems }) => {
-                            const s = new Set();
-                            viewableItems.forEach((v) => {
-                                if (typeof v.index === "number" && v.index >= 0) s.add(v.index);
-                            });
-                            viewableSetRef.current = s;
-                        }}
-                        CellRendererComponent={CellRenderer}
-                        ListHeaderComponent={<Reanimated.View style={spacerStyle} />}
-                        initialNumToRender={3}
-                        windowSize={5}
-                    />
-                </MaskedView>
+                    <MaskedView
+                        style={{ flex: 1 }}
+                        maskElement={
+                            <View style={{ flex: 1, backgroundColor: 'transparent' }}>
+                                <View
+                                    style={{
+                                        width: '100%',
+                                        height: '100%',
+                                        backgroundColor: 'black',
+                                        borderRadius: 24,
+                                    }}
+                                />
+                            </View>
+                        }
+                    >
+                        <Reanimated.FlatList
+                            ref={flatListRef}
+                            bounces={false}
+                            showsVerticalScrollIndicator={false}
+                            data={listData}
+                            keyExtractor={(item, i) => String(i)}
+                            renderItem={({ item, index }) => renderPost({ item, index })}
+                            onScroll={onScrollRe}
+                            scrollEventThrottle={16}
+                            stickyHeaderIndices={[]}
+                            viewabilityConfig={{ itemVisiblePercentThreshold: 20 }}
+                            onViewableItemsChanged={({ viewableItems }) => {
+                                const s = new Set();
+                                viewableItems.forEach((v) => {
+                                    if (typeof v.index === "number" && v.index >= 0) s.add(v.index);
+                                });
+                                viewableSetRef.current = s;
+                            }}
+                            CellRendererComponent={CellRenderer}
+                            // Spacer no longer needed; container top tracks header
+                            // ListHeaderComponent={<Reanimated.View style={spacerStyle} />}
+                            initialNumToRender={3}
+                            windowSize={5}
+                        />
+                    </MaskedView>
+                </Reanimated.View>
             </SafeAreaView>
 
             {/* Overlay header (FeedHeader + ActivityChips) that reveals/collapses; spacer keeps posts pushed */}
