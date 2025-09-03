@@ -9,6 +9,7 @@ import {
     arrayRemove,
     deleteDoc,
     collection,
+    addDoc,
     getDocs,
     query,
     where,
@@ -337,6 +338,26 @@ export default function useWorkoutManager({ uid, navigation, millisToHMS }) {
 
                 setCompletedWorkout(completed);
                 setIsSummaryModalVisible(true);
+
+                // Publish a pulse for ActivityChips (non-blocking)
+                try {
+                    const me = String(uid || global?.userData?.uid || "");
+                    if (me) {
+                        const pulse = {
+                            type: 'workout',
+                            ts: String(toMillis(completed?.created) || Date.now()),
+                            uid: me,
+                            handle: global?.userData?.handle || '',
+                            name: global?.userData?.name || '',
+                            pfpVersion: 0,
+                            detail: '',
+                            workoutID: completed?.wid,
+                        };
+                        addDoc(collection(db, 'users', me, 'pulse'), pulse).catch(() => {});
+                    }
+                } catch (e) {
+                    // best-effort; do not block finish flow
+                }
 
                 try {
                     const arr = Array.isArray(global?.userData?.currentWorkouts) ? [...global.userData.currentWorkouts] : [];
