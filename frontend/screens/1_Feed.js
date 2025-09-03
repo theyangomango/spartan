@@ -6,11 +6,11 @@
  */
 
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { Animated, Dimensions, SafeAreaView, StyleSheet, View } from "react-native";
+import { Animated, Dimensions, SafeAreaView, StyleSheet, View, Easing as RNEasing } from "react-native";
 import { StatusBar } from "expo-status-bar";
 import { doc, onSnapshot } from "firebase/firestore";
 import { useSafeAreaInsets, SafeAreaView as SafeAreaInsetsView } from "react-native-safe-area-context";
-import Reanimated, { useSharedValue, useAnimatedScrollHandler, useAnimatedStyle, runOnJS } from 'react-native-reanimated';
+import Reanimated, { useSharedValue, useAnimatedScrollHandler, useAnimatedStyle, runOnJS, withTiming, Easing as ReEasing } from 'react-native-reanimated';
 
 import Footer from "../components/Footer";
 import Post from "../components/1_Feed/Posts/Post";
@@ -68,6 +68,11 @@ export default function Feed({ navigation, route }) {
     const [centeredIndex, setCenteredIndex] = useState(-1);
     const itemLayoutsRef = useRef(new Map()); // index -> { y, h }
     const viewableSetRef = useRef(new Set());
+    // Track current visible height of the collapsible header (overlay header + chips)
+    const visibleHeaderHRef = useRef(0);
+    const setVisibleHeaderJS = (v) => { visibleHeaderHRef.current = v || 0; };
+    // Measure the compact back header shown during focus
+    const backHeaderHRef = useRef(0);
 
     /* ---------- animated values ---------- */
     const translateY = useRef(new Animated.Value(0)).current;
@@ -77,9 +82,17 @@ export default function Feed({ navigation, route }) {
     const chipsH = useSharedValue(0); // minimum visible height (keep chips in view)
     const hidden = useSharedValue(0); // 0..(H - chipsH)
     const prevY = useSharedValue(0);
+    const focusHide = useSharedValue(0); // when focusing a post, fully hide header
+    const isFocusSV = useSharedValue(0); // freeze JS mirrors during focus
     // Animated styles: overlay header translate + spacer height
-    const overlayHeaderStyle = useAnimatedStyle(() => ({ transform: [{ translateY: -hidden.value }] }));
-    const spacerStyle = useAnimatedStyle(() => ({ height: Math.max(0, headerH.value - hidden.value) }));
+    const overlayHeaderStyle = useAnimatedStyle(() => {
+        const totalHidden = Math.min(headerH.value, hidden.value + focusHide.value);
+        return { transform: [{ translateY: -totalHidden }] };
+    });
+    const spacerStyle = useAnimatedStyle(() => {
+        const totalHidden = Math.min(headerH.value, hidden.value + focusHide.value);
+        return { height: Math.max(0, headerH.value - totalHidden) };
+    });
     
     // Header workout pill state
     const [activeWorkout, setActiveWorkout] = useState(null);
@@ -144,6 +157,10 @@ export default function Feed({ navigation, route }) {
                 if (next < 0) next = 0;
                 if (next > maxHidden) next = maxHidden;
                 hidden.value = next;
+                const visibleNow = Math.max(0, H - next);
+                if (isFocusSV.value === 0) {
+                runOnJS(setVisibleHeaderJS)(visibleNow);
+                }
             }
             runOnJS(handleScroll)({ nativeEvent: { contentOffset: { y } } });
         },
@@ -211,7 +228,14 @@ export default function Feed({ navigation, route }) {
 
         focusedPostIndex.current = index;
         setIsSomePostFocused(true);
-        animateView(pageY - TARGET_POSITION, 0);
+        // Compute after back header measures (next frame)
+        setTimeout(() => {
+            const Vstart = visibleHeaderHRef.current || 0; // overlay header+chips visible height right before focus
+            const Vfinal = backHeaderHRef.current || (insets?.top ? insets.top + 44 : TARGET_POSITION);
+            // Needed translation Δ for the card: Vfinal - (pageY - Vstart) = - (pageY - Vstart - Vfinal)
+            // animateView negates the input, so pass (pageY - Vstart - Vfinal)
+            animateView(pageY - Vstart - Vfinal, 0);
+        }, 0);
     };
 
     const handleBackPress = () => {
@@ -224,6 +248,16 @@ export default function Feed({ navigation, route }) {
 
         flatListRef.current?.setNativeProps({ scrollEnabled: true });
     };
+
+    // When a post is focused/unfocused, animate header fully hidden/visible to avoid interference
+    useEffect(() => {
+        focusHide.value = withTiming(
+            isSomePostFocused ? headerH.value : 0,
+            { duration: ANIMATION_DURATION, easing: ReEasing.linear }
+        );
+        isFocusSV.value = isSomePostFocused ? 1 : 0;
+    }, [isSomePostFocused]);
+
 
     // Stop any ongoing fling by jumping to the current offset with animation off
     const stopFlatListMomentum = () => {
@@ -242,11 +276,13 @@ export default function Feed({ navigation, route }) {
             Animated.timing(translateY, {
                 toValue: -translateYValue,
                 duration: ANIMATION_DURATION,
+                easing: RNEasing.linear,
                 useNativeDriver: true,
             }),
             Animated.timing(storiesOpacity, {
                 toValue: opacityValue,
                 duration: ANIMATION_DURATION,
+                easing: RNEasing.linear,
                 useNativeDriver: true,
             }),
         ]).start(() => {
@@ -415,11 +451,13 @@ export default function Feed({ navigation, route }) {
             {/* Overlay header (FeedHeader + ActivityChips) that reveals/collapses; spacer keeps posts pushed */}
             <SafeAreaInsetsView edges={['top']} pointerEvents="box-none" style={{ position: 'absolute', top: 0, left: 0, right: 0 }}>
                 <Reanimated.View
+                    pointerEvents={isSomePostFocused ? "none" : "auto"}
                     onLayout={(e) => {
                         const h = e.nativeEvent.layout.height || 0;
                         if (h && Math.abs(h - headerH.value) > 1) {
                             headerH.value = h;
                             hidden.value = 0; // start visible
+                            try { visibleHeaderHRef.current = h; } catch {}
                         }
                     }}
                     style={[{
@@ -450,7 +488,28 @@ export default function Feed({ navigation, route }) {
                         <ActivityChips navigation={navigation} />
                     </Animated.View>
                 </Reanimated.View>
-            </SafeAreaInsetsView>
+            
+
+            {isSomePostFocused && (
+                <SafeAreaInsetsView
+                    edges={['top']}
+                    onLayout={(e) => { backHeaderHRef.current = e.nativeEvent.layout.height || 0; }}
+                    style={{ position: 'absolute', top: 0, left: 0, right: 0, zIndex: 30, backgroundColor: '#F7FAFF' }}
+                >
+                    <FeedHeader
+                        navigation={navigation}
+                        toMessagesScreen={toMessagesScreen}
+                        onOpenNotifications={handleOpenNotifications}
+                        backButton={true}
+                        onBackPress={handleBackPress}
+                        scrollToTop={scrollToTop}
+                        allUsersRef={allUsersRef}
+                        workout={activeWorkout}
+                        timerRef={headerTimerRef}
+                    />
+                </SafeAreaInsetsView>
+            )}
+</SafeAreaInsetsView>
 
             {/* Top safe-area mask to hide content above inset */}
             <View pointerEvents="none" style={{ position: 'absolute', top: 0, left: 0, right: 0, height: insets.top, backgroundColor: '#F7FAFF', zIndex: 25 }} />
