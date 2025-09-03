@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useRef, useState, memo } from "react";
 import BottomSheet, { BottomSheetBackdrop } from "@gorhom/bottom-sheet";
 import NewWorkoutModal from "./NewWorkoutModal";
 import useWorkoutStore from "../../../state/workoutStore";
@@ -45,6 +45,21 @@ const NewWorkoutBottomSheet = ({
     const workoutFromStore = useWorkoutStore((s) => s.workout);
     const effectiveWorkout = workout || workoutFromStore;
 
+    // Stable wrappers so NewWorkoutModal doesn't rerender due to changing function identities
+    const onCancelWorkout = useCallback(() => {
+        cancelNewWorkout();
+        bottomSheetRef.current?.close();
+    }, [cancelNewWorkout]);
+
+    const onFinishWorkout = useCallback(() => {
+        finishNewWorkout();
+        bottomSheetRef.current?.close();
+    }, [finishNewWorkout]);
+
+    const onRegisterInviteHandler = useCallback((fn) => {
+        if (typeof registerInviteHandler === 'function') registerInviteHandler(fn);
+    }, [registerInviteHandler]);
+
     return (
         <BottomSheet
             ref={bottomSheetRef}
@@ -66,24 +81,25 @@ const NewWorkoutBottomSheet = ({
                 <NewWorkoutModal
                     timerRef={timerRef}
                     workout={effectiveWorkout}
-                    cancelWorkout={() => {
-                        cancelNewWorkout();
-                        bottomSheetRef.current?.close();
-                    }}
+                    cancelWorkout={onCancelWorkout}
                     updateWorkout={updateNewWorkout}
-                    finishWorkout={() => {
-                        finishNewWorkout();
-                        bottomSheetRef.current?.close();
-                    }}
+                    finishWorkout={onFinishWorkout}
                     showGroupModal={showGroupModal}
                     userWorkoutStats={userWorkoutStats}
                     // NEW: tell us whether we're viewing self or friend
                     onViewingChange={setIsViewingSelf}
-                    registerInviteHandler={registerInviteHandler}
+                    registerInviteHandler={onRegisterInviteHandler}
                 />
             )}
         </BottomSheet>
     );
 };
 
-export default NewWorkoutBottomSheet;
+// Prevent parent churn (screen-level re-renders) from bubbling unnecessarily.
+// Only depend on visibility and timerRef; props used as passthrough (functions) are ignored.
+const areEqual = (prev, next) => (
+    prev.isVisible === next.isVisible &&
+    prev.timerRef === next.timerRef
+);
+
+export default memo(NewWorkoutBottomSheet, areEqual);

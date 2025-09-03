@@ -85,13 +85,13 @@ const StartOpenButton = ({ hasActiveWorkout, onOpen, onStart, holdMs = 650 }) =>
             </Pressable>
 
             {/* Static white halo around OPEN state (rendered above button) */}
-            {hasActiveWorkout && (
+            {/* {hasActiveWorkout && (
                 <View pointerEvents="none" style={styles.pulseWrap}>
                     <View style={styles.openHaloOuter} />
                     <View style={styles.openHaloInner} />
                     <View style={styles.openGlow} />
                 </View>
-            )}
+            )} */}
 
             {/* START state progress ring */}
             {!hasActiveWorkout && (
@@ -131,7 +131,7 @@ const styles = StyleSheet.create({
     startBtn: {
         width: BTN_SIZE,
         height: BTN_SIZE,
-        borderRadius: BTN_SIZE / 2,
+        borderRadius: 10000,
         overflow: "hidden",
         alignItems: "center",
         justifyContent: "center",
@@ -143,6 +143,8 @@ const styles = StyleSheet.create({
     },
     // Extra styling when OPEN to create a crisp white rim + glow
     startBtnOpen: {
+        width: BTN_SIZE * 1.1,
+        height: BTN_SIZE * 1.1,
         borderWidth: 6,
         borderColor: "#FFFFFF",
         ...Platform.select({
