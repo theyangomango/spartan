@@ -4,6 +4,7 @@
  */
 import React, { memo, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { View, StyleSheet } from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import BottomSheet, { BottomSheetBackdrop } from "@gorhom/bottom-sheet";
 import NotificationsModal from "./NotificationsModal";
 import scaleSize from "../../../helper/scaleSize";
@@ -11,16 +12,15 @@ import resetNewNotifications from "../../../helper/resetNewNotifications";
 
 const NotificationsBottomSheet = ({ notificationsBottomSheetExpandFlag }) => {
     const bottomSheetRef = useRef(null);
+    const insets = useSafeAreaInsets();
     // Define snap points for the bottom sheet
-    const snapPoints = useMemo(() => [scaleSize(800)], []); 
+    const snapPoints = useMemo(() => ['90%'], []);
     const [isExpanded, setIsExpanded] = useState(false);
 
-    // Expand the bottom sheet when the expand flag changes
+    // Only open/close when the flag toggles; stay fully closed on mount
     useEffect(() => {
-        if (bottomSheetRef.current) {
-            bottomSheetRef.current.expand();
-            setIsExpanded(true);
-        }
+        const ref = bottomSheetRef.current;
+        ref.expand();
     }, [notificationsBottomSheetExpandFlag]);
 
     // Custom backdrop component with adjusted opacity
@@ -42,7 +42,19 @@ const NotificationsBottomSheet = ({ notificationsBottomSheetExpandFlag }) => {
     }
 
     return (
-        <View style={styles.outerContainer} pointerEvents="box-none">
+        <View
+            style={[
+                styles.outerContainer,
+                // Extend to cover safe-area padding applied by parent SafeAreaView
+                {
+                    top: -insets.top,
+                    bottom: -insets.bottom,
+                    left: -insets.left,
+                    right: -insets.right,
+                },
+            ]}
+            pointerEvents="box-none"
+        >
             <BottomSheet
                 ref={bottomSheetRef}
                 index={-1} // Initially closed
@@ -71,7 +83,8 @@ const styles = StyleSheet.create({
         bottom: 0,
         left: 0,
         right: 0,
-        zIndex: 1,
+        // Ensure this sits above header overlays and top safe-area mask in Feed
+        zIndex: 100,
     },
     hiddenHandle: {
         display: "none", // Hide the default handle
