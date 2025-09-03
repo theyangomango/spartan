@@ -9,7 +9,6 @@ import {
   Animated,
   Dimensions,
   ActivityIndicator,
-  InteractionManager,
 } from "react-native";
 import BottomSheet, { BottomSheetBackdrop } from "@gorhom/bottom-sheet";
 import RNBounceable from "@freakycoder/react-native-bounceable";
@@ -522,7 +521,7 @@ const FriendsActivitySheet = ({ visible, openToggle, items = [], onClose, onView
             keyExtractor={keyExtractor}
             style={{ flex: 1 }}
             contentContainerStyle={styles.listContent}
-            removeClippedSubviews
+            removeClippedSubviews={false}
             ItemSeparatorComponent={() => <View style={{ height: s(10) }} />}
             SectionSeparatorComponent={() => <View style={{ height: s(12) }} />}
             stickySectionHeadersEnabled={false}
