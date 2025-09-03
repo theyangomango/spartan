@@ -26,6 +26,32 @@ const normalizeMealKey = (t = '') => {
 
 const emptyBuckets = () => ({ Breakfast: [], Lunch: [], Dinner: [] });
 
+// Shared, module-level cache so prefetches can be reused across hook instances
+// Keyed by `${userId}|${dayKey}`
+const globalCache = new Map();
+const inflightPrefetch = new Set(); // `${userId}|${dayKey}` currently prefetching
+// Memo for parsed macros on legacy entries lacking stored macros
+// Keyed by `${docId}|${desc}|${qty}`
+const parseMemo = new Map();
+// Create a lightweight signature to avoid redundant state updates/renders
+const builtHash = (built) => {
+    try {
+        const t = built?.totals || {};
+        const b = built?.meals?.Breakfast || [];
+        const l = built?.meals?.Lunch || [];
+        const d = built?.meals?.Dinner || [];
+        const ids = (arr) => arr.map((x) => x.key).join(',');
+        return [
+            Math.round(t.calories || 0),
+            Math.round(t.protein || 0),
+            Math.round(t.carbs || 0),
+            Math.round(t.fat || 0),
+            b.length, l.length, d.length,
+            ids(b), ids(l), ids(d),
+        ].join('|');
+    } catch { return 'x'; }
+};
+
 /**
  * Build meals/totals from a Firestore snapshot of entries.
  * - If the entry already stored `macros`, we trust those (assumed scaled).
@@ -41,14 +67,20 @@ const buildFromSnap = (snap) => {
 
         const qty = typeof data.quantity === 'number' ? data.quantity : 1;
         // Use stored macros if present (they may already be scaled). Otherwise parse+scale now.
-        const m = data.macros
-            ? {
+        let m;
+        if (data.macros) {
+            m = {
                 calories: Number(data.macros.calories) || 0,
                 protein: Number(data.macros.protein) || 0,
                 carbs: Number(data.macros.carbs) || 0,
                 fat: Number(data.macros.fat) || 0,
-            }
-            : parseMacrosFromDescription(data.description || data.desc || '', qty);
+            };
+        } else {
+            const desc = data.description || data.desc || '';
+            const key = `${d.id}|${desc}|${qty}`;
+            const cached = parseMemo.get(key);
+            if (cached) m = cached; else { m = parseMacrosFromDescription(desc, qty); parseMemo.set(key, m); }
+        }
 
         totals.calories += m.calories || 0;
         totals.protein += m.protein || 0;
@@ -84,6 +116,29 @@ export function useFoodLogs(dateObj, userIdOverride, shouldSubscribe = true) {
     // in-memory cache: Map<dayKey, { meals, totals }>
     const cacheRef = useRef(new Map());
     const unsubRef = useRef(null);
+    const pendingFetchRef = useRef(new Set()); // track in-flight getDocs per user|day
+    const currentKeyRef = useRef('');
+    const lastHashRef = useRef('');
+
+    // Track current key so async fetches avoid updating when the day changed mid-flight
+    useEffect(() => {
+        const dk = toDayKey(dateObj);
+        currentKeyRef.current = dk;
+    }, [dateObj]);
+
+    // Lightweight sync from global cache even when not subscribing
+    useEffect(() => {
+        const userId = userIdOverride ?? global?.userData?.id ?? global?.userData?.uid;
+        if (!userId) return;
+        const dk = toDayKey(dateObj);
+        const ckey = `${userId}|${dk}`;
+        const cached = globalCache.get(ckey);
+        if (cached) {
+            setMeals(cached.meals);
+            setTotals(cached.totals);
+            lastHashRef.current = builtHash(cached);
+        }
+    }, [dateObj, userIdOverride]);
 
     useEffect(() => {
         if (!shouldSubscribe) return;
@@ -91,16 +146,40 @@ export function useFoodLogs(dateObj, userIdOverride, shouldSubscribe = true) {
         if (!userId) return;
 
         const dk = toDayKey(dateObj);
+        const ckey = `${userId}|${dk}`;
 
-        // show cached immediately if present
-        const cached = cacheRef.current.get(dk);
+        // show cached immediately if present (prefer global cache so prefetches from other places are reused)
+        const cached = globalCache.get(ckey) || cacheRef.current.get(dk);
         if (cached) {
             setMeals(cached.meals);
             setTotals(cached.totals);
+            lastHashRef.current = builtHash(cached);
         } else {
-            // clear view while loading (prevents showing previous day)
-            setMeals(emptyBuckets());
-            setTotals({ calories: 0, protein: 0, carbs: 0, fat: 0 });
+            // Keep previous UI while we fetch to avoid shimmer
+            // Kick off a fast one-off fetch to fill immediately, then establish the live subscription
+            (async () => {
+                pendingFetchRef.current.add(ckey);
+                try {
+                    const dayRef = doc(db, 'users', userId, 'foodLogs', dk);
+                    const qy = query(collection(dayRef, 'entries'), orderBy('createdAt', 'asc'));
+                    const snap = await getDocs(qy);
+                    const built = buildFromSnap(snap);
+                    cacheRef.current.set(dk, built);
+                    globalCache.set(ckey, built);
+                    // Only update if we are still viewing this dk
+                    if (currentKeyRef.current === dk) {
+                        const h = builtHash(built);
+                        if (h !== lastHashRef.current) {
+                            setMeals(built.meals);
+                            setTotals(built.totals);
+                            lastHashRef.current = h;
+                        }
+                    }
+                } catch { /* ignore */ }
+                finally {
+                    pendingFetchRef.current.delete(ckey);
+                }
+            })();
         }
 
         // realtime subscribe for focused day
@@ -110,22 +189,36 @@ export function useFoodLogs(dateObj, userIdOverride, shouldSubscribe = true) {
         }
 
         const dayRef = doc(db, 'users', userId, 'foodLogs', dk);
-        setDoc(dayRef, { dayKey: dk, updatedAt: serverTimestamp() }, { merge: true }).catch(() => { });
         const qy = query(collection(dayRef, 'entries'), orderBy('createdAt', 'asc'));
 
         unsubRef.current = onSnapshot(
             qy,
             (snap) => {
                 const built = buildFromSnap(snap);
-                setMeals(built.meals);
-                setTotals(built.totals);
+                const isEmpty =
+                    (!built.meals?.Breakfast?.length) &&
+                    (!built.meals?.Lunch?.length) &&
+                    (!built.meals?.Dinner?.length);
+                // If a fast fetch is pending and snapshot is empty, avoid clearing the UI to prevent flicker
+                if (pendingFetchRef.current.has(ckey) && isEmpty) return;
+
+                const h = builtHash(built);
+                if (h !== lastHashRef.current) {
+                    setMeals(built.meals);
+                    setTotals(built.totals);
+                    lastHashRef.current = h;
+                }
                 cacheRef.current.set(dk, built);
+                globalCache.set(ckey, built);
             },
             () => { }
         );
 
-        // preload neighbors
-        preloadNeighbors(userId, dateObj, cacheRef);
+        // preload neighbors (store to both local + global caches)
+        preloadNeighborsForUser(userId, dateObj, (neighborKey, built) => {
+            cacheRef.current.set(neighborKey, built);
+            globalCache.set(`${userId}|${neighborKey}`, built);
+        });
 
         return () => {
             if (unsubRef.current) {
@@ -334,23 +427,72 @@ export function useFoodLogs(dateObj, userIdOverride, shouldSubscribe = true) {
     return { meals, totals, addFood, deleteFood };
 }
 
-async function preloadNeighbors(userId, centerDate, cacheRef) {
-    const days = [-1, +1];
+async function preloadNeighborsForUser(userId, centerDate, onBuilt) {
+    const days = [];
+    for (let i = 1; i <= 7; i += 1) { days.push(-i, +i); }
     await Promise.all(
         days.map(async (delta) => {
-            const d = new Date(centerDate);
-            d.setDate(d.getDate() + delta);
-            const dk = toDayKey(d);
-            if (cacheRef.current.get(dk)) return;
             try {
+                const d = new Date(centerDate);
+                d.setDate(d.getDate() + delta);
+                d.setHours(0, 0, 0, 0);
+                const dk = toDayKey(d);
+                const ckey = `${userId}|${dk}`;
+                if (globalCache.get(ckey) || inflightPrefetch.has(ckey)) return;
+                inflightPrefetch.add(ckey);
                 const dayRef = doc(db, 'users', userId, 'foodLogs', dk);
                 const qy = query(collection(dayRef, 'entries'), orderBy('createdAt', 'asc'));
                 const snap = await getDocs(qy);
                 const built = buildFromSnap(snap);
-                cacheRef.current.set(dk, built);
+                globalCache.set(ckey, built);
+                if (typeof onBuilt === 'function') onBuilt(dk, built);
+                inflightPrefetch.delete(ckey);
             } catch {
+                // best-effort cleanup
+                try { inflightPrefetch.delete(`${userId}|${toDayKey(new Date(centerDate))}`); } catch {}
                 /* ignore */
             }
         })
     );
+}
+
+// Explicit prefetch API for screens to warm the cache ahead of opening views
+export async function primeFoodLogsCache(userId, centerDate, radius = 2) {
+    // Default to a broader warm radius (±7) for smoother UX
+    if (radius == null) radius = 7;
+    try {
+        const days = [];
+        for (let i = 1; i <= Math.max(1, radius); i += 1) { days.push(-i, +i); }
+        const now = new Date(centerDate);
+        now.setHours(0, 0, 0, 0);
+        const centerKey = `${userId}|${toDayKey(now)}`;
+        // also ensure center is present
+        await Promise.all([
+            (async () => {
+                if (globalCache.get(centerKey)) return;
+                if (inflightPrefetch.has(centerKey)) return;
+                inflightPrefetch.add(centerKey);
+                const dayRef = doc(db, 'users', userId, 'foodLogs', toDayKey(now));
+                const qy = query(collection(dayRef, 'entries'), orderBy('createdAt', 'asc'));
+                const snap = await getDocs(qy);
+                const built = buildFromSnap(snap);
+                globalCache.set(centerKey, built);
+                inflightPrefetch.delete(centerKey);
+            })(),
+            ...days.map(async (delta) => {
+                const d = new Date(now);
+                d.setDate(d.getDate() + delta);
+                const dk = toDayKey(d);
+                const k = `${userId}|${dk}`;
+                if (globalCache.get(k) || inflightPrefetch.has(k)) return;
+                inflightPrefetch.add(k);
+                const dayRef = doc(db, 'users', userId, 'foodLogs', dk);
+                const qy = query(collection(dayRef, 'entries'), orderBy('createdAt', 'asc'));
+                const snap = await getDocs(qy);
+                const built = buildFromSnap(snap);
+                globalCache.set(k, built);
+                inflightPrefetch.delete(k);
+            })
+        ]);
+    } catch { /* ignore */ }
 }

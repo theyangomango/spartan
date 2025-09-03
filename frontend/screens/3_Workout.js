@@ -32,7 +32,7 @@ import NotificationsBottomSheet from "../components/1_Feed/Notifications/Notific
 
 // Theme & Hooks (project)
 import { ss, FOOTER_HEIGHT, BTN_SIZE, TPL_BOTTOM_GAP, TPL_HEIGHT } from "../components/3_Workout/sections/workoutTheme";
-import { useFoodLogs } from "../hooks/useFoodLogs";
+import { useFoodLogs, primeFoodLogsCache } from "../hooks/useFoodLogs";
 import useResolvedUid from "../hooks/useResolvedUid";
 import useUserDoc from "../hooks/useUserDoc";
 import useFriendsActivity from "../hooks/useFriendsActivity";
@@ -130,6 +130,11 @@ export default function Workout({ navigation, route }) {
     /* ---------- calories (today) ---------- */
     const stableToday = useMemo(() => { const d = new Date(); d.setHours(0, 0, 0, 0); return d; }, []);
     const { totals: todayTotals } = useFoodLogs(stableToday, uid);
+    // Warm cache around today on mount for snappier day switches
+    useEffect(() => {
+        const uidX = uid || global?.userData?.uid || global?.userData?.id;
+        if (uidX) primeFoodLogsCache(uidX, stableToday, 7);
+    }, [uid, stableToday]);
     const todayCalories = Math.round(Math.max(0, todayTotals?.calories || 0));
     const caloriesGoal = useMemo(
         () => user?.macroGoals?.calories ?? user?.macrosGoal?.calories ?? 2340,
@@ -436,6 +441,10 @@ export default function Workout({ navigation, route }) {
                 <WeekCalendar
                     workoutsMap={global?.userData?.workoutsByDate || {}}
                     onDayPress={(d) => {
+                        try {
+                            const uidX = global?.userData?.uid || global?.userData?.id || uid;
+                            if (uidX) primeFoodLogsCache(uidX, d, 7);
+                        } catch {}
                         setDaySheetDate(d);
                         setDaySheetVisible(true);
                         setDaySheetToggle((f) => !f);
@@ -499,6 +508,18 @@ export default function Workout({ navigation, route }) {
                     calories={sheetTotals?.calories || 0}
                     workoutOn={(dayWorkouts?.length || 0) > 0}
                     onClose={() => setDaySheetVisible(false)}
+                    onChangeDate={(d) => {
+                        try {
+                            const uidX = global?.userData?.uid || global?.userData?.id || uid;
+                            if (uidX) primeFoodLogsCache(uidX, d, 7);
+                        } catch {}
+                        try {
+                            const nd = new Date(d);
+                            if (!Number.isNaN(nd.getTime())) nd.setHours(0, 0, 0, 0);
+                            setDaySheetDate(nd);
+                        } catch { setDaySheetDate(d); }
+                        // Keep sheet open; no re-expand
+                    }}
                     onStartWorkout={onStartWorkout}
                     onOpenMacros={() => {
                         setDaySheetVisible(false);

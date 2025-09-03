@@ -1,10 +1,15 @@
 // components/3_Workout/DayDetailsSheet.jsx
 import React, { memo, useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { View, Text, StyleSheet, Pressable } from "react-native";
+import { View, Text, StyleSheet, Pressable, Animated } from "react-native";
 import BottomSheet, { BottomSheetBackdrop } from "@gorhom/bottom-sheet";
 import { Clock } from "iconsax-react-native";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
+import { Ionicons } from "@expo/vector-icons";
+import NewWorkoutModal from "./NewWorkout/NewWorkoutModal";
 
+// Friend-view handle accents (match FriendsActivitySheet)
+const HANDLE_FRIEND_ACCENT = "#E0A500";
+const HANDLE_FRIEND_BACKGROUND = "#e0a4002c";
 const fmt = (d) =>
     d
         ? d.toLocaleDateString(undefined, {
@@ -22,6 +27,15 @@ const dayKey = (d) => {
     if (Number.isNaN(x.getTime())) return "";
     x.setHours(0, 0, 0, 0);
     return `${x.getFullYear()}-${String(x.getMonth() + 1).padStart(2, "0")}-${String(x.getDate()).padStart(2, "0")}`;
+};
+
+// shift a date by delta days, normalized to start of day
+const shiftDate = (d, delta) => {
+    let base = d ? new Date(d) : new Date();
+    if (Number.isNaN(base.getTime())) base = new Date();
+    base.setHours(0, 0, 0, 0);
+    base.setDate(base.getDate() + (delta || 0));
+    return base;
 };
 
 const mins = (ms) => Math.max(0, Math.round(Number(ms || 0) / 60000));
@@ -51,10 +65,17 @@ const DayDetailsSheet = ({
     onClose,
     onStartWorkout,
     onOpenMacros,
+    onChangeDate,
 }) => {
     const bottomSheetRef = useRef(null);
     const [isExpanded, setIsExpanded] = useState(false);
     const snapPoints = useMemo(() => ["95%"], []);
+    // Viewer overlay (for workout detail)
+    const [selectedWorkout, setSelectedWorkout] = useState(null);
+    const [viewerReady, setViewerReady] = useState(false);
+    const listOpacity = useRef(new Animated.Value(1)).current;
+    const viewerOpacity = useRef(new Animated.Value(0)).current;
+    const timerRef = useRef("");
 
     // Expand helper that tolerates ref not being ready on first render
     const expandSafely = useCallback(() => {
@@ -103,9 +124,14 @@ const DayDetailsSheet = ({
     );
 
     const handleClose = useCallback(() => {
+        // reset viewer if open
+        if (selectedWorkout) {
+            setSelectedWorkout(null);
+            try { listOpacity.setValue(1); viewerOpacity.setValue(0); } catch {}
+        }
         setIsExpanded(false);
         onClose?.();
-    }, [onClose]);
+    }, [onClose, selectedWorkout, listOpacity, viewerOpacity]);
 
     const title = useMemo(() => fmt(date), [date]);
 
@@ -139,6 +165,45 @@ const DayDetailsSheet = ({
         onStartWorkout?.();
     }, [onStartWorkout]);
 
+    const openViewer = useCallback((w) => {
+        if (!w) return;
+        // Normalize minimal fields expected by NewWorkoutModal
+        const fallback = {
+            wid: w?.wid || w?.id,
+            creatorUID: w?.creatorUID || w?.creatorUid || (global?.userData?.uid || ""),
+            created: w?.created || w?.createdAt || Date.now(),
+            exercises: Array.isArray(w?.exercises) ? w.exercises : [],
+            duration: w?.duration,
+            volume: w?.volume,
+            reps: w?.reps,
+            PBs: w?.PBs ?? w?.pbs ?? 0,
+            templateName: w?.templateName || w?.template?.name,
+        };
+        const wk = { ...fallback, ...w };
+        // Resolve friend uid + pfp (fallbacks similar to FriendsActivitySheet)
+        const friendUid = String(wk.creatorUID || wk.creatorUid || "");
+        const friendPfp =
+            wk.pfp || wk.pfpUrl || wk.photoURL || wk.image || wk.avatar ||
+            (friendUid && friendUid === String(global?.userData?.uid || "")
+                ? (global?.userData?.pfp || global?.userData?.photoURL || global?.userData?.image || "")
+                : null);
+        wk.__friendUid = friendUid;
+        wk.__friendPfp = friendPfp;
+        setSelectedWorkout(wk);
+        setViewerReady(false);
+        Animated.parallel([
+            Animated.timing(listOpacity, { toValue: 0, duration: 140, useNativeDriver: true }),
+            Animated.timing(viewerOpacity, { toValue: 1, duration: 180, useNativeDriver: true }),
+        ]).start(({ finished }) => { if (finished) requestAnimationFrame(() => setViewerReady(true)); });
+    }, [listOpacity, viewerOpacity]);
+
+    const closeViewer = useCallback(() => {
+        Animated.parallel([
+            Animated.timing(viewerOpacity, { toValue: 0, duration: 140, useNativeDriver: true }),
+            Animated.timing(listOpacity, { toValue: 1, duration: 180, useNativeDriver: true }),
+        ]).start(({ finished }) => { if (finished) { setSelectedWorkout(null); setViewerReady(false); } });
+    }, [listOpacity, viewerOpacity]);
+
     return (
         <View style={styles.outerContainer} pointerEvents="box-none">
             <BottomSheet
@@ -155,8 +220,16 @@ const DayDetailsSheet = ({
                 <View style={styles.handle} />
 
                 {/* Content */}
-                <View style={styles.card}>
-                    <Text style={styles.title}>{title || "Select a date"}</Text>
+                <Animated.View style={[styles.card, { opacity: listOpacity }] }>
+                    <View style={styles.dateHeaderRow}>
+                        <Pressable onPress={() => onChangeDate && onChangeDate(shiftDate(date, -1))} hitSlop={8} style={styles.dateNavBtn}>
+                            <Ionicons name="chevron-back" size={24} color="#0F172A" />
+                        </Pressable>
+                        <Text style={styles.title}>{title || "Select a date"}</Text>
+                        <Pressable onPress={() => onChangeDate && onChangeDate(shiftDate(date, 1))} hitSlop={8} style={styles.dateNavBtn}>
+                            <Ionicons name="chevron-forward" size={24} color="#0F172A" />
+                        </Pressable>
+                    </View>
 
                     {/* ------- Workouts ------- */}
                     <View style={styles.sectionHdrRow}>
@@ -181,7 +254,7 @@ const DayDetailsSheet = ({
                             const title = w?.templateName || w?.template?.name || "Workout";
                             const subtitle = `${exCount} exercises • ${setCount} sets`;
                             return (
-                                <View key={`${w?.wid || i}`} style={styles.faPanel}>
+                                <Pressable key={`${w?.wid || i}`} style={styles.faPanel} onPress={() => openViewer(w)}>
                                     <View style={styles.faHeaderRow}>
                                         <View style={{ flex: 1 }}>
                                             <Text style={styles.faTitle} numberOfLines={1}>{title}</Text>
@@ -225,7 +298,7 @@ const DayDetailsSheet = ({
                                             <Text style={styles.faStatValue}>{toNumber(w?.reps)}</Text>
                                         </View>
                                     </View>
-                                </View>
+                                </Pressable>
                             );
                         })
                     )}
@@ -264,7 +337,36 @@ const DayDetailsSheet = ({
                             <Text style={[styles.btnText, styles.primaryText]}>Start Workout</Text>
                         </Pressable>
                     </View>
-                </View>
+                </Animated.View>
+
+                {/* Viewer overlay */}
+                <Animated.View style={[StyleSheet.absoluteFill, { opacity: viewerOpacity }]} pointerEvents={selectedWorkout ? "auto" : "none"}>
+                    {/* Simulated friend-view handle bar (yellow) */}
+                    {selectedWorkout && (
+                        <View style={styles.viewerHandleWrap}>
+                            <View style={styles.viewerHandleIndicator} />
+                        </View>
+                    )}
+                    {!selectedWorkout || !viewerReady ? null : (
+                        <View style={{ flex: 1 }}>
+                            <NewWorkoutModal
+                                timerRef={timerRef}
+                                workout={selectedWorkout}
+                                cancelWorkout={() => {}}
+                                updateWorkout={() => {}}
+                                finishWorkout={() => {}}
+                                showGroupModal={() => {}}
+                                userWorkoutStats={global?.userData?.statsExercises || {}}
+                                onPressBack={closeViewer}
+                                onCheer={() => {}}
+                                onCopyTemplate={undefined}
+                                forceViewingFriend={String(selectedWorkout.__friendUid || selectedWorkout.creatorUID || "")}
+                                friendPfp={selectedWorkout.__friendPfp || null}
+                                streamLive={false}
+                            />
+                        </View>
+                    )}
+                </Animated.View>
             </BottomSheet>
         </View>
     );
@@ -284,7 +386,10 @@ const styles = StyleSheet.create({
         marginBottom: 6,
     },
     card: { flex: 1, paddingHorizontal: 16, paddingTop: 6, paddingBottom: 16 },
-    title: { fontFamily: "Outfit_700Bold", fontSize: 18, color: "#0F172A", marginBottom: 10 },
+    // Match MacroTracking DateHeader typography
+    title: { flex: 1, fontFamily: "Nunito_800ExtraBold", fontSize: 16, color: "#0F172A", textAlign: "center" },
+    dateHeaderRow: { flexDirection: "row", alignItems: "center", marginBottom: 10 },
+    dateNavBtn: { width: 36, height: 36, alignItems: "center", justifyContent: "center" },
 
     sectionHdrRow: { marginTop: 6, marginBottom: 6, flexDirection: "row", alignItems: "flex-end", justifyContent: "space-between" },
     sectionHdr: { fontFamily: "Outfit_700Bold", fontSize: 14.5, color: "#0F172A" },
@@ -382,6 +487,24 @@ const styles = StyleSheet.create({
     secondary: { backgroundColor: "#EEF2FF" },
     secondaryText: { color: "#0F172A" },
     btnText: { fontFamily: "Outfit_700Bold", fontSize: 14 },
+    // Friend-view handle accents (top of viewer overlay)
+    viewerHandleWrap: {
+        paddingTop: 8,
+        paddingBottom: 6,
+        alignItems: 'center',
+        justifyContent: 'center',
+        backgroundColor: HANDLE_FRIEND_BACKGROUND,
+        borderTopLeftRadius: 20,
+        borderTopRightRadius: 20,
+        // align visually with hidden handle spacing
+        marginTop: 0,
+    },
+    viewerHandleIndicator: {
+        width: 40,
+        height: 4,
+        borderRadius: 999,
+        backgroundColor: HANDLE_FRIEND_ACCENT,
+    },
 });
 
 export default memo(DayDetailsSheet);

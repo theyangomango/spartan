@@ -19,6 +19,7 @@ export default function NutritionSummaryCard({ totals, goals, COLORS }) {
                         lineCap="round"
                         arcSweepAngle={360}
                         rotation={0}
+                        duration={0}
                     >
                         {() => (
                             <View style={styles.center}>
@@ -65,4 +66,3 @@ const makeStyles = (COLORS) =>
         subtitle: { fontSize: 12.5, color: COLORS.subtext, fontFamily: 'Outfit_500Medium', marginBottom: 4 },
         macroSummary: { flex: 1, paddingTop: 2 },
     });
-

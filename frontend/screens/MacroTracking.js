@@ -18,7 +18,7 @@ import snacksIcon from '../assets/snacks.png'
 import FoodSearchOverlay from '../components/2_MacroTracking/FoodSearchOverlay';
 import MacroGoalsSheet from '../components/2_MacroTracking/MacroGoalsSheet';
 
-import { useFoodLogs } from '../hooks/useFoodLogs';
+import { useFoodLogs, primeFoodLogsCache } from '../hooks/useFoodLogs';
 import PersonalInfoSheet from '../components/2_MacroTracking/PersonalInfoSheet';
 
 // 🔥 Firestore (load + save macro goals)
@@ -116,6 +116,13 @@ export default function MacroTracking({ navigation }) {
         return () => unsub && unsub();
     }, [logsReady]);
 
+    // Warm cache around the focused date for smoother navigation (±2 days).
+    // Run regardless of logsReady so the cache is primed before subscribing.
+    useEffect(() => {
+        const uid = global?.userData?.uid || global?.userData?.id;
+        if (uid) primeFoodLogsCache(uid, focusedDate, 7);
+    }, [focusedDate]);
+
     const [goalsSheetIndex, setGoalsSheetIndex] = useState(-1);
     const [personalSheetIndex, setPersonalSheetIndex] = useState(-1);
 
@@ -137,6 +144,10 @@ export default function MacroTracking({ navigation }) {
     const shiftDate = (days) => {
         const d = new Date(focusedDate);
         d.setDate(d.getDate() + days);
+        try {
+            const uidX = global?.userData?.uid || global?.userData?.id;
+            if (uidX) primeFoodLogsCache(uidX, d, 7);
+        } catch {}
         setFocusedDate(d);
     };
 
