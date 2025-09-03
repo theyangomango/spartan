@@ -267,7 +267,7 @@ const FriendPanel = memo(({ item, now, onSelect }) => {
 });
 
 /* ---------------- sheet ---------------- */
-const FriendsActivitySheet = ({ visible, openToggle, items = [], onClose, onViewed, onCopyTemplate }) => {
+const FriendsActivitySheet = ({ visible, openToggle, items = [], onClose, onViewed, onCopyTemplate, focusUid, onConsumedFocus }) => {
   const bottomSheetRef = useRef(null);
   const cacheRef = useRef([]);
 
@@ -374,25 +374,41 @@ const FriendsActivitySheet = ({ visible, openToggle, items = [], onClose, onView
     return () => clearInterval(id);
   }, [hasLive, selectedItem]);
 
+  // Close when parent hides; opening is driven solely by the toggle flag
   useEffect(() => {
-    if (!bottomSheetRef.current || typeof visible === "undefined") return;
-    if (visible) bottomSheetRef.current.expand();
-    else bottomSheetRef.current.close();
+    if (!bottomSheetRef.current) return;
+    if (!visible) {
+      try { bottomSheetRef.current.close(); } catch {}
+    }
   }, [visible]);
 
+  // Open via a boolean toggle flag only; independent of `visible` truthiness
   useEffect(() => {
-    if (!bottomSheetRef.current || !visible) return;
-    bottomSheetRef.current.expand();
-  }, [openToggle, visible]);
+    if (!bottomSheetRef.current) return;
+    try { bottomSheetRef.current.expand(); } catch {}
+  }, [openToggle]);
 
-  const viewedOnceRef = useRef(false);
+  // Fire onViewed each time the sheet is toggled open
   useEffect(() => {
-    if (!visible) { viewedOnceRef.current = false; return; }
-    if (!viewedOnceRef.current) {
-      viewedOnceRef.current = true;
-      try { onViewed?.(); } catch { }
-    }
-  }, [visible, openToggle, onViewed]);
+    try { onViewed?.(); } catch {}
+  }, [openToggle, onViewed]);
+
+  // If a specific friend uid is provided, auto-open the viewer focused on that friend
+  const consumedFocusRef = useRef("");
+  useEffect(() => {
+    const target = String(focusUid || "").trim();
+    if (!target || consumedFocusRef.current === target) return;
+    const it = (sortedItems || []).find((x) => String(x?.uid) === target);
+    if (!it) return; // wait until items are available
+    try { bottomSheetRef.current?.expand?.(); } catch {}
+    // Slight delay to ensure the sheet is fully presented before animating the viewer
+    const id = setTimeout(() => {
+      openViewer(it, it?.pfp || it?.pfpUrl || it?.photoURL || null);
+      consumedFocusRef.current = target;
+      try { onConsumedFocus?.(); } catch {}
+    }, 40);
+    return () => clearTimeout(id);
+  }, [openToggle, focusUid, sortedItems, openViewer, onConsumedFocus]);
 
   const renderBackdrop = useCallback(
     (props) => (

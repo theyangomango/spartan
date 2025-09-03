@@ -13,21 +13,21 @@ export default function MiniPodium({ data = [] }) {
     return (
         <View style={styles.podiumRow}>
             <View style={styles.col}>
-                <Avatar uri={data[1]?.pfp} ring="#E5E7EB" />
+                <Avatar uri={data[1]?.pfp} ring="#d4d4d4ff" />
                 <View style={[styles.plinth, { height: H_L, backgroundColor: "#E8EEF9" }]}>
                     <View style={[styles.medalDot, { backgroundColor: "#c5c9d1ff" }]} />
                 </View>
             </View>
 
             <View style={[styles.col, { marginHorizontal: 10 }]}>
-                <Avatar uri={data[0]?.pfp} ring="#FDE68A" />
+                <Avatar uri={data[0]?.pfp} ring="#ffe08bff" />
                 <View style={[styles.plinth, { height: H_C, backgroundColor: "#E8EEF9" }]}>
                     <View style={[styles.medalDot, { backgroundColor: "#ffdd61ff" }]} />
                 </View>
             </View>
 
             <View style={styles.col}>
-                <Avatar uri={data[2]?.pfp} ring="#FCD5A5" />
+                <Avatar uri={data[2]?.pfp} ring="#ffbb69ff" />
                 <View style={[styles.plinth, { height: H_R, backgroundColor: "#E8EEF9" }]}>
                     <View style={[styles.medalDot, { backgroundColor: "#ffba98ff" }]} />
                 </View>
@@ -37,7 +37,7 @@ export default function MiniPodium({ data = [] }) {
 }
 
 function Avatar({ uri, ring = "#E5E7EB" }) {
-    const S = ss(36);
+    const S = ss(38);
     return (
         <View style={[styles.avatarWrap, { width: S, height: S, borderColor: ring }]}>
             {uri ? (
@@ -57,7 +57,7 @@ const styles = StyleSheet.create({
     podiumRow: { flexDirection: "row", alignItems: "flex-end", justifyContent: "space-between", paddingHorizontal: 6 },
     col: { flex: 1, alignItems: "center" },
     avatarWrap: {
-        borderWidth: 2.5,
+        borderWidth: 3.5,
         borderRadius: 999,
         backgroundColor: "#FFFFFF",
         marginBottom: 6,
@@ -74,5 +74,5 @@ const styles = StyleSheet.create({
             android: { elevation: 1 },
         }),
     },
-    medalDot: { width: 14, height: 14, borderRadius: 7 },
+    medalDot: { width: 16, height: 16, borderRadius: 8 },
 });

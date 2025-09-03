@@ -165,6 +165,20 @@ function Chip({ ev, navigation, onPressChip }) {
 
     const handlePress = () => {
         if (onPressChip) return onPressChip(ev);
+
+        // If this chip represents a workout event, jump to the Workout tab
+        // and request the FriendsActivitySheet to open.
+        if (ev?.type === "workout") {
+            try {
+                navigation?.navigate?.('Workout', {
+                    screen: 'Workout',
+                    params: { openFriends: true, focusFriendUid: String(ev?.uid || ''), _t: Date.now() },
+                });
+                return;
+            } catch {}
+        }
+
+        // Otherwise, default to profile navigation
         const user = { uid: ev?.uid, name: ev?.name, handle: ev?.handle };
         navigation?.navigate?.(
             ev?.uid === global?.userData?.uid ? "Profile" : "ViewProfile",

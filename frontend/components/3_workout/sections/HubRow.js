@@ -6,6 +6,7 @@ import { ss } from "./workoutTheme"; // keep path consistent with your project
 import MiniPodium from "./MiniPodium";
 import { navigationRef } from "../../../../navigationRef";
 import { StackActions } from "@react-navigation/native";
+import scaleSize from "../../../helper/scaleSize";
 // Removed unused bounceable/touchable imports to keep things lean
 
 const PodiumPreview = memo(function PodiumPreview({ top3 = [] }) {
@@ -151,7 +152,7 @@ const styles = StyleSheet.create({
     chevronRight: { color: "#94A3B8", fontSize: 18, lineHeight: 18, includeFontPadding: false },
     chevronLeft: { color: "#94A3B8", fontSize: 18, lineHeight: 18, includeFontPadding: false },
 
-    ringWrap: { alignItems: "center", justifyContent: "center" },
+    ringWrap: { alignItems: "center", justifyContent: "center", marginTop: scaleSize(5) },
     ringCenter: { alignItems: "center", justifyContent: "center" },
     kcalValue: { color: "#0F172A", fontSize: ss(26), fontFamily: "Outfit_800ExtraBold", marginTop: -3, letterSpacing: 0.2 },
     kcalSub: { color: "#64748B", fontSize: ss(12.5), fontFamily: "Outfit_600SemiBold" },

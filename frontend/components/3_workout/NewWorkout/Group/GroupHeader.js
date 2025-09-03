@@ -144,16 +144,16 @@ const styles = StyleSheet.create({
     rest_timer_ctnr: {
         alignItems: "center",
         paddingVertical: scaledSize(6),
-        paddingHorizontal: scaledSize(10),
+        paddingHorizontal: scaledSize(12),
         borderRadius: scaledSize(12),
         backgroundColor: "#E1F0FF",
     },
     iconWrapper: { flexDirection: "row", alignItems: "center" },
     countdownText: {
-        fontSize: scaledSize(16),
+        fontSize: scaledSize(15),
         color: "#0499FE",
         fontFamily: "Outfit_700Bold",
-        marginLeft: scaledSize(6),
+        marginLeft: scaledSize(10),
     },
 
     // Center timer
@@ -169,7 +169,7 @@ const styles = StyleSheet.create({
         backgroundColor: "#FFE8BC",
         justifyContent: "center",
         alignItems: "center",
-        marginRight: scaledSize(10),
+        marginRight: scaledSize(6),
     },
     pfpFriend: { backgroundColor: "#E1F0FF" },
 
@@ -193,17 +193,17 @@ const styles = StyleSheet.create({
 
     // Self: Finish
     finish_btn: {
-        width: scaledSize(80),
-        height: scaledSize(35),
-        borderRadius: scaledSize(12),
-        backgroundColor: "#DCFFE3",
+        width: scaledSize(83),
+        height: scaledSize(34),
+        borderRadius: scaledSize(10),
+        backgroundColor: "#45d282e3",
         justifyContent: "center",
         alignItems: "center",
     },
     finish_btn_text: {
-        fontFamily: "Outfit_700Bold",
-        fontSize: scaledSize(15.5),
-        color: "#40D99B",
+        fontFamily: "Mulish_800ExtraBold",
+        fontSize: scaledSize(14),
+        color: "#ffffff",
     },
 
     // Viewing: sleeker Cheer pill
@@ -231,7 +231,7 @@ const styles = StyleSheet.create({
     copy_btn: {
         height: scaledSize(32),
         paddingHorizontal: scaledSize(12),
-        borderRadius: scaledSize(999),
+        borderRadius: scaledSize(15),
         backgroundColor: "#2D9EFF",
         flexDirection: "row",
         alignItems: "center",

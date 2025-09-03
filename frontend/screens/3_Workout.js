@@ -186,7 +186,7 @@ export default function Workout({ navigation, route }) {
             }));
             const newTemplate = { id: tid, tid, name, exercises, lastDate: null };
             const prev = Array.isArray(user?.templates) ? user.templates : [];
-            updateDoc("users", uid, { templates: [...prev, newTemplate] }).catch(() => {});
+            updateDoc("users", uid, { templates: [...prev, newTemplate] }).catch(() => { });
             showTemplateToast("Template copied ✓");
         } catch (e) {
             console.log("handleCopyTemplate error", e);
@@ -200,6 +200,7 @@ export default function Workout({ navigation, route }) {
     const { items: friendsActivity, refresh: refreshFriends } = useFriendsActivity(user);
     const [friendsSheetVisible, setFriendsSheetVisible] = useState(false);
     const [friendsSheetToggle, setFriendsSheetToggle] = useState(false);
+    const [focusFriendUid, setFocusFriendUid] = useState(null);
     useEffect(() => { refreshFriends(); }, [refreshFriends]);
     useEffect(() => { if (friendsSheetVisible) refreshFriends(); }, [friendsSheetVisible, refreshFriends]);
 
@@ -287,15 +288,26 @@ export default function Workout({ navigation, route }) {
     // Header search users (shared hook)
     const { allUsersRef, mergeUsersIntoRef } = useHeaderSearchUsers({ following: global?.userData?.following, enablePrefetch: true });
 
-    /* ---------- Auto-open current workout when navigated with intent ---------- */
+    /* ---------- Auto-open current workout or friends sheet when navigated with intent ---------- */
     useEffect(() => {
-        const shouldOpen = !!route?.params?.openCurrent;
-        if (shouldOpen && hasActiveWorkout) {
+        const shouldOpenWorkout = !!route?.params?.openCurrent;
+        if (shouldOpenWorkout && hasActiveWorkout) {
             const id = setTimeout(() => setIsNewWorkoutVisible(true), 60);
             navigation.setParams({ openCurrent: false });
             return () => clearTimeout(id);
         }
-    }, [route?.params?.openCurrent, route?.params?._t, hasActiveWorkout, navigation, setIsNewWorkoutVisible]);
+
+        if (route?.params?.openFriends) {
+            const id = setTimeout(() => {
+                setFriendsSheetVisible(true);
+                setFriendsSheetToggle((f) => !f);
+                const uidHint = route?.params?.focusFriendUid;
+                if (uidHint) setFocusFriendUid(String(uidHint));
+            }, 30);
+            navigation.setParams({ openFriends: false, focusFriendUid: undefined });
+            return () => clearTimeout(id);
+        }
+    }, [route?.params?.openCurrent, route?.params?.openFriends, route?.params?.focusFriendUid, route?.params?._t, hasActiveWorkout, navigation, setIsNewWorkoutVisible]);
 
     // Also react immediately on focus transitions (e.g., when tab is already mounted)
     useFocusEffect(
@@ -306,6 +318,13 @@ export default function Workout({ navigation, route }) {
                 navigation.setParams({ openCurrent: false });
                 return () => clearTimeout(id);
             }
+            if (route?.params?.openFriends) {
+                setFriendsSheetVisible(true);
+                setFriendsSheetToggle((f) => !f);
+                const uidHint = route?.params?.focusFriendUid;
+                if (uidHint) setFocusFriendUid(String(uidHint));
+                navigation.setParams({ openFriends: false, focusFriendUid: undefined });
+            }
             // Global signal trigger (fallback when params don't propagate)
             const lastRef = openSignalRef.current || 0;
             const sig = Number(global?.openCurrentWorkoutSignal || 0);
@@ -314,7 +333,7 @@ export default function Workout({ navigation, route }) {
                 const id = setTimeout(() => setIsNewWorkoutVisible(true), 30);
                 return () => clearTimeout(id);
             }
-        }, [route?.params?.openCurrent, hasActiveWorkout, navigation])
+        }, [route?.params?.openCurrent, route?.params?.openFriends, route?.params?.focusFriendUid, hasActiveWorkout, navigation])
     );
 
     /* ---------- New workout from current template selection ---------- */
@@ -378,16 +397,16 @@ export default function Workout({ navigation, route }) {
                 reps: 0,
                 PBs: 0,
             };
-            try { global.isCurrentlyWorkingOut = true; } catch {}
-            try { if (global?.userData) global.userData.currentWorkout = joined; } catch {}
+            try { global.isCurrentlyWorkingOut = true; } catch { }
+            try { if (global?.userData) global.userData.currentWorkout = joined; } catch { }
             try {
                 if (typeof joinExternalWorkout === "function") {
                     await joinExternalWorkout({ wid, seedWorkout: seed || joined, inviterUid: currentInvite?.fromUid });
                 } else {
-                    try { useWorkoutStore.setState({ workout: joined }); } catch {}
+                    try { useWorkoutStore.setState({ workout: joined }); } catch { }
                 }
             } catch {
-                try { useWorkoutStore.setState({ workout: joined }); } catch {}
+                try { useWorkoutStore.setState({ workout: joined }); } catch { }
             }
             setIsNewWorkoutVisible(true);
         },
@@ -444,7 +463,7 @@ export default function Workout({ navigation, route }) {
                         try {
                             const uidX = global?.userData?.uid || global?.userData?.id || uid;
                             if (uidX) primeFoodLogsCache(uidX, d, 7);
-                        } catch {}
+                        } catch { }
                         setDaySheetDate(d);
                         setDaySheetVisible(true);
                         setDaySheetToggle((f) => !f);
@@ -512,7 +531,7 @@ export default function Workout({ navigation, route }) {
                         try {
                             const uidX = global?.userData?.uid || global?.userData?.id || uid;
                             if (uidX) primeFoodLogsCache(uidX, d, 7);
-                        } catch {}
+                        } catch { }
                         try {
                             const nd = new Date(d);
                             if (!Number.isNaN(nd.getTime())) nd.setHours(0, 0, 0, 0);
@@ -528,7 +547,7 @@ export default function Workout({ navigation, route }) {
                                 navigationRef.dispatch(StackActions.push('MacroTrackingOverlay'));
                                 return;
                             }
-                        } catch {}
+                        } catch { }
                         try {
                             const rootNav = navigation?.getParent?.('ROOT');
                             if (rootNav?.push) rootNav.push('MacroTrackingOverlay');
@@ -546,6 +565,8 @@ export default function Workout({ navigation, route }) {
                 <FriendsActivitySheet
                     visible={friendsSheetVisible}
                     openToggle={friendsSheetToggle}
+                    focusUid={focusFriendUid}
+                    onConsumedFocus={() => setFocusFriendUid(null)}
                     items={friendsActivity}
                     lastViewedAt={user?.friendsActivityLastViewedAt}
                     onViewed={markFriendsViewed}

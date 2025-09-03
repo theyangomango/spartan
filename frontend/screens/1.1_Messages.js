@@ -72,13 +72,19 @@ export default function Messages({ navigation, route }) {
     }, [chats.map((c) => c.cid).join("|")]);
 
     const toFeedScreen = () => {
-        if (route?.params?.returnTo === 'Workout') {
-            // When opened from the Workout stack, simply go back to Workout
-            navigation.goBack();
-        } else {
-            // Default behavior (opened from Feed stack): go back to Feed
-            navigation.navigate("Feed", { messages: chats });
-        }
+        // Prefer a real back action so we return to the exact previous screen
+        // (Workout or Feed, depending on where Messages was opened from)
+        try {
+            if (navigation.canGoBack && navigation.canGoBack()) {
+                navigation.goBack();
+                return;
+            }
+        } catch {}
+
+        // Fallback: navigate explicitly based on hint or default to Feed
+        const hint = route?.params?.returnTo;
+        const dest = hint === 'Workout' ? 'Workout' : 'Feed';
+        navigation.navigate(dest, dest === 'Feed' ? { messages: chats } : undefined);
     };
 
     const toChat = (key, usersExcludingSelf) => {
