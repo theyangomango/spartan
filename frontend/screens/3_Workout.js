@@ -487,8 +487,8 @@ export default function Workout({ navigation, route }) {
             {/* Notifications (same UX as Feed) */}
             <NotificationsBottomSheet notificationsBottomSheetExpandFlag={notificationsBottomSheetExpandFlag} />
 
-            {/* Day details */}
-            {daySheetVisible && (
+            {/* Day details (always mounted so ref is ready on first open) */}
+            <View style={StyleSheet.absoluteFill} pointerEvents={daySheetVisible ? "auto" : "none"}>
                 <DayDetailsSheet
                     visible={daySheetVisible}
                     openToggle={daySheetToggle}
@@ -518,7 +518,7 @@ export default function Workout({ navigation, route }) {
                         }
                     }}
                 />
-            )}
+            </View>
 
             {/* Friends sheet */}
             <View style={StyleSheet.absoluteFill} pointerEvents={friendsSheetVisible ? "auto" : "none"}>
