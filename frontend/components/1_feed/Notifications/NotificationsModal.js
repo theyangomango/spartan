@@ -20,20 +20,17 @@ export default function NotificationsModal({ visible, uid }) {
     const [newComments, setNewComments] = useState(0);
 
     useEffect(() => {
-        if (!visible) return;
-        const effUid = uid || global.userData?.uid;
+        const effUid = uid || global?.userData?.uid;
         if (!effUid) return;
 
         const notifRef = collection(db, "users", effUid, "notifications");
         const notifQuery = query(notifRef, orderBy("timestamp", "desc"), limit(PAGE_SIZE));
-        return onSnapshot(notifQuery, (snapshot) => {
+        const unsub = onSnapshot(notifQuery, (snapshot) => {
             const docs = snapshot.docs.map((d) => ({ id: d.id, ...(d.data() || {}) }));
             setEvents(docs);
             setRefreshTick((t) => t + 1);
-            // ensure the list re-measures and stays at top on first load
             try { listRef.current?.scrollToOffset?.({ offset: 0, animated: false }); } catch {}
 
-            // Count unread likes/comments until first read
             let likes = 0;
             let comments = 0;
             for (const doc of docs) {
@@ -44,7 +41,9 @@ export default function NotificationsModal({ visible, uid }) {
             setNewLikes(likes);
             setNewComments(comments);
         });
-    }, [visible, uid]);
+
+        return () => { try { unsub(); } catch {} };
+    }, [uid, visible, global?.userData?.uid]);
 
     // --- time grouping helpers (reference FriendsActivitySheet) ---
     const toMillis = (ts) => {

@@ -16,7 +16,7 @@ const fmt = (d) =>
             weekday: "short",
             month: "short",
             day: "numeric",
-            year: "numeric",
+            // year: "numeric",
         })
         : "";
 
