@@ -3,13 +3,19 @@ import { StyleSheet } from "react-native";
 import BottomSheet, { BottomSheetBackdrop } from "@gorhom/bottom-sheet";
 import PreviewPhotosModal from "./PreviewPhotosModal";
 
-const PreviewPhotosBottomSheet = ({ assets, images, setImages }) => {
+const PreviewPhotosBottomSheet = ({ assets, images, selectedOrderMap, toggleSelect, loadMoreAssets, loading, hasNextPage, clearSelection }) => {
     const bottomSheetRef = useRef(null);
-    const snapPoints = useMemo(() => ["35", "94%"], []);
+    const snapPoints = useMemo(() => ["35%", "94%"], []);
 
     const handleSheetChanges = useCallback((index) => {
-        console.log("handleSheetChanges", index);
-    }, []);
+        // Warm up by loading the next 1-2 pages when fully expanded.
+        if (index === 1 && hasNextPage && !loading) {
+            loadMoreAssets();
+            setTimeout(() => {
+                if (hasNextPage && !loading) loadMoreAssets();
+            }, 50);
+        }
+    }, [hasNextPage, loading, loadMoreAssets]);
 
     const renderBackdrop = useCallback(
         (props) => (
@@ -32,9 +38,20 @@ const PreviewPhotosBottomSheet = ({ assets, images, setImages }) => {
             onChange={handleSheetChanges}
             onClose={() => {
             }}
+            backgroundStyle={styles.background}
             handleStyle={styles.handle}
+            handleIndicatorStyle={styles.handleIndicator}
         >
-            <PreviewPhotosModal assets={assets} images={images} setImages={setImages} />
+            <PreviewPhotosModal
+                assets={assets}
+                images={images}
+                selectedOrderMap={selectedOrderMap}
+                toggleSelect={toggleSelect}
+                loadMoreAssets={loadMoreAssets}
+                loading={loading}
+                hasNextPage={hasNextPage}
+                clearSelection={clearSelection}
+            />
         </BottomSheet>
     );
 };
@@ -42,9 +59,19 @@ const PreviewPhotosBottomSheet = ({ assets, images, setImages }) => {
 export default React.memo(PreviewPhotosBottomSheet);
 
 const styles = StyleSheet.create({
+    background: {
+        backgroundColor: '#f3f3f3',
+        borderTopLeftRadius: 22,
+        borderTopRightRadius: 22,
+    },
     handle: {
-        backgroundColor: '#e7e7e7',
-        borderTopLeftRadius: 25,
-        borderTopRightRadius: 25,
-    }
+        backgroundColor: 'transparent',
+        paddingVertical: 6,
+    },
+    handleIndicator: {
+        width: 36,
+        height: 4,
+        borderRadius: 3,
+        backgroundColor: '#CFCFCF',
+    },
 })

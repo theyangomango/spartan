@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useEffect, useMemo, useState, useCallback } from 'react';
 import { Text, View, StyleSheet, TouchableOpacity, Image, Dimensions, SafeAreaView } from 'react-native';
 import { FontAwesome6, Ionicons } from '@expo/vector-icons';
 import * as MediaLibrary from 'expo-media-library';
@@ -12,20 +12,54 @@ const scaledSize = (size) => Math.round(size * scale);
 
 export default function SelectPhotosScreen({ navigation, route }) {
     const [assets, setAssets] = useState([]);
-    const [images, setImages] = useState([]);
+    const [images, setImages] = useState([]); // selected URIs, ordered
+    const [loading, setLoading] = useState(false);
+    const [endCursor, setEndCursor] = useState(null);
+    const [hasNextPage, setHasNextPage] = useState(true);
     const [permissionResponse, requestPermission] = MediaLibrary.usePermissions();
 
     useEffect(() => {
-        getAssets();
+        getInitialAssets();
     }, []);
 
-    async function getAssets() {
-        if (!permissionResponse || permissionResponse.status !== 'granted') {
-            await requestPermission();
+    const getInitialAssets = useCallback(async () => {
+        setLoading(true);
+        try {
+            if (!permissionResponse || permissionResponse.status !== 'granted') {
+                await requestPermission();
+            }
+            const res = await MediaLibrary.getAssetsAsync({
+                mediaType: ['photo'],
+                first: 120,
+                sortBy: MediaLibrary.SortBy.creationTime,
+            });
+            setAssets(res.assets || []);
+            setEndCursor(res.endCursor || null);
+            setHasNextPage(!!res.hasNextPage);
+        } finally {
+            setLoading(false);
         }
-        const fetchedObj = await MediaLibrary.getAssetsAsync({ mediaType: ['photo'], first: 10000 });
-        setAssets(fetchedObj.assets);
-    }
+    }, [permissionResponse, requestPermission]);
+
+    const loadMoreAssets = useCallback(async () => {
+        if (loading || !hasNextPage) return;
+        setLoading(true);
+        try {
+            const res = await MediaLibrary.getAssetsAsync({
+                mediaType: ['photo'],
+                first: 120,
+                sortBy: MediaLibrary.SortBy.creationTime,
+                after: endCursor || undefined,
+            });
+            if (res?.assets?.length) setAssets(prev => [...prev, ...res.assets]);
+            setEndCursor(res.endCursor || null);
+            setHasNextPage(!!res.hasNextPage);
+        } finally {
+            setLoading(false);
+        }
+    }, [endCursor, hasNextPage, loading]);
+
+    // React Native Image handles PhotoKit thumbnails adequately; no explicit prefetch here.
 
     function goBack() {
         try { navigation.navigate('Profile'); }
@@ -41,7 +75,24 @@ export default function SelectPhotosScreen({ navigation, route }) {
         });
     }
 
-    const selectedImages = images.length > 0 ? images.map((img, index) => ({ uri: img })) : assets.map((asset) => ({ uri: asset.uri }));
+    const selectedImages = images.length > 0 ? images.map((img, index) => ({ uri: img })) : [];
+
+    const selectedOrderMap = useMemo(() => {
+        const map = new Map();
+        images.forEach((uri, idx) => map.set(uri, idx + 1));
+        return map;
+    }, [images]);
+
+    const toggleSelect = useCallback((uri) => {
+        setImages(prev => {
+            const idx = prev.indexOf(uri);
+            if (idx === -1) return [...prev, uri];
+            // remove
+            const next = prev.slice();
+            next.splice(idx, 1);
+            return next;
+        });
+    }, []);
 
     return (
         <SafeAreaView style={styles.container}>
@@ -69,7 +120,7 @@ export default function SelectPhotosScreen({ navigation, route }) {
                         renderItem={({ item, setImageDimensions }) => (
                             <Image
                                 source={{ uri: item.uri }}
-                                style={{ width: '100%', aspectRatio: 0.8 }}
+                                style={{ width: '100%', aspectRatio: 0.8, borderRadius: 16 }}
                                 onLoad={(e) => {
                                     const { width, height } = e.nativeEvent.source;
                                     setImageDimensions({ width, height });
@@ -87,12 +138,21 @@ export default function SelectPhotosScreen({ navigation, route }) {
                 ) : assets.length > 0 ? (
                     <Image
                         source={{ uri: assets[0].uri }}
-                        style={{ width: '100%', aspectRatio: 0.8 }}
+                        style={{ width: '100%', aspectRatio: 0.8, borderRadius: 16 }}
                     />
                 ) : null}
             </View>
 
-            <PreviewPhotosBottomSheet assets={assets} images={images} setImages={setImages} />
+            <PreviewPhotosBottomSheet
+                assets={assets}
+                images={images}
+                selectedOrderMap={selectedOrderMap}
+                toggleSelect={toggleSelect}
+                loadMoreAssets={loadMoreAssets}
+                loading={loading}
+                hasNextPage={hasNextPage}
+                clearSelection={() => setImages([])}
+            />
         </SafeAreaView>
     );
 }
@@ -126,10 +186,11 @@ const styles = StyleSheet.create({
     preview_ctnr: {
         width: '100%',
         aspectRatio: 0.8,
-        backgroundColor: '#aaa'
+        backgroundColor: '#d9d9d9',
+        borderRadius: 16,
+        overflow: 'hidden'
     },
     preview_image: {
         flex: 1
     }
 });
-

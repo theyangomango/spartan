@@ -1,40 +1,119 @@
-import React from 'react';
-import { View, FlatList, StyleSheet } from 'react-native';
+import React, { useCallback, useMemo } from 'react';
+import { Dimensions, FlatList, StyleSheet, View, Text, ActivityIndicator, Pressable } from 'react-native';
 import PreviewPhoto from './PreviewPhoto';
 
-const PreviewPhotosModal = ({ assets, images, setImages }) => {
-    const renderPhoto = ({ item }) => (
-        <PreviewPhoto
-            uri={item.uri}
-            images={images}
-            setImages={setImages}
-        />
-    );
+const screenWidth = Dimensions.get('window').width;
+const NUM_COLUMNS = 3;
+const ITEM_SIZE = screenWidth / NUM_COLUMNS;
+
+const PreviewPhotosModal = ({ assets, images, selectedOrderMap, toggleSelect, loadMoreAssets, loading, hasNextPage, clearSelection }) => {
+    const selectedSet = useMemo(() => new Set(images), [images]);
+
+    const renderPhoto = useCallback(({ item }) => {
+        const selected = selectedSet.has(item.uri);
+        const order = selected ? (selectedOrderMap.get(item.uri) || 0) : 0;
+        return (
+            <PreviewPhoto
+                id={item.id}
+                uri={item.uri}
+                selected={selected}
+                order={order}
+                onToggle={toggleSelect}
+            />
+        );
+    }, [selectedSet, selectedOrderMap, toggleSelect]);
+
+    const keyExtractor = useCallback((item) => item.id, []);
+
+    // Avoid custom getItemLayout to prevent measurement mismatches inside BottomSheet transforms.
+
+    const onEndReached = useCallback(() => {
+        if (hasNextPage && !loading) loadMoreAssets();
+    }, [hasNextPage, loading, loadMoreAssets]);
 
     return (
-        <FlatList
-            data={assets}
-            renderItem={renderPhoto}
-            keyExtractor={(item, index) => index.toString()}
-            numColumns={3}
-            contentContainerStyle={styles.images_ctnr}
-            initialNumToRender={10}
-            maxToRenderPerBatch={10}
-            style={styles.flatlist}
-        />
+        <View style={styles.container}>
+            <View style={styles.headerRow}>
+                <Text style={styles.headerTitle}>All Photos</Text>
+                <View style={styles.headerRight}>
+                    {images.length > 0 && (
+                        <>
+                            <Pressable onPress={clearSelection} hitSlop={8} style={styles.clearBtnWrap}>
+                                <Text style={styles.clearBtn}>Clear</Text>
+                            </Pressable>
+                            <Text style={styles.selectionCount}>{images.length} selected</Text>
+                        </>
+                    )}
+                </View>
+            </View>
+            <FlatList
+                data={assets}
+                renderItem={renderPhoto}
+                keyExtractor={keyExtractor}
+                numColumns={NUM_COLUMNS}
+                extraData={images}
+                initialNumToRender={90}
+                maxToRenderPerBatch={90}
+                updateCellsBatchingPeriod={8}
+                windowSize={21}
+                removeClippedSubviews={false}
+                onEndReached={onEndReached}
+                onEndReachedThreshold={0.5}
+                ListFooterComponent={loading ? (
+                    <View style={{ paddingVertical: 12 }}>
+                        <ActivityIndicator color="#0699FF" />
+                    </View>
+                ) : null}
+                style={styles.flatlist}
+            />
+        </View>
     );
 }
 
 const styles = StyleSheet.create({
-    flatlist: {
-        backgroundColor: '#e7e7e7',
+    container: {
+        backgroundColor: '#f3f3f3',
+        flex: 1,
+        borderTopLeftRadius: 25,
+        borderTopRightRadius: 25,
+        overflow: 'hidden'
     },
-    images_header_ctnr: {},
-    images_header_text: {
-        fontFamily: 'Mulish_700Bold',
-        fontSize: 18,
+    flatlist: {
+        backgroundColor: '#f3f3f3',
+    },
+    headerRow: {
         paddingHorizontal: 12,
-        paddingVertical: 12,
+        paddingVertical: 10,
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        backgroundColor: '#f3f3f3',
+    },
+    headerTitle: {
+        fontFamily: 'Mulish_700Bold',
+        fontSize: 16,
+        color: '#333',
+    },
+    headerRight: {
+        flexDirection: 'row',
+        alignItems: 'center',
+    },
+    clearBtnWrap: {
+        paddingHorizontal: 6,
+        paddingVertical: 4,
+        borderRadius: 8,
+        backgroundColor: '#EDEDED',
+        marginRight: 6,
+    },
+    clearBtn: {
+        fontFamily: 'Mulish_700Bold',
+        fontSize: 12,
+        color: '#666',
+    },
+    selectionCount: {
+        fontFamily: 'Mulish_700Bold',
+        fontSize: 13,
+        color: '#0699FF',
     },
 });
 

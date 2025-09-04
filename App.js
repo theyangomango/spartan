@@ -113,6 +113,8 @@ export default function App() {
 
     useEffect(() => {
         // Expose a minimal auth setter so login/signup can notify App immediately
+        // AsyncStorage.clear();
+
         global.setAuthUid = (uid) => {
             try { if (uid) AsyncStorage.setItem('uid', uid).catch(() => {}); } catch {}
             uidRef.current = uid || null;
