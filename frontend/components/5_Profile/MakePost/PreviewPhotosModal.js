@@ -1,4 +1,4 @@
-import React, { useCallback, useMemo } from 'react';
+import React, { useCallback } from 'react';
 import { Dimensions, FlatList, StyleSheet, View, Text, ActivityIndicator, Pressable } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import PreviewPhoto from './PreviewPhoto';
@@ -8,11 +8,9 @@ const NUM_COLUMNS = 3;
 const ITEM_SIZE = screenWidth / NUM_COLUMNS;
 
 const PreviewPhotosModal = ({ assets, images, selectedOrderMap, toggleSelect, loadMoreAssets, loading, hasNextPage, clearSelection }) => {
-    const selectedSet = useMemo(() => new Set(images), [images]);
-
     const renderPhoto = useCallback(({ item }) => {
-        const selected = selectedSet.has(item.uri);
-        const order = selected ? (selectedOrderMap.get(item.uri) || 0) : 0;
+        const order = selectedOrderMap.get(item.uri) || 0;
+        const selected = order > 0;
         return (
             <PreviewPhoto
                 id={item.id}
@@ -22,11 +20,13 @@ const PreviewPhotosModal = ({ assets, images, selectedOrderMap, toggleSelect, lo
                 onToggle={toggleSelect}
             />
         );
-    }, [selectedSet, selectedOrderMap, toggleSelect]);
+    }, [selectedOrderMap, toggleSelect]);
 
     const keyExtractor = useCallback((item) => item.id, []);
-
-    // Avoid custom getItemLayout to prevent measurement mismatches inside BottomSheet transforms.
+    const getItemLayout = useCallback((_, index) => {
+        const row = Math.floor(index / NUM_COLUMNS);
+        return { length: ITEM_SIZE, offset: row * ITEM_SIZE, index };
+    }, []);
 
     const onEndReached = useCallback(() => {
         if (hasNextPage && !loading) loadMoreAssets();
@@ -53,12 +53,19 @@ const PreviewPhotosModal = ({ assets, images, selectedOrderMap, toggleSelect, lo
                 renderItem={renderPhoto}
                 keyExtractor={keyExtractor}
                 numColumns={NUM_COLUMNS}
-                extraData={images}
-                initialNumToRender={90}
-                maxToRenderPerBatch={90}
-                updateCellsBatchingPeriod={8}
-                windowSize={21}
+                extraData={selectedOrderMap}
+                initialNumToRender={48}
+                maxToRenderPerBatch={24}
+                updateCellsBatchingPeriod={12}
+                windowSize={9}
                 removeClippedSubviews={false}
+                getItemLayout={getItemLayout}
+                shouldItemUpdate={(prev, next) => {
+                    const uri = next.item?.uri;
+                    const prevOrder = prev.extraData?.get(uri) || 0;
+                    const nextOrder = next.extraData?.get(uri) || 0;
+                    return prevOrder !== nextOrder;
+                }}
                 onEndReached={onEndReached}
                 onEndReachedThreshold={0.5}
                 ListFooterComponent={loading ? (
