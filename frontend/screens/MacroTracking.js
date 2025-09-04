@@ -1,10 +1,10 @@
 // screens/MacroTracking.js
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { View, Text, StyleSheet, ScrollView, Pressable, UIManager, Platform, LayoutAnimation, InteractionManager } from 'react-native';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { Ionicons } from '@expo/vector-icons';
 
-import { searchFood } from './fatsecretClient';
+// search is handled inside FoodSearchOverlay to reduce re-renders
 import Footer from '../components/Footer';
 import PlusIcon from '../assets/PlusIcon';
 import DateHeader from '../components/2_MacroTracking/DateHeader';
@@ -128,15 +128,13 @@ export default function MacroTracking({ navigation }) {
 
     const [searchVisible, setSearchVisible] = useState(false);
     const [activeMeal, setActiveMeal] = useState(null);
-    const [searchQuery, setSearchQuery] = useState('');
-    const [searchResults, setSearchResults] = useState([]);
 
     const [collapsed, setCollapsed] = useState({ Breakfast: false, Lunch: false, Dinner: false });
 
-    const toggleMeal = (name) => {
+    const toggleMeal = useCallback((name) => {
         LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
         setCollapsed((prev) => ({ ...prev, [name]: !prev[name] }));
-    };
+    }, []);
 
     const formatDate = (date) =>
         date.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' });
@@ -151,19 +149,7 @@ export default function MacroTracking({ navigation }) {
         setFocusedDate(d);
     };
 
-    useEffect(() => {
-        if (!searchVisible) return;
-        if (searchQuery.trim().length > 0) {
-            searchFood(searchQuery)
-                .then((res) => {
-                    if (res?.foods && 'food' in res.foods) setSearchResults(res.foods.food);
-                    else setSearchResults([]);
-                })
-                .catch(() => setSearchResults([]));
-        } else {
-            setSearchResults([]);
-        }
-    }, [searchQuery, searchVisible]);
+    // Search is now fully managed inside FoodSearchOverlay
 
     // When opening the sheet, seed empty fields from the latest macroGoals
     useEffect(() => {
@@ -178,23 +164,19 @@ export default function MacroTracking({ navigation }) {
         }
     }, [goalsSheetIndex, macroGoals.calories, macroGoals.carbs, macroGoals.fat, macroGoals.protein]);
 
-    const openSearchForMeal = (meal) => {
+    const openSearchForMeal = useCallback((meal) => {
         setActiveMeal(meal?.name ?? null);
-        setSearchQuery('');
-        setSearchResults([]);
         setSearchVisible(true);
-    };
-    const closeSearch = () => {
+    }, []);
+    const closeSearch = useCallback(() => {
         setSearchVisible(false);
         setActiveMeal(null);
-        setSearchQuery('');
-        setSearchResults([]);
-    };
-    const onSelectResult = async (food) => {
+    }, []);
+    const onSelectResult = useCallback(async (food) => {
         if (!activeMeal) return;
         await addFood(activeMeal, food);
         closeSearch();
-    };
+    }, [activeMeal, addFood, closeSearch]);
 
     const openGoalsSheet = () => setGoalsSheetIndex(1);
     const closeGoalsSheet = () => setGoalsSheetIndex(-1);
@@ -274,9 +256,6 @@ export default function MacroTracking({ navigation }) {
                 <FoodSearchOverlay
                     visible={searchVisible}
                     activeMeal={activeMeal}
-                    searchQuery={searchQuery}
-                    setSearchQuery={setSearchQuery}
-                    searchResults={searchResults}
                     onClose={closeSearch}
                     COLORS={COLORS}
                     onSelectResult={onSelectResult}

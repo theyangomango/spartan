@@ -1,5 +1,5 @@
 // components/2_MacroTracking/FoodSearchOverlay.js
-import React, { useMemo, useEffect, useState, useCallback } from 'react';
+import React, { useMemo, useEffect, useState, useCallback, useRef } from 'react';
 import {
     View,
     Text,
@@ -11,11 +11,13 @@ import {
     Platform,
     FlatList,
     Keyboard,
+    InteractionManager,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import SearchResultCard from './SearchResultCard';
 import PortionPickerModal from './PortionPickerModal';
 import QuickAddModal from './QuickAddModal';
+import { searchFood } from '../../screens/fatsecretClient';
 
 // 🔥 FIREBASE (adjust path if your firebase.config is elsewhere)
 import { db } from '../../../firebase.config';
@@ -24,9 +26,6 @@ import { collection, getDocs, orderBy, query, limit } from 'firebase/firestore';
 export default function FoodSearchOverlay({
     visible,
     activeMeal,
-    searchQuery,
-    setSearchQuery,
-    searchResults,
     onClose,
     COLORS,
     onSelectResult, // parent still handles add + closing overlay
@@ -35,6 +34,10 @@ export default function FoodSearchOverlay({
 
     // ---- Recent foods state
     const [recentFoods, setRecentFoods] = useState([]);
+    const [query, setQuery] = useState('');
+    const [results, setResults] = useState([]);
+    const [loading, setLoading] = useState(false);
+    const inputRef = useRef(null);
 
     const loadRecentFoods = useCallback(async () => {
         try {
@@ -59,8 +62,39 @@ export default function FoodSearchOverlay({
 
     useEffect(() => {
         if (!visible) return;
-        loadRecentFoods();
+        const task = InteractionManager.runAfterInteractions(() => {
+            loadRecentFoods();
+            // Reset state for a fresh session and focus the input after animation completes
+            setQuery('');
+            setResults([]);
+            setLoading(false);
+            // slight timeout to allow Modal to attach before focusing
+            setTimeout(() => inputRef.current?.focus?.(), 40);
+        });
+        return () => task?.cancel?.();
     }, [visible, loadRecentFoods]);
+
+    // Debounced search to avoid spamming network and re-renders
+    useEffect(() => {
+        if (!visible) return;
+        const q = (query || '').trim();
+        if (q.length === 0) { setResults([]); setLoading(false); return; }
+        let cancelled = false;
+        const handle = setTimeout(async () => {
+            try {
+                setLoading(true);
+                const res = await searchFood(q);
+                if (cancelled) return;
+                if (res?.foods && 'food' in res.foods) setResults(res.foods.food);
+                else setResults([]);
+            } catch {
+                if (!cancelled) setResults([]);
+            } finally {
+                if (!cancelled) setLoading(false);
+            }
+        }, 250);
+        return () => { cancelled = true; clearTimeout(handle); };
+    }, [query, visible]);
 
     /* ---------------- Portion picker (for search results) ---------------- */
     const [portionVisible, setPortionVisible] = useState(false);
@@ -74,11 +108,11 @@ export default function FoodSearchOverlay({
     const closeQuick = () => { Keyboard.dismiss(); setQuickVisible(false); };
 
     // ---- Renderers
-    const renderSearchItem = ({ item }) => (
+    const renderSearchItem = useCallback(({ item }) => (
         <SearchResultCard item={item} onPressPlus={() => openPortion(item)} />
-    );
+    ), [openPortion]);
 
-    const renderHistoryItem = ({ item }) => {
+    const renderHistoryItem = useCallback(({ item }) => {
         const mapped = {
             food_id: item.foodId || item.id,
             food_name: item.name || '',
@@ -86,10 +120,10 @@ export default function FoodSearchOverlay({
             food_description: item.description || '',
         };
         return <SearchResultCard item={mapped} onPressPlus={() => openPortion(mapped)} />;
-    };
+    }, [openPortion]);
 
     const HistoryFooter = () => {
-        if (!visible || (searchQuery && searchQuery.trim().length > 0)) return null;
+        if (!visible || (query && query.trim().length > 0)) return null;
         if (!recentFoods?.length) return null;
 
         return (
@@ -112,6 +146,7 @@ export default function FoodSearchOverlay({
             animationType="slide"
             presentationStyle="fullScreen"
             onRequestClose={onClose}
+            hardwareAccelerated
         >
             {/* Tap anywhere blank to dismiss keyboard */}
             <Pressable style={styles.overlayContainer} onPress={Keyboard.dismiss}>
@@ -119,7 +154,7 @@ export default function FoodSearchOverlay({
                 <View style={styles.overlayHeader}>
                     {/* Left: fixed search icon */}
                     <View style={styles.headerLeft}>
-                        <Ionicons name="search" size={22} color={COLORS.textPrimary} />
+                        <Ionicons name="search" size={22} color={COLORS.text} />
                     </View>
 
                     {/* Centered title (absolute so it stays centered regardless of right content width) */}
@@ -139,11 +174,12 @@ export default function FoodSearchOverlay({
                 <View style={styles.searchContainer}>
                     <View style={styles.searchBox}>
                         <TextInput
-                            autoFocus
+                            ref={inputRef}
+                            autoFocus={false}
                             placeholder="Search for a food..."
                             placeholderTextColor="#999"
-                            value={searchQuery}
-                            onChangeText={setSearchQuery}
+                            value={query}
+                            onChangeText={setQuery}
                             style={styles.searchInput}
                             returnKeyType="search"
                         />
@@ -161,13 +197,19 @@ export default function FoodSearchOverlay({
                 >
                     <FlatList
                         contentContainerStyle={{ paddingHorizontal: 18, paddingBottom: 24 }}
-                        data={searchResults}
+                        data={results}
                         keyExtractor={(item) => String(item.food_id)}
                         keyboardShouldPersistTaps="handled"
                         renderItem={renderSearchItem}
+                        removeClippedSubviews
+                        initialNumToRender={8}
+                        windowSize={7}
+                        maxToRenderPerBatch={8}
+                        updateCellsBatchingPeriod={32}
+                        keyboardDismissMode={Platform.OS === 'ios' ? 'on-drag' : 'interactive'}
                         ListEmptyComponent={
                             <Text style={styles.emptyText}>
-                                {searchQuery ? 'Searching…' : 'Start typing to search foods'}
+                                {query ? (loading ? 'Searching…' : 'No results') : 'Start typing to search foods'}
                             </Text>
                         }
                         ListFooterComponent={<HistoryFooter />}
@@ -198,7 +240,7 @@ export default function FoodSearchOverlay({
 
 const makeStyles = (COLORS) =>
     StyleSheet.create({
-        overlayContainer: { flex: 1, backgroundColor: COLORS.background },
+        overlayContainer: { flex: 1, backgroundColor: COLORS.bg || COLORS.background || '#F8FAFC' },
         overlayHeader: {
             paddingTop: 56,
             paddingBottom: 12,
@@ -206,7 +248,7 @@ const makeStyles = (COLORS) =>
             flexDirection: 'row',
             alignItems: 'center',
             justifyContent: 'space-between',
-            backgroundColor: COLORS.background,
+            backgroundColor: COLORS.bg || COLORS.background || '#F8FAFC',
             position: 'relative',          // <-- important for absolute title
         },
         headerLeft: {
@@ -225,7 +267,7 @@ const makeStyles = (COLORS) =>
         },
         overlayTitle: {
             fontSize: 18,
-            color: COLORS.textPrimary,
+            color: COLORS.text || COLORS.textPrimary || '#0F172A',
             fontFamily: 'Outfit_600SemiBold',
         },
         headerActionText: {
@@ -252,14 +294,14 @@ const makeStyles = (COLORS) =>
             flex: 1,
             fontFamily: 'Outfit_400Regular',
             fontSize: 15,
-            color: COLORS.textPrimary,
+            color: COLORS.text || COLORS.textPrimary || '#0F172A',
             paddingVertical: 0,
         },
         emptyText: {
             textAlign: 'center',
             marginTop: 12,
             marginBottom: 4,
-            color: COLORS.textSecondary,
+            color: COLORS.subtext || COLORS.textSecondary || '#64748B',
             fontFamily: 'Outfit_400Regular',
         },
         historyHeader: {
@@ -267,7 +309,7 @@ const makeStyles = (COLORS) =>
             marginBottom: 8,
             paddingHorizontal: 2,
             fontSize: 14,
-            color: COLORS.textSecondary,
+            color: COLORS.subtext || COLORS.textSecondary || '#64748B',
             fontFamily: 'Outfit_600SemiBold',
         },
 

@@ -1,5 +1,5 @@
 import RNBounceable from '@freakycoder/react-native-bounceable';
-import React from 'react';
+import React, { memo } from 'react';
 import { View, Text, StyleSheet } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import PlusIcon from '../../assets/PlusIcon';
@@ -12,7 +12,7 @@ const COLORS = {
     mealCardShadow: '#99a5b7ff',
 };
 
-export default function SearchResultCard({ item, onPressPlus }) {
+function SearchResultCard({ item, onPressPlus }) {
     const formatPortion = (qty, unit) => {
         const u = (unit || '').trim().toLowerCase();
         if (/^g(ram|rams)?$/.test(u)) return `${qty}g`;
@@ -70,6 +70,8 @@ export default function SearchResultCard({ item, onPressPlus }) {
         </RNBounceable>
     );
 }
+
+export default memo(SearchResultCard);
 
 const styles = StyleSheet.create({
     resultCard: {

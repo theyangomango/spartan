@@ -1,10 +1,10 @@
-import React, { useMemo } from 'react';
+import React, { useMemo, memo } from 'react';
 import { View, Text, StyleSheet } from 'react-native';
 import MealCard from './MealCard';
 import UnderMealList from '../UnderMealList';
 import { summarizeFood } from '../../utils/nutrition';
 
-export default function MealsSection({ title = 'Daily meals', mealsMeta, meals, collapsed, toggleMeal, onAddPress, onDelete, COLORS, PlusIcon }) {
+function MealsSection({ title = 'Daily meals', mealsMeta, meals, collapsed, toggleMeal, onAddPress, onDelete, COLORS, PlusIcon }) {
     const styles = useMemo(() => makeStyles(COLORS), [COLORS]);
     return (
         <View>
@@ -35,6 +35,18 @@ export default function MealsSection({ title = 'Daily meals', mealsMeta, meals, 
     );
 }
 
+const propsEqual = (prev, next) => {
+    return (
+        prev.meals === next.meals &&
+        prev.collapsed === next.collapsed &&
+        prev.mealsMeta === next.mealsMeta &&
+        prev.COLORS === next.COLORS &&
+        prev.title === next.title
+    );
+};
+
+export default memo(MealsSection, propsEqual);
+
 const makeStyles = (COLORS) =>
     StyleSheet.create({
         sectionTitle: { fontSize: 17, marginLeft: 18, color: COLORS.text, fontFamily: 'Nunito_800ExtraBold' },
@@ -53,4 +65,3 @@ const makeStyles = (COLORS) =>
             backgroundColor: COLORS.card,
         },
     });
-
