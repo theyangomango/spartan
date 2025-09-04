@@ -51,13 +51,18 @@ function ExerciseLog({
 
     // When parent changes (e.g., from other device / commit), refresh draft
     useEffect(() => {
-        // shallow compare by length + ids to avoid blowing away in-progress typing
+        const b = Array.isArray(sets) ? sets : [];
+        if (readOnly) {
+            // Viewer mode: always mirror latest sets so spectators see updates instantly
+            setDraft(b);
+            return;
+        }
+        // Editor mode: shallow compare by length + ids to avoid blowing away in-progress typing
         const a = setsRef.current || [];
-        const b = sets || [];
         const equalLength = a.length === b.length;
         const idsEqual = equalLength && a.every((x, i) => (x?.id || i) === (b[i]?.id || i));
         if (!equalLength || !idsEqual) setDraft(b);
-    }, [sets]);
+    }, [sets, readOnly]);
 
     // Debounced parent sync
     const { schedule: scheduleSync, flush: flushSync } = useDebounced(
