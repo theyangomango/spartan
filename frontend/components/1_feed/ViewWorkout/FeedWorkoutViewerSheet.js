@@ -30,8 +30,8 @@ const FeedWorkoutViewerSheet = ({
       return;
     }
     if (!workout) return; // don't expand unless we have content
-    // Immediately open the sheet; mount heavy content after animation/gestures finish
-    setMountContent(false);
+    // Mount core content right away to avoid perceived delay, rely on virtualization for smoothness
+    setMountContent(true);
     requestAnimationFrame(() => bottomSheetRef.current?.expand());
   }, [expandToggle]);
 
@@ -77,12 +77,9 @@ const FeedWorkoutViewerSheet = ({
 
   const handleSheetChange = useCallback((index) => {
     if (index >= 0) {
-      // Defer heavy mount until current interactions finish for a smoother pop
-      InteractionManager.runAfterInteractions(() => {
-        setMountContent(true);
-        // best-effort: kick off friend stats fetch in background
-        fetchFriendStats();
-      });
+      setMountContent(true);
+      // Best-effort: fetch in background after interactions; doesn't block paint
+      InteractionManager.runAfterInteractions(() => { fetchFriendStats(); });
     } else {
       setMountContent(false);
     }

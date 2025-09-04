@@ -521,9 +521,9 @@ const NewWorkoutModal = ({
                     scrollEventThrottle={16}
                     onScroll={Animated.event([{ nativeEvent: { contentOffset: { y: scrollY } } }], { useNativeDriver: true })}
                     keyboardShouldPersistTaps="always"
-                    removeClippedSubviews
+                    removeClippedSubviews={false}
                     initialNumToRender={4}
-                    maxToRenderPerBatch={6}
+                    maxToRenderPerBatch={5}
                     windowSize={7}
                     style={[styles.scrollview, { opacity: overallOpacity }]}
                 />
@@ -642,29 +642,31 @@ const NewWorkoutModal = ({
                 </Pressable>
             </Modal>
 
-            {/* Confetti overlay (pointerEvents disabled). Keep one mounted for instant start via ref. */}
-            <View pointerEvents="none" style={StyleSheet.absoluteFill}>
-                <ConfettiCannon
-                    ref={confettiRef}
-                    autoStart={false}
-                    count={120}
-                    origin={{ x: screenWidth / 2, y: -scaledSize(60) }}
-                    fadeOut
-                    explosionSpeed={220}
-                    fallSpeed={1500}
-                />
-                {/* Fallback: if ref API unavailable, key-mount for immediate autoStart */}
-                {confettiTick > 0 && (
+            {/* Confetti overlay (mount only when cheer is available) */}
+            {friendOngoing && (
+                <View pointerEvents="none" style={StyleSheet.absoluteFill}>
                     <ConfettiCannon
-                        key={confettiTick}
+                        ref={confettiRef}
+                        autoStart={false}
                         count={120}
                         origin={{ x: screenWidth / 2, y: -scaledSize(60) }}
                         fadeOut
                         explosionSpeed={220}
                         fallSpeed={1500}
                     />
-                )}
-            </View>
+                    {/* Fallback: if ref API unavailable, key-mount for immediate autoStart */}
+                    {confettiTick > 0 && (
+                        <ConfettiCannon
+                            key={confettiTick}
+                            count={120}
+                            origin={{ x: screenWidth / 2, y: -scaledSize(60) }}
+                            fadeOut
+                            explosionSpeed={220}
+                            fallSpeed={1500}
+                        />
+                    )}
+                </View>
+            )}
         </View >
     );
 };
