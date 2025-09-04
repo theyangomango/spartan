@@ -7,7 +7,8 @@ export default async function createChat(creatorUID, users, cid) {
         users: users,
         userCount: users.length,
         isGroup: users.length > 2,
-        created: Date.now()
+        memberUids: users.map((u) => u.uid),
+        created: Date.now(),
         // 🔥 No content field here — it's now a subcollection
     };
 

@@ -187,12 +187,16 @@ export default function Messages({ navigation, route }) {
 
         const cid = makeID();
 
-        arrayAppend("users", userData.uid, "messages", {
-            mid: cid,
-            otherUsers: usersExcludingSelf,
-        });
+        // Append this chat reference to every participant's user doc so it shows up for all
+        const allParticipants = [...usersExcludingSelf, selfUser];
+        await Promise.all(
+            allParticipants.map((u) => {
+                const otherUsers = allParticipants.filter((x) => x.uid !== u.uid);
+                return arrayAppend("users", u.uid, "messages", { mid: cid, otherUsers });
+            })
+        );
 
-        const newChat = await createChat(userData.uid, [...usersExcludingSelf, selfUser], cid);
+        const newChat = await createChat(userData.uid, allParticipants, cid);
         const chatObj = { ...newChat, content: [] };
 
         setChats((prev) => {

@@ -2,7 +2,7 @@ import { db } from "../firebase.config";
 import readDoc from "./helper/firebase/readDoc";
 import getReverse from "./helper/getReverse";
 import retrievePosts from "./posts/retrievePosts";
-import { collection, getDocs, limit, orderBy, query } from "firebase/firestore";
+import { collection, getDocs, limit, orderBy, query, where } from "firebase/firestore";
 
 // 1. 🔹 Get all stories
 export async function getUserStories(userData) {
@@ -45,11 +45,28 @@ export async function getUserMessages(userData) {
         }
     };
 
-    // Fetch chats serially but latest in parallel per chat to avoid stampedes
-    for (const msg of userData.messages) {
-        const messageData = await readDoc('messages', msg.mid);
-        const content = await fetchLatest(msg.mid);
-        db_messages.push({ ...messageData, content });
+    const arr = Array.isArray(userData.messages) ? userData.messages : [];
+    if (arr.length > 0) {
+        // Fetch chats serially but latest in parallel per chat to avoid stampedes
+        for (const msg of arr) {
+            const messageData = await readDoc('messages', msg.mid);
+            const content = await fetchLatest(msg.mid);
+            db_messages.push({ ...messageData, content });
+        }
+    } else {
+        // Fallback: discover chats by membership (array-contains)
+        try {
+            const messagesRef = collection(db, 'messages');
+            const q = query(messagesRef, where('memberUids', 'array-contains', userData.uid), orderBy('lastMessageAt', 'desc'), limit(50));
+            const snap = await getDocs(q);
+            for (const docSnap of snap.docs) {
+                const chat = { ...docSnap.data(), cid: docSnap.id };
+                const content = await fetchLatest(chat.cid);
+                db_messages.push({ ...chat, content });
+            }
+        } catch (e) {
+            // ignore fallback errors; return empty list
+        }
     }
 
     // Sort newest first by the preloaded content timestamp to match UI immediately
