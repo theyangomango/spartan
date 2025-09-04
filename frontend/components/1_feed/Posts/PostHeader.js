@@ -45,7 +45,7 @@ export default function PostHeader({
                         </Pressable>
 
                         {data.workout && (
-                            <TouchableOpacity activeOpacity={0.5} onPress={openViewWorkout}>
+                            <TouchableOpacity activeOpacity={0.5} onPress={openViewWorkout} style={styles.workout_text_ctnr}>
                                 <Text style={styles.date_text}>
                                     {formatDate(new Date(data.workout.created))} Workout
                                 </Text>
@@ -113,9 +113,15 @@ const styles = StyleSheet.create({
         fontFamily: "Poppins_600SemiBold",
         color: "#fff",
     },
+    workout_text_ctnr: {
+        paddingHorizontal: 10,
+        paddingVertical: 4,
+        backgroundColor: '#2696ffff',
+        borderRadius: 15
+    },
     date_text: {
-        fontSize: scaleSize(11),
-        color: "#7EB9F2",
+        fontSize: scaleSize(10.5),
+        color: "#ffffff",
         fontFamily: "Poppins_700Bold",
     },
     right: {
