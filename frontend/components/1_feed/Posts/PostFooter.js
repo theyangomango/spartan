@@ -108,8 +108,7 @@ export default function PostFooter({ data, onPressCommentButton, onPressShareBut
                         <Text style={styles.commentButtonText}>{data.commentCount}</Text>
                     </Pressable>
 
-                    {/* // ! Disabled in Beta Version */}
-                    <Pressable
+                    {/* <Pressable
                         // disabled={!isSomePostFocused}
                         disabled
                         // onPress={onPressShareButton}
@@ -117,7 +116,7 @@ export default function PostFooter({ data, onPressCommentButton, onPressShareBut
                     >
                         <Send2 size={dynamicStyles.iconSize - 4} color="#fff" variant="Bold" />
                         <Text style={styles.shareButtonText}>{data.shareCount}</Text>
-                    </Pressable>
+                    </Pressable> */}
                 </View>
 
                 {/* Right portion: save button */}
@@ -167,7 +166,7 @@ const styles = StyleSheet.create({
         justifyContent: 'space-between',
         position: 'absolute',
         bottom: 48,
-        left: 10,
+        left: 18,
         right: 13,
     },
     left: { flexDirection: 'row' },
@@ -189,6 +188,7 @@ const styles = StyleSheet.create({
         alignItems: 'center',
         paddingHorizontal: dynamicStyles.buttonPaddingHorizontal,
         paddingVertical: dynamicStyles.buttonPaddingVertical,
+        marginLeft: 8
     },
     commentButtonText: {
         color: '#fff',
