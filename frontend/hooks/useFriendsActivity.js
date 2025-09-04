@@ -65,7 +65,47 @@ const normalizeFriendWorkout = (w, profile) => {
     };
 };
 
-// Note: live/current workouts intentionally excluded — only completedWorkouts are shown.
+// Live/current workout -> normalized list item
+const normalizeLiveWorkout = (cw, profile) => {
+    if (!cw || typeof cw !== "object") return null;
+    // Pick a sane start timestamp
+    const started = toMillis(cw.startedAt ?? cw.createdAt ?? cw.created ?? cw.start ?? cw.startTime);
+    const exercisesArr = Array.isArray(cw.exercises) ? cw.exercises : [];
+    let setCount = 0;
+    for (const ex of exercisesArr) setCount += Array.isArray(ex?.sets) ? ex.sets.length : 0;
+
+    const wid = cw.wid || cw.id || undefined;
+    return {
+        id: wid || `live_${profile.uid}`,
+        uid: profile.uid,
+        name: profile.name || profile.handle || "Friend",
+        handle: profile.handle || "",
+        pfp: profile.pfp || "",
+        pfpVersion: profile.pfpVersion ?? 0,
+        live: true,
+        startedAt: started || Date.now(),
+        created: started || Date.now(),
+
+        // stats (live, will be overlaid by FriendsActivitySheet listener)
+        duration: Number(cw?.duration || 0),
+        volume: Number(cw?.volume || 0),
+        reps: Number(cw?.reps || 0),
+        PBs: Number(cw?.PBs ?? cw?.pbs ?? 0),
+
+        // viewer payload
+        exercises: exercisesArr,
+        exerciseCount: exercisesArr.length,
+        sets: setCount,
+        templateName: cw?.templateName || cw?.template?.name || cw?.template || cw?.name || "Workout",
+        wid,
+        workout: {
+            creatorUID: cw?.creatorUID || cw?.creatorUid || profile.uid,
+            ...cw,
+            wid,
+            created: started || Date.now(),
+        },
+    };
+};
 
 const bestTs = (it) =>
     Math.max(toMillis(it?.created) || 0, toMillis(it?.startedAt) || 0, toMillis(it?.finishedAt) || 0);
@@ -132,6 +172,20 @@ export default function useFriendsActivity(user) {
                 for (const w of recentValid) {
                     const item = normalizeFriendWorkout(w, p);
                     if (item.wid) map.set(keyOf(p.uid, item), item); else map.set(`${p.uid}:${bestTs(item)}`, item);
+                }
+            }
+
+            // Add current (live) workouts, overriding any duplicate wid entries
+            for (const p of profiles) {
+                const cw = p.currentWorkout;
+                if (!cw || typeof cw !== 'object') continue;
+                const liveItem = normalizeLiveWorkout(cw, p);
+                if (!liveItem) continue;
+                if (liveItem.wid) {
+                    map.set(keyOf(p.uid, liveItem), liveItem);
+                } else {
+                    // No wid — use a stable live key per user
+                    map.set(`${p.uid}:__live__`, liveItem);
                 }
             }
 
