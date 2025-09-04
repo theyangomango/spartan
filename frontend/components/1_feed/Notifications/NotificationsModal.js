@@ -137,12 +137,9 @@ export default function NotificationsModal({ visible, uid, closeBottomSheet }) {
                     <MemoNotificationCard item={item} onPressCard={() => {
                         try { closeBottomSheet?.(); } catch {}
                         try {
-                            const { navigationRef } = require('../../../../navigationRef');
-                            if (item?.pid) {
-                                navigationRef.navigate('Tabs', { screen: 'Feed', params: { focusPid: String(item.pid), _t: Date.now() } });
-                            } else {
-                                navigationRef.navigate('Tabs', { screen: 'Feed' });
-                            }
+                            const { jumpToTab } = require('../../../../navigationRef');
+                            if (item?.pid) jumpToTab('Feed', { focusPid: String(item.pid), _t: Date.now() });
+                            else jumpToTab('Feed');
                         } catch {}
                     }} />
                 )}

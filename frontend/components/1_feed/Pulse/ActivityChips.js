@@ -181,15 +181,16 @@ function Chip({ ev, navigation, onPressChip }) {
         // and request the FriendsActivitySheet to open.
         if (ev?.type === "workout") {
             try {
-                navigation?.navigate?.('Tabs', {
-                    screen: 'Workout',
-                    params: {
-                        openFriends: true,
-                        focusFriendUid: String(ev?.uid || ''),
-                        focusWorkoutWid: String(ev?.workoutID || ''),
-                        _t: Date.now(),
-                    },
-                });
+                const rootNav = navigation?.getParent?.('ROOT');
+                const params = {
+                    transition: 'slide-from-right',
+                    openFriends: true,
+                    focusFriendUid: String(ev?.uid || ''),
+                    focusWorkoutWid: String(ev?.workoutID || ''),
+                    _t: Date.now(),
+                };
+                if (rootNav?.navigate) rootNav.navigate('Workout', params);
+                else navigation?.navigate?.('Workout', params);
                 return;
             } catch {}
         }

@@ -546,7 +546,11 @@ export default function Workout({ navigation, route }) {
                     onStartWorkout={onStartWorkout}
                     onOpenMacros={() => {
                         setDaySheetVisible(false);
-                        try { navigation.navigate('MacroTracking', { transition: 'slide-from-left' }); } catch {}
+                        try {
+                            const rootNav = navigation?.getParent?.('ROOT');
+                            if (rootNav?.navigate) rootNav.navigate('MacroTracking', { transition: 'slide-from-left' });
+                            else navigation.navigate('MacroTracking', { transition: 'slide-from-left' });
+                        } catch {}
                     }}
                 />
             </View>

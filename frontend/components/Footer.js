@@ -1,8 +1,9 @@
 import React from 'react';
-import { Pressable, StyleSheet, View } from 'react-native';
+import { Pressable, StyleSheet, View, Platform } from 'react-native';
 import { Home, Cup, Weight, Profile as ProfileIcon } from 'iconsax-react-native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import useWorkoutStore from '../state/workoutStore';
+import { jumpToTab } from '../../navigationRef';
 
 const COLORS = {
     active: '#000',
@@ -17,7 +18,19 @@ const COLORS = {
 
 const Footer = ({ navigation, currentScreenName }) => {
     // Switch tabs without animation; keeps screens mounted
-    const go = (screenName, params) => () => navigation.navigate('Tabs', { screen: screenName, params: params || {} });
+    const go = (screenName, params) => () => {
+        // Ensure the current (possibly overlay) route disables its close animation immediately
+        try {
+            if (Platform.OS === 'ios') navigation.setOptions?.({ animationEnabled: false, gestureEnabled: false });
+            else navigation.setOptions?.({ animation: 'none', gestureEnabled: false, fullScreenGestureEnabled: false });
+        } catch {}
+        try { navigation.setParams?.({ transition: 'none' }); } catch {}
+        // Perform a state reset to existing Tabs route without remount
+        if (!jumpToTab(screenName, params)) {
+            // Fallback: still navigate with no animation param
+            navigation.navigate('Tabs', { transition: 'none', screen: screenName, params: params || {} });
+        }
+    };
 
     // Subscribe to workout presence only (boolean); avoids polling and reduces rerenders
     const hasActiveWorkout = useWorkoutStore((s) => !!s.workout) || !!global?.isCurrentlyWorkingOut;
@@ -41,12 +54,11 @@ const Footer = ({ navigation, currentScreenName }) => {
                     <View style={styles.icon_ctnr}>
                         <Pressable
                             onPress={() => {
-                                if (currentScreenName === 'Feed') {
-                                    try { global.scrollFeedToTopSignal = Date.now(); } catch {}
-                                    navigation.navigate('Tabs', { screen: 'Feed', params: { scrollToTop: true, _t: Date.now() } });
-                                } else {
-                                    navigation.navigate('Tabs', { screen: 'Feed' });
-                                }
+                                const params = currentScreenName === 'Feed'
+                                    ? { scrollToTop: true, _t: Date.now() }
+                                    : undefined;
+                                try { if (currentScreenName === 'Feed') global.scrollFeedToTopSignal = Date.now(); } catch {}
+                                go('Feed', params)();
                             }}
                             hitSlop={10}
                         >
@@ -73,7 +85,7 @@ const Footer = ({ navigation, currentScreenName }) => {
                                 if (hasActiveWorkout) {
                                     try { global.openCurrentWorkoutSignal = Date.now(); } catch {}
                                 }
-                                navigation.navigate('Tabs', { screen: 'Workout' });
+                                go('Workout')();
                             }}
                             hitSlop={10}
                         >
@@ -95,7 +107,7 @@ const Footer = ({ navigation, currentScreenName }) => {
 
                 {/* Profile (ProfileStack → Profile) */}
                 <View style={styles.icon_ctnr}>
-                    <Pressable onPress={() => navigation.navigate('Tabs', { screen: 'Profile' })} hitSlop={10}>
+                    <Pressable onPress={go('Profile')} hitSlop={10}>
                         <View style={currentScreenName === 'Profile' ? styles.selectedIcon : styles.icon}>
                             <ProfileIcon size={22.5} color={getIconColor('Profile')} variant="Bold" />
                         </View>

@@ -3,7 +3,7 @@ import React, { useEffect, useRef, useState } from 'react';
 import { NavigationContainer } from '@react-navigation/native';
 import { navigationRef } from './navigationRef';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
-import { createStackNavigator, CardStyleInterpolators } from '@react-navigation/stack';
+import { createStackNavigator, CardStyleInterpolators, TransitionSpecs } from '@react-navigation/stack';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { Platform } from 'react-native';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
@@ -183,14 +183,111 @@ export default function App() {
                     <RootStack.Screen name="NewUserCreation" component={NewUserCreation} />
                     <RootStack.Screen name="UserLogInCredentials" component={UserLogInCredentials} />
 
-                    {/* Main tabs (kept mounted) */}
-                    <RootStack.Screen name="Tabs" component={Tabs} initialParams={{ uid: uidRef.current }} />
+                    {/* Main tabs (kept mounted). Force no animation when focusing Tabs. */}
+                    <RootStack.Screen
+                        name="Tabs"
+                        component={Tabs}
+                        initialParams={{ uid: uidRef.current, transition: 'none' }}
+                        options={Platform.select({
+                            ios: {
+                                headerShown: false,
+                                animationEnabled: false,
+                                gestureEnabled: false,
+                                cardStyleInterpolator: CardStyleInterpolators.forNoAnimation,
+                            },
+                            android: {
+                                headerShown: false,
+                                gestureEnabled: false,
+                                fullScreenGestureEnabled: false,
+                                animation: 'none',
+                            },
+                            default: { headerShown: false },
+                        })}
+                    />
 
                     {/* Peer screens for one-way transitions */}
                     <RootStack.Screen name="Feed" component={Feed} initialParams={{ uid: uidRef.current }} />
-                    <RootStack.Screen name="MacroTracking" component={MacroTracking} />
-                    <RootStack.Screen name="Workout" component={Workout} initialParams={{ uid: uidRef.current }} />
-                    <RootStack.Screen name="Competition" component={Competition} />
+
+                    {/* Overlay-capable peers with one-way (no close) animation on iOS */}
+                    <RootStack.Screen
+                        name="MacroTracking"
+                        component={MacroTracking}
+                        options={({ route }) => Platform.select({
+                            ios: {
+                                gestureEnabled: true,
+                                gestureDirection: route?.params?.transition === 'slide-from-left' ? 'horizontal-inverted' : 'horizontal',
+                                cardStyleInterpolator: route?.params?.transition === 'fade'
+                                    ? CardStyleInterpolators.forFadeFromCenter
+                                    : CardStyleInterpolators.forHorizontalIOS,
+                                transitionSpec: {
+                                    open: TransitionSpecs.TransitionIOSSpec,
+                                    close: { animation: 'timing', config: { duration: 0 } },
+                                },
+                            },
+                            android: {
+                                gestureEnabled: true,
+                                fullScreenGestureEnabled: true,
+                                animation: route?.params?.transition === 'fade'
+                                    ? 'fade'
+                                    : (route?.params?.transition === 'slide-from-left' ? 'slide_from_left' : 'slide_from_right'),
+                            },
+                            default: {},
+                        })}
+                    />
+
+                    <RootStack.Screen
+                        name="Workout"
+                        component={Workout}
+                        initialParams={{ uid: uidRef.current }}
+                        options={({ route }) => Platform.select({
+                            ios: {
+                                gestureEnabled: true,
+                                gestureDirection: route?.params?.transition === 'slide-from-left' ? 'horizontal-inverted' : 'horizontal',
+                                cardStyleInterpolator: route?.params?.transition === 'fade'
+                                    ? CardStyleInterpolators.forFadeFromCenter
+                                    : CardStyleInterpolators.forHorizontalIOS,
+                                transitionSpec: {
+                                    open: TransitionSpecs.TransitionIOSSpec,
+                                    close: { animation: 'timing', config: { duration: 0 } },
+                                },
+                            },
+                            android: {
+                                gestureEnabled: true,
+                                fullScreenGestureEnabled: true,
+                                animation: route?.params?.transition === 'fade'
+                                    ? 'fade'
+                                    : (route?.params?.transition === 'slide-from-left' ? 'slide_from_left' : 'slide_from_right'),
+                            },
+                            default: {},
+                        })}
+                    />
+
+                    <RootStack.Screen
+                        name="Competition"
+                        component={Competition}
+                        options={({ route }) => Platform.select({
+                            ios: {
+                                gestureEnabled: true,
+                                gestureDirection: route?.params?.transition === 'slide-from-left' ? 'horizontal-inverted' : 'horizontal',
+                                cardStyleInterpolator: route?.params?.transition === 'fade'
+                                    ? CardStyleInterpolators.forFadeFromCenter
+                                    : CardStyleInterpolators.forHorizontalIOS,
+                                transitionSpec: {
+                                    open: TransitionSpecs.TransitionIOSSpec,
+                                    close: { animation: 'timing', config: { duration: 0 } },
+                                },
+                            },
+                            android: {
+                                gestureEnabled: true,
+                                fullScreenGestureEnabled: true,
+                                animation: route?.params?.transition === 'fade'
+                                    ? 'fade'
+                                    : (route?.params?.transition === 'slide-from-left' ? 'slide_from_left' : 'slide_from_right'),
+                            },
+                            default: {},
+                        })}
+                    />
+
                     <RootStack.Screen name="Profile" component={Profile} />
                     <RootStack.Screen name="Explore" component={Explore} />
 

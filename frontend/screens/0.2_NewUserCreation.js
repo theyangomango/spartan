@@ -140,8 +140,13 @@ const NewUserCreation = ({ navigation }) => {
             await arrayAppend('global', 'users', 'all', newUser);
             await createDoc('users', newID, newUser);
 
-            // Jump to Workout tab
-            navigation.navigate('Tabs', { screen: 'Workout' });
+            // Jump to Workout tab without remounts
+            try {
+                const { jumpToTab } = require('../../navigationRef');
+                jumpToTab('Workout');
+            } catch {
+                navigation.navigate('Tabs', { screen: 'Workout' });
+            }
         } catch (err) {
             console.warn('Sign-up failed:', err?.message || err);
         }

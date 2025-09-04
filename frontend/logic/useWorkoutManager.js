@@ -454,7 +454,8 @@ export default function useWorkoutManager({ uid, navigation, millisToHMS }) {
     const postWorkout = useCallback(async () => {
         setIsSummaryModalVisible(false);
         try {
-            await navigation.navigate('Tabs', { screen: 'Profile' });
+            const { jumpToTab } = require('../../navigationRef');
+            jumpToTab('Profile');
             navigation.navigate('SelectPhotos', { workout: completedWorkout });
         } catch { }
     }, [completedWorkout, navigation]);

@@ -40,7 +40,13 @@ function HubRowCmp({
                 accessibilityRole="button"
                 android_ripple={{ color: "rgba(2,6,23,0.08)", radius: 140, borderless: false }}
                 style={({ pressed }) => [styles.card, pressed && styles.cardPressed]}
-                onPressIn={() => { try { navigation.navigate('MacroTracking', { transition: 'slide-from-left' }); } catch {} }}
+                onPressIn={() => {
+                    try {
+                        const rootNav = navigation?.getParent?.('ROOT');
+                        if (rootNav?.navigate) rootNav.navigate('MacroTracking', { transition: 'slide-from-left' });
+                        else navigation.navigate('MacroTracking', { transition: 'slide-from-left' });
+                    } catch {}
+                }}
             >
                 <View style={[styles.headerRow, styles.headerRowStart]}>
                     <Text style={styles.chevronLeft}>‹</Text>
@@ -79,7 +85,13 @@ function HubRowCmp({
                 accessibilityRole="button"
                 android_ripple={{ color: "rgba(2,6,23,0.08)", radius: 140, borderless: false }}
                 style={({ pressed }) => [styles.card, pressed && styles.cardPressed]}
-                onPressIn={() => navigation.navigate('Competition')}
+                onPressIn={() => {
+                    try {
+                        const rootNav = navigation?.getParent?.('ROOT');
+                        if (rootNav?.navigate) rootNav.navigate('Competition', { transition: 'slide-from-right' });
+                        else navigation.navigate('Competition', { transition: 'slide-from-right' });
+                    } catch {}
+                }}
             >
                 <View style={styles.headerRow}>
                     <Text style={styles.podiumCaption}>{PREVIEW_LABEL}</Text>
