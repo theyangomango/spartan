@@ -23,16 +23,16 @@ export default function MiniPodium({ data = [] }) {
 
             <View style={[styles.col, { marginHorizontal: 10 }]}>
                 {data[0]?.present ? (
-                    <Avatar uri={data[0]?.pfp} ring="#d4d4d4ff" />
+                    <Avatar uri={data[0]?.pfp} ring="#ffe08bff" />
                 ) : null}
                 <View style={[styles.plinth, { height: H_C, backgroundColor: "#E8EEF9" }]}>
-                    <View style={[styles.medalDot, { backgroundColor: "#ffdd61ff" }]} />
+                    <View style={[styles.medalDot, { backgroundColor: "#ffe08bff" }]} />
                 </View>
             </View>
 
             <View style={styles.col}>
                 {data[2]?.present ? (
-                    <Avatar uri={data[2]?.pfp} ring="#d4d4d4ff" />
+                    <Avatar uri={data[2]?.pfp} ring="#ffbb69ff" />
                 ) : null}
                 <View style={[styles.plinth, { height: H_R, backgroundColor: "#E8EEF9" }]}>
                     <View style={[styles.medalDot, { backgroundColor: "#ffba98ff" }]} />
