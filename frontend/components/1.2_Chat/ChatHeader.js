@@ -14,7 +14,11 @@ const BG = "#F7F8FC";
 const ChatHeader = ({ usersExcludingSelf = [], toMessages }) => {
     const navigation = useNavigation();
     const handles = usersExcludingSelf.map((u) => '@' + u.handle).join(", ");
-    const names = usersExcludingSelf.map((u) => u.name).join(", ");
+    // Show only first names (split by space)
+    const names = usersExcludingSelf
+        .map((u) => (typeof u?.name === 'string' ? u.name.trim().split(/\s+/)[0] : ''))
+        .filter((n) => n && n.length > 0)
+        .join(", ");
     const u0 = usersExcludingSelf[0];
     const u1 = usersExcludingSelf[1];
     const p0 = u0 ? usePfp(u0.uid, u0.pfpVersion ?? 0) : null;

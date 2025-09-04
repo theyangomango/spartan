@@ -243,7 +243,10 @@ const NewWorkoutModal = ({
     }, [finishWorkout, isFinishing]);
 
     const borderOpacity = scrollY.interpolate({ inputRange: [0, 98], outputRange: [0, 1], extrapolate: "clamp" });
-    const overallOpacity = 1;
+    // Dim the scrollable content when viewing someone else's workout
+    // or when viewing a past workout of your own (not the active one)
+    const isActiveSelf = viewingSelfEffective && !!myActiveWid && !!cardWid && myActiveWid === cardWid;
+    const overallOpacity = isActiveSelf ? 1 : 0.6;
 
     const friendWaiting = streamLive && !viewingSelfEffective && waitingFriend && !(baseWorkout?.exercises?.length);
 
@@ -446,7 +449,7 @@ const NewWorkoutModal = ({
     return (
         <View style={styles.main_ctnr}>
             {/* Header */}
-            <View style={[styles.header, { opacity: overallOpacity }]}>
+            <View style={styles.header}>
                 <GroupHeader
                     viewingSelf={viewingSelfEffective}
                     overlayPfp={headerOverlayPfp}
@@ -472,7 +475,7 @@ const NewWorkoutModal = ({
 
             {/* Body */}
             {friendWaiting ? (
-                <View style={[styles.waitingWrap, { opacity: overallOpacity }]}>
+                <View style={styles.waitingWrap}>
                     <Text style={styles.waitingText}>Loading friend…</Text>
                 </View>
             ) : (
