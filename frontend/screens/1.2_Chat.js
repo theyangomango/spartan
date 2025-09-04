@@ -212,23 +212,24 @@ export default function Chat({ navigation, route }) {
         if (t instanceof Date) return t.getTime();
         return 0;
     };
-    const dateKey = (t) => {
-        const d =
-            typeof t?.toMillis === "function" ? new Date(t.toMillis())
-                : t?.seconds ? new Date(t.seconds * 1000)
-                    : typeof t === "number" ? new Date(t < 1e12 ? t * 1000 : t)
-                        : typeof t === "string" ? new Date(t)
-                            : new Date(t);
+    const dateKeyFromMs = (ms) => {
+        const d = new Date(ms || 0);
         if (isNaN(+d)) return "";
         return d.toLocaleDateString(undefined, { year: "numeric", month: "short", day: "numeric" });
+    };
+    const msgTimeMs = (m) => {
+        // Prefer server timestamp; fallback to clientTs for stable ordering
+        const s = toMs(m?.timestamp);
+        return s || Number(m?.clientTs) || 0;
     };
 
     // sort newest → oldest, then inject a date item AFTER each day's block
     const { messagesOnly, withSeparators } = useMemo(() => {
         const list = Array.isArray(messagesRaw) ? [...messagesRaw] : [];
-        list.sort((a, b) => toMs(b?.timestamp) - toMs(a?.timestamp)); // newest first
+        // stable newest-first sort using clientTs fallback to avoid top flash
+        list.sort((a, b) => msgTimeMs(b) - msgTimeMs(a));
         const out = [];
-        let currentKey = list.length ? dateKey(list[0]?.timestamp) : "";
+        let currentKey = list.length ? dateKeyFromMs(msgTimeMs(list[0])) : "";
         let group = [];
         let block = 0;
 
@@ -241,17 +242,18 @@ export default function Chat({ navigation, route }) {
 
         for (let i = 0; i < list.length; i++) {
             const m = list[i];
-            const k = dateKey(m?.timestamp);
+            const k = dateKeyFromMs(msgTimeMs(m));
             if (k !== currentKey) {
                 flush();
                 currentKey = k;
             }
-            group.push({ type: "msg", ...m });
+            const pending = !toMs(m?.timestamp) && (m?.senderUid === currentUid || m?.sender?.uid === currentUid);
+            group.push({ type: "msg", _pending: pending, ...m });
         }
         flush();
 
         return { messagesOnly: list, withSeparators: out };
-    }, [messagesRaw]);
+    }, [messagesRaw, currentUid]);
 
     const renderItem = ({ item, index }) => {
         if (item.type === "date") {

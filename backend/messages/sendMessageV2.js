@@ -23,7 +23,10 @@ export default async function sendMessageV2(payload) {
         replyTo: replyTo || null,
         replyPreview: replyPreview || null,
         reactions: {},             // emoji -> [uids]
+        // server assigned timestamp; may be null locally until committed
         timestamp: serverTimestamp(),
+        // client-side monotonic fallback used to keep ordering stable before server timestamp resolves
+        clientTs: Date.now(),
     });
 
     // optionally update chat summary

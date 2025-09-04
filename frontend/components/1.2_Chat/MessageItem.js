@@ -66,8 +66,8 @@ export default function MessageItem({
         return 0;
     };
 
-    const thisMs = toMillis(item?.timestamp);
-    const nextMs = toMillis(next?.timestamp);
+    const thisMs = toMillis(item?.timestamp) || Number(item?.clientTs) || 0;
+    const nextMs = toMillis(next?.timestamp) || Number(next?.clientTs) || 0;
     const grouped =
         !!next && nextSender === senderUid && Math.abs(thisMs - nextMs) <= 3 * 60 * 1000;
 
