@@ -37,7 +37,7 @@ const GroupHeader = ({
 }) => {
     const disableGroup = disableGroupPress ?? !viewingSelf;
 
-    // --- FIX: lock to the last *non-empty* URI to avoid flicker ---
+    // --- Keep track of the last known-good, non-empty URI ---
     const lastGoodPfpRef = useRef(normalizeUri(overlayPfp));
     const pendingErrorRef = useRef(false); // if image errors, keep last good instead of clearing
 
@@ -51,7 +51,9 @@ const GroupHeader = ({
         if (next) pendingErrorRef.current = false;
     }, [overlayPfp]);
 
-    const pfpToShow = lastGoodPfpRef.current;
+    // Prefer the current overlayPfp if it's non-empty on this render; otherwise use the last good one.
+    // This fixes the initial render showing a default/placeholder when the async hook resolves.
+    const pfpToShow = normalizeUri(overlayPfp) || lastGoodPfpRef.current;
 
     // Show timer on the left only when viewing self, or when in an active group AND we are actively participating
     // If pfpOnLeft is true, we prefer showing the back chevron + PFP instead of the timer tile.
