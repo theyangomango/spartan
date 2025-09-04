@@ -7,7 +7,7 @@ import createChat from "../../backend/messages/createChat";
 import makeID from "../../backend/helper/makeID";
 import arrayAppend from "../../backend/helper/firebase/arrayAppend";
 import scaleSize from "../helper/scaleSize";
-import { collection, query, orderBy, onSnapshot } from "firebase/firestore";
+import { collection, query, orderBy, onSnapshot, doc, getDoc } from "firebase/firestore";
 import { db } from "../../firebase.config";
 
 // ✅ Soft global cache for in-memory persistence
@@ -70,6 +70,84 @@ export default function Messages({ navigation, route }) {
             unsubscribes.forEach((u) => u && u());
         };
     }, [chats.map((c) => c.cid).join("|")]);
+
+    // Baseline protection: if navigated before feed seeds messages,
+    // hydrate the chat list directly from the user's doc once available.
+    useEffect(() => {
+        let unsubUser = null;
+        let pollId = null;
+        let cancelled = false;
+
+        const attach = (uid) => {
+            try {
+                const userRef = doc(db, 'users', uid);
+                unsubUser = onSnapshot(userRef, async (snap) => {
+                    if (cancelled) return;
+                    const data = snap.data() || {};
+                    const arr = Array.isArray(data.messages) ? data.messages : [];
+                    if (!arr.length) {
+                        setChats([]);
+                        cachedMessages = [];
+                        return;
+                    }
+
+                    // Get chat docs for each mid; skip ones we already have
+                    const mids = Array.from(new Set(arr.map((m) => m?.mid).filter(Boolean)));
+                    const have = new Set((cachedMessages || []).map((c) => c?.cid));
+                    const need = mids.filter((mid) => !have.has(mid));
+
+                    const fetched = await Promise.all(
+                        need.map(async (mid) => {
+                            try {
+                                const cRef = doc(db, 'messages', mid);
+                                const d = await getDoc(cRef);
+                                return d.exists() ? { ...d.data(), content: [] } : null;
+                            } catch {
+                                return null;
+                            }
+                        })
+                    );
+
+                    // Merge with any existing cached chats and keep order based on mids
+                    const byCid = new Map((cachedMessages || []).map((c) => [c.cid, c]));
+                    fetched.filter(Boolean).forEach((c) => byCid.set(c.cid, c));
+                    const merged = mids.map((mid) => byCid.get(mid)).filter(Boolean);
+                    setChats(merged);
+                    cachedMessages = merged;
+                });
+            } catch {}
+        };
+
+        // If already seeded via route or cache, skip baseline attach
+        if (Array.isArray(route?.params?.messages) || (cachedMessages && cachedMessages.length > 0)) {
+            return () => {};
+        }
+
+        const uidNow = global?.userData?.uid;
+        if (uidNow) {
+            attach(uidNow);
+        } else {
+            // Poll briefly until uid becomes available (app hydration)
+            let tries = 0;
+            pollId = setInterval(() => {
+                const uid = global?.userData?.uid;
+                if (uid) {
+                    clearInterval(pollId);
+                    pollId = null;
+                    attach(uid);
+                } else if (++tries > 50) { // ~5s
+                    clearInterval(pollId);
+                    pollId = null;
+                }
+            }, 100);
+        }
+
+        return () => {
+            cancelled = true;
+            try { if (unsubUser) unsubUser(); } catch {}
+            if (pollId) { try { clearInterval(pollId); } catch {} }
+        };
+    }, [route?.params?.messages]);
 
     const toFeedScreen = () => {
         // Prefer a real back action so we return to the exact previous screen
