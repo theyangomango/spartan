@@ -659,7 +659,7 @@ export default function Feed({ navigation, route }) {
                                         width: '100%',
                                         height: '100%',
                                         backgroundColor: 'black',
-                                        borderRadius: 24,
+                                        borderRadius: 35,
                                     }}
                                 />
                             </View>
