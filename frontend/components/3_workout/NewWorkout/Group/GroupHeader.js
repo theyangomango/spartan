@@ -240,9 +240,9 @@ const styles = StyleSheet.create({
 
     // Viewing: sleeker Cheer pill
     cheer_btn: {
-        height: scaledSize(32),
+        height: scaledSize(34),
         paddingHorizontal: scaledSize(12),
-        borderRadius: scaledSize(999),
+        borderRadius: scaledSize(10),
         backgroundColor: "#0EA5E9",
         flexDirection: "row",
         alignItems: "center",

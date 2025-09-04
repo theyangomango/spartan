@@ -12,6 +12,7 @@ import {
     Platform,
     UIManager,
 } from "react-native";
+import { Dimensions } from "react-native";
 import { BlurView } from "expo-blur";
 import { LinearGradient } from "expo-linear-gradient";
 import RNBounceable from "@freakycoder/react-native-bounceable";
@@ -21,9 +22,10 @@ import ExerciseLog from "./Tracking/ExerciseLog";
 import SelectExerciseModal from "./SelectExercise/SelectExerciseModal";
 import { usePfp } from "../../../helper/usePFPs";
 import { ss as scaledSize } from "../../../utils/scale";
+import ConfettiCannon from "react-native-confetti-cannon";
 
 // Realtime / Firestore
-import { getFirestore, doc, setDoc, serverTimestamp, arrayUnion, addDoc, collection } from "firebase/firestore";
+import { getFirestore, doc, setDoc, serverTimestamp, arrayUnion, addDoc, collection, onSnapshot, query, orderBy, limit } from "firebase/firestore";
 
 // Group bits
 import { useGroupViewing } from "./Group/useGroupViewing";
@@ -64,6 +66,7 @@ const NewWorkoutModal = ({
         try { UIManager.setLayoutAnimationEnabledExperimental(true); } catch { }
     }
     const db = getFirestore();
+    const { width: screenWidth } = Dimensions.get("window");
 
     const [selectExerciseModalVisible, setSelectExerciseModalVisible] = useState(false);
     const [deleteConfirmModalVisible, setDeleteConfirmModalVisible] = useState(false);
@@ -283,6 +286,78 @@ const NewWorkoutModal = ({
         return Array.isArray(members) && members.some((m) => String(m) === my);
     }, [members, meUid, streamLive]);
 
+    // ===== Confetti + Cheer Events =====
+    const [confettiTick, setConfettiTick] = useState(0);
+    const fireConfetti = useCallback(() => setConfettiTick((t) => t + 1), []);
+
+    // Broadcast a cheer event to this workout's events feed
+    const sendCheerEvent = useCallback(async () => {
+        try {
+            const wid = String(cardWid || "");
+            if (!wid) return;
+            const fromUid = String(meUid || "");
+            await addDoc(collection(db, "workouts", wid, "events"), {
+                type: "cheer",
+                fromUid,
+                createdAt: serverTimestamp(),
+            });
+        } catch (e) {
+            // best-effort; don't block UI
+            console.log("sendCheerEvent error", e?.message || e);
+        }
+    }, [db, cardWid, meUid]);
+
+    // Handle press on Cheer: local confetti + remote signal
+    const handleCheerPress = useCallback(() => {
+        // Local celebratory confetti
+        fireConfetti();
+        // Remote signal so the active participant(s) see it too
+        sendCheerEvent();
+    }, [fireConfetti, sendCheerEvent]);
+
+    // Listen for cheer events for this workout to trigger confetti when others cheer
+    useEffect(() => {
+        if (!streamLive) return;
+        const wid = String(cardWid || "");
+        if (!wid) return;
+        const my = String(meUid || "");
+        let lastSeenId = null;
+        let initialized = false;
+        try {
+            const q = query(
+                collection(db, "workouts", wid, "events"),
+                orderBy("createdAt", "desc"),
+                limit(10)
+            );
+            const unsub = onSnapshot(q, (snap) => {
+                // Skip initial historical events
+                if (!initialized) {
+                    initialized = true;
+                    const top = snap.docs?.[0];
+                    lastSeenId = top ? top.id : null;
+                    return;
+                }
+                // Only react to new added docs (avoid full list causing multiple fires)
+                snap.docChanges().forEach((chg) => {
+                    if (chg.type !== "added") return;
+                    const id = chg.doc.id;
+                    if (lastSeenId && id === lastSeenId) return;
+                    const data = chg.doc.data() || {};
+                    if (data?.type === "cheer") {
+                        const from = String(data?.fromUid || "");
+                        // Avoid double-firing for our own signal (we already fired local confetti)
+                        if (from && from === my) return;
+                        fireConfetti();
+                    }
+                    lastSeenId = id;
+                });
+            });
+            return () => unsub();
+        } catch (e) {
+            console.log("cheer listener error", e?.message || e);
+        }
+    }, [db, cardWid, meUid, streamLive, fireConfetti]);
+
     // ===== Send invites from the picker =====
     const handleInviteSelected = useCallback(async (selectedUsers = []) => {
         try {
@@ -351,8 +426,8 @@ const NewWorkoutModal = ({
                     onOpenMenu={lockFriend ? undefined : openMenu}
                     onLongPressInvite={lockFriend ? undefined : (viewingSelfEffective ? showGroupModal : undefined)}
                     onFinish={viewingSelfEffective ? openFinishConfirm : undefined}
-                    // Only show Cheer when the friend's session is ongoing
-                    onCheer={friendOngoing ? onCheer : undefined}
+                    // Only show Cheer when the friend's session is ongoing. Always trigger internal handler.
+                    onCheer={friendOngoing ? (() => { try { onCheer?.(); } catch { } handleCheerPress(); }) : undefined}
                     // When viewing a completed workout, show Copy Template instead
                     onCopyTemplate={!viewingSelfEffective && !friendOngoing ? (() => onCopyTemplate?.(baseWorkout)) : undefined}
                     countdown={countdown}
@@ -530,6 +605,19 @@ const NewWorkoutModal = ({
                     </LinearGradient>
                 </Pressable>
             </Modal>
+
+            {/* Confetti overlay (pointerEvents disabled, auto-fires on key change) */}
+            {confettiTick > 0 && (
+                <View pointerEvents="none" style={StyleSheet.absoluteFill}>
+                    <ConfettiCannon
+                        key={confettiTick}
+                        count={120}
+                        origin={{ x: screenWidth / 2, y: 0 }}
+                        fadeOut
+                        fallSpeed={2500}
+                    />
+                </View>
+            )}
         </View >
     );
 };
