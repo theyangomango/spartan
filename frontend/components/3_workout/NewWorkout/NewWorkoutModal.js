@@ -481,7 +481,7 @@ const NewWorkoutModal = ({
                             deleteExercise={() => deleteExercise(exerciseIndex)}
                             calculateStats={() => { }}
                             toggleIsDone={toggleIsDone}
-                            userWorkoutStats={activeStats}
+                            userWorkoutStats={viewingSelfEffective ? (userWorkoutStats || activeStats) : activeStats}
                             readOnly={!viewingSelfEffective}
                         />
                     ))}

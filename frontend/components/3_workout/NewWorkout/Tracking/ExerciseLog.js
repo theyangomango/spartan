@@ -73,20 +73,57 @@ function ExerciseLog({
     // Ensure we don’t drop the last few edits
     useEffect(() => () => { flushSync(setsRef.current); }, [flushSync]);
 
-    // ----- Previous sets (read-only) -----
+    // ----- Previous sets (read-only display) -----
     const previousSetsRef = useRef([]);
     useEffect(() => {
-        if (userWorkoutStats && userWorkoutStats[name]) {
-            const exerciseSets = userWorkoutStats[name].sets || [];
-            const lastWid = exerciseSets[exerciseSets.length - 1]?.wid;
-            const matching = [];
-            for (let i = exerciseSets.length - 1; i >= 0; i--) {
-                if (exerciseSets[i].wid === lastWid) matching.push(exerciseSets[i]);
-                else break;
-            }
-            previousSetsRef.current = matching;
+        // Strategy:
+        // - When editing self (readOnly === false), prefer scanning completedWorkouts backwards to find
+        //   the most recent workout where this exercise was performed, and use its sets in order.
+        // - When viewing a friend (readOnly === true) or as a fallback, use statsExercises[name].sets
+        //   with the latest wid grouping (previous behavior).
+
+        const tryFromCompleted = () => {
+            try {
+                const arr = Array.isArray(global?.userData?.completedWorkouts) ? global.userData.completedWorkouts : [];
+                for (let i = arr.length - 1; i >= 0; i--) {
+                    const wk = arr[i];
+                    const exs = Array.isArray(wk?.exercises) ? wk.exercises : [];
+                    const found = exs.find((e) => e?.name === name && Array.isArray(e?.sets) && e.sets.length > 0);
+                    if (found) {
+                        previousSetsRef.current = found.sets.map((s) => ({ weight: Number(s?.weight) || 0, reps: Number(s?.reps) || 0 }));
+                        return true;
+                    }
+                }
+            } catch { }
+            return false;
+        };
+
+        const tryFromStats = () => {
+            try {
+                if (userWorkoutStats && userWorkoutStats[name]) {
+                    const exerciseSets = Array.isArray(userWorkoutStats[name].sets) ? userWorkoutStats[name].sets : [];
+                    if (exerciseSets.length === 0) return false;
+                    const lastWid = exerciseSets[exerciseSets.length - 1]?.wid;
+                    const matching = [];
+                    for (let i = exerciseSets.length - 1; i >= 0; i--) {
+                        if (exerciseSets[i].wid === lastWid) matching.push(exerciseSets[i]);
+                        else break;
+                    }
+                    previousSetsRef.current = matching.map((s) => ({ weight: Number(s?.weight) || 0, reps: Number(s?.reps) || 0 }));
+                    return true;
+                }
+            } catch { }
+            return false;
+        };
+
+        if (!readOnly) {
+            if (tryFromCompleted()) return;
+            tryFromStats();
+        } else {
+            // viewer mode
+            tryFromStats();
         }
-    }, [name, userWorkoutStats]);
+    }, [name, userWorkoutStats, readOnly, (global?.userData?.completedWorkouts || []).length]);
 
     // ----- Panel -----
     const [isPanelVisible, setIsPanelVisible] = useState(false);
