@@ -11,6 +11,7 @@ import createPost from "../../../../backend/posts/createPost";
 import arrayAppend from "../../../../backend/helper/firebase/arrayAppend";
 import formatDate from '../../../helper/formatDate';
 import { compressUnder250KB } from "./compressUnder250KB";
+import PostHonestyModal from "./PostHonestyModal";
 
 const { width: screenWidth, height: screenHeight } = Dimensions.get('window');
 const scale = screenWidth / 375; // Assuming a base screen width of 375 (like iPhone X)
@@ -24,6 +25,7 @@ export default function PostOptionsScreen({ navigation, route }) {
 
     const [caption, setCaption] = useState('');
     const [isSharing, setIsSharing] = useState(false); // New state for tracking share progress
+    const [honestyVisible, setHonestyVisible] = useState(false);
 
     function goBack() {
         navigation.goBack();
@@ -37,6 +39,8 @@ export default function PostOptionsScreen({ navigation, route }) {
         );
         return compressedImage.uri;
     }
+
+    const beginShare = () => setHonestyVisible(true);
 
     async function sharePost() {
         setIsSharing(true); // Disable the button
@@ -83,7 +87,7 @@ export default function PostOptionsScreen({ navigation, route }) {
                     </View>
                     <View style={styles.share_button_ctnr}>
                         <TouchableOpacity
-                            onPress={sharePost}
+                            onPress={beginShare}
                             style={[styles.share_btn, (caption.length === 0 || isSharing) && styles.share_btn_disabled]}
                             disabled={caption.length === 0 || isSharing}
                         >
@@ -158,6 +162,12 @@ export default function PostOptionsScreen({ navigation, route }) {
                 </Pressable>
 
             </ScrollView>
+
+            <PostHonestyModal
+                visible={honestyVisible}
+                onCancel={() => setHonestyVisible(false)}
+                onConfirm={() => { setHonestyVisible(false); sharePost(); }}
+            />
         </View>
     );
 }
