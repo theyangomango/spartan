@@ -13,8 +13,8 @@ const SectionDivider = ({
     gap = 12,
     thickness = 3,
     dashColor = "rgba(15,23,42,0.22)",
-    dotSize = 10,
-    dotColor = "#60a5fa89",
+    dotSize = 6,
+    dotColor = "#0000003d",
     containerBg = "#F7FAFF",
 }) => {
     const totalSlots = sideCount * 2 + 1;
@@ -67,8 +67,8 @@ const SectionDivider = ({
 const styles = StyleSheet.create({
     sectionDividerOuter: {
         alignItems: "center",
-        marginTop: 14,
-        marginBottom: 12,
+        marginTop: 12,
+        marginBottom: 14,
     },
     sectionDividerInner: {
         height: 22,
