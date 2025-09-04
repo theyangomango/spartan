@@ -9,12 +9,18 @@ import scaleSize from "../../../helper/scaleSize";
 // Removed unused bounceable/touchable imports to keep things lean
 
 const PodiumPreview = memo(function PodiumPreview({ top3 = [] }) {
-    // keep this super cheap
-    const data = (top3 || []).slice(0, 3).map((u) => ({
-        pfp: usePfp(u?.uid) || u?.fallbackPfp || "",
-        handle: u?.handle || "",
-        stat: u?.stat || 0,
-    }));
+    // Call hooks a fixed number of times to avoid rules-of-hooks violations
+    const u0 = top3?.[0] || null;
+    const u1 = top3?.[1] || null;
+    const u2 = top3?.[2] || null;
+    const p0 = usePfp(u0?.uid, u0?.pfpVersion ?? 0);
+    const p1 = usePfp(u1?.uid, u1?.pfpVersion ?? 0);
+    const p2 = usePfp(u2?.uid, u2?.pfpVersion ?? 0);
+    const data = [
+        { present: !!u0, pfp: p0 || u0?.fallbackPfp || "", handle: u0?.handle || "", stat: u0?.stat || 0 },
+        { present: !!u1, pfp: p1 || u1?.fallbackPfp || "", handle: u1?.handle || "", stat: u1?.stat || 0 },
+        { present: !!u2, pfp: p2 || u2?.fallbackPfp || "", handle: u2?.handle || "", stat: u2?.stat || 0 },
+    ];
     return <MiniPodium data={data} />;
 });
 
@@ -45,7 +51,7 @@ function HubRowCmp({
                         const rootNav = navigation?.getParent?.('ROOT');
                         if (rootNav?.navigate) rootNav.navigate('MacroTracking', { transition: 'slide-from-left' });
                         else navigation.navigate('MacroTracking', { transition: 'slide-from-left' });
-                    } catch {}
+                    } catch { }
                 }}
             >
                 <View style={[styles.headerRow, styles.headerRowStart]}>
@@ -90,11 +96,17 @@ function HubRowCmp({
                         const rootNav = navigation?.getParent?.('ROOT');
                         if (rootNav?.navigate) rootNav.navigate('Competition', { transition: 'slide-from-right' });
                         else navigation.navigate('Competition', { transition: 'slide-from-right' });
-                    } catch {}
+                    } catch { }
                 }}
             >
                 <View style={styles.headerRow}>
-                    <Text style={styles.podiumCaption}>{PREVIEW_LABEL}</Text>
+                    <Text
+                        style={[styles.podiumCaption, styles.podiumCaptionClamp]}
+                        numberOfLines={1}
+                        ellipsizeMode="tail"
+                    >
+                        {PREVIEW_LABEL}
+                    </Text>
                     <Text style={styles.chevronRight}>›</Text>
                 </View>
                 {afterPaint ? <PodiumPreview top3={top3} /> : null}
@@ -143,6 +155,7 @@ const styles = StyleSheet.create({
 
     macrosCaption: { color: "#64748B", fontSize: 12, fontFamily: "Outfit_700Bold" },
     podiumCaption: { color: "#64748B", fontSize: 12, fontFamily: "Outfit_700Bold" },
+    podiumCaptionClamp: { flex: 1, marginRight: 8, maxWidth: '85%' },
     chevronRight: { color: "#94A3B8", fontSize: 18, lineHeight: 18, includeFontPadding: false },
     chevronLeft: { color: "#94A3B8", fontSize: 18, lineHeight: 18, includeFontPadding: false },
 
