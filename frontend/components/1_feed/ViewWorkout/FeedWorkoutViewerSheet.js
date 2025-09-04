@@ -1,8 +1,8 @@
-import React, { useCallback, useEffect, useMemo, useRef, memo } from "react";
-import { View, StyleSheet } from "react-native";
+import React, { useCallback, useEffect, useMemo, useRef, memo, useState } from "react";
+import { View, StyleSheet, InteractionManager } from "react-native";
 import BottomSheet, { BottomSheetBackdrop } from "@gorhom/bottom-sheet";
 import NewWorkoutModal from "../../3_Workout/NewWorkout/NewWorkoutModal";
-import { onSnapshot, doc } from "firebase/firestore";
+import { getDoc, doc } from "firebase/firestore";
 import { db } from "../../../../firebase.config";
 
 const HANDLE_FRIEND_ACCENT = "#E0A500";
@@ -20,6 +20,7 @@ const FeedWorkoutViewerSheet = ({
   const bottomSheetRef = useRef(null);
   const snapPoints = useMemo(() => ["94%"], []);
   const timerRef = useRef("");
+  const [mountContent, setMountContent] = useState(false);
 
   // Any flip of expandToggle expands the sheet, but skip first mount and wait until we have content
   const didMountRef = useRef(false);
@@ -29,6 +30,8 @@ const FeedWorkoutViewerSheet = ({
       return;
     }
     if (!workout) return; // don't expand unless we have content
+    // Immediately open the sheet; mount heavy content after animation/gestures finish
+    setMountContent(false);
     requestAnimationFrame(() => bottomSheetRef.current?.expand());
   }, [expandToggle]);
 
@@ -57,14 +60,33 @@ const FeedWorkoutViewerSheet = ({
 
   // Fetch friend stats once for accurate "Previous" in read-only viewer (no live stream here)
   const friendStatsRef = useRef(null);
-  useEffect(() => {
+  const pendingFetchRef = useRef(0);
+  // Fetch friend stats once per friend after the sheet is opened to avoid competing with animation
+  const fetchFriendStats = useCallback(async () => {
+    const key = `${friendUidEff}`;
     if (!friendUidEff) return;
-    const unsub = onSnapshot(doc(db, "users", friendUidEff), (snap) => {
-      const data = snap.data() || {};
+    // ensure only one in-flight
+    if (pendingFetchRef.current && pendingFetchRef.current === key) return;
+    pendingFetchRef.current = key;
+    try {
+      const snap = await getDoc(doc(db, "users", friendUidEff));
+      const data = snap.exists() ? (snap.data() || {}) : {};
       friendStatsRef.current = data?.statsExercises || null;
-    });
-    return () => { try { unsub && unsub(); } catch {} };
+    } catch {}
   }, [friendUidEff]);
+
+  const handleSheetChange = useCallback((index) => {
+    if (index >= 0) {
+      // Defer heavy mount until current interactions finish for a smoother pop
+      InteractionManager.runAfterInteractions(() => {
+        setMountContent(true);
+        // best-effort: kick off friend stats fetch in background
+        fetchFriendStats();
+      });
+    } else {
+      setMountContent(false);
+    }
+  }, [fetchFriendStats]);
 
   return (
     <View style={styles.outer} pointerEvents="box-none">
@@ -75,11 +97,12 @@ const FeedWorkoutViewerSheet = ({
         backdropComponent={renderBackdrop}
         enablePanDownToClose
         onClose={onClose}
+        onChange={handleSheetChange}
         // Styled like friend-view (warm accent) since this sheet is locked to past/friend view
         handleIndicatorStyle={{ backgroundColor: HANDLE_FRIEND_ACCENT }}
         handleStyle={{ backgroundColor: HANDLE_FRIEND_BACKGROUND }}
       >
-        {workout && (
+        {workout && mountContent && (
           <NewWorkoutModal
             timerRef={timerRef}
             workout={workout}

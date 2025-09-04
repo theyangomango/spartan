@@ -479,18 +479,11 @@ const NewWorkoutModal = ({
                     <Text style={styles.waitingText}>Loading friend…</Text>
                 </View>
             ) : (
-                <Animated.ScrollView
-                    showsVerticalScrollIndicator={false}
-                    onScroll={Animated.event([{ nativeEvent: { contentOffset: { y: scrollY } } }], { useNativeDriver: true })}
-                    scrollEventThrottle={16}
-                    keyboardShouldPersistTaps="always"
-                    style={[styles.scrollview, { opacity: overallOpacity }]}
-                >
-                    <ProgressBanner totalReps={totals.reps} totalVolume={totals.volume} personalBests={totals.PBs} />
-
-                    {(baseWorkout?.exercises || []).map((ex, exerciseIndex) => (
+                <Animated.FlatList
+                    data={Array.isArray(baseWorkout?.exercises) ? baseWorkout.exercises : []}
+                    keyExtractor={(ex, i) => `${ex?.name || "ex"}-${i}`}
+                    renderItem={({ item: ex, index: exerciseIndex }) => (
                         <ExerciseLog
-                            key={ex.name + exerciseIndex}
                             name={ex.name}
                             muscle={ex.muscle}
                             exerciseIndex={exerciseIndex}
@@ -504,24 +497,36 @@ const NewWorkoutModal = ({
                             userWorkoutStats={statsForPrevious}
                             readOnly={!viewingSelfEffective}
                         />
-                    ))}
-
-                    {/* Editing actions only when viewing self */}
-                    {viewingSelfEffective && (
+                    )}
+                    ListHeaderComponent={(
+                        <ProgressBanner totalReps={totals.reps} totalVolume={totals.volume} personalBests={totals.PBs} />
+                    )}
+                    ListFooterComponent={(
                         <>
-                            <RNBounceable onPress={showSelectExerciseModal} style={styles.add_exercise_btn}>
-                                <Text style={styles.add_exercise_text}>Add Exercises</Text>
-                                <Weight size={scaledSize(22)} color="#5DBDFF" variant="Bold" />
-                            </RNBounceable>
-
-                            <RNBounceable onPress={confirmCancelWorkout} style={styles.cancel_btn}>
-                                <Text style={styles.cancel_btn_text}>Cancel Workout</Text>
-                            </RNBounceable>
+                            {viewingSelfEffective && (
+                                <>
+                                    <RNBounceable onPress={showSelectExerciseModal} style={styles.add_exercise_btn}>
+                                        <Text style={styles.add_exercise_text}>Add Exercises</Text>
+                                        <Weight size={scaledSize(22)} color="#5DBDFF" variant="Bold" />
+                                    </RNBounceable>
+                                    <RNBounceable onPress={confirmCancelWorkout} style={styles.cancel_btn}>
+                                        <Text style={styles.cancel_btn_text}>Cancel Workout</Text>
+                                    </RNBounceable>
+                                </>
+                            )}
+                            <View style={{ height: scaledSize(150) }} />
                         </>
                     )}
-
-                    <View style={{ height: scaledSize(150) }} />
-                </Animated.ScrollView>
+                    showsVerticalScrollIndicator={false}
+                    scrollEventThrottle={16}
+                    onScroll={Animated.event([{ nativeEvent: { contentOffset: { y: scrollY } } }], { useNativeDriver: true })}
+                    keyboardShouldPersistTaps="always"
+                    removeClippedSubviews
+                    initialNumToRender={4}
+                    maxToRenderPerBatch={6}
+                    windowSize={7}
+                    style={[styles.scrollview, { opacity: overallOpacity }]}
+                />
             )}
 
             {/* Add / Replace Exercises */}
