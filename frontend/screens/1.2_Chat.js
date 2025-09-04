@@ -60,9 +60,21 @@ export default function Chat({ navigation, route }) {
         return () => unsub();
     }, [data.cid]);
 
+    const scrollToLatest = () => {
+        try {
+            // In inverted FlatList, offset 0 shows the newest item
+            requestAnimationFrame(() => flatRef.current?.scrollToOffset?.({ offset: 0, animated: true }));
+        } catch {}
+    };
+
     const sendText = async () => {
         const t = (text || "").trim();
         if (!t) return;
+        // Clear input immediately and prep UI
+        setText("");
+        setReplyDraft(null);
+        scrollToLatest();
+
         await sendMessageV2({
             cid: data.cid,
             sender: {
@@ -82,8 +94,8 @@ export default function Chat({ navigation, route }) {
                 }
                 : null,
         });
-        setText("");
-        setReplyDraft(null);
+        // Ensure view stays at latest in case list grew
+        scrollToLatest();
     };
 
     const openPicker = async () => {
@@ -115,6 +127,7 @@ export default function Chat({ navigation, route }) {
                 text: "",
                 media: uploaded,
             });
+            scrollToLatest();
         } finally {
             setUploading(false);
         }
