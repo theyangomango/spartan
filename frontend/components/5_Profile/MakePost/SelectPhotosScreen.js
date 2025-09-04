@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState, useCallback } from 'react';
+import { useEffect, useMemo, useState, useCallback, useRef } from 'react';
 import { Text, View, StyleSheet, TouchableOpacity, Image, Dimensions, SafeAreaView } from 'react-native';
 import { FontAwesome6, Ionicons } from '@expo/vector-icons';
 import * as MediaLibrary from 'expo-media-library';
@@ -17,6 +17,7 @@ export default function SelectPhotosScreen({ navigation, route }) {
     const [endCursor, setEndCursor] = useState(null);
     const [hasNextPage, setHasNextPage] = useState(true);
     const [permissionResponse, requestPermission] = MediaLibrary.usePermissions();
+    const fetchingRef = useRef(false);
 
     useEffect(() => {
         getInitialAssets();
@@ -42,7 +43,8 @@ export default function SelectPhotosScreen({ navigation, route }) {
     }, [permissionResponse, requestPermission]);
 
     const loadMoreAssets = useCallback(async () => {
-        if (loading || !hasNextPage) return;
+        if (fetchingRef.current || loading || !hasNextPage) return;
+        fetchingRef.current = true;
         setLoading(true);
         try {
             const res = await MediaLibrary.getAssetsAsync({
@@ -51,10 +53,17 @@ export default function SelectPhotosScreen({ navigation, route }) {
                 sortBy: MediaLibrary.SortBy.creationTime,
                 after: endCursor || undefined,
             });
-            if (res?.assets?.length) setAssets(prev => [...prev, ...res.assets]);
+            if (res?.assets?.length) {
+                setAssets(prev => {
+                    const seen = new Set(prev.map(a => a.id));
+                    const uniqueNext = res.assets.filter(a => !seen.has(a.id));
+                    return uniqueNext.length ? [...prev, ...uniqueNext] : prev;
+                });
+            }
             setEndCursor(res.endCursor || null);
             setHasNextPage(!!res.hasNextPage);
         } finally {
+            fetchingRef.current = false;
             setLoading(false);
         }
     }, [endCursor, hasNextPage, loading]);

@@ -8,12 +8,9 @@ const PreviewPhotosBottomSheet = ({ assets, images, selectedOrderMap, toggleSele
     const snapPoints = useMemo(() => ["35%", "94%"], []);
 
     const handleSheetChanges = useCallback((index) => {
-        // Warm up by loading the next 1-2 pages when fully expanded.
+        // Warm up by loading next page when fully expanded (single request).
         if (index === 1 && hasNextPage && !loading) {
             loadMoreAssets();
-            setTimeout(() => {
-                if (hasNextPage && !loading) loadMoreAssets();
-            }, 50);
         }
     }, [hasNextPage, loading, loadMoreAssets]);
 
