@@ -74,7 +74,7 @@ function ExerciseLog({
     useEffect(() => () => { flushSync(setsRef.current); }, [flushSync]);
 
     // ----- Previous sets (read-only display) -----
-    const previousSetsRef = useRef([]);
+    const [previousSets, setPreviousSets] = useState([]);
     useEffect(() => {
         // Strategy:
         // - When editing self (readOnly === false), prefer scanning completedWorkouts backwards to find
@@ -90,7 +90,7 @@ function ExerciseLog({
                     const exs = Array.isArray(wk?.exercises) ? wk.exercises : [];
                     const found = exs.find((e) => e?.name === name && Array.isArray(e?.sets) && e.sets.length > 0);
                     if (found) {
-                        previousSetsRef.current = found.sets.map((s) => ({ weight: Number(s?.weight) || 0, reps: Number(s?.reps) || 0 }));
+                        setPreviousSets(found.sets.map((s) => ({ weight: Number(s?.weight) || 0, reps: Number(s?.reps) || 0 })));
                         return true;
                     }
                 }
@@ -109,7 +109,7 @@ function ExerciseLog({
                         if (exerciseSets[i].wid === lastWid) matching.push(exerciseSets[i]);
                         else break;
                     }
-                    previousSetsRef.current = matching.map((s) => ({ weight: Number(s?.weight) || 0, reps: Number(s?.reps) || 0 }));
+                    setPreviousSets(matching.map((s) => ({ weight: Number(s?.weight) || 0, reps: Number(s?.reps) || 0 })));
                     return true;
                 }
             } catch { }
@@ -123,7 +123,7 @@ function ExerciseLog({
             // viewer mode
             tryFromStats();
         }
-    }, [name, userWorkoutStats, readOnly, (global?.userData?.completedWorkouts || []).length]);
+    }, [name, userWorkoutStats, readOnly, (global?.userData?.completedWorkouts || []).length, (sets || []).length]);
 
     // ----- Panel -----
     const [isPanelVisible, setIsPanelVisible] = useState(false);
@@ -217,7 +217,7 @@ function ExerciseLog({
                             key={sid}
                             itemKey={sid}
                             sid={sid}
-                            previousSet={previousSetsRef.current[index]}
+                            previousSet={previousSets[index]}
                             set={item}
                             index={index}
                             onUpdateSetById={updateSetById}      // ← debounced parent sync

@@ -82,7 +82,7 @@ function SetRow({
 
                     <View style={styles.previous_ctnr}>
                         <Text style={[styles.previous_stat_text, doneLocal && { color: "#afafaf" }]}>
-                            {previousSet ? `${previousSet.reps} x ${previousSet.weight}lbs` : "N/A"}
+                            {previousSet ? `${previousSet.reps} x ${previousSet.weight}lbs` : "—"}
                         </Text>
                     </View>
 
@@ -145,6 +145,10 @@ const rowEqual = (prev, next) => {
     if (ps.reps !== ns.reps) return false;
     if (!!ps.isDone !== !!ns.isDone) return false;
     if ((ps.type || null) !== (ns.type || null)) return false;
+    // Re-render when previousSet changes (weight/reps), so initial N/A updates correctly
+    const pp = prev.previousSet || {}; const np = next.previousSet || {};
+    if ((pp.weight || 0) !== (np.weight || 0)) return false;
+    if ((pp.reps || 0) !== (np.reps || 0)) return false;
     if (!!prev.readOnly !== !!next.readOnly) return false;
     return true;
 };
