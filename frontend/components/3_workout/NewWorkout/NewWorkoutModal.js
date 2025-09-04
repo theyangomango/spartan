@@ -125,6 +125,7 @@ const NewWorkoutModal = ({
         activeStats,
         waitingFriend,
         setViewing,
+        members,
     } = useGroupViewing({
         wid: streamLive ? cardWid : null,
         meUid,
@@ -270,6 +271,13 @@ const NewWorkoutModal = ({
         [viewingSelfEffective, activeWorkout?.wid, cardWid]
     );
 
+    // Am I an active participant in this workout?
+    const meIsMember = useMemo(() => {
+        if (!streamLive) return false;
+        const my = String(meUid || "");
+        return Array.isArray(members) && members.some((m) => String(m) === my);
+    }, [members, meUid, streamLive]);
+
     // ===== Send invites from the picker =====
     const handleInviteSelected = useCallback(async (selectedUsers = []) => {
         try {
@@ -349,8 +357,8 @@ const NewWorkoutModal = ({
                     onBack={onPressBack}
                     disableGroupPress={lockFriend || !(viewingSelfEffective || inActiveGroupEffective)}
                     inActiveGroup={inActiveGroupEffective}
-                    // Place PFP on the left (next to chevron) when viewing a past workout
-                    pfpOnLeft={!viewingSelfEffective && !friendOngoing}
+                    // Place PFP on the left whenever not actively participating in this workout
+                    pfpOnLeft={!viewingSelfEffective && !meIsMember}
                 />
             </View>
             <Animated.View style={[styles.headerShadow, { opacity: borderOpacity }]} />

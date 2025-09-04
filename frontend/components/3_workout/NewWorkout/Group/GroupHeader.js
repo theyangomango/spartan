@@ -53,11 +53,15 @@ const GroupHeader = ({
 
     const pfpToShow = lastGoodPfpRef.current;
 
+    // Show timer on the left only when viewing self, or when in an active group AND we are actively participating
+    // If pfpOnLeft is true, we prefer showing the back chevron + PFP instead of the timer tile.
+    const showTimerLeft = viewingSelf || (inActiveGroup && !pfpOnLeft);
+
     return (
         <View style={headerStyle}>
-            {/* Left: timer (self or active group) OR back chevron + optional PFP */}
-            <View style={[styles.leftWrap, (!viewingSelf && !inActiveGroup) && styles.leftRow]}>
-                {(viewingSelf || inActiveGroup) ? (
+            {/* Left: timer (self/participating) OR back chevron + optional PFP */}
+            <View style={[styles.leftWrap, (!showTimerLeft) && styles.leftRow]}>
+                {showTimerLeft ? (
                     <RNBounceable style={styles.rest_timer_ctnr} onPress={onAddTime}>
                         <View style={styles.iconWrapper}>
                             <MaterialCommunityIcons name="timer-outline" size={scaledSize(24)} color="#0499FE" />
