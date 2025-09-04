@@ -2,7 +2,6 @@ import 'expo-dev-client';
 import React, { useEffect, useRef, useState } from 'react';
 import { NavigationContainer } from '@react-navigation/native';
 import { navigationRef } from './navigationRef';
-import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { createStackNavigator, CardStyleInterpolators } from '@react-navigation/stack';
 import { Platform } from 'react-native';
@@ -33,76 +32,39 @@ import MacroTracking from './frontend/screens/MacroTracking';
 import SearchUsers from './frontend/screens/SearchUsers';
 
 const NativeStack = createNativeStackNavigator();
-const Tab = createBottomTabNavigator();
 
-/**
- * Root overlays: use native-stack on Android, classic stack on iOS
- * because native-stack doesn't support slide_from_left on iOS.
- */
-const RootOverlayStack = Platform.OS === 'ios' ? createStackNavigator() : createNativeStackNavigator();
+// Single root stack: iOS uses classic stack for left-slide; Android uses native-stack for perf
+const RootStack = Platform.OS === 'ios' ? createStackNavigator() : createNativeStackNavigator();
 
 // Enable native screens for reduced memory and faster transitions
 enableScreens(true);
 
 // (no screens optimization toggles — use defaults)
 
-/* ---------- Sub-stacks (native-stack) ---------- */
-const AuthenticationStack = () => (
-    <NativeStack.Navigator initialRouteName="SignUp" screenOptions={{ headerShown: false, gestureEnabled: true, fullScreenGestureEnabled: true }}>
-        <NativeStack.Screen name="SignUp" component={SignUp} />
-        <NativeStack.Screen name="LogIn" component={LogIn} />
-        <NativeStack.Screen name="NewUserCreation" component={NewUserCreation} />
-        <NativeStack.Screen name="UserLogInCredentials" component={UserLogInCredentials} />
-    </NativeStack.Navigator>
-);
+/* No nested stacks; everything registers on RootStack */
 
-const FeedStack = ({ route }) => (
-    <NativeStack.Navigator initialRouteName="Feed" screenOptions={{ headerShown: false, gestureEnabled: true, fullScreenGestureEnabled: true, animation: 'slide_from_right' }}>
-        <NativeStack.Screen name="Feed" component={Feed} initialParams={route?.params} />
-        <NativeStack.Screen name="Messages" component={Messages} />
-        <NativeStack.Screen name="Chat" component={Chat} />
-        <NativeStack.Screen name="ViewProfile" component={ViewProfile} />
-    </NativeStack.Navigator>
-);
+/* ---------- Universal One-Way Overlay ---------- */
+// Register the screens you want to be able to open as one-way overlays
+const OVERLAY_SCREENS = {
+    MacroTracking,
+    Competition,
+    ViewProfile,
+    SearchUsers,
+    Feed,
+    Workout,
+    Profile,
+    Messages,
+    Chat,
+};
 
-const WorkoutStack = ({ route }) => (
-    <NativeStack.Navigator initialRouteName="Workout" screenOptions={{ headerShown: false, gestureEnabled: true, fullScreenGestureEnabled: true, animation: 'slide_from_right' }}>
-        <NativeStack.Screen name="Workout" component={Workout} initialParams={route?.params} />
-        <NativeStack.Screen name="Messages" component={Messages} />
-        <NativeStack.Screen name="Chat" component={Chat} />
-        <NativeStack.Screen name="ViewProfile" component={ViewProfile} />
-    </NativeStack.Navigator>
-);
-
-const CompetitionStack = () => (
-    <NativeStack.Navigator initialRouteName="Competition" screenOptions={{ headerShown: false, gestureEnabled: true, fullScreenGestureEnabled: true, animation: 'slide_from_right' }}>
-        <NativeStack.Screen name="Competition" component={Competition} />
-        <NativeStack.Screen name="ViewProfile" component={ViewProfile} />
-    </NativeStack.Navigator>
-);
-
-const ExploreStack = () => (
-    <NativeStack.Navigator initialRouteName="MacroTracking" screenOptions={{ headerShown: false, gestureEnabled: true, fullScreenGestureEnabled: true, animation: 'slide_from_left', stackAnimation: 'slide_from_left' }}>
-        <NativeStack.Screen name="MacroTracking" component={MacroTracking} />
-        <NativeStack.Screen name="ViewProfile" component={ViewProfile} />
-    </NativeStack.Navigator>
-);
-
-const ProfileStack = () => (
-    <NativeStack.Navigator initialRouteName="Profile" screenOptions={{ headerShown: false, gestureEnabled: true, fullScreenGestureEnabled: true, animation: 'slide_from_right' }}>
-        <NativeStack.Screen
-            name="Profile"
-            component={Profile}
-            options={({ route }) => ({
-                animation: route?.params?.transition === 'fade' ? 'fade' : 'slide_from_right',
-            })}
-        />
-        <NativeStack.Screen name="SelectPhotos" component={SelectPhotosScreen} />
-        <NativeStack.Screen name="PostOptions" component={PostUploadOptionsScreen} />
-        <NativeStack.Screen name="SearchUsers" component={require('./frontend/screens/SearchUsers').default} />
-        <NativeStack.Screen name="ViewProfile" component={ViewProfile} />
-    </NativeStack.Navigator>
-);
+const OneWayScreen = ({ route, navigation }) => {
+    const { target, params } = route?.params || {};
+    const Comp = target ? OVERLAY_SCREENS[target] : null;
+    if (!Comp) return null;
+    // Provide a route shape so child screens can read route.params as usual
+    const childRoute = { key: `${target}-overlay`, name: target, params };
+    return <Comp navigation={navigation} route={childRoute} />;
+};
 
 export default function App() {
     const [fontsLoaded] = useFonts(customFonts);
@@ -151,19 +113,6 @@ export default function App() {
 
     if (!fontsLoaded) return null;
 
-    const Tabs = () => (
-        <Tab.Navigator
-            initialRouteName="Workout"
-            screenOptions={{ headerShown: false, tabBarStyle: { display: 'none' } }}
-        >
-            <Tab.Screen name="FeedStack" component={FeedStack} initialParams={{ uid: uidRef.current }} />
-            <Tab.Screen name="ExploreStack" component={ExploreStack} />
-            <Tab.Screen name="Workout" component={WorkoutStack} initialParams={{ uid: uidRef.current }} />
-            <Tab.Screen name="CompetitionStack" component={CompetitionStack} />
-            <Tab.Screen name="ProfileStack" component={ProfileStack} />
-        </Tab.Navigator>
-    );
-
     // Splash/guard until user is hydrated if authenticated
     if (isAuthenticated && !userReady) {
         return <GestureHandlerRootView style={{ flex: 1, backgroundColor: '#F7FAFF' }} />;
@@ -172,84 +121,63 @@ export default function App() {
     return (
         <GestureHandlerRootView style={{ flex: 1 }}>
             <NavigationContainer ref={navigationRef}>
-                {/* Overlay routes using native-stack for snappier animations */}
-                <RootOverlayStack.Navigator
+                {/* Single root navigator with all screens */}
+                <RootStack.Navigator
                     id="ROOT"
-                    initialRouteName={isAuthenticated ? 'Tabs' : 'Auth'}
-                    screenOptions={{ headerShown: false }}
+                    initialRouteName={isAuthenticated ? 'Workout' : 'SignUp'}
+                    screenOptions={({ route }) => {
+                        const transition = route?.params?.transition; // 'slide-from-left' | 'slide-from-right' | 'fade' | 'none'
+                        const isFade = transition === 'fade';
+                        const isSlideLeft = transition === 'slide-from-left';
+                        const isNone = transition === 'none';
+                        return Platform.select({
+                            ios: {
+                                headerShown: false,
+                                gestureEnabled: !isNone,
+                                animationEnabled: !isNone,
+                                gestureDirection: isSlideLeft ? 'horizontal-inverted' : 'horizontal',
+                                cardStyleInterpolator: isFade
+                                    ? CardStyleInterpolators.forFadeFromCenter
+                                    : CardStyleInterpolators.forHorizontalIOS,
+                            },
+                            android: {
+                                headerShown: false,
+                                gestureEnabled: !isNone,
+                                fullScreenGestureEnabled: !isNone,
+                                animation: isNone
+                                    ? 'none'
+                                    : (isFade
+                                    ? 'fade'
+                                    : (isSlideLeft ? 'slide_from_left' : 'slide_from_right')),
+                            },
+                            default: { headerShown: false, gestureEnabled: true },
+                        });
+                    }}
                 >
-                    <RootOverlayStack.Screen name="Tabs" component={Tabs} />
-                    <RootOverlayStack.Screen name="Auth" component={AuthenticationStack} />
-                    <RootOverlayStack.Screen
-                        name="MacroTrackingOverlay"
-                        component={MacroTracking}
-                        options={Platform.select({
-                            ios: {
-                                gestureEnabled: true,
-                                // Invert horizontal gesture to push from left
-                                gestureDirection: 'horizontal-inverted',
-                                cardStyleInterpolator: CardStyleInterpolators.forHorizontalIOS,
-                            },
-                            android: {
-                                gestureEnabled: true,
-                                fullScreenGestureEnabled: true,
-                                animation: 'slide_from_left',
-                            },
-                            default: { gestureEnabled: true },
-                        })}
-                    />
-                    <RootOverlayStack.Screen
-                        name="CompetitionOverlay"
-                        component={CompetitionStack}
-                        options={Platform.select({
-                            ios: {
-                                gestureEnabled: true,
-                                gestureDirection: 'horizontal',
-                                cardStyleInterpolator: CardStyleInterpolators.forHorizontalIOS,
-                            },
-                            android: {
-                                gestureEnabled: true,
-                                fullScreenGestureEnabled: true,
-                                animation: 'slide_from_right',
-                            },
-                            default: { gestureEnabled: true },
-                        })}
-                    />
-                <RootOverlayStack.Screen
-                        name="ViewProfileOverlay"
-                        component={ViewProfile}
-                        options={Platform.select({
-                            ios: {
-                                gestureEnabled: true,
-                                gestureDirection: 'horizontal',
-                                cardStyleInterpolator: CardStyleInterpolators.forHorizontalIOS,
-                            },
-                            android: {
-                                gestureEnabled: true,
-                                fullScreenGestureEnabled: true,
-                                animation: 'slide_from_right',
-                            },
-                            default: { gestureEnabled: true },
-                        })}
-                    />
-                    <RootOverlayStack.Screen
-                        name="SearchUsersOverlay"
-                        component={SearchUsers}
-                        options={Platform.select({
-                            ios: {
-                                gestureEnabled: true,
-                                // Fade in/out on iOS using classic stack interpolator
-                                cardStyleInterpolator: CardStyleInterpolators.forFadeFromCenter,
-                            },
-                            android: {
-                                gestureEnabled: true,
-                                fullScreenGestureEnabled: true,
-                                animation: 'fade',
-                            },
-                            default: { gestureEnabled: true },
-                        })}
-                    />
-                </RootOverlayStack.Navigator>
+                    {/* Auth screens */}
+                    <RootStack.Screen name="SignUp" component={SignUp} />
+                    <RootStack.Screen name="LogIn" component={LogIn} />
+                    <RootStack.Screen name="NewUserCreation" component={NewUserCreation} />
+                    <RootStack.Screen name="UserLogInCredentials" component={UserLogInCredentials} />
+
+                    {/* Main screens */}
+                    <RootStack.Screen name="Feed" component={Feed} initialParams={{ uid: uidRef.current }} />
+                    <RootStack.Screen name="MacroTracking" component={MacroTracking} />
+                    <RootStack.Screen name="Workout" component={Workout} initialParams={{ uid: uidRef.current }} />
+                    <RootStack.Screen name="Competition" component={Competition} />
+                    <RootStack.Screen name="Profile" component={Profile} />
+                    <RootStack.Screen name="Explore" component={Explore} />
+
+                    {/* Messaging / social */}
+                    <RootStack.Screen name="Messages" component={Messages} />
+                    <RootStack.Screen name="Chat" component={Chat} />
+                    <RootStack.Screen name="ViewProfile" component={ViewProfile} />
+                    <RootStack.Screen name="SearchUsers" component={SearchUsers} />
+
+                    {/* Creator */}
+                    <RootStack.Screen name="SelectPhotos" component={SelectPhotosScreen} />
+                    <RootStack.Screen name="PostOptions" component={PostUploadOptionsScreen} />
+                </RootStack.Navigator>
             </NavigationContainer>
         </GestureHandlerRootView>
     );

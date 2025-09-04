@@ -454,8 +454,8 @@ export default function useWorkoutManager({ uid, navigation, millisToHMS }) {
     const postWorkout = useCallback(async () => {
         setIsSummaryModalVisible(false);
         try {
-            await navigation.navigate("ProfileStack", { screen: "Profile" });
-            navigation.navigate("ProfileStack", { screen: "SelectPhotos", params: { workout: completedWorkout } });
+            await navigation.navigate("Profile", { transition: 'fade' });
+            navigation.navigate("SelectPhotos", { workout: completedWorkout });
         } catch { }
     }, [completedWorkout, navigation]);
 

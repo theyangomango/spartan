@@ -67,7 +67,7 @@ const UserLogInCredentials = ({ navigation }) => {
                     console.log('async storage set uid');
                 });
                 try { global.setAuthUid?.(user.uid); } catch {}
-                navigation.navigate('Tabs', { screen: 'Workout' });
+                navigation.navigate('Workout');
             } else {
                 // No matching user found
                 console.log('Login failed: Invalid credentials');

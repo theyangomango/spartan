@@ -24,8 +24,7 @@ import { getFeedHeaderStyles } from "../../helper/getFeedHeaderStyles";
 import { db } from "../../../firebase.config";
 import { collection, query, where, onSnapshot, getDocs, orderBy, limit } from "firebase/firestore";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { StackActions } from "@react-navigation/native";
-import { navigationRef } from "../../../navigationRef";
+// Single root navigator; no need for StackActions/nested refs here
 
 const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get("window");
 const dynamicStyles = getFeedHeaderStyles(SCREEN_WIDTH, SCREEN_HEIGHT);
@@ -160,9 +159,9 @@ const SearchUsersBar = ({ navigation, allUsersRef, disabled = false }) => {
     // Navigate while keeping the overlay visible during the native-stack slide
     const navigateToUser = useCallback((item) => {
         if (!item) return;
-        // Present ViewProfile as an overlay route above Tabs to get a clean slide
-        navigation?.navigate('ViewProfileOverlay', {
+        navigation?.navigate('ViewProfile', {
             user: { uid: item.uid, handle: item.handle, name: item.name, pfp: item.pfp },
+            transition: 'slide-from-right',
         });
     }, [navigation]);
 
@@ -178,21 +177,7 @@ const SearchUsersBar = ({ navigation, allUsersRef, disabled = false }) => {
 
     const open = useCallback(() => {
         if (disabled) return;
-        // Open as a root overlay so back returns to the current screen
-        try {
-            if (navigationRef?.isReady?.()) {
-                navigationRef.dispatch(StackActions.push('SearchUsersOverlay'));
-                return;
-            }
-        } catch {}
-        try {
-            const rootNav = navigation?.getParent?.('ROOT');
-            if (rootNav?.push) rootNav.push('SearchUsersOverlay');
-            else if (rootNav?.navigate) rootNav.navigate('SearchUsersOverlay');
-            else navigation?.navigate?.('SearchUsersOverlay');
-        } catch {
-            navigation?.navigate?.('SearchUsersOverlay');
-        }
+        try { navigation?.navigate?.('SearchUsers', { transition: 'fade' }); } catch {}
     }, [navigation]);
 
     const close = useCallback(() => {

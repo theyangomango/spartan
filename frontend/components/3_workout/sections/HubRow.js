@@ -4,8 +4,7 @@ import { AnimatedCircularProgress } from "react-native-circular-progress";
 import { usePfp } from "../../../helper/usePFPs";
 import { ss } from "./workoutTheme"; // keep path consistent with your project
 import MiniPodium from "./MiniPodium";
-import { navigationRef } from "../../../../navigationRef";
-import { StackActions } from "@react-navigation/native";
+// Single root navigator; no nested overlay helpers needed
 import scaleSize from "../../../helper/scaleSize";
 // Removed unused bounceable/touchable imports to keep things lean
 
@@ -41,24 +40,7 @@ function HubRowCmp({
                 accessibilityRole="button"
                 android_ripple={{ color: "rgba(2,6,23,0.08)", radius: 140, borderless: false }}
                 style={({ pressed }) => [styles.card, pressed && styles.cardPressed]}
-                onPressIn={() => {
-                    // Prefer root ref push to ensure correct transition
-                    try {
-                        if (navigationRef?.isReady?.()) {
-                            navigationRef.dispatch(StackActions.push('MacroTrackingOverlay'));
-                            return;
-                        }
-                    } catch {}
-                    // Fallbacks to reach the root overlay in nested stacks
-                    try {
-                        const rootNav = navigation?.getParent?.('ROOT');
-                        if (rootNav?.push) rootNav.push('MacroTrackingOverlay');
-                        else if (rootNav?.navigate) rootNav.navigate('MacroTrackingOverlay');
-                        else navigation.navigate('MacroTrackingOverlay');
-                    } catch {
-                        navigation.navigate('MacroTrackingOverlay');
-                    }
-                }}
+                onPressIn={() => { try { navigation.navigate('MacroTracking', { transition: 'slide-from-left' }); } catch {} }}
             >
                 <View style={[styles.headerRow, styles.headerRowStart]}>
                     <Text style={styles.chevronLeft}>‹</Text>
@@ -97,7 +79,7 @@ function HubRowCmp({
                 accessibilityRole="button"
                 android_ripple={{ color: "rgba(2,6,23,0.08)", radius: 140, borderless: false }}
                 style={({ pressed }) => [styles.card, pressed && styles.cardPressed]}
-                onPressIn={() => navigation.navigate("CompetitionOverlay")}
+                onPressIn={() => navigation.navigate('Competition')}
             >
                 <View style={styles.headerRow}>
                     <Text style={styles.podiumCaption}>{PREVIEW_LABEL}</Text>

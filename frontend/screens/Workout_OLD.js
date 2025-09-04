@@ -249,8 +249,8 @@ function Workout({ navigation }) {
 
     async function postWorkout() {
         setIsSummaryModalVisible(false);
-        await navigation.navigate('ProfileStack', { screen: 'Profile' });
-        navigation.navigate('ProfileStack', { screen: 'SelectPhotos', params: { workout: completedWorkout } });
+        await navigation.navigate('Profile', { transition: 'fade' });
+        navigation.navigate('SelectPhotos', { workout: completedWorkout });
     }
 
     // ===== Templates CRUD =====

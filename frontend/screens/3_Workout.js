@@ -59,8 +59,7 @@ import { serverTimestamp } from "firebase/firestore";
 
 // UI
 import CopyTemplateToast from "../components/3_Workout/ui/CopyTemplateToast";
-import { navigationRef } from "../../navigationRef";
-import { StackActions } from "@react-navigation/native";
+// navigationRef and StackActions no longer needed here with single root stack
 
 const PREVIEW_EXERCISE = "Bench Press (Barbell)";
 const PREVIEW_LABEL = "Bench Press • 1RM";
@@ -547,20 +546,7 @@ export default function Workout({ navigation, route }) {
                     onStartWorkout={onStartWorkout}
                     onOpenMacros={() => {
                         setDaySheetVisible(false);
-                        try {
-                            if (navigationRef?.isReady?.()) {
-                                navigationRef.dispatch(StackActions.push('MacroTrackingOverlay'));
-                                return;
-                            }
-                        } catch { }
-                        try {
-                            const rootNav = navigation?.getParent?.('ROOT');
-                            if (rootNav?.push) rootNav.push('MacroTrackingOverlay');
-                            else if (rootNav?.navigate) rootNav.navigate('MacroTrackingOverlay');
-                            else navigation.navigate('MacroTrackingOverlay');
-                        } catch {
-                            navigation.navigate('MacroTrackingOverlay');
-                        }
+                        try { navigation.navigate('MacroTracking', { transition: 'slide-from-left' }); } catch {}
                     }}
                 />
             </View>

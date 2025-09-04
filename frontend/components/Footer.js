@@ -16,11 +16,8 @@ const COLORS = {
 };
 
 const Footer = ({ navigation, currentScreenName }) => {
-    // Helper to always target the root Tabs navigator from anywhere (overlay or nested stacks)
-    const goTab = (tabName, screen) => () => {
-        if (screen) navigation.navigate('Tabs', { screen: tabName, params: { screen } });
-        else navigation.navigate('Tabs', { screen: tabName });
-    };
+    // Simple direct navigation to root screens with no animation
+    const go = (screenName, params) => () => navigation.navigate(screenName, { transition: 'none', ...(params || {}) });
 
     // Subscribe to workout presence only (boolean); avoids polling and reduces rerenders
     const hasActiveWorkout = useWorkoutStore((s) => !!s.workout) || !!global?.isCurrentlyWorkingOut;
@@ -46,13 +43,9 @@ const Footer = ({ navigation, currentScreenName }) => {
                             onPress={() => {
                                 if (currentScreenName === 'Feed') {
                                     try { global.scrollFeedToTopSignal = Date.now(); } catch {}
-                                    // Also navigate with a param to cover cases where the screen listens to params
-                                    navigation.navigate('Tabs', {
-                                        screen: 'FeedStack',
-                                        params: { screen: 'Feed', params: { scrollToTop: true, _t: Date.now() } },
-                                    });
+                                    navigation.navigate('Feed', { transition: 'none', scrollToTop: true, _t: Date.now() });
                                 } else {
-                                    goTab('FeedStack', 'Feed')();
+                                    navigation.navigate('Feed', { transition: 'none' });
                                 }
                             }}
                             hitSlop={10}
@@ -65,7 +58,7 @@ const Footer = ({ navigation, currentScreenName }) => {
 
                 {/* Macros (ExploreStack → MacroTracking) */}
                 <View style={styles.icon_ctnr}>
-                    <Pressable onPress={goTab('ExploreStack', 'MacroTracking')} hitSlop={10}>
+                    <Pressable onPress={go('MacroTracking')} hitSlop={10}>
                         <View style={currentScreenName === 'MacroTracking' ? styles.selectedIcon : styles.icon}>
                             <MaterialCommunityIcons name="food-apple" size={26} color={getIconColor('MacroTracking')} />
                         </View>
@@ -80,7 +73,7 @@ const Footer = ({ navigation, currentScreenName }) => {
                                 if (hasActiveWorkout) {
                                     try { global.openCurrentWorkoutSignal = Date.now(); } catch {}
                                 }
-                                goTab('Workout')();
+                                navigation.navigate('Workout', { transition: 'none' });
                             }}
                             hitSlop={10}
                         >
@@ -93,7 +86,7 @@ const Footer = ({ navigation, currentScreenName }) => {
 
                 {/* Competition (CompetitionStack → Competition) */}
                 <View style={styles.icon_ctnr}>
-                    <Pressable onPress={goTab('CompetitionStack', 'Competition')} hitSlop={10}>
+                    <Pressable onPress={go('Competition')} hitSlop={10}>
                         <View style={currentScreenName === 'Competition' ? styles.selectedIcon : styles.icon}>
                             <Cup size={24.5} color={getIconColor('Competition')} variant="Bold" />
                         </View>
@@ -102,7 +95,7 @@ const Footer = ({ navigation, currentScreenName }) => {
 
                 {/* Profile (ProfileStack → Profile) */}
                 <View style={styles.icon_ctnr}>
-                    <Pressable onPress={() => navigation.navigate('Tabs', { screen: 'ProfileStack', params: { screen: 'Profile', params: { transition: 'fade' } } })} hitSlop={10}>
+                    <Pressable onPress={() => navigation.navigate('Profile', { transition: 'none' })} hitSlop={10}>
                         <View style={currentScreenName === 'Profile' ? styles.selectedIcon : styles.icon}>
                             <ProfileIcon size={22.5} color={getIconColor('Profile')} variant="Bold" />
                         </View>
