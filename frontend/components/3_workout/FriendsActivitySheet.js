@@ -19,6 +19,7 @@ import NewWorkoutModal from "./NewWorkout/NewWorkoutModal";
 import { getPfpUrl } from "../../pfpCache";
 import { onSnapshot, doc } from "firebase/firestore";
 import { db } from "../../../firebase.config";
+import calculate1RM from "../../helper/calculate1RM";
 
 const { height: screenHeight } = Dimensions.get("window");
 const scale = screenHeight / 844;
@@ -190,9 +191,30 @@ const FriendPanel = memo(({ item, overlay, onSelect, highlight = false }) => {
     : Math.max(0, Math.round(Number(item?.duration || 0) * 60));
 
   // Live overlay values (volume/reps/PBs) override base item when present
-  const vol = Number((overlay?.volume != null ? overlay.volume : item?.volume) ?? 0);
-  const reps = Number((overlay?.reps != null ? overlay.reps : (item?.reps ?? item?.totalReps)) ?? 0);
+  let vol = Number((overlay?.volume != null ? overlay.volume : item?.volume) ?? 0);
+  let reps = Number((overlay?.reps != null ? overlay.reps : (item?.reps ?? item?.totalReps)) ?? 0);
   const pbs = Number((overlay?.PBs != null ? overlay.PBs : (item?.PBs ?? item?.pbs)) ?? 0);
+
+  // Fallback: compute from workout sets when not provided
+  if ((!vol || !Number.isFinite(vol)) || (!reps || !Number.isFinite(reps))) {
+    try {
+      const exs = Array.isArray(item?.workout?.exercises) ? item.workout.exercises : [];
+      if (exs.length) {
+        let vSum = 0; let rSum = 0;
+        for (const ex of exs) {
+          const sets = Array.isArray(ex?.sets) ? ex.sets : [];
+          for (const s of sets) {
+            const w = Number(s?.weight) || 0;
+            const r = Number(s?.reps) || 0;
+            vSum += w * r;
+            rSum += r;
+          }
+        }
+        if (!vol || !Number.isFinite(vol)) vol = vSum;
+        if (!reps || !Number.isFinite(reps)) reps = rSum;
+      }
+    } catch {}
+  }
 
   const cachedPfp = usePfp(item?.uid, item?.pfpVersion || 0);
   const pfpUri =
@@ -336,10 +358,34 @@ const FriendsActivitySheet = ({ visible, openToggle, items = [], onClose, onView
           const cw = data?.currentWorkout || null;
           if (cw) {
             setLiveOverlays((prev) => {
+              // Derive PBs if missing using friend's statsExercises (1RM comparison), one PB per exercise
+              const friendStats = data?.statsExercises || {};
+              let derivedPBs = 0;
+              try {
+                const exsArr = Array.isArray(cw?.exercises) ? cw.exercises : [];
+                for (const ex of exsArr) {
+                  const prevMax = Number(friendStats?.[ex?.name]?.["1RM"] || 0);
+                  let hit = false;
+                  const sets = Array.isArray(ex?.sets) ? ex.sets : [];
+                  for (const s of sets) {
+                    if (hit) break;
+                    const r = Number(s?.reps) || 0;
+                    const w = Number(s?.weight) || 0;
+                    if (r > 0 && w > 0) {
+                      const est = calculate1RM(w, r);
+                      if (est > prevMax) { derivedPBs += 1; hit = true; }
+                    }
+                  }
+                }
+              } catch {}
+
+              const hasPBField = (cw && (Object.prototype.hasOwnProperty.call(cw, 'PBs') || Object.prototype.hasOwnProperty.call(cw, 'pbs')));
+              const pbValue = hasPBField ? Number(cw?.PBs ?? cw?.pbs ?? 0) : derivedPBs;
+
               const nextEntry = {
                 volume: Number(cw?.volume || 0),
                 reps: Number(cw?.reps || 0),
-                PBs: Number(cw?.PBs ?? cw?.pbs ?? 0),
+                PBs: Number.isFinite(pbValue) ? pbValue : 0,
                 exercises: Array.isArray(cw?.exercises) ? cw.exercises : undefined,
                 ts: Date.now(),
               };

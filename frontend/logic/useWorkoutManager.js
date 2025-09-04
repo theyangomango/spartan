@@ -21,6 +21,7 @@ import updateDoc from "../../backend/helper/firebase/updateDoc";
 import arrayAppend from "../../backend/helper/firebase/arrayAppend";
 import useWorkoutStore from "../state/workoutStore";
 import makeID from "../../backend/helper/makeID";
+import calculate1RM from "../helper/calculate1RM";
 
 /* ---------------- helpers ---------------- */
 const toMillis = (v) => {
@@ -324,10 +325,34 @@ export default function useWorkoutManager({ uid, navigation, millisToHMS }) {
                     .filter((ex) => ex.sets && ex.sets.length > 0);
 
                 const duration = Math.max(0, Date.now() - (currW.created || Date.now()));
-                const completed = { ...currW, duration, exercises: cleanedExercises };
+
+                // Derive totals (reps, volume, PBs) for the completed workout
+                let totalReps = 0;
+                let totalVolume = 0;
+                let totalPBs = 0;
+                try {
+                    const stats = (global?.userData?.statsExercises || {});
+                    for (const ex of cleanedExercises) {
+                        let hitPB = false;
+                        const prevMax = Number(stats?.[ex?.name]?.["1RM"] || 0);
+                        for (const s of (ex?.sets || [])) {
+                            const r = Number(s?.reps) || 0;
+                            const w = Number(s?.weight) || 0;
+                            totalReps += r;
+                            totalVolume += r * w;
+                            if (!hitPB && r > 0 && w > 0) {
+                                const est = calculate1RM(w, r);
+                                if (est > prevMax) { hitPB = true; }
+                            }
+                        }
+                        if (hitPB) totalPBs += 1;
+                    }
+                } catch { /* keep zeros on failure */ }
+
+                const completed = { ...currW, duration, exercises: cleanedExercises, reps: totalReps, volume: totalVolume, PBs: totalPBs };
 
                 // Only persist/share if there's meaningful work
-                const hasWork = cleanedExercises.length > 0 || Number(currW?.volume) > 0 || Number(currW?.reps) > 0;
+                const hasWork = cleanedExercises.length > 0 || totalVolume > 0 || totalReps > 0;
 
                 if (hasWork) {
                     try {
