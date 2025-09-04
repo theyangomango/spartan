@@ -508,7 +508,7 @@ const NewWorkoutModal = ({
                             <View style={styles.reminderContent}>
                                 <Text style={styles.reminderTitle}>Honest Reps Only</Text>
                                 <Text style={styles.reminderBody}>
-                                    Train for you, not anyone else. Maintain good form. Don't ego lift. Lock in king 👑
+                                    Train for you, not anyone else. Maintain good form. Don't ego lift. Proud of you king 👑
                                 </Text>
                             </View>
                         </View>

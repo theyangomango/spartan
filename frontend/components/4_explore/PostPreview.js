@@ -14,7 +14,7 @@ const PostPreview = ({ item, large, onPress }) => {
             <FastImage
                 style={styles.image}
                 source={{
-                    uri: item.images[0],
+                    uri: (item.media && item.media[0] && (item.media[0].uri || item.media[0].url)) || '',
                     priority: FastImage.priority.high,
                     cache: FastImage.cacheControl.immutable,
                 }}

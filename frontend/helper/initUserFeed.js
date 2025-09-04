@@ -63,7 +63,7 @@ async function initExploreFeedImages(userData) {
     global.exploreFeedPosts = explorePosts;
 
     const preloadImages = explorePosts.map(post => ({
-        uri: post.images[0],
+        uri: (post.media && post.media[0] && (post.media[0].uri || post.media[0].url)) || '',
         priority: FastImage.priority.normal,
     }));
 

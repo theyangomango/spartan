@@ -14,10 +14,8 @@ export default function ExplorePost({ data }) {
             .then(url => {
                 setPFP(url);
             });
-        getPostImage(data.images[0])
-            .then(url => {
-                setImage(url);
-            });
+        const first = data?.media?.[0]?.uri || data?.media?.[0]?.url || null;
+        setImage(first);
     }, []);
 
 

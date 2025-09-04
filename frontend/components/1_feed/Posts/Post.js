@@ -74,14 +74,20 @@ function Post({
     openViewWorkoutModal,
     shouldPlay, // when NO post is focused: true if this post is centered
 }) {
-    const { pfp, media } = data; // media: [{ uri, type: "image" | "video" }]
+    const { pfp } = data;
+    // Normalize media for backward compatibility where posts stored `images: string[]`
+    const mediaList = useMemo(() => {
+        if (Array.isArray(data?.media)) return data.media;
+        if (Array.isArray(data?.images)) return data.images.map((u) => ({ uri: u, type: 'image' }));
+        return [];
+    }, [data?.media, data?.images]);
     const opacity = useRef(new Animated.Value(1)).current;
     const scale = useRef(new Animated.Value(1)).current;
     const viewRef = useRef(null);
     const flatListRef = useRef(null);
 
     const [currentIndex, setCurrentIndex] = useState(0);
-    const [pausedList, setPausedList] = useState(media.map(() => false));
+    const [pausedList, setPausedList] = useState(mediaList.map(() => false));
 
     // Fade when another post is focused
     useEffect(() => {
@@ -146,8 +152,8 @@ function Post({
 
     // Keep pausedList length in sync with media length
     useEffect(() => {
-        setPausedList((prev) => media.map((_, i) => prev[i] ?? false));
-    }, [media.length]);
+        setPausedList((prev) => mediaList.map((_, i) => prev[i] ?? false));
+    }, [mediaList.length]);
 
     const keyExtractor = (item, idx) => (item.uri || "") + idx;
 
@@ -169,7 +175,7 @@ function Post({
                 <View style={styles.body}>
                     <FlatList
                         ref={flatListRef}
-                        data={media}
+                        data={mediaList}
                         horizontal
                         pagingEnabled
                         bounces={false}
@@ -235,7 +241,7 @@ function Post({
                     data={data}
                     url={pfp}
                     position={currentIndex}
-                    totalImages={media.length}
+                    totalImages={mediaList.length}
                     toViewProfile={() => toViewProfile(index)}
                     openViewWorkout={() => openViewWorkoutModal(index)}
                 />

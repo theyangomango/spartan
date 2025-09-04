@@ -1,6 +1,15 @@
 import createDoc from '../helper/firebase/createDoc'
 
-export default async function createPost(uid, handle, pfp, caption, images, pid, workout) {
+// images: legacy array of URLs
+// media: [{ uri, type: 'image' | 'video' }]
+export default async function createPost(uid, handle, pfp, caption, media, pid, workout) {
+    // Backwards compatibility: if caller passed plain URL array, convert to media objects
+    const normalizedMedia = Array.isArray(media)
+        ? (typeof media[0] === 'string'
+            ? media.map((u) => ({ uri: u, type: 'image' }))
+            : media)
+        : [];
+
     await createDoc('posts', pid, {
         pid: pid,
         uid: uid,
@@ -9,7 +18,7 @@ export default async function createPost(uid, handle, pfp, caption, images, pid,
         created: Date.now(),
         caption: caption,
         workout: workout,
-        images: images,
+        media: normalizedMedia,
         likes: [],
         comments: [
             {
