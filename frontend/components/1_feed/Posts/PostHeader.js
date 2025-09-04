@@ -3,6 +3,7 @@ import FastImage from "react-native-fast-image";
 import formatDate from "../../../helper/formatDate";
 import scaleSize from "../../../helper/scaleSize";
 import { usePfp } from "../../../helper/usePFPs";
+import RNBounceable from "@freakycoder/react-native-bounceable";
 
 export default function PostHeader({
     data,
@@ -45,11 +46,11 @@ export default function PostHeader({
                         </Pressable>
 
                         {data.workout && (
-                            <TouchableOpacity activeOpacity={0.5} onPress={openViewWorkout} style={styles.workout_text_ctnr}>
+                            <RNBounceable activeOpacity={0.5} onPress={openViewWorkout} style={styles.workout_text_ctnr}>
                                 <Text style={styles.date_text}>
                                     {formatDate(new Date(data.workout.created))} Workout
                                 </Text>
-                            </TouchableOpacity>
+                            </RNBounceable>
                         )}
                     </View>
                 </View>
