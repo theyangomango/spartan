@@ -51,6 +51,7 @@ const NewWorkoutModal = ({
     // 👇 NEW: can be boolean or a string uid — if truthy, we hard-lock friend view
     forceViewingFriend = false,
     friendPfp = null,
+    friendPfpVersion = 0,
     showGroupModal,                 // parent-controlled invite picker opener
     registerInviteHandler,          // parent setter to receive (users)=>Promise
     // Stream live state from Firestore (participants/presence/currentWorkout)?
@@ -241,11 +242,17 @@ const NewWorkoutModal = ({
         global?.userData?.image ||
         "";
 
-    const viewingPfpUriHook = usePfp(String(viewing?.uid || ""), viewing?.pfpVersion || 0);
+    // Prefer provided friend version when locked
+    const viewingPfpUriHook = usePfp(
+        String(viewing?.uid || ""),
+        (viewing?.pfpVersion != null && viewing?.pfpVersion !== undefined && viewing?.pfpVersion !== 0)
+            ? viewing.pfpVersion
+            : (friendPfpVersion || 0)
+    );
 
     // If locked to friend: prefer the passed friendPfp to prevent any initial flip
     const headerOverlayPfp = lockFriend
-        ? (friendPfp || viewingPfpUriHook || viewing?.image || "")
+        ? (viewingPfpUriHook || friendPfp || viewing?.image || "")
         : (viewingSelfEffective
             ? selfPfpUri
             : (viewingPfpUriHook || viewing?.image || friendPfp || ""));

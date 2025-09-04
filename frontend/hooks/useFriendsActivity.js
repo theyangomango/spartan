@@ -41,6 +41,7 @@ const normalizeFriendWorkout = (w, profile) => {
         name: profile.name || profile.handle || "Friend",
         handle: profile.handle || "",
         pfp: profile.pfp || "",
+        pfpVersion: profile.pfpVersion ?? 0,
         live: false,
         created: created || 0,
         finishedAt:
@@ -95,6 +96,7 @@ export default function useFriendsActivity(user) {
                         name: data.name || data.displayName || "",
                         handle: data.handle || data.username || "",
                         pfp: data.pfp || data.image || data.photoURL || "",
+                        pfpVersion: data.pfpVersion ?? data.version ?? 0,
                         currentWorkout: data?.currentWorkout || null,
                         completedWorkouts: Array.isArray(data?.completedWorkouts) ? data.completedWorkouts : [],
                     });

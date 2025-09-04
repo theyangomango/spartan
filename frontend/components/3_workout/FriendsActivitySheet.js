@@ -16,6 +16,7 @@ import { Clock } from "iconsax-react-native";
 import { MaterialCommunityIcons, FontAwesome6 } from "@expo/vector-icons";
 import { usePfp } from "../../helper/usePFPs";
 import NewWorkoutModal from "./NewWorkout/NewWorkoutModal";
+import { getPfpUrl } from "../../pfpCache";
 import { onSnapshot, doc } from "firebase/firestore";
 import { db } from "../../../firebase.config";
 
@@ -184,7 +185,7 @@ const FriendPanel = memo(({ item, now, onSelect, highlight = false }) => {
   const reps = Number(item?.reps ?? item?.totalReps ?? 0);
   const pbs = Number(item?.PBs ?? item?.pbs ?? 0);
 
-  const cachedPfp = usePfp(item?.uid);
+  const cachedPfp = usePfp(item?.uid, item?.pfpVersion || 0);
   const pfpUri =
     cachedPfp ||
     item?.pfp ||
@@ -400,6 +401,11 @@ const FriendsActivitySheet = ({ visible, openToggle, items = [], onClose, onView
     try { onViewed?.(); } catch {}
   }, [openToggle, onViewed]);
 
+  // Reset focus-consumption guard on each explicit open toggle so we can re-focus
+  useEffect(() => {
+    try { consumedFocusRef.current = ""; } catch {}
+  }, [openToggle]);
+
   // If a specific friend uid or workout id is provided, auto-open the viewer focused on it
   const consumedFocusRef = useRef("");
   const [highlightWid, setHighlightWid] = useState(null);
@@ -411,8 +417,10 @@ const FriendsActivitySheet = ({ visible, openToggle, items = [], onClose, onView
 
     const findByWid = (arr) => arr.find((x) => String(x?.wid || x?.id || x?.workout?.wid || "") === widTarget);
     const findByUid = (arr) => arr.find((x) => String(x?.uid || "") === uidTarget);
-    const it = widTarget ? findByWid(sortedItems || []) : findByUid(sortedItems || []);
-    if (!it) return; // wait until items available
+    let it = widTarget ? findByWid(sortedItems || []) : findByUid(sortedItems || []);
+    // If a wid was provided but not found, gracefully fall back to the user's latest item
+    if (!it && widTarget && uidTarget) it = findByUid(sortedItems || []);
+    if (!it) return; // wait until items available (or none exists)
     try { bottomSheetRef.current?.expand?.(); } catch {}
     if (widTarget) {
       setHighlightWid(widTarget);
@@ -420,11 +428,21 @@ const FriendsActivitySheet = ({ visible, openToggle, items = [], onClose, onView
     }
 
     // Slight delay to ensure the sheet is fully presented before animating the viewer
-    const id = setTimeout(() => {
-      console.log('Auto focusing workout card', it);
-      openViewer(it, it?.pfp || it?.pfpUrl || it?.photoURL || null);
-      consumedFocusRef.current = token;
-      try { onConsumedFocus?.(); } catch {}
+    const id = setTimeout(async () => {
+      try {
+        console.log('Auto focusing workout card', it);
+        let pfpCandidate = null;
+        if (it?.uid) {
+          try {
+            pfpCandidate = await getPfpUrl(String(it.uid), it?.pfpVersion || 0);
+          } catch {}
+        }
+        // Fallback to any provided URL if cache fetch failed
+        if (!pfpCandidate) pfpCandidate = it?.pfp || it?.pfpUrl || it?.photoURL || null;
+        openViewer(it, pfpCandidate);
+        consumedFocusRef.current = token;
+        try { onConsumedFocus?.(); } catch {}
+      } catch {}
     }, 80);
     return () => clearTimeout(id);
   }, [openToggle, focusUid, focusWid, sortedItems, openViewer, onConsumedFocus]);
@@ -473,6 +491,7 @@ const FriendsActivitySheet = ({ visible, openToggle, items = [], onClose, onView
       ...item,
       workout: wk,
       friendPfp: pfpUri || null,
+      friendPfpVersion: item?.pfpVersion || 0,
       friendUid: String(item?.uid || item?.userId || item?.user?.uid || ""), // pass concrete friend uid
       selfActive,
       // stream live activity only if this item is marked live
@@ -599,6 +618,7 @@ const FriendsActivitySheet = ({ visible, openToggle, items = [], onClose, onView
                   /* 🔒 LOCK friend view so header/controls don't flip to self */
                   forceViewingFriend={selectedItem.friendUid}
                   friendPfp={selectedItem.friendPfp || null}
+                  friendPfpVersion={selectedItem.friendPfpVersion || 0}
                   /* 🚀 Stream live only when the item is live */
                   streamLive={!!selectedItem.streamLive}
                 />

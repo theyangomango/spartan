@@ -50,7 +50,17 @@ export async function getPfpUrl(uid, version = 0) {
 
     const p = (async () => {
         try {
-            const base = await getDownloadURL(ref(storage, `pfps/${uid}.png`));
+            const exts = ["png", "jpg", "jpeg", "webp"];
+            let base = null;
+            for (const ext of exts) {
+                try {
+                    base = await getDownloadURL(ref(storage, `pfps/${uid}.${ext}`));
+                    if (base) break;
+                } catch (e) {
+                    // try next extension
+                }
+            }
+            if (!base) throw new Error("pfp not found");
             const url = base.includes("?") ? `${base}&v=${version}` : `${base}?v=${version}`;
             mem.set(key, url);
             scheduleSave();
