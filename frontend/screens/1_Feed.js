@@ -1,7 +1,7 @@
 /**
  * Feed Screen. Retrieves and displays stories and posts.
  * Handles Navigation to the Messages Screen.
- * Handles the NotificationsBottomSheet, CommentsBottomSheet, ShareBottomSheet, and ViewWorkoutBottomSheet
+ * Handles the NotificationsBottomSheet, CommentsBottomSheet, ShareBottomSheet, and Workout viewer sheet
  * * Does NOT handle backend calls from user interactions
  */
 
@@ -22,7 +22,7 @@ import ChipsRoundMask from "../components/1_Feed/Pulse/ChipsRoundMask";
 import NotificationsBottomSheet from "../components/1_Feed/Notifications/NotificationsBottomSheet";
 import CommentsBottomSheet from "../components/1_Feed/Comments/CommentsBottomSheet";
 import ShareBottomSheet from "../components/1_Feed/SharePost/ShareBottomSheet";
-import ViewWorkoutBottomSheet from "../components/1_Feed/ViewWorkout/ViewWorkoutBottomSheet";
+import FeedWorkoutViewerSheet from "../components/1_Feed/ViewWorkout/FeedWorkoutViewerSheet";
 
 import { initUserFeed, registerFeedSetters } from "../helper/initUserFeed";
 import { db } from "../../firebase.config";
@@ -50,8 +50,11 @@ export default function Feed({ navigation, route }) {
     const [shareBottomSheetCloseFlag, setShareBottomSheetCloseFlag] = useState(false);
     const [notificationsBottomSheetExpandFlag, setNotificationsBottomSheetExpandFlag] = useState(false);
     const [commentsBottomSheetExpandFlag, setCommentsBottomSheetExpandFlag] = useState(false);
-    const [viewWorkoutBottomSheetExpandFlag, setViewWorkoutBottomSheetExpandFlag] = useState(false);
-    const [viewingWorkoutIndex, setViewingWorkoutIndex] = useState(null);
+    // Pre-mounted bottom sheet viewer for workouts
+    const [feedWorkoutExpandToggle, setFeedWorkoutExpandToggle] = useState(false);
+    const [feedSelectedWorkout, setFeedSelectedWorkout] = useState(null);
+    const [feedSelectedFriendUid, setFeedSelectedFriendUid] = useState("");
+    const [feedSelectedFriendPfp, setFeedSelectedFriendPfp] = useState(null);
 
     /* ---------- refs ---------- */
     const scrollOffsetY = useRef(0);
@@ -328,11 +331,42 @@ export default function Feed({ navigation, route }) {
         isThisUser(data.uid) ? navigation.navigate("Profile") : navigation.navigate("ViewProfile", { user });
     }
 
-    // View workout details
+    // View workout details using FeedWorkoutViewerSheet (bottom sheet, not full-screen)
     function openViewWorkoutModal(workoutIndex) {
-        setViewingWorkoutIndex(workoutIndex);
-        setViewWorkoutBottomSheetExpandFlag(!viewWorkoutBottomSheetExpandFlag);
+        try {
+            const post = posts?.[workoutIndex];
+            const w = post?.workout;
+            if (!w) return;
+            // Normalize minimal fields expected by NewWorkoutModal
+            const fallback = {
+                wid: w?.wid || w?.id,
+                creatorUID: w?.creatorUID || w?.creatorUid || post?.uid || (global?.userData?.uid || ""),
+                created: w?.created || w?.createdAt || Date.now(),
+                exercises: Array.isArray(w?.exercises) ? w.exercises : [],
+                duration: w?.duration,
+                volume: w?.volume,
+                reps: w?.reps,
+                PBs: w?.PBs ?? w?.pbs ?? 0,
+                templateName: w?.templateName || w?.template?.name,
+            };
+            const wk = { ...fallback, ...w };
+            // Resolve friend uid + pfp (author of the post/workout)
+            const friendUid = String(post?.uid || wk.creatorUID || wk.creatorUid || "");
+            const friendPfp =
+                post?.pfp || wk?.pfp || wk?.pfpUrl || post?.photoURL || post?.image || "";
+            wk.__friendUid = friendUid;
+            wk.__friendPfp = friendPfp;
+
+            setFeedSelectedWorkout(wk);
+            setFeedSelectedFriendUid(friendUid);
+            setFeedSelectedFriendPfp(friendPfp || null);
+            setFeedWorkoutExpandToggle((f) => !f);
+        } catch { }
     }
+    const closeViewWorkoutModal = () => {
+        // Keep last workout cached to avoid race clearing when reopening quickly.
+        // It will be replaced on next open.
+    };
 
     // Implement scrollToTop function
     const scrollToTop = () => {
@@ -598,11 +632,15 @@ export default function Feed({ navigation, route }) {
                 shareBottomSheetCloseFlag={shareBottomSheetCloseFlag}
                 shareBottomSheetExpandFlag={shareBottomSheetExpandFlag}
             />
-            <ViewWorkoutBottomSheet
-                workout={viewingWorkoutIndex !== null ? posts[viewingWorkoutIndex].workout : null}
-                viewWorkoutBottomSheetExpandFlag={viewWorkoutBottomSheetExpandFlag}
-            />
             <Footer key={footerKey} navigation={navigation} currentScreenName="Feed" />
+            {/* Workout viewer bottom sheet (pre-mounted, slides up) */}
+            <FeedWorkoutViewerSheet
+                expandToggle={feedWorkoutExpandToggle}
+                workout={feedSelectedWorkout}
+                friendUid={feedSelectedFriendUid}
+                friendPfp={feedSelectedFriendPfp}
+                onClose={closeViewWorkoutModal}
+            />
         </SafeAreaView>
     );
 }
