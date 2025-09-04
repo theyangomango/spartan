@@ -24,6 +24,8 @@ export default function MessageItem({
     messages,
     index,
     currentUid,
+    isGroup = false,
+    pfpByUid = {},
     revealSelf,
     revealOther,
     revealMax = 72,
@@ -169,23 +171,25 @@ export default function MessageItem({
     /** NEW: add more headroom above any message that has reactions (bigger if not grouped) */
     const reactionHeadroom = hasReactions ? (grouped ? 14 : 26) : 0;
 
-    return (
+    // Resolve sender avatar for group chats
+    const senderPfp =
+        item?.sender?.pfp ||
+        pfpByUid?.[senderUid] ||
+        item?.sender?.image ||
+        item?.sender?.photoURL ||
+        "";
+
+    // Build the existing bubble block first
+    const bubbleNode = (
         <View
+            ref={containerRef}
+            collapsable={false}
             style={[
-                styles.row,
-                isSelf ? styles.rowSelf : styles.rowOther,
-                { marginBottom: rowGap },
+                styles.wrap,
+                { alignSelf: isSelf ? "flex-end" : "flex-start", maxWidth: BUBBLE_MAX_W },
+                reactionHeadroom > 0 && { marginTop: reactionHeadroom },
             ]}
         >
-            <View
-                ref={containerRef}
-                collapsable={false}
-                style={[
-                    styles.wrap,
-                    { alignSelf: isSelf ? "flex-end" : "flex-start", maxWidth: BUBBLE_MAX_W },
-                    reactionHeadroom > 0 && { marginTop: reactionHeadroom },
-                ]}
-            >
                 {!!reply && (
                     <View
                         style={[
@@ -292,7 +296,33 @@ export default function MessageItem({
                         {microTime}
                     </Animated.Text>
                 )}
-            </View>
+        </View>
+    );
+
+    const showAvatar = isGroup && !isSelf;
+
+    return (
+        <View
+            style={[
+                styles.row,
+                isSelf ? styles.rowSelf : styles.rowOther,
+                { marginBottom: rowGap },
+            ]}
+        >
+            {showAvatar ? (
+                <View style={styles.hRow}>
+                    <View style={styles.avatarSlot}>
+                        {senderPfp ? (
+                            <FastImage source={{ uri: senderPfp }} style={styles.avatar} />
+                        ) : (
+                            <View style={[styles.avatar, styles.avatarFallback]} />
+                        )}
+                    </View>
+                    {bubbleNode}
+                </View>
+            ) : (
+                bubbleNode
+            )}
         </View>
     );
 }
@@ -301,6 +331,10 @@ const styles = StyleSheet.create({
     row: { width: "100%", paddingHorizontal: 4, marginBottom: 6 },
     rowSelf: { alignItems: "flex-end" },
     rowOther: { alignItems: "flex-start" },
+    hRow: { flexDirection: "row", alignItems: "flex-end" },
+    avatarSlot: { width: 30, marginRight: 8, alignItems: 'flex-start' },
+    avatar: { width: 26, height: 26, borderRadius: 13, backgroundColor: '#E5E7EB' },
+    avatarFallback: { backgroundColor: '#E6EBF2' },
     wrap: { position: "relative" },
 
     bubble: { borderRadius: 18, paddingHorizontal: 12, paddingVertical: 8, position: "relative" },

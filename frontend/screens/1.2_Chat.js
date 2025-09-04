@@ -177,6 +177,17 @@ export default function Chat({ navigation, route }) {
 
     const bottomInset = (isFocused ? 4 : 16) + insets.bottom;
 
+    // Group detection and avatar map for sender lookups
+    const isGroup = !!(data?.isGroup || (Array.isArray(data?.users) && data.users.length > 2));
+    const pfpByUid = useMemo(() => {
+        const map = Object.create(null);
+        (Array.isArray(data?.users) ? data.users : []).forEach((u) => {
+            const uri = u?.pfp || u?.image || u?.photoURL || u?.avatar || "";
+            if (u?.uid) map[u.uid] = uri;
+        });
+        return map;
+    }, [data?.users]);
+
     /** ---------------- Split swipe gesture to reveal timestamps ---------------- */
     const revealSelf = useSharedValue(0);  // your messages
     const revealOther = useSharedValue(0); // other users
@@ -289,6 +300,8 @@ export default function Chat({ navigation, route }) {
                 messages={messagesOnly}
                 index={msgIndex >= 0 ? msgIndex : 0}
                 currentUid={currentUid}
+                isGroup={isGroup}
+                pfpByUid={pfpByUid}
                 revealSelf={revealSelf}
                 revealOther={revealOther}
                 revealMax={MAX_REVEAL}
