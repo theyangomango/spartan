@@ -157,6 +157,8 @@ export default function Feed({ navigation, route }) {
     };
 
     // Reanimated scroll handler: UI-thread header control + forward to JS logic
+    // Ratio to slow header/chips/mask displacement relative to user scroll
+    const HEADER_SCROLL_RATIO = 0.25; // e.g., 10px scroll -> 5px displacement
     const onScrollRe = useAnimatedScrollHandler({
         onBeginDrag: (e) => {
             prevY.value = e.contentOffset.y;
@@ -169,7 +171,8 @@ export default function Feed({ navigation, route }) {
             if (H > 0) {
                 const minVisible = Math.min(Math.max(chipsH.value + maskH.value, 0), H);
                 const maxHidden = Math.max(0, H - minVisible);
-                let next = hidden.value + dy; // dy>0 hide; dy<0 reveal
+                // Apply slowed displacement factor so UI moves slower than finger
+                let next = hidden.value + dy * HEADER_SCROLL_RATIO; // dy>0 hide; dy<0 reveal
                 if (next < 0) next = 0;
                 if (next > maxHidden) next = maxHidden;
                 hidden.value = next;
