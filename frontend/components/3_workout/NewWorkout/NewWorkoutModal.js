@@ -349,6 +349,8 @@ const NewWorkoutModal = ({
                     onBack={onPressBack}
                     disableGroupPress={lockFriend || !(viewingSelfEffective || inActiveGroupEffective)}
                     inActiveGroup={inActiveGroupEffective}
+                    // Place PFP on the left (next to chevron) when viewing a past workout
+                    pfpOnLeft={!viewingSelfEffective && !friendOngoing}
                 />
             </View>
             <Animated.View style={[styles.headerShadow, { opacity: borderOpacity }]} />
@@ -508,7 +510,7 @@ const NewWorkoutModal = ({
                             <View style={styles.reminderContent}>
                                 <Text style={styles.reminderTitle}>Honest Reps Only</Text>
                                 <Text style={styles.reminderBody}>
-                                    Train for you, not anyone else. Maintain good form. Don't ego lift. Proud of you king 👑
+                                    Train for you, not anyone else. Maintain good form. Don't ego lift.{'\n'}Proud of you king 👑
                                 </Text>
                             </View>
                         </View>

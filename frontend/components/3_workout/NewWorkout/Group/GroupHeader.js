@@ -31,6 +31,9 @@ const GroupHeader = ({
     onBack,
     disableGroupPress, // optional; default disables when !viewingSelf
     inActiveGroup = false, // when in a real group with others
+    // When true, render PFP on the left, right next to the back chevron.
+    // Used when viewing a friend's past workout (not ongoing).
+    pfpOnLeft = false,
 }) => {
     const disableGroup = disableGroupPress ?? !viewingSelf;
 
@@ -52,8 +55,8 @@ const GroupHeader = ({
 
     return (
         <View style={headerStyle}>
-            {/* Left: timer (self or active group) OR back chevron */}
-            <View style={styles.leftWrap}>
+            {/* Left: timer (self or active group) OR back chevron + optional PFP */}
+            <View style={[styles.leftWrap, (!viewingSelf && !inActiveGroup) && styles.leftRow]}>
                 {(viewingSelf || inActiveGroup) ? (
                     <RNBounceable style={styles.rest_timer_ctnr} onPress={onAddTime}>
                         <View style={styles.iconWrapper}>
@@ -66,9 +69,29 @@ const GroupHeader = ({
                         </View>
                     </RNBounceable>
                 ) : (
-                    <Pressable onPress={onBack} style={styles.backBtn} hitSlop={8}>
-                        <MaterialCommunityIcons name="chevron-left" size={scaledSize(26)} color="#111827" />
-                    </Pressable>
+                    <>
+                        <Pressable onPress={onBack} style={styles.backBtn} hitSlop={8}>
+                            <MaterialCommunityIcons name="chevron-left" size={scaledSize(26)} color="#111827" />
+                        </Pressable>
+                        {pfpOnLeft && (
+                            <View style={[styles.pfpWrap, styles.pfpLeftWrap, styles.pfpFriendRing]}>
+                                {pfpToShow ? (
+                                    <FastImage
+                                        source={{
+                                            uri: pfpToShow,
+                                            priority: FastImage.priority.normal,
+                                            cache: FastImage.cacheControl.immutable,
+                                        }}
+                                        style={styles.pfp}
+                                        resizeMode={FastImage.resizeMode.cover}
+                                        onError={() => { pendingErrorRef.current = true; }}
+                                    />
+                                ) : (
+                                    <View style={[styles.pfp, { backgroundColor: "#EEE" }]} />
+                                )}
+                            </View>
+                        )}
+                    </>
                 )}
             </View>
 
@@ -81,33 +104,35 @@ const GroupHeader = ({
 
             {/* Right: ONLY PFP (no friends icon) + Finish/Cheer */}
             <View style={styles.header_right}>
-                <Pressable
-                    disabled={disableGroup}
-                    onPress={disableGroup ? undefined : onOpenMenu}
-                    onLongPress={disableGroup ? undefined : onLongPressInvite}
-                    style={[styles.pfpBtn, !viewingSelf && styles.pfpFriend, disableGroup && { opacity: 0.9 }]}
-                >
-                    <View style={[styles.pfpWrap, !viewingSelf && styles.pfpFriendRing]}>
-                        {pfpToShow ? (
-                            <FastImage
-                                source={{
-                                    uri: pfpToShow,
-                                    priority: FastImage.priority.normal,
-                                    cache: FastImage.cacheControl.immutable,
-                                }}
-                                style={styles.pfp}
-                                resizeMode={FastImage.resizeMode.cover}
-                                onError={() => {
-                                    // If an image fails (e.g., token rotation), keep the last good URI
-                                    // and avoid flipping to placeholder for a frame.
-                                    pendingErrorRef.current = true;
-                                }}
-                            />
-                        ) : (
-                            <View style={[styles.pfp, { backgroundColor: "#EEE" }]} />
-                        )}
-                    </View>
-                </Pressable>
+                {!pfpOnLeft && (
+                    <Pressable
+                        disabled={disableGroup}
+                        onPress={disableGroup ? undefined : onOpenMenu}
+                        onLongPress={disableGroup ? undefined : onLongPressInvite}
+                        style={[styles.pfpBtn, !viewingSelf && styles.pfpFriend, disableGroup && { opacity: 0.9 }]}
+                    >
+                        <View style={[styles.pfpWrap, !viewingSelf && styles.pfpFriendRing]}>
+                            {pfpToShow ? (
+                                <FastImage
+                                    source={{
+                                        uri: pfpToShow,
+                                        priority: FastImage.priority.normal,
+                                        cache: FastImage.cacheControl.immutable,
+                                    }}
+                                    style={styles.pfp}
+                                    resizeMode={FastImage.resizeMode.cover}
+                                    onError={() => {
+                                        // If an image fails (e.g., token rotation), keep the last good URI
+                                        // and avoid flipping to placeholder for a frame.
+                                        pendingErrorRef.current = true;
+                                    }}
+                                />
+                            ) : (
+                                <View style={[styles.pfp, { backgroundColor: "#EEE" }]} />
+                            )}
+                        </View>
+                    </Pressable>
+                )}
 
                 {viewingSelf ? (
                     <RNBounceable onPress={onFinish} style={styles.finish_btn}>
@@ -133,6 +158,7 @@ const GroupHeader = ({
 
 const styles = StyleSheet.create({
     leftWrap: { alignItems: "center", justifyContent: "center" },
+    leftRow: { flexDirection: "row", alignItems: "center", gap: scaledSize(10) },
     backBtn: {
         width: scaledSize(36),
         height: scaledSize(36),
@@ -188,8 +214,10 @@ const styles = StyleSheet.create({
         borderWidth: 1,
         borderColor: "#fff",
     },
+    pfpLeftWrap: { width: scaledSize(32), height: scaledSize(32) },
     pfpFriendRing: { borderColor: "#2D9EFF" },
     pfp: { width: "100%", height: "100%", borderRadius: scaledSize(20) },
+
 
     // Self: Finish
     finish_btn: {
