@@ -58,7 +58,7 @@ export default function WeekCalendar({ workoutsMap = {}, onWeekChange, onDayPres
     const CELL_GAP = 8;
 
     const PILL_H = 44;
-    const CAL_HEIGHT = PILL_H + 20;
+    const CAL_HEIGHT = PILL_H + 16;
     const cellWidth = useMemo(() => {
         const usable = W - OUTER_HPAD * 2 - INNER_HPAD * 2 - CELL_GAP * 6;
         return Math.floor(usable / 7);
@@ -289,7 +289,7 @@ const DayCell = function DayCell({
     return (
         <Container
             onPress={() => onPress?.(d)}
-            {...(Platform.OS !== "android" ? { bounceEffectIn: 0.96, bounceEffectOut: 1 } : {})}
+            {...(Platform.OS !== "android" ? { bounceEffectIn: 0.96, bounceEffectOut: 1 } : { android_ripple: { color: "rgba(2,6,23,0.06)", borderless: false } })}
             style={[styles.cell, { width: cellWidth, marginRight: isLast ? 0 : cellGap, height: "100%" }]}
             accessibilityRole="button"
             accessibilityLabel={`Open details for ${d.toDateString()}`}
@@ -328,7 +328,7 @@ const MemoDayCell = memo(DayCell, (a, b) => {
 
 /* -------------------------------- Styles -------------------------------- */
 const styles = StyleSheet.create({
-    wrap: { marginTop: 6, marginBottom: 6 },
+    wrap: { marginTop: 0, marginBottom: 3 },
 
     card: {
         backgroundColor: "#FFFFFF",
@@ -352,14 +352,20 @@ const styles = StyleSheet.create({
         flexDirection: "row",
         alignItems: "center",
         justifyContent: "space-between",
-        marginBottom: 4,
+        marginBottom: 6,
         paddingHorizontal: 4,
     },
 
     calCaption: { color: "#64748B", fontSize: 12, fontFamily: "Outfit_700Bold" },
 
-    jumpLinkTouch: { paddingHorizontal: 2, paddingVertical: 2 },
-    jumpLink: { color: "#2D9EFF", fontSize: 12, fontFamily: "Outfit_700Bold", letterSpacing: 0.2 },
+    // Jump to Today pill
+    jumpLinkTouch: {
+        paddingHorizontal: 10,
+        paddingVertical: 6,
+        borderRadius: 999,
+        backgroundColor: "#E1F0FF",
+    },
+    jumpLink: { color: "#0499FE", fontSize: 12, fontFamily: "Outfit_700Bold", letterSpacing: 0.2 },
 
     page: { justifyContent: "center" },
     row: { flexDirection: "row", alignItems: "center" },
