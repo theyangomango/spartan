@@ -67,7 +67,8 @@ const buildPrimary = (ev) => {
 };
 
 export default function ActivityChips({
-    following = [...(global?.userData?.following || []), global?.userData].filter(Boolean),
+    // Only people the user follows; exclude self
+    following = (global?.userData?.following || []).filter(Boolean),
     navigation,
     onPressChip,
     maxUsers = 24,
@@ -81,7 +82,11 @@ export default function ActivityChips({
         unsubs.current.forEach((u) => u && u());
         unsubs.current = [];
 
-        const ids = normalizeUids(following).slice(0, maxUsers);
+        // Normalize and ensure we never include the current user's UID
+        const selfUid = String(global?.userData?.uid || "");
+        const ids = normalizeUids(following)
+            .filter((uid) => String(uid) !== selfUid)
+            .slice(0, maxUsers);
         if (ids.length === 0) {
             setMap(new Map());
             return;
@@ -117,11 +122,17 @@ export default function ActivityChips({
     }, [JSON.stringify(following), maxUsers, perUserLimit]);
 
     const items = useMemo(() => {
+        const selfUid = String(global?.userData?.uid || "");
         const fromLive = Array.from(map.values()).flat();
-        const filtered = fromLive.filter((e) => e?.type === "workout" || e?.type === "leaderboard");
+        // Only show followed users' pulses (exclude self) and supported types
+        const filtered = fromLive.filter(
+            (e) => (e?.type === "workout" || e?.type === "leaderboard") && String(e?.uid || "") !== selfUid
+        );
         const base =
             filtered.length === 0 && Array.isArray(fallbackItems) && fallbackItems.length
-                ? fallbackItems.filter((e) => e?.type === "workout" || e?.type === "leaderboard")
+                ? fallbackItems.filter(
+                      (e) => (e?.type === "workout" || e?.type === "leaderboard") && String(e?.uid || "") !== selfUid
+                  )
                 : filtered;
         return base.sort((a, b) => toMillis(b.ts) - toMillis(a.ts));
     }, [map, fallbackItems]);

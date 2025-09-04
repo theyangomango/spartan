@@ -1,5 +1,5 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { collection, getDocs, query, where, documentId, orderBy, limit } from "firebase/firestore";
+import { useCallback, useEffect, useState } from "react";
+import { collection, getDocs, query, where, documentId } from "firebase/firestore";
 import { db } from "../../firebase.config";
 
 /* ---------- utils ---------- */
@@ -60,41 +60,11 @@ const normalizeFriendWorkout = (w, profile) => {
         sets: setCount,
         templateName: w?.templateName || w?.template?.name || w?.template || w?.name || "Workout",
         wid: w?.wid || undefined,
-        workout: { ...w }, // pass through the original workout object for the viewer
+        workout: { creatorUID: w?.creatorUID || w?.creatorUid || profile.uid, ...w }, // ensure ownership present for viewer
     };
 };
 
-const normalizeFriendLive = (cw, profile) => {
-    const started = toMillis(cw?.startedAt ?? cw?.created);
-    return {
-        id: `live_${profile.uid}_${cw?.wid || cw?.id || started || Math.random().toString(36).slice(2)}`,
-        uid: profile.uid,
-        name: profile.name || profile.handle || "Friend",
-        handle: profile.handle || "",
-        pfp: profile.pfp || "",
-        live: true,
-        startedAt: started || Date.now(),
-        created: toMillis(cw?.created) || started || Date.now(),
-        volume: Number(cw?.volume || 0),
-        PBs: Number(cw?.PBs ?? cw?.pbs ?? 0),
-        duration:
-            typeof cw?.duration === "number"
-                ? Math.round(cw.duration > 60000 ? cw.duration / 60000 : cw.duration)
-                : cw?.duration,
-        templateName: cw?.templateName || cw?.template?.name || cw?.title || "Workout",
-        wid: cw?.wid || cw?.id,
-
-        // include minimal workout shell so NewWorkoutModal can live-subscribe via wid
-        workout: {
-            wid: cw?.wid || cw?.id,
-            creatorUID: profile.uid,
-            created: started || Date.now(),
-            exercises: Array.isArray(cw?.exercises) ? cw.exercises : [],
-            volume: Number(cw?.volume || 0),
-            PBs: Number(cw?.PBs ?? cw?.pbs ?? 0),
-        },
-    };
-};
+// Note: live/current workouts intentionally excluded — only completedWorkouts are shown.
 
 const bestTs = (it) =>
     Math.max(toMillis(it?.created) || 0, toMillis(it?.startedAt) || 0, toMillis(it?.finishedAt) || 0);
@@ -103,7 +73,6 @@ const bestTs = (it) =>
 export default function useFriendsActivity(user) {
     const [items, setItems] = useState([]);
     const [loading, setLoading] = useState(false);
-    const lastNonEmptyRef = useRef([]); // cache to avoid blank first-open
 
     const refresh = useCallback(async () => {
         try {
@@ -132,65 +101,40 @@ export default function useFriendsActivity(user) {
                 });
             }
 
-            // Build a map keyed by uid:wid to dedupe multiple sources (completed vs pulses)
+            // Build a map keyed by uid:wid to dedupe
             const map = new Map();
             const keyOf = (u, w) => `${u}:${String(w?.wid || w?.id || '')}`;
 
-            // From current + recent completed (last 5)
+            // Helper: validate a completed workout entry truly belongs to this friend and is sane
+            const isValidCompleted = (w, uid) => {
+                if (!w || typeof w !== 'object') return false;
+                // Ownership guard: if any owner field exists, it must match the friend uid
+                const owner = String(w?.creatorUID || w?.creatorUid || w?.uid || '');
+                if (owner && owner !== String(uid)) return false;
+                // Time sanity: must have a plausible timestamp
+                const ts = toMillis(w?.finishedAt ?? w?.createdAt ?? w?.created);
+                if (!Number.isFinite(ts) || ts <= 0) return false;
+                if (ts > Date.now() + 24 * 60 * 60 * 1000) return false; // reject far-future
+                return true;
+            };
+
+            // Only from recent completed (last 5 valid)
             for (const p of profiles) {
-                if (p.currentWorkout && (p.currentWorkout.created || p.currentWorkout.startedAt)) {
-                    const item = normalizeFriendLive(p.currentWorkout, p);
-                    map.set(`live:${p.uid}`, item);
+                // walk from newest backwards, collect up to 5 valid entries
+                const recentValid = [];
+                for (let i = p.completedWorkouts.length - 1; i >= 0 && recentValid.length < 5; i--) {
+                    const w = p.completedWorkouts[i];
+                    if (isValidCompleted(w, p.uid)) recentValid.push(w);
                 }
-                const recent = p.completedWorkouts.slice(-5);
-                for (const w of recent) {
+                recentValid.reverse();
+                for (const w of recentValid) {
                     const item = normalizeFriendWorkout(w, p);
                     if (item.wid) map.set(keyOf(p.uid, item), item); else map.set(`${p.uid}:${bestTs(item)}`, item);
                 }
             }
 
-            // Also hydrate from workout pulses (ensures we don't miss workouts if completedWorkouts wasn't updated)
-            const pulsePromises = profiles.map(async (p) => {
-                try {
-                    const pq = query(collection(db, "users", p.uid, "pulse"), orderBy("ts", "desc"), limit(10));
-                    const ps = await getDocs(pq);
-                    ps.forEach((d) => {
-                        const pv = d.data() || {};
-                        if ((pv?.type || '').toLowerCase() !== 'workout') return;
-                        const wid = String(pv?.workoutID || "");
-                        const tsNum = toMillis(pv?.ts || 0) || Date.now();
-                        const k = wid ? `${p.uid}:${wid}` : `${p.uid}:${tsNum}`;
-                        if (map.has(k)) return; // already have a richer object
-                        // Minimal fallback item from pulse
-                        const item = {
-                            id: wid || `pulse_${p.uid}_${tsNum}`,
-                            uid: p.uid,
-                            name: p.name || p.handle || 'Friend',
-                            handle: p.handle || '',
-                            pfp: p.pfp || '',
-                            live: false,
-                            created: tsNum,
-                            finishedAt: tsNum,
-                            duration: 0,
-                            volume: 0,
-                            reps: 0,
-                            PBs: 0,
-                            exercises: [],
-                            exerciseCount: 0,
-                            sets: 0,
-                            templateName: pv?.detail || 'Workout',
-                            wid: wid || undefined,
-                            workout: { wid: wid || undefined, creatorUID: p.uid, created: tsNum, exercises: [] },
-                        };
-                        map.set(k, item);
-                    });
-                } catch {}
-            });
-            await Promise.all(pulsePromises);
-
             const results = Array.from(map.values()).sort((a, b) => bestTs(b) - bestTs(a));
             setItems(results);
-            if (results.length) lastNonEmptyRef.current = results;
         } catch (e) {
             console.log("friendsActivity fetch error", e);
         } finally {
@@ -202,10 +146,5 @@ export default function useFriendsActivity(user) {
         refresh();
     }, [refresh]);
 
-    const hydratedItems = useMemo(
-        () => (items.length ? items : lastNonEmptyRef.current),
-        [items]
-    );
-
-    return { items: hydratedItems, refresh, loading };
+    return { items, refresh, loading };
 }
