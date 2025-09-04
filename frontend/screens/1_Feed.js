@@ -206,7 +206,7 @@ export default function Feed({ navigation, route }) {
 
     // Reanimated scroll handler: UI-thread header control + forward to JS logic
     // Ratio to slow header/chips/mask displacement relative to user scroll
-    const HEADER_SCROLL_RATIO = 0.25; // e.g., 10px scroll -> 5px displacement
+    const HEADER_SCROLL_RATIO = 0.2; // e.g., 10px scroll -> 5px displacement
     const onScrollRe = useAnimatedScrollHandler({
         onBeginDrag: (e) => {
             prevY.value = e.contentOffset.y;

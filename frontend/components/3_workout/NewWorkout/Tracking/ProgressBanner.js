@@ -19,7 +19,7 @@ export default function ProgressBanner({ totalReps, totalVolume, personalBests }
     };
 
     return (
-        <RNBounceable style={styles.container}>
+        <View style={styles.container}>
             <View style={styles.column}>
                 <Text style={styles.bigNumber}>{formatNumber(totalReps)}</Text>
                 <Text style={styles.smallText}>Total Reps</Text>
@@ -32,7 +32,7 @@ export default function ProgressBanner({ totalReps, totalVolume, personalBests }
                 <Text style={styles.bigNumber}>{formatNumber(personalBests)}</Text>
                 <Text style={styles.smallerText} numberOfLines={1}>Personal Bests</Text>
             </View>
-        </RNBounceable>
+        </View>
     );
 }
 
@@ -62,7 +62,7 @@ const styles = StyleSheet.create({
     },
     bigNumber: {
         fontSize: scaledSize(23),
-        color: '#B9DCFF',
+        color: '#a2cefaff',
         fontFamily: 'Poppins_800ExtraBold',
     },
     smallText: {
