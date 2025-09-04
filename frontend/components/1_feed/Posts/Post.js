@@ -155,10 +155,10 @@ function Post({
     }, [scale]);
 
     // Focus handler
-    const focusMe = useCallback(() => {
+    const focusMe = useCallback((preferWaitForHeader = false) => {
         if (!isFocused && viewRef.current && viewRef.current.measure) {
             viewRef.current.measure((_, __, ___, ____, _____, pageY) =>
-                handleFocusPost(index, pageY)
+                handleFocusPost(index, pageY, preferWaitForHeader)
             );
         }
     }, [isFocused, handleFocusPost, index]);

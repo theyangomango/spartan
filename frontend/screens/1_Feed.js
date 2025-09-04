@@ -89,6 +89,45 @@ export default function Feed({ navigation, route }) {
     // Programmatic focusing (simulate user press)
     const programFocusPidRef = useRef(null);
     const [programFocusSignal, setProgramFocusSignal] = useState(0);
+    // For reliable programmatic focus
+    const lastScrollTsRef = useRef(0);
+    const desiredFocusIndexRef = useRef(-1);
+    const focusWatchIdRef = useRef(null);
+
+    // Wait until target index is viewable and scrolling has settled, then focus
+    const startFocusWatcher = useCallback((pid, idx) => {
+        desiredFocusIndexRef.current = idx;
+        if (focusWatchIdRef.current) {
+            try { cancelAnimationFrame(focusWatchIdRef.current); } catch {}
+            focusWatchIdRef.current = null;
+        }
+        let tries = 0; const MAX = 60; // ~1s at 60fps
+        const tick = () => {
+            const i = desiredFocusIndexRef.current;
+            if (i < 0) return; // canceled
+            const now = Date.now();
+            const lay = itemLayoutsRef.current.get(i);
+            const isViewable = viewableSetRef.current.has(i);
+            const idle = now - (lastScrollTsRef.current || 0) > 40;
+            if (lay && isViewable && idle) {
+                programFocusPidRef.current = String(pid);
+                setProgramFocusSignal(Date.now());
+                desiredFocusIndexRef.current = -1;
+                focusWatchIdRef.current = null;
+                return;
+            }
+            if (++tries >= MAX) {
+                // Fallback: proceed anyway
+                programFocusPidRef.current = String(pid);
+                setProgramFocusSignal(Date.now());
+                desiredFocusIndexRef.current = -1;
+                focusWatchIdRef.current = null;
+                return;
+            }
+            focusWatchIdRef.current = requestAnimationFrame(tick);
+        };
+        focusWatchIdRef.current = requestAnimationFrame(tick);
+    }, []);
 
     /* ---------- animated values ---------- */
     const translateY = useRef(new Animated.Value(0)).current;
@@ -132,6 +171,7 @@ export default function Feed({ navigation, route }) {
     const handleScroll = (e) => {
         const y = e.nativeEvent.contentOffset.y;
         scrollOffsetY.current = y;
+        lastScrollTsRef.current = Date.now();
 
         // Only manage center-based playback when NO post is focused
         if (!isSomePostFocused) {
@@ -248,21 +288,34 @@ export default function Feed({ navigation, route }) {
     }, [route?.params?.messages]);
 
     /* ---------- focus / unfocus handlers ---------- */
-    const handleFocusPost = (index, pageY) => {
+    const handleFocusPost = (index, pageY, preferWaitForHeader = false) => {
         if (isTransitioning.current) return; /* 🔒 */
         isTransitioning.current = true;
         stopFlatListMomentum();
 
         focusedPostIndex.current = index;
         setIsSomePostFocused(true);
-        // Compute after back header measures (next frame)
-        setTimeout(() => {
+        const run = () => {
             const Vstart = visibleHeaderHRef.current || 0; // overlay header+chips visible height right before focus
             const Vfinal = backHeaderHRef.current || (insets?.top ? insets.top + 44 : TARGET_POSITION);
             // Needed translation Δ for the card: Vfinal - (pageY - Vstart) = - (pageY - Vstart - Vfinal)
             // animateView negates the input, so pass (pageY - Vstart - Vfinal)
             animateView(pageY - Vstart - Vfinal, 0);
-        }, 0);
+        };
+        if (!preferWaitForHeader) {
+            setTimeout(run, 0);
+        } else {
+            // For programmatic focus: ensure the compact header has measured to avoid offset
+            let tries = 0; const MAX = 24; // ~400ms
+            const poll = () => {
+                if (backHeaderHRef.current > 0 || tries++ >= MAX) {
+                    setTimeout(run, 0);
+                    return;
+                }
+                requestAnimationFrame(poll);
+            };
+            requestAnimationFrame(poll);
+        }
     };
 
     const handleBackPress = () => {
@@ -349,33 +402,35 @@ export default function Feed({ navigation, route }) {
         if (idx < 0) return false;
         highlightPidRef.current = String(pid);
         setHighlightSignal(Date.now());
-        try {
-            flatListRef.current?.scrollToIndex?.({ index: idx, viewPosition: 0.5, animated: true });
-            // schedule a programmatic focus shortly after scrolling
+
+        const lay = itemLayoutsRef.current.get(idx);
+        const visibleH = Math.max(0, visibleHeaderHRef.current || 0);
+        const viewportTop = scrollOffsetY.current;
+        const viewportBottom = viewportTop + (height - visibleH);
+
+        // If fully visible already: just trigger a programmatic tap quickly
+        if (lay && lay.y >= viewportTop && (lay.y + lay.h) <= viewportBottom) {
             programFocusPidRef.current = String(pid);
-            setTimeout(() => setProgramFocusSignal(Date.now()), 220);
+            setTimeout(() => setProgramFocusSignal(Date.now()), 50);
             return true;
-        } catch (e) {
-            const lay = itemLayoutsRef.current.get(idx);
-            if (lay) {
-                try {
-                    flatListRef.current?.scrollToOffset?.({ offset: Math.max(0, lay.y - 40), animated: true });
-                    programFocusPidRef.current = String(pid);
-                    setTimeout(() => setProgramFocusSignal(Date.now()), 220);
-                    return true;
-                } catch {}
-            }
-            // Retry shortly to allow list to measure
-            setTimeout(() => {
-                try {
-                    flatListRef.current?.scrollToIndex?.({ index: idx, viewPosition: 0.5, animated: true });
-                    programFocusPidRef.current = String(pid);
-                    setTimeout(() => setProgramFocusSignal(Date.now()), 220);
-                } catch {}
-            }, 80);
-            return false;
         }
-    }, [posts]);
+
+        // Otherwise, perform a minimal instant reveal (no animation) for stability
+        if (lay) {
+            const targetOffset = Math.max(0, lay.y - 8);
+            try {
+                flatListRef.current?.scrollToOffset?.({ offset: targetOffset, animated: false });
+                scrollOffsetY.current = targetOffset;
+            } catch {}
+        } else {
+            try { flatListRef.current?.scrollToIndex?.({ index: idx, viewPosition: 0, animated: false }); } catch {}
+        }
+
+        // Fire programmatic tap after the jump
+        programFocusPidRef.current = String(pid);
+        setTimeout(() => setProgramFocusSignal(Date.now()), 50);
+        return true;
+    }, [posts, handleFocusPost]);
 
     // View workout details using FeedWorkoutViewerSheet (bottom sheet, not full-screen)
     function openViewWorkoutModal(workoutIndex) {

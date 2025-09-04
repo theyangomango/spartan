@@ -263,9 +263,9 @@ const styles = StyleSheet.create({
     },
     // Copy template button – match header pills
     copy_btn: {
-        height: scaledSize(32),
+        height: scaledSize(34),
         paddingHorizontal: scaledSize(12),
-        borderRadius: scaledSize(15),
+        borderRadius: scaledSize(12),
         backgroundColor: "#2D9EFF",
         flexDirection: "row",
         alignItems: "center",
