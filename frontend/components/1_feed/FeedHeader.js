@@ -511,7 +511,15 @@ const FeedHeader = ({
                     )}
                 </RNBounceable>
 
-                <RNBounceable onPress={toMessagesScreen} style={styles.message_button}>
+                <RNBounceable
+                    onPress={() => {
+                        try {
+                            if (typeof toMessagesScreen === 'function') return toMessagesScreen();
+                        } catch {}
+                        try { navigation?.navigate?.('Messages'); } catch {}
+                    }}
+                    style={styles.message_button}
+                >
                     <MaterialIcons name="alternate-email" size={dynamicStyles.iconSize + 1.5} color={"#cbd5e1"} />
                 </RNBounceable>
             </View>

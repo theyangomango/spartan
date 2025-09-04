@@ -371,10 +371,16 @@ export default function Feed({ navigation, route }) {
         });
     };
 
-    // Go to Messages screen
+    // Go to Messages screen (always navigate; pass extras if available)
     const toMessagesScreen = () => {
-        if (global.userData && messages) {
-            navigation.navigate("Messages", { userData: userDataRef.current, messages });
+        try {
+            if (global.userData && messages) {
+                navigation.navigate("Messages", { userData: userDataRef.current || global.userData, messages });
+            } else {
+                navigation.navigate("Messages");
+            }
+        } catch (e) {
+            try { navigation.navigate("Messages"); } catch {}
         }
     };
 
