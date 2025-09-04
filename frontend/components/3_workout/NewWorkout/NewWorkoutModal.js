@@ -265,10 +265,15 @@ const NewWorkoutModal = ({
     );
     const inActiveGroupEffective = lockFriend ? false : inActiveGroup;
 
-    // Friend workout state: ongoing IFF the viewed user's activeWorkout matches this wid
+    // Friend workout state: treat as ongoing immediately when we know the source was live (streamLive)
+    // to avoid a brief flash of the Copy Template button before the live snapshot arrives.
     const friendOngoing = useMemo(
-        () => (!viewingSelfEffective && String(activeWorkout?.wid || "") === cardWid),
-        [viewingSelfEffective, activeWorkout?.wid, cardWid]
+        () => (
+            !viewingSelfEffective && (
+                streamLive || String(activeWorkout?.wid || "") === cardWid
+            )
+        ),
+        [viewingSelfEffective, activeWorkout?.wid, cardWid, streamLive]
     );
 
     // Am I an active participant in this workout?
