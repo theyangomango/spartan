@@ -51,7 +51,7 @@ import useWorkoutStore from "../state/workoutStore";
 
 // utils
 import millisToHoursMinutesSeconds from "../helper/millisToHoursMinutesSeconds";
-import usePodiumTop3 from "../hooks/usePodiumTop3";
+import usePodiumPreview from "../hooks/usePodiumPreview";
 import { initUserFeed, registerFeedSetters } from "../helper/initUserFeed";
 
 // Firestore (for invites)
@@ -61,8 +61,7 @@ import { serverTimestamp } from "firebase/firestore";
 import CopyTemplateToast from "../components/3_Workout/ui/CopyTemplateToast";
 // navigationRef and StackActions no longer needed here with single root stack
 
-const PREVIEW_EXERCISE = "Bench Press (Barbell)";
-const PREVIEW_LABEL = "Bench Press • 1RM";
+// MiniPodium preview derives from user's last Competition view
 
 /* ---------------- helpers ---------------- */
 const toMillis = (v) => {
@@ -193,7 +192,7 @@ export default function Workout({ navigation, route }) {
     }, [uid, user?.templates, showTemplateToast]);
 
     /* ---------- podium preview ---------- */
-    const { top3 } = usePodiumTop3(PREVIEW_EXERCISE);
+    const { top3, label: PREVIEW_LABEL } = usePodiumPreview();
 
     /* ---------- friends activity ---------- */
     const { items: friendsActivity, refresh: refreshFriends } = useFriendsActivity(user);

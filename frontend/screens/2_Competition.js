@@ -262,7 +262,7 @@ export default function Competition({ navigation }) {
         if (activeCompIndex >= tribeComparisons.length) setActiveCompIndex(0);
     }, [tribeComparisons.length, activeCompIndex]);
 
-    const rankedDisplay = useMemo(() => userList || [], [userList]);
+  const rankedDisplay = useMemo(() => userList || [], [userList]);
 
     const openModal = () => setSelectExerciseModalVisible(true);
     const closeModal = () => setSelectExerciseModalVisible(false);
@@ -357,6 +357,36 @@ export default function Competition({ navigation }) {
         setComparisonManagerVisible(false);
         if (activeCompIndex >= list.length) setActiveCompIndex(0);
     };
+
+    // Persist the user's last-viewed comparison for MiniPodium preview (supports Global, Followers, Tribe)
+    const lastViewRef = useRef("");
+    useEffect(() => {
+        const uid = global?.userData?.uid;
+        if (!uid) return;
+
+        // Build canonical lastView payload
+        let payload = null;
+        if (selectedTribeId) {
+            payload = {
+                type: "tribe",
+                tribeId: selectedTribeId,
+                comparison: activeComparison || null,
+            };
+        } else {
+            payload = {
+                type: scope === "All Followers" ? "followers" : "global",
+                exercise: comparedExercise,
+                metric: comparedMetric || "1RM",
+            };
+        }
+
+        const key = JSON.stringify(payload);
+        if (key === lastViewRef.current) return;
+        lastViewRef.current = key;
+        try {
+            updateDoc(doc(db, "users", uid), { competitionLastView: payload }).catch(() => {});
+        } catch { /* ignore */ }
+    }, [selectedTribeId, activeComparison, scope, comparedExercise, comparedMetric]);
 
     const scopeLabel = useMemo(() => {
         if (selectedTribeId) return currentTribe?.name || "Tribe";
