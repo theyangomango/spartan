@@ -24,6 +24,10 @@ const { height: screenHeight } = Dimensions.get("window");
 const scale = screenHeight / 844;
 const s = (n) => Math.round(n * scale);
 
+// Static separators to avoid re-creating functions each render
+const ItemSeparator = () => <View style={{ height: s(10) }} />;
+const SectionSeparator = () => <View style={{ height: s(12) }} />;
+
 const COLORS = {
   bg: "#F6FAFF",
   card: "#FFFFFF",
@@ -169,21 +173,26 @@ const groupByTime = (items, nowMs) => {
 };
 
 /* ---------------- row ---------------- */
-const FriendPanel = memo(({ item, now, onSelect, highlight = false }) => {
+const FriendPanel = memo(({ item, overlay, onSelect, highlight = false }) => {
   const isLive = !!item?.live;
-  let liveElapsed;
-  if (isLive) {
-    const started = toMillis(item?.startedAt) ?? toMillis(item?.created);
-    if (started) liveElapsed = Math.max(0, Math.round((now - started) / 1000));
-  }
 
+  // Local ticker only for live rows → avoids re-rendering the whole list every second
+  const [, setTick] = useState(0);
+  useEffect(() => {
+    if (!isLive) return;
+    const id = setInterval(() => setTick((t) => (t + 1) % 1_000_000), 1000);
+    return () => clearInterval(id);
+  }, [isLive]);
+
+  const started = isLive ? (toMillis(item?.startedAt) ?? toMillis(item?.created)) : undefined;
   const durationSec = isLive
-    ? toSec(liveElapsed)
+    ? toSec(Math.max(0, started ? Math.round((Date.now() - started) / 1000) : 0))
     : Math.max(0, Math.round(Number(item?.duration || 0) * 60));
 
-  const volume = Number(item?.volume ?? 0);
-  const reps = Number(item?.reps ?? item?.totalReps ?? 0);
-  const pbs = Number(item?.PBs ?? item?.pbs ?? 0);
+  // Live overlay values (volume/reps/PBs) override base item when present
+  const vol = Number((overlay?.volume != null ? overlay.volume : item?.volume) ?? 0);
+  const reps = Number((overlay?.reps != null ? overlay.reps : (item?.reps ?? item?.totalReps)) ?? 0);
+  const pbs = Number((overlay?.PBs != null ? overlay.PBs : (item?.PBs ?? item?.pbs)) ?? 0);
 
   const cachedPfp = usePfp(item?.uid, item?.pfpVersion || 0);
   const pfpUri =
@@ -259,7 +268,7 @@ const FriendPanel = memo(({ item, now, onSelect, highlight = false }) => {
             <MaterialCommunityIcons name="weight-lifter" size={s(13)} color={COLORS.text} />
           </View>
           <Text style={styles.statLabel}>Volume</Text>
-          <Text style={styles.statValue}>{formatNumber(volume)} lb</Text>
+          <Text style={styles.statValue}>{formatNumber(vol)} lb</Text>
         </View>
 
         <View style={styles.statCard}>
@@ -271,6 +280,26 @@ const FriendPanel = memo(({ item, now, onSelect, highlight = false }) => {
         </View>
       </View>
     </RNBounceable>
+  );
+}, (prev, next) => {
+  // Custom comparator to minimize re-renders
+  const a = prev.item || {}; const b = next.item || {};
+  const sameId = String(a.id || a.wid || a.uid || '') === String(b.id || b.wid || b.uid || '');
+  const sameLive = !!a.live === !!b.live;
+  const sameStatic =
+    sameId && sameLive &&
+    (a.pfpVersion === b.pfpVersion) &&
+    (a.pfp === b.pfp) && (a.pfpUrl === b.pfpUrl) && (a.photoURL === b.photoURL) &&
+    (a.name === b.name) && (a.handle === b.handle) && (a.templateName === b.templateName) &&
+    (a.duration === b.duration) && (a.volume === b.volume) && (a.reps === b.reps) && (a.PBs === b.PBs) &&
+    (prev.highlight === next.highlight);
+  if (!sameStatic) return false;
+  const po = prev.overlay || {}; const no = next.overlay || {};
+  return (
+    po.volume === no.volume &&
+    po.reps === no.reps &&
+    po.PBs === no.PBs &&
+    (po.exercises?.length || 0) === (no.exercises?.length || 0)
   );
 });
 
@@ -342,30 +371,17 @@ const FriendsActivitySheet = ({ visible, openToggle, items = [], onClose, onView
     };
   }, [visible, displayItems]);
 
-  const enhancedItems = useMemo(() => {
-    if (!displayItems || !displayItems.length) return displayItems || [];
-    return displayItems.map((it) => {
-      if (!it?.live || !it?.uid) return it;
-      const o = liveOverlays[String(it.uid)];
-      if (!o) return it;
-      return {
-        ...it,
-        volume: o.volume,
-        reps: o.reps,
-        PBs: o.PBs,
-        _liveSortTs: o.ts || undefined,
-        workout: it.workout ? { ...it.workout, volume: o.volume, reps: o.reps, PBs: o.PBs, exercises: o.exercises ?? it.workout.exercises } : it.workout,
-      };
-    });
-  }, [displayItems, liveOverlays]);
-
   const sortedItems = useMemo(() => {
     const score = (it) => {
-      if (it?.live) return it?._liveSortTs || toMillis(it?.startedAt) || bestTimestamp(it);
+      if (it?.live) {
+        const ov = it?.uid ? liveOverlays[String(it.uid)] : undefined;
+        return (ov?.ts) || toMillis(it?.startedAt) || bestTimestamp(it);
+      }
       return bestTimestamp(it);
     };
-    return [...(enhancedItems || [])].sort((a, b) => score(b) - score(a));
-  }, [enhancedItems]);
+    const src = Array.isArray(displayItems) ? displayItems : [];
+    return [...src].sort((a, b) => (score(b) - score(a)));
+  }, [displayItems, liveOverlays]);
 
   const hasLive = useMemo(() => sortedItems?.some((it) => it?.live), [sortedItems]);
   // Move viewer-related state above effects that depend on it to avoid TDZ issues
@@ -374,13 +390,7 @@ const FriendsActivitySheet = ({ visible, openToggle, items = [], onClose, onView
   const listOpacity = useRef(new Animated.Value(1)).current;
   const viewerOpacity = useRef(new Animated.Value(0)).current;
 
-  const [now, setNow] = useState(() => Date.now());
-  useEffect(() => {
-    // Pause live ticker while viewer is open to avoid extra re-renders
-    if (!hasLive || selectedItem) return;
-    const id = setInterval(() => setNow(Date.now()), 1000);
-    return () => clearInterval(id);
-  }, [hasLive, selectedItem]);
+  // Removed global per-second ticker to avoid re-rendering the entire list every second
 
   // Close when parent hides; opening is driven solely by the toggle flag
   useEffect(() => {
@@ -430,7 +440,7 @@ const FriendsActivitySheet = ({ visible, openToggle, items = [], onClose, onView
     // Slight delay to ensure the sheet is fully presented before animating the viewer
     const id = setTimeout(async () => {
       try {
-        console.log('Auto focusing workout card', it);
+        // Focus the workout card without noisy logs
         let pfpCandidate = null;
         if (it?.uid) {
           try {
@@ -520,15 +530,15 @@ const FriendsActivitySheet = ({ visible, openToggle, items = [], onClose, onView
   const handleIndicatorColor = selectedItem ? HANDLE_FRIEND_ACCENT : HANDLE_SELF;
   const handleBackgroundColor = selectedItem ? HANDLE_FRIEND_BACKGROUND : "transparent";
 
-  const sections = useMemo(() => groupByTime(sortedItems, now), [sortedItems, now]);
-  const keyExtractor = useCallback((it, i) => it.id ?? it.uid ?? `f-${i}`, []);
+  const sections = useMemo(() => groupByTime(sortedItems, Date.now()), [sortedItems]);
+  const keyExtractor = useCallback((it, i) => String(it.id || it.wid || (it.uid ? `${it.uid}_${bestTimestamp(it) || i}` : i)), []);
   const renderItem = useCallback(
     ({ item }) => {
       const widHere = String(item?.wid || item?.id || item?.workout?.wid || "");
       const isHighlighted = !!highlightWid && widHere === String(highlightWid);
-      return <FriendPanel item={item} now={now} onSelect={openViewer} highlight={isHighlighted} />;
+      return <FriendPanel item={item} overlay={item?.uid ? liveOverlays[String(item.uid)] : undefined} onSelect={openViewer} highlight={isHighlighted} />;
     },
-    [now, openViewer, highlightWid]
+    [openViewer, highlightWid, liveOverlays]
   );
   const renderSectionHeader = useCallback(({ section }) => {
     return (
@@ -580,13 +590,13 @@ const FriendsActivitySheet = ({ visible, openToggle, items = [], onClose, onView
             style={{ flex: 1 }}
             contentContainerStyle={styles.listContent}
             removeClippedSubviews={false}
-            ItemSeparatorComponent={() => <View style={{ height: s(10) }} />}
-            SectionSeparatorComponent={() => <View style={{ height: s(12) }} />}
+            ItemSeparatorComponent={ItemSeparator}
+            SectionSeparatorComponent={SectionSeparator}
             stickySectionHeadersEnabled={false}
             showsVerticalScrollIndicator={false}
-            initialNumToRender={12}
-            windowSize={15}
-            maxToRenderPerBatch={20}
+            initialNumToRender={10}
+            windowSize={10}
+            maxToRenderPerBatch={12}
             ListFooterComponent={<View style={{ height: s(28) }} />}
             ListEmptyComponent={
               <View style={styles.emptyWrap}>
