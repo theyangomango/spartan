@@ -249,7 +249,7 @@ function Workout({ navigation }) {
 
     async function postWorkout() {
         setIsSummaryModalVisible(false);
-        await navigation.navigate('Profile', { transition: 'fade' });
+        await navigation.navigate('Tabs', { screen: 'Profile' });
         navigation.navigate('SelectPhotos', { workout: completedWorkout });
     }
 

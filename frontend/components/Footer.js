@@ -16,8 +16,8 @@ const COLORS = {
 };
 
 const Footer = ({ navigation, currentScreenName }) => {
-    // Simple direct navigation to root screens with no animation
-    const go = (screenName, params) => () => navigation.navigate(screenName, { transition: 'none', ...(params || {}) });
+    // Switch tabs without animation; keeps screens mounted
+    const go = (screenName, params) => () => navigation.navigate('Tabs', { screen: screenName, params: params || {} });
 
     // Subscribe to workout presence only (boolean); avoids polling and reduces rerenders
     const hasActiveWorkout = useWorkoutStore((s) => !!s.workout) || !!global?.isCurrentlyWorkingOut;
@@ -43,9 +43,9 @@ const Footer = ({ navigation, currentScreenName }) => {
                             onPress={() => {
                                 if (currentScreenName === 'Feed') {
                                     try { global.scrollFeedToTopSignal = Date.now(); } catch {}
-                                    navigation.navigate('Feed', { transition: 'none', scrollToTop: true, _t: Date.now() });
+                                    navigation.navigate('Tabs', { screen: 'Feed', params: { scrollToTop: true, _t: Date.now() } });
                                 } else {
-                                    navigation.navigate('Feed', { transition: 'none' });
+                                    navigation.navigate('Tabs', { screen: 'Feed' });
                                 }
                             }}
                             hitSlop={10}
@@ -73,7 +73,7 @@ const Footer = ({ navigation, currentScreenName }) => {
                                 if (hasActiveWorkout) {
                                     try { global.openCurrentWorkoutSignal = Date.now(); } catch {}
                                 }
-                                navigation.navigate('Workout', { transition: 'none' });
+                                navigation.navigate('Tabs', { screen: 'Workout' });
                             }}
                             hitSlop={10}
                         >
@@ -95,7 +95,7 @@ const Footer = ({ navigation, currentScreenName }) => {
 
                 {/* Profile (ProfileStack → Profile) */}
                 <View style={styles.icon_ctnr}>
-                    <Pressable onPress={() => navigation.navigate('Profile', { transition: 'none' })} hitSlop={10}>
+                    <Pressable onPress={() => navigation.navigate('Tabs', { screen: 'Profile' })} hitSlop={10}>
                         <View style={currentScreenName === 'Profile' ? styles.selectedIcon : styles.icon}>
                             <ProfileIcon size={22.5} color={getIconColor('Profile')} variant="Bold" />
                         </View>

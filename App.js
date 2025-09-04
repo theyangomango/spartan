@@ -4,9 +4,10 @@ import { NavigationContainer } from '@react-navigation/native';
 import { navigationRef } from './navigationRef';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { createStackNavigator, CardStyleInterpolators } from '@react-navigation/stack';
+import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { Platform } from 'react-native';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
-import { enableScreens } from 'react-native-screens';
+import { enableScreens, enableFreeze } from 'react-native-screens';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useFonts } from 'expo-font';
 import { customFonts } from './fonts';
@@ -35,9 +36,11 @@ const NativeStack = createNativeStackNavigator();
 
 // Single root stack: iOS uses classic stack for left-slide; Android uses native-stack for perf
 const RootStack = Platform.OS === 'ios' ? createStackNavigator() : createNativeStackNavigator();
+const Tab = createBottomTabNavigator();
 
 // Enable native screens for reduced memory and faster transitions
 enableScreens(true);
+enableFreeze(true);
 
 // (no screens optimization toggles — use defaults)
 
@@ -118,13 +121,33 @@ export default function App() {
         return <GestureHandlerRootView style={{ flex: 1, backgroundColor: '#F7FAFF' }} />;
     }
 
+    const Tabs = ({ route }) => (
+        <Tab.Navigator
+            initialRouteName="Workout"
+            screenOptions={{
+                headerShown: false,
+                tabBarStyle: { display: 'none' },
+                lazy: false,
+                unmountOnBlur: false,
+                detachInactiveScreens: false,
+                freezeOnBlur: true,
+            }}
+        >
+            <Tab.Screen name="Feed" component={Feed} initialParams={route?.params || { uid: uidRef.current }} />
+            <Tab.Screen name="MacroTracking" component={MacroTracking} />
+            <Tab.Screen name="Workout" component={Workout} initialParams={route?.params || { uid: uidRef.current }} />
+            <Tab.Screen name="Competition" component={Competition} />
+            <Tab.Screen name="Profile" component={Profile} />
+        </Tab.Navigator>
+    );
+
     return (
         <GestureHandlerRootView style={{ flex: 1 }}>
             <NavigationContainer ref={navigationRef}>
                 {/* Single root navigator with all screens */}
                 <RootStack.Navigator
                     id="ROOT"
-                    initialRouteName={isAuthenticated ? 'Workout' : 'SignUp'}
+                    initialRouteName={isAuthenticated ? 'Tabs' : 'SignUp'}
                     screenOptions={({ route }) => {
                         const transition = route?.params?.transition; // 'slide-from-left' | 'slide-from-right' | 'fade' | 'none'
                         const isFade = transition === 'fade';
@@ -160,7 +183,10 @@ export default function App() {
                     <RootStack.Screen name="NewUserCreation" component={NewUserCreation} />
                     <RootStack.Screen name="UserLogInCredentials" component={UserLogInCredentials} />
 
-                    {/* Main screens */}
+                    {/* Main tabs (kept mounted) */}
+                    <RootStack.Screen name="Tabs" component={Tabs} initialParams={{ uid: uidRef.current }} />
+
+                    {/* Peer screens for one-way transitions */}
                     <RootStack.Screen name="Feed" component={Feed} initialParams={{ uid: uidRef.current }} />
                     <RootStack.Screen name="MacroTracking" component={MacroTracking} />
                     <RootStack.Screen name="Workout" component={Workout} initialParams={{ uid: uidRef.current }} />

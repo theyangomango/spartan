@@ -140,8 +140,8 @@ const NewUserCreation = ({ navigation }) => {
             await arrayAppend('global', 'users', 'all', newUser);
             await createDoc('users', newID, newUser);
 
-            // Jump to Workout
-            navigation.navigate('Workout');
+            // Jump to Workout tab
+            navigation.navigate('Tabs', { screen: 'Workout' });
         } catch (err) {
             console.warn('Sign-up failed:', err?.message || err);
         }

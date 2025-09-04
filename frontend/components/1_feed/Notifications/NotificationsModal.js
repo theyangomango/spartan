@@ -139,9 +139,9 @@ export default function NotificationsModal({ visible, uid, closeBottomSheet }) {
                         try {
                             const { navigationRef } = require('../../../../navigationRef');
                             if (item?.pid) {
-                                navigationRef.navigate('Feed', { focusPid: String(item.pid), _t: Date.now() });
+                                navigationRef.navigate('Tabs', { screen: 'Feed', params: { focusPid: String(item.pid), _t: Date.now() } });
                             } else {
-                                navigationRef.navigate('Feed');
+                                navigationRef.navigate('Tabs', { screen: 'Feed' });
                             }
                         } catch {}
                     }} />

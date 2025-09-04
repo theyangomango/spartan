@@ -72,7 +72,7 @@ export default function PostOptionsScreen({ navigation, route }) {
         createPost(global.userData.uid, global.userData.handle, global.userData.image, caption, media, pid, workout);
         arrayAppend('users', global.userData.uid, 'posts', pid);
         await arrayAppend('global', 'posts', 'PIDs', pid);
-        navigation.navigate('Feed');
+        navigation.navigate('Tabs', { screen: 'Feed' });
 
         setIsSharing(false); // Re-enable the button
     }

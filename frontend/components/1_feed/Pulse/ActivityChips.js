@@ -181,7 +181,7 @@ function Chip({ ev, navigation, onPressChip }) {
         // and request the FriendsActivitySheet to open.
         if (ev?.type === "workout") {
             try {
-                navigation?.navigate?.('Workout', {
+                navigation?.navigate?.('Tabs', {
                     screen: 'Workout',
                     params: {
                         openFriends: true,
