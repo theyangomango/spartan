@@ -288,7 +288,18 @@ const NewWorkoutModal = ({
 
     // ===== Confetti + Cheer Events =====
     const [confettiTick, setConfettiTick] = useState(0);
-    const fireConfetti = useCallback(() => setConfettiTick((t) => t + 1), []);
+    const confettiRef = useRef(null);
+    const fireConfetti = useCallback(() => {
+        try {
+            const api = confettiRef.current;
+            if (api && typeof api.start === 'function') {
+                api.start();
+                return;
+            }
+        } catch { /* fall back */ }
+        // Fallback: force re-mount to auto-start immediately
+        setConfettiTick((t) => t + 1);
+    }, []);
 
     // Broadcast a cheer event to this workout's events feed
     const sendCheerEvent = useCallback(async () => {
@@ -426,8 +437,8 @@ const NewWorkoutModal = ({
                     onOpenMenu={lockFriend ? undefined : openMenu}
                     onLongPressInvite={lockFriend ? undefined : (viewingSelfEffective ? showGroupModal : undefined)}
                     onFinish={viewingSelfEffective ? openFinishConfirm : undefined}
-                    // Only show Cheer when the friend's session is ongoing. Always trigger internal handler.
-                    onCheer={friendOngoing ? (() => { try { onCheer?.(); } catch { } handleCheerPress(); }) : undefined}
+                    // Only show Cheer when the friend's session is ongoing. Trigger internal handler immediately first.
+                    onCheer={friendOngoing ? (() => { handleCheerPress(); try { onCheer?.(); } catch { } }) : undefined}
                     // When viewing a completed workout, show Copy Template instead
                     onCopyTemplate={!viewingSelfEffective && !friendOngoing ? (() => onCopyTemplate?.(baseWorkout)) : undefined}
                     countdown={countdown}
@@ -606,18 +617,29 @@ const NewWorkoutModal = ({
                 </Pressable>
             </Modal>
 
-            {/* Confetti overlay (pointerEvents disabled, auto-fires on key change) */}
-            {confettiTick > 0 && (
-                <View pointerEvents="none" style={StyleSheet.absoluteFill}>
+            {/* Confetti overlay (pointerEvents disabled). Keep one mounted for instant start via ref. */}
+            <View pointerEvents="none" style={StyleSheet.absoluteFill}>
+                <ConfettiCannon
+                    ref={confettiRef}
+                    autoStart={false}
+                    count={120}
+                    origin={{ x: screenWidth / 2, y: -scaledSize(60) }}
+                    fadeOut
+                    explosionSpeed={220}
+                    fallSpeed={1500}
+                />
+                {/* Fallback: if ref API unavailable, key-mount for immediate autoStart */}
+                {confettiTick > 0 && (
                     <ConfettiCannon
                         key={confettiTick}
                         count={120}
-                        origin={{ x: screenWidth / 2, y: 0 }}
+                        origin={{ x: screenWidth / 2, y: -scaledSize(60) }}
                         fadeOut
-                        fallSpeed={2500}
+                        explosionSpeed={220}
+                        fallSpeed={1500}
                     />
-                </View>
-            )}
+                )}
+            </View>
         </View >
     );
 };
