@@ -71,7 +71,7 @@ export default function Profile({ navigation }) {
         // ✅ Open the workout stats bottom sheet (same one used on Competition)
         setIsViewStatsBottomSheetVisible(true);
     }
-
+    
     return (
         <SafeAreaView style={styles.main_ctnr}>
             <View style={styles.body_ctnr}>

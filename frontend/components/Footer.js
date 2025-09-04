@@ -17,17 +17,18 @@ const COLORS = {
 };
 
 const Footer = ({ navigation, currentScreenName }) => {
-    // Switch tabs without animation; keeps screens mounted
+    // Switch tabs fast and without animations; clears overlays one-way
     const go = (screenName, params) => () => {
-        // Ensure the current (possibly overlay) route disables its close animation immediately
+        // Disable any reverse animation on the current route
         try {
             if (Platform.OS === 'ios') navigation.setOptions?.({ animationEnabled: false, gestureEnabled: false });
             else navigation.setOptions?.({ animation: 'none', gestureEnabled: false, fullScreenGestureEnabled: false });
         } catch {}
         try { navigation.setParams?.({ transition: 'none' }); } catch {}
-        // Perform a state reset to existing Tabs route without remount
+
+        // Jump to the tab, removing overlays if needed, with minimal state change
         if (!jumpToTab(screenName, params)) {
-            // Fallback: still navigate with no animation param
+            // Fallback to targeting the existing Tabs route explicitly
             navigation.navigate('Tabs', { transition: 'none', screen: screenName, params: params || {} });
         }
     };
@@ -53,7 +54,8 @@ const Footer = ({ navigation, currentScreenName }) => {
                     {/* Feed (Stack tab → child Feed) */}
                     <View style={styles.icon_ctnr}>
                         <Pressable
-                            onPress={() => {
+                            delayPressIn={0}
+                            onPressIn={() => {
                                 const params = currentScreenName === 'Feed'
                                     ? { scrollToTop: true, _t: Date.now() }
                                     : undefined;
@@ -70,7 +72,7 @@ const Footer = ({ navigation, currentScreenName }) => {
 
                 {/* Macros (ExploreStack → MacroTracking) */}
                 <View style={styles.icon_ctnr}>
-                    <Pressable onPress={go('MacroTracking')} hitSlop={10}>
+                    <Pressable delayPressIn={0} onPressIn={go('MacroTracking')} hitSlop={10}>
                         <View style={currentScreenName === 'MacroTracking' ? styles.selectedIcon : styles.icon}>
                             <MaterialCommunityIcons name="food-apple" size={26} color={getIconColor('MacroTracking')} />
                         </View>
@@ -81,7 +83,8 @@ const Footer = ({ navigation, currentScreenName }) => {
                 <View style={styles.workout_icon_ctnr}>
                     <View style={[styles.workout_indicator_ctnr, getWorkoutIndicatorStyle()]}>
                         <Pressable
-                            onPress={() => {
+                            delayPressIn={0}
+                            onPressIn={() => {
                                 if (hasActiveWorkout) {
                                     try { global.openCurrentWorkoutSignal = Date.now(); } catch {}
                                 }
@@ -98,7 +101,7 @@ const Footer = ({ navigation, currentScreenName }) => {
 
                 {/* Competition (CompetitionStack → Competition) */}
                 <View style={styles.icon_ctnr}>
-                    <Pressable onPress={go('Competition')} hitSlop={10}>
+                    <Pressable delayPressIn={0} onPressIn={go('Competition')} hitSlop={10}>
                         <View style={currentScreenName === 'Competition' ? styles.selectedIcon : styles.icon}>
                             <Cup size={24.5} color={getIconColor('Competition')} variant="Bold" />
                         </View>
@@ -107,7 +110,7 @@ const Footer = ({ navigation, currentScreenName }) => {
 
                 {/* Profile (ProfileStack → Profile) */}
                 <View style={styles.icon_ctnr}>
-                    <Pressable onPress={go('Profile')} hitSlop={10}>
+                    <Pressable delayPressIn={0} onPressIn={go('Profile')} hitSlop={10}>
                         <View style={currentScreenName === 'Profile' ? styles.selectedIcon : styles.icon}>
                             <ProfileIcon size={22.5} color={getIconColor('Profile')} variant="Bold" />
                         </View>
