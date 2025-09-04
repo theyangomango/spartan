@@ -421,10 +421,11 @@ export default function useWorkoutManager({ uid, navigation, millisToHMS }) {
             const baseSnap = seed ? null : await getDoc(doc(db, "workouts", wid));
             const base = seed || (baseSnap.exists() ? baseSnap.data() : {}) || {};
 
+            const createdNow = Date.now();
             const joined = sanitizeWorkout({
                 wid,
                 creatorUID: base?.creatorUid || base?.creatorUID || me,
-                created: Date.now(),
+                created: createdNow,
                 users: [],
                 exercises: [],
                 tid: null,
@@ -433,6 +434,8 @@ export default function useWorkoutManager({ uid, navigation, millisToHMS }) {
 
             try { useWorkoutStore.setState({ workout: joined }); } catch {}
             setIsNewWorkoutVisible(true);
+            // Start my local timer immediately so UI reflects joining without waiting for rehydrate
+            startTimer(createdNow);
 
             try {
                 await setDoc(doc(db, "users", me), { currentWorkout: joined }, { merge: true });
@@ -443,7 +446,7 @@ export default function useWorkoutManager({ uid, navigation, millisToHMS }) {
         } catch (e) {
             console.log("joinExternalWorkout error", e);
         }
-    }, [uid]);
+    }, [uid, startTimer]);
 
     /* ------------ Rehydrate from Firestore user doc ------------ */
     useEffect(() => {
