@@ -12,6 +12,8 @@ import {
     Platform,
     UIManager,
 } from "react-native";
+import { BlurView } from "expo-blur";
+import { LinearGradient } from "expo-linear-gradient";
 import RNBounceable from "@freakycoder/react-native-bounceable";
 import { Weight } from "iconsax-react-native";
 import ProgressBanner from "./Tracking/ProgressBanner";
@@ -488,12 +490,22 @@ const NewWorkoutModal = ({
                 onRequestClose={() => setReminderVisible(false)}
             >
                 <Pressable style={styles.modalOverlay} onPress={() => setReminderVisible(false)}>
-                    <View style={styles.reminderContainer}>
-                        <Text style={styles.reminderTitle}>Honest Reps Only</Text>
-                        <Text style={styles.reminderBody}>
-                            Train for you, not anyone else. Maintain good form. Don't ego lift. Lock in king 👑
-                        </Text>
-                    </View>
+                    <BlurView style={StyleSheet.absoluteFill} intensity={28} tint="dark" />
+                    <LinearGradient
+                        colors={["#60A5FA", "#34D399"]}
+                        start={{ x: 0, y: 0 }}
+                        end={{ x: 1, y: 1 }}
+                        style={styles.reminderWrapper}
+                    >
+                        <View style={styles.reminderContainer}>
+                            <View style={styles.reminderContent}>
+                                <Text style={styles.reminderTitle}>Honest Reps Only</Text>
+                                <Text style={styles.reminderBody}>
+                                    Train for you, not anyone else. Maintain good form. Don't ego lift. Lock in king 👑
+                                </Text>
+                            </View>
+                        </View>
+                    </LinearGradient>
                 </Pressable>
             </Modal>
         </View >
@@ -565,12 +577,29 @@ const styles = StyleSheet.create({
     finishBtnDisabled: { opacity: 0.6 },
     keepEditingBtn: { width: "100%", paddingVertical: scaledSize(10), backgroundColor: "#F1F5F9", borderRadius: scaledSize(10), alignItems: "center" },
     keepEditingText: { color: "#0F172A", fontSize: scaledSize(14), fontFamily: "Outfit_600SemiBold" },
-    // Reminder styles
-    reminderContainer: { width: "90%", padding: scaledSize(20), backgroundColor: "#fff", borderRadius: scaledSize(16), alignItems: "center" },
-    reminderTitle: { fontSize: scaledSize(16), color: "#0F172A", fontFamily: "Nunito_800ExtraBold", marginBottom: scaledSize(16) },
-    reminderBody: { fontSize: scaledSize(14), color: "#334155", fontFamily: "Nunito_700Bold", textAlign: "center", marginBottom: scaledSize(4) },
-    reminderBtn: { paddingVertical: scaledSize(9), paddingHorizontal: scaledSize(16), backgroundColor: "#0EA5E9", borderRadius: scaledSize(12) },
-    reminderBtnText: { color: "#fff", fontFamily: "Outfit_700Bold", fontSize: scaledSize(14) },
+    // Reminder styles (gradient border card)
+    reminderWrapper: {
+        width: "92%",
+        borderRadius: scaledSize(20),
+        padding: scaledSize(3), // gradient border width
+        // shadow on wrapper for proper elevation
+        shadowColor: "#0F172A",
+        shadowOpacity: 0.12,
+        shadowRadius: 24,
+        shadowOffset: { width: 0, height: 12 },
+        elevation: 16,
+    },
+    reminderContainer: {
+        backgroundColor: "#fff",
+        borderRadius: scaledSize(18),
+    },
+    reminderContent: {
+        paddingVertical: scaledSize(18),
+        paddingHorizontal: scaledSize(20),
+        alignItems: "center",
+    },
+    reminderTitle: { fontSize: scaledSize(16), color: "#0F172A", fontFamily: "Nunito_800ExtraBold", marginBottom: scaledSize(14) },
+    reminderBody: { fontSize: scaledSize(14), color: "#334155c7", fontFamily: "Nunito_700Bold", textAlign: "center" },
 });
 
 // Prevent unnecessary re-renders: only re-render when meaningful props change.
