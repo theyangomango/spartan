@@ -1,5 +1,6 @@
 import React, { useCallback, useMemo } from 'react';
 import { Dimensions, FlatList, StyleSheet, View, Text, ActivityIndicator, Pressable } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
 import PreviewPhoto from './PreviewPhoto';
 
 const screenWidth = Dimensions.get('window').width;
@@ -38,8 +39,9 @@ const PreviewPhotosModal = ({ assets, images, selectedOrderMap, toggleSelect, lo
                 <View style={styles.headerRight}>
                     {images.length > 0 && (
                         <>
-                            <Pressable onPress={clearSelection} hitSlop={8} style={styles.clearBtnWrap}>
-                                <Text style={styles.clearBtn}>Clear</Text>
+                            <Pressable onPress={clearSelection} hitSlop={10} style={styles.clearPill} android_disableSound>
+                                <Ionicons name="close" size={14} color="#4A5568" style={{ marginRight: 6 }} />
+                                <Text style={styles.clearPillText}>Clear</Text>
                             </Pressable>
                             <Text style={styles.selectionCount}>{images.length} selected</Text>
                         </>
@@ -98,22 +100,25 @@ const styles = StyleSheet.create({
         flexDirection: 'row',
         alignItems: 'center',
     },
-    clearBtnWrap: {
-        paddingHorizontal: 6,
-        paddingVertical: 4,
-        borderRadius: 8,
-        backgroundColor: '#EDEDED',
-        marginRight: 6,
+    clearPill: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        paddingHorizontal: 10,
+        height: 28,
+        borderRadius: 14,
+        backgroundColor: '#ECEFF4',
+        marginRight: 10,
     },
-    clearBtn: {
+    clearPillText: {
         fontFamily: 'Mulish_700Bold',
         fontSize: 12,
-        color: '#666',
+        color: '#4A5568',
     },
     selectionCount: {
         fontFamily: 'Mulish_700Bold',
         fontSize: 13,
         color: '#0699FF',
+        marginLeft: 4,
     },
 });
 

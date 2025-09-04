@@ -120,7 +120,7 @@ export default function SelectPhotosScreen({ navigation, route }) {
                         renderItem={({ item, setImageDimensions }) => (
                             <Image
                                 source={{ uri: item.uri }}
-                                style={{ width: '100%', aspectRatio: 0.8, borderRadius: 16 }}
+                                style={{ width: '100%', aspectRatio: 0.8, borderTopLeftRadius: 35, borderTopRightRadius: 35 }}
                                 onLoad={(e) => {
                                     const { width, height } = e.nativeEvent.source;
                                     setImageDimensions({ width, height });
@@ -138,7 +138,7 @@ export default function SelectPhotosScreen({ navigation, route }) {
                 ) : assets.length > 0 ? (
                     <Image
                         source={{ uri: assets[0].uri }}
-                        style={{ width: '100%', aspectRatio: 0.8, borderRadius: 16 }}
+                        style={{ width: '100%', aspectRatio: 0.8, borderTopLeftRadius: 35, borderTopRightRadius: 35 }}
                     />
                 ) : null}
             </View>
@@ -186,8 +186,9 @@ const styles = StyleSheet.create({
     preview_ctnr: {
         width: '100%',
         aspectRatio: 0.8,
-        backgroundColor: '#d9d9d9',
-        borderRadius: 16,
+        backgroundColor: '#fff',
+        borderTopLeftRadius: 35,
+        borderTopRightRadius: 35,
         overflow: 'hidden'
     },
     preview_image: {
