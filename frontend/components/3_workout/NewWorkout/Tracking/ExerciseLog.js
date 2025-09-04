@@ -33,6 +33,7 @@ function ExerciseLog({
     exerciseIndex,
     updateSets,          // parent setter
     sets,                // source of truth
+    prevSets,            // optional: previous sets provided by workout (preferred for spectating)
     replaceExercise,
     deleteExercise,
     toggleIsDone,        // we’ll still sync this, but via local draft
@@ -76,6 +77,11 @@ function ExerciseLog({
     // ----- Previous sets (read-only display) -----
     const [previousSets, setPreviousSets] = useState([]);
     useEffect(() => {
+        // Highest priority: prevSets provided on the exercise (from currentWorkout)
+        if (Array.isArray(prevSets) && prevSets.length) {
+            setPreviousSets(prevSets.map((s) => ({ weight: Number(s?.weight) || 0, reps: Number(s?.reps) || 0 })));
+            return;
+        }
         // Strategy:
         // - When editing self (readOnly === false), prefer scanning completedWorkouts backwards to find
         //   the most recent workout where this exercise was performed, and use its sets in order.
@@ -123,7 +129,7 @@ function ExerciseLog({
             // viewer mode
             tryFromStats();
         }
-    }, [name, userWorkoutStats, readOnly, (global?.userData?.completedWorkouts || []).length, (sets || []).length]);
+    }, [name, userWorkoutStats, readOnly, (global?.userData?.completedWorkouts || []).length, (sets || []).length, JSON.stringify(prevSets || [])]);
 
     // ----- Panel -----
     const [isPanelVisible, setIsPanelVisible] = useState(false);

@@ -7,27 +7,22 @@ const scale = screenHeight / 844; // Scaling factor based on iPhone 13 height
 
 const scaledSize = (size) => Math.round(size * scale);
 
-const ViewWorkoutExerciseLog = memo(({ name, muscle, sets }) => {
+const ViewWorkoutExerciseLog = memo(({ name, muscle, sets, userStats }) => {
     const previousSetsRef = useRef([]);
 
     useEffect(() => {
-        if (global.userData.statsExercises && global.userData.statsExercises[name]) {
-            const exerciseSets = global.userData.statsExercises[name].sets;
-            const lastWid = exerciseSets[exerciseSets.length - 1]?.wid;
-
+        const stats = userStats || {};
+        if (stats && stats[name]) {
+            const exerciseSets = Array.isArray(stats[name].sets) ? stats[name].sets : [];
+            const lastWid = exerciseSets.length ? exerciseSets[exerciseSets.length - 1]?.wid : null;
             const matchingSets = [];
-
             for (let i = exerciseSets.length - 1; i >= 0; i--) {
-                if (exerciseSets[i].wid === lastWid) {
-                    matchingSets.push(exerciseSets[i]);
-                } else {
-                    break;
-                }
+                if (!lastWid || exerciseSets[i].wid !== lastWid) break;
+                matchingSets.push(exerciseSets[i]);
             }
-
             previousSetsRef.current = matchingSets;
         }
-    }, [name]);
+    }, [name, userStats]);
 
     const muscleColors = {
         Chest: '#FFAFB8',

@@ -2,6 +2,8 @@ import React, { useCallback, useEffect, useMemo, useRef, memo } from "react";
 import { View, StyleSheet } from "react-native";
 import BottomSheet, { BottomSheetBackdrop } from "@gorhom/bottom-sheet";
 import NewWorkoutModal from "../../3_Workout/NewWorkout/NewWorkoutModal";
+import { onSnapshot, doc } from "firebase/firestore";
+import { db } from "../../../../firebase.config";
 
 const HANDLE_FRIEND_ACCENT = "#E0A500";
 const HANDLE_FRIEND_BACKGROUND = "#e0a4002c";
@@ -53,6 +55,17 @@ const FeedWorkoutViewerSheet = ({
   const friendUidEff = String(friendUid || workout?.__friendUid || workout?.creatorUID || workout?.creatorUid || "");
   const friendPfpEff = friendPfp || workout?.__friendPfp || null;
 
+  // Fetch friend stats once for accurate "Previous" in read-only viewer (no live stream here)
+  const friendStatsRef = useRef(null);
+  useEffect(() => {
+    if (!friendUidEff) return;
+    const unsub = onSnapshot(doc(db, "users", friendUidEff), (snap) => {
+      const data = snap.data() || {};
+      friendStatsRef.current = data?.statsExercises || null;
+    });
+    return () => { try { unsub && unsub(); } catch {} };
+  }, [friendUidEff]);
+
   return (
     <View style={styles.outer} pointerEvents="box-none">
       <BottomSheet
@@ -75,7 +88,7 @@ const FeedWorkoutViewerSheet = ({
             updateWorkout={noop}
             finishWorkout={noop}
             showGroupModal={noop}
-            userWorkoutStats={global?.userData?.statsExercises || {}}
+            userWorkoutStats={friendStatsRef.current || {}}
             onPressBack={handleBack}
             onCheer={noop}
             onCopyTemplate={undefined}

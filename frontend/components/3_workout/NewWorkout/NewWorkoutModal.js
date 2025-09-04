@@ -179,6 +179,15 @@ const NewWorkoutModal = ({
         updateWorkout,
     });
 
+    // Prefer friend's stats when viewing others; if live stats are absent (e.g., viewing a completed workout),
+    // fall back to provided userWorkoutStats if available from the parent.
+    const statsForPrevious = useMemo(() => {
+        if (viewingSelfEffective) return userWorkoutStats || activeStats || {};
+        const liveStats = activeStats || {};
+        if (liveStats && Object.keys(liveStats).length > 0) return liveStats;
+        return userWorkoutStats || {};
+    }, [viewingSelfEffective, userWorkoutStats, activeStats]);
+
     const showSelectExerciseModal = useCallback(() => { if (viewingSelfEffective) setSelectExerciseModalVisible(true); }, [viewingSelfEffective]);
     const closeSelectExerciseModal = useCallback(() => { setSelectExerciseModalVisible(false); setReplaceIndex(null); }, [setReplaceIndex]);
     const replaceExercise = useCallback((index) => { if (viewingSelfEffective) { setReplaceIndex(index); setSelectExerciseModalVisible(true); } }, [viewingSelfEffective, setReplaceIndex]);
@@ -476,12 +485,13 @@ const NewWorkoutModal = ({
                             muscle={ex.muscle}
                             exerciseIndex={exerciseIndex}
                             sets={ex.sets}
+                            prevSets={Array.isArray(ex.prev) ? ex.prev : undefined}
                             updateSets={updateSets}
                             replaceExercise={replaceExercise}
                             deleteExercise={() => deleteExercise(exerciseIndex)}
                             calculateStats={() => { }}
                             toggleIsDone={toggleIsDone}
-                            userWorkoutStats={viewingSelfEffective ? (userWorkoutStats || activeStats) : activeStats}
+                            userWorkoutStats={statsForPrevious}
                             readOnly={!viewingSelfEffective}
                         />
                     ))}

@@ -600,6 +600,20 @@ const FriendsActivitySheet = ({ visible, openToggle, items = [], onClose, onView
   const handleCopyTemplateCb = React.useCallback((wk) => onCopyTemplate?.(wk), [onCopyTemplate]);
   const timerRef = useRef("");
 
+  // Fetch viewer's statsExercises when a friend item is selected (for non-live viewer accuracy)
+  const viewerStatsRef = useRef(null);
+  useEffect(() => {
+    if (!selectedItem?.friendUid) { viewerStatsRef.current = null; return; }
+    try {
+      const uid = String(selectedItem.friendUid);
+      const unsub = onSnapshot(doc(db, 'users', uid), (snap) => {
+        const data = snap.data() || {};
+        viewerStatsRef.current = data?.statsExercises || null;
+      });
+      return () => { try { unsub && unsub(); } catch {} };
+    } catch {}
+  }, [selectedItem?.friendUid]);
+
   return (
     <View style={styles.outer} pointerEvents="box-none">
       <BottomSheet
@@ -667,7 +681,7 @@ const FriendsActivitySheet = ({ visible, openToggle, items = [], onClose, onView
                   updateWorkout={noop}
                   finishWorkout={noop}
                   showGroupModal={noop}
-                  userWorkoutStats={global?.userData?.statsExercises || {}}
+                  userWorkoutStats={viewerStatsRef.current || {}}
                   onPressBack={closeViewer}
                   onCheer={noopCheer}
                   onCopyTemplate={handleCopyTemplateCb}

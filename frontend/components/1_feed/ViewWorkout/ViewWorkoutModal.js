@@ -52,6 +52,7 @@ export default function ViewWorkoutModal({ workout }) {
                         exerciseIndex={exerciseIndex}
                         key={ex.name + exerciseIndex}
                         sets={ex.sets}
+                        userStats={workout?.__friendStats || workout?.statsExercises || null}
                     />
                 ))}
                 <View style={{ height: scaledSize(50) }} />

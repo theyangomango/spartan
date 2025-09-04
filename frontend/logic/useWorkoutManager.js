@@ -130,6 +130,41 @@ export default function useWorkoutManager({ uid, navigation, millisToHMS }) {
                 const latest = lastPersistValueRef.current;
                 if (!latest) return;
                 const payload = sanitizeWorkout(latest);
+
+                // Enrich with "previous" sets per exercise so spectators have accurate context
+                try {
+                    const completed = Array.isArray(global?.userData?.completedWorkouts) ? global.userData.completedWorkouts : [];
+                    const stats = (global?.userData?.statsExercises || {});
+
+                    const findPrevFromCompleted = (exName) => {
+                        for (let i = completed.length - 1; i >= 0; i--) {
+                            const wk = completed[i];
+                            const arr = Array.isArray(wk?.exercises) ? wk.exercises : [];
+                            const found = arr.find((e) => e?.name === exName && Array.isArray(e?.sets) && e.sets.length > 0);
+                            if (found) return (found.sets || []).map((s) => ({ weight: Number(s?.weight) || 0, reps: Number(s?.reps) || 0 }));
+                        }
+                        return null;
+                    };
+                    const findPrevFromStats = (exName) => {
+                        const exStats = stats?.[exName];
+                        const sets = Array.isArray(exStats?.sets) ? exStats.sets : [];
+                        if (!sets.length) return null;
+                        const lastWid = sets[sets.length - 1]?.wid;
+                        const matching = [];
+                        for (let i = sets.length - 1; i >= 0; i--) {
+                            if (sets[i]?.wid !== lastWid) break;
+                            matching.push(sets[i]);
+                        }
+                        matching.reverse();
+                        return matching.map((s) => ({ weight: Number(s?.weight) || 0, reps: Number(s?.reps) || 0 }));
+                    };
+
+                    payload.exercises = (payload.exercises || []).map((ex) => {
+                        const prevA = findPrevFromCompleted(ex?.name);
+                        const prevB = prevA && prevA.length ? prevA : findPrevFromStats(ex?.name);
+                        return { ...ex, prev: prevB && prevB.length ? prevB : undefined };
+                    });
+                } catch { /* non-fatal */ }
                 InteractionManager.runAfterInteractions(() => {
                     (async () => {
                         try {
