@@ -11,7 +11,7 @@ const PAGE_SIZE = 20;
 // keep buttons identity stable across renders
 const NOTIF_BUTTONS = ["All Activity", "Likes", "Comments", "Mentions"];
 
-export default function NotificationsModal({ visible, uid }) {
+export default function NotificationsModal({ visible, uid, closeBottomSheet }) {
     const [selectedButton, setSelectedButton] = useState("All Activity");
     const [events, setEvents] = useState([]);
     const [refreshTick, setRefreshTick] = useState(0);
@@ -133,7 +133,22 @@ export default function NotificationsModal({ visible, uid }) {
             <SectionList
                 ref={listRef}
                 sections={sections}
-                renderItem={({ item }) => <MemoNotificationCard item={item} />}
+                renderItem={({ item }) => (
+                    <MemoNotificationCard item={item} onPressCard={() => {
+                        try { closeBottomSheet?.(); } catch {}
+                        try {
+                            const { navigationRef } = require('../../../../navigationRef');
+                            if (item?.pid) {
+                                navigationRef.navigate('Tabs', {
+                                    screen: 'FeedStack',
+                                    params: { screen: 'Feed', params: { focusPid: String(item.pid), _t: Date.now() } }
+                                });
+                            } else {
+                                navigationRef.navigate('Tabs', { screen: 'FeedStack', params: { screen: 'Feed' } });
+                            }
+                        } catch {}
+                    }} />
+                )}
                 renderSectionHeader={({ section }) => (
                     <View style={styles.sectionHeaderWrap}>
                         <Text style={styles.sectionHeaderText}>{section.title}</Text>

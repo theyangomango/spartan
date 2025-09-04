@@ -9,11 +9,11 @@ import scaleSize from "../../helper/scaleSize";
 
 const ACCENT = "#2D9EFF";
 const HAIRLINE = "rgba(15, 23, 42, 0.03)";
-const BG = "#ffffff";
+const BG = "#F7F8FC";
 
 const ChatHeader = ({ usersExcludingSelf = [], toMessages }) => {
     const navigation = useNavigation();
-    const handles = usersExcludingSelf.map((u) => u.handle).join(", ");
+    const handles = usersExcludingSelf.map((u) => '@' + u.handle).join(", ");
     const names = usersExcludingSelf.map((u) => u.name).join(", ");
     const u0 = usersExcludingSelf[0];
     const u1 = usersExcludingSelf[1];
@@ -127,8 +127,8 @@ const styles = StyleSheet.create({
     pfpPh: { backgroundColor: "#EAEAEA" },
 
     textWrap: { flex: 1, justifyContent: "center" },
-    nameText: { fontFamily: "Outfit_600SemiBold", fontSize: scaleSize(16.5), color: "#0F172A", letterSpacing: 0.2 },
-    handleText: { fontFamily: "Outfit_500Medium", fontSize: scaleSize(12.5), color: "#7C889A", marginTop: 1 },
+    nameText: { fontFamily: "Nunito_700Bold", fontSize: scaleSize(16), color: "#0F172A"},
+    handleText: { fontFamily: "Nunito_700Bold", fontSize: scaleSize(12.5), color: "#7C889A", marginTop: 1 },
 });
 
 export default ChatHeader;

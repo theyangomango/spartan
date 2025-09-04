@@ -61,7 +61,7 @@ const NotificationsBottomSheet = ({ notificationsBottomSheetExpandFlag }) => {
                 <NotificationsModal
                     visible={isExpanded}
                     uid={global?.userData?.uid || null}
-                    closeBottomSheet={() => bottomSheetRef.current.close()}
+                    closeBottomSheet={() => bottomSheetRef.current?.close?.()}
                 />
             </BottomSheet>
         </View>

@@ -50,7 +50,7 @@ const mealsMeta = [
     { name: 'Lunch', subtitle: 'Lunch fuels your goals', icon: lunchIcon, bgColor: '#FFE8E9' },
     { name: 'Dinner', subtitle: 'Dinner completes your nutrition', icon: dinnerIcon, bgColor: '#EAEECE' },
     // Make snack icon slightly smaller by providing an explicit size override
-    { name: 'Snacks', subtitle: 'Snacks keep you energized', icon: snacksIcon, iconSize: 22, bgColor: '#EAE5FF' },
+    { name: 'Snacks', subtitle: 'Snacks keep you energized', icon: snacksIcon, iconSize: 22, bgColor: '#fed2bcff' },
 ];
 
 export default function MacroTracking({ navigation }) {

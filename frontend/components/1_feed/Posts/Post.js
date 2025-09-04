@@ -73,6 +73,11 @@ function Post({
     toViewProfile,
     openViewWorkoutModal,
     shouldPlay, // when NO post is focused: true if this post is centered
+    // highlight when navigating from notifications
+    highlightPid,
+    highlightSignal,
+    programFocusPid,
+    programFocusSignal,
 }) {
     const { pfp } = data;
     // Normalize media for backward compatibility where posts stored `images: string[]`
@@ -82,6 +87,7 @@ function Post({
         return [];
     }, [data?.media, data?.images]);
     const opacity = useRef(new Animated.Value(1)).current;
+    const highlightOpacity = useRef(new Animated.Value(0)).current;
     const scale = useRef(new Animated.Value(1)).current;
     const viewRef = useRef(null);
     const flatListRef = useRef(null);
@@ -110,6 +116,28 @@ function Post({
 
         return [[styles.gallery, clipStyle], [styles.image, clipStyle]];
     }, [isFocused, isSomePostFocused]);
+
+    // Flash highlight when this post matches target pid and signal updates
+    useEffect(() => {
+        const match = highlightPid && String(data?.pid || '') === String(highlightPid);
+        if (!match || !highlightSignal) return;
+        try { highlightOpacity.stopAnimation(); } catch {}
+        highlightOpacity.setValue(0);
+        Animated.sequence([
+            Animated.timing(highlightOpacity, { toValue: 0.22, duration: 180, useNativeDriver: true }),
+            Animated.timing(highlightOpacity, { toValue: 0, duration: 420, useNativeDriver: true }),
+        ]).start();
+    }, [highlightSignal, highlightPid, data?.pid]);
+
+    // Programmatic focus (simulate user tap) when matching pid
+    useEffect(() => {
+        const should = programFocusPid && String(programFocusPid) === String(data?.pid || '');
+        if (!should || isSomePostFocused) return;
+        const id = setTimeout(() => {
+            try { focusMe(); } catch {}
+        }, 20);
+        return () => clearTimeout(id);
+    }, [programFocusSignal, programFocusPid, isSomePostFocused, data?.pid]);
 
     // Bounce animation (kept if you use it elsewhere)
     const bounce = useCallback(() => {
@@ -258,6 +286,12 @@ function Post({
                         if (isFocused) openShareModal(index);
                     }}
                 />
+
+                {/* highlight overlay above content */}
+                <Animated.View
+                    pointerEvents="none"
+                    style={[StyleSheet.absoluteFill, { borderRadius: BORDER, backgroundColor: '#FFF4B3', opacity: highlightOpacity }]}
+                />
             </Animated.View>
         </Animated.View>
     );
@@ -267,7 +301,11 @@ const areEqual = (prev, next) =>
     prev.isFocused === next.isFocused &&
     prev.isSomePostFocused === next.isSomePostFocused &&
     prev.data === next.data &&
-    prev.shouldPlay === next.shouldPlay;
+    prev.shouldPlay === next.shouldPlay &&
+    prev.highlightPid === next.highlightPid &&
+    prev.highlightSignal === next.highlightSignal &&
+    prev.programFocusPid === next.programFocusPid &&
+    prev.programFocusSignal === next.programFocusSignal;
 
 export default React.memo(Post, areEqual);
 

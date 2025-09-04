@@ -48,6 +48,7 @@ export default function CommentsModal({
             name: global.userData.name,
             type: "liked-comment",
             content: target.content,
+            pid: postData.pid,
             timestamp: Date.now()
         };
 

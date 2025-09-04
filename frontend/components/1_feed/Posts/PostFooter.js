@@ -65,6 +65,7 @@ export default function PostFooter({ data, onPressCommentButton, onPressShareBut
                 handle: global.userData.handle,
                 name: global.userData.name,
                 type: 'liked-post',
+                pid: data.pid,
                 timestamp: Date.now()
             };
             sendNotification(data.uid, notif);
@@ -188,7 +189,7 @@ const styles = StyleSheet.create({
         alignItems: 'center',
         paddingHorizontal: dynamicStyles.buttonPaddingHorizontal,
         paddingVertical: dynamicStyles.buttonPaddingVertical,
-        marginLeft: 8
+        marginLeft: 6
     },
     commentButtonText: {
         color: '#fff',

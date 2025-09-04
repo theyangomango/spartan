@@ -82,6 +82,14 @@ export default function Feed({ navigation, route }) {
     // Track last consumed global scroll-to-top signal
     const feedTopSignalRef = useRef(0);
 
+    // Highlight target when navigating from notifications
+    const highlightPidRef = useRef(null);
+    const [highlightSignal, setHighlightSignal] = useState(0);
+    const [pendingFocusPid, setPendingFocusPid] = useState(null);
+    // Programmatic focusing (simulate user press)
+    const programFocusPidRef = useRef(null);
+    const [programFocusSignal, setProgramFocusSignal] = useState(0);
+
     /* ---------- animated values ---------- */
     const translateY = useRef(new Animated.Value(0)).current;
     const storiesOpacity = useRef(new Animated.Value(1)).current;
@@ -334,6 +342,41 @@ export default function Feed({ navigation, route }) {
         isThisUser(data.uid) ? navigation.navigate("Profile") : navigation.navigate("ViewProfile", { user });
     }
 
+    // Scroll to a specific post by pid and flash-highlight it
+    const scrollToPid = useCallback((pid) => {
+        if (!pid || !Array.isArray(posts) || posts.length === 0) return false;
+        const idx = posts.findIndex((p) => String(p?.pid || '') === String(pid));
+        if (idx < 0) return false;
+        highlightPidRef.current = String(pid);
+        setHighlightSignal(Date.now());
+        try {
+            flatListRef.current?.scrollToIndex?.({ index: idx, viewPosition: 0.5, animated: true });
+            // schedule a programmatic focus shortly after scrolling
+            programFocusPidRef.current = String(pid);
+            setTimeout(() => setProgramFocusSignal(Date.now()), 220);
+            return true;
+        } catch (e) {
+            const lay = itemLayoutsRef.current.get(idx);
+            if (lay) {
+                try {
+                    flatListRef.current?.scrollToOffset?.({ offset: Math.max(0, lay.y - 40), animated: true });
+                    programFocusPidRef.current = String(pid);
+                    setTimeout(() => setProgramFocusSignal(Date.now()), 220);
+                    return true;
+                } catch {}
+            }
+            // Retry shortly to allow list to measure
+            setTimeout(() => {
+                try {
+                    flatListRef.current?.scrollToIndex?.({ index: idx, viewPosition: 0.5, animated: true });
+                    programFocusPidRef.current = String(pid);
+                    setTimeout(() => setProgramFocusSignal(Date.now()), 220);
+                } catch {}
+            }, 80);
+            return false;
+        }
+    }, [posts]);
+
     // View workout details using FeedWorkoutViewerSheet (bottom sheet, not full-screen)
     function openViewWorkoutModal(workoutIndex) {
         try {
@@ -387,6 +430,20 @@ export default function Feed({ navigation, route }) {
         }
     }, [route?.params?.scrollToTop]);
 
+    // Respond to param-based focusPid when navigated from notifications
+    useEffect(() => {
+        if (route?.params?.focusPid) {
+            const pid = String(route.params.focusPid);
+            setPendingFocusPid(pid);
+            const id = setTimeout(() => {
+                const ok = scrollToPid(pid);
+                if (ok) setPendingFocusPid(null);
+            }, 50);
+            try { navigation.setParams({ focusPid: undefined }); } catch {}
+            return () => clearTimeout(id);
+        }
+    }, [route?.params?.focusPid]);
+
     // Scroll to top when triggered by Footer reselection (param or global signal)
     useFocusEffect(
         useCallback(() => {
@@ -395,6 +452,17 @@ export default function Feed({ navigation, route }) {
                 const id = setTimeout(() => scrollToTop(), 30);
                 // reset param so it doesn't re-trigger on next focus
                 try { navigation.setParams({ scrollToTop: false }); } catch {}
+                return () => clearTimeout(id);
+            }
+            // Focus a specific post by pid (from notifications)
+            if (route?.params?.focusPid) {
+                const pid = String(route.params.focusPid);
+                setPendingFocusPid(pid);
+                const id = setTimeout(() => {
+                    const ok = scrollToPid(pid);
+                    if (ok) setPendingFocusPid(null);
+                }, 50);
+                try { navigation.setParams({ focusPid: undefined }); } catch {}
                 return () => clearTimeout(id);
             }
             // Global-signal fallback
@@ -407,6 +475,13 @@ export default function Feed({ navigation, route }) {
             }
         }, [route?.params?.scrollToTop, navigation])
     );
+
+    // Retry pending focus once posts are available
+    useEffect(() => {
+        if (!pendingFocusPid) return;
+        const ok = scrollToPid(pendingFocusPid);
+        if (ok) setPendingFocusPid(null);
+    }, [pendingFocusPid, posts]);
 
     // Custom CellRenderer to capture y/height of each cell in content coordinates
     const CellRenderer = useMemo(() => {
@@ -443,12 +518,16 @@ export default function Feed({ navigation, route }) {
             if (!isSomePostFocused) {
                 return (
                     <Animated.View style={[styles.postWrapper, isFocusedPost && { transform: [{ translateY }], zIndex: 1 }]}>
-                        <Post
-                            {...commonProps}
-                            isFocused={false}
-                            isSomePostFocused={false}
-                            shouldPlay={index === centeredIndex} // ⟵ only centered post can play (if video slide)
-                        />
+                    <Post
+                        {...commonProps}
+                        isFocused={false}
+                        isSomePostFocused={false}
+                        highlightPid={highlightPidRef.current}
+                        highlightSignal={highlightSignal}
+                        programFocusPid={programFocusPidRef.current}
+                        programFocusSignal={programFocusSignal}
+                        shouldPlay={index === centeredIndex} // ⟵ only centered post can play (if video slide)
+                    />
                     </Animated.View>
                 );
             }
@@ -460,6 +539,10 @@ export default function Feed({ navigation, route }) {
                             {...commonProps}
                             isFocused={isFocusedPost}
                             isSomePostFocused={true}
+                            highlightPid={highlightPidRef.current}
+                            highlightSignal={highlightSignal}
+                            programFocusPid={programFocusPidRef.current}
+                            programFocusSignal={programFocusSignal}
                             shouldPlay={false} // ⟵ playback is controlled by focus rules inside Post
                         />
                     </Animated.View>
@@ -472,6 +555,10 @@ export default function Feed({ navigation, route }) {
                         {...commonProps}
                         isFocused={false}
                         isSomePostFocused={false}
+                        highlightPid={highlightPidRef.current}
+                        highlightSignal={highlightSignal}
+                        programFocusPid={programFocusPidRef.current}
+                        programFocusSignal={programFocusSignal}
                         shouldPlay={false}
                     />
                 </Animated.View>

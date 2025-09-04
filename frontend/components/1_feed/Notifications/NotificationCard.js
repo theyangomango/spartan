@@ -37,7 +37,7 @@ function getDisplayMessage(item) {
     }
 }
 
-export default function NotificationCard({ item }) {
+export default function NotificationCard({ item, onPressCard }) {
     const [isFollowing, setIsFollowing] = useState(false);
     const pfpUri = usePfp(item.uid, item.pfpVersion ?? 0);
 
@@ -98,7 +98,7 @@ export default function NotificationCard({ item }) {
     }, [item?.type]);
 
     return (
-        <Pressable style={({ pressed }) => [styles.pressable, pressed && { opacity: 0.95 }]}>
+        <Pressable style={({ pressed }) => [styles.pressable, pressed && { opacity: 0.95 }]} onPress={onPressCard}>
             <View style={[styles.card, unread && styles.cardUnread]}>
                 {/* avatar + type badge */}
                 <View style={styles.pfpWrap}>

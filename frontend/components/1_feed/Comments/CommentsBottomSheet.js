@@ -48,6 +48,7 @@ const CommentsBottomSheet = ({ isVisible, postData, commentsBottomSheetExpandFla
                 name: global.userData.name,
                 type: 'replied-comment',
                 content: inputText,
+                pid: postData.pid,
                 timestamp: Date.now()
             };
 
@@ -66,6 +67,7 @@ const CommentsBottomSheet = ({ isVisible, postData, commentsBottomSheetExpandFla
             name: global.userData.name,
             type: 'comment',
             content: inputText,
+            pid: postData.pid,
             timestamp: Date.now()
         };
 
