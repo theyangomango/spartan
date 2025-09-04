@@ -9,6 +9,7 @@ import {
   Animated,
   Dimensions,
   ActivityIndicator,
+  InteractionManager,
 } from "react-native";
 import BottomSheet, { BottomSheetBackdrop } from "@gorhom/bottom-sheet";
 import RNBounceable from "@freakycoder/react-native-bounceable";
@@ -17,7 +18,7 @@ import { MaterialCommunityIcons, FontAwesome6 } from "@expo/vector-icons";
 import { usePfp } from "../../helper/usePFPs";
 import NewWorkoutModal from "./NewWorkout/NewWorkoutModal";
 import { getPfpUrl } from "../../pfpCache";
-import { onSnapshot, doc } from "firebase/firestore";
+import { onSnapshot, doc, getDoc } from "firebase/firestore";
 import { db } from "../../../firebase.config";
 import calculate1RM from "../../helper/calculate1RM";
 
@@ -483,23 +484,29 @@ const FriendsActivitySheet = ({ visible, openToggle, items = [], onClose, onView
       setTimeout(() => setHighlightWid(null), 1200);
     }
 
-    // Slight delay to ensure the sheet is fully presented before animating the viewer
-    const id = setTimeout(async () => {
+    // Small delay so the sheet starts expanding, but do NOT block on image lookups
+    const id = setTimeout(() => {
       try {
-        // Focus the workout card without noisy logs
-        let pfpCandidate = null;
-        if (it?.uid) {
-          try {
-            pfpCandidate = await getPfpUrl(String(it.uid), it?.pfpVersion || 0);
-          } catch {}
-        }
-        // Fallback to any provided URL if cache fetch failed
-        if (!pfpCandidate) pfpCandidate = it?.pfp || it?.pfpUrl || it?.photoURL || null;
-        openViewer(it, pfpCandidate);
+        // Open immediately with whatever image we already have
+        const immediatePfp = it?.pfp || it?.pfpUrl || it?.photoURL || null;
+        openViewer(it, immediatePfp);
         consumedFocusRef.current = token;
         try { onConsumedFocus?.(); } catch {}
+        // Kick off a non-blocking PFP fetch; update if still viewing the same friend
+        if (it?.uid) {
+          getPfpUrl(String(it.uid), it?.pfpVersion || 0)
+            .then((uri) => {
+              if (!uri) return;
+              setSelectedItem((prev) => {
+                if (!prev) return prev;
+                const same = String(prev?.friendUid || prev?.uid || "") === String(it.uid);
+                return same ? { ...prev, friendPfp: uri } : prev;
+              });
+            })
+            .catch(() => {});
+        }
       } catch {}
-    }, 80);
+    }, 60);
     return () => clearTimeout(id);
   }, [openToggle, focusUid, focusWid, sortedItems, openViewer, onConsumedFocus]);
 
@@ -553,15 +560,15 @@ const FriendsActivitySheet = ({ visible, openToggle, items = [], onClose, onView
       // stream live activity only if this item is marked live
       streamLive: !!item?.live,
     });
-    setViewerReady(false);
-    Animated.parallel([
-      Animated.timing(listOpacity, { toValue: 0, duration: 160, useNativeDriver: true }),
-      Animated.timing(viewerOpacity, { toValue: 1, duration: 220, useNativeDriver: true }),
-    ]).start(({ finished }) => {
-      if (!finished) return;
-      // Mount right after the next frame for responsiveness
-      requestAnimationFrame(() => setViewerReady(true));
-    });
+    // Mount content right away to minimize perceived delay
+    setViewerReady(true);
+    // Animate the cross-fade concurrently
+    try {
+      Animated.parallel([
+        Animated.timing(listOpacity, { toValue: 0, duration: 140, useNativeDriver: true }),
+        Animated.timing(viewerOpacity, { toValue: 1, duration: 180, useNativeDriver: true }),
+      ]).start();
+    } catch {}
   }, [listOpacity, viewerOpacity]);
 
   const closeViewer = useCallback(() => {
@@ -600,18 +607,27 @@ const FriendsActivitySheet = ({ visible, openToggle, items = [], onClose, onView
   const handleCopyTemplateCb = React.useCallback((wk) => onCopyTemplate?.(wk), [onCopyTemplate]);
   const timerRef = useRef("");
 
-  // Fetch viewer's statsExercises when a friend item is selected (for non-live viewer accuracy)
+  // Fetch viewer's statsExercises once per friend when selected (non-blocking, no live stream)
   const viewerStatsRef = useRef(null);
   useEffect(() => {
     if (!selectedItem?.friendUid) { viewerStatsRef.current = null; return; }
+    const uid = String(selectedItem.friendUid);
+    let cancelled = false;
+    const run = () => {
+      getDoc(doc(db, 'users', uid))
+        .then((snap) => {
+          if (cancelled) return;
+          const data = snap.exists() ? (snap.data() || {}) : {};
+          viewerStatsRef.current = data?.statsExercises || null;
+        })
+        .catch(() => {});
+    };
     try {
-      const uid = String(selectedItem.friendUid);
-      const unsub = onSnapshot(doc(db, 'users', uid), (snap) => {
-        const data = snap.data() || {};
-        viewerStatsRef.current = data?.statsExercises || null;
-      });
-      return () => { try { unsub && unsub(); } catch {} };
-    } catch {}
+      InteractionManager.runAfterInteractions(run);
+    } catch {
+      run();
+    }
+    return () => { cancelled = true; };
   }, [selectedItem?.friendUid]);
 
   return (

@@ -190,11 +190,14 @@ const DayDetailsSheet = ({
         wk.__friendUid = friendUid;
         wk.__friendPfp = friendPfp;
         setSelectedWorkout(wk);
-        setViewerReady(false);
-        Animated.parallel([
-            Animated.timing(listOpacity, { toValue: 0, duration: 140, useNativeDriver: true }),
-            Animated.timing(viewerOpacity, { toValue: 1, duration: 180, useNativeDriver: true }),
-        ]).start(({ finished }) => { if (finished) requestAnimationFrame(() => setViewerReady(true)); });
+        // Mount content immediately; animate the cross-fade concurrently
+        setViewerReady(true);
+        try {
+            Animated.parallel([
+                Animated.timing(listOpacity, { toValue: 0, duration: 140, useNativeDriver: true }),
+                Animated.timing(viewerOpacity, { toValue: 1, duration: 180, useNativeDriver: true }),
+            ]).start();
+        } catch {}
     }, [listOpacity, viewerOpacity]);
 
     const closeViewer = useCallback(() => {
