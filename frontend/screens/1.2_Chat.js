@@ -52,6 +52,10 @@ export default function Chat({ navigation, route }) {
     const messagesRaw = useChatMessages(data.cid);
     const currentUid = global?.userData?.uid || null;
 
+    // Track whether user is near the latest message (bottom of inverted list)
+    const isNearBottomRef = useRef(true);
+    const latestSeenIdRef = useRef(null);
+
     // keep outer chat doc up-to-date
     useEffect(() => {
         const unsub = onSnapshot(doc(db, "messages", data.cid), (snap) => {
@@ -279,6 +283,22 @@ export default function Chat({ navigation, route }) {
         return { messagesOnly: list, withSeparators: out };
     }, [messagesRaw, currentUid]);
 
+    // Auto-scroll to newest when a new message from others arrives and we're near bottom
+    useEffect(() => {
+        const newest = (messagesOnly && messagesOnly[0]) || null;
+        if (!newest) return;
+        const id = newest.clientId || newest.id;
+        if (!id || latestSeenIdRef.current === id) return;
+        latestSeenIdRef.current = id;
+        const senderUid =
+            newest?.sender?.uid ?? newest?.senderUid ?? newest?.fromUid ?? newest?.uid ??
+            newest?.userId ?? newest?.authorId ?? newest?.from?.uid ?? newest?.author?.uid ?? null;
+        if (senderUid && senderUid !== currentUid && isNearBottomRef.current) {
+            // Scroll only if user hasn't scrolled away from bottom
+            requestAnimationFrame(() => flatRef.current?.scrollToOffset?.({ offset: 0, animated: true }));
+        }
+    }, [messagesOnly, currentUid]);
+
     const renderItem = ({ item, index }) => {
         if (item.type === "date") {
             return (
@@ -351,6 +371,12 @@ export default function Chat({ navigation, route }) {
                             ListHeaderComponent={<View style={{ height: 6 }} />}
                             ListFooterComponent={<View style={{ height: 6 }} />}
                             scrollEventThrottle={16}
+                            onScroll={(e) => {
+                                try {
+                                    const y = e?.nativeEvent?.contentOffset?.y || 0;
+                                    isNearBottomRef.current = y <= 80; // inverted: 0 is newest
+                                } catch {}
+                            }}
                         />
                     </View>
                 </GestureDetector>
