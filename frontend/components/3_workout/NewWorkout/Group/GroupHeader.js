@@ -1,5 +1,5 @@
 // components/Tracking/Group/GroupHeader.jsx
-import React, { useEffect, useRef } from "react";
+import React, { useEffect, useRef, memo } from "react";
 import { View, Text, StyleSheet, Dimensions, Pressable } from "react-native";
 import RNBounceable from "@freakycoder/react-native-bounceable";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
@@ -282,4 +282,4 @@ const styles = StyleSheet.create({
     },
 });
 
-export default GroupHeader;
+export default memo(GroupHeader);

@@ -129,7 +129,7 @@ function ExerciseLog({
             // viewer mode
             tryFromStats();
         }
-    }, [name, userWorkoutStats, readOnly, (global?.userData?.completedWorkouts || []).length, (sets || []).length, JSON.stringify(prevSets || [])]);
+    }, [name, userWorkoutStats, readOnly, (global?.userData?.completedWorkouts || []).length, (sets || []).length, prevSets]);
 
     // ----- Panel -----
     const [isPanelVisible, setIsPanelVisible] = useState(false);

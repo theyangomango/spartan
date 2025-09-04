@@ -335,6 +335,13 @@ const NewWorkoutModal = ({
         sendCheerEvent();
     }, [fireConfetti, sendCheerEvent]);
 
+    // Stable Cheer callback passed to GroupHeader
+    const onCheerStable = useCallback(() => {
+        if (!friendOngoing) return;
+        handleCheerPress();
+        try { onCheer?.(); } catch { }
+    }, [friendOngoing, handleCheerPress, onCheer]);
+
     // Listen for cheer events for this workout to trigger confetti when others cheer
     useEffect(() => {
         if (!streamLive) return;
@@ -446,8 +453,8 @@ const NewWorkoutModal = ({
                     onOpenMenu={lockFriend ? undefined : openMenu}
                     onLongPressInvite={lockFriend ? undefined : (viewingSelfEffective ? showGroupModal : undefined)}
                     onFinish={viewingSelfEffective ? openFinishConfirm : undefined}
-                    // Only show Cheer when the friend's session is ongoing. Trigger internal handler immediately first.
-                    onCheer={friendOngoing ? (() => { handleCheerPress(); try { onCheer?.(); } catch { } }) : undefined}
+                    // Only show Cheer when the friend's session is ongoing. Provide stable handler to avoid re-renders.
+                    onCheer={friendOngoing ? onCheerStable : undefined}
                     // When viewing a completed workout, show Copy Template instead
                     onCopyTemplate={!viewingSelfEffective && !friendOngoing ? (() => onCopyTemplate?.(baseWorkout)) : undefined}
                     countdown={countdown}

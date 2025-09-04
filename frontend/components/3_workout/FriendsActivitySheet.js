@@ -681,7 +681,7 @@ const FriendsActivitySheet = ({ visible, openToggle, items = [], onClose, onView
                   updateWorkout={noop}
                   finishWorkout={noop}
                   showGroupModal={noop}
-                  userWorkoutStats={viewerStatsRef.current || {}}
+                  userWorkoutStats={viewerStatsRef.current || undefined}
                   onPressBack={closeViewer}
                   onCheer={noopCheer}
                   onCopyTemplate={handleCopyTemplateCb}
