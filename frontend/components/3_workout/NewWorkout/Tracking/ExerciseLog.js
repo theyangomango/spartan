@@ -39,6 +39,7 @@ function ExerciseLog({
     toggleIsDone,        // we’ll still sync this, but via local draft
     userWorkoutStats,
     readOnly = false,
+    onStatFocus,         // optional: notify parent when any set input is focused
 }) {
     // ----- Android layout animation enable -----
     if (Platform.OS === "android" && UIManager.setLayoutAnimationEnabledExperimental) {
@@ -231,6 +232,7 @@ function ExerciseLog({
                             onToggleIsDoneById={toggleIsDoneById}// ← debounced parent sync
                             isDone={!!item?.isDone}
                             readOnly={readOnly}
+                            onFocusInput={() => { try { onStatFocus?.(exerciseIndex, index); } catch {} }}
                         />
                     );
                 })}

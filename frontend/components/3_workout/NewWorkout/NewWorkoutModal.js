@@ -11,6 +11,7 @@ import {
     LayoutAnimation,
     Platform,
     UIManager,
+    Keyboard,
 } from "react-native";
 import { Dimensions } from "react-native";
 import { BlurView } from "expo-blur";
@@ -91,6 +92,17 @@ const NewWorkoutModal = ({
     // Parent provides showGroupModal() to open, and registerInviteHandler(fn) to receive callback.
 
     const scrollY = useRef(new Animated.Value(0)).current;
+    const listRef = useRef(null);
+    const [keyboardHeight, setKeyboardHeight] = useState(0);
+
+    // Track keyboard height and add bottom padding so content can scroll above it
+    useEffect(() => {
+        const onShow = (e) => setKeyboardHeight(e?.endCoordinates?.height || 0);
+        const onHide = () => setKeyboardHeight(0);
+        const subShow = Keyboard.addListener(Platform.OS === 'ios' ? 'keyboardWillShow' : 'keyboardDidShow', onShow);
+        const subHide = Keyboard.addListener(Platform.OS === 'ios' ? 'keyboardWillHide' : 'keyboardDidHide', onHide);
+        return () => { try { subShow.remove(); subHide.remove(); } catch { } };
+    }, []);
 
     // Editing helpers/state (initialized after viewingSelfEffective is known)
 
@@ -446,6 +458,20 @@ const NewWorkoutModal = ({
         } catch { }
     }, [viewingSelfEffective, workout?.wid]);
 
+    // Focus handler from child set inputs: gently scroll the exercise into view
+    const handleStatFocus = useCallback((exerciseIndex /*, setIndex */) => {
+        try {
+            const ref = listRef.current;
+            if (!ref) return;
+            // Scroll the exercise near the top so its inputs are above keyboard
+            requestAnimationFrame(() => {
+                try {
+                    ref.scrollToIndex({ index: exerciseIndex, animated: true, viewPosition: 0.1 });
+                } catch { /* fallback if not measured yet */ }
+            });
+        } catch { }
+    }, []);
+
     return (
         <View style={styles.main_ctnr}>
             {/* Header */}
@@ -480,6 +506,7 @@ const NewWorkoutModal = ({
                 </View>
             ) : (
                 <Animated.FlatList
+                    ref={listRef}
                     data={Array.isArray(baseWorkout?.exercises) ? baseWorkout.exercises : []}
                     keyExtractor={(ex, i) => `${ex?.name || "ex"}-${i}`}
                     renderItem={({ item: ex, index: exerciseIndex }) => (
@@ -496,6 +523,7 @@ const NewWorkoutModal = ({
                             toggleIsDone={toggleIsDone}
                             userWorkoutStats={statsForPrevious}
                             readOnly={!viewingSelfEffective}
+                            onStatFocus={handleStatFocus}
                         />
                     )}
                     ListHeaderComponent={(
@@ -514,13 +542,14 @@ const NewWorkoutModal = ({
                                     </RNBounceable>
                                 </>
                             )}
-                            <View style={{ height: scaledSize(150) }} />
+                            <View style={{ height: scaledSize(250) + Math.max(0, keyboardHeight - scaledSize(40)) }} />
                         </>
                     )}
                     showsVerticalScrollIndicator={false}
                     scrollEventThrottle={16}
                     onScroll={Animated.event([{ nativeEvent: { contentOffset: { y: scrollY } } }], { useNativeDriver: true })}
-                    keyboardShouldPersistTaps="always"
+                    keyboardShouldPersistTaps="handled"
+                    keyboardDismissMode={Platform.OS === 'ios' ? 'on-drag' : 'none'}
                     removeClippedSubviews={false}
                     initialNumToRender={4}
                     maxToRenderPerBatch={5}

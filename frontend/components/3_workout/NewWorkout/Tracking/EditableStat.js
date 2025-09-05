@@ -6,7 +6,7 @@ const scale = screenHeight / 844; // Scaling factor based on iPhone 13 height
 
 const scaledSize = (size) => Math.round(size * scale);
 
-export default function EditableStat({ placeholder = '0', isFinished, value, setValue }) {
+export default function EditableStat({ placeholder = '0', isFinished, value, setValue, onFocus }) {
     const [isSelected, setIsSelected] = useState(false);
     const inputRef = useRef(null);
     const accessoryIdRef = useRef(`statAccessory_${Math.random().toString(36).slice(2, 9)}`);
@@ -63,7 +63,7 @@ export default function EditableStat({ placeholder = '0', isFinished, value, set
                     keyboardType="numeric"
                     placeholder={placeholder}
                     placeholderTextColor={isFinished ? '#000' : '#888'}
-                    onFocus={() => setIsSelected(true)}
+                    onFocus={() => { setIsSelected(true); try { onFocus?.(); } catch {} }}
                     onBlur={() => setIsSelected(false)}
                     style={styles.text}
                     value={value === '0' ? '' : value.toString()}

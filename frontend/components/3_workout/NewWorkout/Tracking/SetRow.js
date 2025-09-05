@@ -29,6 +29,7 @@ function SetRow({
     onToggleIsDoneById,
     readOnly = false,
     itemKey,
+    onFocusInput, // optional: notify parent when an input is focused
 }) {
     const weight = set?.weight ?? 0;
     const reps = set?.reps ?? 0;
@@ -92,6 +93,7 @@ function SetRow({
                             isFinished={doneLocal}                          // ← do NOT tie visuals to readOnly
                             value={String(weight)}
                             setValue={(value) => (onUpdateSetById ? onUpdateSetById(sid, { ...set, weight: value }) : updateSet(index, { ...set, weight: value }))}
+                            onFocus={() => { try { onFocusInput?.(index); } catch {} }}
                         />
                     </View>
 
@@ -100,6 +102,7 @@ function SetRow({
                             isFinished={doneLocal}                          // ← same here
                             value={String(reps)}
                             setValue={(value) => (onUpdateSetById ? onUpdateSetById(sid, { ...set, reps: value }) : updateSet(index, { ...set, reps: value }))}
+                            onFocus={() => { try { onFocusInput?.(index); } catch {} }}
                         />
                     </View>
 

@@ -81,6 +81,9 @@ const NewWorkoutBottomSheet = ({
             index={-1}
             snapPoints={snapPoints}
             backdropComponent={renderBackdrop}
+            // Ensure sheet moves with the keyboard so content stays visible
+            keyboardBehavior="interactive"
+            keyboardBlurBehavior="restore"
             enablePanDownToClose
             enableContentPanningGesture={false}
             onClose={() => setIsVisible(false)}
