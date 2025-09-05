@@ -30,7 +30,7 @@ if (Platform.OS === 'android' && UIManager.setLayoutAnimationEnabledExperimental
 }
 
 const COLORS = {
-    bg: '#F8FAFC',
+    bg: '#f0f4f9ff',
     card: '#FFFFFF',
     text: '#0F172A',
     subtext: '#64748B',
@@ -306,7 +306,7 @@ const styles = StyleSheet.create({
         flexDirection: 'row',
         gap: 6,
         alignItems: 'center',
-        backgroundColor: '#EEF2FF',
+        backgroundColor: '#d7e0f6b6',
         paddingHorizontal: 10,
         paddingVertical: 7,
         borderRadius: 999,
