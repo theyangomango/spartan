@@ -36,11 +36,26 @@ const NewWorkoutBottomSheet = ({
         []
     );
 
+    // Expand helper that tolerates ref not being ready on first render
+    const expandSafely = useCallback(() => {
+        let tries = 0;
+        const tryExpand = () => {
+            const ref = bottomSheetRef.current;
+            if (ref && typeof ref.expand === "function") {
+                try { ref.expand(); } catch {}
+            } else if (tries < 6) {
+                tries += 1;
+                requestAnimationFrame(tryExpand);
+            }
+        };
+        tryExpand();
+    }, []);
+
     useEffect(() => {
         if (isVisible) {
-            bottomSheetRef.current?.expand();
+            expandSafely();
         }
-    }, [isVisible]);
+    }, [isVisible, expandSafely]);
 
     const workoutFromStore = useWorkoutStore((s) => s.workout);
     const effectiveWorkout = workout || workoutFromStore;
