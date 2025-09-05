@@ -644,7 +644,7 @@ export default function Feed({ navigation, route }) {
     const listData = useMemo(() => ([...(posts || [])]), [posts]);
 
     return (
-        <SafeAreaView style={{ flex: 1, backgroundColor: "#F7FAFF" }}>
+        <SafeAreaView style={{ flex: 1, backgroundColor: "#f0f4f9ff" }}>
             <SafeAreaView style={styles.mainContainer}>
                 <StatusBar style="dark" />
 
@@ -712,10 +712,8 @@ export default function Feed({ navigation, route }) {
                         }
                     }}
                     style={[{
-                        backgroundColor: '#F7FAFF',
+                        backgroundColor: '#f0f4f9ff',
                         zIndex: 20,
-                        borderBottomWidth: StyleSheet.hairlineWidth,
-                        borderBottomColor: 'rgba(0,0,0,0.05)'
                     }, overlayHeaderStyle]}
                 >
                     <FeedHeader
@@ -750,7 +748,7 @@ export default function Feed({ navigation, route }) {
                     <SafeAreaInsetsView
                         edges={['top']}
                         onLayout={(e) => { backHeaderHRef.current = e.nativeEvent.layout.height || 0; }}
-                        style={{ position: 'absolute', top: 0, left: 0, right: 0, zIndex: 30, backgroundColor: '#F7FAFF' }}
+                        style={{ position: 'absolute', top: 0, left: 0, right: 0, zIndex: 30, backgroundColor: '#f0f4f9ff' }}
                     >
                         <FeedHeader
                             navigation={navigation}
@@ -768,7 +766,7 @@ export default function Feed({ navigation, route }) {
             </SafeAreaInsetsView>
 
             {/* Top safe-area mask to hide content above inset */}
-            <View pointerEvents="none" style={{ position: 'absolute', top: 0, left: 0, right: 0, height: insets.top, backgroundColor: '#F7FAFF', zIndex: 25 }} />
+            <View pointerEvents="none" style={{ position: 'absolute', top: 0, left: 0, right: 0, height: insets.top, backgroundColor: '#f0f4f9ff', zIndex: 25 }} />
 
 
 
@@ -797,6 +795,6 @@ export default function Feed({ navigation, route }) {
 }
 
 const styles = StyleSheet.create({
-    mainContainer: { flex: 1, backgroundColor: "#f9fbffff" },
+    mainContainer: { flex: 1, backgroundColor: "#f0f4f9ff" },
     postWrapper: { width: "100%" },
 });

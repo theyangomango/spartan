@@ -633,8 +633,8 @@ export default function Workout({ navigation, route }) {
 
 /* ---------------- styles ---------------- */
 const styles = StyleSheet.create({
-    root: { flex: 1, backgroundColor: "#F7FAFF" },
-    content: { flex: 1 },
+    root: { flex: 1, backgroundColor: "#f0f4f9ff" },
+    content: { flex: 1, paddingTop: 4 },
 
     templatesDock: { position: "absolute", left: 0, right: 0, bottom: FOOTER_HEIGHT + ss(22) + BTN_SIZE + TPL_BOTTOM_GAP },
     clusterWrap: { position: "absolute", left: 0, right: 0, bottom: FOOTER_HEIGHT + ss(20), alignItems: "center" },
@@ -646,7 +646,6 @@ const styles = StyleSheet.create({
         right: 0,
         zIndex: 30,
         alignItems: "center",
-        paddingTop: 0,
     },
     // Toast positioned above Templates rail
     toastWrap: {

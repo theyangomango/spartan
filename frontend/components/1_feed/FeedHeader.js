@@ -533,7 +533,7 @@ export default memo(FeedHeader);
 const styles = StyleSheet.create({
     main_ctnr: {
         width: "100%",
-        backgroundColor: "#F7FAFF",
+        backgroundColor: "#f0f4f9ff",
         flexDirection: "row",
         justifyContent: "center",
         paddingTop: METRICS.paddingTop,
