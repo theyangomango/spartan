@@ -89,10 +89,10 @@ export default function MessageItem({
     // ---------------- animations ----------------
     const shift = useAnimatedStyle(() => {
         "worklet";
-        const raw = isSelf ? (revealSelf?.value ?? 0) : (revealOther?.value ?? 0);
+        const raw = isSelf ? (revealSelf?.value ?? 0) : 0; // others shift at row level
         const dx = Math.max(0, Math.min(revealMax, raw));
         const opacity = item?._pending ? 0.7 : 1;
-        return { transform: [{ translateX: isSelf ? -dx : dx }], opacity };
+        return { transform: [{ translateX: isSelf ? -dx : 0 }], opacity };
     });
 
     const timeRight = useAnimatedStyle(() => {
@@ -102,7 +102,15 @@ export default function MessageItem({
         return { opacity: dx / revealMax, transform: [{ translateX: -dx }] };
     });
 
-    const timeLeft = useAnimatedStyle(() => {
+    // Row shift for other users: avatar + bubble move together
+    const rowShift = useAnimatedStyle(() => {
+        "worklet";
+        if (isSelf) return { transform: [{ translateX: 0 }] };
+        const raw = revealOther?.value ?? 0;
+        const dx = Math.max(0, Math.min(revealMax, raw));
+        return { transform: [{ translateX: dx }] };
+    });
+    const timeLeftOuter = useAnimatedStyle(() => {
         "worklet";
         const raw = revealOther?.value ?? 0;
         const dx = Math.max(0, Math.min(revealMax, raw));
@@ -291,11 +299,7 @@ export default function MessageItem({
                         {microTime}
                     </Animated.Text>
                 )}
-                {!isSelf && !!microTime && (
-                    <Animated.Text style={[styles.timeLeft, timeLeft]} numberOfLines={1} pointerEvents="none">
-                        {microTime}
-                    </Animated.Text>
-                )}
+                {/* non-self time appears outside, left of avatar + bubble */}
         </View>
     );
 
@@ -309,8 +313,8 @@ export default function MessageItem({
                 { marginBottom: rowGap },
             ]}
         >
-            {showAvatar ? (
-                <View style={styles.hRow}>
+            <Animated.View style={[showAvatar ? styles.hRow : null, rowShift]}>
+                {showAvatar && (
                     <View style={styles.avatarSlot}>
                         {senderPfp ? (
                             <FastImage source={{ uri: senderPfp }} style={styles.avatar} />
@@ -318,20 +322,25 @@ export default function MessageItem({
                             <View style={[styles.avatar, styles.avatarFallback]} />
                         )}
                     </View>
-                    {bubbleNode}
-                </View>
-            ) : (
-                bubbleNode
+                )}
+                {bubbleNode}
+            </Animated.View>
+
+            {/* For other's messages, show time to the left of avatar + bubble */}
+            {!isSelf && !!microTime && (
+                <Animated.Text style={[styles.timeLeftOuter, timeLeftOuter]} numberOfLines={1} pointerEvents="none">
+                    {microTime}
+                </Animated.Text>
             )}
         </View>
     );
 }
 
 const styles = StyleSheet.create({
-    row: { width: "100%", paddingHorizontal: 4, marginBottom: 6 },
+    row: { width: "100%", paddingHorizontal: 4, marginBottom: 6, position: 'relative' },
     rowSelf: { alignItems: "flex-end" },
     rowOther: { alignItems: "flex-start" },
-    hRow: { flexDirection: "row", alignItems: "flex-end" },
+    hRow: { flexDirection: "row", alignItems: "flex-start" },
     avatarSlot: { width: 30, marginRight: 8, alignItems: 'flex-start' },
     avatar: { width: 26, height: 26, borderRadius: 13, backgroundColor: '#E5E7EB' },
     avatarFallback: { backgroundColor: '#E6EBF2' },
@@ -428,9 +437,9 @@ const styles = StyleSheet.create({
         letterSpacing: 0.1,
         color: "#94A3B8",
     },
-    timeLeft: {
+    timeLeftOuter: {
         position: "absolute",
-        left: -70,
+        left: -78,
         bottom: 2,
         zIndex: 2,
         fontSize: 11,
