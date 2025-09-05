@@ -177,7 +177,7 @@ const SearchUsersBar = ({ navigation, allUsersRef, disabled = false }) => {
 
     const open = useCallback(() => {
         if (disabled) return;
-        try { navigation?.navigate?.('SearchUsers', { transition: 'fade' }); } catch {}
+        try { navigation?.navigate?.('SearchUsers', { transition: 'fade' }); } catch { }
     }, [navigation]);
 
     const close = useCallback(() => {
@@ -278,7 +278,7 @@ const SearchUsersBar = ({ navigation, allUsersRef, disabled = false }) => {
                 add.forEach((u) => { if (u?.uid && !map.has(u.uid)) map.set(u.uid, u); });
                 allUsersRef.current = Array.from(map.values());
                 setUsersCacheTick((t) => t + 1);
-            } catch {}
+            } catch { }
         };
         prime();
     }, [visible, allUsersRef]);
@@ -515,8 +515,8 @@ const FeedHeader = ({
                     onPress={() => {
                         try {
                             if (typeof toMessagesScreen === 'function') return toMessagesScreen();
-                        } catch {}
-                        try { navigation?.navigate?.('Messages'); } catch {}
+                        } catch { }
+                        try { navigation?.navigate?.('Messages'); } catch { }
                     }}
                     style={styles.message_button}
                 >
@@ -545,7 +545,7 @@ const styles = StyleSheet.create({
 
     back_header: {
         width: "100%",
-        backgroundColor: "#F7FAFF",
+        backgroundColor: "#f0f4f9ff",
         flexDirection: "row",
         paddingLeft: METRICS.paddingH,
         paddingTop: METRICS.paddingTop + s(4),

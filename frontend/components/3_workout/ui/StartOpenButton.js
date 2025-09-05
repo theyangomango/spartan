@@ -1,7 +1,8 @@
 // components/3_Workout/ui/StartOpenButton.jsx
-import React, { useEffect, useRef, useState } from "react";
+import React, { useEffect, useRef } from "react";
 import { View, Pressable, Text, StyleSheet, Platform } from "react-native";
-import { AnimatedCircularProgress } from "react-native-circular-progress";
+import Svg, { Circle } from "react-native-svg";
+import Reanimated, { useSharedValue, withTiming, withDelay, withSequence, Easing, useAnimatedProps, runOnJS } from "react-native-reanimated";
 import { BTN_SIZE } from "../sections/workoutTheme";
 
 /**
@@ -15,48 +16,75 @@ import { BTN_SIZE } from "../sections/workoutTheme";
  *  - onStart: () => void
  *  - holdMs?: number (default 650)
  */
-const StartOpenButton = ({ hasActiveWorkout, onOpen, onStart, holdMs = 650 }) => {
+export default function StartOpenButton({ hasActiveWorkout, onOpen, onStart, holdMs = 550 }) {
     /* ------------- Long-press ring (START state) ------------- */
-    const [holdFill, setHoldFill] = useState(0);
+    // Reanimated progress on the UI thread to avoid JS jank
+    const progress = useSharedValue(0);      // 0..1
+    const armed = useSharedValue(0);         // 1 while holding, 0 otherwise
+    const firedRef = useRef(false);
+    const freezeActiveRef = useRef(false);
+    const freezeTimerRef = useRef(null);
+    const FREEZE_MS = 1200; // keep ring full after completion
 
-    // Internal guards to ensure single fire + know which target fill we animated to.
-    const pressStartAtRef = useRef(0);
-    const firedRef = useRef(false);           // ensures onStart is called once
-    const armedRef = useRef(false);           // only true while we're animating to 100
-    const targetFillRef = useRef(0);          // remembers current animation target (100 or 0)
-
-    const maybeStart = (reason = "animation") => {
+    const maybeStart = () => {
         if (firedRef.current) return;
         firedRef.current = true;
-        armedRef.current = false;
         onStart?.();
-        // Immediately reset ring target back to 0 (without triggering a second start)
-        targetFillRef.current = 0;
-        setHoldFill(0);
+    };
+
+    const clearFreeze = () => {
+        if (freezeTimerRef.current) {
+            clearTimeout(freezeTimerRef.current);
+            freezeTimerRef.current = null;
+        }
+        freezeActiveRef.current = false;
+    };
+    const beginFreeze = () => {
+        clearFreeze();
+        freezeActiveRef.current = true;
+        // end freeze after the visual delay
+        freezeTimerRef.current = setTimeout(() => { freezeActiveRef.current = false; }, FREEZE_MS + 40);
     };
 
     const handlePressIn = () => {
+        if (hasActiveWorkout) return;
         firedRef.current = false;
-        pressStartAtRef.current = Date.now();
-        armedRef.current = true;
-        targetFillRef.current = 100;
-        // AnimatedCircularProgress will tween to 100 over tweenDuration (holdMs)
-        setHoldFill(100);
+        clearFreeze();
+        armed.value = 1;
+        progress.value = withTiming(1, { duration: holdMs, easing: Easing.linear }, (finished) => {
+            if (finished && armed.value === 1) {
+                runOnJS(maybeStart)();
+                // Keep ring full for a short freeze, then retract on the UI thread
+                armed.value = 0;
+                progress.value = withSequence(
+                    withTiming(1, { duration: 0 }),
+                    withDelay(FREEZE_MS, withTiming(0, { duration: 200, easing: Easing.out(Easing.cubic) }))
+                );
+                runOnJS(beginFreeze)();
+            }
+        });
     };
 
-    // Fallback: if the platform fires onLongPress right as we hit holdMs, start if not already started.
     const handleLongPress = () => {
-        if (!hasActiveWorkout && armedRef.current && !firedRef.current) {
-            maybeStart("longpress");
+        // Fallback path for some Android devices that fire longPress simultaneously
+        if (!hasActiveWorkout && armed.value === 1 && !firedRef.current) {
+            runOnJS(maybeStart)();
+            armed.value = 0;
+            progress.value = 0;
         }
     };
 
-    // If user bails early, disarm and reset. We DO NOT start here anymore.
     const handlePressOut = () => {
-        armedRef.current = false;
-        targetFillRef.current = 0;
-        setHoldFill(0);
+        if (hasActiveWorkout) return;
+        // If hold already completed and we're freezing the full ring, don't retract on release
+        if (freezeActiveRef.current) return;
+        armed.value = 0; // disarm so completion callback won't trigger
+        // Smoothly retract ring without causing re-renders
+        progress.value = withTiming(0, { duration: 160, easing: Easing.out(Easing.cubic) });
     };
+
+    // Cleanup on unmount
+    useEffect(() => () => clearFreeze(), []);
 
     /* ------------- Static halo (OPEN state) ------------- */
     // Non-pulsing white halo that hugs the black button and extends a few pixels outward.
@@ -93,31 +121,53 @@ const StartOpenButton = ({ hasActiveWorkout, onOpen, onStart, holdMs = 650 }) =>
                 </View>
             )} */}
 
-            {/* START state progress ring */}
-            {!hasActiveWorkout && (
-                <View style={styles.holdRing} pointerEvents="none">
-                    <AnimatedCircularProgress
-                        size={BTN_SIZE + 18}
-                        width={6}
-                        fill={holdFill}
-                        tintColor="#60A5FA"
-                        backgroundColor="rgba(2,6,23,0.12)"
-                        lineCap="round"
-                        arcSweepAngle={360}
-                        rotation={0}
-                        tweenDuration={holdMs}
-                        // Fire exactly when the ring finishes animating to the current target.
-                        onAnimationComplete={() => {
-                            if (armedRef.current && targetFillRef.current === 100 && !hasActiveWorkout) {
-                                maybeStart("progress-complete");
-                            }
-                        }}
-                    />
-                </View>
-            )}
+            {/* START state progress ring (UI-thread, jank-free) */}
+            {!hasActiveWorkout && <HoldRing progress={progress} />}
         </View>
     );
-};
+}
+
+// Reanimated SVG ring that animates on the UI thread
+const AnimatedCircle = Reanimated.createAnimatedComponent(Circle);
+function HoldRing({ progress }) {
+    const size = BTN_SIZE + 18;
+    const r = (size - 6) / 2; // account for stroke width
+    const c = 2 * Math.PI * r;
+
+    const animatedProps = useAnimatedProps(() => ({
+        strokeDashoffset: c * (1 - progress.value),
+    }));
+
+    return (
+        <View style={styles.holdRing} pointerEvents="none">
+            <Svg width={size} height={size} viewBox={`0 0 ${size} ${size}`}>
+                {/* background track */}
+                <Circle
+                    cx={size / 2}
+                    cy={size / 2}
+                    r={r}
+                    strokeWidth={6}
+                    stroke="rgba(2,6,23,0.12)"
+                    fill="none"
+                />
+                {/* progress arc */}
+                <AnimatedCircle
+                    cx={size / 2}
+                    cy={size / 2}
+                    r={r}
+                    strokeWidth={6}
+                    stroke="#60A5FA"
+                    fill="none"
+                    strokeDasharray={`${c} ${c}`}
+                    animatedProps={animatedProps}
+                    strokeLinecap="round"
+                    // Start from top by rotating SVG group  -90deg
+                    transform={`rotate(-90 ${size / 2} ${size / 2})`}
+                />
+            </Svg>
+        </View>
+    );
+}
 
 const styles = StyleSheet.create({
     wrap: {
@@ -210,4 +260,4 @@ const styles = StyleSheet.create({
     },
 });
 
-export default StartOpenButton;
+// default export declared above
