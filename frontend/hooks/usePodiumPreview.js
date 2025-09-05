@@ -33,13 +33,14 @@ function top3For(users, exercise, metric = "1RM", normalizeByBodyweight = false)
   return arr.slice(0, 3).map((x) => ({ uid: x.uid, handle: x.handle, stat: x.value, fallbackPfp: x.image }));
 }
 
-export default function usePodiumPreview() {
+export default function usePodiumPreview(enabled = true) {
   const [top3, setTop3] = useState([]);
   const [label, setLabel] = useState("Bench Press • 1RM");
 
   const lastView = useMemo(() => (global?.userData?.competitionLastView || null), [global?.userData?.competitionLastView]);
 
   useEffect(() => {
+    if (!enabled) return;
     let cancelled = false;
 
     (async () => {
@@ -111,8 +112,7 @@ export default function usePodiumPreview() {
     })();
 
     return () => { cancelled = true; };
-  }, [lastView]);
+  }, [lastView, enabled]);
 
   return { top3, label };
 }
-

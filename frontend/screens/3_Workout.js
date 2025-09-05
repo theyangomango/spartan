@@ -85,10 +85,19 @@ export default function Workout({ navigation, route }) {
     const uid = useResolvedUid(route);
     const [messages, setMessages] = useState(null);
     const [footerKeyDummy, setFooterKeyDummy] = useState(0);
+    const feedInitOnceRef = useRef(false);
     useEffect(() => {
-        // Mirror Feed screen setup so header Messages works the same
+        // Register setters immediately to keep header hooks consistent across screens
         registerFeedSetters({ setMessages, setFooterKey: setFooterKeyDummy });
-        if (uid) initUserFeed(uid);
+        if (!uid) return;
+        // Defer expensive feed preloading until after navigation/animations
+        if (!feedInitOnceRef.current) {
+            const task = InteractionManager.runAfterInteractions(() => {
+                initUserFeed(uid).catch(() => {});
+                feedInitOnceRef.current = true;
+            });
+            return () => task?.cancel?.();
+        }
     }, [uid]);
     const user = useUserDoc(uid, { ignoreKeys: ['currentWorkout'] }); // avoid rerenders on workout typing
 
@@ -192,10 +201,10 @@ export default function Workout({ navigation, route }) {
     }, [uid, user?.templates, showTemplateToast]);
 
     /* ---------- podium preview ---------- */
-    const { top3, label: PREVIEW_LABEL } = usePodiumPreview();
+    const { top3, label: PREVIEW_LABEL } = usePodiumPreview(afterPaint);
 
     /* ---------- friends activity ---------- */
-    const { items: friendsActivity, refresh: refreshFriends } = useFriendsActivity(user);
+    const { items: friendsActivity, refresh: refreshFriends } = useFriendsActivity(user, afterPaint);
     const [friendsSheetVisible, setFriendsSheetVisible] = useState(false);
     const [friendsSheetToggle, setFriendsSheetToggle] = useState(false);
     const [focusFriendUid, setFocusFriendUid] = useState(null);
@@ -352,12 +361,59 @@ export default function Workout({ navigation, route }) {
         setFriendsSheetToggle((f) => !f);
     }, []);
 
+    // Header prop identities kept stable to avoid header re-renders
+    const headerScrollToTop = useCallback(() => { }, []);
+    const headerOpenCurrentWorkout = useCallback(() => setIsNewWorkoutVisible(true), [setIsNewWorkoutVisible]);
+    const headerWorkoutObj = useMemo(() => (workoutWid ? { wid: workoutWid } : null), [workoutWid]);
+    const onBackPress = useCallback(() => navigation?.goBack?.(), [navigation]);
+    const toMessagesScreenCb = useCallback(() => {
+        if (global.userData && messages) {
+            navigation?.navigate("Messages", { userData: global.userData, messages, returnTo: 'Workout' });
+        } else {
+            navigation?.navigate("Messages", { returnTo: 'Workout' });
+        }
+    }, [navigation, messages]);
+    const toggleNotifications = useCallback(() => setNotificationsBottomSheetExpandFlag((f) => !f), []);
+
+    // Stable callbacks for props used inside conditionally rendered children
+    const onDayPressWeek = useCallback((d) => {
+        try {
+            const uidX = global?.userData?.uid || global?.userData?.id || uid;
+            if (uidX) primeFoodLogsCache(uidX, d, 7);
+        } catch { }
+        setDaySheetDate(d);
+        setDaySheetVisible(true);
+        setDaySheetToggle((f) => !f);
+    }, [uid]);
+
+    const onFriendsClose = useCallback(() => setFriendsSheetVisible(false), []);
+    const onFriendsJoin = useCallback((item) => {
+        setFriendsSheetVisible(false);
+        Alert.alert("Join Workout", `Joining ${item.name}'s live session…`);
+    }, []);
+    const onFriendsView = useCallback((item) => {
+        setFriendsSheetVisible(false);
+        Alert.alert("Workout", `Opening ${item.name}'s workout (${item.duration} min)…`);
+    }, []);
+    const onConsumedFocusCb = useCallback(() => { setFocusFriendUid(null); setFocusWorkoutWid(null); }, []);
+
+    const showGroupModalCb = useCallback(() => setInviteSheetOpen(true), []);
+    const registerInviteHandlerCb = useCallback((fn) => { inviteHandlerRef.current = fn; }, []);
+    const closeGroupModalCb = useCallback(() => setInviteSheetOpen(false), []);
+    const onInviteCb = useCallback((users) => {
+        const fn = inviteHandlerRef.current;
+        if (typeof fn === 'function') {
+            try { fn(users); } catch (e) { console.log('invite error', e); }
+        }
+        setInviteSheetOpen(false);
+    }, []);
+
     /* ---------- Day sheet + meals ---------- */
     const [daySheetToggle, setDaySheetToggle] = useState(false);
     const [daySheetVisible, setDaySheetVisible] = useState(false);
     const [daySheetDate, setDaySheetDate] = useState(null);
     const sheetDate = useMemo(() => daySheetDate ?? stableToday, [daySheetDate, stableToday]);
-    const { meals: sheetMeals, totals: sheetTotals } = useFoodLogs(sheetDate, uid);
+    const { meals: sheetMeals, totals: sheetTotals } = useFoodLogs(sheetDate, uid, daySheetVisible);
     const dayWorkouts = useMemo(() => {
         const dk = toDayKey(sheetDate);
         const completed = Array.isArray(global?.userData?.completedWorkouts) ? global.userData.completedWorkouts : [];
@@ -421,22 +477,16 @@ export default function Workout({ navigation, route }) {
             {/* Header measured for anchoring */}
             <View onLayout={onHeaderLayout}>
                 <FeedHeader
-                    toMessagesScreen={() => {
-                        if (global.userData && messages) {
-                            navigation?.navigate("Messages", { userData: global.userData, messages, returnTo: 'Workout' });
-                        } else {
-                            navigation?.navigate("Messages", { returnTo: 'Workout' });
-                        }
-                    }}
-                    onOpenNotifications={() => setNotificationsBottomSheetExpandFlag((f) => !f)}
+                    toMessagesScreen={toMessagesScreenCb}
+                    onOpenNotifications={toggleNotifications}
                     backButton={false}
-                    onBackPress={() => navigation?.goBack?.()}
-                    scrollToTop={() => { }}
+                    onBackPress={onBackPress}
+                    scrollToTop={headerScrollToTop}
                     navigation={navigation}
                     allUsersRef={allUsersRef}
-                    workout={workoutWid ? { wid: workoutWid } : null}
+                    workout={headerWorkoutObj}
                     timerRef={timerRef}
-                    openCurrentWorkout={() => setIsNewWorkoutVisible(true)}
+                    openCurrentWorkout={headerOpenCurrentWorkout}
                 />
             </View>
 
@@ -462,15 +512,7 @@ export default function Workout({ navigation, route }) {
             <View style={styles.content}>
                 <WeekCalendar
                     workoutsMap={global?.userData?.workoutsByDate || {}}
-                    onDayPress={(d) => {
-                        try {
-                            const uidX = global?.userData?.uid || global?.userData?.id || uid;
-                            if (uidX) primeFoodLogsCache(uidX, d, 7);
-                        } catch { }
-                        setDaySheetDate(d);
-                        setDaySheetVisible(true);
-                        setDaySheetToggle((f) => !f);
-                    }}
+                    onDayPress={onDayPressWeek}
                 />
 
                 {/* Hub row */}
@@ -516,7 +558,9 @@ export default function Workout({ navigation, route }) {
             <Footer currentScreenName={"Workout"} navigation={navigation} />
 
             {/* Notifications (same UX as Feed) */}
-            <NotificationsBottomSheet notificationsBottomSheetExpandFlag={notificationsBottomSheetExpandFlag} />
+            {afterPaint && (
+                <NotificationsBottomSheet notificationsBottomSheetExpandFlag={notificationsBottomSheetExpandFlag} />
+            )}
 
             {/* Day details (always mounted so ref is ready on first open) */}
             <View style={StyleSheet.absoluteFill} pointerEvents={daySheetVisible ? "auto" : "none"}>
@@ -555,51 +599,51 @@ export default function Workout({ navigation, route }) {
             </View>
 
             {/* Friends sheet */}
-            <View style={StyleSheet.absoluteFill} pointerEvents={friendsSheetVisible ? "auto" : "none"}>
-                <FriendsActivitySheet
-                    visible={friendsSheetVisible}
-                    openToggle={friendsSheetToggle}
-                    focusUid={focusFriendUid}
-                    focusWid={focusWorkoutWid}
-                    onConsumedFocus={() => { setFocusFriendUid(null); setFocusWorkoutWid(null); }}
-                    items={friendsActivity}
-                    lastViewedAt={user?.friendsActivityLastViewedAt}
-                    onViewed={markFriendsViewed}
-                    onClose={() => setFriendsSheetVisible(false)}
-                    onCopyTemplate={handleCopyTemplate}
-                    onJoin={(item) => {
-                        setFriendsSheetVisible(false);
-                        Alert.alert("Join Workout", `Joining ${item.name}'s live session…`);
-                    }}
-                    onView={(item) => {
-                        setFriendsSheetVisible(false);
-                        Alert.alert("Workout", `Opening ${item.name}'s workout (${item.duration} min)…`);
-                    }}
-                />
-            </View>
+            {(afterPaint || friendsSheetVisible) && (
+                <View style={StyleSheet.absoluteFill} pointerEvents={friendsSheetVisible ? "auto" : "none"}>
+                    <FriendsActivitySheet
+                        visible={friendsSheetVisible}
+                        openToggle={friendsSheetToggle}
+                        focusUid={focusFriendUid}
+                        focusWid={focusWorkoutWid}
+                        onConsumedFocus={onConsumedFocusCb}
+                        items={friendsActivity}
+                        lastViewedAt={user?.friendsActivityLastViewedAt}
+                        onViewed={markFriendsViewed}
+                        onClose={onFriendsClose}
+                        onCopyTemplate={handleCopyTemplate}
+                        onJoin={onFriendsJoin}
+                        onView={onFriendsView}
+                    />
+                </View>
+            )}
 
             {/* New Workout sheet */}
-            <NewWorkoutBottomSheet
-                cancelNewWorkout={cancelWorkout}
-                updateNewWorkout={updateNewWorkout}
-                finishNewWorkout={finishWorkout}
-                isVisible={isNewWorkoutVisible}
-                setIsVisible={setIsNewWorkoutVisible}
-                timerRef={timerRef}
-                showGroupModal={() => setInviteSheetOpen(true)}
-                registerInviteHandler={(fn) => { inviteHandlerRef.current = fn; }}
-                userWorkoutStats={global?.userData?.statsExercises || {}}
-            />
+            {(afterPaint || isNewWorkoutVisible) && (
+                <NewWorkoutBottomSheet
+                    cancelNewWorkout={cancelWorkout}
+                    updateNewWorkout={updateNewWorkout}
+                    finishNewWorkout={finishWorkout}
+                    isVisible={isNewWorkoutVisible}
+                    setIsVisible={setIsNewWorkoutVisible}
+                    timerRef={timerRef}
+                    showGroupModal={showGroupModalCb}
+                    registerInviteHandler={registerInviteHandlerCb}
+                    userWorkoutStats={global?.userData?.statsExercises || {}}
+                />
+            )}
 
             {/* Template editor (kept identical behavior) */}
-            <EditTemplateBottomSheet
-                isVisible={isEditTemplateVisible}
-                setIsVisible={setIsEditTemplateVisible}
-                openToggle={editSheetToggle}
-                openedTemplateRef={openedTemplateRef}
-                updateTemplate={updateTemplate}
-                deleteTemplate={deleteTemplate}
-            />
+            {(afterPaint || isEditTemplateVisible) && (
+                <EditTemplateBottomSheet
+                    isVisible={isEditTemplateVisible}
+                    setIsVisible={setIsEditTemplateVisible}
+                    openToggle={editSheetToggle}
+                    openedTemplateRef={openedTemplateRef}
+                    updateTemplate={updateTemplate}
+                    deleteTemplate={deleteTemplate}
+                />
+            )}
 
             {isSummaryModalVisible && (
                 <WorkoutSummaryModal
@@ -616,17 +660,13 @@ export default function Workout({ navigation, route }) {
             </Animated.View>
 
             {/* Invite picker mounted at screen level so backdrop covers everything */}
-            <GroupModalBottomSheet
-                groupModalExpandFlag={inviteSheetOpen}
-                closeGroupModal={() => setInviteSheetOpen(false)}
-                onInvite={(users) => {
-                    const fn = inviteHandlerRef.current;
-                    if (typeof fn === 'function') {
-                        try { fn(users); } catch (e) { console.log('invite error', e); }
-                    }
-                    setInviteSheetOpen(false);
-                }}
-            />
+            {(afterPaint || inviteSheetOpen) && (
+                <GroupModalBottomSheet
+                    groupModalExpandFlag={inviteSheetOpen}
+                    closeGroupModal={closeGroupModalCb}
+                    onInvite={onInviteCb}
+                />
+            )}
         </SafeAreaView>
     );
 }

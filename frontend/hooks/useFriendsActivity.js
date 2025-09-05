@@ -111,7 +111,7 @@ const bestTs = (it) =>
     Math.max(toMillis(it?.created) || 0, toMillis(it?.startedAt) || 0, toMillis(it?.finishedAt) || 0);
 
 /* ---------- hook ---------- */
-export default function useFriendsActivity(user) {
+export default function useFriendsActivity(user, enabled = true) {
     const [items, setItems] = useState([]);
     const [loading, setLoading] = useState(false);
 
@@ -199,8 +199,9 @@ export default function useFriendsActivity(user) {
     }, [user]);
 
     useEffect(() => {
+        if (!enabled) return;
         refresh();
-    }, [refresh]);
+    }, [refresh, enabled]);
 
     return { items, refresh, loading };
 }
