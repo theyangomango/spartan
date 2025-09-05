@@ -3,7 +3,7 @@ import { Pressable, StyleSheet, View, Platform } from 'react-native';
 import { Home, Cup, Weight, Profile as ProfileIcon } from 'iconsax-react-native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import useWorkoutStore from '../state/workoutStore';
-import { jumpToTab } from '../../navigationRef';
+import { jumpToTab, navigationRef } from '../../navigationRef';
 
 const COLORS = {
     active: '#000',
@@ -16,20 +16,23 @@ const COLORS = {
     hairline: 'rgba(2,6,23,0.06)',
 };
 
-const Footer = ({ navigation, currentScreenName }) => {
+const Footer = ({ currentScreenName, navigation }) => {
     // Switch tabs fast and without animations; clears overlays one-way
     const go = (screenName, params) => () => {
-        // Disable any reverse animation on the current route
-        try {
-            if (Platform.OS === 'ios') navigation.setOptions?.({ animationEnabled: false, gestureEnabled: false });
-            else navigation.setOptions?.({ animation: 'none', gestureEnabled: false, fullScreenGestureEnabled: false });
-        } catch {}
-        try { navigation.setParams?.({ transition: 'none' }); } catch {}
+        // If already on the target tab, avoid any navigation work
+        if (currentScreenName === screenName) return;
+        // Ensure tab switch is instant; rely on navigator-level options
 
         // Jump to the tab, removing overlays if needed, with minimal state change
         if (!jumpToTab(screenName, params)) {
             // Fallback to targeting the existing Tabs route explicitly
-            navigation.navigate('Tabs', { transition: 'none', screen: screenName, params: params || {} });
+            try {
+                if (navigation?.navigate) {
+                    navigation.navigate('Tabs', { transition: 'none', screen: screenName, params: params || {} });
+                } else {
+                    navigationRef.navigate('Tabs', { transition: 'none', screen: screenName, params: params || {} });
+                }
+            } catch {}
         }
     };
 
@@ -154,4 +157,9 @@ const styles = StyleSheet.create({
     selectedIcon: { padding: 13.5, borderRadius: 30 },
 });
 
-export default Footer;
+// Avoid unnecessary re-renders across tab switches
+export default React.memo(Footer, (prev, next) => {
+    return (
+        prev.currentScreenName === next.currentScreenName
+    );
+});

@@ -2,7 +2,6 @@ import React, { useCallback, useEffect, useMemo, useRef, useState } from "react"
 import { StyleSheet, Text, View } from "react-native";
 import BottomSheet, { BottomSheetBackdrop, BottomSheetFooter } from "@gorhom/bottom-sheet";
 import ProfileBottomModal from "./ProfileBottomModal";
-import Footer from "../../Footer";
 
 const ProfileBottomBottomSheet = ({ selectedPanel, setSelectedPanel, posts, completedWorkouts }) => {
     const bottomSheetRef = useRef(null);

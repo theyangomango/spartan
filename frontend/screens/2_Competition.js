@@ -9,8 +9,8 @@ import {
     SafeAreaView,
     Dimensions,
     Text,
+    InteractionManager,
 } from "react-native";
-import Footer from "../components/Footer";
 import Podium from "../components/2_Competition/Podium";
 import rankUsers from "../helper/rankUsers";
 import LeaderboardBottomSheet from "../components/2_Competition/LeaderboardBottomSheet";
@@ -40,6 +40,7 @@ import JoinTribeModal from "../components/2_Competition/JoinTribeModal";
 import ManageTribeModal from "../components/2_Competition/ManageTribeModal";
 import TribeComparisonModal from "../components/2_Competition/TribeComparisonModal";
 import RNBounceable from "@freakycoder/react-native-bounceable";
+import Footer from "../components/Footer";
 
 const { width, height } = Dimensions.get("window");
 
@@ -130,7 +131,6 @@ export default function Competition({ navigation }) {
     const [selectExerciseModalVisible, setSelectExerciseModalVisible] = useState(false);
     const [selectedUser, setSelectedUser] = useState(null);
     const [isUserStatsBottomSheetVisible, setIsUserStatsBottomSheetVisible] = useState(false);
-    const [footerKey, setFooterKey] = useState(0);
 
     const [comparedMetric, setComparedMetric] = useState("1RM");
     const exerciseStatKey = comparedMetric === "1RM" ? "1RM" : comparedMetric;
@@ -172,12 +172,15 @@ export default function Competition({ navigation }) {
 
     useEffect(() => {
         const navUnsub = navigation.addListener("focus", () => {
-            if (userUnsubRef.current) userUnsubRef.current();
-            userUnsubRef.current = onSnapshot(doc(db, "users", global.userData.uid), async (docSnap) => {
-                global.userData = docSnap.data();
-                initUsers(); // refresh users; recompute gated elsewhere
-            });
-            setFooterKey((prevKey) => prevKey + 1);
+            // Re-subscribe on focus without waiting for interactions to settle
+            const id = setTimeout(() => {
+                if (userUnsubRef.current) userUnsubRef.current();
+                userUnsubRef.current = onSnapshot(doc(db, "users", global.userData.uid), async (docSnap) => {
+                    global.userData = docSnap.data();
+                    initUsers(); // refresh users; recompute gated elsewhere
+                });
+            }, 0);
+            return () => clearTimeout(id);
         });
         return () => {
             navUnsub && navUnsub();
@@ -489,7 +492,7 @@ export default function Competition({ navigation }) {
                 setIsVisible={setIsUserStatsBottomSheetVisible}
             />
 
-            <Footer key={footerKey} navigation={navigation} currentScreenName={"Competition"} />
+            <Footer currentScreenName={"Competition"} navigation={navigation} />
 
             <Modal
                 animationType="fade"

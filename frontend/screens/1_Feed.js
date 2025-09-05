@@ -13,7 +13,6 @@ import { doc, onSnapshot } from "firebase/firestore";
 import { useSafeAreaInsets, SafeAreaView as SafeAreaInsetsView } from "react-native-safe-area-context";
 import Reanimated, { useSharedValue, useAnimatedScrollHandler, useAnimatedStyle, runOnJS, withTiming, Easing as ReEasing } from 'react-native-reanimated';
 
-import Footer from "../components/Footer";
 import Post from "../components/1_Feed/Posts/Post";
 import FeedHeader from "../components/1_Feed/FeedHeader";
 import useHeaderSearchUsers from "../hooks/useHeaderSearchUsers";
@@ -25,6 +24,7 @@ import ShareBottomSheet from "../components/1_Feed/SharePost/ShareBottomSheet";
 import FeedWorkoutViewerSheet from "../components/1_Feed/ViewWorkout/FeedWorkoutViewerSheet";
 
 import { initUserFeed, registerFeedSetters } from "../helper/initUserFeed";
+import Footer from "../components/Footer";
 import { db } from "../../firebase.config";
 import getScrollTargetPosition from "../helper/getScrollTargetPosition";
 import millisToHoursMinutesSeconds from "../helper/millisToHoursMinutesSeconds";
@@ -781,7 +781,7 @@ export default function Feed({ navigation, route }) {
                 shareBottomSheetCloseFlag={shareBottomSheetCloseFlag}
                 shareBottomSheetExpandFlag={shareBottomSheetExpandFlag}
             />
-            <Footer key={footerKey} navigation={navigation} currentScreenName="Feed" />
+            <Footer currentScreenName="Feed" navigation={navigation} />
             {/* Workout viewer bottom sheet (pre-mounted, slides up) */}
             <FeedWorkoutViewerSheet
                 expandToggle={feedWorkoutExpandToggle}

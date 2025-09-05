@@ -1,12 +1,12 @@
 import React, { useEffect, useState } from "react";
 import { StyleSheet, View } from "react-native";
+import Footer from "../components/Footer";
 import ProfileBottomBottomSheet from "../components/5_Profile/ProfileBottom/ProfileBottomBottomSheet";
 import ViewProfileRowButtons from "../components/ViewProfile/ViewProfileRowButtons";
 import ViewProfileInfo from "../components/ViewProfile/ViewProfileInfo";
 import ViewProfileHeader from "../components/ViewProfile/ViewProfileHeader";
 import readDoc from "../../backend/helper/firebase/readDoc";
 import WorkoutStats from "../components/5_Profile/ProfileTop/WorkoutStats";
-import Footer from "../components/Footer";
 import createChat from "../../backend/messages/createChat";
 import makeID from "../../backend/helper/makeID";
 import arrayAppend from "../../backend/helper/firebase/arrayAppend";

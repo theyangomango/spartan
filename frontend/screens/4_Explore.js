@@ -9,13 +9,13 @@ import {
     Animated,
     Dimensions
 } from 'react-native';
-import Footer from '../components/Footer';
 import PostPreview from '../components/4_Explore/PostPreview';
 import SearchBarComponent from '../components/4_Explore/SearchBarComponent';
 import retrieveUserExploreFeed from '../../backend/retrieveUserExploreFeed';
 import retreiveAllUsers from '../../backend/retrieveAllUsers';
 import RNBounceable from '@freakycoder/react-native-bounceable';
 import ExpandedExploreList from '../components/4_Explore/ExpandedExploreList';
+import Footer from '../components/Footer';
 
 const SCREEN_HEIGHT = Dimensions.get('window').height;
 const SLIDE_DURATION = 300;
@@ -39,7 +39,6 @@ export default function Explore({ navigation }) {
     const backgroundOpacity = useRef(new Animated.Value(1)).current;
 
     const allUsers = useRef(null);
-    const [footerKey, setFooterKey] = useState(0);
 
     const [searchBarExpanded, setSearchBarExpanded] = useState(false);
     const filterButtonsOpacity = useRef(new Animated.Value(1)).current;
@@ -55,12 +54,6 @@ export default function Explore({ navigation }) {
         initGlobalUsers();
     }, []);
 
-    useEffect(() => {
-        const unsubscribe = navigation.addListener('focus', () => {
-            setFooterKey(k => k + 1);
-        });
-        return unsubscribe;
-    }, [navigation]);
 
     useEffect(() => {
         // Example of animating filter buttons away if the search bar expands
@@ -314,7 +307,7 @@ export default function Explore({ navigation }) {
             )}
 
             {/* Footer (like the Feed). We don't fade the footer here, but you could if you wish. */}
-            <Footer key={footerKey} navigation={navigation} currentScreenName="Explore" />
+            <Footer currentScreenName="Explore" navigation={navigation} />
         </KeyboardAvoidingView>
     );
 }

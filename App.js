@@ -114,6 +114,7 @@ export default function App() {
         return () => { if (unsubRef.current) { try { unsubRef.current(); } catch {} unsubRef.current = null; } };
     }, [isAuthenticated]);
 
+
     if (!fontsLoaded) return null;
 
     // Splash/guard until user is hydrated if authenticated
@@ -140,6 +141,7 @@ export default function App() {
             <Tab.Screen name="Profile" component={Profile} />
         </Tab.Navigator>
     );
+
 
     return (
         <GestureHandlerRootView style={{ flex: 1 }}>

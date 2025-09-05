@@ -1,6 +1,5 @@
 import React, { useEffect, useState } from "react";
 import { SafeAreaView, StyleSheet, View } from "react-native";
-import Footer from "../components/Footer";
 import ProfileHeader from "../components/5_Profile/ProfileTop/ProfileHeader";
 import ProfileInfo from "../components/5_Profile/ProfileTop/ProfileInfo";
 import ProfileRowButtons from "../components/5_Profile/ProfileTop/ProfileRowButtons";
@@ -11,6 +10,7 @@ import EditProfileBottomSheet from "../components/5_Profile/EditProfile/EditProf
 // import ViewStatsBottomSheet from "../components/5_Profile/ViewStats/ViewStatsBottomSheet";
 // ⬇️ and swap IN the Competition screen’s bottom sheet
 import UserStatsBottomSheet from "../components/2_Competition/UserStats/UserStatsBottomSheet";
+import Footer from "../components/Footer";
 
 export default function Profile({ navigation }) {
     const userData = global.userData;
@@ -21,19 +21,12 @@ export default function Profile({ navigation }) {
     // Reuse this flag to show the Competition-style UserStatsBottomSheet
     const [isViewStatsBottomSheetVisible, setIsViewStatsBottomSheetVisible] = useState(false);
 
-    const [footerKey, setFooterKey] = useState(0);
     const [pfp, setPFP] = useState(global.userData.image);
 
     useEffect(() => {
         getPosts();
     }, []);
 
-    useEffect(() => {
-        const unsubscribe = navigation.addListener("focus", () => {
-            setFooterKey((prevKey) => prevKey + 1);
-        });
-        return unsubscribe;
-    }, [navigation]);
 
     // If another tab requests opening SelectPhotos, honor it on focus
     const lastOpenSigRef = React.useRef(0);
@@ -106,7 +99,7 @@ export default function Profile({ navigation }) {
                 setIsVisible={setIsViewStatsBottomSheetVisible}
             />
 
-            <Footer key={footerKey} currentScreenName={"Profile"} navigation={navigation} />
+            <Footer currentScreenName={"Profile"} navigation={navigation} />
         </SafeAreaView>
     );
 }

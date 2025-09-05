@@ -513,7 +513,7 @@ export default function Workout({ navigation, route }) {
                 />
             </View>
 
-            <Footer navigation={navigation} currentScreenName={"Workout"} />
+            <Footer currentScreenName={"Workout"} navigation={navigation} />
 
             {/* Notifications (same UX as Feed) */}
             <NotificationsBottomSheet notificationsBottomSheetExpandFlag={notificationsBottomSheetExpandFlag} />

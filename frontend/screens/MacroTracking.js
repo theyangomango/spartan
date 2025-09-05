@@ -3,9 +3,9 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { View, Text, StyleSheet, ScrollView, Pressable, UIManager, Platform, LayoutAnimation, InteractionManager } from 'react-native';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { Ionicons } from '@expo/vector-icons';
+import Footer from '../components/Footer';
 
 // search is handled inside FoodSearchOverlay to reduce re-renders
-import Footer from '../components/Footer';
 import PlusIcon from '../assets/PlusIcon';
 import DateHeader from '../components/2_MacroTracking/DateHeader';
 import NutritionSummaryCard from '../components/2_MacroTracking/NutritionSummaryCard';
@@ -56,11 +56,7 @@ const mealsMeta = [
 export default function MacroTracking({ navigation }) {
     const [focusedDate, setFocusedDate] = useState(new Date());
     // Defer heavy Firestore subscriptions until after the transition starts
-    const [logsReady, setLogsReady] = useState(false);
-    useEffect(() => {
-        const task = InteractionManager.runAfterInteractions(() => setLogsReady(true));
-        return () => task?.cancel?.();
-    }, []);
+    const [logsReady, setLogsReady] = useState(true);
     const { meals, totals, addFood, deleteFood } = useFoodLogs(focusedDate, undefined, logsReady);
 
     // -------- goals (load from user doc, save back) --------
@@ -282,7 +278,7 @@ export default function MacroTracking({ navigation }) {
                     COLORS={COLORS}
                 />
 
-                <Footer navigation={navigation} currentScreenName={'MacroTracking'} />
+                <Footer currentScreenName={'MacroTracking'} navigation={navigation} />
             </View>
         </GestureHandlerRootView>
     );
