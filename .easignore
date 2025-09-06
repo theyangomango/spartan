@@ -1,0 +1,74 @@
+# EAS Build ignore file
+# Patterns here control what’s uploaded to EAS Build.
+# Similar syntax to .gitignore. If this file exists, EAS ignores .gitignore.
+
+### Node dependencies and caches
+node_modules/
+.npm/
+.pnpm-store/
+.cache/
+
+# Yarn (v2+) cache files (keep config)
+.yarn/cache/
+.yarn/unplugged/
+.yarn/build-state.yml
+.yarn/install-state.gz
+.yarn/*
+!.yarnrc.yml
+
+# Logs
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+### Expo / Metro
+.expo/
+.expo-shared/
+
+### VCS / CI
+.git/
+.github/
+.gitattributes
+.gitignore
+
+### Editors / OS
+.vscode/
+.idea/
+*.iml
+.DS_Store
+Thumbs.db
+*.swp
+
+### Native projects and build outputs
+# Managed EAS builds regenerate native projects on the builder.
+android/
+ios/
+**/build/
+**/DerivedData/
+**/.gradle/
+**/.cxx/
+**/Pods/
+
+# App bundles / archives
+*.ipa
+*.apk
+*.aab
+*.app
+
+### Tests / coverage / reports
+coverage/
+e2e/artifacts/
+e2e/reports/
+reports/
+
+### Server-side code not needed for mobile build
+backend/
+functions/
+
+### Web build outputs
+.next/
+out/
+web-build/
+
+# NOTE: frontend/assets/exercises/ is very large and intentionally NOT ignored
+# because it is referenced via require() in the app. Excluding it would break builds.

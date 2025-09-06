@@ -192,7 +192,7 @@ function ExerciseLog({
         scheduleSync(next);
         // Light haptic feedback only when completing a set
         if (toggledDone) {
-            try { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light); } catch {}
+            try { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Heavy); } catch {}
         }
     }, [scheduleSync]);
 
