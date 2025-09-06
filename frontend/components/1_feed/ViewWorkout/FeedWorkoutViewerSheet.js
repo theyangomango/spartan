@@ -1,5 +1,6 @@
 import React, { useCallback, useEffect, useMemo, useRef, memo, useState } from "react";
 import { View, StyleSheet, InteractionManager, Animated } from "react-native";
+import { useNavigation } from "@react-navigation/native";
 import BottomSheet, { BottomSheetBackdrop } from "@gorhom/bottom-sheet";
 import NewWorkoutModal from "../../3_Workout/NewWorkout/NewWorkoutModal";
 import { getDoc, doc } from "firebase/firestore";
@@ -26,6 +27,7 @@ const FeedWorkoutViewerSheet = ({
   const [mountContent, setMountContent] = useState(false);
   const toastAnim = useRef(new Animated.Value(0)).current;
   const [toastText, setToastText] = useState("Template added");
+  const navigation = useNavigation();
 
   // Any flip of expandToggle expands the sheet, but skip first mount and wait until we have content
   const didMountRef = useRef(false);
@@ -152,6 +154,13 @@ const FeedWorkoutViewerSheet = ({
             onPressBack={handleBack}
             onCheer={noop}
             onCopyTemplate={handleCopyTemplate}
+            onPressPfp={() => {
+              try { bottomSheetRef.current?.close(); } catch {}
+              if (!friendUidEff) return;
+              const meUid = String(global?.userData?.uid || "");
+              if (friendUidEff === meUid) navigation.navigate('Profile');
+              else navigation.navigate('ViewProfile', { user: { uid: friendUidEff } });
+            }}
             // Hard-lock friend view so controls are read-only
             forceViewingFriend={friendUidEff}
             friendPfp={friendPfpEff}

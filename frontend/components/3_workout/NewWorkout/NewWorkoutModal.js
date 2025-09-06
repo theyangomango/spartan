@@ -52,6 +52,7 @@ const NewWorkoutModal = ({
     onPressBack,    // for friend view
     onCheer,        // for friend view
     onCopyTemplate, // when viewing friend's completed workout
+    onPressPfp,     // navigate to profile when pfp on left is pressed
     // 👇 NEW: can be boolean or a string uid — if truthy, we hard-lock friend view
     forceViewingFriend = false,
     friendPfp = null,
@@ -498,6 +499,7 @@ const NewWorkoutModal = ({
                     timerRef={timerRef}
                     headerStyle={styles.headerInner}
                     onBack={onPressBack}
+                    onPressPfp={!viewingSelfEffective ? onPressPfp : undefined}
                     disableGroupPress={lockFriend || !(viewingSelfEffective || inActiveGroupEffective)}
                     inActiveGroup={inActiveGroupEffective}
                     // Place PFP on the left whenever not actively participating in this workout

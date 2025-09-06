@@ -2,6 +2,7 @@ import React, { useCallback, useEffect, useMemo, useRef, useState, memo } from "
 import BottomSheet, { BottomSheetBackdrop } from "@gorhom/bottom-sheet";
 import NewWorkoutModal from "./NewWorkoutModal";
 import useWorkoutStore from "../../../state/workoutStore";
+import { useNavigation } from "@react-navigation/native";
 
 // subtle gray for self, warm gold for friend
 const HANDLE_SELF = "#D0D7E2";
@@ -61,6 +62,7 @@ const NewWorkoutBottomSheet = ({
 
     const workoutFromStore = useWorkoutStore((s) => s.workout);
     const effectiveWorkout = workout || workoutFromStore;
+    const navigation = useNavigation();
 
     // Stable wrappers so NewWorkoutModal doesn't rerender due to changing function identities
     const onCancelWorkout = useCallback(() => {
@@ -76,6 +78,15 @@ const NewWorkoutBottomSheet = ({
     const onRegisterInviteHandler = useCallback((fn) => {
         if (typeof registerInviteHandler === 'function') registerInviteHandler(fn);
     }, [registerInviteHandler]);
+
+    const onPressPfp = useCallback(() => {
+        try { bottomSheetRef.current?.close(); } catch {}
+        const meUid = String(global?.userData?.uid || "");
+        const friendUidEff = String(effectiveWorkout?.creatorUID || effectiveWorkout?.creatorUid || meUid);
+        if (!friendUidEff) return;
+        if (friendUidEff === meUid) navigation.navigate('Profile');
+        else navigation.navigate('ViewProfile', { user: { uid: friendUidEff } });
+    }, [effectiveWorkout, navigation]);
 
     return (
         <BottomSheet
@@ -108,6 +119,7 @@ const NewWorkoutBottomSheet = ({
                     userWorkoutStats={userWorkoutStats}
                     // NEW: tell us whether we're viewing self or friend
                     onViewingChange={setIsViewingSelf}
+                    onPressPfp={onPressPfp}
                     registerInviteHandler={onRegisterInviteHandler}
                 />
             )}

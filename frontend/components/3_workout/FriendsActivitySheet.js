@@ -21,6 +21,7 @@ import { getPfpUrl } from "../../pfpCache";
 import { onSnapshot, doc, getDoc } from "firebase/firestore";
 import { db } from "../../../firebase.config";
 import calculate1RM from "../../helper/calculate1RM";
+import { useNavigation } from "@react-navigation/native";
 
 const { height: screenHeight } = Dimensions.get("window");
 const scale = screenHeight / 844;
@@ -330,6 +331,7 @@ const FriendPanel = memo(({ item, overlay, onSelect, highlight = false }) => {
 const FriendsActivitySheet = ({ visible, openToggle, items = [], onClose, onViewed, onCopyTemplate, focusUid, focusWid, onConsumedFocus }) => {
   const bottomSheetRef = useRef(null);
   const cacheRef = useRef([]);
+  const navigation = useNavigation();
 
   useEffect(() => {
     if (Array.isArray(items) && items.length) cacheRef.current = items;
@@ -701,6 +703,14 @@ const FriendsActivitySheet = ({ visible, openToggle, items = [], onClose, onView
                   onPressBack={closeViewer}
                   onCheer={noopCheer}
                   onCopyTemplate={handleCopyTemplateCb}
+                  onPressPfp={() => {
+                    try { bottomSheetRef.current?.close(); } catch {}
+                    const uid = String(selectedItem?.friendUid || '');
+                    if (!uid) return;
+                    const meUid = String(global?.userData?.uid || '');
+                    if (uid === meUid) navigation.navigate('Profile');
+                    else navigation.navigate('ViewProfile', { user: { uid } });
+                  }}
                   /* 🔒 LOCK friend view so header/controls don't flip to self */
                   forceViewingFriend={selectedItem.friendUid}
                   friendPfp={selectedItem.friendPfp || null}

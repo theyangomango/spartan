@@ -6,6 +6,7 @@ import { Clock } from "iconsax-react-native";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { Ionicons } from "@expo/vector-icons";
 import NewWorkoutModal from "./NewWorkout/NewWorkoutModal";
+import { useNavigation } from "@react-navigation/native";
 
 // Friend-view handle accents (match FriendsActivitySheet)
 const HANDLE_FRIEND_ACCENT = "#E0A500";
@@ -68,6 +69,7 @@ const DayDetailsSheet = ({
     onChangeDate,
 }) => {
     const bottomSheetRef = useRef(null);
+    const navigation = useNavigation();
     const [isExpanded, setIsExpanded] = useState(false);
     const snapPoints = useMemo(() => ["95%"], []);
     // Viewer overlay (for workout detail)
@@ -366,6 +368,14 @@ const DayDetailsSheet = ({
                                 onPressBack={closeViewer}
                                 onCheer={() => {}}
                                 onCopyTemplate={undefined}
+                                onPressPfp={() => {
+                                    try { bottomSheetRef.current?.close(); } catch {}
+                                    const uid = String(selectedWorkout?.__friendUid || selectedWorkout?.creatorUID || '');
+                                    if (!uid) return;
+                                    const meUid = String(global?.userData?.uid || '');
+                                    if (uid === meUid) navigation.navigate('Profile');
+                                    else navigation.navigate('ViewProfile', { user: { uid } });
+                                }}
                                 forceViewingFriend={String(selectedWorkout.__friendUid || selectedWorkout.creatorUID || "")}
                                 friendPfp={selectedWorkout.__friendPfp || null}
                                 streamLive={false}

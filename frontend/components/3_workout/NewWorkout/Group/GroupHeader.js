@@ -30,6 +30,7 @@ const GroupHeader = ({
     timerRef,
     headerStyle,
     onBack,
+    onPressPfp, // when pfpOnLeft, navigate to profile
     disableGroupPress, // optional; default disables when !viewingSelf
     inActiveGroup = false, // when in a real group with others
     // When true, render PFP on the left, right next to the back chevron.
@@ -84,22 +85,24 @@ const GroupHeader = ({
                             <MaterialCommunityIcons name="chevron-left" size={scaledSize(26)} color="#111827" />
                         </Pressable>
                         {pfpOnLeft && (
-                            <View style={[styles.pfpWrap, styles.pfpLeftWrap, styles.pfpFriendRing]}>
-                                {pfpToShow ? (
-                                    <FastImage
-                                        source={{
-                                            uri: pfpToShow,
-                                            priority: FastImage.priority.normal,
-                                            cache: FastImage.cacheControl.immutable,
-                                        }}
-                                        style={styles.pfp}
-                                        resizeMode={FastImage.resizeMode.cover}
-                                        onError={() => { pendingErrorRef.current = true; }}
-                                    />
-                                ) : (
-                                    <View style={[styles.pfp, { backgroundColor: "#EEE" }]} />
-                                )}
-                            </View>
+                            <Pressable onPress={onPressPfp ? withHaptics(onPressPfp) : undefined} hitSlop={8}>
+                                <View style={[styles.pfpWrap, styles.pfpLeftWrap, styles.pfpFriendRing]}>
+                                    {pfpToShow ? (
+                                        <FastImage
+                                            source={{
+                                                uri: pfpToShow,
+                                                priority: FastImage.priority.normal,
+                                                cache: FastImage.cacheControl.immutable,
+                                            }}
+                                            style={styles.pfp}
+                                            resizeMode={FastImage.resizeMode.cover}
+                                            onError={() => { pendingErrorRef.current = true; }}
+                                        />
+                                    ) : (
+                                        <View style={[styles.pfp, { backgroundColor: "#EEE" }]} />
+                                    )}
+                                </View>
+                            </Pressable>
                         )}
                     </>
                 )}
