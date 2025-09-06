@@ -1,9 +1,12 @@
 import React, { useCallback, useEffect, useMemo, useRef, memo, useState } from "react";
-import { View, StyleSheet, InteractionManager } from "react-native";
+import { View, StyleSheet, InteractionManager, Animated } from "react-native";
 import BottomSheet, { BottomSheetBackdrop } from "@gorhom/bottom-sheet";
 import NewWorkoutModal from "../../3_Workout/NewWorkout/NewWorkoutModal";
 import { getDoc, doc } from "firebase/firestore";
 import { db } from "../../../../firebase.config";
+import CopyTemplateToast from "../../3_Workout/ui/CopyTemplateToast";
+import updateDoc from "../../../../backend/helper/firebase/updateDoc";
+import makeID from "../../../../backend/helper/makeID";
 
 const HANDLE_FRIEND_ACCENT = "#E0A500";
 const HANDLE_FRIEND_BACKGROUND = "#e0a4002c";
@@ -21,6 +24,8 @@ const FeedWorkoutViewerSheet = ({
   const snapPoints = useMemo(() => ["94%"], []);
   const timerRef = useRef("");
   const [mountContent, setMountContent] = useState(false);
+  const toastAnim = useRef(new Animated.Value(0)).current;
+  const [toastText, setToastText] = useState("Template added");
 
   // Any flip of expandToggle expands the sheet, but skip first mount and wait until we have content
   const didMountRef = useRef(false);
@@ -85,6 +90,40 @@ const FeedWorkoutViewerSheet = ({
     }
   }, [fetchFriendStats]);
 
+  const showToast = useCallback((msg) => {
+    setToastText(msg || "Template added");
+    Animated.sequence([
+      Animated.timing(toastAnim, { toValue: 1, duration: 180, useNativeDriver: true }),
+      Animated.delay(1500),
+      Animated.timing(toastAnim, { toValue: 0, duration: 200, useNativeDriver: true }),
+    ]).start();
+  }, [toastAnim]);
+
+  const handleCopyTemplate = useCallback((wk) => {
+    try {
+      const uid = String(global?.userData?.uid || "");
+      if (!wk || !uid) return;
+      const tid = makeID();
+      const name = wk?.templateName || wk?.template?.name || "Copied Template";
+      const exercises = (Array.isArray(wk?.exercises) ? wk.exercises : []).map((ex) => ({
+        name: ex?.name || "",
+        muscle: ex?.muscle || "",
+        sets: (Array.isArray(ex?.sets) ? ex.sets : []).map((s) => ({
+          weight: Number(s?.weight) || 0,
+          reps: Number(s?.reps) || 0,
+        })),
+      }));
+      const newTemplate = { id: tid, tid, name, exercises, lastDate: null };
+      const prev = Array.isArray(global?.userData?.templates) ? global.userData.templates : [];
+      updateDoc("users", uid, { templates: [...prev, newTemplate] }).catch(() => {});
+      // optimistic local update so next open of templates shows the copy immediately
+      try { global.userData.templates = [...prev, newTemplate]; } catch {}
+      showToast("Template copied ✓");
+    } catch (e) {
+      // ignore errors for now; network failures will just miss the toast
+    }
+  }, [showToast]);
+
   return (
     <View style={styles.outer} pointerEvents="box-none">
       <BottomSheet
@@ -100,6 +139,7 @@ const FeedWorkoutViewerSheet = ({
         handleStyle={{ backgroundColor: HANDLE_FRIEND_BACKGROUND }}
       >
         {workout && mountContent && (
+          <>
           <NewWorkoutModal
             timerRef={timerRef}
             workout={workout}
@@ -111,13 +151,18 @@ const FeedWorkoutViewerSheet = ({
             userWorkoutStats={friendStatsRef.current || undefined}
             onPressBack={handleBack}
             onCheer={noop}
-            onCopyTemplate={undefined}
+            onCopyTemplate={handleCopyTemplate}
             // Hard-lock friend view so controls are read-only
             forceViewingFriend={friendUidEff}
             friendPfp={friendPfpEff}
             // No live stream for past workouts (avoids extra listeners)
             streamLive={false}
           />
+          {/* Copy Template toast centered near top of sheet */}
+          <View pointerEvents="none" style={styles.toastWrap}>
+            <CopyTemplateToast anim={toastAnim} text={toastText} />
+          </View>
+          </>
         )}
       </BottomSheet>
     </View>
@@ -132,6 +177,15 @@ const styles = StyleSheet.create({
     right: 0,
     bottom: 0,
     zIndex: 999,
+  },
+  // Position toast near the top of the sheet content
+  toastWrap: {
+    position: "absolute",
+    left: 0,
+    right: 0,
+    top: 14,
+    alignItems: "center",
+    zIndex: 40,
   },
 });
 
