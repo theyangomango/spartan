@@ -123,10 +123,12 @@ export default function ViewProfile({ navigation, route }) {
         navigation.goBack();
     }
 
+    const headerHandle = profileUserData?.handle || user?.handle || user?.username || '';
+
     return (
         <View style={styles.main_ctnr}>
             <View style={styles.body_ctnr}>
-                <ViewProfileHeader handle={user.handle} goBack={goBack} />
+                <ViewProfileHeader handle={headerHandle} goBack={goBack} />
                 <ViewProfileInfo userData={profileUserData} />
                 <ViewProfileRowButtons toMessages={toMessages} user={user} />
                 <WorkoutStats userData={profileUserData} />
