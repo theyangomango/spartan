@@ -1,5 +1,5 @@
 import RNBounceable from "@freakycoder/react-native-bounceable";
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { StyleSheet, View, Text, Dimensions } from "react-native";
 import followUser from "../../../backend/user/followUser";
 import unfollowUser from "../../../backend/user/unfollowUser";
@@ -12,28 +12,52 @@ function scaleSize(size) {
 }
 
 export default function ViewProfileRowButtons({ toMessages, user }) {
-    const [isFollowing, setIsFollowing] = useState(global.userData.following.some(follower => follower.uid === user.uid));
+    const [isFollowing, setIsFollowing] = useState(Array.isArray(global?.userData?.following) && global.userData.following.some(f => String(f?.uid) === String(user?.uid)));
+    const pendingRef = useRef(false);
+    const [busy, setBusy] = useState(false);
 
-    const toggleFollow = () => {
-        const this_user = {
-            name: global.userData.name,
-            handle: global.userData.handle,
-            pfp: global.userData.image,
-            uid: global.userData.uid
+    const normalizeRef = (u) => ({
+        uid: String(u?.uid || u?.id || ''),
+        handle: u?.handle || '',
+        name: u?.name || '',
+        pfp: u?.pfp || u?.image || u?.photoURL || '',
+    });
+
+    const toggleFollow = async () => {
+        if (pendingRef.current || busy) return; // prevent spamming while a write is in-flight
+        pendingRef.current = true; setBusy(true);
+
+        const me = normalizeRef(global?.userData || {});
+        const other = normalizeRef(user || {});
+
+        // optimistic UI update
+        setIsFollowing((prev) => !prev);
+
+        // mirror to global cache immediately for consistency across screens
+        try {
+            const list = Array.isArray(global?.userData?.following) ? [...global.userData.following] : [];
+            const exists = list.some((x) => String(x?.uid) === other.uid);
+            if (!exists) list.push(other); else {
+                // remove all matches (defensive against duplicates)
+                for (let i = list.length - 1; i >= 0; i--) if (String(list[i]?.uid) === other.uid) list.splice(i, 1);
+            }
+            global.userData.following = list;
+        } catch {}
+
+        try {
+            if (!isFollowing) await followUser(me, other);
+            else await unfollowUser(me, other);
+        } catch {
+            // revert optimistic toggle on failure
+            setIsFollowing((prev) => !prev);
+        } finally {
+            pendingRef.current = false; setBusy(false);
         }
-
-        if (!isFollowing) {
-            followUser(this_user, user);
-        } else {
-            unfollowUser(this_user, user);
-        }
-
-        setIsFollowing(!isFollowing);
     };
 
     return (
         <View style={styles.row}>
-            <RNBounceable style={styles.flex} onPress={toggleFollow}>
+            <RNBounceable style={styles.flex} onPress={toggleFollow} disabled={busy}>
                 <View style={[styles.flex, isFollowing ? styles.following_button : styles.follow_button]}>
                     <Text style={isFollowing ? styles.following_button_text : styles.follow_button_text}>
                         {isFollowing ? "Following" : "Follow"}

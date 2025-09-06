@@ -1,10 +1,22 @@
 import arrayAppend from "../helper/firebase/arrayAppend";
 import incrementDocValue from '../helper/firebase/incrementDocValue'
 
-export default async function followUser(this_user, user) {
-    arrayAppend('users', this_user.uid, 'following', user);
-    incrementDocValue('users', this_user.uid, 'followingCount');
+// Normalize objects stored inside arrays so arrayUnion/arrayRemove match reliably
+const normalizeRef = (u) => ({
+    uid: String(u?.uid || u?.id || ''),
+    handle: u?.handle || '',
+    name: u?.name || '',
+    pfp: u?.pfp || u?.image || u?.photoURL || '',
+});
 
-    arrayAppend('users', user.uid, 'followers', this_user);
-    incrementDocValue('users', user.uid, 'followerCount');
+export default async function followUser(this_user, user) {
+    const meRef = normalizeRef(this_user);
+    const otherRef = normalizeRef(user);
+
+    // Append normalized entries; arrayUnion prevents duplicates of the same shape
+    try { await arrayAppend('users', meRef.uid, 'following', otherRef); } catch {}
+    try { await incrementDocValue('users', meRef.uid, 'followingCount'); } catch {}
+
+    try { await arrayAppend('users', otherRef.uid, 'followers', meRef); } catch {}
+    try { await incrementDocValue('users', otherRef.uid, 'followerCount'); } catch {}
 }
