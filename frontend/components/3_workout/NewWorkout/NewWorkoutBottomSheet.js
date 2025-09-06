@@ -43,12 +43,14 @@ const NewWorkoutBottomSheet = ({
             const ref = bottomSheetRef.current;
             if (ref && typeof ref.expand === "function") {
                 try { ref.expand(); } catch {}
-            } else if (tries < 6) {
+            } else if (tries < 20) {
                 tries += 1;
-                requestAnimationFrame(tryExpand);
+                const delay = tries < 8 ? 16 : 40;
+                setTimeout(tryExpand, delay);
             }
         };
-        tryExpand();
+        // kick on next tick as well to catch first mount timing
+        setTimeout(tryExpand, 0);
     }, []);
 
     useEffect(() => {
@@ -78,7 +80,7 @@ const NewWorkoutBottomSheet = ({
     return (
         <BottomSheet
             ref={bottomSheetRef}
-            index={-1}
+            index={isVisible ? 0 : -1}
             snapPoints={snapPoints}
             backdropComponent={renderBackdrop}
             // Ensure sheet moves with the keyboard so content stays visible

@@ -2,7 +2,7 @@ import React, { memo, useEffect, useState } from "react";
 import { View, StyleSheet, Text, Pressable, Dimensions, LayoutAnimation, Platform, UIManager, Keyboard } from "react-native";
 import EditableStat from "./EditableStat";
 import SetTypePanel from "./SetTypePanel";
-import { FontAwesome5 } from "@expo/vector-icons";
+import { Ionicons } from "@expo/vector-icons";
 import SwipeableItem, { OpenDirection, useSwipeableItemParams } from "react-native-swipeable-item";
 import Animated, { useAnimatedStyle } from "react-native-reanimated";
 
@@ -66,7 +66,7 @@ function SetRow({
                 itemKey={itemKey || (set && (set.id || String(index))) }
                 overSwipe={scaledSize(36)}
                 renderUnderlayLeft={readOnly ? undefined : (params) => renderUnderlayLeft(params?.ref)}
-                snapPointsLeft={readOnly ? [] : [scaledSize(60)]}
+                snapPointsLeft={readOnly ? [] : [scaledSize(82)]}
                 onSwipeableLeftOpen={undefined} // never auto-delete via swipe threshold; explicit tap only
             >
                 <View style={[styles.stat_row, doneLocal && styles.done]}>
@@ -119,7 +119,7 @@ function SetRow({
                             }}
                             disabled={readOnly}
                         >
-                            <FontAwesome5 name="check" size={scaledSize(14)} color={doneLocal ? "#fff" : "#444"} />
+                            <Ionicons name="checkmark" size={scaledSize(14)} color={doneLocal ? "#fff" : "#444"} />
                         </Pressable>
                     </View>
                 </View>
@@ -156,33 +156,21 @@ export default memo(SetRow, rowEqual);
 
 const UnderlayLeft = ({ onDelete }) => {
     const { percentOpen } = useSwipeableItemParams();
-    const animStyle = useAnimatedStyle(
+    const animWrap = useAnimatedStyle(
         () => ({
-            backgroundColor: `rgba(255, 0, 0, ${percentOpen.value / 1.5})`,
-            width: `${percentOpen.value * 16}%`,
+            transform: [{ scale: 0.92 + 0.08 * percentOpen.value }],
+            opacity: Math.min(1, 0.2 + percentOpen.value),
         }),
         [percentOpen]
     );
-    const iconStyle = useAnimatedStyle(
-        () => ({
-            transform: [{ scale: 0.9 + 0.2 * percentOpen.value }],
-            opacity: 0.7 + 0.3 * percentOpen.value,
-        }),
-        [percentOpen]
-    );
-    const onPressTrash = () => {
-        try {
-            if (percentOpen.value >= 0.85) onDelete?.();
-        } catch {}
-    };
     return (
-        <Animated.View style={[styles.underlayLeft, animStyle]}>
-            <Pressable onPress={onPressTrash} style={styles.trashButton}>
-                <Animated.View style={iconStyle}>
-                    <FontAwesome5 name="trash" size={scaledSize(19)} color="#fff" />
-                </Animated.View>
-            </Pressable>
-        </Animated.View>
+        <View style={styles.underlayLeft}>
+            <Animated.View style={[styles.deletePillWrap, animWrap]}>
+                <Pressable onPress={onDelete} style={styles.deletePill} hitSlop={8}>
+                    <Ionicons name="trash-outline" size={scaledSize(20)} color="#fff" />
+                </Pressable>
+            </Animated.View>
+        </View>
     );
 };
 
@@ -222,11 +210,26 @@ const styles = StyleSheet.create({
         backgroundColor: "#58DD6F",
     },
     underlayLeft: {
-        position: "absolute", right: 0, top: 0, bottom: 0,
-        justifyContent: "center", alignItems: "flex-end",
-        marginVertical: scaledSize(2), paddingRight: scaledSize(20),
+        position: "absolute",
+        right: 0,
+        top: 0,
+        bottom: 0,
+        justifyContent: "center",
+        alignItems: "flex-end",
+        marginVertical: scaledSize(2),
+        paddingRight: scaledSize(12),
     },
-    trashButton: { flex: 1, alignItems: "center", justifyContent: "center" },
+    deletePillWrap: { height: "86%", justifyContent: "center", alignItems: "center" },
+    deletePill: {
+        width: scaledSize(58),
+        height: "100%",
+        minHeight: scaledSize(28),
+        borderRadius: scaledSize(12),
+        backgroundColor: "#e65252",
+        alignItems: "center",
+        justifyContent: "center",
+        paddingHorizontal: scaledSize(10),
+    },
 });
 
 function typePillBg(type) {
