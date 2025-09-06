@@ -6,6 +6,7 @@ import ViewProfileRowButtons from "../components/ViewProfile/ViewProfileRowButto
 import ViewProfileInfo from "../components/ViewProfile/ViewProfileInfo";
 import ViewProfileHeader from "../components/ViewProfile/ViewProfileHeader";
 import readDoc from "../../backend/helper/firebase/readDoc";
+import readDocsByIds from "../../backend/helper/firebase/readDocsByIds";
 import WorkoutStats from "../components/5_Profile/ProfileTop/WorkoutStats";
 import createChat from "../../backend/messages/createChat";
 import makeID from "../../backend/helper/makeID";
@@ -34,12 +35,37 @@ export default function ViewProfile({ navigation, route }) {
 
 
     async function getPosts() {
-        let db_posts = [];
-        for (const pid of profileUserData.posts) {
-            let postData = await readDoc('posts', pid);
-            db_posts.push(postData);
+        try {
+            const ids = Array.isArray(profileUserData?.posts) ? profileUserData.posts : [];
+            const n = ids.length;
+            setPosts([]); // allow skeleton to render immediately
+            if (!n) return;
+
+            const buffer = new Array(n);
+
+            // First screenful via a single batched read
+            const firstChunk = ids.slice(0, 10);
+            const tail = ids.slice(10);
+            const firstDocs = await readDocsByIds('posts', firstChunk);
+            firstDocs.forEach((doc, i) => { if (doc && !doc.pid) doc.pid = firstChunk[i]; buffer[i] = doc; });
+            setPosts(buffer.filter(Boolean));
+
+            // Remaining chunks concurrently, update as they land
+            const promises = [];
+            for (let i = 0; i < tail.length; i += 10) {
+                const group = tail.slice(i, i + 10);
+                const startIndex = 10 + i;
+                promises.push(
+                    readDocsByIds('posts', group).then((docs) => {
+                        docs.forEach((doc, j) => { const id = group[j]; if (doc && !doc.pid) doc.pid = id; buffer[startIndex + j] = doc; });
+                        setPosts(buffer.filter(Boolean));
+                    })
+                );
+            }
+            await Promise.all(promises);
+        } catch (e) {
+            // Swallow for now; keep whatever loaded
         }
-        setPosts(db_posts);
     }
 
     async function toMessages() {
