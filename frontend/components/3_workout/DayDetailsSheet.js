@@ -134,6 +134,7 @@ const DayDetailsSheet = ({
     }, [onClose, selectedWorkout, listOpacity, viewerOpacity]);
 
     const title = useMemo(() => fmt(date), [date]);
+    const isToday = useMemo(() => dayKey(date) === dayKey(new Date()), [date]);
 
     // Flatten the meal buckets to a small display list (cap to avoid scroll requirement)
     const foodsList = useMemo(() => {
@@ -336,9 +337,11 @@ const DayDetailsSheet = ({
                         <Pressable style={[styles.btn, styles.secondary]} onPress={handleOpenMacros}>
                             <Text style={[styles.btnText, styles.secondaryText]}>Open Macros</Text>
                         </Pressable>
-                        <Pressable style={[styles.btn, styles.primary]} onPress={handleStartWorkout}>
-                            <Text style={[styles.btnText, styles.primaryText]}>Start Workout</Text>
-                        </Pressable>
+                        {isToday && (
+                            <Pressable style={[styles.btn, styles.primary]} onPress={handleStartWorkout}>
+                                <Text style={[styles.btnText, styles.primaryText]}>Start Workout</Text>
+                            </Pressable>
+                        )}
                     </View>
                 </Animated.View>
 
