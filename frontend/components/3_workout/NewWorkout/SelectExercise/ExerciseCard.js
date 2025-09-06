@@ -1,6 +1,6 @@
 import React, { memo, useState } from 'react';
 import { Pressable, StyleSheet, Text, View, Dimensions } from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
+// import { Ionicons } from '@expo/vector-icons';
 import ExerciseImagePreview from './ExerciseImagePreview';
 
 const { height: screenHeight } = Dimensions.get('window');
@@ -8,20 +8,37 @@ const scale = screenHeight / 844; // Scaling factor based on iPhone 13 height
 
 const scaledSize = (size) => Math.round(size * scale);
 
+const ACCENTS = ["#2D9EFF", "#F59E0B", "#10B981", "#EF4444", "#8B5CF6", "#06B6D4"]; // [blue, amber, green, red, purple, cyan]
+const MUSCLE_ACCENT = {
+    Chest: "#EF4444",
+    Back: "#06B6D4",
+    Shoulders: "#F59E0B",
+    Arms: "#8B5CF6",
+    Legs: "#10B981",
+    Abs: "#2D9EFF",
+};
+const hexToRgb = (hex) => {
+    const m = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
+    if (!m) return { r: 45, g: 158, b: 255 };
+    return { r: parseInt(m[1], 16), g: parseInt(m[2], 16), b: parseInt(m[3], 16) };
+};
+const rgba = (hex, a) => { const { r, g, b } = hexToRgb(hex); return `rgba(${r}, ${g}, ${b}, ${a})`; };
+
 const ExerciseCard = memo(({ name, muscleGroup, selectExercise, deselectExercise, showExerciseInfo, userStats }) => {
     const [isSelected, setIsSelected] = useState(false);
 
     const lastDone = userStats && Array.isArray(userStats.sets) && userStats.sets.length ? userStats.sets[userStats.sets.length - 1].date : 'N/A';
     const timesCompleted = userStats && Array.isArray(userStats.sets) ? userStats.sets.length : '';
 
-    const muscleColors = {
-        Chest: '#FFAFB8',
-        Shoulders: '#A1CDEE',
-        Arms: '#CBBCFF',
-        Back: '#95E0C8',
-        Triceps: '#FFD580',
-        Legs: '#FFB347',
-        Abs: '#FF6961',
+    // Palette aligned with UserStatsModal
+    const COLORS = {
+        text: '#0F172A',
+        subtext: '#64748B',
+        accent: '#2D9EFF',
+        hairline: '#E6EEF6',
+        statBg: '#F7FAFF',
+        statBorder: 'rgba(100,116,139,0.10)',
+        selectedBg: '#F0F7FF',
     };
 
     function toggleSelected() {
@@ -41,17 +58,24 @@ const ExerciseCard = memo(({ name, muscleGroup, selectExercise, deselectExercise
                     <Text style={styles.exerciseName}>{name}</Text>
                     <View style={styles.row}>
                         {/* <Text style={styles.lastDone}>{lastDone}</Text> */}
-                        <View style={[styles.muscle_ctnr, { backgroundColor: muscleColors[muscleGroup] || '#ccc' }]}>
-                            <Text style={styles.muscle_text}>{muscleGroup}</Text>
+                        {(() => {
+                            const ACC = MUSCLE_ACCENT[muscleGroup] || ACCENTS[0];
+                            return (
+                                <View style={[styles.muscle_ctnr, { backgroundColor: rgba(ACC, 0.12), borderColor: rgba(ACC, 0.35) }]}>
+                                    <Text style={[styles.muscle_text, { color: ACC }]}>{muscleGroup}</Text>
+                                </View>
+                            );
+                        })()}
                         </View>
                     </View>
                 </View>
-            </View>
             <View style={styles.rightContainer}>
                 <Text style={styles.timesCompleted}>{timesCompleted}</Text>
+                { /* Info icon hidden for this release
                 <Pressable onPress={() => showExerciseInfo?.(name)} style={styles.icon_ctnr}>
                     <Ionicons name="information-circle-outline" size={scaledSize(26)} color="#2D9EFF" />
                 </Pressable>
+                */}
             </View>
             <View style={styles.border} />
         </Pressable>
@@ -78,7 +102,7 @@ const styles = StyleSheet.create({
         left: scaledSize(13),
         right: scaledSize(13),
         height: scaledSize(1.5),
-        backgroundColor: '#eaeaea',
+        backgroundColor: '#E6EEF6',
     },
     textContainer: {
         flexDirection: 'column',
@@ -91,9 +115,7 @@ const styles = StyleSheet.create({
         flexDirection: 'row',
         alignItems: 'center',
     },
-    selected: {
-        backgroundColor: '#E1F0FF',
-    },
+    selected: { backgroundColor: '#F0F7FF' },
     exerciseName: {
         fontFamily: 'Outfit_600SemiBold',
         fontSize: scaledSize(14),
@@ -101,16 +123,19 @@ const styles = StyleSheet.create({
         flexWrap: 'wrap',
     },
     muscle_ctnr: {
-        borderRadius: scaledSize(20),
+        borderRadius: scaledSize(999),
         paddingHorizontal: scaledSize(10),
         height: scaledSize(20),
         alignItems: 'center',
         justifyContent: 'center',
+        backgroundColor: '#F7FAFF',
+        borderWidth: StyleSheet.hairlineWidth,
+        borderColor: 'rgba(100,116,139,0.20)',
     },
     muscle_text: {
-        fontFamily: 'Poppins_700Bold',
+        fontFamily: 'Outfit_700Bold',
         fontSize: scaledSize(11),
-        color: '#fff',
+        color: '#2D9EFF',
     },
     lastDone: {
         fontFamily: 'Outfit_500Medium',
@@ -123,13 +148,10 @@ const styles = StyleSheet.create({
         marginLeft: scaledSize(10),
     },
     timesCompleted: {
-        fontFamily: 'Outfit_600SemiBold',
-        fontSize: scaledSize(17),
+        fontFamily: 'Outfit_700Bold',
+        fontSize: scaledSize(15),
         marginRight: scaledSize(8),
-        color: '#aaa',
+        color: '#64748B',
     },
-    icon_ctnr: {
-        marginTop: scaledSize(1),
-        opacity: 0.3,
-    },
+    icon_ctnr: { marginTop: scaledSize(1), opacity: 0.3 },
 });

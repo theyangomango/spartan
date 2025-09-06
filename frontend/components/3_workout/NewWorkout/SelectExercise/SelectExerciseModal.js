@@ -310,9 +310,9 @@ const styles = StyleSheet.create({
         backgroundColor: '#fff',
         borderRadius: scaledSize(20),
         shadowColor: '#000',
-        shadowOffset: { width: 0, height: scaledSize(2) },
-        shadowOpacity: 0.8,
-        shadowRadius: scaledSize(3),
+        shadowOffset: { width: 0, height: scaledSize(6) },
+        shadowOpacity: 0.06,
+        shadowRadius: scaledSize(12),
         paddingTop: scaledSize(10),
         overflow: 'visible', // allow dropdown menus to overflow
     },
@@ -340,7 +340,7 @@ const styles = StyleSheet.create({
     searchContainer: {
         flexDirection: 'row',
         alignItems: 'center',
-        backgroundColor: '#e0e0e0',
+        backgroundColor: '#EEF2F7',
         borderRadius: scaledSize(8),
         marginHorizontal: scaledSize(15),
         paddingHorizontal: scaledSize(8),
@@ -377,7 +377,7 @@ const styles = StyleSheet.create({
         paddingVertical: scaledSize(6),
         paddingHorizontal: scaledSize(12),
         borderRadius: scaledSize(10),
-        backgroundColor: '#E1E1E1',
+        backgroundColor: '#F1F5F9',
     },
     filterButtonText: {
         fontSize: scaledSize(13),
@@ -396,28 +396,26 @@ const styles = StyleSheet.create({
         marginTop: scaledSize(6),
         paddingVertical: scaledSize(4),
         shadowColor: '#000',
-        shadowOffset: { width: 0, height: scaledSize(2) },
-        shadowOpacity: 0.15,
-        shadowRadius: scaledSize(6),
+        shadowOffset: { width: 0, height: scaledSize(4) },
+        shadowOpacity: 0.08,
+        shadowRadius: scaledSize(10),
         elevation: 6,
         zIndex: 3,
         maxHeight: scaledSize(220),
+        borderWidth: StyleSheet.hairlineWidth,
+        borderColor: '#E6EEF6',
     },
     dropdownItem: {
         paddingVertical: scaledSize(8),
         paddingHorizontal: scaledSize(10),
     },
-    dropdownItemActive: {
-        backgroundColor: '#eef4ff',
-    },
+    dropdownItemActive: { backgroundColor: '#E7F0FF' },
     dropdownItemText: {
         fontSize: scaledSize(13),
         color: '#333',
         fontFamily: 'Outfit_700Bold',
     },
-    dropdownItemTextActive: {
-        color: '#42aaffff',
-    },
+    dropdownItemTextActive: { color: '#2D9EFF' },
     dropdownBackdrop: {
         position: 'absolute',
         top: scaledSize(140), // below the header & search bar region; tweak if needed
