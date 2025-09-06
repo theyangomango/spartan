@@ -1,7 +1,7 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState, useRef } from 'react';
 import { Modal, View, StyleSheet, Dimensions, TouchableOpacity, Text, Image as RNImage } from 'react-native';
-import { Gesture, GestureDetector, GestureHandlerRootView } from 'react-native-gesture-handler';
-import Animated, { useAnimatedStyle, useSharedValue } from 'react-native-reanimated';
+import { GestureHandlerRootView } from 'react-native-gesture-handler';
+import ImageZoom from 'react-native-image-pan-zoom';
 import * as ImageManipulator from 'expo-image-manipulator';
 import { Ionicons } from '@expo/vector-icons';
 
@@ -40,115 +40,23 @@ export default function ImageCropperModal({
     return { scale: scaleToCover, dw0, dh0 };
   }, [imgSize, cw, ch]);
 
-  const zoom = useSharedValue(1); // additional zoom factor (>= 1)
-  const tx = useSharedValue(0);
-  const ty = useSharedValue(0);
-  const baseDW = useSharedValue(0); // base displayed width (cover)
-  const baseDH = useSharedValue(0); // base displayed height (cover)
+  // Track transform from ImageZoom
+  const posRef = useRef({ x: 0, y: 0, scale: 1 });
 
-  // Reset transforms when opening/uri changes
-  useEffect(() => {
-    if (visible) {
-      zoom.value = 1;
-      tx.value = 0;
-      ty.value = 0;
-    }
-  }, [visible, uri]);
-
-  // Sync base dimensions to shared values for use in worklets
-  useEffect(() => {
-    baseDW.value = cover.dw0 || 0;
-    baseDH.value = cover.dh0 || 0;
-  }, [cover.dw0, cover.dh0]);
-
-  // Clamp translation so image always covers crop area
-  const clampTranslate = (nextTx, nextTy, z) => {
-    const dw = cover.dw0 * z;
-    const dh = cover.dh0 * z;
-    const maxTx = Math.max(0, (dw - cw) / 2);
-    const maxTy = Math.max(0, (dh - ch) / 2);
-    const clampedX = Math.min(maxTx, Math.max(-maxTx, nextTx));
-    const clampedY = Math.min(maxTy, Math.max(-maxTy, nextTy));
-    return [clampedX, clampedY];
-  };
-
-  const pan = useMemo(() => {
-    return Gesture.Pan().onChange((e) => {
-      // worklet
-      const z = zoom.value;
-      const dw = baseDW.value * z;
-      const dh = baseDH.value * z;
-      if (dw === 0 || dh === 0) return;
-      const maxTx = Math.max(0, (dw - cw) / 2);
-      const maxTy = Math.max(0, (dh - ch) / 2);
-      let nx = tx.value + e.changeX;
-      let ny = ty.value + e.changeY;
-      nx = Math.min(maxTx, Math.max(-maxTx, nx));
-      ny = Math.min(maxTy, Math.max(-maxTy, ny));
-      tx.value = nx;
-      ty.value = ny;
-    });
-  }, [cw, ch]);
-
-  const pinch = useMemo(() => {
-    let startZoom = 1;
-    return Gesture.Pinch()
-      .onBegin(() => { startZoom = zoom.value; })
-      .onUpdate((e) => {
-        // worklet
-        const dw0 = baseDW.value;
-        const dh0 = baseDH.value;
-        if (dw0 === 0 || dh0 === 0) return;
-
-        // Clamp zoom between 1x and 6x
-        const nextZoom = Math.max(1, Math.min(6, startZoom * (e.scale || 1)));
-
-        // Keep focal point under fingers relative to crop center
-        const cx = cw / 2; const cy = ch / 2;
-        const s0 = startZoom;
-        const s1 = nextZoom;
-        const dx = tx.value; const dy = ty.value;
-        const fx = e.focalX; const fy = e.focalY;
-        let nx = (dx - (fx - cx)) * (s1 / s0) + (fx - cx);
-        let ny = (dy - (fy - cy)) * (s1 / s0) + (fy - cy);
-
-        // Clamp translation with new scale
-        const dw = dw0 * s1;
-        const dh = dh0 * s1;
-        const maxTx = Math.max(0, (dw - cw) / 2);
-        const maxTy = Math.max(0, (dh - ch) / 2);
-        nx = Math.min(maxTx, Math.max(-maxTx, nx));
-        ny = Math.min(maxTy, Math.max(-maxTy, ny));
-
-        zoom.value = nextZoom;
-        tx.value = nx; ty.value = ny;
-      });
-  }, [cw, ch]);
-
-  const composed = useMemo(() => Gesture.Simultaneous(pan, pinch), [pan, pinch]);
-
-  const imageStyle = useAnimatedStyle(() => {
-    return {
-      width: baseDW.value,
-      height: baseDH.value,
-      transform: [
-        { translateX: tx.value },
-        { translateY: ty.value },
-        { scale: zoom.value },
-      ],
-    };
-  });
+  // No reanimated math; ImageZoom handles gestures
 
   const doCrop = async () => {
     if (!imgSize || !uri) { onCancel?.(); return; }
     // Current display dims
-    const z = zoom.value;
+    const z = posRef.current.scale || 1;
     const dw = cover.dw0 * z;
     const dh = cover.dh0 * z;
 
     // Image top-left in crop-box coordinates
-    const imgLeft = (cw / 2) + tx.value - (dw / 2);
-    const imgTop = (ch / 2) + ty.value - (dh / 2);
+    const sumX = posRef.current.x || 0;
+    const sumY = posRef.current.y || 0;
+    const imgLeft = (cw / 2) + sumX - (dw / 2);
+    const imgTop = (ch / 2) + sumY - (dh / 2);
 
     // Convert crop rectangle from dp to image px via (cover.scale * z)
     const s = cover.scale * z; // dp per px
@@ -199,13 +107,31 @@ export default function ImageCropperModal({
         <View style={styles.center}>
           <View style={[styles.cropBox, { width: cw, height: ch }]}>
             {uri && imgSize && (
-              <GestureDetector gesture={composed}>
-                <Animated.Image
-                  source={{ uri }}
-                  style={[styles.image, imageStyle]}
-                  resizeMode="cover"
-                />
-              </GestureDetector>
+              <ImageZoom
+                style={{ backgroundColor: 'black' }}
+                cropWidth={cw}
+                cropHeight={ch}
+                imageWidth={cover.dw0}
+                imageHeight={cover.dh0}
+                enableDoubleClickZoom
+                enableCenterFocus={false}
+                useNativeDriver
+                onMoveShouldSetPanResponder={(evt, gestureState) => {
+                  const t = (gestureState && gestureState.numberActiveTouches) || (evt?.nativeEvent?.touches?.length) || (evt?.nativeEvent?.changedTouches?.length) || 0;
+                  if (t >= 2) return true; // claim responder for pinch when two fingers present
+                  // allow single-finger pan when already zoomed
+                  const sc = posRef.current?.scale || 1;
+                  return sc > 1 && (Math.abs(gestureState?.dx || 0) > 2 || Math.abs(gestureState?.dy || 0) > 2);
+                }}
+                onMove={({ positionX = 0, positionY = 0, scale = 1 }) => {
+                  posRef.current = { x: positionX, y: positionY, scale };
+                }}
+                pinchToZoom
+                minScale={1}
+                maxScale={6}
+              >
+                <RNImage source={{ uri }} style={{ width: cover.dw0, height: cover.dh0 }} resizeMode="cover" />
+              </ImageZoom>
             )}
           </View>
         </View>
@@ -242,6 +168,8 @@ const styles = StyleSheet.create({
     overflow: 'hidden',
     borderRadius: 20,
     backgroundColor: '#000',
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   image: {
     // width/height are set dynamically via animated style
