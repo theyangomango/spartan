@@ -18,6 +18,7 @@ import {
 } from "firebase/firestore";
 import { db } from "../../firebase.config";
 import updateDoc from "../../backend/helper/firebase/updateDoc";
+import incrementDocValue from "../../backend/helper/firebase/incrementDocValue";
 import arrayAppend from "../../backend/helper/firebase/arrayAppend";
 import useWorkoutStore from "../state/workoutStore";
 import makeID from "../../backend/helper/makeID";
@@ -390,6 +391,74 @@ export default function useWorkoutManager({ uid, navigation, millisToHMS }) {
                 const hasWork = cleanedExercises.length > 0 || totalVolume > 0 || totalReps > 0;
 
                 if (hasWork) {
+                    // 1) Update per-exercise stats
+                    try {
+                        const prevStats = (global?.userData?.statsExercises || {});
+                        const nextStats = { ...prevStats };
+                        const today = (() => {
+                            const d = new Date(); d.setHours(0, 0, 0, 0);
+                            return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+                        })();
+                        for (const ex of cleanedExercises) {
+                            const name = String(ex?.name || '').trim();
+                            if (!name) continue;
+                            const entry = { ...(nextStats[name] || {}) };
+                            // Ensure arrays exist
+                            entry.sets = Array.isArray(entry.sets) ? entry.sets.slice() : [];
+                            entry.progress1RM = Array.isArray(entry.progress1RM) ? entry.progress1RM.slice() : [];
+
+                            // Accumulators
+                            const repsInc = (ex?.sets || []).reduce((acc, s) => acc + (Number(s?.reps) || 0), 0);
+                            const volInc = (ex?.sets || []).reduce((acc, s) => acc + (Number(s?.reps) || 0) * (Number(s?.weight) || 0), 0);
+                            entry['Reps'] = (Number(entry['Reps']) || 0) + repsInc;
+                            entry['Volume'] = (Number(entry['Volume']) || 0) + volInc;
+
+                            // Append raw set history for viewer/analytics
+                            for (const s of (ex?.sets || [])) {
+                                const r = Number(s?.reps) || 0;
+                                const w = Number(s?.weight) || 0;
+                                if (r > 0 && w > 0) entry.sets.push({ weight: w, reps: r, date: today, wid: currW.wid });
+                            }
+
+                            // Update 1RM / bestSet if improved in this workout
+                            let maxSet1RM = 0; let maxSet = null;
+                            for (const s of (ex?.sets || [])) {
+                                const r = Number(s?.reps) || 0; const w = Number(s?.weight) || 0;
+                                if (r > 0 && w > 0) {
+                                    const est = calculate1RM(w, r);
+                                    if (est > maxSet1RM) { maxSet1RM = est; maxSet = { weight: w, reps: r }; }
+                                }
+                            }
+                            const prevMax = Number(entry['1RM'] || 0);
+                            if (maxSet1RM > prevMax) {
+                                entry['1RM'] = maxSet1RM;
+                                if (maxSet) entry['bestSet'] = maxSet;
+                            }
+
+                            // Progress timeline per day
+                            const progress = entry.progress1RM;
+                            const last = progress.length ? progress[progress.length - 1] : null;
+                            if (last && last.date === today) {
+                                last['1RM'] = Math.max(Number(last['1RM'] || 0), maxSet1RM);
+                                last['volume'] = (Number(last['volume'] || 0) + volInc);
+                                progress[progress.length - 1] = last;
+                            } else {
+                                progress.push({ date: today, '1RM': maxSet1RM || (Number(entry['1RM']) || 0), volume: volInc });
+                            }
+
+                            nextStats[name] = entry;
+                        }
+                        // Persist and keep local cache in sync (best-effort)
+                        if (uid) {
+                            try { await fsUpdateDoc(doc(db, 'users', uid), { statsExercises: nextStats }); }
+                            catch { await updateDoc('users', uid, { statsExercises: nextStats }); }
+                        }
+                        try { if (global?.userData) global.userData.statsExercises = nextStats; } catch {}
+                    } catch (e) {
+                        console.log('update statsExercises (Reps/Volume) error', e?.message || e);
+                    }
+
+                    // 2) Push completed workout locally + UI
                     try {
                         const arr = Array.isArray(global?.userData?.completedWorkouts) ? [...global.userData.completedWorkouts] : [];
                         arr.push(completed);
@@ -424,7 +493,7 @@ export default function useWorkoutManager({ uid, navigation, millisToHMS }) {
                         // best-effort; do not block finish flow
                     }
 
-                    // Persist to the user's completedWorkouts array in Firestore
+                    // 3) Persist to the user's completedWorkouts array in Firestore
                     try {
                         if (uid) {
                             await arrayAppend("users", uid, "completedWorkouts", completed);
@@ -432,6 +501,15 @@ export default function useWorkoutManager({ uid, navigation, millisToHMS }) {
                     } catch (e) {
                         console.log("append completedWorkouts error", e);
                     }
+
+                    // 4) Increment user-level totals (best-effort)
+                    try {
+                        if (uid) {
+                            await incrementDocValue('users', uid, 'statsTotalWorkouts', 1);
+                            await incrementDocValue('users', uid, 'statsTotalVolume', Number(completed?.volume || 0));
+                            await incrementDocValue('users', uid, 'statsTotalHours', Number(completed?.duration || 0) / 3600000);
+                        }
+                    } catch { }
 
                     try {
                         const arr = Array.isArray(global?.userData?.currentWorkouts) ? [...global.userData.currentWorkouts] : [];

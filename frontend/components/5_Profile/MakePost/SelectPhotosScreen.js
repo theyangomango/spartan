@@ -4,6 +4,7 @@ import { FontAwesome6, Ionicons } from '@expo/vector-icons';
 import * as MediaLibrary from 'expo-media-library';
 import Gallery from 'react-native-awesome-gallery';
 import PreviewPhotosBottomSheet from './PreviewPhotosBottomSheet';
+import ImageCropperModal from './ImageCropperModal';
 
 const screenHeight = Dimensions.get('window').height;
 const scale = screenHeight / 844; // Scaling based on iPhone 13 screen height
@@ -18,6 +19,11 @@ export default function SelectPhotosScreen({ navigation, route }) {
     const [hasNextPage, setHasNextPage] = useState(true);
     const [permissionResponse, requestPermission] = MediaLibrary.usePermissions();
     const fetchingRef = useRef(false);
+    const [activeIndex, setActiveIndex] = useState(0);
+    const [cropVisible, setCropVisible] = useState(false);
+    const [cropUri, setCropUri] = useState(null);
+    const [cropIndex, setCropIndex] = useState(-1);
+    const [croppedMap, setCroppedMap] = useState({}); // { [originalUri]: croppedUri }
 
     useEffect(() => {
         getInitialAssets();
@@ -77,14 +83,15 @@ export default function SelectPhotosScreen({ navigation, route }) {
 
     function next() {
         if (images.length === 0) return;
+        const finalImages = images.map((u) => (croppedMap?.[u] || u));
         navigation.navigate('PostOptions', {
             userData: global.userData,
-            images: images,
+            images: finalImages,
             workout: (('workout' in route.params) ? route.params.workout : null)
         });
     }
 
-    const selectedImages = images.length > 0 ? images.map((img, index) => ({ uri: img })) : [];
+    const selectedImages = images.length > 0 ? images.map((img) => ({ uri: (croppedMap?.[img] || img) })) : [];
 
     const selectedOrderMap = useMemo(() => {
         const map = new Map();
@@ -99,9 +106,36 @@ export default function SelectPhotosScreen({ navigation, route }) {
             // remove
             const next = prev.slice();
             next.splice(idx, 1);
+            // also drop any cropped mapping for this uri
+            setCroppedMap((m) => {
+                if (!m || !(uri in m)) return m;
+                const copy = { ...m };
+                delete copy[uri];
+                return copy;
+            });
             return next;
         });
     }, []);
+
+    const openCropper = useCallback(() => {
+        if (!images.length) return;
+        const idx = Math.max(0, Math.min(activeIndex, images.length - 1));
+        const original = images[idx];
+        const u = croppedMap?.[original] || original;
+        if (u) { setCropIndex(idx); setCropUri(u); setCropVisible(true); }
+    }, [activeIndex, images, croppedMap]);
+
+    const onCropDone = useCallback((newUri) => {
+        setCropVisible(false);
+        setCropUri(null);
+        if (!newUri) return;
+        setCroppedMap((m) => {
+            if (cropIndex < 0 || cropIndex >= images.length) return m;
+            const orig = images[cropIndex];
+            return { ...(m || {}), [orig]: newUri };
+        });
+        setCropIndex(-1);
+    }, [cropIndex, images]);
 
     return (
         <SafeAreaView style={styles.container}>
@@ -138,8 +172,8 @@ export default function SelectPhotosScreen({ navigation, route }) {
                         )}
                         displayName={false}
                         showThumbs={false}
-                        activeImage={0}
                         initialIndex={0}
+                        onIndexChange={(i) => setActiveIndex(i)}
                         emptySpaceWidth={0}
                         disableVerticalSwipe
                         pinchEnabled={false}
@@ -150,6 +184,13 @@ export default function SelectPhotosScreen({ navigation, route }) {
                         style={{ width: '100%', aspectRatio: 0.8, borderTopLeftRadius: 35, borderTopRightRadius: 35 }}
                     />
                 ) : null}
+
+                {selectedImages.length > 0 && (
+                    <TouchableOpacity style={styles.crop_btn} onPress={openCropper}>
+                        <Ionicons name='crop' size={scaledSize(20)} color={'#fff'} />
+                        <Text style={styles.crop_btn_text}>Crop</Text>
+                    </TouchableOpacity>
+                )}
             </View>
 
             <PreviewPhotosBottomSheet
@@ -161,6 +202,14 @@ export default function SelectPhotosScreen({ navigation, route }) {
                 loading={loading}
                 hasNextPage={hasNextPage}
                 clearSelection={() => setImages([])}
+            />
+
+            <ImageCropperModal
+                visible={cropVisible}
+                uri={cropUri}
+                aspectRatio={0.8}
+                onCancel={() => { setCropVisible(false); setCropUri(null); }}
+                onDone={onCropDone}
             />
         </SafeAreaView>
     );
@@ -202,5 +251,22 @@ const styles = StyleSheet.create({
     },
     preview_image: {
         flex: 1
+    },
+    crop_btn: {
+        position: 'absolute',
+        right: scaledSize(14),
+        top: scaledSize(14),
+        paddingHorizontal: scaledSize(10),
+        paddingVertical: scaledSize(6),
+        borderRadius: scaledSize(12),
+        backgroundColor: 'rgba(0,0,0,0.45)',
+        flexDirection: 'row',
+        alignItems: 'center',
+    },
+    crop_btn_text: {
+        color: '#fff',
+        marginLeft: scaledSize(8),
+        fontFamily: 'Outfit_600SemiBold',
+        fontSize: scaledSize(12),
     }
 });
