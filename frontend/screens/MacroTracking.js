@@ -53,8 +53,33 @@ const mealsMeta = [
     { name: 'Snacks', subtitle: 'Snacks keep you energized', icon: snacksIcon, iconSize: 22, bgColor: '#fed2bcff' },
 ];
 
-export default function MacroTracking({ navigation }) {
-    const [focusedDate, setFocusedDate] = useState(new Date());
+export default function MacroTracking({ navigation, route }) {
+    // Allow focusing a specific date via navigation params
+    const parseFocusParam = (param) => {
+        if (!param) return null;
+        try {
+            let d = null;
+            if (typeof param === 'number') {
+                d = new Date(param);
+            } else if (typeof param === 'string') {
+                if (/^\d{4}-\d{2}-\d{2}$/.test(param)) {
+                    const [y, m, dd] = param.split('-').map((n) => parseInt(n, 10));
+                    d = new Date(y, (m || 1) - 1, dd || 1);
+                } else {
+                    const tmp = new Date(param);
+                    if (!Number.isNaN(tmp.getTime())) d = tmp;
+                }
+            } else if (param instanceof Date) {
+                d = new Date(param);
+            }
+            if (!d || Number.isNaN(d.getTime())) return null;
+            d.setHours(0, 0, 0, 0);
+            return d;
+        } catch { return null; }
+    };
+
+    const initialFocus = parseFocusParam(route?.params?.focusDate || route?.params?.date) || new Date();
+    const [focusedDate, setFocusedDate] = useState(initialFocus);
     // Defer heavy Firestore subscriptions until after the transition starts
     const [logsReady, setLogsReady] = useState(true);
     const { meals, totals, addFood, deleteFood } = useFoodLogs(focusedDate, undefined, logsReady);
@@ -118,6 +143,19 @@ export default function MacroTracking({ navigation }) {
         const uid = global?.userData?.uid || global?.userData?.id;
         if (uid) primeFoodLogsCache(uid, focusedDate, 7);
     }, [focusedDate]);
+
+    // If MacroTracking is already mounted and new params arrive, update the focused date
+    useEffect(() => {
+        const p = route?.params?.focusDate || route?.params?.date;
+        const parsed = parseFocusParam(p);
+        if (!parsed) return;
+        try {
+            const cur = new Date(focusedDate);
+            cur.setHours(0, 0, 0, 0);
+            if (cur.getTime() !== parsed.getTime()) setFocusedDate(parsed);
+        } catch {}
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [route?.params?.focusDate, route?.params?.date]);
 
     const [goalsSheetIndex, setGoalsSheetIndex] = useState(-1);
     const [personalSheetIndex, setPersonalSheetIndex] = useState(-1);

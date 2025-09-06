@@ -611,8 +611,15 @@ export default function Workout({ navigation, route }) {
                         setDaySheetVisible(false);
                         try {
                             const rootNav = navigation?.getParent?.('ROOT');
-                            if (rootNav?.navigate) rootNav.navigate('MacroTracking', { transition: 'slide-from-left' });
-                            else navigation.navigate('MacroTracking', { transition: 'slide-from-left' });
+                            // Pass the selected day to MacroTracking so it focuses the correct date
+                            let focusTs = null;
+                            try {
+                                const nd = new Date(sheetDate);
+                                if (!Number.isNaN(nd.getTime())) { nd.setHours(0,0,0,0); focusTs = nd.getTime(); }
+                            } catch {}
+                            const params = focusTs ? { transition: 'slide-from-left', focusDate: focusTs } : { transition: 'slide-from-left' };
+                            if (rootNav?.navigate) rootNav.navigate('MacroTracking', params);
+                            else navigation.navigate('MacroTracking', params);
                         } catch {}
                     }}
                 />
