@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useRef, useState } from "react";
+import React, { useEffect, useMemo, useRef, useState, useCallback } from "react";
 import { View, StyleSheet, TextInput, Platform, Image, KeyboardAvoidingView, Animated, Keyboard, Pressable, Dimensions } from "react-native";
 import BottomSheet from "@gorhom/bottom-sheet";
 import { Ionicons } from '@expo/vector-icons';
@@ -14,7 +14,9 @@ const dynamicStyles = getCommentsBottomSheetStyles(SCREEN_WIDTH, SCREEN_HEIGHT);
 const CommentsBottomSheet = ({ isVisible, postData, commentsBottomSheetExpandFlag, toViewProfile }) => {
     const [isInputFocused, setIsInputFocused] = useState(false);
     const bottomSheetRef = useRef(null);
-    const footerTranslateY = useRef(new Animated.Value(0)).current;
+    const footerTranslateY = useRef(new Animated.Value(0)).current; // moves when input focuses
+    const footerIntroY = useRef(new Animated.Value(10)).current;    // small entrance slide
+    const footerOpacity = useRef(new Animated.Value(0)).current;    // fade with sheet
     const snapPoints = useMemo(() => ["35.5%", "92%"], []);
     const [isSheetExpanded, setIsSheetExpanded] = useState(false);
     const [inputText, setInputText] = useState('');
@@ -98,13 +100,23 @@ const CommentsBottomSheet = ({ isVisible, postData, commentsBottomSheetExpandFla
         }).start();
     };
 
-    // Handle visibility of the bottom sheet
+    // Handle visibility: open sheet + sync footer entrance
     useEffect(() => {
-        console.log(isVisible);
         if (isVisible) {
-            bottomSheetRef.current.snapToIndex(0);
+            const tryOpen = () => bottomSheetRef.current?.snapToIndex(0);
+            requestAnimationFrame(() => {
+                tryOpen();
+            });
+            // footer entrance animation
+            footerOpacity.setValue(0);
+            footerIntroY.setValue(10);
+            Animated.parallel([
+                Animated.timing(footerOpacity, { toValue: 1, duration: 160, useNativeDriver: true }),
+                Animated.timing(footerIntroY, { toValue: 0, duration: 190, useNativeDriver: true }),
+            ]).start();
         } else {
-            bottomSheetRef.current.close();
+            bottomSheetRef.current?.close();
+            Animated.timing(footerOpacity, { toValue: 0, duration: 120, useNativeDriver: true }).start();
         }
     }, [isVisible]);
 
@@ -140,7 +152,7 @@ const CommentsBottomSheet = ({ isVisible, postData, commentsBottomSheetExpandFla
         >
             <BottomSheet
                 ref={bottomSheetRef}
-                index={-1}
+                index={isVisible ? 0 : -1}
                 snapPoints={snapPoints}
                 onChange={handleSheetIndexChange}
                 handleStyle={{ display: 'none' }}
@@ -158,7 +170,10 @@ const CommentsBottomSheet = ({ isVisible, postData, commentsBottomSheetExpandFla
                 )}
             </BottomSheet>
             {isVisible && (
-                <Animated.View style={[styles.footer, { transform: [{ translateY: footerTranslateY }] }]}>
+                <Animated.View style={[
+                    styles.footer,
+                    { opacity: footerOpacity, transform: [{ translateY: Animated.add(footerTranslateY, footerIntroY) }] }
+                ]}>
                     <View style={styles.inputContainer}>
                         <View style={styles.image_ctnr}>
                             <Image source={{ uri: global.userData.image }} style={styles.pfp} />

@@ -24,10 +24,12 @@ const TARGET_Y = getScrollTargetPosition(SW, SH);
 const dyn = getFeedHeaderStyles(SW, SH);
 
 const FADE_DUR = 160;
+const SHEET_CLOSE_DUR = 280; // approximate BottomSheet close duration
 const FOCUS_EXTRA_DROP = 12; // sit slightly lower
 
 export default function SinglePostModal({ visible, post, onClose }) {
     const fade = useRef(new Animated.Value(0)).current;
+    const isClosingRef = useRef(false);
 
     // ❤️ double-tap like burst
     const heartScale = useRef(new Animated.Value(0)).current;
@@ -54,6 +56,7 @@ export default function SinglePostModal({ visible, post, onClose }) {
     useEffect(() => {
         if (visible) {
             // reset + fade in
+            isClosingRef.current = false;
             fade.setValue(0);
             Animated.timing(fade, { toValue: 1, duration: FADE_DUR, useNativeDriver: true }).start();
 
@@ -63,28 +66,40 @@ export default function SinglePostModal({ visible, post, onClose }) {
             setMountCommentsSheet(true);
             setSheetVisible(false);
 
-            // critical: wait until after the fade completes + a frame to ensure layout is settled
+            // show the sheet almost immediately so its animation lines up with fade
             if (openTimer.current) clearTimeout(openTimer.current);
             openTimer.current = setTimeout(() => {
                 requestAnimationFrame(() => setSheetVisible(true)); // triggers snapToIndex(0) inside the sheet
-            }, FADE_DUR + 20); // ~180ms total
+            }, 20);
         } else {
-            Animated.timing(fade, { toValue: 0, duration: FADE_DUR, useNativeDriver: true }).start(onClose);
+            // If parent forces invisible, just clear timers
             if (openTimer.current) {
                 clearTimeout(openTimer.current);
                 openTimer.current = null;
             }
-            setSheetVisible(false);
-            setMountCommentsSheet(false);
         }
     }, [visible]);
 
     const close = () => {
+        if (isClosingRef.current) return;
+        isClosingRef.current = true;
+
         if (openTimer.current) {
             clearTimeout(openTimer.current);
             openTimer.current = null;
         }
-        Animated.timing(fade, { toValue: 0, duration: FADE_DUR, useNativeDriver: true }).start(onClose);
+
+        // 1) trigger comments sheet to slide down
+        setSheetVisible(false);
+
+        // 2) fade out backdrop, post, and close button
+        Animated.timing(fade, { toValue: 0, duration: FADE_DUR, useNativeDriver: true }).start();
+
+        // 3) after sheet close duration, notify parent to unmount modal
+        setTimeout(() => {
+            onClose && onClose();
+            isClosingRef.current = false;
+        }, SHEET_CLOSE_DUR);
     };
 
     const onMediaTap = () => {
@@ -118,11 +133,11 @@ export default function SinglePostModal({ visible, post, onClose }) {
             <Animated.View pointerEvents="none" style={[styles.backdrop, { opacity: fade }]} />
 
             {/* Top bar — ONLY way to close */}
-            <View pointerEvents="box-none" style={styles.topBar}>
+            <Animated.View pointerEvents="box-none" style={[styles.topBar, { opacity: fade }] }>
                 <TouchableOpacity onPress={close} style={styles.backBtn} activeOpacity={0.8}>
                     <Ionicons name="chevron-back" size={dyn.iconSize} color="#fff" />
                 </TouchableOpacity>
-            </View>
+            </Animated.View>
 
             {/* Focused post (slightly lower) */}
             <Animated.View style={[styles.stage, { opacity: fade }]}>
