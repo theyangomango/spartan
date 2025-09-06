@@ -12,6 +12,7 @@ import {
 } from "react-native";
 import Svg, { Circle } from "react-native-svg";
 import RNBounceable from "@freakycoder/react-native-bounceable";
+import * as Haptics from "expo-haptics";
 
 const { height: screenHeight } = Dimensions.get("window");
 const scale = screenHeight / 844; // iPhone 13 baseline
@@ -154,6 +155,7 @@ export default function RestTimerModal({
             onAdd?.(secs);
             ensureAnim(newRemaining, newTotal);
             runPulse();
+            try { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Heavy); } catch {}
         },
         [restTotal, countdown, onAdd, ensureAnim, runPulse]
     );
@@ -164,6 +166,7 @@ export default function RestTimerModal({
         ring.stopAnimation();
         ring.setValue(0);
         stopPulse();
+        try { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Heavy); } catch {}
     }, [onReset, ring, stopPulse]);
 
     // Appear / sync

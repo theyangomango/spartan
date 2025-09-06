@@ -1,6 +1,7 @@
 // components/Tracking/Group/GroupHeader.jsx
 import React, { useEffect, useRef, memo } from "react";
 import { View, Text, StyleSheet, Dimensions, Pressable } from "react-native";
+import * as Haptics from "expo-haptics";
 import RNBounceable from "@freakycoder/react-native-bounceable";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import FastImage from "react-native-fast-image";
@@ -59,12 +60,15 @@ const GroupHeader = ({
     // If pfpOnLeft is true, we prefer showing the back chevron + PFP instead of the timer tile.
     const showTimerLeft = viewingSelf || (inActiveGroup && !pfpOnLeft);
 
+    // Wrap press handlers with haptics
+    const withHaptics = (fn) => () => { try { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Heavy); } catch {} finally { try { fn?.(); } catch {} } };
+
     return (
         <View style={headerStyle}>
             {/* Left: timer (self/participating) OR back chevron + optional PFP */}
             <View style={[styles.leftWrap, (!showTimerLeft) && styles.leftRow]}>
                 {showTimerLeft ? (
-                    <RNBounceable style={styles.rest_timer_ctnr} onPress={onAddTime}>
+                    <RNBounceable style={styles.rest_timer_ctnr} onPress={onAddTime ? withHaptics(onAddTime) : undefined}>
                         <View style={styles.iconWrapper}>
                             <MaterialCommunityIcons name="timer-outline" size={scaledSize(24)} color="#0499FE" />
                             {countdown > 0 && (
@@ -76,7 +80,7 @@ const GroupHeader = ({
                     </RNBounceable>
                 ) : (
                     <>
-                        <Pressable onPress={onBack} style={styles.backBtn} hitSlop={8}>
+                        <Pressable onPress={onBack ? withHaptics(onBack) : undefined} style={styles.backBtn} hitSlop={8}>
                             <MaterialCommunityIcons name="chevron-left" size={scaledSize(26)} color="#111827" />
                         </Pressable>
                         {pfpOnLeft && (
@@ -113,8 +117,8 @@ const GroupHeader = ({
                 {!pfpOnLeft && (
                     <Pressable
                         disabled={disableGroup}
-                        onPress={disableGroup ? undefined : onOpenMenu}
-                        onLongPress={disableGroup ? undefined : onLongPressInvite}
+                        onPress={disableGroup ? undefined : (onOpenMenu ? withHaptics(onOpenMenu) : undefined)}
+                        onLongPress={disableGroup ? undefined : (onLongPressInvite ? withHaptics(onLongPressInvite) : undefined)}
                         style={[styles.pfpBtn, !viewingSelf && styles.pfpFriend, disableGroup && { opacity: 0.9 }]}
                     >
                         <View style={[styles.pfpWrap, !viewingSelf && styles.pfpFriendRing]}>
@@ -141,17 +145,17 @@ const GroupHeader = ({
                 )}
 
                 {viewingSelf ? (
-                    <RNBounceable onPress={onFinish} style={styles.finish_btn}>
+                    <RNBounceable onPress={onFinish ? withHaptics(onFinish) : undefined} style={styles.finish_btn}>
                         <Text style={styles.finish_btn_text}>Finish</Text>
                     </RNBounceable>
                 ) : (
                     onCheer ? (
-                        <RNBounceable onPress={onCheer} style={styles.cheer_btn}>
+                        <RNBounceable onPress={withHaptics(onCheer)} style={styles.cheer_btn}>
                             <MaterialCommunityIcons name="arm-flex" size={scaledSize(18)} color="#ffffff" />
                             <Text style={styles.cheer_btn_text}>Cheer</Text>
                         </RNBounceable>
                     ) : (
-                        <RNBounceable onPress={onCopyTemplate} style={styles.copy_btn}>
+                        <RNBounceable onPress={onCopyTemplate ? withHaptics(onCopyTemplate) : undefined} style={styles.copy_btn}>
                             <MaterialCommunityIcons name="content-copy" size={scaledSize(18)} color="#ffffff" />
                             <Text style={styles.copy_btn_text}>Copy Template</Text>
                         </RNBounceable>

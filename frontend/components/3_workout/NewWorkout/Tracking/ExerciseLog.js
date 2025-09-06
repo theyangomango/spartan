@@ -158,6 +158,7 @@ function ExerciseLog({
         const next = [...(setsRef.current || []), { id: genLocalId(), weight: 0, reps: 0, isDone: false }];
         setDraft(next);
         scheduleSync(next);
+        try { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Heavy); } catch {}
     });
 
     const updateSetById = useCallback((sid, patch) => {

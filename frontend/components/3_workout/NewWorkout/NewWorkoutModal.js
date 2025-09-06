@@ -18,6 +18,7 @@ import { BlurView } from "expo-blur";
 import { LinearGradient } from "expo-linear-gradient";
 import RNBounceable from "@freakycoder/react-native-bounceable";
 import { Weight } from "iconsax-react-native";
+import * as Haptics from "expo-haptics";
 import ProgressBanner from "./Tracking/ProgressBanner";
 import ExerciseLog from "./Tracking/ExerciseLog";
 import SelectExerciseModal from "./SelectExercise/SelectExerciseModal";
@@ -225,6 +226,7 @@ const NewWorkoutModal = ({
         try { LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut); } catch { }
         appendExercises(Array.isArray(picked) ? picked : [picked]);
         setSelectExerciseModalVisible(false);
+        try { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Heavy); } catch {}
     }, [appendExercises, replaceIndex, viewingSelfEffective, workout, updateWorkout]);
 
     // deleteExercise and updateSets provided by hook
