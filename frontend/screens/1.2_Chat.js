@@ -341,7 +341,8 @@ export default function Chat({ navigation, route }) {
             <View style={[styles.container, { paddingTop: insets.top }]}>
                 <ChatHeader
                     usersExcludingSelf={usersExcludingSelf}
-                    toMessages={() => navigation.navigate("Messages", { message: data, index })}
+                    // toMessages={() => navigation.navigate("Messages", { message: data, index })}
+                    toMessages={() => navigation.goBack()}
                 />
 
                 {/* Wrap the list with the split-swipe gesture */}
