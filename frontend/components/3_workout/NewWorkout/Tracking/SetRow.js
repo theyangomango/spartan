@@ -1,5 +1,5 @@
 import React, { memo, useEffect, useState } from "react";
-import { View, StyleSheet, Text, Pressable, Dimensions, LayoutAnimation, Platform, UIManager, Keyboard, InteractionManager } from "react-native";
+import { View, StyleSheet, Text, Pressable, Dimensions, LayoutAnimation, Platform, UIManager, Keyboard } from "react-native";
 import EditableStat from "./EditableStat";
 import SetTypePanel from "./SetTypePanel";
 import { FontAwesome5 } from "@expo/vector-icons";
@@ -25,7 +25,6 @@ function SetRow({
     handleDelete,
     onDeleteSetById,
     isDone,
-    toggleIsDone,
     onToggleIsDoneById,
     readOnly = false,
     itemKey,
@@ -114,10 +113,7 @@ function SetRow({
                                 // Optimistic local toggle for immediate UI feedback
                                 setDoneLocal((d) => !d);
                                 // Then trigger upstream state update
-                                try {
-                                    if (onToggleIsDoneById && sid) onToggleIsDoneById(sid);
-                                    else toggleIsDone?.();
-                                } catch {}
+                                try { if (onToggleIsDoneById && sid) onToggleIsDoneById(sid); } catch {}
                                 // Then dismiss keyboard; doing it second avoids missing the press
                                 try { Keyboard.dismiss(); } catch {}
                             }}

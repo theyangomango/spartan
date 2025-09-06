@@ -112,14 +112,7 @@ export default function StartOpenButton({ hasActiveWorkout, onOpen, onStart, hol
                 <Text style={styles.startText}>{hasActiveWorkout ? "OPEN" : "START"}</Text>
             </Pressable>
 
-            {/* Static white halo around OPEN state (rendered above button) */}
-            {/* {hasActiveWorkout && (
-                <View pointerEvents="none" style={styles.pulseWrap}>
-                    <View style={styles.openHaloOuter} />
-                    <View style={styles.openHaloInner} />
-                    <View style={styles.openGlow} />
-                </View>
-            )} */}
+            {/* Halo removed during cleanup */}
 
             {/* START state progress ring (UI-thread, jank-free) */}
             {!hasActiveWorkout && <HoldRing progress={progress} />}
@@ -219,45 +212,7 @@ const styles = StyleSheet.create({
         justifyContent: "center",
     },
 
-    // Pulsing halo wrapper (tight to the button so it centers)
-    pulseWrap: {
-        position: "absolute",
-        left: 0,
-        right: 0,
-        top: 0,
-        bottom: 0,
-        alignItems: "center",
-        justifyContent: "center",
-        zIndex: 2,
-    },
-    // Non-pulsing white halo for OPEN state (outer soft ring)
-    openHaloOuter: {
-        position: "absolute",
-        width: BTN_SIZE + 56,
-        height: BTN_SIZE + 56,
-        borderRadius: (BTN_SIZE + 56) / 2,
-        borderWidth: 22,
-        borderColor: "rgba(255,255,255,0.30)",
-        backgroundColor: "transparent",
-    },
-    // Crisp inner ring that hugs the black button edge
-    openHaloInner: {
-        position: "absolute",
-        width: BTN_SIZE + 18,
-        height: BTN_SIZE + 18,
-        borderRadius: (BTN_SIZE + 18) / 2,
-        borderWidth: 10,
-        borderColor: "#9ac7ffff",
-        backgroundColor: "transparent",
-    },
-    // Extra soft glow just beyond the halo to make it more visible
-    openGlow: {
-        position: "absolute",
-        width: BTN_SIZE + 76,
-        height: BTN_SIZE + 76,
-        borderRadius: (BTN_SIZE + 76) / 2,
-        backgroundColor: "rgba(255,255,255,0.16)",
-    },
+    
 });
 
 // default export declared above

@@ -36,7 +36,6 @@ function ExerciseLog({
     prevSets,            // optional: previous sets provided by workout (preferred for spectating)
     replaceExercise,
     deleteExercise,
-    toggleIsDone,        // we’ll still sync this, but via local draft
     userWorkoutStats,
     readOnly = false,
     onStatFocus,         // optional: notify parent when any set input is focused

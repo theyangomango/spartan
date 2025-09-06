@@ -162,7 +162,6 @@ const NewWorkoutModal = ({
         appendExercises,
         updateSets,
         deleteExercise,
-        toggleIsDone,
         normalizeSet,
         makeBlankSetsLike,
     } = useWorkoutEditing({ workout, updateWorkout, viewingSelf: viewingSelfEffective });
@@ -228,7 +227,7 @@ const NewWorkoutModal = ({
         setSelectExerciseModalVisible(false);
     }, [appendExercises, replaceIndex, viewingSelfEffective, workout, updateWorkout]);
 
-    // deleteExercise, updateSets and toggleIsDone provided by hook
+    // deleteExercise and updateSets provided by hook
 
     const confirmCancelWorkout = () => {
         if (!viewingSelfEffective) return;
@@ -519,8 +518,7 @@ const NewWorkoutModal = ({
                             updateSets={updateSets}
                             replaceExercise={replaceExercise}
                             deleteExercise={() => deleteExercise(exerciseIndex)}
-                            calculateStats={() => { }}
-                            toggleIsDone={toggleIsDone}
+                            
                             userWorkoutStats={statsForPrevious}
                             readOnly={!viewingSelfEffective}
                             onStatFocus={handleStatFocus}
