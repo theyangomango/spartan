@@ -77,8 +77,7 @@ export default function SelectPhotosScreen({ navigation, route }) {
     // React Native Image handles PhotoKit thumbnails adequately; no explicit prefetch here.
 
     function goBack() {
-        try { navigation.navigate('Profile'); }
-        catch { try { navigation.goBack(); } catch {} }
+        navigation.goBack();
     }
 
     function next() {
