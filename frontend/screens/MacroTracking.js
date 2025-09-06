@@ -158,6 +158,7 @@ export default function MacroTracking({ navigation, route }) {
     }, [route?.params?.focusDate, route?.params?.date]);
 
     const [goalsSheetIndex, setGoalsSheetIndex] = useState(-1);
+    const [goalsOpenSignal, setGoalsOpenSignal] = useState(0); // bump to force robust open
     const [personalSheetIndex, setPersonalSheetIndex] = useState(-1);
 
     const [searchVisible, setSearchVisible] = useState(false);
@@ -212,7 +213,7 @@ export default function MacroTracking({ navigation, route }) {
         closeSearch();
     }, [activeMeal, addFood, closeSearch]);
 
-    const openGoalsSheet = () => setGoalsSheetIndex(1);
+    const openGoalsSheet = () => { setGoalsSheetIndex(0); setGoalsOpenSignal((s) => s + 1); };
     const closeGoalsSheet = () => setGoalsSheetIndex(-1);
     const clampInt = (s, min, max) => {
         const n = parseInt(s || '0', 10);
@@ -266,7 +267,7 @@ export default function MacroTracking({ navigation, route }) {
                 >
                     <View style={styles.sectionHeaderRow}>
                         <Text style={[styles.sectionTitle, styles.sectionTitleNoMargin]}>Nutrition</Text>
-                        <Pressable style={styles.editGoalsPill} onPress={() => setGoalsSheetIndex(0)} hitSlop={8}>
+                        <Pressable style={styles.editGoalsPill} onPress={openGoalsSheet} hitSlop={8}>
                             <Ionicons name="settings-outline" size={14} color={COLORS.text} />
                             <Text style={styles.editGoalsText}>Edit Goals</Text>
                         </Pressable>
@@ -298,6 +299,7 @@ export default function MacroTracking({ navigation, route }) {
                 <MacroGoalsSheet
                     index={goalsSheetIndex}
                     onChangeIndex={setGoalsSheetIndex}
+                    openSignal={goalsOpenSignal}
                     goalForm={goalForm}
                     setGoalForm={setGoalForm}
                     onSave={onSaveGoals}

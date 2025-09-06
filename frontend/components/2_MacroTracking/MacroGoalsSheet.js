@@ -19,6 +19,7 @@ import LabeledNumber from './LabeledNumber';
 export default function MacroGoalsSheet({
     index,
     onChangeIndex,
+    openSignal, // bump when parent explicitly wants to open
     goalForm,
     setGoalForm,
     onSave,
@@ -74,6 +75,22 @@ export default function MacroGoalsSheet({
         (props) => <BottomSheetBackdrop {...props} disappearsOnIndex={-1} appearsOnIndex={0} pressBehavior="close" />,
         []
     );
+
+    // Robust open: when parent bumps openSignal, ensure the sheet snaps open even
+    // if it was mid-closing. Try immediately, then on next frame, then after a tick.
+    useEffect(() => {
+        if (openSignal == null) return;
+        if (index < 0) {
+            // setTimeout helps if onChange(-1) fires after parent set(0)
+            try { sheetRef.current?.snapToIndex?.(0); } catch {}
+            requestAnimationFrame(() => { try { sheetRef.current?.snapToIndex?.(0); } catch {} });
+            const t = setTimeout(() => { try { sheetRef.current?.snapToIndex?.(0); } catch {} }, 120);
+            return () => clearTimeout(t);
+        } else {
+            // already open — ensure it is at least at index 0
+            try { sheetRef.current?.snapToIndex?.(Math.max(0, index)); } catch {}
+        }
+    }, [openSignal]);
 
     // ----------------- Recommended macros (placeholders) -----------------
     const [usePlaceholderMacros, setUsePlaceholderMacros] = useState(false);
