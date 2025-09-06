@@ -101,49 +101,12 @@ const formatJoinDate = (raw) => {
     return `Joined ${months[date.getMonth()]} ${date.getDate()}, ${date.getFullYear()}`;
 };
 
-// Accent utilities — fixed colors per muscle group
-// Reuse the same palette as SelectExerciseModal for consistency.
-import { exercises as EXERCISES } from '../../3_Workout/NewWorkout/SelectExercise/EXERCISES';
-
-const ACCENTS = ["#2D9EFF", "#F59E0B", "#10B981", "#EF4444", "#8B5CF6", "#06B6D4"]; // [blue, amber, green, red, purple, cyan]
-const MUSCLE_ACCENT = {
-    Chest: "#EF4444",      // red
-    Back: "#06B6D4",       // cyan
-    Shoulders: "#F59E0B",  // amber
-    Arms: "#8B5CF6",       // purple
-    Legs: "#10B981",       // green
-    Abs: "#2D9EFF",        // blue
-};
-
-const NAME_TO_GROUP = (() => {
-    const map = Object.create(null);
-    try {
-        (EXERCISES || []).forEach((ex) => {
-            if (ex?.name) map[String(ex.name).toLowerCase()] = ex.muscleGroup || ex.muscle || '';
-        });
-    } catch { }
-    return map;
-})();
-
-const inferGroupFromName = (name = "") => {
-    const key = String(name || '').toLowerCase();
-    const direct = NAME_TO_GROUP[key];
-    if (direct) return direct;
-    if (key.includes('chest')) return 'Chest';
-    if (key.includes('back')) return 'Back';
-    if (key.includes('shoulder')) return 'Shoulders';
-    if (key.includes('leg') || key.includes('squat') || key.includes('calf')) return 'Legs';
-    if (key.includes('ab') || key.includes('core')) return 'Abs';
-    if (key.includes('bicep') || key.includes('tricep') || key.includes('arm')) return 'Arms';
-    return null;
-};
-
+// Accent utilities (light touch of personality per exercise)
+const ACCENTS = ["#2D9EFF", "#F59E0B", "#10B981", "#EF4444", "#8B5CF6", "#06B6D4"];
 const pickAccent = (name = "") => {
-    const group = inferGroupFromName(name);
-    if (group && MUSCLE_ACCENT[group]) return MUSCLE_ACCENT[group];
-    // Fallback: deterministic by name if unknown
     const str = String(name);
-    let h = 0; for (let i = 0; i < str.length; i++) h = (h * 31 + str.charCodeAt(i)) >>> 0;
+    let h = 0;
+    for (let i = 0; i < str.length; i++) h = (h * 31 + str.charCodeAt(i)) >>> 0;
     return ACCENTS[h % ACCENTS.length];
 };
 const hexToRgb = (hex) => {
@@ -241,7 +204,7 @@ export default function UserStatsModal({ user, toViewProfile }) {
                                         </View>
                                         {!!oneRM && oneRM > 0 && (
                                             <View style={[styles.oneRMPill, { borderColor: rgba(ACC, 0.35), backgroundColor: rgba(ACC, 0.12) }]}>
-                                                <Text style={styles.oneRMLabel}>1RM</Text>
+                                            <Text style={styles.oneRMLabel}>1RM (Adj)</Text>
                                                 <Text style={[styles.oneRMValue, { color: ACC }]}>{oneRM}</Text>
                                             </View>
                                         )}

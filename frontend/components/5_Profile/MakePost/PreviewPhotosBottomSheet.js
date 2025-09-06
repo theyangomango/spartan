@@ -30,6 +30,7 @@ const PreviewPhotosBottomSheet = ({ assets, images, selectedOrderMap, toggleSele
                 disappearsOnIndex={0}
                 appearsOnIndex={1}
                 opacity={0.6}
+                pressBehavior="none" // prevent dismiss on backdrop press
             />
         ),
         []
@@ -41,6 +42,7 @@ const PreviewPhotosBottomSheet = ({ assets, images, selectedOrderMap, toggleSele
             index={0}
             backdropComponent={renderBackdrop}
             snapPoints={snapPoints}
+            enablePanDownToClose={false}
             onChange={handleSheetChanges}
             onClose={() => {
             }}

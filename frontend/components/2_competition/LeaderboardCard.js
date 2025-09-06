@@ -51,10 +51,9 @@ export default function LeaderboardCard({
     // Format the large stat and unit depending on metric & normalization
     const { statText, unitText } = formatStat(value, metric, normalizeByBodyweight);
 
-    // Subline:
-    // - If tribe-focused (or normalization is on), show metric/exercise summary.
-    // - Else keep your original "best set" line.
-    const showMetricSubline = isTribeFocused || normalizeByBodyweight;
+    // Subline: Only show best set when metric is '1RM'.
+    // Otherwise, show nothing under the blue stat.
+    const showBestSet = String(metric) === '1RM';
     const bestSetIsNA = !bestSet || (bestSet.reps === 0 && bestSet.weight === 0);
 
     return (
@@ -98,20 +97,16 @@ export default function LeaderboardCard({
                         {statText} {unitText}
                     </Text>
 
-                    {showMetricSubline ? (
-                        <Text style={[styles.best_set_text, { fontSize: FONT_BEST }]} numberOfLines={1}>
-                            {metric}
-                            {normalizeByBodyweight ? ' • per lb BW' : ''}
-                            {exercise ? ` • ${exercise}` : ''}
-                        </Text>
-                    ) : showBestSetWhenNotTribe ? (
-                        bestSetIsNA ? (
-                            <Text style={[styles.best_set_text, { fontSize: FONT_BEST }]}>N/A</Text>
-                        ) : (
-                            <Text style={[styles.best_set_text, { fontSize: FONT_BEST }]} numberOfLines={1}>
-                                {bestSet.reps} x {bestSet.weight} lbs
-                            </Text>
-                        )
+                    {showBestSet ? (
+                        showBestSetWhenNotTribe ? (
+                            bestSetIsNA ? (
+                                <Text style={[styles.best_set_text, { fontSize: FONT_BEST }]}>N/A</Text>
+                            ) : (
+                                <Text style={[styles.best_set_text, { fontSize: FONT_BEST }]} numberOfLines={1}>
+                                    {bestSet.reps} x {bestSet.weight} lbs
+                                </Text>
+                            )
+                        ) : null
                     ) : null}
                 </View>
             </View>
