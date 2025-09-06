@@ -267,7 +267,7 @@ const styles = StyleSheet.create({
         alignItems: "center",
         paddingHorizontal: scaledSize(22), // a little more horizontal padding
         paddingTop: scaledSize(8),
-        paddingBottom: scaledSize(8),
+        marginBottom: scaledSize(8),
         justifyContent: "space-between",
     },
     headerLeft: {
@@ -329,7 +329,7 @@ const styles = StyleSheet.create({
 
     // Hexagon wrapper (no card background)
     hexWrap: {
-        paddingTop: scaledSize(10),
+        paddingTop: scaledSize(26),
     },
 
     sectionTitle: {

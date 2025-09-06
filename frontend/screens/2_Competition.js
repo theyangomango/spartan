@@ -108,7 +108,8 @@ function computeTribeRanking(users, comparison) {
 
 const summaryOf = (c) => {
     if (!c) return "Not set";
-    const parts = [c.exercise, c.metric];
+    const metricLabel = c.metric === '1RM' ? '1RM (Adj)' : c.metric;
+    const parts = [c.exercise, metricLabel];
     if (c.normalizeByBodyweight) parts.push("per lb bodyweight");
     return parts.join(" • ");
 };

@@ -15,6 +15,7 @@ import SelectExerciseModal from "../2_Competition/SelectExercise/SelectExerciseM
 import RNBounceable from "@freakycoder/react-native-bounceable";
 
 const METRICS = ["1RM", "Volume", "Reps"];
+const metricLabel = (m) => (m === '1RM' ? '1RM (Adj)' : m);
 const { width } = Dimensions.get("window");
 
 // palette tweaks
@@ -90,7 +91,7 @@ export default function TribeComparisonModal({ visible, onClose, initialList = [
                                             </Text>
                                             {/* line 2: metric + per-lb */}
                                             <Text style={styles.itemMeta} numberOfLines={1}>
-                                                {item.metric}{item.normalizeByBodyweight ? " • per lb" : ""}
+                                                {metricLabel(item.metric)}{item.normalizeByBodyweight ? " • per lb" : ""}
                                             </Text>
                                         </View>
                                         <TouchableOpacity onPress={() => deleteItem(index)} hitSlop={10} style={{ padding: 6 }}>
@@ -170,7 +171,7 @@ export default function TribeComparisonModal({ visible, onClose, initialList = [
                                                             style={[styles.pill, active && styles.pillActive]}
                                                             activeOpacity={0.85}
                                                         >
-                                                            <Text style={[styles.pillText, active && styles.pillTextActive]}>{m}</Text>
+                                                            <Text style={[styles.pillText, active && styles.pillTextActive]}>{metricLabel(m)}</Text>
                                                         </TouchableOpacity>
                                                     );
                                                 })}

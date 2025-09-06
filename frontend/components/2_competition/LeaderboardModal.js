@@ -43,6 +43,7 @@ export default function LeaderboardModal({
     const metric = isTribeFocused
         ? (activeComp?.metric || "1RM")
         : (comparedMetric || "1RM");
+    const metricLabel = (m) => (m === '1RM' ? '1RM (Adj)' : m);
 
     const normalizeByBodyweight = !!(isTribeFocused && activeComp?.normalizeByBodyweight);
 
@@ -83,7 +84,7 @@ export default function LeaderboardModal({
                                         </Text>
                                         {/* Line 2: metric + per-lb */}
                                         <Text style={styles.bannerMeta} numberOfLines={1}>
-                                            {item.metric}{item.normalizeByBodyweight ? " • per lb" : ""}
+                                            {metricLabel(item.metric)}{item.normalizeByBodyweight ? " • per lb" : ""}
                                         </Text>
                                     </View>
                                     <Ionicons name="chevron-forward" size={18} color={ICON_MUTED} />
@@ -131,7 +132,7 @@ export default function LeaderboardModal({
                     <Text style={styles.selectorText} numberOfLines={1}>{categoryCompared}</Text>
                 </TouchableOpacity>
                 <TouchableOpacity onPress={onToggleMetric} activeOpacity={0.85} style={styles.metricPill}>
-                    <Text style={styles.metricText}>{comparedMetric}</Text>
+                    <Text style={styles.metricText}>{metricLabel(comparedMetric)}</Text>
                 </TouchableOpacity>
             </View>
         );
