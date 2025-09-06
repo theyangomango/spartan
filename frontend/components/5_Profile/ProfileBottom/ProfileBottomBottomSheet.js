@@ -3,7 +3,7 @@ import { StyleSheet, Text, View } from "react-native";
 import BottomSheet, { BottomSheetBackdrop, BottomSheetFooter } from "@gorhom/bottom-sheet";
 import ProfileBottomModal from "./ProfileBottomModal";
 
-const ProfileBottomBottomSheet = ({ selectedPanel, setSelectedPanel, posts, completedWorkouts }) => {
+const ProfileBottomBottomSheet = ({ selectedPanel, setSelectedPanel, posts, completedWorkouts, onOpenWorkout }) => {
     const bottomSheetRef = useRef(null);
     const snapPoints = useMemo(() => ["58%", "94%"], []);
     const [isBottomSheetExpanded, setIsBottomSheetExpanded] = useState(false);
@@ -40,6 +40,7 @@ const ProfileBottomBottomSheet = ({ selectedPanel, setSelectedPanel, posts, comp
                 posts={posts}
                 completedWorkouts={completedWorkouts}
                 isBottomSheetExpanded={isBottomSheetExpanded}
+                onOpenWorkout={onOpenWorkout}
             />
 
         </BottomSheet>

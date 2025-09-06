@@ -10,7 +10,7 @@ const scale = screenHeight / 844; // Scaling factor based on iPhone 13 height
 
 const scaledSize = (size) => Math.round(size * scale);
 
-const ProfileBottomModal = ({ selectedPanel, setSelectedPanel, posts, completedWorkouts, isBottomSheetExpanded }) => {
+const ProfileBottomModal = ({ selectedPanel, setSelectedPanel, posts, completedWorkouts, isBottomSheetExpanded, onOpenWorkout }) => {
     return (
         <View style={styles.container}>
             <View style={styles.panel_btns}>
@@ -32,10 +32,15 @@ const ProfileBottomModal = ({ selectedPanel, setSelectedPanel, posts, completedW
             </View>
             <View style={styles.panel_border}></View>
 
-            {posts &&
+            {posts && (
                 <PostsSection posts={posts} isVisible={selectedPanel === 'posts'} isBottomSheetExpanded={isBottomSheetExpanded} />
-            }
-            <HistorySection completedWorkouts={completedWorkouts} isVisible={selectedPanel === 'history'} isBottomSheetExpanded={isBottomSheetExpanded} />
+            )}
+            <HistorySection
+                completedWorkouts={completedWorkouts}
+                isVisible={selectedPanel === 'history'}
+                isBottomSheetExpanded={isBottomSheetExpanded}
+                onOpenWorkout={onOpenWorkout}
+            />
             <ActivitySection isVisible={selectedPanel === 'activity'} isBottomSheetExpanded={isBottomSheetExpanded} />
         </View>
     );

@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState } from "react";
+import React, { useEffect, useRef, useState, useCallback } from "react";
 import { SafeAreaView, StyleSheet, View } from "react-native";
 import ProfileHeader from "../components/5_Profile/ProfileTop/ProfileHeader";
 import ProfileInfo from "../components/5_Profile/ProfileTop/ProfileInfo";
@@ -12,6 +12,7 @@ import EditProfileBottomSheet from "../components/5_Profile/EditProfile/EditProf
 // ⬇️ and swap IN the Competition screen’s bottom sheet
 import UserStatsBottomSheet from "../components/2_Competition/UserStats/UserStatsBottomSheet";
 import Footer from "../components/Footer";
+import FeedWorkoutViewerSheet from "../components/1_Feed/ViewWorkout/FeedWorkoutViewerSheet";
 
 export default function Profile({ navigation }) {
     const userData = global.userData;
@@ -23,6 +24,30 @@ export default function Profile({ navigation }) {
     const [isViewStatsBottomSheetVisible, setIsViewStatsBottomSheetVisible] = useState(false);
 
     const [pfp, setPFP] = useState(global.userData.image);
+
+    // Workout viewer state (reuses Feed viewer)
+    const [profileSelectedWorkout, setProfileSelectedWorkout] = useState(null);
+    const [profileWorkoutExpandToggle, setProfileWorkoutExpandToggle] = useState(false);
+    const openWorkoutViewer = useCallback((wk) => {
+        if (!wk) { setProfileSelectedWorkout(null); return; }
+        // Normalize minimal fields expected by NewWorkoutModal
+        const fallback = {
+            wid: wk?.wid || wk?.id,
+            creatorUID: wk?.creatorUID || wk?.creatorUid || (global?.userData?.uid || ''),
+            created: wk?.created || wk?.createdAt || Date.now(),
+            exercises: Array.isArray(wk?.exercises) ? wk.exercises : [],
+            duration: wk?.duration,
+            volume: wk?.volume,
+            reps: wk?.reps,
+            PBs: wk?.PBs ?? wk?.pbs ?? 0,
+            templateName: wk?.templateName || wk?.template?.name,
+        };
+        setProfileSelectedWorkout({ ...fallback, ...wk });
+        setProfileWorkoutExpandToggle((t) => !t);
+    }, []);
+    const closeWorkoutViewer = useCallback(() => {
+        setProfileSelectedWorkout(null);
+    }, []);
 
     useEffect(() => {
         getPosts();
@@ -111,6 +136,7 @@ export default function Profile({ navigation }) {
                 posts={posts}
                 completedWorkouts={global.userData.completedWorkouts}
                 navigation={navigation}
+                onOpenWorkout={openWorkoutViewer}
             />
 
             <EditProfileBottomSheet
@@ -128,6 +154,15 @@ export default function Profile({ navigation }) {
             />
 
             <Footer currentScreenName={"Profile"} navigation={navigation} />
+
+            {/* Workout viewer bottom sheet (profile) */}
+            <FeedWorkoutViewerSheet
+                expandToggle={profileWorkoutExpandToggle}
+                workout={profileSelectedWorkout}
+                friendUid={global?.userData?.uid}
+                friendPfp={global?.userData?.image}
+                onClose={closeWorkoutViewer}
+            />
         </SafeAreaView>
     );
 }

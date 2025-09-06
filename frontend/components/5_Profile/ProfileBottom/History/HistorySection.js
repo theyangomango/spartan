@@ -1,7 +1,7 @@
 // HistorySection.js
 import React, { memo } from "react";
-import { StyleSheet, FlatList, View } from "react-native";
-import PastWorkoutCard from "./PastWorkoutCard";
+import { StyleSheet, FlatList, View, Pressable } from "react-native";
+import WorkoutHistoryCard from "./WorkoutHistoryCard";
 
 const lastUsedDate = "July 6th";
 const exercises = [
@@ -15,9 +15,11 @@ const exercises = [
     { name: "5 x Reverse Curls (Barbell)", muscle: "Biceps" }
 ];
 
-const HistorySection = ({ isVisible, isBottomSheetExpanded, completedWorkouts }) => {
+const HistorySection = ({ isVisible, isBottomSheetExpanded, completedWorkouts, onOpenWorkout }) => {
     const renderWorkout = ({ item }) => (
-        <PastWorkoutCard workout={item} />
+        <Pressable onPress={() => onOpenWorkout && onOpenWorkout(item)}>
+            <WorkoutHistoryCard workout={item} />
+        </Pressable>
     );
 
     return (
@@ -27,7 +29,7 @@ const HistorySection = ({ isVisible, isBottomSheetExpanded, completedWorkouts })
             renderItem={renderWorkout}
             contentContainerStyle={[styles.scrollable_ctnr, !isVisible && styles.hidden]}
             ListFooterComponent={<View style={{ height: isBottomSheetExpanded ? 100 : 400 }} />}
-            initialNumToRender={1}
+            initialNumToRender={3}
         />
     );
 };

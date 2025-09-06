@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useCallback, useEffect, useState } from "react";
 import { StyleSheet, View } from "react-native";
 import Footer from "../components/Footer";
 import ProfileBottomBottomSheet from "../components/5_Profile/ProfileBottom/ProfileBottomBottomSheet";
@@ -11,12 +11,32 @@ import WorkoutStats from "../components/5_Profile/ProfileTop/WorkoutStats";
 import createChat from "../../backend/messages/createChat";
 import makeID from "../../backend/helper/makeID";
 import arrayAppend from "../../backend/helper/firebase/arrayAppend";
+import FeedWorkoutViewerSheet from "../components/1_Feed/ViewWorkout/FeedWorkoutViewerSheet";
 
 export default function ViewProfile({ navigation, route }) {
     const user = route.params.user;
     const [profileUserData, setProfileUserData] = useState(null);
     const [posts, setPosts] = useState([]);
     const [selectedPanel, setSelectedPanel] = useState('posts');
+    const [viewerWorkout, setViewerWorkout] = useState(null);
+    const [viewerToggle, setViewerToggle] = useState(false);
+    const openViewer = useCallback((wk) => {
+        if (!wk) { setViewerWorkout(null); return; }
+        const fallback = {
+            wid: wk?.wid || wk?.id,
+            creatorUID: wk?.creatorUID || wk?.creatorUid || (user?.uid || ''),
+            created: wk?.created || wk?.createdAt || Date.now(),
+            exercises: Array.isArray(wk?.exercises) ? wk.exercises : [],
+            duration: wk?.duration,
+            volume: wk?.volume,
+            reps: wk?.reps,
+            PBs: wk?.PBs ?? wk?.pbs ?? 0,
+            templateName: wk?.templateName || wk?.template?.name,
+        };
+        setViewerWorkout({ ...fallback, ...wk });
+        setViewerToggle((t) => !t);
+    }, [user?.uid]);
+    const closeViewer = useCallback(() => setViewerWorkout(null), []);
 
     useEffect(() => {
         getFullUserData();
@@ -116,8 +136,19 @@ export default function ViewProfile({ navigation, route }) {
                 setSelectedPanel={setSelectedPanel}
                 posts={posts}
                 completedWorkouts={profileUserData && profileUserData.completedWorkouts}
-                navigation={navigation} />
+                navigation={navigation}
+                onOpenWorkout={openViewer}
+            />
             <Footer currentScreenName={'Profile'} navigation={navigation} />
+
+            {/* Workout viewer bottom sheet (viewing other's profile) */}
+            <FeedWorkoutViewerSheet
+                expandToggle={viewerToggle}
+                workout={viewerWorkout}
+                friendUid={profileUserData?.uid || user?.uid}
+                friendPfp={profileUserData?.image || profileUserData?.pfp || null}
+                onClose={closeViewer}
+            />
         </View>
     );
 }
