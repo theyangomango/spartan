@@ -1,5 +1,6 @@
-import React, { useCallback } from 'react';
-import { Dimensions, FlatList, StyleSheet, View, Text, ActivityIndicator, Pressable } from 'react-native';
+import React, { useCallback, useRef } from 'react';
+import { Dimensions, StyleSheet, View, Text, ActivityIndicator, Pressable } from 'react-native';
+import { BottomSheetFlatList } from '@gorhom/bottom-sheet';
 import { Ionicons } from '@expo/vector-icons';
 import PreviewPhoto from './PreviewPhoto';
 
@@ -7,7 +8,7 @@ const screenWidth = Dimensions.get('window').width;
 const NUM_COLUMNS = 3;
 const ITEM_SIZE = screenWidth / NUM_COLUMNS;
 
-const PreviewPhotosModal = ({ assets, images, selectedOrderMap, toggleSelect, loadMoreAssets, loading, hasNextPage, clearSelection }) => {
+const PreviewPhotosModal = ({ assets, images, selectedOrderMap, toggleSelect, loadMoreAssets, loading, hasNextPage, clearSelection, isLimited, onRequestMoreAccess }) => {
     const renderPhoto = useCallback(({ item }) => {
         const order = selectedOrderMap.get(item.uri) || 0;
         const selected = order > 0;
@@ -23,13 +24,32 @@ const PreviewPhotosModal = ({ assets, images, selectedOrderMap, toggleSelect, lo
     }, [selectedOrderMap, toggleSelect]);
 
     const keyExtractor = useCallback((item) => item.id, []);
-    const getItemLayout = useCallback((_, index) => {
-        const row = Math.floor(index / NUM_COLUMNS);
-        return { length: ITEM_SIZE, offset: row * ITEM_SIZE, index };
-    }, []);
+    // Remove getItemLayout for multi-column stability; RN can measure accurately here.
 
     const onEndReached = useCallback(() => {
         if (hasNextPage && !loading) loadMoreAssets();
+    }, [hasNextPage, loading, loadMoreAssets]);
+
+    const handleScroll = useCallback(({ nativeEvent }) => {
+        const { contentSize, layoutMeasurement, contentOffset } = nativeEvent;
+        const distanceFromBottom = contentSize.height - (layoutMeasurement.height + contentOffset.y);
+        if (distanceFromBottom < ITEM_SIZE * 3) {
+            if (hasNextPage && !loading) {
+                loadMoreAssets();
+            }
+        }
+    }, [hasNextPage, loading, loadMoreAssets]);
+
+    // Ensure the grid fills the viewport when expanded (even if onEndReached doesn't fire)
+    const listHeightRef = useRef(0);
+    const contentHeightRef = useRef(0);
+    const ensureFilled = useCallback(() => {
+        if (hasNextPage && !loading) {
+            const deficit = listHeightRef.current + ITEM_SIZE * 2 - contentHeightRef.current;
+            if (deficit > 0) {
+                loadMoreAssets();
+            }
+        }
     }, [hasNextPage, loading, loadMoreAssets]);
 
     return (
@@ -37,6 +57,12 @@ const PreviewPhotosModal = ({ assets, images, selectedOrderMap, toggleSelect, lo
             <View style={styles.headerRow}>
                 <Text style={styles.headerTitle}>All Photos</Text>
                 <View style={styles.headerRight}>
+                    {isLimited && (
+                        <Pressable onPress={onRequestMoreAccess} hitSlop={10} style={styles.allowMorePill} android_disableSound>
+                            <Ionicons name="images-outline" size={14} color="#2563EB" style={{ marginRight: 6 }} />
+                            <Text style={styles.allowMoreText}>Allow More Photos</Text>
+                        </Pressable>
+                    )}
                     {images.length > 0 && (
                         <>
                             <Pressable onPress={clearSelection} hitSlop={10} style={styles.clearPill} android_disableSound>
@@ -48,7 +74,7 @@ const PreviewPhotosModal = ({ assets, images, selectedOrderMap, toggleSelect, lo
                     )}
                 </View>
             </View>
-            <FlatList
+            <BottomSheetFlatList
                 data={assets}
                 renderItem={renderPhoto}
                 keyExtractor={keyExtractor}
@@ -59,7 +85,6 @@ const PreviewPhotosModal = ({ assets, images, selectedOrderMap, toggleSelect, lo
                 updateCellsBatchingPeriod={12}
                 windowSize={9}
                 removeClippedSubviews={false}
-                getItemLayout={getItemLayout}
                 shouldItemUpdate={(prev, next) => {
                     const uri = next.item?.uri;
                     const prevOrder = prev.extraData?.get(uri) || 0;
@@ -68,6 +93,16 @@ const PreviewPhotosModal = ({ assets, images, selectedOrderMap, toggleSelect, lo
                 }}
                 onEndReached={onEndReached}
                 onEndReachedThreshold={0.5}
+                onScroll={handleScroll}
+                scrollEventThrottle={16}
+                onLayout={(e) => {
+                    listHeightRef.current = e.nativeEvent.layout.height;
+                    ensureFilled();
+                }}
+                onContentSizeChange={(_, h) => {
+                    contentHeightRef.current = h;
+                    ensureFilled();
+                }}
                 ListFooterComponent={loading ? (
                     <View style={{ paddingVertical: 12 }}>
                         <ActivityIndicator color="#0699FF" />
@@ -106,6 +141,22 @@ const styles = StyleSheet.create({
     headerRight: {
         flexDirection: 'row',
         alignItems: 'center',
+    },
+    allowMorePill: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        paddingHorizontal: 10,
+        height: 28,
+        borderRadius: 14,
+        backgroundColor: '#E8F0FE',
+        marginRight: 10,
+        borderWidth: 1,
+        borderColor: '#BFDBFE',
+    },
+    allowMoreText: {
+        fontFamily: 'Mulish_700Bold',
+        fontSize: 12,
+        color: '#2563EB',
     },
     clearPill: {
         flexDirection: 'row',

@@ -1,18 +1,27 @@
-import React, { useCallback, useEffect, useMemo, useRef } from "react";
+import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { StyleSheet } from "react-native";
 import BottomSheet, { BottomSheetBackdrop } from "@gorhom/bottom-sheet";
 import PreviewPhotosModal from "./PreviewPhotosModal";
 
-const PreviewPhotosBottomSheet = ({ assets, images, selectedOrderMap, toggleSelect, loadMoreAssets, loading, hasNextPage, clearSelection }) => {
+const PreviewPhotosBottomSheet = ({ assets, images, selectedOrderMap, toggleSelect, loadMoreAssets, loading, hasNextPage, clearSelection, isLimited, onRequestMoreAccess }) => {
     const bottomSheetRef = useRef(null);
     const snapPoints = useMemo(() => ["35%", "94%"], []);
+    const [expanded, setExpanded] = useState(false);
 
     const handleSheetChanges = useCallback((index) => {
-        // Warm up by loading next page when fully expanded (single request).
-        if (index === 1 && hasNextPage && !loading) {
+        const isExpanded = index === 1;
+        setExpanded(isExpanded);
+    }, []);
+
+    // When expanded and list content can't fill the view yet, proactively paginate
+    useEffect(() => {
+        const MIN_ITEMS = 60; // ensure enough rows to enable scrolling
+        if (!expanded) return;
+        if (loading) return;
+        if (hasNextPage && assets.length < MIN_ITEMS) {
             loadMoreAssets();
         }
-    }, [hasNextPage, loading, loadMoreAssets]);
+    }, [expanded, loading, hasNextPage, assets.length, loadMoreAssets]);
 
     const renderBackdrop = useCallback(
         (props) => (
@@ -48,6 +57,8 @@ const PreviewPhotosBottomSheet = ({ assets, images, selectedOrderMap, toggleSele
                 loading={loading}
                 hasNextPage={hasNextPage}
                 clearSelection={clearSelection}
+                isLimited={isLimited}
+                onRequestMoreAccess={onRequestMoreAccess}
             />
         </BottomSheet>
     );

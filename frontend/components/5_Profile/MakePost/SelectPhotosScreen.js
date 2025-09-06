@@ -18,6 +18,7 @@ export default function SelectPhotosScreen({ navigation, route }) {
     const [endCursor, setEndCursor] = useState(null);
     const [hasNextPage, setHasNextPage] = useState(true);
     const [permissionResponse, requestPermission] = MediaLibrary.usePermissions();
+    const [limited, setLimited] = useState(false);
     const fetchingRef = useRef(false);
     const [activeIndex, setActiveIndex] = useState(0);
     const [cropVisible, setCropVisible] = useState(false);
@@ -35,6 +36,11 @@ export default function SelectPhotosScreen({ navigation, route }) {
             if (!permissionResponse || permissionResponse.status !== 'granted') {
                 await requestPermission();
             }
+            // Track iOS limited access so we can prompt user to allow more photos
+            try {
+                const perm = await MediaLibrary.getPermissionsAsync();
+                setLimited(perm?.accessPrivileges === 'limited');
+            } catch {}
             const res = await MediaLibrary.getAssetsAsync({
                 mediaType: ['photo'],
                 first: 120,
@@ -201,6 +207,18 @@ export default function SelectPhotosScreen({ navigation, route }) {
                 loading={loading}
                 hasNextPage={hasNextPage}
                 clearSelection={() => setImages([])}
+                isLimited={limited}
+                onRequestMoreAccess={async () => {
+                    try {
+                        await MediaLibrary.presentLimitedLibraryPickerAsync();
+                    } catch {}
+                    // Re-evaluate permissions and refetch assets
+                    try {
+                        const perm = await MediaLibrary.getPermissionsAsync();
+                        setLimited(perm?.accessPrivileges === 'limited');
+                    } catch {}
+                    getInitialAssets();
+                }}
             />
 
             <ImageCropperModal
