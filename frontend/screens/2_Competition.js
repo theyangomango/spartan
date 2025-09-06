@@ -239,7 +239,7 @@ export default function Competition({ navigation }) {
             if (activeComparison) {
                 setUserList(computeTribeRanking(tribeUsers, activeComparison));
             } else {
-                setUserList(rankUsers(tribeUsers, comparedExercise));
+                setUserList(rankUsers(tribeUsers, comparedExercise, comparedMetric));
             }
             return;
         }
@@ -248,11 +248,11 @@ export default function Competition({ navigation }) {
         if (scope === "All Followers") {
             const followersSet = new Set((global.userData?.following || []).map((u) => u.uid));
             const base = all.filter((usr) => usr?.uid === global.userData?.uid || followersSet.has(usr?.uid));
-            setUserList(rankUsers(base, comparedExercise));
+            setUserList(rankUsers(base, comparedExercise, comparedMetric));
         } else {
-            setUserList(rankUsers(all, comparedExercise)); // Global
+            setUserList(rankUsers(all, comparedExercise, comparedMetric)); // Global
         }
-    }, [isCustomTribe, tribesHydrated, currentTribe, activeComparison, comparedExercise, scope]);
+    }, [isCustomTribe, tribesHydrated, currentTribe, activeComparison, comparedExercise, comparedMetric, scope]);
 
     // Run recompute ONLY when ready. Otherwise keep showing cached list.
     useEffect(() => {
