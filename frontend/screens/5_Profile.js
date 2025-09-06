@@ -1,10 +1,11 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import { SafeAreaView, StyleSheet, View } from "react-native";
 import ProfileHeader from "../components/5_Profile/ProfileTop/ProfileHeader";
 import ProfileInfo from "../components/5_Profile/ProfileTop/ProfileInfo";
 import ProfileRowButtons from "../components/5_Profile/ProfileTop/ProfileRowButtons";
 import WorkoutStats from "../components/5_Profile/ProfileTop/WorkoutStats";
 import readDoc from "../../backend/helper/firebase/readDoc";
+import readDocsByIds from "../../backend/helper/firebase/readDocsByIds";
 import EditProfileBottomSheet from "../components/5_Profile/EditProfile/EditProfileBottomSheet";
 // ⬇️ swap OUT the old ViewStatsBottomSheet
 // import ViewStatsBottomSheet from "../components/5_Profile/ViewStats/ViewStatsBottomSheet";
@@ -42,12 +43,39 @@ export default function Profile({ navigation }) {
     }, [navigation]);
 
     async function getPosts() {
-        let db_posts = [];
-        for (const pid of userData.posts) {
-            let postData = await readDoc("posts", pid);
-            db_posts.push(postData);
+        try {
+            const ids = Array.isArray(userData.posts) ? userData.posts : [];
+            const n = ids.length;
+            if (!n) { setPosts([]); return; }
+
+            // Always stream results into a buffer in original order
+            const buffer = new Array(n);
+            setPosts([]);
+
+            // Fetch first screenful ASAP using a single `in` query
+            const firstChunk = ids.slice(0, 10);
+            const tail = ids.slice(10);
+
+            const firstDocs = await readDocsByIds('posts', firstChunk);
+            firstDocs.forEach((doc, i) => { if (doc && !doc.pid) doc.pid = firstChunk[i]; buffer[i] = doc; });
+            setPosts(buffer.filter(Boolean));
+
+            // Fetch the remainder concurrently in 10s; update as chunks return
+            const promises = [];
+            for (let i = 0; i < tail.length; i += 10) {
+                const group = tail.slice(i, i + 10);
+                const startIndex = 10 + i;
+                promises.push(
+                    readDocsByIds('posts', group).then((docs) => {
+                        docs.forEach((doc, j) => { const id = group[j]; if (doc && !doc.pid) doc.pid = id; buffer[startIndex + j] = doc; });
+                        setPosts(buffer.filter(Boolean));
+                    })
+                );
+            }
+            await Promise.all(promises);
+        } catch (e) {
+            // keep existing posts on failure
         }
-        setPosts(db_posts);
     }
 
     function uploadPost() {
