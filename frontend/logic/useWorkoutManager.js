@@ -49,8 +49,10 @@ const sanitizeWorkout = (w) => {
     const exercises = Array.isArray(w.exercises)
         ? w.exercises.map((ex) => ({ ...ex, sets: normalizeSets(ex?.sets) }))
         : [];
+    // Strip ephemeral local-only flags
+    const { __justStarted, ...rest } = w;
     return {
-        ...w,
+        ...rest,
         created,
         exercises,
         volume: Number(w?.volume) || 0,
@@ -303,8 +305,12 @@ export default function useWorkoutManager({ uid, navigation, millisToHMS }) {
                         volume: 0, reps: 0, PBs: 0,
                     };
 
-                    try { useWorkoutStore.setState({ workout: newWorkout }); } catch {}
+                    // Mark local state as just-started so UI (e.g., reminder) can react once.
+                    // Do not persist this flag to Firestore.
+                    const localWorkout = { ...newWorkout, __justStarted: true };
+                    try { useWorkoutStore.setState({ workout: localWorkout }); } catch {}
                     setIsNewWorkoutVisible(true);
+                    try { global.__showWorkoutReminderForWid = wid; } catch {}
                     startTimer(created);
 
                     clearPersistDebounce();
@@ -570,11 +576,15 @@ export default function useWorkoutManager({ uid, navigation, millisToHMS }) {
                 tid: null,
                 volume: 0, reps: 0, PBs: 0,
             });
-
-            try { useWorkoutStore.setState({ workout: joined }); } catch {}
+            // Tag locally as just started/joined so UI can show reminder once.
+            const localJoined = { ...joined, __justStarted: true };
+            try { useWorkoutStore.setState({ workout: localJoined }); } catch {}
             setIsNewWorkoutVisible(true);
             // Start my local timer immediately so UI reflects joining without waiting for rehydrate
             startTimer(createdNow);
+
+            // Also set a global one-shot flag for safety (consumed by NewWorkoutModal)
+            try { global.__showWorkoutReminderForWid = String(wid); } catch {}
 
             try {
                 await setDoc(doc(db, "users", me), { currentWorkout: joined }, { merge: true });

@@ -440,22 +440,28 @@ const NewWorkoutModal = ({
         registerInviteHandler?.(handleInviteSelected);
     }, [registerInviteHandler, handleInviteSelected]);
 
-    // Show a gentle reminder when starting a new workout (once per wid)
+    // Show the reminder ONLY when a workout has been just started locally.
+    // We rely on useWorkoutManager tagging the local workout with `__justStarted: true`.
     useEffect(() => {
         try {
             if (!viewingSelfEffective) return;
             const wid = String(workout?.wid || "");
             if (!wid || reminderShownRef.current.has(wid)) return;
-            // consider fresh if created recently
-            const createdMs = typeof workout?.created === 'number' ? workout.created : (new Date(workout?.created || 0).getTime() || Date.now());
-            const isFresh = Date.now() - createdMs < 10 * 60 * 1000; // 10 minutes
-            if (isFresh) {
+
+            const shouldFromFlag = (typeof global !== 'undefined') && (global.__showWorkoutReminderForWid === wid);
+            const shouldFromLocal = !!workout?.__justStarted;
+            // Extra robustness: treat very recent creations as a just-started session
+            const createdMs = (typeof workout?.created === 'number') ? workout.created : (new Date(workout?.created || 0).getTime() || 0);
+            const isVeryRecent = createdMs && (Date.now() - createdMs < 45 * 1000);
+            if (shouldFromFlag || shouldFromLocal || isVeryRecent) {
+                // Mark as shown first to prevent double-scheduling on any re-render
                 reminderShownRef.current.add(wid);
-                const id = setTimeout(() => setReminderVisible(true), 200);
-                return () => clearTimeout(id);
+                setReminderVisible(true);
+                // Clear the non-persistent triggers without forcing a re-render cycle that could cancel show timing
+                try { if (shouldFromFlag) global.__showWorkoutReminderForWid = null; } catch { }
             }
         } catch { }
-    }, [viewingSelfEffective, workout?.wid]);
+    }, [viewingSelfEffective, workout?.wid, workout?.__justStarted, workout?.created]);
 
     // Focus handler from child set inputs: gently scroll the exercise into view
     const handleStatFocus = useCallback((exerciseIndex /*, setIndex */) => {
@@ -647,6 +653,7 @@ const NewWorkoutModal = ({
                 visible={reminderVisible}
                 transparent
                 animationType="fade"
+                onDismiss={() => setReminderVisible(false)}
                 onRequestClose={() => setReminderVisible(false)}
             >
                 <Pressable style={styles.modalOverlay} onPress={() => setReminderVisible(false)}>
