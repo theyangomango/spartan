@@ -204,7 +204,7 @@ export default function Workout({ navigation, route }) {
     const { top3, label: PREVIEW_LABEL } = usePodiumPreview(afterPaint);
 
     /* ---------- friends activity ---------- */
-    const { items: friendsActivity, refresh: refreshFriends } = useFriendsActivity(user, afterPaint);
+    const { items: friendsActivity, refresh: refreshFriends, loading: friendsLoading } = useFriendsActivity(user, afterPaint);
     const [friendsSheetVisible, setFriendsSheetVisible] = useState(false);
     const [friendsSheetToggle, setFriendsSheetToggle] = useState(false);
     const [focusFriendUid, setFocusFriendUid] = useState(null);
@@ -212,9 +212,12 @@ export default function Workout({ navigation, route }) {
     useEffect(() => { refreshFriends(); }, [refreshFriends]);
     useEffect(() => { if (friendsSheetVisible) refreshFriends(); }, [friendsSheetVisible, refreshFriends]);
 
-    const lastViewedAtMs =
-        (user?.friendsActivityLastViewedAt?.toMillis?.() ||
-            new Date(user?.friendsActivityLastViewedAt || 0).getTime()) || 0;
+    // Avoid "flash of new" before user doc loads by gating on user readiness.
+    const userLoaded = user != null; // useUserDoc returns null until first snapshot
+    const lastViewedAtMs = userLoaded
+        ? ((user?.friendsActivityLastViewedAt?.toMillis?.() ||
+            new Date(user?.friendsActivityLastViewedAt || 0).getTime()) || 0)
+        : Number.POSITIVE_INFINITY; // while loading, treat as already up-to-date so nothing appears new
 
     const itemTs = useCallback(
         (it) => Math.max(
@@ -239,14 +242,16 @@ export default function Workout({ navigation, route }) {
     }, []);
 
     const newCompletedItems = useMemo(() => {
+        if (!userLoaded) return [];
         const v = lastViewedAtMs || 0;
         const arr = Array.isArray(friendsActivity) ? friendsActivity : [];
         return arr.filter((it) => itemTs(it) > v && looksCompleted(it));
-    }, [friendsActivity, lastViewedAtMs, itemTs, looksCompleted]);
+    }, [userLoaded, friendsActivity, lastViewedAtMs, itemTs, looksCompleted]);
 
     /* ---------- LIVE FOLLOWING: always treat live as new ---------- */
     const liveNow = useLiveFollowing(user); // [{uid,pfp,pfpVersion,isLive:true,_ts}]
     const nonLiveNew = useMemo(() => {
+        if (!userLoaded) return [];
         const liveSet = new Set(liveNow.map((x) => x.uid));
         const uniq = [];
         (Array.isArray(newCompletedItems) ? newCompletedItems : []).forEach((it) => {
@@ -263,14 +268,29 @@ export default function Workout({ navigation, route }) {
         });
         uniq.sort((a, b) => (b._ts || 0) - (a._ts || 0));
         return uniq;
-    }, [newCompletedItems, liveNow, itemTs]);
+    }, [userLoaded, newCompletedItems, liveNow, itemTs]);
 
-    const stackUsers = useMemo(() => {
+    // Raw stack candidates
+    const rawStackUsers = useMemo(() => {
+        if (!userLoaded || friendsLoading) return [];
         const merged = [...liveNow, ...nonLiveNew];
         return merged.slice(0, 3);
-    }, [liveNow, nonLiveNew]);
+    }, [userLoaded, friendsLoading, liveNow, nonLiveNew]);
 
-    const hasAnyStack = stackUsers.length > 0;
+    // Debounce the visual swap-in to avoid brief flashes during initial fetch/settling
+    const [stackUsers, setStackUsers] = useState([]);
+    useEffect(() => {
+        let id;
+        if (rawStackUsers.length > 0) {
+            id = setTimeout(() => setStackUsers(rawStackUsers), 150);
+        } else {
+            // clear immediately to remove once definitively empty
+            setStackUsers([]);
+        }
+        return () => id && clearTimeout(id);
+    }, [rawStackUsers]);
+
+    const hasAnyStack = userLoaded && !friendsLoading && stackUsers.length > 0;
     const [notificationsBottomSheetExpandFlag, setNotificationsBottomSheetExpandFlag] = useState(false);
 
     /* ---------- Workout Manager (state + persistence + timer) ---------- */
