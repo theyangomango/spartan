@@ -1,6 +1,7 @@
 // components/3_Workout/NewWorkout/Tracking/ExerciseLog.js
 import React, { useState, useEffect, useRef, memo, useCallback } from "react";
 import { View, StyleSheet, Text, Pressable, Animated, Dimensions, LayoutAnimation, Platform, UIManager } from "react-native";
+import * as Haptics from "expo-haptics";
 import { MaterialCommunityIcons, Entypo } from "@expo/vector-icons";
 import RNBounceable from "@freakycoder/react-native-bounceable";
 import SetRow from "./SetRow";
@@ -184,10 +185,15 @@ function ExerciseLog({
         // optional guard (keep your rule)
         if (!row.isDone && (isNaN(row.weight) || isNaN(row.reps))) return;
         const next = cur.slice();
-        next[idx] = { ...row, isDone: !row.isDone };
+        const toggledDone = !row.isDone;
+        next[idx] = { ...row, isDone: toggledDone };
         setDraft(next);
         // immediate sync feels better for done/undone (still one update)
         scheduleSync(next);
+        // Light haptic feedback only when completing a set
+        if (toggledDone) {
+            try { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light); } catch {}
+        }
     }, [scheduleSync]);
 
     return (
