@@ -19,12 +19,27 @@ const metricLabel = (m) => (m === '1RM' ? '1RM (Adj)' : m);
 const { width } = Dimensions.get("window");
 
 // palette tweaks
-const BLUE_BG = "#F1F6FF";         // lighter card bg (was #E8F0FF)
-const BLUE_ICON_BG = "#E3EDFF";    // lighter icon pill (was #D6E4FF)
-const BLUE_TEXT = "#5794fde3";       // slightly lighter primary blue (was #2A65D9)
-const BLUE_PRIMARY = "rgba(105, 180, 242, 1)";    // lighter save button (was #59AAEE)
+const BLUE_BG = "#F1F6FF";         // kept for pills in editor
+const BLUE_ICON_BG = "#E3EDFF";    // kept for editor accents
+const BLUE_TEXT = "#5794fde3";     // kept for editor accents
+const BLUE_PRIMARY = "rgba(105, 180, 242, 1)";    // save button
 const GOLD = "#f6b00060";
 const GOLD_TEXT = "#2F2500";
+
+// neutral card palette
+const CARD_BG = "#FFFFFF";
+const CARD_BORDER = "#E6EEF6";
+const ICON_BG_NEUTRAL = "#F1F5F9";
+const SUBTEXT = "#64748B";
+
+// soft accents per exercise (deterministic by name)
+const ACCENTS = ["#2D9EFF", "#F59E0B", "#10B981", "#EF4444", "#8B5CF6", "#06B6D4"];
+const pickAccent = (name = "") => {
+    const str = String(name);
+    let h = 0;
+    for (let i = 0; i < str.length; i++) h = (h * 31 + str.charCodeAt(i)) >>> 0;
+    return ACCENTS[h % ACCENTS.length];
+};
 
 export default function TribeComparisonModal({ visible, onClose, initialList = [], onSaveList }) {
     const [items, setItems] = useState(() => sanitize(initialList));
@@ -75,30 +90,35 @@ export default function TribeComparisonModal({ visible, onClose, initialList = [
                             <FlatList
                                 data={items}
                                 keyExtractor={(_, i) => `cmp-${i}`}
-                                renderItem={({ item, index }) => (
-                                    <TouchableOpacity
-                                        activeOpacity={0.9}
-                                        onPress={() => startEdit(index)}
-                                        style={styles.itemCard}
-                                    >
-                                        <View style={styles.itemIconPill}>
-                                            <Ionicons name="trophy" size={18} color={BLUE_TEXT} />
-                                        </View>
-                                        <View style={{ flex: 1, marginRight: 8 }}>
-                                            {/* line 1: exercise */}
-                                            <Text style={styles.itemTitle} numberOfLines={1}>
-                                                {item.exercise}
-                                            </Text>
-                                            {/* line 2: metric + per-lb */}
-                                            <Text style={styles.itemMeta} numberOfLines={1}>
-                                                {metricLabel(item.metric)}{item.normalizeByBodyweight ? " • per lb" : ""}
-                                            </Text>
-                                        </View>
-                                        <TouchableOpacity onPress={() => deleteItem(index)} hitSlop={10} style={{ padding: 6 }}>
-                                            <Ionicons name="trash-outline" size={18} color="#B00020" />
+                                renderItem={({ item, index }) => {
+                                    const ACC = pickAccent(item?.exercise);
+                                    return (
+                                        <TouchableOpacity
+                                            activeOpacity={0.9}
+                                            onPress={() => startEdit(index)}
+                                            style={styles.itemCard}
+                                        >
+                                            {/* Accent bar */}
+                                            <View style={[styles.itemAccent, { backgroundColor: ACC }]} />
+                                            <View style={[styles.itemIconPill, { backgroundColor: ICON_BG_NEUTRAL }]}>
+                                                <Ionicons name="trophy" size={18} color={ACC} />
+                                            </View>
+                                            <View style={{ flex: 1, marginRight: 8 }}>
+                                                {/* line 1: exercise */}
+                                                <Text style={styles.itemTitle} numberOfLines={1}>
+                                                    {item.exercise}
+                                                </Text>
+                                                {/* line 2: metric + per-lb */}
+                                                <Text style={styles.itemMeta} numberOfLines={1}>
+                                                    {metricLabel(item.metric)}{item.normalizeByBodyweight ? " • per lb" : ""}
+                                                </Text>
+                                            </View>
+                                            <TouchableOpacity onPress={() => deleteItem(index)} hitSlop={10} style={{ padding: 6 }}>
+                                                <Ionicons name="trash-outline" size={18} color="#B00020" />
+                                            </TouchableOpacity>
                                         </TouchableOpacity>
-                                    </TouchableOpacity>
-                                )}
+                                    );
+                                }}
                                 ListEmptyComponent={
                                     <View style={styles.emptyBox}>
                                         <Text style={styles.emptyText}>No comparisons yet</Text>
@@ -264,15 +284,32 @@ const styles = StyleSheet.create({
     },
     title: { fontFamily: "Outfit_700Bold", fontSize: 18, color: "#111" },
 
-    // modern blue cards
+    // modern neutral cards
     itemCard: {
         flexDirection: "row",
         alignItems: "center",
         paddingVertical: 12,
         paddingHorizontal: 10,
-        backgroundColor: BLUE_BG,
+        backgroundColor: CARD_BG,
         borderRadius: 14,
         marginBottom: 8,
+        borderWidth: StyleSheet.hairlineWidth,
+        borderColor: CARD_BORDER,
+        shadowColor: "#000",
+        shadowOpacity: 0.04,
+        shadowRadius: 6,
+        shadowOffset: { width: 0, height: 2 },
+        elevation: 1,
+        position: "relative",
+    },
+    itemAccent: {
+        position: "absolute",
+        left: 0,
+        top: 0,
+        bottom: 0,
+        width: 3,
+        borderTopLeftRadius: 14,
+        borderBottomLeftRadius: 14,
     },
     itemIconPill: {
         width: 30,
@@ -280,11 +317,11 @@ const styles = StyleSheet.create({
         borderRadius: 15,
         alignItems: "center",
         justifyContent: "center",
-        backgroundColor: BLUE_ICON_BG,
+        backgroundColor: ICON_BG_NEUTRAL,
         marginRight: 10,
     },
     itemTitle: { fontFamily: "Outfit_700Bold", fontSize: 14, color: "#111" },
-    itemMeta: { fontFamily: "Outfit_600SemiBold", fontSize: 12.5, color: BLUE_TEXT, marginTop: 2 },
+    itemMeta: { fontFamily: "Outfit_600SemiBold", fontSize: 12.5, color: SUBTEXT, marginTop: 2 },
 
     emptyBox: { alignItems: "center", paddingVertical: 20 },
     emptyText: { fontFamily: "Outfit_700Bold", color: "#333" },
