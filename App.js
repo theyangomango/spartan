@@ -34,6 +34,7 @@ import SearchUsers from './frontend/screens/SearchUsers';
 import Settings from './frontend/screens/Settings';
 import PrivacyPolicy from './frontend/screens/PrivacyPolicy';
 import TermsOfService from './frontend/screens/TermsOfService';
+import PrivateProfileInfo from './frontend/screens/PrivateProfileInfo';
 
 const NativeStack = createNativeStackNavigator();
 
@@ -304,6 +305,7 @@ export default function App() {
                     <RootStack.Screen name="Settings" component={Settings} />
                     <RootStack.Screen name="PrivacyPolicy" component={PrivacyPolicy} />
                     <RootStack.Screen name="TermsOfService" component={TermsOfService} />
+                    <RootStack.Screen name="PrivateProfileInfo" component={PrivateProfileInfo} />
 
                     {/* Creator */}
                     <RootStack.Screen name="SelectPhotos" component={SelectPhotosScreen} />

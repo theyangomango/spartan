@@ -3,11 +3,10 @@ import { SafeAreaView, View, Text, StyleSheet, ScrollView, Switch, TouchableOpac
 import { Ionicons } from '@expo/vector-icons';
 
 export default function Settings({ navigation }) {
-  const [privateProfile, setPrivateProfile] = useState(false);
   const [unitsLbs, setUnitsLbs] = useState(true);
   const [pushEnabled, setPushEnabled] = useState(true);
   const [soundsEnabled, setSoundsEnabled] = useState(true);
-  const [analytics, setAnalytics] = useState(true);
+  const [foodPrivate, setFoodPrivate] = useState(false);
 
   const goBack = useCallback(() => navigation.goBack(), [navigation]);
 
@@ -30,10 +29,9 @@ export default function Settings({ navigation }) {
 
       <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
         <Text style={styles.section}>Account</Text>
-        <Row label="Private profile" value={privateProfile} onValueChange={setPrivateProfile} />
         <Row label={`Units: ${unitsLbs ? 'lb' : 'kg'}`} value={unitsLbs} onValueChange={setUnitsLbs} />
-        <TouchableOpacity style={styles.link} onPress={() => navigation.navigate('Profile', { transition: 'slide-from-right' })}>
-          <Text style={styles.linkText}>Edit profile</Text>
+        <TouchableOpacity style={styles.link} onPress={() => navigation.navigate('PrivateProfileInfo', { transition: 'slide-from-right' })}>
+          <Text style={styles.linkText}>Private profile</Text>
           <Ionicons name="chevron-forward" size={18} color="#94A3B8" />
         </TouchableOpacity>
 
@@ -42,7 +40,7 @@ export default function Settings({ navigation }) {
         <Row label="Sound effects" value={soundsEnabled} onValueChange={setSoundsEnabled} />
 
         <Text style={styles.section}>Privacy</Text>
-        <Row label="Share anonymous analytics" value={analytics} onValueChange={setAnalytics} />
+        <Row label="Keep foods/macros private" value={foodPrivate} onValueChange={setFoodPrivate} />
         <TouchableOpacity style={styles.link} onPress={() => Alert.alert('Blocked users', 'This is where blocked users would appear.') }>
           <Text style={styles.linkText}>Blocked users</Text>
           <Ionicons name="chevron-forward" size={18} color="#94A3B8" />
@@ -85,7 +83,14 @@ const styles = StyleSheet.create({
   iconBtn: { padding: 6, width: 40 },
   title: { fontFamily: 'Outfit_700Bold', fontSize: 18, color: '#111827' },
   content: { paddingHorizontal: 16, paddingTop: 10 },
-  section: { marginTop: 14, marginBottom: 8, fontFamily: 'Outfit_700Bold', fontSize: 14, color: '#334155' },
+  section: {
+    marginTop: 18,
+    marginBottom: 10,
+    fontFamily: 'Outfit_700Bold',
+    fontSize: 16,
+    color: '#0F172A',
+    letterSpacing: 0.3,
+  },
   row: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingVertical: 12, borderBottomWidth: StyleSheet.hairlineWidth, borderColor: '#E5E7EB' },
   rowLabel: { fontFamily: 'Outfit_500Medium', fontSize: 14, color: '#0F172A' },
   link: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingVertical: 12, borderBottomWidth: StyleSheet.hairlineWidth, borderColor: '#E5E7EB' },
