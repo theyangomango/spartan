@@ -40,9 +40,8 @@ const NewWorkoutBottomSheet = ({
         []
     );
 
-    // Guard against stale onClose firing after we already reopened
-    const desiredVisibleRef = useRef(isVisible);
-    useEffect(() => { desiredVisibleRef.current = isVisible; }, [isVisible]);
+    // Timestamp of the last explicit open; helps ignore stale onClose from previous session
+    const lastOpenedAtRef = useRef(0);
 
     // Expand helper that tolerates ref not being ready on first render
     const expandSafely = useCallback(() => {
@@ -65,6 +64,7 @@ const NewWorkoutBottomSheet = ({
         if (isVisible) {
             // Always mount content immediately on open; fallback loader will render
             setMountContent(true);
+            try { lastOpenedAtRef.current = Date.now(); } catch {}
             expandSafely();
             // Bump key so FlashList and nested state reset cleanly between sessions
             setContentKey((k) => (Number.isFinite(k) ? k + 1 : 0));
@@ -124,8 +124,21 @@ const NewWorkoutBottomSheet = ({
             keyboardBlurBehavior="restore"
             enablePanDownToClose
             enableContentPanningGesture={false}
-            onClose={() => { if (!desiredVisibleRef.current) { try { setIsVisible(false); } catch {} } }}
-            onChange={(index) => { if (index < 0 && !desiredVisibleRef.current) { try { setIsVisible(false); } catch {} } }}
+            onClose={() => {
+                // Ignore a very-early close that belongs to the previous session
+                const now = Date.now();
+                const dt = now - (lastOpenedAtRef.current || 0);
+                if (dt < 150) return;
+                try { setIsVisible(false); } catch {}
+            }}
+            onChange={(index) => {
+                if (index < 0) {
+                    const now = Date.now();
+                    const dt = now - (lastOpenedAtRef.current || 0);
+                    if (dt < 150) return;
+                    try { setIsVisible(false); } catch {}
+                }
+            }}
             // GOLD handle when viewing a friend
             handleIndicatorStyle={{
                 backgroundColor: isViewingSelf ? HANDLE_SELF : HANDLE_FRIEND_ACCENT,
