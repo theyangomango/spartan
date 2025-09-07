@@ -161,8 +161,9 @@ const NewWorkoutModal = ({
         autoJoin: shouldAutoJoin,
         lockToViewingUid: lockFriend,
         suppressSelfStream: true,
-        // Enable when: explicitly toggled OR locked to friend OR currently viewing someone else
-        enabled: !!streamLive && (!!liveEnabled || lockFriend || !viewingSelfEffective),
+        // Enable when: explicitly toggled OR locked to friend. We avoid referencing viewingSelfEffective here
+        // to prevent TDZ issues and keep logic simple; spectating flows call setLiveEnabled(true) via menu open.
+        enabled: !!streamLive && (!!liveEnabled || lockFriend),
     });
 
     // Effective flags/content when locked
@@ -418,6 +419,19 @@ const NewWorkoutModal = ({
         try { onCheer?.(); } catch { }
     }, [friendOngoing, handleCheerPress, onCheer]);
 
+    // Back behavior:
+    // - If parent provided onPressBack (e.g., feed viewer), call it.
+    // - Otherwise, when spectating inside the workout modal, switch back to self view.
+    const handleBack = useCallback(() => {
+        if (onPressBack) { try { onPressBack(); } catch {} return; }
+        if (!viewingSelfEffective) {
+            try { LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut); } catch {}
+            const my = String(meUid || "");
+            setViewing(my);
+            onViewingChange?.(true);
+        }
+    }, [onPressBack, viewingSelfEffective, meUid, setViewing, onViewingChange]);
+
     // Listen for cheer events for this workout to trigger confetti when others cheer
     useEffect(() => {
         if (!streamLive) return;
@@ -548,7 +562,7 @@ const NewWorkoutModal = ({
                 <GroupHeader
                     viewingSelf={viewingSelfEffective}
                     overlayPfp={headerOverlayPfp}
-                    onOpenMenu={lockFriend ? undefined : openMenu}
+                    onOpenMenu={undefined}
                     onLongPressInvite={lockFriend ? undefined : (viewingSelfEffective ? showGroupModal : undefined)}
                     onFinish={viewingSelfEffective ? openFinishConfirm : undefined}
                     // Only show Cheer when the friend's session is ongoing. Provide stable handler to avoid re-renders.
@@ -559,13 +573,14 @@ const NewWorkoutModal = ({
                     onAddTime={viewingSelfEffective ? openRestModal : undefined}
                     timerRef={timerRef}
                     headerStyle={styles.headerInner}
-                    onBack={onPressBack}
+                    onBack={handleBack}
                     onPressPfp={!viewingSelfEffective ? onPressPfp : undefined}
-                    disableGroupPress={lockFriend || !(viewingSelfEffective || inActiveGroupEffective)}
+                    // When spectating (modes 3 & 4), disable group press to keep UI identical
+                    disableGroupPress={lockFriend || !viewingSelfEffective}
                     inActiveGroup={inActiveGroupEffective}
-                    // Place PFP on the left whenever not actively participating in this workout
-                    pfpOnLeft={!viewingSelfEffective && !meIsMember}
-                    // When user opens group menu, flip on live streaming first
+                    // Place PFP on the left whenever spectating (modes 2/3/4)
+                    pfpOnLeft={!viewingSelfEffective}
+                    // When user opens group menu, flip on live streaming first (and open)
                     onOpenMenu={() => { setLiveEnabled(true); try { openMenu(); } catch {} }}
                     onLongPressInvite={() => { setLiveEnabled(true); try { showGroupModal?.(); } catch {} }}
                 />

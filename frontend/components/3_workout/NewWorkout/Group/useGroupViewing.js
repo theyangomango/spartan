@@ -37,6 +37,8 @@ export function useGroupViewing({
     const [members, setMembers] = useState([]); // [uid...]
     const [participants, setParticipants] = useState([]); // [{ uid, handle, image, pfpVersion, updatedAt }]
     const [viewingUid, setViewingUid] = useState(initViewingUid || meUid || null);
+    // Grace window to avoid snapping back immediately after a manual selection
+    const blockSnapBackUntilRef = useRef(0);
 
     const viewingSelf = viewingUid && meUid && String(viewingUid) === String(meUid);
 
@@ -63,10 +65,8 @@ export function useGroupViewing({
             const norm = arr.map(String);
             setMembers(norm);
 
-            // If currently viewing someone who is not a member anymore, jump back to me
-            if (viewingUid && !norm.includes(String(viewingUid)) && meUid) {
-                setViewingUid(String(meUid));
-            }
+            // Do not immediately force jump based on members alone; rely on participants guard below.
+            // Participants stream reflects both presence and membership merges.
 
             // If joining is enabled and we aren't in, add us to members (idempotent)
             if (autoJoin && meUid && norm && !norm.includes(String(meUid)) && !joinedOnceRef.current) {
@@ -212,20 +212,25 @@ export function useGroupViewing({
     }, [viewingUid, suppressSelfStream, meUid, enabled]);
 
     // --- HARD GUARD 1: if the currently viewed user's currentWorkout is missing or mismatched, jump back to me
+    // Skip this guard while we are still waiting for the selected friend's snapshot to arrive.
     useEffect(() => {
         if (!enabled) return;
         if (!wid || viewingSelf || lockToViewingUid) return;
+        if (Date.now() < blockSnapBackUntilRef.current) return; // temporary grace
+        if (waitingFriend) return; // allow a grace window while fetching friend state
         const currWid = String(activeWorkout?.wid || "");
         const targetWid = String(wid || "");
         if (!activeWorkout || !currWid || currWid !== targetWid) {
             if (meUid) setViewingUid(String(meUid));
         }
-    }, [wid, activeWorkout, viewingSelf, meUid, lockToViewingUid, enabled]);
+    }, [wid, activeWorkout, viewingSelf, meUid, lockToViewingUid, enabled, waitingFriend]);
 
     // --- HARD GUARD 2: if the viewed uid drops out of participants (left/cancelled), jump back to me
     useEffect(() => {
         if (!enabled) return;
         if (lockToViewingUid) return;
+        if (Date.now() < blockSnapBackUntilRef.current) return; // temporary grace
+        if (waitingFriend) return; // avoid races while switching view
         if (!participants || !participants.length) return;
         const vu = String(viewingUid || "");
         if (!vu) return;
@@ -233,11 +238,14 @@ export function useGroupViewing({
         if (!present && meUid) {
             setViewingUid(String(meUid));
         }
-    }, [participants, viewingUid, meUid, lockToViewingUid, enabled]);
+    }, [participants, viewingUid, meUid, lockToViewingUid, enabled, waitingFriend]);
 
     const friendDoneDerived = useMemo(() => 0, [activeWorkout]);
 
     const setViewing = useCallback((uid) => {
+        try {
+            blockSnapBackUntilRef.current = Date.now() + 2000; // 2s grace after manual select
+        } catch {}
         setViewingUid(uid);
         closeMenu();
     }, [closeMenu]);

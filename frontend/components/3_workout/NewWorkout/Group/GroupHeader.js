@@ -57,9 +57,9 @@ const GroupHeader = ({
     // This fixes the initial render showing a default/placeholder when the async hook resolves.
     const pfpToShow = normalizeUri(overlayPfp) || lastGoodPfpRef.current;
 
-    // Show timer on the left only when viewing self, or when in an active group AND we are actively participating
-    // If pfpOnLeft is true, we prefer showing the back chevron + PFP instead of the timer tile.
-    const showTimerLeft = viewingSelf || (inActiveGroup && !pfpOnLeft);
+    // Show timer on the left only when viewing self. When spectating (any case),
+    // UI should match spectating mode with a back chevron (modes 3 & 4).
+    const showTimerLeft = !!viewingSelf;
 
     // Wrap press handlers with haptics
     const withHaptics = (fn) => () => { try { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Heavy); } catch {} finally { try { fn?.(); } catch {} } };
