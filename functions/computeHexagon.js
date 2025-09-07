@@ -73,7 +73,7 @@ function looksLegacy(hex) {
   } catch { return false; }
 }
 
-function computeHexagonFromStats(statsExercises = {}, prevHexagon = {}, trainedExerciseNames = []) {
+function computeHexagonFromStats(statsExercises = {}, prevHexagon = {}, trainedExerciseNames = [], user = {}) {
   const trainedGroups = new Set();
   (Array.isArray(trainedExerciseNames)?trainedExerciseNames:[]).forEach((nm)=>{
     const meta = inferMetaByName(nm) || {};
@@ -103,9 +103,11 @@ function computeHexagonFromStats(statsExercises = {}, prevHexagon = {}, trainedE
       }
     }
     const [eq1rm] = normalizeEquipment(exName, meta.equipment, best);
+    const fam = familyAnchorFor(exName, baseGroup);
+    const famAnchor = Math.max(1, Number(fam.anchor || GROUP_WR[baseGroup] || 200));
     const dist = baseGroup === 'full' ? FULL_BODY_DIST : { [baseGroup]: 1 };
     for (const [g,f] of Object.entries(dist)) {
-      if (!GROUP_KEYS.includes(g)) continue; bestEq1RM[g] = Math.max(bestEq1RM[g], eq1rm * (f||1));
+      if (!GROUP_KEYS.includes(g)) continue; const pct = (eq1rm / famAnchor) * 100 * (f||1); bestEq1RM[g] = Math.max(bestEq1RM[g], pct);
     }
 
     const timeline = Array.isArray(entry.progress1RM) ? entry.progress1RM : [];
@@ -135,7 +137,7 @@ function computeHexagonFromStats(statsExercises = {}, prevHexagon = {}, trainedE
   const scores = { shoulders:0, chest:0, arms:0, legs:0, back:0, abs:0 };
   const decayFactors = {};
   for (const g of GROUP_KEYS) {
-    const sNorm = clamp(Math.pow((bestEq1RM[g] || 0) / Math.max(1, NORM_1RM[g]||200), 0.9) * 100, 0, 100);
+    const sNorm = clamp(bestEq1RM[g] || 0, 0, 100);
     const wNorm = clamp(Math.sqrt(Math.max(0, vol30[g]||0) / Math.max(1, NORM_VOL_30D[g]||10000)) * 100, 0, 100);
     const cNorm = clamp(((daysSet[g]||new Set()).size / CONSIST_TARGET_30D) * 100, 0, 100);
     const raw = 0.7*sNorm + 0.2*wNorm + 0.1*cNorm;
@@ -158,4 +160,3 @@ function computeHexagonFromStats(statsExercises = {}, prevHexagon = {}, trainedE
 }
 
 module.exports = { computeHexagonFromStats };
-

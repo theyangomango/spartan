@@ -103,15 +103,69 @@ function normalizeEquipment(name, equipment, weight) {
 // Distribution for full-body compounds
 const FULL_BODY_DIST = { legs: 0.35, back: 0.30, shoulders: 0.20, arms: 0.10, abs: 0.05, chest: 0.0 };
 
-// Normalization anchors (crude but reasonable defaults for 100 score)
-const NORM_1RM = {
-  chest: 315, // bench eq
-  shoulders: 185, // strict OHP eq
-  back: 455, // deadlift/row/pull-up eq
-  legs: 405, // squat/deadlift eq
-  arms: 135, // curl/CG bench proxy
-  abs: 180, // assumed heavy weighted core work eq
-};
+// Family/world-class anchors — 100 ~= world record level for that family (barbell-equivalent kg)
+const FAMILY_ANCHORS = [
+  // Chest
+  { fam: 'bench_barbell', group: 'chest', rx: /bench.*barbell|bench press \(barbell\)/i, anchor: 350 },
+  { fam: 'bench_incline', group: 'chest', rx: /incline.*bench/i, anchor: 300 },
+  { fam: 'bench_decline', group: 'chest', rx: /decline.*bench/i, anchor: 290 },
+  { fam: 'bench_dumbbell', group: 'chest', rx: /bench.*dumbbell|bench press \(dumbbell\)/i, anchor: 250 },
+  { fam: 'fly', group: 'chest', rx: /fly|pec deck/i, anchor: 120 },
+  { fam: 'dip', group: 'chest', rx: /dip/i, anchor: 220 },
+  { fam: 'pushup', group: 'chest', rx: /push-?up/i, anchor: 180 },
+
+  // Shoulders
+  { fam: 'ohp_barbell', group: 'shoulders', rx: /(overhead|military).*press|shoulder press \(barbell\)/i, anchor: 235 },
+  { fam: 'ohp_dumbbell', group: 'shoulders', rx: /shoulder press \(dumbbell\)|arnold press/i, anchor: 200 },
+  { fam: 'upright_row', group: 'shoulders', rx: /upright row/i, anchor: 140 },
+  { fam: 'shrug', group: 'shoulders', rx: /shrug/i, anchor: 400 },
+  { fam: 'lateral_raise', group: 'shoulders', rx: /lateral raise/i, anchor: 120 },
+  { fam: 'front_raise', group: 'shoulders', rx: /front raise/i, anchor: 130 },
+
+  // Back
+  { fam: 'deadlift', group: 'legs', rx: /deadlift(?!.*romanian|.*stiff|.*sumo)/i, anchor: 501 },
+  { fam: 'deadlift_variation', group: 'legs', rx: /(romanian|stiff|sumo).*deadlift|snatch pull|clean pull/i, anchor: 400 },
+  { fam: 'row_barbell', group: 'back', rx: /row \(barbell\)|bent-?over row \(barbell\)/i, anchor: 300 },
+  { fam: 'row_dumbbell', group: 'back', rx: /row \(dumbbell\)|one[- ]?arm row/i, anchor: 280 },
+  { fam: 'row_machine', group: 'back', rx: /seated row|t-?bar row|row \(machine\)|row \(cable\)/i, anchor: 280 },
+  { fam: 'pullup', group: 'back', rx: /pull-?up|chin-?up/i, anchor: 250 },
+  { fam: 'lat_pulldown', group: 'back', rx: /lat pulldown/i, anchor: 260 },
+  { fam: 'face_pull', group: 'back', rx: /face pull/i, anchor: 100 },
+
+  // Legs (non-deadlift)
+  { fam: 'squat_back', group: 'legs', rx: /back squat|squat \(barbell\)|zercher squat|front squat/i, anchor: 500 },
+  { fam: 'front_squat', group: 'legs', rx: /front squat/i, anchor: 350 },
+  { fam: 'leg_press', group: 'legs', rx: /leg press|hack squat/i, anchor: 1000 },
+  { fam: 'rdl', group: 'legs', rx: /romanian deadlift|stiff-?leg deadlift/i, anchor: 350 },
+  { fam: 'lunge', group: 'legs', rx: /lunge|split squat/i, anchor: 250 },
+  { fam: 'leg_extension', group: 'legs', rx: /leg extension/i, anchor: 200 },
+  { fam: 'leg_curl', group: 'legs', rx: /leg curl|hamstring curl/i, anchor: 180 },
+  { fam: 'calf_raise', group: 'legs', rx: /calf raise|seated calf/i, anchor: 500 },
+  { fam: 'glute_hinge', group: 'legs', rx: /hip thrust|glute-?ham|good morning/i, anchor: 350 },
+
+  // Arms
+  { fam: 'curl_barbell', group: 'arms', rx: /bicep.*curl \(barbell\)|barbell curl|curl \(barbell\)/i, anchor: 110 },
+  { fam: 'curl_dumbbell', group: 'arms', rx: /curl \(dumbbell\)|hammer curl|incline curl/i, anchor: 120 },
+  { fam: 'curl_machine', group: 'arms', rx: /preacher curl|curl \(machine\)/i, anchor: 100 },
+  { fam: 'tricep_extension', group: 'arms', rx: /tricep.*extension|skullcrusher|overhead extension/i, anchor: 120 },
+  { fam: 'cg_bench', group: 'arms', rx: /close-?grip bench/i, anchor: 300 },
+  { fam: 'forearms', group: 'arms', rx: /wrist curl|reverse wrist|wrist roller/i, anchor: 50 },
+
+  // Abs
+  { fam: 'cable_crunch', group: 'abs', rx: /crunch \(cable\)|cable.*crunch/i, anchor: 200 },
+  { fam: 'machine_abs', group: 'abs', rx: /ab.*machine|torso rotation|seated crunch/i, anchor: 180 },
+  { fam: 'bodyweight_abs', group: 'abs', rx: /sit-?up|crunch|leg raise|v-?up|russian twist|plank|side plank|ab wheel|rollout|twist/i, anchor: 160 },
+];
+
+// Fallback group anchors
+const GROUP_WR = { chest: 350, shoulders: 235, back: 501, legs: 500, arms: 120, abs: 200 };
+
+function familyAnchorFor(name, group) {
+  for (const f of FAMILY_ANCHORS) {
+    if (f.rx.test(name)) return { anchor: f.anchor, fam: f.fam, group: f.group || group };
+  }
+  return { anchor: GROUP_WR[group] || 200, fam: 'generic', group };
+}
 
 // 30-day volume anchors (weight*reps across last 30d)
 const NORM_VOL_30D = {
@@ -222,11 +276,15 @@ export default function computeHexagonStats({
       }
     }
     const [eq1rm] = normalizeEquipment(exName, meta?.equipment, best);
+    const fam = familyAnchorFor(exName, baseGroup);
+    const famAnchor = Math.max(1, Number(fam.anchor || GROUP_WR[baseGroup] || 200));
 
     const dist = baseGroup === "full" ? FULL_BODY_DIST : { [baseGroup]: 1 };
     Object.entries(dist).forEach(([g, f]) => {
       if (!GROUP_KEYS.includes(g)) return;
-      bestEq1RM[g] = Math.max(bestEq1RM[g], eq1rm * (f || 1));
+      // Track best normalized percent vs family anchor (0-100 scale)
+      const pct = (eq1rm / famAnchor) * 100 * (f || 1);
+      bestEq1RM[g] = Math.max(bestEq1RM[g], pct);
     });
 
     // Rolling 30-day volume accumulation per exercise day (use progress1RM timeline if present)
@@ -272,9 +330,8 @@ export default function computeHexagonStats({
   const decayFactors = {};
 
   GROUP_KEYS.forEach((g) => {
-    // Strength: compare to anchor with gentle compression (power 0.9)
-    const anchor = Math.max(1, NORM_1RM[g] || 200);
-    const sNorm = clamp(Math.pow((bestEq1RM[g] || 0) / anchor, 0.9) * 100, 0, 100);
+    // Strength already normalized to 0–100 vs family anchors
+    const sNorm = clamp(bestEq1RM[g] || 0, 0, 100);
     strengthScores[g] = sNorm;
 
     // Work capacity (30d volume): compress via sqrt to avoid domination
