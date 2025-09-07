@@ -23,6 +23,7 @@ export default function MacroGoalsSheet({
     goalForm,
     setGoalForm,
     onSave,
+    onSavePersonalInfo,
     onCancel,
     COLORS,
 }) {
@@ -373,13 +374,13 @@ export default function MacroGoalsSheet({
                             COLORS={COLORS}
                             onBack={fadeToGoals}
                             onSave={() => {
-                                // Compute, show placeholders, clear values, then return to Macro Goals
+                                // Persist personal info, compute placeholders, clear values, then return to Macro Goals
+                                try { onSavePersonalInfo?.(); } catch {}
                                 const rec = computeRecommendedMacros(goalForm);
                                 if (rec) setPlaceholderMacros(rec);
                                 setUsePlaceholderMacros(true);
                                 setGoalForm((s) => ({ ...s, calories: '', protein: '', carbs: '', fat: '' }));
                                 fadeToGoals();
-                                onSave?.();
                             }}
                         />
                     </Animated.View>

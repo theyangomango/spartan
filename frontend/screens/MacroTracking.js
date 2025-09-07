@@ -111,27 +111,44 @@ export default function MacroTracking({ navigation, route }) {
         const unsub = onSnapshot(ref, (snap) => {
             const data = snap.data() || {};
             const mg = data.macroGoals ?? data.macrosGoal; // keep legacy fallback
-            if (!mg) return;
+            if (mg) {
+                const next = {
+                    calories: Number(mg.calories) || 0,
+                    carbs: Number(mg.carbs) || 0,
+                    fat: Number(mg.fat) || 0,
+                    protein: Number(mg.protein) || 0,
+                };
+                setMacroGoals(next);
 
-            const next = {
-                calories: Number(mg.calories) || 0,
-                carbs: Number(mg.carbs) || 0,
-                fat: Number(mg.fat) || 0,
-                protein: Number(mg.protein) || 0,
-            };
-            setMacroGoals(next);
+                setGoalForm((s) => ({
+                    ...s,
+                    calories: s.calories === '' ? String(next.calories) : s.calories,
+                    carbs: s.carbs === '' ? String(next.carbs) : s.carbs,
+                    fat: s.fat === '' ? String(next.fat) : s.fat,
+                    protein: s.protein === '' ? String(next.protein) : s.protein,
+                }));
 
-            setGoalForm((s) => ({
-                ...s,
-                calories: s.calories === '' ? String(next.calories) : s.calories,
-                carbs: s.carbs === '' ? String(next.carbs) : s.carbs,
-                fat: s.fat === '' ? String(next.fat) : s.fat,
-                protein: s.protein === '' ? String(next.protein) : s.protein,
-            }));
+                try {
+                    global.userData = { ...(global.userData || {}), macroGoals: next };
+                } catch { }
+            }
 
+            // Also hydrate personal info if present (non-destructive for non-empty fields)
             try {
-                global.userData = { ...(global.userData || {}), macroGoals: next };
-            } catch { }
+                const pi = data.personalInfo || null;
+                if (pi) {
+                    setGoalForm((s) => ({
+                        ...s,
+                        gender: pi.gender ?? s.gender,
+                        activity: pi.activity ?? s.activity,
+                        goal: pi.goal ?? s.goal,
+                        weight: s.weight === '' && (pi.weight != null) ? String(pi.weight) : s.weight,
+                        heightFt: s.heightFt === '' && (pi.heightFt != null) ? String(pi.heightFt) : s.heightFt,
+                        heightIn: s.heightIn === '' && (pi.heightIn != null) ? String(pi.heightIn) : s.heightIn,
+                    }));
+                    try { global.userData = { ...(global.userData || {}), personalInfo: pi }; } catch {}
+                }
+            } catch {}
         });
 
         return () => unsub && unsub();
@@ -251,6 +268,37 @@ export default function MacroTracking({ navigation, route }) {
         closeGoalsSheet();
     };
 
+    // 🔒 Persist personal info (gender/weight/height/activity/goal) on Save & Calculate
+    const onSavePersonalInfo = async () => {
+        const uid = global?.userData?.uid || global?.userData?.id;
+        if (!uid) return;
+
+        const clamp = (s, min, max) => {
+            const n = parseInt(String(s || '0'), 10);
+            if (Number.isNaN(n)) return min;
+            return Math.max(min, Math.min(max, n));
+        };
+
+        const info = {
+            gender: String(goalForm.gender || 'male'),
+            activity: String(goalForm.activity || 'moderate'),
+            goal: String(goalForm.goal || 'maintain'),
+            weight: clamp(goalForm.weight, 0, 2000),
+            heightFt: clamp(goalForm.heightFt, 0, 8),
+            heightIn: clamp(goalForm.heightIn, 0, 11),
+        };
+
+        try {
+            await updateDoc(doc(db, 'users', uid), {
+                personalInfo: info,
+                updatedAt: serverTimestamp(),
+            });
+            try { global.userData = { ...(global.userData || {}), personalInfo: info }; } catch {}
+        } catch (e) {
+            console.log('Failed to save personal info:', e?.message || e);
+        }
+    };
+
     return (
         <GestureHandlerRootView style={{ flex: 1 }}>
             <View style={{ flex: 1 }}>
@@ -304,6 +352,7 @@ export default function MacroTracking({ navigation, route }) {
                     setGoalForm={setGoalForm}
                     onSave={onSaveGoals}
                     onCancel={closeGoalsSheet}
+                    onSavePersonalInfo={onSavePersonalInfo}
                     onOpenPersonalInfo={() => setPersonalSheetIndex(1)}
                     COLORS={COLORS}
                 />
@@ -314,7 +363,7 @@ export default function MacroTracking({ navigation, route }) {
                     goalForm={goalForm}
                     setGoalForm={setGoalForm}
                     onClose={() => setPersonalSheetIndex(-1)}
-                    onSave={() => setPersonalSheetIndex(-1)}
+                    onSave={() => { onSavePersonalInfo(); setPersonalSheetIndex(-1); }}
                     COLORS={COLORS}
                 />
 
