@@ -53,7 +53,10 @@ const HexagonalStats = ({ statsHexagon }) => {
 
     // Data polygon
     const dataPoints = data.map((val, i) => {
-        const r = radius * (Math.max(0, Math.min(val, maxValue)) / maxValue);
+        const normalized = Math.max(0, Math.min(val, maxValue)) / maxValue;
+        const minFill = 0.06; // ensure visible polygon even when value is 0
+        const t = normalized === 0 ? minFill : normalized;
+        const r = radius * t;
         return {
             x: centerX + r * Math.cos(angle * i - Math.PI / 2),
             y: centerY + r * Math.sin(angle * i - Math.PI / 2),

@@ -23,6 +23,9 @@ import arrayAppend from "../../backend/helper/firebase/arrayAppend";
 import useWorkoutStore from "../state/workoutStore";
 import makeID from "../../backend/helper/makeID";
 import calculate1RM from "../helper/calculate1RM";
+import computeHexagonStats from "./computeHexagonStats"; // retained for local fallback only
+import { functions } from "../../firebase.config";
+import { httpsCallable } from "firebase/functions";
 
 /* ---------------- helpers ---------------- */
 const toMillis = (v) => {
@@ -73,6 +76,8 @@ const filterOutUid = (arr, uidStr) =>
 export default function useWorkoutManager({ uid, navigation, millisToHMS }) {
     const [completedWorkout, setCompletedWorkout] = useState(null);
     const [isSummaryModalVisible, setIsSummaryModalVisible] = useState(false);
+    const pendingHeavyRef = useRef(null);
+    const kickedRef = useRef(false);
     const [isNewWorkoutVisible, setIsNewWorkoutVisible] = useState(false);
 
     /* ------------ timer ------------ */
@@ -99,6 +104,22 @@ export default function useWorkoutManager({ uid, navigation, millisToHMS }) {
         },
         [setTimerNow, stopTimer]
     );
+
+    const HEAVY_DELAY_MS = 900; // allow summary modal to animate and settle
+
+    // When the summary modal closes, run any pending heavy task
+    useEffect(() => {
+        if (!isSummaryModalVisible && pendingHeavyRef.current) {
+            const fn = pendingHeavyRef.current;
+            pendingHeavyRef.current = null;
+            try {
+                setTimeout(() => {
+                    try { InteractionManager.runAfterInteractions(fn); }
+                    catch { setTimeout(fn, 0); }
+                }, HEAVY_DELAY_MS);
+            } catch { /* ignore */ }
+        }
+    }, [isSummaryModalVisible]);
 
     /* ------------ persist currentWorkout (debounced) ------------ */
     const saveCurrentWorkoutDebouncedRef = useRef(null);
@@ -205,7 +226,11 @@ export default function useWorkoutManager({ uid, navigation, millisToHMS }) {
     const clearCurrentWorkoutLocally = useCallback(() => {
         try {
             global.isCurrentlyWorkingOut = false;
-            if (global?.userData) global.userData.currentWorkout = null;
+            if (global?.userData) {
+                global.userData.currentWorkout = null;
+                // Suppress brief Firestore rehydration of stale currentWorkout
+                try { global.__suppressCurrentWorkoutUntil = Date.now() + 15000; } catch {}
+            }
         } catch { }
         stopTimer();
         setIsNewWorkoutVisible(false);
@@ -397,74 +422,7 @@ export default function useWorkoutManager({ uid, navigation, millisToHMS }) {
                 const hasWork = cleanedExercises.length > 0 || totalVolume > 0 || totalReps > 0;
 
                 if (hasWork) {
-                    // 1) Update per-exercise stats
-                    try {
-                        const prevStats = (global?.userData?.statsExercises || {});
-                        const nextStats = { ...prevStats };
-                        const today = (() => {
-                            const d = new Date(); d.setHours(0, 0, 0, 0);
-                            return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
-                        })();
-                        for (const ex of cleanedExercises) {
-                            const name = String(ex?.name || '').trim();
-                            if (!name) continue;
-                            const entry = { ...(nextStats[name] || {}) };
-                            // Ensure arrays exist
-                            entry.sets = Array.isArray(entry.sets) ? entry.sets.slice() : [];
-                            entry.progress1RM = Array.isArray(entry.progress1RM) ? entry.progress1RM.slice() : [];
-
-                            // Accumulators
-                            const repsInc = (ex?.sets || []).reduce((acc, s) => acc + (Number(s?.reps) || 0), 0);
-                            const volInc = (ex?.sets || []).reduce((acc, s) => acc + (Number(s?.reps) || 0) * (Number(s?.weight) || 0), 0);
-                            entry['Reps'] = (Number(entry['Reps']) || 0) + repsInc;
-                            entry['Volume'] = (Number(entry['Volume']) || 0) + volInc;
-
-                            // Append raw set history for viewer/analytics
-                            for (const s of (ex?.sets || [])) {
-                                const r = Number(s?.reps) || 0;
-                                const w = Number(s?.weight) || 0;
-                                if (r > 0 && w > 0) entry.sets.push({ weight: w, reps: r, date: today, wid: currW.wid });
-                            }
-
-                            // Update 1RM / bestSet if improved in this workout
-                            let maxSet1RM = 0; let maxSet = null;
-                            for (const s of (ex?.sets || [])) {
-                                const r = Number(s?.reps) || 0; const w = Number(s?.weight) || 0;
-                                if (r > 0 && w > 0) {
-                                    const est = calculate1RM(w, r);
-                                    if (est > maxSet1RM) { maxSet1RM = est; maxSet = { weight: w, reps: r }; }
-                                }
-                            }
-                            const prevMax = Number(entry['1RM'] || 0);
-                            if (maxSet1RM > prevMax) {
-                                entry['1RM'] = maxSet1RM;
-                                if (maxSet) entry['bestSet'] = maxSet;
-                            }
-
-                            // Progress timeline per day
-                            const progress = entry.progress1RM;
-                            const last = progress.length ? progress[progress.length - 1] : null;
-                            if (last && last.date === today) {
-                                last['1RM'] = Math.max(Number(last['1RM'] || 0), maxSet1RM);
-                                last['volume'] = (Number(last['volume'] || 0) + volInc);
-                                progress[progress.length - 1] = last;
-                            } else {
-                                progress.push({ date: today, '1RM': maxSet1RM || (Number(entry['1RM']) || 0), volume: volInc });
-                            }
-
-                            nextStats[name] = entry;
-                        }
-                        // Persist and keep local cache in sync (best-effort)
-                        if (uid) {
-                            try { await fsUpdateDoc(doc(db, 'users', uid), { statsExercises: nextStats }); }
-                            catch { await updateDoc('users', uid, { statsExercises: nextStats }); }
-                        }
-                        try { if (global?.userData) global.userData.statsExercises = nextStats; } catch {}
-                    } catch (e) {
-                        console.log('update statsExercises (Reps/Volume) error', e?.message || e);
-                    }
-
-                    // 2) Push completed workout locally + UI
+                    // 1) Push completed workout locally + UI (make UI snappy first)
                     try {
                         const arr = Array.isArray(global?.userData?.completedWorkouts) ? [...global.userData.completedWorkouts] : [];
                         arr.push(completed);
@@ -478,6 +436,8 @@ export default function useWorkoutManager({ uid, navigation, millisToHMS }) {
 
                     setCompletedWorkout(completed);
                     setIsSummaryModalVisible(true);
+                    // Clear local immediately so header/footer and store reset without waiting
+                    clearCurrentWorkoutLocally();
 
                     // Publish a pulse for ActivityChips (non-blocking)
                     try {
@@ -499,21 +459,19 @@ export default function useWorkoutManager({ uid, navigation, millisToHMS }) {
                         // best-effort; do not block finish flow
                     }
 
-                    // 3) Persist to the user's completedWorkouts array in Firestore
+                    // 3) Persist to the user's completedWorkouts array in Firestore (background)
                     try {
                         if (uid) {
-                            await arrayAppend("users", uid, "completedWorkouts", completed);
+                            arrayAppend("users", uid, "completedWorkouts", completed).catch(() => {});
                         }
-                    } catch (e) {
-                        console.log("append completedWorkouts error", e);
-                    }
+                    } catch { }
 
-                    // 4) Increment user-level totals (best-effort)
+                    // 4) Increment user-level totals (background)
                     try {
                         if (uid) {
-                            await incrementDocValue('users', uid, 'statsTotalWorkouts', 1);
-                            await incrementDocValue('users', uid, 'statsTotalVolume', Number(completed?.volume || 0));
-                            await incrementDocValue('users', uid, 'statsTotalHours', Number(completed?.duration || 0) / 3600000);
+                            incrementDocValue('users', uid, 'statsTotalWorkouts', 1).catch(() => {});
+                            incrementDocValue('users', uid, 'statsTotalVolume', Number(completed?.volume || 0)).catch(() => {});
+                            incrementDocValue('users', uid, 'statsTotalHours', Number(completed?.duration || 0) / 3600000).catch(() => {});
                         }
                     } catch { }
 
@@ -523,13 +481,94 @@ export default function useWorkoutManager({ uid, navigation, millisToHMS }) {
                         if (global?.userData) global.userData.currentWorkouts = arr;
                     } catch { }
                 }
+
+                // Defer statsExercises patch + hexagon recompute after interactions to avoid blocking UI
+                try {
+                    const scheduleHeavy = () => {
+                        try {
+                            const prevStats = (global?.userData?.statsExercises || {});
+                            const today = (() => { const d = new Date(); d.setHours(0,0,0,0); return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`; })();
+                            const updateFields = {};
+                            const mergePayload = { statsExercises: {} };
+                            const namesTouched = new Set();
+
+                            for (const ex of (cleanedExercises || [])) {
+                                const name = String(ex?.name || '').trim();
+                                if (!name) continue;
+                                namesTouched.add(name);
+                                const entryPrev = prevStats?.[name] || {};
+                                const entry = { ...entryPrev };
+                                entry.sets = Array.isArray(entry.sets) ? entry.sets.slice() : [];
+                                entry.progress1RM = Array.isArray(entry.progress1RM) ? entry.progress1RM.slice() : [];
+
+                                const repsInc = (ex?.sets || []).reduce((acc, s) => acc + (Number(s?.reps) || 0), 0);
+                                const volInc = (ex?.sets || []).reduce((acc, s) => acc + (Number(s?.reps) || 0) * (Number(s?.weight) || 0), 0);
+                                entry['Reps'] = (Number(entry['Reps']) || 0) + repsInc;
+                                entry['Volume'] = (Number(entry['Volume']) || 0) + volInc;
+
+                                let maxSet1RM = Number(entry['1RM'] || 0);
+                                let bestSet = entry?.bestSet || null;
+                                for (const s of (ex?.sets || [])) {
+                                    const r = Number(s?.reps) || 0;
+                                    const w = Number(s?.weight) || 0;
+                                    if (r > 0 && w > 0) {
+                                        entry.sets.push({ weight: w, reps: r, date: today, wid: currW.wid });
+                                        const est = calculate1RM(w, r);
+                                        if (est > maxSet1RM) { maxSet1RM = est; bestSet = { weight: w, reps: r }; }
+                                    }
+                                }
+                                if (maxSet1RM > Number(entry['1RM'] || 0)) { entry['1RM'] = maxSet1RM; if (bestSet) entry['bestSet'] = bestSet; }
+
+                                const progress = entry.progress1RM;
+                                const last = progress.length ? progress[progress.length - 1] : null;
+                                if (last && last.date === today) {
+                                    last['1RM'] = Math.max(Number(last['1RM'] || 0), maxSet1RM);
+                                    last['volume'] = (Number(last['volume'] || 0) + volInc);
+                                    progress[progress.length - 1] = last;
+                                } else {
+                                    progress.push({ date: today, '1RM': maxSet1RM || (Number(entry['1RM']) || 0), volume: volInc });
+                                }
+
+                                updateFields[`statsExercises.${name}`] = entry;
+                                mergePayload.statsExercises[name] = entry;
+                            }
+
+                            try { if (global?.userData) global.userData.statsExercises = { ...(global?.userData?.statsExercises || {}), ...mergePayload.statsExercises }; } catch {}
+
+                            // Trigger backend Cloud Function to recompute hexagon (non-blocking)
+                            try {
+                                const fn = httpsCallable(functions, 'recomputeHexagon');
+                                fn({ uid, trainedExerciseNames: Array.from(namesTouched.values()) })
+                                  .then((res) => {
+                                      try {
+                                          const hx = res?.data?.statsHexagon;
+                                          if (hx && typeof hx === 'object' && global?.userData) global.userData.statsHexagon = hx;
+                                      } catch { }
+                                  })
+                                  .catch(() => {});
+                            } catch { }
+                        } catch (e) {
+                            console.log('finishWorkout heavy updates error', e?.message || e);
+                        }
+                    };
+
+                    // Immediately kick a minimal backend recompute shortly after summary opens
+                    // so the user can check stats without reload. Keep it fully async.
+                    if (!kickedRef.current) {
+                        kickedRef.current = true;
+                        setTimeout(() => {
+                            try { scheduleHeavy(); } catch { }
+                        }, 250);
+                    }
+                    // Also schedule a backup after close in case the app was backgrounded immediately
+                    pendingHeavyRef.current = kickedRef.current ? null : (() => { try { scheduleHeavy(); } catch { } });
+                } catch {}
             }
 
             const wid = String((useWorkoutStore.getState().workout?.wid) || "");
-            if (wid) await leaveWorkoutGroup(wid);
-
-            if (uid) await updateDoc("users", uid, { currentWorkout: null });
-            clearCurrentWorkoutLocally();
+            // Fire-and-forget backend cleanup
+            try { if (wid) leaveWorkoutGroup(wid).catch(() => {}); } catch {}
+            try { if (uid) updateDoc("users", uid, { currentWorkout: null }).catch(() => {}); } catch {}
         } catch (e) {
             console.log("finishWorkout error", e);
         }
@@ -599,6 +638,8 @@ export default function useWorkoutManager({ uid, navigation, millisToHMS }) {
 
     /* ------------ Rehydrate from Firestore user doc ------------ */
     useEffect(() => {
+        const suppressUntil = Number(global?.__suppressCurrentWorkoutUntil || 0);
+        if (Date.now() < suppressUntil) return; // ignore brief stale rehydrate
         const remote = sanitizeWorkout(global?.userData?.currentWorkout);
         if (!useWorkoutStore.getState().workout && remote && remote.created) {
             try { useWorkoutStore.setState({ workout: remote }); } catch {}

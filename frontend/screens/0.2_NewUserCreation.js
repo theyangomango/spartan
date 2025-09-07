@@ -130,7 +130,7 @@ const NewUserCreation = ({ navigation }) => {
                 savedPosts: [],
                 statsExercises: {},
                 statsHexagon: {
-                    overall: 69, abs: 33, legs: 76, chest: 54, back: 39, arms: 80, shoulders: 55
+                    overall: 0, abs: 0, legs: 0, chest: 0, back: 0, arms: 0, shoulders: 0
                 },
                 statsTotalHours: 0,
                 statsTotalVolume: 0,

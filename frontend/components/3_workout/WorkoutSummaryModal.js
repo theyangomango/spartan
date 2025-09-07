@@ -183,6 +183,10 @@ const WorkoutSummaryModal = ({ isVisible, workout, onClose, postWorkout }) => {
                         contentContainerStyle={{ paddingBottom: scaledSize(6) }}
                         showsVerticalScrollIndicator={false}
                         keyboardShouldPersistTaps="handled"
+                        initialNumToRender={12}
+                        maxToRenderPerBatch={12}
+                        windowSize={7}
+                        removeClippedSubviews
                     />
 
                     {/* Actions */}

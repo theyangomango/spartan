@@ -1,7 +1,9 @@
 // hooks/useUserDoc.js
 import { useEffect, useRef, useState } from "react";
-import { doc, onSnapshot } from "firebase/firestore";
+import { doc, onSnapshot, updateDoc as fsUpdateDoc, serverTimestamp } from "firebase/firestore";
 import { db } from "../../firebase.config";
+import updateDoc from "../../backend/helper/firebase/updateDoc";
+import computeHexagonStats from "../logic/computeHexagonStats";
 
 /**
  * Subscribes to users/{uid}, returns {user} and also writes into global.userData.
@@ -57,6 +59,27 @@ export default function useUserDoc(uid, options = {}) {
                 prevRef.current = cmp;
                 setUser(cmp);
             }
+
+            // Opportunistic hexagon refresh: if missing or stale, recompute in background.
+            try {
+                const lastAt = Number(data?.statsHexagonMeta?.updatedAt?.toMillis?.() || new Date(data?.statsHexagonMeta?.updatedAt || 0).getTime() || 0);
+                const ageMs = Date.now() - lastAt;
+                const needs = !data?.statsHexagon || ageMs > 6 * 3600 * 1000; // 6h
+                const can = !global.__hexagonComputeLock;
+                if (needs && can) {
+                    global.__hexagonComputeLock = true;
+                    const { statsHexagon: nextHex, lastTrained } = computeHexagonStats({
+                        statsExercises: data?.statsExercises || {},
+                        prevStatsHexagon: data?.statsHexagon || {},
+                        trainedExerciseNames: [],
+                    });
+                    const payload = { statsHexagon: nextHex, statsHexagonMeta: { lastTrainedByGroup: lastTrained, updatedAt: serverTimestamp() } };
+                    fsUpdateDoc(doc(db, 'users', uid), payload)
+                        .catch(() => updateDoc('users', uid, payload))
+                        .finally(() => { try { global.__hexagonComputeLock = false; } catch { } });
+                    try { global.userData.statsHexagon = nextHex; } catch {}
+                }
+            } catch { }
         });
         return () => unsub();
     }, [uid, ignoreKeys.join("|")]);

@@ -239,8 +239,11 @@ export default function Feed({ navigation, route }) {
         const unsub = onSnapshot(doc(db, "users", UID), (snap) => {
             userDataRef.current = snap.data();
             global.userData = userDataRef.current; // init of userData has global variable
-            // keep header in sync with current workout
-            setActiveWorkout(userDataRef.current?.currentWorkout || null);
+            // keep header in sync with current workout, but suppress briefly if we know we just cleared it locally
+            const killUntil = Number(global?.__suppressCurrentWorkoutUntil || 0);
+            const now = Date.now();
+            const cw = (now < killUntil) ? null : (userDataRef.current?.currentWorkout || null);
+            setActiveWorkout(cw);
         });
 
         return () => unsub();
