@@ -48,22 +48,32 @@ export default function UserStatsAfterWorkoutSheet({
   useEffect(() => {
     if (!visible) return;
     anim.setValue(0);
-    // Crescendo haptics: light -> medium -> heavy along the animation
-    const marks = { m20:false, m50:false, m80:false };
-    const sub = anim.addListener(({ value }) => {
-      try {
-        if (!marks.m20 && value >= 0.2) { marks.m20 = true; Haptics.impactAsync?.(Haptics.ImpactFeedbackStyle.Light); }
-        if (!marks.m50 && value >= 0.5) { marks.m50 = true; Haptics.impactAsync?.(Haptics.ImpactFeedbackStyle.Medium); }
-        if (!marks.m80 && value >= 0.8) { marks.m80 = true; Haptics.impactAsync?.(Haptics.ImpactFeedbackStyle.Heavy); }
-      } catch {}
-    });
-    // Initial kick
-    try { Haptics.impactAsync?.(Haptics.ImpactFeedbackStyle.Medium); } catch {}
-    Animated.timing(anim, { toValue: 1, duration: 350, easing: Easing.out(Easing.cubic), useNativeDriver: true }).start(() => {
-      try { Haptics.impactAsync?.(Haptics.ImpactFeedbackStyle.Heavy); } catch {}
-    });
-    return () => { try { anim.removeListener(sub); } catch {} };
-  }, [visible, toHexagon, anim]);
+
+    // Crescendo: a flurry of very short taps that grow in intensity
+    // Keep independent from fade so visuals stay instant; total ~520ms
+    const tids = [];
+    const push = (ms, fn) => { const id = setTimeout(() => { try { fn?.(); } catch {} }, ms); tids.push(id); };
+    // light flutter
+    push(0,   () => Haptics.selectionAsync?.());
+    push(60,  () => Haptics.selectionAsync?.());
+    push(120, () => Haptics.selectionAsync?.());
+    push(180, () => Haptics.selectionAsync?.());
+    // medium pulses
+    push(240, () => Haptics.impactAsync?.(Haptics.ImpactFeedbackStyle.Medium));
+    push(320, () => Haptics.impactAsync?.(Haptics.ImpactFeedbackStyle.Medium));
+    // heavy finishers
+    push(420, () => Haptics.impactAsync?.(Haptics.ImpactFeedbackStyle.Heavy));
+    push(520, () => Haptics.notificationAsync?.(Haptics.NotificationFeedbackType.Success));
+
+    Animated.timing(anim, {
+      toValue: 1,
+      duration: 120, // ultra-snappy fade for the polygon
+      easing: Easing.out(Easing.cubic),
+      useNativeDriver: true,
+    }).start();
+
+    return () => { tids.forEach((id) => clearTimeout(id)); };
+  }, [visible, anim]);
 
   // Clear any global primed values after the sheet is closed to prevent stale arrows next time
   useEffect(() => {
