@@ -36,14 +36,15 @@ const LeaderboardBottomSheet = ({ isVisible, setIsVisible, user, navigation }) =
     }, []);
 
     function toViewProfile() {
-        // bottomSheetRef.current.close();
+        const u = user || global?.userData;
+        if (!u) return;
         navigation.navigate('ViewProfile', {
             user: {
-                handle: user.handle,
-                name: user.name,
-                pfp: user.pfp,
-                uid: user.uid
-            }
+                handle: u.handle,
+                name: u.name,
+                pfp: u.pfp || u.image,
+                uid: u.uid,
+            },
         });
     }
 
@@ -57,9 +58,13 @@ const LeaderboardBottomSheet = ({ isVisible, setIsVisible, user, navigation }) =
             enablePanDownToClose
             onClose={() => setIsVisible(false)}
         >
-            {(user || global?.userData) && 
-                <UserStatsModal key={tick} user={global?.userData || user} toViewProfile={toViewProfile}/>
-            }
+            {(user || global?.userData) && (
+                <UserStatsModal
+                    key={tick}
+                    user={user || global?.userData}
+                    toViewProfile={toViewProfile}
+                />
+            )}
         </BottomSheet>
     );
 };
