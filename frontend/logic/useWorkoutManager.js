@@ -595,11 +595,11 @@ export default function useWorkoutManager({ uid, navigation, millisToHMS }) {
 
                     // Snapshot current hex so UI can animate change after summary closes
                     try { global.__hexChangeFrom = (global?.userData?.statsHexagon || {}); } catch {}
-                    // Kick off the stats delta + hexagon immediately (no need to wait for modal close)
-                    try { scheduleHeavy(); } catch {}
+                    // Defer heavy stats delta + hexagon until after the summary closes to avoid jank
+                    pendingHeavyRef.current = () => { try { scheduleHeavy(); } catch {} };
 
                     // After close: append raw set history (best-effort) with full isolation from UI
-                    pendingHeavyRef.current = () => {
+                    const appendSetsHistory = () => {
                         // append raw set history only
                         try {
                             const prevStats2 = (global?.userData?.statsExercises || {});
@@ -624,6 +624,9 @@ export default function useWorkoutManager({ uid, navigation, millisToHMS }) {
                             try { if (global?.userData) global.userData.statsExercises = { ...(global?.userData?.statsExercises || {}), ...mergePayloadFull.statsExercises }; } catch {}
                         } catch {}
                     };
+                    // Chain: first heavy stats delta, then append history
+                    const prevPending = pendingHeavyRef.current;
+                    pendingHeavyRef.current = () => { try { prevPending?.(); } catch {}; try { appendSetsHistory(); } catch {} };
                 } catch {}
             }
 

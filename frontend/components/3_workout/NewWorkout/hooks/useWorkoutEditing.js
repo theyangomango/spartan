@@ -32,32 +32,33 @@ export default function useWorkoutEditing({ workout, updateWorkout, viewingSelf 
     // UI helper for replace flow
     const [replaceIndex, setReplaceIndex] = useState(null);
 
-    /* ----------- single commit per animation frame (critical) ----------- */
+    /* ----------- micro-batched commit (reduces re-renders) ----------- */
     const pendingRef = useRef(null);  // last computed "next workout"
-    const rafRef = useRef(0);
+    const timerRef = useRef(0);
+    const MICRO_DELAY = 80; // ms; batches multiple quick edits (typing/toggles)
 
     const flush = useCallback(() => {
-        rafRef.current = 0;
+        timerRef.current = 0;
         const next = pendingRef.current;
         pendingRef.current = null;
         if (next) updateWorkoutRef.current(next);
     }, []);
 
-    /** Queue one update per frame. If producer returns the *same* object, skip. */
+    /** Queue an update in a short micro-batch window. If producer returns the *same* object, skip. */
     const commit = useCallback((producer) => {
         if (!viewingSelfRef.current) return; // block in read-only
         const current = workoutRef.current;
         const next = producer(current);
         if (!next || next === current) return; // nothing changed
         pendingRef.current = next; // only the latest wins
-        if (!rafRef.current) {
-            rafRef.current = requestAnimationFrame(flush);
+        if (!timerRef.current) {
+            timerRef.current = setTimeout(flush, MICRO_DELAY);
         }
     }, [flush]);
 
-    // cancel pending RAFrame on unmount
+    // cancel pending timer on unmount
     useEffect(() => () => {
-        if (rafRef.current) cancelAnimationFrame(rafRef.current);
+        if (timerRef.current) clearTimeout(timerRef.current);
     }, []);
 
     /* ------------------------------ actions ------------------------------ */
