@@ -79,6 +79,7 @@ export default function useWorkoutManager({ uid, navigation, millisToHMS }) {
     const [isSummaryModalVisible, setIsSummaryModalVisible] = useState(false);
     const pendingHeavyRef = useRef(null);
     const [isNewWorkoutVisible, setIsNewWorkoutVisible] = useState(false);
+    const lastCancelAtRef = useRef(0);
 
     /* ------------ timer ------------ */
     const timerRef = useRef("");
@@ -323,7 +324,13 @@ export default function useWorkoutManager({ uid, navigation, millisToHMS }) {
             if (!uid) { Alert.alert("Sign in required", "Please log in to start a workout."); return; }
 
             try {
-                if (!useWorkoutStore.getState().workout) {
+                const recentlyCancelled = (Date.now() - (lastCancelAtRef.current || 0)) < 2000;
+                const existing = useWorkoutStore.getState().workout;
+                if (!existing || recentlyCancelled) {
+                    if (recentlyCancelled) {
+                        // Make sure no stale state remains before creating the new workout
+                        try { useWorkoutStore.setState({ workout: null }); } catch {}
+                    }
                     global.isCurrentlyWorkingOut = true;
                     const wid = makeID();
                     const created = Date.now();
@@ -351,6 +358,7 @@ export default function useWorkoutManager({ uid, navigation, millisToHMS }) {
                     // Do not persist this flag to Firestore.
                     const localWorkout = { ...newWorkout, __justStarted: true };
                     try { useWorkoutStore.setState({ workout: localWorkout }); } catch {}
+                    // Open immediately; BottomSheet has a guard to ignore stale onClose from the last session.
                     setIsNewWorkoutVisible(true);
                     try { global.__showWorkoutReminderForWid = wid; } catch {}
                     startTimer(created);
@@ -378,6 +386,8 @@ export default function useWorkoutManager({ uid, navigation, millisToHMS }) {
 
     const cancelWorkout = useCallback(async () => {
         try {
+            // Mark cancel time to tolerate immediate re-start without races
+            try { lastCancelAtRef.current = Date.now(); } catch {}
             clearPersistDebounce();
 
             // capture now; we clear local state immediately after

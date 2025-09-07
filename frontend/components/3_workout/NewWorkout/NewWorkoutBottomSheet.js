@@ -40,7 +40,9 @@ const NewWorkoutBottomSheet = ({
         []
     );
 
-    // No stale-guard: keep parent visibility in sync on every close event.
+    // Guard against stale onClose firing after we already reopened
+    const desiredVisibleRef = useRef(isVisible);
+    useEffect(() => { desiredVisibleRef.current = isVisible; }, [isVisible]);
 
     // Expand helper that tolerates ref not being ready on first render
     const expandSafely = useCallback(() => {
@@ -122,8 +124,8 @@ const NewWorkoutBottomSheet = ({
             keyboardBlurBehavior="restore"
             enablePanDownToClose
             enableContentPanningGesture={false}
-            onClose={() => { try { setIsVisible(false); } catch {} }}
-            onChange={(index) => { if (index < 0) { try { setIsVisible(false); } catch {} } }}
+            onClose={() => { if (!desiredVisibleRef.current) { try { setIsVisible(false); } catch {} } }}
+            onChange={(index) => { if (index < 0 && !desiredVisibleRef.current) { try { setIsVisible(false); } catch {} } }}
             // GOLD handle when viewing a friend
             handleIndicatorStyle={{
                 backgroundColor: isViewingSelf ? HANDLE_SELF : HANDLE_FRIEND_ACCENT,
@@ -135,7 +137,7 @@ const NewWorkoutBottomSheet = ({
             {mountContent && (
                 effectiveWorkout ? (
                     <NewWorkoutModal
-                        key={`nw-${contentKey}`}
+                        key={`nw-${contentKey}-${String(effectiveWorkout?.wid || 'now')}`}
                         timerRef={timerRef}
                         workout={effectiveWorkout}
                         cancelWorkout={onCancelWorkout}

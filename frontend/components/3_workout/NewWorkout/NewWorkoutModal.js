@@ -312,11 +312,26 @@ const NewWorkoutModal = ({
     // Dimming logic:
     // - When Reminder Modal is visible: dim content
     // - Else, dim when not viewing your active workout (friend view or past self workout)
-    const isActiveSelf = viewingSelfEffective && !!myActiveWid && !!cardWid && myActiveWid === cardWid;
+    // - Edge case: immediately after starting a workout, global.currentWorkout may not be hydrated yet.
+    //   In that case, rely on the local prop (workout.__justStarted) to treat as active and avoid dimming.
+    const isActiveSelf = useMemo(() => {
+        if (!viewingSelfEffective) return false;
+        const widCard = String(cardWid || "");
+        if (!widCard) return false;
+        const myWid = String(myActiveWid || "");
+        if (myWid && myWid === widCard) return true;
+        // Fresh start path: parent passes local workout with __justStarted before Firestore write returns
+        if (workout && workout.__justStarted && String(workout.wid || "") === widCard) return true;
+        return false;
+    }, [viewingSelfEffective, myActiveWid, cardWid, workout?.__justStarted, workout?.wid]);
     const dimDueToContext = !isActiveSelf;
     const contentOpacity = reminderVisible ? 0.6 : (dimDueToContext ? 0.6 : 1);
 
     const friendWaiting = streamLive && !viewingSelfEffective && waitingFriend && !(baseWorkout?.exercises?.length);
+
+    // List data + emptiness flag (avoid inline recompute and allow conditional header/footer)
+    const exercisesData = useMemo(() => (Array.isArray(baseWorkout?.exercises) ? baseWorkout.exercises : []), [baseWorkout?.exercises]);
+    const isEmptyList = exercisesData.length === 0;
 
     // ===== PFPs (stable) =====
     const selfPfpVersion = global?.userData?.pfpVersion ?? 0;
@@ -562,7 +577,6 @@ const NewWorkoutModal = ({
                 <GroupHeader
                     viewingSelf={viewingSelfEffective}
                     overlayPfp={headerOverlayPfp}
-                    onOpenMenu={undefined}
                     onLongPressInvite={lockFriend ? undefined : (viewingSelfEffective ? showGroupModal : undefined)}
                     onFinish={viewingSelfEffective ? openFinishConfirm : undefined}
                     // Only show Cheer when the friend's session is ongoing. Provide stable handler to avoid re-renders.
@@ -597,7 +611,7 @@ const NewWorkoutModal = ({
                 <AnimatedFlashList
                     key={`wlist-${cardWid}`}
                     ref={listRef}
-                    data={Array.isArray(baseWorkout?.exercises) ? baseWorkout.exercises : []}
+                    data={exercisesData}
                     keyExtractor={(ex, i) => `${ex?.name || "ex"}-${i}`}
                     renderItem={({ item: ex, index: exerciseIndex }) => (
                         <ExerciseLog
@@ -615,10 +629,10 @@ const NewWorkoutModal = ({
                             onStatFocus={handleStatFocus}
                         />
                     )}
-                    ListHeaderComponent={(
+                    ListHeaderComponent={isEmptyList ? null : (
                         <ProgressBanner totalReps={totals.reps} totalVolume={totals.volume} personalBests={totals.PBs} />
                     )}
-                    ListFooterComponent={(
+                    ListFooterComponent={isEmptyList ? null : (
                         <>
                             {viewingSelfEffective && (
                                 <>
@@ -633,6 +647,23 @@ const NewWorkoutModal = ({
                             )}
                             <View style={{ height: scaledSize(250) + Math.max(0, keyboardHeight - scaledSize(40)) }} />
                         </>
+                    )}
+                    ListEmptyComponent={(
+                        <View style={{ backgroundColor: '#fff' }}>
+                            <ProgressBanner totalReps={totals.reps} totalVolume={totals.volume} personalBests={totals.PBs} />
+                            {viewingSelfEffective && (
+                                <>
+                                    <RNBounceable onPress={showSelectExerciseModal} style={styles.add_exercise_btn}>
+                                        <Text style={styles.add_exercise_text}>Add Exercises</Text>
+                                        <Weight size={scaledSize(22)} color="#5DBDFF" variant="Bold" />
+                                    </RNBounceable>
+                                    <RNBounceable onPress={confirmCancelWorkout} style={styles.cancel_btn}>
+                                        <Text style={styles.cancel_btn_text}>Cancel Workout</Text>
+                                    </RNBounceable>
+                                </>
+                            )}
+                            <View style={{ height: scaledSize(60) }} />
+                        </View>
                     )}
                     showsVerticalScrollIndicator={false}
                     scrollEventThrottle={16}
