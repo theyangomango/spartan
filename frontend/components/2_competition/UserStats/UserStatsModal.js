@@ -1,8 +1,9 @@
-import React, { useMemo } from "react";
+import React, { useMemo, useState } from "react";
 import { StyleSheet, View, Text, ScrollView, Pressable, Dimensions } from "react-native";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import FastImage from "react-native-fast-image";
 import HexagonalStats from "./HexagonalStats";
+import { exercises as EXERCISE_DEFS } from "../../3_Workout/NewWorkout/SelectExercise/EXERCISES";
 
 const { height: screenHeight } = Dimensions.get("window");
 const scale = screenHeight / 844; // iPhone 13 baseline
@@ -69,20 +70,66 @@ const bestTopSet = (exercise) => {
     return best;
 };
 
-const getExercisesSorted = (user) => {
+// Order sections by common body-part groupings
+const GROUP_ORDER = {
+    Chest: 0,
+    Back: 1,
+    Shoulders: 2,
+    Arms: 3,
+    Legs: 4,
+    Abs: 5,
+    "Full Body": 6,
+    Other: 7,
+};
+
+// Map exercise name -> muscle group once
+const NAME_TO_GROUP = (() => {
+    const map = new Map();
+    try {
+        (Array.isArray(EXERCISE_DEFS) ? EXERCISE_DEFS : []).forEach((e) => {
+            if (e?.name) map.set(String(e.name), String(e.muscleGroup || "Other") || "Other");
+        });
+    } catch {}
+    return map;
+})();
+
+const getExercisesGrouped = (user) => {
     const map = user?.statsExercises || {};
+    // Flatten, filter meaningful entries
     const entries = Object.entries(map)
         .filter(([, ex]) => (Array.isArray(ex?.sets) ? ex.sets.length > 0 : (ex?.["1RM"] || ex?.Volume)))
         .map(([name, ex]) => ({ name, exercise: ex }));
 
-    entries.sort((a, b) => {
+    // Group by muscle group using our lookup, fallback to 'Other'
+    const grouped = new Map();
+    for (const item of entries) {
+        const group = NAME_TO_GROUP.get(item.name) || "Other";
+        if (!grouped.has(group)) grouped.set(group, []);
+        grouped.get(group).push(item);
+    }
+
+    // Sort items within each group by total sets desc, then 1RM desc, then name A→Z
+    const sortItems = (a, b) => {
         const aSets = Array.isArray(a.exercise?.sets) ? a.exercise.sets.length : 0;
         const bSets = Array.isArray(b.exercise?.sets) ? b.exercise.sets.length : 0;
         if (bSets !== aSets) return bSets - aSets;
-        return estimate1RM(b.exercise) - estimate1RM(a.exercise);
-    });
+        const rmDiff = estimate1RM(b.exercise) - estimate1RM(a.exercise);
+        if (rmDiff !== 0) return rmDiff;
+        return String(a.name).localeCompare(String(b.name));
+    };
+    for (const [, list] of grouped) list.sort(sortItems);
 
-    return entries;
+    // Order groups by GROUP_ORDER then name
+    const orderedGroups = Array.from(grouped.entries())
+        .sort((a, b) => {
+            const ga = GROUP_ORDER[a[0]] ?? 999;
+            const gb = GROUP_ORDER[b[0]] ?? 999;
+            if (ga !== gb) return ga - gb;
+            return String(a[0]).localeCompare(String(b[0]));
+        })
+        .map(([group, items]) => ({ group, items }));
+
+    return orderedGroups;
 };
 
 // join date: supports Firestore TS ({seconds}), ms, ISO string, or Date
@@ -119,8 +166,21 @@ const rgba = (hex, a) => {
     return `rgba(${r}, ${g}, ${b}, ${a})`;
 };
 
+// Accent by muscle group (aligned with SelectExercise/ExerciseCard)
+const MUSCLE_ACCENT = {
+    Chest: "#EF4444",
+    Back: "#06B6D4",
+    Shoulders: "#F59E0B",
+    Arms: "#8B5CF6",
+    Legs: "#10B981",
+    Abs: "#2D9EFF",
+};
+const groupAccent = (group) => MUSCLE_ACCENT[group] || COLORS.accent;
+
 export default function UserStatsModal({ user, toViewProfile }) {
-    const exercises = useMemo(() => getExercisesSorted(user), [user]);
+    const exerciseGroups = useMemo(() => getExercisesGrouped(user), [user]);
+    const [collapsed, setCollapsed] = useState({}); // { [group]: true }
+    const toggleGroup = (g) => setCollapsed((s) => ({ ...s, [g]: !s[g] }));
     const overall = Math.round(user?.statsHexagon?.overall ?? 0);
     const joinedLabel = formatJoinDate(
         user?.joined
@@ -170,71 +230,88 @@ export default function UserStatsModal({ user, toViewProfile }) {
                 {/* Exercises */}
                 <Text style={styles.sectionTitle}>Exercises</Text>
                 <View style={styles.exerciseList}>
-                    {exercises.length === 0 ? (
+                    {exerciseGroups.length === 0 ? (
                         <View style={styles.emptyCard}>
                             <Text style={styles.emptyText}>No exercises tracked yet.</Text>
                         </View>
                     ) : (
-                        exercises.slice(0, 12).map(({ name, exercise }, idx) => {
-                            const oneRM = estimate1RM(exercise);
-                            const volume = computeVolume(exercise);
-                            const setsCount = Array.isArray(exercise?.sets) ? exercise.sets.length : 0;
-                            const top = bestTopSet(exercise);
-                            const ACC = pickAccent(name);
-
+                        exerciseGroups.map(({ group, items }) => {
+                            const ACC = groupAccent(group);
+                            const isCollapsed = !!collapsed[group];
                             return (
-                                <Pressable
-                                    key={`${name}-${idx}`}
-                                    style={({ pressed }) => [
-                                        styles.exerciseCard,
-                                        { position: "relative" },
-                                        pressed && styles.exerciseCardPressed,
-                                    ]}
-                                >
-                                    {/* Accent bar */}
-                                    <View style={[styles.accentBar, { backgroundColor: ACC }]} />
+                                <View key={`group-${group}`}>
+                                    <Pressable style={styles.groupHeaderRow} onPress={() => toggleGroup(group)}>
+                                        <Text style={styles.groupHeader}>{group}</Text>
+                                        <MaterialCommunityIcons
+                                            name={isCollapsed ? "chevron-down" : "chevron-up"}
+                                            size={scaledSize(18)}
+                                            color={COLORS.subtext}
+                                        />
+                                    </Pressable>
 
-                                    {/* Row: icon + name + 1RM pill */}
-                                    <View style={styles.exerciseHeader}>
-                                        <View style={styles.nameRow}>
-                                            <View style={[styles.iconCircle, { backgroundColor: rgba(ACC, 0.12) }]}>
-                                                <MaterialCommunityIcons name="dumbbell" size={scaledSize(13)} color={ACC} />
-                                            </View>
-                                            <Text numberOfLines={1} style={styles.exerciseName}>{name}</Text>
-                                        </View>
-                                        {!!oneRM && oneRM > 0 && (
-                                            <View style={[styles.oneRMPill, { borderColor: rgba(ACC, 0.35), backgroundColor: rgba(ACC, 0.12) }]}>
-                                            <Text style={styles.oneRMLabel}>1RM (Adj)</Text>
-                                                <Text style={[styles.oneRMValue, { color: ACC }]}>{oneRM}</Text>
-                                            </View>
-                                        )}
-                                    </View>
+                                    {!isCollapsed && items.map(({ name, exercise }, idx) => {
+                                        const oneRM = estimate1RM(exercise);
+                                        const volume = computeVolume(exercise);
+                                        const setsCount = Array.isArray(exercise?.sets) ? exercise.sets.length : 0;
+                                        const top = bestTopSet(exercise);
 
-                                    {/* Stat row: 3 compact columns with icons */}
-                                    <View style={styles.metaRow}>
-                                        <View style={styles.metaCell}>
-                                            <View style={[styles.metaIconWrap, { backgroundColor: COLORS.iconBg }]}>
-                                                <MaterialCommunityIcons name="weight-lifter" size={scaledSize(12)} color={COLORS.text} />
-                                            </View>
-                                            <Text style={styles.metaLabel}>Volume</Text>
-                                            <Text style={styles.metaValue}>{fmtK(volume)}</Text>
-                                        </View>
-                                        <View style={styles.metaCell}>
-                                            <View style={[styles.metaIconWrap, { backgroundColor: COLORS.iconBg }]}>
-                                                <MaterialCommunityIcons name="view-grid-outline" size={scaledSize(12)} color={COLORS.text} />
-                                            </View>
-                                            <Text style={styles.metaLabel}>Sets</Text>
-                                            <Text style={styles.metaValue}>{setsCount}</Text>
-                                        </View>
-                                        <View style={styles.metaCell}>
-                                            <View style={[styles.metaIconWrap, { backgroundColor: COLORS.iconBg }]}>
-                                                <MaterialCommunityIcons name="trending-up" size={scaledSize(12)} color={COLORS.text} />
-                                            </View>
-                                            <Text style={styles.metaLabel}>Top Set</Text>
-                                            <Text style={styles.metaValue}>{top ? `${top.weight}×${top.reps}` : "-"}</Text>
-                                        </View>
-                                    </View>
-                                </Pressable>
+                                        return (
+                                            <Pressable
+                                                key={`${name}-${idx}`}
+                                                style={({ pressed }) => [
+                                                    styles.exerciseCard,
+                                                    { position: "relative" },
+                                                    pressed && styles.exerciseCardPressed,
+                                                ]}
+                                            >
+                                                {/* Accent bar based on muscle group */}
+                                                <View style={[styles.accentBar, { backgroundColor: ACC }]} />
+
+                                                {/* Row: icon + name + 1RM pill */}
+                                                <View style={styles.exerciseHeader}>
+                                                    <View style={styles.nameRow}>
+                                                        <View style={[styles.iconCircle, { backgroundColor: rgba(ACC, 0.12) }]}>
+                                                            <MaterialCommunityIcons name="dumbbell" size={scaledSize(13)} color={ACC} />
+                                                        </View>
+                                                        <Text numberOfLines={1} style={styles.exerciseName}>{name}</Text>
+                                                    </View>
+                                                    {!!oneRM && oneRM > 0 && (
+                                                        <View style={[styles.oneRMPill, { borderColor: rgba(ACC, 0.35), backgroundColor: rgba(ACC, 0.12) }]}> 
+                                                            <Text style={styles.oneRMLabel}>1RM (Adj)</Text>
+                                                            <Text style={[styles.oneRMValue, { color: ACC }]}>{oneRM}</Text>
+                                                        </View>
+                                                    )}
+                                                </View>
+
+                                                {/* Stat row: 3 compact columns with icons */}
+                                                <View style={styles.metaRow}>
+                                                    <View style={styles.metaCell}>
+                                                        <View style={[styles.metaIconWrap, { backgroundColor: COLORS.iconBg }]}>
+                                                            <MaterialCommunityIcons name="weight-lifter" size={scaledSize(12)} color={COLORS.text} />
+                                                        </View>
+                                                        <Text style={styles.metaLabel}>Volume</Text>
+                                                        <Text style={styles.metaValue}>{fmtK(volume)}</Text>
+                                                    </View>
+                                                    <View style={styles.metaCell}>
+                                                        <View style={[styles.metaIconWrap, { backgroundColor: COLORS.iconBg }]}>
+                                                            <MaterialCommunityIcons name="view-grid-outline" size={scaledSize(12)} color={COLORS.text} />
+                                                        </View>
+                                                        <Text style={styles.metaLabel}>Sets</Text>
+                                                        <Text style={styles.metaValue}>{setsCount}</Text>
+                                                    </View>
+                                                    <View style={styles.metaCell}>
+                                                        <View style={[styles.metaIconWrap, { backgroundColor: COLORS.iconBg }]}>
+                                                            <MaterialCommunityIcons name="trending-up" size={scaledSize(12)} color={COLORS.text} />
+                                                        </View>
+                                                        <Text style={styles.metaLabel}>Top Set</Text>
+                                                        <Text style={styles.metaValue}>{top ? `${top.weight}×${top.reps}` : "-"}</Text>
+                                                    </View>
+                                                </View>
+                                            </Pressable>
+                                        );
+                                    })}
+                                    <View style={{ height: scaledSize(6) }} />
+                                </View>
                             );
                         })
                     )}
@@ -344,6 +421,23 @@ const styles = StyleSheet.create({
 
     exerciseList: {
         gap: scaledSize(10),
+    },
+
+    // Group header within Exercises
+    groupHeaderRow: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        paddingHorizontal: scaledSize(2),
+        paddingVertical: scaledSize(2),
+    },
+    groupHeader: {
+        marginTop: scaledSize(6),
+        marginBottom: scaledSize(2),
+        fontSize: scaledSize(13),
+        fontFamily: "Outfit_600SemiBold",
+        color: COLORS.subtext,
+        letterSpacing: 0.3,
     },
 
     // Empty state
