@@ -25,7 +25,7 @@ const NewWorkoutBottomSheet = ({
     const bottomSheetRef = useRef(null);
     const snapPoints = useMemo(() => ["94%"], []);
     const [isViewingSelf, setIsViewingSelf] = useState(true);
-    const [mountContent, setMountContent] = useState(false);
+    const [mountContent, setMountContent] = useState(true);
     const [contentKey, setContentKey] = useState(0); // force remount on each open to avoid stale internals
 
     const renderBackdrop = useCallback(
@@ -42,6 +42,7 @@ const NewWorkoutBottomSheet = ({
 
     // Timestamp of the last explicit open; helps ignore stale onClose from previous session
     const lastOpenedAtRef = useRef(0);
+    const sessionIdRef = useRef(0); // increments on each open
 
     // Expand helper that tolerates ref not being ready on first render
     const expandSafely = useCallback(() => {
@@ -62,22 +63,30 @@ const NewWorkoutBottomSheet = ({
 
     useEffect(() => {
         if (isVisible) {
-            // Always mount content immediately on open; fallback loader will render
-            setMountContent(true);
-            try { lastOpenedAtRef.current = Date.now(); } catch {}
+            try { lastOpenedAtRef.current = Date.now(); sessionIdRef.current += 1; } catch {}
             expandSafely();
             // Bump key so FlashList and nested state reset cleanly between sessions
             setContentKey((k) => (Number.isFinite(k) ? k + 1 : 0));
-        } else {
-            // Unmount on close to free listeners and memory
-            setMountContent(false);
         }
     }, [isVisible, expandSafely]);
 
     // Also mount as soon as effectiveWorkout arrives while the sheet is visible
+    useEffect(() => { /* content stays mounted */ }, [isVisible, effectiveWorkout]);
+
+    // Nudge the sheet to expand immediately when becoming visible
     useEffect(() => {
-        if (isVisible && effectiveWorkout && !mountContent) setMountContent(true);
-    }, [isVisible, effectiveWorkout, mountContent]);
+        if (!isVisible) return;
+        const ref = bottomSheetRef.current;
+        const id = requestAnimationFrame(() => {
+            try { ref?.expand?.(); } catch {}
+            try { ref?.snapToIndex?.(0); } catch {}
+        });
+        return () => { try { cancelAnimationFrame(id); } catch {} };
+    }, [isVisible, contentKey]);
+
+    // After content mounts or key bumps, aggressively ensure the sheet is expanded.
+    // Keep logic simple: controlled index handles open/close.
+    useEffect(() => { /* no-op */ }, [isVisible, mountContent]);
 
     const workoutFromStore = useWorkoutStore((s) => s.workout);
     const effectiveWorkout = workout || workoutFromStore;
@@ -86,13 +95,15 @@ const NewWorkoutBottomSheet = ({
     // Stable wrappers so NewWorkoutModal doesn't rerender due to changing function identities
     const onCancelWorkout = useCallback(() => {
         cancelNewWorkout();
-        bottomSheetRef.current?.close();
-    }, [cancelNewWorkout]);
+        try { setIsVisible(false); } catch {}
+        try { bottomSheetRef.current?.close(); } catch {}
+    }, [cancelNewWorkout, setIsVisible]);
 
     const onFinishWorkout = useCallback(() => {
         finishNewWorkout();
-        bottomSheetRef.current?.close();
-    }, [finishNewWorkout]);
+        try { setIsVisible(false); } catch {}
+        try { bottomSheetRef.current?.close(); } catch {}
+    }, [finishNewWorkout, setIsVisible]);
 
     const onRegisterInviteHandler = useCallback((fn) => {
         if (typeof registerInviteHandler === 'function') registerInviteHandler(fn);
@@ -124,21 +135,8 @@ const NewWorkoutBottomSheet = ({
             keyboardBlurBehavior="restore"
             enablePanDownToClose
             enableContentPanningGesture={false}
-            onClose={() => {
-                // Ignore a very-early close that belongs to the previous session
-                const now = Date.now();
-                const dt = now - (lastOpenedAtRef.current || 0);
-                if (dt < 150) return;
-                try { setIsVisible(false); } catch {}
-            }}
-            onChange={(index) => {
-                if (index < 0) {
-                    const now = Date.now();
-                    const dt = now - (lastOpenedAtRef.current || 0);
-                    if (dt < 150) return;
-                    try { setIsVisible(false); } catch {}
-                }
-            }}
+            onClose={() => { try { setIsVisible(false); } catch {} }}
+            onChange={(index) => { if (index < 0) { try { setIsVisible(false); } catch {} } }}
             // GOLD handle when viewing a friend
             handleIndicatorStyle={{
                 backgroundColor: isViewingSelf ? HANDLE_SELF : HANDLE_FRIEND_ACCENT,
@@ -166,9 +164,12 @@ const NewWorkoutBottomSheet = ({
                         streamLive={true}
                     />
                 ) : (
-                    <View key={`nw-loading-${contentKey}`} style={{ flex: 1, backgroundColor: '#fff', alignItems: 'center', justifyContent: 'center' }}>
-                        <ActivityIndicator size="large" color="#60A5FA" />
-                    </View>
+                    // Simple placeholder while the workout object hydrates; avoids blank sheet
+                    isVisible ? (
+                        <View key={`nw-prep-${contentKey}`} style={{ flex: 1, backgroundColor: '#fff', alignItems: 'center', justifyContent: 'center' }}>
+                            <ActivityIndicator size="large" color="#60A5FA" />
+                        </View>
+                    ) : null
                 )
             )}
         </BottomSheet>

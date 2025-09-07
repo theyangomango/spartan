@@ -320,9 +320,12 @@ const NewWorkoutModal = ({
         const widCard = String(cardWid || "");
         if (!widCard) return false;
         const myWid = String(myActiveWid || "");
+        // 1) authoritative hydration says active
         if (myWid && myWid === widCard) return true;
-        // Fresh start path: parent passes local workout with __justStarted before Firestore write returns
+        // 2) local just-started path while Firestore hydrates
         if (workout && workout.__justStarted && String(workout.wid || "") === widCard) return true;
+        // 3) fallback: when editing our own workout, the card wid matches the local workout wid
+        if (String(workout?.wid || "") === widCard) return true;
         return false;
     }, [viewingSelfEffective, myActiveWid, cardWid, workout?.__justStarted, workout?.wid]);
     const dimDueToContext = !isActiveSelf;
@@ -532,30 +535,27 @@ const NewWorkoutModal = ({
         registerInviteHandler?.(handleInviteSelected);
     }, [registerInviteHandler, handleInviteSelected]);
 
-    // Show the reminder ONLY when a workout has been just started locally or joined.
-    // Triggered by local flag `__justStarted` and the global one-shot `__showWorkoutReminderForWid`.
+    // Show the reminder whenever a new workout starts (per wid once per mount).
+    // Triggered by local flag `__justStarted` or the global one-shot `__showWorkoutReminderForWid`.
     useEffect(() => {
         try {
             if (!viewingSelfEffective) return;
             const wid = String(workout?.wid || "");
             if (!wid || reminderShownRef.current.has(wid)) return;
 
-            // also gate by one-time-only flag and per wid per session
-            const shownMap = (global.__reminderShownForWids = global.__reminderShownForWids || {});
-            if (shownMap[wid]) return;
-
             const shouldFromFlag = (typeof global !== 'undefined') && (global.__showWorkoutReminderForWid === wid);
             const shouldFromLocal = !!workout?.__justStarted;
             if (shouldFromFlag || shouldFromLocal) {
-                // Mark as shown first to prevent double-scheduling on any re-render
                 reminderShownRef.current.add(wid);
-                shownMap[wid] = true;
                 setReminderVisible(true);
-                // Clear the non-persistent triggers without forcing a re-render cycle that could cancel show timing
+                // Clear triggers so it doesn't reshow on any subsequent small state updates
                 try { if (shouldFromFlag) global.__showWorkoutReminderForWid = null; } catch { }
+                if (shouldFromLocal) {
+                    try { updateWorkout?.({ ...(workout || {}), __justStarted: false }); } catch {}
+                }
             }
         } catch { }
-    }, [viewingSelfEffective, workout?.wid, workout?.__justStarted]);
+    }, [viewingSelfEffective, workout?.wid, workout?.__justStarted, updateWorkout]);
 
     // Focus handler from child set inputs: gently scroll the exercise into view
     const handleStatFocus = useCallback((exerciseIndex /*, setIndex */) => {

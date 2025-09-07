@@ -358,7 +358,8 @@ export default function useWorkoutManager({ uid, navigation, millisToHMS }) {
                     // Do not persist this flag to Firestore.
                     const localWorkout = { ...newWorkout, __justStarted: true };
                     try { useWorkoutStore.setState({ workout: localWorkout }); } catch {}
-                    // Open immediately; BottomSheet has a guard to ignore stale onClose from the last session.
+                    // Signal the Workout screen and open the sheet; do both to defeat any transient races
+                    try { global.openCurrentWorkoutSignal = Date.now(); } catch {}
                     setIsNewWorkoutVisible(true);
                     try { global.__showWorkoutReminderForWid = wid; } catch {}
                     startTimer(created);

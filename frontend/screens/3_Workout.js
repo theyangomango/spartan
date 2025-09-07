@@ -395,7 +395,7 @@ export default function Workout({ navigation, route }) {
             // Global signal trigger (fallback when params don't propagate)
             const lastRef = openSignalRef.current || 0;
             const sig = Number(global?.openCurrentWorkoutSignal || 0);
-            if (sig && sig !== lastRef) {
+            if (sig && sig !== lastRef && hasActiveWorkout) {
                 openSignalRef.current = sig;
                 const id = setTimeout(() => setIsNewWorkoutVisible(true), 30);
                 return () => clearTimeout(id);

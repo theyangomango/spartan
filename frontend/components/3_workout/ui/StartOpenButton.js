@@ -24,7 +24,8 @@ export default function StartOpenButton({ hasActiveWorkout, onOpen, onStart, hol
     const firedRef = useRef(false);
     const freezeActiveRef = useRef(false);
     const freezeTimerRef = useRef(null);
-    const FREEZE_MS = 1200; // keep ring full after completion
+    // Keep the visual "full ring" moment so the completion feels satisfying
+    const FREEZE_MS = 1200;
 
     const maybeStart = () => {
         if (firedRef.current) return;
