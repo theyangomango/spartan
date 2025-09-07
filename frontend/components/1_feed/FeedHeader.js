@@ -16,6 +16,7 @@ import {
 } from "react-native";
 import FastImage from "react-native-fast-image";
 import { Ionicons, MaterialIcons } from "@expo/vector-icons";
+import millisToHoursMinutesSeconds from "../../helper/millisToHoursMinutesSeconds";
 import { usePfp } from "../../helper/usePFPs";
 import RNBounceable from "@freakycoder/react-native-bounceable";
 import Svg, { Path } from "react-native-svg";
@@ -401,6 +402,15 @@ const SearchUsersBar = ({ navigation, allUsersRef, disabled = false }) => {
 
 /* ----------------------------- FeedHeader ----------------------------- */
 
+// Small helper matching Feed screen logic
+const toMillis = (v) => {
+    if (typeof v === "number") return v;
+    if (v?.toMillis) return v.toMillis();
+    if (typeof v?.seconds === "number") return v.seconds * 1000;
+    const n = new Date(v).getTime();
+    return Number.isFinite(n) ? n : 0;
+};
+
 const FeedHeader = ({
     toMessagesScreen,
     onOpenNotifications,
@@ -417,15 +427,19 @@ const FeedHeader = ({
 }) => {
     const [unreadCount, setUnreadCount] = useState(0);
 
-    // Always mirror timerRef into local state so UI re-renders when ref changes.
+    // Mirror timerRef, with a fallback to compute from workout timestamps if ref is empty.
     const [elapsed, setElapsed] = useState(""); // never default to "00:00"
     useEffect(() => {
         const id = setInterval(() => {
-            const v = (timerRef?.current || "").trim();
-            if (v !== elapsed) setElapsed(v);
-        }, 400);
+            let v = (timerRef?.current || "").trim();
+            if (!v && workout?.wid) {
+                const createdMs = toMillis(workout?.created ?? workout?.createdAt);
+                if (createdMs) v = millisToHoursMinutesSeconds(Math.max(1000, Date.now() - createdMs));
+            }
+            setElapsed((prev) => (prev !== v ? v : prev));
+        }, 500);
         return () => clearInterval(id);
-    }, [timerRef, elapsed]);
+    }, [timerRef, workout?.wid, workout?.created, workout?.createdAt]);
 
     // Show pill only when:
     //  - we have a workout prop with a wid
