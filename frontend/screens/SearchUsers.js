@@ -69,8 +69,14 @@ export default function SearchUsers({ navigation }) {
   const goBack = () => navigation.goBack();
   const openUser = (item) => {
     if (!item) return;
-    if (item.uid === global?.userData?.uid) navigation.navigate('Profile');
-    else navigation.navigate('ViewProfile', { user: item });
+    const rootNav = navigation?.getParent?.('ROOT');
+    if (item.uid === global?.userData?.uid) {
+      if (rootNav?.navigate) rootNav.navigate('Profile', { transition: 'slide-from-right' });
+      else navigation.navigate('Profile', { transition: 'slide-from-right' });
+    } else {
+      if (rootNav?.navigate) rootNav.navigate('ViewProfile', { user: item });
+      else navigation.navigate('ViewProfile', { user: item });
+    }
   };
 
   return (
@@ -134,4 +140,3 @@ const styles = StyleSheet.create({
   listContent: { paddingBottom: 30 },
   sep: { height: StyleSheet.hairlineWidth, backgroundColor: 'rgba(15,23,42,0.08)', marginLeft: 16 },
 });
-

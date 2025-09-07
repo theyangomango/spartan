@@ -392,13 +392,27 @@ export default function Feed({ navigation, route }) {
     // Profile navigation from posts
     function toViewProfilePosts(idx) {
         const user = { handle: posts[idx].handle, uid: posts[idx].uid, pfp: posts[idx].pfp, name: posts[idx].name };
-        isThisUser(posts[idx].uid) ? navigation.navigate("Profile") : navigation.navigate("ViewProfile", { user });
+        const rootNav = navigation?.getParent?.('ROOT');
+        if (isThisUser(posts[idx].uid)) {
+            if (rootNav?.navigate) rootNav.navigate('Profile', { transition: 'slide-from-right' });
+            else navigation.navigate('Profile', { transition: 'slide-from-right' });
+        } else {
+            if (rootNav?.navigate) rootNav.navigate('ViewProfile', { user });
+            else navigation.navigate('ViewProfile', { user });
+        }
     }
 
     // Profile navigation from comments
     function toViewProfileComments(data) {
         const user = { handle: data.handle, uid: data.uid, pfp: data.pfp, name: data.name };
-        isThisUser(data.uid) ? navigation.navigate("Profile") : navigation.navigate("ViewProfile", { user });
+        const rootNav = navigation?.getParent?.('ROOT');
+        if (isThisUser(data.uid)) {
+            if (rootNav?.navigate) rootNav.navigate('Profile', { transition: 'slide-from-right' });
+            else navigation.navigate('Profile', { transition: 'slide-from-right' });
+        } else {
+            if (rootNav?.navigate) rootNav.navigate('ViewProfile', { user });
+            else navigation.navigate('ViewProfile', { user });
+        }
     }
 
     // Scroll to a specific post by pid and flash-highlight it

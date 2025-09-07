@@ -373,8 +373,14 @@ const DayDetailsSheet = ({
                                     const uid = String(selectedWorkout?.__friendUid || selectedWorkout?.creatorUID || '');
                                     if (!uid) return;
                                     const meUid = String(global?.userData?.uid || '');
-                                    if (uid === meUid) navigation.navigate('Profile');
-                                    else navigation.navigate('ViewProfile', { user: { uid } });
+                                    const rootNav = navigation?.getParent?.('ROOT');
+                                    if (uid === meUid) {
+                                        if (rootNav?.navigate) rootNav.navigate('Profile', { transition: 'slide-from-right' });
+                                        else navigation.navigate('Profile', { transition: 'slide-from-right' });
+                                    } else {
+                                        if (rootNav?.navigate) rootNav.navigate('ViewProfile', { user: { uid } });
+                                        else navigation.navigate('ViewProfile', { user: { uid } });
+                                    }
                                 }}
                                 forceViewingFriend={String(selectedWorkout.__friendUid || selectedWorkout.creatorUID || "")}
                                 friendPfp={selectedWorkout.__friendPfp || null}

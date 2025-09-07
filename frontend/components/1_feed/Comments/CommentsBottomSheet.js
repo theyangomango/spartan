@@ -102,11 +102,10 @@ const CommentsBottomSheet = ({ isVisible, postData, commentsBottomSheetExpandFla
 
     // Handle visibility: open sheet + sync footer entrance
     useEffect(() => {
-        if (isVisible) {
+        const hasPost = !!postData;
+        if (isVisible && hasPost) {
             const tryOpen = () => bottomSheetRef.current?.snapToIndex(0);
-            requestAnimationFrame(() => {
-                tryOpen();
-            });
+            requestAnimationFrame(() => { tryOpen(); });
             // footer entrance animation
             footerOpacity.setValue(0);
             footerIntroY.setValue(10);
@@ -118,7 +117,7 @@ const CommentsBottomSheet = ({ isVisible, postData, commentsBottomSheetExpandFla
             bottomSheetRef.current?.close();
             Animated.timing(footerOpacity, { toValue: 0, duration: 120, useNativeDriver: true }).start();
         }
-    }, [isVisible]);
+    }, [isVisible, postData]);
 
     // Expand the bottom sheet when flagged
     useEffect(() => {
@@ -152,7 +151,7 @@ const CommentsBottomSheet = ({ isVisible, postData, commentsBottomSheetExpandFla
         >
             <BottomSheet
                 ref={bottomSheetRef}
-                index={isVisible ? 0 : -1}
+                index={isVisible && postData ? 0 : -1}
                 snapPoints={snapPoints}
                 onChange={handleSheetIndexChange}
                 handleStyle={{ display: 'none' }}
@@ -169,7 +168,7 @@ const CommentsBottomSheet = ({ isVisible, postData, commentsBottomSheetExpandFla
                     />
                 )}
             </BottomSheet>
-            {isVisible && (
+            {isVisible && postData && (
                 <Animated.View style={[
                     styles.footer,
                     { opacity: footerOpacity, transform: [{ translateY: Animated.add(footerTranslateY, footerIntroY) }] }

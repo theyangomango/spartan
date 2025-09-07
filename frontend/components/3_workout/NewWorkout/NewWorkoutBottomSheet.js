@@ -84,8 +84,14 @@ const NewWorkoutBottomSheet = ({
         const meUid = String(global?.userData?.uid || "");
         const friendUidEff = String(effectiveWorkout?.creatorUID || effectiveWorkout?.creatorUid || meUid);
         if (!friendUidEff) return;
-        if (friendUidEff === meUid) navigation.navigate('Profile');
-        else navigation.navigate('ViewProfile', { user: { uid: friendUidEff } });
+        const rootNav = navigation?.getParent?.('ROOT');
+        if (friendUidEff === meUid) {
+            if (rootNav?.navigate) rootNav.navigate('Profile', { transition: 'slide-from-right' });
+            else navigation.navigate('Profile', { transition: 'slide-from-right' });
+        } else {
+            if (rootNav?.navigate) rootNav.navigate('ViewProfile', { user: { uid: friendUidEff } });
+            else navigation.navigate('ViewProfile', { user: { uid: friendUidEff } });
+        }
     }, [effectiveWorkout, navigation]);
 
     return (

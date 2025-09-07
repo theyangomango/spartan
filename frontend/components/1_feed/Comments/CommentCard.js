@@ -6,6 +6,7 @@ import { getCommentCardStyles } from '../../../helper/getCommentCardStyles';
 import getDisplayTimeDifference from '../../../helper/getDisplayTimeDifference';
 import FastImage from "react-native-fast-image";
 import { usePfp } from '../../../helper/usePFPs';
+import { useNavigation } from '@react-navigation/native';
 
 const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get("window");
 const dynamicStyles = getCommentCardStyles(SCREEN_WIDTH, SCREEN_HEIGHT);
@@ -38,6 +39,7 @@ export default function CommentCard({
     replyIndex,
     toViewProfile,
 }) {
+    const navigation = useNavigation();
     const [isLiked, setIsLiked] = useState(
         data.isCaption ? false : data.likedUsers.includes(global.userData.uid)
     );
@@ -53,9 +55,17 @@ export default function CommentCard({
 
     function handleNavigateToProfile() {
         if (data.uid === global.userData.uid) {
-            // Todo: navigate to self profile if needed
+            try {
+                const rootNav = navigation?.getParent?.('ROOT');
+                if (rootNav?.navigate) rootNav.navigate('Profile', { transition: 'slide-from-right' });
+                else navigation.navigate('Profile', { transition: 'slide-from-right' });
+            } catch {}
         } else {
-            toViewProfile(data);
+            try {
+                const rootNav = navigation?.getParent?.('ROOT');
+                if (rootNav?.navigate) rootNav.navigate('ViewProfile', { user: data });
+                else toViewProfile(data);
+            } catch { toViewProfile(data); }
         }
     }
 

@@ -158,8 +158,14 @@ const FeedWorkoutViewerSheet = ({
               try { bottomSheetRef.current?.close(); } catch {}
               if (!friendUidEff) return;
               const meUid = String(global?.userData?.uid || "");
-              if (friendUidEff === meUid) navigation.navigate('Profile');
-              else navigation.navigate('ViewProfile', { user: { uid: friendUidEff } });
+              const rootNav = navigation?.getParent?.('ROOT');
+              if (friendUidEff === meUid) {
+                if (rootNav?.navigate) rootNav.navigate('Profile', { transition: 'slide-from-right' });
+                else navigation.navigate('Profile', { transition: 'slide-from-right' });
+              } else {
+                if (rootNav?.navigate) rootNav.navigate('ViewProfile', { user: { uid: friendUidEff } });
+                else navigation.navigate('ViewProfile', { user: { uid: friendUidEff } });
+              }
             }}
             // Hard-lock friend view so controls are read-only
             forceViewingFriend={friendUidEff}
