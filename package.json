@@ -57,8 +57,6 @@
     "expo-media-library": "~15.9.2",
     "expo-status-bar": "~1.11.1",
     "firebase": "^10.11.0",
-    "firebase-admin": "^13.4.0",
-    "firebase-functions": "^6.3.2",
     "iconsax-react-native": "^0.0.8",
     "lucide-react-native": "^0.542.0",
     "moment": "^2.30.1",

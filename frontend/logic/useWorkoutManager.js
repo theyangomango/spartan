@@ -7,6 +7,8 @@ import {
     getDoc,
     updateDoc as fsUpdateDoc,
     arrayRemove,
+    arrayUnion,
+    increment,
     deleteDoc,
     collection,
     addDoc,
@@ -18,14 +20,12 @@ import {
 } from "firebase/firestore";
 import { db } from "../../firebase.config";
 import updateDoc from "../../backend/helper/firebase/updateDoc";
-import incrementDocValue from "../../backend/helper/firebase/incrementDocValue";
-import arrayAppend from "../../backend/helper/firebase/arrayAppend";
+// removed per consolidation: incrementDocValue, arrayAppend
 import useWorkoutStore from "../state/workoutStore";
 import makeID from "../../backend/helper/makeID";
 import calculate1RM from "../helper/calculate1RM";
 import computeHexagonStats from "./computeHexagonStats"; // retained for local fallback only
-import { functions } from "../../firebase.config";
-import { httpsCallable } from "firebase/functions";
+// Cloud Functions disabled: compute hex locally and write directly
 import { emitHexagonUpdate } from "../utils/hexagonEvents";
 
 /* ---------------- helpers ---------------- */
@@ -459,19 +459,25 @@ export default function useWorkoutManager({ uid, navigation, millisToHMS }) {
                         // best-effort; do not block finish flow
                     }
 
-                    // 3) Persist to the user's completedWorkouts array in Firestore (background)
+                    // Combine completedWorkouts append + totals + clear currentWorkout into one user doc update (reduces triggers)
                     try {
                         if (uid) {
-                            arrayAppend("users", uid, "completedWorkouts", completed).catch(() => {});
-                        }
-                    } catch { }
-
-                    // 4) Increment user-level totals (background)
-                    try {
-                        if (uid) {
-                            incrementDocValue('users', uid, 'statsTotalWorkouts', 1).catch(() => {});
-                            incrementDocValue('users', uid, 'statsTotalVolume', Number(completed?.volume || 0)).catch(() => {});
-                            incrementDocValue('users', uid, 'statsTotalHours', Number(completed?.duration || 0) / 3600000).catch(() => {});
+                            const uref = doc(db, 'users', uid);
+                            const incVol = Number(completed?.volume || 0);
+                            const incHrs = Number(completed?.duration || 0) / 3600000;
+                            fsUpdateDoc(uref, {
+                                currentWorkout: null,
+                                completedWorkouts: arrayUnion(completed),
+                                statsTotalWorkouts: increment(1),
+                                statsTotalVolume: increment(incVol),
+                                statsTotalHours: increment(incHrs),
+                            }).catch(() => updateDoc('users', uid, {
+                                currentWorkout: null,
+                                completedWorkouts: arrayUnion(completed),
+                                statsTotalWorkouts: increment(1),
+                                statsTotalVolume: increment(incVol),
+                                statsTotalHours: increment(incHrs),
+                            }));
                         }
                     } catch { }
 
@@ -484,7 +490,7 @@ export default function useWorkoutManager({ uid, navigation, millisToHMS }) {
 
                 // Defer statsExercises patch + hexagon recompute after interactions to avoid blocking UI
                 try {
-                    const scheduleHeavy = () => {
+                    const scheduleHeavy = async () => {
                         try {
                             const prevStats = (global?.userData?.statsExercises || {});
                             const today = (() => { const d = new Date(); d.setHours(0,0,0,0); return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`; })();
@@ -536,56 +542,63 @@ export default function useWorkoutManager({ uid, navigation, millisToHMS }) {
                                 if (best1RM > Number(prev['1RM'] || 0)) { localPatch[name]['1RM'] = best1RM; if (bestSet) localPatch[name].bestSet = bestSet; }
                             }
 
-                            // Persist minimal stats deltas first (fast), then compute hexagon
+                            // Persist minimal stats deltas + completed totals + clear currentWorkout in one update
                             if (uid && namesTouched.size > 0) {
-                                atomic['statsExercisesUpdatedAt'] = serverTimestamp();
-                                fsUpdateDoc(doc(db, 'users', uid), atomic).catch(() => updateDoc('users', uid, { ...{ statsExercisesUpdatedAt: serverTimestamp() }, statsExercises: localPatch }));
+                                const uref = doc(db, 'users', uid);
+                                const incVol = Number(completed?.volume || 0);
+                                const incHrs = Number(completed?.duration || 0) / 3600000;
+                                const combined = {
+                                    ...atomic,
+                                    currentWorkout: null,
+                                    completedWorkouts: arrayUnion(completed),
+                                    statsTotalWorkouts: increment(1),
+                                    statsTotalVolume: increment(incVol),
+                                    statsTotalHours: increment(incHrs),
+                                };
+                                try {
+                                    await fsUpdateDoc(uref, combined);
+                                } catch (e) {
+                                    await updateDoc('users', uid, {
+                                        ...{ currentWorkout: null },
+                                        statsExercises: localPatch,
+                                        completedWorkouts: arrayUnion(completed),
+                                        statsTotalWorkouts: increment(1),
+                                        statsTotalVolume: increment(incVol),
+                                        statsTotalHours: increment(incHrs),
+                                    });
+                                }
                             }
                             try { if (global?.userData) global.userData.statsExercises = { ...(global?.userData?.statsExercises || {}), ...localPatch }; } catch {}
 
-                            // Trigger backend Cloud Function to recompute hexagon (with local fallback on timeout)
+                            // Compute hexagon locally and write directly (Cloud Functions disabled)
                             try {
                                 const trainedArr = Array.from(namesTouched.values());
-                                const fn = httpsCallable(functions, 'recomputeHexagon');
-                                let settled = false;
-                                const fallbackLocal = () => {
-                                    try {
-                                        const prevHex = (global?.userData?.statsHexagon || {});
-                                        const { statsHexagon: nextHex } = computeHexagonStats({
-                                            statsExercises: (global?.userData?.statsExercises || {}),
-                                            prevStatsHexagon: prevHex,
-                                            trainedExerciseNames: trainedArr,
-                                        });
-                                        if (uid) {
-                                            const payload = { statsHexagon: nextHex, statsHexagonMeta: { lastTrainedByGroup: {}, updatedAt: serverTimestamp() } };
-                                            fsUpdateDoc(doc(db, 'users', uid), payload).catch(() => updateDoc('users', uid, payload));
-                                        }
-                                        if (global?.userData) { global.userData.statsHexagon = nextHex; emitHexagonUpdate(); }
-                                    } catch {}
-                                };
-                                const timer = setTimeout(() => { if (!settled) fallbackLocal(); }, 3500);
-                                fn({ uid, trainedExerciseNames: trainedArr })
-                                  .then((res) => {
-                                      settled = true; clearTimeout(timer);
-                                      try {
-                                          const hx = res?.data?.statsHexagon;
-                                          if (hx && typeof hx === 'object' && global?.userData) {
-                                              global.userData.statsHexagon = hx; emitHexagonUpdate();
-                                          } else { fallbackLocal(); }
-                                      } catch { fallbackLocal(); }
-                                  })
-                                  .catch(() => { settled = true; clearTimeout(timer); fallbackLocal(); });
-                            } catch { }
+                                const prevHex = (global?.userData?.statsHexagon || {});
+                                const { statsHexagon: nextHex, lastTrained } = computeHexagonStats({
+                                    statsExercises: (global?.userData?.statsExercises || {}),
+                                    prevStatsHexagon: prevHex,
+                                    trainedExerciseNames: trainedArr,
+                                });
+                                if (uid) {
+                                    const payload = {
+                                        statsHexagon: nextHex,
+                                        statsHexagonMeta: { lastTrainedByGroup: lastTrained, updatedAt: serverTimestamp() },
+                                    };
+                                    fsUpdateDoc(doc(db, 'users', uid), payload).catch(() => updateDoc('users', uid, payload));
+                                }
+                                if (global?.userData) { global.userData.statsHexagon = nextHex; emitHexagonUpdate(); }
+                            } catch {}
                         } catch (e) {
                             console.log('finishWorkout heavy updates error', e?.message || e);
                         }
                     };
 
-                    // After close: run heavy work (stats delta + hexagon + optional set history) with full isolation from UI
+                    // Kick off the stats delta + hexagon immediately (no need to wait for modal close)
+                    try { scheduleHeavy(); } catch {}
+
+                    // After close: append raw set history (best-effort) with full isolation from UI
                     pendingHeavyRef.current = () => {
-                        // first the delta+hexagon
-                        try { scheduleHeavy(); } catch {}
-                        // then append raw set history (best-effort)
+                        // append raw set history only
                         try {
                             const prevStats2 = (global?.userData?.statsExercises || {});
                             const today2 = (() => { const d = new Date(); d.setHours(0,0,0,0); return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`; })();
@@ -615,7 +628,7 @@ export default function useWorkoutManager({ uid, navigation, millisToHMS }) {
             const wid = String((useWorkoutStore.getState().workout?.wid) || "");
             // Fire-and-forget backend cleanup
             try { if (wid) leaveWorkoutGroup(wid).catch(() => {}); } catch {}
-            try { if (uid) updateDoc("users", uid, { currentWorkout: null }).catch(() => {}); } catch {}
+            // currentWorkout is cleared in the combined user doc update above
         } catch (e) {
             console.log("finishWorkout error", e);
         }

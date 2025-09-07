@@ -19,4 +19,5 @@ const firebaseConfig = {
 export const app = initializeApp(firebaseConfig);
 export const db = getFirestore(app);
 export const storage = getStorage(app);
+// Keep Functions export for other endpoints (e.g., FatSecret) if present.
 export const functions = getFunctions(app, "us-central1");

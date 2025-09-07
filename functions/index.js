@@ -1,51 +1,122 @@
-const functions = require('firebase-functions');
-const admin = require('firebase-admin');
-const { computeHexagonFromStats } = require('./computeHexagon');
+import { onCall, HttpsError } from "firebase-functions/v2/https";
+import { defineSecret } from "firebase-functions/params";
+import * as logger from "firebase-functions/logger";
+import { setGlobalOptions } from "firebase-functions/v2";
 
-try { admin.initializeApp(); } catch {}
-const db = admin.firestore();
-const FieldValue = admin.firestore.FieldValue;
-
-async function recomputeForUid(uid, trainedExerciseNames = []) {
-  if (!uid) return { ok: false, error: 'missing-uid' };
-  const ref = db.collection('users').doc(String(uid));
-  const snap = await ref.get();
-  if (!snap.exists) return { ok: false, error: 'user-not-found' };
-  const data = snap.data() || {};
-  const stats = data.statsExercises || {};
-  const prevHex = data.statsHexagon || {};
-  const { statsHexagon, lastTrained } = computeHexagonFromStats(stats, prevHex, trainedExerciseNames, data);
-  const payload = {
-    statsHexagon,
-    statsHexagonMeta: { lastTrainedByGroup: lastTrained, updatedAt: FieldValue.serverTimestamp() },
-  };
-  await ref.set(payload, { merge: true });
-  return { ok: true, statsHexagon };
-}
-
-exports.recomputeHexagon = functions.https.onCall(async (data, context) => {
-  const uid = (context.auth && context.auth.uid) || (data && data.uid);
-  const trained = (data && Array.isArray(data.trainedExerciseNames)) ? data.trainedExerciseNames : [];
-  const res = await recomputeForUid(uid, trained);
-  return res;
+setGlobalOptions({
+  region: "us-central1",
+  vpcConnector: "projects/spartan-8a55f/locations/us-central1/connectors/serverless-conn",
+  vpcConnectorEgressSettings: "ALL_TRAFFIC",
 });
 
-exports.onUserStatsWrite = functions.firestore.document('users/{uid}')
-  .onWrite(async (change, context) => {
-    try {
-      const before = change.before.exists ? (change.before.data() || {}) : {};
-      const after = change.after.exists ? (change.after.data() || {}) : {};
-      const aMetaTs = after?.statsHexagonMeta?.updatedAt?.toMillis?.() || 0;
-      const statsTs = after?.statsExercisesUpdatedAt?.toMillis?.() || 0;
-      const hexMissing = !after.statsHexagon || !aMetaTs;
-      // Only recompute if statsExercisesUpdatedAt advanced beyond last hex update, or hex missing
-      if (!hexMissing && !(statsTs && statsTs > aMetaTs)) return null;
+// Secrets must be configured via Firebase/Google Secret Manager
+const FATSECRET_KEY = defineSecret("FATSECRET_KEY");
+const FATSECRET_SECRET = defineSecret("FATSECRET_SECRET");
 
-      const uid = context.params.uid;
-      await recomputeForUid(uid, []);
-      return null;
-    } catch (e) {
-      console.error('onUserStatsWrite error', e);
-      return null;
-    }
+// Simple in-memory cache per function instance
+let tokenCache = { accessToken: null, expiresAt: 0 };
+
+async function getAccessToken() {
+  const now = Date.now();
+  if (tokenCache.accessToken && now < tokenCache.expiresAt - 60_000) {
+    return tokenCache.accessToken;
+  }
+
+  const client_id = FATSECRET_KEY.value();
+  const client_secret = FATSECRET_SECRET.value();
+
+  const resp = await fetch("https://oauth.fatsecret.com/connect/token", {
+    method: "POST",
+    headers: { "Content-Type": "application/x-www-form-urlencoded" },
+    body: new URLSearchParams({
+      grant_type: "client_credentials",
+      scope: "basic",
+      client_id,
+      client_secret,
+    }).toString(),
   });
+
+  if (!resp.ok) {
+    const text = await resp.text().catch(() => "");
+    logger.error("FatSecret token error", { status: resp.status, text });
+    throw new HttpsError("internal", "Failed to get FatSecret access token");
+  }
+
+  const data = await resp.json();
+  if (!data?.access_token || !data?.expires_in) {
+    logger.error("FatSecret token response missing fields", data);
+    throw new HttpsError("internal", "Invalid token response from FatSecret");
+  }
+
+  tokenCache.accessToken = data.access_token;
+  tokenCache.expiresAt = now + data.expires_in * 1000;
+  return tokenCache.accessToken;
+}
+
+async function fatSecretRequest(methodName, params = {}) {
+  const token = await getAccessToken();
+  const url = "https://platform.fatsecret.com/rest/server.api";
+
+  const body = new URLSearchParams({
+    method: methodName,
+    format: "json",
+    ...Object.fromEntries(
+      Object.entries(params)
+        .filter(([_, v]) => v !== undefined && v !== null)
+        .map(([k, v]) => [k, String(v)])
+    ),
+  }).toString();
+
+  const resp = await fetch(url, {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${token}`,
+      "Content-Type": "application/x-www-form-urlencoded",
+    },
+    body,
+  });
+
+  const json = await resp.json().catch(() => ({}));
+  if (!resp.ok || json?.error) {
+    logger.error("FatSecret API error", { status: resp.status, json });
+    const message = json?.error?.message || `FatSecret request failed: ${resp.status}`;
+    throw new HttpsError("internal", message);
+  }
+
+  return json;
+}
+
+// Allow-list only required methods
+const ALLOWED_METHODS = new Set(["foods.search"]);
+
+export const fatsecretMethod = onCall(
+  { region: "us-central1", secrets: [FATSECRET_KEY, FATSECRET_SECRET] },
+  async (request) => {
+    const { method, params } = request.data || {};
+    if (!method || typeof method !== "string") {
+      throw new HttpsError("invalid-argument", "Missing 'method' string.");
+    }
+    if (!ALLOWED_METHODS.has(method)) {
+      throw new HttpsError("permission-denied", `Method not allowed: ${method}`);
+    }
+    return await fatSecretRequest(method, params || {});
+  }
+);
+
+export const fatsecretSearchFood = onCall(
+  { region: "us-central1", secrets: [FATSECRET_KEY, FATSECRET_SECRET] },
+  async (request) => {
+    const { query, max_results = 10, page_number = 0 } = request.data || {};
+    if (!query || typeof query !== "string") {
+      throw new HttpsError("invalid-argument", "Missing 'query' string.");
+    }
+    const safeMax = Math.min(Math.max(Number(max_results) || 10, 1), 50);
+    const safePage = Math.max(Number(page_number) || 0, 0);
+    return await fatSecretRequest("foods.search", {
+      search_expression: query,
+      max_results: safeMax,
+      page_number: safePage,
+    });
+  }
+);
+
