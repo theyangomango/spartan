@@ -10,10 +10,10 @@ const scale = screenHeight / 844; // Scaling factor based on iPhone 13 height
 
 const scaledSize = (size) => Math.round(size * scale);
 
-export default function ProfileHeader({ onPressCreateBtn }) {
+export default function ProfileHeader({ onPressCreateBtn, onPressSettings }) {
     return (
         <View style={styles.main_ctnr}>
-            <RNBounceable style={styles.options_btn_ctnr}>
+            <RNBounceable style={styles.leftBtn} onPress={onPressSettings}>
                 <Octicons name="gear" size={scaledSize(22.5)} color={'#bbb'} />
             </RNBounceable>
             <RNBounceable>
@@ -39,12 +39,12 @@ export default function ProfileHeader({ onPressCreateBtn }) {
 
 const styles = StyleSheet.create({
     main_ctnr: {
-        alignItems: 'flex-end',
+        alignItems: 'center',
         flexDirection: 'row',
         justifyContent: 'space-between',
         paddingHorizontal: scaledSize(22),
         paddingBottom: scaledSize(15),
-        paddingTop: scaledSize(2)
+        paddingTop: scaledSize(6)
     },
     center: {
         flexDirection: 'row',
@@ -70,7 +70,5 @@ const styles = StyleSheet.create({
         justifyContent: 'center',
         borderColor: '#bbb',
     },
-    options_btn_ctnr: {
-        paddingTop: scaledSize(3)
-    },
+    leftBtn: { paddingTop: scaledSize(1), paddingRight: scaledSize(6) },
 });

@@ -31,6 +31,7 @@ import Chat from './frontend/screens/1.2_Chat';
 import ViewProfile from './frontend/screens/4.1_ViewProfile';
 import MacroTracking from './frontend/screens/MacroTracking';
 import SearchUsers from './frontend/screens/SearchUsers';
+import Settings from './frontend/screens/Settings';
 
 const NativeStack = createNativeStackNavigator();
 
@@ -298,6 +299,7 @@ export default function App() {
                     <RootStack.Screen name="Chat" component={Chat} />
                     <RootStack.Screen name="ViewProfile" component={ViewProfile} />
                     <RootStack.Screen name="SearchUsers" component={SearchUsers} />
+                    <RootStack.Screen name="Settings" component={Settings} />
 
                     {/* Creator */}
                     <RootStack.Screen name="SelectPhotos" component={SelectPhotosScreen} />

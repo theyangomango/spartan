@@ -121,7 +121,16 @@ export default function Profile({ navigation }) {
     return (
         <SafeAreaView style={styles.main_ctnr}>
             <View style={styles.body_ctnr}>
-                <ProfileHeader onPressCreateBtn={uploadPost} />
+                <ProfileHeader
+                    onPressCreateBtn={uploadPost}
+                    onPressSettings={() => {
+                        try {
+                            const rootNav = navigation?.getParent?.('ROOT');
+                            if (rootNav?.navigate) rootNav.navigate('Settings', { transition: 'slide-from-right' });
+                            else navigation.navigate('Settings', { transition: 'slide-from-right' });
+                        } catch { navigation.navigate('Settings'); }
+                    }}
+                />
                 <ProfileInfo userData={userData} pfp={pfp} />
                 <ProfileRowButtons
                     handleOpenEditProfile={handleOpenEditProfile}
