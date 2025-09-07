@@ -4,6 +4,7 @@ import { doc, onSnapshot, updateDoc as fsUpdateDoc, serverTimestamp } from "fire
 import { db } from "../../firebase.config";
 import updateDoc from "../../backend/helper/firebase/updateDoc";
 import computeHexagonStats from "../logic/computeHexagonStats";
+import { emitHexagonUpdate } from "../utils/hexagonEvents";
 
 /**
  * Subscribes to users/{uid}, returns {user} and also writes into global.userData.
@@ -77,7 +78,7 @@ export default function useUserDoc(uid, options = {}) {
                     fsUpdateDoc(doc(db, 'users', uid), payload)
                         .catch(() => updateDoc('users', uid, payload))
                         .finally(() => { try { global.__hexagonComputeLock = false; } catch { } });
-                    try { global.userData.statsHexagon = nextHex; } catch {}
+                    try { global.userData.statsHexagon = nextHex; emitHexagonUpdate(); } catch {}
                 }
             } catch { }
         });

@@ -26,6 +26,7 @@ import calculate1RM from "../helper/calculate1RM";
 import computeHexagonStats from "./computeHexagonStats"; // retained for local fallback only
 import { functions } from "../../firebase.config";
 import { httpsCallable } from "firebase/functions";
+import { emitHexagonUpdate } from "../utils/hexagonEvents";
 
 /* ---------------- helpers ---------------- */
 const toMillis = (v) => {
@@ -77,7 +78,6 @@ export default function useWorkoutManager({ uid, navigation, millisToHMS }) {
     const [completedWorkout, setCompletedWorkout] = useState(null);
     const [isSummaryModalVisible, setIsSummaryModalVisible] = useState(false);
     const pendingHeavyRef = useRef(null);
-    const kickedRef = useRef(false);
     const [isNewWorkoutVisible, setIsNewWorkoutVisible] = useState(false);
 
     /* ------------ timer ------------ */
@@ -488,80 +488,126 @@ export default function useWorkoutManager({ uid, navigation, millisToHMS }) {
                         try {
                             const prevStats = (global?.userData?.statsExercises || {});
                             const today = (() => { const d = new Date(); d.setHours(0,0,0,0); return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`; })();
-                            const updateFields = {};
-                            const mergePayload = { statsExercises: {} };
                             const namesTouched = new Set();
+                            const atomic = {}; // per-field updates (avoid touching large arrays)
+                            const localPatch = {};
 
                             for (const ex of (cleanedExercises || [])) {
                                 const name = String(ex?.name || '').trim();
                                 if (!name) continue;
                                 namesTouched.add(name);
-                                const entryPrev = prevStats?.[name] || {};
-                                const entry = { ...entryPrev };
-                                entry.sets = Array.isArray(entry.sets) ? entry.sets.slice() : [];
-                                entry.progress1RM = Array.isArray(entry.progress1RM) ? entry.progress1RM.slice() : [];
+                                const prev = prevStats?.[name] || {};
 
                                 const repsInc = (ex?.sets || []).reduce((acc, s) => acc + (Number(s?.reps) || 0), 0);
                                 const volInc = (ex?.sets || []).reduce((acc, s) => acc + (Number(s?.reps) || 0) * (Number(s?.weight) || 0), 0);
-                                entry['Reps'] = (Number(entry['Reps']) || 0) + repsInc;
-                                entry['Volume'] = (Number(entry['Volume']) || 0) + volInc;
+                                const nextReps = (Number(prev['Reps']) || 0) + repsInc;
+                                const nextVol = (Number(prev['Volume']) || 0) + volInc;
 
-                                let maxSet1RM = Number(entry['1RM'] || 0);
-                                let bestSet = entry?.bestSet || null;
+                                let best1RM = Number(prev['1RM'] || 0);
+                                let bestSet = prev?.bestSet || null;
                                 for (const s of (ex?.sets || [])) {
-                                    const r = Number(s?.reps) || 0;
-                                    const w = Number(s?.weight) || 0;
+                                    const r = Number(s?.reps) || 0; const w = Number(s?.weight) || 0;
                                     if (r > 0 && w > 0) {
-                                        entry.sets.push({ weight: w, reps: r, date: today, wid: currW.wid });
                                         const est = calculate1RM(w, r);
-                                        if (est > maxSet1RM) { maxSet1RM = est; bestSet = { weight: w, reps: r }; }
+                                        if (est > best1RM) { best1RM = est; bestSet = { weight: w, reps: r }; }
                                     }
                                 }
-                                if (maxSet1RM > Number(entry['1RM'] || 0)) { entry['1RM'] = maxSet1RM; if (bestSet) entry['bestSet'] = bestSet; }
 
-                                const progress = entry.progress1RM;
+                                const progress = Array.isArray(prev?.progress1RM) ? prev.progress1RM.slice() : [];
                                 const last = progress.length ? progress[progress.length - 1] : null;
                                 if (last && last.date === today) {
-                                    last['1RM'] = Math.max(Number(last['1RM'] || 0), maxSet1RM);
+                                    last['1RM'] = Math.max(Number(last['1RM'] || 0), best1RM);
                                     last['volume'] = (Number(last['volume'] || 0) + volInc);
                                     progress[progress.length - 1] = last;
                                 } else {
-                                    progress.push({ date: today, '1RM': maxSet1RM || (Number(entry['1RM']) || 0), volume: volInc });
+                                    progress.push({ date: today, '1RM': best1RM || (Number(prev['1RM']) || 0), volume: volInc });
                                 }
 
-                                updateFields[`statsExercises.${name}`] = entry;
-                                mergePayload.statsExercises[name] = entry;
+                                // atomic field paths
+                                atomic[`statsExercises.${name}.Reps`] = nextReps;
+                                atomic[`statsExercises.${name}.Volume`] = nextVol;
+                                if (best1RM > Number(prev['1RM'] || 0)) {
+                                    atomic[`statsExercises.${name}.1RM`] = best1RM;
+                                    if (bestSet) atomic[`statsExercises.${name}.bestSet`] = bestSet;
+                                }
+                                atomic[`statsExercises.${name}.progress1RM`] = progress;
+
+                                localPatch[name] = { ...(prev || {}), Reps: nextReps, Volume: nextVol, progress1RM: progress };
+                                if (best1RM > Number(prev['1RM'] || 0)) { localPatch[name]['1RM'] = best1RM; if (bestSet) localPatch[name].bestSet = bestSet; }
                             }
 
-                            try { if (global?.userData) global.userData.statsExercises = { ...(global?.userData?.statsExercises || {}), ...mergePayload.statsExercises }; } catch {}
+                            // Persist minimal stats deltas first (fast), then compute hexagon
+                            if (uid && namesTouched.size > 0) {
+                                fsUpdateDoc(doc(db, 'users', uid), atomic).catch(() => updateDoc('users', uid, { statsExercises: localPatch }));
+                            }
+                            try { if (global?.userData) global.userData.statsExercises = { ...(global?.userData?.statsExercises || {}), ...localPatch }; } catch {}
 
-                            // Trigger backend Cloud Function to recompute hexagon (non-blocking)
+                            // Trigger backend Cloud Function to recompute hexagon (with local fallback on timeout)
                             try {
+                                const trainedArr = Array.from(namesTouched.values());
                                 const fn = httpsCallable(functions, 'recomputeHexagon');
-                                fn({ uid, trainedExerciseNames: Array.from(namesTouched.values()) })
+                                let settled = false;
+                                const fallbackLocal = () => {
+                                    try {
+                                        const prevHex = (global?.userData?.statsHexagon || {});
+                                        const { statsHexagon: nextHex } = computeHexagonStats({
+                                            statsExercises: (global?.userData?.statsExercises || {}),
+                                            prevStatsHexagon: prevHex,
+                                            trainedExerciseNames: trainedArr,
+                                        });
+                                        if (uid) {
+                                            const payload = { statsHexagon: nextHex, statsHexagonMeta: { lastTrainedByGroup: {}, updatedAt: serverTimestamp() } };
+                                            fsUpdateDoc(doc(db, 'users', uid), payload).catch(() => updateDoc('users', uid, payload));
+                                        }
+                                        if (global?.userData) { global.userData.statsHexagon = nextHex; emitHexagonUpdate(); }
+                                    } catch {}
+                                };
+                                const timer = setTimeout(() => { if (!settled) fallbackLocal(); }, 3500);
+                                fn({ uid, trainedExerciseNames: trainedArr })
                                   .then((res) => {
+                                      settled = true; clearTimeout(timer);
                                       try {
                                           const hx = res?.data?.statsHexagon;
-                                          if (hx && typeof hx === 'object' && global?.userData) global.userData.statsHexagon = hx;
-                                      } catch { }
+                                          if (hx && typeof hx === 'object' && global?.userData) {
+                                              global.userData.statsHexagon = hx; emitHexagonUpdate();
+                                          } else { fallbackLocal(); }
+                                      } catch { fallbackLocal(); }
                                   })
-                                  .catch(() => {});
+                                  .catch(() => { settled = true; clearTimeout(timer); fallbackLocal(); });
                             } catch { }
                         } catch (e) {
                             console.log('finishWorkout heavy updates error', e?.message || e);
                         }
                     };
 
-                    // Immediately kick a minimal backend recompute shortly after summary opens
-                    // so the user can check stats without reload. Keep it fully async.
-                    if (!kickedRef.current) {
-                        kickedRef.current = true;
-                        setTimeout(() => {
-                            try { scheduleHeavy(); } catch { }
-                        }, 250);
-                    }
-                    // Also schedule a backup after close in case the app was backgrounded immediately
-                    pendingHeavyRef.current = kickedRef.current ? null : (() => { try { scheduleHeavy(); } catch { } });
+                    // After close: run heavy work (stats delta + hexagon + optional set history) with full isolation from UI
+                    pendingHeavyRef.current = () => {
+                        // first the delta+hexagon
+                        try { scheduleHeavy(); } catch {}
+                        // then append raw set history (best-effort)
+                        try {
+                            const prevStats2 = (global?.userData?.statsExercises || {});
+                            const today2 = (() => { const d = new Date(); d.setHours(0,0,0,0); return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`; })();
+                            const updateFieldsFull = {}; const mergePayloadFull = { statsExercises: {} };
+                            for (const ex of (cleanedExercises || [])) {
+                                const name = String(ex?.name || '').trim(); if (!name) continue;
+                                const entryPrev = prevStats2?.[name] || {};
+                                const entry = { ...entryPrev };
+                                entry.sets = Array.isArray(entry.sets) ? entry.sets.slice() : [];
+                                for (const s of (ex?.sets || [])) {
+                                    const r = Number(s?.reps)||0; const w = Number(s?.weight)||0;
+                                    if (r>0 && w>0) entry.sets.push({ weight:w, reps:r, date: today2, wid: completed?.wid || currW?.wid });
+                                }
+                                updateFieldsFull[`statsExercises.${name}`] = entry;
+                                mergePayloadFull.statsExercises[name] = entry;
+                            }
+                            if (uid) {
+                                fsUpdateDoc(doc(db, 'users', uid), updateFieldsFull)
+                                  .catch(() => updateDoc('users', uid, mergePayloadFull));
+                            }
+                            try { if (global?.userData) global.userData.statsExercises = { ...(global?.userData?.statsExercises || {}), ...mergePayloadFull.statsExercises }; } catch {}
+                        } catch {}
+                    };
                 } catch {}
             }
 

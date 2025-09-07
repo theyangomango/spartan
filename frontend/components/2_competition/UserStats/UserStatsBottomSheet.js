@@ -1,12 +1,15 @@
-import React, { useCallback, useEffect, useMemo, useRef } from "react";
+import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { StyleSheet, Text, View } from "react-native";
 import BottomSheet, { BottomSheetBackdrop, BottomSheetFooter } from "@gorhom/bottom-sheet";
 import LeaderboardModal from "../LeaderboardModal";
 import UserStatsModal from "./UserStatsModal";
 
+import { onHexagonUpdate } from "../../../utils/hexagonEvents";
+
 const LeaderboardBottomSheet = ({ isVisible, setIsVisible, user, navigation }) => {
     const bottomSheetRef = useRef(null);
     const snapPoints = useMemo(() => ["94%"], []);
+    const [tick, setTick] = useState(0);
 
     const renderBackdrop = useCallback(
         (props) => (
@@ -25,6 +28,12 @@ const LeaderboardBottomSheet = ({ isVisible, setIsVisible, user, navigation }) =
             bottomSheetRef.current.expand();
         }
     }, [isVisible]);
+
+    // Live refresh when hexagon changes elsewhere in the app
+    useEffect(() => {
+        const off = onHexagonUpdate(() => setTick((t) => t + 1));
+        return () => off && off();
+    }, []);
 
     function toViewProfile() {
         // bottomSheetRef.current.close();
@@ -48,8 +57,8 @@ const LeaderboardBottomSheet = ({ isVisible, setIsVisible, user, navigation }) =
             enablePanDownToClose
             onClose={() => setIsVisible(false)}
         >
-            {user && 
-                <UserStatsModal user={user} toViewProfile={toViewProfile}/>
+            {(user || global?.userData) && 
+                <UserStatsModal key={tick} user={global?.userData || user} toViewProfile={toViewProfile}/>
             }
         </BottomSheet>
     );

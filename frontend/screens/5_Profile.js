@@ -15,6 +15,12 @@ import Footer from "../components/Footer";
 import FeedWorkoutViewerSheet from "../components/1_Feed/ViewWorkout/FeedWorkoutViewerSheet";
 
 export default function Profile({ navigation }) {
+    const [, setRerender] = useState(0);
+    useEffect(() => {
+        const { onHexagonUpdate } = require('../utils/hexagonEvents');
+        const off = onHexagonUpdate(() => setRerender((x) => x + 1));
+        return () => off && off();
+    }, []);
     const userData = global.userData;
     const [posts, setPosts] = useState([]);
     const [selectedPanel, setSelectedPanel] = useState("posts");

@@ -183,7 +183,7 @@ const MUSCLE_ACCENT = {
 const groupAccent = (group) => MUSCLE_ACCENT[group] || COLORS.accent;
 
 export default function UserStatsModal({ user, toViewProfile }) {
-    const exerciseGroups = useMemo(() => getExercisesGrouped(user), [user]);
+    const exerciseGroups = useMemo(() => getExercisesGrouped(user), [user?.statsExercises, user?.uid]);
     const [collapsed, setCollapsed] = useState({}); // { [group]: true }
     const toggleGroup = (g) => {
         try { LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut); } catch {}
