@@ -13,7 +13,12 @@ import {
     UIManager,
     Keyboard,
 } from "react-native";
-import { Dimensions } from "react-native";
+import { Dimensions, FlatList } from "react-native";
+let FlashListLib = null;
+try { FlashListLib = require("@shopify/flash-list"); } catch {}
+const canUseFlashList = !!(FlashListLib && FlashListLib.FlashList && UIManager?.getViewManagerConfig && UIManager.getViewManagerConfig('CellContainer') && UIManager.getViewManagerConfig('AutoLayoutView'));
+const BaseListComponent = canUseFlashList ? FlashListLib.FlashList : FlatList;
+const AnimatedFlashList = Animated.createAnimatedComponent(BaseListComponent);
 import { BlurView } from "expo-blur";
 import { LinearGradient } from "expo-linear-gradient";
 import RNBounceable from "@freakycoder/react-native-bounceable";
@@ -568,7 +573,8 @@ const NewWorkoutModal = ({
                     <Text style={styles.waitingText}>Loading friend…</Text>
                 </View>
             ) : (
-                <Animated.FlatList
+                /* Animated FlashList for smoother, low-overhead virtualization */
+                <AnimatedFlashList
                     ref={listRef}
                     data={Array.isArray(baseWorkout?.exercises) ? baseWorkout.exercises : []}
                     keyExtractor={(ex, i) => `${ex?.name || "ex"}-${i}`}
@@ -612,10 +618,7 @@ const NewWorkoutModal = ({
                     onScroll={Animated.event([{ nativeEvent: { contentOffset: { y: scrollY } } }], { useNativeDriver: true })}
                     keyboardShouldPersistTaps="handled"
                     keyboardDismissMode={Platform.OS === 'ios' ? 'on-drag' : 'none'}
-                    removeClippedSubviews
-                    initialNumToRender={2}
-                    maxToRenderPerBatch={4}
-                    windowSize={5}
+                    {...(canUseFlashList ? { estimatedItemSize: scaledSize(72) } : {})}
                     style={[styles.scrollview, { opacity: overallOpacity }]}
                 />
             )}

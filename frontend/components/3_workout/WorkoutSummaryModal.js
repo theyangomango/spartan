@@ -1,5 +1,9 @@
 import React, { useEffect, useMemo, useRef } from 'react';
-import { Modal, View, Text, StyleSheet, FlatList, Dimensions, Pressable, Animated } from 'react-native';
+import { Modal, View, Text, StyleSheet, Dimensions, Pressable, Animated, FlatList, UIManager } from 'react-native';
+let FlashListLib = null;
+try { FlashListLib = require('@shopify/flash-list'); } catch {}
+const canUseFlashListSummary = !!(FlashListLib && FlashListLib.FlashList && UIManager?.getViewManagerConfig && UIManager.getViewManagerConfig('CellContainer') && UIManager.getViewManagerConfig('AutoLayoutView'));
+const SummaryList = canUseFlashListSummary ? FlashListLib.FlashList : FlatList;
 import { Clock } from 'iconsax-react-native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import RNBounceable from '@freakycoder/react-native-bounceable';
@@ -179,7 +183,7 @@ const WorkoutSummaryModal = ({ isVisible, workout, onClose, postWorkout }) => {
                     <Divider />
 
                     {/* List */}
-                    <FlatList
+                    <SummaryList
                         data={workout.exercises}
                         renderItem={renderExercise}
                         keyExtractor={(item, index) => `${item.name}-${index}`}
@@ -187,10 +191,7 @@ const WorkoutSummaryModal = ({ isVisible, workout, onClose, postWorkout }) => {
                         contentContainerStyle={{ paddingBottom: scaledSize(6) }}
                         showsVerticalScrollIndicator={false}
                         keyboardShouldPersistTaps="handled"
-                        initialNumToRender={6}
-                        maxToRenderPerBatch={6}
-                        windowSize={5}
-                        removeClippedSubviews
+                        {...(canUseFlashListSummary ? { estimatedItemSize: scaledSize(52) } : {})}
                     />
 
                     {/* Actions */}
