@@ -12,6 +12,7 @@ import {
     Platform,
     UIManager,
     Keyboard,
+    Easing,
 } from "react-native";
 import { Dimensions, FlatList } from "react-native";
 // AsyncStorage removed for reminder gating; show only on create/join events
@@ -329,7 +330,19 @@ const NewWorkoutModal = ({
         return false;
     }, [viewingSelfEffective, myActiveWid, cardWid, workout?.__justStarted, workout?.wid]);
     const dimDueToContext = !isActiveSelf;
-    const contentOpacity = reminderVisible ? 0.6 : (dimDueToContext ? 0.6 : 1);
+    // Smoothly animate context dim to avoid harsh jumps when switching between spectating and self
+    const contentDimAnim = useRef(new Animated.Value(1)).current;
+    const targetOpacity = reminderVisible ? 0.6 : (dimDueToContext ? 0.6 : 1);
+    useEffect(() => {
+        try {
+            Animated.timing(contentDimAnim, {
+                toValue: targetOpacity,
+                duration: 180,
+                easing: Easing.out(Easing.cubic),
+                useNativeDriver: true,
+            }).start();
+        } catch { }
+    }, [targetOpacity, contentDimAnim]);
 
     const friendWaiting = streamLive && !viewingSelfEffective && waitingFriend && !(baseWorkout?.exercises?.length);
 
@@ -610,7 +623,7 @@ const NewWorkoutModal = ({
             ) : (
                 isEmptyList ? (
                     // Robust empty state rendered outside the list to avoid FlashList measurement quirks
-                    <View style={[styles.scrollview, { opacity: contentOpacity }]}> 
+                    <Animated.View style={[styles.scrollview, { opacity: contentDimAnim }]}> 
                         <ProgressBanner totalReps={totals.reps} totalVolume={totals.volume} personalBests={totals.PBs} />
                         {viewingSelfEffective && (
                             <>
@@ -624,7 +637,7 @@ const NewWorkoutModal = ({
                             </>
                         )}
                         <View style={{ height: scaledSize(250) + Math.max(0, keyboardHeight - scaledSize(40)) }} />
-                    </View>
+                    </Animated.View>
                 ) : (
                     /* Animated FlashList for smoother, low-overhead virtualization */
                     <AnimatedFlashList
@@ -673,7 +686,7 @@ const NewWorkoutModal = ({
                         keyboardShouldPersistTaps="handled"
                         keyboardDismissMode={Platform.OS === 'ios' ? 'on-drag' : 'none'}
                         {...(canUseFlashList ? { estimatedItemSize: scaledSize(72) } : {})}
-                        style={[styles.scrollview, { opacity: contentOpacity }]}
+                        style={[styles.scrollview, { opacity: contentDimAnim }]}
                     />
                 )
             )}
