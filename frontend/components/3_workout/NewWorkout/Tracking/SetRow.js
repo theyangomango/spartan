@@ -9,6 +9,7 @@ import Animated, { useAnimatedStyle } from "react-native-reanimated";
 const { height: screenHeight } = Dimensions.get("window");
 const scale = screenHeight / 844;
 const scaledSize = (size) => Math.round(size * scale);
+const ENABLE_LAYOUT_ANIM = false;
 
 // Enable LayoutAnimation on Android once
 if (Platform.OS === "android" && UIManager.setLayoutAnimationEnabledExperimental) {
@@ -39,7 +40,7 @@ function SetRow({
         <UnderlayLeft
             onDelete={() => {
                 try { swipeRef?.current?.close?.(); } catch {}
-                try { LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut); } catch {}
+                if (ENABLE_LAYOUT_ANIM) { try { LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut); } catch {} }
                 onDeleteSetById ? onDeleteSetById(sid) : handleDelete(index);
             }}
         />

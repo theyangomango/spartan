@@ -1,6 +1,6 @@
 import React from "react";
 import { StyleSheet, View, Dimensions } from "react-native";
-import { Svg, Polygon, Text as SvgText, Defs, LinearGradient, Stop, Circle } from "react-native-svg";
+import { Svg, Polygon, Text as SvgText, Defs, LinearGradient, Stop, Circle, TSpan } from "react-native-svg";
 
 const { width: screenWidth, height: screenHeight } = Dimensions.get("window");
 
@@ -20,6 +20,10 @@ const HexagonalStats = ({
     labelFontPx,
     valueFontPx,
     labelOffsetPx,
+    prevStatsHexagon = null,
+    valueFontBigPx,
+    diffHighlightColor = '#F2B84B',
+    prevColor = '#94A3B8',
 }) => {
     // only the selected user's stats
     const data = [
@@ -30,6 +34,14 @@ const HexagonalStats = ({
         Number(statsHexagon?.back || 0),
         Number(statsHexagon?.abs || 0),
     ];
+    const prevData = prevStatsHexagon ? [
+        Number(prevStatsHexagon?.shoulders || 0),
+        Number(prevStatsHexagon?.chest || 0),
+        Number(prevStatsHexagon?.arms || 0),
+        Number(prevStatsHexagon?.legs || 0),
+        Number(prevStatsHexagon?.back || 0),
+        Number(prevStatsHexagon?.abs || 0),
+    ] : null;
 
     // Geometry
     const chartSize = Math.max(120, Number(size) || defaultChartSize);
@@ -44,6 +56,7 @@ const HexagonalStats = ({
     // Scaled styling
     const labelFont = Number(labelFontPx) || scaledSize(13);
     const valueFont = Number(valueFontPx) || scaledSize(14);
+    const valueFontBig = Number(valueFontBigPx) || Math.round(valueFont * 1.25);
     const labelRadiusOffset = Number(labelOffsetPx) || scaledSize(26);
     const valueOffset = scaledSize(12);
 
@@ -120,33 +133,77 @@ const HexagonalStats = ({
                 ))}
 
                 {/* Labels + values (outside the shape) */}
-                {showLabels && labelPts.map(({ x, y, i }) => (
-                    <React.Fragment key={`lbl-${i}`}>
-                        <SvgText
-                            x={x}
-                            y={y - scaledSize(4)}
-                            textAnchor="middle"
-                            alignmentBaseline="middle"
-                            fill="#475569"
-                            fontFamily="Poppins_700Bold"
-                            fontSize={labelFont}
-                        >
-                            {categories[i]}
-                        </SvgText>
+                {showLabels && labelPts.map(({ x, y, i }) => {
+                    const curr = data[i];
+                    const prev = prevData ? prevData[i] : null;
+                    const changed = prevData && Number(prev) !== Number(curr);
+                    const isSide = (i === 1 || i === 2 || i === 4 || i === 5); // CHEST, ARMS, BACK, ABS
+                    const lineGap = scaledSize(14);
+                    return (
+                        <React.Fragment key={`lbl-${i}`}>
+                            <SvgText
+                                x={x}
+                                y={y - scaledSize(4)}
+                                textAnchor="middle"
+                                alignmentBaseline="middle"
+                                fill="#475569"
+                                fontFamily="Poppins_700Bold"
+                                fontSize={labelFont}
+                            >
+                                {categories[i]}
+                            </SvgText>
 
-                        <SvgText
-                            x={x}
-                            y={y + valueOffset}
-                            textAnchor="middle"
-                            alignmentBaseline="middle"
-                            fill="#2D9EFF"
-                            fontFamily="Outfit_700Bold"
-                            fontSize={valueFont}
-                        >
-                            {data[i]}
-                        </SvgText>
-                    </React.Fragment>
-                ))}
+                            {!changed || !isSide ? (
+                                <SvgText
+                                    x={x}
+                                    y={y + valueOffset}
+                                    textAnchor="middle"
+                                    alignmentBaseline="middle"
+                                    fill="#2D9EFF"
+                                    fontFamily="Outfit_700Bold"
+                                    fontSize={valueFont}
+                                >
+                                    {changed ? (
+                                        // inline prev → new for non-side positions
+                                        <>
+                                            <TSpan fill={prevColor} fontFamily="Outfit_700Bold" fontSize={valueFont}>{String(prev)}</TSpan>
+                                            <TSpan fill={prevColor} fontFamily="Outfit_700Bold" fontSize={valueFont}>{'  →  '}</TSpan>
+                                            <TSpan fill={diffHighlightColor} fontFamily="Outfit_800ExtraBold" fontSize={valueFontBig}>{String(curr)}</TSpan>
+                                        </>
+                                    ) : (
+                                        String(curr)
+                                    )}
+                                </SvgText>
+                            ) : (
+                                // For side labels, stack arrow/new on a second line so it doesn't clip off-screen
+                                <>
+                                    {/* Top line (same y as the original blue value): previous value */}
+                                    <SvgText
+                                        x={x}
+                                        y={y + valueOffset}
+                                        textAnchor="middle"
+                                        alignmentBaseline="middle"
+                                        fill={prevColor}
+                                        fontFamily="Outfit_700Bold"
+                                        fontSize={valueFont}
+                                    >
+                                        {String(prev)}
+                                    </SvgText>
+                                    {/* Bottom line: arrow + new highlighted value */}
+                                    <SvgText
+                                        x={x}
+                                        y={y + valueOffset + lineGap}
+                                        textAnchor="middle"
+                                        alignmentBaseline="middle"
+                                    >
+                                        <TSpan fill={prevColor} fontFamily="Outfit_700Bold" fontSize={valueFont}>{'→  '}</TSpan>
+                                        <TSpan fill={diffHighlightColor} fontFamily="Outfit_800ExtraBold" fontSize={valueFontBig}>{String(curr)}</TSpan>
+                                    </SvgText>
+                                </>
+                            )}
+                        </React.Fragment>
+                    );
+                })}
             </Svg>
         </View>
     );

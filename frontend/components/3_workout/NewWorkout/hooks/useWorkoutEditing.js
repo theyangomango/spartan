@@ -35,7 +35,7 @@ export default function useWorkoutEditing({ workout, updateWorkout, viewingSelf 
     /* ----------- micro-batched commit (reduces re-renders) ----------- */
     const pendingRef = useRef(null);  // last computed "next workout"
     const timerRef = useRef(0);
-    const MICRO_DELAY = 80; // ms; batches multiple quick edits (typing/toggles)
+    const MICRO_DELAY = 120; // ms; batches multiple quick edits (typing/toggles)
 
     const flush = useCallback(() => {
         timerRef.current = 0;

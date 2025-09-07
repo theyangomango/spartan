@@ -30,6 +30,7 @@ import FriendsActivitySheet from "../components/3_Workout/FriendsActivitySheet";
 import InviteBanner from "../components/3_Workout/InviteBanner";
 import NotificationsBottomSheet from "../components/1_Feed/Notifications/NotificationsBottomSheet";
 import UserStatsAfterWorkoutSheet from "../components/2_Competition/UserStats/UserStatsAfterWorkoutSheet";
+import { onHexagonUpdate } from "../utils/hexagonEvents";
 
 // Theme & Hooks (project)
 import { ss, FOOTER_HEIGHT, BTN_SIZE, TPL_BOTTOM_GAP, TPL_HEIGHT } from "../components/3_Workout/sections/workoutTheme";
@@ -317,31 +318,29 @@ export default function Workout({ navigation, route }) {
     const [hexFrom, setHexFrom] = useState(null);
     const [hexTo, setHexTo] = useState(null);
 
+    // When the summary opens, capture 'from'. When the sheet opens, capture 'to' and subscribe to updates.
     useEffect(() => {
-        if (!isSummaryModalVisible) return;
-        // Snapshot 'from' immediately when summary opens
-        try { setHexFrom(global?.__hexChangeFrom || global?.userData?.statsHexagon || null); } catch { setHexFrom(global?.userData?.statsHexagon || null); }
-        // If compute already finished, prime 'to' now; otherwise subscribe to updates
-        try { setHexTo(global?.__hexChangeTo || null); } catch { setHexTo(null); }
-        let unsub = null;
-        try {
-            const { onHexagonUpdate } = require('../utils/hexagonEvents');
-            unsub = onHexagonUpdate(() => {
-                try { setHexTo(global?.userData?.statsHexagon || null); } catch { }
-            });
-        } catch { }
-        return () => { try { unsub && unsub(); } catch {} };
+        if (isSummaryModalVisible) {
+            try { setHexFrom(global?.__hexChangeFrom || global?.userData?.statsHexagon || null); } catch { setHexFrom(global?.userData?.statsHexagon || null); }
+        }
     }, [isSummaryModalVisible]);
 
+    useEffect(() => {
+        if (!hexChangeVisible) return;
+        // Prime both from and to on open (in case we navigated quickly)
+        try { setHexFrom(global?.__hexChangeFrom || hexFrom || global?.userData?.statsHexagon || null); } catch {}
+        try { setHexTo(global?.__hexChangeTo || hexTo || global?.userData?.statsHexagon || null); } catch {}
+        const unsub = onHexagonUpdate(() => {
+            try { setHexTo(global?.userData?.statsHexagon || null); } catch {}
+        });
+        return () => { try { unsub && unsub(); } catch {} };
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [hexChangeVisible]);
+
     const handleSummaryClose = useCallback(() => {
+        // Close summary, then open the stats sheet on the very next frame
         setIsSummaryModalVisible(false);
-        // Wait for interactions/animations to finish so the sheet doesn't compete with the Modal
-        try {
-            const { runAfterInteractions } = require('react-native').InteractionManager;
-            runAfterInteractions(() => setTimeout(() => setHexChangeVisible(true), 30));
-        } catch {
-            requestAnimationFrame(() => setTimeout(() => setHexChangeVisible(true), 120));
-        }
+        requestAnimationFrame(() => setHexChangeVisible(true));
     }, [setIsSummaryModalVisible]);
 
     const hasActiveWorkout = useWorkoutStore((s) => !!s.workout);

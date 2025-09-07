@@ -78,7 +78,13 @@ export default function UserStatsAfterWorkoutSheet({
       handleComponent={() => null}
     >
       <View style={{ flex: 1 }}>
-        <UserStatsModal user={animUser} toViewProfile={() => {}} hexOverlay={renderHexOverlay} deferExercises={true} />
+        <UserStatsModal
+          user={animUser}
+          toViewProfile={() => {}}
+          hexOverlay={renderHexOverlay}
+          hexProps={{ prevStatsHexagon: fromHexagon, valueFontBigPx: 16, diffHighlightColor: '#F2B84B' }}
+          deferExercises={true}
+        />
       </View>
     </BottomSheet>
   );

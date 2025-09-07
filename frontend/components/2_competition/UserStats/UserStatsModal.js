@@ -182,7 +182,7 @@ const MUSCLE_ACCENT = {
 };
 const groupAccent = (group) => MUSCLE_ACCENT[group] || COLORS.accent;
 
-export default function UserStatsModal({ user, toViewProfile, hexOverlay, deferExercises = false }) {
+export default function UserStatsModal({ user, toViewProfile, hexOverlay, hexProps = {}, deferExercises = false }) {
     // Optionally defer heavy grouping work until after interactions (for smoother open)
     const [showExercises, setShowExercises] = useState(!deferExercises);
     useEffect(() => {
@@ -202,6 +202,9 @@ export default function UserStatsModal({ user, toViewProfile, hexOverlay, deferE
         setCollapsed((s) => ({ ...s, [g]: !s[g] }));
     };
     const overall = Math.round(user?.statsHexagon?.overall ?? 0);
+    const prevOverallRaw = hexProps?.prevStatsHexagon?.overall;
+    const prevOverall = Number.isFinite(Number(prevOverallRaw)) ? Math.round(Number(prevOverallRaw)) : null;
+    const ovrChanged = prevOverall !== null && prevOverall !== overall;
     const joinedLabel = formatJoinDate(
         user?.joined
     );
@@ -232,7 +235,15 @@ export default function UserStatsModal({ user, toViewProfile, hexOverlay, deferE
 
                 <View style={styles.scorePill}>
                     <Text style={styles.scorePillLabel}>OVR</Text>
-                    <Text style={styles.scorePillValue}>{overall}</Text>
+                    {ovrChanged ? (
+                        <View style={styles.ovrRow}>
+                            <Text style={styles.scorePillPrev}>{prevOverall}</Text>
+                            <Text style={styles.scorePillArrow}>{'  →  '}</Text>
+                            <Text style={styles.scorePillNew}>{overall}</Text>
+                        </View>
+                    ) : (
+                        <Text style={styles.scorePillValue}>{overall}</Text>
+                    )}
                 </View>
             </View>
 
@@ -245,7 +256,7 @@ export default function UserStatsModal({ user, toViewProfile, hexOverlay, deferE
                 {/* Hexagon (no card background) */}
                 <View style={styles.hexWrap}>
                     <View style={{ position: 'relative', alignItems: 'center', justifyContent: 'center' }}>
-                        <HexagonalStats statsHexagon={user.statsHexagon} />
+                        <HexagonalStats statsHexagon={user.statsHexagon} {...hexProps} />
                         {hexOverlay ? (typeof hexOverlay === 'function' ? hexOverlay() : hexOverlay) : null}
                     </View>
                 </View>
@@ -412,6 +423,7 @@ const styles = StyleSheet.create({
         borderColor: COLORS.hairline,
         backgroundColor: "#FFFFFF",
     },
+    ovrRow: { flexDirection: 'row', alignItems: 'baseline' },
     scorePillLabel: {
         fontSize: scaledSize(11),
         fontFamily: "Outfit_600SemiBold",
@@ -423,6 +435,24 @@ const styles = StyleSheet.create({
         fontSize: scaledSize(15.5),
         fontFamily: "Outfit_700Bold",
         color: COLORS.accent,
+        letterSpacing: 0.2,
+    },
+    scorePillPrev: {
+        fontSize: scaledSize(15.5),
+        fontFamily: 'Outfit_700Bold',
+        color: '#94A3B8',
+        letterSpacing: 0.2,
+    },
+    scorePillArrow: {
+        fontSize: scaledSize(15.5),
+        fontFamily: 'Outfit_700Bold',
+        color: '#94A3B8',
+        letterSpacing: 0.2,
+    },
+    scorePillNew: {
+        fontSize: scaledSize(17),
+        fontFamily: 'Outfit_800ExtraBold',
+        color: '#F2B84B',
         letterSpacing: 0.2,
     },
 

@@ -10,6 +10,7 @@ import ExerciseOptionsPanel from "./ExerciseOptionsPanel";
 const { height: screenHeight } = Dimensions.get("window");
 const scale = screenHeight / 844;
 const s = (n) => Math.round(n * scale);
+const ENABLE_LAYOUT_ANIM = false;
 
 // simple debounce
 const useDebounced = (fn, delay = 120) => {
@@ -148,7 +149,7 @@ function ExerciseLog({
 
     // ----- Local mutations (no parent call) -----
     const withLayout = (fn) => (...args) => {
-        try { LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut); } catch { }
+        if (ENABLE_LAYOUT_ANIM) { try { LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut); } catch {} }
         fn(...args);
     };
 
