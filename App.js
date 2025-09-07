@@ -32,6 +32,8 @@ import ViewProfile from './frontend/screens/4.1_ViewProfile';
 import MacroTracking from './frontend/screens/MacroTracking';
 import SearchUsers from './frontend/screens/SearchUsers';
 import Settings from './frontend/screens/Settings';
+import PrivacyPolicy from './frontend/screens/PrivacyPolicy';
+import TermsOfService from './frontend/screens/TermsOfService';
 
 const NativeStack = createNativeStackNavigator();
 
@@ -300,6 +302,8 @@ export default function App() {
                     <RootStack.Screen name="ViewProfile" component={ViewProfile} />
                     <RootStack.Screen name="SearchUsers" component={SearchUsers} />
                     <RootStack.Screen name="Settings" component={Settings} />
+                    <RootStack.Screen name="PrivacyPolicy" component={PrivacyPolicy} />
+                    <RootStack.Screen name="TermsOfService" component={TermsOfService} />
 
                     {/* Creator */}
                     <RootStack.Screen name="SelectPhotos" component={SelectPhotosScreen} />

@@ -1,5 +1,5 @@
 import React, { useCallback, useState } from 'react';
-import { SafeAreaView, View, Text, StyleSheet, ScrollView, Switch, TouchableOpacity, Alert, Platform } from 'react-native';
+import { SafeAreaView, View, Text, StyleSheet, ScrollView, Switch, TouchableOpacity, Alert, Platform, Linking } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 
 export default function Settings({ navigation }) {
@@ -32,7 +32,7 @@ export default function Settings({ navigation }) {
         <Text style={styles.section}>Account</Text>
         <Row label="Private profile" value={privateProfile} onValueChange={setPrivateProfile} />
         <Row label={`Units: ${unitsLbs ? 'lb' : 'kg'}`} value={unitsLbs} onValueChange={setUnitsLbs} />
-        <TouchableOpacity style={styles.link} onPress={() => navigation.navigate('EditProfile', { transition: 'slide-from-right' })}>
+        <TouchableOpacity style={styles.link} onPress={() => navigation.navigate('Profile', { transition: 'slide-from-right' })}>
           <Text style={styles.linkText}>Edit profile</Text>
           <Ionicons name="chevron-forward" size={18} color="#94A3B8" />
         </TouchableOpacity>
@@ -49,15 +49,15 @@ export default function Settings({ navigation }) {
         </TouchableOpacity>
 
         <Text style={styles.section}>Support</Text>
-        <TouchableOpacity style={styles.link} onPress={() => Alert.alert('Contact', 'Email: support@spartan.app') }>
+        <TouchableOpacity style={styles.link} onPress={() => Linking.openURL('mailto:support@spartan.app?subject=Spartan%20Support') }>
           <Text style={styles.linkText}>Contact support</Text>
           <Ionicons name="open-outline" size={18} color="#94A3B8" />
         </TouchableOpacity>
-        <TouchableOpacity style={styles.link} onPress={() => Alert.alert('Terms', 'Coming soon') }>
+        <TouchableOpacity style={styles.link} onPress={() => navigation.navigate('TermsOfService', { transition: 'slide-from-right' }) }>
           <Text style={styles.linkText}>Terms of Service</Text>
           <Ionicons name="chevron-forward" size={18} color="#94A3B8" />
         </TouchableOpacity>
-        <TouchableOpacity style={styles.link} onPress={() => Alert.alert('Privacy', 'Coming soon') }>
+        <TouchableOpacity style={styles.link} onPress={() => navigation.navigate('PrivacyPolicy', { transition: 'slide-from-right' }) }>
           <Text style={styles.linkText}>Privacy Policy</Text>
           <Ionicons name="chevron-forward" size={18} color="#94A3B8" />
         </TouchableOpacity>
@@ -93,4 +93,3 @@ const styles = StyleSheet.create({
   logoutBtn: { marginTop: 10, backgroundColor: '#FEE2E2', borderRadius: 12, alignItems: 'center', justifyContent: 'center', paddingVertical: 12 },
   logoutText: { fontFamily: 'Outfit_700Bold', color: '#B91C1C' },
 });
-
