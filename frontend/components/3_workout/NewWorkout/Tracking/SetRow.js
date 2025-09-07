@@ -2,7 +2,7 @@ import React, { memo, useEffect, useState } from "react";
 import { View, StyleSheet, Text, Pressable, Dimensions, LayoutAnimation, Platform, UIManager, Keyboard } from "react-native";
 import EditableStat from "./EditableStat";
 import SetTypePanel from "./SetTypePanel";
-import { Ionicons } from "@expo/vector-icons";
+import { Ionicons, MaterialCommunityIcons } from "@expo/vector-icons";
 import SwipeableItem, { OpenDirection, useSwipeableItemParams } from "react-native-swipeable-item";
 import Animated, { useAnimatedStyle } from "react-native-reanimated";
 
@@ -120,7 +120,8 @@ function SetRow({
                             }}
                             disabled={readOnly}
                         >
-                            <Ionicons name="checkmark" size={scaledSize(14)} color={doneLocal ? "#fff" : "#444"} />
+                            {/* Use a thicker glyph for better legibility */}
+                            <MaterialCommunityIcons name="check-bold" size={scaledSize(16)} color={doneLocal ? "#fff" : "#444"} />
                         </Pressable>
                     </View>
                 </View>
