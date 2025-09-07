@@ -1,5 +1,6 @@
 // hooks/useRestTimer.js
 import { useCallback, useEffect, useRef, useState } from "react";
+import { Vibration } from "react-native";
 // Lazy import expo-notifications to avoid native crashes on simulators/dev clients
 let ExpoNotifications = null;
 try { ExpoNotifications = require('expo-notifications'); } catch {}
@@ -118,6 +119,7 @@ export default function useRestTimer() {
       endAtRef.current = 0;
       try { global.__restTimerEndAt = 0; global.__restTimerTotal = 0; } catch {}
       try { Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success); } catch {}
+      try { Vibration.vibrate(150); } catch {}
       try { if (typeof global?.triggerRestReminder === 'function') global.triggerRestReminder(); } catch {}
     }
     prevCountdownRef.current = countdown;

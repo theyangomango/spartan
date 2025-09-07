@@ -608,72 +608,74 @@ const NewWorkoutModal = ({
                     <Text style={styles.waitingText}>Loading friend…</Text>
                 </View>
             ) : (
-                /* Animated FlashList for smoother, low-overhead virtualization */
-                <AnimatedFlashList
-                    key={`wlist-${cardWid}`}
-                    ref={listRef}
-                    data={exercisesData}
-                    keyExtractor={(ex, i) => `${ex?.name || "ex"}-${i}`}
-                    renderItem={({ item: ex, index: exerciseIndex }) => (
-                        <ExerciseLog
-                            name={ex.name}
-                            muscle={ex.muscle}
-                            exerciseIndex={exerciseIndex}
-                            sets={ex.sets}
-                            prevSets={Array.isArray(ex.prev) ? ex.prev : (prevSetsMapRef.current?.get(ex.name) || undefined)}
-                            updateSets={updateSets}
-                            replaceExercise={replaceExercise}
-                            deleteExercise={() => deleteExercise(exerciseIndex)}
-                            
-                            userWorkoutStats={statsForPrevious}
-                            readOnly={!viewingSelfEffective}
-                            onStatFocus={handleStatFocus}
-                        />
-                    )}
-                    ListHeaderComponent={isEmptyList ? null : (
+                isEmptyList ? (
+                    // Robust empty state rendered outside the list to avoid FlashList measurement quirks
+                    <View style={[styles.scrollview, { opacity: contentOpacity }]}> 
                         <ProgressBanner totalReps={totals.reps} totalVolume={totals.volume} personalBests={totals.PBs} />
-                    )}
-                    ListFooterComponent={isEmptyList ? null : (
-                        <>
-                            {viewingSelfEffective && (
-                                <>
-                                    <RNBounceable onPress={showSelectExerciseModal} style={styles.add_exercise_btn}>
-                                        <Text style={styles.add_exercise_text}>Add Exercises</Text>
-                                        <Weight size={scaledSize(22)} color="#5DBDFF" variant="Bold" />
-                                    </RNBounceable>
-                                    <RNBounceable onPress={confirmCancelWorkout} style={styles.cancel_btn}>
-                                        <Text style={styles.cancel_btn_text}>Cancel Workout</Text>
-                                    </RNBounceable>
-                                </>
-                            )}
-                            <View style={{ height: scaledSize(250) + Math.max(0, keyboardHeight - scaledSize(40)) }} />
-                        </>
-                    )}
-                    ListEmptyComponent={(
-                        <View style={{ backgroundColor: '#fff' }}>
+                        {viewingSelfEffective && (
+                            <>
+                                <RNBounceable onPress={showSelectExerciseModal} style={styles.add_exercise_btn}>
+                                    <Text style={styles.add_exercise_text}>Add Exercises</Text>
+                                    <Weight size={scaledSize(22)} color="#5DBDFF" variant="Bold" />
+                                </RNBounceable>
+                                <RNBounceable onPress={confirmCancelWorkout} style={styles.cancel_btn}>
+                                    <Text style={styles.cancel_btn_text}>Cancel Workout</Text>
+                                </RNBounceable>
+                            </>
+                        )}
+                        <View style={{ height: scaledSize(250) + Math.max(0, keyboardHeight - scaledSize(40)) }} />
+                    </View>
+                ) : (
+                    /* Animated FlashList for smoother, low-overhead virtualization */
+                    <AnimatedFlashList
+                        key={`wlist-${cardWid}`}
+                        ref={listRef}
+                        data={exercisesData}
+                        keyExtractor={(ex, i) => `${ex?.name || "ex"}-${i}`}
+                        renderItem={({ item: ex, index: exerciseIndex }) => (
+                            <ExerciseLog
+                                name={ex.name}
+                                muscle={ex.muscle}
+                                exerciseIndex={exerciseIndex}
+                                sets={ex.sets}
+                                prevSets={Array.isArray(ex.prev) ? ex.prev : (prevSetsMapRef.current?.get(ex.name) || undefined)}
+                                updateSets={updateSets}
+                                replaceExercise={replaceExercise}
+                                deleteExercise={() => deleteExercise(exerciseIndex)}
+                                
+                                userWorkoutStats={statsForPrevious}
+                                readOnly={!viewingSelfEffective}
+                                onStatFocus={handleStatFocus}
+                            />
+                        )}
+                        ListHeaderComponent={(
                             <ProgressBanner totalReps={totals.reps} totalVolume={totals.volume} personalBests={totals.PBs} />
-                            {viewingSelfEffective && (
-                                <>
-                                    <RNBounceable onPress={showSelectExerciseModal} style={styles.add_exercise_btn}>
-                                        <Text style={styles.add_exercise_text}>Add Exercises</Text>
-                                        <Weight size={scaledSize(22)} color="#5DBDFF" variant="Bold" />
-                                    </RNBounceable>
-                                    <RNBounceable onPress={confirmCancelWorkout} style={styles.cancel_btn}>
-                                        <Text style={styles.cancel_btn_text}>Cancel Workout</Text>
-                                    </RNBounceable>
-                                </>
-                            )}
-                            <View style={{ height: scaledSize(60) }} />
-                        </View>
-                    )}
-                    showsVerticalScrollIndicator={false}
-                    scrollEventThrottle={16}
-                    onScroll={Animated.event([{ nativeEvent: { contentOffset: { y: scrollY } } }], { useNativeDriver: true })}
-                    keyboardShouldPersistTaps="handled"
-                    keyboardDismissMode={Platform.OS === 'ios' ? 'on-drag' : 'none'}
-                    {...(canUseFlashList ? { estimatedItemSize: scaledSize(72) } : {})}
-                    style={[styles.scrollview, { opacity: contentOpacity }]}
-                />
+                        )}
+                        ListFooterComponent={(
+                            <>
+                                {viewingSelfEffective && (
+                                    <>
+                                        <RNBounceable onPress={showSelectExerciseModal} style={styles.add_exercise_btn}>
+                                            <Text style={styles.add_exercise_text}>Add Exercises</Text>
+                                            <Weight size={scaledSize(22)} color="#5DBDFF" variant="Bold" />
+                                        </RNBounceable>
+                                        <RNBounceable onPress={confirmCancelWorkout} style={styles.cancel_btn}>
+                                            <Text style={styles.cancel_btn_text}>Cancel Workout</Text>
+                                        </RNBounceable>
+                                    </>
+                                )}
+                                <View style={{ height: scaledSize(250) + Math.max(0, keyboardHeight - scaledSize(40)) }} />
+                            </>
+                        )}
+                        showsVerticalScrollIndicator={false}
+                        scrollEventThrottle={16}
+                        onScroll={Animated.event([{ nativeEvent: { contentOffset: { y: scrollY } } }], { useNativeDriver: true })}
+                        keyboardShouldPersistTaps="handled"
+                        keyboardDismissMode={Platform.OS === 'ios' ? 'on-drag' : 'none'}
+                        {...(canUseFlashList ? { estimatedItemSize: scaledSize(72) } : {})}
+                        style={[styles.scrollview, { opacity: contentOpacity }]}
+                    />
+                )
             )}
 
             {/* Add / Replace Exercises */}

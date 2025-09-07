@@ -8,7 +8,8 @@ import { navigationRef } from './navigationRef';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { createStackNavigator, CardStyleInterpolators, TransitionSpecs } from '@react-navigation/stack';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
-import { Platform, Modal, View, Text, Pressable, StyleSheet, Dimensions } from 'react-native';
+import { Platform, Modal, View, Text, Pressable, StyleSheet, Dimensions, Vibration } from 'react-native';
+import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { enableScreens, enableFreeze } from 'react-native-screens';
@@ -205,6 +206,7 @@ export default function App() {
     useEffect(() => {
         global.triggerRestReminder = () => {
             try { Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success); } catch {}
+            try { Vibration.vibrate(180); } catch {}
             setRestReminderKey((k) => k + 1);
             setRestReminderVisible(true);
         };
@@ -220,6 +222,8 @@ export default function App() {
                 try {
                     const title = evt?.request?.content?.title || '';
                     if (String(title).toLowerCase().includes('rest complete')) {
+                        try { Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success); } catch {}
+                        try { Vibration.vibrate(180); } catch {}
                         setRestReminderKey((k) => k + 1);
                         setRestReminderVisible(true);
                     }
@@ -429,14 +433,19 @@ export default function App() {
             >
                 <Pressable style={restStyles.overlay} onPress={() => setRestReminderVisible(false)}>
                     <View style={restStyles.card}>
-                        <Text style={restStyles.title}>Rest complete</Text>
-                        <Text style={restStyles.body}>Time to get back to your set.</Text>
+                        <View style={restStyles.iconRow}>
+                            <View style={restStyles.iconCircle}><Ionicons name="timer-outline" size={rs(26)} color="#0369A1" /></View>
+                        </View>
+                        <Text style={restStyles.title}>Rest Complete</Text>
+                        <Text style={restStyles.body}>Time to crush your next set 🥱</Text>
                         <View style={restStyles.row}>
                             <Pressable style={[restStyles.btn, restStyles.secondary]} onPress={() => setRestReminderVisible(false)}>
+                                <Ionicons name="close" size={rs(16)} color="#0F172A" style={{ marginRight: rs(6) }} />
                                 <Text style={[restStyles.btnText, restStyles.secondaryText]}>Dismiss</Text>
                             </Pressable>
                             <Pressable style={[restStyles.btn, restStyles.primary]} onPress={handleOpenWorkoutFromReminder}>
-                                <Text style={[restStyles.btnText, restStyles.primaryText]}>Open Workout</Text>
+                                <MaterialCommunityIcons name="arm-flex" size={rs(18)} color="#fff" style={{ marginRight: rs(6) }} />
+                                <Text style={[restStyles.btnText, restStyles.primaryText]}>Open</Text>
                             </Pressable>
                         </View>
                     </View>
@@ -450,14 +459,23 @@ const restScale = Dimensions.get('window').height / 844;
 const rs = (n) => Math.round(n * restScale);
 const restStyles = StyleSheet.create({
     overlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.35)', alignItems: 'center', justifyContent: 'center', paddingHorizontal: rs(18) },
-    card: { width: '100%', backgroundColor: '#fff', borderRadius: rs(16), padding: rs(18), alignItems: 'center' },
-    title: { fontFamily: 'Outfit_800ExtraBold', fontSize: rs(18), color: '#0F172A' },
-    body: { marginTop: rs(6), fontFamily: 'Outfit_600SemiBold', fontSize: rs(13), color: 'rgba(15,23,42,0.65)' },
-    row: { flexDirection: 'row', marginTop: rs(14), width: '100%', gap: rs(8) },
-    btn: { flex: 1, paddingVertical: rs(10), borderRadius: rs(10), alignItems: 'center', justifyContent: 'center' },
-    primary: { backgroundColor: '#0499FE' },
+    card: {
+        width: '90%', maxWidth: 380,
+        backgroundColor: '#fff', borderRadius: rs(18), paddingVertical: rs(16), paddingHorizontal: rs(16),
+        alignItems: 'center',
+        shadowColor: '#000', shadowOpacity: 0.12, shadowRadius: rs(18), shadowOffset: { width: 0, height: rs(10) },
+        elevation: 6,
+        borderWidth: StyleSheet.hairlineWidth, borderColor: 'rgba(2,6,23,0.06)'
+    },
+    iconRow: { marginBottom: rs(8) },
+    iconCircle: { width: rs(46), height: rs(46), borderRadius: rs(23), backgroundColor: '#EAF3FF', alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: 'rgba(4,153,254,0.25)' },
+    title: { fontFamily: 'Outfit_800ExtraBold', fontSize: rs(18), color: '#0F172A', marginTop: rs(10) },
+    body: { marginTop: rs(6), fontFamily: 'Outfit_600SemiBold', fontSize: rs(13), color: 'rgba(15,23,42,0.72)', textAlign: 'center' },
+    row: { flexDirection: 'row', marginTop: rs(16), width: '100%', gap: rs(8) },
+    btn: { flex: 1, paddingVertical: rs(11), borderRadius: rs(12), alignItems: 'center', justifyContent: 'center', flexDirection: 'row' },
+    primary: { backgroundColor: '#0499FE', shadowColor: '#0499FE', shadowOpacity: 0.25, shadowRadius: rs(10), shadowOffset: { width: 0, height: rs(4) } },
     primaryText: { color: '#fff' },
-    secondary: { backgroundColor: '#F1F5F9' },
+    secondary: { backgroundColor: '#F1F5F9', borderWidth: 1, borderColor: 'rgba(2,6,23,0.06)' },
     secondaryText: { color: '#0F172A' },
     btnText: { fontFamily: 'Outfit_700Bold', fontSize: rs(14) },
 });
