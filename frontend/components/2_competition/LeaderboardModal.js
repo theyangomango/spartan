@@ -149,6 +149,8 @@ export default function LeaderboardModal({
     ]);
 
     const renderItem = ({ item, index }) => {
+        const isBW = normalizeByBodyweight;
+        const missingBW = !!(isBW && item?.__noWeightForBW);
         const value = isTribeFocused && typeof item?._tribeValue === "number"
             ? item._tribeValue
             : (item?.statsExercises?.[exercise]?.[metric] ?? 0);
@@ -170,6 +172,7 @@ export default function LeaderboardModal({
                 metric={metric}
                 exercise={exercise}
                 normalizeByBodyweight={normalizeByBodyweight}
+                missingWeightData={missingBW}
                 showBestSetWhenNotTribe
             />
         );

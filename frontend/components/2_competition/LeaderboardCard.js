@@ -47,6 +47,7 @@ export default function LeaderboardCard({
     normalizeByBodyweight = false,
     showBestSetWhenNotTribe = true,
     isTribeFocused = false,
+    missingWeightData = false,
 }) {
     // Format the large stat and unit depending on metric & normalization
     const { statText, unitText } = formatStat(value, metric, normalizeByBodyweight);
@@ -93,21 +94,29 @@ export default function LeaderboardCard({
 
             <View style={styles.card_right}>
                 <View style={{ alignItems: 'flex-end' }}>
-                    <Text style={[styles.stat_text, { fontSize: FONT_STAT }]}>
-                        {statText} {unitText}
-                    </Text>
-
-                    {showBestSet ? (
-                        showBestSetWhenNotTribe ? (
-                            bestSetIsNA ? (
-                                <Text style={[styles.best_set_text, { fontSize: FONT_BEST }]}>N/A</Text>
-                            ) : (
-                                <Text style={[styles.best_set_text, { fontSize: FONT_BEST }]} numberOfLines={1}>
-                                    {bestSet.reps} x {bestSet.weight} lbs
-                                </Text>
-                            )
-                        ) : null
-                    ) : null}
+                    {missingWeightData ? (
+                        <>
+                            <Text style={[styles.stat_text, { fontSize: FONT_STAT }]}>—</Text>
+                            <Text style={[styles.best_set_text, { fontSize: FONT_BEST }]}>No Weight Data</Text>
+                        </>
+                    ) : (
+                        <>
+                            <Text style={[styles.stat_text, { fontSize: FONT_STAT }]}>
+                                {statText} {unitText}
+                            </Text>
+                            {showBestSet ? (
+                                showBestSetWhenNotTribe ? (
+                                    bestSetIsNA ? (
+                                        <Text style={[styles.best_set_text, { fontSize: FONT_BEST }]}>N/A</Text>
+                                    ) : (
+                                        <Text style={[styles.best_set_text, { fontSize: FONT_BEST }]} numberOfLines={1}>
+                                            {bestSet.reps} x {bestSet.weight} lbs
+                                        </Text>
+                                    )
+                                ) : null
+                            ) : null}
+                        </>
+                    )}
                 </View>
             </View>
         </RNBounceable>

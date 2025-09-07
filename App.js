@@ -1,7 +1,8 @@
 import 'expo-dev-client';
 import React, { useEffect, useRef, useState } from 'react';
 import { NavigationContainer } from '@react-navigation/native';
-import * as Notifications from 'expo-notifications';
+// Lazy-load expo-notifications to avoid native module errors on simulator
+// and in dev clients that weren't rebuilt with the module.
 import * as Device from 'expo-device';
 import { navigationRef } from './navigationRef';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
@@ -102,10 +103,22 @@ export default function App() {
     }, []);
 
     // Hydrate global.userData as early as possible when authenticated
-    // Foreground notification behavior (show banner + play sound)
-    Notifications.setNotificationHandler({
+// Foreground notification behavior (show banner + play sound)
+// Load notifications module conditionally to prevent crashes on iOS simulator
+// when the dev client doesn't include expo-notifications.
+const notificationsRef = { current: null };
+try {
+    // This will throw if the native module isn't available in the client
+    // (e.g., iOS simulator without a rebuilt dev client).
+    // We catch and continue so the app can run without notifications.
+    // eslint-disable-next-line @typescript-eslint/no-var-requires
+    notificationsRef.current = require('expo-notifications');
+    notificationsRef.current.setNotificationHandler({
         handleNotification: async () => ({ shouldShowAlert: true, shouldPlaySound: true, shouldSetBadge: false })
     });
+} catch (e) {
+    if (__DEV__) console.log('expo-notifications unavailable:', e?.message || e);
+}
 
     // Request push permissions and register token on login
     useEffect(() => {
@@ -122,15 +135,15 @@ export default function App() {
 
             // Register for push notifications (EAS project id required)
             try {
-                if (Device.isDevice) {
-                    const { status: existingStatus } = await Notifications.getPermissionsAsync();
+                if (Device.isDevice && notificationsRef.current) {
+                    const { status: existingStatus } = await notificationsRef.current.getPermissionsAsync();
                     let finalStatus = existingStatus;
                     if (existingStatus !== 'granted') {
-                        const { status } = await Notifications.requestPermissionsAsync();
+                        const { status } = await notificationsRef.current.requestPermissionsAsync();
                         finalStatus = status;
                     }
                     if (finalStatus === 'granted') {
-                        const token = await Notifications.getExpoPushTokenAsync({ projectId: '6cd30997-3609-4c85-9f1f-6e2391e0b736' });
+                        const token = await notificationsRef.current.getExpoPushTokenAsync({ projectId: '6cd30997-3609-4c85-9f1f-6e2391e0b736' });
                         const t = token?.data || '';
                         if (t && t !== (global?.userData?.expoPushToken || '')) {
                             const updateDoc = require('./backend/helper/firebase/updateDoc').default;

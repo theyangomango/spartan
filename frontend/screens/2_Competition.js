@@ -41,6 +41,7 @@ import ManageTribeModal from "../components/2_Competition/ManageTribeModal";
 import TribeComparisonModal from "../components/2_Competition/TribeComparisonModal";
 import RNBounceable from "@freakycoder/react-native-bounceable";
 import Footer from "../components/Footer";
+import PersonalInfoSheet from "../components/2_MacroTracking/PersonalInfoSheet";
 
 const { width, height } = Dimensions.get("window");
 
@@ -83,6 +84,7 @@ const genCode = (len = 6) => {
 
 function safeBodyweight(u) {
     return (
+        u?.personalInfo?.weight ||
         u?.bodyweight ||
         u?.bodyWeight ||
         u?.weight ||
@@ -96,13 +98,32 @@ function computeTribeRanking(users, comparison) {
     const { exercise, metric, normalizeByBodyweight } = comparison || {};
     const list = (users || []).map((u) => {
         const ex = u?.statsExercises?.[exercise] || {};
-        const raw =
-            metric === "1RM" ? ex?.["1RM"] ?? 0 : metric === "Volume" ? ex?.["Volume"] ?? 0 : ex?.["Reps"] ?? 0;
-        const bw = normalizeByBodyweight ? Math.max(1, Number(safeBodyweight(u)) || 1) : 1;
-        const val = Number(raw) / bw;
-        return { ...u, _tribeValue: Number.isFinite(val) ? val : 0 };
+        const raw = metric === "1RM" ? (ex?.["1RM"] ?? 0)
+            : metric === "Volume" ? (ex?.["Volume"] ?? 0)
+            : (ex?.["Reps"] ?? 0);
+
+        if (normalizeByBodyweight) {
+            const weight = Number(safeBodyweight(u)) || 0;
+            const hasWeight = weight > 0;
+            const val = hasWeight ? (Number(raw) / weight) : NaN;
+            return { ...u, _tribeValue: hasWeight && Number.isFinite(val) ? val : null, __noWeightForBW: !hasWeight };
+        }
+
+        const val = Number(raw);
+        return { ...u, _tribeValue: Number.isFinite(val) ? val : 0, __noWeightForBW: false };
     });
-    list.sort((a, b) => (b._tribeValue || 0) - (a._tribeValue || 0));
+
+    list.sort((a, b) => {
+        // For BW-normalized lists: users without weight go to the bottom
+        if (comparison?.normalizeByBodyweight) {
+            const an = !!a.__noWeightForBW, bn = !!b.__noWeightForBW;
+            if (an && !bn) return 1;
+            if (!an && bn) return -1;
+        }
+        const av = a._tribeValue ?? -Infinity;
+        const bv = b._tribeValue ?? -Infinity;
+        return (bv || -Infinity) - (av || -Infinity);
+    });
     return list;
 }
 
@@ -268,6 +289,17 @@ export default function Competition({ navigation }) {
 
   const rankedDisplay = useMemo(() => userList || [], [userList]);
 
+    // When comparison or tribe changes, ensure block state is up to date
+    useEffect(() => {
+        if (!isCustomTribe) { setBlockedReason(null); return; }
+        const needsBW = !!(activeComparison && activeComparison.normalizeByBodyweight);
+        if (!needsBW) { setBlockedReason(null); return; }
+        const myW = Number(global?.userData?.personalInfo?.weight || 0);
+        if (myW > 0) { setBlockedReason(null); } else {
+            setBlockedReason("This tribe’s comparison is normalized by bodyweight. Please enter your weight to view rankings.");
+        }
+    }, [isCustomTribe, selectedTribeId, activeComparison]);
+
     const openModal = () => setSelectExerciseModalVisible(true);
     const closeModal = () => setSelectExerciseModalVisible(false);
     const openBottomSheet = (user) => {
@@ -287,6 +319,58 @@ export default function Competition({ navigation }) {
         setTribeMenuVisible(false);
         requestAnimationFrame(() => setManageModalVisible(true));
     }, []);
+
+    // ---- personal info flow (for bodyweight-normalized comparisons)
+    const [personalSheetIndex, setPersonalSheetIndex] = useState(-1);
+    const [infoForm, setInfoForm] = useState(() => ({
+        gender: (global?.userData?.personalInfo?.gender || 'male'),
+        activity: (global?.userData?.personalInfo?.activity || 'moderate'),
+        goal: (global?.userData?.personalInfo?.goal || 'maintain'),
+        weight: String(global?.userData?.personalInfo?.weight || ''),
+        heightFt: String(global?.userData?.personalInfo?.heightFt || ''),
+        heightIn: String(global?.userData?.personalInfo?.heightIn || ''),
+    }));
+    const [blockedReason, setBlockedReason] = useState(null); // string message shown instead of leaderboard
+
+    useEffect(() => {
+        // keep local form in sync when global updates externally
+        const pi = global?.userData?.personalInfo;
+        if (!pi) return;
+        setInfoForm((s) => ({
+            ...s,
+            gender: pi.gender ?? s.gender,
+            activity: pi.activity ?? s.activity,
+            goal: pi.goal ?? s.goal,
+            weight: (pi.weight != null ? String(pi.weight) : s.weight),
+            heightFt: (pi.heightFt != null ? String(pi.heightFt) : s.heightFt),
+            heightIn: (pi.heightIn != null ? String(pi.heightIn) : s.heightIn),
+        }));
+    }, [global?.userData?.personalInfo]);
+
+    const savePersonalInfo = useCallback(async () => {
+        const uid = global?.userData?.uid || global?.userData?.id;
+        if (!uid) return;
+        const clamp = (s, min, max) => {
+            const n = parseInt(String(s || '0'), 10);
+            if (Number.isNaN(n)) return min;
+            return Math.max(min, Math.min(max, n));
+        };
+        const info = {
+            gender: String(infoForm.gender || 'male'),
+            activity: String(infoForm.activity || 'moderate'),
+            goal: String(infoForm.goal || 'maintain'),
+            weight: clamp(infoForm.weight, 0, 2000),
+            heightFt: clamp(infoForm.heightFt, 0, 8),
+            heightIn: clamp(infoForm.heightIn, 0, 11),
+        };
+        try {
+            await updateDoc(doc(db, 'users', uid), { personalInfo: info, updatedAt: serverTimestamp() });
+            try { global.userData = { ...(global.userData || {}), personalInfo: info }; } catch {}
+            setBlockedReason(null);
+        } catch (e) {
+            console.log('savePersonalInfo error', e?.message || e);
+        }
+    }, [infoForm]);
 
     const handleCreateTribe = async () => {
         const uid = global?.userData?.uid;
@@ -484,6 +568,8 @@ export default function Competition({ navigation }) {
                 }}
                 tribeComparisonSummary={activeComparison ? summaryOf(activeComparison) : "Not set"}
                 onOpenTribeComparison={() => setComparisonManagerVisible(true)}
+                blockedMessage={blockedReason}
+                onResolveBlocked={() => setPersonalSheetIndex(1)}
             />
 
             <UserStatsBottomSheet
@@ -523,8 +609,30 @@ export default function Competition({ navigation }) {
                     setTribeMenuVisible(false);
                 }}
                 onSelectTribe={(id) => {
+                    const tribe = tribes.find((t) => t.id === id);
+                    // Determine the comparison that will be active for this tribe
+                    const comps = (Array.isArray(tribe?.comparisons) && tribe.comparisons.length)
+                        ? tribe.comparisons
+                        : (tribe?.comparison ? [tribe.comparison] : []);
+                    const activeIdx = Math.min(activeCompIndex, Math.max(0, comps.length - 1));
+                    const cmp = comps[activeIdx] || null;
+                    const needsBW = !!(cmp && cmp.normalizeByBodyweight);
+
                     setSelectedTribeId(id);
                     setTribeMenuVisible(false);
+
+                    if (needsBW) {
+                        const myW = Number(global?.userData?.personalInfo?.weight || 0);
+                        if (!(myW > 0)) {
+                            setBlockedReason("This tribe’s comparison is normalized by bodyweight. Please enter your weight to view rankings.");
+                            // prompt immediately
+                            requestAnimationFrame(() => setPersonalSheetIndex(1));
+                        } else {
+                            setBlockedReason(null);
+                        }
+                    } else {
+                        setBlockedReason(null);
+                    }
                 }}
                 onCreatePress={() => {
                     setTribeMenuVisible(false);
@@ -579,6 +687,24 @@ export default function Competition({ navigation }) {
                     });
                     setComparisonManagerVisible(false);
                     if (activeCompIndex >= list.length) setActiveCompIndex(0);
+                }}
+            />
+
+            {/* Personal Info sheet (reused from Macro Tracking) */}
+            <PersonalInfoSheet
+                index={personalSheetIndex}
+                onChangeIndex={setPersonalSheetIndex}
+                goalForm={infoForm}
+                setGoalForm={setInfoForm}
+                onClose={() => setPersonalSheetIndex(-1)}
+                onSave={async () => { await savePersonalInfo(); setPersonalSheetIndex(-1); }}
+                COLORS={{
+                    text: '#0F172A',
+                    subtext: '#64748B',
+                    card: '#FFFFFF',
+                    hairline: 'rgba(2,6,23,0.06)',
+                    accentBlue: '#6FB8FF',
+                    fieldBg: '#F8FAFC',
                 }}
             />
         </View>

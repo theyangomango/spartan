@@ -1,5 +1,5 @@
 import React, { useCallback, useMemo, useRef, useState } from "react";
-import { StyleSheet } from "react-native";
+import { StyleSheet, View, Text, TouchableOpacity } from "react-native";
 import BottomSheet, { BottomSheetBackdrop } from "@gorhom/bottom-sheet";
 import LeaderboardModal from "./LeaderboardModal";
 
@@ -18,6 +18,9 @@ const LeaderboardBottomSheet = ({
     onActiveCompChange,        // NEW: (idx)=>void
     tribeComparisonSummary,    // optional display of active
     onOpenTribeComparison,     // open manager modal
+    // Optional: block rendering with a message (e.g., missing personal info)
+    blockedMessage,
+    onResolveBlocked,
 }) => {
     const bottomSheetRef = useRef(null);
     const snapPoints = useMemo(() => ["60%", "94%"], []);
@@ -52,7 +55,9 @@ const LeaderboardBottomSheet = ({
             backgroundStyle={{ borderTopLeftRadius: 30, borderTopRightRadius: 30 }}
             enablePanDownToClose={false}
         >
-            {userList && (
+            {blockedMessage ? (
+                <BlockedViewClean message={blockedMessage} onResolve={onResolveBlocked} />
+            ) : userList ? (
                 <LeaderboardModal
                     userList={userList}
                     categoryCompared={categoryCompared}
@@ -70,7 +75,7 @@ const LeaderboardBottomSheet = ({
                     tribeComparisonSummary={tribeComparisonSummary}
                     onOpenTribeComparison={onOpenTribeComparison}
                 />
-            )}
+            ) : null}
         </BottomSheet>
     );
 };
@@ -88,4 +93,228 @@ const styles = StyleSheet.create({
         borderTopLeftRadius: 25,
         backgroundColor: "#fff",
     },
+});
+
+// Clean version used by the sheet (leave old BlockedView untouched above for safety)
+const BlockedViewClean = React.memo(({ message, onResolve }) => {
+    const stylesLocal = StyleSheet.create({
+        wrap: { flex: 1, padding: 18, justifyContent: 'center', alignItems: 'center' },
+        text: { fontFamily: 'Outfit_700Bold', fontSize: 14.5, color: '#0F172A', textAlign: 'center' },
+        sub: { fontFamily: 'Outfit_400Regular', fontSize: 12.5, color: '#64748B', textAlign: 'center', marginTop: 8 },
+        btn: { marginTop: 14, paddingHorizontal: 14, paddingVertical: 10, backgroundColor: '#2D9EFF', borderRadius: 12 },
+        btnText: { color: '#fff', fontFamily: 'Outfit_700Bold' },
+    });
+    return (
+        <View style={stylesLocal.wrap}>
+            <Text style={stylesLocal.text}>{message}</Text>
+            <Text style={stylesLocal.sub}>Enter your personal info to enable per-lb ranking.</Text>
+            {onResolve && (
+                <TouchableOpacity style={stylesLocal.btn} activeOpacity={0.9} onPress={onResolve}>
+                    <Text style={stylesLocal.btnText}>Enter Personal Info</Text>
+                </TouchableOpacity>
+            )}
+        </View>
+    );
+});
+
+const BlockedView = React.memo(({ message, onResolve }) => {
+    const stylesLocal = StyleSheet.create({
+        wrap: { flex: 1, padding: 18, justifyContent: 'center', alignItems: 'center' },
+        text: { fontFamily: 'Outfit_600SemiBold', fontSize: 14, color: '#333', textAlign: 'center' },
+        sub: { fontFamily: 'Outfit_400Regular', fontSize: 12.5, color: '#64748B', textAlign: 'center', marginTop: 8 },
+        btn: { marginTop: 14, paddingHorizontal: 14, paddingVertical: 10, backgroundColor: '#2D9EFF', borderRadius: 12 },
+        btnText: { color: '#fff', fontFamily: 'Outfit_700Bold' },
+    });
+    return (
+        <>
+            <></>
+            <></>
+            <></>
+            <></>
+            <></>
+            <></>
+            <></>
+            <></>
+            <></>
+            <></>
+            <></>
+            <></>
+            <></>
+            <></>
+            <></>
+            <></>
+            <></>
+            <></>
+            <></>
+            <></>
+            <></>
+            <></>
+            <></>
+            <></>
+            <></>
+            <></>
+            <></>
+            <></>
+            <></>
+            <></>
+            <></>
+            <></>
+            <></>
+            <></>
+            <></>
+            <></>
+            <></>
+            <></>
+            <></>
+            <></>
+            <></>
+            <></>
+            <></>
+            <></>
+            <></>
+            <></>
+            <></>
+            <></>
+            <></>
+            <></>
+            <></>
+            <></>
+            <></>
+            <></>
+            <></>
+            <></>
+            <></>
+            <></>
+            <></>
+            <></>
+            <></>
+            <></>
+            <></>
+            <></>
+            <></>
+            <></>
+            <></>
+            <></>
+            <></>
+            <></>
+            <></>
+            <></>
+            <></>
+            <></>
+            <></>
+            <></>
+            <></>
+            <></>
+            <></>
+            <></>
+            <></>
+            <></>
+            <></>
+            <></>
+            <></>
+            <></>
+            <></>
+            <></>
+            <></>
+            <></>
+            <></>
+            <></>
+            <></>
+            <></>
+            <></>
+            <></>
+            <></>
+            <></>
+            <></>
+            <></>
+            <></>
+            <></>
+            <></>
+            <></>
+            <></>
+            <></>
+            <></>
+            <></>
+            <></>
+            <></>
+            <></>
+            <></>
+            <></>
+            <></>
+            <></>
+            <></>
+            <></>
+            <></>
+            <></>
+            <></>
+            <></>
+            <></>
+            <></>
+            <></>
+            <></>
+            <></>
+            <></>
+            <></>
+            <></>
+            <></>
+            <></>
+            <></>
+            <></>
+            <></>
+            <></>
+            <></>
+            <></>
+            <></>
+            <></>
+            <></>
+            <></>
+            <></>
+            <></>
+            <></>
+            <></>
+            <></>
+            <></>
+            <></>
+            <></>
+            <></>
+            <></>
+            <></>
+            <></>
+            <></>
+            <></>
+            <></>
+            <></>
+            <></>
+            <></>
+            <></>
+            <></>
+            <></>
+            <></>
+            <></>
+            <></>
+            <></>
+            <></>
+            <></>
+            <></>
+            <></>
+            <></>
+            <></>
+            <></>
+            <></>
+            <></>
+            <></>
+            <></>
+            <></>
+            <></>
+            <View style={stylesLocal.wrap}>
+                <Text style={stylesLocal.text}>{message}</Text>
+                <Text style={stylesLocal.sub}>Enter your personal info to enable per-lb ranking.</Text>
+                {onResolve && (
+                    <TouchableOpacity style={stylesLocal.btn} activeOpacity={0.9} onPress={onResolve}>
+                        <Text style={stylesLocal.btnText}>Enter Personal Info</Text>
+                    </TouchableOpacity>
+                )}
+            </View>
+        </>
+    );
 });
