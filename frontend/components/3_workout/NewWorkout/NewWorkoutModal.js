@@ -308,8 +308,12 @@ const NewWorkoutModal = ({
     }, [finishWorkout, isFinishing]);
 
     const borderOpacity = scrollY.interpolate({ inputRange: [0, 98], outputRange: [0, 1], extrapolate: "clamp" });
-    // Tie any content dimming strictly to the Reminder Modal visibility to avoid lingering opacity.
-    const contentOpacity = reminderVisible ? 0.6 : 1;
+    // Dimming logic:
+    // - When Reminder Modal is visible: dim content
+    // - Else, dim when not viewing your active workout (friend view or past self workout)
+    const isActiveSelf = viewingSelfEffective && !!myActiveWid && !!cardWid && myActiveWid === cardWid;
+    const dimDueToContext = !isActiveSelf;
+    const contentOpacity = reminderVisible ? 0.6 : (dimDueToContext ? 0.6 : 1);
 
     const friendWaiting = streamLive && !viewingSelfEffective && waitingFriend && !(baseWorkout?.exercises?.length);
 
