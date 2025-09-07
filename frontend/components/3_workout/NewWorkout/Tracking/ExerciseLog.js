@@ -158,7 +158,7 @@ function ExerciseLog({
         const next = [...(setsRef.current || []), { id: genLocalId(), weight: 0, reps: 0, isDone: false }];
         setDraft(next);
         scheduleSync(next);
-        try { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Heavy); } catch {}
+        try { Haptics.selectionAsync?.(); } catch {}
     });
 
     const updateSetById = useCallback((sid, patch) => {
@@ -192,9 +192,7 @@ function ExerciseLog({
         // immediate sync feels better for done/undone (still one update)
         scheduleSync(next);
         // Light haptic feedback only when completing a set
-        if (toggledDone) {
-            try { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Heavy); } catch {}
-        }
+        if (toggledDone) { try { Haptics.impactAsync?.(Haptics.ImpactFeedbackStyle.Light); } catch {} }
     }, [scheduleSync]);
 
     return (

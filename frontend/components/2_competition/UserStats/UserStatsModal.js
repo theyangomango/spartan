@@ -1,5 +1,5 @@
-import React, { useMemo, useState } from "react";
-import { StyleSheet, View, Text, ScrollView, Pressable, Dimensions, UIManager, Platform, LayoutAnimation } from "react-native";
+import React, { useEffect, useMemo, useState } from "react";
+import { StyleSheet, View, Text, ScrollView, Pressable, Dimensions, UIManager, Platform, LayoutAnimation, InteractionManager, ActivityIndicator } from "react-native";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import FastImage from "react-native-fast-image";
 import HexagonalStats from "./HexagonalStats";
@@ -182,8 +182,20 @@ const MUSCLE_ACCENT = {
 };
 const groupAccent = (group) => MUSCLE_ACCENT[group] || COLORS.accent;
 
-export default function UserStatsModal({ user, toViewProfile }) {
-    const exerciseGroups = useMemo(() => getExercisesGrouped(user), [user?.statsExercises, user?.uid]);
+export default function UserStatsModal({ user, toViewProfile, hexOverlay, deferExercises = false }) {
+    // Optionally defer heavy grouping work until after interactions (for smoother open)
+    const [showExercises, setShowExercises] = useState(!deferExercises);
+    useEffect(() => {
+        if (!deferExercises) return;
+        let task;
+        try { task = InteractionManager.runAfterInteractions(() => setShowExercises(true)); }
+        catch { setTimeout(() => setShowExercises(true), 120); }
+        return () => { try { task?.cancel?.(); } catch {} };
+    }, [deferExercises]);
+
+    const exerciseGroups = useMemo(() => (
+        showExercises ? getExercisesGrouped(user) : []
+    ), [showExercises, user?.statsExercises, user?.uid]);
     const [collapsed, setCollapsed] = useState({}); // { [group]: true }
     const toggleGroup = (g) => {
         try { LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut); } catch {}
@@ -232,13 +244,21 @@ export default function UserStatsModal({ user, toViewProfile }) {
             >
                 {/* Hexagon (no card background) */}
                 <View style={styles.hexWrap}>
-                    <HexagonalStats statsHexagon={user.statsHexagon} />
+                    <View style={{ position: 'relative', alignItems: 'center', justifyContent: 'center' }}>
+                        <HexagonalStats statsHexagon={user.statsHexagon} />
+                        {hexOverlay ? (typeof hexOverlay === 'function' ? hexOverlay() : hexOverlay) : null}
+                    </View>
                 </View>
 
                 {/* Exercises */}
                 <Text style={styles.sectionTitle}>Exercises</Text>
                 <View style={styles.exerciseList}>
-                    {exerciseGroups.length === 0 ? (
+                    {!showExercises ? (
+                        <View style={[styles.emptyCard, { paddingVertical: scaledSize(30) }]}>
+                            <ActivityIndicator size="small" color={COLORS.accent} />
+                            <Text style={[styles.emptyText, { marginTop: scaledSize(6) }]}>Loading…</Text>
+                        </View>
+                    ) : exerciseGroups.length === 0 ? (
                         <View style={styles.emptyCard}>
                             <Text style={styles.emptyText}>No exercises tracked yet.</Text>
                         </View>

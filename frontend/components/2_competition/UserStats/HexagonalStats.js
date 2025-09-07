@@ -8,32 +8,44 @@ const { width: screenWidth, height: screenHeight } = Dimensions.get("window");
 const scale = screenHeight / 844;
 const scaledSize = (size) => Math.round(size * scale);
 
-const chartSize = screenWidth * 0.7;
+// Default chart size; can be overridden via prop
+const defaultChartSize = Math.min(screenWidth * 0.7, 360);
 const categories = ["SHOULDERS", "CHEST", "ARMS", "LEGS", "BACK", "ABS"];
 const maxValue = 100;
 
-const HexagonalStats = ({ statsHexagon }) => {
+const HexagonalStats = ({
+    statsHexagon,
+    size,
+    showLabels = true,
+    labelFontPx,
+    valueFontPx,
+    labelOffsetPx,
+}) => {
     // only the selected user's stats
     const data = [
-        statsHexagon.shoulders,
-        statsHexagon.chest,
-        statsHexagon.arms,
-        statsHexagon.legs,
-        statsHexagon.back,
-        statsHexagon.abs,
+        Number(statsHexagon?.shoulders || 0),
+        Number(statsHexagon?.chest || 0),
+        Number(statsHexagon?.arms || 0),
+        Number(statsHexagon?.legs || 0),
+        Number(statsHexagon?.back || 0),
+        Number(statsHexagon?.abs || 0),
     ];
 
     // Geometry
+    const chartSize = Math.max(120, Number(size) || defaultChartSize);
     const radius = chartSize / 2;
-    const centerX = screenWidth / 2;
-    const centerY = chartSize / 2 + scaledSize(50);
+    const padX = showLabels ? scaledSize(32) : 0; // match labelRadiusOffset
+    const svgW = chartSize + (showLabels ? padX * 2 : 0);
+    const svgH = showLabels ? (chartSize + scaledSize(110)) : chartSize;
+    const centerX = svgW / 2;
+    const centerY = showLabels ? (chartSize / 2 + scaledSize(50)) : (chartSize / 2);
     const angle = (2 * Math.PI) / categories.length;
 
     // Scaled styling
-    const labelFont = scaledSize(15);
-    const valueFont = scaledSize(16);
-    const labelRadiusOffset = scaledSize(32);
-    const valueOffset = scaledSize(15);
+    const labelFont = Number(labelFontPx) || scaledSize(13);
+    const valueFont = Number(valueFontPx) || scaledSize(14);
+    const labelRadiusOffset = Number(labelOffsetPx) || scaledSize(26);
+    const valueOffset = scaledSize(12);
 
     const ringStroke = Math.max(1, scaledSize(1));       // keep grid crisp
     const outlineStroke = Math.max(2, scaledSize(2));    // data polygon outline
@@ -75,7 +87,7 @@ const HexagonalStats = ({ statsHexagon }) => {
 
     return (
         <View style={styles.wrap}>
-            <Svg width={screenWidth} height={chartSize + scaledSize(110)} style={styles.svg}>
+            <Svg width={svgW} height={svgH} style={styles.svg}>
                 <Defs>
                     <LinearGradient id="radarFill" x1="0" y1="0" x2="1" y2="1">
                         <Stop offset="0" stopColor="#2D9EFF" stopOpacity="0.28" />
@@ -89,7 +101,7 @@ const HexagonalStats = ({ statsHexagon }) => {
                         key={`ring-${idx}`}
                         points={pts}
                         stroke={idx === levels - 1 ? "#e0ebf6ff" : "#edf3f9ff"}
-                        strokeWidth={2}
+                        strokeWidth={ringStroke}
                         fill="none"
                     />
                 ))}
@@ -108,7 +120,7 @@ const HexagonalStats = ({ statsHexagon }) => {
                 ))}
 
                 {/* Labels + values (outside the shape) */}
-                {labelPts.map(({ x, y, i }) => (
+                {showLabels && labelPts.map(({ x, y, i }) => (
                     <React.Fragment key={`lbl-${i}`}>
                         <SvgText
                             x={x}
@@ -141,7 +153,7 @@ const HexagonalStats = ({ statsHexagon }) => {
 };
 
 const styles = StyleSheet.create({
-    wrap: { flex: 1 },
+    wrap: { alignItems: "center", justifyContent: "center" },
     svg: { alignSelf: "center" },
 });
 

@@ -1,5 +1,6 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
-import { Modal, View, Text, StyleSheet, Animated, Dimensions, Pressable, ActivityIndicator } from 'react-native';
+import { Modal, View, Text, StyleSheet, Animated, Dimensions, Pressable, ActivityIndicator, Easing } from 'react-native';
+import * as Haptics from 'expo-haptics';
 import HexagonalStats from './HexagonalStats';
 
 const { height: H } = Dimensions.get('window');
@@ -20,7 +21,12 @@ function interpStats(from, to, t){
 }
 
 export default function HexagonChangeModal({ isVisible, fromStats, toStats, onClose }){
-  const anim = useRef(new Animated.Value(0)).current;
+  const anim = useRef(new Animated.Value(0)).current; // stat interpolation 0->1
+  const chartScale = useRef(new Animated.Value(0.94)).current; // pop-in
+  const pillAnims = useRef(Array.from({ length: 6 }, () => new Animated.Value(0))).current; // stagger pills
+  const cardOpacity = useRef(new Animated.Value(0)).current;
+  const cardTranslate = useRef(new Animated.Value(ss(16))).current;
+  const btnScale = useRef(new Animated.Value(0.94)).current;
   const [started, setStarted] = useState(false);
 
   // Drive animation on open or when toStats becomes available
@@ -28,9 +34,30 @@ export default function HexagonChangeModal({ isVisible, fromStats, toStats, onCl
     if (isVisible && toStats && !started) {
       setStarted(true);
       anim.setValue(0);
-      Animated.timing(anim, { toValue: 1, duration: 900, useNativeDriver: false }).start();
+      chartScale.setValue(0.94);
+      pillAnims.forEach((v) => v.setValue(0));
+
+      try { Haptics.impactAsync?.(Haptics.ImpactFeedbackStyle.Medium); } catch {}
+      Animated.parallel([
+        Animated.timing(cardOpacity, { toValue: 1, duration: 220, easing: Easing.out(Easing.cubic), useNativeDriver: true }),
+        Animated.timing(cardTranslate, { toValue: 0, duration: 320, easing: Easing.out(Easing.cubic), useNativeDriver: true }),
+        Animated.timing(anim, { toValue: 1, duration: 900, useNativeDriver: false }),
+        Animated.timing(chartScale, {
+          toValue: 1,
+          duration: 420,
+          easing: Easing.out(Easing.back(1.2)),
+          useNativeDriver: true,
+        }),
+        Animated.stagger(60, pillAnims.map((v) =>
+          Animated.timing(v, { toValue: 1, duration: 360, easing: Easing.out(Easing.cubic), useNativeDriver: true })
+        )),
+        Animated.sequence([
+          Animated.delay(140),
+          Animated.timing(btnScale, { toValue: 1, duration: 300, easing: Easing.out(Easing.back(1.2)), useNativeDriver: true })
+        ])
+      ]).start();
     }
-  }, [isVisible, toStats, anim, started]);
+  }, [isVisible, toStats, anim, chartScale, pillAnims, cardOpacity, cardTranslate, btnScale, started]);
 
   const t = useRef(0);
   const [renderTick, setRenderTick] = useState(0);
@@ -53,32 +80,52 @@ export default function HexagonChangeModal({ isVisible, fromStats, toStats, onCl
   return (
     <Modal visible={isVisible} transparent animationType="fade" onRequestClose={onClose}>
       <Pressable style={styles.backdrop} onPress={onClose}>
-        <View style={styles.card} pointerEvents="box-none">
+        <Animated.View style={[styles.card, { opacity: cardOpacity, transform: [{ translateY: cardTranslate }] }]} pointerEvents="box-none">
           <Text style={styles.title}>Progress Update</Text>
-          <Text style={styles.subtitle}>Hexagon after this workout</Text>
           <View style={{ height: ss(14) }} />
           {ready ? (
-            <HexagonalStats statsHexagon={statsNow} />
+            <Animated.View style={{ transform: [{ scale: chartScale }] }}>
+              <HexagonalStats
+                statsHexagon={statsNow}
+                showLabels={true}
+                size={Math.min(Dimensions.get('window').width - ss(16)*2 - ss(18)*2, ss(236))}
+                labelFontPx={ss(12)}
+                valueFontPx={ss(12)}
+                labelOffsetPx={ss(22)}
+              />
+            </Animated.View>
           ) : (
             <View style={{ height: ss(180), alignItems: 'center', justifyContent: 'center' }}>
               <ActivityIndicator size="small" color="#2D9EFF" />
               <Text style={styles.waitText}>Calculating…</Text>
             </View>
           )}
+          <View style={{ height: ss(6) }} />
+          <View style={styles.separator} />
           <View style={{ height: ss(10) }} />
           {ready && (
             <View style={styles.diffsRow}>
-              {['shoulders','chest','arms','legs','back','abs'].map(k => (
-                <View key={k} style={styles.diffPill}>
-                  <Text style={styles.diffLabel}>{k[0].toUpperCase()+k.slice(1)}</Text>
-                  <Text style={[styles.diffVal, (diffs[k]||0)>=0?styles.up:styles.down]}>{(diffs[k]||0)>=0?`+${diffs[k]}`:diffs[k]}</Text>
-                </View>
-              ))}
+              {['shoulders','chest','arms','legs','back','abs'].map((k, idx) => {
+                const v = pillAnims[idx];
+                const val = Number(diffs[k] || 0);
+                const colorStyle = val > 0 ? styles.up : val < 0 ? styles.down : styles.neutral;
+                return (
+                  <Animated.View
+                    key={k}
+                    style={[styles.diffPill, { opacity: v, transform: [{ scale: v.interpolate({ inputRange:[0,1], outputRange:[0.94,1] }) }] }]}
+                  >
+                    <Text style={styles.diffLabel}>{k[0].toUpperCase()+k.slice(1)}</Text>
+                    <Text style={[styles.diffVal, colorStyle]}>{val > 0 ? `+${val}` : val}</Text>
+                  </Animated.View>
+                );
+              })}
             </View>
           )}
           <View style={{ height: ss(16) }} />
-          <Pressable onPress={onClose} style={styles.button}><Text style={styles.btnText}>Close</Text></Pressable>
-        </View>
+          <Animated.View style={{ transform: [{ scale: btnScale }] }}>
+            <Pressable onPress={onClose} style={styles.button}><Text style={styles.btnText}>Close</Text></Pressable>
+          </Animated.View>
+        </Animated.View>
       </Pressable>
     </Modal>
   );
@@ -86,17 +133,17 @@ export default function HexagonChangeModal({ isVisible, fromStats, toStats, onCl
 
 const styles = StyleSheet.create({
   backdrop: { flex:1, backgroundColor:'rgba(15,23,42,0.45)', alignItems:'center', justifyContent:'center', paddingHorizontal:ss(16) },
-  card: { width:'100%', backgroundColor:'#fff', borderRadius:ss(24), paddingVertical:ss(16), paddingHorizontal:ss(18) },
+  card: { width:'100%', backgroundColor:'#fff', borderRadius:ss(24), paddingVertical:ss(16), paddingHorizontal:ss(18), shadowColor:'#000', shadowOpacity:0.08, shadowRadius:ss(14), shadowOffset:{ width:0, height:ss(6) } },
   title: { fontFamily:'Outfit_700Bold', fontSize:ss(18), color:'#0F172A' },
-  subtitle: { marginTop:ss(2), fontFamily:'Outfit_400Regular', fontSize:ss(12), color:'#64748B' },
   waitText: { marginTop:ss(8), fontFamily:'Outfit_500Medium', fontSize:ss(12), color:'#64748B' },
+  separator: { height: StyleSheet.hairlineWidth, backgroundColor: 'rgba(2,6,23,0.08)', marginHorizontal: -ss(18) },
   diffsRow: { flexDirection:'row', flexWrap:'wrap', justifyContent:'space-between', marginTop:ss(8) },
-  diffPill: { width:'48%', backgroundColor:'#F8FAFC', borderRadius:ss(10), paddingVertical:ss(8), paddingHorizontal:ss(10), marginBottom:ss(8), borderWidth:StyleSheet.hairlineWidth, borderColor:'rgba(100,116,139,0.15)' },
-  diffLabel: { fontFamily:'Outfit_500Medium', fontSize:ss(12), color:'#475569' },
-  diffVal: { marginTop: ss(2), fontFamily:'Outfit_700Bold', fontSize:ss(14) },
-  up: { color:'#10B981' },
+  diffPill: { width:'48%', backgroundColor:'#F8FAFC', borderRadius:ss(14), paddingVertical:ss(10), paddingHorizontal:ss(12), marginBottom:ss(10), borderWidth:StyleSheet.hairlineWidth, borderColor:'rgba(100,116,139,0.12)' },
+  diffLabel: { fontFamily:'Outfit_600SemiBold', fontSize:ss(13), color:'#0F172A' },
+  diffVal: { marginTop: ss(4), fontFamily:'Outfit_700Bold', fontSize:ss(15) },
+  up: { color:'#2D9EFF' },
   down: { color:'#EF4444' },
+  neutral: { color:'#64748B' },
   button: { alignSelf:'center', backgroundColor:'#2D9EFF', paddingHorizontal:ss(22), paddingVertical:ss(10), borderRadius:ss(999) },
   btnText: { color:'#fff', fontFamily:'Outfit_700Bold', fontSize:ss(14) },
 });
-

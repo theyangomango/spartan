@@ -29,6 +29,7 @@ import DayDetailsSheet from "../components/3_Workout/DayDetailsSheet";
 import FriendsActivitySheet from "../components/3_Workout/FriendsActivitySheet";
 import InviteBanner from "../components/3_Workout/InviteBanner";
 import NotificationsBottomSheet from "../components/1_Feed/Notifications/NotificationsBottomSheet";
+import UserStatsAfterWorkoutSheet from "../components/2_Competition/UserStats/UserStatsAfterWorkoutSheet";
 
 // Theme & Hooks (project)
 import { ss, FOOTER_HEIGHT, BTN_SIZE, TPL_BOTTOM_GAP, TPL_HEIGHT } from "../components/3_Workout/sections/workoutTheme";
@@ -310,6 +311,38 @@ export default function Workout({ navigation, route }) {
         postWorkout,
         joinExternalWorkout, // used by InviteBanner accept
     } = useWorkoutManager({ uid, navigation, millisToHMS: millisToHoursMinutesSeconds });
+
+    // Hexagon change modal state (shown after WorkoutSummaryModal closes)
+    const [hexChangeVisible, setHexChangeVisible] = useState(false);
+    const [hexFrom, setHexFrom] = useState(null);
+    const [hexTo, setHexTo] = useState(null);
+
+    useEffect(() => {
+        if (!isSummaryModalVisible) return;
+        // Snapshot 'from' immediately when summary opens
+        try { setHexFrom(global?.__hexChangeFrom || global?.userData?.statsHexagon || null); } catch { setHexFrom(global?.userData?.statsHexagon || null); }
+        // If compute already finished, prime 'to' now; otherwise subscribe to updates
+        try { setHexTo(global?.__hexChangeTo || null); } catch { setHexTo(null); }
+        let unsub = null;
+        try {
+            const { onHexagonUpdate } = require('../utils/hexagonEvents');
+            unsub = onHexagonUpdate(() => {
+                try { setHexTo(global?.userData?.statsHexagon || null); } catch { }
+            });
+        } catch { }
+        return () => { try { unsub && unsub(); } catch {} };
+    }, [isSummaryModalVisible]);
+
+    const handleSummaryClose = useCallback(() => {
+        setIsSummaryModalVisible(false);
+        // Wait for interactions/animations to finish so the sheet doesn't compete with the Modal
+        try {
+            const { runAfterInteractions } = require('react-native').InteractionManager;
+            runAfterInteractions(() => setTimeout(() => setHexChangeVisible(true), 30));
+        } catch {
+            requestAnimationFrame(() => setTimeout(() => setHexChangeVisible(true), 120));
+        }
+    }, [setIsSummaryModalVisible]);
 
     const hasActiveWorkout = useWorkoutStore((s) => !!s.workout);
     const workoutWid = useWorkoutStore((s) => (s.workout ? s.workout.wid : null));
@@ -676,8 +709,20 @@ export default function Workout({ navigation, route }) {
                 <WorkoutSummaryModal
                     isVisible={isSummaryModalVisible}
                     workout={completedWorkout}
-                    onClose={() => setIsSummaryModalVisible(false)}
+                    onClose={handleSummaryClose}
                     postWorkout={postWorkout}
+                />
+            )}
+
+            {/* Stats after workout bottom sheet (exact UserStats UI, animated numbers) */}
+            {hexChangeVisible && (
+                <UserStatsAfterWorkoutSheet
+                    visible={hexChangeVisible}
+                    onClose={() => setHexChangeVisible(false)}
+                    user={user}
+                    fromHexagon={hexFrom}
+                    toHexagon={hexTo}
+                    heightPercent={0.92}
                 />
             )}
 

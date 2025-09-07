@@ -24,7 +24,7 @@ import ExerciseLog from "./Tracking/ExerciseLog";
 import SelectExerciseModal from "./SelectExercise/SelectExerciseModal";
 import { usePfp } from "../../../helper/usePFPs";
 import { ss as scaledSize } from "../../../utils/scale";
-import ConfettiCannon from "react-native-confetti-cannon";
+// Lazy-load confetti only when needed to keep bundle lean during editing
 
 // Realtime / Firestore
 import { getFirestore, doc, setDoc, serverTimestamp, arrayUnion, addDoc, collection, onSnapshot, query, orderBy, limit } from "firebase/firestore";
@@ -131,6 +131,9 @@ const NewWorkoutModal = ({
             ? meUid
             : (friendUidFromWorkout && friendUidFromWorkout !== meUid ? friendUidFromWorkout : meUid));
 
+    // Gate heavy live streaming until user explicitly opens group menu or we lock to a friend
+    const [liveEnabled, setLiveEnabled] = useState(false);
+
     const {
         viewing,
         viewingSelf,
@@ -152,7 +155,8 @@ const NewWorkoutModal = ({
         autoJoin: shouldAutoJoin,
         lockToViewingUid: lockFriend,
         suppressSelfStream: true,
-        enabled: !!streamLive,
+        // Enable when: explicitly toggled OR locked to friend OR currently viewing someone else
+        enabled: !!streamLive && (!!liveEnabled || lockFriend || !viewingSelfEffective),
     });
 
     // Effective flags/content when locked
@@ -200,6 +204,47 @@ const NewWorkoutModal = ({
         if (liveStats && Object.keys(liveStats).length > 0) return liveStats;
         return userWorkoutStats || {};
     }, [viewingSelfEffective, userWorkoutStats, activeStats]);
+
+    // Precompute previous sets per exercise name once (fast map lookup in rows)
+    const prevSetsMapRef = useRef(new Map());
+    useEffect(() => {
+        const m = new Map();
+        try {
+            // Prefer statsExercises.sets (wid-grouped) if available
+            const stats = statsForPrevious || {};
+            Object.keys(stats).forEach((name) => {
+                const entry = stats[name] || {};
+                const sets = Array.isArray(entry.sets) ? entry.sets : [];
+                if (!sets.length) return;
+                const lastWid = sets[sets.length - 1]?.wid;
+                const arr = [];
+                for (let i = sets.length - 1; i >= 0; i--) {
+                    if (sets[i]?.wid !== lastWid) break;
+                    arr.push({ weight: Number(sets[i]?.weight)||0, reps: Number(sets[i]?.reps)||0 });
+                }
+                arr.reverse();
+                if (arr.length) m.set(name, arr);
+            });
+            // Fallback: scan recent completed workouts once
+            if (m.size === 0) {
+                const cw = Array.isArray(global?.userData?.completedWorkouts) ? global.userData.completedWorkouts : [];
+                for (let i = cw.length - 1; i >= 0 && i >= cw.length - 12; i--) {
+                    const wk = cw[i];
+                    const exs = Array.isArray(wk?.exercises) ? wk.exercises : [];
+                    for (const ex of exs) {
+                        const name = String(ex?.name || '').trim(); if (!name) continue;
+                        if (m.has(name)) continue;
+                        const s = Array.isArray(ex?.sets) ? ex.sets : [];
+                        if (!s.length) continue;
+                        m.set(name, s.map((t)=>({ weight:Number(t?.weight)||0, reps:Number(t?.reps)||0 })));
+                    }
+                    if (m.size > 24) break; // cap
+                }
+            }
+        } catch {}
+        prevSetsMapRef.current = m;
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [statsForPrevious, (global?.userData?.completedWorkouts || []).length]);
 
     const showSelectExerciseModal = useCallback(() => { if (viewingSelfEffective) setSelectExerciseModalVisible(true); }, [viewingSelfEffective]);
     const closeSelectExerciseModal = useCallback(() => { setSelectExerciseModalVisible(false); setReplaceIndex(null); }, [setReplaceIndex]);
@@ -315,17 +360,23 @@ const NewWorkoutModal = ({
     // ===== Confetti + Cheer Events =====
     const [confettiTick, setConfettiTick] = useState(0);
     const confettiRef = useRef(null);
+    const ConfettiModuleRef = useRef(null);
+    const loadConfettiModule = useCallback(() => {
+        if (!ConfettiModuleRef.current) {
+            try { ConfettiModuleRef.current = require('react-native-confetti-cannon').default; } catch {}
+        }
+        return ConfettiModuleRef.current;
+    }, []);
+
     const fireConfetti = useCallback(() => {
+        // Lazy-load module and try the ref API; fallback to key-mount
+        loadConfettiModule();
         try {
             const api = confettiRef.current;
-            if (api && typeof api.start === 'function') {
-                api.start();
-                return;
-            }
-        } catch { /* fall back */ }
-        // Fallback: force re-mount to auto-start immediately
+            if (api && typeof api.start === 'function') { api.start(); return; }
+        } catch {}
         setConfettiTick((t) => t + 1);
-    }, []);
+    }, [loadConfettiModule]);
 
     // Broadcast a cheer event to this workout's events feed
     const sendCheerEvent = useCallback(async () => {
@@ -504,6 +555,9 @@ const NewWorkoutModal = ({
                     inActiveGroup={inActiveGroupEffective}
                     // Place PFP on the left whenever not actively participating in this workout
                     pfpOnLeft={!viewingSelfEffective && !meIsMember}
+                    // When user opens group menu, flip on live streaming first
+                    onOpenMenu={() => { setLiveEnabled(true); try { openMenu(); } catch {} }}
+                    onLongPressInvite={() => { setLiveEnabled(true); try { showGroupModal?.(); } catch {} }}
                 />
             </View>
             <Animated.View style={[styles.headerShadow, { opacity: borderOpacity }]} />
@@ -524,7 +578,7 @@ const NewWorkoutModal = ({
                             muscle={ex.muscle}
                             exerciseIndex={exerciseIndex}
                             sets={ex.sets}
-                            prevSets={Array.isArray(ex.prev) ? ex.prev : undefined}
+                            prevSets={Array.isArray(ex.prev) ? ex.prev : (prevSetsMapRef.current?.get(ex.name) || undefined)}
                             updateSets={updateSets}
                             replaceExercise={replaceExercise}
                             deleteExercise={() => deleteExercise(exerciseIndex)}
@@ -558,10 +612,10 @@ const NewWorkoutModal = ({
                     onScroll={Animated.event([{ nativeEvent: { contentOffset: { y: scrollY } } }], { useNativeDriver: true })}
                     keyboardShouldPersistTaps="handled"
                     keyboardDismissMode={Platform.OS === 'ios' ? 'on-drag' : 'none'}
-                    removeClippedSubviews={false}
-                    initialNumToRender={4}
-                    maxToRenderPerBatch={5}
-                    windowSize={7}
+                    removeClippedSubviews
+                    initialNumToRender={2}
+                    maxToRenderPerBatch={4}
+                    windowSize={5}
                     style={[styles.scrollview, { opacity: overallOpacity }]}
                 />
             )}
@@ -681,7 +735,7 @@ const NewWorkoutModal = ({
             </Modal>
 
             {/* Confetti overlay (mount only when cheer is available) */}
-            {friendOngoing && (
+            {friendOngoing && (() => { const ConfettiCannon = loadConfettiModule(); return ConfettiCannon ? (
                 <View pointerEvents="none" style={StyleSheet.absoluteFill}>
                     <ConfettiCannon
                         ref={confettiRef}
@@ -704,7 +758,7 @@ const NewWorkoutModal = ({
                         />
                     )}
                 </View>
-            )}
+            ) : null; })()}
         </View >
     );
 };

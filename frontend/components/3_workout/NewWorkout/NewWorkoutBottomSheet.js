@@ -24,6 +24,7 @@ const NewWorkoutBottomSheet = ({
     const bottomSheetRef = useRef(null);
     const snapPoints = useMemo(() => ["94%"], []);
     const [isViewingSelf, setIsViewingSelf] = useState(true);
+    const [mountContent, setMountContent] = useState(false);
 
     const renderBackdrop = useCallback(
         (props) => (
@@ -57,6 +58,12 @@ const NewWorkoutBottomSheet = ({
     useEffect(() => {
         if (isVisible) {
             expandSafely();
+            // mount after a tick to avoid blocking the expand animation
+            const id = setTimeout(() => setMountContent(true), 0);
+            return () => clearTimeout(id);
+        } else {
+            // unmount on close to free listeners and memory
+            setMountContent(false);
         }
     }, [isVisible, expandSafely]);
 
@@ -114,7 +121,7 @@ const NewWorkoutBottomSheet = ({
                 backgroundColor: isViewingSelf ? 'transparent' : HANDLE_FRIEND_BACKGROUND,
             }}
         >
-            {effectiveWorkout && (
+            {effectiveWorkout && mountContent && (
                 <NewWorkoutModal
                     timerRef={timerRef}
                     workout={effectiveWorkout}
@@ -127,6 +134,8 @@ const NewWorkoutBottomSheet = ({
                     onViewingChange={setIsViewingSelf}
                     onPressPfp={onPressPfp}
                     registerInviteHandler={onRegisterInviteHandler}
+                    // Defer live streaming until user opens group menu
+                    streamLive={false}
                 />
             )}
         </BottomSheet>

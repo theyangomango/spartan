@@ -586,13 +586,15 @@ export default function useWorkoutManager({ uid, navigation, millisToHMS }) {
                                     };
                                     fsUpdateDoc(doc(db, 'users', uid), payload).catch(() => updateDoc('users', uid, payload));
                                 }
-                                if (global?.userData) { global.userData.statsHexagon = nextHex; emitHexagonUpdate(); }
+                                if (global?.userData) { global.userData.statsHexagon = nextHex; try { global.__hexChangeTo = nextHex; } catch {} ; emitHexagonUpdate(); }
                             } catch {}
                         } catch (e) {
                             console.log('finishWorkout heavy updates error', e?.message || e);
                         }
                     };
 
+                    // Snapshot current hex so UI can animate change after summary closes
+                    try { global.__hexChangeFrom = (global?.userData?.statsHexagon || {}); } catch {}
                     // Kick off the stats delta + hexagon immediately (no need to wait for modal close)
                     try { scheduleHeavy(); } catch {}
 

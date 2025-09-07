@@ -125,7 +125,11 @@ const WorkoutSummaryModal = ({ isVisible, workout, onClose, postWorkout }) => {
     return (
         <Modal animationType="fade" transparent visible={isVisible} onRequestClose={onClose}>
             <Pressable style={styles.backdrop} onPress={onClose}>
-                <Animated.View style={[styles.card, { transform: [{ scale: scaleAnim }], opacity: opacityAnim }]}>
+                <Animated.View style={[
+                    styles.card,
+                    { transform: [{ scale: scaleAnim }], opacity: opacityAnim },
+                    { renderToHardwareTextureAndroid: true, shouldRasterizeIOS: true }
+                ]}>
                     {/* Header */}
                     <View style={styles.header}>
                         <View>
@@ -183,9 +187,9 @@ const WorkoutSummaryModal = ({ isVisible, workout, onClose, postWorkout }) => {
                         contentContainerStyle={{ paddingBottom: scaledSize(6) }}
                         showsVerticalScrollIndicator={false}
                         keyboardShouldPersistTaps="handled"
-                        initialNumToRender={12}
-                        maxToRenderPerBatch={12}
-                        windowSize={7}
+                        initialNumToRender={6}
+                        maxToRenderPerBatch={6}
+                        windowSize={5}
                         removeClippedSubviews
                     />
 
