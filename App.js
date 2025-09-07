@@ -8,7 +8,8 @@ import { navigationRef } from './navigationRef';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { createStackNavigator, CardStyleInterpolators, TransitionSpecs } from '@react-navigation/stack';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
-import { Platform } from 'react-native';
+import { Platform, Modal, View, Text, Pressable, StyleSheet, Dimensions } from 'react-native';
+import * as Haptics from 'expo-haptics';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { enableScreens, enableFreeze } from 'react-native-screens';
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -76,6 +77,30 @@ const OneWayScreen = ({ route, navigation }) => {
     return <Comp navigation={navigation} route={childRoute} />;
 };
 
+// Stable Tabs component defined outside of App to avoid identity churn
+function Tabs({ route }) {
+    const Tab = createBottomTabNavigator();
+    return (
+        <Tab.Navigator
+            initialRouteName="Workout"
+            screenOptions={{
+                headerShown: false,
+                tabBarStyle: { display: 'none' },
+                lazy: false,
+                unmountOnBlur: false,
+                detachInactiveScreens: false,
+                freezeOnBlur: true,
+            }}
+        >
+            <Tab.Screen name="Feed" component={Feed} initialParams={route?.params || {}} />
+            <Tab.Screen name="MacroTracking" component={MacroTracking} />
+            <Tab.Screen name="Workout" component={Workout} initialParams={route?.params || {}} />
+            <Tab.Screen name="Competition" component={Competition} />
+            <Tab.Screen name="Profile" component={Profile} />
+        </Tab.Navigator>
+    );
+}
+
 export default function App() {
     const [fontsLoaded] = useFonts(customFonts);
     const [isAuthenticated, setIsAuthenticated] = useState(false);
@@ -103,22 +128,34 @@ export default function App() {
     }, []);
 
     // Hydrate global.userData as early as possible when authenticated
-// Foreground notification behavior (show banner + play sound)
-// Load notifications module conditionally to prevent crashes on iOS simulator
-// when the dev client doesn't include expo-notifications.
-const notificationsRef = { current: null };
-try {
-    // This will throw if the native module isn't available in the client
-    // (e.g., iOS simulator without a rebuilt dev client).
-    // We catch and continue so the app can run without notifications.
-    // eslint-disable-next-line @typescript-eslint/no-var-requires
-    notificationsRef.current = require('expo-notifications');
-    notificationsRef.current.setNotificationHandler({
-        handleNotification: async () => ({ shouldShowAlert: true, shouldPlaySound: true, shouldSetBadge: false })
-    });
-} catch (e) {
-    if (__DEV__) console.log('expo-notifications unavailable:', e?.message || e);
-}
+    // Foreground notification behavior (show banner + play sound)
+    // Load notifications module conditionally to prevent crashes on iOS simulator
+    // when the dev client doesn't include expo-notifications.
+    const notificationsRef = useRef(null);
+    useEffect(() => {
+        let mounted = true;
+        try {
+            // eslint-disable-next-line @typescript-eslint/no-var-requires
+            const Notifications = require('expo-notifications');
+            if (!mounted) return;
+            notificationsRef.current = Notifications;
+            Notifications.setNotificationHandler({
+                handleNotification: async () => ({ shouldShowAlert: true, shouldPlaySound: true, shouldSetBadge: false })
+            });
+            // Android channel for local notifications
+            if (Platform.OS === 'android' && Notifications?.setNotificationChannelAsync) {
+                Notifications.setNotificationChannelAsync('default', {
+                    name: 'Default', importance: Notifications.AndroidImportance.MAX,
+                    vibrationPattern: [0, 250, 250, 250], lightColor: '#FF231F7C',
+                    lockscreenVisibility: Notifications.AndroidNotificationVisibility.PUBLIC,
+                    enableVibrate: true, enableLights: true,
+                }).catch(() => {});
+            }
+        } catch (e) {
+            if (__DEV__) console.log('expo-notifications unavailable:', e?.message || e);
+        }
+        return () => { mounted = false; };
+    }, []);
 
     // Request push permissions and register token on login
     useEffect(() => {
@@ -161,6 +198,42 @@ try {
     }, [isAuthenticated]);
 
 
+    // ---------- Rest Reminder (global) ----------
+    const [restReminderVisible, setRestReminderVisible] = useState(false);
+    const [restReminderKey, setRestReminderKey] = useState(0);
+    const notifListenerRef = useRef(null);
+    useEffect(() => {
+        global.triggerRestReminder = () => {
+            try { Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success); } catch {}
+            setRestReminderKey((k) => k + 1);
+            setRestReminderVisible(true);
+        };
+        return () => { try { global.triggerRestReminder = null; } catch {} };
+    }, []);
+
+    // Also surface a modal whenever a local "Rest complete" notification is received while app is foreground
+    useEffect(() => {
+        try {
+            const Notifications = notificationsRef.current;
+            if (!Notifications) return;
+            notifListenerRef.current = Notifications.addNotificationReceivedListener((evt) => {
+                try {
+                    const title = evt?.request?.content?.title || '';
+                    if (String(title).toLowerCase().includes('rest complete')) {
+                        setRestReminderKey((k) => k + 1);
+                        setRestReminderVisible(true);
+                    }
+                } catch {}
+            });
+        } catch {}
+        return () => {
+            if (notifListenerRef.current && notificationsRef.current?.removeNotificationSubscription) {
+                try { notificationsRef.current.removeNotificationSubscription(notifListenerRef.current); } catch {}
+            }
+            notifListenerRef.current = null;
+        };
+    }, []);
+
     if (!fontsLoaded) return null;
 
     // Splash/guard until user is hydrated if authenticated
@@ -168,25 +241,17 @@ try {
         return <GestureHandlerRootView style={{ flex: 1, backgroundColor: '#F7FAFF' }} />;
     }
 
-    const Tabs = ({ route }) => (
-        <Tab.Navigator
-            initialRouteName="Workout"
-            screenOptions={{
-                headerShown: false,
-                tabBarStyle: { display: 'none' },
-                lazy: false,
-                unmountOnBlur: false,
-                detachInactiveScreens: false,
-                freezeOnBlur: true,
-            }}
-        >
-            <Tab.Screen name="Feed" component={Feed} initialParams={route?.params || { uid: uidRef.current }} />
-            <Tab.Screen name="MacroTracking" component={MacroTracking} />
-            <Tab.Screen name="Workout" component={Workout} initialParams={route?.params || { uid: uidRef.current }} />
-            <Tab.Screen name="Competition" component={Competition} />
-            <Tab.Screen name="Profile" component={Profile} />
-        </Tab.Navigator>
-    );
+    // Tabs is a stable component defined outside App to avoid remounts and extra hooks
+
+
+    const handleOpenWorkoutFromReminder = () => {
+        try {
+            const { jumpToTab } = require('./navigationRef');
+            if (jumpToTab) jumpToTab('Workout');
+            try { global.openCurrentWorkoutSignal = Date.now(); } catch {}
+        } catch {}
+        setRestReminderVisible(false);
+    };
 
 
     return (
@@ -354,6 +419,45 @@ try {
                     <RootStack.Screen name="PostOptions" component={PostUploadOptionsScreen} />
                 </RootStack.Navigator>
             </NavigationContainer>
+            {/* Global Rest Reminder Modal */}
+            <Modal
+                key={`rest-reminder-${restReminderKey}`}
+                visible={restReminderVisible}
+                transparent
+                animationType="fade"
+                onRequestClose={() => setRestReminderVisible(false)}
+            >
+                <Pressable style={restStyles.overlay} onPress={() => setRestReminderVisible(false)}>
+                    <View style={restStyles.card}>
+                        <Text style={restStyles.title}>Rest complete</Text>
+                        <Text style={restStyles.body}>Time to get back to your set.</Text>
+                        <View style={restStyles.row}>
+                            <Pressable style={[restStyles.btn, restStyles.secondary]} onPress={() => setRestReminderVisible(false)}>
+                                <Text style={[restStyles.btnText, restStyles.secondaryText]}>Dismiss</Text>
+                            </Pressable>
+                            <Pressable style={[restStyles.btn, restStyles.primary]} onPress={handleOpenWorkoutFromReminder}>
+                                <Text style={[restStyles.btnText, restStyles.primaryText]}>Open Workout</Text>
+                            </Pressable>
+                        </View>
+                    </View>
+                </Pressable>
+            </Modal>
         </GestureHandlerRootView>
     );
 }
+
+const restScale = Dimensions.get('window').height / 844;
+const rs = (n) => Math.round(n * restScale);
+const restStyles = StyleSheet.create({
+    overlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.35)', alignItems: 'center', justifyContent: 'center', paddingHorizontal: rs(18) },
+    card: { width: '100%', backgroundColor: '#fff', borderRadius: rs(16), padding: rs(18), alignItems: 'center' },
+    title: { fontFamily: 'Outfit_800ExtraBold', fontSize: rs(18), color: '#0F172A' },
+    body: { marginTop: rs(6), fontFamily: 'Outfit_600SemiBold', fontSize: rs(13), color: 'rgba(15,23,42,0.65)' },
+    row: { flexDirection: 'row', marginTop: rs(14), width: '100%', gap: rs(8) },
+    btn: { flex: 1, paddingVertical: rs(10), borderRadius: rs(10), alignItems: 'center', justifyContent: 'center' },
+    primary: { backgroundColor: '#0499FE' },
+    primaryText: { color: '#fff' },
+    secondary: { backgroundColor: '#F1F5F9' },
+    secondaryText: { color: '#0F172A' },
+    btnText: { fontFamily: 'Outfit_700Bold', fontSize: rs(14) },
+});

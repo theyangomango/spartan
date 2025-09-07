@@ -94,6 +94,7 @@ const NewWorkoutModal = ({
         addCountdown,
         resetCountdown,
         setCountdown,
+        restTotal,
     } = useRestTimer();
 
     // Invite picker now controlled by parent (Workout screen)
@@ -690,6 +691,7 @@ const NewWorkoutModal = ({
                 visible={restModalVisible}
                 onClose={closeRestModal}
                 countdown={countdown}
+                restTotal={restTotal}
                 onStart={startCountdown}
                 onAdd={addCountdown}
                 onReset={resetCountdown}

@@ -93,11 +93,11 @@ export default function RestTimerModal({
     visible,
     onClose,
     countdown,
+    restTotal,   // total seconds selected since last start/reset (prop from hook)
     onStart,
     onAdd,
     onReset,
 }) {
-    const [restTotal, setRestTotal] = useState(0);
 
     // Animations
     const ring = useRef(new Animated.Value(0)).current; // 1 -> 0 over remaining time
@@ -136,29 +136,21 @@ export default function RestTimerModal({
         [ring]
     );
 
-    const handleStart = useCallback(
-        (secs) => {
-            const s = Math.max(1, Math.floor(secs || 0));
-            setRestTotal(s);
-            onStart?.(s);
-            ensureAnim(s, s);
-            runPulse();
-        },
-        [ensureAnim, onStart, runPulse]
-    );
+    const handleStart = useCallback((secs) => {
+        const s = Math.max(1, Math.floor(secs || 0));
+        onStart?.(s);
+        ensureAnim(s, s);
+        runPulse();
+    }, [ensureAnim, onStart, runPulse]);
 
-    const handleAdd = useCallback(
-        (secs) => {
-            const newTotal = restTotal + secs;
-            const newRemaining = (countdown || 0) + secs;
-            setRestTotal(newTotal);
-            onAdd?.(secs);
-            ensureAnim(newRemaining, newTotal);
-            runPulse();
-            try { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Heavy); } catch {}
-        },
-        [restTotal, countdown, onAdd, ensureAnim, runPulse]
-    );
+    const handleAdd = useCallback((secs) => {
+        const newTotal = (restTotal || 0) + secs;
+        const newRemaining = (countdown || 0) + secs;
+        onAdd?.(secs);
+        ensureAnim(newRemaining, newTotal);
+        runPulse();
+        try { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Heavy); } catch {}
+    }, [restTotal, countdown, onAdd, ensureAnim, runPulse]);
 
     const handleReset = useCallback(() => {
         onReset?.();
