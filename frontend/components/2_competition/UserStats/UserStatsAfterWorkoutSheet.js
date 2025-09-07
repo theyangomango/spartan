@@ -1,6 +1,7 @@
 import React, { useEffect, useMemo, useRef, useState, useCallback } from 'react';
 import BottomSheet, { BottomSheetBackdrop } from '@gorhom/bottom-sheet';
 import { View, Platform, UIManager, Animated, Easing } from 'react-native';
+import * as Haptics from 'expo-haptics';
 import UserStatsModal from './UserStatsModal';
 import HexagonalStats from './HexagonalStats';
 
@@ -47,9 +48,23 @@ export default function UserStatsAfterWorkoutSheet({
   useEffect(() => {
     if (!visible) return;
     anim.setValue(0);
+    // Crescendo haptics: light -> medium -> heavy along the animation
+    const marks = { m20:false, m50:false, m80:false };
+    const sub = anim.addListener(({ value }) => {
+      try {
+        if (!marks.m20 && value >= 0.2) { marks.m20 = true; Haptics.impactAsync?.(Haptics.ImpactFeedbackStyle.Light); }
+        if (!marks.m50 && value >= 0.5) { marks.m50 = true; Haptics.impactAsync?.(Haptics.ImpactFeedbackStyle.Medium); }
+        if (!marks.m80 && value >= 0.8) { marks.m80 = true; Haptics.impactAsync?.(Haptics.ImpactFeedbackStyle.Heavy); }
+      } catch {}
+    });
+    // Initial kick
+    try { Haptics.impactAsync?.(Haptics.ImpactFeedbackStyle.Medium); } catch {}
     if (toHexagon) {
-      Animated.timing(anim, { toValue: 1, duration: 900, easing: Easing.out(Easing.cubic), useNativeDriver: true }).start();
+      Animated.timing(anim, { toValue: 1, duration: 600, easing: Easing.out(Easing.cubic), useNativeDriver: true }).start(() => {
+        try { Haptics.impactAsync?.(Haptics.ImpactFeedbackStyle.Heavy); } catch {}
+      });
     }
+    return () => { try { anim.removeListener(sub); } catch {} };
   }, [visible, toHexagon, anim]);
 
   // Use final stats in the modal; we overlay the 'from' chart fading out to avoid re-rendering the whole sheet per frame

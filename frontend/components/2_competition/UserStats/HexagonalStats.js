@@ -167,8 +167,10 @@ const HexagonalStats = ({
                                         // inline prev → new for non-side positions
                                         <>
                                             <TSpan fill={prevColor} fontFamily="Outfit_700Bold" fontSize={valueFont}>{String(prev)}</TSpan>
-                                            <TSpan fill={prevColor} fontFamily="Outfit_700Bold" fontSize={valueFont}>{'  →  '}</TSpan>
-                                            <TSpan fill={diffHighlightColor} fontFamily="Outfit_800ExtraBold" fontSize={valueFontBig}>{String(curr)}</TSpan>
+                                            {/* extra padding before arrow for clarity */}
+                                            <TSpan dx={scaledSize(8)} fill={prevColor} fontFamily="Outfit_700Bold" fontSize={valueFont}>{'→'}</TSpan>
+                                            {/* extra padding before the golden value */}
+                                            <TSpan dx={scaledSize(8)} fill={diffHighlightColor} fontFamily="Outfit_800ExtraBold" fontSize={valueFontBig}>{String(curr)}</TSpan>
                                         </>
                                     ) : (
                                         String(curr)

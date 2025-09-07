@@ -612,6 +612,18 @@ export default function useWorkoutManager({ uid, navigation, millisToHMS }) {
 
                     // Snapshot current hex so UI can animate change after summary closes
                     try { global.__hexChangeFrom = (global?.userData?.statsHexagon || {}); } catch {}
+                    // Precompute the "to" hex locally immediately so the sheet can animate without waiting on writes
+                    try {
+                        const trainedArr = Array.from(namesTouched.values());
+                        const prevHex = (global?.userData?.statsHexagon || {});
+                        const tempStats = { ...(global?.userData?.statsExercises || {}), ...localPatch };
+                        const { statsHexagon: preToHex } = computeHexagonStats({
+                            statsExercises: tempStats,
+                            prevStatsHexagon: prevHex,
+                            trainedExerciseNames: trainedArr,
+                        });
+                        try { global.__hexChangeTo = preToHex; } catch {}
+                    } catch { }
                     // Defer heavy stats delta + hexagon until after the summary closes to avoid jank
                     pendingHeavyRef.current = () => { try { scheduleHeavy(); } catch {} };
 
