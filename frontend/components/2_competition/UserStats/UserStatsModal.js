@@ -1,9 +1,14 @@
 import React, { useMemo, useState } from "react";
-import { StyleSheet, View, Text, ScrollView, Pressable, Dimensions } from "react-native";
+import { StyleSheet, View, Text, ScrollView, Pressable, Dimensions, UIManager, Platform, LayoutAnimation } from "react-native";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import FastImage from "react-native-fast-image";
 import HexagonalStats from "./HexagonalStats";
 import { exercises as EXERCISE_DEFS } from "../../3_Workout/NewWorkout/SelectExercise/EXERCISES";
+
+// Enable LayoutAnimation on Android
+if (Platform.OS === 'android' && UIManager.setLayoutAnimationEnabledExperimental) {
+    try { UIManager.setLayoutAnimationEnabledExperimental(true); } catch {}
+}
 
 const { height: screenHeight } = Dimensions.get("window");
 const scale = screenHeight / 844; // iPhone 13 baseline
@@ -180,7 +185,10 @@ const groupAccent = (group) => MUSCLE_ACCENT[group] || COLORS.accent;
 export default function UserStatsModal({ user, toViewProfile }) {
     const exerciseGroups = useMemo(() => getExercisesGrouped(user), [user]);
     const [collapsed, setCollapsed] = useState({}); // { [group]: true }
-    const toggleGroup = (g) => setCollapsed((s) => ({ ...s, [g]: !s[g] }));
+    const toggleGroup = (g) => {
+        try { LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut); } catch {}
+        setCollapsed((s) => ({ ...s, [g]: !s[g] }));
+    };
     const overall = Math.round(user?.statsHexagon?.overall ?? 0);
     const joinedLabel = formatJoinDate(
         user?.joined
