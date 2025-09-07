@@ -22,27 +22,65 @@ const NewUserCreation = ({ navigation }) => {
     const [username, setUsername] = useState('');
     const [name, setName] = useState('');
     const [password, setPassword] = useState('');
+    const [errorMsg, setErrorMsg] = useState('');
+    const [submitting, setSubmitting] = useState(false);
     const emailOrPhoneInputRef = useRef(null);
 
     function goBack() { navigation.goBack(); }
 
+    // simple validators
+    const isValidEmail = (v) => /^(?:[A-Z0-9._%+-]+)@(?:[A-Z0-9-]+\.)+[A-Z]{2,}$/i.test(v);
+    const isValidPhone = (v) => {
+        const d = (v || '').replace(/[^0-9+]/g, '');
+        if (d.startsWith('+')) return d.length >= 11 && d.length <= 16; // + and 10-15 digits
+        return d.length >= 10 && d.length <= 15;
+    };
+    const isValidUsername = (v) => /^[a-z0-9_.]{3,20}$/.test(v);
+
     async function signUp() {
         try {
+            if (submitting) return;
+            setErrorMsg('');
             // Basic validation
-            if (!emailOrPhone.trim() || !username.trim() || !name.trim() || !password.trim()) return;
+            if (!emailOrPhone.trim() || !username.trim() || !name.trim() || !password.trim()) {
+                setErrorMsg('Please fill out all fields.');
+                return;
+            }
 
             const trimmedEmailOrPhone = emailOrPhone.toLowerCase().trim();
             const trimmedUsername = username.toLowerCase().trim();
             const trimmedName = name.trim();
 
+            // Constraints
+            if (trimmedName.length < 2 || trimmedName.length > 40) {
+                setErrorMsg('Name must be 2–40 characters.');
+                return;
+            }
+            if (!isValidUsername(trimmedUsername)) {
+                setErrorMsg('Username must be 3–20 chars (a–z, 0–9, _ or .).');
+                return;
+            }
+            const isEmail = trimmedEmailOrPhone.includes('@');
+            if (isEmail ? !isValidEmail(trimmedEmailOrPhone) : !isValidPhone(trimmedEmailOrPhone)) {
+                setErrorMsg('Enter a valid email or phone number.');
+                return;
+            }
+            if (password.length < 6) {
+                setErrorMsg('Password must be at least 6 characters.');
+                return;
+            }
+
             // Check duplicates
             const users = await readDoc('global', 'users');
             const existing = Array.isArray(users?.all) ? users.all : [];
             const userExists = existing.some(
-                (u) => u.email === trimmedEmailOrPhone || u.phoneNumber === trimmedEmailOrPhone
+                (u) => (u.email && u.email.toLowerCase() === trimmedEmailOrPhone) || (u.phoneNumber && String(u.phoneNumber).toLowerCase() === trimmedEmailOrPhone)
             );
-            if (userExists) return;
+            if (userExists) { setErrorMsg('Email/phone already in use.'); return; }
+            const handleExists = existing.some((u) => String(u?.handle || '').toLowerCase() === trimmedUsername);
+            if (handleExists) { setErrorMsg('Username is already taken.'); return; }
 
+            setSubmitting(true);
             const newID = makeID();
 
             // --- DEFAULT PFP: resolve local asset URI & upload ---
@@ -149,6 +187,9 @@ const NewUserCreation = ({ navigation }) => {
             }
         } catch (err) {
             console.warn('Sign-up failed:', err?.message || err);
+            setErrorMsg('Sign-up failed. Please try again.');
+        } finally {
+            setSubmitting(false);
         }
     }
 
@@ -183,6 +224,7 @@ const NewUserCreation = ({ navigation }) => {
                             placeholderTextColor="#ccc"
                             value={username}
                             onChangeText={setUsername}
+                            autoCapitalize='none'
                         />
 
                         <Text style={styles.title}>Email / Phone Number</Text>
@@ -194,6 +236,7 @@ const NewUserCreation = ({ navigation }) => {
                             value={emailOrPhone}
                             onChangeText={setEmailOrPhone}
                             keyboardType="email-address"
+                            autoCapitalize='none'
                         />
 
                         <Text style={styles.title}>Create a Password</Text>
@@ -208,8 +251,9 @@ const NewUserCreation = ({ navigation }) => {
                     </View>
 
                     <View style={styles.footerContainer}>
-                        <RNBounceable style={styles.button} onPress={signUp}>
-                            <Text style={styles.auth_button_text}>Continue</Text>
+                        {!!errorMsg && <Text style={styles.errorText}>{errorMsg}</Text>}
+                        <RNBounceable style={[styles.button, submitting && { opacity: 0.6 }]} onPress={signUp} disabled={submitting}>
+                            <Text style={styles.auth_button_text}>{submitting ? 'Creating…' : 'Continue'}</Text>
                         </RNBounceable>
                     </View>
                 </View>
@@ -258,6 +302,11 @@ const styles = StyleSheet.create({
         marginTop: scaleSize(10),
         marginHorizontal: scaleSize(22),
         marginBottom: scaleSize(20),
+    },
+    errorText: {
+        color: '#B91C1C',
+        fontFamily: 'Outfit_600SemiBold',
+        marginBottom: scaleSize(10),
     },
     button: {
         backgroundColor: '#55A8FF',
