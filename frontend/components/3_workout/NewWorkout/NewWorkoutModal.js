@@ -308,10 +308,8 @@ const NewWorkoutModal = ({
     }, [finishWorkout, isFinishing]);
 
     const borderOpacity = scrollY.interpolate({ inputRange: [0, 98], outputRange: [0, 1], extrapolate: "clamp" });
-    // Dim the scrollable content when viewing someone else's workout
-    // or when viewing a past workout of your own (not the active one)
-    const isActiveSelf = viewingSelfEffective && !!myActiveWid && !!cardWid && myActiveWid === cardWid;
-    const overallOpacity = isActiveSelf ? 1 : 0.6;
+    // Tie any content dimming strictly to the Reminder Modal visibility to avoid lingering opacity.
+    const contentOpacity = reminderVisible ? 0.6 : 1;
 
     const friendWaiting = streamLive && !viewingSelfEffective && waitingFriend && !(baseWorkout?.exercises?.length);
 
@@ -623,7 +621,7 @@ const NewWorkoutModal = ({
                     keyboardShouldPersistTaps="handled"
                     keyboardDismissMode={Platform.OS === 'ios' ? 'on-drag' : 'none'}
                     {...(canUseFlashList ? { estimatedItemSize: scaledSize(72) } : {})}
-                    style={[styles.scrollview, { opacity: overallOpacity }]}
+                    style={[styles.scrollview, { opacity: contentOpacity }]}
                 />
             )}
 
