@@ -338,6 +338,9 @@ export default function Workout({ navigation, route }) {
     }, [hexChangeVisible]);
 
     const handleSummaryClose = useCallback(() => {
+        // Prime from/to immediately so labels render on first frame
+        try { setHexFrom(global?.__hexChangeFrom || global?.userData?.statsHexagon || null); } catch {}
+        try { setHexTo(global?.__hexChangeTo || global?.userData?.statsHexagon || null); } catch {}
         // Close summary, then open the stats sheet on the very next frame
         setIsSummaryModalVisible(false);
         requestAnimationFrame(() => setHexChangeVisible(true));

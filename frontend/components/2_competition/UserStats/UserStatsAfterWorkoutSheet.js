@@ -59,26 +59,46 @@ export default function UserStatsAfterWorkoutSheet({
     });
     // Initial kick
     try { Haptics.impactAsync?.(Haptics.ImpactFeedbackStyle.Medium); } catch {}
-    if (toHexagon) {
-      Animated.timing(anim, { toValue: 1, duration: 600, easing: Easing.out(Easing.cubic), useNativeDriver: true }).start(() => {
-        try { Haptics.impactAsync?.(Haptics.ImpactFeedbackStyle.Heavy); } catch {}
-      });
-    }
+    Animated.timing(anim, { toValue: 1, duration: 350, easing: Easing.out(Easing.cubic), useNativeDriver: true }).start(() => {
+      try { Haptics.impactAsync?.(Haptics.ImpactFeedbackStyle.Heavy); } catch {}
+    });
     return () => { try { anim.removeListener(sub); } catch {} };
   }, [visible, toHexagon, anim]);
 
-  // Use final stats in the modal; we overlay the 'from' chart fading out to avoid re-rendering the whole sheet per frame
-  const animUser = useMemo(() => ({ ...(user || {}), statsHexagon: toHexagon || user?.statsHexagon || {} }), [user, toHexagon]);
+  // Clear any global primed values after the sheet is closed to prevent stale arrows next time
+  useEffect(() => {
+    if (!visible) {
+      try { global.__hexChangeFrom = null; } catch {}
+      try { global.__hexChangeTo = null; } catch {}
+    }
+  }, [visible]);
+
+  // Use target stats immediately in the modal; overlay only for quick visual fade
+  const animUser = useMemo(() => {
+    const toNow = toHexagon || (global?.__hexChangeTo || null) || (user?.statsHexagon || {});
+    return { ...(user || {}), statsHexagon: toNow };
+  }, [user, toHexagon]);
 
   const renderHexOverlay = useCallback(() => {
-    if (!fromHexagon || !toHexagon) return null;
+    if (!fromHexagon) return null;
+    const toNow = toHexagon || (global?.__hexChangeTo || null) || (user?.statsHexagon || {});
+    const eq = (a = {}, b = {}) => (
+      Math.round(a.shoulders||0)===Math.round(b.shoulders||0) &&
+      Math.round(a.chest||0)===Math.round(b.chest||0) &&
+      Math.round(a.arms||0)===Math.round(b.arms||0) &&
+      Math.round(a.legs||0)===Math.round(b.legs||0) &&
+      Math.round(a.back||0)===Math.round(b.back||0) &&
+      Math.round(a.abs||0)===Math.round(b.abs||0)
+    );
+    if (eq(fromHexagon, toNow)) return null;
     const fromOpacity = anim.interpolate({ inputRange:[0,1], outputRange:[1,0] });
     return (
       <Animated.View pointerEvents="none" style={{ position:'absolute', left:0, right:0, alignItems:'center', justifyContent:'center', opacity: fromOpacity }}>
-        <HexagonalStats statsHexagon={fromHexagon} />
+        {/* Overlay without labels so new labels (with →) are visible immediately */}
+        <HexagonalStats statsHexagon={fromHexagon} showLabels={false} />
       </Animated.View>
     );
-  }, [anim, fromHexagon, toHexagon]);
+  }, [anim, fromHexagon, toHexagon, user]);
 
   return (
     <BottomSheet
@@ -97,7 +117,23 @@ export default function UserStatsAfterWorkoutSheet({
           user={animUser}
           toViewProfile={() => {}}
           hexOverlay={renderHexOverlay}
-          hexProps={{ prevStatsHexagon: fromHexagon, valueFontBigPx: 16, diffHighlightColor: '#F2B84B' }}
+          hexProps={{
+            // Only show prev values when there is an actual change; otherwise null prevents lingering arrows
+            prevStatsHexagon: (() => {
+              const toNow = toHexagon || (global?.__hexChangeTo || null) || (user?.statsHexagon || {});
+              const eq = (a = {}, b = {}) => (
+                Math.round(a.shoulders||0)===Math.round(b.shoulders||0) &&
+                Math.round(a.chest||0)===Math.round(b.chest||0) &&
+                Math.round(a.arms||0)===Math.round(b.arms||0) &&
+                Math.round(a.legs||0)===Math.round(b.legs||0) &&
+                Math.round(a.back||0)===Math.round(b.back||0) &&
+                Math.round(a.abs||0)===Math.round(b.abs||0)
+              );
+              return (fromHexagon && !eq(fromHexagon, toNow)) ? fromHexagon : null;
+            })(),
+            valueFontBigPx: 16,
+            diffHighlightColor: '#F2B84B'
+          }}
           deferExercises={true}
         />
       </View>
