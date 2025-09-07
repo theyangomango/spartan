@@ -790,8 +790,8 @@ const NewWorkoutModal = ({
                 </Pressable>
             </Modal>
 
-            {/* Confetti overlay (mount only when cheer is available) */}
-            {friendOngoing && (() => { const ConfettiCannon = loadConfettiModule(); return ConfettiCannon ? (
+            {/* Confetti overlay (mount when cheering is relevant: spectating live OR self active) */}
+            {(friendOngoing || isActiveSelf) && (() => { const ConfettiCannon = loadConfettiModule(); return ConfettiCannon ? (
                 <View pointerEvents="none" style={StyleSheet.absoluteFill}>
                     <ConfettiCannon
                         ref={confettiRef}
