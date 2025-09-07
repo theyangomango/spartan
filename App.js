@@ -1,6 +1,8 @@
 import 'expo-dev-client';
 import React, { useEffect, useRef, useState } from 'react';
 import { NavigationContainer } from '@react-navigation/native';
+import * as Notifications from 'expo-notifications';
+import * as Device from 'expo-device';
 import { navigationRef } from './navigationRef';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { createStackNavigator, CardStyleInterpolators, TransitionSpecs } from '@react-navigation/stack';
@@ -100,6 +102,12 @@ export default function App() {
     }, []);
 
     // Hydrate global.userData as early as possible when authenticated
+    // Foreground notification behavior (show banner + play sound)
+    Notifications.setNotificationHandler({
+        handleNotification: async () => ({ shouldShowAlert: true, shouldPlaySound: true, shouldSetBadge: false })
+    });
+
+    // Request push permissions and register token on login
     useEffect(() => {
         // cleanup previous subscription
         if (unsubRef.current) { try { unsubRef.current(); } catch {} unsubRef.current = null; }
@@ -108,9 +116,30 @@ export default function App() {
         const uid = uidRef.current;
         if (!isAuthenticated || !uid) return;
         const ref = doc(db, 'users', uid);
-        unsubRef.current = onSnapshot(ref, (snap) => {
+        unsubRef.current = onSnapshot(ref, async (snap) => {
             try { global.userData = { uid, ...(snap.data() || {}) }; } catch {}
             setUserReady(true);
+
+            // Register for push notifications (EAS project id required)
+            try {
+                if (Device.isDevice) {
+                    const { status: existingStatus } = await Notifications.getPermissionsAsync();
+                    let finalStatus = existingStatus;
+                    if (existingStatus !== 'granted') {
+                        const { status } = await Notifications.requestPermissionsAsync();
+                        finalStatus = status;
+                    }
+                    if (finalStatus === 'granted') {
+                        const token = await Notifications.getExpoPushTokenAsync({ projectId: '6cd30997-3609-4c85-9f1f-6e2391e0b736' });
+                        const t = token?.data || '';
+                        if (t && t !== (global?.userData?.expoPushToken || '')) {
+                            const updateDoc = require('./backend/helper/firebase/updateDoc').default;
+                            await updateDoc('users', uid, { expoPushToken: t });
+                            try { global.userData.expoPushToken = t; } catch {}
+                        }
+                    }
+                }
+            } catch (e) { console.log('Push registration error', e?.message || e); }
         }, (err) => {
             console.warn('User document subscription error:', err?.message || err);
             // proceed but keep ready false to avoid crashing screens

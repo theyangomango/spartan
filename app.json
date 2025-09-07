@@ -36,7 +36,8 @@
         "android.permission.WRITE_EXTERNAL_STORAGE",
         "android.permission.ACCESS_MEDIA_LOCATION"
       ],
-      "package": "com.yangbai.spartan"
+      "package": "com.yangbai.spartan",
+      "googleServicesFile": "./google-services.json"
     },
     "web": {
       "favicon": "./assets/favicon.png"
@@ -48,6 +49,12 @@
     },
     "plugins": [
       "expo-font",
+      [
+        "expo-notifications",
+        {
+          "color": "#2D9EFF"
+        }
+      ],
       [
         "expo-media-library",
         {
