@@ -14,6 +14,7 @@ import {
     Keyboard,
 } from "react-native";
 import { Dimensions, FlatList } from "react-native";
+// AsyncStorage removed for reminder gating; show only on create/join events
 let FlashListLib = null;
 try { FlashListLib = require("@shopify/flash-list"); } catch {}
 const canUseFlashList = !!(FlashListLib && FlashListLib.FlashList && UIManager?.getViewManagerConfig && UIManager.getViewManagerConfig('CellContainer') && UIManager.getViewManagerConfig('AutoLayoutView'));
@@ -499,28 +500,30 @@ const NewWorkoutModal = ({
         registerInviteHandler?.(handleInviteSelected);
     }, [registerInviteHandler, handleInviteSelected]);
 
-    // Show the reminder ONLY when a workout has been just started locally.
-    // We rely on useWorkoutManager tagging the local workout with `__justStarted: true`.
+    // Show the reminder ONLY when a workout has been just started locally or joined.
+    // Triggered by local flag `__justStarted` and the global one-shot `__showWorkoutReminderForWid`.
     useEffect(() => {
         try {
             if (!viewingSelfEffective) return;
             const wid = String(workout?.wid || "");
             if (!wid || reminderShownRef.current.has(wid)) return;
 
+            // also gate by one-time-only flag and per wid per session
+            const shownMap = (global.__reminderShownForWids = global.__reminderShownForWids || {});
+            if (shownMap[wid]) return;
+
             const shouldFromFlag = (typeof global !== 'undefined') && (global.__showWorkoutReminderForWid === wid);
             const shouldFromLocal = !!workout?.__justStarted;
-            // Extra robustness: treat very recent creations as a just-started session
-            const createdMs = (typeof workout?.created === 'number') ? workout.created : (new Date(workout?.created || 0).getTime() || 0);
-            const isVeryRecent = createdMs && (Date.now() - createdMs < 45 * 1000);
-            if (shouldFromFlag || shouldFromLocal || isVeryRecent) {
+            if (shouldFromFlag || shouldFromLocal) {
                 // Mark as shown first to prevent double-scheduling on any re-render
                 reminderShownRef.current.add(wid);
+                shownMap[wid] = true;
                 setReminderVisible(true);
                 // Clear the non-persistent triggers without forcing a re-render cycle that could cancel show timing
                 try { if (shouldFromFlag) global.__showWorkoutReminderForWid = null; } catch { }
             }
         } catch { }
-    }, [viewingSelfEffective, workout?.wid, workout?.__justStarted, workout?.created]);
+    }, [viewingSelfEffective, workout?.wid, workout?.__justStarted]);
 
     // Focus handler from child set inputs: gently scroll the exercise into view
     const handleStatFocus = useCallback((exerciseIndex /*, setIndex */) => {
@@ -575,6 +578,7 @@ const NewWorkoutModal = ({
             ) : (
                 /* Animated FlashList for smoother, low-overhead virtualization */
                 <AnimatedFlashList
+                    key={`wlist-${cardWid}`}
                     ref={listRef}
                     data={Array.isArray(baseWorkout?.exercises) ? baseWorkout.exercises : []}
                     keyExtractor={(ex, i) => `${ex?.name || "ex"}-${i}`}
@@ -711,6 +715,7 @@ const NewWorkoutModal = ({
 
             {/* Tracking reminder (self only) */}
             <Modal
+                key={`reminder-${reminderVisible ? 1 : 0}`}
                 visible={reminderVisible}
                 transparent
                 animationType="fade"
