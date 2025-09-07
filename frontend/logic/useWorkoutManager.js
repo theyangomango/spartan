@@ -538,7 +538,8 @@ export default function useWorkoutManager({ uid, navigation, millisToHMS }) {
 
                             // Persist minimal stats deltas first (fast), then compute hexagon
                             if (uid && namesTouched.size > 0) {
-                                fsUpdateDoc(doc(db, 'users', uid), atomic).catch(() => updateDoc('users', uid, { statsExercises: localPatch }));
+                                atomic['statsExercisesUpdatedAt'] = serverTimestamp();
+                                fsUpdateDoc(doc(db, 'users', uid), atomic).catch(() => updateDoc('users', uid, { ...{ statsExercisesUpdatedAt: serverTimestamp() }, statsExercises: localPatch }));
                             }
                             try { if (global?.userData) global.userData.statsExercises = { ...(global?.userData?.statsExercises || {}), ...localPatch }; } catch {}
 

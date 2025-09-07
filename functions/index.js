@@ -14,7 +14,7 @@ async function recomputeForUid(uid, trainedExerciseNames = []) {
   const data = snap.data() || {};
   const stats = data.statsExercises || {};
   const prevHex = data.statsHexagon || {};
-  const { statsHexagon, lastTrained } = computeHexagonFromStats(stats, prevHex, trainedExerciseNames);
+  const { statsHexagon, lastTrained } = computeHexagonFromStats(stats, prevHex, trainedExerciseNames, data);
   const payload = {
     statsHexagon,
     statsHexagonMeta: { lastTrainedByGroup: lastTrained, updatedAt: FieldValue.serverTimestamp() },
@@ -35,16 +35,11 @@ exports.onUserStatsWrite = functions.firestore.document('users/{uid}')
     try {
       const before = change.before.exists ? (change.before.data() || {}) : {};
       const after = change.after.exists ? (change.after.data() || {}) : {};
-      const bStats = before.statsExercises || null;
-      const aStats = after.statsExercises || null;
-      const bMetaTs = before?.statsHexagonMeta?.updatedAt?.toMillis?.() || 0;
       const aMetaTs = after?.statsHexagonMeta?.updatedAt?.toMillis?.() || 0;
-
-      const statsChanged = JSON.stringify(bStats) !== JSON.stringify(aStats);
+      const statsTs = after?.statsExercisesUpdatedAt?.toMillis?.() || 0;
       const hexMissing = !after.statsHexagon || !aMetaTs;
-
-      // Avoid loops: if only statsHexagon changed, do nothing
-      if (!statsChanged && !hexMissing) return null;
+      // Only recompute if statsExercisesUpdatedAt advanced beyond last hex update, or hex missing
+      if (!hexMissing && !(statsTs && statsTs > aMetaTs)) return null;
 
       const uid = context.params.uid;
       await recomputeForUid(uid, []);
@@ -54,4 +49,3 @@ exports.onUserStatsWrite = functions.firestore.document('users/{uid}')
       return null;
     }
   });
-
