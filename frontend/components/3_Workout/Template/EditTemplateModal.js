@@ -12,6 +12,7 @@ const scaledSize = (size) => Math.round(size * scale);
 
 const EditTemplateModal = ({ openedTemplateRef, updateTemplate, deleteTemplate }) => {
     const [selectExerciseModalVisible, setSelectExerciseModalVisible] = useState(false);
+    const [replaceIndex, setReplaceIndex] = useState(null);
     const [deleteConfirmModalVisible, setDeleteConfirmModalVisible] = useState(false);
     const [template, setTemplate] = useState(openedTemplateRef.current);
     const [templateTitle, setTemplateTitle] = useState(openedTemplateRef.current.name);
@@ -22,6 +23,7 @@ const EditTemplateModal = ({ openedTemplateRef, updateTemplate, deleteTemplate }
 
     const closeSelectExerciseModal = useCallback(() => {
         setSelectExerciseModalVisible(false);
+        setReplaceIndex(null);
     }, []);
 
     const appendExercises = useCallback((exercises) => {
@@ -52,8 +54,30 @@ const EditTemplateModal = ({ openedTemplateRef, updateTemplate, deleteTemplate }
     }, []);
 
     const replaceExercise = useCallback((index) => {
-        // Replace exercise logic can be implemented here
-    }, [template, setTemplate]);
+        setReplaceIndex(index);
+        setSelectExerciseModalVisible(true);
+    }, []);
+
+    const handleAppendOrReplace = useCallback((picked) => {
+        const choice = Array.isArray(picked) ? picked[0] : picked;
+        const isReplacing = replaceIndex !== null && replaceIndex >= 0;
+
+        if (isReplacing && choice) {
+            const prevSets = template?.exercises?.[replaceIndex]?.sets || [{ weight: 0, reps: 0, previous: '405 lb x 12' }];
+            const newSets = prevSets.map((s) => ({ weight: 0, reps: 0, previous: s?.previous ?? '405 lb x 12' }));
+            const nextExercises = template.exercises.map((ex, i) => (
+                i === replaceIndex ? { name: choice.name, muscle: choice.muscle, sets: newSets } : ex
+            ));
+            setTemplate({ ...template, exercises: nextExercises });
+            setReplaceIndex(null);
+            setSelectExerciseModalVisible(false);
+            return;
+        }
+
+        // Default: append all picked exercises
+        appendExercises(Array.isArray(picked) ? picked : [picked]);
+        setSelectExerciseModalVisible(false);
+    }, [appendExercises, replaceIndex, template]);
 
     const deleteExercise = useCallback((index) => {
         const newTemplate = { ...template };
@@ -132,7 +156,7 @@ const EditTemplateModal = ({ openedTemplateRef, updateTemplate, deleteTemplate }
                 visible={selectExerciseModalVisible}>
                 <SelectExerciseModal
                     closeModal={closeSelectExerciseModal}
-                    appendExercises={appendExercises}
+                    appendExercises={handleAppendOrReplace}
                 />
             </Modal>
 

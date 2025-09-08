@@ -15,16 +15,7 @@ export default function EditTemplateExerciseLog({ name, muscle, exerciseIndex, u
     const [panelPosition, setPanelPosition] = useState({ top: 0, left: 0 });
     const fadeAnim = useRef(new Animated.Value(1)).current;
 
-    const muscleColors = {
-        Chest: '#FFAFB8',
-        Shoulders: '#A1CDEE',
-        Arms: '#CBBCFF',
-        Back: '#95E0C8',
-        Triceps: '#FFD580',
-        Legs: '#FFB347',
-        Abs: '#FF6961',
-        // Add more muscle groups and colors as needed
-    };
+    // Muscle badge removed for Edit Template modal
 
     const togglePanel = (event) => {
         if (isPanelVisible) {
@@ -71,9 +62,6 @@ export default function EditTemplateExerciseLog({ name, muscle, exerciseIndex, u
             <Animated.View style={[styles.header, { opacity: fadeAnim }]}>
                 <Pressable style={styles.nameContainer} onPress={togglePanel}>
                     <Text style={styles.exercise_text} numberOfLines={1}>{name}</Text>
-                    <View style={[styles.muscle_ctnr, { backgroundColor: muscleColors[muscle] }]}>
-                        <Text style={styles.muscle_text}>{muscle}</Text>
-                    </View>
                 </Pressable>
 
                 {/* <View style={styles.pfpContainer}>
@@ -139,19 +127,7 @@ const styles = StyleSheet.create({
         fontSize: scaledSize(15),
         flexShrink: 1,
     },
-    muscle_ctnr: {
-        borderRadius: scaledSize(15),
-        height: scaledSize(23.5),
-        paddingHorizontal: scaledSize(12),
-        alignItems: 'center',
-        justifyContent: 'center',
-        marginLeft: scaledSize(5),
-    },
-    muscle_text: {
-        fontFamily: 'Poppins_700Bold',
-        fontSize: scaledSize(12),
-        color: '#fff',
-    },
+    // muscle_ctnr and muscle_text removed
     pfpContainer: {
         flexDirection: 'row',
         alignItems: 'center',
@@ -217,4 +193,3 @@ const styles = StyleSheet.create({
         marginRight: scaledSize(5),
     },
 });
-
