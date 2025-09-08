@@ -1,8 +1,13 @@
-import React, { useCallback, useState } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import { SafeAreaView, View, Text, StyleSheet, ScrollView, Switch, TouchableOpacity, Alert, Platform, Linking } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { doc, updateDoc as fsUpdateDoc } from 'firebase/firestore';
+import { db } from '../../firebase.config';
+import useUserDoc from '../hooks/useUserDoc';
 
 export default function Settings({ navigation }) {
+  const uid = global?.userData?.uid || null;
+  const user = useUserDoc(uid, { ignoreKeys: [] });
   const [unitsLbs, setUnitsLbs] = useState(true);
   const [pushEnabled, setPushEnabled] = useState(true);
   const [soundsEnabled, setSoundsEnabled] = useState(true);
@@ -17,6 +22,54 @@ export default function Settings({ navigation }) {
     ]);
   }, [navigation]);
 
+  // Hydrate from user doc when available/changes
+  useEffect(() => {
+    try {
+      const s = user?.settings || {};
+      if (typeof s?.units === 'string') setUnitsLbs(String(s.units).toLowerCase() !== 'kg');
+      if (typeof s?.push === 'boolean') setPushEnabled(s.push);
+      if (typeof s?.sounds === 'boolean') setSoundsEnabled(s.sounds);
+      if (typeof s?.foodPrivate === 'boolean') setFoodPrivate(s.foodPrivate);
+    } catch {}
+  }, [user?.settings]);
+
+  const persistSetting = useCallback(async (path, value) => {
+    try {
+      if (!uid) return;
+      const ref = doc(db, 'users', uid);
+      await fsUpdateDoc(ref, { [path]: value });
+      // keep global in sync for immediate UX
+      try {
+        global.userData = {
+          ...(global.userData || {}),
+          settings: { ...(global.userData?.settings || {}), [path.split('.').pop()]: value },
+        };
+      } catch {}
+    } catch (e) {
+      console.warn('Failed to update setting', path, e?.message || e);
+    }
+  }, [uid]);
+
+  const toggleUnits = useCallback((next) => {
+    setUnitsLbs(next);
+    persistSetting('settings.units', next ? 'lb' : 'kg');
+  }, [persistSetting]);
+
+  const togglePush = useCallback((next) => {
+    setPushEnabled(next);
+    persistSetting('settings.push', next);
+  }, [persistSetting]);
+
+  const toggleSounds = useCallback((next) => {
+    setSoundsEnabled(next);
+    persistSetting('settings.sounds', next);
+  }, [persistSetting]);
+
+  const toggleFoodPrivate = useCallback((next) => {
+    setFoodPrivate(next);
+    persistSetting('settings.foodPrivate', next);
+  }, [persistSetting]);
+
   return (
     <SafeAreaView style={styles.root}>
       <View style={styles.header}>
@@ -29,18 +82,18 @@ export default function Settings({ navigation }) {
 
       <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
         <Text style={styles.section}>Account</Text>
-        <Row label={`Units: ${unitsLbs ? 'lb' : 'kg'}`} value={unitsLbs} onValueChange={setUnitsLbs} />
+        <Row label={`Units: ${unitsLbs ? 'lb' : 'kg'}`} value={unitsLbs} onValueChange={toggleUnits} />
         <TouchableOpacity style={styles.link} onPress={() => navigation.navigate('PrivateProfileInfo', { transition: 'slide-from-right' })}>
           <Text style={styles.linkText}>Private profile</Text>
           <Ionicons name="chevron-forward" size={18} color="#94A3B8" />
         </TouchableOpacity>
 
         <Text style={styles.section}>Notifications</Text>
-        <Row label="Push notifications" value={pushEnabled} onValueChange={setPushEnabled} />
-        <Row label="Sound effects" value={soundsEnabled} onValueChange={setSoundsEnabled} />
+        <Row label="Push notifications" value={pushEnabled} onValueChange={togglePush} />
+        <Row label="Sound effects" value={soundsEnabled} onValueChange={toggleSounds} />
 
         <Text style={styles.section}>Privacy</Text>
-        <Row label="Keep foods/macros private" value={foodPrivate} onValueChange={setFoodPrivate} />
+        <Row label="Keep foods/macros private" value={foodPrivate} onValueChange={toggleFoodPrivate} />
         <TouchableOpacity style={styles.link} onPress={() => Alert.alert('Blocked users', 'This is where blocked users would appear.') }>
           <Text style={styles.linkText}>Blocked users</Text>
           <Ionicons name="chevron-forward" size={18} color="#94A3B8" />

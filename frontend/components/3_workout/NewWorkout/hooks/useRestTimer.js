@@ -86,11 +86,12 @@ export default function useRestTimer() {
         try { await ExpoNotifications.cancelScheduledNotificationAsync(scheduledNotifIdRef.current); } catch {}
         scheduledNotifIdRef.current = null;
       }
+      const soundsOn = (global?.userData?.settings?.sounds !== false);
       const id = await ExpoNotifications.scheduleNotificationAsync({
         content: {
           title: 'Rest complete',
           body: "Let's get back to your set!",
-          sound: true,
+          sound: Boolean(soundsOn),
           badge: null,
         },
         trigger: { seconds: Math.max(1, Math.floor(secondsFromNow)), channelId: 'default', repeats: false },
@@ -118,8 +119,11 @@ export default function useRestTimer() {
       cancelLocalPush();
       endAtRef.current = 0;
       try { global.__restTimerEndAt = 0; global.__restTimerTotal = 0; } catch {}
-      try { Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success); } catch {}
-      try { Vibration.vibrate(150); } catch {}
+      const soundsOn = (global?.userData?.settings?.sounds !== false);
+      if (soundsOn) {
+        try { Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success); } catch {}
+        try { Vibration.vibrate(150); } catch {}
+      }
       try { if (typeof global?.triggerRestReminder === 'function') global.triggerRestReminder(); } catch {}
     }
     prevCountdownRef.current = countdown;

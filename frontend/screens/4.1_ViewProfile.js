@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useState } from "react";
-import { StyleSheet, View } from "react-native";
+import { SafeAreaView, StyleSheet, View } from "react-native";
 import Footer from "../components/Footer";
 import ProfileBottomBottomSheet from "../components/5_Profile/ProfileBottom/ProfileBottomBottomSheet";
 import ViewProfileRowButtons from "../components/ViewProfile/ViewProfileRowButtons";
@@ -8,6 +8,7 @@ import ViewProfileHeader from "../components/ViewProfile/ViewProfileHeader";
 import readDoc from "../../backend/helper/firebase/readDoc";
 import readDocsByIds from "../../backend/helper/firebase/readDocsByIds";
 import WorkoutStats from "../components/5_Profile/ProfileTop/WorkoutStats";
+import UserStatsBottomSheet from "../components/2_Competition/UserStats/UserStatsBottomSheet";
 import createChat from "../../backend/messages/createChat";
 import makeID from "../../backend/helper/makeID";
 import arrayAppend from "../../backend/helper/firebase/arrayAppend";
@@ -18,6 +19,7 @@ export default function ViewProfile({ navigation, route }) {
     const [profileUserData, setProfileUserData] = useState(null);
     const [posts, setPosts] = useState([]);
     const [selectedPanel, setSelectedPanel] = useState('posts');
+    const [isViewStatsBottomSheetVisible, setIsViewStatsBottomSheetVisible] = useState(false);
     const [viewerWorkout, setViewerWorkout] = useState(null);
     const [viewerToggle, setViewerToggle] = useState(false);
     const openViewer = useCallback((wk) => {
@@ -124,13 +126,14 @@ export default function ViewProfile({ navigation, route }) {
     }
 
     const headerHandle = profileUserData?.handle || user?.handle || user?.username || '';
+    function handleOpenViewStats() { setIsViewStatsBottomSheetVisible(true); }
 
     return (
-        <View style={styles.main_ctnr}>
+        <SafeAreaView style={styles.main_ctnr}>
             <View style={styles.body_ctnr}>
-                <ViewProfileHeader handle={headerHandle} goBack={goBack} />
+                <ViewProfileHeader handle={headerHandle} goBack={goBack} toMessages={toMessages} />
                 <ViewProfileInfo userData={profileUserData} />
-                <ViewProfileRowButtons toMessages={toMessages} user={user} />
+                <ViewProfileRowButtons handleOpenViewStats={handleOpenViewStats} user={user} />
                 <WorkoutStats userData={profileUserData} />
             </View>
 
@@ -143,6 +146,13 @@ export default function ViewProfile({ navigation, route }) {
             />
             <Footer currentScreenName={'Profile'} navigation={navigation} />
 
+            <UserStatsBottomSheet
+                user={profileUserData || user}
+                navigation={navigation}
+                isVisible={isViewStatsBottomSheetVisible}
+                setIsVisible={setIsViewStatsBottomSheetVisible}
+            />
+
             {/* Workout viewer bottom sheet (viewing other's profile) */}
             <FeedWorkoutViewerSheet
                 expandToggle={viewerToggle}
@@ -151,7 +161,7 @@ export default function ViewProfile({ navigation, route }) {
                 friendPfp={profileUserData?.image || profileUserData?.pfp || null}
                 onClose={closeViewer}
             />
-        </View>
+        </SafeAreaView>
     );
 }
 

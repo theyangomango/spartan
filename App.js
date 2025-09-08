@@ -174,6 +174,16 @@ export default function App() {
             // Register for push notifications (EAS project id required)
             try {
                 if (Device.isDevice && notificationsRef.current) {
+                    const wantsPush = (global?.userData?.settings?.push !== false);
+                    // If user disabled push and we previously had a token, clear it
+                    if (!wantsPush && global?.userData?.expoPushToken) {
+                        try {
+                            const updateDoc = require('./backend/helper/firebase/updateDoc').default;
+                            await updateDoc('users', uid, { expoPushToken: '' });
+                            try { global.userData.expoPushToken = ''; } catch {}
+                        } catch {}
+                    }
+                    if (!wantsPush) return;
                     const { status: existingStatus } = await notificationsRef.current.getPermissionsAsync();
                     let finalStatus = existingStatus;
                     if (existingStatus !== 'granted') {
@@ -205,8 +215,11 @@ export default function App() {
     const notifListenerRef = useRef(null);
     useEffect(() => {
         global.triggerRestReminder = () => {
-            try { Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success); } catch {}
-            try { Vibration.vibrate(180); } catch {}
+            const soundsOn = (global?.userData?.settings?.sounds !== false);
+            if (soundsOn) {
+                try { Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success); } catch {}
+                try { Vibration.vibrate(180); } catch {}
+            }
             setRestReminderKey((k) => k + 1);
             setRestReminderVisible(true);
         };
@@ -222,8 +235,11 @@ export default function App() {
                 try {
                     const title = evt?.request?.content?.title || '';
                     if (String(title).toLowerCase().includes('rest complete')) {
-                        try { Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success); } catch {}
-                        try { Vibration.vibrate(180); } catch {}
+                        const soundsOn = (global?.userData?.settings?.sounds !== false);
+                        if (soundsOn) {
+                            try { Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success); } catch {}
+                            try { Vibration.vibrate(180); } catch {}
+                        }
                         setRestReminderKey((k) => k + 1);
                         setRestReminderVisible(true);
                     }

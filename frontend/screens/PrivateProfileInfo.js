@@ -1,10 +1,28 @@
-import React, { useState } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import { SafeAreaView, View, Text, StyleSheet, ScrollView, TouchableOpacity, Switch, Platform } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { doc, updateDoc as fsUpdateDoc } from 'firebase/firestore';
+import { db } from '../../firebase.config';
+import useUserDoc from '../hooks/useUserDoc';
 
 export default function PrivateProfileInfo({ navigation }) {
+  const uid = global?.userData?.uid || null;
+  const user = useUserDoc(uid, { ignoreKeys: [] });
   const [isPrivate, setIsPrivate] = useState(false);
   const goBack = () => navigation.goBack();
+
+  useEffect(() => {
+    try { setIsPrivate(Boolean(user?.settings?.profilePrivate)); } catch {}
+  }, [user?.settings?.profilePrivate]);
+
+  const onToggle = useCallback(async (next) => {
+    setIsPrivate(next);
+    try {
+      if (!uid) return;
+      await fsUpdateDoc(doc(db, 'users', uid), { 'settings.profilePrivate': next });
+      try { global.userData = { ...(global.userData || {}), settings: { ...(global.userData?.settings || {}), profilePrivate: next } }; } catch {}
+    } catch {}
+  }, [uid]);
   return (
     <SafeAreaView style={styles.root}>
       <View style={styles.header}>
@@ -23,8 +41,8 @@ export default function PrivateProfileInfo({ navigation }) {
 
         <View style={styles.row}>
           <Text style={styles.rowLabel}>Make my profile private</Text>
-          <Switch value={isPrivate} onValueChange={setIsPrivate} trackColor={{ false: '#E5E7EB', true: '#93C5FD' }} thumbColor={isPrivate ? '#2563EB' : Platform.select({ ios: '#fff', android: '#f9fafb' })} />
-        </View>
+          <Switch value={isPrivate} onValueChange={onToggle} trackColor={{ false: '#E5E7EB', true: '#93C5FD' }} thumbColor={isPrivate ? '#2563EB' : Platform.select({ ios: '#fff', android: '#f9fafb' })} />
+      </View>
       </ScrollView>
     </SafeAreaView>
   );
@@ -41,4 +59,3 @@ const styles = StyleSheet.create({
   row: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingVertical: 14, borderTopWidth: StyleSheet.hairlineWidth, borderColor: '#E5E7EB', marginTop: 12 },
   rowLabel: { fontFamily: 'Outfit_600SemiBold', fontSize: 14, color: '#0F172A' },
 });
-

@@ -11,7 +11,7 @@ function scaleSize(size) {
     return Math.round(size * scale);
 }
 
-export default function ViewProfileRowButtons({ toMessages, user }) {
+export default function ViewProfileRowButtons({ handleOpenViewStats, user }) {
     const [isFollowing, setIsFollowing] = useState(Array.isArray(global?.userData?.following) && global.userData.following.some(f => String(f?.uid) === String(user?.uid)));
     const pendingRef = useRef(false);
     const [busy, setBusy] = useState(false);
@@ -64,9 +64,9 @@ export default function ViewProfileRowButtons({ toMessages, user }) {
                     </Text>
                 </View>
             </RNBounceable>
-            <RNBounceable style={styles.flex} onPress={toMessages}>
-                <View style={[styles.message_button, styles.flex]}>
-                    <Text style={styles.message_button_text}>Message</Text>
+            <RNBounceable style={styles.flex} onPress={handleOpenViewStats}>
+                <View style={[styles.view_stats_button, styles.flex]}>
+                    <Text style={styles.view_stats_button_text}>View Stats</Text>
                 </View>
             </RNBounceable>
         </View>
@@ -102,7 +102,7 @@ const styles = StyleSheet.create({
         alignItems: 'center',
         marginHorizontal: scaleSize(3),
     },
-    message_button: {
+    view_stats_button: {
         paddingHorizontal: scaleSize(20),
         paddingVertical: scaleSize(7),
         borderRadius: scaleSize(10),
@@ -121,7 +121,7 @@ const styles = StyleSheet.create({
         fontSize: scaleSize(12.5),
         color: '#3CA5FF',
     },
-    message_button_text: {
+    view_stats_button_text: {
         fontFamily: 'Poppins_600SemiBold',
         fontSize: scaleSize(12.5),
     },

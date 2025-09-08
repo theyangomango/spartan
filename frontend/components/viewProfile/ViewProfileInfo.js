@@ -2,8 +2,7 @@ import { useEffect, useState } from "react";
 import { StyleSheet, View, Text, Dimensions } from "react-native";
 import FastImage from 'react-native-fast-image';
 import { usePfp } from "../../helper/usePFPs";
-import { Entypo } from '@expo/vector-icons';
-import RNBounceable from "@freakycoder/react-native-bounceable";
+// Removed plus overlay next to PFP for cleaner ViewProfile
 
 const { width: screenWidth } = Dimensions.get('window');
 const scale = screenWidth / 375; // Base screen width assumed as 375
@@ -31,9 +30,6 @@ export default function ViewProfileInfo({ userData }) {
                     ) : (
                         <View style={[styles.pfp, { backgroundColor: '#e5e7eb' }]} />
                     )}
-                    <RNBounceable style={styles.plus_icon_ctnr}>
-                        <Entypo name="plus" size={scaleSize(16)} color="#222" />
-                    </RNBounceable>
                 </View>
                 <View style={styles.following_stat_ctnr}>
                     <Text style={styles.user_stat_count_text}>{userData && userData.followingCount}</Text>
@@ -76,21 +72,6 @@ const styles = StyleSheet.create({
         width: scaleSize(50),
         aspectRatio: 1,
         borderRadius: scaleSize(20.5),
-    },
-    plus_icon_ctnr: {
-        position: 'absolute',
-        bottom: scaleSize(-8),
-        backgroundColor: '#FCF375',
-        width: scaleSize(35),
-        height: scaleSize(20),
-        borderRadius: scaleSize(10),
-        justifyContent: 'center',
-        alignItems: 'center',
-        shadowColor: '#EBDF38',
-        shadowOffset: { width: 0, height: scaleSize(0.5) },
-        shadowOpacity: 1,
-        shadowRadius: scaleSize(2),
-        elevation: 5,
     },
     followers_stat_ctnr: {
         alignItems: 'flex-end',
