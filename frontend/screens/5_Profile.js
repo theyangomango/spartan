@@ -23,6 +23,7 @@ export default function Profile({ navigation }) {
     }, []);
     const userData = global.userData;
     const [posts, setPosts] = useState([]);
+    const [savedPosts, setSavedPosts] = useState([]);
     const [selectedPanel, setSelectedPanel] = useState("posts");
     const [isEditProfileBottomSheetVisible, setIsEditProfileBottomSheetVisible] = useState(false);
 
@@ -57,6 +58,7 @@ export default function Profile({ navigation }) {
 
     useEffect(() => {
         getPosts();
+        getSavedPosts();
     }, []);
 
 
@@ -64,6 +66,8 @@ export default function Profile({ navigation }) {
     const lastOpenSigRef = React.useRef(0);
     useEffect(() => {
         const unsub = navigation.addListener('focus', () => {
+            // Refresh saved posts when returning to profile
+            try { getSavedPosts(); } catch {}
             const sig = Number(global?.profileOpenSelectPhotosSignal || 0);
             if (sig && sig !== lastOpenSigRef.current) {
                 lastOpenSigRef.current = sig;
@@ -109,6 +113,39 @@ export default function Profile({ navigation }) {
         }
     }
 
+    async function getSavedPosts() {
+        try {
+            const ids = Array.isArray(userData.savedPosts) ? userData.savedPosts : [];
+            const n = ids.length;
+            if (!n) { setSavedPosts([]); return; }
+
+            const buffer = new Array(n);
+            setSavedPosts([]);
+
+            const firstChunk = ids.slice(0, 10);
+            const tail = ids.slice(10);
+
+            const firstDocs = await readDocsByIds('posts', firstChunk);
+            firstDocs.forEach((doc, i) => { if (doc && !doc.pid) doc.pid = firstChunk[i]; buffer[i] = doc; });
+            setSavedPosts(buffer.filter(Boolean));
+
+            const promises = [];
+            for (let i = 0; i < tail.length; i += 10) {
+                const group = tail.slice(i, i + 10);
+                const startIndex = 10 + i;
+                promises.push(
+                    readDocsByIds('posts', group).then((docs) => {
+                        docs.forEach((doc, j) => { const id = group[j]; if (doc && !doc.pid) doc.pid = id; buffer[startIndex + j] = doc; });
+                        setSavedPosts(buffer.filter(Boolean));
+                    })
+                );
+            }
+            await Promise.all(promises);
+        } catch (e) {
+            // keep existing savedPosts on failure
+        }
+    }
+
     function uploadPost() {
         navigation.navigate("SelectPhotos", {
             userData: userData,
@@ -149,6 +186,7 @@ export default function Profile({ navigation }) {
                 selectedPanel={selectedPanel}
                 setSelectedPanel={setSelectedPanel}
                 posts={posts}
+                savedPosts={savedPosts}
                 completedWorkouts={global.userData.completedWorkouts}
                 navigation={navigation}
                 onOpenWorkout={openWorkoutViewer}

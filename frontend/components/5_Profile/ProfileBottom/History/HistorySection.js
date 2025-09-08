@@ -23,18 +23,23 @@ const HistorySection = ({ isVisible, isBottomSheetExpanded, completedWorkouts, o
     );
 
     return (
-        <FlatList
-            data={completedWorkouts}
-            keyExtractor={(item, index) => index.toString()}
-            renderItem={renderWorkout}
-            contentContainerStyle={[styles.scrollable_ctnr, !isVisible && styles.hidden]}
-            ListFooterComponent={<View style={{ height: isBottomSheetExpanded ? 100 : 400 }} />}
-            initialNumToRender={3}
-        />
+        <View style={[styles.wrap, !isVisible && styles.hidden]}>
+            <FlatList
+                data={completedWorkouts}
+                keyExtractor={(item, index) => index.toString()}
+                renderItem={renderWorkout}
+                contentContainerStyle={styles.scrollable_ctnr}
+                ListFooterComponent={<View style={{ height: isBottomSheetExpanded ? 100 : 400 }} />}
+                initialNumToRender={3}
+            />
+        </View>
     );
 };
 
 const styles = StyleSheet.create({
+    wrap: {
+        flex: 1,
+    },
     scrollable_ctnr: {
         marginTop: 5,
         flexGrow: 1,
