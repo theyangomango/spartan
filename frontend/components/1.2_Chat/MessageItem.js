@@ -177,7 +177,9 @@ export default function MessageItem({
     const rowGap = grouped ? 1 : 12;
 
     /** NEW: add more headroom above any message that has reactions (bigger if not grouped) */
-    const reactionHeadroom = hasReactions ? (grouped ? 14 : 26) : 0;
+    // Ensure there's enough vertical space above the bubble for the pill
+    // top offset is -18 with height 28 => needs ~18px clearance; add extra for shadows
+    const reactionHeadroom = hasReactions ? (grouped ? 22 : 28) : 0;
 
     // Resolve sender avatar for group chats
     const senderPfp =
@@ -195,7 +197,6 @@ export default function MessageItem({
             style={[
                 styles.wrap,
                 { alignSelf: isSelf ? "flex-end" : "flex-start", maxWidth: BUBBLE_MAX_W },
-                reactionHeadroom > 0 && { marginTop: reactionHeadroom },
             ]}
         >
                 {!!reply && (
@@ -219,7 +220,36 @@ export default function MessageItem({
                     </View>
                 )}
 
-                <Pressable onLongPress={openActionsSheet} delayLongPress={250}>
+                <Pressable
+                    onLongPress={openActionsSheet}
+                    delayLongPress={250}
+                    style={reactionHeadroom > 0 ? { paddingTop: reactionHeadroom, overflow: 'visible' } : { overflow: 'visible' }}
+                >
+                    {/* Place the reaction badge OUTSIDE the bubble to avoid clipping by rounded containers */}
+                    {hasReactions && (
+                        <Animated.View
+                            pointerEvents="none"
+                            style={[
+                                styles.reactionInline,
+                                isSelf ? styles.reactionLeft : styles.reactionRight,
+                                { top: Math.max(0, reactionHeadroom - 18) },
+                            ]}
+                            layout={Layout.springify().damping(18).stiffness(260)}
+                        >
+                            {entries.map(([emoji, arr], i) => (
+                                <Animated.Text
+                                    key={`${emoji}-${arr.length}`}
+                                    entering={ZoomIn.springify().damping(12).stiffness(320)}
+                                    exiting={ZoomOut.duration(120)}
+                                    style={[styles.reactionEmoji, i > 0 && { marginLeft: 4 }]}
+                                >
+                                    {emoji}
+                                    {arr.length > 1 ? ` ${arr.length}` : ""}
+                                </Animated.Text>
+                            ))}
+                        </Animated.View>
+                    )}
+
                     {mediaOnly ? (
                         <Animated.View style={[styles.mediaOnly, shift]}>
                             <View style={[styles.mediaWrap, { marginTop: 0 }]}>
@@ -227,26 +257,6 @@ export default function MessageItem({
                                     <MediaTile key={idx} m={m} />
                                 ))}
                             </View>
-
-                            {hasReactions && (
-                                <Animated.View
-                                    pointerEvents="none"
-                                    style={[styles.reactionInline, !isSelf && styles.reactionInlineRight]}
-                                    layout={Layout.springify().damping(18).stiffness(260)}
-                                >
-                                    {entries.map(([emoji, arr], i) => (
-                                        <Animated.Text
-                                            key={`${emoji}-${arr.length}`}
-                                            entering={ZoomIn.springify().damping(12).stiffness(320)}
-                                            exiting={ZoomOut.duration(120)}
-                                            style={[styles.reactionEmoji, i > 0 && { marginLeft: 4 }]}
-                                        >
-                                            {emoji}
-                                            {arr.length > 1 ? ` ${arr.length}` : ""}
-                                        </Animated.Text>
-                                    ))}
-                                </Animated.View>
-                            )}
                         </Animated.View>
                     ) : (
                         <Animated.View
@@ -269,26 +279,6 @@ export default function MessageItem({
                                         <MediaTile key={idx} m={m} />
                                     ))}
                                 </View>
-                            )}
-
-                            {hasReactions && (
-                                <Animated.View
-                                    pointerEvents="none"
-                                    style={[styles.reactionInline, !isSelf && styles.reactionInlineRight]}
-                                    layout={Layout.springify().damping(18).stiffness(260)}
-                                >
-                                    {entries.map(([emoji, arr], i) => (
-                                        <Animated.Text
-                                            key={`${emoji}-${arr.length}`}
-                                            entering={ZoomIn.springify().damping(12).stiffness(320)}
-                                            exiting={ZoomOut.duration(120)}
-                                            style={[styles.reactionEmoji, i > 0 && { marginLeft: 4 }]}
-                                        >
-                                            {emoji}
-                                            {arr.length > 1 ? ` ${arr.length}` : ""}
-                                        </Animated.Text>
-                                    ))}
-                                </Animated.View>
                             )}
                         </Animated.View>
                     )}
@@ -337,14 +327,14 @@ export default function MessageItem({
 }
 
 const styles = StyleSheet.create({
-    row: { width: "100%", paddingHorizontal: 4, marginBottom: 6, position: 'relative' },
+    row: { width: "100%", paddingHorizontal: 4, marginBottom: 6, position: 'relative', overflow: 'visible' },
     rowSelf: { alignItems: "flex-end" },
     rowOther: { alignItems: "flex-start" },
     hRow: { flexDirection: "row", alignItems: "center" },
     avatarSlot: { width: 30, marginRight: 8, alignItems: 'flex-start' },
     avatar: { width: 26, height: 26, borderRadius: 13, backgroundColor: '#E5E7EB' },
     avatarFallback: { backgroundColor: '#E6EBF2' },
-    wrap: { position: "relative" },
+    wrap: { position: "relative", overflow: 'visible' },
 
     bubble: { borderRadius: 18, paddingHorizontal: 12, paddingVertical: 8, position: "relative" },
     bubbleSelf: {
@@ -398,7 +388,6 @@ const styles = StyleSheet.create({
     // reactions badge
     reactionInline: {
         position: "absolute",
-        left: -12,
         top: -18,
         flexDirection: "row",
         alignItems: "center",
@@ -415,11 +404,10 @@ const styles = StyleSheet.create({
         shadowRadius: 8,
         shadowOffset: { width: 0, height: 3 },
         elevation: 2,
+        zIndex: 5,
     },
-    reactionInlineRight: {
-        left: undefined,
-        right: -12,
-    },
+    reactionLeft: { left: -12 },
+    reactionRight: { right: -12 },
     reactionEmoji: {
         fontSize: 12.5,
         color: "#0F172A",

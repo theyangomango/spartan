@@ -349,6 +349,15 @@ export default function Chat({ navigation, route }) {
         );
     };
 
+    // Ensure reaction badges that sit slightly outside the bubble are not clipped by the cell
+    const Cell = useMemo(() => {
+        const C = React.forwardRef((props, ref) => (
+            <View ref={ref} {...props} style={[props.style, { overflow: 'visible' }]} />
+        ));
+        C.displayName = 'CellRenderer';
+        return C;
+    }, []);
+
     return (
         <KeyboardAvoidingView
             style={styles.flex}
@@ -369,6 +378,8 @@ export default function Chat({ navigation, route }) {
                         <FlatList
                             ref={flatRef}
                             inverted
+                            CellRendererComponent={Cell}
+                            removeClippedSubviews={false}
                             data={withSeparators}
                             keyExtractor={(it, i) =>
                                 it.type === "date"
