@@ -14,7 +14,7 @@ export default function ViewProfileHeader({ handle, goBack, toMessages }) {
         <View style={styles.main_ctnr}>
             <View style={styles.sideLeft}>
                 <RNBounceable onPress={goBack} hitSlop={10}>
-                    <Feather name="chevron-left" size={scaleSize(26)} color={'#222'} />
+                    <Feather name="chevron-left" size={scaleSize(22.5)} color={'#222'} />
                 </RNBounceable>
             </View>
 
@@ -25,7 +25,7 @@ export default function ViewProfileHeader({ handle, goBack, toMessages }) {
             <View style={styles.sideRight}>
                 <RNBounceable onPress={toMessages} hitSlop={10}>
                     <View style={styles.message_icon_btn}>
-                        <Feather name="send" size={scaleSize(18)} color={'#3CA5FF'} />
+                        <Feather name="send" size={scaleSize(15)} color={'#3CA5FF'} />
                     </View>
                 </RNBounceable>
             </View>
@@ -38,7 +38,7 @@ const styles = StyleSheet.create({
         alignItems: 'center',
         flexDirection: 'row',
         paddingHorizontal: scaleSize(22),
-        paddingBottom: scaleSize(15),
+        paddingBottom: scaleSize(8),
         paddingTop: scaleSize(6),
     },
     center: {
@@ -65,9 +65,9 @@ const styles = StyleSheet.create({
         justifyContent: 'center',
     },
     message_icon_btn: {
-        width: scaleSize(36),
-        height: scaleSize(36),
-        borderRadius: scaleSize(18),
+        width: scaleSize(29),
+        height: scaleSize(29),
+        borderRadius: scaleSize(28),
         backgroundColor: '#E8F4FF',
         borderWidth: scaleSize(1),
         borderColor: 'rgba(60,165,255,0.35)',

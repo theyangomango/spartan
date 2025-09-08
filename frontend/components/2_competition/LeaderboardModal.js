@@ -225,7 +225,7 @@ const styles = StyleSheet.create({
         backgroundColor: "#E8F0FF",
         borderRadius: 999,
     },
-    metricText: { fontFamily: "Outfit_600SemiBold", fontSize: 14, color: "#2A65D9" },
+    metricText: { fontFamily: "Outfit_600SemiBold", fontSize: 14, color: "#4d91f7ff" },
 
     // tribe banner — modern warm “gold” card (no border)
     bannerCard: {

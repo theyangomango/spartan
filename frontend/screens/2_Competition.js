@@ -145,6 +145,10 @@ export default function Competition({ navigation }) {
     const [userList, setUserList] = useState(persisted.userList ?? LAST_USERLIST);
     const [comparedExercise, setComparedExercise] = useState("Bench Press (Barbell)");
     const [scope, setScope] = useState(persisted.scope ?? LAST_SCOPE);
+    // Backward compatibility: migrate legacy scope label
+    useEffect(() => {
+        if (persisted?.scope === "All Followers") setScope("Following");
+    }, []);
 
     // flags to gate recompute
     const [usersLoaded, setUsersLoaded] = useState(false);
@@ -266,9 +270,9 @@ export default function Competition({ navigation }) {
         }
 
         // fallback scopes
-        if (scope === "All Followers") {
-            const followersSet = new Set((global.userData?.following || []).map((u) => u.uid));
-            const base = all.filter((usr) => usr?.uid === global.userData?.uid || followersSet.has(usr?.uid));
+        if (scope === "Following") {
+            const followingSet = new Set((global.userData?.following || []).map((u) => u.uid));
+            const base = all.filter((usr) => usr?.uid === global.userData?.uid || followingSet.has(usr?.uid));
             setUserList(rankUsers(base, comparedExercise, comparedMetric));
         } else {
             setUserList(rankUsers(all, comparedExercise, comparedMetric)); // Global
@@ -446,7 +450,7 @@ export default function Competition({ navigation }) {
         if (activeCompIndex >= list.length) setActiveCompIndex(0);
     };
 
-    // Persist the user's last-viewed comparison for MiniPodium preview (supports Global, Followers, Tribe)
+    // Persist the user's last-viewed comparison for MiniPodium preview (supports Global, Following, Tribe)
     const lastViewRef = useRef("");
     useEffect(() => {
         const uid = global?.userData?.uid;
@@ -462,7 +466,7 @@ export default function Competition({ navigation }) {
             };
         } else {
             payload = {
-                type: scope === "All Followers" ? "followers" : "global",
+                type: scope === "Following" ? "following" : "global",
                 exercise: comparedExercise,
                 metric: comparedMetric || "1RM",
             };
@@ -478,7 +482,7 @@ export default function Competition({ navigation }) {
 
     const scopeLabel = useMemo(() => {
         if (selectedTribeId) return currentTribe?.name || "Tribe";
-        return scope === "All Followers" ? "Followers" : "Global";
+        return scope === "Following" ? "Following" : "Global";
     }, [selectedTribeId, currentTribe, scope]);
 
     const podiumData = useMemo(() => {
@@ -603,9 +607,9 @@ export default function Competition({ navigation }) {
                     setScope("Global");
                     setTribeMenuVisible(false);
                 }}
-                onSelectFollowers={() => {
+                onSelectFollowing={() => {
                     setSelectedTribeId(null);
-                    setScope("All Followers");
+                    setScope("Following");
                     setTribeMenuVisible(false);
                 }}
                 onSelectTribe={(id) => {

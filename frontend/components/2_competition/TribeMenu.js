@@ -8,10 +8,10 @@ const TribeMenu = ({
     visible,
     tribes,
     selectedTribeId,
-    scope,                // "Global" | "All Followers"
+    scope,                // "Global" | "Following"
     onClose,
     onSelectGlobal,
-    onSelectFollowers,    // NEW
+    onSelectFollowing,    // NEW (renamed from onSelectFollowers)
     onSelectTribe,
     onCreatePress,
     onJoinPress,
@@ -45,11 +45,11 @@ const TribeMenu = ({
                         )}
                     </RNBounceable>
 
-                    {/* Followers (under Global) */}
-                    <RNBounceable style={styles.menuItem} onPress={onSelectFollowers}>
+                    {/* Following (under Global) */}
+                    <RNBounceable style={styles.menuItem} onPress={onSelectFollowing}>
                         <Ionicons name="people-outline" size={18} color="#333" />
                         <Text style={styles.menuItemText}>Following</Text>
-                        {!selectedTribeId && scope === "All Followers" && (
+                        {!selectedTribeId && scope === "Following" && (
                             <Ionicons name="checkmark" size={16} color="#2D9EFF" style={{ marginLeft: "auto" }} />
                         )}
                     </RNBounceable>

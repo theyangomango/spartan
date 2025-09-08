@@ -59,6 +59,8 @@ export default function usePodiumPreview(enabled = true) {
 
         if (lastView && typeof lastView === "object") {
           scope = lastView.type || scope;
+          // Backward compatibility: migrate old 'followers' type to 'following'
+          if (scope === "followers") scope = "following";
           if (scope === "tribe") {
             tribeId = lastView.tribeId || null;
             const cmp = lastView.comparison || {};
@@ -82,7 +84,7 @@ export default function usePodiumPreview(enabled = true) {
 
         // Filter user set by scope
         let pool = allUsers;
-        if (scope === "followers") {
+        if (scope === "following") {
           const me = String(global?.userData?.uid || "");
           const following = Array.isArray(global?.userData?.following) ? global.userData.following : [];
           const followSet = new Set([me, ...following.map((f) => String(f?.uid || f))]);
@@ -100,7 +102,7 @@ export default function usePodiumPreview(enabled = true) {
         const nextTop = top3For(pool, exercise, metric, normalize);
         if (!cancelled) setTop3(nextTop);
 
-        const scopeLabel = scope === "followers" ? "Followers" : scope === "tribe" ? (tribeName || "Tribe") : null;
+        const scopeLabel = scope === "following" ? "Following" : scope === "tribe" ? (tribeName || "Tribe") : null;
         const metricLabel = metric === '1RM' ? '1RM (Adj)' : metric;
         const nextLabel = scopeLabel ? `${scopeLabel} • ${exercise} • ${metricLabel}` : `${exercise} • ${metricLabel}`;
         if (!cancelled) setLabel(nextLabel);
