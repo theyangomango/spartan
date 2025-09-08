@@ -340,7 +340,7 @@ const styles = StyleSheet.create({
     row: { width: "100%", paddingHorizontal: 4, marginBottom: 6, position: 'relative' },
     rowSelf: { alignItems: "flex-end" },
     rowOther: { alignItems: "flex-start" },
-    hRow: { flexDirection: "row", alignItems: "flex-start" },
+    hRow: { flexDirection: "row", alignItems: "center" },
     avatarSlot: { width: 30, marginRight: 8, alignItems: 'flex-start' },
     avatar: { width: 26, height: 26, borderRadius: 13, backgroundColor: '#E5E7EB' },
     avatarFallback: { backgroundColor: '#E6EBF2' },
