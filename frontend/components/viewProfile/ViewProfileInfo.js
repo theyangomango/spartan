@@ -40,7 +40,7 @@ export default function ViewProfileInfo({ userData }) {
                 <View style={styles.name_and_score_ctnr}>
                     <Text style={styles.name_text}>{userData && userData.name}</Text>
                     <View style={styles.border_line}></View>
-                    <Text style={styles.score_text}>{userData && userData.statsHexagon.overall} overall</Text>
+                    <Text style={styles.score_text}>{(userData?.statsHexagon?.overall ?? 0)} overall</Text>
                 </View>
                 <View style={styles.bio_ctnr}>
                     <Text style={styles.bio_text}>{userData && (userData.bio ? userData.bio : 'No bio yet...')}</Text>

@@ -31,6 +31,7 @@ export async function getUserPosts() {
 // 3. 🔹 Get user's message threads
 export async function getUserMessages(userData) {
     const db_messages = [];
+    if (!userData || typeof userData !== 'object') return db_messages;
 
     // Prefetch latest message for each thread (desc, limit 1)
     const fetchLatest = async (cid) => {
@@ -53,7 +54,7 @@ export async function getUserMessages(userData) {
             const content = await fetchLatest(msg.mid);
             db_messages.push({ ...messageData, content });
         }
-    } else {
+    } else if (userData?.uid) {
         // Fallback: discover chats by membership (array-contains)
         try {
             const messagesRef = collection(db, 'messages');

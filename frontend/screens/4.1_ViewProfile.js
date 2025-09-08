@@ -91,33 +91,40 @@ export default function ViewProfile({ navigation, route }) {
     }
 
     async function toMessages() {
-        for (msg of global.userData.messages) {
-            if (msg.otherUsers.length == 1 && msg.otherUsers[0].uid == user.uid) { // This DM
+        // Normalize to avoid undefined fields in Firestore arrayUnion
+        const normalizeRef = (u) => ({
+            uid: String(u?.uid || u?.id || ''),
+            handle: u?.handle || u?.username || '',
+            name: u?.name || u?.displayName || '',
+            pfp: u?.pfp || u?.image || u?.photoURL || '',
+        });
+
+        const list = Array.isArray(global?.userData?.messages) ? global.userData.messages : [];
+        for (const msg of list) {
+            if (Array.isArray(msg?.otherUsers) && msg.otherUsers.length === 1 && String(msg.otherUsers[0]?.uid) === String(user?.uid)) { // This DM
                 const chatData = await readDoc('messages', msg.mid);
                 navigation.navigate('Chat', { data: chatData, usersExcludingSelf: msg.otherUsers });
                 return;
             }
         }
 
-        const selfUser = {
-            uid: global.userData.uid,
-            handle: global.userData.handle,
-            pfp: global.userData.image,
-            name: global.userData.name
-        };
+        const selfUser = normalizeRef(global?.userData || {});
+        const otherUser = normalizeRef(profileUserData || user || {});
+        const otherUid = otherUser.uid;
+        if (!selfUser.uid || !otherUid) return;
 
         const cid = makeID();
-        arrayAppend('users', global.userData.uid, 'messages', {
+        await arrayAppend('users', selfUser.uid, 'messages', {
             mid: cid,
-            otherUsers: [user]
+            otherUsers: [otherUser]
         });
-        arrayAppend('users', profileUserData.uid, 'messages', {
+        await arrayAppend('users', otherUid, 'messages', {
             mid: cid,
             otherUsers: [selfUser]
         });
 
-        const newChat = await createChat(global.userData.uid, [user, selfUser], cid);
-        navigation.navigate('Chat', { data: newChat, usersExcludingSelf: [user] });
+        const newChat = await createChat(selfUser.uid, [otherUser, selfUser], cid);
+        navigation.navigate('Chat', { data: newChat, usersExcludingSelf: [otherUser] });
     }
 
     async function goBack() {

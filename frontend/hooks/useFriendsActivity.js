@@ -196,7 +196,7 @@ export default function useFriendsActivity(user, enabled = true) {
         } finally {
             setLoading(false);
         }
-    }, [user]);
+    }, [JSON.stringify(extractFollowingUids(user))]);
 
     useEffect(() => {
         if (!enabled) return;

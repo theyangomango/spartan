@@ -90,18 +90,20 @@ const GroupModal = ({ closeGroupModal, onInvite }) => {
     };
 
     useEffect(() => {
+        const key = JSON.stringify((Array.isArray(followingUsers) ? followingUsers : []).map((u) => u?.uid || u));
         if (!searchQuery) {
             setFilteredUsers(followingUsers);
         } else {
             const q = searchQuery.toLowerCase();
             setFilteredUsers(
-                followingUsers.filter((user) =>
-                    (user.handle || "").toLowerCase().includes(q) ||
-                    (user.name || "").toLowerCase().includes(q)
+                (Array.isArray(followingUsers) ? followingUsers : []).filter((user) =>
+                    (user?.handle || "").toLowerCase().includes(q) ||
+                    (user?.name || "").toLowerCase().includes(q)
                 )
             );
         }
-    }, [searchQuery, followingUsers]);
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [searchQuery, JSON.stringify((Array.isArray(followingUsers) ? followingUsers : []).map((u) => u?.uid || u))]);
 
     // Load friends' recent activity and live status for time grouping
     const { items: friendActivityItems } = useFriendsActivity(global?.userData);

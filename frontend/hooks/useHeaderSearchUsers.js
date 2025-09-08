@@ -52,9 +52,11 @@ export default function useHeaderSearchUsers({ following = [], enablePrefetch = 
   useEffect(() => {
     const run = async () => {
       const list = Array.isArray(following) ? following : [];
-      if (!list.length) return;
-      const existing = new Set((allUsersRef.current || []).map((u) => u.uid));
-      const missing = list.filter((id) => id && !existing.has(String(id)));
+      // Normalize to array of uid strings
+      const uids = list.map((x) => (typeof x === 'string' ? x : x?.uid)).filter(Boolean);
+      if (!uids.length) return;
+      const existing = new Set((allUsersRef.current || []).map((u) => String(u.uid)));
+      const missing = uids.filter((id) => id && !existing.has(String(id)));
       if (missing.length === 0) return;
       const usersCol = collection(db, "users");
       const chunks = [];
@@ -100,4 +102,3 @@ export default function useHeaderSearchUsers({ following = [], enablePrefetch = 
 
   return { allUsersRef, mergeUsersIntoRef };
 }
-

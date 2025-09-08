@@ -17,7 +17,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useFonts } from 'expo-font';
 import { customFonts } from './fonts';
 import { db } from './firebase.config';
-import { doc, onSnapshot } from 'firebase/firestore';
+import { doc, onSnapshot, collection, query, where } from 'firebase/firestore';
 
 /* Screens */
 import SignUp from './frontend/screens/0.0_SignUp';
@@ -108,6 +108,11 @@ export default function App() {
     const [userReady, setUserReady] = useState(false);
     const uidRef = useRef(null);
     const unsubRef = useRef(null);
+    const notifUnsubRef = useRef(null);
+    const prevUnreadNotifRef = useRef(null);
+    const prevUnreadMsgRef = useRef(null);
+    const lastBuzzAtRef = useRef(0);
+    const lastNotificationBuzzAtRef = useRef(0); // dedupe foreground push vs unread snapshot
 
     useEffect(() => {
         // Expose a minimal auth setter so login/signup can notify App immediately
@@ -201,6 +206,23 @@ export default function App() {
                     }
                 }
             } catch (e) { console.log('Push registration error', e?.message || e); }
+            // Vibrate on unread messages count increase (skip when in Chat)
+            try {
+                const data = snap.data() || {};
+                const nextCount = Number(data?.unreadMessagesCount || 0);
+                if (prevUnreadMsgRef.current === null || prevUnreadMsgRef.current === undefined) {
+                    prevUnreadMsgRef.current = nextCount;
+                } else if (Number.isFinite(nextCount) && nextCount > prevUnreadMsgRef.current) {
+                    const route = navigationRef?.getCurrentRoute?.();
+                    if (!route || route?.name !== 'Chat') {
+                        const soundsOn = (global?.userData?.settings?.sounds !== false);
+                        if (soundsOn) buzzOnce();
+                    }
+                    prevUnreadMsgRef.current = nextCount;
+                } else {
+                    prevUnreadMsgRef.current = nextCount;
+                }
+            } catch {}
         }, (err) => {
             console.warn('User document subscription error:', err?.message || err);
             // proceed but keep ready false to avoid crashing screens
@@ -226,20 +248,40 @@ export default function App() {
         return () => { try { global.triggerRestReminder = null; } catch {} };
     }, []);
 
-    // Also surface a modal whenever a local "Rest complete" notification is received while app is foreground
+    // Unified buzz helper with simple throttle
+    const buzzOnce = () => {
+        const now = Date.now();
+        if (now - lastBuzzAtRef.current < 600) return; // throttle to avoid double buzz
+        lastBuzzAtRef.current = now;
+        try { Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success); } catch {}
+        try { Vibration.vibrate(180); } catch {}
+    };
+
+    // Also surface a modal whenever a notification is received while app is foreground
     useEffect(() => {
         try {
             const Notifications = notificationsRef.current;
             if (!Notifications) return;
             notifListenerRef.current = Notifications.addNotificationReceivedListener((evt) => {
                 try {
-                    const title = evt?.request?.content?.title || '';
-                    if (String(title).toLowerCase().includes('rest complete')) {
-                        const soundsOn = (global?.userData?.settings?.sounds !== false);
-                        if (soundsOn) {
-                            try { Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success); } catch {}
-                            try { Vibration.vibrate(180); } catch {}
+                    // If it's a chat push and user is in Chat screen, skip buzz (Chat screen handles haptics)
+                    try {
+                        const route = navigationRef?.getCurrentRoute?.();
+                        const dtype = evt?.request?.content?.data?.type;
+                        if (dtype === 'chat' && route?.name === 'Chat') {
+                            // Still handle rest reminder modal detection below
+                        } else {
+                            const now = Date.now();
+                            // Dedupe with unread snapshot buzzes
+                            if (now - lastNotificationBuzzAtRef.current > 4000) {
+                                const soundsOn = (global?.userData?.settings?.sounds !== false);
+                                if (soundsOn) buzzOnce();
+                                lastNotificationBuzzAtRef.current = now;
+                            }
                         }
+                    } catch {}
+                    const title = String(evt?.request?.content?.title || '').toLowerCase();
+                    if (title.includes('rest complete')) {
                         setRestReminderKey((k) => k + 1);
                         setRestReminderVisible(true);
                     }
@@ -253,6 +295,36 @@ export default function App() {
             notifListenerRef.current = null;
         };
     }, []);
+
+    // Global unread notifications watcher: vibrate on increase
+    useEffect(() => {
+        const uid = global?.userData?.uid;
+        if (!uid) return;
+        try {
+            const notificationsRefFs = collection(db, 'users', uid, 'notifications');
+            const q = query(notificationsRefFs, where('read', '==', false));
+            notifUnsubRef.current = onSnapshot(q, (snap) => {
+                try {
+                    const count = snap.size;
+                    if (prevUnreadNotifRef.current === null || prevUnreadNotifRef.current === undefined) {
+                        prevUnreadNotifRef.current = count;
+                        return;
+                    }
+                    if (Number.isFinite(count) && count > prevUnreadNotifRef.current) {
+                        const now = Date.now();
+                        // If a foreground push just buzzed, skip this one (dedupe)
+                        if (now - lastNotificationBuzzAtRef.current > 4000) {
+                            const soundsOn = (global?.userData?.settings?.sounds !== false);
+                            if (soundsOn) buzzOnce();
+                            lastNotificationBuzzAtRef.current = now;
+                        }
+                    }
+                    prevUnreadNotifRef.current = count;
+                } catch {}
+            });
+        } catch {}
+        return () => { if (notifUnsubRef.current) { try { notifUnsubRef.current(); } catch {} notifUnsubRef.current = null; } };
+    }, [global?.userData?.uid]);
 
     if (!fontsLoaded) return null;
 

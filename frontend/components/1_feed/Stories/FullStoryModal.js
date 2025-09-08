@@ -95,17 +95,18 @@ export default function FullStoryModal({
         }
     };
 
-    const handleSendReply = () => {
+    const handleSendReply = async () => {
         const trimmed = replyText.trim();
         if (!trimmed) return;
-        const target = thisUser.messages.find(
+        const list = Array.isArray(thisUser?.messages) ? thisUser.messages : [];
+        const target = list.find(
             (m) =>
-                Array.isArray(m.otherUsers) &&
+                Array.isArray(m?.otherUsers) &&
                 m.otherUsers.length === 1 &&
-                m.otherUsers[0].uid === story.uid
+                String(m.otherUsers[0]?.uid) === String(story?.uid)
         );
         if (target) {
-            sendMessage(thisUser.uid, thisUser.handle, target.mid, `Replied to your story: ${trimmed}`);
+            await sendMessage(thisUser.uid, thisUser.handle, target.mid, `Replied to your story: ${trimmed}`);
         }
         setReplyText("");
         Keyboard.dismiss();

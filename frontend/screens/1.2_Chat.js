@@ -10,6 +10,7 @@ import {
     ActivityIndicator,
     Dimensions,
     Text,
+    Vibration,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { doc, onSnapshot } from "firebase/firestore";
@@ -26,6 +27,7 @@ import sendMessageV2 from "../../backend/messages/sendMessageV2";
 import toggleReactionV2 from "../../backend/messages/toggleReactionV2";
 import uploadMediaAssets from "../../backend/storage/uploadMediaAssets";
 import * as ImagePicker from "expo-image-picker";
+import * as Haptics from "expo-haptics";
 
 import { Gesture, GestureDetector } from "react-native-gesture-handler";
 import Animated, { useSharedValue, withTiming } from "react-native-reanimated";
@@ -55,6 +57,7 @@ export default function Chat({ navigation, route }) {
     // Track whether user is near the latest message (bottom of inverted list)
     const isNearBottomRef = useRef(true);
     const latestSeenIdRef = useRef(null);
+    const firstMessageSeenRef = useRef(false);
 
     // keep outer chat doc up-to-date
     useEffect(() => {
@@ -100,6 +103,7 @@ export default function Chat({ navigation, route }) {
         });
         // Ensure view stays at latest in case list grew
         scrollToLatest();
+
     };
 
     const openPicker = async () => {
@@ -135,6 +139,7 @@ export default function Chat({ navigation, route }) {
         } finally {
             setUploading(false);
         }
+
     };
 
     // Reaction/Reply sheet
@@ -293,6 +298,19 @@ export default function Chat({ navigation, route }) {
         const senderUid =
             newest?.sender?.uid ?? newest?.senderUid ?? newest?.fromUid ?? newest?.uid ??
             newest?.userId ?? newest?.authorId ?? newest?.from?.uid ?? newest?.author?.uid ?? null;
+        // Skip haptic on the very first render
+        if (!firstMessageSeenRef.current) {
+            firstMessageSeenRef.current = true;
+        } else if (senderUid && senderUid !== currentUid) {
+            // Haptic for received message (if enabled)
+            try {
+                const soundsOn = (global?.userData?.settings?.sounds !== false);
+                if (soundsOn) {
+                    try { Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success); } catch {}
+                    try { Vibration.vibrate(120); } catch {}
+                }
+            } catch {}
+        }
         if (senderUid && senderUid !== currentUid && isNearBottomRef.current) {
             // Scroll only if user hasn't scrolled away from bottom
             requestAnimationFrame(() => flatRef.current?.scrollToOffset?.({ offset: 0, animated: true }));

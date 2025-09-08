@@ -6,7 +6,8 @@ const scale = screenHeight / 844; // Scaling factor based on iPhone 13 height
 
 const scaledSize = (size) => Math.round(size * scale);
 
-function formatNumber(number) {
+function formatNumber(value) {
+    const number = Number.isFinite(Number(value)) ? Number(value) : 0;
     if (number < 1000) {
         return number.toString();
     } else if (number < 1000000) {
@@ -29,13 +30,13 @@ export default function WorkoutStats({ userData }) {
             </View>
             <View style={[styles.workout_stat, styles.total_volume_stat_ctnr]}>
                 <Text style={[styles.workout_stat_number, styles.total_volume_stat_number]}>
-                    {userData && formatNumber(userData.statsTotalVolume)}
+                    {formatNumber(userData?.statsTotalVolume)}
                 </Text>
                 <Text style={styles.workout_stat_text}>Lbs Lifted</Text>
             </View>
             <View style={[styles.workout_stat, styles.gym_time_stat_ctnr]}>
                 <Text style={[styles.workout_stat_number, styles.gym_time_stat_number]}>
-                    {userData && userData.statsTotalHours.toFixed(1)}
+                    {(Number(userData?.statsTotalHours) || 0).toFixed(1)}
                 </Text>
                 <Text style={styles.workout_stat_text}>Hours in Gym</Text>
             </View>

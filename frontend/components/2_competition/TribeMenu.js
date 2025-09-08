@@ -48,7 +48,7 @@ const TribeMenu = ({
                     {/* Followers (under Global) */}
                     <RNBounceable style={styles.menuItem} onPress={onSelectFollowers}>
                         <Ionicons name="people-outline" size={18} color="#333" />
-                        <Text style={styles.menuItemText}>Followers</Text>
+                        <Text style={styles.menuItemText}>Following</Text>
                         {!selectedTribeId && scope === "All Followers" && (
                             <Ionicons name="checkmark" size={16} color="#2D9EFF" style={{ marginLeft: "auto" }} />
                         )}

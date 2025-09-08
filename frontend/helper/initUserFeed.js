@@ -17,19 +17,27 @@ export function registerFeedSetters({ setMessages, setFooterKey }) {
 export async function initUserFeed(UID) {
     try {
         const userDoc = await readDoc("users", UID);
-        userDataRef.current = userDoc;
-        global.userData = userDoc;
+        // Sanitize to ensure required shapes exist during first paint
+        const saneUser = {
+            uid: UID,
+            ...(userDoc || {}),
+            messages: Array.isArray(userDoc?.messages) ? userDoc.messages : [],
+            following: Array.isArray(userDoc?.following) ? userDoc.following : [],
+            feedStories: Array.isArray(userDoc?.feedStories) ? userDoc.feedStories : [],
+        };
+        userDataRef.current = saneUser;
+        try { global.userData = { ...(global.userData || {}), ...saneUser }; } catch {}
 
         // ✅ 1. Prioritize stories (blocking)
         // await initUserStories(userDoc);
 
         // ✅ 2. Load the rest in parallel (no posts here!)
         await Promise.all([
-            initUserMessages(userDoc),
-            initExploreFeedImages(userDoc)
+            initUserMessages(saneUser),
+            initExploreFeedImages(saneUser)
         ]);
 
-        initWorkoutState(userDoc);
+        initWorkoutState(saneUser);
 
         console.log("✅ Feed data and images initialized (excluding posts).");
     } catch (error) {

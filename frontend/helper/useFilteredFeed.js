@@ -5,7 +5,6 @@ import { db } from '../../firebase.config';
 export default function useFilteredFeed(followingUsers, max = 50) {
     const [feed, setFeed] = useState([]);
 
-
     useEffect(() => {
         if (!Array.isArray(followingUsers) || followingUsers.length === 0) {
             setFeed([]);
@@ -19,14 +18,15 @@ export default function useFilteredFeed(followingUsers, max = 50) {
             const filtered = snapshot.docs
                 .map(doc => ({ ...doc.data() }))
                 .filter(p => followingUsers.some(u => {
-                    return u.uid == p.uid;
-                }) || global.userData.uid == p.uid);
+                    return (u?.uid || u) == p.uid;
+                }) || global.userData?.uid == p.uid);
 
             setFeed(filtered);
         });
 
         return () => unsub();
-    }, [followingUsers.join(','), max]); // join to avoid infinite re-renders on array identity change
+    // Use a stable string key derived from following to avoid crashes when undefined
+    }, [JSON.stringify(Array.isArray(followingUsers) ? followingUsers.map(u => (u?.uid || u)) : []), max]);
 
     return feed;
 }

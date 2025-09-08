@@ -7,6 +7,7 @@ import readDoc from '../../backend/helper/firebase/readDoc';
 import makeID from '../../backend/helper/makeID';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import arrayAppend from '../../backend/helper/firebase/arrayAppend';
+import incrementDocValue from '../../backend/helper/firebase/incrementDocValue';
 
 /* --- NEW: default PFP upload on sign-up --- */
 import uploadImage from '../../backend/storage/uploadImage';
@@ -93,6 +94,14 @@ const NewUserCreation = ({ navigation }) => {
                 defaultPfpUrl = await uploadImage(defaultPfpLocalUri, `pfps/${newID}.png`);
             }
 
+            // Pre-follow the official Spartan account
+            const SPARTAN_ACCOUNT = {
+                handle: 'spartan',
+                name: 'Spartan',
+                pfp: 'https://firebasestorage.googleapis.com/v0/b/spartan-8a55f.appspot.com/o/pfps%2F24247ffa-0706-4b01-aff2-eec0dd592f56.png?alt=media&token=d412d55b-a488-4db2-a888-e171f2d0aa5e',
+                uid: '24247ffa-0706-4b01-aff2-eec0dd592f56'
+            };
+
             const newUser = {
                 bio: "",
                 completedWorkouts: [],
@@ -110,8 +119,8 @@ const NewUserCreation = ({ navigation }) => {
                 }],
                 followerCount: 0,
                 followers: [],
-                following: [],
-                followingCount: 0,
+                following: [SPARTAN_ACCOUNT],
+                followingCount: 1,
                 handle: trimmedUsername,
                 pfp: defaultPfpUrl || '',
                 image: defaultPfpUrl || '',
@@ -177,6 +186,15 @@ const NewUserCreation = ({ navigation }) => {
             // Write to Firestore (await BOTH)
             await arrayAppend('global', 'users', 'all', newUser);
             await createDoc('users', newID, newUser);
+
+            // Also add this new user to Spartan's followers list + bump count
+            try {
+                const followerRef = { uid: newID, handle: trimmedUsername, name: trimmedName, pfp: defaultPfpUrl || '' };
+                await arrayAppend('users', SPARTAN_ACCOUNT.uid, 'followers', followerRef);
+                await incrementDocValue('users', SPARTAN_ACCOUNT.uid, 'followerCount', 1);
+            } catch (e) {
+                console.log('Failed to append to Spartan followers:', e?.message || e);
+            }
 
             // Jump to Workout tab without remounts
             try {

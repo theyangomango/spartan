@@ -37,7 +37,7 @@ export default function ProfileInfo({ userData, pfp }) {
                 <View style={styles.name_and_score_ctnr}>
                     <Text style={styles.name_text}>{global.userData.name}</Text>
                     <View style={styles.border_line}></View>
-                    <Text style={styles.score_text}>{userData.statsHexagon.overall} overall</Text>
+                    <Text style={styles.score_text}>{(userData?.statsHexagon?.overall ?? 0)} overall</Text>
                 </View>
                 <View style={styles.bio_ctnr}>
                     <Text style={styles.bio_text}>{(userData.bio ? userData.bio : 'No bio yet...')}</Text>

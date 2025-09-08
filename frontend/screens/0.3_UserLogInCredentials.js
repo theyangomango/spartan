@@ -16,6 +16,7 @@ function scaleSize(size) {
 const UserLogInCredentials = ({ navigation }) => {
     const [emailOrPhone, setEmailOrPhone] = useState('');
     const [password, setPassword] = useState('');
+    const [errorMsg, setErrorMsg] = useState('');
     const usersRef = useRef(null);
 
     const emailOrPhoneInputRef = useRef(null);
@@ -47,22 +48,29 @@ const UserLogInCredentials = ({ navigation }) => {
     function logIn() {
         const input = emailOrPhone.trim().toLowerCase();
         const enteredPassword = password.trim();
+        setErrorMsg('');
+
+        if (!input || !enteredPassword) {
+            setErrorMsg('Enter your username/email/phone and password.');
+            return;
+        }
 
         if (usersRef.current) {
             // Loop through the users to find a match
             const user = usersRef.current.find(user => {
-                const emailMatch = user.email?.toLowerCase() === input;
-                const phoneMatch = user.phoneNumber === input;
-                const passwordMatch = user.password === enteredPassword;
+                const emailMatch = !!user?.email && String(user.email).toLowerCase() === input;
+                const phoneMatch = !!user?.phoneNumber && String(user.phoneNumber).toLowerCase() === input;
+                const handleMatch = !!user?.handle && String(user.handle).toLowerCase() === input;
+                const passwordMatch = user?.password === enteredPassword;
 
-                return (emailMatch || phoneMatch) && passwordMatch;
+                // Allow login by handle, email, or phone, but only if the relevant
+                // property exists (guards against null email/phoneNumber).
+                return (emailMatch || phoneMatch || handleMatch) && passwordMatch;
             });
 
             if (user) {
                 // Successfully found a matching user
                 console.log('Login successful', user.uid);
-                // You can navigate to another screen or update the UI here
-                // For example:
                 AsyncStorage.setItem('uid', user.uid, () => {
                     console.log('async storage set uid');
                 });
@@ -76,9 +84,11 @@ const UserLogInCredentials = ({ navigation }) => {
             } else {
                 // No matching user found
                 console.log('Login failed: Invalid credentials');
+                setErrorMsg('Invalid credentials. Please try again.');
             }
         } else {
             console.log('Login failed: No user data available');
+            setErrorMsg('Unable to load users. Check your connection.');
         }
     }
 
@@ -89,9 +99,6 @@ const UserLogInCredentials = ({ navigation }) => {
                     <RNBounceable onPress={goBack}>
                         <Feather name="chevron-left" size={scaleSize(27)} color="#888" style={styles.backIcon} />
                     </RNBounceable>
-                    <RNBounceable>
-                        <Octicons name="question" size={scaleSize(22)} color="#888" style={styles.helpIcon} />
-                    </RNBounceable>
                 </View>
 
                 <View style={styles.formWrapper}>
@@ -100,11 +107,12 @@ const UserLogInCredentials = ({ navigation }) => {
                         <TextInput
                             ref={emailOrPhoneInputRef}
                             style={styles.input}
-                            placeholder="Enter your email or phone"
+                            placeholder="Enter your username, email, or phone"
                             placeholderTextColor="#ccc"
                             value={emailOrPhone}
                             onChangeText={setEmailOrPhone}
                             keyboardType="email-address"
+                            autoCapitalize='none'
                             autoFocus={true}
                         />
 
@@ -116,10 +124,12 @@ const UserLogInCredentials = ({ navigation }) => {
                             value={password}
                             onChangeText={setPassword}
                             secureTextEntry
+                            autoCapitalize='none'
                         />
                     </View>
 
                     <View style={styles.footerContainer}>
+                        {!!errorMsg && <Text style={styles.errorText}>{errorMsg}</Text>}
                         <RNBounceable style={styles.button} onPress={logIn}>
                             <Text style={styles.auth_button_text}>Continue</Text>
                         </RNBounceable>
@@ -185,6 +195,11 @@ const styles = StyleSheet.create({
         marginTop: scaleSize(10),
         marginHorizontal: scaleSize(22),
         marginBottom: scaleSize(20),
+    },
+    errorText: {
+        color: '#B91C1C',
+        fontFamily: 'Outfit_600SemiBold',
+        marginBottom: scaleSize(10),
     },
     button: {
         backgroundColor: '#55A8FF',
