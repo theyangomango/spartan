@@ -57,11 +57,11 @@ export default function UnderMealList({
                     >
                         <View style={styles.row}>
                             <View style={styles.textCol}>
-                                <Text style={[styles.name, { color: COLORS.text }]} numberOfLines={1}>
+                                <Text style={[styles.name, { color: '#111' }]} numberOfLines={1}>
                                     {f.name}
                                 </Text>
                                 {!compact && (
-                                    <Text style={[styles.summary, { color: COLORS.subtext }]} numberOfLines={1}>
+                                    <Text style={[styles.summary, { color: '#777' }]} numberOfLines={1}>
                                         {(() => {
                                             const s = renderSummary ? renderSummary(f) : '';
                                             return showCaloriesRight ? pruneLeadingCalories(s) : s;
@@ -98,9 +98,9 @@ const styles = StyleSheet.create({
     cardCompact: { paddingVertical: 6 },
     row: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', minHeight: 28 },
     textCol: { flex: 1, justifyContent: 'center' },
-    name: { fontSize: 13, fontFamily: 'Outfit_600SemiBold', marginBottom: 2, flexShrink: 1, paddingRight: 20 },
+    name: { fontSize: 13, fontFamily: 'Nunito_700Bold', marginBottom: 2, flexShrink: 1, paddingRight: 20 },
     cals: { fontSize: 15, fontFamily: 'Outfit_700Bold' },
-    summary: { fontSize: 12, fontFamily: 'Outfit_400Regular' },
+    summary: { fontSize: 13, fontFamily: 'Nunito_600SemiBold' },
     actionsContainer: { justifyContent: 'center', alignItems: 'flex-end', marginVertical: 2 },
     deleteBtn: {
         width: 88,

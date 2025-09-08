@@ -30,7 +30,10 @@ function MealsSection({ title = 'Daily meals', mealsMeta, meals, collapsed, togg
                             renderSummary={(entry) => summarizeFood(entry.desc, entry.brand, entry.quantity ?? 1)}
                             onDelete={(entry) => onDelete(m.name, entry)}
                         />
-                        <TouchableOpacity activeOpacity={0.6} style={styles.addFoodRow} onPress={() => onAddPress?.(m)}>
+                        <TouchableOpacity activeOpacity={0.7} style={styles.addFoodRow} onPress={() => onAddPress?.(m)}>
+                            {PlusIcon ? (
+                                <PlusIcon size={16} color={COLORS.ringTint || COLORS.accent || '#2D9EFF'} />
+                            ) : null}
                             <Text style={styles.addFoodText}>Add Food</Text>
                         </TouchableOpacity>
                     </React.Fragment>
@@ -72,11 +75,14 @@ const makeStyles = (COLORS) =>
             backgroundColor: COLORS.card,
         },
         addFoodRow: {
-            paddingVertical: 12,
+            paddingVertical: 13,
             paddingHorizontal: 26,
-            backgroundColor: COLORS.card,
+            backgroundColor: COLORS.addBtnBg || '#E7F0FF',
             borderBottomWidth: StyleSheet.hairlineWidth,
             borderColor: COLORS.hairline,
+            flexDirection: 'row',
+            alignItems: 'center',
+            justifyContent: 'flex-end',
         },
         addFoodText: {
             color: COLORS.subtext || '#64748B',
@@ -85,5 +91,6 @@ const makeStyles = (COLORS) =>
             textTransform: 'uppercase',
             letterSpacing: 0.4,
             textAlign: 'right',
+            marginLeft: 8,
         },
     });

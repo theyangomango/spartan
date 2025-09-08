@@ -43,7 +43,7 @@ const makeStyles = (COLORS) =>
         row: { flexDirection: 'row', alignItems: 'center' },
         centerArea: { flex: 1 },
         title: {
-            fontSize: 14.5,
+            fontSize: 15,
             color: '#000',
             fontFamily: 'Nunito_800ExtraBold',
             letterSpacing: 0.2,
