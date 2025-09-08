@@ -2,12 +2,19 @@ import { onCall, HttpsError } from "firebase-functions/v2/https";
 import { defineSecret } from "firebase-functions/params";
 import * as logger from "firebase-functions/logger";
 import { setGlobalOptions } from "firebase-functions/v2";
+import { onDocumentCreated } from "firebase-functions/v2/firestore";
+import { initializeApp } from "firebase-admin/app";
+import { getFirestore, FieldValue } from "firebase-admin/firestore";
 
 setGlobalOptions({
   region: "us-central1",
   vpcConnector: "projects/spartan-8a55f/locations/us-central1/connectors/serverless-conn",
   vpcConnectorEgressSettings: "ALL_TRAFFIC",
 });
+
+// Initialize Admin SDK once per instance
+try { initializeApp(); } catch {}
+const adminDb = getFirestore();
 
 // Secrets must be configured via Firebase/Google Secret Manager
 const FATSECRET_KEY = defineSecret("FATSECRET_KEY");
@@ -120,3 +127,101 @@ export const fatsecretSearchFood = onCall(
   }
 );
 
+// ---------------- Chat: Push Notifications on New Messages ---------------- //
+
+function chunk(arr, size) {
+  const out = [];
+  for (let i = 0; i < arr.length; i += size) out.push(arr.slice(i, i + size));
+  return out;
+}
+
+export const onChatMessageCreated = onDocumentCreated(
+  "messages/{cid}/content/{mid}",
+  async (event) => {
+    try {
+      const snap = event.data;
+      if (!snap) return;
+      const message = snap.data();
+      const { params } = event;
+      const cid = params?.cid;
+      if (!cid || !message) return;
+
+      const senderUid =
+        message?.sender?.uid || message?.senderUid || message?.uid || null;
+      if (!senderUid) return;
+
+      // Load parent chat to find all participants
+      const chatDoc = await adminDb.doc(`messages/${cid}`).get();
+      if (!chatDoc.exists) return;
+      const chat = chatDoc.data() || {};
+      const memberUids = Array.isArray(chat?.memberUids)
+        ? chat.memberUids
+        : (Array.isArray(chat?.users) ? chat.users.map((u) => u?.uid).filter(Boolean) : []);
+      const isGroup = !!(chat?.isGroup || (memberUids?.length > 2));
+
+      const recipients = (memberUids || []).filter((uid) => uid && uid !== senderUid);
+      if (!recipients.length) return;
+
+      // Fetch recipient push tokens and preferences
+      const userDocs = await Promise.all(
+        recipients.map((uid) => adminDb.doc(`users/${uid}`).get().catch(() => null))
+      );
+      const targets = [];
+      userDocs.forEach((d, i) => {
+        try {
+          if (!d || !d.exists) return;
+          const data = d.data() || {};
+          const wantsPush = data?.settings?.push !== false;
+          const token = (data?.expoPushToken || "").trim();
+          if (wantsPush && token && token.startsWith("ExponentPushToken")) {
+            targets.push({
+              uid: recipients[i],
+              token,
+            });
+          }
+        } catch {}
+      });
+
+      // Build notification payload
+      const senderName = message?.sender?.name || message?.sender?.handle || "Someone";
+      const hasMedia = Array.isArray(message?.media) && message.media.length > 0;
+      const bodyText = (message?.text || "").trim();
+      const preview = bodyText
+        ? bodyText.slice(0, 120)
+        : (hasMedia ? "Sent a photo/video" : "Sent a message");
+      const title = isGroup ? `${senderName} in chat` : `${senderName}`;
+
+      // Send via Expo Push API in chunks
+      const messages = targets.map((t) => ({
+        to: t.token,
+        sound: "default",
+        title,
+        body: preview,
+        data: { type: "chat", cid, senderUid },
+        priority: "high",
+      }));
+
+      for (const grp of chunk(messages, 90)) {
+        try {
+          await fetch("https://exp.host/--/api/v2/push/send", {
+            method: "POST",
+            headers: { "Content-Type": "application/json", Accept: "application/json" },
+            body: JSON.stringify(grp),
+          });
+        } catch (e) {
+          logger.error("Expo push send error", e);
+        }
+      }
+
+      // Increment simple unread aggregate for recipients
+      await Promise.all(
+        recipients.map((uid) =>
+          adminDb.doc(`users/${uid}`).set({ unreadMessagesCount: FieldValue.increment(1) }, { merge: true })
+            .catch(() => {})
+        )
+      );
+    } catch (err) {
+      logger.error("onChatMessageCreated error", err);
+    }
+  }
+);

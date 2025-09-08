@@ -23,7 +23,7 @@ import Svg, { Path } from "react-native-svg";
 import { Weight } from "iconsax-react-native";
 import { getFeedHeaderStyles } from "../../helper/getFeedHeaderStyles";
 import { db } from "../../../firebase.config";
-import { collection, query, where, onSnapshot, getDocs, orderBy, limit } from "firebase/firestore";
+import { collection, query, where, onSnapshot, getDocs, orderBy, limit, doc } from "firebase/firestore";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 // Single root navigator; no need for StackActions/nested refs here
 
@@ -426,6 +426,7 @@ const FeedHeader = ({
     timerRef,       // ← must be a ref updated by parent; empty string means “no workout”
 }) => {
     const [unreadCount, setUnreadCount] = useState(0);
+    const [unreadMessages, setUnreadMessages] = useState(0);
 
     // Mirror timerRef, with a fallback to compute from workout timestamps if ref is empty.
     const [elapsed, setElapsed] = useState(""); // never default to "00:00"
@@ -453,6 +454,20 @@ const FeedHeader = ({
         const q = query(notificationsRef, where("read", "==", false));
         const unsubscribe = onSnapshot(q, (snapshot) => setUnreadCount(snapshot.size));
         return () => unsubscribe();
+    }, []);
+
+    // Messages badge: listen to aggregate count on user doc
+    useEffect(() => {
+        const uid = global?.userData?.uid;
+        if (!uid) return;
+        const userRef = doc(db, 'users', uid);
+        const unsub = onSnapshot(userRef, (snap) => {
+            try {
+                const v = Number(snap.data()?.unreadMessagesCount || 0);
+                setUnreadMessages(Number.isFinite(v) ? v : 0);
+            } catch { setUnreadMessages(0); }
+        });
+        return () => { try { unsub(); } catch {} };
     }, []);
 
     if (backButton) {
@@ -535,6 +550,11 @@ const FeedHeader = ({
                     style={styles.message_button}
                 >
                     <MaterialIcons name="alternate-email" size={dynamicStyles.iconSize + 1.5} color={"#cbd5e1"} />
+                    {unreadMessages > 0 && (
+                        <View style={styles.notificationBadge}>
+                            <Text style={styles.notificationText}>{unreadMessages}</Text>
+                        </View>
+                    )}
                 </RNBounceable>
             </View>
         </View>

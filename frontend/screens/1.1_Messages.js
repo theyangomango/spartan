@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useRef, useState } from "react";
+import React, { useEffect, useMemo, useRef, useState, useCallback } from "react";
 import { View, StyleSheet, ScrollView } from "react-native";
 import MessageCard from "../components/1.1_Messages/MessageCard";
 import MessagesHeader from "../components/1.1_Messages/MessagesHeader";
@@ -9,6 +9,8 @@ import arrayAppend from "../../backend/helper/firebase/arrayAppend";
 import scaleSize from "../helper/scaleSize";
 import { collection, query, orderBy, onSnapshot, doc, getDoc } from "firebase/firestore";
 import { db } from "../../firebase.config";
+import { useFocusEffect } from '@react-navigation/native';
+import updateDocMerge from "../../backend/helper/firebase/updateDoc";
 
 // ✅ Soft global cache for in-memory persistence
 let cachedMessages = [];
@@ -164,6 +166,16 @@ export default function Messages({ navigation, route }) {
         const dest = hint === 'Workout' ? 'Workout' : 'Feed';
         navigation.navigate(dest, dest === 'Feed' ? { messages: chats } : undefined);
     };
+
+    // Reset unread messages aggregate when viewing Messages
+    useFocusEffect(
+        useCallback(() => {
+            const uid = global?.userData?.uid;
+            if (!uid) return;
+            try { updateDocMerge('users', uid, { unreadMessagesCount: 0 }); } catch {}
+            return () => {};
+        }, [])
+    );
 
     const toChat = (key, usersExcludingSelf) => {
         navigation.navigate("Chat", {
