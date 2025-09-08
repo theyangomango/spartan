@@ -24,6 +24,10 @@
     }
   },
   "submit": {
-    "production": {}
+        "production": {
+            "ios": {
+                "image": "latest"
+            }
+        }
   }
 }

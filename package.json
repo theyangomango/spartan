@@ -7,6 +7,7 @@
     "android": "expo run:android",
     "ios": "expo run:ios",
     "web": "expo start --web",
+    "postinstall": "patch-package",
     "build": "eas build --profile=development:simulator --platform=ios"
   },
   "dependencies": {
@@ -101,7 +102,8 @@
   },
   "devDependencies": {
     "@babel/core": "^7.20.0",
-    "react-native-svg-transformer": "^1.5.0"
+    "react-native-svg-transformer": "^1.5.0",
+    "patch-package": "^8.0.0"
   },
   "private": true
 }
