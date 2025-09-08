@@ -35,7 +35,7 @@ const ProfileBottomModal = ({ selectedPanel, setSelectedPanel, posts, savedPosts
                             viewBox="0 0 24 24"
                             fill={selectedPanel === 'saved' ? "#359ffc" : "none"}
                             stroke={selectedPanel === 'saved' ? "#359ffc" : "#888"}
-                            strokeWidth={2}
+                            strokeWidth={1.5}
                             strokeLinecap="round"
                             strokeLinejoin="round"
                         >
