@@ -9,28 +9,30 @@ function MealsSection({ title = 'Daily meals', mealsMeta, meals, collapsed, togg
     return (
         <View>
             <Text style={styles.sectionTitle}>{title}</Text>
-            {mealsMeta.map((m) => (
-                <React.Fragment key={m.name}>
-                    <MealCard
-                        item={m}
-                        PlusIcon={PlusIcon}
-                        COLORS={COLORS}
-                        onAddPress={onAddPress}
-                        onToggle={() => toggleMeal(m.name)}
-                        collapsed={collapsed[m.name]}
-                    />
-                    {!collapsed[m.name] && (
+            {mealsMeta.map((m) => {
+                const list = meals[m.name] ?? [];
+                const mealCalories = Math.round(list.reduce((s, e) => s + (e?.macros?.calories || 0), 0));
+                return (
+                    <React.Fragment key={m.name}>
+                        <MealCard
+                            item={m}
+                            PlusIcon={PlusIcon}
+                            COLORS={COLORS}
+                            onAddPress={onAddPress}
+                            totalCalories={mealCalories}
+                        />
                         <UnderMealList
-                            items={meals[m.name] ?? []}
+                            items={list}
                             COLORS={COLORS}
                             listStyle={styles.underMealList}
                             cardStyle={styles.underMealCard}
+                            showCaloriesRight
                             renderSummary={(entry) => summarizeFood(entry.desc, entry.brand, entry.quantity ?? 1)}
                             onDelete={(entry) => onDelete(m.name, entry)}
                         />
-                    )}
-                </React.Fragment>
-            ))}
+                    </React.Fragment>
+                );
+            })}
         </View>
     );
 }
@@ -49,19 +51,21 @@ export default memo(MealsSection, propsEqual);
 
 const makeStyles = (COLORS) =>
     StyleSheet.create({
-        sectionTitle: { fontSize: 17, marginLeft: 18, color: COLORS.text, fontFamily: 'Nunito_800ExtraBold' },
-        underMealList: { paddingHorizontal: 18, marginTop: 0, marginBottom: 8 },
+        sectionTitle: { fontSize: 16, marginLeft: 18, color: COLORS.text, fontFamily: 'Nunito_800ExtraBold' },
+        // Full-width list like MyFitnessPal: no outer horizontal padding,
+        // each row handles its own left/right padding.
+        underMealList: { paddingHorizontal: 0, marginTop: 0, marginBottom: 12 },
         underMealCard: {
-            borderRadius: 14,
+            borderWidth: 0,
+            borderRadius: 0,
             paddingVertical: 12,
-            paddingHorizontal: 22,
-            marginVertical: 4,
-            borderWidth: StyleSheet.hairlineWidth,
+            paddingHorizontal: 26,
+            marginVertical: 0,
+            borderTopWidth: StyleSheet.hairlineWidth,
+            borderBottomWidth: StyleSheet.hairlineWidth,
             borderColor: COLORS.hairline,
-            shadowOpacity: 0.03,
-            shadowRadius: 4,
-            shadowOffset: { width: 0, height: 2 },
-            elevation: 1,
+            shadowOpacity: 0,
+            elevation: 0,
             backgroundColor: COLORS.card,
         },
     });

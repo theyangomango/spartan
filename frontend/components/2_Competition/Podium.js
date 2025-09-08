@@ -1,41 +1,26 @@
-import { StyleSheet, View, Text, Dimensions } from "react-native";
+import { StyleSheet, View, Text } from "react-native";
 import FastImage from "react-native-fast-image";
+import scaleSize from "../../helper/scaleSize";
 
-const { width, height } = Dimensions.get("window");
+// Scaled sizes (baseline ~ iPhone 12/13: 390x844)
+const PFP_SIZE_LEFT = scaleSize(60);
+const PFP_SIZE_CENTER = scaleSize(64);
+const PFP_SIZE_RIGHT = scaleSize(56);
 
-const getDynamicStyles = () => {
-    if (width >= 430 && height >= 932) {
-        return {
-            pfpSize: { left: 70, center: 74, right: 66 },
-            barHeight: { left: 115, center: 143, right: 93 },
-            barWidth: 90,
-            fontSize: { handleText: 17, barText: 35 },
-        };
-    } else if (width >= 390 && height >= 844) {
-        return {
-            pfpSize: { left: 60, center: 64, right: 56 },
-            barHeight: { left: 105, center: 133, right: 83 },
-            barWidth: 80,
-            fontSize: { handleText: 15, barText: 31 },
-        };
-    } else if (width >= 375 && height >= 812) {
-        return {
-            pfpSize: { left: 58, center: 62, right: 54 },
-            barHeight: { left: 100, center: 125, right: 80 },
-            barWidth: 75,
-            fontSize: { handleText: 14.5, barText: 30 },
-        };
-    } else {
-        return {
-            pfpSize: { left: 54, center: 58, right: 50 },
-            barHeight: { left: 95, center: 118, right: 75 },
-            barWidth: 70,
-            fontSize: { handleText: 14, barText: 28 },
-        };
-    }
-};
+const BAR_HEIGHT_LEFT = scaleSize(105);
+const BAR_HEIGHT_CENTER = scaleSize(133);
+const BAR_HEIGHT_RIGHT = scaleSize(83);
+const BAR_WIDTH = scaleSize(80);
 
-const dynamicStyles = getDynamicStyles();
+const FONT_HANDLE = scaleSize(15);
+const FONT_BAR = scaleSize(31);
+
+const BAR_RADIUS = scaleSize(10);
+const BAR_MARGIN_H = scaleSize(13);
+
+const HANDLE_PT = scaleSize(4);
+const HANDLE_PB = scaleSize(10);
+const BAR_TEXT_PT = scaleSize(6);
 
 export default function Podium({ data }) {
     if (!data) return <></>;
@@ -43,7 +28,7 @@ export default function Podium({ data }) {
         <View style={styles.leaderboard_ctnr}>
             {/* Left */}
             <View style={styles.left}>
-                <View style={[styles.pfp_ctnr, { width: dynamicStyles.pfpSize.left }]}>
+                <View style={[styles.pfp_ctnr, { width: PFP_SIZE_LEFT }]}>
                     {data.length >= 2 && (
                         <FastImage
                             source={{ uri: data[1].pfp }}
@@ -53,18 +38,18 @@ export default function Podium({ data }) {
                     )}
                 </View>
                 {data.length >= 2 && (
-                    <Text numberOfLines={1} ellipsizeMode="tail" style={[styles.leaderboard_handle_text, { fontSize: dynamicStyles.fontSize.handleText }]}>
+                    <Text numberOfLines={1} ellipsizeMode="tail" style={[styles.leaderboard_handle_text, { fontSize: FONT_HANDLE }]}>
                         {data[1].handle}
                     </Text>
                 )}
-                <View style={[styles.bar_ctnr, styles.silver_ctnr, { height: dynamicStyles.barHeight.left, width: dynamicStyles.barWidth }]}>
-                    <Text style={[styles.bar_text, { fontSize: dynamicStyles.fontSize.barText }]}>2</Text>
+                <View style={[styles.bar_ctnr, styles.silver_ctnr, { height: BAR_HEIGHT_LEFT, width: BAR_WIDTH }]}>
+                    <Text style={[styles.bar_text, { fontSize: FONT_BAR }]}>2</Text>
                 </View>
             </View>
 
             {/* Center */}
             <View style={styles.center}>
-                <View style={[styles.pfp_ctnr, { width: dynamicStyles.pfpSize.center }]}>
+                <View style={[styles.pfp_ctnr, { width: PFP_SIZE_CENTER }]}>
                     {data.length >= 1 && (
                         <FastImage
                             source={{ uri: data[0].pfp }}
@@ -74,18 +59,18 @@ export default function Podium({ data }) {
                     )}
                 </View>
                 {data.length >= 1 && (
-                    <Text numberOfLines={1} ellipsizeMode="tail" style={[styles.leaderboard_handle_text, { fontSize: dynamicStyles.fontSize.handleText }]}>
+                    <Text numberOfLines={1} ellipsizeMode="tail" style={[styles.leaderboard_handle_text, { fontSize: FONT_HANDLE }]}>
                         {data[0].handle}
                     </Text>
                 )}
-                <View style={[styles.bar_ctnr, styles.gold_ctnr, { height: dynamicStyles.barHeight.center, width: dynamicStyles.barWidth }]}>
-                    <Text style={[styles.bar_text, { fontSize: dynamicStyles.fontSize.barText }]}>1</Text>
+                <View style={[styles.bar_ctnr, styles.gold_ctnr, { height: BAR_HEIGHT_CENTER, width: BAR_WIDTH }]}>
+                    <Text style={[styles.bar_text, { fontSize: FONT_BAR }]}>1</Text>
                 </View>
             </View>
 
             {/* Right */}
             <View style={styles.right}>
-                <View style={[styles.pfp_ctnr, { width: dynamicStyles.pfpSize.right }]}>
+                <View style={[styles.pfp_ctnr, { width: PFP_SIZE_RIGHT }]}>
                     {data.length >= 3 && (
                         <FastImage
                             source={{ uri: data[2].pfp }}
@@ -95,12 +80,12 @@ export default function Podium({ data }) {
                     )}
                 </View>
                 {data.length >= 3 && (
-                    <Text numberOfLines={1} ellipsizeMode="tail" style={[styles.leaderboard_handle_text, { fontSize: dynamicStyles.fontSize.handleText }]}>
+                    <Text numberOfLines={1} ellipsizeMode="tail" style={[styles.leaderboard_handle_text, { fontSize: FONT_HANDLE }]}>
                         {data[2].handle}
                     </Text>
                 )}
-                <View style={[styles.bar_ctnr, styles.bronze_ctnr, { height: dynamicStyles.barHeight.right, width: dynamicStyles.barWidth }]}>
-                    <Text style={[styles.bar_text, { fontSize: dynamicStyles.fontSize.barText }]}>3</Text>
+                <View style={[styles.bar_ctnr, styles.bronze_ctnr, { height: BAR_HEIGHT_RIGHT, width: BAR_WIDTH }]}>
+                    <Text style={[styles.bar_text, { fontSize: FONT_BAR }]}>3</Text>
                 </View>
             </View>
         </View>
@@ -120,9 +105,9 @@ const styles = StyleSheet.create({
         zIndex: -1
     },
     bar_ctnr: {
-        borderTopLeftRadius: 10,
-        borderTopRightRadius: 10,
-        marginHorizontal: 13,
+        borderTopLeftRadius: BAR_RADIUS,
+        borderTopRightRadius: BAR_RADIUS,
+        marginHorizontal: BAR_MARGIN_H,
         alignItems: 'center'
     },
     left: { alignItems: 'center', width: '28%' },
@@ -142,12 +127,12 @@ const styles = StyleSheet.create({
     leaderboard_handle_text: {
         fontFamily: 'Outfit_600SemiBold',
         color: '#fff',
-        paddingTop: 4,
-        paddingBottom: 10,
+        paddingTop: HANDLE_PT,
+        paddingBottom: HANDLE_PB,
     },
     bar_text: {
         fontFamily: 'Outfit_800ExtraBold',
-        paddingTop: 6,
+        paddingTop: BAR_TEXT_PT,
         color: '#fff'
     },
 });

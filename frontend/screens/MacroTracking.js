@@ -385,7 +385,7 @@ const styles = StyleSheet.create({
     body: { backgroundColor: COLORS.bg },
 
     sectionTitle: {
-        fontSize: 17,
+        fontSize: 16,
         marginLeft: 18,
         color: COLORS.text,
         fontFamily: 'Nunito_800ExtraBold',

@@ -8,12 +8,12 @@ import scaleSize from '../../helper/scaleSize';
 const { width } = Dimensions.get("window");
 
 // Scaled sizes (baseline ~ iPhone 12/13: 390x844)
-const CARD_HEIGHT = scaleSize(82);
+const CARD_HEIGHT = scaleSize(64);
 const SELF_CARD_HEIGHT = scaleSize(92);
-const PFP_SIZE = scaleSize(52);
+const PFP_SIZE = scaleSize(44);
 
-const FONT_HANDLE = scaleSize(16);
-const FONT_NAME = scaleSize(14);
+const FONT_HANDLE = scaleSize(14);
+const FONT_NAME = scaleSize(13);
 const FONT_STAT = scaleSize(15);
 const FONT_RANK = scaleSize(14);
 const FONT_BEST = scaleSize(13);

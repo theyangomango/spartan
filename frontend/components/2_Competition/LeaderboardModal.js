@@ -6,8 +6,56 @@ import scaleSize from "../../helper/scaleSize";
 import { Weight } from "iconsax-react-native";
 
 const { width: SCREEN_WIDTH } = Dimensions.get("window");
-const H_PADDING = 16;
+// Scaled paddings and derived widths
+const H_PADDING = scaleSize(16);
 const BANNER_WIDTH = SCREEN_WIDTH - H_PADDING * 2;
+
+// Scaled fonts
+const FONT_SELECTOR = scaleSize(14);
+const FONT_METRIC = scaleSize(14);
+const FONT_BANNER_TITLE = scaleSize(14);
+const FONT_BANNER_META = scaleSize(13);
+const FONT_TRIBE_TITLE = scaleSize(15);
+
+// Scaled icons
+const ICON_TROPHY = scaleSize(19);
+const ICON_TROPHY_LG = scaleSize(20);
+const ICON_CHEVRON = scaleSize(18);
+const ICON_WEIGHT = scaleSize(21);
+
+// Scaled layout
+const CONTAINER_PT = scaleSize(12);
+const HEADER_GAP = scaleSize(10);
+const HEADER_MB = scaleSize(12);
+const SELECTOR_PAD_L = scaleSize(16);
+const SELECTOR_PAD_R = scaleSize(12);
+const SELECTOR_PAD_V = scaleSize(8);
+const SELECTOR_GAP = scaleSize(8);
+const METRIC_PAD_H = scaleSize(14);
+const METRIC_PAD_V = scaleSize(8);
+
+const BANNER_RADIUS = scaleSize(22);
+const BANNER_PAD_H = scaleSize(16);
+const BANNER_PAD_V = scaleSize(14);
+const BANNER_MB = scaleSize(2);
+
+const ICON_PILL_SIZE = scaleSize(35);
+const ICON_PILL_RADIUS = scaleSize(20);
+const ICON_PILL_MR = scaleSize(10);
+
+const TRIBE_BTN_RADIUS = scaleSize(18);
+const TRIBE_BTN_PAD_H = scaleSize(16);
+const TRIBE_BTN_PAD_V = scaleSize(12);
+const TRIBE_BTN_GAP = scaleSize(10);
+const TRIBE_BTN_MB = scaleSize(10);
+
+const DOT_SIZE = scaleSize(6);
+const DOT_ACTIVE_SIZE = scaleSize(8);
+const DOT_RADIUS = DOT_SIZE / 2;
+const DOT_ACTIVE_RADIUS = DOT_ACTIVE_SIZE / 2;
+const DOT_GAP = scaleSize(6);
+const DOT_MT = scaleSize(4);
+const DOT_MB = scaleSize(2);
 
 // Accent palette (tweak here if you want a different vibe)
 const ACCENT = "#f6b000ff";            // rich gold
@@ -75,7 +123,7 @@ export default function LeaderboardModal({
                                     onPress={onOpenTribeComparison}
                                 >
                                     <View style={styles.iconPill}>
-                                        <Ionicons name="trophy" size={19} color={ACCENT} />
+                                        <Ionicons name="trophy" size={ICON_TROPHY} color={ACCENT} />
                                     </View>
                                     <View style={{ flex: 1, marginRight: 8 }}>
                                         {/* Line 1: exercise */}
@@ -87,7 +135,7 @@ export default function LeaderboardModal({
                                             {metricLabel(item.metric)}{item.normalizeByBodyweight ? " • per lb" : ""}
                                         </Text>
                                     </View>
-                                    <Ionicons name="chevron-forward" size={18} color={ICON_MUTED} />
+                                    <Ionicons name="chevron-forward" size={ICON_CHEVRON} color={ICON_MUTED} />
                                 </TouchableOpacity>
                             )}
                             contentContainerStyle={{ paddingHorizontal: 0 }}
@@ -113,12 +161,12 @@ export default function LeaderboardModal({
                     style={styles.tribeHeaderButton}
                 >
                     <View style={styles.iconPill}>
-                        <Ionicons name="trophy" size={20} color={ACCENT} />
+                        <Ionicons name="trophy" size={ICON_TROPHY_LG} color={ACCENT} />
                     </View>
                     <Text style={styles.tribeHeaderTitle} numberOfLines={1}>
                         Set Tribe Comparisons
                     </Text>
-                    <Ionicons name="chevron-forward" size={18} color={ICON_MUTED} />
+                    <Ionicons name="chevron-forward" size={ICON_CHEVRON} color={ICON_MUTED} />
                 </TouchableOpacity>
             );
         }
@@ -128,7 +176,7 @@ export default function LeaderboardModal({
             <View style={styles.headerRow}>
                 <TouchableOpacity onPress={openModal} activeOpacity={0.85} style={styles.selectorPill}>
                     {/* <Ionicons name="barbell" size={16} color="#222" /> */}
-                    <Weight size={21} color="#222" variant='Broken' />
+                    <Weight size={ICON_WEIGHT} color="#222" variant='Broken' />
                     <Text style={styles.selectorText} numberOfLines={1}>{categoryCompared}</Text>
                 </TouchableOpacity>
                 <TouchableOpacity onPress={onToggleMetric} activeOpacity={0.85} style={styles.metricPill}>
@@ -198,79 +246,79 @@ export default function LeaderboardModal({
 }
 
 const styles = StyleSheet.create({
-    container: { flex: 1, paddingHorizontal: H_PADDING, paddingTop: 12 },
+    container: { flex: 1, paddingHorizontal: H_PADDING, paddingTop: CONTAINER_PT },
 
     // non-tribe header
     headerRow: {
         flexDirection: "row",
         alignItems: "center",
-        marginBottom: 12,
-        gap: 10,
+        marginBottom: HEADER_MB,
+        gap: HEADER_GAP,
     },
     selectorPill: {
         flexDirection: "row",
         alignItems: "center",
-        paddingRight: 12,
-        paddingLeft: 16,
-        paddingVertical: 8,
+        paddingRight: SELECTOR_PAD_R,
+        paddingLeft: SELECTOR_PAD_L,
+        paddingVertical: SELECTOR_PAD_V,
         backgroundColor: "#F2F4F8",
         borderRadius: 999,
         flex: 1,
-        gap: 8,
+        gap: SELECTOR_GAP,
     },
-    selectorText: { fontFamily: "Outfit_600SemiBold", fontSize: 14, color: "#222", flexShrink: 1 },
+    selectorText: { fontFamily: "Outfit_600SemiBold", fontSize: FONT_SELECTOR, color: "#222", flexShrink: 1 },
     metricPill: {
-        paddingHorizontal: 14,
-        paddingVertical: 8,
+        paddingHorizontal: METRIC_PAD_H,
+        paddingVertical: METRIC_PAD_V,
         backgroundColor: "#E8F0FF",
         borderRadius: 999,
     },
-    metricText: { fontFamily: "Outfit_600SemiBold", fontSize: 14, color: "#4d91f7ff" },
+    metricText: { fontFamily: "Outfit_600SemiBold", fontSize: FONT_METRIC, color: "#4d91f7ff" },
 
     // tribe banner — modern warm “gold” card (no border)
     bannerCard: {
         flexDirection: "row",
         alignItems: "center",
-        paddingHorizontal: 16,
-        paddingVertical: 14,
-        borderRadius: 22,
+        paddingHorizontal: BANNER_PAD_H,
+        paddingVertical: BANNER_PAD_V,
+        borderRadius: BANNER_RADIUS,
         backgroundColor: BANNER_BG,
         // shadow disabled per your last snippet
         // elevation: 4,
-        marginBottom: 2,
+        marginBottom: BANNER_MB,
     },
     iconPill: {
-        width: 35,
-        height: 35,
-        borderRadius: 20,
+        width: ICON_PILL_SIZE,
+        height: ICON_PILL_SIZE,
+        borderRadius: ICON_PILL_RADIUS,
         alignItems: "center",
         justifyContent: "center",
         backgroundColor: ACCENT_BG,
-        marginRight: 10,
+        marginRight: ICON_PILL_MR,
     },
-    bannerTitle: { fontFamily: "Outfit_700Bold", fontSize: 14, color: TITLE_COLOR },
-    bannerMeta: { fontFamily: "Outfit_600SemiBold", fontSize: 13, color: TITLE_COLOR, opacity: 0.9, marginTop: 2 },
+    bannerTitle: { fontFamily: "Outfit_700Bold", fontSize: FONT_BANNER_TITLE, color: TITLE_COLOR },
+    bannerMeta: { fontFamily: "Outfit_600SemiBold", fontSize: FONT_BANNER_META, color: TITLE_COLOR, opacity: 0.9, marginTop: scaleSize(2) },
 
     // minimal “no comparisons yet” CTA
     tribeHeaderButton: {
         flexDirection: "row",
         alignItems: "center",
-        paddingHorizontal: 16,
-        paddingVertical: 12,
-        borderRadius: 18,
+        paddingHorizontal: TRIBE_BTN_PAD_H,
+        paddingVertical: TRIBE_BTN_PAD_V,
+        borderRadius: TRIBE_BTN_RADIUS,
         backgroundColor: BANNER_BG,
         shadowColor: "#000",
         shadowOffset: { width: 0, height: 8 },
         shadowOpacity: 0.08,
         shadowRadius: 16,
         elevation: 4,
-        marginBottom: 10,
-        gap: 10,
+        marginBottom: TRIBE_BTN_MB,
+        gap: TRIBE_BTN_GAP,
     },
     tribeHeaderTitle: {
         flex: 1,
         fontFamily: "Outfit_700Bold",
-        fontSize: 15,
+        fontSize: FONT_TRIBE_TITLE,
         color: TITLE_COLOR,
     },
 
@@ -279,15 +327,15 @@ const styles = StyleSheet.create({
         flexDirection: "row",
         justifyContent: "center",
         alignItems: "center",
-        gap: 6,
-        marginTop: 4,
-        marginBottom: 2,
+        gap: DOT_GAP,
+        marginTop: DOT_MT,
+        marginBottom: DOT_MB,
     },
     dot: {
-        width: 6,
-        height: 6,
-        borderRadius: 3,
+        width: DOT_SIZE,
+        height: DOT_SIZE,
+        borderRadius: DOT_RADIUS,
         backgroundColor: "rgba(0,0,0,0.15)",
     },
-    dotActive: { backgroundColor: ACCENT, width: 8, height: 8, borderRadius: 4 },
+    dotActive: { backgroundColor: ACCENT, width: DOT_ACTIVE_SIZE, height: DOT_ACTIVE_SIZE, borderRadius: DOT_ACTIVE_RADIUS },
 });

@@ -3,6 +3,28 @@ import React from "react";
 import { Modal, View, Text, StyleSheet, Pressable } from "react-native";
 import RNBounceable from "@freakycoder/react-native-bounceable";
 import { Ionicons } from "@expo/vector-icons";
+import scaleSize from "../../helper/scaleSize";
+
+// Scaled sizes (baseline ~ iPhone 12/13: 390x844)
+const MENU_WIDTH = scaleSize(260);
+const MENU_RADIUS = scaleSize(14);
+const MENU_PAD_V = scaleSize(10);
+const MENU_PAD_H = scaleSize(10);
+
+const BACKDROP_PT = scaleSize(60);
+const BACKDROP_PR = scaleSize(12);
+
+const FONT_TITLE = scaleSize(16);
+const FONT_SECTION = scaleSize(12.5);
+const FONT_EMPTY = scaleSize(12.5);
+
+const ITEM_PAD_V = scaleSize(10);
+const ITEM_PAD_H = scaleSize(8);
+const ITEM_RADIUS = scaleSize(10);
+const ITEM_TEXT_ML = scaleSize(8);
+
+const ICON_ITEM = scaleSize(18);
+const ICON_CHECK = scaleSize(16);
 
 const TribeMenu = ({
     visible,
@@ -38,19 +60,19 @@ const TribeMenu = ({
 
                     {/* Global */}
                     <RNBounceable style={styles.menuItem} onPress={onSelectGlobal}>
-                        <Ionicons name="globe-outline" size={18} color="#333" />
+                        <Ionicons name="globe-outline" size={ICON_ITEM} color="#333" />
                         <Text style={styles.menuItemText}>All (Global)</Text>
                         {!selectedTribeId && scope === "Global" && (
-                            <Ionicons name="checkmark" size={16} color="#2D9EFF" style={{ marginLeft: "auto" }} />
+                            <Ionicons name="checkmark" size={ICON_CHECK} color="#2D9EFF" style={{ marginLeft: "auto" }} />
                         )}
                     </RNBounceable>
 
                     {/* Following (under Global) */}
                     <RNBounceable style={styles.menuItem} onPress={onSelectFollowing}>
-                        <Ionicons name="people-outline" size={18} color="#333" />
+                        <Ionicons name="people-outline" size={ICON_ITEM} color="#333" />
                         <Text style={styles.menuItemText}>Following</Text>
                         {!selectedTribeId && scope === "Following" && (
-                            <Ionicons name="checkmark" size={16} color="#2D9EFF" style={{ marginLeft: "auto" }} />
+                            <Ionicons name="checkmark" size={ICON_CHECK} color="#2D9EFF" style={{ marginLeft: "auto" }} />
                         )}
                     </RNBounceable>
 
@@ -65,10 +87,10 @@ const TribeMenu = ({
                             style={styles.menuItem}
                             onPress={() => onSelectTribe?.(t.id)}
                         >
-                            <Ionicons name="people-circle-outline" size={18} color="#333" />
+                            <Ionicons name="people-circle-outline" size={ICON_ITEM} color="#333" />
                             <Text style={styles.menuItemText}>{t.name}</Text>
                             {selectedTribeId === t.id && (
-                                <Ionicons name="checkmark" size={16} color="#2D9EFF" style={{ marginLeft: "auto" }} />
+                                <Ionicons name="checkmark" size={ICON_CHECK} color="#2D9EFF" style={{ marginLeft: "auto" }} />
                             )}
                         </RNBounceable>
                     ))}
@@ -76,12 +98,12 @@ const TribeMenu = ({
                     <View style={styles.menuDivider} />
 
                     <RNBounceable style={styles.menuItem} onPress={onCreatePress}>
-                        <Ionicons name="add-circle-outline" size={18} color="#333" />
+                        <Ionicons name="add-circle-outline" size={ICON_ITEM} color="#333" />
                         <Text style={styles.menuItemText}>Create tribe</Text>
                     </RNBounceable>
 
                     <RNBounceable style={styles.menuItem} onPress={onJoinPress}>
-                        <Ionicons name="log-in-outline" size={18} color="#333" />
+                        <Ionicons name="log-in-outline" size={ICON_ITEM} color="#333" />
                         <Text style={styles.menuItemText}>Join by code</Text>
                     </RNBounceable>
 
@@ -89,7 +111,7 @@ const TribeMenu = ({
                         <>
                             <View style={styles.menuDivider} />
                             <RNBounceable style={styles.menuItem} onPress={onManagePress}>
-                                <Ionicons name="settings-outline" size={18} color="#333" />
+                                <Ionicons name="settings-outline" size={ICON_ITEM} color="#333" />
                                 <Text style={styles.menuItemText}>Manage current tribe</Text>
                             </RNBounceable>
                         </>
@@ -106,16 +128,16 @@ const styles = StyleSheet.create({
     menuBackdrop: {
         flex: 1,
         backgroundColor: "rgba(0,0,0,0.15)",
-        paddingTop: 60, // below header
-        paddingRight: 12,
+        paddingTop: BACKDROP_PT, // below header
+        paddingRight: BACKDROP_PR,
         alignItems: "flex-end",
     },
     menuCard: {
-        width: 260,
+        width: MENU_WIDTH,
         backgroundColor: "#fff",
-        borderRadius: 14,
-        paddingVertical: 10,
-        paddingHorizontal: 10,
+        borderRadius: MENU_RADIUS,
+        paddingVertical: MENU_PAD_V,
+        paddingHorizontal: MENU_PAD_H,
         shadowColor: "#000",
         shadowOpacity: 0.15,
         shadowRadius: 10,
@@ -124,14 +146,14 @@ const styles = StyleSheet.create({
     },
     menuTitle: {
         fontFamily: "Outfit_700Bold",
-        fontSize: 16,
+        fontSize: FONT_TITLE,
         color: "#111",
         marginBottom: 6,
         paddingHorizontal: 4,
     },
     menuSectionHeader: {
         fontFamily: "Outfit_600SemiBold",
-        fontSize: 12.5,
+        fontSize: FONT_SECTION,
         color: "#666",
         paddingHorizontal: 6,
         marginTop: 6,
@@ -140,18 +162,18 @@ const styles = StyleSheet.create({
     menuItem: {
         flexDirection: "row",
         alignItems: "center",
-        paddingVertical: 10,
-        paddingHorizontal: 8,
-        borderRadius: 10,
+        paddingVertical: ITEM_PAD_V,
+        paddingHorizontal: ITEM_PAD_H,
+        borderRadius: ITEM_RADIUS,
     },
     menuItemText: {
         fontFamily: "Outfit_600SemiBold",
         color: "#222",
-        marginLeft: 8,
+        marginLeft: ITEM_TEXT_ML,
     },
     menuEmpty: {
         fontFamily: "Outfit_500Medium",
-        fontSize: 12.5,
+        fontSize: FONT_EMPTY,
         color: "#999",
         paddingHorizontal: 8,
         paddingVertical: 6,
