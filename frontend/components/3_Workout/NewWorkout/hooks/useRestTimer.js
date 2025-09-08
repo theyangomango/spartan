@@ -14,6 +14,7 @@ export default function useRestTimer() {
   const endAtRef = useRef(0); // epoch ms when the current rest ends
   const scheduledNotifIdRef = useRef(null);
   const lastScheduledRemainingRef = useRef(0);
+  const wasResetRef = useRef(false);
 
   const openRestModal = useCallback(() => {
     setRestModalKey((k) => k + 1);
@@ -50,33 +51,6 @@ export default function useRestTimer() {
     return () => { if (t) clearInterval(t); };
   }, []);
 
-  const startCountdown = useCallback((secs) => {
-    const v = Number(secs) || 0;
-    setRestTotal(v);
-    endAtRef.current = v > 0 ? (Date.now() + v * 1000) : 0;
-    try { global.__restTimerEndAt = endAtRef.current; global.__restTimerTotal = v; } catch {}
-    lastScheduledRemainingRef.current = v;
-    setCountdown(v);
-    // schedule now for v seconds
-    if (v > 0) scheduleLocalPush(v);
-  }, [scheduleLocalPush]);
-  const addCountdown = useCallback((secs) => {
-    const delta = Number(secs) || 0;
-    if (delta > 0) {
-      lastScheduledRemainingRef.current = (lastScheduledRemainingRef.current || 0) + delta;
-      setRestTotal((t) => (t || 0) + delta);
-      if (endAtRef.current && endAtRef.current > 0) {
-        endAtRef.current += delta * 1000;
-      } else {
-        endAtRef.current = Date.now() + delta * 1000;
-      }
-      try { global.__restTimerEndAt = endAtRef.current; global.__restTimerTotal = (lastScheduledRemainingRef.current || delta); } catch {}
-      scheduleLocalPush(lastScheduledRemainingRef.current);
-    }
-    setCountdown((s) => s + delta);
-  }, [scheduleLocalPush]);
-  const resetCountdown = useCallback(() => { setCountdown(0); setRestTotal(0); cancelLocalPush(); }, [cancelLocalPush]);
-
   // Schedule/cancel a local push notification when the timer is running.
   const scheduleLocalPush = useCallback(async (secondsFromNow) => {
     try {
@@ -111,6 +85,43 @@ export default function useRestTimer() {
     } catch { /* ignore */ }
   }, []);
 
+  const startCountdown = useCallback((secs) => {
+    wasResetRef.current = false;
+    const v = Number(secs) || 0;
+    setRestTotal(v);
+    endAtRef.current = v > 0 ? (Date.now() + v * 1000) : 0;
+    try { global.__restTimerEndAt = endAtRef.current; global.__restTimerTotal = v; } catch {}
+    lastScheduledRemainingRef.current = v;
+    setCountdown(v);
+    // schedule now for v seconds
+    if (v > 0) scheduleLocalPush(v);
+  }, [scheduleLocalPush]);
+  const addCountdown = useCallback((secs) => {
+    wasResetRef.current = false;
+    const delta = Number(secs) || 0;
+    if (delta > 0) {
+      lastScheduledRemainingRef.current = (lastScheduledRemainingRef.current || 0) + delta;
+      setRestTotal((t) => (t || 0) + delta);
+      if (endAtRef.current && endAtRef.current > 0) {
+        endAtRef.current += delta * 1000;
+      } else {
+        endAtRef.current = Date.now() + delta * 1000;
+      }
+      try { global.__restTimerEndAt = endAtRef.current; global.__restTimerTotal = (lastScheduledRemainingRef.current || delta); } catch {}
+      scheduleLocalPush(lastScheduledRemainingRef.current);
+    }
+    setCountdown((s) => s + delta);
+  }, [scheduleLocalPush]);
+  const resetCountdown = useCallback(() => {
+    wasResetRef.current = true;
+    setCountdown(0);
+    setRestTotal(0);
+    endAtRef.current = 0;
+    lastScheduledRemainingRef.current = 0;
+    try { global.__restTimerEndAt = 0; global.__restTimerTotal = 0; } catch {}
+    cancelLocalPush();
+  }, [cancelLocalPush]);
+
   // When countdown transitions from >0 to 0: vibrate + global overlay reminder
   const prevCountdownRef = useRef(0);
   useEffect(() => {
@@ -119,12 +130,15 @@ export default function useRestTimer() {
       cancelLocalPush();
       endAtRef.current = 0;
       try { global.__restTimerEndAt = 0; global.__restTimerTotal = 0; } catch {}
-      const soundsOn = (global?.userData?.settings?.sounds !== false);
-      if (soundsOn) {
-        try { Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success); } catch {}
-        try { Vibration.vibrate(150); } catch {}
+      if (!wasResetRef.current) {
+        const soundsOn = (global?.userData?.settings?.sounds !== false);
+        if (soundsOn) {
+          try { Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success); } catch {}
+          try { Vibration.vibrate(150); } catch {}
+        }
+        try { if (typeof global?.triggerRestReminder === 'function') global.triggerRestReminder(); } catch {}
       }
-      try { if (typeof global?.triggerRestReminder === 'function') global.triggerRestReminder(); } catch {}
+      wasResetRef.current = false; // clear flag after handling
     }
     prevCountdownRef.current = countdown;
   }, [countdown, cancelLocalPush]);

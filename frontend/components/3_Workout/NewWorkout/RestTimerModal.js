@@ -102,19 +102,25 @@ export default function RestTimerModal({
     // Animations
     const ring = useRef(new Animated.Value(0)).current; // 1 -> 0 over remaining time
     const pulse = useRef(new Animated.Value(0)).current; // 0 <-> 1 loop while counting
+    const pulseAnimRef = useRef(null); // hold loop to stop cleanly
     const appear = useRef(new Animated.Value(0)).current; // modal card entrance
 
     const runPulse = useCallback(() => {
+        // stop any existing loop first
+        if (pulseAnimRef.current?.stop) pulseAnimRef.current.stop();
         pulse.setValue(0);
-        Animated.loop(
+        pulseAnimRef.current = Animated.loop(
             Animated.sequence([
                 Animated.timing(pulse, { toValue: 1, duration: 1200, easing: Easing.inOut(Easing.ease), useNativeDriver: false }),
                 Animated.timing(pulse, { toValue: 0, duration: 1200, easing: Easing.inOut(Easing.ease), useNativeDriver: false }),
             ])
-        ).start();
+        );
+        pulseAnimRef.current.start();
     }, [pulse]);
 
     const stopPulse = useCallback(() => {
+        if (pulseAnimRef.current?.stop) pulseAnimRef.current.stop();
+        pulseAnimRef.current = null;
         pulse.stopAnimation();
         pulse.setValue(0);
     }, [pulse]);
@@ -154,12 +160,19 @@ export default function RestTimerModal({
 
     const handleReset = useCallback(() => {
         onReset?.();
-        setRestTotal(0);
         ring.stopAnimation();
         ring.setValue(0);
         stopPulse();
         try { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Heavy); } catch {}
     }, [onReset, ring, stopPulse]);
+
+    // Ensure animations are fully stopped on unmount
+    useEffect(() => {
+        return () => {
+            try { ring.stopAnimation(); } catch {}
+            try { stopPulse(); } catch {}
+        };
+    }, [ring, stopPulse]);
 
     // Appear / sync
     useEffect(() => {
