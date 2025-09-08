@@ -1,5 +1,5 @@
 import React, { useMemo, memo } from 'react';
-import { View, Text, StyleSheet } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
 import MealCard from './MealCard';
 import UnderMealList from '../UnderMealList';
 import { summarizeFood } from '../../utils/nutrition';
@@ -30,6 +30,9 @@ function MealsSection({ title = 'Daily meals', mealsMeta, meals, collapsed, togg
                             renderSummary={(entry) => summarizeFood(entry.desc, entry.brand, entry.quantity ?? 1)}
                             onDelete={(entry) => onDelete(m.name, entry)}
                         />
+                        <TouchableOpacity activeOpacity={0.6} style={styles.addFoodRow} onPress={() => onAddPress?.(m)}>
+                            <Text style={styles.addFoodText}>Add Food</Text>
+                        </TouchableOpacity>
                     </React.Fragment>
                 );
             })}
@@ -54,11 +57,11 @@ const makeStyles = (COLORS) =>
         sectionTitle: { fontSize: 16, marginLeft: 18, color: COLORS.text, fontFamily: 'Nunito_800ExtraBold' },
         // Full-width list like MyFitnessPal: no outer horizontal padding,
         // each row handles its own left/right padding.
-        underMealList: { paddingHorizontal: 0, marginTop: 0, marginBottom: 12 },
+        underMealList: { paddingHorizontal: 0, marginTop: 0, marginBottom: 0 },
         underMealCard: {
             borderWidth: 0,
             borderRadius: 0,
-            paddingVertical: 12,
+            paddingVertical: 10,
             paddingHorizontal: 26,
             marginVertical: 0,
             borderTopWidth: StyleSheet.hairlineWidth,
@@ -67,5 +70,20 @@ const makeStyles = (COLORS) =>
             shadowOpacity: 0,
             elevation: 0,
             backgroundColor: COLORS.card,
+        },
+        addFoodRow: {
+            paddingVertical: 12,
+            paddingHorizontal: 26,
+            backgroundColor: COLORS.card,
+            borderBottomWidth: StyleSheet.hairlineWidth,
+            borderColor: COLORS.hairline,
+        },
+        addFoodText: {
+            color: COLORS.subtext || '#64748B',
+            fontFamily: 'Outfit_700Bold',
+            fontSize: 12.5,
+            textTransform: 'uppercase',
+            letterSpacing: 0.4,
+            textAlign: 'right',
         },
     });

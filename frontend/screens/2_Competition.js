@@ -55,10 +55,28 @@ const scaleSize = (value, axis = "min") => {
 };
 // central place for UI sizes
 const SIZES = {
-    headerIconSize: scaleSize(20),                  // base icon size
+    // header
+    headerIconSize: scaleSize(21),                  // base icon size
     chevronDelta: scaleSize(6),                     // difference for chevron icon
     headerPaddingHorizontal: scaleSize(24, "w"),    // horizontal padding scales with width
     headerPaddingTop: scaleSize(8, "h"),            // top padding scales with height
+
+    // tribe scope button
+    tribeBtnMarginLeft: scaleSize(10),
+    tribeBtnPadH: scaleSize(12),
+    tribeBtnPadV: scaleSize(8),
+    tribeBtnRadius: scaleSize(16),
+    tribeHitSlop: scaleSize(8),
+
+    tribeLabelFont: scaleSize(14),
+    tribeLabelMaxWidth: scaleSize(160),
+    tribeLabelMarginRight: scaleSize(2),
+
+    // icon margins
+    iconMR: scaleSize(6),
+    iconMT: scaleSize(1),
+    chevronML: scaleSize(4),
+    chevronMT: scaleSize(1),
 };
 
 // -------- tiny persistence (no deps) --------
@@ -517,7 +535,7 @@ export default function Competition({ navigation }) {
                             onPress={() => setTribeMenuVisible(true)}
                             style={[styles.tribeButtonRow, styles.tribeButtonPill]}
                             activeScale={0.96}
-                            hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                            hitSlop={{ top: SIZES.tribeHitSlop, bottom: SIZES.tribeHitSlop, left: SIZES.tribeHitSlop, right: SIZES.tribeHitSlop }}
                             accessibilityRole="button"
                             accessibilityLabel="Change leaderboard scope"
                         >
@@ -525,7 +543,7 @@ export default function Competition({ navigation }) {
                                 name="people"
                                 size={SIZES.headerIconSize}
                                 color="#fff"
-                                style={{ marginRight: 6, marginTop: 1 }}
+                                style={{ marginRight: SIZES.iconMR, marginTop: SIZES.iconMT }}
                             />
                             <Text style={styles.tribeLabel} numberOfLines={1} ellipsizeMode="tail">
                                 {scopeLabel}
@@ -534,7 +552,7 @@ export default function Competition({ navigation }) {
                                 name="chevron-down"
                                 size={Math.max(12, SIZES.headerIconSize - SIZES.chevronDelta)}
                                 color="rgba(255,255,255,0.95)"
-                                style={{ marginLeft: 4, marginTop: 1 }}
+                                style={{ marginLeft: SIZES.chevronML, marginTop: SIZES.chevronMT }}
                             />
                         </RNBounceable>
                     </View>
@@ -722,10 +740,10 @@ const styles = StyleSheet.create({
     tribeButtonRow: {
         flexDirection: "row",
         alignItems: "center",
-        marginLeft: 10,
-        paddingHorizontal: 12,
-        paddingVertical: 8,
-        borderRadius: 16,
+        marginLeft: SIZES.tribeBtnMarginLeft,
+        paddingHorizontal: SIZES.tribeBtnPadH,
+        paddingVertical: SIZES.tribeBtnPadV,
+        borderRadius: SIZES.tribeBtnRadius,
     },
 
     tribeButtonPill: {
@@ -737,10 +755,10 @@ const styles = StyleSheet.create({
     tribeLabel: {
         color: "#fff",
         fontFamily: "Outfit_600SemiBold",
-        fontSize: 14,
+        fontSize: SIZES.tribeLabelFont,
         includeFontPadding: false,
-        maxWidth: 160,
-        marginRight: 2,
+        maxWidth: SIZES.tribeLabelMaxWidth,
+        marginRight: SIZES.tribeLabelMarginRight,
         letterSpacing: 0.2,
     },
 });

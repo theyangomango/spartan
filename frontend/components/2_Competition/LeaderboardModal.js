@@ -11,8 +11,8 @@ const H_PADDING = scaleSize(16);
 const BANNER_WIDTH = SCREEN_WIDTH - H_PADDING * 2;
 
 // Scaled fonts
-const FONT_SELECTOR = scaleSize(14);
-const FONT_METRIC = scaleSize(14);
+const FONT_SELECTOR = scaleSize(13);
+const FONT_METRIC = scaleSize(13);
 const FONT_BANNER_TITLE = scaleSize(14);
 const FONT_BANNER_META = scaleSize(13);
 const FONT_TRIBE_TITLE = scaleSize(15);

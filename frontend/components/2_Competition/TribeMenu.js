@@ -14,7 +14,7 @@ const MENU_PAD_H = scaleSize(10);
 const BACKDROP_PT = scaleSize(60);
 const BACKDROP_PR = scaleSize(12);
 
-const FONT_TITLE = scaleSize(16);
+const FONT_TITLE = scaleSize(15);
 const FONT_SECTION = scaleSize(12.5);
 const FONT_EMPTY = scaleSize(12.5);
 
