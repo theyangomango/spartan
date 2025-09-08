@@ -1,5 +1,5 @@
 import React, { memo, useState } from 'react';
-import { Pressable, StyleSheet, Text, View, Dimensions } from 'react-native';
+import { Pressable, TouchableOpacity, StyleSheet, Text, View, Dimensions } from 'react-native';
 // import { Ionicons } from '@expo/vector-icons';
 import ExerciseImagePreview from './ExerciseImagePreview';
 
@@ -24,7 +24,7 @@ const hexToRgb = (hex) => {
 };
 const rgba = (hex, a) => { const { r, g, b } = hexToRgb(hex); return `rgba(${r}, ${g}, ${b}, ${a})`; };
 
-const ExerciseCard = memo(({ name, muscleGroup, selectExercise, deselectExercise, showExerciseInfo, userStats }) => {
+const ExerciseCard = memo(({ name, muscleGroup, selectExercise, deselectExercise, showExerciseInfo, userStats, touchable = false }) => {
     const [isSelected, setIsSelected] = useState(false);
 
     const lastDone = userStats && Array.isArray(userStats.sets) && userStats.sets.length ? userStats.sets[userStats.sets.length - 1].date : 'N/A';
@@ -50,8 +50,10 @@ const ExerciseCard = memo(({ name, muscleGroup, selectExercise, deselectExercise
         setIsSelected(!isSelected);
     }
 
+    const Wrapper = touchable ? TouchableOpacity : Pressable;
+    const wrapperProps = touchable ? { activeOpacity: 0.6 } : {};
     return (
-        <Pressable onPress={toggleSelected} style={[styles.card, isSelected && styles.selected]}>
+        <Wrapper {...wrapperProps} onPress={toggleSelected} style={[styles.card, isSelected && styles.selected]}>
             <View style={styles.leftContainer}>
                 <ExerciseImagePreview exercise={name} />
                 <View style={styles.textContainer}>
@@ -78,7 +80,7 @@ const ExerciseCard = memo(({ name, muscleGroup, selectExercise, deselectExercise
                 */}
             </View>
             <View style={styles.border} />
-        </Pressable>
+        </Wrapper>
     );
 });
 
