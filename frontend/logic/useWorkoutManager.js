@@ -709,27 +709,49 @@ export default function useWorkoutManager({ uid, navigation, millisToHMS }) {
 
             const baseSnap = seed ? null : await getDoc(doc(db, "workouts", wid));
             const base = seed || (baseSnap.exists() ? baseSnap.data() : {}) || {};
+            // If we already have an active workout, preserve its progress but move it under the new wid
+            let existing = null;
+            try { existing = useWorkoutStore.getState().workout || null; } catch { existing = null; }
+            if (!existing) {
+                try { existing = sanitizeWorkout(global?.userData?.currentWorkout); } catch { existing = null; }
+            }
 
-            const createdNow = Date.now();
-            const joined = sanitizeWorkout({
-                wid,
-                creatorUID: base?.creatorUid || base?.creatorUID || me,
-                created: createdNow,
-                users: [],
-                exercises: [],
-                tid: null,
-                volume: 0, reps: 0, PBs: 0,
-            });
-            // Tag locally as just started/joined so UI can show reminder once.
-            const localJoined = { ...joined, __justStarted: true };
+            let createdForTimer = Date.now();
+            let joined;
+            let localJoined;
+            if (existing && existing.created) {
+                // Preserve exercises, volume, reps, PBs, created time, etc. Only swap wid and ensure creatorUID
+                const preserved = sanitizeWorkout({ ...existing, wid, creatorUID: existing?.creatorUID || base?.creatorUid || base?.creatorUID || me });
+                joined = preserved;
+                localJoined = { ...preserved }; // do NOT set __justStarted when carrying over
+                createdForTimer = Number(preserved.created) || Date.now();
+            } else {
+                // No active workout: behave like a fresh join
+                const createdNow = Date.now();
+                createdForTimer = createdNow;
+                joined = sanitizeWorkout({
+                    wid,
+                    creatorUID: base?.creatorUid || base?.creatorUID || me,
+                    created: createdNow,
+                    users: [],
+                    exercises: [],
+                    tid: null,
+                    volume: 0, reps: 0, PBs: 0,
+                });
+                // Tag locally as just started/joined so UI can show reminder once.
+                localJoined = { ...joined, __justStarted: true };
+                // Also set a global one-shot flag for safety (consumed by NewWorkoutModal)
+                try { global.__showWorkoutReminderForWid = String(wid); } catch {}
+            }
+
+            // Update local store and UI immediately
             try { useWorkoutStore.setState({ workout: localJoined }); } catch {}
             setIsNewWorkoutVisible(true);
-            // Start my local timer immediately so UI reflects joining without waiting for rehydrate
-            startTimer(createdNow);
+            startTimer(createdForTimer);
+            try { global.isCurrentlyWorkingOut = true; } catch {}
+            try { if (global?.userData) global.userData.currentWorkout = localJoined; } catch { }
 
-            // Also set a global one-shot flag for safety (consumed by NewWorkoutModal)
-            try { global.__showWorkoutReminderForWid = String(wid); } catch {}
-
+            // Persist to user doc
             try {
                 await setDoc(doc(db, "users", me), { currentWorkout: joined }, { merge: true });
             } catch (e) {

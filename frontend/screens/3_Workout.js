@@ -499,30 +499,15 @@ export default function Workout({ navigation, route }) {
     } = useWorkoutInvites({
         uid,
         onAccepted: async (wid, seed) => {
-            const me = String(uid || global?.userData?.uid || "");
-            const joined = {
-                wid,
-                creatorUID: seed?.creatorUid || seed?.creatorUID || me,
-                created: Date.now(),
-                users: [],
-                exercises: [],
-                tid: null,
-                volume: 0,
-                reps: 0,
-                PBs: 0,
-            };
             try { global.isCurrentlyWorkingOut = true; } catch { }
-            try { if (global?.userData) global.userData.currentWorkout = joined; } catch { }
             try {
                 if (typeof joinExternalWorkout === "function") {
-                    await joinExternalWorkout({ wid, seedWorkout: seed || joined, inviterUid: currentInvite?.fromUid });
-                } else {
-                    try { useWorkoutStore.setState({ workout: joined }); } catch { }
+                    // Allow joinExternalWorkout to preserve any existing active workout
+                    await joinExternalWorkout({ wid, seedWorkout: seed || null, inviterUid: currentInvite?.fromUid });
                 }
-            } catch {
-                try { useWorkoutStore.setState({ workout: joined }); } catch { }
+            } catch (e) {
+                console.log('join onAccepted error', e?.message || e);
             }
-            setIsNewWorkoutVisible(true);
         },
     });
 
