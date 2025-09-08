@@ -487,7 +487,7 @@ const ExerciseImagePreview = ({ exercise }) => {
             imageStyle = styles.pistol_squat;
             break;
         case 'Plank':
-            source = require('../../../../assets/exercises/plank/medium.png');
+            source = require('../../../../assets/exercises/plank/final.png');
             imageStyle = styles.plank;
             break;
         case 'Power Clean':
