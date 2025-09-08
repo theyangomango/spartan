@@ -21,7 +21,8 @@ import { searchFood } from '../../screens/fatsecretClient';
 
 // 🔥 FIREBASE (adjust path if your firebase.config is elsewhere)
 import { db } from '../../../firebase.config';
-import { collection, getDocs, orderBy, query, limit } from 'firebase/firestore';
+// Alias Firestore's query() to avoid clashing with local state `query`
+import { collection, getDocs, orderBy, query as fsQuery, limit } from 'firebase/firestore';
 
 export default function FoodSearchOverlay({
     visible,
@@ -46,7 +47,7 @@ export default function FoodSearchOverlay({
 
             // users/{uid}/recentFoods : { name, brand, description, foodId, usedCount, lastUsedAt }
             const recentRef = collection(db, 'users', userId, 'recentFoods');
-            const qy = query(recentRef, orderBy('lastUsedAt', 'desc'), limit(20));
+            const qy = fsQuery(recentRef, orderBy('lastUsedAt', 'desc'), limit(20));
             const snap = await getDocs(qy);
 
             const items = snap.docs.map((d) => ({
@@ -123,7 +124,7 @@ export default function FoodSearchOverlay({
     }, [openPortion]);
 
     const HistoryFooter = () => {
-        if (!visible || (query && query.trim().length > 0)) return null;
+        if (!visible) return null;
         if (!recentFoods?.length) return null;
 
         return (
