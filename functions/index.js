@@ -5,6 +5,7 @@ import { setGlobalOptions } from "firebase-functions/v2";
 import { onDocumentCreated } from "firebase-functions/v2/firestore";
 import { initializeApp } from "firebase-admin/app";
 import { getFirestore, FieldValue } from "firebase-admin/firestore";
+import { computeHexagonFromStats } from "./computeHexagon.js";
 
 setGlobalOptions({
   region: "us-central1",
@@ -225,3 +226,75 @@ export const onChatMessageCreated = onDocumentCreated(
     }
   }
 );
+
+// ---------------- Workouts: Append Per-Set History ---------------- //
+
+function toDayKey(input) {
+  try {
+    const d = input instanceof Date ? input : new Date(Number(input) || Date.now());
+    d.setHours(0, 0, 0, 0);
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+  } catch {
+    const d = new Date();
+    d.setHours(0, 0, 0, 0);
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+  }
+}
+
+export const appendWorkoutSets = onCall({ region: "us-central1" }, async (request) => {
+  const authUid = request?.auth?.uid || null;
+  if (!authUid) throw new HttpsError("unauthenticated", "Must be signed in.");
+
+  const { wid, created, exercises } = request.data || {};
+  if (!wid || !Array.isArray(exercises)) {
+    throw new HttpsError("invalid-argument", "Missing 'wid' or 'exercises' array.");
+  }
+
+  const day = toDayKey(created);
+  const ref = adminDb.doc(`users/${authUid}`);
+
+  // Build a single update payload with dotted paths + arrayUnion for each exercise
+  const updatePayload = {};
+
+  exercises.forEach((ex) => {
+    try {
+      const name = String(ex?.name || "").trim();
+      if (!name) return;
+      const sets = Array.isArray(ex?.sets) ? ex.sets : [];
+      const clean = sets
+        .map((s) => ({ reps: Number(s?.reps) || 0, weight: Number(s?.weight) || 0 }))
+        .filter((s) => s.reps > 0 && s.weight > 0)
+        .map((s) => ({ ...s, date: day, wid: String(wid) }));
+      if (!clean.length) return;
+
+      // Use arrayUnion to append without overwriting other fields; create nested map if absent
+      updatePayload[`statsExercises.${name}.sets`] = FieldValue.arrayUnion(...clean);
+    } catch {}
+  });
+
+  // If nothing to append, short-circuit
+  if (Object.keys(updatePayload).length === 0) return { ok: true, appended: 0 };
+
+  // Apply update with field transforms
+  await ref.update(updatePayload);
+
+  // Optionally recompute hex using updated stats (best-effort)
+  try {
+    const snap = await ref.get();
+    if (snap.exists) {
+      const data = snap.data() || {};
+      const prevHex = data?.statsHexagon || {};
+      const trained = Object.keys(updatePayload).map((k)=>k.split(".")[1]).filter(Boolean);
+      const { statsHexagon } = computeHexagonFromStats({
+        statsExercises: data?.statsExercises || {},
+        prevStatsHexagon: prevHex,
+        trainedExerciseNames: trained,
+      });
+      await ref.set({ statsHexagon }, { merge: true });
+    }
+  } catch (e) {
+    logger.warn("appendWorkoutSets: hexagon recompute skipped", e?.message || e);
+  }
+
+  return { ok: true, appended: Object.keys(patch.statsExercises).length };
+});

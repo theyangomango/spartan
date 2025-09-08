@@ -5,8 +5,9 @@ import ExerciseImagePreview from '../../3_Workout/NewWorkout/SelectExercise/Exer
 
 const ExerciseCard = memo(({ name, muscleGroup, selectExercise, showExerciseInfo, userStats }) => {
 
-    const lastDone = userStats ? userStats.sets[userStats.sets.length - 1].date : 'N/A';
-    const timesCompleted = userStats ? userStats.sets.length : '';
+    const setsArr = Array.isArray(userStats?.sets) ? userStats.sets : [];
+    const lastDone = setsArr.length ? (setsArr[setsArr.length - 1]?.date || 'N/A') : 'N/A';
+    const timesCompleted = setsArr.length ? setsArr.length : '';
 
     const muscleColors = {
         Chest: '#FFAFB8',
@@ -35,7 +36,7 @@ const ExerciseCard = memo(({ name, muscleGroup, selectExercise, showExerciseInfo
             </View>
             <View style={styles.rightContainer}>
                 <Text style={styles.timesCompleted}>{timesCompleted}</Text>
-                <Pressable onPress={() => showExerciseInfo(name)} style={styles.icon_ctnr}>
+                <Pressable onPress={() => { try { showExerciseInfo?.(name); } catch {} }} style={styles.icon_ctnr}>
                     <Ionicons name="information-circle-outline" size={26} color="#2D9EFF" />
                 </Pressable>
             </View>

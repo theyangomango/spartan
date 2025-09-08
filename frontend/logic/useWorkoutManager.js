@@ -40,23 +40,27 @@ const toMillis = (v) => {
 const sanitizeWorkout = (w) => {
     if (!w) return null;
     const created = toMillis(w.created ?? w.createdAt);
+    const cleanObj = (obj) => Object.fromEntries(Object.entries(obj || {}).filter(([_, v]) => v !== undefined));
     const normalizeSets = (sets) =>
         Array.isArray(sets)
             ? sets.map((s) => ({
-                id: s?.id || undefined,
+                // Never write undefined to Firestore
+                id: (s?.id != null && s?.id !== undefined) ? String(s.id) : null,
                 weight: Number(s?.weight) || 0,
                 reps: Number(s?.reps) || 0,
                 isDone: !!s?.isDone,
-                type: s?.type || null,
+                type: (s?.type != null && s?.type !== undefined) ? s.type : null,
             }))
             : [];
     const exercises = Array.isArray(w.exercises)
-        ? w.exercises.map((ex) => ({ ...ex, sets: normalizeSets(ex?.sets) }))
+        ? w.exercises.map((ex) => cleanObj({ ...ex, sets: normalizeSets(ex?.sets) }))
         : [];
     // Strip ephemeral local-only flags
     const { __justStarted, ...rest } = w;
+    // Remove undefined at the top level to satisfy Firestore
+    const restClean = cleanObj(rest);
     return {
-        ...rest,
+        ...restClean,
         created,
         exercises,
         volume: Number(w?.volume) || 0,
@@ -638,35 +642,51 @@ export default function useWorkoutManager({ uid, navigation, millisToHMS }) {
                     // Defer heavy stats delta + hexagon until after the summary closes to avoid jank
                     pendingHeavyRef.current = () => { try { scheduleHeavy(); } catch {} };
 
-                    // After close: append raw set history (best-effort) with full isolation from UI
-                    const appendSetsHistory = () => {
-                        // append raw set history only
+                    // Locally reflect raw set history immediately for UI; persist via CF after
+                    const applyLocalSetsHistory = () => {
                         try {
                             const prevStats2 = (global?.userData?.statsExercises || {});
                             const today2 = (() => { const d = new Date(); d.setHours(0,0,0,0); return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`; })();
-                            const updateFieldsFull = {}; const mergePayloadFull = { statsExercises: {} };
+                            const nextStats = { ...prevStats2 };
                             for (const ex of (cleanedExercises || [])) {
                                 const name = String(ex?.name || '').trim(); if (!name) continue;
-                                const entryPrev = prevStats2?.[name] || {};
+                                const entryPrev = nextStats?.[name] || {};
                                 const entry = { ...entryPrev };
                                 entry.sets = Array.isArray(entry.sets) ? entry.sets.slice() : [];
                                 for (const s of (ex?.sets || [])) {
                                     const r = Number(s?.reps)||0; const w = Number(s?.weight)||0;
                                     if (r>0 && w>0) entry.sets.push({ weight:w, reps:r, date: today2, wid: completed?.wid || currW?.wid });
                                 }
-                                updateFieldsFull[`statsExercises.${name}`] = entry;
-                                mergePayloadFull.statsExercises[name] = entry;
+                                nextStats[name] = entry;
                             }
-                            if (uid) {
-                                fsUpdateDoc(doc(db, 'users', uid), updateFieldsFull)
-                                  .catch(() => updateDoc('users', uid, mergePayloadFull));
-                            }
-                            try { if (global?.userData) global.userData.statsExercises = { ...(global?.userData?.statsExercises || {}), ...mergePayloadFull.statsExercises }; } catch {}
+                            try { if (global?.userData) global.userData.statsExercises = nextStats; } catch {}
                         } catch {}
                     };
-                    // Chain: first heavy stats delta, then append history
+
+                    // After close: append raw set history directly to Firestore (arrayUnion)
+                    const persistSetsHistory = () => {
+                        try {
+                            if (!uid) return;
+                            const uref = doc(db, 'users', uid);
+                            const today2 = (() => { const d = new Date(); d.setHours(0,0,0,0); return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`; })();
+                            const updateFields = {};
+                            for (const ex of (cleanedExercises || [])) {
+                                const name = String(ex?.name || '').trim(); if (!name) continue;
+                                const payloadSets = [];
+                                for (const s of (Array.isArray(ex?.sets) ? ex.sets : [])) {
+                                    const r = Number(s?.reps)||0; const w = Number(s?.weight)||0; if (r>0 && w>0) payloadSets.push({ weight:w, reps:r, date: today2, wid: completed?.wid || currW?.wid });
+                                }
+                                if (payloadSets.length) updateFields[`statsExercises.${name}.sets`] = arrayUnion(...payloadSets);
+                            }
+                            if (Object.keys(updateFields).length) fsUpdateDoc(uref, updateFields).catch(() => updateDoc('users', uid, updateFields));
+                        } catch {}
+                    };
+                    // Immediate local sets for UI responsiveness
+                    try { applyLocalSetsHistory(); } catch {}
+
+                    // Chain: first heavy stats delta, then persist sets history
                     const prevPending = pendingHeavyRef.current;
-                    pendingHeavyRef.current = () => { try { prevPending?.(); } catch {}; try { appendSetsHistory(); } catch {} };
+                    pendingHeavyRef.current = () => { try { prevPending?.(); } catch {}; try { persistSetsHistory(); } catch {} };
                 } catch {}
             }
 

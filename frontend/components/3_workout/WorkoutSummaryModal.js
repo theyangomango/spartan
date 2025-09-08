@@ -106,11 +106,11 @@ const WorkoutSummaryModal = ({ isVisible, workout, onClose, postWorkout }) => {
                     <Text style={styles.exerciseName} numberOfLines={1} ellipsizeMode="tail">
                         {`${item.sets?.length || 0} x ${item.name}`}
                     </Text>
-                    {!!item.muscle && (
+                    {/* {!!item.muscle && (
                         <View style={[styles.muscleChip, { backgroundColor: chipColor }]}>
                             <Text style={styles.muscleChipText}>{item.muscle}</Text>
                         </View>
-                    )}
+                    )} */}
                 </View>
                 <View style={styles.rowRight}>
                     {top ? (

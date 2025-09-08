@@ -2,7 +2,7 @@ import React, { useCallback } from 'react';
 import { FlatList } from 'react-native';
 import ExerciseCard from './ExerciseCard';
 
-const ExercisesFlatlist = React.memo(({ exercises, selectExercise, deselectExercise }) => {
+const ExercisesFlatlist = React.memo(({ exercises = [], selectExercise, deselectExercise }) => {
     const renderItem = useCallback(({ item }) => (
         <ExerciseCard
             name={item.name}
@@ -15,7 +15,7 @@ const ExercisesFlatlist = React.memo(({ exercises, selectExercise, deselectExerc
 
     return (
         <FlatList
-            data={exercises}
+            data={Array.isArray(exercises) ? exercises : []}
             keyExtractor={(item, index) => String(item?.name || index)}
             renderItem={renderItem}
             initialNumToRender={14}
