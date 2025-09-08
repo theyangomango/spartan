@@ -22,12 +22,5 @@
         "image": "latest"
       }
     }
-  },
-  "submit": {
-        "production": {
-            "ios": {
-                "image": "latest"
-            }
-        }
   }
 }
