@@ -140,7 +140,16 @@ const NewWorkoutModal = ({
             : (friendUidFromWorkout && friendUidFromWorkout !== meUid ? friendUidFromWorkout : meUid));
 
     // Gate heavy live streaming until user explicitly opens group menu or we lock to a friend
-    const [liveEnabled, setLiveEnabled] = useState(false);
+    // If a one-shot global flag matches this wid (set on invite accept), enable live immediately
+    const initialLiveEnable = useMemo(() => {
+        try { return !!(global && global.__enableLiveForWid && String(global.__enableLiveForWid) === cardWid); }
+        catch { return false; }
+    }, [cardWid]);
+    const [liveEnabled, setLiveEnabled] = useState(initialLiveEnable);
+    useEffect(() => {
+        if (!initialLiveEnable) return;
+        try { if (global.__enableLiveForWid === cardWid) global.__enableLiveForWid = null; } catch {}
+    }, [initialLiveEnable, cardWid]);
 
     const {
         viewing,

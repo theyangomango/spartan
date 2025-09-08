@@ -750,6 +750,8 @@ export default function useWorkoutManager({ uid, navigation, millisToHMS }) {
             startTimer(createdForTimer);
             try { global.isCurrentlyWorkingOut = true; } catch {}
             try { if (global?.userData) global.userData.currentWorkout = localJoined; } catch { }
+            // Signal NewWorkoutModal to enable live streaming/presence immediately for this wid
+            try { global.__enableLiveForWid = String(wid); } catch {}
 
             // Persist to user doc
             try {
@@ -757,6 +759,23 @@ export default function useWorkoutManager({ uid, navigation, millisToHMS }) {
             } catch (e) {
                 console.log("joinExternalWorkout: set currentWorkout error", e);
                 try { await updateDoc("users", me, { currentWorkout: joined }); } catch { }
+            }
+
+            // Auto-publish presence right away (best-effort); ongoing lifecycle handled by NewWorkoutModal hook
+            try {
+                await setDoc(
+                    doc(db, "workouts", String(wid), "live", String(me)),
+                    {
+                        uid: String(me),
+                        handle: global?.userData?.handle || "",
+                        image: global?.userData?.image || global?.userData?.pfp || global?.userData?.photoURL || "",
+                        pfpVersion: global?.userData?.pfpVersion || 0,
+                        updatedAt: serverTimestamp(),
+                    },
+                    { merge: true }
+                );
+            } catch (e) {
+                // non-fatal; the hook will publish soon after
             }
         } catch (e) {
             console.log("joinExternalWorkout error", e);
