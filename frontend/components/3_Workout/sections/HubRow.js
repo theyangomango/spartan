@@ -61,8 +61,8 @@ function HubRowCmp({
                 <View style={styles.ringWrap}>
                     {afterPaint ? (
                         <AnimatedCircularProgress
-                            size={ss(140)}
-                            width={13}
+                            size={ss(132)}
+                            width={11}
                             fill={safeFill}
                             tintColor="#6FB8FF"
                             backgroundColor="#E2E8F0"
@@ -160,7 +160,8 @@ const styles = StyleSheet.create({
     chevronLeft: { color: "#94A3B8", fontSize: 18, lineHeight: 18, includeFontPadding: false },
 
     ringWrap: { alignItems: "center", justifyContent: "center", marginTop: scaleSize(5) },
-    ringCenter: { alignItems: "center", justifyContent: "center" },
-    kcalValue: { color: "#0F172A", fontSize: ss(26), fontFamily: "Outfit_800ExtraBold", marginTop: -3, letterSpacing: 0.2 },
-    kcalSub: { color: "#64748B", fontSize: ss(12.5), fontFamily: "Outfit_600SemiBold" },
+    ringCenter: { alignItems: "center", justifyContent: "center", marginTop: 2 },
+    // Match NutritionSummaryCard exactly: fonts, sizes, colors
+    kcalValue: { color: "#0F172A", fontSize: 24, fontFamily: "Nunito_800ExtraBold", marginBottom: -2.5 },
+    kcalSub: { color: "#64748B", fontSize: 12, fontFamily: "Nunito_700Bold", marginBottom: 4 },
 });

@@ -38,7 +38,7 @@ const COLORS = {
     ringTint: '#6FB8FF',
     ringBg: '#E2E8F0',
     chipBg: '#EEF2FF',
-    addBtnBg: '#E7F0FF',
+    addBtnBg: '#dbe8ffb0',
     protein: '#A5B4FC',
     carbs: '#F9A8D4',
     fat: '#FCD5A5',
@@ -316,7 +316,7 @@ export default function MacroTracking({ navigation, route }) {
                     <View style={styles.sectionHeaderRow}>
                         <Text style={[styles.sectionTitle, styles.sectionTitleNoMargin]}>Nutrition</Text>
                         <Pressable style={styles.editGoalsPill} onPress={openGoalsSheet} hitSlop={8}>
-                            <Ionicons name="settings-outline" size={14} color={COLORS.text} />
+                            <Ionicons name="settings-outline" size={15} color={'#3e9effff'} />
                             <Text style={styles.editGoalsText}>Edit Goals</Text>
                         </Pressable>
                     </View>
@@ -379,7 +379,7 @@ const styles = StyleSheet.create({
         flexDirection: 'row',
         alignItems: 'center',
         justifyContent: 'space-between',
-        marginBottom: 8,
+        marginBottom: 6,
     },
     sectionTitleNoMargin: { marginLeft: 0 },
     body: { backgroundColor: COLORS.bg },
@@ -395,10 +395,12 @@ const styles = StyleSheet.create({
         flexDirection: 'row',
         gap: 6,
         alignItems: 'center',
-        backgroundColor: '#d7e0f6b6',
-        paddingHorizontal: 10,
+        backgroundColor: COLORS.addBtnBg || '#E7F0FF',
+        paddingHorizontal: 12,
         paddingVertical: 7,
         borderRadius: 999,
+        borderWidth: StyleSheet.hairlineWidth,
+        borderColor: COLORS.ringTint ? `${COLORS.ringTint}80` : 'rgba(111,184,255,0.5)',
     },
-    editGoalsText: { fontFamily: 'Outfit_600SemiBold', color: COLORS.text, fontSize: 12.5 },
+    editGoalsText: { fontFamily: 'Outfit_700Bold',color: '#3e9effca', fontSize: 13 },
 });

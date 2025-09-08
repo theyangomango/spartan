@@ -16,10 +16,10 @@ const MacroBar = ({ label, value, goal, color, textPrimary, textSecondary }) => 
                     marginTop: 4,
                 }}
             >
-                <Text style={{ fontFamily: 'Outfit_600SemiBold', color: textPrimary, fontSize: 13.5 }}>
+                <Text style={{ fontFamily: 'Outfit_600SemiBold', color: textPrimary, fontSize: 13 }}>
                     {label}
                 </Text>
-                <Text style={{ fontFamily: 'Outfit_500Medium', color: textSecondary, fontSize: 12.5 }}>
+                <Text style={{ fontFamily: 'Outfit_500Medium', color: textSecondary, fontSize: 13 }}>
                     {value} / {goal}g
                 </Text>
             </View>

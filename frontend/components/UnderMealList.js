@@ -98,9 +98,9 @@ const styles = StyleSheet.create({
     cardCompact: { paddingVertical: 6 },
     row: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', minHeight: 28 },
     textCol: { flex: 1, justifyContent: 'center' },
-    name: { fontSize: 13, fontFamily: 'Nunito_700Bold', marginBottom: 2, flexShrink: 1, paddingRight: 20 },
-    cals: { fontSize: 15, fontFamily: 'Outfit_700Bold' },
-    summary: { fontSize: 13, fontFamily: 'Nunito_600SemiBold' },
+    name: { fontSize: 12.5, fontFamily: 'Nunito_700Bold', marginBottom: 2, flexShrink: 1, paddingRight: 20 },
+    cals: { fontSize: 14, fontFamily: 'Outfit_700Bold' },
+    summary: { fontSize: 12, fontFamily: 'Nunito_600SemiBold' },
     actionsContainer: { justifyContent: 'center', alignItems: 'flex-end', marginVertical: 2 },
     deleteBtn: {
         width: 88,

@@ -11,8 +11,8 @@ export default function NutritionSummaryCard({ totals, goals, COLORS }) {
             <View style={styles.row}>
                 <View style={styles.progressContainer}>
                     <AnimatedCircularProgress
-                        size={138}
-                        width={12}
+                        size={132}
+                        width={11}
                         fill={progress}
                         tintColor={COLORS.ringTint}
                         backgroundColor={COLORS.ringBg}
@@ -42,27 +42,26 @@ export default function NutritionSummaryCard({ totals, goals, COLORS }) {
 
 const makeStyles = (COLORS) =>
     StyleSheet.create({
+        // Full-width row style to match meals
         card: {
             backgroundColor: COLORS.card,
-            borderRadius: 24,
-            paddingTop: 16,
-            paddingBottom: 16,
-            paddingLeft: 18,
-            paddingRight: 18,
-            marginBottom: 18,
-            marginHorizontal: 16,
-            shadowColor: '#000',
-            shadowOffset: { width: 0, height: 4 },
-            shadowOpacity: 0.04,
-            shadowRadius: 10,
-            elevation: 2,
-            borderWidth: StyleSheet.hairlineWidth,
+            borderRadius: 0,
+            paddingTop: 18,
+            paddingBottom: 10,
+            paddingLeft: 26,
+            paddingRight: 26,
+            marginHorizontal: 0,
+            marginBottom: 8,
+            borderTopWidth: StyleSheet.hairlineWidth,
+            borderBottomWidth: StyleSheet.hairlineWidth,
             borderColor: COLORS.hairline,
+            shadowOpacity: 0,
+            elevation: 0,
         },
         row: { flexDirection: 'row', gap: 18 },
         progressContainer: { paddingRight: 6 },
         center: { alignItems: 'center', justifyContent: 'center', marginTop: 2 },
-        value: { fontSize: 26, color: COLORS.text, fontFamily: 'Outfit_700Bold', marginBottom: -2.5 },
-        subtitle: { fontSize: 12.5, color: COLORS.subtext, fontFamily: 'Outfit_500Medium', marginBottom: 4 },
+        value: { fontSize: 23, color: COLORS.text, fontFamily: 'Nunito_800ExtraBold', marginBottom: -1.5 },
+        subtitle: { fontSize: 12, color: COLORS.subtext, fontFamily: 'Nunito_700Bold', marginBottom: 4 },
         macroSummary: { flex: 1, paddingTop: 2 },
     });
