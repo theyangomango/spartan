@@ -1,5 +1,5 @@
-import React, { useState } from "react";
-import { StyleSheet, View, ScrollView, Text, TouchableOpacity, Image, TextInput, Pressable, SafeAreaView, Dimensions } from "react-native";
+import React, { useCallback, useMemo, useRef, useState } from "react";
+import { StyleSheet, View, ScrollView, Text, TouchableOpacity, Image, TextInput, Pressable, SafeAreaView, Dimensions, FlatList } from "react-native";
 import { FontAwesome6, AntDesign } from '@expo/vector-icons';
 import { Location, Weight } from 'iconsax-react-native';
 import { Feather } from '@expo/vector-icons';
@@ -10,8 +10,11 @@ import * as ImageManipulator from 'expo-image-manipulator';
 import createPost from "../../../../backend/posts/createPost";
 import arrayAppend from "../../../../backend/helper/firebase/arrayAppend";
 import formatDate from '../../../helper/formatDate';
+import { toMillis } from "../../../utils/friends";
 import { compressUnder250KB } from "./compressUnder250KB";
 import PostHonestyModal from "./PostHonestyModal";
+import BottomSheet, { BottomSheetBackdrop } from "@gorhom/bottom-sheet";
+import WorkoutHistoryCard from "../ProfileBottom/History/WorkoutHistoryCard";
 
 const { width: screenWidth, height: screenHeight } = Dimensions.get('window');
 const scale = screenWidth / 375; // Assuming a base screen width of 375 (like iPhone X)
@@ -26,6 +29,21 @@ export default function PostOptionsScreen({ navigation, route }) {
     const [caption, setCaption] = useState('');
     const [isSharing, setIsSharing] = useState(false); // New state for tracking share progress
     const [honestyVisible, setHonestyVisible] = useState(false);
+    const [selectedWorkout, setSelectedWorkout] = useState(workout || null);
+    const workoutSheetRef = useRef(null);
+    const workoutList = useMemo(() => (Array.isArray(global?.userData?.completedWorkouts) ? global.userData.completedWorkouts : []), [(global?.userData?.completedWorkouts || []).length]);
+    const snapPoints = useMemo(() => ["94%"], []);
+    const renderBackdrop = useCallback(
+        (props) => (
+            <BottomSheetBackdrop
+                {...props}
+                disappearsOnIndex={-1}
+                appearsOnIndex={0}
+                opacity={0.6}
+            />
+        ),
+        []
+    );
 
     function goBack() {
         navigation.goBack();
@@ -69,7 +87,7 @@ export default function PostOptionsScreen({ navigation, route }) {
 
         // Convert to media objects expected by feed renderer
         const media = downloadedImageURLs.map((url) => ({ uri: url, type: 'image' }));
-        createPost(global.userData.uid, global.userData.handle, global.userData.image, caption, media, pid, workout);
+        createPost(global.userData.uid, global.userData.handle, global.userData.image, caption, media, pid, selectedWorkout);
         arrayAppend('users', global.userData.uid, 'posts', pid);
         await arrayAppend('global', 'posts', 'PIDs', pid);
         try {
@@ -121,15 +139,17 @@ export default function PostOptionsScreen({ navigation, route }) {
                     </View>
                 </View>
 
-                <Pressable>
+                <Pressable onPress={() => workoutSheetRef.current?.expand?.()}>
                     <View style={[styles.btn_ctnr, styles.top_btn_ctnr]}>
                         <View style={styles.btn_left}>
                             <View style={[styles.btn_icon_ctnr, styles.workout_icon_ctnr]}>
                                 <Weight size={scaleSize(25)} color="#0699FF" />
                             </View>
-                            <Text style={[styles.btn_text, workout ? styles.dark_text : {}]}>
+                            <Text style={[styles.btn_text, selectedWorkout ? styles.dark_text : {}]}>
                                 {
-                                    workout ? formatDate(new Date(workout.created)) + " Workout" : "Add Workout"
+                                    selectedWorkout
+                                        ? `${formatDate(new Date(toMillis(selectedWorkout?.created ?? selectedWorkout?.createdAt))) } Workout`
+                                        : "Add Workout"
                                 }
                             </Text>
                         </View>
@@ -139,34 +159,37 @@ export default function PostOptionsScreen({ navigation, route }) {
                     </View>
                 </Pressable>
 
-
-                <Pressable>
-                    <View style={styles.btn_ctnr}>
-                        <View style={styles.btn_left}>
-                            <View style={[styles.btn_icon_ctnr, styles.user_icon_ctnr]}>
-                                <Feather name="user" size={scaleSize(22)} color={'#0699FF'} />
+                {/* Tagging and location are not part of this version */}
+                {false && (
+                    <Pressable>
+                        <View style={styles.btn_ctnr}>
+                            <View style={styles.btn_left}>
+                                <View style={[styles.btn_icon_ctnr, styles.user_icon_ctnr]}>
+                                    <Feather name="user" size={scaleSize(22)} color={'#0699FF'} />
+                                </View>
+                                <Text style={styles.btn_text}>Tag People</Text>
                             </View>
-                            <Text style={styles.btn_text}>Tag People</Text>
-                        </View>
-                        <View style={styles.right_icon_ctnr}>
-                            <FontAwesome6 name='chevron-right' size={scaleSize(15)} color="#444" />
-                        </View>
-                    </View>
-                </Pressable>
-
-                <Pressable>
-                    <View style={styles.btn_ctnr}>
-                        <View style={styles.btn_left}>
-                            <View style={[styles.btn_icon_ctnr, styles.location_icon_ctnr]}>
-                                <Location size={scaleSize(22)} color={'#0699FF'} />
+                            <View style={styles.right_icon_ctnr}>
+                                <FontAwesome6 name='chevron-right' size={scaleSize(15)} color="#444" />
                             </View>
-                            <Text style={styles.btn_text}>Add Location</Text>
                         </View>
-                        <View style={styles.right_icon_ctnr}>
-                            <FontAwesome6 name='chevron-right' size={scaleSize(15)} color="#444" />
+                    </Pressable>
+                )}
+                {false && (
+                    <Pressable>
+                        <View style={styles.btn_ctnr}>
+                            <View style={styles.btn_left}>
+                                <View style={[styles.btn_icon_ctnr, styles.location_icon_ctnr]}>
+                                    <Location size={scaleSize(22)} color={'#0699FF'} />
+                                </View>
+                                <Text style={styles.btn_text}>Add Location</Text>
+                            </View>
+                            <View style={styles.right_icon_ctnr}>
+                                <FontAwesome6 name='chevron-right' size={scaleSize(15)} color="#444" />
+                            </View>
                         </View>
-                    </View>
-                </Pressable>
+                    </Pressable>
+                )}
 
             </ScrollView>
 
@@ -175,6 +198,40 @@ export default function PostOptionsScreen({ navigation, route }) {
                 onCancel={() => setHonestyVisible(false)}
                 onConfirm={() => { setHonestyVisible(false); sharePost(); }}
             />
+
+            {/* Bottom sheet: Select a past workout to attach */}
+            <View style={styles.bottomSheetOuter} pointerEvents="box-none">
+                <BottomSheet
+                    ref={workoutSheetRef}
+                    index={-1}
+                    snapPoints={snapPoints}
+                    enablePanDownToClose
+                    backdropComponent={renderBackdrop}
+                    handleIndicatorStyle={styles.handleIndicator}
+                    backgroundStyle={styles.bottomSheetBackground}
+                >
+                    <View style={styles.sheetHeader}>
+                        <Text style={styles.sheetTitle}>Your Workouts</Text>
+                        {selectedWorkout && (
+                            <TouchableOpacity onPress={() => setSelectedWorkout(null)}>
+                                <Text style={styles.clearAttach}>Remove</Text>
+                            </TouchableOpacity>
+                        )}
+                    </View>
+                    <FlatList
+                        data={workoutList}
+                        keyExtractor={(item, index) => index.toString()}
+                        renderItem={({ item }) => (
+                            <Pressable onPress={() => { setSelectedWorkout(item); workoutSheetRef.current?.close?.(); }}>
+                                <WorkoutHistoryCard workout={item} />
+                            </Pressable>
+                        )}
+                        contentContainerStyle={{ paddingBottom: scaleSize(20) }}
+                        ListEmptyComponent={<Text style={styles.emptyText}>No workouts yet</Text>}
+                        initialNumToRender={5}
+                    />
+                </BottomSheet>
+            </View>
         </View>
     );
 }
@@ -289,5 +346,48 @@ const styles = StyleSheet.create({
     right_icon_ctnr: {
         paddingHorizontal: scaleSize(8),
         justifyContent: 'center'
+    },
+    // Bottom sheet styles
+    bottomSheetOuter: {
+        position: 'absolute',
+        top: 0,
+        bottom: 0,
+        left: 0,
+        right: 0,
+        zIndex: 100,
+    },
+    handleIndicator: {
+        backgroundColor: '#C8D5E6',
+        width: scaleSize(44),
+        height: scaleSize(5),
+        borderRadius: scaleSize(3),
+    },
+    bottomSheetBackground: {
+        borderTopLeftRadius: scaleSize(25),
+        borderTopRightRadius: scaleSize(25),
+    },
+    sheetHeader: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        paddingHorizontal: scaleSize(18),
+        paddingTop: scaleSize(10),
+        paddingBottom: scaleSize(6),
+    },
+    sheetTitle: {
+        fontFamily: 'Outfit_700Bold',
+        fontSize: scaleSize(16),
+        color: '#0F172A',
+    },
+    clearAttach: {
+        fontFamily: 'Outfit_600SemiBold',
+        fontSize: scaleSize(13),
+        color: '#0699FF',
+    },
+    emptyText: {
+        textAlign: 'center',
+        color: '#64748B',
+        fontFamily: 'Outfit_500Medium',
+        paddingVertical: scaleSize(20),
     }
 });
