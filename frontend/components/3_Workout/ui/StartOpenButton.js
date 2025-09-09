@@ -131,21 +131,28 @@ function HoldRing({ progress }) {
     const r = (size - 6) / 2; // account for stroke width
     const c = 2 * Math.PI * r;
 
+    // Progress arc animates its dash offset
     const animatedProps = useAnimatedProps(() => ({
         strokeDashoffset: c * (1 - progress.value),
+    }));
+
+    // Hide the background track entirely until the ring begins animating
+    const trackAnimatedProps = useAnimatedProps(() => ({
+        opacity: progress.value > 0 ? 1 : 0,
     }));
 
     return (
         <View style={styles.holdRing} pointerEvents="none">
             <Svg width={size} height={size} viewBox={`0 0 ${size} ${size}`}>
-                {/* background track */}
-                <Circle
+                {/* background track (hidden when not animating) */}
+                <AnimatedCircle
                     cx={size / 2}
                     cy={size / 2}
                     r={r}
                     strokeWidth={6}
                     stroke="rgba(2,6,23,0.12)"
                     fill="none"
+                    animatedProps={trackAnimatedProps}
                 />
                 {/* progress arc */}
                 <AnimatedCircle

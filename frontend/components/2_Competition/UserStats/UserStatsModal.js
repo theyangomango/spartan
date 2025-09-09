@@ -234,17 +234,20 @@ export default function UserStatsModal({ user, toViewProfile, hexOverlay, hexPro
                     </View>
                 </Pressable>
 
-                <View style={styles.scorePill}>
-                    <Text style={styles.scorePillLabel}>OVR</Text>
-                    {ovrChanged ? (
-                        <View style={styles.ovrRow}>
-                            <Text style={styles.scorePillPrev}>{prevOverall}</Text>
-                            <Text style={styles.scorePillArrow}>{'  →  '}</Text>
-                            <Text style={styles.scorePillNew}>{overall}</Text>
-                        </View>
-                    ) : (
-                        <Text style={styles.scorePillValue}>{overall}</Text>
-                    )}
+                <View style={styles.ovrGlowWrap}>
+                    <View pointerEvents="none" style={styles.ovrGlow} />
+                    <View style={styles.scorePill}>
+                        <Text style={styles.scorePillLabel}>OVR</Text>
+                        {ovrChanged ? (
+                            <View style={styles.ovrRow}>
+                                <Text style={styles.scorePillPrev}>{prevOverall}</Text>
+                                <Text style={styles.scorePillArrow}>{'  →  '}</Text>
+                                <Text style={styles.scorePillNew}>{overall}</Text>
+                            </View>
+                        ) : (
+                            <Text style={styles.scorePillValue}>{overall}</Text>
+                        )}
+                    </View>
                 </View>
             </View>
 
@@ -414,6 +417,16 @@ const styles = StyleSheet.create({
     },
 
     // OVR pill
+    ovrGlowWrap: { position: 'relative', alignItems: 'center', justifyContent: 'center' },
+    ovrGlow: {
+        ...StyleSheet.absoluteFillObject,
+        borderRadius: scaledSize(999),
+        backgroundColor: 'transparent',
+        shadowColor: '#FFFFFF',
+        shadowOpacity: 0.42,
+        shadowRadius: scaledSize(12),
+        shadowOffset: { width: 0, height: 0 },
+    },
     scorePill: {
         flexDirection: "row",
         alignItems: "baseline",

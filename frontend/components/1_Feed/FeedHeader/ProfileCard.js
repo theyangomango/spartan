@@ -50,7 +50,8 @@ const styles = StyleSheet.create({
     paddingHorizontal: 18,
   },
   profileLeft: { flexDirection: 'row', alignItems: 'center', flex: 1, minWidth: 0 },
-  avatarRing: { alignItems: 'center', justifyContent: 'center', borderWidth: 2, borderColor: 'rgba(4,153,254,0.25)', backgroundColor: '#0B1220' },
+  // Remove blue border ring; keep container for centering only
+  avatarRing: { alignItems: 'center', justifyContent: 'center', borderWidth: 0, borderColor: 'transparent', backgroundColor: 'transparent' },
   cardHandle: { fontFamily: 'Outfit_700Bold', fontSize: 14, color: '#E5E7EB' },
   cardName: { marginTop: 2, fontFamily: 'Outfit_400Regular', fontSize: 12.5, color: '#A1A7B3' },
 });

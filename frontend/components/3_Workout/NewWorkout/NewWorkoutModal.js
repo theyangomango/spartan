@@ -798,8 +798,9 @@ const NewWorkoutModal = ({
                 <Pressable style={styles.modalOverlay} onPress={() => setReminderVisible(false)}>
                     <BlurView style={StyleSheet.absoluteFill} intensity={28} tint="dark" />
                     <LinearGradient
-                        // Slightly lighter gradient for the reminder card
-                        colors={["#93C5FD", "#6EE7B7"]}
+                        // Slightly more contrasted blue→mint gradient for the reminder card
+                        colors={["#60A5FA", "#2D9EFF", "#5EEAD4"]}
+                        locations={[0, 0.55, 1]}
                         start={{ x: 0, y: 0 }}
                         end={{ x: 1, y: 1 }}
                         style={styles.reminderWrapper}

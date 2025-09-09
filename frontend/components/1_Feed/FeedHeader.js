@@ -695,7 +695,8 @@ const styles = StyleSheet.create({
 
     profileCard: { width: "100%", flexDirection: "row", alignItems: "center", backgroundColor: theme.bg, paddingVertical: s(12), paddingHorizontal: s(18) },
     profileLeft: { flexDirection: "row", alignItems: "center", flex: 1, minWidth: 0 },
-    avatarRing: { alignItems: "center", justifyContent: "center", borderWidth: 2.5, borderColor: theme.primary, backgroundColor: '#1A2230' },
+    // Remove blue ring around avatars in profile cards
+    avatarRing: { alignItems: "center", justifyContent: "center", borderWidth: 0, borderColor: 'transparent', backgroundColor: 'transparent' },
 
     cardHandle: { fontFamily: "Nunito_800ExtraBold", fontSize: s(13.5), color: theme.textPrimary },
     cardHandleHighlight: { color: theme.textPrimary },

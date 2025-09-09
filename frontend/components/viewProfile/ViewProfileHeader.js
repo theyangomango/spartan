@@ -1,5 +1,6 @@
 import { StyleSheet, View, Text, Dimensions } from "react-native";
 import { Feather } from '@expo/vector-icons';
+import { Send2 } from 'iconsax-react-native';
 import RNBounceable from "@freakycoder/react-native-bounceable";
 import theme from "../../theme/mfpDark";
 
@@ -26,7 +27,7 @@ export default function ViewProfileHeader({ handle, goBack, toMessages }) {
             <View style={styles.sideRight}>
                 <RNBounceable onPress={toMessages} hitSlop={10}>
                     <View style={styles.message_icon_btn}>
-                        <Feather name="send" size={scaleSize(15)} color={theme.primary} />
+                        <Send2 size={scaleSize(18)} color={theme.textSecondary} variant="Linear" />
                     </View>
                 </RNBounceable>
             </View>
@@ -66,18 +67,15 @@ const styles = StyleSheet.create({
         justifyContent: 'center',
     },
     message_icon_btn: {
-        width: scaleSize(29),
-        height: scaleSize(29),
-        borderRadius: scaleSize(28),
-        backgroundColor: theme.field,
+        width: scaleSize(24),
+        height: scaleSize(24),
+        borderRadius: scaleSize(6),
+        backgroundColor: 'transparent',
         borderWidth: scaleSize(1),
         borderColor: theme.hairline,
         alignItems: 'center',
         justifyContent: 'center',
-        shadowColor: '#000',
-        shadowOpacity: 0.07,
-        shadowOffset: { width: 0, height: scaleSize(1) },
-        shadowRadius: scaleSize(2),
-        elevation: 2,
+        shadowColor: 'transparent',
+        elevation: 0,
     }
 });

@@ -93,15 +93,18 @@ export default function UserStatsAfterWorkoutModal({ isVisible, fromStats, toSta
                 <Text style={styles.subHandle}>Updated just now</Text>
               </View>
             </View>
-            <View style={styles.scorePill}>
-              <Text style={styles.scorePillLabel}>OVR</Text>
-              <View style={{ height: ss(18), minWidth: ss(20), justifyContent:'center' }}>
-                <Animated.Text style={[styles.scorePillValue, { opacity: anim.interpolate({ inputRange:[0,0.6,1], outputRange:[1,0,0] }), transform:[{ translateY: anim.interpolate({ inputRange:[0,1], outputRange:[0,-8] }) }] }]}>
-                  {Number(fromStats?.overall || 0)}
-                </Animated.Text>
-                <Animated.Text style={[styles.scorePillValue, { position:'absolute', left:0, right:0, textAlign:'right', opacity: anim.interpolate({ inputRange:[0,0.4,1], outputRange:[0,0,1] }), transform:[{ translateY: anim.interpolate({ inputRange:[0,1], outputRange:[8,0] }) }] }]}>
-                  {Number(toStats?.overall || 0)}
-                </Animated.Text>
+            <View style={styles.ovrGlowWrap}>
+              <View pointerEvents="none" style={styles.ovrGlow} />
+              <View style={styles.scorePill}>
+                <Text style={styles.scorePillLabel}>OVR</Text>
+                <View style={{ height: ss(18), minWidth: ss(20), justifyContent:'center' }}>
+                  <Animated.Text style={[styles.scorePillValue, { opacity: anim.interpolate({ inputRange:[0,0.6,1], outputRange:[1,0,0] }), transform:[{ translateY: anim.interpolate({ inputRange:[0,1], outputRange:[0,-8] }) }] }]}>
+                    {Number(fromStats?.overall || 0)}
+                  </Animated.Text>
+                  <Animated.Text style={[styles.scorePillValue, { position:'absolute', left:0, right:0, textAlign:'right', opacity: anim.interpolate({ inputRange:[0,0.4,1], outputRange:[0,0,1] }), transform:[{ translateY: anim.interpolate({ inputRange:[0,1], outputRange:[8,0] }) }] }]}>
+                    {Number(toStats?.overall || 0)}
+                  </Animated.Text>
+                </View>
               </View>
             </View>
           </View>
@@ -171,6 +174,16 @@ const styles = StyleSheet.create({
   pfp: { width:ss(38), height:ss(38), borderRadius:ss(19), backgroundColor:'#e8eef7', marginRight:ss(10) },
   handle: { fontSize:ss(16), fontFamily:'Outfit_600SemiBold', color:'#EAEAEA' },
   subHandle: { marginTop:ss(2), fontSize:ss(11), fontFamily:'Outfit_400Regular', color:'#AEB5C0' },
+  ovrGlowWrap: { position:'relative', alignItems:'center', justifyContent:'center' },
+  ovrGlow: {
+    position:'absolute', left:0, right:0, top:0, bottom:0,
+    borderRadius:ss(999),
+    backgroundColor:'transparent',
+    shadowColor:'#FFFFFF',
+    shadowOpacity:0.42,
+    shadowRadius:ss(12),
+    shadowOffset:{ width:0, height:0 }
+  },
   scorePill: { 
     flexDirection:'row', 
     alignItems:'baseline', 
