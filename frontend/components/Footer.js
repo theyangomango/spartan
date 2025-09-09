@@ -8,7 +8,8 @@ import theme from '../theme/mfpDark';
 
 const COLORS = {
     active: theme.textPrimary,
-    inactive: '#95A0B0',
+    // Darker inactive for stronger selected contrast
+    inactive: '#4F5A69',
     // Align indicator + icon with brand primary for dark theme
     workoutActive: theme.primary,
     // Subtle brand-tinted halo for dark surfaces
