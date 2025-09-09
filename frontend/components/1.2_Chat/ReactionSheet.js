@@ -12,11 +12,12 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { BlurView } from "expo-blur";
 import RNBounceable from "@freakycoder/react-native-bounceable";
 import scaleSize from "../../helper/scaleSize";
+import theme from "../../theme/mfpDark";
 
 /** Palette & vibe (matches app) */
-const ACCENT = "#2D9EFF";
-const HAIRLINE = "rgba(255,255,255,0.08)";
-const TEXT = "#E5E7EB";
+const ACCENT = theme.primary;
+const HAIRLINE = theme.hairline;
+const TEXT = theme.textPrimary;
 const GLASS_BG = "rgba(37,39,51,0.92)";
 
 export default function ReactionSheet({
@@ -187,7 +188,7 @@ const styles = StyleSheet.create({
         width: scaleSize(30),
         height: scaleSize(30),
         borderRadius: scaleSize(15),
-        backgroundColor: "#252733",
+        backgroundColor: theme.surface,
         borderWidth: 1,
         borderColor: HAIRLINE,
         alignItems: "center",

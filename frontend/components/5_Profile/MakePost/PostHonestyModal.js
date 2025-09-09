@@ -1,6 +1,7 @@
 import React from 'react';
 import { Modal, View, Text, StyleSheet, Pressable } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import theme from '../../../theme/mfpDark';
 
 export default function PostHonestyModal({ visible, onConfirm, onCancel }) {
     return (
@@ -10,7 +11,7 @@ export default function PostHonestyModal({ visible, onConfirm, onCancel }) {
                 <View style={styles.card}>
                     <View style={styles.iconRow}>
                         <View style={styles.iconWrap}>
-                            <Ionicons name="shield-checkmark" size={22} color="#0699FF" />
+                            <Ionicons name="shield-checkmark" size={22} color={theme.primary} />
                         </View>
                         <Text style={styles.title}>Keep It Honest</Text>
                     </View>
@@ -34,17 +35,16 @@ export default function PostHonestyModal({ visible, onConfirm, onCancel }) {
 const styles = StyleSheet.create({
     backdrop: { flex: 1, backgroundColor: 'rgba(0,0,0,0.35)', alignItems: 'center', justifyContent: 'center' },
     backdropTouchable: { ...StyleSheet.absoluteFillObject },
-    card: { width: '86%', backgroundColor: '#fff', borderRadius: 18, paddingVertical: 16, paddingHorizontal: 16 },
+    card: { width: '86%', backgroundColor: theme.surface, borderRadius: 18, paddingVertical: 16, paddingHorizontal: 16 },
     iconRow: { flexDirection: 'row', alignItems: 'center', marginBottom: 8 },
-    iconWrap: { width: 32, height: 32, borderRadius: 16, backgroundColor: '#E6F4FF', alignItems: 'center', justifyContent: 'center', marginRight: 8 },
-    title: { fontFamily: 'Outfit_600SemiBold', fontSize: 16, color: '#111' },
-    body: { fontFamily: 'Outfit_500Medium', fontSize: 14, color: '#444', lineHeight: 20, marginTop: 4 },
+    iconWrap: { width: 32, height: 32, borderRadius: 16, backgroundColor: theme.field, alignItems: 'center', justifyContent: 'center', marginRight: 8 },
+    title: { fontFamily: 'Outfit_600SemiBold', fontSize: 16, color: theme.textPrimary },
+    body: { fontFamily: 'Outfit_500Medium', fontSize: 14, color: theme.textSecondary, lineHeight: 20, marginTop: 4 },
     btnRow: { flexDirection: 'row', justifyContent: 'flex-end', marginTop: 14, gap: 10 },
     btn: { paddingVertical: 10, paddingHorizontal: 16, borderRadius: 10 },
     btnText: { fontFamily: 'Outfit_600SemiBold', fontSize: 14 },
-    cancel: { backgroundColor: '#F2F2F2' },
-    cancelText: { color: '#444' },
-    confirm: { backgroundColor: '#D3EDFF' },
-    confirmText: { color: '#0699FF' },
+    cancel: { backgroundColor: theme.field },
+    cancelText: { color: theme.textPrimary },
+    confirm: { backgroundColor: theme.primary },
+    confirmText: { color: '#fff' },
 });
-

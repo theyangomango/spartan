@@ -6,6 +6,7 @@ import ProfileCard from '../components/1_Feed/FeedHeader/ProfileCard';
 import { collection, getDocs, orderBy, where, query, limit } from 'firebase/firestore';
 import { db } from '../../firebase.config';
 import getAllUsers from '../helper/getAllUsers';
+import theme from '../theme/mfpDark';
 
 export default function SearchUsers({ navigation }) {
   const insets = useSafeAreaInsets();
@@ -83,14 +84,14 @@ export default function SearchUsers({ navigation }) {
     <SafeAreaView style={[styles.root, { paddingTop: insets.top + 6 }]}> 
       <View style={styles.row}>
         <TouchableOpacity onPress={goBack} style={styles.iconBtn}>
-          <Ionicons name="chevron-back" size={22} color="#334155" />
+          <Ionicons name="chevron-back" size={22} color={theme.textSecondary} />
         </TouchableOpacity>
         <View style={styles.inputWrap}>
-          <Ionicons name="search" size={16} color="#64748B" style={{ marginRight: 8 }} />
+          <Ionicons name="search" size={16} color={theme.textSecondary} style={{ marginRight: 8 }} />
           <TextInput
             style={styles.input}
             placeholder="Search people"
-            placeholderTextColor="#94A3B8"
+            placeholderTextColor={theme.textSecondary}
             value={qStr}
             onChangeText={setQStr}
             autoFocus
@@ -98,7 +99,7 @@ export default function SearchUsers({ navigation }) {
           />
           {qStr.length > 0 && (
             <TouchableOpacity onPress={() => setQStr('')}>
-              <Ionicons name="close" size={18} color="#64748B" />
+              <Ionicons name="close" size={18} color={theme.textSecondary} />
             </TouchableOpacity>
           )}
         </View>
@@ -121,22 +122,22 @@ export default function SearchUsers({ navigation }) {
 }
 
 const styles = StyleSheet.create({
-  root: { flex: 1, backgroundColor: '#F8FAFC' },
+  root: { flex: 1, backgroundColor: theme.bg },
   row: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 16, marginBottom: 12 },
   iconBtn: { padding: 6, marginRight: 8 },
   inputWrap: {
     flex: 1,
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#FFFFFF',
+    backgroundColor: theme.field,
     height: 44,
     borderRadius: 24,
     paddingHorizontal: 12,
     borderWidth: StyleSheet.hairlineWidth,
-    borderColor: 'rgba(15,23,42,0.08)'
+    borderColor: theme.hairline
   },
-  input: { flex: 1, fontSize: 15, color: '#0f172a', fontFamily: 'Outfit_600SemiBold' },
-  sectionTitle: { paddingHorizontal: 16, paddingVertical: 10, fontFamily: 'Outfit_700Bold', color: '#0f172a', fontSize: 14 },
+  input: { flex: 1, fontSize: 15, color: theme.textPrimary, fontFamily: 'Outfit_600SemiBold' },
+  sectionTitle: { paddingHorizontal: 16, paddingVertical: 10, fontFamily: 'Outfit_700Bold', color: theme.textPrimary, fontSize: 14 },
   listContent: { paddingBottom: 30 },
-  sep: { height: StyleSheet.hairlineWidth, backgroundColor: 'rgba(15,23,42,0.08)', marginLeft: 16 },
+  sep: { height: StyleSheet.hairlineWidth, backgroundColor: theme.hairline, marginLeft: 16 },
 });

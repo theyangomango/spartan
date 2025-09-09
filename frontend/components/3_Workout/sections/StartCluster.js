@@ -74,17 +74,17 @@ const styles = StyleSheet.create({
         marginBottom: 10,
     },
     glowWrap: { position: "relative", alignItems: "center", justifyContent: "center" },
-    // layered halos removed – single soft glow only
+    // shadow-only halo hidden beneath the button (no visible ring)
     glow: {
         position: "absolute",
-        width: SMALL_SIZE + 5,
-        height: SMALL_SIZE + 5,
-        borderRadius: (SMALL_SIZE + 8) / 2,
-        backgroundColor: "rgba(255,255,255,0.6)", // brighter white
+        width: SMALL_SIZE * 0.92,
+        height: SMALL_SIZE * 0.92,
+        borderRadius: (SMALL_SIZE * 0.92) / 2,
+        backgroundColor: 'transparent',
         borderWidth: 0,
         shadowColor: "#FFFFFF",
         shadowOpacity: 0.55,
-        shadowRadius: 14,
+        shadowRadius: 12,
         shadowOffset: { width: 0, height: 0 },
         elevation: 0,
     },
@@ -97,10 +97,9 @@ const styles = StyleSheet.create({
         alignItems: "center",
         justifyContent: "center",
         backgroundColor: theme.surface,
-        borderWidth: 1,
-        borderColor: theme.hairline,
+        borderWidth: 0, // remove ring outline
         ...Platform.select({
-            ios: { shadowColor: "#000", shadowOpacity: 0.36, shadowRadius: 14, shadowOffset: { width: 0, height: 8 } },
+            ios: { shadowColor: "#fff", shadowOpacity: 0.35, shadowRadius: 10, shadowOffset: { width: 0, height: 0 } },
             android: { elevation: 3 },
         }),
     },

@@ -2,6 +2,7 @@ import React, { memo, useCallback, useEffect, useMemo, useRef, useState } from "
 import { View, StyleSheet } from "react-native";
 import BottomSheet, { BottomSheetBackdrop } from "@gorhom/bottom-sheet";
 import SettingsScreen from "./SettingsScreen";
+import theme from "../../theme/mfpDark";
 
 const SettingsBottomSheet = ({ settingsBottomSheetExpandFlag }) => {
     const bottomSheetRef = useRef(null);
@@ -33,6 +34,7 @@ const SettingsBottomSheet = ({ settingsBottomSheetExpandFlag }) => {
                 backdropComponent={renderBackdrop}
                 // enablePanDownToClose
                 handleStyle={{ display: 'none' }}
+                backgroundStyle={{ backgroundColor: theme.bg }}
             >
                 <SettingsScreen closeBottomSheet={() => bottomSheetRef.current.close()}/>
             </BottomSheet>

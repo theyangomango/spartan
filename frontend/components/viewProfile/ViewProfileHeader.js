@@ -1,6 +1,7 @@
 import { StyleSheet, View, Text, Dimensions } from "react-native";
 import { Feather } from '@expo/vector-icons';
 import RNBounceable from "@freakycoder/react-native-bounceable";
+import theme from "../../theme/mfpDark";
 
 const { height: SCREEN_HEIGHT } = Dimensions.get('window');
 const scale = SCREEN_HEIGHT / 844; // match Profile header baseline
@@ -14,7 +15,7 @@ export default function ViewProfileHeader({ handle, goBack, toMessages }) {
         <View style={styles.main_ctnr}>
             <View style={styles.sideLeft}>
                 <RNBounceable onPress={goBack} hitSlop={10}>
-                    <Feather name="chevron-left" size={scaleSize(22.5)} color={'#222'} />
+                    <Feather name="chevron-left" size={scaleSize(22.5)} color={theme.primary} />
                 </RNBounceable>
             </View>
 
@@ -25,7 +26,7 @@ export default function ViewProfileHeader({ handle, goBack, toMessages }) {
             <View style={styles.sideRight}>
                 <RNBounceable onPress={toMessages} hitSlop={10}>
                     <View style={styles.message_icon_btn}>
-                        <Feather name="send" size={scaleSize(15)} color={'#3CA5FF'} />
+                        <Feather name="send" size={scaleSize(15)} color={theme.primary} />
                     </View>
                 </RNBounceable>
             </View>
@@ -51,7 +52,7 @@ const styles = StyleSheet.create({
         fontFamily: 'Outfit_600SemiBold',
         fontSize: scaleSize(16),
         padding: scaleSize(2),
-        color: '#666',
+        color: theme.textPrimary,
         maxWidth: '100%'
     },
     sideLeft: {
@@ -68,9 +69,9 @@ const styles = StyleSheet.create({
         width: scaleSize(29),
         height: scaleSize(29),
         borderRadius: scaleSize(28),
-        backgroundColor: '#E8F4FF',
+        backgroundColor: theme.field,
         borderWidth: scaleSize(1),
-        borderColor: 'rgba(60,165,255,0.35)',
+        borderColor: theme.hairline,
         alignItems: 'center',
         justifyContent: 'center',
         shadowColor: '#000',

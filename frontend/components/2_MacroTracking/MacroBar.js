@@ -3,7 +3,10 @@ import React from 'react';
 import { View, Text } from 'react-native';
 
 const MacroBar = ({ label, value, goal, color, textPrimary, textSecondary, trackColor }) => {
-    const progress = Math.min(value / Math.max(1, goal), 1);
+    const progress = Math.min(Math.max(value / Math.max(1, goal), 0), 1);
+    const pct = progress * 100;
+    const widthStyle = pct >= 99.2 ? '100%' : `${pct}%`;
+    const TRACK_H = 10;
 
     return (
         <View style={{ marginBottom: 12 }}>
@@ -26,20 +29,22 @@ const MacroBar = ({ label, value, goal, color, textPrimary, textSecondary, track
 
             <View
                 style={{
-                    height: 8,
-                    borderRadius: 8,
+                    height: TRACK_H,
+                    borderRadius: 999,
                     backgroundColor: trackColor || '#E2E8F0',
                     overflow: 'hidden',
-                    borderWidth: 0.5,
-                    borderColor: trackColor ? 'rgba(255,255,255,0.06)' : 'rgba(2,6,23,0.06)',
+                    borderWidth: 0, // avoid hairline gaps on dark backgrounds
                 }}
             >
                 <View
                     style={{
-                        height: 8,
-                        width: `${progress * 100}%`,
+                        height: '100%',
+                        width: widthStyle,
                         backgroundColor: color,
-                        borderRadius: 8,
+                        borderTopLeftRadius: 999,
+                        borderBottomLeftRadius: 999,
+                        borderTopRightRadius: 999,
+                        borderBottomRightRadius: 999,
                     }}
                 />
             </View>

@@ -427,7 +427,7 @@ export default function Chat({ navigation, route }) {
 
                 {isUploading && (
                     <View style={styles.uploadOverlay} pointerEvents="none">
-                        <ActivityIndicator size="small" color="#fff" />
+                        <ActivityIndicator size="small" color={COLORS.text} />
                     </View>
                 )}
 

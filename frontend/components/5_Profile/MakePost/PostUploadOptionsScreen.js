@@ -15,6 +15,7 @@ import { compressUnder250KB } from "./compressUnder250KB";
 import PostHonestyModal from "./PostHonestyModal";
 import BottomSheet, { BottomSheetBackdrop } from "@gorhom/bottom-sheet";
 import WorkoutHistoryCard from "../ProfileBottom/History/WorkoutHistoryCard";
+import theme from '../../../theme/mfpDark';
 
 const { width: screenWidth, height: screenHeight } = Dimensions.get('window');
 const scale = screenWidth / 375; // Assuming a base screen width of 375 (like iPhone X)
@@ -105,7 +106,7 @@ export default function PostOptionsScreen({ navigation, route }) {
             <SafeAreaView>
                 <View style={styles.header}>
                     <TouchableOpacity onPress={goBack} style={styles.back_icon_ctnr}>
-                        <FontAwesome6 name='chevron-left' size={scaleSize(17)} />
+                        <FontAwesome6 name='chevron-left' size={scaleSize(17)} color={theme.textSecondary} />
                     </TouchableOpacity>
                     <View style={styles.title_text_ctnr}>
                         <Text style={styles.header_text}>New Post</Text>
@@ -131,6 +132,7 @@ export default function PostOptionsScreen({ navigation, route }) {
                     <View style={styles.caption_input_ctnr}>
                         <TextInput
                             placeholder="Write a caption..."
+                            placeholderTextColor={theme.textSecondary}
                             value={caption}
                             onChangeText={setCaption}
                             style={styles.caption_text}
@@ -143,7 +145,7 @@ export default function PostOptionsScreen({ navigation, route }) {
                     <View style={[styles.btn_ctnr, styles.top_btn_ctnr]}>
                         <View style={styles.btn_left}>
                             <View style={[styles.btn_icon_ctnr, styles.workout_icon_ctnr]}>
-                                <Weight size={scaleSize(25)} color="#0699FF" />
+                                <Weight size={scaleSize(25)} color={theme.primary} />
                             </View>
                             <Text style={[styles.btn_text, selectedWorkout ? styles.dark_text : {}]}>
                                 {
@@ -154,7 +156,7 @@ export default function PostOptionsScreen({ navigation, route }) {
                             </Text>
                         </View>
                         <View style={styles.right_icon_ctnr}>
-                            <FontAwesome6 name='chevron-right' size={scaleSize(15)} color="#444" />
+                            <FontAwesome6 name='chevron-right' size={scaleSize(15)} color={theme.textSecondary} />
                         </View>
                     </View>
                 </Pressable>
@@ -165,12 +167,12 @@ export default function PostOptionsScreen({ navigation, route }) {
                         <View style={styles.btn_ctnr}>
                             <View style={styles.btn_left}>
                                 <View style={[styles.btn_icon_ctnr, styles.user_icon_ctnr]}>
-                                    <Feather name="user" size={scaleSize(22)} color={'#0699FF'} />
+                                    <Feather name="user" size={scaleSize(22)} color={theme.primary} />
                                 </View>
                                 <Text style={styles.btn_text}>Tag People</Text>
                             </View>
                             <View style={styles.right_icon_ctnr}>
-                                <FontAwesome6 name='chevron-right' size={scaleSize(15)} color="#444" />
+                                <FontAwesome6 name='chevron-right' size={scaleSize(15)} color={theme.textSecondary} />
                             </View>
                         </View>
                     </Pressable>
@@ -180,12 +182,12 @@ export default function PostOptionsScreen({ navigation, route }) {
                         <View style={styles.btn_ctnr}>
                             <View style={styles.btn_left}>
                                 <View style={[styles.btn_icon_ctnr, styles.location_icon_ctnr]}>
-                                    <Location size={scaleSize(22)} color={'#0699FF'} />
+                                    <Location size={scaleSize(22)} color={theme.primary} />
                                 </View>
                                 <Text style={styles.btn_text}>Add Location</Text>
                             </View>
                             <View style={styles.right_icon_ctnr}>
-                                <FontAwesome6 name='chevron-right' size={scaleSize(15)} color="#444" />
+                                <FontAwesome6 name='chevron-right' size={scaleSize(15)} color={theme.textSecondary} />
                             </View>
                         </View>
                     </Pressable>
@@ -239,13 +241,13 @@ export default function PostOptionsScreen({ navigation, route }) {
 const styles = StyleSheet.create({
     main_ctnr: {
         flex: 1,
-        backgroundColor: '#f3f3f3'
+        backgroundColor: theme.bg
     },
     header: {
         alignItems: 'center',
         paddingHorizontal: scaleSize(12),
         flexDirection: 'row',
-        backgroundColor: '#f3f3f3',
+        backgroundColor: theme.bg,
         paddingTop: scaleSize(2),
         paddingBottom: scaleSize(10)
     },
@@ -261,6 +263,7 @@ const styles = StyleSheet.create({
         fontFamily: 'Outfit_600SemiBold',
         fontSize: scaleSize(16),
         textAlign: 'center',
+        color: theme.textPrimary,
     },
     share_button_ctnr: {
         width: '33.33%',
@@ -270,21 +273,21 @@ const styles = StyleSheet.create({
         width: scaleSize(75),
         height: scaleSize(32),
         borderRadius: scaleSize(12),
-        backgroundColor: '#D3EDFF',
+        backgroundColor: theme.primary,
         justifyContent: 'center',
         alignItems: 'center',
     },
     share_btn_text: {
         fontFamily: 'Outfit_700Bold',
         fontSize: scaleSize(14.5),
-        color: '#0699FF',
+        color: '#fff',
     },
     share_btn_disabled: {
         opacity: 0.5,
     },
     body_scrollview: {
         paddingTop: scaleSize(20),
-        backgroundColor: '#fff'
+        backgroundColor: theme.surface
     },
     post_preview_ctnr: {
         height: scaleSize(100),
@@ -304,30 +307,31 @@ const styles = StyleSheet.create({
     caption_text: {
         fontSize: scaleSize(15),
         fontFamily: 'Outfit_600SemiBold',
+        color: theme.textPrimary,
     },
     btn_ctnr: {
         paddingVertical: scaleSize(4),
         borderBottomWidth: 0.25,
-        borderColor: '#ccc',
+        borderColor: theme.hairline,
         flexDirection: 'row',
         paddingHorizontal: scaleSize(17),
         justifyContent: 'space-between'
     },
     top_btn_ctnr: {
         borderTopWidth: 0.25,
-        borderColor: '#ccc',
+        borderColor: theme.hairline,
     },
     btn_left: {
         flexDirection: 'row'
     },
     btn_text: {
         fontFamily: 'Outfit_500Medium',
-        color: '#888', // Default lighter color
+        color: theme.textSecondary, // Default lighter color
         fontSize: scaleSize(15),
         paddingVertical: scaleSize(7),
     },
     dark_text: {
-        color: '#444', // Darker color when workout is present
+        color: theme.textPrimary, // Darker color when workout is present
         fontFamily: 'Outfit_600SemiBold',
     },
     btn_icon_ctnr: {
@@ -357,7 +361,7 @@ const styles = StyleSheet.create({
         zIndex: 100,
     },
     handleIndicator: {
-        backgroundColor: '#C8D5E6',
+        backgroundColor: theme.hairline,
         width: scaleSize(44),
         height: scaleSize(5),
         borderRadius: scaleSize(3),
@@ -365,6 +369,7 @@ const styles = StyleSheet.create({
     bottomSheetBackground: {
         borderTopLeftRadius: scaleSize(25),
         borderTopRightRadius: scaleSize(25),
+        backgroundColor: theme.surface,
     },
     sheetHeader: {
         flexDirection: 'row',
@@ -377,16 +382,16 @@ const styles = StyleSheet.create({
     sheetTitle: {
         fontFamily: 'Outfit_700Bold',
         fontSize: scaleSize(16),
-        color: '#0F172A',
+        color: theme.textPrimary,
     },
     clearAttach: {
         fontFamily: 'Outfit_600SemiBold',
         fontSize: scaleSize(13),
-        color: '#0699FF',
+        color: theme.primary,
     },
     emptyText: {
         textAlign: 'center',
-        color: '#64748B',
+        color: theme.textSecondary,
         fontFamily: 'Outfit_500Medium',
         paddingVertical: scaleSize(20),
     }

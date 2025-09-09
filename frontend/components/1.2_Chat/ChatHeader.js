@@ -8,8 +8,8 @@ import { usePfp } from "../../helper/usePFPs";
 import scaleSize from "../../helper/scaleSize";
 import theme from "../../theme/mfpDark";
 
-const ACCENT = "#2D9EFF";
-const HAIRLINE = "rgba(255,255,255,0.08)";
+const ACCENT = theme.primary;
+const HAIRLINE = theme.hairline;
 const BG = theme.bg;
 
 const ChatHeader = ({ usersExcludingSelf = [], toMessages }) => {
@@ -123,17 +123,17 @@ const styles = StyleSheet.create({
         borderRadius: scaleSize(17),
         position: "absolute",
         borderWidth: 2,
-        borderColor: "#fff",
-        backgroundColor: "#2E323C",
+        borderColor: theme.bg,
+        backgroundColor: theme.field,
     },
     pfpTL: { top: 1, left: 1 },
     pfpBR: { bottom: 1, right: 1 },
-    pfpSingle: { width: scaleSize(42), height: scaleSize(42), borderRadius: scaleSize(21), backgroundColor: "#2E323C" },
-    pfpPh: { backgroundColor: "#2E323C" },
+    pfpSingle: { width: scaleSize(42), height: scaleSize(42), borderRadius: scaleSize(21), backgroundColor: theme.field },
+    pfpPh: { backgroundColor: theme.field },
 
     textWrap: { flex: 1, justifyContent: "center" },
-    nameText: { fontFamily: "Nunito_700Bold", fontSize: scaleSize(16), color: "#E5E7EB"},
-    handleText: { fontFamily: "Nunito_700Bold", fontSize: scaleSize(12.5), color: "#A1A7B3", marginTop: 1 },
+    nameText: { fontFamily: "Nunito_700Bold", fontSize: scaleSize(16), color: theme.textPrimary},
+    handleText: { fontFamily: "Nunito_700Bold", fontSize: scaleSize(12.5), color: theme.textSecondary, marginTop: 1 },
 });
 
 export default ChatHeader;

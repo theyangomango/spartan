@@ -15,28 +15,34 @@ export default function MiniPodium({ data = [] }) {
         <View style={styles.podiumRow}>
             <View style={styles.col}>
                 {data[1]?.present ? (
-                    <Avatar uri={data[1]?.pfp} ring="#C7CED9" />
+                    // Silver ring to match Competition podium
+                    <Avatar uri={data[1]?.pfp} ring="#D8DFEA" />
                 ) : null}
                 <View style={[styles.plinth, { height: H_L, backgroundColor: "#a7a8ac65" }]}>
-                    <View style={[styles.medalDot, { backgroundColor: "#C7CED9" }]} />
+                    {/* Silver dot */}
+                    <View style={[styles.medalDot, { backgroundColor: "#D8DFEA" }]} />
                 </View>
             </View>
 
             <View style={[styles.col, { marginHorizontal: 10 }]}>
                 {data[0]?.present ? (
-                    <Avatar uri={data[0]?.pfp} ring="#FFE08B" />
+                    // Gold ring
+                    <Avatar uri={data[0]?.pfp} ring="#FFC83D" />
                 ) : null}
                 <View style={[styles.plinth, { height: H_C, backgroundColor: "#a7a8ac65" }]}>
-                    <View style={[styles.medalDot, { backgroundColor: "#FFE08B" }]} />
+                    {/* Gold dot */}
+                    <View style={[styles.medalDot, { backgroundColor: "#FFC83D" }]} />
                 </View>
             </View>
 
             <View style={styles.col}>
                 {data[2]?.present ? (
-                    <Avatar uri={data[2]?.pfp} ring="#FFBB69" />
+                    // Bronze ring
+                    <Avatar uri={data[2]?.pfp} ring="#FF9555" />
                 ) : null}
-                <View style={[styles.plinth, { height: H_R, backgroundColor: "#a7a8ac65 " }]}>
-                    <View style={[styles.medalDot, { backgroundColor: "#FFBA98" }]} />
+                <View style={[styles.plinth, { height: H_R, backgroundColor: "#a7a8ac65" }]}>
+                    {/* Bronze dot */}
+                    <View style={[styles.medalDot, { backgroundColor: "#FF9555" }]} />
                 </View>
             </View>
         </View>

@@ -197,7 +197,8 @@ const styles = StyleSheet.create({
     set_number_text: { fontFamily: "Poppins_700Bold", fontSize: scaledSize(14), color: theme.textPrimary },
     set_ctnr_typed: { backgroundColor: theme.field },
     set_letter_text: { fontFamily: "Outfit_700Bold", fontSize: scaledSize(14.8) },
-    previous_stat_text: { fontFamily: "Poppins_700Bold", fontSize: scaledSize(15), color: theme.textSecondary },
+    // Make previous-set text more legible
+    previous_stat_text: { fontFamily: "Poppins_700Bold", fontSize: scaledSize(15), color: theme.textPrimary },
     done_ctnr: { width: "10.5%", height: scaledSize(22), alignItems: "center" },
     checkmark_ctnr: {
         paddingHorizontal: scaledSize(10),

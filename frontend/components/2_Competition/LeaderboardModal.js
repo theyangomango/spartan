@@ -10,12 +10,12 @@ const { width: SCREEN_WIDTH } = Dimensions.get("window");
 const H_PADDING = scaleSize(16);
 const BANNER_WIDTH = SCREEN_WIDTH - H_PADDING * 2;
 
-// Scaled fonts
-const FONT_SELECTOR = scaleSize(13);
-const FONT_METRIC = scaleSize(13);
-const FONT_BANNER_TITLE = scaleSize(14);
-const FONT_BANNER_META = scaleSize(13);
-const FONT_TRIBE_TITLE = scaleSize(15);
+// Scaled fonts (slightly larger for readability)
+const FONT_SELECTOR = scaleSize(14);
+const FONT_METRIC = scaleSize(14);
+const FONT_BANNER_TITLE = scaleSize(15);
+const FONT_BANNER_META = scaleSize(14);
+const FONT_TRIBE_TITLE = scaleSize(16);
 
 // Scaled icons
 const ICON_TROPHY = scaleSize(19);
@@ -61,9 +61,10 @@ const DOT_MB = scaleSize(2);
 const ACCENT = "#f6b000ff";            // rich gold
 const ACCENT_BG = "#f6b00041";
 // Dark mode palette for Competition
-const BANNER_BG = require("../../theme/mfpDark").default.surface;         // neutral modal pill/bg
-const TITLE_COLOR = "#EAEAEA";       // light text on dark
-const ICON_MUTED = "#AEB5C0";
+const THEME = require("../../theme/mfpDark").default;
+const BANNER_BG = THEME.surface;         // neutral modal pill/bg
+const TITLE_COLOR = THEME.textPrimary;   // light text on dark
+const ICON_MUTED = THEME.textSecondary;
 
 export default function LeaderboardModal({
     userList,
@@ -177,7 +178,7 @@ export default function LeaderboardModal({
             <View style={styles.headerRow}>
                 <TouchableOpacity onPress={openModal} activeOpacity={0.85} style={styles.selectorPill}>
                     {/* <Ionicons name="barbell" size={16} color="#222" /> */}
-                    <Weight size={ICON_WEIGHT} color="#EAEAEA" variant='Broken' />
+                    <Weight size={ICON_WEIGHT} color={TITLE_COLOR} variant='Broken' />
                     <Text style={styles.selectorText} numberOfLines={1}>{categoryCompared}</Text>
                 </TouchableOpacity>
                 <TouchableOpacity onPress={onToggleMetric} activeOpacity={0.85} style={styles.metricPill}>
@@ -262,23 +263,23 @@ const styles = StyleSheet.create({
         paddingRight: SELECTOR_PAD_R,
         paddingLeft: SELECTOR_PAD_L,
         paddingVertical: SELECTOR_PAD_V,
-        backgroundColor: require("../../theme/mfpDark").default.surface,
+        backgroundColor: require("../../theme/mfpDark").default.field,
         borderWidth: 1,
         borderColor: "rgba(255,255,255,0.08)",
         borderRadius: 999,
         flex: 1,
         gap: SELECTOR_GAP,
     },
-    selectorText: { fontFamily: "Outfit_600SemiBold", fontSize: FONT_SELECTOR, color: "#EAEAEA", flexShrink: 1 },
+    selectorText: { fontFamily: "Outfit_600SemiBold", fontSize: FONT_SELECTOR, color: TITLE_COLOR, flexShrink: 1, letterSpacing: 0.2 },
     metricPill: {
         paddingHorizontal: METRIC_PAD_H,
         paddingVertical: METRIC_PAD_V,
-        backgroundColor: require("../../theme/mfpDark").default.surface,
+        backgroundColor: require("../../theme/mfpDark").default.field,
         borderWidth: 1,
         borderColor: "rgba(255,255,255,0.08)",
         borderRadius: 999,
     },
-    metricText: { fontFamily: "Outfit_600SemiBold", fontSize: FONT_METRIC, color: "#6FB8FF" },
+    metricText: { fontFamily: "Outfit_700Bold", fontSize: FONT_METRIC, color: THEME.accentBlue, letterSpacing: 0.2 },
 
     // tribe banner — modern warm “gold” card (no border)
     bannerCard: {
@@ -307,7 +308,7 @@ const styles = StyleSheet.create({
         marginRight: ICON_PILL_MR,
     },
     bannerTitle: { fontFamily: "Outfit_700Bold", fontSize: FONT_BANNER_TITLE, color: TITLE_COLOR },
-    bannerMeta: { fontFamily: "Outfit_600SemiBold", fontSize: FONT_BANNER_META, color: "#AEB5C0", opacity: 0.95, marginTop: scaleSize(2) },
+    bannerMeta: { fontFamily: "Outfit_600SemiBold", fontSize: FONT_BANNER_META, color: ICON_MUTED, opacity: 0.98, marginTop: scaleSize(2), letterSpacing: 0.2 },
 
     // minimal “no comparisons yet” CTA
     tribeHeaderButton: {
@@ -330,6 +331,7 @@ const styles = StyleSheet.create({
         fontFamily: "Outfit_700Bold",
         fontSize: FONT_TRIBE_TITLE,
         color: TITLE_COLOR,
+        letterSpacing: 0.2,
     },
 
     // pager dots

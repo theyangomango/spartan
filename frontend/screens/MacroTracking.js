@@ -39,14 +39,16 @@ const COLORS = {
     hairline: theme.hairline,
     ringTint: theme.primary,
     ringBg: theme.ringBg,
+    ringTrack: '#C6CFDC',
     chipBg: theme.surface,
     addBtnBg: theme.field,
     fieldBg: theme.field,
     accentBlue: theme.primary,
     accent: theme.primary,
-    protein: '#A5B4FC',
-    carbs: '#F9A8D4',
-    fat: '#FCD5A5',
+    // Higher-contrast macro colors for dark theme
+    protein: '#6c98fcff',   // vivid indigo-blue
+    carbs: '#ff7cb5ff',     // saturated pink
+    fat: '#FFC874',       // warm amber
     shadow: '#000',
     modalCard: theme.surface,
 };

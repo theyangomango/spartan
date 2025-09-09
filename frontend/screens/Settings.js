@@ -4,6 +4,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { doc, updateDoc as fsUpdateDoc } from 'firebase/firestore';
 import { db } from '../../firebase.config';
 import useUserDoc from '../hooks/useUserDoc';
+import theme from '../theme/mfpDark';
 
 export default function Settings({ navigation }) {
   const uid = global?.userData?.uid || null;
@@ -74,7 +75,7 @@ export default function Settings({ navigation }) {
     <SafeAreaView style={styles.root}>
       <View style={styles.header}>
         <TouchableOpacity onPress={goBack} style={styles.iconBtn}>
-          <Ionicons name="chevron-back" size={22} color="#111827" />
+          <Ionicons name="chevron-back" size={22} color={theme.textPrimary} />
         </TouchableOpacity>
         <Text style={styles.title}>Settings</Text>
         <View style={{ width: 40 }} />
@@ -85,7 +86,7 @@ export default function Settings({ navigation }) {
         <Row label={`Units: ${unitsLbs ? 'lb' : 'kg'}`} value={unitsLbs} onValueChange={toggleUnits} />
         <TouchableOpacity style={styles.link} onPress={() => navigation.navigate('PrivateProfileInfo', { transition: 'slide-from-right' })}>
           <Text style={styles.linkText}>Private profile</Text>
-          <Ionicons name="chevron-forward" size={18} color="#94A3B8" />
+          <Ionicons name="chevron-forward" size={18} color={theme.textSecondary} />
         </TouchableOpacity>
 
         <Text style={styles.section}>Notifications</Text>
@@ -96,21 +97,21 @@ export default function Settings({ navigation }) {
         <Row label="Keep foods/macros private" value={foodPrivate} onValueChange={toggleFoodPrivate} />
         <TouchableOpacity style={styles.link} onPress={() => Alert.alert('Blocked users', 'This is where blocked users would appear.') }>
           <Text style={styles.linkText}>Blocked users</Text>
-          <Ionicons name="chevron-forward" size={18} color="#94A3B8" />
+          <Ionicons name="chevron-forward" size={18} color={theme.textSecondary} />
         </TouchableOpacity>
 
         <Text style={styles.section}>Support</Text>
         <TouchableOpacity style={styles.link} onPress={() => Linking.openURL('mailto:support@spartan.app?subject=Spartan%20Support') }>
           <Text style={styles.linkText}>Contact support</Text>
-          <Ionicons name="open-outline" size={18} color="#94A3B8" />
+          <Ionicons name="open-outline" size={18} color={theme.textSecondary} />
         </TouchableOpacity>
         <TouchableOpacity style={styles.link} onPress={() => navigation.navigate('TermsOfService', { transition: 'slide-from-right' }) }>
           <Text style={styles.linkText}>Terms of Service</Text>
-          <Ionicons name="chevron-forward" size={18} color="#94A3B8" />
+          <Ionicons name="chevron-forward" size={18} color={theme.textSecondary} />
         </TouchableOpacity>
         <TouchableOpacity style={styles.link} onPress={() => navigation.navigate('PrivacyPolicy', { transition: 'slide-from-right' }) }>
           <Text style={styles.linkText}>Privacy Policy</Text>
-          <Ionicons name="chevron-forward" size={18} color="#94A3B8" />
+          <Ionicons name="chevron-forward" size={18} color={theme.textSecondary} />
         </TouchableOpacity>
 
         <View style={{ height: 22 }} />
@@ -126,28 +127,33 @@ export default function Settings({ navigation }) {
 const Row = ({ label, value, onValueChange }) => (
   <View style={styles.row}>
     <Text style={styles.rowLabel}>{label}</Text>
-    <Switch value={value} onValueChange={onValueChange} trackColor={{ false: '#E5E7EB', true: '#93C5FD' }} thumbColor={value ? '#2563EB' : Platform.select({ ios: '#fff', android: '#f9fafb' })} />
+    <Switch
+      value={value}
+      onValueChange={onValueChange}
+      trackColor={{ false: 'rgba(255,255,255,0.25)', true: 'rgba(45,158,255,0.45)' }}
+      thumbColor={value ? theme.primary : Platform.select({ ios: '#fff', android: '#f3f4f6' })}
+    />
   </View>
 );
 
 const styles = StyleSheet.create({
-  root: { flex: 1, backgroundColor: '#FFFFFF' },
+  root: { flex: 1, backgroundColor: theme.bg },
   header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 14, paddingTop: 8, paddingBottom: 6 },
   iconBtn: { padding: 6, width: 40 },
-  title: { fontFamily: 'Outfit_700Bold', fontSize: 18, color: '#111827' },
+  title: { fontFamily: 'Outfit_700Bold', fontSize: 18, color: theme.textPrimary },
   content: { paddingHorizontal: 16, paddingTop: 10 },
   section: {
     marginTop: 18,
     marginBottom: 10,
     fontFamily: 'Outfit_700Bold',
     fontSize: 16,
-    color: '#0F172A',
+    color: theme.textSecondary,
     letterSpacing: 0.3,
   },
-  row: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingVertical: 12, borderBottomWidth: StyleSheet.hairlineWidth, borderColor: '#E5E7EB' },
-  rowLabel: { fontFamily: 'Outfit_500Medium', fontSize: 14, color: '#0F172A' },
-  link: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingVertical: 12, borderBottomWidth: StyleSheet.hairlineWidth, borderColor: '#E5E7EB' },
-  linkText: { fontFamily: 'Outfit_500Medium', fontSize: 14, color: '#0F172A' },
-  logoutBtn: { marginTop: 10, backgroundColor: '#FEE2E2', borderRadius: 12, alignItems: 'center', justifyContent: 'center', paddingVertical: 12 },
-  logoutText: { fontFamily: 'Outfit_700Bold', color: '#B91C1C' },
+  row: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingVertical: 12, borderBottomWidth: StyleSheet.hairlineWidth, borderColor: theme.hairline },
+  rowLabel: { fontFamily: 'Outfit_500Medium', fontSize: 14, color: theme.textPrimary },
+  link: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingVertical: 12, borderBottomWidth: StyleSheet.hairlineWidth, borderColor: theme.hairline },
+  linkText: { fontFamily: 'Outfit_500Medium', fontSize: 14, color: theme.textPrimary },
+  logoutBtn: { marginTop: 10, backgroundColor: 'rgba(185,28,28,0.18)', borderRadius: 12, alignItems: 'center', justifyContent: 'center', paddingVertical: 12 },
+  logoutText: { fontFamily: 'Outfit_700Bold', color: '#FCA5A5' },
 });

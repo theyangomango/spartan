@@ -59,9 +59,10 @@ const styles = StyleSheet.create({
         justifyContent: 'center',
         alignItems: 'center',
     },
-    total_workouts_stat_ctnr: { backgroundColor: theme.surface },
-    total_volume_stat_ctnr: { backgroundColor: theme.surface },
-    gym_time_stat_ctnr: { backgroundColor: theme.surface },
+    // Slightly brighter tinted backgrounds for better visibility
+    total_workouts_stat_ctnr: { backgroundColor: 'rgba(4,153,254,0.28)' }, // matches #0499FE
+    total_volume_stat_ctnr: { backgroundColor: 'rgba(61,197,117,0.28)' },  // matches #3DC575
+    gym_time_stat_ctnr: { backgroundColor: 'rgba(233,80,96,0.28)' },       // matches #E95060
     workout_stat_text: {
         fontFamily: 'Poppins_500Medium',
         fontSize: scaledSize(10.5),

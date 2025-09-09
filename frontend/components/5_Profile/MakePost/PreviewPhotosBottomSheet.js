@@ -2,6 +2,7 @@ import React, { useCallback, useEffect, useMemo, useRef, useState } from "react"
 import { StyleSheet } from "react-native";
 import BottomSheet, { BottomSheetBackdrop } from "@gorhom/bottom-sheet";
 import PreviewPhotosModal from "./PreviewPhotosModal";
+import theme from '../../../theme/mfpDark';
 
 const PreviewPhotosBottomSheet = ({ assets, images, selectedOrderMap, toggleSelect, loadMoreAssets, loading, hasNextPage, clearSelection, isLimited, onRequestMoreAccess }) => {
     const bottomSheetRef = useRef(null);
@@ -70,7 +71,7 @@ export default React.memo(PreviewPhotosBottomSheet);
 
 const styles = StyleSheet.create({
     background: {
-        backgroundColor: '#f3f3f3',
+        backgroundColor: theme.surface,
         borderTopLeftRadius: 22,
         borderTopRightRadius: 22,
     },
@@ -82,6 +83,6 @@ const styles = StyleSheet.create({
         width: 36,
         height: 4,
         borderRadius: 3,
-        backgroundColor: '#CFCFCF',
+        backgroundColor: theme.hairline,
     },
 })

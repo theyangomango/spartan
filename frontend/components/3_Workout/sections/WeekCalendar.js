@@ -365,11 +365,11 @@ const styles = StyleSheet.create({
         paddingHorizontal: 10,
         paddingVertical: 6,
         borderRadius: 999,
-        backgroundColor: theme.field,
+        backgroundColor: '#3c7fd1d1',
         borderWidth: StyleSheet.hairlineWidth,
         borderColor: theme.hairline,
     },
-    jumpLink: { color: "#60A5FA", fontSize: 12, fontFamily: "Outfit_700Bold", letterSpacing: 0.2 },
+    jumpLink: { color: "#ffffff", fontSize: 12, fontFamily: "Outfit_700Bold", letterSpacing: 0.2 },
 
     page: { justifyContent: "center" },
     row: { flexDirection: "row", alignItems: "center" },

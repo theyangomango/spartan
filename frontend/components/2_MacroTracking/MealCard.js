@@ -48,6 +48,6 @@ const makeStyles = (COLORS) =>
             fontFamily: 'Nunito_800ExtraBold',
             letterSpacing: 0.2,
         },
-        mealCals: { fontSize: 16, fontFamily: 'Outfit_700Bold', color: COLORS.accent ?? '#64aaf6ff', marginLeft: 10 },
+        mealCals: { fontSize: 16, fontFamily: 'Outfit_700Bold', color: 'rgba(102, 176, 255, 1)', marginLeft: 10 },
 
     });

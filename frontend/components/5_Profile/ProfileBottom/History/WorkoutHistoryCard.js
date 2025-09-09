@@ -32,7 +32,7 @@ export default function WorkoutHistoryCard({ workout }) {
         <View style={styles.faRightAccessories}>
           {pbs > 0 && (
             <View style={styles.faPrPill}>
-              <MaterialCommunityIcons name="trophy" size={11} color="#6B5B00" />
+              <MaterialCommunityIcons name="trophy" size={12} color="#FACC15" />
               <Text style={styles.faPrText}>{pbs} PR{pbs === 1 ? '' : 's'}</Text>
             </View>
           )}
@@ -44,7 +44,7 @@ export default function WorkoutHistoryCard({ workout }) {
       <View style={styles.faStatsRow}>
         <View style={styles.faStatCard}>
           <View style={styles.faStatIconWrap}>
-            <Clock color="#E5E7EB" size={13} variant="Bold" />
+            <Clock color="#E5E7EB" size={15} variant="Bold" />
           </View>
           <Text style={styles.faStatLabel}>Duration</Text>
           <Text style={styles.faStatValue}>{minutesLabel(workout?.duration)}</Text>
@@ -52,7 +52,7 @@ export default function WorkoutHistoryCard({ workout }) {
 
         <View style={styles.faStatCard}>
           <View style={styles.faStatIconWrap}>
-            <MaterialCommunityIcons name="weight-lifter" size={13} color="#E5E7EB" />
+            <MaterialCommunityIcons name="weight-lifter" size={15} color="#E5E7EB" />
           </View>
           <Text style={styles.faStatLabel}>Volume</Text>
           <Text style={styles.faStatValue}>{toNumber(workout?.volume).toLocaleString()} lb</Text>
@@ -60,7 +60,7 @@ export default function WorkoutHistoryCard({ workout }) {
 
         <View style={styles.faStatCard}>
           <View style={styles.faStatIconWrap}>
-            <MaterialCommunityIcons name="counter" size={13} color="#E5E7EB" />
+            <MaterialCommunityIcons name="arm-flex" size={15} color="#E5E7EB" />
           </View>
           <Text style={styles.faStatLabel}>Reps</Text>
           <Text style={styles.faStatValue}>{toNumber(workout?.reps)}</Text>
@@ -89,8 +89,8 @@ const styles = StyleSheet.create({
   },
   faHeaderRow: { flexDirection: 'row', alignItems: 'center', marginBottom: 6, gap: 10 },
   faRightAccessories: { flexDirection: 'row', alignItems: 'center', gap: 10 },
-  faTitle: { fontSize: 12.5, fontFamily: 'Outfit_700Bold', color: '#E5E7EB' },
-  faSub: { marginTop: 2, fontSize: 12, fontFamily: 'Outfit_500Medium', color: '#A1A7B3' },
+  faTitle: { fontSize: 13, fontFamily: 'Outfit_800ExtraBold', color: '#EAEFF6' },
+  faSub: { marginTop: 2, fontSize: 12.5, fontFamily: 'Outfit_600SemiBold', color: '#C9D2DE' },
   faDivider: { height: StyleSheet.hairlineWidth, backgroundColor: 'rgba(255,255,255,0.08)', marginVertical: 6 },
   faStatsRow: { flexDirection: 'row', gap: 8 },
   faStatCard: {
@@ -103,26 +103,26 @@ const styles = StyleSheet.create({
     borderColor: 'rgba(255,255,255,0.06)',
   },
   faStatIconWrap: {
-    width: 22,
-    height: 22,
-    borderRadius: 11,
+    width: 26,
+    height: 26,
+    borderRadius: 13,
     justifyContent: 'center',
     alignItems: 'center',
     backgroundColor: require('../../../../theme/mfpDark').default.field,
-    marginBottom: 4,
+    marginBottom: 6,
   },
-  faStatLabel: { fontFamily: 'Outfit_500Medium', fontSize: 10, color: '#B8BFCA' },
-  faStatValue: { marginTop: 1, fontFamily: 'Outfit_700Bold', fontSize: 13, color: '#F1F5F9' },
+  faStatLabel: { fontFamily: 'Outfit_600SemiBold', fontSize: 11, color: '#D3DAE6' },
+  faStatValue: { marginTop: 1, fontFamily: 'Outfit_800ExtraBold', fontSize: 14.5, color: '#F1F5F9' },
   faPrPill: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 6,
-    backgroundColor: 'rgba(250, 204, 21, 0.20)',
+    backgroundColor: 'rgba(250, 204, 21, 0.24)',
     borderWidth: StyleSheet.hairlineWidth,
-    borderColor: 'rgba(250, 204, 21, 0.50)',
-    paddingVertical: 4.5,
+    borderColor: 'rgba(250, 204, 21, 0.60)',
+    paddingVertical: 5,
     paddingHorizontal: 8,
     borderRadius: 999,
   },
-  faPrText: { fontFamily: 'Outfit_700Bold', fontSize: 11.5, color: '#FACC15' },
+  faPrText: { fontFamily: 'Outfit_800ExtraBold', fontSize: 12, color: '#FACC15' },
 });

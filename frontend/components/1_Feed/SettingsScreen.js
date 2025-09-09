@@ -3,6 +3,7 @@ import { View, Text, Dimensions, PixelRatio, StyleSheet, Pressable, TextInput, T
 import { Ionicons } from '@expo/vector-icons'; // Make sure to install @expo/vector-icons
 import * as ImagePicker from 'expo-image-picker';
 import { SafeAreaView as SafeAreaContextView } from 'react-native-safe-area-context'; // Import SafeAreaView from safe-area-context
+import theme from '../../../theme/mfpDark';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
@@ -38,7 +39,7 @@ export default function SettingsScreen({ closeBottomSheet }) {
             <SafeAreaContextView style={styles.container}>
                 <View style={styles.header}>
                     <Pressable onPress={closeBottomSheet}>
-                        <Ionicons name="chevron-down" size={24} color="black" />
+                        <Ionicons name="chevron-down" size={24} color={theme.textPrimary} />
                     </Pressable>
                     <Text style={styles.title}>Beta Testing</Text>
                     <View style={{ width: normalize(24) }} />
@@ -52,10 +53,11 @@ export default function SettingsScreen({ closeBottomSheet }) {
                         value={feedback}
                         onChangeText={setFeedback}
                         multiline
+                        placeholderTextColor={theme.textSecondary}
                     />
                     <TouchableOpacity style={styles.imagePickerButton} onPress={pickImage}>
                         <Text style={styles.imagePickerButtonText}>Select Screenshots (Optional)</Text>
-                        <Ionicons name="image" size={24} color="black" />
+                        <Ionicons name="image" size={24} color={theme.textPrimary} />
                     </TouchableOpacity>
                     <View style={styles.imagePreviewContainer}>
                         {selectedImages.map((uri, index) => (
@@ -93,7 +95,7 @@ export default function SettingsScreen({ closeBottomSheet }) {
 const styles = StyleSheet.create({
     container: {
         flex: 1,
-        backgroundColor: '#fff',
+        backgroundColor: theme.surface,
         paddingTop: normalize(8),
     },
     header: {
@@ -106,6 +108,7 @@ const styles = StyleSheet.create({
     title: {
         fontSize: normalize(16),
         fontFamily: 'Mulish_800ExtraBold',
+        color: theme.textPrimary,
     },
     body: {
         position: 'absolute',
@@ -117,19 +120,21 @@ const styles = StyleSheet.create({
         fontSize: normalize(14),
         textAlign: 'center',
         lineHeight: normalize(23),
+        color: theme.textPrimary,
     },
     name_text: {
         marginTop: normalize(13),
         fontFamily: 'Mulish_700Bold',
         fontSize: normalize(14),
         textAlign: 'right',
+        color: theme.textPrimary,
     },
     name_title_text: {
         fontFamily: 'Mulish_700Bold',
         fontSize: normalize(13),
         textAlign: 'right',
         lineHeight: normalize(23),
-        color: '#888',
+        color: theme.textSecondary,
     },
     feedbackContainer: {
         marginTop: normalize(30),
@@ -140,10 +145,11 @@ const styles = StyleSheet.create({
         fontSize: normalize(14),
         paddingHorizontal: normalize(4),
         marginBottom: normalize(10),
+        color: theme.textPrimary,
     },
     textInput: {
         borderWidth: normalize(1.5),
-        borderColor: '#ddd',
+        borderColor: theme.hairline,
         borderRadius: normalize(8),
         paddingHorizontal: normalize(10),
         // textAlignVertical: 'top',
@@ -151,12 +157,13 @@ const styles = StyleSheet.create({
         marginBottom: normalize(10),
 
         fontFamily: 'Mulish_600SemiBold',
-        color: '#444',
+        color: theme.textPrimary,
+        backgroundColor: theme.field,
     },
     imagePickerButton: {
         flexDirection: 'row',
         alignItems: 'center',
-        backgroundColor: '#f3f3f3',
+        backgroundColor: theme.field,
         padding: normalize(12),
         borderRadius: normalize(8),
         marginBottom: normalize(8),
@@ -165,6 +172,7 @@ const styles = StyleSheet.create({
         fontFamily: 'Mulish_600SemiBold',
         fontSize: normalize(14),
         marginRight: normalize(10),
+        color: theme.textPrimary,
     },
     imagePreviewContainer: {
         flexDirection: 'row',
@@ -190,7 +198,7 @@ const styles = StyleSheet.create({
         padding: normalize(2),
     },
     submitButton: {
-        backgroundColor: '#2D9EFF',
+        backgroundColor: theme.primary,
         paddingVertical: normalize(13),
         borderRadius: normalize(8),
         alignItems: 'center',

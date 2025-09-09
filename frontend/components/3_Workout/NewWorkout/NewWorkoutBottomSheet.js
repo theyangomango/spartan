@@ -143,9 +143,14 @@ const NewWorkoutBottomSheet = ({
                 backgroundColor: isViewingSelf ? theme.field : HANDLE_FRIEND_ACCENT,
             }}
             handleStyle={{
-                backgroundColor: isViewingSelf ? theme.surface : HANDLE_FRIEND_BACKGROUND,
+                backgroundColor: isViewingSelf ? theme.field : HANDLE_FRIEND_BACKGROUND,
             }}
-            backgroundStyle={{ backgroundColor: theme.bg }}
+            // Background drives color + rounded top corners for the entire modal
+            backgroundStyle={{
+                backgroundColor: theme.field,
+                borderTopLeftRadius: 22,
+                borderTopRightRadius: 22,
+            }}
         >
             {mountContent && (
                 effectiveWorkout ? (

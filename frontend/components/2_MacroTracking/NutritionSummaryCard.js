@@ -14,8 +14,8 @@ export default function NutritionSummaryCard({ totals, goals, COLORS }) {
                         size={132}
                         width={11}
                         fill={progress}
-                        tintColor={COLORS.ringTint}
-                        backgroundColor={COLORS.ringBg}
+                        tintColor={'#6AB8FF'}
+                        backgroundColor={COLORS.ringTrack || COLORS.ringBg}
                         lineCap="round"
                         arcSweepAngle={360}
                         rotation={0}
@@ -31,9 +31,9 @@ export default function NutritionSummaryCard({ totals, goals, COLORS }) {
                 </View>
 
                 <View style={styles.macroSummary}>
-                    <MacroBar label="Protein" value={totals.protein} goal={goals.protein} color={COLORS.protein} textPrimary={COLORS.text} textSecondary={COLORS.subtext} trackColor={COLORS.ringBg} />
-                    <MacroBar label="Carbs" value={totals.carbs} goal={goals.carbs} color={COLORS.carbs} textPrimary={COLORS.text} textSecondary={COLORS.subtext} trackColor={COLORS.ringBg} />
-                    <MacroBar label="Fat" value={totals.fat} goal={goals.fat} color={COLORS.fat} textPrimary={COLORS.text} textSecondary={COLORS.subtext} trackColor={COLORS.ringBg} />
+                    <MacroBar label="Protein" value={totals.protein} goal={goals.protein} color={COLORS.protein} textPrimary={COLORS.text} textSecondary={COLORS.subtext} trackColor={COLORS.ringTrack || COLORS.ringBg} />
+                    <MacroBar label="Carbs" value={totals.carbs} goal={goals.carbs} color={COLORS.carbs} textPrimary={COLORS.text} textSecondary={COLORS.subtext} trackColor={COLORS.ringTrack || COLORS.ringBg} />
+                    <MacroBar label="Fat" value={totals.fat} goal={goals.fat} color={COLORS.fat} textPrimary={COLORS.text} textSecondary={COLORS.subtext} trackColor={COLORS.ringTrack || COLORS.ringBg} />
                 </View>
             </View>
         </View>

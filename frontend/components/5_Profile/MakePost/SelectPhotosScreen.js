@@ -5,6 +5,7 @@ import * as MediaLibrary from 'expo-media-library';
 import Gallery from 'react-native-awesome-gallery';
 import PreviewPhotosBottomSheet from './PreviewPhotosBottomSheet';
 import ImageCropperModal from './ImageCropperModal';
+import theme from '../../../theme/mfpDark';
 
 const screenHeight = Dimensions.get('window').height;
 const scale = screenHeight / 844; // Scaling based on iPhone 13 screen height
@@ -147,7 +148,7 @@ export default function SelectPhotosScreen({ navigation, route }) {
             <View style={styles.header_ctnr}>
                 <TouchableOpacity onPress={goBack}>
                     <View style={styles.close_icon_ctnr}>
-                        <Ionicons name='close' size={scaledSize(23)} color={'#aaa'} />
+                        <Ionicons name='close' size={scaledSize(23)} color={theme.textSecondary} />
                     </View>
                 </TouchableOpacity>
                 <View style={styles.header_text_ctnr}>
@@ -155,7 +156,7 @@ export default function SelectPhotosScreen({ navigation, route }) {
                 </View>
                 <TouchableOpacity onPress={next}>
                     <View style={styles.next_icon_ctnr}>
-                        <FontAwesome6 name='chevron-right' size={scaledSize(17)} color={images.length > 0 ? '#0699FF' : '#aaa'} />
+                        <FontAwesome6 name='chevron-right' size={scaledSize(17)} color={images.length > 0 ? theme.primary : theme.textSecondary} />
                     </View>
                 </TouchableOpacity>
             </View>
@@ -235,7 +236,7 @@ export default function SelectPhotosScreen({ navigation, route }) {
 const styles = StyleSheet.create({
     container: {
         flex: 1,
-        backgroundColor: '#f3f3f3'
+        backgroundColor: theme.bg
     },
     header_ctnr: {
         alignItems: 'center',
@@ -244,7 +245,7 @@ const styles = StyleSheet.create({
         paddingBottom: scaledSize(15),
         flexDirection: 'row',
         justifyContent: 'space-between',
-        backgroundColor: '#f3f3f3'
+        backgroundColor: theme.bg
     },
     close_icon_ctnr: {
         paddingHorizontal: scaledSize(18)
@@ -257,11 +258,12 @@ const styles = StyleSheet.create({
     title_text: {
         fontFamily: 'Outfit_600SemiBold',
         fontSize: scaledSize(16),
+        color: theme.textPrimary,
     },
     preview_ctnr: {
         width: '100%',
         aspectRatio: 0.8,
-        backgroundColor: '#fff',
+        backgroundColor: theme.surface,
         borderTopLeftRadius: 35,
         borderTopRightRadius: 35,
         overflow: 'hidden'

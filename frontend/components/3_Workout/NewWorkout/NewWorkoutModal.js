@@ -847,7 +847,8 @@ const NewWorkoutModal = ({
 const styles = StyleSheet.create({
     main_ctnr: { flex: 1 },
 
-    header: { backgroundColor: theme.field },
+    // Let BottomSheet control background color; keep transparent here
+    header: { backgroundColor: 'transparent' },
     headerInner: {
         paddingBottom: scaledSize(6),
         paddingHorizontal: scaledSize(22),
@@ -855,14 +856,15 @@ const styles = StyleSheet.create({
         flexDirection: "row",
         alignItems: "center",
         justifyContent: "space-between",
-        backgroundColor: theme.field,
+        backgroundColor: 'transparent',
         zIndex: 5,
     },
     headerShadow: { height: scaledSize(2), backgroundColor: theme.hairline },
 
-    scrollview: { paddingTop: scaledSize(5), backgroundColor: theme.surface },
+    // Allow the BottomSheet background to show through
+    scrollview: { paddingTop: scaledSize(5), backgroundColor: 'transparent' },
 
-    waitingWrap: { flex: 1, alignItems: "center", justifyContent: "center", backgroundColor: theme.bg },
+    waitingWrap: { flex: 1, alignItems: "center", justifyContent: "center", backgroundColor: 'transparent' },
     waitingText: { marginTop: 6, fontFamily: "Nunito_700Bold", color: theme.textSecondary },
 
     add_exercise_btn: {

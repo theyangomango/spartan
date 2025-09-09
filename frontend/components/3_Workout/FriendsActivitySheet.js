@@ -268,7 +268,7 @@ const FriendPanel = memo(({ item, overlay, onSelect, highlight = false }) => {
           ) : (
             pbs > 0 && (
               <View style={styles.prPill}>
-                <FontAwesome6 name="trophy" size={s(11)} color="#6B5B00" />
+                <FontAwesome6 name="trophy" size={s(12)} color="#FACC15" />
                 <Text style={styles.prText}>{pbs} PR{pbs === 1 ? "" : "s"}</Text>
               </View>
             )
@@ -282,7 +282,7 @@ const FriendPanel = memo(({ item, overlay, onSelect, highlight = false }) => {
       <View style={styles.statsRow}>
         <View style={styles.statCard}>
           <View style={styles.statIconWrap}>
-            <Clock color={COLORS.text} size={s(13)} variant="Bold" />
+            <Clock color={COLORS.text} size={s(15)} variant="Bold" />
           </View>
           <Text style={styles.statLabel}>Duration</Text>
           <Text style={styles.statValue}>{formatTimer(durationSec)}</Text>
@@ -290,7 +290,7 @@ const FriendPanel = memo(({ item, overlay, onSelect, highlight = false }) => {
 
         <View style={styles.statCard}>
           <View style={styles.statIconWrap}>
-            <MaterialCommunityIcons name="weight-lifter" size={s(13)} color={COLORS.text} />
+            <MaterialCommunityIcons name="weight-lifter" size={s(15)} color={COLORS.text} />
           </View>
           <Text style={styles.statLabel}>Volume</Text>
           <Text style={styles.statValue}>{formatNumber(vol)} lb</Text>
@@ -298,7 +298,7 @@ const FriendPanel = memo(({ item, overlay, onSelect, highlight = false }) => {
 
         <View style={styles.statCard}>
           <View style={styles.statIconWrap}>
-            <MaterialCommunityIcons name="counter" size={s(13)} color={COLORS.text} />
+            <MaterialCommunityIcons name="arm-flex" size={s(15)} color={COLORS.text} />
           </View>
           <Text style={styles.statLabel}>Reps</Text>
           <Text style={styles.statValue}>{formatNumber(reps)}</Text>
@@ -801,16 +801,16 @@ const styles = StyleSheet.create({
     borderColor: COLORS.statBorder,
   },
   statIconWrap: {
-    width: s(22),
-    height: s(22),
-    borderRadius: s(11),
+    width: s(26),
+    height: s(26),
+    borderRadius: s(13),
     justifyContent: "center",
     alignItems: "center",
     backgroundColor: COLORS.iconBg,
-    marginBottom: s(4),
+    marginBottom: s(6),
   },
-  statLabel: { fontFamily: "Outfit_500Medium", fontSize: s(10), color: "rgba(100,116,139,0.9)" },
-  statValue: { marginTop: s(1), fontFamily: "Outfit_700Bold", fontSize: s(13), color: COLORS.text },
+  statLabel: { fontFamily: "Outfit_600SemiBold", fontSize: s(11), color: theme.textSecondary },
+  statValue: { marginTop: s(1), fontFamily: "Outfit_800ExtraBold", fontSize: s(14.5), color: COLORS.text },
 
   viewerContainer: { ...StyleSheet.absoluteFillObject, backgroundColor: "transparent" },
   loadingWrap: { flex: 1, alignItems: "center", justifyContent: "center" },
@@ -822,17 +822,17 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     gap: s(6),
-    backgroundColor: "rgba(250, 204, 21, 0.18)",
+    backgroundColor: "rgba(250, 204, 21, 0.24)",
     borderWidth: StyleSheet.hairlineWidth,
-    borderColor: "rgba(250, 204, 21, 0.45)",
-    paddingVertical: s(4.5),
+    borderColor: "rgba(250, 204, 21, 0.60)",
+    paddingVertical: s(5),
     paddingHorizontal: s(8),
     borderRadius: s(999),
   },
   prText: {
-    fontFamily: "Outfit_700Bold",
-    fontSize: s(11.5),
-    color: "#6B5B00",
+    fontFamily: "Outfit_800ExtraBold",
+    fontSize: s(12),
+    color: "#FACC15",
   },
 });
 

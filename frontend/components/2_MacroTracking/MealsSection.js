@@ -85,7 +85,7 @@ const makeStyles = (COLORS) =>
             justifyContent: 'flex-end',
         },
         addFoodText: {
-            color: '#579dffff',
+            color: '#rgba(102, 176, 255, 1)',
             fontFamily: 'Outfit_700Bold',
             fontSize: 12.5,
             textTransform: 'uppercase',

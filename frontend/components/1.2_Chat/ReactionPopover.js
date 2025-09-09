@@ -3,8 +3,8 @@ import { View, Text, StyleSheet, Dimensions, Pressable, Animated, Easing } from 
 import theme from "../../theme/mfpDark";
 
 const { width: SW, height: SH } = Dimensions.get("window");
-const ACCENT = "#2D9EFF";
-const HAIRLINE = "rgba(255,255,255,0.08)";
+const ACCENT = theme.primary;
+const HAIRLINE = theme.hairline;
 
 export default function ReactionPopover({
     visible,
@@ -114,9 +114,9 @@ const styles = StyleSheet.create({
         alignItems: "center",
         paddingVertical: 8,
         borderRadius: 28,
-        backgroundColor: "#101828",
+        backgroundColor: theme.surface,
         borderWidth: 1,
-        borderColor: "rgba(255,255,255,0.10)",
+        borderColor: theme.hairline,
         shadowColor: "#000",
         shadowOpacity: 0.18,
         shadowRadius: 16,
@@ -125,7 +125,7 @@ const styles = StyleSheet.create({
     },
     reactionItem: {
         width: 40, height: 40, borderRadius: 20,
-        backgroundColor: "rgba(255,255,255,0.10)",
+        backgroundColor: theme.field,
         alignItems: "center", justifyContent: "center",
     },
     reactionEmoji: { fontSize: 20 },
@@ -147,6 +147,6 @@ const styles = StyleSheet.create({
     menuRowPressed: { backgroundColor: "rgba(255,255,255,0.06)" },
     menuDivider: { borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: HAIRLINE },
     menuLabel: {
-        fontSize: 15, color: "#E5E7EB", fontFamily: "Outfit_600SemiBold", letterSpacing: 0.1,
+        fontSize: 15, color: theme.textPrimary, fontFamily: "Outfit_600SemiBold", letterSpacing: 0.1,
     },
 });

@@ -4,6 +4,7 @@ import RNBounceable from "@freakycoder/react-native-bounceable";
 import FastImage from "react-native-fast-image";
 import getDisplayTime from "../../helper/getDisplayTime";
 import { usePfp } from "../../helper/usePFPs";
+import theme from "../../theme/mfpDark";
 
 const { width, height } = Dimensions.get("window");
 
@@ -73,7 +74,7 @@ const Pfp = ({ uid, version = 0, style }) => {
             resizeMode={FastImage.resizeMode.cover}
         />
     ) : (
-        <View style={[style, { backgroundColor: "#2E323C" }]} />
+        <View style={[style, { backgroundColor: theme.field }]} />
     );
 };
 
@@ -150,10 +151,10 @@ const styles = StyleSheet.create({
         flexDirection: "row",
         alignItems: "center",
         justifyContent: "space-between",
-        backgroundColor: "#252733",
+        backgroundColor: theme.card,
         marginBottom: 10,
         borderWidth: 1,
-        borderColor: "rgba(255,255,255,0.08)",
+        borderColor: theme.hairline,
         shadowColor: "#000",
         shadowOpacity: 0.2,
         shadowRadius: 1,
@@ -164,33 +165,25 @@ const styles = StyleSheet.create({
     pfp: {
         position: "absolute",
         borderWidth: 1,
-        borderColor: "rgba(255,255,255,0.85)",
-        backgroundColor: "#2E323C",
+        borderColor: theme.bg,
+        backgroundColor: theme.field,
     },
     topLeft: { top: 0, left: 0 },
     bottomRight: { bottom: 0, right: 0 },
-    single: {
-        backgroundColor: "#2E323C",
-        borderWidth: 1,
-        borderColor: "rgba(255,255,255,0.06)",
-    },
+    single: { backgroundColor: theme.field, borderWidth: 1, borderColor: theme.hairline },
 
     textCol: { flex: 1, minWidth: 0 },
     handle: {
         paddingBottom: 3,
         fontFamily: "Outfit_600SemiBold",
-        color: "#E5E7EB",
+        color: theme.textPrimary,
         letterSpacing: 0.2,
     },
     content: {
         fontFamily: "Outfit_400Regular",
-        color: "#B8BFCA",
+        color: theme.textSecondary,
     },
 
     timeCol: { paddingLeft: 8, alignItems: "flex-end", justifyContent: "center" },
-    time: {
-        color: "#A1A7B3",
-        fontFamily: "Outfit_500Medium",
-        letterSpacing: 0.1,
-    },
+    time: { color: theme.textSecondary, fontFamily: "Outfit_500Medium", letterSpacing: 0.1 },
 });

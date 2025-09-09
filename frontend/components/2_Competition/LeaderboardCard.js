@@ -13,11 +13,11 @@ const CARD_HEIGHT = scaleSize(64);
 const SELF_CARD_HEIGHT = scaleSize(86);
 const PFP_SIZE = scaleSize(44);
 
-const FONT_HANDLE = scaleSize(14);
-const FONT_NAME = scaleSize(13);
-const FONT_STAT = scaleSize(15);
-const FONT_RANK = scaleSize(14);
-const FONT_BEST = scaleSize(13);
+const FONT_HANDLE = scaleSize(15);
+const FONT_NAME = scaleSize(14);
+const FONT_STAT = scaleSize(16);
+const FONT_RANK = scaleSize(15);
+const FONT_BEST = scaleSize(14);
 
 const ICON_ARROW = scaleSize(20);
 const ICON_MINUS = scaleSize(16);
@@ -169,8 +169,8 @@ const styles = StyleSheet.create({
         paddingLeft: 10,
         paddingRight: 14,
         marginBottom: 12.5,
-        // Match bottom sheet surface for a unified look
-        backgroundColor: require("../../theme/mfpDark").default.surface,
+        // Match sheet bg for unified look
+        backgroundColor: require("../../theme/mfpDark").default.bg,
     },
     self_card_ctnr: {
         borderRadius: 20,
@@ -180,7 +180,7 @@ const styles = StyleSheet.create({
         paddingRight: 14,
         borderWidth: 2.5,
         borderColor: '#57B2FF',
-        backgroundColor: require("../../theme/mfpDark").default.surface,
+        backgroundColor: require("../../theme/mfpDark").default.bg,
     },
     card_left: {
         flexDirection: 'row',
@@ -195,16 +195,17 @@ const styles = StyleSheet.create({
         backgroundColor: '#2D3441',
     },
     handle_text: {
-        fontFamily: 'Outfit_600SemiBold',
+        fontFamily: 'Outfit_700Bold',
         paddingHorizontal: 12,
-        color: '#EAEAEA',
+        color: require("../../theme/mfpDark").default.textPrimary,
         maxWidth: width * 0.45,
+        letterSpacing: 0.2,
     },
     name_text: {
         marginTop: 1.5,
         fontFamily: 'Outfit_500Medium',
         paddingHorizontal: 12,
-        color: '#AEB5C0',
+        color: require("../../theme/mfpDark").default.textSecondary,
         maxWidth: width * 0.45,
     },
     card_right: {
@@ -214,19 +215,20 @@ const styles = StyleSheet.create({
         maxWidth: width * 0.35,
     },
     stat_text: {
-        fontFamily: 'Outfit_600SemiBold',
-        color: '#6FB8FF',
+        fontFamily: 'Outfit_700Bold',
+        color: require("../../theme/mfpDark").default.accentBlue,
         textAlign: 'right',
+        letterSpacing: 0.2,
     },
     best_set_text: {
         fontFamily: 'Outfit_500Medium',
-        color: '#AEB5C0',
+        color: require("../../theme/mfpDark").default.textSecondary,
         marginTop: 4,
         textAlign: 'right',
     },
     rank_text: {
-        fontFamily: 'Poppins_600SemiBold',
-        color: '#EAEAEA',
+        fontFamily: 'Poppins_700Bold',
+        color: require("../../theme/mfpDark").default.textPrimary,
     },
     arrow_icon: {
         marginLeft: 1,

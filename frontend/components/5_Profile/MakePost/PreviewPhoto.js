@@ -1,5 +1,6 @@
 import React from "react";
 import { StyleSheet, View, Pressable, Text, Image } from "react-native";
+import theme from '../../../theme/mfpDark';
 
 function PreviewPhoto({ id, uri, selected, order, onToggle }) {
     const handlePress = () => onToggle(uri);
@@ -39,7 +40,7 @@ const styles = StyleSheet.create({
         right: 0,
         bottom: 0,
         borderWidth: 3,
-        borderColor: '#0499FE',
+        borderColor: theme.primary,
         borderRadius: 4,
     },
     badge: {
@@ -50,7 +51,7 @@ const styles = StyleSheet.create({
         height: 18,
         paddingHorizontal: 4,
         borderRadius: 9,
-        backgroundColor: '#0499FE',
+        backgroundColor: theme.primary,
         justifyContent: 'center',
         alignItems: 'center'
     },

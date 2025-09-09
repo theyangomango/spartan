@@ -71,13 +71,13 @@ const styles = StyleSheet.create({
     smallText: {
         paddingTop: scaledSize(1),
         fontSize: scaledSize(12.8),
-        color: theme.textSecondary,
+        color: theme.textPrimary,
         fontFamily: 'Poppins_600SemiBold'
     },
     smallerText: {
         paddingTop: scaledSize(1),
         fontSize: scaledSize(12.8),  // Slightly smaller font size
-        color: theme.textSecondary,
+        color: theme.textPrimary,
         fontFamily: 'Poppins_600SemiBold'
     },
 });

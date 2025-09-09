@@ -6,8 +6,8 @@ import RNBounceable from "@freakycoder/react-native-bounceable";
 import scaleSize from "../../helper/scaleSize";
 import theme from "../../theme/mfpDark";
 
-const ACCENT = "#2D9EFF";
-const HAIRLINE = "rgba(255,255,255,0.08)";
+const ACCENT = theme.primary;
+const HAIRLINE = theme.hairline;
 
 export default function MessagesHeader({
     toFeedScreen,
@@ -58,7 +58,7 @@ export default function MessagesHeader({
                         <FontAwesome5 name="users" size={scaleSize(16)} color={ACCENT} />
                     </TouchableOpacity>
                     <View style={styles.plusBubble}>
-                        <FontAwesome5 name="plus" size={scaleSize(9)} color="#FFFFFF" />
+                        <FontAwesome5 name="plus" size={scaleSize(9)} color={theme.textPrimary} />
                     </View>
                 </View>
 
@@ -139,7 +139,7 @@ const styles = StyleSheet.create({
     },
     segmentBg: {
         flexDirection: "row",
-        backgroundColor: "#252733",
+        backgroundColor: theme.surface,
         borderRadius: 999,
         padding: scaleSize(4),
         borderWidth: 1,
@@ -155,7 +155,7 @@ const styles = StyleSheet.create({
         alignItems: "center",
         justifyContent: "center",
         marginHorizontal: scaleSize(2),
-        backgroundColor: "#252733",
+        backgroundColor: theme.surface,
         paddingHorizontal: scaleSize(14),
     },
     chipActive: {
@@ -169,9 +169,9 @@ const styles = StyleSheet.create({
     chipText: {
         fontSize: scaleSize(12.5),
         fontFamily: "Outfit_600SemiBold",
-        color: "#A1A7B3",
+        color: theme.textSecondary,
     },
     chipTextActive: {
-        color: "#FFFFFF",
+        color: theme.textPrimary,
     },
 });

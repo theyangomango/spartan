@@ -1,6 +1,6 @@
 import React, { useCallback, useMemo, useRef, useState } from "react";
 import { StyleSheet, View, Text, TouchableOpacity } from "react-native";
-import BottomSheet, { BottomSheetBackdrop } from "@gorhom/bottom-sheet";
+import BottomSheet, { BottomSheetBackdrop, BottomSheetBackgroundProps } from "@gorhom/bottom-sheet";
 import theme from "../../theme/mfpDark";
 import LeaderboardModal from "./LeaderboardModal";
 
@@ -52,8 +52,7 @@ const LeaderboardBottomSheet = ({
             snapPoints={snapPoints}
             onChange={handleSheetChanges}
             handleStyle={{ display: "none" }}
-            style={styles.bottomsheet}
-            backgroundStyle={{ backgroundColor: require("../../theme/mfpDark").default.surface, borderTopLeftRadius: 30, borderTopRightRadius: 30 }}
+            backgroundStyle={{ backgroundColor: require("../../theme/mfpDark").default.bg, borderTopLeftRadius: 25, borderTopRightRadius: 25 }}
             enablePanDownToClose={false}
         >
             {blockedMessage ? (
@@ -90,10 +89,7 @@ const styles = StyleSheet.create({
         shadowOpacity: 0.8,
         shadowRadius: 5,
         elevation: 5,
-        borderTopRightRadius: 25,
-        borderTopLeftRadius: 25,
-        // Dark card background
-        backgroundColor: require("../../theme/mfpDark").default.surface,
+        // rounding and background handled by backgroundStyle
     },
 });
 
@@ -129,185 +125,6 @@ const BlockedView = React.memo(({ message, onResolve }) => {
     });
     return (
         <>
-            <></>
-            <></>
-            <></>
-            <></>
-            <></>
-            <></>
-            <></>
-            <></>
-            <></>
-            <></>
-            <></>
-            <></>
-            <></>
-            <></>
-            <></>
-            <></>
-            <></>
-            <></>
-            <></>
-            <></>
-            <></>
-            <></>
-            <></>
-            <></>
-            <></>
-            <></>
-            <></>
-            <></>
-            <></>
-            <></>
-            <></>
-            <></>
-            <></>
-            <></>
-            <></>
-            <></>
-            <></>
-            <></>
-            <></>
-            <></>
-            <></>
-            <></>
-            <></>
-            <></>
-            <></>
-            <></>
-            <></>
-            <></>
-            <></>
-            <></>
-            <></>
-            <></>
-            <></>
-            <></>
-            <></>
-            <></>
-            <></>
-            <></>
-            <></>
-            <></>
-            <></>
-            <></>
-            <></>
-            <></>
-            <></>
-            <></>
-            <></>
-            <></>
-            <></>
-            <></>
-            <></>
-            <></>
-            <></>
-            <></>
-            <></>
-            <></>
-            <></>
-            <></>
-            <></>
-            <></>
-            <></>
-            <></>
-            <></>
-            <></>
-            <></>
-            <></>
-            <></>
-            <></>
-            <></>
-            <></>
-            <></>
-            <></>
-            <></>
-            <></>
-            <></>
-            <></>
-            <></>
-            <></>
-            <></>
-            <></>
-            <></>
-            <></>
-            <></>
-            <></>
-            <></>
-            <></>
-            <></>
-            <></>
-            <></>
-            <></>
-            <></>
-            <></>
-            <></>
-            <></>
-            <></>
-            <></>
-            <></>
-            <></>
-            <></>
-            <></>
-            <></>
-            <></>
-            <></>
-            <></>
-            <></>
-            <></>
-            <></>
-            <></>
-            <></>
-            <></>
-            <></>
-            <></>
-            <></>
-            <></>
-            <></>
-            <></>
-            <></>
-            <></>
-            <></>
-            <></>
-            <></>
-            <></>
-            <></>
-            <></>
-            <></>
-            <></>
-            <></>
-            <></>
-            <></>
-            <></>
-            <></>
-            <></>
-            <></>
-            <></>
-            <></>
-            <></>
-            <></>
-            <></>
-            <></>
-            <></>
-            <></>
-            <></>
-            <></>
-            <></>
-            <></>
-            <></>
-            <></>
-            <></>
-            <></>
-            <></>
-            <></>
-            <></>
-            <></>
-            <></>
-            <></>
-            <></>
-            <></>
-            <></>
-            <></>
             <View style={stylesLocal.wrap}>
                 <Text style={stylesLocal.text}>{message}</Text>
                 <Text style={stylesLocal.sub}>Enter your personal info to enable per-lb ranking.</Text>

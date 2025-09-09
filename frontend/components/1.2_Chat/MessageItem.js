@@ -208,7 +208,7 @@ export default function MessageItem({
                             { maxWidth: BUBBLE_MAX_W, alignSelf: isSelf ? "flex-end" : "flex-start" },
                         ]}
                     >
-                        <View style={[styles.replyBar, { backgroundColor: isSelf ? "#fff" : "#2D9EFF" }]} />
+                        <View style={[styles.replyBar, { backgroundColor: isSelf ? theme.textPrimary : theme.primary }]} />
                         <View style={styles.replyTextCol}>
                             <Text
                                 numberOfLines={1}
@@ -333,14 +333,14 @@ const styles = StyleSheet.create({
     rowOther: { alignItems: "flex-start" },
     hRow: { flexDirection: "row", alignItems: "center" },
     avatarSlot: { width: 30, marginRight: 8, alignItems: 'flex-start' },
-    avatar: { width: 26, height: 26, borderRadius: 13, backgroundColor: '#2E323C' },
-    avatarFallback: { backgroundColor: '#2E323C' },
+    avatar: { width: 26, height: 26, borderRadius: 13, backgroundColor: theme.field },
+    avatarFallback: { backgroundColor: theme.field },
     wrap: { position: "relative", overflow: 'visible' },
 
     bubble: { borderRadius: 18, paddingHorizontal: 12, paddingVertical: 8, position: "relative" },
     bubbleSelf: {
-        backgroundColor: "#2D9EFF",
-        shadowColor: "#2D9EFF",
+        backgroundColor: theme.primary,
+        shadowColor: theme.primary,
         shadowOpacity: 0.18,
         shadowRadius: 10,
         shadowOffset: { width: 0, height: 4 },
@@ -359,17 +359,17 @@ const styles = StyleSheet.create({
     groupOther: { borderBottomLeftRadius: 7 },
 
     text: { fontSize: 14, lineHeight: 19, letterSpacing: 0.1, fontFamily: "Outfit_500Medium" },
-    textSelf: { color: "#FFFFFF" },
-    textOther: { color: "#E5E7EB" },
+    textSelf: { color: theme.textPrimary },
+    textOther: { color: theme.textPrimary },
 
     mediaWrap: { flexDirection: "row", flexWrap: "wrap", gap: 6, marginTop: 6 },
     media: {
         width: (BUBBLE_MAX_W - 6) / 2,
         height: 180,
         borderRadius: 12,
-        backgroundColor: "#1E2128",
+        backgroundColor: theme.field,
     },
-    videoOuter: { overflow: "hidden", borderRadius: 12, backgroundColor: "#000" },
+    videoOuter: { overflow: "hidden", borderRadius: 12, backgroundColor: theme.bg },
 
     // reply preview
     replyPreview: {
@@ -381,10 +381,10 @@ const styles = StyleSheet.create({
         borderRadius: 12,
     },
     replySelf: { backgroundColor: "rgba(45,158,255,0.40)" },
-    replyOther: { backgroundColor: "#1E2128" },
+    replyOther: { backgroundColor: theme.field },
     replyBar: { width: 3, height: 30, borderRadius: 2, marginRight: 8 },
     replyTextCol: { flexShrink: 1, minWidth: 0 },
-    replySnippet: { fontSize: 12, fontFamily: "Outfit_500Medium", color: "#A1A7B3" },
+    replySnippet: { fontSize: 12, fontFamily: "Outfit_500Medium", color: theme.textSecondary },
 
     // reactions badge
     reactionInline: {
@@ -409,10 +409,7 @@ const styles = StyleSheet.create({
     },
     reactionLeft: { left: -12 },
     reactionRight: { right: -12 },
-    reactionEmoji: {
-        fontSize: 12.5,
-        color: "#E5E7EB",
-    },
+    reactionEmoji: { fontSize: 12.5, color: theme.textPrimary },
 
     // timestamps outside bubble, slide in
     timeRight: {
@@ -424,7 +421,7 @@ const styles = StyleSheet.create({
         lineHeight: 13,
         fontFamily: "Outfit_500Medium",
         letterSpacing: 0.1,
-        color: "#A1A7B3",
+        color: theme.textSecondary,
     },
     timeLeftOuter: {
         position: "absolute",
@@ -435,6 +432,6 @@ const styles = StyleSheet.create({
         lineHeight: 13,
         fontFamily: "Outfit_500Medium",
         letterSpacing: 0.1,
-        color: "#A1A7B3",
+        color: theme.textSecondary,
     },
 });
