@@ -55,7 +55,7 @@ const LeaderboardBottomSheet = ({
             onChange={handleSheetChanges}
             handleStyle={{ display: "none" }}
             // Use custom canvas color (from Competition screen) for unified canvas
-            backgroundStyle={{ backgroundColor: canvasColor || require("../../theme/mfpDark").default.bg, borderTopLeftRadius: 25, borderTopRightRadius: 25 }}
+            backgroundStyle={{ backgroundColor: canvasColor || require("../../theme/mfpDark").default.screenBg, borderTopLeftRadius: 25, borderTopRightRadius: 25 }}
             enablePanDownToClose={false}
         >
             {blockedMessage ? (

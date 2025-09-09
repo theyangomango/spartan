@@ -520,27 +520,8 @@ export default function Competition({ navigation }) {
         return top3.filter(Boolean);
     }, [rankedDisplay, isCustomTribe, activeComparison, comparedExercise, exerciseStatKey]);
 
-    // Compute a custom leaderboard canvas color a couple shades lighter
-    const leaderboardCanvas = useMemo(() => {
-        const lightenColor = (hex, amount = 0.1) => {
-            if (typeof hex !== 'string') return hex;
-            let h = hex.replace('#', '').trim();
-            let a = 1;
-            if (h.length === 8) {
-                const aa = h.slice(6, 8);
-                a = Math.max(0, Math.min(1, parseInt(aa, 16) / 255));
-                h = h.slice(0, 6);
-            }
-            if (h.length !== 6) return hex;
-            const r = parseInt(h.slice(0, 2), 16);
-            const g = parseInt(h.slice(2, 4), 16);
-            const b = parseInt(h.slice(4, 6), 16);
-            const mix = (c) => Math.round(c + (255 - c) * amount);
-            const rr = mix(r), gg = mix(g), bb = mix(b);
-            return `rgba(${rr}, ${gg}, ${bb}, ${a})`;
-        };
-        return lightenColor(theme.bg, 0.1);
-    }, []);
+    // Use the shared lightened canvas from theme
+    const leaderboardCanvas = theme.screenBg;
 
     return (
         <View style={styles.mainContainer}>
@@ -758,8 +739,8 @@ export default function Competition({ navigation }) {
     );
 }
 const styles = StyleSheet.create({
-    // Dark mode background for Competition screen (lighter MFP-like)
-    mainContainer: { flex: 1, backgroundColor: theme.bg },
+    // Background for Competition screen: lightened screen canvas
+    mainContainer: { flex: 1, backgroundColor: theme.screenBg },
     header: { alignItems: "flex-end", justifyContent: "flex-end", flexDirection: "row" },
     headerRightContainer: { flexDirection: "row", alignItems: "center" },
     tribeButtonRow: {

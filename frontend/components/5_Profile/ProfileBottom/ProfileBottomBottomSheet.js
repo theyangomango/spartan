@@ -38,8 +38,8 @@ const ProfileBottomBottomSheet = ({ selectedPanel, setSelectedPanel, posts, save
             snapPoints={snapPoints}
             onChange={handleSheetChanges}
             handleStyle={{ display: 'none' }}
-            // Match Feed background to keep top/bottom consistent
-            backgroundStyle={{ backgroundColor: theme.bg }}
+            // Match screen canvas to keep top/bottom consistent
+            backgroundStyle={{ backgroundColor: theme.screenBg }}
             style={{ marginTop: scaledSize(3) }}
             detached
         >

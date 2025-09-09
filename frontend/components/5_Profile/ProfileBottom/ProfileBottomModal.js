@@ -64,8 +64,8 @@ import theme from "../../../theme/mfpDark";
 const styles = StyleSheet.create({
     container: {
         flex: 1,
-        // Match Feed background for entire screen cohesion
-        backgroundColor: theme.bg,
+        // Match screen canvas for cohesion
+        backgroundColor: theme.screenBg,
     },
     panel_border: {
         borderColor: theme.primary,

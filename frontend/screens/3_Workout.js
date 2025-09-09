@@ -516,7 +516,7 @@ export default function Workout({ navigation, route }) {
     /* ---------------- render ---------------- */
     return (
         <SafeAreaView style={styles.root}>
-            <StatusBar barStyle="light-content" backgroundColor={theme.bg} />
+            <StatusBar barStyle="light-content" backgroundColor={theme.screenBg} />
             {/* Header measured for anchoring */}
             <View onLayout={onHeaderLayout}>
                 <FeedHeader
@@ -570,7 +570,7 @@ export default function Workout({ navigation, route }) {
                 />
 
                 <SectionDivider
-                    containerBg={theme.bg}
+                    containerBg={theme.screenBg}
                     dashColor="rgba(255,255,255,0.22)"
                     dotColor="#ffffff2d"
                 />
@@ -739,8 +739,8 @@ export default function Workout({ navigation, route }) {
 
 /* ---------------- styles ---------------- */
 const styles = StyleSheet.create({
-    // MyFitnessPal-like dark background
-    root: { flex: 1, backgroundColor: theme.bg },
+    // MyFitnessPal-like dark background (lightened canvas for screens)
+    root: { flex: 1, backgroundColor: theme.screenBg },
     content: { flex: 1, paddingTop: 8 },
 
     templatesDock: { position: "absolute", left: 0, right: 0, bottom: FOOTER_HEIGHT + ss(22) + BTN_SIZE + TPL_BOTTOM_GAP },

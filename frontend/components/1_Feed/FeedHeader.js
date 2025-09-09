@@ -568,7 +568,7 @@ export default memo(FeedHeader);
 const styles = StyleSheet.create({
     main_ctnr: {
         width: "100%",
-        backgroundColor: theme.bg,
+        backgroundColor: theme.screenBg,
         flexDirection: "row",
         justifyContent: "center",
         paddingTop: METRICS.paddingTop,
@@ -580,7 +580,7 @@ const styles = StyleSheet.create({
 
     back_header: {
         width: "100%",
-        backgroundColor: theme.bg,
+        backgroundColor: theme.screenBg,
         flexDirection: "row",
         paddingLeft: METRICS.paddingH,
         paddingTop: METRICS.paddingTop + s(4),
@@ -642,7 +642,7 @@ const styles = StyleSheet.create({
     left_placeholder: { width: dynamicStyles.iconSize + 6, height: dynamicStyles.iconSize + 6 },
 
     modalContainer: { flex: 1 },
-    canvasFill: { ...StyleSheet.absoluteFillObject, backgroundColor: theme.bg },
+    canvasFill: { ...StyleSheet.absoluteFillObject, backgroundColor: theme.screenBg },
     // Align overlay search icon wrapper top exactly with header's wrapper top
     // Header wrapper Y = marginTop + paddingTop + iconTop
     modalContent: { flex: 1, paddingHorizontal: METRICS.paddingH, paddingTop: METRICS.marginTop + METRICS.paddingTop, marginTop: 0 },
@@ -693,7 +693,7 @@ const styles = StyleSheet.create({
     },
     noResultsText: { color: theme.textSecondary, fontSize: s(12.5), fontFamily: "Outfit_600SemiBold" },
 
-    profileCard: { width: "100%", flexDirection: "row", alignItems: "center", backgroundColor: theme.bg, paddingVertical: s(12), paddingHorizontal: s(18) },
+    profileCard: { width: "100%", flexDirection: "row", alignItems: "center", backgroundColor: theme.screenBg, paddingVertical: s(12), paddingHorizontal: s(18) },
     profileLeft: { flexDirection: "row", alignItems: "center", flex: 1, minWidth: 0 },
     // Remove blue ring around avatars in profile cards
     avatarRing: { alignItems: "center", justifyContent: "center", borderWidth: 0, borderColor: 'transparent', backgroundColor: 'transparent' },

@@ -17,6 +17,25 @@ import { Weight } from "iconsax-react-native";
 import FastImage from "react-native-fast-image";
 import theme from "../../../theme/mfpDark";
 
+// Local lighten helper for slight contrast bump
+const lightenColor = (hex, amount = 0.1) => {
+    if (typeof hex !== 'string') return hex;
+    let h = hex.replace('#', '').trim();
+    let a = 1;
+    if (h.length === 8) { const aa = h.slice(6, 8); a = Math.max(0, Math.min(1, parseInt(aa, 16) / 255)); h = h.slice(0, 6); }
+    if (h.length !== 6) return hex;
+    const r = parseInt(h.slice(0, 2), 16);
+    const g = parseInt(h.slice(2, 4), 16);
+    const b = parseInt(h.slice(4, 6), 16);
+    const mix = (c) => Math.round(c + (255 - c) * amount);
+    const rr = mix(r), gg = mix(g), bb = mix(b);
+    return `rgba(${rr}, ${gg}, ${bb}, ${a})`;
+};
+
+const CHIP_BG = lightenColor(theme.field, 0.1);
+const CHIP_BORDER = 'rgba(255,255,255,0.36)';
+const CHEVRON_BG = 'rgba(255,255,255,0.12)';
+
 import { db } from "../../../../firebase.config";
 import { usePfp } from "../../../helper/usePFPs";
 
@@ -278,8 +297,8 @@ function Chip({ ev, navigation, onPressChip }) {
 /* ---------- styles ---------- */
 const styles = StyleSheet.create({
     // Elevated to ensure it sits above post overlays when used as sticky header
-    // Dark background to match feed container
-    wrap: { backgroundColor: theme.bg, paddingBottom: 10, paddingTop: 8, marginTop: -6, zIndex: 100, elevation: 7 },
+    // Background to match feed container (uses lighter screen canvas)
+    wrap: { backgroundColor: theme.screenBg, paddingBottom: 10, paddingTop: 8, marginTop: -6, zIndex: 100, elevation: 7 },
     list: { overflow: "visible" },
     listContent: { paddingLeft: 14, paddingRight: 8, columnGap: 6 },
 
@@ -290,10 +309,10 @@ const styles = StyleSheet.create({
         paddingLeft: ss(12),
         paddingRight: ss(10),
         borderRadius: ss(16),
-        // Use themed surface for dark mode cohesion
-        backgroundColor: theme.field,
+        // Slightly lighter than field for more contrast vs canvas
+        backgroundColor: CHIP_BG,
         borderWidth: StyleSheet.hairlineWidth,
-        borderColor: theme.hairline,
+        borderColor: CHIP_BORDER,
         ...Platform.select({
             ios: {
                 shadowColor: "#000",
@@ -380,7 +399,7 @@ const styles = StyleSheet.create({
         borderRadius: ss(13),
         alignItems: "center",
         justifyContent: "center",
-        backgroundColor: "rgba(255,255,255,0.08)",
+        backgroundColor: CHEVRON_BG,
         marginLeft: ss(2),
     },
 });

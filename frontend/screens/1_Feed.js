@@ -662,7 +662,7 @@ export default function Feed({ navigation, route }) {
     const listData = useMemo(() => ([...(posts || [])]), [posts]);
 
     return (
-            <SafeAreaView style={{ flex: 1, backgroundColor: theme.bg }}>
+            <SafeAreaView style={{ flex: 1, backgroundColor: theme.screenBg }}>
             <SafeAreaView style={styles.mainContainer}>
                 <StatusBar style="light" />
 
@@ -730,7 +730,7 @@ export default function Feed({ navigation, route }) {
                         }
                     }}
                     style={[{
-                        backgroundColor: theme.bg,
+                        backgroundColor: theme.screenBg,
                         zIndex: 20,
                     }, overlayHeaderStyle]}
                 >
@@ -766,7 +766,7 @@ export default function Feed({ navigation, route }) {
                     <SafeAreaInsetsView
                         edges={['top']}
                         onLayout={(e) => { backHeaderHRef.current = e.nativeEvent.layout.height || 0; }}
-                        style={{ position: 'absolute', top: 0, left: 0, right: 0, zIndex: 30, backgroundColor: theme.bg }}
+                        style={{ position: 'absolute', top: 0, left: 0, right: 0, zIndex: 30, backgroundColor: theme.screenBg }}
                     >
                         <FeedHeader
                             navigation={navigation}
@@ -784,7 +784,7 @@ export default function Feed({ navigation, route }) {
             </SafeAreaInsetsView>
 
             {/* Top safe-area mask to hide content above inset */}
-            <View pointerEvents="none" style={{ position: 'absolute', top: 0, left: 0, right: 0, height: insets.top, backgroundColor: theme.bg, zIndex: 25 }} />
+            <View pointerEvents="none" style={{ position: 'absolute', top: 0, left: 0, right: 0, height: insets.top, backgroundColor: theme.screenBg, zIndex: 25 }} />
 
 
 
@@ -813,6 +813,6 @@ export default function Feed({ navigation, route }) {
 }
 
 const styles = StyleSheet.create({
-    mainContainer: { flex: 1, backgroundColor: theme.bg },
+    mainContainer: { flex: 1, backgroundColor: theme.screenBg },
     postWrapper: { width: "100%" },
 });

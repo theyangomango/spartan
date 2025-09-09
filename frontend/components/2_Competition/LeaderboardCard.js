@@ -65,8 +65,8 @@ export default function LeaderboardCard({
             onPress={handlePress}
             style={
                 userIsSelf
-                    ? [styles.self_card_ctnr, { height: SELF_CARD_HEIGHT, backgroundColor: bgColor || require("../../theme/mfpDark").default.bg }]
-                    : [styles.card_ctnr, { height: CARD_HEIGHT, backgroundColor: bgColor || require("../../theme/mfpDark").default.bg }]
+                    ? [styles.self_card_ctnr, { height: SELF_CARD_HEIGHT, backgroundColor: bgColor || require("../../theme/mfpDark").default.screenBg }]
+                    : [styles.card_ctnr, { height: CARD_HEIGHT, backgroundColor: bgColor || require("../../theme/mfpDark").default.screenBg }]
             }
         >
             <View style={styles.card_left}>
@@ -171,8 +171,8 @@ const styles = StyleSheet.create({
         paddingLeft: 10,
         paddingRight: 14,
         marginBottom: 12.5,
-        // Match app background for unified canvas inside sheet
-        backgroundColor: require("../../theme/mfpDark").default.bg,
+        // Match app screen canvas background for unified canvas inside sheet
+        backgroundColor: require("../../theme/mfpDark").default.screenBg,
     },
     self_card_ctnr: {
         borderRadius: 20,
@@ -182,7 +182,7 @@ const styles = StyleSheet.create({
         paddingRight: 14,
         borderWidth: 2.5,
         borderColor: '#57B2FF',
-        backgroundColor: require("../../theme/mfpDark").default.bg,
+        backgroundColor: require("../../theme/mfpDark").default.screenBg,
     },
     card_left: {
         flexDirection: 'row',

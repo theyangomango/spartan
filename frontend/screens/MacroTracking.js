@@ -32,7 +32,7 @@ if (Platform.OS === 'android' && UIManager.setLayoutAnimationEnabledExperimental
 
 // Unified dark palette (match other screens). Reduce contrast vs. bg.
 const COLORS = {
-    bg: theme.bg,
+    bg: theme.screenBg,
     card: theme.surface,
     text: theme.textPrimary,
     subtext: theme.textSecondary,
@@ -40,9 +40,9 @@ const COLORS = {
     ringTint: theme.primary,
     ringBg: theme.ringBg,
     ringTrack: theme.ringBg,
-    chipBg: theme.surface,
-    addBtnBg: theme.surface,
-    fieldBg: theme.surface,
+    chipBg: theme.field,
+    addBtnBg: theme.field,
+    fieldBg: theme.field,
     accentBlue: theme.primary,
     accent: theme.primary,
     // Macro colors
