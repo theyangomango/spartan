@@ -27,13 +27,12 @@ const StartCluster = ({
             <View style={styles.actionsRow} pointerEvents="box-none">
                 {/* Make a Post */}
                 <View style={styles.glowWrap} pointerEvents="box-none">
-                    <View style={[styles.glow, styles.glowLeft]} pointerEvents="none" />
                     <Pressable
                         hitSlop={8}
                         android_ripple={{ color: "rgba(255,255,255,0.08)", radius: SMALL_SIZE / 2, borderless: true }}
                         accessibilityRole="button"
                         accessibilityLabel="Create a post"
-                        style={({ pressed }) => [styles.smallBtn, pressed && styles.smallBtnPressed]}
+                        style={({ pressed }) => [styles.smallBtn, styles.smallBtnBump, pressed && styles.smallBtnPressed]}
                         onPress={() => { navigation?.navigate('SelectPhotos'); }}
                     >
                         <AddSquare size={24} color="#E5E7EB" />
@@ -47,13 +46,12 @@ const StartCluster = ({
 
                 {/* Friends / Live */}
                 <View style={styles.glowWrap} pointerEvents="box-none">
-                    <View style={[styles.glow, styles.glowRight]} pointerEvents="none" />
                     <Pressable
                         hitSlop={8}
                         android_ripple={{ color: "rgba(255,255,255,0.08)", radius: SMALL_SIZE / 2, borderless: true }}
                         accessibilityRole="button"
                         accessibilityLabel="Friends training now"
-                        style={({ pressed }) => [styles.smallBtn, pressed && styles.smallBtnPressed]}
+                        style={({ pressed }) => [styles.smallBtn, styles.smallBtnBump, pressed && styles.smallBtnPressed]}
                         onPress={onOpenFriends}
                     >
                         {showStack ? <LiveStack users={friendsStackUsers} /> : <Feather name="users" size={21} color="#E5E7EB" />}
@@ -74,21 +72,8 @@ const styles = StyleSheet.create({
         marginBottom: 10,
     },
     glowWrap: { position: "relative", alignItems: "center", justifyContent: "center" },
-    // shadow-only halo hidden beneath the button (no visible ring)
-    glow: {
-        position: "absolute",
-        width: SMALL_SIZE * 0.92,
-        height: SMALL_SIZE * 0.92,
-        borderRadius: (SMALL_SIZE * 0.92) / 2,
-        backgroundColor: 'transparent',
-        borderWidth: 0,
-        // Slight brand-tinted halo (less stark than white)
-        shadowColor: "#2D9EFF",
-        shadowOpacity: 0.32,
-        shadowRadius: 14,
-        shadowOffset: { width: 0, height: 0 },
-        elevation: 0,
-    },
+    // Halo removed
+    glow: { display: 'none' },
     glowLeft: {},
     glowRight: {},
     smallBtn: {
@@ -100,10 +85,12 @@ const styles = StyleSheet.create({
         backgroundColor: theme.surface,
         borderWidth: 0, // remove ring outline
         ...Platform.select({
-            ios: { shadowColor: "#fff", shadowOpacity: 0.35, shadowRadius: 10, shadowOffset: { width: 0, height: 0 } },
-            android: { elevation: 3 },
+            ios: { shadowOpacity: 0 },
+            android: { elevation: 0 },
         }),
     },
+    // Subtle vertical bump to better align with START button
+    smallBtnBump: { top: -2, position: 'relative' },
     smallBtnPressed: { transform: [{ scale: 0.96 }], backgroundColor: '#515A6B' },
 });
 

@@ -66,7 +66,7 @@ function HubRowCmp({
                             width={11}
                             fill={safeFill}
                             tintColor="#2D9EFF"
-                            backgroundColor="#C6CFDC"
+                            backgroundColor="#bbdbff4f"
                             lineCap="round"
                             arcSweepAngle={360}
                             rotation={0}

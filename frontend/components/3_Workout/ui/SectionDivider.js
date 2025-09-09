@@ -51,6 +51,7 @@ const styles = StyleSheet.create({
     sectionDividerOuter: {
         alignItems: "center",
         marginTop: 8,
+        marginBottom: 8, // ensure equal spacing below
     },
     sectionDividerInner: {
         height: 22,

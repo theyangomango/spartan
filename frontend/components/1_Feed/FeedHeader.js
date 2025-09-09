@@ -598,7 +598,7 @@ const styles = StyleSheet.create({
     // Nudge the logo down slightly to align with side icons
     logoWrap: { height: "100%", flexDirection: "row", alignItems: "center", paddingTop: METRICS.logoPadTop },
     logo_image_ctnr: { justifyContent: "center", alignItems: "center" },
-    logo_image: { width: s(25), height: s(25) },
+    logo_image: { width: s(26.5), height: s(26.5) },
     logo_text: {
         paddingLeft: s(4),
         fontFamily: "Inter_600SemiBold",

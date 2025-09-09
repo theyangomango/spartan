@@ -361,16 +361,16 @@ const styles = StyleSheet.create({
 
     calCaption: { color: "#ECF2FA", fontSize: 12, fontFamily: "Outfit_700Bold" },
 
-    // Jump to Today pill
+    // Jump to Today pill – harmonize with dark theme
     jumpLinkTouch: {
         paddingHorizontal: 10,
         paddingVertical: 6,
         borderRadius: 999,
-        backgroundColor: 'rgba(45,158,255,0.20)',
+        backgroundColor: theme.field,
         borderWidth: StyleSheet.hairlineWidth,
         borderColor: theme.hairline,
     },
-    jumpLink: { color: "#ffffff", fontSize: 12, fontFamily: "Outfit_700Bold", letterSpacing: 0.2 },
+    jumpLink: { color: theme.textPrimary, fontSize: 12, fontFamily: "Outfit_700Bold", letterSpacing: 0.2 },
 
     page: { justifyContent: "center" },
     row: { flexDirection: "row", alignItems: "center" },
@@ -380,7 +380,7 @@ const styles = StyleSheet.create({
     // Bottom workout bar
     bottomBar: { position: "absolute", bottom: 2, height: 6, borderRadius: 3 },
     bottomBarOn: { backgroundColor: "#2D9EFF" },
-    bottomBarOff: { backgroundColor: "#ebebebff" },
+    bottomBarOff: { backgroundColor: "#bbdbff4f" },
 
     centerPill: {
         marginTop: 4,

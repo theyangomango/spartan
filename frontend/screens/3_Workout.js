@@ -537,7 +537,7 @@ export default function Workout({ navigation, route }) {
             <Animated.View
                 style={[
                     styles.inviteBannerWrap,
-                    { top: headerHeight + 6, transform: [{ translateY: bannerY }] },
+                    { top: headerHeight + 10, transform: [{ translateY: bannerY }] },
                 ]}
                 pointerEvents={currentInvite ? "auto" : "none"}
                 onLayout={handleInviteLayout}
@@ -741,7 +741,7 @@ export default function Workout({ navigation, route }) {
 const styles = StyleSheet.create({
     // MyFitnessPal-like dark background
     root: { flex: 1, backgroundColor: theme.bg },
-    content: { flex: 1, paddingTop: 4 },
+    content: { flex: 1, paddingTop: 8 },
 
     templatesDock: { position: "absolute", left: 0, right: 0, bottom: FOOTER_HEIGHT + ss(22) + BTN_SIZE + TPL_BOTTOM_GAP },
     clusterWrap: { position: "absolute", left: 0, right: 0, bottom: FOOTER_HEIGHT + ss(20), alignItems: "center" },

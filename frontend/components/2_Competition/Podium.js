@@ -234,9 +234,9 @@ const styles = StyleSheet.create({
     streak_base: {
         position: 'absolute',
         width: '160%',
-        height: scaleSize(8),
+        height: scaleSize(14),
         left: '-30%',
-        borderRadius: scaleSize(8),
+        borderRadius: scaleSize(14),
     },
     streak_one: {
         top: scaleSize(18),
@@ -244,12 +244,12 @@ const styles = StyleSheet.create({
     },
     streak_two: {
         top: scaleSize(44),
-        height: scaleSize(10),
+        height: scaleSize(18),
         transform: [{ rotate: '-12deg' }],
     },
     streak_three: {
         top: scaleSize(70),
-        height: scaleSize(6),
+        height: scaleSize(12),
         transform: [{ rotate: '-10deg' }],
     },
     // Top header band that holds the podium bars

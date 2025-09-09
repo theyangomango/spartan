@@ -18,7 +18,7 @@ export default function MiniPodium({ data = [] }) {
                     // Silver ring to match Competition podium
                     <Avatar uri={data[1]?.pfp} ring="#D8DFEA" />
                 ) : null}
-                <View style={[styles.plinth, { height: H_L, backgroundColor: "#a7a8ac65" }]}>
+                <View style={[styles.plinth, { height: H_L, backgroundColor: "#bbdbff35" }]}>
                     {/* Silver dot */}
                     <View style={[styles.medalDot, { backgroundColor: "#D8DFEA" }]} />
                 </View>
@@ -29,7 +29,7 @@ export default function MiniPodium({ data = [] }) {
                     // Gold ring
                     <Avatar uri={data[0]?.pfp} ring="#FFC83D" />
                 ) : null}
-                <View style={[styles.plinth, { height: H_C, backgroundColor: "#a7a8ac65" }]}>
+                <View style={[styles.plinth, { height: H_C, backgroundColor: "#bbdbff35" }]}>
                     {/* Gold dot */}
                     <View style={[styles.medalDot, { backgroundColor: "#FFC83D" }]} />
                 </View>
@@ -40,7 +40,7 @@ export default function MiniPodium({ data = [] }) {
                     // Bronze ring
                     <Avatar uri={data[2]?.pfp} ring="#FF9555" />
                 ) : null}
-                <View style={[styles.plinth, { height: H_R, backgroundColor: "#a7a8ac65" }]}>
+                <View style={[styles.plinth, { height: H_R, backgroundColor: "#bbdbff35" }]}>
                     {/* Bronze dot */}
                     <View style={[styles.medalDot, { backgroundColor: "#FF9555" }]} />
                 </View>
