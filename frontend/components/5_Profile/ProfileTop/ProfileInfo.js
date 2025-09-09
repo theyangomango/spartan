@@ -120,11 +120,13 @@ const styles = StyleSheet.create({
         flex: 1,
         textAlign: 'left',
     },
-    bio_ctnr: {},
+    bio_ctnr: { marginTop: scaledSize(2) },
     bio_text: {
-        fontFamily: 'Outfit_700Bold',
-        fontSize: scaledSize(16),
-        color: theme.textPrimary,
+        // Make bio visually distinct from handle: lighter weight, softer color
+        fontFamily: 'Outfit_400Regular',
+        fontSize: scaledSize(13),
+        color: theme.textSecondary,
+        lineHeight: scaledSize(17),
         letterSpacing: 0.1,
     },
 });

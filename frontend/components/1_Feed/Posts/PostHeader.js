@@ -5,6 +5,7 @@ import scaleSize from "../../../helper/scaleSize";
 import { usePfp } from "../../../helper/usePFPs";
 import RNBounceable from "@freakycoder/react-native-bounceable";
 import theme from "../../../theme/mfpDark";
+import { Weight } from "iconsax-react-native";
 
 export default function PostHeader({
     data,
@@ -53,6 +54,8 @@ export default function PostHeader({
                                 style={styles.workout_text_ctnr}
                                 accessibilityLabel="Open workout details"
                             >
+                                <Weight size={scaleSize(12)} color={theme.textPrimary} variant="Bold" />
+                                <View style={styles.workout_dot} />
                                 <Text style={styles.date_text}>
                                     {formatDate(new Date(data.workout.created))} Workout
                                 </Text>
@@ -121,24 +124,28 @@ const styles = StyleSheet.create({
         color: "#fff",
     },
     workout_text_ctnr: {
-        paddingHorizontal: 10,
+        paddingHorizontal: 12,
         paddingVertical: 4,
-        backgroundColor: theme.primary,
-        borderRadius: 15,
-        // Keep edges clean and match app chip styling
-        borderWidth: 1,
-        borderColor: 'transparent',
-        // Subtle lift for readability on photos
-        shadowColor: theme.primary,
-        shadowOpacity: 0.18,
+        // Lighter translucent pill, consistent with Profile buttons
+        backgroundColor: 'rgba(255,255,255,0.18)',
+        borderRadius: 16,
+        flexDirection: 'row',
+        alignItems: 'center',
+        // Subtle, dark-mode friendly framing
+        borderWidth: StyleSheet.hairlineWidth,
+        borderColor: theme.hairline,
+        shadowColor: '#000',
+        shadowOpacity: 0.12,
         shadowRadius: 4,
         shadowOffset: { width: 0, height: 3 },
         elevation: 2,
     },
+    workout_dot: { width: scaleSize(4), height: scaleSize(4), borderRadius: scaleSize(2), backgroundColor: theme.primary, marginHorizontal: scaleSize(6), opacity: 0.9 },
     date_text: {
-        fontSize: scaleSize(10.5),
+        fontSize: scaleSize(11),
         color: theme.textPrimary,
-        fontFamily: "Poppins_700Bold",
+        fontFamily: "Outfit_700Bold",
+        letterSpacing: 0.2,
     },
     right: {
         flexDirection: "row",

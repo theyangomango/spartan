@@ -177,7 +177,8 @@ export default function ViewProfile({ navigation, route }) {
 const styles = StyleSheet.create({
     main_ctnr: {
         flex: 1,
-        backgroundColor: theme.bg
+        // Match Feed background for cohesion
+        backgroundColor: theme.bg,
     },
     body_ctnr: {
         paddingHorizontal: 10,

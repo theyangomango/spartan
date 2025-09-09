@@ -1,4 +1,5 @@
-import { StyleSheet, View, Text } from "react-native";
+import React, { useEffect, useRef } from "react";
+import { StyleSheet, View, Text, Animated, Easing } from "react-native";
 import { LinearGradient } from 'expo-linear-gradient';
 import FastImage from "react-native-fast-image";
 import scaleSize from "../../helper/scaleSize";
@@ -24,7 +25,62 @@ const HANDLE_PT = scaleSize(4);
 const HANDLE_PB = scaleSize(10);
 const BAR_TEXT_PT = scaleSize(6);
 
+const AnimatedLinearGradient = Animated.createAnimatedComponent(LinearGradient);
+
 export default function Podium({ data }) {
+    // Subtle animated drift for blue streaks
+    const drift1 = useRef(new Animated.Value(0)).current;
+    const drift2 = useRef(new Animated.Value(0)).current;
+    const drift3 = useRef(new Animated.Value(0)).current;
+
+    useEffect(() => {
+        const makeLoop = (val, duration, delay = 0) => {
+            const seq = Animated.sequence([
+                Animated.timing(val, {
+                    toValue: 1,
+                    duration,
+                    delay,
+                    easing: Easing.inOut(Easing.cubic),
+                    useNativeDriver: true,
+                }),
+                Animated.timing(val, {
+                    toValue: 0,
+                    duration,
+                    easing: Easing.inOut(Easing.cubic),
+                    useNativeDriver: true,
+                }),
+            ]);
+            return Animated.loop(seq);
+        };
+
+        // Slightly faster for more noticeable motion
+        const l1 = makeLoop(drift1, 8000, 0);
+        const l2 = makeLoop(drift2, 10000, 600);
+        const l3 = makeLoop(drift3, 12000, 1200);
+
+        l1.start();
+        l2.start();
+        l3.start();
+
+        return () => {
+            l1.stop();
+            l2.stop();
+            l3.stop();
+        };
+    }, [drift1, drift2, drift3]);
+
+    // Increased amplitude and a touch of vertical parallax
+    const tx1 = drift1.interpolate({ inputRange: [0, 1], outputRange: [-scaleSize(24), scaleSize(24)] });
+    const tx2 = drift2.interpolate({ inputRange: [0, 1], outputRange: [-scaleSize(18), scaleSize(18)] });
+    const tx3 = drift3.interpolate({ inputRange: [0, 1], outputRange: [-scaleSize(14), scaleSize(14)] });
+    const ty2 = drift2.interpolate({ inputRange: [0, 1], outputRange: [-scaleSize(2.5), scaleSize(2.5)] });
+    const ty3 = drift3.interpolate({ inputRange: [0, 1], outputRange: [scaleSize(1.5), -scaleSize(1.5)] });
+
+    // Subtle opacity pulsing to enhance visibility
+    const op1 = drift1.interpolate({ inputRange: [0, 0.5, 1], outputRange: [0.7, 1.0, 0.7] });
+    const op2 = drift2.interpolate({ inputRange: [0, 0.5, 1], outputRange: [0.6, 0.95, 0.6] });
+    const op3 = drift3.interpolate({ inputRange: [0, 0.5, 1], outputRange: [0.55, 0.9, 0.55] });
+
     if (!data) return <></>;
     return (
         <>
@@ -41,7 +97,7 @@ export default function Podium({ data }) {
 
                 {/* Faint blue streaks near the top for visual interest */}
                 <View style={styles.streaks_container}>
-                    <LinearGradient
+                    <AnimatedLinearGradient
                         colors={[
                             'rgba(45,158,255,0.00)', // transparent
                             'rgba(45,158,255,0.14)', // faint blue core
@@ -50,9 +106,13 @@ export default function Podium({ data }) {
                         locations={[0, 0.5, 1]}
                         start={{ x: 0, y: 0.5 }}
                         end={{ x: 1, y: 0.5 }}
-                        style={[styles.streak_base, styles.streak_one]}
+                        style={[
+                            styles.streak_base,
+                            styles.streak_one,
+                            { opacity: op1, transform: [{ translateX: tx1 }, { rotate: '-14deg' }] },
+                        ]}
                     />
-                    <LinearGradient
+                    <AnimatedLinearGradient
                         colors={[
                             'rgba(45,158,255,0.00)',
                             'rgba(45,158,255,0.10)',
@@ -61,9 +121,13 @@ export default function Podium({ data }) {
                         locations={[0, 0.5, 1]}
                         start={{ x: 0, y: 0.5 }}
                         end={{ x: 1, y: 0.5 }}
-                        style={[styles.streak_base, styles.streak_two]}
+                        style={[
+                            styles.streak_base,
+                            styles.streak_two,
+                            { opacity: op2, transform: [{ translateX: tx2 }, { translateY: ty2 }, { rotate: '-12deg' }] },
+                        ]}
                     />
-                    <LinearGradient
+                    <AnimatedLinearGradient
                         colors={[
                             'rgba(45,158,255,0.00)',
                             'rgba(45,158,255,0.08)',
@@ -72,7 +136,11 @@ export default function Podium({ data }) {
                         locations={[0, 0.5, 1]}
                         start={{ x: 0, y: 0.5 }}
                         end={{ x: 1, y: 0.5 }}
-                        style={[styles.streak_base, styles.streak_three]}
+                        style={[
+                            styles.streak_base,
+                            styles.streak_three,
+                            { opacity: op3, transform: [{ translateX: tx3 }, { translateY: ty3 }, { rotate: '-10deg' }] },
+                        ]}
                     />
                 </View>
             </View>

@@ -16,7 +16,7 @@ export default function ViewProfileHeader({ handle, goBack, toMessages }) {
         <View style={styles.main_ctnr}>
             <View style={styles.sideLeft}>
                 <RNBounceable onPress={goBack} hitSlop={10}>
-                    <Feather name="chevron-left" size={scaleSize(22.5)} color={theme.primary} />
+                    <Feather name="chevron-left" size={scaleSize(22.5)} color={theme.textSecondary} />
                 </RNBounceable>
             </View>
 

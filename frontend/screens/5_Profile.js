@@ -230,6 +230,7 @@ import ProfileBottomBottomSheet from "../components/5_Profile/ProfileBottom/Prof
 const styles = StyleSheet.create({
     main_ctnr: {
         flex: 1,
+        // Match Feed background for cohesion
         backgroundColor: theme.bg,
     },
     body_ctnr: {
