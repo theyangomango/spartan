@@ -266,10 +266,10 @@ const styles = StyleSheet.create({
         paddingRight: SELECTOR_PAD_R,
         paddingLeft: SELECTOR_PAD_L,
         paddingVertical: SELECTOR_PAD_V,
-        // Hard-coded pill colors (decoupled from app theme)
-        backgroundColor: '#2A3448',
+        // Higher-contrast pill vs. sheet background
+        backgroundColor: '#34425C',
         borderWidth: 1,
-        borderColor: '#3B4960',
+        borderColor: '#567099',
         borderRadius: 999,
         flex: 1,
         gap: SELECTOR_GAP,
@@ -278,9 +278,9 @@ const styles = StyleSheet.create({
     metricPill: {
         paddingHorizontal: METRIC_PAD_H,
         paddingVertical: METRIC_PAD_V,
-        backgroundColor: '#2A3448',
+        backgroundColor: '#34425C',
         borderWidth: 1,
-        borderColor: '#3B4960',
+        borderColor: '#567099',
         borderRadius: 999,
     },
     metricText: { fontFamily: "Outfit_700Bold", fontSize: FONT_METRIC, color: '#6FB8FF', letterSpacing: 0.2 },

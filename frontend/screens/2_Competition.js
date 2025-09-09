@@ -10,6 +10,7 @@ import {
     Dimensions,
     Text,
     InteractionManager,
+    Platform,
 } from "react-native";
 import Podium from "../components/2_Competition/Podium";
 import rankUsers from "../helper/rankUsers";
@@ -771,9 +772,15 @@ const styles = StyleSheet.create({
     },
 
     tribeButtonPill: {
-        backgroundColor: "rgba(255, 255, 255, 0.16)",
+        // Increase contrast vs. header background
+        backgroundColor: "rgba(255, 255, 255, 0.26)",
         borderWidth: 1,
-        borderColor: "rgba(255,255,255,0.25)",
+        borderColor: "rgba(255,255,255,0.48)",
+        ...Platform.select({
+            ios: { shadowColor: '#000', shadowOpacity: 0.18, shadowRadius: 8, shadowOffset: { width: 0, height: 2 } },
+            android: { elevation: 2 },
+            default: {},
+        })
     },
 
     tribeLabel: {
