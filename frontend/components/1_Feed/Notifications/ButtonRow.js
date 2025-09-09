@@ -2,6 +2,7 @@ import React, { memo, useMemo } from "react";
 import { View, Text, StyleSheet, ScrollView } from "react-native";
 import RNBounceable from "@freakycoder/react-native-bounceable";
 import scaleSize from "../../../helper/scaleSize";
+import theme from "../../../theme/mfpDark";
 
 function Chip({ label, selected, onPress, badgeCount }) {
     return (
@@ -90,14 +91,14 @@ const styles = StyleSheet.create({
     },
 
     chip: {
-        backgroundColor: "#252733",
+        backgroundColor: theme.surface,
         paddingVertical: scaleSize(12),
         paddingHorizontal: scaleSize(18),
         borderRadius: scaleSize(18),
         marginRight: scaleSize(8),
         position: "relative",
         borderWidth: 1,
-        borderColor: "rgba(255,255,255,0.08)",
+        borderColor: theme.hairline,
         shadowColor: "#000",
         shadowOpacity: 0.12,
         shadowRadius: 8,

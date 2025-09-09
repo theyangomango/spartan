@@ -3,6 +3,7 @@ import React from "react";
 import { View, StyleSheet, Platform } from "react-native";
 import FastImage from "react-native-fast-image";
 import { ss } from "../../../utils/scale";
+import theme from "../../../theme/mfpDark";
 
 export default function MiniPodium({ data = [] }) {
     const H_ALL = ss(120);
@@ -65,7 +66,7 @@ const styles = StyleSheet.create({
     avatarWrap: {
         borderWidth: 3.5,
         borderRadius: 999,
-        backgroundColor: "#252733",
+        backgroundColor: theme.surface,
         marginBottom: 6,
     },
     plinth: {

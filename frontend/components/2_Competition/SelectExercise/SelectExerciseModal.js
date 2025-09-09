@@ -256,7 +256,8 @@ const styles = StyleSheet.create({
         flex: 1,
         justifyContent: 'center',
         alignItems: 'center',
-        backgroundColor: 'rgba(0, 0, 0, 0.4)',
+        // Slightly lighter, bluish mist so the dark modal stands out
+        backgroundColor: 'rgba(255,255,255,0.06)',
     },
     outside_pressable: {
         flex: 1,

@@ -403,12 +403,16 @@ export default function MacroGoalsSheet({
 }
 
 const makeStyles = (COLORS) => {
+    // Slightly lift contrasts so inputs/buttons stand out better on dark
     const text = COLORS?.text ?? COLORS?.textPrimary ?? '#E5E7EB';
     const subtext = COLORS?.subtext ?? COLORS?.textSecondary ?? '#A1A7B3';
     const card = COLORS?.card ?? '#252733';
-    const hairline = COLORS?.hairline ?? 'rgba(255,255,255,0.08)';
+    // Brighter hairline for clearer edges in dark mode
+    // Use a locally tuned hairline/field shade for stronger separation in sheets
+    const hairline = 'rgba(255,255,255,0.14)';
     const accent = COLORS?.accentBlue ?? '#6FB8FF';
-    const fieldBg = COLORS?.fieldBg ?? '#1E2128';
+    // Lift field background slightly from the sheet background
+    const fieldBg = '#2B2F3A';
 
     return StyleSheet.create({
         sheetBackground: { backgroundColor: card, borderTopLeftRadius: 24, borderTopRightRadius: 24, borderWidth: StyleSheet.hairlineWidth, borderColor: hairline },
@@ -428,7 +432,7 @@ const makeStyles = (COLORS) => {
             paddingVertical: 7,
             borderRadius: 999,
             backgroundColor: fieldBg,
-            borderWidth: StyleSheet.hairlineWidth,
+            borderWidth: 1,
             borderColor: hairline,
         },
         smallLinkText: { fontFamily: 'Outfit_600SemiBold', fontSize: 12.5, color: text },
@@ -441,17 +445,18 @@ const makeStyles = (COLORS) => {
             alignItems: 'center',
             backgroundColor: fieldBg,
             borderRadius: 14,
-            borderWidth: StyleSheet.hairlineWidth,
+            borderWidth: 1,
             borderColor: hairline,
             paddingHorizontal: 12,
             paddingVertical: 12,
             shadowColor: '#000',
-            shadowOpacity: 0.02,
+            shadowOpacity: 0.05,
             shadowOffset: { width: 0, height: 1 },
-            shadowRadius: 2,
+            shadowRadius: 4,
         },
         input: { flex: 1, fontSize: 16, fontFamily: 'Outfit_400Regular', color: text, paddingVertical: 0 },
-        placeholder: { color: '#A0AEC0' },
+        // Make placeholder slightly brighter for readability
+        placeholder: { color: '#BAC3D2' },
         accent: { color: accent },
         inputSuffix: { marginLeft: 8, color: subtext, fontFamily: 'Outfit_400Regular' },
 
@@ -461,7 +466,7 @@ const makeStyles = (COLORS) => {
             paddingVertical: 12,
             borderRadius: 14,
             backgroundColor: fieldBg,
-            borderWidth: StyleSheet.hairlineWidth,
+            borderWidth: 1,
             borderColor: hairline,
             flexDirection: 'row',
             alignItems: 'center',
@@ -475,7 +480,7 @@ const makeStyles = (COLORS) => {
             alignItems: 'center',
             justifyContent: 'center',
             backgroundColor: fieldBg,
-            borderWidth: StyleSheet.hairlineWidth,
+            borderWidth: 1,
             borderColor: hairline,
             marginRight: 10,
         },
@@ -483,18 +488,20 @@ const makeStyles = (COLORS) => {
 
         sheetButtons: { flexDirection: 'row', justifyContent: 'flex-end', gap: 10, marginTop: 18 },
         btn: { paddingVertical: 12, paddingHorizontal: 16, borderRadius: 12 },
-        btnGhost: { backgroundColor: fieldBg },
+        // Give ghost button a clearer outline against the sheet
+        btnGhost: { backgroundColor: fieldBg, borderWidth: 1, borderColor: hairline },
         btnPrimary: { backgroundColor: accent },
         btnText: { fontFamily: 'Outfit_600SemiBold', fontSize: 15 },
         btnGhostText: { color: text },
         btnPrimaryText: { color: '#fff' },
 
         infoHeaderRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10 },
-        backPill: { paddingHorizontal: 10, paddingVertical: 6, borderRadius: 999, backgroundColor: fieldBg, borderWidth: StyleSheet.hairlineWidth, borderColor: hairline },
+        backPill: { paddingHorizontal: 10, paddingVertical: 6, borderRadius: 999, backgroundColor: fieldBg, borderWidth: 1, borderColor: hairline },
         backPillText: { fontFamily: 'Outfit_600SemiBold', fontSize: 12.5, color: text },
 
         toggleRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginBottom: 8 },
-        toggleButton: { paddingVertical: 8, paddingHorizontal: 14, borderRadius: 999, borderWidth: StyleSheet.hairlineWidth, borderColor: hairline, backgroundColor: card },
+        // Slightly clearer toggle outlines
+        toggleButton: { paddingVertical: 8, paddingHorizontal: 14, borderRadius: 999, borderWidth: 1, borderColor: hairline, backgroundColor: card },
         toggleButtonActive: { backgroundColor: accent, borderColor: 'transparent' },
         toggleButtonText: { fontFamily: 'Outfit_500Medium', fontSize: 14, color: text },
         toggleButtonTextActive: { color: '#fff' },

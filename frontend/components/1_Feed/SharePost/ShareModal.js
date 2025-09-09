@@ -4,6 +4,7 @@ import { View, Text, FlatList, StyleSheet, Dimensions, TextInput, TouchableOpaci
 import Icon from 'react-native-vector-icons/Ionicons';
 import ProfileCard from '../../ProfileCard';
 import RNBounceable from '@freakycoder/react-native-bounceable';
+import theme from '../../../theme/mfpDark';
 
 export default function ShareModal({ closeBottomSheet }) {
     const [followingUsers, setFollowingUsers] = useState([]);
@@ -94,7 +95,7 @@ const styles = StyleSheet.create({
         borderTopLeftRadius: 25,
         borderTopRightRadius: 25,
         paddingTop: 5,
-        backgroundColor: '#252733'
+        backgroundColor: theme.surface
     },
     header: {
         paddingHorizontal: 16,
@@ -105,7 +106,7 @@ const styles = StyleSheet.create({
     searchContainer: {
         flexDirection: 'row',
         alignItems: 'center',
-        backgroundColor: '#1E2128',
+        backgroundColor: theme.field,
         borderRadius: 8,
         width: '100%',
         paddingHorizontal: 8,

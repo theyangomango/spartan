@@ -35,6 +35,7 @@ import { onHexagonUpdate } from "../utils/hexagonEvents";
 
 // Theme & Hooks (project)
 import { ss, FOOTER_HEIGHT, BTN_SIZE, TPL_BOTTOM_GAP, TPL_HEIGHT } from "../components/3_Workout/sections/workoutTheme";
+import theme from "../theme/mfpDark";
 import { useFoodLogs, primeFoodLogsCache } from "../hooks/useFoodLogs";
 import useResolvedUid from "../hooks/useResolvedUid";
 import useUserDoc from "../hooks/useUserDoc";
@@ -515,7 +516,7 @@ export default function Workout({ navigation, route }) {
     /* ---------------- render ---------------- */
     return (
         <SafeAreaView style={styles.root}>
-            <StatusBar barStyle="light-content" backgroundColor="#151724" />
+            <StatusBar barStyle="light-content" backgroundColor={theme.bg} />
             {/* Header measured for anchoring */}
             <View onLayout={onHeaderLayout}>
                 <FeedHeader
@@ -569,7 +570,7 @@ export default function Workout({ navigation, route }) {
                 />
 
                 <SectionDivider
-                    containerBg="#151724"
+                    containerBg={theme.bg}
                     dashColor="rgba(255,255,255,0.22)"
                     dotColor="#ffffff2d"
                 />
@@ -739,7 +740,7 @@ export default function Workout({ navigation, route }) {
 /* ---------------- styles ---------------- */
 const styles = StyleSheet.create({
     // MyFitnessPal-like dark background
-    root: { flex: 1, backgroundColor: "#151724" },
+    root: { flex: 1, backgroundColor: theme.bg },
     content: { flex: 1, paddingTop: 4 },
 
     templatesDock: { position: "absolute", left: 0, right: 0, bottom: FOOTER_HEIGHT + ss(22) + BTN_SIZE + TPL_BOTTOM_GAP },

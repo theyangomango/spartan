@@ -11,6 +11,7 @@ import { collection, query, orderBy, onSnapshot, doc, getDoc } from "firebase/fi
 import { db } from "../../firebase.config";
 import { useFocusEffect } from '@react-navigation/native';
 import updateDocMerge from "../../backend/helper/firebase/updateDoc";
+import theme from "../theme/mfpDark";
 
 // ✅ Soft global cache for in-memory persistence
 let cachedMessages = [];
@@ -293,7 +294,7 @@ export default function Messages({ navigation, route }) {
 const styles = StyleSheet.create({
     mainContainer: {
         flex: 1,
-        backgroundColor: "#131521",
+        backgroundColor: theme.bg,
         paddingTop: scaleSize(50),
     },
     cardsContainer: {

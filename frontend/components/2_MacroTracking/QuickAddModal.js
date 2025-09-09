@@ -173,8 +173,23 @@ export default function QuickAddModal({ visible, onClose, onSubmit, COLORS }) {
 
 const makeStyles = (COLORS) =>
     StyleSheet.create({
-        modalBackdrop: { flex: 1, backgroundColor: 'rgba(0,0,0,0.35)', alignItems: 'center', justifyContent: 'center' },
-        modalCard: { width: '86%', backgroundColor: COLORS?.card || '#252733', borderRadius: 18, paddingVertical: 18, paddingHorizontal: 16, borderWidth: StyleSheet.hairlineWidth, borderColor: COLORS?.hairline || 'rgba(255,255,255,0.08)' },
+        // Darker backdrop so the modal pops against the page
+        modalBackdrop: { flex: 1, backgroundColor: 'rgba(0,0,0,0.58)', alignItems: 'center', justifyContent: 'center' },
+        // Slightly lighter modal card + stronger outline and shadow for separation
+        modalCard: {
+            width: '86%',
+            backgroundColor: COLORS?.modalCard || '#46506A', // lighter than surface
+            borderRadius: 18,
+            paddingVertical: 18,
+            paddingHorizontal: 16,
+            borderWidth: 1,
+            borderColor: COLORS?.hairline || 'rgba(255,255,255,0.18)',
+            shadowColor: '#000',
+            shadowOpacity: 0.25,
+            shadowRadius: 16,
+            shadowOffset: { width: 0, height: 8 },
+            elevation: 8,
+        },
         modalTitle: { fontFamily: 'Outfit_600SemiBold', fontSize: 16, color: COLORS?.text || '#E5E7EB', marginBottom: 12 },
         inputLabel: { fontFamily: 'Outfit_600SemiBold', color: COLORS?.subtext || '#A1A7B3', marginBottom: 6, marginTop: 4, fontSize: 12.5 },
         inputField: { backgroundColor: COLORS?.fieldBg || '#1E2128', borderRadius: 10, paddingHorizontal: 12, paddingVertical: 10, fontFamily: 'Outfit_500Medium', color: COLORS?.text || '#E5E7EB', marginBottom: 10 },

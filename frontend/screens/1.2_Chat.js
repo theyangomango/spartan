@@ -30,12 +30,13 @@ import * as ImagePicker from "expo-image-picker";
 import * as Haptics from "expo-haptics";
 
 import { Gesture, GestureDetector } from "react-native-gesture-handler";
+import theme from "../theme/mfpDark";
 import Animated, { useSharedValue, withTiming } from "react-native-reanimated";
 
 const { width: W } = Dimensions.get("window");
 const MAX_REVEAL = 72;
 
-const COLORS = { surface: "#252733", primary: "#2D9EFF", hairline: "rgba(255,255,255,0.08)", bg: "#131521", text: "#E5E7EB", subtext: "#A1A7B3", field: "#1E2128" };
+const COLORS = { surface: theme.surface, primary: theme.primary, hairline: theme.hairline, bg: theme.bg, text: theme.textPrimary, subtext: theme.textSecondary, field: theme.field };
 
 export default function Chat({ navigation, route }) {
     const insets = useSafeAreaInsets();
@@ -472,7 +473,7 @@ const styles = StyleSheet.create({
         paddingVertical: 8,
         paddingHorizontal: 10,
         borderRadius: 12,
-        backgroundColor: "rgba(15,23,42,0.75)",
+        backgroundColor: "rgba(25,32,45,0.75)",
     },
 
     // date chip styles (same sleek vibe)

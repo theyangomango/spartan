@@ -1,6 +1,7 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState, memo } from "react";
 import { View, ActivityIndicator } from "react-native";
 import BottomSheet, { BottomSheetBackdrop } from "@gorhom/bottom-sheet";
+import theme from "../../../theme/mfpDark";
 import NewWorkoutModal from "./NewWorkoutModal";
 import useWorkoutStore from "../../../state/workoutStore";
 import { useNavigation } from "@react-navigation/native";
@@ -144,6 +145,7 @@ const NewWorkoutBottomSheet = ({
             handleStyle={{
                 backgroundColor: isViewingSelf ? 'transparent' : HANDLE_FRIEND_BACKGROUND,
             }}
+            backgroundStyle={{ backgroundColor: theme.bg }}
         >
             {mountContent && (
                 effectiveWorkout ? (
@@ -166,8 +168,8 @@ const NewWorkoutBottomSheet = ({
                 ) : (
                     // Simple placeholder while the workout object hydrates; avoids blank sheet
                     isVisible ? (
-                        <View key={`nw-prep-${contentKey}`} style={{ flex: 1, backgroundColor: '#fff', alignItems: 'center', justifyContent: 'center' }}>
-                            <ActivityIndicator size="large" color="#60A5FA" />
+                        <View key={`nw-prep-${contentKey}`} style={{ flex: 1, backgroundColor: theme.surface, alignItems: 'center', justifyContent: 'center' }}>
+                            <ActivityIndicator size="large" color={theme.primary} />
                         </View>
                     ) : null
                 )

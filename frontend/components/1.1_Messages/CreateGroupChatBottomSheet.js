@@ -51,12 +51,12 @@ export default React.memo(CreateGroupChatBottomSheet);
 
 const styles = StyleSheet.create({
     sheetBackground: {
-        backgroundColor: "#FFFFFF",
+        backgroundColor: "#252733",
         borderTopLeftRadius: 22,
         borderTopRightRadius: 22,
     },
     handleIndicator: {
-        backgroundColor: "#CBD5E1",
+        backgroundColor: "#3A3D45",
         width: 44,
         height: 5,
         borderRadius: 3,

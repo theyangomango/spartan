@@ -15,6 +15,7 @@ import { collection, limit, onSnapshot, orderBy, query } from "firebase/firestor
 import { MaterialCommunityIcons as Icon } from "@expo/vector-icons";
 import { Weight } from "iconsax-react-native";
 import FastImage from "react-native-fast-image";
+import theme from "../../../theme/mfpDark";
 
 import { db } from "../../../../firebase.config";
 import { usePfp } from "../../../helper/usePFPs";
@@ -278,7 +279,7 @@ function Chip({ ev, navigation, onPressChip }) {
 const styles = StyleSheet.create({
     // Elevated to ensure it sits above post overlays when used as sticky header
     // Dark background to match feed container
-    wrap: { backgroundColor: "#131521", paddingBottom: 10, paddingTop: 8, marginTop: -6, zIndex: 100, elevation: 7 },
+    wrap: { backgroundColor: theme.bg, paddingBottom: 10, paddingTop: 8, marginTop: -6, zIndex: 100, elevation: 7 },
     list: { overflow: "visible" },
     listContent: { paddingLeft: 14, paddingRight: 8, columnGap: 6 },
 
@@ -289,9 +290,9 @@ const styles = StyleSheet.create({
         paddingLeft: ss(12),
         paddingRight: ss(10),
         borderRadius: ss(16),
-        backgroundColor: "#252733",
+        backgroundColor: theme.surface,
         borderWidth: StyleSheet.hairlineWidth,
-        borderColor: "rgba(255,255,255,0.08)",
+        borderColor: theme.hairline,
         ...Platform.select({
             ios: {
                 shadowColor: "#000",

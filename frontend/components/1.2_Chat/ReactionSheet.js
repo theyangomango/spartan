@@ -15,9 +15,9 @@ import scaleSize from "../../helper/scaleSize";
 
 /** Palette & vibe (matches app) */
 const ACCENT = "#2D9EFF";
-const HAIRLINE = "rgba(15,23,42,0.08)";
-const TEXT = "#0F172A";
-const GLASS_BG = "rgba(255,255,255,0.92)";
+const HAIRLINE = "rgba(255,255,255,0.08)";
+const TEXT = "#E5E7EB";
+const GLASS_BG = "rgba(37,39,51,0.92)";
 
 export default function ReactionSheet({
     visible,
@@ -142,7 +142,7 @@ const styles = StyleSheet.create({
         borderRadius: scaleSize(16),
         ...Platform.select({
             ios: {
-                shadowColor: "#0F172A",
+                shadowColor: "#000",
                 shadowOpacity: 0.08,
                 shadowRadius: scaleSize(14),
                 shadowOffset: { width: 0, height: scaleSize(8) },
@@ -187,14 +187,14 @@ const styles = StyleSheet.create({
         width: scaleSize(30),
         height: scaleSize(30),
         borderRadius: scaleSize(15),
-        backgroundColor: "#FFFFFF",
+        backgroundColor: "#252733",
         borderWidth: 1,
-        borderColor: "rgba(2,6,23,0.05)",
+        borderColor: HAIRLINE,
         alignItems: "center",
         justifyContent: "center",
         ...Platform.select({
             ios: {
-                shadowColor: "#0F172A",
+                shadowColor: "#000",
                 shadowOpacity: 0.05,
                 shadowRadius: scaleSize(5),
                 shadowOffset: { width: 0, height: scaleSize(3) },
@@ -206,7 +206,7 @@ const styles = StyleSheet.create({
 
     hr: {
         height: 1,
-        backgroundColor: "rgba(2,6,23,0.06)",
+        backgroundColor: HAIRLINE,
         marginTop: scaleSize(6),
         marginBottom: scaleSize(4),
     },
@@ -217,7 +217,7 @@ const styles = StyleSheet.create({
         paddingHorizontal: scaleSize(8),
         borderRadius: scaleSize(10),
     },
-    actionRowPressed: { backgroundColor: "rgba(45,158,255,0.08)" }, // subtle accent wash
+    actionRowPressed: { backgroundColor: "rgba(255,255,255,0.06)" }, // subtle accent wash
     actionText: {
         fontSize: scaleSize(13),
         color: TEXT,

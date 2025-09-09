@@ -318,7 +318,7 @@ const styles = StyleSheet.create({
         height: W / AR,
         borderTopLeftRadius: BORDER,
         borderTopRightRadius: BORDER,
-        backgroundColor: "#252733",
+        backgroundColor: require('../../../theme/mfpDark').default.surface,
     },
     imageWrapper: { width: W, height: W / AR, overflow: "hidden" },
     image: {

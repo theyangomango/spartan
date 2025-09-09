@@ -60,10 +60,11 @@ const ProfileBottomModal = ({ selectedPanel, setSelectedPanel, posts, savedPosts
     );
 };
 
+import theme from "../../../theme/mfpDark";
 const styles = StyleSheet.create({
     container: {
         flex: 1,
-        backgroundColor: '#131521',
+        backgroundColor: theme.bg,
     },
     panel_border: {
         borderColor: '#82bbed',

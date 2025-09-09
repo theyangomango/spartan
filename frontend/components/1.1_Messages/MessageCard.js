@@ -73,7 +73,7 @@ const Pfp = ({ uid, version = 0, style }) => {
             resizeMode={FastImage.resizeMode.cover}
         />
     ) : (
-        <View style={[style, { backgroundColor: "#EEE" }]} />
+        <View style={[style, { backgroundColor: "#2E323C" }]} />
     );
 };
 
@@ -165,7 +165,7 @@ const styles = StyleSheet.create({
         position: "absolute",
         borderWidth: 1,
         borderColor: "rgba(255,255,255,0.85)",
-        backgroundColor: "#EEE",
+        backgroundColor: "#2E323C",
     },
     topLeft: { top: 0, left: 0 },
     bottomRight: { bottom: 0, right: 0 },

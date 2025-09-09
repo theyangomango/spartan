@@ -1,6 +1,7 @@
 import React from "react";
 import { View, Text, TextInput, TouchableOpacity, StyleSheet, Platform } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
+import theme from "../../theme/mfpDark";
 
 export default function MessageInput({
     text,
@@ -61,9 +62,9 @@ const styles = StyleSheet.create({
     row: {
         flexDirection: "row",
         alignItems: "center",
-        backgroundColor: "#252733",
+        backgroundColor: theme.surface,
         borderWidth: 1,
-        borderColor: "rgba(255,255,255,0.08)",
+        borderColor: theme.hairline,
         borderRadius: 28,
         paddingVertical: 10,
         paddingHorizontal: 8,
@@ -79,7 +80,7 @@ const styles = StyleSheet.create({
         borderRadius: 17,
         alignItems: "center",
         justifyContent: "center",
-        backgroundColor: "#11253D",
+        backgroundColor: theme.addBtnBg,
     },
     input: {
         flex: 1,
@@ -99,9 +100,9 @@ const styles = StyleSheet.create({
     replyRow: {
         flexDirection: "row",
         alignItems: "center",
-        backgroundColor: "#1E2128",
+        backgroundColor: theme.field,
         borderWidth: 1,
-        borderColor: "rgba(255,255,255,0.08)",
+        borderColor: theme.hairline,
         borderRadius: 14,
         paddingHorizontal: 10,
         paddingVertical: 8,

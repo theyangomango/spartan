@@ -5,6 +5,7 @@ import { db } from "../../../../firebase.config";
 import ButtonRow from "./ButtonRow";
 import NotificationCard from "./NotificationCard";
 import scaleSize from "../../../helper/scaleSize";
+import theme from "../../../theme/mfpDark";
 
 const PAGE_SIZE = 20;
 
@@ -167,7 +168,7 @@ const MemoNotificationCard = React.memo(NotificationCard);
 const styles = StyleSheet.create({
     container: {
         flex: 1,
-        backgroundColor: "#252733",
+        backgroundColor: theme.surface,
         borderTopLeftRadius: scaleSize(26),
         borderTopRightRadius: scaleSize(26),
     },

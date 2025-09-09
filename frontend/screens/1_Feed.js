@@ -25,6 +25,7 @@ import FeedWorkoutViewerSheet from "../components/1_Feed/ViewWorkout/FeedWorkout
 
 import { initUserFeed, registerFeedSetters } from "../helper/initUserFeed";
 import Footer from "../components/Footer";
+import theme from "../theme/mfpDark";
 import { db } from "../../firebase.config";
 import getScrollTargetPosition from "../helper/getScrollTargetPosition";
 import millisToHoursMinutesSeconds from "../helper/millisToHoursMinutesSeconds";
@@ -661,7 +662,7 @@ export default function Feed({ navigation, route }) {
     const listData = useMemo(() => ([...(posts || [])]), [posts]);
 
     return (
-        <SafeAreaView style={{ flex: 1, backgroundColor: "#131521" }}>
+            <SafeAreaView style={{ flex: 1, backgroundColor: theme.bg }}>
             <SafeAreaView style={styles.mainContainer}>
                 <StatusBar style="light" />
 
@@ -729,7 +730,7 @@ export default function Feed({ navigation, route }) {
                         }
                     }}
                     style={[{
-                        backgroundColor: '#131521',
+                        backgroundColor: theme.bg,
                         zIndex: 20,
                     }, overlayHeaderStyle]}
                 >
@@ -765,7 +766,7 @@ export default function Feed({ navigation, route }) {
                     <SafeAreaInsetsView
                         edges={['top']}
                         onLayout={(e) => { backHeaderHRef.current = e.nativeEvent.layout.height || 0; }}
-                        style={{ position: 'absolute', top: 0, left: 0, right: 0, zIndex: 30, backgroundColor: '#131521' }}
+                        style={{ position: 'absolute', top: 0, left: 0, right: 0, zIndex: 30, backgroundColor: theme.bg }}
                     >
                         <FeedHeader
                             navigation={navigation}
@@ -783,7 +784,7 @@ export default function Feed({ navigation, route }) {
             </SafeAreaInsetsView>
 
             {/* Top safe-area mask to hide content above inset */}
-            <View pointerEvents="none" style={{ position: 'absolute', top: 0, left: 0, right: 0, height: insets.top, backgroundColor: '#131521', zIndex: 25 }} />
+            <View pointerEvents="none" style={{ position: 'absolute', top: 0, left: 0, right: 0, height: insets.top, backgroundColor: theme.bg, zIndex: 25 }} />
 
 
 
@@ -812,6 +813,6 @@ export default function Feed({ navigation, route }) {
 }
 
 const styles = StyleSheet.create({
-    mainContainer: { flex: 1, backgroundColor: "#131521" },
+    mainContainer: { flex: 1, backgroundColor: theme.bg },
     postWrapper: { width: "100%" },
 });

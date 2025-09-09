@@ -2,6 +2,7 @@ import { StyleSheet, View, Text } from "react-native";
 import { LinearGradient } from 'expo-linear-gradient';
 import FastImage from "react-native-fast-image";
 import scaleSize from "../../helper/scaleSize";
+import theme from '../../theme/mfpDark';
 
 // Scaled sizes (baseline ~ iPhone 12/13: 390x844)
 const PFP_SIZE_LEFT = scaleSize(60);
@@ -29,9 +30,9 @@ export default function Podium({ data }) {
         <View style={styles.leaderboard_ctnr}>
             {/* soft navy gradient background for header */}
             <LinearGradient
-                colors={["#1b2c49", "#162842", "rgba(111,184,255,0.26)"]}
-                start={{ x: 0.10, y: 0.0 }}
-                end={{ x: 0.90, y: 1.0 }}
+                colors={["#20365A", "#182A45", "rgba(111,184,255,0.34)"]}
+                start={{ x: 0.08, y: 0.0 }}
+                end={{ x: 0.92, y: 1.0 }}
                 style={StyleSheet.absoluteFillObject}
                 pointerEvents="none"
             />
@@ -111,7 +112,7 @@ const styles = StyleSheet.create({
         flexDirection: 'row',
         alignItems: 'flex-end',
         // Dark background to match Competition screen
-        backgroundColor: '#131521',
+        backgroundColor: theme.bg,
         zIndex: -1
     },
     bar_ctnr: {
@@ -123,9 +124,10 @@ const styles = StyleSheet.create({
     left: { alignItems: 'center', width: '28%' },
     center: { alignItems: 'center', width: '28%' },
     right: { alignItems: 'center', width: '28%' },
-    silver_ctnr: { backgroundColor: '#C0C0C0' },
-    gold_ctnr: { backgroundColor: '#FFD700' },
-    bronze_ctnr: { backgroundColor: '#ff7e33' },
+    // Slightly richer tones that sit better on dark
+    silver_ctnr: { backgroundColor: '#D8DFEA' },
+    gold_ctnr: { backgroundColor: '#FFC83D' },
+    bronze_ctnr: { backgroundColor: '#FF9555' },
     pfp_ctnr: {
         aspectRatio: 1,
         borderRadius: 50

@@ -14,6 +14,8 @@ import UserStatsBottomSheet from "../components/2_Competition/UserStats/UserStat
 import Footer from "../components/Footer";
 import FeedWorkoutViewerSheet from "../components/1_Feed/ViewWorkout/FeedWorkoutViewerSheet";
 
+import theme from "../theme/mfpDark";
+
 export default function Profile({ navigation }) {
     const [, setRerender] = useState(0);
     useEffect(() => {
@@ -163,7 +165,7 @@ export default function Profile({ navigation }) {
     
     return (
         <SafeAreaView style={styles.main_ctnr}>
-            <StatusBar barStyle="light-content" backgroundColor="#151724" />
+            <StatusBar barStyle="light-content" backgroundColor={theme.bg} />
             <View style={styles.body_ctnr}>
                 <ProfileHeader
                     onPressCreateBtn={uploadPost}
@@ -228,7 +230,7 @@ import ProfileBottomBottomSheet from "../components/5_Profile/ProfileBottom/Prof
 const styles = StyleSheet.create({
     main_ctnr: {
         flex: 1,
-        backgroundColor: "#151724", // Dark background
+        backgroundColor: theme.bg, // Lighter dark background
     },
     body_ctnr: {
         paddingHorizontal: 10,

@@ -13,6 +13,7 @@ import {
 import BottomSheet, { BottomSheetBackdrop } from "@gorhom/bottom-sheet";
 import ShareModal from "./ShareModal";
 import scaleSize from "../../../helper/scaleSize"; // Import the scaleSize utility
+import theme from "../../../theme/mfpDark";
 
 const { width, height } = Dimensions.get("screen");
 
@@ -87,7 +88,7 @@ const styles = StyleSheet.create({
         display: "none" // Hide the default handle
     },
     bottomSheetBackground: {
-        backgroundColor: "#252733",
+        backgroundColor: theme.surface,
         borderTopLeftRadius: scaleSize(25),
         borderTopRightRadius: scaleSize(25)
     }

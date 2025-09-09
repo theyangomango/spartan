@@ -6,6 +6,7 @@ import { Feather } from "@expo/vector-icons";
 import LiveStack from "../LiveStack";
 import StartOpenButton from "../ui/StartOpenButton";
 import { SMALL_SIZE, ROW_WIDTH } from "./workoutTheme";
+import theme from "../../../theme/mfpDark";
 
 const StartCluster = ({
     navigation,
@@ -78,12 +79,12 @@ const styles = StyleSheet.create({
         width: SMALL_SIZE + 8,
         height: SMALL_SIZE + 8,
         borderRadius: (SMALL_SIZE + 8) / 2,
-        backgroundColor: "#2D9EFF12", // very soft fill
+        backgroundColor: "#2D9EFF1F", // stronger soft fill
         borderWidth: 1,
-        borderColor: "#2D9EFF33",
+        borderColor: "#2D9EFF55",
         shadowColor: "#2D9EFF",
-        shadowOpacity: 0.18,
-        shadowRadius: 8,
+        shadowOpacity: 0.34,
+        shadowRadius: 10,
         shadowOffset: { width: 0, height: 4 },
         elevation: 0,
     },
@@ -95,15 +96,15 @@ const styles = StyleSheet.create({
         borderRadius: SMALL_SIZE / 2,
         alignItems: "center",
         justifyContent: "center",
-        backgroundColor: "#252733",
+        backgroundColor: theme.surface,
         borderWidth: 1,
-        borderColor: "#3B4350",
+        borderColor: theme.hairline,
         ...Platform.select({
-            ios: { shadowColor: "#000", shadowOpacity: 0.35, shadowRadius: 12, shadowOffset: { width: 0, height: 8 } },
-            android: { elevation: 2 },
+            ios: { shadowColor: "#000", shadowOpacity: 0.36, shadowRadius: 14, shadowOffset: { width: 0, height: 8 } },
+            android: { elevation: 3 },
         }),
     },
-    smallBtnPressed: { transform: [{ scale: 0.96 }], backgroundColor: "#303544" },
+    smallBtnPressed: { transform: [{ scale: 0.96 }], backgroundColor: '#444E63' },
 });
 
 export default memo(StartCluster);

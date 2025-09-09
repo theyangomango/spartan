@@ -1,6 +1,7 @@
 import React from "react";
 import RNBounceable from "@freakycoder/react-native-bounceable";
 import { StyleSheet, View, Text, Dimensions } from "react-native";
+import theme from "../../../theme/mfpDark";
 
 const { height: screenHeight } = Dimensions.get("window");
 const scale = screenHeight / 844; // iPhone 13 baseline
@@ -40,7 +41,7 @@ const styles = StyleSheet.create({
         paddingHorizontal: scaledSize(20),
         paddingVertical: scaledSize(7),
         borderRadius: scaledSize(10),
-        backgroundColor: "#252733", // dark card color
+        backgroundColor: theme.surface, // dark card color
         justifyContent: "center",
         alignItems: "center",
         marginHorizontal: scaledSize(3),

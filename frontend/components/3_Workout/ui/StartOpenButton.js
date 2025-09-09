@@ -4,6 +4,7 @@ import { View, Pressable, Text, StyleSheet, Platform } from "react-native";
 import Svg, { Circle } from "react-native-svg";
 import Reanimated, { useSharedValue, withTiming, withDelay, withSequence, Easing, useAnimatedProps, runOnJS } from "react-native-reanimated";
 import { BTN_SIZE } from "../sections/workoutTheme";
+import theme from "../../../theme/mfpDark";
 
 /**
  * Minimal black circular button that either:
@@ -181,12 +182,12 @@ const styles = StyleSheet.create({
         width: BTN_SIZE * 1.12,
         height: BTN_SIZE * 1.12,
         borderRadius: 9999,
-        backgroundColor: "#252733",
+        backgroundColor: theme.surface,
         borderWidth: 1,
-        borderColor: "rgba(255,255,255,0.06)",
+        borderColor: theme.hairline,
         ...Platform.select({
-            ios: { shadowColor: "#000", shadowOpacity: 0.18, shadowRadius: 6, shadowOffset: { width: 0, height: 4 } },
-            android: { elevation: 2 },
+            ios: { shadowColor: "#000", shadowOpacity: 0.24, shadowRadius: 8, shadowOffset: { width: 0, height: 6 } },
+            android: { elevation: 4 },
         }),
     },
 
@@ -197,7 +198,7 @@ const styles = StyleSheet.create({
         height: BTN_SIZE * 1.20,
         borderRadius: 9999,
         borderWidth: 1,
-        borderColor: "#2D9EFF28",
+        borderColor: "#2D9EFF66",
     },
     // Core black button (minimal)
     startBtn: {

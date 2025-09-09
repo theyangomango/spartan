@@ -12,6 +12,7 @@ import {
   InteractionManager,
 } from "react-native";
 import BottomSheet, { BottomSheetBackdrop } from "@gorhom/bottom-sheet";
+import theme from "../../theme/mfpDark";
 import RNBounceable from "@freakycoder/react-native-bounceable";
 import { Clock } from "iconsax-react-native";
 import { MaterialCommunityIcons, FontAwesome6 } from "@expo/vector-icons";
@@ -32,14 +33,14 @@ const ItemSeparator = () => <View style={{ height: s(10) }} />;
 const SectionSeparator = () => <View style={{ height: s(12) }} />;
 
 const COLORS = {
-  bg: "#F6FAFF",
-  card: "#FFFFFF",
-  text: "#0F172A",
-  subtext: "#64748B",
-  hairline: "rgba(2, 6, 23, 0.06)",
-  iconBg: "#EEF2F7",
-  statBg: "#F7FAFF",
-  statBorder: "rgba(100,116,139,0.10)",
+  bg: theme.bg,
+  card: theme.surface,
+  text: theme.textPrimary,
+  subtext: theme.textSecondary,
+  hairline: theme.hairline,
+  iconBg: theme.field,
+  statBg: theme.field,
+  statBorder: theme.hairline,
 };
 
 const HANDLE_SELF = "#D0D7E2";
@@ -272,7 +273,7 @@ const FriendPanel = memo(({ item, overlay, onSelect, highlight = false }) => {
               </View>
             )
           )}
-          <MaterialCommunityIcons name="chevron-right" size={s(22)} color="rgba(15,23,42,0.45)" />
+          <MaterialCommunityIcons name="chevron-right" size={s(22)} color={COLORS.subtext} />
         </View>
       </View>
 
@@ -748,7 +749,7 @@ const styles = StyleSheet.create({
   sectionHeaderText: {
     fontFamily: "Outfit_700Bold",
     fontSize: s(12),
-    color: "rgba(15,23,42,0.65)",
+    color: COLORS.subtext,
     letterSpacing: 0.3,
   },
 
@@ -763,7 +764,7 @@ const styles = StyleSheet.create({
     shadowRadius: s(12),
     elevation: 7,
     borderWidth: StyleSheet.hairlineWidth,
-    borderColor: "rgba(2, 6, 23, 0.03)",
+    borderColor: COLORS.hairline,
   },
   headerRow: { flexDirection: "row", alignItems: "center", marginBottom: s(6), gap: s(10) },
   rightAccessories: { flexDirection: "row", alignItems: "center", gap: s(10) },

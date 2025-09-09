@@ -2,6 +2,7 @@ import React from 'react';
 import { View, Text, StyleSheet, Pressable, Dimensions } from 'react-native';
 import FastImage from 'react-native-fast-image';
 import { usePfp } from '../helper/usePFPs';
+import theme from '../theme/mfpDark';
 import Icon from 'react-native-vector-icons/Ionicons';
 import { LinearGradient } from 'expo-linear-gradient';
 
@@ -45,15 +46,15 @@ const ProfileCard = ({ user, onSelect, isSelected }) => {
                 end={{ x: 1, y: 1 }}
                 style={{ width: SIZES.pfp, height: SIZES.pfp, borderRadius: radius, padding: SIZES.ring }}
             >
-                <View style={{ flex: 1, borderRadius: radius - SIZES.ring, backgroundColor: '#FFFFFF', alignItems: 'center', justifyContent: 'center' }}>
+                <View style={{ flex: 1, borderRadius: radius - SIZES.ring, backgroundColor: theme.surface, alignItems: 'center', justifyContent: 'center' }}>
                     {pfpUri ? (
                         <FastImage
                             source={{ uri: pfpUri, priority: FastImage.priority.normal, cache: FastImage.cacheControl.immutable }}
-                            style={{ width: SIZES.pfp - 2 * (SIZES.ring + 2), height: SIZES.pfp - 2 * (SIZES.ring + 2), borderRadius: (SIZES.pfp - 2 * (SIZES.ring + 2)) / 2, backgroundColor: '#F1F5F9' }}
+                            style={{ width: SIZES.pfp - 2 * (SIZES.ring + 2), height: SIZES.pfp - 2 * (SIZES.ring + 2), borderRadius: (SIZES.pfp - 2 * (SIZES.ring + 2)) / 2, backgroundColor: '#2E323C' }}
                             resizeMode={FastImage.resizeMode.cover}
                         />
                     ) : (
-                        <View style={{ width: SIZES.pfp - 2 * (SIZES.ring + 2), height: SIZES.pfp - 2 * (SIZES.ring + 2), borderRadius: (SIZES.pfp - 2 * (SIZES.ring + 2)) / 2, backgroundColor: '#E9EDF5' }} />
+                        <View style={{ width: SIZES.pfp - 2 * (SIZES.ring + 2), height: SIZES.pfp - 2 * (SIZES.ring + 2), borderRadius: (SIZES.pfp - 2 * (SIZES.ring + 2)) / 2, backgroundColor: '#2E323C' }} />
                     )}
                 </View>
             </LinearGradient>
@@ -77,7 +78,7 @@ const ProfileCard = ({ user, onSelect, isSelected }) => {
                     <Icon name="checkmark" size={Math.max(14, SIZES.iconFilled - 2)} color="#fff" />
                 </LinearGradient>
             ) : (
-                <View style={{ width: SIZES.icon, height: SIZES.icon, borderRadius: SIZES.icon / 2, borderWidth: StyleSheet.hairlineWidth * 2, borderColor: '#CBD5E1' }} />
+                <View style={{ width: SIZES.icon, height: SIZES.icon, borderRadius: SIZES.icon / 2, borderWidth: StyleSheet.hairlineWidth * 2, borderColor: '#3A3D45' }} />
             )}
         </Pressable>
     );
@@ -91,29 +92,25 @@ const styles = StyleSheet.create({
         flexDirection: 'row',
         alignItems: 'center',
         borderRadius: SIZES.cardRadius,
-        backgroundColor: '#FFFFFF',
+        backgroundColor: theme.surface,
         borderBottomWidth: StyleSheet.hairlineWidth,
-        borderBottomColor: '#EEF3FF',
+        borderBottomColor: 'rgba(255,255,255,0.08)',
     },
-    itemContainerSelected: {
-        backgroundColor: '#F8FAFF',
-    },
-    itemPressed: {
-        backgroundColor: '#F8FAFF',
-    },
+    itemContainerSelected: { backgroundColor: '#1E2128' },
+    itemPressed: { backgroundColor: '#1E2128' },
     text_ctnr: {
         marginLeft: scale(12),
         flex: 1,
     },
     handle_text: {
         fontFamily: 'Outfit_700Bold',
-        color: '#0F172A',
+        color: '#E5E7EB',
         marginBottom: scale(2),
         letterSpacing: 0.2,
     },
     name_text: {
         fontFamily: 'Outfit_500Medium',
-        color: '#6B7280',
+        color: '#A1A7B3',
     },
     tickCircle: {
         justifyContent: 'center',

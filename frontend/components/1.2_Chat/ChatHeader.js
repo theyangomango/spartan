@@ -6,10 +6,11 @@ import { FontAwesome6 } from "@expo/vector-icons";
 import { useNavigation } from "@react-navigation/native";
 import { usePfp } from "../../helper/usePFPs";
 import scaleSize from "../../helper/scaleSize";
+import theme from "../../theme/mfpDark";
 
 const ACCENT = "#2D9EFF";
 const HAIRLINE = "rgba(255,255,255,0.08)";
-const BG = "#131521";
+const BG = theme.bg;
 
 const ChatHeader = ({ usersExcludingSelf = [], toMessages }) => {
     const navigation = useNavigation();
@@ -93,7 +94,7 @@ const styles = StyleSheet.create({
         width: scaleSize(32),
         height: scaleSize(32),
         borderRadius: scaleSize(16),
-        backgroundColor: "#252733",
+        backgroundColor: theme.surface,
         borderWidth: 1,
         borderColor: HAIRLINE,
         alignItems: "center",

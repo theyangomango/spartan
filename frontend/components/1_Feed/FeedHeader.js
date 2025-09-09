@@ -25,6 +25,7 @@ import { getFeedHeaderStyles } from "../../helper/getFeedHeaderStyles";
 import { db } from "../../../firebase.config";
 import { collection, query, where, onSnapshot, getDocs, orderBy, limit, doc } from "firebase/firestore";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+import theme from "../../theme/mfpDark";
 // Single root navigator; no need for StackActions/nested refs here
 
 const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get("window");
@@ -567,7 +568,7 @@ export default memo(FeedHeader);
 const styles = StyleSheet.create({
     main_ctnr: {
         width: "100%",
-        backgroundColor: "#151724",
+        backgroundColor: theme.bg,
         flexDirection: "row",
         justifyContent: "center",
         paddingTop: METRICS.paddingTop,
@@ -579,7 +580,7 @@ const styles = StyleSheet.create({
 
     back_header: {
         width: "100%",
-        backgroundColor: "#151724",
+        backgroundColor: theme.bg,
         flexDirection: "row",
         paddingLeft: METRICS.paddingH,
         paddingTop: METRICS.paddingTop + s(4),
@@ -641,7 +642,7 @@ const styles = StyleSheet.create({
     left_placeholder: { width: dynamicStyles.iconSize + 6, height: dynamicStyles.iconSize + 6 },
 
     modalContainer: { flex: 1 },
-    canvasFill: { ...StyleSheet.absoluteFillObject, backgroundColor: "#131521" },
+    canvasFill: { ...StyleSheet.absoluteFillObject, backgroundColor: theme.bg },
     // Align overlay search icon wrapper top exactly with header's wrapper top
     // Header wrapper Y = marginTop + paddingTop + iconTop
     modalContent: { flex: 1, paddingHorizontal: METRICS.paddingH, paddingTop: METRICS.marginTop + METRICS.paddingTop, marginTop: 0 },
@@ -659,12 +660,12 @@ const styles = StyleSheet.create({
         marginLeft: s(12),
         height: METRICS.centerH + s(6),
         borderRadius: s(26),
-        backgroundColor: "#252733",
+        backgroundColor: theme.surface,
         flexDirection: "row",
         alignItems: "center",
         paddingHorizontal: s(16),
         borderWidth: 1,
-        borderColor: "rgba(255,255,255,0.08)",
+        borderColor: theme.hairline,
         ...Platform.select({
             ios: { shadowColor: "#000", shadowOpacity: 0.32, shadowRadius: 8, shadowOffset: { width: 0, height: 3 } },
             android: { elevation: 1 },
@@ -692,9 +693,9 @@ const styles = StyleSheet.create({
     },
     noResultsText: { color: "#94A3B8", fontSize: s(12.5), fontFamily: "Outfit_600SemiBold" },
 
-    profileCard: { width: "100%", flexDirection: "row", alignItems: "center", backgroundColor: "#252733", paddingVertical: s(12), paddingHorizontal: s(18) },
+    profileCard: { width: "100%", flexDirection: "row", alignItems: "center", backgroundColor: theme.surface, paddingVertical: s(12), paddingHorizontal: s(18) },
     profileLeft: { flexDirection: "row", alignItems: "center", flex: 1, minWidth: 0 },
-    avatarRing: { alignItems: "center", justifyContent: "center", borderWidth: 2.5, borderColor: "rgba(109, 177, 255, 1)", backgroundColor: "#0B1220" },
+    avatarRing: { alignItems: "center", justifyContent: "center", borderWidth: 2.5, borderColor: "rgba(109, 177, 255, 1)", backgroundColor: '#1A2230' },
 
     cardHandle: { fontFamily: "Nunito_800ExtraBold", fontSize: s(13.5), color: "#E5E7EB" },
     cardHandleHighlight: { color: "#FFFFFF" },

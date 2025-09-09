@@ -733,9 +733,10 @@ export default function Competition({ navigation }) {
     );
 }
 
+import theme from "../theme/mfpDark";
 const styles = StyleSheet.create({
-    // Dark mode background for Competition screen
-    mainContainer: { flex: 1, backgroundColor: "#131521" },
+    // Dark mode background for Competition screen (lighter MFP-like)
+    mainContainer: { flex: 1, backgroundColor: theme.bg },
     header: { alignItems: "flex-end", justifyContent: "flex-end", flexDirection: "row" },
     headerRightContainer: { flexDirection: "row", alignItems: "center" },
     tribeButtonRow: {

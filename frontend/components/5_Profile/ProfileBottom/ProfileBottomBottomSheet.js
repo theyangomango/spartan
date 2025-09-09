@@ -1,6 +1,7 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { StyleSheet, Text, View } from "react-native";
 import BottomSheet, { BottomSheetBackdrop, BottomSheetFooter } from "@gorhom/bottom-sheet";
+import theme from "../../../theme/mfpDark";
 import ProfileBottomModal from "./ProfileBottomModal";
 
 const ProfileBottomBottomSheet = ({ selectedPanel, setSelectedPanel, posts, savedPosts, completedWorkouts, onOpenWorkout }) => {
@@ -32,7 +33,7 @@ const ProfileBottomBottomSheet = ({ selectedPanel, setSelectedPanel, posts, save
             snapPoints={snapPoints}
             onChange={handleSheetChanges}
             handleStyle={{ display: 'none' }}
-            backgroundStyle={{ backgroundColor: '#131521' }}
+            backgroundStyle={{ backgroundColor: theme.bg }}
             detached
         >
             <ProfileBottomModal

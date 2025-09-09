@@ -4,6 +4,7 @@ import { StyleSheet, View, Text, TouchableOpacity } from "react-native";
 import { FontAwesome6, FontAwesome5 } from "@expo/vector-icons";
 import RNBounceable from "@freakycoder/react-native-bounceable";
 import scaleSize from "../../helper/scaleSize";
+import theme from "../../theme/mfpDark";
 
 const ACCENT = "#2D9EFF";
 const HAIRLINE = "rgba(255,255,255,0.08)";
@@ -82,9 +83,7 @@ export default function MessagesHeader({
 }
 
 const styles = StyleSheet.create({
-    root: {
-        backgroundColor: "#131521",
-    },
+    root: { backgroundColor: theme.bg },
     row: {
         flexDirection: "row",
         justifyContent: "center",
@@ -101,9 +100,9 @@ const styles = StyleSheet.create({
         width: scaleSize(32),
         height: scaleSize(32),
         borderRadius: scaleSize(16),
-        backgroundColor: "#252733",
+        backgroundColor: theme.surface,
         borderWidth: 1,
-        borderColor: HAIRLINE,
+        borderColor: theme.hairline,
         alignItems: "center",
         justifyContent: "center",
         shadowColor: "#000",

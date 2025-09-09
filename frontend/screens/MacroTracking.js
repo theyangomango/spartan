@@ -23,6 +23,7 @@ import PersonalInfoSheet from '../components/2_MacroTracking/PersonalInfoSheet';
 
 // 🔥 Firestore (load + save macro goals)
 import { db } from '../../firebase.config';
+import theme from '../theme/mfpDark';
 import { doc, onSnapshot, updateDoc, serverTimestamp } from 'firebase/firestore';
 
 if (Platform.OS === 'android' && UIManager.setLayoutAnimationEnabledExperimental) {
@@ -30,18 +31,18 @@ if (Platform.OS === 'android' && UIManager.setLayoutAnimationEnabledExperimental
 }
 
 const COLORS = {
-    // Dark theme
-    bg: '#131521',           // screen background
-    card: '#252733',         // card rows and sheets
-    text: '#E5E7EB',         // primary text
-    subtext: '#A1A7B3',      // secondary text
-    hairline: 'rgba(255,255,255,0.08)',
-    ringTint: '#2D9EFF',     // progress ring
-    ringBg: '#2E323C',       // ring track and generic tracks
-    chipBg: '#323646',
-    addBtnBg: '#11253D',     // blue-tinted pill background
-    fieldBg: '#1E2128',      // inputs inside sheets/modals
-    accentBlue: '#6FB8FF',
+    // Lighter dark theme
+    bg: theme.bg,
+    card: theme.card,
+    text: theme.textPrimary,
+    subtext: theme.textSecondary,
+    hairline: theme.hairline,
+    ringTint: theme.primary,
+    ringBg: theme.ringBg,
+    chipBg: theme.chipBg,
+    addBtnBg: theme.addBtnBg,
+    fieldBg: theme.field,
+    accentBlue: theme.accentBlue,
     accent: '#64aaf6ff',
     protein: '#A5B4FC',
     carbs: '#F9A8D4',
@@ -306,7 +307,7 @@ export default function MacroTracking({ navigation, route }) {
     return (
         <GestureHandlerRootView style={{ flex: 1 }}>
             <View style={{ flex: 1 }}>
-                <StatusBar barStyle="light-content" backgroundColor="#131521" />
+                <StatusBar barStyle="light-content" backgroundColor={theme.bg} />
                 {/* Header */}
                 <DateHeader title={formatDate(focusedDate)} onPrev={() => shiftDate(-1)} onNext={() => shiftDate(1)} COLORS={COLORS} />
 
@@ -320,8 +321,13 @@ export default function MacroTracking({ navigation, route }) {
                 >
                     <View style={styles.sectionHeaderRow}>
                         <Text style={[styles.sectionTitle, styles.sectionTitleNoMargin]}>Nutrition</Text>
-                        <Pressable style={styles.editGoalsPill} onPress={openGoalsSheet} hitSlop={8}>
-                            <Ionicons name="settings-outline" size={15} color={'#3e9effff'} />
+                        <Pressable
+                            style={styles.editGoalsPill}
+                            onPress={openGoalsSheet}
+                            hitSlop={8}
+                            android_ripple={{ color: '#2D9EFF33', borderless: false }}
+                        >
+                            <Ionicons name="settings-outline" size={15} color={'#6FB8FF'} />
                             <Text style={styles.editGoalsText}>Edit Goals</Text>
                         </Pressable>
                     </View>
@@ -400,12 +406,12 @@ const styles = StyleSheet.create({
         flexDirection: 'row',
         gap: 6,
         alignItems: 'center',
-        backgroundColor: COLORS.addBtnBg || '#E7F0FF',
+        backgroundColor: 'rgba(45,158,255,0.12)',
         paddingHorizontal: 12,
         paddingVertical: 7,
         borderRadius: 999,
-        borderWidth: StyleSheet.hairlineWidth,
-        borderColor: COLORS.ringTint ? `${COLORS.ringTint}80` : 'rgba(111,184,255,0.5)',
+        borderWidth: 1,
+        borderColor: '#2D9EFF80',
     },
-    editGoalsText: { fontFamily: 'Outfit_700Bold',color: '#3e9effca', fontSize: 13 },
+    editGoalsText: { fontFamily: 'Outfit_700Bold', color: '#6FB8FF', fontSize: 13, letterSpacing: 0.15 },
 });

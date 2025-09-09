@@ -2,6 +2,7 @@
 import React, { useMemo, useRef, useState, useCallback, memo } from "react";
 import { View, Text, StyleSheet, Dimensions, Platform, VirtualizedList, Pressable } from "react-native";
 import RNBounceable from "@freakycoder/react-native-bounceable";
+import theme from "../../../theme/mfpDark";
 
 const { width: W } = Dimensions.get("window");
 const DAY_LETTERS = ["SU", "MO", "TU", "WE", "TH", "FR", "SA"];
@@ -332,11 +333,11 @@ const styles = StyleSheet.create({
 
     card: {
         // final card tone from spec
-        backgroundColor: "#252733",
+        backgroundColor: theme.surface,
         borderRadius: 18,
         paddingVertical: 12,
         borderWidth: StyleSheet.hairlineWidth,
-        borderColor: "rgba(255,255,255,0.08)",
+        borderColor: theme.hairline,
         overflow: "hidden",
         ...Platform.select({
             ios: {
@@ -364,9 +365,9 @@ const styles = StyleSheet.create({
         paddingHorizontal: 10,
         paddingVertical: 6,
         borderRadius: 999,
-        backgroundColor: "#333A45",
+        backgroundColor: "#2E3442",
         borderWidth: StyleSheet.hairlineWidth,
-        borderColor: "rgba(255,255,255,0.08)",
+        borderColor: theme.hairline,
     },
     jumpLink: { color: "#60A5FA", fontSize: 12, fontFamily: "Outfit_700Bold", letterSpacing: 0.2 },
 
@@ -390,7 +391,7 @@ const styles = StyleSheet.create({
         justifyContent: "center",
     },
     centerPillToday: {
-        backgroundColor: "#2F3742",
+        backgroundColor: "#343B48",
         borderWidth: 1,
         borderColor: "#6FB8FF",
     },

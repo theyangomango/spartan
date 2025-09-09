@@ -1,5 +1,6 @@
 import React, { useEffect, useRef, useState } from "react";
 import { View, Text, StyleSheet, Dimensions, Pressable, Animated, Easing } from "react-native";
+import theme from "../../theme/mfpDark";
 
 const { width: SW, height: SH } = Dimensions.get("window");
 const ACCENT = "#2D9EFF";
@@ -116,7 +117,7 @@ const styles = StyleSheet.create({
         backgroundColor: "#101828",
         borderWidth: 1,
         borderColor: "rgba(255,255,255,0.10)",
-        shadowColor: "#0F172A",
+        shadowColor: "#000",
         shadowOpacity: 0.18,
         shadowRadius: 16,
         shadowOffset: { width: 0, height: 10 },
@@ -132,9 +133,9 @@ const styles = StyleSheet.create({
     menuCard: {
         position: "absolute",
         borderRadius: 16,
-        backgroundColor: "#252733",
+        backgroundColor: theme.surface,
         borderWidth: 1,
-        borderColor: HAIRLINE,
+        borderColor: theme.hairline,
         shadowColor: "#000",
         shadowOpacity: 0.22,
         shadowRadius: 18,

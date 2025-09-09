@@ -10,6 +10,7 @@ import {
     SAVED_TPL_BORDER,
 } from "./workoutTheme";
 import { Weight } from "iconsax-react-native";
+import theme from "../../../theme/mfpDark";
 
 function TemplatesRail({ templates = [], onIndexChange, onAddTemplate, onOpenTemplate }) {
     const { width: PAGE_W } = Dimensions.get("window");
@@ -137,23 +138,23 @@ const styles = StyleSheet.create({
         alignItems: "center",
         justifyContent: "space-between",
 
-        backgroundColor: "#252733",
+        backgroundColor: theme.surface,
         borderWidth: 1,
-        borderColor: "#3B4350",
+        borderColor: theme.hairline,
         ...Platform.select({
-            ios: { shadowColor: "#000", shadowOpacity: 0.35, shadowRadius: 14, shadowOffset: { width: 0, height: 10 } },
-            android: { elevation: 1 },
+            ios: { shadowColor: "#000", shadowOpacity: 0.38, shadowRadius: 16, shadowOffset: { width: 0, height: 10 } },
+            android: { elevation: 3 },
         }),
     },
     railPressed: { transform: [{ scale: 0.99 }] },
-    // Reverse backgrounds: empty (no template) appears darker; saved templates a bit lighter
-    railEmpty: { backgroundColor: "#252733", borderStyle: "dashed", borderColor: "rgba(255,255,255,0.16)" },
-    railSaved: { backgroundColor: "#252733", borderColor: "rgba(255,255,255,0.10)" },
+    // Empty shows dashed border hint; saved uses solid border
+    railEmpty: { backgroundColor: theme.surface, borderStyle: "dashed", borderColor: theme.hairline },
+    railSaved: { backgroundColor: theme.surface, borderColor: theme.hairline },
     dumbbellSaved: {
-        backgroundColor: "#2F3340",
+        backgroundColor: '#3C4557',
         borderWidth: StyleSheet.hairlineWidth,
-        borderColor: "rgba(255,255,255,0.16)",
-        ...Platform.select({ ios: { shadowColor: "#000", shadowOpacity: 0.25, shadowRadius: 6, shadowOffset: { width: 0, height: 3 } }, android: { elevation: 2 } })
+        borderColor: theme.hairline,
+        ...Platform.select({ ios: { shadowColor: "#000", shadowOpacity: 0.28, shadowRadius: 8, shadowOffset: { width: 0, height: 3 } }, android: { elevation: 2 } })
     },
     
     left: { flexDirection: "row", alignItems: "center", gap: 10, flex: 1, minWidth: 0 },
@@ -166,10 +167,10 @@ const styles = StyleSheet.create({
         justifyContent: "center",
     },
     dumbbellEmpty: {
-        backgroundColor: "#2F3340",
+        backgroundColor: '#3C4557',
         borderWidth: StyleSheet.hairlineWidth,
-        borderColor: "rgba(255,255,255,0.14)",
-        ...Platform.select({ ios: { shadowColor: "#000", shadowOpacity: 0.25, shadowRadius: 6, shadowOffset: { width: 0, height: 3 } }, android: { elevation: 2 } })
+        borderColor: theme.hairline,
+        ...Platform.select({ ios: { shadowColor: "#000", shadowOpacity: 0.28, shadowRadius: 8, shadowOffset: { width: 0, height: 3 } }, android: { elevation: 2 } })
     },
 
     title: { fontFamily: "Outfit_700Bold", fontSize: 16, color: "#E5E7EB", includeFontPadding: false },

@@ -1,6 +1,7 @@
 import React, { useCallback, useMemo, useRef, useState } from "react";
 import { StyleSheet, View, Text, TouchableOpacity } from "react-native";
 import BottomSheet, { BottomSheetBackdrop } from "@gorhom/bottom-sheet";
+import theme from "../../theme/mfpDark";
 import LeaderboardModal from "./LeaderboardModal";
 
 const LeaderboardBottomSheet = ({
@@ -52,7 +53,7 @@ const LeaderboardBottomSheet = ({
             onChange={handleSheetChanges}
             handleStyle={{ display: "none" }}
             style={styles.bottomsheet}
-            backgroundStyle={{ backgroundColor: '#252733', borderTopLeftRadius: 30, borderTopRightRadius: 30 }}
+            backgroundStyle={{ backgroundColor: theme.surface, borderTopLeftRadius: 30, borderTopRightRadius: 30 }}
             enablePanDownToClose={false}
         >
             {blockedMessage ? (
@@ -92,7 +93,7 @@ const styles = StyleSheet.create({
         borderTopRightRadius: 25,
         borderTopLeftRadius: 25,
         // Dark card background
-        backgroundColor: "#252733",
+        backgroundColor: theme.surface,
     },
 });
 

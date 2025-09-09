@@ -8,6 +8,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import BottomSheet, { BottomSheetBackdrop } from "@gorhom/bottom-sheet";
 import NotificationsModal from "./NotificationsModal";
 import scaleSize from "../../../helper/scaleSize";
+import theme from "../../../theme/mfpDark";
 import resetNewNotifications from "../../../helper/resetNewNotifications";
 
 const NotificationsBottomSheet = ({ notificationsBottomSheetExpandFlag }) => {
@@ -83,7 +84,7 @@ const styles = StyleSheet.create({
         display: "none", // Hide the default handle
     },
     bottomSheetBackground: {
-        backgroundColor: '#252733',
+        backgroundColor: theme.surface,
         borderTopLeftRadius: scaleSize(25),
         borderTopRightRadius: scaleSize(25),
     },

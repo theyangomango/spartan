@@ -4,6 +4,7 @@ import FastImage from 'react-native-fast-image';
 import { Entypo, FontAwesome } from '@expo/vector-icons';
 import RNBounceable from '@freakycoder/react-native-bounceable';
 import scaleSize from '../../helper/scaleSize';
+import theme from '../../theme/mfpDark';
 
 const { width } = Dimensions.get("window");
 
@@ -169,7 +170,7 @@ const styles = StyleSheet.create({
         paddingRight: 14,
         marginBottom: 12.5,
         // Match bottom sheet surface for a unified look
-        backgroundColor: '#252733',
+        backgroundColor: theme.surface,
     },
     self_card_ctnr: {
         borderRadius: 20,
@@ -179,7 +180,7 @@ const styles = StyleSheet.create({
         paddingRight: 14,
         borderWidth: 2.5,
         borderColor: '#57B2FF',
-        backgroundColor: '#252733',
+        backgroundColor: theme.surface,
     },
     card_left: {
         flexDirection: 'row',
@@ -191,7 +192,7 @@ const styles = StyleSheet.create({
     pfp: {
         flex: 1,
         borderRadius: 100,
-        backgroundColor: '#2B3240',
+        backgroundColor: '#2D3441',
     },
     handle_text: {
         fontFamily: 'Outfit_600SemiBold',

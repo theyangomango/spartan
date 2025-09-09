@@ -8,6 +8,7 @@ import {
     findNodeHandle,
 } from "react-native";
 import FastImage from "react-native-fast-image";
+import theme from "../../theme/mfpDark";
 import Video from "react-native-video";
 import Animated, {
     useAnimatedStyle,
@@ -346,9 +347,9 @@ const styles = StyleSheet.create({
         elevation: 2,
     },
     bubbleOther: {
-        backgroundColor: "#252733",
+        backgroundColor: theme.surface,
         borderWidth: 1,
-        borderColor: "rgba(255,255,255,0.08)",
+        borderColor: theme.hairline,
         position: "relative",
     },
 
@@ -395,10 +396,10 @@ const styles = StyleSheet.create({
         height: 28,
         paddingHorizontal: 8,
         justifyContent: "center",
-        backgroundColor: "#252733",
+        backgroundColor: theme.surface,
         borderRadius: 999,
         borderWidth: 1,
-        borderColor: "rgba(255,255,255,0.08)",
+        borderColor: theme.hairline,
         shadowColor: "#000",
         shadowOpacity: 0.2,
         shadowRadius: 8,

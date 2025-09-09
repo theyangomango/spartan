@@ -1,6 +1,7 @@
 import React, { useEffect, useMemo, useRef, useState, useCallback } from "react";
 import { View, StyleSheet, TextInput, Platform, Image, KeyboardAvoidingView, Animated, Keyboard, Pressable, Dimensions } from "react-native";
 import BottomSheet from "@gorhom/bottom-sheet";
+import theme from "../../../theme/mfpDark";
 import { Ionicons } from '@expo/vector-icons';
 import CommentsModal from "./CommentsModal";
 import incrementDocValue from "../../../../backend/helper/firebase/incrementDocValue";
@@ -156,7 +157,7 @@ const CommentsBottomSheet = ({ isVisible, postData, commentsBottomSheetExpandFla
                 onChange={handleSheetIndexChange}
                 handleStyle={{ display: 'none' }}
                 detached
-                backgroundStyle={{ backgroundColor: '#252733' }}
+                backgroundStyle={{ backgroundColor: theme.surface }}
             >
                 {postData && (
                     <CommentsModal
@@ -210,7 +211,7 @@ const styles = StyleSheet.create({
         top: SCREEN_HEIGHT - 180,
         height: 95 + SCREEN_WIDTH / 2,
         paddingBottom: SCREEN_WIDTH / 2,
-        backgroundColor: '#252733',
+        backgroundColor: theme.surface,
         width: '100%',
         borderRadius: 40
     },
@@ -219,7 +220,7 @@ const styles = StyleSheet.create({
         marginHorizontal: 18,
         marginTop: 14,
         marginBottom: 26,
-        backgroundColor: '#1E2128',
+        backgroundColor: theme.field,
         borderRadius: 30,
         flexDirection: 'row',
         alignItems: 'center',

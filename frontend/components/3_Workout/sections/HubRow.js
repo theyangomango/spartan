@@ -4,6 +4,7 @@ import { AnimatedCircularProgress } from "react-native-circular-progress";
 import { usePfp } from "../../../helper/usePFPs";
 import { ss } from "./workoutTheme"; // keep path consistent with your project
 import MiniPodium from "./MiniPodium";
+import theme from "../../../theme/mfpDark";
 // Single root navigator; no nested overlay helpers needed
 import scaleSize from "../../../helper/scaleSize";
 // Removed unused bounceable/touchable imports to keep things lean
@@ -130,11 +131,11 @@ const styles = StyleSheet.create({
     hubRow: { flexDirection: "row", gap: 12, paddingHorizontal: 16, marginTop: 6 },
     card: {
         flex: 1,
-        backgroundColor: "#252733",
+        backgroundColor: theme.surface,
         borderRadius: 22,
         padding: 14,
         borderWidth: StyleSheet.hairlineWidth,
-        borderColor: "rgba(255,255,255,0.08)",
+        borderColor: theme.hairline,
         ...Platform.select({
             ios: { shadowColor: "#000", shadowOpacity: 0.25, shadowRadius: 8, shadowOffset: { width: 0, height: 5 } },
             android: { elevation: 1 },
@@ -142,7 +143,7 @@ const styles = StyleSheet.create({
     },
     cardPressed: {
         transform: [{ scale: 0.985 }],
-        backgroundColor: "#0F172A",
+        backgroundColor: "#1A2130",
         borderColor: "rgba(255,255,255,0.16)",
         ...Platform.select({
             ios: { shadowOpacity: 0.2, shadowRadius: 10, shadowOffset: { width: 0, height: 5 } },

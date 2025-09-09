@@ -249,12 +249,14 @@ export default function PersonalInfoSheet({ index, onChangeIndex, goalForm, setG
 }
 
 const makeStyles = (COLORS) => {
+    // Harmonize with MacroGoalsSheet: slightly brighter contrasts
     const text = COLORS?.text ?? COLORS?.textPrimary ?? '#E5E7EB';
     const subtext = COLORS?.subtext ?? COLORS?.textSecondary ?? '#A1A7B3';
     const card = COLORS?.card ?? '#252733';
-    const hairline = COLORS?.hairline ?? 'rgba(255,255,255,0.08)';
+    // Locally tuned for clearer separation in this sheet
+    const hairline = 'rgba(255,255,255,0.14)';
     const accent = COLORS?.accentBlue ?? '#6FB8FF';
-    const fieldBg = COLORS?.fieldBg ?? '#1E2128';
+    const fieldBg = '#2B2F3A';
 
     return StyleSheet.create({
         sheetBackground: { backgroundColor: card, borderTopLeftRadius: 24, borderTopRightRadius: 24, borderWidth: StyleSheet.hairlineWidth, borderColor: hairline },
@@ -270,17 +272,17 @@ const makeStyles = (COLORS) => {
         inputBox: {
             flexDirection: 'row', alignItems: 'center',
             backgroundColor: fieldBg, borderRadius: 14,
-            borderWidth: StyleSheet.hairlineWidth, borderColor: hairline,
+            borderWidth: 1, borderColor: hairline,
             paddingHorizontal: 12, paddingVertical: 12,
-            shadowColor: '#000', shadowOpacity: 0.02, shadowOffset: { width: 0, height: 1 }, shadowRadius: 2,
+            shadowColor: '#000', shadowOpacity: 0.05, shadowOffset: { width: 0, height: 1 }, shadowRadius: 4,
         },
         input: { flex: 1, fontSize: 16, fontFamily: 'Outfit_400Regular', color: text, paddingVertical: 0 },
-        placeholder: { color: '#A0AEC0' },
+        placeholder: { color: '#BAC3D2' },
         accent: { color: accent },
         inputSuffix: { marginLeft: 8, color: subtext, fontFamily: 'Outfit_400Regular' },
 
         toggleRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginBottom: 8 },
-        toggleButton: { paddingVertical: 8, paddingHorizontal: 14, borderRadius: 999, borderWidth: StyleSheet.hairlineWidth, borderColor: hairline, backgroundColor: card },
+        toggleButton: { paddingVertical: 8, paddingHorizontal: 14, borderRadius: 999, borderWidth: 1, borderColor: hairline, backgroundColor: card },
         toggleButtonActive: { backgroundColor: accent, borderColor: 'transparent' },
         toggleButtonText: { fontFamily: 'Outfit_500Medium', fontSize: 14, color: text },
         toggleButtonTextActive: { color: '#fff' },
@@ -293,7 +295,7 @@ const makeStyles = (COLORS) => {
             paddingVertical: 7,
             borderRadius: 999,
             backgroundColor: fieldBg,
-            borderWidth: StyleSheet.hairlineWidth,
+            borderWidth: 1,
             borderColor: hairline,
         },
         smallLinkText: { fontFamily: 'Outfit_600SemiBold', fontSize: 12.5, color: text },
@@ -305,7 +307,7 @@ const makeStyles = (COLORS) => {
             paddingVertical: 12,
             borderRadius: 14,
             backgroundColor: fieldBg,
-            borderWidth: StyleSheet.hairlineWidth,
+            borderWidth: 1,
             borderColor: hairline,
             flexDirection: 'row',
             alignItems: 'center',
@@ -319,7 +321,7 @@ const makeStyles = (COLORS) => {
             alignItems: 'center',
             justifyContent: 'center',
             backgroundColor: fieldBg,
-            borderWidth: StyleSheet.hairlineWidth,
+            borderWidth: 1,
             borderColor: hairline,
             marginRight: 10,
         },

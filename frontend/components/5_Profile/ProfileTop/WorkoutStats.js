@@ -1,4 +1,5 @@
 import React from 'react';
+import theme from '../../../theme/mfpDark';
 import { StyleSheet, View, Text, Dimensions } from "react-native";
 
 const { height: screenHeight } = Dimensions.get('window');
@@ -58,15 +59,9 @@ const styles = StyleSheet.create({
         justifyContent: 'center',
         alignItems: 'center',
     },
-    total_workouts_stat_ctnr: {
-        backgroundColor: '#252733',
-    },
-    total_volume_stat_ctnr: {
-        backgroundColor: '#252733',
-    },
-    gym_time_stat_ctnr: {
-        backgroundColor: '#252733',
-    },
+    total_workouts_stat_ctnr: { backgroundColor: theme.surface },
+    total_volume_stat_ctnr: { backgroundColor: theme.surface },
+    gym_time_stat_ctnr: { backgroundColor: theme.surface },
     workout_stat_text: {
         fontFamily: 'Poppins_500Medium',
         fontSize: scaledSize(10.5),

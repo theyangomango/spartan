@@ -4,16 +4,17 @@ import { Home, Cup, Weight, Profile as ProfileIcon } from 'iconsax-react-native'
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import useWorkoutStore from '../state/workoutStore';
 import { jumpToTab, navigationRef } from '../../navigationRef';
+import theme from '../theme/mfpDark';
 
 const COLORS = {
-    active: '#E5E7EB',
-    inactive: '#8B95A5',
+    active: theme.textPrimary,
+    inactive: '#95A0B0',
     workoutActive: '#60A5FA',
-    // Dark halo when workout active
-    workoutHalo: '#11253D',
-    workoutHaloBorder: '#2D9EFF',
-    bg: '#131521',
-    hairline: 'rgba(255,255,255,0.12)',
+    // Halo when workout active
+    workoutHalo: '#1E2A3C',
+    workoutHaloBorder: theme.primary,
+    bg: theme.bg,
+    hairline: theme.hairline,
 };
 
 const Footer = ({ currentScreenName, navigation }) => {

@@ -6,6 +6,7 @@ import { Heart, MessageCircle, AtSign, UserPlus } from "lucide-react-native";
 import { LinearGradient } from "expo-linear-gradient";
 
 import scaleSize from "../../../helper/scaleSize";
+import theme from "../../../theme/mfpDark";
 import getDisplayTimeDifference from "../../../helper/getDisplayTimeDifference";
 import followUser from "../../../../backend/user/followUser";
 import unfollowUser from "../../../../backend/user/unfollowUser";
@@ -168,10 +169,10 @@ const styles = StyleSheet.create({
         marginVertical: scaleSize(8),
         paddingHorizontal: scaleSize(14),
         paddingVertical: scaleSize(12),
-        backgroundColor: "#252733",
+        backgroundColor: theme.surface,
         borderRadius: scaleSize(16),
         borderWidth: StyleSheet.hairlineWidth,
-        borderColor: "rgba(255,255,255,0.08)",
+        borderColor: theme.hairline,
         shadowColor: "#000",
         shadowOpacity: 0.2,
         shadowRadius: 10,
@@ -214,7 +215,7 @@ const styles = StyleSheet.create({
         width: scaleSize(20),
         height: scaleSize(20),
         borderRadius: scaleSize(10),
-        backgroundColor: "#252733",
+        backgroundColor: theme.surface,
         alignItems: "center",
         justifyContent: "center",
     },
