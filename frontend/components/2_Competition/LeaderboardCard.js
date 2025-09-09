@@ -170,7 +170,7 @@ const styles = StyleSheet.create({
         paddingRight: 14,
         marginBottom: 12.5,
         // Match sheet bg for unified look
-        backgroundColor: require("../../theme/mfpDark").default.bg,
+        backgroundColor: require("../../theme/mfpDark").default.field,
     },
     self_card_ctnr: {
         borderRadius: 20,

@@ -4,6 +4,7 @@ import formatDate from "../../../helper/formatDate";
 import scaleSize from "../../../helper/scaleSize";
 import { usePfp } from "../../../helper/usePFPs";
 import RNBounceable from "@freakycoder/react-native-bounceable";
+import theme from "../../../theme/mfpDark";
 
 export default function PostHeader({
     data,
@@ -119,8 +120,15 @@ const styles = StyleSheet.create({
         paddingVertical: 4,
         backgroundColor: '#2D9EFF',
         borderRadius: 15,
+        // Dark-theme friendly edge so the blue pill reads over photos
         borderWidth: StyleSheet.hairlineWidth,
-        borderColor: 'rgba(255,255,255,0.28)'
+        borderColor: 'rgba(0,0,0,0.35)',
+        // Subtle lift for readability on dark imagery
+        shadowColor: '#000',
+        shadowOpacity: 0.25,
+        shadowRadius: 6,
+        shadowOffset: { width: 0, height: 2 },
+        elevation: 2,
     },
     date_text: {
         fontSize: scaleSize(10.5),

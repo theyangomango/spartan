@@ -291,7 +291,7 @@ const styles = StyleSheet.create({
         paddingRight: ss(10),
         borderRadius: ss(16),
         // Slightly lighter, more neutral surface for better separation
-        backgroundColor: '#515662b6',
+        backgroundColor: '#474c5784',
         borderWidth: StyleSheet.hairlineWidth,
         borderColor: theme.hairline,
         ...Platform.select({
