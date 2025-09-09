@@ -31,8 +31,9 @@ export default function Podium({ data }) {
             {/* Full-screen blue gradient background (behind entire screen) */}
             <View style={styles.bg_fullscreen} pointerEvents="none">
                 <LinearGradient
-                    // Slightly lighter again per request
-                    colors={["#3A78E6", "#2C5EA8", "rgba(170,210,255,0.96)"]}
+                    // Slightly more contrasted blue gradient
+                    colors={["#336EDB", "#224C95", "rgba(205,230,255,0.98)"]}
+                    locations={[0, 0.58, 1]}
                     start={{ x: 0.06, y: 0.0 }}
                     end={{ x: 0.94, y: 1.0 }}
                     style={StyleSheet.absoluteFillObject}

@@ -270,7 +270,7 @@ const DayDetailsSheet = ({
                                         <View style={styles.faRightAccessories}>
                                             {pbs > 0 && (
                                                 <View style={styles.faPrPill}>
-                                                    <MaterialCommunityIcons name="trophy" size={11} color="#6B5B00" />
+                                                    <MaterialCommunityIcons name="trophy" size={12} color="#FACC15" />
                                                     <Text style={styles.faPrText}>{pbs} PR{pbs === 1 ? "" : "s"}</Text>
                                                 </View>
                                             )}
@@ -283,7 +283,7 @@ const DayDetailsSheet = ({
                                     <View style={styles.faStatsRow}>
                                             <View style={styles.faStatCard}>
                                             <View style={styles.faStatIconWrap}>
-                                                <Clock color={theme.textPrimary} size={13} variant="Bold" />
+                                                <Clock color={theme.textPrimary} size={15} variant="Bold" />
                                             </View>
                                             <Text style={styles.faStatLabel}>Duration</Text>
                                             <Text style={styles.faStatValue}>{minutesLabel(durMs)}</Text>
@@ -291,7 +291,7 @@ const DayDetailsSheet = ({
 
                                             <View style={styles.faStatCard}>
                                             <View style={styles.faStatIconWrap}>
-                                                <MaterialCommunityIcons name="weight-lifter" size={13} color={theme.textPrimary} />
+                                                <MaterialCommunityIcons name="weight-lifter" size={15} color={theme.textPrimary} />
                                             </View>
                                             <Text style={styles.faStatLabel}>Volume</Text>
                                             <Text style={styles.faStatValue}>{toNumber(w?.volume).toLocaleString()} lb</Text>
@@ -299,7 +299,7 @@ const DayDetailsSheet = ({
 
                                             <View style={styles.faStatCard}>
                                             <View style={styles.faStatIconWrap}>
-                                                <MaterialCommunityIcons name="counter" size={13} color={theme.textPrimary} />
+                                                <MaterialCommunityIcons name="arm-flex" size={15} color={theme.textPrimary} />
                                             </View>
                                             <Text style={styles.faStatLabel}>Reps</Text>
                                             <Text style={styles.faStatValue}>{toNumber(w?.reps)}</Text>
@@ -447,8 +447,8 @@ const styles = StyleSheet.create({
     },
     faHeaderRow: { flexDirection: "row", alignItems: "center", marginBottom: 6, gap: 10 },
     faRightAccessories: { flexDirection: "row", alignItems: "center", gap: 10 },
-    faTitle: { fontSize: 12.5, fontFamily: "Outfit_700Bold", color: theme.textPrimary },
-    faSub: { marginTop: 2, fontSize: 12, fontFamily: "Outfit_500Medium", color: theme.textSecondary },
+    faTitle: { fontSize: 13, fontFamily: "Outfit_800ExtraBold", color: theme.textPrimary },
+    faSub: { marginTop: 2, fontSize: 12.5, fontFamily: "Outfit_600SemiBold", color: theme.textSecondary },
     faDivider: { height: StyleSheet.hairlineWidth, backgroundColor: theme.hairline, marginVertical: 6 },
     faStatsRow: { flexDirection: "row", gap: 8 },
     faStatCard: {
@@ -461,28 +461,28 @@ const styles = StyleSheet.create({
         borderColor: theme.hairline,
     },
     faStatIconWrap: {
-        width: 22,
-        height: 22,
-        borderRadius: 11,
+        width: 26,
+        height: 26,
+        borderRadius: 13,
         justifyContent: "center",
         alignItems: "center",
         backgroundColor: theme.field,
-        marginBottom: 4,
+        marginBottom: 6,
     },
-    faStatLabel: { fontFamily: "Outfit_500Medium", fontSize: 10, color: theme.textSecondary },
-    faStatValue: { marginTop: 1, fontFamily: "Outfit_700Bold", fontSize: 13, color: theme.textPrimary },
+    faStatLabel: { fontFamily: "Outfit_600SemiBold", fontSize: 11, color: theme.textSecondary },
+    faStatValue: { marginTop: 1, fontFamily: "Outfit_800ExtraBold", fontSize: 14.5, color: theme.textPrimary },
     faPrPill: {
         flexDirection: "row",
         alignItems: "center",
         gap: 6,
-        backgroundColor: "rgba(250, 204, 21, 0.18)",
+        backgroundColor: "rgba(250, 204, 21, 0.24)",
         borderWidth: StyleSheet.hairlineWidth,
-        borderColor: "rgba(250, 204, 21, 0.45)",
-        paddingVertical: 4.5,
+        borderColor: "rgba(250, 204, 21, 0.60)",
+        paddingVertical: 5,
         paddingHorizontal: 8,
         borderRadius: 999,
     },
-    faPrText: { fontFamily: "Outfit_700Bold", fontSize: 11.5, color: "#6B5B00" },
+    faPrText: { fontFamily: "Outfit_800ExtraBold", fontSize: 12, color: "#FACC15" },
 
     foodListCard: {
         borderRadius: 16,

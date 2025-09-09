@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useState } from "react";
-import { SafeAreaView, StyleSheet, View } from "react-native";
+import { SafeAreaView, StyleSheet, View, StatusBar } from "react-native";
 import Footer from "../components/Footer";
 import ProfileBottomBottomSheet from "../components/5_Profile/ProfileBottom/ProfileBottomBottomSheet";
 import ViewProfileRowButtons from "../components/ViewProfile/ViewProfileRowButtons";
@@ -13,6 +13,7 @@ import createChat from "../../backend/messages/createChat";
 import makeID from "../../backend/helper/makeID";
 import arrayAppend from "../../backend/helper/firebase/arrayAppend";
 import FeedWorkoutViewerSheet from "../components/1_Feed/ViewWorkout/FeedWorkoutViewerSheet";
+import theme from "../theme/mfpDark";
 
 export default function ViewProfile({ navigation, route }) {
     const user = route.params.user;
@@ -137,6 +138,7 @@ export default function ViewProfile({ navigation, route }) {
 
     return (
         <SafeAreaView style={styles.main_ctnr}>
+            <StatusBar barStyle="light-content" backgroundColor={theme.bg} />
             <View style={styles.body_ctnr}>
                 <ViewProfileHeader handle={headerHandle} goBack={goBack} toMessages={toMessages} />
                 <ViewProfileInfo userData={profileUserData} />
@@ -175,7 +177,7 @@ export default function ViewProfile({ navigation, route }) {
 const styles = StyleSheet.create({
     main_ctnr: {
         flex: 1,
-        backgroundColor: '#fff'
+        backgroundColor: theme.bg
     },
     body_ctnr: {
         paddingHorizontal: 10,

@@ -297,8 +297,8 @@ const DayCell = function DayCell({
         >
             {/* Center pill */}
             <View style={[styles.centerPill, isToday && styles.centerPillToday]}>
-                <Text style={styles.dayLetter}>{letter}</Text>
-                <Text style={styles.dayNum}>{d.getDate()}</Text>
+                <Text style={[styles.dayLetter, isToday && styles.dayLetterToday]}>{letter}</Text>
+                <Text style={[styles.dayNum, isToday && styles.dayNumToday]}>{d.getDate()}</Text>
             </View>
 
             {/* Bottom workout bar (only) */}
@@ -391,9 +391,21 @@ const styles = StyleSheet.create({
         justifyContent: "center",
     },
     centerPillToday: {
-        backgroundColor: theme.field,
-        borderWidth: 1,
-        borderColor: theme.hairline,
+        // Make today's cell more apparent with a subtle blue tint
+        backgroundColor: 'rgba(45,158,255,0.14)', // tinted background
+        borderWidth: 1.75,
+        borderColor: theme.primary,
+        ...Platform.select({
+            ios: {
+                shadowColor: '#2D9EFF',
+                shadowOpacity: 0.28,
+                shadowRadius: 6,
+                shadowOffset: { width: 0, height: 2 },
+            },
+            android: {
+                elevation: 2,
+            },
+        }),
     },
     dayLetter: {
         fontFamily: "Outfit_700Bold",
@@ -403,4 +415,7 @@ const styles = StyleSheet.create({
         letterSpacing: 0.3,
     },
     dayNum: { fontFamily: "Outfit_800ExtraBold", fontSize: 15, color: "#E5E7EB" },
+    // Accented text for today
+    dayLetterToday: { color: theme.accentBlue },
+    dayNumToday: { color: '#FFFFFF' },
 });

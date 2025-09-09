@@ -171,7 +171,21 @@ const styles = StyleSheet.create({
   pfp: { width:ss(38), height:ss(38), borderRadius:ss(19), backgroundColor:'#e8eef7', marginRight:ss(10) },
   handle: { fontSize:ss(16), fontFamily:'Outfit_600SemiBold', color:'#EAEAEA' },
   subHandle: { marginTop:ss(2), fontSize:ss(11), fontFamily:'Outfit_400Regular', color:'#AEB5C0' },
-  scorePill: { flexDirection:'row', alignItems:'baseline', paddingHorizontal:ss(10), paddingVertical:ss(6), borderRadius:ss(999), borderWidth:1, borderColor:'rgba(255,255,255,0.12)', backgroundColor:'rgba(255,255,255,0.06)' },
+  scorePill: { 
+    flexDirection:'row', 
+    alignItems:'baseline', 
+    paddingHorizontal:ss(10), 
+    paddingVertical:ss(6), 
+    borderRadius:ss(999), 
+    borderWidth:1, 
+    borderColor:'rgba(255,255,255,0.12)', 
+    backgroundColor:'rgba(255,255,255,0.06)',
+    // Soft white glow around the pill
+    shadowColor:'#FFFFFF',
+    shadowOpacity:0.28,
+    shadowRadius:ss(10),
+    shadowOffset:{ width:0, height:0 }
+  },
   scorePillLabel: { fontSize:ss(10), fontFamily:'Outfit_600SemiBold', color:'#AEB5C0', marginRight:ss(6), letterSpacing:0.6 },
   scorePillValue: { fontSize:ss(15), fontFamily:'Outfit_700Bold', color:'#2D9EFF', letterSpacing:0.2 },
   title: { fontFamily:'Outfit_700Bold', fontSize:ss(18), color:'#EAEAEA' },

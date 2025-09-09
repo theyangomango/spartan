@@ -4,6 +4,7 @@ import FastImage from 'react-native-fast-image';
 import { Ionicons } from '@expo/vector-icons';
 import RNBounceable from '@freakycoder/react-native-bounceable';
 import { usePfp } from '../../../helper/usePFPs';
+import theme from '../../../theme/mfpDark';
 
 const scale = (w) => w / 375;
 
@@ -41,7 +42,12 @@ export default memo(ProfileCard);
 
 const styles = StyleSheet.create({
   profileCard: {
-    width: '100%', flexDirection: 'row', alignItems: 'center', backgroundColor: '#252733', paddingVertical: 12, paddingHorizontal: 18,
+    width: '100%',
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: theme.bg,
+    paddingVertical: 12,
+    paddingHorizontal: 18,
   },
   profileLeft: { flexDirection: 'row', alignItems: 'center', flex: 1, minWidth: 0 },
   avatarRing: { alignItems: 'center', justifyContent: 'center', borderWidth: 2, borderColor: 'rgba(4,153,254,0.25)', backgroundColor: '#0B1220' },

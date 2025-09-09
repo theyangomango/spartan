@@ -3,6 +3,7 @@ import { useRef, useState } from "react";
 import { StyleSheet, View, Text, Dimensions } from "react-native";
 import followUser from "../../../backend/user/followUser";
 import unfollowUser from "../../../backend/user/unfollowUser";
+import theme from "../../theme/mfpDark";
 
 const { width: screenWidth } = Dimensions.get('window');
 const scale = screenWidth / 375; // Base screen width assumed as 375
@@ -87,7 +88,7 @@ const styles = StyleSheet.create({
     follow_button: {
         paddingHorizontal: scaleSize(20),
         borderRadius: scaleSize(10),
-        backgroundColor: '#3CA5FF',
+        backgroundColor: theme.primary,
         justifyContent: 'center',
         alignItems: 'center',
         marginHorizontal: scaleSize(3),
@@ -95,9 +96,9 @@ const styles = StyleSheet.create({
     following_button: {
         paddingHorizontal: scaleSize(20),
         borderRadius: scaleSize(10),
-        backgroundColor: '#fff',
-        borderWidth: scaleSize(1.8),
-        borderColor: '#3CA5FF',
+        backgroundColor: theme.surface,
+        borderWidth: scaleSize(1.2),
+        borderColor: theme.primary,
         justifyContent: 'center',
         alignItems: 'center',
         marginHorizontal: scaleSize(3),
@@ -106,7 +107,7 @@ const styles = StyleSheet.create({
         paddingHorizontal: scaleSize(20),
         paddingVertical: scaleSize(7),
         borderRadius: scaleSize(10),
-        backgroundColor: '#f2f2f2',
+        backgroundColor: theme.surface,
         justifyContent: 'center',
         alignItems: 'center',
         marginHorizontal: scaleSize(3),
@@ -119,10 +120,11 @@ const styles = StyleSheet.create({
     following_button_text: {
         fontFamily: 'Poppins_600SemiBold',
         fontSize: scaleSize(12.5),
-        color: '#3CA5FF',
+        color: theme.primary,
     },
     view_stats_button_text: {
         fontFamily: 'Poppins_600SemiBold',
         fontSize: scaleSize(12.5),
+        color: '#E5E7EB',
     },
 });

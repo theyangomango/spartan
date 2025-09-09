@@ -3,21 +3,36 @@ import { Pressable, StyleSheet, Text, TouchableOpacity, View } from 'react-nativ
 import { Ionicons } from '@expo/vector-icons';
 import ExerciseImagePreview from '../../3_Workout/NewWorkout/SelectExercise/ExerciseImagePreview';
 
+// Small helpers to make semi-transparent accent backgrounds
+const hexToRgb = (hex) => {
+    const m = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
+    if (!m) return { r: 45, g: 158, b: 255 };
+    return { r: parseInt(m[1], 16), g: parseInt(m[2], 16), b: parseInt(m[3], 16) };
+};
+const rgba = (hex, a) => { const { r, g, b } = hexToRgb(hex); return `rgba(${r}, ${g}, ${b}, ${a})`; };
+
 const ExerciseCard = memo(({ name, muscleGroup, selectExercise, showExerciseInfo, userStats }) => {
 
     const setsArr = Array.isArray(userStats?.sets) ? userStats.sets : [];
     const lastDone = setsArr.length ? (setsArr[setsArr.length - 1]?.date || 'N/A') : 'N/A';
     const timesCompleted = setsArr.length ? setsArr.length : '';
 
-    const muscleColors = {
-        Chest: '#FFAFB8',
-        Shoulders: '#A1CDEE',
-        Arms: '#CBBCFF',
-        Back: '#95E0C8',
-        Triceps: '#FFD580',
-        Legs: '#FFB347',
-        Abs: '#FF6961',
-        // Add more muscle groups and colors as needed
+    // Use strong accent colors for high-contrast pills (aligns with Workout selector)
+    const MUSCLE_ACCENT = {
+        Chest: '#EF4444',
+        Back: '#06B6D4',
+        Shoulders: '#F59E0B',
+        Arms: '#8B5CF6',
+        Legs: '#10B981',
+        Abs: '#2D9EFF',
+        Triceps: '#8B5CF6',
+        Biceps: '#8B5CF6',
+        Forearms: '#8B5CF6',
+        Glutes: '#10B981',
+        Quads: '#10B981',
+        Hamstrings: '#10B981',
+        Calves: '#10B981',
+        'Full Body': '#2D9EFF',
     };
 
     return (
@@ -28,9 +43,15 @@ const ExerciseCard = memo(({ name, muscleGroup, selectExercise, showExerciseInfo
                     <Text style={styles.exerciseName} numberOfLines={2}>{name}</Text>
                     <View style={styles.row}>
                         <Text style={styles.lastDone}>{lastDone}</Text>
-                        <View style={[styles.muscle_ctnr, { backgroundColor: muscleColors[muscleGroup] || '#ccc' }]}>
-                            <Text style={styles.muscle_text}>{muscleGroup}</Text>
-                        </View>
+                        {(() => {
+                            const ACC = MUSCLE_ACCENT[muscleGroup] || '#2D9EFF';
+                            return (
+                                <View style={[styles.muscle_ctnr, { backgroundColor: rgba(ACC, 0.22), borderColor: rgba(ACC, 0.45), borderWidth: StyleSheet.hairlineWidth }]}>
+                                    <Text style={styles.muscle_text}>{muscleGroup}</Text>
+                                </View>
+                            );
+                        })()}
+                        
                     </View>
                 </View>
             </View>
@@ -89,17 +110,17 @@ const styles = StyleSheet.create({
         flexWrap: 'wrap',
     },
     muscle_ctnr: {
-        marginLeft: 5,
-        borderRadius: 20,
-        paddingHorizontal: 10,
-        height: 20,
+        marginLeft: 6,
+        borderRadius: 999,
+        paddingHorizontal: 12,
+        height: 22,
         alignItems: 'center',
         justifyContent: 'center',
     },
     muscle_text: {
         fontFamily: 'Poppins_700Bold',
-        fontSize: 11,
-        color: '#fff',
+        fontSize: 12,
+        color: '#EAEAEA',
     },
     lastDone: {
         fontFamily: 'Outfit_500Medium',

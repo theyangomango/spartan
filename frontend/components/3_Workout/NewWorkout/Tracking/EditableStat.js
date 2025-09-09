@@ -93,11 +93,12 @@ export default function EditableStat({ placeholder = '0', isFinished, value, set
 const styles = StyleSheet.create({
     editing: {
         width: scaledSize(63),
-        height: scaledSize(23),
+        height: scaledSize(26),
         borderRadius: scaledSize(9),
-        backgroundColor: theme.chipBg,
-        borderWidth: StyleSheet.hairlineWidth,
-        borderColor: theme.hairline,
+        // Darker chip with stronger border for contrast
+        backgroundColor: theme.field,
+        borderWidth: 1,
+        borderColor: 'rgba(255,255,255,0.30)',
     },
     selected: {
         borderColor: theme.primary,

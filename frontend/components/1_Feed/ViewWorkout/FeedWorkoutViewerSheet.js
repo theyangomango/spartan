@@ -8,6 +8,7 @@ import { db } from "../../../../firebase.config";
 import CopyTemplateToast from "../../3_Workout/ui/CopyTemplateToast";
 import updateDoc from "../../../../backend/helper/firebase/updateDoc";
 import makeID from "../../../../backend/helper/makeID";
+import theme from "../../../theme/mfpDark";
 
 const HANDLE_FRIEND_ACCENT = "#E0A500";
 const HANDLE_FRIEND_BACKGROUND = "#e0a4002c";
@@ -136,6 +137,8 @@ const FeedWorkoutViewerSheet = ({
         enablePanDownToClose
         onClose={onClose}
         onChange={handleSheetChange}
+        // Dark surface background to match NewWorkoutModal's transparent sections
+        backgroundStyle={{ backgroundColor: theme.surface }}
         // Styled like friend-view (warm accent) since this sheet is locked to past/friend view
         handleIndicatorStyle={{ backgroundColor: HANDLE_FRIEND_ACCENT }}
         handleStyle={{ backgroundColor: HANDLE_FRIEND_BACKGROUND }}

@@ -146,8 +146,9 @@ const NewWorkoutBottomSheet = ({
                 backgroundColor: isViewingSelf ? theme.field : HANDLE_FRIEND_BACKGROUND,
             }}
             // Background drives color + rounded top corners for the entire modal
+            // Use darker background so inner cards/inputs pop with contrast
             backgroundStyle={{
-                backgroundColor: theme.field,
+                backgroundColor: theme.bg,
                 borderTopLeftRadius: 22,
                 borderTopRightRadius: 22,
             }}

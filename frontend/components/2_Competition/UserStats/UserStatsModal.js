@@ -310,13 +310,13 @@ export default function UserStatsModal({ user, toViewProfile, hexOverlay, hexPro
                                                 {/* Row: icon + name + 1RM pill */}
                                                 <View style={styles.exerciseHeader}>
                                                     <View style={styles.nameRow}>
-                                                        <View style={[styles.iconCircle, { backgroundColor: rgba(ACC, 0.12) }]}>
+                                                        <View style={[styles.iconCircle, { backgroundColor: rgba(ACC, 0.18) }]}>
                                                             <MaterialCommunityIcons name="dumbbell" size={scaledSize(13)} color={ACC} />
                                                         </View>
                                                         <Text numberOfLines={1} style={styles.exerciseName}>{name}</Text>
                                                     </View>
                                                     {!!oneRM && oneRM > 0 && (
-                                                        <View style={[styles.oneRMPill, { borderColor: rgba(ACC, 0.35), backgroundColor: rgba(ACC, 0.12) }]}> 
+                                                        <View style={[styles.oneRMPill, { borderColor: rgba(ACC, 0.5), backgroundColor: rgba(ACC, 0.16) }]}> 
                                                             <Text style={styles.oneRMLabel}>1RM (Adj)</Text>
                                                             <Text style={[styles.oneRMValue, { color: ACC }]}>{oneRM}</Text>
                                                         </View>
@@ -423,6 +423,11 @@ const styles = StyleSheet.create({
         borderWidth: 1,
         borderColor: COLORS.hairline,
         backgroundColor: "rgba(255,255,255,0.06)",
+        // Soft white glow around the pill
+        shadowColor: '#FFFFFF',
+        shadowOpacity: 0.28,
+        shadowRadius: scaledSize(10),
+        shadowOffset: { width: 0, height: 0 },
     },
     ovrRow: { flexDirection: 'row', alignItems: 'baseline' },
     scorePillLabel: {
@@ -534,7 +539,8 @@ const styles = StyleSheet.create({
         left: 0,
         top: 0,
         bottom: 0,
-        width: scaledSize(3),
+        // Slightly wider for better visibility without overpowering
+        width: scaledSize(4),
         borderTopLeftRadius: scaledSize(16),
         borderBottomLeftRadius: scaledSize(16),
     },

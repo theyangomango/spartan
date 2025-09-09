@@ -72,7 +72,7 @@ const GroupHeader = ({
                 {showTimerLeft ? (
                     <RNBounceable style={styles.rest_timer_ctnr} onPress={onAddTime ? withHaptics(onAddTime) : undefined}>
                         <View style={styles.iconWrapper}>
-                            <MaterialCommunityIcons name="timer-outline" size={scaledSize(24)} color={theme.primary} />
+                            <MaterialCommunityIcons name="timer-outline" size={scaledSize(24)} color="#FFFFFF" />
                             {countdown > 0 && (
                                 <Text style={styles.countdownText}>
                                     {Math.floor(countdown / 60)}:{String(countdown % 60).padStart(2, "0")}
@@ -186,12 +186,12 @@ const styles = StyleSheet.create({
         paddingVertical: scaledSize(6),
         paddingHorizontal: scaledSize(12),
         borderRadius: scaledSize(12),
-        backgroundColor: theme.addBtnBg,
+        backgroundColor: theme.restPillBg,
     },
     iconWrapper: { flexDirection: "row", alignItems: "center" },
     countdownText: {
         fontSize: scaledSize(15),
-        color: theme.primary,
+        color: '#FFFFFF',
         fontFamily: "Outfit_700Bold",
         marginLeft: scaledSize(10),
     },
@@ -206,7 +206,7 @@ const styles = StyleSheet.create({
         width: scaledSize(35),
         height: scaledSize(35),
         borderRadius: scaledSize(12),
-        backgroundColor: "#FFE8BC",
+        backgroundColor: theme.groupAmber,
         justifyContent: "center",
         alignItems: "center",
         marginRight: scaledSize(6),

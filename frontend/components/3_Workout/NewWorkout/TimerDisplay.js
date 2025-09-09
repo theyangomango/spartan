@@ -27,7 +27,7 @@ const styles = StyleSheet.create({
     timer_text: {
         fontFamily: 'Outfit_700Bold',
         fontSize: scaledSize(18),
-        color: theme.textSecondary,
+        color: theme.textPrimary, // higher contrast for timer
         textAlign: 'center',
     }
 });

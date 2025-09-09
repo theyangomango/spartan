@@ -113,7 +113,8 @@ const HexagonalStats = ({
                     <Polygon
                         key={`ring-${idx}`}
                         points={pts}
-                        stroke={idx === levels - 1 ? "#e0ebf6ff" : "#edf3f9ff"}
+                        // Darker ring strokes for better contrast on dark surfaces
+                        stroke={idx === levels - 1 ? "#9AA6BB" : "#8C99AF"}
                         strokeWidth={ringStroke}
                         fill="none"
                     />
@@ -146,7 +147,8 @@ const HexagonalStats = ({
                                 y={y - scaledSize(4)}
                                 textAnchor="middle"
                                 alignmentBaseline="middle"
-                                fill="#475569"
+                                // Brighter label color so muscle types are readable in the modal
+                                fill="#B8C0CC"
                                 fontFamily="Poppins_700Bold"
                                 fontSize={labelFont}
                             >

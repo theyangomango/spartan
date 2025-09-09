@@ -181,6 +181,7 @@ const CommentsBottomSheet = ({ isVisible, postData, commentsBottomSheetExpandFla
                         <TextInput
                             ref={textInputRef}
                             placeholder={replyingToIndex == null ? "Add comment" : `Replying to ${postData.comments[replyingToIndex].handle}`}
+                            placeholderTextColor="#C9D2E3"
                             style={styles.textInput}
                             onFocus={handleInputFocus}
                             onBlur={handleInputBlur}

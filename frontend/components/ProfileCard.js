@@ -25,7 +25,7 @@ const SIZES = {
     ring: 2,
 };
 
-const ProfileCard = ({ user, onSelect, isSelected }) => {
+const ProfileCard = ({ user, onSelect, isSelected, baseBg, selectedBg }) => {
     // resolve PFP via uid (+ optional version) with immutable caching
     const pfpUri = usePfp(user.uid, user.pfpVersion ?? 0);
     const radius = SIZES.pfp / 2;
@@ -35,8 +35,9 @@ const ProfileCard = ({ user, onSelect, isSelected }) => {
             onPress={() => onSelect(user)}
             style={({ pressed }) => [
                 styles.itemContainer,
-                pressed && styles.itemPressed,
-                isSelected && styles.itemContainerSelected,
+                // Allow consumers to override the base and selected background colors.
+                { backgroundColor: baseBg || styles.itemContainer.backgroundColor },
+                (pressed || isSelected) && { backgroundColor: selectedBg || '#1E2128' },
             ]}
             android_ripple={{ color: 'rgba(2,132,199,0.08)' }}
         >
@@ -96,8 +97,7 @@ const styles = StyleSheet.create({
         borderBottomWidth: StyleSheet.hairlineWidth,
         borderBottomColor: 'rgba(255,255,255,0.08)',
     },
-    itemContainerSelected: { backgroundColor: '#1E2128' },
-    itemPressed: { backgroundColor: '#1E2128' },
+    // selected/pressed backgrounds are applied inline to allow overrides via props
     text_ctnr: {
         marginLeft: scale(12),
         flex: 1,

@@ -9,10 +9,11 @@ import theme from '../theme/mfpDark';
 const COLORS = {
     active: theme.textPrimary,
     inactive: '#95A0B0',
-    workoutActive: '#60A5FA',
-    // Halo when workout active
-    workoutHalo: '#2F3540',
-    workoutHaloBorder: theme.primary,
+    // Align indicator + icon with brand primary for dark theme
+    workoutActive: theme.primary,
+    // Subtle brand-tinted halo for dark surfaces
+    workoutHalo: 'rgba(45, 158, 255, 0.16)', // theme.primary @ 16%
+    workoutHaloBorder: 'rgba(45, 158, 255, 0.6)',
     bg: theme.bg,
     hairline: theme.hairline,
 };
@@ -49,7 +50,16 @@ const Footer = ({ currentScreenName, navigation }) => {
         backgroundColor: hasActiveWorkout ? COLORS.workoutHalo : 'transparent',
         borderWidth: hasActiveWorkout ? StyleSheet.hairlineWidth : 0,
         borderColor: hasActiveWorkout ? COLORS.workoutHaloBorder : 'transparent',
-        padding: hasActiveWorkout ? 8 : 3,
+        padding: hasActiveWorkout ? 7 : 3,
+        ...(
+            hasActiveWorkout
+                ? Platform.select({
+                    ios: { shadowColor: theme.primary, shadowOpacity: 0.18, shadowRadius: 7, shadowOffset: { width: 0, height: 2 } },
+                    android: { elevation: 2 },
+                    default: {},
+                })
+                : {}
+        ),
     });
 
     return (
@@ -121,6 +131,13 @@ const Footer = ({ currentScreenName, navigation }) => {
                     </Pressable>
                 </View>
             </View>
+            {/* Dead zone: bottom 20% intercepts touches to avoid accidental tab presses */}
+            <View
+                style={styles.dead_zone}
+                // Ensure this view becomes the responder and swallows touches
+                onStartShouldSetResponder={() => true}
+                pointerEvents="auto"
+            />
         </View>
     );
 };
@@ -156,6 +173,15 @@ const styles = StyleSheet.create({
     workout_indicator_ctnr: { borderRadius: 100, padding: 3 },
     icon: { padding: 13.5, borderRadius: 25 },
     selectedIcon: { padding: 13.5, borderRadius: 30 },
+    dead_zone: {
+        position: 'absolute',
+        left: 0,
+        right: 0,
+        bottom: 0,
+        height: '40%', // bottom 20% of the footer area
+        backgroundColor: 'transparent',
+        zIndex: 2,
+    },
 });
 
 // Avoid unnecessary re-renders across tab switches

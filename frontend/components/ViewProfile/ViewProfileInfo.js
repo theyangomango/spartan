@@ -1,15 +1,12 @@
-import { useEffect, useState } from "react";
 import { StyleSheet, View, Text, Dimensions } from "react-native";
 import FastImage from 'react-native-fast-image';
 import { usePfp } from "../../helper/usePFPs";
+import theme from "../../theme/mfpDark";
 // Removed plus overlay next to PFP for cleaner ViewProfile
 
-const { width: screenWidth } = Dimensions.get('window');
-const scale = screenWidth / 375; // Base screen width assumed as 375
-
-function scaleSize(size) {
-    return Math.round(size * scale);
-}
+const { height: screenHeight } = Dimensions.get('window');
+const scale = screenHeight / 844; // match Profile screen baseline
+const scaleSize = (size) => Math.round(size * scale);
 
 export default function ViewProfileInfo({ userData }) {
     const pfpUri = usePfp(String(userData?.uid || ''), userData?.pfpVersion || 0) || userData?.image || '';
@@ -28,7 +25,7 @@ export default function ViewProfileInfo({ userData }) {
                             resizeMode={FastImage.resizeMode.cover}
                         />
                     ) : (
-                        <View style={[styles.pfp, { backgroundColor: '#e5e7eb' }]} />
+                        <View style={[styles.pfp, { backgroundColor: theme.surface }]} />
                     )}
                 </View>
                 <View style={styles.following_stat_ctnr}>
@@ -66,12 +63,12 @@ const styles = StyleSheet.create({
         borderWidth: scaleSize(3),
         borderRadius: scaleSize(26.5),
         padding: scaleSize(2.25),
-        borderColor: '#ccc',
+        borderColor: theme.hairline,
     },
     pfp: {
-        width: scaleSize(50),
+        width: scaleSize(54),
         aspectRatio: 1,
-        borderRadius: scaleSize(20.5),
+        borderRadius: scaleSize(22.5),
     },
     followers_stat_ctnr: {
         alignItems: 'flex-end',
@@ -82,13 +79,13 @@ const styles = StyleSheet.create({
     user_stat_count_text: {
         fontFamily: 'Outfit_600SemiBold',
         fontSize: scaleSize(17),
-        color: '#555',
+        color: theme.textPrimary,
         paddingBottom: scaleSize(1),
     },
     user_stat_text: {
         fontFamily: 'Outfit_600SemiBold',
         fontSize: scaleSize(14.5),
-        color: '#bfbfbf',
+        color: theme.textSecondary,
     },
     profile_info_ctnr: {
         alignItems: 'center',
@@ -104,27 +101,28 @@ const styles = StyleSheet.create({
     border_line: {
         height: '60%',
         alignSelf: 'center',
-        borderWidth: 1,
+        borderWidth: scaleSize(1),
         marginHorizontal: scaleSize(10),
-        borderColor: '#e7e7e7',
+        borderColor: theme.hairline,
     },
     name_text: {
         fontFamily: 'Outfit_600SemiBold',
-        fontSize: scaleSize(15.5),
+        fontSize: scaleSize(16),
         flex: 1,
         textAlign: 'right',
+        color: theme.textPrimary,
     },
     score_text: {
         fontFamily: 'Outfit_600SemiBold',
-        fontSize: scaleSize(15.5),
-        color: '#0499FE',
+        fontSize: scaleSize(16),
+        color: theme.primary,
         flex: 1,
         textAlign: 'left',
     },
     bio_ctnr: {},
     bio_text: {
         fontFamily: 'Outfit_600SemiBold',
-        fontSize: scaleSize(14),
-        color: '#b3b3b3',
+        fontSize: scaleSize(15),
+        color: theme.textSecondary,
     },
 });

@@ -281,7 +281,7 @@ const styles = StyleSheet.create({
     w_col: { width: "18%", alignItems: "center" },
     r_col: { width: "18%", alignItems: "center" },
     // Increase contrast for readability in dark mode
-    label_text: { fontFamily: "Mulish_800ExtraBold", fontSize: s(14), color: theme.textPrimary },
+    label_text: { fontFamily: "Mulish_800ExtraBold", fontSize: s(15), color: theme.textPrimary },
     add_set_btn_ctnr: { paddingHorizontal: s(20) },
     add_set_btn: { width: "100%", marginTop: s(8), alignSelf: "center", height: s(28), borderRadius: s(20), backgroundColor: theme.field, justifyContent: "center", alignItems: "center", flexDirection: "row" },
     add_set_text: { fontFamily: "Outfit_600SemiBold", color: theme.textPrimary, fontSize: s(15), marginLeft: s(1), marginRight: s(5) },

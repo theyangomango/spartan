@@ -1,6 +1,7 @@
 import React from "react";
 import { StyleSheet, View, Text } from "react-native";
-import { FontAwesome6, Octicons, Entypo } from '@expo/vector-icons';
+import { FontAwesome6, Entypo } from '@expo/vector-icons';
+import { Setting2 } from "iconsax-react-native";
 import RNBounceable from "@freakycoder/react-native-bounceable";
 import { Dimensions } from 'react-native';
 import { AddSquare } from "iconsax-react-native";
@@ -15,7 +16,7 @@ export default function ProfileHeader({ onPressCreateBtn, onPressSettings }) {
     return (
         <View style={styles.main_ctnr}>
             <RNBounceable style={styles.leftBtn} onPress={onPressSettings}>
-                <Octicons name="gear" size={scaledSize(22.5)} color={theme.textSecondary} />
+                <Setting2 size={24} color={theme.textSecondary} />
             </RNBounceable>
             <RNBounceable>
                 <View style={styles.center}>

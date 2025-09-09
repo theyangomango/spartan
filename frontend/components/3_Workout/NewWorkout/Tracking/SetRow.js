@@ -178,7 +178,7 @@ const UnderlayLeft = ({ onDelete }) => {
 
 const styles = StyleSheet.create({
     container: { flex: 1 },
-    stat_row: { flexDirection: "row", paddingVertical: scaledSize(8), alignItems: "center", borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: theme.hairline },
+    stat_row: { flexDirection: "row", paddingVertical: scaledSize(9), alignItems: "center", borderBottomWidth: 1, borderBottomColor: 'rgba(255,255,255,0.16)' },
     done: { backgroundColor: theme.successRowBg },
     set_ctnr: {
         marginLeft: "5%",
@@ -186,8 +186,8 @@ const styles = StyleSheet.create({
         height: scaledSize(24),
         borderRadius: scaledSize(8),
         backgroundColor: theme.field,
-        borderWidth: StyleSheet.hairlineWidth,
-        borderColor: theme.hairline,
+        borderWidth: 1,
+        borderColor: 'rgba(255,255,255,0.30)',
         alignItems: "center",
         justifyContent: "center",
     },

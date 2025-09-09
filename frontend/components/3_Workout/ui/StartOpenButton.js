@@ -209,7 +209,11 @@ const styles = StyleSheet.create({
         width: BTN_SIZE * 1.05,
         height: BTN_SIZE * 1.05,
         borderWidth: 0, // no crisp rim; rely on haloSoft
-        ...Platform.select({ ios: { shadowColor: "#FFFFFF", shadowOpacity: 0.0, shadowRadius: 0 }, android: {} }),
+        // Keep the same white halo on iOS as the START state
+        ...Platform.select({
+            ios: { shadowColor: "#FFFFFF", shadowOpacity: 0.8, shadowRadius: 16, shadowOffset: { width: 0, height: 0 } },
+            android: {},
+        }),
     },
     startText: {
         color: "#FFFFFF",
@@ -258,9 +262,9 @@ function Halo({ size }) {
         >
             <Defs>
                 <RadialGradient id={id} cx="50%" cy="50%" r="50%">
-                    <Stop offset="0%" stopColor="rgba(255,255,255,0)" />
-                    <Stop offset="58%" stopColor="rgba(255,255,255,0.10)" />
-                    <Stop offset="80%" stopColor="rgba(255,255,255,0.18)" />
+                    <Stop offset="0%" stopColor="rgba(255,255,255,0.02)" />
+                    <Stop offset="58%" stopColor="rgba(255,255,255,0.13)" />
+                    <Stop offset="80%" stopColor="rgba(255,255,255,0.22)" />
                     <Stop offset="100%" stopColor="rgba(255,255,255,0)" />
                 </RadialGradient>
             </Defs>

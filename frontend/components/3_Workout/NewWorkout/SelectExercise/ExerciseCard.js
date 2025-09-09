@@ -63,8 +63,8 @@ const ExerciseCard = memo(({ name, muscleGroup, selectExercise, deselectExercise
                         {(() => {
                             const ACC = MUSCLE_ACCENT[muscleGroup] || ACCENTS[0];
                             return (
-                                <View style={[styles.muscle_ctnr, { backgroundColor: rgba(ACC, 0.12), borderColor: rgba(ACC, 0.35) }]}>
-                                    <Text style={[styles.muscle_text, { color: ACC }]}>{muscleGroup}</Text>
+                                <View style={[styles.muscle_ctnr, { backgroundColor: rgba(ACC, 0.22), borderColor: rgba(ACC, 0.45) }]}>
+                                    <Text style={[styles.muscle_text, { color: '#EAEAEA' }]}>{muscleGroup}</Text>
                                 </View>
                             );
                         })()}
@@ -127,8 +127,8 @@ const styles = StyleSheet.create({
     },
     muscle_ctnr: {
         borderRadius: scaledSize(999),
-        paddingHorizontal: scaledSize(10),
-        height: scaledSize(20),
+        paddingHorizontal: scaledSize(12),
+        height: scaledSize(22),
         alignItems: 'center',
         justifyContent: 'center',
         backgroundColor: '#1E232C',
@@ -137,8 +137,8 @@ const styles = StyleSheet.create({
     },
     muscle_text: {
         fontFamily: 'Outfit_700Bold',
-        fontSize: scaledSize(11),
-        color: '#6FB8FF',
+        fontSize: scaledSize(12),
+        color: '#EAEAEA',
     },
     lastDone: {
         fontFamily: 'Outfit_500Medium',

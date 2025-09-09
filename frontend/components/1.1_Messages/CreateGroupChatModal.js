@@ -80,6 +80,9 @@ export default function CreateGroupChatModal({ initChat }) {
                 user={item}
                 onSelect={handleSelectUser}
                 isSelected={isSelected}
+                // Blend with modal background when not selected; contrast only when selected
+                baseBg="#252733"
+                selectedBg="#2E323C"
             />
         );
     };

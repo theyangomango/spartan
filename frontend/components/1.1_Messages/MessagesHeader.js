@@ -48,19 +48,18 @@ export default function MessagesHeader({
                     <FontAwesome6 name="chevron-left" size={scaleSize(16)} color={ACCENT} />
                 </TouchableOpacity>
 
-                {/* Group + plus */}
-                <View style={[styles.iconCircle, styles.rightIcon]}>
-                    <TouchableOpacity
-                        activeOpacity={0.6}
-                        onPress={openCreateGroupChatBottomSheet}
-                        style={styles.centerIconHit}
-                    >
-                        <FontAwesome5 name="users" size={scaleSize(16)} color={ACCENT} />
-                    </TouchableOpacity>
-                    <View style={styles.plusBubble}>
-                        <FontAwesome5 name="plus" size={scaleSize(9)} color={theme.textPrimary} />
+                {/* Create group — simplified to a single icon for cleaner look */}
+                <TouchableOpacity
+                    activeOpacity={0.6}
+                    onPress={openCreateGroupChatBottomSheet}
+                    style={[styles.iconCircle, styles.rightIcon]}
+                >
+                    <FontAwesome5 name="users" size={scaleSize(16)} color={ACCENT} />
+                    {/* subtle in-pill + badge */}
+                    <View style={styles.plusBadge}>
+                        <FontAwesome5 name="plus" size={scaleSize(8.5)} color={theme.textPrimary} />
                     </View>
-                </View>
+                </TouchableOpacity>
 
                 {/* Segmented control */}
                 <View style={styles.segmentWrap}>
@@ -113,24 +112,19 @@ const styles = StyleSheet.create({
     },
     leftIcon: { left: scaleSize(20) },
     rightIcon: { right: scaleSize(23), justifyContent: "center" },
-    centerIconHit: { padding: scaleSize(6) },
-
-    plusBubble: {
+    // no extra bubble; keep the pill clean
+    plusBadge: {
         position: "absolute",
-        right: scaleSize(-5),
-        bottom: scaleSize(-5),
-        width: scaleSize(18),
-        height: scaleSize(18),
-        borderRadius: scaleSize(9),
+        right: scaleSize(2),
+        bottom: scaleSize(2),
+        width: scaleSize(14),
+        height: scaleSize(14),
+        borderRadius: scaleSize(7),
         backgroundColor: ACCENT,
-        borderWidth: 0,
         alignItems: "center",
         justifyContent: "center",
-        shadowColor: ACCENT,
-        shadowOpacity: 0.18,
-        shadowRadius: scaleSize(6),
-        shadowOffset: { width: 0, height: scaleSize(2) },
-        elevation: 3,
+        borderWidth: 1,
+        borderColor: theme.bg,
     },
 
     /* segmented control */

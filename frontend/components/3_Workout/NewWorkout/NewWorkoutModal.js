@@ -798,7 +798,8 @@ const NewWorkoutModal = ({
                 <Pressable style={styles.modalOverlay} onPress={() => setReminderVisible(false)}>
                     <BlurView style={StyleSheet.absoluteFill} intensity={28} tint="dark" />
                     <LinearGradient
-                        colors={["#60A5FA", "#34D399"]}
+                        // Slightly lighter gradient for the reminder card
+                        colors={["#93C5FD", "#6EE7B7"]}
                         start={{ x: 0, y: 0 }}
                         end={{ x: 1, y: 1 }}
                         style={styles.reminderWrapper}
@@ -865,44 +866,56 @@ const styles = StyleSheet.create({
     scrollview: { paddingTop: scaledSize(5), backgroundColor: 'transparent' },
 
     waitingWrap: { flex: 1, alignItems: "center", justifyContent: "center", backgroundColor: 'transparent' },
-    waitingText: { marginTop: 6, fontFamily: "Nunito_700Bold", color: theme.textSecondary },
+    waitingText: { marginTop: 6, fontFamily: "Nunito_700Bold", color: theme.textPrimary },
 
     add_exercise_btn: {
         marginHorizontal: scaledSize(20),
         marginTop: scaledSize(18),
-        height: scaledSize(35),
+        height: scaledSize(40),
         borderRadius: scaledSize(12),
-        backgroundColor: theme.addBtnBg,
+        // Slightly muted brand blue for softer contrast
+        backgroundColor: 'rgba(45, 157, 255, 0.6)',
         justifyContent: "center",
         alignItems: "center",
         flexDirection: "row",
+        shadowColor: theme.primary,
+        shadowOpacity: 0.15,
+        shadowRadius: scaledSize(6),
+        shadowOffset: { width: 0, height: scaledSize(3) },
+        elevation: 2,
     },
     add_exercise_text: {
         fontSize: scaledSize(16),
         fontFamily: "Outfit_700Bold",
-        color: theme.primary,
+        color: "#FFFFFF",
         marginRight: scaledSize(4.5),
     },
 
     cancel_btn: {
         marginHorizontal: scaledSize(20),
-        marginTop: scaledSize(18),
-        height: scaledSize(35),
+        marginTop: scaledSize(14),
+        height: scaledSize(40),
         borderRadius: scaledSize(12),
-        backgroundColor: "rgba(242,113,113,0.15)",
+        // Slightly muted red
+        backgroundColor: 'rgba(217,76,76,0.7)',
         justifyContent: "center",
         alignItems: "center",
         flexDirection: "row",
+        shadowColor: "#D94C4C",
+        shadowOpacity: 0.15,
+        shadowRadius: scaledSize(6),
+        shadowOffset: { width: 0, height: scaledSize(3) },
+        elevation: 2,
     },
-    cancel_btn_text: { fontSize: scaledSize(16), fontFamily: "Outfit_700Bold", color: "#F27171", marginRight: scaledSize(4.5) },
+    cancel_btn_text: { fontSize: scaledSize(16), fontFamily: "Outfit_700Bold", color: "#FFFFFF", marginRight: scaledSize(4.5) },
 
     modalOverlay: { flex: 1, justifyContent: "center", alignItems: "center", backgroundColor: "rgba(0,0,0,0.5)", paddingHorizontal: scaledSize(24) },
     modalContainer: { width: "100%", padding: scaledSize(20), backgroundColor: theme.surface, borderRadius: scaledSize(15), alignItems: "center" },
     modalText: { fontSize: scaledSize(16), color: theme.textPrimary, fontFamily: "Outfit_700Bold", marginBottom: scaledSize(20), textAlign: "center" },
-    deleteWorkoutBtn: { width: "100%", paddingVertical: scaledSize(8), backgroundColor: "rgba(242,113,113,0.15)", borderRadius: scaledSize(8), alignItems: "center", marginBottom: scaledSize(10) },
-    deleteWorkoutText: { color: "#F27171", fontSize: scaledSize(14), fontFamily: "Outfit_700Bold" },
-    cancelDeleteBtn: { width: "100%", paddingVertical: scaledSize(8), backgroundColor: theme.field, borderRadius: scaledSize(8), alignItems: "center" },
-    cancelDeleteText: { color: theme.textSecondary, fontSize: scaledSize(14), fontFamily: "Outfit_700Bold" },
+    deleteWorkoutBtn: { width: "100%", paddingVertical: scaledSize(10), backgroundColor: "#D94C4C", borderRadius: scaledSize(8), alignItems: "center", marginBottom: scaledSize(10) },
+    deleteWorkoutText: { color: "#FFFFFF", fontSize: scaledSize(14), fontFamily: "Outfit_700Bold" },
+    cancelDeleteBtn: { width: "100%", paddingVertical: scaledSize(10), backgroundColor: theme.field, borderRadius: scaledSize(8), alignItems: "center" },
+    cancelDeleteText: { color: theme.textPrimary, fontSize: scaledSize(14), fontFamily: "Outfit_700Bold" },
 
     finishModalContainer: { width: "100%", padding: scaledSize(20), backgroundColor: theme.surface, borderRadius: scaledSize(16), alignItems: "center" },
     finishTitle: { fontSize: scaledSize(18), color: theme.textPrimary, fontFamily: "Outfit_700Bold", textAlign: "center", marginBottom: scaledSize(16) },
