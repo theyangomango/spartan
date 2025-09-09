@@ -2,6 +2,7 @@ import React from "react";
 import { StyleSheet, View, Text, Dimensions } from "react-native";
 import FastImage from 'react-native-fast-image';
 import { usePfp } from "../../../helper/usePFPs";
+import theme from '../../../theme/mfpDark';
 
 const { height: screenHeight } = Dimensions.get('window');
 const scale = screenHeight / 844; // Scaling factor based on iPhone 13 height
@@ -121,8 +122,9 @@ const styles = StyleSheet.create({
     },
     bio_ctnr: {},
     bio_text: {
-        fontFamily: 'Outfit_600SemiBold',
-        fontSize: scaledSize(15),
-        color: '#9CA3AF',
+        fontFamily: 'Outfit_700Bold',
+        fontSize: scaledSize(16),
+        color: theme.textPrimary,
+        letterSpacing: 0.1,
     },
 });

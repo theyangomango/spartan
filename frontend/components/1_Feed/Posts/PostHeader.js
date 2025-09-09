@@ -117,8 +117,10 @@ const styles = StyleSheet.create({
     workout_text_ctnr: {
         paddingHorizontal: 10,
         paddingVertical: 4,
-        backgroundColor: '#2696ffff',
-        borderRadius: 15
+        backgroundColor: '#2D9EFF',
+        borderRadius: 15,
+        borderWidth: StyleSheet.hairlineWidth,
+        borderColor: 'rgba(255,255,255,0.28)'
     },
     date_text: {
         fontSize: scaleSize(10.5),

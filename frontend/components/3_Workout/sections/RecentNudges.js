@@ -57,7 +57,8 @@ const styles = StyleSheet.create({
             android: { elevation: 1 },
         }),
     },
-    nudgeText: { flex: 1, fontFamily: "Outfit_700Bold", color: BLUE.TITLE, fontSize: 14 },
+    // Use primary text color for readability on dark surfaces
+    nudgeText: { flex: 1, fontFamily: "Outfit_700Bold", color: theme.textPrimary, fontSize: 14 },
     nudgeAccent: { color: BLUE.ACCENT },
     nudgeTail: { color: theme.textSecondary, fontFamily: "Outfit_600SemiBold" },
 });

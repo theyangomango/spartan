@@ -160,7 +160,7 @@ function HoldRing({ progress }) {
                     cy={size / 2}
                     r={r}
                     strokeWidth={6}
-                    stroke="#4990e7ff"
+                    stroke="#2D9EFF"
                     fill="none"
                     strokeDasharray={`${c} ${c}`}
                     animatedProps={animatedProps}
@@ -269,10 +269,10 @@ function Halo({ size }) {
         >
             <Defs>
                 <RadialGradient id={id} cx="50%" cy="50%" r="50%">
-                    <Stop offset="0%" stopColor="rgba(255,255,255,0.02)" />
-                    <Stop offset="58%" stopColor="rgba(255,255,255,0.13)" />
-                    <Stop offset="80%" stopColor="rgba(255,255,255,0.22)" />
-                    <Stop offset="100%" stopColor="rgba(255,255,255,0)" />
+                    <Stop offset="0%" stopColor="rgba(45,158,255,0.06)" />
+                    <Stop offset="55%" stopColor="rgba(45,158,255,0.18)" />
+                    <Stop offset="80%" stopColor="rgba(45,158,255,0.10)" />
+                    <Stop offset="100%" stopColor="rgba(45,158,255,0)" />
                 </RadialGradient>
             </Defs>
             <Circle cx={size / 2} cy={size / 2} r={size / 2} fill={`url(#${id})`} />

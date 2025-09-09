@@ -31,7 +31,7 @@ const MacroBar = ({ label, value, goal, color, textPrimary, textSecondary, track
                 style={{
                     height: TRACK_H,
                     borderRadius: 999,
-                    backgroundColor: trackColor || '#E2E8F0',
+                    backgroundColor: '#bbdbff5d',
                     overflow: 'hidden',
                     borderWidth: 0, // avoid hairline gaps on dark backgrounds
                 }}

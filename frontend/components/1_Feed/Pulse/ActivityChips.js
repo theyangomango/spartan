@@ -238,7 +238,7 @@ function Chip({ ev, navigation, onPressChip }) {
                     ]}
                 >
                     {ev?.type === "workout" ? (
-                        <Weight size={ss(10.5)} variant="Bold" color={tint.iconColor} />
+                        <Weight size={ss(10)} variant="Bold" color={tint.iconColor} />
                     ) : (
                         <Icon name="podium" size={ss(12)} color={tint.iconColor} />
                     )}
@@ -290,17 +290,18 @@ const styles = StyleSheet.create({
         paddingLeft: ss(12),
         paddingRight: ss(10),
         borderRadius: ss(16),
-        backgroundColor: theme.surface,
+        // Slightly lighter, more neutral surface for better separation
+        backgroundColor: '#515662b6',
         borderWidth: StyleSheet.hairlineWidth,
         borderColor: theme.hairline,
         ...Platform.select({
             ios: {
                 shadowColor: "#000",
-                shadowOpacity: 0.18,
-                shadowRadius: 8,
-                shadowOffset: { width: 0, height: 4 },
+                shadowOpacity: 0.12,
+                shadowRadius: 6,
+                shadowOffset: { width: 0, height: 3 },
             },
-            android: { elevation: 3 },
+            android: { elevation: 1 },
         }),
     },
 
@@ -316,7 +317,7 @@ const styles = StyleSheet.create({
         height: AVATAR,
         borderRadius: AVATAR / 2.3,
         overflow: "hidden",
-        backgroundColor: "#1E2128",
+        backgroundColor: theme.field,
     },
     pfp: { width: "100%", height: "100%" },
     pfp_placeholder: { backgroundColor: "#2E323C" },
@@ -376,7 +377,7 @@ const styles = StyleSheet.create({
         borderRadius: ss(13),
         alignItems: "center",
         justifyContent: "center",
-        backgroundColor: "#252733",
+        backgroundColor: "rgba(255,255,255,0.08)",
         marginLeft: ss(2),
     },
 });

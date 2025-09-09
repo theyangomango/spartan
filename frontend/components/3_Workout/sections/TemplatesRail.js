@@ -142,7 +142,7 @@ const styles = StyleSheet.create({
         borderWidth: 1,
         borderColor: theme.hairline,
         ...Platform.select({
-            ios: { shadowColor: "#000", shadowOpacity: 0.18, shadowRadius: 10, shadowOffset: { width: 0, height: 6 } },
+            ios: { shadowColor: "#000", shadowOpacity: 0.12, shadowRadius: 6, shadowOffset: { width: 0, height: 3 } },
             android: { elevation: 1 },
         }),
     },
@@ -154,7 +154,7 @@ const styles = StyleSheet.create({
         backgroundColor: theme.field,
         borderWidth: StyleSheet.hairlineWidth,
         borderColor: theme.hairline,
-        ...Platform.select({ ios: { shadowColor: "#000", shadowOpacity: 0.16, shadowRadius: 6, shadowOffset: { width: 0, height: 3 } }, android: { elevation: 1 } })
+        ...Platform.select({ ios: { shadowColor: "#000", shadowOpacity: 0.12, shadowRadius: 5, shadowOffset: { width: 0, height: 2 } }, android: { elevation: 1 } })
     },
     
     left: { flexDirection: "row", alignItems: "center", gap: 10, flex: 1, minWidth: 0 },
@@ -170,7 +170,7 @@ const styles = StyleSheet.create({
         backgroundColor: theme.field,
         borderWidth: StyleSheet.hairlineWidth,
         borderColor: theme.hairline,
-        ...Platform.select({ ios: { shadowColor: "#000", shadowOpacity: 0.16, shadowRadius: 6, shadowOffset: { width: 0, height: 3 } }, android: { elevation: 1 } })
+        ...Platform.select({ ios: { shadowColor: "#000", shadowOpacity: 0.12, shadowRadius: 5, shadowOffset: { width: 0, height: 2 } }, android: { elevation: 1 } })
     },
 
     title: { fontFamily: "Outfit_700Bold", fontSize: 16, color: "#E5E7EB", includeFontPadding: false },

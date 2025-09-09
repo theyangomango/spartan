@@ -143,7 +143,7 @@ const UserLogInCredentials = ({ navigation }) => {
 const styles = StyleSheet.create({
     container: {
         flex: 1,
-        backgroundColor: '#fff',
+        backgroundColor: require('../theme/mfpDark').default.bg,
         justifyContent: 'center',
     },
     iconContainer: {
@@ -173,7 +173,7 @@ const styles = StyleSheet.create({
     title: {
         fontSize: scaleSize(15),
         fontWeight: '400',
-        color: '#000',
+        color: require('../theme/mfpDark').default.textPrimary,
         paddingLeft: scaleSize(3),
         marginBottom: scaleSize(8),
         fontFamily: 'Outfit_500Medium',
@@ -184,9 +184,9 @@ const styles = StyleSheet.create({
         paddingVertical: scaleSize(11.5),
         paddingHorizontal: scaleSize(12),
         borderRadius: scaleSize(6),
-        backgroundColor: '#f2f2f2',
+        backgroundColor: require('../theme/mfpDark').default.field,
         fontSize: scaleSize(14),
-        color: '#000',
+        color: require('../theme/mfpDark').default.textPrimary,
         fontFamily: 'Outfit_500Medium',
         marginBottom: scaleSize(20),
     },
@@ -202,7 +202,7 @@ const styles = StyleSheet.create({
         marginBottom: scaleSize(10),
     },
     button: {
-        backgroundColor: '#55A8FF',
+        backgroundColor: require('../theme/mfpDark').default.primary,
         flexDirection: 'row',
         justifyContent: 'center',
         alignItems: 'center',

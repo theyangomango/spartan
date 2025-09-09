@@ -82,9 +82,10 @@ const styles = StyleSheet.create({
         borderRadius: (SMALL_SIZE * 0.92) / 2,
         backgroundColor: 'transparent',
         borderWidth: 0,
-        shadowColor: "#FFFFFF",
-        shadowOpacity: 0.55,
-        shadowRadius: 12,
+        // Slight brand-tinted halo (less stark than white)
+        shadowColor: "#2D9EFF",
+        shadowOpacity: 0.32,
+        shadowRadius: 14,
         shadowOffset: { width: 0, height: 0 },
         elevation: 0,
     },
@@ -103,7 +104,7 @@ const styles = StyleSheet.create({
             android: { elevation: 3 },
         }),
     },
-    smallBtnPressed: { transform: [{ scale: 0.96 }], backgroundColor: '#4A505C' },
+    smallBtnPressed: { transform: [{ scale: 0.96 }], backgroundColor: '#515A6B' },
 });
 
 export default memo(StartCluster);

@@ -11,11 +11,11 @@ export default function NutritionSummaryCard({ totals, goals, COLORS }) {
             <View style={styles.row}>
                 <View style={styles.progressContainer}>
                     <AnimatedCircularProgress
-                        size={132}
+                        size={135}
                         width={11}
                         fill={progress}
-                        tintColor={'#6AB8FF'}
-                        backgroundColor={COLORS.ringTrack || COLORS.ringBg}
+                        tintColor={'#2D9EFF'}
+                        backgroundColor={'#bbdbff4f'}
                         lineCap="round"
                         arcSweepAngle={360}
                         rotation={0}
@@ -46,7 +46,7 @@ const makeStyles = (COLORS) =>
         card: {
             backgroundColor: COLORS.card,
             borderRadius: 0,
-            paddingTop: 18,
+            paddingTop: 10,
             paddingBottom: 10,
             paddingLeft: 26,
             paddingRight: 26,
@@ -58,8 +58,9 @@ const makeStyles = (COLORS) =>
             shadowOpacity: 0,
             elevation: 0,
         },
-        row: { flexDirection: 'row', gap: 18 },
-        progressContainer: { paddingRight: 6 },
+        row: { flexDirection: 'row', gap: 18, alignItems: 'center' },
+        // Center the ring vertically alongside the macro bars
+        progressContainer: { paddingRight: 6, justifyContent: 'center', alignItems: 'center' },
         center: { alignItems: 'center', justifyContent: 'center', marginTop: 2 },
         value: { fontSize: 23, color: COLORS.text, fontFamily: 'Nunito_800ExtraBold', marginBottom: -1.5 },
         subtitle: { fontSize: 12, color: COLORS.subtext, fontFamily: 'Nunito_700Bold', marginBottom: 4 },

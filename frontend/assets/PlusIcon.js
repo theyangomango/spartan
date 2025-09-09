@@ -1,7 +1,8 @@
 import React from 'react';
 import Svg, { Path } from 'react-native-svg';
 
-const PlusIcon = ({ size = 24, color = '#000000ff' }) => (
+// Allows overriding stroke width so specific usages can appear thicker
+const PlusIcon = ({ size = 24, color = '#000000ff', strokeWidth = 1.9 }) => (
     <Svg
         width={size}
         height={size}
@@ -11,7 +12,7 @@ const PlusIcon = ({ size = 24, color = '#000000ff' }) => (
         <Path
             d="M6 12h12M12 18V6"
             stroke={color}
-            strokeWidth={1.9}
+            strokeWidth={strokeWidth}
             strokeLinecap="round"
             strokeLinejoin="round"
         />

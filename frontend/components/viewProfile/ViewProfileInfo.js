@@ -121,8 +121,9 @@ const styles = StyleSheet.create({
     },
     bio_ctnr: {},
     bio_text: {
-        fontFamily: 'Outfit_600SemiBold',
-        fontSize: scaleSize(15),
-        color: theme.textSecondary,
+        fontFamily: 'Outfit_700Bold',
+        fontSize: scaleSize(16),
+        color: theme.textPrimary,
+        letterSpacing: 0.1,
     },
 });

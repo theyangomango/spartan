@@ -359,7 +359,7 @@ const styles = StyleSheet.create({
     groupOther: { borderBottomLeftRadius: 7 },
 
     text: { fontSize: 14, lineHeight: 19, letterSpacing: 0.1, fontFamily: "Outfit_500Medium" },
-    textSelf: { color: theme.textPrimary },
+    textSelf: { color: '#FFFFFF' },
     textOther: { color: theme.textPrimary },
 
     mediaWrap: { flexDirection: "row", flexWrap: "wrap", gap: 6, marginTop: 6 },
@@ -401,10 +401,10 @@ const styles = StyleSheet.create({
         borderWidth: 1,
         borderColor: theme.hairline,
         shadowColor: "#000",
-        shadowOpacity: 0.2,
-        shadowRadius: 8,
+        shadowOpacity: 0.14,
+        shadowRadius: 6,
         shadowOffset: { width: 0, height: 3 },
-        elevation: 2,
+        elevation: 1,
         zIndex: 5,
     },
     reactionLeft: { left: -12 },

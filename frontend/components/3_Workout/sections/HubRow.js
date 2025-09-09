@@ -65,8 +65,8 @@ function HubRowCmp({
                             size={ss(132)}
                             width={11}
                             fill={safeFill}
-                            tintColor="rgba(66, 149, 232, 1)"
-                            backgroundColor="#d9d9d9ff"
+                            tintColor="#2D9EFF"
+                            backgroundColor="#C6CFDC"
                             lineCap="round"
                             arcSweepAngle={360}
                             rotation={0}
@@ -137,7 +137,8 @@ const styles = StyleSheet.create({
         borderWidth: StyleSheet.hairlineWidth,
         borderColor: theme.hairline,
         ...Platform.select({
-            ios: { shadowColor: "#000", shadowOpacity: 0.25, shadowRadius: 8, shadowOffset: { width: 0, height: 5 } },
+            // Tone down card drop shadow for a flatter look
+            ios: { shadowColor: "#000", shadowOpacity: 0.16, shadowRadius: 6, shadowOffset: { width: 0, height: 3 } },
             android: { elevation: 1 },
         }),
     },
@@ -146,8 +147,8 @@ const styles = StyleSheet.create({
         backgroundColor: "#232932",
         borderColor: "rgba(255,255,255,0.16)",
         ...Platform.select({
-            ios: { shadowOpacity: 0.2, shadowRadius: 10, shadowOffset: { width: 0, height: 5 } },
-            android: { elevation: 2 },
+            ios: { shadowOpacity: 0.14, shadowRadius: 8, shadowOffset: { width: 0, height: 3 } },
+            android: { elevation: 1 },
         }),
     },
 

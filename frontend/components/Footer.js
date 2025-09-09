@@ -164,9 +164,9 @@ const styles = StyleSheet.create({
 
         shadowColor: '#000',
         shadowOffset: { width: 0, height: -2 },
-        shadowOpacity: 0.4,
-        shadowRadius: 8,
-        elevation: 8,
+        shadowOpacity: 0.22,
+        shadowRadius: 6,
+        elevation: 4,
     },
     icon_ctnr: { flex: 1, alignItems: 'center', padding: 10 },
     workout_icon_ctnr: { flex: 1, alignItems: 'center', paddingHorizontal: 10, paddingVertical: 8.2 },

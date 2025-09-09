@@ -52,7 +52,7 @@ const LeaderboardBottomSheet = ({
             snapPoints={snapPoints}
             onChange={handleSheetChanges}
             handleStyle={{ display: "none" }}
-            backgroundStyle={{ backgroundColor: require("../../theme/mfpDark").default.bg, borderTopLeftRadius: 25, borderTopRightRadius: 25 }}
+            backgroundStyle={{ backgroundColor: require("../../theme/mfpDark").default.surface, borderTopLeftRadius: 25, borderTopRightRadius: 25 }}
             enablePanDownToClose={false}
         >
             {blockedMessage ? (

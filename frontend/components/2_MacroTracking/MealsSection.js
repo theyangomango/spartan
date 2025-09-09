@@ -32,7 +32,11 @@ function MealsSection({ title = 'Daily meals', mealsMeta, meals, collapsed, togg
                         />
                         <TouchableOpacity activeOpacity={0.7} style={styles.addFoodRow} onPress={() => onAddPress?.(m)}>
                             {PlusIcon ? (
-                                <PlusIcon size={16} color={COLORS.ringTint || COLORS.accent || '#2D9EFF'} />
+                                <PlusIcon
+                                    size={18}
+                                    strokeWidth={2.4}
+                                    color={COLORS.ringTint || COLORS.accent || '#2D9EFF'}
+                                />
                             ) : null}
                             <Text style={styles.addFoodText}>Add Food</Text>
                         </TouchableOpacity>
@@ -85,7 +89,7 @@ const makeStyles = (COLORS) =>
             justifyContent: 'flex-end',
         },
         addFoodText: {
-            color: '#rgba(102, 176, 255, 1)',
+            color: 'rgba(102, 176, 255, 1)',
             fontFamily: 'Outfit_700Bold',
             fontSize: 12.5,
             textTransform: 'uppercase',

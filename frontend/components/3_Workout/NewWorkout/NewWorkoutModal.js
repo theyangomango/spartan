@@ -920,7 +920,7 @@ const styles = StyleSheet.create({
 
     finishModalContainer: { width: "100%", padding: scaledSize(20), backgroundColor: theme.surface, borderRadius: scaledSize(16), alignItems: "center" },
     finishTitle: { fontSize: scaledSize(18), color: theme.textPrimary, fontFamily: "Outfit_700Bold", textAlign: "center", marginBottom: scaledSize(16) },
-    finishBtn: { width: "100%", paddingVertical: scaledSize(10), backgroundColor: "#40D99B", borderRadius: scaledSize(10), alignItems: "center", marginBottom: scaledSize(10) },
+    finishBtn: { width: "100%", paddingVertical: scaledSize(10), backgroundColor: theme.success, borderRadius: scaledSize(10), alignItems: "center", marginBottom: scaledSize(10) },
     finishBtnText: { color: "#fff", fontSize: scaledSize(14.5), fontFamily: "Outfit_700Bold" },
     finishBtnDisabled: { opacity: 0.6 },
     keepEditingBtn: { width: "100%", paddingVertical: scaledSize(10), backgroundColor: theme.field, borderRadius: scaledSize(10), alignItems: "center" },

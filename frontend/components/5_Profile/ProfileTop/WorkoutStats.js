@@ -64,9 +64,10 @@ const styles = StyleSheet.create({
     total_volume_stat_ctnr: { backgroundColor: 'rgba(61,197,117,0.28)' },  // matches #3DC575
     gym_time_stat_ctnr: { backgroundColor: 'rgba(233,80,96,0.28)' },       // matches #E95060
     workout_stat_text: {
-        fontFamily: 'Poppins_500Medium',
-        fontSize: scaledSize(10.5),
-        color: '#C5CCD6',
+        fontFamily: 'Poppins_600SemiBold',
+        fontSize: scaledSize(11.5),
+        color: theme.textPrimary,
+        letterSpacing: 0.15,
     },
     workout_stat_number: {
         fontFamily: 'Outfit_600SemiBold',

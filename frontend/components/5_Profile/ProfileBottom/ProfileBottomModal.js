@@ -64,7 +64,7 @@ import theme from "../../../theme/mfpDark";
 const styles = StyleSheet.create({
     container: {
         flex: 1,
-        backgroundColor: theme.bg,
+        backgroundColor: theme.surface,
     },
     panel_border: {
         borderColor: theme.hairline,

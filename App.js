@@ -40,6 +40,8 @@ import Settings from './frontend/screens/Settings';
 import PrivacyPolicy from './frontend/screens/PrivacyPolicy';
 import TermsOfService from './frontend/screens/TermsOfService';
 import PrivateProfileInfo from './frontend/screens/PrivateProfileInfo';
+// Dark theme palette
+import theme from './frontend/theme/mfpDark';
 
 const NativeStack = createNativeStackNavigator();
 
@@ -522,13 +524,13 @@ export default function App() {
                 <Pressable style={restStyles.overlay} onPress={() => setRestReminderVisible(false)}>
                     <View style={restStyles.card}>
                         <View style={restStyles.iconRow}>
-                            <View style={restStyles.iconCircle}><Ionicons name="timer-outline" size={rs(26)} color="#0369A1" /></View>
+                            <View style={restStyles.iconCircle}><Ionicons name="timer-outline" size={rs(26)} color={theme.accentBlue} /></View>
                         </View>
                         <Text style={restStyles.title}>Rest Complete</Text>
                         <Text style={restStyles.body}>Time to crush your next set 🥱</Text>
                         <View style={restStyles.row}>
                             <Pressable style={[restStyles.btn, restStyles.secondary]} onPress={() => setRestReminderVisible(false)}>
-                                <Ionicons name="close" size={rs(16)} color="#0F172A" style={{ marginRight: rs(6) }} />
+                                <Ionicons name="close" size={rs(16)} color={theme.textPrimary} style={{ marginRight: rs(6) }} />
                                 <Text style={[restStyles.btnText, restStyles.secondaryText]}>Dismiss</Text>
                             </Pressable>
                             <Pressable style={[restStyles.btn, restStyles.primary]} onPress={handleOpenWorkoutFromReminder}>
@@ -546,24 +548,51 @@ export default function App() {
 const restScale = Dimensions.get('window').height / 844;
 const rs = (n) => Math.round(n * restScale);
 const restStyles = StyleSheet.create({
-    overlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.35)', alignItems: 'center', justifyContent: 'center', paddingHorizontal: rs(18) },
-    card: {
-        width: '90%', maxWidth: 380,
-        backgroundColor: '#fff', borderRadius: rs(18), paddingVertical: rs(16), paddingHorizontal: rs(16),
+    overlay: {
+        flex: 1,
+        backgroundColor: 'rgba(0,0,0,0.55)',
         alignItems: 'center',
-        shadowColor: '#000', shadowOpacity: 0.12, shadowRadius: rs(18), shadowOffset: { width: 0, height: rs(10) },
-        elevation: 6,
-        borderWidth: StyleSheet.hairlineWidth, borderColor: 'rgba(2,6,23,0.06)'
+        justifyContent: 'center',
+        paddingHorizontal: rs(18),
+    },
+    card: {
+        width: '90%',
+        maxWidth: 380,
+        backgroundColor: theme.surface,
+        borderRadius: rs(18),
+        paddingVertical: rs(16),
+        paddingHorizontal: rs(16),
+        alignItems: 'center',
+        // Softer shadow on dark surfaces
+        ...Platform.select({
+            ios: { shadowColor: '#000', shadowOpacity: 0.25, shadowRadius: rs(14), shadowOffset: { width: 0, height: rs(8) } },
+            android: { elevation: 8 },
+            default: {},
+        }),
+        borderWidth: StyleSheet.hairlineWidth,
+        borderColor: theme.hairline,
     },
     iconRow: { marginBottom: rs(8) },
-    iconCircle: { width: rs(46), height: rs(46), borderRadius: rs(23), backgroundColor: '#EAF3FF', alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: 'rgba(4,153,254,0.25)' },
-    title: { fontFamily: 'Outfit_800ExtraBold', fontSize: rs(18), color: '#0F172A', marginTop: rs(10) },
-    body: { marginTop: rs(6), fontFamily: 'Outfit_600SemiBold', fontSize: rs(13), color: 'rgba(15,23,42,0.72)', textAlign: 'center' },
+    iconCircle: {
+        width: rs(46),
+        height: rs(46),
+        borderRadius: rs(23),
+        backgroundColor: 'rgba(45,158,255,0.12)', // theme.primary @ 12%
+        alignItems: 'center',
+        justifyContent: 'center',
+        borderWidth: 1,
+        borderColor: 'rgba(45,158,255,0.45)',
+    },
+    title: { fontFamily: 'Outfit_800ExtraBold', fontSize: rs(18), color: theme.textPrimary, marginTop: rs(10) },
+    body: { marginTop: rs(6), fontFamily: 'Outfit_600SemiBold', fontSize: rs(13), color: theme.textSecondary, textAlign: 'center' },
     row: { flexDirection: 'row', marginTop: rs(16), width: '100%', gap: rs(8) },
     btn: { flex: 1, paddingVertical: rs(11), borderRadius: rs(12), alignItems: 'center', justifyContent: 'center', flexDirection: 'row' },
-    primary: { backgroundColor: '#0499FE', shadowColor: '#0499FE', shadowOpacity: 0.25, shadowRadius: rs(10), shadowOffset: { width: 0, height: rs(4) } },
+    primary: {
+        backgroundColor: theme.primary,
+        ...Platform.select({ ios: { shadowColor: theme.primary, shadowOpacity: 0.28, shadowRadius: rs(10), shadowOffset: { width: 0, height: rs(4) } }, android: { elevation: 3 }, default: {} }),
+    },
     primaryText: { color: '#fff' },
-    secondary: { backgroundColor: '#F1F5F9', borderWidth: 1, borderColor: 'rgba(2,6,23,0.06)' },
-    secondaryText: { color: '#0F172A' },
+    secondary: { backgroundColor: theme.field, borderWidth: 1, borderColor: theme.hairline },
+    secondaryText: { color: theme.textPrimary },
     btnText: { fontFamily: 'Outfit_700Bold', fontSize: rs(14) },
 });

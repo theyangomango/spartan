@@ -341,10 +341,11 @@ const styles = StyleSheet.create({
         overflow: "hidden",
         ...Platform.select({
             ios: {
+                // Softer card shadow to reduce visual weight
                 shadowColor: "#000",
-                shadowOpacity: 0.25,
-                shadowRadius: 8,
-                shadowOffset: { width: 0, height: 5 },
+                shadowOpacity: 0.16,
+                shadowRadius: 6,
+                shadowOffset: { width: 0, height: 3 },
             },
             android: { elevation: 1 },
         }),
@@ -358,14 +359,14 @@ const styles = StyleSheet.create({
         paddingHorizontal: 4,
     },
 
-    calCaption: { color: "#e7edf6ff", fontSize: 12, fontFamily: "Outfit_700Bold" },
+    calCaption: { color: "#ECF2FA", fontSize: 12, fontFamily: "Outfit_700Bold" },
 
     // Jump to Today pill
     jumpLinkTouch: {
         paddingHorizontal: 10,
         paddingVertical: 6,
         borderRadius: 999,
-        backgroundColor: '#3c7fd1d1',
+        backgroundColor: 'rgba(45,158,255,0.20)',
         borderWidth: StyleSheet.hairlineWidth,
         borderColor: theme.hairline,
     },
@@ -378,7 +379,7 @@ const styles = StyleSheet.create({
 
     // Bottom workout bar
     bottomBar: { position: "absolute", bottom: 2, height: 6, borderRadius: 3 },
-    bottomBarOn: { backgroundColor: "#57b1ffff" },
+    bottomBarOn: { backgroundColor: "#2D9EFF" },
     bottomBarOff: { backgroundColor: "#ebebebff" },
 
     centerPill: {
@@ -392,18 +393,18 @@ const styles = StyleSheet.create({
     },
     centerPillToday: {
         // Make today's cell more apparent with a subtle blue tint
-        backgroundColor: 'rgba(45,158,255,0.14)', // tinted background
+        backgroundColor: 'rgba(45,158,255,0.16)', // slightly brighter tint
         borderWidth: 1.75,
         borderColor: theme.primary,
         ...Platform.select({
             ios: {
                 shadowColor: '#2D9EFF',
-                shadowOpacity: 0.28,
-                shadowRadius: 6,
+                shadowOpacity: 0.22,
+                shadowRadius: 5,
                 shadowOffset: { width: 0, height: 2 },
             },
             android: {
-                elevation: 2,
+                elevation: 1,
             },
         }),
     },

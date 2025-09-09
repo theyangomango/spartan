@@ -30,7 +30,7 @@ if (Platform.OS === 'android' && UIManager.setLayoutAnimationEnabledExperimental
     UIManager.setLayoutAnimationEnabledExperimental(true);
 }
 
-// Neutral dark palette hooked to theme (MFP-like greys)
+// Unified dark palette (match other screens). Reduce contrast vs. bg.
 const COLORS = {
     bg: theme.bg,
     card: theme.surface,
@@ -39,16 +39,16 @@ const COLORS = {
     hairline: theme.hairline,
     ringTint: theme.primary,
     ringBg: theme.ringBg,
-    ringTrack: '#C6CFDC',
+    ringTrack: theme.ringBg,
     chipBg: theme.surface,
-    addBtnBg: theme.field,
-    fieldBg: theme.field,
+    addBtnBg: theme.surface,
+    fieldBg: theme.surface,
     accentBlue: theme.primary,
     accent: theme.primary,
-    // Higher-contrast macro colors for dark theme
-    protein: '#6c98fcff',   // vivid indigo-blue
-    carbs: '#ff7cb5ff',     // saturated pink
-    fat: '#FFC874',       // warm amber
+    // Macro colors
+    protein: '#6c98fcff',
+    carbs: '#ff7cb5ff',
+    fat: '#FFC874',
     shadow: '#000',
     modalCard: theme.surface,
 };
