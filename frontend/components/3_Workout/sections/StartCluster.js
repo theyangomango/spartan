@@ -74,18 +74,18 @@ const styles = StyleSheet.create({
         marginBottom: 10,
     },
     glowWrap: { position: "relative", alignItems: "center", justifyContent: "center" },
+    // layered halos removed – single soft glow only
     glow: {
         position: "absolute",
-        width: SMALL_SIZE + 8,
-        height: SMALL_SIZE + 8,
+        width: SMALL_SIZE + 5,
+        height: SMALL_SIZE + 5,
         borderRadius: (SMALL_SIZE + 8) / 2,
-        backgroundColor: "#2D9EFF1F", // stronger soft fill
-        borderWidth: 1,
-        borderColor: "#2D9EFF55",
-        shadowColor: "#2D9EFF",
-        shadowOpacity: 0.34,
-        shadowRadius: 10,
-        shadowOffset: { width: 0, height: 4 },
+        backgroundColor: "rgba(255,255,255,0.6)", // brighter white
+        borderWidth: 0,
+        shadowColor: "#FFFFFF",
+        shadowOpacity: 0.55,
+        shadowRadius: 14,
+        shadowOffset: { width: 0, height: 0 },
         elevation: 0,
     },
     glowLeft: {},
@@ -104,7 +104,7 @@ const styles = StyleSheet.create({
             android: { elevation: 3 },
         }),
     },
-    smallBtnPressed: { transform: [{ scale: 0.96 }], backgroundColor: '#444E63' },
+    smallBtnPressed: { transform: [{ scale: 0.96 }], backgroundColor: '#4A505C' },
 });
 
 export default memo(StartCluster);

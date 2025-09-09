@@ -87,7 +87,7 @@ const EditProfileModal = ({ setPFP }) => {
 const styles = StyleSheet.create({
     mainContainer: {
         flex: 1,
-        backgroundColor: '#2E3445',
+        backgroundColor: require("../../../theme/mfpDark").default.surface,
     },
     scrollContainer: {
         alignItems: 'center',
@@ -102,17 +102,17 @@ const styles = StyleSheet.create({
         paddingLeft: scaleSize(20),
         width: '100%',
         paddingVertical: scaleSize(12),
-        backgroundColor: '#2A3142'
+        backgroundColor: require("../../../theme/mfpDark").default.field
     },
     inputContainer: {
         flexDirection: 'row',
         alignItems: 'center',
         paddingHorizontal: scaleSize(20),
-        backgroundColor: '#2E3445',
+        backgroundColor: require("../../../theme/mfpDark").default.surface,
         marginVertical: 0,
         paddingVertical: scaleSize(12.5),
         borderBottomWidth: scaleSize(1),
-        borderBottomColor: '#3C4250',
+        borderBottomColor: require("../../../theme/mfpDark").default.hairline,
     },
     label: {
         fontSize: scaleSize(14),

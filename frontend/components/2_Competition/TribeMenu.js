@@ -134,7 +134,7 @@ const styles = StyleSheet.create({
     },
     menuCard: {
         width: MENU_WIDTH,
-        backgroundColor: "#2E3445",
+        backgroundColor: require("../../theme/mfpDark").default.surface,
         borderRadius: MENU_RADIUS,
         paddingVertical: MENU_PAD_V,
         paddingHorizontal: MENU_PAD_H,

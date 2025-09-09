@@ -17,7 +17,7 @@ import theme from "../../../theme/mfpDark";
  *  - onStart: () => void
  *  - holdMs?: number (default 650)
  */
-export default function StartOpenButton({ hasActiveWorkout, onOpen, onStart, holdMs = 550 }) {
+export default function  StartOpenButton({ hasActiveWorkout, onOpen, onStart, holdMs = 550 }) {
     /* ------------- Long-press ring (START state) ------------- */
     // Reanimated progress on the UI thread to avoid JS jank
     const progress = useSharedValue(0);      // 0..1
@@ -93,8 +93,10 @@ export default function StartOpenButton({ hasActiveWorkout, onOpen, onStart, hol
 
     return (
         <View style={styles.wrap}>
-            {/* Subtle accent ring to lift the central control */}
-            <View style={styles.accentRing} />
+            {/* Single soft halo (smaller radius, brighter) */}
+            <View pointerEvents="none" style={styles.haloWrap}>
+                <View style={styles.haloSoft} />
+            </View>
             {/* Contrast disc behind the black button for dark theme */}
             <View style={styles.backDisc} />
             <Pressable
@@ -191,15 +193,7 @@ const styles = StyleSheet.create({
         }),
     },
 
-    // Faint outer accent ring to bring the control forward
-    accentRing: {
-        position: "absolute",
-        width: BTN_SIZE * 1.20,
-        height: BTN_SIZE * 1.20,
-        borderRadius: 9999,
-        borderWidth: 1,
-        borderColor: "#2D9EFF66",
-    },
+    // Accent ring removed to avoid onion layering
     // Core black button (minimal)
     startBtn: {
         width: BTN_SIZE,
@@ -210,7 +204,7 @@ const styles = StyleSheet.create({
         justifyContent: "center",
         backgroundColor: "#0A0A0A",
         borderWidth: 4,
-        borderColor: "#1E2732",
+        borderColor: "#2A3038",
         ...Platform.select({
             ios: { shadowColor: "#000", shadowOpacity: 0.22, shadowRadius: 18, shadowOffset: { width: 0, height: 12 } },
             android: { elevation: 8 },
@@ -244,6 +238,23 @@ const styles = StyleSheet.create({
         justifyContent: "center",
     },
 
+    // Multi-ring glow
+    haloWrap: {
+        position: "absolute",
+        alignItems: "center",
+        justifyContent: "center",
+    },
+    haloSoft: {
+        position: "absolute",
+        width: BTN_SIZE * 1.2,
+        height: BTN_SIZE * 1.2,
+        borderRadius: 9999,
+        backgroundColor: "rgba(255,255,255,0.6)",
+        ...Platform.select({
+            ios: { shadowColor: "#FFFFFF", shadowOpacity: 0.6, shadowRadius: 22, shadowOffset: { width: 0, height: 0 } },
+            android: { elevation: 0 },
+        }),
+    },
     
 });
 

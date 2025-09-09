@@ -11,7 +11,7 @@ const COLORS = {
     inactive: '#95A0B0',
     workoutActive: '#60A5FA',
     // Halo when workout active
-    workoutHalo: '#1E2A3C',
+    workoutHalo: '#2F3540',
     workoutHaloBorder: theme.primary,
     bg: theme.bg,
     hairline: theme.hairline,

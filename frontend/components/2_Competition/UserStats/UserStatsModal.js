@@ -14,17 +14,18 @@ const { height: screenHeight } = Dimensions.get("window");
 const scale = screenHeight / 844; // iPhone 13 baseline
 const scaledSize = (n) => Math.round(n * scale);
 
-// Theme (dark mode for Competition context)
+// Theme (dark mode for Competition context) — hook to global theme
+const THEME = require("../../../theme/mfpDark").default;
 const COLORS = {
-    bg: "#2E3445",         // lighter sheet/card background
-    card: "#2E3445",       // cards within the sheet
-    text: "#EAEAEA",       // primary text
-    subtext: "#AEB5C0",    // secondary text
-    accent: "#2D9EFF",
-    hairline: "rgba(255,255,255,0.12)",
-    iconBg: "#343D54",     // lighter icon wells
-    statBg: "#343D54",     // lighter stat tiles
-    statBorder: "rgba(255,255,255,0.08)",
+    bg: THEME.surface,         // sheet/card background
+    card: THEME.surface,       // cards within the sheet
+    text: THEME.textPrimary,   // primary text
+    subtext: THEME.textSecondary,
+    accent: THEME.primary,
+    hairline: THEME.hairline,
+    iconBg: THEME.field,       // icon wells
+    statBg: THEME.field,       // stat tiles
+    statBorder: THEME.hairline,
 };
 
 // ---------- helpers ----------

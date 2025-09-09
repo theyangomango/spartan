@@ -3,14 +3,14 @@
 
 const MFP_DARK = {
     // Surfaces (MyFitnessPal-like)
-    // Desaturated blue‑slate. Increase contrast between bg and cards.
-    bg: '#2a2e36ff',          // darker background
-    surface: '#3A4257',     // lighter cards/surfaces
-    card: '#3A4257',        // alias for surface
-    field: '#2A3142',       // inputs and subtle chips (mid between bg and surface)
+    // Neutral slate greys (less blue, MFP-like)
+    bg: '#343B49',          // slight lift in background
+    surface: '#444b5aff',     // slightly lighter cards/surfaces for contrast
+    card: '#444b5aff',        // alias for surface
+    field: '#545E6D',       // inputs and subtle chips
 
     // Lines & shadows
-    hairline: 'rgba(255,255,255,0.14)',
+    hairline: 'rgba(255,255,255,0.22)',
 
     // Text
     textPrimary: '#EAEFF6',
@@ -25,9 +25,9 @@ const MFP_DARK = {
 
     // Misc UI tints
     muted: '#8B95A5',
-    ringBg: '#424C5E',      // progress tracks
-    chipBg: '#3F4A5D',
-    addBtnBg: '#274569',    // blue-tinted pill backgrounds
+    ringBg: '#646D7C',      // progress tracks (neutral, slightly lighter)
+    chipBg: '#687282',
+    addBtnBg: '#636E7F',    // neutral pill backgrounds (lighter)
 };
 
 export default MFP_DARK;

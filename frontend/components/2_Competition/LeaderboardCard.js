@@ -170,7 +170,7 @@ const styles = StyleSheet.create({
         paddingRight: 14,
         marginBottom: 12.5,
         // Match bottom sheet surface for a unified look
-        backgroundColor: '#3A4257',
+        backgroundColor: require("../../theme/mfpDark").default.surface,
     },
     self_card_ctnr: {
         borderRadius: 20,
@@ -180,7 +180,7 @@ const styles = StyleSheet.create({
         paddingRight: 14,
         borderWidth: 2.5,
         borderColor: '#57B2FF',
-        backgroundColor: '#3A4257',
+        backgroundColor: require("../../theme/mfpDark").default.surface,
     },
     card_left: {
         flexDirection: 'row',

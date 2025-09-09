@@ -68,7 +68,7 @@ const styles = StyleSheet.create({
         aspectRatio: 1,
         alignItems: 'center',
         justifyContent: 'center',
-        borderColor: '#3C4250',
+        borderColor: require('../../../theme/mfpDark').default.hairline,
     },
     leftBtn: { paddingTop: scaledSize(1), paddingRight: scaledSize(6) },
 });

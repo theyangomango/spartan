@@ -721,12 +721,12 @@ export default function Competition({ navigation }) {
                 onClose={() => setPersonalSheetIndex(-1)}
                 onSave={async () => { await savePersonalInfo(); setPersonalSheetIndex(-1); }}
                 COLORS={{
-                    text: '#EAEAEA',
-                    subtext: '#AEB5C0',
-                    card: '#252733',
-                    hairline: 'rgba(255,255,255,0.08)',
-                    accentBlue: '#6FB8FF',
-                    fieldBg: '#1E232C',
+                    text: theme.textPrimary,
+                    subtext: theme.textSecondary,
+                    card: theme.surface,
+                    hairline: theme.hairline,
+                    accentBlue: theme.primary,
+                    fieldBg: theme.field,
                 }}
             />
         </View>

@@ -142,8 +142,8 @@ const styles = StyleSheet.create({
         borderWidth: 1,
         borderColor: theme.hairline,
         ...Platform.select({
-            ios: { shadowColor: "#000", shadowOpacity: 0.38, shadowRadius: 16, shadowOffset: { width: 0, height: 10 } },
-            android: { elevation: 3 },
+            ios: { shadowColor: "#000", shadowOpacity: 0.18, shadowRadius: 10, shadowOffset: { width: 0, height: 6 } },
+            android: { elevation: 1 },
         }),
     },
     railPressed: { transform: [{ scale: 0.99 }] },
@@ -151,10 +151,10 @@ const styles = StyleSheet.create({
     railEmpty: { backgroundColor: theme.surface, borderStyle: "dashed", borderColor: theme.hairline },
     railSaved: { backgroundColor: theme.surface, borderColor: theme.hairline },
     dumbbellSaved: {
-        backgroundColor: '#3C4557',
+        backgroundColor: theme.field,
         borderWidth: StyleSheet.hairlineWidth,
         borderColor: theme.hairline,
-        ...Platform.select({ ios: { shadowColor: "#000", shadowOpacity: 0.28, shadowRadius: 8, shadowOffset: { width: 0, height: 3 } }, android: { elevation: 2 } })
+        ...Platform.select({ ios: { shadowColor: "#000", shadowOpacity: 0.16, shadowRadius: 6, shadowOffset: { width: 0, height: 3 } }, android: { elevation: 1 } })
     },
     
     left: { flexDirection: "row", alignItems: "center", gap: 10, flex: 1, minWidth: 0 },
@@ -167,10 +167,10 @@ const styles = StyleSheet.create({
         justifyContent: "center",
     },
     dumbbellEmpty: {
-        backgroundColor: '#3C4557',
+        backgroundColor: theme.field,
         borderWidth: StyleSheet.hairlineWidth,
         borderColor: theme.hairline,
-        ...Platform.select({ ios: { shadowColor: "#000", shadowOpacity: 0.28, shadowRadius: 8, shadowOffset: { width: 0, height: 3 } }, android: { elevation: 2 } })
+        ...Platform.select({ ios: { shadowColor: "#000", shadowOpacity: 0.16, shadowRadius: 6, shadowOffset: { width: 0, height: 3 } }, android: { elevation: 1 } })
     },
 
     title: { fontFamily: "Outfit_700Bold", fontSize: 16, color: "#E5E7EB", includeFontPadding: false },

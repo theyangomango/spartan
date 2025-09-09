@@ -64,10 +64,10 @@ import theme from "../../../theme/mfpDark";
 const styles = StyleSheet.create({
     container: {
         flex: 1,
-        backgroundColor: '#2E3445',
+        backgroundColor: theme.bg,
     },
     panel_border: {
-        borderColor: '#82bbed',
+        borderColor: theme.hairline,
         borderBottomWidth: scaledSize(1.5),
         paddingTop: scaledSize(8),
         marginHorizontal: scaledSize(16)

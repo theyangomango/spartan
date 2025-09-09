@@ -65,8 +65,8 @@ function HubRowCmp({
                             size={ss(132)}
                             width={11}
                             fill={safeFill}
-                            tintColor="#6FB8FF"
-                            backgroundColor="rgba(118, 122, 137, 1)"
+                            tintColor="rgba(66, 149, 232, 1)"
+                            backgroundColor="#d9d9d9ff"
                             lineCap="round"
                             arcSweepAngle={360}
                             rotation={0}
@@ -143,7 +143,7 @@ const styles = StyleSheet.create({
     },
     cardPressed: {
         transform: [{ scale: 0.985 }],
-        backgroundColor: "#1A2130",
+        backgroundColor: "#232932",
         borderColor: "rgba(255,255,255,0.16)",
         ...Platform.select({
             ios: { shadowOpacity: 0.2, shadowRadius: 10, shadowOffset: { width: 0, height: 5 } },
@@ -154,11 +154,11 @@ const styles = StyleSheet.create({
     headerRow: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", marginBottom: 12 },
     headerRowStart: { justifyContent: "flex-start", gap: 6 },
 
-    macrosCaption: { color: "#e7edf6ff", fontSize: 12, fontFamily: "Outfit_700Bold" },
-    podiumCaption: { color: "#e7edf6ff", fontSize: 12, fontFamily: "Outfit_700Bold" },
+    macrosCaption: { color: "#ffffffff", fontSize: 12, fontFamily: "Outfit_700Bold" },
+    podiumCaption: { color: "#ffffffff", fontSize: 12, fontFamily: "Outfit_700Bold" },
     podiumCaptionClamp: { flex: 1, marginRight: 8, maxWidth: '85%' },
-    chevronRight: { color: "#e7edf6ff", fontSize: 18, lineHeight: 18, includeFontPadding: false },
-    chevronLeft: { color: "#e7edf6ff", fontSize: 18, lineHeight: 18, includeFontPadding: false },
+    chevronRight: { color: "#ffffffff", fontSize: 18, lineHeight: 18, includeFontPadding: false },
+    chevronLeft: { color: "#ffffffff", fontSize: 18, lineHeight: 18, includeFontPadding: false },
 
     ringWrap: { alignItems: "center", justifyContent: "center", marginTop: scaleSize(5) },
     ringCenter: { alignItems: "center", justifyContent: "center", marginTop: 2 },

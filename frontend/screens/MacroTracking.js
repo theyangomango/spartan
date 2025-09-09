@@ -30,24 +30,25 @@ if (Platform.OS === 'android' && UIManager.setLayoutAnimationEnabledExperimental
     UIManager.setLayoutAnimationEnabledExperimental(true);
 }
 
+// Neutral dark palette hooked to theme (MFP-like greys)
 const COLORS = {
-    // Lighter dark theme
     bg: theme.bg,
-    card: theme.card,
+    card: theme.surface,
     text: theme.textPrimary,
     subtext: theme.textSecondary,
     hairline: theme.hairline,
     ringTint: theme.primary,
     ringBg: theme.ringBg,
-    chipBg: theme.chipBg,
-    addBtnBg: theme.addBtnBg,
+    chipBg: theme.surface,
+    addBtnBg: theme.field,
     fieldBg: theme.field,
-    accentBlue: theme.accentBlue,
-    accent: '#64aaf6ff',
+    accentBlue: theme.primary,
+    accent: theme.primary,
     protein: '#A5B4FC',
     carbs: '#F9A8D4',
     fat: '#FCD5A5',
     shadow: '#000',
+    modalCard: theme.surface,
 };
 
 const mealsMeta = [
@@ -307,7 +308,7 @@ export default function MacroTracking({ navigation, route }) {
     return (
         <GestureHandlerRootView style={{ flex: 1 }}>
             <View style={{ flex: 1 }}>
-                <StatusBar barStyle="light-content" backgroundColor={theme.bg} />
+                <StatusBar barStyle="light-content" backgroundColor={COLORS.bg} />
                 {/* Header */}
                 <DateHeader title={formatDate(focusedDate)} onPrev={() => shiftDate(-1)} onNext={() => shiftDate(1)} COLORS={COLORS} />
 
@@ -325,9 +326,9 @@ export default function MacroTracking({ navigation, route }) {
                             style={styles.editGoalsPill}
                             onPress={openGoalsSheet}
                             hitSlop={8}
-                            android_ripple={{ color: '#2D9EFF33', borderless: false }}
+                            android_ripple={{ color: 'rgba(255,255,255,0.08)', borderless: false }}
                         >
-                            <Ionicons name="settings-outline" size={15} color={'#6FB8FF'} />
+                            <Ionicons name="settings-outline" size={15} color={COLORS.text} />
                             <Text style={styles.editGoalsText}>Edit Goals</Text>
                         </Pressable>
                     </View>
@@ -406,12 +407,12 @@ const styles = StyleSheet.create({
         flexDirection: 'row',
         gap: 6,
         alignItems: 'center',
-        backgroundColor: 'rgba(45,158,255,0.12)',
+        backgroundColor: COLORS.fieldBg,
         paddingHorizontal: 12,
         paddingVertical: 7,
         borderRadius: 999,
         borderWidth: 1,
-        borderColor: '#2D9EFF80',
+        borderColor: COLORS.hairline,
     },
-    editGoalsText: { fontFamily: 'Outfit_700Bold', color: '#6FB8FF', fontSize: 12.5, letterSpacing: 0.15 },
+    editGoalsText: { fontFamily: 'Outfit_700Bold', color: COLORS.text, fontSize: 12.5, letterSpacing: 0.15 },
 });

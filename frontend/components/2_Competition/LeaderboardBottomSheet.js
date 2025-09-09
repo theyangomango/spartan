@@ -53,7 +53,7 @@ const LeaderboardBottomSheet = ({
             onChange={handleSheetChanges}
             handleStyle={{ display: "none" }}
             style={styles.bottomsheet}
-            backgroundStyle={{ backgroundColor: '#3A4257', borderTopLeftRadius: 30, borderTopRightRadius: 30 }}
+            backgroundStyle={{ backgroundColor: require("../../theme/mfpDark").default.surface, borderTopLeftRadius: 30, borderTopRightRadius: 30 }}
             enablePanDownToClose={false}
         >
             {blockedMessage ? (
@@ -93,7 +93,7 @@ const styles = StyleSheet.create({
         borderTopRightRadius: 25,
         borderTopLeftRadius: 25,
         // Dark card background
-        backgroundColor: '#3A4257',
+        backgroundColor: require("../../theme/mfpDark").default.surface,
     },
 });
 

@@ -17,7 +17,7 @@ export default function MiniPodium({ data = [] }) {
                 {data[1]?.present ? (
                     <Avatar uri={data[1]?.pfp} ring="#C7CED9" />
                 ) : null}
-                <View style={[styles.plinth, { height: H_L, backgroundColor: "#64687bff" }]}>
+                <View style={[styles.plinth, { height: H_L, backgroundColor: "#a7a8ac65" }]}>
                     <View style={[styles.medalDot, { backgroundColor: "#C7CED9" }]} />
                 </View>
             </View>
@@ -26,7 +26,7 @@ export default function MiniPodium({ data = [] }) {
                 {data[0]?.present ? (
                     <Avatar uri={data[0]?.pfp} ring="#FFE08B" />
                 ) : null}
-                <View style={[styles.plinth, { height: H_C, backgroundColor: "#64687bff" }]}>
+                <View style={[styles.plinth, { height: H_C, backgroundColor: "#a7a8ac65" }]}>
                     <View style={[styles.medalDot, { backgroundColor: "#FFE08B" }]} />
                 </View>
             </View>
@@ -35,7 +35,7 @@ export default function MiniPodium({ data = [] }) {
                 {data[2]?.present ? (
                     <Avatar uri={data[2]?.pfp} ring="#FFBB69" />
                 ) : null}
-                <View style={[styles.plinth, { height: H_R, backgroundColor: "#64687bff" }]}>
+                <View style={[styles.plinth, { height: H_R, backgroundColor: "#a7a8ac65 " }]}>
                     <View style={[styles.medalDot, { backgroundColor: "#FFBA98" }]} />
                 </View>
             </View>

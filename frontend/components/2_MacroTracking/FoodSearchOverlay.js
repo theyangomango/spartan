@@ -279,7 +279,7 @@ const makeStyles = (COLORS) =>
 
         searchContainer: { paddingHorizontal: 18, marginBottom: 12 },
         searchBox: {
-            backgroundColor: COLORS.card || '#252733',
+            backgroundColor: COLORS.fieldBg || COLORS.card || '#252733',
             flexDirection: 'row',
             alignItems: 'center',
             borderRadius: 20,

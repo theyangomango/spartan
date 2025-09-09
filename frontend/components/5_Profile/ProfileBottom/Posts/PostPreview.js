@@ -43,7 +43,7 @@ const styles = StyleSheet.create({
         flex: 1,
         aspectRatio: 1,
         borderRadius: 10,
-        backgroundColor: '#2A3142',
+        backgroundColor: require('../../../../theme/mfpDark').default.field,
         position: 'absolute',
         top: 0,
         left: 0,

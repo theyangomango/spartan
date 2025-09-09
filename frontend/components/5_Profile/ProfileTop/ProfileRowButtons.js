@@ -41,7 +41,7 @@ const styles = StyleSheet.create({
         paddingHorizontal: scaledSize(20),
         paddingVertical: scaledSize(7),
         borderRadius: scaledSize(10),
-        backgroundColor: '#3A4257',
+        backgroundColor: theme.surface,
         justifyContent: "center",
         alignItems: "center",
         marginHorizontal: scaledSize(3),

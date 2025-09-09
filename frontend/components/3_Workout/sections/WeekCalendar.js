@@ -365,7 +365,7 @@ const styles = StyleSheet.create({
         paddingHorizontal: 10,
         paddingVertical: 6,
         borderRadius: 999,
-        backgroundColor: "#2E3442",
+        backgroundColor: theme.field,
         borderWidth: StyleSheet.hairlineWidth,
         borderColor: theme.hairline,
     },
@@ -378,8 +378,8 @@ const styles = StyleSheet.create({
 
     // Bottom workout bar
     bottomBar: { position: "absolute", bottom: 2, height: 6, borderRadius: 3 },
-    bottomBarOn: { backgroundColor: "#2D9EFF" },
-    bottomBarOff: { backgroundColor: "#8b95a5ff" },
+    bottomBarOn: { backgroundColor: "#57b1ffff" },
+    bottomBarOff: { backgroundColor: "#ebebebff" },
 
     centerPill: {
         marginTop: 4,
@@ -391,9 +391,9 @@ const styles = StyleSheet.create({
         justifyContent: "center",
     },
     centerPillToday: {
-        backgroundColor: "#343B48",
+        backgroundColor: theme.field,
         borderWidth: 1,
-        borderColor: "#6FB8FF",
+        borderColor: theme.hairline,
     },
     dayLetter: {
         fontFamily: "Outfit_700Bold",

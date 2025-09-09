@@ -82,7 +82,7 @@ const styles = StyleSheet.create({
         margin: 2,
         aspectRatio: 1,
         borderRadius: 10,
-        backgroundColor: '#2A3142',
+        backgroundColor: require('../../../../theme/mfpDark').default.field,
     },
 });
 
