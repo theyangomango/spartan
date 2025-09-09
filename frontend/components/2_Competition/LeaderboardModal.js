@@ -82,6 +82,8 @@ export default function LeaderboardModal({
     onActiveCompChange = () => { },
     tribeComparisonSummary,
     onOpenTribeComparison,
+    // Custom canvas color for Leaderboard cards
+    canvasColor,
 }) {
     const hasComparisons = isTribeFocused && tribeComparisons.length > 0;
     const activeComp = hasComparisons ? tribeComparisons[Math.min(activeCompIndex, tribeComparisons.length - 1)] : null;
@@ -224,6 +226,7 @@ export default function LeaderboardModal({
                 normalizeByBodyweight={normalizeByBodyweight}
                 missingWeightData={missingBW}
                 showBestSetWhenNotTribe
+                bgColor={canvasColor}
             />
         );
     };
@@ -263,9 +266,10 @@ const styles = StyleSheet.create({
         paddingRight: SELECTOR_PAD_R,
         paddingLeft: SELECTOR_PAD_L,
         paddingVertical: SELECTOR_PAD_V,
-        backgroundColor: require("../../theme/mfpDark").default.field,
+        // Hard-coded pill colors (decoupled from app theme)
+        backgroundColor: '#2A3448',
         borderWidth: 1,
-        borderColor: "rgba(255,255,255,0.08)",
+        borderColor: '#3B4960',
         borderRadius: 999,
         flex: 1,
         gap: SELECTOR_GAP,
@@ -274,12 +278,12 @@ const styles = StyleSheet.create({
     metricPill: {
         paddingHorizontal: METRIC_PAD_H,
         paddingVertical: METRIC_PAD_V,
-        backgroundColor: require("../../theme/mfpDark").default.field,
+        backgroundColor: '#2A3448',
         borderWidth: 1,
-        borderColor: "rgba(255,255,255,0.08)",
+        borderColor: '#3B4960',
         borderRadius: 999,
     },
-    metricText: { fontFamily: "Outfit_700Bold", fontSize: FONT_METRIC, color: THEME.accentBlue, letterSpacing: 0.2 },
+    metricText: { fontFamily: "Outfit_700Bold", fontSize: FONT_METRIC, color: '#6FB8FF', letterSpacing: 0.2 },
 
     // tribe banner — modern warm “gold” card (no border)
     bannerCard: {

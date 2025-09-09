@@ -49,6 +49,8 @@ export default function LeaderboardCard({
     showBestSetWhenNotTribe = true,
     isTribeFocused = false,
     missingWeightData = false,
+    // Custom background color for the card (from Competition screen)
+    bgColor,
 }) {
     // Format the large stat and unit depending on metric & normalization
     const { statText, unitText } = formatStat(value, metric, normalizeByBodyweight);
@@ -63,8 +65,8 @@ export default function LeaderboardCard({
             onPress={handlePress}
             style={
                 userIsSelf
-                    ? [styles.self_card_ctnr, { height: SELF_CARD_HEIGHT }]
-                    : [styles.card_ctnr, { height: CARD_HEIGHT }]
+                    ? [styles.self_card_ctnr, { height: SELF_CARD_HEIGHT, backgroundColor: bgColor || require("../../theme/mfpDark").default.bg }]
+                    : [styles.card_ctnr, { height: CARD_HEIGHT, backgroundColor: bgColor || require("../../theme/mfpDark").default.bg }]
             }
         >
             <View style={styles.card_left}>
@@ -169,8 +171,8 @@ const styles = StyleSheet.create({
         paddingLeft: 10,
         paddingRight: 14,
         marginBottom: 12.5,
-        // Match sheet bg for unified look
-        backgroundColor: require("../../theme/mfpDark").default.field,
+        // Match app background for unified canvas inside sheet
+        backgroundColor: require("../../theme/mfpDark").default.bg,
     },
     self_card_ctnr: {
         borderRadius: 20,

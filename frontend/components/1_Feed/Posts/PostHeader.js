@@ -37,7 +37,7 @@ export default function PostHeader({
                                 }}
                             />
                         ) : (
-                            <View style={[styles.pfp, { backgroundColor: "#D9E6F7" }]} />
+                            <View style={[styles.pfp, { backgroundColor: theme.field }]} />
                         )}
                     </Pressable>
 
@@ -47,7 +47,12 @@ export default function PostHeader({
                         </Pressable>
 
                         {data.workout && (
-                            <RNBounceable activeOpacity={0.5} onPress={openViewWorkout} style={styles.workout_text_ctnr}>
+                            <RNBounceable
+                                activeOpacity={0.5}
+                                onPress={openViewWorkout}
+                                style={styles.workout_text_ctnr}
+                                accessibilityLabel="Open workout details"
+                            >
                                 <Text style={styles.date_text}>
                                     {formatDate(new Date(data.workout.created))} Workout
                                 </Text>
@@ -118,21 +123,21 @@ const styles = StyleSheet.create({
     workout_text_ctnr: {
         paddingHorizontal: 10,
         paddingVertical: 4,
-        backgroundColor: '#2D9EFF',
+        backgroundColor: theme.primary,
         borderRadius: 15,
-        // Dark-theme friendly edge so the blue pill reads over photos
-        borderWidth: StyleSheet.hairlineWidth,
-        borderColor: 'rgba(0,0,0,0.35)',
-        // Subtle lift for readability on dark imagery
-        shadowColor: '#000',
-        shadowOpacity: 0.25,
-        shadowRadius: 6,
-        shadowOffset: { width: 0, height: 2 },
+        // Keep edges clean and match app chip styling
+        borderWidth: 1,
+        borderColor: 'transparent',
+        // Subtle lift for readability on photos
+        shadowColor: theme.primary,
+        shadowOpacity: 0.18,
+        shadowRadius: 4,
+        shadowOffset: { width: 0, height: 3 },
         elevation: 2,
     },
     date_text: {
         fontSize: scaleSize(10.5),
-        color: "#ffffff",
+        color: theme.textPrimary,
         fontFamily: "Poppins_700Bold",
     },
     right: {

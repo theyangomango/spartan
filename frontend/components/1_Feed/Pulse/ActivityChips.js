@@ -290,8 +290,8 @@ const styles = StyleSheet.create({
         paddingLeft: ss(12),
         paddingRight: ss(10),
         borderRadius: ss(16),
-        // Slightly lighter, more neutral surface for better separation
-        backgroundColor: '#474c5784',
+        // Use themed surface for dark mode cohesion
+        backgroundColor: theme.field,
         borderWidth: StyleSheet.hairlineWidth,
         borderColor: theme.hairline,
         ...Platform.select({
@@ -318,9 +318,12 @@ const styles = StyleSheet.create({
         borderRadius: AVATAR / 2.3,
         overflow: "hidden",
         backgroundColor: theme.field,
+        // Remove bright light-mode ring; use subtle hairline that works on dark
+        borderWidth: StyleSheet.hairlineWidth,
+        borderColor: theme.hairline,
     },
     pfp: { width: "100%", height: "100%" },
-    pfp_placeholder: { backgroundColor: "#2E323C" },
+    pfp_placeholder: { backgroundColor: theme.surface },
 
     badge: {
         position: "absolute",
@@ -345,10 +348,10 @@ const styles = StyleSheet.create({
     primaryUnified: {
         fontFamily: "Outfit_700Bold",
         fontSize: 13.5,
-        color: "#E5E7EB",
+        color: theme.textPrimary,
         letterSpacing: 0.2,
     },
-    primaryEmphasis: { color: "#0499FE", fontFamily: "Outfit_800ExtraBold" },
+    primaryEmphasis: { color: theme.primary, fontFamily: "Outfit_800ExtraBold" },
 
     // Time on its own line, right-aligned + accent dot
     timeRowRight: {
@@ -367,7 +370,7 @@ const styles = StyleSheet.create({
     timeText: {
         fontFamily: "Outfit_600SemiBold",
         fontSize: 11.5,
-        color: "#A1A7B3",
+        color: theme.textSecondary,
     },
 
     // Chevron

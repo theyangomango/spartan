@@ -31,15 +31,50 @@ export default function Podium({ data }) {
             {/* Full-screen blue gradient background (behind entire screen) */}
             <View style={styles.bg_fullscreen} pointerEvents="none">
                 <LinearGradient
-                    // Updated to a calmer, theme-aligned blue gradient
-                    // Top starts at brand blue, fades into a deeper navy that
-                    // blends better with the dark screen background.
-                    colors={["#2D9EFF", "#2A6EC8", "#1F3350"]}
+                    // Slightly lighter midnight-blue gradient
+                    colors={["#1B4F8A", "#133A6D", "#0F2743"]}
                     locations={[0, 0.62, 1]}
                     start={{ x: 0.06, y: 0.0 }}
                     end={{ x: 0.94, y: 1.0 }}
                     style={StyleSheet.absoluteFillObject}
                 />
+
+                {/* Faint blue streaks near the top for visual interest */}
+                <View style={styles.streaks_container}>
+                    <LinearGradient
+                        colors={[
+                            'rgba(45,158,255,0.00)', // transparent
+                            'rgba(45,158,255,0.14)', // faint blue core
+                            'rgba(45,158,255,0.00)', // transparent
+                        ]}
+                        locations={[0, 0.5, 1]}
+                        start={{ x: 0, y: 0.5 }}
+                        end={{ x: 1, y: 0.5 }}
+                        style={[styles.streak_base, styles.streak_one]}
+                    />
+                    <LinearGradient
+                        colors={[
+                            'rgba(45,158,255,0.00)',
+                            'rgba(45,158,255,0.10)',
+                            'rgba(45,158,255,0.00)',
+                        ]}
+                        locations={[0, 0.5, 1]}
+                        start={{ x: 0, y: 0.5 }}
+                        end={{ x: 1, y: 0.5 }}
+                        style={[styles.streak_base, styles.streak_two]}
+                    />
+                    <LinearGradient
+                        colors={[
+                            'rgba(45,158,255,0.00)',
+                            'rgba(45,158,255,0.08)',
+                            'rgba(45,158,255,0.00)',
+                        ]}
+                        locations={[0, 0.5, 1]}
+                        start={{ x: 0, y: 0.5 }}
+                        end={{ x: 1, y: 0.5 }}
+                        style={[styles.streak_base, styles.streak_three]}
+                    />
+                </View>
             </View>
 
             {/* Podium content band (top ~40% of screen) */}
@@ -118,6 +153,36 @@ const styles = StyleSheet.create({
         ...StyleSheet.absoluteFillObject,
         backgroundColor: theme.bg,
         zIndex: -2, // behind all content in this screen
+    },
+    // Subtle blue streaks only at the top portion
+    streaks_container: {
+        position: 'absolute',
+        top: 0,
+        left: 0,
+        right: 0,
+        height: '42%',
+        overflow: 'hidden',
+    },
+    streak_base: {
+        position: 'absolute',
+        width: '160%',
+        height: scaleSize(8),
+        left: '-30%',
+        borderRadius: scaleSize(8),
+    },
+    streak_one: {
+        top: scaleSize(18),
+        transform: [{ rotate: '-14deg' }],
+    },
+    streak_two: {
+        top: scaleSize(44),
+        height: scaleSize(10),
+        transform: [{ rotate: '-12deg' }],
+    },
+    streak_three: {
+        top: scaleSize(70),
+        height: scaleSize(6),
+        transform: [{ rotate: '-10deg' }],
     },
     // Top header band that holds the podium bars
     podium_band: {

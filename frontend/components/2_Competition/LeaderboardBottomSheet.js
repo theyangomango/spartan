@@ -22,6 +22,8 @@ const LeaderboardBottomSheet = ({
     // Optional: block rendering with a message (e.g., missing personal info)
     blockedMessage,
     onResolveBlocked,
+    // Custom canvas color for sheet and cards
+    canvasColor,
 }) => {
     const bottomSheetRef = useRef(null);
     const snapPoints = useMemo(() => ["60%", "94%"], []);
@@ -52,7 +54,8 @@ const LeaderboardBottomSheet = ({
             snapPoints={snapPoints}
             onChange={handleSheetChanges}
             handleStyle={{ display: "none" }}
-            backgroundStyle={{ backgroundColor: require("../../theme/mfpDark").default.surface, borderTopLeftRadius: 25, borderTopRightRadius: 25 }}
+            // Use custom canvas color (from Competition screen) for unified canvas
+            backgroundStyle={{ backgroundColor: canvasColor || require("../../theme/mfpDark").default.bg, borderTopLeftRadius: 25, borderTopRightRadius: 25 }}
             enablePanDownToClose={false}
         >
             {blockedMessage ? (
@@ -74,6 +77,8 @@ const LeaderboardBottomSheet = ({
                     onActiveCompChange={onActiveCompChange}
                     tribeComparisonSummary={tribeComparisonSummary}
                     onOpenTribeComparison={onOpenTribeComparison}
+                    // Pass canvas color to inner cards
+                    canvasColor={canvasColor}
                 />
             ) : null}
         </BottomSheet>

@@ -389,7 +389,8 @@ export default function MacroTracking({ navigation, route }) {
 
 const styles = StyleSheet.create({
     sectionHeaderRow: {
-        paddingHorizontal: 18,
+        paddingLeft: 18,
+        paddingRight: 12,
         flexDirection: 'row',
         alignItems: 'center',
         justifyContent: 'space-between',
@@ -416,5 +417,5 @@ const styles = StyleSheet.create({
         borderWidth: 1,
         borderColor: COLORS.hairline,
     },
-    editGoalsText: { fontFamily: 'Outfit_700Bold', color: COLORS.text, fontSize: 12.5, letterSpacing: 0.15 },
+    editGoalsText: { fontFamily: 'Outfit_700Bold', color: COLORS.text, fontSize: 12, letterSpacing: 0.15 },
 });
