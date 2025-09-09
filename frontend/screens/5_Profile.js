@@ -165,7 +165,7 @@ export default function Profile({ navigation }) {
     
     return (
         <SafeAreaView style={styles.main_ctnr}>
-            <StatusBar barStyle="light-content" backgroundColor={theme.bg} />
+            <StatusBar barStyle="light-content" backgroundColor={'#2E3445'} />
             <View style={styles.body_ctnr}>
                 <ProfileHeader
                     onPressCreateBtn={uploadPost}
@@ -230,7 +230,7 @@ import ProfileBottomBottomSheet from "../components/5_Profile/ProfileBottom/Prof
 const styles = StyleSheet.create({
     main_ctnr: {
         flex: 1,
-        backgroundColor: theme.bg, // Lighter dark background
+        backgroundColor: '#2E3445', // match Profile bottom background
     },
     body_ctnr: {
         paddingHorizontal: 10,

@@ -4,6 +4,7 @@ import SelectExerciseModal from "../NewWorkout/SelectExercise/SelectExerciseModa
 import RNBounceable from "@freakycoder/react-native-bounceable";
 import EditTemplateExerciseLog from "./EditTemplateExerciseLog";
 import { Weight } from 'iconsax-react-native';
+import theme from "../../../theme/mfpDark";
 
 const { height: screenHeight } = Dimensions.get('window');
 const scale = screenHeight / 844; // Scaling factor based on iPhone 13 height
@@ -113,7 +114,7 @@ const EditTemplateModal = ({ openedTemplateRef, updateTemplate, deleteTemplate }
                     value={templateTitle}
                     onChangeText={setTemplateTitle}
                     placeholder="Untitled Template"
-                    placeholderTextColor="#aaa"
+                    placeholderTextColor={theme.textSecondary}
                 />
                 <View style={styles.headerRight}>
                     {/* <RNBounceable style={styles.savedButton}>
@@ -197,13 +198,13 @@ const styles = StyleSheet.create({
     },
     headerShadow: {
         borderBottomWidth: scaledSize(2),
-        borderBottomColor: '#eaeaea'
+        borderBottomColor: theme.hairline
     },
     titleInput: {
         flex: 1,
         fontFamily: 'Outfit_700Bold',
         fontSize: scaledSize(18.5),
-        color: '#333',
+        color: theme.textPrimary,
         paddingVertical: scaledSize(5),
         paddingHorizontal: scaledSize(10),
     },
@@ -215,14 +216,14 @@ const styles = StyleSheet.create({
         width: scaledSize(80),
         height: scaledSize(35),
         borderRadius: scaledSize(12),
-        backgroundColor: '#eee',
+        backgroundColor: theme.field,
         justifyContent: 'center',
         alignItems: 'center'
     },
     savedButtonText: {
         fontFamily: 'Outfit_700Bold',
         fontSize: scaledSize(15.5),
-        color: '#999',
+        color: theme.textSecondary,
     },
     scrollView: {
         paddingTop: scaledSize(5)
@@ -232,7 +233,7 @@ const styles = StyleSheet.create({
         marginTop: scaledSize(18),
         height: scaledSize(35),
         borderRadius: scaledSize(12),
-        backgroundColor: '#E1F0FF',
+        backgroundColor: theme.addBtnBg,
         justifyContent: 'center',
         alignItems: 'center',
         flexDirection: 'row'
@@ -240,7 +241,7 @@ const styles = StyleSheet.create({
     addExerciseText: {
         fontSize: scaledSize(16),
         fontFamily: 'Outfit_700Bold',
-        color: '#0499FE',
+        color: theme.primary,
         marginRight: scaledSize(4.5)
     },
     cancelButton: {
@@ -248,7 +249,7 @@ const styles = StyleSheet.create({
         marginTop: scaledSize(18),
         height: scaledSize(35),
         borderRadius: scaledSize(12),
-        backgroundColor: '#FFECEC',
+        backgroundColor: 'rgba(242,113,113,0.15)',
         justifyContent: 'center',
         alignItems: 'center',
         flexDirection: 'row'
@@ -268,13 +269,13 @@ const styles = StyleSheet.create({
     modalContainer: {
         width: '80%',
         padding: scaledSize(20),
-        backgroundColor: '#fff',
+        backgroundColor: theme.surface,
         borderRadius: scaledSize(15),
         alignItems: 'center',
     },
     modalText: {
         fontSize: scaledSize(16),
-        color: '#333',
+        color: theme.textPrimary,
         fontFamily: 'Outfit_700Bold',
         marginBottom: scaledSize(20),
         textAlign: 'center',
@@ -282,7 +283,7 @@ const styles = StyleSheet.create({
     deleteTemplateBtn: {
         width: '100%',
         paddingVertical: scaledSize(8),
-        backgroundColor: '#FFECEC',
+        backgroundColor: 'rgba(242,113,113,0.15)',
         borderRadius: scaledSize(8),
         alignItems: 'center',
         marginBottom: scaledSize(10),
@@ -295,12 +296,12 @@ const styles = StyleSheet.create({
     cancelDeleteBtn: {
         width: '100%',
         paddingVertical: scaledSize(8),
-        backgroundColor: '#eee',
+        backgroundColor: theme.field,
         borderRadius: scaledSize(8),
         alignItems: 'center',
     },
     cancelDeleteText: {
-        color: '#666',
+        color: theme.textSecondary,
         fontSize: scaledSize(14),
         fontFamily: 'Outfit_700Bold',
     },

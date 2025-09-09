@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { Text, StyleSheet, Dimensions } from 'react-native';
+import theme from '../../../theme/mfpDark';
 
 const { height: screenHeight } = Dimensions.get('window');
 const scale = screenHeight / 844; // Scaling factor based on iPhone 13 height
@@ -26,7 +27,7 @@ const styles = StyleSheet.create({
     timer_text: {
         fontFamily: 'Outfit_700Bold',
         fontSize: scaledSize(18),
-        color: '#aaa',
+        color: theme.textSecondary,
         textAlign: 'center',
     }
 });

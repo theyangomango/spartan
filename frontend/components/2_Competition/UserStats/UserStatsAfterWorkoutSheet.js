@@ -117,6 +117,7 @@ export default function UserStatsAfterWorkoutSheet({
       enablePanDownToClose
       onClose={onClose}
       snapPoints={snapPoints}
+      backgroundStyle={{ backgroundColor: '#3A4257' }}
       backdropComponent={(props) => (
         <BottomSheetBackdrop {...props} appearsOnIndex={0} disappearsOnIndex={-1} />
       )}

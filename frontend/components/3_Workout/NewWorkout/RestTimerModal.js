@@ -12,6 +12,7 @@ import {
 } from "react-native";
 import Svg, { Circle } from "react-native-svg";
 import RNBounceable from "@freakycoder/react-native-bounceable";
+import theme from "../../../theme/mfpDark";
 import * as Haptics from "expo-haptics";
 
 const { height: screenHeight } = Dimensions.get("window");
@@ -50,7 +51,7 @@ const CountdownRing = ({ size = 160, stroke = 10, progress, pulse }) => {
                 cx={cx}
                 cy={cy}
                 r={radius}
-                stroke="rgba(2,6,23,0.08)"
+                stroke="rgba(255,255,255,0.08)"
                 strokeWidth={stroke}
                 fill="transparent"
             />
@@ -59,7 +60,7 @@ const CountdownRing = ({ size = 160, stroke = 10, progress, pulse }) => {
                 cx={cx}
                 cy={cy}
                 r={radius}
-                stroke="#0499FE"
+                stroke={theme.primary}
                 strokeWidth={stroke}
                 fill="transparent"
                 strokeOpacity={pulseOpacity}
@@ -69,7 +70,7 @@ const CountdownRing = ({ size = 160, stroke = 10, progress, pulse }) => {
                 cx={cx}
                 cy={cy}
                 r={radius}
-                stroke="#0499FE"
+                stroke={theme.primary}
                 strokeWidth={stroke}
                 fill="transparent"
                 strokeDasharray={`${circumference} ${circumference}`}
@@ -306,12 +307,12 @@ const styles = StyleSheet.create({
     },
     card: {
         width: "100%",
-        backgroundColor: "rgba(255,255,255,0.96)",
+        backgroundColor: theme.surface,
         borderRadius: scaledSize(20),
         padding: scaledSize(18),
         alignItems: "center",
         borderWidth: 1,
-        borderColor: "rgba(2,6,23,0.06)",
+        borderColor: theme.hairline,
         shadowColor: "#000",
         shadowOpacity: 0.08,
         shadowRadius: 24,
@@ -322,7 +323,7 @@ const styles = StyleSheet.create({
         width: scaledSize(38),
         height: scaledSize(4),
         borderRadius: scaledSize(2),
-        backgroundColor: "rgba(2,6,23,0.12)",
+        backgroundColor: theme.hairline,
         marginBottom: scaledSize(10),
     },
     closeBtn: {
@@ -338,19 +339,19 @@ const styles = StyleSheet.create({
     closeTxt: {
         fontSize: scaledSize(22),
         lineHeight: scaledSize(22),
-        color: "rgba(2,6,23,0.55)",
+        color: theme.textSecondary,
     },
     title: {
         fontFamily: "Outfit_700Bold",
         fontSize: scaledSize(18),
-        color: "#0F172A",
+        color: theme.textPrimary,
         marginTop: scaledSize(2),
     },
     caption: {
         marginTop: scaledSize(4),
         fontFamily: "Outfit_500Medium",
         fontSize: scaledSize(11.5),
-        color: "rgba(2,6,23,0.55)",
+        color: theme.textSecondary,
     },
     ringWrap: {
         width: "100%",
@@ -367,14 +368,14 @@ const styles = StyleSheet.create({
     time: {
         fontFamily: "Outfit_700Bold",
         fontSize: scaledSize(30),
-        color: "#0F172A",
+        color: theme.textPrimary,
         includeFontPadding: false,
     },
     sub: {
         marginTop: scaledSize(4),
         fontFamily: "Outfit_600SemiBold",
         fontSize: scaledSize(12),
-        color: "rgba(2,6,23,0.55)",
+        color: theme.textSecondary,
     },
     row: {
         width: "100%",
@@ -388,23 +389,23 @@ const styles = StyleSheet.create({
         flex: 1,
         paddingVertical: scaledSize(10),
         borderRadius: scaledSize(12),
-        backgroundColor: "#F1F5F9",
+        backgroundColor: theme.field,
         alignItems: "center",
         justifyContent: "center",
         borderWidth: 1,
-        borderColor: "rgba(2,6,23,0.05)",
+        borderColor: theme.hairline,
     },
     chipActive: {
-        backgroundColor: "#EAF3FF",
-        borderColor: "rgba(4,153,254,0.35)",
+        backgroundColor: theme.addBtnBg,
+        borderColor: theme.primary,
     },
     chipText: {
         fontFamily: "Outfit_700Bold",
         fontSize: scaledSize(13),
-        color: "#0F172A",
+        color: theme.textPrimary,
     },
     chipTextActive: {
-        color: "#0499FE",
+        color: theme.primary,
     },
     controls: {
         flexDirection: "row",
@@ -416,26 +417,26 @@ const styles = StyleSheet.create({
         flex: 1,
         paddingVertical: scaledSize(11),
         borderRadius: scaledSize(12),
-        backgroundColor: "#EAF3FF",
+        backgroundColor: theme.addBtnBg,
         alignItems: "center",
         justifyContent: "center",
         borderWidth: 1,
-        borderColor: "rgba(4,153,254,0.28)",
+        borderColor: theme.primary,
     },
     ghostBtnText: {
         fontFamily: "Outfit_700Bold",
         fontSize: scaledSize(14),
-        color: "#0499FE",
+        color: theme.primary,
         letterSpacing: 0.2,
     },
     primaryBtn: {
         flex: 1,
         paddingVertical: scaledSize(11),
         borderRadius: scaledSize(12),
-        backgroundColor: "#0499FE",
+        backgroundColor: theme.primary,
         alignItems: "center",
         justifyContent: "center",
-        shadowColor: "#0499FE",
+        shadowColor: theme.primary,
         shadowOpacity: 0.35,
         shadowRadius: 14,
         shadowOffset: { width: 0, height: 6 },

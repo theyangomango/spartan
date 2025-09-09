@@ -43,7 +43,7 @@ const styles = StyleSheet.create({
         flex: 1,
         aspectRatio: 1,
         borderRadius: 10,
-        backgroundColor: '#1C1F26',
+        backgroundColor: '#2A3142',
         position: 'absolute',
         top: 0,
         left: 0,

@@ -51,7 +51,7 @@ const styles = StyleSheet.create({
     modalCard: {
         width: "100%",
         maxWidth: 420,
-        backgroundColor: "#252733",
+        backgroundColor: "#2E3445",
         borderRadius: 16,
         paddingVertical: 16,
         paddingHorizontal: 14,
@@ -63,7 +63,7 @@ const styles = StyleSheet.create({
         marginBottom: 10,
     },
     input: {
-        backgroundColor: "#1E232C",
+        backgroundColor: "#2A3142",
         borderRadius: 10,
         paddingHorizontal: 12,
         paddingVertical: 10,
@@ -76,7 +76,7 @@ const styles = StyleSheet.create({
     btnText: { fontFamily: "Outfit_700Bold", fontSize: 14 },
     btnPrimary: { backgroundColor: "#2D9EFF" },
     btnPrimaryText: { color: "#fff" },
-    btnGhost: { backgroundColor: "#1F2730" },
+    btnGhost: { backgroundColor: "#2A3142" },
     btnGhostText: { color: "#EAEAEA" },
 });
 

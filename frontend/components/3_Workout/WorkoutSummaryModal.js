@@ -9,6 +9,7 @@ import { MaterialCommunityIcons } from '@expo/vector-icons';
 import RNBounceable from '@freakycoder/react-native-bounceable';
 import { LinearGradient } from 'expo-linear-gradient';
 import roundToNearestMinute from '../../helper/roundToNearestMinute';
+import theme from '../../theme/mfpDark';
 
 const { height: screenHeight } = Dimensions.get('window');
 const scale = screenHeight / 844; // iPhone 13 baseline
@@ -16,15 +17,15 @@ const scaledSize = (size) => Math.round(size * scale);
 
 const COLORS = {
     bgDim: 'rgba(15, 23, 42, 0.45)',
-    card: '#FFFFFF',
-    text: '#0F172A',
-    subtext: '#64748B',
-    hairline: 'rgba(2, 6, 23, 0.06)',
+    card: theme.surface,
+    text: theme.textPrimary,
+    subtext: theme.textSecondary,
+    hairline: theme.hairline,
     chipText: '#FFFFFF',
     green: '#40D99B',
     greenDark: '#25B57E',
-    blue: '#2D9EFF',
-    icon: '#6366F1',
+    blue: theme.primary,
+    icon: theme.primary,
 };
 
 const muscleColors = {
@@ -281,12 +282,12 @@ const styles = StyleSheet.create({
     },
     statCard: {
         flex: 1,
-        backgroundColor: '#F8FAFC',
+        backgroundColor: theme.field,
         borderRadius: scaledSize(14),
         paddingVertical: scaledSize(10),
         paddingHorizontal: scaledSize(12),
         borderWidth: StyleSheet.hairlineWidth,
-        borderColor: 'rgba(100, 116, 139, 0.15)',
+        borderColor: COLORS.hairline,
     },
     statIconWrap: {
         width: scaledSize(26),
@@ -294,7 +295,7 @@ const styles = StyleSheet.create({
         borderRadius: scaledSize(13),
         justifyContent: 'center',
         alignItems: 'center',
-        backgroundColor: '#E2E8F0',
+        backgroundColor: theme.field,
         marginBottom: scaledSize(6),
     },
     statLabel: {
@@ -340,7 +341,7 @@ const styles = StyleSheet.create({
     exerciseName: {
         fontFamily: 'Outfit_500Medium',
         fontSize: scaledSize(13.5),
-        color: '#111827',
+        color: COLORS.text,
         marginBottom: scaledSize(4),
     },
     muscleChip: {
@@ -366,9 +367,9 @@ const styles = StyleSheet.create({
         borderRadius: scaledSize(999),
         paddingVertical: scaledSize(6),
         paddingHorizontal: scaledSize(10),
-        backgroundColor: '#EEF2FF',
+        backgroundColor: theme.addBtnBg,
         borderWidth: StyleSheet.hairlineWidth,
-        borderColor: 'rgba(99, 102, 241, 0.35)',
+        borderColor: COLORS.blue,
     },
     bestPillText: {
         fontFamily: 'Outfit_600SemiBold',
@@ -390,8 +391,8 @@ const styles = StyleSheet.create({
         flex: 1,
         borderRadius: scaledSize(14),
         borderWidth: StyleSheet.hairlineWidth,
-        borderColor: 'rgba(2, 6, 23, 0.12)',
-        backgroundColor: '#FFFFFF',
+        borderColor: COLORS.hairline,
+        backgroundColor: COLORS.card,
         paddingVertical: scaledSize(10),
         alignItems: 'center',
         justifyContent: 'center',

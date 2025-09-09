@@ -266,7 +266,7 @@ const styles = StyleSheet.create({
     main_ctnr: {
         width: '94%',
         height: '81%',
-        backgroundColor: '#252733',
+        backgroundColor: '#2E3445',
         borderRadius: scaledSize(20),
         shadowColor: '#000',
         shadowOffset: { width: 0, height: scaledSize(6) },
@@ -299,7 +299,7 @@ const styles = StyleSheet.create({
     searchContainer: {
         flexDirection: 'row',
         alignItems: 'center',
-        backgroundColor: '#1E232C',
+        backgroundColor: '#2A3142',
         borderRadius: scaledSize(8),
         marginHorizontal: scaledSize(15),
         paddingHorizontal: scaledSize(8),
@@ -329,7 +329,7 @@ const styles = StyleSheet.create({
         paddingVertical: scaledSize(6),
         paddingHorizontal: scaledSize(12),
         borderRadius: scaledSize(10),
-        backgroundColor: '#1E232C',
+        backgroundColor: '#2A3142',
     },
     filterButtonText: {
         fontSize: scaledSize(13),
@@ -343,7 +343,7 @@ const styles = StyleSheet.create({
         top: '100%',
         left: 0,
         right: 0,
-        backgroundColor: '#252733',
+        backgroundColor: '#2E3445',
         borderRadius: scaledSize(10),
         marginTop: scaledSize(6),
         paddingVertical: scaledSize(4),
@@ -358,7 +358,7 @@ const styles = StyleSheet.create({
         borderColor: 'rgba(255,255,255,0.08)',
     },
     dropdownItem: { paddingVertical: scaledSize(8), paddingHorizontal: scaledSize(10) },
-    dropdownItemActive: { backgroundColor: '#1E232C' },
+    dropdownItemActive: { backgroundColor: '#2A3142' },
     dropdownItemText: { fontSize: scaledSize(13), color: '#EAEAEA', fontFamily: 'Outfit_700Bold' },
     dropdownItemTextActive: { color: '#6FB8FF' },
     dropdownBackdrop: {

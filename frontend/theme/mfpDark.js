@@ -4,9 +4,9 @@
 const MFP_DARK = {
     // Surfaces (MyFitnessPal-like)
     // Desaturated blue‑slate. Increase contrast between bg and cards.
-    bg: '#1B2230',          // darker background
-    surface: '#3A4354',     // lighter cards/surfaces
-    card: '#3A4354',        // alias for surface
+    bg: '#2a2e36ff',          // darker background
+    surface: '#3A4257',     // lighter cards/surfaces
+    card: '#3A4257',        // alias for surface
     field: '#2A3142',       // inputs and subtle chips (mid between bg and surface)
 
     // Lines & shadows
@@ -19,6 +19,9 @@ const MFP_DARK = {
     // Accents
     primary: '#2D9EFF',     // existing brand blue
     accentBlue: '#6FB8FF',
+    success: '#40D99B',
+    successBg: 'rgba(64,217,155,0.12)',
+    successRowBg: 'rgba(64,217,155,0.14)',
 
     // Misc UI tints
     muted: '#8B95A5',

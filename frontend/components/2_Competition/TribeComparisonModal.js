@@ -27,9 +27,9 @@ const GOLD = "#f6b00060";
 const GOLD_TEXT = "#EAEAEA";
 
 // neutral card palette
-const CARD_BG = "#252733";            // dark cards
+const CARD_BG = "#2E3445";            // lighter cards
 const CARD_BORDER = "rgba(255,255,255,0.10)";
-const ICON_BG_NEUTRAL = "#1E232C";
+const ICON_BG_NEUTRAL = "#2A3142";
 const SUBTEXT = "#AEB5C0";
 
 // soft accents per exercise (deterministic by name)

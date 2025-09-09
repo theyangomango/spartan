@@ -61,7 +61,7 @@ const DOT_MB = scaleSize(2);
 const ACCENT = "#f6b000ff";            // rich gold
 const ACCENT_BG = "#f6b00041";
 // Dark mode palette for Competition
-const BANNER_BG = "#252733";         // use card color for banners
+const BANNER_BG = "#2E3445";         // slightly lighter modal pill/bg
 const TITLE_COLOR = "#EAEAEA";       // light text on dark
 const ICON_MUTED = "#AEB5C0";
 
@@ -262,7 +262,7 @@ const styles = StyleSheet.create({
         paddingRight: SELECTOR_PAD_R,
         paddingLeft: SELECTOR_PAD_L,
         paddingVertical: SELECTOR_PAD_V,
-        backgroundColor: "#252733",
+        backgroundColor: "#2E3445",
         borderWidth: 1,
         borderColor: "rgba(255,255,255,0.08)",
         borderRadius: 999,
@@ -273,7 +273,7 @@ const styles = StyleSheet.create({
     metricPill: {
         paddingHorizontal: METRIC_PAD_H,
         paddingVertical: METRIC_PAD_V,
-        backgroundColor: "#252733",
+        backgroundColor: "#2E3445",
         borderWidth: 1,
         borderColor: "rgba(255,255,255,0.08)",
         borderRadius: 999,
@@ -287,7 +287,7 @@ const styles = StyleSheet.create({
         paddingHorizontal: BANNER_PAD_H,
         paddingVertical: BANNER_PAD_V,
         borderRadius: BANNER_RADIUS,
-        backgroundColor: "#1E232C",
+        backgroundColor: "#262F42",
         borderWidth: 1,
         borderColor: "rgba(255,255,255,0.08)",
         shadowColor: "#000",

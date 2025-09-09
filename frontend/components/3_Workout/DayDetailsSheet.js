@@ -281,25 +281,25 @@ const DayDetailsSheet = ({
                                     <View style={styles.faDivider} />
 
                                     <View style={styles.faStatsRow}>
-                                        <View style={styles.faStatCard}>
+                                            <View style={styles.faStatCard}>
                                             <View style={styles.faStatIconWrap}>
-                                                <Clock color="#0F172A" size={13} variant="Bold" />
+                                                <Clock color={theme.textPrimary} size={13} variant="Bold" />
                                             </View>
                                             <Text style={styles.faStatLabel}>Duration</Text>
                                             <Text style={styles.faStatValue}>{minutesLabel(durMs)}</Text>
                                         </View>
 
-                                        <View style={styles.faStatCard}>
+                                            <View style={styles.faStatCard}>
                                             <View style={styles.faStatIconWrap}>
-                                                <MaterialCommunityIcons name="weight-lifter" size={13} color="#0F172A" />
+                                                <MaterialCommunityIcons name="weight-lifter" size={13} color={theme.textPrimary} />
                                             </View>
                                             <Text style={styles.faStatLabel}>Volume</Text>
                                             <Text style={styles.faStatValue}>{toNumber(w?.volume).toLocaleString()} lb</Text>
                                         </View>
 
-                                        <View style={styles.faStatCard}>
+                                            <View style={styles.faStatCard}>
                                             <View style={styles.faStatIconWrap}>
-                                                <MaterialCommunityIcons name="counter" size={13} color="#0F172A" />
+                                                <MaterialCommunityIcons name="counter" size={13} color={theme.textPrimary} />
                                             </View>
                                             <Text style={styles.faStatLabel}>Reps</Text>
                                             <Text style={styles.faStatValue}>{toNumber(w?.reps)}</Text>
@@ -404,7 +404,7 @@ const styles = StyleSheet.create({
         width: 46,
         height: 5,
         borderRadius: 999,
-        backgroundColor: theme.hairline,
+        backgroundColor: theme.field,
         marginTop: 8,
         marginBottom: 6,
     },

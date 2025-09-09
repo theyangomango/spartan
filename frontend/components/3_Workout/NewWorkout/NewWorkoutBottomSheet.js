@@ -138,12 +138,12 @@ const NewWorkoutBottomSheet = ({
             enableContentPanningGesture={false}
             onClose={() => { try { setIsVisible(false); } catch {} }}
             onChange={(index) => { if (index < 0) { try { setIsVisible(false); } catch {} } }}
-            // GOLD handle when viewing a friend
+            // Handle styled to match Group Header aesthetics
             handleIndicatorStyle={{
-                backgroundColor: isViewingSelf ? HANDLE_SELF : HANDLE_FRIEND_ACCENT,
+                backgroundColor: isViewingSelf ? theme.field : HANDLE_FRIEND_ACCENT,
             }}
             handleStyle={{
-                backgroundColor: isViewingSelf ? 'transparent' : HANDLE_FRIEND_BACKGROUND,
+                backgroundColor: isViewingSelf ? theme.surface : HANDLE_FRIEND_BACKGROUND,
             }}
             backgroundStyle={{ backgroundColor: theme.bg }}
         >

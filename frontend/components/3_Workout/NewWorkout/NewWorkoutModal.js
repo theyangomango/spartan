@@ -31,6 +31,7 @@ import ExerciseLog from "./Tracking/ExerciseLog";
 import SelectExerciseModal from "./SelectExercise/SelectExerciseModal";
 import { usePfp } from "../../../helper/usePFPs";
 import { ss as scaledSize } from "../../../utils/scale";
+import theme from "../../../theme/mfpDark";
 // Lazy-load confetti only when needed to keep bundle lean during editing
 
 // Realtime / Firestore
@@ -638,7 +639,6 @@ const NewWorkoutModal = ({
                             <>
                                 <RNBounceable onPress={showSelectExerciseModal} style={styles.add_exercise_btn}>
                                     <Text style={styles.add_exercise_text}>Add Exercises</Text>
-                                    <Weight size={scaledSize(22)} color="#5DBDFF" variant="Bold" />
                                 </RNBounceable>
                                 <RNBounceable onPress={confirmCancelWorkout} style={styles.cancel_btn}>
                                     <Text style={styles.cancel_btn_text}>Cancel Workout</Text>
@@ -679,7 +679,6 @@ const NewWorkoutModal = ({
                                     <>
                                         <RNBounceable onPress={showSelectExerciseModal} style={styles.add_exercise_btn}>
                                             <Text style={styles.add_exercise_text}>Add Exercises</Text>
-                                            <Weight size={scaledSize(22)} color="#5DBDFF" variant="Bold" />
                                         </RNBounceable>
                                         <RNBounceable onPress={confirmCancelWorkout} style={styles.cancel_btn}>
                                             <Text style={styles.cancel_btn_text}>Cancel Workout</Text>
@@ -848,7 +847,7 @@ const NewWorkoutModal = ({
 const styles = StyleSheet.create({
     main_ctnr: { flex: 1 },
 
-    header: { backgroundColor: "#fff" },
+    header: { backgroundColor: theme.field },
     headerInner: {
         paddingBottom: scaledSize(6),
         paddingHorizontal: scaledSize(22),
@@ -856,22 +855,22 @@ const styles = StyleSheet.create({
         flexDirection: "row",
         alignItems: "center",
         justifyContent: "space-between",
-        backgroundColor: "#fff",
+        backgroundColor: theme.field,
         zIndex: 5,
     },
-    headerShadow: { height: scaledSize(2), backgroundColor: "#eaeaea" },
+    headerShadow: { height: scaledSize(2), backgroundColor: theme.hairline },
 
-    scrollview: { paddingTop: scaledSize(5), backgroundColor: "#fff" },
+    scrollview: { paddingTop: scaledSize(5), backgroundColor: theme.surface },
 
-    waitingWrap: { flex: 1, alignItems: "center", justifyContent: "center", backgroundColor: "#fff" },
-    waitingText: { marginTop: 6, fontFamily: "Nunito_700Bold", color: "#444" },
+    waitingWrap: { flex: 1, alignItems: "center", justifyContent: "center", backgroundColor: theme.bg },
+    waitingText: { marginTop: 6, fontFamily: "Nunito_700Bold", color: theme.textSecondary },
 
     add_exercise_btn: {
         marginHorizontal: scaledSize(20),
         marginTop: scaledSize(18),
         height: scaledSize(35),
         borderRadius: scaledSize(12),
-        backgroundColor: "#E1F0FF",
+        backgroundColor: theme.addBtnBg,
         justifyContent: "center",
         alignItems: "center",
         flexDirection: "row",
@@ -879,7 +878,7 @@ const styles = StyleSheet.create({
     add_exercise_text: {
         fontSize: scaledSize(16),
         fontFamily: "Outfit_700Bold",
-        color: "#0499FE",
+        color: theme.primary,
         marginRight: scaledSize(4.5),
     },
 
@@ -888,7 +887,7 @@ const styles = StyleSheet.create({
         marginTop: scaledSize(18),
         height: scaledSize(35),
         borderRadius: scaledSize(12),
-        backgroundColor: "#FFECEC",
+        backgroundColor: "rgba(242,113,113,0.15)",
         justifyContent: "center",
         alignItems: "center",
         flexDirection: "row",
@@ -896,20 +895,20 @@ const styles = StyleSheet.create({
     cancel_btn_text: { fontSize: scaledSize(16), fontFamily: "Outfit_700Bold", color: "#F27171", marginRight: scaledSize(4.5) },
 
     modalOverlay: { flex: 1, justifyContent: "center", alignItems: "center", backgroundColor: "rgba(0,0,0,0.5)", paddingHorizontal: scaledSize(24) },
-    modalContainer: { width: "100%", padding: scaledSize(20), backgroundColor: "#fff", borderRadius: scaledSize(15), alignItems: "center" },
-    modalText: { fontSize: scaledSize(16), color: "#333", fontFamily: "Outfit_700Bold", marginBottom: scaledSize(20), textAlign: "center" },
-    deleteWorkoutBtn: { width: "100%", paddingVertical: scaledSize(8), backgroundColor: "#FFECEC", borderRadius: scaledSize(8), alignItems: "center", marginBottom: scaledSize(10) },
+    modalContainer: { width: "100%", padding: scaledSize(20), backgroundColor: theme.surface, borderRadius: scaledSize(15), alignItems: "center" },
+    modalText: { fontSize: scaledSize(16), color: theme.textPrimary, fontFamily: "Outfit_700Bold", marginBottom: scaledSize(20), textAlign: "center" },
+    deleteWorkoutBtn: { width: "100%", paddingVertical: scaledSize(8), backgroundColor: "rgba(242,113,113,0.15)", borderRadius: scaledSize(8), alignItems: "center", marginBottom: scaledSize(10) },
     deleteWorkoutText: { color: "#F27171", fontSize: scaledSize(14), fontFamily: "Outfit_700Bold" },
-    cancelDeleteBtn: { width: "100%", paddingVertical: scaledSize(8), backgroundColor: "#eee", borderRadius: scaledSize(8), alignItems: "center" },
-    cancelDeleteText: { color: "#666", fontSize: scaledSize(14), fontFamily: "Outfit_700Bold" },
+    cancelDeleteBtn: { width: "100%", paddingVertical: scaledSize(8), backgroundColor: theme.field, borderRadius: scaledSize(8), alignItems: "center" },
+    cancelDeleteText: { color: theme.textSecondary, fontSize: scaledSize(14), fontFamily: "Outfit_700Bold" },
 
-    finishModalContainer: { width: "100%", padding: scaledSize(20), backgroundColor: "#fff", borderRadius: scaledSize(16), alignItems: "center" },
-    finishTitle: { fontSize: scaledSize(18), color: "#111827", fontFamily: "Outfit_700Bold", textAlign: "center", marginBottom: scaledSize(16) },
+    finishModalContainer: { width: "100%", padding: scaledSize(20), backgroundColor: theme.surface, borderRadius: scaledSize(16), alignItems: "center" },
+    finishTitle: { fontSize: scaledSize(18), color: theme.textPrimary, fontFamily: "Outfit_700Bold", textAlign: "center", marginBottom: scaledSize(16) },
     finishBtn: { width: "100%", paddingVertical: scaledSize(10), backgroundColor: "#40D99B", borderRadius: scaledSize(10), alignItems: "center", marginBottom: scaledSize(10) },
     finishBtnText: { color: "#fff", fontSize: scaledSize(14.5), fontFamily: "Outfit_700Bold" },
     finishBtnDisabled: { opacity: 0.6 },
-    keepEditingBtn: { width: "100%", paddingVertical: scaledSize(10), backgroundColor: "#F1F5F9", borderRadius: scaledSize(10), alignItems: "center" },
-    keepEditingText: { color: "#0F172A", fontSize: scaledSize(14), fontFamily: "Outfit_600SemiBold" },
+    keepEditingBtn: { width: "100%", paddingVertical: scaledSize(10), backgroundColor: theme.field, borderRadius: scaledSize(10), alignItems: "center" },
+    keepEditingText: { color: theme.textPrimary, fontSize: scaledSize(14), fontFamily: "Outfit_600SemiBold" },
     // Reminder styles (gradient border card)
     reminderWrapper: {
         width: "92%",
@@ -923,7 +922,7 @@ const styles = StyleSheet.create({
         elevation: 16,
     },
     reminderContainer: {
-        backgroundColor: "#fff",
+        backgroundColor: theme.surface,
         borderRadius: scaledSize(18),
     },
     reminderContent: {
@@ -931,8 +930,8 @@ const styles = StyleSheet.create({
         paddingHorizontal: scaledSize(20),
         alignItems: "center",
     },
-    reminderTitle: { fontSize: scaledSize(16), color: "#0F172A", fontFamily: "Nunito_800ExtraBold", marginBottom: scaledSize(14) },
-    reminderBody: { fontSize: scaledSize(14), color: "#334155c7", fontFamily: "Nunito_700Bold", textAlign: "center" },
+    reminderTitle: { fontSize: scaledSize(16), color: theme.textPrimary, fontFamily: "Nunito_800ExtraBold", marginBottom: scaledSize(14) },
+    reminderBody: { fontSize: scaledSize(14), color: theme.textSecondary, fontFamily: "Nunito_700Bold", textAlign: "center" },
 });
 
 // Prevent unnecessary re-renders: only re-render when meaningful props change.

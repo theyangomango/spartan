@@ -6,6 +6,7 @@ import RNBounceable from "@freakycoder/react-native-bounceable";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import FastImage from "react-native-fast-image";
 import TimerDisplay from "../TimerDisplay";
+import theme from "../../../../theme/mfpDark";
 
 const { height: screenHeight } = Dimensions.get("window");
 const scale = screenHeight / 844;
@@ -71,7 +72,7 @@ const GroupHeader = ({
                 {showTimerLeft ? (
                     <RNBounceable style={styles.rest_timer_ctnr} onPress={onAddTime ? withHaptics(onAddTime) : undefined}>
                         <View style={styles.iconWrapper}>
-                            <MaterialCommunityIcons name="timer-outline" size={scaledSize(24)} color="#0499FE" />
+                            <MaterialCommunityIcons name="timer-outline" size={scaledSize(24)} color={theme.primary} />
                             {countdown > 0 && (
                                 <Text style={styles.countdownText}>
                                     {Math.floor(countdown / 60)}:{String(countdown % 60).padStart(2, "0")}
@@ -82,7 +83,7 @@ const GroupHeader = ({
                 ) : (
                     <>
                         <Pressable onPress={onBack ? withHaptics(onBack) : undefined} style={styles.backBtn} hitSlop={8}>
-                            <MaterialCommunityIcons name="chevron-left" size={scaledSize(26)} color="#111827" />
+                            <MaterialCommunityIcons name="chevron-left" size={scaledSize(26)} color={theme.textPrimary} />
                         </Pressable>
                         {pfpOnLeft && (
                             <Pressable onPress={onPressPfp ? withHaptics(onPressPfp) : undefined} hitSlop={8}>
@@ -176,7 +177,7 @@ const styles = StyleSheet.create({
         width: scaledSize(36),
         height: scaledSize(36),
         borderRadius: scaledSize(12),
-        backgroundColor: "#F1F5F9",
+        backgroundColor: theme.field,
         alignItems: "center",
         justifyContent: "center",
     },
@@ -185,12 +186,12 @@ const styles = StyleSheet.create({
         paddingVertical: scaledSize(6),
         paddingHorizontal: scaledSize(12),
         borderRadius: scaledSize(12),
-        backgroundColor: "#E1F0FF",
+        backgroundColor: theme.addBtnBg,
     },
     iconWrapper: { flexDirection: "row", alignItems: "center" },
     countdownText: {
         fontSize: scaledSize(15),
-        color: "#0499FE",
+        color: theme.primary,
         fontFamily: "Outfit_700Bold",
         marginLeft: scaledSize(10),
     },
@@ -216,7 +217,7 @@ const styles = StyleSheet.create({
         width: scaledSize(28),
         height: scaledSize(28),
         borderRadius: scaledSize(20),
-        backgroundColor: "#fff",
+        backgroundColor: theme.surface,
         justifyContent: "center",
         alignItems: "center",
         shadowColor: "#000",
@@ -225,10 +226,10 @@ const styles = StyleSheet.create({
         shadowOffset: { width: 0, height: 2 },
         elevation: 2,
         borderWidth: 1,
-        borderColor: "#fff",
+        borderColor: theme.hairline,
     },
     pfpLeftWrap: { width: scaledSize(32), height: scaledSize(32) },
-    pfpFriendRing: { borderColor: "#2D9EFF" },
+    pfpFriendRing: { borderColor: theme.primary },
     pfp: { width: "100%", height: "100%", borderRadius: scaledSize(20) },
 
 
@@ -252,11 +253,11 @@ const styles = StyleSheet.create({
         height: scaledSize(34),
         paddingHorizontal: scaledSize(12),
         borderRadius: scaledSize(10),
-        backgroundColor: "#0EA5E9",
+        backgroundColor: theme.primary,
         flexDirection: "row",
         alignItems: "center",
         gap: scaledSize(6),
-        shadowColor: "#0EA5E9",
+        shadowColor: theme.primary,
         shadowOpacity: 0.25,
         shadowRadius: 8,
         shadowOffset: { width: 0, height: 4 },
@@ -273,11 +274,11 @@ const styles = StyleSheet.create({
         height: scaledSize(34),
         paddingHorizontal: scaledSize(12),
         borderRadius: scaledSize(12),
-        backgroundColor: "#2D9EFF",
+        backgroundColor: theme.primary,
         flexDirection: "row",
         alignItems: "center",
         gap: scaledSize(6),
-        shadowColor: "#0EA5E9",
+        shadowColor: theme.primary,
         shadowOpacity: 0.2,
         shadowRadius: 6,
         shadowOffset: { width: 0, height: 3 },

@@ -27,83 +27,97 @@ const BAR_TEXT_PT = scaleSize(6);
 export default function Podium({ data }) {
     if (!data) return <></>;
     return (
-        <View style={styles.leaderboard_ctnr}>
-            {/* soft navy gradient background for header */}
-            <LinearGradient
-                colors={["#20365A", "#182A45", "rgba(111,184,255,0.34)"]}
-                start={{ x: 0.08, y: 0.0 }}
-                end={{ x: 0.92, y: 1.0 }}
-                style={StyleSheet.absoluteFillObject}
-                pointerEvents="none"
-            />
-            {/* Left */}
-            <View style={styles.left}>
-                <View style={[styles.pfp_ctnr, { width: PFP_SIZE_LEFT }]}>
+        <>
+            {/* Full-screen blue gradient background (behind entire screen) */}
+            <View style={styles.bg_fullscreen} pointerEvents="none">
+                <LinearGradient
+                    // Slightly lighter again per request
+                    colors={["#3A78E6", "#2C5EA8", "rgba(170,210,255,0.96)"]}
+                    start={{ x: 0.06, y: 0.0 }}
+                    end={{ x: 0.94, y: 1.0 }}
+                    style={StyleSheet.absoluteFillObject}
+                />
+            </View>
+
+            {/* Podium content band (top ~40% of screen) */}
+            <View style={styles.podium_band}>
+                {/* Left */}
+                <View style={styles.left}>
+                    <View style={[styles.pfp_ctnr, { width: PFP_SIZE_LEFT }]}>
+                        {data.length >= 2 && (
+                            <FastImage
+                                source={{ uri: data[1].pfp }}
+                                style={styles.pfp}
+                                resizeMode={FastImage.resizeMode.cover}
+                            />
+                        )}
+                    </View>
                     {data.length >= 2 && (
-                        <FastImage
-                            source={{ uri: data[1].pfp }}
-                            style={styles.pfp}
-                            resizeMode={FastImage.resizeMode.cover}
-                        />
+                        <Text numberOfLines={1} ellipsizeMode="tail" style={[styles.leaderboard_handle_text, { fontSize: FONT_HANDLE }]}>
+                            {data[1].handle}
+                        </Text>
                     )}
+                    <View style={[styles.bar_ctnr, styles.silver_ctnr, { height: BAR_HEIGHT_LEFT, width: BAR_WIDTH }]}>
+                        {/* Unified number color for all bars */}
+                        <Text style={[styles.bar_text_unified, { fontSize: FONT_BAR }]}>2</Text>
+                    </View>
                 </View>
-                {data.length >= 2 && (
-                    <Text numberOfLines={1} ellipsizeMode="tail" style={[styles.leaderboard_handle_text, { fontSize: FONT_HANDLE }]}>
-                        {data[1].handle}
-                    </Text>
-                )}
-                <View style={[styles.bar_ctnr, styles.silver_ctnr, { height: BAR_HEIGHT_LEFT, width: BAR_WIDTH }]}>
-                    <Text style={[styles.bar_text, { fontSize: FONT_BAR }]}>2</Text>
-                </View>
-            </View>
 
-            {/* Center */}
-            <View style={styles.center}>
-                <View style={[styles.pfp_ctnr, { width: PFP_SIZE_CENTER }]}>
+                {/* Center */}
+                <View style={styles.center}>
+                    <View style={[styles.pfp_ctnr, { width: PFP_SIZE_CENTER }]}>
+                        {data.length >= 1 && (
+                            <FastImage
+                                source={{ uri: data[0].pfp }}
+                                style={styles.pfp}
+                                resizeMode={FastImage.resizeMode.cover}
+                            />
+                        )}
+                    </View>
                     {data.length >= 1 && (
-                        <FastImage
-                            source={{ uri: data[0].pfp }}
-                            style={styles.pfp}
-                            resizeMode={FastImage.resizeMode.cover}
-                        />
+                        <Text numberOfLines={1} ellipsizeMode="tail" style={[styles.leaderboard_handle_text, { fontSize: FONT_HANDLE }]}>
+                            {data[0].handle}
+                        </Text>
                     )}
+                    <View style={[styles.bar_ctnr, styles.gold_ctnr, { height: BAR_HEIGHT_CENTER, width: BAR_WIDTH }]}>
+                        <Text style={[styles.bar_text_unified, { fontSize: FONT_BAR }]}>1</Text>
+                    </View>
                 </View>
-                {data.length >= 1 && (
-                    <Text numberOfLines={1} ellipsizeMode="tail" style={[styles.leaderboard_handle_text, { fontSize: FONT_HANDLE }]}>
-                        {data[0].handle}
-                    </Text>
-                )}
-                <View style={[styles.bar_ctnr, styles.gold_ctnr, { height: BAR_HEIGHT_CENTER, width: BAR_WIDTH }]}>
-                    <Text style={[styles.bar_text, { fontSize: FONT_BAR }]}>1</Text>
-                </View>
-            </View>
 
-            {/* Right */}
-            <View style={styles.right}>
-                <View style={[styles.pfp_ctnr, { width: PFP_SIZE_RIGHT }]}>
+                {/* Right */}
+                <View style={styles.right}>
+                    <View style={[styles.pfp_ctnr, { width: PFP_SIZE_RIGHT }]}>
+                        {data.length >= 3 && (
+                            <FastImage
+                                source={{ uri: data[2].pfp }}
+                                style={styles.pfp}
+                                resizeMode={FastImage.resizeMode.cover}
+                            />
+                        )}
+                    </View>
                     {data.length >= 3 && (
-                        <FastImage
-                            source={{ uri: data[2].pfp }}
-                            style={styles.pfp}
-                            resizeMode={FastImage.resizeMode.cover}
-                        />
+                        <Text numberOfLines={1} ellipsizeMode="tail" style={[styles.leaderboard_handle_text, { fontSize: FONT_HANDLE }]}>
+                            {data[2].handle}
+                        </Text>
                     )}
-                </View>
-                {data.length >= 3 && (
-                    <Text numberOfLines={1} ellipsizeMode="tail" style={[styles.leaderboard_handle_text, { fontSize: FONT_HANDLE }]}>
-                        {data[2].handle}
-                    </Text>
-                )}
-                <View style={[styles.bar_ctnr, styles.bronze_ctnr, { height: BAR_HEIGHT_RIGHT, width: BAR_WIDTH }]}>
-                    <Text style={[styles.bar_text, { fontSize: FONT_BAR }]}>3</Text>
+                    <View style={[styles.bar_ctnr, styles.bronze_ctnr, { height: BAR_HEIGHT_RIGHT, width: BAR_WIDTH }]}>
+                        <Text style={[styles.bar_text_unified, { fontSize: FONT_BAR }]}>3</Text>
+                    </View>
                 </View>
             </View>
-        </View>
+        </>
     );
 }
 
 const styles = StyleSheet.create({
-    leaderboard_ctnr: {
+    // Full-screen background layer
+    bg_fullscreen: {
+        ...StyleSheet.absoluteFillObject,
+        backgroundColor: theme.bg,
+        zIndex: -2, // behind all content in this screen
+    },
+    // Top header band that holds the podium bars
+    podium_band: {
         position: 'absolute',
         top: 0,
         width: '100%',
@@ -111,9 +125,8 @@ const styles = StyleSheet.create({
         justifyContent: 'center',
         flexDirection: 'row',
         alignItems: 'flex-end',
-        // Dark background to match Competition screen
-        backgroundColor: theme.bg,
-        zIndex: -1
+        backgroundColor: 'transparent',
+        zIndex: -1,
     },
     bar_ctnr: {
         borderTopLeftRadius: BAR_RADIUS,
@@ -146,5 +159,11 @@ const styles = StyleSheet.create({
         fontFamily: 'Outfit_800ExtraBold',
         paddingTop: BAR_TEXT_PT,
         color: '#fff'
+    },
+    // Unified number color for all bars (high contrast on silver/gold/bronze)
+    bar_text_unified: {
+        fontFamily: 'Outfit_800ExtraBold',
+        paddingTop: BAR_TEXT_PT,
+        color: '#1A3A63',
     },
 });

@@ -413,5 +413,5 @@ const styles = StyleSheet.create({
         borderWidth: 1,
         borderColor: '#2D9EFF80',
     },
-    editGoalsText: { fontFamily: 'Outfit_700Bold', color: '#6FB8FF', fontSize: 13, letterSpacing: 0.15 },
+    editGoalsText: { fontFamily: 'Outfit_700Bold', color: '#6FB8FF', fontSize: 12.5, letterSpacing: 0.15 },
 });

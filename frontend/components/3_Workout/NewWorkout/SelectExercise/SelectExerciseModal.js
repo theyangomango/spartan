@@ -5,6 +5,7 @@ import RNBounceable from "@freakycoder/react-native-bounceable";
 import { exercises } from './EXERCISES';
 import ExercisesFlatlist from './ExercisesFlatlist';
 import AnimatedButton from './AnimatedButton';
+import theme from "../../../../theme/mfpDark";
 
 const { height: screenHeight } = Dimensions.get('window');
 const scale = screenHeight / 844; // Scaling factor based on iPhone 13 height
@@ -184,11 +185,11 @@ export default function SelectExerciseModal({ closeModal, appendExercises }) {
 
                 {/* Search */}
                 <View style={styles.searchContainer}>
-                    <Ionicons name="search" size={scaledSize(20)} color="#888" style={styles.searchIcon} />
+                    <Ionicons name="search" size={scaledSize(20)} color={theme.textSecondary} style={styles.searchIcon} />
                     <TextInput
                         style={styles.searchInput}
                         placeholder="Search exercises..."
-                        placeholderTextColor="#999"
+                        placeholderTextColor={theme.textSecondary}
                         value={inputQuery}
                         onChangeText={handleSearch}
                         onFocus={closeAllDropdowns}
@@ -207,7 +208,7 @@ export default function SelectExerciseModal({ closeModal, appendExercises }) {
                             }}
                         >
                             <Text style={styles.filterButtonText} numberOfLines={1}>{bodyPartButtonLabel}</Text>
-                            <Ionicons name={bodyPartOpen ? "chevron-up" : "chevron-down"} size={scaledSize(16)} color="#333" />
+                            <Ionicons name={bodyPartOpen ? "chevron-up" : "chevron-down"} size={scaledSize(16)} color={theme.textPrimary} />
                         </Pressable>
 
                         {bodyPartOpen && (
@@ -246,7 +247,7 @@ export default function SelectExerciseModal({ closeModal, appendExercises }) {
                             }}
                         >
                             <Text style={styles.filterButtonText} numberOfLines={1}>{equipmentButtonLabel}</Text>
-                            <Ionicons name={equipmentOpen ? "chevron-up" : "chevron-down"} size={scaledSize(16)} color="#333" />
+                            <Ionicons name={equipmentOpen ? "chevron-up" : "chevron-down"} size={scaledSize(16)} color={theme.textPrimary} />
                         </Pressable>
 
                         {equipmentOpen && (
@@ -307,7 +308,7 @@ const styles = StyleSheet.create({
     main_ctnr: {
         width: '94%',
         height: '81%',
-        backgroundColor: '#fff',
+        backgroundColor: theme.surface,
         borderRadius: scaledSize(20),
         shadowColor: '#000',
         shadowOffset: { width: 0, height: scaledSize(6) },
@@ -324,7 +325,7 @@ const styles = StyleSheet.create({
         paddingBottom: scaledSize(10),
     },
     newButton: {
-        backgroundColor: '#e0e0e0',
+        backgroundColor: theme.field,
         paddingHorizontal: scaledSize(20),
         paddingVertical: scaledSize(4.5),
         borderRadius: scaledSize(8),
@@ -333,14 +334,14 @@ const styles = StyleSheet.create({
         opacity: 0.5,
     },
     newButtonText: {
-        color: '#333',
+        color: theme.textSecondary,
         fontFamily: 'Outfit_700Bold',
         fontSize: scaledSize(14),
     },
     searchContainer: {
         flexDirection: 'row',
         alignItems: 'center',
-        backgroundColor: '#EEF2F7',
+        backgroundColor: theme.field,
         borderRadius: scaledSize(8),
         marginHorizontal: scaledSize(15),
         paddingHorizontal: scaledSize(8),
@@ -354,7 +355,7 @@ const styles = StyleSheet.create({
         flex: 1,
         padding: scaledSize(8),
         fontSize: scaledSize(14),
-        color: '#333',
+        color: theme.textPrimary,
         fontFamily: 'Outfit_700Bold',
     },
 
@@ -377,11 +378,11 @@ const styles = StyleSheet.create({
         paddingVertical: scaledSize(6),
         paddingHorizontal: scaledSize(12),
         borderRadius: scaledSize(10),
-        backgroundColor: '#F1F5F9',
+        backgroundColor: theme.field,
     },
     filterButtonText: {
         fontSize: scaledSize(13),
-        color: '#333',
+        color: theme.textPrimary,
         fontFamily: 'Outfit_700Bold',
         flexShrink: 1,
         marginRight: scaledSize(6),
@@ -391,7 +392,7 @@ const styles = StyleSheet.create({
         top: '100%',
         left: 0,
         right: 0,
-        backgroundColor: '#fff',
+        backgroundColor: theme.surface,
         borderRadius: scaledSize(10),
         marginTop: scaledSize(6),
         paddingVertical: scaledSize(4),
@@ -403,19 +404,19 @@ const styles = StyleSheet.create({
         zIndex: 3,
         maxHeight: scaledSize(220),
         borderWidth: StyleSheet.hairlineWidth,
-        borderColor: '#E6EEF6',
+        borderColor: theme.hairline,
     },
     dropdownItem: {
         paddingVertical: scaledSize(8),
         paddingHorizontal: scaledSize(10),
     },
-    dropdownItemActive: { backgroundColor: '#E7F0FF' },
+    dropdownItemActive: { backgroundColor: theme.addBtnBg },
     dropdownItemText: {
         fontSize: scaledSize(13),
-        color: '#333',
+        color: theme.textPrimary,
         fontFamily: 'Outfit_700Bold',
     },
-    dropdownItemTextActive: { color: '#2D9EFF' },
+    dropdownItemTextActive: { color: theme.primary },
     dropdownBackdrop: {
         position: 'absolute',
         top: scaledSize(140), // below the header & search bar region; tweak if needed

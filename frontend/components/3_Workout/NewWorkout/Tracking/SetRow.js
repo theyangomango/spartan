@@ -5,6 +5,7 @@ import SetTypePanel from "./SetTypePanel";
 import { Ionicons, MaterialCommunityIcons } from "@expo/vector-icons";
 import SwipeableItem, { OpenDirection, useSwipeableItemParams } from "react-native-swipeable-item";
 import Animated, { useAnimatedStyle } from "react-native-reanimated";
+import theme from "../../../../theme/mfpDark";
 
 const { height: screenHeight } = Dimensions.get("window");
 const scale = screenHeight / 844;
@@ -73,7 +74,6 @@ function SetRow({
                 <View style={[styles.stat_row, doneLocal && styles.done]}>
                     <Pressable onPress={openTypePanel} style={[
                         styles.set_ctnr,
-                        doneLocal && { backgroundColor: "#DCFFDA" },
                         set?.type && [styles.set_ctnr_typed, typePillBg(set?.type)],
                     ]}>
                         <Text style={[styles.set_number_text, set?.type && [styles.set_letter_text, typePillText(set?.type)]]}>
@@ -178,30 +178,32 @@ const UnderlayLeft = ({ onDelete }) => {
 
 const styles = StyleSheet.create({
     container: { flex: 1 },
-    stat_row: { flexDirection: "row", paddingVertical: scaledSize(8), alignItems: "center" },
-    done: { backgroundColor: "#DCFFDA" },
+    stat_row: { flexDirection: "row", paddingVertical: scaledSize(8), alignItems: "center", borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: theme.hairline },
+    done: { backgroundColor: theme.successRowBg },
     set_ctnr: {
         marginLeft: "5%",
         width: "8%",
-        height: scaledSize(21),
-        borderRadius: scaledSize(6),
-        backgroundColor: "#eaeaea",
+        height: scaledSize(24),
+        borderRadius: scaledSize(8),
+        backgroundColor: theme.field,
+        borderWidth: StyleSheet.hairlineWidth,
+        borderColor: theme.hairline,
         alignItems: "center",
         justifyContent: "center",
     },
     previous_ctnr: { width: "38%", alignItems: "center", justifyContent: "center" },
     weight_unit_ctnr: { width: "18%", alignItems: "center" },
     reps_ctnr: { width: "18%", alignItems: "center" },
-    set_number_text: { fontFamily: "Poppins_700Bold", fontSize: scaledSize(14), color: "#111827" },
-    set_ctnr_typed: { backgroundColor: "#E5E7EB" },
-    set_letter_text: { fontFamily: "Outfit_700Bold" },
-    previous_stat_text: { fontFamily: "Poppins_700Bold", fontSize: scaledSize(15), color: "#ccc" },
+    set_number_text: { fontFamily: "Poppins_700Bold", fontSize: scaledSize(14), color: theme.textPrimary },
+    set_ctnr_typed: { backgroundColor: theme.field },
+    set_letter_text: { fontFamily: "Outfit_700Bold", fontSize: scaledSize(14.8) },
+    previous_stat_text: { fontFamily: "Poppins_700Bold", fontSize: scaledSize(15), color: theme.textSecondary },
     done_ctnr: { width: "10.5%", height: scaledSize(22), alignItems: "center" },
     checkmark_ctnr: {
         paddingHorizontal: scaledSize(10),
         height: "100%",
         borderRadius: scaledSize(7),
-        backgroundColor: "#eee",
+        backgroundColor: theme.field,
         justifyContent: "center",
     },
     checkmark_ctnr_selected: {
@@ -209,7 +211,7 @@ const styles = StyleSheet.create({
         height: "100%",
         borderRadius: scaledSize(7),
         justifyContent: "center",
-        backgroundColor: "#58DD6F",
+        backgroundColor: theme.success,
     },
     underlayLeft: {
         position: "absolute",
@@ -237,13 +239,13 @@ const styles = StyleSheet.create({
 function typePillBg(type) {
     switch (type) {
         case "warmup":
-            return { backgroundColor: "#FFEAD5" };
+            return { backgroundColor: "rgba(251,146,60,0.45)", borderWidth: StyleSheet.hairlineWidth, borderColor: "rgba(251,146,60,0.7)" };
         case "dropset":
-            return { backgroundColor: "#F3E8FF" };
+            return { backgroundColor: "rgba(168,85,247,0.45)", borderWidth: StyleSheet.hairlineWidth, borderColor: "rgba(168,85,247,0.7)" };
         case "failure":
-            return { backgroundColor: "#FEE2E2" };
+            return { backgroundColor: "rgba(244,63,94,0.45)", borderWidth: StyleSheet.hairlineWidth, borderColor: "rgba(244,63,94,0.7)" };
         default:
-            return { backgroundColor: "#E5E7EB" };
+            return { backgroundColor: theme.field };
     }
 }
 function typeLetter(type) {
@@ -257,9 +259,9 @@ function typeLetter(type) {
 
 function typePillText(type) {
     switch (type) {
-        case "warmup": return { color: "#9A3412" };
-        case "dropset": return { color: "#7C3AED" };
-        case "failure": return { color: "#B91C1C" };
-        default: return { color: "#111827" };
+        case "warmup": return { color: "#FFFFFF" };
+        case "dropset": return { color: "#FFFFFF" };
+        case "failure": return { color: "#FFFFFF" };
+        default: return { color: theme.textPrimary };
     }
 }

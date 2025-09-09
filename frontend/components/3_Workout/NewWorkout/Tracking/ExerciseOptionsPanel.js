@@ -1,6 +1,7 @@
 import React, { useEffect, useRef } from "react";
 import { View, Text, StyleSheet, Modal, TouchableOpacity, Animated, Dimensions } from "react-native";
 import RNBounceable from "@freakycoder/react-native-bounceable";
+import theme from "../../../../theme/mfpDark";
 import { MaterialCommunityIcons, FontAwesome6 } from '@expo/vector-icons';
 
 const { width: screenWidth, height: screenHeight } = Dimensions.get("window");
@@ -89,7 +90,7 @@ const styles = StyleSheet.create({
         position: "absolute",
         zIndex: 10,
         borderRadius: 18,
-        backgroundColor: "#FFFFFF",
+        backgroundColor: theme.surface,
         paddingTop: 10,
         paddingBottom: 8,
         paddingHorizontal: 10,
@@ -99,7 +100,7 @@ const styles = StyleSheet.create({
         shadowOffset: { width: 0, height: 8 },
         elevation: 6,
         borderWidth: StyleSheet.hairlineWidth,
-        borderColor: "rgba(2,6,23,0.06)",
+        borderColor: theme.hairline,
     },
     caret: {
         position: "absolute",
@@ -107,16 +108,16 @@ const styles = StyleSheet.create({
         left: 18,
         width: 12,
         height: 12,
-        backgroundColor: "#fff",
+        backgroundColor: theme.surface,
         transform: [{ rotate: "45deg" }],
         borderLeftWidth: StyleSheet.hairlineWidth,
         borderTopWidth: StyleSheet.hairlineWidth,
-        borderColor: "rgba(2,6,23,0.06)",
+        borderColor: theme.hairline,
     },
     header: {
         fontFamily: "Outfit_600SemiBold",
         fontSize: 13,
-        color: "#64748B",
+        color: theme.textSecondary,
         paddingHorizontal: 8,
         paddingBottom: 6,
     },
@@ -140,11 +141,11 @@ const styles = StyleSheet.create({
     rowText: {
         fontFamily: "Outfit_600SemiBold",
         fontSize: 15,
-        color: "#0F172A",
+        color: theme.textPrimary,
     },
     divider: {
         height: StyleSheet.hairlineWidth,
-        backgroundColor: "rgba(2,6,23,0.06)",
+        backgroundColor: theme.hairline,
         marginHorizontal: 8,
     },
 });

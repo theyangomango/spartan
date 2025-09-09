@@ -1,6 +1,7 @@
 import React, { useCallback, useEffect, useMemo, useRef } from "react";
 import BottomSheet, { BottomSheetBackdrop } from "@gorhom/bottom-sheet";
 import EditTemplateModal from "./EditTemplateModal";
+import theme from "../../../theme/mfpDark";
 
 const EditTemplateBottomSheet = ({ isVisible, setIsVisible, openedTemplateRef, updateTemplate, deleteTemplate }) => {
     const bottomSheetRef = useRef(null);
@@ -34,6 +35,7 @@ const EditTemplateBottomSheet = ({ isVisible, setIsVisible, openedTemplateRef, u
             backdropComponent={renderBackdrop}
             enablePanDownToClose
             enableContentPanningGesture={false}
+            backgroundStyle={{ backgroundColor: theme.bg }}
             onClose={() => {
                 setIsVisible(false);
             }}

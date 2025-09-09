@@ -16,14 +16,14 @@ const scaledSize = (n) => Math.round(n * scale);
 
 // Theme (dark mode for Competition context)
 const COLORS = {
-    bg: "#252733",         // sheet/card background
-    card: "#252733",       // cards within the sheet
+    bg: "#2E3445",         // lighter sheet/card background
+    card: "#2E3445",       // cards within the sheet
     text: "#EAEAEA",       // primary text
     subtext: "#AEB5C0",    // secondary text
     accent: "#2D9EFF",
     hairline: "rgba(255,255,255,0.12)",
-    iconBg: "#1E232C",
-    statBg: "#1E232C",
+    iconBg: "#343D54",     // lighter icon wells
+    statBg: "#343D54",     // lighter stat tiles
     statBorder: "rgba(255,255,255,0.08)",
 };
 

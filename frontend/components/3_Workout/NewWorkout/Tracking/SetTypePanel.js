@@ -1,6 +1,7 @@
 import React, { useEffect, useRef, memo } from "react";
 import { View, Text, StyleSheet, Modal, TouchableOpacity, Animated, Dimensions } from "react-native";
 import RNBounceable from "@freakycoder/react-native-bounceable";
+import theme from "../../../../theme/mfpDark";
 
 const { width: screenWidth, height: screenHeight } = Dimensions.get("window");
 
@@ -41,9 +42,9 @@ function SetTypePanel({ visible, onClose, position, current, onSelect }) {
 
           <Text style={styles.header}>Set type</Text>
 
-          <ITEM color="#FDBA74" letter="W" label="Warm up" onPress={() => { onSelect?.("warmup"); onClose?.(); }} />
-          <ITEM color="#C084FC" letter="D" label="Drop set" onPress={() => { onSelect?.("dropset"); onClose?.(); }} />
-          <ITEM color="#F87171" letter="F" label="Failure" onPress={() => { onSelect?.("failure"); onClose?.(); }} />
+          <ITEM color="#FB923C" letter="W" label="Warm up" onPress={() => { onSelect?.("warmup"); onClose?.(); }} />
+          <ITEM color="#A855F7" letter="D" label="Drop set" onPress={() => { onSelect?.("dropset"); onClose?.(); }} />
+          <ITEM color="#F43F5E" letter="F" label="Failure" onPress={() => { onSelect?.("failure"); onClose?.(); }} />
         </Animated.View>
       </TouchableOpacity>
     </Modal>
@@ -64,11 +65,11 @@ const areEqual = (prev, next) => {
 export default memo(SetTypePanel, areEqual);
 
 const styles = StyleSheet.create({
-  overlay: { flex: 1, backgroundColor: "rgba(2,6,23,0.35)" },
+  overlay: { flex: 1, backgroundColor: "rgba(0,0,0,0.35)" },
   panel: {
     position: "absolute",
     borderRadius: 18,
-    backgroundColor: "#0F172A",
+    backgroundColor: theme.surface,
     paddingVertical: 10,
     paddingHorizontal: 10,
     shadowColor: "#000",
@@ -83,10 +84,10 @@ const styles = StyleSheet.create({
     left: 18,
     width: 14,
     height: 14,
-    backgroundColor: "#0F172A",
+    backgroundColor: theme.surface,
     transform: [{ rotate: "45deg" }],
   },
-  header: { color: "#CBD5E1", fontFamily: "Outfit_600SemiBold", fontSize: 13, paddingHorizontal: 6, paddingBottom: 8 },
+  header: { color: theme.textSecondary, fontFamily: "Outfit_600SemiBold", fontSize: 13, paddingHorizontal: 6, paddingBottom: 8 },
   itemRow: {
     flexDirection: "row",
     alignItems: "center",
@@ -96,7 +97,7 @@ const styles = StyleSheet.create({
     borderRadius: 12,
   },
   letterBadge: { width: 24, height: 24, borderRadius: 6, alignItems: "center", justifyContent: "center" },
-  letterText: { color: "#0F172A", fontFamily: "Outfit_700Bold", fontSize: 12 },
-  itemLabel: { color: "#F8FAFC", fontFamily: "Outfit_700Bold", fontSize: 15 },
-  separator: { height: 1, backgroundColor: "rgba(203,213,225,0.18)", marginHorizontal: 8, marginVertical: 4, borderRadius: 1 },
+  letterText: { color: "#FFFFFF", fontFamily: "Outfit_700Bold", fontSize: 12 },
+  itemLabel: { color: theme.textPrimary, fontFamily: "Outfit_700Bold", fontSize: 15 },
+  separator: { height: 1, backgroundColor: theme.hairline, marginHorizontal: 8, marginVertical: 4, borderRadius: 1 },
 });

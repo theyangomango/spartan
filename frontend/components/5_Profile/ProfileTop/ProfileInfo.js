@@ -63,7 +63,7 @@ const styles = StyleSheet.create({
         borderWidth: scaledSize(3),
         borderRadius: scaledSize(26.5),
         padding: scaledSize(2.25),
-        borderColor: '#343842',
+        borderColor: '#3C4250',
     },
     pfp: {
         width: scaledSize(54),
@@ -103,7 +103,7 @@ const styles = StyleSheet.create({
         alignSelf: 'center',
         borderWidth: scaledSize(1),
         marginHorizontal: scaledSize(10),
-        borderColor: '#2B2F38',
+        borderColor: '#3C4250',
     },
     name_text: {
         fontFamily: 'Outfit_600SemiBold',

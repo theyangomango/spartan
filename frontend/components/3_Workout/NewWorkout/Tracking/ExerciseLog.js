@@ -5,6 +5,7 @@ import * as Haptics from "expo-haptics";
 import { MaterialCommunityIcons, Entypo } from "@expo/vector-icons";
 import RNBounceable from "@freakycoder/react-native-bounceable";
 import SetRow from "./SetRow";
+import theme from "../../../../theme/mfpDark";
 import ExerciseOptionsPanel from "./ExerciseOptionsPanel";
 
 const { height: screenHeight } = Dimensions.get("window");
@@ -246,9 +247,8 @@ function ExerciseLog({
             {!readOnly && (
                 <Animated.View style={[styles.add_set_btn_ctnr, { opacity: fadeAnim }]}>
                     <RNBounceable activeOpacity={0.5} onPress={addSet} style={styles.add_set_btn}>
-                        <Entypo name="plus" size={s(18)} color="#000" />
+                        <Entypo name="plus" size={s(18)} color={theme.textPrimary} />
                         <Text style={styles.add_set_text}>Add Set</Text>
-                        <MaterialCommunityIcons name="arm-flex" size={s(20)} color="#aaa" />
                     </RNBounceable>
                 </Animated.View>
             )}
@@ -272,7 +272,7 @@ const styles = StyleSheet.create({
     main_ctnr: { marginTop: s(16), marginBottom: s(6), position: "relative" },
     header: { flexDirection: "row", alignItems: "center", paddingLeft: s(20), paddingBottom: s(10), marginHorizontal: s(2.5) },
     nameContainer: { flexDirection: "row", alignItems: "center", flexShrink: 1, marginRight: s(10) },
-    exercise_text: { fontFamily: "Mulish_800ExtraBold", color: "#0699FF", fontSize: s(15), flexShrink: 1 },
+    exercise_text: { fontFamily: "Mulish_800ExtraBold", color: theme.primary, fontSize: s(15), flexShrink: 1 },
     muscle_ctnr: { borderRadius: s(15), height: s(23.5), paddingHorizontal: s(12), alignItems: "center", justifyContent: "center", marginLeft: s(5) },
     muscle_text: { fontFamily: "Poppins_700Bold", fontSize: s(12), color: "#fff" },
     labels: { flexDirection: "row", paddingBottom: s(5), marginHorizontal: s(2.5) },
@@ -280,8 +280,8 @@ const styles = StyleSheet.create({
     prev_col: { width: "38%", alignItems: "center" },
     w_col: { width: "18%", alignItems: "center" },
     r_col: { width: "18%", alignItems: "center" },
-    label_text: { fontFamily: "Mulish_800ExtraBold", fontSize: s(14) },
+    label_text: { fontFamily: "Mulish_800ExtraBold", fontSize: s(14), color: theme.textSecondary },
     add_set_btn_ctnr: { paddingHorizontal: s(20) },
-    add_set_btn: { width: "100%", marginTop: s(8), alignSelf: "center", height: s(28), borderRadius: s(20), backgroundColor: "#eaeaea", justifyContent: "center", alignItems: "center", flexDirection: "row" },
-    add_set_text: { fontFamily: "Outfit_600SemiBold", color: "#000", fontSize: s(15), marginLeft: s(1), marginRight: s(5) },
+    add_set_btn: { width: "100%", marginTop: s(8), alignSelf: "center", height: s(28), borderRadius: s(20), backgroundColor: theme.field, justifyContent: "center", alignItems: "center", flexDirection: "row" },
+    add_set_text: { fontFamily: "Outfit_600SemiBold", color: theme.textPrimary, fontSize: s(15), marginLeft: s(1), marginRight: s(5) },
 });

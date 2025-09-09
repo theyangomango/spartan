@@ -2,6 +2,7 @@
 import React from "react";
 import { View, Text, StyleSheet, Pressable } from "react-native";
 import FastImage from "react-native-fast-image";
+import theme from "../../theme/mfpDark";
 
 export default function InviteBanner({ invite, pfpUri, onAccept, onDecline }) {
     return (
@@ -47,9 +48,9 @@ const styles = StyleSheet.create({
     inviteCard: {
         width: "92%",
         borderRadius: 14,
-        backgroundColor: "#F7FAFF",
+        backgroundColor: theme.surface,
         borderWidth: 1,
-        borderColor: "#E5EEF9",
+        borderColor: theme.hairline,
         paddingVertical: 10,
         paddingHorizontal: 12,
         flexDirection: "row",
@@ -68,13 +69,13 @@ const styles = StyleSheet.create({
         borderRadius: 18,
         overflow: "hidden",
         marginRight: 10,
-        backgroundColor: "#fff",
+        backgroundColor: theme.surface,
         borderWidth: 1,
-        borderColor: "#fff",
+        borderColor: theme.hairline,
     },
     invitePfp: { width: "100%", height: "100%" },
-    inviteTitle: { fontFamily: "Outfit_700Bold", fontSize: 14.5, color: "#0F172A" },
-    inviteSub: { fontFamily: "Outfit_500Medium", fontSize: 12.5, color: "#64748B", marginTop: 2 },
+    inviteTitle: { fontFamily: "Outfit_700Bold", fontSize: 14.5, color: theme.textPrimary },
+    inviteSub: { fontFamily: "Outfit_500Medium", fontSize: 12.5, color: theme.textSecondary, marginTop: 2 },
 
     inviteActions: { flexDirection: "row", alignItems: "center" },
     inviteAccept: {
@@ -88,5 +89,5 @@ const styles = StyleSheet.create({
     },
     inviteAcceptText: { color: "#fff", fontFamily: "Outfit_700Bold", fontSize: 13 },
     inviteDismiss: { paddingHorizontal: 6, paddingVertical: 4 },
-    inviteDismissText: { color: "#64748B", fontFamily: "Outfit_600SemiBold", fontSize: 12.5 },
+    inviteDismissText: { color: theme.textSecondary, fontFamily: "Outfit_600SemiBold", fontSize: 12.5 },
 });

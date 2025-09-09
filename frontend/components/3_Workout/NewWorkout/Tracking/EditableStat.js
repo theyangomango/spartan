@@ -1,5 +1,6 @@
 import React, { useState, useRef } from "react";
 import { TextInput, StyleSheet, Pressable, Dimensions, Keyboard, Platform, InputAccessoryView, View, Text } from "react-native";
+import theme from "../../../../theme/mfpDark";
 
 const { height: screenHeight } = Dimensions.get('window');
 const scale = screenHeight / 844; // Scaling factor based on iPhone 13 height
@@ -62,7 +63,7 @@ export default function EditableStat({ placeholder = '0', isFinished, value, set
                     editable
                     keyboardType="numeric"
                     placeholder={placeholder}
-                    placeholderTextColor={isFinished ? '#000' : '#888'}
+                    placeholderTextColor={theme.textSecondary}
                     onFocus={() => { setIsSelected(true); try { onFocus?.(); } catch {} }}
                     onBlur={() => setIsSelected(false)}
                     style={styles.text}
@@ -93,20 +94,23 @@ const styles = StyleSheet.create({
     editing: {
         width: scaledSize(63),
         height: scaledSize(23),
-        borderRadius: scaledSize(8),
-        backgroundColor: '#eee',
+        borderRadius: scaledSize(9),
+        backgroundColor: theme.chipBg,
+        borderWidth: StyleSheet.hairlineWidth,
+        borderColor: theme.hairline,
     },
     selected: {
-        borderColor: '#0699FF',
+        borderColor: theme.primary,
     },
     finished: {
-        backgroundColor: '#DCFFDA',
+        backgroundColor: theme.successBg,
     },
     text: {
         fontFamily: 'Poppins_700Bold',
         fontSize: scaledSize(15),
         flex: 1,
-        textAlign: 'center'
+        textAlign: 'center',
+        color: theme.textPrimary,
     },
     accessoryBar: {
         flexDirection: 'row',
@@ -114,17 +118,17 @@ const styles = StyleSheet.create({
         paddingHorizontal: scaledSize(12),
         paddingVertical: scaledSize(8),
         borderTopWidth: StyleSheet.hairlineWidth,
-        borderColor: '#D1D5DB',
-        backgroundColor: '#F8FAFC',
+        borderColor: theme.hairline,
+        backgroundColor: theme.surface,
     },
     accessoryBtn: {
-        backgroundColor: '#E5E7EB',
+        backgroundColor: theme.field,
         paddingHorizontal: scaledSize(12),
         paddingVertical: scaledSize(6),
         borderRadius: scaledSize(8),
     },
     accessoryBtnText: {
-        color: '#0F172A',
+        color: theme.textPrimary,
         fontFamily: 'Outfit_700Bold',
         fontSize: scaledSize(13),
     },

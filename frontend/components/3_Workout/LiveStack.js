@@ -5,6 +5,7 @@ import FastImage from "react-native-fast-image";
 import { Ionicons } from "@expo/vector-icons";
 import { SMALL_SIZE } from "./sections/workoutTheme";
 import { usePfp } from "../../helper/usePFPs";
+import theme from "../../theme/mfpDark";
 
 /** Single avatar that sources from usePfp(uid), falling back to provided URI */
 const AvatarSlot = memo(function AvatarSlot({ uid, size, left = 0, fallbackUri, version = 0 }) {
@@ -49,7 +50,7 @@ const AvatarSlot = memo(function AvatarSlot({ uid, size, left = 0, fallbackUri, 
  */
 function LiveStack({ users = [] }) {
     if (!users || users.length === 0) {
-        return <Ionicons name="home" size={18} color="#0F172A" />;
+        return <Ionicons name="home" size={18} color={theme.textPrimary} />;
     }
 
     const hasLive = users.some((u) => u?.isLive || u?.currentWorkout);
@@ -160,7 +161,7 @@ const styles = StyleSheet.create({
         minHeight: 22,
         paddingHorizontal: 8,
         borderRadius: 11,
-        backgroundColor: "#e1e7eeff", // soft grey
+        backgroundColor: theme.field, // soft grey for dark theme
         flexDirection: "row",
         alignItems: "center",
     },
@@ -174,7 +175,7 @@ const styles = StyleSheet.create({
     liveText: {
         fontFamily: "Outfit_700Bold",
         fontSize: 11,
-        color: "#0F172A",
+        color: theme.textPrimary,
         includeFontPadding: false,
     },
 });

@@ -1,6 +1,7 @@
 import RNBounceable from '@freakycoder/react-native-bounceable';
 import React from 'react';
 import { StyleSheet, View, Text, Dimensions } from 'react-native';
+import theme from '../../../../theme/mfpDark';
 
 const { height: screenHeight } = Dimensions.get('window');
 const scale = screenHeight / 844; // Scaling factor based on iPhone 13 height
@@ -44,7 +45,9 @@ const styles = StyleSheet.create({
         marginHorizontal: scaledSize(15),
         paddingHorizontal: scaledSize(15),
         borderRadius: scaledSize(25),
-        backgroundColor: '#1F1F1F',
+        backgroundColor: theme.field,
+        borderWidth: StyleSheet.hairlineWidth,
+        borderColor: theme.hairline,
         justifyContent: 'center', // Centering the entire content
         shadowColor: '#000',
         shadowOffset: { width: 0, height: scaledSize(2) },
@@ -62,19 +65,19 @@ const styles = StyleSheet.create({
     },
     bigNumber: {
         fontSize: scaledSize(23),
-        color: '#a2cefaff',
+        color: theme.accentBlue,
         fontFamily: 'Poppins_800ExtraBold',
     },
     smallText: {
         paddingTop: scaledSize(1),
         fontSize: scaledSize(12.8),
-        color: '#eee',
+        color: theme.textSecondary,
         fontFamily: 'Poppins_600SemiBold'
     },
     smallerText: {
         paddingTop: scaledSize(1),
         fontSize: scaledSize(12.8),  // Slightly smaller font size
-        color: '#eee',
+        color: theme.textSecondary,
         fontFamily: 'Poppins_600SemiBold'
     },
 });

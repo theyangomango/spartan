@@ -134,7 +134,7 @@ const styles = StyleSheet.create({
     },
     menuCard: {
         width: MENU_WIDTH,
-        backgroundColor: "#252733",
+        backgroundColor: "#2E3445",
         borderRadius: MENU_RADIUS,
         paddingVertical: MENU_PAD_V,
         paddingHorizontal: MENU_PAD_H,
