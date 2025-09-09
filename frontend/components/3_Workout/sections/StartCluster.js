@@ -25,16 +25,19 @@ const StartCluster = ({
         <View style={styles.wrap} pointerEvents="box-none">
             <View style={styles.actionsRow} pointerEvents="box-none">
                 {/* Make a Post */}
-                <Pressable
-                    hitSlop={8}
-                    android_ripple={{ color: "rgba(2,6,23,0.08)", radius: SMALL_SIZE / 2, borderless: true }}
-                    accessibilityRole="button"
-                    accessibilityLabel="Create a post"
-                    style={({ pressed }) => [styles.smallBtn, pressed && styles.smallBtnPressed]}
-                    onPress={() => { navigation?.navigate('SelectPhotos'); }}
-                >
-                    <AddSquare size={24} color="#000" />
-                </Pressable>
+                <View style={styles.glowWrap} pointerEvents="box-none">
+                    <View style={[styles.glow, styles.glowLeft]} pointerEvents="none" />
+                    <Pressable
+                        hitSlop={8}
+                        android_ripple={{ color: "rgba(255,255,255,0.08)", radius: SMALL_SIZE / 2, borderless: true }}
+                        accessibilityRole="button"
+                        accessibilityLabel="Create a post"
+                        style={({ pressed }) => [styles.smallBtn, pressed && styles.smallBtnPressed]}
+                        onPress={() => { navigation?.navigate('SelectPhotos'); }}
+                    >
+                        <AddSquare size={24} color="#E5E7EB" />
+                    </Pressable>
+                </View>
 
                 {/* Start / Open */}
                 <Animated.View style={{ transform: [{ scale }] }}>
@@ -42,16 +45,19 @@ const StartCluster = ({
                 </Animated.View>
 
                 {/* Friends / Live */}
-                <Pressable
-                    hitSlop={8}
-                    android_ripple={{ color: "rgba(2,6,23,0.08)", radius: SMALL_SIZE / 2, borderless: true }}
-                    accessibilityRole="button"
-                    accessibilityLabel="Friends training now"
-                    style={({ pressed }) => [styles.smallBtn, pressed && styles.smallBtnPressed]}
-                    onPress={onOpenFriends}
-                >
-                    {showStack ? <LiveStack users={friendsStackUsers} /> : <Feather name="users" size={21} color="#000" />}
-                </Pressable>
+                <View style={styles.glowWrap} pointerEvents="box-none">
+                    <View style={[styles.glow, styles.glowRight]} pointerEvents="none" />
+                    <Pressable
+                        hitSlop={8}
+                        android_ripple={{ color: "rgba(255,255,255,0.08)", radius: SMALL_SIZE / 2, borderless: true }}
+                        accessibilityRole="button"
+                        accessibilityLabel="Friends training now"
+                        style={({ pressed }) => [styles.smallBtn, pressed && styles.smallBtnPressed]}
+                        onPress={onOpenFriends}
+                    >
+                        {showStack ? <LiveStack users={friendsStackUsers} /> : <Feather name="users" size={21} color="#E5E7EB" />}
+                    </Pressable>
+                </View>
             </View>
         </View>
     );
@@ -66,19 +72,38 @@ const styles = StyleSheet.create({
         justifyContent: "space-between",
         marginBottom: 10,
     },
+    glowWrap: { position: "relative", alignItems: "center", justifyContent: "center" },
+    glow: {
+        position: "absolute",
+        width: SMALL_SIZE + 8,
+        height: SMALL_SIZE + 8,
+        borderRadius: (SMALL_SIZE + 8) / 2,
+        backgroundColor: "#2D9EFF12", // very soft fill
+        borderWidth: 1,
+        borderColor: "#2D9EFF33",
+        shadowColor: "#2D9EFF",
+        shadowOpacity: 0.18,
+        shadowRadius: 8,
+        shadowOffset: { width: 0, height: 4 },
+        elevation: 0,
+    },
+    glowLeft: {},
+    glowRight: {},
     smallBtn: {
         width: SMALL_SIZE,
         height: SMALL_SIZE,
         borderRadius: SMALL_SIZE / 2,
         alignItems: "center",
         justifyContent: "center",
-        backgroundColor: "#FFFFFF",
+        backgroundColor: "#252733",
+        borderWidth: 1,
+        borderColor: "#3B4350",
         ...Platform.select({
-            ios: { shadowColor: "#000", shadowOpacity: 0.08, shadowRadius: 8, shadowOffset: { width: 0, height: 4 } },
-            android: { elevation: 3 },
+            ios: { shadowColor: "#000", shadowOpacity: 0.35, shadowRadius: 12, shadowOffset: { width: 0, height: 8 } },
+            android: { elevation: 2 },
         }),
     },
-    smallBtnPressed: { transform: [{ scale: 0.96 }], backgroundColor: "#F1F5F9" },
+    smallBtnPressed: { transform: [{ scale: 0.96 }], backgroundColor: "#303544" },
 });
 
 export default memo(StartCluster);

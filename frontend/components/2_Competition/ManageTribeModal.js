@@ -39,7 +39,7 @@ function ManageTribeModal({
                                 <>
                                     <TextInput
                                         placeholder="Rename tribe"
-                                        placeholderTextColor="#999"
+                                        placeholderTextColor="#8C95A3"
                                         value={renameValue}
                                         onChangeText={onChangeRename}
                                         style={styles.input}
@@ -77,7 +77,7 @@ const styles = StyleSheet.create({
     modalCard: {
         width: "100%",
         maxWidth: 420,
-        backgroundColor: "#fff",
+        backgroundColor: "#252733",
         borderRadius: 16,
         paddingVertical: 16,
         paddingHorizontal: 14,
@@ -85,29 +85,29 @@ const styles = StyleSheet.create({
     modalTitle: {
         fontFamily: "Outfit_700Bold",
         fontSize: 18,
-        color: "#111",
+        color: "#EAEAEA",
         marginBottom: 10,
     },
     metaText: {
         fontFamily: "Outfit_500Medium",
-        color: "#333",
+        color: "#EAEAEA",
         marginBottom: 6,
     },
     input: {
-        backgroundColor: "#f6f6f6",
+        backgroundColor: "#1E232C",
         borderRadius: 10,
         paddingHorizontal: 12,
         paddingVertical: 10,
         fontFamily: "Outfit_500Medium",
-        color: "#111",
+        color: "#EAEAEA",
         marginBottom: 12,
     },
     btn: { paddingVertical: 10, paddingHorizontal: 14, borderRadius: 10 },
     btnText: { fontFamily: "Outfit_700Bold", fontSize: 14 },
     btnPrimary: { backgroundColor: "#2D9EFF" },
     btnPrimaryText: { color: "#fff" },
-    btnDanger: { backgroundColor: "#FFE5E5", marginTop: 4 },
-    btnDangerText: { color: "#C62828" },
+    btnDanger: { backgroundColor: "#3B2323", marginTop: 4 },
+    btnDangerText: { color: "#FF6B6B" },
 });
 
 export default memo(ManageTribeModal);

@@ -331,18 +331,19 @@ const styles = StyleSheet.create({
     wrap: { marginTop: 0, marginBottom: 3 },
 
     card: {
-        backgroundColor: "#FFFFFF",
+        // final card tone from spec
+        backgroundColor: "#252733",
         borderRadius: 18,
         paddingVertical: 12,
         borderWidth: StyleSheet.hairlineWidth,
-        borderColor: "rgba(2,6,23,0.06)",
+        borderColor: "rgba(255,255,255,0.08)",
         overflow: "hidden",
         ...Platform.select({
             ios: {
                 shadowColor: "#000",
-                shadowOpacity: 0.05,
+                shadowOpacity: 0.25,
                 shadowRadius: 8,
-                shadowOffset: { width: 0, height: 3 },
+                shadowOffset: { width: 0, height: 5 },
             },
             android: { elevation: 1 },
         }),
@@ -356,16 +357,18 @@ const styles = StyleSheet.create({
         paddingHorizontal: 4,
     },
 
-    calCaption: { color: "#64748B", fontSize: 12, fontFamily: "Outfit_700Bold" },
+    calCaption: { color: "#e7edf6ff", fontSize: 12, fontFamily: "Outfit_700Bold" },
 
     // Jump to Today pill
     jumpLinkTouch: {
         paddingHorizontal: 10,
         paddingVertical: 6,
         borderRadius: 999,
-        backgroundColor: "#E1F0FF",
+        backgroundColor: "#333A45",
+        borderWidth: StyleSheet.hairlineWidth,
+        borderColor: "rgba(255,255,255,0.08)",
     },
-    jumpLink: { color: "#0499FE", fontSize: 12, fontFamily: "Outfit_700Bold", letterSpacing: 0.2 },
+    jumpLink: { color: "#60A5FA", fontSize: 12, fontFamily: "Outfit_700Bold", letterSpacing: 0.2 },
 
     page: { justifyContent: "center" },
     row: { flexDirection: "row", alignItems: "center" },
@@ -375,7 +378,7 @@ const styles = StyleSheet.create({
     // Bottom workout bar
     bottomBar: { position: "absolute", bottom: 2, height: 6, borderRadius: 3 },
     bottomBarOn: { backgroundColor: "#2D9EFF" },
-    bottomBarOff: { backgroundColor: "#E6EEF6" },
+    bottomBarOff: { backgroundColor: "#8b95a5ff" },
 
     centerPill: {
         marginTop: 4,
@@ -387,7 +390,7 @@ const styles = StyleSheet.create({
         justifyContent: "center",
     },
     centerPillToday: {
-        backgroundColor: "#E9F2FF",
+        backgroundColor: "#2F3742",
         borderWidth: 1,
         borderColor: "#6FB8FF",
     },
@@ -398,5 +401,5 @@ const styles = StyleSheet.create({
         marginBottom: 2,
         letterSpacing: 0.3,
     },
-    dayNum: { fontFamily: "Outfit_800ExtraBold", fontSize: 15, color: "#0F172A" },
+    dayNum: { fontFamily: "Outfit_800ExtraBold", fontSize: 15, color: "#E5E7EB" },
 });

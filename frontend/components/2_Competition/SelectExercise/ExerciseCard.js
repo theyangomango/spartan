@@ -21,11 +21,11 @@ const ExerciseCard = memo(({ name, muscleGroup, selectExercise, showExerciseInfo
     };
 
     return (
-        <TouchableOpacity activeOpacity={0.5} onPress={() => selectExercise(name)} style={styles.card}>
+        <TouchableOpacity activeOpacity={0.65} onPress={() => selectExercise(name)} style={styles.card}>
             <View style={styles.leftContainer}>
                 <ExerciseImagePreview exercise={name} />
                 <View style={styles.textContainer}>
-                    <Text style={styles.exerciseName}>{name}</Text>
+                    <Text style={styles.exerciseName} numberOfLines={2}>{name}</Text>
                     <View style={styles.row}>
                         <Text style={styles.lastDone}>{lastDone}</Text>
                         <View style={[styles.muscle_ctnr, { backgroundColor: muscleColors[muscleGroup] || '#ccc' }]}>
@@ -64,8 +64,8 @@ const styles = StyleSheet.create({
         bottom: 0,
         left: 13,
         right: 13,
-        height: 1.5,
-        backgroundColor: '#eaeaea',
+        height: 1,
+        backgroundColor: 'rgba(255,255,255,0.08)',
     },
     textContainer: {
         flexDirection: 'column',
@@ -82,10 +82,11 @@ const styles = StyleSheet.create({
         backgroundColor: '#E1F0FF',
     },
     exerciseName: {
-        fontFamily: 'Outfit_600SemiBold',
-        fontSize: 14,
-        marginVertical: 3.5,
-        flexWrap: 'wrap', // Ensure text wraps
+        fontFamily: 'Outfit_700Bold',
+        fontSize: 15,
+        color: '#EAEAEA',
+        marginVertical: 3,
+        flexWrap: 'wrap',
     },
     muscle_ctnr: {
         marginLeft: 5,
@@ -102,8 +103,8 @@ const styles = StyleSheet.create({
     },
     lastDone: {
         fontFamily: 'Outfit_500Medium',
-        fontSize: 14,
-        color: '#999',
+        fontSize: 12.5,
+        color: '#AEB5C0',
     },
     rightContainer: {
         flexDirection: 'row',
@@ -111,13 +112,13 @@ const styles = StyleSheet.create({
         marginLeft: 10, // Add margin to separate from textContainer
     },
     timesCompleted: {
-        fontFamily: 'Outfit_600SemiBold',
-        fontSize: 17,
+        fontFamily: 'Outfit_700Bold',
+        fontSize: 16,
         marginRight: 8,
-        color: '#888'
+        color: '#6FB8FF'
     },
     icon_ctnr: {
         marginTop: 1,
-        opacity: 0.3
+        opacity: 0.5
     }
 });

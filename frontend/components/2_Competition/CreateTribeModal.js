@@ -19,7 +19,7 @@ function CreateTribeModal({ visible, value, onChangeText, onCancel, onCreate }) 
                     <Text style={styles.modalTitle}>Create a tribe</Text>
                     <TextInput
                         placeholder="Tribe name"
-                        placeholderTextColor="#999"
+                        placeholderTextColor="#8C95A3"
                         value={value}
                         onChangeText={onChangeText}
                         style={styles.input}
@@ -51,7 +51,7 @@ const styles = StyleSheet.create({
     modalCard: {
         width: "100%",
         maxWidth: 420,
-        backgroundColor: "#fff",
+        backgroundColor: "#252733",
         borderRadius: 16,
         paddingVertical: 16,
         paddingHorizontal: 14,
@@ -59,16 +59,16 @@ const styles = StyleSheet.create({
     modalTitle: {
         fontFamily: "Outfit_700Bold",
         fontSize: 18,
-        color: "#111",
+        color: "#EAEAEA",
         marginBottom: 10,
     },
     input: {
-        backgroundColor: "#f6f6f6",
+        backgroundColor: "#1E232C",
         borderRadius: 10,
         paddingHorizontal: 12,
         paddingVertical: 10,
         fontFamily: "Outfit_500Medium",
-        color: "#111",
+        color: "#EAEAEA",
         marginBottom: 12,
     },
     modalActions: { flexDirection: "row", justifyContent: "flex-end", gap: 10 },
@@ -76,8 +76,8 @@ const styles = StyleSheet.create({
     btnText: { fontFamily: "Outfit_700Bold", fontSize: 14 },
     btnPrimary: { backgroundColor: "#2D9EFF" },
     btnPrimaryText: { color: "#fff" },
-    btnGhost: { backgroundColor: "#eee" },
-    btnGhostText: { color: "#333" },
+    btnGhost: { backgroundColor: "#1F2730" },
+    btnGhostText: { color: "#EAEAEA" },
 });
 
 export default memo(CreateTribeModal);

@@ -30,15 +30,15 @@ const ExerciseCard = memo(({ name, muscleGroup, selectExercise, deselectExercise
     const lastDone = userStats && Array.isArray(userStats.sets) && userStats.sets.length ? userStats.sets[userStats.sets.length - 1].date : 'N/A';
     const timesCompleted = userStats && Array.isArray(userStats.sets) ? userStats.sets.length : '';
 
-    // Palette aligned with UserStatsModal
+    // Dark palette aligned with Competition
     const COLORS = {
-        text: '#0F172A',
-        subtext: '#64748B',
-        accent: '#2D9EFF',
-        hairline: '#E6EEF6',
-        statBg: '#F7FAFF',
-        statBorder: 'rgba(100,116,139,0.10)',
-        selectedBg: '#F0F7FF',
+        text: '#EAEAEA',
+        subtext: '#AEB5C0',
+        accent: '#6FB8FF',
+        hairline: 'rgba(255,255,255,0.08)',
+        statBg: '#1E232C',
+        statBorder: 'rgba(255,255,255,0.10)',
+        selectedBg: 'rgba(111,184,255,0.08)',
     };
 
     function toggleSelected() {
@@ -103,8 +103,8 @@ const styles = StyleSheet.create({
         bottom: 0,
         left: scaledSize(13),
         right: scaledSize(13),
-        height: scaledSize(1.5),
-        backgroundColor: '#E6EEF6',
+        height: scaledSize(1),
+        backgroundColor: 'rgba(255,255,255,0.08)',
     },
     textContainer: {
         flexDirection: 'column',
@@ -117,11 +117,12 @@ const styles = StyleSheet.create({
         flexDirection: 'row',
         alignItems: 'center',
     },
-    selected: { backgroundColor: '#F0F7FF' },
+    selected: { backgroundColor: 'rgba(111,184,255,0.08)' },
     exerciseName: {
-        fontFamily: 'Outfit_600SemiBold',
-        fontSize: scaledSize(14),
-        marginVertical: scaledSize(3.5),
+        fontFamily: 'Outfit_700Bold',
+        fontSize: scaledSize(15),
+        color: '#EAEAEA',
+        marginVertical: scaledSize(3),
         flexWrap: 'wrap',
     },
     muscle_ctnr: {
@@ -130,19 +131,19 @@ const styles = StyleSheet.create({
         height: scaledSize(20),
         alignItems: 'center',
         justifyContent: 'center',
-        backgroundColor: '#F7FAFF',
+        backgroundColor: '#1E232C',
         borderWidth: StyleSheet.hairlineWidth,
-        borderColor: 'rgba(100,116,139,0.20)',
+        borderColor: 'rgba(255,255,255,0.15)',
     },
     muscle_text: {
         fontFamily: 'Outfit_700Bold',
         fontSize: scaledSize(11),
-        color: '#2D9EFF',
+        color: '#6FB8FF',
     },
     lastDone: {
         fontFamily: 'Outfit_500Medium',
-        fontSize: scaledSize(14),
-        color: '#999',
+        fontSize: scaledSize(12.5),
+        color: '#AEB5C0',
     },
     rightContainer: {
         flexDirection: 'row',
@@ -151,9 +152,9 @@ const styles = StyleSheet.create({
     },
     timesCompleted: {
         fontFamily: 'Outfit_700Bold',
-        fontSize: scaledSize(15),
+        fontSize: scaledSize(14.5),
         marginRight: scaledSize(8),
-        color: '#64748B',
+        color: '#6FB8FF',
     },
     icon_ctnr: { marginTop: scaledSize(1), opacity: 0.3 },
 });

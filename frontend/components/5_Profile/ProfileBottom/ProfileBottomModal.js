@@ -63,7 +63,7 @@ const ProfileBottomModal = ({ selectedPanel, setSelectedPanel, posts, savedPosts
 const styles = StyleSheet.create({
     container: {
         flex: 1,
-        backgroundColor: '#fff'
+        backgroundColor: '#131521',
     },
     panel_border: {
         borderColor: '#82bbed',

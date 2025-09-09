@@ -85,10 +85,10 @@ export default function ExerciseGraph({ name, exercise }) {
                     yAxisThickness={0}
                     yAxisTextStyle={[styles.yAxisTextStyle, { fontSize: dynamicFontSizes.yAxisTextFontSize }]}
                     xAxisTextStyle={[styles.xAxisTextStyle, { fontSize: dynamicFontSizes.xAxisTextFontSize }]}
-                    backgroundColor="#fff"
+                    backgroundColor="#252733"
                     initialSpacing={12}
-                    yAxisColor="lightgray"
-                    xAxisColor="lightgray"
+                    yAxisColor="rgba(255,255,255,0.1)"
+                    xAxisColor="rgba(255,255,255,0.1)"
                     disableScroll
                     // other props remain unchanged
                 />
@@ -100,7 +100,7 @@ export default function ExerciseGraph({ name, exercise }) {
 const styles = StyleSheet.create({
     main_ctnr: {
         alignItems: 'center',
-        backgroundColor: '#fff',
+        backgroundColor: '#252733',
         borderRadius: 20,
         paddingTop: 5,
         paddingBottom: 15,
@@ -124,7 +124,7 @@ const styles = StyleSheet.create({
         fontFamily: 'Outfit_700Bold',
     },
     subtitle: {
-        color: "#aaa",
+        color: "#AEB5C0",
         fontFamily: 'Outfit_700Bold',
     },
     button: {
@@ -132,25 +132,25 @@ const styles = StyleSheet.create({
         paddingHorizontal: 11,
         paddingVertical: 7,
         marginLeft: 5,
-        backgroundColor: '#BCDDFF',
+        backgroundColor: '#1E232C',
         marginRight: 5,
     },
     selectedButton: {
-        backgroundColor: '#ddd',
+        backgroundColor: '#6FB8FF',
     },
     buttonText: {
-        color: '#666',
+        color: '#EAEAEA',
         fontFamily: 'Outfit_700Bold',
     },
     chart_ctnr: {
         paddingRight: 30,
     },
     yAxisTextStyle: {
-        color: '#aaa',
+        color: '#AEB5C0',
         fontFamily: 'Outfit_600SemiBold',
     },
     xAxisTextStyle: {
-        color: 'blue',
+        color: '#6FB8FF',
         fontWeight: 'bold',
     },
 });

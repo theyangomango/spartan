@@ -40,7 +40,7 @@ const styles = StyleSheet.create({
         paddingHorizontal: scaledSize(20),
         paddingVertical: scaledSize(7),
         borderRadius: scaledSize(10),
-        backgroundColor: "#f2f2f2",
+        backgroundColor: "#252733", // dark card color
         justifyContent: "center",
         alignItems: "center",
         marginHorizontal: scaledSize(3),
@@ -48,5 +48,6 @@ const styles = StyleSheet.create({
     edit_profile_text: {
         fontFamily: "Poppins_600SemiBold",
         fontSize: scaledSize(12.5),
+        color: '#E5E7EB',
     },
 });

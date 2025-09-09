@@ -82,7 +82,7 @@ const styles = StyleSheet.create({
         margin: 2,
         aspectRatio: 1,
         borderRadius: 10,
-        backgroundColor: '#f1f1f1',
+        backgroundColor: '#1C1F26',
     },
 });
 

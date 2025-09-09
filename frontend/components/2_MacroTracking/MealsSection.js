@@ -77,7 +77,7 @@ const makeStyles = (COLORS) =>
         addFoodRow: {
             paddingVertical: 13,
             paddingHorizontal: 26,
-            backgroundColor: '#f2f8ffff',
+            backgroundColor: COLORS.card,
             borderBottomWidth: StyleSheet.hairlineWidth,
             borderColor: COLORS.hairline,
             flexDirection: 'row',

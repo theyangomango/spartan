@@ -52,7 +52,7 @@ const LeaderboardBottomSheet = ({
             onChange={handleSheetChanges}
             handleStyle={{ display: "none" }}
             style={styles.bottomsheet}
-            backgroundStyle={{ borderTopLeftRadius: 30, borderTopRightRadius: 30 }}
+            backgroundStyle={{ backgroundColor: '#252733', borderTopLeftRadius: 30, borderTopRightRadius: 30 }}
             enablePanDownToClose={false}
         >
             {blockedMessage ? (
@@ -91,7 +91,8 @@ const styles = StyleSheet.create({
         elevation: 5,
         borderTopRightRadius: 25,
         borderTopLeftRadius: 25,
-        backgroundColor: "#fff",
+        // Dark card background
+        backgroundColor: "#252733",
     },
 });
 
@@ -99,8 +100,8 @@ const styles = StyleSheet.create({
 const BlockedViewClean = React.memo(({ message, onResolve }) => {
     const stylesLocal = StyleSheet.create({
         wrap: { flex: 1, padding: 18, justifyContent: 'center', alignItems: 'center' },
-        text: { fontFamily: 'Outfit_700Bold', fontSize: 14.5, color: '#0F172A', textAlign: 'center' },
-        sub: { fontFamily: 'Outfit_400Regular', fontSize: 12.5, color: '#64748B', textAlign: 'center', marginTop: 8 },
+        text: { fontFamily: 'Outfit_700Bold', fontSize: 14.5, color: '#EAEAEA', textAlign: 'center' },
+        sub: { fontFamily: 'Outfit_400Regular', fontSize: 12.5, color: '#AEB5C0', textAlign: 'center', marginTop: 8 },
         btn: { marginTop: 14, paddingHorizontal: 14, paddingVertical: 10, backgroundColor: '#2D9EFF', borderRadius: 12 },
         btnText: { color: '#fff', fontFamily: 'Outfit_700Bold' },
     });

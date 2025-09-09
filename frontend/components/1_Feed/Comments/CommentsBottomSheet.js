@@ -156,7 +156,7 @@ const CommentsBottomSheet = ({ isVisible, postData, commentsBottomSheetExpandFla
                 onChange={handleSheetIndexChange}
                 handleStyle={{ display: 'none' }}
                 detached
-                backgroundStyle={{ backgroundColor: '#fff' }}
+                backgroundStyle={{ backgroundColor: '#252733' }}
             >
                 {postData && (
                     <CommentsModal
@@ -187,7 +187,7 @@ const CommentsBottomSheet = ({ isVisible, postData, commentsBottomSheetExpandFla
                             onChangeText={setInputText}
                         />
                         <Pressable style={styles.sendButton} onPress={handleSend}>
-                            <Ionicons name="send" size={dynamicStyles.sendButtonSize} color="#111" />
+                            <Ionicons name="send" size={dynamicStyles.sendButtonSize} color="#E5E7EB" />
                         </Pressable>
                     </View>
                 </Animated.View>
@@ -210,7 +210,7 @@ const styles = StyleSheet.create({
         top: SCREEN_HEIGHT - 180,
         height: 95 + SCREEN_WIDTH / 2,
         paddingBottom: SCREEN_WIDTH / 2,
-        backgroundColor: '#fff',
+        backgroundColor: '#252733',
         width: '100%',
         borderRadius: 40
     },
@@ -219,7 +219,7 @@ const styles = StyleSheet.create({
         marginHorizontal: 18,
         marginTop: 14,
         marginBottom: 26,
-        backgroundColor: '#f3f3f3',
+        backgroundColor: '#1E2128',
         borderRadius: 30,
         flexDirection: 'row',
         alignItems: 'center',
@@ -239,7 +239,7 @@ const styles = StyleSheet.create({
         borderRadius: 20,
         paddingHorizontal: 15,
         paddingVertical: dynamicStyles.inputPaddingVertical,
-        color: '#000',
+        color: '#E5E7EB',
         fontFamily: 'Outfit_500Medium',
         fontSize: dynamicStyles.inputFontSize,
     },

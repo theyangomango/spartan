@@ -311,14 +311,14 @@ export default React.memo(Post, areEqual);
 
 const styles = StyleSheet.create({
     wrapper: { width: "100%" },
-    card: { width: "100%", borderColor: "#ddd", marginBottom: -33 },
+    card: { width: "100%", borderColor: "rgba(255,255,255,0.06)", marginBottom: -33 },
     body: { width: W, height: W / AR },
     gallery: {
         width: W,
         height: W / AR,
         borderTopLeftRadius: BORDER,
         borderTopRightRadius: BORDER,
-        backgroundColor: "#fff",
+        backgroundColor: "#252733",
     },
     imageWrapper: { width: W, height: W / AR, overflow: "hidden" },
     image: {

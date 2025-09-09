@@ -1,4 +1,5 @@
 import { StyleSheet, View, Text } from "react-native";
+import { LinearGradient } from 'expo-linear-gradient';
 import FastImage from "react-native-fast-image";
 import scaleSize from "../../helper/scaleSize";
 
@@ -26,6 +27,14 @@ export default function Podium({ data }) {
     if (!data) return <></>;
     return (
         <View style={styles.leaderboard_ctnr}>
+            {/* soft navy gradient background for header */}
+            <LinearGradient
+                colors={["#1b2c49", "#162842", "rgba(111,184,255,0.26)"]}
+                start={{ x: 0.10, y: 0.0 }}
+                end={{ x: 0.90, y: 1.0 }}
+                style={StyleSheet.absoluteFillObject}
+                pointerEvents="none"
+            />
             {/* Left */}
             <View style={styles.left}>
                 <View style={[styles.pfp_ctnr, { width: PFP_SIZE_LEFT }]}>
@@ -101,7 +110,8 @@ const styles = StyleSheet.create({
         justifyContent: 'center',
         flexDirection: 'row',
         alignItems: 'flex-end',
-        backgroundColor: '#59AAEE',
+        // Dark background to match Competition screen
+        backgroundColor: '#131521',
         zIndex: -1
     },
     bar_ctnr: {

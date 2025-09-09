@@ -143,7 +143,7 @@ const SelectExerciseModal = memo(({ closeModal, setComparedExercise }) => {
                     <TextInput
                         style={styles.searchInput}
                         placeholder="Search exercises..."
-                        placeholderTextColor="#999"
+                        placeholderTextColor="#AEB5C0"
                         value={inputQuery}
                         onChangeText={handleSearch}
                         onFocus={closeAllDropdowns}
@@ -162,7 +162,7 @@ const SelectExerciseModal = memo(({ closeModal, setComparedExercise }) => {
                             }}
                         >
                             <Text style={styles.filterButtonText} numberOfLines={1}>{bodyPartButtonLabel}</Text>
-                            <Ionicons name={bodyPartOpen ? "chevron-up" : "chevron-down"} size={scaledSize(16)} color="#333" />
+                            <Ionicons name={bodyPartOpen ? "chevron-up" : "chevron-down"} size={scaledSize(16)} color="#EAEAEA" />
                         </Pressable>
 
                         {bodyPartOpen && (
@@ -201,7 +201,7 @@ const SelectExerciseModal = memo(({ closeModal, setComparedExercise }) => {
                             }}
                         >
                             <Text style={styles.filterButtonText} numberOfLines={1}>{equipmentButtonLabel}</Text>
-                            <Ionicons name={equipmentOpen ? "chevron-up" : "chevron-down"} size={scaledSize(16)} color="#333" />
+                            <Ionicons name={equipmentOpen ? "chevron-up" : "chevron-down"} size={scaledSize(16)} color="#EAEAEA" />
                         </Pressable>
 
                         {equipmentOpen && (
@@ -265,7 +265,7 @@ const styles = StyleSheet.create({
     main_ctnr: {
         width: '94%',
         height: '81%',
-        backgroundColor: '#fff',
+        backgroundColor: '#252733',
         borderRadius: scaledSize(20),
         shadowColor: '#000',
         shadowOffset: { width: 0, height: scaledSize(6) },
@@ -298,7 +298,7 @@ const styles = StyleSheet.create({
     searchContainer: {
         flexDirection: 'row',
         alignItems: 'center',
-        backgroundColor: '#EEF2F7',
+        backgroundColor: '#1E232C',
         borderRadius: scaledSize(8),
         marginHorizontal: scaledSize(15),
         paddingHorizontal: scaledSize(8),
@@ -310,7 +310,7 @@ const styles = StyleSheet.create({
         flex: 1,
         padding: scaledSize(8),
         fontSize: scaledSize(14),
-        color: '#333',
+        color: '#EAEAEA',
         fontFamily: 'Outfit_700Bold',
     },
     filterRow: {
@@ -328,11 +328,11 @@ const styles = StyleSheet.create({
         paddingVertical: scaledSize(6),
         paddingHorizontal: scaledSize(12),
         borderRadius: scaledSize(10),
-        backgroundColor: '#F1F5F9',
+        backgroundColor: '#1E232C',
     },
     filterButtonText: {
         fontSize: scaledSize(13),
-        color: '#333',
+        color: '#EAEAEA',
         fontFamily: 'Outfit_700Bold',
         flexShrink: 1,
         marginRight: scaledSize(6),
@@ -342,7 +342,7 @@ const styles = StyleSheet.create({
         top: '100%',
         left: 0,
         right: 0,
-        backgroundColor: '#fff',
+        backgroundColor: '#252733',
         borderRadius: scaledSize(10),
         marginTop: scaledSize(6),
         paddingVertical: scaledSize(4),
@@ -354,12 +354,12 @@ const styles = StyleSheet.create({
         zIndex: 3,
         maxHeight: scaledSize(220),
         borderWidth: StyleSheet.hairlineWidth,
-        borderColor: '#E6EEF6',
+        borderColor: 'rgba(255,255,255,0.08)',
     },
     dropdownItem: { paddingVertical: scaledSize(8), paddingHorizontal: scaledSize(10) },
-    dropdownItemActive: { backgroundColor: '#E7F0FF' },
-    dropdownItemText: { fontSize: scaledSize(13), color: '#333', fontFamily: 'Outfit_700Bold' },
-    dropdownItemTextActive: { color: '#2D9EFF' },
+    dropdownItemActive: { backgroundColor: '#1E232C' },
+    dropdownItemText: { fontSize: scaledSize(13), color: '#EAEAEA', fontFamily: 'Outfit_700Bold' },
+    dropdownItemTextActive: { color: '#6FB8FF' },
     dropdownBackdrop: {
         position: 'absolute',
         top: scaledSize(140),

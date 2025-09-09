@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState, useCallback } from "react";
-import { SafeAreaView, StyleSheet, View } from "react-native";
+import { SafeAreaView, StyleSheet, View, StatusBar } from "react-native";
 import ProfileHeader from "../components/5_Profile/ProfileTop/ProfileHeader";
 import ProfileInfo from "../components/5_Profile/ProfileTop/ProfileInfo";
 import ProfileRowButtons from "../components/5_Profile/ProfileTop/ProfileRowButtons";
@@ -163,6 +163,7 @@ export default function Profile({ navigation }) {
     
     return (
         <SafeAreaView style={styles.main_ctnr}>
+            <StatusBar barStyle="light-content" backgroundColor="#151724" />
             <View style={styles.body_ctnr}>
                 <ProfileHeader
                     onPressCreateBtn={uploadPost}
@@ -227,7 +228,7 @@ import ProfileBottomBottomSheet from "../components/5_Profile/ProfileBottom/Prof
 const styles = StyleSheet.create({
     main_ctnr: {
         flex: 1,
-        backgroundColor: "#fff",
+        backgroundColor: "#151724", // Dark background
     },
     body_ctnr: {
         paddingHorizontal: 10,

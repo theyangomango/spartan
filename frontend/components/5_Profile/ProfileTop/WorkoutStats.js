@@ -59,18 +59,18 @@ const styles = StyleSheet.create({
         alignItems: 'center',
     },
     total_workouts_stat_ctnr: {
-        backgroundColor: '#E1F0FF',
+        backgroundColor: '#252733',
     },
     total_volume_stat_ctnr: {
-        backgroundColor: '#E1FFE8',
+        backgroundColor: '#252733',
     },
     gym_time_stat_ctnr: {
-        backgroundColor: '#FFECE1',
+        backgroundColor: '#252733',
     },
     workout_stat_text: {
         fontFamily: 'Poppins_500Medium',
         fontSize: scaledSize(10.5),
-        color: '#808080',
+        color: '#C5CCD6',
     },
     workout_stat_number: {
         fontFamily: 'Outfit_600SemiBold',

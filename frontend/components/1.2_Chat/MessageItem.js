@@ -332,8 +332,8 @@ const styles = StyleSheet.create({
     rowOther: { alignItems: "flex-start" },
     hRow: { flexDirection: "row", alignItems: "center" },
     avatarSlot: { width: 30, marginRight: 8, alignItems: 'flex-start' },
-    avatar: { width: 26, height: 26, borderRadius: 13, backgroundColor: '#E5E7EB' },
-    avatarFallback: { backgroundColor: '#E6EBF2' },
+    avatar: { width: 26, height: 26, borderRadius: 13, backgroundColor: '#2E323C' },
+    avatarFallback: { backgroundColor: '#2E323C' },
     wrap: { position: "relative", overflow: 'visible' },
 
     bubble: { borderRadius: 18, paddingHorizontal: 12, paddingVertical: 8, position: "relative" },
@@ -346,9 +346,9 @@ const styles = StyleSheet.create({
         elevation: 2,
     },
     bubbleOther: {
-        backgroundColor: "#FFFFFF",
+        backgroundColor: "#252733",
         borderWidth: 1,
-        borderColor: "#EEF3FF",
+        borderColor: "rgba(255,255,255,0.08)",
         position: "relative",
     },
 
@@ -359,14 +359,14 @@ const styles = StyleSheet.create({
 
     text: { fontSize: 14, lineHeight: 19, letterSpacing: 0.1, fontFamily: "Outfit_500Medium" },
     textSelf: { color: "#FFFFFF" },
-    textOther: { color: "#0F172A" },
+    textOther: { color: "#E5E7EB" },
 
     mediaWrap: { flexDirection: "row", flexWrap: "wrap", gap: 6, marginTop: 6 },
     media: {
         width: (BUBBLE_MAX_W - 6) / 2,
         height: 180,
         borderRadius: 12,
-        backgroundColor: "#E5E7EB",
+        backgroundColor: "#1E2128",
     },
     videoOuter: { overflow: "hidden", borderRadius: 12, backgroundColor: "#000" },
 
@@ -380,10 +380,10 @@ const styles = StyleSheet.create({
         borderRadius: 12,
     },
     replySelf: { backgroundColor: "rgba(45,158,255,0.40)" },
-    replyOther: { backgroundColor: "rgba(45,158,255,0.18)" },
+    replyOther: { backgroundColor: "#1E2128" },
     replyBar: { width: 3, height: 30, borderRadius: 2, marginRight: 8 },
     replyTextCol: { flexShrink: 1, minWidth: 0 },
-    replySnippet: { fontSize: 12, fontFamily: "Outfit_500Medium", color: "#64748B" },
+    replySnippet: { fontSize: 12, fontFamily: "Outfit_500Medium", color: "#A1A7B3" },
 
     // reactions badge
     reactionInline: {
@@ -395,12 +395,12 @@ const styles = StyleSheet.create({
         height: 28,
         paddingHorizontal: 8,
         justifyContent: "center",
-        backgroundColor: "#FFFFFF",
+        backgroundColor: "#252733",
         borderRadius: 999,
         borderWidth: 1,
-        borderColor: "#EEF3FF",
-        shadowColor: "#0F172A",
-        shadowOpacity: 0.06,
+        borderColor: "rgba(255,255,255,0.08)",
+        shadowColor: "#000",
+        shadowOpacity: 0.2,
         shadowRadius: 8,
         shadowOffset: { width: 0, height: 3 },
         elevation: 2,
@@ -410,7 +410,7 @@ const styles = StyleSheet.create({
     reactionRight: { right: -12 },
     reactionEmoji: {
         fontSize: 12.5,
-        color: "#0F172A",
+        color: "#E5E7EB",
     },
 
     // timestamps outside bubble, slide in
@@ -423,7 +423,7 @@ const styles = StyleSheet.create({
         lineHeight: 13,
         fontFamily: "Outfit_500Medium",
         letterSpacing: 0.1,
-        color: "#94A3B8",
+        color: "#A1A7B3",
     },
     timeLeftOuter: {
         position: "absolute",
@@ -434,6 +434,6 @@ const styles = StyleSheet.create({
         lineHeight: 13,
         fontFamily: "Outfit_500Medium",
         letterSpacing: 0.1,
-        color: "#94A3B8",
+        color: "#A1A7B3",
     },
 });

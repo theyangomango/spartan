@@ -57,11 +57,11 @@ export default function UnderMealList({
                     >
                         <View style={styles.row}>
                             <View style={styles.textCol}>
-                                <Text style={[styles.name, { color: '#111' }]} numberOfLines={1}>
+                                <Text style={[styles.name, { color: COLORS.text }]} numberOfLines={1}>
                                     {f.name}
                                 </Text>
                                 {!compact && (
-                                    <Text style={[styles.summary, { color: '#777' }]} numberOfLines={1}>
+                                    <Text style={[styles.summary, { color: COLORS.subtext }]} numberOfLines={1}>
                                         {(() => {
                                             const s = renderSummary ? renderSummary(f) : '';
                                             return showCaloriesRight ? pruneLeadingCalories(s) : s;

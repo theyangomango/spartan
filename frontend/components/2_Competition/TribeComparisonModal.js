@@ -24,13 +24,13 @@ const BLUE_ICON_BG = "#E3EDFF";    // kept for editor accents
 const BLUE_TEXT = "#5794fde3";     // kept for editor accents
 const BLUE_PRIMARY = "rgba(105, 180, 242, 1)";    // save button
 const GOLD = "#f6b00060";
-const GOLD_TEXT = "#2F2500";
+const GOLD_TEXT = "#EAEAEA";
 
 // neutral card palette
-const CARD_BG = "#FFFFFF";
-const CARD_BORDER = "#E6EEF6";
-const ICON_BG_NEUTRAL = "#F1F5F9";
-const SUBTEXT = "#64748B";
+const CARD_BG = "#252733";            // dark cards
+const CARD_BORDER = "rgba(255,255,255,0.10)";
+const ICON_BG_NEUTRAL = "#1E232C";
+const SUBTEXT = "#AEB5C0";
 
 // soft accents per exercise (deterministic by name)
 const ACCENTS = ["#2D9EFF", "#F59E0B", "#10B981", "#EF4444", "#8B5CF6", "#06B6D4"];
@@ -83,7 +83,7 @@ export default function TribeComparisonModal({ visible, onClose, initialList = [
                             <View style={styles.headerRow}>
                                 <Text style={styles.title}>Manage Tribe Comparisons</Text>
                                 <Pressable hitSlop={12} onPress={onClose}>
-                                    <Ionicons name="close" size={20} color="#111" />
+                                    <Ionicons name="close" size={20} color="#EAEAEA" />
                                 </Pressable>
                             </View>
 
@@ -160,7 +160,7 @@ export default function TribeComparisonModal({ visible, onClose, initialList = [
                                 <View style={styles.headerRow}>
                                     <Text style={styles.title}>Edit Comparison</Text>
                                     <Pressable hitSlop={12} onPress={() => setEditingIndex(-1)}>
-                                        <Ionicons name="close" size={20} color="#111" />
+                                        <Ionicons name="close" size={20} color="#EAEAEA" />
                                     </Pressable>
                                 </View>
 
@@ -171,12 +171,12 @@ export default function TribeComparisonModal({ visible, onClose, initialList = [
                                             style={styles.inputRow}
                                             onPress={() => setExercisePickerOpen(true)}
                                         >
-                                            <Ionicons name="barbell" size={18} color="#333" style={{ marginRight: 10 }} />
+                                            <Ionicons name="barbell" size={18} color="#EAEAEA" style={{ marginRight: 10 }} />
                                             <View style={{ flex: 1 }}>
                                                 <Text style={styles.label}>Exercise</Text>
                                                 <Text style={styles.value} numberOfLines={1}>{editing.exercise}</Text>
                                             </View>
-                                            <Ionicons name="chevron-forward" size={18} color="#444" />
+                                            <Ionicons name="chevron-forward" size={18} color="#AEB5C0" />
                                         </TouchableOpacity>
 
                                         <View style={styles.metricRow}>
@@ -206,7 +206,7 @@ export default function TribeComparisonModal({ visible, onClose, initialList = [
                                             <Ionicons
                                                 name={editing.normalizeByBodyweight ? "checkbox" : "square-outline"}
                                                 size={20}
-                                                color={editing.normalizeByBodyweight ? BLUE_TEXT : "#555"}
+                                                color={editing.normalizeByBodyweight ? BLUE_TEXT : "#AEB5C0"}
                                                 style={{ marginRight: 10 }}
                                             />
                                             <View style={{ flex: 1 }}>
@@ -265,13 +265,13 @@ const styles = StyleSheet.create({
     card: {
         width: "100%",
         borderRadius: 18,
-        backgroundColor: "#fff",
+        backgroundColor: CARD_BG,
         padding: 16,
     },
     editorCard: {
         width: Math.min(width - 32, 480),
         borderRadius: 18,
-        backgroundColor: "#fff",
+        backgroundColor: CARD_BG,
         padding: 16,
     },
 
@@ -282,7 +282,7 @@ const styles = StyleSheet.create({
         justifyContent: "space-between",
         marginBottom: 14, // was 4
     },
-    title: { fontFamily: "Outfit_700Bold", fontSize: 18, color: "#111" },
+    title: { fontFamily: "Outfit_700Bold", fontSize: 18, color: "#EAEAEA" },
 
     // modern neutral cards
     itemCard: {
@@ -320,12 +320,12 @@ const styles = StyleSheet.create({
         backgroundColor: ICON_BG_NEUTRAL,
         marginRight: 10,
     },
-    itemTitle: { fontFamily: "Outfit_700Bold", fontSize: 14, color: "#111" },
+    itemTitle: { fontFamily: "Outfit_700Bold", fontSize: 14, color: "#EAEAEA" },
     itemMeta: { fontFamily: "Outfit_600SemiBold", fontSize: 12.5, color: SUBTEXT, marginTop: 2 },
 
     emptyBox: { alignItems: "center", paddingVertical: 20 },
-    emptyText: { fontFamily: "Outfit_700Bold", color: "#333" },
-    emptySub: { fontFamily: "Outfit_400Regular", color: "#777", marginTop: 6 },
+    emptyText: { fontFamily: "Outfit_700Bold", color: "#EAEAEA" },
+    emptySub: { fontFamily: "Outfit_400Regular", color: "#AEB5C0", marginTop: 6 },
 
     footerRow: {
         flexDirection: "row",
@@ -370,12 +370,12 @@ const styles = StyleSheet.create({
         flexDirection: "row",
         alignItems: "center",
         paddingVertical: 10,
-        borderBottomColor: "#eee",
+        borderBottomColor: CARD_BORDER,
         borderBottomWidth: StyleSheet.hairlineWidth,
         marginTop: 8,
     },
-    label: { fontFamily: "Outfit_600SemiBold", fontSize: 13, color: "#333" },
-    value: { fontFamily: "Outfit_500Medium", fontSize: 14, color: "#111" },
+    label: { fontFamily: "Outfit_600SemiBold", fontSize: 13, color: "#EAEAEA" },
+    value: { fontFamily: "Outfit_500Medium", fontSize: 14, color: "#EAEAEA" },
 
     metricRow: { marginTop: 12 },
     metricPills: { flexDirection: "row", marginTop: 8 },
@@ -383,19 +383,19 @@ const styles = StyleSheet.create({
         borderRadius: 999,
         paddingHorizontal: 14,
         paddingVertical: 8,
-        backgroundColor: "#F6F8FC",
+        backgroundColor: "#1E232C",
         marginRight: 8,
     },
     pillActive: { backgroundColor: BLUE_BG, borderWidth: 1, borderColor: "#DBE9FF" },
-    pillText: { fontFamily: "Outfit_600SemiBold", fontSize: 13, color: "#333" },
+    pillText: { fontFamily: "Outfit_600SemiBold", fontSize: 13, color: "#EAEAEA" },
     pillTextActive: { color: BLUE_TEXT },
 
     toggleRow: {
         flexDirection: "row",
         alignItems: "center",
         paddingVertical: 12,
-        borderBottomColor: "#eee",
+        borderBottomColor: CARD_BORDER,
         borderBottomWidth: StyleSheet.hairlineWidth,
     },
-    subtle: { fontFamily: "Outfit_400Regular", fontSize: 12, color: "#666" },
+    subtle: { fontFamily: "Outfit_400Regular", fontSize: 12, color: SUBTEXT },
 });

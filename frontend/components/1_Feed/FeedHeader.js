@@ -289,7 +289,7 @@ const SearchUsersBar = ({ navigation, allUsersRef, disabled = false }) => {
     return (
         <>
             <RNBounceable onPress={open} bounceEffectIn={0.5} style={[styles.searchIconBtn, visible && { opacity: 0 }]} accessibilityLabel="Search users" ref={iconRef} onLayout={measureAnchor} pointerEvents={visible ? 'none' : 'auto'}>
-                <Ionicons name="search" size={dynamicStyles.iconSize} color="#6B7280" />
+                        <Ionicons name="search" size={dynamicStyles.iconSize} color="#CBD5E1" />
             </RNBounceable>
 
             <Modal
@@ -343,7 +343,7 @@ const SearchUsersBar = ({ navigation, allUsersRef, disabled = false }) => {
                                         style={styles.clearBtn}
                                         accessibilityLabel={qStr ? "Clear search" : "Close search"}
                                     >
-                                        <Ionicons name="close" size={s(18)} color="#6B7280" />
+                                        <Ionicons name="close" size={s(18)} color="#9AA4B2" />
                                     </TouchableOpacity>
                                 </View>
                             </View>
@@ -365,7 +365,7 @@ const SearchUsersBar = ({ navigation, allUsersRef, disabled = false }) => {
                                     </View>
                                 ) : (
                                     <View style={styles.noResultsWrap}>
-                                        <Ionicons name="search-outline" size={s(18)} color="#9AA1A9" />
+                                        <Ionicons name="search-outline" size={s(18)} color="#AAB4C2" />
                                         <Text style={styles.noResultsText}>No people found</Text>
                                     </View>
                                 )
@@ -391,7 +391,7 @@ const SearchUsersBar = ({ navigation, allUsersRef, disabled = false }) => {
                     {/* Fixed icon rendered last to guarantee it is on top */}
                     <View style={[styles.fixedSearchIcon, { left: anchor.x || METRICS.paddingH, top: (anchor.y || (insets.top + METRICS.marginTop + METRICS.paddingTop + METRICS.iconTop)) }]} pointerEvents="none">
                         <RNBounceable bounceEffectIn={0.5} style={styles.searchIconBtn}>
-                            <Ionicons name="search" size={dynamicStyles.iconSize} color="#6B7280" />
+                            <Ionicons name="search" size={dynamicStyles.iconSize} color="#CBD5E1" />
                         </RNBounceable>
                     </View>
                 </View>
@@ -474,7 +474,7 @@ const FeedHeader = ({
         return (
             <View style={[styles.back_header]}>
                 <TouchableOpacity onPress={onBackPress}>
-                    <Ionicons name="chevron-back" size={dynamicStyles.iconSize} color="#000" />
+                    <Ionicons name="chevron-back" size={dynamicStyles.iconSize} color="#E5E7EB" />
                 </TouchableOpacity>
             </View>
         );
@@ -567,7 +567,7 @@ export default memo(FeedHeader);
 const styles = StyleSheet.create({
     main_ctnr: {
         width: "100%",
-        backgroundColor: "#f0f4f9ff",
+        backgroundColor: "#151724",
         flexDirection: "row",
         justifyContent: "center",
         paddingTop: METRICS.paddingTop,
@@ -579,7 +579,7 @@ const styles = StyleSheet.create({
 
     back_header: {
         width: "100%",
-        backgroundColor: "#f0f4f9ff",
+        backgroundColor: "#151724",
         flexDirection: "row",
         paddingLeft: METRICS.paddingH,
         paddingTop: METRICS.paddingTop + s(4),
@@ -602,7 +602,7 @@ const styles = StyleSheet.create({
         paddingLeft: s(4),
         fontFamily: "Inter_600SemiBold",
         fontSize: s(16),
-        color: "#0f172a",
+        color: "#E5E7EB",
         includeFontPadding: false,
         ...Platform.select({ android: { lineHeight: s(19) } }),
     },
@@ -641,7 +641,7 @@ const styles = StyleSheet.create({
     left_placeholder: { width: dynamicStyles.iconSize + 6, height: dynamicStyles.iconSize + 6 },
 
     modalContainer: { flex: 1 },
-    canvasFill: { ...StyleSheet.absoluteFillObject, backgroundColor: "#F8FAFC" },
+    canvasFill: { ...StyleSheet.absoluteFillObject, backgroundColor: "#131521" },
     // Align overlay search icon wrapper top exactly with header's wrapper top
     // Header wrapper Y = marginTop + paddingTop + iconTop
     modalContent: { flex: 1, paddingHorizontal: METRICS.paddingH, paddingTop: METRICS.marginTop + METRICS.paddingTop, marginTop: 0 },
@@ -659,25 +659,25 @@ const styles = StyleSheet.create({
         marginLeft: s(12),
         height: METRICS.centerH + s(6),
         borderRadius: s(26),
-        backgroundColor: "#FFFFFF",
+        backgroundColor: "#252733",
         flexDirection: "row",
         alignItems: "center",
         paddingHorizontal: s(16),
         borderWidth: 1,
-        borderColor: "rgba(15,23,42,0.10)",
+        borderColor: "rgba(255,255,255,0.08)",
         ...Platform.select({
-            ios: { shadowColor: "#000", shadowOpacity: 0.06, shadowRadius: 8, shadowOffset: { width: 0, height: 3 } },
-            android: { elevation: 2 },
+            ios: { shadowColor: "#000", shadowOpacity: 0.32, shadowRadius: 8, shadowOffset: { width: 0, height: 3 } },
+            android: { elevation: 1 },
         }),
     },
-    overlayInput: { flex: 1, fontSize: s(15), color: "#0f172a", fontFamily: "Outfit_600SemiBold", textAlignVertical: 'center', includeFontPadding: false },
+    overlayInput: { flex: 1, fontSize: s(15), color: "#E5E7EB", fontFamily: "Outfit_600SemiBold", textAlignVertical: 'center', includeFontPadding: false },
     clearBtn: { padding: s(6), marginLeft: s(4) },
 
     resultsWrap: { flex: 1, width: "100%" },
     listContent: { paddingTop: s(18) },
-    separatorFull: { height: StyleSheet.hairlineWidth, backgroundColor: "rgba(15,23,42,0.08)" },
+    separatorFull: { height: StyleSheet.hairlineWidth, backgroundColor: "rgba(255,255,255,0.08)" },
 
-    sectionTitle: { marginTop: s(6), paddingVertical: s(8), fontFamily: "Outfit_700Bold", color: "#0f172a", fontSize: s(14), paddingHorizontal: 16 },
+    sectionTitle: { marginTop: s(6), paddingVertical: s(8), fontFamily: "Outfit_700Bold", color: "#E5E7EB", fontSize: s(14), paddingHorizontal: 16 },
 
     noResultsWrap: {
         marginTop: s(16),
@@ -685,21 +685,21 @@ const styles = StyleSheet.create({
         paddingHorizontal: s(14),
         paddingVertical: s(10),
         borderRadius: s(12),
-        backgroundColor: "#EEF2F7",
+        backgroundColor: "#111827",
         flexDirection: "row",
         alignItems: "center",
         gap: s(8),
     },
-    noResultsText: { color: "#64748B", fontSize: s(12.5), fontFamily: "Outfit_600SemiBold" },
+    noResultsText: { color: "#94A3B8", fontSize: s(12.5), fontFamily: "Outfit_600SemiBold" },
 
-    profileCard: { width: "100%", flexDirection: "row", alignItems: "center", backgroundColor: "#FFFFFF", paddingVertical: s(12), paddingHorizontal: s(18) },
+    profileCard: { width: "100%", flexDirection: "row", alignItems: "center", backgroundColor: "#252733", paddingVertical: s(12), paddingHorizontal: s(18) },
     profileLeft: { flexDirection: "row", alignItems: "center", flex: 1, minWidth: 0 },
-    avatarRing: { alignItems: "center", justifyContent: "center", borderWidth: 2.5, borderColor: "rgba(109, 177, 255, 1)", backgroundColor: "#fff" },
+    avatarRing: { alignItems: "center", justifyContent: "center", borderWidth: 2.5, borderColor: "rgba(109, 177, 255, 1)", backgroundColor: "#0B1220" },
 
-    cardHandle: { fontFamily: "Nunito_800ExtraBold", fontSize: s(13.5), color: "#0f172a" },
-    cardHandleHighlight: { color: "#0f172a" },
-    cardName: { marginTop: s(2), fontFamily: "Nunito_600SemiBold", fontSize: s(12.5), color: "#64748B" },
-    cardNameHighlight: { color: "#0f172a", fontFamily: "Nunito_700Bold" },
+    cardHandle: { fontFamily: "Nunito_800ExtraBold", fontSize: s(13.5), color: "#E5E7EB" },
+    cardHandleHighlight: { color: "#FFFFFF" },
+    cardName: { marginTop: s(2), fontFamily: "Nunito_600SemiBold", fontSize: s(12.5), color: "#94A3B8" },
+    cardNameHighlight: { color: "#FFFFFF", fontFamily: "Nunito_700Bold" },
 
     searchIconBtn: {
         width: dynamicStyles.iconSize + 6,

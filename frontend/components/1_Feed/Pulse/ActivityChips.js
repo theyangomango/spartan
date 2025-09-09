@@ -268,7 +268,7 @@ function Chip({ ev, navigation, onPressChip }) {
 
             {/* Prominent chevron */}
             <View style={styles.chevWrap}>
-                <Icon name="chevron-right" size={ss(18)} color="#0F172A" />
+                <Icon name="chevron-right" size={ss(18)} color="#E5E7EB" />
             </View>
         </TouchableOpacity>
     );
@@ -277,8 +277,8 @@ function Chip({ ev, navigation, onPressChip }) {
 /* ---------- styles ---------- */
 const styles = StyleSheet.create({
     // Elevated to ensure it sits above post overlays when used as sticky header
-    // Use white background so the MaskedView's rounded corners are visible against the outer light bg
-    wrap: { backgroundColor: "#f0f4f9ff", paddingBottom: 10, paddingTop: 8, marginTop: -6, zIndex: 100, elevation: 7 },
+    // Dark background to match feed container
+    wrap: { backgroundColor: "#131521", paddingBottom: 10, paddingTop: 8, marginTop: -6, zIndex: 100, elevation: 7 },
     list: { overflow: "visible" },
     listContent: { paddingLeft: 14, paddingRight: 8, columnGap: 6 },
 
@@ -289,13 +289,13 @@ const styles = StyleSheet.create({
         paddingLeft: ss(12),
         paddingRight: ss(10),
         borderRadius: ss(16),
-        backgroundColor: "#FFFFFF",
+        backgroundColor: "#252733",
         borderWidth: StyleSheet.hairlineWidth,
-        borderColor: "rgba(2,6,23,0.06)",
+        borderColor: "rgba(255,255,255,0.08)",
         ...Platform.select({
             ios: {
-                shadowColor: "#0F172A",
-                shadowOpacity: 0.06,
+                shadowColor: "#000",
+                shadowOpacity: 0.18,
                 shadowRadius: 8,
                 shadowOffset: { width: 0, height: 4 },
             },
@@ -315,10 +315,10 @@ const styles = StyleSheet.create({
         height: AVATAR,
         borderRadius: AVATAR / 2.3,
         overflow: "hidden",
-        backgroundColor: "#EDF1F7",
+        backgroundColor: "#1E2128",
     },
     pfp: { width: "100%", height: "100%" },
-    pfp_placeholder: { backgroundColor: "#E6EBF2" },
+    pfp_placeholder: { backgroundColor: "#2E323C" },
 
     badge: {
         position: "absolute",
@@ -343,7 +343,7 @@ const styles = StyleSheet.create({
     primaryUnified: {
         fontFamily: "Outfit_700Bold",
         fontSize: 13.5,
-        color: "#0F172A",
+        color: "#E5E7EB",
         letterSpacing: 0.2,
     },
     primaryEmphasis: { color: "#0499FE", fontFamily: "Outfit_800ExtraBold" },
@@ -365,7 +365,7 @@ const styles = StyleSheet.create({
     timeText: {
         fontFamily: "Outfit_600SemiBold",
         fontSize: 11.5,
-        color: "#6B7280",
+        color: "#A1A7B3",
     },
 
     // Chevron
@@ -375,7 +375,7 @@ const styles = StyleSheet.create({
         borderRadius: ss(13),
         alignItems: "center",
         justifyContent: "center",
-        backgroundColor: "#EEF3FF",
+        backgroundColor: "#252733",
         marginLeft: ss(2),
     },
 });

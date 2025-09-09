@@ -6,7 +6,7 @@ import RNBounceable from "@freakycoder/react-native-bounceable";
 import scaleSize from "../../helper/scaleSize";
 
 const ACCENT = "#2D9EFF";
-const HAIRLINE = "rgba(15,23,42,0.08)";
+const HAIRLINE = "rgba(255,255,255,0.08)";
 
 export default function MessagesHeader({
     toFeedScreen,
@@ -83,7 +83,7 @@ export default function MessagesHeader({
 
 const styles = StyleSheet.create({
     root: {
-        backgroundColor: "#F7F8FC",
+        backgroundColor: "#131521",
     },
     row: {
         flexDirection: "row",
@@ -101,13 +101,13 @@ const styles = StyleSheet.create({
         width: scaleSize(32),
         height: scaleSize(32),
         borderRadius: scaleSize(16),
-        backgroundColor: "#FFFFFF",
+        backgroundColor: "#252733",
         borderWidth: 1,
         borderColor: HAIRLINE,
         alignItems: "center",
         justifyContent: "center",
-        shadowColor: "#0F172A",
-        shadowOpacity: 0.06,
+        shadowColor: "#000",
+        shadowOpacity: 0.18,
         shadowRadius: scaleSize(8),
         shadowOffset: { width: 0, height: scaleSize(4) },
         elevation: 2,
@@ -140,13 +140,13 @@ const styles = StyleSheet.create({
     },
     segmentBg: {
         flexDirection: "row",
-        backgroundColor: "#FFFFFF",
+        backgroundColor: "#252733",
         borderRadius: 999,
         padding: scaleSize(4),
         borderWidth: 1,
         borderColor: HAIRLINE,
-        shadowColor: "#0F172A",
-        shadowOpacity: 0.04,
+        shadowColor: "#000",
+        shadowOpacity: 0.12,
         shadowRadius: scaleSize(8),
         shadowOffset: { width: 0, height: scaleSize(4) },
         elevation: 1,
@@ -156,7 +156,7 @@ const styles = StyleSheet.create({
         alignItems: "center",
         justifyContent: "center",
         marginHorizontal: scaleSize(2),
-        backgroundColor: "#FFFFFF",
+        backgroundColor: "#252733",
         paddingHorizontal: scaleSize(14),
     },
     chipActive: {
@@ -170,7 +170,7 @@ const styles = StyleSheet.create({
     chipText: {
         fontSize: scaleSize(12.5),
         fontFamily: "Outfit_600SemiBold",
-        color: "#7C8A9A",
+        color: "#A1A7B3",
     },
     chipTextActive: {
         color: "#FFFFFF",

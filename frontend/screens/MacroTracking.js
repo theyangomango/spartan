@@ -1,6 +1,6 @@
 // screens/MacroTracking.js
 import React, { useState, useEffect, useCallback } from 'react';
-import { View, Text, StyleSheet, ScrollView, Pressable, UIManager, Platform, LayoutAnimation, InteractionManager } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, Pressable, UIManager, Platform, LayoutAnimation, InteractionManager, StatusBar } from 'react-native';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { Ionicons } from '@expo/vector-icons';
 import Footer from '../components/Footer';
@@ -30,15 +30,19 @@ if (Platform.OS === 'android' && UIManager.setLayoutAnimationEnabledExperimental
 }
 
 const COLORS = {
-    bg: '#f0f4f9ff',
-    card: '#FFFFFF',
-    text: '#0F172A',
-    subtext: '#64748B',
-    hairline: 'rgba(2, 6, 23, 0.06)',
-    ringTint: '#6FB8FF',
-    ringBg: '#E2E8F0',
-    chipBg: '#EEF2FF',
-    addBtnBg: '#dbe8ffb0',
+    // Dark theme
+    bg: '#131521',           // screen background
+    card: '#252733',         // card rows and sheets
+    text: '#E5E7EB',         // primary text
+    subtext: '#A1A7B3',      // secondary text
+    hairline: 'rgba(255,255,255,0.08)',
+    ringTint: '#2D9EFF',     // progress ring
+    ringBg: '#2E323C',       // ring track and generic tracks
+    chipBg: '#323646',
+    addBtnBg: '#11253D',     // blue-tinted pill background
+    fieldBg: '#1E2128',      // inputs inside sheets/modals
+    accentBlue: '#6FB8FF',
+    accent: '#64aaf6ff',
     protein: '#A5B4FC',
     carbs: '#F9A8D4',
     fat: '#FCD5A5',
@@ -302,6 +306,7 @@ export default function MacroTracking({ navigation, route }) {
     return (
         <GestureHandlerRootView style={{ flex: 1 }}>
             <View style={{ flex: 1 }}>
+                <StatusBar barStyle="light-content" backgroundColor="#131521" />
                 {/* Header */}
                 <DateHeader title={formatDate(focusedDate)} onPrev={() => shiftDate(-1)} onNext={() => shiftDate(1)} COLORS={COLORS} />
 

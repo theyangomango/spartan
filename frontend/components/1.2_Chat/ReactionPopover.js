@@ -3,7 +3,7 @@ import { View, Text, StyleSheet, Dimensions, Pressable, Animated, Easing } from 
 
 const { width: SW, height: SH } = Dimensions.get("window");
 const ACCENT = "#2D9EFF";
-const HAIRLINE = "rgba(2,6,23,0.08)";
+const HAIRLINE = "rgba(255,255,255,0.08)";
 
 export default function ReactionPopover({
     visible,
@@ -132,20 +132,20 @@ const styles = StyleSheet.create({
     menuCard: {
         position: "absolute",
         borderRadius: 16,
-        backgroundColor: "#FFFFFF",
+        backgroundColor: "#252733",
         borderWidth: 1,
         borderColor: HAIRLINE,
-        shadowColor: "#0F172A",
-        shadowOpacity: 0.14,
+        shadowColor: "#000",
+        shadowOpacity: 0.22,
         shadowRadius: 18,
         shadowOffset: { width: 0, height: 10 },
         elevation: 8,
         overflow: "hidden",
     },
     menuRow: { paddingVertical: 14, paddingHorizontal: 14 },
-    menuRowPressed: { backgroundColor: "rgba(15,23,42,0.04)" },
+    menuRowPressed: { backgroundColor: "rgba(255,255,255,0.06)" },
     menuDivider: { borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: HAIRLINE },
     menuLabel: {
-        fontSize: 15, color: "#0F172A", fontFamily: "Outfit_600SemiBold", letterSpacing: 0.1,
+        fontSize: 15, color: "#E5E7EB", fontFamily: "Outfit_600SemiBold", letterSpacing: 0.1,
     },
 });

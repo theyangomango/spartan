@@ -44,7 +44,7 @@ const makeStyles = (COLORS) =>
         centerArea: { flex: 1 },
         title: {
             fontSize: 15,
-            color: '#000',
+            color: COLORS.text,
             fontFamily: 'Nunito_800ExtraBold',
             letterSpacing: 0.2,
         },

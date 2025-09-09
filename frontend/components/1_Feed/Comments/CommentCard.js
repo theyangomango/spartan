@@ -171,12 +171,12 @@ const styles = StyleSheet.create({
     handle_text: {
         fontSize: dynamicStyles.fontSize,
         fontFamily: 'Outfit_500Medium',
-        color: '#999',
+        color: '#B8BFCA',
     },
     time_text: {
         fontSize: dynamicStyles.fontSize - 1,
         fontFamily: 'Outfit_500Medium',
-        color: '#999',
+        color: '#A1A7B3',
         marginLeft: 6,
     },
     content_text_ctnr: {
@@ -187,7 +187,7 @@ const styles = StyleSheet.create({
         fontFamily: 'Outfit_500Medium',
         fontSize: dynamicStyles.fontSize,
         flexWrap: 'wrap',
-        color: '#111',
+        color: '#E5E7EB',
     },
     right: {
         flexDirection: 'row',
@@ -197,7 +197,7 @@ const styles = StyleSheet.create({
     reply_button: {
         height: 34,
         width: dynamicStyles.replyButtonWidth,
-        backgroundColor: '#e6e6e6',
+        backgroundColor: '#1E2128',
         alignItems: 'center',
         justifyContent: 'center',
         borderRadius: 30,
@@ -205,7 +205,7 @@ const styles = StyleSheet.create({
     reply_text: {
         fontSize: dynamicStyles.replyFontSize,
         fontFamily: 'Outfit_600SemiBold',
-        color: '#333',
+        color: '#E5E7EB',
     },
     heart_icon_ctnr: {
         width: dynamicStyles.heartIconSize * 1.7,
@@ -219,7 +219,7 @@ const styles = StyleSheet.create({
         position: 'absolute',
         bottom: dynamicStyles.likeCountBottom,
         fontSize: dynamicStyles.likeCountFontSize,
-        color: '#333',
+        color: '#E5E7EB',
         fontFamily: 'Outfit_600SemiBold',
         paddingHorizontal: 4,
         borderRadius: 10,

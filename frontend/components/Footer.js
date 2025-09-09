@@ -6,14 +6,14 @@ import useWorkoutStore from '../state/workoutStore';
 import { jumpToTab, navigationRef } from '../../navigationRef';
 
 const COLORS = {
-    active: '#000',
-    inactive: '#bbb',
-    workoutActive: '#2291FF',
-    // Softer, more visible blue halo
-    workoutHalo: '#E1F0FF',
-    workoutHaloBorder: '#B7D7FF',
-    bg: '#fff',
-    hairline: 'rgba(2,6,23,0.06)',
+    active: '#E5E7EB',
+    inactive: '#8B95A5',
+    workoutActive: '#60A5FA',
+    // Dark halo when workout active
+    workoutHalo: '#11253D',
+    workoutHaloBorder: '#2D9EFF',
+    bg: '#131521',
+    hairline: 'rgba(255,255,255,0.12)',
 };
 
 const Footer = ({ currentScreenName, navigation }) => {
@@ -144,11 +144,11 @@ const styles = StyleSheet.create({
         borderTopWidth: StyleSheet.hairlineWidth,
         borderTopColor: COLORS.hairline,
 
-        shadowColor: '#bbb',
-        shadowOffset: { width: 0, height: -1 },
-        shadowOpacity: 0.5,
-        shadowRadius: 2,
-        elevation: 5,
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: -2 },
+        shadowOpacity: 0.4,
+        shadowRadius: 8,
+        elevation: 8,
     },
     icon_ctnr: { flex: 1, alignItems: 'center', padding: 10 },
     workout_icon_ctnr: { flex: 1, alignItems: 'center', paddingHorizontal: 10, paddingVertical: 8.2 },

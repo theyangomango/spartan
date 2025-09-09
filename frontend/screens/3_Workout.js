@@ -7,6 +7,7 @@ import {
     Animated,
     Alert,
     InteractionManager,
+    StatusBar,
 } from "react-native";
 
 // Header & Footer
@@ -514,6 +515,7 @@ export default function Workout({ navigation, route }) {
     /* ---------------- render ---------------- */
     return (
         <SafeAreaView style={styles.root}>
+            <StatusBar barStyle="light-content" backgroundColor="#151724" />
             {/* Header measured for anchoring */}
             <View onLayout={onHeaderLayout}>
                 <FeedHeader
@@ -566,7 +568,11 @@ export default function Workout({ navigation, route }) {
                     PREVIEW_LABEL={PREVIEW_LABEL}
                 />
 
-                <SectionDivider />
+                <SectionDivider
+                    containerBg="#151724"
+                    dashColor="rgba(255,255,255,0.22)"
+                    dotColor="#ffffff2d"
+                />
             </View>
 
             {/* Templates rail (mount after first paint) */}
@@ -732,7 +738,8 @@ export default function Workout({ navigation, route }) {
 
 /* ---------------- styles ---------------- */
 const styles = StyleSheet.create({
-    root: { flex: 1, backgroundColor: "#f0f4f9ff" },
+    // MyFitnessPal-like dark background
+    root: { flex: 1, backgroundColor: "#151724" },
     content: { flex: 1, paddingTop: 4 },
 
     templatesDock: { position: "absolute", left: 0, right: 0, bottom: FOOTER_HEIGHT + ss(22) + BTN_SIZE + TPL_BOTTOM_GAP },

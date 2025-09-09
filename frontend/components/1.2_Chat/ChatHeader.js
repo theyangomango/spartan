@@ -8,8 +8,8 @@ import { usePfp } from "../../helper/usePFPs";
 import scaleSize from "../../helper/scaleSize";
 
 const ACCENT = "#2D9EFF";
-const HAIRLINE = "rgba(15, 23, 42, 0.03)";
-const BG = "#F7F8FC";
+const HAIRLINE = "rgba(255,255,255,0.08)";
+const BG = "#131521";
 
 const ChatHeader = ({ usersExcludingSelf = [], toMessages }) => {
     const navigation = useNavigation();
@@ -93,13 +93,13 @@ const styles = StyleSheet.create({
         width: scaleSize(32),
         height: scaleSize(32),
         borderRadius: scaleSize(16),
-        backgroundColor: "#FFFFFF",
+        backgroundColor: "#252733",
         borderWidth: 1,
         borderColor: HAIRLINE,
         alignItems: "center",
         justifyContent: "center",
-        shadowColor: "#0F172A",
-        shadowOpacity: 0.06,
+        shadowColor: "#000",
+        shadowOpacity: 0.18,
         shadowRadius: scaleSize(8),
         shadowOffset: { width: 0, height: scaleSize(4) },
         elevation: 2,
@@ -123,16 +123,16 @@ const styles = StyleSheet.create({
         position: "absolute",
         borderWidth: 2,
         borderColor: "#fff",
-        backgroundColor: "#EEE",
+        backgroundColor: "#2E323C",
     },
     pfpTL: { top: 1, left: 1 },
     pfpBR: { bottom: 1, right: 1 },
-    pfpSingle: { width: scaleSize(42), height: scaleSize(42), borderRadius: scaleSize(21), backgroundColor: "#EEE" },
-    pfpPh: { backgroundColor: "#EAEAEA" },
+    pfpSingle: { width: scaleSize(42), height: scaleSize(42), borderRadius: scaleSize(21), backgroundColor: "#2E323C" },
+    pfpPh: { backgroundColor: "#2E323C" },
 
     textWrap: { flex: 1, justifyContent: "center" },
-    nameText: { fontFamily: "Nunito_700Bold", fontSize: scaleSize(16), color: "#0F172A"},
-    handleText: { fontFamily: "Nunito_700Bold", fontSize: scaleSize(12.5), color: "#7C889A", marginTop: 1 },
+    nameText: { fontFamily: "Nunito_700Bold", fontSize: scaleSize(16), color: "#E5E7EB"},
+    handleText: { fontFamily: "Nunito_700Bold", fontSize: scaleSize(12.5), color: "#A1A7B3", marginTop: 1 },
 });
 
 export default ChatHeader;

@@ -2,7 +2,7 @@
 import React from 'react';
 import { View, Text } from 'react-native';
 
-const MacroBar = ({ label, value, goal, color, textPrimary, textSecondary }) => {
+const MacroBar = ({ label, value, goal, color, textPrimary, textSecondary, trackColor }) => {
     const progress = Math.min(value / Math.max(1, goal), 1);
 
     return (
@@ -28,10 +28,10 @@ const MacroBar = ({ label, value, goal, color, textPrimary, textSecondary }) => 
                 style={{
                     height: 8,
                     borderRadius: 8,
-                    backgroundColor: '#E2E8F0',
+                    backgroundColor: trackColor || '#E2E8F0',
                     overflow: 'hidden',
                     borderWidth: 0.5,
-                    borderColor: 'rgba(2,6,23,0.06)',
+                    borderColor: trackColor ? 'rgba(255,255,255,0.06)' : 'rgba(2,6,23,0.06)',
                 }}
             >
                 <View

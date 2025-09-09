@@ -110,8 +110,8 @@ export default function FoodSearchOverlay({
 
     // ---- Renderers
     const renderSearchItem = useCallback(({ item }) => (
-        <SearchResultCard item={item} onPressPlus={() => openPortion(item)} />
-    ), [openPortion]);
+        <SearchResultCard item={item} onPressPlus={() => openPortion(item)} COLORS={COLORS} />
+    ), [openPortion, COLORS]);
 
     const renderHistoryItem = useCallback(({ item }) => {
         const mapped = {
@@ -120,8 +120,8 @@ export default function FoodSearchOverlay({
             brand_name: item.brand || '',
             food_description: item.description || '',
         };
-        return <SearchResultCard item={mapped} onPressPlus={() => openPortion(mapped)} />;
-    }, [openPortion]);
+        return <SearchResultCard item={mapped} onPressPlus={() => openPortion(mapped)} COLORS={COLORS} />;
+    }, [openPortion, COLORS]);
 
     const HistoryFooter = () => {
         if (!visible) return null;
@@ -241,7 +241,7 @@ export default function FoodSearchOverlay({
 
 const makeStyles = (COLORS) =>
     StyleSheet.create({
-        overlayContainer: { flex: 1, backgroundColor: COLORS.bg || COLORS.background || '#F8FAFC' },
+        overlayContainer: { flex: 1, backgroundColor: COLORS.bg || COLORS.background || '#131521' },
         overlayHeader: {
             paddingTop: 56,
             paddingBottom: 12,
@@ -249,7 +249,7 @@ const makeStyles = (COLORS) =>
             flexDirection: 'row',
             alignItems: 'center',
             justifyContent: 'space-between',
-            backgroundColor: COLORS.bg || COLORS.background || '#F8FAFC',
+            backgroundColor: COLORS.bg || COLORS.background || '#131521',
             position: 'relative',          // <-- important for absolute title
         },
         headerLeft: {
@@ -268,7 +268,7 @@ const makeStyles = (COLORS) =>
         },
         overlayTitle: {
             fontSize: 18,
-            color: COLORS.text || COLORS.textPrimary || '#0F172A',
+            color: COLORS.text || COLORS.textPrimary || '#E5E7EB',
             fontFamily: 'Outfit_600SemiBold',
         },
         headerActionText: {
@@ -279,14 +279,14 @@ const makeStyles = (COLORS) =>
 
         searchContainer: { paddingHorizontal: 18, marginBottom: 12 },
         searchBox: {
-            backgroundColor: '#fff',
+            backgroundColor: COLORS.card || '#252733',
             flexDirection: 'row',
             alignItems: 'center',
             borderRadius: 20,
             paddingHorizontal: 14,
             paddingVertical: 13,
             shadowColor: '#000',
-            shadowOpacity: 0.05,
+            shadowOpacity: 0.08,
             shadowOffset: { width: 0, height: 1 },
             shadowRadius: 3,
             elevation: 2,
@@ -295,14 +295,14 @@ const makeStyles = (COLORS) =>
             flex: 1,
             fontFamily: 'Outfit_400Regular',
             fontSize: 15,
-            color: COLORS.text || COLORS.textPrimary || '#0F172A',
+            color: COLORS.text || COLORS.textPrimary || '#E5E7EB',
             paddingVertical: 0,
         },
         emptyText: {
             textAlign: 'center',
             marginTop: 12,
             marginBottom: 4,
-            color: COLORS.subtext || COLORS.textSecondary || '#64748B',
+            color: COLORS.subtext || COLORS.textSecondary || '#A1A7B3',
             fontFamily: 'Outfit_400Regular',
         },
         historyHeader: {
@@ -310,7 +310,7 @@ const makeStyles = (COLORS) =>
             marginBottom: 8,
             paddingHorizontal: 2,
             fontSize: 14,
-            color: COLORS.subtext || COLORS.textSecondary || '#64748B',
+            color: COLORS.subtext || COLORS.textSecondary || '#A1A7B3',
             fontFamily: 'Outfit_600SemiBold',
         },
 

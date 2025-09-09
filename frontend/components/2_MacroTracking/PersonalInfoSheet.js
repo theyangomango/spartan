@@ -249,16 +249,16 @@ export default function PersonalInfoSheet({ index, onChangeIndex, goalForm, setG
 }
 
 const makeStyles = (COLORS) => {
-    const text = COLORS?.text ?? COLORS?.textPrimary ?? '#0F172A';
-    const subtext = COLORS?.subtext ?? COLORS?.textSecondary ?? '#64748B';
-    const card = COLORS?.card ?? '#FFFFFF';
-    const hairline = COLORS?.hairline ?? 'rgba(2,6,23,0.06)';
+    const text = COLORS?.text ?? COLORS?.textPrimary ?? '#E5E7EB';
+    const subtext = COLORS?.subtext ?? COLORS?.textSecondary ?? '#A1A7B3';
+    const card = COLORS?.card ?? '#252733';
+    const hairline = COLORS?.hairline ?? 'rgba(255,255,255,0.08)';
     const accent = COLORS?.accentBlue ?? '#6FB8FF';
-    const fieldBg = COLORS?.fieldBg ?? '#F8FAFC';
+    const fieldBg = COLORS?.fieldBg ?? '#1E2128';
 
     return StyleSheet.create({
         sheetBackground: { backgroundColor: card, borderTopLeftRadius: 24, borderTopRightRadius: 24, borderWidth: StyleSheet.hairlineWidth, borderColor: hairline },
-        sheetHandle: { backgroundColor: '#E2E8F0', width: 44, height: 4, borderRadius: 2 },
+        sheetHandle: { backgroundColor: '#3A3D45', width: 44, height: 4, borderRadius: 2 },
         scrollContent: { paddingHorizontal: 18, paddingTop: 10, paddingBottom: 18 },
 
         headerRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 },
@@ -292,11 +292,11 @@ const makeStyles = (COLORS) => {
             paddingHorizontal: 12,
             paddingVertical: 7,
             borderRadius: 999,
-            backgroundColor: '#EEF2FF',
+            backgroundColor: fieldBg,
             borderWidth: StyleSheet.hairlineWidth,
-            borderColor: 'rgba(99,102,241,0.22)',
+            borderColor: hairline,
         },
-        smallLinkText: { fontFamily: 'Outfit_600SemiBold', fontSize: 12.5, color: '#000' },
+        smallLinkText: { fontFamily: 'Outfit_600SemiBold', fontSize: 12.5, color: text },
 
         // Full-width action row (mirrors Macro Goals autoCalcRow)
         autoCalcRow: {
@@ -304,7 +304,7 @@ const makeStyles = (COLORS) => {
             paddingHorizontal: 14,
             paddingVertical: 12,
             borderRadius: 14,
-            backgroundColor: '#F8FAFF',
+            backgroundColor: fieldBg,
             borderWidth: StyleSheet.hairlineWidth,
             borderColor: hairline,
             flexDirection: 'row',
@@ -318,9 +318,9 @@ const makeStyles = (COLORS) => {
             borderRadius: 14,
             alignItems: 'center',
             justifyContent: 'center',
-            backgroundColor: '#EAF2FF',
+            backgroundColor: fieldBg,
             borderWidth: StyleSheet.hairlineWidth,
-            borderColor: 'rgba(99,102,241,0.22)',
+            borderColor: hairline,
             marginRight: 10,
         },
         autoCalcText: { fontFamily: 'Outfit_600SemiBold', fontSize: 13, color: text },

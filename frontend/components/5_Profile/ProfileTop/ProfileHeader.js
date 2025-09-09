@@ -14,14 +14,14 @@ export default function ProfileHeader({ onPressCreateBtn, onPressSettings }) {
     return (
         <View style={styles.main_ctnr}>
             <RNBounceable style={styles.leftBtn} onPress={onPressSettings}>
-                <Octicons name="gear" size={scaledSize(22.5)} color={'#bbb'} />
+                <Octicons name="gear" size={scaledSize(22.5)} color={'#bfc5d1'} />
             </RNBounceable>
             <RNBounceable>
                 <View style={styles.center}>
-                    <Entypo name="chevron-down" size={scaledSize(18)} color="#fff" />
+                    <Entypo name="chevron-down" size={scaledSize(18)} color="#E5E7EB" />
                     <Text style={styles.handle_text}>{global.userData.handle}</Text>
                     <View style={styles.down_arrow_ctnr}>
-                        <Entypo name="chevron-down" size={scaledSize(18)} color="#666" />
+                        <Entypo name="chevron-down" size={scaledSize(18)} color="#A3A7B0" />
                     </View>
                 </View>
             </RNBounceable>
@@ -29,7 +29,7 @@ export default function ProfileHeader({ onPressCreateBtn, onPressSettings }) {
                 <RNBounceable onPress={onPressCreateBtn}>
                     <View style={styles.create_btn_ctnr}>
                         {/* <FontAwesome6 name='plus' size={scaledSize(13)} color="#bbb" /> */}
-                        <AddSquare size={24} color="#aaa" />
+                        <AddSquare size={24} color="#c7ccd6" />
                     </View>
                 </RNBounceable>
             </View>
@@ -53,7 +53,7 @@ const styles = StyleSheet.create({
         fontFamily: 'Outfit_600SemiBold',
         fontSize: scaledSize(16),
         padding: scaledSize(2),
-        color: '#666',
+        color: '#E5E7EB',
     },
     down_arrow_ctnr: {
         justifyContent: 'center',
@@ -68,7 +68,7 @@ const styles = StyleSheet.create({
         aspectRatio: 1,
         alignItems: 'center',
         justifyContent: 'center',
-        borderColor: '#bbb',
+        borderColor: '#3A3D45',
     },
     leftBtn: { paddingTop: scaledSize(1), paddingRight: scaledSize(6) },
 });

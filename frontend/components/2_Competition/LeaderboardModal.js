@@ -60,9 +60,10 @@ const DOT_MB = scaleSize(2);
 // Accent palette (tweak here if you want a different vibe)
 const ACCENT = "#f6b000ff";            // rich gold
 const ACCENT_BG = "#f6b00041";
-const BANNER_BG = "#ffe1685c";       // very light warm wash
-const TITLE_COLOR = "#2F2500";       // deep warm text
-const ICON_MUTED = "#8A8F98";
+// Dark mode palette for Competition
+const BANNER_BG = "#252733";         // use card color for banners
+const TITLE_COLOR = "#EAEAEA";       // light text on dark
+const ICON_MUTED = "#AEB5C0";
 
 export default function LeaderboardModal({
     userList,
@@ -176,7 +177,7 @@ export default function LeaderboardModal({
             <View style={styles.headerRow}>
                 <TouchableOpacity onPress={openModal} activeOpacity={0.85} style={styles.selectorPill}>
                     {/* <Ionicons name="barbell" size={16} color="#222" /> */}
-                    <Weight size={ICON_WEIGHT} color="#222" variant='Broken' />
+                    <Weight size={ICON_WEIGHT} color="#EAEAEA" variant='Broken' />
                     <Text style={styles.selectorText} numberOfLines={1}>{categoryCompared}</Text>
                 </TouchableOpacity>
                 <TouchableOpacity onPress={onToggleMetric} activeOpacity={0.85} style={styles.metricPill}>
@@ -261,19 +262,23 @@ const styles = StyleSheet.create({
         paddingRight: SELECTOR_PAD_R,
         paddingLeft: SELECTOR_PAD_L,
         paddingVertical: SELECTOR_PAD_V,
-        backgroundColor: "#F2F4F8",
+        backgroundColor: "#252733",
+        borderWidth: 1,
+        borderColor: "rgba(255,255,255,0.08)",
         borderRadius: 999,
         flex: 1,
         gap: SELECTOR_GAP,
     },
-    selectorText: { fontFamily: "Outfit_600SemiBold", fontSize: FONT_SELECTOR, color: "#222", flexShrink: 1 },
+    selectorText: { fontFamily: "Outfit_600SemiBold", fontSize: FONT_SELECTOR, color: "#EAEAEA", flexShrink: 1 },
     metricPill: {
         paddingHorizontal: METRIC_PAD_H,
         paddingVertical: METRIC_PAD_V,
-        backgroundColor: "#E8F0FF",
+        backgroundColor: "#252733",
+        borderWidth: 1,
+        borderColor: "rgba(255,255,255,0.08)",
         borderRadius: 999,
     },
-    metricText: { fontFamily: "Outfit_600SemiBold", fontSize: FONT_METRIC, color: "#4d91f7ff" },
+    metricText: { fontFamily: "Outfit_600SemiBold", fontSize: FONT_METRIC, color: "#6FB8FF" },
 
     // tribe banner — modern warm “gold” card (no border)
     bannerCard: {
@@ -282,9 +287,14 @@ const styles = StyleSheet.create({
         paddingHorizontal: BANNER_PAD_H,
         paddingVertical: BANNER_PAD_V,
         borderRadius: BANNER_RADIUS,
-        backgroundColor: BANNER_BG,
-        // shadow disabled per your last snippet
-        // elevation: 4,
+        backgroundColor: "#1E232C",
+        borderWidth: 1,
+        borderColor: "rgba(255,255,255,0.08)",
+        shadowColor: "#000",
+        shadowOffset: { width: 0, height: 8 },
+        shadowOpacity: 0.12,
+        shadowRadius: 14,
+        elevation: 4,
         marginBottom: BANNER_MB,
     },
     iconPill: {
@@ -297,7 +307,7 @@ const styles = StyleSheet.create({
         marginRight: ICON_PILL_MR,
     },
     bannerTitle: { fontFamily: "Outfit_700Bold", fontSize: FONT_BANNER_TITLE, color: TITLE_COLOR },
-    bannerMeta: { fontFamily: "Outfit_600SemiBold", fontSize: FONT_BANNER_META, color: TITLE_COLOR, opacity: 0.9, marginTop: scaleSize(2) },
+    bannerMeta: { fontFamily: "Outfit_600SemiBold", fontSize: FONT_BANNER_META, color: "#AEB5C0", opacity: 0.95, marginTop: scaleSize(2) },
 
     // minimal “no comparisons yet” CTA
     tribeHeaderButton: {
@@ -335,7 +345,7 @@ const styles = StyleSheet.create({
         width: DOT_SIZE,
         height: DOT_SIZE,
         borderRadius: DOT_RADIUS,
-        backgroundColor: "rgba(0,0,0,0.15)",
+        backgroundColor: "rgba(255,255,255,0.28)",
     },
-    dotActive: { backgroundColor: ACCENT, width: DOT_ACTIVE_SIZE, height: DOT_ACTIVE_SIZE, borderRadius: DOT_ACTIVE_RADIUS },
+    dotActive: { backgroundColor: "#6FB8FF", width: DOT_ACTIVE_SIZE, height: DOT_ACTIVE_SIZE, borderRadius: DOT_ACTIVE_RADIUS },
 });

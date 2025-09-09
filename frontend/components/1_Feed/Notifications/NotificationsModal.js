@@ -167,7 +167,7 @@ const MemoNotificationCard = React.memo(NotificationCard);
 const styles = StyleSheet.create({
     container: {
         flex: 1,
-        backgroundColor: "#F7F8FC",
+        backgroundColor: "#252733",
         borderTopLeftRadius: scaleSize(26),
         borderTopRightRadius: scaleSize(26),
     },
@@ -182,7 +182,7 @@ const styles = StyleSheet.create({
     sectionHeaderText: {
         fontFamily: "Outfit_700Bold",
         fontSize: scaleSize(12),
-        color: "rgba(15,23,42,0.65)",
+        color: "#A1A7B3",
         letterSpacing: 0.3,
     },
 });

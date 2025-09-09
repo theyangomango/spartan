@@ -14,28 +14,28 @@ export default function MiniPodium({ data = [] }) {
         <View style={styles.podiumRow}>
             <View style={styles.col}>
                 {data[1]?.present ? (
-                    <Avatar uri={data[1]?.pfp} ring="#d4d4d4ff" />
+                    <Avatar uri={data[1]?.pfp} ring="#C7CED9" />
                 ) : null}
-                <View style={[styles.plinth, { height: H_L, backgroundColor: "#E8EEF9" }]}>
-                    <View style={[styles.medalDot, { backgroundColor: "#c5c9d1ff" }]} />
+                <View style={[styles.plinth, { height: H_L, backgroundColor: "#64687bff" }]}>
+                    <View style={[styles.medalDot, { backgroundColor: "#C7CED9" }]} />
                 </View>
             </View>
 
             <View style={[styles.col, { marginHorizontal: 10 }]}>
                 {data[0]?.present ? (
-                    <Avatar uri={data[0]?.pfp} ring="#ffe08bff" />
+                    <Avatar uri={data[0]?.pfp} ring="#FFE08B" />
                 ) : null}
-                <View style={[styles.plinth, { height: H_C, backgroundColor: "#E8EEF9" }]}>
-                    <View style={[styles.medalDot, { backgroundColor: "#ffe08bff" }]} />
+                <View style={[styles.plinth, { height: H_C, backgroundColor: "#64687bff" }]}>
+                    <View style={[styles.medalDot, { backgroundColor: "#FFE08B" }]} />
                 </View>
             </View>
 
             <View style={styles.col}>
                 {data[2]?.present ? (
-                    <Avatar uri={data[2]?.pfp} ring="#ffbb69ff" />
+                    <Avatar uri={data[2]?.pfp} ring="#FFBB69" />
                 ) : null}
-                <View style={[styles.plinth, { height: H_R, backgroundColor: "#E8EEF9" }]}>
-                    <View style={[styles.medalDot, { backgroundColor: "#ffba98ff" }]} />
+                <View style={[styles.plinth, { height: H_R, backgroundColor: "#64687bff" }]}>
+                    <View style={[styles.medalDot, { backgroundColor: "#FFBA98" }]} />
                 </View>
             </View>
         </View>
@@ -65,7 +65,7 @@ const styles = StyleSheet.create({
     avatarWrap: {
         borderWidth: 3.5,
         borderRadius: 999,
-        backgroundColor: "#FFFFFF",
+        backgroundColor: "#252733",
         marginBottom: 6,
     },
     plinth: {
@@ -76,7 +76,7 @@ const styles = StyleSheet.create({
         justifyContent: "flex-end",
         paddingBottom: 6,
         ...Platform.select({
-            ios: { shadowColor: "#000", shadowOpacity: 0.05, shadowRadius: 6, shadowOffset: { width: 0, height: 3 } },
+            ios: { shadowColor: "#000", shadowOpacity: 0.25, shadowRadius: 6, shadowOffset: { width: 0, height: 3 } },
             android: { elevation: 1 },
         }),
     },

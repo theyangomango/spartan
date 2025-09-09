@@ -4,7 +4,7 @@ import { View, Text, StyleSheet } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import PlusIcon from '../../assets/PlusIcon';
 
-const COLORS = {
+const DEFAULT_COLORS = {
     background: '#f5f6fa',
     textPrimary: '#151515ff',
     textSecondary: '#999',
@@ -12,7 +12,8 @@ const COLORS = {
     mealCardShadow: '#99a5b7ff',
 };
 
-function SearchResultCard({ item, onPressPlus }) {
+function SearchResultCard({ item, onPressPlus, COLORS }) {
+    const theme = COLORS || DEFAULT_COLORS;
     const formatPortion = (qty, unit) => {
         const u = (unit || '').trim().toLowerCase();
         if (/^g(ram|rams)?$/.test(u)) return `${qty}g`;
@@ -58,6 +59,26 @@ function SearchResultCard({ item, onPressPlus }) {
         return [calories, grams, brand].filter(Boolean).join(', ');
     };
 
+    const styles = StyleSheet.create({
+        resultCard: {
+            backgroundColor: theme.card,
+            borderRadius: 14,
+            paddingVertical: 12,
+            paddingHorizontal: 22,
+            marginBottom: 6,
+            shadowColor: theme.mealCardShadow,
+            shadowOpacity: 0.08,
+            shadowRadius: 5,
+            elevation: 2,
+            borderWidth: StyleSheet.hairlineWidth,
+            borderColor: (theme.hairline || 'rgba(2,6,23,0.06)'),
+        },
+        contentRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
+        textContainer: { flex: 1, marginRight: 12 },
+        resultTitle: { fontFamily: 'Mulish_700Bold', fontSize: 12.5, color: theme.text || theme.textPrimary, marginBottom: 4 },
+        resultDescription: { fontFamily: 'Mulish_500Medium', fontSize: 12.5, color: theme.subtext || theme.textSecondary },
+    });
+
     return (
         <RNBounceable bounceEffectIn={0.95} style={styles.resultCard} onPress={onPressPlus}>
             <View style={styles.contentRow}>
@@ -72,37 +93,3 @@ function SearchResultCard({ item, onPressPlus }) {
 }
 
 export default memo(SearchResultCard);
-
-const styles = StyleSheet.create({
-    resultCard: {
-        backgroundColor: COLORS.card,
-        borderRadius: 14,
-        paddingVertical: 12,
-        paddingHorizontal: 22,
-        marginBottom: 6,
-        shadowColor: COLORS.mealCardShadow,
-        shadowOpacity: 0.08,
-        shadowRadius: 5,
-        elevation: 2,
-    },
-    contentRow: {
-        flexDirection: 'row',
-        justifyContent: 'space-between',
-        alignItems: 'center',
-    },
-    textContainer: {
-        flex: 1,
-        marginRight: 12,
-    },
-    resultTitle: {
-        fontFamily: 'Mulish_700Bold',
-        fontSize: 12.5,
-        color: COLORS.textPrimary,
-        marginBottom: 4,
-    },
-    resultDescription: {
-        fontFamily: 'Mulish_500Medium',
-        fontSize: 12.5,
-        color: COLORS.textSecondary,
-    },
-});

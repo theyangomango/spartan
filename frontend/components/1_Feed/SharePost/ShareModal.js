@@ -59,7 +59,7 @@ export default function ShareModal({ closeBottomSheet }) {
         <View style={styles.container}>
             <View style={styles.header}>
                 <View style={styles.searchContainer}>
-                    <Icon name="search" size={20} color="#888" style={styles.searchIcon} />
+                    <Icon name="search" size={20} color="#9AA5B1" style={styles.searchIcon} />
                     <TextInput
                         style={styles.searchBar}
                         placeholder="Search"
@@ -94,7 +94,7 @@ const styles = StyleSheet.create({
         borderTopLeftRadius: 25,
         borderTopRightRadius: 25,
         paddingTop: 5,
-        backgroundColor: '#fff'
+        backgroundColor: '#252733'
     },
     header: {
         paddingHorizontal: 16,
@@ -105,7 +105,7 @@ const styles = StyleSheet.create({
     searchContainer: {
         flexDirection: 'row',
         alignItems: 'center',
-        backgroundColor: '#f0f0f0',
+        backgroundColor: '#1E2128',
         borderRadius: 8,
         width: '100%',
         paddingHorizontal: 8,
@@ -116,6 +116,7 @@ const styles = StyleSheet.create({
     searchBar: {
         flex: 1,
         padding: 8,
+        color: '#E5E7EB'
     },
     flatlistContainer: {
     },
@@ -137,4 +138,3 @@ const styles = StyleSheet.create({
         fontFamily: 'Poppins_600SemiBold'
     },
 });
-

@@ -31,9 +31,9 @@ export default function NutritionSummaryCard({ totals, goals, COLORS }) {
                 </View>
 
                 <View style={styles.macroSummary}>
-                    <MacroBar label="Protein" value={totals.protein} goal={goals.protein} color={COLORS.protein} textPrimary={COLORS.text} textSecondary={COLORS.subtext} />
-                    <MacroBar label="Carbs" value={totals.carbs} goal={goals.carbs} color={COLORS.carbs} textPrimary={COLORS.text} textSecondary={COLORS.subtext} />
-                    <MacroBar label="Fat" value={totals.fat} goal={goals.fat} color={COLORS.fat} textPrimary={COLORS.text} textSecondary={COLORS.subtext} />
+                    <MacroBar label="Protein" value={totals.protein} goal={goals.protein} color={COLORS.protein} textPrimary={COLORS.text} textSecondary={COLORS.subtext} trackColor={COLORS.ringBg} />
+                    <MacroBar label="Carbs" value={totals.carbs} goal={goals.carbs} color={COLORS.carbs} textPrimary={COLORS.text} textSecondary={COLORS.subtext} trackColor={COLORS.ringBg} />
+                    <MacroBar label="Fat" value={totals.fat} goal={goals.fat} color={COLORS.fat} textPrimary={COLORS.text} textSecondary={COLORS.subtext} trackColor={COLORS.ringBg} />
                 </View>
             </View>
         </View>

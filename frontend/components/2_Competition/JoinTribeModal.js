@@ -21,7 +21,7 @@ const JoinTribeModal = ({ visible, value, onChangeText, onCancel, onJoin }) => {
                     <Text style={styles.modalTitle}>Join a tribe</Text>
                     <TextInput
                         placeholder="Enter code (e.g. 7F2K9Q)"
-                        placeholderTextColor="#999"
+                        placeholderTextColor="#8C95A3"
                         value={value}
                         // Auto-capitalize + disable “smart” corrections
                         autoCapitalize="characters"
@@ -64,7 +64,7 @@ const styles = StyleSheet.create({
     modalCard: {
         width: "100%",
         maxWidth: 420,
-        backgroundColor: "#fff",
+        backgroundColor: "#252733",
         borderRadius: 16,
         paddingVertical: 16,
         paddingHorizontal: 14,
@@ -72,16 +72,16 @@ const styles = StyleSheet.create({
     modalTitle: {
         fontFamily: "Outfit_700Bold",
         fontSize: 18,
-        color: "#111",
+        color: "#EAEAEA",
         marginBottom: 10,
     },
     input: {
-        backgroundColor: "#f6f6f6",
+        backgroundColor: "#1E232C",
         borderRadius: 10,
         paddingHorizontal: 12,
         paddingVertical: 10,
         fontFamily: "Outfit_500Medium",
-        color: "#111",
+        color: "#EAEAEA",
         marginBottom: 12,
         letterSpacing: 1, // a bit of spacing helps codes feel clearer
     },
@@ -101,6 +101,6 @@ const styles = StyleSheet.create({
     },
     btnPrimary: { backgroundColor: "#2D9EFF" },
     btnPrimaryText: { color: "#fff" },
-    btnGhost: { backgroundColor: "#eee" },
-    btnGhostText: { color: "#333" },
+    btnGhost: { backgroundColor: "#1F2730" },
+    btnGhostText: { color: "#EAEAEA" },
 });

@@ -168,19 +168,19 @@ const styles = StyleSheet.create({
         marginVertical: scaleSize(8),
         paddingHorizontal: scaleSize(14),
         paddingVertical: scaleSize(12),
-        backgroundColor: "#FFFFFF",
+        backgroundColor: "#252733",
         borderRadius: scaleSize(16),
         borderWidth: StyleSheet.hairlineWidth,
-        borderColor: "rgba(2,6,23,0.08)",
+        borderColor: "rgba(255,255,255,0.08)",
         shadowColor: "#000",
-        shadowOpacity: 0.06,
+        shadowOpacity: 0.2,
         shadowRadius: 10,
         shadowOffset: { width: 0, height: 4 },
         elevation: 2,
     },
     cardUnread: {
-        backgroundColor: "#F7FAFF",
-        borderColor: "rgba(37,99,235,0.18)",
+        backgroundColor: "#1E2128",
+        borderColor: "rgba(37,99,235,0.28)",
     },
     pfpWrap: { position: "relative", marginRight: scaleSize(12) },
     pfp: {
@@ -188,11 +188,11 @@ const styles = StyleSheet.create({
         aspectRatio: 1,
         borderRadius: scaleSize(22),
         borderWidth: StyleSheet.hairlineWidth,
-        borderColor: "rgba(15,23,42,0.08)",
-        backgroundColor: "#EEE",
+        borderColor: "rgba(255,255,255,0.06)",
+        backgroundColor: "#2E323C",
     },
     pfpPlaceholder: {
-        backgroundColor: "#EEE",
+        backgroundColor: "#2E323C",
     },
     pfpIconBadge: {
         position: "absolute",
@@ -214,7 +214,7 @@ const styles = StyleSheet.create({
         width: scaleSize(20),
         height: scaleSize(20),
         borderRadius: scaleSize(10),
-        backgroundColor: "#FFFFFF",
+        backgroundColor: "#252733",
         alignItems: "center",
         justifyContent: "center",
     },
@@ -223,25 +223,25 @@ const styles = StyleSheet.create({
     handle: {
         fontSize: scaleSize(13.5),
         fontFamily: "Outfit_600SemiBold",
-        color: "#0F172A",
+        color: "#E5E7EB",
         maxWidth: '70%'
     },
     message: {
         fontSize: scaleSize(13),
-        color: "#5B6B83",
+        color: "#B8BFCA",
         fontFamily: "Outfit_400Regular",
         lineHeight: scaleSize(20),
     },
     time: {
         fontSize: scaleSize(12),
-        color: "#7A8AA1",
+        color: "#A1A7B3",
         fontFamily: "Outfit_600SemiBold",
     },
     timeWrap: { flexDirection: 'row', alignItems: 'center', gap: scaleSize(6) },
     unreadDot: { width: scaleSize(7), height: scaleSize(7), borderRadius: scaleSize(7)/2 },
 
     followBtn: {
-        backgroundColor: "#FFFFFF",
+        backgroundColor: "#1E2128",
         paddingVertical: scaleSize(8),
         paddingHorizontal: scaleSize(12),
         borderRadius: scaleSize(14),
@@ -250,7 +250,7 @@ const styles = StyleSheet.create({
         borderColor: "#2D92FF",
     },
     followBtnPressed: {
-        backgroundColor: "rgba(45,146,255,0.08)",
+        backgroundColor: "rgba(45,146,255,0.16)",
         borderColor: "#2D92FF",
     },
     followText: {

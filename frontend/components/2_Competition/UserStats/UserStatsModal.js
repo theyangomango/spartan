@@ -14,17 +14,17 @@ const { height: screenHeight } = Dimensions.get("window");
 const scale = screenHeight / 844; // iPhone 13 baseline
 const scaledSize = (n) => Math.round(n * scale);
 
-// Theme
+// Theme (dark mode for Competition context)
 const COLORS = {
-    bg: "#F8FAFF",
-    card: "#FFFFFF",
-    text: "#0F172A",
-    subtext: "#64748B",
+    bg: "#252733",         // sheet/card background
+    card: "#252733",       // cards within the sheet
+    text: "#EAEAEA",       // primary text
+    subtext: "#AEB5C0",    // secondary text
     accent: "#2D9EFF",
-    hairline: "#E6EEF6",
-    iconBg: "#EEF2F7",
-    statBg: "#F7FAFF",
-    statBorder: "rgba(100,116,139,0.10)",
+    hairline: "rgba(255,255,255,0.12)",
+    iconBg: "#1E232C",
+    statBg: "#1E232C",
+    statBorder: "rgba(255,255,255,0.08)",
 };
 
 // ---------- helpers ----------
@@ -374,7 +374,7 @@ const styles = StyleSheet.create({
         width: scaledSize(44),
         height: scaledSize(5),
         borderRadius: scaledSize(3),
-        backgroundColor: COLORS.hairline,
+        backgroundColor: "rgba(255,255,255,0.25)",
         marginTop: scaledSize(10),
         marginBottom: scaledSize(8),
     },
@@ -421,7 +421,7 @@ const styles = StyleSheet.create({
         borderRadius: scaledSize(999),
         borderWidth: 1,
         borderColor: COLORS.hairline,
-        backgroundColor: "#FFFFFF",
+        backgroundColor: "rgba(255,255,255,0.06)",
     },
     ovrRow: { flexDirection: 'row', alignItems: 'baseline' },
     scorePillLabel: {
@@ -527,9 +527,7 @@ const styles = StyleSheet.create({
         shadowRadius: scaledSize(10),
         elevation: 4,
     },
-    exerciseCardPressed: {
-        backgroundColor: "#FCFDFF",
-    },
+    exerciseCardPressed: { backgroundColor: "rgba(255,255,255,0.02)" },
     accentBar: {
         position: "absolute",
         left: 0,
@@ -574,7 +572,7 @@ const styles = StyleSheet.create({
         borderRadius: scaledSize(999),
         borderWidth: 1,
         borderColor: COLORS.hairline,
-        backgroundColor: "#FFFFFF",
+        backgroundColor: "rgba(255,255,255,0.06)",
     },
     oneRMLabel: {
         fontSize: scaledSize(10),

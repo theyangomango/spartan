@@ -721,12 +721,12 @@ export default function Competition({ navigation }) {
                 onClose={() => setPersonalSheetIndex(-1)}
                 onSave={async () => { await savePersonalInfo(); setPersonalSheetIndex(-1); }}
                 COLORS={{
-                    text: '#0F172A',
-                    subtext: '#64748B',
-                    card: '#FFFFFF',
-                    hairline: 'rgba(2,6,23,0.06)',
+                    text: '#EAEAEA',
+                    subtext: '#AEB5C0',
+                    card: '#252733',
+                    hairline: 'rgba(255,255,255,0.08)',
                     accentBlue: '#6FB8FF',
-                    fieldBg: '#F8FAFC',
+                    fieldBg: '#1E232C',
                 }}
             />
         </View>
@@ -734,7 +734,8 @@ export default function Competition({ navigation }) {
 }
 
 const styles = StyleSheet.create({
-    mainContainer: { flex: 1, backgroundColor: "#59AAEE" },
+    // Dark mode background for Competition screen
+    mainContainer: { flex: 1, backgroundColor: "#131521" },
     header: { alignItems: "flex-end", justifyContent: "flex-end", flexDirection: "row" },
     headerRightContainer: { flexDirection: "row", alignItems: "center" },
     tribeButtonRow: {

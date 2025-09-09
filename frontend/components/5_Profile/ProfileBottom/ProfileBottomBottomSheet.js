@@ -32,6 +32,7 @@ const ProfileBottomBottomSheet = ({ selectedPanel, setSelectedPanel, posts, save
             snapPoints={snapPoints}
             onChange={handleSheetChanges}
             handleStyle={{ display: 'none' }}
+            backgroundStyle={{ backgroundColor: '#131521' }}
             detached
         >
             <ProfileBottomModal

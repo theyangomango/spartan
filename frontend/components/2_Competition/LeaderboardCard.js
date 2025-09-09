@@ -168,6 +168,8 @@ const styles = StyleSheet.create({
         paddingLeft: 10,
         paddingRight: 14,
         marginBottom: 12.5,
+        // Match bottom sheet surface for a unified look
+        backgroundColor: '#252733',
     },
     self_card_ctnr: {
         borderRadius: 20,
@@ -177,7 +179,7 @@ const styles = StyleSheet.create({
         paddingRight: 14,
         borderWidth: 2.5,
         borderColor: '#57B2FF',
-        backgroundColor: '#F7FBFF',
+        backgroundColor: '#252733',
     },
     card_left: {
         flexDirection: 'row',
@@ -189,19 +191,19 @@ const styles = StyleSheet.create({
     pfp: {
         flex: 1,
         borderRadius: 100,
-        backgroundColor: '#e9eef5',
+        backgroundColor: '#2B3240',
     },
     handle_text: {
         fontFamily: 'Outfit_600SemiBold',
         paddingHorizontal: 12,
-        color: '#333',
+        color: '#EAEAEA',
         maxWidth: width * 0.45,
     },
     name_text: {
         marginTop: 1.5,
         fontFamily: 'Outfit_500Medium',
         paddingHorizontal: 12,
-        color: '#999',
+        color: '#AEB5C0',
         maxWidth: width * 0.45,
     },
     card_right: {
@@ -212,18 +214,18 @@ const styles = StyleSheet.create({
     },
     stat_text: {
         fontFamily: 'Outfit_600SemiBold',
-        color: '#2D9EFF',
+        color: '#6FB8FF',
         textAlign: 'right',
     },
     best_set_text: {
         fontFamily: 'Outfit_500Medium',
-        color: '#777',
+        color: '#AEB5C0',
         marginTop: 4,
         textAlign: 'right',
     },
     rank_text: {
         fontFamily: 'Poppins_600SemiBold',
-        color: '#333',
+        color: '#EAEAEA',
     },
     arrow_icon: {
         marginLeft: 1,

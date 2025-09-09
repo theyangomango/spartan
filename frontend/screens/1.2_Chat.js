@@ -35,7 +35,7 @@ import Animated, { useSharedValue, withTiming } from "react-native-reanimated";
 const { width: W } = Dimensions.get("window");
 const MAX_REVEAL = 72;
 
-const COLORS = { surface: "#FFFFFF", primary: "#2D9EFF", hairline: "rgba(15,23,42,0.06)" };
+const COLORS = { surface: "#252733", primary: "#2D9EFF", hairline: "rgba(255,255,255,0.08)", bg: "#131521", text: "#E5E7EB", subtext: "#A1A7B3", field: "#1E2128" };
 
 export default function Chat({ navigation, route }) {
     const insets = useSafeAreaInsets();
@@ -364,7 +364,7 @@ export default function Chat({ navigation, route }) {
             behavior={Platform.OS === "ios" ? "padding" : undefined}
             keyboardVerticalOffset={Platform.OS === "ios" ? 0 : 0}
         >
-            <StatusBar barStyle="dark-content" />
+            <StatusBar barStyle="light-content" />
             <View style={[styles.container, { paddingTop: insets.top }]}>
                 <ChatHeader
                     usersExcludingSelf={usersExcludingSelf}
@@ -457,7 +457,7 @@ export default function Chat({ navigation, route }) {
 
 const styles = StyleSheet.create({
     flex: { flex: 1 },
-    container: { flex: 1, backgroundColor: "#F7F8FC" },
+    container: { flex: 1, backgroundColor: COLORS.bg },
     surface: {
         flex: 1,
         backgroundColor: COLORS.surface,
@@ -480,13 +480,13 @@ const styles = StyleSheet.create({
     dateChip: {
         paddingHorizontal: 10,
         paddingVertical: 6,
-        backgroundColor: "#EFF4FF",
+        backgroundColor: COLORS.field,
         borderRadius: 14,
         borderWidth: 1,
-        borderColor: "rgba(45,158,255,0.10)",
+        borderColor: COLORS.hairline,
     },
     dateText: {
-        color: "#3A4A64",
+        color: COLORS.subtext,
         fontSize: 12,
         fontFamily: "Outfit_500Medium",
         letterSpacing: 0.2,

@@ -92,6 +92,10 @@ export default function StartOpenButton({ hasActiveWorkout, onOpen, onStart, hol
 
     return (
         <View style={styles.wrap}>
+            {/* Subtle accent ring to lift the central control */}
+            <View style={styles.accentRing} />
+            {/* Contrast disc behind the black button for dark theme */}
+            <View style={styles.backDisc} />
             <Pressable
                 {...(hasActiveWorkout
                     ? { onPress: onOpen }
@@ -171,6 +175,30 @@ const styles = StyleSheet.create({
         justifyContent: "center",
         overflow: "visible", // ensure halo/glow extending outside is visible
     },
+    // Subtle disc to separate pure black from dark background
+    backDisc: {
+        position: "absolute",
+        width: BTN_SIZE * 1.12,
+        height: BTN_SIZE * 1.12,
+        borderRadius: 9999,
+        backgroundColor: "#252733",
+        borderWidth: 1,
+        borderColor: "rgba(255,255,255,0.06)",
+        ...Platform.select({
+            ios: { shadowColor: "#000", shadowOpacity: 0.18, shadowRadius: 6, shadowOffset: { width: 0, height: 4 } },
+            android: { elevation: 2 },
+        }),
+    },
+
+    // Faint outer accent ring to bring the control forward
+    accentRing: {
+        position: "absolute",
+        width: BTN_SIZE * 1.20,
+        height: BTN_SIZE * 1.20,
+        borderRadius: 9999,
+        borderWidth: 1,
+        borderColor: "#2D9EFF28",
+    },
     // Core black button (minimal)
     startBtn: {
         width: BTN_SIZE,
@@ -179,7 +207,9 @@ const styles = StyleSheet.create({
         overflow: "hidden",
         alignItems: "center",
         justifyContent: "center",
-        backgroundColor: "#0D0D0D",
+        backgroundColor: "#0A0A0A",
+        borderWidth: 4,
+        borderColor: "#1E2732",
         ...Platform.select({
             ios: { shadowColor: "#000", shadowOpacity: 0.22, shadowRadius: 18, shadowOffset: { width: 0, height: 12 } },
             android: { elevation: 8 },

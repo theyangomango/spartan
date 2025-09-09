@@ -44,7 +44,7 @@ function HubRowCmp({
             {/* Calories card */}
             <Pressable
                 accessibilityRole="button"
-                android_ripple={{ color: "rgba(2,6,23,0.08)", radius: 140, borderless: false }}
+                android_ripple={{ color: "rgba(255,255,255,0.06)", radius: 140, borderless: false }}
                 style={({ pressed }) => [styles.card, pressed && styles.cardPressed]}
                 onPressIn={() => {
                     try {
@@ -65,7 +65,7 @@ function HubRowCmp({
                             width={11}
                             fill={safeFill}
                             tintColor="#6FB8FF"
-                            backgroundColor="#E2E8F0"
+                            backgroundColor="rgba(118, 122, 137, 1)"
                             lineCap="round"
                             arcSweepAngle={360}
                             rotation={0}
@@ -89,7 +89,7 @@ function HubRowCmp({
             {/* Mini podium */}
             <Pressable
                 accessibilityRole="button"
-                android_ripple={{ color: "rgba(2,6,23,0.08)", radius: 140, borderless: false }}
+                android_ripple={{ color: "rgba(255,255,255,0.06)", radius: 140, borderless: false }}
                 style={({ pressed }) => [styles.card, pressed && styles.cardPressed]}
                 onPressIn={() => {
                     try {
@@ -130,38 +130,38 @@ const styles = StyleSheet.create({
     hubRow: { flexDirection: "row", gap: 12, paddingHorizontal: 16, marginTop: 6 },
     card: {
         flex: 1,
-        backgroundColor: "#FFFFFF",
+        backgroundColor: "#252733",
         borderRadius: 22,
         padding: 14,
         borderWidth: StyleSheet.hairlineWidth,
-        borderColor: "rgba(2,6,23,0.06)",
+        borderColor: "rgba(255,255,255,0.08)",
         ...Platform.select({
-            ios: { shadowColor: "#000", shadowOpacity: 0.05, shadowRadius: 10, shadowOffset: { width: 0, height: 4 } },
-            android: { elevation: 2 },
+            ios: { shadowColor: "#000", shadowOpacity: 0.25, shadowRadius: 8, shadowOffset: { width: 0, height: 5 } },
+            android: { elevation: 1 },
         }),
     },
     cardPressed: {
         transform: [{ scale: 0.985 }],
-        backgroundColor: "#F8FAFC",
-        borderColor: "rgba(2,6,23,0.12)",
+        backgroundColor: "#0F172A",
+        borderColor: "rgba(255,255,255,0.16)",
         ...Platform.select({
-            ios: { shadowOpacity: 0.09, shadowRadius: 12, shadowOffset: { width: 0, height: 6 } },
-            android: { elevation: 4 },
+            ios: { shadowOpacity: 0.2, shadowRadius: 10, shadowOffset: { width: 0, height: 5 } },
+            android: { elevation: 2 },
         }),
     },
 
     headerRow: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", marginBottom: 12 },
     headerRowStart: { justifyContent: "flex-start", gap: 6 },
 
-    macrosCaption: { color: "#64748B", fontSize: 12, fontFamily: "Outfit_700Bold" },
-    podiumCaption: { color: "#64748B", fontSize: 12, fontFamily: "Outfit_700Bold" },
+    macrosCaption: { color: "#e7edf6ff", fontSize: 12, fontFamily: "Outfit_700Bold" },
+    podiumCaption: { color: "#e7edf6ff", fontSize: 12, fontFamily: "Outfit_700Bold" },
     podiumCaptionClamp: { flex: 1, marginRight: 8, maxWidth: '85%' },
-    chevronRight: { color: "#94A3B8", fontSize: 18, lineHeight: 18, includeFontPadding: false },
-    chevronLeft: { color: "#94A3B8", fontSize: 18, lineHeight: 18, includeFontPadding: false },
+    chevronRight: { color: "#e7edf6ff", fontSize: 18, lineHeight: 18, includeFontPadding: false },
+    chevronLeft: { color: "#e7edf6ff", fontSize: 18, lineHeight: 18, includeFontPadding: false },
 
     ringWrap: { alignItems: "center", justifyContent: "center", marginTop: scaleSize(5) },
     ringCenter: { alignItems: "center", justifyContent: "center", marginTop: 2 },
-    // Match NutritionSummaryCard exactly: fonts, sizes, colors
-    kcalValue: { color: "#0F172A", fontSize: 24, fontFamily: "Nunito_800ExtraBold", marginBottom: -2.5 },
-    kcalSub: { color: "#64748B", fontSize: 12, fontFamily: "Nunito_700Bold", marginBottom: 4 },
+    // Match NutritionSummaryCard exactly (dark palette)
+    kcalValue: { color: "#E5E7EB", fontSize: 24, fontFamily: "Nunito_800ExtraBold", marginBottom: -2.5 },
+    kcalSub: { color: "#ccd3deff", fontSize: 11, fontFamily: "Nunito_700Bold", marginBottom: 4 },
 });

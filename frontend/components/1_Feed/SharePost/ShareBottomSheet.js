@@ -87,7 +87,7 @@ const styles = StyleSheet.create({
         display: "none" // Hide the default handle
     },
     bottomSheetBackground: {
-        backgroundColor: "#fff",
+        backgroundColor: "#252733",
         borderTopLeftRadius: scaleSize(25),
         borderTopRightRadius: scaleSize(25)
     }

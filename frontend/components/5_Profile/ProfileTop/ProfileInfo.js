@@ -63,7 +63,7 @@ const styles = StyleSheet.create({
         borderWidth: scaledSize(3),
         borderRadius: scaledSize(26.5),
         padding: scaledSize(2.25),
-        borderColor: '#ccc',
+        borderColor: '#343842',
     },
     pfp: {
         width: scaledSize(54),
@@ -79,13 +79,13 @@ const styles = StyleSheet.create({
     user_stat_count_text: {
         fontFamily: 'Outfit_600SemiBold',
         fontSize: scaledSize(17),
-        color: '#555',
+        color: '#E5E7EB',
         paddingBottom: scaledSize(1),
     },
     user_stat_text: {
         fontFamily: 'Outfit_600SemiBold',
         fontSize: scaledSize(14.5),
-        color: '#bfbfbf',
+        color: '#A5ACB8',
     },
     profile_info_ctnr: {
         alignItems: 'center',
@@ -103,13 +103,14 @@ const styles = StyleSheet.create({
         alignSelf: 'center',
         borderWidth: scaledSize(1),
         marginHorizontal: scaledSize(10),
-        borderColor: '#e7e7e7',
+        borderColor: '#2B2F38',
     },
     name_text: {
         fontFamily: 'Outfit_600SemiBold',
         fontSize: scaledSize(16),
         flex: 1,
         textAlign: 'right',
+        color: '#F1F5F9',
     },
     score_text: {
         fontFamily: 'Outfit_600SemiBold',
@@ -122,6 +123,6 @@ const styles = StyleSheet.create({
     bio_text: {
         fontFamily: 'Outfit_600SemiBold',
         fontSize: scaledSize(15),
-        color: '#b3b3b3',
+        color: '#9CA3AF',
     },
 });

@@ -28,7 +28,7 @@ const EditProfileModal = ({ setPFP }) => {
                     <TextInput
                         style={styles.non_editable_input_text}
                         placeholder={global.userData.handle}
-                        placeholderTextColor={'#000'}
+                        placeholderTextColor={'#9CA3AF'}
                         editable={false}
                     />
                 </View>
@@ -38,7 +38,7 @@ const EditProfileModal = ({ setPFP }) => {
                         style={styles.non_editable_input_text}
                         placeholder={global.userData.name}
                         editable={false}
-                        placeholderTextColor={'#000'}
+                        placeholderTextColor={'#9CA3AF'}
                     />
                 </View>
                 <View style={styles.inputContainer}>
@@ -48,6 +48,7 @@ const EditProfileModal = ({ setPFP }) => {
                         value={bio}
                         onChangeText={setBio}
                         onBlur={handleBioBlur}
+                        placeholderTextColor={'#9CA3AF'}
                     />
                 </View>
                 <View style={styles.inputContainer}>
@@ -56,7 +57,7 @@ const EditProfileModal = ({ setPFP }) => {
                         style={styles.non_editable_input_text}
                         placeholder={global.userData.email}
                         editable={false}
-                        placeholderTextColor={'#000'}
+                        placeholderTextColor={'#9CA3AF'}
                     />
                 </View>
                 <View style={styles.inputContainer}>
@@ -65,7 +66,7 @@ const EditProfileModal = ({ setPFP }) => {
                         style={styles.non_editable_input_text}
                         placeholder={formatPhoneNumber(global.userData.phoneNumber)}
                         editable={false}
-                        placeholderTextColor={'#000'}
+                        placeholderTextColor={'#9CA3AF'}
                     />
                 </View>
                 <View style={styles.inputContainer}>
@@ -74,7 +75,7 @@ const EditProfileModal = ({ setPFP }) => {
                         style={styles.non_editable_input_text}
                         placeholder="********"
                         editable={false}
-                        placeholderTextColor={'#000'}
+                        placeholderTextColor={'#9CA3AF'}
                         secureTextEntry
                     />
                 </View>
@@ -86,6 +87,7 @@ const EditProfileModal = ({ setPFP }) => {
 const styles = StyleSheet.create({
     mainContainer: {
         flex: 1,
+        backgroundColor: '#131521',
     },
     scrollContainer: {
         alignItems: 'center',
@@ -95,38 +97,38 @@ const styles = StyleSheet.create({
         fontSize: scaleSize(13.5),
         fontFamily: 'Poppins_600SemiBold',
         letterSpacing: 0.1,
-        color: '#888',
+        color: '#A5ACB8',
         alignSelf: 'flex-start',
         paddingLeft: scaleSize(20),
         width: '100%',
         paddingVertical: scaleSize(12),
-        backgroundColor: '#f6f6f6'
+        backgroundColor: '#1E2128'
     },
     inputContainer: {
         flexDirection: 'row',
         alignItems: 'center',
         paddingHorizontal: scaleSize(20),
-        backgroundColor: '#fff',
+        backgroundColor: '#252733',
         marginVertical: 0,
         paddingVertical: scaleSize(12.5),
         borderBottomWidth: scaleSize(1),
-        borderBottomColor: '#f3f3f3',
+        borderBottomColor: '#2E323C',
     },
     label: {
         fontSize: scaleSize(14),
-        color: '#333',
+        color: '#C5CCD6',
         fontFamily: 'Outfit_500Medium',
         width: '35%',
     },
     non_editable_input_text: {
         fontSize: scaleSize(14),
-        color: '#333',
+        color: '#E5E7EB',
         fontFamily: 'Outfit_500Medium',
         width: '65%',
     },
     editable_input_text: {
         fontSize: scaleSize(14),
-        color: '#777',
+        color: '#E5E7EB',
         fontFamily: 'Outfit_500Medium',
         width: '65%',
     }

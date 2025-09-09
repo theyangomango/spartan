@@ -57,16 +57,19 @@ const styles = StyleSheet.create({
         top: 90, // Positioned below the header
         left: 0,
         right: 0,
-        backgroundColor: '#fff',
+        // Dark card background with subtle elevation
+        backgroundColor: '#1E232C',
+        borderWidth: 1,
+        borderColor: 'rgba(255,255,255,0.08)',
         borderRadius: 18,
         shadowColor: '#000',
-        shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.3,
-        shadowRadius: 3,
+        shadowOffset: { width: 0, height: 6 },
+        shadowOpacity: 0.15,
+        shadowRadius: 12,
         elevation: 5,
     },
     infoText: {
-        color: '#333',
+        color: '#EAEAEA',
         fontFamily: 'Inter_600SemiBold',
     },
 });

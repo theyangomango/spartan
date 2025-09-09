@@ -42,7 +42,7 @@ function TemplatesRail({ templates = [], onIndexChange, onAddTemplate, onOpenTem
 
                     const railStyle = [
                         styles.rail,
-                        isNone ? styles.railEmpty : { backgroundColor: SAVED_TPL_TINT, borderColor: SAVED_TPL_BORDER },
+                        isNone ? styles.railEmpty : styles.railSaved,
                     ];
 
                     const handlePress = () =>
@@ -60,10 +60,10 @@ function TemplatesRail({ templates = [], onIndexChange, onAddTemplate, onOpenTem
                                     <View
                                         style={[
                                             styles.dumbbell,
-                                            isNone ? styles.dumbbellEmpty : { backgroundColor: "rgba(255,255,255,0.82)" },
+                                            isNone ? styles.dumbbellEmpty : styles.dumbbellSaved,
                                         ]}
                                     >
-                                        {!isNone && <Weight size={23} color={'#000'} variant='Broken' />}
+                                        {!isNone && <Weight size={23} color={'#7FC2FF'} variant='Broken' />}
                                     </View>
 
                                     <View style={{ flex: 1, minWidth: 0 }}>
@@ -137,17 +137,25 @@ const styles = StyleSheet.create({
         alignItems: "center",
         justifyContent: "space-between",
 
-        backgroundColor: "#FFFFFF",
+        backgroundColor: "#252733",
         borderWidth: 1,
-        borderColor: "rgba(2,6,23,0.10)",
+        borderColor: "#3B4350",
         ...Platform.select({
-            ios: { shadowColor: "#000", shadowOpacity: 0.04, shadowRadius: 8, shadowOffset: { width: 0, height: 4 } },
-            android: { elevation: 2 },
+            ios: { shadowColor: "#000", shadowOpacity: 0.35, shadowRadius: 14, shadowOffset: { width: 0, height: 10 } },
+            android: { elevation: 1 },
         }),
     },
     railPressed: { transform: [{ scale: 0.99 }] },
-    railEmpty: { backgroundColor: "#FFFFFF", borderStyle: "dashed" },
-
+    // Reverse backgrounds: empty (no template) appears darker; saved templates a bit lighter
+    railEmpty: { backgroundColor: "#252733", borderStyle: "dashed", borderColor: "rgba(255,255,255,0.16)" },
+    railSaved: { backgroundColor: "#252733", borderColor: "rgba(255,255,255,0.10)" },
+    dumbbellSaved: {
+        backgroundColor: "#2F3340",
+        borderWidth: StyleSheet.hairlineWidth,
+        borderColor: "rgba(255,255,255,0.16)",
+        ...Platform.select({ ios: { shadowColor: "#000", shadowOpacity: 0.25, shadowRadius: 6, shadowOffset: { width: 0, height: 3 } }, android: { elevation: 2 } })
+    },
+    
     left: { flexDirection: "row", alignItems: "center", gap: 10, flex: 1, minWidth: 0 },
 
     dumbbell: {
@@ -157,15 +165,20 @@ const styles = StyleSheet.create({
         alignItems: "center",
         justifyContent: "center",
     },
-    dumbbellEmpty: { backgroundColor: "transparent" },
+    dumbbellEmpty: {
+        backgroundColor: "#2F3340",
+        borderWidth: StyleSheet.hairlineWidth,
+        borderColor: "rgba(255,255,255,0.14)",
+        ...Platform.select({ ios: { shadowColor: "#000", shadowOpacity: 0.25, shadowRadius: 6, shadowOffset: { width: 0, height: 3 } }, android: { elevation: 2 } })
+    },
 
-    title: { fontFamily: "Outfit_700Bold", fontSize: 16, color: BLUE.TITLE, includeFontPadding: false },
-    titleNone: { color: BLUE.TITLE },
+    title: { fontFamily: "Outfit_700Bold", fontSize: 16, color: "#E5E7EB", includeFontPadding: false },
+    titleNone: { color: "#E5E7EB" },
 
     metaRow: { flexDirection: "row", alignItems: "center", gap: 12, marginTop: 4 },
     metaChunk: { flexDirection: "row", alignItems: "center", gap: 5 },
-    metaLabel: { fontFamily: "Outfit_700Bold", fontSize: 12.5, color: BLUE.TITLE },
-    metaSub: { fontFamily: "Outfit_600SemiBold", fontSize: 12.5, color: "#64748B" },
+    metaLabel: { fontFamily: "Outfit_700Bold", fontSize: 12.5, color: "#E5E7EB" },
+    metaSub: { fontFamily: "Outfit_600SemiBold", fontSize: 12.5, color: "#94A3B8" },
 
     dotsRow: {
         position: "absolute",

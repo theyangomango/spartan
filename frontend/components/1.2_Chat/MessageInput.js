@@ -25,9 +25,9 @@ export default function MessageInput({
                         </Text>
                     </View>
                     <TouchableOpacity onPress={clearReply} style={styles.closeReply}>
-                        <Ionicons name="close" size={16} color="#6B7280" />
-                    </TouchableOpacity>
-                </View>
+                    <Ionicons name="close" size={16} color="#A1A7B3" />
+                </TouchableOpacity>
+            </View>
             )}
 
             <View style={styles.row}>
@@ -39,7 +39,7 @@ export default function MessageInput({
                 <TextInput
                     style={styles.input}
                     placeholder="Type a message…"
-                    placeholderTextColor="#9AA6B2"
+                    placeholderTextColor="#8FA2B5"
                     value={text}
                     onChangeText={setText}
                     onFocus={onFocus}
@@ -61,15 +61,15 @@ const styles = StyleSheet.create({
     row: {
         flexDirection: "row",
         alignItems: "center",
-        backgroundColor: "#FFFFFF",
+        backgroundColor: "#252733",
         borderWidth: 1,
-        borderColor: "#EEF3FF",
+        borderColor: "rgba(255,255,255,0.08)",
         borderRadius: 28,
         paddingVertical: 10,
         paddingHorizontal: 8,
         ...(Platform.OS === "android" && { elevation: 3 }),
-        shadowColor: "#0F172A",
-        shadowOpacity: 0.06,
+        shadowColor: "#000",
+        shadowOpacity: 0.18,
         shadowRadius: 10,
         shadowOffset: { width: 0, height: 6 },
     },
@@ -79,13 +79,13 @@ const styles = StyleSheet.create({
         borderRadius: 17,
         alignItems: "center",
         justifyContent: "center",
-        backgroundColor: "#E9F3FF",
+        backgroundColor: "#11253D",
     },
     input: {
         flex: 1,
         paddingHorizontal: 12,
         fontSize: 14.5,
-        color: "#0F172A",
+        color: "#E5E7EB",
         fontFamily: "Outfit_500Medium",
     },
     sendBtn: {
@@ -99,16 +99,16 @@ const styles = StyleSheet.create({
     replyRow: {
         flexDirection: "row",
         alignItems: "center",
-        backgroundColor: "#F5F8FF",
+        backgroundColor: "#1E2128",
         borderWidth: 1,
-        borderColor: "#EEF3FF",
+        borderColor: "rgba(255,255,255,0.08)",
         borderRadius: 14,
         paddingHorizontal: 10,
         paddingVertical: 8,
         marginBottom: 8,
     },
     replyBar: { width: 3, height: 26, borderRadius: 2, backgroundColor: "#2D9EFF", marginRight: 8 },
-    replyTitle: { fontSize: 12, color: "#0F172A", fontFamily: "Outfit_600SemiBold" },
-    replySnippet: { fontSize: 12, color: "#64748B", fontFamily: "Outfit_500Medium" },
+    replyTitle: { fontSize: 12, color: "#E5E7EB", fontFamily: "Outfit_600SemiBold" },
+    replySnippet: { fontSize: 12, color: "#A1A7B3", fontFamily: "Outfit_500Medium" },
     closeReply: { padding: 6, marginLeft: 6 },
 });
