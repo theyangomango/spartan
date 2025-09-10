@@ -39,7 +39,6 @@ const styles = StyleSheet.create({
     },
     button: {
         paddingHorizontal: scaledSize(20),
-        paddingVertical: scaledSize(7),
         borderRadius: scaledSize(10),
         // Increase contrast on Feed/bg: subtle translucent pill + hairline
         backgroundColor: 'rgba(255,255,255,0.18)',

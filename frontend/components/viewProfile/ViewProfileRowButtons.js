@@ -105,7 +105,6 @@ const styles = StyleSheet.create({
     },
     view_stats_button: {
         paddingHorizontal: scaleSize(20),
-        paddingVertical: scaleSize(7),
         borderRadius: scaleSize(10),
         backgroundColor: 'rgba(255,255,255,0.18)',
         borderWidth: scaleSize(1),
