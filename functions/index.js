@@ -118,13 +118,174 @@ export const fatsecretSearchFood = onCall(
     if (!query || typeof query !== "string") {
       throw new HttpsError("invalid-argument", "Missing 'query' string.");
     }
+
+    // Clamp limits (FatSecret caps at 50 per page)
     const safeMax = Math.min(Math.max(Number(max_results) || 10, 1), 50);
     const safePage = Math.max(Number(page_number) || 0, 0);
-    return await fatSecretRequest("foods.search", {
-      search_expression: query,
-      max_results: safeMax,
-      page_number: safePage,
-    });
+
+    // A more lenient search strategy:
+    // - generate multiple query variants (normalized, token-sorted, per-token)
+    // - call foods.search with these variants (limited pages/calls)
+    // - merge + de-duplicate results by food_id
+    // - score via token overlap + 3-gram Jaccard and return best matches
+
+    // -------------- helpers -------------- //
+    const normalize = (s) =>
+      String(s || "")
+        .normalize("NFD")
+        .replace(/[\u0300-\u036f]/g, "") // strip diacritics
+        .toLowerCase()
+        .replace(/[^a-z0-9]+/g, " ")
+        .replace(/\s+/g, " ")
+        .trim();
+
+    const toTokens = (s) => normalize(s).split(" ").filter(Boolean);
+
+    const charNGrams = (s, n = 3) => {
+      const str = normalize(s).replace(/\s+/g, "");
+      const grams = new Set();
+      if (!str) return grams;
+      for (let i = 0; i <= Math.max(0, str.length - n); i++) {
+        grams.add(str.slice(i, i + n));
+      }
+      // if string shorter than n, add whole string as a gram
+      if (grams.size === 0) grams.add(str);
+      return grams;
+    };
+
+    const jaccard = (aSet, bSet) => {
+      if (!aSet || !bSet || aSet.size === 0 || bSet.size === 0) return 0;
+      let inter = 0;
+      for (const x of aSet) if (bSet.has(x)) inter++;
+      return inter / (aSet.size + bSet.size - inter);
+    };
+
+    const tokenOverlap = (aTokens, bTokens) => {
+      if (!aTokens.length || !bTokens.length) return 0;
+      const a = new Set(aTokens);
+      const b = new Set(bTokens);
+      let inter = 0;
+      for (const t of a) if (b.has(t)) inter++;
+      return (2 * inter) / (a.size + b.size);
+    };
+
+    const similarityScore = (queryStr, candidateStr) => {
+      const qTokens = toTokens(queryStr);
+      const cTokens = toTokens(candidateStr);
+      const tokenScore = tokenOverlap(qTokens, cTokens); // 0..1
+      const qGrams = charNGrams(queryStr);
+      const cGrams = charNGrams(candidateStr);
+      const gramScore = jaccard(qGrams, cGrams); // 0..1
+
+      // small boosts
+      let boost = 0;
+      if (qTokens.length > 0 && cTokens.join(" ").startsWith(qTokens[0])) boost += 0.05;
+      const allQueryTokensInName = qTokens.every((t) => cTokens.includes(t));
+      if (allQueryTokensInName) boost += 0.1;
+
+      // weighted combo (sum capped at 1)
+      const score = 0.6 * tokenScore + 0.4 * gramScore + boost;
+      return Math.max(0, Math.min(1, score));
+    };
+
+    const buildDisplayName = (food) => {
+      const name = String(food?.food_name || "");
+      const brand = String(food?.brand_name || "");
+      return brand ? `${name} ${brand}` : name;
+    };
+
+    // -------------- query generation -------------- //
+    const qRaw = String(query || "");
+    const qNorm = normalize(qRaw);
+    const qTokens = toTokens(qRaw);
+
+    const candidates = new Set();
+    if (qRaw.trim()) candidates.add(qRaw.trim());
+    if (qNorm && qNorm !== qRaw.trim()) candidates.add(qNorm);
+    if (qTokens.length > 1) {
+      const sorted = [...qTokens].sort().join(" ");
+      if (sorted && sorted !== qNorm) candidates.add(sorted);
+    }
+    // add individual tokens (length >= 3) to broaden recall
+    const STOP = new Set([
+      "the","and","for","with","without","of","to","in","on","a","an","per",
+      // very generic units (avoid exploding results)
+      "cup","cups","tbsp","tsp","tablespoon","tablespoons","teaspoon","teaspoons",
+      "oz","ml","l","g","kg","gram","grams","milliliter","milliliters","liter","liters",
+    ]);
+    for (const t0 of qTokens) {
+      const t = t0.toLowerCase();
+      if (STOP.has(t)) continue;
+      if (t.length >= 3) candidates.add(t);
+      // add prefixes to help with misspellings (e.g., 'chikn' -> 'chi')
+      if (t.length >= 4) candidates.add(t.slice(0, 3));
+      if (t.length >= 5) candidates.add(t.slice(0, 4));
+    }
+
+    // -------------- fetch + merge -------------- //
+    const MAX_PAGES_PER_EXPR = 2;
+    const RESULTS_PER_PAGE = Math.min(50, Math.max(safeMax, 20));
+    const MAX_TOTAL_CALLS = 8;
+
+    const byId = new Map(); // id -> { item, bestScore }
+    let calls = 0;
+
+    for (const expr of candidates) {
+      if (calls >= MAX_TOTAL_CALLS) break;
+
+      for (let page = 0; page < MAX_PAGES_PER_EXPR; page++) {
+        if (calls >= MAX_TOTAL_CALLS) break;
+        calls++;
+        try {
+          const res = await fatSecretRequest("foods.search", {
+            search_expression: expr,
+            max_results: RESULTS_PER_PAGE,
+            page_number: page,
+          });
+          const foods = res?.foods?.food;
+          if (!foods) break;
+          const list = Array.isArray(foods) ? foods : [foods];
+          if (!list.length) break;
+
+          for (const item of list) {
+            const fid = String(item?.food_id || "");
+            if (!fid) continue;
+            const display = buildDisplayName(item);
+            const score = similarityScore(qRaw, display);
+            const prev = byId.get(fid);
+            if (!prev || score > prev.bestScore) {
+              byId.set(fid, { item, bestScore: score });
+            }
+          }
+
+          // If we already have a healthy pool, we can stop early for this expr
+          if (byId.size >= safeMax * 3) break;
+        } catch (e) {
+          // continue with next expr/page
+          logger.warn("fatsecretSearchFood: variant search failed", { expr, page, message: e?.message || e });
+          break;
+        }
+      }
+
+      // If we already collected enough, stop iterating variants
+      if (byId.size >= safeMax * 3) break;
+    }
+
+    // Score-sort and take top N
+    const ranked = Array.from(byId.values())
+      .sort((a, b) => b.bestScore - a.bestScore)
+      .slice(0, safeMax)
+      .map((x) => x.item);
+
+    // Return in FatSecret-like shape; keep minimal fields used by clients
+    return {
+      foods: {
+        food: ranked,
+        max_results: String(safeMax),
+        page_number: String(safePage),
+        total_results: String(byId.size),
+      },
+    };
   }
 );
 
