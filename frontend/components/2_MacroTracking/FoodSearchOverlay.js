@@ -18,6 +18,7 @@ import SearchResultCard from './SearchResultCard';
 import PortionPickerModal from './PortionPickerModal';
 import QuickAddModal from './QuickAddModal';
 import { searchFood } from '../../screens/fatsecretClient';
+import { useNavigation } from '@react-navigation/native';
 
 // 🔥 FIREBASE (adjust path if your firebase.config is elsewhere)
 import { db } from '../../../firebase.config';
@@ -30,8 +31,10 @@ export default function FoodSearchOverlay({
     onClose,
     COLORS,
     onSelectResult, // parent still handles add + closing overlay
+    dayKey, // pass focused day key so details screen can add to correct date
 }) {
     const styles = useMemo(() => makeStyles(COLORS), [COLORS]);
+    const navigation = useNavigation();
 
     // ---- Recent foods state
     const [recentFoods, setRecentFoods] = useState([]);
@@ -109,9 +112,27 @@ export default function FoodSearchOverlay({
     const closeQuick = () => { Keyboard.dismiss(); setQuickVisible(false); };
 
     // ---- Renderers
+    const goToDetails = useCallback((food) => {
+        try { onClose?.(); } catch {}
+        // Give the modal a tick to close before navigating, avoiding stacking it above
+        setTimeout(() => {
+            navigation.navigate('FoodDetail', {
+                mode: 'add',
+                food,
+                mealName: activeMeal,
+                dayKey,
+            });
+        }, 80);
+    }, [navigation, onClose, activeMeal, dayKey]);
+
     const renderSearchItem = useCallback(({ item }) => (
-        <SearchResultCard item={item} onPressPlus={() => openPortion(item)} COLORS={COLORS} />
-    ), [openPortion, COLORS]);
+        <SearchResultCard
+            item={item}
+            onPressPlus={() => openPortion(item)}
+            onPressCard={() => goToDetails(item)}
+            COLORS={COLORS}
+        />
+    ), [openPortion, goToDetails, COLORS]);
 
     const renderHistoryItem = useCallback(({ item }) => {
         const mapped = {
@@ -120,8 +141,15 @@ export default function FoodSearchOverlay({
             brand_name: item.brand || '',
             food_description: item.description || '',
         };
-        return <SearchResultCard item={mapped} onPressPlus={() => openPortion(mapped)} COLORS={COLORS} />;
-    }, [openPortion, COLORS]);
+        return (
+            <SearchResultCard
+                item={mapped}
+                onPressPlus={() => openPortion(mapped)}
+                onPressCard={() => goToDetails(mapped)}
+                COLORS={COLORS}
+            />
+        );
+    }, [openPortion, goToDetails, COLORS]);
 
     const HistoryFooter = () => {
         if (!visible) return null;
@@ -308,7 +336,7 @@ const makeStyles = (COLORS) =>
         historyHeader: {
             marginTop: 8,
             marginBottom: 8,
-            paddingHorizontal: 2,
+            paddingHorizontal: 26,
             fontSize: 14,
             color: COLORS.subtext || COLORS.textSecondary || '#A1A7B3',
             fontFamily: 'Outfit_600SemiBold',

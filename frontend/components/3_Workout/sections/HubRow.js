@@ -73,15 +73,15 @@ function HubRowCmp({
                         >
                             {() => (
                                 <View style={styles.ringCenter}>
-                                    <Text style={styles.kcalValue}>{safeToday.toLocaleString()}</Text>
-                                    <Text style={styles.kcalSub}>/ {safeGoal.toLocaleString()} kcal</Text>
+                                    <Text style={styles.kcalValue}>{Math.max(0, safeToday)}</Text>
+                                    <Text style={styles.kcalSub}>/ {safeGoal} kcal</Text>
                                 </View>
                             )}
                         </AnimatedCircularProgress>
                     ) : (
                         <View style={styles.ringCenter}>
-                            <Text style={styles.kcalValue}>{safeToday.toLocaleString()}</Text>
-                            <Text style={styles.kcalSub}>/ {safeGoal.toLocaleString()} kcal</Text>
+                            <Text style={styles.kcalValue}>{Math.max(0, safeToday)}</Text>
+                            <Text style={styles.kcalSub}>/ {safeGoal} kcal</Text>
                         </View>
                     )}
                 </View>
@@ -161,9 +161,9 @@ const styles = StyleSheet.create({
     chevronRight: { color: "#ffffffff", fontSize: 18, lineHeight: 18, includeFontPadding: false },
     chevronLeft: { color: "#ffffffff", fontSize: 18, lineHeight: 18, includeFontPadding: false },
 
-    ringWrap: { alignItems: "center", justifyContent: "center", marginTop: scaleSize(5) },
+    ringWrap: { flex: 1, alignItems: "center", justifyContent: "center", marginTop: 0 },
     ringCenter: { alignItems: "center", justifyContent: "center", marginTop: 2 },
-    // Match NutritionSummaryCard exactly (dark palette)
-    kcalValue: { color: "#E5E7EB", fontSize: 24, fontFamily: "Nunito_800ExtraBold", marginBottom: -2.5 },
-    kcalSub: { color: "#ccd3deff", fontSize: 11, fontFamily: "Nunito_700Bold", marginBottom: 4 },
+    // Match NutritionSummaryCard ring text styles
+    kcalValue: { color: theme.textPrimary, fontSize: 25, fontFamily: "Outfit_800ExtraBold", marginBottom: 0 },
+    kcalSub: { color: theme.textSecondary, fontSize: 12, fontFamily: "Outfit_700Bold", marginBottom: 4 },
 });

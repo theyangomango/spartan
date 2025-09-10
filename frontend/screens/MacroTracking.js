@@ -358,6 +358,7 @@ export default function MacroTracking({ navigation, route }) {
                     onClose={closeSearch}
                     COLORS={COLORS}
                     onSelectResult={onSelectResult}
+                    dayKey={toDayKey(focusedDate)}
                 />
 
                 <MacroGoalsSheet

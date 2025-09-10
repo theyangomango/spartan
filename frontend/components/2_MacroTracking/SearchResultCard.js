@@ -1,6 +1,6 @@
 import RNBounceable from '@freakycoder/react-native-bounceable';
 import React, { memo } from 'react';
-import { View, Text, StyleSheet } from 'react-native';
+import { View, Text, StyleSheet, Pressable } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import PlusIcon from '../../assets/PlusIcon';
 
@@ -12,7 +12,7 @@ const DEFAULT_COLORS = {
     mealCardShadow: '#99a5b7ff',
 };
 
-function SearchResultCard({ item, onPressPlus, COLORS }) {
+function SearchResultCard({ item, onPressPlus, onPressCard, COLORS }) {
     const theme = COLORS || DEFAULT_COLORS;
     const formatPortion = (qty, unit) => {
         const u = (unit || '').trim().toLowerCase();
@@ -63,7 +63,7 @@ function SearchResultCard({ item, onPressPlus, COLORS }) {
         resultCard: {
             backgroundColor: theme.card,
             borderRadius: 0,
-            paddingVertical: 10,
+            paddingVertical: 12,
             paddingHorizontal: 26,
             marginVertical: 0,
             // Full-width list row look: hairlines top & bottom, no shadow
@@ -75,20 +75,27 @@ function SearchResultCard({ item, onPressPlus, COLORS }) {
         },
         contentRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
         textContainer: { flex: 1, marginRight: 12 },
+        textPressable: { flex: 1, marginRight: 12 },
         resultTitle: { fontFamily: 'Mulish_700Bold', fontSize: 12.5, color: theme.text || theme.textPrimary, marginBottom: 4 },
         resultDescription: { fontFamily: 'Mulish_500Medium', fontSize: 12.5, color: theme.subtext || theme.textSecondary },
     });
 
     return (
-        <RNBounceable bounceEffectIn={0.95} style={styles.resultCard} onPress={onPressPlus}>
+        <View style={styles.resultCard}>
             <View style={styles.contentRow}>
-                <View style={styles.textContainer}>
+                <Pressable
+                    onPress={onPressCard}
+                    android_ripple={{ color: 'rgba(255,255,255,0.06)' }}
+                    style={styles.textPressable}
+                >
                     <Text style={styles.resultTitle}>{item.food_name}</Text>
                     <Text style={styles.resultDescription}>{getSummary()}</Text>
-                </View>
-                <PlusIcon size={24} color="#79b3ffff" />
+                </Pressable>
+                <RNBounceable bounceEffectIn={0.9} onPress={onPressPlus}>
+                    <PlusIcon size={24} color="#79b3ffff" />
+                </RNBounceable>
             </View>
-        </RNBounceable>
+        </View>
     );
 }
 

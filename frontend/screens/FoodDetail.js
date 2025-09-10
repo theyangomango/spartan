@@ -4,7 +4,7 @@ import { View, Text, StyleSheet, Pressable, ScrollView, StatusBar, SafeAreaView,
 import { Ionicons } from '@expo/vector-icons';
 import theme from '../theme/mfpDark';
 import { db } from '../../firebase.config';
-import { doc, updateDoc, serverTimestamp } from 'firebase/firestore';
+import { doc, updateDoc, serverTimestamp, setDoc, collection } from 'firebase/firestore';
 import { parseMacrosFromDescription } from '../utils/nutrition';
 import Svg, { Circle } from 'react-native-svg';
 
@@ -22,6 +22,8 @@ const COLORS = {
 };
 
 export default function FoodDetail({ navigation, route }) {
+    const mode = route?.params?.mode || 'edit'; // 'edit' | 'add'
+    const food = route?.params?.food || null;   // FatSecret-shaped when adding
     const entry = route?.params?.entry || {};
     const mealNameInit = route?.params?.mealName || 'Dinner';
     const dayKey = route?.params?.dayKey || '';
@@ -30,7 +32,11 @@ export default function FoodDetail({ navigation, route }) {
         return Number.isFinite(n) && n > 0 ? n : 1;
     });
     const [meal, setMeal] = useState(mealNameInit);
-    const macros = useMemo(() => parseMacrosFromDescription(entry?.desc || '', Number(servings) || 1), [entry?.desc, servings]);
+    // Choose description source based on mode
+    const baseDesc = mode === 'add' ? (food?.food_description || '') : (entry?.desc || '');
+    const displayName = mode === 'add' ? (food?.food_name || 'Food Item') : (entry?.name || 'Food Item');
+    const displayBrand = mode === 'add' ? (food?.brand_name || '') : (entry?.brand || '');
+    const macros = useMemo(() => parseMacrosFromDescription(baseDesc, Number(servings) || 1), [baseDesc, servings]);
     const [saving, setSaving] = useState(false);
 
     useEffect(() => {
@@ -79,6 +85,60 @@ export default function FoodDetail({ navigation, route }) {
         navigation.goBack();
     };
 
+    const addNew = async () => {
+        const uid = global?.userData?.uid || global?.userData?.id;
+        if (!uid || !dayKey || !food) { navigation.goBack(); return; }
+        setSaving(true);
+        try {
+            const dayRef = doc(db, 'users', uid, 'foodLogs', dayKey);
+            const entryRef = doc(collection(dayRef, 'entries'));
+            const qty = Number(servings) || 1;
+            const m = parseMacrosFromDescription(food?.food_description || '', qty);
+
+            const payload = {
+                mealType: String(meal || mealNameInit || 'Dinner').toLowerCase(),
+                name: food?.food_name || '',
+                brand: food?.brand_name || '',
+                foodId: String(food?.food_id ?? ''),
+                description: food?.food_description || '',
+                source: 'fatsecret',
+                quantity: qty,
+                macros: {
+                    calories: Math.round(m.calories || 0),
+                    protein: Math.round(m.protein || 0),
+                    carbs: Math.round(m.carbs || 0),
+                    fat: Math.round(m.fat || 0),
+                },
+                createdAt: serverTimestamp(),
+                updatedAt: serverTimestamp(),
+            };
+
+            await setDoc(dayRef, { dayKey, updatedAt: serverTimestamp() }, { merge: true });
+            await setDoc(entryRef, payload);
+
+            // best-effort recent-foods
+            try {
+                const recentRef = doc(db, 'users', uid, 'recentFoods', String(payload.foodId || payload.name));
+                await setDoc(
+                    recentRef,
+                    {
+                        foodId: payload.foodId,
+                        name: payload.name,
+                        brand: payload.brand,
+                        description: payload.description,
+                        usedCount: 1,
+                        lastUsedAt: serverTimestamp(),
+                    },
+                    { merge: true }
+                );
+            } catch { }
+        } catch (e) {
+            console.log('Failed to add food entry:', e?.message || e);
+        }
+        setSaving(false);
+        navigation.goBack();
+    };
+
     const MEAL_OPTIONS = ['Breakfast', 'Lunch', 'Dinner'];
 
     return (
@@ -90,18 +150,24 @@ export default function FoodDetail({ navigation, route }) {
                     <Ionicons name="chevron-back" size={22} color={COLORS.text} />
                 </Pressable>
                 <Text style={styles.headerTitle} numberOfLines={1}>Add Food</Text>
-                <Pressable style={styles.saveBtn} onPress={save} disabled={saving} hitSlop={8}>
-                    <Ionicons name="checkmark" size={22} color={saving ? 'rgba(255,255,255,0.5)' : COLORS.text} />
-                </Pressable>
+                {mode === 'add' ? (
+                    <Pressable style={styles.saveBtn} onPress={addNew} disabled={saving} hitSlop={8}>
+                        <Ionicons name="add" size={22} color={saving ? 'rgba(255,255,255,0.5)' : COLORS.text} />
+                    </Pressable>
+                ) : (
+                    <Pressable style={styles.saveBtn} onPress={save} disabled={saving} hitSlop={8}>
+                        <Ionicons name="checkmark" size={22} color={saving ? 'rgba(255,255,255,0.5)' : COLORS.text} />
+                    </Pressable>
+                )}
             </View>
 
             <ScrollView style={{ flex: 1 }} contentContainerStyle={{ paddingBottom: 24 }}>
                 {/* Top summary section spanning full width */}
                 <View style={styles.topSummary}>
-                    {entry?.brand ? (
-                        <Text style={styles.brand} numberOfLines={1}>{entry.brand}</Text>
+                    {displayBrand ? (
+                        <Text style={styles.brand} numberOfLines={1}>{displayBrand}</Text>
                     ) : null}
-                    <Text style={styles.title} numberOfLines={2}>{entry?.name || 'Food Item'}</Text>
+                    <Text style={styles.title} numberOfLines={2}>{displayName}</Text>
                     {/* Hide long description under title per request */}
                 </View>
 
