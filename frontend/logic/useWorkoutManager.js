@@ -110,6 +110,19 @@ export default function useWorkoutManager({ uid, navigation, millisToHMS }) {
         [setTimerNow, stopTimer]
     );
 
+    const defaultWorkoutName = useCallback((tplOrNull, createdMs) => {
+        const tplName = tplOrNull?.name || tplOrNull?.title || tplOrNull?.templateName || null;
+        if (tplName && String(tplName).trim()) return String(tplName).trim();
+        try {
+            const d = new Date(createdMs || Date.now());
+            const m = d.getMonth() + 1;
+            const day = d.getDate();
+            return `${m}/${day} Workout`;
+        } catch {
+            return "Workout";
+        }
+    }, []);
+
     const HEAVY_DELAY_MS = 900; // allow summary modal to animate and settle
 
     // When the summary modal closes, run any pending heavy task
@@ -228,7 +241,7 @@ export default function useWorkoutManager({ uid, navigation, millisToHMS }) {
 
     /* ------------ helpers ------------ */
     const createWorkoutDoc = useCallback(
-        async (wid) => {
+        async (wid, name) => {
             await setDoc(
                 doc(db, "workouts", wid),
                 {
@@ -238,6 +251,7 @@ export default function useWorkoutManager({ uid, navigation, millisToHMS }) {
                     active: true,
                     members: [uid],
                     updatedAt: serverTimestamp(),
+                    ...(name ? { name: String(name) } : {}),
                 },
                 { merge: true }
             );
@@ -338,6 +352,7 @@ export default function useWorkoutManager({ uid, navigation, millisToHMS }) {
                     global.isCurrentlyWorkingOut = true;
                     const wid = makeID();
                     const created = Date.now();
+                    const name = defaultWorkoutName(tplOrNull, created);
 
                     const normalizeSets = (sets) =>
                         Array.isArray(sets) && sets.length
@@ -352,6 +367,7 @@ export default function useWorkoutManager({ uid, navigation, millisToHMS }) {
                         wid,
                         creatorUID: uid,
                         created,
+                        name,
                         users: [],
                         exercises: exercisesFromTpl,
                         tid: tplOrNull?.tid || tplOrNull?.id || null,
@@ -372,7 +388,7 @@ export default function useWorkoutManager({ uid, navigation, millisToHMS }) {
                     setDoc(doc(db, "users", uid), { currentWorkout: newWorkout }, { merge: true })
                         .catch((e) => console.log("setDoc users.currentWorkout error", e));
 
-                    createWorkoutDoc(wid).catch((e) => console.log("createWorkoutDoc error", e));
+                    createWorkoutDoc(wid, name).catch((e) => console.log("createWorkoutDoc error", e));
                 } else {
                     setIsNewWorkoutVisible(true);
                 }
@@ -381,7 +397,7 @@ export default function useWorkoutManager({ uid, navigation, millisToHMS }) {
                 Alert.alert("Couldn't start workout", e?.message || "Please try again.");
             }
         },
-        [uid, startTimer, clearPersistDebounce, createWorkoutDoc]
+        [uid, startTimer, clearPersistDebounce, createWorkoutDoc, defaultWorkoutName]
     );
 
     const updateNewWorkout = useCallback((next) => {
@@ -448,7 +464,11 @@ export default function useWorkoutManager({ uid, navigation, millisToHMS }) {
                     }
                 } catch { /* keep zeros on failure */ }
 
-                const completed = { ...currW, duration, exercises: cleanedExercises, reps: totalReps, volume: totalVolume, PBs: totalPBs };
+                // Ensure a stable name exists on the completed workout
+                const ensuredName = (currW?.name && String(currW.name).trim())
+                    ? String(currW.name).trim()
+                    : defaultWorkoutName({ name: currW?.templateName || currW?.template?.name || null }, currW?.created);
+                const completed = { ...currW, name: ensuredName, duration, exercises: cleanedExercises, reps: totalReps, volume: totalVolume, PBs: totalPBs };
 
                 // Only persist/share if there's meaningful work
                 const hasWork = cleanedExercises.length > 0 || totalVolume > 0 || totalReps > 0;
@@ -697,7 +717,7 @@ export default function useWorkoutManager({ uid, navigation, millisToHMS }) {
         } catch (e) {
             console.log("finishWorkout error", e);
         }
-    }, [uid, clearCurrentWorkoutLocally, leaveWorkoutGroup]);
+    }, [uid, clearCurrentWorkoutLocally, leaveWorkoutGroup, defaultWorkoutName]);
 
     const postWorkout = useCallback(async () => {
         setIsSummaryModalVisible(false);
@@ -741,7 +761,13 @@ export default function useWorkoutManager({ uid, navigation, millisToHMS }) {
             let localJoined;
             if (existing && existing.created) {
                 // Preserve exercises, volume, reps, PBs, created time, etc. Only swap wid and ensure creatorUID
-                const preserved = sanitizeWorkout({ ...existing, wid, creatorUID: existing?.creatorUID || base?.creatorUid || base?.creatorUID || me });
+                const preservedBase = { ...existing, wid, creatorUID: existing?.creatorUID || base?.creatorUid || base?.creatorUID || me };
+                // Ensure name
+                if (!preservedBase?.name) {
+                    const nm = base?.name || base?.templateName || base?.template?.name || base?.title || defaultWorkoutName(null, preservedBase?.created);
+                    preservedBase.name = nm;
+                }
+                const preserved = sanitizeWorkout(preservedBase);
                 joined = preserved;
                 localJoined = { ...preserved }; // do NOT set __justStarted when carrying over
                 createdForTimer = Number(preserved.created) || Date.now();
@@ -749,10 +775,12 @@ export default function useWorkoutManager({ uid, navigation, millisToHMS }) {
                 // No active workout: behave like a fresh join
                 const createdNow = Date.now();
                 createdForTimer = createdNow;
+                const name = base?.name || base?.templateName || base?.template?.name || base?.title || defaultWorkoutName(null, createdNow);
                 joined = sanitizeWorkout({
                     wid,
                     creatorUID: base?.creatorUid || base?.creatorUID || me,
                     created: createdNow,
+                    name,
                     users: [],
                     exercises: [],
                     tid: null,

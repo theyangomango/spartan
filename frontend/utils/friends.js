@@ -76,7 +76,7 @@ export const normalizeFriendLive = (cw, profile) => {
         duration: typeof cw?.duration === "number"
             ? Math.round((cw.duration > 60000 ? cw.duration / 60000 : cw.duration))
             : cw?.duration,
-        templateName: cw?.templateName || cw?.template?.name || cw?.title || "Workout",
+        templateName: cw?.templateName || cw?.template?.name || cw?.title || cw?.name || "Workout",
         wid: cw?.wid || cw?.id,
     };
 };

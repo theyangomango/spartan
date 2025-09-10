@@ -97,6 +97,7 @@ const templateName = (item) =>
   item?.template?.name ??
   item?.template_title ??
   item?.title ??
+  item?.workout?.name ??
   "Workout";
 const handleText = (item) => {
   const raw =

@@ -19,7 +19,7 @@ export default function WorkoutHistoryCard({ workout }) {
     [workout?.exercises]
   );
   const pbs = Number(workout?.PBs ?? workout?.pbs ?? 0);
-  const title = workout?.templateName || workout?.template?.name || 'Workout';
+  const title = workout?.templateName || workout?.template?.name || workout?.name || 'Workout';
   const subtitle = `${exCount} exercises • ${setCount} sets`;
 
   return (

@@ -258,7 +258,7 @@ const DayDetailsSheet = ({
                                 : 0;
                             const durMs = w?.duration ?? Math.max(0, (Date.now() - Number(w?.created || 0)));
                             const pbs = Number(w?.PBs ?? 0);
-                            const title = w?.templateName || w?.template?.name || "Workout";
+                            const title = w?.templateName || w?.template?.name || w?.name || "Workout";
                             const subtitle = `${exCount} exercises • ${setCount} sets`;
                             return (
                                 <Pressable key={`${w?.wid || i}`} style={styles.faPanel} onPress={() => openViewer(w)}>

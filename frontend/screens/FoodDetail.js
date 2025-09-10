@@ -238,13 +238,18 @@ function MacroRow({ m }) {
     const c = Math.max(0, Number(m?.carbs || 0));
     const f = Math.max(0, Number(m?.fat || 0));
 
-    const pCal = p * 4;
-    const cCal = c * 4;
-    const fCal = f * 9;
+    // Truncate macro grams for ring rendering only
+    const pInt = Math.floor(p);
+    const cInt = Math.floor(c);
+    const fInt = Math.floor(f);
+
+    const pCal = pInt * 4;
+    const cCal = cInt * 4;
+    const fCal = fInt * 9;
     const totalFromMacros = pCal + cCal + fCal;
 
-    // Always fill the ring using macro proportions only.
-    // If macro group is zero grams, it should not render at all.
+    // Always fill the ring using macro proportions only, but only when > 0.
+    // Zero-gram groups do not render; if total is zero, show empty track.
     const ringDenom = totalFromMacros > 0 ? totalFromMacros : 1; // avoid divide-by-zero
     const fracP = totalFromMacros > 0 ? (pCal / ringDenom) : 0;
     const fracC = totalFromMacros > 0 ? (cCal / ringDenom) : 0;
@@ -257,11 +262,21 @@ function MacroRow({ m }) {
     const cy = size / 2;
     const circ = 2 * Math.PI * r;
 
-    // Segment lengths. Zero-length segments are omitted entirely below.
-    const dashP = Math.max(0, fracP * circ);
-    const dashC = Math.max(0, fracC * circ);
-    // Ensure full coverage, assign remainder to last segment to prevent floating gaps
-    const dashF = Math.max(0, circ - (dashP + dashC));
+    // Segment lengths. We'll compute from fractions then push rounding
+    // remainder into the last non-zero segment so the ring fully covers.
+    let dashP = pInt > 0 ? Math.max(0, fracP * circ) : 0;
+    let dashC = cInt > 0 ? Math.max(0, fracC * circ) : 0;
+    let dashF = fInt > 0 ? Math.max(0, fracF * circ) : 0;
+
+    if (totalFromMacros > 0) {
+        const current = dashP + dashC + dashF;
+        const remainder = Math.max(0, circ - current);
+        if (fInt > 0) dashF += remainder; // prefer last in order
+        else if (cInt > 0) dashC += remainder;
+        else if (pInt > 0) dashP += remainder;
+    } else {
+        dashP = 0; dashC = 0; dashF = 0; // empty ring when all zero
+    }
 
     // Start ring at 12 o'clock by rotating -90deg
     const baseOffset = 0;
@@ -286,7 +301,7 @@ function MacroRow({ m }) {
                             fill="none"
                         />
                         {/* Protein */}
-                        {dashP > 0 && (
+                        {pInt > 0 && dashP > 0 && (
                             <Circle
                                 cx={cx}
                                 cy={cy}
@@ -301,7 +316,7 @@ function MacroRow({ m }) {
                             />
                         )}
                         {/* Carbs */}
-                        {dashC > 0 && (
+                        {cInt > 0 && dashC > 0 && (
                             <Circle
                                 cx={cx}
                                 cy={cy}
@@ -316,7 +331,7 @@ function MacroRow({ m }) {
                             />
                         )}
                         {/* Fat */}
-                        {dashF > 0 && (
+                        {fInt > 0 && dashF > 0 && (
                             <Circle
                                 cx={cx}
                                 cy={cy}

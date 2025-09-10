@@ -1,7 +1,8 @@
 // HistorySection.js
-import React, { memo } from "react";
+import React, { memo, useMemo } from "react";
 import { StyleSheet, FlatList, View, Pressable } from "react-native";
 import WorkoutHistoryCard from "./WorkoutHistoryCard";
+import { toMillis } from "../../../../utils/friends";
 
 const lastUsedDate = "July 6th";
 const exercises = [
@@ -16,6 +17,15 @@ const exercises = [
 ];
 
 const HistorySection = ({ isVisible, isBottomSheetExpanded, completedWorkouts, onOpenWorkout }) => {
+    // Sort workouts newest -> oldest without mutating the input array
+    const sortedWorkouts = useMemo(() => {
+        const list = Array.isArray(completedWorkouts) ? [...completedWorkouts] : [];
+        return list.sort((a, b) => {
+            const aMs = toMillis(a?.created ?? a?.createdAt ?? a?.finishedAt);
+            const bMs = toMillis(b?.created ?? b?.createdAt ?? b?.finishedAt);
+            return bMs - aMs;
+        });
+    }, [completedWorkouts]);
     const renderWorkout = ({ item }) => (
         <Pressable onPress={() => onOpenWorkout && onOpenWorkout(item)}>
             <WorkoutHistoryCard workout={item} />
@@ -25,7 +35,7 @@ const HistorySection = ({ isVisible, isBottomSheetExpanded, completedWorkouts, o
     return (
         <View style={[styles.wrap, !isVisible && styles.hidden]}>
             <FlatList
-                data={completedWorkouts}
+                data={sortedWorkouts}
                 keyExtractor={(item, index) => index.toString()}
                 renderItem={renderWorkout}
                 contentContainerStyle={styles.scrollable_ctnr}
