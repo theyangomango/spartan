@@ -149,7 +149,7 @@ export default function FoodDetail({ navigation, route }) {
                 <View style={styles.hairline} />
 
                 {/* Macro ring + stats */}
-                <View style={{ paddingHorizontal: 18, paddingTop: 16, paddingBottom: 24 }}>
+                <View style={{ paddingTop: 16, paddingBottom: 24 }}>
                     <MacroRow m={macros} />
                 </View>
             </ScrollView>
@@ -181,12 +181,7 @@ function MacroRow({ m }) {
     const fracC = cCal / denom;
     const fracF = fCal / denom;
 
-    const [ringW, setRingW] = useState(0);
-    const size = useMemo(() => {
-        if (!ringW) return 104; // fallback until measured
-        // Leave some breathing room so stroke never clips, but allow a slightly larger ring
-        return Math.max(100, Math.min(170, Math.floor(ringW - 16)));
-    }, [ringW]);
+    const size = 120; // fixed ring size per design
     const stroke = Math.max(10, Math.round(size * 0.12));
     const r = Math.max(1, (size - stroke) / 2);
     const cx = size / 2;
@@ -203,12 +198,10 @@ function MacroRow({ m }) {
     const offC = baseOffset - dashP;
     const offF = baseOffset - (dashP + dashC);
 
-    const pct = (val) => Math.round((val / denom) * 100);
-
     return (
         <View style={styles.macroFourRow}>
             {/* Calories ring (no card) */}
-            <View style={styles.ringBoxFour} onLayout={(e) => setRingW(e.nativeEvent.layout.width)}>
+            <View style={styles.ringBoxFour}>
                 <View style={{ width: size, height: size }}>
                     <Svg width={size} height={size}>
                         {/* Track */}
@@ -267,16 +260,16 @@ function MacroRow({ m }) {
                     </View>
                 </View>
             </View>
-            <MacroStat color={COLORS.carbs} label="Carbs" grams={c} />
-            <MacroStat color={COLORS.fat} label="Fat" grams={f} />
-            <MacroStat color={COLORS.protein} label="Protein" grams={p} />
+            <MacroStat width={68} color={COLORS.carbs} label="Carbs" grams={c} />
+            <MacroStat width={60} color={COLORS.fat} label="Fat" grams={f} />
+            <MacroStat width={70} color={COLORS.protein} label="Protein" grams={p} />
         </View>
     );
 }
 
-function MacroStat({ color, label, grams }) {
+function MacroStat({ color, label, grams, width }) {
     return (
-        <View style={styles.macroStat}>
+        <View style={[styles.macroStat, { width }]}>
             <View style={[styles.macroStatDot, { backgroundColor: color }]} />
             <View style={{ flex: 1 }}>
                 <Text numberOfLines={1} style={styles.macroStatLabel}>{label}</Text>
@@ -357,13 +350,13 @@ const styles = StyleSheet.create({
     mealChipText: { color: COLORS.text, fontFamily: 'Outfit_700Bold', fontSize: 12 },
     mealChipTextActive: { color: theme.primary },
 
-    macroFourRow: { flexDirection: 'row', alignItems: 'center', gap: 6, flexWrap: 'nowrap' },
-    ringBoxFour: { flex: 1.6, alignItems: 'center', justifyContent: 'center', paddingVertical: 4, marginRight: 8 },
+    macroFourRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 5 },
+    ringBoxFour: { alignItems: 'center', justifyContent: 'center', paddingVertical: 4, marginRight: 12 },
     centerLabel: { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, alignItems: 'center', justifyContent: 'center' },
-    centerCal: { color: COLORS.text, fontFamily: 'Outfit_800ExtraBold', fontSize: 18 },
-    centerSub: { color: COLORS.subtext, fontFamily: 'Outfit_700Bold', fontSize: 12 },
-    macroStat: { flex: 0.8, minWidth: 62, paddingVertical: 2, paddingHorizontal: 2, flexDirection: 'row', alignItems: 'center', gap: 8 },
+    centerCal: { color: COLORS.text, fontFamily: 'Outfit_800ExtraBold', fontSize: 20 },
+    centerSub: { color: COLORS.subtext, fontFamily: 'Outfit_700Bold', fontSize: 13 },
+    macroStat: { paddingVertical: 2, paddingHorizontal: 2, flexDirection: 'row', alignItems: 'center', gap: 6 },
     macroStatDot: { width: 8, height: 8, borderRadius: 4, marginRight: 2 },
     macroStatLabel: { color: COLORS.subtext, fontFamily: 'Nunito_700Bold', fontSize: 12 },
-    macroStatValue: { color: COLORS.text, fontFamily: 'Outfit_800ExtraBold', fontSize: 16 },
+    macroStatValue: { color: COLORS.text, fontFamily: 'Outfit_800ExtraBold', fontSize: 18 },
 });

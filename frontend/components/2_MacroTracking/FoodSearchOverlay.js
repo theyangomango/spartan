@@ -197,7 +197,7 @@ export default function FoodSearchOverlay({
                     behavior={Platform.OS === 'ios' ? 'padding' : undefined}
                 >
                     <FlatList
-                        contentContainerStyle={{ paddingHorizontal: 18, paddingBottom: 24 }}
+                        contentContainerStyle={{ paddingBottom: 24 }}
                         data={results}
                         keyExtractor={(item) => String(item.food_id)}
                         keyboardShouldPersistTaps="handled"

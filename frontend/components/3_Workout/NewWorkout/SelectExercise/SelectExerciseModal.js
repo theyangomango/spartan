@@ -7,6 +7,10 @@ import ExercisesFlatlist from './ExercisesFlatlist';
 import AnimatedButton from './AnimatedButton';
 import theme from "../../../../theme/mfpDark";
 
+// Slightly lighter tints than original palette (very subtle)
+const LIGHT_SURFACE = "#353942"; // ~+3-4 on surface
+const LIGHT_FIELD = "#31353d";   // ~+3-4 on field
+
 const { height: screenHeight } = Dimensions.get('window');
 const scale = screenHeight / 844; // Scaling factor based on iPhone 13 height
 const scaledSize = (size) => Math.round(size * scale);
@@ -308,7 +312,7 @@ const styles = StyleSheet.create({
     main_ctnr: {
         width: '94%',
         height: '81%',
-        backgroundColor: theme.card, // slightly lighter than surface
+        backgroundColor: LIGHT_SURFACE,
         borderRadius: scaledSize(20),
         shadowColor: '#000',
         shadowOffset: { width: 0, height: scaledSize(6) },
@@ -341,7 +345,7 @@ const styles = StyleSheet.create({
     searchContainer: {
         flexDirection: 'row',
         alignItems: 'center',
-        backgroundColor: theme.surface, // lighten input background
+        backgroundColor: LIGHT_FIELD,
         borderRadius: scaledSize(8),
         marginHorizontal: scaledSize(15),
         paddingHorizontal: scaledSize(8),
@@ -380,7 +384,7 @@ const styles = StyleSheet.create({
         paddingVertical: scaledSize(6),
         paddingHorizontal: scaledSize(12),
         borderRadius: scaledSize(10),
-        backgroundColor: theme.surface, // lighten filter button
+        backgroundColor: LIGHT_FIELD,
         borderWidth: StyleSheet.hairlineWidth,
         borderColor: theme.hairline,
     },
@@ -396,7 +400,7 @@ const styles = StyleSheet.create({
         top: '100%',
         left: 0,
         right: 0,
-        backgroundColor: theme.card, // slightly lighter menu
+        backgroundColor: LIGHT_SURFACE,
         borderRadius: scaledSize(10),
         marginTop: scaledSize(6),
         paddingVertical: scaledSize(4),

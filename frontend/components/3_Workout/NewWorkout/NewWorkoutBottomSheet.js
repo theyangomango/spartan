@@ -6,10 +6,8 @@ import NewWorkoutModal from "./NewWorkoutModal";
 import useWorkoutStore from "../../../state/workoutStore";
 import { useNavigation } from "@react-navigation/native";
 
-// subtle gray for self, warm gold for friend
-const HANDLE_SELF = "#D0D7E2";
-const HANDLE_FRIEND_ACCENT = "#E0A500";
-const HANDLE_FRIEND_BACKGROUND = "#e0a4002c";
+// Lighter handle indicator for better visibility
+const HANDLE_LIGHT = "#E2E8F0"; // light slate/gray
 
 const NewWorkoutBottomSheet = ({
     workout,
@@ -141,12 +139,14 @@ const NewWorkoutBottomSheet = ({
             keyboardBehavior="interactive"
             keyboardBlurBehavior="restore"
             enablePanDownToClose
-            enableContentPanningGesture={false}
+            // Allow dragging from header/content (e.g., GroupHeader) to close
+            enableContentPanningGesture
             onClose={() => { try { setIsVisible(false); } catch {} }}
             onChange={(index) => { if (index < 0) { try { setIsVisible(false); } catch {} } }}
             // Handle styled to match Group Header aesthetics
             handleIndicatorStyle={{
-                backgroundColor: isViewingSelf ? theme.field : HANDLE_FRIEND_ACCENT,
+                // lighter neutral irrespective of viewing mode
+                backgroundColor: HANDLE_LIGHT,
             }}
             // Keep handle container transparent so rounded corners show
             handleStyle={{

@@ -1,5 +1,9 @@
 import React, { useState, useEffect, useRef, memo, useMemo } from "react";
 import { StyleSheet, View, Text, Pressable, TextInput, Animated, Dimensions } from "react-native";
+const theme = require("../../../theme/mfpDark").default;
+// Very subtle lightening from the original palette
+const LIGHT_SURFACE = "#353942"; // ~+3-4 from surface
+const LIGHT_FIELD = "#31353d";   // ~+3-4 from field
 import { Ionicons } from '@expo/vector-icons';
 // Reuse the Workout selectors + list for consistent style/UX
 import ExercisesFlatlist from "../../3_Workout/NewWorkout/SelectExercise/ExercisesFlatlist";
@@ -267,7 +271,7 @@ const styles = StyleSheet.create({
     main_ctnr: {
         width: '94%',
         height: '81%',
-        backgroundColor: require("../../../theme/mfpDark").default.card, // slightly lighter than surface
+        backgroundColor: LIGHT_SURFACE,
         borderRadius: scaledSize(20),
         shadowColor: '#000',
         shadowOffset: { width: 0, height: scaledSize(6) },
@@ -300,14 +304,14 @@ const styles = StyleSheet.create({
     searchContainer: {
         flexDirection: 'row',
         alignItems: 'center',
-        backgroundColor: require("../../../theme/mfpDark").default.surface, // lighten input background
+        backgroundColor: LIGHT_FIELD,
         borderRadius: scaledSize(8),
         marginHorizontal: scaledSize(15),
         paddingHorizontal: scaledSize(8),
         marginBottom: scaledSize(10),
         alignSelf: 'center',
         borderWidth: StyleSheet.hairlineWidth,
-        borderColor: require("../../../theme/mfpDark").default.hairline,
+        borderColor: theme.hairline,
     },
     searchIcon: { marginRight: scaledSize(8) },
     searchInput: {
@@ -332,9 +336,9 @@ const styles = StyleSheet.create({
         paddingVertical: scaledSize(6),
         paddingHorizontal: scaledSize(12),
         borderRadius: scaledSize(10),
-        backgroundColor: require("../../../theme/mfpDark").default.surface, // lighten filter button
+        backgroundColor: LIGHT_FIELD,
         borderWidth: StyleSheet.hairlineWidth,
-        borderColor: require("../../../theme/mfpDark").default.hairline,
+        borderColor: theme.hairline,
     },
     filterButtonText: {
         fontSize: scaledSize(13),
@@ -348,7 +352,7 @@ const styles = StyleSheet.create({
         top: '100%',
         left: 0,
         right: 0,
-        backgroundColor: require("../../../theme/mfpDark").default.card, // slightly lighter menu
+        backgroundColor: LIGHT_SURFACE,
         borderRadius: scaledSize(10),
         marginTop: scaledSize(6),
         paddingVertical: scaledSize(4),
@@ -360,10 +364,10 @@ const styles = StyleSheet.create({
         zIndex: 3,
         maxHeight: scaledSize(220),
         borderWidth: StyleSheet.hairlineWidth,
-        borderColor: require("../../../theme/mfpDark").default.hairline,
+        borderColor: theme.hairline,
     },
     dropdownItem: { paddingVertical: scaledSize(8), paddingHorizontal: scaledSize(10) },
-    dropdownItemActive: { backgroundColor: require("../../../theme/mfpDark").default.surface },
+    dropdownItemActive: { backgroundColor: LIGHT_FIELD },
     dropdownItemText: { fontSize: scaledSize(13), color: '#EAEAEA', fontFamily: 'Outfit_700Bold' },
     dropdownItemTextActive: { color: '#6FB8FF' },
     dropdownBackdrop: {

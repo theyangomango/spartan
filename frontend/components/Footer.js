@@ -43,7 +43,10 @@ const Footer = ({ currentScreenName, navigation }) => {
     const hasActiveWorkout = useWorkoutStore((s) => !!s.workout) || !!global?.isCurrentlyWorkingOut;
 
     const getIconColor = (screenName) => {
-        if (screenName === 'Workout' && hasActiveWorkout) return COLORS.workoutActive;
+        if (screenName === 'Workout' && hasActiveWorkout) {
+            // Keep icon white when actively on Workout; otherwise show blue hint
+            return currentScreenName === 'Workout' ? COLORS.active : COLORS.workoutActive;
+        }
         return currentScreenName === screenName ? COLORS.active : COLORS.inactive;
     };
 
