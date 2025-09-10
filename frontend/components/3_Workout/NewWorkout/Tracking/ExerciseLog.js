@@ -247,7 +247,7 @@ function ExerciseLog({
             {!readOnly && (
                 <Animated.View style={[styles.add_set_btn_ctnr, { opacity: fadeAnim }]}>
                     <RNBounceable activeOpacity={0.5} onPress={addSet} style={styles.add_set_btn}>
-                        <Entypo name="plus" size={s(18)} color={theme.textPrimary} />
+                        <Entypo name="plus" size={s(18)} color={theme.primary} />
                         <Text style={styles.add_set_text}>Add Set</Text>
                     </RNBounceable>
                 </Animated.View>
@@ -283,6 +283,18 @@ const styles = StyleSheet.create({
     // Increase contrast for readability in dark mode
     label_text: { fontFamily: "Mulish_800ExtraBold", fontSize: s(15), color: theme.textPrimary },
     add_set_btn_ctnr: { paddingHorizontal: s(20) },
-    add_set_btn: { width: "100%", marginTop: s(8), alignSelf: "center", height: s(28), borderRadius: s(20), backgroundColor: theme.field, justifyContent: "center", alignItems: "center", flexDirection: "row" },
+    add_set_btn: {
+        width: "100%",
+        marginTop: s(8),
+        alignSelf: "center",
+        height: s(28),
+        borderRadius: s(20),
+        backgroundColor: theme.restPillBg,
+        borderWidth: StyleSheet.hairlineWidth,
+        borderColor: theme.primaryHairline,
+        justifyContent: "center",
+        alignItems: "center",
+        flexDirection: "row",
+    },
     add_set_text: { fontFamily: "Outfit_600SemiBold", color: theme.textPrimary, fontSize: s(15), marginLeft: s(1), marginRight: s(5) },
 });

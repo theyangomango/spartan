@@ -120,8 +120,8 @@ function SetRow({
                             }}
                             disabled={readOnly}
                         >
-                            {/* Use a thicker glyph for better legibility */}
-                            <MaterialCommunityIcons name="check-bold" size={scaledSize(16)} color={doneLocal ? "#fff" : "#444"} />
+                            {/* Brighter primary tint when unfinished for visibility */}
+                            <MaterialCommunityIcons name="check-bold" size={scaledSize(16)} color={doneLocal ? "#fff" : theme.primary} />
                         </Pressable>
                     </View>
                 </View>
@@ -204,7 +204,9 @@ const styles = StyleSheet.create({
         paddingHorizontal: scaledSize(10),
         height: "100%",
         borderRadius: scaledSize(7),
-        backgroundColor: theme.field,
+        backgroundColor: theme.restPillBg,
+        borderWidth: StyleSheet.hairlineWidth,
+        borderColor: theme.primaryHairline,
         justifyContent: "center",
     },
     checkmark_ctnr_selected: {
@@ -213,6 +215,7 @@ const styles = StyleSheet.create({
         borderRadius: scaledSize(7),
         justifyContent: "center",
         backgroundColor: theme.success,
+        borderWidth: 0,
     },
     underlayLeft: {
         position: "absolute",

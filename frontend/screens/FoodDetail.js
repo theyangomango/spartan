@@ -6,6 +6,7 @@ import theme from '../theme/mfpDark';
 import { db } from '../../firebase.config';
 import { doc, updateDoc, serverTimestamp } from 'firebase/firestore';
 import { parseMacrosFromDescription } from '../utils/nutrition';
+import Svg, { Circle } from 'react-native-svg';
 
 const COLORS = {
     bg: theme.bg,
@@ -14,6 +15,10 @@ const COLORS = {
     subtext: theme.textSecondary,
     hairline: theme.hairline,
     accent: theme.primary,
+    // Macro colors (match MacroTracking)
+    protein: '#6c98fcff',
+    carbs: '#ff7cb5ff',
+    fat: '#FFC874',
 };
 
 export default function FoodDetail({ navigation, route }) {
@@ -97,9 +102,7 @@ export default function FoodDetail({ navigation, route }) {
                         <Text style={styles.brand} numberOfLines={1}>{entry.brand}</Text>
                     ) : null}
                     <Text style={styles.title} numberOfLines={2}>{entry?.name || 'Food Item'}</Text>
-                    {entry?.desc ? (
-                        <Text style={styles.desc} numberOfLines={3}>{entry.desc}</Text>
-                    ) : null}
+                    {/* Hide long description under title per request */}
                 </View>
 
                 <View style={styles.hairline} />
@@ -145,14 +148,9 @@ export default function FoodDetail({ navigation, route }) {
 
                 <View style={styles.hairline} />
 
-                {/* Macro badges */}
-                <View style={{ paddingHorizontal: 18, paddingTop: 16 }}>
-                    <View style={styles.macrosRow}>
-                        <MacroBadge label="Calories" value={Math.round(macros.calories || 0)} suffix="kcal" />
-                        <MacroBadge label="Protein" value={Math.round(macros.protein || 0)} suffix="g" />
-                        <MacroBadge label="Carbs" value={Math.round(macros.carbs || 0)} suffix="g" />
-                        <MacroBadge label="Fat" value={Math.round(macros.fat || 0)} suffix="g" />
-                    </View>
+                {/* Macro ring + stats */}
+                <View style={{ paddingHorizontal: 18, paddingTop: 16, paddingBottom: 24 }}>
+                    <MacroRow m={macros} />
                 </View>
             </ScrollView>
         </SafeAreaView>
@@ -164,6 +162,128 @@ function MacroBadge({ label, value, suffix }) {
         <View style={styles.badge}>
             <Text style={styles.badgeLabel}>{label}</Text>
             <Text style={styles.badgeValue}>{value}<Text style={styles.badgeSuffix}> {suffix}</Text></Text>
+        </View>
+    );
+}
+
+function MacroRow({ m }) {
+    const calories = Math.max(0, Math.round(m?.calories || 0));
+    const p = Math.max(0, Number(m?.protein || 0));
+    const c = Math.max(0, Number(m?.carbs || 0));
+    const f = Math.max(0, Number(m?.fat || 0));
+
+    const pCal = p * 4;
+    const cCal = c * 4;
+    const fCal = f * 9;
+    const totalFromMacros = pCal + cCal + fCal;
+    const denom = calories > 0 ? calories : totalFromMacros > 0 ? totalFromMacros : 1;
+    const fracP = pCal / denom;
+    const fracC = cCal / denom;
+    const fracF = fCal / denom;
+
+    const [ringW, setRingW] = useState(0);
+    const size = useMemo(() => {
+        if (!ringW) return 104; // fallback until measured
+        // Leave some breathing room so stroke never clips, but allow a slightly larger ring
+        return Math.max(100, Math.min(170, Math.floor(ringW - 16)));
+    }, [ringW]);
+    const stroke = Math.max(10, Math.round(size * 0.12));
+    const r = Math.max(1, (size - stroke) / 2);
+    const cx = size / 2;
+    const cy = size / 2;
+    const circ = 2 * Math.PI * r;
+
+    const dashP = Math.max(0.0001, fracP * circ);
+    const dashC = Math.max(0.0001, fracC * circ);
+    const dashF = Math.max(0.0001, fracF * circ);
+
+    // Start ring at 12 o'clock by rotating -90deg
+    const baseOffset = 0;
+    const offP = baseOffset;
+    const offC = baseOffset - dashP;
+    const offF = baseOffset - (dashP + dashC);
+
+    const pct = (val) => Math.round((val / denom) * 100);
+
+    return (
+        <View style={styles.macroFourRow}>
+            {/* Calories ring (no card) */}
+            <View style={styles.ringBoxFour} onLayout={(e) => setRingW(e.nativeEvent.layout.width)}>
+                <View style={{ width: size, height: size }}>
+                    <Svg width={size} height={size}>
+                        {/* Track */}
+                        <Circle
+                            cx={cx}
+                            cy={cy}
+                            r={r}
+                            stroke={COLORS.hairline}
+                            strokeOpacity={0.28}
+                            strokeWidth={stroke}
+                            fill="none"
+                        />
+                        {/* Protein */}
+                        <Circle
+                            cx={cx}
+                            cy={cy}
+                            r={r}
+                            stroke={COLORS.protein}
+                            strokeWidth={stroke}
+                            fill="none"
+                            strokeDasharray={`${dashP}, ${circ}`}
+                            strokeDashoffset={offP}
+                            strokeLinecap="round"
+                            transform={`rotate(-90 ${cx} ${cy})`}
+                        />
+                        {/* Carbs */}
+                        <Circle
+                            cx={cx}
+                            cy={cy}
+                            r={r}
+                            stroke={COLORS.carbs}
+                            strokeWidth={stroke}
+                            fill="none"
+                            strokeDasharray={`${dashC}, ${circ}`}
+                            strokeDashoffset={offC}
+                            strokeLinecap="round"
+                            transform={`rotate(-90 ${cx} ${cy})`}
+                        />
+                        {/* Fat */}
+                        <Circle
+                            cx={cx}
+                            cy={cy}
+                            r={r}
+                            stroke={COLORS.fat}
+                            strokeWidth={stroke}
+                            fill="none"
+                            strokeDasharray={`${dashF}, ${circ}`}
+                            strokeDashoffset={offF}
+                            strokeLinecap="round"
+                            transform={`rotate(-90 ${cx} ${cy})`}
+                        />
+                    </Svg>
+                    <View style={styles.centerLabel} pointerEvents="none">
+                        <Text style={styles.centerCal}>{Math.round(denom || 0)}</Text>
+                        <Text style={styles.centerSub}>cal</Text>
+                    </View>
+                </View>
+            </View>
+            <MacroStat color={COLORS.carbs} label="Carbs" grams={c} />
+            <MacroStat color={COLORS.fat} label="Fat" grams={f} />
+            <MacroStat color={COLORS.protein} label="Protein" grams={p} />
+        </View>
+    );
+}
+
+function MacroStat({ color, label, grams }) {
+    return (
+        <View style={styles.macroStat}>
+            <View style={[styles.macroStatDot, { backgroundColor: color }]} />
+            <View style={{ flex: 1 }}>
+                <Text numberOfLines={1} style={styles.macroStatLabel}>{label}</Text>
+                <Text numberOfLines={1} style={styles.macroStatValue}>
+                    {Math.round(grams || 0)} <Text style={styles.badgeSuffix}>g</Text>
+                </Text>
+            </View>
         </View>
     );
 }
@@ -184,7 +304,6 @@ const styles = StyleSheet.create({
     title: { color: COLORS.text, fontFamily: 'Nunito_800ExtraBold', fontSize: 18, marginBottom: 6 },
     desc: { color: COLORS.subtext, fontFamily: 'Nunito_600SemiBold', fontSize: 12.5 },
     hairline: { height: 1, backgroundColor: COLORS.hairline, opacity: 0.7 },
-    macrosRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 10 },
     badge: {
         backgroundColor: 'rgba(255,255,255,0.06)',
         borderWidth: StyleSheet.hairlineWidth,
@@ -237,4 +356,14 @@ const styles = StyleSheet.create({
     mealChipActive: { backgroundColor: 'rgba(45,158,255,0.16)', borderColor: theme.primaryHairline },
     mealChipText: { color: COLORS.text, fontFamily: 'Outfit_700Bold', fontSize: 12 },
     mealChipTextActive: { color: theme.primary },
+
+    macroFourRow: { flexDirection: 'row', alignItems: 'center', gap: 6, flexWrap: 'nowrap' },
+    ringBoxFour: { flex: 1.6, alignItems: 'center', justifyContent: 'center', paddingVertical: 4, marginRight: 8 },
+    centerLabel: { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, alignItems: 'center', justifyContent: 'center' },
+    centerCal: { color: COLORS.text, fontFamily: 'Outfit_800ExtraBold', fontSize: 18 },
+    centerSub: { color: COLORS.subtext, fontFamily: 'Outfit_700Bold', fontSize: 12 },
+    macroStat: { flex: 0.8, minWidth: 62, paddingVertical: 2, paddingHorizontal: 2, flexDirection: 'row', alignItems: 'center', gap: 8 },
+    macroStatDot: { width: 8, height: 8, borderRadius: 4, marginRight: 2 },
+    macroStatLabel: { color: COLORS.subtext, fontFamily: 'Nunito_700Bold', fontSize: 12 },
+    macroStatValue: { color: COLORS.text, fontFamily: 'Outfit_800ExtraBold', fontSize: 16 },
 });

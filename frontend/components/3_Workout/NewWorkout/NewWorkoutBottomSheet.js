@@ -66,10 +66,16 @@ const NewWorkoutBottomSheet = ({
         if (isVisible) {
             try { lastOpenedAtRef.current = Date.now(); sessionIdRef.current += 1; } catch {}
             expandSafely();
-            // Bump key so FlashList and nested state reset cleanly between sessions
-            setContentKey((k) => (Number.isFinite(k) ? k + 1 : 0));
         }
     }, [isVisible, expandSafely]);
+
+    // Only remount content when switching to a different workout (wid changes),
+    // avoiding unnecessary flashes when simply reopening the same session.
+    useEffect(() => {
+        const wid = String(effectiveWorkout?.wid || '');
+        if (!wid) return;
+        setContentKey((k) => (Number.isFinite(k) ? k + 1 : 0));
+    }, [effectiveWorkout?.wid]);
 
     // Also mount as soon as effectiveWorkout arrives while the sheet is visible
     useEffect(() => { /* content stays mounted */ }, [isVisible, effectiveWorkout]);

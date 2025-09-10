@@ -63,7 +63,10 @@ const ExerciseCard = memo(({ name, muscleGroup, selectExercise, deselectExercise
                         {(() => {
                             const ACC = MUSCLE_ACCENT[muscleGroup] || ACCENTS[0];
                             return (
-                                <View style={[styles.muscle_ctnr, { backgroundColor: rgba(ACC, 0.22), borderColor: rgba(ACC, 0.45) }]}>
+                                <View style={[
+                                    styles.muscle_ctnr,
+                                    { backgroundColor: rgba(ACC, 0.3), borderColor: rgba(ACC, 0.6) }
+                                ]}>
                                     <Text style={[styles.muscle_text, { color: '#EAEAEA' }]}>{muscleGroup}</Text>
                                 </View>
                             );

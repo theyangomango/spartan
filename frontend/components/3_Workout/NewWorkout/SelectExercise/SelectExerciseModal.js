@@ -308,7 +308,7 @@ const styles = StyleSheet.create({
     main_ctnr: {
         width: '94%',
         height: '81%',
-        backgroundColor: theme.surface,
+        backgroundColor: theme.card, // slightly lighter than surface
         borderRadius: scaledSize(20),
         shadowColor: '#000',
         shadowOffset: { width: 0, height: scaledSize(6) },
@@ -341,12 +341,14 @@ const styles = StyleSheet.create({
     searchContainer: {
         flexDirection: 'row',
         alignItems: 'center',
-        backgroundColor: theme.field,
+        backgroundColor: theme.surface, // lighten input background
         borderRadius: scaledSize(8),
         marginHorizontal: scaledSize(15),
         paddingHorizontal: scaledSize(8),
         marginBottom: scaledSize(10),
         alignSelf: 'center',
+        borderWidth: StyleSheet.hairlineWidth,
+        borderColor: theme.hairline,
     },
     searchIcon: {
         marginRight: scaledSize(8),
@@ -378,7 +380,9 @@ const styles = StyleSheet.create({
         paddingVertical: scaledSize(6),
         paddingHorizontal: scaledSize(12),
         borderRadius: scaledSize(10),
-        backgroundColor: theme.field,
+        backgroundColor: theme.surface, // lighten filter button
+        borderWidth: StyleSheet.hairlineWidth,
+        borderColor: theme.hairline,
     },
     filterButtonText: {
         fontSize: scaledSize(13),
@@ -392,7 +396,7 @@ const styles = StyleSheet.create({
         top: '100%',
         left: 0,
         right: 0,
-        backgroundColor: theme.surface,
+        backgroundColor: theme.card, // slightly lighter menu
         borderRadius: scaledSize(10),
         marginTop: scaledSize(6),
         paddingVertical: scaledSize(4),

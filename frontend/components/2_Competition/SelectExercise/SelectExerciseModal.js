@@ -139,11 +139,11 @@ const SelectExerciseModal = memo(({ closeModal, setComparedExercise }) => {
 
                 {/* Search */}
                 <View style={styles.searchContainer}>
-                    <Ionicons name="search" size={scaledSize(20)} color="#888" style={styles.searchIcon} />
+                    <Ionicons name="search" size={scaledSize(20)} color="#BBC4D2" style={styles.searchIcon} />
                     <TextInput
                         style={styles.searchInput}
                         placeholder="Search exercises..."
-                        placeholderTextColor="#AEB5C0"
+                        placeholderTextColor="#BBC4D2"
                         value={inputQuery}
                         onChangeText={handleSearch}
                         onFocus={closeAllDropdowns}
@@ -162,7 +162,7 @@ const SelectExerciseModal = memo(({ closeModal, setComparedExercise }) => {
                             }}
                         >
                             <Text style={styles.filterButtonText} numberOfLines={1}>{bodyPartButtonLabel}</Text>
-                            <Ionicons name={bodyPartOpen ? "chevron-up" : "chevron-down"} size={scaledSize(16)} color="#EAEAEA" />
+                            <Ionicons name={bodyPartOpen ? "chevron-up" : "chevron-down"} size={scaledSize(16)} color="#EAF0F7" />
                         </Pressable>
 
                         {bodyPartOpen && (
@@ -201,7 +201,7 @@ const SelectExerciseModal = memo(({ closeModal, setComparedExercise }) => {
                             }}
                         >
                             <Text style={styles.filterButtonText} numberOfLines={1}>{equipmentButtonLabel}</Text>
-                            <Ionicons name={equipmentOpen ? "chevron-up" : "chevron-down"} size={scaledSize(16)} color="#EAEAEA" />
+                            <Ionicons name={equipmentOpen ? "chevron-up" : "chevron-down"} size={scaledSize(16)} color="#EAF0F7" />
                         </Pressable>
 
                         {equipmentOpen && (
@@ -267,7 +267,7 @@ const styles = StyleSheet.create({
     main_ctnr: {
         width: '94%',
         height: '81%',
-        backgroundColor: require("../../../theme/mfpDark").default.surface,
+        backgroundColor: require("../../../theme/mfpDark").default.card, // slightly lighter than surface
         borderRadius: scaledSize(20),
         shadowColor: '#000',
         shadowOffset: { width: 0, height: scaledSize(6) },
@@ -300,12 +300,14 @@ const styles = StyleSheet.create({
     searchContainer: {
         flexDirection: 'row',
         alignItems: 'center',
-        backgroundColor: require("../../../theme/mfpDark").default.field,
+        backgroundColor: require("../../../theme/mfpDark").default.surface, // lighten input background
         borderRadius: scaledSize(8),
         marginHorizontal: scaledSize(15),
         paddingHorizontal: scaledSize(8),
         marginBottom: scaledSize(10),
         alignSelf: 'center',
+        borderWidth: StyleSheet.hairlineWidth,
+        borderColor: require("../../../theme/mfpDark").default.hairline,
     },
     searchIcon: { marginRight: scaledSize(8) },
     searchInput: {
@@ -330,7 +332,9 @@ const styles = StyleSheet.create({
         paddingVertical: scaledSize(6),
         paddingHorizontal: scaledSize(12),
         borderRadius: scaledSize(10),
-        backgroundColor: require("../../../theme/mfpDark").default.field,
+        backgroundColor: require("../../../theme/mfpDark").default.surface, // lighten filter button
+        borderWidth: StyleSheet.hairlineWidth,
+        borderColor: require("../../../theme/mfpDark").default.hairline,
     },
     filterButtonText: {
         fontSize: scaledSize(13),
@@ -344,7 +348,7 @@ const styles = StyleSheet.create({
         top: '100%',
         left: 0,
         right: 0,
-        backgroundColor: require("../../../theme/mfpDark").default.surface,
+        backgroundColor: require("../../../theme/mfpDark").default.card, // slightly lighter menu
         borderRadius: scaledSize(10),
         marginTop: scaledSize(6),
         paddingVertical: scaledSize(4),
@@ -356,10 +360,10 @@ const styles = StyleSheet.create({
         zIndex: 3,
         maxHeight: scaledSize(220),
         borderWidth: StyleSheet.hairlineWidth,
-        borderColor: 'rgba(255,255,255,0.08)',
+        borderColor: require("../../../theme/mfpDark").default.hairline,
     },
     dropdownItem: { paddingVertical: scaledSize(8), paddingHorizontal: scaledSize(10) },
-    dropdownItemActive: { backgroundColor: require("../../../theme/mfpDark").default.field },
+    dropdownItemActive: { backgroundColor: require("../../../theme/mfpDark").default.surface },
     dropdownItemText: { fontSize: scaledSize(13), color: '#EAEAEA', fontFamily: 'Outfit_700Bold' },
     dropdownItemTextActive: { color: '#6FB8FF' },
     dropdownBackdrop: {
