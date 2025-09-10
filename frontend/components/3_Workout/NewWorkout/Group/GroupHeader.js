@@ -238,7 +238,7 @@ const styles = StyleSheet.create({
         width: scaledSize(83),
         height: scaledSize(34),
         borderRadius: scaledSize(10),
-        backgroundColor: theme.success,
+        backgroundColor: theme.successButton,
         justifyContent: "center",
         alignItems: "center",
     },

@@ -3,6 +3,7 @@ import React, { useCallback, useEffect, useMemo, useRef } from "react";
 import { View, StyleSheet } from "react-native";
 import BottomSheet, { BottomSheetBackdrop } from "@gorhom/bottom-sheet";
 import GroupModal from "./GroupModal";
+import theme from "../../../../theme/mfpDark";
 
 const GroupModalBottomSheet = ({ groupModalExpandFlag, closeGroupModal, onInvite }) => {
     const bottomSheetRef = useRef(null);
@@ -37,6 +38,7 @@ const GroupModalBottomSheet = ({ groupModalExpandFlag, closeGroupModal, onInvite
                 index={-1}
                 snapPoints={snapPoints}
                 backdropComponent={renderBackdrop}
+                backgroundStyle={{ backgroundColor: theme.surface }}
                 handleStyle={{ display: "none" }}
                 enablePanDownToClose
                 onClose={closeGroupModal}

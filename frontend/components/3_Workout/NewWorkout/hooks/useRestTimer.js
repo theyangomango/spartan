@@ -15,6 +15,7 @@ export default function useRestTimer() {
   const scheduledNotifIdRef = useRef(null);
   const lastScheduledRemainingRef = useRef(0);
   const wasResetRef = useRef(false);
+  const restCycleRef = useRef(0); // unique id per rest cycle
 
   const openRestModal = useCallback(() => {
     setRestModalKey((k) => k + 1);
@@ -27,10 +28,17 @@ export default function useRestTimer() {
     try {
       const endAt = Number(global.__restTimerEndAt || 0);
       const total = Number(global.__restTimerTotal || 0);
+      const cycleId = Number(global.__restCycleId || 0);
       if (endAt && endAt > Date.now()) {
         endAtRef.current = endAt;
+        restCycleRef.current = cycleId || restCycleRef.current || Date.now();
         setRestTotal(total > 0 ? total : Math.ceil((endAt - Date.now()) / 1000));
         setCountdown(Math.max(0, Math.ceil((endAt - Date.now()) / 1000)));
+      } else if (endAt && endAt <= Date.now()) {
+        // Clear stale globals if timer already expired while unmounted
+        endAtRef.current = 0;
+        restCycleRef.current = 0;
+        try { global.__restTimerEndAt = 0; global.__restTimerTotal = 0; global.__restCycleId = 0; } catch {}
       }
     } catch {}
   }, []);
@@ -67,6 +75,7 @@ export default function useRestTimer() {
           body: "Let's get back to your set!",
           sound: Boolean(soundsOn),
           badge: null,
+          data: { type: 'restComplete', cycleId: restCycleRef.current || 0 },
         },
         trigger: { seconds: Math.max(1, Math.floor(secondsFromNow)), channelId: 'default', repeats: false },
         // On Android, ensure it fires even in Doze
@@ -90,7 +99,9 @@ export default function useRestTimer() {
     const v = Number(secs) || 0;
     setRestTotal(v);
     endAtRef.current = v > 0 ? (Date.now() + v * 1000) : 0;
-    try { global.__restTimerEndAt = endAtRef.current; global.__restTimerTotal = v; } catch {}
+    // New rest cycle id for this start
+    restCycleRef.current = Date.now();
+    try { global.__restTimerEndAt = endAtRef.current; global.__restTimerTotal = v; global.__restCycleId = restCycleRef.current; } catch {}
     lastScheduledRemainingRef.current = v;
     setCountdown(v);
     // schedule now for v seconds
@@ -107,7 +118,9 @@ export default function useRestTimer() {
       } else {
         endAtRef.current = Date.now() + delta * 1000;
       }
-      try { global.__restTimerEndAt = endAtRef.current; global.__restTimerTotal = (lastScheduledRemainingRef.current || delta); } catch {}
+      // Keep same cycle id for add
+      if (!restCycleRef.current) restCycleRef.current = Date.now();
+      try { global.__restTimerEndAt = endAtRef.current; global.__restTimerTotal = (lastScheduledRemainingRef.current || delta); global.__restCycleId = restCycleRef.current; } catch {}
       scheduleLocalPush(lastScheduledRemainingRef.current);
     }
     setCountdown((s) => s + delta);
@@ -118,7 +131,8 @@ export default function useRestTimer() {
     setRestTotal(0);
     endAtRef.current = 0;
     lastScheduledRemainingRef.current = 0;
-    try { global.__restTimerEndAt = 0; global.__restTimerTotal = 0; } catch {}
+    restCycleRef.current = 0;
+    try { global.__restTimerEndAt = 0; global.__restTimerTotal = 0; global.__restCycleId = 0; } catch {}
     cancelLocalPush();
   }, [cancelLocalPush]);
 
@@ -136,7 +150,8 @@ export default function useRestTimer() {
           try { Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success); } catch {}
           try { Vibration.vibrate(150); } catch {}
         }
-        try { if (typeof global?.triggerRestReminder === 'function') global.triggerRestReminder(); } catch {}
+        // Pass cycle id so the app can suppress duplicate reminders for the same cycle
+        try { if (typeof global?.triggerRestReminder === 'function') global.triggerRestReminder(restCycleRef.current || 0); } catch {}
       }
       wasResetRef.current = false; // clear flag after handling
     }

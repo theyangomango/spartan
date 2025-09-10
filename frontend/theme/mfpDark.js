@@ -25,6 +25,8 @@ const MFP_DARK = {
     // Hairline/tint for selected states
     primaryHairline: 'rgba(45, 158, 255, 0.45)',
     success: '#3FD396',     // slightly cooler green to match brand
+    // Slightly darker success for prominent action buttons on dark surfaces
+    successButton: '#10B981',
     // Slightly brighter greens for completed rows/inputs
     successBg: 'rgba(64,217,155,0.18)',
     successRowBg: 'rgba(64,217,155,0.24)',
@@ -37,8 +39,8 @@ const MFP_DARK = {
     // High-contrast yet on-brand utility tints
     // Add a subtle blue-tinted background for the rest timer chip
     restPillBg: 'rgba(45, 158, 255, 0.22)',
-    // Warmer, slightly desaturated amber for group button background
-    groupAmber: '#EAC56E',
+    // Previously an amber used for light theme; switch to subtle blue-tinted pill for dark
+    groupAmber: 'rgba(45, 158, 255, 0.22)',
 };
 
 export default MFP_DARK;

@@ -6,6 +6,7 @@ import ProfileCard from "../../../ProfileCard";
 import RNBounceable from "@freakycoder/react-native-bounceable";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { LinearGradient } from "expo-linear-gradient";
+import theme from "../../../../theme/mfpDark";
 import useFriendsActivity from "../../../../hooks/useFriendsActivity";
 import useLiveFollowing from "../../../../hooks/useLiveFollowing";
 
@@ -174,18 +175,18 @@ const GroupModal = ({ closeGroupModal, onInvite }) => {
 
             {/* Sleek search */}
             <View style={styles.searchContainer}>
-                <Icon name="search" size={scaledSize(18)} color="#2A65D9" style={styles.searchIcon} />
+                <Icon name="search" size={scaledSize(18)} color={theme.primary} style={styles.searchIcon} />
                 <TextInput
                     style={styles.searchBar}
                     placeholder="Search by handle or name"
-                    placeholderTextColor="#8AA0BF"
+                    placeholderTextColor={theme.textSecondary}
                     value={searchQuery}
                     onChangeText={setSearchQuery}
                     returnKeyType="search"
                 />
                 {searchQuery.length > 0 && (
                     <Pressable onPress={clearSearch} hitSlop={8}>
-                        <Icon name="close-circle" size={scaledSize(18)} color="#9BB6E9" />
+                        <Icon name="close-circle" size={scaledSize(18)} color={theme.muted} />
                     </Pressable>
                 )}
             </View>
@@ -253,7 +254,7 @@ const styles = StyleSheet.create({
     modalText: {
         fontFamily: "Nunito_800ExtraBold",
         fontSize: scaledSize(15),
-        color: "#111",
+        color: theme.textPrimary,
         includeFontPadding: false,
         letterSpacing: 0.2,
     },
@@ -261,10 +262,10 @@ const styles = StyleSheet.create({
     searchContainer: {
         flexDirection: "row",
         alignItems: "center",
-        backgroundColor: "#F1F6FF",
+        backgroundColor: theme.field,
         borderRadius: scaledSize(12),
         borderWidth: StyleSheet.hairlineWidth,
-        borderColor: "#DBE9FF",
+        borderColor: theme.hairline,
         width: "90%",
         paddingHorizontal: scaledSize(10),
         paddingVertical: scaledSize(6),
@@ -276,7 +277,7 @@ const styles = StyleSheet.create({
         paddingHorizontal: scaledSize(8),
         paddingVertical: scaledSize(6),
         fontSize: scaledSize(14),
-        color: "#233",
+        color: theme.textPrimary,
         fontFamily: "Nunito_600SemiBold",
         includeFontPadding: false,
     },
@@ -286,7 +287,7 @@ const styles = StyleSheet.create({
     sectionHeaderText: {
         fontFamily: "Outfit_700Bold",
         fontSize: scaledSize(12),
-        color: "rgba(15,23,42,0.65)",
+        color: theme.textSecondary,
         letterSpacing: 0.3,
     },
 

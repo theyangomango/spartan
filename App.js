@@ -236,15 +236,23 @@ export default function App() {
     // ---------- Rest Reminder (global) ----------
     const [restReminderVisible, setRestReminderVisible] = useState(false);
     const [restReminderKey, setRestReminderKey] = useState(0);
+    const restReminderCycleRef = useRef(0); // last cycle id surfaced in the modal
+    const restAckRef = useRef(0); // last acknowledged cycle id (dismissed or opened)
     const notifListenerRef = useRef(null);
     useEffect(() => {
-        global.triggerRestReminder = () => {
+        global.triggerRestReminder = (cycleId = 0) => {
+            try {
+                // If this cycle is already acknowledged, do not show again
+                const ack = Number(global.__restCycleAck || restAckRef.current || 0);
+                if (cycleId && ack && cycleId === ack) return;
+            } catch {}
             const soundsOn = (global?.userData?.settings?.sounds !== false);
             if (soundsOn) {
                 try { Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success); } catch {}
                 try { Vibration.vibrate(180); } catch {}
             }
             setRestReminderKey((k) => k + 1);
+            restReminderCycleRef.current = Number(cycleId || 0);
             setRestReminderVisible(true);
         };
         return () => { try { global.triggerRestReminder = null; } catch {} };
@@ -283,9 +291,15 @@ export default function App() {
                         }
                     } catch {}
                     const title = String(evt?.request?.content?.title || '').toLowerCase();
+                    // Prefer cycle-aware gating via data.cycleId
+                    const cycleId = Number(evt?.request?.content?.data?.cycleId || 0);
+                    const ack = Number(global.__restCycleAck || restAckRef.current || 0);
                     if (title.includes('rest complete')) {
-                        setRestReminderKey((k) => k + 1);
-                        setRestReminderVisible(true);
+                        if (!cycleId || !ack || cycleId !== ack) {
+                            setRestReminderKey((k) => k + 1);
+                            restReminderCycleRef.current = cycleId || restReminderCycleRef.current || 0;
+                            setRestReminderVisible(true);
+                        }
                     }
                 } catch {}
             });
@@ -344,6 +358,8 @@ export default function App() {
             if (jumpToTab) jumpToTab('Workout');
             try { global.openCurrentWorkoutSignal = Date.now(); } catch {}
         } catch {}
+        // Acknowledge this cycle to avoid re-showing until a new timer starts
+        try { const cid = Number(restReminderCycleRef.current || 0); if (cid) { global.__restCycleAck = cid; restAckRef.current = cid; } } catch {}
         setRestReminderVisible(false);
     };
 
@@ -519,9 +535,9 @@ export default function App() {
                 visible={restReminderVisible}
                 transparent
                 animationType="fade"
-                onRequestClose={() => setRestReminderVisible(false)}
+                onRequestClose={() => { try { const cid = Number(restReminderCycleRef.current || 0); if (cid) { global.__restCycleAck = cid; restAckRef.current = cid; } } catch {}; setRestReminderVisible(false); }}
             >
-                <Pressable style={restStyles.overlay} onPress={() => setRestReminderVisible(false)}>
+                <Pressable style={restStyles.overlay} onPress={() => { try { const cid = Number(restReminderCycleRef.current || 0); if (cid) { global.__restCycleAck = cid; restAckRef.current = cid; } } catch {}; setRestReminderVisible(false); }}>
                     <View style={restStyles.card}>
                         <View style={restStyles.iconRow}>
                             <View style={restStyles.iconCircle}><Ionicons name="timer-outline" size={rs(26)} color={theme.accentBlue} /></View>
@@ -529,7 +545,7 @@ export default function App() {
                         <Text style={restStyles.title}>Rest Complete</Text>
                         <Text style={restStyles.body}>Time to crush your next set 🥱</Text>
                         <View style={restStyles.row}>
-                            <Pressable style={[restStyles.btn, restStyles.secondary]} onPress={() => setRestReminderVisible(false)}>
+                            <Pressable style={[restStyles.btn, restStyles.secondary]} onPress={() => { try { const cid = Number(restReminderCycleRef.current || 0); if (cid) { global.__restCycleAck = cid; restAckRef.current = cid; } } catch {}; setRestReminderVisible(false); }}>
                                 <Ionicons name="close" size={rs(16)} color={theme.textPrimary} style={{ marginRight: rs(6) }} />
                                 <Text style={[restStyles.btnText, restStyles.secondaryText]}>Dismiss</Text>
                             </Pressable>
