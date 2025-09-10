@@ -197,7 +197,14 @@ export default function Workout({ navigation, route }) {
             }));
             const newTemplate = { id: tid, tid, name, exercises, lastDate: null };
             const prev = Array.isArray(user?.templates) ? user.templates : [];
-            updateDoc("users", uid, { templates: [...prev, newTemplate] }).catch(() => { });
+            const next = [...prev, newTemplate];
+            // Update backend and local global copy + dirty signature
+            updateDoc("users", uid, { templates: next }).catch(() => { });
+            try {
+                global.userData = { ...(global.userData || {}), templates: next };
+                global.__templatesLocalSig = JSON.stringify(next || []);
+                global.__templatesDirty = true;
+            } catch {}
             showTemplateToast("Template copied ✓");
         } catch (e) {
             console.log("handleCopyTemplate error", e);

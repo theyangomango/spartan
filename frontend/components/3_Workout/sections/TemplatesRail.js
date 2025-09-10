@@ -116,11 +116,31 @@ function TemplatesRail({ templates = [], onIndexChange, onAddTemplate, onOpenTem
     );
 }
 
+const sig = (arr) => {
+    if (!Array.isArray(arr)) return '';
+    try {
+        return arr
+            .map((t) => {
+                const id = t?.id || t?.tid || '';
+                const name = t?.name || '';
+                const exLen = Array.isArray(t?.exercises) ? t.exercises.length : (t?.exercises || 0);
+                const last = t?.lastDate || '';
+                // Include a simple shape of exercises to detect add/remove quickly
+                const exSig = Array.isArray(t?.exercises)
+                    ? t.exercises.map((ex) => `${ex?.name || ''}:${Array.isArray(ex?.sets) ? ex.sets.length : 0}`).join(',')
+                    : '';
+                return `${id}~${name}~${exLen}~${last}~${exSig}`;
+            })
+            .join('|');
+    } catch {
+        return '';
+    }
+};
+
 const eq = (a, b) => {
-    if (a.templates === b.templates && a.onAddTemplate === b.onAddTemplate && a.onOpenTemplate === b.onOpenTemplate && a.onIndexChange === b.onIndexChange) return true;
-    const aIds = Array.isArray(a.templates) ? a.templates.map((t) => t.id || t.tid).join('|') : '';
-    const bIds = Array.isArray(b.templates) ? b.templates.map((t) => t.id || t.tid).join('|') : '';
-    return aIds === bIds && a.onAddTemplate === b.onAddTemplate && a.onOpenTemplate === b.onOpenTemplate && a.onIndexChange === b.onIndexChange;
+    if (a.onAddTemplate !== b.onAddTemplate || a.onOpenTemplate !== b.onOpenTemplate || a.onIndexChange !== b.onIndexChange) return false;
+    if (a.templates === b.templates) return true;
+    return sig(a.templates) === sig(b.templates);
 };
 
 export default memo(TemplatesRail, eq);

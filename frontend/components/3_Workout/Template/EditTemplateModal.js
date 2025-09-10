@@ -16,7 +16,6 @@ const EditTemplateModal = ({ openedTemplateRef, updateTemplate, deleteTemplate }
     const [replaceIndex, setReplaceIndex] = useState(null);
     const [deleteConfirmModalVisible, setDeleteConfirmModalVisible] = useState(false);
     const [template, setTemplate] = useState(openedTemplateRef.current);
-    const [templateTitle, setTemplateTitle] = useState(openedTemplateRef.current.name);
 
     const showSelectExerciseModal = useCallback(() => {
         setSelectExerciseModalVisible(true);
@@ -28,31 +27,33 @@ const EditTemplateModal = ({ openedTemplateRef, updateTemplate, deleteTemplate }
     }, []);
 
     const appendExercises = useCallback((exercises) => {
-        const newTemplate = {
-            ...template, exercises: [...template.exercises, ...exercises.map(ex => ({
-                name: ex.name,
-                muscle: ex.muscle,
-                sets: [{
-                    weight: 0,
-                    reps: 0,
-                    previous: '405 lb x 12'
-                }]
-            }))]
-        };
-        setTemplate(newTemplate);
-    }, [template]);
+        setTemplate((prev) => {
+            const next = {
+                ...prev,
+                exercises: [
+                    ...prev.exercises,
+                    ...exercises.map((ex) => ({
+                        name: ex.name,
+                        muscle: ex.muscle,
+                        sets: [{ weight: 0, reps: 0, previous: '405 lb x 12' }],
+                    })),
+                ],
+            };
+            try { openedTemplateRef.current = next; updateTemplate(); } catch {}
+            return next;
+        });
+    }, [openedTemplateRef, updateTemplate]);
 
     const updateSets = useCallback((exerciseIndex, newSets) => {
         setTemplate(prevTemplate => {
-            const updatedExercises = prevTemplate.exercises.map((exercise, index) => {
-                if (index === exerciseIndex) {
-                    return { ...exercise, sets: newSets };
-                }
-                return exercise;
-            });
-            return { ...prevTemplate, exercises: updatedExercises };
+            const updatedExercises = prevTemplate.exercises.map((exercise, index) => (
+                index === exerciseIndex ? { ...exercise, sets: newSets } : exercise
+            ));
+            const next = { ...prevTemplate, exercises: updatedExercises };
+            try { openedTemplateRef.current = next; updateTemplate(); } catch {}
+            return next;
         });
-    }, []);
+    }, [openedTemplateRef, updateTemplate]);
 
     const replaceExercise = useCallback((index) => {
         setReplaceIndex(index);
@@ -64,12 +65,24 @@ const EditTemplateModal = ({ openedTemplateRef, updateTemplate, deleteTemplate }
         const isReplacing = replaceIndex !== null && replaceIndex >= 0;
 
         if (isReplacing && choice) {
-            const prevSets = template?.exercises?.[replaceIndex]?.sets || [{ weight: 0, reps: 0, previous: '405 lb x 12' }];
-            const newSets = prevSets.map((s) => ({ weight: 0, reps: 0, previous: s?.previous ?? '405 lb x 12' }));
-            const nextExercises = template.exercises.map((ex, i) => (
-                i === replaceIndex ? { name: choice.name, muscle: choice.muscle, sets: newSets } : ex
-            ));
-            setTemplate({ ...template, exercises: nextExercises });
+            setTemplate((prev) => {
+                const prevSets = prev?.exercises?.[replaceIndex]?.sets || [
+                    { weight: 0, reps: 0, previous: '405 lb x 12' },
+                ];
+                const newSets = prevSets.map((s) => ({
+                    weight: 0,
+                    reps: 0,
+                    previous: s?.previous ?? '405 lb x 12',
+                }));
+                const nextExercises = prev.exercises.map((ex, i) => (
+                    i === replaceIndex
+                        ? { name: choice.name, muscle: choice.muscle, sets: newSets }
+                        : ex
+                ));
+                const next = { ...prev, exercises: nextExercises };
+                try { openedTemplateRef.current = next; updateTemplate(); } catch {}
+                return next;
+            });
             setReplaceIndex(null);
             setSelectExerciseModalVisible(false);
             return;
@@ -78,23 +91,29 @@ const EditTemplateModal = ({ openedTemplateRef, updateTemplate, deleteTemplate }
         // Default: append all picked exercises
         appendExercises(Array.isArray(picked) ? picked : [picked]);
         setSelectExerciseModalVisible(false);
-    }, [appendExercises, replaceIndex, template]);
+    }, [appendExercises, replaceIndex]);
 
     const deleteExercise = useCallback((index) => {
-        const newTemplate = { ...template };
-        newTemplate.exercises = newTemplate.exercises.filter((_, i) => i !== index);
-        setTemplate(newTemplate);
-    }, [template, setTemplate]);
+        setTemplate((prev) => {
+            const next = { ...prev, exercises: prev.exercises.filter((_, i) => i !== index) };
+            try { openedTemplateRef.current = next; updateTemplate(); } catch {}
+            return next;
+        });
+    }, [openedTemplateRef, updateTemplate]);
 
     useEffect(() => {
         openedTemplateRef.current = template;
         updateTemplate();
-    }, [template]);
+    }, [template, updateTemplate]);
 
-    useEffect(() => {
-        openedTemplateRef.current.name = templateTitle;
-        updateTemplate();
-    }, [templateTitle]);
+    const handleChangeTitle = useCallback((text) => {
+        // Keep local template state in sync and push update immediately
+        setTemplate((prev) => {
+            const next = { ...prev, name: text };
+            try { openedTemplateRef.current = next; updateTemplate(); } catch {}
+            return next;
+        });
+    }, [openedTemplateRef, updateTemplate]);
 
     const confirmDeleteTemplate = () => {
         if (template.exercises.length === 0) handleDeleteTemplate();
@@ -111,8 +130,8 @@ const EditTemplateModal = ({ openedTemplateRef, updateTemplate, deleteTemplate }
             <View style={styles.header}>
                 <TextInput
                     style={styles.titleInput}
-                    value={templateTitle}
-                    onChangeText={setTemplateTitle}
+                    value={template?.name ?? ""}
+                    onChangeText={handleChangeTitle}
                     placeholder="Untitled Template"
                     placeholderTextColor={theme.textSecondary}
                 />

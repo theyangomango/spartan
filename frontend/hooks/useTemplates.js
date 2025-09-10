@@ -31,10 +31,17 @@ export default function useTemplates({ uid, userTemplates }) {
     const debounceRef = useRef(null);
     const saveTemplates = useCallback(
         (next) => {
-            if (!uid) return;
+            // Always update local global copy immediately
+            try {
+                global.userData = { ...(global.userData || {}), templates: next };
+                global.__templatesLocalSig = JSON.stringify(next || []);
+                global.__templatesDirty = true;
+            } catch {}
+            if (!uid) return; // defer backend write until uid exists
             if (debounceRef.current) clearTimeout(debounceRef.current);
             debounceRef.current = setTimeout(() => {
-                updateDoc("users", uid, { templates: next }).catch((e) => console.log("save templates error", e));
+                updateDoc("users", uid, { templates: next })
+                    .catch((e) => console.log("save templates error", e));
             }, 500);
         },
         [uid]
@@ -58,9 +65,11 @@ export default function useTemplates({ uid, userTemplates }) {
 
     const openEditTemplate = useCallback((tpl) => {
         if (!tpl || tpl.isNone) return;
-        openedTemplateRef.current = { ...tpl };
+        const tid = tpl?.tid || tpl?.id;
+        const latest = templates.find((t) => (t.tid || t.id) === tid) || tpl;
+        openedTemplateRef.current = { ...latest };
         setIsEditVisible(true);
-    }, []);
+    }, [templates]);
 
     const updateTemplate = useCallback(() => {
         setTemplates((prev) => {

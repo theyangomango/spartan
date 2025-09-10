@@ -36,11 +36,25 @@ export default function useUserDoc(uid, options = {}) {
         if (!uid) return;
         const unsub = onSnapshot(doc(db, "users", uid), (snap) => {
             const data = snap.data() || {};
+            const local = (() => { try { return global?.userData?.templates; } catch { return undefined; } })();
+            const localSig = (() => { try { return global?.__templatesLocalSig; } catch { return undefined; } })();
+            const remoteSig = JSON.stringify(data?.templates || []);
+            const keepLocal = (() => { try { return !!global?.__templatesDirty && !!localSig && localSig !== remoteSig; } catch { return false; } })();
+
+            // If we have a recent local edit not yet reflected remotely, prefer it
+            const dataForUser = keepLocal && Array.isArray(local)
+                ? { ...data, templates: local }
+                : data;
+
+            // If remote now matches local, clear dirty flag
+            try { if (!keepLocal && localSig && localSig === remoteSig) global.__templatesDirty = false; } catch {}
+
             // keep global in sync for legacy consumers (full object)
-            global.userData = { ...(global.userData || {}), ...data, uid, id: uid };
+            const mergedForGlobal = { ...(global.userData || {}), ...dataForUser, uid, id: uid };
+            global.userData = mergedForGlobal;
 
             // apply ignoreKeys to reduce needless rerenders in interested screens
-            const cmp = stripKeys(data, ignoreKeys);
+            const cmp = stripKeys(dataForUser, ignoreKeys);
 
             // shallow compare against previous
             const prev = prevRef.current;
