@@ -6,7 +6,7 @@
  */
 
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { Animated, Dimensions, SafeAreaView, StyleSheet, View, Easing as RNEasing, Text } from "react-native";
+import { Animated, Dimensions, SafeAreaView, StyleSheet, View, Easing as RNEasing, Text, RefreshControl } from "react-native";
 import { useFocusEffect } from '@react-navigation/native';
 import { StatusBar } from "expo-status-bar";
 import { doc, onSnapshot } from "firebase/firestore";
@@ -56,6 +56,9 @@ export default function Feed({ navigation, route }) {
     const [feedSelectedWorkout, setFeedSelectedWorkout] = useState(null);
     const [feedSelectedFriendUid, setFeedSelectedFriendUid] = useState("");
     const [feedSelectedFriendPfp, setFeedSelectedFriendPfp] = useState(null);
+    // Pull-to-refresh state
+    const [refreshing, setRefreshing] = useState(false);
+    const [refreshOffset, setRefreshOffset] = useState(0);
 
     /* ---------- refs ---------- */
     const scrollOffsetY = useRef(0);
@@ -205,15 +208,34 @@ export default function Feed({ navigation, route }) {
         }
     };
 
+    // Pull-to-refresh handler (posts stream via onSnapshot; we just show spinner briefly)
+    const onRefresh = useCallback(async () => {
+        try {
+            setRefreshing(true);
+            // No explicit re-fetch needed; Firestore onSnapshot keeps feed live.
+            // Keep spinner visible briefly to acknowledge the gesture.
+            await new Promise((res) => setTimeout(res, 600));
+        } finally {
+            setRefreshing(false);
+        }
+    }, []);
+
     // Reanimated scroll handler: UI-thread header control + forward to JS logic
     // Ratio to slow header/chips/mask displacement relative to user scroll
     const HEADER_SCROLL_RATIO = 0.2; // e.g., 10px scroll -> 5px displacement
+    const refreshingSV = useSharedValue(0);
     const onScrollRe = useAnimatedScrollHandler({
         onBeginDrag: (e) => {
             prevY.value = e.contentOffset.y;
         },
         onScroll: (e) => {
             const y = e.contentOffset.y;
+            // If pulling down (y<0) or actively refreshing, freeze header animation
+            if (y < 0 || refreshingSV.value === 1) {
+                prevY.value = y;
+                runOnJS(handleScroll)({ nativeEvent: { contentOffset: { y } } });
+                return;
+            }
             const dy = y - prevY.value;
             prevY.value = y;
             const H = headerH.value;
@@ -233,6 +255,11 @@ export default function Feed({ navigation, route }) {
             runOnJS(handleScroll)({ nativeEvent: { contentOffset: { y } } });
         },
     });
+
+    // Mirror refreshing flag to UI thread
+    useEffect(() => {
+        try { refreshingSV.value = refreshing ? 1 : 0; } catch {}
+    }, [refreshing]);
 
     // Load user data from Firestore once
     useEffect(() => {
@@ -691,7 +718,8 @@ export default function Feed({ navigation, route }) {
                     >
                         <Reanimated.FlatList
                             ref={flatListRef}
-                            bounces={false}
+                            bounces={true}
+                            alwaysBounceVertical
                             showsVerticalScrollIndicator={false}
                             data={listData}
                             keyExtractor={(item, i) => String(i)}
@@ -712,6 +740,16 @@ export default function Feed({ navigation, route }) {
                             // ListHeaderComponent={<Reanimated.View style={spacerStyle} />}
                             initialNumToRender={3}
                             windowSize={5}
+                            refreshControl={
+                                <RefreshControl
+                                    refreshing={refreshing}
+                                    onRefresh={onRefresh}
+                                    tintColor={theme.textPrimary}
+                                    colors={[theme.primary]}
+                                    progressBackgroundColor={theme.bg}
+                                    progressViewOffset={refreshOffset}
+                                />
+                            }
                         />
                     </MaskedView>
                 </Reanimated.View>
@@ -728,6 +766,7 @@ export default function Feed({ navigation, route }) {
                             hidden.value = 0; // start visible
                             try { visibleHeaderHRef.current = h; } catch { }
                         }
+                        if (h && Math.abs(h - refreshOffset) > 1) setRefreshOffset(h);
                     }}
                     style={[{
                         backgroundColor: theme.bg,

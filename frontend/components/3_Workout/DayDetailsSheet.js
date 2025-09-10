@@ -259,12 +259,13 @@ const DayDetailsSheet = ({
                             const durMs = w?.duration ?? Math.max(0, (Date.now() - Number(w?.created || 0)));
                             const pbs = Number(w?.PBs ?? 0);
                             const title = w?.templateName || w?.template?.name || w?.name || "Workout";
+                            const hasTemplate = (w && w.tid != null);
                             const subtitle = `${exCount} exercises • ${setCount} sets`;
                             return (
                                 <Pressable key={`${w?.wid || i}`} style={styles.faPanel} onPress={() => openViewer(w)}>
                                     <View style={styles.faHeaderRow}>
                                         <View style={{ flex: 1 }}>
-                                            <Text style={styles.faTitle} numberOfLines={1}>{title}</Text>
+                                            <Text style={[styles.faTitle, hasTemplate && styles.faTitleBlue]} numberOfLines={1}>{title}</Text>
                                             <Text style={styles.faSub}>{subtitle}</Text>
                                         </View>
                                         <View style={styles.faRightAccessories}>
@@ -448,6 +449,7 @@ const styles = StyleSheet.create({
     faHeaderRow: { flexDirection: "row", alignItems: "center", marginBottom: 6, gap: 10 },
     faRightAccessories: { flexDirection: "row", alignItems: "center", gap: 10 },
     faTitle: { fontSize: 13, fontFamily: "Outfit_800ExtraBold", color: theme.textPrimary },
+    faTitleBlue: { color: theme.primary },
     faSub: { marginTop: 2, fontSize: 12.5, fontFamily: "Outfit_600SemiBold", color: theme.textSecondary },
     faDivider: { height: StyleSheet.hairlineWidth, backgroundColor: theme.hairline, marginVertical: 6 },
     faStatsRow: { flexDirection: "row", gap: 8 },
@@ -470,7 +472,7 @@ const styles = StyleSheet.create({
         marginBottom: 6,
     },
     faStatLabel: { fontFamily: "Outfit_600SemiBold", fontSize: 11, color: theme.textSecondary },
-    faStatValue: { marginTop: 1, fontFamily: "Outfit_800ExtraBold", fontSize: 14.5, color: theme.textPrimary },
+    faStatValue: { marginTop: 1, fontFamily: "Outfit_800ExtraBold", fontSize: 13.5, color: theme.textPrimary },
     faPrPill: {
         flexDirection: "row",
         alignItems: "center",

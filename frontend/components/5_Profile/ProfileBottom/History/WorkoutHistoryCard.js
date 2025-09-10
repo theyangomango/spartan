@@ -20,13 +20,14 @@ export default function WorkoutHistoryCard({ workout }) {
   );
   const pbs = Number(workout?.PBs ?? workout?.pbs ?? 0);
   const title = workout?.templateName || workout?.template?.name || workout?.name || 'Workout';
+  const hasTemplate = (workout && workout.tid != null);
   const subtitle = `${exCount} exercises • ${setCount} sets`;
 
   return (
     <View style={styles.faPanel}>
       <View style={styles.faHeaderRow}>
         <View style={{ flex: 1 }}>
-          <Text style={styles.faTitle} numberOfLines={1}>{title}</Text>
+          <Text style={[styles.faTitle, hasTemplate && styles.faTitleBlue]} numberOfLines={1}>{title}</Text>
           <Text style={styles.faSub}>{subtitle}</Text>
         </View>
         <View style={styles.faRightAccessories}>
@@ -90,6 +91,7 @@ const styles = StyleSheet.create({
   faHeaderRow: { flexDirection: 'row', alignItems: 'center', marginBottom: 6, gap: 10 },
   faRightAccessories: { flexDirection: 'row', alignItems: 'center', gap: 10 },
   faTitle: { fontSize: 13, fontFamily: 'Outfit_800ExtraBold', color: '#EAEFF6' },
+  faTitleBlue: { color: require('../../../../theme/mfpDark').default.primary },
   faSub: { marginTop: 2, fontSize: 12.5, fontFamily: 'Outfit_600SemiBold', color: '#C9D2DE' },
   faDivider: { height: StyleSheet.hairlineWidth, backgroundColor: 'rgba(255,255,255,0.08)', marginVertical: 6 },
   faStatsRow: { flexDirection: 'row', gap: 8 },
@@ -112,7 +114,7 @@ const styles = StyleSheet.create({
     marginBottom: 6,
   },
   faStatLabel: { fontFamily: 'Outfit_600SemiBold', fontSize: 11, color: '#D3DAE6' },
-  faStatValue: { marginTop: 1, fontFamily: 'Outfit_800ExtraBold', fontSize: 14.5, color: '#F1F5F9' },
+  faStatValue: { marginTop: 1, fontFamily: 'Outfit_800ExtraBold', fontSize: 13.5, color: '#F1F5F9' },
   faPrPill: {
     flexDirection: 'row',
     alignItems: 'center',

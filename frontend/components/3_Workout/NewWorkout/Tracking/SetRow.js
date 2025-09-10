@@ -67,8 +67,11 @@ function SetRow({
                 item={set}
                 itemKey={itemKey || (set && (set.id || String(index))) }
                 overSwipe={scaledSize(36)}
+                // Lower threshold so a light horizontal swipe wins over vertical scroll
+                activationThreshold={8}
                 renderUnderlayLeft={readOnly ? undefined : (params) => renderUnderlayLeft(params?.ref)}
-                snapPointsLeft={readOnly ? [] : [scaledSize(82)]}
+                // Open a bit wider so the trash hit target is generous
+                snapPointsLeft={readOnly ? [] : [scaledSize(96)]}
                 onSwipeableLeftOpen={undefined} // never auto-delete via swipe threshold; explicit tap only
             >
                 <View style={[styles.stat_row, doneLocal && styles.done]}>
@@ -168,7 +171,7 @@ const UnderlayLeft = ({ onDelete }) => {
     return (
         <View style={styles.underlayLeft}>
             <Animated.View style={[styles.deletePillWrap, animWrap]}>
-                <Pressable onPress={onDelete} style={styles.deletePill} hitSlop={8}>
+                <Pressable onPress={onDelete} style={styles.deletePill} hitSlop={16}>
                     <Ionicons name="trash-outline" size={scaledSize(20)} color="#fff" />
                 </Pressable>
             </Animated.View>
@@ -229,7 +232,7 @@ const styles = StyleSheet.create({
     },
     deletePillWrap: { height: "86%", justifyContent: "center", alignItems: "center" },
     deletePill: {
-        width: scaledSize(58),
+        width: scaledSize(70),
         height: "100%",
         minHeight: scaledSize(28),
         borderRadius: scaledSize(12),

@@ -503,6 +503,9 @@ export default function useWorkoutManager({ uid, navigation, millisToHMS }) {
                                 name: global?.userData?.name || '',
                                 pfpVersion: 0,
                                 detail: '',
+                                // surface workout naming for chips
+                                templateName: completed?.templateName || completed?.template?.name || null,
+                                workoutName: completed?.name || null,
                                 workoutID: completed?.wid,
                             };
                             addDoc(collection(db, 'users', me, 'pulse'), pulse).catch(() => {});

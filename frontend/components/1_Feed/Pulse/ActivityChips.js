@@ -59,8 +59,14 @@ const relTime = (ms) => {
 // Build display title + whether to emphasize
 const buildPrimary = (ev) => {
     if (ev?.type === "workout") {
-        const raw = ev?.templateName || ev?.template || ev?.workoutName || ev?.detail || "";
-        const name = String(raw).trim();
+        // Show template name (blue) when present; otherwise just "Workout".
+        const tmpl =
+            ev?.templateName ||
+            ev?.template?.name ||
+            ev?.workout?.templateName ||
+            ev?.workout?.template?.name ||
+            "";
+        const name = String(tmpl).trim();
         if (name) return { text: name, emphasize: true };
         return { text: "Workout", emphasize: false };
     }

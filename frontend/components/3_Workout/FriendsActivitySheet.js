@@ -231,6 +231,9 @@ const FriendPanel = memo(({ item, overlay, onSelect, highlight = false }) => {
 
   const when = dateLabel(bestTimestamp(item));
 
+  // Only consider it template-based when underlying workout carries a tid
+  const hasTemplate = item?.workout && item.workout.tid != null;
+
   return (
     <RNBounceable
       style={[
@@ -250,7 +253,7 @@ const FriendPanel = memo(({ item, overlay, onSelect, highlight = false }) => {
         )}
 
         <View style={{ flex: 1 }}>
-          <Text style={styles.templateTitle} numberOfLines={1} ellipsizeMode="tail">
+          <Text style={[styles.templateTitle, hasTemplate && styles.templateTitleBlue]} numberOfLines={1} ellipsizeMode="tail">
             {templateName(item)}
           </Text>
           <Text style={styles.handleText}>
@@ -773,6 +776,7 @@ const styles = StyleSheet.create({
   pfpFallback: { alignItems: "center", justifyContent: "center" },
   pfpInitials: { fontFamily: "Outfit_700Bold", fontSize: s(12), color: COLORS.text, opacity: 0.9 },
   templateTitle: { fontSize: s(12.5), fontFamily: "Outfit_700Bold", color: COLORS.text },
+  templateTitleBlue: { color: theme.primary },
   handleText: { marginTop: s(2), fontSize: s(12), fontFamily: "Outfit_500Medium", color: COLORS.subtext },
 
   livePill: {
@@ -811,7 +815,7 @@ const styles = StyleSheet.create({
     marginBottom: s(6),
   },
   statLabel: { fontFamily: "Outfit_600SemiBold", fontSize: s(11), color: theme.textSecondary },
-  statValue: { marginTop: s(1), fontFamily: "Outfit_800ExtraBold", fontSize: s(14.5), color: COLORS.text },
+  statValue: { marginTop: s(1), fontFamily: "Outfit_800ExtraBold", fontSize: s(13.5), color: COLORS.text },
 
   viewerContainer: { ...StyleSheet.absoluteFillObject, backgroundColor: "transparent" },
   loadingWrap: { flex: 1, alignItems: "center", justifyContent: "center" },
