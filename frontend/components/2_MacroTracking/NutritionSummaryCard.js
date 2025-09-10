@@ -23,8 +23,8 @@ export default function NutritionSummaryCard({ totals, goals, COLORS }) {
                     >
                         {() => (
                             <View style={styles.center}>
-                                <Text style={styles.value}>{Math.max(0, totals.calories).toLocaleString()}</Text>
-                                <Text style={styles.subtitle}>/{goals.calories.toLocaleString()} kcal</Text>
+                                <Text style={styles.value}>{Math.max(0, totals.calories)}</Text>
+                                <Text style={styles.subtitle}>/ {goals.calories} kcal</Text>
                             </View>
                         )}
                     </AnimatedCircularProgress>
@@ -62,7 +62,7 @@ const makeStyles = (COLORS) =>
         // Center the ring vertically alongside the macro bars
         progressContainer: { paddingRight: 6, justifyContent: 'center', alignItems: 'center' },
         center: { alignItems: 'center', justifyContent: 'center', marginTop: 2 },
-        value: { fontSize: 23, color: COLORS.text, fontFamily: 'Nunito_800ExtraBold', marginBottom: -1.5 },
-        subtitle: { fontSize: 12, color: COLORS.subtext, fontFamily: 'Nunito_700Bold', marginBottom: 4 },
+        value: { fontSize: 25, color: COLORS.text, fontFamily: 'Outfit_800ExtraBold', marginBottom: 0 },
+        subtitle: { fontSize: 12, color: COLORS.subtext, fontFamily: 'Outfit_700Bold', marginBottom: 4 },
         macroSummary: { flex: 1, paddingTop: 2 },
     });
