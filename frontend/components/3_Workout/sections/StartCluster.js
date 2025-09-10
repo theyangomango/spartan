@@ -89,8 +89,8 @@ const styles = StyleSheet.create({
             android: { elevation: 0 },
         }),
     },
-    // Subtle vertical bump to better align with START button
-    smallBtnBump: { top: -2, position: 'relative' },
+    // Raise side buttons to form a wider "V" with START/OPEN
+    smallBtnBump: { top: -6, position: 'relative' },
     smallBtnPressed: { transform: [{ scale: 0.96 }], backgroundColor: '#515A6B' },
 });
 

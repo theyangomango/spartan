@@ -54,7 +54,7 @@ const makeWeekDays = (startDate) =>
  */
 export default function WeekCalendar({ workoutsMap = {}, onWeekChange, onDayPress }) {
     /* ---- layout ---- */
-    const OUTER_HPAD = 16;
+    const OUTER_HPAD = 14; // align with Feed ActivityChips left padding
     const INNER_HPAD = 14;
     const CELL_GAP = 8;
 
@@ -329,7 +329,7 @@ const MemoDayCell = memo(DayCell, (a, b) => {
 
 /* -------------------------------- Styles -------------------------------- */
 const styles = StyleSheet.create({
-    wrap: { marginTop: 0, marginBottom: 3 },
+    wrap: { marginTop: 0, marginBottom: 6 },
 
     card: {
         // final card tone from spec
@@ -355,7 +355,7 @@ const styles = StyleSheet.create({
         flexDirection: "row",
         alignItems: "center",
         justifyContent: "space-between",
-        marginBottom: 6,
+        marginBottom: 2,
         paddingHorizontal: 4,
     },
 

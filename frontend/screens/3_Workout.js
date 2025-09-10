@@ -97,7 +97,7 @@ export default function Workout({ navigation, route }) {
         // Defer expensive feed preloading until after navigation/animations
         if (!feedInitOnceRef.current) {
             const task = InteractionManager.runAfterInteractions(() => {
-                initUserFeed(uid).catch(() => {});
+                initUserFeed(uid).catch(() => { });
                 feedInitOnceRef.current = true;
             });
             return () => task?.cancel?.();
@@ -330,19 +330,19 @@ export default function Workout({ navigation, route }) {
     useEffect(() => {
         if (!hexChangeVisible) return;
         // Prime both from and to on open (in case we navigated quickly)
-        try { setHexFrom(global?.__hexChangeFrom || hexFrom || global?.userData?.statsHexagon || null); } catch {}
-        try { setHexTo(global?.__hexChangeTo || hexTo || global?.userData?.statsHexagon || null); } catch {}
+        try { setHexFrom(global?.__hexChangeFrom || hexFrom || global?.userData?.statsHexagon || null); } catch { }
+        try { setHexTo(global?.__hexChangeTo || hexTo || global?.userData?.statsHexagon || null); } catch { }
         const unsub = onHexagonUpdate(() => {
-            try { setHexTo(global?.userData?.statsHexagon || null); } catch {}
+            try { setHexTo(global?.userData?.statsHexagon || null); } catch { }
         });
-        return () => { try { unsub && unsub(); } catch {} };
+        return () => { try { unsub && unsub(); } catch { } };
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [hexChangeVisible]);
 
     const handleSummaryClose = useCallback(() => {
         // Prime from/to immediately so labels render on first frame
-        try { setHexFrom(global?.__hexChangeFrom || global?.userData?.statsHexagon || null); } catch {}
-        try { setHexTo(global?.__hexChangeTo || global?.userData?.statsHexagon || null); } catch {}
+        try { setHexFrom(global?.__hexChangeFrom || global?.userData?.statsHexagon || null); } catch { }
+        try { setHexTo(global?.__hexChangeTo || global?.userData?.statsHexagon || null); } catch { }
         // Close summary, then open the stats sheet on the very next frame
         setIsSummaryModalVisible(false);
         requestAnimationFrame(() => setHexChangeVisible(true));
@@ -559,34 +559,37 @@ export default function Workout({ navigation, route }) {
                 />
 
                 {/* Hub row */}
-                <HubRow
-                    navigation={navigation}
-                    afterPaint={afterPaint}
-                    fill={fill}
-                    todayCalories={todayCalories}
-                    caloriesGoal={caloriesGoal}
-                    top3={top3}
-                    PREVIEW_LABEL={PREVIEW_LABEL}
-                />
+                <View>
+                    <HubRow
+                        navigation={navigation}
+                        afterPaint={afterPaint}
+                        fill={fill}
+                        todayCalories={todayCalories}
+                        caloriesGoal={caloriesGoal}
+                        top3={top3}
+                        PREVIEW_LABEL={PREVIEW_LABEL}
+                    />
+                </View>
 
+                {/* Symmetric divider with equal spacing above and below */}
                 <SectionDivider
                     containerBg={theme.bg}
                     dashColor="rgba(255,255,255,0.22)"
                     dotColor="#ffffff2d"
                 />
-            </View>
 
-            {/* Templates rail (mount after first paint) */}
-            {afterPaint && (
-                <View style={styles.templatesDock} pointerEvents="box-none">
-                    <TemplatesRail
-                        templates={templatesWithNone}
-                        onIndexChange={setActiveIdx}
-                        onAddTemplate={initTemplateAndToggle}
-                        onOpenTemplate={openEditTemplateAndToggle}
-                    />
-                </View>
-            )}
+                {/* Templates rail (relative positioning within content) */}
+                {afterPaint && (
+                    <View>
+                        <TemplatesRail
+                            templates={templatesWithNone}
+                            onIndexChange={setActiveIdx}
+                            onAddTemplate={initTemplateAndToggle}
+                            onOpenTemplate={openEditTemplateAndToggle}
+                        />
+                    </View>
+                )}
+            </View>
 
             {/* START cluster */}
             <View style={styles.clusterWrap} pointerEvents="box-none">
@@ -642,12 +645,12 @@ export default function Workout({ navigation, route }) {
                             let focusTs = null;
                             try {
                                 const nd = new Date(sheetDate);
-                                if (!Number.isNaN(nd.getTime())) { nd.setHours(0,0,0,0); focusTs = nd.getTime(); }
-                            } catch {}
+                                if (!Number.isNaN(nd.getTime())) { nd.setHours(0, 0, 0, 0); focusTs = nd.getTime(); }
+                            } catch { }
                             const params = focusTs ? { transition: 'slide-from-left', focusDate: focusTs } : { transition: 'slide-from-left' };
                             if (rootNav?.navigate) rootNav.navigate('MacroTracking', params);
                             else navigation.navigate('MacroTracking', params);
-                        } catch {}
+                        } catch { }
                     }}
                 />
             </View>
@@ -741,7 +744,7 @@ export default function Workout({ navigation, route }) {
 const styles = StyleSheet.create({
     // MyFitnessPal-like dark background
     root: { flex: 1, backgroundColor: theme.bg },
-    content: { flex: 1, paddingTop: 8 },
+    content: { flex: 1, paddingTop: 2, paddingBottom: FOOTER_HEIGHT + ss(22) + BTN_SIZE + TPL_BOTTOM_GAP },
 
     templatesDock: { position: "absolute", left: 0, right: 0, bottom: FOOTER_HEIGHT + ss(22) + BTN_SIZE + TPL_BOTTOM_GAP },
     clusterWrap: { position: "absolute", left: 0, right: 0, bottom: FOOTER_HEIGHT + ss(20), alignItems: "center" },
