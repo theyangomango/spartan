@@ -58,7 +58,6 @@ export default function Feed({ navigation, route }) {
     const [feedSelectedFriendPfp, setFeedSelectedFriendPfp] = useState(null);
     // Pull-to-refresh state
     const [refreshing, setRefreshing] = useState(false);
-    const [refreshOffset, setRefreshOffset] = useState(0);
 
     /* ---------- refs ---------- */
     const scrollOffsetY = useRef(0);
@@ -740,14 +739,14 @@ export default function Feed({ navigation, route }) {
                             // ListHeaderComponent={<Reanimated.View style={spacerStyle} />}
                             initialNumToRender={3}
                             windowSize={5}
+                            removeClippedSubviews={false}
                             refreshControl={
                                 <RefreshControl
                                     refreshing={refreshing}
                                     onRefresh={onRefresh}
                                     tintColor={theme.textPrimary}
-                                    colors={[theme.primary]}
+                                    colors={[theme.textPrimary]}
                                     progressBackgroundColor={theme.bg}
-                                    progressViewOffset={refreshOffset}
                                 />
                             }
                         />
@@ -766,7 +765,7 @@ export default function Feed({ navigation, route }) {
                             hidden.value = 0; // start visible
                             try { visibleHeaderHRef.current = h; } catch { }
                         }
-                        if (h && Math.abs(h - refreshOffset) > 1) setRefreshOffset(h);
+                        // no-op; refresh indicator is positioned by default directly under header
                     }}
                     style={[{
                         backgroundColor: theme.bg,

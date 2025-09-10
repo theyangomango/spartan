@@ -10,11 +10,14 @@ const scaleSize = (size) => Math.round(size * scale);
 
 export default function ViewProfileInfo({ userData }) {
     const pfpUri = usePfp(String(userData?.uid || ''), userData?.pfpVersion || 0) || userData?.image || '';
+    // Derive counts from array lengths for accuracy
+    const followersCount = Array.isArray(userData?.followers) ? userData.followers.length : 0;
+    const followingCount = Array.isArray(userData?.following) ? userData.following.length : 0;
     return (
         <View style={styles.main_ctnr}>
             <View style={styles.top_row}>
                 <View style={styles.followers_stat_ctnr}>
-                    <Text style={styles.user_stat_count_text}>{userData && userData.followerCount}</Text>
+                    <Text style={styles.user_stat_count_text}>{followersCount}</Text>
                     <Text style={styles.user_stat_text}>Followers</Text>
                 </View>
                 <View style={styles.pfp_ctnr}>
@@ -29,7 +32,7 @@ export default function ViewProfileInfo({ userData }) {
                     )}
                 </View>
                 <View style={styles.following_stat_ctnr}>
-                    <Text style={styles.user_stat_count_text}>{userData && userData.followingCount}</Text>
+                    <Text style={styles.user_stat_count_text}>{followingCount}</Text>
                     <Text style={styles.user_stat_text}>Following</Text>
                 </View>
             </View>
