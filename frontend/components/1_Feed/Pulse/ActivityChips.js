@@ -76,6 +76,7 @@ export default function ActivityChips({
     fallbackItems = [],
     perUserLimit = 5,
 }) {
+
     const [map, setMap] = useState(new Map());
     const unsubs = useRef([]);
 

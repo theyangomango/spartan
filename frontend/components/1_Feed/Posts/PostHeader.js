@@ -54,8 +54,7 @@ export default function PostHeader({
                                 style={styles.workout_text_ctnr}
                                 accessibilityLabel="Open workout details"
                             >
-                                <Weight size={scaleSize(12)} color={theme.textPrimary} variant="Bold" />
-                                <View style={styles.workout_dot} />
+                                <Weight size={scaleSize(13)} color={theme.textPrimary} variant="Bold" />
                                 <Text style={styles.date_text}>
                                     {formatDate(new Date(data.workout.created))} Workout
                                 </Text>
@@ -125,27 +124,27 @@ const styles = StyleSheet.create({
     },
     workout_text_ctnr: {
         paddingHorizontal: 12,
-        paddingVertical: 4,
-        // Lighter translucent pill, consistent with Profile buttons
-        backgroundColor: 'rgba(255,255,255,0.18)',
-        borderRadius: 16,
+        paddingVertical: 6,
+        // Blue, low‑opacity background for stronger affordance
+        backgroundColor: 'rgba(18, 49, 76, 0.57)',
+        borderRadius: 20,
         flexDirection: 'row',
         alignItems: 'center',
-        // Subtle, dark-mode friendly framing
+        // Subtle border to define edges on busy photos
         borderWidth: StyleSheet.hairlineWidth,
-        borderColor: theme.hairline,
+        borderColor: 'rgba(255,255,255,0.18)',
         shadowColor: '#000',
         shadowOpacity: 0.12,
         shadowRadius: 4,
         shadowOffset: { width: 0, height: 3 },
         elevation: 2,
     },
-    workout_dot: { width: scaleSize(4), height: scaleSize(4), borderRadius: scaleSize(2), backgroundColor: theme.primary, marginHorizontal: scaleSize(6), opacity: 0.9 },
     date_text: {
-        fontSize: scaleSize(11),
+        fontSize: scaleSize(12),
         color: theme.textPrimary,
         fontFamily: "Outfit_700Bold",
         letterSpacing: 0.2,
+        marginLeft: scaleSize(8),
     },
     right: {
         flexDirection: "row",

@@ -2,6 +2,7 @@ import RNBounceable from '@freakycoder/react-native-bounceable';
 import React from 'react';
 import { View, Text, StyleSheet, Dimensions, TouchableOpacity } from 'react-native';
 import { Ionicons, Octicons } from '@expo/vector-icons';
+import theme from '../theme/mfpDark';
 
 const { width: screenWidth, height: screenHeight } = Dimensions.get('window');
 
@@ -24,7 +25,7 @@ const LogIn = ({ navigation }) => {
         <View style={styles.container}>
             <View style={styles.iconContainer}>
                 <RNBounceable onPress={toSignUpScreen}>
-                    <Ionicons name="chevron-back" size={scaleSize(24)} color="#666" style={styles.closeIcon} />
+                    <Ionicons name="chevron-back" size={scaleSize(24)} color={theme.textSecondary} style={styles.closeIcon} />
                 </RNBounceable>
                 {/* <RNBounceable>
                     <Octicons name="question" size={23} color="#666" style={styles.helpIcon} />
@@ -62,7 +63,7 @@ const LogIn = ({ navigation }) => {
 const AuthButton = ({ icon, text, onPress }) => {
     return (
         <RNBounceable style={styles.button} onPress={onPress}>
-            <Ionicons name={icon} size={scaleSize(19)} color="#000" style={styles.icon} />
+            <Ionicons name={icon} size={scaleSize(19)} color={theme.textPrimary} style={styles.icon} />
             <Text style={styles.auth_button_text}>{text}</Text>
         </RNBounceable>
     );
@@ -74,7 +75,7 @@ const styles = StyleSheet.create({
         overflow: 'hidden',
         justifyContent: 'center',
         paddingBottom: scaleSize(35),
-        backgroundColor: '#fff',
+        backgroundColor: theme.bg,
     },
     iconContainer: {
         position: 'absolute',
@@ -96,6 +97,7 @@ const styles = StyleSheet.create({
         fontFamily: 'Poppins_600SemiBold',
         marginLeft: scaleSize(1),
         marginBottom: scaleSize(10),
+        color: theme.textPrimary,
     },
     subtitle: {
         fontSize: scaleSize(12),
@@ -103,7 +105,7 @@ const styles = StyleSheet.create({
         textAlign: 'center',
         fontFamily: 'Mulish_400Regular',
         marginBottom: scaleSize(15),
-        color: '#9a9a9a',
+        color: theme.textSecondary,
     },
     bottomContainer: {
         marginHorizontal: scaleSize(25),
@@ -112,7 +114,8 @@ const styles = StyleSheet.create({
         flexDirection: 'row',
         alignItems: 'center',
         borderWidth: scaleSize(1.3),
-        borderColor: '#e1e1e1',
+        borderColor: theme.hairline,
+        backgroundColor: theme.field,
         paddingVertical: scaleSize(14),
         borderRadius: scaleSize(8),
         marginVertical: scaleSize(7),
@@ -125,7 +128,7 @@ const styles = StyleSheet.create({
     auth_button_text: {
         fontSize: scaleSize(14.5),
         fontFamily: 'SourceSansPro_600SemiBold',
-        color: '#222',
+        color: theme.textPrimary,
     },
     footer: {
         position: 'absolute',
@@ -134,18 +137,21 @@ const styles = StyleSheet.create({
         left: 0,
         right: 0,
         height: scaleSize(68),
-        backgroundColor: '#f7f7f7',
+        backgroundColor: theme.surface,
         alignItems: 'center',
         justifyContent: 'center',
+        borderTopWidth: StyleSheet.hairlineWidth,
+        borderColor: theme.hairline,
     },
     footer_regular_text: {
         fontFamily: 'Outfit_400Regular',
         fontSize: scaleSize(14.5),
+        color: theme.textSecondary,
     },
     sign_up_text: {
         fontFamily: 'Outfit_600SemiBold',
         fontSize: scaleSize(14.5),
-        color: '#2D9EFF',
+        color: theme.primary,
     },
 });
 

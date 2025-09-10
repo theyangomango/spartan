@@ -2,6 +2,7 @@ import RNBounceable from '@freakycoder/react-native-bounceable';
 import React, { useState, useEffect, useRef } from 'react';
 import { View, Text, StyleSheet, TextInput, Dimensions, Keyboard, TouchableWithoutFeedback, Platform } from 'react-native';
 import { Ionicons, Octicons, Feather } from '@expo/vector-icons';
+import theme from '../theme/mfpDark';
 import readDoc from '../../backend/helper/firebase/readDoc';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
@@ -97,7 +98,7 @@ const UserLogInCredentials = ({ navigation }) => {
             <View style={styles.container}>
                 <View style={styles.iconContainer}>
                     <RNBounceable onPress={goBack}>
-                        <Feather name="chevron-left" size={scaleSize(27)} color="#888" style={styles.backIcon} />
+                        <Feather name="chevron-left" size={scaleSize(27)} color={theme.textSecondary} style={styles.backIcon} />
                     </RNBounceable>
                 </View>
 
@@ -108,7 +109,7 @@ const UserLogInCredentials = ({ navigation }) => {
                             ref={emailOrPhoneInputRef}
                             style={styles.input}
                             placeholder="Enter your username, email, or phone"
-                            placeholderTextColor="#ccc"
+                            placeholderTextColor={theme.textSecondary}
                             value={emailOrPhone}
                             onChangeText={setEmailOrPhone}
                             keyboardType="email-address"
@@ -120,7 +121,7 @@ const UserLogInCredentials = ({ navigation }) => {
                         <TextInput
                             style={styles.input}
                             placeholder="Password"
-                            placeholderTextColor="#ccc"
+                            placeholderTextColor={theme.textSecondary}
                             value={password}
                             onChangeText={setPassword}
                             secureTextEntry

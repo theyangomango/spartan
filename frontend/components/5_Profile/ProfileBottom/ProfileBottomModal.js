@@ -47,7 +47,12 @@ const ProfileBottomModal = ({ selectedPanel, setSelectedPanel, posts, savedPosts
             <View style={styles.panel_border}></View>
 
             {posts && (
-                <PostsSection posts={posts} isVisible={selectedPanel === 'posts'} isBottomSheetExpanded={isBottomSheetExpanded} />
+                <PostsSection
+                    posts={posts}
+                    isVisible={selectedPanel === 'posts'}
+                    isBottomSheetExpanded={isBottomSheetExpanded}
+                    onOpenWorkout={onOpenWorkout}
+                />
             )}
             <HistorySection
                 completedWorkouts={completedWorkouts}
@@ -55,7 +60,12 @@ const ProfileBottomModal = ({ selectedPanel, setSelectedPanel, posts, savedPosts
                 isBottomSheetExpanded={isBottomSheetExpanded}
                 onOpenWorkout={onOpenWorkout}
             />
-            <SavedSection posts={savedPosts} isVisible={selectedPanel === 'saved'} isBottomSheetExpanded={isBottomSheetExpanded} />
+            <SavedSection
+                posts={savedPosts}
+                isVisible={selectedPanel === 'saved'}
+                isBottomSheetExpanded={isBottomSheetExpanded}
+                onOpenWorkout={onOpenWorkout}
+            />
         </View>
     );
 };

@@ -27,7 +27,7 @@ const FADE_DUR = 160;
 const SHEET_CLOSE_DUR = 280; // approximate BottomSheet close duration
 const FOCUS_EXTRA_DROP = 12; // sit slightly lower
 
-export default function SinglePostModal({ visible, post, onClose }) {
+export default function SinglePostModal({ visible, post, onClose, onOpenWorkout }) {
     const fade = useRef(new Animated.Value(0)).current;
     const isClosingRef = useRef(false);
 
@@ -155,7 +155,17 @@ export default function SinglePostModal({ visible, post, onClose }) {
                                 openCommentsModal={() => setCommentsExpandFlag((f) => !f)}
                                 openShareModal={() => { }}
                                 toViewProfile={() => { }}
-                                openViewWorkoutModal={() => { }}
+                                openViewWorkoutModal={() => {
+                                    try {
+                                        if (post?.workout && typeof onOpenWorkout === 'function') {
+                                            // Close this modal first so the sheet is visible above the app
+                                            close();
+                                            setTimeout(() => {
+                                                try { onOpenWorkout(post.workout); } catch {}
+                                            }, 320); // after fade/close completes
+                                        }
+                                    } catch {}
+                                }}
                             />
 
                             {/* ❤️ burst */}

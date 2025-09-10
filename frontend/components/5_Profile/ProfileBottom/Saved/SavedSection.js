@@ -6,7 +6,7 @@ import PostPreview from "../Posts/PostPreview";
 import SinglePostModal from "../Posts/SinglePostModal";
 import FastImage from 'react-native-fast-image';
 
-const SavedSection = ({ posts, isVisible }) => {
+const SavedSection = ({ posts, isVisible, onOpenWorkout }) => {
     const [selectedPost, setSelectedPost] = useState(null);
 
     const handlePostPress = (postData) => {
@@ -60,6 +60,7 @@ const SavedSection = ({ posts, isVisible }) => {
                 visible={!!selectedPost}
                 post={selectedPost}
                 onClose={closeModal}
+                onOpenWorkout={onOpenWorkout}
             />
         </View>
     );

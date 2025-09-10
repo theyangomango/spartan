@@ -2,6 +2,7 @@ import RNBounceable from '@freakycoder/react-native-bounceable';
 import React, { useState, useRef } from 'react';
 import { View, Text, StyleSheet, TextInput, Dimensions, Keyboard, TouchableWithoutFeedback } from 'react-native';
 import { Ionicons, Octicons, Feather } from '@expo/vector-icons';
+import theme from '../theme/mfpDark';
 import createDoc from '../../backend/helper/firebase/createDoc';
 import readDoc from '../../backend/helper/firebase/readDoc';
 import makeID from '../../backend/helper/makeID';
@@ -216,10 +217,10 @@ const NewUserCreation = ({ navigation }) => {
             <View style={styles.container}>
                 <View style={styles.iconContainer}>
                     <RNBounceable onPress={goBack}>
-                        <Feather name="chevron-left" size={scaleSize(27)} color="#888" style={styles.backIcon} />
+                        <Feather name="chevron-left" size={scaleSize(27)} color={theme.textSecondary} style={styles.backIcon} />
                     </RNBounceable>
                     <RNBounceable>
-                        <Octicons name="question" size={scaleSize(22)} color="#888" style={styles.helpIcon} />
+                        <Octicons name="question" size={scaleSize(22)} color={theme.textSecondary} style={styles.helpIcon} />
                     </RNBounceable>
                 </View>
 
@@ -229,7 +230,7 @@ const NewUserCreation = ({ navigation }) => {
                         <TextInput
                             style={styles.input}
                             placeholder="Enter your name"
-                            placeholderTextColor="#ccc"
+                            placeholderTextColor={theme.textSecondary}
                             value={name}
                             onChangeText={setName}
                             autoFocus={true}
@@ -239,7 +240,7 @@ const NewUserCreation = ({ navigation }) => {
                         <TextInput
                             style={styles.input}
                             placeholder="Username"
-                            placeholderTextColor="#ccc"
+                            placeholderTextColor={theme.textSecondary}
                             value={username}
                             onChangeText={setUsername}
                             autoCapitalize='none'
@@ -250,7 +251,7 @@ const NewUserCreation = ({ navigation }) => {
                             ref={emailOrPhoneInputRef}
                             style={styles.input}
                             placeholder="Enter your email or phone"
-                            placeholderTextColor="#ccc"
+                            placeholderTextColor={theme.textSecondary}
                             value={emailOrPhone}
                             onChangeText={setEmailOrPhone}
                             keyboardType="email-address"
@@ -261,7 +262,7 @@ const NewUserCreation = ({ navigation }) => {
                         <TextInput
                             style={styles.input}
                             placeholder="Password"
-                            placeholderTextColor="#ccc"
+                            placeholderTextColor={theme.textSecondary}
                             value={password}
                             onChangeText={setPassword}
                             secureTextEntry
@@ -281,7 +282,7 @@ const NewUserCreation = ({ navigation }) => {
 };
 
 const styles = StyleSheet.create({
-    container: { flex: 1, backgroundColor: '#fff' },
+    container: { flex: 1, backgroundColor: theme.bg },
     iconContainer: {
         position: 'absolute',
         top: '6%',
@@ -298,7 +299,7 @@ const styles = StyleSheet.create({
     title: {
         fontSize: scaleSize(15),
         fontWeight: '400',
-        color: '#000',
+        color: theme.textPrimary,
         paddingLeft: scaleSize(3),
         marginBottom: scaleSize(8),
         fontFamily: 'Outfit_500Medium',
@@ -309,9 +310,9 @@ const styles = StyleSheet.create({
         paddingVertical: scaleSize(11.5),
         paddingHorizontal: scaleSize(12),
         borderRadius: scaleSize(6),
-        backgroundColor: '#f2f2f2',
+        backgroundColor: theme.field,
         fontSize: scaleSize(14),
-        color: '#000',
+        color: theme.textPrimary,
         fontFamily: 'Outfit_500Medium',
         marginBottom: scaleSize(20),
     },
@@ -327,7 +328,7 @@ const styles = StyleSheet.create({
         marginBottom: scaleSize(10),
     },
     button: {
-        backgroundColor: '#55A8FF',
+        backgroundColor: theme.primary,
         flexDirection: 'row',
         justifyContent: 'center',
         alignItems: 'center',
