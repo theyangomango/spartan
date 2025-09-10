@@ -23,6 +23,7 @@
         "usesNonExemptEncryption": false
       },
       "infoPlist": {
+        "NSCameraUsageDescription": "Allow $(PRODUCT_NAME) to access the camera for barcode scanning.",
         "NSPhotoLibraryUsageDescription": "Allow $(PRODUCT_NAME) to access your photos.",
         "NSPhotoLibraryAddUsageDescription": "Allow $(PRODUCT_NAME) to save photos."
       }
@@ -33,6 +34,7 @@
         "backgroundColor": "#ffffff"
       },
       "permissions": [
+        "android.permission.CAMERA",
         "android.permission.READ_EXTERNAL_STORAGE",
         "android.permission.WRITE_EXTERNAL_STORAGE",
         "android.permission.ACCESS_MEDIA_LOCATION"

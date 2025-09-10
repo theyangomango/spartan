@@ -14,10 +14,12 @@ import {
     InteractionManager,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { Camera } from 'expo-camera';
+import { CameraView } from 'expo-camera/next';
 import SearchResultCard from './SearchResultCard';
 import PortionPickerModal from './PortionPickerModal';
 import QuickAddModal from './QuickAddModal';
-import { searchFood } from '../../screens/fatsecretClient';
+import { searchFood, lookupBarcode } from '../../screens/fatsecretClient';
 import { useNavigation } from '@react-navigation/native';
 
 // 🔥 FIREBASE (adjust path if your firebase.config is elsewhere)
@@ -42,6 +44,13 @@ export default function FoodSearchOverlay({
     const [results, setResults] = useState([]);
     const [loading, setLoading] = useState(false);
     const inputRef = useRef(null);
+
+    // ---- Barcode scanner state
+    const [scannerVisible, setScannerVisible] = useState(false);
+    const [permission, requestPermission] = Camera.useCameraPermissions();
+    const [scanBusy, setScanBusy] = useState(false);
+    const [scanError, setScanError] = useState('');
+    const [scanLocked, setScanLocked] = useState(false); // throttle duplicate scans
 
     const loadRecentFoods = useCallback(async () => {
         try {
@@ -181,10 +190,24 @@ export default function FoodSearchOverlay({
             <Pressable style={styles.overlayContainer} onPress={Keyboard.dismiss}>
                 {/* Header */}
                 <View style={styles.overlayHeader}>
-                    {/* Left: fixed search icon */}
-                    <View style={styles.headerLeft}>
-                        <Ionicons name="search" size={22} color={COLORS.text} />
-                    </View>
+                    {/* Left: barcode scanner trigger */}
+                    <Pressable
+                        style={styles.headerLeft}
+                        onPress={async () => {
+                            setScanError('');
+                            if (!permission || !permission.granted) {
+                                const perm = await requestPermission();
+                                if (!perm?.granted) return;
+                            }
+                            setScannerVisible(true);
+                            // dismiss keyboard to reduce jank
+                            try { Keyboard.dismiss(); } catch {}
+                        }}
+                        hitSlop={8}
+                        accessibilityLabel="Open barcode scanner"
+                    >
+                        <Ionicons name="barcode-outline" size={24} color={'#2D92FF'} />
+                    </Pressable>
 
                     {/* Centered title (absolute so it stays centered regardless of right content width) */}
                     <View style={styles.titleCenterWrap} pointerEvents="none">
@@ -262,6 +285,83 @@ export default function FoodSearchOverlay({
                     onSubmit={(item) => { onSelectResult?.(item); setQuickVisible(false); }}
                     COLORS={COLORS}
                 />
+
+                {/* Barcode Scanner Modal */}
+                <Modal
+                    visible={scannerVisible}
+                    animationType="slide"
+                    presentationStyle="fullScreen"
+                    onRequestClose={() => { setScannerVisible(false); setScanBusy(false); setScanLocked(false); }}
+                >
+                    <View style={{ flex: 1, backgroundColor: 'black' }}>
+                        {/* Camera */}
+                        {permission?.granted ? (
+                            <CameraView
+                                style={{ flex: 1 }}
+                                facing="back"
+                                barcodeScannerSettings={{
+                                    barcodeTypes: ['ean13', 'ean8', 'upc_a', 'upc_e', 'code128', 'code39']
+                                }}
+                                onBarcodeScanned={async (scan) => {
+                                    if (!scan || scanLocked || scanBusy) return;
+                                    const data = String(scan?.data || '').trim();
+                                    if (!data) return;
+                                    setScanLocked(true);
+                                    setScanBusy(true);
+                                    setScanError('');
+                                    try {
+                                        // Keep only digits; pad to GTIN-13 on server
+                                        const digits = data.replace(/\D/g, '');
+                                        if (!digits) {
+                                            setScanError('Invalid barcode');
+                                            setScanLocked(false);
+                                            setScanBusy(false);
+                                            return;
+                                        }
+                                        const resp = await lookupBarcode(digits);
+                                        const food = resp?.food;
+                                        if (food && food.food_id) {
+                                            setScannerVisible(false);
+                                            // Open details screen directly to add
+                                            goToDetails(food);
+                                        } else {
+                                            setScanError('No match found for this barcode');
+                                            setScanLocked(false);
+                                        }
+                                    } catch (e) {
+                                        setScanError(String(e?.message || 'Lookup failed'));
+                                        setScanLocked(false);
+                                    } finally {
+                                        setScanBusy(false);
+                                    }
+                                }}
+                            >
+                                {/* Overlay header */}
+                                <View style={styles.scannerHeader}>
+                                    <Pressable onPress={() => { setScannerVisible(false); setScanBusy(false); setScanLocked(false); }} hitSlop={12}>
+                                        <Ionicons name="close" size={26} color="#fff" />
+                                    </Pressable>
+                                    <Text style={styles.scannerTitle}>Scan a barcode</Text>
+                                    <View style={{ width: 26 }} />
+                                </View>
+                                {/* Bottom hint */}
+                                <View style={styles.scannerFooter}>
+                                    <Text style={styles.scannerHint}>{scanBusy ? 'Looking up…' : (scanError || 'Align the barcode within the frame')}</Text>
+                                </View>
+                            </CameraView>
+                        ) : (
+                            <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: 'black' }}>
+                                <Text style={{ color: 'white', marginBottom: 12 }}>Camera permission is required</Text>
+                                <Pressable
+                                    onPress={requestPermission}
+                                    style={{ paddingHorizontal: 16, paddingVertical: 10, backgroundColor: '#2D92FF', borderRadius: 8 }}
+                                >
+                                    <Text style={{ color: 'white', fontWeight: '600' }}>Grant Permission</Text>
+                                </Pressable>
+                            </View>
+                        )}
+                    </View>
+                </Modal>
             </Pressable>
         </Modal>
     );
@@ -343,4 +443,35 @@ const makeStyles = (COLORS) =>
         },
 
         // Modal-related styles moved to extracted components
+        scannerHeader: {
+            position: 'absolute',
+            top: 54,
+            left: 16,
+            right: 16,
+            zIndex: 10,
+            flexDirection: 'row',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+        },
+        scannerTitle: {
+            color: '#fff',
+            fontSize: 16,
+            fontFamily: 'Outfit_600SemiBold',
+        },
+        scannerFooter: {
+            position: 'absolute',
+            left: 0,
+            right: 0,
+            bottom: 48,
+            alignItems: 'center',
+        },
+        scannerHint: {
+            color: 'rgba(255,255,255,0.9)',
+            fontSize: 14,
+            paddingHorizontal: 16,
+            paddingVertical: 8,
+            backgroundColor: 'rgba(0,0,0,0.4)',
+            borderRadius: 12,
+            overflow: 'hidden'
+        }
     });

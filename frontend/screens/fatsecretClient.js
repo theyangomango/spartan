@@ -5,6 +5,8 @@ import { httpsCallable } from "firebase/functions";
 const callSearch = httpsCallable(functions, "fatsecretSearchFood");
 // generic passthrough if you enabled fatsecretMethod
 const callGeneric = httpsCallable(functions, "fatsecretMethod");
+// barcode lookup (Premier Free)
+const callBarcode = httpsCallable(functions, "fatsecretLookupBarcode");
 
 export async function searchFood(query, { maxResults = 10, page = 0 } = {}) {
     const res = await callSearch({
@@ -18,6 +20,11 @@ export async function searchFood(query, { maxResults = 10, page = 0 } = {}) {
 export async function fatsecret(method, params = {}) {
     const res = await callGeneric({ method, params });
     return res.data;
+}
+
+export async function lookupBarcode(barcode) {
+    const res = await callBarcode({ barcode });
+    return res.data; // { food }
 }
 
 

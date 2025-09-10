@@ -21,13 +21,14 @@ const adminDb = getFirestore();
 const FATSECRET_KEY = defineSecret("FATSECRET_KEY");
 const FATSECRET_SECRET = defineSecret("FATSECRET_SECRET");
 
-// Simple in-memory cache per function instance
-let tokenCache = { accessToken: null, expiresAt: 0 };
+// Simple in-memory cache per scope per function instance
+const tokenCacheByScope = new Map(); // scope -> { accessToken, expiresAt }
 
-async function getAccessToken() {
+async function getAccessToken(scope = "basic") {
   const now = Date.now();
-  if (tokenCache.accessToken && now < tokenCache.expiresAt - 60_000) {
-    return tokenCache.accessToken;
+  const cached = tokenCacheByScope.get(scope);
+  if (cached && cached.accessToken && now < cached.expiresAt - 60_000) {
+    return cached.accessToken;
   }
 
   const client_id = FATSECRET_KEY.value();
@@ -38,7 +39,7 @@ async function getAccessToken() {
     headers: { "Content-Type": "application/x-www-form-urlencoded" },
     body: new URLSearchParams({
       grant_type: "client_credentials",
-      scope: "basic",
+      scope,
       client_id,
       client_secret,
     }).toString(),
@@ -56,13 +57,13 @@ async function getAccessToken() {
     throw new HttpsError("internal", "Invalid token response from FatSecret");
   }
 
-  tokenCache.accessToken = data.access_token;
-  tokenCache.expiresAt = now + data.expires_in * 1000;
-  return tokenCache.accessToken;
+  const entry = { accessToken: data.access_token, expiresAt: now + data.expires_in * 1000 };
+  tokenCacheByScope.set(scope, entry);
+  return entry.accessToken;
 }
 
-async function fatSecretRequest(methodName, params = {}) {
-  const token = await getAccessToken();
+async function fatSecretRequest(methodName, params = {}, scope = "basic") {
+  const token = await getAccessToken(scope);
   const url = "https://platform.fatsecret.com/rest/server.api";
 
   const body = new URLSearchParams({
@@ -107,7 +108,7 @@ export const fatsecretMethod = onCall(
     if (!ALLOWED_METHODS.has(method)) {
       throw new HttpsError("permission-denied", `Method not allowed: ${method}`);
     }
-    return await fatSecretRequest(method, params || {});
+    return await fatSecretRequest(method, params || {}, "basic");
   }
 );
 
@@ -241,7 +242,7 @@ export const fatsecretSearchFood = onCall(
             search_expression: expr,
             max_results: RESULTS_PER_PAGE,
             page_number: page,
-          });
+          }, "basic");
           const foods = res?.foods?.food;
           if (!foods) break;
           const list = Array.isArray(foods) ? foods : [foods];
@@ -286,6 +287,60 @@ export const fatsecretSearchFood = onCall(
         total_results: String(byId.size),
       },
     };
+  }
+);
+
+// ---- Barcode Lookup (Premier Exclusive) ---- //
+function toGtin13(raw) {
+  try {
+    const digits = String(raw || "").replace(/\D/g, "");
+    if (!digits) return "";
+    // Pad left with zeros to 13 (GTIN-13 requirement)
+    return digits.length >= 13 ? digits.slice(-13) : digits.padStart(13, "0");
+  } catch {
+    return "";
+  }
+}
+
+export const fatsecretLookupBarcode = onCall(
+  { region: "us-central1", secrets: [FATSECRET_KEY, FATSECRET_SECRET] },
+  async (request) => {
+    const { barcode } = request.data || {};
+    const gtin = toGtin13(barcode);
+    if (!gtin || gtin.length !== 13) {
+      throw new HttpsError("invalid-argument", "Invalid or missing barcode");
+    }
+
+    // 1) Resolve barcode -> food_id
+    const idRes = await fatSecretRequest("food.find_id_for_barcode", { barcode: gtin }, "premier barcode");
+    // Response shape can be { food_id: { value: "123" } } or { food_id: "123" }
+    const rawId = idRes?.food_id;
+    const foodId = rawId && typeof rawId === "object" ? (rawId.value ?? rawId.food_id ?? rawId.id) : rawId;
+    const fid = String(foodId || "").trim();
+    if (!fid) {
+      throw new HttpsError("not-found", "No food found for this barcode");
+    }
+
+    // 2) Fetch full food details
+    const foodRes = await fatSecretRequest("food.get.v2", { food_id: fid }, "basic");
+    const food = foodRes?.food || {};
+
+    // 3) Ensure a FatSecret-like food_description exists (used by client to parse macros)
+    try {
+      if (!food.food_description) {
+        const servings = food?.servings?.serving;
+        const arr = Array.isArray(servings) ? servings : (servings ? [servings] : []);
+        const def = arr.find((s) => String(s?.is_default || "") === "1") || arr[0] || {};
+        const calories = Number(def?.calories || 0);
+        const fat = Number(def?.fat || 0);
+        const carbs = Number(def?.carbohydrate || 0);
+        const protein = Number(def?.protein || 0);
+        const desc = `Per ${def?.serving_description || "1 serving"} - Calories: ${Math.round(calories)} kcal | Fat: ${+fat} g | Carbs: ${+carbs} g | Protein: ${+protein} g`;
+        food.food_description = desc;
+      }
+    } catch {}
+
+    return { food };
   }
 );
 
