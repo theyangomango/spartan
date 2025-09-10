@@ -89,7 +89,7 @@ const EditProfileModal = ({ setPFP }) => {
 const styles = StyleSheet.create({
     mainContainer: {
         flex: 1,
-        backgroundColor: THEME.surface,
+        backgroundColor: THEME.bg,
     },
     scrollContainer: {
         alignItems: 'center',
@@ -104,13 +104,13 @@ const styles = StyleSheet.create({
         paddingLeft: scaleSize(20),
         width: '100%',
         paddingVertical: scaleSize(12),
-        backgroundColor: THEME.field
+        backgroundColor: THEME.bg
     },
     inputContainer: {
         flexDirection: 'row',
         alignItems: 'center',
         paddingHorizontal: scaleSize(20),
-        backgroundColor: THEME.surface,
+        backgroundColor: THEME.bg,
         marginVertical: 0,
         paddingVertical: scaleSize(12.5),
         borderBottomWidth: scaleSize(1),

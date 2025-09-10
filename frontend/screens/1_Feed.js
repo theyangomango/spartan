@@ -782,6 +782,7 @@ export default function Feed({ navigation, route }) {
                         allUsersRef={allUsersRef}
                         workout={activeWorkout}
                         timerRef={headerTimerRef}
+                        heightAdjust={-2}
                     />
                     <Animated.View
                         onLayout={(e) => {

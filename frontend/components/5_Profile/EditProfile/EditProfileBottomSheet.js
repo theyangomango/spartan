@@ -36,7 +36,7 @@ const EditProfileBottomSheet = ({ isVisible, setIsVisible, setPFP }) => {
             snapPoints={snapPoints}
             backdropComponent={renderBackdrop}
             onChange={handleSheetChanges}
-            backgroundStyle={{ backgroundColor: require("../../../theme/mfpDark").default.surface }}
+            backgroundStyle={{ backgroundColor: require("../../../theme/mfpDark").default.bg }}
             enablePanDownToClose
             onClose={() => {
                 setIsVisible(false);

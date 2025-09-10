@@ -425,6 +425,7 @@ const FeedHeader = ({
     workout,        // ← rely only on this (no globals)
     openCurrentWorkout,
     timerRef,       // ← must be a ref updated by parent; empty string means “no workout”
+    heightAdjust = 0, // optional fine-tune for overall header height (affects padding only)
 }) => {
     const [unreadCount, setUnreadCount] = useState(0);
     const [unreadMessages, setUnreadMessages] = useState(0);
@@ -482,7 +483,10 @@ const FeedHeader = ({
     }
 
     return (
-        <View style={[styles.main_ctnr]}>
+        <View style={[
+            styles.main_ctnr,
+            heightAdjust ? { paddingBottom: METRICS.paddingBottom + heightAdjust } : null,
+        ]}>
             {/* Left: Search */}
             <View style={styles.leftArea}>
                 <SearchUsersBar navigation={navigation} allUsersRef={allUsersRef} />
