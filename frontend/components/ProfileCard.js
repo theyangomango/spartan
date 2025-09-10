@@ -37,12 +37,12 @@ const ProfileCard = ({ user, onSelect, isSelected, baseBg, selectedBg }) => {
                 styles.itemContainer,
                 // Allow consumers to override the base and selected background colors.
                 { backgroundColor: baseBg || styles.itemContainer.backgroundColor },
-                (pressed || isSelected) && { backgroundColor: selectedBg || '#1E2128' },
+                (pressed || isSelected) && { backgroundColor: selectedBg || theme.field },
             ]}
             android_ripple={{ color: 'rgba(2,132,199,0.08)' }}
         >
             <LinearGradient
-                colors={["#2A65D9", "#59AAEE"]}
+                colors={[theme.primary, theme.accentBlue]}
                 start={{ x: 0, y: 0 }}
                 end={{ x: 1, y: 1 }}
                 style={{ width: SIZES.pfp, height: SIZES.pfp, borderRadius: radius, padding: SIZES.ring }}
@@ -51,11 +51,11 @@ const ProfileCard = ({ user, onSelect, isSelected, baseBg, selectedBg }) => {
                     {pfpUri ? (
                         <FastImage
                             source={{ uri: pfpUri, priority: FastImage.priority.normal, cache: FastImage.cacheControl.immutable }}
-                            style={{ width: SIZES.pfp - 2 * (SIZES.ring + 2), height: SIZES.pfp - 2 * (SIZES.ring + 2), borderRadius: (SIZES.pfp - 2 * (SIZES.ring + 2)) / 2, backgroundColor: '#2E323C' }}
+                            style={{ width: SIZES.pfp - 2 * (SIZES.ring + 2), height: SIZES.pfp - 2 * (SIZES.ring + 2), borderRadius: (SIZES.pfp - 2 * (SIZES.ring + 2)) / 2, backgroundColor: theme.field }}
                             resizeMode={FastImage.resizeMode.cover}
                         />
                     ) : (
-                        <View style={{ width: SIZES.pfp - 2 * (SIZES.ring + 2), height: SIZES.pfp - 2 * (SIZES.ring + 2), borderRadius: (SIZES.pfp - 2 * (SIZES.ring + 2)) / 2, backgroundColor: '#2E323C' }} />
+                        <View style={{ width: SIZES.pfp - 2 * (SIZES.ring + 2), height: SIZES.pfp - 2 * (SIZES.ring + 2), borderRadius: (SIZES.pfp - 2 * (SIZES.ring + 2)) / 2, backgroundColor: theme.field }} />
                     )}
                 </View>
             </LinearGradient>
@@ -71,7 +71,7 @@ const ProfileCard = ({ user, onSelect, isSelected, baseBg, selectedBg }) => {
 
             {isSelected ? (
                 <LinearGradient
-                    colors={["#2A65D9", "#59AAEE"]}
+                    colors={[theme.primary, theme.accentBlue]}
                     start={{ x: 0, y: 0 }}
                     end={{ x: 1, y: 1 }}
                     style={{ width: SIZES.icon, height: SIZES.icon, borderRadius: SIZES.icon / 2, alignItems: 'center', justifyContent: 'center' }}
@@ -79,7 +79,7 @@ const ProfileCard = ({ user, onSelect, isSelected, baseBg, selectedBg }) => {
                     <Icon name="checkmark" size={Math.max(14, SIZES.iconFilled - 2)} color="#fff" />
                 </LinearGradient>
             ) : (
-                <View style={{ width: SIZES.icon, height: SIZES.icon, borderRadius: SIZES.icon / 2, borderWidth: StyleSheet.hairlineWidth * 2, borderColor: '#3A3D45' }} />
+                <View style={{ width: SIZES.icon, height: SIZES.icon, borderRadius: SIZES.icon / 2, borderWidth: StyleSheet.hairlineWidth * 2, borderColor: theme.hairline }} />
             )}
         </Pressable>
     );
@@ -95,7 +95,7 @@ const styles = StyleSheet.create({
         borderRadius: SIZES.cardRadius,
         backgroundColor: theme.surface,
         borderBottomWidth: StyleSheet.hairlineWidth,
-        borderBottomColor: 'rgba(255,255,255,0.08)',
+        borderBottomColor: theme.hairline,
     },
     // selected/pressed backgrounds are applied inline to allow overrides via props
     text_ctnr: {
@@ -104,13 +104,13 @@ const styles = StyleSheet.create({
     },
     handle_text: {
         fontFamily: 'Outfit_700Bold',
-        color: '#E5E7EB',
+        color: theme.textPrimary,
         marginBottom: scale(2),
         letterSpacing: 0.2,
     },
     name_text: {
         fontFamily: 'Outfit_500Medium',
-        color: '#A1A7B3',
+        color: theme.textSecondary,
     },
     tickCircle: {
         justifyContent: 'center',

@@ -5,6 +5,7 @@ import ProfileCard from '../ProfileCard';
 import RNBounceable from '@freakycoder/react-native-bounceable';
 import scaleSize from "../../helper/scaleSize";
 import { LinearGradient } from 'expo-linear-gradient';
+import theme from "../../theme/mfpDark";
 
 const { width, height } = Dimensions.get('window');
 
@@ -81,8 +82,8 @@ export default function CreateGroupChatModal({ initChat }) {
                 onSelect={handleSelectUser}
                 isSelected={isSelected}
                 // Blend with modal background when not selected; contrast only when selected
-                baseBg="#252733"
-                selectedBg="#2E323C"
+                baseBg={theme.surface}
+                selectedBg={theme.field}
             />
         );
     };
@@ -107,7 +108,7 @@ export default function CreateGroupChatModal({ initChat }) {
                             <Pressable key={`${handle}-${index}`} onPress={() => deselectByHandle(handle)}>
                                 <View style={styles.selectedHandleView}>
                                     <Text style={[styles.selectedHandleText, { fontSize: dynamicStyles.modalTextFontSize }]}>{handle}</Text>
-                                    <Icon name="close" size={scaleSize(14)} color="#2D9EFF" />
+                                    <Icon name="close" size={scaleSize(14)} color={theme.primary} />
                                 </View>
                             </Pressable>
                         ))}
@@ -117,18 +118,18 @@ export default function CreateGroupChatModal({ initChat }) {
             </View>
 
             <View style={styles.searchContainer}>
-                <Icon name="search" size={scaleSize(16)} color="#2D9EFF" style={styles.searchIcon} />
+                <Icon name="search" size={scaleSize(16)} color={theme.primary} style={styles.searchIcon} />
                 <TextInput
                     style={[styles.searchBar, { fontSize: dynamicStyles.searchBarFontSize }]}
                     placeholder="Search by handle or name"
-                    placeholderTextColor="#8AA0BF"
+                    placeholderTextColor={theme.textSecondary}
                     value={searchQuery}
                     onChangeText={setSearchQuery}
                     returnKeyType="search"
                 />
                 {searchQuery.length > 0 && (
                     <Pressable onPress={onClearSearch} hitSlop={8}>
-                        <Icon name="close-circle" size={scaleSize(18)} color="#A9C6EF" />
+                        <Icon name="close-circle" size={scaleSize(18)} color={theme.accentBlue} />
                     </Pressable>
                 )}
             </View>
@@ -149,7 +150,7 @@ export default function CreateGroupChatModal({ initChat }) {
                 onPress={() => initChat(selectedUsers)}
             >
                 <LinearGradient
-                    colors={selectedUsers.length > 1 ? ["#2A65D9", "#59AAEE"] : ["#BFD8F8", "#BFD8F8"]}
+                    colors={selectedUsers.length > 1 ? [theme.primary, theme.accentBlue] : [theme.ringBg, theme.ringBg]}
                     start={{ x: 0, y: 0 }}
                     end={{ x: 1, y: 1 }}
                     style={styles.createButton}
@@ -168,7 +169,7 @@ const styles = StyleSheet.create({
     container: {
         flex: 1,
         alignItems: 'center',
-        backgroundColor: '#252733',
+        backgroundColor: theme.surface,
     },
     header: {
         paddingTop: scaleSize(10),
@@ -178,12 +179,12 @@ const styles = StyleSheet.create({
     },
     headerTitle: {
         fontFamily: 'Outfit_700Bold',
-        color: '#E5E7EB',
+        color: theme.textPrimary,
         letterSpacing: 0.2,
     },
     subHeaderText: {
         fontFamily: 'Outfit_500Medium',
-        color: '#A1A7B3',
+        color: theme.textSecondary,
         fontSize: scaleSize(12.5),
         marginTop: scaleSize(6),
     },
@@ -196,7 +197,7 @@ const styles = StyleSheet.create({
         flexDirection: 'row',
         alignItems: 'center',
         gap: scaleSize(6),
-        backgroundColor: '#11253D',
+        backgroundColor: theme.restPillBg,
         paddingHorizontal: scaleSize(10.5),
         height: scaleSize(29),
         borderRadius: scaleSize(14),
@@ -206,27 +207,27 @@ const styles = StyleSheet.create({
         borderColor: 'rgba(45,158,255,0.30)',
     },
     selectedHandleText: {
-        color: '#7fb5ff',
+        color: theme.accentBlue,
         fontFamily: 'Outfit_700Bold',
     },
     searchContainer: {
         flexDirection: 'row',
         alignItems: 'center',
-        backgroundColor: '#1E2128',
+        backgroundColor: theme.field,
         borderRadius: scaleSize(14),
         width: '90%',
         paddingHorizontal: scaleSize(12),
         marginBottom: scaleSize(10),
         height: scaleSize(44),
         borderWidth: StyleSheet.hairlineWidth,
-        borderColor: 'rgba(255,255,255,0.08)',
+        borderColor: theme.hairline,
     },
     searchIcon: { marginRight: scaleSize(8) },
     searchBar: {
         flex: 1,
         paddingVertical: scaleSize(8),
         fontFamily: 'Outfit_500Medium',
-        color: '#E5E7EB',
+        color: theme.textPrimary,
     },
     flatListContainer: {
         width: '100%',
@@ -255,7 +256,7 @@ const styles = StyleSheet.create({
         flexDirection: 'row',
     },
     createButtonText: {
-        color: 'white',
+        color: theme.textPrimary,
         fontFamily: 'Outfit_700Bold',
         letterSpacing: 0.2,
     },

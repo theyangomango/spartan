@@ -57,7 +57,7 @@ export default function MessagesHeader({
                     <FontAwesome5 name="users" size={scaleSize(16)} color={ACCENT} />
                     {/* subtle in-pill + badge */}
                     <View style={styles.plusBadge}>
-                        <FontAwesome5 name="plus" size={scaleSize(8.5)} color={theme.textPrimary} />
+                        <FontAwesome5 name="plus" size={scaleSize(7.5)} color={theme.textPrimary} />
                     </View>
                 </TouchableOpacity>
 
@@ -115,11 +115,11 @@ const styles = StyleSheet.create({
     // no extra bubble; keep the pill clean
     plusBadge: {
         position: "absolute",
-        right: scaleSize(2),
-        bottom: scaleSize(2),
-        width: scaleSize(14),
-        height: scaleSize(14),
-        borderRadius: scaleSize(7),
+        right: scaleSize(-3),
+        bottom: scaleSize(-3),
+        width: scaleSize(16),
+        height: scaleSize(16),
+        borderRadius: scaleSize(8),
         backgroundColor: ACCENT,
         alignItems: "center",
         justifyContent: "center",
