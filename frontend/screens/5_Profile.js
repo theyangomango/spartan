@@ -13,6 +13,7 @@ import EditProfileBottomSheet from "../components/5_Profile/EditProfile/EditProf
 import UserStatsBottomSheet from "../components/2_Competition/UserStats/UserStatsBottomSheet";
 import Footer from "../components/Footer";
 import FeedWorkoutViewerSheet from "../components/1_Feed/ViewWorkout/FeedWorkoutViewerSheet";
+import FollowListBottomSheet from "../components/FollowListBottomSheet";
 
 import theme from "../theme/mfpDark";
 
@@ -31,6 +32,8 @@ export default function Profile({ navigation }) {
 
     // Reuse this flag to show the Competition-style UserStatsBottomSheet
     const [isViewStatsBottomSheetVisible, setIsViewStatsBottomSheetVisible] = useState(false);
+    const [isFollowListVisible, setIsFollowListVisible] = useState(false);
+    const [followListMode, setFollowListMode] = useState('followers'); // or 'following'
 
     const [pfp, setPFP] = useState(global.userData.image);
 
@@ -177,7 +180,12 @@ export default function Profile({ navigation }) {
                         } catch { navigation.navigate('Settings'); }
                     }}
                 />
-                <ProfileInfo userData={userData} pfp={pfp} />
+                <ProfileInfo
+                    userData={userData}
+                    pfp={pfp}
+                    onPressFollowers={() => { setFollowListMode('followers'); setIsFollowListVisible(true); }}
+                    onPressFollowing={() => { setFollowListMode('following'); setIsFollowListVisible(true); }}
+                />
                 <ProfileRowButtons
                     handleOpenEditProfile={handleOpenEditProfile}
                     handleOpenViewStats={handleOpenViewStats}
@@ -207,6 +215,14 @@ export default function Profile({ navigation }) {
                 navigation={navigation}
                 isVisible={isViewStatsBottomSheetVisible}
                 setIsVisible={setIsViewStatsBottomSheetVisible}
+            />
+
+            <FollowListBottomSheet
+                isVisible={isFollowListVisible}
+                setIsVisible={setIsFollowListVisible}
+                title={followListMode === 'followers' ? 'Followers' : 'Following'}
+                users={followListMode === 'followers' ? (userData?.followers || []) : (userData?.following || [])}
+                navigation={navigation}
             />
 
             <Footer currentScreenName={"Profile"} navigation={navigation} />

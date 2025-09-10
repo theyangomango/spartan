@@ -1,4 +1,4 @@
-import { StyleSheet, View, Text, Dimensions } from "react-native";
+import { StyleSheet, View, Text, Dimensions, Pressable } from "react-native";
 import FastImage from 'react-native-fast-image';
 import { usePfp } from "../../helper/usePFPs";
 import theme from "../../theme/mfpDark";
@@ -8,7 +8,7 @@ const { height: screenHeight } = Dimensions.get('window');
 const scale = screenHeight / 844; // match Profile screen baseline
 const scaleSize = (size) => Math.round(size * scale);
 
-export default function ViewProfileInfo({ userData }) {
+export default function ViewProfileInfo({ userData, onPressFollowers, onPressFollowing }) {
     const pfpUri = usePfp(String(userData?.uid || ''), userData?.pfpVersion || 0) || userData?.image || '';
     // Derive counts from array lengths for accuracy
     const followersCount = Array.isArray(userData?.followers) ? userData.followers.length : 0;
@@ -16,10 +16,10 @@ export default function ViewProfileInfo({ userData }) {
     return (
         <View style={styles.main_ctnr}>
             <View style={styles.top_row}>
-                <View style={styles.followers_stat_ctnr}>
+                <Pressable style={styles.followers_stat_ctnr} onPress={onPressFollowers} hitSlop={8}>
                     <Text style={styles.user_stat_count_text}>{followersCount}</Text>
                     <Text style={styles.user_stat_text}>Followers</Text>
-                </View>
+                </Pressable>
                 <View style={styles.pfp_ctnr}>
                     {pfpUri ? (
                         <FastImage
@@ -31,10 +31,10 @@ export default function ViewProfileInfo({ userData }) {
                         <View style={[styles.pfp, { backgroundColor: theme.surface }]} />
                     )}
                 </View>
-                <View style={styles.following_stat_ctnr}>
+                <Pressable style={styles.following_stat_ctnr} onPress={onPressFollowing} hitSlop={8}>
                     <Text style={styles.user_stat_count_text}>{followingCount}</Text>
                     <Text style={styles.user_stat_text}>Following</Text>
-                </View>
+                </Pressable>
             </View>
             <View style={styles.profile_info_ctnr}>
                 <View style={styles.name_and_score_ctnr}>

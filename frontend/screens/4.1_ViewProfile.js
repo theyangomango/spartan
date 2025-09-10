@@ -14,6 +14,7 @@ import makeID from "../../backend/helper/makeID";
 import arrayAppend from "../../backend/helper/firebase/arrayAppend";
 import FeedWorkoutViewerSheet from "../components/1_Feed/ViewWorkout/FeedWorkoutViewerSheet";
 import theme from "../theme/mfpDark";
+import FollowListBottomSheet from "../components/FollowListBottomSheet";
 
 export default function ViewProfile({ navigation, route }) {
     const user = route.params.user;
@@ -21,6 +22,8 @@ export default function ViewProfile({ navigation, route }) {
     const [posts, setPosts] = useState([]);
     const [selectedPanel, setSelectedPanel] = useState('posts');
     const [isViewStatsBottomSheetVisible, setIsViewStatsBottomSheetVisible] = useState(false);
+    const [isFollowListVisible, setIsFollowListVisible] = useState(false);
+    const [followListMode, setFollowListMode] = useState('followers');
     const [viewerWorkout, setViewerWorkout] = useState(null);
     const [viewerToggle, setViewerToggle] = useState(false);
     const openViewer = useCallback((wk) => {
@@ -141,7 +144,11 @@ export default function ViewProfile({ navigation, route }) {
             <StatusBar barStyle="light-content" backgroundColor={theme.bg} />
             <View style={styles.body_ctnr}>
                 <ViewProfileHeader handle={headerHandle} goBack={goBack} toMessages={toMessages} />
-                <ViewProfileInfo userData={profileUserData} />
+                <ViewProfileInfo
+                    userData={profileUserData}
+                    onPressFollowers={() => { setFollowListMode('followers'); setIsFollowListVisible(true); }}
+                    onPressFollowing={() => { setFollowListMode('following'); setIsFollowListVisible(true); }}
+                />
                 <ViewProfileRowButtons handleOpenViewStats={handleOpenViewStats} user={user} />
                 <WorkoutStats userData={profileUserData} />
             </View>
@@ -160,6 +167,14 @@ export default function ViewProfile({ navigation, route }) {
                 navigation={navigation}
                 isVisible={isViewStatsBottomSheetVisible}
                 setIsVisible={setIsViewStatsBottomSheetVisible}
+            />
+
+            <FollowListBottomSheet
+                isVisible={isFollowListVisible}
+                setIsVisible={setIsFollowListVisible}
+                title={followListMode === 'followers' ? 'Followers' : 'Following'}
+                users={followListMode === 'followers' ? (profileUserData?.followers || []) : (profileUserData?.following || [])}
+                navigation={navigation}
             />
 
             {/* Workout viewer bottom sheet (viewing other's profile) */}
