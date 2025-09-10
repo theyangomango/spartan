@@ -242,10 +242,13 @@ function MacroRow({ m }) {
     const cCal = c * 4;
     const fCal = f * 9;
     const totalFromMacros = pCal + cCal + fCal;
-    const denom = calories > 0 ? calories : totalFromMacros > 0 ? totalFromMacros : 1;
-    const fracP = pCal / denom;
-    const fracC = cCal / denom;
-    const fracF = fCal / denom;
+
+    // Always fill the ring using macro proportions only.
+    // If macro group is zero grams, it should not render at all.
+    const ringDenom = totalFromMacros > 0 ? totalFromMacros : 1; // avoid divide-by-zero
+    const fracP = totalFromMacros > 0 ? (pCal / ringDenom) : 0;
+    const fracC = totalFromMacros > 0 ? (cCal / ringDenom) : 0;
+    const fracF = totalFromMacros > 0 ? (fCal / ringDenom) : 0;
 
     const size = 120; // fixed ring size per design
     const stroke = Math.max(10, Math.round(size * 0.12));
@@ -254,9 +257,11 @@ function MacroRow({ m }) {
     const cy = size / 2;
     const circ = 2 * Math.PI * r;
 
-    const dashP = Math.max(0.0001, fracP * circ);
-    const dashC = Math.max(0.0001, fracC * circ);
-    const dashF = Math.max(0.0001, fracF * circ);
+    // Segment lengths. Zero-length segments are omitted entirely below.
+    const dashP = Math.max(0, fracP * circ);
+    const dashC = Math.max(0, fracC * circ);
+    // Ensure full coverage, assign remainder to last segment to prevent floating gaps
+    const dashF = Math.max(0, circ - (dashP + dashC));
 
     // Start ring at 12 o'clock by rotating -90deg
     const baseOffset = 0;
@@ -281,47 +286,53 @@ function MacroRow({ m }) {
                             fill="none"
                         />
                         {/* Protein */}
-                        <Circle
-                            cx={cx}
-                            cy={cy}
-                            r={r}
-                            stroke={COLORS.protein}
-                            strokeWidth={stroke}
-                            fill="none"
-                            strokeDasharray={`${dashP}, ${circ}`}
-                            strokeDashoffset={offP}
-                            strokeLinecap="round"
-                            transform={`rotate(-90 ${cx} ${cy})`}
-                        />
+                        {dashP > 0 && (
+                            <Circle
+                                cx={cx}
+                                cy={cy}
+                                r={r}
+                                stroke={COLORS.protein}
+                                strokeWidth={stroke}
+                                fill="none"
+                                strokeDasharray={`${dashP}, ${circ}`}
+                                strokeDashoffset={offP}
+                                strokeLinecap="round"
+                                transform={`rotate(-90 ${cx} ${cy})`}
+                            />
+                        )}
                         {/* Carbs */}
-                        <Circle
-                            cx={cx}
-                            cy={cy}
-                            r={r}
-                            stroke={COLORS.carbs}
-                            strokeWidth={stroke}
-                            fill="none"
-                            strokeDasharray={`${dashC}, ${circ}`}
-                            strokeDashoffset={offC}
-                            strokeLinecap="round"
-                            transform={`rotate(-90 ${cx} ${cy})`}
-                        />
+                        {dashC > 0 && (
+                            <Circle
+                                cx={cx}
+                                cy={cy}
+                                r={r}
+                                stroke={COLORS.carbs}
+                                strokeWidth={stroke}
+                                fill="none"
+                                strokeDasharray={`${dashC}, ${circ}`}
+                                strokeDashoffset={offC}
+                                strokeLinecap="round"
+                                transform={`rotate(-90 ${cx} ${cy})`}
+                            />
+                        )}
                         {/* Fat */}
-                        <Circle
-                            cx={cx}
-                            cy={cy}
-                            r={r}
-                            stroke={COLORS.fat}
-                            strokeWidth={stroke}
-                            fill="none"
-                            strokeDasharray={`${dashF}, ${circ}`}
-                            strokeDashoffset={offF}
-                            strokeLinecap="round"
-                            transform={`rotate(-90 ${cx} ${cy})`}
-                        />
+                        {dashF > 0 && (
+                            <Circle
+                                cx={cx}
+                                cy={cy}
+                                r={r}
+                                stroke={COLORS.fat}
+                                strokeWidth={stroke}
+                                fill="none"
+                                strokeDasharray={`${dashF}, ${circ}`}
+                                strokeDashoffset={offF}
+                                strokeLinecap="round"
+                                transform={`rotate(-90 ${cx} ${cy})`}
+                            />
+                        )}
                     </Svg>
                     <View style={styles.centerLabel} pointerEvents="none">
-                        <Text style={styles.centerCal}>{Math.round(denom || 0)}</Text>
+                        <Text style={styles.centerCal}>{Math.round(calories || 0)}</Text>
                         <Text style={styles.centerSub}>cal</Text>
                     </View>
                 </View>

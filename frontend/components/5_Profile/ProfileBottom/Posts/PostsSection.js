@@ -1,5 +1,5 @@
 // PostsSection.js
-import React, { memo, useEffect, useState } from "react";
+import React, { memo, useEffect, useMemo, useState } from "react";
 import { StyleSheet, View } from "react-native";
 import MasonryList from "@react-native-seoul/masonry-list";
 import PostPreview from "./PostPreview";
@@ -19,25 +19,32 @@ const PostsSection = ({ posts, isVisible, onOpenWorkout }) => {
         <PostPreview postData={item} onPress={() => handlePostPress(item)} />
     );
 
+    // Always show newest → oldest
+    const sortedPosts = useMemo(() => {
+        if (!Array.isArray(posts)) return [];
+        const toMs = (p) => Number(p?.created ?? p?.createdAt ?? p?.timestamp ?? 0) || 0;
+        return [...posts].sort((a, b) => toMs(b) - toMs(a));
+    }, [posts]);
+
     // Warm the image cache for the first few tiles
     useEffect(() => {
-        if (!Array.isArray(posts) || posts.length === 0) return;
-        const items = posts.slice(0, 18)
+        if (!Array.isArray(sortedPosts) || sortedPosts.length === 0) return;
+        const items = sortedPosts.slice(0, 18)
             .map((p) => p?.media?.[0]?.uri)
             .filter(Boolean)
             .map((uri) => ({ uri, priority: FastImage.priority.high }));
         if (items.length) {
             try { FastImage.preload(items); } catch {}
         }
-    }, [posts]);
+    }, [sortedPosts]);
 
-    const hasPosts = Array.isArray(posts) && posts.length > 0;
+    const hasPosts = Array.isArray(sortedPosts) && sortedPosts.length > 0;
 
     return (
         <View style={[styles.scrollable_ctnr, !isVisible && styles.hidden]}>
             {hasPosts ? (
                 <MasonryList
-                    data={posts}
+                    data={sortedPosts}
                     keyExtractor={(item, index) => String(item?.pid ?? index)}
                     renderItem={renderPost}
                     numColumns={3}

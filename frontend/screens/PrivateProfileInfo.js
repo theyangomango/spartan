@@ -4,6 +4,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { doc, updateDoc as fsUpdateDoc } from 'firebase/firestore';
 import { db } from '../../firebase.config';
 import useUserDoc from '../hooks/useUserDoc';
+import theme from '../theme/mfpDark';
 
 export default function PrivateProfileInfo({ navigation }) {
   const uid = global?.userData?.uid || null;
@@ -27,7 +28,7 @@ export default function PrivateProfileInfo({ navigation }) {
     <SafeAreaView style={styles.root}>
       <View style={styles.header}>
         <TouchableOpacity onPress={goBack} style={styles.iconBtn}>
-          <Ionicons name="chevron-back" size={22} color="#111827" />
+          <Ionicons name="chevron-back" size={22} color={theme.textPrimary} />
         </TouchableOpacity>
         <Text style={styles.title}>Private Profile</Text>
         <View style={{ width: 40 }} />
@@ -41,7 +42,12 @@ export default function PrivateProfileInfo({ navigation }) {
 
         <View style={styles.row}>
           <Text style={styles.rowLabel}>Make my profile private</Text>
-          <Switch value={isPrivate} onValueChange={onToggle} trackColor={{ false: '#E5E7EB', true: '#93C5FD' }} thumbColor={isPrivate ? '#2563EB' : Platform.select({ ios: '#fff', android: '#f9fafb' })} />
+          <Switch
+            value={isPrivate}
+            onValueChange={onToggle}
+            trackColor={{ false: 'rgba(255,255,255,0.25)', true: 'rgba(45,158,255,0.45)' }}
+            thumbColor={isPrivate ? theme.primary : Platform.select({ ios: '#fff', android: '#f3f4f6' })}
+          />
       </View>
       </ScrollView>
     </SafeAreaView>
@@ -49,13 +55,13 @@ export default function PrivateProfileInfo({ navigation }) {
 }
 
 const styles = StyleSheet.create({
-  root: { flex: 1, backgroundColor: '#FFFFFF' },
+  root: { flex: 1, backgroundColor: theme.bg },
   header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 14, paddingTop: 8, paddingBottom: 6 },
   iconBtn: { padding: 6, width: 40 },
-  title: { fontFamily: 'Outfit_700Bold', fontSize: 18, color: '#111827' },
+  title: { fontFamily: 'Outfit_700Bold', fontSize: 18, color: theme.textPrimary },
   content: { paddingHorizontal: 16, paddingTop: 10, paddingBottom: 18 },
-  p: { fontFamily: 'Outfit_400Regular', fontSize: 14, color: '#334155', lineHeight: 20, marginBottom: 6 },
-  li: { fontFamily: 'Outfit_400Regular', fontSize: 14, color: '#334155', lineHeight: 20, marginLeft: 6 },
-  row: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingVertical: 14, borderTopWidth: StyleSheet.hairlineWidth, borderColor: '#E5E7EB', marginTop: 12 },
-  rowLabel: { fontFamily: 'Outfit_600SemiBold', fontSize: 14, color: '#0F172A' },
+  p: { fontFamily: 'Outfit_400Regular', fontSize: 14, color: theme.textSecondary, lineHeight: 20, marginBottom: 6 },
+  li: { fontFamily: 'Outfit_400Regular', fontSize: 14, color: theme.textSecondary, lineHeight: 20, marginLeft: 6 },
+  row: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingVertical: 14, borderTopWidth: StyleSheet.hairlineWidth, borderColor: theme.hairline, marginTop: 12 },
+  rowLabel: { fontFamily: 'Outfit_600SemiBold', fontSize: 14, color: theme.textPrimary },
 });
