@@ -2,6 +2,7 @@ import React, { useCallback, useEffect, useMemo, useRef } from "react";
 import { StyleSheet } from "react-native";
 import BottomSheet, { BottomSheetBackdrop } from "@gorhom/bottom-sheet";
 import CreateGroupChatModal from "./CreateGroupChatModal";
+import theme from "../../theme/mfpDark";
 
 const CreateGroupChatBottomSheet = ({ isVisible, setIsVisible, initChat }) => {
     const bottomSheetRef = useRef(null);
@@ -51,16 +52,16 @@ export default React.memo(CreateGroupChatBottomSheet);
 
 const styles = StyleSheet.create({
     sheetBackground: {
-        backgroundColor: "#252733",
+        backgroundColor: theme.surface,
         borderTopLeftRadius: 22,
         borderTopRightRadius: 22,
     },
     handleIndicator: {
-        backgroundColor: "#3A3D45",
+        backgroundColor: theme.hairline,
         width: 44,
         height: 5,
         borderRadius: 3,
         marginTop: 6,
         marginBottom: 6,
     },
-})
+});
