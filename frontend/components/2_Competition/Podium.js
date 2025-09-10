@@ -9,7 +9,7 @@ import theme from '../../theme/mfpDark';
 const PFP_SIZE_LEFT = scaleSize(60);
 const PFP_SIZE_CENTER = scaleSize(64);
 const PFP_SIZE_RIGHT = scaleSize(56);
-
+ 
 const BAR_HEIGHT_LEFT = scaleSize(105);
 const BAR_HEIGHT_CENTER = scaleSize(133);
 const BAR_HEIGHT_RIGHT = scaleSize(83);
