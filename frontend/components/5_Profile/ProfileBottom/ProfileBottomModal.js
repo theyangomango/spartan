@@ -17,12 +17,12 @@ const ProfileBottomModal = ({ selectedPanel, setSelectedPanel, posts, savedPosts
             <View style={styles.panel_btns}>
                 <View style={styles.panel_btn}>
                     <Pressable onPress={() => setSelectedPanel('posts')}>
-                        <Grid2 size={scaledSize(28)} color={selectedPanel === 'posts' ? "#359ffc" : "#888"} />
+                        <Grid2 size={scaledSize(28)} color={selectedPanel === 'posts' ? "#359ffc" : theme.iconInactive} />
                     </Pressable>
                 </View>
                 <View style={styles.panel_btn}>
                     <Pressable onPress={() => setSelectedPanel('history')}>
-                        <Clock size={scaledSize(28)} color={selectedPanel === 'history' ? "#359ffc" : "#888"} />
+                        <Clock size={scaledSize(28)} color={selectedPanel === 'history' ? "#359ffc" : theme.iconInactive} />
                     </Pressable>
                 </View>
                 <View style={[styles.panel_btn]}>
@@ -34,7 +34,7 @@ const ProfileBottomModal = ({ selectedPanel, setSelectedPanel, posts, savedPosts
                             height={scaledSize(28)}
                             viewBox="0 0 24 24"
                             fill="none"
-                            stroke={selectedPanel === 'saved' ? "#359ffc" : "#888"}
+                            stroke={selectedPanel === 'saved' ? "#359ffc" : theme.iconInactive}
                             strokeWidth={1.5}
                             strokeLinecap="round"
                             strokeLinejoin="round"

@@ -105,7 +105,6 @@ const styles = StyleSheet.create({
     },
     view_stats_button: {
         paddingHorizontal: scaleSize(20),
-        paddingVertical: scaleSize(7),
         borderRadius: scaleSize(10),
         backgroundColor: 'rgba(255,255,255,0.18)',
         borderWidth: scaleSize(1),
@@ -122,16 +121,19 @@ const styles = StyleSheet.create({
     follow_button_text: {
         fontFamily: 'Poppins_600SemiBold',
         fontSize: scaleSize(12.5),
+        includeFontPadding: false,
         color: '#fff',
     },
     following_button_text: {
         fontFamily: 'Poppins_600SemiBold',
         fontSize: scaleSize(12.5),
+        includeFontPadding: false,
         color: theme.primary,
     },
     view_stats_button_text: {
         fontFamily: 'Poppins_600SemiBold',
         fontSize: scaleSize(12.5),
+        includeFontPadding: false,
         color: '#E5E7EB',
     },
 });

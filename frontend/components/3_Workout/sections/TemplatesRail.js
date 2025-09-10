@@ -132,7 +132,6 @@ const styles = StyleSheet.create({
         height: TPL_CARD_H,
         marginHorizontal: 16,
         borderRadius: 18,
-        paddingVertical: 14,
         paddingHorizontal: 14,
         flexDirection: "row",
         alignItems: "center",

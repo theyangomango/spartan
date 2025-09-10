@@ -50,11 +50,10 @@ const SectionDividerCmp = ({
 const styles = StyleSheet.create({
     sectionDividerOuter: {
         alignItems: "center",
-        marginTop: 8,
-        marginBottom: 8, // ensure equal spacing below
+        // Balance spacing: slightly tighter above, a bit more room below
     },
     sectionDividerInner: {
-        height: 22,
+        height: 32,
         justifyContent: "center",
         alignItems: "center",
         ...Platform.select({

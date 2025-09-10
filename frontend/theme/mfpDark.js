@@ -45,6 +45,8 @@ const MFP_DARK = {
 
     // Misc UI tints
     muted: '#96A1B2',
+    // Slightly lighter than previous inactive icon grey for dark bg
+    iconInactive: '#A8B2C2',
     ringBg: '#CFD7E4',        // progress tracks
     chipBg: '#606C88',
     addBtnBg: '#5D6A86',      // neutral pill backgrounds

@@ -574,8 +574,6 @@ export default function Workout({ navigation, route }) {
                     dashColor="rgba(255,255,255,0.22)"
                     dotColor="#ffffff2d"
                 />
-            </View>
-
             {/* Templates rail (mount after first paint) */}
             {afterPaint && (
                 <View style={styles.templatesDock} pointerEvents="box-none">
@@ -587,6 +585,7 @@ export default function Workout({ navigation, route }) {
                     />
                 </View>
             )}
+            </View>
 
             {/* START cluster */}
             <View style={styles.clusterWrap} pointerEvents="box-none">
@@ -741,9 +740,11 @@ export default function Workout({ navigation, route }) {
 const styles = StyleSheet.create({
     // MyFitnessPal-like dark background (lightened canvas for screens)
     root: { flex: 1, backgroundColor: theme.screenBg },
-    content: { flex: 1, paddingTop: 8 },
+    // Add bottom padding to avoid overlap with absolute StartCluster + Footer
+    content: { flex: 1, paddingTop: 8, paddingBottom: FOOTER_HEIGHT + ss(22) + BTN_SIZE + TPL_BOTTOM_GAP + TPL_HEIGHT + ss(10) },
 
-    templatesDock: { position: "absolute", left: 0, right: 0, bottom: FOOTER_HEIGHT + ss(22) + BTN_SIZE + TPL_BOTTOM_GAP },
+    // Place TemplatesRail relative in the flow below the divider
+    templatesDock: { position: 'relative', left: 0, right: 0 },
     clusterWrap: { position: "absolute", left: 0, right: 0, bottom: FOOTER_HEIGHT + ss(20), alignItems: "center" },
 
     // Invite banner wrapper (same positioning/animation as original)

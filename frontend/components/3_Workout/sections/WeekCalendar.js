@@ -329,7 +329,8 @@ const MemoDayCell = memo(DayCell, (a, b) => {
 
 /* -------------------------------- Styles -------------------------------- */
 const styles = StyleSheet.create({
-    wrap: { marginTop: 0, marginBottom: 3 },
+    // Align the top of the calendar with the Feed's ActivityChips start
+    wrap: { marginTop: -6, marginBottom: 6 },
 
     card: {
         // final card tone from spec

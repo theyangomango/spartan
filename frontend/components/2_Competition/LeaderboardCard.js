@@ -13,10 +13,10 @@ const CARD_HEIGHT = scaleSize(64);
 const SELF_CARD_HEIGHT = scaleSize(86);
 const PFP_SIZE = scaleSize(44);
 
-const FONT_HANDLE = scaleSize(15);
-const FONT_NAME = scaleSize(14);
-const FONT_STAT = scaleSize(16);
-const FONT_RANK = scaleSize(15);
+const FONT_HANDLE = scaleSize(14);
+const FONT_NAME = scaleSize(13);
+const FONT_STAT = scaleSize(15);
+const FONT_RANK = scaleSize(14);
 const FONT_BEST = scaleSize(14);
 
 const ICON_ARROW = scaleSize(20);
@@ -207,7 +207,7 @@ const styles = StyleSheet.create({
         marginTop: 1.5,
         fontFamily: 'Outfit_500Medium',
         paddingHorizontal: 12,
-        color: require("../../theme/mfpDark").default.textSecondary,
+        color: '#a1a1a1',
         maxWidth: width * 0.45,
     },
     card_right: {

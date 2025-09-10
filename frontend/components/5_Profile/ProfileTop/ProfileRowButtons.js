@@ -39,7 +39,6 @@ const styles = StyleSheet.create({
     },
     button: {
         paddingHorizontal: scaledSize(20),
-        paddingVertical: scaledSize(7),
         borderRadius: scaledSize(10),
         // Increase contrast on Feed/bg: subtle translucent pill + hairline
         backgroundColor: 'rgba(255,255,255,0.18)',
@@ -57,6 +56,11 @@ const styles = StyleSheet.create({
     edit_profile_text: {
         fontFamily: "Poppins_600SemiBold",
         fontSize: scaledSize(12.5),
+        // Ensure optical vertical centering inside the pill
+        // lineHeight: scaledSize(13),
+        textAlignVertical: 'center',
+        textAlign: 'center',
+        includeFontPadding: false,
         color: '#E5E7EB',
     },
 });
