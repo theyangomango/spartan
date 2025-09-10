@@ -24,6 +24,7 @@ import PersonalInfoSheet from '../components/2_MacroTracking/PersonalInfoSheet';
 // 🔥 Firestore (load + save macro goals)
 import { db } from '../../firebase.config';
 import theme from '../theme/mfpDark';
+import { toDayKey } from '../utils/date';
 import { doc, onSnapshot, updateDoc, serverTimestamp } from 'firebase/firestore';
 
 if (Platform.OS === 'android' && UIManager.setLayoutAnimationEnabledExperimental) {
@@ -346,6 +347,7 @@ export default function MacroTracking({ navigation, route }) {
                         onDelete={deleteFood}
                         COLORS={COLORS}
                         PlusIcon={PlusIcon}
+                        dayKey={toDayKey(focusedDate)}
                     />
                 </ScrollView>
 

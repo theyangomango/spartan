@@ -3,9 +3,11 @@ import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
 import MealCard from './MealCard';
 import UnderMealList from '../UnderMealList';
 import { summarizeFood } from '../../utils/nutrition';
+import { useNavigation } from '@react-navigation/native';
 
-function MealsSection({ title = 'Daily meals', mealsMeta, meals, collapsed, toggleMeal, onAddPress, onDelete, COLORS, PlusIcon }) {
+function MealsSection({ title = 'Daily meals', mealsMeta, meals, collapsed, toggleMeal, onAddPress, onDelete, COLORS, PlusIcon, dayKey }) {
     const styles = useMemo(() => makeStyles(COLORS), [COLORS]);
+    const navigation = useNavigation();
     return (
         <View>
             <Text style={styles.sectionTitle}>{title}</Text>
@@ -27,6 +29,7 @@ function MealsSection({ title = 'Daily meals', mealsMeta, meals, collapsed, togg
                             listStyle={styles.underMealList}
                             cardStyle={styles.underMealCard}
                             showCaloriesRight
+                            onItemPress={(entry) => navigation.navigate('FoodDetail', { entry, mealName: m.name, dayKey })}
                             renderSummary={(entry) => summarizeFood(entry.desc, entry.brand, entry.quantity ?? 1)}
                             onDelete={(entry) => onDelete(m.name, entry)}
                         />
@@ -53,7 +56,8 @@ const propsEqual = (prev, next) => {
         prev.collapsed === next.collapsed &&
         prev.mealsMeta === next.mealsMeta &&
         prev.COLORS === next.COLORS &&
-        prev.title === next.title
+        prev.title === next.title &&
+        prev.dayKey === next.dayKey
     );
 };
 

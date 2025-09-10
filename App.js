@@ -1,5 +1,6 @@
 import 'expo-dev-client';
 import React, { useEffect, useRef, useState } from 'react';
+import * as SplashScreen from 'expo-splash-screen';
 import { NavigationContainer } from '@react-navigation/native';
 // Lazy-load expo-notifications to avoid native module errors on simulator
 // and in dev clients that weren't rebuilt with the module.
@@ -35,6 +36,7 @@ import Messages from './frontend/screens/1.1_Messages';
 import Chat from './frontend/screens/1.2_Chat';
 import ViewProfile from './frontend/screens/4.1_ViewProfile';
 import MacroTracking from './frontend/screens/MacroTracking';
+import FoodDetail from './frontend/screens/FoodDetail';
 import SearchUsers from './frontend/screens/SearchUsers';
 import Settings from './frontend/screens/Settings';
 import PrivacyPolicy from './frontend/screens/PrivacyPolicy';
@@ -54,6 +56,9 @@ enableScreens(true);
 enableFreeze(true);
 
 // (no screens optimization toggles — use defaults)
+
+// Keep native splash screen visible while we preload fonts and hydrate auth
+try { SplashScreen.preventAutoHideAsync(); } catch {}
 
 /* No nested stacks; everything registers on RootStack */
 
@@ -106,6 +111,7 @@ function Tabs({ route }) {
 
 export default function App() {
     const [fontsLoaded] = useFonts(customFonts);
+    const [authChecked, setAuthChecked] = useState(false);
     const [isAuthenticated, setIsAuthenticated] = useState(false);
     const [userReady, setUserReady] = useState(false);
     const uidRef = useRef(null);
@@ -132,6 +138,7 @@ export default function App() {
                 if (uid) { uidRef.current = uid; setIsAuthenticated(true); }
                 else { setIsAuthenticated(false); setUserReady(false); }
             } catch (err) { console.error(err); }
+            finally { setAuthChecked(true); }
         })();
     }, []);
 
@@ -342,7 +349,16 @@ export default function App() {
         return () => { if (notifUnsubRef.current) { try { notifUnsubRef.current(); } catch {} notifUnsubRef.current = null; } };
     }, [global?.userData?.uid]);
 
-    if (!fontsLoaded) return null;
+    const appReady = fontsLoaded && authChecked && (!isAuthenticated || userReady);
+
+    // Hide splash once fonts/auth are ready
+    useEffect(() => {
+        if (appReady) {
+            SplashScreen.hideAsync().catch(() => {});
+        }
+    }, [appReady]);
+
+    if (!appReady) return null;
 
     // Splash/guard until user is hydrated if authenticated
     if (isAuthenticated && !userReady) {
@@ -527,6 +543,8 @@ export default function App() {
                     {/* Creator */}
                     <RootStack.Screen name="SelectPhotos" component={SelectPhotosScreen} />
                     <RootStack.Screen name="PostOptions" component={PostUploadOptionsScreen} />
+                    {/* Nutrition */}
+                    <RootStack.Screen name="FoodDetail" component={FoodDetail} />
                 </RootStack.Navigator>
             </NavigationContainer>
             {/* Global Rest Reminder Modal */}
