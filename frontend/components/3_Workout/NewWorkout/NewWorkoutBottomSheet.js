@@ -142,13 +142,15 @@ const NewWorkoutBottomSheet = ({
             handleIndicatorStyle={{
                 backgroundColor: isViewingSelf ? theme.field : HANDLE_FRIEND_ACCENT,
             }}
+            // Keep handle container transparent so rounded corners show
             handleStyle={{
-                backgroundColor: isViewingSelf ? theme.field : HANDLE_FRIEND_BACKGROUND,
+                borderTopLeftRadius: 22,
+                borderTopRightRadius: 22,
             }}
             // Background drives color + rounded top corners for the entire modal
-            // Use darker background so inner cards/inputs pop with contrast
+            // Use a lighter surface color so the modal contrasts with app bg
             backgroundStyle={{
-                backgroundColor: theme.bg,
+                backgroundColor: theme.surface,
                 borderTopLeftRadius: 22,
                 borderTopRightRadius: 22,
             }}

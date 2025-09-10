@@ -90,8 +90,9 @@ export default function Podium({ data }) {
                     // Slightly lighter midnight-blue gradient
                     colors={["#1B4F8A", "#133A6D", "#0F2743"]}
                     locations={[0, 0.62, 1]}
-                    start={{ x: 0.06, y: 0.0 }}
-                    end={{ x: 0.94, y: 1.0 }}
+                    // Move gradient origin further toward screen center and slightly lower
+                    start={{ x: 0.30, y: 0.26 }}
+                    end={{ x: 0.92, y: 1.0 }}
                     style={StyleSheet.absoluteFillObject}
                 />
 
@@ -225,7 +226,7 @@ const styles = StyleSheet.create({
     // Subtle blue streaks only at the top portion
     streaks_container: {
         position: 'absolute',
-        top: 0,
+        top: scaleSize(28), // nudge streaks lower
         left: 0,
         right: 0,
         height: '42%',

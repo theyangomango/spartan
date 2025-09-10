@@ -11,7 +11,7 @@ const { width } = Dimensions.get("window");
 // Scaled sizes (baseline ~ iPhone 12/13: 390x844)
 const CARD_HEIGHT = scaleSize(64);
 const SELF_CARD_HEIGHT = scaleSize(86);
-const PFP_SIZE = scaleSize(44);
+const PFP_SIZE = scaleSize(42);
 
 const FONT_HANDLE = scaleSize(14);
 const FONT_NAME = scaleSize(13);

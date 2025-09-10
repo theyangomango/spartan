@@ -1,4 +1,4 @@
-import React, { useMemo } from "react";
+import React, { useMemo, useRef, useEffect } from "react";
 import { View, Text, StyleSheet, FlatList, TouchableOpacity, Dimensions } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import LeaderboardCard from "../2_Competition/LeaderboardCard";
@@ -104,12 +104,28 @@ export default function LeaderboardModal({
         if (idx !== activeCompIndex) onActiveCompChange(idx);
     };
 
+    const bannerRef = useRef(null);
+
+    // Keep banner scrolled to the active comparison when index changes post-mount
+    useEffect(() => {
+        if (!isTribeFocused) return;
+        if (!(hasComparisons)) return;
+        try {
+            const ref = bannerRef.current;
+            if (ref && typeof ref.scrollToIndex === 'function') {
+                ref.scrollToIndex({ index: Math.max(0, Math.min(activeCompIndex, tribeComparisons.length - 1)), animated: false });
+            }
+        } catch {}
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [activeCompIndex, isTribeFocused, hasComparisons]);
+
     const header = useMemo(() => {
         if (isTribeFocused) {
             if (hasComparisons) {
                 return (
                     <View style={{ marginBottom: 10 }}>
                         <FlatList
+                            ref={bannerRef}
                             horizontal
                             data={tribeComparisons}
                             keyExtractor={(_, i) => `tribe-comp-${i}`}

@@ -3,6 +3,7 @@ import { StyleSheet, View, ScrollView, Text, TextInput, Dimensions } from "react
 import ProfilePicture from "./ProfilePicture";
 import formatPhoneNumber from "../../../helper/formatPhoneNumber";
 import updateDoc from "../../../../backend/helper/firebase/updateDoc";
+import THEME from "../../../theme/mfpDark";
 
 const { width: screenWidth } = Dimensions.get('window');
 const scale = screenWidth / 375; // Base screen width assumed as 375
@@ -28,7 +29,7 @@ const EditProfileModal = ({ setPFP }) => {
                     <TextInput
                         style={styles.non_editable_input_text}
                         placeholder={global.userData.handle}
-                        placeholderTextColor={'#9CA3AF'}
+                        placeholderTextColor={THEME.muted}
                         editable={false}
                     />
                 </View>
@@ -38,7 +39,7 @@ const EditProfileModal = ({ setPFP }) => {
                         style={styles.non_editable_input_text}
                         placeholder={global.userData.name}
                         editable={false}
-                        placeholderTextColor={'#9CA3AF'}
+                        placeholderTextColor={THEME.muted}
                     />
                 </View>
                 <View style={styles.inputContainer}>
@@ -48,7 +49,8 @@ const EditProfileModal = ({ setPFP }) => {
                         value={bio}
                         onChangeText={setBio}
                         onBlur={handleBioBlur}
-                        placeholderTextColor={'#9CA3AF'}
+                        placeholderTextColor={THEME.muted}
+                        selectionColor={THEME.primary}
                     />
                 </View>
                 <View style={styles.inputContainer}>
@@ -57,7 +59,7 @@ const EditProfileModal = ({ setPFP }) => {
                         style={styles.non_editable_input_text}
                         placeholder={global.userData.email}
                         editable={false}
-                        placeholderTextColor={'#9CA3AF'}
+                        placeholderTextColor={THEME.muted}
                     />
                 </View>
                 <View style={styles.inputContainer}>
@@ -66,7 +68,7 @@ const EditProfileModal = ({ setPFP }) => {
                         style={styles.non_editable_input_text}
                         placeholder={formatPhoneNumber(global.userData.phoneNumber)}
                         editable={false}
-                        placeholderTextColor={'#9CA3AF'}
+                        placeholderTextColor={THEME.muted}
                     />
                 </View>
                 <View style={styles.inputContainer}>
@@ -75,7 +77,7 @@ const EditProfileModal = ({ setPFP }) => {
                         style={styles.non_editable_input_text}
                         placeholder="********"
                         editable={false}
-                        placeholderTextColor={'#9CA3AF'}
+                        placeholderTextColor={THEME.muted}
                         secureTextEntry
                     />
                 </View>
@@ -87,7 +89,7 @@ const EditProfileModal = ({ setPFP }) => {
 const styles = StyleSheet.create({
     mainContainer: {
         flex: 1,
-        backgroundColor: require("../../../theme/mfpDark").default.surface,
+        backgroundColor: THEME.surface,
     },
     scrollContainer: {
         alignItems: 'center',
@@ -97,38 +99,38 @@ const styles = StyleSheet.create({
         fontSize: scaleSize(13.5),
         fontFamily: 'Poppins_600SemiBold',
         letterSpacing: 0.1,
-        color: '#A5ACB8',
+        color: THEME.textSecondary,
         alignSelf: 'flex-start',
         paddingLeft: scaleSize(20),
         width: '100%',
         paddingVertical: scaleSize(12),
-        backgroundColor: require("../../../theme/mfpDark").default.field
+        backgroundColor: THEME.field
     },
     inputContainer: {
         flexDirection: 'row',
         alignItems: 'center',
         paddingHorizontal: scaleSize(20),
-        backgroundColor: require("../../../theme/mfpDark").default.surface,
+        backgroundColor: THEME.surface,
         marginVertical: 0,
         paddingVertical: scaleSize(12.5),
         borderBottomWidth: scaleSize(1),
-        borderBottomColor: require("../../../theme/mfpDark").default.hairline,
+        borderBottomColor: THEME.hairline,
     },
     label: {
         fontSize: scaleSize(14),
-        color: '#C5CCD6',
+        color: THEME.textSecondary,
         fontFamily: 'Outfit_500Medium',
         width: '35%',
     },
     non_editable_input_text: {
         fontSize: scaleSize(14),
-        color: '#E5E7EB',
+        color: THEME.textPrimary,
         fontFamily: 'Outfit_500Medium',
         width: '65%',
     },
     editable_input_text: {
         fontSize: scaleSize(14),
-        color: '#E5E7EB',
+        color: THEME.textPrimary,
         fontFamily: 'Outfit_500Medium',
         width: '65%',
     }

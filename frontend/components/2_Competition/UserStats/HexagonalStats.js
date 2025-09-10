@@ -109,16 +109,24 @@ const HexagonalStats = ({
                 </Defs>
 
                 {/* Concentric rings (no cross lines) */}
-                {ringPoints.map((pts, idx) => (
-                    <Polygon
-                        key={`ring-${idx}`}
-                        points={pts}
-                        // Darker ring strokes for better contrast on dark surfaces
-                        stroke={idx === levels - 1 ? "#9AA6BB" : "#8C99AF"}
-                        strokeWidth={ringStroke}
-                        fill="none"
-                    />
-                ))}
+                {ringPoints.map((pts, idx) => {
+                    // Subtle opacity falloff from outer (most opaque) to inner (least opaque)
+                    const minOpacity = 0.25;
+                    const maxOpacity = 0.5;
+                    const t = (levels > 1) ? (idx / (levels - 1)) : 1; // 0 (inner) → 1 (outer)
+                    const strokeOpacity = minOpacity + t * (maxOpacity - minOpacity);
+                    return (
+                        <Polygon
+                            key={`ring-${idx}`}
+                            points={pts}
+                            // Slightly darker outer ring for contrast; all rings use opacity gradient
+                            stroke={idx === levels - 1 ? "#9AA6BB" : "#8C99AF"}
+                            strokeOpacity={strokeOpacity}
+                            strokeWidth={ringStroke}
+                            fill="none"
+                        />
+                    );
+                })}
 
                 {/* Data polygon */}
                 <Polygon

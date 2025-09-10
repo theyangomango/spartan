@@ -151,8 +151,8 @@ const styles = StyleSheet.create({
         flexDirection: "row",
         alignItems: "center",
         justifyContent: "space-between",
-        // Align with ActivityChips background color
-        backgroundColor: theme.field,
+        // Slightly darker than ActivityChips background for subtle separation
+        backgroundColor: theme.fieldDeep,
         marginBottom: 10,
         borderWidth: 1,
         borderColor: theme.hairline,

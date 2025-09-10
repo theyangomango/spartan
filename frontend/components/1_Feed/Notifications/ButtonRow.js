@@ -106,18 +106,19 @@ const styles = StyleSheet.create({
         elevation: 1,
     },
     chipSelected: {
-        backgroundColor: "#2D9EFF",
-        borderColor: "rgba(255,255,255,0.12)",
+        // Higher-contrast but still on-brand
+        backgroundColor: theme.restPillBg,
+        borderColor: theme.primaryHairline,
         shadowOpacity: 0.12,
         elevation: 2,
     },
     chipText: {
-        color: "#E5E7EB",
+        color: theme.textPrimary,
         fontSize: scaleSize(13),
         fontFamily: "Outfit_600SemiBold",
     },
     chipTextSelected: {
-        color: "#FFFFFF",
+        color: theme.textPrimary,
     },
 
     badgeWrap: {
@@ -128,18 +129,18 @@ const styles = StyleSheet.create({
         alignItems: "center",
     },
     badge: {
-        backgroundColor: "#FF387E",
+        backgroundColor: theme.primary,
         borderRadius: scaleSize(9),
         paddingHorizontal: scaleSize(7),
         paddingVertical: scaleSize(4),
-        shadowColor: "#FF387E",
+        shadowColor: theme.primary,
         shadowOffset: { width: 0, height: 1 },
         shadowOpacity: 0.35,
         shadowRadius: 3,
         elevation: 3,
     },
     badgeText: {
-        color: "#fff",
+        color: theme.textPrimary,
         fontSize: scaleSize(10),
         fontFamily: "Outfit_600SemiBold",
     },

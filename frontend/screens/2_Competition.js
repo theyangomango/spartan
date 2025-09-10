@@ -158,6 +158,9 @@ const summaryOf = (c) => {
 export default function Competition({ navigation }) {
     const usersRef = useRef([]);
     const userUnsubRef = useRef(null);
+    // hydrate leaderboard from last saved view (backend)
+    const appliedLastViewRef = useRef(false);
+    const pendingTribeCompRef = useRef(null);
 
     // hydrate from global/module caches
     const persisted = getPersisted();
@@ -217,12 +220,36 @@ export default function Competition({ navigation }) {
     useEffect(() => { initUsers(); }, [initUsers]);
 
     useEffect(() => {
+        // Helper to apply last saved view once
+        const hydrateFromLastView = (lastView) => {
+            if (appliedLastViewRef.current) return;
+            if (!lastView || typeof lastView !== 'object') return;
+            appliedLastViewRef.current = true;
+
+            const type = String(lastView.type || '').toLowerCase();
+            if (type === 'tribe' && lastView.tribeId) {
+                // Switch to the tribe scope and defer picking the comparison until tribe list arrives
+                setSelectedTribeId(lastView.tribeId);
+                pendingTribeCompRef.current = lastView.comparison || null;
+            } else {
+                // Global or Following scopes
+                const scopeX = (type === 'following' || type === 'followers') ? 'Following' : 'Global';
+                setSelectedTribeId(null);
+                setScope(scopeX);
+                if (lastView.exercise) setComparedExercise(lastView.exercise);
+                if (lastView.metric) setComparedMetric(lastView.metric);
+            }
+        };
+
         const navUnsub = navigation.addListener("focus", () => {
             // Re-subscribe on focus without waiting for interactions to settle
             const id = setTimeout(() => {
                 if (userUnsubRef.current) userUnsubRef.current();
                 userUnsubRef.current = onSnapshot(doc(db, "users", global.userData.uid), async (docSnap) => {
-                    global.userData = docSnap.data();
+                    const data = docSnap.data();
+                    global.userData = data;
+                    // Apply last saved view once per mount
+                    try { hydrateFromLastView(data?.competitionLastView); } catch { }
                     initUsers(); // refresh users; recompute gated elsewhere
                 });
             }, 0);
@@ -235,7 +262,30 @@ export default function Competition({ navigation }) {
                 userUnsubRef.current = null;
             }
         };
-    }, [navigation, initUsers]);
+    }, [navigation, initUsers, setSelectedTribeId, setScope, setComparedExercise, setComparedMetric]);
+
+    // If global already holds userData (e.g., warm start), hydrate immediately once
+    useEffect(() => {
+        if (appliedLastViewRef.current) return;
+        try {
+            const lv = global?.userData?.competitionLastView;
+            if (lv) {
+                const type = String(lv.type || '').toLowerCase();
+                if (type === 'tribe' && lv.tribeId) {
+                    setSelectedTribeId(lv.tribeId);
+                    pendingTribeCompRef.current = lv.comparison || null;
+                } else {
+                    const scopeX = (type === 'following' || type === 'followers') ? 'Following' : 'Global';
+                    setSelectedTribeId(null);
+                    setScope(scopeX);
+                    if (lv.exercise) setComparedExercise(lv.exercise);
+                    if (lv.metric) setComparedMetric(lv.metric);
+                }
+                appliedLastViewRef.current = true;
+            }
+        } catch { }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, []);
 
     // ---- tribes subscription
     const currentTribe = useMemo(
@@ -248,6 +298,21 @@ export default function Competition({ navigation }) {
         if (Array.isArray(arr) && arr.length) return arr;
         return currentTribe?.comparison ? [currentTribe.comparison] : [];
     }, [currentTribe]);
+
+    // Once tribe comparisons load, align active index with the last saved comparison (if any)
+    useEffect(() => {
+        const want = pendingTribeCompRef.current;
+        if (!selectedTribeId || !want) return;
+        const list = Array.isArray(tribeComparisons) ? tribeComparisons : [];
+        if (!list.length) return;
+        const idx = list.findIndex((c) =>
+            String(c?.exercise || '') === String(want?.exercise || '') &&
+            String(c?.metric || '1RM') === String(want?.metric || '1RM') &&
+            !!c?.normalizeByBodyweight === !!want?.normalizeByBodyweight
+        );
+        if (idx >= 0) setActiveCompIndex(idx);
+        pendingTribeCompRef.current = null; // apply once
+    }, [selectedTribeId, tribeComparisons]);
 
     const isCustomTribe = !!selectedTribeId;
     const activeComparison =

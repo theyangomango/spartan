@@ -27,11 +27,11 @@ export default function UnderMealList({
     const renderRight = (entry) => (
         <View style={styles.actionsContainer}>
             <Pressable
-                style={[styles.deleteBtn, { backgroundColor: '#e65252' }]}
+                style={styles.deleteBtn}
                 onPress={() => onDelete?.(entry)}
                 hitSlop={8}
             >
-                <Ionicons name="trash-outline" size={18} color="#fff" />
+                <Ionicons name="trash-outline" size={18} color="#F27171" />
                 <Text style={styles.deleteText}>Delete</Text>
             </Pressable>
         </View>
@@ -101,17 +101,23 @@ const styles = StyleSheet.create({
     name: { fontSize: 12.5, fontFamily: 'Nunito_700Bold', marginBottom: 2, flexShrink: 1, paddingRight: 20 },
     cals: { fontSize: 14, fontFamily: 'Outfit_700Bold' },
     summary: { fontSize: 12, fontFamily: 'Nunito_600SemiBold' },
-    actionsContainer: { justifyContent: 'center', alignItems: 'flex-end', marginVertical: 2 },
+    actionsContainer: {
+        justifyContent: 'center',
+        alignItems: 'flex-end',
+        height: '100%',
+        width: 112, // defines the revealed action width
+    },
     deleteBtn: {
-        width: 88,
-        height: '90%',
-        marginRight: 18,
-        borderRadius: 12,
-        paddingHorizontal: 12,
+        width: '100%',
+        height: '100%',
+        minHeight: 32,
+        borderRadius: 0,
+        paddingHorizontal: 16,
         alignItems: 'center',
         justifyContent: 'center',
-        gap: 2,
-        flexDirection: 'column',
+        gap: 6,
+        flexDirection: 'row',
+        backgroundColor: 'rgba(242,113,113,0.16)'
     },
-    deleteText: { color: '#fff', fontFamily: 'Outfit_600SemiBold', fontSize: 12, marginTop: 2 },
+    deleteText: { color: '#F27171', fontFamily: 'Outfit_700Bold', fontSize: 12.5 },
 });

@@ -183,7 +183,7 @@ const styles = StyleSheet.create({
     sectionHeaderText: {
         fontFamily: "Outfit_700Bold",
         fontSize: scaleSize(12),
-        color: "#A1A7B3",
+        color: theme.textSecondary,
         letterSpacing: 0.3,
     },
 });

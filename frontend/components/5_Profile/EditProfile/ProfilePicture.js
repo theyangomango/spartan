@@ -7,6 +7,7 @@ import updateDoc from "../../../../backend/helper/firebase/updateDoc";
 import { deleteObject, ref, uploadBytes } from "firebase/storage";
 import { storage } from "../../../../firebase.config";
 import * as ImageManipulator from 'expo-image-manipulator';
+import THEME from "../../../theme/mfpDark";
 
 
 const ProfilePicture = ({ imageUri, setPFP }) => {
@@ -84,7 +85,9 @@ const styles = StyleSheet.create({
         position: 'absolute',
         bottom: 0,
         right: 0,
-        backgroundColor: '#333',
+        backgroundColor: THEME.fieldDeep,
+        borderWidth: 1,
+        borderColor: THEME.hairline,
         borderRadius: 100,
         padding: 8,
     },
