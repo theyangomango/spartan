@@ -122,6 +122,7 @@ const EditTemplateModal = ({ openedTemplateRef, updateTemplate, deleteTemplate }
                     </RNBounceable> */}
                 </View>
             </View>
+            <View style={styles.headerShadow} />
 
             <ScrollView
                 showsVerticalScrollIndicator={false}
@@ -141,7 +142,7 @@ const EditTemplateModal = ({ openedTemplateRef, updateTemplate, deleteTemplate }
                 ))}
                 <RNBounceable onPress={showSelectExerciseModal} style={styles.addExerciseButton}>
                     <Text style={styles.addExerciseText}>Add Exercises</Text>
-                    <Weight size={scaledSize(22)} color="#5DBDFF" variant='Bold' />
+                    <Weight size={scaledSize(22)} color="#FFFFFF" variant='Bold' />
                 </RNBounceable>
 
                 <RNBounceable style={styles.cancelButton} onPress={confirmDeleteTemplate}>
@@ -196,10 +197,7 @@ const styles = StyleSheet.create({
         justifyContent: 'space-between',
         zIndex: 1,
     },
-    headerShadow: {
-        borderBottomWidth: scaledSize(2),
-        borderBottomColor: theme.hairline
-    },
+    headerShadow: { height: scaledSize(2), backgroundColor: theme.hairline },
     titleInput: {
         flex: 1,
         fontFamily: 'Outfit_700Bold',
@@ -231,33 +229,44 @@ const styles = StyleSheet.create({
     addExerciseButton: {
         marginHorizontal: scaledSize(20),
         marginTop: scaledSize(18),
-        height: scaledSize(35),
+        height: scaledSize(40),
         borderRadius: scaledSize(12),
-        backgroundColor: theme.addBtnBg,
+        // Match NewWorkout add_exercise_btn styling
+        backgroundColor: 'rgba(45, 157, 255, 0.6)',
         justifyContent: 'center',
         alignItems: 'center',
-        flexDirection: 'row'
+        flexDirection: 'row',
+        shadowColor: theme.primary,
+        shadowOpacity: 0.15,
+        shadowRadius: scaledSize(6),
+        shadowOffset: { width: 0, height: scaledSize(3) },
+        elevation: 2,
     },
     addExerciseText: {
         fontSize: scaledSize(16),
         fontFamily: 'Outfit_700Bold',
-        color: theme.primary,
+        color: '#FFFFFF',
         marginRight: scaledSize(4.5)
     },
     cancelButton: {
         marginHorizontal: scaledSize(20),
-        marginTop: scaledSize(18),
-        height: scaledSize(35),
+        marginTop: scaledSize(14),
+        height: scaledSize(40),
         borderRadius: scaledSize(12),
-        backgroundColor: 'rgba(242,113,113,0.15)',
+        backgroundColor: 'rgba(217,76,76,0.7)',
         justifyContent: 'center',
         alignItems: 'center',
-        flexDirection: 'row'
+        flexDirection: 'row',
+        shadowColor: '#D94C4C',
+        shadowOpacity: 0.15,
+        shadowRadius: scaledSize(6),
+        shadowOffset: { width: 0, height: scaledSize(3) },
+        elevation: 2,
     },
     deleteButtonText: {
         fontSize: scaledSize(16),
         fontFamily: 'Outfit_700Bold',
-        color: '#F27171',
+        color: '#FFFFFF',
         marginRight: scaledSize(4.5)
     },
     modalOverlay: {
@@ -280,19 +289,8 @@ const styles = StyleSheet.create({
         marginBottom: scaledSize(20),
         textAlign: 'center',
     },
-    deleteTemplateBtn: {
-        width: '100%',
-        paddingVertical: scaledSize(8),
-        backgroundColor: 'rgba(242,113,113,0.15)',
-        borderRadius: scaledSize(8),
-        alignItems: 'center',
-        marginBottom: scaledSize(10),
-    },
-    deleteTemplateText: {
-        color: '#F27171',
-        fontSize: scaledSize(14),
-        fontFamily: 'Outfit_700Bold',
-    },
+    deleteTemplateBtn: { width: '100%', paddingVertical: scaledSize(10), backgroundColor: '#D94C4C', borderRadius: scaledSize(8), alignItems: 'center', marginBottom: scaledSize(10) },
+    deleteTemplateText: { color: '#FFFFFF', fontSize: scaledSize(14), fontFamily: 'Outfit_700Bold' },
     cancelDeleteBtn: {
         width: '100%',
         paddingVertical: scaledSize(8),

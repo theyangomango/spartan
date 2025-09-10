@@ -27,7 +27,7 @@ export default function ViewProfileHeader({ handle, goBack, toMessages }) {
             <View style={styles.sideRight}>
                 <RNBounceable onPress={toMessages} hitSlop={10}>
                     <View style={styles.message_icon_btn}>
-                        <Send2 size={scaleSize(18)} color={theme.textSecondary} variant="Linear" />
+                        <Send2 size={scaleSize(19)} color={theme.textSecondary} variant="Linear" />
                     </View>
                 </RNBounceable>
             </View>
@@ -67,9 +67,9 @@ const styles = StyleSheet.create({
         justifyContent: 'center',
     },
     message_icon_btn: {
-        width: scaleSize(24),
-        height: scaleSize(24),
-        borderRadius: scaleSize(6),
+        width: scaleSize(34),
+        height: scaleSize(34),
+        borderRadius: scaleSize(20),
         backgroundColor: 'transparent',
         borderWidth: scaleSize(1),
         borderColor: theme.hairline,

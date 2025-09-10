@@ -21,23 +21,35 @@ const EditTemplateBottomSheet = ({ isVisible, setIsVisible, openedTemplateRef, u
 
     useEffect(() => {
         if (isVisible) {
-            bottomSheetRef.current.expand();
+            try { bottomSheetRef.current?.expand?.(); } catch {}
         } else {
-            bottomSheetRef.current.close();
+            try { bottomSheetRef.current?.close?.(); } catch {}
         }
     }, [isVisible]);
 
     return (
         <BottomSheet
             ref={bottomSheetRef}
-            index={-1}
+            index={isVisible ? 0 : -1}
             snapPoints={snapPoints}
             backdropComponent={renderBackdrop}
+            keyboardBehavior="interactive"
+            keyboardBlurBehavior="restore"
             enablePanDownToClose
             enableContentPanningGesture={false}
-            backgroundStyle={{ backgroundColor: theme.bg }}
-            onClose={() => {
-                setIsVisible(false);
+            onClose={() => { try { setIsVisible(false); } catch {} }}
+            onChange={(index) => { if (index < 0) { try { setIsVisible(false); } catch {} } }}
+            handleStyle={{
+                borderTopLeftRadius: 22,
+                borderTopRightRadius: 22,
+            }}
+            handleIndicatorStyle={{
+                backgroundColor: theme.field,
+            }}
+            backgroundStyle={{
+                backgroundColor: theme.surface,
+                borderTopLeftRadius: 22,
+                borderTopRightRadius: 22,
             }}
         >
             {isVisible &&

@@ -1,5 +1,6 @@
 import React, { useState, useRef } from "react";
 import { TextInput, StyleSheet, Pressable, Dimensions } from "react-native";
+import theme from "../../../theme/mfpDark";
 
 const { height: screenHeight } = Dimensions.get('window');
 const scale = screenHeight / 844; // Scaling factor based on iPhone 13 height
@@ -55,7 +56,7 @@ export default function TemplateEditableStat({ placeholder = '0', value, setValu
                 editable
                 keyboardType="numeric"
                 placeholder={placeholder}
-                placeholderTextColor={'#888'}
+                placeholderTextColor={theme.textSecondary}
                 onFocus={() => setIsSelected(true)}
                 onEndEditing={() => setIsSelected(false)}
                 style={styles.text}
@@ -67,22 +68,8 @@ export default function TemplateEditableStat({ placeholder = '0', value, setValu
 }
 
 const styles = StyleSheet.create({
-    editing: {
-        width: scaledSize(63),
-        height: scaledSize(23),
-        borderRadius: scaledSize(8),
-        backgroundColor: '#eee',
-    },
-    selected: {
-        borderColor: '#0699FF',
-    },
-    finished: {
-        backgroundColor: '#DCFFDA',
-    },
-    text: {
-        fontFamily: 'Poppins_700Bold',
-        fontSize: scaledSize(15),
-        flex: 1,
-        textAlign: 'center'
-    },
+    editing: { width: scaledSize(63), height: scaledSize(26), borderRadius: scaledSize(9), backgroundColor: theme.field, borderWidth: 1, borderColor: 'rgba(255,255,255,0.30)' },
+    selected: { borderColor: theme.primary },
+    finished: { backgroundColor: theme.successBg },
+    text: { fontFamily: 'Poppins_700Bold', fontSize: scaledSize(15), flex: 1, textAlign: 'center', color: theme.textPrimary },
 });

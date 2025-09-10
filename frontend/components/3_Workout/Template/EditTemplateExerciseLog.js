@@ -4,6 +4,7 @@ import { MaterialCommunityIcons, Entypo } from '@expo/vector-icons';
 import RNBounceable from "@freakycoder/react-native-bounceable";
 import ExerciseOptionsPanel from "../NewWorkout/Tracking/ExerciseOptionsPanel";
 import TemplateSetRow from "./TemplateSetRow";
+import theme from "../../../theme/mfpDark";
 
 const { height: screenHeight } = Dimensions.get('window');
 const scale = screenHeight / 844; // Scaling factor based on iPhone 13 height
@@ -93,9 +94,9 @@ export default function EditTemplateExerciseLog({ name, muscle, exerciseIndex, u
             </Animated.View>
             <Animated.View style={[styles.add_set_btn_ctnr, { opacity: fadeAnim }]}>
                 <RNBounceable activeOpacity={0.5} onPress={addSet} style={styles.add_set_btn}>
-                    <Entypo name="plus" size={scaledSize(18)} color={'#000'} />
+                    <Entypo name="plus" size={scaledSize(18)} color={theme.textPrimary} />
                     <Text style={styles.add_set_text}>Add Set</Text>
-                    <MaterialCommunityIcons name="arm-flex" size={scaledSize(20)} color={'#aaa'} />
+                    <MaterialCommunityIcons name="arm-flex" size={scaledSize(20)} color={theme.muted} />
                 </RNBounceable>
             </Animated.View>
         </View>
@@ -121,12 +122,7 @@ const styles = StyleSheet.create({
         flexShrink: 1,
         marginRight: scaledSize(10),
     },
-    exercise_text: {
-        fontFamily: 'Mulish_800ExtraBold',
-        color: '#0699FF',
-        fontSize: scaledSize(15),
-        flexShrink: 1,
-    },
+    exercise_text: { fontFamily: 'Mulish_800ExtraBold', color: theme.primary, fontSize: scaledSize(15), flexShrink: 1 },
     // muscle_ctnr and muscle_text removed
     pfpContainer: {
         flexDirection: 'row',
@@ -145,11 +141,7 @@ const styles = StyleSheet.create({
     pfpOverlap: {
         marginLeft: scaledSize(-24),
     },
-    labels: {
-        flexDirection: 'row',
-        paddingBottom: scaledSize(5),
-        marginHorizontal: scaledSize(2.5),
-    },
+    labels: { flexDirection: 'row', paddingBottom: scaledSize(5), marginHorizontal: scaledSize(2.5) },
     set_ctnr: {
         marginLeft: '5%',
         width: '8%',
@@ -167,29 +159,10 @@ const styles = StyleSheet.create({
         width: '18%',
         alignItems: 'center',
     },
-    label_text: {
-        fontFamily: 'Mulish_800ExtraBold',
-        fontSize: scaledSize(14),
-    },
+    label_text: { fontFamily: 'Mulish_800ExtraBold', fontSize: scaledSize(14), color: theme.textSecondary },
     add_set_btn_ctnr: {
         paddingHorizontal: scaledSize(20),
     },
-    add_set_btn: {
-        width: '100%',
-        marginTop: scaledSize(8),
-        alignSelf: 'center',
-        height: scaledSize(28),
-        borderRadius: scaledSize(20),
-        backgroundColor: '#eaeaea',
-        justifyContent: 'center',
-        alignItems: 'center',
-        flexDirection: 'row',
-    },
-    add_set_text: {
-        fontFamily: 'Outfit_600SemiBold',
-        color: '#000',
-        fontSize: scaledSize(15),
-        marginLeft: scaledSize(1),
-        marginRight: scaledSize(5),
-    },
+    add_set_btn: { width: '100%', marginTop: scaledSize(8), alignSelf: 'center', height: scaledSize(30), borderRadius: scaledSize(20), backgroundColor: theme.field, justifyContent: 'center', alignItems: 'center', flexDirection: 'row' },
+    add_set_text: { fontFamily: 'Outfit_600SemiBold', color: theme.textPrimary, fontSize: scaledSize(15), marginLeft: scaledSize(1), marginRight: scaledSize(5) },
 });
