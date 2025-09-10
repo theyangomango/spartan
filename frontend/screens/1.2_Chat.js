@@ -473,7 +473,8 @@ const styles = StyleSheet.create({
         paddingVertical: 8,
         paddingHorizontal: 10,
         borderRadius: 12,
-        backgroundColor: "rgba(25,32,45,0.75)",
+        // dim using a tone close to theme.bg, with alpha
+        backgroundColor: "rgba(24,27,40,0.75)",
     },
 
     // date chip styles (same sleek vibe)

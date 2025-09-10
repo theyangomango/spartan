@@ -359,7 +359,7 @@ const styles = StyleSheet.create({
     groupOther: { borderBottomLeftRadius: 7 },
 
     text: { fontSize: 14, lineHeight: 19, letterSpacing: 0.1, fontFamily: "Outfit_500Medium" },
-    textSelf: { color: '#FFFFFF' },
+    textSelf: { color: theme.textPrimary },
     textOther: { color: theme.textPrimary },
 
     mediaWrap: { flexDirection: "row", flexWrap: "wrap", gap: 6, marginTop: 6 },
