@@ -102,8 +102,10 @@ const CommentsBottomSheet = ({ isVisible, postData, commentsBottomSheetExpandFla
     };
 
     // Handle visibility: open sheet + sync footer entrance
+    // Depend on stable pid instead of the whole object to avoid re-running on like updates
+    const postPid = postData?.pid;
     useEffect(() => {
-        const hasPost = !!postData;
+        const hasPost = !!postPid;
         if (isVisible && hasPost) {
             const tryOpen = () => bottomSheetRef.current?.snapToIndex(0);
             requestAnimationFrame(() => { tryOpen(); });
@@ -118,7 +120,7 @@ const CommentsBottomSheet = ({ isVisible, postData, commentsBottomSheetExpandFla
             bottomSheetRef.current?.close();
             Animated.timing(footerOpacity, { toValue: 0, duration: 120, useNativeDriver: true }).start();
         }
-    }, [isVisible, postData]);
+    }, [isVisible, postPid]);
 
     // Expand the bottom sheet when flagged
     useEffect(() => {
@@ -152,7 +154,7 @@ const CommentsBottomSheet = ({ isVisible, postData, commentsBottomSheetExpandFla
         >
             <BottomSheet
                 ref={bottomSheetRef}
-                index={isVisible && postData ? 0 : -1}
+                index={isVisible && !!postPid ? 0 : -1}
                 snapPoints={snapPoints}
                 onChange={handleSheetIndexChange}
                 handleStyle={{ display: 'none' }}
@@ -169,31 +171,40 @@ const CommentsBottomSheet = ({ isVisible, postData, commentsBottomSheetExpandFla
                     />
                 )}
             </BottomSheet>
-            {isVisible && postData && (
-                <Animated.View style={[
+            {/* Keep footer mounted to preserve TextInput state across post updates/likes */}
+            <Animated.View
+                pointerEvents={isVisible && !!postPid ? 'auto' : 'none'}
+                style={[
                     styles.footer,
                     { opacity: footerOpacity, transform: [{ translateY: Animated.add(footerTranslateY, footerIntroY) }] }
-                ]}>
-                    <View style={styles.inputContainer}>
-                        <View style={styles.image_ctnr}>
-                            <Image source={{ uri: global.userData.image }} style={styles.pfp} />
-                        </View>
-                        <TextInput
-                            ref={textInputRef}
-                            placeholder={replyingToIndex == null ? "Add comment" : `Replying to ${postData.comments[replyingToIndex].handle}`}
-                            placeholderTextColor="#C9D2E3"
-                            style={styles.textInput}
-                            onFocus={handleInputFocus}
-                            onBlur={handleInputBlur}
-                            value={inputText}
-                            onChangeText={setInputText}
-                        />
-                        <Pressable style={styles.sendButton} onPress={handleSend}>
-                            <Ionicons name="send" size={dynamicStyles.sendButtonSize} color="#E5E7EB" />
-                        </Pressable>
+                ]}
+            >
+                <View style={styles.inputContainer}>
+                    <View style={styles.image_ctnr}>
+                        <Image source={{ uri: global.userData.image }} style={styles.pfp} />
                     </View>
-                </Animated.View>
-            )}
+                    <TextInput
+                        ref={textInputRef}
+                        placeholder={
+                            replyingToIndex == null
+                                ? "Add comment"
+                                : (postData?.comments?.[replyingToIndex]?.handle
+                                    ? `Replying to ${postData.comments[replyingToIndex].handle}`
+                                    : "Add comment")
+                        }
+                        placeholderTextColor="#C9D2E3"
+                        style={styles.textInput}
+                        onFocus={handleInputFocus}
+                        onBlur={handleInputBlur}
+                        value={inputText}
+                        onChangeText={setInputText}
+                        editable={isVisible && !!postPid}
+                    />
+                    <Pressable style={styles.sendButton} onPress={handleSend} disabled={!isVisible || !postPid}>
+                        <Ionicons name="send" size={dynamicStyles.sendButtonSize} color="#E5E7EB" />
+                    </Pressable>
+                </View>
+            </Animated.View>
         </KeyboardAvoidingView>
     );
 };

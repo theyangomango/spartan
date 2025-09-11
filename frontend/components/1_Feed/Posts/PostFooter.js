@@ -89,7 +89,7 @@ export default function PostFooter({ data, onPressCommentButton, onPressShareBut
             <View style={styles.top}>
                 {/* Left portion: like, comment, share */}
                 <View style={styles.left}>
-                    <RNBounceable style={styles.likeButton} onPress={handlePressLikeButton} hitSlop={{ top: 160, bottom: 12, left: 12, right: 12 }}>
+                    <RNBounceable style={styles.likeButton} onPress={handlePressLikeButton} hitSlop={{ top: 4, bottom: 12, left: 12, right: 12 }}>
                         <BlurView style={styles.likeButtonBlurView}>
                             <Heart
                                 size={dynamicStyles.iconSize}
@@ -104,7 +104,7 @@ export default function PostFooter({ data, onPressCommentButton, onPressShareBut
                         // disabled={!isSomePostFocused}
                         onPress={onPressCommentButton}
                         style={styles.commentButton}
-                        hitSlop={{ top: 160, bottom: 12, left: 12, right: 12 }}
+                        hitSlop={{ top: 4, bottom: 12, left: 12, right: 12 }}
                     >
                         <Messages1 size={dynamicStyles.iconSize} color="#fff" variant="Bold" />
                         <Text style={styles.commentButtonText}>{data.commentCount}</Text>
@@ -122,7 +122,7 @@ export default function PostFooter({ data, onPressCommentButton, onPressShareBut
                 </View>
 
                 {/* Right portion: save button */}
-                <RNBounceable style={styles.saveButton} onPress={handlePressSaveButton} hitSlop={{ top: 160, bottom: 12, left: 12, right: 12 }}>
+                <RNBounceable style={styles.saveButton} onPress={handlePressSaveButton} hitSlop={{ top: 4, bottom: 12, left: 12, right: 12 }}>
                     {isSaved ? (
                         <Svg
                             xmlns="http://www.w3.org/2000/svg"
