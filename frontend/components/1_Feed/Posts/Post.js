@@ -84,7 +84,6 @@ function Post({
     highlightSignal,
     programFocusPid,
     programFocusSignal,
-    registerSlideController,
 }) {
     const { pfp } = data;
     // Normalize media for backward compatibility where posts stored `images: string[]`
@@ -200,7 +199,7 @@ function Post({
     });
 
     const flashSwipeFeedback = useCallback(() => {
-        try { Haptics.impactAsync?.(Haptics.ImpactFeedbackStyle.Light).catch(() => { }); } catch { }
+        try { Haptics.impactAsync?.(Haptics.ImpactFeedbackStyle.Heavy).catch(() => { }); } catch { }
         try { swipeFlashOpacity.stopAnimation(); } catch { }
         swipeFlashOpacity.setValue(0);
         Animated.sequence([
@@ -209,31 +208,7 @@ function Post({
         ]).start();
     }, [swipeFlashOpacity]);
 
-    // Expose slide control for container-level horizontal gestures when focused
-    useEffect(() => {
-        if (!registerSlideController) return;
-        if (!(isFocused && isSomePostFocused)) {
-            try { registerSlideController(null); } catch { }
-            return;
-        }
-        const controller = {
-            scrollBy: (dir) => {
-                try {
-                    const len = mediaList.length || 0;
-                    if (len <= 1) return;
-                    const step = dir > 0 ? 1 : dir < 0 ? -1 : 0;
-                    if (!step) return;
-                    const next = Math.max(0, Math.min(len - 1, currentIndex + step));
-                    if (next === currentIndex) return;
-                    flatListRef.current?.scrollToIndex?.({ index: next, animated: true });
-                    setCurrentIndex(next);
-                } catch { }
-            }
-        };
-        registerSlideController(controller);
-        return () => { try { registerSlideController(null); } catch { } };
-        // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [isFocused, isSomePostFocused, currentIndex, mediaList.length]);
+    // No external slide controller: keep horizontal paging native to FlatList
 
     // Diagonal swipe-to-dismiss (bottom-left -> top-right). Let FlatList own horizontal.
     const panResponder = useMemo(() => {
@@ -428,7 +403,7 @@ export default React.memo(Post, areEqual);
 
 const styles = StyleSheet.create({
     wrapper: { width: "100%" },
-    // Keep negative margin for visuals but compensate at the cell level with padding
+    // Keep negative margin for visuals; list cell expands hit-area separately
     card: { width: "100%", borderColor: "rgba(255,255,255,0.06)", marginBottom: -66 },
     body: { width: W, height: W / AR },
     gallery: {

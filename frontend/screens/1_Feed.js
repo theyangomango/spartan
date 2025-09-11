@@ -7,6 +7,7 @@
 
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Animated, Dimensions, SafeAreaView, StyleSheet, View, Easing as RNEasing, Text, RefreshControl, PanResponder } from "react-native";
+import * as Haptics from 'expo-haptics';
 import { useFocusEffect } from '@react-navigation/native';
 import { StatusBar } from "expo-status-bar";
 import { doc, onSnapshot } from "firebase/firestore";
@@ -34,6 +35,7 @@ import useFilteredFeed from "../helper/useFilteredFeed";
 import MaskedView from "@react-native-masked-view/masked-view";
 
 const { width, height } = Dimensions.get("window");
+const CARD_AR = 0.8; // Post card aspect ratio (W / H)
 const TARGET_POSITION = getScrollTargetPosition(width, height),
     ANIMATION_DURATION = 300;
 
@@ -453,7 +455,7 @@ export default function Feed({ navigation, route }) {
     }, [isSomePostFocused]);
 
     // Feed-level PanResponder: diagonal unfocus only (let inner FlatList own horizontal paging)
-    const slideControllerRef = useRef(null);
+    // No external slide controller; FlatList inside Post owns horizontal paging
     const feedPan = useMemo(() => {
         const TAN35 = 0.700; // tan(35deg)
         const MIN_MOVE = 4;
@@ -486,6 +488,7 @@ export default function Feed({ navigation, route }) {
                 const distanceOK = dx > 12 && dy < -12;
                 const velocityOK = vx >= 0.10 && vy <= -0.10;
                 if (isSomePostFocused && isDiagonal && (distanceOK || velocityOK)) {
+                    try { Haptics.impactAsync?.(Haptics.ImpactFeedbackStyle.Heavy).catch(() => {}); } catch {}
                     requestUnfocus();
                 }
             },
@@ -758,7 +761,6 @@ export default function Feed({ navigation, route }) {
                 toViewProfile: toViewProfilePosts,
                 openViewWorkoutModal,
                 focusSeq,
-                registerSlideController: (controller) => { slideControllerRef.current = controller; },
             };
 
             if (!isSomePostFocused) {
@@ -787,7 +789,7 @@ export default function Feed({ navigation, route }) {
                             zIndex: 1,
                             // Expand hit area below the card when focused so presses/swipes in the
                             // visually overlapped bottom strip are still within the cell bounds.
-                            paddingBottom: width / 0.8,
+                            paddingBottom: width / CARD_AR,
                         },
                     ]}>
                         <Post
