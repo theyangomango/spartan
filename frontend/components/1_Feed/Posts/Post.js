@@ -25,7 +25,7 @@ const { width: W } = Dimensions.get("window");
 const AR = 0.8;
 const BORDER = 35;
 
-const FADE_MS = 140;
+import { FOCUS_ANIM_MS, FOCUS_EASING } from './animConfig';
 const B_IN = 1.02;
 const B_OUT = 1;
 const B_FRICTION = 60;
@@ -117,10 +117,11 @@ function Post({
         } else {
             target = 1;
         }
+        try { opacity.stopAnimation(); } catch {}
         Animated.timing(opacity, {
             toValue: target,
-            duration: FADE_MS,
-            easing: Easing.out(Easing.cubic),
+            duration: FOCUS_ANIM_MS,
+            easing: FOCUS_EASING,
             useNativeDriver: true,
         }).start();
     }, [isSomePostFocused, isFocused, isAdjacentToFocused, isAboveAdjacent, isUnfocusing]);
@@ -287,7 +288,12 @@ function Post({
         });
     }, [isFocused, isSomePostFocused, onSwipeUnfocus, flashSwipeFeedback]);
 
-    const mediaListKey = useMemo(() => `${String(data?.pid || index)}-${isFocused ? 'focused' : 'normal'}-${isSomePostFocused ? 1 : 0}-${focusSeq || 0}`, [data?.pid, index, isFocused, isSomePostFocused, focusSeq]);
+    // Keep keys stable across global focus toggles to avoid mass remounts.
+    // Only the focused card (or when focusSeq changes) should remount.
+    const mediaListKey = useMemo(
+        () => `${String(data?.pid || index)}-${isFocused ? 'focused' : 'normal'}-${focusSeq || 0}`,
+        [data?.pid, index, isFocused, focusSeq]
+    );
 
     return (
         <Animated.View

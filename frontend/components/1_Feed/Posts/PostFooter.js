@@ -4,7 +4,7 @@
  */
 
 import React, { useState, useEffect, useRef } from 'react';
-import { View, Text, StyleSheet, Pressable, Animated, Dimensions } from 'react-native';
+import { View, Text, StyleSheet, Pressable, Animated, Dimensions, Easing } from 'react-native';
 import { BlurView } from 'expo-blur';
 import { Heart, Messages1, Send2 } from 'iconsax-react-native';
 import RNBounceable from '@freakycoder/react-native-bounceable';
@@ -17,6 +17,7 @@ import arrayErase from '../../../../backend/helper/firebase/arrayErase';
 import sendNotification from '../../../../backend/sendNotification';
 import { getPostFooterStyles } from '../../../helper/getPostFooterStyles';
 import isThisUser from '../../../helper/isThisUser'
+import { FOCUS_ANIM_MS, FOCUS_EASING } from './animConfig';
 
 const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get("window");
 const dynamicStyles = getPostFooterStyles(SCREEN_WIDTH, SCREEN_HEIGHT);
@@ -40,9 +41,11 @@ export default function PostFooter({ data, onPressCommentButton, onPressShareBut
 
     // Animate appearance/disappearance when post is focused/unfocused
     useEffect(() => {
+        try { opacityAnim.stopAnimation(); } catch {}
         Animated.timing(opacityAnim, {
             toValue: isSomePostFocused ? 1 : 0,
-            duration: 300,
+            duration: FOCUS_ANIM_MS,
+            easing: FOCUS_EASING,
             useNativeDriver: true,
         }).start();
     }, [isSomePostFocused]);
