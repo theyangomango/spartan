@@ -98,6 +98,38 @@ export const parseMacrosFromDescription = (desc = '', quantity = 1) => {
     return scaleMacros(base, quantity);
 };
 
+/**
+ * Attempt to parse additional nutrition facts from a FatSecret-style description
+ * and scale by quantity.
+ * - Returns grams for sugar/fiber/saturated fat and mg for sodium/cholesterol.
+ * - Any field not present will be `null` so callers can show an empty-state.
+ */
+export const parseExtraNutrientsFromDescription = (desc = '', quantity = 1) => {
+    const text = String(desc);
+    const q = coercePortion(quantity);
+
+    const pickNumber = (regex) => {
+        const m = text.match(regex);
+        if (!m) return null;
+        const v = parseFloat(m[1]);
+        if (!Number.isFinite(v)) return null;
+        return v * q;
+    };
+
+    // Total sugars (g)
+    const sugar_g = pickNumber(/\b(?:sugars?|sugar)\s*:?\s*(\d+(?:\.\d+)?)\s*g\b/i);
+    // Dietary fiber (g)
+    const fiber_g = pickNumber(/\b(?:dietary\s+fiber|fiber)\s*:?\s*(\d+(?:\.\d+)?)\s*g\b/i);
+    // Sodium (mg)
+    const sodium_mg = pickNumber(/\bsodium\s*:?\s*(\d+(?:\.\d+)?)\s*mg\b/i);
+    // Saturated fat (g)
+    const satFat_g = pickNumber(/\b(?:saturated\s+fat|sat\.?\s*fat)\s*:?\s*(\d+(?:\.\d+)?)\s*g\b/i);
+    // Cholesterol (mg)
+    const cholesterol_mg = pickNumber(/\bcholesterol\s*:?\s*(\d+(?:\.\d+)?)\s*mg\b/i);
+
+    return { sugar_g, fiber_g, sodium_mg, satFat_g, cholesterol_mg };
+};
+
 export const formatPortion = (qty, unit) => {
     const u = (unit || '').trim().toLowerCase();
     if (/^g(ram|rams)?$/.test(u)) return `${qty}g`;

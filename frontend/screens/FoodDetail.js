@@ -5,7 +5,8 @@ import { Ionicons } from '@expo/vector-icons';
 import theme from '../theme/mfpDark';
 import { db } from '../../firebase.config';
 import { doc, updateDoc, serverTimestamp, setDoc, collection } from 'firebase/firestore';
-import { parseMacrosFromDescription } from '../utils/nutrition';
+import { parseMacrosFromDescription, parseExtraNutrientsFromDescription } from '../utils/nutrition';
+import { getFoodById } from './fatsecretClient';
 import Svg, { Circle } from 'react-native-svg';
 
 const COLORS = {
@@ -15,6 +16,8 @@ const COLORS = {
     subtext: theme.textSecondary,
     hairline: theme.hairline,
     accent: theme.primary,
+    accentSoft: theme.accentBlue,
+    muted: theme.muted,
     // Macro colors (match MacroTracking)
     protein: '#6c98fcff',
     carbs: '#ff7cb5ff',
@@ -33,11 +36,74 @@ export default function FoodDetail({ navigation, route }) {
     });
     const [meal, setMeal] = useState(mealNameInit);
     // Choose description source based on mode
+
     const baseDesc = mode === 'add' ? (food?.food_description || '') : (entry?.desc || '');
     const displayName = mode === 'add' ? (food?.food_name || 'Food Item') : (entry?.name || 'Food Item');
     const displayBrand = mode === 'add' ? (food?.brand_name || '') : (entry?.brand || '');
-    const macros = useMemo(() => parseMacrosFromDescription(baseDesc, Number(servings) || 1), [baseDesc, servings]);
+    const macros = useMemo(() => {
+        const qty = Number(servings) || 1;
+        return parseMacrosFromDescription(baseDesc, qty);
+    }, [baseDesc, servings]);
     const [saving, setSaving] = useState(false);
+    const [apiServing, setApiServing] = useState(null); // default serving from FatSecret
+
+    // Fetch default serving once so we can populate Nutrition Facts robustly
+    useEffect(() => {
+        let cancelled = false;
+        (async () => {
+            try {
+                const fid = mode === 'add'
+                    ? String(food?.food_id || '').trim()
+                    : String(entry?.foodId || entry?.food_id || '').trim();
+                if (!fid) return;
+                const res = await getFoodById(fid).catch(() => null);
+                const f = res?.food || null;
+                const servings = f?.servings?.serving;
+                const arr = Array.isArray(servings) ? servings : (servings ? [servings] : []);
+                if (!arr.length) return;
+                const def = arr.find((s) => String(s?.is_default || '') === '1') || arr[0];
+                if (!cancelled) setApiServing(def || null);
+            } catch {}
+        })();
+        return () => { cancelled = true; };
+    }, [mode, food?.food_id, entry?.foodId, entry?.food_id]);
+
+    const extras = useMemo(() => {
+        const qty = Number(servings) || 1;
+        if (apiServing) {
+            const toNum = (v) => {
+                const n = Number(v);
+                return Number.isFinite(n) ? n : null;
+            };
+            const sugar = toNum(apiServing.sugar);
+            const fiber = toNum(apiServing.fiber);
+            const sodium = toNum(apiServing.sodium);
+            const satFat = toNum(apiServing.saturated_fat);
+            const chol = toNum(apiServing.cholesterol);
+            return {
+                sugar_g: sugar == null ? null : sugar * qty,
+                fiber_g: fiber == null ? null : fiber * qty,
+                sodium_mg: sodium == null ? null : sodium * qty,
+                satFat_g: satFat == null ? null : satFat * qty,
+                cholesterol_mg: chol == null ? null : chol * qty,
+            };
+        }
+        return parseExtraNutrientsFromDescription(baseDesc, qty);
+    }, [apiServing, baseDesc, servings]);
+
+    // Extract a compact serving label from the description (e.g., "100 g", "1/2 cup", "1 serving")
+    const servingLabel = useMemo(() => {
+        const text = String(baseDesc || '');
+        // Prefer explicit "Per ..." header until '-' or '|'
+        const per = text.match(/\bper\b\s*([^\-|]+)/i);
+        if (per) {
+            return per[1].trim().replace(/\s+/g, ' ');
+        }
+        // Fallback to a bare unit like "100 g" or "240 ml"
+        const bare = text.match(/(\d+(?:\s*\/\s*\d+)?(?:\.\d+)?)\s*(g|ml|oz|cup|cups|tbsp|tablespoon|tsp|teaspoon|slice|piece|serving)s?/i);
+        if (bare) return `${bare[1].replace(/\s+/g, '')} ${bare[2]}`.replace('  ', ' ');
+        return '';
+    }, [baseDesc]);
 
     useEffect(() => {
         // Ensure title in header area uses SafeArea by setting StatusBar and wrapping in SafeAreaView below
@@ -76,6 +142,8 @@ export default function FoodDetail({ navigation, route }) {
                     carbs: Math.round(m.carbs || 0),
                     fat: Math.round(m.fat || 0),
                 },
+                // Keep existing foodId if already stored; otherwise omit
+                ...(entry?.foodId || entry?.food_id ? { foodId: String(entry.foodId || entry.food_id) } : {}),
                 updatedAt: serverTimestamp(),
             });
         } catch (e) {
@@ -109,6 +177,7 @@ export default function FoodDetail({ navigation, route }) {
                     carbs: Math.round(m.carbs || 0),
                     fat: Math.round(m.fat || 0),
                 },
+                // no serving-specific storage; we rely on description default
                 createdAt: serverTimestamp(),
                 updatedAt: serverTimestamp(),
             };
@@ -161,14 +230,18 @@ export default function FoodDetail({ navigation, route }) {
                 )}
             </View>
 
-            <ScrollView style={{ flex: 1 }} contentContainerStyle={{ paddingBottom: 24 }}>
+            <ScrollView style={{ flex: 1 }} contentContainerStyle={{ paddingBottom: 24 }} showsVerticalScrollIndicator={false}>
                 {/* Top summary section spanning full width */}
                 <View style={styles.topSummary}>
-                    {displayBrand ? (
-                        <Text style={styles.brand} numberOfLines={1}>{displayBrand}</Text>
-                    ) : null}
                     <Text style={styles.title} numberOfLines={2}>{displayName}</Text>
-                    {/* Hide long description under title per request */}
+                    {/* Tagline: brand + default serving from description */}
+                    {(() => {
+                        const parts = [];
+                        if (displayBrand) parts.push(displayBrand);
+                        if (servingLabel) parts.push(servingLabel);
+                        const line = parts.join(', ');
+                        return line ? (<Text style={styles.desc} numberOfLines={1}>{line}</Text>) : null;
+                    })()}
                 </View>
 
                 <View style={styles.hairline} />
@@ -193,7 +266,6 @@ export default function FoodDetail({ navigation, route }) {
                         </Pressable>
                     </View>
                 </View>
-
                 <View style={styles.hairline} />
 
                 {/* Meal selection */}
@@ -215,9 +287,12 @@ export default function FoodDetail({ navigation, route }) {
                 <View style={styles.hairline} />
 
                 {/* Macro ring + stats */}
-                <View style={{ paddingTop: 16, paddingBottom: 24 }}>
+                <View style={{ paddingTop: 16, paddingBottom: 16 }}>
                     <MacroRow m={macros} />
                 </View>
+
+                {/* Nutrition facts (collapsible) */}
+                <NutritionFacts extras={extras} />
             </ScrollView>
         </SafeAreaView>
     );
@@ -373,6 +448,67 @@ function MacroStat({ color, label, grams, width }) {
     );
 }
 
+function NutritionFacts({ extras }) {
+    const [open, setOpen] = useState(true);
+
+    // Daily Values (FDA 2016 update)
+    const DV = {
+        fiber_g: 28,
+        sodium_mg: 2300,
+        satFat_g: 20,
+        cholesterol_mg: 300,
+    };
+
+    const rows = [
+        {
+            key: 'sugar_g',
+            label: 'Sugars',
+            unit: 'g',
+            value: extras?.sugar_g,
+            dv: null, // No established %DV for total sugars
+        },
+        { key: 'fiber_g', label: 'Dietary Fiber', unit: 'g', value: extras?.fiber_g, dv: DV.fiber_g },
+        { key: 'sodium_mg', label: 'Sodium', unit: 'mg', value: extras?.sodium_mg, dv: DV.sodium_mg },
+        { key: 'satFat_g', label: 'Saturated Fat', unit: 'g', value: extras?.satFat_g, dv: DV.satFat_g },
+        { key: 'cholesterol_mg', label: 'Cholesterol', unit: 'mg', value: extras?.cholesterol_mg, dv: DV.cholesterol_mg },
+    ];
+
+    const anyProvided = rows.some((r) => Number.isFinite(r.value));
+
+    return (
+        <View>
+            <Pressable onPress={() => setOpen((v) => !v)} style={styles.sectionHeader}>
+                <Text style={styles.sectionHeaderText}>Nutrition Facts</Text>
+                <Ionicons name={open ? 'chevron-up' : 'chevron-down'} size={18} color={COLORS.subtext} />
+            </Pressable>
+            <View style={styles.hairline} />
+            {open && (
+                <View style={styles.factsWrap}>
+                    {anyProvided ? (
+                        rows.map((r) => {
+                            if (!Number.isFinite(r.value)) return null;
+                            const val = r.unit === 'mg' ? Math.round(r.value) : Math.round(r.value * 10) / 10;
+                            let pct = null;
+                            if (r.dv && r.dv > 0) pct = Math.round((val / r.dv) * 100);
+                            return (
+                                <View key={r.key} style={styles.factRow}>
+                                    <Text style={styles.factLabel}>{r.label}</Text>
+                                    <View style={styles.factRight}>
+                                        <Text style={styles.factValue}>{val}<Text style={styles.factUnit}> {r.unit}</Text></Text>
+                                        {pct != null && (<Text style={styles.factPercentSub}>{`${pct}% DV`}</Text>)}
+                                    </View>
+                                </View>
+                            );
+                        })
+                    ) : (
+                        <Text style={styles.factsEmpty}>Not provided by source</Text>
+                    )}
+                </View>
+            )}
+        </View>
+    );
+}
+
 const styles = StyleSheet.create({
     header: { height: 52, flexDirection: 'row', alignItems: 'center', paddingHorizontal: 8 },
     backBtn: {
@@ -451,4 +587,14 @@ const styles = StyleSheet.create({
     macroStatDot: { width: 8, height: 8, borderRadius: 4, marginRight: 2 },
     macroStatLabel: { color: COLORS.subtext, fontFamily: 'Nunito_700Bold', fontSize: 12 },
     macroStatValue: { color: COLORS.text, fontFamily: 'Outfit_800ExtraBold', fontSize: 18 },
+    sectionHeader: { paddingHorizontal: 18, paddingVertical: 12, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
+    sectionHeaderText: { color: COLORS.subtext, fontFamily: 'Nunito_800ExtraBold', fontSize: 13, letterSpacing: 0.3 },
+    factsWrap: { paddingHorizontal: 18, paddingVertical: 14, gap: 14 },
+    factRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', height: 47, paddingVertical: 6 },
+    factLabel: { color: COLORS.text, fontFamily: 'Nunito_700Bold', fontSize: 14 },
+    factValue: { color: COLORS.text, fontFamily: 'Outfit_800ExtraBold', fontSize: 16, letterSpacing: 0.2 },
+    factUnit: { color: COLORS.subtext, fontFamily: 'Outfit_700Bold', fontSize: 12 },
+    factRight: { alignItems: 'flex-end', minWidth: 110, justifyContent: 'center' },
+    factPercentSub: { color: COLORS.accentSoft, fontFamily: 'Outfit_800ExtraBold', fontSize: 11, marginTop: 2 },
+    factsEmpty: { color: COLORS.subtext, fontFamily: 'Nunito_700Bold', fontSize: 13, paddingVertical: 6 },
 });

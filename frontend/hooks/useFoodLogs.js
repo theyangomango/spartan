@@ -95,6 +95,8 @@ const buildFromSnap = (snap) => {
             desc: data.description || data.desc || '',
             macros: m,       // display-ready (scaled if needed)
             quantity: qty,   // keep for badge/UX if desired
+            servingId: data.servingId || null,
+            servingDesc: data.servingDesc || null,
         });
     });
 

@@ -112,6 +112,37 @@ export const fatsecretMethod = onCall(
   }
 );
 
+// Dedicated: get full food details (includes micro nutrients per serving)
+export const fatsecretGetFood = onCall(
+  { region: "us-central1", secrets: [FATSECRET_KEY, FATSECRET_SECRET] },
+  async (request) => {
+    const { food_id } = request.data || {};
+    const fid = String(food_id || "").trim();
+    if (!fid) throw new HttpsError("invalid-argument", "Missing 'food_id'.");
+
+    // Ask API to flag default serving if possible
+    const res = await fatSecretRequest("food.get.v2", { food_id: fid, flag_default_serving: "true" }, "basic");
+    const food = res?.food || {};
+
+    // Ensure minimal fields for client usage
+    try {
+      if (!food.food_description) {
+        const servings = food?.servings?.serving;
+        const arr = Array.isArray(servings) ? servings : (servings ? [servings] : []);
+        const def = arr.find((s) => String(s?.is_default || "") === "1") || arr[0] || {};
+        const calories = Number(def?.calories || 0);
+        const fat = Number(def?.fat || 0);
+        const carbs = Number(def?.carbohydrate || 0);
+        const protein = Number(def?.protein || 0);
+        const desc = `Per ${def?.serving_description || "1 serving"} - Calories: ${Math.round(calories)} kcal | Fat: ${+fat} g | Carbs: ${+carbs} g | Protein: ${+protein} g`;
+        food.food_description = desc;
+      }
+    } catch {}
+
+    return { food };
+  }
+);
+
 export const fatsecretSearchFood = onCall(
   { region: "us-central1", secrets: [FATSECRET_KEY, FATSECRET_SECRET] },
   async (request) => {
