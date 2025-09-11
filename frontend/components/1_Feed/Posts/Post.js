@@ -73,6 +73,8 @@ function Post({
     isFocused,
     isSomePostFocused,
     isAdjacentToFocused,
+    // True only when this post is the adjacent item ABOVE the focused post
+    isAboveAdjacent,
     isUnfocusing,
     handleFocusPost,
     onSwipeUnfocus,
@@ -110,7 +112,7 @@ function Post({
         let target = 1;
         if (isSomePostFocused && !isUnfocusing) {
             if (isFocused) target = 1;
-            else if (isAdjacentToFocused) target = 0.28;
+            else if (isAdjacentToFocused) target = isAboveAdjacent ? 0 : 0.28;
             else target = 0;
         } else {
             target = 1;
@@ -121,7 +123,7 @@ function Post({
             easing: Easing.out(Easing.cubic),
             useNativeDriver: true,
         }).start();
-    }, [isSomePostFocused, isFocused, isAdjacentToFocused, isUnfocusing]);
+    }, [isSomePostFocused, isFocused, isAdjacentToFocused, isAboveAdjacent, isUnfocusing]);
 
     // Memo styles
     const [containerStyle, imageStyle] = useMemo(() => {

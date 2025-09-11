@@ -806,6 +806,7 @@ export default function Feed({ navigation, route }) {
 
             if (Math.abs(focusedIndexState - index) <= 2) {
                 const isAdj = Math.abs(focusedIndexState - index) === 1;
+                const isAboveAdjacent = isAdj && index < focusedIndexState;
                 return (
                     <Animated.View style={[
                         styles.postWrapper,
@@ -822,6 +823,7 @@ export default function Feed({ navigation, route }) {
                             isFocused={isFocusedPost}
                             isSomePostFocused={true}
                             isAdjacentToFocused={isAdj}
+                            isAboveAdjacent={isAboveAdjacent}
                             highlightPid={highlightPidRef.current}
                             highlightSignal={highlightSignal}
                             programFocusPid={programFocusPidRef.current}
