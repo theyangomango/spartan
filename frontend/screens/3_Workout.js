@@ -322,6 +322,17 @@ export default function Workout({ navigation, route }) {
         joinExternalWorkout, // used by InviteBanner accept
     } = useWorkoutManager({ uid, navigation, millisToHMS: millisToHoursMinutesSeconds });
 
+    // Expose imperative opener for Footer when already on Workout
+    useEffect(() => {
+        const openFn = () => {
+            try { setIsNewWorkoutVisible(true); } catch { }
+        };
+        try { global.openWorkoutModal = openFn; } catch { }
+        return () => {
+            try { if (global.openWorkoutModal === openFn) global.openWorkoutModal = null; } catch { }
+        };
+    }, [setIsNewWorkoutVisible]);
+
     // Hexagon change modal state (shown after WorkoutSummaryModal closes)
     const [hexChangeVisible, setHexChangeVisible] = useState(false);
     const [hexFrom, setHexFrom] = useState(null);

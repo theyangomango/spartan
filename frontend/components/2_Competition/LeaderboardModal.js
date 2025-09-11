@@ -216,6 +216,50 @@ export default function LeaderboardModal({
         onToggleMetric,
     ]);
 
+    // Compute display ranks with ties (standard competition ranking: 1,1,3,4 or 1,1,1,4,...)
+    const displayRanks = useMemo(() => {
+        if (!Array.isArray(userList) || userList.length === 0) return [];
+
+        // Extract the value used for ordering for each user as shown in the list.
+        const values = userList.map((item) => {
+            if (isTribeFocused) {
+                // In tribe-focused view, list may be normalized by bodyweight and may have missing weight data
+                const missingBW = !!(normalizeByBodyweight && item?.__noWeightForBW);
+                if (missingBW) return Number.NEGATIVE_INFINITY;
+                const v = typeof item?._tribeValue === 'number' ? item._tribeValue : 0;
+                // Reduce floating noise for equality checks; align with UI precision when normalized
+                return normalizeByBodyweight ? Math.round(v * 100) / 100 : v;
+            }
+            const ex = item?.statsExercises?.[categoryCompared] || {};
+            const key = metric === '1RM' ? '1RM' : metric;
+            const v = Number(ex?.[key] ?? 0);
+            // Non-normalized values are usually integers; keep as-is
+            return v;
+        });
+
+        const ranks = new Array(values.length);
+        let lastVal = null;
+        let lastRank = 0;
+        for (let i = 0; i < values.length; i++) {
+            const v = values[i];
+            if (i === 0) {
+                ranks[i] = 1;
+                lastRank = 1;
+                lastVal = v;
+                continue;
+            }
+            const isEqual = Object.is(v, lastVal) || Math.abs((v || 0) - (lastVal || 0)) < 1e-9;
+            if (isEqual) {
+                ranks[i] = lastRank;
+            } else {
+                ranks[i] = i + 1; // standard competition ranking assumes list already sorted desc
+                lastRank = ranks[i];
+                lastVal = v;
+            }
+        }
+        return ranks;
+    }, [userList, isTribeFocused, normalizeByBodyweight, categoryCompared, metric]);
+
     const renderItem = ({ item, index }) => {
         const isBW = normalizeByBodyweight;
         const missingBW = !!(isBW && item?.__noWeightForBW);
@@ -231,7 +275,7 @@ export default function LeaderboardModal({
                 handle={item?.handle || "Athlete"}
                 name={item?.displayName || item?.name || item?.handle || " "}
                 value={Number(value) || 0}
-                rank={index + 1}
+                rank={displayRanks[index] ?? (index + 1)}
                 lastRank={item?.lastRank}
                 handlePress={() => openBottomSheet(item)}
                 userIsSelf={item?.uid === global?.userData?.uid}

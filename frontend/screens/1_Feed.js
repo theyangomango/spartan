@@ -689,11 +689,21 @@ export default function Feed({ navigation, route }) {
     };
 
     // Implement scrollToTop function
-    const scrollToTop = () => {
-        if (flatListRef.current) {
-            flatListRef.current.scrollToOffset({ offset: 0, animated: true });
-        }
-    };
+    const scrollToTop = useCallback(() => {
+        try {
+            if (flatListRef.current?.scrollToOffset) {
+                flatListRef.current.scrollToOffset({ offset: 0, animated: true });
+            }
+        } catch {}
+    }, []);
+
+    // Expose an imperative scroll-to-top for the Footer when already on Feed
+    useEffect(() => {
+        try { global.scrollFeedToTop = scrollToTop; } catch {}
+        return () => {
+            try { if (global.scrollFeedToTop === scrollToTop) global.scrollFeedToTop = null; } catch {}
+        };
+    }, [scrollToTop]);
 
     // Respond to param-based scrollToTop when navigated with intent
     useEffect(() => {

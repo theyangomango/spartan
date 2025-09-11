@@ -74,10 +74,16 @@ const Footer = ({ currentScreenName, navigation }) => {
                         <Pressable
                             delayPressIn={0}
                             onPressIn={() => {
-                                const params = currentScreenName === 'Feed'
+                                const alreadyOnFeed = currentScreenName === 'Feed';
+                                const params = alreadyOnFeed
                                     ? { scrollToTop: true, _t: Date.now() }
                                     : undefined;
-                                try { if (currentScreenName === 'Feed') global.scrollFeedToTopSignal = Date.now(); } catch {}
+                                // Immediate scroll when re-tapping Home on Feed
+                                if (alreadyOnFeed) {
+                                    try { global.scrollFeedToTop && global.scrollFeedToTop(); } catch {}
+                                    // Keep legacy signal as a defensive fallback
+                                    try { global.scrollFeedToTopSignal = Date.now(); } catch {}
+                                }
                                 go('Feed', params)();
                             }}
                             hitSlop={10}
@@ -103,8 +109,15 @@ const Footer = ({ currentScreenName, navigation }) => {
                         <Pressable
                             delayPressIn={0}
                             onPressIn={() => {
+                                const alreadyOnWorkout = currentScreenName === 'Workout';
                                 if (hasActiveWorkout) {
-                                    try { global.openCurrentWorkoutSignal = Date.now(); } catch {}
+                                    if (alreadyOnWorkout) {
+                                        // Open the New Workout modal immediately when on Workout
+                                        try { global.openWorkoutModal && global.openWorkoutModal(); } catch {}
+                                    } else {
+                                        // Navigating to Workout: hint it should open on arrival
+                                        try { global.openCurrentWorkoutSignal = Date.now(); } catch {}
+                                    }
                                 }
                                 go('Workout')();
                             }}
