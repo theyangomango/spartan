@@ -6,7 +6,7 @@
  */
 
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { Animated, Dimensions, SafeAreaView, StyleSheet, View, Easing as RNEasing, Text, RefreshControl } from "react-native";
+import { Animated, Dimensions, SafeAreaView, StyleSheet, View, Easing as RNEasing, Text, RefreshControl, PanResponder } from "react-native";
 import { useFocusEffect } from '@react-navigation/native';
 import { StatusBar } from "expo-status-bar";
 import { doc, onSnapshot } from "firebase/firestore";
@@ -452,6 +452,48 @@ export default function Feed({ navigation, route }) {
         isFocusSV.value = isSomePostFocused ? 1 : 0;
     }, [isSomePostFocused]);
 
+    // Feed-level PanResponder: diagonal unfocus only (let inner FlatList own horizontal paging)
+    const slideControllerRef = useRef(null);
+    const feedPan = useMemo(() => {
+        const TAN35 = 0.700; // tan(35deg)
+        const MIN_MOVE = 4;
+        const ANGLE_MARGIN = 6;
+        return PanResponder.create({
+            onStartShouldSetPanResponder: () => false,
+            onStartShouldSetPanResponderCapture: () => false,
+            onMoveShouldSetPanResponder: (_, g) => {
+                if (!isSomePostFocused) return false;
+                if (g.numberActiveTouches > 1) return false;
+                const { dx, dy } = g;
+                const adx = Math.abs(dx), ady = Math.abs(dy);
+                if (adx < MIN_MOVE && ady < MIN_MOVE) return false;
+                // Diagonal up-right for unfocus
+                return dx > 0 && dy < 0 && (ady > TAN35 * adx + ANGLE_MARGIN);
+            },
+            onMoveShouldSetPanResponderCapture: (_, g) => {
+                if (!isSomePostFocused) return false;
+                if (g.numberActiveTouches > 1) return false;
+                const { dx, dy, vx, vy } = g;
+                const adx = Math.abs(dx), ady = Math.abs(dy);
+                if (adx < MIN_MOVE && ady < MIN_MOVE) return false;
+                // Prefer fast diagonals
+                return (dx > 0 && dy < 0) && (vx >= 0.4 && vy <= -0.4);
+            },
+            onPanResponderRelease: (_, g) => {
+                const { dx, dy, vx, vy } = g;
+                const adx = Math.abs(dx), ady = Math.abs(dy);
+                const isDiagonal = (dx > 0 && dy < 0) && (ady > TAN35 * adx + ANGLE_MARGIN);
+                const distanceOK = dx > 12 && dy < -12;
+                const velocityOK = vx >= 0.10 && vy <= -0.10;
+                if (isSomePostFocused && isDiagonal && (distanceOK || velocityOK)) {
+                    requestUnfocus();
+                }
+            },
+            onPanResponderTerminationRequest: () => true,
+            onShouldBlockNativeResponder: () => false,
+        });
+    }, [isSomePostFocused, requestUnfocus]);
+
 
     // Stop any ongoing fling by jumping to the current offset with animation off
     const stopFlatListMomentum = () => {
@@ -716,16 +758,17 @@ export default function Feed({ navigation, route }) {
                 toViewProfile: toViewProfilePosts,
                 openViewWorkoutModal,
                 focusSeq,
+                registerSlideController: (controller) => { slideControllerRef.current = controller; },
             };
 
             if (!isSomePostFocused) {
                 return (
                     <Animated.View style={[styles.postWrapper, isFocusedPost && { transform: [{ translateY }], zIndex: 1 }]}>
-                    <Post
-                        {...commonProps}
-                        isFocused={false}
-                        isSomePostFocused={false}
-                        highlightPid={highlightPidRef.current}
+                        <Post
+                            {...commonProps}
+                            isFocused={false}
+                            isSomePostFocused={false}
+                            highlightPid={highlightPidRef.current}
                         highlightSignal={highlightSignal}
                         programFocusPid={programFocusPidRef.current}
                         programFocusSignal={programFocusSignal}
@@ -737,7 +780,16 @@ export default function Feed({ navigation, route }) {
 
             if (Math.abs(focusedIndexState - index) <= 2) {
                 return (
-                    <Animated.View style={[styles.postWrapper, isFocusedPost && { transform: [{ translateY }], zIndex: 1 }]}>
+                    <Animated.View style={[
+                        styles.postWrapper,
+                        isFocusedPost && {
+                            transform: [{ translateY }],
+                            zIndex: 1,
+                            // Expand hit area below the card when focused so presses/swipes in the
+                            // visually overlapped bottom strip are still within the cell bounds.
+                            paddingBottom: width / 0.8,
+                        },
+                    ]}>
                         <Post
                             {...commonProps}
                             isFocused={isFocusedPost}
@@ -796,7 +848,10 @@ export default function Feed({ navigation, route }) {
                         left: 0,
                         right: 0,
                         bottom: 0,
+                        // When a post is focused, raise the posts layer above the bottom nav
+                        zIndex: isSomePostFocused ? 25 : 0,
                     }, maskContainerStyle]}
+                    {...(isSomePostFocused ? feedPan.panHandlers : {})}
                 >
                     <MaskedView
                         style={{ flex: 1 }}
@@ -902,6 +957,7 @@ export default function Feed({ navigation, route }) {
                 {isSomePostFocused && (
                     <SafeAreaInsetsView
                         edges={['top']}
+                        pointerEvents="box-none"
                         onLayout={(e) => { backHeaderHRef.current = e.nativeEvent.layout.height || 0; }}
                         style={{ position: 'absolute', top: 0, left: 0, right: 0, zIndex: 30, backgroundColor: theme.bg }}
                     >
@@ -951,5 +1007,7 @@ export default function Feed({ navigation, route }) {
 
 const styles = StyleSheet.create({
     mainContainer: { flex: 1, backgroundColor: theme.bg },
-    postWrapper: { width: "100%" },
+    // Add bottom padding so the cell's touchable region covers the visual card bottom.
+    // This counteracts any internal negative margins and prevents "dead zones" for touch starts.
+    postWrapper: { width: "100%", paddingBottom: 33 },
 });

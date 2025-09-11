@@ -29,7 +29,7 @@ const B_IN = 1.02;
 const B_OUT = 1;
 const B_FRICTION = 60;
 // Debug logger (always logs)
-const dlog = (...args) => { try { console.log('[Post]', ...args); } catch {} };
+const dlog = (...args) => { try { console.log('[Post]', ...args); } catch { } };
 
 const ImageSlide = React.memo(({ uri, style }) => (
     <View style={styles.imageWrapper}>
@@ -84,6 +84,7 @@ function Post({
     highlightSignal,
     programFocusPid,
     programFocusSignal,
+    registerSlideController,
 }) {
     const { pfp } = data;
     // Normalize media for backward compatibility where posts stored `images: string[]`
@@ -128,7 +129,7 @@ function Post({
     useEffect(() => {
         const match = highlightPid && String(data?.pid || '') === String(highlightPid);
         if (!match || !highlightSignal) return;
-        try { highlightOpacity.stopAnimation(); } catch {}
+        try { highlightOpacity.stopAnimation(); } catch { }
         highlightOpacity.setValue(0);
         Animated.sequence([
             Animated.timing(highlightOpacity, { toValue: 0.22, duration: 180, useNativeDriver: true }),
@@ -141,7 +142,7 @@ function Post({
         const should = programFocusPid && String(programFocusPid) === String(data?.pid || '');
         if (!should || isSomePostFocused) return;
         const id = setTimeout(() => {
-            try { focusMe(true); } catch {}
+            try { focusMe(true); } catch { }
         }, 20);
         return () => clearTimeout(id);
     }, [programFocusSignal, programFocusPid, isSomePostFocused, data?.pid]);
@@ -199,8 +200,8 @@ function Post({
     });
 
     const flashSwipeFeedback = useCallback(() => {
-        try { Haptics.impactAsync?.(Haptics.ImpactFeedbackStyle.Light).catch(() => {}); } catch {}
-        try { swipeFlashOpacity.stopAnimation(); } catch {}
+        try { Haptics.impactAsync?.(Haptics.ImpactFeedbackStyle.Light).catch(() => { }); } catch { }
+        try { swipeFlashOpacity.stopAnimation(); } catch { }
         swipeFlashOpacity.setValue(0);
         Animated.sequence([
             Animated.timing(swipeFlashOpacity, { toValue: 0.16, duration: 90, useNativeDriver: true }),
@@ -208,39 +209,68 @@ function Post({
         ]).start();
     }, [swipeFlashOpacity]);
 
-    // Diagonal swipe-to-dismiss (bottom-left -> top-right)
+    // Expose slide control for container-level horizontal gestures when focused
+    useEffect(() => {
+        if (!registerSlideController) return;
+        if (!(isFocused && isSomePostFocused)) {
+            try { registerSlideController(null); } catch { }
+            return;
+        }
+        const controller = {
+            scrollBy: (dir) => {
+                try {
+                    const len = mediaList.length || 0;
+                    if (len <= 1) return;
+                    const step = dir > 0 ? 1 : dir < 0 ? -1 : 0;
+                    if (!step) return;
+                    const next = Math.max(0, Math.min(len - 1, currentIndex + step));
+                    if (next === currentIndex) return;
+                    flatListRef.current?.scrollToIndex?.({ index: next, animated: true });
+                    setCurrentIndex(next);
+                } catch { }
+            }
+        };
+        registerSlideController(controller);
+        return () => { try { registerSlideController(null); } catch { } };
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [isFocused, isSomePostFocused, currentIndex, mediaList.length]);
+
+    // Diagonal swipe-to-dismiss (bottom-left -> top-right). Let FlatList own horizontal.
     const panResponder = useMemo(() => {
         const TAN35 = 0.700; // tan(35deg) — stricter diagonal to avoid stealing horizontal
         const MIN_MOVE = 4;
         const ANGLE_MARGIN = 6; // extra px above the 30° boundary to avoid false captures
+        const FOOTER_GUARD = 120; // do not capture starts near footer controls
         return PanResponder.create({
             onStartShouldSetPanResponder: () => false,
             onStartShouldSetPanResponderCapture: () => false,
-            onMoveShouldSetPanResponder: (_, g) => {
+            onMoveShouldSetPanResponder: (evt, g) => {
                 if (!(isFocused && isSomePostFocused)) return false;
                 if (g.numberActiveTouches > 1) return false;
                 const { dx, dy } = g;
-                // Require gesture shape: right (+dx) and up (-dy)
-                if (dx <= 0 || dy >= 0) return false;
                 const adx = Math.abs(dx), ady = Math.abs(dy);
+                // Guard the footer region from capture to keep buttons pressable
+                const y = evt?.nativeEvent?.locationY ?? 0;
+                if (y > (W / AR - FOOTER_GUARD)) return false;
                 // Guard against early jitter: need small but non-trivial movement
                 if (adx < MIN_MOVE && ady < MIN_MOVE) return false;
                 // Treat within ~35°(+margin) as horizontal: let FlatList handle L→R
                 if (ady <= TAN35 * adx + ANGLE_MARGIN) return false;
                 // Otherwise, it is diagonal enough for our unfocus gesture
-                return true;
+                return dx > 0 && dy < 0;
             },
             // Capture only when the gesture is clearly diagonal (not horizontal)
-            onMoveShouldSetPanResponderCapture: (_, g) => {
+            onMoveShouldSetPanResponderCapture: (evt, g) => {
                 if (!(isFocused && isSomePostFocused)) return false;
                 if (g.numberActiveTouches > 1) return false;
                 const { dx, dy, vx, vy } = g;
-                if (dx <= 0 || dy >= 0) return false;
                 const adx = Math.abs(dx), ady = Math.abs(dy);
+                const y = evt?.nativeEvent?.locationY ?? 0;
+                if (y > (W / AR - FOOTER_GUARD)) return false;
                 if (adx < MIN_MOVE && ady < MIN_MOVE) return false;
                 // Very fast diagonal flicks should capture even near the boundary
-                if (vx >= 0.5 && vy <= -0.5) return true;
-                return ady > TAN35 * adx + ANGLE_MARGIN;
+                if (dx > 0 && dy < 0 && vx >= 0.5 && vy <= -0.5) return true;
+                return dx > 0 && dy < 0 && (ady > TAN35 * adx + ANGLE_MARGIN);
             },
             onPanResponderRelease: (_, g) => {
                 const { dx, dy, vx, vy } = g;
@@ -251,7 +281,7 @@ function Post({
                 if (isFocused && isSomePostFocused && isDiagonal && (distanceOK || velocityOK)) {
                     flashSwipeFeedback();
                     dlog('release.unfocus', { index, pid: data?.pid, dx: Math.round(dx), dy: Math.round(dy), vx: vx.toFixed(2), vy: vy.toFixed(2) });
-                    try { onSwipeUnfocus && onSwipeUnfocus(); } catch {}
+                    try { onSwipeUnfocus && onSwipeUnfocus(); } catch { }
                     return;
                 }
                 dlog('release.noop', { index, pid: data?.pid, dx: Math.round(dx), dy: Math.round(dy), vx: vx?.toFixed?.(2), vy: vy?.toFixed?.(2) });
@@ -261,10 +291,11 @@ function Post({
         });
     }, [isFocused, isSomePostFocused, onSwipeUnfocus, flashSwipeFeedback]);
 
-    const mediaListKey = useMemo(() => `${String(data?.pid || index)}-${isFocused ? 'focused' : 'normal'}-${isSomePostFocused ? 1 : 0}-${focusSeq || 0}`,[data?.pid, index, isFocused, isSomePostFocused, focusSeq]);
+    const mediaListKey = useMemo(() => `${String(data?.pid || index)}-${isFocused ? 'focused' : 'normal'}-${isSomePostFocused ? 1 : 0}-${focusSeq || 0}`, [data?.pid, index, isFocused, isSomePostFocused, focusSeq]);
 
     return (
         <Animated.View
+            key={`postwrap-${mediaListKey}`}
             ref={viewRef}
             style={[styles.wrapper, { opacity }]}
             pointerEvents={isSomePostFocused && !isFocused ? "none" : "auto"}
@@ -283,6 +314,7 @@ function Post({
                         pagingEnabled
                         bounces={false}
                         overScrollMode="never"
+                        directionalLockEnabled
                         removeClippedSubviews={false}
                         snapToInterval={W}
                         decelerationRate="fast"
@@ -363,6 +395,10 @@ function Post({
                     }}
                 />
 
+                {/* Top-level invisible gesture catcher to avoid any dead zones.
+                    Sits above media/footer but only activates on diagonal move. */}
+                {/* No full-surface overlay; avoid interfering with horizontal swipes */}
+
                 {/* highlight overlay above content */}
                 <Animated.View
                     pointerEvents="none"
@@ -392,7 +428,8 @@ export default React.memo(Post, areEqual);
 
 const styles = StyleSheet.create({
     wrapper: { width: "100%" },
-    card: { width: "100%", borderColor: "rgba(255,255,255,0.06)", marginBottom: -33 },
+    // Keep negative margin for visuals but compensate at the cell level with padding
+    card: { width: "100%", borderColor: "rgba(255,255,255,0.06)", marginBottom: -66 },
     body: { width: W, height: W / AR },
     gallery: {
         width: W,

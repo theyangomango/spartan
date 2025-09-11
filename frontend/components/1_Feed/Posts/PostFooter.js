@@ -89,7 +89,7 @@ export default function PostFooter({ data, onPressCommentButton, onPressShareBut
             <View style={styles.top}>
                 {/* Left portion: like, comment, share */}
                 <View style={styles.left}>
-                    <RNBounceable style={styles.likeButton} onPress={handlePressLikeButton}>
+                    <RNBounceable style={styles.likeButton} onPress={handlePressLikeButton} hitSlop={{ top: 160, bottom: 12, left: 12, right: 12 }}>
                         <BlurView style={styles.likeButtonBlurView}>
                             <Heart
                                 size={dynamicStyles.iconSize}
@@ -104,6 +104,7 @@ export default function PostFooter({ data, onPressCommentButton, onPressShareBut
                         // disabled={!isSomePostFocused}
                         onPress={onPressCommentButton}
                         style={styles.commentButton}
+                        hitSlop={{ top: 160, bottom: 12, left: 12, right: 12 }}
                     >
                         <Messages1 size={dynamicStyles.iconSize} color="#fff" variant="Bold" />
                         <Text style={styles.commentButtonText}>{data.commentCount}</Text>
@@ -121,7 +122,7 @@ export default function PostFooter({ data, onPressCommentButton, onPressShareBut
                 </View>
 
                 {/* Right portion: save button */}
-                <RNBounceable style={styles.saveButton} onPress={handlePressSaveButton}>
+                <RNBounceable style={styles.saveButton} onPress={handlePressSaveButton} hitSlop={{ top: 160, bottom: 12, left: 12, right: 12 }}>
                     {isSaved ? (
                         <Svg
                             xmlns="http://www.w3.org/2000/svg"
@@ -169,6 +170,8 @@ const styles = StyleSheet.create({
         bottom: 48,
         left: 18,
         right: 13,
+        zIndex: 5,
+        elevation: 5,
     },
     left: { flexDirection: 'row' },
     likeButton: { borderRadius: 30, overflow: 'hidden' },

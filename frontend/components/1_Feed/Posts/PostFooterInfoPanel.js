@@ -39,7 +39,7 @@ const PostFooterInfoPanel = ({ data, opacityAnim }) => {
     const handles = filteredLikes.map(like => like.handle);
 
     return (
-        <Animated.View style={[styles.container, { opacity: opacityAnim }]}>
+        <Animated.View style={[styles.container, { opacity: opacityAnim }]} pointerEvents="none">
             <View style={styles.profilePictures}>
                 {filteredLikes.length > 0 ? (
                     filteredLikes.map((like, index) => (

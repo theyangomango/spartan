@@ -15,8 +15,12 @@ import * as Haptics from 'expo-haptics';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { enableScreens, enableFreeze } from 'react-native-screens';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import * as Font from 'expo-font';
 import { useFonts } from 'expo-font';
 import { customFonts } from './fonts';
+// Critical fonts for first paint (ensure these are ready before hiding splash)
+import { Nunito_800ExtraBold } from '@expo-google-fonts/nunito';
+import { Outfit_400Regular, Outfit_600SemiBold, Outfit_700Bold, Outfit_800ExtraBold } from '@expo-google-fonts/outfit';
 import { db } from './firebase.config';
 import { doc, onSnapshot, collection, query, where } from 'firebase/firestore';
 
@@ -113,19 +117,27 @@ function Tabs({ route }) {
 }
 
 export default function App() {
-    // Load all custom fonts; don't block the app forever if CDN is slow
-    const [fontsLoaded, fontsError] = useFonts(customFonts);
+    // Load a minimal set of critical fonts first (Nunito + primary Outfit weights)
+    const [criticalFontsLoaded] = useFonts({
+        Nunito_800ExtraBold,
+        Outfit_400Regular,
+        Outfit_600SemiBold,
+        Outfit_700Bold,
+        Outfit_800ExtraBold,
+    });
     const [fontsReady, setFontsReady] = useState(false);
+    useEffect(() => { if (criticalFontsLoaded) setFontsReady(true); }, [criticalFontsLoaded]);
+    // Load the rest of the font set in the background after criticals are ready
     useEffect(() => {
-        if (fontsLoaded || fontsError) setFontsReady(true);
-    }, [fontsLoaded, fontsError]);
-    // Fallback timer: proceed after a short grace even if fonts haven't loaded
-    useEffect(() => {
-        if (!fontsReady) {
-            const id = setTimeout(() => setFontsReady(true), 1800);
-            return () => clearTimeout(id);
+        let mounted = true;
+        if (criticalFontsLoaded) {
+            Font.loadAsync(customFonts).catch(() => {}).finally(() => {
+                // no-op; non-critical fonts can finish later
+                mounted && null;
+            });
         }
-    }, [fontsReady]);
+        return () => { mounted = false; };
+    }, [criticalFontsLoaded]);
     const [authChecked, setAuthChecked] = useState(false);
     const [isAuthenticated, setIsAuthenticated] = useState(false);
     const [userReady, setUserReady] = useState(false);
