@@ -109,27 +109,27 @@ export default function Feed({ navigation, route }) {
     const focusWatchIdRef = useRef(null);
 
     // Wait until target index is viewable and scrolling has settled, then focus
-    // Wait just enough for the target cell to be viewable and the list idle
-    // (1–2 frames) before firing programmatic focus. Keeps the motion precise
-    // without the old ~1s delay.
+    // Wait only until the target cell mounts (layout measured), then trigger
+    // programmatic focus on the next frame. This minimizes delay while still
+    // guaranteeing a stable layout for precise translation.
     const startFocusWatcher = useCallback((pid, idx) => {
         desiredFocusIndexRef.current = idx;
         if (focusWatchIdRef.current) {
             try { cancelAnimationFrame(focusWatchIdRef.current); } catch {}
             focusWatchIdRef.current = null;
         }
-        let tries = 0; const MAX = 18; // ~300ms worst-case
+        let tries = 0; const MAX = 8; // ~130ms worst-case (usually 1–2 frames)
         const tick = () => {
             if (desiredFocusIndexRef.current !== idx) return; // canceled/replaced
-            const now = Date.now();
             const lay = itemLayoutsRef.current.get(idx);
-            const isViewable = viewableSetRef.current.has(idx);
-            const idle = now - (lastScrollTsRef.current || 0) > 16; // >1 frame idle
-            if (lay && isViewable && idle) {
-                programFocusPidRef.current = String(pid);
-                setProgramFocusSignal(Date.now());
-                desiredFocusIndexRef.current = -1;
-                focusWatchIdRef.current = null;
+            if (lay && typeof lay.y === 'number') {
+                // One more frame after layout to ensure measurement consistency
+                focusWatchIdRef.current = requestAnimationFrame(() => {
+                    programFocusPidRef.current = String(pid);
+                    setProgramFocusSignal(Date.now());
+                    desiredFocusIndexRef.current = -1;
+                    focusWatchIdRef.current = null;
+                });
                 return;
             }
             if (++tries >= MAX) {
@@ -432,11 +432,13 @@ export default function Feed({ navigation, route }) {
         if (!preferWaitForHeader) {
             setTimeout(run, 0);
         } else {
-            // For programmatic focus: ensure the compact header has measured to avoid offset
+            // For programmatic focus: ensure the compact header has measured, then
+            // wait an extra frame so the header-hide animation has begun. This
+            // keeps the translate math in sync and prevents overshoot/undershoot.
             let tries = 0; const MAX = 24; // ~400ms
             const poll = () => {
                 if (backHeaderHRef.current > 0 || tries++ >= MAX) {
-                    setTimeout(run, 0);
+                    requestAnimationFrame(() => requestAnimationFrame(run));
                     return;
                 }
                 requestAnimationFrame(poll);

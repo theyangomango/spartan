@@ -52,7 +52,8 @@ export default React.memo(CreateGroupChatBottomSheet);
 
 const styles = StyleSheet.create({
     sheetBackground: {
-        backgroundColor: theme.surface,
+        // Match app background to reduce contrast with the screen behind
+        backgroundColor: theme.bg,
         borderTopLeftRadius: 22,
         borderTopRightRadius: 22,
     },

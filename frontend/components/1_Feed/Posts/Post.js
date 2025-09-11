@@ -156,7 +156,7 @@ function Post({
         if (!should || isSomePostFocused) return;
         const id = setTimeout(() => {
             try { focusMe(true); } catch { }
-        }, 20);
+        }, 0); // trigger immediately; handleFocusPost recalculates using layout for accuracy
         return () => clearTimeout(id);
     }, [programFocusSignal, programFocusPid, isSomePostFocused, data?.pid]);
 

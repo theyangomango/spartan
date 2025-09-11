@@ -6,6 +6,7 @@ import RNBounceable from '@freakycoder/react-native-bounceable';
 import scaleSize from "../../helper/scaleSize";
 import { LinearGradient } from 'expo-linear-gradient';
 import theme from "../../theme/mfpDark";
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 const { width, height } = Dimensions.get('window');
 
@@ -46,6 +47,7 @@ export default function CreateGroupChatModal({ initChat }) {
     const [selectedHandles, setSelectedHandles] = useState([]);
     const [searchQuery, setSearchQuery] = useState('');
     const [filteredUsers, setFilteredUsers] = useState([]);
+    const insets = useSafeAreaInsets();
 
     useEffect(() => {
         if (global.userData) {
@@ -146,7 +148,12 @@ export default function CreateGroupChatModal({ initChat }) {
             <RNBounceable
                 disabled={selectedUsers.length <= 1}
                 activeOpacity={0.8}
-                style={[styles.createButtonWrap, selectedUsers.length <= 1 && { opacity: 0.6 }]}
+                style={[
+                    styles.createButtonWrap,
+                    // Respect device safe area so the button doesn't look cramped.
+                    { bottom: Math.max(scaleSize(16), insets.bottom + scaleSize(10)) },
+                    selectedUsers.length <= 1 && { opacity: 0.6 },
+                ]}
                 onPress={() => initChat(selectedUsers)}
             >
                 <LinearGradient
@@ -169,10 +176,11 @@ const styles = StyleSheet.create({
     container: {
         flex: 1,
         alignItems: 'center',
-        backgroundColor: theme.surface,
+        // Use app background to match the rest of the UI
+        backgroundColor: theme.bg,
     },
     header: {
-        paddingTop: scaleSize(10),
+        paddingTop: scaleSize(8),
         paddingBottom: scaleSize(6),
         width: '100%',
         alignItems: 'center',
@@ -215,7 +223,9 @@ const styles = StyleSheet.create({
         alignItems: 'center',
         backgroundColor: theme.field,
         borderRadius: scaleSize(14),
-        width: '90%',
+        // Stretch to container width but keep comfortable margins
+        alignSelf: 'stretch',
+        marginHorizontal: scaleSize(16),
         paddingHorizontal: scaleSize(12),
         marginBottom: scaleSize(10),
         height: scaleSize(44),
@@ -233,11 +243,10 @@ const styles = StyleSheet.create({
         width: '100%',
     },
     listContent: {
-        paddingBottom: scaleSize(100),
+        paddingBottom: scaleSize(110),
     },
     createButtonWrap: {
         position: 'absolute',
-        bottom: scaleSize(45),
         left: scaleSize(22),
         right: scaleSize(22),
         borderRadius: scaleSize(16),
@@ -256,7 +265,7 @@ const styles = StyleSheet.create({
         flexDirection: 'row',
     },
     createButtonText: {
-        color: theme.textPrimary,
+        color: '#fff',
         fontFamily: 'Outfit_700Bold',
         letterSpacing: 0.2,
     },

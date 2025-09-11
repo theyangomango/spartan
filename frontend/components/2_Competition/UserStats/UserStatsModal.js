@@ -4,6 +4,7 @@ import { MaterialCommunityIcons } from "@expo/vector-icons";
 import FastImage from "react-native-fast-image";
 import HexagonalStats from "./HexagonalStats";
 import { exercises as EXERCISE_DEFS } from "../../3_Workout/NewWorkout/SelectExercise/EXERCISES";
+import scaleSize from "../../../helper/scaleSize";
 
 // Enable LayoutAnimation on Android
 if (Platform.OS === 'android' && UIManager.setLayoutAnimationEnabledExperimental) {
@@ -18,7 +19,8 @@ const scaledSize = (n) => Math.round(n * scale);
 const THEME = require("../../../theme/mfpDark").default;
 const COLORS = {
     bg: THEME.surface,         // sheet/card background
-    card: THEME.surface,       // cards within the sheet
+    // Use a deeper tone than surface to improve contrast with sheet background
+    card: THEME.fieldDeep,     // cards within the sheet
     text: THEME.textPrimary,   // primary text
     subtext: THEME.textSecondary,
     accent: THEME.primary,
@@ -364,7 +366,7 @@ export default function UserStatsModal({ user, toViewProfile, hexOverlay, hexPro
                                                 onPress={() => openDetail(name)}
                                             >
                                                 {/* Accent bar based on muscle group */}
-                                                <View style={[styles.accentBar, { backgroundColor: ACC }]} />
+                                                {/* <View style={[styles.accentBar, { backgroundColor: ACC }]} /> */}
 
                                                 {/* Row: icon + name + 1RM pill */}
                                                 <View style={styles.exerciseHeader}>
@@ -451,11 +453,32 @@ export default function UserStatsModal({ user, toViewProfile, hexOverlay, hexPro
                                 const r = safeNumber(item?.reps, 0);
                                 const rm = setAdjusted1RM(w, r);
                                 const dateLabel = (() => {
-                                    const d = item?.date;
-                                    if (!d) return '';
-                                    if (typeof d === 'string') return d;
-                                    if (typeof d === 'number') { const dd = new Date(d); return isNaN(dd) ? '' : dd.toISOString().slice(0,10); }
-                                    if (typeof d === 'object' && Number.isFinite(d.seconds)) { const dd = new Date(d.seconds*1000); return dd.toISOString().slice(0,10); }
+                                    const raw = item?.date;
+                                    if (!raw) return '';
+                                    // Format: M/D/YY (no leading zeros, year 2 digits)
+                                    const fmt = (y, m, d) => `${m}/${d}/${String(y).slice(-2)}`;
+                                    if (typeof raw === 'string') {
+                                        const m = raw.match(/^(\d{4})-(\d{1,2})-(\d{1,2})$/);
+                                        if (m) {
+                                            const y = Number(m[1]);
+                                            const mo = Number(m[2]);
+                                            const da = Number(m[3]);
+                                            if (y && mo && da) return fmt(y, mo, da);
+                                        }
+                                        const d2 = new Date(raw);
+                                        if (!isNaN(d2)) return fmt(d2.getFullYear(), d2.getMonth()+1, d2.getDate());
+                                        return raw;
+                                    }
+                                    if (typeof raw === 'number') {
+                                        const d2 = new Date(raw);
+                                        if (!isNaN(d2)) return fmt(d2.getFullYear(), d2.getMonth()+1, d2.getDate());
+                                        return '';
+                                    }
+                                    if (typeof raw === 'object' && Number.isFinite(raw.seconds)) {
+                                        const d2 = new Date(raw.seconds * 1000);
+                                        if (!isNaN(d2)) return fmt(d2.getFullYear(), d2.getMonth()+1, d2.getDate());
+                                        return '';
+                                    }
                                     return '';
                                 })();
                                 return (
@@ -466,7 +489,7 @@ export default function UserStatsModal({ user, toViewProfile, hexOverlay, hexPro
                                             {!!dateLabel && <Text style={styles.setSub}>{dateLabel}</Text>}
                                         </View>
                                         <View style={styles.rmPill}>
-                                            <Text style={styles.rmLabel}>Adj 1RM</Text>
+                                            <Text style={styles.rmLabel}>1RM (Adj)</Text>
                                             <Text style={[styles.rmValue, { color: ACC_DETAIL }]}>{rm}</Text>
                                         </View>
                                     </View>
@@ -611,7 +634,7 @@ const styles = StyleSheet.create({
     },
 
     exerciseList: {
-        gap: scaledSize(10),
+        // gap: scaledSize(20),
     },
 
     // Group header within Exercises
@@ -650,15 +673,16 @@ const styles = StyleSheet.create({
     exerciseCard: {
         backgroundColor: COLORS.card,
         borderRadius: scaledSize(16),
+        marginVertical: scaleSize(3),
         borderWidth: 1,
         borderColor: COLORS.hairline,
         paddingHorizontal: scaledSize(12),
         paddingVertical: scaledSize(8),
         shadowColor: "#000",
         shadowOffset: { width: 0, height: scaledSize(4) },
-        shadowOpacity: 0.05,
-        shadowRadius: scaledSize(10),
-        elevation: 4,
+        shadowOpacity: 0.08,
+        shadowRadius: scaledSize(12),
+        elevation: 6,
     },
     exerciseCardPressed: { backgroundColor: "rgba(255,255,255,0.02)" },
     accentBar: {
@@ -667,7 +691,7 @@ const styles = StyleSheet.create({
         top: 0,
         bottom: 0,
         // Slightly wider for better visibility without overpowering
-        width: scaledSize(4),
+        width: scaledSize(5),
         borderTopLeftRadius: scaledSize(16),
         borderBottomLeftRadius: scaledSize(16),
     },
@@ -732,7 +756,7 @@ const styles = StyleSheet.create({
         paddingVertical: scaledSize(6),
         borderRadius: scaledSize(12),
         backgroundColor: COLORS.statBg,
-        borderWidth: StyleSheet.hairlineWidth,
+        borderWidth: 1,
         borderColor: COLORS.statBorder,
     },
     metaIconWrap: {
@@ -752,7 +776,7 @@ const styles = StyleSheet.create({
         letterSpacing: 0.3,
     },
     metaValue: {
-        fontSize: scaledSize(12),
+        fontSize: scaledSize(14),
         fontFamily: "Outfit_700Bold",
         color: COLORS.text,
     },
@@ -765,6 +789,9 @@ const styles = StyleSheet.create({
         right: 0,
         bottom: 0,
         backgroundColor: COLORS.bg,
+        borderTopLeftRadius: scaledSize(24),
+        borderTopRightRadius: scaledSize(24),
+        overflow: 'hidden',
         paddingTop: scaledSize(10),
         paddingHorizontal: scaledSize(17),
         paddingBottom: scaledSize(10),
