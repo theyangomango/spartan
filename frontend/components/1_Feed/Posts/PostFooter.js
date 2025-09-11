@@ -57,7 +57,8 @@ export default function PostFooter({ data, onPressCommentButton, onPressShareBut
                 handle: global.userData.handle,
                 name: global.userData.name
             });
-            updateDoc('posts', data.pid, data);
+            // Update only the changed fields to minimize snapshot churn
+            updateDoc('posts', data.pid, { likeCount: data.likeCount, likes: data.likes });
 
             const notif = {
                 uid: global.userData.uid,
@@ -72,7 +73,7 @@ export default function PostFooter({ data, onPressCommentButton, onPressShareBut
         } else {
             data.likeCount--;
             data.likes = data.likes.filter(item => item.uid !== global.userData.uid);
-            updateDoc('posts', data.pid, data);
+            updateDoc('posts', data.pid, { likeCount: data.likeCount, likes: data.likes });
         }
         setIsLiked(!isLiked);
     }

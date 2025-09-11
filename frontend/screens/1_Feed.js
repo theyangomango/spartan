@@ -903,7 +903,7 @@ export default function Feed({ navigation, route }) {
                             alwaysBounceVertical
                             showsVerticalScrollIndicator={false}
                             data={listData}
-                            keyExtractor={(item, i) => String(i)}
+                            keyExtractor={(item, i) => String(item?.pid ?? i)}
                             renderItem={({ item, index }) => renderPost({ item, index })}
                             onScroll={onScrollRe}
                             scrollEventThrottle={16}

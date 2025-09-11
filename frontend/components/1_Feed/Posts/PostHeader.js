@@ -1,3 +1,4 @@
+import React from "react";
 import { View, Text, StyleSheet, Pressable, TouchableOpacity } from "react-native";
 import FastImage from "react-native-fast-image";
 import formatDate from "../../../helper/formatDate";
@@ -7,7 +8,7 @@ import RNBounceable from "@freakycoder/react-native-bounceable";
 import theme from "../../../theme/mfpDark";
 import { Weight } from "iconsax-react-native";
 
-export default function PostHeader({
+function PostHeader({
     data,
     url,
     position,
@@ -77,6 +78,25 @@ export default function PostHeader({
         </View>
     );
 }
+
+// Re-render only when header-relevant props change
+const areEqual = (prev, next) => {
+    try {
+        return (
+            prev.position === next.position &&
+            prev.totalImages === next.totalImages &&
+            prev.data?.uid === next.data?.uid &&
+            prev.data?.handle === next.data?.handle &&
+            (prev.data?.pfpVersion ?? 0) === (next.data?.pfpVersion ?? 0) &&
+            (!!prev.data?.workout === !!next.data?.workout) &&
+            (prev.data?.workout?.created || null) === (next.data?.workout?.created || null)
+        );
+    } catch {
+        return false;
+    }
+};
+
+export default React.memo(PostHeader, areEqual);
 
 /* ---------------- styles ---------------- */
 const styles = StyleSheet.create({
