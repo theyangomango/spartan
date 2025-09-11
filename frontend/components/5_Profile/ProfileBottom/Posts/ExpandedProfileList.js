@@ -99,6 +99,7 @@ export default function ExpandedProfileList({ posts, onClose }) {
                     isFocused={isSomePostFocused && isFocusedPost}
                     handleFocusPost={handleFocusPost}
                     isSomePostFocused={isSomePostFocused}
+                    onSwipeUnfocus={handleBackPress}
 
                     /* If your Post needs to open modals, pass them down: */
                     openCommentsModal={openCommentsModal}

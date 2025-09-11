@@ -151,6 +151,7 @@ export default function SinglePostModal({ visible, post, onClose, onOpenWorkout 
                                 isSomePostFocused
                                 shouldPlay
                                 handleFocusPost={() => { }}
+                                onSwipeUnfocus={close}
                                 // When user taps the comment icon in PostFooter, expand to 92% via the flag
                                 openCommentsModal={() => setCommentsExpandFlag((f) => !f)}
                                 openShareModal={() => { }}
