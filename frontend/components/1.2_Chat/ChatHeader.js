@@ -14,7 +14,10 @@ const BG = theme.bg;
 
 const ChatHeader = ({ usersExcludingSelf = [], toMessages }) => {
     const navigation = useNavigation();
-    const handles = usersExcludingSelf.map((u) => '@' + u.handle).join(", ");
+    const handles = usersExcludingSelf
+        .map((u) => (typeof u?.handle === 'string' && u.handle.trim() ? '@' + u.handle.trim() : ''))
+        .filter(Boolean)
+        .join(", ");
     // Show only first names (split by space)
     const names = usersExcludingSelf
         .map((u) => (typeof u?.name === 'string' ? u.name.trim().split(/\s+/)[0] : ''))
@@ -83,7 +86,7 @@ const styles = StyleSheet.create({
         height: scaleSize(62),
         justifyContent: "center",
         borderBottomColor: HAIRLINE,
-        borderBottomWidth: 1.5,
+        borderBottomWidth: 1,
     },
 
     // exact pill spec + ensure it’s on top

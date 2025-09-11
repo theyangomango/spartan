@@ -166,7 +166,7 @@ const styles = StyleSheet.create({
     card: {
         flexDirection: "row",
         alignItems: "center",
-        marginVertical: scaleSize(8),
+        marginVertical: scaleSize(6),
         paddingHorizontal: scaleSize(14),
         paddingVertical: scaleSize(12),
         // Neutral card surface to better match the rest of the app

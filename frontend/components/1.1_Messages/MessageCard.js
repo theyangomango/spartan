@@ -152,7 +152,7 @@ const styles = StyleSheet.create({
         alignItems: "center",
         justifyContent: "space-between",
         // Slightly darker than ActivityChips background for subtle separation
-        backgroundColor: theme.fieldDeep,
+        backgroundColor: theme.surface,
         marginBottom: 10,
         borderWidth: 1,
         borderColor: theme.hairline,

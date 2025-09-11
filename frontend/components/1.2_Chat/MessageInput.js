@@ -47,6 +47,7 @@ export default function MessageInput({
                     onBlur={onBlur}
                     returnKeyType="send"
                     onSubmitEditing={onSend}
+                    hitSlop={{top: 10, bottom: 10}}
                 />
 
                 <TouchableOpacity style={styles.sendBtn} onPress={onSend}>
@@ -58,7 +59,7 @@ export default function MessageInput({
 }
 
 const styles = StyleSheet.create({
-    wrap: { paddingHorizontal: 12, paddingTop: 6 },
+    wrap: { paddingHorizontal: 12, paddingTop: 6, paddingBottom:10 },
     row: {
         flexDirection: "row",
         alignItems: "center",

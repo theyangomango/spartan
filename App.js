@@ -9,7 +9,7 @@ import { navigationRef } from './navigationRef';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { createStackNavigator, CardStyleInterpolators, TransitionSpecs } from '@react-navigation/stack';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
-import { Platform, Modal, View, Text, Pressable, StyleSheet, Dimensions, Vibration } from 'react-native';
+import { Platform, Modal, View, Text, Pressable, StyleSheet, Dimensions, Vibration, TextInput } from 'react-native';
 import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
@@ -66,6 +66,17 @@ enableFreeze(true);
 
 // Keep native splash screen visible while we preload fonts and hydrate auth
 try { SplashScreen.preventAutoHideAsync(); } catch {}
+
+// Prefer dark keyboard appearance globally on iOS
+try {
+    if (Platform.OS === 'ios') {
+        TextInput.defaultProps = TextInput.defaultProps || {};
+        // Only set if not already provided at callsites
+        if (!TextInput.defaultProps.keyboardAppearance) {
+            TextInput.defaultProps.keyboardAppearance = 'dark';
+        }
+    }
+} catch {}
 
 /* No nested stacks; everything registers on RootStack */
 
@@ -174,6 +185,10 @@ export default function App() {
     // Load notifications module conditionally to prevent crashes on iOS simulator
     // when the dev client doesn't include expo-notifications.
     const notificationsRef = useRef(null);
+    const notifResponseSubRef = useRef(null);
+    const lastHandledNotifIdRef = useRef(null);
+    const pendingChatCidRef = useRef(null);
+    const pendingNavTimerRef = useRef(null);
     useEffect(() => {
         let mounted = true;
         try {
@@ -198,6 +213,91 @@ export default function App() {
         }
         return () => { mounted = false; };
     }, []);
+
+    // Navigate to Chat when a push notification response is tapped.
+    const tryNavigateToPendingChat = React.useCallback(() => {
+        const cid = pendingChatCidRef.current;
+        if (!cid) return false;
+        // Require auth and a ready nav container
+        if (!isAuthenticated) return false;
+        try {
+            const { navigateRoot, navigationRef: navObj } = require('./navigationRef');
+            // If already on this Chat, consume and skip extra navigation
+            try {
+                if (navObj?.isReady?.() && navObj?.getCurrentRoute) {
+                    const route = navObj.getCurrentRoute();
+                    const rcid = route?.params?.data?.cid || route?.params?.cid;
+                    if (route?.name === 'Chat' && rcid && String(rcid) === String(cid)) {
+                        pendingChatCidRef.current = null;
+                        return true;
+                    }
+                }
+            } catch {}
+
+            const ok = navigateRoot && navigateRoot('Chat', { data: { cid }, usersExcludingSelf: [] });
+            if (ok) {
+                pendingChatCidRef.current = null;
+                return true;
+            }
+        } catch {}
+        return false;
+    }, [isAuthenticated]);
+
+    useEffect(() => {
+        // If a pending deep link exists and auth just became ready, attempt navigation
+        if (pendingChatCidRef.current) {
+            // clear any previous timer
+            if (pendingNavTimerRef.current) { try { clearTimeout(pendingNavTimerRef.current); } catch {} pendingNavTimerRef.current = null; }
+            // try immediately; if not ready, retry shortly
+            const attempt = () => {
+                if (tryNavigateToPendingChat()) return;
+                pendingNavTimerRef.current = setTimeout(attempt, 250);
+            };
+            attempt();
+        }
+        return () => {
+            if (pendingNavTimerRef.current) { try { clearTimeout(pendingNavTimerRef.current); } catch {} pendingNavTimerRef.current = null; }
+        };
+    }, [isAuthenticated, tryNavigateToPendingChat]);
+
+    // Attach response listener and handle cold-start notification response
+    useEffect(() => {
+        const Notifications = notificationsRef.current;
+        if (!Notifications) return;
+
+        const handleResponse = (resp) => {
+            try {
+                const id = resp?.notification?.request?.identifier;
+                if (id && lastHandledNotifIdRef.current === id) return; // dedupe
+                const data = resp?.notification?.request?.content?.data || {};
+                const type = data?.type;
+                if (type === 'chat' && data?.cid) {
+                    pendingChatCidRef.current = String(data.cid);
+                    // Try now or queue until ready
+                    if (!tryNavigateToPendingChat()) {
+                        // Navigation not ready yet; a separate effect will retry
+                    }
+                }
+                if (id) lastHandledNotifIdRef.current = id;
+            } catch {}
+        };
+
+        // Cold start: process the last response, if any
+        Notifications.getLastNotificationResponseAsync?.().then((resp) => {
+            if (resp) handleResponse(resp);
+        }).catch(() => {});
+
+        notifResponseSubRef.current = Notifications.addNotificationResponseReceivedListener(handleResponse);
+
+        return () => {
+            try {
+                if (notifResponseSubRef.current && Notifications?.removeNotificationSubscription) {
+                    Notifications.removeNotificationSubscription(notifResponseSubRef.current);
+                }
+            } catch {}
+            notifResponseSubRef.current = null;
+        };
+    }, [notificationsRef.current, tryNavigateToPendingChat]);
 
     // Request push permissions and register token on login
     useEffect(() => {
@@ -249,7 +349,8 @@ export default function App() {
                 if (prevUnreadMsgRef.current === null || prevUnreadMsgRef.current === undefined) {
                     prevUnreadMsgRef.current = nextCount;
                 } else if (Number.isFinite(nextCount) && nextCount > prevUnreadMsgRef.current) {
-                    const route = navigationRef?.getCurrentRoute?.();
+                    let route = null;
+                    try { if (navigationRef?.isReady?.() && navigationRef?.getCurrentRoute) { route = navigationRef.getCurrentRoute(); } } catch {}
                     if (!route || route?.name !== 'Chat') {
                         const soundsOn = (global?.userData?.settings?.sounds !== false);
                         if (soundsOn) buzzOnce();
@@ -329,7 +430,12 @@ export default function App() {
                 try {
                     // If it's a chat push and user is in Chat screen, skip buzz (Chat screen handles haptics)
                     try {
-                        const route = navigationRef?.getCurrentRoute?.();
+                        let route = null;
+                        try {
+                            if (navigationRef?.isReady?.() && navigationRef?.getCurrentRoute) {
+                                route = navigationRef.getCurrentRoute();
+                            }
+                        } catch {}
                         const dtype = evt?.request?.content?.data?.type;
                         if (dtype === 'chat' && route?.name === 'Chat') {
                             // Still handle rest reminder modal detection below

@@ -1,5 +1,5 @@
-import React, { useEffect, useMemo, useState } from "react";
-import { StyleSheet, View, Text, ScrollView, Pressable, Dimensions, UIManager, Platform, LayoutAnimation, InteractionManager, ActivityIndicator } from "react-native";
+import React, { useEffect, useMemo, useRef, useState } from "react";
+import { StyleSheet, View, Text, ScrollView, Pressable, Dimensions, UIManager, Platform, LayoutAnimation, InteractionManager, ActivityIndicator, Animated, FlatList } from "react-native";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import FastImage from "react-native-fast-image";
 import HexagonalStats from "./HexagonalStats";
@@ -210,6 +210,61 @@ export default function UserStatsModal({ user, toViewProfile, hexOverlay, hexPro
         user?.joined
     );
 
+    // ---------- Exercise detail (sets) overlay state ----------
+    const [detailName, setDetailName] = useState(null); // exercise name
+    const detailOpacity = useRef(new Animated.Value(0)).current;
+    const openDetail = (name) => {
+        if (!name) return;
+        setDetailName(name);
+        try { Animated.timing(detailOpacity, { toValue: 1, duration: 180, useNativeDriver: true }).start(); } catch {}
+    };
+    const closeDetail = () => {
+        try {
+            Animated.timing(detailOpacity, { toValue: 0, duration: 140, useNativeDriver: true }).start(({ finished }) => {
+                if (finished) setDetailName(null);
+                else setDetailName(null);
+            });
+        } catch { setDetailName(null); }
+    };
+
+    const detailSets = useMemo(() => {
+        if (!detailName) return [];
+        const sets = (user?.statsExercises?.[detailName]?.sets || []);
+        if (!Array.isArray(sets) || sets.length === 0) return [];
+        // Sort reverse-chronological by date (YYYY-MM-DD) then by original order (descending)
+        const withIdx = sets.map((s, i) => ({ ...s, __i: i }));
+        const toKey = (d) => {
+            if (!d) return 0;
+            if (typeof d === 'string') {
+                // Expect YYYY-MM-DD; fallback to Date parse
+                const t = Date.parse(d);
+                return Number.isFinite(t) ? t : 0;
+            }
+            if (typeof d === 'number') return d;
+            if (typeof d === 'object' && Number.isFinite(d.seconds)) return d.seconds * 1000;
+            return 0;
+        };
+        withIdx.sort((a, b) => {
+            const ta = toKey(a?.date);
+            const tb = toKey(b?.date);
+            if (tb !== ta) return tb - ta;
+            return (b.__i || 0) - (a.__i || 0);
+        });
+        return withIdx.map(({ __i, ...rest }) => rest);
+    }, [detailName, user?.statsExercises, user?.uid]);
+
+    const setAdjusted1RM = (w, r) => {
+        const W = safeNumber(w, 0); const R = safeNumber(r, 0);
+        if (W <= 0 || R <= 0) return 0;
+        return Math.round(W * (1 + R / 30));
+    };
+
+    const ACC_DETAIL = useMemo(() => {
+        if (!detailName) return COLORS.accent;
+        const group = NAME_TO_GROUP.get(detailName) || "Other";
+        return groupAccent(group);
+    }, [detailName]);
+
     return (
         <View style={styles.container}>
             {/* Grabber */}
@@ -306,6 +361,7 @@ export default function UserStatsModal({ user, toViewProfile, hexOverlay, hexPro
                                                     { position: "relative" },
                                                     pressed && styles.exerciseCardPressed,
                                                 ]}
+                                                onPress={() => openDetail(name)}
                                             >
                                                 {/* Accent bar based on muscle group */}
                                                 <View style={[styles.accentBar, { backgroundColor: ACC }]} />
@@ -362,6 +418,64 @@ export default function UserStatsModal({ user, toViewProfile, hexOverlay, hexPro
 
                 <View style={{ height: scaledSize(100) }} />
             </ScrollView>
+
+            {/* Exercise detail overlay */}
+            {detailName ? (
+                <Animated.View
+                    pointerEvents="auto"
+                    style={[styles.detailOverlay, { opacity: detailOpacity }]}
+                >
+                    <View style={[styles.detailHeader, { borderColor: rgba(ACC_DETAIL, 0.35), backgroundColor: rgba(ACC_DETAIL, 0.08) }]}>
+                        <Pressable onPress={closeDetail} hitSlop={10} style={styles.detailBackRow}>
+                            <MaterialCommunityIcons name="chevron-left" size={scaledSize(18)} color={COLORS.text} />
+                            <Text numberOfLines={1} style={styles.detailTitle}>{detailName}</Text>
+                        </Pressable>
+                        <View style={[styles.detailCountPill, { borderColor: rgba(ACC_DETAIL, 0.35), backgroundColor: rgba(ACC_DETAIL, 0.12) }]}>
+                            <MaterialCommunityIcons name="view-grid-outline" size={scaledSize(11)} color={COLORS.subtext} />
+                            <Text style={styles.detailCountText}>{detailSets.length} sets</Text>
+                        </View>
+                    </View>
+
+                    {detailSets.length === 0 ? (
+                        <View style={styles.detailEmpty}>
+                            <Text style={styles.emptyText}>No sets yet.</Text>
+                        </View>
+                    ) : (
+                        <FlatList
+                            data={detailSets}
+                            keyExtractor={(item, index) => `${detailName}-${item?.wid || 'w'}-${item?.date || 'd'}-${index}`}
+                            contentContainerStyle={styles.detailListContent}
+                            showsVerticalScrollIndicator={false}
+                            renderItem={({ item }) => {
+                                const w = safeNumber(item?.weight, 0);
+                                const r = safeNumber(item?.reps, 0);
+                                const rm = setAdjusted1RM(w, r);
+                                const dateLabel = (() => {
+                                    const d = item?.date;
+                                    if (!d) return '';
+                                    if (typeof d === 'string') return d;
+                                    if (typeof d === 'number') { const dd = new Date(d); return isNaN(dd) ? '' : dd.toISOString().slice(0,10); }
+                                    if (typeof d === 'object' && Number.isFinite(d.seconds)) { const dd = new Date(d.seconds*1000); return dd.toISOString().slice(0,10); }
+                                    return '';
+                                })();
+                                return (
+                                    <View style={styles.setRow}>
+                                        <View style={[styles.setDot, { backgroundColor: ACC_DETAIL }]} />
+                                        <View style={{ flex: 1 }}>
+                                            <Text style={styles.setMain}>{w} × {r}</Text>
+                                            {!!dateLabel && <Text style={styles.setSub}>{dateLabel}</Text>}
+                                        </View>
+                                        <View style={styles.rmPill}>
+                                            <Text style={styles.rmLabel}>Adj 1RM</Text>
+                                            <Text style={[styles.rmValue, { color: ACC_DETAIL }]}>{rm}</Text>
+                                        </View>
+                                    </View>
+                                );
+                            }}
+                        />
+                    )}
+                </Animated.View>
+            ) : null}
         </View>
     );
 }
@@ -642,4 +756,80 @@ const styles = StyleSheet.create({
         fontFamily: "Outfit_700Bold",
         color: COLORS.text,
     },
+
+    // Detail overlay
+    detailOverlay: {
+        position: 'absolute',
+        top: 0,
+        left: 0,
+        right: 0,
+        bottom: 0,
+        backgroundColor: COLORS.bg,
+        paddingTop: scaledSize(10),
+        paddingHorizontal: scaledSize(17),
+        paddingBottom: scaledSize(10),
+    },
+    detailHeader: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        borderWidth: 1,
+        borderRadius: scaledSize(14),
+        paddingHorizontal: scaledSize(10),
+        paddingVertical: scaledSize(8),
+        marginBottom: scaledSize(10),
+    },
+    detailBackRow: { flexDirection: 'row', alignItems: 'center', flex: 1, minWidth: 0 },
+    detailTitle: {
+        flex: 1,
+        fontSize: scaledSize(15),
+        fontFamily: 'Outfit_700Bold',
+        color: COLORS.text,
+        marginLeft: scaledSize(2),
+    },
+    detailCountPill: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        borderWidth: 1,
+        borderRadius: scaledSize(999),
+        paddingHorizontal: scaledSize(8),
+        paddingVertical: scaledSize(4),
+        gap: scaledSize(5),
+    },
+    detailCountText: { fontSize: scaledSize(11.5), fontFamily: 'Outfit_600SemiBold', color: COLORS.subtext },
+    detailEmpty: {
+        backgroundColor: COLORS.card,
+        borderRadius: scaledSize(16),
+        borderWidth: 1,
+        borderColor: COLORS.hairline,
+        alignItems: 'center',
+        justifyContent: 'center',
+        paddingVertical: scaledSize(20),
+    },
+    detailListContent: { paddingBottom: scaledSize(16), gap: scaledSize(8) },
+    setRow: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        backgroundColor: COLORS.card,
+        borderRadius: scaledSize(14),
+        borderWidth: 1,
+        borderColor: COLORS.hairline,
+        paddingHorizontal: scaledSize(12),
+        paddingVertical: scaledSize(10),
+    },
+    setDot: { width: scaledSize(8), height: scaledSize(8), borderRadius: scaledSize(4), marginRight: scaledSize(10) },
+    setMain: { fontSize: scaledSize(14), fontFamily: 'Outfit_700Bold', color: COLORS.text },
+    setSub: { fontSize: scaledSize(11.5), fontFamily: 'Outfit_500Medium', color: COLORS.subtext, marginTop: scaledSize(2) },
+    rmPill: {
+        flexDirection: 'row',
+        alignItems: 'baseline',
+        paddingHorizontal: scaledSize(8),
+        paddingVertical: scaledSize(4.5),
+        borderRadius: scaledSize(999),
+        borderWidth: 1,
+        borderColor: COLORS.hairline,
+        backgroundColor: 'rgba(255,255,255,0.06)'
+    },
+    rmLabel: { fontSize: scaledSize(10.5), fontFamily: 'Outfit_600SemiBold', color: COLORS.subtext, marginRight: scaledSize(6), letterSpacing: 0.6 },
+    rmValue: { fontSize: scaledSize(13), fontFamily: 'Outfit_800ExtraBold' },
 });

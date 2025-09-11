@@ -109,20 +109,22 @@ export default function Feed({ navigation, route }) {
     const focusWatchIdRef = useRef(null);
 
     // Wait until target index is viewable and scrolling has settled, then focus
+    // Wait just enough for the target cell to be viewable and the list idle
+    // (1–2 frames) before firing programmatic focus. Keeps the motion precise
+    // without the old ~1s delay.
     const startFocusWatcher = useCallback((pid, idx) => {
         desiredFocusIndexRef.current = idx;
         if (focusWatchIdRef.current) {
             try { cancelAnimationFrame(focusWatchIdRef.current); } catch {}
             focusWatchIdRef.current = null;
         }
-        let tries = 0; const MAX = 60; // ~1s at 60fps
+        let tries = 0; const MAX = 18; // ~300ms worst-case
         const tick = () => {
-            const i = desiredFocusIndexRef.current;
-            if (i < 0) return; // canceled
+            if (desiredFocusIndexRef.current !== idx) return; // canceled/replaced
             const now = Date.now();
-            const lay = itemLayoutsRef.current.get(i);
-            const isViewable = viewableSetRef.current.has(i);
-            const idle = now - (lastScrollTsRef.current || 0) > 40;
+            const lay = itemLayoutsRef.current.get(idx);
+            const isViewable = viewableSetRef.current.has(idx);
+            const idle = now - (lastScrollTsRef.current || 0) > 16; // >1 frame idle
             if (lay && isViewable && idle) {
                 programFocusPidRef.current = String(pid);
                 setProgramFocusSignal(Date.now());
@@ -131,7 +133,7 @@ export default function Feed({ navigation, route }) {
                 return;
             }
             if (++tries >= MAX) {
-                // Fallback: proceed anyway
+                // Fallback: proceed anyway to avoid perceptible lag
                 programFocusPidRef.current = String(pid);
                 setProgramFocusSignal(Date.now());
                 desiredFocusIndexRef.current = -1;
@@ -383,7 +385,20 @@ export default function Feed({ navigation, route }) {
         const run = () => {
             const Vstart = visibleHeaderHRef.current || 0; // visible overlay header height
             const Vfinal = backHeaderHRef.current || (insets?.top ? insets.top + 44 : TARGET_POSITION);
+            // When focus is programmatic (preferWaitForHeader=true), the immediate
+            // measure(pageY) right after a jump-to-index can be one frame stale on
+            // some devices, causing translate overshoot/undershoot. In that case,
+            // recompute the absolute Y using our cached layout and current scroll.
             let pageYAdj = pageY;
+            if (preferWaitForHeader) {
+                try {
+                    const layNow = itemLayoutsRef.current.get(index);
+                    if (layNow && typeof layNow.y === 'number') {
+                        const topNow = scrollOffsetY.current || 0;
+                        pageYAdj = (layNow.y - topNow) + Vstart; // absolute screen Y at this moment
+                    }
+                } catch {}
+            }
             // If the cell was clipped at the top when pressed, reveal it and adjust
             try {
                 const lay = itemLayoutsRef.current.get(index);
@@ -403,9 +418,16 @@ export default function Feed({ navigation, route }) {
 
             // Needed translation Δ: Vfinal - (pageY - Vstart) = - (pageY - Vstart - Vfinal)
             const translate = pageYAdj - Vstart - Vfinal;
-            dlog('focus.animate', { index, Vstart, Vfinal, pageYAdj, translate });
-            // Defer to end of current interactions for smoother start
-            InteractionManager.runAfterInteractions(() => animateView(translate, 0));
+            dlog('focus.animate', { index, Vstart, Vfinal, pageYAdj, translate, preferWaitForHeader });
+            // If this focus was triggered programmatically (e.g., from Notifications),
+            // do not wait for InteractionManager (which would stall until the
+            // bottom-sheet close animation finishes). Start immediately.
+            if (preferWaitForHeader) {
+                animateView(translate, 0);
+            } else {
+                // For direct user taps, keep the previous behavior for smoothness.
+                InteractionManager.runAfterInteractions(() => animateView(translate, 0));
+            }
         };
         if (!preferWaitForHeader) {
             setTimeout(run, 0);
@@ -623,14 +645,14 @@ export default function Feed({ navigation, route }) {
         const viewportTop = scrollOffsetY.current;
         const viewportBottom = viewportTop + (height - visibleH);
 
-        // If fully visible already: wait for idle and simulate tap
+        // If fully visible already: schedule programmatic focus almost instantly
         if (lay && lay.y >= viewportTop && (lay.y + lay.h) <= viewportBottom) {
             startFocusWatcher(pid, idx);
             return true;
         }
 
-        // Otherwise, perform a minimal instant reveal (no animation) for stability,
-        // then wait until the row is viewable+idle before simulating the tap.
+        // Otherwise, perform a minimal instant reveal (no animation) and then
+        // trigger programmatic focus on the next frame.
         if (lay) {
             const targetOffset = Math.max(0, lay.y - 8);
             try {
@@ -706,7 +728,7 @@ export default function Feed({ navigation, route }) {
             const id = setTimeout(() => {
                 const ok = scrollToPid(pid);
                 if (ok) setPendingFocusPid(null);
-            }, 50);
+            }, 0);
             try { navigation.setParams({ focusPid: undefined }); } catch {}
             return () => clearTimeout(id);
         }
@@ -729,7 +751,7 @@ export default function Feed({ navigation, route }) {
                 const id = setTimeout(() => {
                     const ok = scrollToPid(pid);
                     if (ok) setPendingFocusPid(null);
-                }, 50);
+                }, 0);
                 try { navigation.setParams({ focusPid: undefined }); } catch {}
                 return () => clearTimeout(id);
             }

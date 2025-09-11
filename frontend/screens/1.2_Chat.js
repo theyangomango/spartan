@@ -55,6 +55,21 @@ export default function Chat({ navigation, route }) {
     const messagesRaw = useChatMessages(data.cid);
     const currentUid = global?.userData?.uid || null;
 
+    // Derive header participants when opened via push (route usersExcludingSelf may be empty)
+    const headerUsersExcludingSelf = useMemo(() => {
+        if (Array.isArray(usersExcludingSelf) && usersExcludingSelf.length > 0) return usersExcludingSelf;
+        const arr = Array.isArray(data?.users) ? data.users : [];
+        const out = arr
+            .filter((u) => u && u.uid && u.uid !== currentUid)
+            .map((u) => ({
+                uid: u.uid,
+                handle: typeof u.handle === 'string' ? u.handle : (typeof u.username === 'string' ? u.username : ''),
+                name: typeof u.name === 'string' ? u.name : (typeof u.handle === 'string' ? u.handle : ''),
+                pfpVersion: Number(u.pfpVersion || 0),
+            }));
+        return out;
+    }, [usersExcludingSelf, data?.users, currentUid]);
+
     // Track whether user is near the latest message (bottom of inverted list)
     const isNearBottomRef = useRef(true);
     const latestSeenIdRef = useRef(null);
@@ -72,7 +87,7 @@ export default function Chat({ navigation, route }) {
         try {
             // In inverted FlatList, offset 0 shows the newest item
             requestAnimationFrame(() => flatRef.current?.scrollToOffset?.({ offset: 0, animated: true }));
-        } catch {}
+        } catch { }
     };
 
     const sendText = async () => {
@@ -307,10 +322,10 @@ export default function Chat({ navigation, route }) {
             try {
                 const soundsOn = (global?.userData?.settings?.sounds !== false);
                 if (soundsOn) {
-                    try { Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success); } catch {}
-                    try { Vibration.vibrate(120); } catch {}
+                    try { Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success); } catch { }
+                    try { Vibration.vibrate(120); } catch { }
                 }
-            } catch {}
+            } catch { }
         }
         if (senderUid && senderUid !== currentUid && isNearBottomRef.current) {
             // Scroll only if user hasn't scrolled away from bottom
@@ -368,7 +383,7 @@ export default function Chat({ navigation, route }) {
             <StatusBar barStyle="light-content" />
             <View style={[styles.container, { paddingTop: insets.top }]}>
                 <ChatHeader
-                    usersExcludingSelf={usersExcludingSelf}
+                    usersExcludingSelf={headerUsersExcludingSelf}
                     // toMessages={() => navigation.navigate("Messages", { message: data, index })}
                     toMessages={() => navigation.goBack()}
                 />
@@ -406,7 +421,7 @@ export default function Chat({ navigation, route }) {
                                 try {
                                     const y = e?.nativeEvent?.contentOffset?.y || 0;
                                     isNearBottomRef.current = y <= 80; // inverted: 0 is newest
-                                } catch {}
+                                } catch { }
                             }}
                         />
                     </View>
@@ -457,11 +472,11 @@ export default function Chat({ navigation, route }) {
 }
 
 const styles = StyleSheet.create({
-    flex: { flex: 1 },
+    flex: { flex: 1, backgroundColor: COLORS.bg },
     container: { flex: 1, backgroundColor: COLORS.bg },
     surface: {
         flex: 1,
-        backgroundColor: COLORS.surface,
+        backgroundColor: COLORS.bg,
         borderTopColor: COLORS.hairline,
         borderTopWidth: StyleSheet.hairlineWidth,
     },
