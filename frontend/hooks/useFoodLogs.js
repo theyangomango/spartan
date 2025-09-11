@@ -97,6 +97,7 @@ const buildFromSnap = (snap) => {
             quantity: qty,   // keep for badge/UX if desired
             servingId: data.servingId || null,
             servingDesc: data.servingDesc || null,
+            extrasPerServing: data.extrasPerServing || null,
         });
     });
 

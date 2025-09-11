@@ -169,8 +169,9 @@ const styles = StyleSheet.create({
         marginVertical: scaleSize(8),
         paddingHorizontal: scaleSize(14),
         paddingVertical: scaleSize(12),
-        // Use a lighter card color to better contrast the bottom sheet's surface
-        backgroundColor: theme.card,
+        // Neutral card surface to better match the rest of the app
+        // (remove the saturated bluish slate)
+        backgroundColor: theme.surface,
         borderRadius: scaleSize(16),
         borderWidth: StyleSheet.hairlineWidth,
         borderColor: theme.hairline,
@@ -181,6 +182,7 @@ const styles = StyleSheet.create({
         elevation: 2,
     },
     cardUnread: {
+        // Slightly darker to subtly differentiate unread while staying on-palette
         backgroundColor: theme.field,
         borderColor: theme.hairline,
     },

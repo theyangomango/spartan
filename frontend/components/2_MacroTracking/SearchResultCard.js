@@ -78,6 +78,16 @@ function SearchResultCard({ item, onPressPlus, onPressCard, COLORS }) {
         textPressable: { flex: 1, marginRight: 12 },
         resultTitle: { fontFamily: 'Mulish_700Bold', fontSize: 12.5, color: theme.text || theme.textPrimary, marginBottom: 4 },
         resultDescription: { fontFamily: 'Mulish_500Medium', fontSize: 12.5, color: theme.subtext || theme.textSecondary },
+        plusWrap: {
+            width: 32,
+            height: 32,
+            borderRadius: 18,
+            alignItems: 'center',
+            justifyContent: 'center',
+            backgroundColor: '#rgba(255,255,255,0.1)',
+            borderWidth: StyleSheet.hairlineWidth,
+            borderColor: theme.hairline || 'rgba(255,255,255,0.18)',
+        },
     });
 
     return (
@@ -92,7 +102,9 @@ function SearchResultCard({ item, onPressPlus, onPressCard, COLORS }) {
                     <Text style={styles.resultDescription}>{getSummary()}</Text>
                 </Pressable>
                 <RNBounceable bounceEffectIn={0.9} onPress={onPressPlus}>
-                    <PlusIcon size={24} color="#79b3ffff" />
+                    <View style={styles.plusWrap}>
+                        <PlusIcon size={18} color={theme.accent || '#2D9EFF'} />
+                    </View>
                 </RNBounceable>
             </View>
         </View>

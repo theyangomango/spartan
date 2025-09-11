@@ -378,6 +378,8 @@ export default function Feed({ navigation, route }) {
         focusedPostIndex.current = index;
         try { setFocusedIndexState(index); } catch {}
         setIsSomePostFocused(true);
+        // Consume any pending programmatic focus so it doesn't re-trigger after unfocus
+        try { programFocusPidRef.current = null; } catch {}
         const run = () => {
             const Vstart = visibleHeaderHRef.current || 0; // visible overlay header height
             const Vfinal = backHeaderHRef.current || (insets?.top ? insets.top + 44 : TARGET_POSITION);
@@ -621,14 +623,14 @@ export default function Feed({ navigation, route }) {
         const viewportTop = scrollOffsetY.current;
         const viewportBottom = viewportTop + (height - visibleH);
 
-        // If fully visible already: just trigger a programmatic tap quickly
+        // If fully visible already: wait for idle and simulate tap
         if (lay && lay.y >= viewportTop && (lay.y + lay.h) <= viewportBottom) {
-            programFocusPidRef.current = String(pid);
-            setTimeout(() => setProgramFocusSignal(Date.now()), 50);
+            startFocusWatcher(pid, idx);
             return true;
         }
 
-        // Otherwise, perform a minimal instant reveal (no animation) for stability
+        // Otherwise, perform a minimal instant reveal (no animation) for stability,
+        // then wait until the row is viewable+idle before simulating the tap.
         if (lay) {
             const targetOffset = Math.max(0, lay.y - 8);
             try {
@@ -639,9 +641,7 @@ export default function Feed({ navigation, route }) {
             try { flatListRef.current?.scrollToIndex?.({ index: idx, viewPosition: 0, animated: false }); } catch {}
         }
 
-        // Fire programmatic tap after the jump
-        programFocusPidRef.current = String(pid);
-        setTimeout(() => setProgramFocusSignal(Date.now()), 50);
+        startFocusWatcher(pid, idx);
         return true;
     }, [posts, handleFocusPost]);
 

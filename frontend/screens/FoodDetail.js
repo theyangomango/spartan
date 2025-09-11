@@ -4,7 +4,7 @@ import { View, Text, StyleSheet, Pressable, ScrollView, StatusBar, SafeAreaView,
 import { Ionicons } from '@expo/vector-icons';
 import theme from '../theme/mfpDark';
 import { db } from '../../firebase.config';
-import { doc, updateDoc, serverTimestamp, setDoc, collection } from 'firebase/firestore';
+import { doc, updateDoc, serverTimestamp, setDoc, collection, getDoc } from 'firebase/firestore';
 import { parseMacrosFromDescription, parseExtraNutrientsFromDescription } from '../utils/nutrition';
 import { getFoodById } from './fatsecretClient';
 import Svg, { Circle } from 'react-native-svg';
@@ -45,9 +45,10 @@ export default function FoodDetail({ navigation, route }) {
         return parseMacrosFromDescription(baseDesc, qty);
     }, [baseDesc, servings]);
     const [saving, setSaving] = useState(false);
-    const [apiServing, setApiServing] = useState(null); // default serving from FatSecret
+    const [apiServing, setApiServing] = useState(null); // temp holder when fetched from API
+    const [extrasPS, setExtrasPS] = useState(null); // cached micronutrients per default serving
 
-    // Fetch default serving once so we can populate Nutrition Facts robustly
+    // Load extras per serving from fastest sources: entry -> recentFoods cache -> API
     useEffect(() => {
         let cancelled = false;
         (async () => {
@@ -56,13 +57,54 @@ export default function FoodDetail({ navigation, route }) {
                     ? String(food?.food_id || '').trim()
                     : String(entry?.foodId || entry?.food_id || '').trim();
                 if (!fid) return;
+
+                // 1) If editing and entry already has per-serving extras cached, use them
+                if (mode === 'edit' && entry?.extrasPerServing) {
+                    if (!cancelled) setExtrasPS(entry.extrasPerServing);
+                    return;
+                }
+
+                // 2) Try user's recentFoods cache
+                try {
+                    const uid = global?.userData?.uid || global?.userData?.id;
+                    if (uid) {
+                        const recentRef = doc(db, 'users', uid, 'recentFoods', fid);
+                        const snap = await getDoc(recentRef);
+                        const data = snap.exists() ? (snap.data() || {}) : {};
+                        const cached = data.microsPS || data.extrasPerServing;
+                        if (cached && !cancelled) { setExtrasPS(cached); return; }
+                    }
+                } catch {}
+
+                // 3) Fallback to FatSecret API
                 const res = await getFoodById(fid).catch(() => null);
                 const f = res?.food || null;
                 const servings = f?.servings?.serving;
                 const arr = Array.isArray(servings) ? servings : (servings ? [servings] : []);
-                if (!arr.length) return;
+                if (!arr?.length) return;
                 const def = arr.find((s) => String(s?.is_default || '') === '1') || arr[0];
-                if (!cancelled) setApiServing(def || null);
+                if (!def) return;
+                const toNum = (v) => { const n = Number(v); return Number.isFinite(n) ? n : null; };
+                const cached = {
+                    sugar_g: toNum(def.sugar),
+                    fiber_g: toNum(def.fiber),
+                    sodium_mg: toNum(def.sodium),
+                    satFat_g: toNum(def.saturated_fat),
+                    cholesterol_mg: toNum(def.cholesterol),
+                };
+                if (!cancelled) {
+                    setApiServing(def);
+                    setExtrasPS(cached);
+                }
+
+                // Persist to recentFoods cache for faster next time
+                try {
+                    const uid = global?.userData?.uid || global?.userData?.id;
+                    if (uid) {
+                        const recentRef = doc(db, 'users', uid, 'recentFoods', fid);
+                        await setDoc(recentRef, { microsPS: cached, extrasPerServing: cached, lastUsedAt: serverTimestamp() }, { merge: true });
+                    }
+                } catch {}
             } catch {}
         })();
         return () => { cancelled = true; };
@@ -70,26 +112,17 @@ export default function FoodDetail({ navigation, route }) {
 
     const extras = useMemo(() => {
         const qty = Number(servings) || 1;
-        if (apiServing) {
-            const toNum = (v) => {
-                const n = Number(v);
-                return Number.isFinite(n) ? n : null;
-            };
-            const sugar = toNum(apiServing.sugar);
-            const fiber = toNum(apiServing.fiber);
-            const sodium = toNum(apiServing.sodium);
-            const satFat = toNum(apiServing.saturated_fat);
-            const chol = toNum(apiServing.cholesterol);
+        if (extrasPS) {
             return {
-                sugar_g: sugar == null ? null : sugar * qty,
-                fiber_g: fiber == null ? null : fiber * qty,
-                sodium_mg: sodium == null ? null : sodium * qty,
-                satFat_g: satFat == null ? null : satFat * qty,
-                cholesterol_mg: chol == null ? null : chol * qty,
+                sugar_g: extrasPS.sugar_g == null ? null : extrasPS.sugar_g * qty,
+                fiber_g: extrasPS.fiber_g == null ? null : extrasPS.fiber_g * qty,
+                sodium_mg: extrasPS.sodium_mg == null ? null : extrasPS.sodium_mg * qty,
+                satFat_g: extrasPS.satFat_g == null ? null : extrasPS.satFat_g * qty,
+                cholesterol_mg: extrasPS.cholesterol_mg == null ? null : extrasPS.cholesterol_mg * qty,
             };
         }
         return parseExtraNutrientsFromDescription(baseDesc, qty);
-    }, [apiServing, baseDesc, servings]);
+    }, [extrasPS, baseDesc, servings]);
 
     // Extract a compact serving label from the description (e.g., "100 g", "1/2 cup", "1 serving")
     const servingLabel = useMemo(() => {
@@ -144,6 +177,8 @@ export default function FoodDetail({ navigation, route }) {
                 },
                 // Keep existing foodId if already stored; otherwise omit
                 ...(entry?.foodId || entry?.food_id ? { foodId: String(entry.foodId || entry.food_id) } : {}),
+                // Persist cached micronutrients for faster next open
+                ...(extrasPS ? { extrasPerServing: extrasPS } : {}),
                 updatedAt: serverTimestamp(),
             });
         } catch (e) {
@@ -177,6 +212,8 @@ export default function FoodDetail({ navigation, route }) {
                     carbs: Math.round(m.carbs || 0),
                     fat: Math.round(m.fat || 0),
                 },
+                // cache per-serving micronutrients for instant reloads later
+                ...(extrasPS ? { extrasPerServing: extrasPS } : {}),
                 // no serving-specific storage; we rely on description default
                 createdAt: serverTimestamp(),
                 updatedAt: serverTimestamp(),
@@ -185,7 +222,7 @@ export default function FoodDetail({ navigation, route }) {
             await setDoc(dayRef, { dayKey, updatedAt: serverTimestamp() }, { merge: true });
             await setDoc(entryRef, payload);
 
-            // best-effort recent-foods
+            // best-effort recent-foods (also cache micros per serving)
             try {
                 const recentRef = doc(db, 'users', uid, 'recentFoods', String(payload.foodId || payload.name));
                 await setDoc(
@@ -197,6 +234,7 @@ export default function FoodDetail({ navigation, route }) {
                         description: payload.description,
                         usedCount: 1,
                         lastUsedAt: serverTimestamp(),
+                        ...(extrasPS ? { microsPS: extrasPS, extrasPerServing: extrasPS } : {}),
                     },
                     { merge: true }
                 );
