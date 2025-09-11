@@ -13,6 +13,7 @@ import {
     FlatList,
     Dimensions,
     PanResponder,
+    Easing,
 } from "react-native";
 import * as Haptics from 'expo-haptics';
 import FastImage from "react-native-fast-image";
@@ -24,7 +25,7 @@ const { width: W } = Dimensions.get("window");
 const AR = 0.8;
 const BORDER = 35;
 
-const FADE_MS = 80;
+const FADE_MS = 140;
 const B_IN = 1.02;
 const B_OUT = 1;
 const B_FRICTION = 60;
@@ -72,6 +73,7 @@ function Post({
     isFocused,
     isSomePostFocused,
     isAdjacentToFocused,
+    isUnfocusing,
     handleFocusPost,
     onSwipeUnfocus,
     focusSeq,
@@ -106,7 +108,7 @@ function Post({
     // Fade behavior: when focusing, keep focused=1, neighbors faded, others hidden
     useEffect(() => {
         let target = 1;
-        if (isSomePostFocused) {
+        if (isSomePostFocused && !isUnfocusing) {
             if (isFocused) target = 1;
             else if (isAdjacentToFocused) target = 0.28;
             else target = 0;
@@ -116,9 +118,10 @@ function Post({
         Animated.timing(opacity, {
             toValue: target,
             duration: FADE_MS,
+            easing: Easing.out(Easing.cubic),
             useNativeDriver: true,
         }).start();
-    }, [isSomePostFocused, isFocused, isAdjacentToFocused]);
+    }, [isSomePostFocused, isFocused, isAdjacentToFocused, isUnfocusing]);
 
     // Memo styles
     const [containerStyle, imageStyle] = useMemo(() => {
@@ -282,7 +285,7 @@ function Post({
             key={`postwrap-${mediaListKey}`}
             ref={viewRef}
             style={[styles.wrapper, { opacity }]}
-            pointerEvents={isSomePostFocused && !isFocused ? "none" : "auto"}
+            pointerEvents={isSomePostFocused && !isFocused && !isUnfocusing ? "none" : "auto"}
         >
             <Animated.View
                 key={`card-${mediaListKey}`}

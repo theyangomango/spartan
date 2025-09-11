@@ -6,7 +6,7 @@
  */
 
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { Animated, Dimensions, SafeAreaView, StyleSheet, View, Easing as RNEasing, Text, RefreshControl, PanResponder } from "react-native";
+import { Animated, Dimensions, SafeAreaView, StyleSheet, View, Easing as RNEasing, Text, RefreshControl, PanResponder, InteractionManager } from "react-native";
 import * as Haptics from 'expo-haptics';
 import { useFocusEffect } from '@react-navigation/native';
 import { StatusBar } from "expo-status-bar";
@@ -37,7 +37,7 @@ import MaskedView from "@react-native-masked-view/masked-view";
 const { width, height } = Dimensions.get("window");
 const CARD_AR = 0.8; // Post card aspect ratio (W / H)
 const TARGET_POSITION = getScrollTargetPosition(width, height),
-    ANIMATION_DURATION = 300;
+    ANIMATION_DURATION = 280;
 
 export default function Feed({ navigation, route }) {
     const insets = useSafeAreaInsets();
@@ -72,6 +72,7 @@ export default function Feed({ navigation, route }) {
     const flatListRef = useRef(null);
     const isTransitioning = useRef(false); /* 🔒 */
     const pendingUnfocusTRef = useRef(null);
+    const [unfocusing, setUnfocusing] = useState(false);
     const focusSeqRef = useRef(0);
     const [focusSeq, setFocusSeq] = useState(0);
     const queuedFocusRef = useRef(null);
@@ -153,6 +154,8 @@ export default function Feed({ navigation, route }) {
     const prevY = useSharedValue(0);
     const focusHide = useSharedValue(0); // when focusing a post, fully hide header
     const isFocusSV = useSharedValue(0); // freeze JS mirrors during focus
+    // Back header opacity (the compact header shown during focus)
+    const backHeaderOpacitySV = useSharedValue(0);
     // Animated styles: overlay header translate + spacer height
     const overlayHeaderStyle = useAnimatedStyle(() => {
         const totalHidden = Math.min(headerH.value, hidden.value + focusHide.value);
@@ -168,6 +171,7 @@ export default function Feed({ navigation, route }) {
         const visible = Math.max(0, headerH.value - totalHidden);
         return { top: visible };
     });
+    const backHeaderStyle = useAnimatedStyle(() => ({ opacity: backHeaderOpacitySV.value }));
 
     // Header workout pill state
     const [activeWorkout, setActiveWorkout] = useState(null);
@@ -398,7 +402,8 @@ export default function Feed({ navigation, route }) {
             // Needed translation Δ: Vfinal - (pageY - Vstart) = - (pageY - Vstart - Vfinal)
             const translate = pageYAdj - Vstart - Vfinal;
             dlog('focus.animate', { index, Vstart, Vfinal, pageYAdj, translate });
-            animateView(translate, 0);
+            // Defer to end of current interactions for smoother start
+            InteractionManager.runAfterInteractions(() => animateView(translate, 0));
         };
         if (!preferWaitForHeader) {
             setTimeout(run, 0);
@@ -419,12 +424,13 @@ export default function Feed({ navigation, route }) {
     const handleBackPress = () => {
         if (isTransitioning.current) return; /* 🔒 */
         isTransitioning.current = true;
-
-        setIsSomePostFocused(false);
-        setShareBottomSheetCloseFlag((f) => !f);
+        setUnfocusing(true);
+        // Let other posts and UI return immediately for cohesive motion
+        try { setIsSomePostFocused(false); } catch {}
+        // Start revealing the header in parallel for a cohesive unfocus
+        try { focusHide.value = withTiming(0, { duration: ANIMATION_DURATION, easing: ReEasing.out(ReEasing.cubic) }); } catch {}
+        // Defer state flips to animation end for smoother unfocus
         animateView(0, 1);
-
-        flatListRef.current?.setNativeProps({ scrollEnabled: true });
     };
 
     // Allow posts to request an unfocus while a focus/unfocus animation is in-flight.
@@ -449,10 +455,20 @@ export default function Feed({ navigation, route }) {
     useEffect(() => {
         focusHide.value = withTiming(
             isSomePostFocused ? headerH.value : 0,
-            { duration: ANIMATION_DURATION, easing: ReEasing.linear }
+            { duration: ANIMATION_DURATION, easing: ReEasing.out(ReEasing.cubic) }
         );
         isFocusSV.value = isSomePostFocused ? 1 : 0;
     }, [isSomePostFocused]);
+
+    // Drive back-header opacity to fade in/out in sync with focus/unfocus
+    useEffect(() => {
+        if (isSomePostFocused) {
+            // If unfocusing, fade it out; otherwise fade in
+            backHeaderOpacitySV.value = withTiming(unfocusing ? 0 : 1, { duration: ANIMATION_DURATION, easing: ReEasing.out(ReEasing.cubic) });
+        } else {
+            backHeaderOpacitySV.value = 0;
+        }
+    }, [isSomePostFocused, unfocusing]);
 
     // Feed-level PanResponder: diagonal unfocus only (let inner FlatList own horizontal paging)
     // No external slide controller; FlatList inside Post owns horizontal paging
@@ -515,18 +531,24 @@ export default function Feed({ navigation, route }) {
             Animated.timing(translateY, {
                 toValue: -translateYValue,
                 duration: ANIMATION_DURATION,
-                easing: RNEasing.linear,
+                easing: RNEasing.out(RNEasing.cubic),
                 useNativeDriver: true,
             }),
             Animated.timing(storiesOpacity, {
                 toValue: opacityValue,
                 duration: ANIMATION_DURATION,
-                easing: RNEasing.linear,
+                easing: RNEasing.out(RNEasing.cubic),
                 useNativeDriver: true,
             }),
         ]).start(() => {
             isTransitioning.current = false; /* 🔓 unlock */
-            if (translateYValue === 0) { focusedPostIndex.current = -1; setFocusedIndexState?.(-1); }
+            if (translateYValue === 0) {
+                // Unfocus completed: now flip state and re-enable scroll
+                try { focusedPostIndex.current = -1; setFocusedIndexState?.(-1); } catch {}
+                try { setShareBottomSheetCloseFlag((f) => !f); } catch {}
+                try { flatListRef.current?.setNativeProps({ scrollEnabled: true }); } catch {}
+                try { setUnfocusing(false); } catch {}
+            }
             else {
                 // After a focus completes, bump focusSeq once more to remount the
                 // focused card & its inner FlatList in final position. This clears any
@@ -761,6 +783,7 @@ export default function Feed({ navigation, route }) {
                 toViewProfile: toViewProfilePosts,
                 openViewWorkoutModal,
                 focusSeq,
+                isUnfocusing: unfocusing,
             };
 
             if (!isSomePostFocused) {
@@ -967,17 +990,19 @@ export default function Feed({ navigation, route }) {
                         onLayout={(e) => { backHeaderHRef.current = e.nativeEvent.layout.height || 0; }}
                         style={{ position: 'absolute', top: 0, left: 0, right: 0, zIndex: 30, backgroundColor: theme.bg }}
                     >
-                        <FeedHeader
-                            navigation={navigation}
-                            toMessagesScreen={toMessagesScreen}
-                            onOpenNotifications={handleOpenNotifications}
-                            backButton={true}
-                            onBackPress={handleBackPress}
-                            scrollToTop={scrollToTop}
-                            allUsersRef={allUsersRef}
-                            workout={activeWorkout}
-                            timerRef={headerTimerRef}
-                        />
+                        <Reanimated.View style={backHeaderStyle}>
+                            <FeedHeader
+                                navigation={navigation}
+                                toMessagesScreen={toMessagesScreen}
+                                onOpenNotifications={handleOpenNotifications}
+                                backButton={true}
+                                onBackPress={handleBackPress}
+                                scrollToTop={scrollToTop}
+                                allUsersRef={allUsersRef}
+                                workout={activeWorkout}
+                                timerRef={headerTimerRef}
+                            />
+                        </Reanimated.View>
                     </SafeAreaInsetsView>
                 )}
             </SafeAreaInsetsView>
@@ -989,7 +1014,7 @@ export default function Feed({ navigation, route }) {
 
             <NotificationsBottomSheet notificationsBottomSheetExpandFlag={notificationsBottomSheetExpandFlag} />
             <CommentsBottomSheet
-                isVisible={isSomePostFocused}
+                isVisible={isSomePostFocused && !unfocusing}
                 postData={focusedPostIndex.current === -1 ? null : posts[focusedPostIndex.current]}
                 commentsBottomSheetExpandFlag={commentsBottomSheetExpandFlag}
                 toViewProfile={toViewProfileComments}
