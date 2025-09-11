@@ -39,6 +39,9 @@ const TARGET_POSITION = getScrollTargetPosition(width, height),
 
 export default function Feed({ navigation, route }) {
     const insets = useSafeAreaInsets();
+    // Debug logger (always logs)
+    const dlog = (...args) => { try { console.log('[Feed]', ...args); } catch {} };
+
     // Use UID from global or route params
     const UID = "userData" in global ? global.userData.uid : route?.params?.uid;
 
@@ -63,8 +66,13 @@ export default function Feed({ navigation, route }) {
     const scrollOffsetY = useRef(0);
     const userDataRef = useRef(null);
     const focusedPostIndex = useRef(-1);
+    const [focusedIndexState, setFocusedIndexState] = useState(-1);
     const flatListRef = useRef(null);
     const isTransitioning = useRef(false); /* 🔒 */
+    const pendingUnfocusTRef = useRef(null);
+    const focusSeqRef = useRef(0);
+    const [focusSeq, setFocusSeq] = useState(0);
+    const queuedFocusRef = useRef(null);
 
     // ✅ Shared header users (global/users + following + prefetch)
     const { allUsersRef, mergeUsersIntoRef } = useHeaderSearchUsers({
@@ -318,19 +326,77 @@ export default function Feed({ navigation, route }) {
     }, [route?.params?.messages]);
 
     /* ---------- focus / unfocus handlers ---------- */
-    const handleFocusPost = (index, pageY, preferWaitForHeader = false) => {
-        if (isTransitioning.current) return; /* 🔒 */
+    const handleFocusPost = (index, pageY, preferWaitForHeader = false, pid = null) => {
+        if (true) {
+            const lay0 = itemLayoutsRef.current.get(index);
+            dlog('focus.request', { index, pageY: Math.round(pageY), preferWaitForHeader, pid, layY: lay0?.y, top: scrollOffsetY.current, transitioning: isTransitioning.current });
+        }
+        // If the tapped cell is clipped at the top, reveal and defer to the
+        // programmatic watcher so focus happens when the list is idle.
+        try {
+            const lay = itemLayoutsRef.current.get(index);
+            const top = scrollOffsetY.current || 0;
+            const margin = 8;
+            if (lay && typeof lay.y === 'number' && lay.y < top + margin) {
+                const target = Math.max(0, lay.y - margin);
+                try { flatListRef.current?.scrollToOffset?.({ offset: target, animated: false }); } catch {}
+                scrollOffsetY.current = target;
+                const pidEff = pid || String(posts?.[index]?.pid || '');
+                dlog('focus.deferToWatcher', { index, pid: pidEff, layY: lay?.y, top, target });
+                if (pidEff) startFocusWatcher(pidEff, index);
+                return;
+            }
+        } catch {}
+
+        if (isTransitioning.current) {
+            // Queue a focus attempt to run once the current transition completes
+            queuedFocusRef.current = { index, pageY, preferWaitForHeader: true };
+            const t = setTimeout(() => {
+                if (!isTransitioning.current && queuedFocusRef.current) {
+                    const q = queuedFocusRef.current; queuedFocusRef.current = null;
+                    dlog('focus.dequeue', q);
+                    try { handleFocusPost(q.index, q.pageY, true); } catch {}
+                }
+            }, ANIMATION_DURATION + 40);
+            return; /* 🔒 */
+        }
         isTransitioning.current = true;
         stopFlatListMomentum();
 
+        // Cancel any queued unfocus from a previous gesture
+        if (pendingUnfocusTRef.current) { try { clearTimeout(pendingUnfocusTRef.current); } catch {} pendingUnfocusTRef.current = null; }
+
+        // Bump focus sequence to force fresh mounts/handlers on new focus
+        focusSeqRef.current += 1; setFocusSeq(focusSeqRef.current);
+
         focusedPostIndex.current = index;
+        try { setFocusedIndexState(index); } catch {}
         setIsSomePostFocused(true);
         const run = () => {
-            const Vstart = visibleHeaderHRef.current || 0; // overlay header+chips visible height right before focus
+            const Vstart = visibleHeaderHRef.current || 0; // visible overlay header height
             const Vfinal = backHeaderHRef.current || (insets?.top ? insets.top + 44 : TARGET_POSITION);
-            // Needed translation Δ for the card: Vfinal - (pageY - Vstart) = - (pageY - Vstart - Vfinal)
-            // animateView negates the input, so pass (pageY - Vstart - Vfinal)
-            animateView(pageY - Vstart - Vfinal, 0);
+            let pageYAdj = pageY;
+            // If the cell was clipped at the top when pressed, reveal it and adjust
+            try {
+                const lay = itemLayoutsRef.current.get(index);
+                if (lay && typeof lay.y === 'number') {
+                    const topOld = scrollOffsetY.current || 0;
+                    const margin = 8;
+                    if (lay.y < topOld + margin) {
+                        const target = Math.max(0, lay.y - margin);
+                        const delta = topOld - target; // how much we moved content up
+                        try { flatListRef.current?.scrollToOffset?.({ offset: target, animated: false }); } catch {}
+                        scrollOffsetY.current = target;
+                        pageYAdj = pageY + delta; // compensate the on-screen Y
+                        dlog('focus.revealAdjust', { index, layY: lay?.y, topOld, target, delta, pageYAdj });
+                    }
+                }
+            } catch {}
+
+            // Needed translation Δ: Vfinal - (pageY - Vstart) = - (pageY - Vstart - Vfinal)
+            const translate = pageYAdj - Vstart - Vfinal;
+            dlog('focus.animate', { index, Vstart, Vfinal, pageYAdj, translate });
+            animateView(translate, 0);
         };
         if (!preferWaitForHeader) {
             setTimeout(run, 0);
@@ -358,6 +424,24 @@ export default function Feed({ navigation, route }) {
 
         flatListRef.current?.setNativeProps({ scrollEnabled: true });
     };
+
+    // Allow posts to request an unfocus while a focus/unfocus animation is in-flight.
+    // If locked, queue a single attempt right after the animation window.
+    const requestUnfocus = useCallback(() => {
+        try { if (!isSomePostFocused) return; } catch {}
+        if (!isTransitioning.current) {
+            handleBackPress();
+            return;
+        }
+        if (pendingUnfocusTRef.current) { try { clearTimeout(pendingUnfocusTRef.current); } catch {} pendingUnfocusTRef.current = null; }
+        pendingUnfocusTRef.current = setTimeout(() => {
+            pendingUnfocusTRef.current = null;
+            if (!isSomePostFocused) return;
+            if (!isTransitioning.current) handleBackPress();
+        }, ANIMATION_DURATION + 30);
+    }, [isSomePostFocused]);
+
+    useEffect(() => () => { if (pendingUnfocusTRef.current) { try { clearTimeout(pendingUnfocusTRef.current); } catch {} } }, []);
 
     // When a post is focused/unfocused, animate header fully hidden/visible to avoid interference
     useEffect(() => {
@@ -397,7 +481,20 @@ export default function Feed({ navigation, route }) {
             }),
         ]).start(() => {
             isTransitioning.current = false; /* 🔓 unlock */
-            if (translateYValue === 0) focusedPostIndex.current = -1;
+            if (translateYValue === 0) { focusedPostIndex.current = -1; setFocusedIndexState?.(-1); }
+            else {
+                // After a focus completes, bump focusSeq once more to remount the
+                // focused card & its inner FlatList in final position. This clears any
+                // responder inconsistencies that can occur when the item was clipped
+                // at press time or scrolled into view just before focus.
+                try { focusSeqRef.current += 1; setFocusSeq(focusSeqRef.current); } catch {}
+            }
+            console.log('[Feed]', 'focus.animationEnd', { translateYValue, focusedIndex: focusedPostIndex.current, focusSeq: focusSeqRef.current });
+            // If a focus was queued during the transition, honor it now
+            if (queuedFocusRef.current) {
+                const q = queuedFocusRef.current; queuedFocusRef.current = null;
+                try { handleFocusPost(q.index, q.pageY, true); } catch {}
+            }
         });
     };
 
@@ -413,7 +510,6 @@ export default function Feed({ navigation, route }) {
             try { navigation.navigate("Messages"); } catch {}
         }
     };
-
     // Bottom sheet toggles
     const openCommentsModal = () => setCommentsBottomSheetExpandFlag(!commentsBottomSheetExpandFlag);
     const openShareModal = () => setShareBottomSheetExpandFlag(!shareBottomSheetExpandFlag);
@@ -608,7 +704,7 @@ export default function Feed({ navigation, route }) {
     // Render a single post
     const renderPost = useCallback(
         ({ item, index }) => {
-            const isFocusedPost = index === focusedPostIndex.current;
+            const isFocusedPost = index === focusedIndexState;
 
             const commonProps = {
                 data: item,
@@ -616,8 +712,10 @@ export default function Feed({ navigation, route }) {
                 openCommentsModal,
                 openShareModal,
                 handleFocusPost,
+                onSwipeUnfocus: requestUnfocus,
                 toViewProfile: toViewProfilePosts,
                 openViewWorkoutModal,
+                focusSeq,
             };
 
             if (!isSomePostFocused) {
@@ -637,7 +735,7 @@ export default function Feed({ navigation, route }) {
                 );
             }
 
-            if (Math.abs(focusedPostIndex.current - index) <= 2) {
+            if (Math.abs(focusedIndexState - index) <= 2) {
                 return (
                     <Animated.View style={[styles.postWrapper, isFocusedPost && { transform: [{ translateY }], zIndex: 1 }]}>
                         <Post
@@ -669,7 +767,7 @@ export default function Feed({ navigation, route }) {
                 </Animated.View>
             );
         },
-        [isSomePostFocused, handleFocusPost, openCommentsModal, openShareModal, centeredIndex]
+        [isSomePostFocused, handleFocusPost, openCommentsModal, openShareModal, centeredIndex, focusedIndexState, focusSeq]
     );
 
     /* -------------------- HYDRATE allUsersRef.current -------------------- */

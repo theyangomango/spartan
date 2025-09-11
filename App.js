@@ -45,6 +45,9 @@ import PrivateProfileInfo from './frontend/screens/PrivateProfileInfo';
 // Dark theme palette
 import theme from './frontend/theme/mfpDark';
 
+// Ensure a defined global.userData early so screens can read without crashing
+try { global.userData = global.userData || {}; } catch {}
+
 const NativeStack = createNativeStackNavigator();
 
 // Single root stack: iOS uses classic stack for left-slide; Android uses native-stack for perf
@@ -110,7 +113,19 @@ function Tabs({ route }) {
 }
 
 export default function App() {
-    const [fontsLoaded] = useFonts(customFonts);
+    // Load all custom fonts; don't block the app forever if CDN is slow
+    const [fontsLoaded, fontsError] = useFonts(customFonts);
+    const [fontsReady, setFontsReady] = useState(false);
+    useEffect(() => {
+        if (fontsLoaded || fontsError) setFontsReady(true);
+    }, [fontsLoaded, fontsError]);
+    // Fallback timer: proceed after a short grace even if fonts haven't loaded
+    useEffect(() => {
+        if (!fontsReady) {
+            const id = setTimeout(() => setFontsReady(true), 1800);
+            return () => clearTimeout(id);
+        }
+    }, [fontsReady]);
     const [authChecked, setAuthChecked] = useState(false);
     const [isAuthenticated, setIsAuthenticated] = useState(false);
     const [userReady, setUserReady] = useState(false);
@@ -239,6 +254,25 @@ export default function App() {
         return () => { if (unsubRef.current) { try { unsubRef.current(); } catch {} unsubRef.current = null; } };
     }, [isAuthenticated]);
 
+    // Safety: if user doc doesn't arrive promptly (offline, slow network), proceed with minimal data
+    useEffect(() => {
+        if (!isAuthenticated || userReady) return;
+        const id = setTimeout(() => {
+            if (!userReady) {
+                try { const uid = uidRef.current; global.userData = { ...(global.userData || {}), uid, id: uid }; } catch {}
+                setUserReady(true);
+            }
+        }, 2500);
+        return () => clearTimeout(id);
+    }, [isAuthenticated, userReady]);
+
+    // Safety: ensure authChecked resolves even if AsyncStorage is slow
+    useEffect(() => {
+        if (authChecked) return;
+        const id = setTimeout(() => { setAuthChecked(true); }, 2000);
+        return () => clearTimeout(id);
+    }, [authChecked]);
+
 
     // ---------- Rest Reminder (global) ----------
     const [restReminderVisible, setRestReminderVisible] = useState(false);
@@ -349,20 +383,51 @@ export default function App() {
         return () => { if (notifUnsubRef.current) { try { notifUnsubRef.current(); } catch {} notifUnsubRef.current = null; } };
     }, [global?.userData?.uid]);
 
-    const appReady = fontsLoaded && authChecked && (!isAuthenticated || userReady);
-
-    // Hide splash once fonts/auth are ready
+    const [appForceReady, setAppForceReady] = useState(false);
     useEffect(() => {
+        if (appForceReady) return;
+        const id = setTimeout(() => setAppForceReady(true), 4500);
+        return () => clearTimeout(id);
+    }, [appForceReady]);
+    const appReady = (fontsReady && authChecked && (!isAuthenticated || userReady)) || appForceReady;
+
+    // Hide splash only after the first layout to avoid white flash
+    const [hasLaidOut, setHasLaidOut] = useState(false);
+    const onLayoutRootView = React.useCallback(() => {
+        setHasLaidOut(true);
         if (appReady) {
-            SplashScreen.hideAsync().catch(() => {});
+            // Wait a frame after layout so content can paint before hiding splash
+            requestAnimationFrame(() => {
+                requestAnimationFrame(() => {
+                    SplashScreen.hideAsync().catch(() => {});
+                });
+            });
         }
     }, [appReady]);
 
-    if (!appReady) return null;
+    // Safety: if readiness flips after initial layout, still hide splash
+    useEffect(() => {
+        if (appReady && hasLaidOut) {
+            requestAnimationFrame(() => {
+                requestAnimationFrame(() => {
+                    SplashScreen.hideAsync().catch(() => {});
+                });
+            });
+        }
+    }, [appReady, hasLaidOut]);
 
-    // Splash/guard until user is hydrated if authenticated
-    if (isAuthenticated && !userReady) {
-        return <GestureHandlerRootView style={{ flex: 1, backgroundColor: '#F7FAFF' }} />;
+    // Absolute fallback: ensure splash hides even if layout event didn't fire
+    useEffect(() => {
+        if (appForceReady) {
+            SplashScreen.hideAsync().catch(() => {});
+        }
+    }, [appForceReady]);
+
+    // While loading, keep a minimal root mounted for onLayout, but don't render UI
+    if (!appReady) {
+        return (
+            <GestureHandlerRootView style={{ flex: 1, backgroundColor: '#ffffff' }} onLayout={onLayoutRootView} />
+        );
     }
 
     // Tabs is a stable component defined outside App to avoid remounts and extra hooks
@@ -381,11 +446,13 @@ export default function App() {
 
 
     return (
-        <GestureHandlerRootView style={{ flex: 1 }}>
+        <GestureHandlerRootView style={{ flex: 1, backgroundColor: theme.bg }} onLayout={onLayoutRootView}>
+            {authChecked && (
             <NavigationContainer ref={navigationRef}>
                 {/* Single root navigator with all screens */}
                 <RootStack.Navigator
                     id="ROOT"
+                    key={isAuthenticated ? 'auth' : 'guest'}
                     initialRouteName={isAuthenticated ? 'Tabs' : 'SignUp'}
                     screenOptions={({ route }) => {
                         const transition = route?.params?.transition; // 'slide-from-left' | 'slide-from-right' | 'fade' | 'none'
@@ -547,6 +614,7 @@ export default function App() {
                     <RootStack.Screen name="FoodDetail" component={FoodDetail} />
                 </RootStack.Navigator>
             </NavigationContainer>
+            )}
             {/* Global Rest Reminder Modal */}
             <Modal
                 key={`rest-reminder-${restReminderKey}`}

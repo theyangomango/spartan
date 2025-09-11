@@ -101,7 +101,8 @@ const styles = StyleSheet.create({
 // Clean version used by the sheet (leave old BlockedView untouched above for safety)
 const BlockedViewClean = React.memo(({ message, onResolve }) => {
     const stylesLocal = StyleSheet.create({
-        wrap: { flex: 1, padding: 18, justifyContent: 'center', alignItems: 'center' },
+        // Position near top, offset ~80px down from previous placement
+        wrap: { flex: 1, paddingHorizontal: 18, paddingTop: 98, paddingBottom: 18, justifyContent: 'flex-start', alignItems: 'center' },
         text: { fontFamily: 'Outfit_700Bold', fontSize: 14.5, color: '#EAEAEA', textAlign: 'center' },
         sub: { fontFamily: 'Outfit_400Regular', fontSize: 12.5, color: '#AEB5C0', textAlign: 'center', marginTop: 8 },
         btn: { marginTop: 14, paddingHorizontal: 14, paddingVertical: 10, backgroundColor: '#2D9EFF', borderRadius: 12 },

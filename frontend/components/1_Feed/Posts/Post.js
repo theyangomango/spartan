@@ -12,7 +12,9 @@ import {
     Pressable,
     FlatList,
     Dimensions,
+    PanResponder,
 } from "react-native";
+import * as Haptics from 'expo-haptics';
 import FastImage from "react-native-fast-image";
 import Video from "react-native-video";
 import PostHeader from "./PostHeader";
@@ -26,6 +28,8 @@ const FADE_MS = 80;
 const B_IN = 1.02;
 const B_OUT = 1;
 const B_FRICTION = 60;
+// Debug logger (always logs)
+const dlog = (...args) => { try { console.log('[Post]', ...args); } catch {} };
 
 const ImageSlide = React.memo(({ uri, style }) => (
     <View style={styles.imageWrapper}>
@@ -68,6 +72,8 @@ function Post({
     isFocused,
     isSomePostFocused,
     handleFocusPost,
+    onSwipeUnfocus,
+    focusSeq,
     openCommentsModal,
     openShareModal,
     toViewProfile,
@@ -88,6 +94,7 @@ function Post({
     }, [data?.media, data?.images]);
     const opacity = useRef(new Animated.Value(1)).current;
     const highlightOpacity = useRef(new Animated.Value(0)).current;
+    const swipeFlashOpacity = useRef(new Animated.Value(0)).current;
     const scale = useRef(new Animated.Value(1)).current;
     const viewRef = useRef(null);
     const flatListRef = useRef(null);
@@ -134,7 +141,7 @@ function Post({
         const should = programFocusPid && String(programFocusPid) === String(data?.pid || '');
         if (!should || isSomePostFocused) return;
         const id = setTimeout(() => {
-            try { focusMe(); } catch {}
+            try { focusMe(true); } catch {}
         }, 20);
         return () => clearTimeout(id);
     }, [programFocusSignal, programFocusPid, isSomePostFocused, data?.pid]);
@@ -158,10 +165,10 @@ function Post({
     const focusMe = useCallback((preferWaitForHeader = false) => {
         if (!isFocused && viewRef.current && viewRef.current.measure) {
             viewRef.current.measure((_, __, ___, ____, _____, pageY) =>
-                handleFocusPost(index, pageY, preferWaitForHeader)
+                handleFocusPost(index, pageY, preferWaitForHeader, data?.pid)
             );
         }
-    }, [isFocused, handleFocusPost, index]);
+    }, [isFocused, handleFocusPost, index, data?.pid]);
 
     // Manual pause toggle (tap)
     const togglePauseAtIndex = useCallback((idx) => {
@@ -191,6 +198,71 @@ function Post({
         index,
     });
 
+    const flashSwipeFeedback = useCallback(() => {
+        try { Haptics.impactAsync?.(Haptics.ImpactFeedbackStyle.Light).catch(() => {}); } catch {}
+        try { swipeFlashOpacity.stopAnimation(); } catch {}
+        swipeFlashOpacity.setValue(0);
+        Animated.sequence([
+            Animated.timing(swipeFlashOpacity, { toValue: 0.16, duration: 90, useNativeDriver: true }),
+            Animated.timing(swipeFlashOpacity, { toValue: 0, duration: 130, useNativeDriver: true }),
+        ]).start();
+    }, [swipeFlashOpacity]);
+
+    // Diagonal swipe-to-dismiss (bottom-left -> top-right)
+    const panResponder = useMemo(() => {
+        const TAN35 = 0.700; // tan(35deg) — stricter diagonal to avoid stealing horizontal
+        const MIN_MOVE = 4;
+        const ANGLE_MARGIN = 6; // extra px above the 30° boundary to avoid false captures
+        return PanResponder.create({
+            onStartShouldSetPanResponder: () => false,
+            onStartShouldSetPanResponderCapture: () => false,
+            onMoveShouldSetPanResponder: (_, g) => {
+                if (!(isFocused && isSomePostFocused)) return false;
+                if (g.numberActiveTouches > 1) return false;
+                const { dx, dy } = g;
+                // Require gesture shape: right (+dx) and up (-dy)
+                if (dx <= 0 || dy >= 0) return false;
+                const adx = Math.abs(dx), ady = Math.abs(dy);
+                // Guard against early jitter: need small but non-trivial movement
+                if (adx < MIN_MOVE && ady < MIN_MOVE) return false;
+                // Treat within ~35°(+margin) as horizontal: let FlatList handle L→R
+                if (ady <= TAN35 * adx + ANGLE_MARGIN) return false;
+                // Otherwise, it is diagonal enough for our unfocus gesture
+                return true;
+            },
+            // Capture only when the gesture is clearly diagonal (not horizontal)
+            onMoveShouldSetPanResponderCapture: (_, g) => {
+                if (!(isFocused && isSomePostFocused)) return false;
+                if (g.numberActiveTouches > 1) return false;
+                const { dx, dy, vx, vy } = g;
+                if (dx <= 0 || dy >= 0) return false;
+                const adx = Math.abs(dx), ady = Math.abs(dy);
+                if (adx < MIN_MOVE && ady < MIN_MOVE) return false;
+                // Very fast diagonal flicks should capture even near the boundary
+                if (vx >= 0.5 && vy <= -0.5) return true;
+                return ady > TAN35 * adx + ANGLE_MARGIN;
+            },
+            onPanResponderRelease: (_, g) => {
+                const { dx, dy, vx, vy } = g;
+                const adx = Math.abs(dx), ady = Math.abs(dy);
+                const isDiagonal = (dx > 0 && dy < 0) && (ady > TAN35 * adx + ANGLE_MARGIN);
+                const distanceOK = dx > 12 && dy < -12; // slightly lower distance
+                const velocityOK = vx >= 0.10 && vy <= -0.10; // allow quicker short flicks
+                if (isFocused && isSomePostFocused && isDiagonal && (distanceOK || velocityOK)) {
+                    flashSwipeFeedback();
+                    dlog('release.unfocus', { index, pid: data?.pid, dx: Math.round(dx), dy: Math.round(dy), vx: vx.toFixed(2), vy: vy.toFixed(2) });
+                    try { onSwipeUnfocus && onSwipeUnfocus(); } catch {}
+                    return;
+                }
+                dlog('release.noop', { index, pid: data?.pid, dx: Math.round(dx), dy: Math.round(dy), vx: vx?.toFixed?.(2), vy: vy?.toFixed?.(2) });
+            },
+            onPanResponderTerminationRequest: () => true,
+            onShouldBlockNativeResponder: () => false,
+        });
+    }, [isFocused, isSomePostFocused, onSwipeUnfocus, flashSwipeFeedback]);
+
+    const mediaListKey = useMemo(() => `${String(data?.pid || index)}-${isFocused ? 'focused' : 'normal'}-${isSomePostFocused ? 1 : 0}-${focusSeq || 0}`,[data?.pid, index, isFocused, isSomePostFocused, focusSeq]);
+
     return (
         <Animated.View
             ref={viewRef}
@@ -198,16 +270,20 @@ function Post({
             pointerEvents={isSomePostFocused && !isFocused ? "none" : "auto"}
         >
             <Animated.View
+                key={`card-${mediaListKey}`}
                 style={[styles.card, isFocused && { zIndex: 1 }, { transform: [{ scale }] }]}
+                {...(isFocused ? panResponder.panHandlers : {})}
             >
                 <View style={styles.body}>
                     <FlatList
+                        key={mediaListKey}
                         ref={flatListRef}
                         data={mediaList}
                         horizontal
                         pagingEnabled
                         bounces={false}
                         overScrollMode="never"
+                        removeClippedSubviews={false}
                         snapToInterval={W}
                         decelerationRate="fast"
                         showsHorizontalScrollIndicator={false}
@@ -291,6 +367,11 @@ function Post({
                 <Animated.View
                     pointerEvents="none"
                     style={[StyleSheet.absoluteFill, { borderRadius: BORDER, backgroundColor: '#FFF4B3', opacity: highlightOpacity }]}
+                />
+                {/* swipe feedback overlay */}
+                <Animated.View
+                    pointerEvents="none"
+                    style={[StyleSheet.absoluteFill, { borderRadius: BORDER, backgroundColor: 'rgba(45,158,255,0.18)', opacity: swipeFlashOpacity }]}
                 />
             </Animated.View>
         </Animated.View>

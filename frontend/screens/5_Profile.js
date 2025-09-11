@@ -24,7 +24,7 @@ export default function Profile({ navigation }) {
         const off = onHexagonUpdate(() => setRerender((x) => x + 1));
         return () => off && off();
     }, []);
-    const userData = global.userData;
+    const userData = global.userData || {};
     const [posts, setPosts] = useState([]);
     const [savedPosts, setSavedPosts] = useState([]);
     const [selectedPanel, setSelectedPanel] = useState("posts");
@@ -35,7 +35,7 @@ export default function Profile({ navigation }) {
     const [isFollowListVisible, setIsFollowListVisible] = useState(false);
     const [followListMode, setFollowListMode] = useState('followers'); // or 'following'
 
-    const [pfp, setPFP] = useState(global.userData.image);
+    const [pfp, setPFP] = useState(() => (global?.userData?.image || ""));
 
     // Workout viewer state (reuses Feed viewer)
     const [profileSelectedWorkout, setProfileSelectedWorkout] = useState(null);
@@ -198,7 +198,7 @@ export default function Profile({ navigation }) {
                 setSelectedPanel={setSelectedPanel}
                 posts={posts}
                 savedPosts={savedPosts}
-                completedWorkouts={global.userData.completedWorkouts}
+                completedWorkouts={(global?.userData?.completedWorkouts || [])}
                 navigation={navigation}
                 onOpenWorkout={openWorkoutViewer}
             />

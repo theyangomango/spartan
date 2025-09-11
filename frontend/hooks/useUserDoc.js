@@ -12,9 +12,8 @@ import { emitHexagonUpdate } from "../utils/hexagonEvents";
  */
 export default function useUserDoc(uid, options = {}) {
     const { ignoreKeys = [] } = options || {};
-    const [user, setUser] = useState(null);
     const prevRef = useRef(null);
-
+    // Helper lives outside render for reuse below
     const stripKeys = (obj, keys) => {
         if (!obj || typeof obj !== "object") return obj;
         if (!Array.isArray(keys) || keys.length === 0) return obj;
@@ -24,6 +23,17 @@ export default function useUserDoc(uid, options = {}) {
         }
         return out;
     };
+
+    // Seed from global.userData if already available to avoid initial flash
+    const [user, setUser] = useState(() => {
+        try {
+            const g = global?.userData;
+            if (uid && g && (g.uid === uid || g.id === uid)) {
+                return stripKeys(g, ignoreKeys);
+            }
+        } catch {}
+        return null;
+    });
 
     // pre-seed global with uid so other code that reads global has it immediately
     useEffect(() => {
