@@ -71,6 +71,7 @@ function Post({
     index,
     isFocused,
     isSomePostFocused,
+    isAdjacentToFocused,
     handleFocusPost,
     onSwipeUnfocus,
     focusSeq,
@@ -102,14 +103,22 @@ function Post({
     const [currentIndex, setCurrentIndex] = useState(0);
     const [pausedList, setPausedList] = useState(mediaList.map(() => false));
 
-    // Fade when another post is focused
+    // Fade behavior: when focusing, keep focused=1, neighbors faded, others hidden
     useEffect(() => {
+        let target = 1;
+        if (isSomePostFocused) {
+            if (isFocused) target = 1;
+            else if (isAdjacentToFocused) target = 0.28;
+            else target = 0;
+        } else {
+            target = 1;
+        }
         Animated.timing(opacity, {
-            toValue: !isSomePostFocused || isFocused ? 1 : 0,
+            toValue: target,
             duration: FADE_MS,
             useNativeDriver: true,
         }).start();
-    }, [isSomePostFocused, isFocused]);
+    }, [isSomePostFocused, isFocused, isAdjacentToFocused]);
 
     // Memo styles
     const [containerStyle, imageStyle] = useMemo(() => {
@@ -392,6 +401,7 @@ function Post({
 const areEqual = (prev, next) =>
     prev.isFocused === next.isFocused &&
     prev.isSomePostFocused === next.isSomePostFocused &&
+    prev.isAdjacentToFocused === next.isAdjacentToFocused &&
     prev.data === next.data &&
     prev.shouldPlay === next.shouldPlay &&
     prev.highlightPid === next.highlightPid &&

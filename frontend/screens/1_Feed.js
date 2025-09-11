@@ -770,6 +770,7 @@ export default function Feed({ navigation, route }) {
                             {...commonProps}
                             isFocused={false}
                             isSomePostFocused={false}
+                            isAdjacentToFocused={false}
                             highlightPid={highlightPidRef.current}
                         highlightSignal={highlightSignal}
                         programFocusPid={programFocusPidRef.current}
@@ -781,6 +782,7 @@ export default function Feed({ navigation, route }) {
             }
 
             if (Math.abs(focusedIndexState - index) <= 2) {
+                const isAdj = Math.abs(focusedIndexState - index) === 1;
                 return (
                     <Animated.View style={[
                         styles.postWrapper,
@@ -796,6 +798,7 @@ export default function Feed({ navigation, route }) {
                             {...commonProps}
                             isFocused={isFocusedPost}
                             isSomePostFocused={true}
+                            isAdjacentToFocused={isAdj}
                             highlightPid={highlightPidRef.current}
                             highlightSignal={highlightSignal}
                             programFocusPid={programFocusPidRef.current}
@@ -812,6 +815,7 @@ export default function Feed({ navigation, route }) {
                         {...commonProps}
                         isFocused={false}
                         isSomePostFocused={false}
+                        isAdjacentToFocused={false}
                         highlightPid={highlightPidRef.current}
                         highlightSignal={highlightSignal}
                         programFocusPid={programFocusPidRef.current}
