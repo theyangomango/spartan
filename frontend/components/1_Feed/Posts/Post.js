@@ -144,11 +144,18 @@ function Post({
         if (!match || !highlightSignal) return;
         try { highlightOpacity.stopAnimation(); } catch { }
         highlightOpacity.setValue(0);
-        Animated.sequence([
+        const anim = Animated.sequence([
             Animated.timing(highlightOpacity, { toValue: 0.22, duration: 180, useNativeDriver: true }),
             Animated.timing(highlightOpacity, { toValue: 0, duration: 420, useNativeDriver: true }),
-        ]).start();
+        ]);
+        anim.start(() => { try { highlightOpacity.setValue(0); } catch {} });
+        // Hard safety: ensure reset even if interrupted
+        const kill = setTimeout(() => { try { highlightOpacity.setValue(0); } catch {} }, 1500);
+        return () => clearTimeout(kill);
     }, [highlightSignal, highlightPid, data?.pid]);
+
+    // Ensure highlight never lingers after focus/unfocus cycles
+    useEffect(() => () => { try { highlightOpacity.setValue(0); } catch {} }, []);
 
     // Programmatic focus (simulate user tap) when matching pid
     useEffect(() => {

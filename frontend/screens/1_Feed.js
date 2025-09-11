@@ -42,7 +42,7 @@ const TARGET_POSITION = getScrollTargetPosition(width, height),
 export default function Feed({ navigation, route }) {
     const insets = useSafeAreaInsets();
     // Debug logger (always logs)
-    const dlog = (...args) => { try { console.log('[Feed]', ...args); } catch {} };
+    const dlog = (...args) => { try { console.log('[Feed]', ...args); } catch { } };
 
     // Use UID from global or route params
     const UID = "userData" in global ? global.userData.uid : route?.params?.uid;
@@ -109,31 +109,29 @@ export default function Feed({ navigation, route }) {
     const focusWatchIdRef = useRef(null);
 
     // Wait until target index is viewable and scrolling has settled, then focus
-    // Wait only until the target cell mounts (layout measured), then trigger
-    // programmatic focus on the next frame. This minimizes delay while still
-    // guaranteeing a stable layout for precise translation.
     const startFocusWatcher = useCallback((pid, idx) => {
         desiredFocusIndexRef.current = idx;
         if (focusWatchIdRef.current) {
-            try { cancelAnimationFrame(focusWatchIdRef.current); } catch {}
+            try { cancelAnimationFrame(focusWatchIdRef.current); } catch { }
             focusWatchIdRef.current = null;
         }
-        let tries = 0; const MAX = 8; // ~130ms worst-case (usually 1–2 frames)
+        let tries = 0; const MAX = 60; // ~1s at 60fps
         const tick = () => {
-            if (desiredFocusIndexRef.current !== idx) return; // canceled/replaced
-            const lay = itemLayoutsRef.current.get(idx);
-            if (lay && typeof lay.y === 'number') {
-                // One more frame after layout to ensure measurement consistency
-                focusWatchIdRef.current = requestAnimationFrame(() => {
-                    programFocusPidRef.current = String(pid);
-                    setProgramFocusSignal(Date.now());
-                    desiredFocusIndexRef.current = -1;
-                    focusWatchIdRef.current = null;
-                });
+            const i = desiredFocusIndexRef.current;
+            if (i < 0) return; // canceled
+            const now = Date.now();
+            const lay = itemLayoutsRef.current.get(i);
+            const isViewable = viewableSetRef.current.has(i);
+            const idle = now - (lastScrollTsRef.current || 0) > 40;
+            if (lay && isViewable && idle) {
+                programFocusPidRef.current = String(pid);
+                setProgramFocusSignal(Date.now());
+                desiredFocusIndexRef.current = -1;
+                focusWatchIdRef.current = null;
                 return;
             }
             if (++tries >= MAX) {
-                // Fallback: proceed anyway to avoid perceptible lag
+                // Fallback: proceed anyway
                 programFocusPidRef.current = String(pid);
                 setProgramFocusSignal(Date.now());
                 desiredFocusIndexRef.current = -1;
@@ -273,7 +271,7 @@ export default function Feed({ navigation, route }) {
 
     // Mirror refreshing flag to UI thread
     useEffect(() => {
-        try { refreshingSV.value = refreshing ? 1 : 0; } catch {}
+        try { refreshingSV.value = refreshing ? 1 : 0; } catch { }
     }, [refreshing]);
 
     // Load user data from Firestore once
@@ -347,14 +345,14 @@ export default function Feed({ navigation, route }) {
             const margin = 8;
             if (lay && typeof lay.y === 'number' && lay.y < top + margin) {
                 const target = Math.max(0, lay.y - margin);
-                try { flatListRef.current?.scrollToOffset?.({ offset: target, animated: false }); } catch {}
+                try { flatListRef.current?.scrollToOffset?.({ offset: target, animated: false }); } catch { }
                 scrollOffsetY.current = target;
                 const pidEff = pid || String(posts?.[index]?.pid || '');
                 dlog('focus.deferToWatcher', { index, pid: pidEff, layY: lay?.y, top, target });
                 if (pidEff) startFocusWatcher(pidEff, index);
                 return;
             }
-        } catch {}
+        } catch { }
 
         if (isTransitioning.current) {
             // Queue a focus attempt to run once the current transition completes
@@ -363,42 +361,29 @@ export default function Feed({ navigation, route }) {
                 if (!isTransitioning.current && queuedFocusRef.current) {
                     const q = queuedFocusRef.current; queuedFocusRef.current = null;
                     dlog('focus.dequeue', q);
-                    try { handleFocusPost(q.index, q.pageY, true); } catch {}
+                    try { handleFocusPost(q.index, q.pageY, true); } catch { }
                 }
-            }, ANIMATION_DURATION + 40);
+            }, 0);
             return; /* 🔒 */
         }
         isTransitioning.current = true;
         stopFlatListMomentum();
 
         // Cancel any queued unfocus from a previous gesture
-        if (pendingUnfocusTRef.current) { try { clearTimeout(pendingUnfocusTRef.current); } catch {} pendingUnfocusTRef.current = null; }
+        if (pendingUnfocusTRef.current) { try { clearTimeout(pendingUnfocusTRef.current); } catch { } pendingUnfocusTRef.current = null; }
 
         // Bump focus sequence to force fresh mounts/handlers on new focus
         focusSeqRef.current += 1; setFocusSeq(focusSeqRef.current);
 
         focusedPostIndex.current = index;
-        try { setFocusedIndexState(index); } catch {}
+        try { setFocusedIndexState(index); } catch { }
         setIsSomePostFocused(true);
         // Consume any pending programmatic focus so it doesn't re-trigger after unfocus
-        try { programFocusPidRef.current = null; } catch {}
+        try { programFocusPidRef.current = null; } catch { }
         const run = () => {
             const Vstart = visibleHeaderHRef.current || 0; // visible overlay header height
             const Vfinal = backHeaderHRef.current || (insets?.top ? insets.top + 44 : TARGET_POSITION);
-            // When focus is programmatic (preferWaitForHeader=true), the immediate
-            // measure(pageY) right after a jump-to-index can be one frame stale on
-            // some devices, causing translate overshoot/undershoot. In that case,
-            // recompute the absolute Y using our cached layout and current scroll.
             let pageYAdj = pageY;
-            if (preferWaitForHeader) {
-                try {
-                    const layNow = itemLayoutsRef.current.get(index);
-                    if (layNow && typeof layNow.y === 'number') {
-                        const topNow = scrollOffsetY.current || 0;
-                        pageYAdj = (layNow.y - topNow) + Vstart; // absolute screen Y at this moment
-                    }
-                } catch {}
-            }
             // If the cell was clipped at the top when pressed, reveal it and adjust
             try {
                 const lay = itemLayoutsRef.current.get(index);
@@ -408,37 +393,28 @@ export default function Feed({ navigation, route }) {
                     if (lay.y < topOld + margin) {
                         const target = Math.max(0, lay.y - margin);
                         const delta = topOld - target; // how much we moved content up
-                        try { flatListRef.current?.scrollToOffset?.({ offset: target, animated: false }); } catch {}
+                        try { flatListRef.current?.scrollToOffset?.({ offset: target, animated: false }); } catch { }
                         scrollOffsetY.current = target;
                         pageYAdj = pageY + delta; // compensate the on-screen Y
                         dlog('focus.revealAdjust', { index, layY: lay?.y, topOld, target, delta, pageYAdj });
                     }
                 }
-            } catch {}
+            } catch { }
 
             // Needed translation Δ: Vfinal - (pageY - Vstart) = - (pageY - Vstart - Vfinal)
             const translate = pageYAdj - Vstart - Vfinal;
-            dlog('focus.animate', { index, Vstart, Vfinal, pageYAdj, translate, preferWaitForHeader });
-            // If this focus was triggered programmatically (e.g., from Notifications),
-            // do not wait for InteractionManager (which would stall until the
-            // bottom-sheet close animation finishes). Start immediately.
-            if (preferWaitForHeader) {
-                animateView(translate, 0);
-            } else {
-                // For direct user taps, keep the previous behavior for smoothness.
-                InteractionManager.runAfterInteractions(() => animateView(translate, 0));
-            }
+            dlog('focus.animate', { index, Vstart, Vfinal, pageYAdj, translate });
+            // Defer to end of current interactions for smoother start
+            InteractionManager.runAfterInteractions(() => animateView(translate, 0));
         };
         if (!preferWaitForHeader) {
             setTimeout(run, 0);
         } else {
-            // For programmatic focus: ensure the compact header has measured, then
-            // wait an extra frame so the header-hide animation has begun. This
-            // keeps the translate math in sync and prevents overshoot/undershoot.
+            // For programmatic focus: ensure the compact header has measured to avoid offset
             let tries = 0; const MAX = 24; // ~400ms
             const poll = () => {
                 if (backHeaderHRef.current > 0 || tries++ >= MAX) {
-                    requestAnimationFrame(() => requestAnimationFrame(run));
+                    setTimeout(run, 0);
                     return;
                 }
                 requestAnimationFrame(poll);
@@ -452,9 +428,9 @@ export default function Feed({ navigation, route }) {
         isTransitioning.current = true;
         setUnfocusing(true);
         // Let other posts and UI return immediately for cohesive motion
-        try { setIsSomePostFocused(false); } catch {}
+        try { setIsSomePostFocused(false); } catch { }
         // Start revealing the header in parallel for a cohesive unfocus
-        try { focusHide.value = withTiming(0, { duration: ANIMATION_DURATION, easing: ReEasing.out(ReEasing.cubic) }); } catch {}
+        try { focusHide.value = withTiming(0, { duration: ANIMATION_DURATION, easing: ReEasing.out(ReEasing.cubic) }); } catch { }
         // Defer state flips to animation end for smoother unfocus
         animateView(0, 1);
     };
@@ -462,20 +438,20 @@ export default function Feed({ navigation, route }) {
     // Allow posts to request an unfocus while a focus/unfocus animation is in-flight.
     // If locked, queue a single attempt right after the animation window.
     const requestUnfocus = useCallback(() => {
-        try { if (!isSomePostFocused) return; } catch {}
+        try { if (!isSomePostFocused) return; } catch { }
         if (!isTransitioning.current) {
             handleBackPress();
             return;
         }
-        if (pendingUnfocusTRef.current) { try { clearTimeout(pendingUnfocusTRef.current); } catch {} pendingUnfocusTRef.current = null; }
+        if (pendingUnfocusTRef.current) { try { clearTimeout(pendingUnfocusTRef.current); } catch { } pendingUnfocusTRef.current = null; }
         pendingUnfocusTRef.current = setTimeout(() => {
             pendingUnfocusTRef.current = null;
             if (!isSomePostFocused) return;
             if (!isTransitioning.current) handleBackPress();
-        }, ANIMATION_DURATION + 30);
+        }, 0);
     }, [isSomePostFocused]);
 
-    useEffect(() => () => { if (pendingUnfocusTRef.current) { try { clearTimeout(pendingUnfocusTRef.current); } catch {} } }, []);
+    useEffect(() => () => { if (pendingUnfocusTRef.current) { try { clearTimeout(pendingUnfocusTRef.current); } catch { } } }, []);
 
     // When a post is focused/unfocused, animate header fully hidden/visible to avoid interference
     useEffect(() => {
@@ -530,7 +506,7 @@ export default function Feed({ navigation, route }) {
                 const distanceOK = dx > 12 && dy < -12;
                 const velocityOK = vx >= 0.10 && vy <= -0.10;
                 if (isSomePostFocused && isDiagonal && (distanceOK || velocityOK)) {
-                    try { Haptics.impactAsync?.(Haptics.ImpactFeedbackStyle.Heavy).catch(() => {}); } catch {}
+                    try { Haptics.impactAsync?.(Haptics.ImpactFeedbackStyle.Heavy).catch(() => { }); } catch { }
                     requestUnfocus();
                 }
             },
@@ -570,23 +546,23 @@ export default function Feed({ navigation, route }) {
             isTransitioning.current = false; /* 🔓 unlock */
             if (translateYValue === 0) {
                 // Unfocus completed: now flip state and re-enable scroll
-                try { focusedPostIndex.current = -1; setFocusedIndexState?.(-1); } catch {}
-                try { setShareBottomSheetCloseFlag((f) => !f); } catch {}
-                try { flatListRef.current?.setNativeProps({ scrollEnabled: true }); } catch {}
-                try { setUnfocusing(false); } catch {}
+                try { focusedPostIndex.current = -1; setFocusedIndexState?.(-1); } catch { }
+                try { setShareBottomSheetCloseFlag((f) => !f); } catch { }
+                try { flatListRef.current?.setNativeProps({ scrollEnabled: true }); } catch { }
+                try { setUnfocusing(false); } catch { }
             }
             else {
                 // After a focus completes, bump focusSeq once more to remount the
                 // focused card & its inner FlatList in final position. This clears any
                 // responder inconsistencies that can occur when the item was clipped
                 // at press time or scrolled into view just before focus.
-                try { focusSeqRef.current += 1; setFocusSeq(focusSeqRef.current); } catch {}
+                try { focusSeqRef.current += 1; setFocusSeq(focusSeqRef.current); } catch { }
             }
             console.log('[Feed]', 'focus.animationEnd', { translateYValue, focusedIndex: focusedPostIndex.current, focusSeq: focusSeqRef.current });
             // If a focus was queued during the transition, honor it now
             if (queuedFocusRef.current) {
                 const q = queuedFocusRef.current; queuedFocusRef.current = null;
-                try { handleFocusPost(q.index, q.pageY, true); } catch {}
+                try { handleFocusPost(q.index, q.pageY, true); } catch { }
             }
         });
     };
@@ -600,7 +576,7 @@ export default function Feed({ navigation, route }) {
                 navigation.navigate("Messages");
             }
         } catch (e) {
-            try { navigation.navigate("Messages"); } catch {}
+            try { navigation.navigate("Messages"); } catch { }
         }
     };
     // Bottom sheet toggles
@@ -647,22 +623,22 @@ export default function Feed({ navigation, route }) {
         const viewportTop = scrollOffsetY.current;
         const viewportBottom = viewportTop + (height - visibleH);
 
-        // If fully visible already: schedule programmatic focus almost instantly
+        // If fully visible already: wait for idle and simulate tap
         if (lay && lay.y >= viewportTop && (lay.y + lay.h) <= viewportBottom) {
             startFocusWatcher(pid, idx);
             return true;
         }
 
-        // Otherwise, perform a minimal instant reveal (no animation) and then
-        // trigger programmatic focus on the next frame.
+        // Otherwise, perform a minimal instant reveal (no animation) for stability,
+        // then wait until the row is viewable+idle before simulating the tap.
         if (lay) {
             const targetOffset = Math.max(0, lay.y - 8);
             try {
                 flatListRef.current?.scrollToOffset?.({ offset: targetOffset, animated: false });
                 scrollOffsetY.current = targetOffset;
-            } catch {}
+            } catch { }
         } else {
-            try { flatListRef.current?.scrollToIndex?.({ index: idx, viewPosition: 0, animated: false }); } catch {}
+            try { flatListRef.current?.scrollToIndex?.({ index: idx, viewPosition: 0, animated: false }); } catch { }
         }
 
         startFocusWatcher(pid, idx);
@@ -717,7 +693,7 @@ export default function Feed({ navigation, route }) {
     useEffect(() => {
         if (route?.params?.scrollToTop) {
             const id = setTimeout(() => scrollToTop(), 30);
-            try { navigation.setParams({ scrollToTop: false }); } catch {}
+            try { navigation.setParams({ scrollToTop: false }); } catch { }
             return () => clearTimeout(id);
         }
     }, [route?.params?.scrollToTop]);
@@ -731,7 +707,7 @@ export default function Feed({ navigation, route }) {
                 const ok = scrollToPid(pid);
                 if (ok) setPendingFocusPid(null);
             }, 0);
-            try { navigation.setParams({ focusPid: undefined }); } catch {}
+            try { navigation.setParams({ focusPid: undefined }); } catch { }
             return () => clearTimeout(id);
         }
     }, [route?.params?.focusPid]);
@@ -743,7 +719,7 @@ export default function Feed({ navigation, route }) {
             if (route?.params?.scrollToTop) {
                 const id = setTimeout(() => scrollToTop(), 30);
                 // reset param so it doesn't re-trigger on next focus
-                try { navigation.setParams({ scrollToTop: false }); } catch {}
+                try { navigation.setParams({ scrollToTop: false }); } catch { }
                 return () => clearTimeout(id);
             }
             // Focus a specific post by pid (from notifications)
@@ -754,7 +730,7 @@ export default function Feed({ navigation, route }) {
                     const ok = scrollToPid(pid);
                     if (ok) setPendingFocusPid(null);
                 }, 0);
-                try { navigation.setParams({ focusPid: undefined }); } catch {}
+                try { navigation.setParams({ focusPid: undefined }); } catch { }
                 return () => clearTimeout(id);
             }
             // Global-signal fallback
@@ -819,11 +795,11 @@ export default function Feed({ navigation, route }) {
                             isSomePostFocused={false}
                             isAdjacentToFocused={false}
                             highlightPid={highlightPidRef.current}
-                        highlightSignal={highlightSignal}
-                        programFocusPid={programFocusPidRef.current}
-                        programFocusSignal={programFocusSignal}
-                        shouldPlay={index === centeredIndex} // ⟵ only centered post can play (if video slide)
-                    />
+                            highlightSignal={highlightSignal}
+                            programFocusPid={programFocusPidRef.current}
+                            programFocusSignal={programFocusSignal}
+                            shouldPlay={index === centeredIndex} // ⟵ only centered post can play (if video slide)
+                        />
                     </Animated.View>
                 );
             }
@@ -893,7 +869,7 @@ export default function Feed({ navigation, route }) {
     const listData = useMemo(() => ([...(posts || [])]), [posts]);
 
     return (
-            <SafeAreaView style={{ flex: 1, backgroundColor: theme.bg }}>
+        <SafeAreaView style={{ flex: 1, backgroundColor: theme.bg }}>
             <SafeAreaView style={styles.mainContainer}>
                 <StatusBar style="light" />
 

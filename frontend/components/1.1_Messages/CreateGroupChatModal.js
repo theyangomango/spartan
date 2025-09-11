@@ -84,8 +84,8 @@ export default function CreateGroupChatModal({ initChat }) {
                 onSelect={handleSelectUser}
                 isSelected={isSelected}
                 // Blend with modal background when not selected; contrast only when selected
-                baseBg={theme.surface}
-                selectedBg={theme.field}
+                baseBg={theme.bg}
+                selectedBg={'#283249ff'}
             />
         );
     };
@@ -157,7 +157,7 @@ export default function CreateGroupChatModal({ initChat }) {
                 onPress={() => initChat(selectedUsers)}
             >
                 <LinearGradient
-                    colors={selectedUsers.length > 1 ? [theme.primary, theme.accentBlue] : [theme.ringBg, theme.ringBg]}
+                    colors={selectedUsers.length > 1 ? [theme.primary, theme.accentBlue] : [theme.surface, theme.surface]}
                     start={{ x: 0, y: 0 }}
                     end={{ x: 1, y: 1 }}
                     style={styles.createButton}

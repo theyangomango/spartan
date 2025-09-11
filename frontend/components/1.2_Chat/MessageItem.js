@@ -306,7 +306,13 @@ export default function MessageItem({
         >
             <Animated.View style={[showAvatar ? styles.hRow : null, rowShift]}>
                 {showAvatar && (
-                    <View style={styles.avatarSlot}>
+                    <View
+                        style={[
+                            styles.avatarSlot,
+                            // Align avatar with the top of the message text area (ignore reaction headroom)
+                            hasReactions ? { marginTop: reactionHeadroom } : null,
+                        ]}
+                    >
                         {senderPfp ? (
                             <FastImage source={{ uri: senderPfp }} style={styles.avatar} />
                         ) : (

@@ -17,8 +17,8 @@ const HexagonalStats = ({
     statsHexagon,
     size,
     showLabels = true,
-    labelFontPx,
-    valueFontPx,
+    labelFontPx = 12,
+    valueFontPx = 16,
     labelOffsetPx,
     prevStatsHexagon = null,
     valueFontBigPx,
@@ -152,7 +152,7 @@ const HexagonalStats = ({
                         <React.Fragment key={`lbl-${i}`}>
                             <SvgText
                                 x={x}
-                                y={y - scaledSize(4)}
+                                y={y - scaledSize(6)}
                                 textAnchor="middle"
                                 alignmentBaseline="middle"
                                 // Brighter label color so muscle types are readable in the modal

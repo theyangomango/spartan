@@ -92,7 +92,7 @@ const styles = StyleSheet.create({
         paddingVertical: SIZES.paddingV,
         flexDirection: 'row',
         alignItems: 'center',
-        borderRadius: SIZES.cardRadius,
+        // borderRadius: SIZES.cardRadius,
         backgroundColor: theme.surface,
         borderBottomWidth: StyleSheet.hairlineWidth,
         borderBottomColor: theme.hairline,
