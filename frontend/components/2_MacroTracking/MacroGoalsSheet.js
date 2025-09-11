@@ -374,12 +374,22 @@ export default function MacroGoalsSheet({
                             COLORS={COLORS}
                             onBack={fadeToGoals}
                             onSave={() => {
-                                // Persist personal info, compute placeholders, clear values, then return to Macro Goals
+                                // Persist personal info, compute recommendations, apply directly to inputs, then return
                                 try { onSavePersonalInfo?.(); } catch {}
                                 const rec = computeRecommendedMacros(goalForm);
-                                if (rec) setPlaceholderMacros(rec);
-                                setUsePlaceholderMacros(true);
-                                setGoalForm((s) => ({ ...s, calories: '', protein: '', carbs: '', fat: '' }));
+                                if (rec) {
+                                    // Apply recommended values into the Edit Goals inputs
+                                    setGoalForm((s) => ({
+                                        ...s,
+                                        calories: rec.calories,
+                                        protein: rec.protein,
+                                        carbs: rec.carbs,
+                                        fat: rec.fat,
+                                    }));
+                                    // Ensure we are not in placeholder mode
+                                    setUsePlaceholderMacros(false);
+                                    setPlaceholderMacros(null);
+                                }
                                 fadeToGoals();
                             }}
                         />

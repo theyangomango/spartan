@@ -30,18 +30,13 @@ const FeedWorkoutViewerSheet = ({
   const [toastText, setToastText] = useState("Template added");
   const navigation = useNavigation();
 
-  // Any flip of expandToggle expands the sheet, but skip first mount and wait until we have content
-  const didMountRef = useRef(false);
+  // Flip expandToggle to open the sheet; handle first toggle as well.
   useEffect(() => {
-    if (!didMountRef.current) {
-      didMountRef.current = true;
-      return;
-    }
     if (!workout) return; // don't expand unless we have content
     // Mount core content right away to avoid perceived delay, rely on virtualization for smoothness
     setMountContent(true);
     requestAnimationFrame(() => bottomSheetRef.current?.expand());
-  }, [expandToggle]);
+  }, [expandToggle, workout]);
 
   const renderBackdrop = useCallback(
     (props) => (

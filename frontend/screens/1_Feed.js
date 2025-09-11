@@ -93,6 +93,8 @@ export default function Feed({ navigation, route }) {
     const setVisibleHeaderJS = (v) => { visibleHeaderHRef.current = v || 0; };
     // Measure the compact back header shown during focus
     const backHeaderHRef = useRef(0);
+    // Height of the compact header (FeedHeader only), measured from the overlay header
+    const compactHeaderHRef = useRef(0);
     // Track last consumed global scroll-to-top signal
     const feedTopSignalRef = useRef(0);
 
@@ -108,22 +110,21 @@ export default function Feed({ navigation, route }) {
     const desiredFocusIndexRef = useRef(-1);
     const focusWatchIdRef = useRef(null);
 
-    // Wait until target index is viewable and scrolling has settled, then focus
+    // Wait until target index is in viewport and scrolling has settled, then focus
     const startFocusWatcher = useCallback((pid, idx) => {
         desiredFocusIndexRef.current = idx;
         if (focusWatchIdRef.current) {
             try { cancelAnimationFrame(focusWatchIdRef.current); } catch { }
             focusWatchIdRef.current = null;
         }
-        let tries = 0; const MAX = 60; // ~1s at 60fps
+        let tries = 0; const MAX = 12; // ~200ms at 60fps for responsiveness
         const tick = () => {
             const i = desiredFocusIndexRef.current;
             if (i < 0) return; // canceled
             const now = Date.now();
             const lay = itemLayoutsRef.current.get(i);
-            const isViewable = viewableSetRef.current.has(i);
             const idle = now - (lastScrollTsRef.current || 0) > 40;
-            if (lay && isViewable && idle) {
+            if (lay && idle) {
                 programFocusPidRef.current = String(pid);
                 setProgramFocusSignal(Date.now());
                 desiredFocusIndexRef.current = -1;
@@ -382,45 +383,50 @@ export default function Feed({ navigation, route }) {
         try { programFocusPidRef.current = null; } catch { }
         const run = () => {
             const Vstart = visibleHeaderHRef.current || 0; // visible overlay header height
-            const Vfinal = backHeaderHRef.current || (insets?.top ? insets.top + 44 : TARGET_POSITION);
+            // Compact header height: use measured value, fallback to (overlayHeader - chips)
+            const approxCompact = Math.max(0, Math.round((headerH?.value || 0) - (chipsH?.value || 0)));
+            const compactH = compactHeaderHRef.current || approxCompact || 44;
+            const Vfinal = (insets?.top || 0) + compactH;
             let pageYAdj = pageY;
-            // If the cell was clipped at the top when pressed, reveal it and adjust
-            try {
-                const lay = itemLayoutsRef.current.get(index);
-                if (lay && typeof lay.y === 'number') {
-                    const topOld = scrollOffsetY.current || 0;
-                    const margin = 8;
-                    if (lay.y < topOld + margin) {
-                        const target = Math.max(0, lay.y - margin);
-                        const delta = topOld - target; // how much we moved content up
-                        try { flatListRef.current?.scrollToOffset?.({ offset: target, animated: false }); } catch { }
-                        scrollOffsetY.current = target;
-                        pageYAdj = pageY + delta; // compensate the on-screen Y
-                        dlog('focus.revealAdjust', { index, layY: lay?.y, topOld, target, delta, pageYAdj });
+            // Programmatic path no longer adjusts the offset here; we rely on the
+            // focus watcher + Post.measure to provide an accurate pageY.
+            // If triggered by a user press: compensate if cell was clipped at the top
+            if (!preferWaitForHeader) {
+                try {
+                    const lay = itemLayoutsRef.current.get(index);
+                    if (lay && typeof lay.y === 'number') {
+                        const topOld = scrollOffsetY.current || 0;
+                        const margin = 8;
+                        if (lay.y < topOld + margin) {
+                            const target = Math.max(0, lay.y - margin);
+                            const delta = topOld - target; // how much we moved content up
+                            try { flatListRef.current?.scrollToOffset?.({ offset: target, animated: false }); } catch { }
+                            scrollOffsetY.current = target;
+                            pageYAdj = (typeof pageYAdj === 'number' ? pageYAdj : pageY) + delta; // compensate the on-screen Y
+                            dlog('focus.revealAdjust', { index, layY: lay?.y, topOld, target, delta, pageYAdj });
+                        }
                     }
-                }
-            } catch { }
+                } catch { }
+            }
 
+            // If pageY is unavailable (e.g., no measure), estimate from layout
+            if (typeof pageYAdj !== 'number') {
+                try {
+                    const lay2 = itemLayoutsRef.current.get(index);
+                    if (lay2 && typeof lay2.y === 'number') {
+                        const topNow = scrollOffsetY.current || 0;
+                        pageYAdj = lay2.y - topNow + Vstart; // convert content Y to screen Y
+                    }
+                } catch { }
+            }
             // Needed translation Δ: Vfinal - (pageY - Vstart) = - (pageY - Vstart - Vfinal)
-            const translate = pageYAdj - Vstart - Vfinal;
+            const translate = (pageYAdj || 0) - Vstart - Vfinal;
             dlog('focus.animate', { index, Vstart, Vfinal, pageYAdj, translate });
-            // Defer to end of current interactions for smoother start
-            InteractionManager.runAfterInteractions(() => animateView(translate, 0));
+            // Kick off immediately to avoid perceived delay after navigation
+            animateView(translate, 0);
         };
-        if (!preferWaitForHeader) {
-            setTimeout(run, 0);
-        } else {
-            // For programmatic focus: ensure the compact header has measured to avoid offset
-            let tries = 0; const MAX = 24; // ~400ms
-            const poll = () => {
-                if (backHeaderHRef.current > 0 || tries++ >= MAX) {
-                    setTimeout(run, 0);
-                    return;
-                }
-                requestAnimationFrame(poll);
-            };
-            requestAnimationFrame(poll);
-        }
+        // Do not wait for the back header's onLayout; Vfinal is derived above
+        setTimeout(run, 0);
     };
 
     const handleBackPress = () => {
@@ -629,7 +635,7 @@ export default function Feed({ navigation, route }) {
             return true;
         }
 
-        // Otherwise, perform a minimal instant reveal (no animation) for stability,
+        // Otherwise, place the row just below the header immediately (no animation)
         // then wait until the row is viewable+idle before simulating the tap.
         if (lay) {
             const targetOffset = Math.max(0, lay.y - 8);
@@ -638,7 +644,7 @@ export default function Feed({ navigation, route }) {
                 scrollOffsetY.current = targetOffset;
             } catch { }
         } else {
-            try { flatListRef.current?.scrollToIndex?.({ index: idx, viewPosition: 0, animated: false }); } catch { }
+            try { flatListRef.current?.scrollToIndex?.({ index: idx, viewPosition: 0.02, animated: false }); } catch { }
         }
 
         startFocusWatcher(pid, idx);
@@ -924,6 +930,15 @@ export default function Feed({ navigation, route }) {
                             initialNumToRender={3}
                             windowSize={5}
                             removeClippedSubviews={false}
+                            onScrollToIndexFailed={(info) => {
+                                try {
+                                    const approx = Math.max(0, (info?.averageItemLength || (width / CARD_AR)) * (info?.index || 0));
+                                    flatListRef.current?.scrollToOffset?.({ offset: approx, animated: false });
+                                } catch {}
+                                setTimeout(() => {
+                                    try { flatListRef.current?.scrollToIndex?.({ index: info?.index || 0, viewPosition: 0.02, animated: false }); } catch {}
+                                }, 50);
+                            }}
                             refreshControl={
                                 <RefreshControl
                                     refreshing={refreshing}
@@ -956,18 +971,23 @@ export default function Feed({ navigation, route }) {
                         zIndex: 20,
                     }, overlayHeaderStyle]}
                 >
-                    <FeedHeader
-                        navigation={navigation}
-                        toMessagesScreen={toMessagesScreen}
-                        onOpenNotifications={handleOpenNotifications}
-                        backButton={isSomePostFocused}
-                        onBackPress={handleBackPress}
-                        scrollToTop={scrollToTop}
-                        allUsersRef={allUsersRef}
-                        workout={activeWorkout}
-                        timerRef={headerTimerRef}
-                        heightAdjust={-2}
-                    />
+                    <View onLayout={(e) => {
+                        const h = e.nativeEvent.layout.height || 0;
+                        if (h && Math.abs(h - compactHeaderHRef.current) > 1) compactHeaderHRef.current = h;
+                    }}>
+                        <FeedHeader
+                            navigation={navigation}
+                            toMessagesScreen={toMessagesScreen}
+                            onOpenNotifications={handleOpenNotifications}
+                            backButton={isSomePostFocused}
+                            onBackPress={handleBackPress}
+                            scrollToTop={scrollToTop}
+                            allUsersRef={allUsersRef}
+                            workout={activeWorkout}
+                            timerRef={headerTimerRef}
+                            heightAdjust={-2}
+                        />
+                    </View>
                     <Animated.View
                         onLayout={(e) => {
                             const h = e.nativeEvent.layout.height || 0;

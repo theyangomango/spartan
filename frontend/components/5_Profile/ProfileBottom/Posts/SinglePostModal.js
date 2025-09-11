@@ -17,7 +17,7 @@ import { getFeedHeaderStyles } from "../../../../helper/getFeedHeaderStyles";
 import Post from "../../../1_Feed/Posts/Post";
 import CommentsBottomSheet from "../../../1_Feed/Comments/CommentsBottomSheet";
 import ShareBottomSheet from "../../../1_Feed/SharePost/ShareBottomSheet";
-import ViewWorkoutBottomSheet from "../../../1_Feed/ViewWorkout/ViewWorkoutBottomSheet";
+import FeedWorkoutViewerSheet from "../../../1_Feed/ViewWorkout/FeedWorkoutViewerSheet";
 
 const { width: SW, height: SH } = Dimensions.get("window");
 const TARGET_Y = getScrollTargetPosition(SW, SH);
@@ -39,6 +39,9 @@ export default function SinglePostModal({ visible, post, onClose, onOpenWorkout 
     // Re-mount & gate the sheet's visibility so its own effect runs
     const [mountCommentsSheet, setMountCommentsSheet] = useState(false);
     const [sheetVisible, setSheetVisible] = useState(false);
+    // Local workout viewer state so the post remains focused behind the sheet
+    const [viewerWorkout, setViewerWorkout] = useState(null);
+    const [viewerToggle, setViewerToggle] = useState(false);
     const [commentsExpandFlag, setCommentsExpandFlag] = useState(false);
     const sheetKeyRef = useRef(0);
     const openTimer = useRef(null);
@@ -158,13 +161,24 @@ export default function SinglePostModal({ visible, post, onClose, onOpenWorkout 
                                 toViewProfile={() => { }}
                                 openViewWorkoutModal={() => {
                                     try {
-                                        if (post?.workout && typeof onOpenWorkout === 'function') {
-                                            // Close this modal first so the sheet is visible above the app
-                                            close();
-                                            setTimeout(() => {
-                                                try { onOpenWorkout(post.workout); } catch {}
-                                            }, 320); // after fade/close completes
-                                        }
+                                        const w = post?.workout;
+                                        if (!w) return;
+                                        // Normalize minimal fields expected by NewWorkoutModal
+                                        const fallback = {
+                                            wid: w?.wid || w?.id,
+                                            creatorUID: w?.creatorUID || w?.creatorUid || post?.uid || (global?.userData?.uid || ''),
+                                            created: w?.created || w?.createdAt || Date.now(),
+                                            exercises: Array.isArray(w?.exercises) ? w.exercises : [],
+                                            duration: w?.duration,
+                                            volume: w?.volume,
+                                            reps: w?.reps,
+                                            PBs: w?.PBs ?? w?.pbs ?? 0,
+                                            templateName: w?.templateName || w?.template?.name,
+                                        };
+                                        const wk = { ...fallback, ...w };
+                                        // Open workout viewer INSIDE this modal, keeping the post focused behind
+                                        setViewerWorkout(wk);
+                                        setViewerToggle((t) => !t);
                                     } catch {}
                                 }}
                             />
@@ -198,10 +212,16 @@ export default function SinglePostModal({ visible, post, onClose, onOpenWorkout 
                 shareBottomSheetExpandFlag={false}
                 shareBottomSheetCloseFlag={false}
             />
-            <ViewWorkoutBottomSheet
-                workout={post?.workout ?? null}
-                viewWorkoutBottomSheetExpandFlag={false}
-            />
+            {/* Workout viewer mounted inside the modal so it appears above the focused post */}
+            {viewerWorkout && (
+                <FeedWorkoutViewerSheet
+                    expandToggle={viewerToggle}
+                    workout={viewerWorkout}
+                    friendUid={String(post?.uid || viewerWorkout?.creatorUID || viewerWorkout?.creatorUid || '')}
+                    friendPfp={post?.pfp || viewerWorkout?.pfp || viewerWorkout?.pfpUrl || null}
+                    onClose={() => setViewerWorkout(null)}
+                />
+            )}
         </Modal>
     );
 }

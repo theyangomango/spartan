@@ -269,16 +269,17 @@ const styles = StyleSheet.create({
         color: "#ffffff",
         includeFontPadding: false,
     },
-    // Copy template button – match header pills
+    // Copy template button – slightly darker blue than primary for better balance
     copy_btn: {
         height: scaledSize(34),
         paddingHorizontal: scaledSize(12),
         borderRadius: scaledSize(12),
-        backgroundColor: theme.primary,
+        // Darken brand blue further per feedback
+        backgroundColor: '#166CC9',
         flexDirection: "row",
         alignItems: "center",
         gap: scaledSize(6),
-        shadowColor: theme.primary,
+        shadowColor: '#166CC9',
         shadowOpacity: 0.2,
         shadowRadius: 6,
         shadowOffset: { width: 0, height: 3 },

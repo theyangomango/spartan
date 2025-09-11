@@ -161,10 +161,10 @@ function Post({
     useEffect(() => {
         const should = programFocusPid && String(programFocusPid) === String(data?.pid || '');
         if (!should || isSomePostFocused) return;
-        const id = setTimeout(() => {
-            try { focusMe(true); } catch { }
-        }, 0); // trigger immediately; handleFocusPost recalculates using layout for accuracy
-        return () => clearTimeout(id);
+        const id = requestAnimationFrame(() => {
+            try { focusMe(true); } catch {}
+        });
+        return () => { try { cancelAnimationFrame(id); } catch {} };
     }, [programFocusSignal, programFocusPid, isSomePostFocused, data?.pid]);
 
     // Bounce animation (kept if you use it elsewhere)
