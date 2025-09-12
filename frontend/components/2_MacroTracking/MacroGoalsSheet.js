@@ -473,7 +473,7 @@ const makeStyles = (COLORS) => {
         autoCalcRow: {
             marginTop: 16,
             paddingHorizontal: 14,
-            paddingVertical: 12,
+            paddingVertical: 16,
             borderRadius: 14,
             backgroundColor: fieldBg,
             borderWidth: 1,

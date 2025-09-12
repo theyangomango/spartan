@@ -421,6 +421,7 @@ function Post({
 const areEqual = (prev, next) =>
     prev.isFocused === next.isFocused &&
     prev.isSomePostFocused === next.isSomePostFocused &&
+    prev.isUnfocusing === next.isUnfocusing &&
     prev.isAdjacentToFocused === next.isAdjacentToFocused &&
     prev.data === next.data &&
     prev.shouldPlay === next.shouldPlay &&

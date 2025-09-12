@@ -71,5 +71,5 @@ const styles = StyleSheet.create({
         justifyContent: 'center',
         borderColor: theme.hairline,
     },
-    leftBtn: { paddingTop: scaledSize(1), paddingRight: scaledSize(6) },
+    leftBtn: { paddingTop: scaledSize(1) },
 });

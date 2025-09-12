@@ -157,8 +157,10 @@ export default function Feed({ navigation, route }) {
     const prevY = useSharedValue(0);
     const focusHide = useSharedValue(0); // when focusing a post, fully hide header
     const isFocusSV = useSharedValue(0); // freeze JS mirrors during focus
-    // Back header opacity (the compact header shown during focus)
+    // Back header opacity (compact header shown during focus)
     const backHeaderOpacitySV = useSharedValue(0);
+    // Overlay header opacity (full header revealed outside focus)
+    const overlayHeaderOpacitySV = useSharedValue(1);
     // Animated styles: overlay header translate + spacer height
     const overlayHeaderStyle = useAnimatedStyle(() => {
         const totalHidden = Math.min(headerH.value, hidden.value + focusHide.value);
@@ -175,6 +177,7 @@ export default function Feed({ navigation, route }) {
         return { top: visible };
     });
     const backHeaderStyle = useAnimatedStyle(() => ({ opacity: backHeaderOpacitySV.value }));
+    const overlayHeaderOpacityStyle = useAnimatedStyle(() => ({ opacity: overlayHeaderOpacitySV.value }));
 
     // Header workout pill state
     const [activeWorkout, setActiveWorkout] = useState(null);
@@ -439,10 +442,14 @@ export default function Feed({ navigation, route }) {
         if (isTransitioning.current) return; /* 🔒 */
         isTransitioning.current = true;
         setUnfocusing(true);
-        // Let other posts and UI return immediately for cohesive motion
-        try { setIsSomePostFocused(false); } catch { }
+        // Keep focus state during the animation to avoid layout thrash/jitter.
+        // We'll flip isSomePostFocused to false in the animation end callback.
         // Start revealing the header in parallel for a cohesive unfocus
-        try { focusHide.value = withTiming(0, { duration: ANIMATION_DURATION, easing: ReEasing.out(ReEasing.cubic) }); } catch { }
+        try {
+            // Instantly clear prior scroll-hidden amount so header reveal starts immediately.
+            hidden.value = 0;
+            focusHide.value = withTiming(0, { duration: ANIMATION_DURATION, easing: ReEasing.out(ReEasing.cubic) });
+        } catch { }
         // Defer state flips to animation end for smoother unfocus
         animateView(0, 1);
     };
@@ -481,6 +488,16 @@ export default function Feed({ navigation, route }) {
             backHeaderOpacitySV.value = withTiming(unfocusing ? 0 : 1, { duration: ANIMATION_DURATION, easing: ReEasing.out(ReEasing.cubic) });
         } else {
             backHeaderOpacitySV.value = 0;
+        }
+    }, [isSomePostFocused, unfocusing]);
+
+    // Drive overlay header fade to appear immediately at start of unfocus
+    useEffect(() => {
+        if (isSomePostFocused) {
+            // While focused: keep overlay hidden; during unfocus: fade it in
+            overlayHeaderOpacitySV.value = withTiming(unfocusing ? 1 : 0, { duration: ANIMATION_DURATION, easing: ReEasing.out(ReEasing.cubic) });
+        } else {
+            overlayHeaderOpacitySV.value = 1;
         }
     }, [isSomePostFocused, unfocusing]);
 
@@ -558,6 +575,7 @@ export default function Feed({ navigation, route }) {
             isTransitioning.current = false; /* 🔓 unlock */
             if (translateYValue === 0) {
                 // Unfocus completed: now flip state and re-enable scroll
+                try { setIsSomePostFocused(false); } catch { }
                 try { focusedPostIndex.current = -1; setFocusedIndexState?.(-1); } catch { }
                 try { setShareBottomSheetCloseFlag((f) => !f); } catch { }
                 try { flatListRef.current?.setNativeProps({ scrollEnabled: true }); } catch { }
@@ -837,7 +855,9 @@ export default function Feed({ navigation, route }) {
                             zIndex: 1,
                             // Expand hit area below the card when focused so presses/swipes in the
                             // visually overlapped bottom strip are still within the cell bounds.
-                            paddingBottom: width / CARD_AR,
+                            // During unfocus, drop back to the normal padding so the next posts
+                            // can re-enter the viewport immediately (no delayed reflow).
+                            paddingBottom: unfocusing ? 33 : width / CARD_AR,
                         },
                     ]}>
                         <Post
@@ -872,7 +892,7 @@ export default function Feed({ navigation, route }) {
                 </Animated.View>
             );
         },
-        [isSomePostFocused, handleFocusPost, openCommentsModal, openShareModal, centeredIndex, focusedIndexState, focusSeq]
+        [isSomePostFocused, handleFocusPost, openCommentsModal, openShareModal, centeredIndex, focusedIndexState, focusSeq, unfocusing]
     );
 
     /* -------------------- HYDRATE allUsersRef.current -------------------- */
@@ -985,7 +1005,7 @@ export default function Feed({ navigation, route }) {
                     style={[{
                         backgroundColor: theme.bg,
                         zIndex: 20,
-                    }, overlayHeaderStyle]}
+                    }, overlayHeaderStyle, overlayHeaderOpacityStyle]}
                 >
                     <View onLayout={(e) => {
                         const h = e.nativeEvent.layout.height || 0;
@@ -995,7 +1015,7 @@ export default function Feed({ navigation, route }) {
                             navigation={navigation}
                             toMessagesScreen={toMessagesScreen}
                             onOpenNotifications={handleOpenNotifications}
-                            backButton={isSomePostFocused}
+                            backButton={isSomePostFocused && !unfocusing}
                             onBackPress={handleBackPress}
                             scrollToTop={scrollToTop}
                             allUsersRef={allUsersRef}
