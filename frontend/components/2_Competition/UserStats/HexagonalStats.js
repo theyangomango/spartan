@@ -147,6 +147,11 @@ const HexagonalStats = ({
                     const prev = prevData ? prevData[i] : null;
                     const changed = prevData && Number(prev) !== Number(curr);
                     const isSide = (i === 1 || i === 2 || i === 4 || i === 5); // CHEST, ARMS, BACK, ABS
+                    // For the right-hand side labels (CHEST, ARMS) we want text to flow leftwards
+                    // to avoid clipping near the edge. For the left-hand side labels (BACK, ABS)
+                    // we anchor to the left so text flows rightwards. Top/bottom remain centered.
+                    const isRightSide = (i === 1 || i === 2);
+                    const sideAnchor = isRightSide ? 'end' : 'start';
                     const lineGap = scaledSize(14);
                     return (
                         <React.Fragment key={`lbl-${i}`}>
@@ -193,7 +198,7 @@ const HexagonalStats = ({
                                     <SvgText
                                         x={x}
                                         y={y + valueOffset}
-                                        textAnchor="middle"
+                                        textAnchor={sideAnchor}
                                         alignmentBaseline="middle"
                                         fill={prevColor}
                                         fontFamily="Outfit_700Bold"
@@ -205,7 +210,7 @@ const HexagonalStats = ({
                                     <SvgText
                                         x={x}
                                         y={y + valueOffset + lineGap}
-                                        textAnchor="middle"
+                                        textAnchor={sideAnchor}
                                         alignmentBaseline="middle"
                                     >
                                         <TSpan fill={prevColor} fontFamily="Outfit_700Bold" fontSize={valueFont}>{'→  '}</TSpan>

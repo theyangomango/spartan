@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
-import { View, StyleSheet, SectionList, Text } from "react-native";
-import { collection, query, orderBy, limit, onSnapshot } from "firebase/firestore";
+import { View, StyleSheet, SectionList, Text, ActivityIndicator } from "react-native";
+import { collection, query, orderBy, limit, onSnapshot, getDocs, startAfter } from "firebase/firestore";
 import { db } from "../../../../firebase.config";
 import ButtonRow from "./ButtonRow";
 import NotificationCard from "./NotificationCard";
@@ -19,18 +19,39 @@ export default function NotificationsModal({ visible, uid, closeBottomSheet }) {
     const listRef = useRef(null);
     const [newLikes, setNewLikes] = useState(0);
     const [newComments, setNewComments] = useState(0);
+    const [loadingMore, setLoadingMore] = useState(false);
+    const [hasMore, setHasMore] = useState(true);
+    const lastDocRef = useRef(null); // Firestore DocumentSnapshot used for pagination
+    const hasLoadedMoreRef = useRef(false);
 
     useEffect(() => {
         const effUid = uid || global?.userData?.uid;
         if (!effUid) return;
 
+        // Reset pagination cursors when (re)subscribing
+        hasLoadedMoreRef.current = false;
+        lastDocRef.current = null;
+        setHasMore(true);
+
         const notifRef = collection(db, "users", effUid, "notifications");
         const notifQuery = query(notifRef, orderBy("timestamp", "desc"), limit(PAGE_SIZE));
         const unsub = onSnapshot(notifQuery, (snapshot) => {
             const docs = snapshot.docs.map((d) => ({ id: d.id, ...(d.data() || {}) }));
-            setEvents(docs);
+
+            // Merge the newest page into any already-loaded older pages, de-duping by id.
+            setEvents((prev) => {
+                const newestIds = new Set(docs.map((d) => d.id));
+                const tail = prev.filter((p) => !newestIds.has(p.id));
+                return [...docs, ...tail];
+            });
             setRefreshTick((t) => t + 1);
             try { listRef.current?.scrollToOffset?.({ offset: 0, animated: false }); } catch {}
+
+            // If we have not paginated yet, set the initial cursor & hasMore
+            if (!hasLoadedMoreRef.current) {
+                lastDocRef.current = snapshot.docs[snapshot.docs.length - 1] || null;
+                setHasMore(snapshot.docs.length === PAGE_SIZE);
+            }
 
             let likes = 0;
             let comments = 0;
@@ -45,6 +66,50 @@ export default function NotificationsModal({ visible, uid, closeBottomSheet }) {
 
         return () => { try { unsub(); } catch {} };
     }, [uid, visible, global?.userData?.uid]);
+
+    // Load older pages when the user scrolls near the bottom
+    const loadMore = async () => {
+        if (loadingMore || !hasMore) return;
+        const effUid = uid || global?.userData?.uid;
+        if (!effUid) return;
+        const cursor = lastDocRef.current;
+        if (!cursor) return;
+
+        setLoadingMore(true);
+        try {
+            const notifRef = collection(db, "users", effUid, "notifications");
+            const q = query(
+                notifRef,
+                orderBy("timestamp", "desc"),
+                startAfter(cursor),
+                limit(PAGE_SIZE)
+            );
+            const snap = await getDocs(q);
+            const more = snap.docs.map((d) => ({ id: d.id, ...(d.data() || {}) }));
+
+            if (more.length === 0) {
+                setHasMore(false);
+                setLoadingMore(false);
+                return;
+            }
+
+            // Update cursor to the last doc from this batch
+            lastDocRef.current = snap.docs[snap.docs.length - 1] || lastDocRef.current;
+            hasLoadedMoreRef.current = true;
+            setHasMore(snap.docs.length === PAGE_SIZE);
+
+            // Append while avoiding duplicates
+            setEvents((prev) => {
+                const seen = new Set(prev.map((p) => p.id));
+                const merged = [...prev, ...more.filter((m) => !seen.has(m.id))];
+                return merged;
+            });
+        } catch (e) {
+            // Fail silently; keep UX smooth
+        } finally {
+            setLoadingMore(false);
+        }
+    };
 
     // --- time grouping helpers (reference FriendsActivitySheet) ---
     const toMillis = (ts) => {
@@ -157,6 +222,15 @@ export default function NotificationsModal({ visible, uid, closeBottomSheet }) {
                 windowSize={9}
                 removeClippedSubviews={false}
                 stickySectionHeadersEnabled={false}
+                onEndReachedThreshold={0.3}
+                onEndReached={loadMore}
+                ListFooterComponent={
+                    loadingMore ? (
+                        <View style={styles.footerWrap}><ActivityIndicator color={theme.textSecondary} /></View>
+                    ) : !hasMore ? (
+                        <View style={styles.footerWrap}><Text style={styles.footerText}>You're all caught up</Text></View>
+                    ) : null
+                }
                 ListEmptyComponent={visible ? <View style={styles.emptyWrap} /> : null}
             />
         </View>
@@ -186,4 +260,6 @@ const styles = StyleSheet.create({
         color: theme.textSecondary,
         letterSpacing: 0.3,
     },
+    footerWrap: { paddingVertical: scaleSize(14), alignItems: 'center', justifyContent: 'center' },
+    footerText: { fontFamily: 'Outfit_600SemiBold', fontSize: scaleSize(12), color: theme.textSecondary },
 });

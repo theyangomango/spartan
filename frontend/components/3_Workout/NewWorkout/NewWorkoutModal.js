@@ -919,7 +919,7 @@ const styles = StyleSheet.create({
     modalText: { fontSize: scaledSize(16), color: theme.textPrimary, fontFamily: "Outfit_700Bold", marginBottom: scaledSize(20), textAlign: "center" },
     deleteWorkoutBtn: { width: "100%", paddingVertical: scaledSize(10), backgroundColor: "#D94C4C", borderRadius: scaledSize(8), alignItems: "center", marginBottom: scaledSize(10) },
     deleteWorkoutText: { color: "#FFFFFF", fontSize: scaledSize(14), fontFamily: "Outfit_700Bold" },
-    cancelDeleteBtn: { width: "100%", paddingVertical: scaledSize(10), backgroundColor: theme.field, borderRadius: scaledSize(8), alignItems: "center" },
+    cancelDeleteBtn: { width: "100%", paddingVertical: scaledSize(10), backgroundColor: '#21242dff', borderRadius: scaledSize(8), alignItems: "center" },
     cancelDeleteText: { color: theme.textPrimary, fontSize: scaledSize(14), fontFamily: "Outfit_700Bold" },
 
     finishModalContainer: { width: "100%", padding: scaledSize(20), backgroundColor: theme.surface, borderRadius: scaledSize(16), alignItems: "center" },
@@ -927,7 +927,7 @@ const styles = StyleSheet.create({
     finishBtn: { width: "100%", paddingVertical: scaledSize(10), backgroundColor: theme.successButton, borderRadius: scaledSize(10), alignItems: "center", marginBottom: scaledSize(10) },
     finishBtnText: { color: "#fff", fontSize: scaledSize(14.5), fontFamily: "Outfit_700Bold" },
     finishBtnDisabled: { opacity: 0.6 },
-    keepEditingBtn: { width: "100%", paddingVertical: scaledSize(10), backgroundColor: theme.field, borderRadius: scaledSize(10), alignItems: "center" },
+    keepEditingBtn: { width: "100%", paddingVertical: scaledSize(10), backgroundColor: '#21242dff', borderRadius: scaledSize(10), alignItems: "center" },
     keepEditingText: { color: theme.textPrimary, fontSize: scaledSize(14), fontFamily: "Outfit_600SemiBold" },
     // Reminder styles (gradient border card)
     reminderWrapper: {

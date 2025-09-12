@@ -18,7 +18,7 @@ const CommentsBottomSheet = ({ isVisible, postData, commentsBottomSheetExpandFla
     const footerTranslateY = useRef(new Animated.Value(0)).current; // moves when input focuses
     const footerIntroY = useRef(new Animated.Value(10)).current;    // small entrance slide
     const footerOpacity = useRef(new Animated.Value(0)).current;    // fade with sheet
-    const snapPoints = useMemo(() => ["35.5%", "92%"], []);
+    const snapPoints = useMemo(() => ["34.5%", "92%"], []);
     const [isSheetExpanded, setIsSheetExpanded] = useState(false);
     const [inputText, setInputText] = useState('');
     const [replyingToIndex, setReplyingToIndex] = useState(null);

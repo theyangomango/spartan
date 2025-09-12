@@ -14,6 +14,7 @@ import theme from '../../theme/mfpDark';
 const { height: screenHeight } = Dimensions.get('window');
 const scale = screenHeight / 844; // iPhone 13 baseline
 const scaledSize = (size) => Math.round(size * scale);
+const LIST_MAX_H = Math.round(screenHeight * 0.35);
 
 const COLORS = {
     bgDim: 'rgba(15, 23, 42, 0.45)',
@@ -136,7 +137,7 @@ const WorkoutSummaryModal = ({ isVisible, workout, onClose, postWorkout }) => {
                     { renderToHardwareTextureAndroid: true, shouldRasterizeIOS: true }
                 ]}>
                     {/* Header */}
-                    <View style={styles.header}>
+          <View style={styles.header}>
                         <View>
                             <Text style={styles.headerDate}>{formatDateNice(createdDate)}</Text>
                             <Text style={styles.headerSub}>
@@ -144,12 +145,13 @@ const WorkoutSummaryModal = ({ isVisible, workout, onClose, postWorkout }) => {
                             </Text>
                         </View>
                         <View style={styles.headerBadge}>
-                            <MaterialCommunityIcons name="trophy" color={COLORS.text} size={scaledSize(16)} />
+                            <MaterialCommunityIcons name="trophy" color="#FACC15" size={scaledSize(16)} />
                             <Text style={styles.headerBadgeText}>
                                 {workout.PBs ?? 0} PB{(workout.PBs ?? 0) === 1 ? '' : 's'}
                             </Text>
                         </View>
                     </View>
+                    <View style={styles.headerDivider} />
 
                     {/* Stats */}
                     <View style={styles.statsRow}>
@@ -185,7 +187,8 @@ const WorkoutSummaryModal = ({ isVisible, workout, onClose, postWorkout }) => {
 
                     {/* List */}
                     <SummaryList
-                        data={workout.exercises}
+                        style={styles.list}
+                        data={Array.isArray(workout.exercises) ? workout.exercises : []}
                         renderItem={renderExercise}
                         keyExtractor={(item, index) => `${item.name}-${index}`}
                         ItemSeparatorComponent={Divider}
@@ -231,7 +234,7 @@ const styles = StyleSheet.create({
     card: {
         width: '100%',
         backgroundColor: COLORS.card,
-        borderRadius: scaledSize(24),
+        borderRadius: scaledSize(20),
         paddingVertical: scaledSize(14),
         paddingHorizontal: scaledSize(18),
         shadowColor: '#000',
@@ -240,7 +243,7 @@ const styles = StyleSheet.create({
         shadowRadius: scaledSize(18),
         elevation: 12,
         borderWidth: StyleSheet.hairlineWidth,
-        borderColor: 'rgba(2, 6, 23, 0.04)',
+        borderColor: COLORS.hairline,
     },
 
     header: {
@@ -250,30 +253,33 @@ const styles = StyleSheet.create({
         alignItems: 'center',
     },
     headerDate: {
-        fontFamily: 'Outfit_700Bold',
+        fontFamily: 'Outfit_800ExtraBold',
         fontSize: scaledSize(18),
         color: COLORS.text,
     },
     headerSub: {
         marginTop: scaledSize(2),
-        fontFamily: 'Outfit_400Regular',
+        fontFamily: 'Outfit_600SemiBold',
         fontSize: scaledSize(12.5),
         color: COLORS.subtext,
     },
     headerBadge: {
         flexDirection: 'row',
         alignItems: 'center',
-        backgroundColor: 'rgba(253, 224, 71, 0.2)',
+        backgroundColor: 'rgba(250, 204, 21, 0.24)',
         borderRadius: scaledSize(999),
         paddingVertical: scaledSize(6),
         paddingHorizontal: scaledSize(10),
         gap: scaledSize(6),
+        borderWidth: StyleSheet.hairlineWidth,
+        borderColor: 'rgba(250, 204, 21, 0.60)',
     },
     headerBadgeText: {
         fontFamily: 'Outfit_600SemiBold',
         fontSize: scaledSize(12.5),
-        color: COLORS.text,
+        color: '#FACC15',
     },
+    headerDivider: { height: StyleSheet.hairlineWidth, backgroundColor: COLORS.hairline, marginVertical: scaledSize(8) },
 
     statsRow: {
         flexDirection: 'row',
@@ -299,13 +305,13 @@ const styles = StyleSheet.create({
         marginBottom: scaledSize(6),
     },
     statLabel: {
-        fontFamily: 'Outfit_500Medium',
+        fontFamily: 'Outfit_600SemiBold',
         fontSize: scaledSize(11.5),
         color: COLORS.subtext,
     },
     statValue: {
         marginTop: scaledSize(2),
-        fontFamily: 'Outfit_700Bold',
+        fontFamily: 'Outfit_800ExtraBold',
         fontSize: scaledSize(15),
         color: COLORS.text,
     },
@@ -326,6 +332,12 @@ const styles = StyleSheet.create({
     divider: {
         height: StyleSheet.hairlineWidth,
         backgroundColor: COLORS.hairline,
+    },
+
+    // Constrain list so it measures and scrolls instead of collapsing
+    list: {
+        maxHeight: LIST_MAX_H,
+        alignSelf: 'stretch',
     },
 
     row: {
@@ -367,9 +379,9 @@ const styles = StyleSheet.create({
         borderRadius: scaledSize(999),
         paddingVertical: scaledSize(6),
         paddingHorizontal: scaledSize(10),
-        backgroundColor: theme.addBtnBg,
+        backgroundColor: theme.field,
         borderWidth: StyleSheet.hairlineWidth,
-        borderColor: COLORS.blue,
+        borderColor: COLORS.hairline,
     },
     bestPillText: {
         fontFamily: 'Outfit_600SemiBold',
@@ -392,7 +404,7 @@ const styles = StyleSheet.create({
         borderRadius: scaledSize(14),
         borderWidth: StyleSheet.hairlineWidth,
         borderColor: COLORS.hairline,
-        backgroundColor: COLORS.card,
+        backgroundColor: theme.field,
         paddingVertical: scaledSize(10),
         alignItems: 'center',
         justifyContent: 'center',

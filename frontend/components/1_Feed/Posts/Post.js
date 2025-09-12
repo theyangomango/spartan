@@ -290,10 +290,12 @@ function Post({
 
     // Keep keys stable across global focus toggles to avoid mass remounts.
     // Only the focused card (or when focusSeq changes) should remount.
-    const mediaListKey = useMemo(
-        () => `${String(data?.pid || index)}-${isFocused ? 'focused' : 'normal'}-${focusSeq || 0}`,
-        [data?.pid, index, isFocused, focusSeq]
-    );
+    const mediaListKey = useMemo(() => {
+        const base = `${String(data?.pid || index)}-${isFocused ? 'focused' : 'normal'}`;
+        // Only the focused card should remount its inner tree when focusSeq changes
+        const fs = isFocused ? (focusSeq || 0) : 0;
+        return `${base}-fs${fs}`;
+    }, [data?.pid, index, isFocused, focusSeq]);
 
     return (
         <Animated.View

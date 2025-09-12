@@ -7,6 +7,9 @@ import { Clock } from "iconsax-react-native";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { Ionicons } from "@expo/vector-icons";
 import NewWorkoutModal from "./NewWorkout/NewWorkoutModal";
+import CopyTemplateToast from "./ui/CopyTemplateToast";
+import updateDoc from "../../../backend/helper/firebase/updateDoc";
+import makeID from "../../../backend/helper/makeID";
 import { useNavigation } from "@react-navigation/native";
 
 // Friend-view handle accents (match FriendsActivitySheet)
@@ -79,6 +82,9 @@ const DayDetailsSheet = ({
     const listOpacity = useRef(new Animated.Value(1)).current;
     const viewerOpacity = useRef(new Animated.Value(0)).current;
     const timerRef = useRef("");
+    // Copy Template toast
+    const toastAnim = useRef(new Animated.Value(0)).current;
+    const [toastText, setToastText] = useState("Template added");
 
     // Expand helper that tolerates ref not being ready on first render
     const expandSafely = useCallback(() => {
@@ -210,6 +216,39 @@ const DayDetailsSheet = ({
             Animated.timing(listOpacity, { toValue: 1, duration: 180, useNativeDriver: true }),
         ]).start(({ finished }) => { if (finished) { setSelectedWorkout(null); setViewerReady(false); } });
     }, [listOpacity, viewerOpacity]);
+
+    const showToast = useCallback((msg) => {
+        setToastText(msg || "Template added");
+        try {
+            Animated.sequence([
+                Animated.timing(toastAnim, { toValue: 1, duration: 180, useNativeDriver: true }),
+                Animated.delay(1500),
+                Animated.timing(toastAnim, { toValue: 0, duration: 200, useNativeDriver: true }),
+            ]).start();
+        } catch {}
+    }, [toastAnim]);
+
+    const handleCopyTemplate = useCallback((wk) => {
+        try {
+            const uid = String(global?.userData?.uid || "");
+            if (!wk || !uid) return;
+            const tid = makeID();
+            const name = wk?.templateName || wk?.template?.name || "Copied Template";
+            const exercises = (Array.isArray(wk?.exercises) ? wk.exercises : []).map((ex) => ({
+                name: ex?.name || "",
+                muscle: ex?.muscle || "",
+                sets: (Array.isArray(ex?.sets) ? ex.sets : []).map((s) => ({
+                    weight: Number(s?.weight) || 0,
+                    reps: Number(s?.reps) || 0,
+                })),
+            }));
+            const newTemplate = { id: tid, tid, name, exercises, lastDate: null };
+            const prev = Array.isArray(global?.userData?.templates) ? global.userData.templates : [];
+            updateDoc("users", uid, { templates: [...prev, newTemplate] }).catch(() => {});
+            try { global.userData.templates = [...prev, newTemplate]; } catch {}
+            showToast("Template copied ✓");
+        } catch {}
+    }, [showToast]);
 
     return (
         <View style={styles.outerContainer} pointerEvents="box-none">
@@ -369,7 +408,7 @@ const DayDetailsSheet = ({
                                 userWorkoutStats={global?.userData?.statsExercises || {}}
                                 onPressBack={closeViewer}
                                 onCheer={() => {}}
-                                onCopyTemplate={undefined}
+                                onCopyTemplate={handleCopyTemplate}
                                 onPressPfp={() => {
                                     try { bottomSheetRef.current?.close(); } catch {}
                                     const uid = String(selectedWorkout?.__friendUid || selectedWorkout?.creatorUID || '');
@@ -388,6 +427,10 @@ const DayDetailsSheet = ({
                                 friendPfp={selectedWorkout.__friendPfp || null}
                                 streamLive={false}
                             />
+                            {/* Copy Template toast centered near top of overlay */}
+                            <View pointerEvents="none" style={styles.toastWrap}>
+                                <CopyTemplateToast anim={toastAnim} text={toastText} />
+                            </View>
                         </View>
                     )}
                 </Animated.View>
@@ -529,6 +572,15 @@ const styles = StyleSheet.create({
         height: 4,
         borderRadius: 999,
         backgroundColor: HANDLE_FRIEND_ACCENT,
+    },
+    // Position toast near the top of the overlay content
+    toastWrap: {
+        position: "absolute",
+        left: 0,
+        right: 0,
+        top: 14,
+        alignItems: "center",
+        zIndex: 40,
     },
 });
 

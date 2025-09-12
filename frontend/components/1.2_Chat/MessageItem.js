@@ -190,7 +190,9 @@ export default function MessageItem({
         item?.sender?.photoURL ||
         "";
 
-    // Build the existing bubble block first
+    // Build the existing bubble block first.
+    // Wrap reply preview + bubble content in a shared animated container so they shift together
+    // when revealing timestamps. Previously only the bubble moved; the reply preview stayed put.
     const bubbleNode = (
         <View
             ref={containerRef}
@@ -200,6 +202,7 @@ export default function MessageItem({
                 { alignSelf: isSelf ? "flex-end" : "flex-start", maxWidth: BUBBLE_MAX_W },
             ]}
         >
+            <Animated.View style={shift}>
                 {!!reply && (
                     <View
                         style={[
@@ -252,20 +255,19 @@ export default function MessageItem({
                     )}
 
                     {mediaOnly ? (
-                        <Animated.View style={[styles.mediaOnly, shift]}>
+                        <View style={[styles.mediaOnly]}>
                             <View style={[styles.mediaWrap, { marginTop: 0 }]}>
                                 {item.media.map((m, idx) => (
                                     <MediaTile key={idx} m={m} />
                                 ))}
                             </View>
-                        </Animated.View>
+                        </View>
                     ) : (
-                        <Animated.View
+                        <View
                             style={[
                                 styles.bubble,
                                 isSelf ? styles.bubbleSelf : styles.bubbleOther,
                                 grouped && (isSelf ? styles.groupSelf : styles.groupOther),
-                                shift,
                             ]}
                         >
                             {!!hasText && (
@@ -281,16 +283,17 @@ export default function MessageItem({
                                     ))}
                                 </View>
                             )}
-                        </Animated.View>
+                        </View>
                     )}
                 </Pressable>
+            </Animated.View>
 
-                {isSelf && !!microTime && (
-                    <Animated.Text style={[styles.timeRight, timeRight]} numberOfLines={1} pointerEvents="none">
-                        {microTime}
-                    </Animated.Text>
-                )}
-                {/* non-self time appears outside, left of avatar + bubble */}
+            {isSelf && !!microTime && (
+                <Animated.Text style={[styles.timeRight, timeRight]} numberOfLines={1} pointerEvents="none">
+                    {microTime}
+                </Animated.Text>
+            )}
+            {/* non-self time appears outside, left of avatar + bubble */}
         </View>
     );
 
@@ -364,7 +367,7 @@ const styles = StyleSheet.create({
     groupSelf: { borderBottomRightRadius: 7 },
     groupOther: { borderBottomLeftRadius: 7 },
 
-    text: { fontSize: 14, lineHeight: 19, letterSpacing: 0.1, fontFamily: "Outfit_500Medium" },
+    text: { fontSize: 14, lineHeight: 18, letterSpacing: 0.1, fontFamily: "Outfit_500Medium" },
     textSelf: { color: theme.textPrimary },
     textOther: { color: theme.textPrimary },
 

@@ -76,6 +76,8 @@ export default function Feed({ navigation, route }) {
     const focusSeqRef = useRef(0);
     const [focusSeq, setFocusSeq] = useState(0);
     const queuedFocusRef = useRef(null);
+    // Only remount the focused Post at the end of focus when truly needed
+    const needsFocusEndRemountRef = useRef(false);
 
     // ✅ Shared header users (global/users + following + prefetch)
     const { allUsersRef, mergeUsersIntoRef } = useHeaderSearchUsers({
@@ -334,6 +336,8 @@ export default function Feed({ navigation, route }) {
 
     /* ---------- focus / unfocus handlers ---------- */
     const handleFocusPost = (index, pageY, preferWaitForHeader = false, pid = null) => {
+        // Reset per-focus flags
+        needsFocusEndRemountRef.current = false;
         if (true) {
             const lay0 = itemLayoutsRef.current.get(index);
             dlog('focus.request', { index, pageY: Math.round(pageY), preferWaitForHeader, pid, layY: lay0?.y, top: scrollOffsetY.current, transitioning: isTransitioning.current });
@@ -404,6 +408,8 @@ export default function Feed({ navigation, route }) {
                             scrollOffsetY.current = target;
                             pageYAdj = (typeof pageYAdj === 'number' ? pageYAdj : pageY) + delta; // compensate the on-screen Y
                             dlog('focus.revealAdjust', { index, layY: lay?.y, topOld, target, delta, pageYAdj });
+                            // Only in this clipped-at-top compensation case do we want a post-end remount
+                            needsFocusEndRemountRef.current = true;
                         }
                     }
                 } catch { }
@@ -558,11 +564,11 @@ export default function Feed({ navigation, route }) {
                 try { setUnfocusing(false); } catch { }
             }
             else {
-                // After a focus completes, bump focusSeq once more to remount the
-                // focused card & its inner FlatList in final position. This clears any
-                // responder inconsistencies that can occur when the item was clipped
-                // at press time or scrolled into view just before focus.
-                try { focusSeqRef.current += 1; setFocusSeq(focusSeqRef.current); } catch { }
+                // Only remount at end when we compensated for a clipped-at-top start
+                if (needsFocusEndRemountRef.current) {
+                    try { focusSeqRef.current += 1; setFocusSeq(focusSeqRef.current); } catch { }
+                }
+                needsFocusEndRemountRef.current = false;
             }
             console.log('[Feed]', 'focus.animationEnd', { translateYValue, focusedIndex: focusedPostIndex.current, focusSeq: focusSeqRef.current });
             // If a focus was queued during the transition, honor it now
