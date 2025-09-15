@@ -8,6 +8,8 @@ import SetRow from "./SetRow";
 import theme from "../../../../theme/mfpDark";
 import ExerciseOptionsPanel from "./ExerciseOptionsPanel";
 
+import scaleSize from "../../../../helper/scaleSize";
+
 const { height: screenHeight } = Dimensions.get("window");
 const scale = screenHeight / 844;
 const s = (n) => Math.round(n * scale);
@@ -144,7 +146,7 @@ function ExerciseLog({
         if (isPanelVisible) setIsPanelVisible(false);
         else {
             setIsPanelVisible(true);
-            setPanelPosition({ top: event?.nativeEvent?.pageY + 25, left: s(18) });
+            setPanelPosition({ top: scaleSize(event?.nativeEvent?.pageY + 25), left: scaleSize(s(18)) });
         }
     };
 
@@ -259,36 +261,36 @@ function ExerciseLog({
 const areEqual = (prev, next) => {
     // changes that should actually re-render this row group
     return (
-        prev.name === next.name &&
+        // parent-driven replacement of the whole sets array
+        (prev.name === next.name &&
         prev.muscle === next.muscle &&
-        prev.readOnly === next.readOnly &&
-        prev.sets === next.sets // parent-driven replacement of the whole sets array
+        prev.readOnly === next.readOnly && prev.sets === next.sets)
     );
 };
 
 export default memo(ExerciseLog, areEqual);
 
 const styles = StyleSheet.create({
-    main_ctnr: { marginTop: s(16), marginBottom: s(6), position: "relative" },
-    header: { flexDirection: "row", alignItems: "center", paddingLeft: s(20), paddingBottom: s(10), marginHorizontal: s(2.5) },
-    nameContainer: { flexDirection: "row", alignItems: "center", flexShrink: 1, marginRight: s(10) },
-    exercise_text: { fontFamily: "Mulish_800ExtraBold", color: theme.primary, fontSize: s(15), flexShrink: 1 },
-    muscle_ctnr: { borderRadius: s(15), height: s(23.5), paddingHorizontal: s(12), alignItems: "center", justifyContent: "center", marginLeft: s(5) },
-    muscle_text: { fontFamily: "Poppins_700Bold", fontSize: s(12), color: "#fff" },
-    labels: { flexDirection: "row", paddingBottom: s(5), marginHorizontal: s(2.5) },
+    main_ctnr: { marginTop: scaleSize(s(16)), marginBottom: scaleSize(s(6)), position: "relative" },
+    header: { flexDirection: "row", alignItems: "center", paddingLeft: scaleSize(s(20)), paddingBottom: scaleSize(s(10)), marginHorizontal: scaleSize(s(2.5)) },
+    nameContainer: { flexDirection: "row", alignItems: "center", flexShrink: 1, marginRight: scaleSize(s(10)) },
+    exercise_text: { fontFamily: "Mulish_800ExtraBold", color: theme.primary, fontSize: scaleSize(s(15)), flexShrink: 1 },
+    muscle_ctnr: { borderRadius: scaleSize(s(15)), height: scaleSize(s(23.5)), paddingHorizontal: scaleSize(s(12)), alignItems: "center", justifyContent: "center", marginLeft: scaleSize(s(5)) },
+    muscle_text: { fontFamily: "Poppins_700Bold", fontSize: scaleSize(s(12)), color: "#fff" },
+    labels: { flexDirection: "row", paddingBottom: scaleSize(s(5)), marginHorizontal: scaleSize(s(2.5)) },
     set_col: { marginLeft: "5%", width: "8%", alignItems: "center" },
     prev_col: { width: "38%", alignItems: "center" },
     w_col: { width: "18%", alignItems: "center" },
     r_col: { width: "18%", alignItems: "center" },
     // Increase contrast for readability in dark mode
-    label_text: { fontFamily: "Mulish_800ExtraBold", fontSize: s(15), color: theme.textPrimary },
-    add_set_btn_ctnr: { paddingHorizontal: s(20) },
+    label_text: { fontFamily: "Mulish_800ExtraBold", fontSize: scaleSize(s(15)), color: theme.textPrimary },
+    add_set_btn_ctnr: { paddingHorizontal: scaleSize(s(20)) },
     add_set_btn: {
         width: "100%",
-        marginTop: s(8),
+        marginTop: scaleSize(s(8)),
         alignSelf: "center",
-        height: s(28),
-        borderRadius: s(20),
+        height: scaleSize(s(28)),
+        borderRadius: scaleSize(s(20)),
         backgroundColor: theme.restPillBg,
         borderWidth: StyleSheet.hairlineWidth,
         borderColor: theme.primaryHairline,
@@ -296,5 +298,5 @@ const styles = StyleSheet.create({
         alignItems: "center",
         flexDirection: "row",
     },
-    add_set_text: { fontFamily: "Outfit_600SemiBold", color: theme.textPrimary, fontSize: s(15), marginLeft: s(1), marginRight: s(5) },
+    add_set_text: { fontFamily: "Outfit_600SemiBold", color: theme.textPrimary, fontSize: scaleSize(s(15)), marginLeft: scaleSize(s(1)), marginRight: scaleSize(s(5)) },
 });

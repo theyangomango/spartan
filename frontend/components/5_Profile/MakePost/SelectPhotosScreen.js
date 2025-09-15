@@ -159,7 +159,6 @@ export default function SelectPhotosScreen({ navigation, route }) {
                     </View>
                 </TouchableOpacity>
             </View>
-
             <View style={styles.preview_ctnr}>
                 {selectedImages.length > 0 ? (
                     <Gallery
@@ -168,7 +167,7 @@ export default function SelectPhotosScreen({ navigation, route }) {
                         renderItem={({ item, setImageDimensions }) => (
                             <Image
                                 source={{ uri: item.uri }}
-                                style={{ width: '100%', aspectRatio: 0.8, borderTopLeftRadius: 35, borderTopRightRadius: 35 }}
+                                style={{ width: '100%', aspectRatio: 0.8, borderTopLeftRadius: scaleSize(35), borderTopRightRadius: scaleSize(35) }}
                                 onLoad={(e) => {
                                     const { width, height } = e.nativeEvent.source;
                                     setImageDimensions({ width, height });
@@ -186,7 +185,7 @@ export default function SelectPhotosScreen({ navigation, route }) {
                 ) : assets.length > 0 ? (
                     <Image
                         source={{ uri: assets[0].uri }}
-                        style={{ width: '100%', aspectRatio: 0.8, borderTopLeftRadius: 35, borderTopRightRadius: 35 }}
+                        style={{ width: '100%', aspectRatio: 0.8, borderTopLeftRadius: scaleSize(35), borderTopRightRadius: scaleSize(35) }}
                     />
                 ) : null}
 
@@ -197,7 +196,6 @@ export default function SelectPhotosScreen({ navigation, route }) {
                     </TouchableOpacity>
                 )}
             </View>
-
             <PreviewPhotosBottomSheet
                 assets={assets}
                 images={images}
@@ -220,7 +218,6 @@ export default function SelectPhotosScreen({ navigation, route }) {
                     getInitialAssets();
                 }}
             />
-
             <ImageCropperModal
                 visible={cropVisible}
                 uri={cropUri}
@@ -239,32 +236,32 @@ const styles = StyleSheet.create({
     },
     header_ctnr: {
         alignItems: 'center',
-        paddingHorizontal: scaledSize(5),
-        paddingTop: scaledSize(5),
-        paddingBottom: scaledSize(15),
+        paddingHorizontal: scaleSize(scaledSize(5)),
+        paddingTop: scaleSize(scaledSize(5)),
+        paddingBottom: scaleSize(scaledSize(15)),
         flexDirection: 'row',
         justifyContent: 'space-between',
         backgroundColor: theme.bg
     },
     close_icon_ctnr: {
-        paddingHorizontal: scaledSize(18)
+        paddingHorizontal: scaleSize(scaledSize(18))
     },
     header_text_ctnr: {
     },
     next_icon_ctnr: {
-        paddingHorizontal: scaledSize(23)
+        paddingHorizontal: scaleSize(scaledSize(23))
     },
     title_text: {
         fontFamily: 'Outfit_600SemiBold',
-        fontSize: scaledSize(16),
+        fontSize: scaleSize(16),
         color: theme.textPrimary,
     },
     preview_ctnr: {
         width: '100%',
         aspectRatio: 0.8,
         backgroundColor: theme.surface,
-        borderTopLeftRadius: 35,
-        borderTopRightRadius: 35,
+        borderTopLeftRadius: scaleSize(35),
+        borderTopRightRadius: scaleSize(35),
         overflow: 'hidden'
     },
     preview_image: {
@@ -272,19 +269,19 @@ const styles = StyleSheet.create({
     },
     crop_btn: {
         position: 'absolute',
-        right: scaledSize(14),
-        top: scaledSize(14),
-        paddingHorizontal: scaledSize(10),
-        paddingVertical: scaledSize(6),
-        borderRadius: scaledSize(12),
+        right: scaleSize(scaledSize(14)),
+        top: scaleSize(scaledSize(14)),
+        paddingHorizontal: scaleSize(scaledSize(10)),
+        paddingVertical: scaleSize(scaledSize(6)),
+        borderRadius: scaleSize(scaledSize(12)),
         backgroundColor: 'rgba(0,0,0,0.45)',
         flexDirection: 'row',
         alignItems: 'center',
     },
     crop_btn_text: {
         color: '#fff',
-        marginLeft: scaledSize(8),
+        marginLeft: scaleSize(scaledSize(8)),
         fontFamily: 'Outfit_600SemiBold',
-        fontSize: scaledSize(12),
+        fontSize: scaleSize(12),
     }
 });

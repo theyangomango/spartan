@@ -7,6 +7,8 @@ import { SMALL_SIZE } from "./sections/workoutTheme";
 import { usePfp } from "../../helper/usePFPs";
 import theme from "../../theme/mfpDark";
 
+import scaleSize from "../../helper/scaleSize";
+
 /** Single avatar that sources from usePfp(uid), falling back to provided URI */
 const AvatarSlot = memo(function AvatarSlot({ uid, size, left = 0, fallbackUri, version = 0 }) {
     const resolved = usePfp(uid, version);
@@ -19,7 +21,7 @@ const AvatarSlot = memo(function AvatarSlot({ uid, size, left = 0, fallbackUri, 
                 {
                     width: size,
                     height: size,
-                    borderRadius: size / 2,
+                    borderRadius: scaleSize(size / 2),
                     left,
                     top: 0,
                 },
@@ -32,10 +34,10 @@ const AvatarSlot = memo(function AvatarSlot({ uid, size, left = 0, fallbackUri, 
                         priority: FastImage.priority.normal,
                         cache: FastImage.cacheControl.immutable,
                     }}
-                    style={{ width: "100%", height: "100%", borderRadius: size / 2 }}
+                    style={{ width: "100%", height: "100%", borderRadius: scaleSize(size / 2) }}
                 />
             ) : (
-                <View style={{ flex: 1, borderRadius: size / 2, backgroundColor: "#E5E7EB" }} />
+                <View style={{ flex: 1, borderRadius: scaleSize(size / 2), backgroundColor: "#E5E7EB" }} />
             )}
         </View>
     );
@@ -82,8 +84,8 @@ function LiveStack({ users = [] }) {
                     {
                         width: usedWidth,
                         height: S,
-                        left: SMALL_SIZE / 2,
-                        top: SMALL_SIZE / 2,
+                        left: scaleSize(SMALL_SIZE / 2),
+                        top: scaleSize(SMALL_SIZE / 2),
                         transform: [{ translateX: -usedWidth / 2 }, { translateY: -S / 2 }],
                     },
                 ]}
@@ -103,14 +105,13 @@ function LiveStack({ users = [] }) {
                     <View
                         style={[
                             styles.counter,
-                            { width: S, height: S, borderRadius: S / 2, left: OFFSET, top: 0 },
+                            { width: S, height: S, borderRadius: scaleSize(S / 2), left: OFFSET, top: 0 },
                         ]}
                     >
                         <Text style={styles.counterText}>{overflow > 9 ? "9+" : `+${overflow}`}</Text>
                     </View>
                 )}
             </View>
-
             {/* Live chip – centered horizontally under the avatars */}
             {hasLive && (
                 <View style={[styles.liveWrap, { top: chipTop }]}>
@@ -131,7 +132,7 @@ const styles = StyleSheet.create({
     pfp: {
         position: "absolute",
         overflow: "hidden",
-        borderWidth: 2.5, // white ring keeps overlaps crisp
+        borderWidth: scaleSize(2.5), // white ring keeps overlaps crisp
         borderColor: "#fff",
         backgroundColor: "#fff",
     },
@@ -140,12 +141,12 @@ const styles = StyleSheet.create({
         alignItems: "center",
         justifyContent: "center",
         backgroundColor: "rgba(15,23,42,0.92)",
-        borderWidth: 2.5,
+        borderWidth: scaleSize(2.5),
         borderColor: "#fff",
     },
     counterText: {
         fontFamily: "Outfit_800ExtraBold",
-        fontSize: 13,
+        fontSize: scaleSize(13),
         color: "#fff",
         includeFontPadding: false,
     },
@@ -158,23 +159,23 @@ const styles = StyleSheet.create({
         alignItems: "center",
     },
     liveChip: {
-        minHeight: 22,
-        paddingHorizontal: 8,
-        borderRadius: 11,
+        minHeight: scaleSize(22),
+        paddingHorizontal: scaleSize(8),
+        borderRadius: scaleSize(11),
         backgroundColor: theme.field, // soft grey for dark theme
         flexDirection: "row",
         alignItems: "center",
     },
     liveDot: {
-        width: 6,
-        height: 6,
-        borderRadius: 3,
+        width: scaleSize(6),
+        height: scaleSize(6),
+        borderRadius: scaleSize(3),
         backgroundColor: "#EF4444", // red accent
-        marginRight: 5,
+        marginRight: scaleSize(5),
     },
     liveText: {
         fontFamily: "Outfit_700Bold",
-        fontSize: 11,
+        fontSize: scaleSize(11),
         color: theme.textPrimary,
         includeFontPadding: false,
     },

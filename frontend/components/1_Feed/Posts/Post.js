@@ -21,12 +21,14 @@ import Video from "react-native-video";
 import PostHeader from "./PostHeader";
 import PostFooter from "./PostFooter";
 import ImageColors from 'react-native-image-colors';
+import Svg, { Path } from "react-native-svg";
 
 const { width: W } = Dimensions.get("window");
 const AR = 0.8;
 const BORDER = 35;
 
 import { FOCUS_ANIM_MS, FOCUS_EASING } from './animConfig';
+import scaleSize from "../../../helper/scaleSize";
 const B_IN = 1.02;
 const B_OUT = 1;
 const B_FRICTION = 60;
@@ -104,10 +106,51 @@ function Post({
     const scale = useRef(new Animated.Value(1)).current;
     const viewRef = useRef(null);
     const flatListRef = useRef(null);
+    const footerRef = useRef(null);
+
+    // Double-tap detection
+    const lastTapRef = useRef(0);
+    const singleTapTimeoutRef = useRef(null);
 
     const [currentIndex, setCurrentIndex] = useState(0);
     const [isLightHeader, setIsLightHeader] = useState(false);
     const [pausedList, setPausedList] = useState(mediaList.map(() => false));
+    const [hearts, setHearts] = useState([]);
+    const heartIdRef = useRef(1);
+
+    // Cleanup any pending single-tap timers on unmount
+    useEffect(() => {
+        return () => {
+            try {
+                if (singleTapTimeoutRef.current) clearTimeout(singleTapTimeoutRef.current);
+            } catch {}
+        };
+    }, []);
+
+    const spawnHearts = useCallback((x, y) => {
+        const count = 3;
+        const baseId = heartIdRef.current;
+        heartIdRef.current += count;
+        const newHearts = Array.from({ length: count }).map((_, idx) => {
+            const progress = new Animated.Value(0);
+            const dx = (Math.random() * 120 - 60); // -60..60
+            const dy = - (80 + Math.random() * 70); // upward
+            const rot = (Math.random() * 30 - 15); // -15..15
+            const size = 36 + Math.random() * 10;
+            const id = baseId + idx;
+            // Start animation now
+            Animated.timing(progress, {
+                toValue: 1,
+                duration: 900 + idx * 90,
+                easing: Easing.out(Easing.quad),
+                useNativeDriver: true,
+            }).start(() => {
+                setHearts((prev) => prev.filter((h) => h.id !== id));
+            });
+            return { id, x, y, dx, dy, rot, size, progress };
+        });
+        setHearts((prev) => [...prev, ...newHearts]);
+    }, []);
 
     // Fade behavior: when focusing, keep focused=1, neighbors faded, others hidden
     useEffect(() => {
@@ -400,14 +443,39 @@ function Post({
                         renderItem={({ item, index: i }) => {
                             const handlePress = (e) => {
                                 const x = e.nativeEvent.locationX;
-                                if (x > W * 0.1 && x < W * 0.9) {
+                                const y = e.nativeEvent.locationY;
+                                const inCenter = x > W * 0.1 && x < W * 0.9;
+                                const now = Date.now();
+                                const DOUBLE_DELAY = 260;
+
+                                // If not in center, ignore like/pause/focus behavior
+                                if (!inCenter) return;
+
+                                // Clear any previous single-tap action if this is a quick second tap
+                                if (now - (lastTapRef.current || 0) < DOUBLE_DELAY) {
+                                    if (singleTapTimeoutRef.current) {
+                                        clearTimeout(singleTapTimeoutRef.current);
+                                        singleTapTimeoutRef.current = null;
+                                    }
+                                    lastTapRef.current = 0;
+                                    // Ensure focus (so footer/animations are in sync), then like
+                                    if (!isFocused) focusMe();
+                                    try { footerRef.current?.ensureLike?.(); } catch {}
+                                    try { Haptics.impactAsync?.(Haptics.ImpactFeedbackStyle.Light).catch(() => {}); } catch {}
+                                    spawnHearts(x, y);
+                                    return;
+                                }
+
+                                lastTapRef.current = now;
+                                // Defer single-tap handling to allow double-tap window
+                                singleTapTimeoutRef.current = setTimeout(() => {
                                     // Only handle pause toggle if focused, current, and video
                                     if (isFocused && item.type === "video" && i === currentIndex) {
                                         togglePauseAtIndex(i);
                                     } else if (!isFocused) {
                                         focusMe();
                                     }
-                                }
+                                }, DOUBLE_DELAY);
                             };
 
                             // EXACT RULES:
@@ -461,6 +529,8 @@ function Post({
                     data={data}
                     image={pfp}
                     isSomePostFocused={isSomePostFocused}
+                    isUnfocusing={isUnfocusing}
+                    ref={footerRef}
                     onPressCommentButton={() => {
                         if (!isSomePostFocused) focusMe();
                         if (isFocused) openCommentsModal(index);
@@ -480,6 +550,28 @@ function Post({
                     pointerEvents="none"
                     style={[StyleSheet.absoluteFill, { borderRadius: BORDER, backgroundColor: '#FFF4B3', opacity: highlightOpacity }]}
                 />
+                {/* hearts overlay */}
+                <View pointerEvents="none" style={[StyleSheet.absoluteFill, { borderRadius: BORDER }]}>
+                    {hearts.map((h) => {
+                        const translateX = h.progress.interpolate({ inputRange: [0, 1], outputRange: [0, h.dx] });
+                        const translateY = h.progress.interpolate({ inputRange: [0, 1], outputRange: [0, h.dy] });
+                        const scale = h.progress.interpolate({ inputRange: [0, 0.2, 1], outputRange: [0.6, 1.2, 1] });
+                        const opacity = h.progress.interpolate({ inputRange: [0, 0.15, 0.8, 1], outputRange: [0, 1, 0.9, 0] });
+                        const rotate = h.progress.interpolate({ inputRange: [0, 1], outputRange: [`${h.rot}deg`, `${h.rot + 10}deg`] });
+                        const left = h.x - h.size / 2;
+                        const top = h.y - h.size / 2;
+                        return (
+                            <Animated.View
+                                key={`heart-${h.id}`}
+                                style={{ position: 'absolute', left, top, opacity, transform: [{ translateX }, { translateY }, { scale }, { rotate }] }}
+                            >
+                                <Svg width={h.size} height={h.size} viewBox="0 0 24 24" fill="#FE5555">
+                                    <Path d="M12 21s-6.716-4.35-9.428-7.062C.86 12.226 0 10.74 0 9.09 0 6.387 2.186 4.2 4.889 4.2c1.57 0 3.07.75 4.011 1.957C9.99 4.95 11.49 4.2 13.062 4.2 15.764 4.2 17.95 6.387 17.95 9.09c0 1.65-.86 3.137-2.572 4.848C18.716 16.65 12 21 12 21z" />
+                                </Svg>
+                            </Animated.View>
+                        );
+                    })}
+                </View>
                 {/* swipe feedback overlay */}
                 <Animated.View
                     pointerEvents="none"
@@ -507,19 +599,19 @@ export default React.memo(Post, areEqual);
 const styles = StyleSheet.create({
     wrapper: { width: "100%" },
     // Keep negative margin for visuals; list cell expands hit-area separately
-    card: { width: "100%", borderColor: "rgba(255,255,255,0.06)", marginBottom: -66 },
-    body: { width: W, height: W / AR },
+    card: { width: "100%", borderColor: "rgba(255,255,255,0.06)", marginBottom: scaleSize(-66) },
+    body: { width: W, height: scaleSize(W / AR) },
     gallery: {
         width: W,
-        height: W / AR,
+        height: scaleSize(W / AR),
         borderTopLeftRadius: BORDER,
         borderTopRightRadius: BORDER,
         backgroundColor: require('../../../theme/mfpDark').default.surface,
     },
-    imageWrapper: { width: W, height: W / AR, overflow: "hidden" },
+    imageWrapper: { width: W, height: scaleSize(W / AR), overflow: "hidden" },
     image: {
         width: W,
-        height: W / AR,
+        height: scaleSize(W / AR),
         borderTopLeftRadius: BORDER,
         borderTopRightRadius: BORDER,
         overflow: "hidden",

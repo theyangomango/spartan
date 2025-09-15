@@ -10,6 +10,8 @@ import updateDoc from "../../../../backend/helper/firebase/updateDoc";
 import makeID from "../../../../backend/helper/makeID";
 import theme from "../../../theme/mfpDark";
 
+import scaleSize from "../../../helper/scaleSize";
+
 const HANDLE_FRIEND_ACCENT = "#E0A500";
 const HANDLE_FRIEND_BACKGROUND = "#e0a4002c";
 
@@ -196,7 +198,7 @@ const styles = StyleSheet.create({
     position: "absolute",
     left: 0,
     right: 0,
-    top: 14,
+    top: scaleSize(14),
     alignItems: "center",
     zIndex: 40,
   },

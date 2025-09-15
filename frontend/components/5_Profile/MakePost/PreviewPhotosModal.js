@@ -4,6 +4,7 @@ import { BottomSheetFlatList } from '@gorhom/bottom-sheet';
 import { Ionicons } from '@expo/vector-icons';
 import PreviewPhoto from './PreviewPhoto';
 import theme from '../../../theme/mfpDark';
+import scaleSize from '../../../helper/scaleSize';
 
 const screenWidth = Dimensions.get('window').width;
 const NUM_COLUMNS = 3;
@@ -60,14 +61,14 @@ const PreviewPhotosModal = ({ assets, images, selectedOrderMap, toggleSelect, lo
                 <View style={styles.headerRight}>
                     {isLimited && (
                         <Pressable onPress={onRequestMoreAccess} hitSlop={10} style={styles.allowMorePill} android_disableSound>
-                            <Ionicons name="images-outline" size={14} color={theme.accentBlue} style={{ marginRight: 6 }} />
+                            <Ionicons name="images-outline" size={14} color={theme.accentBlue} style={{ marginRight: scaleSize(6) }} />
                             <Text style={styles.allowMoreText}>Allow More Photos</Text>
                         </Pressable>
                     )}
                     {images.length > 0 && (
                         <>
                             <Pressable onPress={clearSelection} hitSlop={10} style={styles.clearPill} android_disableSound>
-                                <Ionicons name="close" size={14} color={theme.textSecondary} style={{ marginRight: 6 }} />
+                                <Ionicons name="close" size={14} color={theme.textSecondary} style={{ marginRight: scaleSize(6) }} />
                                 <Text style={styles.clearPillText}>Clear</Text>
                             </Pressable>
                             <Text style={styles.selectionCount}>{images.length} selected</Text>
@@ -105,7 +106,7 @@ const PreviewPhotosModal = ({ assets, images, selectedOrderMap, toggleSelect, lo
                     ensureFilled();
                 }}
                 ListFooterComponent={loading ? (
-                    <View style={{ paddingVertical: 12 }}>
+                    <View style={{ paddingVertical: scaleSize(12) }}>
                         <ActivityIndicator color={theme.primary} />
                     </View>
                 ) : null}
@@ -119,16 +120,16 @@ const styles = StyleSheet.create({
     container: {
         backgroundColor: theme.surface,
         flex: 1,
-        borderTopLeftRadius: 25,
-        borderTopRightRadius: 25,
+        borderTopLeftRadius: scaleSize(25),
+        borderTopRightRadius: scaleSize(25),
         overflow: 'hidden'
     },
     flatlist: {
         backgroundColor: theme.surface,
     },
     headerRow: {
-        paddingHorizontal: 12,
-        paddingVertical: 10,
+        paddingHorizontal: scaleSize(12),
+        paddingVertical: scaleSize(10),
         flexDirection: 'row',
         justifyContent: 'space-between',
         alignItems: 'center',
@@ -136,7 +137,7 @@ const styles = StyleSheet.create({
     },
     headerTitle: {
         fontFamily: 'Mulish_700Bold',
-        fontSize: 16,
+        fontSize: scaleSize(16),
         color: theme.textPrimary,
     },
     headerRight: {
@@ -146,38 +147,38 @@ const styles = StyleSheet.create({
     allowMorePill: {
         flexDirection: 'row',
         alignItems: 'center',
-        paddingHorizontal: 10,
-        height: 28,
-        borderRadius: 14,
+        paddingHorizontal: scaleSize(10),
+        height: scaleSize(28),
+        borderRadius: scaleSize(14),
         backgroundColor: theme.field,
-        marginRight: 10,
-        borderWidth: 1,
+        marginRight: scaleSize(10),
+        borderWidth: scaleSize(1),
         borderColor: theme.accentBlue,
     },
     allowMoreText: {
         fontFamily: 'Mulish_700Bold',
-        fontSize: 12,
+        fontSize: scaleSize(12),
         color: theme.accentBlue,
     },
     clearPill: {
         flexDirection: 'row',
         alignItems: 'center',
-        paddingHorizontal: 10,
-        height: 28,
-        borderRadius: 14,
+        paddingHorizontal: scaleSize(10),
+        height: scaleSize(28),
+        borderRadius: scaleSize(14),
         backgroundColor: theme.field,
-        marginRight: 10,
+        marginRight: scaleSize(10),
     },
     clearPillText: {
         fontFamily: 'Mulish_700Bold',
-        fontSize: 12,
+        fontSize: scaleSize(12),
         color: theme.textPrimary,
     },
     selectionCount: {
         fontFamily: 'Mulish_700Bold',
-        fontSize: 13,
+        fontSize: scaleSize(13),
         color: theme.primary,
-        marginLeft: 4,
+        marginLeft: scaleSize(4),
     },
 });
 

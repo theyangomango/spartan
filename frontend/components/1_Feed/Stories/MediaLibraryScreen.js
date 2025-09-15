@@ -18,6 +18,8 @@ import * as MediaLibrary from "expo-media-library";
 import { EvilIcons } from "@expo/vector-icons";
 import PostStoryScreen from "./PostStoryScreen";
 
+import scaleSize from "../../../helper/scaleSize";
+
 const { width: SCREEN_WIDTH } = Dimensions.get("window");
 
 export default function MediaLibraryScreen({ closeModal, onSelectImage }) {
@@ -77,7 +79,6 @@ export default function MediaLibraryScreen({ closeModal, onSelectImage }) {
         <View style={styles.container}>
             <StatusBar style="light" />
             {renderHeader()}
-
             {/* Photo Grid */}
             <FlatList
                 data={photos}
@@ -85,9 +86,8 @@ export default function MediaLibraryScreen({ closeModal, onSelectImage }) {
                 renderItem={renderItem}
                 numColumns={3}
                 contentContainerStyle={styles.imageList}
-                ListHeaderComponent={<View style={{ height: 95 }} />}
+                ListHeaderComponent={<View style={{ height: scaleSize(95) }} />}
             />
-
             {/* Display selected image in PostStoryScreen modal */}
             <Modal
                 visible={!!selectedImage}
@@ -105,13 +105,13 @@ const styles = StyleSheet.create({
     container: { flex: 1, backgroundColor: "#000" },
     close_button_ctnr: {
         position: "absolute",
-        top: 40,
-        left: 23,
-        width: 40,
-        height: 40,
+        top: scaleSize(40),
+        left: scaleSize(23),
+        width: scaleSize(40),
+        height: scaleSize(40),
         justifyContent: "center",
         alignItems: "center",
-        borderRadius: 100,
+        borderRadius: scaleSize(100),
         backgroundColor: "#rgba(0, 0, 0, 0.1)"
     },
     header: {
@@ -120,15 +120,15 @@ const styles = StyleSheet.create({
         left: 0,
         right: 0,
         zIndex: 1,
-        height: 95,
+        height: scaleSize(95),
         alignItems: "flex-end",
         justifyContent: "center",
         flexDirection: "row",
-        paddingHorizontal: 10,
+        paddingHorizontal: scaleSize(10),
         backgroundColor: "rgba(25,25,25,0.9)"
     },
     imageContainer: {
-        width: SCREEN_WIDTH / 3,
+        width: scaleSize(SCREEN_WIDTH / 3),
         aspectRatio: 0.5,
         overflow: "hidden"
     },

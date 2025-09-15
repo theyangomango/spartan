@@ -2,6 +2,8 @@ import React, { useEffect, useMemo, useState } from 'react';
 import { View, Text, StyleSheet, TextInput, Modal, Pressable, Keyboard } from 'react-native';
 import RNBounceable from '@freakycoder/react-native-bounceable';
 
+import scaleSize from "../../helper/scaleSize";
+
 export default function QuickAddModal({ visible, onClose, onSubmit, COLORS }) {
     const styles = useMemo(() => makeStyles(COLORS), [COLORS]);
 
@@ -137,7 +139,7 @@ export default function QuickAddModal({ visible, onClose, onSubmit, COLORS }) {
                         </View>
                     </View>
 
-                    <Text style={[styles.inputLabel, { marginTop: 6 }]}>Portion</Text>
+                    <Text style={[styles.inputLabel, { marginTop: scaleSize(6) }]}>Portion</Text>
                     <View style={styles.quickRow}>
                         {['1/4', '1/3', '1/2', '2/3', '3/4', '1'].map((v) => (
                             <RNBounceable key={v} style={[styles.chip, portion === v && styles.chipActive]} onPress={() => quickSet(v)}>
@@ -179,35 +181,35 @@ const makeStyles = (COLORS) =>
         modalCard: {
             width: '86%',
             backgroundColor: COLORS?.modalCard || '#46506A', // lighter than surface
-            borderRadius: 18,
-            paddingVertical: 18,
-            paddingHorizontal: 16,
-            borderWidth: 1,
+            borderRadius: scaleSize(18),
+            paddingVertical: scaleSize(18),
+            paddingHorizontal: scaleSize(16),
+            borderWidth: scaleSize(1),
             borderColor: COLORS?.hairline || 'rgba(255,255,255,0.18)',
             shadowColor: '#000',
             shadowOpacity: 0.25,
-            shadowRadius: 16,
-            shadowOffset: { width: 0, height: 8 },
+            shadowRadius: scaleSize(16),
+            shadowOffset: { width: 0, height: scaleSize(8) },
             elevation: 8,
         },
-        modalTitle: { fontFamily: 'Outfit_600SemiBold', fontSize: require('../../helper/scaleSize').ts(16), color: COLORS?.text || '#E5E7EB', marginBottom: 12 },
-        inputLabel: { fontFamily: 'Outfit_600SemiBold', color: COLORS?.subtext || '#A1A7B3', marginBottom: 6, marginTop: 4, fontSize: require('../../helper/scaleSize').ts(12.5) },
-        inputField: { backgroundColor: COLORS?.fieldBg || '#1E2128', borderRadius: 10, paddingHorizontal: 12, paddingVertical: 10, fontFamily: 'Outfit_500Medium', color: COLORS?.text || '#E5E7EB', marginBottom: 10 },
-        row2: { flexDirection: 'row', gap: 10 },
+        modalTitle: { fontFamily: 'Outfit_600SemiBold', fontSize: scaleSize(16), color: COLORS?.text || '#E5E7EB', marginBottom: scaleSize(12) },
+        inputLabel: { fontFamily: 'Outfit_600SemiBold', color: COLORS?.subtext || '#A1A7B3', marginBottom: scaleSize(6), marginTop: scaleSize(4), fontSize: scaleSize(12.5) },
+        inputField: { backgroundColor: COLORS?.fieldBg || '#1E2128', borderRadius: scaleSize(10), paddingHorizontal: scaleSize(12), paddingVertical: scaleSize(10), fontFamily: 'Outfit_500Medium', color: COLORS?.text || '#E5E7EB', marginBottom: scaleSize(10), fontSize: scaleSize(15) },
+        row2: { flexDirection: 'row', gap: scaleSize(10) },
         col: { flex: 1 },
-        quickRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginBottom: 12 },
-        chip: { paddingVertical: 8, paddingHorizontal: 12, borderRadius: 999, backgroundColor: COLORS?.fieldBg || '#1E2128' },
+        quickRow: { flexDirection: 'row', flexWrap: 'wrap', gap: scaleSize(8), marginBottom: scaleSize(12) },
+        chip: { paddingVertical: scaleSize(8), paddingHorizontal: scaleSize(12), borderRadius: scaleSize(999), backgroundColor: COLORS?.fieldBg || '#1E2128' },
         chipActive: { backgroundColor: '#2D9EFF22', borderWidth: StyleSheet.hairlineWidth, borderColor: '#2D9EFF55' },
-        chipText: { fontFamily: 'Outfit_500Medium', color: COLORS?.text || '#E5E7EB' },
+        chipText: { fontFamily: 'Outfit_500Medium', color: COLORS?.text || '#E5E7EB', fontSize: scaleSize(13) },
         chipTextActive: { color: '#7fb5ff' },
-        customRow: { flexDirection: 'row', alignItems: 'center', gap: 10, marginBottom: 14 },
-        customLabel: { fontFamily: 'Outfit_500Medium', color: COLORS?.subtext || '#A1A7B3' },
-        customInput: { flex: 1, paddingVertical: 10, paddingHorizontal: 12, borderRadius: 10, backgroundColor: COLORS?.fieldBg || '#1E2128', fontFamily: 'Outfit_500Medium', color: COLORS?.text || '#E5E7EB' },
-        modalButtons: { flexDirection: 'row', justifyContent: 'flex-end', gap: 10 },
-        modalBtn: { paddingVertical: 10, paddingHorizontal: 16, borderRadius: 10 },
+        customRow: { flexDirection: 'row', alignItems: 'center', gap: scaleSize(10), marginBottom: scaleSize(14) },
+        customLabel: { fontFamily: 'Outfit_500Medium', color: COLORS?.subtext || '#A1A7B3', fontSize: scaleSize(12.5) },
+        customInput: { flex: 1, paddingVertical: scaleSize(10), paddingHorizontal: scaleSize(12), borderRadius: scaleSize(10), backgroundColor: COLORS?.fieldBg || '#1E2128', fontFamily: 'Outfit_500Medium', color: COLORS?.text || '#E5E7EB', fontSize: scaleSize(15) },
+        modalButtons: { flexDirection: 'row', justifyContent: 'flex-end', gap: scaleSize(10) },
+        modalBtn: { paddingVertical: scaleSize(10), paddingHorizontal: scaleSize(16), borderRadius: scaleSize(10) },
         cancelBtn: { backgroundColor: COLORS?.fieldBg || '#1E2128' },
         confirmBtn: { backgroundColor: '#55A8FF' },
-        modalBtnText: { fontFamily: 'Outfit_600SemiBold', fontSize: require('../../helper/scaleSize').ts(14) },
+        modalBtnText: { fontFamily: 'Outfit_600SemiBold', fontSize: scaleSize(14) },
         cancelBtnText: { color: COLORS?.text || '#E5E7EB' },
         confirmBtnText: { color: '#fff' },
     });

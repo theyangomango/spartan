@@ -6,6 +6,8 @@ import theme from '../theme/mfpDark';
 import { usePfp } from '../helper/usePFPs';
 import isThisUser from '../helper/isThisUser';
 
+import scaleSize from "../helper/scaleSize";
+
 const { height: SCREEN_H } = Dimensions.get('window');
 const scale = SCREEN_H / 844;
 const s = (v) => Math.round(v * scale);
@@ -95,7 +97,7 @@ export default function FollowListBottomSheet({ isVisible, setIsVisible, title =
             enablePanDownToClose
             onClose={() => setIsVisible(false)}
             detached
-            style={{ marginTop: s(6) }}
+            style={{ marginTop: scaleSize(s(6)) }}
         >
             <View style={styles.header}>
                 <Text style={styles.title}>{title}</Text>
@@ -105,7 +107,7 @@ export default function FollowListBottomSheet({ isVisible, setIsVisible, title =
                 keyExtractor={keyExtractor}
                 renderItem={({ item }) => <FollowRow item={item} />}
                 ItemSeparatorComponent={() => <View style={styles.sep} />}
-                contentContainerStyle={{ paddingBottom: s(14), paddingTop: s(18), paddingHorizontal: s(16) }}
+                contentContainerStyle={{ paddingBottom: scaleSize(s(14)), paddingTop: scaleSize(s(18)), paddingHorizontal: scaleSize(s(16)) }}
             />
         </BottomSheet>
     );
@@ -113,26 +115,26 @@ export default function FollowListBottomSheet({ isVisible, setIsVisible, title =
 
 const styles = StyleSheet.create({
     header: {
-        paddingTop: s(24),
-        paddingHorizontal: s(22),
-        paddingBottom: s(12),
+        paddingTop: scaleSize(s(24)),
+        paddingHorizontal: scaleSize(s(22)),
+        paddingBottom: scaleSize(s(12)),
     },
     title: {
         fontFamily: 'Outfit_700Bold',
-        fontSize: s(16),
+        fontSize: scaleSize(s(16)),
         color: theme.textPrimary,
     },
     item: {
         flexDirection: 'row',
         alignItems: 'center',
-        paddingHorizontal: s(8),
-        paddingVertical: s(12),
+        paddingHorizontal: scaleSize(s(8)),
+        paddingVertical: scaleSize(s(12)),
     },
-    pfpC: { width: s(40), height: s(40), borderRadius: s(20), overflow: 'hidden' },
-    pfp: { width: '100%', height: '100%', borderRadius: s(20) },
-    textC: { marginLeft: s(10), flex: 1 },
-    handle: { fontFamily: 'Outfit_600SemiBold', fontSize: s(14), color: theme.textPrimary },
-    name: { fontFamily: 'Outfit_400Regular', fontSize: s(12.5), color: theme.textSecondary, marginTop: s(2) },
+    pfpC: { width: scaleSize(s(40)), height: scaleSize(s(40)), borderRadius: scaleSize(s(20)), overflow: 'hidden' },
+    pfp: { width: '100%', height: '100%', borderRadius: scaleSize(s(20)) },
+    textC: { marginLeft: scaleSize(s(10)), flex: 1 },
+    handle: { fontFamily: 'Outfit_600SemiBold', fontSize: scaleSize(s(14)), color: theme.textPrimary },
+    name: { fontFamily: 'Outfit_400Regular', fontSize: scaleSize(s(12.5)), color: theme.textSecondary, marginTop: scaleSize(s(2)) },
     // start divider aligned with item horizontal padding so it begins left of the pfp
-    sep: { height: StyleSheet.hairlineWidth, backgroundColor: theme.hairline, marginHorizontal: s(2) },
+    sep: { height: StyleSheet.hairlineWidth, backgroundColor: theme.hairline, marginHorizontal: scaleSize(s(2)) },
 });

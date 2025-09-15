@@ -529,7 +529,7 @@ function Workout({ navigation }) {
     return (
         <View style={styles.mainContainer}>
             <View style={styles.body}>
-                <View style={{ height: 55 }} />
+                <View style={{ height: scaleSize(55) }} />
 
                 {pendingInvites.map((inv) => (
                     <InviteBanner
@@ -566,9 +566,7 @@ function Workout({ navigation }) {
                     startWorkoutFromTemplate={startWorkoutFromTemplate}
                 />
             </View>
-
             <Footer navigation={navigation} currentScreenName={'Workout'} />
-
             <NewWorkoutBottomSheet
                 workout={workout}
                 cancelNewWorkout={cancelWorkout}
@@ -580,7 +578,6 @@ function Workout({ navigation }) {
                 showGroupModal={showGroupModal}
                 userWorkoutStats={userWorkoutStats.current}
             />
-
             <EditTemplateBottomSheet
                 isVisible={isEditTemplateBottomSheetVisible}
                 setIsVisible={setIsEditTemplateBottomSheetVisible}
@@ -588,14 +585,12 @@ function Workout({ navigation }) {
                 updateTemplate={updateTemplate}
                 deleteTemplate={deleteTemplate}
             />
-
             <WorkoutSummaryModal
                 isVisible={isSummaryModalVisible}
                 workout={completedWorkout}
                 onClose={() => setIsSummaryModalVisible(false)}
                 postWorkout={postWorkout}
             />
-
             <GroupModalBottomSheet
                 groupModalExpandFlag={groupModalExpandFlag}
                 closeGroupModal={closeGroupModal}
@@ -612,14 +607,14 @@ const styles = StyleSheet.create({
     },
     body: {
         flex: 1,
-        paddingTop: scaledSize(15),
+        paddingTop: scaleSize(scaledSize(15)),
     },
     quickStartText: {
-        fontSize: scaledSize(18),
-        paddingBottom: scaledSize(8),
+        fontSize: scaleSize(18),
+        paddingBottom: scaleSize(scaledSize(8)),
         fontFamily: 'Nunito_800ExtraBold',
         letterSpacing: 0.2,
-        paddingHorizontal: scaledSize(20)
+        paddingHorizontal: scaleSize(scaledSize(20))
     },
     templatesHeadingRow: {
         flexDirection: 'row',
@@ -627,15 +622,15 @@ const styles = StyleSheet.create({
         justifyContent: 'space-between'
     },
     templatesText: {
-        marginTop: scaledSize(28),
-        fontSize: scaledSize(18),
-        marginBottom: 2,
+        marginTop: scaleSize(scaledSize(28)),
+        fontSize: scaleSize(18),
+        marginBottom: scaleSize(2),
         fontFamily: 'Nunito_800ExtraBold',
         letterSpacing: 0.2,
-        paddingHorizontal: scaledSize(20)
+        paddingHorizontal: scaleSize(scaledSize(20))
     },
     addIcon: {
-        paddingHorizontal: scaledSize(28)
+        paddingHorizontal: scaleSize(scaledSize(28))
     }
 });
 

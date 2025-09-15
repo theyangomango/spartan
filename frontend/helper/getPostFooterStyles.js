@@ -5,7 +5,7 @@
  * @return styles object
  */
 
-import { BASE_HEIGHT, BASE_WIDTH } from './scaleSize';
+import scaleSize, { BASE_HEIGHT, BASE_WIDTH } from './scaleSize';
 
 export const getPostFooterStyles = (width, height) => {
     const scaleW = width / BASE_WIDTH;
@@ -16,7 +16,7 @@ export const getPostFooterStyles = (width, height) => {
     return {
         buttonPaddingHorizontal: sc(12),
         buttonPaddingVertical: sc(12),
-        fontSize: sc(12),
+        fontSize: scaleSize(sc(12)),
         iconSize: sc(24),
     };
 };

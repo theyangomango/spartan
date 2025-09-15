@@ -45,10 +45,12 @@ import Footer from "../components/Footer";
 import PersonalInfoSheet from "../components/2_MacroTracking/PersonalInfoSheet";
 import theme from "../theme/mfpDark";
 
+import scaleSizeFont from "../helper/scaleSize";
+
 const { width, height } = Dimensions.get("window");
 
 // -------- scaler (replaces getDynamicStyles) --------
-const BASE = { width: 390, height: 844 }; // iPhone 13 baseline
+const BASE = { width: scaleSizeFont(390), height: scaleSizeFont(844) }; // iPhone 13 baseline
 const scaleSize = (value, axis = "min") => {
     const wRatio = width / BASE.width;
     const hRatio = height / BASE.height;
@@ -839,10 +841,10 @@ const styles = StyleSheet.create({
     tribeButtonPill: {
         // Increase contrast vs. header background
         backgroundColor: "rgba(255, 255, 255, 0.26)",
-        borderWidth: 1,
+        borderWidth: scaleSizeFont(1),
         borderColor: "rgba(255,255,255,0.48)",
         ...Platform.select({
-            ios: { shadowColor: '#000', shadowOpacity: 0.18, shadowRadius: 8, shadowOffset: { width: 0, height: 2 } },
+            ios: { shadowColor: '#000', shadowOpacity: 0.18, shadowRadius: scaleSizeFont(8), shadowOffset: { width: 0, height: scaleSizeFont(2) } },
             android: { elevation: 2 },
             default: {},
         })
@@ -851,7 +853,7 @@ const styles = StyleSheet.create({
     tribeLabel: {
         color: "#fff",
         fontFamily: "Outfit_600SemiBold",
-        fontSize: SIZES.tribeLabelFont,
+        fontSize: scaleSizeFont(SIZES.tribeLabelFont),
         includeFontPadding: false,
         maxWidth: SIZES.tribeLabelMaxWidth,
         marginRight: SIZES.tribeLabelMarginRight,

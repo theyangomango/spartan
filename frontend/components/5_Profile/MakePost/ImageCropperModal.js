@@ -4,6 +4,7 @@ import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import ZoomCropper from './ZoomCropper';
 import * as ImageManipulator from 'expo-image-manipulator';
 import { Ionicons } from '@expo/vector-icons';
+import scaleSize from '../../../helper/scaleSize';
 
 const { width: SCREEN_W, height: SCREEN_H } = Dimensions.get('window');
 
@@ -130,8 +131,8 @@ export default function ImageCropperModal({
         </View>
 
         {/* Mask out area above/below ROI so the frame appears lower while keeping math correct */}
-        <View style={[styles.blockMask, { top: 0, height: Math.max(0, roiTop) }]} />
-        <View style={[styles.blockMask, { top: roiTop + ch, height: Math.max(0, SCREEN_H - (roiTop + ch)) }]} />
+        <View style={[styles.blockMask, { top: 0, height: scaleSize(Math.max(0, roiTop)) }]} />
+        <View style={[styles.blockMask, { top: scaleSize(roiTop + ch), height: scaleSize(Math.max(0, SCREEN_H - (roiTop + ch))) }]} />
         <View pointerEvents="none" style={[styles.frameOutline, { top: roiTop, width: cw, height: ch }]} />
       </GestureHandlerRootView>
     </Modal>
@@ -143,11 +144,11 @@ const styles = StyleSheet.create({
   backdrop: { ...StyleSheet.absoluteFillObject, backgroundColor: 'rgba(0,0,0,0.8)' },
   header: {
     position: 'absolute',
-    top: 40,
+    top: scaleSize(40),
     left: 0,
     right: 0,
     zIndex: 2,
-    paddingHorizontal: 16,
+    paddingHorizontal: scaleSize(16),
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
@@ -156,16 +157,16 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     backgroundColor: 'rgba(255,255,255,0.12)',
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-    borderRadius: 12,
+    paddingHorizontal: scaleSize(12),
+    paddingVertical: scaleSize(8),
+    borderRadius: scaleSize(12),
   },
-  headerBtnText: { color: '#fff', marginLeft: 6, fontSize: require('../../../helper/scaleSize').ts(14) },
+  headerBtnText: { color: '#fff', marginLeft: scaleSize(6), fontSize: scaleSize(14) },
   center: { flex: 1, justifyContent: 'center', alignItems: 'center' },
   cropBox: {
     position: 'absolute',
     overflow: 'hidden',
-    borderRadius: 20,
+    borderRadius: scaleSize(20),
     backgroundColor: '#000',
     alignItems: 'center',
     justifyContent: 'center',
@@ -174,8 +175,8 @@ const styles = StyleSheet.create({
     position: 'absolute',
     left: 0,
     borderColor: '#ffffff',
-    borderWidth: 1,
-    borderRadius: 20,
+    borderWidth: scaleSize(1),
+    borderRadius: scaleSize(20),
   },
   image: {
     // width/height are set dynamically via animated style

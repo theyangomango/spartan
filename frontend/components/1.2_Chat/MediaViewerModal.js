@@ -4,6 +4,8 @@ import { Modal, View, Pressable, Animated, StyleSheet, Dimensions, Image } from 
 import FastImage from "react-native-fast-image";
 import Video from "react-native-video";
 
+import scaleSize from "../../helper/scaleSize";
+
 const { width: SW, height: SH } = Dimensions.get("window");
 
 const fitRect = (nw, nh, sw, sh) => {
@@ -26,7 +28,7 @@ export default function MediaViewerModal({ visible, payload, onClose }) {
 
     const uri = payload?.uri ?? null;
     const type = payload?.type ?? "image";
-    const anchor = payload?.anchor || { x: SW / 2 - 60, y: SH / 2 - 60, width: 120, height: 120 };
+    const anchor = payload?.anchor || { x: SW / 2 - 60, y: SH / 2 - 60, width: scaleSize(120), height: scaleSize(120) };
 
     // Load natural size for images (safe even when not visible; hooks order stays constant)
     useEffect(() => {
@@ -158,6 +160,6 @@ export default function MediaViewerModal({ visible, payload, onClose }) {
 }
 
 const styles = StyleSheet.create({
-    box: { position: "absolute", overflow: "hidden", backgroundColor: "#000", borderRadius: 8 },
-    closeHit: { position: "absolute", right: 12, top: 12, width: 44, height: 44 },
+    box: { position: "absolute", overflow: "hidden", backgroundColor: "#000", borderRadius: scaleSize(8) },
+    closeHit: { position: "absolute", right: scaleSize(12), top: scaleSize(12), width: scaleSize(44), height: scaleSize(44) },
 });

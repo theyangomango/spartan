@@ -20,6 +20,8 @@ import theme from "../../../theme/mfpDark";
 import { db } from "../../../../firebase.config";
 import { usePfp } from "../../../helper/usePFPs";
 
+import scaleSize from "../../../helper/scaleSize";
+
 /* ---------- sizing ---------- */
 const { width: W, height: H } = Dimensions.get("window");
 const scale = H / 844; // iPhone 13 baseline
@@ -214,11 +216,11 @@ function Chip({ ev, navigation, onPressChip }) {
             activeOpacity={0.88}
             onPress={handlePress}
             style={[styles.chip, { height: CHIP_H }]}
-            hitSlop={{ top: 4, bottom: 4, left: 2, right: 2 }}
+            hitSlop={{ top: scaleSize(4), bottom: scaleSize(4), left: scaleSize(2), right: scaleSize(2) }}
         >
             {/* Avatar + badge */}
             <View style={styles.avatarWrap}>
-                <View style={[styles.pfpMask, { borderColor: "#DCE8FF", borderWidth: 2.5 }]}>
+                <View style={[styles.pfpMask, { borderColor: "#DCE8FF", borderWidth: scaleSize(2.5) }]}>
                     {pfpUri ? (
                         <FastImage
                             source={{
@@ -240,7 +242,7 @@ function Chip({ ev, navigation, onPressChip }) {
                         {
                             backgroundColor: tint.badgeBg,
                             borderColor: "#FFFFFF",
-                            borderWidth: 2,
+                            borderWidth: scaleSize(2),
                         },
                     ]}
                 >
@@ -251,7 +253,6 @@ function Chip({ ev, navigation, onPressChip }) {
                     )}
                 </View>
             </View>
-
             {/* Copy: title (left) + time row (own line, right-aligned with accent dot) */}
             <View style={styles.copyCol}>
                 {emphasize ? (
@@ -273,7 +274,6 @@ function Chip({ ev, navigation, onPressChip }) {
                     </View>
                 )}
             </View>
-
             {/* Prominent chevron */}
             <View style={styles.chevWrap}>
                 <Icon name="chevron-right" size={ss(18)} color="#E5E7EB" />
@@ -286,17 +286,17 @@ function Chip({ ev, navigation, onPressChip }) {
 const styles = StyleSheet.create({
     // Elevated to ensure it sits above post overlays when used as sticky header
     // Dark background to match feed container
-    wrap: { backgroundColor: theme.bg, paddingBottom: 10, paddingTop: 8, marginTop: -6, zIndex: 100, elevation: 7 },
+    wrap: { backgroundColor: theme.bg, paddingBottom: scaleSize(10), paddingTop: scaleSize(8), marginTop: scaleSize(-6), zIndex: 100, elevation: 7 },
     list: { overflow: "visible" },
-    listContent: { paddingLeft: 14, paddingRight: 8, columnGap: 6 },
+    listContent: { paddingLeft: scaleSize(14), paddingRight: scaleSize(8), columnGap: scaleSize(6) },
 
     chip: {
         flexDirection: "row",
         alignItems: "center",
-        paddingVertical: ss(10),
-        paddingLeft: ss(12),
-        paddingRight: ss(10),
-        borderRadius: ss(16),
+        paddingVertical: scaleSize(ss(10)),
+        paddingLeft: scaleSize(ss(12)),
+        paddingRight: scaleSize(ss(10)),
+        borderRadius: scaleSize(ss(16)),
         // Use themed surface for dark mode cohesion
         backgroundColor: theme.field,
         borderWidth: StyleSheet.hairlineWidth,
@@ -305,8 +305,8 @@ const styles = StyleSheet.create({
             ios: {
                 shadowColor: "#000",
                 shadowOpacity: 0.12,
-                shadowRadius: 6,
-                shadowOffset: { width: 0, height: 3 },
+                shadowRadius: scaleSize(6),
+                shadowOffset: { width: 0, height: scaleSize(3) },
             },
             android: { elevation: 1 },
         }),
@@ -315,14 +315,14 @@ const styles = StyleSheet.create({
     avatarWrap: {
         width: AVATAR,
         height: AVATAR,
-        marginRight: ss(9),
+        marginRight: scaleSize(ss(9)),
         position: "relative",
         overflow: "visible",
     },
     pfpMask: {
         width: AVATAR,
         height: AVATAR,
-        borderRadius: AVATAR / 2.3,
+        borderRadius: scaleSize(AVATAR / 2.3),
         overflow: "hidden",
         backgroundColor: theme.field,
         // Remove bright light-mode ring; use subtle hairline that works on dark
@@ -334,15 +334,15 @@ const styles = StyleSheet.create({
 
     badge: {
         position: "absolute",
-        bottom: -4,
-        right: -6,
+        bottom: scaleSize(-4),
+        right: scaleSize(-6),
         width: BADGE,
         height: BADGE,
-        borderRadius: BADGE / 2,
+        borderRadius: scaleSize(BADGE / 2),
         alignItems: "center",
         justifyContent: "center",
         ...Platform.select({
-            ios: { shadowColor: "#0F172A", shadowOpacity: 0.12, shadowRadius: 6, shadowOffset: { width: 0, height: 2 } },
+            ios: { shadowColor: "#0F172A", shadowOpacity: 0.12, shadowRadius: scaleSize(6), shadowOffset: { width: 0, height: scaleSize(2) } },
             android: { elevation: 3 },
         }),
     },
@@ -350,11 +350,11 @@ const styles = StyleSheet.create({
     copyCol: {
         minWidth: 0,
         flex: 1,
-        paddingRight: ss(10),
+        paddingRight: scaleSize(ss(10)),
     },
     primaryUnified: {
         fontFamily: "Outfit_700Bold",
-        fontSize: require('../../../helper/scaleSize').ts(13.5),
+        fontSize: scaleSize(13.5),
         color: theme.textPrimary,
         letterSpacing: 0.2,
     },
@@ -362,32 +362,32 @@ const styles = StyleSheet.create({
 
     // Time on its own line, right-aligned + accent dot
     timeRowRight: {
-        marginTop: ss(2),
+        marginTop: scaleSize(ss(2)),
         flexDirection: "row",
         alignItems: "center",
         justifyContent: "flex-end",
         alignSelf: "stretch",
-        gap: 6,
+        gap: scaleSize(6),
     },
     timeDot: {
-        width: 6,
-        height: 6,
-        borderRadius: 3,
+        width: scaleSize(6),
+        height: scaleSize(6),
+        borderRadius: scaleSize(3),
     },
     timeText: {
         fontFamily: "Outfit_600SemiBold",
-        fontSize: require('../../../helper/scaleSize').ts(11.5),
+        fontSize: scaleSize(11.5),
         color: theme.textSecondary,
     },
 
     // Chevron
     chevWrap: {
-        width: ss(26),
-        height: ss(26),
-        borderRadius: ss(13),
+        width: scaleSize(ss(26)),
+        height: scaleSize(ss(26)),
+        borderRadius: scaleSize(ss(13)),
         alignItems: "center",
         justifyContent: "center",
         backgroundColor: "rgba(255,255,255,0.08)",
-        marginLeft: ss(2),
+        marginLeft: scaleSize(ss(2)),
     },
 });

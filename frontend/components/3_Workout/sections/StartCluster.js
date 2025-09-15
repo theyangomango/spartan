@@ -8,6 +8,8 @@ import StartOpenButton from "../ui/StartOpenButton";
 import { SMALL_SIZE, ROW_WIDTH } from "./workoutTheme";
 import theme from "../../../theme/mfpDark";
 
+import scaleSize from "../../../helper/scaleSize";
+
 const StartCluster = ({
     navigation,
     scaleAnim,
@@ -69,7 +71,7 @@ const styles = StyleSheet.create({
         flexDirection: "row",
         alignItems: "center",
         justifyContent: "space-between",
-        marginBottom: 10,
+        marginBottom: scaleSize(10),
     },
     glowWrap: { position: "relative", alignItems: "center", justifyContent: "center" },
     // Halo removed
@@ -79,7 +81,7 @@ const styles = StyleSheet.create({
     smallBtn: {
         width: SMALL_SIZE,
         height: SMALL_SIZE,
-        borderRadius: SMALL_SIZE / 2,
+        borderRadius: scaleSize(SMALL_SIZE / 2),
         alignItems: "center",
         justifyContent: "center",
         backgroundColor: theme.surface,
@@ -90,7 +92,7 @@ const styles = StyleSheet.create({
         }),
     },
     // Raise side buttons to form a wider "V" with START/OPEN
-    smallBtnBump: { top: -6, position: 'relative' },
+    smallBtnBump: { top: scaleSize(-6), position: 'relative' },
     smallBtnPressed: { transform: [{ scale: 0.96 }], backgroundColor: '#515A6B' },
 });
 

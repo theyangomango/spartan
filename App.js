@@ -1,4 +1,6 @@
 import 'expo-dev-client';
+// Polyfills required by Firebase Storage in RN (atob/btoa)
+import './frontend/polyfills/base64';
 import React, { useEffect, useRef, useState } from 'react';
 import * as SplashScreen from 'expo-splash-screen';
 import { NavigationContainer } from '@react-navigation/native';

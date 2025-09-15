@@ -3,6 +3,7 @@ import { Feather } from '@expo/vector-icons';
 import { Send2 } from 'iconsax-react-native';
 import RNBounceable from "@freakycoder/react-native-bounceable";
 import theme from "../../theme/mfpDark";
+import scaleSizeGlobal from "../../helper/scaleSize";
 
 const { height: SCREEN_HEIGHT } = Dimensions.get('window');
 const scale = SCREEN_HEIGHT / 844; // match Profile header baseline
@@ -51,7 +52,7 @@ const styles = StyleSheet.create({
     },
     handle_text: {
         fontFamily: 'Outfit_600SemiBold',
-        fontSize: require('../../helper/scaleSize').ts(16),
+        fontSize: scaleSizeGlobal(16),
         padding: scaleSize(2),
         color: theme.textPrimary,
         maxWidth: '100%'

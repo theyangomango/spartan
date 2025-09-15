@@ -9,6 +9,8 @@ import updateDoc from "../../../../backend/helper/firebase/updateDoc";
 import sendNotification from "../../../../backend/sendNotification";
 import { getCommentsBottomSheetStyles } from "../../../helper/getCommentsBottomSheetStyles";
 
+import scaleSize from "../../../helper/scaleSize";
+
 const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('screen');
 const dynamicStyles = getCommentsBottomSheetStyles(SCREEN_WIDTH, SCREEN_HEIGHT);
 
@@ -212,7 +214,7 @@ const CommentsBottomSheet = ({ isVisible, postData, commentsBottomSheetExpandFla
 const styles = StyleSheet.create({
     container: {
         position: 'absolute',
-        top: 85,
+        top: scaleSize(85),
         bottom: 0,
         left: 0,
         right: 0,
@@ -220,23 +222,23 @@ const styles = StyleSheet.create({
     },
     footer: {
         position: 'absolute',
-        top: SCREEN_HEIGHT - 180,
-        height: 95 + SCREEN_WIDTH / 2,
-        paddingBottom: SCREEN_WIDTH / 2,
+        top: scaleSize(SCREEN_HEIGHT - 180),
+        height: scaleSize(95 + SCREEN_WIDTH / 2),
+        paddingBottom: scaleSize(SCREEN_WIDTH / 2),
         backgroundColor: theme.surface,
         width: '100%',
-        borderRadius: 40
+        borderRadius: scaleSize(40)
     },
     inputContainer: {
         flex: 1,
-        marginHorizontal: 18,
-        marginTop: 14,
-        marginBottom: 26,
+        marginHorizontal: scaleSize(18),
+        marginTop: scaleSize(14),
+        marginBottom: scaleSize(26),
         backgroundColor: theme.field,
-        borderRadius: 30,
+        borderRadius: scaleSize(30),
         flexDirection: 'row',
         alignItems: 'center',
-        paddingHorizontal: 12,
+        paddingHorizontal: scaleSize(12),
         height: dynamicStyles.inputHeight,
     },
     image_ctnr: {
@@ -245,19 +247,19 @@ const styles = StyleSheet.create({
     },
     pfp: {
         flex: 1,
-        borderRadius: 100
+        borderRadius: scaleSize(100)
     },
     textInput: {
         flex: 1,
-        borderRadius: 20,
-        paddingHorizontal: 15,
+        borderRadius: scaleSize(20),
+        paddingHorizontal: scaleSize(15),
         paddingVertical: dynamicStyles.inputPaddingVertical,
         color: '#E5E7EB',
         fontFamily: 'Outfit_500Medium',
-        fontSize: dynamicStyles.inputFontSize,
+        fontSize: scaleSize(dynamicStyles.inputFontSize),
     },
     sendButton: {
-        paddingHorizontal: 10,
+        paddingHorizontal: scaleSize(10),
         justifyContent: 'center',
         alignItems: 'center',
     },

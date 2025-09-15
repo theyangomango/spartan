@@ -243,6 +243,8 @@ export default function Profile({ navigation }) {
 // It was referenced above but not shown in your snippet.
 import ProfileBottomBottomSheet from "../components/5_Profile/ProfileBottom/ProfileBottomBottomSheet";
 
+import scaleSize from "../helper/scaleSize";
+
 const styles = StyleSheet.create({
     main_ctnr: {
         flex: 1,
@@ -250,6 +252,6 @@ const styles = StyleSheet.create({
         backgroundColor: theme.bg,
     },
     body_ctnr: {
-        paddingHorizontal: 10,
+        paddingHorizontal: scaleSize(10),
     },
 });

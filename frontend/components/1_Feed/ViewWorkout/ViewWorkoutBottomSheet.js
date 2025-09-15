@@ -3,6 +3,8 @@ import { View, StyleSheet } from "react-native";
 import BottomSheet, { BottomSheetBackdrop } from "@gorhom/bottom-sheet";
 import ViewWorkoutModal from "./ViewWorkoutModal";
 
+import scaleSize from "../../../helper/scaleSize";
+
 const ViewWorkoutBottomSheet = ({ viewWorkoutBottomSheetExpandFlag, workout }) => {
     const bottomSheetRef = useRef(null);
     const snapPoints = useMemo(() => ["94%"], []);

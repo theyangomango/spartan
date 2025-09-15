@@ -100,7 +100,7 @@ const styles = StyleSheet.create({
         height: scaleSize(32),
         borderRadius: scaleSize(16),
         backgroundColor: theme.surface,
-        borderWidth: 1,
+        borderWidth: scaleSize(1),
         borderColor: theme.hairline,
         alignItems: "center",
         justifyContent: "center",
@@ -123,20 +123,20 @@ const styles = StyleSheet.create({
         backgroundColor: ACCENT,
         alignItems: "center",
         justifyContent: "center",
-        borderWidth: 1,
+        borderWidth: scaleSize(1),
         borderColor: theme.bg,
     },
 
     /* segmented control */
     segmentWrap: {
-        borderRadius: 999,
+        borderRadius: scaleSize(999),
     },
     segmentBg: {
         flexDirection: "row",
         backgroundColor: theme.surface,
-        borderRadius: 999,
+        borderRadius: scaleSize(999),
         padding: scaleSize(4),
-        borderWidth: 1,
+        borderWidth: scaleSize(1),
         borderColor: HAIRLINE,
         shadowColor: "#000",
         shadowOpacity: 0.12,
@@ -145,7 +145,7 @@ const styles = StyleSheet.create({
         elevation: 1,
     },
     chip: {
-        borderRadius: 999,
+        borderRadius: scaleSize(999),
         alignItems: "center",
         justifyContent: "center",
         marginHorizontal: scaleSize(2),
@@ -161,7 +161,7 @@ const styles = StyleSheet.create({
         elevation: 2,
     },
     chipText: {
-        fontSize: ts(12.5),
+        fontSize: scaleSize(12.5),
         fontFamily: "Outfit_600SemiBold",
         color: theme.textSecondary,
     },

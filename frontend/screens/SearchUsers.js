@@ -1,6 +1,6 @@
 import React, { useCallback, useMemo, useRef, useState, useEffect } from 'react';
 import { View, Text, StyleSheet, TextInput, FlatList, TouchableOpacity, SafeAreaView } from 'react-native';
-import { ts } from '../helper/scaleSize';
+import scaleSize, { ts } from '../helper/scaleSize';
 import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import ProfileCard from '../components/1_Feed/FeedHeader/ProfileCard';
@@ -82,13 +82,13 @@ export default function SearchUsers({ navigation }) {
   };
 
   return (
-    <SafeAreaView style={[styles.root, { paddingTop: insets.top + 6 }]}> 
+    <SafeAreaView style={[styles.root, { paddingTop: scaleSize(insets.top + 6) }]}>
       <View style={styles.row}>
         <TouchableOpacity onPress={goBack} style={styles.iconBtn}>
           <Ionicons name="chevron-back" size={22} color={theme.textSecondary} />
         </TouchableOpacity>
         <View style={styles.inputWrap}>
-          <Ionicons name="search" size={16} color={theme.textSecondary} style={{ marginRight: 8 }} />
+          <Ionicons name="search" size={16} color={theme.textSecondary} style={{ marginRight: scaleSize(8) }} />
           <TextInput
             style={styles.input}
             placeholder="Search people"
@@ -105,7 +105,6 @@ export default function SearchUsers({ navigation }) {
           )}
         </View>
       </View>
-
       <Text style={styles.sectionTitle}>{qStr ? 'Results' : 'Suggested'}</Text>
       <FlatList
         keyboardShouldPersistTaps="handled"
@@ -124,21 +123,21 @@ export default function SearchUsers({ navigation }) {
 
 const styles = StyleSheet.create({
   root: { flex: 1, backgroundColor: theme.bg },
-  row: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 16, marginBottom: 12 },
-  iconBtn: { padding: 6, marginRight: 8 },
+  row: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: scaleSize(16), marginBottom: scaleSize(12) },
+  iconBtn: { padding: scaleSize(6), marginRight: scaleSize(8) },
   inputWrap: {
     flex: 1,
     flexDirection: 'row',
     alignItems: 'center',
     backgroundColor: theme.field,
-    height: 44,
-    borderRadius: 24,
-    paddingHorizontal: 12,
+    height: scaleSize(44),
+    borderRadius: scaleSize(24),
+    paddingHorizontal: scaleSize(12),
     borderWidth: StyleSheet.hairlineWidth,
     borderColor: theme.hairline
   },
-  input: { flex: 1, fontSize: ts(15), color: theme.textPrimary, fontFamily: 'Outfit_600SemiBold' },
-  sectionTitle: { paddingHorizontal: 16, paddingVertical: 10, fontFamily: 'Outfit_700Bold', color: theme.textPrimary, fontSize: ts(14) },
-  listContent: { paddingBottom: 30 },
-  sep: { height: StyleSheet.hairlineWidth, backgroundColor: theme.hairline, marginLeft: 16 },
+  input: { flex: 1, fontSize: scaleSize(15), color: theme.textPrimary, fontFamily: 'Outfit_600SemiBold' },
+  sectionTitle: { paddingHorizontal: scaleSize(16), paddingVertical: scaleSize(10), fontFamily: 'Outfit_700Bold', color: theme.textPrimary, fontSize: scaleSize(14) },
+  listContent: { paddingBottom: scaleSize(30) },
+  sep: { height: StyleSheet.hairlineWidth, backgroundColor: theme.hairline, marginLeft: scaleSize(16) },
 });

@@ -22,6 +22,8 @@ import getFollowers from "../../../../backend/getFollowers";
 import getStoriesPrefixSums from "../../../helper/getStoriesPrefixSums";
 import sortStoriesDataByUserList from "../../../helper/sortStoriesDataByUserList";
 
+import scaleSize from "../../../helper/scaleSize";
+
 export default function Stories({ data, userList, initStories, disabled, navigation }) {
     console.log('stories render');
     
@@ -173,11 +175,11 @@ export default function Stories({ data, userList, initStories, disabled, navigat
 const styles = StyleSheet.create({
     storiesContainer: {
         backgroundColor: "#fff",
-        paddingTop: 6,
-        paddingBottom: 5,
+        paddingTop: scaleSize(6),
+        paddingBottom: scaleSize(5),
     },
     flatlist: {
-        paddingLeft: 15
+        paddingLeft: scaleSize(15)
     },
     flatlistContent: {
         flexDirection: "row"

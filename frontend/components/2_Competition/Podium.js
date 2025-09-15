@@ -146,7 +146,6 @@ export default function Podium({ data }) {
                     />
                 </View>
             </View>
-
             {/* Podium content band (top ~40% of screen) */}
             <View style={styles.podium_band}>
                 {/* Left */}
@@ -161,13 +160,13 @@ export default function Podium({ data }) {
                         )}
                     </View>
                     {data.length >= 2 && (
-                        <Text numberOfLines={1} ellipsizeMode="tail" style={[styles.leaderboard_handle_text, { fontSize: FONT_HANDLE }]}>
+                        <Text numberOfLines={1} ellipsizeMode="tail" style={[styles.leaderboard_handle_text, { fontSize: scaleSize(FONT_HANDLE) }]}>
                             {data[1].handle}
                         </Text>
                     )}
                     <View style={[styles.bar_ctnr, styles.silver_ctnr, { height: BAR_HEIGHT_LEFT, width: BAR_WIDTH }]}>
                         {/* Unified number color for all bars */}
-                        <Text style={[styles.bar_text_unified, { fontSize: FONT_BAR }]}>2</Text>
+                        <Text style={[styles.bar_text_unified, { fontSize: scaleSize(FONT_BAR) }]}>2</Text>
                     </View>
                 </View>
 
@@ -183,12 +182,12 @@ export default function Podium({ data }) {
                         )}
                     </View>
                     {data.length >= 1 && (
-                        <Text numberOfLines={1} ellipsizeMode="tail" style={[styles.leaderboard_handle_text, { fontSize: FONT_HANDLE }]}>
+                        <Text numberOfLines={1} ellipsizeMode="tail" style={[styles.leaderboard_handle_text, { fontSize: scaleSize(FONT_HANDLE) }]}>
                             {data[0].handle}
                         </Text>
                     )}
                     <View style={[styles.bar_ctnr, styles.gold_ctnr, { height: BAR_HEIGHT_CENTER, width: BAR_WIDTH }]}>
-                        <Text style={[styles.bar_text_unified, { fontSize: FONT_BAR }]}>1</Text>
+                        <Text style={[styles.bar_text_unified, { fontSize: scaleSize(FONT_BAR) }]}>1</Text>
                     </View>
                 </View>
 
@@ -204,12 +203,12 @@ export default function Podium({ data }) {
                         )}
                     </View>
                     {data.length >= 3 && (
-                        <Text numberOfLines={1} ellipsizeMode="tail" style={[styles.leaderboard_handle_text, { fontSize: FONT_HANDLE }]}>
+                        <Text numberOfLines={1} ellipsizeMode="tail" style={[styles.leaderboard_handle_text, { fontSize: scaleSize(FONT_HANDLE) }]}>
                             {data[2].handle}
                         </Text>
                     )}
                     <View style={[styles.bar_ctnr, styles.bronze_ctnr, { height: BAR_HEIGHT_RIGHT, width: BAR_WIDTH }]}>
-                        <Text style={[styles.bar_text_unified, { fontSize: FONT_BAR }]}>3</Text>
+                        <Text style={[styles.bar_text_unified, { fontSize: scaleSize(FONT_BAR) }]}>3</Text>
                     </View>
                 </View>
             </View>
@@ -281,11 +280,11 @@ const styles = StyleSheet.create({
     bronze_ctnr: { backgroundColor: '#FF9555' },
     pfp_ctnr: {
         aspectRatio: 1,
-        borderRadius: 50
+        borderRadius: scaleSize(50)
     },
     pfp: {
         flex: 1,
-        borderRadius: 50,
+        borderRadius: scaleSize(50),
     },
     leaderboard_handle_text: {
         fontFamily: 'Outfit_600SemiBold',

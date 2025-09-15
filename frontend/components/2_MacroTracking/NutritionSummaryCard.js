@@ -3,6 +3,8 @@ import { View, Text, StyleSheet } from 'react-native';
 import { AnimatedCircularProgress } from 'react-native-circular-progress';
 import MacroBar from './MacroBar';
 
+import scaleSize from "../../helper/scaleSize";
+
 export default function NutritionSummaryCard({ totals, goals, COLORS }) {
     const styles = useMemo(() => makeStyles(COLORS), [COLORS]);
     const progress = Math.min(100, (Math.max(0, totals.calories) / Math.max(1, goals.calories)) * 100);
@@ -46,23 +48,23 @@ const makeStyles = (COLORS) =>
         card: {
             backgroundColor: COLORS.card,
             borderRadius: 0,
-            paddingTop: 10,
-            paddingBottom: 10,
-            paddingLeft: 26,
-            paddingRight: 26,
+            paddingTop: scaleSize(10),
+            paddingBottom: scaleSize(10),
+            paddingLeft: scaleSize(26),
+            paddingRight: scaleSize(26),
             marginHorizontal: 0,
-            marginBottom: 8,
+            marginBottom: scaleSize(8),
             borderTopWidth: StyleSheet.hairlineWidth,
             borderBottomWidth: StyleSheet.hairlineWidth,
             borderColor: COLORS.hairline,
             shadowOpacity: 0,
             elevation: 0,
         },
-        row: { flexDirection: 'row', gap: 18, alignItems: 'center' },
+        row: { flexDirection: 'row', gap: scaleSize(18), alignItems: 'center' },
         // Center the ring vertically alongside the macro bars
-        progressContainer: { paddingRight: 6, justifyContent: 'center', alignItems: 'center' },
-        center: { alignItems: 'center', justifyContent: 'center', marginTop: 2 },
-        value: { fontSize: require('../../helper/scaleSize').ts(25), color: COLORS.text, fontFamily: 'Outfit_800ExtraBold', marginBottom: 0 },
-        subtitle: { fontSize: require('../../helper/scaleSize').ts(12), color: COLORS.subtext, fontFamily: 'Outfit_700Bold', marginBottom: 4 },
-        macroSummary: { flex: 1, paddingTop: 2 },
+        progressContainer: { paddingRight: scaleSize(6), justifyContent: 'center', alignItems: 'center' },
+        center: { alignItems: 'center', justifyContent: 'center', marginTop: scaleSize(2) },
+        value: { fontSize: scaleSize(25), color: COLORS.text, fontFamily: 'Outfit_800ExtraBold', marginBottom: 0 },
+        subtitle: { fontSize: scaleSize(12), color: COLORS.subtext, fontFamily: 'Outfit_700Bold', marginBottom: scaleSize(4) },
+        macroSummary: { flex: 1, paddingTop: scaleSize(2) },
     });

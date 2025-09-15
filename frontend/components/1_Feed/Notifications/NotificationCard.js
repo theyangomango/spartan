@@ -177,8 +177,8 @@ const styles = StyleSheet.create({
         borderColor: theme.hairline,
         shadowColor: "#000",
         shadowOpacity: 0.2,
-        shadowRadius: 10,
-        shadowOffset: { width: 0, height: 4 },
+        shadowRadius: scaleSize(10),
+        shadowOffset: { width: 0, height: scaleSize(4) },
         elevation: 2,
     },
     cardUnread: {
@@ -200,8 +200,8 @@ const styles = StyleSheet.create({
     },
     pfpIconBadge: {
         position: "absolute",
-        right: -scaleSize(5),
-        bottom: -scaleSize(5),
+        right: scaleSize(-scaleSize(5)),
+        bottom: scaleSize(-scaleSize(5)),
         width: scaleSize(26),
         height: scaleSize(26),
         borderRadius: scaleSize(13),
@@ -210,8 +210,8 @@ const styles = StyleSheet.create({
         borderWidth: scaleSize(2),
         shadowColor: "#000",
         shadowOpacity: 0.18,
-        shadowRadius: 3,
-        shadowOffset: { width: 0, height: 1 },
+        shadowRadius: scaleSize(3),
+        shadowOffset: { width: 0, height: scaleSize(1) },
         elevation: 3,
     },
     pfpIconBadgeInner: {
@@ -225,24 +225,24 @@ const styles = StyleSheet.create({
     textContainer: { flex: 1, minWidth: 0 },
     topRow: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", marginBottom: scaleSize(1) },
     handle: {
-        fontSize: ts(13.5),
+        fontSize: scaleSize(13.5),
         fontFamily: "Outfit_600SemiBold",
         color: theme.textPrimary,
         maxWidth: '70%'
     },
     message: {
-        fontSize: ts(13),
+        fontSize: scaleSize(13),
         color: theme.textSecondary,
         fontFamily: "Outfit_400Regular",
         lineHeight: scaleSize(20),
     },
     time: {
-        fontSize: ts(12),
+        fontSize: scaleSize(12),
         color: theme.textSecondary,
         fontFamily: "Outfit_600SemiBold",
     },
     timeWrap: { flexDirection: 'row', alignItems: 'center', gap: scaleSize(6) },
-    unreadDot: { width: scaleSize(7), height: scaleSize(7), borderRadius: scaleSize(7)/2 },
+    unreadDot: { width: scaleSize(7), height: scaleSize(7), borderRadius: scaleSize(scaleSize(7)/2) },
 
     followBtn: {
         backgroundColor: theme.field,
@@ -250,7 +250,7 @@ const styles = StyleSheet.create({
         paddingHorizontal: scaleSize(12),
         borderRadius: scaleSize(14),
         marginLeft: scaleSize(10),
-        borderWidth: 1,
+        borderWidth: scaleSize(1),
         borderColor: theme.primary,
     },
     followBtnPressed: {
@@ -259,7 +259,7 @@ const styles = StyleSheet.create({
     },
     followText: {
         color: theme.primary,
-        fontSize: ts(12.5),
+        fontSize: scaleSize(12.5),
         fontFamily: "Outfit_700Bold",
     },
     followTextPressed: {

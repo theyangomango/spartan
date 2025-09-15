@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { Modal, View, Text, StyleSheet, Animated, Dimensions, Pressable, ActivityIndicator, Easing, Platform, UIManager } from 'react-native';
-import { ss } from '../../../helper/scaleSize';
+import scaleSize, { ss } from '../../../helper/scaleSize';
 import FastImage from 'react-native-fast-image';
 import HexagonalStats from './HexagonalStats';
 import * as Haptics from 'expo-haptics';
@@ -96,7 +96,7 @@ export default function UserStatsAfterWorkoutModal({ isVisible, fromStats, toSta
               <View pointerEvents="none" style={styles.ovrGlow} />
               <View style={styles.scorePill}>
                 <Text style={styles.scorePillLabel}>OVR</Text>
-                <View style={{ height: ss(18), minWidth: ss(20), justifyContent:'center' }}>
+                <View style={{ height: scaleSize(ss(18)), minWidth: scaleSize(ss(20)), justifyContent:'center' }}>
                   <Animated.Text style={[styles.scorePillValue, { opacity: anim.interpolate({ inputRange:[0,0.6,1], outputRange:[1,0,0] }), transform:[{ translateY: anim.interpolate({ inputRange:[0,1], outputRange:[0,-8] }) }] }]}>
                     {Number(fromStats?.overall || 0)}
                   </Animated.Text>
@@ -109,7 +109,7 @@ export default function UserStatsAfterWorkoutModal({ isVisible, fromStats, toSta
           </View>
 
           <Text style={styles.title}>Progress Update</Text>
-          <View style={{ height: ss(12) }} />
+          <View style={{ height: scaleSize(ss(12)) }} />
           {ready ? (
             <Animated.View style={{ transform:[{ scale: chartScale }] }}>
               <HexagonalStats
@@ -122,7 +122,7 @@ export default function UserStatsAfterWorkoutModal({ isVisible, fromStats, toSta
               />
             </Animated.View>
           ) : (
-            <View style={{ height: ss(180), alignItems:'center', justifyContent:'center' }}>
+            <View style={{ height: scaleSize(ss(180)), alignItems:'center', justifyContent:'center' }}>
               <ActivityIndicator size="small" color="#2D9EFF" />
             </View>
           )}
@@ -143,8 +143,8 @@ export default function UserStatsAfterWorkoutModal({ isVisible, fromStats, toSta
               return (
                 <Animated.View key={key} style={[styles.tile, { transform:[{ scale: scalePulse }] }] }>
                   <Text style={styles.tileLabel}>{pretty(key)}</Text>
-                  <View style={{ height: ss(2) }} />
-                  <View style={{ height: ss(24), justifyContent:'center' }}>
+                  <View style={{ height: scaleSize(ss(2)) }} />
+                  <View style={{ height: scaleSize(ss(24)), justifyContent:'center' }}>
                     <Animated.Text style={[styles.valOld, { opacity: outOpacity, transform:[{ translateY: outY }] }]}>{from}</Animated.Text>
                     <Animated.Text style={[styles.valNew, colorStyle, { position:'absolute', left:0, right:0, textAlign:'left', opacity: inOpacity, transform:[{ translateY: inY }] }]}>{to}</Animated.Text>
                   </View>
@@ -166,51 +166,51 @@ export default function UserStatsAfterWorkoutModal({ isVisible, fromStats, toSta
 }
 
 const styles = StyleSheet.create({
-  backdrop: { flex:1, backgroundColor:'rgba(15,23,42,0.45)', alignItems:'center', justifyContent:'center', paddingHorizontal:ss(16) },
-  card: { width:'100%', backgroundColor:'#252733', borderRadius:ss(24), paddingVertical:ss(16), paddingHorizontal:ss(18), shadowColor:'#000', shadowOpacity:0.08, shadowRadius:ss(14), shadowOffset:{ width:0, height:ss(6) } },
-  header: { flexDirection:'row', alignItems:'center', justifyContent:'space-between', marginBottom:ss(6) },
-  headerLeft: { flexDirection:'row', alignItems:'center', flex:1, marginRight:ss(12) },
-  pfp: { width:ss(38), height:ss(38), borderRadius:ss(19), backgroundColor:'#e8eef7', marginRight:ss(10) },
-  handle: { fontSize:ss(16), fontFamily:'Outfit_600SemiBold', color:'#EAEAEA' },
-  subHandle: { marginTop:ss(2), fontSize:ss(11), fontFamily:'Outfit_400Regular', color:'#AEB5C0' },
+  backdrop: { flex:1, backgroundColor:'rgba(15,23,42,0.45)', alignItems:'center', justifyContent:'center', paddingHorizontal:scaleSize(ss(16)) },
+  card: { width:'100%', backgroundColor:'#252733', borderRadius:scaleSize(ss(24)), paddingVertical:scaleSize(ss(16)), paddingHorizontal:scaleSize(ss(18)), shadowColor:'#000', shadowOpacity:0.08, shadowRadius:scaleSize(ss(14)), shadowOffset:{ width:0, height:scaleSize(ss(6)) } },
+  header: { flexDirection:'row', alignItems:'center', justifyContent:'space-between', marginBottom:scaleSize(ss(6)) },
+  headerLeft: { flexDirection:'row', alignItems:'center', flex:1, marginRight:scaleSize(ss(12)) },
+  pfp: { width:scaleSize(ss(38)), height:scaleSize(ss(38)), borderRadius:scaleSize(ss(19)), backgroundColor:'#e8eef7', marginRight:scaleSize(ss(10)) },
+  handle: { fontSize:scaleSize(ss(16)), fontFamily:'Outfit_600SemiBold', color:'#EAEAEA' },
+  subHandle: { marginTop:scaleSize(ss(2)), fontSize:scaleSize(ss(11)), fontFamily:'Outfit_400Regular', color:'#AEB5C0' },
   ovrGlowWrap: { position:'relative', alignItems:'center', justifyContent:'center' },
   ovrGlow: {
     position:'absolute', left:0, right:0, top:0, bottom:0,
-    borderRadius:ss(999),
+    borderRadius:scaleSize(ss(999)),
     backgroundColor:'transparent',
     shadowColor:'#FFFFFF',
     shadowOpacity:0.42,
-    shadowRadius:ss(12),
+    shadowRadius:scaleSize(ss(12)),
     shadowOffset:{ width:0, height:0 }
   },
   scorePill: { 
     flexDirection:'row', 
     alignItems:'baseline', 
-    paddingHorizontal:ss(10), 
-    paddingVertical:ss(6), 
-    borderRadius:ss(999), 
-    borderWidth:1, 
+    paddingHorizontal:scaleSize(ss(10)), 
+    paddingVertical:scaleSize(ss(6)), 
+    borderRadius:scaleSize(ss(999)), 
+    borderWidth:scaleSize(1), 
     borderColor:'rgba(255,255,255,0.12)', 
     backgroundColor:'rgba(255,255,255,0.06)',
     // Soft white glow around the pill
     shadowColor:'#FFFFFF',
     shadowOpacity:0.28,
-    shadowRadius:ss(10),
+    shadowRadius:scaleSize(ss(10)),
     shadowOffset:{ width:0, height:0 }
   },
-  scorePillLabel: { fontSize:ss(10), fontFamily:'Outfit_600SemiBold', color:'#AEB5C0', marginRight:ss(6), letterSpacing:0.6 },
-  scorePillValue: { fontSize:ss(15), fontFamily:'Outfit_700Bold', color:'#2D9EFF', letterSpacing:0.2 },
-  title: { fontFamily:'Outfit_700Bold', fontSize:ss(18), color:'#EAEAEA' },
-  separator: { height: StyleSheet.hairlineWidth, backgroundColor:'rgba(255,255,255,0.08)', marginTop:ss(12), marginBottom:ss(8), marginHorizontal:-ss(18) },
-  grid: { flexDirection:'row', flexWrap:'wrap', justifyContent:'space-between', marginTop:ss(2), marginBottom:ss(10) },
-  tile: { width:'48%', backgroundColor:'#1E232C', borderRadius:ss(14), paddingVertical:ss(10), paddingHorizontal:ss(12), marginBottom:ss(10), borderWidth:StyleSheet.hairlineWidth, borderColor:'rgba(255,255,255,0.10)' },
-  tileLabel: { fontFamily:'Outfit_600SemiBold', fontSize:ss(13), color:'#EAEAEA' },
-  valOld: { fontFamily:'Outfit_700Bold', fontSize:ss(16), color:'#94A3B8' },
-  valNew: { fontFamily:'Outfit_700Bold', fontSize:ss(16) },
-  diffBadge: { marginTop:ss(4), fontFamily:'Outfit_700Bold', fontSize:ss(13) },
+  scorePillLabel: { fontSize:scaleSize(ss(10)), fontFamily:'Outfit_600SemiBold', color:'#AEB5C0', marginRight:scaleSize(ss(6)), letterSpacing:0.6 },
+  scorePillValue: { fontSize:scaleSize(ss(15)), fontFamily:'Outfit_700Bold', color:'#2D9EFF', letterSpacing:0.2 },
+  title: { fontFamily:'Outfit_700Bold', fontSize:scaleSize(ss(18)), color:'#EAEAEA' },
+  separator: { height: StyleSheet.hairlineWidth, backgroundColor:'rgba(255,255,255,0.08)', marginTop:scaleSize(ss(12)), marginBottom:scaleSize(ss(8)), marginHorizontal:scaleSize(-ss(18)) },
+  grid: { flexDirection:'row', flexWrap:'wrap', justifyContent:'space-between', marginTop:scaleSize(ss(2)), marginBottom:scaleSize(ss(10)) },
+  tile: { width:'48%', backgroundColor:'#1E232C', borderRadius:scaleSize(ss(14)), paddingVertical:scaleSize(ss(10)), paddingHorizontal:scaleSize(ss(12)), marginBottom:scaleSize(ss(10)), borderWidth:StyleSheet.hairlineWidth, borderColor:'rgba(255,255,255,0.10)' },
+  tileLabel: { fontFamily:'Outfit_600SemiBold', fontSize:scaleSize(ss(13)), color:'#EAEAEA' },
+  valOld: { fontFamily:'Outfit_700Bold', fontSize:scaleSize(ss(16)), color:'#94A3B8' },
+  valNew: { fontFamily:'Outfit_700Bold', fontSize:scaleSize(ss(16)) },
+  diffBadge: { marginTop:scaleSize(ss(4)), fontFamily:'Outfit_700Bold', fontSize:scaleSize(ss(13)) },
   up: { color:'#2D9EFF' },
   down: { color:'#EF4444' },
   neutral: { color:'#AEB5C0' },
-  button: { alignSelf:'center', backgroundColor:'#2D9EFF', paddingHorizontal:ss(22), paddingVertical:ss(10), borderRadius:ss(999) },
-  btnText: { color:'#fff', fontFamily:'Outfit_700Bold', fontSize:ss(14) },
+  button: { alignSelf:'center', backgroundColor:'#2D9EFF', paddingHorizontal:scaleSize(ss(22)), paddingVertical:scaleSize(ss(10)), borderRadius:scaleSize(ss(999)) },
+  btnText: { color:'#fff', fontFamily:'Outfit_700Bold', fontSize:scaleSize(ss(14)) },
 });

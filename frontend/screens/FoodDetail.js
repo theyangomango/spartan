@@ -9,6 +9,8 @@ import { parseMacrosFromDescription, parseExtraNutrientsFromDescription } from '
 import { getFoodById } from './fatsecretClient';
 import Svg, { Circle } from 'react-native-svg';
 
+import scaleSize from "../helper/scaleSize";
+
 const COLORS = {
     bg: theme.bg,
     card: theme.surface,
@@ -267,8 +269,7 @@ export default function FoodDetail({ navigation, route }) {
                     </Pressable>
                 )}
             </View>
-
-            <ScrollView style={{ flex: 1 }} contentContainerStyle={{ paddingBottom: 24 }} showsVerticalScrollIndicator={false}>
+            <ScrollView style={{ flex: 1 }} contentContainerStyle={{ paddingBottom: scaleSize(24) }} showsVerticalScrollIndicator={false}>
                 {/* Top summary section spanning full width */}
                 <View style={styles.topSummary}>
                     <Text style={styles.title} numberOfLines={2}>{displayName}</Text>
@@ -325,7 +326,7 @@ export default function FoodDetail({ navigation, route }) {
                 <View style={styles.hairline} />
 
                 {/* Macro ring + stats */}
-                <View style={{ paddingTop: 16, paddingBottom: 16 }}>
+                <View style={{ paddingTop: scaleSize(16), paddingBottom: scaleSize(16) }}>
                     <MacroRow m={macros} />
                 </View>
 
@@ -426,8 +427,7 @@ export function FoodDetailInline({ entry = {}, onClose, containerStyle }) {
                 <Text style={styles.headerTitle} numberOfLines={1}>Food Details</Text>
                 <View style={styles.saveBtn} />
             </View>
-
-            <ScrollView style={{ flex: 1 }} contentContainerStyle={{ paddingBottom: 24 }} showsVerticalScrollIndicator={false}>
+            <ScrollView style={{ flex: 1 }} contentContainerStyle={{ paddingBottom: scaleSize(24) }} showsVerticalScrollIndicator={false}>
                 <View style={styles.topSummary}>
                     <Text style={styles.title} numberOfLines={2}>{displayName}</Text>
                     {(() => {
@@ -440,7 +440,7 @@ export function FoodDetailInline({ entry = {}, onClose, containerStyle }) {
                 </View>
                 <View style={styles.hairline} />
 
-                <View style={{ paddingTop: 16, paddingBottom: 16 }}>
+                <View style={{ paddingTop: scaleSize(16), paddingBottom: scaleSize(16) }}>
                     <MacroRow m={macros} />
                 </View>
 
@@ -662,91 +662,91 @@ function NutritionFacts({ extras }) {
 }
 
 const styles = StyleSheet.create({
-    header: { height: 52, flexDirection: 'row', alignItems: 'center', paddingHorizontal: 8 },
+    header: { height: scaleSize(52), flexDirection: 'row', alignItems: 'center', paddingHorizontal: scaleSize(8) },
     backBtn: {
-        width: 42,
-        height: 42,
+        width: scaleSize(42),
+        height: scaleSize(42),
         alignItems: 'center',
         justifyContent: 'center',
-        borderRadius: 999,
+        borderRadius: scaleSize(999),
     },
-    headerTitle: { flex: 1, color: COLORS.text, fontFamily: 'Nunito_800ExtraBold', fontSize: require('../helper/scaleSize').ts(16), textAlign: 'center' },
-    saveBtn: { width: 42, height: 42, alignItems: 'center', justifyContent: 'center', borderRadius: 999 },
-    topSummary: { paddingHorizontal: 18, paddingTop: 10, paddingBottom: 14 },
-    brand: { color: COLORS.subtext, fontFamily: 'Nunito_700Bold', fontSize: require('../helper/scaleSize').ts(12), marginBottom: 4 },
-    title: { color: COLORS.text, fontFamily: 'Nunito_800ExtraBold', fontSize: require('../helper/scaleSize').ts(18), marginBottom: 6 },
-    desc: { color: COLORS.subtext, fontFamily: 'Nunito_600SemiBold', fontSize: require('../helper/scaleSize').ts(12.5) },
-    hairline: { height: 1, backgroundColor: COLORS.hairline, opacity: 0.7 },
+    headerTitle: { flex: 1, color: COLORS.text, fontFamily: 'Nunito_800ExtraBold', fontSize: scaleSize(16), textAlign: 'center' },
+    saveBtn: { width: scaleSize(42), height: scaleSize(42), alignItems: 'center', justifyContent: 'center', borderRadius: scaleSize(999) },
+    topSummary: { paddingHorizontal: scaleSize(18), paddingTop: scaleSize(10), paddingBottom: scaleSize(14) },
+    brand: { color: COLORS.subtext, fontFamily: 'Nunito_700Bold', fontSize: scaleSize(12), marginBottom: scaleSize(4) },
+    title: { color: COLORS.text, fontFamily: 'Nunito_800ExtraBold', fontSize: scaleSize(18), marginBottom: scaleSize(6) },
+    desc: { color: COLORS.subtext, fontFamily: 'Nunito_600SemiBold', fontSize: scaleSize(12.5) },
+    hairline: { height: scaleSize(1), backgroundColor: COLORS.hairline, opacity: 0.7 },
     badge: {
         backgroundColor: 'rgba(255,255,255,0.06)',
         borderWidth: StyleSheet.hairlineWidth,
         borderColor: COLORS.hairline,
-        paddingVertical: 10,
-        paddingHorizontal: 12,
-        borderRadius: 12,
-        minWidth: 120,
+        paddingVertical: scaleSize(10),
+        paddingHorizontal: scaleSize(12),
+        borderRadius: scaleSize(12),
+        minWidth: scaleSize(120),
     },
-    badgeLabel: { color: COLORS.subtext, fontFamily: 'Nunito_700Bold', fontSize: require('../helper/scaleSize').ts(12) },
-    badgeValue: { color: COLORS.text, fontFamily: 'Outfit_800ExtraBold', fontSize: require('../helper/scaleSize').ts(16), marginTop: 2 },
-    badgeSuffix: { color: COLORS.subtext, fontFamily: 'Outfit_700Bold', fontSize: require('../helper/scaleSize').ts(12) },
+    badgeLabel: { color: COLORS.subtext, fontFamily: 'Nunito_700Bold', fontSize: scaleSize(12) },
+    badgeValue: { color: COLORS.text, fontFamily: 'Outfit_800ExtraBold', fontSize: scaleSize(16), marginTop: scaleSize(2) },
+    badgeSuffix: { color: COLORS.subtext, fontFamily: 'Outfit_700Bold', fontSize: scaleSize(12) },
 
     rowWrap: {
-        paddingHorizontal: 18,
-        paddingVertical: 14,
+        paddingHorizontal: scaleSize(18),
+        paddingVertical: scaleSize(14),
         flexDirection: 'row',
         alignItems: 'center',
         justifyContent: 'space-between',
     },
-    rowLabel: { color: COLORS.text, fontFamily: 'Nunito_700Bold', fontSize: require('../helper/scaleSize').ts(14) },
+    rowLabel: { color: COLORS.text, fontFamily: 'Nunito_700Bold', fontSize: scaleSize(14) },
     inputWrap: {
         flexDirection: 'row',
         alignItems: 'center',
         backgroundColor: theme.field,
-        borderRadius: 10,
-        borderWidth: 1,
+        borderRadius: scaleSize(10),
+        borderWidth: scaleSize(1),
         borderColor: COLORS.hairline,
     },
     input: {
-        width: 80,
+        width: scaleSize(80),
         color: COLORS.text,
         fontFamily: 'Outfit_700Bold',
-        fontSize: require('../helper/scaleSize').ts(14),
+        fontSize: scaleSize(14),
         textAlign: 'center',
-        paddingVertical: 8,
+        paddingVertical: scaleSize(8),
     },
-    stepBtn: { width: 36, height: 36, alignItems: 'center', justifyContent: 'center' },
+    stepBtn: { width: scaleSize(36), height: scaleSize(36), alignItems: 'center', justifyContent: 'center' },
     stepLeft: { borderRightWidth: 1, borderRightColor: COLORS.hairline },
     stepRight: { borderLeftWidth: 1, borderLeftColor: COLORS.hairline },
-    mealChipsRow: { flexDirection: 'row', gap: 8 },
+    mealChipsRow: { flexDirection: 'row', gap: scaleSize(8) },
     mealChip: {
-        paddingHorizontal: 12,
-        paddingVertical: 8,
-        borderRadius: 999,
-        borderWidth: 1,
+        paddingHorizontal: scaleSize(12),
+        paddingVertical: scaleSize(8),
+        borderRadius: scaleSize(999),
+        borderWidth: scaleSize(1),
         borderColor: COLORS.hairline,
         backgroundColor: theme.field,
     },
     mealChipActive: { backgroundColor: 'rgba(45,158,255,0.16)', borderColor: theme.primaryHairline },
-    mealChipText: { color: COLORS.text, fontFamily: 'Outfit_700Bold', fontSize: require('../helper/scaleSize').ts(12) },
+    mealChipText: { color: COLORS.text, fontFamily: 'Outfit_700Bold', fontSize: scaleSize(12) },
     mealChipTextActive: { color: theme.primary },
 
-    macroFourRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 5 },
-    ringBoxFour: { alignItems: 'center', justifyContent: 'center', paddingVertical: 4, marginRight: 12 },
+    macroFourRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: scaleSize(5) },
+    ringBoxFour: { alignItems: 'center', justifyContent: 'center', paddingVertical: scaleSize(4), marginRight: scaleSize(12) },
     centerLabel: { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, alignItems: 'center', justifyContent: 'center' },
-    centerCal: { color: COLORS.text, fontFamily: 'Outfit_800ExtraBold', fontSize: require('../helper/scaleSize').ts(20) },
-    centerSub: { color: COLORS.subtext, fontFamily: 'Outfit_700Bold', fontSize: require('../helper/scaleSize').ts(13) },
-    macroStat: { paddingVertical: 2, paddingHorizontal: 2, flexDirection: 'row', alignItems: 'center', gap: 6 },
-    macroStatDot: { width: 8, height: 8, borderRadius: 4, marginRight: 2 },
-    macroStatLabel: { color: COLORS.subtext, fontFamily: 'Nunito_700Bold', fontSize: require('../helper/scaleSize').ts(12) },
-    macroStatValue: { color: COLORS.text, fontFamily: 'Outfit_800ExtraBold', fontSize: require('../helper/scaleSize').ts(18) },
-    sectionHeader: { paddingHorizontal: 18, paddingVertical: 12, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
-    sectionHeaderText: { color: COLORS.subtext, fontFamily: 'Nunito_800ExtraBold', fontSize: require('../helper/scaleSize').ts(13), letterSpacing: 0.3 },
-    factsWrap: { paddingHorizontal: 18, paddingVertical: 14, gap: 14 },
-    factRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', height: 47, paddingVertical: 6 },
-    factLabel: { color: COLORS.text, fontFamily: 'Nunito_700Bold', fontSize: 14 },
-    factValue: { color: COLORS.text, fontFamily: 'Outfit_800ExtraBold', fontSize: 16, letterSpacing: 0.2 },
-    factUnit: { color: COLORS.subtext, fontFamily: 'Outfit_700Bold', fontSize: 12 },
-    factRight: { alignItems: 'flex-end', minWidth: 110, justifyContent: 'center' },
-    factPercentSub: { color: COLORS.accentSoft, fontFamily: 'Outfit_800ExtraBold', fontSize: 11, marginTop: 2 },
-    factsEmpty: { color: COLORS.subtext, fontFamily: 'Nunito_700Bold', fontSize: 13, paddingVertical: 6 },
+    centerCal: { color: COLORS.text, fontFamily: 'Outfit_800ExtraBold', fontSize: scaleSize(20) },
+    centerSub: { color: COLORS.subtext, fontFamily: 'Outfit_700Bold', fontSize: scaleSize(13) },
+    macroStat: { paddingVertical: scaleSize(2), paddingHorizontal: scaleSize(2), flexDirection: 'row', alignItems: 'center', gap: scaleSize(6) },
+    macroStatDot: { width: scaleSize(8), height: scaleSize(8), borderRadius: scaleSize(4), marginRight: scaleSize(2) },
+    macroStatLabel: { color: COLORS.subtext, fontFamily: 'Nunito_700Bold', fontSize: scaleSize(12) },
+    macroStatValue: { color: COLORS.text, fontFamily: 'Outfit_800ExtraBold', fontSize: scaleSize(18) },
+    sectionHeader: { paddingHorizontal: scaleSize(18), paddingVertical: scaleSize(12), flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
+    sectionHeaderText: { color: COLORS.subtext, fontFamily: 'Nunito_800ExtraBold', fontSize: scaleSize(13), letterSpacing: 0.3 },
+    factsWrap: { paddingHorizontal: scaleSize(18), paddingVertical: scaleSize(14), gap: scaleSize(14) },
+    factRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', height: scaleSize(47), paddingVertical: scaleSize(6) },
+    factLabel: { color: COLORS.text, fontFamily: 'Nunito_700Bold', fontSize: scaleSize(14) },
+    factValue: { color: COLORS.text, fontFamily: 'Outfit_800ExtraBold', fontSize: scaleSize(16), letterSpacing: 0.2 },
+    factUnit: { color: COLORS.subtext, fontFamily: 'Outfit_700Bold', fontSize: scaleSize(12) },
+    factRight: { alignItems: 'flex-end', minWidth: scaleSize(110), justifyContent: 'center' },
+    factPercentSub: { color: COLORS.accentSoft, fontFamily: 'Outfit_800ExtraBold', fontSize: scaleSize(11), marginTop: scaleSize(2) },
+    factsEmpty: { color: COLORS.subtext, fontFamily: 'Nunito_700Bold', fontSize: scaleSize(13), paddingVertical: scaleSize(6) },
 });

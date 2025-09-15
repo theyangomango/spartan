@@ -6,6 +6,8 @@ import useWorkoutStore from '../state/workoutStore';
 import { jumpToTab, navigationRef } from '../../navigationRef';
 import theme from '../theme/mfpDark';
 
+import scaleSize from "../helper/scaleSize";
+
 const COLORS = {
     active: theme.textPrimary,
     // Darker inactive for stronger selected contrast
@@ -58,7 +60,7 @@ const Footer = ({ currentScreenName, navigation }) => {
         ...(
             hasActiveWorkout
                 ? Platform.select({
-                    ios: { shadowColor: theme.primary, shadowOpacity: 0.18, shadowRadius: 7, shadowOffset: { width: 0, height: 2 } },
+                    ios: { shadowColor: theme.primary, shadowOpacity: 0.18, shadowRadius: scaleSize(7), shadowOffset: { width: 0, height: scaleSize(2) } },
                     android: { elevation: 2 },
                     default: {},
                 })
@@ -163,32 +165,32 @@ const styles = StyleSheet.create({
     outer_view: {
         position: 'absolute',
         bottom: 0, left: 0, right: 0,
-        height: 87,
+        height: scaleSize(87),
     },
     main_ctnr: {
         flexDirection: 'row',
         justifyContent: 'center',
         alignItems: 'center',
         height: '100%',
-        paddingHorizontal: 13,
-        paddingBottom: 13,
+        paddingHorizontal: scaleSize(13),
+        paddingBottom: scaleSize(13),
         backgroundColor: COLORS.bg,
-        borderTopLeftRadius: 40,
-        borderTopRightRadius: 40,
+        borderTopLeftRadius: scaleSize(40),
+        borderTopRightRadius: scaleSize(40),
 
         // Remove hairline to avoid visible white line at top
         borderTopWidth: 0,
         shadowColor: '#000',
-        shadowOffset: { width: 0, height: -2 },
+        shadowOffset: { width: 0, height: scaleSize(-2) },
         shadowOpacity: 0.5,
-        shadowRadius: 6,
+        shadowRadius: scaleSize(6),
         elevation: 4,
     },
-    icon_ctnr: { flex: 1, alignItems: 'center', padding: 10 },
-    workout_icon_ctnr: { flex: 1, alignItems: 'center', paddingHorizontal: 10, paddingVertical: 8.2 },
-    workout_indicator_ctnr: { borderRadius: 100, padding: 3 },
-    icon: { padding: 13.5, borderRadius: 25 },
-    selectedIcon: { padding: 13.5, borderRadius: 30 },
+    icon_ctnr: { flex: 1, alignItems: 'center', padding: scaleSize(10) },
+    workout_icon_ctnr: { flex: 1, alignItems: 'center', paddingHorizontal: scaleSize(10), paddingVertical: scaleSize(8.2) },
+    workout_indicator_ctnr: { borderRadius: scaleSize(100), padding: scaleSize(3) },
+    icon: { padding: scaleSize(13.5), borderRadius: scaleSize(25) },
+    selectedIcon: { padding: scaleSize(13.5), borderRadius: scaleSize(30) },
     dead_zone: {
         position: 'absolute',
         left: 0,

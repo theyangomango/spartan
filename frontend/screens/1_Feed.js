@@ -34,6 +34,8 @@ import isThisUser from "../helper/isThisUser";
 import useFilteredFeed from "../helper/useFilteredFeed";
 import MaskedView from "@react-native-masked-view/masked-view";
 
+import scaleSize from "../helper/scaleSize";
+
 const { width, height } = Dimensions.get("window");
 const CARD_AR = 0.8; // Post card aspect ratio (W / H)
 const TARGET_POSITION = getScrollTargetPosition(width, height),
@@ -168,7 +170,7 @@ export default function Feed({ navigation, route }) {
     });
     const spacerStyle = useAnimatedStyle(() => {
         const totalHidden = Math.min(headerH.value, hidden.value + focusHide.value);
-        return { height: Math.max(0, headerH.value - totalHidden) };
+        return { height: scaleSize(Math.max(0, headerH.value - totalHidden)) };
     });
     // Animated container for MaskedView to track visible header height smoothly
     const maskContainerStyle = useAnimatedStyle(() => {
@@ -935,7 +937,7 @@ export default function Feed({ navigation, route }) {
                                         width: '100%',
                                         height: '100%',
                                         backgroundColor: 'black',
-                                        borderRadius: 35,
+                                        borderRadius: scaleSize(35),
                                     }}
                                 />
                             </View>
@@ -988,7 +990,6 @@ export default function Feed({ navigation, route }) {
                     </MaskedView>
                 </Reanimated.View>
             </SafeAreaView>
-
             {/* Overlay header (FeedHeader + ActivityChips) that reveals/collapses; spacer keeps posts pushed */}
             <SafeAreaInsetsView edges={['top']} pointerEvents="box-none" style={{ position: 'absolute', top: 0, left: 0, right: 0 }}>
                 <Reanimated.View
@@ -1064,12 +1065,8 @@ export default function Feed({ navigation, route }) {
                     </SafeAreaInsetsView>
                 )}
             </SafeAreaInsetsView>
-
             {/* Top safe-area mask to hide content above inset */}
             <View pointerEvents="none" style={{ position: 'absolute', top: 0, left: 0, right: 0, height: insets.top, backgroundColor: theme.bg, zIndex: 25 }} />
-
-
-
             <NotificationsBottomSheet notificationsBottomSheetExpandFlag={notificationsBottomSheetExpandFlag} />
             <CommentsBottomSheet
                 isVisible={isSomePostFocused && !unfocusing}
@@ -1098,5 +1095,5 @@ const styles = StyleSheet.create({
     mainContainer: { flex: 1, backgroundColor: theme.bg },
     // Add bottom padding so the cell's touchable region covers the visual card bottom.
     // This counteracts any internal negative margins and prevents "dead zones" for touch starts.
-    postWrapper: { width: "100%", paddingBottom: 33 },
+    postWrapper: { width: "100%", paddingBottom: scaleSize(33) },
 });

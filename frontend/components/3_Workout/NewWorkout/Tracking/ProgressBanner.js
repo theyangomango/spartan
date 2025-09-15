@@ -40,19 +40,19 @@ const styles = StyleSheet.create({
     container: {
         flexDirection: 'row',
         alignItems: 'center',
-        height: scaledSize(100),
-        marginHorizontal: scaledSize(15),
-        paddingHorizontal: scaledSize(15),
-        borderRadius: scaledSize(25),
+        height: scaleSize(scaledSize(100)),
+        marginHorizontal: scaleSize(scaledSize(15)),
+        paddingHorizontal: scaleSize(scaledSize(15)),
+        borderRadius: scaleSize(scaledSize(25)),
         // Darker card to pop against sheet background
         backgroundColor: theme.surface,
-        borderWidth: 1,
+        borderWidth: scaleSize(1),
         borderColor: 'rgba(255,255,255,0.28)',
         justifyContent: 'center', // Centering the entire content
         shadowColor: '#000',
-        shadowOffset: { width: 0, height: scaledSize(2) },
+        shadowOffset: { width: 0, height: scaleSize(scaledSize(2)) },
         shadowOpacity: 0.18,
-        shadowRadius: scaledSize(10),
+        shadowRadius: scaleSize(scaledSize(10)),
         elevation: 5,
     },
     column: {
@@ -64,19 +64,19 @@ const styles = StyleSheet.create({
         alignItems: 'center',
     },
     bigNumber: {
-        fontSize: scaledSize(24),
+        fontSize: scaleSize(24),
         color: '#FFFFFF', // maximum contrast for metrics
         fontFamily: 'Poppins_800ExtraBold',
     },
     smallText: {
-        paddingTop: scaledSize(1),
-        fontSize: scaledSize(13.2),
+        paddingTop: scaleSize(scaledSize(1)),
+        fontSize: scaleSize(13.2),
         color: theme.textPrimary,
         fontFamily: 'Poppins_600SemiBold'
     },
     smallerText: {
-        paddingTop: scaledSize(1),
-        fontSize: scaledSize(13.2),
+        paddingTop: scaleSize(scaledSize(1)),
+        fontSize: scaleSize(13.2),
         color: theme.textPrimary,
         fontFamily: 'Poppins_600SemiBold'
     },

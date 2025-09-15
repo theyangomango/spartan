@@ -6,6 +6,8 @@ import Svg, { Path } from "react-native-svg";
 import { likeStory } from "../../../../backend/stories/likeStory";
 import { unlikeStory } from "../../../../backend/stories/unlikeStory";
 
+import scaleSize from "../../../helper/scaleSize";
+
 const COLORS = {
     red: "#FF3B30",
     hairline: "rgba(255,255,255,0.22)",
@@ -66,22 +68,22 @@ const styles = StyleSheet.create({
     leftChip: {
         flexDirection: "row",
         alignItems: "center",
-        paddingHorizontal: 10,
-        paddingVertical: 8,
-        borderRadius: 16,
+        paddingHorizontal: scaleSize(10),
+        paddingVertical: scaleSize(8),
+        borderRadius: scaleSize(16),
         backgroundColor: "rgba(255,255,255,0.18)",
     },
-    pfp: { width: 32, height: 32, borderRadius: 18, backgroundColor: "#EEE" },
-    handle: { marginLeft: 8, color: "#fff", fontSize: require('../../../helper/scaleSize').ts(17), fontFamily: "Outfit_600SemiBold" },
+    pfp: { width: scaleSize(32), height: scaleSize(32), borderRadius: scaleSize(18), backgroundColor: "#EEE" },
+    handle: { marginLeft: scaleSize(8), color: "#fff", fontSize: scaleSize(17), fontFamily: "Outfit_600SemiBold" },
 
     // OG heart vibe: wider translucent pill
     likePill: {
-        minWidth: 56,
-        height: 36,
-        paddingHorizontal: 14,
-        borderRadius: 18,
+        minWidth: scaleSize(56),
+        height: scaleSize(36),
+        paddingHorizontal: scaleSize(14),
+        borderRadius: scaleSize(18),
         backgroundColor: "rgba(0,0,0,0.40)",
-        borderWidth: 1,
+        borderWidth: scaleSize(1),
         borderColor: COLORS.hairline,
         alignItems: "center",
         justifyContent: "center",

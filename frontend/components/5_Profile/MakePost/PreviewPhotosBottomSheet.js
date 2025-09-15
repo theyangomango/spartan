@@ -4,6 +4,8 @@ import BottomSheet, { BottomSheetBackdrop } from "@gorhom/bottom-sheet";
 import PreviewPhotosModal from "./PreviewPhotosModal";
 import theme from '../../../theme/mfpDark';
 
+import scaleSize from "../../../helper/scaleSize";
+
 const PreviewPhotosBottomSheet = ({ assets, images, selectedOrderMap, toggleSelect, loadMoreAssets, loading, hasNextPage, clearSelection, isLimited, onRequestMoreAccess }) => {
     const bottomSheetRef = useRef(null);
     const snapPoints = useMemo(() => ["35%", "94%"], []);
@@ -72,17 +74,17 @@ export default React.memo(PreviewPhotosBottomSheet);
 const styles = StyleSheet.create({
     background: {
         backgroundColor: theme.surface,
-        borderTopLeftRadius: 22,
-        borderTopRightRadius: 22,
+        borderTopLeftRadius: scaleSize(22),
+        borderTopRightRadius: scaleSize(22),
     },
     handle: {
         backgroundColor: 'transparent',
-        paddingVertical: 6,
+        paddingVertical: scaleSize(6),
     },
     handleIndicator: {
-        width: 36,
-        height: 4,
-        borderRadius: 3,
+        width: scaleSize(36),
+        height: scaleSize(4),
+        borderRadius: scaleSize(3),
         backgroundColor: theme.hairline,
     },
 })

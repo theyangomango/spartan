@@ -1,5 +1,6 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { StyleSheet, Text, View, Dimensions } from "react-native";
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import scaleSize from "../../../helper/scaleSize";
 import BottomSheet, { BottomSheetBackdrop, BottomSheetFooter } from "@gorhom/bottom-sheet";
 import theme from "../../../theme/mfpDark";
@@ -27,6 +28,7 @@ const ProfileBottomBottomSheet = ({ selectedPanel, setSelectedPanel, posts, save
     );
 
     // Slight vertical offset so sheet sits clearly below the profile top
+    const insets = useSafeAreaInsets();
     const { height: screenHeight } = Dimensions.get('window');
     const scaledSize = (size) => scaleSize(size);
 
@@ -40,7 +42,9 @@ const ProfileBottomBottomSheet = ({ selectedPanel, setSelectedPanel, posts, save
             handleStyle={{ display: 'none' }}
             // Match Feed background to keep top/bottom consistent
             backgroundStyle={{ backgroundColor: theme.bg }}
-            style={{ marginTop: scaledSize(3) }}
+            style={{ marginTop: scaleSize(scaledSize(3)) }}
+            bottomInset={insets.bottom || 0}
+            topInset={insets.top || 0}
             detached
         >
             <ProfileBottomModal
@@ -52,7 +56,6 @@ const ProfileBottomBottomSheet = ({ selectedPanel, setSelectedPanel, posts, save
                 isBottomSheetExpanded={isBottomSheetExpanded}
                 onOpenWorkout={onOpenWorkout}
             />
-
         </BottomSheet>
     );
 };

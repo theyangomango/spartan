@@ -63,6 +63,7 @@ import { serverTimestamp } from "firebase/firestore";
 
 // UI
 import CopyTemplateToast from "../components/3_Workout/ui/CopyTemplateToast";
+import scaleSize from "../helper/scaleSize";
 // navigationRef and StackActions no longer needed here with single root stack
 
 // MiniPodium preview derives from user's last Competition view
@@ -550,12 +551,11 @@ export default function Workout({ navigation, route }) {
                     openCurrentWorkout={headerOpenCurrentWorkout}
                 />
             </View>
-
             {/* Invite banner (absolute, anchored below header & within SafeArea) */}
             <Animated.View
                 style={[
                     styles.inviteBannerWrap,
-                    { top: headerHeight + 10, transform: [{ translateY: bannerY }] },
+                    { top: scaleSize(headerHeight + 10), transform: [{ translateY: bannerY }] },
                 ]}
                 pointerEvents={currentInvite ? "auto" : "none"}
                 onLayout={handleInviteLayout}
@@ -569,7 +569,6 @@ export default function Workout({ navigation, route }) {
                     />
                 )}
             </Animated.View>
-
             <View style={styles.content}>
                 <WeekCalendar
                     workoutsMap={global?.userData?.workoutsByDate || {}}
@@ -608,7 +607,6 @@ export default function Workout({ navigation, route }) {
                     </View>
                 )}
             </View>
-
             {/* START cluster */}
             <View style={styles.clusterWrap} pointerEvents="box-none">
                 <StartCluster
@@ -622,14 +620,11 @@ export default function Workout({ navigation, route }) {
                     friendsStackUsers={stackUsers}
                 />
             </View>
-
             <Footer currentScreenName={"Workout"} navigation={navigation} />
-
             {/* Notifications (same UX as Feed) */}
             {afterPaint && (
                 <NotificationsBottomSheet notificationsBottomSheetExpandFlag={notificationsBottomSheetExpandFlag} />
             )}
-
             {/* Day details (always mounted so ref is ready on first open) */}
             <View style={StyleSheet.absoluteFill} pointerEvents={daySheetVisible ? "auto" : "none"}>
                 <DayDetailsSheet
@@ -672,7 +667,6 @@ export default function Workout({ navigation, route }) {
                     }}
                 />
             </View>
-
             {/* Friends sheet */}
             {(afterPaint || friendsSheetVisible) && (
                 <View style={StyleSheet.absoluteFill} pointerEvents={friendsSheetVisible ? "auto" : "none"}>
@@ -692,7 +686,6 @@ export default function Workout({ navigation, route }) {
                     />
                 </View>
             )}
-
             {/* New Workout sheet */}
             {(afterPaint || isNewWorkoutVisible) && (
                 <NewWorkoutBottomSheet
@@ -707,7 +700,6 @@ export default function Workout({ navigation, route }) {
                     userWorkoutStats={global?.userData?.statsExercises || {}}
                 />
             )}
-
             {/* Template editor (kept identical behavior) */}
             {(afterPaint || isEditTemplateVisible) && (
                 <EditTemplateBottomSheet
@@ -719,7 +711,6 @@ export default function Workout({ navigation, route }) {
                     deleteTemplate={deleteTemplate}
                 />
             )}
-
             {isSummaryModalVisible && (
                 <WorkoutSummaryModal
                     isVisible={isSummaryModalVisible}
@@ -728,7 +719,6 @@ export default function Workout({ navigation, route }) {
                     postWorkout={postWorkout}
                 />
             )}
-
             {/* Stats after workout bottom sheet (exact UserStats UI, animated numbers) */}
             {hexChangeVisible && (
                 <UserStatsAfterWorkoutSheet
@@ -740,12 +730,10 @@ export default function Workout({ navigation, route }) {
                     heightPercent={0.92}
                 />
             )}
-
             {/* Copy Template toast (above Templates rail) */}
             <Animated.View pointerEvents="none" style={styles.toastWrap}>
                 <CopyTemplateToast anim={toastAnim} text={toastMsg || "Template added"} />
             </Animated.View>
-
             {/* Invite picker mounted at screen level so backdrop covers everything */}
             {(afterPaint || inviteSheetOpen) && (
                 <GroupModalBottomSheet
@@ -762,10 +750,10 @@ export default function Workout({ navigation, route }) {
 const styles = StyleSheet.create({
     // MyFitnessPal-like dark background
     root: { flex: 1, backgroundColor: theme.bg },
-    content: { flex: 1, paddingTop: 2, paddingBottom: FOOTER_HEIGHT + ss(22) + BTN_SIZE + TPL_BOTTOM_GAP },
+    content: { flex: 1, paddingTop: scaleSize(2), paddingBottom: scaleSize(FOOTER_HEIGHT + ss(22) + BTN_SIZE + TPL_BOTTOM_GAP) },
 
-    templatesDock: { position: "absolute", left: 0, right: 0, bottom: FOOTER_HEIGHT + ss(22) + BTN_SIZE + TPL_BOTTOM_GAP },
-    clusterWrap: { position: "absolute", left: 0, right: 0, bottom: FOOTER_HEIGHT + ss(20), alignItems: "center" },
+    templatesDock: { position: "absolute", left: 0, right: 0, bottom: scaleSize(FOOTER_HEIGHT + ss(22) + BTN_SIZE + TPL_BOTTOM_GAP) },
+    clusterWrap: { position: "absolute", left: 0, right: 0, bottom: scaleSize(FOOTER_HEIGHT + ss(20)), alignItems: "center" },
 
     // Invite banner wrapper (same positioning/animation as original)
     inviteBannerWrap: {
@@ -780,7 +768,7 @@ const styles = StyleSheet.create({
         position: "absolute",
         left: 0,
         right: 0,
-        bottom: FOOTER_HEIGHT + ss(22) + BTN_SIZE + TPL_BOTTOM_GAP + TPL_HEIGHT + ss(10),
+        bottom: scaleSize(FOOTER_HEIGHT + ss(22) + BTN_SIZE + TPL_BOTTOM_GAP + TPL_HEIGHT + ss(10)),
         alignItems: "center",
         zIndex: 40,
     },

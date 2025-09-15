@@ -124,7 +124,7 @@ export default function LeaderboardModal({
         if (isTribeFocused) {
             if (hasComparisons) {
                 return (
-                    <View style={{ marginBottom: 10 }}>
+                    <View style={{ marginBottom: scaleSize(10) }}>
                         <FlatList
                             ref={bannerRef}
                             horizontal
@@ -146,7 +146,7 @@ export default function LeaderboardModal({
                                     <View style={styles.iconPill}>
                                         <Ionicons name="trophy" size={ICON_TROPHY} color={ACCENT} />
                                     </View>
-                                    <View style={{ flex: 1, marginRight: 8 }}>
+                                    <View style={{ flex: 1, marginRight: scaleSize(8) }}>
                                         {/* Line 1: exercise */}
                                         <Text style={styles.bannerTitle} numberOfLines={1}>
                                             {item.exercise}
@@ -302,7 +302,7 @@ export default function LeaderboardModal({
                 data={userList}
                 keyExtractor={(u, i) => u?.uid || String(i)}
                 renderItem={renderItem}
-                contentContainerStyle={{ paddingBottom: 24 }}
+                contentContainerStyle={{ paddingBottom: scaleSize(24) }}
                 ListFooterComponent={<View style={{ height: isBottomSheetExpanded ? scaleSize(100) : scaleSize(400) }} />}
                 showsVerticalScrollIndicator={false}
             />
@@ -329,22 +329,22 @@ const styles = StyleSheet.create({
         paddingVertical: SELECTOR_PAD_V,
         // Higher-contrast pill vs. sheet background
         backgroundColor: '#34425C',
-        borderWidth: 1,
+        borderWidth: scaleSize(1),
         borderColor: '#567099',
-        borderRadius: 999,
+        borderRadius: scaleSize(999),
         flex: 1,
         gap: SELECTOR_GAP,
     },
-    selectorText: { fontFamily: "Outfit_600SemiBold", fontSize: FONT_SELECTOR, color: TITLE_COLOR, flexShrink: 1, letterSpacing: 0.2 },
+    selectorText: { fontFamily: "Outfit_600SemiBold", fontSize: scaleSize(FONT_SELECTOR), color: TITLE_COLOR, flexShrink: 1, letterSpacing: 0.2 },
     metricPill: {
         paddingHorizontal: METRIC_PAD_H,
         paddingVertical: METRIC_PAD_V,
         backgroundColor: '#34425C',
-        borderWidth: 1,
+        borderWidth: scaleSize(1),
         borderColor: '#567099',
-        borderRadius: 999,
+        borderRadius: scaleSize(999),
     },
-    metricText: { fontFamily: "Outfit_700Bold", fontSize: FONT_METRIC, color: '#6FB8FF', letterSpacing: 0.2 },
+    metricText: { fontFamily: "Outfit_700Bold", fontSize: scaleSize(FONT_METRIC), color: '#6FB8FF', letterSpacing: 0.2 },
 
     // tribe banner — modern warm “gold” card (no border)
     bannerCard: {
@@ -354,12 +354,12 @@ const styles = StyleSheet.create({
         paddingVertical: BANNER_PAD_V,
         borderRadius: BANNER_RADIUS,
         backgroundColor: "#262F42",
-        borderWidth: 1,
+        borderWidth: scaleSize(1),
         borderColor: "rgba(255,255,255,0.08)",
         shadowColor: "#000",
-        shadowOffset: { width: 0, height: 8 },
+        shadowOffset: { width: 0, height: scaleSize(8) },
         shadowOpacity: 0.12,
-        shadowRadius: 14,
+        shadowRadius: scaleSize(14),
         elevation: 4,
         marginBottom: BANNER_MB,
     },
@@ -372,8 +372,8 @@ const styles = StyleSheet.create({
         backgroundColor: ACCENT_BG,
         marginRight: ICON_PILL_MR,
     },
-    bannerTitle: { fontFamily: "Outfit_700Bold", fontSize: FONT_BANNER_TITLE, color: TITLE_COLOR },
-    bannerMeta: { fontFamily: "Outfit_600SemiBold", fontSize: FONT_BANNER_META, color: ICON_MUTED, opacity: 0.98, marginTop: scaleSize(2), letterSpacing: 0.2 },
+    bannerTitle: { fontFamily: "Outfit_700Bold", fontSize: scaleSize(FONT_BANNER_TITLE), color: TITLE_COLOR },
+    bannerMeta: { fontFamily: "Outfit_600SemiBold", fontSize: scaleSize(FONT_BANNER_META), color: ICON_MUTED, opacity: 0.98, marginTop: scaleSize(2), letterSpacing: 0.2 },
 
     // minimal “no comparisons yet” CTA
     tribeHeaderButton: {
@@ -384,9 +384,9 @@ const styles = StyleSheet.create({
         borderRadius: TRIBE_BTN_RADIUS,
         backgroundColor: BANNER_BG,
         shadowColor: "#000",
-        shadowOffset: { width: 0, height: 8 },
+        shadowOffset: { width: 0, height: scaleSize(8) },
         shadowOpacity: 0.08,
-        shadowRadius: 16,
+        shadowRadius: scaleSize(16),
         elevation: 4,
         marginBottom: TRIBE_BTN_MB,
         gap: TRIBE_BTN_GAP,
@@ -394,7 +394,7 @@ const styles = StyleSheet.create({
     tribeHeaderTitle: {
         flex: 1,
         fontFamily: "Outfit_700Bold",
-        fontSize: FONT_TRIBE_TITLE,
+        fontSize: scaleSize(FONT_TRIBE_TITLE),
         color: TITLE_COLOR,
         letterSpacing: 0.2,
     },

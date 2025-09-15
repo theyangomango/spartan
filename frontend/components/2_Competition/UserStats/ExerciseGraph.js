@@ -2,51 +2,19 @@ import React, { useState } from 'react';
 import { View, Text, Dimensions, StyleSheet } from 'react-native';
 import RNBounceable from '@freakycoder/react-native-bounceable';
 import { LineChart } from 'react-native-gifted-charts';
+import scaleSize from '../../../helper/scaleSize';
 
 const screenWidth = Dimensions.get('window').width;
-
-// Function to determine dynamic font sizes based on screen size
-const getDynamicFontSizes = () => {
-    if (screenWidth >= 430) { // iPhone 14 Pro Max and similar
-        return {
-            titleFontSize: 18,
-            subtitleFontSize: 16.5,
-            buttonTextFontSize: 14,
-            labelTextFontSize: 14,
-            yAxisTextFontSize: 14,
-            xAxisTextFontSize: 13.5,
-        };
-    } else if (screenWidth >= 390) { // iPhone 13/14 and similar
-        return {
-            titleFontSize: 16,
-            subtitleFontSize: 15,
-            buttonTextFontSize: 13,
-            labelTextFontSize: 13,
-            yAxisTextFontSize: 13,
-            xAxisTextFontSize: 12,
-        };
-    } else if (screenWidth >= 375) { // iPhone X/XS/11 Pro and similar
-        return {
-            titleFontSize: 15.5,
-            subtitleFontSize: 14.5,
-            buttonTextFontSize: 12.5,
-            labelTextFontSize: 12.5,
-            yAxisTextFontSize: 12.5,
-            xAxisTextFontSize: 11.5,
-        };
-    } else { // Smaller iPhone models (like iPhone SE)
-        return {
-            titleFontSize: 15,
-            subtitleFontSize: 14,
-            buttonTextFontSize: 12,
-            labelTextFontSize: 12,
-            yAxisTextFontSize: 12,
-            xAxisTextFontSize: 11,
-        };
-    }
+const scaled = (n) => scaleSize(n);
+// Centralize font sizes using scaleSize for consistency across devices
+const FONTS = {
+    title: scaled(16),
+    subtitle: scaled(15),
+    buttonText: scaled(13),
+    labelText: scaled(13),
+    yAxisText: scaled(13),
+    xAxisText: scaled(12),
 };
-
-const dynamicFontSizes = getDynamicFontSizes();
 
 export default function ExerciseGraph({ name, exercise }) {
     const [selectedOption, setSelectedOption] = useState('2 Weeks');
@@ -62,15 +30,15 @@ export default function ExerciseGraph({ name, exercise }) {
         <View style={styles.main_ctnr}>
             <View style={styles.header}>
                 <View style={styles.headerLeft}>
-                    <Text style={[styles.title, { fontSize: dynamicFontSizes.titleFontSize }]}>{name}</Text>
-                    <Text style={[styles.subtitle, { fontSize: dynamicFontSizes.subtitleFontSize }]}>{`1 Rep Max`}</Text>
+                    <Text style={[styles.title, { fontSize: scaleSize(FONTS.title) }]}>{name}</Text>
+                    <Text style={[styles.subtitle, { fontSize: scaleSize(FONTS.subtitle) }]}>{`1 Rep Max`}</Text>
                 </View>
                 <View style={styles.headerRight}>
                     <RNBounceable
                         style={[styles.button, styles.selectedButton]}
                         onPress={handleButtonPress}
                     >
-                        <Text style={[styles.buttonText, { fontSize: dynamicFontSizes.buttonTextFontSize }]}>{selectedOption}</Text>
+                        <Text style={[styles.buttonText, { fontSize: scaleSize(FONTS.buttonText) }]}>{selectedOption}</Text>
                     </RNBounceable>
                 </View>
             </View>
@@ -83,8 +51,8 @@ export default function ExerciseGraph({ name, exercise }) {
                     maxValue={500}
                     noOfSections={3}
                     yAxisThickness={0}
-                    yAxisTextStyle={[styles.yAxisTextStyle, { fontSize: dynamicFontSizes.yAxisTextFontSize }]}
-                    xAxisTextStyle={[styles.xAxisTextStyle, { fontSize: dynamicFontSizes.xAxisTextFontSize }]}
+                    yAxisTextStyle={[styles.yAxisTextStyle, { fontSize: scaleSize(FONTS.yAxisText) }]}
+                    xAxisTextStyle={[styles.xAxisTextStyle, { fontSize: scaleSize(FONTS.xAxisText) }]}
                     backgroundColor="#252733"
                     initialSpacing={12}
                     yAxisColor="rgba(255,255,255,0.1)"
@@ -101,17 +69,17 @@ const styles = StyleSheet.create({
     main_ctnr: {
         alignItems: 'center',
         backgroundColor: '#252733',
-        borderRadius: 20,
-        paddingTop: 5,
-        paddingBottom: 15,
+        borderRadius: scaleSize(20),
+        paddingTop: scaleSize(5),
+        paddingBottom: scaleSize(15),
     },
     header: {
         width: '100%',
         flexDirection: 'row',
         justifyContent: 'space-between',
         alignItems: 'center',
-        paddingLeft: 2,
-        paddingBottom: 18,
+        paddingLeft: scaleSize(2),
+        paddingBottom: scaleSize(18),
     },
     headerLeft: {
         flexDirection: 'column',
@@ -128,12 +96,12 @@ const styles = StyleSheet.create({
         fontFamily: 'Outfit_700Bold',
     },
     button: {
-        borderRadius: 20,
-        paddingHorizontal: 11,
-        paddingVertical: 7,
-        marginLeft: 5,
+        borderRadius: scaleSize(20),
+        paddingHorizontal: scaleSize(11),
+        paddingVertical: scaleSize(7),
+        marginLeft: scaleSize(5),
         backgroundColor: '#1E232C',
-        marginRight: 5,
+        marginRight: scaleSize(5),
     },
     selectedButton: {
         backgroundColor: '#6FB8FF',
@@ -143,7 +111,7 @@ const styles = StyleSheet.create({
         fontFamily: 'Outfit_700Bold',
     },
     chart_ctnr: {
-        paddingRight: 30,
+        paddingRight: scaleSize(30),
     },
     yAxisTextStyle: {
         color: '#AEB5C0',

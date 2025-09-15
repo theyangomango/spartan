@@ -7,6 +7,8 @@ import {
     useClearByFocusCell,
 } from 'react-native-confirmation-code-field';
 
+import scaleSize from "../../helper/scaleSize";
+
 const CELL_COUNT = 4;
 
 
@@ -49,25 +51,25 @@ export default function JoinWorkoutModal() {
 const styles = StyleSheet.create({
     root: {
         flex: 1,
-        paddingHorizontal: 70,
-        paddingTop: 20,
+        paddingHorizontal: scaleSize(70),
+        paddingTop: scaleSize(20),
     },
     title: {
         textAlign: 'center',
         fontFamily: 'Poppins_500Medium',
-        fontSize: 20
+        fontSize: scaleSize(20)
     },
     codeFieldRoot: {
-        marginTop: 20
+        marginTop: scaleSize(20)
     },
     cell: {
-        width: 44,
-        height: 44,
-        borderRadius: 8,
-        lineHeight: 38,
-        fontSize: 15,
+        width: scaleSize(44),
+        height: scaleSize(44),
+        borderRadius: scaleSize(8),
+        lineHeight: scaleSize(38),
+        fontSize: scaleSize(15),
         fontFamily: 'Poppins_400Regular',
-        borderWidth: 1.5,
+        borderWidth: scaleSize(1.5),
         borderColor: '#00000030',
         textAlign: 'center',
     },

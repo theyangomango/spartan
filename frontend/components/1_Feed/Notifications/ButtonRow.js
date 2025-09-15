@@ -97,12 +97,12 @@ const styles = StyleSheet.create({
         borderRadius: scaleSize(18),
         marginRight: scaleSize(8),
         position: "relative",
-        borderWidth: 1,
+        borderWidth: scaleSize(1),
         borderColor: theme.hairline,
         shadowColor: "#000",
         shadowOpacity: 0.12,
-        shadowRadius: 8,
-        shadowOffset: { width: 0, height: 4 },
+        shadowRadius: scaleSize(8),
+        shadowOffset: { width: 0, height: scaleSize(4) },
         elevation: 1,
     },
     chipSelected: {
@@ -114,7 +114,7 @@ const styles = StyleSheet.create({
     },
     chipText: {
         color: theme.textPrimary,
-        fontSize: ts(13),
+        fontSize: scaleSize(13),
         fontFamily: "Outfit_600SemiBold",
     },
     chipTextSelected: {
@@ -134,14 +134,14 @@ const styles = StyleSheet.create({
         paddingHorizontal: scaleSize(7),
         paddingVertical: scaleSize(4),
         shadowColor: theme.primary,
-        shadowOffset: { width: 0, height: 1 },
+        shadowOffset: { width: 0, height: scaleSize(1) },
         shadowOpacity: 0.35,
-        shadowRadius: 3,
+        shadowRadius: scaleSize(3),
         elevation: 3,
     },
     badgeText: {
         color: theme.textPrimary,
-        fontSize: ts(10),
+        fontSize: scaleSize(10),
         fontFamily: "Outfit_600SemiBold",
     },
 });

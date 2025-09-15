@@ -4,9 +4,10 @@ import { FontAwesome6, AntDesign } from '@expo/vector-icons';
 import { Location, Weight } from 'iconsax-react-native';
 import { Feather } from '@expo/vector-icons';
 import makeID from "../../../../backend/helper/makeID";
-import { getDownloadURL, ref, uploadBytes } from "firebase/storage";
-import { storage } from "../../../../firebase.config";
+// Storage handled via native resumable helper to avoid RN Blob issues
 import * as ImageManipulator from 'expo-image-manipulator';
+import * as FileSystem from 'expo-file-system';
+import uploadResumableNative from "../../../../backend/storage/uploadResumableNative";
 import createPost from "../../../../backend/posts/createPost";
 import arrayAppend from "../../../../backend/helper/firebase/arrayAppend";
 import formatDate from '../../../helper/formatDate';
@@ -16,6 +17,8 @@ import PostHonestyModal from "./PostHonestyModal";
 import BottomSheet, { BottomSheetBackdrop } from "@gorhom/bottom-sheet";
 import WorkoutHistoryCard from "../ProfileBottom/History/WorkoutHistoryCard";
 import theme from '../../../theme/mfpDark';
+
+import scaleSize1 from "../../../helper/scaleSize";
 
 const { width: screenWidth, height: screenHeight } = Dimensions.get('window');
 const scale = screenWidth / 375; // Assuming a base screen width of 375 (like iPhone X)
@@ -71,15 +74,26 @@ export default function PostOptionsScreen({ navigation, route }) {
             const image = images[index];
 
             try {
-                // const compressedUri = await compressImage(image);
-                compressedUri = await compressUnder250KB(image);
-                const res = await fetch(compressedUri);
-                const bytes = await res.blob();
+                // Compress while preserving quality/resolution
+                let compressedUri = await compressUnder250KB(image);
+                // Safety: ensure we have a file:// path readable by FileSystem (iOS can return ph:// from MediaLibrary)
+                if (!compressedUri || !compressedUri.startsWith('file://')) {
+                    const tmp = await ImageManipulator.manipulateAsync(
+                        compressedUri || image,
+                        [],
+                        { compress: 1, format: ImageManipulator.SaveFormat.JPEG }
+                    );
+                    compressedUri = tmp?.uri;
+                }
+                // Pick extension and proper content-type from URI
+                const withoutQuery = (compressedUri || '').split('?')[0];
+                const match = withoutQuery.match(/\.([a-zA-Z0-9]+)$/);
+                const ext = (match ? match[1] : 'jpg').toLowerCase();
+                const mime = ext === 'png' ? 'image/png' : (ext === 'webp' ? 'image/webp' : 'image/jpeg');
 
                 const id = makeID();
-                const imageRef = ref(storage, `posts/${pid}-${id}.jpeg`);
-                await uploadBytes(imageRef, bytes);
-                const url = await getDownloadURL(imageRef);
+                const path = `posts/${pid}-${id}.${ext}`;
+                const { url } = await uploadResumableNative({ fileUri: compressedUri, path, mime });
                 downloadedImageURLs.push(url);
             } catch (error) {
                 console.error(`Error processing image ${index + 1}:`, error);
@@ -270,7 +284,8 @@ const styles = StyleSheet.create({
         alignItems: 'flex-end',
     },
     share_btn: {
-        width: scaleSize(75),
+        minWidth: scaleSize(75),
+        paddingHorizontal: scaleSize(12),
         height: scaleSize(32),
         borderRadius: scaleSize(12),
         backgroundColor: theme.primary,

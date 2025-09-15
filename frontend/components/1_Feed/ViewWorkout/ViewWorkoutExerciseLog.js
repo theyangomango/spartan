@@ -84,62 +84,62 @@ export default ViewWorkoutExerciseLog;
 
 const styles = StyleSheet.create({
     main_ctnr: {
-        marginTop: scaledSize(16),
-        marginBottom: scaledSize(6),
+        marginTop: scaleSize(scaledSize(16)),
+        marginBottom: scaleSize(scaledSize(6)),
     },
     header: {
         flexDirection: 'row',
         alignItems: 'center',
-        paddingLeft: scaledSize(20),
-        paddingBottom: scaledSize(10),
-        marginHorizontal: scaledSize(2.5),
+        paddingLeft: scaleSize(scaledSize(20)),
+        paddingBottom: scaleSize(scaledSize(10)),
+        marginHorizontal: scaleSize(scaledSize(2.5)),
     },
     nameContainer: {
         flexDirection: 'row',
         alignItems: 'center',
         flexShrink: 1,
-        marginRight: scaledSize(10),
+        marginRight: scaleSize(scaledSize(10)),
     },
     exercise_text: {
         fontFamily: 'Mulish_800ExtraBold',
         color: '#0699FF',
-        fontSize: scaledSize(15),
+        fontSize: scaleSize(15),
         flexShrink: 1,
     },
     muscle_ctnr: {
-        borderRadius: scaledSize(15),
-        height: scaledSize(23.5),
-        paddingHorizontal: scaledSize(12),
+        borderRadius: scaleSize(scaledSize(15)),
+        height: scaleSize(scaledSize(23.5)),
+        paddingHorizontal: scaleSize(scaledSize(12)),
         alignItems: 'center',
         justifyContent: 'center',
-        marginLeft: scaledSize(5),
+        marginLeft: scaleSize(scaledSize(5)),
     },
     muscle_text: {
         fontFamily: 'Poppins_700Bold',
-        fontSize: scaledSize(12),
+        fontSize: scaleSize(12),
         color: '#fff'
     },
     pfpContainer: {
         flexDirection: 'row',
         alignItems: 'center',
         marginLeft: 'auto',
-        marginRight: scaledSize(10),
+        marginRight: scaleSize(scaledSize(10)),
         opacity: 0.4
     },
     pfp: {
-        width: scaledSize(34),
+        width: scaleSize(scaledSize(34)),
         aspectRatio: 1,
-        borderRadius: scaledSize(20),
-        borderWidth: scaledSize(2),
+        borderRadius: scaleSize(scaledSize(20)),
+        borderWidth: scaleSize(scaledSize(2)),
         borderColor: '#f4f4f4',
     },
     pfpOverlap: {
-        marginLeft: scaledSize(-24),
+        marginLeft: scaleSize(scaledSize(-24)),
     },
     labels: {
         flexDirection: 'row',
-        paddingBottom: scaledSize(5),
-        marginHorizontal: scaledSize(2.5),
+        paddingBottom: scaleSize(scaledSize(5)),
+        marginHorizontal: scaleSize(scaledSize(2.5)),
     },
     set_ctnr: {
         marginLeft: '5%',
@@ -160,6 +160,6 @@ const styles = StyleSheet.create({
     },
     label_text: {
         fontFamily: 'Mulish_800ExtraBold',
-        fontSize: scaledSize(14),
+        fontSize: scaleSize(14),
     },
 });

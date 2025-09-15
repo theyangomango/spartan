@@ -4,6 +4,8 @@ import { Ionicons } from "@expo/vector-icons";
 import { db } from "../../../firebase.config";
 import { collection, onSnapshot } from "firebase/firestore";
 
+import scaleSize from "../../helper/scaleSize";
+
 export default function ParticipantsDropdown({ wid, selfUid, onSelect }) {
     const [open, setOpen] = useState(false);
     const [members, setMembers] = useState([]);
@@ -26,11 +28,10 @@ export default function ParticipantsDropdown({ wid, selfUid, onSelect }) {
     return (
         <View style={styles.wrap}>
             <Pressable style={styles.pill} onPress={() => setOpen(v => !v)}>
-                <Ionicons name="people" size={16} color="#2A65D9" style={{ marginRight: 6 }} />
+                <Ionicons name="people" size={16} color="#2A65D9" style={{ marginRight: scaleSize(6) }} />
                 <Text style={styles.pillText} numberOfLines={1}>{label}</Text>
                 <Ionicons name={open ? "chevron-up" : "chevron-down"} size={16} color="#2A65D9" />
             </Pressable>
-
             {open && (
                 <View style={styles.menu}>
                     {members.length === 0 ? (
@@ -47,27 +48,27 @@ export default function ParticipantsDropdown({ wid, selfUid, onSelect }) {
 }
 
 const styles = StyleSheet.create({
-    wrap: { paddingHorizontal: 20, marginBottom: 8 },
+    wrap: { paddingHorizontal: scaleSize(20), marginBottom: scaleSize(8) },
     pill: {
         flexDirection: "row",
         alignItems: "center",
         backgroundColor: "#F1F6FF",
         borderColor: "#DBE9FF",
         borderWidth: StyleSheet.hairlineWidth,
-        borderRadius: 12,
-        paddingHorizontal: 12,
-        paddingVertical: 8,
+        borderRadius: scaleSize(12),
+        paddingHorizontal: scaleSize(12),
+        paddingVertical: scaleSize(8),
     },
-    pillText: { fontFamily: "Nunito_800ExtraBold", color: "#2A65D9", marginRight: 6 },
+    pillText: { fontFamily: "Nunito_800ExtraBold", color: "#2A65D9", marginRight: scaleSize(6) },
     menu: {
-        marginTop: 6,
-        borderRadius: 12,
+        marginTop: scaleSize(6),
+        borderRadius: scaleSize(12),
         backgroundColor: "#fff",
         borderWidth: StyleSheet.hairlineWidth,
         borderColor: "#e6ecf5",
         overflow: "hidden",
     },
-    empty: { padding: 10, fontFamily: "Nunito_600SemiBold", color: "#667" },
-    item: { paddingVertical: 10, paddingHorizontal: 12 },
+    empty: { padding: scaleSize(10), fontFamily: "Nunito_600SemiBold", color: "#667" },
+    item: { paddingVertical: scaleSize(10), paddingHorizontal: scaleSize(12) },
     itemText: { fontFamily: "Nunito_700Bold", color: "#111" },
 });

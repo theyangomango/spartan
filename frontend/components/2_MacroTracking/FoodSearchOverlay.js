@@ -27,6 +27,8 @@ import { db } from '../../../firebase.config';
 // Alias Firestore's query() to avoid clashing with local state `query`
 import { collection, getDocs, orderBy, query as fsQuery, limit } from 'firebase/firestore';
 
+import scaleSize from "../../helper/scaleSize";
+
 export default function FoodSearchOverlay({
     visible,
     activeMeal,
@@ -165,14 +167,14 @@ export default function FoodSearchOverlay({
         if (!recentFoods?.length) return null;
 
         return (
-            <View style={{ marginTop: 10 }}>
+            <View style={{ marginTop: scaleSize(10) }}>
                 <Text style={styles.historyHeader}>Recent foods</Text>
                 <FlatList
                     data={recentFoods}
                     keyExtractor={(it, idx) => String(it.id ?? idx)}
                     renderItem={renderHistoryItem}
                     scrollEnabled={false}
-                    contentContainerStyle={{ paddingBottom: 12 }}
+                    contentContainerStyle={{ paddingBottom: scaleSize(12) }}
                 />
             </View>
         );
@@ -237,7 +239,7 @@ export default function FoodSearchOverlay({
                         />
                         {/* Close overlay button at end of input */}
                         <Pressable onPress={onClose} hitSlop={8} accessibilityLabel="Close search overlay">
-                            <Ionicons name="close" size={18} color="#999" style={{ marginLeft: 10 }} />
+                            <Ionicons name="close" size={18} color="#999" style={{ marginLeft: scaleSize(10) }} />
                         </Pressable>
                     </View>
                 </View>
@@ -248,7 +250,7 @@ export default function FoodSearchOverlay({
                     behavior={Platform.OS === 'ios' ? 'padding' : undefined}
                 >
                     <FlatList
-                        contentContainerStyle={{ paddingBottom: 24 }}
+                        contentContainerStyle={{ paddingBottom: scaleSize(24) }}
                         data={results}
                         keyExtractor={(item) => String(item.food_id)}
                         keyboardShouldPersistTaps="handled"
@@ -342,7 +344,7 @@ export default function FoodSearchOverlay({
                                         <Ionicons name="close" size={26} color="#fff" />
                                     </Pressable>
                                     <Text style={styles.scannerTitle}>Scan a barcode</Text>
-                                    <View style={{ width: 26 }} />
+                                    <View style={{ width: scaleSize(26) }} />
                                 </View>
                                 {/* Bottom hint */}
                                 <View style={styles.scannerFooter}>
@@ -351,12 +353,12 @@ export default function FoodSearchOverlay({
                             </CameraView>
                         ) : (
                             <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: 'black' }}>
-                                <Text style={{ color: 'white', marginBottom: 12 }}>Camera permission is required</Text>
+                                <Text style={{ color: 'white', marginBottom: scaleSize(12), fontSize: scaleSize(14) }}>Camera permission is required</Text>
                                 <Pressable
                                     onPress={requestPermission}
-                                    style={{ paddingHorizontal: 16, paddingVertical: 10, backgroundColor: '#2D92FF', borderRadius: 8 }}
+                                    style={{ paddingHorizontal: scaleSize(16), paddingVertical: scaleSize(10), backgroundColor: '#2D92FF', borderRadius: scaleSize(8) }}
                                 >
-                                    <Text style={{ color: 'white', fontWeight: '600' }}>Grant Permission</Text>
+                                    <Text style={{ color: 'white', fontWeight: '600', fontSize: scaleSize(14) }}>Grant Permission</Text>
                                 </Pressable>
                             </View>
                         )}
@@ -371,9 +373,9 @@ const makeStyles = (COLORS) =>
     StyleSheet.create({
         overlayContainer: { flex: 1, backgroundColor: COLORS.bg || COLORS.background || '#131521' },
         overlayHeader: {
-            paddingTop: 56,
-            paddingBottom: 12,
-            paddingHorizontal: 16,
+            paddingTop: scaleSize(56),
+            paddingBottom: scaleSize(12),
+            paddingHorizontal: scaleSize(16),
             flexDirection: 'row',
             alignItems: 'center',
             justifyContent: 'space-between',
@@ -381,63 +383,64 @@ const makeStyles = (COLORS) =>
             position: 'relative',          // <-- important for absolute title
         },
         headerLeft: {
-            padding: 6,
+            padding: scaleSize(6),
         },
         headerRight: {
-            paddingHorizontal: 6,
-            paddingVertical: 4,
+            paddingHorizontal: scaleSize(6),
+            paddingVertical: scaleSize(4),
         },
         titleCenterWrap: {
             position: 'absolute',
             left: 0,
             right: 0,
-            top: 62,                        // matches paddingTop so it sits in the header line
+            top: scaleSize(62),                        // matches paddingTop so it sits in the header line
             alignItems: 'center',
         },
         overlayTitle: {
-            fontSize: require('../../helper/scaleSize').ts(18),
+            fontSize: scaleSize(17),
             color: COLORS.text || COLORS.textPrimary || '#E5E7EB',
             fontFamily: 'Outfit_600SemiBold',
         },
         headerActionText: {
             fontFamily: 'Outfit_600SemiBold',
-            fontSize: require('../../helper/scaleSize').ts(14),
+            fontSize: scaleSize(14),
             color: '#2D92FF',
         },
 
-        searchContainer: { paddingHorizontal: 18, marginBottom: 12 },
+        searchContainer: { paddingHorizontal: scaleSize(18), marginBottom: scaleSize(12) },
         searchBox: {
             backgroundColor: COLORS.fieldBg || COLORS.card || '#252733',
             flexDirection: 'row',
             alignItems: 'center',
-            borderRadius: 20,
-            paddingHorizontal: 14,
-            paddingVertical: 13,
+            borderRadius: scaleSize(20),
+            paddingHorizontal: scaleSize(14),
+            paddingVertical: scaleSize(13),
             shadowColor: '#000',
             shadowOpacity: 0.08,
-            shadowOffset: { width: 0, height: 1 },
-            shadowRadius: 3,
+            shadowOffset: { width: 0, height: scaleSize(1) },
+            shadowRadius: scaleSize(3),
             elevation: 2,
         },
         searchInput: {
             flex: 1,
             fontFamily: 'Outfit_400Regular',
-            fontSize: require('../../helper/scaleSize').ts(15),
+            fontSize: scaleSize(15),
             color: COLORS.text || COLORS.textPrimary || '#E5E7EB',
             paddingVertical: 0,
         },
         emptyText: {
             textAlign: 'center',
-            marginTop: 12,
-            marginBottom: 4,
+            marginTop: scaleSize(12),
+            marginBottom: scaleSize(4),
             color: COLORS.subtext || COLORS.textSecondary || '#A1A7B3',
             fontFamily: 'Outfit_400Regular',
+            fontSize: scaleSize(13),
         },
         historyHeader: {
-            marginTop: 8,
-            marginBottom: 8,
-            paddingHorizontal: 26,
-            fontSize: require('../../helper/scaleSize').ts(14),
+            marginTop: scaleSize(8),
+            marginBottom: scaleSize(8),
+            paddingHorizontal: scaleSize(26),
+            fontSize: scaleSize(14),
             color: COLORS.subtext || COLORS.textSecondary || '#A1A7B3',
             fontFamily: 'Outfit_600SemiBold',
         },
@@ -445,9 +448,9 @@ const makeStyles = (COLORS) =>
         // Modal-related styles moved to extracted components
         scannerHeader: {
             position: 'absolute',
-            top: 54,
-            left: 16,
-            right: 16,
+            top: scaleSize(54),
+            left: scaleSize(16),
+            right: scaleSize(16),
             zIndex: 10,
             flexDirection: 'row',
             alignItems: 'center',
@@ -455,23 +458,23 @@ const makeStyles = (COLORS) =>
         },
         scannerTitle: {
             color: '#fff',
-            fontSize: require('../../helper/scaleSize').ts(16),
+            fontSize: scaleSize(16),
             fontFamily: 'Outfit_600SemiBold',
         },
         scannerFooter: {
             position: 'absolute',
             left: 0,
             right: 0,
-            bottom: 48,
+            bottom: scaleSize(48),
             alignItems: 'center',
         },
         scannerHint: {
             color: 'rgba(255,255,255,0.9)',
-            fontSize: require('../../helper/scaleSize').ts(14),
-            paddingHorizontal: 16,
-            paddingVertical: 8,
+            fontSize: scaleSize(14),
+            paddingHorizontal: scaleSize(16),
+            paddingVertical: scaleSize(8),
             backgroundColor: 'rgba(0,0,0,0.4)',
-            borderRadius: 12,
+            borderRadius: scaleSize(12),
             overflow: 'hidden'
         }
     });

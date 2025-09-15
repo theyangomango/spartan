@@ -7,6 +7,8 @@ import { db } from "../../../firebase.config";
 import { usePfp } from "../../helper/usePFPs";
 import FastImage from "react-native-fast-image";
 
+import scaleSize from "../../helper/scaleSize";
+
 const s = (n) => n; // simple pass-through; your parent coordinates already use scale
 
 export default function InviteBanner({ uid, headerHeight = 0, onJoin }) {
@@ -113,7 +115,7 @@ export default function InviteBanner({ uid, headerHeight = 0, onJoin }) {
         <Animated.View
             style={[
                 styles.inviteBannerWrap,
-                { top: headerHeight + 6, transform: [{ translateY: bannerY }] },
+                { top: scaleSize(headerHeight + 6), transform: [{ translateY: bannerY }] },
             ]}
             pointerEvents={currentInvite ? "auto" : "none"}
             onLayout={handleInviteLayout}
@@ -167,35 +169,35 @@ const styles = StyleSheet.create({
     },
     inviteCard: {
         width: "92%",
-        borderRadius: 14,
+        borderRadius: scaleSize(14),
         backgroundColor: "#F7FAFF",
-        borderWidth: 1,
+        borderWidth: scaleSize(1),
         borderColor: "#E5EEF9",
-        paddingVertical: 10,
-        paddingHorizontal: 12,
+        paddingVertical: scaleSize(10),
+        paddingHorizontal: scaleSize(12),
         flexDirection: "row",
         alignItems: "center",
         justifyContent: "space-between",
         shadowColor: "#000",
         shadowOpacity: 0.08,
-        shadowRadius: 10,
-        shadowOffset: { width: 0, height: 6 },
+        shadowRadius: scaleSize(10),
+        shadowOffset: { width: 0, height: scaleSize(6) },
         elevation: 3,
     },
-    inviteLeft: { flexDirection: "row", alignItems: "center", flex: 1, marginRight: 8 },
+    inviteLeft: { flexDirection: "row", alignItems: "center", flex: 1, marginRight: scaleSize(8) },
     invitePfpWrap: {
-        width: 36, height: 36, borderRadius: 18, overflow: "hidden",
-        marginRight: 10, backgroundColor: "#fff", borderWidth: 1, borderColor: "#fff",
+        width: scaleSize(36), height: scaleSize(36), borderRadius: scaleSize(18), overflow: "hidden",
+        marginRight: scaleSize(10), backgroundColor: "#fff", borderWidth: scaleSize(1), borderColor: "#fff",
     },
     invitePfp: { width: "100%", height: "100%" },
-    inviteTitle: { fontFamily: "Outfit_700Bold", fontSize: 14.5, color: "#0F172A" },
-    inviteSub: { fontFamily: "Outfit_500Medium", fontSize: 12.5, color: "#64748B", marginTop: 2 },
+    inviteTitle: { fontFamily: "Outfit_700Bold", fontSize: scaleSize(14.5), color: "#0F172A" },
+    inviteSub: { fontFamily: "Outfit_500Medium", fontSize: scaleSize(12.5), color: "#64748B", marginTop: scaleSize(2) },
     inviteActions: { flexDirection: "row", alignItems: "center" },
     inviteAccept: {
-        height: 30, paddingHorizontal: 14, borderRadius: 999, backgroundColor: "#10B981",
-        alignItems: "center", justifyContent: "center", marginRight: 8,
+        height: scaleSize(30), paddingHorizontal: scaleSize(14), borderRadius: scaleSize(999), backgroundColor: "#10B981",
+        alignItems: "center", justifyContent: "center", marginRight: scaleSize(8),
     },
-    inviteAcceptText: { color: "#fff", fontFamily: "Outfit_700Bold", fontSize: 13 },
-    inviteDismiss: { paddingHorizontal: 6, paddingVertical: 4 },
-    inviteDismissText: { color: "#64748B", fontFamily: "Outfit_600SemiBold", fontSize: 12.5 },
+    inviteAcceptText: { color: "#fff", fontFamily: "Outfit_700Bold", fontSize: scaleSize(13) },
+    inviteDismiss: { paddingHorizontal: scaleSize(6), paddingVertical: scaleSize(4) },
+    inviteDismissText: { color: "#64748B", fontFamily: "Outfit_600SemiBold", fontSize: scaleSize(12.5) },
 });

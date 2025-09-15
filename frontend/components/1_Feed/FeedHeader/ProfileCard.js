@@ -6,6 +6,8 @@ import RNBounceable from '@freakycoder/react-native-bounceable';
 import { usePfp } from '../../../helper/usePFPs';
 import theme from '../../../theme/mfpDark';
 
+import scaleSize from "../../../helper/scaleSize";
+
 const scale = (w) => w / 375;
 
 const ProfileCard = ({ user, query, onPress }) => {
@@ -17,18 +19,18 @@ const ProfileCard = ({ user, query, onPress }) => {
   return (
     <RNBounceable onPress={onPress} style={styles.profileCard} bounceEffectIn={0.96}>
       <View style={styles.profileLeft}>
-        <View style={[styles.avatarRing, { width: avatarSize, height: avatarSize, borderRadius: avatarSize / 2 }] }>
+        <View style={[styles.avatarRing, { width: avatarSize, height: avatarSize, borderRadius: scaleSize(avatarSize / 2) }] }>
           {hasPfp ? (
             <FastImage
               source={{ uri: pfpUri, priority: FastImage.priority.normal, cache: FastImage.cacheControl.immutable }}
-              style={{ width: avatarSize - 4, height: avatarSize - 4, borderRadius: (avatarSize - 4) / 2, backgroundColor: '#f3f4f6' }}
+              style={{ width: scaleSize(avatarSize - 4), height: scaleSize(avatarSize - 4), borderRadius: scaleSize((avatarSize - 4) / 2), backgroundColor: '#f3f4f6' }}
               resizeMode={FastImage.resizeMode.cover}
             />
           ) : (
             <Ionicons name="person-circle" size={avatarSize} color="#C7C7CC" />
           )}
         </View>
-        <View style={{ marginLeft: 12, flex: 1, minWidth: 0 }}>
+        <View style={{ marginLeft: scaleSize(12), flex: 1, minWidth: 0 }}>
           <Text numberOfLines={1} style={styles.cardHandle}>@{user?.handle || 'user'}</Text>
           {!!user?.name && <Text numberOfLines={1} style={styles.cardName}>{user.name}</Text>}
         </View>
@@ -46,12 +48,12 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     backgroundColor: theme.bg,
-    paddingVertical: 12,
-    paddingHorizontal: 18,
+    paddingVertical: scaleSize(12),
+    paddingHorizontal: scaleSize(18),
   },
   profileLeft: { flexDirection: 'row', alignItems: 'center', flex: 1, minWidth: 0 },
   // Remove blue border ring; keep container for centering only
   avatarRing: { alignItems: 'center', justifyContent: 'center', borderWidth: 0, borderColor: 'transparent', backgroundColor: 'transparent' },
-  cardHandle: { fontFamily: 'Outfit_700Bold', fontSize: require('../../../helper/scaleSize').ts(14), color: '#E5E7EB' },
-  cardName: { marginTop: 2, fontFamily: 'Outfit_400Regular', fontSize: require('../../../helper/scaleSize').ts(12.5), color: '#A1A7B3' },
+  cardHandle: { fontFamily: 'Outfit_700Bold', fontSize: scaleSize(14), color: '#E5E7EB' },
+  cardName: { marginTop: scaleSize(2), fontFamily: 'Outfit_400Regular', fontSize: scaleSize(12.5), color: '#A1A7B3' },
 });

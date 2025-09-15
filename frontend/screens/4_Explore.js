@@ -17,6 +17,8 @@ import RNBounceable from '@freakycoder/react-native-bounceable';
 import ExpandedExploreList from '../components/4_Explore/ExpandedExploreList';
 import Footer from '../components/Footer';
 
+import scaleSize from "../helper/scaleSize";
+
 const SCREEN_HEIGHT = Dimensions.get('window').height;
 const SLIDE_DURATION = 300;
 
@@ -234,7 +236,7 @@ export default function Explore({ navigation }) {
         >
             {/* Underlying grid content => fade out with backgroundOpacity */}
             <Animated.View style={[styles.underlyingContent, { opacity: backgroundOpacity }]}>
-                <View style={{ height: 46 }} />
+                <View style={{ height: scaleSize(46) }} />
 
                 <View style={styles.searchAndFiltersContainer}>
                     <SearchBarComponent
@@ -289,7 +291,6 @@ export default function Explore({ navigation }) {
                         })}
                 </ScrollView>
             </Animated.View>
-
             {/* The expanded list, sliding up from the bottom. 
           Inside it, we do the “Feed-like” focusing logic. */}
             {isExpandedVisible && (
@@ -305,7 +306,6 @@ export default function Explore({ navigation }) {
                     />
                 </Animated.View>
             )}
-
             {/* Footer (like the Feed). We don't fade the footer here, but you could if you wish. */}
             <Footer currentScreenName="Explore" navigation={navigation} />
         </KeyboardAvoidingView>
@@ -324,14 +324,14 @@ const styles = StyleSheet.create({
     searchAndFiltersContainer: {
         flexDirection: 'row',
         alignItems: 'center',
-        paddingTop: 6,
-        paddingBottom: 5,
-        paddingLeft: 16,
+        paddingTop: scaleSize(6),
+        paddingBottom: scaleSize(5),
+        paddingLeft: scaleSize(16),
         zIndex: 1000,
     },
     searchBar: {
         flex: 1,
-        marginRight: 8,
+        marginRight: scaleSize(8),
     },
     filterButtonsWrapper: {
         flexDirection: 'row',
@@ -339,14 +339,14 @@ const styles = StyleSheet.create({
     },
     scrollViewContent: {},
     scrollview: {
-        marginLeft: 8,
+        marginLeft: scaleSize(8),
     },
     filterButton: {
         backgroundColor: '#e9e9e9',
-        borderRadius: 12,
-        paddingVertical: 8,
-        paddingHorizontal: 13,
-        marginRight: 6,
+        borderRadius: scaleSize(12),
+        paddingVertical: scaleSize(8),
+        paddingHorizontal: scaleSize(13),
+        marginRight: scaleSize(6),
     },
     selectedFilterButton: {
         backgroundColor: '#6AB2F8',
@@ -354,15 +354,15 @@ const styles = StyleSheet.create({
     selectedFilterButtonText: {
         color: '#fff',
         fontFamily: 'Mulish_800ExtraBold',
-        fontSize: require('../helper/scaleSize').ts(13.25),
+        fontSize: scaleSize(13.25),
     },
     unselectedFilterButtonText: {
         color: '#222',
         fontFamily: 'Mulish_700Bold',
-        fontSize: require('../helper/scaleSize').ts(13.25),
+        fontSize: scaleSize(13.25),
     },
     gridScrollView: {
-        paddingHorizontal: 1,
+        paddingHorizontal: scaleSize(1),
     },
     gridContainer: {},
     gridRow: {

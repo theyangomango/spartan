@@ -6,6 +6,8 @@ import ProfileCard from '../../ProfileCard';
 import RNBounceable from '@freakycoder/react-native-bounceable';
 import theme from '../../../theme/mfpDark';
 
+import scaleSize from "../../../helper/scaleSize";
+
 export default function ShareModal({ closeBottomSheet }) {
     const [followingUsers, setFollowingUsers] = useState([]);
     const [selectedUsers, setSelectedUsers] = useState([]);
@@ -92,50 +94,50 @@ export default function ShareModal({ closeBottomSheet }) {
 const styles = StyleSheet.create({
     container: {
         flex: 1,
-        borderTopLeftRadius: 25,
-        borderTopRightRadius: 25,
-        paddingTop: 5,
+        borderTopLeftRadius: scaleSize(25),
+        borderTopRightRadius: scaleSize(25),
+        paddingTop: scaleSize(5),
         backgroundColor: theme.surface
     },
     header: {
-        paddingHorizontal: 16,
-        paddingTop: 16,
-        paddingBottom: 5,
+        paddingHorizontal: scaleSize(16),
+        paddingTop: scaleSize(16),
+        paddingBottom: scaleSize(5),
         alignItems: 'center',
     },
     searchContainer: {
         flexDirection: 'row',
         alignItems: 'center',
         backgroundColor: theme.field,
-        borderRadius: 8,
+        borderRadius: scaleSize(8),
         width: '100%',
-        paddingHorizontal: 8,
+        paddingHorizontal: scaleSize(8),
     },
     searchIcon: {
-        marginRight: 8,
+        marginRight: scaleSize(8),
     },
     searchBar: {
         flex: 1,
-        padding: 8,
+        padding: scaleSize(8),
         color: '#E5E7EB'
     },
     flatlistContainer: {
     },
     sendButton: {
         position: 'absolute',
-        bottom: 45,
-        left: 22,
-        right: 22,
+        bottom: scaleSize(45),
+        left: scaleSize(22),
+        right: scaleSize(22),
         backgroundColor: '#2D9EFF',
-        borderRadius: 15,
-        paddingVertical: 13,
-        paddingHorizontal: 30,
+        borderRadius: scaleSize(15),
+        paddingVertical: scaleSize(13),
+        paddingHorizontal: scaleSize(30),
         alignItems: 'center',
         justifyContent: 'center'
     },
     sendButtonText: {
         color: 'white',
-        fontSize: require('../../../helper/scaleSize').ts(15.5),
+        fontSize: scaleSize(15.5),
         fontFamily: 'Poppins_600SemiBold'
     },
 });

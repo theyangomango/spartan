@@ -49,6 +49,8 @@ import useRestTimer from "./hooks/useRestTimer";
 import useWorkoutEditing from "./hooks/useWorkoutEditing";
 import useWorkoutTotals from "./hooks/useWorkoutTotals";
 
+import scaleSize from "../../../helper/scaleSize";
+
 const NewWorkoutModal = ({
     workout,
     cancelWorkout,
@@ -624,7 +626,6 @@ const NewWorkoutModal = ({
                 />
             </View>
             <Animated.View style={[styles.headerShadow, { opacity: borderOpacity }]} />
-
             {/* Body */}
             {friendWaiting ? (
                 <View style={styles.waitingWrap}>
@@ -633,7 +634,7 @@ const NewWorkoutModal = ({
             ) : (
                 isEmptyList ? (
                     // Robust empty state rendered outside the list to avoid FlashList measurement quirks
-                    <Animated.View style={[styles.scrollview, { opacity: contentDimAnim }]}> 
+                    (<Animated.View style={[styles.scrollview, { opacity: contentDimAnim }]}>
                         <ProgressBanner totalReps={totals.reps} totalVolume={totals.volume} personalBests={totals.PBs} />
                         {viewingSelfEffective && (
                             <>
@@ -645,11 +646,11 @@ const NewWorkoutModal = ({
                                 </RNBounceable>
                             </>
                         )}
-                        <View style={{ height: scaledSize(250) + Math.max(0, keyboardHeight - scaledSize(40)) }} />
-                    </Animated.View>
+                        <View style={{ height: scaleSize(scaledSize(250) + Math.max(0, keyboardHeight - scaledSize(40))) }} />
+                    </Animated.View>)
                 ) : (
                     /* Animated FlashList for smoother, low-overhead virtualization */
-                    <Animated.View style={[styles.listWrap, { opacity: contentDimAnim }]}>
+                    (<Animated.View style={[styles.listWrap, { opacity: contentDimAnim }]}>
                         <AnimatedFlashList
                             key={`wlist-${cardWid}`}
                             ref={listRef}
@@ -686,7 +687,7 @@ const NewWorkoutModal = ({
                                             </RNBounceable>
                                         </>
                                     )}
-                                    <View style={{ height: scaledSize(250) + Math.max(0, keyboardHeight - scaledSize(40)) }} />
+                                    <View style={{ height: scaleSize(scaledSize(250) + Math.max(0, keyboardHeight - scaledSize(40))) }} />
                                 </>
                             )}
                             showsVerticalScrollIndicator={false}
@@ -697,10 +698,9 @@ const NewWorkoutModal = ({
                             {...(canUseFlashList ? { estimatedItemSize: scaledSize(72) } : {})}
                             contentContainerStyle={styles.scrollview}
                         />
-                    </Animated.View>
+                    </Animated.View>)
                 )
             )}
-
             {/* Add / Replace Exercises */}
             <Modal animationType="fade" transparent visible={selectExerciseModalVisible}>
                 <SelectExerciseModal
@@ -709,7 +709,6 @@ const NewWorkoutModal = ({
                     userWorkoutStats={activeStats}
                 />
             </Modal>
-
             {/* Rest Timer Modal */}
             <RestTimerModal
                 key={restModalKey}
@@ -721,7 +720,6 @@ const NewWorkoutModal = ({
                 onAdd={addCountdown}
                 onReset={resetCountdown}
             />
-
             {/* Delete confirm */}
             <Modal
                 animationType="fade"
@@ -742,7 +740,6 @@ const NewWorkoutModal = ({
                     </View>
                 </View>
             </Modal>
-
             {/* Finish confirm (self only) */}
             <Modal
                 animationType="fade"
@@ -769,7 +766,6 @@ const NewWorkoutModal = ({
                     </Pressable>
                 </Pressable>
             </Modal>
-
             {/* Group menu & invite picker — hidden when locked to friend */}
             {!lockFriend && (
                 <GroupMenu
@@ -786,8 +782,6 @@ const NewWorkoutModal = ({
                     }}
                 />
             )}
-
-
             {/* Tracking reminder (self only) */}
             <Modal
                 key={`reminder-${reminderVisible ? 1 : 0}`}
@@ -818,7 +812,6 @@ const NewWorkoutModal = ({
                     </LinearGradient>
                 </Pressable>
             </Modal>
-
             {/* Confetti overlay (mount when cheering is relevant: spectating live OR self active) */}
             {(friendOngoing || isActiveSelf) && (() => { const ConfettiCannon = loadConfettiModule(); return ConfettiCannon ? (
                 <View pointerEvents="none" style={StyleSheet.absoluteFill}>
@@ -854,30 +847,30 @@ const styles = StyleSheet.create({
     // Let BottomSheet control background color; keep transparent here
     header: { backgroundColor: 'transparent' },
     headerInner: {
-        paddingBottom: scaledSize(6),
-        paddingHorizontal: scaledSize(22),
-        paddingTop: scaledSize(6),
+        paddingBottom: scaleSize(scaledSize(6)),
+        paddingHorizontal: scaleSize(scaledSize(22)),
+        paddingTop: scaleSize(scaledSize(6)),
         flexDirection: "row",
         alignItems: "center",
         justifyContent: "space-between",
         backgroundColor: 'transparent',
         zIndex: 5,
     },
-    headerShadow: { height: scaledSize(2), backgroundColor: theme.hairline },
+    headerShadow: { height: scaleSize(scaledSize(2)), backgroundColor: theme.hairline },
 
     // Allow the BottomSheet background to show through
-    scrollview: { paddingTop: scaledSize(5), backgroundColor: 'transparent' },
+    scrollview: { paddingTop: scaleSize(scaledSize(5)), backgroundColor: 'transparent' },
     // Ensure FlashList receives a parent with a valid size
     listWrap: { flex: 1 },
 
     waitingWrap: { flex: 1, alignItems: "center", justifyContent: "center", backgroundColor: 'transparent' },
-    waitingText: { marginTop: 6, fontFamily: "Nunito_700Bold", color: theme.textPrimary },
+    waitingText: { marginTop: scaleSize(6), fontFamily: "Nunito_700Bold", color: theme.textPrimary },
 
     add_exercise_btn: {
-        marginHorizontal: scaledSize(20),
-        marginTop: scaledSize(18),
-        height: scaledSize(40),
-        borderRadius: scaledSize(12),
+        marginHorizontal: scaleSize(scaledSize(20)),
+        marginTop: scaleSize(scaledSize(18)),
+        height: scaleSize(scaledSize(40)),
+        borderRadius: scaleSize(scaledSize(12)),
         // Slightly muted brand blue for softer contrast
         backgroundColor: 'rgba(45, 157, 255, 0.6)',
         justifyContent: "center",
@@ -885,22 +878,22 @@ const styles = StyleSheet.create({
         flexDirection: "row",
         shadowColor: theme.primary,
         shadowOpacity: 0.15,
-        shadowRadius: scaledSize(6),
-        shadowOffset: { width: 0, height: scaledSize(3) },
+        shadowRadius: scaleSize(scaledSize(6)),
+        shadowOffset: { width: 0, height: scaleSize(scaledSize(3)) },
         elevation: 2,
     },
     add_exercise_text: {
-        fontSize: scaledSize(16),
+        fontSize: scaleSize(16),
         fontFamily: "Outfit_700Bold",
         color: "#FFFFFF",
-        marginRight: scaledSize(4.5),
+        marginRight: scaleSize(scaledSize(4.5)),
     },
 
     cancel_btn: {
-        marginHorizontal: scaledSize(20),
-        marginTop: scaledSize(14),
-        height: scaledSize(40),
-        borderRadius: scaledSize(12),
+        marginHorizontal: scaleSize(scaledSize(20)),
+        marginTop: scaleSize(scaledSize(14)),
+        height: scaleSize(scaledSize(40)),
+        borderRadius: scaleSize(scaledSize(12)),
         // Slightly muted red
         backgroundColor: 'rgba(217,76,76,0.7)',
         justifyContent: "center",
@@ -908,50 +901,50 @@ const styles = StyleSheet.create({
         flexDirection: "row",
         shadowColor: "#D94C4C",
         shadowOpacity: 0.15,
-        shadowRadius: scaledSize(6),
-        shadowOffset: { width: 0, height: scaledSize(3) },
+        shadowRadius: scaleSize(scaledSize(6)),
+        shadowOffset: { width: 0, height: scaleSize(scaledSize(3)) },
         elevation: 2,
     },
-    cancel_btn_text: { fontSize: scaledSize(16), fontFamily: "Outfit_700Bold", color: "#FFFFFF", marginRight: scaledSize(4.5) },
+    cancel_btn_text: { fontSize: scaleSize(16), fontFamily: "Outfit_700Bold", color: "#FFFFFF", marginRight: scaleSize(scaledSize(4.5)) },
 
-    modalOverlay: { flex: 1, justifyContent: "center", alignItems: "center", backgroundColor: "rgba(0,0,0,0.5)", paddingHorizontal: scaledSize(24) },
-    modalContainer: { width: "100%", padding: scaledSize(20), backgroundColor: theme.surface, borderRadius: scaledSize(15), alignItems: "center" },
-    modalText: { fontSize: scaledSize(16), color: theme.textPrimary, fontFamily: "Outfit_700Bold", marginBottom: scaledSize(20), textAlign: "center" },
-    deleteWorkoutBtn: { width: "100%", paddingVertical: scaledSize(10), backgroundColor: "#D94C4C", borderRadius: scaledSize(8), alignItems: "center", marginBottom: scaledSize(10) },
-    deleteWorkoutText: { color: "#FFFFFF", fontSize: scaledSize(14), fontFamily: "Outfit_700Bold" },
-    cancelDeleteBtn: { width: "100%", paddingVertical: scaledSize(10), backgroundColor: '#21242dff', borderRadius: scaledSize(8), alignItems: "center" },
-    cancelDeleteText: { color: theme.textPrimary, fontSize: scaledSize(14), fontFamily: "Outfit_700Bold" },
+    modalOverlay: { flex: 1, justifyContent: "center", alignItems: "center", backgroundColor: "rgba(0,0,0,0.5)", paddingHorizontal: scaleSize(scaledSize(24)) },
+    modalContainer: { width: "100%", padding: scaleSize(scaledSize(20)), backgroundColor: theme.surface, borderRadius: scaleSize(scaledSize(15)), alignItems: "center" },
+    modalText: { fontSize: scaleSize(16), color: theme.textPrimary, fontFamily: "Outfit_700Bold", marginBottom: scaleSize(scaledSize(20)), textAlign: "center" },
+    deleteWorkoutBtn: { width: "100%", paddingVertical: scaleSize(scaledSize(10)), backgroundColor: "#D94C4C", borderRadius: scaleSize(scaledSize(8)), alignItems: "center", marginBottom: scaleSize(scaledSize(10)) },
+    deleteWorkoutText: { color: "#FFFFFF", fontSize: scaleSize(14), fontFamily: "Outfit_700Bold" },
+    cancelDeleteBtn: { width: "100%", paddingVertical: scaleSize(scaledSize(10)), backgroundColor: '#21242dff', borderRadius: scaleSize(scaledSize(8)), alignItems: "center" },
+    cancelDeleteText: { color: theme.textPrimary, fontSize: scaleSize(14), fontFamily: "Outfit_700Bold" },
 
-    finishModalContainer: { width: "100%", padding: scaledSize(20), backgroundColor: theme.surface, borderRadius: scaledSize(16), alignItems: "center" },
-    finishTitle: { fontSize: scaledSize(18), color: theme.textPrimary, fontFamily: "Outfit_700Bold", textAlign: "center", marginBottom: scaledSize(16) },
-    finishBtn: { width: "100%", paddingVertical: scaledSize(10), backgroundColor: theme.successButton, borderRadius: scaledSize(10), alignItems: "center", marginBottom: scaledSize(10) },
-    finishBtnText: { color: "#fff", fontSize: scaledSize(14.5), fontFamily: "Outfit_700Bold" },
+    finishModalContainer: { width: "100%", padding: scaleSize(scaledSize(20)), backgroundColor: theme.surface, borderRadius: scaleSize(scaledSize(16)), alignItems: "center" },
+    finishTitle: { fontSize: scaleSize(18), color: theme.textPrimary, fontFamily: "Outfit_700Bold", textAlign: "center", marginBottom: scaleSize(scaledSize(16)) },
+    finishBtn: { width: "100%", paddingVertical: scaleSize(scaledSize(10)), backgroundColor: theme.successButton, borderRadius: scaleSize(scaledSize(10)), alignItems: "center", marginBottom: scaleSize(scaledSize(10)) },
+    finishBtnText: { color: "#fff", fontSize: scaleSize(14.5), fontFamily: "Outfit_700Bold" },
     finishBtnDisabled: { opacity: 0.6 },
-    keepEditingBtn: { width: "100%", paddingVertical: scaledSize(10), backgroundColor: '#21242dff', borderRadius: scaledSize(10), alignItems: "center" },
-    keepEditingText: { color: theme.textPrimary, fontSize: scaledSize(14), fontFamily: "Outfit_600SemiBold" },
+    keepEditingBtn: { width: "100%", paddingVertical: scaleSize(scaledSize(10)), backgroundColor: '#21242dff', borderRadius: scaleSize(scaledSize(10)), alignItems: "center" },
+    keepEditingText: { color: theme.textPrimary, fontSize: scaleSize(14), fontFamily: "Outfit_600SemiBold" },
     // Reminder styles (gradient border card)
     reminderWrapper: {
         width: "92%",
-        borderRadius: scaledSize(20),
-        padding: scaledSize(3), // gradient border width
+        borderRadius: scaleSize(scaledSize(20)),
+        padding: scaleSize(scaledSize(3)), // gradient border width
         // shadow on wrapper for proper elevation
         shadowColor: "#0F172A",
         shadowOpacity: 0.12,
-        shadowRadius: 24,
-        shadowOffset: { width: 0, height: 12 },
+        shadowRadius: scaleSize(24),
+        shadowOffset: { width: 0, height: scaleSize(12) },
         elevation: 16,
     },
     reminderContainer: {
         backgroundColor: theme.surface,
-        borderRadius: scaledSize(18),
+        borderRadius: scaleSize(scaledSize(18)),
     },
     reminderContent: {
-        paddingVertical: scaledSize(18),
-        paddingHorizontal: scaledSize(20),
+        paddingVertical: scaleSize(scaledSize(18)),
+        paddingHorizontal: scaleSize(scaledSize(20)),
         alignItems: "center",
     },
-    reminderTitle: { fontSize: scaledSize(16), color: theme.textPrimary, fontFamily: "Nunito_800ExtraBold", marginBottom: scaledSize(14) },
-    reminderBody: { fontSize: scaledSize(14), color: theme.textSecondary, fontFamily: "Nunito_700Bold", textAlign: "center" },
+    reminderTitle: { fontSize: scaleSize(16), color: theme.textPrimary, fontFamily: "Nunito_800ExtraBold", marginBottom: scaleSize(scaledSize(14)) },
+    reminderBody: { fontSize: scaleSize(14), color: theme.textSecondary, fontFamily: "Nunito_700Bold", textAlign: "center" },
 });
 
 // Prevent unnecessary re-renders: only re-render when meaningful props change.

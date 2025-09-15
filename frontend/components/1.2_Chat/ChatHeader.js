@@ -39,12 +39,11 @@ const ChatHeader = ({ usersExcludingSelf = [], toMessages }) => {
             <TouchableOpacity
                 activeOpacity={0.6}
                 onPress={onBack}
-                hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                hitSlop={{ top: scaleSize(8), bottom: scaleSize(8), left: scaleSize(8), right: scaleSize(8) }}
                 style={[styles.iconCircle, styles.leftIcon]}
             >
                 <FontAwesome6 name="chevron-left" size={scaleSize(16)} color={ACCENT} />
             </TouchableOpacity>
-
             {/* Scooted content so it never overlaps the pill */}
             <View style={styles.centerRow}>
                 <View style={styles.pfpContainer}>
@@ -73,7 +72,6 @@ const ChatHeader = ({ usersExcludingSelf = [], toMessages }) => {
                     <Text numberOfLines={1} style={styles.handleText}>{handles}</Text>
                 </View>
             </View>
-
             <View style={{ width: scaleSize(12) }} />
         </View>
     );
@@ -98,7 +96,7 @@ const styles = StyleSheet.create({
         height: scaleSize(32),
         borderRadius: scaleSize(16),
         backgroundColor: theme.surface,
-        borderWidth: 1,
+        borderWidth: scaleSize(1),
         borderColor: HAIRLINE,
         alignItems: "center",
         justifyContent: "center",
@@ -125,18 +123,18 @@ const styles = StyleSheet.create({
         height: scaleSize(34),
         borderRadius: scaleSize(17),
         position: "absolute",
-        borderWidth: 2,
+        borderWidth: scaleSize(2),
         borderColor: theme.bg,
         backgroundColor: theme.field,
     },
-    pfpTL: { top: 1, left: 1 },
-    pfpBR: { bottom: 1, right: 1 },
+    pfpTL: { top: scaleSize(1), left: scaleSize(1) },
+    pfpBR: { bottom: scaleSize(1), right: scaleSize(1) },
     pfpSingle: { width: scaleSize(42), height: scaleSize(42), borderRadius: scaleSize(21), backgroundColor: theme.field },
     pfpPh: { backgroundColor: theme.field },
 
     textWrap: { flex: 1, justifyContent: "center" },
-    nameText: { fontFamily: "Nunito_700Bold", fontSize: ts(16), color: theme.textPrimary},
-    handleText: { fontFamily: "Nunito_700Bold", fontSize: ts(12.5), color: theme.textSecondary, marginTop: 1 },
+    nameText: { fontFamily: "Nunito_700Bold", fontSize: scaleSize(16), color: theme.textPrimary},
+    handleText: { fontFamily: "Nunito_700Bold", fontSize: scaleSize(12.5), color: theme.textSecondary, marginTop: scaleSize(1) },
 });
 
 export default ChatHeader;

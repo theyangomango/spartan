@@ -3,6 +3,8 @@ import React from 'react';
 import { View, StyleSheet } from 'react-native';
 import MealItemCard from './2_MacroTracking/MealItemCard';
 
+import scaleSize from "../helper/scaleSize";
+
 export default function UnderMealList({
     items = [],
     COLORS,
@@ -34,5 +36,5 @@ export default function UnderMealList({
 }
 
 const styles = StyleSheet.create({
-    list: { paddingHorizontal: 18, marginTop: 2, marginBottom: 8 },
+    list: { paddingHorizontal: scaleSize(18), marginTop: scaleSize(2), marginBottom: scaleSize(8) },
 });

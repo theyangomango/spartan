@@ -39,7 +39,7 @@ const styles = StyleSheet.create({
     },
     stat_row: {
         flexDirection: 'row',
-        paddingVertical: scaledSize(8),
+        paddingVertical: scaleSize(scaledSize(8)),
         alignItems: 'center',
     },
     done: {
@@ -48,8 +48,8 @@ const styles = StyleSheet.create({
     set_ctnr: {
         marginLeft: '5%',
         width: '8%',
-        height: scaledSize(21),
-        borderRadius: scaledSize(6),
+        height: scaleSize(scaledSize(21)),
+        borderRadius: scaleSize(scaledSize(6)),
         backgroundColor: '#eaeaea',
         alignItems: 'center',
         justifyContent: 'center',
@@ -69,25 +69,25 @@ const styles = StyleSheet.create({
     },
     set_number_text: {
         fontFamily: 'Poppins_700Bold',
-        fontSize: scaledSize(14),
+        fontSize: scaleSize(14),
     },
     previous_stat_text: {
         fontFamily: 'Poppins_700Bold',
-        fontSize: scaledSize(15),
+        fontSize: scaleSize(15),
         color: '#ccc',
     },
     stat_text: {
         fontFamily: 'Poppins_700Bold',
-        fontSize: scaledSize(15),
+        fontSize: scaleSize(15),
         color: '#000',
     },
     done_ctnr: {
         width: '10.5%',
-        height: scaledSize(22),
+        height: scaleSize(scaledSize(22)),
         alignItems: 'center',
         justifyContent: 'center',
     },
     checkmark: {
-        paddingHorizontal: scaledSize(8),
+        paddingHorizontal: scaleSize(scaledSize(8)),
     },
 });

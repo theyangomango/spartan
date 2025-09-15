@@ -4,6 +4,8 @@ import { StyleSheet, FlatList, View, Pressable } from "react-native";
 import WorkoutHistoryCard from "./WorkoutHistoryCard";
 import { toMillis } from "../../../../utils/friends";
 
+import scaleSize from "../../../../helper/scaleSize";
+
 const lastUsedDate = "July 6th";
 const exercises = [
     { name: "3 x Incline Bench (Barbell)", muscle: "Chest" },
@@ -51,7 +53,7 @@ const styles = StyleSheet.create({
         flex: 1,
     },
     scrollable_ctnr: {
-        marginTop: 5,
+        marginTop: scaleSize(5),
         flexGrow: 1,
     },
     hidden: {

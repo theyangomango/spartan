@@ -4,6 +4,8 @@ import BottomSheet, { BottomSheetBackdrop } from "@gorhom/bottom-sheet";
 import SettingsScreen from "./SettingsScreen";
 import theme from "../../theme/mfpDark";
 
+import scaleSize from "../../helper/scaleSize";
+
 const SettingsBottomSheet = ({ settingsBottomSheetExpandFlag }) => {
     const bottomSheetRef = useRef(null);
     const snapPoints = useMemo(() => ["100%"], []);

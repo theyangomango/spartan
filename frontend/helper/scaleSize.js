@@ -19,17 +19,19 @@ const SCALE_MIN = Math.min(SCALE_W, SCALE_H);
 
 // Legacy default: uniform rounded scale based on the smaller axis
 export default function scaleSize(n) {
+  'worklet';
   return Math.round(n * SCALE_MIN);
 }
 
 // Named helpers for explicit intent
-export const ss = (n) => Math.round(n * SCALE_MIN); // symmetric scale (min of width/height)
+export const ss = (n) => { 'worklet'; return Math.round(n * SCALE_MIN); }; // symmetric scale (min of width/height)
 export const rs = ss; // alias used in some files
-export const hs = (n) => Math.round(n * SCALE_W);  // horizontal scale
-export const vs = (n) => Math.round(n * SCALE_H);  // vertical scale
+export const hs = (n) => { 'worklet'; return Math.round(n * SCALE_W); };  // horizontal scale
+export const vs = (n) => { 'worklet'; return Math.round(n * SCALE_H); };  // vertical scale
 
 // Moderate scale to avoid extremes on very tall/short devices
 export const ms = (n, factor = 0.5) => {
+  'worklet';
   const scaled = n * SCALE_MIN;
   return Math.round(n + (scaled - n) * factor);
 };
@@ -51,8 +53,15 @@ function computeTextScale() {
 
 const TEXT_SCALE = computeTextScale();
 export const ts = (n, overrideScale) => {
+  'worklet';
   const s = typeof overrideScale === 'number' ? overrideScale : TEXT_SCALE;
   return Math.round(n * s);
+};
+
+// Worklet-named helper for clarity in animated styles (alias of default)
+export const scaleSizeWorklet = (n) => {
+  'worklet';
+  return Math.round(n * SCALE_MIN);
 };
 
 // Expose raw factors if needed by charts/animations

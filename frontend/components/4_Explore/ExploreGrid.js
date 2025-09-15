@@ -1,6 +1,8 @@
 import React from 'react';
 import { StyleSheet, View } from 'react-native';
 
+import scaleSize from "../../helper/scaleSize";
+
 /**
  * Renders a 2-column staggered grid of 6 posts with vertical images.
  * Each column contains 3 posts with slightly varied aspect ratios to create a staggered effect.
@@ -64,15 +66,15 @@ const styles = StyleSheet.create({
         flexDirection: 'row',
         justifyContent: 'space-between',
         // Optional: Add padding or margin as needed
-        padding: 4,
+        padding: scaleSize(4),
     },
     column: {
         flex: 1,
         flexDirection: 'column',
-        marginHorizontal: 2, // Spacing between columns
+        marginHorizontal: scaleSize(2), // Spacing between columns
     },
     gridItem: {
-        marginBottom: 4, // Spacing between items
+        marginBottom: scaleSize(4), // Spacing between items
         width: '100%', // Ensure the item takes full width of the column
         // aspectRatio is set dynamically to create vertical and staggered effect
     },

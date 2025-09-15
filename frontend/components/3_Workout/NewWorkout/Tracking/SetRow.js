@@ -52,7 +52,7 @@ function SetRow({
     const openTypePanel = (e) => {
         if (readOnly) return;
         const y = e?.nativeEvent?.pageY || 0;
-        setPanelPos({ top: y + scaledSize(8), left: scaledSize(20) });
+        setPanelPos({ top: scaleSize(y + scaledSize(8)), left: scaleSize(scaledSize(20)) });
         setTypePanelOpen(true);
     };
     const onSelectType = (type) => {
@@ -181,15 +181,15 @@ const UnderlayLeft = ({ onDelete }) => {
 
 const styles = StyleSheet.create({
     container: { flex: 1 },
-    stat_row: { flexDirection: "row", paddingVertical: scaledSize(9), alignItems: "center", borderBottomWidth: 1, borderBottomColor: 'rgba(255,255,255,0.16)' },
+    stat_row: { flexDirection: "row", paddingVertical: scaleSize(scaledSize(9)), alignItems: "center", borderBottomWidth: 1, borderBottomColor: 'rgba(255,255,255,0.16)' },
     done: { backgroundColor: theme.successRowBg },
     set_ctnr: {
         marginLeft: "5%",
         width: "8%",
-        height: scaledSize(24),
-        borderRadius: scaledSize(8),
+        height: scaleSize(scaledSize(24)),
+        borderRadius: scaleSize(scaledSize(8)),
         backgroundColor: theme.field,
-        borderWidth: 1,
+        borderWidth: scaleSize(1),
         borderColor: 'rgba(255,255,255,0.30)',
         alignItems: "center",
         justifyContent: "center",
@@ -197,25 +197,25 @@ const styles = StyleSheet.create({
     previous_ctnr: { width: "38%", alignItems: "center", justifyContent: "center" },
     weight_unit_ctnr: { width: "18%", alignItems: "center" },
     reps_ctnr: { width: "18%", alignItems: "center" },
-    set_number_text: { fontFamily: "Poppins_700Bold", fontSize: scaledSize(14), color: theme.textPrimary },
+    set_number_text: { fontFamily: "Poppins_700Bold", fontSize: scaleSize(14), color: theme.textPrimary },
     set_ctnr_typed: { backgroundColor: theme.field },
-    set_letter_text: { fontFamily: "Outfit_700Bold", fontSize: scaledSize(14.8) },
+    set_letter_text: { fontFamily: "Outfit_700Bold", fontSize: scaleSize(14.8) },
     // Make previous-set text more legible
-    previous_stat_text: { fontFamily: "Poppins_700Bold", fontSize: scaledSize(15), color: theme.textPrimary },
-    done_ctnr: { width: "10.5%", height: scaledSize(22), alignItems: "center" },
+    previous_stat_text: { fontFamily: "Poppins_700Bold", fontSize: scaleSize(15), color: theme.textPrimary },
+    done_ctnr: { width: "10.5%", height: scaleSize(scaledSize(22)), alignItems: "center" },
     checkmark_ctnr: {
-        paddingHorizontal: scaledSize(10),
+        paddingHorizontal: scaleSize(scaledSize(10)),
         height: "100%",
-        borderRadius: scaledSize(7),
+        borderRadius: scaleSize(scaledSize(7)),
         backgroundColor: theme.restPillBg,
         borderWidth: StyleSheet.hairlineWidth,
         borderColor: theme.primaryHairline,
         justifyContent: "center",
     },
     checkmark_ctnr_selected: {
-        paddingHorizontal: scaledSize(8),
+        paddingHorizontal: scaleSize(scaledSize(8)),
         height: "100%",
-        borderRadius: scaledSize(7),
+        borderRadius: scaleSize(scaledSize(7)),
         justifyContent: "center",
         backgroundColor: theme.success,
         borderWidth: 0,
@@ -227,19 +227,19 @@ const styles = StyleSheet.create({
         bottom: 0,
         justifyContent: "center",
         alignItems: "flex-end",
-        marginVertical: scaledSize(2),
-        paddingRight: scaledSize(12),
+        marginVertical: scaleSize(scaledSize(2)),
+        paddingRight: scaleSize(scaledSize(12)),
     },
     deletePillWrap: { height: "86%", justifyContent: "center", alignItems: "center" },
     deletePill: {
-        width: scaledSize(70),
+        width: scaleSize(scaledSize(70)),
         height: "100%",
-        minHeight: scaledSize(28),
-        borderRadius: scaledSize(12),
+        minHeight: scaleSize(scaledSize(28)),
+        borderRadius: scaleSize(scaledSize(12)),
         backgroundColor: "#e65252",
         alignItems: "center",
         justifyContent: "center",
-        paddingHorizontal: scaledSize(10),
+        paddingHorizontal: scaleSize(scaledSize(10)),
     },
 });
 

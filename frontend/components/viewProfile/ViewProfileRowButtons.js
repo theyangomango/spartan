@@ -4,6 +4,7 @@ import { StyleSheet, View, Text, Dimensions } from "react-native";
 import followUser from "../../../backend/user/followUser";
 import unfollowUser from "../../../backend/user/unfollowUser";
 import theme from "../../theme/mfpDark";
+import scaleSizeGlobal from "../../helper/scaleSize";
 
 const { width: screenWidth } = Dimensions.get('window');
 const scale = screenWidth / 375; // Base screen width assumed as 375
@@ -114,23 +115,23 @@ const styles = StyleSheet.create({
         marginHorizontal: scaleSize(3),
         shadowColor: '#000',
         shadowOpacity: 0.12,
-        shadowRadius: 6,
-        shadowOffset: { width: 0, height: 3 },
+        shadowRadius: scaleSizeGlobal(6),
+        shadowOffset: { width: 0, height: scaleSizeGlobal(3) },
         elevation: 2,
     },
     follow_button_text: {
         fontFamily: 'Poppins_600SemiBold',
-        fontSize: require('../../helper/scaleSize').ts(12.5),
+        fontSize: scaleSizeGlobal(12.5),
         color: '#fff',
     },
     following_button_text: {
         fontFamily: 'Poppins_600SemiBold',
-        fontSize: require('../../helper/scaleSize').ts(12.5),
+        fontSize: scaleSizeGlobal(12.5),
         color: theme.primary,
     },
     view_stats_button_text: {
         fontFamily: 'Poppins_600SemiBold',
-        fontSize: require('../../helper/scaleSize').ts(12.5),
+        fontSize: scaleSizeGlobal(12.5),
         color: '#E5E7EB',
     },
 });

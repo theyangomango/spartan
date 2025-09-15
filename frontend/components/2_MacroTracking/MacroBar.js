@@ -2,6 +2,8 @@
 import React from 'react';
 import { View, Text } from 'react-native';
 
+import scaleSize from "../../helper/scaleSize";
+
 const MacroBar = ({ label, value, goal, color, textPrimary, textSecondary, trackColor }) => {
     const progress = Math.min(Math.max(value / Math.max(1, goal), 0), 1);
     const pct = progress * 100;
@@ -9,28 +11,27 @@ const MacroBar = ({ label, value, goal, color, textPrimary, textSecondary, track
     const TRACK_H = 10;
 
     return (
-        <View style={{ marginBottom: 12 }}>
+        <View style={{ marginBottom: scaleSize(12) }}>
             <View
                 style={{
                     flexDirection: 'row',
                     justifyContent: 'space-between',
                     alignItems: 'flex-end',
-                    marginBottom: 4,
-                    marginTop: 4,
+                    marginBottom: scaleSize(4),
+                    marginTop: scaleSize(4),
                 }}
             >
-                <Text style={{ fontFamily: 'Outfit_600SemiBold', color: textPrimary, fontSize: require('../../helper/scaleSize').ts(13) }}>
+                <Text style={{ fontFamily: 'Outfit_600SemiBold', color: textPrimary, fontSize: scaleSize(13) }}>
                     {label}
                 </Text>
-                <Text style={{ fontFamily: 'Outfit_500Medium', color: textSecondary, fontSize: require('../../helper/scaleSize').ts(13) }}>
+                <Text style={{ fontFamily: 'Outfit_500Medium', color: textSecondary, fontSize: scaleSize(13) }}>
                     {value} / {goal}g
                 </Text>
             </View>
-
             <View
                 style={{
                     height: TRACK_H,
-                    borderRadius: 999,
+                    borderRadius: scaleSize(999),
                     backgroundColor: '#bbdbff5d',
                     overflow: 'hidden',
                     borderWidth: 0, // avoid hairline gaps on dark backgrounds
@@ -41,10 +42,10 @@ const MacroBar = ({ label, value, goal, color, textPrimary, textSecondary, track
                         height: '100%',
                         width: widthStyle,
                         backgroundColor: color,
-                        borderTopLeftRadius: 999,
-                        borderBottomLeftRadius: 999,
-                        borderTopRightRadius: 999,
-                        borderBottomRightRadius: 999,
+                        borderTopLeftRadius: scaleSize(999),
+                        borderBottomLeftRadius: scaleSize(999),
+                        borderTopRightRadius: scaleSize(999),
+                        borderBottomRightRadius: scaleSize(999),
                     }}
                 />
             </View>

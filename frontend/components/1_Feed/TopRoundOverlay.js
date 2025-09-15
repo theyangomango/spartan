@@ -1,6 +1,8 @@
 import React from 'react';
 import { View, StyleSheet, Platform } from 'react-native';
 
+import scaleSize from "../../helper/scaleSize";
+
 // A tiny sticky item that renders directly after ActivityChips.
 // It visually "glues" the rounded edge to the chips without any scroll math.
 export default function TopRoundOverlay() {
@@ -20,7 +22,7 @@ const styles = StyleSheet.create({
     borderTopLeftRadius: RADIUS,
     borderTopRightRadius: RADIUS,
     // Align with ActivityChips, which uses a -6 top margin
-    marginTop: -6,
+    marginTop: scaleSize(-6),
     // Keep below chips, but above posts
     zIndex: 80,
     ...Platform.select({ android: { elevation: 5 } }),

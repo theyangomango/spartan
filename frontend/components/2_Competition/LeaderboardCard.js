@@ -71,7 +71,7 @@ export default function LeaderboardCard({
             }
         >
             <View style={styles.card_left}>
-                <Text style={[styles.rank_text, { fontSize: FONT_RANK }]}>{rank}</Text>
+                <Text style={[styles.rank_text, { fontSize: scaleSize(FONT_RANK) }]}>{rank}</Text>
 
                 {lastRank && lastRank < rank && <Entypo name='chevron-down' size={ICON_ARROW} color='red' style={styles.arrow_icon} />}
                 {lastRank && lastRank > rank && <Entypo name='chevron-up' size={ICON_ARROW} color='#23B665' style={styles.arrow_icon} />}
@@ -87,33 +87,32 @@ export default function LeaderboardCard({
                     />
                 </View>
                 <View>
-                    <Text style={[styles.handle_text, { fontSize: FONT_HANDLE }]} numberOfLines={1}>
+                    <Text style={[styles.handle_text, { fontSize: scaleSize(FONT_HANDLE) }]} numberOfLines={1}>
                         {handle}
                     </Text>
-                    <Text style={[styles.name_text, { fontSize: FONT_NAME }]} numberOfLines={1}>
+                    <Text style={[styles.name_text, { fontSize: scaleSize(FONT_NAME) }]} numberOfLines={1}>
                         {name}
                     </Text>
                 </View>
             </View>
-
             <View style={styles.card_right}>
                 <View style={{ alignItems: 'flex-end' }}>
                     {missingWeightData ? (
                         <>
-                            <Text style={[styles.stat_text, { fontSize: FONT_STAT }]}>—</Text>
-                            <Text style={[styles.best_set_text, { fontSize: FONT_BEST }]}>No Weight Data</Text>
+                            <Text style={[styles.stat_text, { fontSize: scaleSize(FONT_STAT) }]}>—</Text>
+                            <Text style={[styles.best_set_text, { fontSize: scaleSize(FONT_BEST) }]}>No Weight Data</Text>
                         </>
                     ) : (
                         <>
-                            <Text style={[styles.stat_text, { fontSize: FONT_STAT }]}>
+                            <Text style={[styles.stat_text, { fontSize: scaleSize(FONT_STAT) }]}>
                                 {statText} {unitText}
                             </Text>
                             {showBestSet ? (
                                 showBestSetWhenNotTribe ? (
                                     bestSetIsNA ? (
-                                        <Text style={[styles.best_set_text, { fontSize: FONT_BEST }]}>N/A</Text>
+                                        <Text style={[styles.best_set_text, { fontSize: scaleSize(FONT_BEST) }]}>N/A</Text>
                                     ) : (
-                                        <Text style={[styles.best_set_text, { fontSize: FONT_BEST }]} numberOfLines={1}>
+                                        <Text style={[styles.best_set_text, { fontSize: scaleSize(FONT_BEST) }]} numberOfLines={1}>
                                             {bestSet.reps} x {bestSet.weight} lbs
                                         </Text>
                                     )
@@ -166,22 +165,22 @@ function formatStat(value, metric, normalizeByBodyweight) {
 
 const styles = StyleSheet.create({
     card_ctnr: {
-        borderRadius: 20,
+        borderRadius: scaleSize(20),
         flexDirection: 'row',
         justifyContent: 'space-between',
-        paddingLeft: 10,
-        paddingRight: 14,
-        marginBottom: 12.5,
+        paddingLeft: scaleSize(10),
+        paddingRight: scaleSize(14),
+        marginBottom: scaleSize(12.5),
         // Match app background for unified canvas inside sheet
         backgroundColor: require("../../theme/mfpDark").default.bg,
     },
     self_card_ctnr: {
-        borderRadius: 20,
+        borderRadius: scaleSize(20),
         flexDirection: 'row',
         justifyContent: 'space-between',
-        paddingLeft: 10,
-        paddingRight: 14,
-        borderWidth: 2.5,
+        paddingLeft: scaleSize(10),
+        paddingRight: scaleSize(14),
+        borderWidth: scaleSize(2.5),
         borderColor: '#57B2FF',
         backgroundColor: require("../../theme/mfpDark").default.bg,
     },
@@ -194,28 +193,28 @@ const styles = StyleSheet.create({
     },
     pfp: {
         flex: 1,
-        borderRadius: 100,
+        borderRadius: scaleSize(100),
         backgroundColor: '#2D3441',
     },
     handle_text: {
         fontFamily: 'Outfit_700Bold',
-        paddingHorizontal: 12,
+        paddingHorizontal: scaleSize(12),
         color: require("../../theme/mfpDark").default.textPrimary,
-        maxWidth: width * 0.45,
+        maxWidth: scaleSize(width * 0.45),
         letterSpacing: 0.2,
     },
     name_text: {
-        marginTop: 1.5,
+        marginTop: scaleSize(1.5),
         fontFamily: 'Outfit_500Medium',
-        paddingHorizontal: 12,
+        paddingHorizontal: scaleSize(12),
         color: require("../../theme/mfpDark").default.textSecondary,
-        maxWidth: width * 0.45,
+        maxWidth: scaleSize(width * 0.45),
     },
     card_right: {
         flexDirection: 'column',
         alignItems: 'flex-end',
         justifyContent: 'center',
-        maxWidth: width * 0.35,
+        maxWidth: scaleSize(width * 0.35),
     },
     stat_text: {
         fontFamily: 'Outfit_700Bold',
@@ -226,7 +225,7 @@ const styles = StyleSheet.create({
     best_set_text: {
         fontFamily: 'Outfit_500Medium',
         color: require("../../theme/mfpDark").default.textSecondary,
-        marginTop: 4,
+        marginTop: scaleSize(4),
         textAlign: 'right',
     },
     rank_text: {
@@ -234,11 +233,11 @@ const styles = StyleSheet.create({
         color: require("../../theme/mfpDark").default.textPrimary,
     },
     arrow_icon: {
-        marginLeft: 1,
-        marginRight: 7,
+        marginLeft: scaleSize(1),
+        marginRight: scaleSize(7),
     },
     minus_icon: {
-        marginLeft: 7,
-        marginRight: 10,
+        marginLeft: scaleSize(7),
+        marginRight: scaleSize(10),
     },
 });

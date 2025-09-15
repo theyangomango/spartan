@@ -10,6 +10,9 @@ import * as ImageManipulator from 'expo-image-manipulator';
 import THEME from "../../../theme/mfpDark";
 
 
+import scaleSize from "../../../helper/scaleSize";
+
+
 const ProfilePicture = ({ imageUri, setPFP }) => {
     const [profileImage, setProfileImage] = useState(imageUri);
 
@@ -74,22 +77,22 @@ const ProfilePicture = ({ imageUri, setPFP }) => {
 const styles = StyleSheet.create({
     pfpContainer: {
         position: 'relative',
-        marginBottom: 20,
+        marginBottom: scaleSize(20),
     },
     profilePicture: {
-        width: 100,
+        width: scaleSize(100),
         aspectRatio: 1,
-        borderRadius: 60,
+        borderRadius: scaleSize(60),
     },
     cameraIconContainer: {
         position: 'absolute',
         bottom: 0,
         right: 0,
         backgroundColor: THEME.fieldDeep,
-        borderWidth: 1,
+        borderWidth: scaleSize(1),
         borderColor: THEME.hairline,
-        borderRadius: 100,
-        padding: 8,
+        borderRadius: scaleSize(100),
+        padding: scaleSize(8),
     },
 });
 

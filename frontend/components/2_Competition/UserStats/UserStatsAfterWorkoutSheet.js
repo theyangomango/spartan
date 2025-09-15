@@ -4,6 +4,7 @@ import { View, Platform, UIManager, Animated, Easing } from 'react-native';
 import * as Haptics from 'expo-haptics';
 import UserStatsModal from './UserStatsModal';
 import HexagonalStats from './HexagonalStats';
+import scaleSize, { ss } from '../../../helper/scaleSize';
 
 // Enable LayoutAnimation on Android (even though UserStatsModal already handles it)
 if (Platform.OS === 'android' && UIManager.setLayoutAnimationEnabledExperimental) {
@@ -124,11 +125,11 @@ export default function UserStatsAfterWorkoutSheet({
       handleComponent={() => null}
     >
       <View style={{ flex: 1 }}>
-        <UserStatsModal
-          user={animUser}
-          toViewProfile={() => {}}
-          hexOverlay={renderHexOverlay}
-          hexProps={{
+          <UserStatsModal
+            user={animUser}
+            toViewProfile={() => {}}
+            hexOverlay={renderHexOverlay}
+            hexProps={{
             // Only show prev values when there is an actual change; otherwise null prevents lingering arrows
             prevStatsHexagon: (() => {
               const toNow = toHexagon || (global?.__hexChangeTo || null) || (user?.statsHexagon || {});
@@ -142,7 +143,7 @@ export default function UserStatsAfterWorkoutSheet({
               );
               return (fromHexagon && !eq(fromHexagon, toNow)) ? fromHexagon : null;
             })(),
-            valueFontBigPx: 16,
+            valueFontBigPx: ss(16),
             diffHighlightColor: '#F2B84B'
           }}
           deferExercises={true}

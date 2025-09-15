@@ -2,6 +2,8 @@ import React, { useEffect, useRef, useState } from "react";
 import { View, Text, StyleSheet, Dimensions, Pressable, Animated, Easing } from "react-native";
 import theme from "../../theme/mfpDark";
 
+import scaleSize from "../../helper/scaleSize";
+
 const { width: SW, height: SH } = Dimensions.get("window");
 const ACCENT = theme.primary;
 const HAIRLINE = theme.hairline;
@@ -112,41 +114,41 @@ const styles = StyleSheet.create({
         position: "absolute",
         flexDirection: "row",
         alignItems: "center",
-        paddingVertical: 8,
-        borderRadius: 28,
+        paddingVertical: scaleSize(8),
+        borderRadius: scaleSize(28),
         backgroundColor: theme.surface,
-        borderWidth: 1,
+        borderWidth: scaleSize(1),
         borderColor: theme.hairline,
         shadowColor: "#000",
         shadowOpacity: 0.18,
-        shadowRadius: 16,
-        shadowOffset: { width: 0, height: 10 },
+        shadowRadius: scaleSize(16),
+        shadowOffset: { width: 0, height: scaleSize(10) },
         elevation: 8,
     },
     reactionItem: {
-        width: 40, height: 40, borderRadius: 20,
+        width: scaleSize(40), height: scaleSize(40), borderRadius: scaleSize(20),
         backgroundColor: theme.field,
         alignItems: "center", justifyContent: "center",
     },
-    reactionEmoji: { fontSize: 20 },
+    reactionEmoji: { fontSize: scaleSize(20) },
 
     menuCard: {
         position: "absolute",
-        borderRadius: 16,
+        borderRadius: scaleSize(16),
         backgroundColor: theme.surface,
-        borderWidth: 1,
+        borderWidth: scaleSize(1),
         borderColor: theme.hairline,
         shadowColor: "#000",
         shadowOpacity: 0.22,
-        shadowRadius: 18,
-        shadowOffset: { width: 0, height: 10 },
+        shadowRadius: scaleSize(18),
+        shadowOffset: { width: 0, height: scaleSize(10) },
         elevation: 8,
         overflow: "hidden",
     },
-    menuRow: { paddingVertical: 14, paddingHorizontal: 14 },
+    menuRow: { paddingVertical: scaleSize(14), paddingHorizontal: scaleSize(14) },
     menuRowPressed: { backgroundColor: "rgba(255,255,255,0.06)" },
     menuDivider: { borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: HAIRLINE },
     menuLabel: {
-        fontSize: 15, color: theme.textPrimary, fontFamily: "Outfit_600SemiBold", letterSpacing: 0.1,
+        fontSize: scaleSize(15), color: theme.textPrimary, fontFamily: "Outfit_600SemiBold", letterSpacing: 0.1,
     },
 });

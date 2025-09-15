@@ -4,6 +4,8 @@ import theme from '../../../theme/mfpDark';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { Clock } from 'iconsax-react-native';
 
+import scaleSize from "../../../helper/scaleSize";
+
 const mins = (ms) => Math.max(0, Math.round(Number(ms || 0) / 60000));
 const minutesLabel = (ms) => `${mins(ms)} min`;
 const toNumber = (n) => (Number(n || 0) || 0);
@@ -39,13 +41,11 @@ const WorkoutPanelCard = ({
           {showChevron && <MaterialCommunityIcons name="chevron-right" size={20} color={theme.textSecondary} />}
         </View>
       </View>
-
       <View style={styles.divider} />
-
       <View style={styles.statsRow}>
         <View style={[styles.statCard, { flex: 1.05 }]}>
           <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-            <View style={[styles.statIconWrap, { marginBottom: 0, marginRight: 8 }]}>
+            <View style={[styles.statIconWrap, { marginBottom: 0, marginRight: scaleSize(8) }]}>
               <Clock color={theme.textSecondary} size={15} variant="Bold" />
             </View>
             <View style={styles.statTextCol}>
@@ -57,7 +57,7 @@ const WorkoutPanelCard = ({
 
         <View style={[styles.statCard, { flex: 1.2 }]}>
           <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-            <View style={[styles.statIconWrap, { marginBottom: 0, marginRight: 8 }]}>
+            <View style={[styles.statIconWrap, { marginBottom: 0, marginRight: scaleSize(8) }]}>
               <MaterialCommunityIcons name="weight-lifter" size={15} color={theme.textSecondary} />
             </View>
             <View style={styles.statTextCol}>
@@ -69,7 +69,7 @@ const WorkoutPanelCard = ({
 
         <View style={styles.statCard}>
           <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-            <View style={[styles.statIconWrap, { marginBottom: 0, marginRight: 8 }]}>
+            <View style={[styles.statIconWrap, { marginBottom: 0, marginRight: scaleSize(8) }]}>
               <MaterialCommunityIcons name="arm-flex" size={15} color={theme.textSecondary} />
             </View>
             <View style={styles.statTextCol}>
@@ -85,52 +85,52 @@ const WorkoutPanelCard = ({
 
 const styles = StyleSheet.create({
   panel: {
-    paddingHorizontal: 14,
-    paddingVertical: 10,
-    borderRadius: 20,
+    paddingHorizontal: scaleSize(14),
+    paddingVertical: scaleSize(10),
+    borderRadius: scaleSize(20),
     backgroundColor: theme.surface,
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 6 },
+    shadowOffset: { width: 0, height: scaleSize(6) },
     shadowOpacity: 0.07,
-    shadowRadius: 12,
+    shadowRadius: scaleSize(12),
     elevation: 7,
     borderWidth: StyleSheet.hairlineWidth,
     borderColor: theme.hairline,
-    marginVertical: 5
+    marginVertical: scaleSize(5)
   },
-  headerRow: { flexDirection: 'row', alignItems: 'center', marginBottom: 6, gap: 10 },
-  rightAccessories: { flexDirection: 'row', alignItems: 'center', gap: 10 },
-  title: { fontSize: require('../../../helper/scaleSize').ts(13), fontFamily: 'Outfit_800ExtraBold', color: theme.textPrimary },
-  sub: { marginTop: 2, fontSize: require('../../../helper/scaleSize').ts(12.5), fontFamily: 'Outfit_600SemiBold', color: theme.textSecondary },
-  divider: { height: StyleSheet.hairlineWidth, backgroundColor: theme.hairline, marginVertical: 6 },
+  headerRow: { flexDirection: 'row', alignItems: 'center', marginBottom: scaleSize(6), gap: scaleSize(10) },
+  rightAccessories: { flexDirection: 'row', alignItems: 'center', gap: scaleSize(10) },
+  title: { fontSize: scaleSize(13), fontFamily: 'Outfit_800ExtraBold', color: theme.textPrimary },
+  sub: { marginTop: scaleSize(2), fontSize: scaleSize(12.5), fontFamily: 'Outfit_600SemiBold', color: theme.textSecondary },
+  divider: { height: StyleSheet.hairlineWidth, backgroundColor: theme.hairline, marginVertical: scaleSize(6) },
 
-  statsRow: { flexDirection: 'row', gap: 6 },
-  statCard: { flex: 1, paddingVertical: 6 },
+  statsRow: { flexDirection: 'row', gap: scaleSize(6) },
+  statCard: { flex: 1, paddingVertical: scaleSize(6) },
   statIconWrap: {
-    width: 30,
-    height: 30,
-    borderRadius: 20,
+    width: scaleSize(30),
+    height: scaleSize(30),
+    borderRadius: scaleSize(20),
     justifyContent: 'center',
     alignItems: 'center',
     backgroundColor: '#ffffff23',
-    marginBottom: 6,
+    marginBottom: scaleSize(6),
   },
-  statLabel: { fontFamily: 'Outfit_600SemiBold', fontSize: require('../../../helper/scaleSize').ts(11), color: theme.textSecondary },
-  statValue: { marginTop: 1, fontFamily: 'Outfit_800ExtraBold', fontSize: require('../../../helper/scaleSize').ts(13), color: theme.textPrimary },
+  statLabel: { fontFamily: 'Outfit_600SemiBold', fontSize: scaleSize(11), color: theme.textSecondary },
+  statValue: { marginTop: scaleSize(1), fontFamily: 'Outfit_800ExtraBold', fontSize: scaleSize(13), color: theme.textPrimary },
   statTextCol: { flex: 1, minWidth: 0 },
 
   prPill: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 6,
+    gap: scaleSize(6),
     backgroundColor: 'rgba(250, 204, 21, 0.24)',
     borderWidth: StyleSheet.hairlineWidth,
     borderColor: 'rgba(250, 204, 21, 0.60)',
-    paddingVertical: 5,
-    paddingHorizontal: 8,
-    borderRadius: 999,
+    paddingVertical: scaleSize(5),
+    paddingHorizontal: scaleSize(8),
+    borderRadius: scaleSize(999),
   },
-  prText: { fontFamily: 'Outfit_800ExtraBold', fontSize: require('../../../helper/scaleSize').ts(12), color: '#FACC15' },
+  prText: { fontFamily: 'Outfit_800ExtraBold', fontSize: scaleSize(12), color: '#FACC15' },
 });
 
 export default memo(WorkoutPanelCard);

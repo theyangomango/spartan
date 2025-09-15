@@ -3,6 +3,8 @@ import EditableStat from "./EditableStat";
 import { Ionicons } from '@expo/vector-icons'
 import { useState } from "react";
 
+import scaleSize from "../../../../helper/scaleSize";
+
 export default function DoubleSetRow({ set, index }) {
     const [isDoneLeft, setIsDoneLeft] = useState(false);
     const [isDoneRight, setIsDoneRight] = useState(false);
@@ -63,54 +65,54 @@ export default function DoubleSetRow({ set, index }) {
 const styles = StyleSheet.create({
     stat_row: {
         flexDirection: 'row',
-        paddingVertical: 1.4,
-        paddingHorizontal: 22,
+        paddingVertical: scaleSize(1.4),
+        paddingHorizontal: scaleSize(22),
     },
     done: {
         backgroundColor: '#D4FFDC'
     },
     set_ctnr: {
-        width: 40,
-        paddingLeft: 5,
+        width: scaleSize(40),
+        paddingLeft: scaleSize(5),
     },
     previous_ctnr: {
-        width: 110,
+        width: scaleSize(110),
         alignItems: 'center',
-        marginRight: 10,
+        marginRight: scaleSize(10),
     },
     weight_unit_ctnr: {
-        width: 70,
+        width: scaleSize(70),
         alignItems: 'center'
 
     },
     reps_ctnr: {
-        width: 70,
+        width: scaleSize(70),
         alignItems: 'center',
     },
     set_number_text: {
         fontFamily: 'Mulish_300Light',
         color: '#0699FF',
-        paddingVertical: 6
+        paddingVertical: scaleSize(6)
     },
     set_number_text_right: {
         fontFamily: 'Mulish_300Light',
         color: '#0699FF',
-        paddingVertical: 6,
+        paddingVertical: scaleSize(6),
         textAlign: 'right',
-        paddingRight: 10.5
+        paddingRight: scaleSize(10.5)
     },
     previous_stat_text: {
         fontFamily: 'Mulish_600SemiBold',
-        paddingVertical: 6,
+        paddingVertical: scaleSize(6),
         color: '#bbb'
     },
     weight_unit_stat_text: {
         fontFamily: 'Mulish_700Bold',
-        paddingVertical: 6,
+        paddingVertical: scaleSize(6),
     },
     reps_number_text: {
         fontFamily: 'Mulish_700Bold',
-        paddingVertical: 6,
+        paddingVertical: scaleSize(6),
     },
     done_ctnr: {
         flex: 1,
@@ -118,15 +120,15 @@ const styles = StyleSheet.create({
         justifyContent: 'center'
     },
     checkmark_ctnr: {
-        paddingHorizontal: 9,
-        paddingVertical: 3,
-        borderRadius: 8,
+        paddingHorizontal: scaleSize(9),
+        paddingVertical: scaleSize(3),
+        borderRadius: scaleSize(8),
         backgroundColor: '#f3f3f3',
     },
     checkmark_ctnr_selected: {
-        paddingHorizontal: 9,
-        paddingVertical: 3,
-        borderRadius: 8,
+        paddingHorizontal: scaleSize(9),
+        paddingVertical: scaleSize(3),
+        borderRadius: scaleSize(8),
         backgroundColor: '#93F7A7',
     }
 });

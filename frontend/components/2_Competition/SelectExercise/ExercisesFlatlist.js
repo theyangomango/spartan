@@ -2,6 +2,8 @@ import React from 'react';
 import { StyleSheet, FlatList } from 'react-native';
 import ExerciseCard from './ExerciseCard';
 
+import scaleSize from "../../../helper/scaleSize";
+
 const ExercisesFlatlist = React.memo(({ exercises = [], selectExercise, deselectExercise }) => {
     return (
         <FlatList
@@ -22,7 +24,7 @@ const ExercisesFlatlist = React.memo(({ exercises = [], selectExercise, deselect
 
 const styles = StyleSheet.create({
     listContainer: {
-        paddingHorizontal: 10,
+        paddingHorizontal: scaleSize(10),
     },
 });
 

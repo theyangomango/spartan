@@ -1,6 +1,8 @@
 import React from 'react';
 import { Image, StyleSheet, View } from 'react-native';
 
+import scaleSize from "../../../../helper/scaleSize";
+
 const ExerciseImagePreview = ({ exercise }) => {
     let source;
     let imageStyle = styles.defaultImage; // Default style if no specific style is defined
@@ -845,15 +847,15 @@ const ExerciseImagePreview = ({ exercise }) => {
 
 const styles = StyleSheet.create({
     imageContainer: {
-        width: 55,
+        width: scaleSize(55),
         aspectRatio: 1,
         overflow: 'hidden',
     },
     image: {
         // width: 135,
         // height: 135,
-        width: 55,
-        height: 55,
+        width: scaleSize(55),
+        height: scaleSize(55),
         resizeMode: 'contain'
     },
     defaultImage: {

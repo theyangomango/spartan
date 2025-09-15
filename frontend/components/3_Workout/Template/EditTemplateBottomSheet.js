@@ -3,6 +3,8 @@ import BottomSheet, { BottomSheetBackdrop } from "@gorhom/bottom-sheet";
 import EditTemplateModal from "./EditTemplateModal";
 import theme from "../../../theme/mfpDark";
 
+import scaleSize from "../../../helper/scaleSize";
+
 const EditTemplateBottomSheet = ({ isVisible, setIsVisible, openedTemplateRef, updateTemplate, deleteTemplate }) => {
     const bottomSheetRef = useRef(null);
     const snapPoints = useMemo(() => ["94%"], []);
@@ -40,16 +42,16 @@ const EditTemplateBottomSheet = ({ isVisible, setIsVisible, openedTemplateRef, u
             onClose={() => { try { setIsVisible(false); } catch {} }}
             onChange={(index) => { if (index < 0) { try { setIsVisible(false); } catch {} } }}
             handleStyle={{
-                borderTopLeftRadius: 22,
-                borderTopRightRadius: 22,
+                borderTopLeftRadius: scaleSize(22),
+                borderTopRightRadius: scaleSize(22),
             }}
             handleIndicatorStyle={{
                 backgroundColor: theme.field,
             }}
             backgroundStyle={{
                 backgroundColor: theme.surface,
-                borderTopLeftRadius: 22,
-                borderTopRightRadius: 22,
+                borderTopLeftRadius: scaleSize(22),
+                borderTopRightRadius: scaleSize(22),
             }}
         >
             {isVisible &&

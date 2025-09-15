@@ -4,11 +4,12 @@ import ProfilePicture from "./ProfilePicture";
 import formatPhoneNumber from "../../../helper/formatPhoneNumber";
 import updateDoc from "../../../../backend/helper/firebase/updateDoc";
 import THEME from "../../../theme/mfpDark";
+import scaleSize from "../../../helper/scaleSize";
 
 const { width: screenWidth } = Dimensions.get('window');
 const scale = screenWidth / 375; // Base screen width assumed as 375
 
-function scaleSize(size) {
+function wScale(size) {
     return Math.round(size * scale);
 }
 
@@ -93,43 +94,43 @@ const styles = StyleSheet.create({
     },
     scrollContainer: {
         alignItems: 'center',
-        paddingVertical: scaleSize(20),
+        paddingVertical: scaleSize(wScale(20)),
     },
     heading: {
-        fontSize: require('../../../helper/scaleSize').ts(13.5),
+        fontSize: scaleSize(13.5),
         fontFamily: 'Poppins_600SemiBold',
         letterSpacing: 0.1,
         color: THEME.textSecondary,
         alignSelf: 'flex-start',
-        paddingLeft: scaleSize(20),
+        paddingLeft: scaleSize(wScale(20)),
         width: '100%',
-        paddingVertical: scaleSize(12),
+        paddingVertical: scaleSize(wScale(12)),
         backgroundColor: THEME.bg
     },
     inputContainer: {
         flexDirection: 'row',
         alignItems: 'center',
-        paddingHorizontal: scaleSize(20),
+        paddingHorizontal: scaleSize(wScale(20)),
         backgroundColor: THEME.bg,
         marginVertical: 0,
-        paddingVertical: scaleSize(12.5),
-        borderBottomWidth: scaleSize(1),
+        paddingVertical: scaleSize(wScale(12.5)),
+        borderBottomWidth: wScale(1),
         borderBottomColor: THEME.hairline,
     },
     label: {
-        fontSize: require('../../../helper/scaleSize').ts(14),
+        fontSize: scaleSize(14),
         color: THEME.textSecondary,
         fontFamily: 'Outfit_500Medium',
         width: '35%',
     },
     non_editable_input_text: {
-        fontSize: require('../../../helper/scaleSize').ts(14),
+        fontSize: scaleSize(14),
         color: THEME.textPrimary,
         fontFamily: 'Outfit_500Medium',
         width: '65%',
     },
     editable_input_text: {
-        fontSize: require('../../../helper/scaleSize').ts(14),
+        fontSize: scaleSize(14),
         color: THEME.textPrimary,
         fontFamily: 'Outfit_500Medium',
         width: '65%',

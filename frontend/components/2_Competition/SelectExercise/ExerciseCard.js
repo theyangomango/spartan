@@ -3,6 +3,8 @@ import { Pressable, StyleSheet, Text, TouchableOpacity, View } from 'react-nativ
 import { Ionicons } from '@expo/vector-icons';
 import ExerciseImagePreview from '../../3_Workout/NewWorkout/SelectExercise/ExerciseImagePreview';
 
+import scaleSize from "../../../helper/scaleSize";
+
 // Small helpers to make semi-transparent accent backgrounds
 const hexToRgb = (hex) => {
     const m = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
@@ -78,8 +80,8 @@ export default ExerciseCard;
 const styles = StyleSheet.create({
     card: {
         flexDirection: 'row',
-        paddingLeft: 15,
-        paddingRight: 12,
+        paddingLeft: scaleSize(15),
+        paddingRight: scaleSize(12),
         justifyContent: 'space-between',
     },
     leftContainer: {
@@ -90,17 +92,17 @@ const styles = StyleSheet.create({
     border: {
         position: 'absolute',
         bottom: 0,
-        left: 13,
-        right: 13,
-        height: 1,
+        left: scaleSize(13),
+        right: scaleSize(13),
+        height: scaleSize(1),
         backgroundColor: 'rgba(255,255,255,0.08)',
     },
     textContainer: {
         flexDirection: 'column',
-        paddingVertical: 8,
+        paddingVertical: scaleSize(8),
         justifyContent: 'center',
         flex: 1, // Ensure textContainer takes available space
-        paddingLeft: 10, // Add padding to avoid overlap with image
+        paddingLeft: scaleSize(10), // Add padding to avoid overlap with image
     },
     row: {
         flexDirection: 'row',
@@ -111,42 +113,42 @@ const styles = StyleSheet.create({
     },
     exerciseName: {
         fontFamily: 'Outfit_700Bold',
-        fontSize: require('../../../helper/scaleSize').ts(15),
+        fontSize: scaleSize(15),
         color: '#EAEAEA',
-        marginVertical: 3,
+        marginVertical: scaleSize(3),
         flexWrap: 'wrap',
     },
     muscle_ctnr: {
-        marginLeft: 6,
-        borderRadius: 999,
-        paddingHorizontal: 12,
-        height: 22,
+        marginLeft: scaleSize(6),
+        borderRadius: scaleSize(999),
+        paddingHorizontal: scaleSize(12),
+        height: scaleSize(22),
         alignItems: 'center',
         justifyContent: 'center',
     },
     muscle_text: {
         fontFamily: 'Poppins_700Bold',
-        fontSize: require('../../../helper/scaleSize').ts(12),
+        fontSize: scaleSize(12),
         color: '#EAEAEA',
     },
     lastDone: {
         fontFamily: 'Outfit_500Medium',
-        fontSize: require('../../../helper/scaleSize').ts(12.5),
+        fontSize: scaleSize(12.5),
         color: '#AEB5C0',
     },
     rightContainer: {
         flexDirection: 'row',
         alignItems: 'center',
-        marginLeft: 10, // Add margin to separate from textContainer
+        marginLeft: scaleSize(10), // Add margin to separate from textContainer
     },
     timesCompleted: {
         fontFamily: 'Outfit_700Bold',
-        fontSize: require('../../../helper/scaleSize').ts(16),
-        marginRight: 8,
+        fontSize: scaleSize(16),
+        marginRight: scaleSize(8),
         color: '#6FB8FF'
     },
     icon_ctnr: {
-        marginTop: 1,
+        marginTop: scaleSize(1),
         opacity: 0.5
     }
 });

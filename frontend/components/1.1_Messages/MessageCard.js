@@ -6,6 +6,8 @@ import getDisplayTime from "../../helper/getDisplayTime";
 import { usePfp } from "../../helper/usePFPs";
 import theme from "../../theme/mfpDark";
 
+import scaleSize from "../../helper/scaleSize";
+
 const { width, height } = Dimensions.get("window");
 
 // Dynamic sizing
@@ -101,7 +103,7 @@ export default function MessageCard({ usersExcludingSelf, content, timestamp, to
                             style={[
                                 styles.pfp,
                                 styles.topLeft,
-                                { width: dyn.small, height: dyn.small, borderRadius: dyn.small / 2 },
+                                { width: dyn.small, height: dyn.small, borderRadius: scaleSize(dyn.small / 2) },
                             ]}
                         />
                         <Pfp
@@ -110,7 +112,7 @@ export default function MessageCard({ usersExcludingSelf, content, timestamp, to
                             style={[
                                 styles.pfp,
                                 styles.bottomRight,
-                                { width: dyn.small, height: dyn.small, borderRadius: dyn.small / 2 },
+                                { width: dyn.small, height: dyn.small, borderRadius: scaleSize(dyn.small / 2) },
                             ]}
                         />
                     </>
@@ -118,26 +120,24 @@ export default function MessageCard({ usersExcludingSelf, content, timestamp, to
                     <Pfp
                         uid={user0?.uid}
                         version={user0?.pfpVersion ?? 0}
-                        style={[styles.single, { width: dyn.profile, height: dyn.profile, borderRadius: dyn.profile / 2 }]}
+                        style={[styles.single, { width: dyn.profile, height: dyn.profile, borderRadius: scaleSize(dyn.profile / 2) }]}
                     />
                 )}
             </View>
-
             {/* middle: text */}
             <View style={styles.textCol}>
-                <Text style={[styles.handle, { fontSize: dyn.handle }]} numberOfLines={1} ellipsizeMode="tail">
+                <Text style={[styles.handle, { fontSize: scaleSize(dyn.handle) }]} numberOfLines={1} ellipsizeMode="tail">
                     {handles}
                 </Text>
                 {!!preview && (
-                    <Text style={[styles.content, { fontSize: dyn.content }]} numberOfLines={1} ellipsizeMode="tail">
+                    <Text style={[styles.content, { fontSize: scaleSize(dyn.content) }]} numberOfLines={1} ellipsizeMode="tail">
                         {preview}
                     </Text>
                 )}
             </View>
-
             {/* right: time */}
             <View style={styles.timeCol}>
-                {!!timeStr && <Text style={[styles.time, { fontSize: dyn.date }]}>{timeStr}</Text>}
+                {!!timeStr && <Text style={[styles.time, { fontSize: scaleSize(dyn.date) }]}>{timeStr}</Text>}
             </View>
         </RNBounceable>
     );
@@ -145,37 +145,37 @@ export default function MessageCard({ usersExcludingSelf, content, timestamp, to
 
 const styles = StyleSheet.create({
     card: {
-        marginHorizontal: 15,
-        paddingHorizontal: 14,
-        borderRadius: 20,
+        marginHorizontal: scaleSize(15),
+        paddingHorizontal: scaleSize(14),
+        borderRadius: scaleSize(20),
         flexDirection: "row",
         alignItems: "center",
         justifyContent: "space-between",
         // Slightly darker than ActivityChips background for subtle separation
         backgroundColor: theme.surface,
-        marginBottom: 10,
-        borderWidth: 1,
+        marginBottom: scaleSize(10),
+        borderWidth: scaleSize(1),
         borderColor: theme.hairline,
         shadowColor: "#000",
         shadowOpacity: 0.2,
-        shadowRadius: 1,
-        shadowOffset: { width: 0, height: 1 },
+        shadowRadius: scaleSize(1),
+        shadowOffset: { width: 0, height: scaleSize(1) },
     },
 
-    pfpsWrap: { position: "relative", marginRight: 12 },
+    pfpsWrap: { position: "relative", marginRight: scaleSize(12) },
     pfp: {
         position: "absolute",
-        borderWidth: 1,
+        borderWidth: scaleSize(1),
         borderColor: theme.bg,
         backgroundColor: theme.field,
     },
     topLeft: { top: 0, left: 0 },
     bottomRight: { bottom: 0, right: 0 },
-    single: { backgroundColor: theme.field, borderWidth: 1, borderColor: theme.hairline },
+    single: { backgroundColor: theme.field, borderWidth: scaleSize(1), borderColor: theme.hairline },
 
     textCol: { flex: 1, minWidth: 0 },
     handle: {
-        paddingBottom: 3,
+        paddingBottom: scaleSize(3),
         fontFamily: "Outfit_600SemiBold",
         color: theme.textPrimary,
         letterSpacing: 0.2,
@@ -185,6 +185,6 @@ const styles = StyleSheet.create({
         color: theme.textSecondary,
     },
 
-    timeCol: { paddingLeft: 8, alignItems: "flex-end", justifyContent: "center" },
+    timeCol: { paddingLeft: scaleSize(8), alignItems: "flex-end", justifyContent: "center" },
     time: { color: theme.textSecondary, fontFamily: "Outfit_500Medium", letterSpacing: 0.1 },
 });

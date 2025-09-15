@@ -1,6 +1,6 @@
 import React from 'react';
 import { SafeAreaView, View, Text, StyleSheet, ScrollView, TouchableOpacity } from 'react-native';
-import { ts } from '../helper/scaleSize';
+import scaleSize, { ts } from '../helper/scaleSize';
 import { Ionicons } from '@expo/vector-icons';
 import theme from '../theme/mfpDark';
 
@@ -13,7 +13,7 @@ export default function TermsOfService({ navigation }) {
           <Ionicons name="chevron-back" size={22} color={theme.textPrimary} />
         </TouchableOpacity>
         <Text style={styles.title}>Terms of Service</Text>
-        <View style={{ width: 40 }} />
+        <View style={{ width: scaleSize(40) }} />
       </View>
       <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
         <Text style={styles.p}>Effective: [Month Day, Year] — By using Spartan you agree to these Terms.</Text>
@@ -50,7 +50,7 @@ export default function TermsOfService({ navigation }) {
 
         <Text style={styles.h}>Contact</Text>
         <Text style={styles.p}>[Company Legal Name] — [Contact Email]</Text>
-        <View style={{ height: 24 }} />
+        <View style={{ height: scaleSize(24) }} />
       </ScrollView>
     </SafeAreaView>
   );
@@ -58,10 +58,10 @@ export default function TermsOfService({ navigation }) {
 
 const styles = StyleSheet.create({
   root: { flex: 1, backgroundColor: theme.bg },
-  header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 14, paddingTop: 8, paddingBottom: 6 },
-  iconBtn: { padding: 6, width: 40 },
-  title: { fontFamily: 'Outfit_700Bold', fontSize: ts(18), color: theme.textPrimary },
-  content: { paddingHorizontal: 16, paddingTop: 10, paddingBottom: 18 },
-  h: { marginTop: 12, marginBottom: 6, fontFamily: 'Outfit_700Bold', fontSize: ts(15), color: theme.textPrimary },
-  p: { fontFamily: 'Outfit_400Regular', fontSize: ts(14), color: theme.textSecondary, lineHeight: ts(20) },
+  header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: scaleSize(14), paddingTop: scaleSize(8), paddingBottom: scaleSize(6) },
+  iconBtn: { padding: scaleSize(6), width: scaleSize(40) },
+  title: { fontFamily: 'Outfit_700Bold', fontSize: scaleSize(18), color: theme.textPrimary },
+  content: { paddingHorizontal: scaleSize(16), paddingTop: scaleSize(10), paddingBottom: scaleSize(18) },
+  h: { marginTop: scaleSize(12), marginBottom: scaleSize(6), fontFamily: 'Outfit_700Bold', fontSize: scaleSize(15), color: theme.textPrimary },
+  p: { fontFamily: 'Outfit_400Regular', fontSize: scaleSize(14), color: theme.textSecondary, lineHeight: scaleSize(ts(20)) },
 });

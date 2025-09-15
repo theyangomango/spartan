@@ -4,6 +4,8 @@ import { View, Text, Pressable, StyleSheet } from 'react-native';
 import { Swipeable } from 'react-native-gesture-handler';
 import { Ionicons } from '@expo/vector-icons';
 
+import scaleSize from "../../helper/scaleSize";
+
 export default function MealItemCard({
     entry,
     COLORS,
@@ -85,39 +87,39 @@ export default function MealItemCard({
 const makeStyles = (COLORS) =>
     StyleSheet.create({
         card: {
-            borderRadius: 14,
-            paddingVertical: 8,
-            paddingHorizontal: 16,
-            marginVertical: 2,
+            borderRadius: scaleSize(14),
+            paddingVertical: scaleSize(8),
+            paddingHorizontal: scaleSize(16),
+            marginVertical: scaleSize(2),
             borderWidth: StyleSheet.hairlineWidth,
             shadowOpacity: 0.02,
-            shadowRadius: 2,
-            shadowOffset: { width: 0, height: 1 },
+            shadowRadius: scaleSize(2),
+            shadowOffset: { width: 0, height: scaleSize(1) },
             elevation: 1,
         },
-        cardCompact: { paddingVertical: 6 },
-        row: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', minHeight: 28 },
+        cardCompact: { paddingVertical: scaleSize(6) },
+        row: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', minHeight: scaleSize(28) },
         textCol: { flex: 1, justifyContent: 'center' },
-        name: { fontSize: require('../../helper/scaleSize').ts(12.5), fontFamily: 'Nunito_700Bold', marginBottom: 2, flexShrink: 1, paddingRight: 20 },
-        cals: { fontSize: require('../../helper/scaleSize').ts(14), fontFamily: 'Outfit_700Bold' },
-        summary: { fontSize: require('../../helper/scaleSize').ts(12), fontFamily: 'Nunito_600SemiBold' },
+        name: { fontSize: scaleSize(12.5), fontFamily: 'Nunito_700Bold', marginBottom: scaleSize(2), flexShrink: 1, paddingRight: scaleSize(20) },
+        cals: { fontSize: scaleSize(14), fontFamily: 'Outfit_700Bold' },
+        summary: { fontSize: scaleSize(12), fontFamily: 'Nunito_600SemiBold' },
         actionsContainer: {
             justifyContent: 'center',
             alignItems: 'flex-end',
             height: '100%',
-            width: 112,
+            width: scaleSize(112),
         },
         deleteBtn: {
             width: '100%',
             height: '100%',
-            minHeight: 32,
+            minHeight: scaleSize(32),
             borderRadius: 0,
-            paddingHorizontal: 16,
+            paddingHorizontal: scaleSize(16),
             alignItems: 'center',
             justifyContent: 'center',
-            gap: 6,
+            gap: scaleSize(6),
             flexDirection: 'row',
             backgroundColor: 'rgba(242,113,113,0.16)'
         },
-        deleteText: { color: '#F27171', fontFamily: 'Outfit_700Bold', fontSize: require('../../helper/scaleSize').ts(12.5) },
+        deleteText: { color: '#F27171', fontFamily: 'Outfit_700Bold', fontSize: scaleSize(12.5) },
     });

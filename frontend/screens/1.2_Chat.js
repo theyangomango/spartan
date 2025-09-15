@@ -33,6 +33,8 @@ import { Gesture, GestureDetector } from "react-native-gesture-handler";
 import theme from "../theme/mfpDark";
 import Animated, { useSharedValue, withTiming } from "react-native-reanimated";
 
+import scaleSize from "../helper/scaleSize";
+
 const { width: W } = Dimensions.get("window");
 const MAX_REVEAL = 72;
 
@@ -405,17 +407,17 @@ export default function Chat({ navigation, route }) {
                             renderItem={renderItem}
                             style={styles.list}
                             contentContainerStyle={{
-                                paddingHorizontal: 14,
-                                paddingTop: 8,
-                                paddingBottom: (isFocused ? 4 : 16) + insets.bottom + 72,
+                                paddingHorizontal: scaleSize(14),
+                                paddingTop: scaleSize(8),
+                                paddingBottom: scaleSize((isFocused ? 4 : 16) + insets.bottom + 72),
                             }}
                             keyboardShouldPersistTaps="handled"
                             keyboardDismissMode="on-drag"
                             maintainVisibleContentPosition={{ minIndexForVisible: 1 }}
                             onScrollBeginDrag={Keyboard.dismiss}
                             showsVerticalScrollIndicator={false}
-                            ListHeaderComponent={<View style={{ height: 6 }} />}
-                            ListFooterComponent={<View style={{ height: 6 }} />}
+                            ListHeaderComponent={<View style={{ height: scaleSize(6) }} />}
+                            ListFooterComponent={<View style={{ height: scaleSize(6) }} />}
                             scrollEventThrottle={16}
                             onScroll={(e) => {
                                 try {
@@ -483,28 +485,28 @@ const styles = StyleSheet.create({
     list: { flex: 1 },
     uploadOverlay: {
         position: "absolute",
-        right: 16,
-        bottom: 80,
-        paddingVertical: 8,
-        paddingHorizontal: 10,
-        borderRadius: 12,
+        right: scaleSize(16),
+        bottom: scaleSize(80),
+        paddingVertical: scaleSize(8),
+        paddingHorizontal: scaleSize(10),
+        borderRadius: scaleSize(12),
         // dim using a tone close to theme.bg, with alpha
         backgroundColor: "rgba(24,27,40,0.75)",
     },
 
     // date chip styles (same sleek vibe)
-    dateWrap: { width: "100%", alignItems: "center", paddingVertical: 10 },
+    dateWrap: { width: "100%", alignItems: "center", paddingVertical: scaleSize(10) },
     dateChip: {
-        paddingHorizontal: 10,
-        paddingVertical: 6,
+        paddingHorizontal: scaleSize(10),
+        paddingVertical: scaleSize(6),
         backgroundColor: COLORS.field,
-        borderRadius: 14,
-        borderWidth: 1,
+        borderRadius: scaleSize(14),
+        borderWidth: scaleSize(1),
         borderColor: COLORS.hairline,
     },
     dateText: {
         color: COLORS.subtext,
-        fontSize: 12,
+        fontSize: scaleSize(12),
         fontFamily: "Outfit_500Medium",
         letterSpacing: 0.2,
     },

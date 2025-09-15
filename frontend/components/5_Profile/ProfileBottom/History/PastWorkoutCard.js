@@ -107,7 +107,6 @@ const PastWorkoutCard = ({ workout }) => {
                     </Text>
                 </View>
             </View>
-
             {/* Stats */}
             <View style={styles.statsRow}>
                 <View style={styles.statCard}>
@@ -134,21 +133,19 @@ const PastWorkoutCard = ({ workout }) => {
                     <Text style={styles.statValue}>{workout?.PBs ?? 0} PR</Text>
                 </View>
             </View>
-
             {/* Table header */}
             <View style={styles.tableHeader}>
                 <Text style={[styles.tableHeaderText, { flex: 1 }]}>Exercise</Text>
                 <Text style={styles.tableHeaderText}>Best Set</Text>
             </View>
             <Divider />
-
             {/* Exercise list */}
             <FlatList
                 data={workout?.exercises || []}
                 renderItem={renderExercise}
                 keyExtractor={(item, index) => `${item?.name || "ex"}-${index}`}
                 ItemSeparatorComponent={Divider}
-                contentContainerStyle={{ paddingBottom: scaledSize(6) }}
+                contentContainerStyle={{ paddingBottom: scaleSize(scaledSize(6)) }}
                 showsVerticalScrollIndicator={false}
                 keyboardShouldPersistTaps="handled"
             />
@@ -158,98 +155,98 @@ const PastWorkoutCard = ({ workout }) => {
 
 const styles = StyleSheet.create({
     card: {
-        borderRadius: scaledSize(22),
-        marginVertical: scaledSize(10),
-        marginHorizontal: scaledSize(16),
+        borderRadius: scaleSize(scaledSize(22)),
+        marginVertical: scaleSize(scaledSize(10)),
+        marginHorizontal: scaleSize(scaledSize(16)),
         backgroundColor: COLORS.card,
-        paddingVertical: scaledSize(14),
-        paddingHorizontal: scaledSize(16),
+        paddingVertical: scaleSize(scaledSize(14)),
+        paddingHorizontal: scaleSize(scaledSize(16)),
         shadowColor: "#000",
-        shadowOffset: { width: 0, height: scaledSize(8) },
+        shadowOffset: { width: 0, height: scaleSize(scaledSize(8)) },
         shadowOpacity: 0.12,
-        shadowRadius: scaledSize(18),
+        shadowRadius: scaleSize(scaledSize(18)),
         elevation: 10,
         borderWidth: StyleSheet.hairlineWidth,
         borderColor: "rgba(2, 6, 23, 0.04)",
     },
 
     header: {
-        marginBottom: scaledSize(10),
+        marginBottom: scaleSize(scaledSize(10)),
         flexDirection: "row",
         justifyContent: "space-between",
         alignItems: "center",
     },
     headerDate: {
         fontFamily: "Outfit_700Bold",
-        fontSize: scaledSize(17),
+        fontSize: scaleSize(17),
         color: COLORS.blue,
     },
     headerSub: {
-        marginTop: scaledSize(2),
+        marginTop: scaleSize(scaledSize(2)),
         fontFamily: "Outfit_400Regular",
-        fontSize: scaledSize(12.5),
+        fontSize: scaleSize(12.5),
         color: COLORS.subtext,
     },
     headerBadge: {
         flexDirection: "row",
         alignItems: "center",
         backgroundColor: "rgba(253,224,71,0.2)",
-        borderRadius: scaledSize(999),
-        paddingVertical: scaledSize(6),
-        paddingHorizontal: scaledSize(10),
-        gap: scaledSize(6),
+        borderRadius: scaleSize(scaledSize(999)),
+        paddingVertical: scaleSize(scaledSize(6)),
+        paddingHorizontal: scaleSize(scaledSize(10)),
+        gap: scaleSize(scaledSize(6)),
     },
     headerBadgeText: {
         fontFamily: "Outfit_600SemiBold",
-        fontSize: scaledSize(12.5),
+        fontSize: scaleSize(12.5),
         color: COLORS.text,
     },
 
     statsRow: {
         flexDirection: "row",
-        gap: scaledSize(10),
-        marginBottom: scaledSize(10),
+        gap: scaleSize(scaledSize(10)),
+        marginBottom: scaleSize(scaledSize(10)),
     },
     statCard: {
         flex: 1,
         backgroundColor: COLORS.statBg,
-        borderRadius: scaledSize(14),
-        paddingVertical: scaledSize(10),
-        paddingHorizontal: scaledSize(12),
+        borderRadius: scaleSize(scaledSize(14)),
+        paddingVertical: scaleSize(scaledSize(10)),
+        paddingHorizontal: scaleSize(scaledSize(12)),
         borderWidth: StyleSheet.hairlineWidth,
         borderColor: COLORS.statBorder,
     },
     statIconWrap: {
-        width: scaledSize(26),
-        height: scaledSize(26),
-        borderRadius: scaledSize(13),
+        width: scaleSize(scaledSize(26)),
+        height: scaleSize(scaledSize(26)),
+        borderRadius: scaleSize(scaledSize(13)),
         justifyContent: "center",
         alignItems: "center",
         backgroundColor: COLORS.iconHalo,
-        marginBottom: scaledSize(6),
+        marginBottom: scaleSize(scaledSize(6)),
     },
     statLabel: {
         fontFamily: "Outfit_500Medium",
-        fontSize: scaledSize(11.5),
+        fontSize: scaleSize(11.5),
         color: COLORS.subtext,
     },
     statValue: {
-        marginTop: scaledSize(2),
+        marginTop: scaleSize(scaledSize(2)),
         fontFamily: "Outfit_700Bold",
-        fontSize: scaledSize(15),
+        fontSize: scaleSize(15),
         color: COLORS.text,
     },
 
     tableHeader: {
-        paddingTop: scaledSize(4),
-        paddingBottom: scaledSize(8),
+        paddingTop: scaleSize(scaledSize(4)),
+        paddingBottom: scaleSize(scaledSize(8)),
         flexDirection: "row",
         justifyContent: "space-between",
         alignItems: "flex-end",
     },
     tableHeaderText: {
         fontFamily: "Outfit_600SemiBold",
-        fontSize: scaledSize(12.5),
+        fontSize: scaleSize(12.5),
         color: COLORS.subtext,
     },
 
@@ -259,30 +256,30 @@ const styles = StyleSheet.create({
     },
 
     row: {
-        minHeight: scaledSize(46),
+        minHeight: scaleSize(scaledSize(46)),
         flexDirection: "row",
         alignItems: "center",
-        paddingVertical: scaledSize(6),
+        paddingVertical: scaleSize(scaledSize(6)),
     },
     rowLeft: {
         flex: 1,
-        paddingRight: scaledSize(10),
+        paddingRight: scaleSize(scaledSize(10)),
     },
     exerciseName: {
         fontFamily: "Outfit_500Medium",
-        fontSize: scaledSize(13.5),
+        fontSize: scaleSize(13.5),
         color: "#111827",
-        marginBottom: scaledSize(4),
+        marginBottom: scaleSize(scaledSize(4)),
     },
     muscleChip: {
         alignSelf: "flex-start",
-        borderRadius: scaledSize(999),
-        paddingHorizontal: scaledSize(8),
-        paddingVertical: scaledSize(2),
+        borderRadius: scaleSize(scaledSize(999)),
+        paddingHorizontal: scaleSize(scaledSize(8)),
+        paddingVertical: scaleSize(scaledSize(2)),
     },
     muscleChipText: {
         fontFamily: "Poppins_700Bold",
-        fontSize: scaledSize(10.5),
+        fontSize: scaleSize(10.5),
         color: COLORS.chipText,
     },
 
@@ -293,22 +290,22 @@ const styles = StyleSheet.create({
     bestPill: {
         flexDirection: "row",
         alignItems: "center",
-        gap: scaledSize(6),
-        borderRadius: scaledSize(999),
-        paddingVertical: scaledSize(6),
-        paddingHorizontal: scaledSize(10),
+        gap: scaleSize(scaledSize(6)),
+        borderRadius: scaleSize(scaledSize(999)),
+        paddingVertical: scaleSize(scaledSize(6)),
+        paddingHorizontal: scaleSize(scaledSize(10)),
         backgroundColor: COLORS.pillBg,
         borderWidth: StyleSheet.hairlineWidth,
         borderColor: COLORS.pillBorder,
     },
     bestPillText: {
         fontFamily: "Outfit_600SemiBold",
-        fontSize: scaledSize(12.5),
+        fontSize: scaleSize(12.5),
         color: COLORS.text,
     },
     naText: {
         fontFamily: "Outfit_500Medium",
-        fontSize: scaledSize(12.5),
+        fontSize: scaleSize(12.5),
         color: COLORS.subtext,
     },
 });

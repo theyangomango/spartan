@@ -4,6 +4,8 @@ import { Ionicons } from "@expo/vector-icons";
 import { BLUE } from "./workoutTheme";
 import theme from "../../../theme/mfpDark";
 
+import scaleSize from "../../../helper/scaleSize";
+
 export default function RecentNudges({ items = [], onStartTemplate }) {
     const [idx, setIdx] = useState(0);
 
@@ -16,7 +18,7 @@ export default function RecentNudges({ items = [], onStartTemplate }) {
     if (!items.length) {
         return (
             <View style={styles.nudge}>
-                <Ionicons name="flash-outline" size={17} color={theme.textSecondary} style={{ marginRight: 8 }} />
+                <Ionicons name="flash-outline" size={17} color={theme.textSecondary} style={{ marginRight: scaleSize(8) }} />
                 <Text numberOfLines={1} style={[styles.nudgeText, { color: theme.textSecondary }]}>
                     No updates yet — be the first to log today
                 </Text>
@@ -31,7 +33,7 @@ export default function RecentNudges({ items = [], onStartTemplate }) {
             onPress={() => onStartTemplate && onStartTemplate(it.templateId)}
             style={styles.nudge}
         >
-            <Ionicons name="flash-outline" size={17} color={BLUE.ACCENT} style={{ marginRight: 8 }} />
+            <Ionicons name="flash-outline" size={17} color={BLUE.ACCENT} style={{ marginRight: scaleSize(8) }} />
             <Text numberOfLines={1} style={styles.nudgeText}>
                 {it.primary} <Text style={styles.nudgeAccent}>{it.accent}</Text>{" "}
                 <Text style={styles.nudgeTail}>• {it.tail}</Text>
@@ -43,22 +45,22 @@ export default function RecentNudges({ items = [], onStartTemplate }) {
 
 const styles = StyleSheet.create({
     nudge: {
-        marginTop: 6,
+        marginTop: scaleSize(6),
         flexDirection: "row",
         alignItems: "center",
         backgroundColor: theme.surface,
-        borderRadius: 16,
-        paddingVertical: 14,
-        paddingHorizontal: 12,
+        borderRadius: scaleSize(16),
+        paddingVertical: scaleSize(14),
+        paddingHorizontal: scaleSize(12),
         borderWidth: StyleSheet.hairlineWidth,
         borderColor: theme.hairline,
         ...Platform.select({
-            ios: { shadowColor: "#000", shadowOpacity: 0.04, shadowRadius: 6, shadowOffset: { width: 0, height: 3 } },
+            ios: { shadowColor: "#000", shadowOpacity: 0.04, shadowRadius: scaleSize(6), shadowOffset: { width: 0, height: scaleSize(3) } },
             android: { elevation: 1 },
         }),
     },
     // Use primary text color for readability on dark surfaces
-    nudgeText: { flex: 1, fontFamily: "Outfit_700Bold", color: theme.textPrimary, fontSize: 14 },
+    nudgeText: { flex: 1, fontFamily: "Outfit_700Bold", color: theme.textPrimary, fontSize: scaleSize(14) },
     nudgeAccent: { color: BLUE.ACCENT },
     nudgeTail: { color: theme.textSecondary, fontFamily: "Outfit_600SemiBold" },
 });

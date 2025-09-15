@@ -132,14 +132,14 @@ const styles = StyleSheet.create({
     /* avatar rendered with FastImage */
     pfp: {
         flex: 1,
-        borderRadius: scaleSize(43.5) / 2,
+        borderRadius: scaleSize(scaleSize(43.5) / 2),
     },
     text_ctnr: {
         padding: scaleSize(4),
         justifyContent: "center",
     },
     handle_text: {
-        fontSize: ts(12.5),
+        fontSize: scaleSize(12.5),
         paddingBottom: scaleSize(2),
         fontFamily: "Poppins_600SemiBold",
         color: "#fff",
@@ -149,11 +149,11 @@ const styles = StyleSheet.create({
         textShadowColor: 'transparent',
     },
     workout_text_ctnr: {
-        paddingHorizontal: 12,
-        paddingVertical: 6,
+        paddingHorizontal: scaleSize(12),
+        paddingVertical: scaleSize(6),
         // Blue, low‑opacity background for stronger affordance
         backgroundColor: 'rgba(18, 49, 76, 0.57)',
-        borderRadius: 20,
+        borderRadius: scaleSize(20),
         flexDirection: 'row',
         alignItems: 'center',
         // Subtle border to define edges on busy photos
@@ -161,12 +161,12 @@ const styles = StyleSheet.create({
         borderColor: 'rgba(255,255,255,0.18)',
         shadowColor: '#000',
         shadowOpacity: 0.12,
-        shadowRadius: 4,
-        shadowOffset: { width: 0, height: 3 },
+        shadowRadius: scaleSize(4),
+        shadowOffset: { width: 0, height: scaleSize(3) },
         elevation: 2,
     },
     date_text: {
-        fontSize: ts(12),
+        fontSize: scaleSize(12),
         color: theme.textPrimary,
         fontFamily: "Outfit_700Bold",
         letterSpacing: 0.2,
@@ -184,7 +184,7 @@ const styles = StyleSheet.create({
     dot: {
         width: scaleSize(9),
         height: scaleSize(5),
-        borderRadius: scaleSize(5) / 2,
+        borderRadius: scaleSize(scaleSize(5) / 2),
         backgroundColor: "#fff",
         opacity: 0.5,
         marginHorizontal: scaleSize(3.5),
@@ -192,7 +192,7 @@ const styles = StyleSheet.create({
     dash: {
         width: scaleSize(21),
         height: scaleSize(5),
-        borderRadius: scaleSize(5) / 2,
+        borderRadius: scaleSize(scaleSize(5) / 2),
         backgroundColor: "#fff",
         marginHorizontal: scaleSize(3.5),
     },

@@ -2,6 +2,7 @@ import { StyleSheet, View, Text, Dimensions, Pressable } from "react-native";
 import FastImage from 'react-native-fast-image';
 import { usePfp } from "../../helper/usePFPs";
 import theme from "../../theme/mfpDark";
+import scaleSizeGlobal from "../../helper/scaleSize";
 // Removed plus overlay next to PFP for cleaner ViewProfile
 
 const { height: screenHeight } = Dimensions.get('window');
@@ -81,13 +82,13 @@ const styles = StyleSheet.create({
     },
     user_stat_count_text: {
         fontFamily: 'Outfit_600SemiBold',
-        fontSize: require('../../helper/scaleSize').ts(17),
+        fontSize: scaleSizeGlobal(17),
         color: theme.textPrimary,
         paddingBottom: scaleSize(1),
     },
     user_stat_text: {
         fontFamily: 'Outfit_600SemiBold',
-        fontSize: require('../../helper/scaleSize').ts(14.5),
+        fontSize: scaleSizeGlobal(14.5),
         color: theme.textSecondary,
     },
     profile_info_ctnr: {
@@ -110,14 +111,14 @@ const styles = StyleSheet.create({
     },
     name_text: {
         fontFamily: 'Outfit_600SemiBold',
-        fontSize: require('../../helper/scaleSize').ts(16),
+        fontSize: scaleSizeGlobal(16),
         flex: 1,
         textAlign: 'right',
         color: theme.textPrimary,
     },
     score_text: {
         fontFamily: 'Outfit_600SemiBold',
-        fontSize: require('../../helper/scaleSize').ts(16),
+        fontSize: scaleSizeGlobal(16),
         color: theme.primary,
         flex: 1,
         textAlign: 'left',
@@ -126,7 +127,7 @@ const styles = StyleSheet.create({
     bio_text: {
         // Softer bio: lighter weight and secondary color
         fontFamily: 'Outfit_400Regular',
-        fontSize: require('../../helper/scaleSize').ts(13),
+        fontSize: scaleSizeGlobal(13),
         color: theme.textSecondary,
         lineHeight: scaleSize(17),
         letterSpacing: 0.1,

@@ -3,6 +3,8 @@ import React, { memo, useCallback, useEffect, useMemo, useRef, useState } from "
 import { View, Text, StyleSheet, Image, FlatList, Pressable, Animated } from "react-native";
 import BottomSheet, { BottomSheetBackdrop } from "@gorhom/bottom-sheet";
 
+import scaleSize from "../../helper/scaleSize";
+
 /* ------------------------------ utils ------------------------------ */
 const toMillis = (v) => {
     if (!v) return undefined;
@@ -315,30 +317,30 @@ const FriendsActivitySheet = ({
 const styles = StyleSheet.create({
     outer: { position: "absolute", top: 0, left: 0, right: 0, bottom: 0, zIndex: 1 },
     hiddenHandle: { display: "none" },
-    sheetBg: { borderTopLeftRadius: 20, borderTopRightRadius: 20 },
+    sheetBg: { borderTopLeftRadius: scaleSize(20), borderTopRightRadius: scaleSize(20) },
     handle: {
         alignSelf: "center",
-        width: 46,
-        height: 5,
-        borderRadius: 999,
+        width: scaleSize(46),
+        height: scaleSize(5),
+        borderRadius: scaleSize(999),
         backgroundColor: "#E2E8F0",
-        marginTop: 8,
-        marginBottom: 6,
+        marginTop: scaleSize(8),
+        marginBottom: scaleSize(6),
     },
 
-    header: { paddingHorizontal: 16, paddingVertical: 8 },
-    headerTitle: { fontFamily: "Outfit_700Bold", fontSize: 18, color: "#0F172A" },
-    headerSub: { marginTop: 2, fontFamily: "Outfit_500Medium", fontSize: 12.5, color: "#64748B" },
+    header: { paddingHorizontal: scaleSize(16), paddingVertical: scaleSize(8) },
+    headerTitle: { fontFamily: "Outfit_700Bold", fontSize: scaleSize(18), color: "#0F172A" },
+    headerSub: { marginTop: scaleSize(2), fontFamily: "Outfit_500Medium", fontSize: scaleSize(12.5), color: "#64748B" },
 
-    listContent: { paddingHorizontal: 12, paddingBottom: 24 },
-    sep: { height: 10 },
+    listContent: { paddingHorizontal: scaleSize(12), paddingBottom: scaleSize(24) },
+    sep: { height: scaleSize(10) },
 
     row: {
         flexDirection: "row",
         alignItems: "center",
         backgroundColor: "#FFFFFF",
-        borderRadius: 16,
-        padding: 12,
+        borderRadius: scaleSize(16),
+        padding: scaleSize(12),
         borderWidth: StyleSheet.hairlineWidth,
         borderColor: "rgba(2,6,23,0.06)",
     },
@@ -351,57 +353,57 @@ const styles = StyleSheet.create({
         backgroundColor: "#FFF1F2",
     },
 
-    avatarWrap: { marginRight: 12, borderRadius: 24, padding: 2 },
+    avatarWrap: { marginRight: scaleSize(12), borderRadius: scaleSize(24), padding: scaleSize(2) },
     avatarWrapLive: { backgroundColor: "rgba(244,63,94,0.10)" },
-    avatar: { width: 42, height: 42, borderRadius: 21, backgroundColor: "#E2E8F0" },
+    avatar: { width: scaleSize(42), height: scaleSize(42), borderRadius: scaleSize(21), backgroundColor: "#E2E8F0" },
 
     rowCenter: { flex: 1 },
 
-    topLine: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", gap: 8 },
-    name: { flex: 1, fontFamily: "Outfit_700Bold", fontSize: 14.5, color: "#0F172A" },
+    topLine: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", gap: scaleSize(8) },
+    name: { flex: 1, fontFamily: "Outfit_700Bold", fontSize: scaleSize(14.5), color: "#0F172A" },
 
     /* live pill */
     livePill: {
         flexDirection: "row",
         alignItems: "center",
-        gap: 8,
+        gap: scaleSize(8),
         backgroundColor: "#FFFFFF",
         borderWidth: StyleSheet.hairlineWidth,
         borderColor: "rgba(244,63,94,0.25)",
-        paddingVertical: 4,
-        paddingHorizontal: 10,
-        borderRadius: 999,
+        paddingVertical: scaleSize(4),
+        paddingHorizontal: scaleSize(10),
+        borderRadius: scaleSize(999),
     },
-    liveDot: { width: 8, height: 8, borderRadius: 4, backgroundColor: "#EF4444" },
-    liveText: { fontFamily: "Outfit_700Bold", fontSize: 12.5, color: "#0F172A", letterSpacing: 0.2 },
+    liveDot: { width: scaleSize(8), height: scaleSize(8), borderRadius: scaleSize(4), backgroundColor: "#EF4444" },
+    liveText: { fontFamily: "Outfit_700Bold", fontSize: scaleSize(12.5), color: "#0F172A", letterSpacing: 0.2 },
 
     /* chips */
-    metaRow: { flexDirection: "row", gap: 6, marginTop: 6, flexWrap: "wrap" },
+    metaRow: { flexDirection: "row", gap: scaleSize(6), marginTop: scaleSize(6), flexWrap: "wrap" },
     chip: {
         backgroundColor: "#F8FAFC",
         borderWidth: StyleSheet.hairlineWidth,
         borderColor: "rgba(100,116,139,0.15)",
-        paddingVertical: 4,
-        paddingHorizontal: 8,
-        borderRadius: 999,
+        paddingVertical: scaleSize(4),
+        paddingHorizontal: scaleSize(8),
+        borderRadius: scaleSize(999),
     },
-    chipText: { fontFamily: "Outfit_600SemiBold", fontSize: 11.5, color: "#0F172A" },
+    chipText: { fontFamily: "Outfit_600SemiBold", fontSize: scaleSize(11.5), color: "#0F172A" },
 
     /* tiny preview line */
-    preview: { marginTop: 4, fontFamily: "Outfit_500Medium", fontSize: 12, color: "#334155" },
+    preview: { marginTop: scaleSize(4), fontFamily: "Outfit_500Medium", fontSize: scaleSize(12), color: "#334155" },
 
-    metaTime: { marginTop: 4, fontFamily: "Outfit_500Medium", fontSize: 12.5, color: "#64748B" },
+    metaTime: { marginTop: scaleSize(4), fontFamily: "Outfit_500Medium", fontSize: scaleSize(12.5), color: "#64748B" },
 
     cta: {
-        paddingHorizontal: 12,
-        paddingVertical: 8,
-        borderRadius: 12,
+        paddingHorizontal: scaleSize(12),
+        paddingVertical: scaleSize(8),
+        borderRadius: scaleSize(12),
         borderWidth: StyleSheet.hairlineWidth,
-        marginLeft: 10,
+        marginLeft: scaleSize(10),
     },
     joinBtn: { backgroundColor: "#0F172A", borderColor: "transparent" },
     joinText: { color: "#fff" },
-    ctaText: { fontFamily: "Outfit_700Bold", fontSize: 12.5 },
+    ctaText: { fontFamily: "Outfit_700Bold", fontSize: scaleSize(12.5) },
 });
 
 export default memo(FriendsActivitySheet);

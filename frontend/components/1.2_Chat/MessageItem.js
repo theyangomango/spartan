@@ -17,6 +17,8 @@ import Animated, {
     ZoomOut,
 } from "react-native-reanimated";
 
+import scaleSize from "../../helper/scaleSize";
+
 const W = Dimensions.get("window").width;
 const BUBBLE_MAX_W = Math.min(360, W * 0.72);
 
@@ -236,7 +238,7 @@ export default function MessageItem({
                             style={[
                                 styles.reactionInline,
                                 isSelf ? styles.reactionLeft : styles.reactionRight,
-                                { top: Math.max(0, reactionHeadroom - 18) },
+                                { top: scaleSize(Math.max(0, reactionHeadroom - 18)) },
                             ]}
                             layout={Layout.springify().damping(18).stiffness(260)}
                         >
@@ -245,7 +247,7 @@ export default function MessageItem({
                                     key={`${emoji}-${arr.length}`}
                                     entering={ZoomIn.springify().damping(12).stiffness(320)}
                                     exiting={ZoomOut.duration(120)}
-                                    style={[styles.reactionEmoji, i > 0 && { marginLeft: 4 }]}
+                                    style={[styles.reactionEmoji, i > 0 && { marginLeft: scaleSize(4) }]}
                                 >
                                     {emoji}
                                     {arr.length > 1 ? ` ${arr.length}` : ""}
@@ -337,108 +339,108 @@ export default function MessageItem({
 }
 
 const styles = StyleSheet.create({
-    row: { width: "100%", paddingHorizontal: 4, marginBottom: 6, position: 'relative', overflow: 'visible' },
+    row: { width: "100%", paddingHorizontal: scaleSize(4), marginBottom: scaleSize(6), position: 'relative', overflow: 'visible' },
     rowSelf: { alignItems: "flex-end" },
     rowOther: { alignItems: "flex-start" },
     hRow: { flexDirection: "row", alignItems: "center" },
-    avatarSlot: { width: 30, marginRight: 8, alignItems: 'flex-start' },
-    avatar: { width: 26, height: 26, borderRadius: 13, backgroundColor: theme.field },
+    avatarSlot: { width: scaleSize(30), marginRight: scaleSize(8), alignItems: 'flex-start' },
+    avatar: { width: scaleSize(26), height: scaleSize(26), borderRadius: scaleSize(13), backgroundColor: theme.field },
     avatarFallback: { backgroundColor: theme.field },
     wrap: { position: "relative", overflow: 'visible' },
 
-    bubble: { borderRadius: 18, paddingHorizontal: 12, paddingVertical: 8, position: "relative" },
+    bubble: { borderRadius: scaleSize(18), paddingHorizontal: scaleSize(12), paddingVertical: scaleSize(8), position: "relative" },
     bubbleSelf: {
         backgroundColor: theme.primary,
         shadowColor: theme.primary,
         shadowOpacity: 0.18,
-        shadowRadius: 10,
-        shadowOffset: { width: 0, height: 4 },
+        shadowRadius: scaleSize(10),
+        shadowOffset: { width: 0, height: scaleSize(4) },
         elevation: 2,
     },
     bubbleOther: {
         backgroundColor: theme.surface,
-        borderWidth: 1,
+        borderWidth: scaleSize(1),
         borderColor: theme.hairline,
         position: "relative",
     },
 
-    mediaOnly: { borderRadius: 12, overflow: "visible", position: "relative" },
+    mediaOnly: { borderRadius: scaleSize(12), overflow: "visible", position: "relative" },
 
-    groupSelf: { borderBottomRightRadius: 7 },
-    groupOther: { borderBottomLeftRadius: 7 },
+    groupSelf: { borderBottomRightRadius: scaleSize(7) },
+    groupOther: { borderBottomLeftRadius: scaleSize(7) },
 
-    text: { fontSize: require('../../helper/scaleSize').ts(14), lineHeight: require('../../helper/scaleSize').ts(18), letterSpacing: 0.1, fontFamily: "Outfit_500Medium" },
+    text: { fontSize: scaleSize(14), lineHeight: scaleSize(require('../../helper/scaleSize').ts(18)), letterSpacing: 0.1, fontFamily: "Outfit_500Medium" },
     textSelf: { color: theme.textPrimary },
     textOther: { color: theme.textPrimary },
 
-    mediaWrap: { flexDirection: "row", flexWrap: "wrap", gap: 6, marginTop: 6 },
+    mediaWrap: { flexDirection: "row", flexWrap: "wrap", gap: scaleSize(6), marginTop: scaleSize(6) },
     media: {
-        width: (BUBBLE_MAX_W - 6) / 2,
-        height: 180,
-        borderRadius: 12,
+        width: scaleSize((BUBBLE_MAX_W - 6) / 2),
+        height: scaleSize(180),
+        borderRadius: scaleSize(12),
         backgroundColor: theme.field,
     },
-    videoOuter: { overflow: "hidden", borderRadius: 12, backgroundColor: theme.bg },
+    videoOuter: { overflow: "hidden", borderRadius: scaleSize(12), backgroundColor: theme.bg },
 
     // reply preview
     replyPreview: {
         flexDirection: "row",
         alignItems: "center",
-        marginBottom: 1,
-        paddingHorizontal: 10,
-        paddingVertical: 8,
-        borderRadius: 12,
+        marginBottom: scaleSize(1),
+        paddingHorizontal: scaleSize(10),
+        paddingVertical: scaleSize(8),
+        borderRadius: scaleSize(12),
     },
     replySelf: { backgroundColor: "rgba(45,158,255,0.40)" },
     replyOther: { backgroundColor: theme.field },
-    replyBar: { width: 3, height: 30, borderRadius: 2, marginRight: 8 },
+    replyBar: { width: scaleSize(3), height: scaleSize(30), borderRadius: scaleSize(2), marginRight: scaleSize(8) },
     replyTextCol: { flexShrink: 1, minWidth: 0 },
-    replySnippet: { fontSize: require('../../helper/scaleSize').ts(12), fontFamily: "Outfit_500Medium", color: theme.textSecondary },
+    replySnippet: { fontSize: scaleSize(12), fontFamily: "Outfit_500Medium", color: theme.textSecondary },
 
     // reactions badge
     reactionInline: {
         position: "absolute",
-        top: -18,
+        top: scaleSize(-18),
         flexDirection: "row",
         alignItems: "center",
-        minWidth: 28,
-        height: 28,
-        paddingHorizontal: 8,
+        minWidth: scaleSize(28),
+        height: scaleSize(28),
+        paddingHorizontal: scaleSize(8),
         justifyContent: "center",
         backgroundColor: theme.surface,
-        borderRadius: 999,
-        borderWidth: 1,
+        borderRadius: scaleSize(999),
+        borderWidth: scaleSize(1),
         borderColor: theme.hairline,
         shadowColor: "#000",
         shadowOpacity: 0.14,
-        shadowRadius: 6,
-        shadowOffset: { width: 0, height: 3 },
+        shadowRadius: scaleSize(6),
+        shadowOffset: { width: 0, height: scaleSize(3) },
         elevation: 1,
         zIndex: 5,
     },
-    reactionLeft: { left: -12 },
-    reactionRight: { right: -12 },
-    reactionEmoji: { fontSize: require('../../helper/scaleSize').ts(12.5), color: theme.textPrimary },
+    reactionLeft: { left: scaleSize(-12) },
+    reactionRight: { right: scaleSize(-12) },
+    reactionEmoji: { fontSize: scaleSize(12.5), color: theme.textPrimary },
 
     // timestamps outside bubble, slide in
     timeRight: {
         position: "absolute",
-        right: -70,
-        bottom: 2,
+        right: scaleSize(-70),
+        bottom: scaleSize(2),
         zIndex: 2,
-        fontSize: require('../../helper/scaleSize').ts(11),
-        lineHeight: 13,
+        fontSize: scaleSize(11),
+        lineHeight: scaleSize(13),
         fontFamily: "Outfit_500Medium",
         letterSpacing: 0.1,
         color: theme.textSecondary,
     },
     timeLeftOuter: {
         position: "absolute",
-        left: -78,
-        bottom: 2,
+        left: scaleSize(-78),
+        bottom: scaleSize(2),
         zIndex: 2,
-        fontSize: require('../../helper/scaleSize').ts(11),
-        lineHeight: 13,
+        fontSize: scaleSize(11),
+        lineHeight: scaleSize(13),
         fontFamily: "Outfit_500Medium",
         letterSpacing: 0.1,
         color: theme.textSecondary,

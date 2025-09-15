@@ -6,6 +6,8 @@ import PostPreview from "./PostPreview";
 import SinglePostModal from "./SinglePostModal";
 import FastImage from 'react-native-fast-image';
 
+import scaleSize from "../../../../helper/scaleSize";
+
 const PostsSection = ({ posts, isVisible, onOpenWorkout }) => {
     const [selectedPost, setSelectedPost] = useState(null);
 
@@ -75,21 +77,21 @@ const PostsSection = ({ posts, isVisible, onOpenWorkout }) => {
 
 const styles = StyleSheet.create({
     scrollable_ctnr: {
-        marginTop: 5,
+        marginTop: scaleSize(5),
         flexGrow: 3,
-        paddingHorizontal: 1,
+        paddingHorizontal: scaleSize(1),
     },
     hidden: { display: "none" },
     skeletonGrid: {
         flexDirection: 'row',
         flexWrap: 'wrap',
-        paddingHorizontal: 1,
+        paddingHorizontal: scaleSize(1),
     },
     skeletonTile: {
         width: '32.3333%',
-        margin: 2,
+        margin: scaleSize(2),
         aspectRatio: 1,
-        borderRadius: 10,
+        borderRadius: scaleSize(10),
         backgroundColor: require('../../../../theme/mfpDark').default.field,
     },
 });

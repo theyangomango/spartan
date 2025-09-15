@@ -21,6 +21,8 @@ import Post from '../../../1_Feed/Posts/Post';
 import CommentsBottomSheet from '../../../1_Feed/Comments/CommentsBottomSheet';
 import ShareBottomSheet from '../../../1_Feed/SharePost/ShareBottomSheet';
 
+import scaleSize from "../../../../helper/scaleSize";
+
 const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
 const dynamicStyles = getFeedHeaderStyles(SCREEN_WIDTH, SCREEN_HEIGHT);
 const TARGET_POSITION = getScrollTargetPosition(SCREEN_WIDTH, SCREEN_HEIGHT);
@@ -166,14 +168,14 @@ const styles = StyleSheet.create({
         backgroundColor: '#fff',
     },
     backButtonContainer: {
-        paddingTop: 40,
-        paddingBottom: 5,
-        paddingHorizontal: dynamicStyles.paddingHorizontal - 5,
+        paddingTop: scaleSize(40),
+        paddingBottom: scaleSize(5),
+        paddingHorizontal: scaleSize(dynamicStyles.paddingHorizontal - 5),
         zIndex: 9999,
     },
     backButtonHitbox: {
-        paddingVertical: 5,
-        paddingHorizontal: 5,
+        paddingVertical: scaleSize(5),
+        paddingHorizontal: scaleSize(5),
     },
     flatListWrapper: {
         flex: 1,
@@ -185,7 +187,7 @@ const styles = StyleSheet.create({
     maskContainer: () => ({
         flex: 1,
         backgroundColor: '#fff',
-        borderTopRightRadius: 35,
-        borderTopLeftRadius: 35,
+        borderTopRightRadius: scaleSize(35),
+        borderTopLeftRadius: scaleSize(35),
     }),
 });

@@ -4,6 +4,8 @@ import BottomSheet, { BottomSheetBackdrop } from "@gorhom/bottom-sheet";
 import CreateGroupChatModal from "./CreateGroupChatModal";
 import theme from "../../theme/mfpDark";
 
+import scaleSize from "../../helper/scaleSize";
+
 const CreateGroupChatBottomSheet = ({ isVisible, setIsVisible, initChat }) => {
     const bottomSheetRef = useRef(null);
     const snapPoints = useMemo(() => ["94%"], []);
@@ -54,15 +56,15 @@ const styles = StyleSheet.create({
     sheetBackground: {
         // Match app background to reduce contrast with the screen behind
         backgroundColor: theme.bg,
-        borderTopLeftRadius: 22,
-        borderTopRightRadius: 22,
+        borderTopLeftRadius: scaleSize(22),
+        borderTopRightRadius: scaleSize(22),
     },
     handleIndicator: {
         backgroundColor: theme.hairline,
-        width: 44,
-        height: 5,
-        borderRadius: 3,
-        marginTop: 6,
-        marginBottom: 6,
+        width: scaleSize(44),
+        height: scaleSize(5),
+        borderRadius: scaleSize(3),
+        marginTop: scaleSize(6),
+        marginBottom: scaleSize(6),
     },
 });

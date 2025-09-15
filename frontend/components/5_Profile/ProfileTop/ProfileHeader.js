@@ -42,17 +42,17 @@ const styles = StyleSheet.create({
         alignItems: 'center',
         flexDirection: 'row',
         justifyContent: 'space-between',
-        paddingHorizontal: scaledSize(22),
-        paddingBottom: scaledSize(15),
-        paddingTop: scaledSize(6)
+        paddingHorizontal: scaleSize(scaledSize(22)),
+        paddingBottom: scaleSize(scaledSize(15)),
+        paddingTop: scaleSize(scaledSize(6))
     },
     center: {
         flexDirection: 'row',
     },
     handle_text: {
         fontFamily: 'Outfit_600SemiBold',
-        fontSize: scaledSize(16),
-        padding: scaledSize(2),
+        fontSize: scaleSize(16),
+        padding: scaleSize(scaledSize(2)),
         color: theme.textPrimary,
     },
     down_arrow_ctnr: {
@@ -62,13 +62,13 @@ const styles = StyleSheet.create({
         flexDirection: 'row',
     },
     create_btn_ctnr: {
-        borderWidth: scaledSize(1.5),
-        width: scaledSize(21.5),
-        borderRadius: scaledSize(5),
+        borderWidth: scaleSize(scaledSize(1.5)),
+        width: scaleSize(scaledSize(21.5)),
+        borderRadius: scaleSize(scaledSize(5)),
         aspectRatio: 1,
         alignItems: 'center',
         justifyContent: 'center',
         borderColor: theme.hairline,
     },
-    leftBtn: { paddingTop: scaledSize(1) },
+    leftBtn: { paddingTop: scaleSize(scaledSize(1)) },
 });

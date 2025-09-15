@@ -1,6 +1,8 @@
 import { View, Text, Image, StyleSheet } from "react-native"
 import { SimpleLineIcons } from '@expo/vector-icons'
 
+import scaleSize from "../../helper/scaleSize";
+
 export default function ExplorePostHeader({ data, url }) {
     return (
         <View style={styles.main_ctnr}>
@@ -31,8 +33,8 @@ export default function ExplorePostHeader({ data, url }) {
 
 const styles = StyleSheet.create({
     main_ctnr: {
-        paddingBottom: 3,
-        paddingHorizontal: 12,
+        paddingBottom: scaleSize(3),
+        paddingHorizontal: scaleSize(12),
         flexDirection: 'row',
         justifyContent: 'space-between',
     },
@@ -40,45 +42,45 @@ const styles = StyleSheet.create({
         flexDirection: 'row'
     },
     pfp_ctnr: {
-        width: 34,
-        height: 34,
+        width: scaleSize(34),
+        height: scaleSize(34),
         // borderRadius: 21,
         // backgroundColor: 'red',
-        marginRight: 8,
+        marginRight: scaleSize(8),
     },
     pfp: {
         flex: 1,
-        borderRadius: 17
+        borderRadius: scaleSize(17)
     },
     text_ctnr: {
         justifyContent: 'center',
-        paddingBottom: 4
+        paddingBottom: scaleSize(4)
     },
     handle_text: {
-        fontSize: require('../../helper/scaleSize').ts(13),
+        fontSize: scaleSize(13),
         fontFamily: 'Inter_700Bold',
     },
     right: {
         flexDirection: 'row'
     },
     follow_btn: {
-        width: 66,
-        height: 31,
-        borderRadius: 30,
-        marginHorizontal: 10,
-        marginVertical: 4,
+        width: scaleSize(66),
+        height: scaleSize(31),
+        borderRadius: scaleSize(30),
+        marginHorizontal: scaleSize(10),
+        marginVertical: scaleSize(4),
         backgroundColor: '#0699FF',
         justifyContent: 'center'
     },
     follow_text: {
         textAlign: 'center',
         color: 'white',
-        fontSize: require('../../helper/scaleSize').ts(11),
+        fontSize: scaleSize(11),
         fontFamily: 'Lato_700Bold',
     },
     options_icon_ctnr: {
         justifyContent: 'center',
         alignItems: 'center',
-        paddingHorizontal: 5
+        paddingHorizontal: scaleSize(5)
     },
 });

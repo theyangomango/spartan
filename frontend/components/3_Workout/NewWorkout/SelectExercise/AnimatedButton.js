@@ -35,16 +35,16 @@ const styles = StyleSheet.create({
     },
     addButton: {
         backgroundColor: '#51A9FF',
-        paddingHorizontal: scaledSize(20),
-        paddingVertical: scaledSize(4.5),
-        borderRadius: scaledSize(8),
+        paddingHorizontal: scaleSize(scaledSize(20)),
+        paddingVertical: scaleSize(scaledSize(4.5)),
+        borderRadius: scaleSize(scaledSize(8)),
         justifyContent: 'center',
         alignItems: 'center'
     },
     addButtonText: {
         color: '#fff',
         fontFamily: 'Outfit_700Bold',
-        fontSize: scaledSize(14),
+        fontSize: scaleSize(14),
     },
 });
 

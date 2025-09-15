@@ -1,6 +1,8 @@
 import React from 'react';
 import { View, StyleSheet } from 'react-native';
 
+import scaleSize from "../../../helper/scaleSize";
+
 // Small rounded extension rendered just below ActivityChips to visually
 // separate the chips/header from the first post with a smooth curved edge.
 export default function ChipsRoundMask({
@@ -21,11 +23,10 @@ export default function ChipsRoundMask({
                     height: height,
                     marginTop: offset,
                     position: 'absolute',
-                    bottom: -height,
+                    bottom: scaleSize(-height),
                 }
             ]}
         >
-
             <View style={
                 {
                     backgroundColor: 'red',

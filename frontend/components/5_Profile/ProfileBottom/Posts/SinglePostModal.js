@@ -19,6 +19,8 @@ import CommentsBottomSheet from "../../../1_Feed/Comments/CommentsBottomSheet";
 import ShareBottomSheet from "../../../1_Feed/SharePost/ShareBottomSheet";
 import FeedWorkoutViewerSheet from "../../../1_Feed/ViewWorkout/FeedWorkoutViewerSheet";
 
+import scaleSize from "../../../../helper/scaleSize";
+
 const { width: SW, height: SH } = Dimensions.get("window");
 const TARGET_Y = getScrollTargetPosition(SW, SH);
 const dyn = getFeedHeaderStyles(SW, SH);
@@ -134,17 +136,15 @@ export default function SinglePostModal({ visible, post, onClose, onOpenWorkout 
         >
             {/* Dim backdrop (non-interactive) */}
             <Animated.View pointerEvents="none" style={[styles.backdrop, { opacity: fade }]} />
-
             {/* Top bar — ONLY way to close */}
             <Animated.View pointerEvents="box-none" style={[styles.topBar, { opacity: fade }] }>
                 <TouchableOpacity onPress={close} style={styles.backBtn} activeOpacity={0.8}>
                     <Ionicons name="chevron-back" size={dyn.iconSize} color="#fff" />
                 </TouchableOpacity>
             </Animated.View>
-
             {/* Focused post (slightly lower) */}
             <Animated.View style={[styles.stage, { opacity: fade }]}>
-                <View style={[styles.focusSlot, { top: TARGET_Y - 15 + FOCUS_EXTRA_DROP }]}>
+                <View style={[styles.focusSlot, { top: scaleSize(TARGET_Y - 15 + FOCUS_EXTRA_DROP) }]}>
                     <TouchableWithoutFeedback onPress={onMediaTap}>
                         <View>
                             <Post
@@ -197,7 +197,6 @@ export default function SinglePostModal({ visible, post, onClose, onOpenWorkout 
                     </TouchableWithoutFeedback>
                 </View>
             </Animated.View>
-
             {/* Bottom sheets (mounted inside modal so they're above everything) */}
             {mountCommentsSheet && (
                 <CommentsBottomSheet
@@ -228,13 +227,13 @@ export default function SinglePostModal({ visible, post, onClose, onOpenWorkout 
 
 const styles = StyleSheet.create({
     backdrop: { ...StyleSheet.absoluteFillObject, backgroundColor: "rgba(0,0,0,0.45)" },
-    topBar: { position: "absolute", top: 0, left: 0, right: 0, paddingTop: 40, paddingHorizontal: 14, zIndex: 100 },
+    topBar: { position: "absolute", top: 0, left: 0, right: 0, paddingTop: scaleSize(40), paddingHorizontal: scaleSize(14), zIndex: 100 },
     backBtn: {
-        width: 44, height: 44, borderRadius: 22,
+        width: scaleSize(44), height: scaleSize(44), borderRadius: scaleSize(22),
         alignItems: "center", justifyContent: "center",
         backgroundColor: "rgba(0,0,0,0.35)",
     },
     stage: { flex: 1 },
     focusSlot: { position: "absolute", left: 0, width: "100%" },
-    heart: { position: "absolute", top: "35%", left: "50%", marginLeft: -42, marginTop: -42 },
+    heart: { position: "absolute", top: "35%", left: "50%", marginLeft: scaleSize(-42), marginTop: scaleSize(-42) },
 });

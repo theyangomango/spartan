@@ -6,6 +6,8 @@ import theme from '../theme/mfpDark';
 import readDoc from '../../backend/helper/firebase/readDoc';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
+import scaleSizeFont from "../helper/scaleSize";
+
 const { width: screenWidth, height: screenHeight } = Dimensions.get('window');
 
 const scale = screenWidth / 375; // Base screen width assumed as 375
@@ -172,7 +174,7 @@ const styles = StyleSheet.create({
         paddingHorizontal: scaleSize(22),
     },
     title: {
-        fontSize: require('../helper/scaleSize').ts(15),
+        fontSize: scaleSize(15),
         fontWeight: '400',
         color: require('../theme/mfpDark').default.textPrimary,
         paddingLeft: scaleSize(3),
@@ -186,7 +188,7 @@ const styles = StyleSheet.create({
         paddingHorizontal: scaleSize(12),
         borderRadius: scaleSize(6),
         backgroundColor: require('../theme/mfpDark').default.field,
-        fontSize: require('../helper/scaleSize').ts(14),
+        fontSize: scaleSize(14),
         color: require('../theme/mfpDark').default.textPrimary,
         fontFamily: 'Outfit_500Medium',
         marginBottom: scaleSize(20),
@@ -214,7 +216,7 @@ const styles = StyleSheet.create({
     },
     auth_button_text: {
         color: '#fff',
-        fontSize: require('../helper/scaleSize').ts(15),
+        fontSize: scaleSize(15),
         fontWeight: '500',
         fontFamily: 'Outfit_600SemiBold',
         marginLeft: scaleSize(6),

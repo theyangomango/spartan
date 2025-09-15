@@ -26,6 +26,7 @@ import { db } from "../../../firebase.config";
 import { collection, query, where, onSnapshot, getDocs, orderBy, limit, doc } from "firebase/firestore";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import theme from "../../theme/mfpDark";
+import scaleSize from "../../helper/scaleSize";
 // Single root navigator; no need for StackActions/nested refs here
 
 const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get("window");
@@ -101,15 +102,15 @@ const ProfileCard = React.memo(({ user, query, onPress }) => {
         <RNBounceable onPress={onPress} style={styles.profileCard} bounceEffectIn={0.96}>
             <View style={styles.profileLeft}>
                 <View
-                    style={[styles.avatarRing, { width: avatarSize, height: avatarSize, borderRadius: avatarSize / 2 }]}
+                    style={[styles.avatarRing, { width: avatarSize, height: avatarSize, borderRadius: scaleSize(avatarSize / 2) }]}
                 >
                     {hasPfp ? (
                         <FastImage
                             source={{ uri: pfpUri, priority: FastImage.priority.normal, cache: FastImage.cacheControl.immutable }}
                             style={{
-                                width: avatarSize - 4,
-                                height: avatarSize - 4,
-                                borderRadius: (avatarSize - 4) / 2,
+                                width: scaleSize(avatarSize - 4),
+                                height: scaleSize(avatarSize - 4),
+                                borderRadius: scaleSize((avatarSize - 4) / 2),
                                 backgroundColor: "#f3f4f6",
                             }}
                             resizeMode={FastImage.resizeMode.cover}
@@ -119,7 +120,7 @@ const ProfileCard = React.memo(({ user, query, onPress }) => {
                     )}
                 </View>
 
-                <View style={{ marginLeft: s(12), flex: 1, minWidth: 0 }}>
+                <View style={{ marginLeft: scaleSize(s(12)), flex: 1, minWidth: 0 }}>
                     <Highlighted
                         text={`${user.handle || "user"}`}
                         query={query}
@@ -485,13 +486,12 @@ const FeedHeader = ({
     return (
         <View style={[
             styles.main_ctnr,
-            heightAdjust ? { paddingBottom: METRICS.paddingBottom + heightAdjust } : null,
+            heightAdjust ? { paddingBottom: scaleSize(METRICS.paddingBottom + heightAdjust) } : null,
         ]}>
             {/* Left: Search */}
             <View style={styles.leftArea}>
                 <SearchUsersBar navigation={navigation} allUsersRef={allUsersRef} />
             </View>
-
             {/* Center: fixed-height slot */}
             <View style={styles.centerArea}>
                 <View style={styles.centerSlot}>
@@ -519,7 +519,6 @@ const FeedHeader = ({
                     )}
                 </View>
             </View>
-
             {/* Right: notifications + messages */}
             <View style={styles.right_icons}>
                 <RNBounceable onPress={onOpenNotifications} style={styles.heart_button}>
@@ -587,8 +586,8 @@ const styles = StyleSheet.create({
         backgroundColor: theme.bg,
         flexDirection: "row",
         paddingLeft: METRICS.paddingH,
-        paddingTop: METRICS.paddingTop + s(4),
-        paddingBottom: s(4),
+        paddingTop: scaleSize(METRICS.paddingTop + s(4)),
+        paddingBottom: scaleSize(s(4)),
         alignItems: "center",
         marginTop: METRICS.marginTop,
     },
@@ -597,63 +596,63 @@ const styles = StyleSheet.create({
 
     centerArea: { justifyContent: "center", alignItems: "center" },
 
-    centerSlot: { paddingHorizontal: s(14), height: METRICS.centerH, minWidth: s(156), alignItems: "center", justifyContent: "center" },
+    centerSlot: { paddingHorizontal: scaleSize(s(14)), height: METRICS.centerH, minWidth: scaleSize(s(156)), alignItems: "center", justifyContent: "center" },
 
     // Nudge the logo down slightly to align with side icons
     logoWrap: { height: "100%", flexDirection: "row", alignItems: "center", paddingTop: METRICS.logoPadTop },
     logo_image_ctnr: { justifyContent: "center", alignItems: "center" },
-    logo_image: { width: s(26.5), height: s(26.5) },
+    logo_image: { width: scaleSize(s(26.5)), height: scaleSize(s(26.5)) },
     logo_text: {
-        paddingLeft: s(4),
+        paddingLeft: scaleSize(s(4)),
         fontFamily: "Inter_600SemiBold",
-        fontSize: s(16),
+        fontSize: scaleSize(s(16)),
         color: theme.textPrimary,
         includeFontPadding: false,
-        ...Platform.select({ android: { lineHeight: s(19) } }),
+        ...Platform.select({ android: { lineHeight: scaleSize(s(19)) } }),
     },
 
     resumeBtnBlue: {
         height: "100%",
         flexDirection: "row",
         alignItems: "center",
-        paddingHorizontal: s(14),
-        borderRadius: METRICS.centerH / 2,
+        paddingHorizontal: scaleSize(s(14)),
+        borderRadius: scaleSize(METRICS.centerH / 2),
         backgroundColor: theme.primary,
-        borderWidth: 1,
+        borderWidth: scaleSize(1),
         borderColor: "transparent",
         ...Platform.select({
-            ios: { shadowColor: theme.primary, shadowOpacity: 0.18, shadowRadius: 4, shadowOffset: { width: 0, height: 3 } },
+            ios: { shadowColor: theme.primary, shadowOpacity: 0.18, shadowRadius: scaleSize(4), shadowOffset: { width: 0, height: scaleSize(3) } },
             android: { elevation: 3 },
         }),
     },
-    dotBlue: { width: s(5), height: s(5), borderRadius: s(2.5), backgroundColor: theme.textPrimary, marginHorizontal: s(7), opacity: 0.9 },
+    dotBlue: { width: scaleSize(s(5)), height: scaleSize(s(5)), borderRadius: scaleSize(s(2.5)), backgroundColor: theme.textPrimary, marginHorizontal: scaleSize(s(7)), opacity: 0.9 },
     resumeTimeBlue: {
         fontFamily: "Outfit_700Bold",
-        fontSize: s(13),
+        fontSize: scaleSize(s(13)),
         color: theme.textPrimary,
         letterSpacing: 0.2,
         includeFontPadding: false,
-        ...Platform.select({ android: { lineHeight: s(15) } }),
+        ...Platform.select({ android: { lineHeight: scaleSize(s(15)) } }),
     },
 
     right_icons: { flexDirection: "row", position: "absolute", right: METRICS.paddingH, top: METRICS.iconTop, alignItems: "center" },
 
-    notificationBadge: { position: "absolute", right: -7.5, top: -5, backgroundColor: "#ef4444", borderRadius: 8, width: 16, height: 16, justifyContent: "center", alignItems: "center" },
-    notificationText: { color: "#fff", fontSize: require('../../helper/scaleSize').ts(8), fontFamily: "Outfit_600SemiBold" },
-    message_button: { padding: 1 },
-    heart_button: { marginRight: 19, padding: 1, position: "relative" },
+    notificationBadge: { position: "absolute", right: scaleSize(-7.5), top: scaleSize(-5), backgroundColor: "#ef4444", borderRadius: scaleSize(8), width: scaleSize(16), height: scaleSize(16), justifyContent: "center", alignItems: "center" },
+    notificationText: { color: "#fff", fontSize: scaleSize(8), fontFamily: "Outfit_600SemiBold" },
+    message_button: { padding: scaleSize(1) },
+    heart_button: { marginRight: scaleSize(19), padding: scaleSize(1), position: "relative" },
 
-    left_placeholder: { width: dynamicStyles.iconSize + 6, height: dynamicStyles.iconSize + 6 },
+    left_placeholder: { width: scaleSize(dynamicStyles.iconSize + 6), height: scaleSize(dynamicStyles.iconSize + 6) },
 
     modalContainer: { flex: 1 },
     canvasFill: { ...StyleSheet.absoluteFillObject, backgroundColor: theme.bg },
     // Align overlay search icon wrapper top exactly with header's wrapper top
     // Header wrapper Y = marginTop + paddingTop + iconTop
-    modalContent: { flex: 1, paddingHorizontal: METRICS.paddingH, paddingTop: METRICS.marginTop + METRICS.paddingTop, marginTop: 0 },
+    modalContent: { flex: 1, paddingHorizontal: METRICS.paddingH, paddingTop: scaleSize(METRICS.marginTop + METRICS.paddingTop), marginTop: 0 },
 
     // Mirror header container: fixed height + relative for absolute left icon
     // Taller, modern pill input row
-    overlayBar: { position: 'relative', height: METRICS.centerH + s(19), flexDirection: "row", alignItems: "center", marginBottom: s(10), marginLeft: METRICS.paddingH + METRICS.iconBox, marginRight: 10 },
+    overlayBar: { position: 'relative', height: scaleSize(METRICS.centerH + s(19)), flexDirection: "row", alignItems: "center", marginBottom: scaleSize(s(10)), marginLeft: scaleSize(METRICS.paddingH + METRICS.iconBox), marginRight: scaleSize(10) },
     // Parent for overlay icon matches header's leftArea semantics (absolute within bar)
     // Add a 1px nudge for visual parity across devices
     // overlayLeftArea removed: single icon approach
@@ -661,56 +660,56 @@ const styles = StyleSheet.create({
 
     overlayInputWrap: {
         flex: 1,
-        marginLeft: s(12),
-        height: METRICS.centerH + s(6),
-        borderRadius: s(26),
+        marginLeft: scaleSize(s(12)),
+        height: scaleSize(METRICS.centerH + s(6)),
+        borderRadius: scaleSize(s(26)),
         backgroundColor: theme.field,
         flexDirection: "row",
         alignItems: "center",
-        paddingHorizontal: s(16),
-        borderWidth: 1,
+        paddingHorizontal: scaleSize(s(16)),
+        borderWidth: scaleSize(1),
         borderColor: theme.hairline,
         ...Platform.select({
-            ios: { shadowColor: "#000", shadowOpacity: 0.18, shadowRadius: 6, shadowOffset: { width: 0, height: 3 } },
+            ios: { shadowColor: "#000", shadowOpacity: 0.18, shadowRadius: scaleSize(6), shadowOffset: { width: 0, height: scaleSize(3) } },
             android: { elevation: 1 },
         }),
     },
-    overlayInput: { flex: 1, fontSize: s(15), color: theme.textPrimary, fontFamily: "Outfit_600SemiBold", textAlignVertical: 'center', includeFontPadding: false },
-    clearBtn: { padding: s(6), marginLeft: s(4) },
+    overlayInput: { flex: 1, fontSize: scaleSize(s(15)), color: theme.textPrimary, fontFamily: "Outfit_600SemiBold", textAlignVertical: 'center', includeFontPadding: false },
+    clearBtn: { padding: scaleSize(s(6)), marginLeft: scaleSize(s(4)) },
 
     resultsWrap: { flex: 1, width: "100%" },
-    listContent: { paddingTop: s(18) },
+    listContent: { paddingTop: scaleSize(s(18)) },
     separatorFull: { height: StyleSheet.hairlineWidth, backgroundColor: theme.hairline },
 
-    sectionTitle: { marginTop: s(6), paddingVertical: s(8), fontFamily: "Outfit_700Bold", color: theme.textPrimary, fontSize: s(14), paddingHorizontal: 16 },
+    sectionTitle: { marginTop: scaleSize(s(6)), paddingVertical: scaleSize(s(8)), fontFamily: "Outfit_700Bold", color: theme.textPrimary, fontSize: scaleSize(s(14)), paddingHorizontal: scaleSize(16) },
 
     noResultsWrap: {
-        marginTop: s(16),
+        marginTop: scaleSize(s(16)),
         alignSelf: "center",
-        paddingHorizontal: s(14),
-        paddingVertical: s(10),
-        borderRadius: s(12),
+        paddingHorizontal: scaleSize(s(14)),
+        paddingVertical: scaleSize(s(10)),
+        borderRadius: scaleSize(s(12)),
         backgroundColor: theme.surface,
         flexDirection: "row",
         alignItems: "center",
-        gap: s(8),
+        gap: scaleSize(s(8)),
     },
-    noResultsText: { color: theme.textSecondary, fontSize: s(12.5), fontFamily: "Outfit_600SemiBold" },
+    noResultsText: { color: theme.textSecondary, fontSize: scaleSize(s(12.5)), fontFamily: "Outfit_600SemiBold" },
 
-    profileCard: { width: "100%", flexDirection: "row", alignItems: "center", backgroundColor: theme.bg, paddingVertical: s(12), paddingHorizontal: s(18) },
+    profileCard: { width: "100%", flexDirection: "row", alignItems: "center", backgroundColor: theme.bg, paddingVertical: scaleSize(s(12)), paddingHorizontal: scaleSize(s(18)) },
     profileLeft: { flexDirection: "row", alignItems: "center", flex: 1, minWidth: 0 },
     // Remove blue ring around avatars in profile cards
     avatarRing: { alignItems: "center", justifyContent: "center", borderWidth: 0, borderColor: 'transparent', backgroundColor: 'transparent' },
 
-    cardHandle: { fontFamily: "Nunito_800ExtraBold", fontSize: s(13.5), color: theme.textPrimary },
+    cardHandle: { fontFamily: "Nunito_800ExtraBold", fontSize: scaleSize(s(13.5)), color: theme.textPrimary },
     cardHandleHighlight: { color: theme.textPrimary },
-    cardName: { marginTop: s(2), fontFamily: "Nunito_600SemiBold", fontSize: s(12.5), color: theme.textSecondary },
+    cardName: { marginTop: scaleSize(s(2)), fontFamily: "Nunito_600SemiBold", fontSize: scaleSize(s(12.5)), color: theme.textSecondary },
     cardNameHighlight: { color: theme.textPrimary, fontFamily: "Nunito_700Bold" },
 
     searchIconBtn: {
-        width: dynamicStyles.iconSize + 6,
-        height: dynamicStyles.iconSize + 6,
-        borderRadius: (dynamicStyles.iconSize + 6) / 2,
+        width: scaleSize(dynamicStyles.iconSize + 6),
+        height: scaleSize(dynamicStyles.iconSize + 6),
+        borderRadius: scaleSize((dynamicStyles.iconSize + 6) / 2),
         alignItems: "center",
         justifyContent: "center",
     },

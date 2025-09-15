@@ -15,6 +15,8 @@ import {
 import BottomSheet, { BottomSheetBackdrop } from '@gorhom/bottom-sheet';
 import { Ionicons } from '@expo/vector-icons';
 
+import scaleSize from "../../helper/scaleSize";
+
 export function PersonalInfoContent({ goalForm, setGoalForm, onBack, onSave, COLORS }) {
     const styles = useMemo(() => makeStyles(COLORS), [COLORS]);
     const onlyDigits = (s) => s.replace(/[^\d]/g, '');
@@ -50,14 +52,14 @@ export function PersonalInfoContent({ goalForm, setGoalForm, onBack, onSave, COL
                     <Text style={styles.sheetTitle}>Personal Information</Text>
                     <Pressable onPress={onBack} hitSlop={8}>
                         <View style={styles.smallLinkPill}>
-                            <Ionicons name="chevron-back" size={14} color={styles.accent.color} style={{ marginRight: 6 }} />
+                            <Ionicons name="chevron-back" size={14} color={styles.accent.color} style={{ marginRight: scaleSize(6) }} />
                             <Text style={styles.smallLinkText}>Cancel</Text>
                         </View>
                     </Pressable>
                 </View>
 
                 {/* Gender */}
-                <View style={{ marginBottom: 12 }}>
+                <View style={{ marginBottom: scaleSize(12) }}>
                     <Text style={styles.inputLabel}>Gender</Text>
                     <View style={styles.toggleRow}>
                         {['Male', 'Female'].map((g) => {
@@ -77,7 +79,7 @@ export function PersonalInfoContent({ goalForm, setGoalForm, onBack, onSave, COL
                 </View>
 
                 {/* Weight */}
-                <View style={{ marginBottom: 12 }}>
+                <View style={{ marginBottom: scaleSize(12) }}>
                     <Text style={styles.inputLabel}>Weight</Text>
                     <View style={styles.row}>
                         <View style={{ flex: 1 }}>
@@ -94,13 +96,13 @@ export function PersonalInfoContent({ goalForm, setGoalForm, onBack, onSave, COL
                                 <Text style={styles.inputSuffix}>lb</Text>
                             </View>
                         </View>
-                        <View style={{ width: 12 }} />
+                        <View style={{ width: scaleSize(12) }} />
                         <View style={{ flex: 1 }} />
                     </View>
                 </View>
 
                 {/* Height */}
-                <View style={{ marginTop: 2 }}>
+                <View style={{ marginTop: scaleSize(2) }}>
                     <Text style={styles.inputLabel}>Height</Text>
                     <View style={styles.row}>
                         <View style={{ flex: 1 }}>
@@ -118,7 +120,7 @@ export function PersonalInfoContent({ goalForm, setGoalForm, onBack, onSave, COL
                                 <Text style={styles.inputSuffix}>ft</Text>
                             </View>
                         </View>
-                        <View style={{ width: 12 }} />
+                        <View style={{ width: scaleSize(12) }} />
                         <View style={{ flex: 1 }}>
                             <View style={styles.inputBox}>
                                 <TextInput
@@ -138,7 +140,7 @@ export function PersonalInfoContent({ goalForm, setGoalForm, onBack, onSave, COL
                 </View>
 
                 {/* Activity */}
-                <Text style={[styles.inputLabel, { marginTop: 20 }]}>Weekly Activity Level</Text>
+                <Text style={[styles.inputLabel, { marginTop: scaleSize(20) }]}>Weekly Activity Level</Text>
                 <View style={styles.toggleRow}>
                     {[
                         { label: 'Sedentary (little/no exercise)', value: 'sedentary' },
@@ -161,7 +163,7 @@ export function PersonalInfoContent({ goalForm, setGoalForm, onBack, onSave, COL
                 </View>
 
                 {/* Goal */}
-                <Text style={[styles.inputLabel, { marginTop: 18 }]}>Goal</Text>
+                <Text style={[styles.inputLabel, { marginTop: scaleSize(18) }]}>Goal</Text>
                 <View style={styles.toggleRow}>
                     {[
                         { label: 'Gain Muscle', value: 'gain' },
@@ -196,7 +198,7 @@ export function PersonalInfoContent({ goalForm, setGoalForm, onBack, onSave, COL
                     </Animated.View>
                 </Pressable>
 
-                <View style={{ height: 110 }} />
+                <View style={{ height: scaleSize(110) }} />
             </ScrollView>
         </KeyboardAvoidingView>
     );
@@ -259,55 +261,55 @@ const makeStyles = (COLORS) => {
     const fieldBg = '#2B2F3A';
 
     return StyleSheet.create({
-        sheetBackground: { backgroundColor: card, borderTopLeftRadius: 24, borderTopRightRadius: 24, borderWidth: StyleSheet.hairlineWidth, borderColor: hairline },
-        sheetHandle: { backgroundColor: '#3A3D45', width: 44, height: 4, borderRadius: 2 },
-        scrollContent: { paddingHorizontal: 18, paddingTop: 10, paddingBottom: 18 },
+        sheetBackground: { backgroundColor: card, borderTopLeftRadius: scaleSize(24), borderTopRightRadius: scaleSize(24), borderWidth: StyleSheet.hairlineWidth, borderColor: hairline },
+        sheetHandle: { backgroundColor: '#3A3D45', width: scaleSize(44), height: scaleSize(4), borderRadius: scaleSize(2) },
+        scrollContent: { paddingHorizontal: scaleSize(18), paddingTop: scaleSize(10), paddingBottom: scaleSize(18) },
 
-        headerRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 },
-        sheetTitle: { fontSize: require('../../helper/scaleSize').ts(18), fontFamily: 'Outfit_700Bold', color: text },
+        headerRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: scaleSize(8) },
+        sheetTitle: { fontSize: scaleSize(18), fontFamily: 'Outfit_700Bold', color: text },
 
         row: { flexDirection: 'row', alignItems: 'flex-start' },
 
-        inputLabel: { fontSize: require('../../helper/scaleSize').ts(13), color: subtext, marginBottom: 6, fontFamily: 'Outfit_400Regular' },
+        inputLabel: { fontSize: scaleSize(13), color: subtext, marginBottom: scaleSize(6), fontFamily: 'Outfit_400Regular' },
         inputBox: {
             flexDirection: 'row', alignItems: 'center',
-            backgroundColor: fieldBg, borderRadius: 14,
-            borderWidth: 1, borderColor: hairline,
-            paddingHorizontal: 12, paddingVertical: 12,
-            shadowColor: '#000', shadowOpacity: 0.05, shadowOffset: { width: 0, height: 1 }, shadowRadius: 4,
+            backgroundColor: fieldBg, borderRadius: scaleSize(14),
+            borderWidth: scaleSize(1), borderColor: hairline,
+            paddingHorizontal: scaleSize(12), paddingVertical: scaleSize(12),
+            shadowColor: '#000', shadowOpacity: 0.05, shadowOffset: { width: 0, height: scaleSize(1) }, shadowRadius: scaleSize(4),
         },
-        input: { flex: 1, fontSize: require('../../helper/scaleSize').ts(16), fontFamily: 'Outfit_400Regular', color: text, paddingVertical: 0 },
+        input: { flex: 1, fontSize: scaleSize(16), fontFamily: 'Outfit_400Regular', color: text, paddingVertical: 0 },
         placeholder: { color: '#BAC3D2' },
         accent: { color: accent },
-        inputSuffix: { marginLeft: 8, color: subtext, fontFamily: 'Outfit_400Regular' },
+        inputSuffix: { marginLeft: scaleSize(8), color: subtext, fontFamily: 'Outfit_400Regular', fontSize: scaleSize(13) },
 
-        toggleRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginBottom: 8 },
-        toggleButton: { paddingVertical: 8, paddingHorizontal: 14, borderRadius: 999, borderWidth: 1, borderColor: hairline, backgroundColor: card },
+        toggleRow: { flexDirection: 'row', flexWrap: 'wrap', gap: scaleSize(8), marginBottom: scaleSize(8) },
+        toggleButton: { paddingVertical: scaleSize(8), paddingHorizontal: scaleSize(14), borderRadius: scaleSize(999), borderWidth: scaleSize(1), borderColor: hairline, backgroundColor: card },
         toggleButtonActive: { backgroundColor: accent, borderColor: 'transparent' },
-        toggleButtonText: { fontFamily: 'Outfit_500Medium', fontSize: require('../../helper/scaleSize').ts(14), color: text },
+        toggleButtonText: { fontFamily: 'Outfit_500Medium', fontSize: scaleSize(14), color: text },
         toggleButtonTextActive: { color: '#fff' },
 
         // Macro Goals “Calculate” pill (header action)
         smallLinkPill: {
             flexDirection: 'row',
             alignItems: 'center',
-            paddingHorizontal: 12,
-            paddingVertical: 7,
-            borderRadius: 999,
+            paddingHorizontal: scaleSize(12),
+            paddingVertical: scaleSize(7),
+            borderRadius: scaleSize(999),
             backgroundColor: fieldBg,
-            borderWidth: 1,
+            borderWidth: scaleSize(1),
             borderColor: hairline,
         },
-        smallLinkText: { fontFamily: 'Outfit_600SemiBold', fontSize: require('../../helper/scaleSize').ts(12.5), color: text },
+        smallLinkText: { fontFamily: 'Outfit_600SemiBold', fontSize: scaleSize(12.5), color: text },
 
         // Full-width action row (mirrors Macro Goals autoCalcRow)
         autoCalcRow: {
-            marginTop: 16,
-            paddingHorizontal: 14,
-            paddingVertical: 16,
-            borderRadius: 14,
+            marginTop: scaleSize(16),
+            paddingHorizontal: scaleSize(14),
+            paddingVertical: scaleSize(16),
+            borderRadius: scaleSize(14),
             backgroundColor: fieldBg,
-            borderWidth: 1,
+            borderWidth: scaleSize(1),
             borderColor: hairline,
             flexDirection: 'row',
             alignItems: 'center',
@@ -315,16 +317,16 @@ const makeStyles = (COLORS) => {
         },
         autoCalcLeft: { flexDirection: 'row', alignItems: 'center' },
         autoCalcIconWrap: {
-            width: 28,
-            height: 28,
-            borderRadius: 14,
+            width: scaleSize(28),
+            height: scaleSize(28),
+            borderRadius: scaleSize(14),
             alignItems: 'center',
             justifyContent: 'center',
             backgroundColor: fieldBg,
-            borderWidth: 1,
+            borderWidth: scaleSize(1),
             borderColor: hairline,
-            marginRight: 10,
+            marginRight: scaleSize(10),
         },
-        autoCalcText: { fontFamily: 'Outfit_600SemiBold', fontSize: require('../../helper/scaleSize').ts(13), color: text },
+        autoCalcText: { fontFamily: 'Outfit_600SemiBold', fontSize: scaleSize(13), color: text },
     });
 };

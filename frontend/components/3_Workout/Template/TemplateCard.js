@@ -6,6 +6,8 @@ import PlayIcon from './PlayIcon';
 import CalendarIcon from './CalendarIcon';
 import WeightIcon from './WeightIcon';
 
+import scaleSizeFont from "../../../helper/scaleSize";
+
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 const BASE_WIDTH = 375;
 const scaleSize = (size) => Math.round(size * (SCREEN_WIDTH / BASE_WIDTH));
@@ -111,21 +113,21 @@ const styles = StyleSheet.create({
         borderWidth: StyleSheet.hairlineWidth,
         borderColor: COLORS.hairline,
         shadowColor: '#000',
-        shadowOffset: { width: 0, height: 3 },
+        shadowOffset: { width: 0, height: scaleSizeFont(3) },
         shadowOpacity: 0.035,
-        shadowRadius: 7,
+        shadowRadius: scaleSizeFont(7),
         elevation: 1,
     },
     cardActive: {
         shadowOpacity: 0.08,
-        shadowRadius: 10,
+        shadowRadius: scaleSizeFont(10),
         transform: [{ scale: 0.995 }],
     },
     textCol: { flex: 1, paddingRight: scaleSize(12) },
     title: {
         fontFamily: 'Outfit_600SemiBold',
         color: COLORS.titleBlue,
-        fontSize: 16,
+        fontSize: scaleSizeFont(16),
         marginBottom: scaleSize(4),
     },
     infoContainer: {
@@ -143,7 +145,7 @@ const styles = StyleSheet.create({
         marginLeft: scaleSize(4),
         marginBottom: scaleSize(0.2),
         letterSpacing: -0.1,
-        fontSize: 13,
+        fontSize: scaleSizeFont(13),
     },
     exercisesContainer: {
         flexDirection: 'row',
@@ -156,22 +158,22 @@ const styles = StyleSheet.create({
         marginLeft: scaleSize(4),
         marginBottom: scaleSize(0.47),
         letterSpacing: -0.1,
-        fontSize: 13,
+        fontSize: scaleSizeFont(13),
     },
     startBtn: { marginLeft: scaleSize(10) },
     circle: {
         backgroundColor: COLORS.playBg,
         width: scaleSize(36),
         height: scaleSize(36),
-        borderRadius: scaleSize(36) / 2,
+        borderRadius: scaleSizeFont(scaleSize(36) / 2),
         alignItems: 'center',
         justifyContent: 'center',
         borderWidth: StyleSheet.hairlineWidth,
         borderColor: COLORS.hairline,
         shadowColor: '#000',
-        shadowOffset: { width: 0, height: 1 },
+        shadowOffset: { width: 0, height: scaleSizeFont(1) },
         shadowOpacity: 0.06,
-        shadowRadius: 3,
-        paddingLeft: 2,
+        shadowRadius: scaleSizeFont(3),
+        paddingLeft: scaleSizeFont(2),
     },
 });

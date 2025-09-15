@@ -16,6 +16,8 @@ import FeedWorkoutViewerSheet from "../components/1_Feed/ViewWorkout/FeedWorkout
 import theme from "../theme/mfpDark";
 import FollowListBottomSheet from "../components/FollowListBottomSheet";
 
+import scaleSize from "../helper/scaleSize";
+
 export default function ViewProfile({ navigation, route }) {
     const user = route.params.user;
     const [profileUserData, setProfileUserData] = useState(null);
@@ -196,6 +198,6 @@ const styles = StyleSheet.create({
         backgroundColor: theme.bg,
     },
     body_ctnr: {
-        paddingHorizontal: 10,
+        paddingHorizontal: scaleSize(10),
     }
 });

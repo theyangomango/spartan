@@ -4,6 +4,8 @@ import RNBounceable from "@freakycoder/react-native-bounceable";
 import theme from "../../../../theme/mfpDark";
 import { MaterialCommunityIcons, FontAwesome6 } from '@expo/vector-icons';
 
+import scaleSize from "../../../../helper/scaleSize";
+
 const { width: screenWidth, height: screenHeight } = Dimensions.get("window");
 const PANEL_WIDTH = 260;
 
@@ -89,25 +91,25 @@ const styles = StyleSheet.create({
     panel: {
         position: "absolute",
         zIndex: 10,
-        borderRadius: 18,
+        borderRadius: scaleSize(18),
         backgroundColor: theme.surface,
-        paddingTop: 10,
-        paddingBottom: 8,
-        paddingHorizontal: 10,
+        paddingTop: scaleSize(10),
+        paddingBottom: scaleSize(8),
+        paddingHorizontal: scaleSize(10),
         shadowColor: "#000",
         shadowOpacity: 0.08,
-        shadowRadius: 14,
-        shadowOffset: { width: 0, height: 8 },
+        shadowRadius: scaleSize(14),
+        shadowOffset: { width: 0, height: scaleSize(8) },
         elevation: 6,
         borderWidth: StyleSheet.hairlineWidth,
         borderColor: theme.hairline,
     },
     caret: {
         position: "absolute",
-        top: -6,
-        left: 18,
-        width: 12,
-        height: 12,
+        top: scaleSize(-6),
+        left: scaleSize(18),
+        width: scaleSize(12),
+        height: scaleSize(12),
         backgroundColor: theme.surface,
         transform: [{ rotate: "45deg" }],
         borderLeftWidth: StyleSheet.hairlineWidth,
@@ -116,37 +118,37 @@ const styles = StyleSheet.create({
     },
     header: {
         fontFamily: "Outfit_600SemiBold",
-        fontSize: 13,
+        fontSize: scaleSize(13),
         color: theme.textSecondary,
-        paddingHorizontal: 8,
-        paddingBottom: 6,
+        paddingHorizontal: scaleSize(8),
+        paddingBottom: scaleSize(6),
     },
     row: {
-        paddingHorizontal: 8,
-        paddingVertical: 10,
-        borderRadius: 12,
+        paddingHorizontal: scaleSize(8),
+        paddingVertical: scaleSize(10),
+        borderRadius: scaleSize(12),
         flexDirection: "row",
         alignItems: "center",
         justifyContent: "space-between",
     },
     left: { flexDirection: "row", alignItems: "center" },
     iconBadge: {
-        width: 28,
-        height: 28,
-        borderRadius: 14,
+        width: scaleSize(28),
+        height: scaleSize(28),
+        borderRadius: scaleSize(14),
         alignItems: "center",
         justifyContent: "center",
-        marginRight: 10,
+        marginRight: scaleSize(10),
     },
     rowText: {
         fontFamily: "Outfit_600SemiBold",
-        fontSize: 15,
+        fontSize: scaleSize(15),
         color: theme.textPrimary,
     },
     divider: {
         height: StyleSheet.hairlineWidth,
         backgroundColor: theme.hairline,
-        marginHorizontal: 8,
+        marginHorizontal: scaleSize(8),
     },
 });
 

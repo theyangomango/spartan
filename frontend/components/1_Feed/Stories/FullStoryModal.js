@@ -23,6 +23,8 @@ import { likeStory } from "../../../../backend/stories/likeStory";
 import { unlikeStory } from "../../../../backend/stories/unlikeStory";
 import RNBounceable from "@freakycoder/react-native-bounceable";
 
+import scaleSize from "../../../helper/scaleSize";
+
 const { width: W } = Dimensions.get("window");
 
 const COLORS = {
@@ -243,24 +245,24 @@ const SEG_GAP = 4;
 const styles = StyleSheet.create({
     root: { flex: 1, backgroundColor: "#000" },
 
-    gradTop: { position: "absolute", top: 0, left: 0, right: 0, height: 160 },
-    gradBottom: { position: "absolute", bottom: 0, left: 0, right: 0, height: 180 },
+    gradTop: { position: "absolute", top: 0, left: 0, right: 0, height: scaleSize(160) },
+    gradBottom: { position: "absolute", bottom: 0, left: 0, right: 0, height: scaleSize(180) },
 
-    zoneLeft: { position: "absolute", top: 80, bottom: 0, left: 0, width: "28%" },
-    zoneCenter: { position: "absolute", top: 80, bottom: 0, left: "28%", width: "44%" },
-    zoneRight: { position: "absolute", top: 80, bottom: 0, right: 0, width: "28%" },
+    zoneLeft: { position: "absolute", top: scaleSize(80), bottom: 0, left: 0, width: "28%" },
+    zoneCenter: { position: "absolute", top: scaleSize(80), bottom: 0, left: "28%", width: "44%" },
+    zoneRight: { position: "absolute", top: scaleSize(80), bottom: 0, right: 0, width: "28%" },
 
     /* Segments: absolute so they never push header down */
     segmentsAbs: {
         position: "absolute",
-        top: 45, left: 8, right: 8,
+        top: scaleSize(45), left: scaleSize(8), right: scaleSize(8),
         flexDirection: "row",
         gap: SEG_GAP,
     },
     segmentTrack: {
         flex: 1,
-        height: 4,
-        borderRadius: 999,
+        height: scaleSize(4),
+        borderRadius: scaleSize(999),
         backgroundColor: "rgba(255,255,255,0.35)",
         overflow: "hidden",
     },
@@ -269,7 +271,7 @@ const styles = StyleSheet.create({
     /* Header row: absolute fixed y-level */
     headerAbs: {
         position: "absolute",
-        top: 60, left: 12, right: 14,
+        top: scaleSize(60), left: scaleSize(12), right: scaleSize(14),
         flexDirection: "row",
         alignItems: "center",
         justifyContent: "space-between",
@@ -279,35 +281,35 @@ const styles = StyleSheet.create({
     leftChip: {
         flexDirection: "row",
         alignItems: "center",
-        maxWidth: W * 0.6,
-        paddingHorizontal: 10,
-        paddingVertical: 8,
-        borderRadius: 16,
+        maxWidth: scaleSize(W * 0.6),
+        paddingHorizontal: scaleSize(10),
+        paddingVertical: scaleSize(8),
+        borderRadius: scaleSize(16),
         backgroundColor: "rgba(255,255,255,0.18)",
     },
-    pfp: { width: 32, height: 32, borderRadius: 18, backgroundColor: "#EEE" },
-    handle: { marginLeft: 8, color: "#fff", fontSize: require('../../../helper/scaleSize').ts(17), fontFamily: "Outfit_600SemiBold" },
+    pfp: { width: scaleSize(32), height: scaleSize(32), borderRadius: scaleSize(18), backgroundColor: "#EEE" },
+    handle: { marginLeft: scaleSize(8), color: "#fff", fontSize: scaleSize(17), fontFamily: "Outfit_600SemiBold" },
 
     /* Right controls */
-    headerRight: { flexDirection: "row", alignItems: "center", gap: 8 },
+    headerRight: { flexDirection: "row", alignItems: "center", gap: scaleSize(8) },
 
     // OG heart vibe: wider translucent pill
     likePill: {
-        minWidth: 60,
-        height: 38,
-        paddingHorizontal: 14,
-        borderRadius: 18,
+        minWidth: scaleSize(60),
+        height: scaleSize(38),
+        paddingHorizontal: scaleSize(14),
+        borderRadius: scaleSize(18),
         backgroundColor: "rgba(0,0,0,0.40)",
-        borderWidth: 1,
+        borderWidth: scaleSize(1),
         borderColor: "rgba(255,255,255,0.22)",
         alignItems: "center",
         justifyContent: "center",
     },
     // close = white chip
     closePill: {
-        width: 36, height: 36, borderRadius: 18,
+        width: scaleSize(36), height: scaleSize(36), borderRadius: scaleSize(18),
         backgroundColor: COLORS.white,
-        borderWidth: 1, borderColor: COLORS.hairline,
+        borderWidth: scaleSize(1), borderColor: COLORS.hairline,
         alignItems: "center", justifyContent: "center",
     },
 
@@ -322,20 +324,20 @@ const styles = StyleSheet.create({
         justifyContent: 'space-between',
         alignItems: "center",
         backgroundColor: "rgba(0,0,0,0.42)",
-        borderRadius: 22,
-        paddingLeft: 15,
-        paddingRight: 18,
-        marginBottom: 8,
-        marginHorizontal: 12,
+        borderRadius: scaleSize(22),
+        paddingLeft: scaleSize(15),
+        paddingRight: scaleSize(18),
+        marginBottom: scaleSize(8),
+        marginHorizontal: scaleSize(12),
     },
     replyInput: {
         flex: 1,
         color: "#eee",
         fontFamily: "Outfit_600SemiBold",
-        fontSize: require('../../../helper/scaleSize').ts(15),
-        paddingVertical: 16,
-        paddingHorizontal: 12,
+        fontSize: scaleSize(15),
+        paddingVertical: scaleSize(16),
+        paddingHorizontal: scaleSize(12),
     },
-    bottomBuffer: { height: 32 },
-    sendIcon: { paddingLeft: 8, paddingVertical: 8 },
+    bottomBuffer: { height: scaleSize(32) },
+    sendIcon: { paddingLeft: scaleSize(8), paddingVertical: scaleSize(8) },
 });

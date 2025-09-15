@@ -3,6 +3,8 @@ import React, { memo, useMemo } from "react";
 import { View, StyleSheet, Platform } from "react-native";
 import { ROW_WIDTH } from "../sections/workoutTheme";
 
+import scaleSize from "../../../helper/scaleSize";
+
 /**
  * Symmetric divider: dot in center, 7 dashes per side (configurable),
  * computed widths so it's perfectly centered and visually even.
@@ -25,7 +27,7 @@ const SectionDividerCmp = ({
         const computedRowWidth = dotSize + sideCount * 2 * dashWidth + totalGaps * gap;
 
         const dashStyle = { width: dashWidth, height: thickness, borderRadius: thickness, backgroundColor: dashColor };
-        const dotStyle = { width: dotSize, height: dotSize, borderRadius: dotSize / 2, backgroundColor: dotColor };
+        const dotStyle = { width: dotSize, height: dotSize, borderRadius: scaleSize(dotSize / 2), backgroundColor: dotColor };
 
         const arr = [];
         for (let i = 0; i < sideCount; i++) arr.push(<View key={`l-${i}`} style={[dashStyle, { marginRight: gap }]} />);
@@ -52,7 +54,7 @@ const styles = StyleSheet.create({
         alignItems: "center",
     },
     sectionDividerInner: {
-        height: 40,
+        height: scaleSize(40),
         justifyContent: "center",
         alignItems: "center",
         ...Platform.select({

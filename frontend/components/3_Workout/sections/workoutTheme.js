@@ -18,7 +18,14 @@ export const ROW_WIDTH = BTN_SIZE + SMALL_SIZE * 2 + BTN_GAP * 2 + ss(15);
 export const TPL_HEIGHT = ss(100);
 export const DOTS_H = ss(10);
 export const TPL_CARD_H = TPL_HEIGHT - DOTS_H - ss(8);
-export const TPL_BOTTOM_GAP = ss(32); // push templates a touch lower to balance divider spacing
+
+// On larger screens the start button grows (BTN_SIZE), which increases bottom padding
+// and can push the templates rail too far from the Start cluster. Pull it back by
+// subtracting part of the growth so spacing feels like iPhone 13.
+const BASE_BTN = Math.round(390 * 0.32); // baseline (iPhone 13)
+const BTN_DELTA = Math.max(0, BTN_SIZE - BASE_BTN);
+// Start with ss(32) and subtract ~60% of extra button growth. Keep a sensible floor.
+export const TPL_BOTTOM_GAP = Math.max(ss(18), ss(32) - Math.round(BTN_DELTA * 0.6));
 
 /* Blue palette (refined) */
 export const BLUE = {

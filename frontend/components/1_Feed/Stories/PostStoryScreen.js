@@ -26,6 +26,8 @@ import makeID from "../../../../backend/helper/makeID";
 import getStoryImage from "../../../../backend/storage/getStoryImage";
 import createDoc from "../../../../backend/helper/firebase/createDoc";
 
+import scaleSize from "../../../helper/scaleSize";
+
 export default function PostStoryScreen({
     selectedImage,
     goBack,
@@ -138,17 +140,17 @@ const styles = StyleSheet.create({
     mainContainer: { flex: 1 },
     header: {
         position: "absolute",
-        top: 40,
-        left: 23,
+        top: scaleSize(40),
+        left: scaleSize(23),
         zIndex: 1
     },
     closeButtonContainer: {
-        width: 40,
-        height: 40,
+        width: scaleSize(40),
+        height: scaleSize(40),
         justifyContent: "center",
         alignItems: "center",
         backgroundColor: "rgba(0, 0, 0, 0.1)",
-        borderRadius: 100
+        borderRadius: scaleSize(100)
     },
     fullscreenContainer: {
         flex: 1,
@@ -168,41 +170,41 @@ const styles = StyleSheet.create({
         height: "11%",
         zIndex: 1,
         flexDirection: "row",
-        paddingVertical: 10,
+        paddingVertical: scaleSize(10),
         justifyContent: "space-between"
     },
     footerScrollView: {
-        paddingHorizontal: 15
+        paddingHorizontal: scaleSize(15)
     },
     storyOptionsContainer: {
         flexDirection: "row"
     },
     storyOptionContainer: {
-        marginRight: 8
+        marginRight: scaleSize(8)
     },
     optionRectangle: {
         flexDirection: "row",
         alignItems: "center",
         backgroundColor: "rgba(25, 25, 25, 0.4)",
-        borderRadius: 20,
-        paddingVertical: 8.5,
-        paddingHorizontal: 15
+        borderRadius: scaleSize(20),
+        paddingVertical: scaleSize(8.5),
+        paddingHorizontal: scaleSize(15)
     },
     pfpContainer: {
-        width: 30,
+        width: scaleSize(30),
         aspectRatio: 1,
-        borderRadius: 18,
+        borderRadius: scaleSize(18),
         overflow: "hidden",
-        marginRight: 10
+        marginRight: scaleSize(10)
     },
     iconContainer: {
-        width: 30,
+        width: scaleSize(30),
         aspectRatio: 1,
         alignItems: "center",
         justifyContent: "center",
-        borderRadius: 18,
+        borderRadius: scaleSize(18),
         backgroundColor: "#4CAEFF",
-        marginRight: 10
+        marginRight: scaleSize(10)
     },
     pfp: {
         width: "100%",
@@ -210,6 +212,6 @@ const styles = StyleSheet.create({
     },
     optionText: {
         color: "#fff",
-        fontSize: require('../../../helper/scaleSize').ts(13)
+        fontSize: scaleSize(13)
     }
 });

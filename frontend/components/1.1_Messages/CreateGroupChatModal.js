@@ -100,29 +100,28 @@ export default function CreateGroupChatModal({ initChat }) {
     return (
         <View style={styles.container}>
             <View style={styles.header}>
-                <Text style={[styles.headerTitle, { fontSize: dynamicStyles.modalTextFontSize + 1 }]}>New Group</Text>
+                <Text style={[styles.headerTitle, { fontSize: scaleSize(dynamicStyles.modalTextFontSize + 1) }]}>New Group</Text>
                 {selectedHandles.length === 0 ? (
                     <Text style={styles.subHeaderText}>Add people to your group</Text>
                 ) : (
                     <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.selectedHandlesContainer}>
-                        <View style={{ width: 16 }} />
+                        <View style={{ width: scaleSize(16) }} />
                         {selectedHandles.map((handle, index) => (
                             <Pressable key={`${handle}-${index}`} onPress={() => deselectByHandle(handle)}>
                                 <View style={styles.selectedHandleView}>
-                                    <Text style={[styles.selectedHandleText, { fontSize: dynamicStyles.modalTextFontSize }]}>{handle}</Text>
+                                    <Text style={[styles.selectedHandleText, { fontSize: scaleSize(dynamicStyles.modalTextFontSize) }]}>{handle}</Text>
                                     <Icon name="close" size={scaleSize(14)} color={theme.primary} />
                                 </View>
                             </Pressable>
                         ))}
-                        <View style={{ width: 8 }} />
+                        <View style={{ width: scaleSize(8) }} />
                     </ScrollView>
                 )}
             </View>
-
             <View style={styles.searchContainer}>
                 <Icon name="search" size={scaleSize(16)} color={theme.primary} style={styles.searchIcon} />
                 <TextInput
-                    style={[styles.searchBar, { fontSize: dynamicStyles.searchBarFontSize }]}
+                    style={[styles.searchBar, { fontSize: scaleSize(dynamicStyles.searchBarFontSize) }]}
                     placeholder="Search by handle or name"
                     placeholderTextColor={theme.textSecondary}
                     value={searchQuery}
@@ -135,7 +134,6 @@ export default function CreateGroupChatModal({ initChat }) {
                     </Pressable>
                 )}
             </View>
-
             <FlatList
                 data={filteredUsers}
                 renderItem={renderItem}
@@ -144,14 +142,13 @@ export default function CreateGroupChatModal({ initChat }) {
                 contentContainerStyle={styles.listContent}
                 keyboardShouldPersistTaps="handled"
             />
-
             <RNBounceable
                 disabled={selectedUsers.length <= 1}
                 activeOpacity={0.8}
                 style={[
                     styles.createButtonWrap,
                     // Respect device safe area so the button doesn't look cramped.
-                    { bottom: Math.max(scaleSize(16), insets.bottom + scaleSize(10)) },
+                    { bottom: scaleSize(Math.max(scaleSize(16), insets.bottom + scaleSize(10))) },
                     selectedUsers.length <= 1 && { opacity: 0.6 },
                 ]}
                 onPress={() => initChat(selectedUsers)}
@@ -163,7 +160,7 @@ export default function CreateGroupChatModal({ initChat }) {
                     style={styles.createButton}
                 >
                     <Icon name="people-outline" size={scaleSize(18)} color="#fff" style={{ marginRight: scaleSize(8) }} />
-                    <Text style={[styles.createButtonText, { fontSize: dynamicStyles.createButtonTextFontSize }]}>
+                    <Text style={[styles.createButtonText, { fontSize: scaleSize(dynamicStyles.createButtonTextFontSize) }]}>
                         {`Create Group${selectedUsers.length > 1 ? ` (${selectedUsers.length})` : ''}`}
                     </Text>
                 </LinearGradient>
@@ -193,7 +190,7 @@ const styles = StyleSheet.create({
     subHeaderText: {
         fontFamily: 'Outfit_500Medium',
         color: theme.textSecondary,
-        fontSize: ts(12.5),
+        fontSize: scaleSize(12.5),
         marginTop: scaleSize(6),
     },
     selectedHandlesContainer: {
@@ -211,7 +208,7 @@ const styles = StyleSheet.create({
         borderRadius: scaleSize(14),
         justifyContent: 'center',
         marginRight: scaleSize(6),
-        borderWidth: 1,
+        borderWidth: scaleSize(1),
         borderColor: 'rgba(45,158,255,0.30)',
     },
     selectedHandleText: {

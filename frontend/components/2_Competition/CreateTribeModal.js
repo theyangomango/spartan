@@ -3,6 +3,8 @@ import React, { memo } from "react";
 import { Modal, View, StyleSheet, Pressable, Text, TextInput } from "react-native";
 import RNBounceable from "@freakycoder/react-native-bounceable";
 
+import scaleSize from "../../helper/scaleSize";
+
 function CreateTribeModal({ visible, value, onChangeText, onCancel, onCreate }) {
     return (
         <Modal
@@ -46,34 +48,34 @@ const styles = StyleSheet.create({
         backgroundColor: "rgba(0,0,0,0.25)",
         alignItems: "center",
         justifyContent: "center",
-        paddingHorizontal: 22,
+        paddingHorizontal: scaleSize(22),
     },
     modalCard: {
         width: "100%",
-        maxWidth: 420,
+        maxWidth: scaleSize(420),
         backgroundColor: require("../../theme/mfpDark").default.surface,
-        borderRadius: 16,
-        paddingVertical: 16,
-        paddingHorizontal: 14,
+        borderRadius: scaleSize(16),
+        paddingVertical: scaleSize(16),
+        paddingHorizontal: scaleSize(14),
     },
     modalTitle: {
         fontFamily: "Outfit_700Bold",
-        fontSize: require('../../helper/scaleSize').ts(18),
+        fontSize: scaleSize(18),
         color: "#EAEAEA",
-        marginBottom: 10,
+        marginBottom: scaleSize(10),
     },
     input: {
         backgroundColor: require("../../theme/mfpDark").default.field,
-        borderRadius: 10,
-        paddingHorizontal: 12,
-        paddingVertical: 10,
+        borderRadius: scaleSize(10),
+        paddingHorizontal: scaleSize(12),
+        paddingVertical: scaleSize(10),
         fontFamily: "Outfit_500Medium",
         color: "#EAEAEA",
-        marginBottom: 12,
+        marginBottom: scaleSize(12),
     },
-    modalActions: { flexDirection: "row", justifyContent: "flex-end", gap: 10 },
-    btn: { paddingVertical: 10, paddingHorizontal: 14, borderRadius: 10 },
-    btnText: { fontFamily: "Outfit_700Bold", fontSize: require('../../helper/scaleSize').ts(14) },
+    modalActions: { flexDirection: "row", justifyContent: "flex-end", gap: scaleSize(10) },
+    btn: { paddingVertical: scaleSize(10), paddingHorizontal: scaleSize(14), borderRadius: scaleSize(10) },
+    btnText: { fontFamily: "Outfit_700Bold", fontSize: scaleSize(14) },
     btnPrimary: { backgroundColor: "#2D9EFF" },
     btnPrimaryText: { color: "#fff" },
     btnGhost: { backgroundColor: require("../../theme/mfpDark").default.field },

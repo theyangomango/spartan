@@ -14,6 +14,8 @@ import { Ionicons } from "@expo/vector-icons";
 import SelectExerciseModal from "../2_Competition/SelectExercise/SelectExerciseModal";
 import RNBounceable from "@freakycoder/react-native-bounceable";
 
+import scaleSize from "../../helper/scaleSize";
+
 const METRICS = ["1RM", "Volume", "Reps"];
 const metricLabel = (m) => (m === '1RM' ? '1RM (Adj)' : m);
 const { width } = Dimensions.get("window");
@@ -103,7 +105,7 @@ export default function TribeComparisonModal({ visible, onClose, initialList = [
                                             <View style={[styles.itemIconPill, { backgroundColor: ICON_BG_NEUTRAL }]}>
                                                 <Ionicons name="trophy" size={18} color={ACC} />
                                             </View>
-                                            <View style={{ flex: 1, marginRight: 8 }}>
+                                            <View style={{ flex: 1, marginRight: scaleSize(8) }}>
                                                 {/* line 1: exercise */}
                                                 <Text style={styles.itemTitle} numberOfLines={1}>
                                                     {item.exercise}
@@ -113,7 +115,7 @@ export default function TribeComparisonModal({ visible, onClose, initialList = [
                                                     {metricLabel(item.metric)}{item.normalizeByBodyweight ? " • per lb" : ""}
                                                 </Text>
                                             </View>
-                                            <TouchableOpacity onPress={() => deleteItem(index)} hitSlop={10} style={{ padding: 6 }}>
+                                            <TouchableOpacity onPress={() => deleteItem(index)} hitSlop={10} style={{ padding: scaleSize(6) }}>
                                                 <Ionicons name="trash-outline" size={18} color="#B00020" />
                                             </TouchableOpacity>
                                         </TouchableOpacity>
@@ -125,17 +127,17 @@ export default function TribeComparisonModal({ visible, onClose, initialList = [
                                         <Text style={styles.emptySub}>Add targets for exercises, metrics, and per-lb normalization.</Text>
                                     </View>
                                 }
-                                contentContainerStyle={{ paddingBottom: 8 }}
+                                contentContainerStyle={{ paddingBottom: scaleSize(8) }}
                             />
 
                             <View style={styles.footerRow}>
                                 <RNBounceable style={styles.addBtn} activeOpacity={0.9} onPress={startAdd}>
-                                    <Ionicons name="add" size={18} color={GOLD_TEXT} style={{ marginRight: 6 }} />
+                                    <Ionicons name="add" size={18} color={GOLD_TEXT} style={{ marginRight: scaleSize(6) }} />
                                     <Text style={styles.addText}>Add Comparison</Text>
                                 </RNBounceable>
 
                                 <RNBounceable style={styles.saveButton} activeOpacity={0.9} onPress={handleSave}>
-                                    <Ionicons name="save-outline" size={18} color="#fff" style={{ marginRight: 8 }} />
+                                    <Ionicons name="save-outline" size={18} color="#fff" style={{ marginRight: scaleSize(8) }} />
                                     <Text style={styles.saveText}>Save</Text>
                                 </RNBounceable>
                             </View>
@@ -144,7 +146,6 @@ export default function TribeComparisonModal({ visible, onClose, initialList = [
                     </TouchableWithoutFeedback>
                 </View>
             </TouchableWithoutFeedback>
-
             {/* Inline editor */}
             <Modal
                 visible={editingIndex >= 0}
@@ -171,7 +172,7 @@ export default function TribeComparisonModal({ visible, onClose, initialList = [
                                             style={styles.inputRow}
                                             onPress={() => setExercisePickerOpen(true)}
                                         >
-                                            <Ionicons name="barbell" size={18} color="#EAEAEA" style={{ marginRight: 10 }} />
+                                            <Ionicons name="barbell" size={18} color="#EAEAEA" style={{ marginRight: scaleSize(10) }} />
                                             <View style={{ flex: 1 }}>
                                                 <Text style={styles.label}>Exercise</Text>
                                                 <Text style={styles.value} numberOfLines={1}>{editing.exercise}</Text>
@@ -207,7 +208,7 @@ export default function TribeComparisonModal({ visible, onClose, initialList = [
                                                 name={editing.normalizeByBodyweight ? "checkbox" : "square-outline"}
                                                 size={20}
                                                 color={editing.normalizeByBodyweight ? BLUE_TEXT : "#AEB5C0"}
-                                                style={{ marginRight: 10 }}
+                                                style={{ marginRight: scaleSize(10) }}
                                             />
                                             <View style={{ flex: 1 }}>
                                                 <Text style={styles.label}>Normalize by Bodyweight</Text>
@@ -218,7 +219,7 @@ export default function TribeComparisonModal({ visible, onClose, initialList = [
                                 )}
 
                                 <TouchableOpacity style={styles.saveButton} activeOpacity={0.9} onPress={() => setEditingIndex(-1)}>
-                                    <Ionicons name="checkmark" size={18} color="#fff" style={{ marginRight: 8 }} />
+                                    <Ionicons name="checkmark" size={18} color="#fff" style={{ marginRight: scaleSize(8) }} />
                                     <Text style={styles.saveText}>Done</Text>
                                 </TouchableOpacity>
                             </View>
@@ -260,19 +261,19 @@ const styles = StyleSheet.create({
         backgroundColor: "rgba(0,0,0,0.35)",
         justifyContent: "center",
         alignItems: "center",
-        paddingHorizontal: 18,
+        paddingHorizontal: scaleSize(18),
     },
     card: {
         width: "100%",
-        borderRadius: 18,
+        borderRadius: scaleSize(18),
         backgroundColor: CARD_BG,
-        padding: 16,
+        padding: scaleSize(16),
     },
     editorCard: {
-        width: Math.min(width - 32, 480),
-        borderRadius: 18,
+        width: scaleSize(Math.min(width - 32, 480)),
+        borderRadius: scaleSize(18),
         backgroundColor: CARD_BG,
-        padding: 16,
+        padding: scaleSize(16),
     },
 
     // extra spacing below the header/title
@@ -280,25 +281,25 @@ const styles = StyleSheet.create({
         flexDirection: "row",
         alignItems: "center",
         justifyContent: "space-between",
-        marginBottom: 14, // was 4
+        marginBottom: scaleSize(14), // was 4
     },
-    title: { fontFamily: "Outfit_700Bold", fontSize: require('../../helper/scaleSize').ts(18), color: "#EAEAEA" },
+    title: { fontFamily: "Outfit_700Bold", fontSize: scaleSize(18), color: "#EAEAEA" },
 
     // modern neutral cards
     itemCard: {
         flexDirection: "row",
         alignItems: "center",
-        paddingVertical: 12,
-        paddingHorizontal: 10,
+        paddingVertical: scaleSize(12),
+        paddingHorizontal: scaleSize(10),
         backgroundColor: CARD_BG,
-        borderRadius: 14,
-        marginBottom: 8,
+        borderRadius: scaleSize(14),
+        marginBottom: scaleSize(8),
         borderWidth: StyleSheet.hairlineWidth,
         borderColor: CARD_BORDER,
         shadowColor: "#000",
         shadowOpacity: 0.04,
-        shadowRadius: 6,
-        shadowOffset: { width: 0, height: 2 },
+        shadowRadius: scaleSize(6),
+        shadowOffset: { width: 0, height: scaleSize(2) },
         elevation: 1,
         position: "relative",
     },
@@ -307,31 +308,31 @@ const styles = StyleSheet.create({
         left: 0,
         top: 0,
         bottom: 0,
-        width: 3,
-        borderTopLeftRadius: 14,
-        borderBottomLeftRadius: 14,
+        width: scaleSize(3),
+        borderTopLeftRadius: scaleSize(14),
+        borderBottomLeftRadius: scaleSize(14),
     },
     itemIconPill: {
-        width: 30,
-        height: 30,
-        borderRadius: 15,
+        width: scaleSize(30),
+        height: scaleSize(30),
+        borderRadius: scaleSize(15),
         alignItems: "center",
         justifyContent: "center",
         backgroundColor: ICON_BG_NEUTRAL,
-        marginRight: 10,
+        marginRight: scaleSize(10),
     },
-    itemTitle: { fontFamily: "Outfit_700Bold", fontSize: require('../../helper/scaleSize').ts(14), color: "#EAEAEA" },
-    itemMeta: { fontFamily: "Outfit_600SemiBold", fontSize: require('../../helper/scaleSize').ts(12.5), color: SUBTEXT, marginTop: 2 },
+    itemTitle: { fontFamily: "Outfit_700Bold", fontSize: scaleSize(14), color: "#EAEAEA" },
+    itemMeta: { fontFamily: "Outfit_600SemiBold", fontSize: scaleSize(12.5), color: SUBTEXT, marginTop: scaleSize(2) },
 
-    emptyBox: { alignItems: "center", paddingVertical: 20 },
+    emptyBox: { alignItems: "center", paddingVertical: scaleSize(20) },
     emptyText: { fontFamily: "Outfit_700Bold", color: "#EAEAEA" },
-    emptySub: { fontFamily: "Outfit_400Regular", color: "#AEB5C0", marginTop: 6 },
+    emptySub: { fontFamily: "Outfit_400Regular", color: "#AEB5C0", marginTop: scaleSize(6) },
 
     footerRow: {
         flexDirection: "row",
         alignItems: "center",
         justifyContent: "space-between",
-        marginTop: 12,
+        marginTop: scaleSize(12),
     },
 
     // gold add button
@@ -339,63 +340,63 @@ const styles = StyleSheet.create({
         flexDirection: "row",
         alignItems: "center",
         backgroundColor: GOLD,
-        borderRadius: 14,
-        paddingHorizontal: 16,
-        paddingVertical: 12,
-        minHeight: 44,
+        borderRadius: scaleSize(14),
+        paddingHorizontal: scaleSize(16),
+        paddingVertical: scaleSize(12),
+        minHeight: scaleSize(44),
         flexShrink: 0,
     },
-    addText: { fontFamily: "Outfit_700Bold", color: GOLD_TEXT, fontSize: require('../../helper/scaleSize').ts(13) },
+    addText: { fontFamily: "Outfit_700Bold", color: GOLD_TEXT, fontSize: scaleSize(13) },
 
     // lighter blue save button
     saveButton: {
         flexDirection: "row",
         alignItems: "center",
         backgroundColor: BLUE_PRIMARY,
-        borderRadius: 16,
-        paddingHorizontal: 20,
-        paddingVertical: 10,
-        minHeight: 44,
+        borderRadius: scaleSize(16),
+        paddingHorizontal: scaleSize(20),
+        paddingVertical: scaleSize(10),
+        minHeight: scaleSize(44),
         shadowColor: "#000",
         shadowOpacity: 0.06,
-        shadowRadius: 8,
-        shadowOffset: { width: 0, height: 3 },
+        shadowRadius: scaleSize(8),
+        shadowOffset: { width: 0, height: scaleSize(3) },
         elevation: 2,
         flexShrink: 0,
-        marginLeft: 10,
+        marginLeft: scaleSize(10),
     },
-    saveText: { fontFamily: "Outfit_700Bold", color: "#fff", fontSize: require('../../helper/scaleSize').ts(14.5) },
+    saveText: { fontFamily: "Outfit_700Bold", color: "#fff", fontSize: scaleSize(14.5) },
 
     inputRow: {
         flexDirection: "row",
         alignItems: "center",
-        paddingVertical: 10,
+        paddingVertical: scaleSize(10),
         borderBottomColor: CARD_BORDER,
         borderBottomWidth: StyleSheet.hairlineWidth,
-        marginTop: 8,
+        marginTop: scaleSize(8),
     },
-    label: { fontFamily: "Outfit_600SemiBold", fontSize: require('../../helper/scaleSize').ts(13), color: "#EAEAEA" },
-    value: { fontFamily: "Outfit_500Medium", fontSize: require('../../helper/scaleSize').ts(14), color: "#EAEAEA" },
+    label: { fontFamily: "Outfit_600SemiBold", fontSize: scaleSize(13), color: "#EAEAEA" },
+    value: { fontFamily: "Outfit_500Medium", fontSize: scaleSize(14), color: "#EAEAEA" },
 
-    metricRow: { marginTop: 12 },
-    metricPills: { flexDirection: "row", marginTop: 8 },
+    metricRow: { marginTop: scaleSize(12) },
+    metricPills: { flexDirection: "row", marginTop: scaleSize(8) },
     pill: {
-        borderRadius: 999,
-        paddingHorizontal: 14,
-        paddingVertical: 8,
+        borderRadius: scaleSize(999),
+        paddingHorizontal: scaleSize(14),
+        paddingVertical: scaleSize(8),
         backgroundColor: "#1E232C",
-        marginRight: 8,
+        marginRight: scaleSize(8),
     },
-    pillActive: { backgroundColor: BLUE_BG, borderWidth: 1, borderColor: "#DBE9FF" },
-    pillText: { fontFamily: "Outfit_600SemiBold", fontSize: require('../../helper/scaleSize').ts(13), color: "#EAEAEA" },
+    pillActive: { backgroundColor: BLUE_BG, borderWidth: scaleSize(1), borderColor: "#DBE9FF" },
+    pillText: { fontFamily: "Outfit_600SemiBold", fontSize: scaleSize(13), color: "#EAEAEA" },
     pillTextActive: { color: BLUE_TEXT },
 
     toggleRow: {
         flexDirection: "row",
         alignItems: "center",
-        paddingVertical: 12,
+        paddingVertical: scaleSize(12),
         borderBottomColor: CARD_BORDER,
         borderBottomWidth: StyleSheet.hairlineWidth,
     },
-    subtle: { fontFamily: "Outfit_400Regular", fontSize: require('../../helper/scaleSize').ts(12), color: SUBTEXT },
+    subtle: { fontFamily: "Outfit_400Regular", fontSize: scaleSize(12), color: SUBTEXT },
 });

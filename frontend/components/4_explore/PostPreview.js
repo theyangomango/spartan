@@ -3,6 +3,8 @@ import { StyleSheet, View, ActivityIndicator } from "react-native";
 import FastImage from "react-native-fast-image";
 import RNBounceable from "@freakycoder/react-native-bounceable";
 
+import scaleSize from "../../helper/scaleSize";
+
 const PostPreview = ({ item, large, onPress }) => {
     const [loading, setLoading] = useState(true);
 
@@ -39,7 +41,7 @@ const styles = StyleSheet.create({
     imageContainer: {
         flex: 1,
         aspectRatio: 1,
-        margin: 1.5,
+        margin: scaleSize(1.5),
         overflow: "hidden",
     },
     large: {
@@ -47,6 +49,6 @@ const styles = StyleSheet.create({
     },
     image: {
         flex: 1,
-        borderRadius: 10,
+        borderRadius: scaleSize(10),
     },
 });

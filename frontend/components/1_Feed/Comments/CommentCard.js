@@ -8,6 +8,8 @@ import FastImage from "react-native-fast-image";
 import { usePfp } from '../../../helper/usePFPs';
 import { useNavigation } from '@react-navigation/native';
 
+import scaleSize from "../../../helper/scaleSize";
+
 const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get("window");
 const dynamicStyles = getCommentCardStyles(SCREEN_WIDTH, SCREEN_HEIGHT);
 
@@ -146,20 +148,20 @@ const styles = StyleSheet.create({
     card: {
         flexDirection: 'row',
         alignItems: 'center',
-        paddingVertical: 9.5,
-        paddingHorizontal: 4,
+        paddingVertical: scaleSize(9.5),
+        paddingHorizontal: scaleSize(4),
     },
     replyCard: {
-        marginLeft: 25,
+        marginLeft: scaleSize(25),
     },
     pfp_ctnr: {
         width: dynamicStyles.pfpSize,
         aspectRatio: 1,
-        marginRight: 10,
+        marginRight: scaleSize(10),
     },
     pfp: {
         flex: 1,
-        borderRadius: 100,
+        borderRadius: scaleSize(100),
     },
     card_texts_ctnr: {
         flex: 1,
@@ -169,59 +171,59 @@ const styles = StyleSheet.create({
         alignItems: 'center',
     },
     handle_text: {
-        fontSize: dynamicStyles.fontSize,
+        fontSize: scaleSize(dynamicStyles.fontSize),
         fontFamily: 'Outfit_500Medium',
         color: '#B8BFCA',
     },
     time_text: {
-        fontSize: dynamicStyles.fontSize - 1,
+        fontSize: scaleSize(dynamicStyles.fontSize - 1),
         fontFamily: 'Outfit_500Medium',
         color: '#A1A7B3',
-        marginLeft: 6,
+        marginLeft: scaleSize(6),
     },
     content_text_ctnr: {
         flexDirection: 'row',
-        marginBottom: 2,
+        marginBottom: scaleSize(2),
     },
     content_text: {
         fontFamily: 'Outfit_500Medium',
-        fontSize: dynamicStyles.fontSize,
+        fontSize: scaleSize(dynamicStyles.fontSize),
         flexWrap: 'wrap',
         color: '#E5E7EB',
     },
     right: {
         flexDirection: 'row',
         alignItems: 'center',
-        marginTop: 8,
+        marginTop: scaleSize(8),
     },
     reply_button: {
-        height: 34,
+        height: scaleSize(34),
         width: dynamicStyles.replyButtonWidth,
         backgroundColor: '#1E2128',
         alignItems: 'center',
         justifyContent: 'center',
-        borderRadius: 30,
+        borderRadius: scaleSize(30),
     },
     reply_text: {
-        fontSize: dynamicStyles.replyFontSize,
+        fontSize: scaleSize(dynamicStyles.replyFontSize),
         fontFamily: 'Outfit_600SemiBold',
         color: '#E5E7EB',
     },
     heart_icon_ctnr: {
-        width: dynamicStyles.heartIconSize * 1.7,
-        height: dynamicStyles.heartIconSize * 1.7,
-        marginLeft: 8,
-        borderRadius: dynamicStyles.heartIconSize * 0.85,
+        width: scaleSize(dynamicStyles.heartIconSize * 1.7),
+        height: scaleSize(dynamicStyles.heartIconSize * 1.7),
+        marginLeft: scaleSize(8),
+        borderRadius: scaleSize(dynamicStyles.heartIconSize * 0.85),
         alignItems: 'center',
         position: 'relative',
     },
     likeCount: {
         position: 'absolute',
         bottom: dynamicStyles.likeCountBottom,
-        fontSize: dynamicStyles.likeCountFontSize,
+        fontSize: scaleSize(dynamicStyles.likeCountFontSize),
         color: '#E5E7EB',
         fontFamily: 'Outfit_600SemiBold',
-        paddingHorizontal: 4,
-        borderRadius: 10,
+        paddingHorizontal: scaleSize(4),
+        borderRadius: scaleSize(10),
     },
 });

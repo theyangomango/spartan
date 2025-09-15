@@ -23,8 +23,8 @@ export default function EditTemplateExerciseLog({ name, muscle, exerciseIndex, u
         } else {
             setIsPanelVisible(true);
             setPanelPosition({
-                top: event.nativeEvent.pageY + 25,
-                left: scaledSize(18)
+                top: scaleSize(event.nativeEvent.pageY + 25),
+                left: scaleSize(scaledSize(18))
             });
         }
     };
@@ -104,43 +104,43 @@ export default function EditTemplateExerciseLog({ name, muscle, exerciseIndex, u
 
 const styles = StyleSheet.create({
     main_ctnr: {
-        marginTop: scaledSize(16),
-        marginBottom: scaledSize(6),
+        marginTop: scaleSize(scaledSize(16)),
+        marginBottom: scaleSize(scaledSize(6)),
         position: 'relative',
     },
     header: {
         flexDirection: 'row',
         alignItems: 'center',
-        paddingLeft: scaledSize(20),
-        paddingBottom: scaledSize(10),
-        marginHorizontal: scaledSize(2.5),
+        paddingLeft: scaleSize(scaledSize(20)),
+        paddingBottom: scaleSize(scaledSize(10)),
+        marginHorizontal: scaleSize(scaledSize(2.5)),
     },
     nameContainer: {
         flexDirection: 'row',
         alignItems: 'center',
         flexShrink: 1,
-        marginRight: scaledSize(10),
+        marginRight: scaleSize(scaledSize(10)),
     },
-    exercise_text: { fontFamily: 'Mulish_800ExtraBold', color: theme.primary, fontSize: scaledSize(15), flexShrink: 1 },
+    exercise_text: { fontFamily: 'Mulish_800ExtraBold', color: theme.primary, fontSize: scaleSize(15), flexShrink: 1 },
     // muscle_ctnr and muscle_text removed
     pfpContainer: {
         flexDirection: 'row',
         alignItems: 'center',
         marginLeft: 'auto',
-        marginRight: scaledSize(10),
+        marginRight: scaleSize(scaledSize(10)),
         opacity: 0.5
     },
     pfp: {
-        width: scaledSize(34),
+        width: scaleSize(scaledSize(34)),
         aspectRatio: 1,
-        borderRadius: scaledSize(20),
-        borderWidth: scaledSize(2),
+        borderRadius: scaleSize(scaledSize(20)),
+        borderWidth: scaleSize(scaledSize(2)),
         borderColor: '#f4f4f4',
     },
     pfpOverlap: {
-        marginLeft: scaledSize(-24),
+        marginLeft: scaleSize(scaledSize(-24)),
     },
-    labels: { flexDirection: 'row', paddingBottom: scaledSize(5), marginHorizontal: scaledSize(2.5) },
+    labels: { flexDirection: 'row', paddingBottom: scaleSize(scaledSize(5)), marginHorizontal: scaleSize(scaledSize(2.5)) },
     set_ctnr: {
         marginLeft: '5%',
         width: '8%',
@@ -158,10 +158,10 @@ const styles = StyleSheet.create({
         width: '18%',
         alignItems: 'center',
     },
-    label_text: { fontFamily: 'Mulish_800ExtraBold', fontSize: scaledSize(14), color: theme.textSecondary },
+    label_text: { fontFamily: 'Mulish_800ExtraBold', fontSize: scaleSize(14), color: theme.textSecondary },
     add_set_btn_ctnr: {
-        paddingHorizontal: scaledSize(20),
+        paddingHorizontal: scaleSize(scaledSize(20)),
     },
-    add_set_btn: { width: '100%', marginTop: scaledSize(8), alignSelf: 'center', height: scaledSize(30), borderRadius: scaledSize(20), backgroundColor: theme.field, justifyContent: 'center', alignItems: 'center', flexDirection: 'row' },
-    add_set_text: { fontFamily: 'Outfit_600SemiBold', color: theme.textPrimary, fontSize: scaledSize(15), marginLeft: scaledSize(1), marginRight: scaledSize(5) },
+    add_set_btn: { width: '100%', marginTop: scaleSize(scaledSize(8)), alignSelf: 'center', height: scaleSize(scaledSize(30)), borderRadius: scaleSize(scaledSize(20)), backgroundColor: theme.field, justifyContent: 'center', alignItems: 'center', flexDirection: 'row' },
+    add_set_text: { fontFamily: 'Outfit_600SemiBold', color: theme.textPrimary, fontSize: scaleSize(15), marginLeft: scaleSize(scaledSize(1)), marginRight: scaleSize(scaledSize(5)) },
 });

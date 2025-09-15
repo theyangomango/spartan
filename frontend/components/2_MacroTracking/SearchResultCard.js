@@ -4,6 +4,8 @@ import { View, Text, StyleSheet, Pressable } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import PlusIcon from '../../assets/PlusIcon';
 
+import scaleSize from "../../helper/scaleSize";
+
 const DEFAULT_COLORS = {
     background: '#f5f6fa',
     textPrimary: '#151515ff',
@@ -63,8 +65,8 @@ function SearchResultCard({ item, onPressPlus, onPressCard, COLORS }) {
         resultCard: {
             backgroundColor: theme.card,
             borderRadius: 0,
-            paddingVertical: 12,
-            paddingHorizontal: 26,
+            paddingVertical: scaleSize(12),
+            paddingHorizontal: scaleSize(26),
             marginVertical: 0,
             // Full-width list row look: hairlines top & bottom, no shadow
             borderTopWidth: StyleSheet.hairlineWidth,
@@ -74,14 +76,14 @@ function SearchResultCard({ item, onPressPlus, onPressCard, COLORS }) {
             elevation: 0,
         },
         contentRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
-        textContainer: { flex: 1, marginRight: 12 },
-        textPressable: { flex: 1, marginRight: 12 },
-        resultTitle: { fontFamily: 'Mulish_700Bold', fontSize: require('../../helper/scaleSize').ts(12.5), color: theme.text || theme.textPrimary, marginBottom: 4 },
-        resultDescription: { fontFamily: 'Mulish_500Medium', fontSize: require('../../helper/scaleSize').ts(12.5), color: theme.subtext || theme.textSecondary },
+        textContainer: { flex: 1, marginRight: scaleSize(12) },
+        textPressable: { flex: 1, marginRight: scaleSize(12) },
+        resultTitle: { fontFamily: 'Mulish_700Bold', fontSize: scaleSize(12.5), color: theme.text || theme.textPrimary, marginBottom: scaleSize(4) },
+        resultDescription: { fontFamily: 'Mulish_500Medium', fontSize: scaleSize(12.5), color: theme.subtext || theme.textSecondary },
         plusWrap: {
-            width: 32,
-            height: 32,
-            borderRadius: 18,
+            width: scaleSize(32),
+            height: scaleSize(32),
+            borderRadius: scaleSize(18),
             alignItems: 'center',
             justifyContent: 'center',
             backgroundColor: '#rgba(255,255,255,0.1)',

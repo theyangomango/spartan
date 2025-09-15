@@ -22,6 +22,8 @@ import { GestureHandlerRootView, PinchGestureHandler, State } from "react-native
 import PostStoryScreen from "./PostStoryScreen";
 import MediaLibraryScreen from "./MediaLibraryScreen";
 
+import scaleSize from "../../../helper/scaleSize";
+
 // Constants for screen dimensions
 const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get("window");
 
@@ -187,8 +189,8 @@ export default function CreateStoryScreen({ closeModal, postStoryToFeeds }) {
                                         style={[
                                             styles.focusSquare,
                                             {
-                                                top: focusSquare.y - 60,
-                                                left: focusSquare.x - 60,
+                                                top: scaleSize(focusSquare.y - 60),
+                                                left: scaleSize(focusSquare.x - 60),
                                                 transform: [{ scale: scaleValue }]
                                             }
                                         ]}
@@ -240,59 +242,59 @@ const styles = StyleSheet.create({
         backgroundColor: "transparent",
         justifyContent: "flex-end",
         alignItems: "center",
-        marginBottom: 20
+        marginBottom: scaleSize(20)
     },
     cameraButton: {
-        width: 76,
+        width: scaleSize(76),
         aspectRatio: 1,
-        borderRadius: 100,
+        borderRadius: scaleSize(100),
         backgroundColor: "rgba(255, 255, 255, 0.7)",
         justifyContent: "center",
         alignItems: "center",
-        marginBottom: 20
+        marginBottom: scaleSize(20)
     },
     innerCameraButton: {
         position: "absolute",
-        width: 66,
+        width: scaleSize(66),
         aspectRatio: 1,
-        borderRadius: 100,
+        borderRadius: scaleSize(100),
         backgroundColor: "#fff"
     },
     header: {
         position: "absolute",
-        top: 40,
-        left: 23,
+        top: scaleSize(40),
+        left: scaleSize(23),
         zIndex: 1
     },
     closeButton: {
-        width: 40,
-        height: 40,
+        width: scaleSize(40),
+        height: scaleSize(40),
         justifyContent: "center",
         alignItems: "center",
-        borderRadius: 100,
+        borderRadius: scaleSize(100),
         backgroundColor: "rgba(0, 0, 0, 0.1)"
     },
     switchButton: {
         position: "absolute",
-        bottom: 30,
-        right: 30,
+        bottom: scaleSize(30),
+        right: scaleSize(30),
         backgroundColor: "rgba(0, 0, 0, 0.5)",
-        borderRadius: 25,
-        padding: 10
+        borderRadius: scaleSize(25),
+        padding: scaleSize(10)
     },
     galleryButton: {
         position: "absolute",
-        bottom: 30,
-        left: 30,
+        bottom: scaleSize(30),
+        left: scaleSize(30),
         backgroundColor: "rgba(0, 0, 0, 0.5)",
-        borderRadius: 25,
-        padding: 10
+        borderRadius: scaleSize(25),
+        padding: scaleSize(10)
     },
     focusSquare: {
         position: "absolute",
-        width: 80,
+        width: scaleSize(80),
         aspectRatio: 1,
-        borderWidth: 1,
+        borderWidth: scaleSize(1),
         borderColor: "yellow",
         backgroundColor: "transparent",
         justifyContent: "center",
@@ -300,14 +302,14 @@ const styles = StyleSheet.create({
     },
     focusLineVertical: {
         position: "absolute",
-        width: 1,
-        height: 8,
+        width: scaleSize(1),
+        height: scaleSize(8),
         backgroundColor: "yellow"
     },
     focusLineHorizontal: {
         position: "absolute",
-        height: 1,
-        width: 8,
+        height: scaleSize(1),
+        width: scaleSize(8),
         backgroundColor: "yellow"
     }
 });

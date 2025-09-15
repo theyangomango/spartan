@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { Modal, View, Text, StyleSheet, Animated, Dimensions, Pressable, ActivityIndicator, Easing } from 'react-native';
-import { ss } from '../../../helper/scaleSize';
+import scaleSize, { ss } from '../../../helper/scaleSize';
 import * as Haptics from 'expo-haptics';
 import HexagonalStats from './HexagonalStats';
 
@@ -81,7 +81,7 @@ export default function HexagonChangeModal({ isVisible, fromStats, toStats, onCl
       <Pressable style={styles.backdrop} onPress={onClose}>
         <Animated.View style={[styles.card, { opacity: cardOpacity, transform: [{ translateY: cardTranslate }] }]} pointerEvents="box-none">
           <Text style={styles.title}>Progress Update</Text>
-          <View style={{ height: ss(14) }} />
+          <View style={{ height: scaleSize(ss(14)) }} />
           {ready ? (
             <Animated.View style={{ transform: [{ scale: chartScale }] }}>
               <HexagonalStats
@@ -94,14 +94,14 @@ export default function HexagonChangeModal({ isVisible, fromStats, toStats, onCl
               />
             </Animated.View>
           ) : (
-            <View style={{ height: ss(180), alignItems: 'center', justifyContent: 'center' }}>
+            <View style={{ height: scaleSize(ss(180)), alignItems: 'center', justifyContent: 'center' }}>
               <ActivityIndicator size="small" color="#2D9EFF" />
               <Text style={styles.waitText}>Calculating…</Text>
             </View>
           )}
-          <View style={{ height: ss(6) }} />
+          <View style={{ height: scaleSize(ss(6)) }} />
           <View style={styles.separator} />
-          <View style={{ height: ss(10) }} />
+          <View style={{ height: scaleSize(ss(10)) }} />
           {ready && (
             <View style={styles.diffsRow}>
               {['shoulders','chest','arms','legs','back','abs'].map((k, idx) => {
@@ -120,7 +120,7 @@ export default function HexagonChangeModal({ isVisible, fromStats, toStats, onCl
               })}
             </View>
           )}
-          <View style={{ height: ss(16) }} />
+          <View style={{ height: scaleSize(ss(16)) }} />
           <Animated.View style={{ transform: [{ scale: btnScale }] }}>
             <Pressable onPress={onClose} style={styles.button}><Text style={styles.btnText}>Close</Text></Pressable>
           </Animated.View>
@@ -131,18 +131,18 @@ export default function HexagonChangeModal({ isVisible, fromStats, toStats, onCl
 }
 
 const styles = StyleSheet.create({
-  backdrop: { flex:1, backgroundColor:'rgba(15,23,42,0.45)', alignItems:'center', justifyContent:'center', paddingHorizontal:ss(16) },
-  card: { width:'100%', backgroundColor:'#252733', borderRadius:ss(24), paddingVertical:ss(16), paddingHorizontal:ss(18), shadowColor:'#000', shadowOpacity:0.08, shadowRadius:ss(14), shadowOffset:{ width:0, height:ss(6) } },
-  title: { fontFamily:'Outfit_700Bold', fontSize:ss(18), color:'#EAEAEA' },
-  waitText: { marginTop:ss(8), fontFamily:'Outfit_500Medium', fontSize:ss(12), color:'#AEB5C0' },
-  separator: { height: StyleSheet.hairlineWidth, backgroundColor: 'rgba(255,255,255,0.08)', marginHorizontal: -ss(18) },
-  diffsRow: { flexDirection:'row', flexWrap:'wrap', justifyContent:'space-between', marginTop:ss(8) },
-  diffPill: { width:'48%', backgroundColor:'#1E232C', borderRadius:ss(14), paddingVertical:ss(10), paddingHorizontal:ss(12), marginBottom:ss(10), borderWidth:StyleSheet.hairlineWidth, borderColor:'rgba(255,255,255,0.10)' },
-  diffLabel: { fontFamily:'Outfit_600SemiBold', fontSize:ss(13), color:'#EAEAEA' },
-  diffVal: { marginTop: ss(4), fontFamily:'Outfit_700Bold', fontSize:ss(15) },
+  backdrop: { flex:1, backgroundColor:'rgba(15,23,42,0.45)', alignItems:'center', justifyContent:'center', paddingHorizontal:scaleSize(ss(16)) },
+  card: { width:'100%', backgroundColor:'#252733', borderRadius:scaleSize(ss(24)), paddingVertical:scaleSize(ss(16)), paddingHorizontal:scaleSize(ss(18)), shadowColor:'#000', shadowOpacity:0.08, shadowRadius:scaleSize(ss(14)), shadowOffset:{ width:0, height:scaleSize(ss(6)) } },
+  title: { fontFamily:'Outfit_700Bold', fontSize:scaleSize(ss(18)), color:'#EAEAEA' },
+  waitText: { marginTop:scaleSize(ss(8)), fontFamily:'Outfit_500Medium', fontSize:scaleSize(ss(12)), color:'#AEB5C0' },
+  separator: { height: StyleSheet.hairlineWidth, backgroundColor: 'rgba(255,255,255,0.08)', marginHorizontal: scaleSize(-ss(18)) },
+  diffsRow: { flexDirection:'row', flexWrap:'wrap', justifyContent:'space-between', marginTop:scaleSize(ss(8)) },
+  diffPill: { width:'48%', backgroundColor:'#1E232C', borderRadius:scaleSize(ss(14)), paddingVertical:scaleSize(ss(10)), paddingHorizontal:scaleSize(ss(12)), marginBottom:scaleSize(ss(10)), borderWidth:StyleSheet.hairlineWidth, borderColor:'rgba(255,255,255,0.10)' },
+  diffLabel: { fontFamily:'Outfit_600SemiBold', fontSize:scaleSize(ss(13)), color:'#EAEAEA' },
+  diffVal: { marginTop: scaleSize(ss(4)), fontFamily:'Outfit_700Bold', fontSize:scaleSize(ss(15)) },
   up: { color:'#2D9EFF' },
   down: { color:'#EF4444' },
   neutral: { color:'#AEB5C0' },
-  button: { alignSelf:'center', backgroundColor:'#2D9EFF', paddingHorizontal:ss(22), paddingVertical:ss(10), borderRadius:ss(999) },
-  btnText: { color:'#fff', fontFamily:'Outfit_700Bold', fontSize:ss(14) },
+  button: { alignSelf:'center', backgroundColor:'#2D9EFF', paddingHorizontal:scaleSize(ss(22)), paddingVertical:scaleSize(ss(10)), borderRadius:scaleSize(ss(999)) },
+  btnText: { color:'#fff', fontFamily:'Outfit_700Bold', fontSize:scaleSize(ss(14)) },
 });

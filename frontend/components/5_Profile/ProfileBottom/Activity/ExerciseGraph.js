@@ -169,15 +169,15 @@ const styles = StyleSheet.create({
     mainContainer: {
         alignItems: 'center',
         backgroundColor: '#fff',
-        borderRadius: scaledSize(20),
-        paddingTop: scaledSize(18),
-        paddingBottom: scaledSize(15),
-        marginHorizontal: scaledSize(20),
-        marginVertical: scaledSize(8),
+        borderRadius: scaleSize(scaledSize(20)),
+        paddingTop: scaleSize(scaledSize(18)),
+        paddingBottom: scaleSize(scaledSize(15)),
+        marginHorizontal: scaleSize(scaledSize(20)),
+        marginVertical: scaleSize(scaledSize(8)),
         shadowColor: '#999',
-        shadowOffset: { width: 0, height: scaledSize(1) },
+        shadowOffset: { width: 0, height: scaleSize(scaledSize(1)) },
         shadowOpacity: 0.5,
-        shadowRadius: scaledSize(2),
+        shadowRadius: scaleSize(scaledSize(2)),
         elevation: 5
     },
     header: {
@@ -185,9 +185,9 @@ const styles = StyleSheet.create({
         flexDirection: 'row',
         justifyContent: 'space-between',
         alignItems: 'center',
-        paddingLeft: scaledSize(20),
-        paddingRight: scaledSize(10),
-        paddingBottom: scaledSize(18)
+        paddingLeft: scaleSize(scaledSize(20)),
+        paddingRight: scaleSize(scaledSize(10)),
+        paddingBottom: scaleSize(scaledSize(18))
     },
     headerLeft: {
         flexDirection: 'column',
@@ -201,22 +201,22 @@ const styles = StyleSheet.create({
     },
     title: {
         color: "#0499FE",
-        fontSize: scaledSize(15),
-        marginBottom: scaledSize(2),
+        fontSize: scaleSize(15),
+        marginBottom: scaleSize(scaledSize(2)),
         fontFamily: 'Outfit_700Bold'
     },
     subtitle: {
         color: "#aaa",
-        fontSize: scaledSize(13),
+        fontSize: scaleSize(13),
         fontFamily: 'Outfit_700Bold'
     },
     button: {
-        borderRadius: scaledSize(20),
-        paddingHorizontal: scaledSize(11),
-        paddingVertical: scaledSize(7),
-        marginLeft: scaledSize(5),
+        borderRadius: scaleSize(scaledSize(20)),
+        paddingHorizontal: scaleSize(scaledSize(11)),
+        paddingVertical: scaleSize(scaledSize(7)),
+        marginLeft: scaleSize(scaledSize(5)),
         backgroundColor: '#BCDDFF',
-        marginRight: scaledSize(5)
+        marginRight: scaleSize(scaledSize(5))
     },
     selectedButton: {
         backgroundColor: '#ddd'
@@ -224,31 +224,31 @@ const styles = StyleSheet.create({
     buttonText: {
         color: '#666',
         fontFamily: 'Outfit_700Bold',
-        fontSize: scaledSize(12.5),
+        fontSize: scaleSize(12.5),
     },
     chartContainer: {
-        paddingRight: scaledSize(30),
+        paddingRight: scaleSize(scaledSize(30)),
     },
     customDataPoint: {
-        width: scaledSize(14),
+        width: scaleSize(scaledSize(14)),
         aspectRatio: 1,
         backgroundColor: 'white',
-        borderWidth: scaledSize(3),
-        borderRadius: scaledSize(10),
+        borderWidth: scaleSize(scaledSize(3)),
+        borderRadius: scaleSize(scaledSize(10)),
         borderColor: 'rgba(89, 168, 255, 1)',
     },
     customLabelContainer: {
-        width: scaledSize(70),
+        width: scaleSize(scaledSize(70)),
     },
     customLabelText: {
         color: '#aaa',
         fontFamily: 'Outfit_600SemiBold',
-        fontSize: scaledSize(13)
+        fontSize: scaleSize(13)
     },
     yAxisTextStyle: {
         color: '#aaa',
         fontFamily: 'Outfit_600SemiBold',
-        fontSize: scaledSize(13),
+        fontSize: scaleSize(13),
     },
 });
 

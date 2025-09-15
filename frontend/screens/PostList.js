@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { StyleSheet, View, FlatList, Text, Image, TouchableOpacity, Pressable } from "react-native";
-import { ts } from '../helper/scaleSize';
+import scaleSize, { ts } from '../helper/scaleSize';
 import { ArrowLeft2 } from 'iconsax-react-native';
 import retrievePosts from "../../backend/posts/retrievePosts";
 import ExplorePost from "../components/explore_posts_list/ExplorePost";
@@ -53,39 +53,39 @@ const styles = StyleSheet.create({
         backgroundColor: "#fff",
     },
     header: {
-        height: 90,
+        height: scaleSize(90),
         backgroundColor: '#2D9EFF',
         justifyContent: "flex-end", // Positions content along the main axis at the bottom
         alignItems: "flex-start", // Positions content along the cross axis at the start (left)
-        paddingLeft: 15, // Padding on the left to ensure the icon is not on the edge
+        paddingLeft: scaleSize(15), // Padding on the left to ensure the icon is not on the edge
     },
     backIcon: {
-        marginBottom: 10, // Extra margin at the bottom for better visual spacing
+        marginBottom: scaleSize(10), // Extra margin at the bottom for better visual spacing
     },
     postList: {
         flex: 1,
     },
     postContainer: {
-        marginBottom: 20,
+        marginBottom: scaleSize(20),
         backgroundColor: "#fff",
-        borderRadius: 10,
+        borderRadius: scaleSize(10),
         overflow: "hidden",
     },
     userHeader: {
         flexDirection: "row",
         alignItems: "center",
-        paddingHorizontal: 15,
-        paddingTop: 10,
+        paddingHorizontal: scaleSize(15),
+        paddingTop: scaleSize(10),
     },
     profileImage: {
-        width: 30,
-        height: 30,
-        borderRadius: 15,
-        marginRight: 10,
+        width: scaleSize(30),
+        height: scaleSize(30),
+        borderRadius: scaleSize(15),
+        marginRight: scaleSize(10),
     },
     username: {
         fontWeight: "bold",
-        fontSize: ts(14),
+        fontSize: scaleSize(14),
         color: "#333",
     },
     postImage: {
@@ -96,12 +96,12 @@ const styles = StyleSheet.create({
         flexDirection: "row",
         justifyContent: "space-between",
         alignItems: "center",
-        paddingVertical: 10,
-        paddingHorizontal: 15,
+        paddingVertical: scaleSize(10),
+        paddingHorizontal: scaleSize(15),
         backgroundColor: "#f5f5f5",
     },
     commentsLikesText: {
-        fontSize: ts(12),
+        fontSize: scaleSize(12),
         color: "#777",
     },
 });

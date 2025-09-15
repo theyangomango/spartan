@@ -13,6 +13,8 @@ import WorkoutPanelCard from "./ui/WorkoutPanelCard";
 import { FoodDetailInline } from "../../screens/FoodDetail";
 import { parseMacrosFromDescription, parseExtraNutrientsFromDescription } from "../../utils/nutrition";
 
+import scaleSize from "../../helper/scaleSize";
+
 // Friend-view handle accents (match FriendsActivitySheet)
 const HANDLE_FRIEND_ACCENT = "#E0A500";
 const HANDLE_FRIEND_BACKGROUND = "#e0a4002c";
@@ -341,7 +343,7 @@ const DayDetailsSheet = ({
                         )}
 
                         {/* ------- Foods ------- */}
-                        <View style={[styles.sectionHdrRow, { marginTop: 12 }]}>
+                        <View style={[styles.sectionHdrRow, { marginTop: scaleSize(12) }]}>
                             <Text style={styles.sectionHdr}>Foods</Text>
                             <Text style={styles.sectionMeta}>{calsToShow.toLocaleString()} kcal</Text>
                         </View>
@@ -356,7 +358,7 @@ const DayDetailsSheet = ({
                                     const kcal = Math.round(parseMacrosFromDescription(it?.desc || '', it?.qty ?? 1).calories || 0);
                                     return (
                                         <Pressable key={`${it.name}-${idx}`} style={styles.foodRowCard} onPress={() => openFood(it)}>
-                                            <View style={{ flex: 1, paddingRight: 12 }}>
+                                            <View style={{ flex: 1, paddingRight: scaleSize(12) }}>
                                                 <Text style={styles.foodRowName} numberOfLines={1}>{it.name}</Text>
                                                 <Text style={styles.foodRowBucketLine} numberOfLines={1}>{it.bucket}</Text>
                                             </View>
@@ -437,7 +439,7 @@ const DayDetailsSheet = ({
                                 foodId: selectedFood?.foodId,
                             }}
                             onClose={closeViewer}
-                            containerStyle={{ flex: 1, backgroundColor: 'transparent', paddingTop: 16 }}
+                            containerStyle={{ flex: 1, backgroundColor: 'transparent', paddingTop: scaleSize(16) }}
                         />
                     )}
                 </Animated.View>
@@ -449,157 +451,157 @@ const DayDetailsSheet = ({
 const styles = StyleSheet.create({
     outerContainer: { position: "absolute", top: 0, bottom: 0, left: 0, right: 0, zIndex: 1 },
     hiddenHandle: { display: "none" },
-    bottomSheetBackground: { borderTopLeftRadius: 20, borderTopRightRadius: 20, backgroundColor: theme.bg },
-    scrollContent: { paddingBottom: 18 },
+    bottomSheetBackground: { borderTopLeftRadius: scaleSize(20), borderTopRightRadius: scaleSize(20), backgroundColor: theme.bg },
+    scrollContent: { paddingBottom: scaleSize(18) },
     handle: {
         alignSelf: "center",
-        width: 46,
-        height: 5,
-        borderRadius: 999,
+        width: scaleSize(46),
+        height: scaleSize(5),
+        borderRadius: scaleSize(999),
         backgroundColor: theme.field,
-        marginTop: 8,
-        marginBottom: 6,
+        marginTop: scaleSize(8),
+        marginBottom: scaleSize(6),
     },
-    ctnr: { flex: 1, paddingHorizontal: 16, paddingTop: 6, paddingBottom: 16, backgroundColor: theme.bg },
+    ctnr: { flex: 1, paddingHorizontal: scaleSize(16), paddingTop: scaleSize(6), paddingBottom: scaleSize(16), backgroundColor: theme.bg },
     // Match MacroTracking DateHeader typography
-    title: { flex: 1, fontFamily: "Nunito_800ExtraBold", fontSize: 16, color: theme.textPrimary, textAlign: "center" },
-    dateHeaderRow: { flexDirection: "row", alignItems: "center", marginBottom: 10 },
-    dateNavBtn: { width: 36, height: 36, alignItems: "center", justifyContent: "center" },
+    title: { flex: 1, fontFamily: "Nunito_800ExtraBold", fontSize: scaleSize(16), color: theme.textPrimary, textAlign: "center" },
+    dateHeaderRow: { flexDirection: "row", alignItems: "center", marginBottom: scaleSize(10) },
+    dateNavBtn: { width: scaleSize(36), height: scaleSize(36), alignItems: "center", justifyContent: "center" },
 
-    sectionHdrRow: { marginTop: 6, marginBottom: 6, flexDirection: "row", alignItems: "flex-end", justifyContent: "space-between" },
-    sectionHdr: { fontFamily: "Outfit_700Bold", fontSize: 14.5, color: theme.textPrimary },
-    sectionMeta: { fontFamily: "Outfit_600SemiBold", fontSize: 12.5, color: theme.textSecondary },
+    sectionHdrRow: { marginTop: scaleSize(6), marginBottom: scaleSize(6), flexDirection: "row", alignItems: "flex-end", justifyContent: "space-between" },
+    sectionHdr: { fontFamily: "Outfit_700Bold", fontSize: scaleSize(14.5), color: theme.textPrimary },
+    sectionMeta: { fontFamily: "Outfit_600SemiBold", fontSize: scaleSize(12.5), color: theme.textSecondary },
     metaOn: { color: theme.primary },
     metaOff: { color: theme.textSecondary },
 
     emptyCard: {
-        borderRadius: 14,
-        paddingVertical: 12,
-        paddingHorizontal: 12,
+        borderRadius: scaleSize(14),
+        paddingVertical: scaleSize(12),
+        paddingHorizontal: scaleSize(12),
         backgroundColor: theme.surface,
         borderWidth: StyleSheet.hairlineWidth,
         borderColor: theme.hairline,
     },
-    emptyText: { fontFamily: "Outfit_500Medium", fontSize: 12.5, color: theme.textSecondary },
+    emptyText: { fontFamily: "Outfit_500Medium", fontSize: scaleSize(12.5), color: theme.textSecondary },
 
     // FriendsActivity-style workout panel
     faPanel: {
-        paddingHorizontal: 14,
-        paddingVertical: 10,
-        borderRadius: 20,
+        paddingHorizontal: scaleSize(14),
+        paddingVertical: scaleSize(10),
+        borderRadius: scaleSize(20),
         backgroundColor: theme.surface,
         shadowColor: "#000",
-        shadowOffset: { width: 0, height: 6 },
+        shadowOffset: { width: 0, height: scaleSize(6) },
         shadowOpacity: 0.07,
-        shadowRadius: 12,
+        shadowRadius: scaleSize(12),
         elevation: 7,
         borderWidth: StyleSheet.hairlineWidth,
         borderColor: theme.hairline,
-        marginBottom: 8,
+        marginBottom: scaleSize(8),
     },
-    faHeaderRow: { flexDirection: "row", alignItems: "center", marginBottom: 6, gap: 10 },
-    faRightAccessories: { flexDirection: "row", alignItems: "center", gap: 10 },
-    faTitle: { fontSize: 13, fontFamily: "Outfit_800ExtraBold", color: theme.textPrimary },
+    faHeaderRow: { flexDirection: "row", alignItems: "center", marginBottom: scaleSize(6), gap: scaleSize(10) },
+    faRightAccessories: { flexDirection: "row", alignItems: "center", gap: scaleSize(10) },
+    faTitle: { fontSize: scaleSize(13), fontFamily: "Outfit_800ExtraBold", color: theme.textPrimary },
     faTitleBlue: { color: theme.primary },
-    faSub: { marginTop: 2, fontSize: 12.5, fontFamily: "Outfit_600SemiBold", color: theme.textSecondary },
-    faDivider: { height: StyleSheet.hairlineWidth, backgroundColor: theme.hairline, marginVertical: 6 },
-    faStatsRow: { flexDirection: "row", gap: 6 },
+    faSub: { marginTop: scaleSize(2), fontSize: scaleSize(12.5), fontFamily: "Outfit_600SemiBold", color: theme.textSecondary },
+    faDivider: { height: StyleSheet.hairlineWidth, backgroundColor: theme.hairline, marginVertical: scaleSize(6) },
+    faStatsRow: { flexDirection: "row", gap: scaleSize(6) },
     faStatCard: {
         flex: 1,
         // backgroundColor: theme.field,
-        paddingVertical: 6,
+        paddingVertical: scaleSize(6),
         // borderWidth: StyleSheet.hairlineWidth,
         borderColor: theme.hairline,
     },
     faStatIconWrap: {
-        width: 30,
-        height: 30,
-        borderRadius: 20,
+        width: scaleSize(30),
+        height: scaleSize(30),
+        borderRadius: scaleSize(20),
         justifyContent: "center",
         alignItems: "center",
         backgroundColor: '#ffffff2e',
-        marginBottom: 6,
+        marginBottom: scaleSize(6),
     },
-    faStatLabel: { fontFamily: "Outfit_600SemiBold", fontSize: 11, color: theme.textSecondary },
-    faStatValue: { marginTop: 1, fontFamily: "Outfit_800ExtraBold", fontSize: 13, color: theme.textPrimary },
+    faStatLabel: { fontFamily: "Outfit_600SemiBold", fontSize: scaleSize(11), color: theme.textSecondary },
+    faStatValue: { marginTop: scaleSize(1), fontFamily: "Outfit_800ExtraBold", fontSize: scaleSize(13), color: theme.textPrimary },
     faStatTextCol: { flex: 1, minWidth: 0 },
     faPrPill: {
         flexDirection: "row",
         alignItems: "center",
-        gap: 6,
+        gap: scaleSize(6),
         backgroundColor: "rgba(250, 204, 21, 0.24)",
         borderWidth: StyleSheet.hairlineWidth,
         borderColor: "rgba(250, 204, 21, 0.60)",
-        paddingVertical: 5,
-        paddingHorizontal: 8,
-        borderRadius: 999,
+        paddingVertical: scaleSize(5),
+        paddingHorizontal: scaleSize(8),
+        borderRadius: scaleSize(999),
     },
-    faPrText: { fontFamily: "Outfit_800ExtraBold", fontSize: 12, color: "#FACC15" },
+    faPrText: { fontFamily: "Outfit_800ExtraBold", fontSize: scaleSize(12), color: "#FACC15" },
 
     foodListCard: {
-        borderRadius: 16,
-        paddingVertical: 10,
-        paddingHorizontal: 12,
+        borderRadius: scaleSize(16),
+        paddingVertical: scaleSize(10),
+        paddingHorizontal: scaleSize(12),
         backgroundColor: theme.surface,
         borderWidth: StyleSheet.hairlineWidth,
         borderColor: theme.hairline,
-        marginBottom: 8,
+        marginBottom: scaleSize(8),
         shadowColor: "#000",
         shadowOpacity: 0.04,
-        shadowRadius: 6,
+        shadowRadius: scaleSize(6),
         elevation: 1,
     },
-    foodRow: { flexDirection: "row", alignItems: "center", marginTop: 4 },
-    foodName: { flex: 1, fontFamily: "Outfit_500Medium", fontSize: 12.5, color: theme.textPrimary },
+    foodRow: { flexDirection: "row", alignItems: "center", marginTop: scaleSize(4) },
+    foodName: { flex: 1, fontFamily: "Outfit_500Medium", fontSize: scaleSize(12.5), color: theme.textPrimary },
     // bullet used in Food rows
-    exDot: { marginRight: 6, color: theme.textSecondary, fontSize: 16, lineHeight: 16 },
-    moreHint: { marginTop: 4, fontFamily: "Outfit_600SemiBold", fontSize: 12, color: theme.textSecondary },
+    exDot: { marginRight: scaleSize(6), color: theme.textSecondary, fontSize: scaleSize(16), lineHeight: scaleSize(16) },
+    moreHint: { marginTop: scaleSize(4), fontFamily: "Outfit_600SemiBold", fontSize: scaleSize(12), color: theme.textSecondary },
 
     // New food card grid
-    foodListCol: { marginBottom: 8 },
+    foodListCol: { marginBottom: scaleSize(8) },
     foodRowCard: {
         flexDirection: 'row',
         alignItems: 'center',
         justifyContent: 'space-between',
-        borderRadius: 14,
-        paddingVertical: 10,
-        paddingHorizontal: 16,
+        borderRadius: scaleSize(14),
+        paddingVertical: scaleSize(10),
+        paddingHorizontal: scaleSize(16),
         backgroundColor: theme.surface,
         borderWidth: StyleSheet.hairlineWidth,
         borderColor: theme.hairline,
-        marginVertical: 4,
+        marginVertical: scaleSize(4),
     },
-    foodRowName: { flex: 1, fontFamily: 'Nunito_700Bold', fontSize: 12, color: theme.textPrimary },
-    foodRowBucketLine: { fontFamily: 'Outfit_600SemiBold', fontSize: 12, color: theme.textSecondary, marginTop: 2 },
-    foodRowCals: { marginLeft: 12, fontFamily: 'Outfit_800ExtraBold', fontSize: 14, color: theme.textPrimary },
+    foodRowName: { flex: 1, fontFamily: 'Nunito_700Bold', fontSize: scaleSize(12), color: theme.textPrimary },
+    foodRowBucketLine: { fontFamily: 'Outfit_600SemiBold', fontSize: scaleSize(12), color: theme.textSecondary, marginTop: scaleSize(2) },
+    foodRowCals: { marginLeft: scaleSize(12), fontFamily: 'Outfit_800ExtraBold', fontSize: scaleSize(14), color: theme.textPrimary },
 
     // Food details overlay
     // Obsolete inline detail styles kept for reference
     // foodDetailHeader, foodDetailCard, etc. no longer used
 
-    actions: { flexDirection: "row", gap: 10, marginTop: 14 },
-    btn: { flex: 1, paddingVertical: 10, borderRadius: 12, alignItems: "center", justifyContent: "center" },
+    actions: { flexDirection: "row", gap: scaleSize(10), marginTop: scaleSize(14) },
+    btn: { flex: 1, paddingVertical: scaleSize(10), borderRadius: scaleSize(12), alignItems: "center", justifyContent: "center" },
     primary: { backgroundColor: theme.primary },
     primaryText: { color: "#fff" },
     secondary: { backgroundColor: theme.field },
     secondaryText: { color: theme.textPrimary },
-    btnText: { fontFamily: "Outfit_700Bold", fontSize: 14 },
+    btnText: { fontFamily: "Outfit_700Bold", fontSize: scaleSize(14) },
     // Friend-view handle accents (top of viewer overlay)
     viewerHandleWrap: {
-        paddingTop: 8,
-        paddingBottom: 6,
+        paddingTop: scaleSize(8),
+        paddingBottom: scaleSize(6),
         alignItems: 'center',
         justifyContent: 'center',
         backgroundColor: HANDLE_FRIEND_BACKGROUND,
-        borderTopLeftRadius: 20,
-        borderTopRightRadius: 20,
+        borderTopLeftRadius: scaleSize(20),
+        borderTopRightRadius: scaleSize(20),
         // align visually with hidden handle spacing
         marginTop: 0,
     },
     viewerHandleIndicator: {
-        width: 40,
-        height: 4,
-        borderRadius: 999,
+        width: scaleSize(40),
+        height: scaleSize(4),
+        borderRadius: scaleSize(999),
         backgroundColor: HANDLE_FRIEND_ACCENT,
     },
     // Position toast near the top of the overlay content
@@ -607,7 +609,7 @@ const styles = StyleSheet.create({
         position: "absolute",
         left: 0,
         right: 0,
-        top: 14,
+        top: scaleSize(14),
         alignItems: "center",
         zIndex: 40,
     },

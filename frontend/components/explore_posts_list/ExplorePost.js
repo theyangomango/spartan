@@ -5,6 +5,8 @@ import ExplorePostFooter from "./ExplorePostFooter";
 import getPFP from "../../../backend/storage/getPFP";
 import getPostImage from "../../../backend/storage/getPostImage";
 
+import scaleSize from "../../helper/scaleSize";
+
 export default function ExplorePost({ data }) {
     const [pfp, setPFP] = useState(null);
     const [image, setImage] = useState(null);
@@ -53,10 +55,10 @@ export default function ExplorePost({ data }) {
 const styles = StyleSheet.create({
     main_ctnr: {
         width: '100%',
-        paddingTop: 12,
+        paddingTop: scaleSize(12),
         // paddingBottom: 10,
         borderColor: '#CFCFCF',
-        marginBottom: 16,
+        marginBottom: scaleSize(16),
     },
     body_ctnr: {
         flex: 1,
@@ -64,7 +66,7 @@ const styles = StyleSheet.create({
         // paddingBottom: 6,
     },
     image_ctnr: {
-        marginHorizontal: 3,
+        marginHorizontal: scaleSize(3),
     },
     image: {
         width: '100%',
@@ -73,8 +75,8 @@ const styles = StyleSheet.create({
     liked_users: {
     },
     comments: {
-        paddingTop: 4,
-        paddingBottom: 10,
-        paddingHorizontal: 12
+        paddingTop: scaleSize(4),
+        paddingBottom: scaleSize(10),
+        paddingHorizontal: scaleSize(12)
     },
 });

@@ -3,6 +3,8 @@ import { View } from "react-native";
 import DraggableFlatList, { ScaleDecorator } from "react-native-draggable-flatlist";
 import TemplateCard from "./TemplateCard";
 
+import scaleSize from "../../../helper/scaleSize";
+
 export default function TemplateList({
     templates,
     onReorder,                    // parent handles setTemplates + save
@@ -48,8 +50,8 @@ export default function TemplateList({
             removeClippedSubviews={false}   // prevents blink on some devices after drop
             windowSize={10}
             initialNumToRender={8}
-            ListHeaderComponent={<View style={{ height: 4 }} />}
-            contentContainerStyle={{ paddingBottom: 40 }}
+            ListHeaderComponent={<View style={{ height: scaleSize(4) }} />}
+            contentContainerStyle={{ paddingBottom: scaleSize(40) }}
         />
     );
 }

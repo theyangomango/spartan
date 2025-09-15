@@ -91,15 +91,15 @@ const scaledStyles = {
 /* ---------- styles ---------- */
 const styles = StyleSheet.create({
     main_ctnr: {
-        width: scaledStyles.pfpSize + scaleSize(17),
-        height: scaledStyles.pfpSize + scaleSize(30),
+        width: scaleSize(scaledStyles.pfpSize + scaleSize(17)),
+        height: scaleSize(scaledStyles.pfpSize + scaleSize(30)),
         alignItems: "center",
     },
-    handle_ctnr: { marginTop: 4 },
+    handle_ctnr: { marginTop: scaleSize(4) },
     handle_text: {
         fontFamily: "Outfit_500Medium",
-    fontSize: require('../../../helper/scaleSize').ts(scaledStyles.fontSize),
-        marginLeft: 3,
+    fontSize: scaleSize(scaledStyles.fontSize),
+        marginLeft: scaleSize(3),
         color: "#666",
     },
     pfp_ctnr: {
@@ -125,9 +125,9 @@ const styles = StyleSheet.create({
     },
     /* avatar with FastImage */
     pfp: {
-        width: scaledStyles.pfpSize - scaleSize(10.5),
+        width: scaleSize(scaledStyles.pfpSize - scaleSize(10.5)),
         aspectRatio: 1,
-        borderRadius: scaledStyles.pfpBorderRadius - scaleSize(4),
+        borderRadius: scaleSize(scaledStyles.pfpBorderRadius - scaleSize(4)),
     },
     pfp_placeholder: {
         backgroundColor: "#EEE",
@@ -137,7 +137,7 @@ const styles = StyleSheet.create({
         top: scaledStyles.createIconPositionTop,
         right: scaledStyles.createIconPositionRight,
         backgroundColor: "#FCF375",
-        borderRadius: 100,
+        borderRadius: scaleSize(100),
         justifyContent: "center",
         alignItems: "center",
         padding: scaleSize(5),

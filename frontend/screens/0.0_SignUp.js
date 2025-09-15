@@ -6,6 +6,8 @@ import { Ionicons, Octicons } from '@expo/vector-icons';
 import { TouchableOpacity } from 'react-native-gesture-handler';
 import theme from '../theme/mfpDark';
 
+import scaleSizeFont from "../helper/scaleSize";
+
 const { width: screenWidth, height: screenHeight } = Dimensions.get('window');
 
 const scale = screenWidth / 375; // Base screen width assumed as 375
@@ -75,8 +77,8 @@ const styles = StyleSheet.create({
     iconContainer: {
         position: 'absolute',
         top: '6%',
-        left: 15,
-        right: 15,
+        left: scaleSizeFont(15),
+        right: scaleSizeFont(15),
         flexDirection: 'row',
         justifyContent: 'space-between',
     },
@@ -85,14 +87,14 @@ const styles = StyleSheet.create({
         alignItems: 'center',
     },
     title: {
-        fontSize: require('../helper/scaleSize').ts(21), // Scaled font size
+        fontSize: scaleSize(21), // Scaled font size
         fontFamily: 'Poppins_600SemiBold',
         marginLeft: scaleSize(1),
         marginBottom: scaleSize(10),
         color: theme.textPrimary,
     },
     subtitle: {
-        fontSize: require('../helper/scaleSize').ts(12), // Scaled font size
+        fontSize: scaleSize(12), // Scaled font size
         marginHorizontal: scaleSize(45),
         textAlign: 'center',
         fontFamily: 'Mulish_400Regular',
@@ -118,7 +120,7 @@ const styles = StyleSheet.create({
         left: scaleSize(17),
     },
     auth_button_text: {
-        fontSize: require('../helper/scaleSize').ts(14.5),
+        fontSize: scaleSize(14.5),
         fontFamily: 'SourceSansPro_600SemiBold',
         color: theme.textPrimary,
     },
@@ -137,12 +139,12 @@ const styles = StyleSheet.create({
     },
     footer_regular_text: {
         fontFamily: 'Outfit_400Regular',
-        fontSize: require('../helper/scaleSize').ts(14.5),
+        fontSize: scaleSize(14.5),
         color: theme.textSecondary,
     },
     log_in_text: {
         fontFamily: 'Outfit_600SemiBold',
-        fontSize: require('../helper/scaleSize').ts(14.5),
+        fontSize: scaleSize(14.5),
         color: theme.primary,
     },
 });

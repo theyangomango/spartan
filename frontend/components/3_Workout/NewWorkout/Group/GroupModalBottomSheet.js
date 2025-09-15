@@ -5,6 +5,8 @@ import BottomSheet, { BottomSheetBackdrop } from "@gorhom/bottom-sheet";
 import GroupModal from "./GroupModal";
 import theme from "../../../../theme/mfpDark";
 
+import scaleSize from "../../../../helper/scaleSize";
+
 const GroupModalBottomSheet = ({ groupModalExpandFlag, closeGroupModal, onInvite }) => {
     const bottomSheetRef = useRef(null);
     const snapPoints = useMemo(() => ["85%"], []);

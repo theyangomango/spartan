@@ -1,6 +1,6 @@
 import React, { useCallback, useEffect, useState } from 'react';
 import { SafeAreaView, View, Text, StyleSheet, ScrollView, Switch, TouchableOpacity, Alert, Platform, Linking } from 'react-native';
-import { ts } from '../helper/scaleSize';
+import scaleSize, { ts } from '../helper/scaleSize';
 import { Ionicons } from '@expo/vector-icons';
 import { doc, updateDoc as fsUpdateDoc } from 'firebase/firestore';
 import { db } from '../../firebase.config';
@@ -79,9 +79,8 @@ export default function Settings({ navigation }) {
           <Ionicons name="chevron-back" size={22} color={theme.textPrimary} />
         </TouchableOpacity>
         <Text style={styles.title}>Settings</Text>
-        <View style={{ width: 40 }} />
+        <View style={{ width: scaleSize(40) }} />
       </View>
-
       <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
         <Text style={styles.section}>Account</Text>
         <Row label={`Units: ${unitsLbs ? 'lb' : 'kg'}`} value={unitsLbs} onValueChange={toggleUnits} />
@@ -115,11 +114,11 @@ export default function Settings({ navigation }) {
           <Ionicons name="chevron-forward" size={18} color={theme.textSecondary} />
         </TouchableOpacity>
 
-        <View style={{ height: 22 }} />
+        <View style={{ height: scaleSize(22) }} />
         <TouchableOpacity style={styles.logoutBtn} onPress={logout}>
           <Text style={styles.logoutText}>Log out</Text>
         </TouchableOpacity>
-        <View style={{ height: 40 }} />
+        <View style={{ height: scaleSize(40) }} />
       </ScrollView>
     </SafeAreaView>
   );
@@ -139,22 +138,22 @@ const Row = ({ label, value, onValueChange }) => (
 
 const styles = StyleSheet.create({
   root: { flex: 1, backgroundColor: theme.bg },
-  header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 14, paddingTop: 8, paddingBottom: 6 },
-  iconBtn: { padding: 6, width: 40 },
-  title: { fontFamily: 'Outfit_700Bold', fontSize: ts(18), color: theme.textPrimary },
-  content: { paddingHorizontal: 16, paddingTop: 10 },
+  header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: scaleSize(14), paddingTop: scaleSize(8), paddingBottom: scaleSize(6) },
+  iconBtn: { padding: scaleSize(6), width: scaleSize(40) },
+  title: { fontFamily: 'Outfit_700Bold', fontSize: scaleSize(18), color: theme.textPrimary },
+  content: { paddingHorizontal: scaleSize(16), paddingTop: scaleSize(10) },
   section: {
-    marginTop: 18,
-    marginBottom: 10,
+    marginTop: scaleSize(18),
+    marginBottom: scaleSize(10),
     fontFamily: 'Outfit_700Bold',
-    fontSize: ts(16),
+    fontSize: scaleSize(16),
     color: theme.textSecondary,
     letterSpacing: 0.3,
   },
-  row: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingVertical: 12, borderBottomWidth: StyleSheet.hairlineWidth, borderColor: theme.hairline },
-  rowLabel: { fontFamily: 'Outfit_500Medium', fontSize: ts(14), color: theme.textPrimary },
-  link: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingVertical: 12, borderBottomWidth: StyleSheet.hairlineWidth, borderColor: theme.hairline },
-  linkText: { fontFamily: 'Outfit_500Medium', fontSize: ts(14), color: theme.textPrimary },
-  logoutBtn: { marginTop: 10, backgroundColor: 'rgba(185,28,28,0.18)', borderRadius: 12, alignItems: 'center', justifyContent: 'center', paddingVertical: 12 },
+  row: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingVertical: scaleSize(12), borderBottomWidth: StyleSheet.hairlineWidth, borderColor: theme.hairline },
+  rowLabel: { fontFamily: 'Outfit_500Medium', fontSize: scaleSize(14), color: theme.textPrimary },
+  link: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingVertical: scaleSize(12), borderBottomWidth: StyleSheet.hairlineWidth, borderColor: theme.hairline },
+  linkText: { fontFamily: 'Outfit_500Medium', fontSize: scaleSize(14), color: theme.textPrimary },
+  logoutBtn: { marginTop: scaleSize(10), backgroundColor: 'rgba(185,28,28,0.18)', borderRadius: scaleSize(12), alignItems: 'center', justifyContent: 'center', paddingVertical: scaleSize(12) },
   logoutText: { fontFamily: 'Outfit_700Bold', color: '#FCA5A5' },
 });

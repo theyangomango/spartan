@@ -16,6 +16,8 @@ import { Ionicons } from '@expo/vector-icons';
 import { PersonalInfoContent } from './PersonalInfoSheet'; // reuse content-only component
 import LabeledNumber from './LabeledNumber';
 
+import scaleSize from "../../helper/scaleSize";
+
 export default function MacroGoalsSheet({
     index,
     onChangeIndex,
@@ -297,7 +299,7 @@ export default function MacroGoalsSheet({
                                 />
                             </View>
 
-                            <View style={[styles.row, { marginTop: 10 }]}>
+                            <View style={[styles.row, { marginTop: scaleSize(10) }]}>
                                 <LabeledNumber
                                     label="Protein"
                                     value={goalForm.protein}
@@ -309,7 +311,7 @@ export default function MacroGoalsSheet({
                                     selectionColor={styles.accent.color}
                                 />
 
-                                <View style={{ width: 12 }} />
+                                <View style={{ width: scaleSize(12) }} />
                                 <LabeledNumber
                                     label="Carbs"
                                     value={goalForm.carbs}
@@ -320,7 +322,7 @@ export default function MacroGoalsSheet({
                                     placeholderTextColor={styles.placeholder.color}
                                     selectionColor={styles.accent.color}
                                 />
-                                <View style={{ width: 12 }} />
+                                <View style={{ width: scaleSize(12) }} />
 
                                 <LabeledNumber
                                     label="Fat"
@@ -359,7 +361,7 @@ export default function MacroGoalsSheet({
                                 </Pressable>
                             </View>
 
-                            <View style={{ height: 110 }} />
+                            <View style={{ height: scaleSize(110) }} />
                         </ScrollView>
                     </Animated.View>
 
@@ -398,7 +400,7 @@ export default function MacroGoalsSheet({
 
                 {/* Footer only in GOALS mode (unchanged) */}
                 {!showInfo && (
-                    <View style={[styles.sheetButtons, { paddingHorizontal: 18 }]}>
+                    <View style={[styles.sheetButtons, { paddingHorizontal: scaleSize(18) }]}>
                         <Pressable style={[styles.btn, styles.btnGhost]} onPress={closeSheet}>
                             <Text style={[styles.btnText, styles.btnGhostText]}>Cancel</Text>
                         </Pressable>
@@ -425,58 +427,58 @@ const makeStyles = (COLORS) => {
     const fieldBg = '#2B2F3A';
 
     return StyleSheet.create({
-        sheetBackground: { backgroundColor: card, borderTopLeftRadius: 24, borderTopRightRadius: 24, borderWidth: StyleSheet.hairlineWidth, borderColor: hairline },
-        sheetHandle: { backgroundColor: '#3A3D45', width: 44, height: 4, borderRadius: 2 },
+        sheetBackground: { backgroundColor: card, borderTopLeftRadius: scaleSize(24), borderTopRightRadius: scaleSize(24), borderWidth: StyleSheet.hairlineWidth, borderColor: hairline },
+        sheetHandle: { backgroundColor: '#3A3D45', width: scaleSize(44), height: scaleSize(4), borderRadius: scaleSize(2) },
 
         modeWrap: { ...StyleSheet.absoluteFillObject },
 
-        scrollContent: { paddingHorizontal: 18, paddingTop: 10, paddingBottom: 18 },
+        scrollContent: { paddingHorizontal: scaleSize(18), paddingTop: scaleSize(10), paddingBottom: scaleSize(18) },
 
-        headerRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 },
-        sheetTitle: { fontSize: require('../../helper/scaleSize').ts(18), fontFamily: 'Outfit_700Bold', color: text },
+        headerRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: scaleSize(8) },
+        sheetTitle: { fontSize: scaleSize(18), fontFamily: 'Outfit_700Bold', color: text },
 
         smallLinkPill: {
             flexDirection: 'row',
             alignItems: 'center',
-            paddingHorizontal: 12,
-            paddingVertical: 7,
-            borderRadius: 999,
+            paddingHorizontal: scaleSize(12),
+            paddingVertical: scaleSize(7),
+            borderRadius: scaleSize(999),
             backgroundColor: fieldBg,
-            borderWidth: 1,
+            borderWidth: scaleSize(1),
             borderColor: hairline,
         },
-        smallLinkText: { fontFamily: 'Outfit_600SemiBold', fontSize: require('../../helper/scaleSize').ts(12.5), color: text },
+        smallLinkText: { fontFamily: 'Outfit_600SemiBold', fontSize: scaleSize(12.5), color: text },
 
-        row: { flexDirection: 'row', alignItems: 'flex-start', marginTop: 12 },
+        row: { flexDirection: 'row', alignItems: 'flex-start', marginTop: scaleSize(12) },
 
-        inputLabel: { fontSize: require('../../helper/scaleSize').ts(13), color: subtext, marginBottom: 6, fontFamily: 'Outfit_400Regular' },
+        inputLabel: { fontSize: scaleSize(13), color: subtext, marginBottom: scaleSize(6), fontFamily: 'Outfit_400Regular' },
         inputBox: {
             flexDirection: 'row',
             alignItems: 'center',
             backgroundColor: fieldBg,
-            borderRadius: 14,
-            borderWidth: 1,
+            borderRadius: scaleSize(14),
+            borderWidth: scaleSize(1),
             borderColor: hairline,
-            paddingHorizontal: 12,
-            paddingVertical: 12,
+            paddingHorizontal: scaleSize(12),
+            paddingVertical: scaleSize(12),
             shadowColor: '#000',
             shadowOpacity: 0.05,
-            shadowOffset: { width: 0, height: 1 },
-            shadowRadius: 4,
+            shadowOffset: { width: 0, height: scaleSize(1) },
+            shadowRadius: scaleSize(4),
         },
-        input: { flex: 1, fontSize: require('../../helper/scaleSize').ts(16), fontFamily: 'Outfit_400Regular', color: text, paddingVertical: 0 },
+        input: { flex: 1, fontSize: scaleSize(16), fontFamily: 'Outfit_400Regular', color: text, paddingVertical: 0 },
         // Make placeholder slightly brighter for readability
         placeholder: { color: '#BAC3D2' },
         accent: { color: accent },
-        inputSuffix: { marginLeft: 8, color: subtext, fontFamily: 'Outfit_400Regular' },
+        inputSuffix: { marginLeft: scaleSize(8), color: subtext, fontFamily: 'Outfit_400Regular', fontSize: scaleSize(13) },
 
         autoCalcRow: {
-            marginTop: 16,
-            paddingHorizontal: 14,
-            paddingVertical: 16,
-            borderRadius: 14,
+            marginTop: scaleSize(16),
+            paddingHorizontal: scaleSize(14),
+            paddingVertical: scaleSize(16),
+            borderRadius: scaleSize(14),
             backgroundColor: fieldBg,
-            borderWidth: 1,
+            borderWidth: scaleSize(1),
             borderColor: hairline,
             flexDirection: 'row',
             alignItems: 'center',
@@ -484,38 +486,38 @@ const makeStyles = (COLORS) => {
         },
         autoCalcLeft: { flexDirection: 'row', alignItems: 'center' },
         autoCalcIconWrap: {
-            width: 28,
-            height: 28,
-            borderRadius: 14,
+            width: scaleSize(28),
+            height: scaleSize(28),
+            borderRadius: scaleSize(14),
             alignItems: 'center',
             justifyContent: 'center',
             backgroundColor: fieldBg,
-            borderWidth: 1,
+            borderWidth: scaleSize(1),
             borderColor: hairline,
-            marginRight: 10,
+            marginRight: scaleSize(10),
         },
-        autoCalcText: { fontFamily: 'Outfit_600SemiBold', fontSize: require('../../helper/scaleSize').ts(13), color: text },
+        autoCalcText: { fontFamily: 'Outfit_600SemiBold', fontSize: scaleSize(13), color: text },
 
-        sheetButtons: { flexDirection: 'row', justifyContent: 'flex-end', gap: 10, marginTop: 18 },
-        btn: { paddingVertical: 12, paddingHorizontal: 16, borderRadius: 12 },
+        sheetButtons: { flexDirection: 'row', justifyContent: 'flex-end', gap: scaleSize(10), marginTop: scaleSize(18) },
+        btn: { paddingVertical: scaleSize(12), paddingHorizontal: scaleSize(16), borderRadius: scaleSize(12) },
         // Give ghost button a clearer outline against the sheet
-        btnGhost: { backgroundColor: fieldBg, borderWidth: 1, borderColor: hairline },
+        btnGhost: { backgroundColor: fieldBg, borderWidth: scaleSize(1), borderColor: hairline },
         btnPrimary: { backgroundColor: accent },
-        btnText: { fontFamily: 'Outfit_600SemiBold', fontSize: require('../../helper/scaleSize').ts(15) },
+        btnText: { fontFamily: 'Outfit_600SemiBold', fontSize: scaleSize(15) },
         btnGhostText: { color: text },
         btnPrimaryText: { color: '#fff' },
 
-        infoHeaderRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10 },
-        backPill: { paddingHorizontal: 10, paddingVertical: 6, borderRadius: 999, backgroundColor: fieldBg, borderWidth: 1, borderColor: hairline },
-        backPillText: { fontFamily: 'Outfit_600SemiBold', fontSize: require('../../helper/scaleSize').ts(12.5), color: text },
+        infoHeaderRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: scaleSize(10) },
+        backPill: { paddingHorizontal: scaleSize(10), paddingVertical: scaleSize(6), borderRadius: scaleSize(999), backgroundColor: fieldBg, borderWidth: scaleSize(1), borderColor: hairline },
+        backPillText: { fontFamily: 'Outfit_600SemiBold', fontSize: scaleSize(12.5), color: text },
 
-        toggleRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginBottom: 8 },
+        toggleRow: { flexDirection: 'row', flexWrap: 'wrap', gap: scaleSize(8), marginBottom: scaleSize(8) },
         // Slightly clearer toggle outlines
-        toggleButton: { paddingVertical: 8, paddingHorizontal: 14, borderRadius: 999, borderWidth: 1, borderColor: hairline, backgroundColor: card },
+        toggleButton: { paddingVertical: scaleSize(8), paddingHorizontal: scaleSize(14), borderRadius: scaleSize(999), borderWidth: scaleSize(1), borderColor: hairline, backgroundColor: card },
         toggleButtonActive: { backgroundColor: accent, borderColor: 'transparent' },
-        toggleButtonText: { fontFamily: 'Outfit_500Medium', fontSize: require('../../helper/scaleSize').ts(14), color: text },
+        toggleButtonText: { fontFamily: 'Outfit_500Medium', fontSize: scaleSize(14), color: text },
         toggleButtonTextActive: { color: '#fff' },
 
-        inlineHint: { marginTop: 14, fontFamily: 'Outfit_400Regular', fontSize: require('../../helper/scaleSize').ts(12.5), color: subtext },
+        inlineHint: { marginTop: scaleSize(14), fontFamily: 'Outfit_400Regular', fontSize: scaleSize(12.5), color: subtext },
     });
 };

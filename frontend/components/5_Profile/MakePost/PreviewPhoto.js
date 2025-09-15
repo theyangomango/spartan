@@ -1,6 +1,7 @@
 import React from "react";
 import { StyleSheet, View, Pressable, Text, Image } from "react-native";
 import theme from '../../../theme/mfpDark';
+import scaleSize from '../../../helper/scaleSize';
 
 function PreviewPhoto({ id, uri, selected, order, onToggle }) {
     const handlePress = () => onToggle(uri);
@@ -39,24 +40,24 @@ const styles = StyleSheet.create({
         left: 0,
         right: 0,
         bottom: 0,
-        borderWidth: 3,
+        borderWidth: scaleSize(3),
         borderColor: theme.primary,
-        borderRadius: 4,
+        borderRadius: scaleSize(4),
     },
     badge: {
         position: 'absolute',
-        right: 6,
-        bottom: 6,
-        minWidth: 18,
-        height: 18,
-        paddingHorizontal: 4,
-        borderRadius: 9,
+        right: scaleSize(6),
+        bottom: scaleSize(6),
+        minWidth: scaleSize(18),
+        height: scaleSize(18),
+        paddingHorizontal: scaleSize(4),
+        borderRadius: scaleSize(9),
         backgroundColor: theme.primary,
         justifyContent: 'center',
         alignItems: 'center'
     },
     badgeText: {
-        fontSize: 10,
+        fontSize: scaleSize(10),
         color: '#fff',
         fontFamily: 'Inter_700Bold'
     }

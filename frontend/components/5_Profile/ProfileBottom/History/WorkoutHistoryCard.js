@@ -3,6 +3,8 @@ import { StyleSheet } from 'react-native';
 import theme from '../../../../theme/mfpDark';
 import WorkoutPanelCard from '../../../3_Workout/ui/WorkoutPanelCard';
 
+import scaleSize from "../../../../helper/scaleSize";
+
 const toNumber = (n) => (Number(n || 0) || 0);
 
 export default function WorkoutHistoryCard({ workout }) {
@@ -28,7 +30,7 @@ export default function WorkoutHistoryCard({ workout }) {
       volume={toNumber(workout?.volume)}
       reps={toNumber(workout?.reps)}
       showChevron={false}
-      style={{ marginHorizontal: 16 }}
+      style={{ marginHorizontal: scaleSize(16) }}
     />
   );
 }

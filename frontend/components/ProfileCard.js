@@ -48,39 +48,37 @@ const ProfileCard = ({ user, onSelect, isSelected, baseBg, selectedBg }) => {
                 end={{ x: 1, y: 1 }}
                 style={{ width: SIZES.pfp, height: SIZES.pfp, borderRadius: radius, padding: SIZES.ring }}
             >
-                <View style={{ flex: 1, borderRadius: radius - SIZES.ring, backgroundColor: theme.surface, alignItems: 'center', justifyContent: 'center' }}>
+                <View style={{ flex: 1, borderRadius: scaleSize(radius - SIZES.ring), backgroundColor: theme.surface, alignItems: 'center', justifyContent: 'center' }}>
                     {pfpUri ? (
                         <FastImage
                             source={{ uri: pfpUri, priority: FastImage.priority.normal, cache: FastImage.cacheControl.immutable }}
-                            style={{ width: SIZES.pfp - 2 * (SIZES.ring + 2), height: SIZES.pfp - 2 * (SIZES.ring + 2), borderRadius: (SIZES.pfp - 2 * (SIZES.ring + 2)) / 2, backgroundColor: theme.field }}
+                            style={{ width: scaleSize(SIZES.pfp - 2 * (SIZES.ring + 2)), height: scaleSize(SIZES.pfp - 2 * (SIZES.ring + 2)), borderRadius: scaleSize((SIZES.pfp - 2 * (SIZES.ring + 2)) / 2), backgroundColor: theme.field }}
                             resizeMode={FastImage.resizeMode.cover}
                         />
                     ) : (
-                        <View style={{ width: SIZES.pfp - 2 * (SIZES.ring + 2), height: SIZES.pfp - 2 * (SIZES.ring + 2), borderRadius: (SIZES.pfp - 2 * (SIZES.ring + 2)) / 2, backgroundColor: theme.field }} />
+                        <View style={{ width: scaleSize(SIZES.pfp - 2 * (SIZES.ring + 2)), height: scaleSize(SIZES.pfp - 2 * (SIZES.ring + 2)), borderRadius: scaleSize((SIZES.pfp - 2 * (SIZES.ring + 2)) / 2), backgroundColor: theme.field }} />
                     )}
                 </View>
             </LinearGradient>
-
             <View style={styles.text_ctnr}>
-                <Text numberOfLines={1} style={[styles.handle_text, { fontSize: SIZES.handleFont }]}>
+                <Text numberOfLines={1} style={[styles.handle_text, { fontSize: scaleSize(SIZES.handleFont) }]}>
                     {user.handle}
                 </Text>
-                <Text numberOfLines={1} style={[styles.name_text, { fontSize: SIZES.nameFont }]}>
+                <Text numberOfLines={1} style={[styles.name_text, { fontSize: scaleSize(SIZES.nameFont) }]}>
                     {user.name}
                 </Text>
             </View>
-
             {isSelected ? (
                 <LinearGradient
                     colors={[theme.primary, theme.accentBlue]}
                     start={{ x: 0, y: 0 }}
                     end={{ x: 1, y: 1 }}
-                    style={{ width: SIZES.icon, height: SIZES.icon, borderRadius: SIZES.icon / 2, alignItems: 'center', justifyContent: 'center' }}
+                    style={{ width: SIZES.icon, height: SIZES.icon, borderRadius: scaleSize(SIZES.icon / 2), alignItems: 'center', justifyContent: 'center' }}
                 >
                     <Icon name="checkmark" size={Math.max(14, SIZES.iconFilled - 2)} color="#fff" />
                 </LinearGradient>
             ) : (
-                <View style={{ width: SIZES.icon, height: SIZES.icon, borderRadius: SIZES.icon / 2, borderWidth: StyleSheet.hairlineWidth * 2, borderColor: theme.hairline }} />
+                <View style={{ width: SIZES.icon, height: SIZES.icon, borderRadius: scaleSize(SIZES.icon / 2), borderWidth: scaleSize(StyleSheet.hairlineWidth * 2), borderColor: theme.hairline }} />
             )}
         </Pressable>
     );
@@ -100,13 +98,13 @@ const styles = StyleSheet.create({
     },
     // selected/pressed backgrounds are applied inline to allow overrides via props
     text_ctnr: {
-        marginLeft: s(12),
+        marginLeft: scaleSize(s(12)),
         flex: 1,
     },
     handle_text: {
         fontFamily: 'Outfit_700Bold',
         color: theme.textPrimary,
-        marginBottom: s(2),
+        marginBottom: scaleSize(s(2)),
         letterSpacing: 0.2,
     },
     name_text: {

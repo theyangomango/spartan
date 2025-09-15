@@ -6,6 +6,8 @@ import NewWorkoutModal from "./NewWorkoutModal";
 import useWorkoutStore from "../../../state/workoutStore";
 import { useNavigation } from "@react-navigation/native";
 
+import scaleSize from "../../../helper/scaleSize";
+
 // Lighter handle indicator for better visibility
 const HANDLE_LIGHT = "#E2E8F0"; // light slate/gray
 
@@ -150,15 +152,15 @@ const NewWorkoutBottomSheet = ({
             }}
             // Keep handle container transparent so rounded corners show
             handleStyle={{
-                borderTopLeftRadius: 22,
-                borderTopRightRadius: 22,
+                borderTopLeftRadius: scaleSize(22),
+                borderTopRightRadius: scaleSize(22),
             }}
             // Background drives color + rounded top corners for the entire modal
             // Use a lighter surface color so the modal contrasts with app bg
             backgroundStyle={{
                 backgroundColor: theme.surface,
-                borderTopLeftRadius: 22,
-                borderTopRightRadius: 22,
+                borderTopLeftRadius: scaleSize(22),
+                borderTopRightRadius: scaleSize(22),
             }}
         >
             {mountContent && (
@@ -181,11 +183,9 @@ const NewWorkoutBottomSheet = ({
                     />
                 ) : (
                     // Simple placeholder while the workout object hydrates; avoids blank sheet
-                    isVisible ? (
-                        <View key={`nw-prep-${contentKey}`} style={{ flex: 1, backgroundColor: theme.surface, alignItems: 'center', justifyContent: 'center' }}>
-                            <ActivityIndicator size="large" color={theme.primary} />
-                        </View>
-                    ) : null
+                    (isVisible ? (<View key={`nw-prep-${contentKey}`} style={{ flex: 1, backgroundColor: theme.surface, alignItems: 'center', justifyContent: 'center' }}>
+                        <ActivityIndicator size="large" color={theme.primary} />
+                    </View>) : null)
                 )
             )}
         </BottomSheet>

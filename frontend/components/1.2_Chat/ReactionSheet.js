@@ -162,7 +162,7 @@ const styles = StyleSheet.create({
     stroke: {
         ...StyleSheet.absoluteFillObject,
         borderRadius: scaleSize(16),
-        borderWidth: 1,
+        borderWidth: scaleSize(1),
         borderColor: HAIRLINE,
     },
 
@@ -189,7 +189,7 @@ const styles = StyleSheet.create({
         height: scaleSize(30),
         borderRadius: scaleSize(15),
         backgroundColor: theme.surface,
-        borderWidth: 1,
+        borderWidth: scaleSize(1),
         borderColor: HAIRLINE,
         alignItems: "center",
         justifyContent: "center",
@@ -203,10 +203,10 @@ const styles = StyleSheet.create({
             android: { elevation: 2 },
         }),
     },
-    reactionEmoji: { fontSize: ts(16) },
+    reactionEmoji: { fontSize: scaleSize(16) },
 
     hr: {
-        height: 1,
+        height: scaleSize(1),
         backgroundColor: HAIRLINE,
         marginTop: scaleSize(6),
         marginBottom: scaleSize(4),
@@ -220,7 +220,7 @@ const styles = StyleSheet.create({
     },
     actionRowPressed: { backgroundColor: "rgba(255,255,255,0.06)" }, // subtle accent wash
     actionText: {
-        fontSize: ts(13),
+        fontSize: scaleSize(13),
         color: TEXT,
         letterSpacing: 0.2,
         fontFamily: "Outfit_600SemiBold",

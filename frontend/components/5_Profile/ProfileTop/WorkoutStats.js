@@ -51,10 +51,10 @@ const styles = StyleSheet.create({
     },
     workout_stat: {
         width: '31.5%',
-        height: scaledSize(68),
-        borderRadius: scaledSize(8),
-        marginVertical: scaledSize(9),
-        marginHorizontal: scaledSize(3.5),
+        height: scaleSize(scaledSize(68)),
+        borderRadius: scaleSize(scaledSize(8)),
+        marginVertical: scaleSize(scaledSize(9)),
+        marginHorizontal: scaleSize(scaledSize(3.5)),
         justifyContent: 'center',
         alignItems: 'center',
     },
@@ -64,13 +64,13 @@ const styles = StyleSheet.create({
     gym_time_stat_ctnr: { backgroundColor: 'rgba(233,80,96,0.28)' },       // matches #E95060
     workout_stat_text: {
         fontFamily: 'Poppins_600SemiBold',
-        fontSize: scaledSize(11.5),
+        fontSize: scaleSize(11.5),
         color: theme.textPrimary,
         letterSpacing: 0.15,
     },
     workout_stat_number: {
         fontFamily: 'Outfit_600SemiBold',
-        fontSize: scaledSize(16),
+        fontSize: scaleSize(16),
     },
     total_workouts_stat_number: {
         color: '#0499FE',

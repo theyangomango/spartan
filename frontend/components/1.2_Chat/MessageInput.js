@@ -3,6 +3,8 @@ import { View, Text, TextInput, TouchableOpacity, StyleSheet, Platform } from "r
 import { Ionicons } from "@expo/vector-icons";
 import theme from "../../theme/mfpDark";
 
+import scaleSize from "../../helper/scaleSize";
+
 export default function MessageInput({
     text,
     setText,
@@ -30,7 +32,6 @@ export default function MessageInput({
                 </TouchableOpacity>
             </View>
             )}
-
             <View style={styles.row}>
                 {/* UI-only change: use the image icon (same onPress behavior) */}
                 <TouchableOpacity style={styles.iconBtn} onPress={onOpenPicker} activeOpacity={0.85}>
@@ -47,7 +48,7 @@ export default function MessageInput({
                     onBlur={onBlur}
                     returnKeyType="send"
                     onSubmitEditing={onSend}
-                    hitSlop={{top: 10, bottom: 10}}
+                    hitSlop={{top: scaleSize(10), bottom: scaleSize(10)}}
                 />
 
                 <TouchableOpacity style={styles.sendBtn} onPress={onSend}>
@@ -59,42 +60,42 @@ export default function MessageInput({
 }
 
 const styles = StyleSheet.create({
-    wrap: { paddingHorizontal: 12, paddingTop: 6, paddingBottom:10 },
+    wrap: { paddingHorizontal: scaleSize(12), paddingTop: scaleSize(6), paddingBottom:scaleSize(10) },
     row: {
         flexDirection: "row",
         alignItems: "center",
         backgroundColor: theme.surface,
-        borderWidth: 1,
+        borderWidth: scaleSize(1),
         borderColor: theme.hairline,
-        borderRadius: 28,
-        paddingVertical: 10,
-        paddingHorizontal: 8,
+        borderRadius: scaleSize(28),
+        paddingVertical: scaleSize(10),
+        paddingHorizontal: scaleSize(8),
         ...(Platform.OS === "android" && { elevation: 3 }),
         shadowColor: "#000",
         shadowOpacity: 0.18,
-        shadowRadius: 10,
-        shadowOffset: { width: 0, height: 6 },
+        shadowRadius: scaleSize(10),
+        shadowOffset: { width: 0, height: scaleSize(6) },
     },
     iconBtn: {
-        width: 34,
-        height: 34,
-        borderRadius: 17,
+        width: scaleSize(34),
+        height: scaleSize(34),
+        borderRadius: scaleSize(17),
         alignItems: "center",
         justifyContent: "center",
         backgroundColor: theme.addBtnBg,
     },
     input: {
         flex: 1,
-        paddingHorizontal: 12,
-        fontSize: require('../../helper/scaleSize').ts(14.5),
+        paddingHorizontal: scaleSize(12),
+        fontSize: scaleSize(14.5),
         color: theme.textPrimary,
         fontFamily: "Outfit_500Medium",
     },
     sendBtn: {
-        width: 36, height: 36, borderRadius: 18,
+        width: scaleSize(36), height: scaleSize(36), borderRadius: scaleSize(18),
         alignItems: "center", justifyContent: "center",
         backgroundColor: theme.primary,
-        marginLeft: 6,
+        marginLeft: scaleSize(6),
     },
 
     // reply preview chip
@@ -102,15 +103,15 @@ const styles = StyleSheet.create({
         flexDirection: "row",
         alignItems: "center",
         backgroundColor: theme.field,
-        borderWidth: 1,
+        borderWidth: scaleSize(1),
         borderColor: theme.hairline,
-        borderRadius: 14,
-        paddingHorizontal: 10,
-        paddingVertical: 8,
-        marginBottom: 8,
+        borderRadius: scaleSize(14),
+        paddingHorizontal: scaleSize(10),
+        paddingVertical: scaleSize(8),
+        marginBottom: scaleSize(8),
     },
-    replyBar: { width: 3, height: 26, borderRadius: 2, backgroundColor: theme.primary, marginRight: 8 },
-    replyTitle: { fontSize: require('../../helper/scaleSize').ts(12), color: theme.textPrimary, fontFamily: "Outfit_600SemiBold" },
-    replySnippet: { fontSize: require('../../helper/scaleSize').ts(12), color: theme.textSecondary, fontFamily: "Outfit_500Medium" },
-    closeReply: { padding: 6, marginLeft: 6 },
+    replyBar: { width: scaleSize(3), height: scaleSize(26), borderRadius: scaleSize(2), backgroundColor: theme.primary, marginRight: scaleSize(8) },
+    replyTitle: { fontSize: scaleSize(12), color: theme.textPrimary, fontFamily: "Outfit_600SemiBold" },
+    replySnippet: { fontSize: scaleSize(12), color: theme.textSecondary, fontFamily: "Outfit_500Medium" },
+    closeReply: { padding: scaleSize(6), marginLeft: scaleSize(6) },
 });

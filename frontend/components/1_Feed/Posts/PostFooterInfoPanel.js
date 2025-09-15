@@ -6,6 +6,8 @@
 
 import React from 'react';
 import { View, Text, StyleSheet, Animated } from 'react-native';
+// No safe-area offset here; this panel sits inside the post card,
+// not at the device edge.
 import scaleSize from '../../../helper/scaleSize';
 import FastImage from 'react-native-fast-image';
 import { usePfp } from '../../../helper/usePFPs';
@@ -40,7 +42,7 @@ const PostFooterInfoPanel = ({ data, opacityAnim }) => {
     const handles = filteredLikes.map(like => like.handle);
 
     return (
-        <Animated.View style={[styles.container, { opacity: opacityAnim }]} pointerEvents="none">
+        <Animated.View style={[styles.container, { opacity: opacityAnim, bottom: scaleSize(12) }]} pointerEvents="none">
             <View style={styles.profilePictures}>
                 {filteredLikes.length > 0 ? (
                     filteredLikes.map((like, index) => (
@@ -93,7 +95,7 @@ const styles = StyleSheet.create({
         width: scaleSize(28),
         aspectRatio: 1,
         borderRadius: scaleSize(12),
-        borderWidth: 2,
+        borderWidth: scaleSize(2),
         borderColor: '#fff',
     },
     profilePicture1: {
@@ -114,7 +116,7 @@ const styles = StyleSheet.create({
         marginLeft: scaleSize(8),
         color: '#fff',
         fontFamily: 'Poppins_700Bold',
-        fontSize: require('../../../helper/scaleSize').ts(12.5),
+        fontSize: scaleSize(12.5),
         width: '85%',
     },
 });

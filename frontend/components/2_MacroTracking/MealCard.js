@@ -2,6 +2,8 @@
 import React from 'react';
 import { View, Text, StyleSheet } from 'react-native';
 
+import scaleSize from "../../helper/scaleSize";
+
 export default function MealCard({
     item,
     PlusIcon,
@@ -28,11 +30,11 @@ const makeStyles = (COLORS) =>
         card: {
             backgroundColor: COLORS.card,
             borderRadius: 0,
-            paddingVertical: 14,
-            paddingLeft: 26,
-            paddingRight: 26,
+            paddingVertical: scaleSize(14),
+            paddingLeft: scaleSize(26),
+            paddingRight: scaleSize(26),
             marginHorizontal: 0,
-            marginTop: 12,
+            marginTop: scaleSize(12),
             borderTopWidth: StyleSheet.hairlineWidth,
             borderBottomWidth: StyleSheet.hairlineWidth,
             borderColor: COLORS.hairline,
@@ -43,11 +45,11 @@ const makeStyles = (COLORS) =>
         row: { flexDirection: 'row', alignItems: 'center' },
         centerArea: { flex: 1 },
         title: {
-            fontSize: require('../../helper/scaleSize').ts(15),
+            fontSize: scaleSize(15),
             color: COLORS.text,
             fontFamily: 'Nunito_800ExtraBold',
             letterSpacing: 0.2,
         },
-        mealCals: { fontSize: require('../../helper/scaleSize').ts(16), fontFamily: 'Outfit_700Bold', color: 'rgba(102, 176, 255, 1)', marginLeft: 10 },
+        mealCals: { fontSize: scaleSize(16), fontFamily: 'Outfit_700Bold', color: 'rgba(102, 176, 255, 1)', marginLeft: scaleSize(10) },
 
     });

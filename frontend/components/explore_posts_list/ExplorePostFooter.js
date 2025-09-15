@@ -4,6 +4,8 @@ import { likePost } from "../../../backend/posts/likePost";
 import { unlikePost } from "../../../backend/posts/unlikePost";
 import { useState } from "react";
 
+import scaleSize from "../../helper/scaleSize";
+
 export default function ExplorePostFooter({ data, uid }) {
     const db_liked = data.likes.includes(uid);
     const [liked, setLiked] = useState(db_liked);
@@ -86,9 +88,9 @@ const styles = StyleSheet.create({
         borderTopWidth: 1,
         flexDirection: 'row',
         justifyContent: 'space-between',
-        paddingTop: 10,
-        paddingLeft: 8,
-        paddingRight: 14
+        paddingTop: scaleSize(10),
+        paddingLeft: scaleSize(8),
+        paddingRight: scaleSize(14)
     },
     left: {
         flexDirection: 'row'
@@ -100,26 +102,26 @@ const styles = StyleSheet.create({
     like_icon_ctnr: {
         justifyContent: 'center',
         alignItems: 'center',
-        paddingHorizontal: 5,
+        paddingHorizontal: scaleSize(5),
     },
     comments_ctnr: {
-        paddingLeft: 15,
+        paddingLeft: scaleSize(15),
         flexDirection: 'row',
         alignItems: 'center'
     },
     comment_icon_ctnr: {
         justifyContent: 'center',
         alignItems: 'center',
-        paddingHorizontal: 5,
+        paddingHorizontal: scaleSize(5),
     },
     count_text: {
         fontFamily: 'Lato_700Bold',
-        fontSize: require('../../helper/scaleSize').ts(12)
+        fontSize: scaleSize(12)
     },
     text: {
         color: '#616977',
         fontFamily: 'Lato_400Regular',
-        fontSize: require('../../helper/scaleSize').ts(12)
+        fontSize: scaleSize(12)
     },
     right: {
         flexDirection: 'row'
@@ -131,6 +133,6 @@ const styles = StyleSheet.create({
     bookmark_icon_ctnr: {
         justifyContent: 'center',
         alignItems: 'center',
-        paddingLeft: 12
+        paddingLeft: scaleSize(12)
     }
 });

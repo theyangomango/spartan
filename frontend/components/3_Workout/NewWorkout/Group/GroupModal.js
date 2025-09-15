@@ -172,7 +172,6 @@ const GroupModal = ({ closeGroupModal, onInvite }) => {
             <View style={styles.header}>
                 <Text style={styles.modalText}>Invite to Workout</Text>
             </View>
-
             {/* Sleek search */}
             <View style={styles.searchContainer}>
                 <Icon name="search" size={scaledSize(18)} color={theme.primary} style={styles.searchIcon} />
@@ -190,7 +189,6 @@ const GroupModal = ({ closeGroupModal, onInvite }) => {
                     </Pressable>
                 )}
             </View>
-
             <SectionList
                 sections={sections}
                 keyExtractor={(item, idx) => item?.uid || `u-${idx}`}
@@ -207,17 +205,16 @@ const GroupModal = ({ closeGroupModal, onInvite }) => {
                     </View>
                 )}
                 style={styles.list}
-                contentContainerStyle={{ paddingBottom: Math.max(insets.bottom, scaledSize(24)) + scaledSize(96) }}
+                contentContainerStyle={{ paddingBottom: scaleSize(Math.max(insets.bottom, scaledSize(24)) + scaledSize(96)) }}
                 stickySectionHeadersEnabled={false}
                 initialNumToRender={15}
                 windowSize={15}
                 showsVerticalScrollIndicator={false}
             />
-
             <RNBounceable
                 style={[
                     styles.sendButtonWrap,
-                    { bottom: insets.bottom + scaledSize(24), opacity: selectedUsers.length < 1 ? 0.5 : 1 },
+                    { bottom: scaleSize(insets.bottom + scaledSize(24)), opacity: selectedUsers.length < 1 ? 0.5 : 1 },
                 ]}
                 disabled={selectedUsers.length === 0}
                 onPress={() => onInvite?.(selectedUsers)}
@@ -228,7 +225,7 @@ const GroupModal = ({ closeGroupModal, onInvite }) => {
                     end={{ x: 1, y: 1 }}
                     style={styles.sendButton}
                 >
-                    <Icon name="person-add-outline" size={scaledSize(18)} color="#fff" style={{ marginRight: scaledSize(8) }} />
+                    <Icon name="person-add-outline" size={scaledSize(18)} color="#fff" style={{ marginRight: scaleSize(scaledSize(8)) }} />
                     <Text style={styles.sendButtonText}>
                         {`Invite${selectedUsers.length > 0 ? ` (${selectedUsers.length})` : ""}`}
                     </Text>
@@ -244,16 +241,16 @@ const styles = StyleSheet.create({
     modalOverlay: { flex: 1, alignItems: "center" },
 
     header: {
-        height: scaledSize(48),
-        paddingTop: scaledSize(16),
+        height: scaleSize(scaledSize(48)),
+        paddingTop: scaleSize(scaledSize(16)),
         flexDirection: "row",
         alignItems: "center",
         justifyContent: "center",
-        marginBottom: scaledSize(10),
+        marginBottom: scaleSize(scaledSize(10)),
     },
     modalText: {
         fontFamily: "Nunito_800ExtraBold",
-        fontSize: scaledSize(15),
+        fontSize: scaleSize(15),
         color: theme.textPrimary,
         includeFontPadding: false,
         letterSpacing: 0.2,
@@ -263,56 +260,56 @@ const styles = StyleSheet.create({
         flexDirection: "row",
         alignItems: "center",
         backgroundColor: theme.field,
-        borderRadius: scaledSize(12),
+        borderRadius: scaleSize(scaledSize(12)),
         borderWidth: StyleSheet.hairlineWidth,
         borderColor: theme.hairline,
         width: "90%",
-        paddingHorizontal: scaledSize(10),
-        paddingVertical: scaledSize(6),
-        marginBottom: scaledSize(10),
+        paddingHorizontal: scaleSize(scaledSize(10)),
+        paddingVertical: scaleSize(scaledSize(6)),
+        marginBottom: scaleSize(scaledSize(10)),
     },
-    searchIcon: { marginRight: scaledSize(8) },
+    searchIcon: { marginRight: scaleSize(scaledSize(8)) },
     searchBar: {
         flex: 1,
-        paddingHorizontal: scaledSize(8),
-        paddingVertical: scaledSize(6),
-        fontSize: scaledSize(14),
+        paddingHorizontal: scaleSize(scaledSize(8)),
+        paddingVertical: scaleSize(scaledSize(6)),
+        fontSize: scaleSize(14),
         color: theme.textPrimary,
         fontFamily: "Nunito_600SemiBold",
         includeFontPadding: false,
     },
 
     list: { flex: 1, width: "100%" },
-    sectionHeaderWrap: { width: "100%", paddingHorizontal: scaledSize(22), paddingTop: scaledSize(10), paddingBottom: scaledSize(6) },
+    sectionHeaderWrap: { width: "100%", paddingHorizontal: scaleSize(scaledSize(22)), paddingTop: scaleSize(scaledSize(10)), paddingBottom: scaleSize(scaledSize(6)) },
     sectionHeaderText: {
         fontFamily: "Outfit_700Bold",
-        fontSize: scaledSize(12),
+        fontSize: scaleSize(12),
         color: theme.textSecondary,
         letterSpacing: 0.3,
     },
 
     sendButtonWrap: {
         position: "absolute",
-        left: scaledSize(22),
-        right: scaledSize(22),
-        borderRadius: scaledSize(18),
+        left: scaleSize(scaledSize(22)),
+        right: scaleSize(scaledSize(22)),
+        borderRadius: scaleSize(scaledSize(18)),
         shadowColor: "#000",
         shadowOpacity: 0.12,
-        shadowRadius: 12,
-        shadowOffset: { width: 0, height: 6 },
+        shadowRadius: scaleSize(12),
+        shadowOffset: { width: 0, height: scaleSize(6) },
         elevation: 4,
     },
     sendButton: {
         flexDirection: "row",
         alignItems: "center",
         justifyContent: "center",
-        borderRadius: scaledSize(18),
-        paddingVertical: scaledSize(14),
-        paddingHorizontal: scaledSize(30),
+        borderRadius: scaleSize(scaledSize(18)),
+        paddingVertical: scaleSize(scaledSize(14)),
+        paddingHorizontal: scaleSize(scaledSize(30)),
     },
     sendButtonText: {
         color: "#fff",
-        fontSize: scaledSize(15),
+        fontSize: scaleSize(15),
         fontFamily: "Nunito_800ExtraBold",
         includeFontPadding: false,
         letterSpacing: 0.25,

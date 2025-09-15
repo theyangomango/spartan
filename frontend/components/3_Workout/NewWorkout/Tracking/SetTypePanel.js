@@ -3,6 +3,8 @@ import { View, Text, StyleSheet, Modal, TouchableOpacity, Animated, Dimensions }
 import RNBounceable from "@freakycoder/react-native-bounceable";
 import theme from "../../../../theme/mfpDark";
 
+import scaleSize from "../../../../helper/scaleSize";
+
 const { width: screenWidth, height: screenHeight } = Dimensions.get("window");
 
 const ITEM = ({ color, letter, label, onPress }) => (
@@ -68,36 +70,36 @@ const styles = StyleSheet.create({
   overlay: { flex: 1, backgroundColor: "rgba(0,0,0,0.35)" },
   panel: {
     position: "absolute",
-    borderRadius: 18,
+    borderRadius: scaleSize(18),
     backgroundColor: theme.surface,
-    paddingVertical: 10,
-    paddingHorizontal: 10,
+    paddingVertical: scaleSize(10),
+    paddingHorizontal: scaleSize(10),
     shadowColor: "#000",
     shadowOpacity: 0.14,
-    shadowRadius: 18,
-    shadowOffset: { width: 0, height: 10 },
+    shadowRadius: scaleSize(18),
+    shadowOffset: { width: 0, height: scaleSize(10) },
     elevation: 8,
   },
   caret: {
     position: "absolute",
-    top: -7,
-    left: 18,
-    width: 14,
-    height: 14,
+    top: scaleSize(-7),
+    left: scaleSize(18),
+    width: scaleSize(14),
+    height: scaleSize(14),
     backgroundColor: theme.surface,
     transform: [{ rotate: "45deg" }],
   },
-  header: { color: theme.textSecondary, fontFamily: "Outfit_600SemiBold", fontSize: 13, paddingHorizontal: 6, paddingBottom: 8 },
+  header: { color: theme.textSecondary, fontFamily: "Outfit_600SemiBold", fontSize: scaleSize(13), paddingHorizontal: scaleSize(6), paddingBottom: scaleSize(8) },
   itemRow: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 12,
-    paddingHorizontal: 8,
-    paddingVertical: 10,
-    borderRadius: 12,
+    gap: scaleSize(12),
+    paddingHorizontal: scaleSize(8),
+    paddingVertical: scaleSize(10),
+    borderRadius: scaleSize(12),
   },
-  letterBadge: { width: 24, height: 24, borderRadius: 6, alignItems: "center", justifyContent: "center" },
-  letterText: { color: "#FFFFFF", fontFamily: "Outfit_700Bold", fontSize: 12 },
-  itemLabel: { color: theme.textPrimary, fontFamily: "Outfit_700Bold", fontSize: 15 },
-  separator: { height: 1, backgroundColor: theme.hairline, marginHorizontal: 8, marginVertical: 4, borderRadius: 1 },
+  letterBadge: { width: scaleSize(24), height: scaleSize(24), borderRadius: scaleSize(6), alignItems: "center", justifyContent: "center" },
+  letterText: { color: "#FFFFFF", fontFamily: "Outfit_700Bold", fontSize: scaleSize(12) },
+  itemLabel: { color: theme.textPrimary, fontFamily: "Outfit_700Bold", fontSize: scaleSize(15) },
+  separator: { height: scaleSize(1), backgroundColor: theme.hairline, marginHorizontal: scaleSize(8), marginVertical: scaleSize(4), borderRadius: scaleSize(1) },
 });

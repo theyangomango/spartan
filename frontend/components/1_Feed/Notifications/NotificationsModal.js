@@ -256,10 +256,10 @@ const styles = StyleSheet.create({
     sectionHeaderWrap: { paddingHorizontal: scaleSize(14), paddingTop: scaleSize(10), paddingBottom: scaleSize(6) },
     sectionHeaderText: {
         fontFamily: "Outfit_700Bold",
-        fontSize: ts(12),
+        fontSize: scaleSize(12),
         color: theme.textSecondary,
         letterSpacing: 0.3,
     },
     footerWrap: { paddingVertical: scaleSize(14), alignItems: 'center', justifyContent: 'center' },
-    footerText: { fontFamily: 'Outfit_600SemiBold', fontSize: ts(12), color: theme.textSecondary },
+    footerText: { fontFamily: 'Outfit_600SemiBold', fontSize: scaleSize(12), color: theme.textSecondary },
 });

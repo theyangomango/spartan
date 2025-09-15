@@ -6,6 +6,8 @@ import Reanimated, { useSharedValue, withTiming, withDelay, withSequence, Easing
 import { BTN_SIZE } from "../sections/workoutTheme";
 import theme from "../../../theme/mfpDark";
 
+import scaleSize from "../../../helper/scaleSize";
+
 /**
  * Minimal black circular button that either:
  *  - shows "START" with long-press-and-fill ring to begin a workout, or
@@ -184,9 +186,9 @@ const styles = StyleSheet.create({
     // Subtle disc to separate pure black from dark background
     backDisc: {
         position: "absolute",
-        width: BTN_SIZE * 1.12,
-        height: BTN_SIZE * 1.12,
-        borderRadius: 9999,
+        width: scaleSize(BTN_SIZE * 1.12),
+        height: scaleSize(BTN_SIZE * 1.12),
+        borderRadius: scaleSize(9999),
         // Keep element for layout, but fully transparent so no visible ring
         backgroundColor: 'transparent',
         borderWidth: 0,
@@ -198,28 +200,28 @@ const styles = StyleSheet.create({
     startBtn: {
         width: BTN_SIZE,
         height: BTN_SIZE,
-        borderRadius: 10000,
+        borderRadius: scaleSize(10000),
         // overflow: "hidden",
         alignItems: "center",
         justifyContent: "center",
         backgroundColor: "#0A0A0A",
         borderWidth: 0, // remove inner ring outline
         ...Platform.select({
-            ios: { shadowColor: "#FFFFFF", shadowOpacity: 0.8, shadowRadius: 16, shadowOffset: { width: 0, height: 0 } },
+            ios: { shadowColor: "#FFFFFF", shadowOpacity: 0.8, shadowRadius: scaleSize(16), shadowOffset: { width: 0, height: 0 } },
             android: { elevation: 0 },
         }),
     },
     // Extra styling when OPEN to create a crisp white rim + glow
     startBtnOpen: {
-        width: BTN_SIZE * 1.05,
-        height: BTN_SIZE * 1.05,
+        width: scaleSize(BTN_SIZE * 1.05),
+        height: scaleSize(BTN_SIZE * 1.05),
         borderWidth: 0, // no crisp rim; rely on haloSoft
         // Keep the same white halo on iOS as the START state
-        ...Platform.select({ ios: { shadowColor: "#FFFFFF", shadowOpacity: 0.8, shadowRadius: 16, shadowOffset: { width: 0, height: 0 } }, android: {} }),
+        ...Platform.select({ ios: { shadowColor: "#FFFFFF", shadowOpacity: 0.8, shadowRadius: scaleSize(16), shadowOffset: { width: 0, height: 0 } }, android: {} }),
     },
     startText: {
         color: "#FFFFFF",
-        fontSize: require('../../../helper/scaleSize').ts(20),
+        fontSize: scaleSize(20),
         fontWeight: "900",
         textTransform: "uppercase",
         letterSpacing: 0.6,

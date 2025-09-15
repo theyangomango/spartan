@@ -91,12 +91,12 @@ export default function EditableStat({ placeholder = '0', isFinished, value, set
 
 const styles = StyleSheet.create({
     editing: {
-        width: scaledSize(63),
-        height: scaledSize(26),
-        borderRadius: scaledSize(9),
+        width: scaleSize(scaledSize(63)),
+        height: scaleSize(scaledSize(26)),
+        borderRadius: scaleSize(scaledSize(9)),
         // Darker chip with stronger border for contrast
         backgroundColor: theme.field,
-        borderWidth: 1,
+        borderWidth: scaleSize(1),
         borderColor: 'rgba(255,255,255,0.30)',
     },
     selected: {
@@ -107,7 +107,7 @@ const styles = StyleSheet.create({
     },
     text: {
         fontFamily: 'Poppins_700Bold',
-        fontSize: scaledSize(15),
+        fontSize: scaleSize(15),
         flex: 1,
         textAlign: 'center',
         color: theme.textPrimary,
@@ -115,21 +115,21 @@ const styles = StyleSheet.create({
     accessoryBar: {
         flexDirection: 'row',
         alignItems: 'center',
-        paddingHorizontal: scaledSize(12),
-        paddingVertical: scaledSize(8),
+        paddingHorizontal: scaleSize(scaledSize(12)),
+        paddingVertical: scaleSize(scaledSize(8)),
         borderTopWidth: StyleSheet.hairlineWidth,
         borderColor: theme.hairline,
         backgroundColor: theme.surface,
     },
     accessoryBtn: {
         backgroundColor: theme.field,
-        paddingHorizontal: scaledSize(12),
-        paddingVertical: scaledSize(6),
-        borderRadius: scaledSize(8),
+        paddingHorizontal: scaleSize(scaledSize(12)),
+        paddingVertical: scaleSize(scaledSize(6)),
+        borderRadius: scaleSize(scaledSize(8)),
     },
     accessoryBtnText: {
         color: theme.textPrimary,
         fontFamily: 'Outfit_700Bold',
-        fontSize: scaledSize(13),
+        fontSize: scaleSize(13),
     },
 });

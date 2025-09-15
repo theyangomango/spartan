@@ -4,6 +4,8 @@ import { StyleSheet, View } from "react-native";
 import FastImage from 'react-native-fast-image';
 import RNBounceable from "@freakycoder/react-native-bounceable";
 
+import scaleSize from "../../../../helper/scaleSize";
+
 export default function PostPreview({ postData, onPress }) {
     const image = postData?.media?.[0]?.uri || null;
     const [loaded, setLoaded] = useState(false);
@@ -32,17 +34,17 @@ export default function PostPreview({ postData, onPress }) {
 const styles = StyleSheet.create({
     main_ctnr: {
         flex: 1,
-        margin: 2,
+        margin: scaleSize(2),
     },
     image: {
         flex: 1,
-        borderRadius: 10,
+        borderRadius: scaleSize(10),
         aspectRatio: 1
     },
     placeholder: {
         flex: 1,
         aspectRatio: 1,
-        borderRadius: 10,
+        borderRadius: scaleSize(10),
         backgroundColor: require('../../../../theme/mfpDark').default.field,
         position: 'absolute',
         top: 0,

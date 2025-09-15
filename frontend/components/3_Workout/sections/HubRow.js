@@ -128,17 +128,17 @@ const areEqual = (a, b) => (
 export default memo(HubRowCmp, areEqual);
 
 const styles = StyleSheet.create({
-    hubRow: { flexDirection: "row", gap: 12, paddingHorizontal: 16, marginTop: 6 },
+    hubRow: { flexDirection: "row", gap: scaleSize(12), paddingHorizontal: scaleSize(16), marginTop: scaleSize(6) },
     card: {
         flex: 1,
         backgroundColor: theme.surface,
-        borderRadius: 22,
-        padding: 14,
+        borderRadius: scaleSize(22),
+        padding: scaleSize(14),
         borderWidth: StyleSheet.hairlineWidth,
         borderColor: theme.hairline,
         ...Platform.select({
             // Tone down card drop shadow for a flatter look
-            ios: { shadowColor: "#000", shadowOpacity: 0.16, shadowRadius: 6, shadowOffset: { width: 0, height: 3 } },
+            ios: { shadowColor: "#000", shadowOpacity: 0.16, shadowRadius: scaleSize(6), shadowOffset: { width: 0, height: scaleSize(3) } },
             android: { elevation: 1 },
         }),
     },
@@ -147,23 +147,23 @@ const styles = StyleSheet.create({
         backgroundColor: "#232932",
         borderColor: "rgba(255,255,255,0.16)",
         ...Platform.select({
-            ios: { shadowOpacity: 0.14, shadowRadius: 8, shadowOffset: { width: 0, height: 3 } },
+            ios: { shadowOpacity: 0.14, shadowRadius: scaleSize(8), shadowOffset: { width: 0, height: scaleSize(3) } },
             android: { elevation: 1 },
         }),
     },
 
-    headerRow: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", marginBottom: 12 },
-    headerRowStart: { justifyContent: "flex-start", gap: 6 },
+    headerRow: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", marginBottom: scaleSize(12) },
+    headerRowStart: { justifyContent: "flex-start", gap: scaleSize(6) },
 
-    macrosCaption: { color: "#ffffffff", fontSize: 12, fontFamily: "Outfit_700Bold" },
-    podiumCaption: { color: "#ffffffff", fontSize: 12, fontFamily: "Outfit_700Bold" },
-    podiumCaptionClamp: { flex: 1, marginRight: 8, maxWidth: '85%' },
-    chevronRight: { color: "#ffffffff", fontSize: 18, lineHeight: 18, includeFontPadding: false },
-    chevronLeft: { color: "#ffffffff", fontSize: 18, lineHeight: 18, includeFontPadding: false },
+    macrosCaption: { color: "#ffffffff", fontSize: scaleSize(12), fontFamily: "Outfit_700Bold" },
+    podiumCaption: { color: "#ffffffff", fontSize: scaleSize(12), fontFamily: "Outfit_700Bold" },
+    podiumCaptionClamp: { flex: 1, marginRight: scaleSize(8), maxWidth: '85%' },
+    chevronRight: { color: "#ffffffff", fontSize: scaleSize(18), lineHeight: scaleSize(18), includeFontPadding: false },
+    chevronLeft: { color: "#ffffffff", fontSize: scaleSize(18), lineHeight: scaleSize(18), includeFontPadding: false },
 
     ringWrap: { flex: 1, alignItems: "center", justifyContent: "center", marginTop: 0 },
-    ringCenter: { alignItems: "center", justifyContent: "center", marginTop: 2 },
+    ringCenter: { alignItems: "center", justifyContent: "center", marginTop: scaleSize(2) },
     // Match NutritionSummaryCard ring text styles
-    kcalValue: { color: theme.textPrimary, fontSize: 25, fontFamily: "Outfit_800ExtraBold", marginBottom: 0 },
-    kcalSub: { color: theme.textSecondary, fontSize: 12, fontFamily: "Outfit_700Bold", marginBottom: 4 },
+    kcalValue: { color: theme.textPrimary, fontSize: scaleSize(25), fontFamily: "Outfit_800ExtraBold", marginBottom: 0 },
+    kcalSub: { color: theme.textSecondary, fontSize: scaleSize(12), fontFamily: "Outfit_700Bold", marginBottom: scaleSize(4) },
 });

@@ -24,13 +24,15 @@ import { db } from "../../../firebase.config";
 import calculate1RM from "../../helper/calculate1RM";
 import { useNavigation } from "@react-navigation/native";
 
+import scaleSize from "../../helper/scaleSize";
+
 const { height: screenHeight } = Dimensions.get("window");
 const scale = screenHeight / 844;
 const s = (n) => Math.round(n * scale);
 
 // Static separators to avoid re-creating functions each render
-const ItemSeparator = () => <View style={{ height: s(10) }} />;
-const SectionSeparator = () => <View style={{ height: s(12) }} />;
+const ItemSeparator = () => <View style={{ height: scaleSize(s(10)) }} />;
+const SectionSeparator = () => <View style={{ height: scaleSize(s(12)) }} />;
 
 const COLORS = {
   bg: theme.bg,
@@ -280,13 +282,11 @@ const FriendPanel = memo(({ item, overlay, onSelect, highlight = false }) => {
           {/* <MaterialCommunityIcons name="chevron-right" size={s(22)} color={COLORS.subtext} /> */}
         </View>
       </View>
-
       <View style={styles.divider} />
-
       <View style={styles.statsRow}>
         <View style={[styles.statCard, { flex: 1.05 }]}>
           <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-            <View style={[styles.statIconWrap, { marginBottom: 0, marginRight: s(8) }]}>
+            <View style={[styles.statIconWrap, { marginBottom: 0, marginRight: scaleSize(s(8)) }]}>
               <Clock color={theme.textSecondary} size={s(15)} variant="Bold" />
             </View>
             <View style={styles.statTextCol}>
@@ -298,7 +298,7 @@ const FriendPanel = memo(({ item, overlay, onSelect, highlight = false }) => {
 
         <View style={[styles.statCard, { flex: 1.2 }]}>
           <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-            <View style={[styles.statIconWrap, { marginBottom: 0, marginRight: s(8) }]}>
+            <View style={[styles.statIconWrap, { marginBottom: 0, marginRight: scaleSize(s(8)) }]}>
               <MaterialCommunityIcons name="weight-lifter" size={s(15)} color={theme.textSecondary} />
             </View>
             <View style={styles.statTextCol}>
@@ -310,7 +310,7 @@ const FriendPanel = memo(({ item, overlay, onSelect, highlight = false }) => {
 
         <View style={styles.statCard}>
           <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-            <View style={[styles.statIconWrap, { marginBottom: 0, marginRight: s(8) }]}>
+            <View style={[styles.statIconWrap, { marginBottom: 0, marginRight: scaleSize(s(8)) }]}>
               <MaterialCommunityIcons name="arm-flex" size={s(15)} color={theme.textSecondary} />
             </View>
             <View style={styles.statTextCol}>
@@ -692,7 +692,7 @@ const FriendsActivitySheet = ({ visible, openToggle, items = [], onClose, onView
             initialNumToRender={10}
             windowSize={10}
             maxToRenderPerBatch={12}
-            ListFooterComponent={<View style={{ height: s(28) }} />}
+            ListFooterComponent={<View style={{ height: scaleSize(s(28)) }} />}
             ListEmptyComponent={
               <View style={styles.emptyWrap}>
                 <Text style={styles.emptyText}>No recent activity</Text>
@@ -752,99 +752,99 @@ const FriendsActivitySheet = ({ visible, openToggle, items = [], onClose, onView
 
 const styles = StyleSheet.create({
   outer: { position: "absolute", top: 0, left: 0, right: 0, bottom: 0, zIndex: 1 },
-  sheetBg: { backgroundColor: COLORS.bg, borderTopLeftRadius: 22, borderTopRightRadius: 22 },
-  handleWrap: { borderTopLeftRadius: 22, borderTopRightRadius: 22 },
+  sheetBg: { backgroundColor: COLORS.bg, borderTopLeftRadius: scaleSize(22), borderTopRightRadius: scaleSize(22) },
+  handleWrap: { borderTopLeftRadius: scaleSize(22), borderTopRightRadius: scaleSize(22) },
 
-  header: { paddingHorizontal: 16, paddingVertical: 8 },
-  headerTitle: { fontFamily: "Outfit_700Bold", fontSize: 16, color: COLORS.text },
-  headerSub: { marginTop: 2, fontFamily: "Outfit_500Medium", fontSize: 12.5, color: COLORS.subtext },
+  header: { paddingHorizontal: scaleSize(16), paddingVertical: scaleSize(8) },
+  headerTitle: { fontFamily: "Outfit_700Bold", fontSize: scaleSize(16), color: COLORS.text },
+  headerSub: { marginTop: scaleSize(2), fontFamily: "Outfit_500Medium", fontSize: scaleSize(12.5), color: COLORS.subtext },
 
-  listContent: { paddingHorizontal: s(16), paddingBottom: s(24) },
+  listContent: { paddingHorizontal: scaleSize(s(16)), paddingBottom: scaleSize(s(24)) },
 
-  sectionHeaderWrap: { paddingTop: s(6), paddingBottom: s(4) },
+  sectionHeaderWrap: { paddingTop: scaleSize(s(6)), paddingBottom: scaleSize(s(4)) },
   sectionHeaderText: {
     fontFamily: "Outfit_700Bold",
-    fontSize: s(12),
+    fontSize: scaleSize(s(12)),
     color: COLORS.subtext,
     letterSpacing: 0.3,
   },
 
   panel: {
-    paddingHorizontal: s(14),
-    paddingVertical: s(10),
-    borderRadius: s(20),
+    paddingHorizontal: scaleSize(s(14)),
+    paddingVertical: scaleSize(s(10)),
+    borderRadius: scaleSize(s(20)),
     backgroundColor: COLORS.card,
     shadowColor: "#000",
-    shadowOffset: { width: 0, height: s(6) },
+    shadowOffset: { width: 0, height: scaleSize(s(6)) },
     shadowOpacity: 0.07,
-    shadowRadius: s(12),
+    shadowRadius: scaleSize(s(12)),
     elevation: 7,
     borderWidth: StyleSheet.hairlineWidth,
     borderColor: COLORS.hairline,
   },
-  headerRow: { flexDirection: "row", alignItems: "center", marginBottom: s(6), gap: s(10) },
-  rightAccessories: { flexDirection: "row", alignItems: "center", gap: s(10) },
-  pfp: { width: s(38), height: s(38), borderRadius: s(19), backgroundColor: "#E2E8F0" },
+  headerRow: { flexDirection: "row", alignItems: "center", marginBottom: scaleSize(s(6)), gap: scaleSize(s(10)) },
+  rightAccessories: { flexDirection: "row", alignItems: "center", gap: scaleSize(s(10)) },
+  pfp: { width: scaleSize(s(38)), height: scaleSize(s(38)), borderRadius: scaleSize(s(19)), backgroundColor: "#E2E8F0" },
   pfpFallback: { alignItems: "center", justifyContent: "center" },
-  pfpInitials: { fontFamily: "Outfit_700Bold", fontSize: s(12), color: COLORS.text, opacity: 0.9 },
-  templateTitle: { fontSize: s(12.5), fontFamily: "Outfit_700Bold", color: COLORS.text },
+  pfpInitials: { fontFamily: "Outfit_700Bold", fontSize: scaleSize(s(12)), color: COLORS.text, opacity: 0.9 },
+  templateTitle: { fontSize: scaleSize(s(12.5)), fontFamily: "Outfit_700Bold", color: COLORS.text },
   templateTitleBlue: { color: theme.primary },
-  handleText: { marginTop: s(2), fontSize: s(12), fontFamily: "Outfit_500Medium", color: COLORS.subtext },
+  handleText: { marginTop: scaleSize(s(2)), fontSize: scaleSize(s(12)), fontFamily: "Outfit_500Medium", color: COLORS.subtext },
 
   livePill: {
     flexDirection: "row",
     alignItems: "center",
-    gap: s(6),
+    gap: scaleSize(s(6)),
     backgroundColor: "rgba(45,158,255,0.12)",
     borderWidth: StyleSheet.hairlineWidth,
     borderColor: "rgba(45,158,255,0.35)",
-    paddingVertical: s(6),
-    paddingHorizontal: s(9),
-    borderRadius: s(999),
+    paddingVertical: scaleSize(s(6)),
+    paddingHorizontal: scaleSize(s(9)),
+    borderRadius: scaleSize(s(999)),
   },
-  liveDot: { width: s(8), height: s(8), borderRadius: s(4), backgroundColor: "#EF4444" },
-  liveText: { fontFamily: "Outfit_700Bold", fontSize: s(11.5), color: COLORS.text },
+  liveDot: { width: scaleSize(s(8)), height: scaleSize(s(8)), borderRadius: scaleSize(s(4)), backgroundColor: "#EF4444" },
+  liveText: { fontFamily: "Outfit_700Bold", fontSize: scaleSize(s(11.5)), color: COLORS.text },
 
-  divider: { height: StyleSheet.hairlineWidth, backgroundColor: COLORS.hairline, marginVertical: s(6) },
+  divider: { height: StyleSheet.hairlineWidth, backgroundColor: COLORS.hairline, marginVertical: scaleSize(s(6)) },
 
-  statsRow: { flexDirection: "row", gap: s(6) },
+  statsRow: { flexDirection: "row", gap: scaleSize(s(6)) },
   statCard: {
     flex: 1,
-    paddingVertical: s(6),
+    paddingVertical: scaleSize(s(6)),
   },
   statIconWrap: {
-    width: s(30),
-    height: s(30),
-    borderRadius: s(20),
+    width: scaleSize(s(30)),
+    height: scaleSize(s(30)),
+    borderRadius: scaleSize(s(20)),
     justifyContent: "center",
     alignItems: "center",
     backgroundColor: '#ffffff2e',
-    marginBottom: s(6),
+    marginBottom: scaleSize(s(6)),
   },
-  statLabel: { fontFamily: "Outfit_600SemiBold", fontSize: s(11), color: theme.textSecondary },
-  statValue: { marginTop: s(1), fontFamily: "Outfit_800ExtraBold", fontSize: s(13), color: COLORS.text },
+  statLabel: { fontFamily: "Outfit_600SemiBold", fontSize: scaleSize(s(11)), color: theme.textSecondary },
+  statValue: { marginTop: scaleSize(s(1)), fontFamily: "Outfit_800ExtraBold", fontSize: scaleSize(s(13)), color: COLORS.text },
   statTextCol: { flex: 1, minWidth: 0 },
 
   viewerContainer: { ...StyleSheet.absoluteFillObject, backgroundColor: "transparent" },
   loadingWrap: { flex: 1, alignItems: "center", justifyContent: "center" },
 
-  emptyWrap: { paddingVertical: s(24), alignItems: "center" },
-  emptyText: { fontFamily: "Outfit_600SemiBold", color: "rgba(15,23,42,0.5)", fontSize: s(12) },
+  emptyWrap: { paddingVertical: scaleSize(s(24)), alignItems: "center" },
+  emptyText: { fontFamily: "Outfit_600SemiBold", color: "rgba(15,23,42,0.5)", fontSize: scaleSize(s(12)) },
 
   prPill: {
     flexDirection: "row",
     alignItems: "center",
-    gap: s(6),
+    gap: scaleSize(s(6)),
     backgroundColor: "rgba(250, 204, 21, 0.24)",
     borderWidth: StyleSheet.hairlineWidth,
     borderColor: "rgba(250, 204, 21, 0.60)",
-    paddingVertical: s(5),
-    paddingHorizontal: s(8),
-    borderRadius: s(999),
+    paddingVertical: scaleSize(s(5)),
+    paddingHorizontal: scaleSize(s(8)),
+    borderRadius: scaleSize(s(999)),
   },
   prText: {
     fontFamily: "Outfit_800ExtraBold",
-    fontSize: s(12),
+    fontSize: scaleSize(s(12)),
     color: "#FACC15",
   },
 });

@@ -5,6 +5,8 @@ import UnderMealList from '../UnderMealList';
 import { summarizeFood } from '../../utils/nutrition';
 import { useNavigation } from '@react-navigation/native';
 
+import scaleSize from "../../helper/scaleSize";
+
 function MealsSection({ title = 'Daily meals', mealsMeta, meals, collapsed, toggleMeal, onAddPress, onDelete, COLORS, PlusIcon, dayKey }) {
     const styles = useMemo(() => makeStyles(COLORS), [COLORS]);
     const navigation = useNavigation();
@@ -65,15 +67,15 @@ export default memo(MealsSection, propsEqual);
 
 const makeStyles = (COLORS) =>
     StyleSheet.create({
-        sectionTitle: { fontSize: require('../../helper/scaleSize').ts(16), marginLeft: 18, marginTop: 24, color: COLORS.text, fontFamily: 'Nunito_800ExtraBold' },
+        sectionTitle: { fontSize: scaleSize(16), marginLeft: scaleSize(18), marginTop: scaleSize(24), color: COLORS.text, fontFamily: 'Nunito_800ExtraBold' },
         // Full-width list like MyFitnessPal: no outer horizontal padding,
         // each row handles its own left/right padding.
         underMealList: { paddingHorizontal: 0, marginTop: 0, marginBottom: 0 },
         underMealCard: {
             borderWidth: 0,
             borderRadius: 0,
-            paddingVertical: 10,
-            paddingHorizontal: 26,
+            paddingVertical: scaleSize(10),
+            paddingHorizontal: scaleSize(26),
             marginVertical: 0,
             borderTopWidth: StyleSheet.hairlineWidth,
             borderBottomWidth: StyleSheet.hairlineWidth,
@@ -83,8 +85,8 @@ const makeStyles = (COLORS) =>
             backgroundColor: COLORS.card,
         },
         addFoodRow: {
-            paddingVertical: 13,
-            paddingHorizontal: 26,
+            paddingVertical: scaleSize(13),
+            paddingHorizontal: scaleSize(26),
             backgroundColor: COLORS.card,
             borderBottomWidth: StyleSheet.hairlineWidth,
             borderColor: COLORS.hairline,
@@ -95,10 +97,10 @@ const makeStyles = (COLORS) =>
         addFoodText: {
             color: 'rgba(102, 176, 255, 1)',
             fontFamily: 'Outfit_700Bold',
-            fontSize: require('../../helper/scaleSize').ts(12.5),
+            fontSize: scaleSize(12.5),
             textTransform: 'uppercase',
             letterSpacing: 0.4,
             textAlign: 'right',
-            marginLeft: 8,
+            marginLeft: scaleSize(8),
         },
     });

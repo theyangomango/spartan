@@ -3,6 +3,8 @@ import React, { memo } from "react";
 import { Modal, View, StyleSheet, Pressable, Text, TextInput } from "react-native";
 import RNBounceable from "@freakycoder/react-native-bounceable";
 
+import scaleSize from "../../helper/scaleSize";
+
 function ManageTribeModal({
     visible,
     tribe,
@@ -34,7 +36,7 @@ function ManageTribeModal({
                             <Text style={styles.metaText}>
                                 Code: <Text style={{ fontFamily: "Outfit_600SemiBold" }}>{tribe.code}</Text>
                             </Text>
-                            <View style={{ height: 10 }} />
+                            <View style={{ height: scaleSize(10) }} />
                             {isOwner && (
                                 <>
                                     <TextInput
@@ -46,7 +48,7 @@ function ManageTribeModal({
                                         returnKeyType="done"
                                     />
                                     <RNBounceable
-                                        style={[styles.btn, styles.btnPrimary, { marginBottom: 8 }]}
+                                        style={[styles.btn, styles.btnPrimary, { marginBottom: scaleSize(8) }]}
                                         onPress={onRename}
                                     >
                                         <Text style={[styles.btnText, styles.btnPrimaryText]}>Rename</Text>
@@ -72,41 +74,41 @@ const styles = StyleSheet.create({
         backgroundColor: "rgba(0,0,0,0.25)",
         alignItems: "center",
         justifyContent: "center",
-        paddingHorizontal: 22,
+        paddingHorizontal: scaleSize(22),
     },
     modalCard: {
         width: "100%",
-        maxWidth: 420,
+        maxWidth: scaleSize(420),
         backgroundColor: require("../../theme/mfpDark").default.surface,
-        borderRadius: 16,
-        paddingVertical: 16,
-        paddingHorizontal: 14,
+        borderRadius: scaleSize(16),
+        paddingVertical: scaleSize(16),
+        paddingHorizontal: scaleSize(14),
     },
     modalTitle: {
         fontFamily: "Outfit_700Bold",
-        fontSize: require('../../helper/scaleSize').ts(18),
+        fontSize: scaleSize(18),
         color: "#EAEAEA",
-        marginBottom: 10,
+        marginBottom: scaleSize(10),
     },
     metaText: {
         fontFamily: "Outfit_500Medium",
         color: "#EAEAEA",
-        marginBottom: 6,
+        marginBottom: scaleSize(6),
     },
     input: {
         backgroundColor: require("../../theme/mfpDark").default.field,
-        borderRadius: 10,
-        paddingHorizontal: 12,
-        paddingVertical: 10,
+        borderRadius: scaleSize(10),
+        paddingHorizontal: scaleSize(12),
+        paddingVertical: scaleSize(10),
         fontFamily: "Outfit_500Medium",
         color: "#EAEAEA",
-        marginBottom: 12,
+        marginBottom: scaleSize(12),
     },
-    btn: { paddingVertical: 10, paddingHorizontal: 14, borderRadius: 10 },
-    btnText: { fontFamily: "Outfit_700Bold", fontSize: require('../../helper/scaleSize').ts(14) },
+    btn: { paddingVertical: scaleSize(10), paddingHorizontal: scaleSize(14), borderRadius: scaleSize(10) },
+    btnText: { fontFamily: "Outfit_700Bold", fontSize: scaleSize(14) },
     btnPrimary: { backgroundColor: "#2D9EFF" },
     btnPrimaryText: { color: "#fff" },
-    btnDanger: { backgroundColor: "#3B2323", marginTop: 4 },
+    btnDanger: { backgroundColor: "#3B2323", marginTop: scaleSize(4) },
     btnDangerText: { color: "#FF6B6B" },
 });
 

@@ -38,7 +38,6 @@ export default function ViewWorkoutModal({ workout }) {
                     />
                 </Pressable>
             </View>
-
             <ScrollView
                 style={styles.scrollview}
                 showsVerticalScrollIndicator={false}
@@ -54,7 +53,7 @@ export default function ViewWorkoutModal({ workout }) {
                         userStats={workout?.__friendStats || workout?.statsExercises || null}
                     />
                 ))}
-                <View style={{ height: scaledSize(50) }} />
+                <View style={{ height: scaleSize(scaledSize(50)) }} />
             </ScrollView>
         </View>
     );
@@ -65,27 +64,27 @@ const styles = StyleSheet.create({
         flex: 1,
     },
     scrollview: {
-        paddingTop: scaledSize(5),
+        paddingTop: scaleSize(scaledSize(5)),
     },
     header: {
         flexDirection: 'row', // Align the icons and text in a row
         alignItems: 'center', // Align items vertically in the center
-        paddingTop: scaledSize(5),
-        paddingBottom: scaledSize(9),
+        paddingTop: scaleSize(scaledSize(5)),
+        paddingBottom: scaleSize(scaledSize(9)),
     },
     timer_text: {
         fontFamily: 'Outfit_700Bold',
-        fontSize: scaledSize(18),
+        fontSize: scaleSize(18),
         color: '#aaa',
         textAlign: 'center',
         flex: 1, // Allow the text to take the remaining space
     },
     shareIcon: {
         position: 'absolute', // Align absolutely on the left
-        left: scaledSize(25),
+        left: scaleSize(scaledSize(25)),
     },
     heartIcon: {
         position: 'absolute', // Align absolutely on the right
-        right: scaledSize(28),
+        right: scaleSize(scaledSize(28)),
     },
 });

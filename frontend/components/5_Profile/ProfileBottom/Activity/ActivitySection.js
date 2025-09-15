@@ -4,6 +4,8 @@ import { StyleSheet, FlatList, View, Modal } from "react-native";
 import ExerciseGraph from "./ExerciseGraph";
 import SelectExerciseModal from "../../../2_Competition/SelectExercise/SelectExerciseModal";
 
+import scaleSize from "../../../../helper/scaleSize";
+
 const ActivitySection = ({ isVisible, isBottomSheetExpanded }) => {
     const [isSelectExerciseModalVisible, setIsSelectExerciseModalVisible] = useState(false);
     const closeSelectExerciseModal = () => {
@@ -25,7 +27,6 @@ const ActivitySection = ({ isVisible, isBottomSheetExpanded }) => {
                 ListFooterComponent={<View style={{ height: isBottomSheetExpanded ? 100 : 400 }} />}
                 initialNumToRender={1}
             />
-
             <Modal
                 animationType="fade"
                 transparent={true}
@@ -35,13 +36,12 @@ const ActivitySection = ({ isVisible, isBottomSheetExpanded }) => {
                 <SelectExerciseModal closeModal={closeSelectExerciseModal} />
             </Modal>
         </View>
-
     );
 };
 
 const styles = StyleSheet.create({
     scrollable_ctnr: {
-        marginTop: 5,
+        marginTop: scaleSize(5),
         flexGrow: 1,
     },
     hidden: {

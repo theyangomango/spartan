@@ -28,34 +28,34 @@ export default function ProfileRowButtons({ handleOpenEditProfile, handleOpenVie
 
 const styles = StyleSheet.create({
     row: {
-        marginHorizontal: scaledSize(5),
-        marginTop: scaledSize(10),
+        marginHorizontal: scaleSize(scaledSize(5)),
+        marginTop: scaleSize(scaledSize(10)),
         flexDirection: "row",
         justifyContent: "space-around",
-        height: scaledSize(32),
+        height: scaleSize(scaledSize(32)),
     },
     flex: {
         flex: 1,
     },
     button: {
-        paddingHorizontal: scaledSize(20),
-        borderRadius: scaledSize(10),
+        paddingHorizontal: scaleSize(scaledSize(20)),
+        borderRadius: scaleSize(scaledSize(10)),
         // Increase contrast on Feed/bg: subtle translucent pill + hairline
         backgroundColor: 'rgba(255,255,255,0.18)',
-        borderWidth: scaledSize(1),
+        borderWidth: scaleSize(scaledSize(1)),
         borderColor: theme.hairline,
         justifyContent: "center",
         alignItems: "center",
-        marginHorizontal: scaledSize(3),
+        marginHorizontal: scaleSize(scaledSize(3)),
         shadowColor: '#000',
         shadowOpacity: 0.12,
-        shadowRadius: 6,
-        shadowOffset: { width: 0, height: 3 },
+        shadowRadius: scaleSize(6),
+        shadowOffset: { width: 0, height: scaleSize(3) },
         elevation: 2,
     },
     edit_profile_text: {
         fontFamily: "Poppins_600SemiBold",
-        fontSize: scaledSize(12.5),
+        fontSize: scaleSize(12.5),
         color: '#E5E7EB',
     },
 });

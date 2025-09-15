@@ -91,8 +91,8 @@ export default ExerciseCard;
 const styles = StyleSheet.create({
     card: {
         flexDirection: 'row',
-        paddingLeft: scaledSize(20),
-        paddingRight: scaledSize(18),
+        paddingLeft: scaleSize(scaledSize(20)),
+        paddingRight: scaleSize(scaledSize(18)),
         justifyContent: 'space-between',
     },
     leftContainer: {
@@ -103,17 +103,17 @@ const styles = StyleSheet.create({
     border: {
         position: 'absolute',
         bottom: 0,
-        left: scaledSize(13),
-        right: scaledSize(13),
-        height: scaledSize(1),
+        left: scaleSize(scaledSize(13)),
+        right: scaleSize(scaledSize(13)),
+        height: scaleSize(scaledSize(1)),
         backgroundColor: 'rgba(255,255,255,0.08)',
     },
     textContainer: {
         flexDirection: 'column',
-        paddingVertical: scaledSize(8),
+        paddingVertical: scaleSize(scaledSize(8)),
         justifyContent: 'center',
         flex: 1,
-        paddingLeft: scaledSize(10),
+        paddingLeft: scaleSize(scaledSize(10)),
     },
     row: {
         flexDirection: 'row',
@@ -122,15 +122,15 @@ const styles = StyleSheet.create({
     selected: { backgroundColor: 'rgba(111,184,255,0.08)' },
     exerciseName: {
         fontFamily: 'Outfit_700Bold',
-        fontSize: scaledSize(15),
+        fontSize: scaleSize(15),
         color: '#EAEAEA',
-        marginVertical: scaledSize(3),
+        marginVertical: scaleSize(scaledSize(3)),
         flexWrap: 'wrap',
     },
     muscle_ctnr: {
-        borderRadius: scaledSize(999),
-        paddingHorizontal: scaledSize(12),
-        height: scaledSize(22),
+        borderRadius: scaleSize(scaledSize(999)),
+        paddingHorizontal: scaleSize(scaledSize(12)),
+        height: scaleSize(scaledSize(22)),
         alignItems: 'center',
         justifyContent: 'center',
         backgroundColor: '#1E232C',
@@ -139,24 +139,24 @@ const styles = StyleSheet.create({
     },
     muscle_text: {
         fontFamily: 'Outfit_700Bold',
-        fontSize: scaledSize(12),
+        fontSize: scaleSize(12),
         color: '#EAEAEA',
     },
     lastDone: {
         fontFamily: 'Outfit_500Medium',
-        fontSize: scaledSize(12.5),
+        fontSize: scaleSize(12.5),
         color: '#AEB5C0',
     },
     rightContainer: {
         flexDirection: 'row',
         alignItems: 'center',
-        marginLeft: scaledSize(10),
+        marginLeft: scaleSize(scaledSize(10)),
     },
     timesCompleted: {
         fontFamily: 'Outfit_700Bold',
-        fontSize: scaledSize(14.5),
-        marginRight: scaledSize(8),
+        fontSize: scaleSize(14.5),
+        marginRight: scaleSize(scaledSize(8)),
         color: '#6FB8FF',
     },
-    icon_ctnr: { marginTop: scaledSize(1), opacity: 0.3 },
+    icon_ctnr: { marginTop: scaleSize(scaledSize(1)), opacity: 0.3 },
 });

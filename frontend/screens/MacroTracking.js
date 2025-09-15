@@ -27,6 +27,8 @@ import theme from '../theme/mfpDark';
 import { toDayKey } from '../utils/date';
 import { doc, onSnapshot, updateDoc, serverTimestamp } from 'firebase/firestore';
 
+import scaleSize from "../helper/scaleSize";
+
 if (Platform.OS === 'android' && UIManager.setLayoutAnimationEnabledExperimental) {
     UIManager.setLayoutAnimationEnabledExperimental(true);
 }
@@ -318,7 +320,7 @@ export default function MacroTracking({ navigation, route }) {
                 {/* Body */}
                 <ScrollView
                     showsVerticalScrollIndicator={false}
-                    contentContainerStyle={{ paddingTop: 14, paddingBottom: 120 }}
+                    contentContainerStyle={{ paddingTop: scaleSize(14), paddingBottom: scaleSize(120) }}
                     style={styles.body}
                     removeClippedSubviews
                     keyboardShouldPersistTaps="handled"
@@ -392,33 +394,33 @@ export default function MacroTracking({ navigation, route }) {
 
 const styles = StyleSheet.create({
     sectionHeaderRow: {
-        paddingLeft: 18,
-        paddingRight: 12,
+        paddingLeft: scaleSize(18),
+        paddingRight: scaleSize(12),
         flexDirection: 'row',
         alignItems: 'center',
         justifyContent: 'space-between',
-        marginBottom: 6,
+        marginBottom: scaleSize(6),
     },
     sectionTitleNoMargin: { marginLeft: 0 },
     body: { backgroundColor: COLORS.bg },
 
     sectionTitle: {
-        fontSize: require('../helper/scaleSize').ts(16),
-        marginLeft: 18,
+        fontSize: scaleSize(16),
+        marginLeft: scaleSize(18),
         color: COLORS.text,
         fontFamily: 'Nunito_800ExtraBold',
     },
 
     editGoalsPill: {
         flexDirection: 'row',
-        gap: 6,
+        gap: scaleSize(6),
         alignItems: 'center',
         backgroundColor: COLORS.fieldBg,
-        paddingHorizontal: 12,
-        paddingVertical: 7,
-        borderRadius: 999,
-        borderWidth: 1,
+        paddingHorizontal: scaleSize(12),
+        paddingVertical: scaleSize(7),
+        borderRadius: scaleSize(999),
+        borderWidth: scaleSize(1),
         borderColor: COLORS.hairline,
     },
-    editGoalsText: { fontFamily: 'Outfit_700Bold', color: COLORS.text, fontSize: require('../helper/scaleSize').ts(12), letterSpacing: 0.15 },
+    editGoalsText: { fontFamily: 'Outfit_700Bold', color: COLORS.text, fontSize: scaleSize(12), letterSpacing: 0.15 },
 });

@@ -11,6 +11,7 @@ import {
 } from "./workoutTheme";
 import { Weight } from "iconsax-react-native";
 import theme from "../../../theme/mfpDark";
+import scaleSize from "../../../helper/scaleSize";
 
 function TemplatesRail({ templates = [], onIndexChange, onAddTemplate, onOpenTemplate }) {
     const { width: PAGE_W } = Dimensions.get("window");
@@ -150,19 +151,19 @@ const styles = StyleSheet.create({
     page: { height: TPL_CARD_H },
     rail: {
         height: TPL_CARD_H,
-        marginHorizontal: 16,
-        borderRadius: 18,
-        paddingVertical: 14,
-        paddingHorizontal: 14,
+        marginHorizontal: scaleSize(16),
+        borderRadius: scaleSize(18),
+        paddingVertical: scaleSize(14),
+        paddingHorizontal: scaleSize(14),
         flexDirection: "row",
         alignItems: "center",
         justifyContent: "space-between",
 
         backgroundColor: theme.surface,
-        borderWidth: 1,
+        borderWidth: scaleSize(1),
         borderColor: theme.hairline,
         ...Platform.select({
-            ios: { shadowColor: "#000", shadowOpacity: 0.12, shadowRadius: 6, shadowOffset: { width: 0, height: 3 } },
+            ios: { shadowColor: "#000", shadowOpacity: 0.12, shadowRadius: scaleSize(6), shadowOffset: { width: 0, height: scaleSize(3) } },
             android: { elevation: 1 },
         }),
     },
@@ -174,15 +175,15 @@ const styles = StyleSheet.create({
         backgroundColor: theme.field,
         borderWidth: StyleSheet.hairlineWidth,
         borderColor: theme.hairline,
-        ...Platform.select({ ios: { shadowColor: "#000", shadowOpacity: 0.12, shadowRadius: 5, shadowOffset: { width: 0, height: 2 } }, android: { elevation: 1 } })
+        ...Platform.select({ ios: { shadowColor: "#000", shadowOpacity: 0.12, shadowRadius: scaleSize(5), shadowOffset: { width: 0, height: scaleSize(2) } }, android: { elevation: 1 } })
     },
     
-    left: { flexDirection: "row", alignItems: "center", gap: 10, flex: 1, minWidth: 0 },
+    left: { flexDirection: "row", alignItems: "center", gap: scaleSize(10), flex: 1, minWidth: 0 },
 
     dumbbell: {
-        width: 36,
-        height: 36,
-        borderRadius: 18,
+        width: scaleSize(36),
+        height: scaleSize(36),
+        borderRadius: scaleSize(18),
         alignItems: "center",
         justifyContent: "center",
     },
@@ -190,28 +191,28 @@ const styles = StyleSheet.create({
         backgroundColor: theme.field,
         borderWidth: StyleSheet.hairlineWidth,
         borderColor: theme.hairline,
-        ...Platform.select({ ios: { shadowColor: "#000", shadowOpacity: 0.12, shadowRadius: 5, shadowOffset: { width: 0, height: 2 } }, android: { elevation: 1 } })
+        ...Platform.select({ ios: { shadowColor: "#000", shadowOpacity: 0.12, shadowRadius: scaleSize(5), shadowOffset: { width: 0, height: scaleSize(2) } }, android: { elevation: 1 } })
     },
 
-    title: { fontFamily: "Outfit_700Bold", fontSize: 16, color: "#E5E7EB", includeFontPadding: false },
+    title: { fontFamily: "Outfit_700Bold", fontSize: scaleSize(16), color: "#E5E7EB", includeFontPadding: false },
     titleNone: { color: "#E5E7EB" },
 
-    metaRow: { flexDirection: "row", alignItems: "center", gap: 12, marginTop: 4 },
-    metaChunk: { flexDirection: "row", alignItems: "center", gap: 5 },
-    metaLabel: { fontFamily: "Outfit_700Bold", fontSize: 12.5, color: "#E5E7EB" },
-    metaSub: { fontFamily: "Outfit_600SemiBold", fontSize: require('../../../helper/scaleSize').ts(12.5), color: "#94A3B8" },
+    metaRow: { flexDirection: "row", alignItems: "center", gap: scaleSize(12), marginTop: scaleSize(4) },
+    metaChunk: { flexDirection: "row", alignItems: "center", gap: scaleSize(5) },
+    metaLabel: { fontFamily: "Outfit_700Bold", fontSize: scaleSize(12.5), color: "#E5E7EB" },
+    metaSub: { fontFamily: "Outfit_600SemiBold", fontSize: scaleSize(12.5), color: "#94A3B8" },
 
     dotsRow: {
         position: "absolute",
         left: 0,
         right: 0,
-        bottom: 2,
+        bottom: scaleSize(2),
         height: DOTS_H,
         flexDirection: "row",
         alignItems: "center",
         justifyContent: "center",
-        gap: 6,
-        paddingHorizontal: 16,
+        gap: scaleSize(6),
+        paddingHorizontal: scaleSize(16),
     },
-    dash: { height: 4, borderRadius: 999, backgroundColor: BLUE.ACCENT },
+    dash: { height: scaleSize(4), borderRadius: scaleSize(999), backgroundColor: BLUE.ACCENT },
 });

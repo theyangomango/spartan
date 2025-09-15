@@ -3,7 +3,7 @@
  * * Handles backend calls from user interactions
  */
 
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, forwardRef, useImperativeHandle } from 'react';
 import { View, Text, StyleSheet, Pressable, Animated, Dimensions, Easing } from 'react-native';
 import { BlurView } from 'expo-blur';
 import { Heart, Messages1, Send2 } from 'iconsax-react-native';
@@ -19,13 +19,15 @@ import { getPostFooterStyles } from '../../../helper/getPostFooterStyles';
 import isThisUser from '../../../helper/isThisUser'
 import { FOCUS_ANIM_MS, FOCUS_EASING } from './animConfig';
 
+import scaleSize from "../../../helper/scaleSize";
+
 const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get("window");
 const dynamicStyles = getPostFooterStyles(SCREEN_WIDTH, SCREEN_HEIGHT);
 
-export default function PostFooter({ data, onPressCommentButton, onPressShareButton, isSomePostFocused }) {
+const PostFooter = forwardRef(function PostFooter({ data, onPressCommentButton, onPressShareButton, isSomePostFocused, isUnfocusing }, ref) {
     const [isLiked, setIsLiked] = useState(false);
     const [isSaved, setIsSaved] = useState(false);
-    const opacityAnim = useRef(new Animated.Value(isSomePostFocused ? 1 : 0)).current;
+    const opacityAnim = useRef(new Animated.Value(isSomePostFocused && !isUnfocusing ? 1 : 0)).current;
 
     // Determine if post is already liked by current user
     useEffect(() => {
@@ -39,16 +41,17 @@ export default function PostFooter({ data, onPressCommentButton, onPressShareBut
         }
     }, [global.userData]);
 
-    // Animate appearance/disappearance when post is focused/unfocused
+    // Animate appearance/disappearance when post is focused/unfocused.
+    // Fade OUT immediately when unfocus starts (isUnfocusing=true).
     useEffect(() => {
         try { opacityAnim.stopAnimation(); } catch {}
         Animated.timing(opacityAnim, {
-            toValue: isSomePostFocused ? 1 : 0,
+            toValue: (isSomePostFocused && !isUnfocusing) ? 1 : 0,
             duration: FOCUS_ANIM_MS,
             easing: FOCUS_EASING,
             useNativeDriver: true,
         }).start();
-    }, [isSomePostFocused]);
+    }, [isSomePostFocused, isUnfocusing]);
 
     // Toggle "like" status & update Firestore
     function handlePressLikeButton() {
@@ -81,6 +84,15 @@ export default function PostFooter({ data, onPressCommentButton, onPressShareBut
         setIsLiked(!isLiked);
     }
 
+    // Expose imperative API for parent (e.g., double-tap to like)
+    const ensureLike = () => { if (!isLiked) handlePressLikeButton(); };
+    useImperativeHandle(ref, () => ({
+        toggleLike: handlePressLikeButton,
+        ensureLike,
+        setLiked: (val) => setIsLiked(!!val),
+        isLiked,
+    }), [isLiked]);
+
     // Toggle "save" status & update user doc
     function handlePressSaveButton() {
         if (!isSaved) arrayAppend('users', global.userData.uid, 'savedPosts', data.pid);
@@ -93,7 +105,7 @@ export default function PostFooter({ data, onPressCommentButton, onPressShareBut
             <View style={styles.top}>
                 {/* Left portion: like, comment, share */}
                 <View style={styles.left}>
-                    <RNBounceable style={styles.likeButton} onPress={handlePressLikeButton} hitSlop={{ top: 4, bottom: 12, left: 12, right: 12 }}>
+                    <RNBounceable style={styles.likeButton} onPress={handlePressLikeButton} hitSlop={{ top: scaleSize(4), bottom: scaleSize(12), left: scaleSize(12), right: scaleSize(12) }}>
                         <BlurView style={styles.likeButtonBlurView}>
                             <Heart
                                 size={dynamicStyles.iconSize}
@@ -108,7 +120,7 @@ export default function PostFooter({ data, onPressCommentButton, onPressShareBut
                         // disabled={!isSomePostFocused}
                         onPress={onPressCommentButton}
                         style={styles.commentButton}
-                        hitSlop={{ top: 4, bottom: 12, left: 12, right: 12 }}
+                        hitSlop={{ top: scaleSize(4), bottom: scaleSize(12), left: scaleSize(12), right: scaleSize(12) }}
                     >
                         <Messages1 size={dynamicStyles.iconSize} color="#fff" variant="Bold" />
                         <Text style={styles.commentButtonText}>{data.commentCount}</Text>
@@ -126,7 +138,7 @@ export default function PostFooter({ data, onPressCommentButton, onPressShareBut
                 </View>
 
                 {/* Right portion: save button */}
-                <RNBounceable style={styles.saveButton} onPress={handlePressSaveButton} hitSlop={{ top: 4, bottom: 12, left: 12, right: 12 }}>
+                <RNBounceable style={styles.saveButton} onPress={handlePressSaveButton} hitSlop={{ top: scaleSize(4), bottom: scaleSize(12), left: scaleSize(12), right: scaleSize(12) }}>
                     {isSaved ? (
                         <Svg
                             xmlns="http://www.w3.org/2000/svg"
@@ -158,12 +170,13 @@ export default function PostFooter({ data, onPressCommentButton, onPressShareBut
                     )}
                 </RNBounceable>
             </View>
-
             {/* Footer with animated comment text, user handle, etc. */}
             <PostFooterInfoPanel opacityAnim={opacityAnim} data={data} />
         </View>
     );
-}
+});
+
+export default PostFooter;
 
 const styles = StyleSheet.create({
     mainContainer: { position: 'relative' },
@@ -171,14 +184,14 @@ const styles = StyleSheet.create({
         flexDirection: 'row',
         justifyContent: 'space-between',
         position: 'absolute',
-        bottom: 48,
-        left: 18,
-        right: 13,
+        bottom: scaleSize(48),
+        left: scaleSize(18),
+        right: scaleSize(13),
         zIndex: 5,
         elevation: 5,
     },
     left: { flexDirection: 'row' },
-    likeButton: { borderRadius: 30, overflow: 'hidden' },
+    likeButton: { borderRadius: scaleSize(30), overflow: 'hidden' },
     likeButtonBlurView: {
         flexDirection: 'row',
         alignItems: 'center',
@@ -188,35 +201,35 @@ const styles = StyleSheet.create({
     likeButtonText: {
         color: '#fff',
         fontFamily: 'Poppins_700Bold',
-        fontSize: dynamicStyles.fontSize,
-        paddingHorizontal: 5,
+        fontSize: scaleSize(dynamicStyles.fontSize),
+        paddingHorizontal: scaleSize(5),
     },
     commentButton: {
         flexDirection: 'row',
         alignItems: 'center',
         paddingHorizontal: dynamicStyles.buttonPaddingHorizontal,
         paddingVertical: dynamicStyles.buttonPaddingVertical,
-        marginLeft: 6
+        marginLeft: scaleSize(6)
     },
     commentButtonText: {
         color: '#fff',
         fontFamily: 'Poppins_700Bold',
-        fontSize: dynamicStyles.fontSize,
-        paddingVertical: 1,
-        paddingHorizontal: 5,
+        fontSize: scaleSize(dynamicStyles.fontSize),
+        paddingVertical: scaleSize(1),
+        paddingHorizontal: scaleSize(5),
     },
     shareButton: {
         flexDirection: 'row',
         alignItems: 'center',
-        paddingHorizontal: dynamicStyles.buttonPaddingHorizontal - 4,
+        paddingHorizontal: scaleSize(dynamicStyles.buttonPaddingHorizontal - 4),
         paddingVertical: dynamicStyles.buttonPaddingVertical,
     },
     shareButtonText: {
         color: '#fff',
         fontFamily: 'Poppins_700Bold',
-        fontSize: dynamicStyles.fontSize,
-        paddingVertical: 1,
-        paddingHorizontal: 5,
+        fontSize: scaleSize(dynamicStyles.fontSize),
+        paddingVertical: scaleSize(1),
+        paddingHorizontal: scaleSize(5),
     },
     saveButton: {
         flexDirection: 'row',

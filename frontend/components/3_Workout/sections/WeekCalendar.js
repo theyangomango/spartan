@@ -4,8 +4,13 @@ import { View, Text, StyleSheet, Dimensions, Platform, VirtualizedList, Pressabl
 import RNBounceable from "@freakycoder/react-native-bounceable";
 import theme from "../../../theme/mfpDark";
 
+import scaleSize from "../../../helper/scaleSize";
+
 const { width: W } = Dimensions.get("window");
 const DAY_LETTERS = ["SU", "MO", "TU", "WE", "TH", "FR", "SA"];
+// Global calendar sizing constants
+const PILL_H = 44; // fixed visual height
+const PILL_AR = 0.78; // width = height * PILL_AR (taller than wide)
 
 // YYYY-MM-DD
 const toDayKey = (msOrDate) => {
@@ -58,8 +63,8 @@ export default function WeekCalendar({ workoutsMap = {}, onWeekChange, onDayPres
     const INNER_HPAD = 14;
     const CELL_GAP = 8;
 
-    const PILL_H = 44;
-    const CAL_HEIGHT = PILL_H + 16;
+    // height uses PILL_H; width determined from aspect ratio PILL_AR
+    const CAL_HEIGHT = PILL_H + 18;
     const cellWidth = useMemo(() => {
         const usable = W - OUTER_HPAD * 2 - INNER_HPAD * 2 - CELL_GAP * 6;
         return Math.floor(usable / 7);
@@ -296,7 +301,13 @@ const DayCell = function DayCell({
             accessibilityLabel={`Open details for ${d.toDateString()}`}
         >
             {/* Center pill */}
-            <View style={[styles.centerPill, isToday && styles.centerPillToday]}>
+            <View
+                style={[
+                    styles.centerPill,
+                    { height: PILL_H, aspectRatio: PILL_AR },
+                    isToday && styles.centerPillToday,
+                ]}
+            >
                 <Text style={[styles.dayLetter, isToday && styles.dayLetterToday]}>{letter}</Text>
                 <Text style={[styles.dayNum, isToday && styles.dayNumToday]}>{d.getDate()}</Text>
             </View>
@@ -329,13 +340,13 @@ const MemoDayCell = memo(DayCell, (a, b) => {
 
 /* -------------------------------- Styles -------------------------------- */
 const styles = StyleSheet.create({
-    wrap: { marginTop: 0, marginBottom: 6 },
+    wrap: { marginTop: 0, marginBottom: scaleSize(6) },
 
     card: {
         // final card tone from spec
         backgroundColor: theme.surface,
-        borderRadius: 18,
-        paddingVertical: 12,
+        borderRadius: scaleSize(18),
+        paddingVertical: scaleSize(12),
         borderWidth: StyleSheet.hairlineWidth,
         borderColor: theme.hairline,
         overflow: "hidden",
@@ -344,8 +355,8 @@ const styles = StyleSheet.create({
                 // Softer card shadow to reduce visual weight
                 shadowColor: "#000",
                 shadowOpacity: 0.16,
-                shadowRadius: 6,
-                shadowOffset: { width: 0, height: 3 },
+                shadowRadius: scaleSize(6),
+                shadowOffset: { width: 0, height: scaleSize(3) },
             },
             android: { elevation: 1 },
         }),
@@ -355,22 +366,22 @@ const styles = StyleSheet.create({
         flexDirection: "row",
         alignItems: "center",
         justifyContent: "space-between",
-        marginBottom: 2,
-        paddingHorizontal: 4,
+        marginBottom: scaleSize(2),
+        paddingHorizontal: scaleSize(4),
     },
 
-    calCaption: { color: "#ECF2FA", fontSize: require('../../../helper/scaleSize').ts(12), fontFamily: "Outfit_700Bold" },
+    calCaption: { color: "#ECF2FA", fontSize: scaleSize(12), fontFamily: "Outfit_700Bold" },
 
     // Jump to Today pill – harmonize with dark theme
     jumpLinkTouch: {
-        paddingHorizontal: 10,
-        paddingVertical: 6,
-        borderRadius: 999,
+        paddingHorizontal: scaleSize(10),
+        paddingVertical: scaleSize(6),
+        borderRadius: scaleSize(999),
         backgroundColor: theme.field,
         borderWidth: StyleSheet.hairlineWidth,
         borderColor: theme.hairline,
     },
-    jumpLink: { color: theme.textPrimary, fontSize: require('../../../helper/scaleSize').ts(12), fontFamily: "Outfit_700Bold", letterSpacing: 0.2 },
+    jumpLink: { color: theme.textPrimary, fontSize: scaleSize(12), fontFamily: "Outfit_700Bold", letterSpacing: 0.2 },
 
     page: { justifyContent: "center" },
     row: { flexDirection: "row", alignItems: "center" },
@@ -378,30 +389,29 @@ const styles = StyleSheet.create({
     cell: { alignItems: "center", position: "relative" },
 
     // Bottom workout bar
-    bottomBar: { position: "absolute", bottom: 2, height: 6, borderRadius: 3 },
+    bottomBar: { position: "absolute", bottom: scaleSize(2), height: scaleSize(6), borderRadius: scaleSize(3) },
     bottomBarOn: { backgroundColor: "#2D9EFF" },
     bottomBarOff: { backgroundColor: "#bbdbff4f" },
 
     centerPill: {
-        marginTop: 4,
-        marginBottom: 10,
-        width: "92%",
-        height: 44,
-        borderRadius: 12,
+        marginTop: scaleSize(4),
+        marginBottom: scaleSize(10),
+        borderRadius: scaleSize(12),
         alignItems: "center",
         justifyContent: "center",
+        alignSelf: 'center',
     },
     centerPillToday: {
         // Make today's cell more apparent with a subtle blue tint
         backgroundColor: 'rgba(45,158,255,0.16)', // slightly brighter tint
-        borderWidth: 1.75,
+        borderWidth: scaleSize(1.75),
         borderColor: theme.primary,
         ...Platform.select({
             ios: {
                 shadowColor: '#2D9EFF',
                 shadowOpacity: 0.22,
-                shadowRadius: 5,
-                shadowOffset: { width: 0, height: 2 },
+                shadowRadius: scaleSize(5),
+                shadowOffset: { width: 0, height: scaleSize(2) },
             },
             android: {
                 elevation: 1,
@@ -410,12 +420,12 @@ const styles = StyleSheet.create({
     },
     dayLetter: {
         fontFamily: "Outfit_700Bold",
-        fontSize: require('../../../helper/scaleSize').ts(9.5),
+        fontSize: scaleSize(9.5),
         color: "#94A3B8",
-        marginBottom: 2,
+        marginBottom: scaleSize(3),
         letterSpacing: 0.3,
     },
-    dayNum: { fontFamily: "Outfit_800ExtraBold", fontSize: require('../../../helper/scaleSize').ts(15), color: "#E5E7EB" },
+    dayNum: { fontFamily: "Outfit_800ExtraBold", fontSize: scaleSize(15), color: "#E5E7EB" },
     // Accented text for today
     dayLetterToday: { color: theme.accentBlue },
     dayNumToday: { color: '#FFFFFF' },

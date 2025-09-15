@@ -1,7 +1,7 @@
 import RNBounceable from '@freakycoder/react-native-bounceable';
 import React from 'react';
 import { View, Text, StyleSheet, Dimensions, TouchableOpacity } from 'react-native';
-import { ts } from '../helper/scaleSize';
+import scaleSizeFont, { ts } from '../helper/scaleSize';
 import { Ionicons, Octicons } from '@expo/vector-icons';
 import theme from '../theme/mfpDark';
 
@@ -94,14 +94,14 @@ const styles = StyleSheet.create({
         alignItems: 'center',
     },
     title: {
-        fontSize: ts(21),
+        fontSize: scaleSize(21),
         fontFamily: 'Poppins_600SemiBold',
         marginLeft: scaleSize(1),
         marginBottom: scaleSize(10),
         color: theme.textPrimary,
     },
     subtitle: {
-        fontSize: ts(12),
+        fontSize: scaleSize(12),
         marginHorizontal: scaleSize(45),
         textAlign: 'center',
         fontFamily: 'Mulish_400Regular',
@@ -127,7 +127,7 @@ const styles = StyleSheet.create({
         left: scaleSize(17),
     },
     auth_button_text: {
-        fontSize: ts(14.5),
+        fontSize: scaleSize(14.5),
         fontFamily: 'SourceSansPro_600SemiBold',
         color: theme.textPrimary,
     },
@@ -146,12 +146,12 @@ const styles = StyleSheet.create({
     },
     footer_regular_text: {
         fontFamily: 'Outfit_400Regular',
-        fontSize: ts(14.5),
+        fontSize: scaleSize(14.5),
         color: theme.textSecondary,
     },
     sign_up_text: {
         fontFamily: 'Outfit_600SemiBold',
-        fontSize: ts(14.5),
+        fontSize: scaleSize(14.5),
         color: theme.primary,
     },
 });

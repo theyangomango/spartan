@@ -5,6 +5,8 @@ import * as ImagePicker from 'expo-image-picker';
 import { SafeAreaView as SafeAreaContextView } from 'react-native-safe-area-context'; // Import SafeAreaView from safe-area-context
 import theme from '../../../theme/mfpDark';
 
+import scaleSize from "../../helper/scaleSize";
+
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
 // Scale factor based on iPhone 13 width
@@ -42,7 +44,7 @@ export default function SettingsScreen({ closeBottomSheet }) {
                         <Ionicons name="chevron-down" size={24} color={theme.textPrimary} />
                     </Pressable>
                     <Text style={styles.title}>Beta Testing</Text>
-                    <View style={{ width: normalize(24) }} />
+                    <View style={{ width: scaleSize(normalize(24)) }} />
                 </View>
 
                 <View style={styles.feedbackContainer}>
@@ -96,65 +98,65 @@ const styles = StyleSheet.create({
     container: {
         flex: 1,
         backgroundColor: theme.surface,
-        paddingTop: normalize(8),
+        paddingTop: scaleSize(normalize(8)),
     },
     header: {
         flexDirection: 'row',
         alignItems: 'center',
         justifyContent: 'space-between',
-        paddingBottom: normalize(10),
-        paddingHorizontal: normalize(20),
+        paddingBottom: scaleSize(normalize(10)),
+        paddingHorizontal: scaleSize(normalize(20)),
     },
     title: {
-        fontSize: normalize(16),
+        fontSize: scaleSize(normalize(16)),
         fontFamily: 'Mulish_800ExtraBold',
         color: theme.textPrimary,
     },
     body: {
         position: 'absolute',
-        bottom: normalize(150),
-        paddingHorizontal: normalize(55),
+        bottom: scaleSize(normalize(150)),
+        paddingHorizontal: scaleSize(normalize(55)),
     },
     body_text: {
         fontFamily: 'Mulish_700Bold',
-        fontSize: normalize(14),
+        fontSize: scaleSize(normalize(14)),
         textAlign: 'center',
-        lineHeight: normalize(23),
+        lineHeight: scaleSize(normalize(23)),
         color: theme.textPrimary,
     },
     name_text: {
-        marginTop: normalize(13),
+        marginTop: scaleSize(normalize(13)),
         fontFamily: 'Mulish_700Bold',
-        fontSize: normalize(14),
+        fontSize: scaleSize(normalize(14)),
         textAlign: 'right',
         color: theme.textPrimary,
     },
     name_title_text: {
         fontFamily: 'Mulish_700Bold',
-        fontSize: normalize(13),
+        fontSize: scaleSize(normalize(13)),
         textAlign: 'right',
-        lineHeight: normalize(23),
+        lineHeight: scaleSize(normalize(23)),
         color: theme.textSecondary,
     },
     feedbackContainer: {
-        marginTop: normalize(30),
-        paddingHorizontal: normalize(20),
+        marginTop: scaleSize(normalize(30)),
+        paddingHorizontal: scaleSize(normalize(20)),
     },
     feedbackTitle: {
         fontFamily: 'Mulish_800ExtraBold',
-        fontSize: normalize(14),
-        paddingHorizontal: normalize(4),
-        marginBottom: normalize(10),
+        fontSize: scaleSize(normalize(14)),
+        paddingHorizontal: scaleSize(normalize(4)),
+        marginBottom: scaleSize(normalize(10)),
         color: theme.textPrimary,
     },
     textInput: {
-        borderWidth: normalize(1.5),
+        borderWidth: scaleSize(normalize(1.5)),
         borderColor: theme.hairline,
-        borderRadius: normalize(8),
-        paddingHorizontal: normalize(10),
+        borderRadius: scaleSize(normalize(8)),
+        paddingHorizontal: scaleSize(normalize(10)),
         // textAlignVertical: 'top',
-        height: normalize(100),
-        marginBottom: normalize(10),
+        height: scaleSize(normalize(100)),
+        marginBottom: scaleSize(normalize(10)),
 
         fontFamily: 'Mulish_600SemiBold',
         color: theme.textPrimary,
@@ -164,48 +166,48 @@ const styles = StyleSheet.create({
         flexDirection: 'row',
         alignItems: 'center',
         backgroundColor: theme.field,
-        padding: normalize(12),
-        borderRadius: normalize(8),
-        marginBottom: normalize(8),
+        padding: scaleSize(normalize(12)),
+        borderRadius: scaleSize(normalize(8)),
+        marginBottom: scaleSize(normalize(8)),
     },
     imagePickerButtonText: {
         fontFamily: 'Mulish_600SemiBold',
-        fontSize: normalize(14),
-        marginRight: normalize(10),
+        fontSize: scaleSize(normalize(14)),
+        marginRight: scaleSize(normalize(10)),
         color: theme.textPrimary,
     },
     imagePreviewContainer: {
         flexDirection: 'row',
         flexWrap: 'wrap',
-        marginBottom: normalize(10),
+        marginBottom: scaleSize(normalize(10)),
     },
     imageWrapper: {
         position: 'relative',
-        marginRight: normalize(10),
-        marginBottom: normalize(10),
+        marginRight: scaleSize(normalize(10)),
+        marginBottom: scaleSize(normalize(10)),
     },
     imagePreview: {
-        width: normalize(50),
-        height: normalize(50),
-        borderRadius: normalize(8),
+        width: scaleSize(normalize(50)),
+        height: scaleSize(normalize(50)),
+        borderRadius: scaleSize(normalize(8)),
     },
     removeImageButton: {
         position: 'absolute',
-        top: normalize(-5),
-        right: normalize(-5),
+        top: scaleSize(normalize(-5)),
+        right: scaleSize(normalize(-5)),
         backgroundColor: 'red',
-        borderRadius: normalize(10),
-        padding: normalize(2),
+        borderRadius: scaleSize(normalize(10)),
+        padding: scaleSize(normalize(2)),
     },
     submitButton: {
         backgroundColor: theme.primary,
-        paddingVertical: normalize(13),
-        borderRadius: normalize(8),
+        paddingVertical: scaleSize(normalize(13)),
+        borderRadius: scaleSize(normalize(8)),
         alignItems: 'center',
     },
     submitButtonText: {
         color: '#fff',
         fontFamily: 'Mulish_800ExtraBold',
-        fontSize: normalize(15),
+        fontSize: scaleSize(normalize(15)),
     },
 });

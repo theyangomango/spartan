@@ -79,13 +79,13 @@ const styles = StyleSheet.create({
     panel_border: {
         borderColor: theme.primary,
         borderBottomWidth: scaledSize(1.5),
-        paddingTop: scaledSize(8),
-        marginHorizontal: scaledSize(16)
+        paddingTop: scaleSize(scaledSize(8)),
+        marginHorizontal: scaleSize(scaledSize(16))
     },
     panel_btns: {
         flexDirection: 'row',
-        marginHorizontal: scaledSize(16),
-        marginTop: scaledSize(8),
+        marginHorizontal: scaleSize(scaledSize(16)),
+        marginTop: scaleSize(scaledSize(8)),
         justifyContent: 'space-between',
     },
     panel_btn: {
@@ -93,7 +93,7 @@ const styles = StyleSheet.create({
         alignItems: 'center',
     },
     scrollable_ctnr: {
-        marginTop: scaledSize(5),
+        marginTop: scaleSize(scaledSize(5)),
         flexGrow: 1,
     },
     hidden: {
