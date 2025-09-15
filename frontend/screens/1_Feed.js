@@ -407,6 +407,7 @@ export default function Feed({ navigation, route }) {
             const approxCompact = Math.max(0, Math.round((headerH?.value || 0) - (chipsH?.value || 0)));
             const compactH = compactHeaderHRef.current || approxCompact || 44;
             const Vfinal = (insets?.top || 0) + compactH;
+            try { setDragUnfocusProgress(0); } catch {}
             let pageYAdj = pageY;
             // Programmatic path no longer adjusts the offset here; we rely on the
             // focus watcher + Post.measure to provide an accurate pageY.
@@ -457,6 +458,7 @@ export default function Feed({ navigation, route }) {
         if (isTransitioning.current) return; /* 🔒 */
         isTransitioning.current = true;
         setUnfocusing(true);
+        try { setDragUnfocusProgress(0); } catch {}
         // Keep focus state during the animation to avoid layout thrash/jitter.
         // We'll flip isSomePostFocused to false in the animation end callback.
         // Start revealing the header in parallel for a cohesive unfocus
@@ -665,6 +667,7 @@ export default function Feed({ navigation, route }) {
                 try { flatListRef.current?.setNativeProps({ scrollEnabled: true }); } catch { }
                 try { setUnfocusing(false); } catch { }
                 try { focusTranslateTargetRef.current = 0; } catch { }
+                try { setDragUnfocusProgress(0); } catch {}
             }
             else {
                 // Only remount at end when we compensated for a clipped-at-top start
@@ -933,6 +936,9 @@ export default function Feed({ navigation, route }) {
             if (Math.abs(focusedIndexState - index) <= 2) {
                 const isAdj = Math.abs(focusedIndexState - index) === 1;
                 const isAboveAdjacent = isAdj && index < focusedIndexState;
+                const basePad = width / CARD_AR;
+                const minPad = 33;
+                const dynamicPad = unfocusing ? minPad : Math.max(minPad, Math.round(basePad - (basePad - minPad) * (dragUnfocusProgress || 0)));
                 return (
                     <Animated.View style={[
                         styles.postWrapper,
@@ -943,7 +949,7 @@ export default function Feed({ navigation, route }) {
                             // visually overlapped bottom strip are still within the cell bounds.
                             // During unfocus, drop back to the normal padding so the next posts
                             // can re-enter the viewport immediately (no delayed reflow).
-                            paddingBottom: unfocusing ? 33 : width / CARD_AR,
+                            paddingBottom: dynamicPad,
                         },
                     ]}>
                         <Post

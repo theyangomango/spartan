@@ -159,9 +159,9 @@ function Post({
     useEffect(() => {
         let base = 1;
         if (isSomePostFocused && !isUnfocusing) {
-            if (isFocused) base = 1;
-            else if (isAdjacentToFocused) base = isAboveAdjacent ? 0 : 0.28;
-            else base = 0;
+            // During focus, hide all non-focused posts completely.
+            // We'll fade them back in during interactive unfocus via unfocusProgress.
+            base = isFocused ? 1 : 0;
             const p = Math.max(0, Math.min(1, unfocusProgress || 0));
             // Blend back toward 1 as the user drags upward
             const blended = base + p * (1 - base);

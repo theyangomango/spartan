@@ -19,6 +19,7 @@ const CommentsBottomSheet = ({ isVisible, postData, commentsBottomSheetExpandFla
     const bottomSheetRef = useRef(null);
     const footerTranslateY = useRef(new Animated.Value(0)).current; // moves when input focuses
     const footerIntroY = useRef(new Animated.Value(10)).current;    // small entrance slide
+    const footerDragY = useRef(new Animated.Value(0)).current;      // follows interactive unfocus to slide footer down
     const footerOpacity = useRef(new Animated.Value(0)).current;    // fade with sheet
     const snapPoints = useMemo(() => ["34.5%", "92%"], []);
     const containerHRef = useRef(SCREEN_HEIGHT - scaleSize(85));
@@ -149,6 +150,9 @@ const CommentsBottomSheet = ({ isVisible, postData, commentsBottomSheetExpandFla
         const pSlow = Math.min(1, progress * 0.85); // slightly slower than finger
         const pos = Math.max(0, openPx * (1 - pSlow));
         try { bottomSheetRef.current?.snapToPosition?.(pos, { duration: 0 }); } catch { }
+        // Fade and slide the input footer down so content behind becomes visible
+        try { footerOpacity.setValue(1 - progress); } catch {}
+        try { footerDragY.setValue(progress * 120); } catch {}
     }, [interactiveProgress, isVisible, postPid]);
 
     // Expand the bottom sheet when flagged
@@ -206,7 +210,7 @@ const CommentsBottomSheet = ({ isVisible, postData, commentsBottomSheetExpandFla
                 pointerEvents={isVisible && !!postPid ? 'auto' : 'none'}
                 style={[
                     styles.footer,
-                    { opacity: footerOpacity, transform: [{ translateY: Animated.add(footerTranslateY, footerIntroY) }] }
+                    { opacity: footerOpacity, transform: [{ translateY: Animated.add(Animated.add(footerTranslateY, footerIntroY), footerDragY) }] }
                 ]}
             >
                 <View style={styles.inputContainer}>
