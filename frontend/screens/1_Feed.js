@@ -58,6 +58,9 @@ export default function Feed({ navigation, route }) {
     const [shareBottomSheetCloseFlag, setShareBottomSheetCloseFlag] = useState(false);
     const [notificationsBottomSheetExpandFlag, setNotificationsBottomSheetExpandFlag] = useState(false);
     const [commentsBottomSheetExpandFlag, setCommentsBottomSheetExpandFlag] = useState(false);
+    const [commentsCollapseSignal, setCommentsCollapseSignal] = useState(0);
+    const [commentsReopenSignal, setCommentsReopenSignal] = useState(0);
+    const [dragUnfocusProgress, setDragUnfocusProgress] = useState(0); // 0..1 during interactive unfocus
     // Pre-mounted bottom sheet viewer for workouts
     const [feedWorkoutExpandToggle, setFeedWorkoutExpandToggle] = useState(false);
     const [feedSelectedWorkout, setFeedSelectedWorkout] = useState(null);
@@ -150,6 +153,10 @@ export default function Feed({ navigation, route }) {
 
     /* ---------- animated values ---------- */
     const translateY = useRef(new Animated.Value(0)).current;
+    // Track the focused-post anchored translation so we can interpolate during interactive unfocus
+    const focusTranslateTargetRef = useRef(0);
+    const panProgressRef = useRef(0); // 0..1 progress while panning to unfocus
+    const didCollapseCommentsRef = useRef(false);
     const storiesOpacity = useRef(new Animated.Value(1)).current;
     // Reanimated header reveal values (UI thread)
     const headerH = useSharedValue(0);
@@ -163,6 +170,10 @@ export default function Feed({ navigation, route }) {
     const backHeaderOpacitySV = useSharedValue(0);
     // Overlay header opacity (full header revealed outside focus)
     const overlayHeaderOpacitySV = useSharedValue(1);
+    // JS mirrors for interactive unfocus handoff
+    const translateYValueRef = useRef(0);
+    const closingViaPanRef = useRef(false);
+    const headerHeightRef = useRef(0);
     // Animated styles: overlay header translate + spacer height
     const overlayHeaderStyle = useAnimatedStyle(() => {
         const totalHidden = Math.min(headerH.value, hidden.value + focusHide.value);
@@ -435,6 +446,8 @@ export default function Feed({ navigation, route }) {
             dlog('focus.animate', { index, Vstart, Vfinal, pageYAdj, translate });
             // Kick off immediately to avoid perceived delay after navigation
             animateView(translate, 0);
+            // Remember the anchored focused translation for interactive unfocus drags
+            try { focusTranslateTargetRef.current = -translate; translateYValueRef.current = -translate; } catch { }
         };
         // Do not wait for the back header's onLayout; Vfinal is derived above
         setTimeout(run, 0);
@@ -452,8 +465,28 @@ export default function Feed({ navigation, route }) {
             hidden.value = 0;
             focusHide.value = withTiming(0, { duration: ANIMATION_DURATION, easing: ReEasing.out(ReEasing.cubic) });
         } catch { }
+        // If this unfocus was initiated by an upward pan, keep the focused post
+        // in the same relative screen position by adjusting FlatList offset now.
+        if (closingViaPanRef.current) {
+            try {
+                const off = scrollOffsetY.current || 0;
+                const V_now = Math.max(0, visibleHeaderHRef.current || 0);
+                const V_after = Math.max(0, headerHeightRef.current || V_now);
+                const T = translateYValueRef.current || 0; // current transform (negative = lifted up)
+                const newOff = Math.max(0, off + (V_after - V_now - T));
+                flatListRef.current?.scrollToOffset?.({ offset: newOff, animated: false });
+                scrollOffsetY.current = newOff;
+                // Immediately reset transform to baseline; offset keeps visual position steady
+                translateY.setValue(0);
+                translateYValueRef.current = 0;
+            } catch {}
+            closingViaPanRef.current = false;
+        }
         // Defer state flips to animation end for smoother unfocus
         animateView(0, 1);
+        // Reset interactive refs so the next focus starts clean
+        try { panProgressRef.current = 0; } catch { }
+        try { didCollapseCommentsRef.current = false; } catch { }
     };
 
     // Allow posts to request an unfocus while a focus/unfocus animation is in-flight.
@@ -509,9 +542,18 @@ export default function Feed({ navigation, route }) {
         const TAN35 = 0.700; // tan(35deg)
         const MIN_MOVE = 4;
         const ANGLE_MARGIN = 6;
+        const FULL_GESTURE_PX = Math.max(140, Math.min(height * 0.25, 260));
+        const EXTRA_UP_PX = Math.max(80, Math.min(height * 0.18, 160));
+        const clamp01 = (v) => (v < 0 ? 0 : v > 1 ? 1 : v);
         return PanResponder.create({
             onStartShouldSetPanResponder: () => false,
             onStartShouldSetPanResponderCapture: () => false,
+            onPanResponderGrant: () => {
+                // Start interactive unfocus; don't toggle state yet, just prep flags
+                didCollapseCommentsRef.current = false;
+                try { setDragUnfocusProgress(0); } catch {}
+                try { translateYValueRef.current = focusTranslateTargetRef.current || 0; } catch {}
+            },
             onMoveShouldSetPanResponder: (_, g) => {
                 if (!isSomePostFocused) return false;
                 if (g.numberActiveTouches > 1) return false;
@@ -531,15 +573,54 @@ export default function Feed({ navigation, route }) {
                 if (dy < 0 && vy <= -0.4) return true;
                 return dy < 0 && (ady > TAN35 * adx + ANGLE_MARGIN);
             },
+            onPanResponderMove: (_, g) => {
+                if (!isSomePostFocused) return;
+                const progress = clamp01((-g.dy) / FULL_GESTURE_PX);
+                panProgressRef.current = progress;
+                try { setDragUnfocusProgress(progress); } catch {}
+                // Lift the focused post slightly more as you drag up
+                const baseY = focusTranslateTargetRef.current || 0; // negative value in focused state
+                const y = baseY - progress * EXTRA_UP_PX;
+                try { translateY.setValue(y); } catch { }
+                try { translateYValueRef.current = y; } catch {}
+                // Fade stories back in and cross-fade headers
+                try { storiesOpacity.setValue(progress); } catch { }
+                try { backHeaderOpacitySV.value = 1 - progress; } catch { }
+                try { overlayHeaderOpacitySV.value = progress; } catch { }
+                try { if (headerH?.value != null) { focusHide.value = headerH.value * (1 - progress); } } catch { }
+                // Begin collapsing the comments sheet shortly after the drag starts
+                if (!didCollapseCommentsRef.current && progress > 0.08) {
+                    try { setCommentsCollapseSignal(Date.now()); } catch { }
+                    didCollapseCommentsRef.current = true;
+                }
+            },
             onPanResponderRelease: (_, g) => {
                 const { dx, dy, vx, vy } = g;
                 const adx = Math.abs(dx), ady = Math.abs(dy);
                 const isUpwardLean = dy < 0 && (ady > TAN35 * adx + ANGLE_MARGIN);
                 const distanceOK = dy < -12;
                 const velocityOK = vy <= -0.10;
-                if (isSomePostFocused && isUpwardLean && (distanceOK || velocityOK)) {
+                const shouldClose = isSomePostFocused && isUpwardLean && (distanceOK || velocityOK);
+                if (shouldClose) {
+                    closingViaPanRef.current = true;
                     try { Haptics.impactAsync?.(Haptics.ImpactFeedbackStyle.Heavy).catch(() => { }); } catch { }
                     requestUnfocus();
+                    try { setDragUnfocusProgress(1); } catch {}
+                } else {
+                    // Revert interactive changes back to focused state
+                    Animated.parallel([
+                        Animated.timing(translateY, { toValue: focusTranslateTargetRef.current || 0, duration: 180, easing: RNEasing.out(RNEasing.cubic), useNativeDriver: true }),
+                        Animated.timing(storiesOpacity, { toValue: 0, duration: 180, easing: RNEasing.out(RNEasing.cubic), useNativeDriver: true }),
+                    ]).start(() => {
+                        panProgressRef.current = 0;
+                        try { setDragUnfocusProgress(0); } catch {}
+                    });
+                    try { backHeaderOpacitySV.value = withTiming(1, { duration: 180, easing: ReEasing.out(ReEasing.cubic) }); } catch { }
+                    try { overlayHeaderOpacitySV.value = withTiming(0, { duration: 180, easing: ReEasing.out(ReEasing.cubic) }); } catch { }
+                    try { if (headerH?.value != null) { focusHide.value = withTiming(headerH.value, { duration: 180, easing: ReEasing.out(ReEasing.cubic) }); } } catch { }
+                    if (didCollapseCommentsRef.current) {
+                        try { setCommentsReopenSignal(Date.now()); } catch { }
+                    }
                 }
             },
             onPanResponderTerminationRequest: () => true,
@@ -583,6 +664,7 @@ export default function Feed({ navigation, route }) {
                 try { setShareBottomSheetCloseFlag((f) => !f); } catch { }
                 try { flatListRef.current?.setNativeProps({ scrollEnabled: true }); } catch { }
                 try { setUnfocusing(false); } catch { }
+                try { focusTranslateTargetRef.current = 0; } catch { }
             }
             else {
                 // Only remount at end when we compensated for a clipped-at-top start
@@ -842,6 +924,7 @@ export default function Feed({ navigation, route }) {
                             programFocusPid={programFocusPidRef.current}
                             programFocusSignal={programFocusSignal}
                             shouldPlay={index === centeredIndex} // ⟵ only centered post can play (if video slide)
+                            unfocusProgress={dragUnfocusProgress}
                         />
                     </Animated.View>
                 );
@@ -874,6 +957,7 @@ export default function Feed({ navigation, route }) {
                             programFocusPid={programFocusPidRef.current}
                             programFocusSignal={programFocusSignal}
                             shouldPlay={false} // ⟵ playback is controlled by focus rules inside Post
+                            unfocusProgress={dragUnfocusProgress}
                         />
                     </Animated.View>
                 );
@@ -891,6 +975,7 @@ export default function Feed({ navigation, route }) {
                         programFocusPid={programFocusPidRef.current}
                         programFocusSignal={programFocusSignal}
                         shouldPlay={false}
+                        unfocusProgress={dragUnfocusProgress}
                     />
                 </Animated.View>
             );
@@ -1001,6 +1086,7 @@ export default function Feed({ navigation, route }) {
                             headerH.value = h;
                             hidden.value = 0; // start visible
                             try { visibleHeaderHRef.current = h; } catch { }
+                            try { headerHeightRef.current = h; } catch {}
                         }
                         // no-op; refresh indicator is positioned by default directly under header
                     }}
@@ -1074,6 +1160,9 @@ export default function Feed({ navigation, route }) {
                 postData={focusedPostIndex.current === -1 ? null : posts[focusedPostIndex.current]}
                 commentsBottomSheetExpandFlag={commentsBottomSheetExpandFlag}
                 toViewProfile={toViewProfileComments}
+                collapseSignal={commentsCollapseSignal}
+                reopenSignal={commentsReopenSignal}
+                interactiveProgress={dragUnfocusProgress}
             />
             <ShareBottomSheet
                 shareBottomSheetCloseFlag={shareBottomSheetCloseFlag}

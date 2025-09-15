@@ -92,6 +92,8 @@ function Post({
     highlightSignal,
     programFocusPid,
     programFocusSignal,
+    // Interactive unfocus progress from Feed (0..1). Used to fade siblings back in.
+    unfocusProgress = 0,
 }) {
     const { pfp } = data;
     // Normalize media for backward compatibility where posts stored `images: string[]`
@@ -152,16 +154,27 @@ function Post({
         setHearts((prev) => [...prev, ...newHearts]);
     }, []);
 
-    // Fade behavior: when focusing, keep focused=1, neighbors faded, others hidden
+    // Fade behavior: when focusing, keep focused=1, neighbors faded, others hidden.
+    // While interactively unfocusing (pan), blend everyone back to 1 by unfocusProgress.
     useEffect(() => {
-        let target = 1;
+        let base = 1;
         if (isSomePostFocused && !isUnfocusing) {
-            if (isFocused) target = 1;
-            else if (isAdjacentToFocused) target = isAboveAdjacent ? 0 : 0.28;
-            else target = 0;
-        } else {
-            target = 1;
+            if (isFocused) base = 1;
+            else if (isAdjacentToFocused) base = isAboveAdjacent ? 0 : 0.28;
+            else base = 0;
+            const p = Math.max(0, Math.min(1, unfocusProgress || 0));
+            // Blend back toward 1 as the user drags upward
+            const blended = base + p * (1 - base);
+            try { opacity.stopAnimation(); } catch {}
+            Animated.timing(opacity, {
+                toValue: blended,
+                duration: 16,
+                easing: Easing.linear,
+                useNativeDriver: true,
+            }).start();
+            return;
         }
+        const target = 1;
         try { opacity.stopAnimation(); } catch {}
         Animated.timing(opacity, {
             toValue: target,
@@ -169,7 +182,7 @@ function Post({
             easing: FOCUS_EASING,
             useNativeDriver: true,
         }).start();
-    }, [isSomePostFocused, isFocused, isAdjacentToFocused, isAboveAdjacent, isUnfocusing]);
+    }, [isSomePostFocused, isFocused, isAdjacentToFocused, isAboveAdjacent, isUnfocusing, unfocusProgress]);
 
     // Memo styles
     const [containerStyle, imageStyle] = useMemo(() => {
@@ -346,8 +359,8 @@ function Post({
 
     // No external slide controller: keep horizontal paging native to FlatList
 
-    // Upward swipe-to-dismiss (bottom → top), allowing slight diagonals either way.
-    // Let FlatList own horizontal paging by ignoring predominantly horizontal gestures.
+    // Delegate upward swipe-to-dismiss to the Feed-level handler for coordinated UI unfocus.
+    // Keep this responder conservative to avoid stealing the parent gesture.
     const panResponder = useMemo(() => {
         const TAN35 = 0.700; // tan(35deg) — stricter diagonal to avoid stealing horizontal
         const MIN_MOVE = 4;
@@ -368,8 +381,9 @@ function Post({
                 if (adx < MIN_MOVE && ady < MIN_MOVE) return false;
                 // Treat within ~35°(+margin) as horizontal: let FlatList handle L→R
                 if (ady <= TAN35 * adx + ANGLE_MARGIN) return false;
-                // Any upward-leaning gesture qualifies (regardless of left/right)
-                return dy < 0;
+                // Do not capture upward pans; allow Feed to handle interactive unfocus
+                if (dy < 0) return false;
+                return false;
             },
             // Capture only when the gesture is clearly diagonal (not horizontal)
             onMoveShouldSetPanResponderCapture: (evt, g) => {
@@ -380,24 +394,11 @@ function Post({
                 const y = evt?.nativeEvent?.locationY ?? 0;
                 if (y > (W / AR - FOOTER_GUARD)) return false;
                 if (adx < MIN_MOVE && ady < MIN_MOVE) return false;
-                // Very fast upward flicks should capture even near the boundary
-                if (dy < 0 && vy <= -0.5) return true;
-                // Otherwise, require the gesture to be upward-leaning enough (not horizontal)
-                return dy < 0 && (ady > TAN35 * adx + ANGLE_MARGIN);
+                // Delegate upward pans to Feed; do not capture here
+                return false;
             },
             onPanResponderRelease: (_, g) => {
-                const { dx, dy, vx, vy } = g;
-                const adx = Math.abs(dx), ady = Math.abs(dy);
-                const isUpwardLean = dy < 0 && (ady > TAN35 * adx + ANGLE_MARGIN);
-                const distanceOK = dy < -12; // require sufficient upward travel
-                const velocityOK = vy <= -0.10; // allow quicker short upward flicks
-                if (isFocused && isSomePostFocused && isUpwardLean && (distanceOK || velocityOK)) {
-                    flashSwipeFeedback();
-                    dlog('release.unfocus', { index, pid: data?.pid, dx: Math.round(dx), dy: Math.round(dy), vx: vx.toFixed(2), vy: vy.toFixed(2) });
-                    try { onSwipeUnfocus && onSwipeUnfocus(); } catch { }
-                    return;
-                }
-                dlog('release.noop', { index, pid: data?.pid, dx: Math.round(dx), dy: Math.round(dy), vx: vx?.toFixed?.(2), vy: vy?.toFixed?.(2) });
+                // Upward dismiss handled by Feed; no-op here
             },
             onPanResponderTerminationRequest: () => true,
             onShouldBlockNativeResponder: () => false,

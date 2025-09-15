@@ -14,13 +14,14 @@ import scaleSize from "../../../helper/scaleSize";
 const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('screen');
 const dynamicStyles = getCommentsBottomSheetStyles(SCREEN_WIDTH, SCREEN_HEIGHT);
 
-const CommentsBottomSheet = ({ isVisible, postData, commentsBottomSheetExpandFlag, toViewProfile }) => {
+const CommentsBottomSheet = ({ isVisible, postData, commentsBottomSheetExpandFlag, toViewProfile, collapseSignal, reopenSignal, interactiveProgress = 0 }) => {
     const [isInputFocused, setIsInputFocused] = useState(false);
     const bottomSheetRef = useRef(null);
     const footerTranslateY = useRef(new Animated.Value(0)).current; // moves when input focuses
     const footerIntroY = useRef(new Animated.Value(10)).current;    // small entrance slide
     const footerOpacity = useRef(new Animated.Value(0)).current;    // fade with sheet
     const snapPoints = useMemo(() => ["34.5%", "92%"], []);
+    const containerHRef = useRef(SCREEN_HEIGHT - scaleSize(85));
     const [isSheetExpanded, setIsSheetExpanded] = useState(false);
     const [inputText, setInputText] = useState('');
     const [replyingToIndex, setReplyingToIndex] = useState(null);
@@ -124,6 +125,32 @@ const CommentsBottomSheet = ({ isVisible, postData, commentsBottomSheetExpandFla
         }
     }, [isVisible, postPid]);
 
+    // Imperative collapse during interactive unfocus
+    useEffect(() => {
+        if (!isVisible || !postPid) return;
+        if (!collapseSignal) return;
+        try { bottomSheetRef.current?.close?.(); } catch { }
+    }, [collapseSignal, isVisible, postPid]);
+
+    // Imperative reopen if interactive drag cancels
+    useEffect(() => {
+        if (!isVisible || !postPid) return;
+        if (!reopenSignal) return;
+        try { bottomSheetRef.current?.snapToIndex?.(0); } catch { }
+    }, [reopenSignal, isVisible, postPid]);
+
+    // Interactive collapse following feed pan progress (0..1). Collapse slower for a natural feel.
+    useEffect(() => {
+        if (!isVisible || !postPid) return;
+        const progress = Math.max(0, Math.min(1, interactiveProgress || 0));
+        // Target position in px from bottom: 34.5% at rest -> 0 when fully closed
+        const h = containerHRef.current || (SCREEN_HEIGHT - scaleSize(85));
+        const openPx = 0.345 * h; // matches snapPoints[0]
+        const pSlow = Math.min(1, progress * 0.85); // slightly slower than finger
+        const pos = Math.max(0, openPx * (1 - pSlow));
+        try { bottomSheetRef.current?.snapToPosition?.(pos, { duration: 0 }); } catch { }
+    }, [interactiveProgress, isVisible, postPid]);
+
     // Expand the bottom sheet when flagged
     useEffect(() => {
         bottomSheetRef.current.expand();
@@ -153,6 +180,7 @@ const CommentsBottomSheet = ({ isVisible, postData, commentsBottomSheetExpandFla
             style={styles.container}
             behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
             pointerEvents='box-none'
+            onLayout={(e) => { try { containerHRef.current = e.nativeEvent.layout.height || (SCREEN_HEIGHT - scaleSize(85)); } catch {} }}
         >
             <BottomSheet
                 ref={bottomSheetRef}
