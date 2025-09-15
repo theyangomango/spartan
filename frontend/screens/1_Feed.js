@@ -503,8 +503,8 @@ export default function Feed({ navigation, route }) {
         }
     }, [isSomePostFocused, unfocusing]);
 
-    // Feed-level PanResponder: diagonal unfocus only (let inner FlatList own horizontal paging)
-    // No external slide controller; FlatList inside Post owns horizontal paging
+    // Feed-level PanResponder: allow any bottom→top pan to unfocus
+    // Keep horizontal paging owned by inner FlatList by ignoring mostly-horizontal drags
     const feedPan = useMemo(() => {
         const TAN35 = 0.700; // tan(35deg)
         const MIN_MOVE = 4;
@@ -518,8 +518,8 @@ export default function Feed({ navigation, route }) {
                 const { dx, dy } = g;
                 const adx = Math.abs(dx), ady = Math.abs(dy);
                 if (adx < MIN_MOVE && ady < MIN_MOVE) return false;
-                // Diagonal up-right for unfocus
-                return dx > 0 && dy < 0 && (ady > TAN35 * adx + ANGLE_MARGIN);
+                // Upward-leaning (not horizontal) to unfocus, regardless of left/right
+                return dy < 0 && (ady > TAN35 * adx + ANGLE_MARGIN);
             },
             onMoveShouldSetPanResponderCapture: (_, g) => {
                 if (!isSomePostFocused) return false;
@@ -527,16 +527,17 @@ export default function Feed({ navigation, route }) {
                 const { dx, dy, vx, vy } = g;
                 const adx = Math.abs(dx), ady = Math.abs(dy);
                 if (adx < MIN_MOVE && ady < MIN_MOVE) return false;
-                // Prefer fast diagonals
-                return (dx > 0 && dy < 0) && (vx >= 0.4 && vy <= -0.4);
+                // Prefer fast upward flicks
+                if (dy < 0 && vy <= -0.4) return true;
+                return dy < 0 && (ady > TAN35 * adx + ANGLE_MARGIN);
             },
             onPanResponderRelease: (_, g) => {
                 const { dx, dy, vx, vy } = g;
                 const adx = Math.abs(dx), ady = Math.abs(dy);
-                const isDiagonal = (dx > 0 && dy < 0) && (ady > TAN35 * adx + ANGLE_MARGIN);
-                const distanceOK = dx > 12 && dy < -12;
-                const velocityOK = vx >= 0.10 && vy <= -0.10;
-                if (isSomePostFocused && isDiagonal && (distanceOK || velocityOK)) {
+                const isUpwardLean = dy < 0 && (ady > TAN35 * adx + ANGLE_MARGIN);
+                const distanceOK = dy < -12;
+                const velocityOK = vy <= -0.10;
+                if (isSomePostFocused && isUpwardLean && (distanceOK || velocityOK)) {
                     try { Haptics.impactAsync?.(Haptics.ImpactFeedbackStyle.Heavy).catch(() => { }); } catch { }
                     requestUnfocus();
                 }

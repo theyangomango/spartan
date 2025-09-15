@@ -346,7 +346,8 @@ function Post({
 
     // No external slide controller: keep horizontal paging native to FlatList
 
-    // Diagonal swipe-to-dismiss (bottom-left -> top-right). Let FlatList own horizontal.
+    // Upward swipe-to-dismiss (bottom → top), allowing slight diagonals either way.
+    // Let FlatList own horizontal paging by ignoring predominantly horizontal gestures.
     const panResponder = useMemo(() => {
         const TAN35 = 0.700; // tan(35deg) — stricter diagonal to avoid stealing horizontal
         const MIN_MOVE = 4;
@@ -367,8 +368,8 @@ function Post({
                 if (adx < MIN_MOVE && ady < MIN_MOVE) return false;
                 // Treat within ~35°(+margin) as horizontal: let FlatList handle L→R
                 if (ady <= TAN35 * adx + ANGLE_MARGIN) return false;
-                // Otherwise, it is diagonal enough for our unfocus gesture
-                return dx > 0 && dy < 0;
+                // Any upward-leaning gesture qualifies (regardless of left/right)
+                return dy < 0;
             },
             // Capture only when the gesture is clearly diagonal (not horizontal)
             onMoveShouldSetPanResponderCapture: (evt, g) => {
@@ -379,17 +380,18 @@ function Post({
                 const y = evt?.nativeEvent?.locationY ?? 0;
                 if (y > (W / AR - FOOTER_GUARD)) return false;
                 if (adx < MIN_MOVE && ady < MIN_MOVE) return false;
-                // Very fast diagonal flicks should capture even near the boundary
-                if (dx > 0 && dy < 0 && vx >= 0.5 && vy <= -0.5) return true;
-                return dx > 0 && dy < 0 && (ady > TAN35 * adx + ANGLE_MARGIN);
+                // Very fast upward flicks should capture even near the boundary
+                if (dy < 0 && vy <= -0.5) return true;
+                // Otherwise, require the gesture to be upward-leaning enough (not horizontal)
+                return dy < 0 && (ady > TAN35 * adx + ANGLE_MARGIN);
             },
             onPanResponderRelease: (_, g) => {
                 const { dx, dy, vx, vy } = g;
                 const adx = Math.abs(dx), ady = Math.abs(dy);
-                const isDiagonal = (dx > 0 && dy < 0) && (ady > TAN35 * adx + ANGLE_MARGIN);
-                const distanceOK = dx > 12 && dy < -12; // slightly lower distance
-                const velocityOK = vx >= 0.10 && vy <= -0.10; // allow quicker short flicks
-                if (isFocused && isSomePostFocused && isDiagonal && (distanceOK || velocityOK)) {
+                const isUpwardLean = dy < 0 && (ady > TAN35 * adx + ANGLE_MARGIN);
+                const distanceOK = dy < -12; // require sufficient upward travel
+                const velocityOK = vy <= -0.10; // allow quicker short upward flicks
+                if (isFocused && isSomePostFocused && isUpwardLean && (distanceOK || velocityOK)) {
                     flashSwipeFeedback();
                     dlog('release.unfocus', { index, pid: data?.pid, dx: Math.round(dx), dy: Math.round(dy), vx: vx.toFixed(2), vy: vy.toFixed(2) });
                     try { onSwipeUnfocus && onSwipeUnfocus(); } catch { }
