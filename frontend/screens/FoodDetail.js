@@ -336,6 +336,120 @@ export default function FoodDetail({ navigation, route }) {
     );
 }
 
+// Lightweight inline variant for embedding inside other views (e.g., bottom sheets).
+// Displays summary + macro ring + nutrition facts; no save/add controls.
+export function FoodDetailInline({ entry = {}, onClose, containerStyle }) {
+    const baseDesc = entry?.desc || entry?.description || '';
+    const displayName = entry?.name || 'Food Item';
+    const displayBrand = entry?.brand || '';
+    const qty = Number(entry?.quantity || entry?.qty || 1) || 1;
+    const macros = useMemo(() => parseMacrosFromDescription(baseDesc, qty), [baseDesc, qty]);
+    const [extrasPS, setExtrasPS] = useState(null);
+    const extras = useMemo(() => {
+        if (extrasPS) {
+            return {
+                sugar_g: extrasPS.sugar_g == null ? null : extrasPS.sugar_g * qty,
+                fiber_g: extrasPS.fiber_g == null ? null : extrasPS.fiber_g * qty,
+                sodium_mg: extrasPS.sodium_mg == null ? null : extrasPS.sodium_mg * qty,
+                satFat_g: extrasPS.satFat_g == null ? null : extrasPS.satFat_g * qty,
+                cholesterol_mg: extrasPS.cholesterol_mg == null ? null : extrasPS.cholesterol_mg * qty,
+            };
+        }
+        return parseExtraNutrientsFromDescription(baseDesc, qty);
+    }, [extrasPS, baseDesc, qty]);
+
+    // Fetch extras per serving if we have a foodId; cache in recentFoods for speed
+    useEffect(() => {
+        const fid = String(entry?.foodId || entry?.food_id || '').trim();
+        if (!fid) return; // fall back to parsing from desc only
+        let cancelled = false;
+        (async () => {
+            try {
+                // Try user cache first
+                try {
+                    const uid = global?.userData?.uid || global?.userData?.id;
+                    if (uid) {
+                        const recentRef = doc(db, 'users', uid, 'recentFoods', fid);
+                        const snap = await getDoc(recentRef);
+                        const data = snap.exists() ? (snap.data() || {}) : {};
+                        const cached = data.microsPS || data.extrasPerServing;
+                        if (cached && !cancelled) { setExtrasPS(cached); return; }
+                    }
+                } catch {}
+
+                // Fetch from FatSecret
+                const res = await getFoodById(fid).catch(() => null);
+                const f = res?.food || null;
+                const servings = f?.servings?.serving;
+                const arr = Array.isArray(servings) ? servings : (servings ? [servings] : []);
+                if (!arr?.length) return;
+                const def = arr.find((s) => String(s?.is_default || '') === '1') || arr[0];
+                if (!def) return;
+                const toNum = (v) => { const n = Number(v); return Number.isFinite(n) ? n : null; };
+                const cached = {
+                    sugar_g: toNum(def.sugar),
+                    fiber_g: toNum(def.fiber),
+                    sodium_mg: toNum(def.sodium),
+                    satFat_g: toNum(def.saturated_fat),
+                    cholesterol_mg: toNum(def.cholesterol),
+                };
+                if (!cancelled) setExtrasPS(cached);
+
+                // Persist to cache
+                try {
+                    const uid = global?.userData?.uid || global?.userData?.id;
+                    if (uid) {
+                        const recentRef = doc(db, 'users', uid, 'recentFoods', fid);
+                        await setDoc(recentRef, { microsPS: cached, extrasPerServing: cached, lastUsedAt: serverTimestamp() }, { merge: true });
+                    }
+                } catch {}
+            } catch {}
+        })();
+        return () => { cancelled = true; };
+    }, [entry?.foodId, entry?.food_id]);
+
+    const servingLabel = useMemo(() => {
+        const text = String(baseDesc || '');
+        const per = text.match(/\bper\b\s*([^\-|]+)/i);
+        if (per) return per[1].trim().replace(/\s+/g, ' ');
+        const bare = text.match(/(\d+(?:\s*\/\s*\d+)?(?:\.\d+)?)\s*(g|ml|oz|cup|cups|tbsp|tablespoon|tsp|teaspoon|slice|piece|serving)s?/i);
+        if (bare) return `${bare[1].replace(/\s+/g, '')} ${bare[2]}`.replace('  ', ' ');
+        return '';
+    }, [baseDesc]);
+
+    return (
+        <View style={[{ flex: 1 }, containerStyle != null ? containerStyle : { backgroundColor: COLORS.bg }]}>
+            <View style={styles.header}>
+                <Pressable style={styles.backBtn} onPress={onClose} hitSlop={8}>
+                    <Ionicons name="chevron-back" size={22} color={COLORS.text} />
+                </Pressable>
+                <Text style={styles.headerTitle} numberOfLines={1}>Food Details</Text>
+                <View style={styles.saveBtn} />
+            </View>
+
+            <ScrollView style={{ flex: 1 }} contentContainerStyle={{ paddingBottom: 24 }} showsVerticalScrollIndicator={false}>
+                <View style={styles.topSummary}>
+                    <Text style={styles.title} numberOfLines={2}>{displayName}</Text>
+                    {(() => {
+                        const parts = [];
+                        if (displayBrand) parts.push(displayBrand);
+                        if (servingLabel) parts.push(servingLabel);
+                        const line = parts.join(', ');
+                        return line ? (<Text style={styles.desc} numberOfLines={1}>{line}</Text>) : null;
+                    })()}
+                </View>
+                <View style={styles.hairline} />
+
+                <View style={{ paddingTop: 16, paddingBottom: 16 }}>
+                    <MacroRow m={macros} />
+                </View>
+
+                <NutritionFacts extras={extras} />
+            </ScrollView>
+        </View>
+    );
+}
+
 function MacroBadge({ label, value, suffix }) {
     return (
         <View style={styles.badge}>

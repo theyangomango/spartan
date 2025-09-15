@@ -277,35 +277,47 @@ const FriendPanel = memo(({ item, overlay, onSelect, highlight = false }) => {
               </View>
             )
           )}
-          <MaterialCommunityIcons name="chevron-right" size={s(22)} color={COLORS.subtext} />
+          {/* <MaterialCommunityIcons name="chevron-right" size={s(22)} color={COLORS.subtext} /> */}
         </View>
       </View>
 
       <View style={styles.divider} />
 
       <View style={styles.statsRow}>
-        <View style={styles.statCard}>
-          <View style={styles.statIconWrap}>
-            <Clock color={COLORS.text} size={s(15)} variant="Bold" />
+        <View style={[styles.statCard, { flex: 1.05 }]}>
+          <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+            <View style={[styles.statIconWrap, { marginBottom: 0, marginRight: s(8) }]}>
+              <Clock color={theme.textSecondary} size={s(15)} variant="Bold" />
+            </View>
+            <View style={styles.statTextCol}>
+              <Text style={styles.statLabel}>Duration</Text>
+              <Text style={styles.statValue} numberOfLines={1}>{formatTimer(durationSec)}</Text>
+            </View>
           </View>
-          <Text style={styles.statLabel}>Duration</Text>
-          <Text style={styles.statValue}>{formatTimer(durationSec)}</Text>
+        </View>
+
+        <View style={[styles.statCard, { flex: 1.2 }]}>
+          <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+            <View style={[styles.statIconWrap, { marginBottom: 0, marginRight: s(8) }]}>
+              <MaterialCommunityIcons name="weight-lifter" size={s(15)} color={theme.textSecondary} />
+            </View>
+            <View style={styles.statTextCol}>
+              <Text style={styles.statLabel}>Volume</Text>
+              <Text style={styles.statValue} numberOfLines={1}>{formatNumber(vol)} lb</Text>
+            </View>
+          </View>
         </View>
 
         <View style={styles.statCard}>
-          <View style={styles.statIconWrap}>
-            <MaterialCommunityIcons name="weight-lifter" size={s(15)} color={COLORS.text} />
+          <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+            <View style={[styles.statIconWrap, { marginBottom: 0, marginRight: s(8) }]}>
+              <MaterialCommunityIcons name="arm-flex" size={s(15)} color={theme.textSecondary} />
+            </View>
+            <View style={styles.statTextCol}>
+              <Text style={styles.statLabel}>Reps</Text>
+              <Text style={styles.statValue} numberOfLines={1}>{formatNumber(reps)}</Text>
+            </View>
           </View>
-          <Text style={styles.statLabel}>Volume</Text>
-          <Text style={styles.statValue}>{formatNumber(vol)} lb</Text>
-        </View>
-
-        <View style={styles.statCard}>
-          <View style={styles.statIconWrap}>
-            <MaterialCommunityIcons name="arm-flex" size={s(15)} color={COLORS.text} />
-          </View>
-          <Text style={styles.statLabel}>Reps</Text>
-          <Text style={styles.statValue}>{formatNumber(reps)}</Text>
         </View>
       </View>
     </RNBounceable>
@@ -795,27 +807,23 @@ const styles = StyleSheet.create({
 
   divider: { height: StyleSheet.hairlineWidth, backgroundColor: COLORS.hairline, marginVertical: s(6) },
 
-  statsRow: { flexDirection: "row", gap: s(8) },
+  statsRow: { flexDirection: "row", gap: s(6) },
   statCard: {
     flex: 1,
-    backgroundColor: COLORS.statBg,
-    borderRadius: s(14),
-    paddingVertical: s(8),
-    paddingHorizontal: s(10),
-    borderWidth: StyleSheet.hairlineWidth,
-    borderColor: COLORS.statBorder,
+    paddingVertical: s(6),
   },
   statIconWrap: {
-    width: s(26),
-    height: s(26),
-    borderRadius: s(13),
+    width: s(30),
+    height: s(30),
+    borderRadius: s(20),
     justifyContent: "center",
     alignItems: "center",
-    backgroundColor: COLORS.iconBg,
+    backgroundColor: '#ffffff2e',
     marginBottom: s(6),
   },
   statLabel: { fontFamily: "Outfit_600SemiBold", fontSize: s(11), color: theme.textSecondary },
-  statValue: { marginTop: s(1), fontFamily: "Outfit_800ExtraBold", fontSize: s(13.5), color: COLORS.text },
+  statValue: { marginTop: s(1), fontFamily: "Outfit_800ExtraBold", fontSize: s(13), color: COLORS.text },
+  statTextCol: { flex: 1, minWidth: 0 },
 
   viewerContainer: { ...StyleSheet.absoluteFillObject, backgroundColor: "transparent" },
   loadingWrap: { flex: 1, alignItems: "center", justifyContent: "center" },

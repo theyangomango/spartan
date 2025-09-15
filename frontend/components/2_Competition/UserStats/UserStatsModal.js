@@ -8,7 +8,7 @@ import scaleSize from "../../../helper/scaleSize";
 
 // Enable LayoutAnimation on Android
 if (Platform.OS === 'android' && UIManager.setLayoutAnimationEnabledExperimental) {
-    try { UIManager.setLayoutAnimationEnabledExperimental(true); } catch {}
+    try { UIManager.setLayoutAnimationEnabledExperimental(true); } catch { }
 }
 
 const { height: screenHeight } = Dimensions.get("window");
@@ -97,7 +97,7 @@ const NAME_TO_GROUP = (() => {
         (Array.isArray(EXERCISE_DEFS) ? EXERCISE_DEFS : []).forEach((e) => {
             if (e?.name) map.set(String(e.name), String(e.muscleGroup || "Other") || "Other");
         });
-    } catch {}
+    } catch { }
     return map;
 })();
 
@@ -193,7 +193,7 @@ export default function UserStatsModal({ user, toViewProfile, hexOverlay, hexPro
         let task;
         try { task = InteractionManager.runAfterInteractions(() => setShowExercises(true)); }
         catch { setTimeout(() => setShowExercises(true), 120); }
-        return () => { try { task?.cancel?.(); } catch {} };
+        return () => { try { task?.cancel?.(); } catch { } };
     }, [deferExercises]);
 
     const exerciseGroups = useMemo(() => (
@@ -201,7 +201,7 @@ export default function UserStatsModal({ user, toViewProfile, hexOverlay, hexPro
     ), [showExercises, user?.statsExercises, user?.uid]);
     const [collapsed, setCollapsed] = useState({}); // { [group]: true }
     const toggleGroup = (g) => {
-        try { LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut); } catch {}
+        try { LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut); } catch { }
         setCollapsed((s) => ({ ...s, [g]: !s[g] }));
     };
     const overall = Math.round(user?.statsHexagon?.overall ?? 0);
@@ -218,7 +218,7 @@ export default function UserStatsModal({ user, toViewProfile, hexOverlay, hexPro
     const openDetail = (name) => {
         if (!name) return;
         setDetailName(name);
-        try { Animated.timing(detailOpacity, { toValue: 1, duration: 180, useNativeDriver: true }).start(); } catch {}
+        try { Animated.timing(detailOpacity, { toValue: 1, duration: 180, useNativeDriver: true }).start(); } catch { }
     };
     const closeDetail = () => {
         try {
@@ -377,7 +377,7 @@ export default function UserStatsModal({ user, toViewProfile, hexOverlay, hexPro
                                                         <Text numberOfLines={1} style={styles.exerciseName}>{name}</Text>
                                                     </View>
                                                     {!!oneRM && oneRM > 0 && (
-                                                        <View style={[styles.oneRMPill, { borderColor: rgba(ACC, 0.5), backgroundColor: rgba(ACC, 0.16) }]}> 
+                                                        <View style={[styles.oneRMPill, { borderColor: rgba(ACC, 0.5), backgroundColor: rgba(ACC, 0.16) }]}>
                                                             <Text style={styles.oneRMLabel}>1RM (Adj)</Text>
                                                             <Text style={[styles.oneRMValue, { color: ACC }]}>{oneRM}</Text>
                                                         </View>
@@ -386,26 +386,38 @@ export default function UserStatsModal({ user, toViewProfile, hexOverlay, hexPro
 
                                                 {/* Stat row: 3 compact columns with icons */}
                                                 <View style={styles.metaRow}>
-                                                    <View style={styles.metaCell}>
-                                                        <View style={[styles.metaIconWrap, { backgroundColor: COLORS.iconBg }]}>
-                                                            <MaterialCommunityIcons name="weight-lifter" size={scaledSize(12)} color={COLORS.text} />
+                                                    <View style={[styles.metaCell, { flex: 1.05 }]}>
+                                                        <View style={styles.metaCellRow}>
+                                                            <View style={styles.metaIconWrapLeft}>
+                                                                <MaterialCommunityIcons name="weight-lifter" size={scaledSize(12)} color={COLORS.text} />
+                                                            </View>
+                                                            <View style={styles.metaTextCol}>
+                                                                <Text style={styles.metaLabel}>Volume</Text>
+                                                                <Text style={styles.metaValue} numberOfLines={1}>{fmtK(volume)}</Text>
+                                                            </View>
                                                         </View>
-                                                        <Text style={styles.metaLabel}>Volume</Text>
-                                                        <Text style={styles.metaValue}>{fmtK(volume)}</Text>
                                                     </View>
-                                                    <View style={styles.metaCell}>
-                                                        <View style={[styles.metaIconWrap, { backgroundColor: COLORS.iconBg }]}>
-                                                            <MaterialCommunityIcons name="view-grid-outline" size={scaledSize(12)} color={COLORS.text} />
+                                                    <View style={[styles.metaCell, { flex: 0.9 }]}>
+                                                        <View style={[styles.metaCellRow]}>
+                                                            <View style={styles.metaIconWrapLeft}>
+                                                                <MaterialCommunityIcons name="view-grid-outline" size={scaledSize(12)} color={COLORS.text} />
+                                                            </View>
+                                                            <View style={styles.metaTextCol}>
+                                                                <Text style={styles.metaLabel}>Sets</Text>
+                                                                <Text style={styles.metaValue} numberOfLines={1}>{setsCount}</Text>
+                                                            </View>
                                                         </View>
-                                                        <Text style={styles.metaLabel}>Sets</Text>
-                                                        <Text style={styles.metaValue}>{setsCount}</Text>
                                                     </View>
-                                                    <View style={styles.metaCell}>
-                                                        <View style={[styles.metaIconWrap, { backgroundColor: COLORS.iconBg }]}>
-                                                            <MaterialCommunityIcons name="trending-up" size={scaledSize(12)} color={COLORS.text} />
+                                                    <View style={[styles.metaCell, { flex: 1 }]}>
+                                                        <View style={styles.metaCellRow}>
+                                                            <View style={styles.metaIconWrapLeft}>
+                                                                <MaterialCommunityIcons name="trending-up" size={scaledSize(12)} color={COLORS.text} />
+                                                            </View>
+                                                            <View style={styles.metaTextCol}>
+                                                                <Text style={styles.metaLabel}>Top Set</Text>
+                                                                <Text style={styles.metaValue} numberOfLines={1}>{top ? `${top.weight}×${top.reps}` : "-"}</Text>
+                                                            </View>
                                                         </View>
-                                                        <Text style={styles.metaLabel}>Top Set</Text>
-                                                        <Text style={styles.metaValue}>{top ? `${top.weight}×${top.reps}` : "-"}</Text>
                                                     </View>
                                                 </View>
                                             </Pressable>
@@ -466,17 +478,17 @@ export default function UserStatsModal({ user, toViewProfile, hexOverlay, hexPro
                                             if (y && mo && da) return fmt(y, mo, da);
                                         }
                                         const d2 = new Date(raw);
-                                        if (!isNaN(d2)) return fmt(d2.getFullYear(), d2.getMonth()+1, d2.getDate());
+                                        if (!isNaN(d2)) return fmt(d2.getFullYear(), d2.getMonth() + 1, d2.getDate());
                                         return raw;
                                     }
                                     if (typeof raw === 'number') {
                                         const d2 = new Date(raw);
-                                        if (!isNaN(d2)) return fmt(d2.getFullYear(), d2.getMonth()+1, d2.getDate());
+                                        if (!isNaN(d2)) return fmt(d2.getFullYear(), d2.getMonth() + 1, d2.getDate());
                                         return '';
                                     }
                                     if (typeof raw === 'object' && Number.isFinite(raw.seconds)) {
                                         const d2 = new Date(raw.seconds * 1000);
-                                        if (!isNaN(d2)) return fmt(d2.getFullYear(), d2.getMonth()+1, d2.getDate());
+                                        if (!isNaN(d2)) return fmt(d2.getFullYear(), d2.getMonth() + 1, d2.getDate());
                                         return '';
                                     }
                                     return '';
@@ -672,17 +684,17 @@ const styles = StyleSheet.create({
     // Modern exercise card
     exerciseCard: {
         backgroundColor: COLORS.card,
-        borderRadius: scaledSize(16),
+        borderRadius: scaledSize(20),
         marginVertical: scaleSize(3),
         borderWidth: 1,
         borderColor: COLORS.hairline,
-        paddingHorizontal: scaledSize(12),
-        paddingVertical: scaledSize(8),
+        paddingHorizontal: scaledSize(14),
+        paddingVertical: scaledSize(12),
         shadowColor: "#000",
-        shadowOffset: { width: 0, height: scaledSize(4) },
-        shadowOpacity: 0.08,
-        shadowRadius: scaledSize(12),
-        elevation: 6,
+        shadowOffset: { width: 0, height: scaledSize(6) },
+        shadowOpacity: 0.09,
+        shadowRadius: scaledSize(14),
+        elevation: 7,
     },
     exerciseCardPressed: { backgroundColor: "rgba(255,255,255,0.02)" },
     accentBar: {
@@ -696,11 +708,7 @@ const styles = StyleSheet.create({
         borderBottomLeftRadius: scaledSize(16),
     },
 
-    exerciseHeader: {
-        flexDirection: "row",
-        alignItems: "center",
-        marginBottom: scaledSize(6),
-    },
+    exerciseHeader: { flexDirection: "row", alignItems: "center", marginBottom: scaledSize(10) },
     nameRow: {
         flexDirection: "row",
         alignItems: "center",
@@ -708,12 +716,13 @@ const styles = StyleSheet.create({
         minWidth: 0,
     },
     iconCircle: {
-        width: scaledSize(22),
-        height: scaledSize(22),
-        borderRadius: scaledSize(11),
+        width: scaledSize(24),
+        height: scaledSize(24),
+        borderRadius: scaledSize(12),
         alignItems: "center",
         justifyContent: "center",
         marginRight: scaledSize(8),
+        backgroundColor: '#ffffff22',
     },
     exerciseName: {
         flex: 1,
@@ -745,41 +754,26 @@ const styles = StyleSheet.create({
         color: COLORS.accent,
     },
 
-    metaRow: {
-        flexDirection: "row",
-        alignItems: "stretch",
-        gap: scaledSize(6),
+    metaRow: { flexDirection: "row", alignItems: "stretch", gap: scaledSize(8), marginTop: scaledSize(1), paddingHorizontal: 8 },
+    metaCell: { paddingVertical: scaledSize(5) },
+    metaCellRow: { flexDirection: 'row', alignItems: 'center' },
+    metaIconWrapLeft: {
+        width: scaledSize(26),
+        height: scaledSize(26),
+        borderRadius: scaledSize(13),
+        alignItems: 'center',
+        justifyContent: 'center',
+        marginRight: scaledSize(8),
+        backgroundColor: '#ffffff2e',
     },
-    metaCell: {
-        flex: 1,
-        alignItems: "center",
-        paddingVertical: scaledSize(6),
-        borderRadius: scaledSize(12),
-        backgroundColor: COLORS.statBg,
-        borderWidth: 1,
-        borderColor: COLORS.statBorder,
-    },
-    metaIconWrap: {
-        width: scaledSize(20),
-        height: scaledSize(20),
-        borderRadius: scaledSize(10),
-        alignItems: "center",
-        justifyContent: "center",
-        marginBottom: scaledSize(4),
-        backgroundColor: COLORS.iconBg,
-    },
+    metaTextCol: { flex: 1, minWidth: 0 },
     metaLabel: {
-        fontSize: scaledSize(11),
+        fontSize: scaledSize(10.5),
         fontFamily: "Outfit_500Medium",
         color: COLORS.subtext,
-        marginBottom: scaledSize(1),
         letterSpacing: 0.3,
     },
-    metaValue: {
-        fontSize: scaledSize(14),
-        fontFamily: "Outfit_700Bold",
-        color: COLORS.text,
-    },
+    metaValue: { fontSize: scaledSize(13.5), lineHeight: scaledSize(16), fontFamily: "Outfit_800ExtraBold", color: COLORS.text, marginTop: scaledSize(1) },
 
     // Detail overlay
     detailOverlay: {
