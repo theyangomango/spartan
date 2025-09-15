@@ -20,6 +20,7 @@ import FastImage from "react-native-fast-image";
 import Video from "react-native-video";
 import PostHeader from "./PostHeader";
 import PostFooter from "./PostFooter";
+import ImageColors from 'react-native-image-colors';
 
 const { width: W } = Dimensions.get("window");
 const AR = 0.8;
@@ -105,6 +106,7 @@ function Post({
     const flatListRef = useRef(null);
 
     const [currentIndex, setCurrentIndex] = useState(0);
+    const [isLightHeader, setIsLightHeader] = useState(false);
     const [pausedList, setPausedList] = useState(mediaList.map(() => false));
 
     // Fade behavior: when focusing, keep focused=1, neighbors faded, others hidden
@@ -219,6 +221,75 @@ function Post({
         offset: W * index,
         index,
     });
+
+    // Simple memoized cache so we don't recompute colors for the same URL repeatedly
+    const colorCacheRef = useRef(new Map());
+
+    const pickHexFromPalette = (res) => {
+        if (!res) return null;
+        // iOS returns background/primary/secondary/detail
+        if (res.platform === 'ios') return res.background || res.primary || null;
+        // Android returns many swatches, prefer average then dominant
+        if (res.platform === 'android') return res.average || res.dominant || res.vibrant || null;
+        // Web returns hex
+        if (res.platform === 'web') return res.hex || null;
+        return null;
+    };
+
+    const hexToLuma = (hex) => {
+        try {
+            if (!hex) return 0;
+            const h = hex.replace('#', '');
+            const bigint = parseInt(h.length === 3 ? h.split('').map(c => c + c).join('') : h, 16);
+            const r = (bigint >> 16) & 255;
+            const g = (bigint >> 8) & 255;
+            const b = bigint & 255;
+            // Perceived luminance (sRGB)
+            return 0.2126 * r + 0.7152 * g + 0.0722 * b;
+        } catch {
+            return 0;
+        }
+    };
+
+    // Decide if the header area is light based on the current image slide
+    useEffect(() => {
+        const item = mediaList[currentIndex];
+        if (!item || item.type !== 'image') {
+            setIsLightHeader(false);
+            return;
+        }
+        const uri = item.uri;
+        if (!uri || typeof uri !== 'string') {
+            setIsLightHeader(false);
+            return;
+        }
+        const cached = colorCacheRef.current.get(uri);
+        if (typeof cached === 'boolean') {
+            setIsLightHeader(cached);
+            return;
+        }
+        let cancelled = false;
+        (async () => {
+            try {
+                const res = await ImageColors.getColors(uri, {
+                    fallback: '#000000',
+                    cache: true,
+                    key: uri,
+                });
+                const hex = pickHexFromPalette(res);
+                const luma = hexToLuma(hex);
+                // Threshold: > 180 is considered light enough for dark text
+                const isLight = luma > 180;
+                if (!cancelled) {
+                    colorCacheRef.current.set(uri, isLight);
+                    setIsLightHeader(isLight);
+                }
+            } catch (e) {
+                if (!cancelled) setIsLightHeader(false);
+            }
+        })();
+        return () => { cancelled = true; };
+    }, [currentIndex, mediaList]);
 
     const flashSwipeFeedback = useCallback(() => {
         try { Haptics.impactAsync?.(Haptics.ImpactFeedbackStyle.Heavy).catch(() => { }); } catch { }
@@ -384,6 +455,7 @@ function Post({
                     totalImages={mediaList.length}
                     toViewProfile={() => toViewProfile(index)}
                     openViewWorkout={() => openViewWorkoutModal(index)}
+                    isLightHeader={isLightHeader}
                 />
                 <PostFooter
                     data={data}

@@ -15,6 +15,7 @@ function PostHeader({
     totalImages,
     toViewProfile,
     openViewWorkout,
+    isLightHeader, // if true, render dark text for readability on light media
 }) {
     // Use a stable version (e.g., user.updatedAt or incrementing int) to bust cache only when PFP changes
     const pfpUri = usePfp(data.uid, data.pfpVersion ?? 0);
@@ -45,7 +46,7 @@ function PostHeader({
 
                     <View style={styles.text_ctnr}>
                         <Pressable onPress={toViewProfile}>
-                            <Text style={styles.handle_text}>{data.handle}</Text>
+                            <Text style={[styles.handle_text, isLightHeader && styles.handle_text_dark]}>{data.handle}</Text>
                         </Pressable>
 
                         {data.workout && (
@@ -89,7 +90,8 @@ const areEqual = (prev, next) => {
             prev.data?.handle === next.data?.handle &&
             (prev.data?.pfpVersion ?? 0) === (next.data?.pfpVersion ?? 0) &&
             (!!prev.data?.workout === !!next.data?.workout) &&
-            (prev.data?.workout?.created || null) === (next.data?.workout?.created || null)
+            (prev.data?.workout?.created || null) === (next.data?.workout?.created || null) &&
+            prev.isLightHeader === next.isLightHeader
         );
     } catch {
         return false;
@@ -141,6 +143,10 @@ const styles = StyleSheet.create({
         paddingBottom: scaleSize(2),
         fontFamily: "Poppins_600SemiBold",
         color: "#fff",
+    },
+    handle_text_dark: {
+        color: '#333',
+        textShadowColor: 'transparent',
     },
     workout_text_ctnr: {
         paddingHorizontal: 12,
