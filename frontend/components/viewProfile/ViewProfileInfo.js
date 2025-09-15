@@ -81,13 +81,13 @@ const styles = StyleSheet.create({
     },
     user_stat_count_text: {
         fontFamily: 'Outfit_600SemiBold',
-        fontSize: scaleSize(17),
+        fontSize: require('../../helper/scaleSize').ts(17),
         color: theme.textPrimary,
         paddingBottom: scaleSize(1),
     },
     user_stat_text: {
         fontFamily: 'Outfit_600SemiBold',
-        fontSize: scaleSize(14.5),
+        fontSize: require('../../helper/scaleSize').ts(14.5),
         color: theme.textSecondary,
     },
     profile_info_ctnr: {
@@ -110,14 +110,14 @@ const styles = StyleSheet.create({
     },
     name_text: {
         fontFamily: 'Outfit_600SemiBold',
-        fontSize: scaleSize(16),
+        fontSize: require('../../helper/scaleSize').ts(16),
         flex: 1,
         textAlign: 'right',
         color: theme.textPrimary,
     },
     score_text: {
         fontFamily: 'Outfit_600SemiBold',
-        fontSize: scaleSize(16),
+        fontSize: require('../../helper/scaleSize').ts(16),
         color: theme.primary,
         flex: 1,
         textAlign: 'left',
@@ -126,7 +126,7 @@ const styles = StyleSheet.create({
     bio_text: {
         // Softer bio: lighter weight and secondary color
         fontFamily: 'Outfit_400Regular',
-        fontSize: scaleSize(13),
+        fontSize: require('../../helper/scaleSize').ts(13),
         color: theme.textSecondary,
         lineHeight: scaleSize(17),
         letterSpacing: 0.1,

@@ -1,12 +1,12 @@
 import React from "react";
 import { StyleSheet, View, Dimensions } from "react-native";
+import scaleSize from "../../../helper/scaleSize";
 import { Svg, Polygon, Text as SvgText, Defs, LinearGradient, Stop, Circle, TSpan } from "react-native-svg";
 
 const { width: screenWidth, height: screenHeight } = Dimensions.get("window");
 
-// Scaling (iPhone 13 baseline height = 844)
-const scale = screenHeight / 844;
-const scaledSize = (size) => Math.round(size * scale);
+// Centralized scaling
+const scaledSize = (size) => scaleSize(size);
 
 // Default chart size; can be overridden via prop
 const defaultChartSize = Math.min(screenWidth * 0.7, 360);

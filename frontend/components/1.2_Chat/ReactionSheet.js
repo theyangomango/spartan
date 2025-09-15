@@ -11,7 +11,7 @@ import {
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { BlurView } from "expo-blur";
 import RNBounceable from "@freakycoder/react-native-bounceable";
-import scaleSize from "../../helper/scaleSize";
+import scaleSize, { ts } from "../../helper/scaleSize";
 import theme from "../../theme/mfpDark";
 
 /** Palette & vibe (matches app) */
@@ -203,7 +203,7 @@ const styles = StyleSheet.create({
             android: { elevation: 2 },
         }),
     },
-    reactionEmoji: { fontSize: scaleSize(16) },
+    reactionEmoji: { fontSize: ts(16) },
 
     hr: {
         height: 1,
@@ -220,7 +220,7 @@ const styles = StyleSheet.create({
     },
     actionRowPressed: { backgroundColor: "rgba(255,255,255,0.06)" }, // subtle accent wash
     actionText: {
-        fontSize: scaleSize(13),
+        fontSize: ts(13),
         color: TEXT,
         letterSpacing: 0.2,
         fontFamily: "Outfit_600SemiBold",

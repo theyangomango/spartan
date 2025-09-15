@@ -84,7 +84,7 @@ const styles = StyleSheet.create({
     },
     modalTitle: {
         fontFamily: "Outfit_700Bold",
-        fontSize: 18,
+        fontSize: require('../../helper/scaleSize').ts(18),
         color: "#EAEAEA",
         marginBottom: 10,
     },
@@ -103,7 +103,7 @@ const styles = StyleSheet.create({
         marginBottom: 12,
     },
     btn: { paddingVertical: 10, paddingHorizontal: 14, borderRadius: 10 },
-    btnText: { fontFamily: "Outfit_700Bold", fontSize: 14 },
+    btnText: { fontFamily: "Outfit_700Bold", fontSize: require('../../helper/scaleSize').ts(14) },
     btnPrimary: { backgroundColor: "#2D9EFF" },
     btnPrimaryText: { color: "#fff" },
     btnDanger: { backgroundColor: "#3B2323", marginTop: 4 },

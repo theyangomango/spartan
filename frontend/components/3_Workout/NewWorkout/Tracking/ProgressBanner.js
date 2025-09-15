@@ -1,12 +1,11 @@
 import RNBounceable from '@freakycoder/react-native-bounceable';
 import React from 'react';
 import { StyleSheet, View, Text, Dimensions } from 'react-native';
+import scaleSize from '../../../../helper/scaleSize';
 import theme from '../../../../theme/mfpDark';
 
 const { height: screenHeight } = Dimensions.get('window');
-const scale = screenHeight / 844; // Scaling factor based on iPhone 13 height
-
-const scaledSize = (size) => Math.round(size * scale * scale);
+const scaledSize = (size) => scaleSize(size);
 
 export default function ProgressBanner({ totalReps, totalVolume, personalBests }) {
     const formatNumber = (number) => {

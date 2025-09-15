@@ -282,7 +282,7 @@ const styles = StyleSheet.create({
         justifyContent: "space-between",
         marginBottom: 14, // was 4
     },
-    title: { fontFamily: "Outfit_700Bold", fontSize: 18, color: "#EAEAEA" },
+    title: { fontFamily: "Outfit_700Bold", fontSize: require('../../helper/scaleSize').ts(18), color: "#EAEAEA" },
 
     // modern neutral cards
     itemCard: {
@@ -320,8 +320,8 @@ const styles = StyleSheet.create({
         backgroundColor: ICON_BG_NEUTRAL,
         marginRight: 10,
     },
-    itemTitle: { fontFamily: "Outfit_700Bold", fontSize: 14, color: "#EAEAEA" },
-    itemMeta: { fontFamily: "Outfit_600SemiBold", fontSize: 12.5, color: SUBTEXT, marginTop: 2 },
+    itemTitle: { fontFamily: "Outfit_700Bold", fontSize: require('../../helper/scaleSize').ts(14), color: "#EAEAEA" },
+    itemMeta: { fontFamily: "Outfit_600SemiBold", fontSize: require('../../helper/scaleSize').ts(12.5), color: SUBTEXT, marginTop: 2 },
 
     emptyBox: { alignItems: "center", paddingVertical: 20 },
     emptyText: { fontFamily: "Outfit_700Bold", color: "#EAEAEA" },
@@ -345,7 +345,7 @@ const styles = StyleSheet.create({
         minHeight: 44,
         flexShrink: 0,
     },
-    addText: { fontFamily: "Outfit_700Bold", color: GOLD_TEXT, fontSize: 13 },
+    addText: { fontFamily: "Outfit_700Bold", color: GOLD_TEXT, fontSize: require('../../helper/scaleSize').ts(13) },
 
     // lighter blue save button
     saveButton: {
@@ -364,7 +364,7 @@ const styles = StyleSheet.create({
         flexShrink: 0,
         marginLeft: 10,
     },
-    saveText: { fontFamily: "Outfit_700Bold", color: "#fff", fontSize: 14.5 },
+    saveText: { fontFamily: "Outfit_700Bold", color: "#fff", fontSize: require('../../helper/scaleSize').ts(14.5) },
 
     inputRow: {
         flexDirection: "row",
@@ -374,8 +374,8 @@ const styles = StyleSheet.create({
         borderBottomWidth: StyleSheet.hairlineWidth,
         marginTop: 8,
     },
-    label: { fontFamily: "Outfit_600SemiBold", fontSize: 13, color: "#EAEAEA" },
-    value: { fontFamily: "Outfit_500Medium", fontSize: 14, color: "#EAEAEA" },
+    label: { fontFamily: "Outfit_600SemiBold", fontSize: require('../../helper/scaleSize').ts(13), color: "#EAEAEA" },
+    value: { fontFamily: "Outfit_500Medium", fontSize: require('../../helper/scaleSize').ts(14), color: "#EAEAEA" },
 
     metricRow: { marginTop: 12 },
     metricPills: { flexDirection: "row", marginTop: 8 },
@@ -387,7 +387,7 @@ const styles = StyleSheet.create({
         marginRight: 8,
     },
     pillActive: { backgroundColor: BLUE_BG, borderWidth: 1, borderColor: "#DBE9FF" },
-    pillText: { fontFamily: "Outfit_600SemiBold", fontSize: 13, color: "#EAEAEA" },
+    pillText: { fontFamily: "Outfit_600SemiBold", fontSize: require('../../helper/scaleSize').ts(13), color: "#EAEAEA" },
     pillTextActive: { color: BLUE_TEXT },
 
     toggleRow: {
@@ -397,5 +397,5 @@ const styles = StyleSheet.create({
         borderBottomColor: CARD_BORDER,
         borderBottomWidth: StyleSheet.hairlineWidth,
     },
-    subtle: { fontFamily: "Outfit_400Regular", fontSize: 12, color: SUBTEXT },
+    subtle: { fontFamily: "Outfit_400Regular", fontSize: require('../../helper/scaleSize').ts(12), color: SUBTEXT },
 });

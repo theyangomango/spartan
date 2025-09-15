@@ -1,6 +1,7 @@
 import RNBounceable from '@freakycoder/react-native-bounceable';
 import React, { useState, useRef } from 'react';
 import { View, Text, StyleSheet, TextInput, Dimensions, Keyboard, TouchableWithoutFeedback } from 'react-native';
+import { ts } from '../helper/scaleSize';
 import { Ionicons, Octicons, Feather } from '@expo/vector-icons';
 import theme from '../theme/mfpDark';
 import createDoc from '../../backend/helper/firebase/createDoc';
@@ -297,7 +298,7 @@ const styles = StyleSheet.create({
     formWrapper: { flex: 1, paddingTop: scaleSize(screenHeight * 0.15) },
     formContainer: { alignItems: 'center', paddingHorizontal: scaleSize(22) },
     title: {
-        fontSize: scaleSize(15),
+        fontSize: ts(15),
         fontWeight: '400',
         color: theme.textPrimary,
         paddingLeft: scaleSize(3),
@@ -311,7 +312,7 @@ const styles = StyleSheet.create({
         paddingHorizontal: scaleSize(12),
         borderRadius: scaleSize(6),
         backgroundColor: theme.field,
-        fontSize: scaleSize(14),
+        fontSize: ts(14),
         color: theme.textPrimary,
         fontFamily: 'Outfit_500Medium',
         marginBottom: scaleSize(20),
@@ -339,7 +340,7 @@ const styles = StyleSheet.create({
     },
     auth_button_text: {
         color: '#fff',
-        fontSize: scaleSize(15),
+        fontSize: ts(15),
         fontWeight: '500',
         fontFamily: 'Outfit_600SemiBold',
         marginLeft: scaleSize(6),

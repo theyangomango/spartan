@@ -1,5 +1,6 @@
 import React, { useCallback, useMemo, useRef, useState, useEffect } from 'react';
 import { View, Text, StyleSheet, TextInput, FlatList, TouchableOpacity, SafeAreaView } from 'react-native';
+import { ts } from '../helper/scaleSize';
 import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import ProfileCard from '../components/1_Feed/FeedHeader/ProfileCard';
@@ -136,8 +137,8 @@ const styles = StyleSheet.create({
     borderWidth: StyleSheet.hairlineWidth,
     borderColor: theme.hairline
   },
-  input: { flex: 1, fontSize: 15, color: theme.textPrimary, fontFamily: 'Outfit_600SemiBold' },
-  sectionTitle: { paddingHorizontal: 16, paddingVertical: 10, fontFamily: 'Outfit_700Bold', color: theme.textPrimary, fontSize: 14 },
+  input: { flex: 1, fontSize: ts(15), color: theme.textPrimary, fontFamily: 'Outfit_600SemiBold' },
+  sectionTitle: { paddingHorizontal: 16, paddingVertical: 10, fontFamily: 'Outfit_700Bold', color: theme.textPrimary, fontSize: ts(14) },
   listContent: { paddingBottom: 30 },
   sep: { height: StyleSheet.hairlineWidth, backgroundColor: theme.hairline, marginLeft: 16 },
 });

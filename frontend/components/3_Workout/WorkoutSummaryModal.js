@@ -10,10 +10,10 @@ import RNBounceable from '@freakycoder/react-native-bounceable';
 import { LinearGradient } from 'expo-linear-gradient';
 import roundToNearestMinute from '../../helper/roundToNearestMinute';
 import theme from '../../theme/mfpDark';
+import scaleSize from '../../helper/scaleSize';
 
 const { height: screenHeight } = Dimensions.get('window');
-const scale = screenHeight / 844; // iPhone 13 baseline
-const scaledSize = (size) => Math.round(size * scale);
+const scaledSize = (size) => scaleSize(size);
 const LIST_MAX_H = Math.round(screenHeight * 0.35);
 
 const COLORS = {

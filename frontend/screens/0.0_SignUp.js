@@ -85,14 +85,14 @@ const styles = StyleSheet.create({
         alignItems: 'center',
     },
     title: {
-        fontSize: scaleSize(21), // Scaled font size
+        fontSize: require('../helper/scaleSize').ts(21), // Scaled font size
         fontFamily: 'Poppins_600SemiBold',
         marginLeft: scaleSize(1),
         marginBottom: scaleSize(10),
         color: theme.textPrimary,
     },
     subtitle: {
-        fontSize: scaleSize(12), // Scaled font size
+        fontSize: require('../helper/scaleSize').ts(12), // Scaled font size
         marginHorizontal: scaleSize(45),
         textAlign: 'center',
         fontFamily: 'Mulish_400Regular',
@@ -118,7 +118,7 @@ const styles = StyleSheet.create({
         left: scaleSize(17),
     },
     auth_button_text: {
-        fontSize: scaleSize(14.5),
+        fontSize: require('../helper/scaleSize').ts(14.5),
         fontFamily: 'SourceSansPro_600SemiBold',
         color: theme.textPrimary,
     },
@@ -137,12 +137,12 @@ const styles = StyleSheet.create({
     },
     footer_regular_text: {
         fontFamily: 'Outfit_400Regular',
-        fontSize: scaleSize(14.5),
+        fontSize: require('../helper/scaleSize').ts(14.5),
         color: theme.textSecondary,
     },
     log_in_text: {
         fontFamily: 'Outfit_600SemiBold',
-        fontSize: scaleSize(14.5),
+        fontSize: require('../helper/scaleSize').ts(14.5),
         color: theme.primary,
     },
 });

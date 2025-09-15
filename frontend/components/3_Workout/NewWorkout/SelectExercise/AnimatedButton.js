@@ -1,11 +1,10 @@
 import React, { useEffect } from 'react';
 import { StyleSheet, Text, Animated, Dimensions } from 'react-native';
+import scaleSize from '../../../../helper/scaleSize';
 import RNBounceable from "@freakycoder/react-native-bounceable";
 
 const { height: screenHeight } = Dimensions.get('window');
-const scale = screenHeight / 844; // Scaling factor based on iPhone 13 height
-
-const scaledSize = (size) => Math.round(size * scale);
+const scaledSize = (size) => scaleSize(size);
 
 const AnimatedButton = ({ opacity, selectedExercisesLength, handleFinish }) => {
     

@@ -3,7 +3,7 @@ import { View, Text, FlatList, StyleSheet, Pressable, TextInput, ScrollView, Dim
 import Icon from 'react-native-vector-icons/Ionicons';
 import ProfileCard from '../ProfileCard';
 import RNBounceable from '@freakycoder/react-native-bounceable';
-import scaleSize from "../../helper/scaleSize";
+import scaleSize, { ts } from "../../helper/scaleSize";
 import { LinearGradient } from 'expo-linear-gradient';
 import theme from "../../theme/mfpDark";
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -193,7 +193,7 @@ const styles = StyleSheet.create({
     subHeaderText: {
         fontFamily: 'Outfit_500Medium',
         color: theme.textSecondary,
-        fontSize: scaleSize(12.5),
+        fontSize: ts(12.5),
         marginTop: scaleSize(6),
     },
     selectedHandlesContainer: {

@@ -1,14 +1,14 @@
 // components/Tracking/Group/GroupMenu.jsx
 import React from "react";
 import { Modal, View, Text, StyleSheet, Pressable, FlatList, Dimensions } from "react-native";
+import scaleSize from "../../../../helper/scaleSize";
 import RNBounceable from "@freakycoder/react-native-bounceable";
 import { Feather } from "@expo/vector-icons";
 import FastImage from "react-native-fast-image";
 import theme from "../../../../theme/mfpDark";
 
 const { height: screenHeight } = Dimensions.get("window");
-const scale = screenHeight / 844;
-const scaledSize = (size) => Math.round(size * scale);
+const scaledSize = (size) => scaleSize(size);
 
 const ParticipantItem = ({ participant, selected, onPress }) => {
     const uri = participant?.pfp || participant?.image || participant?.photoURL || participant?.avatar || "";

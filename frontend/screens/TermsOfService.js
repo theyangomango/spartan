@@ -1,5 +1,6 @@
 import React from 'react';
 import { SafeAreaView, View, Text, StyleSheet, ScrollView, TouchableOpacity } from 'react-native';
+import { ts } from '../helper/scaleSize';
 import { Ionicons } from '@expo/vector-icons';
 import theme from '../theme/mfpDark';
 
@@ -59,8 +60,8 @@ const styles = StyleSheet.create({
   root: { flex: 1, backgroundColor: theme.bg },
   header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 14, paddingTop: 8, paddingBottom: 6 },
   iconBtn: { padding: 6, width: 40 },
-  title: { fontFamily: 'Outfit_700Bold', fontSize: 18, color: theme.textPrimary },
+  title: { fontFamily: 'Outfit_700Bold', fontSize: ts(18), color: theme.textPrimary },
   content: { paddingHorizontal: 16, paddingTop: 10, paddingBottom: 18 },
-  h: { marginTop: 12, marginBottom: 6, fontFamily: 'Outfit_700Bold', fontSize: 15, color: theme.textPrimary },
-  p: { fontFamily: 'Outfit_400Regular', fontSize: 14, color: theme.textSecondary, lineHeight: 20 },
+  h: { marginTop: 12, marginBottom: 6, fontFamily: 'Outfit_700Bold', fontSize: ts(15), color: theme.textPrimary },
+  p: { fontFamily: 'Outfit_400Regular', fontSize: ts(14), color: theme.textSecondary, lineHeight: ts(20) },
 });

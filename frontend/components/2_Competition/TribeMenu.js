@@ -4,6 +4,7 @@ import { Modal, View, Text, StyleSheet, Pressable } from "react-native";
 import RNBounceable from "@freakycoder/react-native-bounceable";
 import { Ionicons } from "@expo/vector-icons";
 import scaleSize from "../../helper/scaleSize";
+const ts = require('../../helper/scaleSize').ts;
 
 // Scaled sizes (baseline ~ iPhone 12/13: 390x844)
 const MENU_WIDTH = scaleSize(260);
@@ -14,9 +15,9 @@ const MENU_PAD_H = scaleSize(10);
 const BACKDROP_PT = scaleSize(60);
 const BACKDROP_PR = scaleSize(12);
 
-const FONT_TITLE = scaleSize(15);
-const FONT_SECTION = scaleSize(12.5);
-const FONT_EMPTY = scaleSize(12.5);
+const FONT_TITLE = ts(15);
+const FONT_SECTION = ts(12.5);
+const FONT_EMPTY = ts(12.5);
 
 const ITEM_PAD_V = scaleSize(10);
 const ITEM_PAD_H = scaleSize(8);

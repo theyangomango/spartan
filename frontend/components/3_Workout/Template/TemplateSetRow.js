@@ -1,5 +1,6 @@
 import React, { useRef } from 'react';
 import { View, StyleSheet, Text, Pressable, Dimensions } from 'react-native';
+import scaleSize from "../../../helper/scaleSize";
 import { FontAwesome5 } from '@expo/vector-icons';
 import SwipeableItem, { OpenDirection, useSwipeableItemParams } from 'react-native-swipeable-item';
 import Animated, { useAnimatedStyle } from 'react-native-reanimated';
@@ -7,9 +8,7 @@ import TemplateEditableStat from './TemplateEditableStat';
 import theme from "../../../theme/mfpDark";
 
 const { height: screenHeight } = Dimensions.get('window');
-const scale = screenHeight / 844; // Scaling factor based on iPhone 13 height
-
-const scaledSize = (size) => Math.round(size * scale);
+const scaledSize = (size) => scaleSize(size);
 
 export default function TemplateSetRow({ set, updateSet, index, handleDelete }) {
     const weight = set.weight;

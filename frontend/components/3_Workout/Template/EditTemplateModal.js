@@ -1,5 +1,6 @@
 import React, { useState, useCallback, useEffect } from "react";
 import { StyleSheet, View, Modal, ScrollView, Text, TextInput, Dimensions } from "react-native";
+import scaleSize from "../../../helper/scaleSize";
 import SelectExerciseModal from "../NewWorkout/SelectExercise/SelectExerciseModal";
 import RNBounceable from "@freakycoder/react-native-bounceable";
 import EditTemplateExerciseLog from "./EditTemplateExerciseLog";
@@ -7,9 +8,7 @@ import { Weight } from 'iconsax-react-native';
 import theme from "../../../theme/mfpDark";
 
 const { height: screenHeight } = Dimensions.get('window');
-const scale = screenHeight / 844; // Scaling factor based on iPhone 13 height
-
-const scaledSize = (size) => Math.round(size * scale);
+const scaledSize = (size) => scaleSize(size);
 
 const EditTemplateModal = ({ openedTemplateRef, updateTemplate, deleteTemplate }) => {
     const [selectExerciseModalVisible, setSelectExerciseModalVisible] = useState(false);

@@ -210,6 +210,6 @@ const styles = StyleSheet.create({
     },
     optionText: {
         color: "#fff",
-        fontSize: 13
+        fontSize: require('../../../helper/scaleSize').ts(13)
     }
 });

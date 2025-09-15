@@ -433,7 +433,7 @@ const makeStyles = (COLORS) => {
         scrollContent: { paddingHorizontal: 18, paddingTop: 10, paddingBottom: 18 },
 
         headerRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 },
-        sheetTitle: { fontSize: 18, fontFamily: 'Outfit_700Bold', color: text },
+        sheetTitle: { fontSize: require('../../helper/scaleSize').ts(18), fontFamily: 'Outfit_700Bold', color: text },
 
         smallLinkPill: {
             flexDirection: 'row',
@@ -445,11 +445,11 @@ const makeStyles = (COLORS) => {
             borderWidth: 1,
             borderColor: hairline,
         },
-        smallLinkText: { fontFamily: 'Outfit_600SemiBold', fontSize: 12.5, color: text },
+        smallLinkText: { fontFamily: 'Outfit_600SemiBold', fontSize: require('../../helper/scaleSize').ts(12.5), color: text },
 
         row: { flexDirection: 'row', alignItems: 'flex-start', marginTop: 12 },
 
-        inputLabel: { fontSize: 13, color: subtext, marginBottom: 6, fontFamily: 'Outfit_400Regular' },
+        inputLabel: { fontSize: require('../../helper/scaleSize').ts(13), color: subtext, marginBottom: 6, fontFamily: 'Outfit_400Regular' },
         inputBox: {
             flexDirection: 'row',
             alignItems: 'center',
@@ -464,7 +464,7 @@ const makeStyles = (COLORS) => {
             shadowOffset: { width: 0, height: 1 },
             shadowRadius: 4,
         },
-        input: { flex: 1, fontSize: 16, fontFamily: 'Outfit_400Regular', color: text, paddingVertical: 0 },
+        input: { flex: 1, fontSize: require('../../helper/scaleSize').ts(16), fontFamily: 'Outfit_400Regular', color: text, paddingVertical: 0 },
         // Make placeholder slightly brighter for readability
         placeholder: { color: '#BAC3D2' },
         accent: { color: accent },
@@ -494,28 +494,28 @@ const makeStyles = (COLORS) => {
             borderColor: hairline,
             marginRight: 10,
         },
-        autoCalcText: { fontFamily: 'Outfit_600SemiBold', fontSize: 13, color: text },
+        autoCalcText: { fontFamily: 'Outfit_600SemiBold', fontSize: require('../../helper/scaleSize').ts(13), color: text },
 
         sheetButtons: { flexDirection: 'row', justifyContent: 'flex-end', gap: 10, marginTop: 18 },
         btn: { paddingVertical: 12, paddingHorizontal: 16, borderRadius: 12 },
         // Give ghost button a clearer outline against the sheet
         btnGhost: { backgroundColor: fieldBg, borderWidth: 1, borderColor: hairline },
         btnPrimary: { backgroundColor: accent },
-        btnText: { fontFamily: 'Outfit_600SemiBold', fontSize: 15 },
+        btnText: { fontFamily: 'Outfit_600SemiBold', fontSize: require('../../helper/scaleSize').ts(15) },
         btnGhostText: { color: text },
         btnPrimaryText: { color: '#fff' },
 
         infoHeaderRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10 },
         backPill: { paddingHorizontal: 10, paddingVertical: 6, borderRadius: 999, backgroundColor: fieldBg, borderWidth: 1, borderColor: hairline },
-        backPillText: { fontFamily: 'Outfit_600SemiBold', fontSize: 12.5, color: text },
+        backPillText: { fontFamily: 'Outfit_600SemiBold', fontSize: require('../../helper/scaleSize').ts(12.5), color: text },
 
         toggleRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginBottom: 8 },
         // Slightly clearer toggle outlines
         toggleButton: { paddingVertical: 8, paddingHorizontal: 14, borderRadius: 999, borderWidth: 1, borderColor: hairline, backgroundColor: card },
         toggleButtonActive: { backgroundColor: accent, borderColor: 'transparent' },
-        toggleButtonText: { fontFamily: 'Outfit_500Medium', fontSize: 14, color: text },
+        toggleButtonText: { fontFamily: 'Outfit_500Medium', fontSize: require('../../helper/scaleSize').ts(14), color: text },
         toggleButtonTextActive: { color: '#fff' },
 
-        inlineHint: { marginTop: 14, fontFamily: 'Outfit_400Regular', fontSize: 12.5, color: subtext },
+        inlineHint: { marginTop: 14, fontFamily: 'Outfit_400Regular', fontSize: require('../../helper/scaleSize').ts(12.5), color: subtext },
     });
 };

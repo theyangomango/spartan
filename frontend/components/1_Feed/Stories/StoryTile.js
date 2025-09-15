@@ -98,7 +98,7 @@ const styles = StyleSheet.create({
     handle_ctnr: { marginTop: 4 },
     handle_text: {
         fontFamily: "Outfit_500Medium",
-        fontSize: scaledStyles.fontSize,
+    fontSize: require('../../../helper/scaleSize').ts(scaledStyles.fontSize),
         marginLeft: 3,
         color: "#666",
     },

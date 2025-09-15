@@ -5,7 +5,7 @@ import RNBounceable from "@freakycoder/react-native-bounceable";
 import { Heart, MessageCircle, AtSign, UserPlus } from "lucide-react-native";
 import { LinearGradient } from "expo-linear-gradient";
 
-import scaleSize from "../../../helper/scaleSize";
+import scaleSize, { ts } from "../../../helper/scaleSize";
 import theme from "../../../theme/mfpDark";
 import getDisplayTimeDifference from "../../../helper/getDisplayTimeDifference";
 import followUser from "../../../../backend/user/followUser";
@@ -225,19 +225,19 @@ const styles = StyleSheet.create({
     textContainer: { flex: 1, minWidth: 0 },
     topRow: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", marginBottom: scaleSize(1) },
     handle: {
-        fontSize: scaleSize(13.5),
+        fontSize: ts(13.5),
         fontFamily: "Outfit_600SemiBold",
         color: theme.textPrimary,
         maxWidth: '70%'
     },
     message: {
-        fontSize: scaleSize(13),
+        fontSize: ts(13),
         color: theme.textSecondary,
         fontFamily: "Outfit_400Regular",
         lineHeight: scaleSize(20),
     },
     time: {
-        fontSize: scaleSize(12),
+        fontSize: ts(12),
         color: theme.textSecondary,
         fontFamily: "Outfit_600SemiBold",
     },
@@ -259,7 +259,7 @@ const styles = StyleSheet.create({
     },
     followText: {
         color: theme.primary,
-        fontSize: scaleSize(12.5),
+        fontSize: ts(12.5),
         fontFamily: "Outfit_700Bold",
     },
     followTextPressed: {

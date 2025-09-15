@@ -354,7 +354,7 @@ const styles = StyleSheet.create({
     },
     primaryUnified: {
         fontFamily: "Outfit_700Bold",
-        fontSize: 13.5,
+        fontSize: require('../../../helper/scaleSize').ts(13.5),
         color: theme.textPrimary,
         letterSpacing: 0.2,
     },
@@ -376,7 +376,7 @@ const styles = StyleSheet.create({
     },
     timeText: {
         fontFamily: "Outfit_600SemiBold",
-        fontSize: 11.5,
+        fontSize: require('../../../helper/scaleSize').ts(11.5),
         color: theme.textSecondary,
     },
 

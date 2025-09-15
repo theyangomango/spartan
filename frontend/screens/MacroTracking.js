@@ -403,7 +403,7 @@ const styles = StyleSheet.create({
     body: { backgroundColor: COLORS.bg },
 
     sectionTitle: {
-        fontSize: 16,
+        fontSize: require('../helper/scaleSize').ts(16),
         marginLeft: 18,
         color: COLORS.text,
         fontFamily: 'Nunito_800ExtraBold',
@@ -420,5 +420,5 @@ const styles = StyleSheet.create({
         borderWidth: 1,
         borderColor: COLORS.hairline,
     },
-    editGoalsText: { fontFamily: 'Outfit_700Bold', color: COLORS.text, fontSize: 12, letterSpacing: 0.15 },
+    editGoalsText: { fontFamily: 'Outfit_700Bold', color: COLORS.text, fontSize: require('../helper/scaleSize').ts(12), letterSpacing: 0.15 },
 });

@@ -4,13 +4,12 @@ import { FontAwesome6, Entypo } from '@expo/vector-icons';
 import { Setting2 } from "iconsax-react-native";
 import RNBounceable from "@freakycoder/react-native-bounceable";
 import { Dimensions } from 'react-native';
+import scaleSize from "../../../helper/scaleSize";
 import { AddSquare } from "iconsax-react-native";
 import theme from "../../../theme/mfpDark";
 
 const { height: screenHeight } = Dimensions.get('window');
-const scale = screenHeight / 844; // Scaling factor based on iPhone 13 height
-
-const scaledSize = (size) => Math.round(size * scale);
+const scaledSize = (size) => scaleSize(size);
 
 export default function ProfileHeader({ onPressCreateBtn, onPressSettings }) {
     return (

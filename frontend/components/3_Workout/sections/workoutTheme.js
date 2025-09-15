@@ -1,8 +1,9 @@
 import { Dimensions } from "react-native";
+import { ss } from "../../../helper/scaleSize";
+// Re-export ss for backwards compatibility with existing imports
+export { ss } from "../../../helper/scaleSize";
 
-const { width: W, height: H } = Dimensions.get("window");
-const scale = H / 844;
-export const ss = (n) => Math.round(n * scale);
+const { width: W } = Dimensions.get("window");
 
 export const FOOTER_HEIGHT = 87;
 

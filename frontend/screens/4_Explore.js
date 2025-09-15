@@ -354,12 +354,12 @@ const styles = StyleSheet.create({
     selectedFilterButtonText: {
         color: '#fff',
         fontFamily: 'Mulish_800ExtraBold',
-        fontSize: 13.25,
+        fontSize: require('../helper/scaleSize').ts(13.25),
     },
     unselectedFilterButtonText: {
         color: '#222',
         fontFamily: 'Mulish_700Bold',
-        fontSize: 13.25,
+        fontSize: require('../helper/scaleSize').ts(13.25),
     },
     gridScrollView: {
         paddingHorizontal: 1,

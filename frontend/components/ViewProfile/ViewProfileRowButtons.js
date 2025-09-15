@@ -120,17 +120,17 @@ const styles = StyleSheet.create({
     },
     follow_button_text: {
         fontFamily: 'Poppins_600SemiBold',
-        fontSize: scaleSize(12.5),
+        fontSize: require('../../helper/scaleSize').ts(12.5),
         color: '#fff',
     },
     following_button_text: {
         fontFamily: 'Poppins_600SemiBold',
-        fontSize: scaleSize(12.5),
+        fontSize: require('../../helper/scaleSize').ts(12.5),
         color: theme.primary,
     },
     view_stats_button_text: {
         fontFamily: 'Poppins_600SemiBold',
-        fontSize: scaleSize(12.5),
+        fontSize: require('../../helper/scaleSize').ts(12.5),
         color: '#E5E7EB',
     },
 });

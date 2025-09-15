@@ -11,11 +11,12 @@ const H_PADDING = scaleSize(16);
 const BANNER_WIDTH = SCREEN_WIDTH - H_PADDING * 2;
 
 // Scaled fonts (slightly larger for readability)
-const FONT_SELECTOR = scaleSize(13);
-const FONT_METRIC = scaleSize(13);
-const FONT_BANNER_TITLE = scaleSize(15);
-const FONT_BANNER_META = scaleSize(14);
-const FONT_TRIBE_TITLE = scaleSize(16);
+const ts = require('../../helper/scaleSize').ts;
+const FONT_SELECTOR = ts(13);
+const FONT_METRIC = ts(13);
+const FONT_BANNER_TITLE = ts(15);
+const FONT_BANNER_META = ts(14);
+const FONT_TRIBE_TITLE = ts(16);
 
 // Scaled icons
 const ICON_TROPHY = scaleSize(19);

@@ -2,7 +2,7 @@ import React from "react";
 import { View, Text, StyleSheet, Pressable, TouchableOpacity } from "react-native";
 import FastImage from "react-native-fast-image";
 import formatDate from "../../../helper/formatDate";
-import scaleSize from "../../../helper/scaleSize";
+import scaleSize, { ts } from "../../../helper/scaleSize";
 import { usePfp } from "../../../helper/usePFPs";
 import RNBounceable from "@freakycoder/react-native-bounceable";
 import theme from "../../../theme/mfpDark";
@@ -139,7 +139,7 @@ const styles = StyleSheet.create({
         justifyContent: "center",
     },
     handle_text: {
-        fontSize: scaleSize(12.5),
+        fontSize: ts(12.5),
         paddingBottom: scaleSize(2),
         fontFamily: "Poppins_600SemiBold",
         color: "#fff",
@@ -166,7 +166,7 @@ const styles = StyleSheet.create({
         elevation: 2,
     },
     date_text: {
-        fontSize: scaleSize(12),
+        fontSize: ts(12),
         color: theme.textPrimary,
         fontFamily: "Outfit_700Bold",
         letterSpacing: 0.2,

@@ -15,11 +15,11 @@ import { Ionicons } from '@expo/vector-icons';
 import UserCard from './UserCard'; // Ensure this path is correct
 import { debounce } from 'lodash'; // Install lodash if not already installed
 import RNBounceable from '@freakycoder/react-native-bounceable';
+import scaleSize from '../../helper/scaleSize';
 
 const { width: screenWidth } = Dimensions.get('window');
-const scale = screenWidth / 375; // Adjust scaling based on your design
-
-const scaledSize = (size) => Math.round(size * scale);
+// Centralized scaling utility
+const scaledSize = (size) => scaleSize(size);
 
 const SearchBarComponent = ({ navigation, allUsers, onSearchExpandChange }) => {
     const [searchString, setSearchString] = useState('');

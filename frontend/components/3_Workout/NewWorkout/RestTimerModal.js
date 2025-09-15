@@ -14,10 +14,10 @@ import Svg, { Circle } from "react-native-svg";
 import RNBounceable from "@freakycoder/react-native-bounceable";
 import theme from "../../../theme/mfpDark";
 import * as Haptics from "expo-haptics";
+import scaleSize from "../../../helper/scaleSize";
 
 const { height: screenHeight } = Dimensions.get("window");
-const scale = screenHeight / 844; // iPhone 13 baseline
-const scaledSize = (size) => Math.round(size * scale);
+const scaledSize = (size) => scaleSize(size);
 
 const PRESETS = [30, 60, 90, 120];
 const AnimatedCircle = Animated.createAnimatedComponent(Circle);

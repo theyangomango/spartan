@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef, memo, useMemo } from "react";
 import { StyleSheet, View, Text, Pressable, TextInput, Animated, Dimensions } from "react-native";
+import scaleSize from "../../../helper/scaleSize";
 const theme = require("../../../theme/mfpDark").default;
 // Very subtle lightening from the original palette
 const LIGHT_SURFACE = "#353942"; // ~+3-4 from surface
@@ -10,8 +11,7 @@ import ExercisesFlatlist from "../../3_Workout/NewWorkout/SelectExercise/Exercis
 import { exercises } from "../../3_Workout/NewWorkout/SelectExercise/EXERCISES";
 
 const { height: screenHeight } = Dimensions.get('window');
-const scale = screenHeight / 844; // Scaling factor based on iPhone 13 height
-const scaledSize = (size) => Math.round(size * scale);
+const scaledSize = (size) => scaleSize(size);
 
 // Body-part options and an order map to "sort accordingly"
 const BODY_PART_OPTIONS = [

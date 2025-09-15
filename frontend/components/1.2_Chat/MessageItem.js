@@ -367,7 +367,7 @@ const styles = StyleSheet.create({
     groupSelf: { borderBottomRightRadius: 7 },
     groupOther: { borderBottomLeftRadius: 7 },
 
-    text: { fontSize: 14, lineHeight: 18, letterSpacing: 0.1, fontFamily: "Outfit_500Medium" },
+    text: { fontSize: require('../../helper/scaleSize').ts(14), lineHeight: require('../../helper/scaleSize').ts(18), letterSpacing: 0.1, fontFamily: "Outfit_500Medium" },
     textSelf: { color: theme.textPrimary },
     textOther: { color: theme.textPrimary },
 
@@ -393,7 +393,7 @@ const styles = StyleSheet.create({
     replyOther: { backgroundColor: theme.field },
     replyBar: { width: 3, height: 30, borderRadius: 2, marginRight: 8 },
     replyTextCol: { flexShrink: 1, minWidth: 0 },
-    replySnippet: { fontSize: 12, fontFamily: "Outfit_500Medium", color: theme.textSecondary },
+    replySnippet: { fontSize: require('../../helper/scaleSize').ts(12), fontFamily: "Outfit_500Medium", color: theme.textSecondary },
 
     // reactions badge
     reactionInline: {
@@ -418,7 +418,7 @@ const styles = StyleSheet.create({
     },
     reactionLeft: { left: -12 },
     reactionRight: { right: -12 },
-    reactionEmoji: { fontSize: 12.5, color: theme.textPrimary },
+    reactionEmoji: { fontSize: require('../../helper/scaleSize').ts(12.5), color: theme.textPrimary },
 
     // timestamps outside bubble, slide in
     timeRight: {
@@ -426,7 +426,7 @@ const styles = StyleSheet.create({
         right: -70,
         bottom: 2,
         zIndex: 2,
-        fontSize: 11,
+        fontSize: require('../../helper/scaleSize').ts(11),
         lineHeight: 13,
         fontFamily: "Outfit_500Medium",
         letterSpacing: 0.1,
@@ -437,7 +437,7 @@ const styles = StyleSheet.create({
         left: -78,
         bottom: 2,
         zIndex: 2,
-        fontSize: 11,
+        fontSize: require('../../helper/scaleSize').ts(11),
         lineHeight: 13,
         fontFamily: "Outfit_500Medium",
         letterSpacing: 0.1,

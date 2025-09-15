@@ -65,7 +65,7 @@ export default memo(MealsSection, propsEqual);
 
 const makeStyles = (COLORS) =>
     StyleSheet.create({
-        sectionTitle: { fontSize: 16, marginLeft: 18, marginTop: 24, color: COLORS.text, fontFamily: 'Nunito_800ExtraBold' },
+        sectionTitle: { fontSize: require('../../helper/scaleSize').ts(16), marginLeft: 18, marginTop: 24, color: COLORS.text, fontFamily: 'Nunito_800ExtraBold' },
         // Full-width list like MyFitnessPal: no outer horizontal padding,
         // each row handles its own left/right padding.
         underMealList: { paddingHorizontal: 0, marginTop: 0, marginBottom: 0 },
@@ -95,7 +95,7 @@ const makeStyles = (COLORS) =>
         addFoodText: {
             color: 'rgba(102, 176, 255, 1)',
             fontFamily: 'Outfit_700Bold',
-            fontSize: 12.5,
+            fontSize: require('../../helper/scaleSize').ts(12.5),
             textTransform: 'uppercase',
             letterSpacing: 0.4,
             textAlign: 'right',

@@ -29,6 +29,5 @@ const makeStyles = (COLORS) =>
             paddingBottom: 6,
         },
         textColor: { color: COLORS.text || COLORS.textPrimary || '#0F172A' },
-        title: { fontSize: 16, fontFamily: 'Nunito_800ExtraBold', color: COLORS.text || '#0F172A' },
+        title: { fontSize: require('../../helper/scaleSize').ts(16), fontFamily: 'Nunito_800ExtraBold', color: COLORS.text || '#0F172A' },
     });
-

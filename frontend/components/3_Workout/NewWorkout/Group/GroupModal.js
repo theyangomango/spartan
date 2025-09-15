@@ -1,6 +1,7 @@
 // components/Tracking/Group/GroupModal.jsx
 import React, { useEffect, useMemo, useState } from "react";
 import { View, Text, StyleSheet, TextInput, SectionList, Pressable, Dimensions } from "react-native";
+import scaleSize from "../../../../helper/scaleSize";
 import Icon from "react-native-vector-icons/Ionicons";
 import ProfileCard from "../../../ProfileCard";
 import RNBounceable from "@freakycoder/react-native-bounceable";
@@ -11,8 +12,7 @@ import useFriendsActivity from "../../../../hooks/useFriendsActivity";
 import useLiveFollowing from "../../../../hooks/useLiveFollowing";
 
 const { height: screenHeight } = Dimensions.get("window");
-const scale = screenHeight / 844;
-const scaledSize = (size) => Math.round(size * scale);
+const scaledSize = (size) => scaleSize(size);
 
 const GroupModal = ({ closeGroupModal, onInvite }) => {
     const followingUsers = Array.isArray(global?.userData?.following) ? global.userData.following : [];

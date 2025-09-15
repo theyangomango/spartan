@@ -219,7 +219,7 @@ const styles = StyleSheet.create({
     },
     startText: {
         color: "#FFFFFF",
-        fontSize: 20,
+        fontSize: require('../../../helper/scaleSize').ts(20),
         fontWeight: "900",
         textTransform: "uppercase",
         letterSpacing: 0.6,

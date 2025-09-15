@@ -114,12 +114,12 @@ const styles = StyleSheet.create({
     },
     count_text: {
         fontFamily: 'Lato_700Bold',
-        fontSize: 12
+        fontSize: require('../../helper/scaleSize').ts(12)
     },
     text: {
         color: '#616977',
         fontFamily: 'Lato_400Regular',
-        fontSize: 12
+        fontSize: require('../../helper/scaleSize').ts(12)
     },
     right: {
         flexDirection: 'row'

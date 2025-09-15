@@ -103,8 +103,8 @@ const BlockedViewClean = React.memo(({ message, onResolve }) => {
     const stylesLocal = StyleSheet.create({
         // Position near top, offset ~80px down from previous placement
         wrap: { flex: 1, paddingHorizontal: 18, paddingTop: 98, paddingBottom: 18, justifyContent: 'flex-start', alignItems: 'center' },
-        text: { fontFamily: 'Outfit_700Bold', fontSize: 14.5, color: '#EAEAEA', textAlign: 'center' },
-        sub: { fontFamily: 'Outfit_400Regular', fontSize: 12.5, color: '#AEB5C0', textAlign: 'center', marginTop: 8 },
+        text: { fontFamily: 'Outfit_700Bold', fontSize: require('../../helper/scaleSize').ts(14.5), color: '#EAEAEA', textAlign: 'center' },
+        sub: { fontFamily: 'Outfit_400Regular', fontSize: require('../../helper/scaleSize').ts(12.5), color: '#AEB5C0', textAlign: 'center', marginTop: 8 },
         btn: { marginTop: 14, paddingHorizontal: 14, paddingVertical: 10, backgroundColor: '#2D9EFF', borderRadius: 12 },
         btnText: { color: '#fff', fontFamily: 'Outfit_700Bold' },
     });
@@ -124,8 +124,8 @@ const BlockedViewClean = React.memo(({ message, onResolve }) => {
 const BlockedView = React.memo(({ message, onResolve }) => {
     const stylesLocal = StyleSheet.create({
         wrap: { flex: 1, padding: 18, justifyContent: 'center', alignItems: 'center' },
-        text: { fontFamily: 'Outfit_600SemiBold', fontSize: 14, color: '#333', textAlign: 'center' },
-        sub: { fontFamily: 'Outfit_400Regular', fontSize: 12.5, color: '#64748B', textAlign: 'center', marginTop: 8 },
+        text: { fontFamily: 'Outfit_600SemiBold', fontSize: require('../../helper/scaleSize').ts(14), color: '#333', textAlign: 'center' },
+        sub: { fontFamily: 'Outfit_400Regular', fontSize: require('../../helper/scaleSize').ts(12.5), color: '#64748B', textAlign: 'center', marginTop: 8 },
         btn: { marginTop: 14, paddingHorizontal: 14, paddingVertical: 10, backgroundColor: '#2D9EFF', borderRadius: 12 },
         btnText: { color: '#fff', fontFamily: 'Outfit_700Bold' },
     });

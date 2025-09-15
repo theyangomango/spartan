@@ -5,7 +5,7 @@ import FastImage from "react-native-fast-image";
 import { FontAwesome6 } from "@expo/vector-icons";
 import { useNavigation } from "@react-navigation/native";
 import { usePfp } from "../../helper/usePFPs";
-import scaleSize from "../../helper/scaleSize";
+import scaleSize, { ts } from "../../helper/scaleSize";
 import theme from "../../theme/mfpDark";
 
 const ACCENT = theme.primary;
@@ -135,8 +135,8 @@ const styles = StyleSheet.create({
     pfpPh: { backgroundColor: theme.field },
 
     textWrap: { flex: 1, justifyContent: "center" },
-    nameText: { fontFamily: "Nunito_700Bold", fontSize: scaleSize(16), color: theme.textPrimary},
-    handleText: { fontFamily: "Nunito_700Bold", fontSize: scaleSize(12.5), color: theme.textSecondary, marginTop: 1 },
+    nameText: { fontFamily: "Nunito_700Bold", fontSize: ts(16), color: theme.textPrimary},
+    handleText: { fontFamily: "Nunito_700Bold", fontSize: ts(12.5), color: theme.textSecondary, marginTop: 1 },
 });
 
 export default ChatHeader;

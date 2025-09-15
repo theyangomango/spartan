@@ -58,7 +58,7 @@ const styles = StyleSheet.create({
     },
     modalTitle: {
         fontFamily: "Outfit_700Bold",
-        fontSize: 18,
+        fontSize: require('../../helper/scaleSize').ts(18),
         color: "#EAEAEA",
         marginBottom: 10,
     },
@@ -73,7 +73,7 @@ const styles = StyleSheet.create({
     },
     modalActions: { flexDirection: "row", justifyContent: "flex-end", gap: 10 },
     btn: { paddingVertical: 10, paddingHorizontal: 14, borderRadius: 10 },
-    btnText: { fontFamily: "Outfit_700Bold", fontSize: 14 },
+    btnText: { fontFamily: "Outfit_700Bold", fontSize: require('../../helper/scaleSize').ts(14) },
     btnPrimary: { backgroundColor: "#2D9EFF" },
     btnPrimaryText: { color: "#fff" },
     btnGhost: { backgroundColor: require("../../theme/mfpDark").default.field },

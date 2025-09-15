@@ -639,7 +639,7 @@ const styles = StyleSheet.create({
     right_icons: { flexDirection: "row", position: "absolute", right: METRICS.paddingH, top: METRICS.iconTop, alignItems: "center" },
 
     notificationBadge: { position: "absolute", right: -7.5, top: -5, backgroundColor: "#ef4444", borderRadius: 8, width: 16, height: 16, justifyContent: "center", alignItems: "center" },
-    notificationText: { color: "#fff", fontSize: 8, fontFamily: "Outfit_600SemiBold" },
+    notificationText: { color: "#fff", fontSize: require('../../helper/scaleSize').ts(8), fontFamily: "Outfit_600SemiBold" },
     message_button: { padding: 1 },
     heart_button: { marginRight: 19, padding: 1, position: "relative" },
 

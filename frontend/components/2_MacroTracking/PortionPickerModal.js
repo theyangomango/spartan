@@ -69,7 +69,7 @@ const makeStyles = (COLORS) =>
     StyleSheet.create({
         modalBackdrop: { flex: 1, backgroundColor: 'rgba(0,0,0,0.35)', alignItems: 'center', justifyContent: 'center' },
         modalCard: { width: '86%', backgroundColor: COLORS?.card || '#252733', borderRadius: 18, paddingVertical: 18, paddingHorizontal: 16, borderWidth: StyleSheet.hairlineWidth, borderColor: COLORS?.hairline || 'rgba(255,255,255,0.08)' },
-        modalTitle: { fontFamily: 'Outfit_600SemiBold', fontSize: 16, color: COLORS?.text || '#E5E7EB', marginBottom: 12 },
+        modalTitle: { fontFamily: 'Outfit_600SemiBold', fontSize: require('../../helper/scaleSize').ts(16), color: COLORS?.text || '#E5E7EB', marginBottom: 12 },
         quickRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 10, marginBottom: 14 },
         chip: {
             paddingVertical: 9,
@@ -93,7 +93,7 @@ const makeStyles = (COLORS) =>
         modalBtn: { paddingVertical: 10, paddingHorizontal: 16, borderRadius: 10 },
         cancelBtn: { backgroundColor: COLORS?.fieldBg || '#1E2128' },
         confirmBtn: { backgroundColor: '#55A8FF' },
-        modalBtnText: { fontFamily: 'Outfit_600SemiBold', fontSize: 14 },
+        modalBtnText: { fontFamily: 'Outfit_600SemiBold', fontSize: require('../../helper/scaleSize').ts(14) },
         cancelBtnText: { color: COLORS?.text || '#E5E7EB' },
         confirmBtnText: { color: '#fff' },
     });

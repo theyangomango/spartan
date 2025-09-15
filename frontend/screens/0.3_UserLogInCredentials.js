@@ -172,7 +172,7 @@ const styles = StyleSheet.create({
         paddingHorizontal: scaleSize(22),
     },
     title: {
-        fontSize: scaleSize(15),
+        fontSize: require('../helper/scaleSize').ts(15),
         fontWeight: '400',
         color: require('../theme/mfpDark').default.textPrimary,
         paddingLeft: scaleSize(3),
@@ -186,7 +186,7 @@ const styles = StyleSheet.create({
         paddingHorizontal: scaleSize(12),
         borderRadius: scaleSize(6),
         backgroundColor: require('../theme/mfpDark').default.field,
-        fontSize: scaleSize(14),
+        fontSize: require('../helper/scaleSize').ts(14),
         color: require('../theme/mfpDark').default.textPrimary,
         fontFamily: 'Outfit_500Medium',
         marginBottom: scaleSize(20),
@@ -214,7 +214,7 @@ const styles = StyleSheet.create({
     },
     auth_button_text: {
         color: '#fff',
-        fontSize: scaleSize(15),
+        fontSize: require('../helper/scaleSize').ts(15),
         fontWeight: '500',
         fontFamily: 'Outfit_600SemiBold',
         marginLeft: scaleSize(6),

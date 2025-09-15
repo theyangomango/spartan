@@ -1,7 +1,7 @@
 import React, { memo, useMemo } from "react";
 import { View, Text, StyleSheet, ScrollView } from "react-native";
 import RNBounceable from "@freakycoder/react-native-bounceable";
-import scaleSize from "../../../helper/scaleSize";
+import scaleSize, { ts } from "../../../helper/scaleSize";
 import theme from "../../../theme/mfpDark";
 
 function Chip({ label, selected, onPress, badgeCount }) {
@@ -114,7 +114,7 @@ const styles = StyleSheet.create({
     },
     chipText: {
         color: theme.textPrimary,
-        fontSize: scaleSize(13),
+        fontSize: ts(13),
         fontFamily: "Outfit_600SemiBold",
     },
     chipTextSelected: {
@@ -141,7 +141,7 @@ const styles = StyleSheet.create({
     },
     badgeText: {
         color: theme.textPrimary,
-        fontSize: scaleSize(10),
+        fontSize: ts(10),
         fontFamily: "Outfit_600SemiBold",
     },
 });

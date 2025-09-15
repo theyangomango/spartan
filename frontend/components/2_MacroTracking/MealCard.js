@@ -43,11 +43,11 @@ const makeStyles = (COLORS) =>
         row: { flexDirection: 'row', alignItems: 'center' },
         centerArea: { flex: 1 },
         title: {
-            fontSize: 15,
+            fontSize: require('../../helper/scaleSize').ts(15),
             color: COLORS.text,
             fontFamily: 'Nunito_800ExtraBold',
             letterSpacing: 0.2,
         },
-        mealCals: { fontSize: 16, fontFamily: 'Outfit_700Bold', color: 'rgba(102, 176, 255, 1)', marginLeft: 10 },
+        mealCals: { fontSize: require('../../helper/scaleSize').ts(16), fontFamily: 'Outfit_700Bold', color: 'rgba(102, 176, 255, 1)', marginLeft: 10 },
 
     });

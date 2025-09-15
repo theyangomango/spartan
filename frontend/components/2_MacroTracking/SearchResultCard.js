@@ -76,8 +76,8 @@ function SearchResultCard({ item, onPressPlus, onPressCard, COLORS }) {
         contentRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
         textContainer: { flex: 1, marginRight: 12 },
         textPressable: { flex: 1, marginRight: 12 },
-        resultTitle: { fontFamily: 'Mulish_700Bold', fontSize: 12.5, color: theme.text || theme.textPrimary, marginBottom: 4 },
-        resultDescription: { fontFamily: 'Mulish_500Medium', fontSize: 12.5, color: theme.subtext || theme.textSecondary },
+        resultTitle: { fontFamily: 'Mulish_700Bold', fontSize: require('../../helper/scaleSize').ts(12.5), color: theme.text || theme.textPrimary, marginBottom: 4 },
+        resultDescription: { fontFamily: 'Mulish_500Medium', fontSize: require('../../helper/scaleSize').ts(12.5), color: theme.subtext || theme.textSecondary },
         plusWrap: {
             width: 32,
             height: 32,

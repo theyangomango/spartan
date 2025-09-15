@@ -199,7 +199,7 @@ const styles = StyleSheet.create({
     metaRow: { flexDirection: "row", alignItems: "center", gap: 12, marginTop: 4 },
     metaChunk: { flexDirection: "row", alignItems: "center", gap: 5 },
     metaLabel: { fontFamily: "Outfit_700Bold", fontSize: 12.5, color: "#E5E7EB" },
-    metaSub: { fontFamily: "Outfit_600SemiBold", fontSize: 12.5, color: "#94A3B8" },
+    metaSub: { fontFamily: "Outfit_600SemiBold", fontSize: require('../../../helper/scaleSize').ts(12.5), color: "#94A3B8" },
 
     dotsRow: {
         position: "absolute",

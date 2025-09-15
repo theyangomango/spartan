@@ -6,11 +6,10 @@ import Gallery from 'react-native-awesome-gallery';
 import PreviewPhotosBottomSheet from './PreviewPhotosBottomSheet';
 import ImageCropperModal from './ImageCropperModal';
 import theme from '../../../theme/mfpDark';
+import scaleSize from '../../../helper/scaleSize';
 
 const screenHeight = Dimensions.get('window').height;
-const scale = screenHeight / 844; // Scaling based on iPhone 13 screen height
-
-const scaledSize = (size) => Math.round(size * scale);
+const scaledSize = (size) => scaleSize(size);
 
 export default function SelectPhotosScreen({ navigation, route }) {
     const [assets, setAssets] = useState([]);

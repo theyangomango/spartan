@@ -86,7 +86,7 @@ const styles = StyleSheet.create({
     input: {
         flex: 1,
         paddingHorizontal: 12,
-        fontSize: 14.5,
+        fontSize: require('../../helper/scaleSize').ts(14.5),
         color: theme.textPrimary,
         fontFamily: "Outfit_500Medium",
     },
@@ -110,7 +110,7 @@ const styles = StyleSheet.create({
         marginBottom: 8,
     },
     replyBar: { width: 3, height: 26, borderRadius: 2, backgroundColor: theme.primary, marginRight: 8 },
-    replyTitle: { fontSize: 12, color: theme.textPrimary, fontFamily: "Outfit_600SemiBold" },
-    replySnippet: { fontSize: 12, color: theme.textSecondary, fontFamily: "Outfit_500Medium" },
+    replyTitle: { fontSize: require('../../helper/scaleSize').ts(12), color: theme.textPrimary, fontFamily: "Outfit_600SemiBold" },
+    replySnippet: { fontSize: require('../../helper/scaleSize').ts(12), color: theme.textSecondary, fontFamily: "Outfit_500Medium" },
     closeReply: { padding: 6, marginLeft: 6 },
 });

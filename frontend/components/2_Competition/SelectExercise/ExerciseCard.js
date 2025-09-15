@@ -111,7 +111,7 @@ const styles = StyleSheet.create({
     },
     exerciseName: {
         fontFamily: 'Outfit_700Bold',
-        fontSize: 15,
+        fontSize: require('../../../helper/scaleSize').ts(15),
         color: '#EAEAEA',
         marginVertical: 3,
         flexWrap: 'wrap',
@@ -126,12 +126,12 @@ const styles = StyleSheet.create({
     },
     muscle_text: {
         fontFamily: 'Poppins_700Bold',
-        fontSize: 12,
+        fontSize: require('../../../helper/scaleSize').ts(12),
         color: '#EAEAEA',
     },
     lastDone: {
         fontFamily: 'Outfit_500Medium',
-        fontSize: 12.5,
+        fontSize: require('../../../helper/scaleSize').ts(12.5),
         color: '#AEB5C0',
     },
     rightContainer: {
@@ -141,7 +141,7 @@ const styles = StyleSheet.create({
     },
     timesCompleted: {
         fontFamily: 'Outfit_700Bold',
-        fontSize: 16,
+        fontSize: require('../../../helper/scaleSize').ts(16),
         marginRight: 8,
         color: '#6FB8FF'
     },

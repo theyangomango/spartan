@@ -96,7 +96,7 @@ const styles = StyleSheet.create({
         paddingVertical: scaleSize(20),
     },
     heading: {
-        fontSize: scaleSize(13.5),
+        fontSize: require('../../../helper/scaleSize').ts(13.5),
         fontFamily: 'Poppins_600SemiBold',
         letterSpacing: 0.1,
         color: THEME.textSecondary,
@@ -117,19 +117,19 @@ const styles = StyleSheet.create({
         borderBottomColor: THEME.hairline,
     },
     label: {
-        fontSize: scaleSize(14),
+        fontSize: require('../../../helper/scaleSize').ts(14),
         color: THEME.textSecondary,
         fontFamily: 'Outfit_500Medium',
         width: '35%',
     },
     non_editable_input_text: {
-        fontSize: scaleSize(14),
+        fontSize: require('../../../helper/scaleSize').ts(14),
         color: THEME.textPrimary,
         fontFamily: 'Outfit_500Medium',
         width: '65%',
     },
     editable_input_text: {
-        fontSize: scaleSize(14),
+        fontSize: require('../../../helper/scaleSize').ts(14),
         color: THEME.textPrimary,
         fontFamily: 'Outfit_500Medium',
         width: '65%',

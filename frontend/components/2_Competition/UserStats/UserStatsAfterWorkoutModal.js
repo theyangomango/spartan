@@ -1,12 +1,11 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { Modal, View, Text, StyleSheet, Animated, Dimensions, Pressable, ActivityIndicator, Easing, Platform, UIManager } from 'react-native';
+import { ss } from '../../../helper/scaleSize';
 import FastImage from 'react-native-fast-image';
 import HexagonalStats from './HexagonalStats';
 import * as Haptics from 'expo-haptics';
 
 const { height: H, width: W } = Dimensions.get('window');
-const scale = H / 844; // iPhone 13 baseline
-const ss = (n) => Math.round(n * scale);
 
 if (Platform.OS === 'android' && UIManager.setLayoutAnimationEnabledExperimental) {
   try { UIManager.setLayoutAnimationEnabledExperimental(true); } catch {}

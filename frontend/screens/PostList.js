@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { StyleSheet, View, FlatList, Text, Image, TouchableOpacity, Pressable } from "react-native";
+import { ts } from '../helper/scaleSize';
 import { ArrowLeft2 } from 'iconsax-react-native';
 import retrievePosts from "../../backend/posts/retrievePosts";
 import ExplorePost from "../components/explore_posts_list/ExplorePost";
@@ -84,7 +85,7 @@ const styles = StyleSheet.create({
     },
     username: {
         fontWeight: "bold",
-        fontSize: 14,
+        fontSize: ts(14),
         color: "#333",
     },
     postImage: {
@@ -100,7 +101,7 @@ const styles = StyleSheet.create({
         backgroundColor: "#f5f5f5",
     },
     commentsLikesText: {
-        fontSize: 12,
+        fontSize: ts(12),
         color: "#777",
     },
 });

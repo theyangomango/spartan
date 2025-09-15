@@ -1,5 +1,6 @@
 import React, { useState, useRef } from "react";
 import { View, StyleSheet, Text, Pressable, Image, Animated, Dimensions } from "react-native";
+import scaleSize from "../../../helper/scaleSize";
 import { MaterialCommunityIcons, Entypo } from '@expo/vector-icons';
 import RNBounceable from "@freakycoder/react-native-bounceable";
 import ExerciseOptionsPanel from "../NewWorkout/Tracking/ExerciseOptionsPanel";
@@ -7,9 +8,7 @@ import TemplateSetRow from "./TemplateSetRow";
 import theme from "../../../theme/mfpDark";
 
 const { height: screenHeight } = Dimensions.get('window');
-const scale = screenHeight / 844; // Scaling factor based on iPhone 13 height
-
-const scaledSize = (size) => Math.round(size * scale);
+const scaledSize = (size) => scaleSize(size);
 
 export default function EditTemplateExerciseLog({ name, muscle, exerciseIndex, updateSets, sets, replaceExercise, deleteExercise }) {
     const [isPanelVisible, setIsPanelVisible] = useState(false);

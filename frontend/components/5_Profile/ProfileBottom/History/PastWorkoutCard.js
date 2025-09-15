@@ -1,13 +1,13 @@
 import React, { useMemo, useCallback } from "react";
 import { StyleSheet, View, Text, FlatList, Dimensions } from "react-native";
+import scaleSize from "../../../../helper/scaleSize";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { Clock } from "iconsax-react-native";
 import roundToNearestMinute from "../../../../helper/roundToNearestMinute";
 import formatTimestampToDateString from "../../../../helper/formatTimestampToDateString";
 
 const { height: screenHeight } = Dimensions.get("window");
-const scale = screenHeight / 844; // iPhone 13 baseline
-const scaledSize = (n) => Math.round(n * scale);
+const scaledSize = (n) => scaleSize(n);
 
 const COLORS = {
     card: "#FFFFFF",

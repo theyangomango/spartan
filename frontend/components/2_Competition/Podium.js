@@ -3,6 +3,7 @@ import { StyleSheet, View, Text, Animated, Easing } from "react-native";
 import { LinearGradient } from 'expo-linear-gradient';
 import FastImage from "react-native-fast-image";
 import scaleSize from "../../helper/scaleSize";
+const ts = require('../../helper/scaleSize').ts;
 import theme from '../../theme/mfpDark';
 
 // Scaled sizes (baseline ~ iPhone 12/13: 390x844)
@@ -15,8 +16,8 @@ const BAR_HEIGHT_CENTER = scaleSize(133);
 const BAR_HEIGHT_RIGHT = scaleSize(83);
 const BAR_WIDTH = scaleSize(80);
 
-const FONT_HANDLE = scaleSize(14);
-const FONT_BAR = scaleSize(27);
+const FONT_HANDLE = ts(14);
+const FONT_BAR = ts(27);
 
 const BAR_RADIUS = scaleSize(10);
 const BAR_MARGIN_H = scaleSize(13);

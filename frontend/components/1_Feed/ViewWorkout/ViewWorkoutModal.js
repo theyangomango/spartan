@@ -1,14 +1,13 @@
 import React, { useState } from 'react';
 import { Dimensions, ScrollView, StyleSheet, Text, View, Pressable } from "react-native";
+import scaleSize from '../../../helper/scaleSize';
 import { Send2, Heart } from 'iconsax-react-native';
 import ViewWorkoutExerciseLog from "./ViewWorkoutExerciseLog";
 import ProgressBanner from '../../3_Workout/NewWorkout/Tracking/ProgressBanner';
 import millisToHoursMinutesSeconds from '../../../helper/millisToHoursMinutesSeconds';
 
 const { height: screenHeight } = Dimensions.get('window');
-const scale = screenHeight / 844; // Scaling factor based on iPhone 13 height
-
-const scaledSize = (size) => Math.round(size * scale);
+const scaledSize = (size) => scaleSize(size);
 
 export default function ViewWorkoutModal({ workout }) {
     const [isLiked, setIsLiked] = useState(false); // State to track if the workout is liked

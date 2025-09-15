@@ -72,7 +72,7 @@ const styles = StyleSheet.create({
         backgroundColor: "rgba(255,255,255,0.18)",
     },
     pfp: { width: 32, height: 32, borderRadius: 18, backgroundColor: "#EEE" },
-    handle: { marginLeft: 8, color: "#fff", fontSize: 17, fontFamily: "Outfit_600SemiBold" },
+    handle: { marginLeft: 8, color: "#fff", fontSize: require('../../../helper/scaleSize').ts(17), fontFamily: "Outfit_600SemiBold" },
 
     // OG heart vibe: wider translucent pill
     likePill: {

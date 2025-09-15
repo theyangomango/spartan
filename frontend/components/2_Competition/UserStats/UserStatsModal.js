@@ -12,8 +12,7 @@ if (Platform.OS === 'android' && UIManager.setLayoutAnimationEnabledExperimental
 }
 
 const { height: screenHeight } = Dimensions.get("window");
-const scale = screenHeight / 844; // iPhone 13 baseline
-const scaledSize = (n) => Math.round(n * scale);
+const scaledSize = (n) => scaleSize(n);
 
 // Theme (dark mode for Competition context) — hook to global theme
 const THEME = require("../../../theme/mfpDark").default;

@@ -1,6 +1,7 @@
 // components/Tracking/Group/GroupHeader.jsx
 import React, { useEffect, useRef, memo } from "react";
 import { View, Text, StyleSheet, Dimensions, Pressable } from "react-native";
+import scaleSize from "../../../../helper/scaleSize";
 import * as Haptics from "expo-haptics";
 import RNBounceable from "@freakycoder/react-native-bounceable";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
@@ -9,8 +10,7 @@ import TimerDisplay from "../TimerDisplay";
 import theme from "../../../../theme/mfpDark";
 
 const { height: screenHeight } = Dimensions.get("window");
-const scale = screenHeight / 844;
-const scaledSize = (size) => Math.round(size * scale);
+const scaledSize = (size) => scaleSize(size);
 
 // Small helper so "", "  ", null, undefined are treated as no-URI
 const normalizeUri = (u) => {

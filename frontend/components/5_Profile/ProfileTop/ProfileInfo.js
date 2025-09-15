@@ -1,13 +1,12 @@
 import React from "react";
 import { StyleSheet, View, Text, Dimensions, Pressable } from "react-native";
+import scaleSize from "../../../helper/scaleSize";
 import FastImage from 'react-native-fast-image';
 import { usePfp } from "../../../helper/usePFPs";
 import theme from '../../../theme/mfpDark';
 
 const { height: screenHeight } = Dimensions.get('window');
-const scale = screenHeight / 844; // Scaling factor based on iPhone 13 height
-
-const scaledSize = (size) => Math.round(size * scale);
+const scaledSize = (size) => scaleSize(size);
 
 export default function ProfileInfo({ userData, pfp, onPressFollowers, onPressFollowing }) {
     const pfpUri = usePfp(String(userData?.uid || ''), userData?.pfpVersion || 0) || pfp || '';

@@ -4,7 +4,7 @@ import { collection, query, orderBy, limit, onSnapshot, getDocs, startAfter } fr
 import { db } from "../../../../firebase.config";
 import ButtonRow from "./ButtonRow";
 import NotificationCard from "./NotificationCard";
-import scaleSize from "../../../helper/scaleSize";
+import scaleSize, { ts } from "../../../helper/scaleSize";
 import theme from "../../../theme/mfpDark";
 
 const PAGE_SIZE = 20;
@@ -256,10 +256,10 @@ const styles = StyleSheet.create({
     sectionHeaderWrap: { paddingHorizontal: scaleSize(14), paddingTop: scaleSize(10), paddingBottom: scaleSize(6) },
     sectionHeaderText: {
         fontFamily: "Outfit_700Bold",
-        fontSize: scaleSize(12),
+        fontSize: ts(12),
         color: theme.textSecondary,
         letterSpacing: 0.3,
     },
     footerWrap: { paddingVertical: scaleSize(14), alignItems: 'center', justifyContent: 'center' },
-    footerText: { fontFamily: 'Outfit_600SemiBold', fontSize: scaleSize(12), color: theme.textSecondary },
+    footerText: { fontFamily: 'Outfit_600SemiBold', fontSize: ts(12), color: theme.textSecondary },
 });

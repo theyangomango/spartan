@@ -3,7 +3,7 @@ import React, { useState } from "react";
 import { StyleSheet, View, Text, TouchableOpacity } from "react-native";
 import { FontAwesome6, FontAwesome5 } from "@expo/vector-icons";
 import RNBounceable from "@freakycoder/react-native-bounceable";
-import scaleSize from "../../helper/scaleSize";
+import scaleSize, { ts } from "../../helper/scaleSize";
 import theme from "../../theme/mfpDark";
 
 const ACCENT = theme.primary;
@@ -161,7 +161,7 @@ const styles = StyleSheet.create({
         elevation: 2,
     },
     chipText: {
-        fontSize: scaleSize(12.5),
+        fontSize: ts(12.5),
         fontFamily: "Outfit_600SemiBold",
         color: theme.textSecondary,
     },

@@ -1,11 +1,10 @@
 import React from 'react';
 import { View, StyleSheet, Text, Dimensions } from 'react-native';
+import scaleSize from '../../../helper/scaleSize';
 import { FontAwesome5 } from '@expo/vector-icons';
 
 const { height: screenHeight } = Dimensions.get('window');
-const scale = screenHeight / 844; // Scaling factor based on iPhone 13 height
-
-const scaledSize = (size) => Math.round(size * scale);
+const scaledSize = (size) => scaleSize(size);
 
 export default function ViewWorkoutSetRow({ previousSet, set, index, isDone }) {
     const weight = set.weight;

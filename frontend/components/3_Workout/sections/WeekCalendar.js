@@ -359,7 +359,7 @@ const styles = StyleSheet.create({
         paddingHorizontal: 4,
     },
 
-    calCaption: { color: "#ECF2FA", fontSize: 12, fontFamily: "Outfit_700Bold" },
+    calCaption: { color: "#ECF2FA", fontSize: require('../../../helper/scaleSize').ts(12), fontFamily: "Outfit_700Bold" },
 
     // Jump to Today pill – harmonize with dark theme
     jumpLinkTouch: {
@@ -370,7 +370,7 @@ const styles = StyleSheet.create({
         borderWidth: StyleSheet.hairlineWidth,
         borderColor: theme.hairline,
     },
-    jumpLink: { color: theme.textPrimary, fontSize: 12, fontFamily: "Outfit_700Bold", letterSpacing: 0.2 },
+    jumpLink: { color: theme.textPrimary, fontSize: require('../../../helper/scaleSize').ts(12), fontFamily: "Outfit_700Bold", letterSpacing: 0.2 },
 
     page: { justifyContent: "center" },
     row: { flexDirection: "row", alignItems: "center" },
@@ -410,12 +410,12 @@ const styles = StyleSheet.create({
     },
     dayLetter: {
         fontFamily: "Outfit_700Bold",
-        fontSize: 9.5,
+        fontSize: require('../../../helper/scaleSize').ts(9.5),
         color: "#94A3B8",
         marginBottom: 2,
         letterSpacing: 0.3,
     },
-    dayNum: { fontFamily: "Outfit_800ExtraBold", fontSize: 15, color: "#E5E7EB" },
+    dayNum: { fontFamily: "Outfit_800ExtraBold", fontSize: require('../../../helper/scaleSize').ts(15), color: "#E5E7EB" },
     // Accented text for today
     dayLetterToday: { color: theme.accentBlue },
     dayNumToday: { color: '#FFFFFF' },

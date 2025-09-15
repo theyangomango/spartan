@@ -6,6 +6,7 @@
 
 import React from 'react';
 import { View, Text, StyleSheet, Animated } from 'react-native';
+import scaleSize from '../../../helper/scaleSize';
 import FastImage from 'react-native-fast-image';
 import { usePfp } from '../../../helper/usePFPs';
 
@@ -78,9 +79,9 @@ const PostFooterInfoPanel = ({ data, opacityAnim }) => {
 const styles = StyleSheet.create({
     container: {
         position: 'absolute',
-        bottom: 12,
-        left: 22,
-        right: 13,
+        bottom: scaleSize(12),
+        left: scaleSize(22),
+        right: scaleSize(13),
         flexDirection: 'row',
         alignItems: 'center',
     },
@@ -89,9 +90,9 @@ const styles = StyleSheet.create({
         alignItems: 'center',
     },
     profilePicture: {
-        width: 28,
+        width: scaleSize(28),
         aspectRatio: 1,
-        borderRadius: 12,
+        borderRadius: scaleSize(12),
         borderWidth: 2,
         borderColor: '#fff',
     },
@@ -99,21 +100,21 @@ const styles = StyleSheet.create({
         zIndex: 3,
     },
     profilePicture2: {
-        marginLeft: -8,
+        marginLeft: scaleSize(-8),
         zIndex: 2,
     },
     profilePicture3: {
-        marginLeft: -8,
+        marginLeft: scaleSize(-8),
         zIndex: 1,
     },
     pfpPlaceholder: {
         backgroundColor: '#EEE',
     },
     likedByText: {
-        marginLeft: 8,
+        marginLeft: scaleSize(8),
         color: '#fff',
         fontFamily: 'Poppins_700Bold',
-        fontSize: 12.5,
+        fontSize: require('../../../helper/scaleSize').ts(12.5),
         width: '85%',
     },
 });

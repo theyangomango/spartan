@@ -135,7 +135,7 @@ const styles = StyleSheet.create({
     },
     sendButtonText: {
         color: 'white',
-        fontSize: 15.5,
+        fontSize: require('../../../helper/scaleSize').ts(15.5),
         fontFamily: 'Poppins_600SemiBold'
     },
 });

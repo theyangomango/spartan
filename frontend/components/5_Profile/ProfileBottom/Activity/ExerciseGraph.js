@@ -1,13 +1,12 @@
 import React, { useState } from 'react';
 import { View, Text, Dimensions, StyleSheet } from 'react-native';
+import scaleSize from '../../../../helper/scaleSize';
 import { LineChart } from 'react-native-gifted-charts';
 import RNBounceable from '@freakycoder/react-native-bounceable';
 
 const screenWidth = Dimensions.get('window').width;
 const screenHeight = Dimensions.get('window').height;
-const scale = screenHeight / 844; // Scaling based on iPhone 13 screen height
-
-const scaledSize = (size) => Math.round(size * scale);
+const scaledSize = (size) => scaleSize(size);
 
 const ExerciseGraph = () => {
     const [selectedOption, setSelectedOption] = useState('2 Weeks');

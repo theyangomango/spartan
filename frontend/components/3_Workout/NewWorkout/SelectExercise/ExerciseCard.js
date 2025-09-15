@@ -1,12 +1,11 @@
 import React, { memo, useState } from 'react';
 import { Pressable, TouchableOpacity, StyleSheet, Text, View, Dimensions } from 'react-native';
+import scaleSize from '../../../../helper/scaleSize';
 // import { Ionicons } from '@expo/vector-icons';
 import ExerciseImagePreview from './ExerciseImagePreview';
 
 const { height: screenHeight } = Dimensions.get('window');
-const scale = screenHeight / 844; // Scaling factor based on iPhone 13 height
-
-const scaledSize = (size) => Math.round(size * scale);
+const scaledSize = (size) => scaleSize(size);
 
 const ACCENTS = ["#2D9EFF", "#F59E0B", "#10B981", "#EF4444", "#8B5CF6", "#06B6D4"]; // [blue, amber, green, red, purple, cyan]
 const MUSCLE_ACCENT = {

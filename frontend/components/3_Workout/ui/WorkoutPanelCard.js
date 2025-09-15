@@ -100,8 +100,8 @@ const styles = StyleSheet.create({
   },
   headerRow: { flexDirection: 'row', alignItems: 'center', marginBottom: 6, gap: 10 },
   rightAccessories: { flexDirection: 'row', alignItems: 'center', gap: 10 },
-  title: { fontSize: 13, fontFamily: 'Outfit_800ExtraBold', color: theme.textPrimary },
-  sub: { marginTop: 2, fontSize: 12.5, fontFamily: 'Outfit_600SemiBold', color: theme.textSecondary },
+  title: { fontSize: require('../../../helper/scaleSize').ts(13), fontFamily: 'Outfit_800ExtraBold', color: theme.textPrimary },
+  sub: { marginTop: 2, fontSize: require('../../../helper/scaleSize').ts(12.5), fontFamily: 'Outfit_600SemiBold', color: theme.textSecondary },
   divider: { height: StyleSheet.hairlineWidth, backgroundColor: theme.hairline, marginVertical: 6 },
 
   statsRow: { flexDirection: 'row', gap: 6 },
@@ -115,8 +115,8 @@ const styles = StyleSheet.create({
     backgroundColor: '#ffffff23',
     marginBottom: 6,
   },
-  statLabel: { fontFamily: 'Outfit_600SemiBold', fontSize: 11, color: theme.textSecondary },
-  statValue: { marginTop: 1, fontFamily: 'Outfit_800ExtraBold', fontSize: 13, color: theme.textPrimary },
+  statLabel: { fontFamily: 'Outfit_600SemiBold', fontSize: require('../../../helper/scaleSize').ts(11), color: theme.textSecondary },
+  statValue: { marginTop: 1, fontFamily: 'Outfit_800ExtraBold', fontSize: require('../../../helper/scaleSize').ts(13), color: theme.textPrimary },
   statTextCol: { flex: 1, minWidth: 0 },
 
   prPill: {
@@ -130,7 +130,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 8,
     borderRadius: 999,
   },
-  prText: { fontFamily: 'Outfit_800ExtraBold', fontSize: 12, color: '#FACC15' },
+  prText: { fontFamily: 'Outfit_800ExtraBold', fontSize: require('../../../helper/scaleSize').ts(12), color: '#FACC15' },
 });
 
 export default memo(WorkoutPanelCard);

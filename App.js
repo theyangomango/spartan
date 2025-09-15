@@ -10,6 +10,7 @@ import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { createStackNavigator, CardStyleInterpolators, TransitionSpecs } from '@react-navigation/stack';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { Platform, Modal, View, Text, Pressable, StyleSheet, Dimensions, Vibration, TextInput } from 'react-native';
+import { rs, ts } from './frontend/helper/scaleSize';
 import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
@@ -765,8 +766,6 @@ export default function App() {
     );
 }
 
-const restScale = Dimensions.get('window').height / 844;
-const rs = (n) => Math.round(n * restScale);
 const restStyles = StyleSheet.create({
     overlay: {
         flex: 1,
@@ -803,8 +802,8 @@ const restStyles = StyleSheet.create({
         borderWidth: 1,
         borderColor: 'rgba(45,158,255,0.45)',
     },
-    title: { fontFamily: 'Outfit_800ExtraBold', fontSize: rs(18), color: theme.textPrimary, marginTop: rs(10) },
-    body: { marginTop: rs(6), fontFamily: 'Outfit_600SemiBold', fontSize: rs(13), color: theme.textSecondary, textAlign: 'center' },
+    title: { fontFamily: 'Outfit_800ExtraBold', fontSize: ts(18), color: theme.textPrimary, marginTop: rs(10) },
+    body: { marginTop: rs(6), fontFamily: 'Outfit_600SemiBold', fontSize: ts(13), color: theme.textSecondary, textAlign: 'center' },
     row: { flexDirection: 'row', marginTop: rs(16), width: '100%', gap: rs(8) },
     btn: { flex: 1, paddingVertical: rs(11), borderRadius: rs(12), alignItems: 'center', justifyContent: 'center', flexDirection: 'row' },
     primary: {
@@ -814,5 +813,5 @@ const restStyles = StyleSheet.create({
     primaryText: { color: '#fff' },
     secondary: { backgroundColor: theme.field, borderWidth: 1, borderColor: theme.hairline },
     secondaryText: { color: theme.textPrimary },
-    btnText: { fontFamily: 'Outfit_700Bold', fontSize: rs(14) },
+    btnText: { fontFamily: 'Outfit_700Bold', fontSize: ts(14) },
 });

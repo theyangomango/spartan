@@ -1,5 +1,6 @@
 import React, { useCallback, useEffect, useState } from 'react';
 import { SafeAreaView, View, Text, StyleSheet, ScrollView, Switch, TouchableOpacity, Alert, Platform, Linking } from 'react-native';
+import { ts } from '../helper/scaleSize';
 import { Ionicons } from '@expo/vector-icons';
 import { doc, updateDoc as fsUpdateDoc } from 'firebase/firestore';
 import { db } from '../../firebase.config';
@@ -140,20 +141,20 @@ const styles = StyleSheet.create({
   root: { flex: 1, backgroundColor: theme.bg },
   header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 14, paddingTop: 8, paddingBottom: 6 },
   iconBtn: { padding: 6, width: 40 },
-  title: { fontFamily: 'Outfit_700Bold', fontSize: 18, color: theme.textPrimary },
+  title: { fontFamily: 'Outfit_700Bold', fontSize: ts(18), color: theme.textPrimary },
   content: { paddingHorizontal: 16, paddingTop: 10 },
   section: {
     marginTop: 18,
     marginBottom: 10,
     fontFamily: 'Outfit_700Bold',
-    fontSize: 16,
+    fontSize: ts(16),
     color: theme.textSecondary,
     letterSpacing: 0.3,
   },
   row: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingVertical: 12, borderBottomWidth: StyleSheet.hairlineWidth, borderColor: theme.hairline },
-  rowLabel: { fontFamily: 'Outfit_500Medium', fontSize: 14, color: theme.textPrimary },
+  rowLabel: { fontFamily: 'Outfit_500Medium', fontSize: ts(14), color: theme.textPrimary },
   link: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingVertical: 12, borderBottomWidth: StyleSheet.hairlineWidth, borderColor: theme.hairline },
-  linkText: { fontFamily: 'Outfit_500Medium', fontSize: 14, color: theme.textPrimary },
+  linkText: { fontFamily: 'Outfit_500Medium', fontSize: ts(14), color: theme.textPrimary },
   logoutBtn: { marginTop: 10, backgroundColor: 'rgba(185,28,28,0.18)', borderRadius: 12, alignItems: 'center', justifyContent: 'center', paddingVertical: 12 },
   logoutText: { fontFamily: 'Outfit_700Bold', color: '#FCA5A5' },
 });

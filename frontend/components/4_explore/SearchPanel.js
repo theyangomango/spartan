@@ -2,14 +2,14 @@
 
 import React, { useState } from 'react';
 import { StyleSheet, View, Text, FlatList, TouchableOpacity, Dimensions } from 'react-native';
+import scaleSize from '../../helper/scaleSize';
 import RNBounceable from '@freakycoder/react-native-bounceable';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { Clock } from 'iconsax-react-native';
 
 const { height: screenHeight } = Dimensions.get('window');
-const scale = screenHeight / 844; // Scaling factor based on iPhone 13 height
-
-const scaledSize = (size) => Math.round(size * scale);
+// Use centralized scale utility for consistent sizing across devices
+const scaledSize = (size) => scaleSize(size);
 
 const recentSearches = [
     'abs workouts',

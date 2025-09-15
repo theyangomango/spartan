@@ -1,11 +1,10 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { Modal, View, Text, StyleSheet, Animated, Dimensions, Pressable, ActivityIndicator, Easing } from 'react-native';
+import { ss } from '../../../helper/scaleSize';
 import * as Haptics from 'expo-haptics';
 import HexagonalStats from './HexagonalStats';
 
 const { height: H } = Dimensions.get('window');
-const scale = H / 844;
-const ss = (n) => Math.round(n * scale);
 
 function clamp01(x){ return Math.max(0, Math.min(1, x)); }
 

@@ -1,5 +1,6 @@
 import React, { memo, useEffect, useState } from "react";
 import { View, StyleSheet, Text, Pressable, Dimensions, LayoutAnimation, Platform, UIManager, Keyboard } from "react-native";
+import scaleSize from "../../../../helper/scaleSize";
 import EditableStat from "./EditableStat";
 import SetTypePanel from "./SetTypePanel";
 import { Ionicons, MaterialCommunityIcons } from "@expo/vector-icons";
@@ -8,8 +9,7 @@ import Animated, { useAnimatedStyle } from "react-native-reanimated";
 import theme from "../../../../theme/mfpDark";
 
 const { height: screenHeight } = Dimensions.get("window");
-const scale = screenHeight / 844;
-const scaledSize = (size) => Math.round(size * scale);
+const scaledSize = (size) => scaleSize(size);
 const ENABLE_LAYOUT_ANIM = false;
 
 // Enable LayoutAnimation on Android once

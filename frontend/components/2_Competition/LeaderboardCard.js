@@ -4,6 +4,7 @@ import FastImage from 'react-native-fast-image';
 import { Entypo, FontAwesome } from '@expo/vector-icons';
 import RNBounceable from '@freakycoder/react-native-bounceable';
 import scaleSize from '../../helper/scaleSize';
+const ts = require('../../helper/scaleSize').ts;
 import theme from '../../theme/mfpDark';
 
 const { width } = Dimensions.get("window");
@@ -13,11 +14,11 @@ const CARD_HEIGHT = scaleSize(64);
 const SELF_CARD_HEIGHT = scaleSize(86);
 const PFP_SIZE = scaleSize(42);
 
-const FONT_HANDLE = scaleSize(14);
-const FONT_NAME = scaleSize(13);
-const FONT_STAT = scaleSize(14);
-const FONT_RANK = scaleSize(14);
-const FONT_BEST = scaleSize(14);
+const FONT_HANDLE = ts(14);
+const FONT_NAME = ts(13);
+const FONT_STAT = ts(14);
+const FONT_RANK = ts(14);
+const FONT_BEST = ts(14);
 
 const ICON_ARROW = scaleSize(20);
 const ICON_MINUS = scaleSize(16);

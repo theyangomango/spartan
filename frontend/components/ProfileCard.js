@@ -1,5 +1,6 @@
 import React from 'react';
 import { View, Text, StyleSheet, Pressable, Dimensions } from 'react-native';
+import scaleSize from '../helper/scaleSize';
 import FastImage from 'react-native-fast-image';
 import { usePfp } from '../helper/usePFPs';
 import theme from '../theme/mfpDark';
@@ -8,20 +9,20 @@ import { LinearGradient } from 'expo-linear-gradient';
 
 const { height } = Dimensions.get('window');
 
-// Simple height-based scaler (baseline: iPhone 13 height 844)
-const scale = (size) => Math.round(size * (height / 844));
+// Centralized scaler
+const s = (n) => scaleSize(n);
 
 // Tunables via scale
 const SIZES = {
-    pfp: scale(44),
-    handleFont: scale(15),
-    nameFont: scale(12.5),
-    icon: scale(24),
-    iconFilled: scale(16),
-    paddingV: scale(10),
-    paddingL: scale(20),
-    paddingR: scale(22),
-    cardRadius: scale(12),
+    pfp: s(44),
+    handleFont: s(15),
+    nameFont: s(12.5),
+    icon: s(24),
+    iconFilled: s(16),
+    paddingV: s(10),
+    paddingL: s(20),
+    paddingR: s(22),
+    cardRadius: s(12),
     ring: 2,
 };
 
@@ -99,13 +100,13 @@ const styles = StyleSheet.create({
     },
     // selected/pressed backgrounds are applied inline to allow overrides via props
     text_ctnr: {
-        marginLeft: scale(12),
+        marginLeft: s(12),
         flex: 1,
     },
     handle_text: {
         fontFamily: 'Outfit_700Bold',
         color: theme.textPrimary,
-        marginBottom: scale(2),
+        marginBottom: s(2),
         letterSpacing: 0.2,
     },
     name_text: {

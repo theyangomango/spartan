@@ -1,5 +1,6 @@
 import React, { useCallback, useEffect, useState } from 'react';
 import { SafeAreaView, View, Text, StyleSheet, ScrollView, TouchableOpacity, Switch, Platform } from 'react-native';
+import { ts } from '../helper/scaleSize';
 import { Ionicons } from '@expo/vector-icons';
 import { doc, updateDoc as fsUpdateDoc } from 'firebase/firestore';
 import { db } from '../../firebase.config';
@@ -58,10 +59,10 @@ const styles = StyleSheet.create({
   root: { flex: 1, backgroundColor: theme.bg },
   header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 14, paddingTop: 8, paddingBottom: 6 },
   iconBtn: { padding: 6, width: 40 },
-  title: { fontFamily: 'Outfit_700Bold', fontSize: 18, color: theme.textPrimary },
+  title: { fontFamily: 'Outfit_700Bold', fontSize: ts(18), color: theme.textPrimary },
   content: { paddingHorizontal: 16, paddingTop: 10, paddingBottom: 18 },
-  p: { fontFamily: 'Outfit_400Regular', fontSize: 14, color: theme.textSecondary, lineHeight: 20, marginBottom: 6 },
-  li: { fontFamily: 'Outfit_400Regular', fontSize: 14, color: theme.textSecondary, lineHeight: 20, marginLeft: 6 },
+  p: { fontFamily: 'Outfit_400Regular', fontSize: ts(14), color: theme.textSecondary, lineHeight: ts(20), marginBottom: 6 },
+  li: { fontFamily: 'Outfit_400Regular', fontSize: ts(14), color: theme.textSecondary, lineHeight: ts(20), marginLeft: 6 },
   row: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingVertical: 14, borderTopWidth: StyleSheet.hairlineWidth, borderColor: theme.hairline, marginTop: 12 },
-  rowLabel: { fontFamily: 'Outfit_600SemiBold', fontSize: 14, color: theme.textPrimary },
+  rowLabel: { fontFamily: 'Outfit_600SemiBold', fontSize: ts(14), color: theme.textPrimary },
 });

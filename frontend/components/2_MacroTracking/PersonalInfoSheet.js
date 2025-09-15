@@ -264,11 +264,11 @@ const makeStyles = (COLORS) => {
         scrollContent: { paddingHorizontal: 18, paddingTop: 10, paddingBottom: 18 },
 
         headerRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 },
-        sheetTitle: { fontSize: 18, fontFamily: 'Outfit_700Bold', color: text },
+        sheetTitle: { fontSize: require('../../helper/scaleSize').ts(18), fontFamily: 'Outfit_700Bold', color: text },
 
         row: { flexDirection: 'row', alignItems: 'flex-start' },
 
-        inputLabel: { fontSize: 13, color: subtext, marginBottom: 6, fontFamily: 'Outfit_400Regular' },
+        inputLabel: { fontSize: require('../../helper/scaleSize').ts(13), color: subtext, marginBottom: 6, fontFamily: 'Outfit_400Regular' },
         inputBox: {
             flexDirection: 'row', alignItems: 'center',
             backgroundColor: fieldBg, borderRadius: 14,
@@ -276,7 +276,7 @@ const makeStyles = (COLORS) => {
             paddingHorizontal: 12, paddingVertical: 12,
             shadowColor: '#000', shadowOpacity: 0.05, shadowOffset: { width: 0, height: 1 }, shadowRadius: 4,
         },
-        input: { flex: 1, fontSize: 16, fontFamily: 'Outfit_400Regular', color: text, paddingVertical: 0 },
+        input: { flex: 1, fontSize: require('../../helper/scaleSize').ts(16), fontFamily: 'Outfit_400Regular', color: text, paddingVertical: 0 },
         placeholder: { color: '#BAC3D2' },
         accent: { color: accent },
         inputSuffix: { marginLeft: 8, color: subtext, fontFamily: 'Outfit_400Regular' },
@@ -284,7 +284,7 @@ const makeStyles = (COLORS) => {
         toggleRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginBottom: 8 },
         toggleButton: { paddingVertical: 8, paddingHorizontal: 14, borderRadius: 999, borderWidth: 1, borderColor: hairline, backgroundColor: card },
         toggleButtonActive: { backgroundColor: accent, borderColor: 'transparent' },
-        toggleButtonText: { fontFamily: 'Outfit_500Medium', fontSize: 14, color: text },
+        toggleButtonText: { fontFamily: 'Outfit_500Medium', fontSize: require('../../helper/scaleSize').ts(14), color: text },
         toggleButtonTextActive: { color: '#fff' },
 
         // Macro Goals “Calculate” pill (header action)
@@ -298,7 +298,7 @@ const makeStyles = (COLORS) => {
             borderWidth: 1,
             borderColor: hairline,
         },
-        smallLinkText: { fontFamily: 'Outfit_600SemiBold', fontSize: 12.5, color: text },
+        smallLinkText: { fontFamily: 'Outfit_600SemiBold', fontSize: require('../../helper/scaleSize').ts(12.5), color: text },
 
         // Full-width action row (mirrors Macro Goals autoCalcRow)
         autoCalcRow: {
@@ -325,6 +325,6 @@ const makeStyles = (COLORS) => {
             borderColor: hairline,
             marginRight: 10,
         },
-        autoCalcText: { fontFamily: 'Outfit_600SemiBold', fontSize: 13, color: text },
+        autoCalcText: { fontFamily: 'Outfit_600SemiBold', fontSize: require('../../helper/scaleSize').ts(13), color: text },
     });
 };

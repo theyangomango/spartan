@@ -55,7 +55,7 @@ const styles = StyleSheet.create({
         paddingBottom: 4
     },
     handle_text: {
-        fontSize: 13,
+        fontSize: require('../../helper/scaleSize').ts(13),
         fontFamily: 'Inter_700Bold',
     },
     right: {
@@ -73,7 +73,7 @@ const styles = StyleSheet.create({
     follow_text: {
         textAlign: 'center',
         color: 'white',
-        fontSize: 11,
+        fontSize: require('../../helper/scaleSize').ts(11),
         fontFamily: 'Lato_700Bold',
     },
     options_icon_ctnr: {

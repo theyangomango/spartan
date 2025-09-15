@@ -19,10 +19,10 @@ const MacroBar = ({ label, value, goal, color, textPrimary, textSecondary, track
                     marginTop: 4,
                 }}
             >
-                <Text style={{ fontFamily: 'Outfit_600SemiBold', color: textPrimary, fontSize: 13 }}>
+                <Text style={{ fontFamily: 'Outfit_600SemiBold', color: textPrimary, fontSize: require('../../helper/scaleSize').ts(13) }}>
                     {label}
                 </Text>
-                <Text style={{ fontFamily: 'Outfit_500Medium', color: textSecondary, fontSize: 13 }}>
+                <Text style={{ fontFamily: 'Outfit_500Medium', color: textSecondary, fontSize: require('../../helper/scaleSize').ts(13) }}>
                     {value} / {goal}g
                 </Text>
             </View>

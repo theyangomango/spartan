@@ -1,11 +1,11 @@
 import React from "react";
 import RNBounceable from "@freakycoder/react-native-bounceable";
 import { StyleSheet, View, Text, Dimensions } from "react-native";
+import scaleSize from "../../../helper/scaleSize";
 import theme from "../../../theme/mfpDark";
 
 const { height: screenHeight } = Dimensions.get("window");
-const scale = screenHeight / 844; // iPhone 13 baseline
-const scaledSize = (size) => Math.round(size * scale);
+const scaledSize = (size) => scaleSize(size);
 
 export default function ProfileRowButtons({ handleOpenEditProfile, handleOpenViewStats }) {
     return (

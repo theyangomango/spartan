@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef, useMemo } from "react";
 import { StyleSheet, View, Text, Pressable, TextInput, Animated, Dimensions, InteractionManager } from "react-native";
+import scaleSize from "../../../../helper/scaleSize";
 import { Ionicons } from '@expo/vector-icons';
 import RNBounceable from "@freakycoder/react-native-bounceable";
 import { exercises } from './EXERCISES';
@@ -12,8 +13,7 @@ const LIGHT_SURFACE = "#353942"; // ~+3-4 on surface
 const LIGHT_FIELD = "#31353d";   // ~+3-4 on field
 
 const { height: screenHeight } = Dimensions.get('window');
-const scale = screenHeight / 844; // Scaling factor based on iPhone 13 height
-const scaledSize = (size) => Math.round(size * scale);
+const scaledSize = (size) => scaleSize(size);
 
 // Body-part options and an order map to "sort accordingly"
 const BODY_PART_OPTIONS = [

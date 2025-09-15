@@ -1,5 +1,6 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { StyleSheet, Text, View, Dimensions } from "react-native";
+import scaleSize from "../../../helper/scaleSize";
 import BottomSheet, { BottomSheetBackdrop, BottomSheetFooter } from "@gorhom/bottom-sheet";
 import theme from "../../../theme/mfpDark";
 import ProfileBottomModal from "./ProfileBottomModal";
@@ -27,8 +28,7 @@ const ProfileBottomBottomSheet = ({ selectedPanel, setSelectedPanel, posts, save
 
     // Slight vertical offset so sheet sits clearly below the profile top
     const { height: screenHeight } = Dimensions.get('window');
-    const scale = screenHeight / 844;
-    const scaledSize = (size) => Math.round(size * scale);
+    const scaledSize = (size) => scaleSize(size);
 
     return (
         <BottomSheet

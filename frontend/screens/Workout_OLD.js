@@ -1,5 +1,6 @@
 import React, { useCallback, useEffect, useRef, useState } from "react";
 import { Text, StyleSheet, View, Pressable, Dimensions } from "react-native";
+import scaleSize from "../helper/scaleSize";
 import Footer from "../components/Footer";
 import StartWorkoutButton from "../components/3_Workout/StartWorkoutButton";
 import JoinWorkoutButton from "../components/3_Workout/JoinWorkoutButton";
@@ -31,8 +32,7 @@ import InviteBanner from "../components/3_Workout/InviteBanner";
 // import ParticipantsDropdown from "../components/3_Workout/ParticipantsDropdown"; // lives in modal header now
 
 const { height: screenHeight } = Dimensions.get('window');
-const scale = screenHeight / 844;
-const scaledSize = (size) => Math.round(size * scale);
+const scaledSize = (size) => scaleSize(size);
 
 function Workout({ navigation }) {
     const [workout, setWorkout] = useState(global.userData.currentWorkout);

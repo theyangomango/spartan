@@ -1,11 +1,10 @@
 import React from 'react';
 import theme from '../../../theme/mfpDark';
 import { StyleSheet, View, Text, Dimensions } from "react-native";
+import scaleSize from "../../../helper/scaleSize";
 
 const { height: screenHeight } = Dimensions.get('window');
-const scale = screenHeight / 844; // Scaling factor based on iPhone 13 height
-
-const scaledSize = (size) => Math.round(size * scale);
+const scaledSize = (size) => scaleSize(size);
 
 function formatNumber(value) {
     const number = Number.isFinite(Number(value)) ? Number(value) : 0;

@@ -395,13 +395,13 @@ const makeStyles = (COLORS) =>
             alignItems: 'center',
         },
         overlayTitle: {
-            fontSize: 18,
+            fontSize: require('../../helper/scaleSize').ts(18),
             color: COLORS.text || COLORS.textPrimary || '#E5E7EB',
             fontFamily: 'Outfit_600SemiBold',
         },
         headerActionText: {
             fontFamily: 'Outfit_600SemiBold',
-            fontSize: 14,
+            fontSize: require('../../helper/scaleSize').ts(14),
             color: '#2D92FF',
         },
 
@@ -422,7 +422,7 @@ const makeStyles = (COLORS) =>
         searchInput: {
             flex: 1,
             fontFamily: 'Outfit_400Regular',
-            fontSize: 15,
+            fontSize: require('../../helper/scaleSize').ts(15),
             color: COLORS.text || COLORS.textPrimary || '#E5E7EB',
             paddingVertical: 0,
         },
@@ -437,7 +437,7 @@ const makeStyles = (COLORS) =>
             marginTop: 8,
             marginBottom: 8,
             paddingHorizontal: 26,
-            fontSize: 14,
+            fontSize: require('../../helper/scaleSize').ts(14),
             color: COLORS.subtext || COLORS.textSecondary || '#A1A7B3',
             fontFamily: 'Outfit_600SemiBold',
         },
@@ -455,7 +455,7 @@ const makeStyles = (COLORS) =>
         },
         scannerTitle: {
             color: '#fff',
-            fontSize: 16,
+            fontSize: require('../../helper/scaleSize').ts(16),
             fontFamily: 'Outfit_600SemiBold',
         },
         scannerFooter: {
@@ -467,7 +467,7 @@ const makeStyles = (COLORS) =>
         },
         scannerHint: {
             color: 'rgba(255,255,255,0.9)',
-            fontSize: 14,
+            fontSize: require('../../helper/scaleSize').ts(14),
             paddingHorizontal: 16,
             paddingVertical: 8,
             backgroundColor: 'rgba(0,0,0,0.4)',

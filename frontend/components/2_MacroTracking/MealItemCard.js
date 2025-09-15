@@ -98,9 +98,9 @@ const makeStyles = (COLORS) =>
         cardCompact: { paddingVertical: 6 },
         row: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', minHeight: 28 },
         textCol: { flex: 1, justifyContent: 'center' },
-        name: { fontSize: 12.5, fontFamily: 'Nunito_700Bold', marginBottom: 2, flexShrink: 1, paddingRight: 20 },
-        cals: { fontSize: 14, fontFamily: 'Outfit_700Bold' },
-        summary: { fontSize: 12, fontFamily: 'Nunito_600SemiBold' },
+        name: { fontSize: require('../../helper/scaleSize').ts(12.5), fontFamily: 'Nunito_700Bold', marginBottom: 2, flexShrink: 1, paddingRight: 20 },
+        cals: { fontSize: require('../../helper/scaleSize').ts(14), fontFamily: 'Outfit_700Bold' },
+        summary: { fontSize: require('../../helper/scaleSize').ts(12), fontFamily: 'Nunito_600SemiBold' },
         actionsContainer: {
             justifyContent: 'center',
             alignItems: 'flex-end',
@@ -119,5 +119,5 @@ const makeStyles = (COLORS) =>
             flexDirection: 'row',
             backgroundColor: 'rgba(242,113,113,0.16)'
         },
-        deleteText: { color: '#F27171', fontFamily: 'Outfit_700Bold', fontSize: 12.5 },
+        deleteText: { color: '#F27171', fontFamily: 'Outfit_700Bold', fontSize: require('../../helper/scaleSize').ts(12.5) },
     });

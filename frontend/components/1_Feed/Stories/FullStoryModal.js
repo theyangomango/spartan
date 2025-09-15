@@ -286,7 +286,7 @@ const styles = StyleSheet.create({
         backgroundColor: "rgba(255,255,255,0.18)",
     },
     pfp: { width: 32, height: 32, borderRadius: 18, backgroundColor: "#EEE" },
-    handle: { marginLeft: 8, color: "#fff", fontSize: 17, fontFamily: "Outfit_600SemiBold" },
+    handle: { marginLeft: 8, color: "#fff", fontSize: require('../../../helper/scaleSize').ts(17), fontFamily: "Outfit_600SemiBold" },
 
     /* Right controls */
     headerRight: { flexDirection: "row", alignItems: "center", gap: 8 },
@@ -332,7 +332,7 @@ const styles = StyleSheet.create({
         flex: 1,
         color: "#eee",
         fontFamily: "Outfit_600SemiBold",
-        fontSize: 15,
+        fontSize: require('../../../helper/scaleSize').ts(15),
         paddingVertical: 16,
         paddingHorizontal: 12,
     },

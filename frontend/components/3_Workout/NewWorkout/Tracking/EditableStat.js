@@ -1,11 +1,10 @@
 import React, { useState, useRef } from "react";
 import { TextInput, StyleSheet, Pressable, Dimensions, Keyboard, Platform, InputAccessoryView, View, Text } from "react-native";
+import scaleSize from "../../../../helper/scaleSize";
 import theme from "../../../../theme/mfpDark";
 
 const { height: screenHeight } = Dimensions.get('window');
-const scale = screenHeight / 844; // Scaling factor based on iPhone 13 height
-
-const scaledSize = (size) => Math.round(size * scale);
+const scaledSize = (size) => scaleSize(size);
 
 export default function EditableStat({ placeholder = '0', isFinished, value, setValue, onFocus }) {
     const [isSelected, setIsSelected] = useState(false);

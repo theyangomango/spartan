@@ -160,7 +160,7 @@ const styles = StyleSheet.create({
     paddingVertical: 8,
     borderRadius: 12,
   },
-  headerBtnText: { color: '#fff', marginLeft: 6, fontSize: 14 },
+  headerBtnText: { color: '#fff', marginLeft: 6, fontSize: require('../../../helper/scaleSize').ts(14) },
   center: { flex: 1, justifyContent: 'center', alignItems: 'center' },
   cropBox: {
     position: 'absolute',

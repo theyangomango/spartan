@@ -1,5 +1,6 @@
 import React, { memo } from "react";
 import { StyleSheet, View, Pressable, Dimensions } from "react-native";
+import scaleSize from "../../../helper/scaleSize";
 import { Grid2, Clock } from 'iconsax-react-native';
 import Svg, { Path } from "react-native-svg";
 import PostsSection from "./Posts/PostsSection";
@@ -7,9 +8,7 @@ import HistorySection from "./History/HistorySection";
 import SavedSection from "./Saved/SavedSection";
 
 const { height: screenHeight } = Dimensions.get('window');
-const scale = screenHeight / 844; // Scaling factor based on iPhone 13 height
-
-const scaledSize = (size) => Math.round(size * scale);
+const scaledSize = (size) => scaleSize(size);
 
 const ProfileBottomModal = ({ selectedPanel, setSelectedPanel, posts, savedPosts, completedWorkouts, isBottomSheetExpanded, onOpenWorkout }) => {
     return (
