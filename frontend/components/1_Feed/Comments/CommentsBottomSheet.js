@@ -14,7 +14,7 @@ import scaleSize from "../../../helper/scaleSize";
 const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('screen');
 const dynamicStyles = getCommentsBottomSheetStyles(SCREEN_WIDTH, SCREEN_HEIGHT);
 
-const CommentsBottomSheet = ({ isVisible, postData, commentsBottomSheetExpandFlag, toViewProfile, collapseSignal, reopenSignal, interactiveProgress, interactiveScale = 0.85 }) => {
+const CommentsBottomSheet = ({ isVisible, postData, commentsBottomSheetExpandFlag, toViewProfile, collapseSignal, reopenSignal, interactiveProgress, interactiveScale = 0.85, openPositionPx }) => {
     const [isInputFocused, setIsInputFocused] = useState(false);
     const bottomSheetRef = useRef(null);
     const footerTranslateY = useRef(new Animated.Value(0)).current; // moves when input focuses
@@ -115,7 +115,8 @@ const CommentsBottomSheet = ({ isVisible, postData, commentsBottomSheetExpandFla
         if (isVisible && hasPost && containerReady) {
             // Force baseline at 0px from bottom, then animate to exact openPx via snapToPosition.
             const h = containerHRef.current || (SCREEN_HEIGHT - scaleSize(85));
-            const openPx = 0.345 * h; // matches first snap point
+            const desired = typeof openPositionPx === 'number' ? openPositionPx : (0.345 * h);
+            const openPx = Math.max(0, Math.min(h, desired));
             try { bottomSheetRef.current?.snapToPosition?.(0, { duration: 0 }); } catch {}
             const open = () => { try { bottomSheetRef.current?.snapToPosition?.(openPx); } catch {} };
             // Small delay ensures layout is measured and the 0px baseline is honored
@@ -132,7 +133,7 @@ const CommentsBottomSheet = ({ isVisible, postData, commentsBottomSheetExpandFla
             bottomSheetRef.current?.close();
             Animated.timing(footerOpacity, { toValue: 0, duration: 120, useNativeDriver: true }).start();
         }
-    }, [isVisible, postPid, containerReady]);
+    }, [isVisible, postPid, containerReady, openPositionPx]);
 
     // Emit a small open signal after the sheet has animated in
     useEffect(() => {
@@ -160,9 +161,10 @@ const CommentsBottomSheet = ({ isVisible, postData, commentsBottomSheetExpandFla
         if (!isVisible || !postPid) return;
         if (interactiveProgress == null) return;
         const progress = Math.max(0, Math.min(1, interactiveProgress || 0));
-        // Target position in px from bottom: 34.5% at rest -> 0 when fully closed
+        // Target position in px from bottom: openPositionPx at rest -> 0 when fully closed
         const h = containerHRef.current || (SCREEN_HEIGHT - scaleSize(85));
-        const openPx = 0.345 * h; // matches snapPoints[0]
+        const desired = typeof openPositionPx === 'number' ? openPositionPx : (0.345 * h);
+        const openPx = Math.max(0, Math.min(h, desired));
         const slow = Math.max(0, Math.min(1, interactiveScale));
         const pSlow = Math.min(1, progress * slow); // slower than finger based on provided scale
         const pos = Math.max(0, openPx * (1 - pSlow));
@@ -170,7 +172,7 @@ const CommentsBottomSheet = ({ isVisible, postData, commentsBottomSheetExpandFla
         // Fade and slide the input footer down in sync with slowed progress
         try { footerOpacity.setValue(1 - pSlow); } catch {}
         try { footerDragY.setValue(pSlow * 120); } catch {}
-    }, [interactiveProgress, isVisible, postPid, interactiveScale]);
+    }, [interactiveProgress, isVisible, postPid, interactiveScale, openPositionPx]);
 
     // Expand the bottom sheet when flagged
     useEffect(() => {
@@ -194,7 +196,17 @@ const CommentsBottomSheet = ({ isVisible, postData, commentsBottomSheetExpandFla
     // Handle sheet index change (defensively guard against stray event objects)
     const handleSheetIndexChange = useCallback((idx) => {
         const index = typeof idx === 'number' ? idx : -1;
-        setIsSheetExpanded(index === 1);
+        try {
+            // Decouple from the dispatch tick of any press/gesture by scheduling to next frame
+            requestAnimationFrame(() => setIsSheetExpanded(index === 1));
+        } catch {
+            setIsSheetExpanded(index === 1);
+        }
+    }, []);
+
+    // Assume baseline container height and mark ready on mount to avoid relying on layout events
+    useEffect(() => {
+        try { requestAnimationFrame(() => setContainerReady(true)); } catch { setContainerReady(true); }
     }, []);
 
     return (
@@ -202,18 +214,6 @@ const CommentsBottomSheet = ({ isVisible, postData, commentsBottomSheetExpandFla
             style={styles.container}
             behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
             pointerEvents='box-none'
-            onLayout={(e) => {
-                // Persist to avoid any SyntheticEvent pooling warnings and copy what we need immediately
-                try { e?.persist?.(); } catch {}
-                try {
-                    const { height = (SCREEN_HEIGHT - scaleSize(85)) } = e?.nativeEvent?.layout || {};
-                    const h = height || (SCREEN_HEIGHT - scaleSize(85));
-                    if (Math.abs(h - (containerHRef.current || 0)) > 1) {
-                        containerHRef.current = h;
-                    }
-                    setContainerReady(true);
-                } catch { setContainerReady(true); }
-            }}
         >
             <BottomSheet
                 ref={bottomSheetRef}

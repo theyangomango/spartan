@@ -106,6 +106,7 @@ function Post({
     const opacity = useRef(new Animated.Value(1)).current;
     const highlightOpacity = useRef(new Animated.Value(0)).current;
     const swipeFlashOpacity = useRef(new Animated.Value(0)).current;
+    const headerOpacity = useRef(new Animated.Value(1)).current;
     const scale = useRef(new Animated.Value(1)).current;
     const viewRef = useRef(null);
     const flatListRef = useRef(null);
@@ -159,14 +160,14 @@ function Post({
     // While interactively unfocusing (pan), blend everyone back to 1 via unfocusProgressSV.
     // Reanimated opacity blend: hides non-focused posts during focus and blends back on unfocus drag
     const wrapperOpacityStyle = useAnimatedStyle(() => {
-        if (!(isSomePostFocused && !isUnfocusing)) {
-            return { opacity: 1 };
-        }
+        // While any post is focused, fade non-focused posts in proportion to the
+        // interactive unfocus progress (0..1). Keep the focused post fully opaque.
+        if (!isSomePostFocused) return { opacity: 1 };
         const base = isFocused ? 1 : 0;
         const p = unfocusProgressSV?.value ?? 0;
         const blended = base + p * (1 - base);
         return { opacity: blended };
-    }, [isFocused, isSomePostFocused, isUnfocusing]);
+    }, [isFocused, isSomePostFocused]);
 
     // Memo styles
     const [containerStyle, imageStyle] = useMemo(() => {
@@ -179,6 +180,17 @@ function Post({
                 : undefined;
 
         return [[styles.gallery, clipStyle], [styles.image, clipStyle]];
+    }, [isFocused, isSomePostFocused]);
+
+    // Soften header appearance when focusing a post to avoid a brief flash
+    useEffect(() => {
+        try { headerOpacity.stopAnimation?.(); } catch {}
+        if (isFocused && isSomePostFocused) {
+            headerOpacity.setValue(0);
+            Animated.timing(headerOpacity, { toValue: 1, duration: 120, useNativeDriver: true }).start();
+        } else {
+            headerOpacity.setValue(1);
+        }
     }, [isFocused, isSomePostFocused]);
 
     // Flash highlight when this post matches target pid and signal updates
@@ -506,15 +518,17 @@ function Post({
                     />
                 </View>
 
-                <PostHeader
-                    data={data}
-                    url={pfp}
-                    position={currentIndex}
-                    totalImages={mediaList.length}
-                    toViewProfile={() => toViewProfile(index)}
-                    openViewWorkout={() => openViewWorkoutModal(index)}
-                    isLightHeader={isLightHeader}
-                />
+                <Animated.View pointerEvents="box-none" style={[StyleSheet.absoluteFill, { opacity: headerOpacity }] }>
+                    <PostHeader
+                        data={data}
+                        url={pfp}
+                        position={currentIndex}
+                        totalImages={mediaList.length}
+                        toViewProfile={() => toViewProfile(index)}
+                        openViewWorkout={() => openViewWorkoutModal(index)}
+                        isLightHeader={isLightHeader}
+                    />
+                </Animated.View>
                 <PostFooter
                     data={data}
                     image={pfp}

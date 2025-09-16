@@ -367,18 +367,23 @@ export default function UserStatsModal({ user, toViewProfile, hexOverlay, hexPro
                                                 {/* Row: icon + name + 1RM pill */}
                                                 <View style={styles.exerciseHeader}>
                                                     <View style={styles.nameRow}>
-                                                        <View style={[styles.iconCircle, { backgroundColor: rgba(ACC, 0.18) }]}>
+                                                        <View style={[styles.iconCircle, { backgroundColor: rgba(ACC, 0.16), borderColor: rgba(ACC, 0.45) }]}>
                                                             <MaterialCommunityIcons name="dumbbell" size={scaledSize(13)} color={ACC} />
                                                         </View>
                                                         <Text numberOfLines={1} style={styles.exerciseName}>{name}</Text>
                                                     </View>
-                                                    {!!oneRM && oneRM > 0 && (
-                                                        <View style={[styles.oneRMPill, { borderColor: rgba(ACC, 0.5), backgroundColor: rgba(ACC, 0.16) }]}>
-                                                            <Text style={styles.oneRMLabel}>1RM (Adj)</Text>
-                                                            <Text style={[styles.oneRMValue, { color: ACC }]}>{oneRM}</Text>
-                                                        </View>
-                                                    )}
+                                                    <View style={styles.headerRight}>
+                                                        {!!oneRM && oneRM > 0 && (
+                                                            <View style={[styles.oneRMPill, { borderColor: rgba(ACC, 0.5), backgroundColor: rgba(ACC, 0.16) }]}>
+                                                                <Text style={styles.oneRMLabel}>1RM (Adj)</Text>
+                                                                <Text style={[styles.oneRMValue, { color: ACC }]}>{oneRM}</Text>
+                                                            </View>
+                                                        )}
+                                                        <MaterialCommunityIcons name="chevron-right" size={scaledSize(18)} color={COLORS.subtext} />
+                                                    </View>
                                                 </View>
+
+                                                <View style={styles.divider} />
 
                                                 {/* Stat row: 3 compact columns with icons */}
                                                 <View style={styles.metaRow}>
@@ -703,7 +708,7 @@ const styles = StyleSheet.create({
         borderBottomLeftRadius: scaleSize(scaledSize(16)),
     },
 
-    exerciseHeader: { flexDirection: "row", alignItems: "center", marginBottom: scaleSize(scaledSize(10)) },
+    exerciseHeader: { flexDirection: "row", alignItems: "center", marginBottom: scaleSize(scaledSize(8)) },
     nameRow: {
         flexDirection: "row",
         alignItems: "center",
@@ -711,20 +716,24 @@ const styles = StyleSheet.create({
         minWidth: 0,
     },
     iconCircle: {
-        width: scaleSize(scaledSize(24)),
-        height: scaleSize(scaledSize(24)),
-        borderRadius: scaleSize(scaledSize(12)),
+        width: scaleSize(scaledSize(26)),
+        height: scaleSize(scaledSize(26)),
+        borderRadius: scaleSize(scaledSize(13)),
         alignItems: "center",
         justifyContent: "center",
         marginRight: scaleSize(scaledSize(8)),
         backgroundColor: '#ffffff22',
+        borderWidth: StyleSheet.hairlineWidth,
     },
     exerciseName: {
         flex: 1,
-        fontSize: scaleSize(13), // slightly larger for readability
-        fontFamily: "Outfit_600SemiBold",
+        fontSize: scaleSize(13.5),
+        fontFamily: "Outfit_800ExtraBold",
         color: COLORS.text,
     },
+    headerRight: { flexDirection: 'row', alignItems: 'center', gap: scaleSize(scaledSize(8)) },
+
+    divider: { height: StyleSheet.hairlineWidth, backgroundColor: COLORS.hairline, marginVertical: scaleSize(scaledSize(8)) },
 
     oneRMPill: {
         flexDirection: "row",
@@ -753,22 +762,22 @@ const styles = StyleSheet.create({
     metaCell: { paddingVertical: scaleSize(scaledSize(5)) },
     metaCellRow: { flexDirection: 'row', alignItems: 'center' },
     metaIconWrapLeft: {
-        width: scaleSize(scaledSize(26)),
-        height: scaleSize(scaledSize(26)),
-        borderRadius: scaleSize(scaledSize(13)),
+        width: scaleSize(scaledSize(30)),
+        height: scaleSize(scaledSize(30)),
+        borderRadius: scaleSize(scaledSize(15)),
         alignItems: 'center',
         justifyContent: 'center',
         marginRight: scaleSize(scaledSize(8)),
-        backgroundColor: '#ffffff2e',
+        backgroundColor: '#ffffff23',
     },
     metaTextCol: { flex: 1, minWidth: 0 },
     metaLabel: {
-        fontSize: scaleSize(10.5),
-        fontFamily: "Outfit_500Medium",
+        fontSize: scaleSize(11),
+        fontFamily: "Outfit_600SemiBold",
         color: COLORS.subtext,
         letterSpacing: 0.3,
     },
-    metaValue: { fontSize: scaleSize(13.5), lineHeight: scaleSize(scaledSize(16)), fontFamily: "Outfit_800ExtraBold", color: COLORS.text, marginTop: scaleSize(scaledSize(1)) },
+    metaValue: { fontSize: scaleSize(13), lineHeight: scaleSize(scaledSize(16)), fontFamily: "Outfit_800ExtraBold", color: COLORS.text, marginTop: scaleSize(scaledSize(1)) },
 
     // Detail overlay
     detailOverlay: {

@@ -105,7 +105,7 @@ const styles = StyleSheet.create({
         paddingLeft: scaleSize(wScale(20)),
         width: '100%',
         paddingVertical: scaleSize(wScale(12)),
-        backgroundColor: THEME.bg
+        backgroundColor: THEME.fieldDeep
     },
     inputContainer: {
         flexDirection: 'row',

@@ -212,6 +212,16 @@ export default function MacroTracking({ navigation, route }) {
         setFocusedDate(d);
     };
 
+    const jumpToToday = () => {
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+        try {
+            const uidX = global?.userData?.uid || global?.userData?.id;
+            if (uidX) primeFoodLogsCache(uidX, today, 7);
+        } catch {}
+        setFocusedDate(today);
+    };
+
     // Search is now fully managed inside FoodSearchOverlay
 
     // When opening the sheet, seed empty fields from the latest macroGoals
@@ -315,7 +325,7 @@ export default function MacroTracking({ navigation, route }) {
             <View style={{ flex: 1 }}>
                 <StatusBar barStyle="light-content" backgroundColor={COLORS.bg} />
                 {/* Header */}
-                <DateHeader title={formatDate(focusedDate)} onPrev={() => shiftDate(-1)} onNext={() => shiftDate(1)} COLORS={COLORS} />
+                <DateHeader title={formatDate(focusedDate)} onPrev={() => shiftDate(-1)} onNext={() => shiftDate(1)} onTitlePress={jumpToToday} COLORS={COLORS} />
 
                 {/* Body */}
                 <ScrollView

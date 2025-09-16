@@ -54,6 +54,16 @@ export default function SinglePostModal({ visible, post, onClose, onOpenWorkout 
     const sheetKeyRef = useRef(0);
     const openTimer = useRef(null);
 
+    // Compute exact open position for the comments sheet so its top matches
+    // the bottom of the focused post, regardless of device.
+    const POST_AR = 0.8; // keep in sync with Post.js AR
+    const containerTop = scaleSize(85); // must match CommentsBottomSheet styles.container.top
+    const postTop = scaleSize(TARGET_Y - 15 + FOCUS_EXTRA_DROP);
+    const postHeight = scaleSize(SW / POST_AR);
+    const postBottomY = postTop + postHeight;
+    const containerHeight = SH - containerTop;
+    const openPositionPx = Math.max(0, Math.min(containerHeight, containerHeight - (postBottomY - containerTop)));
+
     useEffect(() => {
         // cleanup any pending timers on unmount or visibility flip
         return () => {
@@ -75,14 +85,20 @@ export default function SinglePostModal({ visible, post, onClose, onOpenWorkout 
             // force remount so the sheet's internal useEffect runs fresh
             sheetKeyRef.current += 1;
             setCommentsExpandFlag(false);
-            setMountCommentsSheet(true);
+            setMountCommentsSheet(false); // mount a bit later to avoid jank
             setSheetVisible(false);
 
-            // show the sheet almost immediately so its animation lines up with fade
+            // Mount + show the sheet shortly after fade starts to reduce jank
             if (openTimer.current) clearTimeout(openTimer.current);
             openTimer.current = setTimeout(() => {
-                requestAnimationFrame(() => setSheetVisible(true)); // triggers snapToIndex(0) inside the sheet
-            }, 20);
+                try {
+                    setMountCommentsSheet(true);
+                    requestAnimationFrame(() => setSheetVisible(true)); // triggers snapToIndex(0) inside the sheet
+                } catch {
+                    setMountCommentsSheet(true);
+                    setSheetVisible(true);
+                }
+            }, Math.max(60, Math.floor(FADE_DUR * 0.6))); // ~60-100ms
         } else {
             // If parent forces invisible, just clear timers
             if (openTimer.current) {
@@ -297,7 +313,7 @@ export default function SinglePostModal({ visible, post, onClose, onOpenWorkout 
             {mountCommentsSheet && (
                 <CommentsBottomSheet
                     key={`comments-${sheetKeyRef.current}-${post?.pid ?? "x"}`}
-                    isVisible={sheetVisible}                    // flips true after fade -> sheet snaps to 35.5%
+                    isVisible={sheetVisible}                    // flips true after fade -> sheet snaps to computed px
                     postData={post}
                     commentsBottomSheetExpandFlag={commentsExpandFlag} // toggle -> expand to 92%
                     toViewProfile={() => { }}
@@ -305,6 +321,7 @@ export default function SinglePostModal({ visible, post, onClose, onOpenWorkout 
                     reopenSignal={reopenSignal}
                     interactiveProgress={dragProgress}
                     interactiveScale={0.6}
+                    openPositionPx={openPositionPx}
                 />
             )}
             <ShareBottomSheet

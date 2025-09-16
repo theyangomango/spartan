@@ -489,10 +489,10 @@ export default function Feed({ navigation, route }) {
         if (closingViaPanRef.current) {
             try {
                 const off = scrollOffsetY.current || 0;
-                const V_now = Math.max(0, visibleHeaderHRef.current || 0);
-                const V_after = Math.max(0, headerHeightRef.current || V_now);
                 const T = translateYValueRef.current || 0; // current transform (negative = lifted up)
-                const newOff = Math.max(0, off + (V_after - V_now - T));
+                // Adjust only for the transform immediately to avoid an initial jump.
+                // Header reveal runs via animation; we keep the visual steady without pre-applying its delta.
+                const newOff = Math.max(0, off - T);
                 flatListRef.current?.scrollToOffset?.({ offset: newOff, animated: false });
                 scrollOffsetY.current = newOff;
                 // Immediately reset transform to baseline; offset keeps visual position steady
@@ -570,9 +570,11 @@ export default function Feed({ navigation, route }) {
         }
     }, []);
 
-    const handleUnfocusPanEndCloseJS = useCallback((yAtEnd) => {
+    const handleUnfocusPanEndCloseJS = useCallback((yAtEnd, progressAtEnd) => {
         try { closingViaPanRef.current = true; } catch {}
         try { translateYValueRef.current = yAtEnd; } catch {}
+        // Capture precise final progress for accurate header delta during offset adjustment
+        try { panProgressRef.current = (typeof progressAtEnd === 'number') ? Math.max(0, Math.min(1, progressAtEnd)) : (panProgressRef.current || 0); } catch {}
         try { Haptics.impactAsync?.(Haptics.ImpactFeedbackStyle.Heavy).catch(() => { }); } catch {}
         try { requestUnfocus(); } catch {}
     }, [requestUnfocus]);
@@ -648,8 +650,9 @@ export default function Feed({ navigation, route }) {
                     const baseY = focusTranslateTargetSV.value || 0;
                     const progress = Math.max(0, Math.min(1, (-dy) / FULL_GESTURE_PX));
                     const y = baseY - progress * EXTRA_UP_PX;
-                    try { unfocusProgressSV.value = 1; } catch {}
-                    runOnJS(handleUnfocusPanEndCloseJS)(y);
+                    // Continue fading other posts on release to avoid a pop-in
+                    try { unfocusProgressSV.value = withTiming(1, { duration: 200, easing: ReEasing.out(ReEasing.cubic) }); } catch {}
+                    runOnJS(handleUnfocusPanEndCloseJS)(y, progress);
                 } else {
                     // Revert interactive changes back to focused state
                     translateYSV.value = withTiming(focusTranslateTargetSV.value || 0, { duration: 180, easing: ReEasing.out(ReEasing.cubic) });
@@ -1004,8 +1007,14 @@ export default function Feed({ navigation, route }) {
                 const isAdj = Math.abs(focusedIndexState - index) === 1;
                 const isAboveAdjacent = isAdj && index < focusedIndexState;
                 const basePad = width / CARD_AR;
-                const minPad = 33;
-                const dynamicPad = unfocusing ? minPad : basePad;
+                // Keep padding stable during unfocus to avoid layout thrash/jitter
+                // When the focused card is closing via an upward pan, abruptly shrinking
+                // padding here reflows the list at the exact moment we also adjust
+                // the FlatList offset, causing a visible jitter. Keep the larger
+                // padding until the unfocus animation completes (when the card is
+                // no longer rendered as focused), at which point non-focused rows
+                // naturally use the smaller default padding.
+                const dynamicPad = basePad;
                 return (
                     <Reanimated.View style={[
                         styles.postWrapper,
@@ -1041,7 +1050,8 @@ export default function Feed({ navigation, route }) {
                     <Post
                         {...commonProps}
                         isFocused={false}
-                        isSomePostFocused={false}
+                        // Keep global focus context true so opacity can blend with unfocus progress
+                        isSomePostFocused={true}
                         isAdjacentToFocused={false}
                         highlightPid={highlightPidRef.current}
                         highlightSignal={highlightSignal}

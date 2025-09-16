@@ -13,7 +13,11 @@ const ProfileBottomBottomSheet = ({ selectedPanel, setSelectedPanel, posts, save
 
     const handleSheetChanges = useCallback((idx) => {
         const index = typeof idx === 'number' ? idx : -1;
-        setIsBottomSheetExpanded(index === 1);
+        try {
+            requestAnimationFrame(() => setIsBottomSheetExpanded(index === 1));
+        } catch {
+            setIsBottomSheetExpanded(index === 1);
+        }
     }, []);
 
     const renderBackdrop = useCallback(
