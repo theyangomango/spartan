@@ -12,6 +12,7 @@ import {
 } from "react-native";
 import { PanResponder } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import getScrollTargetPosition from "../../../../helper/getScrollTargetPosition";
 import { getFeedHeaderStyles } from "../../../../helper/getFeedHeaderStyles";
@@ -27,10 +28,12 @@ const TARGET_Y = getScrollTargetPosition(SW, SH);
 const dyn = getFeedHeaderStyles(SW, SH);
 
 const FADE_DUR = 160;
+const FADE_EASE_POWER = 3; // >1 keeps the backdrop darker longer during drag
 const SHEET_CLOSE_DUR = 280; // approximate BottomSheet close duration
 const FOCUS_EXTRA_DROP = 12; // sit slightly lower
 
 export default function SinglePostModal({ visible, post, onClose, onOpenWorkout }) {
+    const insets = useSafeAreaInsets();
     const fade = useRef(new Animated.Value(0)).current;
     const isClosingRef = useRef(false);
     const dragProgressRef = useRef(0); // 0..1 during interactive upward pan
@@ -38,6 +41,8 @@ export default function SinglePostModal({ visible, post, onClose, onOpenWorkout 
     const [collapseSignal, setCollapseSignal] = useState(0);
     const [reopenSignal, setReopenSignal] = useState(0);
     const slideY = useRef(new Animated.Value(0)).current; // negative -> slide up
+    const stageFade = useRef(new Animated.Value(0)).current; // fades the focused post in
+    const STAGE_FADE_DUR = 260;
 
     // ❤️ double-tap like burst
     const heartScale = useRef(new Animated.Value(0)).current;
@@ -81,6 +86,9 @@ export default function SinglePostModal({ visible, post, onClose, onOpenWorkout 
             fade.setValue(0);
             slideY.setValue(0);
             Animated.timing(fade, { toValue: 1, duration: FADE_DUR, useNativeDriver: true }).start();
+            // fade in the focused post content more noticeably
+            stageFade.setValue(0);
+            Animated.timing(stageFade, { toValue: 1, duration: STAGE_FADE_DUR, easing: Easing.out(Easing.cubic), useNativeDriver: true }).start();
 
             // force remount so the sheet's internal useEffect runs fresh
             sheetKeyRef.current += 1;
@@ -195,8 +203,8 @@ export default function SinglePostModal({ visible, post, onClose, onOpenWorkout 
                 const progress = clamp01((-g.dy) / FULL_GESTURE_PX);
                 dragProgressRef.current = progress;
                 try { setDragProgress(progress); } catch {}
-                // fade backdrop/topbar proportionally to progress
-                try { fade.setValue(1 - progress); } catch {}
+                // Fade backdrop/topbar with an eased curve (more gradual early on)
+                try { fade.setValue(1 - Math.pow(progress, FADE_EASE_POWER)); } catch {}
                 // slide following the finger but slightly slower
                 try {
                     const raw = g.dy * 0.6; // slower than finger (60%)
@@ -248,14 +256,24 @@ export default function SinglePostModal({ visible, post, onClose, onOpenWorkout 
         >
             {/* Dim backdrop (non-interactive) */}
             <Animated.View pointerEvents="none" style={[styles.backdrop, { opacity: fade }]} />
-            {/* Top bar — ONLY way to close */}
-            <Animated.View pointerEvents="box-none" style={[styles.topBar, { opacity: fade }] }>
+            {/* Top bar — ONLY way to close (positioned to match Profile/ViewProfile headers) */}
+            <Animated.View
+                pointerEvents="box-none"
+                style={[
+                    styles.topBar,
+                    {
+                        paddingTop: insets.top + scaleSize(6), // match header padding
+                        paddingHorizontal: scaleSize(22),       // match header horizontal inset
+                        opacity: fade,
+                    },
+                ]}
+            >
                 <TouchableOpacity onPress={close} style={styles.backBtn} activeOpacity={0.8}>
                     <Ionicons name="chevron-back" size={dyn.iconSize} color="#fff" />
                 </TouchableOpacity>
             </Animated.View>
             {/* Focused post (slightly lower). Slides up when unfocusing */}
-            <Animated.View style={[styles.stage, { transform: [{ translateY: slideY }] }]} {...panHandlers.panHandlers}>
+            <Animated.View style={[styles.stage, { opacity: stageFade, transform: [{ translateY: slideY }] }]} {...panHandlers.panHandlers}>
                 <View style={[styles.focusSlot, { top: scaleSize(TARGET_Y - 15 + FOCUS_EXTRA_DROP) }]}>
                     <TouchableWithoutFeedback onPress={onMediaTap}>
                         <View>
@@ -343,8 +361,8 @@ export default function SinglePostModal({ visible, post, onClose, onOpenWorkout 
 }
 
 const styles = StyleSheet.create({
-    backdrop: { ...StyleSheet.absoluteFillObject, backgroundColor: "rgba(0,0,0,0.45)" },
-    topBar: { position: "absolute", top: 0, left: 0, right: 0, paddingTop: scaleSize(40), paddingHorizontal: scaleSize(14), zIndex: 100 },
+    backdrop: { ...StyleSheet.absoluteFillObject, backgroundColor: "rgba(0,0,0,0.75)" },
+    topBar: { position: "absolute", top: -scaleSize(6), left: 0, right: 0, paddingTop: scaleSize(40), paddingHorizontal: scaleSize(14), zIndex: 100 },
     backBtn: {
         width: scaleSize(44), height: scaleSize(44), borderRadius: scaleSize(22),
         alignItems: "center", justifyContent: "center",
