@@ -156,18 +156,8 @@ function Post({
         setHearts((prev) => [...prev, ...newHearts]);
     }, []);
 
-    // Fade behavior: when focusing, keep focused=1, neighbors faded, others hidden.
-    // While interactively unfocusing (pan), blend everyone back to 1 via unfocusProgressSV.
-    // Reanimated opacity blend: hides non-focused posts during focus and blends back on unfocus drag
-    const wrapperOpacityStyle = useAnimatedStyle(() => {
-        // While any post is focused, fade non-focused posts in proportion to the
-        // interactive unfocus progress (0..1). Keep the focused post fully opaque.
-        if (!isSomePostFocused) return { opacity: 1 };
-        const base = isFocused ? 1 : 0;
-        const p = unfocusProgressSV?.value ?? 0;
-        const blended = base + p * (1 - base);
-        return { opacity: blended };
-    }, [isFocused, isSomePostFocused]);
+    // Opacity is controlled by Feed row container to ensure consistent fade
+    const wrapperOpacityStyle = useAnimatedStyle(() => ({ opacity: 1 }));
 
     // Memo styles
     const [containerStyle, imageStyle] = useMemo(() => {

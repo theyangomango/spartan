@@ -1,5 +1,8 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
-import { StyleSheet, View, Text, ScrollView, Pressable, Dimensions, UIManager, Platform, LayoutAnimation, InteractionManager, ActivityIndicator, Animated, FlatList } from "react-native";
+import { StyleSheet, View, Text, ScrollView, Pressable, Dimensions, UIManager, Platform, LayoutAnimation, InteractionManager, ActivityIndicator, Animated, FlatList, SectionList } from "react-native";
+import NewWorkoutModal from "../../3_Workout/NewWorkout/NewWorkoutModal";
+import { getDoc, doc } from "firebase/firestore";
+import { db } from "../../../../firebase.config";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import FastImage from "react-native-fast-image";
 import HexagonalStats from "./HexagonalStats";
@@ -155,6 +158,35 @@ const formatJoinDate = (raw) => {
     return `Joined ${months[date.getMonth()]} ${date.getDate()}, ${date.getFullYear()}`;
 };
 
+// Format any date-ish input into M/D/YY (no leading zeros). Fallback to raw string.
+const dateLabelFromRaw = (raw) => {
+    if (!raw) return '';
+    const fmt = (y, m, d) => `${m}/${d}/${String(y).slice(-2)}`;
+    if (typeof raw === 'string') {
+        const m = raw.match(/^(\d{4})-(\d{1,2})-(\d{1,2})$/);
+        if (m) {
+            const y = Number(m[1]);
+            const mo = Number(m[2]);
+            const da = Number(m[3]);
+            if (y && mo && da) return fmt(y, mo, da);
+        }
+        const d2 = new Date(raw);
+        if (!isNaN(d2)) return fmt(d2.getFullYear(), d2.getMonth() + 1, d2.getDate());
+        return String(raw);
+    }
+    if (typeof raw === 'number') {
+        const d2 = new Date(raw);
+        if (!isNaN(d2)) return fmt(d2.getFullYear(), d2.getMonth() + 1, d2.getDate());
+        return '';
+    }
+    if (typeof raw === 'object' && Number.isFinite(raw.seconds)) {
+        const d2 = new Date(raw.seconds * 1000);
+        if (!isNaN(d2)) return fmt(d2.getFullYear(), d2.getMonth() + 1, d2.getDate());
+        return '';
+    }
+    return '';
+};
+
 // Accent utilities (light touch of personality per exercise)
 const ACCENTS = ["#2D9EFF", "#F59E0B", "#10B981", "#EF4444", "#8B5CF6", "#06B6D4"];
 const pickAccent = (name = "") => {
@@ -183,6 +215,10 @@ const MUSCLE_ACCENT = {
     Abs: "#2D9EFF",
 };
 const groupAccent = (group) => MUSCLE_ACCENT[group] || COLORS.accent;
+
+// Friend-view handle accents (match DayDetailsSheet)
+const HANDLE_FRIEND_ACCENT = "#E0A500";
+const HANDLE_FRIEND_BACKGROUND = "#e0a4002c";
 
 export default function UserStatsModal({ user, toViewProfile, hexOverlay, hexProps = {}, deferExercises = false }) {
     // Optionally defer heavy grouping work until after interactions (for smoother open)
@@ -214,10 +250,18 @@ export default function UserStatsModal({ user, toViewProfile, hexOverlay, hexPro
     // ---------- Exercise detail (sets) overlay state ----------
     const [detailName, setDetailName] = useState(null); // exercise name
     const detailOpacity = useRef(new Animated.Value(0)).current;
+    const detailTranslate = useRef(new Animated.Value(8)).current; // subtle slide-up on reveal
     const openDetail = (name) => {
         if (!name) return;
+        // reset animation values before mounting
+        try { detailOpacity.setValue(0); detailTranslate.setValue(10); } catch {}
         setDetailName(name);
-        try { Animated.timing(detailOpacity, { toValue: 1, duration: 180, useNativeDriver: true }).start(); } catch { }
+        try {
+            Animated.parallel([
+                Animated.timing(detailOpacity, { toValue: 1, duration: 180, useNativeDriver: true }),
+                Animated.timing(detailTranslate, { toValue: 0, duration: 220, useNativeDriver: true }),
+            ]).start();
+        } catch { }
     };
     const closeDetail = () => {
         try {
@@ -254,6 +298,18 @@ export default function UserStatsModal({ user, toViewProfile, hexOverlay, hexPro
         return withIdx.map(({ __i, ...rest }) => rest);
     }, [detailName, user?.statsExercises, user?.uid]);
 
+    // Group sets by date label (like NotificationsModal)
+    const detailSections = useMemo(() => {
+        if (!Array.isArray(detailSets) || detailSets.length === 0) return [];
+        const map = new Map(); // preserves insertion order based on sorted detailSets
+        for (const s of detailSets) {
+            const label = dateLabelFromRaw(s?.date) || 'Undated';
+            if (!map.has(label)) map.set(label, []);
+            map.get(label).push(s);
+        }
+        return Array.from(map.entries()).map(([title, data]) => ({ title, data }));
+    }, [detailSets]);
+
     const setAdjusted1RM = (w, r) => {
         const W = safeNumber(w, 0); const R = safeNumber(r, 0);
         if (W <= 0 || R <= 0) return 0;
@@ -265,6 +321,74 @@ export default function UserStatsModal({ user, toViewProfile, hexOverlay, hexPro
         const group = NAME_TO_GROUP.get(detailName) || "Other";
         return groupAccent(group);
     }, [detailName]);
+
+    // ---- Workout viewer state (open per set press) ----
+    const [viewerOpen, setViewerOpen] = useState(false);
+    const [viewerWorkout, setViewerWorkout] = useState(null);
+    const viewerOpacity = useRef(new Animated.Value(0)).current;
+    const timerRef = useRef("");
+
+    const findWorkoutByWid = async (widRaw) => {
+        const wid = String(widRaw || "");
+        if (!wid) return null;
+        // 1) Prefer visible user's completedWorkouts if available
+        try {
+            const fromProp = Array.isArray(user?.completedWorkouts) ? user.completedWorkouts.find(w => String(w?.wid || w?.id || "") === wid) : null;
+            if (fromProp) return fromProp;
+        } catch {}
+        // 2) If viewing self, use local completedWorkouts
+        try {
+            const me = global?.userData;
+            if (me && String(me?.uid || "") === String(user?.uid || "")) {
+                const arr = Array.isArray(me?.completedWorkouts) ? me.completedWorkouts : [];
+                const found = arr.find(w => String(w?.wid || w?.id || "") === wid);
+                if (found) return found;
+            }
+        } catch {}
+        // 3) Fallback: fetch from Firestore
+        try {
+            const snap = await getDoc(doc(db, "workouts", wid));
+            if (snap.exists()) {
+                const d = snap.data() || {};
+                return { wid, ...d };
+            }
+        } catch {}
+        return { wid };
+    };
+
+    const handleOpenSet = async (set) => {
+        if (!set) return;
+        const wid = String(set?.wid || "");
+        if (!wid) return;
+        // Prepare workout overlay first to block any flash of underlying content
+        setViewerOpen(true);
+        // Fade out detail overlay for a smoother transition
+        try {
+            Animated.timing(detailOpacity, { toValue: 0, duration: 140, useNativeDriver: true }).start(async ({ finished }) => {
+                setDetailName(null);
+                const wk = await findWorkoutByWid(wid);
+                if (wk) {
+                    setViewerWorkout(wk);
+                    try { viewerOpacity.setValue(0); } catch {}
+                    Animated.timing(viewerOpacity, { toValue: 1, duration: 200, useNativeDriver: true }).start();
+                }
+            });
+        } catch {
+            setDetailName(null);
+            const wk = await findWorkoutByWid(wid);
+            if (wk) {
+                setViewerWorkout(wk);
+                try { viewerOpacity.setValue(1); } catch {}
+            }
+        }
+    };
+    const closeViewer = () => {
+        try {
+            Animated.timing(viewerOpacity, { toValue: 0, duration: 160, useNativeDriver: true }).start(({ finished }) => {
+                if (finished) { setViewerWorkout(null); setViewerOpen(false); } else { setViewerWorkout(null); setViewerOpen(false); }
+            });
+        } catch { setViewerWorkout(null); setViewerOpen(false); }
+    };
 
     return (
         <View style={styles.container}>
@@ -439,78 +563,92 @@ export default function UserStatsModal({ user, toViewProfile, hexOverlay, hexPro
                     pointerEvents="auto"
                     style={[styles.detailOverlay, { opacity: detailOpacity }]}
                 >
-                    <View style={[styles.detailHeader, { borderColor: rgba(ACC_DETAIL, 0.35), backgroundColor: rgba(ACC_DETAIL, 0.08) }]}>
-                        <Pressable onPress={closeDetail} hitSlop={10} style={styles.detailBackRow}>
-                            <MaterialCommunityIcons name="chevron-left" size={scaledSize(18)} color={COLORS.text} />
-                            <Text numberOfLines={1} style={styles.detailTitle}>{detailName}</Text>
-                        </Pressable>
-                        <View style={[styles.detailCountPill, { borderColor: rgba(ACC_DETAIL, 0.35), backgroundColor: rgba(ACC_DETAIL, 0.12) }]}>
-                            <MaterialCommunityIcons name="view-grid-outline" size={scaledSize(11)} color={COLORS.subtext} />
-                            <Text style={styles.detailCountText}>{detailSets.length} sets</Text>
+                    <Animated.View style={{ transform: [{ translateY: detailTranslate }] }}>
+                        <View style={[styles.detailHeader, { borderColor: rgba(ACC_DETAIL, 0.35), backgroundColor: rgba(ACC_DETAIL, 0.08) }]}>
+                            <Pressable onPress={closeDetail} hitSlop={10} style={styles.detailBackRow}>
+                                <MaterialCommunityIcons name="chevron-left" size={scaledSize(18)} color={COLORS.text} />
+                                <View style={[styles.detailIconCircle, { backgroundColor: rgba(ACC_DETAIL, 0.16), borderColor: rgba(ACC_DETAIL, 0.45) }]}>
+                                    <MaterialCommunityIcons name="dumbbell" size={scaledSize(13)} color={ACC_DETAIL} />
+                                </View>
+                                <Text numberOfLines={1} style={styles.detailTitle}>{detailName}</Text>
+                            </Pressable>
+                            <View style={[styles.detailCountPill, { borderColor: rgba(ACC_DETAIL, 0.35), backgroundColor: rgba(ACC_DETAIL, 0.12) }]}>
+                                <MaterialCommunityIcons name="view-grid-outline" size={scaledSize(11)} color={COLORS.subtext} />
+                                <Text style={styles.detailCountText}>{detailSets.length} sets</Text>
+                            </View>
                         </View>
-                    </View>
 
-                    {detailSets.length === 0 ? (
-                        <View style={styles.detailEmpty}>
-                            <Text style={styles.emptyText}>No sets yet.</Text>
-                        </View>
-                    ) : (
-                        <FlatList
-                            data={detailSets}
-                            keyExtractor={(item, index) => `${detailName}-${item?.wid || 'w'}-${item?.date || 'd'}-${index}`}
-                            contentContainerStyle={styles.detailListContent}
-                            showsVerticalScrollIndicator={false}
-                            renderItem={({ item }) => {
-                                const w = safeNumber(item?.weight, 0);
-                                const r = safeNumber(item?.reps, 0);
-                                const rm = setAdjusted1RM(w, r);
-                                const dateLabel = (() => {
-                                    const raw = item?.date;
-                                    if (!raw) return '';
-                                    // Format: M/D/YY (no leading zeros, year 2 digits)
-                                    const fmt = (y, m, d) => `${m}/${d}/${String(y).slice(-2)}`;
-                                    if (typeof raw === 'string') {
-                                        const m = raw.match(/^(\d{4})-(\d{1,2})-(\d{1,2})$/);
-                                        if (m) {
-                                            const y = Number(m[1]);
-                                            const mo = Number(m[2]);
-                                            const da = Number(m[3]);
-                                            if (y && mo && da) return fmt(y, mo, da);
-                                        }
-                                        const d2 = new Date(raw);
-                                        if (!isNaN(d2)) return fmt(d2.getFullYear(), d2.getMonth() + 1, d2.getDate());
-                                        return raw;
-                                    }
-                                    if (typeof raw === 'number') {
-                                        const d2 = new Date(raw);
-                                        if (!isNaN(d2)) return fmt(d2.getFullYear(), d2.getMonth() + 1, d2.getDate());
-                                        return '';
-                                    }
-                                    if (typeof raw === 'object' && Number.isFinite(raw.seconds)) {
-                                        const d2 = new Date(raw.seconds * 1000);
-                                        if (!isNaN(d2)) return fmt(d2.getFullYear(), d2.getMonth() + 1, d2.getDate());
-                                        return '';
-                                    }
-                                    return '';
-                                })();
-                                return (
-                                    <View style={styles.setRow}>
-                                        <View style={[styles.setDot, { backgroundColor: ACC_DETAIL }]} />
-                                        <View style={{ flex: 1 }}>
-                                            <Text style={styles.setMain}>{w} × {r}</Text>
-                                            {!!dateLabel && <Text style={styles.setSub}>{dateLabel}</Text>}
-                                        </View>
-                                        <View style={styles.rmPill}>
-                                            <Text style={styles.rmLabel}>1RM (Adj)</Text>
-                                            <Text style={[styles.rmValue, { color: ACC_DETAIL }]}>{rm}</Text>
-                                        </View>
+                        {detailSets.length === 0 ? (
+                            <View style={styles.detailEmpty}>
+                                <Text style={styles.emptyText}>No sets yet.</Text>
+                            </View>
+                        ) : (
+                            <SectionList
+                                sections={detailSections}
+                                keyExtractor={(item, index) => `${detailName}-${item?.wid || 'w'}-${item?.date || 'd'}-${item?.weight || 'wt'}-${item?.reps || 'r'}-${index}`}
+                                contentContainerStyle={styles.detailListContent}
+                                showsVerticalScrollIndicator={false}
+                                renderItem={({ item }) => {
+                                    const w = safeNumber(item?.weight, 0);
+                                    const r = safeNumber(item?.reps, 0);
+                                    const rm = setAdjusted1RM(w, r);
+                                    return (
+                                        <Pressable style={styles.setRow} onPress={() => handleOpenSet(item)}>
+                                            <View style={[styles.setDot, { backgroundColor: ACC_DETAIL }]} />
+                                            <View style={{ flex: 1 }}>
+                                                <Text style={styles.setMain}>{w} × {r}</Text>
+                                            </View>
+                                            <View style={styles.rmPill}>
+                                                <Text style={styles.rmLabel}>1RM (Adj)</Text>
+                                                <Text style={[styles.rmValue, { color: ACC_DETAIL }]}>{rm}</Text>
+                                            </View>
+                                            <MaterialCommunityIcons name="chevron-right" size={scaledSize(18)} color={COLORS.subtext} style={{ marginLeft: scaleSize(scaledSize(6)) }} />
+                                        </Pressable>
+                                    );
+                                }}
+                                renderSectionHeader={({ section }) => (
+                                    <View style={styles.detailSectionHeaderWrap}>
+                                        <Text style={styles.detailSectionHeaderText}>{section.title}</Text>
                                     </View>
-                                );
-                            }}
-                        />
-                    )}
+                                )}
+                                ItemSeparatorComponent={() => <View style={{ height: scaleSize(scaledSize(2)) }} />}
+                                SectionSeparatorComponent={() => <View style={{ height: scaleSize(scaledSize(4)) }} />}
+                                stickySectionHeadersEnabled={false}
+                                ListFooterComponent={<View style={{ height: scaleSize(scaledSize(40)) }} />}
+                            />
+                        )}
+                    </Animated.View>
                 </Animated.View>
             ) : null}
+        {/* Workout viewer overlay (fades in over this sheet) */}
+        {viewerOpen ? (
+            <View style={styles.workoutOverlay} pointerEvents="auto">
+                {/* Yellow friend-view handle bar */}
+                <View style={styles.viewerHandleWrap}>
+                    <View style={styles.viewerHandleIndicator} />
+                </View>
+                {viewerWorkout ? (
+                    <Animated.View style={{ flex: 1, opacity: viewerOpacity }}>
+                        <NewWorkoutModal
+                            timerRef={timerRef}
+                            workout={viewerWorkout}
+                            cancelWorkout={() => {}}
+                            updateWorkout={() => {}}
+                            finishWorkout={() => {}}
+                            showGroupModal={() => {}}
+                            userWorkoutStats={user?.statsExercises || undefined}
+                            onPressBack={closeViewer}
+                            onCheer={() => {}}
+                            onCopyTemplate={() => {}}
+                            onPressPfp={closeViewer}
+                            forceViewingFriend={String(user?.uid || "")}
+                            friendPfp={user?.image || user?.pfp || null}
+                            streamLive={false}
+                        />
+                    </Animated.View>
+                ) : null}
+            </View>
+        ) : null}
         </View>
     );
 }
@@ -727,7 +865,7 @@ const styles = StyleSheet.create({
     },
     exerciseName: {
         flex: 1,
-        fontSize: scaleSize(13.5),
+        fontSize: scaleSize(12.5),
         fontFamily: "Outfit_800ExtraBold",
         color: COLORS.text,
     },
@@ -792,7 +930,35 @@ const styles = StyleSheet.create({
         overflow: 'hidden',
         paddingTop: scaleSize(scaledSize(26)),
         paddingHorizontal: scaleSize(scaledSize(17)),
-        paddingBottom: scaleSize(scaledSize(10)),
+        paddingBottom: scaleSize(scaledSize(16)),
+    },
+    workoutOverlay: {
+        position: 'absolute',
+        top: 0,
+        left: 0,
+        right: 0,
+        bottom: 0,
+        backgroundColor: COLORS.bg,
+        borderTopLeftRadius: scaleSize(scaledSize(24)),
+        borderTopRightRadius: scaleSize(scaledSize(24)),
+        overflow: 'hidden',
+        paddingTop: 0,
+    },
+    // Friend-view handle bar (yellow)
+    viewerHandleWrap: {
+        paddingTop: scaleSize(scaledSize(8)),
+        paddingBottom: scaleSize(scaledSize(6)),
+        alignItems: 'center',
+        justifyContent: 'center',
+        backgroundColor: HANDLE_FRIEND_BACKGROUND,
+        borderTopLeftRadius: scaleSize(scaledSize(24)),
+        borderTopRightRadius: scaleSize(scaledSize(24)),
+    },
+    viewerHandleIndicator: {
+        width: scaleSize(scaledSize(40)),
+        height: scaleSize(scaledSize(4)),
+        borderRadius: scaleSize(scaledSize(999)),
+        backgroundColor: HANDLE_FRIEND_ACCENT,
     },
     detailHeader: {
         flexDirection: 'row',
@@ -800,15 +966,27 @@ const styles = StyleSheet.create({
         justifyContent: 'space-between',
         borderWidth: scaleSize(1),
         borderRadius: scaleSize(scaledSize(14)),
-        paddingHorizontal: scaleSize(scaledSize(10)),
-        paddingVertical: scaleSize(scaledSize(16)),
-        marginBottom: scaleSize(scaledSize(10)),
+        paddingHorizontal: scaleSize(scaledSize(12)),
+        paddingVertical: scaleSize(scaledSize(12)),
+        marginBottom: scaleSize(scaledSize(6)),
+        shadowColor: '#000',
+        shadowOpacity: 0.06,
+        shadowRadius: scaleSize(scaledSize(10)),
+        shadowOffset: { width: 0, height: scaleSize(scaledSize(6)) },
     },
-    detailBackRow: { flexDirection: 'row', alignItems: 'center', flex: 1, minWidth: 0 },
+    detailBackRow: { flexDirection: 'row', alignItems: 'center', flex: 1, minWidth: 0, gap: scaleSize(scaledSize(6)) },
+    detailIconCircle: {
+        width: scaleSize(scaledSize(24)),
+        height: scaleSize(scaledSize(24)),
+        borderRadius: scaleSize(scaledSize(12)),
+        alignItems: 'center',
+        justifyContent: 'center',
+        borderWidth: StyleSheet.hairlineWidth,
+    },
     detailTitle: {
         flex: 1,
-        fontSize: scaleSize(15),
-        fontFamily: 'Outfit_700Bold',
+        fontSize: scaleSize(14.5),
+        fontFamily: 'Outfit_800ExtraBold',
         color: COLORS.text,
         marginLeft: scaleSize(scaledSize(2)),
     },
@@ -817,11 +995,11 @@ const styles = StyleSheet.create({
         alignItems: 'center',
         borderWidth: scaleSize(1),
         borderRadius: scaleSize(scaledSize(999)),
-        paddingHorizontal: scaleSize(scaledSize(8)),
-        paddingVertical: scaleSize(scaledSize(4)),
-        gap: scaleSize(scaledSize(5)),
+        paddingHorizontal: scaleSize(scaledSize(10)),
+        paddingVertical: scaleSize(scaledSize(5)),
+        gap: scaleSize(scaledSize(6)),
     },
-    detailCountText: { fontSize: scaleSize(12), fontFamily: 'Outfit_600SemiBold', color: COLORS.subtext },
+    detailCountText: { fontSize: scaleSize(12.5), fontFamily: 'Outfit_700Bold', color: COLORS.subtext },
     detailEmpty: {
         backgroundColor: COLORS.card,
         borderRadius: scaleSize(scaledSize(16)),
@@ -831,7 +1009,9 @@ const styles = StyleSheet.create({
         justifyContent: 'center',
         paddingVertical: scaleSize(scaledSize(20)),
     },
-    detailListContent: { paddingBottom: scaleSize(scaledSize(16)), gap: scaleSize(scaledSize(4)) },
+    detailListContent: { paddingBottom: scaleSize(scaledSize(56)), gap: scaleSize(scaledSize(0)) },
+    detailSectionHeaderWrap: { paddingTop: scaleSize(scaledSize(8)), paddingBottom: scaleSize(scaledSize(2)) },
+    detailSectionHeaderText: { fontFamily: 'Outfit_800ExtraBold', fontSize: scaleSize(13.5), color: COLORS.subtext, letterSpacing: 0.3 },
     setRow: {
         flexDirection: 'row',
         alignItems: 'center',
@@ -842,19 +1022,19 @@ const styles = StyleSheet.create({
         paddingHorizontal: scaleSize(scaledSize(12)),
         paddingVertical: scaleSize(scaledSize(10)),
     },
-    setDot: { width: scaleSize(scaledSize(8)), height: scaleSize(scaledSize(8)), borderRadius: scaleSize(scaledSize(4)), marginRight: scaleSize(scaledSize(10)) },
+    setDot: { width: scaleSize(scaledSize(8)), height: scaleSize(scaledSize(8)), borderRadius: scaleSize(scaledSize(4)), marginRight: scaleSize(scaledSize(8)) },
     setMain: { fontSize: scaleSize(14), fontFamily: 'Outfit_700Bold', color: COLORS.text },
     setSub: { fontSize: scaleSize(11.5), fontFamily: 'Outfit_500Medium', color: COLORS.subtext, marginTop: scaleSize(scaledSize(2)) },
     rmPill: {
         flexDirection: 'row',
         alignItems: 'baseline',
-        paddingHorizontal: scaleSize(scaledSize(8)),
-        paddingVertical: scaleSize(scaledSize(4.5)),
+        paddingHorizontal: scaleSize(scaledSize(7)),
+        paddingVertical: scaleSize(scaledSize(4)),
         borderRadius: scaleSize(scaledSize(999)),
         borderWidth: scaleSize(1),
         borderColor: COLORS.hairline,
         backgroundColor: 'rgba(255,255,255,0.06)'
     },
-    rmLabel: { fontSize: scaleSize(10.5), fontFamily: 'Outfit_600SemiBold', color: COLORS.subtext, marginRight: scaleSize(scaledSize(6)), letterSpacing: 0.6 },
+    rmLabel: { fontSize: scaleSize(10.5), fontFamily: 'Outfit_600SemiBold', color: COLORS.subtext, marginRight: scaleSize(scaledSize(5)), letterSpacing: 0.6 },
     rmValue: { fontSize: scaleSize(13), fontFamily: 'Outfit_800ExtraBold' },
 });

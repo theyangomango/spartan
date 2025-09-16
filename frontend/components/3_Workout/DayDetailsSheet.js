@@ -150,6 +150,21 @@ const DayDetailsSheet = ({
 
     const title = useMemo(() => fmt(date), [date]);
     const isToday = useMemo(() => dayKey(date) === dayKey(new Date()), [date]);
+    const titleScale = useRef(new Animated.Value(1)).current;
+    const handleTitlePress = useCallback(() => {
+        // Bounce animation then jump to today
+        try {
+            Animated.sequence([
+                Animated.timing(titleScale, { toValue: 0.94, duration: 90, useNativeDriver: true }),
+                Animated.spring(titleScale, { toValue: 1, speed: 14, bounciness: 14, useNativeDriver: true }),
+            ]).start();
+        } catch {}
+        if (!isToday) {
+            const today = new Date();
+            today.setHours(0, 0, 0, 0);
+            onChangeDate?.(today);
+        }
+    }, [isToday, onChangeDate, titleScale]);
 
     // Flatten the meal buckets to a small display list (cap to avoid scroll requirement)
     const foodsList = useMemo(() => {
@@ -296,7 +311,11 @@ const DayDetailsSheet = ({
                             <Pressable onPress={() => onChangeDate && onChangeDate(shiftDate(date, -1))} hitSlop={8} style={styles.dateNavBtn}>
                                 <Ionicons name="chevron-back" size={24} color={theme.textPrimary} />
                             </Pressable>
-                            <Text style={styles.title}>{title || "Select a date"}</Text>
+                            <Pressable onPress={handleTitlePress} hitSlop={8} style={styles.titlePress}>
+                                <Animated.Text style={[styles.title, { transform: [{ scale: titleScale }] }]}>
+                                    {title || "Select a date"}
+                                </Animated.Text>
+                            </Pressable>
                             <Pressable onPress={() => onChangeDate && onChangeDate(shiftDate(date, 1))} hitSlop={8} style={styles.dateNavBtn}>
                                 <Ionicons name="chevron-forward" size={24} color={theme.textPrimary} />
                             </Pressable>
@@ -465,6 +484,7 @@ const styles = StyleSheet.create({
     ctnr: { flex: 1, paddingHorizontal: scaleSize(16), paddingTop: scaleSize(6), paddingBottom: scaleSize(16), backgroundColor: theme.bg },
     // Match MacroTracking DateHeader typography
     title: { flex: 1, fontFamily: "Nunito_800ExtraBold", fontSize: scaleSize(16), color: theme.textPrimary, textAlign: "center" },
+    titlePress: { flex: 1 },
     dateHeaderRow: { flexDirection: "row", alignItems: "center", marginBottom: scaleSize(10) },
     dateNavBtn: { width: scaleSize(36), height: scaleSize(36), alignItems: "center", justifyContent: "center" },
 

@@ -161,6 +161,8 @@ export default function Feed({ navigation, route }) {
     const didCollapseCommentsRef = useRef(false);
     const focusTranslateTargetSV = useSharedValue(0); // mirror of focusTranslateTargetRef for UI-thread
     const storiesOpacitySV = useSharedValue(1);
+    // Opacity for all non-focused posts (1 = visible, 0 = hidden)
+    const othersOpacitySV = useSharedValue(1);
     // Track last progress across onUpdate frames (Gesture handler context isn't provided)
     const lastPanProgressSV = useSharedValue(-1);
     const closedInEndSV = useSharedValue(0);
@@ -199,11 +201,15 @@ export default function Feed({ navigation, route }) {
     });
     const backHeaderStyle = useAnimatedStyle(() => ({ opacity: backHeaderOpacitySV.value }));
     const overlayHeaderOpacityStyle = useAnimatedStyle(() => ({ opacity: overlayHeaderOpacitySV.value }));
-    // Animated styles for focused card lift and stories opacity
-    const focusedCardStyle = useAnimatedStyle(() => ({
+    // Translate the entire posts layer (not a single card) when focusing/unfocusing
+    const postsTranslateStyle = useAnimatedStyle(() => ({
         transform: [{ translateY: translateYSV.value }],
     }));
     const storiesOpacityStyle = useAnimatedStyle(() => ({ opacity: storiesOpacitySV.value }));
+    // UI-thread fade for non-focused rows during interactive unfocus
+    const nonFocusedOpacityStyle = useAnimatedStyle(() => ({
+        opacity: othersOpacitySV.value,
+    }));
 
     // Header workout pill state
     const [activeWorkout, setActiveWorkout] = useState(null);
@@ -371,20 +377,47 @@ export default function Feed({ navigation, route }) {
             const lay0 = itemLayoutsRef.current.get(index);
             dlog('focus.request', { index, pageY: Math.round(pageY), preferWaitForHeader, pid, layY: lay0?.y, top: scrollOffsetY.current, transitioning: isTransitioning.current });
         }
-        // If the tapped cell is clipped at the top, reveal and defer to the
-        // programmatic watcher so focus happens when the list is idle.
+        // Simple, robust alignment: if this was a user tap, first place the row just
+        // under the visible header using scrollToIndex, then let the programmatic
+        // watcher trigger the actual focus when the list goes idle.
+        if (!preferWaitForHeader) {
+            const vHeader = visibleHeaderHRef.current || 0;
+            const pidEff = pid || String(posts?.[index]?.pid || '');
+            try {
+                flatListRef.current?.scrollToIndex?.({ index, viewPosition: 0, viewOffset: Math.max(0, vHeader + 6), animated: false });
+            } catch {}
+            if (pidEff) startFocusWatcher(pidEff, index);
+            return;
+        }
+        // Ensure the tapped cell is fully within the FlatList viewport (just under the current header)
+        // before focusing to avoid any clipping during the transform-based focus.
         try {
             const lay = itemLayoutsRef.current.get(index);
             const top = scrollOffsetY.current || 0;
+            const vHeader = visibleHeaderHRef.current || 0;
+            const viewportH = Math.max(0, height - vHeader);
             const margin = 8;
-            if (lay && typeof lay.y === 'number' && lay.y < top + margin) {
-                const target = Math.max(0, lay.y - margin);
-                try { flatListRef.current?.scrollToOffset?.({ offset: target, animated: false }); } catch { }
-                scrollOffsetY.current = target;
-                const pidEff = pid || String(posts?.[index]?.pid || '');
-                dlog('focus.deferToWatcher', { index, pid: pidEff, layY: lay?.y, top, target });
-                if (pidEff) startFocusWatcher(pidEff, index);
-                return;
+            if (lay && typeof lay.y === 'number' && typeof lay.h === 'number') {
+                const layBottom = lay.y + lay.h;
+                const topClipped = lay.y < top + margin;
+                const bottomClipped = layBottom > (top + viewportH - margin);
+                if (topClipped || bottomClipped) {
+                    // Compute a target offset that fits the whole row inside the viewport with a small margin
+                    // IMPORTANT: align relative to the visible header height so the row top lands under it.
+                    const targetTop = Math.max(0, lay.y - vHeader + margin);
+                    const targetBottom = Math.max(0, layBottom - viewportH + margin);
+                    // Pick an offset that satisfies both edges; when the row fits, any value between works.
+                    // Choose the closer one to current offset to minimize visual jump.
+                    const candA = targetTop;
+                    const candB = targetBottom;
+                    const target = Math.abs((candA - top)) <= Math.abs((candB - top)) ? candA : candB;
+                    try { flatListRef.current?.scrollToOffset?.({ offset: target, animated: false }); } catch { }
+                    scrollOffsetY.current = target;
+                    const pidEff = pid || String(posts?.[index]?.pid || '');
+                    dlog('focus.deferToWatcher.fitRow', { index, pid: pidEff, layY: lay?.y, layH: lay?.h, top, viewportH, target });
+                    if (pidEff) startFocusWatcher(pidEff, index);
+                    return;
+                }
             }
         } catch { }
 
@@ -423,7 +456,7 @@ export default function Feed({ navigation, route }) {
             let pageYAdj = pageY;
             // Programmatic path no longer adjusts the offset here; we rely on the
             // focus watcher + Post.measure to provide an accurate pageY.
-            // If triggered by a user press: compensate if cell was clipped at the top
+            // If triggered by a user press: compensate if cell was clipped at the top/bottom
             if (!preferWaitForHeader) {
                 try {
                     const lay = itemLayoutsRef.current.get(index);
@@ -431,7 +464,8 @@ export default function Feed({ navigation, route }) {
                         const topOld = scrollOffsetY.current || 0;
                         const margin = 8;
                         if (lay.y < topOld + margin) {
-                            const target = Math.max(0, lay.y - margin);
+                            // Align the row so its top sits just under the visible header
+                            const target = Math.max(0, lay.y - Vstart + margin);
                             const delta = topOld - target; // how much we moved content up
                             try { flatListRef.current?.scrollToOffset?.({ offset: target, animated: false }); } catch { }
                             scrollOffsetY.current = target;
@@ -439,6 +473,21 @@ export default function Feed({ navigation, route }) {
                             dlog('focus.revealAdjust', { index, layY: lay?.y, topOld, target, delta, pageYAdj });
                             // Only in this clipped-at-top compensation case do we want a post-end remount
                             needsFocusEndRemountRef.current = true;
+                        } else {
+                            // Check if the bottom is clipped out of view
+                            const VstartNow = visibleHeaderHRef.current || 0;
+                            const viewportH = Math.max(0, height - VstartNow);
+                            const bottomOld = topOld + viewportH;
+                            if ((lay.y + lay.h) > (bottomOld - margin)) {
+                                const target = Math.max(0, (lay.y + lay.h) - viewportH + margin);
+                                const delta = topOld - target; // positive if we scrolled down
+                                try { flatListRef.current?.scrollToOffset?.({ offset: target, animated: false }); } catch { }
+                                scrollOffsetY.current = target;
+                                pageYAdj = (typeof pageYAdj === 'number' ? pageYAdj : pageY) + delta; // compensate the on-screen Y
+                                dlog('focus.revealAdjustBottom', { index, layY: lay?.y, layH: lay?.h, topOld, bottomOld, target, delta, pageYAdj });
+                                // Remount at end to force fresh layout after this pre-scroll
+                                needsFocusEndRemountRef.current = true;
+                            }
                         }
                     }
                 } catch { }
@@ -465,6 +514,11 @@ export default function Feed({ navigation, route }) {
                 focusTranslateTargetSV.value = -translate;
                 translateYValueRef.current = -translate;
                 translateYSV.value = -translate;
+            } catch { }
+            // Ensure other posts start fully faded when focus begins
+            try {
+                unfocusProgressSV.value = 0;
+                othersOpacitySV.value = withTiming(0, { duration: ANIMATION_DURATION, easing: ReEasing.out(ReEasing.cubic) });
             } catch { }
         };
         // Do not wait for the back header's onLayout; Vfinal is derived above
@@ -498,11 +552,12 @@ export default function Feed({ navigation, route }) {
                 // Immediately reset transform to baseline; offset keeps visual position steady
                 translateYSV.value = 0;
                 translateYValueRef.current = 0;
-            } catch {}
+            } catch { }
             closingViaPanRef.current = false;
         }
         // Defer state flips to animation end for smoother unfocus
         animateView(0, 1);
+        try { othersOpacitySV.value = withTiming(1, { duration: ANIMATION_DURATION, easing: ReEasing.out(ReEasing.cubic) }); } catch { }
         // Reset interactive refs so the next focus starts clean
         try { panProgressRef.current = 0; } catch { }
         try { didCollapseCommentsRef.current = false; } catch { }
@@ -535,6 +590,13 @@ export default function Feed({ navigation, route }) {
         isFocusSV.value = isSomePostFocused ? 1 : 0;
     }, [isSomePostFocused]);
 
+    // Keep others' opacity in a safe state when focus toggles (non-interactive paths)
+    useEffect(() => {
+        if (!isSomePostFocused) {
+            try { othersOpacitySV.value = 1; } catch { }
+        }
+    }, [isSomePostFocused]);
+
     // Drive back-header opacity to fade in/out in sync with focus/unfocus
     useEffect(() => {
         if (isSomePostFocused) {
@@ -558,31 +620,31 @@ export default function Feed({ navigation, route }) {
     // Feed-level pan gesture using Reanimated/Gesture Handler for smooth unfocus drag
     // Avoid inline runOnJS closures (can capture HostObjects) by defining JS callbacks
     const handleUnfocusPanBeginJS = useCallback(() => {
-        try { didCollapseCommentsRef.current = false; } catch {}
-        try { translateYValueRef.current = focusTranslateTargetRef.current || 0; } catch {}
+        try { didCollapseCommentsRef.current = false; } catch { }
+        try { translateYValueRef.current = focusTranslateTargetRef.current || 0; } catch { }
     }, []);
 
     const handleUnfocusPanUpdateJS = useCallback((progress) => {
-        try { panProgressRef.current = progress; } catch {}
+        try { panProgressRef.current = progress; } catch { }
         if (!didCollapseCommentsRef.current && progress > 0.08) {
-            try { setCommentsCollapseSignal(Date.now()); } catch {}
+            try { setCommentsCollapseSignal(Date.now()); } catch { }
             didCollapseCommentsRef.current = true;
         }
     }, []);
 
     const handleUnfocusPanEndCloseJS = useCallback((yAtEnd, progressAtEnd) => {
-        try { closingViaPanRef.current = true; } catch {}
-        try { translateYValueRef.current = yAtEnd; } catch {}
+        try { closingViaPanRef.current = true; } catch { }
+        try { translateYValueRef.current = yAtEnd; } catch { }
         // Capture precise final progress for accurate header delta during offset adjustment
-        try { panProgressRef.current = (typeof progressAtEnd === 'number') ? Math.max(0, Math.min(1, progressAtEnd)) : (panProgressRef.current || 0); } catch {}
-        try { Haptics.impactAsync?.(Haptics.ImpactFeedbackStyle.Heavy).catch(() => { }); } catch {}
-        try { requestUnfocus(); } catch {}
+        try { panProgressRef.current = (typeof progressAtEnd === 'number') ? Math.max(0, Math.min(1, progressAtEnd)) : (panProgressRef.current || 0); } catch { }
+        try { Haptics.impactAsync?.(Haptics.ImpactFeedbackStyle.Heavy).catch(() => { }); } catch { }
+        try { requestUnfocus(); } catch { }
     }, [requestUnfocus]);
 
     const handleUnfocusPanEndCancelJS = useCallback(() => {
-        try { panProgressRef.current = 0; } catch {}
+        try { panProgressRef.current = 0; } catch { }
         if (didCollapseCommentsRef.current) {
-            try { setCommentsReopenSignal(Date.now()); } catch {}
+            try { setCommentsReopenSignal(Date.now()); } catch { }
         }
     }, []);
     const unfocusPanGesture = useMemo(() => {
@@ -615,7 +677,8 @@ export default function Feed({ navigation, route }) {
                     overlayHeaderOpacitySV.value = 0;
                     if (headerH?.value != null) focusHide.value = headerH.value;
                     // update unfocus progress on UI thread only
-                    try { unfocusProgressSV.value = 0; } catch {}
+                    try { unfocusProgressSV.value = 0; } catch { }
+                    try { othersOpacitySV.value = 0; } catch { }
                     return;
                 }
                 const progress = Math.max(0, Math.min(1, (-dy) / FULL_GESTURE_PX));
@@ -628,7 +691,8 @@ export default function Feed({ navigation, route }) {
                 overlayHeaderOpacitySV.value = progress;
                 if (headerH?.value != null) focusHide.value = headerH.value * (1 - progress);
                 // update unfocus progress on UI thread only
-                try { unfocusProgressSV.value = progress; } catch {}
+                try { unfocusProgressSV.value = progress; } catch { }
+                try { othersOpacitySV.value = progress; } catch { }
 
                 // JS mirrors needed for layout adjustments and Posts' unfocus fade
                 const last = lastPanProgressSV.value;
@@ -651,7 +715,8 @@ export default function Feed({ navigation, route }) {
                     const progress = Math.max(0, Math.min(1, (-dy) / FULL_GESTURE_PX));
                     const y = baseY - progress * EXTRA_UP_PX;
                     // Continue fading other posts on release to avoid a pop-in
-                    try { unfocusProgressSV.value = withTiming(1, { duration: 200, easing: ReEasing.out(ReEasing.cubic) }); } catch {}
+                    try { unfocusProgressSV.value = withTiming(1, { duration: 200, easing: ReEasing.out(ReEasing.cubic) }); } catch { }
+                    try { othersOpacitySV.value = withTiming(1, { duration: 200, easing: ReEasing.out(ReEasing.cubic) }); } catch { }
                     runOnJS(handleUnfocusPanEndCloseJS)(y, progress);
                 } else {
                     // Revert interactive changes back to focused state
@@ -660,7 +725,8 @@ export default function Feed({ navigation, route }) {
                     backHeaderOpacitySV.value = withTiming(1, { duration: 180, easing: ReEasing.out(ReEasing.cubic) });
                     overlayHeaderOpacitySV.value = withTiming(0, { duration: 180, easing: ReEasing.out(ReEasing.cubic) });
                     if (headerH?.value != null) focusHide.value = withTiming(headerH.value, { duration: 180, easing: ReEasing.out(ReEasing.cubic) });
-                    try { unfocusProgressSV.value = withTiming(0, { duration: 180, easing: ReEasing.out(ReEasing.cubic) }); } catch {}
+                    try { unfocusProgressSV.value = withTiming(0, { duration: 180, easing: ReEasing.out(ReEasing.cubic) }); } catch { }
+                    try { othersOpacitySV.value = withTiming(0, { duration: 180, easing: ReEasing.out(ReEasing.cubic) }); } catch { }
                     runOnJS(handleUnfocusPanEndCancelJS)();
                 }
             })
@@ -673,7 +739,7 @@ export default function Feed({ navigation, route }) {
                 backHeaderOpacitySV.value = withTiming(1, { duration: 180, easing: ReEasing.out(ReEasing.cubic) });
                 overlayHeaderOpacitySV.value = withTiming(0, { duration: 180, easing: ReEasing.out(ReEasing.cubic) });
                 if (headerH?.value != null) focusHide.value = withTiming(headerH.value, { duration: 180, easing: ReEasing.out(ReEasing.cubic) });
-                try { unfocusProgressSV.value = withTiming(0, { duration: 180, easing: ReEasing.out(ReEasing.cubic) }); } catch {}
+                try { unfocusProgressSV.value = withTiming(0, { duration: 180, easing: ReEasing.out(ReEasing.cubic) }); } catch { }
                 runOnJS(handleUnfocusPanEndCancelJS)();
             });
     }, [isSomePostFocused, requestUnfocus, handleUnfocusPanBeginJS, handleUnfocusPanUpdateJS, handleUnfocusPanEndCloseJS, handleUnfocusPanEndCancelJS]);
@@ -692,7 +758,7 @@ export default function Feed({ navigation, route }) {
 
     // Robustly keep scrollEnabled in sync with focus state, in case any animation callback is skipped
     useEffect(() => {
-        try { flatListRef.current?.setNativeProps({ scrollEnabled: !isSomePostFocused }); } catch {}
+        try { flatListRef.current?.setNativeProps({ scrollEnabled: !isSomePostFocused }); } catch { }
     }, [isSomePostFocused]);
 
     /* ---------- helper: run the trio animation ---------- */
@@ -703,7 +769,7 @@ export default function Feed({ navigation, route }) {
         if (animFinalizedRef.current) return;
         animFinalizedRef.current = true;
         if (animFinalizeTimeoutRef.current) {
-            try { clearTimeout(animFinalizeTimeoutRef.current); } catch {}
+            try { clearTimeout(animFinalizeTimeoutRef.current); } catch { }
             animFinalizeTimeoutRef.current = null;
         }
         isTransitioning.current = false; /* 🔓 unlock */
@@ -723,7 +789,7 @@ export default function Feed({ navigation, route }) {
             }
             needsFocusEndRemountRef.current = false;
         }
-        try { console.log('[Feed]', 'focus.animationEnd', { translateYValue, focusedIndex: focusedPostIndex.current, focusSeq: focusSeqRef.current }); } catch {}
+        try { console.log('[Feed]', 'focus.animationEnd', { translateYValue, focusedIndex: focusedPostIndex.current, focusSeq: focusSeqRef.current }); } catch { }
         // If a focus was queued during the transition, honor it now
         if (queuedFocusRef.current) {
             const q = queuedFocusRef.current; queuedFocusRef.current = null;
@@ -740,7 +806,7 @@ export default function Feed({ navigation, route }) {
         // Add a JS fallback timer in case the UI-thread callback is skipped due to identical values
         animFinalizedRef.current = false;
         if (animFinalizeTimeoutRef.current) {
-            try { clearTimeout(animFinalizeTimeoutRef.current); } catch {}
+            try { clearTimeout(animFinalizeTimeoutRef.current); } catch { }
             animFinalizeTimeoutRef.current = null;
         }
         translateYSV.value = withTiming(-translateYValue, { duration: ANIMATION_DURATION, easing: ReEasing.out(ReEasing.cubic) }, (finished) => {
@@ -876,14 +942,14 @@ export default function Feed({ navigation, route }) {
             if (flatListRef.current?.scrollToOffset) {
                 flatListRef.current.scrollToOffset({ offset: 0, animated: true });
             }
-        } catch {}
+        } catch { }
     }, []);
 
     // Expose an imperative scroll-to-top for the Footer when already on Feed
     useEffect(() => {
-        try { global.scrollFeedToTop = scrollToTop; } catch {}
+        try { global.scrollFeedToTop = scrollToTop; } catch { }
         return () => {
-            try { if (global.scrollFeedToTop === scrollToTop) global.scrollFeedToTop = null; } catch {}
+            try { if (global.scrollFeedToTop === scrollToTop) global.scrollFeedToTop = null; } catch { }
         };
     }, [scrollToTop]);
 
@@ -986,7 +1052,7 @@ export default function Feed({ navigation, route }) {
 
             if (!isSomePostFocused) {
                 return (
-                    <Reanimated.View style={[styles.postWrapper, isFocusedPost && [focusedCardStyle, { zIndex: 1 }]]}>
+                    <Reanimated.View style={[styles.postWrapper]}>
                         <Post
                             {...commonProps}
                             isFocused={false}
@@ -1006,27 +1072,11 @@ export default function Feed({ navigation, route }) {
             if (Math.abs(focusedIndexState - index) <= 2) {
                 const isAdj = Math.abs(focusedIndexState - index) === 1;
                 const isAboveAdjacent = isAdj && index < focusedIndexState;
-                const basePad = width / CARD_AR;
-                // Keep padding stable during unfocus to avoid layout thrash/jitter
-                // When the focused card is closing via an upward pan, abruptly shrinking
-                // padding here reflows the list at the exact moment we also adjust
-                // the FlatList offset, causing a visible jitter. Keep the larger
-                // padding until the unfocus animation completes (when the card is
-                // no longer rendered as focused), at which point non-focused rows
-                // naturally use the smaller default padding.
-                const dynamicPad = basePad;
                 return (
                     <Reanimated.View style={[
                         styles.postWrapper,
-                        isFocusedPost && [
-                            focusedCardStyle,
-                            { zIndex: 1 },
-                            // Expand hit area below the card when focused so presses/swipes in the
-                            // visually overlapped bottom strip are still within the cell bounds.
-                            // During unfocus, drop back to the normal padding so the next posts
-                            // can re-enter the viewport immediately (no delayed reflow).
-                            { paddingBottom: dynamicPad },
-                        ],
+                        !isFocusedPost && nonFocusedOpacityStyle,
+                        isFocusedPost && [{ zIndex: 1 }],
                     ]}>
                         <Post
                             {...commonProps}
@@ -1046,11 +1096,10 @@ export default function Feed({ navigation, route }) {
             }
 
             return (
-                <Reanimated.View style={[styles.postWrapper, isFocusedPost && [focusedCardStyle, { zIndex: 1 }]]}>
+                <Reanimated.View style={[styles.postWrapper, !isFocusedPost && nonFocusedOpacityStyle, isFocusedPost && [{ zIndex: 1 }]]}>
                     <Post
                         {...commonProps}
                         isFocused={false}
-                        // Keep global focus context true so opacity can blend with unfocus progress
                         isSomePostFocused={true}
                         isAdjacentToFocused={false}
                         highlightPid={highlightPidRef.current}
@@ -1087,77 +1136,80 @@ export default function Feed({ navigation, route }) {
                 <StatusBar style="light" />
 
                 <GestureDetector gesture={unfocusPanGesture}>
-                <Reanimated.View
-                    style={[{
-                        position: 'absolute',
-                        left: 0,
-                        right: 0,
-                        bottom: 0,
-                        // When a post is focused, raise the posts layer above the bottom nav
-                        zIndex: isSomePostFocused ? 25 : 0,
-                    }, maskContainerStyle]}
-                >
-                    <MaskedView
-                        style={{ flex: 1 }}
-                        maskElement={
-                            <View style={{ flex: 1, backgroundColor: 'transparent' }}>
-                                <View
-                                    style={{
-                                        width: '100%',
-                                        height: '100%',
-                                        backgroundColor: 'black',
-                                        borderRadius: scaleSize(35),
-                                    }}
-                                />
-                            </View>
-                        }
+                    <Reanimated.View
+                        style={[{
+                            position: 'absolute',
+                            left: 0,
+                            right: 0,
+                            bottom: 0,
+                            // When a post is focused, raise the posts layer above the bottom nav
+                            zIndex: isSomePostFocused ? 25 : 0,
+                        }, maskContainerStyle]}
                     >
-                        <Reanimated.FlatList
-                            ref={flatListRef}
-                            bounces={true}
-                            alwaysBounceVertical
-                            showsVerticalScrollIndicator={false}
-                            data={listData}
-                            keyExtractor={(item, i) => String(item?.pid ?? i)}
-                            renderItem={({ item, index }) => renderPost({ item, index })}
-                            onScroll={onScrollRe}
-                            scrollEventThrottle={16}
-                            stickyHeaderIndices={[]}
-                            viewabilityConfig={{ itemVisiblePercentThreshold: 20 }}
-                            onViewableItemsChanged={({ viewableItems }) => {
-                                const s = new Set();
-                                viewableItems.forEach((v) => {
-                                    if (typeof v.index === "number" && v.index >= 0) s.add(v.index);
-                                });
-                                viewableSetRef.current = s;
-                            }}
-                            CellRendererComponent={CellRenderer}
-                            // Spacer no longer needed; container top tracks header
-                            // ListHeaderComponent={<Reanimated.View style={spacerStyle} />}
-                            initialNumToRender={3}
-                            windowSize={5}
-                            removeClippedSubviews={false}
-                            onScrollToIndexFailed={(info) => {
-                                try {
-                                    const approx = Math.max(0, (info?.averageItemLength || (width / CARD_AR)) * (info?.index || 0));
-                                    flatListRef.current?.scrollToOffset?.({ offset: approx, animated: false });
-                                } catch {}
-                                setTimeout(() => {
-                                    try { flatListRef.current?.scrollToIndex?.({ index: info?.index || 0, viewPosition: 0.02, animated: false }); } catch {}
-                                }, 50);
-                            }}
-                            refreshControl={
-                                <RefreshControl
-                                    refreshing={refreshing}
-                                    onRefresh={onRefresh}
-                                    tintColor={theme.textPrimary}
-                                    colors={[theme.textPrimary]}
-                                    progressBackgroundColor={theme.bg}
-                                />
+                        <View
+                            style={{ flex: 1, backgroundColor: 'red' }}
+                            maskElement={
+                                <View style={{ flex: 1, backgroundColor: 'black' }}>
+                                    <View
+                                        style={{
+                                            width: '100%',
+                                            height: '100%',
+                                            backgroundColor: 'black',
+                                            borderRadius: scaleSize(35),
+                                        }}
+                                    />
+                                </View>
                             }
-                        />
-                    </MaskedView>
-                </Reanimated.View>
+                        >
+                            <Reanimated.View style={postsTranslateStyle}>
+                                <Reanimated.FlatList
+                                    ref={flatListRef}
+                                    style={{ paddingBottom: 1000 }}
+                                    bounces={true}
+                                    alwaysBounceVertical
+                                    showsVerticalScrollIndicator={false}
+                                    data={listData}
+                                    keyExtractor={(item, i) => String(item?.pid ?? i)}
+                                    renderItem={({ item, index }) => renderPost({ item, index })}
+                                    onScroll={onScrollRe}
+                                    scrollEventThrottle={16}
+                                    stickyHeaderIndices={[]}
+                                    viewabilityConfig={{ itemVisiblePercentThreshold: 20 }}
+                                    onViewableItemsChanged={({ viewableItems }) => {
+                                        const s = new Set();
+                                        viewableItems.forEach((v) => {
+                                            if (typeof v.index === "number" && v.index >= 0) s.add(v.index);
+                                        });
+                                        viewableSetRef.current = s;
+                                    }}
+                                    CellRendererComponent={CellRenderer}
+                                    // Spacer no longer needed; container top tracks header
+                                    // ListHeaderComponent={<Reanimated.View style={spacerStyle} />}
+                                    initialNumToRender={3}
+                                    windowSize={5}
+                                    removeClippedSubviews={false}
+                                    onScrollToIndexFailed={(info) => {
+                                        try {
+                                            const approx = Math.max(0, (info?.averageItemLength || (width / CARD_AR)) * (info?.index || 0));
+                                            flatListRef.current?.scrollToOffset?.({ offset: approx, animated: false });
+                                        } catch { }
+                                        setTimeout(() => {
+                                            try { flatListRef.current?.scrollToIndex?.({ index: info?.index || 0, viewPosition: 0.02, animated: false }); } catch { }
+                                        }, 50);
+                                    }}
+                                    refreshControl={
+                                        <RefreshControl
+                                            refreshing={refreshing}
+                                            onRefresh={onRefresh}
+                                            tintColor={theme.textPrimary}
+                                            colors={[theme.textPrimary]}
+                                            progressBackgroundColor={theme.bg}
+                                        />
+                                    }
+                                />
+                            </Reanimated.View>
+                        </View>
+                    </Reanimated.View>
                 </GestureDetector>
             </SafeAreaView>
             {/* Overlay header (FeedHeader + ActivityChips) that reveals/collapses; spacer keeps posts pushed */}
@@ -1170,7 +1222,7 @@ export default function Feed({ navigation, route }) {
                             headerH.value = h;
                             hidden.value = 0; // start visible
                             try { visibleHeaderHRef.current = h; } catch { }
-                            try { headerHeightRef.current = h; } catch {}
+                            try { headerHeightRef.current = h; } catch { }
                         }
                         // no-op; refresh indicator is positioned by default directly under header
                     }}
@@ -1247,7 +1299,7 @@ export default function Feed({ navigation, route }) {
                 toViewProfile={toViewProfileComments}
                 collapseSignal={commentsCollapseSignal}
                 reopenSignal={commentsReopenSignal}
-                // interactiveProgress removed for performance; collapse is handled via collapseSignal
+            // interactiveProgress removed for performance; collapse is handled via collapseSignal
             />
             <ShareBottomSheet
                 shareBottomSheetCloseFlag={shareBottomSheetCloseFlag}
