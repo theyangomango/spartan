@@ -409,7 +409,7 @@ function Post({
         >
             <Animated.View
                 key={`card-${mediaListKey}`}
-                style={[styles.card, isFocused && { zIndex: 1 }, { transform: [{ scale }] }]}
+                style={[styles.card, { transform: [{ scale }] }]}
                 {...(isFocused ? panResponder.panHandlers : {})}
             >
                 <View style={styles.body}>

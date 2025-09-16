@@ -78,6 +78,7 @@ export default function Feed({ navigation, route }) {
     const flatListRef = useRef(null);
     const isTransitioning = useRef(false); /* 🔒 */
     const pendingUnfocusTRef = useRef(null);
+    const focusUnlockTimerRef = useRef(null);
     const [unfocusing, setUnfocusing] = useState(false);
     const focusSeqRef = useRef(0);
     const [focusSeq, setFocusSeq] = useState(0);
@@ -127,6 +128,11 @@ export default function Feed({ navigation, route }) {
     const focusWatchIdRef = useRef(null);
     // When performing a native scroll to finish unfocus, hold target offset here
     const finalizeScrollTargetRef = useRef(null);
+    // When initiating a focus via native FlatList scroll, wait until we reach the
+    // target offset to unlock transitions again so unfocus can be triggered.
+    const focusScrollTargetRef = useRef(null);
+    // Flag: we are currently finishing via a native FlatList scroll
+    const isFinishingScrollRef = useRef(false);
 
     // Wait until target index is in viewport and scrolling has settled, then focus
     const startFocusWatcher = useCallback((pid, idx) => {
@@ -227,9 +233,21 @@ export default function Feed({ navigation, route }) {
         opacity: othersOpacitySV.value,
     }));
 
-    // Overlay position: follow the same translateY as the list but start from the tap's screen Y
+    // Track native FlatList scroll (UI thread) during finish to keep spacer in sync
+    const scrollYSV = useSharedValue(0);
+    const startScrollYSV = useSharedValue(0);
+    // Signal (UI thread) that we are finishing via native scroll
+    const finishingSV = useSharedValue(0);
+
+    // Overlay position: start from tap screen Y, then follow overlay translate minus native/pan scroll
+    const panStartScrollSV = useSharedValue(0);
+    const panActiveSV = useSharedValue(0);
     const overlayTopStyle = useAnimatedStyle(() => ({
-        top: (focusStartPageYSV.value - focusStartHeaderSV.value) + translateYSV.value,
+        top:
+            (focusStartPageYSV.value - focusStartHeaderSV.value) +
+            translateYSV.value -
+            (finishingSV.value * ((scrollYSV.value || 0) - (startScrollYSV.value || 0))) -
+            (panActiveSV.value * ((scrollYSV.value || 0) - (panStartScrollSV.value || 0))),
     }));
 
     // Header workout pill state
@@ -254,8 +272,19 @@ export default function Feed({ navigation, route }) {
             const t = finalizeScrollTargetRef.current;
             if (t != null && Math.abs(y - t) <= 2) {
                 finalizeScrollTargetRef.current = null;
+                isFinishingScrollRef.current = false;
                 // Complete the unfocus now that the list reached the target
                 handleFocusAnimEndJS(0);
+            }
+        } catch {}
+
+        // If we are focusing via a programmatic list scroll, unlock once we arrive
+        try {
+            const ft = focusScrollTargetRef.current;
+            if (ft != null && Math.abs(y - ft) <= 4) {
+                focusScrollTargetRef.current = null;
+                isTransitioning.current = false; // allow back/unfocus gestures now
+                if (focusUnlockTimerRef.current) { try { clearTimeout(focusUnlockTimerRef.current); } catch {} focusUnlockTimerRef.current = null; }
             }
         } catch {}
 
@@ -435,6 +464,8 @@ export default function Feed({ navigation, route }) {
         focusedPostIndex.current = index;
         try { setFocusedIndexState(index); } catch { }
         setIsSomePostFocused(true);
+        // Fade out all other posts as we enter focus
+        try { othersOpacitySV.value = withTiming(0, { duration: ANIMATION_DURATION, easing: ReEasing.out(ReEasing.cubic) }); } catch {}
         // Consume any pending programmatic focus so it doesn't re-trigger after unfocus
         try { programFocusPidRef.current = null; } catch { }
         const run = () => {
@@ -459,34 +490,39 @@ export default function Feed({ navigation, route }) {
                     }
                 } catch { }
             }
-            // Activate an absolute overlay that renders the focused Post so its
-            // content is never clipped by the FlatList or header. We keep the list
-            // animation intact, and move the overlay in sync with translateY.
+            // Record focus-start anchors
             try {
                 focusStartPageYSV.value = pageYAdj || 0;
                 focusStartHeaderSV.value = Vstart || 0;
                 focusStartPageYRef.current = pageYAdj || 0;
                 focusStartHeaderJSRef.current = Vstart || 0;
                 overlayIndexRef.current = index;
-                setShowOverlay(true);
+                setShowOverlay(false);
             } catch { }
+            // Native-scroll the FlatList so the focused row lands at the target position
             // Needed translation Δ: Vfinal - (pageY - Vstart) = - (pageY - Vstart - Vfinal)
             const translate = (pageYAdj || 0) - Vstart - Vfinal;
             dlog('focus.animate', { index, Vstart, Vfinal, pageYAdj, translate });
-            // Kick off the UI-thread animation (no immediate jump)
-            animateView(translate, 0);
-            // Remember target values for unfocus math, but do not directly set translateYSV
-            // to avoid a one-frame jump that can look jittery.
+            const offOld = scrollOffsetY.current || 0;
+            const targetOff = Math.max(0, offOld + translate);
             try {
-                focusTranslateTargetRef.current = -translate;
-                focusTranslateTargetSV.value = -translate;
-                translateYValueRef.current = -translate;
-            } catch { }
-            // Ensure other posts start fully faded when focus begins
-            try {
-                unfocusProgressSV.value = 0;
-                othersOpacitySV.value = withTiming(0, { duration: ANIMATION_DURATION, easing: ReEasing.out(ReEasing.cubic) });
-            } catch { }
+                // If no movement is needed, unlock immediately
+                if (Math.abs(targetOff - offOld) <= 1) {
+                    focusScrollTargetRef.current = null;
+                    isTransitioning.current = false;
+                } else {
+                    // Mark the target so handleScroll can unlock when we arrive
+                    focusScrollTargetRef.current = targetOff;
+                    flatListRef.current?.scrollToOffset?.({ offset: targetOff, animated: true });
+                    // Fallback unlock in case onScroll doesn't report the exact offset
+                    if (focusUnlockTimerRef.current) { try { clearTimeout(focusUnlockTimerRef.current); } catch {} }
+                    focusUnlockTimerRef.current = setTimeout(() => {
+                        focusScrollTargetRef.current = null;
+                        isTransitioning.current = false;
+                        focusUnlockTimerRef.current = null;
+                    }, 600);
+                }
+            } catch {}
         };
         // Do not wait for the back header's onLayout; Vfinal is derived above
         setTimeout(run, 0);
@@ -506,6 +542,8 @@ export default function Feed({ navigation, route }) {
             focusHide.value = withTiming(0, { duration: ANIMATION_DURATION, easing: ReEasing.out(ReEasing.cubic) });
             // Ensure overlay header/chips fully fade in during automatic completion
             overlayHeaderOpacitySV.value = withTiming(1, { duration: ANIMATION_DURATION, easing: ReEasing.out(ReEasing.cubic) });
+            // Also ensure ActivityChips become fully visible
+            storiesOpacitySV.value = withTiming(1, { duration: ANIMATION_DURATION, easing: ReEasing.out(ReEasing.cubic) });
             backHeaderOpacitySV.value = withTiming(0, { duration: ANIMATION_DURATION, easing: ReEasing.out(ReEasing.cubic) });
             // Freeze posts top so header reveal doesn't push the list during finish
             lockPostsTopSV.value = 1;
@@ -528,12 +566,15 @@ export default function Feed({ navigation, route }) {
                 if (lay && typeof lay.y === 'number') {
                     const vHeader = headerHeightRef.current || 0;
                     const targetOff = Math.max(0, lay.y - (vHeader - clipMargin));
+                    startScrollYSV.value = scrollYSV.value || 0;
+                    finishingSV.value = 1;
                     finalizeScrollTargetRef.current = targetOff;
+                    isFinishingScrollRef.current = true;
                     try { flatListRef.current?.scrollToOffset?.({ offset: targetOff, animated: true }); } catch {}
                 }
                 try { othersOpacitySV.value = withTiming(1, { duration: ANIMATION_DURATION, easing: ReEasing.out(ReEasing.cubic) }); } catch {}
-                // Hide the overlay so only the list continues moving
-                try { setShowOverlay(false); } catch {}
+                try { storiesOpacitySV.value = withTiming(1, { duration: ANIMATION_DURATION, easing: ReEasing.out(ReEasing.cubic) }); } catch {}
+                // Keep overlay mounted until finalize to avoid any layout flicker/snap
                 return; // finalize happens when onScroll reaches target
             } else {
                 // No overlay: adjust list offset immediately to avoid jump
@@ -553,18 +594,21 @@ export default function Feed({ navigation, route }) {
             // Back button or programmatic unfocus: if overlay is active, drive to max-lift
             // point first so the motion matches the interactive pan, then finalize.
             if (showOverlay) {
-                // Commit current overlay position, finalize immediately, then perform a natural scroll to max
+                // Commit current overlay position, then perform a natural scroll to max
                 const currentY = translateYValueRef.current || 0;
                 runOnJS(applyOverlayCompletionAdjustJS)(currentY);
-                runOnJS(handleFocusAnimFinalizeJS)(0);
                 const clipMargin = Math.max(4, Math.floor(scaleSize(8)));
                 const desiredTop = (headerHeightRef.current || 0) - clipMargin;
                 const curTop = (focusStartPageYRef.current - focusStartHeaderJSRef.current) + currentY;
                 const delta = Math.max(0, curTop - desiredTop);
                 const targetOffProg = Math.max(0, (scrollOffsetY.current || 0) + delta);
+                startScrollYSV.value = scrollYSV.value || 0;
+                finishingSV.value = 1;
                 finalizeScrollTargetRef.current = targetOffProg;
+                isFinishingScrollRef.current = true;
                 try { flatListRef.current?.scrollToOffset?.({ offset: targetOffProg, animated: true }); } catch {}
                 try { othersOpacitySV.value = withTiming(1, { duration: ANIMATION_DURATION, easing: ReEasing.out(ReEasing.cubic) }); } catch {}
+                try { storiesOpacitySV.value = withTiming(1, { duration: ANIMATION_DURATION, easing: ReEasing.out(ReEasing.cubic) }); } catch {}
                 return;
             } else {
                 // No overlay: use previous animation
@@ -623,8 +667,8 @@ export default function Feed({ navigation, route }) {
 
     // Drive overlay header fade to appear immediately at start of unfocus
     useEffect(() => {
-        // Skip effect-driven fades while the user is actively panning; let the gesture drive opacity.
-        if (isPanningRef.current) return;
+        // Skip effect-driven fades while the user is actively panning or finishing a native scroll.
+        if (isPanningRef.current || isFinishingScrollRef.current) return;
         if (isSomePostFocused) {
             // While focused: keep overlay hidden; during unfocus: fade it in
             overlayHeaderOpacitySV.value = withTiming(unfocusing ? 1 : 0, { duration: ANIMATION_DURATION, easing: ReEasing.out(ReEasing.cubic) });
@@ -635,10 +679,27 @@ export default function Feed({ navigation, route }) {
 
     // Feed-level pan gesture using Reanimated/Gesture Handler for smooth unfocus drag
     // Avoid inline runOnJS closures (can capture HostObjects) by defining JS callbacks
+    // Optional: lockstep pan (disabled by default as it can double-apply motion
+    // when combined with layer translate). Enable only after careful testing.
+    const LOCKSTEP_PAN = true;
+    const panBaseScrollRef = useRef(0);
+    const panBaseYRef = useRef(0);
+    const panLastOffRef = useRef(0);
+    const syncScrollDuringPan = (off) => {
+        try {
+            flatListRef.current?.scrollToOffset?.({ offset: Math.max(0, off), animated: false });
+            scrollOffsetY.current = Math.max(0, off);
+        } catch {}
+    };
+
     const handleUnfocusPanBeginJS = useCallback(() => {
         try { didCollapseCommentsRef.current = false; } catch { }
         try { translateYValueRef.current = focusTranslateTargetRef.current || 0; } catch { }
         try { isPanningRef.current = true; } catch {}
+        try { panBaseScrollRef.current = scrollOffsetY.current || 0; } catch {}
+        try { panBaseYRef.current = translateYValueRef.current || 0; } catch {}
+        try { panLastOffRef.current = panBaseScrollRef.current || 0; } catch {}
+        try { panStartScrollSV.value = scrollYSV.value || 0; panActiveSV.value = 1; } catch {}
     }, []);
 
     const handleUnfocusPanUpdateJS = useCallback((progress) => {
@@ -646,6 +707,20 @@ export default function Feed({ navigation, route }) {
         if (!didCollapseCommentsRef.current && progress > 0.08) {
             try { setCommentsCollapseSignal(Date.now()); } catch { }
             didCollapseCommentsRef.current = true;
+        }
+        if (LOCKSTEP_PAN) {
+            try {
+                const baseY = panBaseYRef.current || 0; // negative focused anchor
+                const EXTRA_UP_PX = Math.max(80, Math.min(height * 0.18, 160));
+                const y = baseY - progress * EXTRA_UP_PX; // current overlay translate (negative)
+                const delta = y - baseY; // negative
+                const off = (panBaseScrollRef.current || 0) - delta; // subtract negative -> add pixels
+                const last = panLastOffRef.current || 0;
+                if (Math.abs(off - last) > 0.8) {
+                    panLastOffRef.current = off;
+                    syncScrollDuringPan(off);
+                }
+            } catch {}
         }
     }, []);
 
@@ -655,6 +730,7 @@ export default function Feed({ navigation, route }) {
         // Capture precise final progress for accurate header delta during offset adjustment
         try { panProgressRef.current = (typeof progressAtEnd === 'number') ? Math.max(0, Math.min(1, progressAtEnd)) : (panProgressRef.current || 0); } catch { }
         try { isPanningRef.current = false; } catch {}
+        try { panActiveSV.value = 0; } catch {}
         try { Haptics.impactAsync?.(Haptics.ImpactFeedbackStyle.Heavy).catch(() => { }); } catch { }
         try { requestUnfocus(); } catch { }
     }, [requestUnfocus]);
@@ -665,6 +741,7 @@ export default function Feed({ navigation, route }) {
             try { setCommentsReopenSignal(Date.now()); } catch { }
         }
         try { isPanningRef.current = false; } catch {}
+        try { panActiveSV.value = 0; } catch {}
     }, []);
 
     // When finishing an overlay-based unfocus, convert the current transform into
@@ -680,11 +757,8 @@ export default function Feed({ navigation, route }) {
             const newOff = Math.max(0, off - y - (lift + overlapFix));
             flatListRef.current?.scrollToOffset?.({ offset: newOff, animated: false });
             scrollOffsetY.current = newOff;
+            // Do NOT reset translate values here; overlay follows native scroll via overlayTopStyle
         } catch { }
-        try { translateYSV.value = 0; } catch { }
-        try { translateYValueRef.current = 0; } catch { }
-        try { focusTranslateTargetRef.current = 0; } catch { }
-        try { focusTranslateTargetSV.value = 0; } catch { }
     }, []);
     const unfocusPanGesture = useMemo(() => {
         const FULL_GESTURE_PX = Math.max(140, Math.min(height * 0.25, 260));
@@ -755,14 +829,21 @@ export default function Feed({ navigation, route }) {
                 const vy = e.velocityY; // px/s, negative is upward
                 const distanceOK = dy < -12;
                 const velocityOK = vy < -400;
-                // Close whenever the user releases with any upward drag
+                // Also close if the focused card's top has crossed the header threshold.
+                // Compute the card top relative to the screen based on current gesture progress.
+                const progress = Math.max(0, Math.min(1, (-dy) / FULL_GESTURE_PX));
+                const baseY = focusTranslateTargetSV.value || 0; // negative when focused
+                const y = baseY - progress * EXTRA_UP_PX; // current translateY applied to posts layer
+                const baseTop = (focusStartPageYSV.value - focusStartHeaderSV.value) || 0; // initial top of focused card
+                const curTop = baseTop + y; // where the focused card's top sits on screen now
+                const headerTopThreshold = Math.max(0, (headerH?.value || 0) - 8); // a small clip margin
+                // Close when: any upward intent OR velocity/distance OR card has reached header zone
                 const slightUp = dy < -2;
-                const shouldClose = !!isSomePostFocused && (slightUp || distanceOK || velocityOK);
+                const crossedTop = curTop <= headerTopThreshold;
+                const shouldClose = !!isSomePostFocused && (crossedTop || slightUp || distanceOK || velocityOK);
                 if (shouldClose) {
                     closedInEndSV.value = 1;
-                    const baseY = focusTranslateTargetSV.value || 0;
-                    const progress = Math.max(0, Math.min(1, (-dy) / FULL_GESTURE_PX));
-                    const y = baseY - progress * EXTRA_UP_PX;
+                    // Use the y/progress computed above for a seamless handoff
                     // Continue fading other posts on release to avoid a pop-in
                     try { unfocusProgressSV.value = withTiming(1, { duration: 200, easing: ReEasing.out(ReEasing.cubic) }); } catch { }
                     try { othersOpacitySV.value = withTiming(1, { duration: 200, easing: ReEasing.out(ReEasing.cubic) }); } catch { }
@@ -833,6 +914,7 @@ export default function Feed({ navigation, route }) {
             // no JS progress updates
             try { overlayIndexRef.current = -1; setShowOverlay(false); } catch { }
             try { lockPostsTopSV.value = 0; } catch {}
+            try { storiesOpacitySV.value = 1; } catch {}
         } else {
             // Only remount at end when we compensated for a clipped-at-top start
             if (needsFocusEndRemountRef.current) {
@@ -846,6 +928,7 @@ export default function Feed({ navigation, route }) {
             const q = queuedFocusRef.current; queuedFocusRef.current = null;
             try { handleFocusPost(q.index, q.pageY, true); } catch { }
         }
+        try { isFinishingScrollRef.current = false; } catch {}
     }, [handleFocusPost]);
 
     const handleFocusAnimFinalizeJS = useCallback((translateYValue) => {
@@ -1088,11 +1171,13 @@ export default function Feed({ navigation, route }) {
     const DynamicSpacer = ({ baseH }) => {
         const st = useAnimatedStyle(() => {
             const base = baseH || 0;
-            // How much the focused layer has moved beyond its anchored focused position
-            const lift = Math.max(0, (focusTranslateTargetSV.value || 0) - (translateYSV.value || 0));
-            // Account for the natural overlap between rows (card negative margin vs wrapper padding)
-            // Add a small fudge so the next row slightly overhangs like in the list.
-            const overlapFix = (scaleSize(33) + scaleSize(6));
+            // Lift contributed by overlay translate (pre-finish)
+            const liftTranslate = (focusTranslateTargetSV.value || 0) - (translateYSV.value || 0);
+            // Lift contributed by native list scroll during finish
+            const liftScroll = Math.max(0, (scrollYSV.value || 0) - (startScrollYSV.value || 0));
+            const lift = Math.max(0, liftTranslate + liftScroll);
+            // Account for the natural overlap between rows
+            const overlapFix = scaleSize(33) + scaleSize(6);
             const h = Math.max(0, base - Math.min(base, lift + overlapFix));
             return { height: h };
         });
@@ -1220,7 +1305,7 @@ export default function Feed({ navigation, route }) {
                             bottom: 0,
                             // While focused, keep list layer above the focused-overlay (28) but
                             // below the back header (30) to let the next row appear on top.
-                            zIndex: isSomePostFocused ? 29 : 0,
+                            // zIndex: isSomePostFocused ? 29 : 0,
                         }, maskContainerStyle]}
                     >
                         <MaskedView
@@ -1317,7 +1402,7 @@ export default function Feed({ navigation, route }) {
                             navigation={navigation}
                             toMessagesScreen={toMessagesScreen}
                             onOpenNotifications={handleOpenNotifications}
-                            backButton={isSomePostFocused && !unfocusing}
+                            backButton={false}
                             onBackPress={handleBackPress}
                             scrollToTop={scrollToTop}
                             allUsersRef={allUsersRef}
