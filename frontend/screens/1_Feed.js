@@ -61,7 +61,7 @@ export default function Feed({ navigation, route }) {
     const [commentsBottomSheetExpandFlag, setCommentsBottomSheetExpandFlag] = useState(false);
     const [commentsCollapseSignal, setCommentsCollapseSignal] = useState(0);
     const [commentsReopenSignal, setCommentsReopenSignal] = useState(0);
-    const [dragUnfocusProgress, setDragUnfocusProgress] = useState(0); // 0..1 during interactive unfocus
+    // Removed JS-driven unfocus progress to avoid per-frame JS updates
     // Pre-mounted bottom sheet viewer for workouts
     const [feedWorkoutExpandToggle, setFeedWorkoutExpandToggle] = useState(false);
     const [feedSelectedWorkout, setFeedSelectedWorkout] = useState(null);
@@ -176,6 +176,8 @@ export default function Feed({ navigation, route }) {
     const backHeaderOpacitySV = useSharedValue(0);
     // Overlay header opacity (full header revealed outside focus)
     const overlayHeaderOpacitySV = useSharedValue(1);
+    // UI-thread progress of interactive unfocus (0..1) shared with Post cards
+    const unfocusProgressSV = useSharedValue(0);
     // JS mirrors for interactive unfocus handoff
     const translateYValueRef = useRef(0);
     const closingViaPanRef = useRef(false);
@@ -418,7 +420,6 @@ export default function Feed({ navigation, route }) {
             const approxCompact = Math.max(0, Math.round((headerH?.value || 0) - (chipsH?.value || 0)));
             const compactH = compactHeaderHRef.current || approxCompact || 44;
             const Vfinal = (insets?.top || 0) + compactH;
-            try { setDragUnfocusProgress(0); } catch {}
             let pageYAdj = pageY;
             // Programmatic path no longer adjusts the offset here; we rely on the
             // focus watcher + Post.measure to provide an accurate pageY.
@@ -474,7 +475,7 @@ export default function Feed({ navigation, route }) {
         if (isTransitioning.current) return; /* 🔒 */
         isTransitioning.current = true;
         setUnfocusing(true);
-        try { setDragUnfocusProgress(0); } catch {}
+        // no JS progress updates
         // Keep focus state during the animation to avoid layout thrash/jitter.
         // We'll flip isSomePostFocused to false in the animation end callback.
         // Start revealing the header in parallel for a cohesive unfocus
@@ -558,13 +559,11 @@ export default function Feed({ navigation, route }) {
     // Avoid inline runOnJS closures (can capture HostObjects) by defining JS callbacks
     const handleUnfocusPanBeginJS = useCallback(() => {
         try { didCollapseCommentsRef.current = false; } catch {}
-        try { setDragUnfocusProgress(0); } catch {}
         try { translateYValueRef.current = focusTranslateTargetRef.current || 0; } catch {}
     }, []);
 
     const handleUnfocusPanUpdateJS = useCallback((progress) => {
         try { panProgressRef.current = progress; } catch {}
-        try { setDragUnfocusProgress(progress); } catch {}
         if (!didCollapseCommentsRef.current && progress > 0.08) {
             try { setCommentsCollapseSignal(Date.now()); } catch {}
             didCollapseCommentsRef.current = true;
@@ -576,12 +575,10 @@ export default function Feed({ navigation, route }) {
         try { translateYValueRef.current = yAtEnd; } catch {}
         try { Haptics.impactAsync?.(Haptics.ImpactFeedbackStyle.Heavy).catch(() => { }); } catch {}
         try { requestUnfocus(); } catch {}
-        try { setDragUnfocusProgress(1); } catch {}
     }, [requestUnfocus]);
 
     const handleUnfocusPanEndCancelJS = useCallback(() => {
         try { panProgressRef.current = 0; } catch {}
-        try { setDragUnfocusProgress(0); } catch {}
         if (didCollapseCommentsRef.current) {
             try { setCommentsReopenSignal(Date.now()); } catch {}
         }
@@ -615,6 +612,8 @@ export default function Feed({ navigation, route }) {
                     backHeaderOpacitySV.value = 1;
                     overlayHeaderOpacitySV.value = 0;
                     if (headerH?.value != null) focusHide.value = headerH.value;
+                    // update unfocus progress on UI thread only
+                    try { unfocusProgressSV.value = 0; } catch {}
                     return;
                 }
                 const progress = Math.max(0, Math.min(1, (-dy) / FULL_GESTURE_PX));
@@ -626,6 +625,8 @@ export default function Feed({ navigation, route }) {
                 backHeaderOpacitySV.value = 1 - progress;
                 overlayHeaderOpacitySV.value = progress;
                 if (headerH?.value != null) focusHide.value = headerH.value * (1 - progress);
+                // update unfocus progress on UI thread only
+                try { unfocusProgressSV.value = progress; } catch {}
 
                 // JS mirrors needed for layout adjustments and Posts' unfocus fade
                 const last = lastPanProgressSV.value;
@@ -647,6 +648,7 @@ export default function Feed({ navigation, route }) {
                     const baseY = focusTranslateTargetSV.value || 0;
                     const progress = Math.max(0, Math.min(1, (-dy) / FULL_GESTURE_PX));
                     const y = baseY - progress * EXTRA_UP_PX;
+                    try { unfocusProgressSV.value = 1; } catch {}
                     runOnJS(handleUnfocusPanEndCloseJS)(y);
                 } else {
                     // Revert interactive changes back to focused state
@@ -655,6 +657,7 @@ export default function Feed({ navigation, route }) {
                     backHeaderOpacitySV.value = withTiming(1, { duration: 180, easing: ReEasing.out(ReEasing.cubic) });
                     overlayHeaderOpacitySV.value = withTiming(0, { duration: 180, easing: ReEasing.out(ReEasing.cubic) });
                     if (headerH?.value != null) focusHide.value = withTiming(headerH.value, { duration: 180, easing: ReEasing.out(ReEasing.cubic) });
+                    try { unfocusProgressSV.value = withTiming(0, { duration: 180, easing: ReEasing.out(ReEasing.cubic) }); } catch {}
                     runOnJS(handleUnfocusPanEndCancelJS)();
                 }
             })
@@ -667,6 +670,7 @@ export default function Feed({ navigation, route }) {
                 backHeaderOpacitySV.value = withTiming(1, { duration: 180, easing: ReEasing.out(ReEasing.cubic) });
                 overlayHeaderOpacitySV.value = withTiming(0, { duration: 180, easing: ReEasing.out(ReEasing.cubic) });
                 if (headerH?.value != null) focusHide.value = withTiming(headerH.value, { duration: 180, easing: ReEasing.out(ReEasing.cubic) });
+                try { unfocusProgressSV.value = withTiming(0, { duration: 180, easing: ReEasing.out(ReEasing.cubic) }); } catch {}
                 runOnJS(handleUnfocusPanEndCancelJS)();
             });
     }, [isSomePostFocused, requestUnfocus, handleUnfocusPanBeginJS, handleUnfocusPanUpdateJS, handleUnfocusPanEndCloseJS, handleUnfocusPanEndCancelJS]);
@@ -703,7 +707,7 @@ export default function Feed({ navigation, route }) {
             try { flatListRef.current?.setNativeProps({ scrollEnabled: true }); } catch { }
             try { setUnfocusing(false); } catch { }
             try { focusTranslateTargetRef.current = 0; } catch { }
-            try { setDragUnfocusProgress(0); } catch { }
+            // no JS progress updates
         } else {
             // Only remount at end when we compensated for a clipped-at-top start
             if (needsFocusEndRemountRef.current) {
@@ -985,7 +989,7 @@ export default function Feed({ navigation, route }) {
                             programFocusPid={programFocusPidRef.current}
                             programFocusSignal={programFocusSignal}
                             shouldPlay={index === centeredIndex} // ⟵ only centered post can play (if video slide)
-                            unfocusProgress={dragUnfocusProgress}
+                            unfocusProgressSV={unfocusProgressSV}
                         />
                     </Reanimated.View>
                 );
@@ -996,7 +1000,7 @@ export default function Feed({ navigation, route }) {
                 const isAboveAdjacent = isAdj && index < focusedIndexState;
                 const basePad = width / CARD_AR;
                 const minPad = 33;
-                const dynamicPad = unfocusing ? minPad : Math.max(minPad, Math.round(basePad - (basePad - minPad) * (dragUnfocusProgress || 0)));
+                const dynamicPad = unfocusing ? minPad : basePad;
                 return (
                     <Reanimated.View style={[
                         styles.postWrapper,
@@ -1021,7 +1025,7 @@ export default function Feed({ navigation, route }) {
                             programFocusPid={programFocusPidRef.current}
                             programFocusSignal={programFocusSignal}
                             shouldPlay={false} // ⟵ playback is controlled by focus rules inside Post
-                            unfocusProgress={dragUnfocusProgress}
+                            unfocusProgressSV={unfocusProgressSV}
                         />
                     </Reanimated.View>
                 );
@@ -1039,7 +1043,7 @@ export default function Feed({ navigation, route }) {
                         programFocusPid={programFocusPidRef.current}
                         programFocusSignal={programFocusSignal}
                         shouldPlay={false}
-                        unfocusProgress={dragUnfocusProgress}
+                        unfocusProgressSV={unfocusProgressSV}
                     />
                 </Reanimated.View>
             );
@@ -1227,7 +1231,7 @@ export default function Feed({ navigation, route }) {
                 toViewProfile={toViewProfileComments}
                 collapseSignal={commentsCollapseSignal}
                 reopenSignal={commentsReopenSignal}
-                interactiveProgress={dragUnfocusProgress}
+                // interactiveProgress removed for performance; collapse is handled via collapseSignal
             />
             <ShareBottomSheet
                 shareBottomSheetCloseFlag={shareBottomSheetCloseFlag}

@@ -14,7 +14,7 @@ import scaleSize from "../../../helper/scaleSize";
 const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('screen');
 const dynamicStyles = getCommentsBottomSheetStyles(SCREEN_WIDTH, SCREEN_HEIGHT);
 
-const CommentsBottomSheet = ({ isVisible, postData, commentsBottomSheetExpandFlag, toViewProfile, collapseSignal, reopenSignal, interactiveProgress = 0, interactiveScale = 0.85 }) => {
+const CommentsBottomSheet = ({ isVisible, postData, commentsBottomSheetExpandFlag, toViewProfile, collapseSignal, reopenSignal, interactiveProgress, interactiveScale = 0.85 }) => {
     const [isInputFocused, setIsInputFocused] = useState(false);
     const bottomSheetRef = useRef(null);
     const footerTranslateY = useRef(new Animated.Value(0)).current; // moves when input focuses
@@ -23,6 +23,7 @@ const CommentsBottomSheet = ({ isVisible, postData, commentsBottomSheetExpandFla
     const footerOpacity = useRef(new Animated.Value(0)).current;    // fade with sheet
     const snapPoints = useMemo(() => ["34.5%", "92%"], []);
     const containerHRef = useRef(SCREEN_HEIGHT - scaleSize(85));
+    const [containerReady, setContainerReady] = useState(false);
     const [isSheetExpanded, setIsSheetExpanded] = useState(false);
     const [inputText, setInputText] = useState('');
     const [replyingToIndex, setReplyingToIndex] = useState(null);
@@ -110,7 +111,7 @@ const CommentsBottomSheet = ({ isVisible, postData, commentsBottomSheetExpandFla
     const postPid = postData?.pid;
     useEffect(() => {
         const hasPost = !!postPid;
-        if (isVisible && hasPost) {
+        if (isVisible && hasPost && containerReady) {
             // Force the sheet to the closed bottom position instantly, then animate up.
             // This avoids any top-origin animation blip on iOS.
             try { bottomSheetRef.current?.snapToPosition?.(0, { duration: 0 }); } catch {}
@@ -129,7 +130,7 @@ const CommentsBottomSheet = ({ isVisible, postData, commentsBottomSheetExpandFla
             bottomSheetRef.current?.close();
             Animated.timing(footerOpacity, { toValue: 0, duration: 120, useNativeDriver: true }).start();
         }
-    }, [isVisible, postPid]);
+    }, [isVisible, postPid, containerReady]);
 
     // Imperative collapse during interactive unfocus
     useEffect(() => {
@@ -145,9 +146,10 @@ const CommentsBottomSheet = ({ isVisible, postData, commentsBottomSheetExpandFla
         try { bottomSheetRef.current?.snapToIndex?.(0); } catch { }
     }, [reopenSignal, isVisible, postPid]);
 
-    // Interactive collapse following feed pan progress (0..1). Collapse slower for a natural feel.
+    // Optional interactive collapse (disabled if interactiveProgress is undefined)
     useEffect(() => {
         if (!isVisible || !postPid) return;
+        if (interactiveProgress == null) return;
         const progress = Math.max(0, Math.min(1, interactiveProgress || 0));
         // Target position in px from bottom: 34.5% at rest -> 0 when fully closed
         const h = containerHRef.current || (SCREEN_HEIGHT - scaleSize(85));
@@ -190,7 +192,15 @@ const CommentsBottomSheet = ({ isVisible, postData, commentsBottomSheetExpandFla
             style={styles.container}
             behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
             pointerEvents='box-none'
-            onLayout={(e) => { try { containerHRef.current = e.nativeEvent.layout.height || (SCREEN_HEIGHT - scaleSize(85)); } catch {} }}
+            onLayout={(e) => {
+                try {
+                    const h = e.nativeEvent.layout.height || (SCREEN_HEIGHT - scaleSize(85));
+                    if (Math.abs(h - (containerHRef.current || 0)) > 1) {
+                        containerHRef.current = h;
+                    }
+                    setContainerReady(true);
+                } catch { setContainerReady(true); }
+            }}
         >
             <BottomSheet
                 ref={bottomSheetRef}

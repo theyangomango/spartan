@@ -15,6 +15,7 @@ import {
     PanResponder,
     Easing,
 } from "react-native";
+import Reanimated, { useAnimatedStyle } from 'react-native-reanimated';
 import * as Haptics from 'expo-haptics';
 import FastImage from "react-native-fast-image";
 import Video from "react-native-video";
@@ -92,8 +93,8 @@ function Post({
     highlightSignal,
     programFocusPid,
     programFocusSignal,
-    // Interactive unfocus progress from Feed (0..1). Used to fade siblings back in.
-    unfocusProgress = 0,
+    // Interactive unfocus progress from Feed (0..1) as a shared value for UI-thread opacity
+    unfocusProgressSV,
 }) {
     const { pfp } = data;
     // Normalize media for backward compatibility where posts stored `images: string[]`
@@ -155,34 +156,17 @@ function Post({
     }, []);
 
     // Fade behavior: when focusing, keep focused=1, neighbors faded, others hidden.
-    // While interactively unfocusing (pan), blend everyone back to 1 by unfocusProgress.
-    useEffect(() => {
-        let base = 1;
-        if (isSomePostFocused && !isUnfocusing) {
-            // During focus, hide all non-focused posts completely.
-            // We'll fade them back in during interactive unfocus via unfocusProgress.
-            base = isFocused ? 1 : 0;
-            const p = Math.max(0, Math.min(1, unfocusProgress || 0));
-            // Blend back toward 1 as the user drags upward
-            const blended = base + p * (1 - base);
-            try { opacity.stopAnimation(); } catch {}
-            Animated.timing(opacity, {
-                toValue: blended,
-                duration: 16,
-                easing: Easing.linear,
-                useNativeDriver: true,
-            }).start();
-            return;
+    // While interactively unfocusing (pan), blend everyone back to 1 via unfocusProgressSV.
+    // Reanimated opacity blend: hides non-focused posts during focus and blends back on unfocus drag
+    const wrapperOpacityStyle = useAnimatedStyle(() => {
+        if (!(isSomePostFocused && !isUnfocusing)) {
+            return { opacity: 1 };
         }
-        const target = 1;
-        try { opacity.stopAnimation(); } catch {}
-        Animated.timing(opacity, {
-            toValue: target,
-            duration: FOCUS_ANIM_MS,
-            easing: FOCUS_EASING,
-            useNativeDriver: true,
-        }).start();
-    }, [isSomePostFocused, isFocused, isAdjacentToFocused, isAboveAdjacent, isUnfocusing, unfocusProgress]);
+        const base = isFocused ? 1 : 0;
+        const p = unfocusProgressSV?.value ?? 0;
+        const blended = base + p * (1 - base);
+        return { opacity: blended };
+    }, [isFocused, isSomePostFocused, isUnfocusing]);
 
     // Memo styles
     const [containerStyle, imageStyle] = useMemo(() => {
@@ -415,10 +399,10 @@ function Post({
     }, [data?.pid, index, isFocused, focusSeq]);
 
     return (
-        <Animated.View
+        <Reanimated.View
             key={`postwrap-${mediaListKey}`}
             ref={viewRef}
-            style={[styles.wrapper, { opacity }]}
+            style={[styles.wrapper, wrapperOpacityStyle]}
             pointerEvents={isSomePostFocused && !isFocused && !isUnfocusing ? "none" : "auto"}
         >
             <Animated.View
@@ -581,7 +565,7 @@ function Post({
                     style={[StyleSheet.absoluteFill, { borderRadius: BORDER, backgroundColor: 'rgba(45,158,255,0.18)', opacity: swipeFlashOpacity }]}
                 />
             </Animated.View>
-        </Animated.View>
+        </Reanimated.View>
     );
 }
 
