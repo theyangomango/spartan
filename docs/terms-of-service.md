@@ -8,8 +8,6 @@ Owner/Operator: Yiming Bai (operating Spartan)
 
 Contact: yangbai@thespartan.app
 
-Mailing Address: 2305 High Country Way, Plano, TX 75025, USA
-
 Governing Law; Venue: Texas law governs these Terms, without regard to conflicts of laws. You agree to the exclusive jurisdiction and venue of state and federal courts located in Collin County, Texas, for any dispute arising out of or relating to the Service or these Terms.
 
 ## 1. Eligibility and Accounts
@@ -125,5 +123,3 @@ Class Action and Jury Trial Waiver (where permitted by law): To the fullest exte
 ## 17. Contact
 
 Email: yangbai@thespartan.app
-
-Mailing Address: 2305 High Country Way, Plano, TX 75025, USA

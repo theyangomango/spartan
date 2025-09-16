@@ -21,11 +21,8 @@ export default function PostPreview({ postData, onPress }) {
                 styles.main_ctnr,
                 pressed ? styles.pressed : null,
             ]}
-            onPress={(e) => {
-                try { e?.persist?.(); } catch {}
-                // Defer to next tick to avoid any pooled event access downstream
-                try { setTimeout(() => { onPress && onPress(); }, 0); } catch {}
-            }}
+            // Avoid capturing/deferring the SyntheticEvent to prevent pooling warnings
+            onPress={() => { try { onPress && onPress(); } catch {} }}
         >
             {/* Lightweight placeholder to avoid blank cell while image decodes */}
             {!loaded && <View style={styles.placeholder} />}

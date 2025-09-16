@@ -14,6 +14,7 @@ import {
     KeyboardAvoidingView,
     Platform
 } from "react-native";
+import { BottomSheetFlatList } from "@gorhom/bottom-sheet";
 import CommentCard from "./CommentCard";
 import updateDoc from "../../../../backend/helper/firebase/updateDoc";
 import sendNotification from "../../../../backend/sendNotification";
@@ -24,10 +25,16 @@ export default function CommentsModal({
     handleTouchHeader,
     isSheetExpanded,
     setReplyingToIndex,
-    toViewProfile
+    toViewProfile,
+    openSignal
 }) {
     const comments = postData.comments;
     const flatListRef = useRef(null);
+
+    // Ensure the list is scrolled to top whenever the sheet opens
+    React.useEffect(() => {
+        try { flatListRef.current?.scrollToOffset?.({ offset: 0, animated: false }); } catch {}
+    }, [openSignal, postData?.pid]);
 
     /**
      * Handles liking a comment or reply.
@@ -79,10 +86,11 @@ export default function CommentsModal({
             {/* Header Pressable to handle touch events */}
             <Pressable style={styles.header} onTouchStart={handleTouchHeader} />
 
-            {/* FlatList to render comments and their replies */}
-            <FlatList
+            {/* Use BottomSheetFlatList for proper insets/gestures inside the sheet */}
+            <BottomSheetFlatList
                 ref={flatListRef}
                 showsVerticalScrollIndicator={false}
+                contentInsetAdjustmentBehavior="never"
                 data={comments}
                 keyExtractor={(item, index) => `${item.uid}-${index}`}
                 renderItem={({ item, index }) => (
@@ -97,6 +105,7 @@ export default function CommentsModal({
                             isReply={false}
                             replyIndex={-1}
                             toViewProfile={toViewProfile}
+                            isFirst={index === 0}
                         />
 
                         {/* Render Replies if any */}
@@ -117,8 +126,9 @@ export default function CommentsModal({
                 )}
                 contentContainerStyle={[
                     styles.commentsListContainer,
-                    { paddingBottom: isSheetExpanded ? scaleSize(100) : scaleSize(525) }
+                    { paddingTop: 0, marginTop: 0, paddingBottom: isSheetExpanded ? scaleSize(100) : scaleSize(525) }
                 ]}
+                ListHeaderComponent={<View style={{ height: 0 }} />}
             />
         </KeyboardAvoidingView>
     );
@@ -126,19 +136,20 @@ export default function CommentsModal({
 
 const styles = StyleSheet.create({
     container: {
-        flex: 1
+        flex: 1,
+        paddingTop: 20
     },
     header: {
         position: "absolute",
         top: 0,
         left: 0,
         right: 0,
-        height: scaleSize(25),
+        height: 0,
         alignItems: "center",
         zIndex: 1
     },
     commentsListContainer: {
-        paddingTop: scaleSize(10),
+        paddingTop: 0,
         paddingHorizontal: scaleSize(15),
         flexGrow: 1
     }

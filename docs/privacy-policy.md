@@ -8,8 +8,6 @@ Owner/Operator: Yiming Bai (operating Spartan)
 
 Contact: yangbai@thespartan.app
 
-Mailing Address: 2305 High Country Way, Plano, TX 75025, USA
-
 Governing Law: Texas, USA (venue: Collin County, Texas)
 
 Spartan is intended for users aged 13 and over. If you are under 13, do not use the Service. If you are under the age of majority in your jurisdiction, you must have a parent or legal guardian’s consent to use the Service.
@@ -104,4 +102,3 @@ We may update this Policy from time to time. If we make material changes, we wil
 If you have questions or requests regarding this Policy or your data, contact us at:
 
 - Email: yangbai@thespartan.app
-- Mailing Address: 2305 High Country Way, Plano, TX 75025, USA

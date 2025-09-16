@@ -18,7 +18,7 @@ const PostsSection = ({ posts, isVisible, onOpenWorkout }) => {
     const closeModal = () => setSelectedPost(null);
 
     const renderPost = ({ item }) => (
-        <PostPreview postData={item} onPress={() => handlePostPress(item)} />
+        <PostPreview postData={item} onPress={() => { try { requestAnimationFrame(() => handlePostPress(item)); } catch { handlePostPress(item); } }} />
     );
 
     // Always show newest → oldest

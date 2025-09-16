@@ -429,8 +429,11 @@ function Post({
                         style={containerStyle}
                         renderItem={({ item, index: i }) => {
                             const handlePress = (e) => {
-                                const x = e.nativeEvent.locationX;
-                                const y = e.nativeEvent.locationY;
+                                // Persist & immediately copy fields to avoid any SyntheticEvent reuse pitfalls
+                                try { e?.persist?.(); } catch {}
+                                const ne = (e && e.nativeEvent) || {};
+                                const x = (typeof ne.locationX === 'number') ? ne.locationX : W / 2;
+                                const y = (typeof ne.locationY === 'number') ? ne.locationY : scaleSize(W / AR) / 2;
                                 const inCenter = x > W * 0.1 && x < W * 0.9;
                                 const now = Date.now();
                                 const DOUBLE_DELAY = 260;

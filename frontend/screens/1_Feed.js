@@ -687,6 +687,11 @@ export default function Feed({ navigation, route }) {
         }
     };
 
+    // Robustly keep scrollEnabled in sync with focus state, in case any animation callback is skipped
+    useEffect(() => {
+        try { flatListRef.current?.setNativeProps({ scrollEnabled: !isSomePostFocused }); } catch {}
+    }, [isSomePostFocused]);
+
     /* ---------- helper: run the trio animation ---------- */
     const animFinalizeTimeoutRef = useRef(null);
     const animFinalizedRef = useRef(false);
@@ -1216,6 +1221,7 @@ export default function Feed({ navigation, route }) {
                                 allUsersRef={allUsersRef}
                                 workout={activeWorkout}
                                 timerRef={headerTimerRef}
+                                heightAdjust={-2}
                             />
                         </Reanimated.View>
                     </SafeAreaInsetsView>

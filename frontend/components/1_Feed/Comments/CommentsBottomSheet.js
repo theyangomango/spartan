@@ -25,6 +25,7 @@ const CommentsBottomSheet = ({ isVisible, postData, commentsBottomSheetExpandFla
     const containerHRef = useRef(SCREEN_HEIGHT - scaleSize(85));
     const [containerReady, setContainerReady] = useState(false);
     const [isSheetExpanded, setIsSheetExpanded] = useState(false);
+    const [openSignal, setOpenSignal] = useState(0);
     const [inputText, setInputText] = useState('');
     const [replyingToIndex, setReplyingToIndex] = useState(null);
     const textInputRef = useRef(null);
@@ -112,10 +113,11 @@ const CommentsBottomSheet = ({ isVisible, postData, commentsBottomSheetExpandFla
     useEffect(() => {
         const hasPost = !!postPid;
         if (isVisible && hasPost && containerReady) {
-            // Force the sheet to the closed bottom position instantly, then animate up.
-            // This avoids any top-origin animation blip on iOS.
+            // Force baseline at 0px from bottom, then animate to exact openPx via snapToPosition.
+            const h = containerHRef.current || (SCREEN_HEIGHT - scaleSize(85));
+            const openPx = 0.345 * h; // matches first snap point
             try { bottomSheetRef.current?.snapToPosition?.(0, { duration: 0 }); } catch {}
-            const open = () => { try { bottomSheetRef.current?.snapToIndex?.(0); } catch {} };
+            const open = () => { try { bottomSheetRef.current?.snapToPosition?.(openPx); } catch {} };
             // Small delay ensures layout is measured and the 0px baseline is honored
             const id = setTimeout(() => requestAnimationFrame(open), 30);
             // footer entrance animation
@@ -130,6 +132,13 @@ const CommentsBottomSheet = ({ isVisible, postData, commentsBottomSheetExpandFla
             bottomSheetRef.current?.close();
             Animated.timing(footerOpacity, { toValue: 0, duration: 120, useNativeDriver: true }).start();
         }
+    }, [isVisible, postPid, containerReady]);
+
+    // Emit a small open signal after the sheet has animated in
+    useEffect(() => {
+        if (!isVisible || !postPid || !containerReady) return;
+        const id = setTimeout(() => { try { setOpenSignal(Date.now()); } catch {} }, 90);
+        return () => clearTimeout(id);
     }, [isVisible, postPid, containerReady]);
 
     // Imperative collapse during interactive unfocus
@@ -182,10 +191,11 @@ const CommentsBottomSheet = ({ isVisible, postData, commentsBottomSheetExpandFla
         }
     }
 
-    // Handle sheet index change
-    function handleSheetIndexChange(index) {
+    // Handle sheet index change (defensively guard against stray event objects)
+    const handleSheetIndexChange = useCallback((idx) => {
+        const index = typeof idx === 'number' ? idx : -1;
         setIsSheetExpanded(index === 1);
-    }
+    }, []);
 
     return (
         <KeyboardAvoidingView
@@ -193,8 +203,11 @@ const CommentsBottomSheet = ({ isVisible, postData, commentsBottomSheetExpandFla
             behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
             pointerEvents='box-none'
             onLayout={(e) => {
+                // Persist to avoid any SyntheticEvent pooling warnings and copy what we need immediately
+                try { e?.persist?.(); } catch {}
                 try {
-                    const h = e.nativeEvent.layout.height || (SCREEN_HEIGHT - scaleSize(85));
+                    const { height = (SCREEN_HEIGHT - scaleSize(85)) } = e?.nativeEvent?.layout || {};
+                    const h = height || (SCREEN_HEIGHT - scaleSize(85));
                     if (Math.abs(h - (containerHRef.current || 0)) > 1) {
                         containerHRef.current = h;
                     }
@@ -204,14 +217,20 @@ const CommentsBottomSheet = ({ isVisible, postData, commentsBottomSheetExpandFla
         >
             <BottomSheet
                 ref={bottomSheetRef}
-                index={-1}
+                index={isVisible && !!postPid ? 0 : -1}
                 snapPoints={snapPoints}
                 onChange={handleSheetIndexChange}
-                handleStyle={{ display: 'none' }}
+                handleComponent={() => null}
+                handleHeight={0}
+                handleIndicatorStyle={{ display: 'none' }}
+                contentContainerStyle={{ paddingTop: 0, marginTop: 0 }}
                 detached
                 // Anchor the detached sheet to the bottom of this container so it animates from bottom
-                style={{ position: 'absolute', left: 0, right: 0, bottom: 0 }}
+                style={{ position: 'absolute', left: 0, right: 0 }}
                 backgroundStyle={{ backgroundColor: theme.surface }}
+                topInset={0}
+                enableContentPanningGesture
+                enablePanDownToClose={false}
             >
                 {postData && (
                     <CommentsModal
@@ -220,6 +239,7 @@ const CommentsBottomSheet = ({ isVisible, postData, commentsBottomSheetExpandFla
                         isSheetExpanded={isSheetExpanded}
                         setReplyingToIndex={setReplyingToIndex}
                         toViewProfile={toViewProfile}
+                        openSignal={openSignal}
                     />
                 )}
             </BottomSheet>
@@ -268,7 +288,7 @@ const styles = StyleSheet.create({
         bottom: 0,
         left: 0,
         right: 0,
-        zIndex: 999
+        zIndex: 999,
     },
     footer: {
         position: 'absolute',

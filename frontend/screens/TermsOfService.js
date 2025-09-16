@@ -20,7 +20,7 @@ export default function TermsOfService({ navigation }) {
         <Text style={styles.p}>These Terms govern your use of the Spartan iOS application and related services (the "Service"). By using the Service, you agree to these Terms.</Text>
 
         <Text style={styles.h}>Owner and Contact</Text>
-        <Text style={styles.p}>Owner/Operator: Yiming Bai (operating Spartan){'\n'}Email: yangbai@thespartan.app{'\n'}Mailing Address: 2305 High Country Way, Plano, TX 75025, USA</Text>
+        <Text style={styles.p}>Owner/Operator: Yiming Bai (operating Spartan){'\n'}Email: yangbai@thespartan.app</Text>
 
         <Text style={styles.h}>Governing Law and Venue</Text>
         <Text style={styles.p}>Texas law governs these Terms. You agree to the exclusive jurisdiction and venue of courts in Collin County, Texas, for disputes related to the Service.</Text>
@@ -97,7 +97,7 @@ export default function TermsOfService({ navigation }) {
         <Text style={styles.li}>• Class Action/Jury Waiver (where permitted): Disputes must be brought individually; you waive any right to a jury trial.</Text>
 
         <Text style={styles.h}>17. Contact</Text>
-        <Text style={styles.p}>Email: yangbai@thespartan.app{`\n`}Mailing Address: 2305 High Country Way, Plano, TX 75025, USA</Text>
+        <Text style={styles.p}>Email: yangbai@thespartan.app</Text>
 
         <View style={{ height: scaleSize(24) }} />
       </ScrollView>

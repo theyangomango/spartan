@@ -40,6 +40,7 @@ export default function CommentCard({
     isReply,
     replyIndex,
     toViewProfile,
+    isFirst = false,
 }) {
     const navigation = useNavigation();
     const [isLiked, setIsLiked] = useState(
@@ -72,7 +73,7 @@ export default function CommentCard({
     }
 
     return (
-        <View style={[styles.card, isReply && styles.replyCard]}>
+        <View style={[styles.card, isReply && styles.replyCard, isFirst && styles.firstCard]}>
             <Pressable onPress={handleNavigateToProfile}>
                 <View style={styles.pfp_ctnr}>
                     <Pfp uid={data.uid} version={data.pfpVersion ?? 0} style={styles.pfp} />
@@ -148,8 +149,12 @@ const styles = StyleSheet.create({
     card: {
         flexDirection: 'row',
         alignItems: 'center',
-        paddingVertical: scaleSize(9.5),
+        paddingTop: scaleSize(9.5),
+        paddingBottom: scaleSize(9.5),
         paddingHorizontal: scaleSize(4),
+    },
+    firstCard: {
+        paddingTop: 0,
     },
     replyCard: {
         marginLeft: scaleSize(25),

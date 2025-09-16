@@ -20,7 +20,7 @@ export default function PrivacyPolicy({ navigation }) {
         <Text style={styles.p}>Spartan ("Spartan," "we," "us") provides an iOS fitness and nutrition app. This policy explains how we collect, use, and share information.</Text>
 
         <Text style={styles.h}>Owner and Contact</Text>
-        <Text style={styles.p}>Owner/Operator: Yiming Bai (operating Spartan){'\n'}Email: yangbai@thespartan.app{'\n'}Mailing Address: 2305 High Country Way, Plano, TX 75025, USA{'\n'}Governing Law: Texas (venue: Collin County, TX){'\n'}Minimum Age: 13+ (parent/guardian consent if under age of majority)</Text>
+        <Text style={styles.p}>Owner/Operator: Yiming Bai (operating Spartan){'\n'}Email: yangbai@thespartan.app{'\n'}Governing Law: Texas (venue: Collin County, TX){'\n'}Minimum Age: 13+ (parent/guardian consent if under age of majority)</Text>
 
         <Text style={styles.h}>Information We Collect</Text>
         <Text style={styles.li}>• Personal identifiers: name, username, email, phone.</Text>
@@ -79,7 +79,7 @@ export default function PrivacyPolicy({ navigation }) {
         <Text style={styles.p}>We may update this policy. If material changes occur, we will update the date and provide appropriate notice in‑app. Continued use means you accept the changes.</Text>
 
         <Text style={styles.h}>Contact</Text>
-        <Text style={styles.p}>Email: yangbai@thespartan.app{`\n`}Mailing Address: 2305 High Country Way, Plano, TX 75025, USA</Text>
+        <Text style={styles.p}>Email: yangbai@thespartan.app</Text>
 
         <View style={{ height: scaleSize(24) }} />
       </ScrollView>
