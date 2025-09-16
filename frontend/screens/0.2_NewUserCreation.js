@@ -1,6 +1,6 @@
 import RNBounceable from '@freakycoder/react-native-bounceable';
 import React, { useState, useRef } from 'react';
-import { View, Text, StyleSheet, TextInput, Dimensions, Keyboard, TouchableWithoutFeedback } from 'react-native';
+import { View, Text, StyleSheet, TextInput, Dimensions, Keyboard, TouchableWithoutFeedback, TouchableOpacity } from 'react-native';
 import scaleSizeFont, { ts } from '../helper/scaleSize';
 import { Ionicons, Octicons, Feather } from '@expo/vector-icons';
 import theme from '../theme/mfpDark';
@@ -271,6 +271,18 @@ const NewUserCreation = ({ navigation }) => {
                     </View>
 
                     <View style={styles.footerContainer}>
+                        <Text style={styles.agreeText}>
+                            By signing up, I agree to the
+                        </Text>
+                        <View style={styles.linkRow}>
+                            <TouchableOpacity onPress={() => navigation.navigate('TermsOfService')}>
+                                <Text style={styles.link}> Terms of Service</Text>
+                            </TouchableOpacity>
+                            <Text style={styles.agreeText}> and</Text>
+                            <TouchableOpacity onPress={() => navigation.navigate('PrivacyPolicy')}>
+                                <Text style={styles.link}> Privacy Policy</Text>
+                            </TouchableOpacity>
+                        </View>
                         {!!errorMsg && <Text style={styles.errorText}>{errorMsg}</Text>}
                         <RNBounceable style={[styles.button, submitting && { opacity: 0.6 }]} onPress={signUp} disabled={submitting}>
                             <Text style={styles.auth_button_text}>{submitting ? 'Creating…' : 'Continue'}</Text>
@@ -322,6 +334,23 @@ const styles = StyleSheet.create({
         marginTop: scaleSize(10),
         marginHorizontal: scaleSize(22),
         marginBottom: scaleSize(20),
+    },
+    agreeText: {
+        color: theme.textSecondary,
+        fontFamily: 'Outfit_400Regular',
+        fontSize: scaleSize(12),
+        textAlign: 'center',
+    },
+    linkRow: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        marginTop: scaleSize(3),
+        marginBottom: scaleSize(8),
+    },
+    link: {
+        color: theme.primary,
+        fontFamily: 'Outfit_600SemiBold',
+        fontSize: scaleSize(12),
     },
     errorText: {
         color: '#B91C1C',

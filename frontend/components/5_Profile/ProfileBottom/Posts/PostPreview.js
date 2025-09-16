@@ -2,7 +2,7 @@
 import React, { useMemo, useState } from "react";
 import { StyleSheet, View } from "react-native";
 import FastImage from 'react-native-fast-image';
-import RNBounceable from "@freakycoder/react-native-bounceable";
+import { Pressable } from 'react-native';
 
 import scaleSize from "../../../../helper/scaleSize";
 
@@ -16,7 +16,17 @@ export default function PostPreview({ postData, onPress }) {
     ), [image]);
 
     return (
-        <RNBounceable style={styles.main_ctnr} onPress={onPress}>
+        <Pressable
+            style={({ pressed }) => [
+                styles.main_ctnr,
+                pressed ? styles.pressed : null,
+            ]}
+            onPress={(e) => {
+                try { e?.persist?.(); } catch {}
+                // Defer to next tick to avoid any pooled event access downstream
+                try { setTimeout(() => { onPress && onPress(); }, 0); } catch {}
+            }}
+        >
             {/* Lightweight placeholder to avoid blank cell while image decodes */}
             {!loaded && <View style={styles.placeholder} />}
             {source && (
@@ -27,7 +37,7 @@ export default function PostPreview({ postData, onPress }) {
                     onLoadEnd={() => setLoaded(true)}
                 />
             )}
-        </RNBounceable>
+        </Pressable>
     );
 }
 
@@ -35,6 +45,9 @@ const styles = StyleSheet.create({
     main_ctnr: {
         flex: 1,
         margin: scaleSize(2),
+    },
+    pressed: {
+        transform: [{ scale: 0.97 }],
     },
     image: {
         flex: 1,

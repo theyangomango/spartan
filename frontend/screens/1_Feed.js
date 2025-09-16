@@ -6,13 +6,14 @@
  */
 
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { Animated, Dimensions, SafeAreaView, StyleSheet, View, Easing as RNEasing, Text, RefreshControl, PanResponder, InteractionManager } from "react-native";
+import { Dimensions, SafeAreaView, StyleSheet, View, Text, RefreshControl, InteractionManager } from "react-native";
 import * as Haptics from 'expo-haptics';
 import { useFocusEffect } from '@react-navigation/native';
 import { StatusBar } from "expo-status-bar";
 import { doc, onSnapshot } from "firebase/firestore";
 import { useSafeAreaInsets, SafeAreaView as SafeAreaInsetsView } from "react-native-safe-area-context";
 import Reanimated, { useSharedValue, useAnimatedScrollHandler, useAnimatedStyle, runOnJS, withTiming, Easing as ReEasing } from 'react-native-reanimated';
+import { Gesture, GestureDetector } from 'react-native-gesture-handler';
 
 import Post from "../components/1_Feed/Posts/Post";
 import FeedHeader from "../components/1_Feed/FeedHeader";
@@ -152,12 +153,17 @@ export default function Feed({ navigation, route }) {
     }, []);
 
     /* ---------- animated values ---------- */
-    const translateY = useRef(new Animated.Value(0)).current;
+    // Reanimated shared values for smooth, UI-thread animations
+    const translateYSV = useSharedValue(0);
     // Track the focused-post anchored translation so we can interpolate during interactive unfocus
     const focusTranslateTargetRef = useRef(0);
     const panProgressRef = useRef(0); // 0..1 progress while panning to unfocus
     const didCollapseCommentsRef = useRef(false);
-    const storiesOpacity = useRef(new Animated.Value(1)).current;
+    const focusTranslateTargetSV = useSharedValue(0); // mirror of focusTranslateTargetRef for UI-thread
+    const storiesOpacitySV = useSharedValue(1);
+    // Track last progress across onUpdate frames (Gesture handler context isn't provided)
+    const lastPanProgressSV = useSharedValue(-1);
+    const closedInEndSV = useSharedValue(0);
     // Reanimated header reveal values (UI thread)
     const headerH = useSharedValue(0);
     const chipsH = useSharedValue(0); // minimum visible height (keep chips in view)
@@ -191,6 +197,11 @@ export default function Feed({ navigation, route }) {
     });
     const backHeaderStyle = useAnimatedStyle(() => ({ opacity: backHeaderOpacitySV.value }));
     const overlayHeaderOpacityStyle = useAnimatedStyle(() => ({ opacity: overlayHeaderOpacitySV.value }));
+    // Animated styles for focused card lift and stories opacity
+    const focusedCardStyle = useAnimatedStyle(() => ({
+        transform: [{ translateY: translateYSV.value }],
+    }));
+    const storiesOpacityStyle = useAnimatedStyle(() => ({ opacity: storiesOpacitySV.value }));
 
     // Header workout pill state
     const [activeWorkout, setActiveWorkout] = useState(null);
@@ -448,7 +459,12 @@ export default function Feed({ navigation, route }) {
             // Kick off immediately to avoid perceived delay after navigation
             animateView(translate, 0);
             // Remember the anchored focused translation for interactive unfocus drags
-            try { focusTranslateTargetRef.current = -translate; translateYValueRef.current = -translate; } catch { }
+            try {
+                focusTranslateTargetRef.current = -translate;
+                focusTranslateTargetSV.value = -translate;
+                translateYValueRef.current = -translate;
+                translateYSV.value = -translate;
+            } catch { }
         };
         // Do not wait for the back header's onLayout; Vfinal is derived above
         setTimeout(run, 0);
@@ -479,7 +495,7 @@ export default function Feed({ navigation, route }) {
                 flatListRef.current?.scrollToOffset?.({ offset: newOff, animated: false });
                 scrollOffsetY.current = newOff;
                 // Immediately reset transform to baseline; offset keeps visual position steady
-                translateY.setValue(0);
+                translateYSV.value = 0;
                 translateYValueRef.current = 0;
             } catch {}
             closingViaPanRef.current = false;
@@ -538,97 +554,122 @@ export default function Feed({ navigation, route }) {
         }
     }, [isSomePostFocused, unfocusing]);
 
-    // Feed-level PanResponder: allow any bottom→top pan to unfocus
-    // Keep horizontal paging owned by inner FlatList by ignoring mostly-horizontal drags
-    const feedPan = useMemo(() => {
-        const TAN35 = 0.700; // tan(35deg)
-        const MIN_MOVE = 4;
-        const ANGLE_MARGIN = 6;
+    // Feed-level pan gesture using Reanimated/Gesture Handler for smooth unfocus drag
+    // Avoid inline runOnJS closures (can capture HostObjects) by defining JS callbacks
+    const handleUnfocusPanBeginJS = useCallback(() => {
+        try { didCollapseCommentsRef.current = false; } catch {}
+        try { setDragUnfocusProgress(0); } catch {}
+        try { translateYValueRef.current = focusTranslateTargetRef.current || 0; } catch {}
+    }, []);
+
+    const handleUnfocusPanUpdateJS = useCallback((progress) => {
+        try { panProgressRef.current = progress; } catch {}
+        try { setDragUnfocusProgress(progress); } catch {}
+        if (!didCollapseCommentsRef.current && progress > 0.08) {
+            try { setCommentsCollapseSignal(Date.now()); } catch {}
+            didCollapseCommentsRef.current = true;
+        }
+    }, []);
+
+    const handleUnfocusPanEndCloseJS = useCallback((yAtEnd) => {
+        try { closingViaPanRef.current = true; } catch {}
+        try { translateYValueRef.current = yAtEnd; } catch {}
+        try { Haptics.impactAsync?.(Haptics.ImpactFeedbackStyle.Heavy).catch(() => { }); } catch {}
+        try { requestUnfocus(); } catch {}
+        try { setDragUnfocusProgress(1); } catch {}
+    }, [requestUnfocus]);
+
+    const handleUnfocusPanEndCancelJS = useCallback(() => {
+        try { panProgressRef.current = 0; } catch {}
+        try { setDragUnfocusProgress(0); } catch {}
+        if (didCollapseCommentsRef.current) {
+            try { setCommentsReopenSignal(Date.now()); } catch {}
+        }
+    }, []);
+    const unfocusPanGesture = useMemo(() => {
         const FULL_GESTURE_PX = Math.max(140, Math.min(height * 0.25, 260));
         const EXTRA_UP_PX = Math.max(80, Math.min(height * 0.18, 160));
-        const clamp01 = (v) => (v < 0 ? 0 : v > 1 ? 1 : v);
-        return PanResponder.create({
-            onStartShouldSetPanResponder: () => false,
-            onStartShouldSetPanResponderCapture: () => false,
-            onPanResponderGrant: () => {
-                // Start interactive unfocus; don't toggle state yet, just prep flags
-                didCollapseCommentsRef.current = false;
-                try { setDragUnfocusProgress(0); } catch {}
-                try { translateYValueRef.current = focusTranslateTargetRef.current || 0; } catch {}
-            },
-            onMoveShouldSetPanResponder: (_, g) => {
-                if (!isSomePostFocused) return false;
-                if (g.numberActiveTouches > 1) return false;
-                const { dx, dy } = g;
-                const adx = Math.abs(dx), ady = Math.abs(dy);
-                if (adx < MIN_MOVE && ady < MIN_MOVE) return false;
-                // Upward-leaning (not horizontal) to unfocus, regardless of left/right
-                return dy < 0 && (ady > TAN35 * adx + ANGLE_MARGIN);
-            },
-            onMoveShouldSetPanResponderCapture: (_, g) => {
-                if (!isSomePostFocused) return false;
-                if (g.numberActiveTouches > 1) return false;
-                const { dx, dy, vx, vy } = g;
-                const adx = Math.abs(dx), ady = Math.abs(dy);
-                if (adx < MIN_MOVE && ady < MIN_MOVE) return false;
-                // Prefer fast upward flicks
-                if (dy < 0 && vy <= -0.4) return true;
-                return dy < 0 && (ady > TAN35 * adx + ANGLE_MARGIN);
-            },
-            onPanResponderMove: (_, g) => {
+
+        return Gesture.Pan()
+            .enabled(!!isSomePostFocused)
+            .maxPointers(1)
+            .minDistance(4)
+            // Fail if horizontal movement gets large (keep horizontal swipes unaffected)
+            .failOffsetX([-60, 60])
+            .onBegin(() => {
+                'worklet';
+                // mirror JS refs for back-press handling
+                lastPanProgressSV.value = -1;
+                closedInEndSV.value = 0;
+                runOnJS(handleUnfocusPanBeginJS)();
+            })
+            .onUpdate((e) => {
+                'worklet';
                 if (!isSomePostFocused) return;
-                const progress = clamp01((-g.dy) / FULL_GESTURE_PX);
-                panProgressRef.current = progress;
-                try { setDragUnfocusProgress(progress); } catch {}
-                // Lift the focused post slightly more as you drag up
-                const baseY = focusTranslateTargetRef.current || 0; // negative value in focused state
-                const y = baseY - progress * EXTRA_UP_PX;
-                try { translateY.setValue(y); } catch { }
-                try { translateYValueRef.current = y; } catch {}
-                // Fade stories back in and cross-fade headers
-                try { storiesOpacity.setValue(progress); } catch { }
-                try { backHeaderOpacitySV.value = 1 - progress; } catch { }
-                try { overlayHeaderOpacitySV.value = progress; } catch { }
-                try { if (headerH?.value != null) { focusHide.value = headerH.value * (1 - progress); } } catch { }
-                // Begin collapsing the comments sheet shortly after the drag starts
-                if (!didCollapseCommentsRef.current && progress > 0.08) {
-                    try { setCommentsCollapseSignal(Date.now()); } catch { }
-                    didCollapseCommentsRef.current = true;
+                const dy = e.translationY;
+                // Only consider upward drag
+                if (dy >= 0) {
+                    // reset visuals to focused state
+                    translateYSV.value = focusTranslateTargetSV.value || 0;
+                    storiesOpacitySV.value = 0;
+                    backHeaderOpacitySV.value = 1;
+                    overlayHeaderOpacitySV.value = 0;
+                    if (headerH?.value != null) focusHide.value = headerH.value;
+                    return;
                 }
-            },
-            onPanResponderRelease: (_, g) => {
-                const { dx, dy, vx, vy } = g;
-                const adx = Math.abs(dx), ady = Math.abs(dy);
-                const isUpwardLean = dy < 0 && (ady > TAN35 * adx + ANGLE_MARGIN);
+                const progress = Math.max(0, Math.min(1, (-dy) / FULL_GESTURE_PX));
+                // Lift the focused post slightly more as you drag up
+                const baseY = focusTranslateTargetSV.value || 0; // negative value in focused state
+                const y = baseY - progress * EXTRA_UP_PX;
+                translateYSV.value = y;
+                storiesOpacitySV.value = progress;
+                backHeaderOpacitySV.value = 1 - progress;
+                overlayHeaderOpacitySV.value = progress;
+                if (headerH?.value != null) focusHide.value = headerH.value * (1 - progress);
+
+                // JS mirrors needed for layout adjustments and Posts' unfocus fade
+                const last = lastPanProgressSV.value;
+                if (Math.abs(progress - last) > 0.08) {
+                    runOnJS(handleUnfocusPanUpdateJS)(progress);
+                    lastPanProgressSV.value = progress;
+                }
+            })
+            .onEnd((e) => {
+                'worklet';
+                lastPanProgressSV.value = -1;
+                const dy = e.translationY;
+                const vy = e.velocityY; // px/s, negative is upward
                 const distanceOK = dy < -12;
-                const velocityOK = vy <= -0.10;
-                const shouldClose = isSomePostFocused && isUpwardLean && (distanceOK || velocityOK);
+                const velocityOK = vy < -400;
+                const shouldClose = !!isSomePostFocused && (distanceOK || velocityOK);
                 if (shouldClose) {
-                    closingViaPanRef.current = true;
-                    try { Haptics.impactAsync?.(Haptics.ImpactFeedbackStyle.Heavy).catch(() => { }); } catch { }
-                    requestUnfocus();
-                    try { setDragUnfocusProgress(1); } catch {}
+                    closedInEndSV.value = 1;
+                    const baseY = focusTranslateTargetSV.value || 0;
+                    const progress = Math.max(0, Math.min(1, (-dy) / FULL_GESTURE_PX));
+                    const y = baseY - progress * EXTRA_UP_PX;
+                    runOnJS(handleUnfocusPanEndCloseJS)(y);
                 } else {
                     // Revert interactive changes back to focused state
-                    Animated.parallel([
-                        Animated.timing(translateY, { toValue: focusTranslateTargetRef.current || 0, duration: 180, easing: RNEasing.out(RNEasing.cubic), useNativeDriver: true }),
-                        Animated.timing(storiesOpacity, { toValue: 0, duration: 180, easing: RNEasing.out(RNEasing.cubic), useNativeDriver: true }),
-                    ]).start(() => {
-                        panProgressRef.current = 0;
-                        try { setDragUnfocusProgress(0); } catch {}
-                    });
-                    try { backHeaderOpacitySV.value = withTiming(1, { duration: 180, easing: ReEasing.out(ReEasing.cubic) }); } catch { }
-                    try { overlayHeaderOpacitySV.value = withTiming(0, { duration: 180, easing: ReEasing.out(ReEasing.cubic) }); } catch { }
-                    try { if (headerH?.value != null) { focusHide.value = withTiming(headerH.value, { duration: 180, easing: ReEasing.out(ReEasing.cubic) }); } } catch { }
-                    if (didCollapseCommentsRef.current) {
-                        try { setCommentsReopenSignal(Date.now()); } catch { }
-                    }
+                    translateYSV.value = withTiming(focusTranslateTargetSV.value || 0, { duration: 180, easing: ReEasing.out(ReEasing.cubic) });
+                    storiesOpacitySV.value = withTiming(0, { duration: 180, easing: ReEasing.out(ReEasing.cubic) });
+                    backHeaderOpacitySV.value = withTiming(1, { duration: 180, easing: ReEasing.out(ReEasing.cubic) });
+                    overlayHeaderOpacitySV.value = withTiming(0, { duration: 180, easing: ReEasing.out(ReEasing.cubic) });
+                    if (headerH?.value != null) focusHide.value = withTiming(headerH.value, { duration: 180, easing: ReEasing.out(ReEasing.cubic) });
+                    runOnJS(handleUnfocusPanEndCancelJS)();
                 }
-            },
-            onPanResponderTerminationRequest: () => true,
-            onShouldBlockNativeResponder: () => false,
-        });
-    }, [isSomePostFocused, requestUnfocus]);
+            })
+            .onFinalize(() => {
+                'worklet';
+                if (closedInEndSV.value === 1) return;
+                // Ensure full revert if gesture cancelled/failed without onEnd close
+                translateYSV.value = withTiming(focusTranslateTargetSV.value || 0, { duration: 180, easing: ReEasing.out(ReEasing.cubic) });
+                storiesOpacitySV.value = withTiming(0, { duration: 180, easing: ReEasing.out(ReEasing.cubic) });
+                backHeaderOpacitySV.value = withTiming(1, { duration: 180, easing: ReEasing.out(ReEasing.cubic) });
+                overlayHeaderOpacitySV.value = withTiming(0, { duration: 180, easing: ReEasing.out(ReEasing.cubic) });
+                if (headerH?.value != null) focusHide.value = withTiming(headerH.value, { duration: 180, easing: ReEasing.out(ReEasing.cubic) });
+                runOnJS(handleUnfocusPanEndCancelJS)();
+            });
+    }, [isSomePostFocused, requestUnfocus, handleUnfocusPanBeginJS, handleUnfocusPanUpdateJS, handleUnfocusPanEndCloseJS, handleUnfocusPanEndCancelJS]);
 
 
     // Stop any ongoing fling by jumping to the current offset with animation off
@@ -643,46 +684,63 @@ export default function Feed({ navigation, route }) {
     };
 
     /* ---------- helper: run the trio animation ---------- */
+    const animFinalizeTimeoutRef = useRef(null);
+    const animFinalizedRef = useRef(false);
+
+    const handleFocusAnimEndJS = useCallback((translateYValue) => {
+        if (animFinalizedRef.current) return;
+        animFinalizedRef.current = true;
+        if (animFinalizeTimeoutRef.current) {
+            try { clearTimeout(animFinalizeTimeoutRef.current); } catch {}
+            animFinalizeTimeoutRef.current = null;
+        }
+        isTransitioning.current = false; /* 🔓 unlock */
+        if (translateYValue === 0) {
+            // Unfocus completed: now flip state and re-enable scroll
+            try { setIsSomePostFocused(false); } catch { }
+            try { focusedPostIndex.current = -1; setFocusedIndexState?.(-1); } catch { }
+            try { setShareBottomSheetCloseFlag((f) => !f); } catch { }
+            try { flatListRef.current?.setNativeProps({ scrollEnabled: true }); } catch { }
+            try { setUnfocusing(false); } catch { }
+            try { focusTranslateTargetRef.current = 0; } catch { }
+            try { setDragUnfocusProgress(0); } catch { }
+        } else {
+            // Only remount at end when we compensated for a clipped-at-top start
+            if (needsFocusEndRemountRef.current) {
+                try { focusSeqRef.current += 1; setFocusSeq(focusSeqRef.current); } catch { }
+            }
+            needsFocusEndRemountRef.current = false;
+        }
+        try { console.log('[Feed]', 'focus.animationEnd', { translateYValue, focusedIndex: focusedPostIndex.current, focusSeq: focusSeqRef.current }); } catch {}
+        // If a focus was queued during the transition, honor it now
+        if (queuedFocusRef.current) {
+            const q = queuedFocusRef.current; queuedFocusRef.current = null;
+            try { handleFocusPost(q.index, q.pageY, true); } catch { }
+        }
+    }, [handleFocusPost]);
+
+    const handleFocusAnimFinalizeJS = useCallback((translateYValue) => {
+        handleFocusAnimEndJS(translateYValue);
+    }, [handleFocusAnimEndJS]);
+
     const animateView = (translateYValue, opacityValue) => {
-        Animated.parallel([
-            Animated.timing(translateY, {
-                toValue: -translateYValue,
-                duration: ANIMATION_DURATION,
-                easing: RNEasing.out(RNEasing.cubic),
-                useNativeDriver: true,
-            }),
-            Animated.timing(storiesOpacity, {
-                toValue: opacityValue,
-                duration: ANIMATION_DURATION,
-                easing: RNEasing.out(RNEasing.cubic),
-                useNativeDriver: true,
-            }),
-        ]).start(() => {
-            isTransitioning.current = false; /* 🔓 unlock */
-            if (translateYValue === 0) {
-                // Unfocus completed: now flip state and re-enable scroll
-                try { setIsSomePostFocused(false); } catch { }
-                try { focusedPostIndex.current = -1; setFocusedIndexState?.(-1); } catch { }
-                try { setShareBottomSheetCloseFlag((f) => !f); } catch { }
-                try { flatListRef.current?.setNativeProps({ scrollEnabled: true }); } catch { }
-                try { setUnfocusing(false); } catch { }
-                try { focusTranslateTargetRef.current = 0; } catch { }
-                try { setDragUnfocusProgress(0); } catch {}
-            }
-            else {
-                // Only remount at end when we compensated for a clipped-at-top start
-                if (needsFocusEndRemountRef.current) {
-                    try { focusSeqRef.current += 1; setFocusSeq(focusSeqRef.current); } catch { }
-                }
-                needsFocusEndRemountRef.current = false;
-            }
-            console.log('[Feed]', 'focus.animationEnd', { translateYValue, focusedIndex: focusedPostIndex.current, focusSeq: focusSeqRef.current });
-            // If a focus was queued during the transition, honor it now
-            if (queuedFocusRef.current) {
-                const q = queuedFocusRef.current; queuedFocusRef.current = null;
-                try { handleFocusPost(q.index, q.pageY, true); } catch { }
-            }
+        // Animate both values on UI thread; use translateY's callback as the end signal
+        // Add a JS fallback timer in case the UI-thread callback is skipped due to identical values
+        animFinalizedRef.current = false;
+        if (animFinalizeTimeoutRef.current) {
+            try { clearTimeout(animFinalizeTimeoutRef.current); } catch {}
+            animFinalizeTimeoutRef.current = null;
+        }
+        translateYSV.value = withTiming(-translateYValue, { duration: ANIMATION_DURATION, easing: ReEasing.out(ReEasing.cubic) }, (finished) => {
+            'worklet';
+            if (!finished) return;
+            runOnJS(handleFocusAnimFinalizeJS)(translateYValue);
         });
+        storiesOpacitySV.value = withTiming(opacityValue, { duration: ANIMATION_DURATION, easing: ReEasing.out(ReEasing.cubic) });
+        // Fallback finalize in case withTiming callback doesn't fire (e.g., start==end)
+        animFinalizeTimeoutRef.current = setTimeout(() => {
+            handleFocusAnimEndJS(translateYValue);
+        }, ANIMATION_DURATION + 50);
     };
 
     // Go to Messages screen (always navigate; pass extras if available)
@@ -916,7 +974,7 @@ export default function Feed({ navigation, route }) {
 
             if (!isSomePostFocused) {
                 return (
-                    <Animated.View style={[styles.postWrapper, isFocusedPost && { transform: [{ translateY }], zIndex: 1 }]}>
+                    <Reanimated.View style={[styles.postWrapper, isFocusedPost && [focusedCardStyle, { zIndex: 1 }]]}>
                         <Post
                             {...commonProps}
                             isFocused={false}
@@ -929,7 +987,7 @@ export default function Feed({ navigation, route }) {
                             shouldPlay={index === centeredIndex} // ⟵ only centered post can play (if video slide)
                             unfocusProgress={dragUnfocusProgress}
                         />
-                    </Animated.View>
+                    </Reanimated.View>
                 );
             }
 
@@ -940,17 +998,17 @@ export default function Feed({ navigation, route }) {
                 const minPad = 33;
                 const dynamicPad = unfocusing ? minPad : Math.max(minPad, Math.round(basePad - (basePad - minPad) * (dragUnfocusProgress || 0)));
                 return (
-                    <Animated.View style={[
+                    <Reanimated.View style={[
                         styles.postWrapper,
-                        isFocusedPost && {
-                            transform: [{ translateY }],
-                            zIndex: 1,
+                        isFocusedPost && [
+                            focusedCardStyle,
+                            { zIndex: 1 },
                             // Expand hit area below the card when focused so presses/swipes in the
                             // visually overlapped bottom strip are still within the cell bounds.
                             // During unfocus, drop back to the normal padding so the next posts
                             // can re-enter the viewport immediately (no delayed reflow).
-                            paddingBottom: dynamicPad,
-                        },
+                            { paddingBottom: dynamicPad },
+                        ],
                     ]}>
                         <Post
                             {...commonProps}
@@ -965,12 +1023,12 @@ export default function Feed({ navigation, route }) {
                             shouldPlay={false} // ⟵ playback is controlled by focus rules inside Post
                             unfocusProgress={dragUnfocusProgress}
                         />
-                    </Animated.View>
+                    </Reanimated.View>
                 );
             }
 
             return (
-                <Animated.View style={[styles.postWrapper, isFocusedPost && { transform: [{ translateY }], zIndex: 1 }]}>
+                <Reanimated.View style={[styles.postWrapper, isFocusedPost && [focusedCardStyle, { zIndex: 1 }]]}>
                     <Post
                         {...commonProps}
                         isFocused={false}
@@ -983,7 +1041,7 @@ export default function Feed({ navigation, route }) {
                         shouldPlay={false}
                         unfocusProgress={dragUnfocusProgress}
                     />
-                </Animated.View>
+                </Reanimated.View>
             );
         },
         [isSomePostFocused, handleFocusPost, openCommentsModal, openShareModal, centeredIndex, focusedIndexState, focusSeq, unfocusing]
@@ -1009,6 +1067,7 @@ export default function Feed({ navigation, route }) {
             <SafeAreaView style={styles.mainContainer}>
                 <StatusBar style="light" />
 
+                <GestureDetector gesture={unfocusPanGesture}>
                 <Reanimated.View
                     style={[{
                         position: 'absolute',
@@ -1018,7 +1077,6 @@ export default function Feed({ navigation, route }) {
                         // When a post is focused, raise the posts layer above the bottom nav
                         zIndex: isSomePostFocused ? 25 : 0,
                     }, maskContainerStyle]}
-                    {...(isSomePostFocused ? feedPan.panHandlers : {})}
                 >
                     <MaskedView
                         style={{ flex: 1 }}
@@ -1081,6 +1139,7 @@ export default function Feed({ navigation, route }) {
                         />
                     </MaskedView>
                 </Reanimated.View>
+                </GestureDetector>
             </SafeAreaView>
             {/* Overlay header (FeedHeader + ActivityChips) that reveals/collapses; spacer keeps posts pushed */}
             <SafeAreaInsetsView edges={['top']} pointerEvents="box-none" style={{ position: 'absolute', top: 0, left: 0, right: 0 }}>
@@ -1118,15 +1177,15 @@ export default function Feed({ navigation, route }) {
                             heightAdjust={-2}
                         />
                     </View>
-                    <Animated.View
+                    <Reanimated.View
                         onLayout={(e) => {
                             const h = e.nativeEvent.layout.height || 0;
                             if (h && Math.abs(h - chipsH.value) > 1) chipsH.value = h;
                         }}
-                        style={{ opacity: storiesOpacity }}
+                        style={storiesOpacityStyle}
                     >
                         <ActivityChips navigation={navigation} />
-                    </Animated.View>
+                    </Reanimated.View>
                     {/* Rounded separator mask to keep a smooth transition into posts */}
                     {/* <ChipsRoundMask onLayout={(e) => {
                         const h = e.nativeEvent.layout.height || 0;

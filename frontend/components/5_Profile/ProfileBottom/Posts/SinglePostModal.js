@@ -1,5 +1,5 @@
 // SinglePostModal.js
-import React, { useEffect, useRef, useState } from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
 import {
     Modal,
     View,
@@ -10,6 +10,7 @@ import {
     Dimensions,
     Easing,
 } from "react-native";
+import { PanResponder } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 
 import getScrollTargetPosition from "../../../../helper/getScrollTargetPosition";
@@ -32,6 +33,11 @@ const FOCUS_EXTRA_DROP = 12; // sit slightly lower
 export default function SinglePostModal({ visible, post, onClose, onOpenWorkout }) {
     const fade = useRef(new Animated.Value(0)).current;
     const isClosingRef = useRef(false);
+    const dragProgressRef = useRef(0); // 0..1 during interactive upward pan
+    const [dragProgress, setDragProgress] = useState(0);
+    const [collapseSignal, setCollapseSignal] = useState(0);
+    const [reopenSignal, setReopenSignal] = useState(0);
+    const slideY = useRef(new Animated.Value(0)).current; // negative -> slide up
 
     // ❤️ double-tap like burst
     const heartScale = useRef(new Animated.Value(0)).current;
@@ -63,6 +69,7 @@ export default function SinglePostModal({ visible, post, onClose, onOpenWorkout 
             // reset + fade in
             isClosingRef.current = false;
             fade.setValue(0);
+            slideY.setValue(0);
             Animated.timing(fade, { toValue: 1, duration: FADE_DUR, useNativeDriver: true }).start();
 
             // force remount so the sheet's internal useEffect runs fresh
@@ -96,14 +103,20 @@ export default function SinglePostModal({ visible, post, onClose, onOpenWorkout 
 
         // 1) trigger comments sheet to slide down
         setSheetVisible(false);
+        // ensure sheet collapses if not already
+        setCollapseSignal(Date.now());
 
-        // 2) fade out backdrop, post, and close button
+        // 2) animate stage up and fade out backdrop/top bar
+        try { Animated.timing(slideY, { toValue: -SH, duration: 220, useNativeDriver: true }).start(); } catch {}
         Animated.timing(fade, { toValue: 0, duration: FADE_DUR, useNativeDriver: true }).start();
 
         // 3) after sheet close duration, notify parent to unmount modal
         setTimeout(() => {
             onClose && onClose();
             isClosingRef.current = false;
+            // reset progress for next open
+            dragProgressRef.current = 0;
+            try { setDragProgress(0); } catch {}
         }, SHEET_CLOSE_DUR);
     };
 
@@ -125,6 +138,89 @@ export default function SinglePostModal({ visible, post, onClose, onOpenWorkout 
         lastTapRef.current = now;
     };
 
+    // Upward pan-to-close gesture, mirroring Feed behavior
+    const panHandlers = useMemo(() => {
+        const TAN35 = 0.700; // tan(35deg)
+        const MIN_MOVE = 4;
+        const ANGLE_MARGIN = 6;
+        const FULL_GESTURE_PX = Math.max(120, Math.min(SH * 0.22, 220));
+        const clamp01 = (v) => (v < 0 ? 0 : v > 1 ? 1 : v);
+        let started = false;
+        return PanResponder.create({
+            onStartShouldSetPanResponder: () => false,
+            onStartShouldSetPanResponderCapture: () => false,
+            onPanResponderGrant: () => {
+                started = false;
+            },
+            onMoveShouldSetPanResponder: (_, g) => {
+                if (!visible) return false;
+                if (g.numberActiveTouches > 1) return false;
+                const { dx, dy } = g;
+                const adx = Math.abs(dx), ady = Math.abs(dy);
+                if (adx < MIN_MOVE && ady < MIN_MOVE) return false;
+                return dy < 0 && (ady > TAN35 * adx + ANGLE_MARGIN);
+            },
+            onMoveShouldSetPanResponderCapture: (_, g) => {
+                if (!visible) return false;
+                if (g.numberActiveTouches > 1) return false;
+                const { dx, dy, vy } = g;
+                const adx = Math.abs(dx), ady = Math.abs(dy);
+                if (adx < MIN_MOVE && ady < MIN_MOVE) return false;
+                if (dy < 0 && vy <= -0.4) return true; // prefer fast flicks
+                return dy < 0 && (ady > TAN35 * adx + ANGLE_MARGIN);
+            },
+            onPanResponderMove: (_, g) => {
+                if (!visible) return;
+                if (!started) {
+                    started = true;
+                    // collapse the sheet immediately so drag feels responsive
+                    setCollapseSignal(Date.now());
+                }
+                const progress = clamp01((-g.dy) / FULL_GESTURE_PX);
+                dragProgressRef.current = progress;
+                try { setDragProgress(progress); } catch {}
+                // fade backdrop/topbar proportionally to progress
+                try { fade.setValue(1 - progress); } catch {}
+                // slide following the finger but slightly slower
+                try {
+                    const raw = g.dy * 0.6; // slower than finger (60%)
+                    const capped = raw < -SH ? -SH : raw; // don't exceed screen
+                    slideY.setValue(Math.min(0, capped)); // only move up (negative)
+                } catch {}
+            },
+            onPanResponderTerminationRequest: () => true,
+            onPanResponderRelease: (_, g) => {
+                if (!visible) return;
+                const progress = dragProgressRef.current || 0;
+                const shouldClose = progress > 0.18 || (g.vy || 0) <= -0.35;
+                if (shouldClose) {
+                    close();
+                } else {
+                    // cancel: restore visuals and reopen comments sheet
+                    Animated.parallel([
+                        Animated.timing(fade, { toValue: 1, duration: 160, useNativeDriver: true }),
+                        Animated.timing(slideY, { toValue: 0, duration: 190, useNativeDriver: true }),
+                    ]).start();
+                    try { setReopenSignal(Date.now()); } catch {}
+                    dragProgressRef.current = 0;
+                    try { setDragProgress(0); } catch {}
+                }
+            },
+            onPanResponderTerminate: () => {
+                // treat as cancel
+                if (!visible) return;
+                Animated.parallel([
+                    Animated.timing(fade, { toValue: 1, duration: 160, useNativeDriver: true }),
+                    Animated.timing(slideY, { toValue: 0, duration: 190, useNativeDriver: true }),
+                ]).start();
+                try { setReopenSignal(Date.now()); } catch {}
+                dragProgressRef.current = 0;
+                try { setDragProgress(0); } catch {}
+            },
+            onShouldBlockNativeResponder: () => false,
+        });
+    }, [visible]);
+
     if (!visible || !post) return null;
 
     return (
@@ -142,8 +238,8 @@ export default function SinglePostModal({ visible, post, onClose, onOpenWorkout 
                     <Ionicons name="chevron-back" size={dyn.iconSize} color="#fff" />
                 </TouchableOpacity>
             </Animated.View>
-            {/* Focused post (slightly lower) */}
-            <Animated.View style={[styles.stage, { opacity: fade }]}>
+            {/* Focused post (slightly lower). Slides up when unfocusing */}
+            <Animated.View style={[styles.stage, { transform: [{ translateY: slideY }] }]} {...panHandlers.panHandlers}>
                 <View style={[styles.focusSlot, { top: scaleSize(TARGET_Y - 15 + FOCUS_EXTRA_DROP) }]}>
                     <TouchableWithoutFeedback onPress={onMediaTap}>
                         <View>
@@ -205,6 +301,10 @@ export default function SinglePostModal({ visible, post, onClose, onOpenWorkout 
                     postData={post}
                     commentsBottomSheetExpandFlag={commentsExpandFlag} // toggle -> expand to 92%
                     toViewProfile={() => { }}
+                    collapseSignal={collapseSignal}
+                    reopenSignal={reopenSignal}
+                    interactiveProgress={dragProgress}
+                    interactiveScale={0.6}
                 />
             )}
             <ShareBottomSheet

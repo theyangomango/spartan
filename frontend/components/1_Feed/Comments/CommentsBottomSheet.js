@@ -14,7 +14,7 @@ import scaleSize from "../../../helper/scaleSize";
 const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('screen');
 const dynamicStyles = getCommentsBottomSheetStyles(SCREEN_WIDTH, SCREEN_HEIGHT);
 
-const CommentsBottomSheet = ({ isVisible, postData, commentsBottomSheetExpandFlag, toViewProfile, collapseSignal, reopenSignal, interactiveProgress = 0 }) => {
+const CommentsBottomSheet = ({ isVisible, postData, commentsBottomSheetExpandFlag, toViewProfile, collapseSignal, reopenSignal, interactiveProgress = 0, interactiveScale = 0.85 }) => {
     const [isInputFocused, setIsInputFocused] = useState(false);
     const bottomSheetRef = useRef(null);
     const footerTranslateY = useRef(new Animated.Value(0)).current; // moves when input focuses
@@ -105,14 +105,18 @@ const CommentsBottomSheet = ({ isVisible, postData, commentsBottomSheetExpandFla
         }).start();
     };
 
-    // Handle visibility: open sheet + sync footer entrance
+    // Handle visibility: open sheet from bottom + sync footer entrance
     // Depend on stable pid instead of the whole object to avoid re-running on like updates
     const postPid = postData?.pid;
     useEffect(() => {
         const hasPost = !!postPid;
         if (isVisible && hasPost) {
-            const tryOpen = () => bottomSheetRef.current?.snapToIndex(0);
-            requestAnimationFrame(() => { tryOpen(); });
+            // Force the sheet to the closed bottom position instantly, then animate up.
+            // This avoids any top-origin animation blip on iOS.
+            try { bottomSheetRef.current?.snapToPosition?.(0, { duration: 0 }); } catch {}
+            const open = () => { try { bottomSheetRef.current?.snapToIndex?.(0); } catch {} };
+            // Small delay ensures layout is measured and the 0px baseline is honored
+            const id = setTimeout(() => requestAnimationFrame(open), 30);
             // footer entrance animation
             footerOpacity.setValue(0);
             footerIntroY.setValue(10);
@@ -120,6 +124,7 @@ const CommentsBottomSheet = ({ isVisible, postData, commentsBottomSheetExpandFla
                 Animated.timing(footerOpacity, { toValue: 1, duration: 160, useNativeDriver: true }),
                 Animated.timing(footerIntroY, { toValue: 0, duration: 190, useNativeDriver: true }),
             ]).start();
+            return () => clearTimeout(id);
         } else {
             bottomSheetRef.current?.close();
             Animated.timing(footerOpacity, { toValue: 0, duration: 120, useNativeDriver: true }).start();
@@ -147,13 +152,14 @@ const CommentsBottomSheet = ({ isVisible, postData, commentsBottomSheetExpandFla
         // Target position in px from bottom: 34.5% at rest -> 0 when fully closed
         const h = containerHRef.current || (SCREEN_HEIGHT - scaleSize(85));
         const openPx = 0.345 * h; // matches snapPoints[0]
-        const pSlow = Math.min(1, progress * 0.85); // slightly slower than finger
+        const slow = Math.max(0, Math.min(1, interactiveScale));
+        const pSlow = Math.min(1, progress * slow); // slower than finger based on provided scale
         const pos = Math.max(0, openPx * (1 - pSlow));
         try { bottomSheetRef.current?.snapToPosition?.(pos, { duration: 0 }); } catch { }
-        // Fade and slide the input footer down so content behind becomes visible
-        try { footerOpacity.setValue(1 - progress); } catch {}
-        try { footerDragY.setValue(progress * 120); } catch {}
-    }, [interactiveProgress, isVisible, postPid]);
+        // Fade and slide the input footer down in sync with slowed progress
+        try { footerOpacity.setValue(1 - pSlow); } catch {}
+        try { footerDragY.setValue(pSlow * 120); } catch {}
+    }, [interactiveProgress, isVisible, postPid, interactiveScale]);
 
     // Expand the bottom sheet when flagged
     useEffect(() => {
@@ -188,11 +194,13 @@ const CommentsBottomSheet = ({ isVisible, postData, commentsBottomSheetExpandFla
         >
             <BottomSheet
                 ref={bottomSheetRef}
-                index={isVisible && !!postPid ? 0 : -1}
+                index={-1}
                 snapPoints={snapPoints}
                 onChange={handleSheetIndexChange}
                 handleStyle={{ display: 'none' }}
                 detached
+                // Anchor the detached sheet to the bottom of this container so it animates from bottom
+                style={{ position: 'absolute', left: 0, right: 0, bottom: 0 }}
                 backgroundStyle={{ backgroundColor: theme.surface }}
             >
                 {postData && (
