@@ -1,9 +1,10 @@
 // components/3_Workout/DayDetailsSheet.jsx
 import React, { memo, useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { View, Text, StyleSheet, Pressable, Animated } from "react-native";
-import BottomSheet, { BottomSheetBackdrop, BottomSheetScrollView } from "@gorhom/bottom-sheet";
+import { View, Text, StyleSheet, Pressable, Animated, useWindowDimensions, VirtualizedList, Easing } from "react-native";
+import { Gesture, GestureDetector } from 'react-native-gesture-handler';
+import { useSharedValue, runOnJS } from 'react-native-reanimated';
+import BottomSheet, { BottomSheetBackdrop, BottomSheetScrollView, BottomSheetView } from "@gorhom/bottom-sheet";
 import theme from "../../theme/mfpDark";
-import { Ionicons } from "@expo/vector-icons";
 import NewWorkoutModal from "./NewWorkout/NewWorkoutModal";
 import CopyTemplateToast from "./ui/CopyTemplateToast";
 import updateDoc from "../../../backend/helper/firebase/updateDoc";
@@ -11,13 +12,17 @@ import makeID from "../../../backend/helper/makeID";
 import { useNavigation } from "@react-navigation/native";
 import WorkoutPanelCard from "./ui/WorkoutPanelCard";
 import { FoodDetailInline } from "../../screens/FoodDetail";
+import DateHeader from "./DayDetails/DateHeader";
+import OverlayContainer from "./DayDetails/OverlayContainer";
 import { parseMacrosFromDescription, parseExtraNutrientsFromDescription } from "../../utils/nutrition";
+import { primeFoodLogsCache, peekFoodLogsCache } from "../../hooks/useFoodLogs";
 
 import scaleSize from "../../helper/scaleSize";
+import { ScrollView } from "react-native-gesture-handler";
 
-// Friend-view handle accents (match FriendsActivitySheet)
-const HANDLE_FRIEND_ACCENT = "#E0A500";
-const HANDLE_FRIEND_BACKGROUND = "#e0a4002c";
+const HEADER_HEIGHT = scaleSize(48);
+const EDGE_BACK_GESTURE_WIDTH = 200; // px area from left edge to trigger back swipe
+const BACK_SWIPE_TRIGGER = 36;       // px translation to confirm back
 const fmt = (d) =>
     d
         ? d.toLocaleDateString(undefined, {
@@ -46,8 +51,6 @@ const shiftDate = (d, delta) => {
     return base;
 };
 
-const mins = (ms) => Math.max(0, Math.round(Number(ms || 0) / 60000));
-const minutesLabel = (ms) => `${mins(ms)} min`;
 const toNumber = (n) => (Number(n || 0) || 0);
 
 const DayDetailsSheet = ({
@@ -59,14 +62,6 @@ const DayDetailsSheet = ({
 
     /** Core context */
     date,
-
-    /** Workout + food data are FED IN by the parent */
-    workouts = [],             // ← array of workout objects (already filtered to the selected day)
-    meals = { Breakfast: [], Lunch: [], Dinner: [] }, // ← from useFoodLogs
-    totals = { calories: 0, protein: 0, carbs: 0, fat: 0 }, // ← from useFoodLogs
-
-    /** Back-compat props (kept working) */
-    calories = 0,              // optional — if totals.calories missing, we’ll show this
     workoutOn = false,         // optional — quick visual flag
 
     /** Actions */
@@ -77,19 +72,41 @@ const DayDetailsSheet = ({
 }) => {
     const bottomSheetRef = useRef(null);
     const navigation = useNavigation();
+    const { width: screenWidth } = useWindowDimensions();
     const [isExpanded, setIsExpanded] = useState(false);
+    // Header date updates instantly as you swipe (independent from committed date)
+    const [headerDate, setHeaderDate] = useState(date);
+    const [headerHeight, setHeaderHeight] = useState(HEADER_HEIGHT);
     const snapPoints = useMemo(() => ["95%"], []);
     // Viewer overlay (for workout detail)
     const [selectedWorkout, setSelectedWorkout] = useState(null);
     const [viewerReady, setViewerReady] = useState(false);
     const listOpacity = useRef(new Animated.Value(1)).current;
     const viewerOpacity = useRef(new Animated.Value(0)).current;
+    const viewerTranslateX = useRef(new Animated.Value(screenWidth)).current;
+    // Yellow handle accent fades with viewer slide progress
+    const HANDLE_ACCENT = "#E0A500";
+    const HANDLE_BG = "#e0a4002c";
+    const HANDLE_NEUTRAL = "#D0D7E2";
+    const handleAccentOpacity = useMemo(() => (
+        viewerTranslateX.interpolate({
+            inputRange: [0, screenWidth],
+            outputRange: [1, 0],
+            extrapolate: 'clamp',
+        })
+    ), [viewerTranslateX, screenWidth]);
     const timerRef = useRef("");
     // Copy Template toast
     const toastAnim = useRef(new Animated.Value(0)).current;
     const [toastText, setToastText] = useState("Template added");
     // Food viewer state
     const [selectedFood, setSelectedFood] = useState(null);
+    // Horizontal pager ref
+    const pagerRef = useRef(null);
+    const listRef = useRef(null);
+    const TOTAL_PAGES = 100000;
+    const BASE_INDEX = Math.floor(TOTAL_PAGES / 2);
+    const [baseIndex, setBaseIndex] = useState(BASE_INDEX);
 
     // Expand helper that tolerates ref not being ready on first render
     const expandSafely = useCallback(() => {
@@ -148,7 +165,6 @@ const DayDetailsSheet = ({
         onClose?.();
     }, [onClose, selectedWorkout, selectedFood, listOpacity, viewerOpacity]);
 
-    const title = useMemo(() => fmt(date), [date]);
     const isToday = useMemo(() => dayKey(date) === dayKey(new Date()), [date]);
     const titleScale = useRef(new Animated.Value(1)).current;
     const handleTitlePress = useCallback(() => {
@@ -158,7 +174,7 @@ const DayDetailsSheet = ({
                 Animated.timing(titleScale, { toValue: 0.94, duration: 90, useNativeDriver: true }),
                 Animated.spring(titleScale, { toValue: 1, speed: 14, bounciness: 14, useNativeDriver: true }),
             ]).start();
-        } catch {}
+        } catch { }
         if (!isToday) {
             const today = new Date();
             today.setHours(0, 0, 0, 0);
@@ -166,27 +182,7 @@ const DayDetailsSheet = ({
         }
     }, [isToday, onChangeDate, titleScale]);
 
-    // Flatten the meal buckets to a small display list (cap to avoid scroll requirement)
-    const foodsList = useMemo(() => {
-        const buckets = ["Breakfast", "Lunch", "Dinner", "Snack"];
-        const out = [];
-        for (const b of buckets) {
-            const arr = Array.isArray(meals?.[b]) ? meals[b] : [];
-            for (const it of arr) {
-                out.push({
-                    name: it?.name || "Food",
-                    desc: it?.desc || "",
-                    qty: typeof it?.quantity === "number" ? it.quantity : null,
-                    bucket: b,
-                    brand: it?.brand || '',
-                    foodId: it?.foodId || it?.food_id || '',
-                });
-            }
-        }
-        return out.slice(0, 8); // cap for compact view
-    }, [meals]);
-
-    const calsToShow = Number(totals?.calories || calories || 0);
+    // Page-level components compute foodsList and calories per day
 
     const handleOpenMacros = useCallback(() => {
         bottomSheetRef.current?.close();
@@ -200,6 +196,8 @@ const DayDetailsSheet = ({
 
     const openViewer = useCallback((w) => {
         if (!w) return;
+        // Ensure only one overlay is active at a time
+        try { setSelectedFood(null); } catch {}
         // Normalize minimal fields expected by NewWorkoutModal
         const fallback = {
             wid: w?.wid || w?.id,
@@ -223,22 +221,301 @@ const DayDetailsSheet = ({
         wk.__friendUid = friendUid;
         wk.__friendPfp = friendPfp;
         setSelectedWorkout(wk);
-        // Mount content immediately; animate the cross-fade concurrently
+        // Mount content immediately; animate slide-in (no fades)
         setViewerReady(true);
+        try { viewerTranslateX.setValue(screenWidth); } catch {}
         try {
-            Animated.parallel([
-                Animated.timing(listOpacity, { toValue: 0, duration: 140, useNativeDriver: true }),
-                Animated.timing(viewerOpacity, { toValue: 1, duration: 180, useNativeDriver: true }),
-            ]).start();
+            Animated.timing(viewerTranslateX, { toValue: 0, duration: 260, easing: Easing.out(Easing.cubic), useNativeDriver: true }).start();
         } catch { }
-    }, [listOpacity, viewerOpacity]);
+    }, [listOpacity, viewerOpacity, viewerTranslateX, screenWidth]);
 
     const closeViewer = useCallback(() => {
-        Animated.parallel([
-            Animated.timing(viewerOpacity, { toValue: 0, duration: 140, useNativeDriver: true }),
-            Animated.timing(listOpacity, { toValue: 1, duration: 180, useNativeDriver: true }),
-        ]).start(({ finished }) => { if (finished) { setSelectedWorkout(null); setSelectedFood(null); setViewerReady(false); } });
-    }, [listOpacity, viewerOpacity]);
+        // Slide out overlay; header remains visible (always part of main screen)
+        Animated.timing(viewerTranslateX, { toValue: screenWidth, duration: 220, easing: Easing.out(Easing.cubic), useNativeDriver: true }).start(({ finished }) => {
+            if (finished) {
+                setSelectedWorkout(null);
+                setSelectedFood(null);
+                setViewerReady(false);
+            }
+        });
+    }, [listOpacity, viewerOpacity, viewerTranslateX, screenWidth]);
+
+    // Back-swipe gesture (edge left-to-right) to close overlay
+    const onBackUpdateX = useCallback((dx) => {
+        try { viewerTranslateX.setValue(Math.max(0, dx || 0)); } catch { }
+    }, [viewerTranslateX]);
+    const onBackEnd = useCallback((dx, vx) => {
+        const shouldClose = (dx || 0) > BACK_SWIPE_TRIGGER || (vx || 0) > 600;
+        if (shouldClose) closeViewer();
+        else {
+            try {
+                Animated.timing(viewerTranslateX, { toValue: 0, duration: 180, easing: Easing.out(Easing.cubic), useNativeDriver: true }).start();
+            } catch { }
+        }
+    }, [closeViewer, viewerTranslateX]);
+    const backEligible = useSharedValue(0);
+    const backPan = useMemo(() => (
+        Gesture.Pan()
+            // Restrict activation to the left-edge zone only
+            .hitSlop({ left: 0, width: EDGE_BACK_GESTURE_WIDTH })
+            .minDistance(8)
+            .activeOffsetX([-16, 16])
+            .failOffsetY([-12, 12])
+            .onBegin((e) => { 'worklet'; backEligible.value = 1; })
+            .onUpdate((e) => { 'worklet'; if (!backEligible.value) return; runOnJS(onBackUpdateX)(e.translationX); })
+            .onEnd((e) => { 'worklet'; backEligible.value = 0; runOnJS(onBackEnd)(e.translationX, e.velocityX); })
+            .onFinalize(() => { 'worklet'; backEligible.value = 0; })
+    ), [backEligible, onBackEnd, onBackUpdateX]);
+
+    // --- Helpers: build day data from global.userData ---
+    const normalizeMealBucket = useCallback((m) => {
+        const t = String(m || '').toLowerCase();
+        if (t.startsWith('break')) return 'Breakfast';
+        if (t.startsWith('lun')) return 'Lunch';
+        if (t.startsWith('din')) return 'Dinner';
+        return 'Snack';
+    }, []);
+
+    const buildMealsFromGlobal = useCallback((d) => {
+        const uid = String(global?.userData?.uid || '');
+        const dk = dayKey(d);
+        const buckets = { Breakfast: [], Lunch: [], Dinner: [], Snack: [] };
+        const totals = { calories: 0, protein: 0, carbs: 0, fat: 0 };
+        try {
+            const map = global?.userData?.loggedFoods || {};
+            const looksNested = map && typeof map === 'object' && map[dk] && !('dayKey' in (Object.values(map)[0] || {}));
+            const source = looksNested ? (map[dk] || {}) : map;
+            const entries = Object.entries(source || {});
+            for (const [k, entry] of entries) {
+                const e = looksNested ? entry : (String(entry?.dayKey || '') === dk ? entry : null);
+                if (!e) continue;
+                const bucket = normalizeMealBucket(e?.meal);
+                const macros = e?.macros || parseMacrosFromDescription(e?.desc || '', Number(e?.quantity) || 1);
+                const item = {
+                    key: k,
+                    name: e?.name || 'Food',
+                    brand: e?.brand || '',
+                    desc: e?.desc || '',
+                    qty: typeof e?.quantity === 'number' ? e.quantity : 1,
+                    foodId: e?.foodId || e?.food_id || '',
+                    macros,
+                };
+                buckets[bucket].push(item);
+                totals.calories = Math.round((totals.calories || 0) + (Number(macros?.calories) || 0));
+                totals.protein = Math.round((totals.protein || 0) + (Number(macros?.protein) || 0));
+                totals.carbs = Math.round((totals.carbs || 0) + (Number(macros?.carbs) || 0));
+                totals.fat = Math.round((totals.fat || 0) + (Number(macros?.fat) || 0));
+            }
+        } catch { /* ignore */ }
+
+        // If cache has a built structure, prefer it to ensure ordering is consistent
+        try {
+            if (uid) {
+                const peek = peekFoodLogsCache(uid, d);
+                if (peek && peek.meals && peek.totals) {
+                    return { meals: peek.meals, totals: peek.totals };
+                }
+            }
+        } catch { }
+
+        return { meals: buckets, totals };
+    }, [normalizeMealBucket]);
+
+    const buildWorkoutsFromGlobal = useCallback((d) => {
+        const dk = dayKey(d);
+        const list = Array.isArray(global?.userData?.completedWorkouts) ? global.userData.completedWorkouts : [];
+        return list.filter((w) => {
+            const created = w?.created ?? w?.createdAt ?? 0;
+            return dayKey(created) === dk;
+        });
+    }, []);
+
+    const loggedFoodsCount = useMemo(() => {
+        const map = global?.userData?.loggedFoods || {};
+        try {
+            const looksNested = map && typeof map === 'object' && Object.values(map)[0] && !('dayKey' in Object.values(map)[0]);
+            if (!looksNested) return Object.keys(map).length;
+            let n = 0; Object.values(map).forEach((m) => { n += Object.keys(m || {}).length; }); return n;
+        } catch { return 0; }
+    }, [(global?.userData?.loggedFoods || {})]);
+    const completedWorkoutsCount = useMemo(() => (global?.userData?.completedWorkouts || []).length, [(global?.userData?.completedWorkouts || [])]);
+
+    // Current, prev, next day data from global (instant render)
+    const prevDate = useMemo(() => shiftDate(date, -1), [date]);
+    const nextDate = useMemo(() => shiftDate(date, 1), [date]);
+    const currentData = useMemo(() => ({
+        workouts: buildWorkoutsFromGlobal(date),
+        ...buildMealsFromGlobal(date),
+    }), [date, buildWorkoutsFromGlobal, buildMealsFromGlobal, completedWorkoutsCount, loggedFoodsCount]);
+    const prevData = useMemo(() => ({
+        workouts: buildWorkoutsFromGlobal(prevDate),
+        ...buildMealsFromGlobal(prevDate),
+    }), [prevDate, buildWorkoutsFromGlobal, buildMealsFromGlobal, completedWorkoutsCount, loggedFoodsCount]);
+    const nextData = useMemo(() => ({
+        workouts: buildWorkoutsFromGlobal(nextDate),
+        ...buildMealsFromGlobal(nextDate),
+    }), [nextDate, buildWorkoutsFromGlobal, buildMealsFromGlobal, completedWorkoutsCount, loggedFoodsCount]);
+
+    // Preload neighboring food logs to minimize any perceived delay when swiping
+    useEffect(() => {
+        const uid = String(global?.userData?.uid || '');
+        if (!uid) return;
+        // Aggressively warm center and neighbors for smoother swipes
+        primeFoodLogsCache(uid, date, 7).catch(() => { });
+    }, [date, isExpanded]);
+
+    // Warm cache as soon as an open signal happens (visible or toggle)
+    useEffect(() => {
+        const uid = String(global?.userData?.uid || '');
+        if (!uid) return;
+        primeFoodLogsCache(uid, date, 7).catch(() => { });
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [visible, openToggle]);
+
+    // Inner component: one day's details page
+    const DayDetailsPage = useCallback(({ d, dayWorkouts, dayMeals, dayTotals, dayCalories }) => {
+        const isTodayPage = useMemo(() => dayKey(d) === dayKey(new Date()), [d]);
+        const foodsList = useMemo(() => {
+            const buckets = ["Breakfast", "Lunch", "Dinner", "Snack"];
+            const out = [];
+            for (const b of buckets) {
+                const arr = Array.isArray(dayMeals?.[b]) ? dayMeals[b] : [];
+                for (const it of arr) {
+                    out.push({
+                        name: it?.name || "Food",
+                        desc: it?.desc || "",
+                        qty: typeof it?.quantity === "number" ? it.quantity : null,
+                        bucket: b,
+                        brand: it?.brand || '',
+                        foodId: it?.foodId || it?.food_id || '',
+                    });
+                }
+            }
+            return out.slice(0, 8);
+        }, [dayMeals]);
+
+        const calsToShowPage = Number(dayTotals?.calories || dayCalories || 0);
+
+        return (
+            <View style={styles.ctnr}>
+                {/* Header is static above; this page starts with section content */}
+                {/* ------- Workouts ------- */}
+                <View style={styles.sectionHdrRow}>
+                    <Text style={styles.sectionHdr}>Workouts</Text>
+                    <Text style={[styles.sectionMeta, (dayWorkouts?.length || 0) ? styles.metaOn : styles.metaOff]}>
+                        {(dayWorkouts?.length || 0) > 0 ? "Logged" : "None"}
+                    </Text>
+                </View>
+
+                {(!dayWorkouts || dayWorkouts.length === 0) ? (
+                    <View style={styles.emptyCard}>
+                        <Text style={styles.emptyText}>No completed workouts for this day.</Text>
+                    </View>
+                ) : (
+                    dayWorkouts.slice(0, 3).map((w, i) => {
+                        const exCount = Array.isArray(w?.exercises) ? w.exercises.length : 0;
+                        const setCount = Array.isArray(w?.exercises)
+                            ? w.exercises.reduce((acc, e) => acc + (e?.sets?.length || 0), 0)
+                            : 0;
+                        const durMs = w?.duration ?? Math.max(0, (Date.now() - Number(w?.created || 0)));
+                        const pbs = Number(w?.PBs ?? 0);
+                        const t = w?.templateName || w?.template?.name || w?.name || "Workout";
+                        const hasTemplate = (w && w.tid != null);
+                        const subtitle = `${exCount} exercises • ${setCount} sets`;
+                        return (
+                            <WorkoutPanelCard
+                                key={`${w?.wid || i}`}
+                                title={t}
+                                titleStyle={hasTemplate ? { color: theme.primary } : null}
+                                subtitle={subtitle}
+                                pbs={pbs}
+                                durationMs={durMs}
+                                volume={toNumber(w?.volume)}
+                                reps={toNumber(w?.reps)}
+                                onPress={() => openViewer(w)}
+                                showChevron
+                            />
+                        );
+                    })
+                )}
+
+                {/* ------- Foods ------- */}
+                <View style={[styles.sectionHdrRow, { marginTop: scaleSize(12) }]}>
+                    <Text style={styles.sectionHdr}>Foods</Text>
+                    <Text style={styles.sectionMeta}>{calsToShowPage.toLocaleString()} kcal</Text>
+                </View>
+
+                {foodsList.length === 0 ? (
+                    <View style={styles.emptyCard}>
+                        <Text style={styles.emptyText}>No foods logged for this day.</Text>
+                    </View>
+                ) : (
+                    <View style={styles.foodListCol}>
+                        {foodsList.map((it, idx) => {
+                            const kcal = Math.round((it?.macros?.calories) || parseMacrosFromDescription(it?.desc || '', it?.qty ?? 1).calories || 0);
+                            return (
+                                <Pressable key={`${it.name}-${idx}`} style={styles.foodRowCard} onPress={() => openFood(it)}>
+                                    <View style={{ flex: 1, paddingRight: scaleSize(12) }}>
+                                        <Text style={styles.foodRowName} numberOfLines={1}>{it.name}</Text>
+                                        <Text style={styles.foodRowBucketLine} numberOfLines={1}>{it.bucket}</Text>
+                                    </View>
+                                    <Text style={styles.foodRowCals}>{kcal}</Text>
+                                </Pressable>
+                            );
+                        })}
+                    </View>
+                )}
+
+                {/* Actions */}
+                <View style={styles.actions}>
+                    <Pressable style={[styles.btn, styles.secondary]} onPress={handleOpenMacros}>
+                        <Text style={[styles.btnText, styles.secondaryText]}>Open Macros</Text>
+                    </Pressable>
+                    {isTodayPage && (
+                        <Pressable style={[styles.btn, styles.primary]} onPress={handleStartWorkout}>
+                            <Text style={[styles.btnText, styles.primaryText]}>Start Workout</Text>
+                        </Pressable>
+                    )}
+                </View>
+            </View>
+        );
+    }, [handleOpenMacros, handleStartWorkout, handleTitlePress, onChangeDate, openFood, openViewer, titleScale, workoutOn]);
+
+    // Static header (doesn't move when swiping pages)
+    useEffect(() => {
+        // Keep header in sync with committed date changes
+        setHeaderDate(date);
+    }, [date]);
+
+    // Slide pages horizontally by delta days; always animate
+    const slideBy = useCallback((delta) => {
+        try {
+            listRef.current?.scrollToIndex({ index: baseIndex + delta, animated: true });
+        } catch {
+            setTimeout(() => {
+                try { listRef.current?.scrollToIndex({ index: baseIndex + delta, animated: true }); } catch {}
+            }, 16);
+        }
+    }, [baseIndex]);
+
+    const StaticHeaderRow = useMemo(() => {
+        const title = fmt(headerDate) || "Select a date";
+        return (
+            <DateHeader
+                title={title}
+                onPrev={() => slideBy(-1)}
+                onNext={() => slideBy(1)}
+                onPressTitle={handleTitlePress}
+                titleScale={titleScale}
+                onLayout={(e) => {
+                    try {
+                        const h = e?.nativeEvent?.layout?.height || HEADER_HEIGHT;
+                        if (h && Math.abs(h - headerHeight) > 1) setHeaderHeight(h);
+                    } catch {}
+                }}
+            />
+        );
+    }, [headerDate, date, onChangeDate, handleTitlePress, titleScale, headerHeight, slideBy]);
 
     const showToast = useCallback((msg) => {
         setToastText(msg || "Template added");
@@ -276,18 +553,18 @@ const DayDetailsSheet = ({
     // Open food details overlay
     const openFood = useCallback((entry) => {
         if (!entry) return;
+        // Ensure only one overlay is active at a time
+        try { setSelectedWorkout(null); } catch {}
         const qty = typeof entry?.qty === 'number' ? entry.qty : (Number(entry?.qty) || 1);
-        const macros = parseMacrosFromDescription(entry?.desc || '', qty);
+        const macros = entry?.macros || parseMacrosFromDescription(entry?.desc || '', qty);
         const extras = parseExtraNutrientsFromDescription(entry?.desc || '', qty);
         setSelectedFood({ ...entry, qty, macros, extras });
         setViewerReady(true);
+        try { viewerTranslateX.setValue(screenWidth); } catch {}
         try {
-            Animated.parallel([
-                Animated.timing(listOpacity, { toValue: 0, duration: 140, useNativeDriver: true }),
-                Animated.timing(viewerOpacity, { toValue: 1, duration: 180, useNativeDriver: true }),
-            ]).start();
+            Animated.timing(viewerTranslateX, { toValue: 0, duration: 260, easing: Easing.out(Easing.cubic), useNativeDriver: true }).start();
         } catch { }
-    }, [listOpacity, viewerOpacity]);
+    }, [listOpacity, viewerOpacity, viewerTranslateX, screenWidth]);
 
     return (
         <View style={styles.outerContainer} pointerEvents="box-none">
@@ -296,172 +573,181 @@ const DayDetailsSheet = ({
                 index={-1}
                 snapPoints={snapPoints}
                 enablePanDownToClose
+                enableContentPanningGesture={true}
+                enableHandlePanningGesture={true}
                 backdropComponent={renderBackdrop}
-                handleStyle={styles.hiddenHandle}
+                handleComponent={() => (
+                    <View style={styles.handleWrap}>
+                        {/* Fading yellow background when viewer is open */}
+                        <Animated.View
+                            style={[StyleSheet.absoluteFillObject, {
+                                backgroundColor: HANDLE_BG,
+                                opacity: selectedWorkout ? handleAccentOpacity : 0,
+                                borderTopLeftRadius: scaleSize(20),
+                                borderTopRightRadius: scaleSize(20),
+                            }]}
+                            pointerEvents="none"
+                        />
+                        <View style={{ alignItems: 'center', paddingVertical: scaleSize(8) }}>
+                            {/* Yellow handle bar (only shown while viewer slides in) */}
+                            <Animated.View
+                                style={{
+                                    width: scaleSize(42),
+                                    height: scaleSize(4),
+                                    borderRadius: scaleSize(2),
+                                    backgroundColor: HANDLE_ACCENT,
+                                    opacity: selectedWorkout ? handleAccentOpacity : 0,
+                                }}
+                                pointerEvents="none"
+                            />
+                        </View>
+                    </View>
+                )}
                 backgroundStyle={styles.bottomSheetBackground}
+                simultaneousHandlers={listRef}
                 onClose={handleClose}
             >
-                {/* Custom grabber */}
-                <View style={styles.handle} />
-
-                {/* Content (scrollable) */}
-                <BottomSheetScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
-                    <Animated.View style={[styles.ctnr, { opacity: listOpacity }]}>
-                        <View style={styles.dateHeaderRow}>
-                            <Pressable onPress={() => onChangeDate && onChangeDate(shiftDate(date, -1))} hitSlop={8} style={styles.dateNavBtn}>
-                                <Ionicons name="chevron-back" size={24} color={theme.textPrimary} />
-                            </Pressable>
-                            <Pressable onPress={handleTitlePress} hitSlop={8} style={styles.titlePress}>
-                                <Animated.Text style={[styles.title, { transform: [{ scale: titleScale }] }]}>
-                                    {title || "Select a date"}
-                                </Animated.Text>
-                            </Pressable>
-                            <Pressable onPress={() => onChangeDate && onChangeDate(shiftDate(date, 1))} hitSlop={8} style={styles.dateNavBtn}>
-                                <Ionicons name="chevron-forward" size={24} color={theme.textPrimary} />
-                            </Pressable>
-                        </View>
-
-                        {/* ------- Workouts ------- */}
-                        <View style={styles.sectionHdrRow}>
-                            <Text style={styles.sectionHdr}>Workouts</Text>
-                            <Text style={[styles.sectionMeta, (workouts?.length || workoutOn) ? styles.metaOn : styles.metaOff]}>
-                                {(workouts?.length || 0) > 0 || workoutOn ? "Logged" : "None"}
-                            </Text>
-                        </View>
-
-                        {(!workouts || workouts.length === 0) ? (
-                            <View style={styles.emptyCard}>
-                                <Text style={styles.emptyText}>No completed workouts for this day.</Text>
-                            </View>
-                        ) : (
-                            workouts.slice(0, 3).map((w, i) => {
-                                const exCount = Array.isArray(w?.exercises) ? w.exercises.length : 0;
-                                const setCount = Array.isArray(w?.exercises)
-                                    ? w.exercises.reduce((acc, e) => acc + (e?.sets?.length || 0), 0)
-                                    : 0;
-                                const durMs = w?.duration ?? Math.max(0, (Date.now() - Number(w?.created || 0)));
-                                const pbs = Number(w?.PBs ?? 0);
-                                const title = w?.templateName || w?.template?.name || w?.name || "Workout";
-                                const hasTemplate = (w && w.tid != null);
-                                const subtitle = `${exCount} exercises • ${setCount} sets`;
+                {/* Content (static header + horizontally paged days via VirtualizedList) */}
+                <BottomSheetView style={{ flex: 1 }}>
+                    <Animated.View style={{ flex: 1, opacity: listOpacity }}>
+                        {StaticHeaderRow}
+                        <VirtualizedList
+                            ref={listRef}
+                            style={{ flex: 1 }}
+                            horizontal
+                            pagingEnabled
+                            directionalLockEnabled
+                            decelerationRate="fast"
+                            bounces={false}
+                            overScrollMode="never"
+                            scrollEventThrottle={16}
+                            showsHorizontalScrollIndicator={false}
+                            keyExtractor={(item, index) => String(index)}
+                            getItemCount={() => TOTAL_PAGES}
+                            getItem={(_data, index) => index}
+                            initialScrollIndex={baseIndex}
+                            getItemLayout={(_data, index) => ({ length: screenWidth, offset: screenWidth * index, index })}
+                            onLayout={() => {
+                                try { listRef.current?.scrollToIndex({ index: baseIndex, animated: false }); } catch { }
+                            }}
+                            onScroll={(e) => {
+                                try {
+                                    const x = e?.nativeEvent?.contentOffset?.x || 0;
+                                    const nextIndex = Math.round(x / (screenWidth || 1));
+                                    const delta = nextIndex - baseIndex;
+                                    const predicted = shiftDate(date, delta);
+                                    setHeaderDate(predicted);
+                                } catch {}
+                            }}
+                            onContentSizeChange={() => {
+                                try { listRef.current?.scrollToIndex({ index: baseIndex, animated: false }); } catch { }
+                            }}
+                            onScrollToIndexFailed={({ index }) => {
+                                setTimeout(() => {
+                                    try { listRef.current?.scrollToIndex({ index, animated: true }); } catch { }
+                                }, 16);
+                            }}
+                            onMomentumScrollEnd={(e) => {
+                                const x = e?.nativeEvent?.contentOffset?.x || 0;
+                                const nextIndex = Math.round(x / (screenWidth || 1));
+                                if (Number.isFinite(nextIndex) && nextIndex !== baseIndex) {
+                                    const delta = nextIndex - baseIndex;
+                                    setBaseIndex(nextIndex);
+                                    onChangeDate?.(shiftDate(date, delta));
+                                }
+                            }}
+                            renderItem={({ index }) => {
+                                const offset = index - baseIndex;
+                                const d = shiftDate(date, offset);
+                                const data = offset === -1 ? prevData : offset === 0 ? currentData : offset === 1 ? nextData : {
+                                    workouts: buildWorkoutsFromGlobal(d),
+                                    ...buildMealsFromGlobal(d),
+                                };
                                 return (
-                                    <WorkoutPanelCard
-                                        key={`${w?.wid || i}`}
-                                        title={title}
-                                        titleStyle={hasTemplate ? { color: theme.primary } : null}
-                                        subtitle={subtitle}
-                                        pbs={pbs}
-                                        durationMs={durMs}
-                                        volume={toNumber(w?.volume)}
-                                        reps={toNumber(w?.reps)}
-                                        onPress={() => openViewer(w)}
-                                        showChevron
-                                    />
+                                    <ScrollView
+                                        style={{ width: screenWidth }}
+                                        contentContainerStyle={styles.scrollContent}
+                                        directionalLockEnabled
+                                        nestedScrollEnabled
+                                        showsVerticalScrollIndicator={false}
+                                    >
+                                        <DayDetailsPage
+                                            d={d}
+                                            dayWorkouts={data.workouts}
+                                            dayMeals={data.meals}
+                                            dayTotals={data.totals}
+                                            dayCalories={data.totals?.calories || 0}
+                                        />
+                                    </ScrollView>
                                 );
-                            })
-                        )}
-
-                        {/* ------- Foods ------- */}
-                        <View style={[styles.sectionHdrRow, { marginTop: scaleSize(12) }]}>
-                            <Text style={styles.sectionHdr}>Foods</Text>
-                            <Text style={styles.sectionMeta}>{calsToShow.toLocaleString()} kcal</Text>
-                        </View>
-
-                        {foodsList.length === 0 ? (
-                            <View style={styles.emptyCard}>
-                                <Text style={styles.emptyText}>No foods logged for this day.</Text>
-                            </View>
-                        ) : (
-                            <View style={styles.foodListCol}>
-                                {foodsList.map((it, idx) => {
-                                    const kcal = Math.round(parseMacrosFromDescription(it?.desc || '', it?.qty ?? 1).calories || 0);
-                                    return (
-                                        <Pressable key={`${it.name}-${idx}`} style={styles.foodRowCard} onPress={() => openFood(it)}>
-                                            <View style={{ flex: 1, paddingRight: scaleSize(12) }}>
-                                                <Text style={styles.foodRowName} numberOfLines={1}>{it.name}</Text>
-                                                <Text style={styles.foodRowBucketLine} numberOfLines={1}>{it.bucket}</Text>
-                                            </View>
-                                            <Text style={styles.foodRowCals}>{kcal}</Text>
-                                        </Pressable>
-                                    );
-                                })}
-                            </View>
-                        )}
-
-                        {/* Actions */}
-                        <View style={styles.actions}>
-                            <Pressable style={[styles.btn, styles.secondary]} onPress={handleOpenMacros}>
-                                <Text style={[styles.btnText, styles.secondaryText]}>Open Macros</Text>
-                            </Pressable>
-                            {isToday && (
-                                <Pressable style={[styles.btn, styles.primary]} onPress={handleStartWorkout}>
-                                    <Text style={[styles.btnText, styles.primaryText]}>Start Workout</Text>
-                                </Pressable>
-                            )}
-                        </View>
+                            }}
+                            windowSize={5}
+                            initialNumToRender={3}
+                            removeClippedSubviews={false}
+                        />
                     </Animated.View>
-                </BottomSheetScrollView>
+                </BottomSheetView>
 
                 {/* Viewer overlay */}
-                <Animated.View style={[StyleSheet.absoluteFill, { opacity: viewerOpacity }]} pointerEvents={(selectedWorkout || selectedFood) ? "auto" : "none"}>
-                    {/* Simulated friend-view handle bar (yellow) */}
-                    {selectedWorkout && (
-                        <View style={styles.viewerHandleWrap}>
-                            <View style={styles.viewerHandleIndicator} />
-                        </View>
-                    )}
-                    {!selectedWorkout || !viewerReady ? null : (
+                <OverlayContainer translateX={viewerTranslateX} gesture={backPan} visible={(selectedWorkout || selectedFood)}>
                         <View style={{ flex: 1 }}>
-                            <NewWorkoutModal
-                                timerRef={timerRef}
-                                workout={selectedWorkout}
-                                cancelWorkout={() => { }}
-                                updateWorkout={() => { }}
-                                finishWorkout={() => { }}
-                                showGroupModal={() => { }}
-                                userWorkoutStats={global?.userData?.statsExercises || {}}
-                                onPressBack={closeViewer}
-                                onCheer={() => { }}
-                                onCopyTemplate={handleCopyTemplate}
-                                onPressPfp={() => {
-                                    try { bottomSheetRef.current?.close(); } catch { }
-                                    const uid = String(selectedWorkout?.__friendUid || selectedWorkout?.creatorUID || '');
-                                    if (!uid) return;
-                                    const meUid = String(global?.userData?.uid || '');
-                                    const rootNav = navigation?.getParent?.('ROOT');
-                                    if (uid === meUid) {
-                                        if (rootNav?.navigate) rootNav.navigate('Profile', { transition: 'slide-from-right' });
-                                        else navigation.navigate('Profile', { transition: 'slide-from-right' });
-                                    } else {
-                                        if (rootNav?.navigate) rootNav.navigate('ViewProfile', { user: { uid } });
-                                        else navigation.navigate('ViewProfile', { user: { uid } });
-                                    }
-                                }}
-                                forceViewingFriend={String(selectedWorkout.__friendUid || selectedWorkout.creatorUID || "")}
-                                friendPfp={selectedWorkout.__friendPfp || null}
-                                streamLive={false}
-                            />
-                            {/* Copy Template toast centered near top of overlay */}
-                            <View pointerEvents="none" style={styles.toastWrap}>
-                                <CopyTemplateToast anim={toastAnim} text={toastText} />
-                            </View>
+                            {/* header is fixed above; overlay now sits flush to top without extra spacer */}
+                            {!selectedWorkout || !viewerReady ? null : (
+                                <View style={{ flex: 1 }}>
+                                    <NewWorkoutModal
+                                        timerRef={timerRef}
+                                        workout={selectedWorkout}
+                                        cancelWorkout={() => { }}
+                                        updateWorkout={() => { }}
+                                        finishWorkout={() => { }}
+                                        showGroupModal={() => { }}
+                                        userWorkoutStats={global?.userData?.statsExercises || {}}
+                                        onPressBack={closeViewer}
+                                        onCheer={() => { }}
+                                        onCopyTemplate={handleCopyTemplate}
+                                        onPressPfp={() => {
+                                            try { bottomSheetRef.current?.close(); } catch { }
+                                            const uid = String(selectedWorkout?.__friendUid || selectedWorkout?.creatorUID || '');
+                                            if (!uid) return;
+                                            const meUid = String(global?.userData?.uid || '');
+                                            const rootNav = navigation?.getParent?.('ROOT');
+                                            if (uid === meUid) {
+                                                if (rootNav?.navigate) rootNav.navigate('Profile', { transition: 'slide-from-right' });
+                                                else navigation.navigate('Profile', { transition: 'slide-from-right' });
+                                            } else {
+                                                if (rootNav?.navigate) rootNav.navigate('ViewProfile', { user: { uid } });
+                                                else navigation.navigate('ViewProfile', { user: { uid } });
+                                            }
+                                        }}
+                                        forceViewingFriend={String(selectedWorkout.__friendUid || selectedWorkout.creatorUID || "")}
+                                        friendPfp={selectedWorkout.__friendPfp || null}
+                                        streamLive={false}
+                                    />
+                                    {/* Copy Template toast centered near top of overlay */}
+                                    <View pointerEvents="none" style={styles.toastWrap}>
+                                        <CopyTemplateToast anim={toastAnim} text={toastText} />
+                                    </View>
+                                </View>
+                            )}
+                            {/* Food details overlay */}
+                            {!selectedFood || !viewerReady ? null : (
+                                <FoodDetailInline
+                                    entry={{
+                                        name: selectedFood?.name,
+                                        brand: selectedFood?.brand,
+                                        desc: selectedFood?.desc,
+                                        quantity: selectedFood?.qty,
+                                        foodId: selectedFood?.foodId,
+                                    }}
+                                    onClose={closeViewer}
+                                    containerStyle={{
+                                        flex: 1,
+                                        backgroundColor: theme.bg,
+                                    }}
+                                />
+                            )}
                         </View>
-                    )}
-                    {/* Food details overlay */}
-                    {!selectedFood || !viewerReady ? null : (
-                        <FoodDetailInline
-                            entry={{
-                                name: selectedFood?.name,
-                                brand: selectedFood?.brand,
-                                desc: selectedFood?.desc,
-                                quantity: selectedFood?.qty,
-                                foodId: selectedFood?.foodId,
-                            }}
-                            onClose={closeViewer}
-                            containerStyle={{ flex: 1, backgroundColor: 'transparent', paddingTop: scaleSize(16) }}
-                        />
-                    )}
-                </Animated.View>
+                </OverlayContainer>
             </BottomSheet>
         </View>
     );
@@ -469,24 +755,12 @@ const DayDetailsSheet = ({
 
 const styles = StyleSheet.create({
     outerContainer: { position: "absolute", top: 0, bottom: 0, left: 0, right: 0, zIndex: 1 },
-    hiddenHandle: { display: "none" },
     bottomSheetBackground: { borderTopLeftRadius: scaleSize(20), borderTopRightRadius: scaleSize(20), backgroundColor: theme.bg },
     scrollContent: { paddingBottom: scaleSize(18) },
-    handle: {
-        alignSelf: "center",
-        width: scaleSize(46),
-        height: scaleSize(5),
-        borderRadius: scaleSize(999),
-        backgroundColor: theme.field,
-        marginTop: scaleSize(8),
-        marginBottom: scaleSize(6),
-    },
-    ctnr: { flex: 1, paddingHorizontal: scaleSize(16), paddingTop: scaleSize(6), paddingBottom: scaleSize(16), backgroundColor: theme.bg },
-    // Match MacroTracking DateHeader typography
-    title: { flex: 1, fontFamily: "Nunito_800ExtraBold", fontSize: scaleSize(16), color: theme.textPrimary, textAlign: "center" },
-    titlePress: { flex: 1 },
-    dateHeaderRow: { flexDirection: "row", alignItems: "center", marginBottom: scaleSize(10) },
-    dateNavBtn: { width: scaleSize(36), height: scaleSize(36), alignItems: "center", justifyContent: "center" },
+    invisibleHandle: { display: 'none' },
+    handleWrap: { borderTopLeftRadius: scaleSize(20), borderTopRightRadius: scaleSize(20) },
+    ctnr: { flex: 1, paddingHorizontal: scaleSize(16), paddingTop: scaleSize(8), paddingBottom: scaleSize(16) },
+    
 
     sectionHdrRow: { marginTop: scaleSize(6), marginBottom: scaleSize(6), flexDirection: "row", alignItems: "flex-end", justifyContent: "space-between" },
     sectionHdr: { fontFamily: "Outfit_700Bold", fontSize: scaleSize(14.5), color: theme.textPrimary },
@@ -504,78 +778,7 @@ const styles = StyleSheet.create({
     },
     emptyText: { fontFamily: "Outfit_500Medium", fontSize: scaleSize(12.5), color: theme.textSecondary },
 
-    // FriendsActivity-style workout panel
-    faPanel: {
-        paddingHorizontal: scaleSize(14),
-        paddingVertical: scaleSize(10),
-        borderRadius: scaleSize(20),
-        backgroundColor: theme.surface,
-        shadowColor: "#000",
-        shadowOffset: { width: 0, height: scaleSize(6) },
-        shadowOpacity: 0.07,
-        shadowRadius: scaleSize(12),
-        elevation: 7,
-        borderWidth: StyleSheet.hairlineWidth,
-        borderColor: theme.hairline,
-        marginBottom: scaleSize(8),
-    },
-    faHeaderRow: { flexDirection: "row", alignItems: "center", marginBottom: scaleSize(6), gap: scaleSize(10) },
-    faRightAccessories: { flexDirection: "row", alignItems: "center", gap: scaleSize(10) },
-    faTitle: { fontSize: scaleSize(13), fontFamily: "Outfit_800ExtraBold", color: theme.textPrimary },
-    faTitleBlue: { color: theme.primary },
-    faSub: { marginTop: scaleSize(2), fontSize: scaleSize(12.5), fontFamily: "Outfit_600SemiBold", color: theme.textSecondary },
-    faDivider: { height: StyleSheet.hairlineWidth, backgroundColor: theme.hairline, marginVertical: scaleSize(6) },
-    faStatsRow: { flexDirection: "row", gap: scaleSize(6) },
-    faStatCard: {
-        flex: 1,
-        // backgroundColor: theme.field,
-        paddingVertical: scaleSize(6),
-        // borderWidth: StyleSheet.hairlineWidth,
-        borderColor: theme.hairline,
-    },
-    faStatIconWrap: {
-        width: scaleSize(30),
-        height: scaleSize(30),
-        borderRadius: scaleSize(20),
-        justifyContent: "center",
-        alignItems: "center",
-        backgroundColor: '#ffffff2e',
-        marginBottom: scaleSize(6),
-    },
-    faStatLabel: { fontFamily: "Outfit_600SemiBold", fontSize: scaleSize(11), color: theme.textSecondary },
-    faStatValue: { marginTop: scaleSize(1), fontFamily: "Outfit_800ExtraBold", fontSize: scaleSize(13), color: theme.textPrimary },
-    faStatTextCol: { flex: 1, minWidth: 0 },
-    faPrPill: {
-        flexDirection: "row",
-        alignItems: "center",
-        gap: scaleSize(6),
-        backgroundColor: "rgba(250, 204, 21, 0.24)",
-        borderWidth: StyleSheet.hairlineWidth,
-        borderColor: "rgba(250, 204, 21, 0.60)",
-        paddingVertical: scaleSize(5),
-        paddingHorizontal: scaleSize(8),
-        borderRadius: scaleSize(999),
-    },
-    faPrText: { fontFamily: "Outfit_800ExtraBold", fontSize: scaleSize(12), color: "#FACC15" },
-
-    foodListCard: {
-        borderRadius: scaleSize(16),
-        paddingVertical: scaleSize(10),
-        paddingHorizontal: scaleSize(12),
-        backgroundColor: theme.surface,
-        borderWidth: StyleSheet.hairlineWidth,
-        borderColor: theme.hairline,
-        marginBottom: scaleSize(8),
-        shadowColor: "#000",
-        shadowOpacity: 0.04,
-        shadowRadius: scaleSize(6),
-        elevation: 1,
-    },
-    foodRow: { flexDirection: "row", alignItems: "center", marginTop: scaleSize(4) },
-    foodName: { flex: 1, fontFamily: "Outfit_500Medium", fontSize: scaleSize(12.5), color: theme.textPrimary },
-    // bullet used in Food rows
-    exDot: { marginRight: scaleSize(6), color: theme.textSecondary, fontSize: scaleSize(16), lineHeight: scaleSize(16) },
-    moreHint: { marginTop: scaleSize(4), fontFamily: "Outfit_600SemiBold", fontSize: scaleSize(12), color: theme.textSecondary },
+    
 
     // New food card grid
     foodListCol: { marginBottom: scaleSize(8) },
@@ -606,24 +809,7 @@ const styles = StyleSheet.create({
     secondary: { backgroundColor: theme.field },
     secondaryText: { color: theme.textPrimary },
     btnText: { fontFamily: "Outfit_700Bold", fontSize: scaleSize(14) },
-    // Friend-view handle accents (top of viewer overlay)
-    viewerHandleWrap: {
-        paddingTop: scaleSize(8),
-        paddingBottom: scaleSize(6),
-        alignItems: 'center',
-        justifyContent: 'center',
-        backgroundColor: HANDLE_FRIEND_BACKGROUND,
-        borderTopLeftRadius: scaleSize(20),
-        borderTopRightRadius: scaleSize(20),
-        // align visually with hidden handle spacing
-        marginTop: 0,
-    },
-    viewerHandleIndicator: {
-        width: scaleSize(40),
-        height: scaleSize(4),
-        borderRadius: scaleSize(999),
-        backgroundColor: HANDLE_FRIEND_ACCENT,
-    },
+    
     // Position toast near the top of the overlay content
     toastWrap: {
         position: "absolute",

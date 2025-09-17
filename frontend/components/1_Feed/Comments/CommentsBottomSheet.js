@@ -1,6 +1,7 @@
 import React, { useEffect, useMemo, useRef, useState, useCallback } from "react";
 import { View, StyleSheet, TextInput, Platform, Image, KeyboardAvoidingView, Animated, Keyboard, Pressable, Dimensions } from "react-native";
 import BottomSheet from "@gorhom/bottom-sheet";
+import { useAnimatedReaction, runOnJS } from 'react-native-reanimated';
 import theme from "../../../theme/mfpDark";
 import { Ionicons } from '@expo/vector-icons';
 import CommentsModal from "./CommentsModal";
@@ -14,7 +15,7 @@ import scaleSize from "../../../helper/scaleSize";
 const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('screen');
 const dynamicStyles = getCommentsBottomSheetStyles(SCREEN_WIDTH, SCREEN_HEIGHT);
 
-const CommentsBottomSheet = ({ isVisible, postData, commentsBottomSheetExpandFlag, toViewProfile, collapseSignal, reopenSignal, interactiveProgress, interactiveScale = 0.85, openPositionPx }) => {
+const CommentsBottomSheet = ({ isVisible, postData, commentsBottomSheetExpandFlag, toViewProfile, collapseSignal, reopenSignal, interactiveProgress, interactiveProgressSV, interactiveScale = 0.85, openPositionPx }) => {
     const [isInputFocused, setIsInputFocused] = useState(false);
     const bottomSheetRef = useRef(null);
     const footerTranslateY = useRef(new Animated.Value(0)).current; // moves when input focuses
@@ -156,23 +157,63 @@ const CommentsBottomSheet = ({ isVisible, postData, commentsBottomSheetExpandFla
         try { bottomSheetRef.current?.snapToIndex?.(0); } catch { }
     }, [reopenSignal, isVisible, postPid]);
 
-    // Optional interactive collapse (disabled if interactiveProgress is undefined)
-    useEffect(() => {
+    // Optional interactive collapse (disabled if both interactiveProgress and interactiveProgressSV are undefined)
+    // Throttle updates with rAF and ignore tiny deltas to avoid jitter.
+    const lastPosRef = useRef(-1);
+    const rafIdRef = useRef(null);
+    const pendingPosRef = useRef(null);
+    const scheduleSnap = React.useCallback(() => {
+        if (rafIdRef.current != null) return;
+        rafIdRef.current = requestAnimationFrame(() => {
+            rafIdRef.current = null;
+            const pos = pendingPosRef.current;
+            if (pos == null) return;
+            try { bottomSheetRef.current?.snapToPosition?.(pos, { duration: 0 }); } catch { }
+        });
+    }, []);
+    const updateFromProgress = useCallback((progress) => {
         if (!isVisible || !postPid) return;
-        if (interactiveProgress == null) return;
-        const progress = Math.max(0, Math.min(1, interactiveProgress || 0));
-        // Target position in px from bottom: openPositionPx at rest -> 0 when fully closed
         const h = containerHRef.current || (SCREEN_HEIGHT - scaleSize(85));
         const desired = typeof openPositionPx === 'number' ? openPositionPx : (0.345 * h);
         const openPx = Math.max(0, Math.min(h, desired));
-        const slow = Math.max(0, Math.min(1, interactiveScale));
-        const pSlow = Math.min(1, progress * slow); // slower than finger based on provided scale
-        const pos = Math.max(0, openPx * (1 - pSlow));
-        try { bottomSheetRef.current?.snapToPosition?.(pos, { duration: 0 }); } catch { }
+        const slow = Math.max(0, interactiveScale || 0);
+        const p = Math.max(0, (progress || 0));
+        const pSlow = Math.min(1, p * slow); // slower than finger based on provided scale
+        let pos = Math.max(0, openPx * (1 - pSlow));
+        // Round to whole px to reduce thrash
+        pos = Math.round(pos);
+        // Skip if change is tiny
+        if (Math.abs(pos - (lastPosRef.current ?? -1)) >= 1) {
+            lastPosRef.current = pos;
+            pendingPosRef.current = pos;
+            scheduleSnap();
+        }
         // Fade and slide the input footer down in sync with slowed progress
         try { footerOpacity.setValue(1 - pSlow); } catch {}
         try { footerDragY.setValue(pSlow * 120); } catch {}
-    }, [interactiveProgress, isVisible, postPid, interactiveScale, openPositionPx]);
+    }, [isVisible, postPid, openPositionPx, interactiveScale, scheduleSnap]);
+
+    // Worklet-driven updates via SharedValue (preferred, no React re-renders)
+    useAnimatedReaction(
+        () => {
+            if (!interactiveProgressSV || !isVisible || !postPid) return -1;
+            return interactiveProgressSV.value;
+        },
+        (progress) => {
+            if (progress == null || progress < 0) return;
+            runOnJS(updateFromProgress)(progress);
+        }
+    );
+
+    // No explicit force-collapse; sheet follows shared progress including close animation
+    // Fallback numeric prop path (less efficient but compatible)
+    useEffect(() => {
+        if (!isVisible || !postPid) return;
+        if (interactiveProgressSV) return; // SV path handles updates
+        if (interactiveProgress == null) return;
+        updateFromProgress(interactiveProgress);
+    }, [interactiveProgress, isVisible, postPid, interactiveProgressSV, updateFromProgress]);
+    useEffect(() => () => { if (rafIdRef.current != null) { try { cancelAnimationFrame(rafIdRef.current); } catch {} rafIdRef.current = null; } }, []);
 
     // Expand the bottom sheet when flagged
     useEffect(() => {
@@ -245,7 +286,7 @@ const CommentsBottomSheet = ({ isVisible, postData, commentsBottomSheetExpandFla
             </BottomSheet>
             {/* Keep footer mounted to preserve TextInput state across post updates/likes */}
             <Animated.View
-                pointerEvents={isVisible && !!postPid ? 'auto' : 'none'}
+                pointerEvents={isVisible && !!postPid ? 'box-none' : 'none'}
                 style={[
                     styles.footer,
                     { opacity: footerOpacity, transform: [{ translateY: Animated.add(Animated.add(footerTranslateY, footerIntroY), footerDragY) }] }
@@ -285,6 +326,7 @@ const styles = StyleSheet.create({
     container: {
         position: 'absolute',
         top: scaleSize(85),
+
         bottom: 0,
         left: 0,
         right: 0,

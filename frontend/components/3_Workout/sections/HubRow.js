@@ -95,8 +95,8 @@ function HubRowCmp({
                 onPressIn={() => {
                     try {
                         const rootNav = navigation?.getParent?.('ROOT');
-                        if (rootNav?.navigate) rootNav.navigate('Competition', { transition: 'slide-from-right' });
-                        else navigation.navigate('Competition', { transition: 'slide-from-right' });
+                        if (rootNav?.navigate) rootNav.navigate('Competition', { transition: 'slide-from-right', disableSwipeBack: true });
+                        else navigation.navigate('Competition', { transition: 'slide-from-right', disableSwipeBack: true });
                     } catch { }
                 }}
             >

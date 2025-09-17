@@ -42,6 +42,42 @@ export default function MealItemCard({
         </View>
     );
 
+    const CardInner = (
+        <Pressable
+            onPress={() => onPress?.(entry)}
+            android_ripple={{ color: 'rgba(255,255,255,0.06)' }}
+            style={[
+                styles.card,
+                compact && styles.cardCompact,
+                { backgroundColor: COLORS.card, borderColor: COLORS.hairline },
+                cardStyle,
+            ]}
+        >
+            <View style={styles.row}>
+                <View style={styles.textCol}>
+                    <Text style={[styles.name, { color: COLORS.text }]} numberOfLines={1}>
+                        {entry?.name}
+                    </Text>
+                    {!compact && (
+                        <Text style={[styles.summary, { color: COLORS.subtext }]} numberOfLines={1}>
+                            {(() => {
+                                const s = renderSummary ? renderSummary(entry) : '';
+                                return showCaloriesRight ? pruneLeadingCalories(s) : s;
+                            })()}
+                        </Text>
+                    )}
+                </View>
+                {showCaloriesRight && (
+                    <Text style={[styles.cals, { color: COLORS.text }]}>
+                        {formatCals(entry?.macros?.calories)}
+                    </Text>
+                )}
+            </View>
+        </Pressable>
+    );
+
+    if (compact) return CardInner; // Skip swipe container for near pages to mount instantly
+
     return (
         <Swipeable
             overshootRight={false}
@@ -49,37 +85,7 @@ export default function MealItemCard({
             rightThreshold={40}
             renderRightActions={renderRight}
         >
-            <Pressable
-                onPress={() => onPress?.(entry)}
-                android_ripple={{ color: 'rgba(255,255,255,0.06)' }}
-                style={[
-                    styles.card,
-                    compact && styles.cardCompact,
-                    { backgroundColor: COLORS.card, borderColor: COLORS.hairline },
-                    cardStyle,
-                ]}
-            >
-                <View style={styles.row}>
-                    <View style={styles.textCol}>
-                        <Text style={[styles.name, { color: COLORS.text }]} numberOfLines={1}>
-                            {entry?.name}
-                        </Text>
-                        {!compact && (
-                            <Text style={[styles.summary, { color: COLORS.subtext }]} numberOfLines={1}>
-                                {(() => {
-                                    const s = renderSummary ? renderSummary(entry) : '';
-                                    return showCaloriesRight ? pruneLeadingCalories(s) : s;
-                                })()}
-                            </Text>
-                        )}
-                    </View>
-                    {showCaloriesRight && (
-                        <Text style={[styles.cals, { color: COLORS.text }]}>
-                            {formatCals(entry?.macros?.calories)}
-                        </Text>
-                    )}
-                </View>
-            </Pressable>
+            {CardInner}
         </Swipeable>
     );
 }

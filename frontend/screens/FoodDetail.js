@@ -27,6 +27,11 @@ const COLORS = {
 };
 
 export default function FoodDetail({ navigation, route }) {
+    const round2 = (n) => {
+        const x = Number(n);
+        if (!Number.isFinite(x)) return 0;
+        return Math.round(x * 100) / 100;
+    };
     const mode = route?.params?.mode || 'edit'; // 'edit' | 'add'
     const food = route?.params?.food || null;   // FatSecret-shaped when adding
     const entry = route?.params?.entry || {};
@@ -43,7 +48,7 @@ export default function FoodDetail({ navigation, route }) {
     const displayName = mode === 'add' ? (food?.food_name || 'Food Item') : (entry?.name || 'Food Item');
     const displayBrand = mode === 'add' ? (food?.brand_name || '') : (entry?.brand || '');
     const macros = useMemo(() => {
-        const qty = Number(servings) || 1;
+        const qty = round2(Number(servings) || 1);
         return parseMacrosFromDescription(baseDesc, qty);
     }, [baseDesc, servings]);
     const [saving, setSaving] = useState(false);
@@ -91,7 +96,11 @@ export default function FoodDetail({ navigation, route }) {
                     sugar_g: toNum(def.sugar),
                     fiber_g: toNum(def.fiber),
                     sodium_mg: toNum(def.sodium),
+                    potassium_mg: toNum(def.potassium),
                     satFat_g: toNum(def.saturated_fat),
+                    transFat_g: toNum(def.trans_fat),
+                    monoFat_g: toNum(def.monounsaturated_fat),
+                    polyFat_g: toNum(def.polyunsaturated_fat),
                     cholesterol_mg: toNum(def.cholesterol),
                 };
                 if (!cancelled) {
@@ -113,13 +122,17 @@ export default function FoodDetail({ navigation, route }) {
     }, [mode, food?.food_id, entry?.foodId, entry?.food_id]);
 
     const extras = useMemo(() => {
-        const qty = Number(servings) || 1;
+        const qty = round2(Number(servings) || 1);
         if (extrasPS) {
             return {
                 sugar_g: extrasPS.sugar_g == null ? null : extrasPS.sugar_g * qty,
                 fiber_g: extrasPS.fiber_g == null ? null : extrasPS.fiber_g * qty,
                 sodium_mg: extrasPS.sodium_mg == null ? null : extrasPS.sodium_mg * qty,
+                potassium_mg: extrasPS.potassium_mg == null ? null : extrasPS.potassium_mg * qty,
                 satFat_g: extrasPS.satFat_g == null ? null : extrasPS.satFat_g * qty,
+                transFat_g: extrasPS.transFat_g == null ? null : extrasPS.transFat_g * qty,
+                monoFat_g: extrasPS.monoFat_g == null ? null : extrasPS.monoFat_g * qty,
+                polyFat_g: extrasPS.polyFat_g == null ? null : extrasPS.polyFat_g * qty,
                 cholesterol_mg: extrasPS.cholesterol_mg == null ? null : extrasPS.cholesterol_mg * qty,
             };
         }
@@ -146,7 +159,7 @@ export default function FoodDetail({ navigation, route }) {
 
     const adjust = (delta) => {
         setServings((s) => {
-            let v = Math.round((Number(s) + delta) * 100) / 100;
+            let v = round2((Number(s) || 0) + delta);
             if (!Number.isFinite(v) || v <= 0) v = 0.5;
             return v;
         });
@@ -154,9 +167,9 @@ export default function FoodDetail({ navigation, route }) {
 
     const onChangeText = (t) => {
         const cleaned = String(t).replace(/[^0-9.]/g, '');
+        if (cleaned === '') { setServings(''); return; }
         const n = parseFloat(cleaned);
         if (!Number.isNaN(n)) setServings(n);
-        else if (cleaned === '') setServings('');
     };
 
     const save = async () => {
@@ -166,7 +179,7 @@ export default function FoodDetail({ navigation, route }) {
         setSaving(true);
         try {
             const ref = doc(db, 'users', uid, 'foodLogs', dayKey, 'entries', entry.key);
-            const qty = Number(servings) || 1;
+            const qty = round2(Number(servings) || 1);
             const m = parseMacrosFromDescription(entry?.desc || '', qty);
             await updateDoc(ref, {
                 quantity: qty,
@@ -197,7 +210,7 @@ export default function FoodDetail({ navigation, route }) {
         try {
             const dayRef = doc(db, 'users', uid, 'foodLogs', dayKey);
             const entryRef = doc(collection(dayRef, 'entries'));
-            const qty = Number(servings) || 1;
+            const qty = round2(Number(servings) || 1);
             const m = parseMacrosFromDescription(food?.food_description || '', qty);
 
             const payload = {
@@ -295,7 +308,12 @@ export default function FoodDetail({ navigation, route }) {
                         <TextInput
                             value={String(servings)}
                             onChangeText={onChangeText}
+                            onBlur={() => {
+                                if (servings === '') return;
+                                setServings((s) => round2(Number(s) || 0) || 1);
+                            }}
                             keyboardType={Platform.OS === 'ios' ? 'decimal-pad' : 'numeric'}
+                            inputMode="decimal"
                             style={styles.input}
                             placeholder="1"
                             placeholderTextColor={COLORS.subtext}
@@ -352,7 +370,11 @@ export function FoodDetailInline({ entry = {}, onClose, containerStyle }) {
                 sugar_g: extrasPS.sugar_g == null ? null : extrasPS.sugar_g * qty,
                 fiber_g: extrasPS.fiber_g == null ? null : extrasPS.fiber_g * qty,
                 sodium_mg: extrasPS.sodium_mg == null ? null : extrasPS.sodium_mg * qty,
+                potassium_mg: extrasPS.potassium_mg == null ? null : extrasPS.potassium_mg * qty,
                 satFat_g: extrasPS.satFat_g == null ? null : extrasPS.satFat_g * qty,
+                transFat_g: extrasPS.transFat_g == null ? null : extrasPS.transFat_g * qty,
+                monoFat_g: extrasPS.monoFat_g == null ? null : extrasPS.monoFat_g * qty,
+                polyFat_g: extrasPS.polyFat_g == null ? null : extrasPS.polyFat_g * qty,
                 cholesterol_mg: extrasPS.cholesterol_mg == null ? null : extrasPS.cholesterol_mg * qty,
             };
         }
@@ -391,7 +413,11 @@ export function FoodDetailInline({ entry = {}, onClose, containerStyle }) {
                     sugar_g: toNum(def.sugar),
                     fiber_g: toNum(def.fiber),
                     sodium_mg: toNum(def.sodium),
+                    potassium_mg: toNum(def.potassium),
                     satFat_g: toNum(def.saturated_fat),
+                    transFat_g: toNum(def.trans_fat),
+                    monoFat_g: toNum(def.monounsaturated_fat),
+                    polyFat_g: toNum(def.polyunsaturated_fat),
                     cholesterol_mg: toNum(def.cholesterol),
                 };
                 if (!cancelled) setExtrasPS(cached);
@@ -601,27 +627,24 @@ function MacroStat({ color, label, grams, width }) {
 }
 
 function NutritionFacts({ extras }) {
-    const [open, setOpen] = useState(true);
-
     // Daily Values (FDA 2016 update)
     const DV = {
         fiber_g: 28,
         sodium_mg: 2300,
         satFat_g: 20,
         cholesterol_mg: 300,
+        potassium_mg: 4700,
     };
 
     const rows = [
-        {
-            key: 'sugar_g',
-            label: 'Sugars',
-            unit: 'g',
-            value: extras?.sugar_g,
-            dv: null, // No established %DV for total sugars
-        },
+        { key: 'sugar_g', label: 'Sugars', unit: 'g', value: extras?.sugar_g, dv: null },
         { key: 'fiber_g', label: 'Dietary Fiber', unit: 'g', value: extras?.fiber_g, dv: DV.fiber_g },
         { key: 'sodium_mg', label: 'Sodium', unit: 'mg', value: extras?.sodium_mg, dv: DV.sodium_mg },
+        { key: 'potassium_mg', label: 'Potassium', unit: 'mg', value: extras?.potassium_mg, dv: DV.potassium_mg },
         { key: 'satFat_g', label: 'Saturated Fat', unit: 'g', value: extras?.satFat_g, dv: DV.satFat_g },
+        { key: 'transFat_g', label: 'Trans Fat', unit: 'g', value: extras?.transFat_g, dv: null },
+        { key: 'monoFat_g', label: 'Monounsaturated Fat', unit: 'g', value: extras?.monoFat_g, dv: null },
+        { key: 'polyFat_g', label: 'Polyunsaturated Fat', unit: 'g', value: extras?.polyFat_g, dv: null },
         { key: 'cholesterol_mg', label: 'Cholesterol', unit: 'mg', value: extras?.cholesterol_mg, dv: DV.cholesterol_mg },
     ];
 
@@ -629,34 +652,31 @@ function NutritionFacts({ extras }) {
 
     return (
         <View>
-            <Pressable onPress={() => setOpen((v) => !v)} style={styles.sectionHeader}>
+            <View style={styles.sectionHeader}>
                 <Text style={styles.sectionHeaderText}>Nutrition Facts</Text>
-                <Ionicons name={open ? 'chevron-up' : 'chevron-down'} size={18} color={COLORS.subtext} />
-            </Pressable>
+            </View>
             <View style={styles.hairline} />
-            {open && (
-                <View style={styles.factsWrap}>
-                    {anyProvided ? (
-                        rows.map((r) => {
-                            if (!Number.isFinite(r.value)) return null;
-                            const val = r.unit === 'mg' ? Math.round(r.value) : Math.round(r.value * 10) / 10;
-                            let pct = null;
-                            if (r.dv && r.dv > 0) pct = Math.round((val / r.dv) * 100);
-                            return (
-                                <View key={r.key} style={styles.factRow}>
-                                    <Text style={styles.factLabel}>{r.label}</Text>
-                                    <View style={styles.factRight}>
-                                        <Text style={styles.factValue}>{val}<Text style={styles.factUnit}> {r.unit}</Text></Text>
-                                        {pct != null && (<Text style={styles.factPercentSub}>{`${pct}% DV`}</Text>)}
-                                    </View>
+            <View style={styles.factsWrap}>
+                {anyProvided ? (
+                    rows.map((r) => {
+                        if (!Number.isFinite(r.value)) return null;
+                        const val = r.unit === 'mg' ? Math.round(r.value) : Math.round(r.value * 10) / 10;
+                        let pct = null;
+                        if (r.dv && r.dv > 0) pct = Math.round((val / r.dv) * 100);
+                        return (
+                            <View key={r.key} style={styles.factRow}>
+                                <Text style={styles.factLabel}>{r.label}</Text>
+                                <View style={styles.factRight}>
+                                    <Text style={styles.factValue}>{val}<Text style={styles.factUnit}> {r.unit}</Text></Text>
+                                    {pct != null && (<Text style={styles.factPercentSub}>{`${pct}% DV`}</Text>)}
                                 </View>
-                            );
-                        })
-                    ) : (
-                        <Text style={styles.factsEmpty}>Not provided by source</Text>
-                    )}
-                </View>
-            )}
+                            </View>
+                        );
+                    })
+                ) : (
+                    <Text style={styles.factsEmpty}>Not provided by source</Text>
+                )}
+            </View>
         </View>
     );
 }

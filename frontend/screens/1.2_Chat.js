@@ -37,6 +37,7 @@ import scaleSize from "../helper/scaleSize";
 
 const { width: W } = Dimensions.get("window");
 const MAX_REVEAL = 72;
+const EDGE_BACK_GESTURE_WIDTH = 24; // do not capture pan near iOS back-swipe area
 
 const COLORS = { surface: theme.surface, primary: theme.primary, hairline: theme.hairline, bg: theme.bg, text: theme.textPrimary, subtext: theme.textSecondary, field: theme.field };
 
@@ -226,6 +227,8 @@ export default function Chat({ navigation, route }) {
         .failOffsetY([-12, 12])
         .onBegin((e) => {
             "worklet";
+            // If gesture starts within the system back-swipe edge, don't capture.
+            if (e.absoluteX <= EDGE_BACK_GESTURE_WIDTH) { mode.value = 0; return; }
             if (e.absoluteX > W * 0.55) mode.value = 1; // right 45% => your messages
             else if (e.absoluteX < W * 0.45) mode.value = 2; // left 45% => others
             else mode.value = 0;

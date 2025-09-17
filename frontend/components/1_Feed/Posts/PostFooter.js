@@ -31,15 +31,15 @@ const PostFooter = forwardRef(function PostFooter({ data, onPressCommentButton, 
 
     // Determine if post is already liked by current user
     useEffect(() => {
-        if (global.userData) {
-            data.likes.forEach(item => {
-                if (isThisUser(item.uid)) setIsLiked(true);
+        if (global?.userData) {
+            (Array.isArray(data?.likes) ? data.likes : []).forEach(item => {
+                if (isThisUser(item?.uid)) setIsLiked(true);
             });
-            global.userData.savedPosts.forEach(pid => {
-                if (pid === data.pid) setIsSaved(true); // TODO standardize backend storage for saved posts
+            (Array.isArray(global?.userData?.savedPosts) ? global.userData.savedPosts : []).forEach(pid => {
+                if (pid === data?.pid) setIsSaved(true); // TODO standardize backend storage for saved posts
             });
         }
-    }, [global.userData]);
+    }, [global?.userData]);
 
     // Animate appearance/disappearance when post is focused/unfocused.
     // Fade OUT immediately when unfocus starts (isUnfocusing=true).
@@ -55,6 +55,8 @@ const PostFooter = forwardRef(function PostFooter({ data, onPressCommentButton, 
 
     // Toggle "like" status & update Firestore
     function handlePressLikeButton() {
+        // guard numeric likeCount
+        if (typeof data.likeCount !== 'number') data.likeCount = Number(data.likeCount) || 0;
         if (!isLiked) {
             data.likeCount++;
             data.likes.push({
@@ -81,7 +83,7 @@ const PostFooter = forwardRef(function PostFooter({ data, onPressCommentButton, 
             data.likes = data.likes.filter(item => item.uid !== global.userData.uid);
             updateDoc('posts', data.pid, { likeCount: data.likeCount, likes: data.likes });
         }
-        setIsLiked(!isLiked);
+        setIsLiked((v) => !v);
     }
 
     // Expose imperative API for parent (e.g., double-tap to like)
@@ -97,7 +99,7 @@ const PostFooter = forwardRef(function PostFooter({ data, onPressCommentButton, 
     function handlePressSaveButton() {
         if (!isSaved) arrayAppend('users', global.userData.uid, 'savedPosts', data.pid);
         else arrayErase('users', global.userData.uid, 'savedPosts', data.pid);
-        setIsSaved(!isSaved);
+        setIsSaved((v) => !v);
     }
 
     return (

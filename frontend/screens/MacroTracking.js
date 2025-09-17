@@ -1,6 +1,6 @@
 // screens/MacroTracking.js
-import React, { useState, useEffect, useCallback } from 'react';
-import { View, Text, StyleSheet, ScrollView, Pressable, UIManager, Platform, LayoutAnimation, InteractionManager, StatusBar } from 'react-native';
+import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
+import { View, Text, StyleSheet, ScrollView, Pressable, UIManager, Platform, LayoutAnimation, InteractionManager, StatusBar, useWindowDimensions, VirtualizedList } from 'react-native';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { Ionicons } from '@expo/vector-icons';
 import Footer from '../components/Footer';
@@ -18,14 +18,15 @@ import snacksIcon from '../assets/snacks.png'
 import FoodSearchOverlay from '../components/2_MacroTracking/FoodSearchOverlay';
 import MacroGoalsSheet from '../components/2_MacroTracking/MacroGoalsSheet';
 
-import { useFoodLogs, primeFoodLogsCache } from '../hooks/useFoodLogs';
+// No foodLogs hook for this screen — use global.userData.loggedFoods exclusively
+import { parseMacrosFromDescription } from '../utils/nutrition';
 import PersonalInfoSheet from '../components/2_MacroTracking/PersonalInfoSheet';
 
 // 🔥 Firestore (load + save macro goals)
 import { db } from '../../firebase.config';
 import theme from '../theme/mfpDark';
 import { toDayKey } from '../utils/date';
-import { doc, onSnapshot, updateDoc, serverTimestamp } from 'firebase/firestore';
+import { doc, onSnapshot, updateDoc, serverTimestamp, deleteField } from 'firebase/firestore';
 
 import scaleSize from "../helper/scaleSize";
 
@@ -65,6 +66,14 @@ const mealsMeta = [
 ];
 
 export default function MacroTracking({ navigation, route }) {
+    const { width: screenWidth } = useWindowDimensions();
+    // Fast caches for global.loggedFoods → day-index and built meals
+    const globalIndexRef = useRef(new Map());      // dayKey -> array of { id, entry }
+    const globalMealsCacheRef = useRef(new Map()); // dayKey -> { meals, totals }
+    const macroCacheRef = useRef(new Map());       // `${id}|${desc}|${qty}` -> macros
+    const lastCountRef = useRef(0);
+    // If opened from HubRow, suppress the next navigation animation once
+    // No one-off transition suppression; keep other transitions intact
     // Allow focusing a specific date via navigation params
     const parseFocusParam = (param) => {
         if (!param) return null;
@@ -92,8 +101,9 @@ export default function MacroTracking({ navigation, route }) {
     const initialFocus = parseFocusParam(route?.params?.focusDate || route?.params?.date) || new Date();
     const [focusedDate, setFocusedDate] = useState(initialFocus);
     // Defer heavy Firestore subscriptions until after the transition starts
-    const [logsReady, setLogsReady] = useState(true);
-    const { meals, totals, addFood, deleteFood } = useFoodLogs(focusedDate, undefined, logsReady);
+    // Local state derived from global.loggedFoods for the focused day
+    const [meals, setMeals] = useState(() => ({ Breakfast: [], Lunch: [], Dinner: [], Snack: [] }));
+    const [totals, setTotals] = useState(() => ({ calories: 0, protein: 0, carbs: 0, fat: 0 }));
 
     // -------- goals (load from user doc, save back) --------
     const [macroGoals, setMacroGoals] = useState({ calories: 2340, carbs: 285, fat: 70, protein: 140 });
@@ -112,9 +122,8 @@ export default function MacroTracking({ navigation, route }) {
         protein: String(macroGoals.protein),
     }));
 
-    // Subscribe to user's macro goals in Firestore AFTER transition starts
+    // Subscribe to user's macro goals in Firestore
     useEffect(() => {
-        if (!logsReady) return;
         const uid = global?.userData?.uid || global?.userData?.id;
         if (!uid) return;
 
@@ -157,20 +166,15 @@ export default function MacroTracking({ navigation, route }) {
                         heightFt: s.heightFt === '' && (pi.heightFt != null) ? String(pi.heightFt) : s.heightFt,
                         heightIn: s.heightIn === '' && (pi.heightIn != null) ? String(pi.heightIn) : s.heightIn,
                     }));
-                    try { global.userData = { ...(global.userData || {}), personalInfo: pi }; } catch {}
+                    try { global.userData = { ...(global.userData || {}), personalInfo: pi }; } catch { }
                 }
-            } catch {}
+            } catch { }
         });
 
         return () => unsub && unsub();
-    }, [logsReady]);
+    }, []);
 
-    // Warm cache around the focused date for smoother navigation (±2 days).
-    // Run regardless of logsReady so the cache is primed before subscribing.
-    useEffect(() => {
-        const uid = global?.userData?.uid || global?.userData?.id;
-        if (uid) primeFoodLogsCache(uid, focusedDate, 7);
-    }, [focusedDate]);
+    // No network prefetch here — rely on global.userData.loggedFoods for instant render
 
     // If MacroTracking is already mounted and new params arrive, update the focused date
     useEffect(() => {
@@ -181,7 +185,7 @@ export default function MacroTracking({ navigation, route }) {
             const cur = new Date(focusedDate);
             cur.setHours(0, 0, 0, 0);
             if (cur.getTime() !== parsed.getTime()) setFocusedDate(parsed);
-        } catch {}
+        } catch { }
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [route?.params?.focusDate, route?.params?.date]);
 
@@ -205,22 +209,137 @@ export default function MacroTracking({ navigation, route }) {
     const shiftDate = (days) => {
         const d = new Date(focusedDate);
         d.setDate(d.getDate() + days);
-        try {
-            const uidX = global?.userData?.uid || global?.userData?.id;
-            if (uidX) primeFoodLogsCache(uidX, d, 7);
-        } catch {}
+        // Immediately show empty meals/totals to avoid any perceived loading
+        setMeals({ Breakfast: [], Lunch: [], Dinner: [], Snack: [] });
+        setTotals({ calories: 0, protein: 0, carbs: 0, fat: 0 });
         setFocusedDate(d);
     };
 
     const jumpToToday = () => {
         const today = new Date();
         today.setHours(0, 0, 0, 0);
-        try {
-            const uidX = global?.userData?.uid || global?.userData?.id;
-            if (uidX) primeFoodLogsCache(uidX, today, 7);
-        } catch {}
+        // Show empty default first for instant transition
+        setMeals({ Breakfast: [], Lunch: [], Dinner: [], Snack: [] });
+        setTotals({ calories: 0, protein: 0, carbs: 0, fat: 0 });
         setFocusedDate(today);
     };
+
+    // --- Horizontal pager (VirtualizedList-like behavior) ---
+    const TOTAL_PAGES = 100000;
+    const BASE_INDEX = Math.floor(TOTAL_PAGES / 2);
+    const [baseIndex, setBaseIndex] = useState(BASE_INDEX);
+    const [headerDate, setHeaderDate] = useState(focusedDate);
+    const lastHeaderIndexRef = useRef(baseIndex);
+
+    // Keep header + page data in sync when focusedDate changes
+    useEffect(() => {
+        setHeaderDate(focusedDate);
+        const built = buildFromGlobal(focusedDate);
+        setMeals(built.meals);
+        setTotals(built.totals);
+    }, [focusedDate]);
+
+    const listRef = useRef(null);
+
+    // Slide pages horizontally by delta days; always animate
+    const slideBy = useCallback((delta) => {
+        try {
+            listRef.current?.scrollToIndex({ index: baseIndex + delta, animated: true });
+        } catch {
+            setTimeout(() => {
+                try { listRef.current?.scrollToIndex({ index: baseIndex + delta, animated: true }); } catch {}
+            }, 16);
+        }
+    }, [baseIndex]);
+
+    // Delete an entry from the focused day's global.loggedFoods and local state
+    const deleteFood = useCallback((mealName, entry) => {
+        const uid = global?.userData?.uid || global?.userData?.id;
+        const dk = toDayKey(focusedDate);
+        const m = entry?.macros || parseMacrosFromDescription(entry?.desc || '', entry?.quantity || 1);
+        setMeals((prev) => ({
+            ...prev,
+            [mealName]: (prev[mealName] || []).filter((x) => x.key !== entry.key),
+        }));
+        setTotals((prev) => ({
+            calories: Math.max(0, Math.round((prev.calories || 0) - (m.calories || 0))),
+            protein: Math.max(0, Math.round((prev.protein || 0) - (m.protein || 0))),
+            carbs: Math.max(0, Math.round((prev.carbs || 0) - (m.carbs || 0))),
+            fat: Math.max(0, Math.round((prev.fat || 0) - (m.fat || 0))),
+        }));
+        try { if (global?.userData?.loggedFoods?.[dk]) delete global.userData.loggedFoods[dk][entry.key]; } catch { }
+        try {
+            if (uid) {
+                const uref = doc(db, 'users', uid);
+                const fieldPath = `loggedFoods.${dk}.${entry.key}`;
+                updateDoc(uref, { [fieldPath]: deleteField() }).catch(() => { });
+            }
+        } catch { }
+    }, [focusedDate]);
+
+    const MacroDayPage = useMemo(() => React.memo(function MacroDayPage({
+        screenWidth,
+        COLORS,
+        macroGoals,
+        meals,
+        totals,
+        collapsed,
+        toggleMeal,
+        openGoalsSheet,
+        openSearchForMeal,
+        deleteFood,
+        PlusIcon,
+        date,
+        isFocused,
+    }) {
+        return (
+            <ScrollView
+                style={{ width: screenWidth }}
+                showsVerticalScrollIndicator={false}
+                contentContainerStyle={{ paddingTop: scaleSize(14), paddingBottom: scaleSize(120) }}
+                removeClippedSubviews
+                keyboardShouldPersistTaps="handled"
+                directionalLockEnabled
+                nestedScrollEnabled
+            >
+                <View style={styles.sectionHeaderRow}>
+                    <Text style={[styles.sectionTitle, styles.sectionTitleNoMargin]}>Nutrition</Text>
+                    <Pressable
+                        style={styles.editGoalsPill}
+                        onPress={openGoalsSheet}
+                        hitSlop={8}
+                        android_ripple={{ color: 'rgba(255,255,255,0.08)', borderless: false }}
+                    >
+                        <Ionicons name="settings-outline" size={15} color={COLORS.text} />
+                        <Text style={styles.editGoalsText}>Edit Goals</Text>
+                    </Pressable>
+                </View>
+
+                <NutritionSummaryCard totals={totals} goals={macroGoals} COLORS={COLORS} />
+
+                <MealsSection
+                    mealsMeta={mealsMeta}
+                    meals={meals}
+                    collapsed={collapsed}
+                    toggleMeal={toggleMeal}
+                    onAddPress={openSearchForMeal}
+                    onDelete={deleteFood}
+                    COLORS={COLORS}
+                    PlusIcon={PlusIcon}
+                    dayKey={toDayKey(date)}
+                    // compact={!isFocused}
+                />
+            </ScrollView>
+        );
+    }, (prev, next) => (
+        prev.screenWidth === next.screenWidth &&
+        prev.macroGoals === next.macroGoals &&
+        prev.collapsed === next.collapsed &&
+        prev.meals === next.meals &&
+        prev.totals === next.totals &&
+        toDayKey(prev.date) === toDayKey(next.date) &&
+        prev.isFocused === next.isFocused
+    )), [COLORS, macroGoals, collapsed, openGoalsSheet, openSearchForMeal, deleteFood]);
 
     // Search is now fully managed inside FoodSearchOverlay
 
@@ -247,9 +366,64 @@ export default function MacroTracking({ navigation, route }) {
     }, []);
     const onSelectResult = useCallback(async (food) => {
         if (!activeMeal) return;
-        await addFood(activeMeal, food);
+        const uid = global?.userData?.uid || global?.userData?.id;
+        const dk = toDayKey(focusedDate);
+        const factor = food?.__portionMultiplier ?? 1;
+        const macros = parseMacrosFromDescription(food.food_description || '', factor);
+        const makeRand = () => Math.random().toString(36).slice(2, 10);
+        const newId = `${Date.now().toString(36)}${makeRand()}`;
+        const entry = {
+            key: newId,
+            food_id: String(food.food_id ?? ''),
+            name: food.food_name || '',
+            brand: food.brand_name || '',
+            desc: food.food_description || '',
+            macros,
+            quantity: factor,
+        };
+        try {
+            global.userData = global.userData || {};
+            global.userData.loggedFoods = global.userData.loggedFoods || {};
+            global.userData.loggedFoods[dk] = global.userData.loggedFoods[dk] || {};
+            global.userData.loggedFoods[dk][newId] = {
+                dayKey: dk,
+                meal: String(activeMeal),
+                name: entry.name,
+                brand: entry.brand,
+                desc: entry.desc,
+                foodId: entry.food_id,
+                quantity: factor,
+                macros,
+                createdAt: Date.now(),
+            };
+        } catch { }
+        setMeals((prev) => ({ ...prev, [activeMeal]: [...(prev[activeMeal] || []), entry] }));
+        setTotals((prev) => ({
+            calories: Math.round((prev.calories || 0) + (macros.calories || 0)),
+            protein: Math.round((prev.protein || 0) + (macros.protein || 0)),
+            carbs: Math.round((prev.carbs || 0) + (macros.carbs || 0)),
+            fat: Math.round((prev.fat || 0) + (macros.fat || 0)),
+        }));
+        try {
+            if (uid) {
+                const uref = doc(db, 'users', uid);
+                const fieldPath = `loggedFoods.${dk}.${newId}`;
+                const flat = {
+                    dayKey: dk,
+                    meal: String(activeMeal),
+                    name: entry.name,
+                    brand: entry.brand,
+                    desc: entry.desc,
+                    foodId: entry.food_id,
+                    quantity: factor,
+                    macros,
+                    createdAt: serverTimestamp(),
+                };
+                updateDoc(uref, { [fieldPath]: flat }).catch(() => { });
+            }
+        } catch { }
         closeSearch();
-    }, [activeMeal, addFood, closeSearch]);
+    }, [activeMeal, focusedDate, closeSearch]);
 
     const openGoalsSheet = () => { setGoalsSheetIndex(0); setGoalsOpenSignal((s) => (s == null ? 1 : s + 1)); };
     const closeGoalsSheet = () => setGoalsSheetIndex(-1);
@@ -314,54 +488,215 @@ export default function MacroTracking({ navigation, route }) {
                 personalInfo: info,
                 updatedAt: serverTimestamp(),
             });
-            try { global.userData = { ...(global.userData || {}), personalInfo: info }; } catch {}
+            try { global.userData = { ...(global.userData || {}), personalInfo: info }; } catch { }
         } catch (e) {
             console.log('Failed to save personal info:', e?.message || e);
         }
     };
+
+    // Build meals/totals from in-memory global.userData.loggedFoods (instant, memoized)
+    function rebuildGlobalIndexIfNeeded() {
+        const map = global?.userData?.loggedFoods || {};
+        let count = 0;
+        try { count = Object.keys(map).length; } catch { }
+        if (count === lastCountRef.current && globalIndexRef.current.size > 0) return;
+        lastCountRef.current = count;
+        const idx = new Map();
+        try {
+            // Two supported shapes:
+            // 1) Nested by day: { [dayKey]: { [entryId]: entry } }
+            // 2) Flat legacy:   { [entryId]: entry(dayKey: ...) }
+            const looksNested = Object.values(map)[0] && typeof Object.values(map)[0] === 'object' && !('dayKey' in Object.values(map)[0]);
+            if (looksNested) {
+                for (const [dk, entries] of Object.entries(map)) {
+                    const list = [];
+                    for (const [id, entry] of Object.entries(entries || {})) list.push({ id, entry });
+                    if (list.length) idx.set(String(dk), list);
+                }
+            } else {
+                for (const [id, entry] of Object.entries(map)) {
+                    const dk = String(entry?.dayKey || '');
+                    if (!dk) continue;
+                    if (!idx.has(dk)) idx.set(dk, []);
+                    idx.get(dk).push({ id, entry });
+                }
+            }
+        } catch { }
+        globalIndexRef.current = idx;
+        globalMealsCacheRef.current.clear();
+    }
+
+    function buildFromGlobal(dateObj) {
+        const d = new Date(dateObj);
+        if (Number.isNaN(d.getTime())) return { meals: { Breakfast: [], Lunch: [], Dinner: [] }, totals: { calories: 0, protein: 0, carbs: 0, fat: 0 } };
+        d.setHours(0, 0, 0, 0);
+        const dk = toDayKey(d);
+        rebuildGlobalIndexIfNeeded();
+        const cached = globalMealsCacheRef.current.get(dk);
+        if (cached) return cached;
+        const buckets = { Breakfast: [], Lunch: [], Dinner: [], Snack: [] };
+        const totalsObj = { calories: 0, protein: 0, carbs: 0, fat: 0 };
+        try {
+            const rows = globalIndexRef.current.get(dk) || [];
+            for (const { id, entry } of rows) {
+                const mealKey = (() => {
+                    const t = String(entry?.meal || '').toLowerCase();
+                    if (t.startsWith('break')) return 'Breakfast';
+                    if (t.startsWith('lun')) return 'Lunch';
+                    if (t.startsWith('din')) return 'Dinner';
+                    return 'Snack';
+                })();
+                const qty = typeof entry?.quantity === 'number' ? entry.quantity : 1;
+                const m = entry?.macros || (() => {
+                    const key = `${id}|${entry?.desc || ''}|${qty}`;
+                    const hit = macroCacheRef.current.get(key);
+                    if (hit) return hit;
+                    const parsed = parseMacrosFromDescription(entry?.desc || '', qty);
+                    macroCacheRef.current.set(key, parsed);
+                    return parsed;
+                })();
+                const item = {
+                    key: id,
+                    name: entry?.name || 'Food',
+                    brand: entry?.brand || '',
+                    desc: entry?.desc || '',
+                    qty,
+                    foodId: entry?.foodId || entry?.food_id || '',
+                    macros: m,
+                };
+                if (!buckets[mealKey]) buckets[mealKey] = [];
+                buckets[mealKey].push(item);
+                totalsObj.calories += Number(m?.calories) || 0;
+                totalsObj.protein += Number(m?.protein) || 0;
+                totalsObj.carbs += Number(m?.carbs) || 0;
+                totalsObj.fat += Number(m?.fat) || 0;
+            }
+        } catch { }
+        const built = {
+            meals: {
+                Breakfast: buckets.Breakfast || [],
+                Lunch: buckets.Lunch || [],
+                Dinner: buckets.Dinner || [],
+                Snack: buckets.Snack || [],
+            },
+            totals: {
+                calories: Math.round(totalsObj.calories),
+                protein: Math.round(totalsObj.protein),
+                carbs: Math.round(totalsObj.carbs),
+                fat: Math.round(totalsObj.fat),
+            },
+        };
+        globalMealsCacheRef.current.set(dk, built);
+        return built;
+    }
 
     return (
         <GestureHandlerRootView style={{ flex: 1 }}>
             <View style={{ flex: 1 }}>
                 <StatusBar barStyle="light-content" backgroundColor={COLORS.bg} />
                 {/* Header */}
-                <DateHeader title={formatDate(focusedDate)} onPrev={() => shiftDate(-1)} onNext={() => shiftDate(1)} onTitlePress={jumpToToday} COLORS={COLORS} />
+                <DateHeader
+                    title={formatDate(headerDate)}
+                    onPrev={() => slideBy(-1)}
+                    onNext={() => slideBy(1)}
+                    onTitlePress={jumpToToday}
+                    COLORS={COLORS}
+                />
 
-                {/* Body */}
-                <ScrollView
-                    showsVerticalScrollIndicator={false}
-                    contentContainerStyle={{ paddingTop: scaleSize(14), paddingBottom: scaleSize(120) }}
-                    style={styles.body}
-                    removeClippedSubviews
-                    keyboardShouldPersistTaps="handled"
-                >
-                    <View style={styles.sectionHeaderRow}>
-                        <Text style={[styles.sectionTitle, styles.sectionTitleNoMargin]}>Nutrition</Text>
-                        <Pressable
-                            style={styles.editGoalsPill}
-                            onPress={openGoalsSheet}
-                            hitSlop={8}
-                            android_ripple={{ color: 'rgba(255,255,255,0.08)', borderless: false }}
-                        >
-                            <Ionicons name="settings-outline" size={15} color={COLORS.text} />
-                            <Text style={styles.editGoalsText}>Edit Goals</Text>
-                        </Pressable>
-                    </View>
-
-                    <NutritionSummaryCard totals={totals} goals={macroGoals} COLORS={COLORS} />
-
-                    <MealsSection
-                        mealsMeta={mealsMeta}
-                        meals={meals}
-                        collapsed={collapsed}
-                        toggleMeal={toggleMeal}
-                        onAddPress={openSearchForMeal}
-                        onDelete={deleteFood}
-                        COLORS={COLORS}
-                        PlusIcon={PlusIcon}
-                        dayKey={toDayKey(focusedDate)}
-                    />
-                </ScrollView>
+                {/* Body: horizontally swipeable pages */}
+                <VirtualizedList
+                    ref={listRef}
+                    style={{ flex: 1, backgroundColor: COLORS.bg }}
+                    horizontal
+                    pagingEnabled
+                    directionalLockEnabled
+                    decelerationRate="fast"
+                    initialNumToRender={3}
+                    windowSize={5}
+                    maxToRenderPerBatch={2}
+                    updateCellsBatchingPeriod={16}
+                    removeClippedSubviews={false}
+                    snapToInterval={screenWidth}
+                    snapToAlignment="start"
+                    disableIntervalMomentum
+                    scrollEnabled
+                    bounces={false}
+                    overScrollMode="never"
+                    scrollEventThrottle={16}
+                    showsHorizontalScrollIndicator={false}
+                    keyExtractor={(item, index) => String(index)}
+                    getItemCount={() => TOTAL_PAGES}
+                    getItem={(_data, index) => index}
+                    initialScrollIndex={baseIndex}
+                    getItemLayout={(_, index) => ({ length: screenWidth, offset: screenWidth * index, index })}
+                    onLayout={() => {
+                        try { listRef.current?.scrollToIndex({ index: baseIndex, animated: false }); } catch { }
+                    }}
+                    // Keep date updates to the cheap end-of-gesture callback
+                    onScroll={(e) => {
+                        try {
+                            const x = e?.nativeEvent?.contentOffset?.x || 0;
+                            const nextIndex = Math.round(x / (screenWidth || 1));
+                            if (nextIndex !== lastHeaderIndexRef.current) {
+                                lastHeaderIndexRef.current = nextIndex;
+                                const delta = nextIndex - baseIndex;
+                                const d = new Date(focusedDate);
+                                d.setDate(d.getDate() + delta);
+                                d.setHours(0, 0, 0, 0);
+                                setHeaderDate(d);
+                            }
+                        } catch {}
+                    }}
+                    onScrollToIndexFailed={({ index }) => {
+                        setTimeout(() => {
+                            try { listRef.current?.scrollToIndex({ index, animated: true }); } catch { }
+                        }, 16);
+                    }}
+                    onMomentumScrollEnd={(e) => {
+                        const x = e?.nativeEvent?.contentOffset?.x || 0;
+                        const nextIndex = Math.round(x / (screenWidth || 1));
+                        if (Number.isFinite(nextIndex) && nextIndex !== baseIndex) {
+                            const delta = nextIndex - baseIndex;
+                            setBaseIndex(nextIndex);
+                            shiftDate(delta);
+                            const d = new Date(focusedDate);
+                            d.setDate(d.getDate() + delta);
+                            d.setHours(0, 0, 0, 0);
+                            setHeaderDate(d);
+                        }
+                        // Keep subscription unchanged; data will hydrate if needed
+                    }}
+                    renderItem={({ index }) => {
+                        const offset = index - baseIndex;
+                        const d = new Date(focusedDate);
+                        d.setDate(d.getDate() + offset);
+                        d.setHours(0, 0, 0, 0);
+                        const fromGlobal = buildFromGlobal(d);
+                        const mealsForPage = offset === 0
+                            ? ((meals?.Breakfast?.length || meals?.Lunch?.length || meals?.Dinner?.length) ? meals : fromGlobal.meals)
+                            : fromGlobal.meals;
+                        const totalsForPage = offset === 0
+                            ? ((totals?.calories || totals?.protein || totals?.carbs || totals?.fat) ? totals : fromGlobal.totals)
+                            : fromGlobal.totals;
+                        return (
+                            <MacroDayPage
+                                screenWidth={screenWidth}
+                                COLORS={COLORS}
+                                macroGoals={macroGoals}
+                                meals={mealsForPage}
+                                totals={totalsForPage}
+                                collapsed={collapsed}
+                                toggleMeal={toggleMeal}
+                                openGoalsSheet={openGoalsSheet}
+                                openSearchForMeal={openSearchForMeal}
+                                deleteFood={deleteFood}
+                                PlusIcon={PlusIcon}
+                                date={d}
+                                isFocused={Math.abs(offset) <= 1}
+                            />
+                        );
+                    }}
+                />
 
                 {/* Modals */}
                 <FoodSearchOverlay

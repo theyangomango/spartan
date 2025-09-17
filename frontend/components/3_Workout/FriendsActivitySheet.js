@@ -10,7 +10,10 @@ import {
   Dimensions,
   ActivityIndicator,
   InteractionManager,
+  Easing,
 } from "react-native";
+import { Gesture, GestureDetector } from 'react-native-gesture-handler';
+import { useSharedValue, runOnJS } from 'react-native-reanimated';
 import BottomSheet, { BottomSheetBackdrop } from "@gorhom/bottom-sheet";
 import theme from "../../theme/mfpDark";
 import RNBounceable from "@freakycoder/react-native-bounceable";
@@ -26,7 +29,7 @@ import { useNavigation } from "@react-navigation/native";
 
 import scaleSize from "../../helper/scaleSize";
 
-const { height: screenHeight } = Dimensions.get("window");
+const { height: screenHeight, width: screenWidth } = Dimensions.get("window");
 const scale = screenHeight / 844;
 const s = (n) => Math.round(n * scale);
 
@@ -48,6 +51,8 @@ const COLORS = {
 const HANDLE_SELF = "#D0D7E2";
 const HANDLE_FRIEND_ACCENT = "#E0A500";
 const HANDLE_FRIEND_BACKGROUND = "#e0a4002c";
+const EDGE_BACK_GESTURE_WIDTH = 200; // px — left-edge zone to trigger back
+const BACK_SWIPE_TRIGGER = 36;      // px — horizontal drag to confirm back
 
 /* ---------------- utils ---------------- */
 const toMillis = (v) => {
@@ -541,7 +546,8 @@ const FriendsActivitySheet = ({ visible, openToggle, items = [], onClose, onView
     []
   );
 
-  // (moved up above)
+  // Slide-in viewer animation state
+  const viewerTranslateX = useRef(new Animated.Value(screenWidth)).current;
 
   const openViewer = useCallback((item, pfpUri) => {
     const widFromItem = String(item?.wid || item?.id || item?.workout?.wid || "");
@@ -581,26 +587,103 @@ const FriendsActivitySheet = ({ visible, openToggle, items = [], onClose, onView
     });
     // Mount content right away to minimize perceived delay
     setViewerReady(true);
-    // Animate the cross-fade concurrently
+    // Prepare positions and animate slide-in of the viewer
+    try { viewerTranslateX.setValue(screenWidth); viewerOpacity.setValue(1); } catch {}
     try {
       Animated.parallel([
-        Animated.timing(listOpacity, { toValue: 0, duration: 140, useNativeDriver: true }),
-        Animated.timing(viewerOpacity, { toValue: 1, duration: 180, useNativeDriver: true }),
+        Animated.timing(viewerTranslateX, { toValue: 0, duration: 280, easing: Easing.out(Easing.cubic), useNativeDriver: true }),
+        Animated.timing(listOpacity, { toValue: 1, duration: 1, useNativeDriver: true }),
       ]).start();
     } catch {}
   }, [listOpacity, viewerOpacity]);
 
   const closeViewer = useCallback(() => {
-    Animated.parallel([
-      Animated.timing(viewerOpacity, { toValue: 0, duration: 140, useNativeDriver: true }),
-      Animated.timing(listOpacity, { toValue: 1, duration: 200, useNativeDriver: true }),
-    ]).start(({ finished }) => {
-      if (finished) { setSelectedItem(null); setViewerReady(false); }
-    });
+    try {
+      Animated.parallel([
+        Animated.timing(viewerTranslateX, { toValue: screenWidth, duration: 240, easing: Easing.out(Easing.cubic), useNativeDriver: true }),
+        Animated.timing(listOpacity, { toValue: 1, duration: 180, useNativeDriver: true }),
+      ]).start(({ finished }) => {
+        if (finished) { try { viewerOpacity.setValue(0); } catch {} setSelectedItem(null); setViewerReady(false); }
+      });
+    } catch {
+      setSelectedItem(null); setViewerReady(false); try { viewerOpacity.setValue(0); } catch {}
+    }
   }, [listOpacity, viewerOpacity]);
 
-  const handleIndicatorColor = selectedItem ? HANDLE_FRIEND_ACCENT : HANDLE_SELF;
-  const handleBackgroundColor = selectedItem ? HANDLE_FRIEND_BACKGROUND : "transparent";
+  // Interactive back-pan helpers (declared after closeViewer to avoid TDZ issues)
+  const onBackUpdateX = useCallback((dx) => {
+    try {
+      const x = Math.max(0, Math.min(screenWidth, dx || 0));
+      viewerTranslateX.setValue(x);
+    } catch {}
+  }, [viewerTranslateX]);
+  const onBackEnd = useCallback((dx, vx) => {
+    const x = Math.max(0, Number(dx || 0));
+    const v = Number(vx || 0);
+    const shouldClose = x > screenWidth * 0.28 || v > 800;
+    if (shouldClose) {
+      closeViewer();
+    } else {
+      try {
+        Animated.timing(viewerTranslateX, { toValue: 0, duration: 220, easing: Easing.out(Easing.cubic), useNativeDriver: true }).start();
+      } catch {}
+    }
+  }, [viewerTranslateX, closeViewer]);
+
+  // Animated handle accent opacity follows the viewer slide progress: 0 (closed) → 1 (open)
+  const handleAccentOpacity = useMemo(() => (
+    viewerTranslateX.interpolate({
+      inputRange: [0, screenWidth],
+      outputRange: [1, 0],
+      extrapolate: 'clamp',
+    })
+  ), [viewerTranslateX]);
+
+  // Custom handle component with fading yellow accent matching overlay slide progress
+  const Handle = useMemo(() => () => (
+    <View style={styles.handleWrap}>
+      {/* Fading background tint under handle while viewing workout */}
+      <Animated.View
+        style={[
+          StyleSheet.absoluteFillObject,
+          {
+            backgroundColor: HANDLE_FRIEND_BACKGROUND,
+            opacity: handleAccentOpacity,
+            borderTopLeftRadius: scaleSize(22),
+            borderTopRightRadius: scaleSize(22),
+          },
+        ]}
+        pointerEvents="none"
+      />
+      <View style={{ alignItems: 'center', paddingVertical: scaleSize(s(8)) }}>
+        {/* Base neutral handle bar */}
+        <View
+          style={{
+            width: scaleSize(s(42)),
+            height: scaleSize(s(4)),
+            borderRadius: scaleSize(s(2)),
+            backgroundColor: HANDLE_SELF,
+            overflow: 'hidden',
+          }}
+        >
+          {/* Yellow accent fades in as viewer opens */}
+          <Animated.View
+            style={{
+              position: 'absolute',
+              left: 0,
+              right: 0,
+              top: 0,
+              bottom: 0,
+              backgroundColor: HANDLE_FRIEND_ACCENT,
+              opacity: handleAccentOpacity,
+              borderRadius: scaleSize(s(2)),
+            }}
+            pointerEvents="none"
+          />
+        </View>
+      </View>
+    </View>
+  ), [handleAccentOpacity]);
 
   const sections = useMemo(() => groupByTime(sortedItems, Date.now()), [sortedItems]);
   const keyExtractor = useCallback((it, i) => String(it.id || it.wid || (it.uid ? `${it.uid}_${bestTimestamp(it) || i}` : i)), []);
@@ -649,6 +732,24 @@ const FriendsActivitySheet = ({ visible, openToggle, items = [], onClose, onView
     return () => { cancelled = true; };
   }, [selectedItem?.friendUid]);
 
+  // Edge back-swipe to close the inline viewer (iOS-like)
+  const backEligible = useSharedValue(0);
+  const backPan = Gesture.Pan()
+    .minDistance(8)
+    .activeOffsetX([-16, 16])
+    .failOffsetY([-12, 12])
+    .onBegin((e) => {
+      'worklet';
+      backEligible.value = (e.absoluteX <= EDGE_BACK_GESTURE_WIDTH) ? 1 : 0;
+    })
+    .onUpdate((e) => {
+      'worklet';
+      if (!backEligible.value) return;
+      runOnJS(onBackUpdateX)(e.translationX);
+    })
+    .onEnd((e) => { 'worklet'; backEligible.value = 0; runOnJS(onBackEnd)(e.translationX, e.velocityX); })
+    .onFinalize(() => { 'worklet'; backEligible.value = 0; });
+
   return (
     <View style={styles.outer} pointerEvents="box-none">
       <BottomSheet
@@ -657,8 +758,7 @@ const FriendsActivitySheet = ({ visible, openToggle, items = [], onClose, onView
         snapPoints={["94%"]}
         enablePanDownToClose
         backdropComponent={renderBackdrop}
-        handleStyle={[styles.handleWrap, { backgroundColor: handleBackgroundColor }]}
-        handleIndicatorStyle={{ backgroundColor: handleIndicatorColor }}
+        handleComponent={Handle}
         backgroundStyle={styles.sheetBg}
         onClose={() => {
           if (selectedItem) {
@@ -669,7 +769,7 @@ const FriendsActivitySheet = ({ visible, openToggle, items = [], onClose, onView
           onClose?.();
         }}
       >
-        <Animated.View style={{ flex: 1, opacity: listOpacity }}>
+        <Animated.View style={{ flex: 1, opacity: listOpacity }} pointerEvents={selectedItem ? 'none' : 'auto'}>
           <View style={styles.header}>
             <Text style={styles.headerTitle}>Friends training</Text>
             <Text style={styles.headerSub}>
@@ -701,48 +801,50 @@ const FriendsActivitySheet = ({ visible, openToggle, items = [], onClose, onView
           />
         </Animated.View>
 
-        <Animated.View style={[styles.viewerContainer, { opacity: viewerOpacity }]} pointerEvents={selectedItem ? "auto" : "none"}>
+        <Animated.View style={[styles.viewerContainer, { opacity: viewerOpacity, transform: [{ translateX: viewerTranslateX }] }]} pointerEvents={selectedItem ? "auto" : "none"}>
           {!selectedItem || !viewerReady ? (
             <View style={styles.loadingWrap}>
               <ActivityIndicator />
             </View>
           ) : (
-            <View style={{ flex: 1 }}>
+            <GestureDetector gesture={backPan}>
               <View style={{ flex: 1 }}>
-                <NewWorkoutModal
-                  timerRef={timerRef}
-                  workout={selectedItem.workout}
-                  cancelWorkout={noop}
-                  updateWorkout={noop}
-                  finishWorkout={noop}
-                  showGroupModal={noop}
-                  userWorkoutStats={viewerStatsRef.current || undefined}
-                  onPressBack={closeViewer}
-                  onCheer={noopCheer}
-                  onCopyTemplate={handleCopyTemplateCb}
-                  onPressPfp={() => {
-                    try { bottomSheetRef.current?.close(); } catch {}
-                    const uid = String(selectedItem?.friendUid || '');
-                    if (!uid) return;
-                    const meUid = String(global?.userData?.uid || '');
-                    const rootNav = navigation?.getParent?.('ROOT');
-                    if (uid === meUid) {
-                      if (rootNav?.navigate) rootNav.navigate('Profile', { transition: 'slide-from-right' });
-                      else navigation.navigate('Profile', { transition: 'slide-from-right' });
-                    } else {
-                      if (rootNav?.navigate) rootNav.navigate('ViewProfile', { user: { uid } });
-                      else navigation.navigate('ViewProfile', { user: { uid } });
-                    }
-                  }}
-                  /* 🔒 LOCK friend view so header/controls don't flip to self */
-                  forceViewingFriend={selectedItem.friendUid}
-                  friendPfp={selectedItem.friendPfp || null}
-                  friendPfpVersion={selectedItem.friendPfpVersion || 0}
-                  /* 🚀 Stream live only when the item is live */
-                  streamLive={!!selectedItem.streamLive}
-                />
+                <View style={{ flex: 1 }}>
+                  <NewWorkoutModal
+                    timerRef={timerRef}
+                    workout={selectedItem.workout}
+                    cancelWorkout={noop}
+                    updateWorkout={noop}
+                    finishWorkout={noop}
+                    showGroupModal={noop}
+                    userWorkoutStats={viewerStatsRef.current || undefined}
+                    onPressBack={closeViewer}
+                    onCheer={noopCheer}
+                    onCopyTemplate={handleCopyTemplateCb}
+                    onPressPfp={() => {
+                      try { bottomSheetRef.current?.close(); } catch {}
+                      const uid = String(selectedItem?.friendUid || '');
+                      if (!uid) return;
+                      const meUid = String(global?.userData?.uid || '');
+                      const rootNav = navigation?.getParent?.('ROOT');
+                      if (uid === meUid) {
+                        if (rootNav?.navigate) rootNav.navigate('Profile', { transition: 'slide-from-right' });
+                        else navigation.navigate('Profile', { transition: 'slide-from-right' });
+                      } else {
+                        if (rootNav?.navigate) rootNav.navigate('ViewProfile', { user: { uid } });
+                        else navigation.navigate('ViewProfile', { user: { uid } });
+                      }
+                    }}
+                    /* 🔒 LOCK friend view so header/controls don't flip to self */
+                    forceViewingFriend={selectedItem.friendUid}
+                    friendPfp={selectedItem.friendPfp || null}
+                    friendPfpVersion={selectedItem.friendPfpVersion || 0}
+                    /* 🚀 Stream live only when the item is live */
+                    streamLive={!!selectedItem.streamLive}
+                  />
+                </View>
               </View>
-            </View>
+            </GestureDetector>
           )}
         </Animated.View>
       </BottomSheet>
@@ -825,7 +927,7 @@ const styles = StyleSheet.create({
   statValue: { marginTop: scaleSize(s(1)), fontFamily: "Outfit_800ExtraBold", fontSize: scaleSize(s(13)), color: COLORS.text },
   statTextCol: { flex: 1, minWidth: 0 },
 
-  viewerContainer: { ...StyleSheet.absoluteFillObject, backgroundColor: "transparent" },
+  viewerContainer: { ...StyleSheet.absoluteFillObject, backgroundColor: COLORS.bg },
   loadingWrap: { flex: 1, alignItems: "center", justifyContent: "center" },
 
   emptyWrap: { paddingVertical: scaleSize(s(24)), alignItems: "center" },

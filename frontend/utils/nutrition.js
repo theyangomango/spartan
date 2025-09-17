@@ -122,12 +122,20 @@ export const parseExtraNutrientsFromDescription = (desc = '', quantity = 1) => {
     const fiber_g = pickNumber(/\b(?:dietary\s+fiber|fiber)\s*:?\s*(\d+(?:\.\d+)?)\s*g\b/i);
     // Sodium (mg)
     const sodium_mg = pickNumber(/\bsodium\s*:?\s*(\d+(?:\.\d+)?)\s*mg\b/i);
+    // Potassium (mg)
+    const potassium_mg = pickNumber(/\bpotassium\s*:?\s*(\d+(?:\.\d+)?)\s*mg\b/i);
     // Saturated fat (g)
     const satFat_g = pickNumber(/\b(?:saturated\s+fat|sat\.?\s*fat)\s*:?\s*(\d+(?:\.\d+)?)\s*g\b/i);
+    // Trans fat (g)
+    const transFat_g = pickNumber(/\b(?:trans\s+fat|trans-fat)\s*:?\s*(\d+(?:\.\d+)?)\s*g\b/i);
+    // Monounsaturated fat (g)
+    const monoFat_g = pickNumber(/\b(?:monounsaturated\s+fat|mono\.?\s*fat)\s*:?\s*(\d+(?:\.\d+)?)\s*g\b/i);
+    // Polyunsaturated fat (g)
+    const polyFat_g = pickNumber(/\b(?:polyunsaturated\s+fat|poly\.?\s*fat)\s*:?\s*(\d+(?:\.\d+)?)\s*g\b/i);
     // Cholesterol (mg)
     const cholesterol_mg = pickNumber(/\bcholesterol\s*:?\s*(\d+(?:\.\d+)?)\s*mg\b/i);
 
-    return { sugar_g, fiber_g, sodium_mg, satFat_g, cholesterol_mg };
+    return { sugar_g, fiber_g, sodium_mg, potassium_mg, satFat_g, transFat_g, monoFat_g, polyFat_g, cholesterol_mg };
 };
 
 export const formatPortion = (qty, unit) => {

@@ -7,7 +7,7 @@ import { useNavigation } from '@react-navigation/native';
 
 import scaleSize from "../../helper/scaleSize";
 
-function MealsSection({ title = 'Daily meals', mealsMeta, meals, collapsed, toggleMeal, onAddPress, onDelete, COLORS, PlusIcon, dayKey }) {
+function MealsSection({ title = 'Daily meals', mealsMeta, meals, collapsed, toggleMeal, onAddPress, onDelete, COLORS, PlusIcon, dayKey, compact = false }) {
     const styles = useMemo(() => makeStyles(COLORS), [COLORS]);
     const navigation = useNavigation();
     return (
@@ -34,6 +34,7 @@ function MealsSection({ title = 'Daily meals', mealsMeta, meals, collapsed, togg
                             onItemPress={(entry) => navigation.navigate('FoodDetail', { entry, mealName: m.name, dayKey })}
                             renderSummary={(entry) => summarizeFood(entry.desc, entry.brand, entry.quantity ?? 1)}
                             onDelete={(entry) => onDelete(m.name, entry)}
+                            compact={compact}
                         />
                         <TouchableOpacity activeOpacity={0.7} style={styles.addFoodRow} onPress={() => onAddPress?.(m)}>
                             {PlusIcon ? (

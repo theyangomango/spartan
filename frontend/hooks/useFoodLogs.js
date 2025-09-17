@@ -11,6 +11,8 @@ import {
     deleteDoc,
     increment,
     onSnapshot,
+    updateDoc as fsUpdateDoc,
+    deleteField,
 } from 'firebase/firestore';
 import { db } from '../../firebase.config'; // <-- adjust if needed
 import { toDayKey } from '../utils/date';
@@ -310,11 +312,49 @@ export function useFoodLogs(dateObj, userIdOverride, shouldSubscribe = true) {
             cacheRef.current.set(dk, updated);
         }
 
+        // Mirror to global.userData.loggedFoods immediately (nested by dayKey) for instant UI
+        try {
+            const g = global || {};
+            g.userData = g.userData || {};
+            g.userData.loggedFoods = g.userData.loggedFoods || {};
+            g.userData.loggedFoods[dk] = g.userData.loggedFoods[dk] || {};
+            g.userData.loggedFoods[dk][newId] = {
+                dayKey: dk,
+                meal: normalizeMealKey(mealName),
+                name: payload.name,
+                brand: payload.brand,
+                desc: payload.description,
+                foodId: payload.foodId,
+                quantity: factor,
+                macros,
+                createdAt: Date.now(),
+            };
+        } catch { /* non-fatal */ }
+
         // Persist in the background
         (async () => {
             try {
                 await setDoc(dayRef, { dayKey: dk, updatedAt: serverTimestamp() }, { merge: true });
                 await setDoc(entryRef, payload);
+
+                // Also surface this entry on the user document under `loggedFoods.<entryId>`
+                try {
+                    const uref = doc(db, 'users', userId);
+                    // Nest by dayKey so it mirrors foodLogs: loggedFoods.<dayKey>.<entryId>
+                    const fieldPath = `loggedFoods.${dk}.${newId}`;
+                    const flat = {
+                        dayKey: dk,
+                        meal: normalizeMealKey(mealName),
+                        name: payload.name,
+                        brand: payload.brand,
+                        desc: payload.description,
+                        foodId: payload.foodId,
+                        quantity: factor,
+                        macros, // scaled
+                        createdAt: serverTimestamp(),
+                    };
+                    await fsUpdateDoc(uref, { [fieldPath]: flat });
+                } catch { /* best-effort */ }
 
                 // best-effort recent-foods
                 try {
@@ -422,9 +462,19 @@ export function useFoodLogs(dateObj, userIdOverride, shouldSubscribe = true) {
             cacheRef.current.set(dk, updated);
         }
 
-        // Persist deletion
+        // Reflect immediately in global cache as well (nested by dayKey)
+        try { if (global?.userData?.loggedFoods?.[dk]) delete global.userData.loggedFoods[dk][entry.key]; } catch {}
+
+        // Persist deletion (loggedFoods.<dayKey>.<entryId>)
         const ref = doc(db, 'users', userId, 'foodLogs', dk, 'entries', entry.key);
         await deleteDoc(ref);
+
+        // Also remove from the user's `loggedFoods` map
+        try {
+            const uref = doc(db, 'users', userId);
+            const fieldPath = `loggedFoods.${dk}.${entry.key}`;
+            await fsUpdateDoc(uref, { [fieldPath]: deleteField() });
+        } catch { /* best-effort */ }
     };
 
     return { meals, totals, addFood, deleteFood };
@@ -498,4 +548,16 @@ export async function primeFoodLogsCache(userId, centerDate, radius = 2) {
             })
         ]);
     } catch { /* ignore */ }
+}
+
+// Read-only cache peek for pre-render (used by DayDetailsSheet transitions)
+export function peekFoodLogsCache(userId, dateObj) {
+    try {
+        const d = new Date(dateObj);
+        if (Number.isNaN(d.getTime())) return null;
+        d.setHours(0, 0, 0, 0);
+        const dk = toDayKey(d);
+        const key = `${userId}|${dk}`;
+        return globalCache.get(key) || null;
+    } catch { return null; }
 }

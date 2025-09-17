@@ -6,8 +6,6 @@ import theme from '../theme/mfpDark';
 import readDoc from '../../backend/helper/firebase/readDoc';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
-import scaleSizeFont from "../helper/scaleSize";
-
 const { width: screenWidth, height: screenHeight } = Dimensions.get('window');
 
 const scale = screenWidth / 375; // Base screen width assumed as 375

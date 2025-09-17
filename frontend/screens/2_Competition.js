@@ -157,7 +157,7 @@ const summaryOf = (c) => {
     return parts.join(" • ");
 };
 
-export default function Competition({ navigation }) {
+export default function Competition({ navigation, route }) {
     const usersRef = useRef([]);
     const userUnsubRef = useRef(null);
     // hydrate leaderboard from last saved view (backend)
@@ -218,6 +218,9 @@ export default function Competition({ navigation }) {
         usersRef.current = allUsers;
         setUsersLoaded(true); // let recompute effect decide when to run
     }, []);
+
+    // If opened from HubRow, suppress the next navigation animation once
+    // No one-off transition suppression; keep other transitions intact
 
     useEffect(() => { initUsers(); }, [initUsers]);
 

@@ -7,6 +7,7 @@ import {
     ScrollView,
     KeyboardAvoidingView,
     Platform,
+    Keyboard,
     Pressable,
     Animated,
     Easing,
@@ -260,6 +261,46 @@ export default function MacroGoalsSheet({
     const chevronTranslate = chevron.interpolate({ inputRange: [0, 1], outputRange: [0, 4] });
     const pulseChevron = () => { chevron.setValue(0); Animated.timing(chevron, { toValue: 1, duration: 220, easing: Easing.out(Easing.quad), useNativeDriver: true }).start(); };
     const handleCtaPress = () => { pulseChevron(); fadeToInfo(); };
+
+    // Expand to max when keyboard opens; restore when it closes (GOALS mode only)
+    const preKeyboardIndexRef = useRef(null);
+    const expandedForKeyboardRef = useRef(false);
+    useEffect(() => {
+        if (index < 0) return; // only when sheet is open
+
+        const onKbShow = () => {
+            // only apply on Goals mode, not Personal Info
+            if (showInfo) return;
+            if (expandedForKeyboardRef.current) return;
+            const current = typeof index === 'number' ? index : 0;
+            // store where we were before expanding
+            preKeyboardIndexRef.current = current;
+            if (current !== 1) {
+                expandedForKeyboardRef.current = true;
+                try { sheetRef.current?.expand?.(); } catch { try { sheetRef.current?.snapToIndex?.(1); } catch {} }
+            }
+        };
+
+        const onKbHide = () => {
+            if (!expandedForKeyboardRef.current) return;
+            const target = preKeyboardIndexRef.current;
+            expandedForKeyboardRef.current = false;
+            preKeyboardIndexRef.current = null;
+            if (typeof target === 'number' && index >= 0 && target !== index) {
+                try { sheetRef.current?.snapToIndex?.(target); } catch {}
+            }
+        };
+
+        const showEvent = Platform.OS === 'ios' ? 'keyboardWillShow' : 'keyboardDidShow';
+        const hideEvent = Platform.OS === 'ios' ? 'keyboardWillHide' : 'keyboardDidHide';
+        const subShow = Keyboard.addListener(showEvent, onKbShow);
+        const subHide = Keyboard.addListener(hideEvent, onKbHide);
+
+        return () => {
+            subShow?.remove?.();
+            subHide?.remove?.();
+        };
+    }, [index, showInfo]);
 
     return (
         <BottomSheet

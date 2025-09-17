@@ -1,4 +1,7 @@
+import 'react-native-gesture-handler';
 import 'expo-dev-client';
+// Reanimated global side effects (must be imported at the top-level)
+import 'react-native-reanimated';
 // Polyfills required by Firebase Storage in RN (atob/btoa)
 import './frontend/polyfills/base64';
 import React, { useEffect, useRef, useState } from 'react';
@@ -11,7 +14,7 @@ import { navigationRef } from './navigationRef';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { createStackNavigator, CardStyleInterpolators, TransitionSpecs } from '@react-navigation/stack';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
-import { Platform, Modal, View, Text, Pressable, StyleSheet, Dimensions, Vibration, TextInput } from 'react-native';
+import { Platform, Modal, View, Text, Pressable, StyleSheet, Dimensions, Vibration, TextInput, LogBox } from 'react-native';
 import { rs, ts } from './frontend/helper/scaleSize';
 import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
@@ -72,6 +75,8 @@ try { SplashScreen.preventAutoHideAsync(); } catch {}
 
 // Prefer dark keyboard appearance globally on iOS
 try {
+    // Silence RN dev warning triggered by native-driven Animated updates during gestures
+    LogBox.ignoreLogs?.(['onAnimatedValueUpdate', 'Sending `onAnimatedValueUpdate` with no listeners registered.']);
     if (Platform.OS === 'ios') {
         TextInput.defaultProps = TextInput.defaultProps || {};
         // Only set if not already provided at callsites
@@ -552,6 +557,7 @@ export default function App() {
     }
 
     // Tabs is a stable component defined outside App to avoid remounts and extra hooks
+    // No global suppression by default; handled within target screens only
 
 
     const handleOpenWorkoutFromReminder = () => {
@@ -584,11 +590,19 @@ export default function App() {
                             ios: {
                                 headerShown: false,
                                 gestureEnabled: !isNone,
+                                // Make back-swipe easier to trigger by expanding the response area
+                                // from the default ~30px to a wider edge (approx 140px).
+                                // Use a numeric value for broad compatibility with stack v6.
+                                gestureResponseDistance: Math.min(200, Dimensions.get('window').width),
                                 animationEnabled: !isNone,
                                 gestureDirection: isSlideLeft ? 'horizontal-inverted' : 'horizontal',
                                 cardStyleInterpolator: isFade
                                     ? CardStyleInterpolators.forFadeFromCenter
                                     : CardStyleInterpolators.forHorizontalIOS,
+                                transitionSpec: {
+                                    open: TransitionSpecs.TransitionIOSSpec,
+                                    close: TransitionSpecs.TransitionIOSSpec,
+                                },
                             },
                             android: {
                                 headerShown: false,
@@ -597,8 +611,8 @@ export default function App() {
                                 animation: isNone
                                     ? 'none'
                                     : (isFade
-                                    ? 'fade'
-                                    : (isSlideLeft ? 'slide_from_left' : 'slide_from_right')),
+                                        ? 'fade'
+                                        : (isSlideLeft ? 'slide_from_left' : 'slide_from_right')),
                             },
                             default: { headerShown: false, gestureEnabled: true },
                         });
@@ -692,27 +706,32 @@ export default function App() {
                     <RootStack.Screen
                         name="Competition"
                         component={Competition}
-                        options={({ route }) => Platform.select({
-                            ios: {
-                                gestureEnabled: true,
-                                gestureDirection: route?.params?.transition === 'slide-from-left' ? 'horizontal-inverted' : 'horizontal',
-                                cardStyleInterpolator: route?.params?.transition === 'fade'
-                                    ? CardStyleInterpolators.forFadeFromCenter
-                                    : CardStyleInterpolators.forHorizontalIOS,
-                                transitionSpec: {
-                                    open: TransitionSpecs.TransitionIOSSpec,
-                                    close: { animation: 'timing', config: { duration: 0 } },
+                        options={({ route }) => {
+                            const isSlideLeft = route?.params?.transition === 'slide-from-left';
+                            const isFade = route?.params?.transition === 'fade';
+                            const noSwipe = !!route?.params?.disableSwipeBack;
+                            return Platform.select({
+                                ios: {
+                                    gestureEnabled: !noSwipe,
+                                    gestureDirection: isSlideLeft ? 'horizontal-inverted' : 'horizontal',
+                                    cardStyleInterpolator: isFade
+                                        ? CardStyleInterpolators.forFadeFromCenter
+                                        : CardStyleInterpolators.forHorizontalIOS,
+                                    transitionSpec: {
+                                        open: TransitionSpecs.TransitionIOSSpec,
+                                        close: { animation: 'timing', config: { duration: 0 } },
+                                    },
                                 },
-                            },
-                            android: {
-                                gestureEnabled: true,
-                                fullScreenGestureEnabled: true,
-                                animation: route?.params?.transition === 'fade'
-                                    ? 'fade'
-                                    : (route?.params?.transition === 'slide-from-left' ? 'slide_from_left' : 'slide_from_right'),
-                            },
-                            default: {},
-                        })}
+                                android: {
+                                    gestureEnabled: !noSwipe,
+                                    fullScreenGestureEnabled: !noSwipe,
+                                    animation: isFade
+                                        ? 'fade'
+                                        : (isSlideLeft ? 'slide_from_left' : 'slide_from_right'),
+                                },
+                                default: {},
+                            });
+                        }}
                     />
 
                     <RootStack.Screen name="Profile" component={Profile} />
@@ -720,7 +739,26 @@ export default function App() {
 
                     {/* Messaging / social */}
                     <RootStack.Screen name="Messages" component={Messages} />
-                    <RootStack.Screen name="Chat" component={Chat} />
+                    <RootStack.Screen
+                        name="Chat"
+                        component={Chat}
+                        options={Platform.select({
+                            ios: {
+                                // Keep a narrow edge for back-swipe to avoid
+                                // conflicting with Chat's own horizontal pan gestures.
+                                gestureEnabled: true,
+                                gestureDirection: 'horizontal',
+                                gestureResponseDistance: 30,
+                                cardStyleInterpolator: CardStyleInterpolators.forHorizontalIOS,
+                            },
+                            android: {
+                                gestureEnabled: true,
+                                fullScreenGestureEnabled: true,
+                                animation: 'slide_from_right',
+                            },
+                            default: {},
+                        })}
+                    />
                     <RootStack.Screen name="ViewProfile" component={ViewProfile} />
                     <RootStack.Screen name="SearchUsers" component={SearchUsers} />
                     <RootStack.Screen name="Settings" component={Settings} />
