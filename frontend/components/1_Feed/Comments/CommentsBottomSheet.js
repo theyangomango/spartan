@@ -120,9 +120,7 @@ const CommentsBottomSheet = ({ isVisible, postData, commentsBottomSheetExpandFla
             const h = containerHRef.current || (SCREEN_HEIGHT - scaleSize(85));
             const desired = typeof openPositionPx === 'number' ? openPositionPx : (0.345 * h);
             const openPx = Math.max(0, Math.min(h, desired));
-            // When mounted inside Profile/ViewProfile (SinglePost modal), starting from a fully closed
-            // index could cause an abrupt jump. Instead, rely on the sheet being visible on mount
-            // and animate directly to the desired open position.
+            try { bottomSheetRef.current?.snapToPosition?.(0, { duration: 0 }); } catch {}
             const open = () => { try { bottomSheetRef.current?.snapToPosition?.(openPx, { duration: SHEET_OPEN_MS }); } catch {} };
             // Small delay ensures layout is measured and the 0px baseline is honored
             const id = setTimeout(() => requestAnimationFrame(open), 30);
@@ -264,9 +262,7 @@ const CommentsBottomSheet = ({ isVisible, postData, commentsBottomSheetExpandFla
                 ref={bottomSheetRef}
                 // If an explicit open position is provided (SinglePost focus use-case),
                 // keep the sheet index closed and let the effect animate it open to avoid abrupt jumps.
-                // Mount visibly at index 0 when a post is focused so the initial open animates smoothly
-                // across Feed and Profile/ViewProfile contexts. Hide only when there is no post focused.
-                index={isVisible && !!postPid ? 0 : -1}
+                index={(isVisible && !!postPid && (openPositionPx == null)) ? 0 : -1}
                 snapPoints={snapPoints}
                 onChange={handleSheetIndexChange}
                 handleComponent={() => null}
@@ -280,7 +276,6 @@ const CommentsBottomSheet = ({ isVisible, postData, commentsBottomSheetExpandFla
                 topInset={0}
                 enableContentPanningGesture
                 enablePanDownToClose={false}
-                animateOnMount
             >
                 {postData && (
                     <CommentsModal

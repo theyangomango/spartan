@@ -162,141 +162,125 @@ export default function FoodDetail({ navigation, route }) {
         }
     };
 
-    const save = async () => {
-        if (!entry?.key || !dayKey) { navigation.goBack(); return; }
+    const save = () => {
+        if (!entry?.key || !dayKey) { try { navigation.goBack(); } catch {} return; }
         const uid = global?.userData?.uid || global?.userData?.id;
-        if (!uid) { navigation.goBack(); return; }
-        setSaving(true);
+        if (!uid) { try { navigation.goBack(); } catch {} return; }
+
+        // Build patch synchronously and optimistically update local mirror for instant UI
+        const qty = round2(Number(servings) || 1);
+        const m = parseMacrosFromDescription(entry?.desc || '', qty);
+        const patch = {
+            dayKey,
+            meal: String(meal || mealNameInit || 'Dinner'),
+            name: entry?.name || '',
+            brand: entry?.brand || '',
+            desc: entry?.desc || '',
+            foodId: entry?.foodId || entry?.food_id || '',
+            quantity: qty,
+            macros: {
+                calories: Math.round(m.calories || 0),
+                protein: Math.round(m.protein || 0),
+                carbs: Math.round(m.carbs || 0),
+                fat: Math.round(m.fat || 0),
+            },
+            ...(extrasPS ? { extrasPerServing: extrasPS } : {}),
+            updatedAt: Date.now(),
+        };
+
         try {
-            const qty = round2(Number(servings) || 1);
-            const m = parseMacrosFromDescription(entry?.desc || '', qty);
+            global.userData = global.userData || {};
+            const map = (global.userData.loggedFoods = global.userData.loggedFoods || {});
+            if (map[dayKey] && typeof map[dayKey] === 'object') {
+                map[dayKey][entry.key] = { ...(map[dayKey][entry.key] || {}), ...patch };
+            } else {
+                map[entry.key] = { ...(map[entry.key] || {}), ...patch };
+            }
+            try { global.__loggedFoodsSig = (global.__loggedFoodsSig || 0) + 1; } catch {}
+        } catch {}
 
-            // 1) Update global mirror (support nested-by-day and flat shapes)
-            try {
-                global.userData = global.userData || {};
-                const map = global.userData.loggedFoods = global.userData.loggedFoods || {};
-                const patch = {
-                    dayKey,
-                    meal: String(meal || mealNameInit || 'Dinner'),
-                    name: entry?.name || '',
-                    brand: entry?.brand || '',
-                    desc: entry?.desc || '',
-                    foodId: entry?.foodId || entry?.food_id || '',
-                    quantity: qty,
-                    macros: {
-                        calories: Math.round(m.calories || 0),
-                        protein: Math.round(m.protein || 0),
-                        carbs: Math.round(m.carbs || 0),
-                        fat: Math.round(m.fat || 0),
-                    },
-                    ...(extrasPS ? { extrasPerServing: extrasPS } : {}),
-                    updatedAt: Date.now(),
-                };
-                if (map[dayKey] && typeof map[dayKey] === 'object') {
-                    map[dayKey][entry.key] = { ...(map[dayKey][entry.key] || {}), ...patch };
-                } else {
-                    map[entry.key] = { ...(map[entry.key] || {}), ...patch };
-                }
-                try { global.__loggedFoodsSig = (global.__loggedFoodsSig || 0) + 1; } catch {}
-            } catch { }
+        // Navigate back immediately
+        try { navigation.goBack(); } catch {}
 
-            // 2) Persist to user doc under loggedFoods.<dayKey>.<entryId>
+        // Persist in background
+        (async () => {
             try {
                 const uref = doc(db, 'users', uid);
                 const fieldPath = `loggedFoods.${dayKey}.${entry.key}`;
                 await updateDoc(uref, { [fieldPath]: {
-                    dayKey,
-                    meal: String(meal || mealNameInit || 'Dinner'),
-                    name: entry?.name || '',
-                    brand: entry?.brand || '',
-                    desc: entry?.desc || '',
-                    foodId: entry?.foodId || entry?.food_id || '',
-                    quantity: qty,
-                    macros: {
-                        calories: Math.round(m.calories || 0),
-                        protein: Math.round(m.protein || 0),
-                        carbs: Math.round(m.carbs || 0),
-                        fat: Math.round(m.fat || 0),
-                    },
-                    ...(extrasPS ? { extrasPerServing: extrasPS } : {}),
+                    ...patch,
                     updatedAt: serverTimestamp(),
                 } });
-                // also remove any legacy flat key if present
+                // remove any legacy flat key if present
                 const flatPath = `loggedFoods.${entry.key}`;
                 await updateDoc(uref, { [flatPath]: deleteField() }).catch(() => {});
                 // Touch recent foods
-                touchRecentFood(uid, {
+                await touchRecentFood(uid, {
                     foodId: entry?.foodId || entry?.food_id || '',
                     name: entry?.name || '',
                     brand: entry?.brand || '',
                     description: entry?.desc || '',
                 }, extrasPS || null).catch(() => {});
-            } catch { }
-        } catch (e) {
-            console.log('Failed to update food entry:', e?.message || e);
-        }
-        setSaving(false);
-        navigation.goBack();
+            } catch (e) {
+                console.log('Failed to update food entry (async):', e?.message || e);
+            }
+        })();
     };
 
-    const addNew = async () => {
+    const addNew = () => {
         const uid = global?.userData?.uid || global?.userData?.id;
-        if (!uid || !dayKey || !food) { navigation.goBack(); return; }
-        setSaving(true);
+        if (!uid || !dayKey || !food) { try { navigation.goBack(); } catch {} return; }
+
+        // Build flat entry synchronously for instant UI update
+        const qty = round2(Number(servings) || 1);
+        const m = parseMacrosFromDescription(food?.food_description || '', qty);
+        const newId = `${Date.now().toString(36)}${Math.random().toString(36).slice(2, 10)}`;
+        const flat = {
+            dayKey,
+            meal: String(meal || mealNameInit || 'Dinner'),
+            name: food?.food_name || '',
+            brand: food?.brand_name || '',
+            desc: food?.food_description || '',
+            foodId: String(food?.food_id ?? ''),
+            quantity: qty,
+            macros: {
+                calories: Math.round(m.calories || 0),
+                protein: Math.round(m.protein || 0),
+                carbs: Math.round(m.carbs || 0),
+                fat: Math.round(m.fat || 0),
+            },
+            ...(extrasPS ? { extrasPerServing: extrasPS } : {}),
+            createdAt: serverTimestamp(),
+            updatedAt: serverTimestamp(),
+        };
+
+        // Optimistic global mirror update (immediate UI feedback)
         try {
-            const qty = round2(Number(servings) || 1);
-            const m = parseMacrosFromDescription(food?.food_description || '', qty);
+            global.userData = global.userData || {};
+            const map = (global.userData.loggedFoods = global.userData.loggedFoods || {});
+            map[dayKey] = map[dayKey] || {};
+            map[dayKey][newId] = { ...flat, createdAt: Date.now(), updatedAt: Date.now() };
+            try { global.__loggedFoodsSig = (global.__loggedFoodsSig || 0) + 1; } catch {}
+        } catch {}
 
-            // generate an id similar to MacroTracking
-            const newId = `${Date.now().toString(36)}${Math.random().toString(36).slice(2, 10)}`;
-            const flat = {
-                dayKey,
-                meal: String(meal || mealNameInit || 'Dinner'),
-                name: food?.food_name || '',
-                brand: food?.brand_name || '',
-                desc: food?.food_description || '',
-                foodId: String(food?.food_id ?? ''),
-                quantity: qty,
-                macros: {
-                    calories: Math.round(m.calories || 0),
-                    protein: Math.round(m.protein || 0),
-                    carbs: Math.round(m.carbs || 0),
-                    fat: Math.round(m.fat || 0),
-                },
-                ...(extrasPS ? { extrasPerServing: extrasPS } : {}),
-                createdAt: serverTimestamp(),
-                updatedAt: serverTimestamp(),
-            };
+        // Navigate back instantly; persist in background
+        try { navigation.goBack(); } catch {}
 
-            // 1) Update global mirror (nested preferred)
-            try {
-                global.userData = global.userData || {};
-                const map = global.userData.loggedFoods = global.userData.loggedFoods || {};
-                map[dayKey] = map[dayKey] || {};
-                map[dayKey][newId] = { ...flat, createdAt: Date.now(), updatedAt: Date.now() };
-                try { global.__loggedFoodsSig = (global.__loggedFoodsSig || 0) + 1; } catch {}
-            } catch { }
-
-            // 2) Persist to user doc under loggedFoods.<dayKey>.<newId>
+        // Persist to Firestore + recent foods asynchronously
+        (async () => {
             try {
                 const uref = doc(db, 'users', uid);
                 const fieldPath = `loggedFoods.${dayKey}.${newId}`;
                 await updateDoc(uref, { [fieldPath]: flat });
             } catch {
-                // Fallback with setDoc merge if user doc missing
                 try {
                     await setDoc(doc(db, 'users', uid), { loggedFoods: { [dayKey]: { [newId]: flat } } }, { merge: true });
-                } catch { }
+                } catch {}
             }
-            // Touch recent foods backend
             try {
                 await touchRecentFood(uid, { foodId: flat.foodId, name: flat.name, brand: flat.brand, description: flat.desc }, extrasPS || null);
             } catch {}
-        } catch (e) {
-            console.log('Failed to add food entry:', e?.message || e);
-        }
-        setSaving(false);
-        navigation.goBack();
+        })().catch((e) => console.log('Add food async error:', e?.message || e));
     };
 
     const MEAL_OPTIONS = ['Breakfast', 'Lunch', 'Dinner', 'Snacks'];
