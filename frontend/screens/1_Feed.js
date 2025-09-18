@@ -164,6 +164,12 @@ export default function Feed({ navigation, route }) {
     }));
     // Combined translate (base focus translate + interactive overlay)
     const interPostStyle = useAnimatedStyle(() => ({ transform: [{ translateY: focusTranslateSV.value + interTranslateSV.value }] }));
+    // Record original top for the focused card so we can render it in an absolute overlay
+    const focusedBaseTopSV = useSharedValue(0);
+    // Absolute overlay positioning for the focused card (relative to masked container)
+    const focusedOverlayStyle = useAnimatedStyle(() => ({
+        top: focusedBaseTopSV.value + focusTranslateSV.value + interTranslateSV.value,
+    }));
 
     // Header workout pill state
     const [activeWorkout, setActiveWorkout] = useState(null);
@@ -713,14 +719,19 @@ export default function Feed({ navigation, route }) {
             const isTranslatingPost = index === translatingIndexRef.current;
             const wrapperStyle = [
                 styles.postWrapper,
-                (isFocusedPost || isTranslatingPost) && { zIndex: 1 },
+                // Ensure the focused/translating post is visually and interactively on top
+                (isFocusedPost || isTranslatingPost) && { zIndex: 9999, elevation: 32 },
             ];
 
             const isFocusedProp = isSomePostFocused ? isFocusedPost : false;
             const shouldPlay = !isSomePostFocused && index === centeredIndex;
 
             const contentCore = (
-                <Reanimated.View style={wrapperStyle}>
+                <Reanimated.View
+                    style={wrapperStyle}
+                    // When any post is focused, disable interactions on all non-focused item wrappers
+                    pointerEvents={isSomePostFocused ? 'none' : 'auto'}
+                >
                     <Post
                         data={item}
                         index={index}
@@ -746,7 +757,11 @@ export default function Feed({ navigation, route }) {
             // Keep transform applied for both focused and translating states; attach gesture only when focused
             if (isFocusedPost || isTranslatingPost) {
                 const inner = (
-                    <Reanimated.View style={[wrapperStyle, interPostStyle]}>
+                    <Reanimated.View
+                        style={[wrapperStyle, interPostStyle]}
+                        // Focused/translating item must stay interactive
+                        pointerEvents={'auto'}
+                    >
                         <Post
                             data={item}
                             index={index}

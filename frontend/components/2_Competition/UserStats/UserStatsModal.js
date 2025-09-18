@@ -549,9 +549,9 @@ export default function UserStatsModal({ user, toViewProfile, hexOverlay, hexPro
                                                 {/* Row: icon + name + 1RM pill */}
                                                 <View style={styles.exerciseHeader}>
                                                     <View style={styles.nameRow}>
-                                                        <View style={[styles.iconCircle, { backgroundColor: rgba(ACC, 0.16), borderColor: rgba(ACC, 0.45) }]}>
+                                                        {/* <View style={[styles.iconCircle, { backgroundColor: rgba(ACC, 0.16), borderColor: rgba(ACC, 0.45) }]}>
                                                             <MaterialCommunityIcons name="dumbbell" size={scaledSize(13)} color={ACC} />
-                                                        </View>
+                                                        </View> */}
                                                         <Text numberOfLines={2} style={styles.exerciseName}>{name}</Text>
                                                     </View>
                                                     <View style={styles.headerRight}>
@@ -907,7 +907,7 @@ const styles = StyleSheet.create({
         borderBottomLeftRadius: scaleSize(scaledSize(16)),
     },
 
-    exerciseHeader: { flexDirection: "row", alignItems: "center", marginBottom: scaleSize(scaledSize(8)) },
+    exerciseHeader: { flexDirection: "row", alignItems: "center", marginBottom: scaleSize(scaledSize(0)) },
     nameRow: {
         flexDirection: "row",
         alignItems: "center",
@@ -938,21 +938,21 @@ const styles = StyleSheet.create({
         flexDirection: "row",
         alignItems: "center",
         paddingHorizontal: scaleSize(scaledSize(8)),
-        paddingVertical: scaleSize(scaledSize(4)),
+        paddingVertical: scaleSize(scaledSize(3)),
         borderRadius: scaleSize(scaledSize(999)),
         borderWidth: scaleSize(1),
         borderColor: GOLD_BORDER,
         backgroundColor: GOLD_BG,
     },
     oneRMLabel: {
-        fontSize: scaleSize(10),
+        fontSize: scaleSize(9),
         fontFamily: "Nunito_800ExtraBold",
         color: GOLD,
         marginRight: scaleSize(scaledSize(5)),
         letterSpacing: 0,
     },
     oneRMValue: {
-        fontSize: scaleSize(13),
+        fontSize: scaleSize(12.5),
         fontFamily: "Nunito_800ExtraBold",
         color: GOLD,
     },
@@ -1098,12 +1098,12 @@ const styles = StyleSheet.create({
         flexDirection: 'row',
         alignItems: 'baseline',
         paddingHorizontal: scaleSize(scaledSize(7)),
-        paddingVertical: scaleSize(scaledSize(4)),
+        paddingVertical: scaleSize(scaledSize(3)),
         borderRadius: scaleSize(scaledSize(999)),
         borderWidth: scaleSize(1),
         borderColor: GOLD_BORDER,
         backgroundColor: GOLD_BG,
     },
-    rmLabel: { fontSize: scaleSize(10.5), fontFamily: 'Outfit_600SemiBold', color: GOLD, marginRight: scaleSize(scaledSize(5)), letterSpacing: 0.6 },
-    rmValue: { fontSize: scaleSize(13), fontFamily: 'Outfit_800ExtraBold', color: GOLD },
+    rmLabel: { fontSize: scaleSize(9), fontFamily: 'Outfit_600SemiBold', color: GOLD, marginRight: scaleSize(scaledSize(5)), letterSpacing: 0.6 },
+    rmValue: { fontSize: scaleSize(12.5), fontFamily: 'Outfit_800ExtraBold', color: GOLD },
 });

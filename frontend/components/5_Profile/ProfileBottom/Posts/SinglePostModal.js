@@ -283,6 +283,9 @@ export default function SinglePostModal({ visible, post, onClose, onOpenWorkout 
                                         shouldPlay
                                         focusModeSV={focusModeSV}
                                         interactiveUnfocusSV={interactiveProgressSV}
+                                        // Profile modal: force rounded bottom corners + fade-in
+                                        forceRoundedBottomOnFocus
+                                        fadeInOnFocus
                                         handleFocusPost={() => { }}
                                         onSwipeUnfocus={close}
                                         // When user taps the comment icon in PostFooter, expand to 92% via the flag

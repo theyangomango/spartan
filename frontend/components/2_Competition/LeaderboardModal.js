@@ -353,7 +353,7 @@ const styles = StyleSheet.create({
         paddingHorizontal: BANNER_PAD_H,
         paddingVertical: BANNER_PAD_V,
         borderRadius: BANNER_RADIUS,
-        backgroundColor: "#877f36d7",
+        backgroundColor: "#877f3698",
         borderWidth: scaleSize(1),
         borderColor: "rgba(255,255,255,0.08)",
         shadowColor: "#000",

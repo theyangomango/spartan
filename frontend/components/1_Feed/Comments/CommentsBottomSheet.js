@@ -1,7 +1,7 @@
 import React, { useEffect, useMemo, useRef, useState, useCallback } from "react";
 import { View, StyleSheet, TextInput, Platform, Image, KeyboardAvoidingView, Animated, Keyboard, Pressable, Dimensions } from "react-native";
 import BottomSheet from "@gorhom/bottom-sheet";
-import { useAnimatedReaction, runOnJS } from 'react-native-reanimated';
+import { useAnimatedReaction, runOnJS, Easing as ReEasing } from 'react-native-reanimated';
 import theme from "../../../theme/mfpDark";
 import { Ionicons } from '@expo/vector-icons';
 import CommentsModal from "./CommentsModal";
@@ -17,7 +17,10 @@ const dynamicStyles = getCommentsBottomSheetStyles(SCREEN_WIDTH, SCREEN_HEIGHT);
 
 const CommentsBottomSheet = ({ isVisible, postData, commentsBottomSheetExpandFlag, toViewProfile, collapseSignal, reopenSignal, interactiveProgress, interactiveProgressSV, interactiveScale = 0.85, openPositionPx }) => {
     // Slower, smoother sheet expansion
-    const SHEET_OPEN_MS = 520; // longer + softer perceived start
+    const SHEET_OPEN_MS = 800; // even softer, slightly longer
+    // Very gentle decelerate-curve (closer to platform default):
+    // cubic-bezier(0.22, 1, 0.36, 1)
+    const OPEN_EASING = ReEasing.bezier(0.22, 1, 0.36, 1);
     const [isInputFocused, setIsInputFocused] = useState(false);
     const bottomSheetRef = useRef(null);
     const footerTranslateY = useRef(new Animated.Value(0)).current; // moves when input focuses
@@ -91,7 +94,7 @@ const CommentsBottomSheet = ({ isVisible, postData, commentsBottomSheetExpandFla
     // Handle input focus
     const handleInputFocus = () => {
         setIsInputFocused(true);
-        try { bottomSheetRef.current?.snapToIndex?.(1, { duration: SHEET_OPEN_MS }); } catch { try { bottomSheetRef.current?.expand?.(); } catch {} }
+        try { bottomSheetRef.current?.snapToIndex?.(1, { duration: SHEET_OPEN_MS, easing: OPEN_EASING }); } catch { try { bottomSheetRef.current?.expand?.(); } catch {} }
         Animated.timing(footerTranslateY, {
             toValue: -315,
             duration: 225,
@@ -120,8 +123,12 @@ const CommentsBottomSheet = ({ isVisible, postData, commentsBottomSheetExpandFla
             const h = containerHRef.current || (SCREEN_HEIGHT - scaleSize(85));
             const desired = typeof openPositionPx === 'number' ? openPositionPx : (0.345 * h);
             const openPx = Math.max(0, Math.min(h, desired));
-            try { bottomSheetRef.current?.snapToPosition?.(0, { duration: 0 }); } catch {}
-            const open = () => { try { bottomSheetRef.current?.snapToPosition?.(openPx, { duration: SHEET_OPEN_MS }); } catch {} };
+            // For Profile/ViewProfile (when a custom pixel position is provided), baseline at 0px
+            // then animate up to the target for a continuous slide from the bottom.
+            if (typeof openPositionPx === 'number') {
+                try { bottomSheetRef.current?.snapToPosition?.(0, { duration: 0 }); } catch {}
+            }
+            const open = () => { try { bottomSheetRef.current?.snapToPosition?.(openPx, { duration: SHEET_OPEN_MS, easing: OPEN_EASING }); } catch {} };
             // Small delay ensures layout is measured and the 0px baseline is honored
             const id = setTimeout(() => requestAnimationFrame(open), 30);
             // footer entrance animation
@@ -219,7 +226,7 @@ const CommentsBottomSheet = ({ isVisible, postData, commentsBottomSheetExpandFla
 
     // Expand the bottom sheet when flagged
     useEffect(() => {
-        try { bottomSheetRef.current?.snapToIndex?.(1, { duration: SHEET_OPEN_MS }); } catch { try { bottomSheetRef.current?.expand?.(); } catch {} }
+        try { bottomSheetRef.current?.snapToIndex?.(1, { duration: SHEET_OPEN_MS, easing: OPEN_EASING }); } catch { try { bottomSheetRef.current?.expand?.(); } catch {} }
     }, [commentsBottomSheetExpandFlag]);
 
     useEffect(() => {
@@ -262,7 +269,9 @@ const CommentsBottomSheet = ({ isVisible, postData, commentsBottomSheetExpandFla
                 ref={bottomSheetRef}
                 // If an explicit open position is provided (SinglePost focus use-case),
                 // keep the sheet index closed and let the effect animate it open to avoid abrupt jumps.
-                index={(isVisible && !!postPid && (openPositionPx == null)) ? 0 : -1}
+                // Mount visibly at index 0 when a post is focused so the initial open animates smoothly
+                // across Feed and Profile/ViewProfile contexts. Hide only when there is no post focused.
+                index={isVisible && !!postPid ? 0 : -1}
                 snapPoints={snapPoints}
                 onChange={handleSheetIndexChange}
                 handleComponent={() => null}
@@ -276,6 +285,7 @@ const CommentsBottomSheet = ({ isVisible, postData, commentsBottomSheetExpandFla
                 topInset={0}
                 enableContentPanningGesture
                 enablePanDownToClose={false}
+                animateOnMount
             >
                 {postData && (
                     <CommentsModal

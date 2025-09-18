@@ -12,6 +12,7 @@ import {
     Pressable,
     FlatList,
     Dimensions,
+    Easing,
 } from "react-native";
 import Reanimated, { useAnimatedStyle } from 'react-native-reanimated';
 import FastImage from "react-native-fast-image";
@@ -70,6 +71,10 @@ function Post({
     // Reanimated shared values from Feed for focus/unfocus
     focusModeSV,
     interactiveUnfocusSV,
+    // Profile/ViewProfile: force rounded bottom corners when focused, even without shared values
+    forceRoundedBottomOnFocus,
+    // Profile/ViewProfile: fade the post in when it becomes focused
+    fadeInOnFocus,
     // whether the interactive unfocus pan is currently active (used only for focused post UI elsewhere)
     interactiveActive,
     handleFocusPost,
@@ -109,15 +114,40 @@ function Post({
     // Animate bottom corners during unfocus: BORDER -> 0 as interactiveUnfocusSV goes 0 -> 1
     const roundedBottomStyle = useAnimatedStyle(() => {
         try {
-            const inFocus = focusModeSV?.value === 1;
+            const inFocus = (focusModeSV?.value === 1) || !!forceRoundedBottomOnFocus;
             if (inFocus && isFocused) {
-                const p = Math.max(0, Math.min(1, interactiveUnfocusSV?.value || 0));
-                const r = BORDER * (1 - p);
+                let r = BORDER;
+                if (interactiveUnfocusSV && typeof interactiveUnfocusSV.value === 'number') {
+                    const p = Math.max(0, Math.min(1, interactiveUnfocusSV?.value || 0));
+                    r = BORDER * (1 - p);
+                }
                 return { borderBottomLeftRadius: r, borderBottomRightRadius: r };
             }
         } catch {}
         return { borderBottomLeftRadius: 0, borderBottomRightRadius: 0 };
-    }, [isFocused]);
+    }, [isFocused, forceRoundedBottomOnFocus]);
+
+    // Focus fade-in for Profile/ViewProfile flows when requested
+    const focusFadeOpacity = useRef(new Animated.Value(1)).current;
+    const wasFocusedRef = useRef(isFocused);
+    useEffect(() => {
+        if (!fadeInOnFocus) return;
+        // Trigger fade only when transitioning into focused state
+        if (isFocused && !wasFocusedRef.current) {
+            try { focusFadeOpacity.stopAnimation(); } catch {}
+            focusFadeOpacity.setValue(0);
+            Animated.timing(focusFadeOpacity, {
+                toValue: 1,
+                duration: 260,
+                easing: Easing.out(Easing.cubic),
+                useNativeDriver: true,
+            }).start();
+        } else if (!isFocused) {
+            // ensure fully opaque when not focused
+            try { focusFadeOpacity.setValue(1); } catch {}
+        }
+        wasFocusedRef.current = isFocused;
+    }, [isFocused, fadeInOnFocus]);
 
     // Flash highlight when this post matches target pid and signal updates
     useEffect(() => {
@@ -219,10 +249,17 @@ function Post({
         <Reanimated.View
             ref={viewRef}
             style={[styles.wrapper, interactiveFadeStyle]}
-            pointerEvents={isSomePostFocused && !isFocused ? "box-none" : "auto"}
+            // When a different post is focused, completely disable pointer events
+            // on this post so it can’t intercept gestures.
+            pointerEvents={isSomePostFocused && !isFocused ? "none" : "auto"}
         >
             <Animated.View
-                style={[styles.card, isFocused && { zIndex: 1 }, { transform: [{ scale }] }]}
+                style={[
+                    styles.card,
+                    isFocused && { zIndex: 1 },
+                    { transform: [{ scale }] },
+                    fadeInOnFocus ? { opacity: focusFadeOpacity } : null,
+                ]}
             >
                 <View style={styles.body}>
                     <Reanimated.View style={[containerStyle, roundedBottomStyle, { overflow: 'hidden' }]}>

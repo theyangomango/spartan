@@ -106,6 +106,9 @@ export default function ExpandedProfileList({ posts, onClose }) {
                     /* If your Post needs to open modals, pass them down: */
                     openCommentsModal={openCommentsModal}
                     openShareModal={openShareModal}
+                    // Ensure rounded bottom corners + fade-in when focused in this list
+                    forceRoundedBottomOnFocus
+                    fadeInOnFocus
                 />
             </Animated.View>
         );
