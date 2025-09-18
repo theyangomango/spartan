@@ -15,7 +15,7 @@ import { FoodDetailInline } from "../../screens/FoodDetail";
 import DateHeader from "./DayDetails/DateHeader";
 import OverlayContainer from "./DayDetails/OverlayContainer";
 import { parseMacrosFromDescription, parseExtraNutrientsFromDescription } from "../../utils/nutrition";
-import { primeFoodLogsCache, peekFoodLogsCache } from "../../hooks/useFoodLogs";
+// No foodLogs usage: macros derive only from global.userData.loggedFoods
 
 import scaleSize from "../../helper/scaleSize";
 import { ScrollView } from "react-native-gesture-handler";
@@ -276,13 +276,13 @@ const DayDetailsSheet = ({
         if (t.startsWith('break')) return 'Breakfast';
         if (t.startsWith('lun')) return 'Lunch';
         if (t.startsWith('din')) return 'Dinner';
-        return 'Snack';
+        return 'Snacks';
     }, []);
 
     const buildMealsFromGlobal = useCallback((d) => {
         const uid = String(global?.userData?.uid || '');
         const dk = dayKey(d);
-        const buckets = { Breakfast: [], Lunch: [], Dinner: [], Snack: [] };
+        const buckets = { Breakfast: [], Lunch: [], Dinner: [], Snacks: [] };
         const totals = { calories: 0, protein: 0, carbs: 0, fat: 0 };
         try {
             const map = global?.userData?.loggedFoods || {};
@@ -311,16 +311,6 @@ const DayDetailsSheet = ({
             }
         } catch { /* ignore */ }
 
-        // If cache has a built structure, prefer it to ensure ordering is consistent
-        try {
-            if (uid) {
-                const peek = peekFoodLogsCache(uid, d);
-                if (peek && peek.meals && peek.totals) {
-                    return { meals: peek.meals, totals: peek.totals };
-                }
-            }
-        } catch { }
-
         return { meals: buckets, totals };
     }, [normalizeMealBucket]);
 
@@ -340,7 +330,7 @@ const DayDetailsSheet = ({
             if (!looksNested) return Object.keys(map).length;
             let n = 0; Object.values(map).forEach((m) => { n += Object.keys(m || {}).length; }); return n;
         } catch { return 0; }
-    }, [(global?.userData?.loggedFoods || {})]);
+    }, [global?.__loggedFoodsSig]);
     const completedWorkoutsCount = useMemo(() => (global?.userData?.completedWorkouts || []).length, [(global?.userData?.completedWorkouts || [])]);
 
     // Current, prev, next day data from global (instant render)
@@ -359,27 +349,13 @@ const DayDetailsSheet = ({
         ...buildMealsFromGlobal(nextDate),
     }), [nextDate, buildWorkoutsFromGlobal, buildMealsFromGlobal, completedWorkoutsCount, loggedFoodsCount]);
 
-    // Preload neighboring food logs to minimize any perceived delay when swiping
-    useEffect(() => {
-        const uid = String(global?.userData?.uid || '');
-        if (!uid) return;
-        // Aggressively warm center and neighbors for smoother swipes
-        primeFoodLogsCache(uid, date, 7).catch(() => { });
-    }, [date, isExpanded]);
-
-    // Warm cache as soon as an open signal happens (visible or toggle)
-    useEffect(() => {
-        const uid = String(global?.userData?.uid || '');
-        if (!uid) return;
-        primeFoodLogsCache(uid, date, 7).catch(() => { });
-        // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [visible, openToggle]);
+    // No prefetch from Firestore: rely on global.userData.loggedFoods only
 
     // Inner component: one day's details page
     const DayDetailsPage = useCallback(({ d, dayWorkouts, dayMeals, dayTotals, dayCalories }) => {
         const isTodayPage = useMemo(() => dayKey(d) === dayKey(new Date()), [d]);
         const foodsList = useMemo(() => {
-            const buckets = ["Breakfast", "Lunch", "Dinner", "Snack"];
+            const buckets = ["Breakfast", "Lunch", "Dinner", "Snacks"];
             const out = [];
             for (const b of buckets) {
                 const arr = Array.isArray(dayMeals?.[b]) ? dayMeals[b] : [];

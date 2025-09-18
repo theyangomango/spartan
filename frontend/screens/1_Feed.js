@@ -7,7 +7,7 @@
 
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Animated, Dimensions, SafeAreaView, StyleSheet, View, Easing as RNEasing, RefreshControl } from "react-native";
-import { useFocusEffect } from '@react-navigation/native';
+import { useFocusEffect, useIsFocused } from '@react-navigation/native';
 import { StatusBar } from "expo-status-bar";
 import { doc, onSnapshot } from "firebase/firestore";
 import { useSafeAreaInsets, SafeAreaView as SafeAreaInsetsView } from "react-native-safe-area-context";
@@ -36,10 +36,16 @@ import MaskedView from "@react-native-masked-view/masked-view";
 
 const { width, height } = Dimensions.get("window");
 const TARGET_POSITION = getScrollTargetPosition(width, height),
-    ANIMATION_DURATION = 200;
+    ANIMATION_DURATION = 320; // main focus/unfocus translation + fades
+// More gradual timings for various phases
+const INTERACTIVE_START_MS = 220; // when entering focus, settle interactive progress to 0
+const INTERACTIVE_CANCEL_MS = 300; // when canceling interactive unfocus, return to focused
+const INTERACTIVE_CANCEL_FADE_MS = 260; // chips/story fade when canceling
+const INTERACTIVE_LOCKOUT_MS = 340; // brief lockout after cancel
 
 export default function Feed({ navigation, route }) {
     const insets = useSafeAreaInsets();
+    const isScreenFocused = useIsFocused();
     // Use UID from global or route params
     const UID = "userData" in global ? global.userData.uid : route?.params?.uid;
 
@@ -183,41 +189,53 @@ export default function Feed({ navigation, route }) {
         return Number.isFinite(n) ? n : 0;
     };
 
-    const handleScroll = (e) => {
-        const y = e.nativeEvent.contentOffset.y;
+    // Throttled center detection to reduce JS bridge load
+    const lastCenterCalcTsRef = useRef(0);
+    const pendingCenterTimeoutRef = useRef(null);
+    const handleScrollJS = useCallback((y) => {
         scrollOffsetY.current = y;
         lastScrollTsRef.current = Date.now();
 
-        // Only manage center-based playback when NO post is focused
-        if (!isSomePostFocused) {
+        const computeCenter = () => {
+            if (isSomePostFocused) return; // handled separately
             const vHeader = visibleHeaderHRef.current || 0;
             const viewportCenter = y + (height - vHeader) / 2;
 
             let best = -1;
             let bestDist = Number.POSITIVE_INFINITY;
-
-            // Limit to currently viewable items for perf
             viewableSetRef.current.forEach((idx) => {
                 const lay = itemLayoutsRef.current.get(idx);
                 if (!lay) return;
                 const mid = lay.y + lay.h / 2;
                 const dist = Math.abs(mid - viewportCenter);
-                if (dist < bestDist) {
-                    bestDist = dist;
-                    best = idx;
-                }
+                if (dist < bestDist) { bestDist = dist; best = idx; }
             });
-
             const bestPost = best === -1 ? -1 : best; // list index equals posts index
             if (bestPost !== centeredIndexRef.current) {
                 centeredIndexRef.current = bestPost;
                 setCenteredIndex(bestPost); // ⟵ triggers Post props update => pause/play swap
             }
+        };
+
+        if (!isSomePostFocused) {
+            const now = Date.now();
+            const THROTTLE_MS = 48; // ~20fps is sufficient for autoplay swap
+            if (now - (lastCenterCalcTsRef.current || 0) >= THROTTLE_MS) {
+                lastCenterCalcTsRef.current = now;
+                computeCenter();
+            } else if (!pendingCenterTimeoutRef.current) {
+                const delay = THROTTLE_MS - (now - (lastCenterCalcTsRef.current || 0));
+                pendingCenterTimeoutRef.current = setTimeout(() => {
+                    pendingCenterTimeoutRef.current = null;
+                    lastCenterCalcTsRef.current = Date.now();
+                    computeCenter();
+                }, Math.max(8, delay));
+            }
         } else if (centeredIndexRef.current !== -1) {
             centeredIndexRef.current = -1;
             setCenteredIndex(-1);
         }
-    };
+    }, [isSomePostFocused, height]);
 
     // Pull-to-refresh handler (posts stream via onSnapshot; we just show spinner briefly)
     const onRefresh = useCallback(async () => {
@@ -244,7 +262,7 @@ export default function Feed({ navigation, route }) {
             // If pulling down (y<0) or actively refreshing, freeze header animation
             if (y < 0 || refreshingSV.value === 1) {
                 prevY.value = y;
-                runOnJS(handleScroll)({ nativeEvent: { contentOffset: { y } } });
+                runOnJS(handleScrollJS)(y);
                 return;
             }
             const dy = y - prevY.value;
@@ -263,7 +281,7 @@ export default function Feed({ navigation, route }) {
                     runOnJS(setVisibleHeaderJS)(visibleNow);
                 }
             }
-            runOnJS(handleScroll)({ nativeEvent: { contentOffset: { y } } });
+            runOnJS(handleScrollJS)(y);
         },
     });
 
@@ -288,7 +306,7 @@ export default function Feed({ navigation, route }) {
         return () => unsub();
     }, [UID]);
 
-    // Drive a local timer for the header pill when there is an active workout
+    // Drive a local timer for the header pill when there is an active workout (pause when screen blurred)
     useEffect(() => {
         if (headerTimerIdRef.current) {
             try { clearInterval(headerTimerIdRef.current); } catch { }
@@ -297,7 +315,7 @@ export default function Feed({ navigation, route }) {
         headerTimerRef.current = "";
         const wid = String(activeWorkout?.wid || "");
         const createdMs = toMillis(activeWorkout?.created ?? activeWorkout?.createdAt);
-        if (!wid || !createdMs) return;
+        if (!wid || !createdMs || !isScreenFocused) return;
 
         const tick = () => {
             const diff = Math.max(1000, Date.now() - createdMs);
@@ -311,7 +329,10 @@ export default function Feed({ navigation, route }) {
                 headerTimerIdRef.current = null;
             }
         };
-    }, [activeWorkout?.wid, activeWorkout?.created, activeWorkout?.createdAt]);
+    }, [activeWorkout?.wid, activeWorkout?.created, activeWorkout?.createdAt, isScreenFocused]);
+
+    // Clear any pending throttled center calc on unmount
+    useEffect(() => () => { try { if (pendingCenterTimeoutRef.current) { clearTimeout(pendingCenterTimeoutRef.current); pendingCenterTimeoutRef.current = null; } } catch {} }, []);
 
     useEffect(() => {
         registerFeedSetters({
@@ -354,9 +375,9 @@ export default function Feed({ navigation, route }) {
             try { focusBaseSV.value = -delta; } catch { }
             // Begin card translation first, then enter focus mode so header chips hide in sync
             animateView(delta, 0);
-            // Enter focus mode and ensure other posts fade out immediately
+            // Enter focus mode and ensure other posts fade out gradually
             setIsSomePostFocused(true);
-            try { interactiveProgressSV.value = withTiming(0, { duration: 140, easing: ReEasing.out(ReEasing.cubic) }); } catch { }
+            try { interactiveProgressSV.value = withTiming(0, { duration: INTERACTIVE_START_MS, easing: ReEasing.out(ReEasing.cubic) }); } catch { }
         };
 
         if (!preferWaitForHeader) {
@@ -391,8 +412,8 @@ export default function Feed({ navigation, route }) {
 
         // Smoothly reveal header/chips while returning the card
         try {
-            focusHide.value = withTiming(0, { duration: ANIMATION_DURATION, easing: ReEasing.linear });
-            interactiveProgressSV.value = withTiming(1, { duration: ANIMATION_DURATION, easing: ReEasing.linear });
+            focusHide.value = withTiming(0, { duration: ANIMATION_DURATION, easing: ReEasing.out(ReEasing.cubic) });
+            interactiveProgressSV.value = withTiming(1, { duration: ANIMATION_DURATION, easing: ReEasing.out(ReEasing.cubic) });
         } catch { }
 
         // Animate focused card back to its original position
@@ -406,12 +427,12 @@ export default function Feed({ navigation, route }) {
     useEffect(() => {
         focusHide.value = withTiming(
             isSomePostFocused ? headerH.value : 0,
-            { duration: ANIMATION_DURATION, easing: ReEasing.linear }
+            { duration: ANIMATION_DURATION, easing: ReEasing.out(ReEasing.cubic) }
         );
         isFocusSV.value = isSomePostFocused ? 1 : 0;
         // Keep non-focused posts fully visible when leaving focus
         if (!isSomePostFocused) {
-            try { interactiveProgressSV.value = withTiming(1, { duration: ANIMATION_DURATION, easing: ReEasing.linear }); } catch { }
+            try { interactiveProgressSV.value = withTiming(1, { duration: ANIMATION_DURATION, easing: ReEasing.out(ReEasing.cubic) }); } catch { }
         }
     }, [isSomePostFocused]);
 
@@ -446,10 +467,10 @@ export default function Feed({ navigation, route }) {
     const animateView = (translateYValue, opacityValue) => {
         try {
             const clearTranslating = translateYValue === 0;
-            focusTranslateSV.value = withTiming(-translateYValue, { duration: ANIMATION_DURATION, easing: ReEasing.linear }, () => {
+            focusTranslateSV.value = withTiming(-translateYValue, { duration: ANIMATION_DURATION, easing: ReEasing.out(ReEasing.cubic) }, () => {
                 runOnJS(onFocusTranslateEnd)(clearTranslating);
             });
-            storiesOpacitySV.value = withTiming(opacityValue, { duration: ANIMATION_DURATION, easing: ReEasing.linear });
+            storiesOpacitySV.value = withTiming(opacityValue, { duration: ANIMATION_DURATION, easing: ReEasing.out(ReEasing.cubic) });
         } catch {
             // Fallback: clear flags
             isTransitioning.current = false;
@@ -712,6 +733,15 @@ export default function Feed({ navigation, route }) {
         return Comp;
     }, []);
 
+    // Stable viewability handler (avoid re-creating function each render)
+    const onViewableItemsChangedRef = useRef(({ viewableItems }) => {
+        const s = new Set();
+        viewableItems.forEach((v) => {
+            if (typeof v.index === "number" && v.index >= 0) s.add(v.index);
+        });
+        viewableSetRef.current = s;
+    });
+
     // Render a single post (deduped logic)
     const postRefs = useRef({});
     const renderPost = useCallback(
@@ -725,7 +755,7 @@ export default function Feed({ navigation, route }) {
             ];
 
             const isFocusedProp = isSomePostFocused ? isFocusedPost : false;
-            const shouldPlay = !isSomePostFocused && index === centeredIndex;
+            const shouldPlay = isScreenFocused && !isSomePostFocused && index === centeredIndex;
 
             const contentCore = (
                 <Reanimated.View
@@ -790,7 +820,7 @@ export default function Feed({ navigation, route }) {
             }
             return contentCore;
         },
-        [isSomePostFocused, centeredIndex, openCommentsModal, openShareModal, handleFocusPost, toViewProfilePosts, openViewWorkoutModal, panUnfocus]
+        [isSomePostFocused, centeredIndex, openCommentsModal, openShareModal, handleFocusPost, toViewProfilePosts, openViewWorkoutModal, panUnfocus, isScreenFocused]
     );
 
     /* -------------------- HYDRATE allUsersRef.current -------------------- */
@@ -886,9 +916,9 @@ export default function Feed({ navigation, route }) {
                 panEnabledSV.value = 0;
                 if (shouldClose) {
                     // Smoothly finish header reveal to avoid jump
-                    focusHide.value = withTiming(0, { duration: ANIMATION_DURATION, easing: ReEasing.linear });
-                    interactiveProgressSV.value = withTiming(1, { duration: ANIMATION_DURATION, easing: ReEasing.linear });
-                    storiesOpacitySV.value = withTiming(1, { duration: ANIMATION_DURATION, easing: ReEasing.linear });
+                    focusHide.value = withTiming(0, { duration: ANIMATION_DURATION, easing: ReEasing.out(ReEasing.cubic) });
+                    interactiveProgressSV.value = withTiming(1, { duration: ANIMATION_DURATION, easing: ReEasing.out(ReEasing.cubic) });
+                    storiesOpacitySV.value = withTiming(1, { duration: ANIMATION_DURATION, easing: ReEasing.out(ReEasing.cubic) });
                     // Collapse comments immediately for responsiveness
                     runOnJS(signalCommentsCollapse)();
                     // Delegate full unfocus transition to the existing handler
@@ -899,18 +929,18 @@ export default function Feed({ navigation, route }) {
                     panEnabledSV.value = withDelay(ANIMATION_DURATION + 40, withTiming(1, { duration: 0 }));
                 } else {
                     // cancel: return to focused state
-                    focusHide.value = withTiming(headerH.value, { duration: 190, easing: ReEasing.linear });
-                    interactiveProgressSV.value = withTiming(0, { duration: 190, easing: ReEasing.linear });
-                    interTranslateSV.value = withTiming(0, { duration: 190, easing: ReEasing.linear });
-                    storiesOpacitySV.value = withTiming(0, { duration: 160, easing: ReEasing.linear });
+                    focusHide.value = withTiming(headerH.value, { duration: INTERACTIVE_CANCEL_MS, easing: ReEasing.out(ReEasing.cubic) });
+                    interactiveProgressSV.value = withTiming(0, { duration: INTERACTIVE_CANCEL_MS, easing: ReEasing.out(ReEasing.cubic) });
+                    interTranslateSV.value = withTiming(0, { duration: INTERACTIVE_CANCEL_MS, easing: ReEasing.out(ReEasing.cubic) });
+                    storiesOpacitySV.value = withTiming(0, { duration: INTERACTIVE_CANCEL_FADE_MS, easing: ReEasing.out(ReEasing.cubic) });
                     // Animate base back to focused offset on UI thread
-                    focusTranslateSV.value = withTiming(focusBaseSV.value, { duration: 190, easing: ReEasing.linear });
+                    focusTranslateSV.value = withTiming(focusBaseSV.value, { duration: INTERACTIVE_CANCEL_MS, easing: ReEasing.out(ReEasing.cubic) });
                     // Clear flags on JS
                     runOnJS(clearUnfocusFlagsJS)();
                     // Reopen comments to its open position if user cancels
                     runOnJS(signalCommentsReopen)();
                     // Brief lockout before accepting a new pan session
-                    panEnabledSV.value = withDelay(210, withTiming(1, { duration: 0 }));
+                    panEnabledSV.value = withDelay(INTERACTIVE_LOCKOUT_MS, withTiming(1, { duration: 0 }));
                 }
             })
             .onFinalize(() => {
@@ -985,7 +1015,7 @@ export default function Feed({ navigation, route }) {
                         >
                             <Reanimated.FlatList
                                 ref={flatListRef}
-                                bounces={true}
+                                // bounces={true}
                                 alwaysBounceVertical
                                 showsVerticalScrollIndicator={false}
                                 data={listData}
@@ -995,18 +1025,14 @@ export default function Feed({ navigation, route }) {
                                 scrollEventThrottle={16}
                                 stickyHeaderIndices={[]}
                                 viewabilityConfig={{ itemVisiblePercentThreshold: 20 }}
-                                onViewableItemsChanged={({ viewableItems }) => {
-                                    const s = new Set();
-                                    viewableItems.forEach((v) => {
-                                        if (typeof v.index === "number" && v.index >= 0) s.add(v.index);
-                                    });
-                                    viewableSetRef.current = s;
-                                }}
+                                onViewableItemsChanged={onViewableItemsChangedRef.current}
                                 CellRendererComponent={CellRenderer}
                                 // Spacer no longer needed; container top tracks header
                                 // ListHeaderComponent={<Reanimated.View style={spacerStyle} />}
                                 initialNumToRender={3}
                                 windowSize={5}
+                                maxToRenderPerBatch={4}
+                                updateCellsBatchingPeriod={32}
                                 removeClippedSubviews={false}
                                 refreshControl={
                                     <RefreshControl

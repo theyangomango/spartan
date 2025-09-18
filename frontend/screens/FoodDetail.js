@@ -4,7 +4,7 @@ import { View, Text, StyleSheet, Pressable, ScrollView, StatusBar, SafeAreaView,
 import { Ionicons } from '@expo/vector-icons';
 import theme from '../theme/mfpDark';
 import { db } from '../../firebase.config';
-import { doc, updateDoc, serverTimestamp, setDoc, collection, getDoc, deleteField } from 'firebase/firestore';
+import { doc, updateDoc, serverTimestamp, setDoc, deleteField } from 'firebase/firestore';
 import { parseMacrosFromDescription, parseExtraNutrientsFromDescription } from '../utils/nutrition';
 import { getFoodById } from './fatsecretClient';
 import Svg, { Circle } from 'react-native-svg';
@@ -55,7 +55,7 @@ export default function FoodDetail({ navigation, route }) {
     const [apiServing, setApiServing] = useState(null); // temp holder when fetched from API
     const [extrasPS, setExtrasPS] = useState(null); // cached micronutrients per default serving
 
-    // Load extras per serving from fastest sources: entry -> recentFoods cache -> API
+    // Load extras per serving from entry cache → API (no Firestore caches)
     useEffect(() => {
         let cancelled = false;
         (async () => {
@@ -71,19 +71,7 @@ export default function FoodDetail({ navigation, route }) {
                     return;
                 }
 
-                // 2) Try user's recentFoods cache
-                try {
-                    const uid = global?.userData?.uid || global?.userData?.id;
-                    if (uid) {
-                        const recentRef = doc(db, 'users', uid, 'recentFoods', fid);
-                        const snap = await getDoc(recentRef);
-                        const data = snap.exists() ? (snap.data() || {}) : {};
-                        const cached = data.microsPS || data.extrasPerServing;
-                        if (cached && !cancelled) { setExtrasPS(cached); return; }
-                    }
-                } catch {}
-
-                // 3) Fallback to FatSecret API
+                // 2) Fetch from FatSecret API
                 const res = await getFoodById(fid).catch(() => null);
                 const f = res?.food || null;
                 const servings = f?.servings?.serving;
@@ -108,14 +96,7 @@ export default function FoodDetail({ navigation, route }) {
                     setExtrasPS(cached);
                 }
 
-                // Persist to recentFoods cache for faster next time
-                try {
-                    const uid = global?.userData?.uid || global?.userData?.id;
-                    if (uid) {
-                        const recentRef = doc(db, 'users', uid, 'recentFoods', fid);
-                        await setDoc(recentRef, { microsPS: cached, extrasPerServing: cached, lastUsedAt: serverTimestamp() }, { merge: true });
-                    }
-                } catch {}
+                // Do not persist extras to Firestore caches
             } catch {}
         })();
         return () => { cancelled = true; };
@@ -207,6 +188,7 @@ export default function FoodDetail({ navigation, route }) {
                 } else {
                     map[entry.key] = { ...(map[entry.key] || {}), ...patch };
                 }
+                try { global.__loggedFoodsSig = (global.__loggedFoodsSig || 0) + 1; } catch {}
             } catch { }
 
             // 2) Persist to user doc under loggedFoods.<dayKey>.<entryId>
@@ -276,6 +258,7 @@ export default function FoodDetail({ navigation, route }) {
                 const map = global.userData.loggedFoods = global.userData.loggedFoods || {};
                 map[dayKey] = map[dayKey] || {};
                 map[dayKey][newId] = { ...flat, createdAt: Date.now(), updatedAt: Date.now() };
+                try { global.__loggedFoodsSig = (global.__loggedFoodsSig || 0) + 1; } catch {}
             } catch { }
 
             // 2) Persist to user doc under loggedFoods.<dayKey>.<newId>
@@ -290,23 +273,7 @@ export default function FoodDetail({ navigation, route }) {
                 } catch { }
             }
 
-            // best-effort recent-foods (also cache micros per serving)
-            try {
-                const recentRef = doc(db, 'users', uid, 'recentFoods', String(flat.foodId || flat.name));
-                await setDoc(
-                    recentRef,
-                    {
-                        foodId: flat.foodId,
-                        name: flat.name,
-                        brand: flat.brand,
-                        description: flat.desc,
-                        usedCount: 1,
-                        lastUsedAt: serverTimestamp(),
-                        ...(extrasPS ? { microsPS: extrasPS, extrasPerServing: extrasPS } : {}),
-                    },
-                    { merge: true }
-                );
-            } catch { }
+            // No writes to other collections
         } catch (e) {
             console.log('Failed to add food entry:', e?.message || e);
         }
@@ -314,7 +281,7 @@ export default function FoodDetail({ navigation, route }) {
         navigation.goBack();
     };
 
-    const MEAL_OPTIONS = ['Breakfast', 'Lunch', 'Dinner'];
+    const MEAL_OPTIONS = ['Breakfast', 'Lunch', 'Dinner', 'Snacks'];
 
     return (
         <SafeAreaView style={{ flex: 1, backgroundColor: COLORS.bg }}>
@@ -434,25 +401,13 @@ export function FoodDetailInline({ entry = {}, onClose, containerStyle }) {
         return parseExtraNutrientsFromDescription(baseDesc, qty);
     }, [extrasPS, baseDesc, qty]);
 
-    // Fetch extras per serving if we have a foodId; cache in recentFoods for speed
+    // Fetch extras per serving if we have a foodId; otherwise parse from description
     useEffect(() => {
         const fid = String(entry?.foodId || entry?.food_id || '').trim();
         if (!fid) return; // fall back to parsing from desc only
         let cancelled = false;
         (async () => {
             try {
-                // Try user cache first
-                try {
-                    const uid = global?.userData?.uid || global?.userData?.id;
-                    if (uid) {
-                        const recentRef = doc(db, 'users', uid, 'recentFoods', fid);
-                        const snap = await getDoc(recentRef);
-                        const data = snap.exists() ? (snap.data() || {}) : {};
-                        const cached = data.microsPS || data.extrasPerServing;
-                        if (cached && !cancelled) { setExtrasPS(cached); return; }
-                    }
-                } catch {}
-
                 // Fetch from FatSecret
                 const res = await getFoodById(fid).catch(() => null);
                 const f = res?.food || null;
@@ -474,15 +429,6 @@ export function FoodDetailInline({ entry = {}, onClose, containerStyle }) {
                     cholesterol_mg: toNum(def.cholesterol),
                 };
                 if (!cancelled) setExtrasPS(cached);
-
-                // Persist to cache
-                try {
-                    const uid = global?.userData?.uid || global?.userData?.id;
-                    if (uid) {
-                        const recentRef = doc(db, 'users', uid, 'recentFoods', fid);
-                        await setDoc(recentRef, { microsPS: cached, extrasPerServing: cached, lastUsedAt: serverTimestamp() }, { merge: true });
-                    }
-                } catch {}
             } catch {}
         })();
         return () => { cancelled = true; };

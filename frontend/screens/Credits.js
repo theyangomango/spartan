@@ -39,7 +39,7 @@ export default function Credits({ navigation }) {
 
 
                 <Text style={styles.p}>
-                    <Text style={styles.bold}>FatSecret Team</Text> — Thanks for powering macro tracking and approving my application for usage of your barcode scanning API.
+                    <Text style={styles.bold}>FatSecret Team</Text> — Thanks for powering macro tracking and approving usage of your barcode scanning API.
                     I'm so grateful that you gave Spartan's vision a chance.
                 </Text>
 

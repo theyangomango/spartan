@@ -16,6 +16,7 @@ import dinnerIcon from '../assets/dinner.png';
 import snacksIcon from '../assets/snacks.png'
 
 import FoodSearchOverlay from '../components/2_MacroTracking/FoodSearchOverlay';
+import { useFocusEffect } from '@react-navigation/native';
 import MacroGoalsSheet from '../components/2_MacroTracking/MacroGoalsSheet';
 
 // No foodLogs hook for this screen — use global.userData.loggedFoods exclusively
@@ -70,6 +71,7 @@ export default function MacroTracking({ navigation, route }) {
     // Fast caches for global.loggedFoods → day-index and built meals
     const globalIndexRef = useRef(new Map());      // dayKey -> array of { id, entry }
     const globalMealsCacheRef = useRef(new Map()); // dayKey -> { meals, totals }
+    const globalSigRef = useRef(0);                // bump when global.loggedFoods changes
     const macroCacheRef = useRef(new Map());       // `${id}|${desc}|${qty}` -> macros
     const lastCountRef = useRef(0);
     // If opened from HubRow, suppress the next navigation animation once
@@ -276,6 +278,8 @@ export default function MacroTracking({ navigation, route }) {
                 }
                 // Also attempt flat delete for legacy shape
                 try { delete map[entry.key]; } catch {}
+                // bump signature for subscribers
+                try { global.__loggedFoodsSig = (global.__loggedFoodsSig || 0) + 1; } catch {}
             }
         } catch { }
         try {
@@ -407,6 +411,7 @@ export default function MacroTracking({ navigation, route }) {
                 macros,
                 createdAt: Date.now(),
             };
+            try { global.__loggedFoodsSig = (global.__loggedFoodsSig || 0) + 1; } catch {}
         } catch { }
         setMeals((prev) => ({ ...prev, [activeMeal]: [...(prev[activeMeal] || []), entry] }));
         setTotals((prev) => ({
@@ -508,10 +513,10 @@ export default function MacroTracking({ navigation, route }) {
     // Build meals/totals from in-memory global.userData.loggedFoods (instant, memoized)
     function rebuildGlobalIndexIfNeeded() {
         const map = global?.userData?.loggedFoods || {};
-        let count = 0;
-        try { count = Object.keys(map).length; } catch { }
-        if (count === lastCountRef.current && globalIndexRef.current.size > 0) return;
-        lastCountRef.current = count;
+        const sig = Number(global?.__loggedFoodsSig || 0);
+        if (sig === globalSigRef.current && globalIndexRef.current.size > 0) return;
+        globalSigRef.current = sig;
+        // Rebuild from scratch on any signature change
         const idx = new Map();
         try {
             // Two supported shapes:
@@ -603,16 +608,11 @@ export default function MacroTracking({ navigation, route }) {
     }
 
     // Refresh from global when returning to this screen so edits/saves reflect
-    try {
-        // Lazy import inside file to avoid adding a top-level import if navigation is absent in other environments
-        // eslint-disable-next-line @typescript-eslint/no-var-requires
-        var _useFocusEffect = require('@react-navigation/native').useFocusEffect;
-        _useFocusEffect?.(React.useCallback(() => {
-            const built = buildFromGlobal(focusedDate);
-            setMeals(built.meals);
-            setTotals(built.totals);
-        }, [focusedDate]));
-    } catch { /* no-op if hook unavailable */ }
+    useFocusEffect(React.useCallback(() => {
+        const built = buildFromGlobal(focusedDate);
+        setMeals(built.meals);
+        setTotals(built.totals);
+    }, [focusedDate]));
 
     return (
         <GestureHandlerRootView style={{ flex: 1 }}>
@@ -696,8 +696,9 @@ export default function MacroTracking({ navigation, route }) {
                         d.setDate(d.getDate() + offset);
                         d.setHours(0, 0, 0, 0);
                         const fromGlobal = buildFromGlobal(d);
+                        const hasLocalMeals = (meals?.Breakfast?.length || meals?.Lunch?.length || meals?.Dinner?.length || meals?.Snacks?.length);
                         const mealsForPage = offset === 0
-                            ? ((meals?.Breakfast?.length || meals?.Lunch?.length || meals?.Dinner?.length) ? meals : fromGlobal.meals)
+                            ? (hasLocalMeals ? meals : fromGlobal.meals)
                             : fromGlobal.meals;
                         const totalsForPage = offset === 0
                             ? ((totals?.calories || totals?.protein || totals?.carbs || totals?.fat) ? totals : fromGlobal.totals)

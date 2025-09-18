@@ -36,7 +36,7 @@ import { onHexagonUpdate } from "../utils/hexagonEvents";
 // Theme & Hooks (project)
 import { ss, FOOTER_HEIGHT, BTN_SIZE, TPL_BOTTOM_GAP, TPL_HEIGHT } from "../components/3_Workout/sections/workoutTheme";
 import theme from "../theme/mfpDark";
-import { useFoodLogs, primeFoodLogsCache } from "../hooks/useFoodLogs";
+// Remove foodLogs dependency; compute macros from global.userData.loggedFoods only
 import useResolvedUid from "../hooks/useResolvedUid";
 import useUserDoc from "../hooks/useUserDoc";
 import useFriendsActivity from "../hooks/useFriendsActivity";
@@ -141,16 +141,38 @@ export default function Workout({ navigation, route }) {
 
     /* ---------- calories (today) ---------- */
     const stableToday = useMemo(() => { const d = new Date(); d.setHours(0, 0, 0, 0); return d; }, []);
-    const { totals: todayTotals } = useFoodLogs(stableToday, uid, afterPaint);
-    // Warm cache around today on mount for snappier day switches
-    useEffect(() => {
-        const uidX = uid || global?.userData?.uid || global?.userData?.id;
-        if (!uidX) return;
-        const task = InteractionManager.runAfterInteractions(() => {
-            primeFoodLogsCache(uidX, stableToday, 7);
-        });
-        return () => task?.cancel?.();
-    }, [uid, stableToday]);
+    const buildTotalsFromLoggedFoods = useCallback((d) => {
+        const dk = toDayKey(d);
+        const map = global?.userData?.loggedFoods || {};
+        const totals = { calories: 0, protein: 0, carbs: 0, fat: 0 };
+        try {
+            const looksNested = map && typeof map === 'object' && map[dk] && !('dayKey' in (Object.values(map)[0] || {}));
+            const source = looksNested ? (map[dk] || {}) : map;
+            Object.values(source || {}).forEach((e) => {
+                const sameDay = looksNested ? true : (String(e?.dayKey || '') === dk);
+                if (!sameDay) return;
+                const qty = typeof e?.quantity === 'number' ? e.quantity : 1;
+                const m = e?.macros || {};
+                const macros = {
+                    calories: Number(m.calories) || 0,
+                    protein: Number(m.protein) || 0,
+                    carbs: Number(m.carbs) || 0,
+                    fat: Number(m.fat) || 0,
+                };
+                totals.calories += macros.calories;
+                totals.protein += macros.protein;
+                totals.carbs += macros.carbs;
+                totals.fat += macros.fat;
+            });
+        } catch {}
+        return {
+            calories: Math.round(totals.calories),
+            protein: Math.round(totals.protein),
+            carbs: Math.round(totals.carbs),
+            fat: Math.round(totals.fat),
+        };
+    }, []);
+    const todayTotals = useMemo(() => buildTotalsFromLoggedFoods(stableToday), [buildTotalsFromLoggedFoods, stableToday, global?.__loggedFoodsSig]);
     const todayCalories = Math.round(Math.max(0, todayTotals?.calories || 0));
     const caloriesGoal = useMemo(
         () => user?.macroGoals?.calories ?? user?.macrosGoal?.calories ?? 2340,
@@ -457,14 +479,10 @@ export default function Workout({ navigation, route }) {
 
     // Stable callbacks for props used inside conditionally rendered children
     const onDayPressWeek = useCallback((d) => {
-        try {
-            const uidX = global?.userData?.uid || global?.userData?.id || uid;
-            if (uidX) primeFoodLogsCache(uidX, d, 7);
-        } catch { }
         setDaySheetDate(d);
         setDaySheetVisible(true);
         setDaySheetToggle((f) => !f);
-    }, [uid]);
+    }, []);
 
     const onFriendsClose = useCallback(() => setFriendsSheetVisible(false), []);
     const onFriendsJoin = useCallback((item) => {
@@ -493,7 +511,35 @@ export default function Workout({ navigation, route }) {
     const [daySheetVisible, setDaySheetVisible] = useState(false);
     const [daySheetDate, setDaySheetDate] = useState(null);
     const sheetDate = useMemo(() => daySheetDate ?? stableToday, [daySheetDate, stableToday]);
-    const { meals: sheetMeals, totals: sheetTotals } = useFoodLogs(sheetDate, uid, daySheetVisible);
+    const sheetFromGlobal = useMemo(() => {
+        const dk = toDayKey(sheetDate);
+        const map = global?.userData?.loggedFoods || {};
+        const buckets = { Breakfast: [], Lunch: [], Dinner: [], Snacks: [] };
+        const totals = { calories: 0, protein: 0, carbs: 0, fat: 0 };
+        try {
+            const looksNested = map && typeof map === 'object' && map[dk] && !('dayKey' in (Object.values(map)[0] || {}));
+            const source = looksNested ? (map[dk] || {}) : map;
+            Object.entries(source || {}).forEach(([id, e]) => {
+                const sameDay = looksNested ? true : (String(e?.dayKey || '') === dk);
+                if (!sameDay) return;
+                const meal = String(e?.meal || '').toLowerCase();
+                const bucket = meal.startsWith('break') ? 'Breakfast' : meal.startsWith('lun') ? 'Lunch' : meal.startsWith('din') ? 'Dinner' : 'Snacks';
+                const qty = typeof e?.quantity === 'number' ? e.quantity : 1;
+                const m = e?.macros || {};
+                const macros = {
+                    calories: Number(m.calories) || 0,
+                    protein: Number(m.protein) || 0,
+                    carbs: Number(m.carbs) || 0,
+                    fat: Number(m.fat) || 0,
+                };
+                buckets[bucket].push({ key: id, name: e?.name || 'Food', brand: e?.brand || '', desc: e?.desc || '', quantity: qty, foodId: e?.foodId || '', macros });
+                totals.calories += macros.calories; totals.protein += macros.protein; totals.carbs += macros.carbs; totals.fat += macros.fat;
+            });
+        } catch {}
+        return { meals: buckets, totals: { calories: Math.round(totals.calories), protein: Math.round(totals.protein), carbs: Math.round(totals.carbs), fat: Math.round(totals.fat) } };
+    }, [sheetDate, global?.__loggedFoodsSig]);
+    const sheetMeals = sheetFromGlobal.meals;
+    const sheetTotals = sheetFromGlobal.totals;
     const dayWorkouts = useMemo(() => {
         const dk = toDayKey(sheetDate);
         const completed = Array.isArray(global?.userData?.completedWorkouts) ? global.userData.completedWorkouts : [];
@@ -643,10 +689,7 @@ export default function Workout({ navigation, route }) {
                         workoutOn={(dayWorkouts?.length || 0) > 0}
                         onClose={() => setDaySheetVisible(false)}
                         onChangeDate={(d) => {
-                            try {
-                                const uidX = global?.userData?.uid || global?.userData?.id || uid;
-                                if (uidX) primeFoodLogsCache(uidX, d, 7);
-                            } catch { }
+                            // No prefetch: macros derive from global.userData.loggedFoods only
                             try {
                                 const nd = new Date(d);
                                 if (!Number.isNaN(nd.getTime())) nd.setHours(0, 0, 0, 0);
