@@ -153,8 +153,10 @@ const SearchUsersBar = ({ navigation, allUsersRef, disabled = false }) => {
     const [usersCacheTick, setUsersCacheTick] = useState(0);
 
     const suggestions = useMemo(() => {
+        const blockedBySet = new Set((Array.isArray(global?.userData?.blockedBy) ? global.userData.blockedBy : []).map((x) => String(x?.uid || x)));
         const arr = (allUsersRef?.current || [])
             .filter((u) => u?.uid && u.uid !== global?.userData?.uid)
+            .filter((u) => !blockedBySet.has(String(u.uid)))
             .slice(0, 10);
         return arr;
     }, [allUsersRef?.current, usersCacheTick]);
@@ -192,8 +194,10 @@ const SearchUsersBar = ({ navigation, allUsersRef, disabled = false }) => {
     const localFilter = (text) => {
         const all = allUsersRef?.current || [];
         const needle = (text || "").toLowerCase();
+        const blockedBySet = new Set((Array.isArray(global?.userData?.blockedBy) ? global.userData.blockedBy : []).map((x) => String(x?.uid || x)));
         const out = all
             .filter((u) => u?.uid !== global?.userData?.uid)
+            .filter((u) => !blockedBySet.has(String(u?.uid || '')))
             .filter(
                 (u) =>
                     (u?.handle || "").toLowerCase().includes(needle) ||
@@ -229,6 +233,7 @@ const SearchUsersBar = ({ navigation, allUsersRef, disabled = false }) => {
         nSnap.forEach((d) => map.set(d.id, d.data()));
 
         const me = global?.userData?.uid;
+        const blockedBySet = new Set((Array.isArray(global?.userData?.blockedBy) ? global.userData.blockedBy : []).map((x) => String(x?.uid || x)));
         const merged = Array.from(map.entries())
             .map(([uid, data]) => ({
                 uid,
@@ -236,7 +241,7 @@ const SearchUsersBar = ({ navigation, allUsersRef, disabled = false }) => {
                 name: data?.name ?? "",
                 pfp: data?.pfp || data?.photoURL || data?.image || "",
             }))
-            .filter((u) => u.uid !== me);
+            .filter((u) => u.uid !== me && !blockedBySet.has(String(u.uid)));
 
         return merged;
     };

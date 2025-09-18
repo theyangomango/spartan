@@ -23,6 +23,14 @@ export default function useFilteredFeed(followingUsers, max = 50) {
         );
         if (global?.userData?.uid) allowedUids.add(global.userData.uid);
 
+        // Exclusions: users I blocked or who blocked me
+        const myBlocked = Array.isArray(global?.userData?.blocked) ? global.userData.blocked : [];
+        const myBlockedBy = Array.isArray(global?.userData?.blockedBy) ? global.userData.blockedBy : [];
+        const excludeUids = new Set([
+            ...myBlocked.map((x) => (x?.uid || x)).filter(Boolean),
+            ...myBlockedBy.map((x) => (x?.uid || x)).filter(Boolean),
+        ].map(String));
+
         // Reset caches when filtering basis changes
         mapRef.current = new Map();
         orderRef.current = [];
@@ -32,7 +40,8 @@ export default function useFilteredFeed(followingUsers, max = 50) {
             const idsInSnapshot = [];
             snapshot.docs.forEach(d => {
                 const data = d.data();
-                const include = allowedUids.has(data?.uid);
+                const uid = String(data?.uid || '');
+                const include = allowedUids.has(uid) && !excludeUids.has(uid);
                 if (include) idsInSnapshot.push(d.id);
             });
 
@@ -42,7 +51,8 @@ export default function useFilteredFeed(followingUsers, max = 50) {
             snapshot.docChanges().forEach(c => {
                 const id = c.doc.id;
                 const data = c.doc.data();
-                const include = allowedUids.has(data?.uid);
+                const uid = String(data?.uid || '');
+                const include = allowedUids.has(uid) && !excludeUids.has(uid);
                 if (c.type === 'removed' || !include) {
                     if (nextMap.has(id)) { nextMap.delete(id); touched = true; }
                     return;

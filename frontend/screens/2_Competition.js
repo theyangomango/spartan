@@ -157,6 +157,37 @@ const summaryOf = (c) => {
     return parts.join(" • ");
 };
 
+// Hide users when either side has blocked the other.
+function filterBlockedVisibility(list) {
+    try {
+        const meUid = String(global?.userData?.uid || '');
+        if (!meUid) return list;
+        const myBlocked = Array.isArray(global?.userData?.blocked) ? global.userData.blocked : [];
+        const myBlockedSet = new Set(
+            myBlocked.map((x) => String((x && (x.uid || x.id)) || x || ''))
+        );
+        const theyBlockedMe = (u) => {
+            const arr = Array.isArray(u?.blocked) ? u.blocked : [];
+            for (let i = 0; i < arr.length; i++) {
+                const item = arr[i];
+                const uid = String((item && (item.uid || item.id)) || item || '');
+                if (uid === meUid) return true;
+            }
+            return false;
+        };
+        return (Array.isArray(list) ? list : []).filter((u) => {
+            const uid = String(u?.uid || '');
+            if (!uid) return false;
+            if (uid === meUid) return true; // always include self
+            if (myBlockedSet.has(uid)) return false; // I blocked them
+            if (theyBlockedMe(u)) return false; // they blocked me
+            return true;
+        });
+    } catch {
+        return list;
+    }
+}
+
 export default function Competition({ navigation, route }) {
     const usersRef = useRef([]);
     const userUnsubRef = useRef(null);
@@ -351,10 +382,11 @@ export default function Competition({ navigation, route }) {
 
             const memberSet = new Set(currentTribe.members || []);
             const tribeUsers = all.filter((u) => memberSet.has(u?.uid));
+            const visible = filterBlockedVisibility(tribeUsers);
             if (activeComparison) {
-                setUserList(computeTribeRanking(tribeUsers, activeComparison));
+                setUserList(computeTribeRanking(visible, activeComparison));
             } else {
-                setUserList(rankUsers(tribeUsers, comparedExercise, comparedMetric));
+                setUserList(rankUsers(visible, comparedExercise, comparedMetric));
             }
             return;
         }
@@ -363,9 +395,11 @@ export default function Competition({ navigation, route }) {
         if (scope === "Following") {
             const followingSet = new Set((global.userData?.following || []).map((u) => u.uid));
             const base = all.filter((usr) => usr?.uid === global.userData?.uid || followingSet.has(usr?.uid));
-            setUserList(rankUsers(base, comparedExercise, comparedMetric));
+            const visible = filterBlockedVisibility(base);
+            setUserList(rankUsers(visible, comparedExercise, comparedMetric));
         } else {
-            setUserList(rankUsers(all, comparedExercise, comparedMetric)); // Global
+            const visible = filterBlockedVisibility(all);
+            setUserList(rankUsers(visible, comparedExercise, comparedMetric)); // Global
         }
     }, [isCustomTribe, tribesHydrated, currentTribe, activeComparison, comparedExercise, comparedMetric, scope]);
 

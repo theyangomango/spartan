@@ -11,7 +11,8 @@ import { useFocusEffect } from '@react-navigation/native';
 import { StatusBar } from "expo-status-bar";
 import { doc, onSnapshot } from "firebase/firestore";
 import { useSafeAreaInsets, SafeAreaView as SafeAreaInsetsView } from "react-native-safe-area-context";
-import Reanimated, { useSharedValue, useAnimatedScrollHandler, useAnimatedStyle, runOnJS, withTiming, Easing as ReEasing } from 'react-native-reanimated';
+import Reanimated, { useSharedValue, useAnimatedScrollHandler, useAnimatedStyle, useDerivedValue, runOnJS, withTiming, withSpring, Easing as ReEasing } from 'react-native-reanimated';
+import { Gesture, GestureDetector } from 'react-native-gesture-handler';
 
 import Post from "../components/1_Feed/Posts/Post";
 import FeedHeader from "../components/1_Feed/FeedHeader";
@@ -51,6 +52,8 @@ export default function Feed({ navigation, route }) {
     const [shareBottomSheetCloseFlag, setShareBottomSheetCloseFlag] = useState(false);
     const [notificationsBottomSheetExpandFlag, setNotificationsBottomSheetExpandFlag] = useState(false);
     const [commentsBottomSheetExpandFlag, setCommentsBottomSheetExpandFlag] = useState(false);
+    const [commentsCollapseSignal, setCommentsCollapseSignal] = useState(0);
+    const [commentsReopenSignal, setCommentsReopenSignal] = useState(0);
     // Pre-mounted bottom sheet viewer for workouts
     const [feedWorkoutExpandToggle, setFeedWorkoutExpandToggle] = useState(false);
     const [feedSelectedWorkout, setFeedSelectedWorkout] = useState(null);
@@ -65,6 +68,8 @@ export default function Feed({ navigation, route }) {
     const focusedPostIndex = useRef(-1);
     const flatListRef = useRef(null);
     const isTransitioning = useRef(false); /* 🔒 */
+    const isUnfocusingRef = useRef(false); // true while interactive unfocus gesture is active
+    const [unfocusGestureActive, setUnfocusGestureActive] = useState(false);
 
     // ✅ Shared header users (global/users + following + prefetch)
     const { allUsersRef, mergeUsersIntoRef } = useHeaderSearchUsers({
@@ -82,8 +87,11 @@ export default function Feed({ navigation, route }) {
     const setVisibleHeaderJS = (v) => { visibleHeaderHRef.current = v || 0; };
     // Measure the compact back header shown during focus
     const backHeaderHRef = useRef(0);
+    const [backHeaderH, setBackHeaderH] = useState(0);
     // Track last consumed global scroll-to-top signal
     const feedTopSignalRef = useRef(0);
+    // Keep track of which index is currently translating (focus/unfocus animation)
+    const translatingIndexRef = useRef(-1);
 
     // Highlight target when navigating from notifications
     const highlightPidRef = useRef(null);
@@ -94,10 +102,9 @@ export default function Feed({ navigation, route }) {
     const [programFocusSignal, setProgramFocusSignal] = useState(0);
     // For reliable programmatic focus
     const lastScrollTsRef = useRef(0);
+    const focusOffsetRef = useRef(0); // current focused translateY offset (negative)
 
     /* ---------- animated values ---------- */
-    const translateY = useRef(new Animated.Value(0)).current;
-    const storiesOpacity = useRef(new Animated.Value(1)).current;
     // Reanimated header reveal values (UI thread)
     const headerH = useSharedValue(0);
     const chipsH = useSharedValue(0); // minimum visible height (keep chips in view)
@@ -106,6 +113,12 @@ export default function Feed({ navigation, route }) {
     const prevY = useSharedValue(0);
     const focusHide = useSharedValue(0); // when focusing a post, fully hide header
     const isFocusSV = useSharedValue(0); // freeze JS mirrors during focus
+    // Interactive unfocus shared values
+    const interactiveProgressSV = useSharedValue(0); // 0..1
+    const focusBaseSV = useSharedValue(0);          // base focused translateY (negative)
+    const interTranslateSV = useSharedValue(0);     // overlay translate during drag
+    const focusTranslateSV = useSharedValue(0);     // base translate for focus/unfocus
+    const storiesOpacitySV = useSharedValue(1);     // chips fade
     // Animated styles: overlay header translate + spacer height
     const overlayHeaderStyle = useAnimatedStyle(() => {
         const totalHidden = Math.min(headerH.value, hidden.value + focusHide.value);
@@ -115,12 +128,25 @@ export default function Feed({ navigation, route }) {
         const totalHidden = Math.min(headerH.value, hidden.value + focusHide.value);
         return { height: Math.max(0, headerH.value - totalHidden) };
     });
-    // Animated container for MaskedView to track visible header height smoothly
-    const maskContainerStyle = useAnimatedStyle(() => {
+    // Smooth the visible header height to remove tiny step changes while preserving scroll/touch behavior
+    const visibleSmoothSV = useSharedValue(0);
+    useDerivedValue(() => {
         const totalHidden = Math.min(headerH.value, hidden.value + focusHide.value);
-        const visible = Math.max(0, headerH.value - totalHidden);
-        return { top: visible };
+        const raw = Math.max(0, headerH.value - totalHidden);
+        // Half-pixel rounding reduces sub-pixel thrash
+        const target = Math.round(raw * 2) / 2;
+        const diff = Math.abs(visibleSmoothSV.value - target);
+        if (diff < 0.15) {
+            visibleSmoothSV.value = target;
+        } else {
+            // Gentle spring for buttery motion without notable lag
+            visibleSmoothSV.value = withSpring(target, { damping: 22, stiffness: 240, mass: 1 });
+        }
     });
+    const maskContainerStyle = useAnimatedStyle(() => ({ top: visibleSmoothSV.value }));
+    const chipsOpacityStyle = useAnimatedStyle(() => ({ opacity: storiesOpacitySV.value }));
+    // Combined translate (base focus translate + interactive overlay)
+    const interPostStyle = useAnimatedStyle(() => ({ transform: [{ translateY: focusTranslateSV.value + interTranslateSV.value }] }));
 
     // Header workout pill state
     const [activeWorkout, setActiveWorkout] = useState(null);
@@ -287,13 +313,20 @@ export default function Feed({ navigation, route }) {
         stopFlatListMomentum();
 
         focusedPostIndex.current = index;
+        translatingIndexRef.current = index;
+        // Enter focus mode and ensure other posts fade out immediately
         setIsSomePostFocused(true);
+        try { interactiveProgressSV.value = withTiming(0, { duration: 140, easing: ReEasing.out(ReEasing.cubic) }); } catch { }
         const run = () => {
             const Vstart = visibleHeaderHRef.current || 0; // overlay header+chips visible height right before focus
             const Vfinal = backHeaderHRef.current || (insets?.top ? insets.top + 44 : TARGET_POSITION);
             // Needed translation Δ for the card: Vfinal - (pageY - Vstart) = - (pageY - Vstart - Vfinal)
             // animateView negates the input, so pass (pageY - Vstart - Vfinal)
-            animateView(pageY - Vstart - Vfinal, 0);
+            const delta = pageY - Vstart - Vfinal;
+            // store target focused offset for interactive gesture math
+            focusOffsetRef.current = -delta;
+            try { focusBaseSV.value = -delta; } catch { }
+            animateView(delta, 0);
         };
         if (!preferWaitForHeader) {
             setTimeout(run, 0);
@@ -315,10 +348,21 @@ export default function Feed({ navigation, route }) {
         if (isTransitioning.current) return; /* 🔒 */
         isTransitioning.current = true;
 
-        setIsSomePostFocused(false);
+        // Collapse comments immediately to avoid lag
+        try { setCommentsCollapseSignal(Date.now()); } catch { }
+        // Initiate share sheet close if open
         setShareBottomSheetCloseFlag((f) => !f);
+
+        // Smoothly reveal header/chips while returning the card
+        try {
+            focusHide.value = withTiming(0, { duration: ANIMATION_DURATION, easing: ReEasing.linear });
+            interactiveProgressSV.value = withTiming(1, { duration: ANIMATION_DURATION, easing: ReEasing.linear });
+        } catch { }
+
+        // Animate focused card back to its original position
         animateView(0, 1);
 
+        // Re-enable list scroll immediately; visual remains pinned by translation until end
         flatListRef.current?.setNativeProps({ scrollEnabled: true });
     };
 
@@ -329,6 +373,10 @@ export default function Feed({ navigation, route }) {
             { duration: ANIMATION_DURATION, easing: ReEasing.linear }
         );
         isFocusSV.value = isSomePostFocused ? 1 : 0;
+        // Keep non-focused posts fully visible when leaving focus
+        if (!isSomePostFocused) {
+            try { interactiveProgressSV.value = withTiming(1, { duration: ANIMATION_DURATION, easing: ReEasing.linear }); } catch { }
+        }
     }, [isSomePostFocused]);
 
 
@@ -344,25 +392,47 @@ export default function Feed({ navigation, route }) {
     };
 
     /* ---------- helper: run the trio animation ---------- */
+    const onFocusTranslateEnd = useCallback((clearTranslating) => {
+        // Called after the translate animation settles
+        isTransitioning.current = false; /* 🔓 unlock */
+        isUnfocusingRef.current = false;
+        if (clearTranslating) {
+            // Finishing unfocus: commit state after animation to avoid layout jump
+            try { setIsSomePostFocused(false); } catch { }
+            try { focusedPostIndex.current = -1; } catch { }
+            translatingIndexRef.current = -1;
+            try { setUnfocusGestureActive(false); } catch { }
+        }
+    }, []);
+
     const animateView = (translateYValue, opacityValue) => {
-        Animated.parallel([
-            Animated.timing(translateY, {
-                toValue: -translateYValue,
-                duration: ANIMATION_DURATION,
-                easing: RNEasing.linear,
-                useNativeDriver: true,
-            }),
-            Animated.timing(storiesOpacity, {
-                toValue: opacityValue,
-                duration: ANIMATION_DURATION,
-                easing: RNEasing.linear,
-                useNativeDriver: true,
-            }),
-        ]).start(() => {
-            isTransitioning.current = false; /* 🔓 unlock */
-            if (translateYValue === 0) focusedPostIndex.current = -1;
-        });
+        try {
+            const clearTranslating = translateYValue === 0;
+            focusTranslateSV.value = withTiming(-translateYValue, { duration: ANIMATION_DURATION, easing: ReEasing.linear }, () => {
+                runOnJS(onFocusTranslateEnd)(clearTranslating);
+            });
+            storiesOpacitySV.value = withTiming(opacityValue, { duration: ANIMATION_DURATION, easing: ReEasing.linear });
+        } catch {
+            // Fallback: clear flags
+            isTransitioning.current = false;
+            isUnfocusingRef.current = false;
+        }
     };
+
+    // JS helpers for runOnJS calls from worklet
+    const scheduleClearUnfocusGestureActive = useCallback((delayMs) => {
+        try { setTimeout(() => setUnfocusGestureActive(false), delayMs || 0); } catch { }
+    }, []);
+    const clearUnfocusFlagsJS = useCallback(() => {
+        try { isUnfocusingRef.current = false; } catch { }
+        try { setUnfocusGestureActive(false); } catch { }
+    }, []);
+    const signalCommentsCollapse = useCallback(() => {
+        try { setCommentsCollapseSignal(Date.now()); } catch { }
+    }, []);
+    const signalCommentsReopen = useCallback(() => {
+        try { setCommentsReopenSignal(Date.now()); } catch { }
+    }, []);
 
     // Go to Messages screen (always navigate; pass extras if available)
     const toMessagesScreen = () => {
@@ -574,16 +644,17 @@ export default function Feed({ navigation, route }) {
     const renderPost = useCallback(
         ({ item, index }) => {
             const isFocusedPost = index === focusedPostIndex.current;
+            const isTranslatingPost = index === translatingIndexRef.current;
             const wrapperStyle = [
                 styles.postWrapper,
-                isFocusedPost && { transform: [{ translateY }], zIndex: 1 },
+                (isFocusedPost || isTranslatingPost) && { zIndex: 1 },
             ];
 
             const isFocusedProp = isSomePostFocused ? isFocusedPost : false;
             const shouldPlay = !isSomePostFocused && index === centeredIndex;
 
-            return (
-                <Animated.View style={wrapperStyle}>
+            const contentCore = (
+                <Reanimated.View style={wrapperStyle}>
                     <Post
                         data={item}
                         index={index}
@@ -594,16 +665,48 @@ export default function Feed({ navigation, route }) {
                         openViewWorkoutModal={openViewWorkoutModal}
                         isFocused={isFocusedProp}
                         isSomePostFocused={isSomePostFocused}
+                        focusModeSV={isFocusSV}
+                        interactiveUnfocusSV={interactiveProgressSV}
+                        interactiveActive={isFocusedProp ? unfocusGestureActive : false}
                         highlightPid={highlightPidRef.current}
                         highlightSignal={highlightSignal}
                         programFocusPid={programFocusPidRef.current}
                         programFocusSignal={programFocusSignal}
                         shouldPlay={shouldPlay}
                     />
-                </Animated.View>
+                </Reanimated.View>
             );
+
+            // Keep transform applied for both focused and translating states; attach gesture only when focused
+            if (isFocusedPost || isTranslatingPost) {
+                const inner = (
+                    <Reanimated.View style={[wrapperStyle, interPostStyle]}>
+                        <Post
+                            data={item}
+                            index={index}
+                            openCommentsModal={openCommentsModal}
+                            openShareModal={openShareModal}
+                            handleFocusPost={handleFocusPost}
+                            toViewProfile={toViewProfilePosts}
+                            openViewWorkoutModal={openViewWorkoutModal}
+                            isFocused={isFocusedPost}
+                            isSomePostFocused={isSomePostFocused}
+                            focusModeSV={isFocusSV}
+                            interactiveUnfocusSV={interactiveProgressSV}
+                            interactiveActive={unfocusGestureActive}
+                            highlightPid={highlightPidRef.current}
+                            highlightSignal={highlightSignal}
+                            programFocusPid={programFocusPidRef.current}
+                            programFocusSignal={programFocusSignal}
+                            shouldPlay={shouldPlay}
+                        />
+                    </Reanimated.View>
+                );
+                return inner;
+            }
+            return contentCore;
         },
-        [isSomePostFocused, centeredIndex, openCommentsModal, openShareModal, handleFocusPost, toViewProfilePosts, openViewWorkoutModal]
+        [isSomePostFocused, centeredIndex, openCommentsModal, openShareModal, handleFocusPost, toViewProfilePosts, openViewWorkoutModal, panUnfocus]
     );
 
     /* -------------------- HYDRATE allUsersRef.current -------------------- */
@@ -622,71 +725,164 @@ export default function Feed({ navigation, route }) {
     const listData = useMemo(() => ([...(posts || [])]), [posts]);
     const listKeyExtractor = useCallback((item, i) => String(item?.pid || item?.id || i), []);
 
+    // ---------- Upward pan to unfocus (interactive) ----------
+    // Use device height to set a sensible drag distance
+    const FULL_GESTURE_PX = Math.max(96, Math.min(height * 0.18, 220));
+    // Slow down interactive progress curve so visuals advance more gradually
+    const PROGRESS_SLOW_K = 1.45; // >1 slows early progress, catches up near end
+    const CLOSE_THRESHOLD = 0.07; // compensate for slowed progress so close distance feels similar
+    const panUnfocus = useMemo(() => {
+        return Gesture.Pan()
+            .minPointers(1)
+            .maxPointers(1)
+            // Immediately give up when the user swipes horizontally (so carousels scroll)
+            .failOffsetX([-3, 3])
+            .activeOffsetY([-6, 6])
+            // Expand the gesture start region both above AND below the post.
+            // This ensures that after focusing a top-clipped post, gestures remain
+            // responsive across the entire visual card, not just the originally
+            // visible slice. Symmetric hitSlop prevents dead zones near the bottom.
+            .hitSlop({ top: height, bottom: height, left: 0, right: 0 })
+            .shouldCancelWhenOutside(false)
+            .cancelsTouchesInView(false)
+            .enabled(!!isSomePostFocused)
+            .simultaneousWithExternalGesture(Gesture.Native())
+            .onBegin(() => {
+                // mark interactive
+                isUnfocusingRef.current = true;
+                runOnJS(setUnfocusGestureActive)(true);
+                interactiveProgressSV.value = 0;
+                interTranslateSV.value = 0;
+            })
+            .onUpdate((e) => {
+                if (!isSomePostFocused) return;
+                const ty = Math.min(0, e.translationY);
+                const dyUp = -ty; // positive upwards drag in px
+                let pLin = dyUp / FULL_GESTURE_PX;
+                if (pLin < 0) pLin = 0; if (pLin > 1) pLin = 1;
+                // Apply eased curve for a more gradual feel
+                const p = Math.pow(pLin, PROGRESS_SLOW_K);
+                interactiveProgressSV.value = p;
+                // Reveal overlay header and chips progressively
+                const fh = headerH.value || 0;
+                focusHide.value = Math.max(0, fh * (1 - p));
+                // Fade stories/chips and offset focused post without touching RN Animated in JS
+                storiesOpacitySV.value = p;
+                interTranslateSV.value = focusBaseSV.value * (-p);
+            })
+            .onEnd((e) => {
+                if (!isSomePostFocused) return;
+                const ty = Math.min(0, e.translationY);
+                let p = (-ty) / FULL_GESTURE_PX;
+                if (p < 0) p = 0; if (p > 1) p = 1;
+                const shouldClose = p > CLOSE_THRESHOLD || (e.velocityY || 0) < -500;
+                // Compute combined translation at release and hand off on UI thread
+                const baseNow = focusBaseSV.value || 0;
+                focusTranslateSV.value = baseNow * (1 - p);
+                interTranslateSV.value = 0;
+                if (shouldClose) {
+                    // Smoothly finish header reveal to avoid jump
+                    focusHide.value = withTiming(0, { duration: ANIMATION_DURATION, easing: ReEasing.linear });
+                    interactiveProgressSV.value = withTiming(1, { duration: ANIMATION_DURATION, easing: ReEasing.linear });
+                    storiesOpacitySV.value = withTiming(1, { duration: ANIMATION_DURATION, easing: ReEasing.linear });
+                    // Collapse comments immediately for responsiveness
+                    runOnJS(signalCommentsCollapse)();
+                    // Delegate full unfocus transition to the existing handler
+                    runOnJS(handleBackPress)();
+                    // Keep wrapper for the duration to avoid a frame of unwrapped layout
+                    runOnJS(scheduleClearUnfocusGestureActive)(ANIMATION_DURATION + 20);
+                } else {
+                    // cancel: return to focused state
+                    focusHide.value = withTiming(headerH.value, { duration: 190, easing: ReEasing.linear });
+                    interactiveProgressSV.value = withTiming(0, { duration: 190, easing: ReEasing.linear });
+                    interTranslateSV.value = withTiming(0, { duration: 190, easing: ReEasing.linear });
+                    storiesOpacitySV.value = withTiming(0, { duration: 160, easing: ReEasing.linear });
+                    // Animate base back to focused offset on UI thread
+                    focusTranslateSV.value = withTiming(focusBaseSV.value, { duration: 190, easing: ReEasing.linear });
+                    // Clear flags on JS
+                    runOnJS(clearUnfocusFlagsJS)();
+                    // Reopen comments to its open position if user cancels
+                    runOnJS(signalCommentsReopen)();
+                }
+            })
+            .onFinalize(() => {
+                // keep isUnfocusingRef until animateView callback clears it on success path
+            });
+    }, [isSomePostFocused, height]);
+
     return (
         <SafeAreaView style={{ flex: 1, backgroundColor: theme.bg }}>
             <SafeAreaView style={styles.mainContainer}>
                 <StatusBar style="light" />
 
-                <Reanimated.View
-                    style={[{
-                        position: 'absolute',
-                        left: 0,
-                        right: 0,
-                        bottom: 0,
-                    }, maskContainerStyle]}
-                >
-                    <MaskedView
-                        style={{ flex: 1 }}
-                        maskElement={
-                            <View style={{ flex: 1, backgroundColor: 'transparent' }}>
-                                <View
-                                    style={{
-                                        width: '100%',
-                                        height: '100%',
-                                        backgroundColor: 'black',
-                                        borderRadius: 35,
-                                    }}
-                                />
-                            </View>
-                        }
+                <GestureDetector gesture={panUnfocus}>
+                    <Reanimated.View
+                        style={[{
+                            position: 'absolute',
+                            left: 0,
+                            right: 0,
+                            bottom: 0,
+                        }, maskContainerStyle]}
                     >
-                        <Reanimated.FlatList
-                            ref={flatListRef}
-                            bounces={true}
-                            alwaysBounceVertical
-                            showsVerticalScrollIndicator={false}
-                            data={listData}
-                            keyExtractor={listKeyExtractor}
-                            renderItem={({ item, index }) => renderPost({ item, index })}
-                            onScroll={onScrollRe}
-                            scrollEventThrottle={16}
-                            stickyHeaderIndices={[]}
-                            viewabilityConfig={{ itemVisiblePercentThreshold: 20 }}
-                            onViewableItemsChanged={({ viewableItems }) => {
-                                const s = new Set();
-                                viewableItems.forEach((v) => {
-                                    if (typeof v.index === "number" && v.index >= 0) s.add(v.index);
-                                });
-                                viewableSetRef.current = s;
-                            }}
-                            CellRendererComponent={CellRenderer}
-                            // Spacer no longer needed; container top tracks header
-                            // ListHeaderComponent={<Reanimated.View style={spacerStyle} />}
-                            initialNumToRender={3}
-                            windowSize={5}
-                            removeClippedSubviews={false}
-                            refreshControl={
-                                <RefreshControl
-                                    refreshing={refreshing}
-                                    onRefresh={onRefresh}
-                                    tintColor={theme.textPrimary}
-                                    colors={[theme.textPrimary]}
-                                    progressBackgroundColor={theme.bg}
-                                />
+                        <MaskedView
+                            style={{ flex: 1 }}
+                            maskElement={
+                                <View style={{ flex: 1, backgroundColor: 'transparent' }}>
+                                    <View
+                                        style={{
+                                            width: '100%',
+                                            height: '100%',
+                                            backgroundColor: 'black',
+                                            borderRadius: 35,
+                                        }}
+                                    />
+                                </View>
                             }
-                        />
-                    </MaskedView>
-                </Reanimated.View>
+                        >
+                            <Reanimated.FlatList
+                                ref={flatListRef}
+                                bounces={true}
+                                alwaysBounceVertical
+                                showsVerticalScrollIndicator={false}
+                                data={listData}
+                                keyExtractor={listKeyExtractor}
+                                renderItem={({ item, index }) => renderPost({ item, index })}
+                                onScroll={onScrollRe}
+                                scrollEventThrottle={16}
+                                stickyHeaderIndices={[]}
+                                viewabilityConfig={{ itemVisiblePercentThreshold: 20 }}
+                                onViewableItemsChanged={({ viewableItems }) => {
+                                    const s = new Set();
+                                    viewableItems.forEach((v) => {
+                                        if (typeof v.index === "number" && v.index >= 0) s.add(v.index);
+                                    });
+                                    viewableSetRef.current = s;
+                                }}
+                                CellRendererComponent={CellRenderer}
+                                // Spacer no longer needed; container top tracks header
+                                // ListHeaderComponent={<Reanimated.View style={spacerStyle} />}
+                                initialNumToRender={3}
+                                windowSize={5}
+                                removeClippedSubviews={false}
+                                refreshControl={
+                                    <RefreshControl
+                                        refreshing={refreshing}
+                                        onRefresh={onRefresh}
+                                        tintColor={theme.textPrimary}
+                                        colors={[theme.textPrimary]}
+                                        progressBackgroundColor={theme.bg}
+                                    />
+                                }
+                            />
+                        </MaskedView>
+                    </Reanimated.View>
+                </GestureDetector>
+
+                {/* Full-screen unfocus pan is handled by the GestureDetector
+                    wrapping the list container above. It’s enabled only while
+                    a post is focused and configured to fail quickly on
+                    horizontal motion, so horizontal media swipes remain
+                    responsive. */}
             </SafeAreaView>
 
             {/* Overlay header (FeedHeader + ActivityChips) that reveals/collapses; spacer keeps posts pushed */}
@@ -719,15 +915,15 @@ export default function Feed({ navigation, route }) {
                         timerRef={headerTimerRef}
                         heightAdjust={-2}
                     />
-                    <Animated.View
+                    <Reanimated.View
                         onLayout={(e) => {
                             const h = e.nativeEvent.layout.height || 0;
                             if (h && Math.abs(h - chipsH.value) > 1) chipsH.value = h;
                         }}
-                        style={{ opacity: storiesOpacity }}
+                        style={chipsOpacityStyle}
                     >
                         <ActivityChips navigation={navigation} />
-                    </Animated.View>
+                    </Reanimated.View>
                     {/* Rounded separator mask to keep a smooth transition into posts */}
                     {/* <ChipsRoundMask onLayout={(e) => {
                         const h = e.nativeEvent.layout.height || 0;
@@ -739,7 +935,7 @@ export default function Feed({ navigation, route }) {
                 {isSomePostFocused && (
                     <SafeAreaInsetsView
                         edges={['top']}
-                        onLayout={(e) => { backHeaderHRef.current = e.nativeEvent.layout.height || 0; }}
+                        onLayout={(e) => { const h = e.nativeEvent.layout.height || 0; backHeaderHRef.current = h; setBackHeaderH(h); }}
                         style={{ position: 'absolute', top: 0, left: 0, right: 0, zIndex: 30, backgroundColor: theme.bg }}
                     >
                         <FeedHeader
@@ -760,6 +956,7 @@ export default function Feed({ navigation, route }) {
             {/* Top safe-area mask to hide content above inset */}
             <View pointerEvents="none" style={{ position: 'absolute', top: 0, left: 0, right: 0, height: insets.top, backgroundColor: theme.bg, zIndex: 25 }} />
 
+            {/* Pan overlay handled above; nothing additional here. */}
 
 
             <NotificationsBottomSheet notificationsBottomSheetExpandFlag={notificationsBottomSheetExpandFlag} />
@@ -768,6 +965,11 @@ export default function Feed({ navigation, route }) {
                 postData={focusedPostIndex.current === -1 ? null : posts[focusedPostIndex.current]}
                 commentsBottomSheetExpandFlag={commentsBottomSheetExpandFlag}
                 toViewProfile={toViewProfileComments}
+                // Drive interactive collapse during pan-to-unfocus
+                interactiveProgressSV={interactiveProgressSV}
+                interactiveScale={3.0}
+                collapseSignal={commentsCollapseSignal}
+                reopenSignal={commentsReopenSignal}
             />
             <ShareBottomSheet
                 shareBottomSheetCloseFlag={shareBottomSheetCloseFlag}

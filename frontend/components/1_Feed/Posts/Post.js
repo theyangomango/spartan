@@ -13,17 +13,16 @@ import {
     FlatList,
     Dimensions,
 } from "react-native";
+import Reanimated, { useAnimatedStyle } from 'react-native-reanimated';
 import FastImage from "react-native-fast-image";
 import Video from "react-native-video";
 import PostHeader from "./PostHeader";
 import PostFooter from "./PostFooter";
-import theme from "../../../theme/mfpDark";
 
 const { width: W } = Dimensions.get("window");
 const AR = 0.8;
 const BORDER = 35;
 
-const FADE_MS = 80;
 const B_IN = 1.02;
 const B_OUT = 1;
 const B_FRICTION = 60;
@@ -68,6 +67,11 @@ function Post({
     index,
     isFocused,
     isSomePostFocused,
+    // Reanimated shared values from Feed for focus/unfocus
+    focusModeSV,
+    interactiveUnfocusSV,
+    // whether the interactive unfocus pan is currently active (used only for focused post UI elsewhere)
+    interactiveActive,
     handleFocusPost,
     openCommentsModal,
     openShareModal,
@@ -87,7 +91,6 @@ function Post({
         if (Array.isArray(data?.images)) return data.images.map((u) => ({ uri: u, type: 'image' }));
         return [];
     }, [data?.media, data?.images]);
-    const opacity = useRef(new Animated.Value(1)).current;
     const highlightOpacity = useRef(new Animated.Value(0)).current;
     const scale = useRef(new Animated.Value(1)).current;
     const viewRef = useRef(null);
@@ -96,14 +99,7 @@ function Post({
     const [currentIndex, setCurrentIndex] = useState(0);
     const [pausedList, setPausedList] = useState(mediaList.map(() => false));
 
-    // Fade when another post is focused
-    useEffect(() => {
-        Animated.timing(opacity, {
-            toValue: !isSomePostFocused || isFocused ? 1 : 0,
-            duration: FADE_MS,
-            useNativeDriver: true,
-        }).start();
-    }, [isSomePostFocused, isFocused]);
+    // RN Animated opacity removed to avoid mixing with Reanimated on the same view
 
     // Memo styles
     const [containerStyle, imageStyle] = useMemo(() => {
@@ -122,7 +118,7 @@ function Post({
     useEffect(() => {
         const match = highlightPid && String(data?.pid || '') === String(highlightPid);
         if (!match || !highlightSignal) return;
-        try { highlightOpacity.stopAnimation(); } catch { }
+        try { highlightOpacity.stopAnimation(); } catch {}
         highlightOpacity.setValue(0);
         Animated.sequence([
             Animated.timing(highlightOpacity, { toValue: 0.22, duration: 180, useNativeDriver: true }),
@@ -135,7 +131,7 @@ function Post({
         const should = programFocusPid && String(programFocusPid) === String(data?.pid || '');
         if (!should || isSomePostFocused) return;
         const id = setTimeout(() => {
-            try { focusMe(); } catch { }
+            try { focusMe(); } catch {}
         }, 20);
         return () => clearTimeout(id);
     }, [programFocusSignal, programFocusPid, isSomePostFocused, data?.pid]);
@@ -192,14 +188,27 @@ function Post({
         index,
     });
 
+    // During interactive unfocus (bottom->top pan), gradually fade other posts into view.
+    // We override the RN Animated opacity only while a post is focused and this post is NOT the focused one.
+    const interactiveFadeStyle = useAnimatedStyle(() => {
+        try {
+            const inFocusMode = focusModeSV?.value === 1;
+            if (inFocusMode && !isFocused) {
+                const p = Math.max(0, Math.min(1, interactiveUnfocusSV?.value || 0));
+                return { opacity: p };
+            }
+        } catch {}
+        return {};
+    }, [isFocused]);
+
     return (
-        <Animated.View
+        <Reanimated.View
             ref={viewRef}
-            style={[styles.wrapper, { opacity }]}
+            style={[styles.wrapper, interactiveFadeStyle]}
             pointerEvents={isSomePostFocused && !isFocused ? "none" : "auto"}
         >
             <Animated.View
-                style={[styles.card, isFocused && { zIndex: 1 }, { transform: [{ scale }] }]}
+                style={[styles.card, isFocused && { zIndex: 100 }, { transform: [{ scale }] }]}
             >
                 <View style={styles.body}>
                     <FlatList
@@ -294,7 +303,7 @@ function Post({
                     style={[StyleSheet.absoluteFill, { borderRadius: BORDER, backgroundColor: '#FFF4B3', opacity: highlightOpacity }]}
                 />
             </Animated.View>
-        </Animated.View>
+        </Reanimated.View>
     );
 }
 
@@ -319,7 +328,7 @@ const styles = StyleSheet.create({
         height: W / AR,
         borderTopLeftRadius: BORDER,
         borderTopRightRadius: BORDER,
-        backgroundColor: theme.surface,
+        backgroundColor: require('../../../theme/mfpDark').default.surface,
     },
     imageWrapper: { width: W, height: W / AR, overflow: "hidden" },
     image: {

@@ -15,12 +15,16 @@ import arrayAppend from "../../backend/helper/firebase/arrayAppend";
 import FeedWorkoutViewerSheet from "../components/1_Feed/ViewWorkout/FeedWorkoutViewerSheet";
 import theme from "../theme/mfpDark";
 import FollowListBottomSheet from "../components/FollowListBottomSheet";
+import ViewProfileOptionsSheet from "../components/ViewProfile/ViewProfileOptionsSheet";
+import blockUser from "../../backend/user/blockUser";
+import unblockUser from "../../backend/user/unblockUser";
 
 import scaleSize from "../helper/scaleSize";
 
 export default function ViewProfile({ navigation, route }) {
     const user = route.params.user;
     const [profileUserData, setProfileUserData] = useState(null);
+    const [blockedFromViewing, setBlockedFromViewing] = useState(false);
     const [posts, setPosts] = useState([]);
     const [selectedPanel, setSelectedPanel] = useState('posts');
     const [isViewStatsBottomSheetVisible, setIsViewStatsBottomSheetVisible] = useState(false);
@@ -28,6 +32,8 @@ export default function ViewProfile({ navigation, route }) {
     const [followListMode, setFollowListMode] = useState('followers');
     const [viewerWorkout, setViewerWorkout] = useState(null);
     const [viewerToggle, setViewerToggle] = useState(false);
+    const [isOptionsVisible, setIsOptionsVisible] = useState(false);
+    const [isBlocked, setIsBlocked] = useState(false);
     const openViewer = useCallback((wk) => {
         if (!wk) { setViewerWorkout(null); return; }
         const fallback = {
@@ -53,6 +59,18 @@ export default function ViewProfile({ navigation, route }) {
     async function getFullUserData() {
         const data = await readDoc('users', user.uid);
         setProfileUserData(data);
+        try {
+            const meUid = String(global?.userData?.uid || '');
+            const theirBlocked = Array.isArray(data?.blocked) ? data.blocked : [];
+            const theyBlockedMe = theirBlocked.some((x) => String(x?.uid || x?.id || x) === meUid);
+            // Also respect my derived blockedBy list if available
+            const myBlockedBy = Array.isArray(global?.userData?.blockedBy) ? global.userData.blockedBy : [];
+            const uid = String(data?.uid || user?.uid || '');
+            const inMyBlockedBy = myBlockedBy.some((x) => String(x?.uid || x) === uid);
+            setBlockedFromViewing(!!theyBlockedMe || !!inMyBlockedBy);
+        } catch {
+            setBlockedFromViewing(false);
+        }
     }
 
     useEffect(() => {
@@ -60,6 +78,17 @@ export default function ViewProfile({ navigation, route }) {
             getPosts();
         }
     }, [profileUserData]);
+
+    useEffect(() => {
+        // derive blocked status from global cache
+        try {
+            const list = Array.isArray(global?.userData?.blocked) ? global.userData.blocked : [];
+            const targetUid = String(user?.uid || profileUserData?.uid || '');
+            setIsBlocked(list.some((x) => String(x?.uid) === targetUid));
+        } catch {
+            setIsBlocked(false);
+        }
+    }, [profileUserData, user, (global?.userData?.blocked || []).length]);
 
 
     async function getPosts() {
@@ -141,11 +170,23 @@ export default function ViewProfile({ navigation, route }) {
     const headerHandle = profileUserData?.handle || user?.handle || user?.username || '';
     function handleOpenViewStats() { setIsViewStatsBottomSheetVisible(true); }
 
+    if (blockedFromViewing) {
+        return (
+            <SafeAreaView style={styles.main_ctnr}>
+                <StatusBar barStyle="light-content" backgroundColor={theme.bg} />
+                <View style={styles.body_ctnr}>
+                    <ViewProfileHeader handle={headerHandle} goBack={goBack} toMessages={() => {}} onOpenOptions={() => {}} />
+                </View>
+                <Footer currentScreenName={'Profile'} navigation={navigation} />
+            </SafeAreaView>
+        );
+    }
+
     return (
         <SafeAreaView style={styles.main_ctnr}>
             <StatusBar barStyle="light-content" backgroundColor={theme.bg} />
             <View style={styles.body_ctnr}>
-                <ViewProfileHeader handle={headerHandle} goBack={goBack} toMessages={toMessages} />
+                <ViewProfileHeader handle={headerHandle} goBack={goBack} toMessages={toMessages} onOpenOptions={() => setIsOptionsVisible(true)} />
                 <ViewProfileInfo
                     userData={profileUserData}
                     onPressFollowers={() => { setFollowListMode('followers'); setIsFollowListVisible(true); }}
@@ -186,6 +227,50 @@ export default function ViewProfile({ navigation, route }) {
                 friendUid={profileUserData?.uid || user?.uid}
                 friendPfp={profileUserData?.image || profileUserData?.pfp || null}
                 onClose={closeViewer}
+            />
+
+            {/* Options bottom sheet from header handle/chevron */}
+            <ViewProfileOptionsSheet
+                isVisible={isOptionsVisible}
+                setIsVisible={setIsOptionsVisible}
+                handle={headerHandle}
+                isBlocked={isBlocked}
+                onBlock={async () => {
+                    try {
+                        const me = global?.userData || {};
+                        const other = profileUserData || user || {};
+                        await blockUser(me, other);
+                        try {
+                            // Update local cache for consistency
+                            const normalized = ({ uid: String(other?.uid||other?.id||''), handle: other?.handle||other?.username||'', name: other?.name||other?.displayName||'', pfp: other?.pfp||other?.image||other?.photoURL||'' });
+                            const list = Array.isArray(global?.userData?.blocked) ? [...global.userData.blocked] : [];
+                            if (!list.some(x => String(x?.uid) === normalized.uid)) list.push(normalized);
+                            global.userData.blocked = list;
+                            // Also update local follow/follower arrays to reflect removal
+                            try {
+                                const meFollowing = Array.isArray(global?.userData?.following) ? [...global.userData.following] : [];
+                                global.userData.following = meFollowing.filter((x) => String(x?.uid) !== normalized.uid);
+                                const meFollowers = Array.isArray(global?.userData?.followers) ? [...global.userData.followers] : [];
+                                global.userData.followers = meFollowers.filter((x) => String(x?.uid) !== normalized.uid);
+                            } catch {}
+                        } catch {}
+                        setIsBlocked(true);
+                    } catch {}
+                }}
+                onUnblock={async () => {
+                    try {
+                        const me = global?.userData || {};
+                        const other = profileUserData || user || {};
+                        await unblockUser(me, other);
+                        try {
+                            // Update local cache for consistency
+                            const targetUid = String(other?.uid||other?.id||'');
+                            const list = Array.isArray(global?.userData?.blocked) ? [...global.userData.blocked] : [];
+                            global.userData.blocked = list.filter((x) => String(x?.uid) !== targetUid);
+                        } catch {}
+                        setIsBlocked(false);
+                    } catch {}
+                }}
             />
         </SafeAreaView>
     );

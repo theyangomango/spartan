@@ -12,7 +12,7 @@ function scaleSize(size) {
     return Math.round(size * scale);
 }
 
-export default function ViewProfileHeader({ handle, goBack, toMessages }) {
+export default function ViewProfileHeader({ handle, goBack, toMessages, onOpenOptions }) {
     return (
         <View style={styles.main_ctnr}>
             <View style={styles.sideLeft}>
@@ -21,9 +21,12 @@ export default function ViewProfileHeader({ handle, goBack, toMessages }) {
                 </RNBounceable>
             </View>
 
-            <View style={styles.center}>
-                <Text style={styles.handle_text} numberOfLines={1} ellipsizeMode="tail">{handle}</Text>
-            </View>
+            <RNBounceable onPress={onOpenOptions} hitSlop={10} style={styles.center}>
+                <View style={styles.handleRow}>
+                    <Text style={styles.handle_text} numberOfLines={1} ellipsizeMode="tail">{handle}</Text>
+                    <Feather name="chevron-down" size={scaleSize(18)} color={theme.textSecondary} style={{ marginLeft: scaleSize(4) }} />
+                </View>
+            </RNBounceable>
 
             <View style={styles.sideRight}>
                 <RNBounceable onPress={toMessages} hitSlop={10}>
@@ -49,6 +52,11 @@ const styles = StyleSheet.create({
         alignItems: 'center',
         justifyContent: 'center',
         paddingHorizontal: scaleSize(8),
+    },
+    handleRow: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        maxWidth: '100%'
     },
     handle_text: {
         fontFamily: 'Outfit_600SemiBold',
