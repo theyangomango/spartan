@@ -5,6 +5,7 @@ import { Ionicons } from '@expo/vector-icons';
 import theme from '../theme/mfpDark';
 import { db } from '../../firebase.config';
 import { doc, updateDoc, serverTimestamp, setDoc, deleteField } from 'firebase/firestore';
+import { touchRecentFood } from '../utils/recentFoods';
 import { parseMacrosFromDescription, parseExtraNutrientsFromDescription } from '../utils/nutrition';
 import { getFoodById } from './fatsecretClient';
 import Svg, { Circle } from 'react-native-svg';
@@ -147,10 +148,18 @@ export default function FoodDetail({ navigation, route }) {
     };
 
     const onChangeText = (t) => {
-        const cleaned = String(t).replace(/[^0-9.]/g, '');
-        if (cleaned === '') { setServings(''); return; }
-        const n = parseFloat(cleaned);
-        if (!Number.isNaN(n)) setServings(n);
+        // Allow intermediate decimal input states like "." or "1."
+        // 1) strip invalid chars, 2) keep only first dot, 3) store as string
+        let v = String(t).replace(/[^0-9.]/g, '');
+        if (v === '') { setServings(''); return; }
+        const firstDot = v.indexOf('.');
+        if (firstDot !== -1) {
+            v = v.slice(0, firstDot + 1) + v.slice(firstDot + 1).replace(/\./g, '');
+        }
+        // Accept single "." or numbers like "1." or "1.5"
+        if (/^\d*\.?\d*$/.test(v)) {
+            setServings(v);
+        }
     };
 
     const save = async () => {
@@ -215,6 +224,13 @@ export default function FoodDetail({ navigation, route }) {
                 // also remove any legacy flat key if present
                 const flatPath = `loggedFoods.${entry.key}`;
                 await updateDoc(uref, { [flatPath]: deleteField() }).catch(() => {});
+                // Touch recent foods
+                touchRecentFood(uid, {
+                    foodId: entry?.foodId || entry?.food_id || '',
+                    name: entry?.name || '',
+                    brand: entry?.brand || '',
+                    description: entry?.desc || '',
+                }, extrasPS || null).catch(() => {});
             } catch { }
         } catch (e) {
             console.log('Failed to update food entry:', e?.message || e);
@@ -272,8 +288,10 @@ export default function FoodDetail({ navigation, route }) {
                     await setDoc(doc(db, 'users', uid), { loggedFoods: { [dayKey]: { [newId]: flat } } }, { merge: true });
                 } catch { }
             }
-
-            // No writes to other collections
+            // Touch recent foods backend
+            try {
+                await touchRecentFood(uid, { foodId: flat.foodId, name: flat.name, brand: flat.brand, description: flat.desc }, extrasPS || null);
+            } catch {}
         } catch (e) {
             console.log('Failed to add food entry:', e?.message || e);
         }

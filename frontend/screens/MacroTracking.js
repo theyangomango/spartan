@@ -28,6 +28,7 @@ import { db } from '../../firebase.config';
 import theme from '../theme/mfpDark';
 import { toDayKey } from '../utils/date';
 import { doc, onSnapshot, updateDoc, serverTimestamp, deleteField } from 'firebase/firestore';
+import { touchRecentFood } from '../utils/recentFoods';
 
 import scaleSize from "../helper/scaleSize";
 
@@ -436,6 +437,13 @@ export default function MacroTracking({ navigation, route }) {
                     createdAt: serverTimestamp(),
                 };
                 updateDoc(uref, { [fieldPath]: flat }).catch(() => { });
+                // Update Recent Foods backend
+                touchRecentFood(uid, {
+                    foodId: entry.food_id,
+                    name: entry.name,
+                    brand: entry.brand,
+                    description: entry.desc,
+                }).catch(() => {});
             }
         } catch { }
         closeSearch();

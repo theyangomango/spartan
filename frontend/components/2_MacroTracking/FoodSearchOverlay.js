@@ -21,9 +21,10 @@ import PortionPickerModal from './PortionPickerModal';
 import QuickAddModal from './QuickAddModal';
 import { searchFood, lookupBarcode } from '../../screens/fatsecretClient';
 import { useNavigation } from '@react-navigation/native';
+import { fetchRecentFoods } from '../../utils/recentFoods';
 
 // 🔥 FIREBASE (adjust path if your firebase.config is elsewhere)
-// No Firestore reads/writes for recent foods; build from global.userData.loggedFoods
+// Recent foods now backed by Firestore subcollection users/{uid}/recentFoods
 
 import scaleSize from "../../helper/scaleSize";
 
@@ -54,39 +55,10 @@ export default function FoodSearchOverlay({
 
     const loadRecentFoods = useCallback(async () => {
         try {
-            const map = global?.userData?.loggedFoods || {};
-            const entries = [];
-            const pushEntry = (e) => {
-                if (!e) return;
-                entries.push({
-                    id: String(e.foodId || e.name || ''),
-                    foodId: e.foodId || '',
-                    name: e.name || '',
-                    brand: e.brand || '',
-                    description: e.desc || '',
-                    _ts: Number(e.updatedAt || e.createdAt || 0) || 0,
-                });
-            };
-            const looksNested = Object.values(map)[0] && typeof Object.values(map)[0] === 'object' && !('dayKey' in Object.values(map)[0]);
-            if (looksNested) {
-                Object.values(map).forEach((byDay) => {
-                    Object.values(byDay || {}).forEach(pushEntry);
-                });
-            } else {
-                Object.values(map).forEach(pushEntry);
-            }
-            // Dedupe by id (foodId if present, else name)
-            const seen = new Set();
-            const uniq = [];
-            entries.sort((a, b) => (b._ts || 0) - (a._ts || 0));
-            for (const e of entries) {
-                const key = String(e.foodId || e.name || '');
-                if (!key || seen.has(key)) continue;
-                seen.add(key);
-                uniq.push(e);
-                if (uniq.length >= 20) break;
-            }
-            setRecentFoods(uniq);
+            const uid = global?.userData?.uid || global?.userData?.id;
+            if (!uid) { setRecentFoods([]); return; }
+            const items = await fetchRecentFoods(uid, 20);
+            setRecentFoods(items);
         } catch { setRecentFoods([]); }
     }, []);
 
