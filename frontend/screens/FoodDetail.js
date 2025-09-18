@@ -4,7 +4,7 @@ import { View, Text, StyleSheet, Pressable, ScrollView, StatusBar, SafeAreaView,
 import { Ionicons } from '@expo/vector-icons';
 import theme from '../theme/mfpDark';
 import { db } from '../../firebase.config';
-import { doc, updateDoc, serverTimestamp, setDoc, collection, getDoc } from 'firebase/firestore';
+import { doc, updateDoc, serverTimestamp, setDoc, collection, getDoc, deleteField } from 'firebase/firestore';
 import { parseMacrosFromDescription, parseExtraNutrientsFromDescription } from '../utils/nutrition';
 import { getFoodById } from './fatsecretClient';
 import Svg, { Circle } from 'react-native-svg';
@@ -178,24 +178,62 @@ export default function FoodDetail({ navigation, route }) {
         if (!uid) { navigation.goBack(); return; }
         setSaving(true);
         try {
-            const ref = doc(db, 'users', uid, 'foodLogs', dayKey, 'entries', entry.key);
             const qty = round2(Number(servings) || 1);
             const m = parseMacrosFromDescription(entry?.desc || '', qty);
-            await updateDoc(ref, {
-                quantity: qty,
-                mealType: String(meal || mealNameInit || 'Dinner').toLowerCase(),
-                macros: {
-                    calories: Math.round(m.calories || 0),
-                    protein: Math.round(m.protein || 0),
-                    carbs: Math.round(m.carbs || 0),
-                    fat: Math.round(m.fat || 0),
-                },
-                // Keep existing foodId if already stored; otherwise omit
-                ...(entry?.foodId || entry?.food_id ? { foodId: String(entry.foodId || entry.food_id) } : {}),
-                // Persist cached micronutrients for faster next open
-                ...(extrasPS ? { extrasPerServing: extrasPS } : {}),
-                updatedAt: serverTimestamp(),
-            });
+
+            // 1) Update global mirror (support nested-by-day and flat shapes)
+            try {
+                global.userData = global.userData || {};
+                const map = global.userData.loggedFoods = global.userData.loggedFoods || {};
+                const patch = {
+                    dayKey,
+                    meal: String(meal || mealNameInit || 'Dinner'),
+                    name: entry?.name || '',
+                    brand: entry?.brand || '',
+                    desc: entry?.desc || '',
+                    foodId: entry?.foodId || entry?.food_id || '',
+                    quantity: qty,
+                    macros: {
+                        calories: Math.round(m.calories || 0),
+                        protein: Math.round(m.protein || 0),
+                        carbs: Math.round(m.carbs || 0),
+                        fat: Math.round(m.fat || 0),
+                    },
+                    ...(extrasPS ? { extrasPerServing: extrasPS } : {}),
+                    updatedAt: Date.now(),
+                };
+                if (map[dayKey] && typeof map[dayKey] === 'object') {
+                    map[dayKey][entry.key] = { ...(map[dayKey][entry.key] || {}), ...patch };
+                } else {
+                    map[entry.key] = { ...(map[entry.key] || {}), ...patch };
+                }
+            } catch { }
+
+            // 2) Persist to user doc under loggedFoods.<dayKey>.<entryId>
+            try {
+                const uref = doc(db, 'users', uid);
+                const fieldPath = `loggedFoods.${dayKey}.${entry.key}`;
+                await updateDoc(uref, { [fieldPath]: {
+                    dayKey,
+                    meal: String(meal || mealNameInit || 'Dinner'),
+                    name: entry?.name || '',
+                    brand: entry?.brand || '',
+                    desc: entry?.desc || '',
+                    foodId: entry?.foodId || entry?.food_id || '',
+                    quantity: qty,
+                    macros: {
+                        calories: Math.round(m.calories || 0),
+                        protein: Math.round(m.protein || 0),
+                        carbs: Math.round(m.carbs || 0),
+                        fat: Math.round(m.fat || 0),
+                    },
+                    ...(extrasPS ? { extrasPerServing: extrasPS } : {}),
+                    updatedAt: serverTimestamp(),
+                } });
+                // also remove any legacy flat key if present
+                const flatPath = `loggedFoods.${entry.key}`;
+                await updateDoc(uref, { [flatPath]: deleteField() }).catch(() => {});
+            } catch { }
         } catch (e) {
             console.log('Failed to update food entry:', e?.message || e);
         }
@@ -208,18 +246,18 @@ export default function FoodDetail({ navigation, route }) {
         if (!uid || !dayKey || !food) { navigation.goBack(); return; }
         setSaving(true);
         try {
-            const dayRef = doc(db, 'users', uid, 'foodLogs', dayKey);
-            const entryRef = doc(collection(dayRef, 'entries'));
             const qty = round2(Number(servings) || 1);
             const m = parseMacrosFromDescription(food?.food_description || '', qty);
 
-            const payload = {
-                mealType: String(meal || mealNameInit || 'Dinner').toLowerCase(),
+            // generate an id similar to MacroTracking
+            const newId = `${Date.now().toString(36)}${Math.random().toString(36).slice(2, 10)}`;
+            const flat = {
+                dayKey,
+                meal: String(meal || mealNameInit || 'Dinner'),
                 name: food?.food_name || '',
                 brand: food?.brand_name || '',
+                desc: food?.food_description || '',
                 foodId: String(food?.food_id ?? ''),
-                description: food?.food_description || '',
-                source: 'fatsecret',
                 quantity: qty,
                 macros: {
                     calories: Math.round(m.calories || 0),
@@ -227,26 +265,41 @@ export default function FoodDetail({ navigation, route }) {
                     carbs: Math.round(m.carbs || 0),
                     fat: Math.round(m.fat || 0),
                 },
-                // cache per-serving micronutrients for instant reloads later
                 ...(extrasPS ? { extrasPerServing: extrasPS } : {}),
-                // no serving-specific storage; we rely on description default
                 createdAt: serverTimestamp(),
                 updatedAt: serverTimestamp(),
             };
 
-            await setDoc(dayRef, { dayKey, updatedAt: serverTimestamp() }, { merge: true });
-            await setDoc(entryRef, payload);
+            // 1) Update global mirror (nested preferred)
+            try {
+                global.userData = global.userData || {};
+                const map = global.userData.loggedFoods = global.userData.loggedFoods || {};
+                map[dayKey] = map[dayKey] || {};
+                map[dayKey][newId] = { ...flat, createdAt: Date.now(), updatedAt: Date.now() };
+            } catch { }
+
+            // 2) Persist to user doc under loggedFoods.<dayKey>.<newId>
+            try {
+                const uref = doc(db, 'users', uid);
+                const fieldPath = `loggedFoods.${dayKey}.${newId}`;
+                await updateDoc(uref, { [fieldPath]: flat });
+            } catch {
+                // Fallback with setDoc merge if user doc missing
+                try {
+                    await setDoc(doc(db, 'users', uid), { loggedFoods: { [dayKey]: { [newId]: flat } } }, { merge: true });
+                } catch { }
+            }
 
             // best-effort recent-foods (also cache micros per serving)
             try {
-                const recentRef = doc(db, 'users', uid, 'recentFoods', String(payload.foodId || payload.name));
+                const recentRef = doc(db, 'users', uid, 'recentFoods', String(flat.foodId || flat.name));
                 await setDoc(
                     recentRef,
                     {
-                        foodId: payload.foodId,
-                        name: payload.name,
-                        brand: payload.brand,
-                        description: payload.description,
+                        foodId: flat.foodId,
+                        name: flat.name,
+                        brand: flat.brand,
+                        description: flat.desc,
                         usedCount: 1,
                         lastUsedAt: serverTimestamp(),
                         ...(extrasPS ? { microsPS: extrasPS, extrasPerServing: extrasPS } : {}),

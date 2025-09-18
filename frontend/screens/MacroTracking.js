@@ -61,7 +61,7 @@ const mealsMeta = [
     { name: 'Breakfast', subtitle: 'Breakfast starts your day', icon: breakfastIcon, bgColor: '#FBEDD9' },
     { name: 'Lunch', subtitle: 'Lunch fuels your goals', icon: lunchIcon, bgColor: '#FFE8E9' },
     { name: 'Dinner', subtitle: 'Dinner completes your nutrition', icon: dinnerIcon, bgColor: '#EAEECE' },
-    // Make snack icon slightly smaller by providing an explicit size override
+    // Snacks bucket (UI shows plural, key also plural for consistency)
     { name: 'Snacks', subtitle: 'Snacks keep you energized', icon: snacksIcon, iconSize: 22, bgColor: '#fed2bcff' },
 ];
 
@@ -102,7 +102,7 @@ export default function MacroTracking({ navigation, route }) {
     const [focusedDate, setFocusedDate] = useState(initialFocus);
     // Defer heavy Firestore subscriptions until after the transition starts
     // Local state derived from global.loggedFoods for the focused day
-    const [meals, setMeals] = useState(() => ({ Breakfast: [], Lunch: [], Dinner: [], Snack: [] }));
+    const [meals, setMeals] = useState(() => ({ Breakfast: [], Lunch: [], Dinner: [], Snacks: [] }));
     const [totals, setTotals] = useState(() => ({ calories: 0, protein: 0, carbs: 0, fat: 0 }));
 
     // -------- goals (load from user doc, save back) --------
@@ -210,7 +210,7 @@ export default function MacroTracking({ navigation, route }) {
         const d = new Date(focusedDate);
         d.setDate(d.getDate() + days);
         // Immediately show empty meals/totals to avoid any perceived loading
-        setMeals({ Breakfast: [], Lunch: [], Dinner: [], Snack: [] });
+        setMeals({ Breakfast: [], Lunch: [], Dinner: [], Snacks: [] });
         setTotals({ calories: 0, protein: 0, carbs: 0, fat: 0 });
         setFocusedDate(d);
     };
@@ -219,7 +219,7 @@ export default function MacroTracking({ navigation, route }) {
         const today = new Date();
         today.setHours(0, 0, 0, 0);
         // Show empty default first for instant transition
-        setMeals({ Breakfast: [], Lunch: [], Dinner: [], Snack: [] });
+        setMeals({ Breakfast: [], Lunch: [], Dinner: [], Snacks: [] });
         setTotals({ calories: 0, protein: 0, carbs: 0, fat: 0 });
         setFocusedDate(today);
     };
@@ -267,12 +267,23 @@ export default function MacroTracking({ navigation, route }) {
             carbs: Math.max(0, Math.round((prev.carbs || 0) - (m.carbs || 0))),
             fat: Math.max(0, Math.round((prev.fat || 0) - (m.fat || 0))),
         }));
-        try { if (global?.userData?.loggedFoods?.[dk]) delete global.userData.loggedFoods[dk][entry.key]; } catch { }
+        // Remove from global cache (supports both nested-by-day and flat legacy shapes)
+        try {
+            const map = global?.userData?.loggedFoods;
+            if (map) {
+                if (map[dk] && typeof map[dk] === 'object') {
+                    try { delete map[dk][entry.key]; } catch {}
+                }
+                // Also attempt flat delete for legacy shape
+                try { delete map[entry.key]; } catch {}
+            }
+        } catch { }
         try {
             if (uid) {
                 const uref = doc(db, 'users', uid);
-                const fieldPath = `loggedFoods.${dk}.${entry.key}`;
-                updateDoc(uref, { [fieldPath]: deleteField() }).catch(() => { });
+                const nestedPath = `loggedFoods.${dk}.${entry.key}`;
+                const flatPath = `loggedFoods.${entry.key}`;
+                updateDoc(uref, { [nestedPath]: deleteField(), [flatPath]: deleteField() }).catch(() => { });
             }
         } catch { }
     }, [focusedDate]);
@@ -534,7 +545,7 @@ export default function MacroTracking({ navigation, route }) {
         rebuildGlobalIndexIfNeeded();
         const cached = globalMealsCacheRef.current.get(dk);
         if (cached) return cached;
-        const buckets = { Breakfast: [], Lunch: [], Dinner: [], Snack: [] };
+        const buckets = { Breakfast: [], Lunch: [], Dinner: [], Snacks: [] };
         const totalsObj = { calories: 0, protein: 0, carbs: 0, fat: 0 };
         try {
             const rows = globalIndexRef.current.get(dk) || [];
@@ -544,7 +555,8 @@ export default function MacroTracking({ navigation, route }) {
                     if (t.startsWith('break')) return 'Breakfast';
                     if (t.startsWith('lun')) return 'Lunch';
                     if (t.startsWith('din')) return 'Dinner';
-                    return 'Snack';
+                    // Normalize anything else to Snacks bucket
+                    return 'Snacks';
                 })();
                 const qty = typeof entry?.quantity === 'number' ? entry.quantity : 1;
                 const m = entry?.macros || (() => {
@@ -577,7 +589,7 @@ export default function MacroTracking({ navigation, route }) {
                 Breakfast: buckets.Breakfast || [],
                 Lunch: buckets.Lunch || [],
                 Dinner: buckets.Dinner || [],
-                Snack: buckets.Snack || [],
+                Snacks: buckets.Snacks || [],
             },
             totals: {
                 calories: Math.round(totalsObj.calories),
@@ -589,6 +601,18 @@ export default function MacroTracking({ navigation, route }) {
         globalMealsCacheRef.current.set(dk, built);
         return built;
     }
+
+    // Refresh from global when returning to this screen so edits/saves reflect
+    try {
+        // Lazy import inside file to avoid adding a top-level import if navigation is absent in other environments
+        // eslint-disable-next-line @typescript-eslint/no-var-requires
+        var _useFocusEffect = require('@react-navigation/native').useFocusEffect;
+        _useFocusEffect?.(React.useCallback(() => {
+            const built = buildFromGlobal(focusedDate);
+            setMeals(built.meals);
+            setTotals(built.totals);
+        }, [focusedDate]));
+    } catch { /* no-op if hook unavailable */ }
 
     return (
         <GestureHandlerRootView style={{ flex: 1 }}>

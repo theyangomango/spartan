@@ -4,6 +4,8 @@ import React, {
     useEffect,
     useMemo,
     useCallback,
+    forwardRef,
+    useImperativeHandle,
 } from "react";
 import {
     StyleSheet,
@@ -63,7 +65,7 @@ const VideoSlide = React.memo(({ uri, style, paused, isActive }) => (
     </View>
 ));
 
-function Post({
+const Post = forwardRef(function Post({
     data,
     index,
     isFocused,
@@ -88,7 +90,7 @@ function Post({
     highlightSignal,
     programFocusPid,
     programFocusSignal,
-}) {
+}, ref) {
     const { pfp } = data;
     // Normalize media for backward compatibility where posts stored `images: string[]`
     const mediaList = useMemo(() => {
@@ -210,9 +212,11 @@ function Post({
     }, []);
 
     // Horizontal swipe inside the post
+    const currentOffsetXRef = useRef(0);
     const onScroll = useCallback(
         (e) => {
             const offsetX = e.nativeEvent.contentOffset.x;
+            currentOffsetXRef.current = offsetX;
             const i = Math.round(offsetX / W);
             if (i !== currentIndex) setCurrentIndex(i);
         },
@@ -231,6 +235,47 @@ function Post({
         offset: W * index,
         index,
     });
+
+    // Imperative horizontal pan control from Feed-level gesture
+    const panStartOffsetRef = useRef(0);
+    const extDragActiveRef = useRef(false);
+    useImperativeHandle(ref, () => ({
+        hSwipeBegin: () => {
+            if (!isFocused) return false;
+            extDragActiveRef.current = true;
+            panStartOffsetRef.current = currentOffsetXRef.current || (currentIndex * W);
+            return true;
+        },
+        hSwipeUpdate: (dx) => {
+            if (!extDragActiveRef.current) return;
+            const maxOffset = Math.max(0, (mediaList.length - 1) * W);
+            let target = (panStartOffsetRef.current || 0) - (dx || 0);
+            if (target < 0) target = 0;
+            if (target > maxOffset) target = maxOffset;
+            try { flatListRef.current?.scrollToOffset({ offset: target, animated: false }); } catch {}
+        },
+        hSwipeEnd: (dx, vx) => {
+            if (!extDragActiveRef.current) return;
+            extDragActiveRef.current = false;
+            const start = panStartOffsetRef.current || 0;
+            const current = currentOffsetXRef.current ?? start - (dx || 0);
+            const rawIndex = current / W;
+            // Velocity-assisted snap
+            let targetIndex = Math.round(rawIndex);
+            const SPEED = 420; // px/s
+            if (typeof vx === 'number' && Math.abs(vx) > SPEED) {
+                targetIndex = vx < 0 ? Math.ceil(rawIndex) : Math.floor(rawIndex);
+            }
+            if (targetIndex < 0) targetIndex = 0;
+            if (targetIndex > mediaList.length - 1) targetIndex = mediaList.length - 1;
+            try {
+                setCurrentIndex(targetIndex);
+                flatListRef.current?.scrollToIndex({ index: targetIndex, animated: true });
+            } catch {}
+        },
+    }), [isFocused, mediaList?.length, currentIndex]);
+
+    // (external swipe state removed; handled via imperative hSwipe* methods)
 
     // During interactive unfocus (bottom->top pan), gradually fade other posts into view.
     // We override the RN Animated opacity only while a post is focused and this post is NOT the focused one.
@@ -256,7 +301,7 @@ function Post({
             <Animated.View
                 style={[
                     styles.card,
-                    isFocused && { zIndex: 1 },
+                    isFocused && { zIndex: 10 },
                     { transform: [{ scale }] },
                     fadeInOnFocus ? { opacity: focusFadeOpacity } : null,
                 ]}
@@ -270,6 +315,8 @@ function Post({
                             pagingEnabled
                             bounces={false}
                             overScrollMode="never"
+                            // While another post is focused, this carousel must not capture swipes
+                            scrollEnabled={!isSomePostFocused || isFocused}
                             snapToInterval={W}
                             decelerationRate="fast"
                             showsHorizontalScrollIndicator={false}
@@ -362,7 +409,7 @@ function Post({
             </Animated.View>
         </Reanimated.View>
     );
-}
+});
 
 const areEqual = (prev, next) =>
     prev.isFocused === next.isFocused &&

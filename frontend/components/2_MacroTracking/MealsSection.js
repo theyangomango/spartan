@@ -32,7 +32,7 @@ function MealsSection({ title = 'Daily meals', mealsMeta, meals, collapsed, togg
                             cardStyle={styles.underMealCard}
                             showCaloriesRight
                             onItemPress={(entry) => navigation.navigate('FoodDetail', { entry, mealName: m.name, dayKey })}
-                            renderSummary={(entry) => summarizeFood(entry.desc, entry.brand, entry.quantity ?? 1)}
+                            renderSummary={(entry) => summarizeFood(entry.desc, entry.brand, (entry.quantity ?? entry.qty ?? 1))}
                             onDelete={(entry) => onDelete(m.name, entry)}
                             compact={compact}
                         />

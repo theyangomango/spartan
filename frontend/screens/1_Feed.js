@@ -713,6 +713,7 @@ export default function Feed({ navigation, route }) {
     }, []);
 
     // Render a single post (deduped logic)
+    const postRefs = useRef({});
     const renderPost = useCallback(
         ({ item, index }) => {
             const isFocusedPost = index === focusedPostIndex.current;
@@ -733,6 +734,7 @@ export default function Feed({ navigation, route }) {
                     pointerEvents={isSomePostFocused ? 'none' : 'auto'}
                 >
                     <Post
+                        ref={(el) => { postRefs.current[index] = el; }}
                         data={item}
                         index={index}
                         openCommentsModal={openCommentsModal}
@@ -763,6 +765,7 @@ export default function Feed({ navigation, route }) {
                         pointerEvents={'auto'}
                     >
                         <Post
+                            ref={(el) => { postRefs.current[index] = el; }}
                             data={item}
                             index={index}
                             openCommentsModal={openCommentsModal}
@@ -811,7 +814,7 @@ export default function Feed({ navigation, route }) {
     const FULL_GESTURE_PX = Math.max(84, Math.min(height * 0.16, 200));
     // Make progress feel snappier near the start
     const PROGRESS_SLOW_K = 1.2; // lower = more sensitive early progress
-    const CLOSE_THRESHOLD = 0.07; // keep similar close feel
+    const CLOSE_THRESHOLD = 0.1; // keep similar close feel
     const panUnfocus = useMemo(() => {
         return Gesture.Pan()
             .minPointers(1)
@@ -915,12 +918,48 @@ export default function Feed({ navigation, route }) {
             });
     }, [isSomePostFocused, height]);
 
+    // Focused-only horizontal swipe at the same wrapper level to change slides
+    // Feed-level handlers to proxy horizontal pan to the focused Post
+    const hSwipeBeginJS = useCallback(() => {
+        try {
+            if (!isSomePostFocused) return;
+            const ref = postRefs.current?.[focusedPostIndex.current];
+            if (ref && typeof ref?.hSwipeBegin === 'function') ref.hSwipeBegin();
+        } catch {}
+    }, [isSomePostFocused]);
+    const hSwipeUpdateJS = useCallback((dx) => {
+        try {
+            if (!isSomePostFocused) return;
+            const ref = postRefs.current?.[focusedPostIndex.current];
+            if (ref && typeof ref?.hSwipeUpdate === 'function') ref.hSwipeUpdate(dx);
+        } catch {}
+    }, [isSomePostFocused]);
+    const hSwipeEndJS = useCallback((dx, vx) => {
+        try {
+            if (!isSomePostFocused) return;
+            const ref = postRefs.current?.[focusedPostIndex.current];
+            if (ref && typeof ref?.hSwipeEnd === 'function') ref.hSwipeEnd(dx, vx);
+        } catch {}
+    }, [isSomePostFocused]);
+    const horizontalSwipe = useMemo(() => {
+        return Gesture.Pan()
+            .enabled(!!isSomePostFocused)
+            .minPointers(1)
+            .maxPointers(1)
+            .activeOffsetX([-6, 6])
+            .failOffsetY([-8, 8])
+            .onBegin(() => { try { runOnJS(hSwipeBeginJS)(); } catch {} })
+            .onUpdate((e) => { try { runOnJS(hSwipeUpdateJS)(e.translationX); } catch {} })
+            .onEnd((e) => { try { runOnJS(hSwipeEndJS)(e.translationX, e.velocityX); } catch {} });
+    }, [isSomePostFocused, hSwipeBeginJS, hSwipeUpdateJS, hSwipeEndJS]);
+    const combinedGesture = useMemo(() => Gesture.Simultaneous(panUnfocus, horizontalSwipe), [panUnfocus, horizontalSwipe]);
+
     return (
         <SafeAreaView style={{ flex: 1, backgroundColor: theme.bg }}>
             <SafeAreaView style={styles.mainContainer}>
                 <StatusBar style="light" />
 
-                <GestureDetector gesture={panUnfocus}>
+                <GestureDetector gesture={combinedGesture}>
                     <Reanimated.View
                         style={[{
                             position: 'absolute',

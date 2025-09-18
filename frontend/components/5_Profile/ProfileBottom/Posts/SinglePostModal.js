@@ -128,7 +128,7 @@ export default function SinglePostModal({ visible, post, onClose, onOpenWorkout 
             setMountCommentsSheet(false); // mount a bit later to avoid jank
             setSheetVisible(false);
 
-            // Mount + show the sheet shortly after fade starts to reduce jank
+            // Mount + show the sheet on a short, consistent delay (match Feed timing)
             if (openTimer.current) clearTimeout(openTimer.current);
             openTimer.current = setTimeout(() => {
                 try {
@@ -138,7 +138,7 @@ export default function SinglePostModal({ visible, post, onClose, onOpenWorkout 
                     setMountCommentsSheet(true);
                     setSheetVisible(true);
                 }
-            }, Math.max(60, Math.floor(FADE_DUR * 0.6))); // ~60-100ms
+            }, 30);
         } else {
             // If parent forces invisible, just clear timers
             if (openTimer.current) {
@@ -157,7 +157,9 @@ export default function SinglePostModal({ visible, post, onClose, onOpenWorkout 
             openTimer.current = null;
         }
 
-        // 1) drive the comments sheet to fully collapse in sync via shared progress
+        // 1) trigger an immediate sheet collapse (mirror Feed behavior)
+        try { setCollapseSignal(Date.now()); } catch {}
+        // Also drive the shared progress to 1 so footer/rounded corners sync visually
         try {
             const targetProgress = Math.max(1, 1 / Math.max(0.0001, interactiveScaleSlow));
             interactiveProgressSV.value = withTiming(targetProgress, { duration: 220, easing: REAEasing.out(REAEasing.cubic) });
@@ -251,7 +253,6 @@ export default function SinglePostModal({ visible, post, onClose, onOpenWorkout 
             animationType="none"
             onRequestClose={close} // Android hardware back
         >
-            <GestureDetector gesture={panGesture}>
             <Reanimated.View style={{ flex: 1 }}>
                     {/* Dim backdrop (non-interactive) */}
                     <Reanimated.View pointerEvents="none" style={[styles.backdrop, backdropStyle]} />
@@ -272,6 +273,7 @@ export default function SinglePostModal({ visible, post, onClose, onOpenWorkout 
                         </TouchableOpacity>
                     </Reanimated.View>
                     {/* Focused post (slightly lower). Slides up when unfocusing */}
+                    <GestureDetector gesture={panGesture}>
                     <Reanimated.View style={[styles.stage, stageStyle]}>
                         <View style={[styles.focusSlot, { top: scaleSize(TARGET_Y - 15 + FOCUS_EXTRA_DROP) }]}>
                             <View>
@@ -329,6 +331,7 @@ export default function SinglePostModal({ visible, post, onClose, onOpenWorkout 
                             </View>
                         </View>
                     </Reanimated.View>
+                    </GestureDetector>
                     {/* Bottom sheets (mounted inside modal so they're above everything) */}
                     {mountCommentsSheet && (
                         <CommentsBottomSheet
@@ -359,7 +362,6 @@ export default function SinglePostModal({ visible, post, onClose, onOpenWorkout 
                         />
                     )}
             </Reanimated.View>
-            </GestureDetector>
         </Modal>
     );
 }
