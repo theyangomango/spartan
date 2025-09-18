@@ -5,7 +5,8 @@
  */
 
 import React from 'react';
-import { View, Text, StyleSheet, Animated } from 'react-native';
+import { View, Text, StyleSheet } from 'react-native';
+import Reanimated, { useAnimatedStyle } from 'react-native-reanimated';
 // No safe-area offset here; this panel sits inside the post card,
 // not at the device edge.
 import scaleSize from '../../../helper/scaleSize';
@@ -30,7 +31,9 @@ const Pfp = ({ uid, version = 0, style }) => {
     );
 };
 
-const PostFooterInfoPanel = ({ data, opacityAnim }) => {
+const FIXED_H = scaleSize(28); // keep consistent height
+
+const PostFooterInfoPanel = ({ data, opacityAnim, interactiveUnfocusSV, focusModeSV }) => {
     const following = global?.userData?.following ?? [];
     const likes = Array.isArray(data?.likes) ? data.likes : [];
 
@@ -41,8 +44,17 @@ const PostFooterInfoPanel = ({ data, opacityAnim }) => {
 
     const handles = filteredLikes.map(like => like.handle);
 
+    const rStyle = useAnimatedStyle(() => {
+        // Smooth fade-in with focus progress, fade-out with interactive unfocus
+        const fm = focusModeSV?.value || 0; // 0..1 focused progression
+        let p = interactiveUnfocusSV?.value || 0; // 0..1 as we pan to close
+        if (p < 0) p = 0; if (p > 1) p = 1;
+        const op = fm * (1 - p);
+        return { opacity: op };
+    });
+
     return (
-        <Animated.View style={[styles.container, { opacity: opacityAnim, bottom: scaleSize(12) }]} pointerEvents="none">
+        <Reanimated.View style={[styles.container, rStyle]} pointerEvents="none">
             <View style={styles.profilePictures}>
                 {filteredLikes.length > 0 ? (
                     filteredLikes.map((like, index) => (
@@ -74,7 +86,7 @@ const PostFooterInfoPanel = ({ data, opacityAnim }) => {
                     ? `Liked by ${handles.join(', ')}`
                     : data.caption}
             </Text>
-        </Animated.View>
+        </Reanimated.View>
     );
 };
 
@@ -86,6 +98,7 @@ const styles = StyleSheet.create({
         right: scaleSize(13),
         flexDirection: 'row',
         alignItems: 'center',
+        height: FIXED_H,
     },
     profilePictures: {
         flexDirection: 'row',

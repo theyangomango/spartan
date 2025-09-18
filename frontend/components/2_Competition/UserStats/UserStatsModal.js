@@ -1,5 +1,7 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import { StyleSheet, View, Text, ScrollView, Pressable, Dimensions, UIManager, Platform, LayoutAnimation, InteractionManager, ActivityIndicator, Animated, FlatList, SectionList } from "react-native";
+import { Gesture, GestureDetector } from 'react-native-gesture-handler';
+import { useSharedValue, runOnJS } from 'react-native-reanimated';
 import NewWorkoutModal from "../../3_Workout/NewWorkout/NewWorkoutModal";
 import { getDoc, doc } from "firebase/firestore";
 import { db } from "../../../../firebase.config";
@@ -14,7 +16,7 @@ if (Platform.OS === 'android' && UIManager.setLayoutAnimationEnabledExperimental
     try { UIManager.setLayoutAnimationEnabledExperimental(true); } catch { }
 }
 
-const { height: screenHeight } = Dimensions.get("window");
+const { height: screenHeight, width: screenWidth } = Dimensions.get("window");
 const scaledSize = (n) => scaleSize(n);
 
 // Theme (dark mode for Competition context) — hook to global theme
@@ -220,6 +222,11 @@ const groupAccent = (group) => MUSCLE_ACCENT[group] || COLORS.accent;
 const HANDLE_FRIEND_ACCENT = "#E0A500";
 const HANDLE_FRIEND_BACKGROUND = "#e0a4002c";
 
+// Gold accent (match DayDetails workout PR pill)
+const GOLD = '#FACC15';
+const GOLD_BG = 'rgba(250, 204, 21, 0.24)';
+const GOLD_BORDER = 'rgba(250, 204, 21, 0.60)';
+
 export default function UserStatsModal({ user, toViewProfile, hexOverlay, hexProps = {}, deferExercises = false }) {
     // Optionally defer heavy grouping work until after interactions (for smoother open)
     const [showExercises, setShowExercises] = useState(!deferExercises);
@@ -249,25 +256,21 @@ export default function UserStatsModal({ user, toViewProfile, hexOverlay, hexPro
 
     // ---------- Exercise detail (sets) overlay state ----------
     const [detailName, setDetailName] = useState(null); // exercise name
-    const detailOpacity = useRef(new Animated.Value(0)).current;
-    const detailTranslate = useRef(new Animated.Value(8)).current; // subtle slide-up on reveal
+    // Slide-in from right for detail screen
+    const detailTranslateX = useRef(new Animated.Value(screenWidth)).current;
     const openDetail = (name) => {
         if (!name) return;
-        // reset animation values before mounting
-        try { detailOpacity.setValue(0); detailTranslate.setValue(10); } catch {}
+        // reset slide position before mounting
+        try { detailTranslateX.setValue(screenWidth); } catch {}
         setDetailName(name);
         try {
-            Animated.parallel([
-                Animated.timing(detailOpacity, { toValue: 1, duration: 180, useNativeDriver: true }),
-                Animated.timing(detailTranslate, { toValue: 0, duration: 220, useNativeDriver: true }),
-            ]).start();
+            Animated.timing(detailTranslateX, { toValue: 0, duration: 260, useNativeDriver: true }).start();
         } catch { }
     };
     const closeDetail = () => {
         try {
-            Animated.timing(detailOpacity, { toValue: 0, duration: 140, useNativeDriver: true }).start(({ finished }) => {
-                if (finished) setDetailName(null);
-                else setDetailName(null);
+            Animated.timing(detailTranslateX, { toValue: screenWidth, duration: 220, useNativeDriver: true }).start(({ finished }) => {
+                setDetailName(null);
             });
         } catch { setDetailName(null); }
     };
@@ -325,7 +328,16 @@ export default function UserStatsModal({ user, toViewProfile, hexOverlay, hexPro
     // ---- Workout viewer state (open per set press) ----
     const [viewerOpen, setViewerOpen] = useState(false);
     const [viewerWorkout, setViewerWorkout] = useState(null);
-    const viewerOpacity = useRef(new Animated.Value(0)).current;
+    // Slide-in from right for workout viewer
+    const viewerTranslateX = useRef(new Animated.Value(screenWidth)).current;
+    // Match DayDetails: yellow handle fades as overlay slides
+    const viewerHandleOpacity = useMemo(() => (
+        viewerTranslateX.interpolate({
+            inputRange: [0, screenWidth],
+            outputRange: [1, 0],
+            extrapolate: 'clamp',
+        })
+    ), [viewerTranslateX, screenWidth]);
     const timerRef = useRef("");
 
     const findWorkoutByWid = async (widRaw) => {
@@ -360,35 +372,81 @@ export default function UserStatsModal({ user, toViewProfile, hexOverlay, hexPro
         if (!set) return;
         const wid = String(set?.wid || "");
         if (!wid) return;
-        // Prepare workout overlay first to block any flash of underlying content
+        // Keep detail screen mounted; slide in viewer as a child from right
         setViewerOpen(true);
-        // Fade out detail overlay for a smoother transition
         try {
-            Animated.timing(detailOpacity, { toValue: 0, duration: 140, useNativeDriver: true }).start(async ({ finished }) => {
-                setDetailName(null);
-                const wk = await findWorkoutByWid(wid);
-                if (wk) {
-                    setViewerWorkout(wk);
-                    try { viewerOpacity.setValue(0); } catch {}
-                    Animated.timing(viewerOpacity, { toValue: 1, duration: 200, useNativeDriver: true }).start();
-                }
-            });
-        } catch {
-            setDetailName(null);
             const wk = await findWorkoutByWid(wid);
             if (wk) {
                 setViewerWorkout(wk);
-                try { viewerOpacity.setValue(1); } catch {}
+                try { viewerTranslateX.setValue(screenWidth); } catch {}
+                Animated.timing(viewerTranslateX, { toValue: 0, duration: 260, useNativeDriver: true }).start();
+            } else {
+                setViewerOpen(false);
             }
+        } catch {
+            setViewerOpen(false);
         }
     };
     const closeViewer = () => {
         try {
-            Animated.timing(viewerOpacity, { toValue: 0, duration: 160, useNativeDriver: true }).start(({ finished }) => {
-                if (finished) { setViewerWorkout(null); setViewerOpen(false); } else { setViewerWorkout(null); setViewerOpen(false); }
+            Animated.timing(viewerTranslateX, { toValue: screenWidth, duration: 220, useNativeDriver: true }).start(({ finished }) => {
+                setViewerWorkout(null);
+                setViewerOpen(false);
             });
         } catch { setViewerWorkout(null); setViewerOpen(false); }
     };
+
+    // Back-swipe gesture (edge) for detail and viewer overlays
+    const EDGE_BACK_GESTURE_WIDTH = 200;
+    const BACK_SWIPE_TRIGGER = 36;
+
+    // Detail back gesture
+    const detailBackEligible = useSharedValue(0);
+    const onDetailBackUpdateX = React.useCallback((dx) => {
+        try { detailTranslateX.setValue(Math.max(0, dx || 0)); } catch {}
+    }, [detailTranslateX]);
+    const onDetailBackEnd = React.useCallback((dx, vx) => {
+        const shouldClose = (dx || 0) > BACK_SWIPE_TRIGGER || (vx || 0) > 600;
+        if (shouldClose) closeDetail();
+        else {
+            try { Animated.timing(detailTranslateX, { toValue: 0, duration: 180, useNativeDriver: true }).start(); } catch {}
+        }
+    }, [detailTranslateX]);
+    const detailBackPan = useMemo(() => (
+        Gesture.Pan()
+            .hitSlop({ left: 0, width: EDGE_BACK_GESTURE_WIDTH })
+            .minDistance(8)
+            .activeOffsetX([-16, 16])
+            .failOffsetY([-12, 12])
+            .onBegin(() => { 'worklet'; detailBackEligible.value = 1; })
+            .onUpdate((e) => { 'worklet'; if (!detailBackEligible.value) return; runOnJS(onDetailBackUpdateX)(e.translationX); })
+            .onEnd((e) => { 'worklet'; detailBackEligible.value = 0; runOnJS(onDetailBackEnd)(e.translationX, e.velocityX); })
+            .onFinalize(() => { 'worklet'; detailBackEligible.value = 0; })
+    ), [detailBackEligible, onDetailBackEnd, onDetailBackUpdateX]);
+
+    // Viewer back gesture
+    const viewerBackEligible = useSharedValue(0);
+    const onViewerBackUpdateX = React.useCallback((dx) => {
+        try { viewerTranslateX.setValue(Math.max(0, dx || 0)); } catch {}
+    }, [viewerTranslateX]);
+    const onViewerBackEnd = React.useCallback((dx, vx) => {
+        const shouldClose = (dx || 0) > BACK_SWIPE_TRIGGER || (vx || 0) > 600;
+        if (shouldClose) closeViewer();
+        else {
+            try { Animated.timing(viewerTranslateX, { toValue: 0, duration: 180, useNativeDriver: true }).start(); } catch {}
+        }
+    }, [viewerTranslateX]);
+    const viewerBackPan = useMemo(() => (
+        Gesture.Pan()
+            .hitSlop({ left: 0, width: EDGE_BACK_GESTURE_WIDTH })
+            .minDistance(8)
+            .activeOffsetX([-16, 16])
+            .failOffsetY([-12, 12])
+            .onBegin(() => { 'worklet'; viewerBackEligible.value = 1; })
+            .onUpdate((e) => { 'worklet'; if (!viewerBackEligible.value) return; runOnJS(onViewerBackUpdateX)(e.translationX); })
+            .onEnd((e) => { 'worklet'; viewerBackEligible.value = 0; runOnJS(onViewerBackEnd)(e.translationX, e.velocityX); })
+            .onFinalize(() => { 'worklet'; viewerBackEligible.value = 0; })
+    ), [viewerBackEligible, onViewerBackEnd, onViewerBackUpdateX]);
 
     return (
         <View style={styles.container}>
@@ -494,13 +552,13 @@ export default function UserStatsModal({ user, toViewProfile, hexOverlay, hexPro
                                                         <View style={[styles.iconCircle, { backgroundColor: rgba(ACC, 0.16), borderColor: rgba(ACC, 0.45) }]}>
                                                             <MaterialCommunityIcons name="dumbbell" size={scaledSize(13)} color={ACC} />
                                                         </View>
-                                                        <Text numberOfLines={1} style={styles.exerciseName}>{name}</Text>
+                                                        <Text numberOfLines={2} style={styles.exerciseName}>{name}</Text>
                                                     </View>
                                                     <View style={styles.headerRight}>
                                                         {!!oneRM && oneRM > 0 && (
-                                                            <View style={[styles.oneRMPill, { borderColor: rgba(ACC, 0.5), backgroundColor: rgba(ACC, 0.16) }]}>
+                                                            <View style={styles.oneRMPill}>
                                                                 <Text style={styles.oneRMLabel}>1RM (Adj)</Text>
-                                                                <Text style={[styles.oneRMValue, { color: ACC }]}>{oneRM}</Text>
+                                                                <Text style={styles.oneRMValue}>{oneRM}</Text>
                                                             </View>
                                                         )}
                                                         <MaterialCommunityIcons name="chevron-right" size={scaledSize(18)} color={COLORS.subtext} />
@@ -511,7 +569,7 @@ export default function UserStatsModal({ user, toViewProfile, hexOverlay, hexPro
 
                                                 {/* Stat row: 3 compact columns with icons */}
                                                 <View style={styles.metaRow}>
-                                                    <View style={[styles.metaCell, { flex: 1.05 }]}>
+                                                    <View style={[styles.metaCell, { flex: 0.95 }]}>
                                                         <View style={styles.metaCellRow}>
                                                             <View style={styles.metaIconWrapLeft}>
                                                                 <MaterialCommunityIcons name="weight-lifter" size={scaledSize(12)} color={COLORS.text} />
@@ -522,7 +580,7 @@ export default function UserStatsModal({ user, toViewProfile, hexOverlay, hexPro
                                                             </View>
                                                         </View>
                                                     </View>
-                                                    <View style={[styles.metaCell, { flex: 0.9 }]}>
+                                                    <View style={[styles.metaCell, { flex: 0.8 }]}>
                                                         <View style={[styles.metaCellRow]}>
                                                             <View style={styles.metaIconWrapLeft}>
                                                                 <MaterialCommunityIcons name="view-grid-outline" size={scaledSize(12)} color={COLORS.text} />
@@ -540,7 +598,7 @@ export default function UserStatsModal({ user, toViewProfile, hexOverlay, hexPro
                                                             </View>
                                                             <View style={styles.metaTextCol}>
                                                                 <Text style={styles.metaLabel}>Top Set</Text>
-                                                                <Text style={styles.metaValue} numberOfLines={1}>{top ? `${top.weight}×${top.reps}` : "-"}</Text>
+                                                                <Text style={styles.metaValue} numberOfLines={1}>{top ? `${top.weight} x ${top.reps}` : "-"}</Text>
                                                             </View>
                                                         </View>
                                                     </View>
@@ -559,12 +617,13 @@ export default function UserStatsModal({ user, toViewProfile, hexOverlay, hexPro
             </ScrollView>
             {/* Exercise detail overlay */}
             {detailName ? (
-                <Animated.View
-                    pointerEvents="auto"
-                    style={[styles.detailOverlay, { opacity: detailOpacity }]}
-                >
-                    <Animated.View style={{ transform: [{ translateY: detailTranslate }] }}>
-                        <View style={[styles.detailHeader, { borderColor: rgba(ACC_DETAIL, 0.35), backgroundColor: rgba(ACC_DETAIL, 0.08) }]}>
+                <GestureDetector gesture={detailBackPan}>
+                    <Animated.View
+                        pointerEvents="auto"
+                        style={[styles.detailOverlay, { transform: [{ translateX: detailTranslateX }] }]}
+                    >
+                        {/* Header card – make it match the rest of the UI (neutral card with subtle accent) */}
+                        <View style={styles.detailHeader}>
                             <Pressable onPress={closeDetail} hitSlop={10} style={styles.detailBackRow}>
                                 <MaterialCommunityIcons name="chevron-left" size={scaledSize(18)} color={COLORS.text} />
                                 <View style={[styles.detailIconCircle, { backgroundColor: rgba(ACC_DETAIL, 0.16), borderColor: rgba(ACC_DETAIL, 0.45) }]}>
@@ -572,7 +631,7 @@ export default function UserStatsModal({ user, toViewProfile, hexOverlay, hexPro
                                 </View>
                                 <Text numberOfLines={1} style={styles.detailTitle}>{detailName}</Text>
                             </Pressable>
-                            <View style={[styles.detailCountPill, { borderColor: rgba(ACC_DETAIL, 0.35), backgroundColor: rgba(ACC_DETAIL, 0.12) }]}>
+                            <View style={styles.detailCountPill}>
                                 <MaterialCommunityIcons name="view-grid-outline" size={scaledSize(11)} color={COLORS.subtext} />
                                 <Text style={styles.detailCountText}>{detailSets.length} sets</Text>
                             </View>
@@ -596,11 +655,11 @@ export default function UserStatsModal({ user, toViewProfile, hexOverlay, hexPro
                                         <Pressable style={styles.setRow} onPress={() => handleOpenSet(item)}>
                                             <View style={[styles.setDot, { backgroundColor: ACC_DETAIL }]} />
                                             <View style={{ flex: 1 }}>
-                                                <Text style={styles.setMain}>{w} × {r}</Text>
+                                                <Text style={styles.setMain}>{w}lbs x {r}</Text>
                                             </View>
                                             <View style={styles.rmPill}>
                                                 <Text style={styles.rmLabel}>1RM (Adj)</Text>
-                                                <Text style={[styles.rmValue, { color: ACC_DETAIL }]}>{rm}</Text>
+                                                <Text style={styles.rmValue}>{rm}</Text>
                                             </View>
                                             <MaterialCommunityIcons name="chevron-right" size={scaledSize(18)} color={COLORS.subtext} style={{ marginLeft: scaleSize(scaledSize(6)) }} />
                                         </Pressable>
@@ -618,17 +677,18 @@ export default function UserStatsModal({ user, toViewProfile, hexOverlay, hexPro
                             />
                         )}
                     </Animated.View>
-                </Animated.View>
+                </GestureDetector>
             ) : null}
         {/* Workout viewer overlay (fades in over this sheet) */}
         {viewerOpen ? (
-            <View style={styles.workoutOverlay} pointerEvents="auto">
-                {/* Yellow friend-view handle bar */}
+            <GestureDetector gesture={viewerBackPan}>
+                <Animated.View style={[styles.workoutOverlay, { transform: [{ translateX: viewerTranslateX }] }]} pointerEvents="auto">
+                {/* Yellow friend-view handle bar (fades while panning) */}
                 <View style={styles.viewerHandleWrap}>
-                    <View style={styles.viewerHandleIndicator} />
+                    <Animated.View style={[styles.viewerHandleIndicator, { opacity: viewerHandleOpacity }]} />
                 </View>
                 {viewerWorkout ? (
-                    <Animated.View style={{ flex: 1, opacity: viewerOpacity }}>
+                    <View style={{ flex: 1 }}>
                         <NewWorkoutModal
                             timerRef={timerRef}
                             workout={viewerWorkout}
@@ -645,9 +705,10 @@ export default function UserStatsModal({ user, toViewProfile, hexOverlay, hexPro
                             friendPfp={user?.image || user?.pfp || null}
                             streamLive={false}
                         />
-                    </Animated.View>
+                    </View>
                 ) : null}
-            </View>
+                </Animated.View>
+            </GestureDetector>
         ) : null}
         </View>
     );
@@ -865,35 +926,35 @@ const styles = StyleSheet.create({
     },
     exerciseName: {
         flex: 1,
-        fontSize: scaleSize(12.5),
-        fontFamily: "Outfit_800ExtraBold",
+        fontSize: scaleSize(13),
+        fontFamily: "Nunito_800ExtraBold",
         color: COLORS.text,
     },
-    headerRight: { flexDirection: 'row', alignItems: 'center', gap: scaleSize(scaledSize(8)) },
+    headerRight: { flexDirection: 'row', alignItems: 'center', gap: scaleSize(scaledSize(4)) },
 
     divider: { height: StyleSheet.hairlineWidth, backgroundColor: COLORS.hairline, marginVertical: scaleSize(scaledSize(8)) },
 
     oneRMPill: {
         flexDirection: "row",
-        alignItems: "baseline",
+        alignItems: "center",
         paddingHorizontal: scaleSize(scaledSize(8)),
-        paddingVertical: scaleSize(scaledSize(4.5)),
+        paddingVertical: scaleSize(scaledSize(4)),
         borderRadius: scaleSize(scaledSize(999)),
         borderWidth: scaleSize(1),
-        borderColor: COLORS.hairline,
-        backgroundColor: "rgba(255,255,255,0.06)",
+        borderColor: GOLD_BORDER,
+        backgroundColor: GOLD_BG,
     },
     oneRMLabel: {
-        fontSize: scaleSize(10.5),
-        fontFamily: "Outfit_600SemiBold",
-        color: COLORS.subtext,
+        fontSize: scaleSize(10),
+        fontFamily: "Nunito_800ExtraBold",
+        color: GOLD,
         marginRight: scaleSize(scaledSize(5)),
-        letterSpacing: 0.6,
+        letterSpacing: 0,
     },
     oneRMValue: {
-        fontSize: scaleSize(12.5),
-        fontFamily: "Outfit_700Bold",
-        color: COLORS.accent,
+        fontSize: scaleSize(13),
+        fontFamily: "Nunito_800ExtraBold",
+        color: GOLD,
     },
 
     metaRow: { flexDirection: "row", alignItems: "stretch", gap: scaleSize(scaledSize(8)), marginTop: scaleSize(scaledSize(1)), paddingHorizontal: scaleSize(8) },
@@ -910,12 +971,12 @@ const styles = StyleSheet.create({
     },
     metaTextCol: { flex: 1, minWidth: 0 },
     metaLabel: {
-        fontSize: scaleSize(11),
+        fontSize: scaleSize(12),
         fontFamily: "Outfit_600SemiBold",
         color: COLORS.subtext,
         letterSpacing: 0.3,
     },
-    metaValue: { fontSize: scaleSize(13), lineHeight: scaleSize(scaledSize(16)), fontFamily: "Outfit_800ExtraBold", color: COLORS.text, marginTop: scaleSize(scaledSize(1)) },
+    metaValue: { fontSize: scaleSize(13), lineHeight: scaleSize(scaledSize(18)), fontFamily: "Outfit_800ExtraBold", color: COLORS.text, marginTop: scaleSize(scaledSize(1)) },
 
     // Detail overlay
     detailOverlay: {
@@ -931,6 +992,7 @@ const styles = StyleSheet.create({
         paddingTop: scaleSize(scaledSize(26)),
         paddingHorizontal: scaleSize(scaledSize(17)),
         paddingBottom: scaleSize(scaledSize(16)),
+        zIndex: 1,
     },
     workoutOverlay: {
         position: 'absolute',
@@ -943,6 +1005,7 @@ const styles = StyleSheet.create({
         borderTopRightRadius: scaleSize(scaledSize(24)),
         overflow: 'hidden',
         paddingTop: 0,
+        zIndex: 2,
     },
     // Friend-view handle bar (yellow)
     viewerHandleWrap: {
@@ -965,10 +1028,13 @@ const styles = StyleSheet.create({
         alignItems: 'center',
         justifyContent: 'space-between',
         borderWidth: scaleSize(1),
-        borderRadius: scaleSize(scaledSize(14)),
-        paddingHorizontal: scaleSize(scaledSize(12)),
+        borderRadius: scaleSize(scaledSize(16)),
+        paddingHorizontal: scaleSize(scaledSize(14)),
         paddingVertical: scaleSize(scaledSize(12)),
         marginBottom: scaleSize(scaledSize(6)),
+        // Match card styling used elsewhere
+        backgroundColor: COLORS.card,
+        borderColor: COLORS.hairline,
         shadowColor: '#000',
         shadowOpacity: 0.06,
         shadowRadius: scaleSize(scaledSize(10)),
@@ -998,6 +1064,8 @@ const styles = StyleSheet.create({
         paddingHorizontal: scaleSize(scaledSize(10)),
         paddingVertical: scaleSize(scaledSize(5)),
         gap: scaleSize(scaledSize(6)),
+        backgroundColor: COLORS.iconBg,
+        borderColor: COLORS.hairline,
     },
     detailCountText: { fontSize: scaleSize(12.5), fontFamily: 'Outfit_700Bold', color: COLORS.subtext },
     detailEmpty: {
@@ -1019,7 +1087,8 @@ const styles = StyleSheet.create({
         borderRadius: scaleSize(scaledSize(14)),
         borderWidth: scaleSize(1),
         borderColor: COLORS.hairline,
-        paddingHorizontal: scaleSize(scaledSize(12)),
+        paddingLeft: scaleSize(18),
+        paddingRight: scaleSize(scaledSize(12)),
         paddingVertical: scaleSize(scaledSize(10)),
     },
     setDot: { width: scaleSize(scaledSize(8)), height: scaleSize(scaledSize(8)), borderRadius: scaleSize(scaledSize(4)), marginRight: scaleSize(scaledSize(8)) },
@@ -1032,9 +1101,9 @@ const styles = StyleSheet.create({
         paddingVertical: scaleSize(scaledSize(4)),
         borderRadius: scaleSize(scaledSize(999)),
         borderWidth: scaleSize(1),
-        borderColor: COLORS.hairline,
-        backgroundColor: 'rgba(255,255,255,0.06)'
+        borderColor: GOLD_BORDER,
+        backgroundColor: GOLD_BG,
     },
-    rmLabel: { fontSize: scaleSize(10.5), fontFamily: 'Outfit_600SemiBold', color: COLORS.subtext, marginRight: scaleSize(scaledSize(5)), letterSpacing: 0.6 },
-    rmValue: { fontSize: scaleSize(13), fontFamily: 'Outfit_800ExtraBold' },
+    rmLabel: { fontSize: scaleSize(10.5), fontFamily: 'Outfit_600SemiBold', color: GOLD, marginRight: scaleSize(scaledSize(5)), letterSpacing: 0.6 },
+    rmValue: { fontSize: scaleSize(13), fontFamily: 'Outfit_800ExtraBold', color: GOLD },
 });

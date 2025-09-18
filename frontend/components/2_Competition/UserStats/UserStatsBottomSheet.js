@@ -3,6 +3,7 @@ import { StyleSheet, Text, View } from "react-native";
 import BottomSheet, { BottomSheetBackdrop, BottomSheetFooter } from "@gorhom/bottom-sheet";
 import LeaderboardModal from "../LeaderboardModal";
 import UserStatsModal from "./UserStatsModal";
+import scaleSize from "../../../helper/scaleSize";
 
 import { onHexagonUpdate } from "../../../utils/hexagonEvents";
 
@@ -100,7 +101,11 @@ const LeaderboardBottomSheet = ({ isVisible, setIsVisible, user, navigation }) =
             backdropComponent={renderBackdrop}
             snapPoints={snapPoints}
             handleStyle={{ display: 'none' }}
-            backgroundStyle={{ backgroundColor: require("../../../theme/mfpDark").default.surface }}
+            backgroundStyle={{
+                backgroundColor: require("../../../theme/mfpDark").default.surface,
+                borderTopLeftRadius: scaleSize(20),
+                borderTopRightRadius: scaleSize(20),
+            }}
             enablePanDownToClose
             onClose={() => setIsVisible(false)}
         >

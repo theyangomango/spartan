@@ -40,8 +40,10 @@ export default function SinglePostModal({ visible, post, onClose, onOpenWorkout 
     const translateYSV = useSharedValue(0);
     const [collapseSignal, setCollapseSignal] = useState(0);
     const [reopenSignal, setReopenSignal] = useState(0);
-    // Reanimated progress for comments sheet (no React re-renders during drag)
+    // Reanimated progress for comments sheet and unfocus gesture (0..1)
     const interactiveProgressSV = useSharedValue(0);
+    // Focus mode progress (0..1) so children can fade in with focus
+    const focusModeSV = useSharedValue(0);
     // Focused post entrance fade (one-shot)
     const stageOpacitySV = useSharedValue(0);
     const STAGE_FADE_DUR = 260;
@@ -113,6 +115,9 @@ export default function SinglePostModal({ visible, post, onClose, onOpenWorkout 
             // fade in the focused post content more noticeably
             stageOpacitySV.value = 0;
             stageOpacitySV.value = withTiming(1, { duration: STAGE_FADE_DUR, easing: REAEasing.out(REAEasing.cubic) });
+            // drive focus progress for children (e.g., footer info panel)
+            focusModeSV.value = 0;
+            focusModeSV.value = withTiming(1, { duration: STAGE_FADE_DUR, easing: REAEasing.out(REAEasing.cubic) });
             // small settle-in lift
             translateYSV.value = 10;
             translateYSV.value = withTiming(0, { duration: 180, easing: REAEasing.out(REAEasing.cubic) });
@@ -162,6 +167,8 @@ export default function SinglePostModal({ visible, post, onClose, onOpenWorkout 
         // 2) animate stage up and fade out backdrop/top bar
         try { translateYSV.value = withTiming(-SH, { duration: 220 }); } catch {}
         fadeSV.value = withTiming(0, { duration: FADE_DUR });
+        // indicate leaving focus
+        try { focusModeSV.value = withTiming(0, { duration: 160 }); } catch {}
 
         // 3) after sheet close duration, notify parent to unmount modal
         setTimeout(() => {
@@ -274,6 +281,8 @@ export default function SinglePostModal({ visible, post, onClose, onOpenWorkout 
                                         isFocused
                                         isSomePostFocused
                                         shouldPlay
+                                        focusModeSV={focusModeSV}
+                                        interactiveUnfocusSV={interactiveProgressSV}
                                         handleFocusPost={() => { }}
                                         onSwipeUnfocus={close}
                                         // When user taps the comment icon in PostFooter, expand to 92% via the flag

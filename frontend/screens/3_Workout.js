@@ -141,11 +141,15 @@ export default function Workout({ navigation, route }) {
 
     /* ---------- calories (today) ---------- */
     const stableToday = useMemo(() => { const d = new Date(); d.setHours(0, 0, 0, 0); return d; }, []);
-    const { totals: todayTotals } = useFoodLogs(stableToday, uid);
+    const { totals: todayTotals } = useFoodLogs(stableToday, uid, afterPaint);
     // Warm cache around today on mount for snappier day switches
     useEffect(() => {
         const uidX = uid || global?.userData?.uid || global?.userData?.id;
-        if (uidX) primeFoodLogsCache(uidX, stableToday, 7);
+        if (!uidX) return;
+        const task = InteractionManager.runAfterInteractions(() => {
+            primeFoodLogsCache(uidX, stableToday, 7);
+        });
+        return () => task?.cancel?.();
     }, [uid, stableToday]);
     const todayCalories = Math.round(Math.max(0, todayTotals?.calories || 0));
     const caloriesGoal = useMemo(
@@ -625,48 +629,50 @@ export default function Workout({ navigation, route }) {
             {afterPaint && (
                 <NotificationsBottomSheet notificationsBottomSheetExpandFlag={notificationsBottomSheetExpandFlag} />
             )}
-            {/* Day details (always mounted so ref is ready on first open) */}
-            <View style={StyleSheet.absoluteFill} pointerEvents={daySheetVisible ? "auto" : "none"}>
-                <DayDetailsSheet
-                    visible={daySheetVisible}
-                    openToggle={daySheetToggle}
-                    date={sheetDate}
-                    workouts={dayWorkouts}
-                    meals={sheetMeals}
-                    totals={sheetTotals}
-                    calories={sheetTotals?.calories || 0}
-                    workoutOn={(dayWorkouts?.length || 0) > 0}
-                    onClose={() => setDaySheetVisible(false)}
-                    onChangeDate={(d) => {
-                        try {
-                            const uidX = global?.userData?.uid || global?.userData?.id || uid;
-                            if (uidX) primeFoodLogsCache(uidX, d, 7);
-                        } catch { }
-                        try {
-                            const nd = new Date(d);
-                            if (!Number.isNaN(nd.getTime())) nd.setHours(0, 0, 0, 0);
-                            setDaySheetDate(nd);
-                        } catch { setDaySheetDate(d); }
-                        // Keep sheet open; no re-expand
-                    }}
-                    onStartWorkout={onStartWorkout}
-                    onOpenMacros={() => {
-                        setDaySheetVisible(false);
-                        try {
-                            const rootNav = navigation?.getParent?.('ROOT');
-                            // Pass the selected day to MacroTracking so it focuses the correct date
-                            let focusTs = null;
+            {/* Day details (mount after first paint or when opened) */}
+            {(afterPaint || daySheetVisible) && (
+                <View style={StyleSheet.absoluteFill} pointerEvents={daySheetVisible ? "auto" : "none"}>
+                    <DayDetailsSheet
+                        visible={daySheetVisible}
+                        openToggle={daySheetToggle}
+                        date={sheetDate}
+                        workouts={dayWorkouts}
+                        meals={sheetMeals}
+                        totals={sheetTotals}
+                        calories={sheetTotals?.calories || 0}
+                        workoutOn={(dayWorkouts?.length || 0) > 0}
+                        onClose={() => setDaySheetVisible(false)}
+                        onChangeDate={(d) => {
                             try {
-                                const nd = new Date(sheetDate);
-                                if (!Number.isNaN(nd.getTime())) { nd.setHours(0, 0, 0, 0); focusTs = nd.getTime(); }
+                                const uidX = global?.userData?.uid || global?.userData?.id || uid;
+                                if (uidX) primeFoodLogsCache(uidX, d, 7);
                             } catch { }
-                            const params = focusTs ? { transition: 'slide-from-left', focusDate: focusTs } : { transition: 'slide-from-left' };
-                            if (rootNav?.navigate) rootNav.navigate('MacroTracking', params);
-                            else navigation.navigate('MacroTracking', params);
-                        } catch { }
-                    }}
-                />
-            </View>
+                            try {
+                                const nd = new Date(d);
+                                if (!Number.isNaN(nd.getTime())) nd.setHours(0, 0, 0, 0);
+                                setDaySheetDate(nd);
+                            } catch { setDaySheetDate(d); }
+                            // Keep sheet open; no re-expand
+                        }}
+                        onStartWorkout={onStartWorkout}
+                        onOpenMacros={() => {
+                            setDaySheetVisible(false);
+                            try {
+                                const rootNav = navigation?.getParent?.('ROOT');
+                                // Pass the selected day to MacroTracking so it focuses the correct date
+                                let focusTs = null;
+                                try {
+                                    const nd = new Date(sheetDate);
+                                    if (!Number.isNaN(nd.getTime())) { nd.setHours(0, 0, 0, 0); focusTs = nd.getTime(); }
+                                } catch { }
+                                const params = focusTs ? { transition: 'slide-from-left', focusDate: focusTs } : { transition: 'slide-from-left' };
+                                if (rootNav?.navigate) rootNav.navigate('MacroTracking', params);
+                                else navigation.navigate('MacroTracking', params);
+                            } catch { }
+                        }}
+                    />
+                </View>
+            )}
             {/* Friends sheet */}
             {(afterPaint || friendsSheetVisible) && (
                 <View style={StyleSheet.absoluteFill} pointerEvents={friendsSheetVisible ? "auto" : "none"}>

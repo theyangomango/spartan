@@ -240,6 +240,9 @@ const DayDetailsSheet = ({
         });
     }, [listOpacity, viewerOpacity, viewerTranslateX, screenWidth]);
 
+    // Avoid mounting heavy pager until expanded or explicitly visible
+    const shouldRenderContent = isExpanded || !!visible;
+
     // Back-swipe gesture (edge left-to-right) to close overlay
     const onBackUpdateX = useCallback((dx) => {
         try { viewerTranslateX.setValue(Math.max(0, dx || 0)); } catch { }
@@ -609,6 +612,7 @@ const DayDetailsSheet = ({
             >
                 {/* Content (static header + horizontally paged days via VirtualizedList) */}
                 <BottomSheetView style={{ flex: 1 }}>
+                    {!shouldRenderContent ? null : (
                     <Animated.View style={{ flex: 1, opacity: listOpacity }}>
                         {StaticHeaderRow}
                         <VirtualizedList
@@ -686,6 +690,7 @@ const DayDetailsSheet = ({
                             removeClippedSubviews={false}
                         />
                     </Animated.View>
+                    )}
                 </BottomSheetView>
 
                 {/* Viewer overlay */}
