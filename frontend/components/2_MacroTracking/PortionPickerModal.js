@@ -3,10 +3,12 @@ import { View, Text, StyleSheet, TextInput, Modal, Pressable } from 'react-nativ
 import RNBounceable from '@freakycoder/react-native-bounceable';
 
 import scaleSize from "../../helper/scaleSize";
+import { strong as haptic } from '../../utils/haptics';
 
 export default function PortionPickerModal({ visible, onCancel, onConfirm, COLORS }) {
     const styles = useMemo(() => makeStyles(COLORS), [COLORS]);
     const [input, setInput] = useState('1');
+    const [focused, setFocused] = useState(false);
 
     useEffect(() => {
         if (visible) setInput('1');
@@ -24,8 +26,8 @@ export default function PortionPickerModal({ visible, onCancel, onConfirm, COLOR
         return Number.isFinite(v) && v > 0 ? v : 1;
     };
 
-    const quickSet = (v) => setInput(v);
-    const confirm = () => onConfirm?.(parsePortion(input));
+    const quickSet = (v) => { try { haptic(); } catch {} setInput(v); };
+    const confirm = () => { try { haptic(); } catch {} onConfirm?.(parsePortion(input)); };
 
     return (
         <Modal visible={visible} transparent animationType="fade" onRequestClose={onCancel}>
@@ -35,22 +37,31 @@ export default function PortionPickerModal({ visible, onCancel, onConfirm, COLOR
 
                     <View style={styles.quickRow}>
                         {['1/4', '1/3', '1/2', '2/3', '3/4', '1'].map((v) => (
-                            <RNBounceable key={v} style={[styles.chip, input === v && styles.chipActive]} onPress={() => quickSet(v)}>
-                                <Text style={[styles.chipText, input === v && styles.chipTextActive]}>{v}</Text>
-                            </RNBounceable>
+                        <RNBounceable key={v} style={[styles.chip, input === v && styles.chipActive]} onPress={() => quickSet(v)}>
+                            <Text style={[styles.chipText, input === v && styles.chipTextActive]}>{v}</Text>
+                        </RNBounceable>
                         ))}
                     </View>
 
                     <View style={styles.customRow}>
                         <Text style={styles.customLabel}>Custom</Text>
-                        <TextInput
-                            value={input}
-                            onChangeText={setInput}
-                            placeholder="e.g. 0.4 or 1/3"
-                            placeholderTextColor="#aaa"
-                            style={styles.customInput}
-                            keyboardType="decimal-pad"
-                        />
+                        <View style={[styles.customInputWrapper, focused && styles.customInputWrapperFocused]}>
+                            <Text style={styles.customInputIcon}>✎</Text>
+                            <TextInput
+                                value={input}
+                                onChangeText={setInput}
+                                onFocus={() => setFocused(true)}
+                                onBlur={() => setFocused(false)}
+                                placeholder="e.g. 0.4 or 1/3"
+                                placeholderTextColor={COLORS?.placeholder || '#9CA3AF'}
+                                style={styles.customInput}
+                                keyboardType="decimal-pad"
+                                returnKeyType="done"
+                                cursorColor={COLORS?.primary || '#2D9EFF'}
+                                selectionColor={COLORS?.primary || '#2D9EFF'}
+                                accessibilityLabel="Custom portion input"
+                            />
+                        </View>
                     </View>
 
                     <View style={styles.modalButtons}>
@@ -90,7 +101,33 @@ const makeStyles = (COLORS) =>
         chipTextActive: { color: COLORS?.primary || '#2D9EFF' },
         customRow: { flexDirection: 'row', alignItems: 'center', gap: scaleSize(10), marginBottom: scaleSize(14) },
         customLabel: { fontFamily: 'Outfit_500Medium', color: COLORS?.subtext || '#A1A7B3', fontSize: scaleSize(12.5) },
-        customInput: { flex: 1, paddingVertical: scaleSize(10), paddingHorizontal: scaleSize(12), borderRadius: scaleSize(10), backgroundColor: COLORS?.fieldBg || '#1E2128', fontFamily: 'Outfit_500Medium', color: COLORS?.text || '#E5E7EB', fontSize: scaleSize(15) },
+        customInputWrapper: {
+            flex: 1,
+            flexDirection: 'row',
+            alignItems: 'center',
+            paddingVertical: scaleSize(8),
+            paddingHorizontal: scaleSize(10),
+            borderRadius: scaleSize(10),
+            backgroundColor: COLORS?.fieldBg || '#1E2128',
+            borderWidth: StyleSheet.hairlineWidth,
+            borderColor: COLORS?.hairline || 'rgba(255,255,255,0.18)'
+        },
+        customInputWrapperFocused: {
+            borderColor: COLORS?.primaryHairline || 'rgba(45,158,255,0.75)'
+        },
+        customInputIcon: {
+            marginRight: scaleSize(6),
+            color: COLORS?.subtext || '#A1A7B3',
+            fontSize: scaleSize(14)
+        },
+        customInput: {
+            flex: 1,
+            paddingVertical: scaleSize(4),
+            paddingHorizontal: scaleSize(4),
+            fontFamily: 'Outfit_500Medium',
+            color: COLORS?.text || '#E5E7EB',
+            fontSize: scaleSize(15)
+        },
         modalButtons: { flexDirection: 'row', justifyContent: 'flex-end', gap: scaleSize(10) },
         modalBtn: { paddingVertical: scaleSize(10), paddingHorizontal: scaleSize(16), borderRadius: scaleSize(10) },
         cancelBtn: { backgroundColor: COLORS?.fieldBg || '#1E2128' },

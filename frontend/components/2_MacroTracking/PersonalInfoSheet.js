@@ -16,6 +16,7 @@ import BottomSheet, { BottomSheetBackdrop } from '@gorhom/bottom-sheet';
 import { Ionicons } from '@expo/vector-icons';
 
 import scaleSize from "../../helper/scaleSize";
+import { strong as haptic } from '../../utils/haptics';
 
 export function PersonalInfoContent({ goalForm, setGoalForm, onBack, onSave, COLORS }) {
     const styles = useMemo(() => makeStyles(COLORS), [COLORS]);
@@ -40,6 +41,7 @@ export function PersonalInfoContent({ goalForm, setGoalForm, onBack, onSave, COL
     const chevronTranslate = chevron.interpolate({ inputRange: [0, 1], outputRange: [0, 4] });
 
     const handleSavePress = () => {
+        try { haptic(); } catch {}
         pulseChevron();
         onSave?.();
     };
@@ -69,7 +71,7 @@ export function PersonalInfoContent({ goalForm, setGoalForm, onBack, onSave, COL
                                 <Pressable
                                     key={g}
                                     style={[styles.toggleButton, active && styles.toggleButtonActive]}
-                                    onPress={() => setGoalForm((s) => ({ ...s, gender: v }))}
+                                onPress={() => { try { haptic(); } catch {} setGoalForm((s) => ({ ...s, gender: v })); }}
                                 >
                                     <Text style={[styles.toggleButtonText, active && styles.toggleButtonTextActive]}>{g}</Text>
                                 </Pressable>
@@ -154,7 +156,7 @@ export function PersonalInfoContent({ goalForm, setGoalForm, onBack, onSave, COL
                             <Pressable
                                 key={a.value}
                                 style={[styles.toggleButton, active && styles.toggleButtonActive]}
-                                onPress={() => setGoalForm((s) => ({ ...s, activity: a.value }))}
+                                onPress={() => { try { haptic(); } catch {} setGoalForm((s) => ({ ...s, activity: a.value })); }}
                             >
                                 <Text style={[styles.toggleButtonText, active && styles.toggleButtonTextActive]}>{a.label}</Text>
                             </Pressable>
@@ -175,7 +177,7 @@ export function PersonalInfoContent({ goalForm, setGoalForm, onBack, onSave, COL
                             <Pressable
                                 key={g.value}
                                 style={[styles.toggleButton, active && styles.toggleButtonActive]}
-                                onPress={() => setGoalForm((s) => ({ ...s, goal: g.value }))}
+                                onPress={() => { try { haptic(); } catch {} setGoalForm((s) => ({ ...s, goal: g.value })); }}
                             >
                                 <Text style={[styles.toggleButtonText, active && styles.toggleButtonTextActive]}>{g.label}</Text>
                             </Pressable>

@@ -27,6 +27,7 @@ import { fetchRecentFoods } from '../../utils/recentFoods';
 // Recent foods now backed by Firestore subcollection users/{uid}/recentFoods
 
 import scaleSize from "../../helper/scaleSize";
+import { strong as haptic } from '../../utils/haptics';
 
 export default function FoodSearchOverlay({
     visible,
@@ -101,12 +102,12 @@ export default function FoodSearchOverlay({
     /* ---------------- Portion picker (for search results) ---------------- */
     const [portionVisible, setPortionVisible] = useState(false);
     const [pendingFood, setPendingFood] = useState(null);
-    const openPortion = (food) => { setPendingFood(food); setPortionVisible(true); };
+    const openPortion = (food) => { try { haptic(); } catch {} setPendingFood(food); setPortionVisible(true); };
     const cancelPortion = () => { setPortionVisible(false); setPendingFood(null); };
 
     /* ---------------- QUICK ADD (custom macros) ---------------- */
     const [quickVisible, setQuickVisible] = useState(false);
-    const openQuick = () => setQuickVisible(true);
+    const openQuick = () => { try { haptic(); } catch {} setQuickVisible(true); };
     const closeQuick = () => { Keyboard.dismiss(); setQuickVisible(false); };
 
     // ---- Renderers
@@ -183,6 +184,7 @@ export default function FoodSearchOverlay({
                     <Pressable
                         style={styles.headerLeft}
                         onPress={async () => {
+                            try { haptic(); } catch {}
                             setScanError('');
                             if (!permission || !permission.granted) {
                                 const perm = await requestPermission();
@@ -206,7 +208,7 @@ export default function FoodSearchOverlay({
                     </View>
 
                     {/* Right: Quick Add */}
-                    <Pressable onPress={openQuick} hitSlop={8} style={styles.headerRight}>
+                    <Pressable onPress={() => { try { haptic(); } catch {} openQuick(); }} hitSlop={8} style={styles.headerRight}>
                         <Text style={styles.headerActionText}>Quick Add</Text>
                     </Pressable>
                 </View>

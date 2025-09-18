@@ -5,6 +5,7 @@ import { Ionicons } from '@expo/vector-icons';
 import PlusIcon from '../../assets/PlusIcon';
 
 import scaleSize from "../../helper/scaleSize";
+import { strong as haptic } from '../../utils/haptics';
 
 const DEFAULT_COLORS = {
     background: '#f5f6fa',
@@ -96,14 +97,14 @@ function SearchResultCard({ item, onPressPlus, onPressCard, COLORS }) {
         <View style={styles.resultCard}>
             <View style={styles.contentRow}>
                 <Pressable
-                    onPress={onPressCard}
+                    onPress={() => { try { haptic(); } catch {} onPressCard?.(); }}
                     android_ripple={{ color: 'rgba(255,255,255,0.06)' }}
                     style={styles.textPressable}
                 >
                     <Text style={styles.resultTitle}>{item.food_name}</Text>
                     <Text style={styles.resultDescription}>{getSummary()}</Text>
                 </Pressable>
-                <RNBounceable bounceEffectIn={0.9} onPress={onPressPlus}>
+                <RNBounceable bounceEffectIn={0.9} onPress={() => { try { haptic(); } catch {} onPressPlus?.(); }}>
                     <View style={styles.plusWrap}>
                         <PlusIcon size={18} color={theme.accent || '#2D9EFF'} />
                     </View>

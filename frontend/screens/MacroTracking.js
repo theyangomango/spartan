@@ -1,15 +1,13 @@
 // screens/MacroTracking.js
-import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
-import { View, Text, StyleSheet, ScrollView, Pressable, UIManager, Platform, LayoutAnimation, InteractionManager, StatusBar, useWindowDimensions, VirtualizedList } from 'react-native';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
+import { View, UIManager, Platform, LayoutAnimation, StatusBar, useWindowDimensions, VirtualizedList } from 'react-native';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
-import { Ionicons } from '@expo/vector-icons';
 import Footer from '../components/Footer';
 
 // search is handled inside FoodSearchOverlay to reduce re-renders
 import PlusIcon from '../assets/PlusIcon';
 import DateHeader from '../components/2_MacroTracking/DateHeader';
-import NutritionSummaryCard from '../components/2_MacroTracking/NutritionSummaryCard';
-import MealsSection from '../components/2_MacroTracking/MealsSection';
+import MacroDayPage from '../components/2_MacroTracking/MacroDayPage';
 import breakfastIcon from '../assets/breakfast.png';
 import lunchIcon from '../assets/lunch.png';
 import dinnerIcon from '../assets/dinner.png';
@@ -18,6 +16,7 @@ import snacksIcon from '../assets/snacks.png'
 import FoodSearchOverlay from '../components/2_MacroTracking/FoodSearchOverlay';
 import { useFocusEffect } from '@react-navigation/native';
 import MacroGoalsSheet from '../components/2_MacroTracking/MacroGoalsSheet';
+import { strong as haptic } from '../utils/haptics';
 
 // No foodLogs hook for this screen — use global.userData.loggedFoods exclusively
 import { parseMacrosFromDescription } from '../utils/nutrition';
@@ -27,10 +26,11 @@ import PersonalInfoSheet from '../components/2_MacroTracking/PersonalInfoSheet';
 import { db } from '../../firebase.config';
 import theme from '../theme/mfpDark';
 import { toDayKey } from '../utils/date';
+import { buildFromGlobal } from '../logic/macroLogsIndexer';
 import { doc, onSnapshot, updateDoc, serverTimestamp, deleteField } from 'firebase/firestore';
 import { touchRecentFood } from '../utils/recentFoods';
 
-import scaleSize from "../helper/scaleSize";
+// scaleSize not needed at screen level (used in child components)
 
 if (Platform.OS === 'android' && UIManager.setLayoutAnimationEnabledExperimental) {
     UIManager.setLayoutAnimationEnabledExperimental(true);
@@ -70,10 +70,6 @@ const mealsMeta = [
 export default function MacroTracking({ navigation, route }) {
     const { width: screenWidth } = useWindowDimensions();
     // Fast caches for global.loggedFoods → day-index and built meals
-    const globalIndexRef = useRef(new Map());      // dayKey -> array of { id, entry }
-    const globalMealsCacheRef = useRef(new Map()); // dayKey -> { meals, totals }
-    const globalSigRef = useRef(0);                // bump when global.loggedFoods changes
-    const macroCacheRef = useRef(new Map());       // `${id}|${desc}|${qty}` -> macros
     const lastCountRef = useRef(0);
     // If opened from HubRow, suppress the next navigation animation once
     // No one-off transition suppression; keep other transitions intact
@@ -196,14 +192,15 @@ export default function MacroTracking({ navigation, route }) {
     const [goalsOpenSignal, setGoalsOpenSignal] = useState(null); // null until user explicitly opens
     const [personalSheetIndex, setPersonalSheetIndex] = useState(-1);
 
-    const [searchVisible, setSearchVisible] = useState(false);
-    const [activeMeal, setActiveMeal] = useState(null);
+    const [isSearchVisible, setIsSearchVisible] = useState(false);
+    const [selectedMeal, setSelectedMeal] = useState(null);
 
-    const [collapsed, setCollapsed] = useState({ Breakfast: false, Lunch: false, Dinner: false });
+    const [collapsedMeals, setCollapsedMeals] = useState({ Breakfast: false, Lunch: false, Dinner: false });
 
-    const toggleMeal = useCallback((name) => {
+    const toggleMealCollapse = useCallback((name) => {
+        try { haptic(); } catch {}
         LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
-        setCollapsed((prev) => ({ ...prev, [name]: !prev[name] }));
+        setCollapsedMeals((prev) => ({ ...prev, [name]: !prev[name] }));
     }, []);
 
     const formatDate = (date) =>
@@ -293,69 +290,7 @@ export default function MacroTracking({ navigation, route }) {
         } catch { }
     }, [focusedDate]);
 
-    const MacroDayPage = useMemo(() => React.memo(function MacroDayPage({
-        screenWidth,
-        COLORS,
-        macroGoals,
-        meals,
-        totals,
-        collapsed,
-        toggleMeal,
-        openGoalsSheet,
-        openSearchForMeal,
-        deleteFood,
-        PlusIcon,
-        date,
-        isFocused,
-    }) {
-        return (
-            <ScrollView
-                style={{ width: screenWidth }}
-                showsVerticalScrollIndicator={false}
-                contentContainerStyle={{ paddingTop: scaleSize(14), paddingBottom: scaleSize(120) }}
-                removeClippedSubviews
-                keyboardShouldPersistTaps="handled"
-                directionalLockEnabled
-                nestedScrollEnabled
-            >
-                <View style={styles.sectionHeaderRow}>
-                    <Text style={[styles.sectionTitle, styles.sectionTitleNoMargin]}>Nutrition</Text>
-                    <Pressable
-                        style={styles.editGoalsPill}
-                        onPress={openGoalsSheet}
-                        hitSlop={8}
-                        android_ripple={{ color: 'rgba(255,255,255,0.08)', borderless: false }}
-                    >
-                        <Ionicons name="settings-outline" size={15} color={COLORS.text} />
-                        <Text style={styles.editGoalsText}>Edit Goals</Text>
-                    </Pressable>
-                </View>
-
-                <NutritionSummaryCard totals={totals} goals={macroGoals} COLORS={COLORS} />
-
-                <MealsSection
-                    mealsMeta={mealsMeta}
-                    meals={meals}
-                    collapsed={collapsed}
-                    toggleMeal={toggleMeal}
-                    onAddPress={openSearchForMeal}
-                    onDelete={deleteFood}
-                    COLORS={COLORS}
-                    PlusIcon={PlusIcon}
-                    dayKey={toDayKey(date)}
-                    // compact={!isFocused}
-                />
-            </ScrollView>
-        );
-    }, (prev, next) => (
-        prev.screenWidth === next.screenWidth &&
-        prev.macroGoals === next.macroGoals &&
-        prev.collapsed === next.collapsed &&
-        prev.meals === next.meals &&
-        prev.totals === next.totals &&
-        toDayKey(prev.date) === toDayKey(next.date) &&
-        prev.isFocused === next.isFocused
-    )), [COLORS, macroGoals, collapsed, openGoalsSheet, openSearchForMeal, deleteFood]);
+    // MacroDayPage extracted into separate file for clarity
 
     // Search is now fully managed inside FoodSearchOverlay
 
@@ -373,15 +308,16 @@ export default function MacroTracking({ navigation, route }) {
     }, [goalsSheetIndex, macroGoals.calories, macroGoals.carbs, macroGoals.fat, macroGoals.protein]);
 
     const openSearchForMeal = useCallback((meal) => {
-        setActiveMeal(meal?.name ?? null);
-        setSearchVisible(true);
+        try { haptic(); } catch {}
+        setSelectedMeal(meal?.name ?? null);
+        setIsSearchVisible(true);
     }, []);
     const closeSearch = useCallback(() => {
-        setSearchVisible(false);
-        setActiveMeal(null);
+        setIsSearchVisible(false);
+        setSelectedMeal(null);
     }, []);
     const onSelectResult = useCallback(async (food) => {
-        if (!activeMeal) return;
+        if (!selectedMeal) return;
         const uid = global?.userData?.uid || global?.userData?.id;
         const dk = toDayKey(focusedDate);
         const factor = food?.__portionMultiplier ?? 1;
@@ -403,7 +339,7 @@ export default function MacroTracking({ navigation, route }) {
             global.userData.loggedFoods[dk] = global.userData.loggedFoods[dk] || {};
             global.userData.loggedFoods[dk][newId] = {
                 dayKey: dk,
-                meal: String(activeMeal),
+                meal: String(selectedMeal),
                 name: entry.name,
                 brand: entry.brand,
                 desc: entry.desc,
@@ -414,7 +350,7 @@ export default function MacroTracking({ navigation, route }) {
             };
             try { global.__loggedFoodsSig = (global.__loggedFoodsSig || 0) + 1; } catch {}
         } catch { }
-        setMeals((prev) => ({ ...prev, [activeMeal]: [...(prev[activeMeal] || []), entry] }));
+        setMeals((prev) => ({ ...prev, [selectedMeal]: [...(prev[selectedMeal] || []), entry] }));
         setTotals((prev) => ({
             calories: Math.round((prev.calories || 0) + (macros.calories || 0)),
             protein: Math.round((prev.protein || 0) + (macros.protein || 0)),
@@ -427,7 +363,7 @@ export default function MacroTracking({ navigation, route }) {
                 const fieldPath = `loggedFoods.${dk}.${newId}`;
                 const flat = {
                     dayKey: dk,
-                    meal: String(activeMeal),
+                    meal: String(selectedMeal),
                     name: entry.name,
                     brand: entry.brand,
                     desc: entry.desc,
@@ -447,10 +383,10 @@ export default function MacroTracking({ navigation, route }) {
             }
         } catch { }
         closeSearch();
-    }, [activeMeal, focusedDate, closeSearch]);
+    }, [selectedMeal, focusedDate, closeSearch]);
 
-    const openGoalsSheet = () => { setGoalsSheetIndex(0); setGoalsOpenSignal((s) => (s == null ? 1 : s + 1)); };
-    const closeGoalsSheet = () => setGoalsSheetIndex(-1);
+    const openGoalsSheet = () => { try { haptic(); } catch {} setGoalsSheetIndex(0); setGoalsOpenSignal((s) => (s == null ? 1 : s + 1)); };
+    const closeGoalsSheet = () => { setGoalsSheetIndex(-1); };
     const clampInt = (s, min, max) => {
         const n = parseInt(s || '0', 10);
         if (Number.isNaN(n)) return min;
@@ -519,101 +455,7 @@ export default function MacroTracking({ navigation, route }) {
     };
 
     // Build meals/totals from in-memory global.userData.loggedFoods (instant, memoized)
-    function rebuildGlobalIndexIfNeeded() {
-        const map = global?.userData?.loggedFoods || {};
-        const sig = Number(global?.__loggedFoodsSig || 0);
-        if (sig === globalSigRef.current && globalIndexRef.current.size > 0) return;
-        globalSigRef.current = sig;
-        // Rebuild from scratch on any signature change
-        const idx = new Map();
-        try {
-            // Two supported shapes:
-            // 1) Nested by day: { [dayKey]: { [entryId]: entry } }
-            // 2) Flat legacy:   { [entryId]: entry(dayKey: ...) }
-            const looksNested = Object.values(map)[0] && typeof Object.values(map)[0] === 'object' && !('dayKey' in Object.values(map)[0]);
-            if (looksNested) {
-                for (const [dk, entries] of Object.entries(map)) {
-                    const list = [];
-                    for (const [id, entry] of Object.entries(entries || {})) list.push({ id, entry });
-                    if (list.length) idx.set(String(dk), list);
-                }
-            } else {
-                for (const [id, entry] of Object.entries(map)) {
-                    const dk = String(entry?.dayKey || '');
-                    if (!dk) continue;
-                    if (!idx.has(dk)) idx.set(dk, []);
-                    idx.get(dk).push({ id, entry });
-                }
-            }
-        } catch { }
-        globalIndexRef.current = idx;
-        globalMealsCacheRef.current.clear();
-    }
-
-    function buildFromGlobal(dateObj) {
-        const d = new Date(dateObj);
-        if (Number.isNaN(d.getTime())) return { meals: { Breakfast: [], Lunch: [], Dinner: [] }, totals: { calories: 0, protein: 0, carbs: 0, fat: 0 } };
-        d.setHours(0, 0, 0, 0);
-        const dk = toDayKey(d);
-        rebuildGlobalIndexIfNeeded();
-        const cached = globalMealsCacheRef.current.get(dk);
-        if (cached) return cached;
-        const buckets = { Breakfast: [], Lunch: [], Dinner: [], Snacks: [] };
-        const totalsObj = { calories: 0, protein: 0, carbs: 0, fat: 0 };
-        try {
-            const rows = globalIndexRef.current.get(dk) || [];
-            for (const { id, entry } of rows) {
-                const mealKey = (() => {
-                    const t = String(entry?.meal || '').toLowerCase();
-                    if (t.startsWith('break')) return 'Breakfast';
-                    if (t.startsWith('lun')) return 'Lunch';
-                    if (t.startsWith('din')) return 'Dinner';
-                    // Normalize anything else to Snacks bucket
-                    return 'Snacks';
-                })();
-                const qty = typeof entry?.quantity === 'number' ? entry.quantity : 1;
-                const m = entry?.macros || (() => {
-                    const key = `${id}|${entry?.desc || ''}|${qty}`;
-                    const hit = macroCacheRef.current.get(key);
-                    if (hit) return hit;
-                    const parsed = parseMacrosFromDescription(entry?.desc || '', qty);
-                    macroCacheRef.current.set(key, parsed);
-                    return parsed;
-                })();
-                const item = {
-                    key: id,
-                    name: entry?.name || 'Food',
-                    brand: entry?.brand || '',
-                    desc: entry?.desc || '',
-                    qty,
-                    foodId: entry?.foodId || entry?.food_id || '',
-                    macros: m,
-                };
-                if (!buckets[mealKey]) buckets[mealKey] = [];
-                buckets[mealKey].push(item);
-                totalsObj.calories += Number(m?.calories) || 0;
-                totalsObj.protein += Number(m?.protein) || 0;
-                totalsObj.carbs += Number(m?.carbs) || 0;
-                totalsObj.fat += Number(m?.fat) || 0;
-            }
-        } catch { }
-        const built = {
-            meals: {
-                Breakfast: buckets.Breakfast || [],
-                Lunch: buckets.Lunch || [],
-                Dinner: buckets.Dinner || [],
-                Snacks: buckets.Snacks || [],
-            },
-            totals: {
-                calories: Math.round(totalsObj.calories),
-                protein: Math.round(totalsObj.protein),
-                carbs: Math.round(totalsObj.carbs),
-                fat: Math.round(totalsObj.fat),
-            },
-        };
-        globalMealsCacheRef.current.set(dk, built);
-        return built;
-    }
+    // buildFromGlobal moved to frontend/logic/macroLogsIndexer
 
     // Refresh from global when returning to this screen so edits/saves reflect
     useFocusEffect(React.useCallback(() => {
@@ -718,14 +560,15 @@ export default function MacroTracking({ navigation, route }) {
                                 macroGoals={macroGoals}
                                 meals={mealsForPage}
                                 totals={totalsForPage}
-                                collapsed={collapsed}
-                                toggleMeal={toggleMeal}
+                                collapsed={collapsedMeals}
+                                toggleMeal={toggleMealCollapse}
                                 openGoalsSheet={openGoalsSheet}
                                 openSearchForMeal={openSearchForMeal}
                                 deleteFood={deleteFood}
                                 PlusIcon={PlusIcon}
                                 date={d}
                                 isFocused={Math.abs(offset) <= 1}
+                                mealsMeta={mealsMeta}
                             />
                         );
                     }}
@@ -733,8 +576,8 @@ export default function MacroTracking({ navigation, route }) {
 
                 {/* Modals */}
                 <FoodSearchOverlay
-                    visible={searchVisible}
-                    activeMeal={activeMeal}
+                    visible={isSearchVisible}
+                    activeMeal={selectedMeal}
                     onClose={closeSearch}
                     COLORS={COLORS}
                     onSelectResult={onSelectResult}
@@ -770,35 +613,4 @@ export default function MacroTracking({ navigation, route }) {
     );
 }
 
-const styles = StyleSheet.create({
-    sectionHeaderRow: {
-        paddingLeft: scaleSize(18),
-        paddingRight: scaleSize(12),
-        flexDirection: 'row',
-        alignItems: 'center',
-        justifyContent: 'space-between',
-        marginBottom: scaleSize(6),
-    },
-    sectionTitleNoMargin: { marginLeft: 0 },
-    body: { backgroundColor: COLORS.bg },
-
-    sectionTitle: {
-        fontSize: scaleSize(16),
-        marginLeft: scaleSize(18),
-        color: COLORS.text,
-        fontFamily: 'Nunito_800ExtraBold',
-    },
-
-    editGoalsPill: {
-        flexDirection: 'row',
-        gap: scaleSize(6),
-        alignItems: 'center',
-        backgroundColor: COLORS.fieldBg,
-        paddingHorizontal: scaleSize(12),
-        paddingVertical: scaleSize(7),
-        borderRadius: scaleSize(999),
-        borderWidth: scaleSize(1),
-        borderColor: COLORS.hairline,
-    },
-    editGoalsText: { fontFamily: 'Outfit_700Bold', color: COLORS.text, fontSize: scaleSize(12), letterSpacing: 0.15 },
-});
+// No screen-level styles; MacroDayPage contains its own styles

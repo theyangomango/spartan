@@ -6,6 +6,7 @@ import { summarizeFood } from '../../utils/nutrition';
 import { useNavigation } from '@react-navigation/native';
 
 import scaleSize from "../../helper/scaleSize";
+import { strong as haptic } from '../../utils/haptics';
 
 function MealsSection({ title = 'Daily meals', mealsMeta, meals, collapsed, toggleMeal, onAddPress, onDelete, COLORS, PlusIcon, dayKey, compact = false }) {
     const styles = useMemo(() => makeStyles(COLORS), [COLORS]);
@@ -36,7 +37,11 @@ function MealsSection({ title = 'Daily meals', mealsMeta, meals, collapsed, togg
                             onDelete={(entry) => onDelete(m.name, entry)}
                             compact={compact}
                         />
-                        <TouchableOpacity activeOpacity={0.7} style={styles.addFoodRow} onPress={() => onAddPress?.(m)}>
+                        <TouchableOpacity
+                            activeOpacity={0.7}
+                            style={styles.addFoodRow}
+                            onPress={() => { try { haptic(); } catch {} onAddPress?.(m); }}
+                        >
                             {PlusIcon ? (
                                 <PlusIcon
                                     size={18}

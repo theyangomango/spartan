@@ -35,7 +35,7 @@ import SignUp from './frontend/screens/0.0_SignUp';
 import LogIn from './frontend/screens/0.1_LogIn';
 import NewUserCreation from './frontend/screens/0.2_NewUserCreation';
 import UserLogInCredentials from './frontend/screens/0.3_UserLogInCredentials';
-import Feed from './frontend/screens/1_Feed';
+import Feed from './frontend/screens/FeedScreen';
 import Profile from './frontend/screens/5_Profile';
 import SelectPhotosScreen from './frontend/components/5_Profile/MakePost/SelectPhotosScreen';
 import PostUploadOptionsScreen from './frontend/components/5_Profile/MakePost/PostUploadOptionsScreen';

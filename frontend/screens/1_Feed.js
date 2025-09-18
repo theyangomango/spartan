@@ -14,15 +14,15 @@ import { useSafeAreaInsets, SafeAreaView as SafeAreaInsetsView } from "react-nat
 import Reanimated, { useSharedValue, useAnimatedScrollHandler, useAnimatedStyle, useDerivedValue, runOnJS, withTiming, withSpring, withDelay, Easing as ReEasing } from 'react-native-reanimated';
 import { Gesture, GestureDetector } from 'react-native-gesture-handler';
 
-import Post from "../components/1_Feed/Posts/Post";
-import FeedHeader from "../components/1_Feed/FeedHeader";
+import PostListItem from "../components/1_Feed/PostListItem";
+import createCellRenderer from "../components/1_Feed/createCellRenderer";
 import useHeaderSearchUsers from "../hooks/useHeaderSearchUsers";
-import ActivityChips from "../components/1_Feed/Pulse/ActivityChips";
 // import ChipsRoundMask from "../components/1_Feed/Pulse/ChipsRoundMask";
 import NotificationsBottomSheet from "../components/1_Feed/Notifications/NotificationsBottomSheet";
 import CommentsBottomSheet from "../components/1_Feed/Comments/CommentsBottomSheet";
 import ShareBottomSheet from "../components/1_Feed/SharePost/ShareBottomSheet";
 import FeedWorkoutViewerSheet from "../components/1_Feed/ViewWorkout/FeedWorkoutViewerSheet";
+import FeedHeaderOverlay from "../components/1_Feed/FeedHeaderOverlay";
 
 import { initUserFeed, registerFeedSetters } from "../helper/initUserFeed";
 import Footer from "../components/Footer";
@@ -717,21 +717,11 @@ export default function Feed({ navigation, route }) {
     }, [pendingFocusPid, posts]);
 
     // Custom CellRenderer to capture y/height of each cell in content coordinates
-    const CellRenderer = useMemo(() => {
-        const Comp = ({ index, style, onLayout, children, ...rest }) => {
-            const handleLayout = (e) => {
-                const { y, height: h } = e.nativeEvent.layout;
-                itemLayoutsRef.current.set(index, { y, h });
-                onLayout && onLayout(e);
-            };
-            return (
-                <View style={style} onLayout={handleLayout} {...rest}>
-                    {children}
-                </View>
-            );
-        };
-        return Comp;
-    }, []);
+    const CellRenderer = useMemo(() =>
+        createCellRenderer((index, y, h) => {
+            try { itemLayoutsRef.current.set(index, { y, h }); } catch {}
+        }),
+    []);
 
     // Stable viewability handler (avoid re-creating function each render)
     const onViewableItemsChangedRef = useRef(({ viewableItems }) => {
@@ -745,82 +735,46 @@ export default function Feed({ navigation, route }) {
     // Render a single post (deduped logic)
     const postRefs = useRef({});
     const renderPost = useCallback(
-        ({ item, index }) => {
-            const isFocusedPost = index === focusedPostIndex.current;
-            const isTranslatingPost = index === translatingIndexRef.current;
-            const wrapperStyle = [
-                styles.postWrapper,
-                // Ensure the focused/translating post is visually and interactively on top
-                (isFocusedPost || isTranslatingPost) && { zIndex: 9999, elevation: 32 },
-            ];
-
-            const isFocusedProp = isSomePostFocused ? isFocusedPost : false;
-            const shouldPlay = isScreenFocused && !isSomePostFocused && index === centeredIndex;
-
-            const contentCore = (
-                <Reanimated.View
-                    style={wrapperStyle}
-                    // When any post is focused, disable interactions on all non-focused item wrappers
-                    pointerEvents={isSomePostFocused ? 'none' : 'auto'}
-                >
-                    <Post
-                        ref={(el) => { postRefs.current[index] = el; }}
-                        data={item}
-                        index={index}
-                        openCommentsModal={openCommentsModal}
-                        openShareModal={openShareModal}
-                        handleFocusPost={handleFocusPost}
-                        toViewProfile={toViewProfilePosts}
-                        openViewWorkoutModal={openViewWorkoutModal}
-                        isFocused={isFocusedProp}
-                        isSomePostFocused={isSomePostFocused}
-                        focusModeSV={isFocusSV}
-                        interactiveUnfocusSV={interactiveProgressSV}
-                        interactiveActive={isFocusedProp ? unfocusGestureActive : false}
-                        highlightPid={highlightPidRef.current}
-                        highlightSignal={highlightSignal}
-                        programFocusPid={programFocusPidRef.current}
-                        programFocusSignal={programFocusSignal}
-                        shouldPlay={shouldPlay}
-                    />
-                </Reanimated.View>
-            );
-
-            // Keep transform applied for both focused and translating states; attach gesture only when focused
-            if (isFocusedPost || isTranslatingPost) {
-                const inner = (
-                    <Reanimated.View
-                        style={[wrapperStyle, interPostStyle]}
-                        // Focused/translating item must stay interactive
-                        pointerEvents={'auto'}
-                    >
-                        <Post
-                            ref={(el) => { postRefs.current[index] = el; }}
-                            data={item}
-                            index={index}
-                            openCommentsModal={openCommentsModal}
-                            openShareModal={openShareModal}
-                            handleFocusPost={handleFocusPost}
-                            toViewProfile={toViewProfilePosts}
-                            openViewWorkoutModal={openViewWorkoutModal}
-                            isFocused={isFocusedPost}
-                            isSomePostFocused={isSomePostFocused}
-                            focusModeSV={isFocusSV}
-                            interactiveUnfocusSV={interactiveProgressSV}
-                            interactiveActive={unfocusGestureActive}
-                            highlightPid={highlightPidRef.current}
-                            highlightSignal={highlightSignal}
-                            programFocusPid={programFocusPidRef.current}
-                            programFocusSignal={programFocusSignal}
-                            shouldPlay={shouldPlay}
-                        />
-                    </Reanimated.View>
-                );
-                return inner;
-            }
-            return contentCore;
-        },
-        [isSomePostFocused, centeredIndex, openCommentsModal, openShareModal, handleFocusPost, toViewProfilePosts, openViewWorkoutModal, panUnfocus, isScreenFocused]
+        ({ item, index }) => (
+            <PostListItem
+                item={item}
+                index={index}
+                isSomePostFocused={isSomePostFocused}
+                isScreenFocused={isScreenFocused}
+                centeredIndex={centeredIndex}
+                focusedPostIndexRef={focusedPostIndex}
+                translatingIndexRef={translatingIndexRef}
+                interPostStyle={interPostStyle}
+                unfocusGestureActive={unfocusGestureActive}
+                isFocusSV={isFocusSV}
+                interactiveProgressSV={interactiveProgressSV}
+                highlightPid={highlightPidRef.current}
+                highlightSignal={highlightSignal}
+                programFocusPid={programFocusPidRef.current}
+                programFocusSignal={programFocusSignal}
+                openCommentsModal={openCommentsModal}
+                openShareModal={openShareModal}
+                handleFocusPost={handleFocusPost}
+                toViewProfilePosts={toViewProfilePosts}
+                openViewWorkoutModal={openViewWorkoutModal}
+                postRefs={postRefs}
+            />
+        ),
+        [
+            isSomePostFocused,
+            isScreenFocused,
+            centeredIndex,
+            interPostStyle,
+            unfocusGestureActive,
+            isFocusSV,
+            interactiveProgressSV,
+            highlightSignal,
+            openCommentsModal,
+            openShareModal,
+            handleFocusPost,
+            toViewProfilePosts,
+            openViewWorkoutModal,
+        ]
     );
 
     /* -------------------- HYDRATE allUsersRef.current -------------------- */
@@ -845,6 +799,8 @@ export default function Feed({ navigation, route }) {
     // Make progress feel snappier near the start
     const PROGRESS_SLOW_K = 1.2; // lower = more sensitive early progress
     const CLOSE_THRESHOLD = 0.1; // keep similar close feel
+    const REOPEN_THRESHOLD = 0.06; // hysteresis to avoid flicker when user drags back down
+    const commentsHiddenSV = useSharedValue(0); // 0 visible, 1 hidden (collapsed) during interactive pan
     const panUnfocus = useMemo(() => {
         return Gesture.Pan()
             .minPointers(1)
@@ -871,6 +827,7 @@ export default function Feed({ navigation, route }) {
                 runOnJS(setUnfocusGestureActive)(true);
                 interactiveProgressSV.value = 0;
                 interTranslateSV.value = 0;
+                commentsHiddenSV.value = 0; // reset collapse state at gesture start
             })
             .onUpdate((e) => {
                 if (isTransitioningSV.value === 1 || panEnabledSV.value === 0) return;
@@ -885,6 +842,14 @@ export default function Feed({ navigation, route }) {
                 // Apply eased curve for a more gradual feel (UI-only)
                 const p = Math.pow(pNorm, PROGRESS_SLOW_K);
                 interactiveProgressSV.value = p;
+                // Early collapse/restore of comments sheet to avoid perceived lag
+                if (commentsHiddenSV.value === 0 && pNorm > CLOSE_THRESHOLD) {
+                    commentsHiddenSV.value = 1;
+                    try { runOnJS(signalCommentsCollapse)(); } catch {}
+                } else if (commentsHiddenSV.value === 1 && pNorm < REOPEN_THRESHOLD) {
+                    commentsHiddenSV.value = 0;
+                    try { runOnJS(signalCommentsReopen)(); } catch {}
+                }
                 // Reveal overlay header and chips progressively
                 const fh = headerH.value || 0;
                 focusHide.value = Math.max(0, fh * (1 - p));
@@ -946,7 +911,7 @@ export default function Feed({ navigation, route }) {
             .onFinalize(() => {
                 // keep isUnfocusingRef until animateView callback clears it on success path
             });
-    }, [isSomePostFocused, height]);
+    }, [isSomePostFocused, height, signalCommentsCollapse, signalCommentsReopen]);
 
     // Focused-only horizontal swipe at the same wrapper level to change slides
     // Feed-level handlers to proxy horizontal pan to the focused Post
@@ -1057,94 +1022,27 @@ export default function Feed({ navigation, route }) {
 
             {/* Overlay header (FeedHeader + ActivityChips) that reveals/collapses; spacer keeps posts pushed */}
             <SafeAreaInsetsView edges={['top']} pointerEvents="box-none" style={{ position: 'absolute', top: 0, left: 0, right: 0 }}>
-                {/* Ghost back-header sizer to pre-measure compact header height and avoid focus offset jitter */}
-                <View
-                    pointerEvents="none"
-                    style={{ position: 'absolute', top: -10000, left: 0, right: 0, opacity: 0 }}
-                    onLayout={(e) => { const h = e.nativeEvent.layout.height || 0; if (h && Math.abs(h - (backHeaderHRef.current || 0)) > 1) { backHeaderHRef.current = h; setBackHeaderH(h); } }}
-                >
-                    <SafeAreaInsetsView edges={['top']}>
-                        <FeedHeader
-                            navigation={navigation}
-                            toMessagesScreen={toMessagesScreen}
-                            onOpenNotifications={handleOpenNotifications}
-                            backButton={true}
-                            onBackPress={handleBackPress}
-                            scrollToTop={scrollToTop}
-                            allUsersRef={allUsersRef}
-                            workout={activeWorkout}
-                            timerRef={headerTimerRef}
-                        />
-                    </SafeAreaInsetsView>
-                </View>
-
-                <Reanimated.View
-                    pointerEvents={isSomePostFocused ? "none" : "auto"}
-                    onLayout={(e) => {
-                        const h = e.nativeEvent.layout.height || 0;
-                        if (h && Math.abs(h - headerH.value) > 1) {
-                            headerH.value = h;
-                            hidden.value = 0; // start visible
-                            try { visibleHeaderHRef.current = h; } catch { }
-                        }
-                        // no-op; refresh indicator is positioned by default directly under header
-                    }}
-                    style={[{
-                        backgroundColor: theme.bg,
-                        zIndex: 20,
-                    }, overlayHeaderStyle]}
-                >
-                    <Reanimated.View style={normalHeaderOpacityStyle}>
-                        <FeedHeader
-                            navigation={navigation}
-                            toMessagesScreen={toMessagesScreen}
-                            onOpenNotifications={handleOpenNotifications}
-                            backButton={false}
-                            onBackPress={handleBackPress}
-                            scrollToTop={scrollToTop}
-                            allUsersRef={allUsersRef}
-                            workout={activeWorkout}
-                            timerRef={headerTimerRef}
-                            heightAdjust={-2}
-                        />
-                    </Reanimated.View>
-                    <Reanimated.View
-                        onLayout={(e) => {
-                            const h = e.nativeEvent.layout.height || 0;
-                            if (h && Math.abs(h - chipsH.value) > 1) chipsH.value = h;
-                        }}
-                        style={chipsOpacityStyle}
-                    >
-                        <ActivityChips navigation={navigation} />
-                    </Reanimated.View>
-                    {/* Rounded separator mask to keep a smooth transition into posts */}
-                    {/* <ChipsRoundMask onLayout={(e) => {
-                        const h = e.nativeEvent.layout.height || 0;
-                        if (h && Math.abs(h - maskH.value) > 1) maskH.value = h;
-                    }} /> */}
-                </Reanimated.View>
-
-
-                {isSomePostFocused && (
-                    <Reanimated.View style={[{ position: 'absolute', top: 0, left: 0, right: 0, zIndex: 30, backgroundColor: theme.bg }, backHeaderOpacityStyle]}>
-                        <SafeAreaInsetsView
-                            edges={['top']}
-                            onLayout={(e) => { const h = e.nativeEvent.layout.height || 0; backHeaderHRef.current = h; setBackHeaderH(h); }}
-                        >
-                            <FeedHeader
-                                navigation={navigation}
-                                toMessagesScreen={toMessagesScreen}
-                                onOpenNotifications={handleOpenNotifications}
-                                backButton={true}
-                                onBackPress={handleBackPress}
-                                scrollToTop={scrollToTop}
-                                allUsersRef={allUsersRef}
-                                workout={activeWorkout}
-                                timerRef={headerTimerRef}
-                            />
-                        </SafeAreaInsetsView>
-                    </Reanimated.View>
-                )}
+                <FeedHeaderOverlay
+                    navigation={navigation}
+                    toMessagesScreen={toMessagesScreen}
+                    onOpenNotifications={handleOpenNotifications}
+                    onBackPress={handleBackPress}
+                    scrollToTop={scrollToTop}
+                    allUsersRef={allUsersRef}
+                    activeWorkout={activeWorkout}
+                    timerRef={headerTimerRef}
+                    overlayHeaderStyle={overlayHeaderStyle}
+                    normalHeaderOpacityStyle={normalHeaderOpacityStyle}
+                    chipsOpacityStyle={chipsOpacityStyle}
+                    backHeaderOpacityStyle={backHeaderOpacityStyle}
+                    headerH={headerH}
+                    hidden={hidden}
+                    chipsH={chipsH}
+                    visibleHeaderHRef={visibleHeaderHRef}
+                    backHeaderHRef={backHeaderHRef}
+                    setBackHeaderH={setBackHeaderH}
+                    isSomePostFocused={isSomePostFocused}
+                />
             </SafeAreaInsetsView>
 
             {/* Top safe-area mask to hide content above inset */}

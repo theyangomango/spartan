@@ -60,7 +60,8 @@ const DOT_MB = scaleSize(2);
 
 // Accent palette (tweak here if you want a different vibe)
 const ACCENT = "#f6b000ff";            // rich gold
-const ACCENT_BG = "#f6b00041";
+const ACCENT_BG = "#f6b00041";         // dark yellow-tinted background
+const ACCENT_BORDER = "rgba(246, 176, 0, 0.60)"; // lighter yellow border
 // Dark mode palette for Competition
 const THEME = require("../../theme/mfpDark").default;
 const BANNER_BG = THEME.surface;         // neutral modal pill/bg
@@ -346,16 +347,16 @@ const styles = StyleSheet.create({
     },
     metricText: { fontFamily: "Outfit_700Bold", fontSize: scaleSize(FONT_METRIC), color: '#6FB8FF', letterSpacing: 0.2 },
 
-    // tribe banner — modern warm “gold” card (no border)
+    // tribe banner — yellow-themed pill (dark bg + light border)
     bannerCard: {
         flexDirection: "row",
         alignItems: "center",
         paddingHorizontal: BANNER_PAD_H,
         paddingVertical: BANNER_PAD_V,
         borderRadius: BANNER_RADIUS,
-        backgroundColor: "#877f3698",
+        backgroundColor: ACCENT_BG,
         borderWidth: scaleSize(1),
-        borderColor: "rgba(255,255,255,0.08)",
+        borderColor: ACCENT_BORDER,
         shadowColor: "#000",
         shadowOffset: { width: 0, height: scaleSize(8) },
         shadowOpacity: 0.12,
@@ -382,7 +383,9 @@ const styles = StyleSheet.create({
         paddingHorizontal: TRIBE_BTN_PAD_H,
         paddingVertical: TRIBE_BTN_PAD_V,
         borderRadius: TRIBE_BTN_RADIUS,
-        backgroundColor: BANNER_BG,
+        backgroundColor: ACCENT_BG,
+        borderWidth: scaleSize(1),
+        borderColor: ACCENT_BORDER,
         shadowColor: "#000",
         shadowOffset: { width: 0, height: scaleSize(8) },
         shadowOpacity: 0.08,

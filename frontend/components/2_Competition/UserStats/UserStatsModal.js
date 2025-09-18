@@ -34,6 +34,9 @@ const COLORS = {
     statBorder: THEME.hairline,
 };
 
+// Neutral header background for sets view (less blue, more app-wide vibe)
+// Use existing theme surfaces for cohesion
+
 // ---------- helpers ----------
 const safeNumber = (v, d = 0) => (Number.isFinite(Number(v)) ? Number(v) : d);
 const fmtK = (n) => {
@@ -622,13 +625,10 @@ export default function UserStatsModal({ user, toViewProfile, hexOverlay, hexPro
                         pointerEvents="auto"
                         style={[styles.detailOverlay, { transform: [{ translateX: detailTranslateX }] }]}
                     >
-                        {/* Header card – make it match the rest of the UI (neutral card with subtle accent) */}
+                        {/* Header card – neutral card styling, minimal accent */}
                         <View style={styles.detailHeader}>
                             <Pressable onPress={closeDetail} hitSlop={10} style={styles.detailBackRow}>
                                 <MaterialCommunityIcons name="chevron-left" size={scaledSize(18)} color={COLORS.text} />
-                                <View style={[styles.detailIconCircle, { backgroundColor: rgba(ACC_DETAIL, 0.16), borderColor: rgba(ACC_DETAIL, 0.45) }]}>
-                                    <MaterialCommunityIcons name="dumbbell" size={scaledSize(13)} color={ACC_DETAIL} />
-                                </View>
                                 <Text numberOfLines={1} style={styles.detailTitle}>{detailName}</Text>
                             </Pressable>
                             <View style={styles.detailCountPill}>
@@ -1030,9 +1030,9 @@ const styles = StyleSheet.create({
         borderWidth: scaleSize(1),
         borderRadius: scaleSize(scaledSize(16)),
         paddingHorizontal: scaleSize(scaledSize(14)),
-        paddingVertical: scaleSize(scaledSize(12)),
+        paddingVertical: scaleSize(scaledSize(10)),
         marginBottom: scaleSize(scaledSize(6)),
-        // Match card styling used elsewhere
+        // Neutral card styling to reduce blue
         backgroundColor: COLORS.card,
         borderColor: COLORS.hairline,
         shadowColor: '#000',
@@ -1041,28 +1041,22 @@ const styles = StyleSheet.create({
         shadowOffset: { width: 0, height: scaleSize(scaledSize(6)) },
     },
     detailBackRow: { flexDirection: 'row', alignItems: 'center', flex: 1, minWidth: 0, gap: scaleSize(scaledSize(6)) },
-    detailIconCircle: {
-        width: scaleSize(scaledSize(24)),
-        height: scaleSize(scaledSize(24)),
-        borderRadius: scaleSize(scaledSize(12)),
-        alignItems: 'center',
-        justifyContent: 'center',
-        borderWidth: StyleSheet.hairlineWidth,
-    },
+    
     detailTitle: {
         flex: 1,
-        fontSize: scaleSize(14.5),
-        fontFamily: 'Outfit_800ExtraBold',
+        fontSize: scaleSize(15),
+        fontFamily: 'Outfit_700Bold',
+        letterSpacing: 0.2,
         color: COLORS.text,
-        marginLeft: scaleSize(scaledSize(2)),
+        marginLeft: scaleSize(scaledSize(4)),
     },
     detailCountPill: {
         flexDirection: 'row',
         alignItems: 'center',
         borderWidth: scaleSize(1),
         borderRadius: scaleSize(scaledSize(999)),
-        paddingHorizontal: scaleSize(scaledSize(10)),
-        paddingVertical: scaleSize(scaledSize(5)),
+        paddingHorizontal: scaleSize(scaledSize(12)),
+        paddingVertical: scaleSize(scaledSize(6)),
         gap: scaleSize(scaledSize(6)),
         backgroundColor: COLORS.iconBg,
         borderColor: COLORS.hairline,
@@ -1096,7 +1090,7 @@ const styles = StyleSheet.create({
     setSub: { fontSize: scaleSize(11.5), fontFamily: 'Outfit_500Medium', color: COLORS.subtext, marginTop: scaleSize(scaledSize(2)) },
     rmPill: {
         flexDirection: 'row',
-        alignItems: 'baseline',
+        alignItems: 'center',
         paddingHorizontal: scaleSize(scaledSize(7)),
         paddingVertical: scaleSize(scaledSize(3)),
         borderRadius: scaleSize(scaledSize(999)),

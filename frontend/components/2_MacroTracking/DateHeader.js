@@ -4,6 +4,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 
 import scaleSize from "../../helper/scaleSize";
+import { strong as haptic } from '../../utils/haptics';
 
 export default function DateHeader({ title, onPrev, onNext, onTitlePress, COLORS }) {
     const insets = useSafeAreaInsets();
@@ -20,13 +21,13 @@ export default function DateHeader({ title, onPrev, onNext, onTitlePress, COLORS
     };
     return (
         <View style={styles.container}>
-            <Pressable onPress={onPrev} hitSlop={8}>
+            <Pressable onPress={() => { try { haptic(); } catch {} onPrev?.(); }} hitSlop={8}>
                 <Ionicons name="chevron-back" size={24} color={styles.textColor.color} />
             </Pressable>
-            <Pressable onPress={handleTitlePress} disabled={!onTitlePress} hitSlop={8}>
+            <Pressable onPress={() => { try { haptic(); } catch {} handleTitlePress(); }} disabled={!onTitlePress} hitSlop={8}>
                 <Animated.Text style={[styles.title, { transform: [{ scale }] }]}>{title}</Animated.Text>
             </Pressable>
-            <Pressable onPress={onNext} hitSlop={8}>
+            <Pressable onPress={() => { try { haptic(); } catch {} onNext?.(); }} hitSlop={8}>
                 <Ionicons name="chevron-forward" size={24} color={styles.textColor.color} />
             </Pressable>
         </View>

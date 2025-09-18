@@ -3,6 +3,7 @@ import { View, Text, StyleSheet, TextInput, Modal, Pressable, Keyboard } from 'r
 import RNBounceable from '@freakycoder/react-native-bounceable';
 
 import scaleSize from "../../helper/scaleSize";
+import { strong as haptic } from '../../utils/haptics';
 
 export default function QuickAddModal({ visible, onClose, onSubmit, COLORS }) {
     const styles = useMemo(() => makeStyles(COLORS), [COLORS]);
@@ -45,6 +46,7 @@ export default function QuickAddModal({ visible, onClose, onSubmit, COLORS }) {
     };
 
     const submit = () => {
+        try { haptic(); } catch {}
         const cals = Math.max(0, num(calories));
         const prot = Math.max(0, num(protein));
         const carb = Math.max(0, num(carbs));
@@ -142,7 +144,7 @@ export default function QuickAddModal({ visible, onClose, onSubmit, COLORS }) {
                     <Text style={[styles.inputLabel, { marginTop: scaleSize(6) }]}>Portion</Text>
                     <View style={styles.quickRow}>
                         {['1/4', '1/3', '1/2', '2/3', '3/4', '1'].map((v) => (
-                            <RNBounceable key={v} style={[styles.chip, portion === v && styles.chipActive]} onPress={() => quickSet(v)}>
+                            <RNBounceable key={v} style={[styles.chip, portion === v && styles.chipActive]} onPress={() => { try { haptic(); } catch {} quickSet(v); }}>
                                 <Text style={[styles.chipText, portion === v && styles.chipTextActive]}>{v}</Text>
                             </RNBounceable>
                         ))}

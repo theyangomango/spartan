@@ -7,8 +7,10 @@ import { db } from '../../firebase.config';
 import { doc, updateDoc, serverTimestamp, setDoc, deleteField } from 'firebase/firestore';
 import { touchRecentFood } from '../utils/recentFoods';
 import { parseMacrosFromDescription, parseExtraNutrientsFromDescription } from '../utils/nutrition';
+import { getFoodExtrasPS, setFoodExtrasPS } from '../utils/foodCache';
 import { getFoodById } from './fatsecretClient';
 import Svg, { Circle } from 'react-native-svg';
+import { strong as haptic } from '../utils/haptics';
 
 import scaleSize from "../helper/scaleSize";
 
@@ -56,7 +58,7 @@ export default function FoodDetail({ navigation, route }) {
     const [apiServing, setApiServing] = useState(null); // temp holder when fetched from API
     const [extrasPS, setExtrasPS] = useState(null); // cached micronutrients per default serving
 
-    // Load extras per serving from entry cache → API (no Firestore caches)
+    // Load extras per serving from entry cache → local cache → API
     useEffect(() => {
         let cancelled = false;
         (async () => {
@@ -69,10 +71,18 @@ export default function FoodDetail({ navigation, route }) {
                 // 1) If editing and entry already has per-serving extras cached, use them
                 if (mode === 'edit' && entry?.extrasPerServing) {
                     if (!cancelled) setExtrasPS(entry.extrasPerServing);
+                    // Prime local cache
+                    try { await setFoodExtrasPS(fid, entry.extrasPerServing); } catch {}
                     return;
                 }
 
-                // 2) Fetch from FatSecret API
+                // 2) Try local cache
+                try {
+                    const cachedLocal = await getFoodExtrasPS(fid);
+                    if (cachedLocal && !cancelled) { setExtrasPS(cachedLocal); return; }
+                } catch {}
+
+                // 3) Fetch from FatSecret API
                 const res = await getFoodById(fid).catch(() => null);
                 const f = res?.food || null;
                 const servings = f?.servings?.serving;
@@ -96,8 +106,8 @@ export default function FoodDetail({ navigation, route }) {
                     setApiServing(def);
                     setExtrasPS(cached);
                 }
-
-                // Do not persist extras to Firestore caches
+                // Save locally for next time
+                try { await setFoodExtrasPS(fid, cached); } catch {}
             } catch {}
         })();
         return () => { cancelled = true; };
@@ -295,11 +305,11 @@ export default function FoodDetail({ navigation, route }) {
                 </Pressable>
                 <Text style={styles.headerTitle} numberOfLines={1}>Add Food</Text>
                 {mode === 'add' ? (
-                    <Pressable style={styles.saveBtn} onPress={addNew} disabled={saving} hitSlop={8}>
+                    <Pressable style={styles.saveBtn} onPress={() => { try { haptic(); } catch {} addNew(); }} disabled={saving} hitSlop={8}>
                         <Ionicons name="add" size={22} color={saving ? 'rgba(255,255,255,0.5)' : COLORS.text} />
                     </Pressable>
                 ) : (
-                    <Pressable style={styles.saveBtn} onPress={save} disabled={saving} hitSlop={8}>
+                    <Pressable style={styles.saveBtn} onPress={() => { try { haptic(); } catch {} save(); }} disabled={saving} hitSlop={8}>
                         <Ionicons name="checkmark" size={22} color={saving ? 'rgba(255,255,255,0.5)' : COLORS.text} />
                     </Pressable>
                 )}
@@ -324,7 +334,7 @@ export default function FoodDetail({ navigation, route }) {
                 <View style={styles.rowWrap}>
                     <Text style={styles.rowLabel}>Number of Servings</Text>
                     <View style={styles.inputWrap}>
-                        <Pressable style={[styles.stepBtn, styles.stepLeft]} onPress={() => adjust(-0.5)}>
+                        <Pressable style={[styles.stepBtn, styles.stepLeft]} onPress={() => { try { haptic(); } catch {} adjust(-0.5); }}>
                             <Ionicons name="remove" size={16} color={COLORS.text} />
                         </Pressable>
                         <TextInput
@@ -340,7 +350,7 @@ export default function FoodDetail({ navigation, route }) {
                             placeholder="1"
                             placeholderTextColor={COLORS.subtext}
                         />
-                        <Pressable style={[styles.stepBtn, styles.stepRight]} onPress={() => adjust(+0.5)}>
+                        <Pressable style={[styles.stepBtn, styles.stepRight]} onPress={() => { try { haptic(); } catch {} adjust(+0.5); }}>
                             <Ionicons name="add" size={16} color={COLORS.text} />
                         </Pressable>
                     </View>
@@ -354,7 +364,7 @@ export default function FoodDetail({ navigation, route }) {
                         {MEAL_OPTIONS.map((opt) => (
                             <Pressable
                                 key={opt}
-                                onPress={() => setMeal(opt)}
+                                onPress={() => { try { haptic(); } catch {} setMeal(opt); }}
                                 style={[styles.mealChip, meal === opt && styles.mealChipActive]}
                             >
                                 <Text style={[styles.mealChipText, meal === opt && styles.mealChipTextActive]}>{opt}</Text>
@@ -403,14 +413,20 @@ export function FoodDetailInline({ entry = {}, onClose, containerStyle }) {
         return parseExtraNutrientsFromDescription(baseDesc, qty);
     }, [extrasPS, baseDesc, qty]);
 
-    // Fetch extras per serving if we have a foodId; otherwise parse from description
+    // Fetch extras per serving if we have a foodId; prefer local cache, fallback to API
     useEffect(() => {
         const fid = String(entry?.foodId || entry?.food_id || '').trim();
         if (!fid) return; // fall back to parsing from desc only
         let cancelled = false;
         (async () => {
             try {
-                // Fetch from FatSecret
+                // 1) Try local cache
+                try {
+                    const cachedLocal = await getFoodExtrasPS(fid);
+                    if (cachedLocal && !cancelled) { setExtrasPS(cachedLocal); return; }
+                } catch {}
+
+                // 2) Fetch from FatSecret
                 const res = await getFoodById(fid).catch(() => null);
                 const f = res?.food || null;
                 const servings = f?.servings?.serving;
@@ -431,6 +447,7 @@ export function FoodDetailInline({ entry = {}, onClose, containerStyle }) {
                     cholesterol_mg: toNum(def.cholesterol),
                 };
                 if (!cancelled) setExtrasPS(cached);
+                try { await setFoodExtrasPS(fid, cached); } catch {}
             } catch {}
         })();
         return () => { cancelled = true; };
@@ -669,7 +686,9 @@ function NutritionFacts({ extras }) {
                                 <Text style={styles.factLabel}>{r.label}</Text>
                                 <View style={styles.factRight}>
                                     <Text style={styles.factValue}>{val}<Text style={styles.factUnit}> {r.unit}</Text></Text>
-                                    {pct != null && (<Text style={styles.factPercentSub}>{`${pct}% DV`}</Text>)}
+                                    {pct != null && (
+                                        <Text style={pct >= 80 ? styles.factPercentHigh : styles.factPercentSub}>{`${pct}% DV`}</Text>
+                                    )}
                                 </View>
                             </View>
                         );
@@ -769,5 +788,6 @@ const styles = StyleSheet.create({
     factUnit: { color: COLORS.subtext, fontFamily: 'Outfit_700Bold', fontSize: scaleSize(12) },
     factRight: { alignItems: 'flex-end', minWidth: scaleSize(110), justifyContent: 'center' },
     factPercentSub: { color: COLORS.accentSoft, fontFamily: 'Outfit_800ExtraBold', fontSize: scaleSize(11), marginTop: scaleSize(2) },
+    factPercentHigh: { color: '#F27171', fontFamily: 'Outfit_800ExtraBold', fontSize: scaleSize(11), marginTop: scaleSize(2) },
     factsEmpty: { color: COLORS.subtext, fontFamily: 'Nunito_700Bold', fontSize: scaleSize(13), paddingVertical: scaleSize(6) },
 });

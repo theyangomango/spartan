@@ -18,6 +18,7 @@ import { PersonalInfoContent } from './PersonalInfoSheet'; // reuse content-only
 import LabeledNumber from './LabeledNumber';
 
 import scaleSize from "../../helper/scaleSize";
+import { strong as haptic } from '../../utils/haptics';
 
 export default function MacroGoalsSheet({
     index,
@@ -38,6 +39,7 @@ export default function MacroGoalsSheet({
     const [showInfo, setShowInfo] = useState(false);
 
     const fadeToInfo = useCallback(() => {
+        try { haptic(); } catch {}
         setShowInfo(true);
         // Snap the sheet to the larger snap; BottomSheet will invoke onChange for us.
         sheetRef.current?.snapToIndex?.(1);
@@ -248,6 +250,7 @@ export default function MacroGoalsSheet({
     }, [onCancel, onChangeIndex]);
 
     const saveSheet = useCallback(() => {
+        try { haptic(); } catch {}
         onSave?.();
         onChangeIndex?.(-1);
         sheetRef.current?.close?.();

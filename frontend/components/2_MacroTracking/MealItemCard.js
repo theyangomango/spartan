@@ -5,6 +5,7 @@ import { Swipeable } from 'react-native-gesture-handler';
 import { Ionicons } from '@expo/vector-icons';
 
 import scaleSize from "../../helper/scaleSize";
+import { strong as haptic } from '../../utils/haptics';
 
 export default function MealItemCard({
     entry,
@@ -33,7 +34,7 @@ export default function MealItemCard({
         <View style={styles.actionsContainer}>
             <Pressable
                 style={styles.deleteBtn}
-                onPress={() => onDelete?.(entry)}
+                onPress={() => { try { haptic(); } catch {} onDelete?.(entry); }}
                 hitSlop={8}
             >
                 <Ionicons name="trash-outline" size={18} color="#F27171" />
@@ -44,7 +45,7 @@ export default function MealItemCard({
 
     const CardInner = (
         <Pressable
-            onPress={() => onPress?.(entry)}
+            onPress={() => { try { haptic(); } catch {} onPress?.(entry); }}
             android_ripple={{ color: 'rgba(255,255,255,0.06)' }}
             style={[
                 styles.card,

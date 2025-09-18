@@ -16,8 +16,8 @@ const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('screen');
 const dynamicStyles = getCommentsBottomSheetStyles(SCREEN_WIDTH, SCREEN_HEIGHT);
 
 const CommentsBottomSheet = ({ isVisible, postData, commentsBottomSheetExpandFlag, toViewProfile, collapseSignal, reopenSignal, interactiveProgress, interactiveProgressSV, interactiveScale = 0.85, openPositionPx }) => {
-    // Slower, smoother sheet expansion
-    const SHEET_OPEN_MS = 520; // longer + softer perceived start
+    // Smoother sheet expansion
+    const SHEET_OPEN_MS = 520;
     const [isInputFocused, setIsInputFocused] = useState(false);
     const bottomSheetRef = useRef(null);
     const footerTranslateY = useRef(new Animated.Value(0)).current; // moves when input focuses
@@ -116,14 +116,19 @@ const CommentsBottomSheet = ({ isVisible, postData, commentsBottomSheetExpandFla
     useEffect(() => {
         const hasPost = !!postPid;
         if (isVisible && hasPost && containerReady) {
-            // Force baseline at 0px from bottom, then animate to exact openPx via snapToPosition.
-            const h = containerHRef.current || (SCREEN_HEIGHT - scaleSize(85));
-            const desired = typeof openPositionPx === 'number' ? openPositionPx : (0.345 * h);
-            const openPx = Math.max(0, Math.min(h, desired));
-            try { bottomSheetRef.current?.snapToPosition?.(0, { duration: 0 }); } catch {}
-            const open = () => { try { bottomSheetRef.current?.snapToPosition?.(openPx, { duration: SHEET_OPEN_MS }); } catch {} };
-            // Small delay ensures layout is measured and the 0px baseline is honored
-            const id = setTimeout(() => requestAnimationFrame(open), 30);
+            // Open via index when no explicit pixel position is provided (reduces jitter)
+            const open = () => {
+                try {
+                    if (typeof openPositionPx === 'number') {
+                        const h = containerHRef.current || (SCREEN_HEIGHT - scaleSize(85));
+                        const desired = Math.max(0, Math.min(h, openPositionPx));
+                        bottomSheetRef.current?.snapToPosition?.(desired, { duration: SHEET_OPEN_MS });
+                    } else {
+                        bottomSheetRef.current?.snapToIndex?.(0, { duration: SHEET_OPEN_MS });
+                    }
+                } catch { }
+            };
+            const id = setTimeout(() => requestAnimationFrame(open), 16);
             // footer entrance animation
             footerOpacity.setValue(0);
             footerIntroY.setValue(10);
@@ -145,11 +150,22 @@ const CommentsBottomSheet = ({ isVisible, postData, commentsBottomSheetExpandFla
         return () => clearTimeout(id);
     }, [isVisible, postPid, containerReady]);
 
-    // Imperative collapse during interactive unfocus
+    // Imperative collapse during interactive unfocus (ignore interactive updates during close)
+    const isClosingRef = useRef(false);
     useEffect(() => {
         if (!isVisible || !postPid) return;
         if (!collapseSignal) return;
-        try { bottomSheetRef.current?.close?.(); } catch { }
+        isClosingRef.current = true;
+        try {
+            // Fast, smooth slide-down
+            if (bottomSheetRef.current?.snapToPosition) {
+                bottomSheetRef.current.snapToPosition(0, { duration: 120 });
+            } else {
+                bottomSheetRef.current?.close?.();
+            }
+        } catch { }
+        try { footerOpacity.stopAnimation && footerOpacity.stopAnimation(); } catch {}
+        Animated.timing(footerOpacity, { toValue: 0, duration: 120, useNativeDriver: true }).start();
     }, [collapseSignal, isVisible, postPid]);
 
     // Imperative reopen if interactive drag cancels
@@ -157,45 +173,20 @@ const CommentsBottomSheet = ({ isVisible, postData, commentsBottomSheetExpandFla
         if (!isVisible || !postPid) return;
         if (!reopenSignal) return;
         try { bottomSheetRef.current?.snapToIndex?.(0); } catch { }
+        isClosingRef.current = false;
     }, [reopenSignal, isVisible, postPid]);
 
-    // Optional interactive collapse (disabled if both interactiveProgress and interactiveProgressSV are undefined)
-    // Throttle updates with rAF and ignore tiny deltas to avoid jitter.
-    const lastPosRef = useRef(-1);
-    const rafIdRef = useRef(null);
-    const pendingPosRef = useRef(null);
-    const scheduleSnap = React.useCallback(() => {
-        if (rafIdRef.current != null) return;
-        rafIdRef.current = requestAnimationFrame(() => {
-            rafIdRef.current = null;
-            const pos = pendingPosRef.current;
-            if (pos == null) return;
-            try { bottomSheetRef.current?.snapToPosition?.(pos, { duration: 0 }); } catch { }
-        });
-    }, []);
+    // Interactive unfocus: only fade/slide the footer; avoid snapping the sheet each frame (prevents jitter)
     const updateFromProgress = useCallback((progress) => {
-        if (!isVisible || !postPid) return;
-        const h = containerHRef.current || (SCREEN_HEIGHT - scaleSize(85));
-        const desired = typeof openPositionPx === 'number' ? openPositionPx : (0.345 * h);
-        const openPx = Math.max(0, Math.min(h, desired));
+        if (!isVisible || !postPid || isClosingRef.current) return;
         const slow = Math.max(0, interactiveScale || 0);
         const p = Math.max(0, (progress || 0));
-        const pSlow = Math.min(1, p * slow); // slower than finger based on provided scale
-        let pos = Math.max(0, openPx * (1 - pSlow));
-        // Round to whole px to reduce thrash
-        pos = Math.round(pos);
-        // Skip if change is tiny
-        if (Math.abs(pos - (lastPosRef.current ?? -1)) >= 1) {
-            lastPosRef.current = pos;
-            pendingPosRef.current = pos;
-            scheduleSnap();
-        }
-        // Fade and slide the input footer down in sync with slowed progress
+        const pSlow = Math.min(1, p * slow);
         try { footerOpacity.setValue(1 - pSlow); } catch {}
         try { footerDragY.setValue(pSlow * 120); } catch {}
-    }, [isVisible, postPid, openPositionPx, interactiveScale, scheduleSnap]);
+    }, [isVisible, postPid, interactiveScale]);
 
-    // Worklet-driven updates via SharedValue (preferred, no React re-renders)
+    // Worklet-driven updates via SharedValue (preferred)
     useAnimatedReaction(
         () => {
             if (!interactiveProgressSV || !isVisible || !postPid) return -1;
@@ -207,15 +198,13 @@ const CommentsBottomSheet = ({ isVisible, postData, commentsBottomSheetExpandFla
         }
     );
 
-    // No explicit force-collapse; sheet follows shared progress including close animation
-    // Fallback numeric prop path (less efficient but compatible)
+    // Fallback numeric prop path
     useEffect(() => {
         if (!isVisible || !postPid) return;
         if (interactiveProgressSV) return; // SV path handles updates
         if (interactiveProgress == null) return;
         updateFromProgress(interactiveProgress);
     }, [interactiveProgress, isVisible, postPid, interactiveProgressSV, updateFromProgress]);
-    useEffect(() => () => { if (rafIdRef.current != null) { try { cancelAnimationFrame(rafIdRef.current); } catch {} rafIdRef.current = null; } }, []);
 
     // Expand the bottom sheet when flagged
     useEffect(() => {
@@ -252,6 +241,24 @@ const CommentsBottomSheet = ({ isVisible, postData, commentsBottomSheetExpandFla
         try { requestAnimationFrame(() => setContainerReady(true)); } catch { setContainerReady(true); }
     }, []);
 
+    // Disable content panning while user is performing the unfocus gesture to avoid gesture competition
+    const [contentPanEnabled, setContentPanEnabled] = useState(true);
+    const panEnabledRef = useRef(true);
+    useAnimatedReaction(
+        () => {
+            if (!interactiveProgressSV || !isVisible || !postPid) return 0;
+            return interactiveProgressSV.value;
+        },
+        (p) => {
+            if (p == null) return;
+            const interacting = p > 0.02 && p < 1;
+            if (interacting !== panEnabledRef.current) {
+                panEnabledRef.current = interacting;
+                runOnJS(setContentPanEnabled)(!interacting);
+            }
+        }
+    );
+
     return (
         <KeyboardAvoidingView
             style={styles.container}
@@ -260,9 +267,8 @@ const CommentsBottomSheet = ({ isVisible, postData, commentsBottomSheetExpandFla
         >
             <BottomSheet
                 ref={bottomSheetRef}
-                // If an explicit open position is provided (SinglePost focus use-case),
-                // keep the sheet index closed and let the effect animate it open to avoid abrupt jumps.
-                index={(isVisible && !!postPid && (openPositionPx == null)) ? 0 : -1}
+                // Keep index controlled imperatively to avoid snaps fighting rendering
+                index={-1}
                 snapPoints={snapPoints}
                 onChange={handleSheetIndexChange}
                 handleComponent={() => null}
@@ -274,7 +280,7 @@ const CommentsBottomSheet = ({ isVisible, postData, commentsBottomSheetExpandFla
                 style={{ position: 'absolute', left: 0, right: 0 }}
                 backgroundStyle={{ backgroundColor: theme.surface }}
                 topInset={0}
-                enableContentPanningGesture
+                enableContentPanningGesture={contentPanEnabled}
                 enablePanDownToClose={false}
             >
                 {postData && (
