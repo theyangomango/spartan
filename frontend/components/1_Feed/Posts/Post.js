@@ -231,7 +231,8 @@ function Post({
                                     // Only handle pause toggle if focused, current, and video
                                     if (isFocused && item.type === "video" && i === currentIndex) {
                                         togglePauseAtIndex(i);
-                                    } else if (!isFocused) {
+                                    } else if (!isFocused && !isSomePostFocused) {
+                                        // Only allow focusing when no other post is already focused
                                         focusMe();
                                     }
                                 }

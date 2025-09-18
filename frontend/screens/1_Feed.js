@@ -139,8 +139,13 @@ export default function Feed({ navigation, route }) {
         if (diff < 0.15) {
             visibleSmoothSV.value = target;
         } else {
-            // Gentle spring for buttery motion without notable lag
-            visibleSmoothSV.value = withSpring(target, { damping: 22, stiffness: 240, mass: 1 });
+            // Gentle spring without overshoot to avoid bounce past target
+            visibleSmoothSV.value = withSpring(target, {
+                damping: 22,
+                stiffness: 240,
+                mass: 1,
+                overshootClamping: true,
+            });
         }
     });
     const maskContainerStyle = useAnimatedStyle(() => ({ top: visibleSmoothSV.value }));
