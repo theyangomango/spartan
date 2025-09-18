@@ -11,7 +11,7 @@ import { useFocusEffect } from '@react-navigation/native';
 import { StatusBar } from "expo-status-bar";
 import { doc, onSnapshot } from "firebase/firestore";
 import { useSafeAreaInsets, SafeAreaView as SafeAreaInsetsView } from "react-native-safe-area-context";
-import Reanimated, { useSharedValue, useAnimatedScrollHandler, useAnimatedStyle, useDerivedValue, runOnJS, withTiming, withSpring, Easing as ReEasing } from 'react-native-reanimated';
+import Reanimated, { useSharedValue, useAnimatedScrollHandler, useAnimatedStyle, useDerivedValue, runOnJS, withTiming, withSpring, withDelay, Easing as ReEasing } from 'react-native-reanimated';
 import { Gesture, GestureDetector } from 'react-native-gesture-handler';
 
 import Post from "../components/1_Feed/Posts/Post";
@@ -103,6 +103,9 @@ export default function Feed({ navigation, route }) {
     // For reliable programmatic focus
     const lastScrollTsRef = useRef(0);
     const focusOffsetRef = useRef(0); // current focused translateY offset (negative)
+    // Shared locks on UI thread to guard gesture reentry/race
+    const isTransitioningSV = useSharedValue(0); // 1 while focus/unfocus animation settles
+    const panEnabledSV = useSharedValue(1); // 0 temporarily blocks new pan sessions
 
     /* ---------- animated values ---------- */
     // Reanimated header reveal values (UI thread)
@@ -315,6 +318,8 @@ export default function Feed({ navigation, route }) {
     const handleFocusPost = (index, pageY, preferWaitForHeader = false) => {
         if (isTransitioning.current) return; /* 🔒 */
         isTransitioning.current = true;
+        try { isTransitioningSV.value = 1; } catch {}
+        try { panEnabledSV.value = 0; } catch {}
         stopFlatListMomentum();
 
         focusedPostIndex.current = index;
@@ -352,6 +357,8 @@ export default function Feed({ navigation, route }) {
     const handleBackPress = () => {
         if (isTransitioning.current) return; /* 🔒 */
         isTransitioning.current = true;
+        try { isTransitioningSV.value = 1; } catch {}
+        try { panEnabledSV.value = 0; } catch {}
 
         // Collapse comments immediately to avoid lag
         try { setCommentsCollapseSignal(Date.now()); } catch { }
@@ -400,6 +407,8 @@ export default function Feed({ navigation, route }) {
     const onFocusTranslateEnd = useCallback((clearTranslating) => {
         // Called after the translate animation settles
         isTransitioning.current = false; /* 🔓 unlock */
+        try { isTransitioningSV.value = 0; } catch {}
+        try { panEnabledSV.value = 1; } catch {}
         isUnfocusingRef.current = false;
         if (clearTranslating) {
             // Finishing unfocus: commit state after animation to avoid layout jump
@@ -753,6 +762,10 @@ export default function Feed({ navigation, route }) {
             .enabled(!!isSomePostFocused)
             .simultaneousWithExternalGesture(Gesture.Native())
             .onBegin(() => {
+                // Block if a transition is settling or we are in lockout window
+                if (isTransitioningSV.value === 1 || panEnabledSV.value === 0) {
+                    return;
+                }
                 // mark interactive
                 isUnfocusingRef.current = true;
                 runOnJS(setUnfocusGestureActive)(true);
@@ -760,6 +773,7 @@ export default function Feed({ navigation, route }) {
                 interTranslateSV.value = 0;
             })
             .onUpdate((e) => {
+                if (isTransitioningSV.value === 1 || panEnabledSV.value === 0) return;
                 if (!isSomePostFocused) return;
                 const ty = Math.min(0, e.translationY);
                 const dyUp = -ty; // positive upwards drag in px
@@ -776,6 +790,7 @@ export default function Feed({ navigation, route }) {
                 interTranslateSV.value = focusBaseSV.value * (-p);
             })
             .onEnd((e) => {
+                if (isTransitioningSV.value === 1 || panEnabledSV.value === 0) return;
                 if (!isSomePostFocused) return;
                 const ty = Math.min(0, e.translationY);
                 let p = (-ty) / FULL_GESTURE_PX;
@@ -785,6 +800,8 @@ export default function Feed({ navigation, route }) {
                 const baseNow = focusBaseSV.value || 0;
                 focusTranslateSV.value = baseNow * (1 - p);
                 interTranslateSV.value = 0;
+                // Enter a brief lockout so a second immediate pan doesn't race animations
+                panEnabledSV.value = 0;
                 if (shouldClose) {
                     // Smoothly finish header reveal to avoid jump
                     focusHide.value = withTiming(0, { duration: ANIMATION_DURATION, easing: ReEasing.linear });
@@ -796,6 +813,8 @@ export default function Feed({ navigation, route }) {
                     runOnJS(handleBackPress)();
                     // Keep wrapper for the duration to avoid a frame of unwrapped layout
                     runOnJS(scheduleClearUnfocusGestureActive)(ANIMATION_DURATION + 20);
+                    // Re-enable pan after the unfocus animation if still relevant
+                    panEnabledSV.value = withDelay(ANIMATION_DURATION + 40, withTiming(1, { duration: 0 }));
                 } else {
                     // cancel: return to focused state
                     focusHide.value = withTiming(headerH.value, { duration: 190, easing: ReEasing.linear });
@@ -808,6 +827,8 @@ export default function Feed({ navigation, route }) {
                     runOnJS(clearUnfocusFlagsJS)();
                     // Reopen comments to its open position if user cancels
                     runOnJS(signalCommentsReopen)();
+                    // Brief lockout before accepting a new pan session
+                    panEnabledSV.value = withDelay(210, withTiming(1, { duration: 0 }));
                 }
             })
             .onFinalize(() => {
