@@ -24,7 +24,7 @@ import scaleSize from "../../../helper/scaleSize";
 const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get("window");
 const dynamicStyles = getPostFooterStyles(SCREEN_WIDTH, SCREEN_HEIGHT);
 
-const PostFooter = forwardRef(function PostFooter({ data, onPressCommentButton, onPressShareButton, isSomePostFocused, isUnfocusing }, ref) {
+const PostFooter = forwardRef(function PostFooter({ data, onPressCommentButton, onPressShareButton, isSomePostFocused, isUnfocusing, focusModeSV, interactiveUnfocusSV }, ref) {
     const [isLiked, setIsLiked] = useState(false);
     const [isSaved, setIsSaved] = useState(false);
     const opacityAnim = useRef(new Animated.Value(isSomePostFocused && !isUnfocusing ? 1 : 0)).current;
@@ -173,7 +173,13 @@ const PostFooter = forwardRef(function PostFooter({ data, onPressCommentButton, 
                 </RNBounceable>
             </View>
             {/* Footer with animated comment text, user handle, etc. */}
-            <PostFooterInfoPanel opacityAnim={opacityAnim} data={data} />
+            <PostFooterInfoPanel
+                opacityAnim={opacityAnim}
+                data={data}
+                // Drive unfocus fade-out interactively
+                focusModeSV={focusModeSV}
+                interactiveUnfocusSV={interactiveUnfocusSV}
+            />
         </View>
     );
 });

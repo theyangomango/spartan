@@ -5,7 +5,8 @@
  */
 
 import React from 'react';
-import { View, Text, StyleSheet, Animated } from 'react-native';
+import { View, Text, StyleSheet } from 'react-native';
+import Reanimated, { useAnimatedStyle } from 'react-native-reanimated';
 // No safe-area offset here; this panel sits inside the post card,
 // not at the device edge.
 import scaleSize from '../../../helper/scaleSize';
@@ -30,7 +31,7 @@ const Pfp = ({ uid, version = 0, style }) => {
     );
 };
 
-const PostFooterInfoPanel = ({ data, opacityAnim }) => {
+const PostFooterInfoPanel = ({ data, opacityAnim, focusModeSV, interactiveUnfocusSV }) => {
     const following = global?.userData?.following ?? [];
     const likes = Array.isArray(data?.likes) ? data.likes : [];
 
@@ -41,8 +42,19 @@ const PostFooterInfoPanel = ({ data, opacityAnim }) => {
 
     const handles = filteredLikes.map(like => like.handle);
 
+    // During unfocus, fade out interactively using shared value (0..1)
+    const unfocusOpacityStyle = useAnimatedStyle(() => {
+        try {
+            const inFocus = focusModeSV?.value === 1;
+            const p = interactiveUnfocusSV?.value || 0;
+            return { opacity: inFocus ? (1 - p) : 0 };
+        } catch {
+            return {};
+        }
+    });
+
     return (
-        <Animated.View style={[styles.container, { opacity: opacityAnim, bottom: scaleSize(12) }]} pointerEvents="none">
+        <Reanimated.View style={[styles.container, unfocusOpacityStyle]} pointerEvents="none">
             <View style={styles.profilePictures}>
                 {filteredLikes.length > 0 ? (
                     filteredLikes.map((like, index) => (
@@ -74,7 +86,7 @@ const PostFooterInfoPanel = ({ data, opacityAnim }) => {
                     ? `Liked by ${handles.join(', ')}`
                     : data.caption}
             </Text>
-        </Animated.View>
+        </Reanimated.View>
     );
 };
 

@@ -101,18 +101,23 @@ function Post({
 
     // RN Animated opacity removed to avoid mixing with Reanimated on the same view
 
-    // Memo styles
+    // Base styles (bottom radius animated separately)
     const [containerStyle, imageStyle] = useMemo(() => {
-        const clipStyle =
-            isFocused && isSomePostFocused
-                ? {
-                    borderBottomLeftRadius: BORDER,
-                    borderBottomRightRadius: BORDER,
-                }
-                : undefined;
+        return [styles.gallery, styles.image];
+    }, []);
 
-        return [[styles.gallery, clipStyle], [styles.image, clipStyle]];
-    }, [isFocused, isSomePostFocused]);
+    // Animate bottom corners during unfocus: BORDER -> 0 as interactiveUnfocusSV goes 0 -> 1
+    const roundedBottomStyle = useAnimatedStyle(() => {
+        try {
+            const inFocus = focusModeSV?.value === 1;
+            if (inFocus && isFocused) {
+                const p = Math.max(0, Math.min(1, interactiveUnfocusSV?.value || 0));
+                const r = BORDER * (1 - p);
+                return { borderBottomLeftRadius: r, borderBottomRightRadius: r };
+            }
+        } catch {}
+        return { borderBottomLeftRadius: 0, borderBottomRightRadius: 0 };
+    }, [isFocused]);
 
     // Flash highlight when this post matches target pid and signal updates
     useEffect(() => {
@@ -131,7 +136,7 @@ function Post({
         const should = programFocusPid && String(programFocusPid) === String(data?.pid || '');
         if (!should || isSomePostFocused) return;
         const id = setTimeout(() => {
-            try { focusMe(); } catch {}
+            try { focusMe(true); } catch {}
         }, 20);
         return () => clearTimeout(id);
     }, [programFocusSignal, programFocusPid, isSomePostFocused, data?.pid]);
@@ -211,20 +216,21 @@ function Post({
                 style={[styles.card, isFocused && { zIndex: 100 }, { transform: [{ scale }] }]}
             >
                 <View style={styles.body}>
-                    <FlatList
-                        ref={flatListRef}
-                        data={mediaList}
-                        horizontal
-                        pagingEnabled
-                        bounces={false}
-                        overScrollMode="never"
-                        snapToInterval={W}
-                        decelerationRate="fast"
-                        showsHorizontalScrollIndicator={false}
-                        keyExtractor={keyExtractor}
-                        getItemLayout={getItemLayout}
-                        style={containerStyle}
-                        renderItem={({ item, index: i }) => {
+                    <Reanimated.View style={[containerStyle, roundedBottomStyle, { overflow: 'hidden' }]}>
+                        <FlatList
+                            ref={flatListRef}
+                            data={mediaList}
+                            horizontal
+                            pagingEnabled
+                            bounces={false}
+                            overScrollMode="never"
+                            snapToInterval={W}
+                            decelerationRate="fast"
+                            showsHorizontalScrollIndicator={false}
+                            keyExtractor={keyExtractor}
+                            getItemLayout={getItemLayout}
+                            style={{ width: '100%', height: '100%' }}
+                            renderItem={({ item, index: i }) => {
                             const handlePress = (e) => {
                                 const x = e.nativeEvent.locationX;
                                 if (x > W * 0.1 && x < W * 0.9) {
@@ -269,11 +275,12 @@ function Post({
                                     <ImageSlide uri={item.uri} style={imageStyle} />
                                 </Pressable>
                             );
-                        }}
-                        onScroll={onScroll}
-                        scrollEventThrottle={16}
-                        initialScrollIndex={currentIndex}
-                    />
+                            }}
+                            onScroll={onScroll}
+                            scrollEventThrottle={16}
+                            initialScrollIndex={currentIndex}
+                        />
+                    </Reanimated.View>
                 </View>
 
                 <PostHeader
@@ -288,12 +295,14 @@ function Post({
                     data={data}
                     image={pfp}
                     isSomePostFocused={isSomePostFocused}
+                    focusModeSV={focusModeSV}
+                    interactiveUnfocusSV={interactiveUnfocusSV}
                     onPressCommentButton={() => {
-                        if (!isSomePostFocused) focusMe();
+                        if (!isSomePostFocused) focusMe(true);
                         if (isFocused) openCommentsModal(index);
                     }}
                     onPressShareButton={() => {
-                        if (!isSomePostFocused) focusMe();
+                        if (!isSomePostFocused) focusMe(true);
                         if (isFocused) openShareModal(index);
                     }}
                 />
