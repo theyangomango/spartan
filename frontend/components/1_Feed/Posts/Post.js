@@ -131,10 +131,19 @@ function Post({
         ]).start();
     }, [highlightSignal, highlightPid, data?.pid]);
 
-    // Programmatic focus (simulate user tap) when matching pid
+    // Programmatic focus (simulate user tap) when matching pid.
+    // React exactly once per unique programFocusSignal to avoid re-triggering
+    // after unfocus toggles isSomePostFocused back to false.
+    const lastProgramFocusHandledRef = useRef(null);
     useEffect(() => {
         const should = programFocusPid && String(programFocusPid) === String(data?.pid || '');
-        if (!should || isSomePostFocused) return;
+        const sig = programFocusSignal;
+        if (!should) return;
+        // Only handle a new signal once
+        if (lastProgramFocusHandledRef.current === sig) return;
+        // If something is currently focused, skip this cycle; a new signal will be issued if needed
+        if (isSomePostFocused) return;
+        lastProgramFocusHandledRef.current = sig;
         const id = setTimeout(() => {
             try { focusMe(true); } catch {}
         }, 20);

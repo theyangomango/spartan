@@ -100,6 +100,8 @@ export default function Feed({ navigation, route }) {
     // Programmatic focusing (simulate user press)
     const programFocusPidRef = useRef(null);
     const [programFocusSignal, setProgramFocusSignal] = useState(0);
+    // Versioning for programmatic focus to cancel stale timers/polls
+    const programFocusNonceRef = useRef(0);
     // For reliable programmatic focus
     const lastScrollTsRef = useRef(0);
     const focusOffsetRef = useRef(0); // current focused translateY offset (negative)
@@ -323,6 +325,9 @@ export default function Feed({ navigation, route }) {
 
     /* ---------- focus / unfocus handlers ---------- */
     const handleFocusPost = (index, pageY, preferWaitForHeader = false) => {
+        // Any manual focus should invalidate stale programmatic focus requests
+        try { programFocusNonceRef.current += 1; } catch {}
+        try { setPendingFocusPid(null); } catch {}
         if (isTransitioning.current) return; /* 🔒 */
         isTransitioning.current = true;
         try { isTransitioningSV.value = 1; } catch {}
@@ -365,6 +370,9 @@ export default function Feed({ navigation, route }) {
     };
 
     const handleBackPress = () => {
+        // Invalidate any pending programmatic focus callbacks
+        try { programFocusNonceRef.current += 1; } catch {}
+        try { setPendingFocusPid(null); } catch {}
         if (isTransitioning.current) return; /* 🔒 */
         isTransitioning.current = true;
         try { isTransitioningSV.value = 1; } catch {}
@@ -515,6 +523,8 @@ export default function Feed({ navigation, route }) {
         if (idx < 0) return false;
         highlightPidRef.current = String(pid);
         setHighlightSignal(Date.now());
+        // Create a new nonce to uniquely identify this request
+        const myNonce = (programFocusNonceRef.current = (programFocusNonceRef.current || 0) + 1);
 
         // Helper to compute screen Y for the item without measure (pretend in-window)
         const computePageY = () => {
@@ -534,7 +544,10 @@ export default function Feed({ navigation, route }) {
         if (lay && lay.y >= viewportTop && (lay.y + lay.h) <= viewportBottom) {
             programFocusPidRef.current = String(pid);
             // small delay to ensure layout refs are fresh
-            setTimeout(() => setProgramFocusSignal(Date.now()), 30);
+            setTimeout(() => {
+                if (programFocusNonceRef.current !== myNonce) return; // stale
+                setProgramFocusSignal(myNonce);
+            }, 30);
             return true;
         }
 
@@ -556,14 +569,16 @@ export default function Feed({ navigation, route }) {
             const stable = now - (lastScrollTsRef.current || 0) > 32;
             const hasLay = !!itemLayoutsRef.current.get(idx);
             if (hasLay && stable) {
+                if (programFocusNonceRef.current !== myNonce) return; // stale
                 programFocusPidRef.current = String(pid);
-                setProgramFocusSignal(Date.now());
+                setProgramFocusSignal(myNonce);
                 return;
             }
             if (tries++ >= MAX) {
                 // Fallback: force focus anyway
+                if (programFocusNonceRef.current !== myNonce) return; // stale
                 programFocusPidRef.current = String(pid);
-                setProgramFocusSignal(Date.now());
+                setProgramFocusSignal(myNonce);
                 return;
             }
             requestAnimationFrame(poll);
