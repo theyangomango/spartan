@@ -784,28 +784,40 @@ export default function Feed({ navigation, route }) {
                 if (!isSomePostFocused) return;
                 const ty = Math.min(0, e.translationY);
                 const dyUp = -ty; // positive upwards drag in px
-                let pLin = dyUp / FULL_GESTURE_PX;
-                if (pLin < 0) pLin = 0; if (pLin > 1) pLin = 1;
-                // Apply eased curve for a more gradual feel
-                const p = Math.pow(pLin, PROGRESS_SLOW_K);
+                const base = focusBaseSV.value || 0; // can be negative or positive
+                // Normalize UI progress by absolute distance to origin so timing is consistent
+                const distToZero = Math.max(1, Math.abs(base));
+                let pNorm = dyUp / distToZero;
+                if (pNorm < 0) pNorm = 0; if (pNorm > 1) pNorm = 1;
+                // Apply eased curve for a more gradual feel (UI-only)
+                const p = Math.pow(pNorm, PROGRESS_SLOW_K);
                 interactiveProgressSV.value = p;
                 // Reveal overlay header and chips progressively
                 const fh = headerH.value || 0;
                 focusHide.value = Math.max(0, fh * (1 - p));
-                // Fade stories/chips and offset focused post without touching RN Animated in JS
+                // Fade stories/chips
                 storiesOpacitySV.value = p;
-                interTranslateSV.value = focusBaseSV.value * (-p);
+                // Move the focused card at a constant speed (1:1 with finger),
+                // clamped to the remaining distance in the correct direction.
+                const sign = base < 0 ? 1 : -1; // direction toward zero
+                const interMag = Math.min(dyUp, Math.abs(base));
+                interTranslateSV.value = sign * interMag;
             })
             .onEnd((e) => {
                 if (isTransitioningSV.value === 1 || panEnabledSV.value === 0) return;
                 if (!isSomePostFocused) return;
                 const ty = Math.min(0, e.translationY);
-                let p = (-ty) / FULL_GESTURE_PX;
-                if (p < 0) p = 0; if (p > 1) p = 1;
-                const shouldClose = p > CLOSE_THRESHOLD || (e.velocityY || 0) < -350;
-                // Compute combined translation at release and hand off on UI thread
-                const baseNow = focusBaseSV.value || 0;
-                focusTranslateSV.value = baseNow * (1 - p);
+                const dyUp = -ty;
+                const baseNow = focusBaseSV.value || 0; // can be negative or positive
+                const distToZero = Math.max(1, Math.abs(baseNow));
+                let pNorm = dyUp / distToZero;
+                if (pNorm < 0) pNorm = 0; if (pNorm > 1) pNorm = 1;
+                const shouldClose = pNorm > CLOSE_THRESHOLD || (e.velocityY || 0) < -350;
+                // Commit the current combined translation (base + inter) to avoid a visual jump
+                const interMagNow = Math.min(dyUp, Math.abs(baseNow));
+                const signNow = baseNow < 0 ? 1 : -1;
+                const combinedNow = baseNow + signNow * interMagNow;
+                focusTranslateSV.value = Math.abs(combinedNow) < 0.5 ? 0 : combinedNow;
                 interTranslateSV.value = 0;
                 // Enter a brief lockout so a second immediate pan doesn't race animations
                 panEnabledSV.value = 0;
