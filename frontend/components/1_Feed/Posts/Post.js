@@ -210,10 +210,10 @@ function Post({
         <Reanimated.View
             ref={viewRef}
             style={[styles.wrapper, interactiveFadeStyle]}
-            pointerEvents={isSomePostFocused && !isFocused ? "none" : "auto"}
+            pointerEvents={isSomePostFocused && !isFocused ? "box-none" : "auto"}
         >
             <Animated.View
-                style={[styles.card, isFocused && { zIndex: 100 }, { transform: [{ scale }] }]}
+                style={[styles.card, isFocused && { zIndex: 1 }, { transform: [{ scale }] }]}
             >
                 <View style={styles.body}>
                     <Reanimated.View style={[containerStyle, roundedBottomStyle, { overflow: 'hidden' }]}>
@@ -239,7 +239,8 @@ function Post({
                                         togglePauseAtIndex(i);
                                     } else if (!isFocused && !isSomePostFocused) {
                                         // Only allow focusing when no other post is already focused
-                                        focusMe();
+                                        // Wait for compact header measurement to avoid overshoot/jitter
+                                        focusMe(true);
                                     }
                                 }
                             };

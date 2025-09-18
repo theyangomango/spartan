@@ -331,10 +331,8 @@ export default function Feed({ navigation, route }) {
 
         focusedPostIndex.current = index;
         translatingIndexRef.current = index;
-        // Enter focus mode and ensure other posts fade out immediately
-        setIsSomePostFocused(true);
-        try { interactiveProgressSV.value = withTiming(0, { duration: 140, easing: ReEasing.out(ReEasing.cubic) }); } catch { }
-        const run = () => {
+
+        const startFocus = () => {
             const Vstart = visibleHeaderHRef.current || 0; // overlay header+chips visible height right before focus
             const Vfinal = backHeaderHRef.current || (insets?.top ? insets.top + 44 : TARGET_POSITION);
             // Needed translation Δ for the card: Vfinal - (pageY - Vstart) = - (pageY - Vstart - Vfinal)
@@ -343,16 +341,21 @@ export default function Feed({ navigation, route }) {
             // store target focused offset for interactive gesture math
             focusOffsetRef.current = -delta;
             try { focusBaseSV.value = -delta; } catch { }
+            // Begin card translation first, then enter focus mode so header chips hide in sync
             animateView(delta, 0);
+            // Enter focus mode and ensure other posts fade out immediately
+            setIsSomePostFocused(true);
+            try { interactiveProgressSV.value = withTiming(0, { duration: 140, easing: ReEasing.out(ReEasing.cubic) }); } catch { }
         };
+
         if (!preferWaitForHeader) {
-            setTimeout(run, 0);
+            setTimeout(startFocus, 0);
         } else {
-            // For programmatic focus: ensure the compact header has measured to avoid offset
+            // Ensure the compact header height is known; a ghost sizer generally sets this instantly.
             let tries = 0; const MAX = 24; // ~400ms
             const poll = () => {
                 if (backHeaderHRef.current > 0 || tries++ >= MAX) {
-                    setTimeout(run, 0);
+                    setTimeout(startFocus, 0);
                     return;
                 }
                 requestAnimationFrame(poll);
@@ -505,7 +508,7 @@ export default function Feed({ navigation, route }) {
         }
     }, [navigation]);
 
-    // Scroll to a specific post by pid and flash-highlight it
+    // Scroll to a specific post by pid and focus it reliably
     const scrollToPid = useCallback((pid) => {
         if (!pid || !Array.isArray(posts) || posts.length === 0) return false;
         const idx = posts.findIndex((p) => String(p?.pid || '') === String(pid));
@@ -513,19 +516,29 @@ export default function Feed({ navigation, route }) {
         highlightPidRef.current = String(pid);
         setHighlightSignal(Date.now());
 
+        // Helper to compute screen Y for the item without measure (pretend in-window)
+        const computePageY = () => {
+            const l = itemLayoutsRef.current.get(idx);
+            if (!l) return null;
+            const vHeader = Math.max(0, visibleHeaderHRef.current || 0);
+            const yScreen = vHeader + (l.y - scrollOffsetY.current);
+            return yScreen;
+        };
+
         const lay = itemLayoutsRef.current.get(idx);
         const visibleH = Math.max(0, visibleHeaderHRef.current || 0);
         const viewportTop = scrollOffsetY.current;
         const viewportBottom = viewportTop + (height - visibleH);
 
-        // If fully visible already: just trigger a programmatic tap quickly
+        // If already fully visible, trigger programmatic focus; Post will measure pageY
         if (lay && lay.y >= viewportTop && (lay.y + lay.h) <= viewportBottom) {
             programFocusPidRef.current = String(pid);
-            setTimeout(() => setProgramFocusSignal(Date.now()), 50);
+            // small delay to ensure layout refs are fresh
+            setTimeout(() => setProgramFocusSignal(Date.now()), 30);
             return true;
         }
 
-        // Otherwise, perform a minimal instant reveal (no animation) for stability
+        // Otherwise, jump the list to reveal the item near the top of viewport
         if (lay) {
             const targetOffset = Math.max(0, lay.y - 8);
             try {
@@ -536,9 +549,26 @@ export default function Feed({ navigation, route }) {
             try { flatListRef.current?.scrollToIndex?.({ index: idx, viewPosition: 0, animated: false }); } catch { }
         }
 
-        // Fire programmatic tap after the jump
-        programFocusPidRef.current = String(pid);
-        setTimeout(() => setProgramFocusSignal(Date.now()), 50);
+        // Poll until layout is available and scroll has settled, then trigger a measured focus
+        let tries = 0; const MAX = 40; // ~600ms worst-case
+        const poll = () => {
+            const now = Date.now();
+            const stable = now - (lastScrollTsRef.current || 0) > 32;
+            const hasLay = !!itemLayoutsRef.current.get(idx);
+            if (hasLay && stable) {
+                programFocusPidRef.current = String(pid);
+                setProgramFocusSignal(Date.now());
+                return;
+            }
+            if (tries++ >= MAX) {
+                // Fallback: force focus anyway
+                programFocusPidRef.current = String(pid);
+                setProgramFocusSignal(Date.now());
+                return;
+            }
+            requestAnimationFrame(poll);
+        };
+        requestAnimationFrame(poll);
         return true;
     }, [posts, handleFocusPost]);
 
@@ -932,6 +962,27 @@ export default function Feed({ navigation, route }) {
 
             {/* Overlay header (FeedHeader + ActivityChips) that reveals/collapses; spacer keeps posts pushed */}
             <SafeAreaInsetsView edges={['top']} pointerEvents="box-none" style={{ position: 'absolute', top: 0, left: 0, right: 0 }}>
+                {/* Ghost back-header sizer to pre-measure compact header height and avoid focus offset jitter */}
+                <View
+                    pointerEvents="none"
+                    style={{ position: 'absolute', top: -10000, left: 0, right: 0, opacity: 0 }}
+                    onLayout={(e) => { const h = e.nativeEvent.layout.height || 0; if (h && Math.abs(h - (backHeaderHRef.current || 0)) > 1) { backHeaderHRef.current = h; setBackHeaderH(h); } }}
+                >
+                    <SafeAreaInsetsView edges={['top']}>
+                        <FeedHeader
+                            navigation={navigation}
+                            toMessagesScreen={toMessagesScreen}
+                            onOpenNotifications={handleOpenNotifications}
+                            backButton={true}
+                            onBackPress={handleBackPress}
+                            scrollToTop={scrollToTop}
+                            allUsersRef={allUsersRef}
+                            workout={activeWorkout}
+                            timerRef={headerTimerRef}
+                        />
+                    </SafeAreaInsetsView>
+                </View>
+
                 <Reanimated.View
                     pointerEvents={isSomePostFocused ? "none" : "auto"}
                     onLayout={(e) => {

@@ -12,8 +12,7 @@ export default function Settings({ navigation }) {
   const user = useUserDoc(uid, { ignoreKeys: [] });
   const [unitsLbs, setUnitsLbs] = useState(true);
   const [pushEnabled, setPushEnabled] = useState(true);
-  const [soundsEnabled, setSoundsEnabled] = useState(true);
-  const [foodPrivate, setFoodPrivate] = useState(false);
+  // Removed sound effects toggle
 
   const goBack = useCallback(() => navigation.goBack(), [navigation]);
 
@@ -30,8 +29,7 @@ export default function Settings({ navigation }) {
       const s = user?.settings || {};
       if (typeof s?.units === 'string') setUnitsLbs(String(s.units).toLowerCase() !== 'kg');
       if (typeof s?.push === 'boolean') setPushEnabled(s.push);
-      if (typeof s?.sounds === 'boolean') setSoundsEnabled(s.sounds);
-      if (typeof s?.foodPrivate === 'boolean') setFoodPrivate(s.foodPrivate);
+      // sounds setting is still respected app-wide, but toggle removed from UI
     } catch {}
   }, [user?.settings]);
 
@@ -62,15 +60,7 @@ export default function Settings({ navigation }) {
     persistSetting('settings.push', next);
   }, [persistSetting]);
 
-  const toggleSounds = useCallback((next) => {
-    setSoundsEnabled(next);
-    persistSetting('settings.sounds', next);
-  }, [persistSetting]);
-
-  const toggleFoodPrivate = useCallback((next) => {
-    setFoodPrivate(next);
-    persistSetting('settings.foodPrivate', next);
-  }, [persistSetting]);
+  // sound toggle removed from UI
 
   return (
     <SafeAreaView style={styles.root}>
@@ -82,23 +72,21 @@ export default function Settings({ navigation }) {
         <View style={{ width: scaleSize(40) }} />
       </View>
       <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
-        <Text style={styles.section}>Account</Text>
+        <Text style={styles.section}>Account & Privacy</Text>
         <Row label={`Units: ${unitsLbs ? 'lb' : 'kg'}`} value={unitsLbs} onValueChange={toggleUnits} />
         <TouchableOpacity style={styles.link} onPress={() => navigation.navigate('PrivateProfileInfo', { transition: 'slide-from-right' })}>
           <Text style={styles.linkText}>Private profile</Text>
           <Ionicons name="chevron-forward" size={18} color={theme.textSecondary} />
         </TouchableOpacity>
+        <TouchableOpacity style={styles.link} onPress={() => navigation.navigate('DeleteAccount', { transition: 'slide-from-right' })}>
+          <Text style={styles.linkText}>Delete account</Text>
+          <Ionicons name="chevron-forward" size={18} color={theme.textSecondary} />
+        </TouchableOpacity>
 
         <Text style={styles.section}>Notifications</Text>
         <Row label="Push notifications" value={pushEnabled} onValueChange={togglePush} />
-        <Row label="Sound effects" value={soundsEnabled} onValueChange={toggleSounds} />
 
-        <Text style={styles.section}>Privacy</Text>
-        <Row label="Keep foods/macros private" value={foodPrivate} onValueChange={toggleFoodPrivate} />
-        <TouchableOpacity style={styles.link} onPress={() => Alert.alert('Blocked users', 'This is where blocked users would appear.') }>
-          <Text style={styles.linkText}>Blocked users</Text>
-          <Ionicons name="chevron-forward" size={18} color={theme.textSecondary} />
-        </TouchableOpacity>
+        {/* Privacy section removed; food/macros privacy toggle removed */}
 
         <Text style={styles.section}>Support</Text>
         <TouchableOpacity style={styles.link} onPress={() => Linking.openURL('mailto:support@spartan.app?subject=Spartan%20Support') }>
@@ -111,6 +99,10 @@ export default function Settings({ navigation }) {
         </TouchableOpacity>
         <TouchableOpacity style={styles.link} onPress={() => navigation.navigate('PrivacyPolicy', { transition: 'slide-from-right' }) }>
           <Text style={styles.linkText}>Privacy Policy</Text>
+          <Ionicons name="chevron-forward" size={18} color={theme.textSecondary} />
+        </TouchableOpacity>
+        <TouchableOpacity style={styles.link} onPress={() => navigation.navigate('Credits', { transition: 'slide-from-right' }) }>
+          <Text style={styles.linkText}>Credits</Text>
           <Ionicons name="chevron-forward" size={18} color={theme.textSecondary} />
         </TouchableOpacity>
 

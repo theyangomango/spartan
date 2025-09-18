@@ -51,7 +51,9 @@ import SearchUsers from './frontend/screens/SearchUsers';
 import Settings from './frontend/screens/Settings';
 import PrivacyPolicy from './frontend/screens/PrivacyPolicy';
 import TermsOfService from './frontend/screens/TermsOfService';
+import Credits from './frontend/screens/Credits';
 import PrivateProfileInfo from './frontend/screens/PrivateProfileInfo';
+import DeleteAccount from './frontend/screens/DeleteAccount';
 // Dark theme palette
 import theme from './frontend/theme/mfpDark';
 
@@ -764,7 +766,9 @@ export default function App() {
                     <RootStack.Screen name="Settings" component={Settings} />
                     <RootStack.Screen name="PrivacyPolicy" component={PrivacyPolicy} />
                     <RootStack.Screen name="TermsOfService" component={TermsOfService} />
+                    <RootStack.Screen name="Credits" component={Credits} />
                     <RootStack.Screen name="PrivateProfileInfo" component={PrivateProfileInfo} />
+                    <RootStack.Screen name="DeleteAccount" component={DeleteAccount} />
 
                     {/* Creator */}
                     <RootStack.Screen name="SelectPhotos" component={SelectPhotosScreen} />

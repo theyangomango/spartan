@@ -18,7 +18,7 @@
     "ios": {
       "supportsTablet": true,
       "bundleIdentifier": "com.yangbai.spartan",
-      "buildNumber": "4",
+      "buildNumber": "5",
       "config": {
         "usesNonExemptEncryption": false
       },
