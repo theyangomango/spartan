@@ -153,6 +153,13 @@ export default function Feed({ navigation, route }) {
     });
     const maskContainerStyle = useAnimatedStyle(() => ({ top: visibleSmoothSV.value }));
     const chipsOpacityStyle = useAnimatedStyle(() => ({ opacity: storiesOpacitySV.value }));
+    // Cross-fade headers during interactive unfocus: normal header fades in while back header fades out
+    const normalHeaderOpacityStyle = useAnimatedStyle(() => ({
+        opacity: isFocusSV.value === 1 ? interactiveProgressSV.value : 1,
+    }));
+    const backHeaderOpacityStyle = useAnimatedStyle(() => ({
+        opacity: isFocusSV.value === 1 ? 1 - interactiveProgressSV.value : 0,
+    }));
     // Combined translate (base focus translate + interactive overlay)
     const interPostStyle = useAnimatedStyle(() => ({ transform: [{ translateY: focusTranslateSV.value + interTranslateSV.value }] }));
 
@@ -929,18 +936,20 @@ export default function Feed({ navigation, route }) {
                         zIndex: 20,
                     }, overlayHeaderStyle]}
                 >
-                    <FeedHeader
-                        navigation={navigation}
-                        toMessagesScreen={toMessagesScreen}
-                        onOpenNotifications={handleOpenNotifications}
-                        backButton={isSomePostFocused}
-                        onBackPress={handleBackPress}
-                        scrollToTop={scrollToTop}
-                        allUsersRef={allUsersRef}
-                        workout={activeWorkout}
-                        timerRef={headerTimerRef}
-                        heightAdjust={-2}
-                    />
+                    <Reanimated.View style={normalHeaderOpacityStyle}>
+                        <FeedHeader
+                            navigation={navigation}
+                            toMessagesScreen={toMessagesScreen}
+                            onOpenNotifications={handleOpenNotifications}
+                            backButton={false}
+                            onBackPress={handleBackPress}
+                            scrollToTop={scrollToTop}
+                            allUsersRef={allUsersRef}
+                            workout={activeWorkout}
+                            timerRef={headerTimerRef}
+                            heightAdjust={-2}
+                        />
+                    </Reanimated.View>
                     <Reanimated.View
                         onLayout={(e) => {
                             const h = e.nativeEvent.layout.height || 0;
@@ -959,23 +968,24 @@ export default function Feed({ navigation, route }) {
 
 
                 {isSomePostFocused && (
-                    <SafeAreaInsetsView
-                        edges={['top']}
-                        onLayout={(e) => { const h = e.nativeEvent.layout.height || 0; backHeaderHRef.current = h; setBackHeaderH(h); }}
-                        style={{ position: 'absolute', top: 0, left: 0, right: 0, zIndex: 30, backgroundColor: theme.bg }}
-                    >
-                        <FeedHeader
-                            navigation={navigation}
-                            toMessagesScreen={toMessagesScreen}
-                            onOpenNotifications={handleOpenNotifications}
-                            backButton={true}
-                            onBackPress={handleBackPress}
-                            scrollToTop={scrollToTop}
-                            allUsersRef={allUsersRef}
-                            workout={activeWorkout}
-                            timerRef={headerTimerRef}
-                        />
-                    </SafeAreaInsetsView>
+                    <Reanimated.View style={[{ position: 'absolute', top: 0, left: 0, right: 0, zIndex: 30, backgroundColor: theme.bg }, backHeaderOpacityStyle]}>
+                        <SafeAreaInsetsView
+                            edges={['top']}
+                            onLayout={(e) => { const h = e.nativeEvent.layout.height || 0; backHeaderHRef.current = h; setBackHeaderH(h); }}
+                        >
+                            <FeedHeader
+                                navigation={navigation}
+                                toMessagesScreen={toMessagesScreen}
+                                onOpenNotifications={handleOpenNotifications}
+                                backButton={true}
+                                onBackPress={handleBackPress}
+                                scrollToTop={scrollToTop}
+                                allUsersRef={allUsersRef}
+                                workout={activeWorkout}
+                                timerRef={headerTimerRef}
+                            />
+                        </SafeAreaInsetsView>
+                    </Reanimated.View>
                 )}
             </SafeAreaInsetsView>
 
