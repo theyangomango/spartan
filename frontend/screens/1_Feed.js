@@ -732,17 +732,17 @@ export default function Feed({ navigation, route }) {
 
     // ---------- Upward pan to unfocus (interactive) ----------
     // Use device height to set a sensible drag distance
-    const FULL_GESTURE_PX = Math.max(96, Math.min(height * 0.18, 220));
-    // Slow down interactive progress curve so visuals advance more gradually
-    const PROGRESS_SLOW_K = 1.45; // >1 slows early progress, catches up near end
-    const CLOSE_THRESHOLD = 0.07; // compensate for slowed progress so close distance feels similar
+    const FULL_GESTURE_PX = Math.max(84, Math.min(height * 0.16, 200));
+    // Make progress feel snappier near the start
+    const PROGRESS_SLOW_K = 1.2; // lower = more sensitive early progress
+    const CLOSE_THRESHOLD = 0.07; // keep similar close feel
     const panUnfocus = useMemo(() => {
         return Gesture.Pan()
             .minPointers(1)
             .maxPointers(1)
             // Immediately give up when the user swipes horizontally (so carousels scroll)
-            .failOffsetX([-3, 3])
-            .activeOffsetY([-6, 6])
+            .failOffsetX([-12, 12])
+            .activeOffsetY([-4, 4])
             // Expand the gesture start region both above AND below the post.
             // This ensures that after focusing a top-clipped post, gestures remain
             // responsive across the entire visual card, not just the originally
@@ -780,7 +780,7 @@ export default function Feed({ navigation, route }) {
                 const ty = Math.min(0, e.translationY);
                 let p = (-ty) / FULL_GESTURE_PX;
                 if (p < 0) p = 0; if (p > 1) p = 1;
-                const shouldClose = p > CLOSE_THRESHOLD || (e.velocityY || 0) < -500;
+                const shouldClose = p > CLOSE_THRESHOLD || (e.velocityY || 0) < -350;
                 // Compute combined translation at release and hand off on UI thread
                 const baseNow = focusBaseSV.value || 0;
                 focusTranslateSV.value = baseNow * (1 - p);
