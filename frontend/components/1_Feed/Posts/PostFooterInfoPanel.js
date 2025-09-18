@@ -45,9 +45,11 @@ const PostFooterInfoPanel = ({ data, opacityAnim, focusModeSV, interactiveUnfocu
     // During unfocus, fade out interactively using shared value (0..1)
     const unfocusOpacityStyle = useAnimatedStyle(() => {
         try {
-            const inFocus = focusModeSV?.value === 1;
-            const p = interactiveUnfocusSV?.value || 0;
-            return { opacity: inFocus ? (1 - p) : 0 };
+            const focusP = Math.max(0, Math.min(1, focusModeSV?.value ?? 0));
+            const unfocusP = Math.max(0, Math.min(1, interactiveUnfocusSV?.value ?? 0));
+            // Fade IN with focus progress, fade OUT with unfocus progress
+            const op = focusP * (1 - unfocusP);
+            return { opacity: op };
         } catch {
             return {};
         }

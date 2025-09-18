@@ -16,6 +16,8 @@ const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('screen');
 const dynamicStyles = getCommentsBottomSheetStyles(SCREEN_WIDTH, SCREEN_HEIGHT);
 
 const CommentsBottomSheet = ({ isVisible, postData, commentsBottomSheetExpandFlag, toViewProfile, collapseSignal, reopenSignal, interactiveProgress, interactiveProgressSV, interactiveScale = 0.85, openPositionPx }) => {
+    // Slower, smoother sheet expansion
+    const SHEET_OPEN_MS = 520; // longer + softer perceived start
     const [isInputFocused, setIsInputFocused] = useState(false);
     const bottomSheetRef = useRef(null);
     const footerTranslateY = useRef(new Animated.Value(0)).current; // moves when input focuses
@@ -89,7 +91,7 @@ const CommentsBottomSheet = ({ isVisible, postData, commentsBottomSheetExpandFla
     // Handle input focus
     const handleInputFocus = () => {
         setIsInputFocused(true);
-        bottomSheetRef.current.expand();
+        try { bottomSheetRef.current?.snapToIndex?.(1, { duration: SHEET_OPEN_MS }); } catch { try { bottomSheetRef.current?.expand?.(); } catch {} }
         Animated.timing(footerTranslateY, {
             toValue: -315,
             duration: 225,
@@ -119,15 +121,15 @@ const CommentsBottomSheet = ({ isVisible, postData, commentsBottomSheetExpandFla
             const desired = typeof openPositionPx === 'number' ? openPositionPx : (0.345 * h);
             const openPx = Math.max(0, Math.min(h, desired));
             try { bottomSheetRef.current?.snapToPosition?.(0, { duration: 0 }); } catch {}
-            const open = () => { try { bottomSheetRef.current?.snapToPosition?.(openPx); } catch {} };
+            const open = () => { try { bottomSheetRef.current?.snapToPosition?.(openPx, { duration: SHEET_OPEN_MS }); } catch {} };
             // Small delay ensures layout is measured and the 0px baseline is honored
             const id = setTimeout(() => requestAnimationFrame(open), 30);
             // footer entrance animation
             footerOpacity.setValue(0);
             footerIntroY.setValue(10);
             Animated.parallel([
-                Animated.timing(footerOpacity, { toValue: 1, duration: 160, useNativeDriver: true }),
-                Animated.timing(footerIntroY, { toValue: 0, duration: 190, useNativeDriver: true }),
+                Animated.timing(footerOpacity, { toValue: 1, duration: 220, useNativeDriver: true }),
+                Animated.timing(footerIntroY, { toValue: 0, duration: 260, useNativeDriver: true }),
             ]).start();
             return () => clearTimeout(id);
         } else {
@@ -217,7 +219,7 @@ const CommentsBottomSheet = ({ isVisible, postData, commentsBottomSheetExpandFla
 
     // Expand the bottom sheet when flagged
     useEffect(() => {
-        bottomSheetRef.current.expand();
+        try { bottomSheetRef.current?.snapToIndex?.(1, { duration: SHEET_OPEN_MS }); } catch { try { bottomSheetRef.current?.expand?.(); } catch {} }
     }, [commentsBottomSheetExpandFlag]);
 
     useEffect(() => {
@@ -258,7 +260,9 @@ const CommentsBottomSheet = ({ isVisible, postData, commentsBottomSheetExpandFla
         >
             <BottomSheet
                 ref={bottomSheetRef}
-                index={isVisible && !!postPid ? 0 : -1}
+                // If an explicit open position is provided (SinglePost focus use-case),
+                // keep the sheet index closed and let the effect animate it open to avoid abrupt jumps.
+                index={(isVisible && !!postPid && (openPositionPx == null)) ? 0 : -1}
                 snapPoints={snapPoints}
                 onChange={handleSheetIndexChange}
                 handleComponent={() => null}

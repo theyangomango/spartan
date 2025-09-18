@@ -17,7 +17,7 @@ import RNBounceable from "@freakycoder/react-native-bounceable";
 import scaleSize from "../../helper/scaleSize";
 
 const METRICS = ["1RM", "Volume", "Reps"];
-const metricLabel = (m) => (m === '1RM' ? '1RM (Adj)' : m);
+const metricLabel = (m) => (m === '1RM' ? '1RM' : m);
 const { width } = Dimensions.get("window");
 
 // palette tweaks

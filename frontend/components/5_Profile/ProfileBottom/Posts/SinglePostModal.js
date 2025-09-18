@@ -27,10 +27,10 @@ const { width: SW, height: SH } = Dimensions.get("window");
 const TARGET_Y = getScrollTargetPosition(SW, SH);
 const dyn = getFeedHeaderStyles(SW, SH);
 
-const FADE_DUR = 160;
+const FADE_DUR = 180;
 const FADE_EASE_POWER = 3; // >1 keeps the backdrop darker longer during drag
-const SHEET_CLOSE_DUR = 280; // approximate BottomSheet close duration
-const FOCUS_EXTRA_DROP = 12; // sit slightly lower
+const SHEET_CLOSE_DUR = 300; // track with slower open
+const FOCUS_EXTRA_DROP = 0; // remove gap between post and comments sheet
 
 export default function SinglePostModal({ visible, post, onClose, onOpenWorkout }) {
     const insets = useSafeAreaInsets();

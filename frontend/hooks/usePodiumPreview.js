@@ -35,7 +35,7 @@ function top3For(users, exercise, metric = "1RM", normalizeByBodyweight = false)
 
 export default function usePodiumPreview(enabled = true) {
   const [top3, setTop3] = useState([]);
-  const [label, setLabel] = useState("Bench Press • 1RM (Adj)");
+  const [label, setLabel] = useState("Bench Press • 1RM");
 
   const lastView = useMemo(() => (global?.userData?.competitionLastView || null), [global?.userData?.competitionLastView]);
 
@@ -103,13 +103,13 @@ export default function usePodiumPreview(enabled = true) {
         if (!cancelled) setTop3(nextTop);
 
         const scopeLabel = scope === "following" ? "Following" : scope === "tribe" ? (tribeName || "Tribe") : null;
-        const metricLabel = metric === '1RM' ? '1RM (Adj)' : metric;
+        const metricLabel = metric === '1RM' ? '1RM' : metric;
         const nextLabel = scopeLabel ? `${scopeLabel} • ${exercise} • ${metricLabel}` : `${exercise} • ${metricLabel}`;
         if (!cancelled) setLabel(nextLabel);
       } catch (e) {
         if (!cancelled) {
           setTop3([]);
-          setLabel("Bench Press • 1RM (Adj)");
+          setLabel("Bench Press • 1RM");
         }
       }
     })();

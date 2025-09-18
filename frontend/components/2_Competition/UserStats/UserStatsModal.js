@@ -557,7 +557,7 @@ export default function UserStatsModal({ user, toViewProfile, hexOverlay, hexPro
                                                     <View style={styles.headerRight}>
                                                         {!!oneRM && oneRM > 0 && (
                                                             <View style={styles.oneRMPill}>
-                                                                <Text style={styles.oneRMLabel}>1RM (Adj)</Text>
+                                                                <Text style={styles.oneRMLabel}>1RM</Text>
                                                                 <Text style={styles.oneRMValue}>{oneRM}</Text>
                                                             </View>
                                                         )}
@@ -658,7 +658,7 @@ export default function UserStatsModal({ user, toViewProfile, hexOverlay, hexPro
                                                 <Text style={styles.setMain}>{w}lbs x {r}</Text>
                                             </View>
                                             <View style={styles.rmPill}>
-                                                <Text style={styles.rmLabel}>1RM (Adj)</Text>
+                                                <Text style={styles.rmLabel}>1RM</Text>
                                                 <Text style={styles.rmValue}>{rm}</Text>
                                             </View>
                                             <MaterialCommunityIcons name="chevron-right" size={scaledSize(18)} color={COLORS.subtext} style={{ marginLeft: scaleSize(scaledSize(6)) }} />

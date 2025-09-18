@@ -96,7 +96,7 @@ export default function LeaderboardModal({
     const metric = isTribeFocused
         ? (activeComp?.metric || "1RM")
         : (comparedMetric || "1RM");
-    const metricLabel = (m) => (m === '1RM' ? '1RM (Adj)' : m);
+    const metricLabel = (m) => (m === '1RM' ? '1RM' : m);
 
     const normalizeByBodyweight = !!(isTribeFocused && activeComp?.normalizeByBodyweight);
 
@@ -353,7 +353,7 @@ const styles = StyleSheet.create({
         paddingHorizontal: BANNER_PAD_H,
         paddingVertical: BANNER_PAD_V,
         borderRadius: BANNER_RADIUS,
-        backgroundColor: "#262F42",
+        backgroundColor: "#877f36d7",
         borderWidth: scaleSize(1),
         borderColor: "rgba(255,255,255,0.08)",
         shadowColor: "#000",
