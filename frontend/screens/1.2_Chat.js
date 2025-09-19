@@ -31,16 +31,16 @@ import * as Haptics from "expo-haptics";
 
 import { Gesture, GestureDetector } from "react-native-gesture-handler";
 import theme from "../theme/mfpDark";
-import { runOnJS, useSharedValue, withTiming } from "react-native-reanimated";
+import Animated, { useSharedValue, withTiming, runOnJS, useAnimatedStyle } from "react-native-reanimated";
 
 import scaleSize from "../helper/scaleSize";
 
 const { width: W } = Dimensions.get("window");
 const MAX_REVEAL = 72;
-const BACK_SWIPE_ZONE_WIDTH = 200;  // allow navigation swipe when starting within left 200px
-const BACK_TRIGGER_DISTANCE = 96;
-const BACK_TRIGGER_VELOCITY = 600;
+const EDGE_BACK_GESTURE_WIDTH = 16; // keep back swipe near bezel available
+const LEFT_REVEAL_ZONE = W * 0.38;  // reduced width so reveal doesn't block edge gesture
 const RIGHT_REVEAL_ZONE = W * 0.58;
+const BACK_SWIPE_TRIGGER = 118;     // large swipe distance triggers goBack
 
 const COLORS = { surface: theme.surface, primary: theme.primary, hairline: theme.hairline, bg: theme.bg, text: theme.textPrimary, subtext: theme.textSecondary, field: theme.field };
 
@@ -223,29 +223,18 @@ export default function Chat({ navigation, route }) {
     const revealSelf = useSharedValue(0);  // your messages
     const revealOther = useSharedValue(0); // other users
     const mode = useSharedValue(0);        // 0 none, 1 self, 2 other, 3 back
+    const triggeredBack = useSharedValue(false);
+    const backOffset = useSharedValue(0);
     const otherMessageZones = useSharedValue([]);
 
     const otherMessageBoundsRef = useRef(new Map());
-    const backTriggered = useSharedValue(false);
-    const backProgress = useSharedValue(0);
-    const triggerBack = useCallback(() => {
-        try { navigation.goBack(); } catch {}
-    }, [navigation]);
     const lastScrollY = useRef(0);
     const updateMessageBounds = useCallback((key, isSelf, bounds) => {
         if (!key) return;
         const map = otherMessageBoundsRef.current;
-        if (isSelf || !bounds) {
-            map.delete(key);
-        } else {
-            map.set(key, bounds);
-        }
-        otherMessageZones.value = Array.from(map.values()).map((b) => ({
-            top: b.top,
-            bottom: b.bottom,
-            left: b.left,
-            right: b.right,
-        }));
+        if (isSelf || !bounds) map.delete(key);
+        else map.set(key, bounds);
+        otherMessageZones.value = Array.from(map.values());
     }, [otherMessageZones]);
 
     const adjustMessageZonesForScroll = useCallback((delta) => {
@@ -258,76 +247,48 @@ export default function Chat({ navigation, route }) {
             updatedMap.set(key, {
                 top: bounds.top - delta,
                 bottom: bounds.bottom - delta,
-                left: bounds.left,
-                right: bounds.right,
             });
         });
         otherMessageBoundsRef.current = updatedMap;
-        otherMessageZones.value = Array.from(updatedMap.values()).map((b) => ({
-            top: b.top,
-            bottom: b.bottom,
-            left: b.left,
-            right: b.right,
-        }));
+        otherMessageZones.value = Array.from(updatedMap.values());
     }, [otherMessageZones]);
 
+    const handleGestureBack = useCallback(() => {
+        try { navigation.goBack(); } catch { }
+    }, [navigation]);
+
     const pan = Gesture.Pan()
-        .manualActivation(true)
         .minDistance(6)
         .activeOffsetX([-12, 12])
         .failOffsetY([-12, 12])
-        .onTouchesDown((e, manager) => {
+        .onBegin((e) => {
             "worklet";
-            revealSelf.value = 0;
-            revealOther.value = 0;
-            mode.value = 0;
-            backTriggered.value = false;
+            triggeredBack.value = false;
+            backOffset.value = 0;
 
-            // Always allow reveal if touch is inside another user's message bubble
-            const zones = otherMessageZones.value;
+            if (e.absoluteX <= EDGE_BACK_GESTURE_WIDTH) {
+                mode.value = 3;
+                return;
+            }
+
             let insideOther = false;
+            const zones = otherMessageZones.value;
             for (let i = 0; i < zones.length; i++) {
                 const zone = zones[i];
                 if (!zone) continue;
-                if (
-                    e.absoluteY >= zone.top &&
-                    e.absoluteY <= zone.bottom &&
-                    e.absoluteX >= zone.left &&
-                    e.absoluteX <= zone.right
-                ) {
+                if (e.absoluteY >= zone.top && e.absoluteY <= zone.bottom) {
                     insideOther = true;
                     break;
                 }
             }
-            if (insideOther) {
-                backTriggered.value = false;
-                mode.value = 2;
-                manager.begin?.();
-                manager.activate();
-                return;
-            }
 
-            if (e.absoluteX > RIGHT_REVEAL_ZONE) {
-                backTriggered.value = false;
-                mode.value = 1;
-                manager.begin?.();
-                manager.activate();
-                return;
-            }
-
-            if (e.absoluteX <= BACK_SWIPE_ZONE_WIDTH) {
-                backTriggered.value = false;
-                backProgress.value = 0;
-                mode.value = 3;
-                manager.begin?.();
-                manager.activate();
-                return;
-            }
-
-            manager.fail();
+            if (e.absoluteX > RIGHT_REVEAL_ZONE) mode.value = 1;
+            else if (insideOther) mode.value = 2;
+            else mode.value = 3;
         })
         .onUpdate((e) => {
             "worklet";
+            if (triggeredBack.value) return;
             if (mode.value === 1) {
                 const dx = e.translationX < 0 ? Math.min(MAX_REVEAL, -e.translationX) : 0;
                 revealSelf.value = dx;
@@ -335,12 +296,7 @@ export default function Chat({ navigation, route }) {
                 const dx = e.translationX > 0 ? Math.min(MAX_REVEAL, e.translationX) : 0;
                 revealOther.value = dx;
             } else if (mode.value === 3) {
-                const dx = Math.max(0, e.translationX);
-                backProgress.value = dx;
-                if (!backTriggered.value && (dx >= BACK_TRIGGER_DISTANCE || e.velocityX > BACK_TRIGGER_VELOCITY)) {
-                    backTriggered.value = true;
-                    runOnJS(triggerBack)();
-                }
+                backOffset.value = Math.max(0, e.translationX);
             }
         })
         .onEnd((e) => {
@@ -350,21 +306,27 @@ export default function Chat({ navigation, route }) {
             } else if (mode.value === 2) {
                 revealOther.value = withTiming(0, { duration: 160 });
             } else if (mode.value === 3) {
-                const dx = backProgress.value;
-                if (!backTriggered.value && (dx >= BACK_TRIGGER_DISTANCE * 0.6 || e.velocityX > BACK_TRIGGER_VELOCITY)) {
-                    backTriggered.value = true;
-                    runOnJS(triggerBack)();
+                const distance = backOffset.value;
+                const velocity = e.velocityX;
+                const shouldGoBack = distance > BACK_SWIPE_TRIGGER || velocity > 600;
+                if (shouldGoBack) {
+                    triggeredBack.value = true;
+                    backOffset.value = 0;
+                    runOnJS(handleGestureBack)();
+                } else {
+                    backOffset.value = withTiming(0, { duration: 200 });
                 }
             }
             mode.value = 0;
         })
         .onFinalize(() => {
             "worklet";
-            revealSelf.value = withTiming(0, { duration: 160 });
-            revealOther.value = withTiming(0, { duration: 160 });
-            backProgress.value = 0;
-            backTriggered.value = false;
-            mode.value = 0;
+            if (!triggeredBack.value) {
+                revealSelf.value = withTiming(0, { duration: 160 });
+                revealOther.value = withTiming(0, { duration: 160 });
+                backOffset.value = withTiming(0, { duration: 200 });
+            }
+            triggeredBack.value = false;
         });
 
     /** ---------------- Date chips (inverted list friendly) ---------------- */
@@ -491,6 +453,8 @@ export default function Chat({ navigation, route }) {
         return C;
     }, []);
 
+    const slideStyle = useAnimatedStyle(() => ({ transform: [{ translateX: Math.max(0, backOffset.value) }] }));
+
     return (
         <KeyboardAvoidingView
             style={styles.flex}
@@ -499,7 +463,7 @@ export default function Chat({ navigation, route }) {
         >
             <StatusBar barStyle="light-content" />
             <GestureDetector gesture={pan}>
-                <View style={[styles.container, { paddingTop: insets.top }]}>
+                <Animated.View style={[styles.container, { paddingTop: insets.top }, slideStyle]}>
                     <ChatHeader
                         usersExcludingSelf={headerUsersExcludingSelf}
                         toMessages={() => navigation.goBack()}
@@ -584,7 +548,7 @@ export default function Chat({ navigation, route }) {
                     />
 
                     <MediaViewerModal visible={!!viewer} payload={viewer} onClose={closeViewer} />
-                </View>
+                </Animated.View>
             </GestureDetector>
         </KeyboardAvoidingView>
     );

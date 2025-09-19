@@ -756,15 +756,19 @@ export default function App() {
                         component={Chat}
                         options={Platform.select({
                             ios: {
-                                gestureEnabled: false,
+                                // Keep a narrow edge for back-swipe to avoid
+                                // conflicting with Chat's own horizontal pan gestures.
+                                gestureEnabled: true,
+                                gestureDirection: 'horizontal',
+                                gestureResponseDistance: 30,
                                 cardStyleInterpolator: CardStyleInterpolators.forHorizontalIOS,
                             },
                             android: {
-                                gestureEnabled: false,
-                                fullScreenGestureEnabled: false,
+                                gestureEnabled: true,
+                                fullScreenGestureEnabled: true,
                                 animation: 'slide_from_right',
                             },
-                            default: { gestureEnabled: false },
+                            default: {},
                         })}
                     />
                     <RootStack.Screen name="ViewProfile" component={ViewProfile} />

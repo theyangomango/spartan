@@ -305,23 +305,16 @@ export default function MessageItem({
     const showAvatar = isGroup && !isSelf;
 
     const reportBounds = useCallback(() => {
-        if (!onBoundsChange) return;
-        const target = isSelf ? containerRef.current : containerRef.current;
-        if (!target) {
-            onBoundsChange(rowKey, isSelf, null);
+        if (!onBoundsChange || !rowRef.current) {
+            if (onBoundsChange) onBoundsChange(rowKey, isSelf, null);
             return;
         }
-        target.measureInWindow?.((x, y, width, height) => {
-            if (!width || !height) {
+        rowRef.current?.measureInWindow?.((x, y, width, height) => {
+            if (!height) {
                 onBoundsChange(rowKey, isSelf, null);
                 return;
             }
-            onBoundsChange(rowKey, isSelf, {
-                top: y,
-                bottom: y + height,
-                left: x,
-                right: x + width,
-            });
+            onBoundsChange(rowKey, isSelf, { top: y, bottom: y + height });
         });
     }, [onBoundsChange, rowKey, isSelf]);
 

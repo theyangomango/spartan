@@ -213,15 +213,29 @@ const Post = forwardRef(function Post({
 
     // Horizontal swipe inside the post
     const currentOffsetXRef = useRef(0);
-    const onScroll = useCallback(
-        (e) => {
-            const offsetX = e.nativeEvent.contentOffset.x;
-            currentOffsetXRef.current = offsetX;
-            const i = Math.round(offsetX / W);
-            if (i !== currentIndex) setCurrentIndex(i);
-        },
-        [currentIndex]
-    );
+    const lastReportedIndexRef = useRef(0);
+    const updateIndex = useCallback((nextIndex) => {
+        if (typeof nextIndex !== 'number') return;
+        lastReportedIndexRef.current = nextIndex;
+        setCurrentIndex((prev) => (prev === nextIndex ? prev : nextIndex));
+    }, []);
+    const onScroll = useCallback((e) => {
+        const offsetX = e.nativeEvent.contentOffset.x;
+        currentOffsetXRef.current = offsetX;
+        const i = Math.round(offsetX / W);
+        if (i !== lastReportedIndexRef.current) {
+            updateIndex(i);
+        }
+    }, [updateIndex]);
+
+    const handleScrollSettled = useCallback((e) => {
+        const offsetX = e?.nativeEvent?.contentOffset?.x ?? currentOffsetXRef.current;
+        currentOffsetXRef.current = offsetX;
+        const i = Math.round(offsetX / W);
+        if (i !== lastReportedIndexRef.current) {
+            updateIndex(i);
+        }
+    }, [updateIndex]);
 
     // Keep pausedList length in sync with media length
     useEffect(() => {
@@ -269,7 +283,8 @@ const Post = forwardRef(function Post({
             if (targetIndex < 0) targetIndex = 0;
             if (targetIndex > mediaList.length - 1) targetIndex = mediaList.length - 1;
             try {
-                setCurrentIndex(targetIndex);
+                currentOffsetXRef.current = targetIndex * W;
+                updateIndex(targetIndex);
                 flatListRef.current?.scrollToIndex({ index: targetIndex, animated: true });
             } catch {}
         },
@@ -286,7 +301,7 @@ const Post = forwardRef(function Post({
             } catch {}
             resolve(null);
         }),
-    }), [isFocused, mediaList?.length, currentIndex]);
+    }), [isFocused, mediaList?.length, currentIndex, updateIndex]);
 
     // (external swipe state removed; handled via imperative hSwipe* methods)
 
@@ -385,7 +400,8 @@ const Post = forwardRef(function Post({
                             }}
                             onScroll={onScroll}
                             scrollEventThrottle={16}
-                            initialScrollIndex={currentIndex}
+                            onMomentumScrollEnd={handleScrollSettled}
+                            onScrollEndDrag={handleScrollSettled}
                         />
                     </Reanimated.View>
                 </View>
