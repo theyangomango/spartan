@@ -117,12 +117,26 @@ export default function Workout({ navigation, route }) {
 
     /* ---------- first paint guard ---------- */
     const [afterPaint, setAfterPaint] = useState(false);
+    const [hubRowImagesReady, setHubRowImagesReady] = useState(false);
+    const hubRowReadyNotifiedRef = useRef(false);
     useEffect(() => {
         const task = InteractionManager.runAfterInteractions(() => {
             requestAnimationFrame(() => setAfterPaint(true));
         });
         return () => task?.cancel?.();
     }, []);
+
+    const handleHubRowImagesReady = useCallback(() => {
+        setHubRowImagesReady(true);
+    }, []);
+
+    useEffect(() => {
+        if (!afterPaint || !hubRowImagesReady || hubRowReadyNotifiedRef.current) return;
+        hubRowReadyNotifiedRef.current = true;
+        requestAnimationFrame(() => {
+            try { global.__markHubRowReady?.(); } catch {}
+        });
+    }, [afterPaint, hubRowImagesReady]);
 
     /* ---------- prevent phantom “00:00” ---------- */
     useEffect(() => {
@@ -220,6 +234,10 @@ export default function Workout({ navigation, route }) {
                 sets: (Array.isArray(ex?.sets) ? ex.sets : []).map((s) => ({
                     weight: Number(s?.weight) || 0,
                     reps: Number(s?.reps) || 0,
+                    type: (() => {
+                        const raw = typeof s?.type === 'string' ? s.type.toLowerCase() : '';
+                        return raw === 'warmup' || raw === 'dropset' || raw === 'failure' ? raw : null;
+                    })(),
                 })),
             }));
             const newTemplate = { id: tid, tid, name, exercises, lastDate: null };
@@ -635,6 +653,7 @@ export default function Workout({ navigation, route }) {
                         caloriesGoal={caloriesGoal}
                         top3={top3}
                         PREVIEW_LABEL={PREVIEW_LABEL}
+                        onPodiumReady={handleHubRowImagesReady}
                     />
                 </View>
 

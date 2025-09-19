@@ -149,31 +149,31 @@ const NewUserCreation = ({ navigation }) => {
                 templates: [
                     {
                         exercises: [
-                            { muscle: 'Chest', name: 'Bench Press (Barbell)', sets: [{ previous: null, reps: 0, weight: 0 }, { previous: null, reps: 0, weight: 0 }, { previous: null, reps: 0, weight: 0 }] },
-                            { muscle: 'Chest', name: 'Incline Bench (Barbell)', sets: [{ previous: null, reps: 0, weight: 0 }, { previous: null, reps: 0, weight: 0 }, { previous: null, reps: 0, weight: 0 }] },
-                            { muscle: 'Chest', name: 'Chest Fly (Machine)', sets: [{ previous: null, reps: 0, weight: 0 }, { previous: null, reps: 0, weight: 0 }, { previous: null, reps: 0, weight: 0 }] },
-                            { muscle: 'Shoulders', name: 'Shoulder Press (Machine)', sets: [{ previous: null, reps: 0, weight: 0 }, { previous: null, reps: 0, weight: 0 }, { previous: null, reps: 0, weight: 0 }] },
-                            { muscle: 'Arms', name: 'Standing Tricep Extension (Dumbbell)', sets: [{ previous: null, reps: 0, weight: 0 }, { previous: null, reps: 0, weight: 0 }, { previous: null, reps: 0, weight: 0 }] },
+                            { muscle: 'Chest', name: 'Bench Press (Barbell)', sets: [{ previous: null, reps: 0, weight: 0, type: null }, { previous: null, reps: 0, weight: 0, type: null }, { previous: null, reps: 0, weight: 0, type: null }] },
+                            { muscle: 'Chest', name: 'Incline Bench (Barbell)', sets: [{ previous: null, reps: 0, weight: 0, type: null }, { previous: null, reps: 0, weight: 0, type: null }, { previous: null, reps: 0, weight: 0, type: null }] },
+                            { muscle: 'Chest', name: 'Chest Fly (Machine)', sets: [{ previous: null, reps: 0, weight: 0, type: null }, { previous: null, reps: 0, weight: 0, type: null }, { previous: null, reps: 0, weight: 0, type: null }] },
+                            { muscle: 'Shoulders', name: 'Shoulder Press (Machine)', sets: [{ previous: null, reps: 0, weight: 0, type: null }, { previous: null, reps: 0, weight: 0, type: null }, { previous: null, reps: 0, weight: 0, type: null }] },
+                            { muscle: 'Arms', name: 'Standing Tricep Extension (Dumbbell)', sets: [{ previous: null, reps: 0, weight: 0, type: null }, { previous: null, reps: 0, weight: 0, type: null }, { previous: null, reps: 0, weight: 0, type: null }] },
                         ],
                         lastDate: null, name: 'Push (Spartan)', tid: makeID()
                     },
                     {
                         exercises: [
-                            { muscle: 'Back', name: 'Pull-Up (Assisted)', sets: [{ previous: null, reps: 0, weight: 0 }, { previous: null, reps: 0, weight: 0 }, { previous: null, reps: 0, weight: 0 }] },
-                            { muscle: 'Back', name: 'Seated Row (Machine)', sets: [{ previous: null, reps: 0, weight: 0 }, { previous: null, reps: 0, weight: 0 }, { previous: null, reps: 0, weight: 0 }] },
-                            { muscle: 'Shoulders', name: 'Lateral Raise (Dumbell)', sets: [{ previous: null, reps: 0, weight: 0 }, { previous: null, reps: 0, weight: 0 }, { previous: null, reps: 0, weight: 0 }] },
-                            { muscle: 'Shoulders', name: 'Front Raise (Dumbell)', sets: [{ previous: null, reps: 0, weight: 0 }, { previous: null, reps: 0, weight: 0 }, { previous: null, reps: 0, weight: 0 }] },
-                            { muscle: 'Arms', name: 'Preacher Curl (Machine)', sets: [{ previous: null, reps: 0, weight: 0 }, { previous: null, reps: 0, weight: 0 }, { previous: null, reps: 0, weight: 0 }] },
+                            { muscle: 'Back', name: 'Pull-Up (Assisted)', sets: [{ previous: null, reps: 0, weight: 0, type: null }, { previous: null, reps: 0, weight: 0, type: null }, { previous: null, reps: 0, weight: 0, type: null }] },
+                            { muscle: 'Back', name: 'Seated Row (Machine)', sets: [{ previous: null, reps: 0, weight: 0, type: null }, { previous: null, reps: 0, weight: 0, type: null }, { previous: null, reps: 0, weight: 0, type: null }] },
+                            { muscle: 'Shoulders', name: 'Lateral Raise (Dumbell)', sets: [{ previous: null, reps: 0, weight: 0, type: null }, { previous: null, reps: 0, weight: 0, type: null }, { previous: null, reps: 0, weight: 0, type: null }] },
+                            { muscle: 'Shoulders', name: 'Front Raise (Dumbell)', sets: [{ previous: null, reps: 0, weight: 0, type: null }, { previous: null, reps: 0, weight: 0, type: null }, { previous: null, reps: 0, weight: 0, type: null }] },
+                            { muscle: 'Arms', name: 'Preacher Curl (Machine)', sets: [{ previous: null, reps: 0, weight: 0, type: null }, { previous: null, reps: 0, weight: 0, type: null }, { previous: null, reps: 0, weight: 0, type: null }] },
                         ],
                         lastDate: null, name: 'Pull (Spartan)', tid: makeID()
                     },
                     {
                         exercises: [
-                            { muscle: 'Legs', name: 'Leg Press (Machine)', sets: [{ previous: null, reps: 0, weight: 0 }, { previous: null, reps: 0, weight: 0 }, { previous: null, reps: 0, weight: 0 }] },
-                            { muscle: 'Legs', name: 'Calf Raise on Leg Press (Machine)', sets: [{ previous: null, reps: 0, weight: 0 }, { previous: null, reps: 0, weight: 0 }, { previous: null, reps: 0, weight: 0 }] },
-                            { muscle: 'Legs', name: 'Glute-Ham Raise', sets: [{ previous: null, reps: 0, weight: 0 }, { previous: null, reps: 0, weight: 0 }, { previous: null, reps: 0, weight: 0 }] },
-                            { muscle: 'Legs', name: 'Hip Adduction (Machine)', sets: [{ previous: null, reps: 0, weight: 0 }, { previous: null, reps: 0, weight: 0 }, { previous: null, reps: 0, weight: 0 }] },
-                            { muscle: 'Legs', name: 'Leg Extension (Machine)', sets: [{ previous: null, reps: 0, weight: 0 }, { previous: null, reps: 0, weight: 0 }, { previous: null, reps: 0, weight: 0 }] },
+                            { muscle: 'Legs', name: 'Leg Press (Machine)', sets: [{ previous: null, reps: 0, weight: 0, type: null }, { previous: null, reps: 0, weight: 0, type: null }, { previous: null, reps: 0, weight: 0, type: null }] },
+                            { muscle: 'Legs', name: 'Calf Raise on Leg Press (Machine)', sets: [{ previous: null, reps: 0, weight: 0, type: null }, { previous: null, reps: 0, weight: 0, type: null }, { previous: null, reps: 0, weight: 0, type: null }] },
+                            { muscle: 'Legs', name: 'Glute-Ham Raise', sets: [{ previous: null, reps: 0, weight: 0, type: null }, { previous: null, reps: 0, weight: 0, type: null }, { previous: null, reps: 0, weight: 0, type: null }] },
+                            { muscle: 'Legs', name: 'Hip Adduction (Machine)', sets: [{ previous: null, reps: 0, weight: 0, type: null }, { previous: null, reps: 0, weight: 0, type: null }, { previous: null, reps: 0, weight: 0, type: null }] },
+                            { muscle: 'Legs', name: 'Leg Extension (Machine)', sets: [{ previous: null, reps: 0, weight: 0, type: null }, { previous: null, reps: 0, weight: 0, type: null }, { previous: null, reps: 0, weight: 0, type: null }] },
                         ],
                         lastDate: null, name: 'Legs (Spartan)', tid: makeID()
                     }

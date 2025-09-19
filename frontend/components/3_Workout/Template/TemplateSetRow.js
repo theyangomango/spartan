@@ -1,4 +1,4 @@
-import React, { useRef } from 'react';
+import React, { useRef, useState } from 'react';
 import { View, StyleSheet, Text, Pressable, Dimensions } from 'react-native';
 import scaleSize from "../../../helper/scaleSize";
 import { FontAwesome5 } from '@expo/vector-icons';
@@ -6,6 +6,7 @@ import SwipeableItem, { OpenDirection, useSwipeableItemParams } from 'react-nati
 import Animated, { useAnimatedStyle } from 'react-native-reanimated';
 import TemplateEditableStat from './TemplateEditableStat';
 import theme from "../../../theme/mfpDark";
+import SetTypePanel from "../NewWorkout/Tracking/SetTypePanel";
 
 const { height: screenHeight } = Dimensions.get('window');
 const scaledSize = (size) => scaleSize(size);
@@ -15,10 +16,23 @@ export default function TemplateSetRow({ set, updateSet, index, handleDelete }) 
     const reps = set.reps;
 
     const itemRefs = useRef(new Map());
+    const [isTypePanelVisible, setIsTypePanelVisible] = useState(false);
+    const [panelPosition, setPanelPosition] = useState({ top: 0, left: 0 });
 
     const renderUnderlayLeft = () => (
         <UnderlayLeft handleDelete={handleDelete} />
     );
+
+    const openTypePanel = (event) => {
+        const y = event?.nativeEvent?.pageY || 0;
+        setPanelPosition({ top: scaleSize(y + scaledSize(8)), left: scaleSize(scaledSize(20)) });
+        setIsTypePanelVisible(true);
+    };
+
+    const handleSelectType = (type) => {
+        const nextType = set?.type === type ? null : type;
+        updateSet(index, { ...set, type: nextType });
+    };
 
     return (
         <View style={styles.container}>
@@ -43,9 +57,14 @@ export default function TemplateSetRow({ set, updateSet, index, handleDelete }) 
                 onSwipeableLeftOpen={() => handleDelete(index)}
             >
                 <View style={[styles.stat_row]} key={index}>
-                    <View style={[styles.set_ctnr]}>
-                        <Text style={styles.set_number_text}>{index + 1}</Text>
-                    </View>
+                    <Pressable
+                        onPress={openTypePanel}
+                        style={[styles.set_ctnr, set?.type && [styles.set_ctnr_typed, typePillBg(set?.type)]]}
+                    >
+                        <Text style={[styles.set_number_text, set?.type && [styles.set_letter_text, typePillText(set?.type)]]}>
+                            {set?.type ? typeLetter(set?.type) : (index + 1)}
+                        </Text>
+                    </Pressable>
                     <View style={styles.previous_ctnr}>
                         <Text style={[styles.previous_stat_text]}>{'N/A'}</Text>
                         {/* <Text style={[styles.previous_stat_text]}>{set.previous ? set.previous : 'N/A'}</Text> */}
@@ -69,6 +88,13 @@ export default function TemplateSetRow({ set, updateSet, index, handleDelete }) 
                     </View>
                 </View>
             </SwipeableItem>
+            <SetTypePanel
+                visible={isTypePanelVisible}
+                onClose={() => setIsTypePanelVisible(false)}
+                position={panelPosition}
+                current={set?.type || null}
+                onSelect={handleSelectType}
+            />
         </View>
     );
 }
@@ -98,6 +124,8 @@ const styles = StyleSheet.create({
     },
     stat_row: { flexDirection: 'row', paddingVertical: scaleSize(scaledSize(9)), alignItems: 'center', position: 'relative', borderBottomWidth: 1, borderBottomColor: 'rgba(255,255,255,0.16)' },
     set_ctnr: { marginLeft: '5%', width: '8%', height: scaleSize(scaledSize(24)), borderRadius: scaleSize(scaledSize(8)), backgroundColor: theme.field, borderWidth: scaleSize(1), borderColor: 'rgba(255,255,255,0.30)', alignItems: 'center', justifyContent: 'center' },
+    set_ctnr_typed: { backgroundColor: theme.field },
+    set_letter_text: { fontFamily: 'Outfit_700Bold', fontSize: scaleSize(14.8) },
     previous_ctnr: {
         width: '38%',
         alignItems: 'center',
@@ -135,3 +163,41 @@ const styles = StyleSheet.create({
         justifyContent: 'center',
     },
 });
+
+function normalizeType(value) {
+    const raw = typeof value === 'string' ? value.toLowerCase() : '';
+    return raw === 'warmup' || raw === 'dropset' || raw === 'failure' ? raw : null;
+}
+
+function typePillBg(type) {
+    switch (normalizeType(type)) {
+        case 'warmup':
+            return { backgroundColor: 'rgba(251,146,60,0.45)', borderWidth: StyleSheet.hairlineWidth, borderColor: 'rgba(251,146,60,0.7)' };
+        case 'dropset':
+            return { backgroundColor: 'rgba(168,85,247,0.45)', borderWidth: StyleSheet.hairlineWidth, borderColor: 'rgba(168,85,247,0.7)' };
+        case 'failure':
+            return { backgroundColor: 'rgba(244,63,94,0.45)', borderWidth: StyleSheet.hairlineWidth, borderColor: 'rgba(244,63,94,0.7)' };
+        default:
+            return { backgroundColor: theme.field };
+    }
+}
+
+function typeLetter(type) {
+    switch (normalizeType(type)) {
+        case 'warmup': return 'W';
+        case 'dropset': return 'D';
+        case 'failure': return 'F';
+        default: return '';
+    }
+}
+
+function typePillText(type) {
+    switch (normalizeType(type)) {
+        case 'warmup':
+        case 'dropset':
+        case 'failure':
+            return { color: '#FFFFFF' };
+        default:
+            return { color: theme.textPrimary };
+    }
+}

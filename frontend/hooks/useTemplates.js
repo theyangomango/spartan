@@ -3,6 +3,21 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import makeID from "../../backend/helper/makeID";
 import updateDoc from "../../backend/helper/firebase/updateDoc";
 
+const normalizeSetType = (value) => {
+    const raw = typeof value === "string" ? value.toLowerCase() : "";
+    return raw === "warmup" || raw === "dropset" || raw === "failure" ? raw : null;
+};
+
+const normalizeSet = (s = {}) => ({
+    ...s,
+    type: normalizeSetType(s?.type),
+});
+
+const normalizeExercise = (ex = {}) => ({
+    ...ex,
+    sets: Array.isArray(ex?.sets) ? ex.sets.map(normalizeSet) : [],
+});
+
 const normalize = (arr) => {
     const list = Array.isArray(arr) ? arr : [];
     return list.map((t) => {
@@ -11,11 +26,23 @@ const normalize = (arr) => {
             id: t?.id || tid,
             tid,
             name: t?.name || "Untitled Template",
-            exercises: Array.isArray(t?.exercises) ? t.exercises : [],
+            exercises: Array.isArray(t?.exercises) ? t.exercises.map(normalizeExercise) : [],
             lastDate: t?.lastDate ?? null,
         };
     });
 };
+
+const sanitizeForWrite = (arr) => normalize(arr).map((tpl) => ({
+    ...tpl,
+    exercises: tpl.exercises.map((ex) => ({
+        ...ex,
+        sets: ex.sets.map((set) => ({
+            ...set,
+            // Ensure undefined never hits Firestore
+            type: set.type ?? null,
+        })),
+    })),
+}));
 
 export default function useTemplates({ uid, userTemplates }) {
     const [templates, setTemplates] = useState([]);
@@ -33,14 +60,16 @@ export default function useTemplates({ uid, userTemplates }) {
         (next) => {
             // Always update local global copy immediately
             try {
-                global.userData = { ...(global.userData || {}), templates: next };
-                global.__templatesLocalSig = JSON.stringify(next || []);
+                const normalizedNext = normalize(next || []);
+                global.userData = { ...(global.userData || {}), templates: normalizedNext };
+                global.__templatesLocalSig = JSON.stringify(normalizedNext || []);
                 global.__templatesDirty = true;
             } catch {}
             if (!uid) return; // defer backend write until uid exists
             if (debounceRef.current) clearTimeout(debounceRef.current);
             debounceRef.current = setTimeout(() => {
-                updateDoc("users", uid, { templates: next })
+                const payload = sanitizeForWrite(next || []);
+                updateDoc("users", uid, { templates: payload })
                     .catch((e) => console.log("save templates error", e));
             }, 500);
         },
@@ -59,7 +88,7 @@ export default function useTemplates({ uid, userTemplates }) {
             saveTemplates(next);
             return next;
         });
-        openedTemplateRef.current = t;
+        openedTemplateRef.current = normalize([t])[0];
         setIsEditVisible(true);
     }, [saveTemplates]);
 
@@ -67,7 +96,7 @@ export default function useTemplates({ uid, userTemplates }) {
         if (!tpl || tpl.isNone) return;
         const tid = tpl?.tid || tpl?.id;
         const latest = templates.find((t) => (t.tid || t.id) === tid) || tpl;
-        openedTemplateRef.current = { ...latest };
+        openedTemplateRef.current = normalize([latest])[0];
         setIsEditVisible(true);
     }, [templates]);
 

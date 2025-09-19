@@ -31,16 +31,16 @@ import * as Haptics from "expo-haptics";
 
 import { Gesture, GestureDetector } from "react-native-gesture-handler";
 import theme from "../theme/mfpDark";
-import Animated, { useSharedValue, withTiming, runOnJS } from "react-native-reanimated";
+import { useSharedValue, withTiming } from "react-native-reanimated";
 
 import scaleSize from "../helper/scaleSize";
 
 const { width: W } = Dimensions.get("window");
 const MAX_REVEAL = 72;
-const EDGE_BACK_GESTURE_WIDTH = 16; // keep back swipe near bezel available
+const EDGE_BACK_GESTURE_WIDTH = 16; // keep system back-swipe near bezel available
+const BACK_SWIPE_ZONE_WIDTH = 200;  // allow navigation swipe when starting within left 200px
 const LEFT_REVEAL_ZONE = W * 0.38;  // reduced width so reveal doesn't block edge gesture
 const RIGHT_REVEAL_ZONE = W * 0.58;
-const BACK_SWIPE_TRIGGER = 118;     // large swipe distance triggers goBack
 
 const COLORS = { surface: theme.surface, primary: theme.primary, hairline: theme.hairline, bg: theme.bg, text: theme.textPrimary, subtext: theme.textSecondary, field: theme.field };
 
@@ -223,59 +223,96 @@ export default function Chat({ navigation, route }) {
     const revealSelf = useSharedValue(0);  // your messages
     const revealOther = useSharedValue(0); // other users
     const mode = useSharedValue(0);        // 0 none, 1 self, 2 other
-    const triggeredBack = useSharedValue(false);
+    const otherMessageZones = useSharedValue([]);
 
-    const handleGestureBack = useCallback(() => {
-        try { navigation.goBack(); } catch { }
-    }, [navigation]);
+    const otherMessageBoundsRef = useRef(new Map());
+    const lastScrollY = useRef(0);
+    const updateMessageBounds = useCallback((key, isSelf, bounds) => {
+        if (!key) return;
+        const map = otherMessageBoundsRef.current;
+        if (isSelf || !bounds) map.delete(key);
+        else map.set(key, bounds);
+        otherMessageZones.value = Array.from(map.values());
+    }, [otherMessageZones]);
+
+    const adjustMessageZonesForScroll = useCallback((delta) => {
+        if (!delta) return;
+        const prevMap = otherMessageBoundsRef.current;
+        if (!prevMap || prevMap.size === 0) return;
+        const updatedMap = new Map();
+        prevMap.forEach((bounds, key) => {
+            if (!bounds) return;
+            updatedMap.set(key, {
+                top: bounds.top - delta,
+                bottom: bounds.bottom - delta,
+            });
+        });
+        otherMessageBoundsRef.current = updatedMap;
+        otherMessageZones.value = Array.from(updatedMap.values());
+    }, [otherMessageZones]);
 
     const pan = Gesture.Pan()
+        .manualActivation(true)
         .minDistance(6)
         .activeOffsetX([-12, 12])
         .failOffsetY([-12, 12])
-        .onBegin((e) => {
+        .onTouchesDown((e, manager) => {
             "worklet";
-            triggeredBack.value = false;
-            if (e.absoluteX <= EDGE_BACK_GESTURE_WIDTH) { mode.value = 0; return; }
-            if (e.absoluteX > RIGHT_REVEAL_ZONE) mode.value = 1; // right side => your messages
-            else if (e.absoluteX < LEFT_REVEAL_ZONE) mode.value = 2; // left side => others
-            else mode.value = 0;
+            revealSelf.value = 0;
+            revealOther.value = 0;
+            mode.value = 0;
+
+            if (e.absoluteX <= EDGE_BACK_GESTURE_WIDTH || e.absoluteX <= BACK_SWIPE_ZONE_WIDTH) {
+                manager.fail();
+                return;
+            }
+
+            let nextMode = 0;
+            if (e.absoluteX > RIGHT_REVEAL_ZONE) {
+                nextMode = 1;
+            } else {
+                const zones = otherMessageZones.value;
+                for (let i = 0; i < zones.length; i++) {
+                    const zone = zones[i];
+                    if (!zone) continue;
+                    if (e.absoluteY >= zone.top && e.absoluteY <= zone.bottom) {
+                        nextMode = 2;
+                        break;
+                    }
+                }
+            }
+
+            if (nextMode === 0) {
+                manager.fail();
+                return;
+            }
+
+            mode.value = nextMode;
+            manager.activate();
         })
         .onUpdate((e) => {
             "worklet";
-            if (triggeredBack.value) return;
             if (mode.value === 1) {
                 const dx = e.translationX < 0 ? Math.min(MAX_REVEAL, -e.translationX) : 0;
                 revealSelf.value = dx;
             } else if (mode.value === 2) {
                 const dx = e.translationX > 0 ? Math.min(MAX_REVEAL, e.translationX) : 0;
                 revealOther.value = dx;
-                if (e.translationX > BACK_SWIPE_TRIGGER) {
-                    triggeredBack.value = true;
-                    revealOther.value = 0;
-                    mode.value = 0;
-                    runOnJS(handleGestureBack)();
-                }
             }
         })
         .onEnd(() => {
             "worklet";
-            if (!triggeredBack.value) {
-                if (mode.value === 1) revealSelf.value = withTiming(0, { duration: 160 });
-                if (mode.value === 2) revealOther.value = withTiming(0, { duration: 160 });
+            if (mode.value === 1) {
+                revealSelf.value = withTiming(0, { duration: 160 });
+            } else if (mode.value === 2) {
+                revealOther.value = withTiming(0, { duration: 160 });
             }
             mode.value = 0;
         })
         .onFinalize(() => {
             "worklet";
-            if (!triggeredBack.value) {
-                revealSelf.value = withTiming(0, { duration: 160 });
-                revealOther.value = withTiming(0, { duration: 160 });
-            } else {
-                revealSelf.value = 0;
-                revealOther.value = 0;
-            }
-            triggeredBack.value = false;
+            revealSelf.value = withTiming(0, { duration: 160 });
+            revealOther.value = withTiming(0, { duration: 160 });
             mode.value = 0;
         });
 
@@ -389,6 +426,7 @@ export default function Chat({ navigation, route }) {
                 revealMax={MAX_REVEAL}
                 onOpenMedia={openMedia}
                 onOpenActions={openActions}
+                onBoundsChange={updateMessageBounds}
             />
         );
     };
@@ -409,15 +447,13 @@ export default function Chat({ navigation, route }) {
             keyboardVerticalOffset={Platform.OS === "ios" ? 0 : 0}
         >
             <StatusBar barStyle="light-content" />
-            <View style={[styles.container, { paddingTop: insets.top }]}>
-                <ChatHeader
-                    usersExcludingSelf={headerUsersExcludingSelf}
-                    // toMessages={() => navigation.navigate("Messages", { message: data, index })}
-                    toMessages={() => navigation.goBack()}
-                />
+            <GestureDetector gesture={pan}>
+                <View style={[styles.container, { paddingTop: insets.top }]}>
+                    <ChatHeader
+                        usersExcludingSelf={headerUsersExcludingSelf}
+                        toMessages={() => navigation.goBack()}
+                    />
 
-                {/* Wrap the list with the split-swipe gesture */}
-                <GestureDetector gesture={pan}>
                     <View style={styles.surface}>
                         <FlatList
                             ref={flatRef}
@@ -449,52 +485,56 @@ export default function Chat({ navigation, route }) {
                                 try {
                                     const y = e?.nativeEvent?.contentOffset?.y || 0;
                                     isNearBottomRef.current = y <= 80; // inverted: 0 is newest
+                                    const delta = y - lastScrollY.current;
+                                    if (delta !== 0) {
+                                        adjustMessageZonesForScroll(delta);
+                                        lastScrollY.current = y;
+                                    }
                                 } catch { }
                             }}
                         />
                     </View>
-                </GestureDetector>
 
-                {/* input row w/ integrated media button + reply preview */}
-                <MessageInput
-                    text={text}
-                    setText={setText}
-                    onSend={sendText}
-                    onOpenPicker={openPicker}
-                    isFocused={isFocused}
-                    onFocus={() => setFocused(true)}
-                    onBlur={() => setFocused(false)}
-                    replyDraft={replyDraft}
-                    clearReply={() => setReplyDraft(null)}
-                />
+                    <MessageInput
+                        text={text}
+                        setText={setText}
+                        onSend={sendText}
+                        onOpenPicker={openPicker}
+                        isFocused={isFocused}
+                        onFocus={() => setFocused(true)}
+                        onBlur={() => setFocused(false)}
+                        replyDraft={replyDraft}
+                        clearReply={() => setReplyDraft(null)}
+                    />
 
-                {isUploading && (
-                    <View style={styles.uploadOverlay} pointerEvents="none">
-                        <ActivityIndicator size="small" color={COLORS.text} />
-                    </View>
-                )}
+                    {isUploading && (
+                        <View style={styles.uploadOverlay} pointerEvents="none">
+                            <ActivityIndicator size="small" color={COLORS.text} />
+                        </View>
+                    )}
 
-                <ReactionPopover
-                    visible={sheet.visible}
-                    anchor={sheet.anchor}
-                    onClose={closeActions}
-                    reactions={[
-                        { key: "👍", emoji: "👍" },
-                        { key: "❤️", emoji: "❤️" },
-                        { key: "😂", emoji: "😂" },
-                        { key: "😮", emoji: "😮" },
-                    ]}
-                    actions={[
-                        { key: "reply", label: "Reply" },
-                        { key: "copy", label: "Copy" },
-                        { key: "delete", label: "Delete" },
-                    ]}
-                    onReaction={handleReaction}
-                    onAction={handleAction}
-                />
+                    <ReactionPopover
+                        visible={sheet.visible}
+                        anchor={sheet.anchor}
+                        onClose={closeActions}
+                        reactions={[
+                            { key: "👍", emoji: "👍" },
+                            { key: "❤️", emoji: "❤️" },
+                            { key: "😂", emoji: "😂" },
+                            { key: "😮", emoji: "😮" },
+                        ]}
+                        actions={[
+                            { key: "reply", label: "Reply" },
+                            { key: "copy", label: "Copy" },
+                            { key: "delete", label: "Delete" },
+                        ]}
+                        onReaction={handleReaction}
+                        onAction={handleAction}
+                    />
 
-                <MediaViewerModal visible={!!viewer} payload={viewer} onClose={closeViewer} />
-            </View>
+                    <MediaViewerModal visible={!!viewer} payload={viewer} onClose={closeViewer} />
+                </View>
+            </GestureDetector>
         </KeyboardAvoidingView>
     );
 }

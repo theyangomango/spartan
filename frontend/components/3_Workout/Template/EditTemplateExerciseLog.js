@@ -33,7 +33,8 @@ export default function EditTemplateExerciseLog({ name, muscle, exerciseIndex, u
         updateSets(exerciseIndex, [...sets, {
             previous: '405 lb x 12',
             weight: 0,
-            reps: 0
+            reps: 0,
+            type: null,
         }]);
     }
 

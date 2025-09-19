@@ -1,4 +1,4 @@
-import React, { useRef } from "react";
+import React, { useRef, useEffect, useCallback } from "react";
 import {
     View,
     Text,
@@ -34,6 +34,7 @@ export default function MessageItem({
     revealMax = 72,
     onOpenMedia,
     onOpenActions,
+    onBoundsChange,
 }) {
     // ------- robust sender detection -------
     const senderUid =
@@ -88,6 +89,8 @@ export default function MessageItem({
     const mediaOnly = hasMedia && !hasText;
 
     const containerRef = useRef(null);
+    const rowRef = useRef(null);
+    const rowKey = item?.clientId || item?.id || `row-${index}`;
 
     // ---------------- animations ----------------
     const shift = useAnimatedStyle(() => {
@@ -301,8 +304,32 @@ export default function MessageItem({
 
     const showAvatar = isGroup && !isSelf;
 
+    const reportBounds = useCallback(() => {
+        if (!onBoundsChange || !rowRef.current) {
+            if (onBoundsChange) onBoundsChange(rowKey, isSelf, null);
+            return;
+        }
+        rowRef.current?.measureInWindow?.((x, y, width, height) => {
+            if (!height) {
+                onBoundsChange(rowKey, isSelf, null);
+                return;
+            }
+            onBoundsChange(rowKey, isSelf, { top: y, bottom: y + height });
+        });
+    }, [onBoundsChange, rowKey, isSelf]);
+
+    useEffect(() => {
+        reportBounds();
+        return () => {
+            onBoundsChange?.(rowKey, isSelf, null);
+        };
+    }, [reportBounds, onBoundsChange, rowKey, isSelf, hasMedia, hasText, grouped, hasReactions, reactionHeadroom]);
+
     return (
         <View
+            ref={rowRef}
+            collapsable={false}
+            onLayout={reportBounds}
             style={[
                 styles.row,
                 isSelf ? styles.rowSelf : styles.rowOther,

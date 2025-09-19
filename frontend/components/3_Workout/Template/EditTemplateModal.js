@@ -7,6 +7,30 @@ import EditTemplateExerciseLog from "./EditTemplateExerciseLog";
 import { Weight } from 'iconsax-react-native';
 import theme from "../../../theme/mfpDark";
 
+const normalizeSetType = (value) => {
+    const raw = typeof value === "string" ? value.toLowerCase() : "";
+    return raw === "warmup" || raw === "dropset" || raw === "failure" ? raw : null;
+};
+
+const normalizeTemplateSet = (set = {}) => ({
+    ...set,
+    type: normalizeSetType(set?.type),
+});
+
+const normalizeTemplateExercise = (exercise = {}) => ({
+    ...exercise,
+    sets: Array.isArray(exercise?.sets)
+        ? exercise.sets.map(normalizeTemplateSet)
+        : [],
+});
+
+const normalizeTemplate = (tpl = {}) => ({
+    ...tpl,
+    exercises: Array.isArray(tpl?.exercises)
+        ? tpl.exercises.map(normalizeTemplateExercise)
+        : [],
+});
+
 const { height: screenHeight } = Dimensions.get('window');
 const scaledSize = (size) => scaleSize(size);
 
@@ -14,7 +38,7 @@ const EditTemplateModal = ({ openedTemplateRef, updateTemplate, deleteTemplate }
     const [selectExerciseModalVisible, setSelectExerciseModalVisible] = useState(false);
     const [replaceIndex, setReplaceIndex] = useState(null);
     const [deleteConfirmModalVisible, setDeleteConfirmModalVisible] = useState(false);
-    const [template, setTemplate] = useState(openedTemplateRef.current);
+    const [template, setTemplate] = useState(() => normalizeTemplate(openedTemplateRef.current));
 
     const showSelectExerciseModal = useCallback(() => {
         setSelectExerciseModalVisible(true);
@@ -34,23 +58,26 @@ const EditTemplateModal = ({ openedTemplateRef, updateTemplate, deleteTemplate }
                     ...exercises.map((ex) => ({
                         name: ex.name,
                         muscle: ex.muscle,
-                        sets: [{ weight: 0, reps: 0, previous: '405 lb x 12' }],
+                        sets: [{ weight: 0, reps: 0, previous: '405 lb x 12', type: null }],
                     })),
                 ],
             };
-            try { openedTemplateRef.current = next; updateTemplate(); } catch {}
-            return next;
+            const normalized = normalizeTemplate(next);
+            try { openedTemplateRef.current = normalized; updateTemplate(); } catch {}
+            return normalized;
         });
     }, [openedTemplateRef, updateTemplate]);
 
     const updateSets = useCallback((exerciseIndex, newSets) => {
         setTemplate(prevTemplate => {
+            const normalizedSets = (Array.isArray(newSets) ? newSets : []).map(normalizeTemplateSet);
             const updatedExercises = prevTemplate.exercises.map((exercise, index) => (
-                index === exerciseIndex ? { ...exercise, sets: newSets } : exercise
+                index === exerciseIndex ? { ...exercise, sets: normalizedSets } : exercise
             ));
             const next = { ...prevTemplate, exercises: updatedExercises };
-            try { openedTemplateRef.current = next; updateTemplate(); } catch {}
-            return next;
+            const normalized = normalizeTemplate(next);
+            try { openedTemplateRef.current = normalized; updateTemplate(); } catch {}
+            return normalized;
         });
     }, [openedTemplateRef, updateTemplate]);
 
@@ -66,12 +93,13 @@ const EditTemplateModal = ({ openedTemplateRef, updateTemplate, deleteTemplate }
         if (isReplacing && choice) {
             setTemplate((prev) => {
                 const prevSets = prev?.exercises?.[replaceIndex]?.sets || [
-                    { weight: 0, reps: 0, previous: '405 lb x 12' },
+                    { weight: 0, reps: 0, previous: '405 lb x 12', type: null },
                 ];
                 const newSets = prevSets.map((s) => ({
                     weight: 0,
                     reps: 0,
                     previous: s?.previous ?? '405 lb x 12',
+                    type: normalizeSetType(s?.type),
                 }));
                 const nextExercises = prev.exercises.map((ex, i) => (
                     i === replaceIndex
@@ -79,8 +107,9 @@ const EditTemplateModal = ({ openedTemplateRef, updateTemplate, deleteTemplate }
                         : ex
                 ));
                 const next = { ...prev, exercises: nextExercises };
-                try { openedTemplateRef.current = next; updateTemplate(); } catch {}
-                return next;
+                const normalized = normalizeTemplate(next);
+                try { openedTemplateRef.current = normalized; updateTemplate(); } catch {}
+                return normalized;
             });
             setReplaceIndex(null);
             setSelectExerciseModalVisible(false);

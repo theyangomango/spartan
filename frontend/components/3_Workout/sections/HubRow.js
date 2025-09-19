@@ -9,7 +9,7 @@ import theme from "../../../theme/mfpDark";
 import scaleSize from "../../../helper/scaleSize";
 // Removed unused bounceable/touchable imports to keep things lean
 
-const PodiumPreview = memo(function PodiumPreview({ top3 = [] }) {
+const PodiumPreview = memo(function PodiumPreview({ top3 = [], onReady }) {
     // Call hooks a fixed number of times to avoid rules-of-hooks violations
     const u0 = top3?.[0] || null;
     const u1 = top3?.[1] || null;
@@ -22,7 +22,7 @@ const PodiumPreview = memo(function PodiumPreview({ top3 = [] }) {
         { present: !!u1, pfp: p1 || u1?.fallbackPfp || "", handle: u1?.handle || "", stat: u1?.stat || 0 },
         { present: !!u2, pfp: p2 || u2?.fallbackPfp || "", handle: u2?.handle || "", stat: u2?.stat || 0 },
     ];
-    return <MiniPodium data={data} />;
+    return <MiniPodium data={data} onImagesReady={onReady} />;
 });
 
 function HubRowCmp({
@@ -33,6 +33,7 @@ function HubRowCmp({
     caloriesGoal,
     top3,
     PREVIEW_LABEL,
+    onPodiumReady,
 }) {
     // Hard-guard every numeric prop sent into Animated components
     const safeFill =
@@ -110,7 +111,7 @@ function HubRowCmp({
                     </Text>
                     <Text style={styles.chevronRight}>›</Text>
                 </View>
-                {afterPaint ? <PodiumPreview top3={top3} /> : null}
+                {afterPaint ? <PodiumPreview top3={top3} onReady={onPodiumReady} /> : null}
             </Pressable>
         </View>
     );
@@ -122,7 +123,8 @@ const areEqual = (a, b) => (
     a.todayCalories === b.todayCalories &&
     a.caloriesGoal === b.caloriesGoal &&
     a.PREVIEW_LABEL === b.PREVIEW_LABEL &&
-    a.top3 === b.top3
+    a.top3 === b.top3 &&
+    a.onPodiumReady === b.onPodiumReady
 );
 
 export default memo(HubRowCmp, areEqual);

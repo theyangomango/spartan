@@ -1183,6 +1183,7 @@ export default function Feed({ navigation, route }) {
                 interactiveScale={3.0}
                 collapseSignal={commentsCollapseSignal}
                 reopenSignal={commentsReopenSignal}
+                unfocusGestureActive={unfocusGestureActive}
             />
             <ShareBottomSheet
                 shareBottomSheetCloseFlag={shareBottomSheetCloseFlag}

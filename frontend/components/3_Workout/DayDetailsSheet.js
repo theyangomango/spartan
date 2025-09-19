@@ -519,6 +519,10 @@ const DayDetailsSheet = ({
                 sets: (Array.isArray(ex?.sets) ? ex.sets : []).map((s) => ({
                     weight: Number(s?.weight) || 0,
                     reps: Number(s?.reps) || 0,
+                    type: (() => {
+                        const raw = typeof s?.type === 'string' ? s.type.toLowerCase() : '';
+                        return raw === 'warmup' || raw === 'dropset' || raw === 'failure' ? raw : null;
+                    })(),
                 })),
             }));
             const newTemplate = { id: tid, tid, name, exercises, lastDate: null };

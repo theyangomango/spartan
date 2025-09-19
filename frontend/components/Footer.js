@@ -23,21 +23,28 @@ const COLORS = {
 
 const Footer = ({ currentScreenName, navigation }) => {
     // Switch tabs fast and without animations; clears overlays one-way
-    const go = (screenName, params) => () => {
-        // If already on the target tab, avoid any navigation work
-        if (currentScreenName === screenName) return;
-        // Ensure tab switch is instant; rely on navigator-level options
+    const go = (screenName, params, options = {}) => () => {
+        const { force = false } = options;
+        // If already on the target tab, avoid any navigation work unless forced
+        if (!force && currentScreenName === screenName) return;
+
+        const navParams = typeof params === 'undefined' ? undefined : params;
+        const fallbackParams = params || {};
 
         // Jump to the tab, removing overlays if needed, with minimal state change
-        if (!jumpToTab(screenName, params)) {
+        if (!jumpToTab(screenName, navParams)) {
             // Fallback to targeting the existing Tabs route explicitly
             try {
                 if (navigation?.navigate) {
-                    navigation.navigate('Tabs', { transition: 'none', screen: screenName, params: params || {} });
+                    navigation.navigate('Tabs', { transition: 'none', screen: screenName, params: fallbackParams });
                 } else {
-                    navigationRef.navigate('Tabs', { transition: 'none', screen: screenName, params: params || {} });
+                    navigationRef.navigate('Tabs', { transition: 'none', screen: screenName, params: fallbackParams });
                 }
-            } catch {}
+            } catch {
+                try {
+                    navigationRef.navigate('Tabs', { transition: 'none', screen: screenName, params: fallbackParams });
+                } catch {}
+            }
         }
     };
 
@@ -90,7 +97,11 @@ const Footer = ({ currentScreenName, navigation }) => {
                                 if (alreadyOnFeed) {
                                     try { global.scrollFeedToTop && global.scrollFeedToTop(); } catch {}
                                     // Keep legacy signal as a defensive fallback
-                                    try { global.scrollFeedToTopSignal = Date.now(); } catch {}
+                                    try {
+                                        const stamp = Number(global.scrollFeedToTopSignal) || Date.now();
+                                        global.scrollFeedToTopSignal = stamp;
+                                        global.scrollFeedToTopHandled = stamp;
+                                    } catch {}
                                 }
                                 go('Feed', params)();
                             }}
@@ -149,7 +160,20 @@ const Footer = ({ currentScreenName, navigation }) => {
 
                 {/* Profile (ProfileStack → Profile) */}
                 <View style={styles.icon_ctnr}>
-                    <Pressable delayPressIn={0} onPressIn={go('Profile')} hitSlop={10}>
+                    <Pressable
+                        delayPressIn={0}
+                        onPressIn={() => {
+                            const alreadyOnProfile = currentScreenName === 'Profile';
+                            if (alreadyOnProfile) {
+                                const stamp = Date.now();
+                                const params = { ensureSelfProfile: true, _t: stamp };
+                                go('Profile', params, { force: true })();
+                                return;
+                            }
+                            go('Profile')();
+                        }}
+                        hitSlop={10}
+                    >
                         <View style={currentScreenName === 'Profile' ? styles.selectedIcon : styles.icon}>
                             <ProfileIcon size={22.5} color={getIconColor('Profile')} variant="Bold" />
                         </View>
