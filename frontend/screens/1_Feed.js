@@ -30,6 +30,7 @@ import isThisUser from "../helper/isThisUser";
 import useFilteredFeed from "../helper/useFilteredFeed";
 import MaskedView from "@react-native-masked-view/masked-view";
 import useFeedUserData from "./feed/hooks/useFeedUserData";
+import { FeedFocusProvider } from "./feed/hooks/FeedFocusContext";
 
 const { width, height } = Dimensions.get("window");
 const TARGET_POSITION = getScrollTargetPosition(width, height),
@@ -65,6 +66,8 @@ export default function Feed({ navigation, route }) {
     } = useFeedUserData({ UID, navigation, route, isScreenFocused });
 
     const [isSomePostFocused, setIsSomePostFocused] = useState(false);
+    const [focusedIndexState, setFocusedIndexState] = useState(-1);
+    const [translatingIndexState, setTranslatingIndexState] = useState(-1);
     const [shareBottomSheetExpandFlag, setShareBottomSheetExpandFlag] = useState(false);
     const [shareBottomSheetCloseFlag, setShareBottomSheetCloseFlag] = useState(false);
     const [notificationsBottomSheetExpandFlag, setNotificationsBottomSheetExpandFlag] = useState(false);
@@ -109,6 +112,14 @@ export default function Feed({ navigation, route }) {
     const feedTopSignalRef = useRef(0);
     // Keep track of which index is currently translating (focus/unfocus animation)
     const translatingIndexRef = useRef(-1);
+
+    useEffect(() => {
+        focusedPostIndex.current = focusedIndexState;
+    }, [focusedIndexState]);
+
+    useEffect(() => {
+        translatingIndexRef.current = translatingIndexState;
+    }, [translatingIndexState]);
 
     // Highlight target when navigating from notifications
     const highlightPidRef = useRef(null);
@@ -281,7 +292,7 @@ export default function Feed({ navigation, route }) {
     }, [refreshing]);
 
     // Clear any pending throttled center calc on unmount
-    useEffect(() => () => { try { if (pendingCenterTimeoutRef.current) { clearTimeout(pendingCenterTimeoutRef.current); pendingCenterTimeoutRef.current = null; } } catch {} }, []);
+    useEffect(() => () => { try { if (pendingCenterTimeoutRef.current) { clearTimeout(pendingCenterTimeoutRef.current); pendingCenterTimeoutRef.current = null; } } catch { } }, []);
 
     const ensureFocusedAlignment = useCallback((idx, sessionId, attempt = 0) => {
         if (idx < 0) return;
@@ -321,10 +332,10 @@ export default function Feed({ navigation, route }) {
                 }
                 const next = (focusOffsetRef.current || 0) - diff;
                 focusOffsetRef.current = next;
-                try { focusBaseSV.value = next; } catch {}
+                try { focusBaseSV.value = next; } catch { }
                 try {
                     focusTranslateSV.value = withSpring(next, FOCUS_SPRING_CONFIG);
-                } catch {}
+                } catch { }
                 if (attempt < 5) {
                     setTimeout(() => ensureFocusedAlignment(idx, sessionId, attempt + 1), 120);
                 }
@@ -339,12 +350,12 @@ export default function Feed({ navigation, route }) {
     /* ---------- focus / unfocus handlers ---------- */
     const handleFocusPost = (index, pageY, preferWaitForHeader = false) => {
         // Any manual focus should invalidate stale programmatic focus requests
-        try { programFocusNonceRef.current += 1; } catch {}
-        try { setPendingFocusPid(null); } catch {}
+        try { programFocusNonceRef.current += 1; } catch { }
+        try { setPendingFocusPid(null); } catch { }
         if (isTransitioning.current) return; /* 🔒 */
         isTransitioning.current = true;
-        try { isTransitioningSV.value = 1; } catch {}
-        try { panEnabledSV.value = 0; } catch {}
+        try { isTransitioningSV.value = 1; } catch { }
+        try { panEnabledSV.value = 0; } catch { }
         const sessionId = (focusSessionNonceRef.current = (focusSessionNonceRef.current || 0) + 1);
 
         const maybeSyncScrollOffset = () => {
@@ -358,14 +369,16 @@ export default function Feed({ navigation, route }) {
                         scrollOffsetY.current = Math.max(0, inferredOffset);
                     }
                 }
-            } catch {}
+            } catch { }
         };
 
         maybeSyncScrollOffset();
         stopFlatListMomentum();
 
         focusedPostIndex.current = index;
+        setFocusedIndexState(index);
         translatingIndexRef.current = index;
+        setTranslatingIndexState(index);
         commentsHiddenSV.value = 0;
 
         const resolveFocusPageY = () => {
@@ -380,7 +393,7 @@ export default function Feed({ navigation, route }) {
                         return Math.max(0, computed);
                     }
                 }
-            } catch {}
+            } catch { }
             return typeof pageY === 'number' ? pageY : 0;
         };
 
@@ -401,7 +414,7 @@ export default function Feed({ navigation, route }) {
             try { interactiveProgressSV.value = withTiming(0, { duration: INTERACTIVE_START_MS, easing: ReEasing.out(ReEasing.cubic) }); } catch { }
             try {
                 setTimeout(() => ensureFocusedAlignment(index, sessionId, 0), ANIMATION_DURATION + 96);
-            } catch {}
+            } catch { }
         };
 
         const scheduleFocusStart = () => {
@@ -435,13 +448,13 @@ export default function Feed({ navigation, route }) {
 
     const handleBackPress = (origin = 'button') => {
         // Invalidate any pending programmatic focus callbacks
-        try { programFocusNonceRef.current += 1; } catch {}
-        try { setPendingFocusPid(null); } catch {}
-        try { focusSessionNonceRef.current += 1; } catch {}
+        try { programFocusNonceRef.current += 1; } catch { }
+        try { setPendingFocusPid(null); } catch { }
+        try { focusSessionNonceRef.current += 1; } catch { }
         if (isTransitioning.current) return; /* 🔒 */
         isTransitioning.current = true;
-        try { isTransitioningSV.value = 1; } catch {}
-        try { panEnabledSV.value = 0; } catch {}
+        try { isTransitioningSV.value = 1; } catch { }
+        try { panEnabledSV.value = 0; } catch { }
 
         // Collapse comments immediately to avoid lag
         try { setCommentsCollapseSignal(Date.now()); } catch { }
@@ -491,14 +504,16 @@ export default function Feed({ navigation, route }) {
     const onFocusTranslateEnd = useCallback((clearTranslating) => {
         // Called after the translate animation settles
         isTransitioning.current = false; /* 🔓 unlock */
-        try { isTransitioningSV.value = 0; } catch {}
-        try { panEnabledSV.value = 1; } catch {}
+        try { isTransitioningSV.value = 0; } catch { }
+        try { panEnabledSV.value = 1; } catch { }
         isUnfocusingRef.current = false;
         if (clearTranslating) {
             // Finishing unfocus: commit state after animation to avoid layout jump
             try { setIsSomePostFocused(false); } catch { }
             try { focusedPostIndex.current = -1; } catch { }
+            setFocusedIndexState(-1);
             translatingIndexRef.current = -1;
+            setTranslatingIndexState(-1);
             try { setUnfocusGestureActive(false); } catch { }
         }
     }, []);
@@ -745,9 +760,9 @@ export default function Feed({ navigation, route }) {
     // Custom CellRenderer to capture y/height of each cell in content coordinates
     const CellRenderer = useMemo(() =>
         createCellRenderer((index, y, h) => {
-            try { itemLayoutsRef.current.set(index, { y, h }); } catch {}
+            try { itemLayoutsRef.current.set(index, { y, h }); } catch { }
         }),
-    []);
+        []);
 
     // Stable viewability handler (avoid re-creating function each render)
     const onViewableItemsChangedRef = useRef(({ viewableItems }) => {
@@ -764,43 +779,49 @@ export default function Feed({ navigation, route }) {
             <PostListItem
                 item={item}
                 index={index}
-                isSomePostFocused={isSomePostFocused}
                 isScreenFocused={isScreenFocused}
                 centeredIndex={centeredIndex}
-                focusedPostIndexRef={focusedPostIndex}
-                translatingIndexRef={translatingIndexRef}
-                interPostStyle={interPostStyle}
-                unfocusGestureActive={unfocusGestureActive}
-                isFocusSV={isFocusSV}
-                interactiveProgressSV={interactiveProgressSV}
                 highlightPid={highlightPidRef.current}
                 highlightSignal={highlightSignal}
                 programFocusPid={programFocusPidRef.current}
                 programFocusSignal={programFocusSignal}
                 openCommentsModal={openCommentsModal}
                 openShareModal={openShareModal}
-                handleFocusPost={handleFocusPost}
                 toViewProfilePosts={toViewProfilePosts}
                 openViewWorkoutModal={openViewWorkoutModal}
                 postRefs={postRefs}
             />
         ),
         [
-            isSomePostFocused,
             isScreenFocused,
             centeredIndex,
-            interPostStyle,
-            unfocusGestureActive,
-            isFocusSV,
-            interactiveProgressSV,
             highlightSignal,
             openCommentsModal,
             openShareModal,
-            handleFocusPost,
             toViewProfilePosts,
             openViewWorkoutModal,
         ]
     );
+
+    const focusContextValue = useMemo(() => ({
+        isSomePostFocused,
+        focusedIndex: focusedIndexState,
+        translatingIndex: translatingIndexState,
+        focusModeSV: isFocusSV,
+        interactiveUnfocusSV: interactiveProgressSV,
+        interPostStyle,
+        unfocusGestureActive,
+        handleFocusPost,
+        handleUnfocus: handleBackPress,
+    }), [
+        isSomePostFocused,
+        focusedIndexState,
+        translatingIndexState,
+        interPostStyle,
+        unfocusGestureActive,
+        handleFocusPost,
+        handleBackPress,
+    ]);
 
     /* -------------------- HYDRATE allUsersRef.current -------------------- */
 
@@ -853,7 +874,7 @@ export default function Feed({ navigation, route }) {
                 interactiveProgressSV.value = 0;
                 interTranslateSV.value = 0;
                 commentsHiddenSV.value = 1;
-                try { runOnJS(signalCommentsCollapse)(); } catch {}
+                try { runOnJS(signalCommentsCollapse)(); } catch { }
             })
             .onUpdate((e) => {
                 if (isTransitioningSV.value === 1 || panEnabledSV.value === 0) return;
@@ -871,10 +892,10 @@ export default function Feed({ navigation, route }) {
                 // Early collapse/restore of comments sheet to avoid perceived lag
                 if (commentsHiddenSV.value === 0 && pNorm > CLOSE_THRESHOLD) {
                     commentsHiddenSV.value = 1;
-                    try { runOnJS(signalCommentsCollapse)(); } catch {}
+                    try { runOnJS(signalCommentsCollapse)(); } catch { }
                 } else if (commentsHiddenSV.value === 1 && pNorm < REOPEN_THRESHOLD) {
                     commentsHiddenSV.value = 0;
-                    try { runOnJS(signalCommentsReopen)(); } catch {}
+                    try { runOnJS(signalCommentsReopen)(); } catch { }
                 }
                 // Reveal overlay header and chips progressively
                 const fh = headerH.value || 0;
@@ -951,21 +972,21 @@ export default function Feed({ navigation, route }) {
             if (!isSomePostFocused) return;
             const ref = postRefs.current?.[focusedPostIndex.current];
             if (ref && typeof ref?.hSwipeBegin === 'function') ref.hSwipeBegin();
-        } catch {}
+        } catch { }
     }, [isSomePostFocused]);
     const hSwipeUpdateJS = useCallback((dx) => {
         try {
             if (!isSomePostFocused) return;
             const ref = postRefs.current?.[focusedPostIndex.current];
             if (ref && typeof ref?.hSwipeUpdate === 'function') ref.hSwipeUpdate(dx);
-        } catch {}
+        } catch { }
     }, [isSomePostFocused]);
     const hSwipeEndJS = useCallback((dx, vx) => {
         try {
             if (!isSomePostFocused) return;
             const ref = postRefs.current?.[focusedPostIndex.current];
             if (ref && typeof ref?.hSwipeEnd === 'function') ref.hSwipeEnd(dx, vx);
-        } catch {}
+        } catch { }
     }, [isSomePostFocused]);
     const horizontalSwipe = useMemo(() => {
         return Gesture.Pan()
@@ -974,140 +995,142 @@ export default function Feed({ navigation, route }) {
             .maxPointers(1)
             .activeOffsetX([-6, 6])
             .failOffsetY([-8, 8])
-            .onBegin(() => { try { runOnJS(hSwipeBeginJS)(); } catch {} })
-            .onUpdate((e) => { try { runOnJS(hSwipeUpdateJS)(e.translationX); } catch {} })
-            .onEnd((e) => { try { runOnJS(hSwipeEndJS)(e.translationX, e.velocityX); } catch {} });
+            .onBegin(() => { try { runOnJS(hSwipeBeginJS)(); } catch { } })
+            .onUpdate((e) => { try { runOnJS(hSwipeUpdateJS)(e.translationX); } catch { } })
+            .onEnd((e) => { try { runOnJS(hSwipeEndJS)(e.translationX, e.velocityX); } catch { } });
     }, [isSomePostFocused, hSwipeBeginJS, hSwipeUpdateJS, hSwipeEndJS]);
     const combinedGesture = useMemo(() => Gesture.Simultaneous(panUnfocus, horizontalSwipe), [panUnfocus, horizontalSwipe]);
 
     return (
-        <SafeAreaView style={{ flex: 1, backgroundColor: theme.bg }}>
-            <SafeAreaView style={styles.mainContainer}>
-                <StatusBar style="light" />
+        <FeedFocusProvider value={focusContextValue}>
+            <SafeAreaView style={{ flex: 1, backgroundColor: theme.bg }}>
+                <SafeAreaView style={styles.mainContainer}>
+                    <StatusBar style="light" />
 
-                <GestureDetector gesture={combinedGesture}>
-                    <Reanimated.View
-                        style={[{
-                            position: 'absolute',
-                            left: 0,
-                            right: 0,
-                            bottom: 0,
-                        }, maskContainerStyle]}
-                    >
-                        <MaskedView
-                            style={{ flex: 1 }}
-                            maskElement={
-                                <View style={{ flex: 1, backgroundColor: 'transparent' }}>
-                                    <View
-                                        style={{
-                                            width: '100%',
-                                            height: '100%',
-                                            backgroundColor: 'black',
-                                            borderRadius: 35,
-                                        }}
-                                    />
-                                </View>
-                            }
+                    <GestureDetector gesture={combinedGesture}>
+                        <Reanimated.View
+                            style={[{
+                                position: 'absolute',
+                                left: 0,
+                                right: 0,
+                                bottom: 0,
+                            }, maskContainerStyle]}
                         >
-                            <Reanimated.FlatList
-                                ref={flatListRef}
-                                // bounces={true}
-                                alwaysBounceVertical
-                                showsVerticalScrollIndicator={false}
-                                data={listData}
-                                keyExtractor={listKeyExtractor}
-                                renderItem={({ item, index }) => renderPost({ item, index })}
-                                onScroll={onScrollRe}
-                                scrollEventThrottle={16}
-                                stickyHeaderIndices={[]}
-                                viewabilityConfig={{ itemVisiblePercentThreshold: 20 }}
-                                onViewableItemsChanged={onViewableItemsChangedRef.current}
-                                CellRendererComponent={CellRenderer}
-                                // Spacer no longer needed; container top tracks header
-                                initialNumToRender={3}
-                                windowSize={5}
-                                maxToRenderPerBatch={4}
-                                updateCellsBatchingPeriod={32}
-                                removeClippedSubviews={false}
-                                refreshControl={
-                                    <RefreshControl
-                                        refreshing={refreshing}
-                                        onRefresh={onRefresh}
-                                        tintColor={theme.textPrimary}
-                                        colors={[theme.textPrimary]}
-                                        progressBackgroundColor={theme.bg}
-                                    />
+                            <MaskedView
+                                style={{ flex: 1 }}
+                                maskElement={
+                                    <View style={{ flex: 1, backgroundColor: 'transparent' }}>
+                                        <View
+                                            style={{
+                                                width: '100%',
+                                                height: '100%',
+                                                backgroundColor: 'black',
+                                                borderRadius: 35,
+                                            }}
+                                        />
+                                    </View>
                                 }
-                            />
-                        </MaskedView>
-                    </Reanimated.View>
-                </GestureDetector>
+                            >
+                                <Reanimated.FlatList
+                                    ref={flatListRef}
+                                    // bounces={true}
+                                    alwaysBounceVertical
+                                    showsVerticalScrollIndicator={false}
+                                    data={listData}
+                                    keyExtractor={listKeyExtractor}
+                                    renderItem={({ item, index }) => renderPost({ item, index })}
+                                    onScroll={onScrollRe}
+                                    scrollEventThrottle={16}
+                                    stickyHeaderIndices={[]}
+                                    viewabilityConfig={{ itemVisiblePercentThreshold: 20 }}
+                                    onViewableItemsChanged={onViewableItemsChangedRef.current}
+                                    CellRendererComponent={CellRenderer}
+                                    // Spacer no longer needed; container top tracks header
+                                    initialNumToRender={3}
+                                    windowSize={5}
+                                    maxToRenderPerBatch={4}
+                                    updateCellsBatchingPeriod={32}
+                                    removeClippedSubviews={false}
+                                    refreshControl={
+                                        <RefreshControl
+                                            refreshing={refreshing}
+                                            onRefresh={onRefresh}
+                                            tintColor={theme.textPrimary}
+                                            colors={[theme.textPrimary]}
+                                            progressBackgroundColor={theme.bg}
+                                        />
+                                    }
+                                />
+                            </MaskedView>
+                        </Reanimated.View>
+                    </GestureDetector>
 
-                {/* Full-screen unfocus pan is handled by the GestureDetector
-                    wrapping the list container above. It’s enabled only while
-                    a post is focused and configured to fail quickly on
-                    horizontal motion, so horizontal media swipes remain
-                    responsive. */}
-            </SafeAreaView>
+                    {/* Full-screen unfocus pan is handled by the GestureDetector
+                        wrapping the list container above. It’s enabled only while
+                        a post is focused and configured to fail quickly on
+                        horizontal motion, so horizontal media swipes remain
+                        responsive. */}
+                </SafeAreaView>
 
-            {/* Overlay header (FeedHeader + ActivityChips) that reveals/collapses; spacer keeps posts pushed */}
-            <SafeAreaInsetsView edges={['top']} pointerEvents="box-none" style={{ position: 'absolute', top: 0, left: 0, right: 0 }}>
-                <FeedHeaderOverlay
-                    navigation={navigation}
-                    toMessagesScreen={toMessagesScreen}
-                    onOpenNotifications={handleOpenNotifications}
-                    onBackPress={handleBackPress}
-                    scrollToTop={scrollToTop}
-                    allUsersRef={allUsersRef}
-                    activeWorkout={activeWorkout}
-                    timerRef={headerTimerRef}
-                    overlayHeaderStyle={overlayHeaderStyle}
-                    normalHeaderOpacityStyle={normalHeaderOpacityStyle}
-                    chipsOpacityStyle={chipsOpacityStyle}
-                    backHeaderOpacityStyle={backHeaderOpacityStyle}
-                    headerH={headerH}
-                    hidden={hidden}
-                    chipsH={chipsH}
-                    visibleHeaderHRef={visibleHeaderHRef}
-                    backHeaderHRef={backHeaderHRef}
-                    setBackHeaderH={setBackHeaderH}
-                    isSomePostFocused={isSomePostFocused}
+                {/* Overlay header (FeedHeader + ActivityChips) that reveals/collapses; spacer keeps posts pushed */}
+                <SafeAreaInsetsView edges={['top']} pointerEvents="box-none" style={{ position: 'absolute', top: 0, left: 0, right: 0 }}>
+                    <FeedHeaderOverlay
+                        navigation={navigation}
+                        toMessagesScreen={toMessagesScreen}
+                        onOpenNotifications={handleOpenNotifications}
+                        onBackPress={handleBackPress}
+                        scrollToTop={scrollToTop}
+                        allUsersRef={allUsersRef}
+                        activeWorkout={activeWorkout}
+                        timerRef={headerTimerRef}
+                        overlayHeaderStyle={overlayHeaderStyle}
+                        normalHeaderOpacityStyle={normalHeaderOpacityStyle}
+                        chipsOpacityStyle={chipsOpacityStyle}
+                        backHeaderOpacityStyle={backHeaderOpacityStyle}
+                        headerH={headerH}
+                        hidden={hidden}
+                        chipsH={chipsH}
+                        visibleHeaderHRef={visibleHeaderHRef}
+                        backHeaderHRef={backHeaderHRef}
+                        setBackHeaderH={setBackHeaderH}
+                        isSomePostFocused={isSomePostFocused}
+                    />
+                </SafeAreaInsetsView>
+
+                {/* Top safe-area mask to hide content above inset */}
+                <View pointerEvents="none" style={{ position: 'absolute', top: 0, left: 0, right: 0, height: insets.top, backgroundColor: theme.bg, zIndex: 25 }} />
+
+                {/* Pan overlay handled above; nothing additional here. */}
+
+
+                <NotificationsBottomSheet notificationsBottomSheetExpandFlag={notificationsBottomSheetExpandFlag} />
+                <CommentsBottomSheet
+                    isVisible={isSomePostFocused}
+                    postData={focusedPostIndex.current === -1 ? null : posts[focusedPostIndex.current]}
+                    commentsBottomSheetExpandFlag={commentsBottomSheetExpandFlag}
+                    toViewProfile={toViewProfileComments}
+                    // Drive interactive collapse during pan-to-unfocus
+                    interactiveProgressSV={interactiveProgressSV}
+                    interactiveScale={3.0}
+                    collapseSignal={commentsCollapseSignal}
+                    reopenSignal={commentsReopenSignal}
+                    unfocusGestureActive={unfocusGestureActive}
                 />
-            </SafeAreaInsetsView>
-
-            {/* Top safe-area mask to hide content above inset */}
-            <View pointerEvents="none" style={{ position: 'absolute', top: 0, left: 0, right: 0, height: insets.top, backgroundColor: theme.bg, zIndex: 25 }} />
-
-            {/* Pan overlay handled above; nothing additional here. */}
-
-
-            <NotificationsBottomSheet notificationsBottomSheetExpandFlag={notificationsBottomSheetExpandFlag} />
-            <CommentsBottomSheet
-                isVisible={isSomePostFocused}
-                postData={focusedPostIndex.current === -1 ? null : posts[focusedPostIndex.current]}
-                commentsBottomSheetExpandFlag={commentsBottomSheetExpandFlag}
-                toViewProfile={toViewProfileComments}
-                // Drive interactive collapse during pan-to-unfocus
-                interactiveProgressSV={interactiveProgressSV}
-                interactiveScale={3.0}
-                collapseSignal={commentsCollapseSignal}
-                reopenSignal={commentsReopenSignal}
-                unfocusGestureActive={unfocusGestureActive}
-            />
-            <ShareBottomSheet
-                shareBottomSheetCloseFlag={shareBottomSheetCloseFlag}
-                shareBottomSheetExpandFlag={shareBottomSheetExpandFlag}
-            />
-            <Footer key={footerKey} currentScreenName="Feed" navigation={navigation} />
-            {/* Workout viewer bottom sheet (pre-mounted, slides up) */}
-            <FeedWorkoutViewerSheet
-                expandToggle={feedWorkoutExpandToggle}
-                workout={feedSelectedWorkout}
-                friendUid={feedSelectedFriendUid}
-                friendPfp={feedSelectedFriendPfp}
-                onClose={closeViewWorkoutModal}
-            />
-        </SafeAreaView>
+                <ShareBottomSheet
+                    shareBottomSheetCloseFlag={shareBottomSheetCloseFlag}
+                    shareBottomSheetExpandFlag={shareBottomSheetExpandFlag}
+                />
+                <Footer key={footerKey} currentScreenName="Feed" navigation={navigation} />
+                {/* Workout viewer bottom sheet (pre-mounted, slides up) */}
+                <FeedWorkoutViewerSheet
+                    expandToggle={feedWorkoutExpandToggle}
+                    workout={feedSelectedWorkout}
+                    friendUid={feedSelectedFriendUid}
+                    friendPfp={feedSelectedFriendPfp}
+                    onClose={closeViewWorkoutModal}
+                />
+            </SafeAreaView>
+        </FeedFocusProvider>
     );
 }
 

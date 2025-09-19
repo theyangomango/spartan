@@ -27,6 +27,7 @@ export default function ViewProfile({ navigation, route }) {
     const [blockedFromViewing, setBlockedFromViewing] = useState(false);
     const [posts, setPosts] = useState([]);
     const [selectedPanel, setSelectedPanel] = useState('posts');
+    const [topSectionOffset, setTopSectionOffset] = useState(0);
     const [isViewStatsBottomSheetVisible, setIsViewStatsBottomSheetVisible] = useState(false);
     const [isFollowListVisible, setIsFollowListVisible] = useState(false);
     const [followListMode, setFollowListMode] = useState('followers');
@@ -182,10 +183,17 @@ export default function ViewProfile({ navigation, route }) {
         );
     }
 
+    const handleTopLayout = useCallback(({ nativeEvent }) => {
+        const layout = nativeEvent?.layout;
+        if (!layout) { return; }
+        const nextOffset = Math.round((layout.y || 0) + layout.height);
+        setTopSectionOffset((prev) => (prev === nextOffset ? prev : nextOffset));
+    }, []);
+
     return (
         <SafeAreaView style={styles.main_ctnr}>
             <StatusBar barStyle="light-content" backgroundColor={theme.bg} />
-            <View style={styles.body_ctnr}>
+            <View style={styles.body_ctnr} onLayout={handleTopLayout}>
                 <ViewProfileHeader handle={headerHandle} goBack={goBack} toMessages={toMessages} onOpenOptions={() => setIsOptionsVisible(true)} />
                 <ViewProfileInfo
                     userData={profileUserData}
@@ -202,6 +210,7 @@ export default function ViewProfile({ navigation, route }) {
                 completedWorkouts={profileUserData && profileUserData.completedWorkouts}
                 navigation={navigation}
                 onOpenWorkout={openViewer}
+                topOffset={topSectionOffset}
             />
             <Footer currentScreenName={'Profile'} navigation={navigation} />
 

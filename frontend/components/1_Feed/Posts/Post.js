@@ -6,6 +6,7 @@ import React, {
     useCallback,
     forwardRef,
     useImperativeHandle,
+    useContext,
 } from "react";
 import {
     StyleSheet,
@@ -21,6 +22,7 @@ import FastImage from "react-native-fast-image";
 import Video from "react-native-video";
 import PostHeader from "./PostHeader";
 import PostFooter from "./PostFooter";
+import FeedFocusContext from "../../../screens/feed/hooks/FeedFocusContext";
 
 const { width: W } = Dimensions.get("window");
 const AR = 0.8;
@@ -77,8 +79,6 @@ const Post = forwardRef(function Post({
     forceRoundedBottomOnFocus,
     // Profile/ViewProfile: fade the post in when it becomes focused
     fadeInOnFocus,
-    // whether the interactive unfocus pan is currently active (used only for focused post UI elsewhere)
-    interactiveActive,
     handleFocusPost,
     openCommentsModal,
     openShareModal,
@@ -92,6 +92,27 @@ const Post = forwardRef(function Post({
     programFocusSignal,
 }, ref) {
     const { pfp } = data;
+    const focusContext = useContext(FeedFocusContext);
+    const {
+        isSomePostFocused: ctxIsSomePostFocused = false,
+        focusedIndex: ctxFocusedIndex = -1,
+        focusModeSV: ctxFocusModeSV = null,
+        interactiveUnfocusSV: ctxInteractiveUnfocusSV = null,
+        unfocusGestureActive: ctxUnfocusGestureActive = false,
+        handleFocusPost: ctxHandleFocusPost = () => {},
+    } = focusContext || {};
+
+    const resolvedIsSomePostFocused = typeof isSomePostFocused === 'boolean'
+        ? isSomePostFocused
+        : ctxIsSomePostFocused;
+
+    const resolvedIsFocused = typeof isFocused === 'boolean'
+        ? isFocused
+        : (resolvedIsSomePostFocused && ctxFocusedIndex === index);
+
+    const resolvedFocusModeSV = focusModeSV || ctxFocusModeSV;
+    const resolvedInteractiveUnfocusSV = interactiveUnfocusSV || ctxInteractiveUnfocusSV;
+    const resolvedHandleFocusPost = handleFocusPost || ctxHandleFocusPost;
     // Normalize media for backward compatibility where posts stored `images: string[]`
     const mediaList = useMemo(() => {
         if (Array.isArray(data?.media)) return data.media;
@@ -116,26 +137,26 @@ const Post = forwardRef(function Post({
     // Animate bottom corners during unfocus: BORDER -> 0 as interactiveUnfocusSV goes 0 -> 1
     const roundedBottomStyle = useAnimatedStyle(() => {
         try {
-            const inFocus = (focusModeSV?.value === 1) || !!forceRoundedBottomOnFocus;
-            if (inFocus && isFocused) {
+            const inFocus = (resolvedFocusModeSV?.value === 1) || !!forceRoundedBottomOnFocus;
+            if (inFocus && resolvedIsFocused) {
                 let r = BORDER;
-                if (interactiveUnfocusSV && typeof interactiveUnfocusSV.value === 'number') {
-                    const p = Math.max(0, Math.min(1, interactiveUnfocusSV?.value || 0));
+                if (resolvedInteractiveUnfocusSV && typeof resolvedInteractiveUnfocusSV.value === 'number') {
+                    const p = Math.max(0, Math.min(1, resolvedInteractiveUnfocusSV?.value || 0));
                     r = BORDER * (1 - p);
                 }
                 return { borderBottomLeftRadius: r, borderBottomRightRadius: r };
             }
         } catch {}
         return { borderBottomLeftRadius: 0, borderBottomRightRadius: 0 };
-    }, [isFocused, forceRoundedBottomOnFocus]);
+    }, [resolvedIsFocused, forceRoundedBottomOnFocus, resolvedFocusModeSV, resolvedInteractiveUnfocusSV]);
 
     // Focus fade-in for Profile/ViewProfile flows when requested
     const focusFadeOpacity = useRef(new Animated.Value(1)).current;
-    const wasFocusedRef = useRef(isFocused);
+    const wasFocusedRef = useRef(resolvedIsFocused);
     useEffect(() => {
         if (!fadeInOnFocus) return;
         // Trigger fade only when transitioning into focused state
-        if (isFocused && !wasFocusedRef.current) {
+        if (resolvedIsFocused && !wasFocusedRef.current) {
             try { focusFadeOpacity.stopAnimation(); } catch {}
             focusFadeOpacity.setValue(0);
             Animated.timing(focusFadeOpacity, {
@@ -144,12 +165,12 @@ const Post = forwardRef(function Post({
                 easing: Easing.out(Easing.cubic),
                 useNativeDriver: true,
             }).start();
-        } else if (!isFocused) {
+        } else if (!resolvedIsFocused) {
             // ensure fully opaque when not focused
             try { focusFadeOpacity.setValue(1); } catch {}
         }
-        wasFocusedRef.current = isFocused;
-    }, [isFocused, fadeInOnFocus]);
+        wasFocusedRef.current = resolvedIsFocused;
+    }, [resolvedIsFocused, fadeInOnFocus]);
 
     // Flash highlight when this post matches target pid and signal updates
     useEffect(() => {
@@ -174,13 +195,13 @@ const Post = forwardRef(function Post({
         // Only handle a new signal once
         if (lastProgramFocusHandledRef.current === sig) return;
         // If something is currently focused, skip this cycle; a new signal will be issued if needed
-        if (isSomePostFocused) return;
+        if (resolvedIsSomePostFocused) return;
         lastProgramFocusHandledRef.current = sig;
         const id = setTimeout(() => {
             try { focusMe(true); } catch {}
         }, 20);
         return () => clearTimeout(id);
-    }, [programFocusSignal, programFocusPid, isSomePostFocused, data?.pid]);
+    }, [programFocusSignal, programFocusPid, resolvedIsSomePostFocused, data?.pid]);
 
     // Bounce animation (kept if you use it elsewhere)
     const bounce = useCallback(() => {
@@ -199,12 +220,12 @@ const Post = forwardRef(function Post({
 
     // Focus handler
     const focusMe = useCallback((preferWaitForHeader = false) => {
-        if (!isFocused && viewRef.current && viewRef.current.measure) {
+        if (!resolvedIsFocused && viewRef.current && viewRef.current.measure) {
             viewRef.current.measure((_, __, ___, ____, _____, pageY) =>
-                handleFocusPost(index, pageY, preferWaitForHeader)
+                resolvedHandleFocusPost(index, pageY, preferWaitForHeader)
             );
         }
-    }, [isFocused, handleFocusPost, index]);
+    }, [resolvedIsFocused, resolvedHandleFocusPost, index]);
 
     // Manual pause toggle (tap)
     const togglePauseAtIndex = useCallback((idx) => {
@@ -255,7 +276,7 @@ const Post = forwardRef(function Post({
     const extDragActiveRef = useRef(false);
     useImperativeHandle(ref, () => ({
         hSwipeBegin: () => {
-            if (!isFocused) return false;
+            if (!resolvedIsFocused) return false;
             extDragActiveRef.current = true;
             panStartOffsetRef.current = currentOffsetXRef.current || (currentIndex * W);
             return true;
@@ -301,7 +322,7 @@ const Post = forwardRef(function Post({
             } catch {}
             resolve(null);
         }),
-    }), [isFocused, mediaList?.length, currentIndex, updateIndex]);
+    }), [resolvedIsFocused, mediaList?.length, currentIndex, updateIndex]);
 
     // (external swipe state removed; handled via imperative hSwipe* methods)
 
@@ -309,14 +330,14 @@ const Post = forwardRef(function Post({
     // We override the RN Animated opacity only while a post is focused and this post is NOT the focused one.
     const interactiveFadeStyle = useAnimatedStyle(() => {
         try {
-            const inFocusMode = focusModeSV?.value === 1;
-            if (inFocusMode && !isFocused) {
-                const p = Math.max(0, Math.min(1, interactiveUnfocusSV?.value || 0));
+            const inFocusMode = resolvedFocusModeSV?.value === 1;
+            if (inFocusMode && !resolvedIsFocused) {
+                const p = Math.max(0, Math.min(1, resolvedInteractiveUnfocusSV?.value || 0));
                 return { opacity: p };
             }
         } catch {}
         return {};
-    }, [isFocused]);
+    }, [resolvedIsFocused, resolvedFocusModeSV, resolvedInteractiveUnfocusSV]);
 
     return (
         <Reanimated.View
@@ -324,12 +345,12 @@ const Post = forwardRef(function Post({
             style={[styles.wrapper, interactiveFadeStyle]}
             // When a different post is focused, completely disable pointer events
             // on this post so it can’t intercept gestures.
-            pointerEvents={isSomePostFocused && !isFocused ? "none" : "auto"}
+            pointerEvents={resolvedIsSomePostFocused && !resolvedIsFocused ? "none" : "auto"}
         >
             <Animated.View
                 style={[
                     styles.card,
-                    isFocused && { zIndex: 10 },
+                    resolvedIsFocused && { zIndex: 10 },
                     { transform: [{ scale }] },
                     fadeInOnFocus ? { opacity: focusFadeOpacity } : null,
                 ]}
@@ -344,7 +365,7 @@ const Post = forwardRef(function Post({
                             bounces={false}
                             overScrollMode="never"
                             // While another post is focused, this carousel must not capture swipes
-                            scrollEnabled={!isSomePostFocused || isFocused}
+                            scrollEnabled={!resolvedIsSomePostFocused || resolvedIsFocused}
                             snapToInterval={W}
                             decelerationRate="fast"
                             showsHorizontalScrollIndicator={false}
@@ -356,9 +377,9 @@ const Post = forwardRef(function Post({
                                 const x = e.nativeEvent.locationX;
                                 if (x > W * 0.1 && x < W * 0.9) {
                                     // Only handle pause toggle if focused, current, and video
-                                    if (isFocused && item.type === "video" && i === currentIndex) {
+                                    if (resolvedIsFocused && item.type === "video" && i === currentIndex) {
                                         togglePauseAtIndex(i);
-                                    } else if (!isFocused && !isSomePostFocused) {
+                                    } else if (!resolvedIsFocused && !resolvedIsSomePostFocused) {
                                         // Only allow focusing when no other post is already focused
                                         // Wait for compact header measurement to avoid overshoot/jitter
                                         focusMe(true);
@@ -374,7 +395,7 @@ const Post = forwardRef(function Post({
                             //    - play ONLY if this post is centered (shouldPlay) AND this slide is the current slide AND it's a video.
                             //    - otherwise pause.
                             const isCurrentSlide = i === currentIndex;
-                            const allowAutoplay = isSomePostFocused ? isFocused : !!shouldPlay;
+                            const allowAutoplay = resolvedIsSomePostFocused ? resolvedIsFocused : !!shouldPlay;
                             const meetsRule = allowAutoplay && isCurrentSlide && item.type === "video";
                             const isManuallyPaused = pausedList[i];
                             const actuallyPaused = !meetsRule || isManuallyPaused;
@@ -417,16 +438,17 @@ const Post = forwardRef(function Post({
                 <PostFooter
                     data={data}
                     image={pfp}
-                    isSomePostFocused={isSomePostFocused}
-                    focusModeSV={focusModeSV}
-                    interactiveUnfocusSV={interactiveUnfocusSV}
+                    isSomePostFocused={resolvedIsSomePostFocused}
+                    isUnfocusing={resolvedIsFocused ? ctxUnfocusGestureActive : false}
+                    focusModeSV={resolvedFocusModeSV}
+                    interactiveUnfocusSV={resolvedInteractiveUnfocusSV}
                     onPressCommentButton={() => {
-                        if (!isSomePostFocused) focusMe(true);
-                        if (isFocused) openCommentsModal(index);
+                        if (!resolvedIsSomePostFocused) focusMe(true);
+                        if (resolvedIsFocused) openCommentsModal(index);
                     }}
                     onPressShareButton={() => {
-                        if (!isSomePostFocused) focusMe(true);
-                        if (isFocused) openShareModal(index);
+                        if (!resolvedIsSomePostFocused) focusMe(true);
+                        if (resolvedIsFocused) openShareModal(index);
                     }}
                 />
 

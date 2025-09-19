@@ -28,6 +28,7 @@ export default function Profile({ navigation }) {
     const [posts, setPosts] = useState([]);
     const [savedPosts, setSavedPosts] = useState([]);
     const [selectedPanel, setSelectedPanel] = useState("posts");
+    const [topSectionOffset, setTopSectionOffset] = useState(0);
     const [isEditProfileBottomSheetVisible, setIsEditProfileBottomSheetVisible] = useState(false);
 
     // Reuse this flag to show the Competition-style UserStatsBottomSheet
@@ -166,10 +167,17 @@ export default function Profile({ navigation }) {
         setIsViewStatsBottomSheetVisible(true);
     }
     
+    const handleTopLayout = useCallback(({ nativeEvent }) => {
+        const layout = nativeEvent?.layout;
+        if (!layout) { return; }
+        const nextOffset = Math.round((layout.y || 0) + layout.height);
+        setTopSectionOffset((prev) => (prev === nextOffset ? prev : nextOffset));
+    }, []);
+
     return (
         <SafeAreaView style={styles.main_ctnr}>
             <StatusBar barStyle="light-content" backgroundColor={theme.bg} />
-            <View style={styles.body_ctnr}>
+            <View style={styles.body_ctnr} onLayout={handleTopLayout}>
                 <ProfileHeader
                     onPressCreateBtn={uploadPost}
                     onPressSettings={() => {
@@ -201,6 +209,7 @@ export default function Profile({ navigation }) {
                 completedWorkouts={(global?.userData?.completedWorkouts || [])}
                 navigation={navigation}
                 onOpenWorkout={openWorkoutViewer}
+                topOffset={topSectionOffset}
             />
 
             <EditProfileBottomSheet
