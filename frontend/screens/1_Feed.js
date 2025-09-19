@@ -6,10 +6,9 @@
  */
 
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { Animated, Dimensions, SafeAreaView, StyleSheet, View, Easing as RNEasing, RefreshControl } from "react-native";
+import { Dimensions, SafeAreaView, StyleSheet, View, RefreshControl } from "react-native";
 import { useFocusEffect, useIsFocused } from '@react-navigation/native';
 import { StatusBar } from "expo-status-bar";
-import { doc, onSnapshot } from "firebase/firestore";
 import { useSafeAreaInsets, SafeAreaView as SafeAreaInsetsView } from "react-native-safe-area-context";
 import Reanimated, { useSharedValue, useAnimatedScrollHandler, useAnimatedStyle, useDerivedValue, runOnJS, withTiming, withSpring, withDelay, Easing as ReEasing } from 'react-native-reanimated';
 import { Gesture, GestureDetector } from 'react-native-gesture-handler';
@@ -24,15 +23,13 @@ import ShareBottomSheet from "../components/1_Feed/SharePost/ShareBottomSheet";
 import FeedWorkoutViewerSheet from "../components/1_Feed/ViewWorkout/FeedWorkoutViewerSheet";
 import FeedHeaderOverlay from "../components/1_Feed/FeedHeaderOverlay";
 
-import { initUserFeed, registerFeedSetters } from "../helper/initUserFeed";
 import Footer from "../components/Footer";
 import theme from "../theme/mfpDark";
-import { db } from "../../firebase.config";
 import getScrollTargetPosition from "../helper/getScrollTargetPosition";
-import millisToHoursMinutesSeconds from "../helper/millisToHoursMinutesSeconds";
 import isThisUser from "../helper/isThisUser";
 import useFilteredFeed from "../helper/useFilteredFeed";
 import MaskedView from "@react-native-masked-view/masked-view";
+import useFeedUserData from "./feed/hooks/useFeedUserData";
 
 const { width, height } = Dimensions.get("window");
 const TARGET_POSITION = getScrollTargetPosition(width, height),
@@ -59,9 +56,15 @@ export default function Feed({ navigation, route }) {
 
     // State
     const posts = useFilteredFeed(global.userData ? global.userData?.following : []);
-    const [messages, setMessages] = useState(null);
+
+    const {
+        activeWorkout,
+        footerKey,
+        headerTimerRef,
+        toMessagesScreen,
+    } = useFeedUserData({ UID, navigation, route, isScreenFocused });
+
     const [isSomePostFocused, setIsSomePostFocused] = useState(false);
-    const [footerKey, setFooterKey] = useState(0);
     const [shareBottomSheetExpandFlag, setShareBottomSheetExpandFlag] = useState(false);
     const [shareBottomSheetCloseFlag, setShareBottomSheetCloseFlag] = useState(false);
     const [notificationsBottomSheetExpandFlag, setNotificationsBottomSheetExpandFlag] = useState(false);
@@ -78,7 +81,6 @@ export default function Feed({ navigation, route }) {
 
     /* ---------- refs ---------- */
     const scrollOffsetY = useRef(0);
-    const userDataRef = useRef(null);
     const focusedPostIndex = useRef(-1);
     const flatListRef = useRef(null);
     const isTransitioning = useRef(false); /* 🔒 */
@@ -140,14 +142,10 @@ export default function Feed({ navigation, route }) {
     const interTranslateSV = useSharedValue(0);     // overlay translate during drag
     const focusTranslateSV = useSharedValue(0);     // base translate for focus/unfocus
     const storiesOpacitySV = useSharedValue(1);     // chips fade
-    // Animated styles: overlay header translate + spacer height
+    // Animated styles: overlay header translate
     const overlayHeaderStyle = useAnimatedStyle(() => {
         const totalHidden = Math.min(headerH.value, hidden.value + focusHide.value);
         return { transform: [{ translateY: -totalHidden }] };
-    });
-    const spacerStyle = useAnimatedStyle(() => {
-        const totalHidden = Math.min(headerH.value, hidden.value + focusHide.value);
-        return { height: Math.max(0, headerH.value - totalHidden) };
     });
     // Smooth the visible header height to remove tiny step changes while preserving scroll/touch behavior
     const visibleSmoothSV = useSharedValue(0);
@@ -180,24 +178,6 @@ export default function Feed({ navigation, route }) {
     }));
     // Combined translate (base focus translate + interactive overlay)
     const interPostStyle = useAnimatedStyle(() => ({ transform: [{ translateY: focusTranslateSV.value + interTranslateSV.value }] }));
-    // Record original top for the focused card so we can render it in an absolute overlay
-    const focusedBaseTopSV = useSharedValue(0);
-    // Absolute overlay positioning for the focused card (relative to masked container)
-    const focusedOverlayStyle = useAnimatedStyle(() => ({
-        top: focusedBaseTopSV.value + focusTranslateSV.value + interTranslateSV.value,
-    }));
-
-    // Header workout pill state
-    const [activeWorkout, setActiveWorkout] = useState(null);
-    const headerTimerRef = useRef("");
-    const headerTimerIdRef = useRef(null);
-    const toMillis = (v) => {
-        if (typeof v === "number") return v;
-        if (v?.toMillis) return v.toMillis();
-        if (typeof v?.seconds === "number") return v.seconds * 1000;
-        const n = new Date(v).getTime();
-        return Number.isFinite(n) ? n : 0;
-    };
 
     // Throttled center detection to reduce JS bridge load
     const lastCenterCalcTsRef = useRef(0);
@@ -300,65 +280,8 @@ export default function Feed({ navigation, route }) {
         try { refreshingSV.value = refreshing ? 1 : 0; } catch { }
     }, [refreshing]);
 
-    // Load user data from Firestore once
-    useEffect(() => {
-        if (!UID) return;
-        const unsub = onSnapshot(doc(db, "users", UID), (snap) => {
-            userDataRef.current = snap.data();
-            global.userData = userDataRef.current; // init of userData has global variable
-            // keep header in sync with current workout, but suppress briefly if we know we just cleared it locally
-            const killUntil = Number(global?.__suppressCurrentWorkoutUntil || 0);
-            const now = Date.now();
-            const cw = (now < killUntil) ? null : (userDataRef.current?.currentWorkout || null);
-            setActiveWorkout(cw);
-        });
-
-        return () => unsub();
-    }, [UID]);
-
-    // Drive a local timer for the header pill when there is an active workout (pause when screen blurred)
-    useEffect(() => {
-        if (headerTimerIdRef.current) {
-            try { clearInterval(headerTimerIdRef.current); } catch { }
-            headerTimerIdRef.current = null;
-        }
-        headerTimerRef.current = "";
-        const wid = String(activeWorkout?.wid || "");
-        const createdMs = toMillis(activeWorkout?.created ?? activeWorkout?.createdAt);
-        if (!wid || !createdMs || !isScreenFocused) return;
-
-        const tick = () => {
-            const diff = Math.max(1000, Date.now() - createdMs);
-            headerTimerRef.current = millisToHoursMinutesSeconds(diff);
-        };
-        tick();
-        headerTimerIdRef.current = setInterval(tick, 1000);
-        return () => {
-            if (headerTimerIdRef.current) {
-                try { clearInterval(headerTimerIdRef.current); } catch { }
-                headerTimerIdRef.current = null;
-            }
-        };
-    }, [activeWorkout?.wid, activeWorkout?.created, activeWorkout?.createdAt, isScreenFocused]);
-
     // Clear any pending throttled center calc on unmount
     useEffect(() => () => { try { if (pendingCenterTimeoutRef.current) { clearTimeout(pendingCenterTimeoutRef.current); pendingCenterTimeoutRef.current = null; } } catch {} }, []);
-
-    useEffect(() => {
-        registerFeedSetters({
-            setMessages,
-            setFooterKey,
-        });
-
-        if (UID) initUserFeed(UID);
-    }, [UID]);
-
-    // Baseline subscription handled in useHeaderSearchUsers
-
-    // If messages are passed from route, set them
-    useEffect(() => {
-        if (route?.params?.messages) setMessages(route.params.messages);
-    }, [route?.params?.messages]);
 
     const ensureFocusedAlignment = useCallback((idx, sessionId, attempt = 0) => {
         if (idx < 0) return;
@@ -608,19 +531,6 @@ export default function Feed({ navigation, route }) {
     const signalCommentsReopen = useCallback(() => {
         try { setCommentsReopenSignal(Date.now()); } catch { }
     }, []);
-
-    // Go to Messages screen (always navigate; pass extras if available)
-    const toMessagesScreen = () => {
-        try {
-            if (global.userData && messages) {
-                navigation.navigate("Messages", { userData: userDataRef.current || global.userData, messages });
-            } else {
-                navigation.navigate("Messages");
-            }
-        } catch (e) {
-            try { navigation.navigate("Messages"); } catch { }
-        }
-    };
 
     // Bottom sheet toggles
     const openCommentsModal = useCallback(() => {
@@ -1114,7 +1024,6 @@ export default function Feed({ navigation, route }) {
                                 onViewableItemsChanged={onViewableItemsChangedRef.current}
                                 CellRendererComponent={CellRenderer}
                                 // Spacer no longer needed; container top tracks header
-                                // ListHeaderComponent={<Reanimated.View style={spacerStyle} />}
                                 initialNumToRender={3}
                                 windowSize={5}
                                 maxToRenderPerBatch={4}
@@ -1189,7 +1098,7 @@ export default function Feed({ navigation, route }) {
                 shareBottomSheetCloseFlag={shareBottomSheetCloseFlag}
                 shareBottomSheetExpandFlag={shareBottomSheetExpandFlag}
             />
-            <Footer currentScreenName="Feed" navigation={navigation} />
+            <Footer key={footerKey} currentScreenName="Feed" navigation={navigation} />
             {/* Workout viewer bottom sheet (pre-mounted, slides up) */}
             <FeedWorkoutViewerSheet
                 expandToggle={feedWorkoutExpandToggle}
