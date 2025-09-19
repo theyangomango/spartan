@@ -1,4 +1,4 @@
-import React, { memo } from "react";
+import React, { memo, useEffect } from "react";
 import { View } from "react-native";
 import Reanimated from "react-native-reanimated";
 import Post from "./Posts/Post";
@@ -35,6 +35,8 @@ const PostListItem = memo(function PostListItem({
 }) {
   const isFocusedPost = index === (focusedPostIndexRef?.current ?? -1);
   const isTranslatingPost = index === (translatingIndexRef?.current ?? -1);
+
+  useEffect(() => console.log({isTranslatingPost}), [isTranslatingPost]);
 
   const wrapperStyle = [
     { width: "100%" },
