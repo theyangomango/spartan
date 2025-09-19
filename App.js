@@ -21,12 +21,8 @@ import * as Haptics from 'expo-haptics';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { enableScreens, enableFreeze } from 'react-native-screens';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import * as Font from 'expo-font';
 import { useFonts } from 'expo-font';
 import { customFonts } from './fonts';
-// Critical fonts for first paint (ensure these are ready before hiding splash)
-import { Nunito_800ExtraBold } from '@expo-google-fonts/nunito';
-import { Outfit_400Regular, Outfit_600SemiBold, Outfit_700Bold, Outfit_800ExtraBold } from '@expo-google-fonts/outfit';
 import { db } from './firebase.config';
 import { doc, onSnapshot, collection, query, where } from 'firebase/firestore';
 
@@ -138,27 +134,8 @@ function Tabs({ route }) {
 }
 
 export default function App() {
-    // Load a minimal set of critical fonts first (Nunito + primary Outfit weights)
-    const [criticalFontsLoaded] = useFonts({
-        Nunito_800ExtraBold,
-        Outfit_400Regular,
-        Outfit_600SemiBold,
-        Outfit_700Bold,
-        Outfit_800ExtraBold,
-    });
-    const [fontsReady, setFontsReady] = useState(false);
-    useEffect(() => { if (criticalFontsLoaded) setFontsReady(true); }, [criticalFontsLoaded]);
-    // Load the rest of the font set in the background after criticals are ready
-    useEffect(() => {
-        let mounted = true;
-        if (criticalFontsLoaded) {
-            Font.loadAsync(customFonts).catch(() => {}).finally(() => {
-                // no-op; non-critical fonts can finish later
-                mounted && null;
-            });
-        }
-        return () => { mounted = false; };
-    }, [criticalFontsLoaded]);
+    // Load every registered font (frontend/fonts.js) before hiding the splash screen
+    const [fontsReady] = useFonts(customFonts);
     const [authChecked, setAuthChecked] = useState(false);
     const [isAuthenticated, setIsAuthenticated] = useState(false);
     const [userReady, setUserReady] = useState(false);
@@ -517,7 +494,8 @@ export default function App() {
         const id = setTimeout(() => setAppForceReady(true), 4500);
         return () => clearTimeout(id);
     }, [appForceReady]);
-    const appReady = (fontsReady && authChecked && (!isAuthenticated || userReady)) || appForceReady;
+    const hasUserData = authChecked && (!isAuthenticated || userReady);
+    const appReady = fontsReady && (hasUserData || appForceReady);
 
     // Hide splash only after the first layout to avoid white flash
     const [hasLaidOut, setHasLaidOut] = useState(false);

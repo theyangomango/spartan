@@ -207,7 +207,13 @@ const styles = StyleSheet.create({
         backgroundColor: "#0A0A0A",
         borderWidth: 0, // remove inner ring outline
         ...Platform.select({
-            ios: { shadowColor: "#FFFFFF", shadowOpacity: 0.8, shadowRadius: scaleSize(16), shadowOffset: { width: 0, height: 0 } },
+            ios: {
+                backgroundColor: "#0A0A0A",
+                shadowColor: "#FFFFFF",
+                shadowOpacity: 0.8,
+                shadowRadius: scaleSize(16),
+                shadowOffset: { width: 0, height: 0 },
+            },
             android: { elevation: 0 },
         }),
     },
@@ -217,7 +223,16 @@ const styles = StyleSheet.create({
         height: scaleSize(BTN_SIZE * 1.05),
         borderWidth: 0, // no crisp rim; rely on haloSoft
         // Keep the same white halo on iOS as the START state
-        ...Platform.select({ ios: { shadowColor: "#FFFFFF", shadowOpacity: 0.8, shadowRadius: scaleSize(16), shadowOffset: { width: 0, height: 0 } }, android: {} }),
+        ...Platform.select({
+            ios: {
+                backgroundColor: "#0A0A0A",
+                shadowColor: "#FFFFFF",
+                shadowOpacity: 0.8,
+                shadowRadius: scaleSize(16),
+                shadowOffset: { width: 0, height: 0 },
+            },
+            android: {},
+        }),
     },
     startText: {
         color: "#FFFFFF",

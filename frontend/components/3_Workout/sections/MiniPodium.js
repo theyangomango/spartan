@@ -82,8 +82,15 @@ const styles = StyleSheet.create({
         alignItems: "center",
         justifyContent: "flex-end",
         paddingBottom: scaleSize(6),
+        backgroundColor: "#bbdbff35",
         ...Platform.select({
-            ios: { shadowColor: "#000", shadowOpacity: 0.25, shadowRadius: scaleSize(6), shadowOffset: { width: 0, height: scaleSize(3) } },
+            ios: {
+                backgroundColor: "#bbdbff35",
+                shadowColor: "#000",
+                shadowOpacity: 0.25,
+                shadowRadius: scaleSize(6),
+                shadowOffset: { width: 0, height: scaleSize(3) },
+            },
             android: { elevation: 1 },
         }),
     },

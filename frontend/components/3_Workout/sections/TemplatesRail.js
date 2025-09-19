@@ -163,7 +163,13 @@ const styles = StyleSheet.create({
         borderWidth: scaleSize(1),
         borderColor: theme.hairline,
         ...Platform.select({
-            ios: { shadowColor: "#000", shadowOpacity: 0.12, shadowRadius: scaleSize(6), shadowOffset: { width: 0, height: scaleSize(3) } },
+            ios: {
+                backgroundColor: theme.surface,
+                shadowColor: "#000",
+                shadowOpacity: 0.12,
+                shadowRadius: scaleSize(6),
+                shadowOffset: { width: 0, height: scaleSize(3) },
+            },
             android: { elevation: 1 },
         }),
     },
@@ -175,7 +181,16 @@ const styles = StyleSheet.create({
         backgroundColor: theme.field,
         borderWidth: StyleSheet.hairlineWidth,
         borderColor: theme.hairline,
-        ...Platform.select({ ios: { shadowColor: "#000", shadowOpacity: 0.12, shadowRadius: scaleSize(5), shadowOffset: { width: 0, height: scaleSize(2) } }, android: { elevation: 1 } })
+        ...Platform.select({
+            ios: {
+                backgroundColor: theme.field,
+                shadowColor: "#000",
+                shadowOpacity: 0.12,
+                shadowRadius: scaleSize(5),
+                shadowOffset: { width: 0, height: scaleSize(2) },
+            },
+            android: { elevation: 1 },
+        })
     },
     
     left: { flexDirection: "row", alignItems: "center", gap: scaleSize(10), flex: 1, minWidth: 0 },
@@ -191,7 +206,16 @@ const styles = StyleSheet.create({
         backgroundColor: theme.field,
         borderWidth: StyleSheet.hairlineWidth,
         borderColor: theme.hairline,
-        ...Platform.select({ ios: { shadowColor: "#000", shadowOpacity: 0.12, shadowRadius: scaleSize(5), shadowOffset: { width: 0, height: scaleSize(2) } }, android: { elevation: 1 } })
+        ...Platform.select({
+            ios: {
+                backgroundColor: theme.field,
+                shadowColor: "#000",
+                shadowOpacity: 0.12,
+                shadowRadius: scaleSize(5),
+                shadowOffset: { width: 0, height: scaleSize(2) },
+            },
+            android: { elevation: 1 },
+        })
     },
 
     title: { fontFamily: "Outfit_700Bold", fontSize: scaleSize(16), color: "#E5E7EB", includeFontPadding: false },

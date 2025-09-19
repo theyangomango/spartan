@@ -20,28 +20,25 @@ const METRICS = ["1RM", "Volume", "Reps"];
 const metricLabel = (m) => (m === '1RM' ? '1RM' : m);
 const { width } = Dimensions.get("window");
 
-// palette tweaks
-const BLUE_BG = "#F1F6FF";         // kept for pills in editor
-const BLUE_ICON_BG = "#E3EDFF";    // kept for editor accents
-const BLUE_TEXT = "#5794fde3";     // kept for editor accents
-const BLUE_PRIMARY = "rgba(105, 180, 242, 1)";    // save button
-const GOLD = "#f6b00060";
-const GOLD_TEXT = "#EAEAEA";
+const theme = require("../../theme/mfpDark").default;
 
-// neutral card palette (hooked to theme)
-const CARD_BG = require("../../theme/mfpDark").default.surface;            // neutral cards
-const CARD_BORDER = "rgba(255,255,255,0.10)";
-const ICON_BG_NEUTRAL = require("../../theme/mfpDark").default.field;
-const SUBTEXT = "#AEB5C0";
-
-// soft accents per exercise (deterministic by name)
-const ACCENTS = ["#2D9EFF", "#F59E0B", "#10B981", "#EF4444", "#8B5CF6", "#06B6D4"];
-const pickAccent = (name = "") => {
-    const str = String(name);
-    let h = 0;
-    for (let i = 0; i < str.length; i++) h = (h * 31 + str.charCodeAt(i)) >>> 0;
-    return ACCENTS[h % ACCENTS.length];
-};
+// palette tuned to match competition stack
+const MODAL_BG = theme.fieldDeep;
+const TILE_BG = theme.surface;
+const TILE_BORDER = theme.hairline;
+const MONOGRAM_BG = theme.field;
+const PRIMARY_TEXT = theme.textPrimary;
+const SECONDARY_TEXT = theme.textSecondary;
+const ACTION_PRIMARY = theme.primary;
+const ACTION_PRIMARY_TEXT = "#FFFFFF";
+const ACTION_GHOST_BG = theme.field;
+const ACTION_GHOST_TEXT = theme.textPrimary;
+const ACTION_GHOST_BORDER = theme.hairline;
+const DELETE_RED = "#FF5C63";
+const CHECKBOX_ACTIVE = theme.primary;
+const PILL_ACTIVE_BG = "rgba(45, 158, 255, 0.16)";
+const PILL_ACTIVE_BORDER = theme.primaryHairline || "rgba(45, 158, 255, 0.45)";
+const PILL_ACTIVE_TEXT = theme.accentBlue || theme.primary;
 
 export default function TribeComparisonModal({ visible, onClose, initialList = [], onSaveList }) {
     const [items, setItems] = useState(() => sanitize(initialList));
@@ -85,7 +82,7 @@ export default function TribeComparisonModal({ visible, onClose, initialList = [
                             <View style={styles.headerRow}>
                                 <Text style={styles.title}>Manage Tribe Comparisons</Text>
                                 <Pressable hitSlop={12} onPress={onClose}>
-                                    <Ionicons name="close" size={20} color="#EAEAEA" />
+                                    <Ionicons name="close" size={20} color={PRIMARY_TEXT} />
                                 </Pressable>
                             </View>
 
@@ -93,18 +90,12 @@ export default function TribeComparisonModal({ visible, onClose, initialList = [
                                 data={items}
                                 keyExtractor={(_, i) => `cmp-${i}`}
                                 renderItem={({ item, index }) => {
-                                    const ACC = pickAccent(item?.exercise);
                                     return (
                                         <TouchableOpacity
                                             activeOpacity={0.9}
                                             onPress={() => startEdit(index)}
                                             style={styles.itemCard}
                                         >
-                                            {/* Accent bar */}
-                                            <View style={[styles.itemAccent, { backgroundColor: ACC }]} />
-                                            <View style={[styles.itemIconPill, { backgroundColor: ICON_BG_NEUTRAL }]}>
-                                                <Ionicons name="trophy" size={18} color={ACC} />
-                                            </View>
                                             <View style={{ flex: 1, marginRight: scaleSize(8) }}>
                                                 {/* line 1: exercise */}
                                                 <Text style={styles.itemTitle} numberOfLines={1}>
@@ -115,8 +106,8 @@ export default function TribeComparisonModal({ visible, onClose, initialList = [
                                                     {metricLabel(item.metric)}{item.normalizeByBodyweight ? " • per lb" : ""}
                                                 </Text>
                                             </View>
-                                            <TouchableOpacity onPress={() => deleteItem(index)} hitSlop={10} style={{ padding: scaleSize(6) }}>
-                                                <Ionicons name="trash-outline" size={18} color="#B00020" />
+                                            <TouchableOpacity onPress={() => deleteItem(index)} hitSlop={10} style={styles.deleteBtn}>
+                                                <Ionicons name="trash-outline" size={18} color={DELETE_RED} />
                                             </TouchableOpacity>
                                         </TouchableOpacity>
                                     );
@@ -132,12 +123,12 @@ export default function TribeComparisonModal({ visible, onClose, initialList = [
 
                             <View style={styles.footerRow}>
                                 <RNBounceable style={styles.addBtn} activeOpacity={0.9} onPress={startAdd}>
-                                    <Ionicons name="add" size={18} color={GOLD_TEXT} style={{ marginRight: scaleSize(6) }} />
+                                    <Ionicons name="add" size={18} color={ACTION_GHOST_TEXT} style={{ marginRight: scaleSize(6) }} />
                                     <Text style={styles.addText}>Add Comparison</Text>
                                 </RNBounceable>
 
                                 <RNBounceable style={styles.saveButton} activeOpacity={0.9} onPress={handleSave}>
-                                    <Ionicons name="save-outline" size={18} color="#fff" style={{ marginRight: scaleSize(8) }} />
+                                    <Ionicons name="save-outline" size={18} color={ACTION_PRIMARY_TEXT} style={{ marginRight: scaleSize(8) }} />
                                     <Text style={styles.saveText}>Save</Text>
                                 </RNBounceable>
                             </View>
@@ -161,7 +152,7 @@ export default function TribeComparisonModal({ visible, onClose, initialList = [
                                 <View style={styles.headerRow}>
                                     <Text style={styles.title}>Edit Comparison</Text>
                                     <Pressable hitSlop={12} onPress={() => setEditingIndex(-1)}>
-                                        <Ionicons name="close" size={20} color="#EAEAEA" />
+                                        <Ionicons name="close" size={20} color={PRIMARY_TEXT} />
                                     </Pressable>
                                 </View>
 
@@ -172,12 +163,12 @@ export default function TribeComparisonModal({ visible, onClose, initialList = [
                                             style={styles.inputRow}
                                             onPress={() => setExercisePickerOpen(true)}
                                         >
-                                            <Ionicons name="barbell" size={18} color="#EAEAEA" style={{ marginRight: scaleSize(10) }} />
+                                            <Ionicons name="barbell" size={18} color={PRIMARY_TEXT} style={{ marginRight: scaleSize(10) }} />
                                             <View style={{ flex: 1 }}>
                                                 <Text style={styles.label}>Exercise</Text>
                                                 <Text style={styles.value} numberOfLines={1}>{editing.exercise}</Text>
                                             </View>
-                                            <Ionicons name="chevron-forward" size={18} color="#AEB5C0" />
+                                            <Ionicons name="chevron-forward" size={18} color={SECONDARY_TEXT} />
                                         </TouchableOpacity>
 
                                         <View style={styles.metricRow}>
@@ -207,7 +198,7 @@ export default function TribeComparisonModal({ visible, onClose, initialList = [
                                             <Ionicons
                                                 name={editing.normalizeByBodyweight ? "checkbox" : "square-outline"}
                                                 size={20}
-                                                color={editing.normalizeByBodyweight ? BLUE_TEXT : "#AEB5C0"}
+                                                color={editing.normalizeByBodyweight ? CHECKBOX_ACTIVE : SECONDARY_TEXT}
                                                 style={{ marginRight: scaleSize(10) }}
                                             />
                                             <View style={{ flex: 1 }}>
@@ -219,7 +210,7 @@ export default function TribeComparisonModal({ visible, onClose, initialList = [
                                 )}
 
                                 <TouchableOpacity style={styles.saveButton} activeOpacity={0.9} onPress={() => setEditingIndex(-1)}>
-                                    <Ionicons name="checkmark" size={18} color="#fff" style={{ marginRight: scaleSize(8) }} />
+                                    <Ionicons name="checkmark" size={18} color={ACTION_PRIMARY_TEXT} style={{ marginRight: scaleSize(8) }} />
                                     <Text style={styles.saveText}>Done</Text>
                                 </TouchableOpacity>
                             </View>
@@ -265,138 +256,140 @@ const styles = StyleSheet.create({
     },
     card: {
         width: "100%",
-        borderRadius: scaleSize(18),
-        backgroundColor: CARD_BG,
-        padding: scaleSize(16),
+        borderRadius: scaleSize(20),
+        backgroundColor: MODAL_BG,
+        padding: scaleSize(18),
+        borderWidth: StyleSheet.hairlineWidth,
+        borderColor: TILE_BORDER,
+        shadowColor: "#000",
+        shadowOpacity: 0.2,
+        shadowRadius: scaleSize(20),
+        shadowOffset: { width: 0, height: scaleSize(10) },
+        elevation: 6,
     },
     editorCard: {
         width: scaleSize(Math.min(width - 32, 480)),
-        borderRadius: scaleSize(18),
-        backgroundColor: CARD_BG,
-        padding: scaleSize(16),
+        borderRadius: scaleSize(20),
+        backgroundColor: MODAL_BG,
+        padding: scaleSize(18),
+        borderWidth: StyleSheet.hairlineWidth,
+        borderColor: TILE_BORDER,
+        shadowColor: "#000",
+        shadowOpacity: 0.2,
+        shadowRadius: scaleSize(20),
+        shadowOffset: { width: 0, height: scaleSize(10) },
+        elevation: 6,
     },
 
-    // extra spacing below the header/title
     headerRow: {
         flexDirection: "row",
         alignItems: "center",
         justifyContent: "space-between",
-        marginBottom: scaleSize(14), // was 4
+        marginBottom: scaleSize(16),
     },
-    title: { fontFamily: "Outfit_700Bold", fontSize: scaleSize(18), color: "#EAEAEA" },
+    title: { fontFamily: "Outfit_700Bold", fontSize: scaleSize(18), color: PRIMARY_TEXT },
 
-    // modern neutral cards
     itemCard: {
         flexDirection: "row",
         alignItems: "center",
-        paddingVertical: scaleSize(12),
-        paddingHorizontal: scaleSize(10),
-        backgroundColor: CARD_BG,
-        borderRadius: scaleSize(14),
-        marginBottom: scaleSize(8),
+        paddingVertical: scaleSize(14),
+        paddingHorizontal: scaleSize(18),
+        backgroundColor: TILE_BG,
+        borderRadius: scaleSize(18),
+        marginBottom: scaleSize(10),
         borderWidth: StyleSheet.hairlineWidth,
-        borderColor: CARD_BORDER,
+        borderColor: TILE_BORDER,
         shadowColor: "#000",
-        shadowOpacity: 0.04,
-        shadowRadius: scaleSize(6),
-        shadowOffset: { width: 0, height: scaleSize(2) },
-        elevation: 1,
-        position: "relative",
+        shadowOpacity: 0.08,
+        shadowRadius: scaleSize(12),
+        shadowOffset: { width: 0, height: scaleSize(6) },
+        elevation: 2,
     },
-    itemAccent: {
-        position: "absolute",
-        left: 0,
-        top: 0,
-        bottom: 0,
-        width: scaleSize(3),
-        borderTopLeftRadius: scaleSize(14),
-        borderBottomLeftRadius: scaleSize(14),
+    deleteBtn: {
+        padding: scaleSize(6),
+        borderRadius: scaleSize(12),
+        backgroundColor: "rgba(255,92,99,0.14)",
+        marginLeft: scaleSize(4),
     },
-    itemIconPill: {
-        width: scaleSize(30),
-        height: scaleSize(30),
-        borderRadius: scaleSize(15),
-        alignItems: "center",
-        justifyContent: "center",
-        backgroundColor: ICON_BG_NEUTRAL,
-        marginRight: scaleSize(10),
-    },
-    itemTitle: { fontFamily: "Outfit_700Bold", fontSize: scaleSize(14), color: "#EAEAEA" },
-    itemMeta: { fontFamily: "Outfit_600SemiBold", fontSize: scaleSize(12.5), color: SUBTEXT, marginTop: scaleSize(2) },
+    itemTitle: { fontFamily: "Outfit_700Bold", fontSize: scaleSize(14), color: PRIMARY_TEXT },
+    itemMeta: { fontFamily: "Outfit_600SemiBold", fontSize: scaleSize(12.5), color: SECONDARY_TEXT, marginTop: scaleSize(2) },
 
-    emptyBox: { alignItems: "center", paddingVertical: scaleSize(20) },
-    emptyText: { fontFamily: "Outfit_700Bold", color: "#EAEAEA" },
-    emptySub: { fontFamily: "Outfit_400Regular", color: "#AEB5C0", marginTop: scaleSize(6) },
+    emptyBox: { alignItems: "center", paddingVertical: scaleSize(24) },
+    emptyText: { fontFamily: "Outfit_700Bold", color: PRIMARY_TEXT },
+    emptySub: { fontFamily: "Outfit_400Regular", color: SECONDARY_TEXT, marginTop: scaleSize(6), textAlign: "center" },
 
     footerRow: {
         flexDirection: "row",
         alignItems: "center",
         justifyContent: "space-between",
-        marginTop: scaleSize(12),
+        marginTop: scaleSize(16),
     },
 
-    // gold add button
     addBtn: {
         flexDirection: "row",
         alignItems: "center",
-        backgroundColor: GOLD,
-        borderRadius: scaleSize(14),
-        paddingHorizontal: scaleSize(16),
+        paddingHorizontal: scaleSize(18),
         paddingVertical: scaleSize(12),
         minHeight: scaleSize(44),
+        borderRadius: scaleSize(18),
+        backgroundColor: ACTION_GHOST_BG,
+        borderWidth: StyleSheet.hairlineWidth,
+        borderColor: ACTION_GHOST_BORDER,
         flexShrink: 0,
     },
-    addText: { fontFamily: "Outfit_700Bold", color: GOLD_TEXT, fontSize: scaleSize(13) },
+    addText: { fontFamily: "Outfit_700Bold", color: ACTION_GHOST_TEXT, fontSize: scaleSize(13.5) },
 
-    // lighter blue save button
     saveButton: {
         flexDirection: "row",
         alignItems: "center",
-        backgroundColor: BLUE_PRIMARY,
-        borderRadius: scaleSize(16),
-        paddingHorizontal: scaleSize(20),
-        paddingVertical: scaleSize(10),
+        paddingHorizontal: scaleSize(22),
+        paddingVertical: scaleSize(12),
         minHeight: scaleSize(44),
+        borderRadius: scaleSize(18),
+        backgroundColor: ACTION_PRIMARY,
         shadowColor: "#000",
-        shadowOpacity: 0.06,
-        shadowRadius: scaleSize(8),
-        shadowOffset: { width: 0, height: scaleSize(3) },
-        elevation: 2,
+        shadowOpacity: 0.18,
+        shadowRadius: scaleSize(14),
+        shadowOffset: { width: 0, height: scaleSize(6) },
+        elevation: 3,
         flexShrink: 0,
-        marginLeft: scaleSize(10),
     },
-    saveText: { fontFamily: "Outfit_700Bold", color: "#fff", fontSize: scaleSize(14.5) },
+    saveText: { fontFamily: "Outfit_700Bold", color: ACTION_PRIMARY_TEXT, fontSize: scaleSize(14.5) },
 
     inputRow: {
         flexDirection: "row",
         alignItems: "center",
-        paddingVertical: scaleSize(10),
-        borderBottomColor: CARD_BORDER,
+        paddingVertical: scaleSize(12),
+        borderBottomColor: TILE_BORDER,
         borderBottomWidth: StyleSheet.hairlineWidth,
-        marginTop: scaleSize(8),
+        marginTop: scaleSize(10),
     },
-    label: { fontFamily: "Outfit_600SemiBold", fontSize: scaleSize(13), color: "#EAEAEA" },
-    value: { fontFamily: "Outfit_500Medium", fontSize: scaleSize(14), color: "#EAEAEA" },
+    label: { fontFamily: "Outfit_600SemiBold", fontSize: scaleSize(13), color: PRIMARY_TEXT },
+    value: { fontFamily: "Outfit_500Medium", fontSize: scaleSize(14), color: PRIMARY_TEXT },
 
-    metricRow: { marginTop: scaleSize(12) },
-    metricPills: { flexDirection: "row", marginTop: scaleSize(8) },
+    metricRow: { marginTop: scaleSize(14) },
+    metricPills: { flexDirection: "row", marginTop: scaleSize(10) },
     pill: {
         borderRadius: scaleSize(999),
         paddingHorizontal: scaleSize(14),
         paddingVertical: scaleSize(8),
-        backgroundColor: "#1E232C",
+        backgroundColor: MONOGRAM_BG,
         marginRight: scaleSize(8),
     },
-    pillActive: { backgroundColor: BLUE_BG, borderWidth: scaleSize(1), borderColor: "#DBE9FF" },
-    pillText: { fontFamily: "Outfit_600SemiBold", fontSize: scaleSize(13), color: "#EAEAEA" },
-    pillTextActive: { color: BLUE_TEXT },
+    pillActive: {
+        backgroundColor: PILL_ACTIVE_BG,
+        borderWidth: StyleSheet.hairlineWidth,
+        borderColor: PILL_ACTIVE_BORDER,
+    },
+    pillText: { fontFamily: "Outfit_600SemiBold", fontSize: scaleSize(13), color: SECONDARY_TEXT },
+    pillTextActive: { color: PILL_ACTIVE_TEXT },
 
     toggleRow: {
         flexDirection: "row",
         alignItems: "center",
-        paddingVertical: scaleSize(12),
-        borderBottomColor: CARD_BORDER,
+        paddingVertical: scaleSize(14),
+        borderBottomColor: TILE_BORDER,
         borderBottomWidth: StyleSheet.hairlineWidth,
     },
-    subtle: { fontFamily: "Outfit_400Regular", fontSize: scaleSize(12), color: SUBTEXT },
+    subtle: { fontFamily: "Outfit_400Regular", fontSize: scaleSize(12), color: SECONDARY_TEXT },
 });

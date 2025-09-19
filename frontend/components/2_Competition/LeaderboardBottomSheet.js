@@ -114,6 +114,8 @@ const styles = StyleSheet.create({
         shadowOpacity: 0.8,
         shadowRadius: scaleSize(5),
         elevation: 5,
+        // iOS shadow heuristics expect a base fill color
+        backgroundColor: theme.bg,
         // rounding and background handled by backgroundStyle
     },
 });

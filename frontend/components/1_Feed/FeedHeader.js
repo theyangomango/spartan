@@ -625,7 +625,13 @@ const styles = StyleSheet.create({
         borderWidth: scaleSize(1),
         borderColor: "transparent",
         ...Platform.select({
-            ios: { shadowColor: theme.primary, shadowOpacity: 0.18, shadowRadius: scaleSize(4), shadowOffset: { width: 0, height: scaleSize(3) } },
+            ios: {
+                backgroundColor: theme.primary,
+                shadowColor: theme.primary,
+                shadowOpacity: 0.18,
+                shadowRadius: scaleSize(4),
+                shadowOffset: { width: 0, height: scaleSize(3) },
+            },
             android: { elevation: 3 },
         }),
     },
@@ -674,7 +680,13 @@ const styles = StyleSheet.create({
         borderWidth: scaleSize(1),
         borderColor: theme.hairline,
         ...Platform.select({
-            ios: { shadowColor: "#000", shadowOpacity: 0.18, shadowRadius: scaleSize(6), shadowOffset: { width: 0, height: scaleSize(3) } },
+            ios: {
+                backgroundColor: theme.field,
+                shadowColor: "#000",
+                shadowOpacity: 0.18,
+                shadowRadius: scaleSize(6),
+                shadowOffset: { width: 0, height: scaleSize(3) },
+            },
             android: { elevation: 1 },
         }),
     },

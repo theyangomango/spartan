@@ -352,6 +352,7 @@ const styles = StyleSheet.create({
         overflow: "hidden",
         ...Platform.select({
             ios: {
+                backgroundColor: theme.surface,
                 // Softer card shadow to reduce visual weight
                 shadowColor: "#000",
                 shadowOpacity: 0.16,
@@ -408,6 +409,7 @@ const styles = StyleSheet.create({
         borderColor: theme.primary,
         ...Platform.select({
             ios: {
+                backgroundColor: 'rgba(45,158,255,0.16)',
                 shadowColor: '#2D9EFF',
                 shadowOpacity: 0.22,
                 shadowRadius: scaleSize(5),

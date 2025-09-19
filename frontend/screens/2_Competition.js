@@ -881,7 +881,13 @@ const styles = StyleSheet.create({
         borderWidth: scaleSizeFont(1),
         borderColor: "rgba(255,255,255,0.48)",
         ...Platform.select({
-            ios: { shadowColor: '#000', shadowOpacity: 0.18, shadowRadius: scaleSizeFont(8), shadowOffset: { width: 0, height: scaleSizeFont(2) } },
+            ios: {
+                backgroundColor: "rgba(255, 255, 255, 0.26)",
+                shadowColor: '#000',
+                shadowOpacity: 0.18,
+                shadowRadius: scaleSizeFont(8),
+                shadowOffset: { width: 0, height: scaleSizeFont(2) },
+            },
             android: { elevation: 2 },
             default: {},
         })

@@ -120,7 +120,14 @@ export default function NotificationCard({ item, onPressCard }) {
                         colors={[accent2, accent]}
                         start={{ x: 0.2, y: 0 }}
                         end={{ x: 0.8, y: 1 }}
-                        style={[styles.pfpIconBadge, { borderColor: theme.bg, shadowColor: accent }]}
+                        style={[
+                            styles.pfpIconBadge,
+                            {
+                                borderColor: theme.bg,
+                                shadowColor: accent,
+                                backgroundColor: accent,
+                            },
+                        ]}
                     >
                         <View style={[styles.pfpIconBadgeInner, { backgroundColor: badgeBg } ]}>
                             <IconCmp size={scaleSize(13)} color={theme.textPrimary} strokeWidth={2.5} />
@@ -208,6 +215,8 @@ const styles = StyleSheet.create({
         alignItems: "center",
         justifyContent: "center",
         borderWidth: scaleSize(2),
+        // Give the pill a base fill so iOS can calculate the drop shadow
+        backgroundColor: theme.surface,
         shadowColor: "#000",
         shadowOpacity: 0.18,
         shadowRadius: scaleSize(3),

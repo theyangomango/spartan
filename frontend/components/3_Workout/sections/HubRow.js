@@ -138,7 +138,13 @@ const styles = StyleSheet.create({
         borderColor: theme.hairline,
         ...Platform.select({
             // Tone down card drop shadow for a flatter look
-            ios: { shadowColor: "#000", shadowOpacity: 0.16, shadowRadius: scaleSize(6), shadowOffset: { width: 0, height: scaleSize(3) } },
+            ios: {
+                backgroundColor: theme.surface,
+                shadowColor: "#000",
+                shadowOpacity: 0.16,
+                shadowRadius: scaleSize(6),
+                shadowOffset: { width: 0, height: scaleSize(3) },
+            },
             android: { elevation: 1 },
         }),
     },
@@ -147,7 +153,12 @@ const styles = StyleSheet.create({
         backgroundColor: "#232932",
         borderColor: "rgba(255,255,255,0.16)",
         ...Platform.select({
-            ios: { shadowOpacity: 0.14, shadowRadius: scaleSize(8), shadowOffset: { width: 0, height: scaleSize(3) } },
+            ios: {
+                backgroundColor: "#232932",
+                shadowOpacity: 0.14,
+                shadowRadius: scaleSize(8),
+                shadowOffset: { width: 0, height: scaleSize(3) },
+            },
             android: { elevation: 1 },
         }),
     },

@@ -247,6 +247,8 @@ const styles = StyleSheet.create({
         left: scaleSize(22),
         right: scaleSize(22),
         borderRadius: scaleSize(16),
+        // Provide a solid surface so iOS shadow can render without warnings
+        backgroundColor: theme.bg,
         shadowColor: '#000',
         shadowOpacity: 0.12,
         shadowRadius: scaleSize(12),

@@ -303,6 +303,7 @@ const styles = StyleSheet.create({
         borderColor: theme.hairline,
         ...Platform.select({
             ios: {
+                backgroundColor: theme.field,
                 shadowColor: "#000",
                 shadowOpacity: 0.12,
                 shadowRadius: scaleSize(6),
@@ -341,8 +342,15 @@ const styles = StyleSheet.create({
         borderRadius: scaleSize(BADGE / 2),
         alignItems: "center",
         justifyContent: "center",
+        backgroundColor: theme.field,
         ...Platform.select({
-            ios: { shadowColor: "#0F172A", shadowOpacity: 0.12, shadowRadius: scaleSize(6), shadowOffset: { width: 0, height: scaleSize(2) } },
+            ios: {
+                backgroundColor: theme.field,
+                shadowColor: "#0F172A",
+                shadowOpacity: 0.12,
+                shadowRadius: scaleSize(6),
+                shadowOffset: { width: 0, height: scaleSize(2) },
+            },
             android: { elevation: 3 },
         }),
     },

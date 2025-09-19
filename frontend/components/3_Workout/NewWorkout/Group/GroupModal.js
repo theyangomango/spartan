@@ -293,6 +293,8 @@ const styles = StyleSheet.create({
         left: scaleSize(scaledSize(22)),
         right: scaleSize(scaledSize(22)),
         borderRadius: scaleSize(scaledSize(18)),
+        // Give the shadow a base color for iOS' shadow renderer
+        backgroundColor: theme.bg,
         shadowColor: "#000",
         shadowOpacity: 0.12,
         shadowRadius: scaleSize(12),

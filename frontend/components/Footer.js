@@ -60,7 +60,13 @@ const Footer = ({ currentScreenName, navigation }) => {
         ...(
             hasActiveWorkout
                 ? Platform.select({
-                    ios: { shadowColor: theme.primary, shadowOpacity: 0.18, shadowRadius: scaleSize(7), shadowOffset: { width: 0, height: scaleSize(2) } },
+                    ios: {
+                        backgroundColor: COLORS.workoutHalo,
+                        shadowColor: theme.primary,
+                        shadowOpacity: 0.18,
+                        shadowRadius: scaleSize(7),
+                        shadowOffset: { width: 0, height: scaleSize(2) },
+                    },
                     android: { elevation: 2 },
                     default: {},
                 })

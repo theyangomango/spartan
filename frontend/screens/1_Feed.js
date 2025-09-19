@@ -42,6 +42,14 @@ const INTERACTIVE_START_MS = 220; // when entering focus, settle interactive pro
 const INTERACTIVE_CANCEL_MS = 300; // when canceling interactive unfocus, return to focused
 const INTERACTIVE_CANCEL_FADE_MS = 260; // chips/story fade when canceling
 const INTERACTIVE_LOCKOUT_MS = 340; // brief lockout after cancel
+const FOCUS_SPRING_CONFIG = {
+    damping: 24,
+    stiffness: 240,
+    mass: 0.9,
+    restDisplacementThreshold: 0.15,
+    restSpeedThreshold: 0.15,
+    overshootClamping: true,
+};
 
 export default function Feed({ navigation, route }) {
     const insets = useSafeAreaInsets();
@@ -88,6 +96,7 @@ export default function Feed({ navigation, route }) {
     const [centeredIndex, setCenteredIndex] = useState(-1);
     const itemLayoutsRef = useRef(new Map()); // index -> { y, h }
     const viewableSetRef = useRef(new Set());
+    const postRefs = useRef({});
     // Track current visible height of the collapsible header (overlay header + chips)
     const visibleHeaderHRef = useRef(0);
     const setVisibleHeaderJS = (v) => { visibleHeaderHRef.current = v || 0; };
@@ -108,6 +117,7 @@ export default function Feed({ navigation, route }) {
     const [programFocusSignal, setProgramFocusSignal] = useState(0);
     // Versioning for programmatic focus to cancel stale timers/polls
     const programFocusNonceRef = useRef(0);
+    const focusSessionNonceRef = useRef(0);
     // For reliable programmatic focus
     const lastScrollTsRef = useRef(0);
     const focusOffsetRef = useRef(0); // current focused translateY offset (negative)
@@ -350,6 +360,59 @@ export default function Feed({ navigation, route }) {
         if (route?.params?.messages) setMessages(route.params.messages);
     }, [route?.params?.messages]);
 
+    const ensureFocusedAlignment = useCallback((idx, sessionId, attempt = 0) => {
+        if (idx < 0) return;
+        if (focusSessionNonceRef.current !== sessionId) return;
+        const ref = postRefs.current?.[idx];
+        if (!ref?.measureScreenTop) {
+            if (attempt < 6) {
+                setTimeout(() => ensureFocusedAlignment(idx, sessionId, attempt + 1), 48);
+            }
+            return;
+        }
+        Promise.resolve(ref.measureScreenTop())
+            .then((top) => {
+                if (focusSessionNonceRef.current !== sessionId) return;
+                const targetTop = backHeaderHRef.current || (insets?.top ? insets.top + 44 : TARGET_POSITION);
+                if (!Number.isFinite(top) || !Number.isFinite(targetTop)) {
+                    if (attempt < 6) {
+                        setTimeout(() => ensureFocusedAlignment(idx, sessionId, attempt + 1), 64);
+                    }
+                    return;
+                }
+                const diff = top - targetTop;
+                const absDiff = Math.abs(diff);
+                const PRIMARY_THRESHOLD = 6;
+                const RECHECK_THRESHOLD = 1.1;
+                if (absDiff <= RECHECK_THRESHOLD) {
+                    if (attempt < 2 && absDiff > 0.4) {
+                        setTimeout(() => ensureFocusedAlignment(idx, sessionId, attempt + 1), 72);
+                    }
+                    return;
+                }
+                if (absDiff <= PRIMARY_THRESHOLD) {
+                    if (attempt < 2) {
+                        setTimeout(() => ensureFocusedAlignment(idx, sessionId, attempt + 1), 88);
+                    }
+                    return;
+                }
+                const next = (focusOffsetRef.current || 0) - diff;
+                focusOffsetRef.current = next;
+                try { focusBaseSV.value = next; } catch {}
+                try {
+                    focusTranslateSV.value = withSpring(next, FOCUS_SPRING_CONFIG);
+                } catch {}
+                if (attempt < 5) {
+                    setTimeout(() => ensureFocusedAlignment(idx, sessionId, attempt + 1), 120);
+                }
+            })
+            .catch(() => {
+                if (attempt < 6) {
+                    setTimeout(() => ensureFocusedAlignment(idx, sessionId, attempt + 1), 64);
+                }
+            });
+    }, [insets?.top]);
+
     /* ---------- focus / unfocus handlers ---------- */
     const handleFocusPost = (index, pageY, preferWaitForHeader = false) => {
         // Any manual focus should invalidate stale programmatic focus requests
@@ -359,17 +422,51 @@ export default function Feed({ navigation, route }) {
         isTransitioning.current = true;
         try { isTransitioningSV.value = 1; } catch {}
         try { panEnabledSV.value = 0; } catch {}
+        const sessionId = (focusSessionNonceRef.current = (focusSessionNonceRef.current || 0) + 1);
+
+        const maybeSyncScrollOffset = () => {
+            if (typeof pageY !== 'number') return;
+            try {
+                const lay = itemLayoutsRef.current?.get?.(index);
+                const headerVisible = Math.max(0, visibleHeaderHRef.current || 0);
+                if (lay && Number.isFinite(lay.y) && Number.isFinite(headerVisible)) {
+                    const inferredOffset = lay.y + headerVisible - pageY;
+                    if (Number.isFinite(inferredOffset)) {
+                        scrollOffsetY.current = Math.max(0, inferredOffset);
+                    }
+                }
+            } catch {}
+        };
+
+        maybeSyncScrollOffset();
         stopFlatListMomentum();
 
         focusedPostIndex.current = index;
         translatingIndexRef.current = index;
 
+        const resolveFocusPageY = () => {
+            try {
+                const lay = itemLayoutsRef.current?.get?.(index);
+                const headerVisible = Math.max(0, visibleHeaderHRef.current || 0);
+                const currentOffset = scrollOffsetY.current;
+                if (lay && Number.isFinite(lay.y) && Number.isFinite(headerVisible) && Number.isFinite(currentOffset)) {
+                    const rel = lay.y - currentOffset;
+                    const computed = headerVisible + rel;
+                    if (Number.isFinite(computed)) {
+                        return Math.max(0, computed);
+                    }
+                }
+            } catch {}
+            return typeof pageY === 'number' ? pageY : 0;
+        };
+
         const startFocus = () => {
+            const resolvedPageY = resolveFocusPageY();
             const Vstart = visibleHeaderHRef.current || 0; // overlay header+chips visible height right before focus
             const Vfinal = backHeaderHRef.current || (insets?.top ? insets.top + 44 : TARGET_POSITION);
-            // Needed translation Δ for the card: Vfinal - (pageY - Vstart) = - (pageY - Vstart - Vfinal)
-            // animateView negates the input, so pass (pageY - Vstart - Vfinal)
-            const delta = pageY - Vstart - Vfinal;
+            // Needed translation Δ for the card: Vfinal - (resolvedPageY - Vstart) = - (resolvedPageY - Vstart - Vfinal)
+            // animateView negates the input, so pass (resolvedPageY - Vstart - Vfinal)
+            const delta = resolvedPageY - Vstart - Vfinal;
             // store target focused offset for interactive gesture math
             focusOffsetRef.current = -delta;
             try { focusBaseSV.value = -delta; } catch { }
@@ -378,16 +475,32 @@ export default function Feed({ navigation, route }) {
             // Enter focus mode and ensure other posts fade out gradually
             setIsSomePostFocused(true);
             try { interactiveProgressSV.value = withTiming(0, { duration: INTERACTIVE_START_MS, easing: ReEasing.out(ReEasing.cubic) }); } catch { }
+            try {
+                setTimeout(() => ensureFocusedAlignment(index, sessionId, 0), ANIMATION_DURATION + 96);
+            } catch {}
+        };
+
+        const scheduleFocusStart = () => {
+            let tries = 0; const MAX_IDLE_CHECKS = 4;
+            const waitForIdle = () => {
+                const idleForMs = Date.now() - (lastScrollTsRef.current || 0);
+                if (idleForMs > 24 || tries++ >= MAX_IDLE_CHECKS) {
+                    requestAnimationFrame(() => startFocus());
+                    return;
+                }
+                requestAnimationFrame(waitForIdle);
+            };
+            waitForIdle();
         };
 
         if (!preferWaitForHeader) {
-            setTimeout(startFocus, 0);
+            scheduleFocusStart();
         } else {
             // Ensure the compact header height is known; a ghost sizer generally sets this instantly.
             let tries = 0; const MAX = 24; // ~400ms
             const poll = () => {
                 if (backHeaderHRef.current > 0 || tries++ >= MAX) {
-                    setTimeout(startFocus, 0);
+                    scheduleFocusStart();
                     return;
                 }
                 requestAnimationFrame(poll);
@@ -396,10 +509,11 @@ export default function Feed({ navigation, route }) {
         }
     };
 
-    const handleBackPress = () => {
+    const handleBackPress = (origin = 'button') => {
         // Invalidate any pending programmatic focus callbacks
         try { programFocusNonceRef.current += 1; } catch {}
         try { setPendingFocusPid(null); } catch {}
+        try { focusSessionNonceRef.current += 1; } catch {}
         if (isTransitioning.current) return; /* 🔒 */
         isTransitioning.current = true;
         try { isTransitioningSV.value = 1; } catch {}
@@ -410,16 +524,17 @@ export default function Feed({ navigation, route }) {
         // Initiate share sheet close if open
         setShareBottomSheetCloseFlag((f) => !f);
 
-        // Smoothly reveal header/chips while returning the card
+        const fromGesture = origin === 'gesture';
+
         try {
             focusHide.value = withTiming(0, { duration: ANIMATION_DURATION, easing: ReEasing.out(ReEasing.cubic) });
             interactiveProgressSV.value = withTiming(1, { duration: ANIMATION_DURATION, easing: ReEasing.out(ReEasing.cubic) });
         } catch { }
 
-        // Animate focused card back to its original position
+        if (!fromGesture) stopFlatListMomentum();
+
         animateView(0, 1);
 
-        // Re-enable list scroll immediately; visual remains pinned by translation until end
         flatListRef.current?.setNativeProps({ scrollEnabled: true });
     };
 
@@ -467,7 +582,7 @@ export default function Feed({ navigation, route }) {
     const animateView = (translateYValue, opacityValue) => {
         try {
             const clearTranslating = translateYValue === 0;
-            focusTranslateSV.value = withTiming(-translateYValue, { duration: ANIMATION_DURATION, easing: ReEasing.out(ReEasing.cubic) }, () => {
+            focusTranslateSV.value = withSpring(-translateYValue, FOCUS_SPRING_CONFIG, () => {
                 runOnJS(onFocusTranslateEnd)(clearTranslating);
             });
             storiesOpacitySV.value = withTiming(opacityValue, { duration: ANIMATION_DURATION, easing: ReEasing.out(ReEasing.cubic) });
@@ -733,7 +848,6 @@ export default function Feed({ navigation, route }) {
     });
 
     // Render a single post (deduped logic)
-    const postRefs = useRef({});
     const renderPost = useCallback(
         ({ item, index }) => (
             <PostListItem
@@ -875,7 +989,8 @@ export default function Feed({ navigation, route }) {
                 const interMagNow = Math.min(dyUp, Math.abs(baseNow));
                 const signNow = baseNow < 0 ? 1 : -1;
                 const combinedNow = baseNow + signNow * interMagNow;
-                focusTranslateSV.value = Math.abs(combinedNow) < 0.5 ? 0 : combinedNow;
+                const startValue = Math.abs(combinedNow) < 0.5 ? 0 : combinedNow;
+                focusTranslateSV.value = startValue;
                 interTranslateSV.value = 0;
                 // Enter a brief lockout so a second immediate pan doesn't race animations
                 panEnabledSV.value = 0;
@@ -886,8 +1001,11 @@ export default function Feed({ navigation, route }) {
                     storiesOpacitySV.value = withTiming(1, { duration: ANIMATION_DURATION, easing: ReEasing.out(ReEasing.cubic) });
                     // Collapse comments immediately for responsiveness
                     runOnJS(signalCommentsCollapse)();
-                    // Delegate full unfocus transition to the existing handler
-                    runOnJS(handleBackPress)();
+                    focusTranslateSV.value = withSpring(0, FOCUS_SPRING_CONFIG, () => {
+                        runOnJS(onFocusTranslateEnd)(true);
+                    });
+                    // Delegate JS cleanup for unfocus
+                    runOnJS(handleBackPress)('gesture');
                     // Keep wrapper for the duration to avoid a frame of unwrapped layout
                     runOnJS(scheduleClearUnfocusGestureActive)(ANIMATION_DURATION + 20);
                     // Re-enable pan after the unfocus animation if still relevant
@@ -899,7 +1017,7 @@ export default function Feed({ navigation, route }) {
                     interTranslateSV.value = withTiming(0, { duration: INTERACTIVE_CANCEL_MS, easing: ReEasing.out(ReEasing.cubic) });
                     storiesOpacitySV.value = withTiming(0, { duration: INTERACTIVE_CANCEL_FADE_MS, easing: ReEasing.out(ReEasing.cubic) });
                     // Animate base back to focused offset on UI thread
-                    focusTranslateSV.value = withTiming(focusBaseSV.value, { duration: INTERACTIVE_CANCEL_MS, easing: ReEasing.out(ReEasing.cubic) });
+                    focusTranslateSV.value = withSpring(focusBaseSV.value, FOCUS_SPRING_CONFIG);
                     // Clear flags on JS
                     runOnJS(clearUnfocusFlagsJS)();
                     // Reopen comments to its open position if user cancels

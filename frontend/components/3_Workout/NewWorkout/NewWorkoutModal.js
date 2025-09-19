@@ -928,6 +928,7 @@ const styles = StyleSheet.create({
         borderRadius: scaleSize(scaledSize(20)),
         padding: scaleSize(scaledSize(3)), // gradient border width
         // shadow on wrapper for proper elevation
+        backgroundColor: '#60A5FA', // match gradient base so iOS shadow can render without warnings
         shadowColor: "#0F172A",
         shadowOpacity: 0.12,
         shadowRadius: scaleSize(24),

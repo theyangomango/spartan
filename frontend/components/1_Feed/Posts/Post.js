@@ -273,6 +273,19 @@ const Post = forwardRef(function Post({
                 flatListRef.current?.scrollToIndex({ index: targetIndex, animated: true });
             } catch {}
         },
+        measureScreenTop: () => new Promise((resolve) => {
+            try {
+                if (viewRef.current?.measureInWindow) {
+                    viewRef.current.measureInWindow((_, y) => resolve(typeof y === 'number' ? y : null));
+                    return;
+                }
+                if (viewRef.current?.measure) {
+                    viewRef.current.measure((_, __, ___, ____, _____, pageY) => resolve(typeof pageY === 'number' ? pageY : null));
+                    return;
+                }
+            } catch {}
+            resolve(null);
+        }),
     }), [isFocused, mediaList?.length, currentIndex]);
 
     // (external swipe state removed; handled via imperative hSwipe* methods)

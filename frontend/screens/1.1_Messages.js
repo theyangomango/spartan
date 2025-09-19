@@ -295,15 +295,16 @@ const styles = StyleSheet.create({
     mainContainer: {
         flex: 1,
         backgroundColor: theme.bg,
-        paddingTop: scaleSize(50),
+        paddingTop: scaleSize(36),
     },
     cardsContainer: {
         flex: 1,
     },
     cardsScrollView: {
-        paddingTop: scaleSize(4),
+        paddingTop: scaleSize(10),
     },
     cardsContent: {
+        paddingHorizontal: scaleSize(4),
         paddingBottom: scaleSize(18),
     },
 });

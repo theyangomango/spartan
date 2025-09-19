@@ -245,7 +245,12 @@ const FriendPanel = memo(({ item, overlay, onSelect, highlight = false }) => {
     <RNBounceable
       style={[
         styles.panel,
-        highlight && { borderColor: 'rgba(45,158,255,0.55)', shadowColor: '#2D9EFF', shadowOpacity: 0.18 }
+        highlight && {
+          borderColor: 'rgba(45,158,255,0.55)',
+          shadowColor: '#2D9EFF',
+          shadowOpacity: 0.18,
+          backgroundColor: COLORS.card,
+        }
       ]}
       onPress={() => onSelect?.(item, pfpUri)}
       activeScale={0.965}

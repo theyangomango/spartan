@@ -3,7 +3,7 @@ import React, { useState } from "react";
 import { StyleSheet, View, Text, TouchableOpacity } from "react-native";
 import { FontAwesome6, FontAwesome5 } from "@expo/vector-icons";
 import RNBounceable from "@freakycoder/react-native-bounceable";
-import scaleSize, { ts } from "../../helper/scaleSize";
+import scaleSize from "../../helper/scaleSize";
 import theme from "../../theme/mfpDark";
 
 const ACCENT = theme.primary;
@@ -82,12 +82,11 @@ export default function MessagesHeader({
 }
 
 const styles = StyleSheet.create({
-    root: { backgroundColor: theme.bg },
+    root: { backgroundColor: theme.bg, paddingTop: 16 },
     row: {
         flexDirection: "row",
         justifyContent: "center",
         width: "100%",
-        paddingTop: scaleSize(3),
         paddingBottom: scaleSize(6),
         paddingHorizontal: scaleSize(20),
     },
@@ -96,9 +95,9 @@ const styles = StyleSheet.create({
     iconCircle: {
         position: "absolute",
         top: scaleSize(10),
-        width: scaleSize(32),
-        height: scaleSize(32),
-        borderRadius: scaleSize(16),
+        width: scaleSize(28),
+        height: scaleSize(28),
+        borderRadius: scaleSize(14),
         backgroundColor: theme.surface,
         borderWidth: scaleSize(1),
         borderColor: theme.hairline,
@@ -106,8 +105,8 @@ const styles = StyleSheet.create({
         justifyContent: "center",
         shadowColor: "#000",
         shadowOpacity: 0.18,
-        shadowRadius: scaleSize(8),
-        shadowOffset: { width: 0, height: scaleSize(4) },
+        shadowRadius: scaleSize(7),
+        shadowOffset: { width: 0, height: scaleSize(3) },
         elevation: 2,
     },
     leftIcon: { left: scaleSize(20) },

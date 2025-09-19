@@ -10,6 +10,7 @@ import FastImage from "react-native-fast-image";
 import HexagonalStats from "./HexagonalStats";
 import { exercises as EXERCISE_DEFS } from "../../3_Workout/NewWorkout/SelectExercise/EXERCISES";
 import scaleSize from "../../../helper/scaleSize";
+import { TouchableOpacity } from "react-native";
 
 // Enable LayoutAnimation on Android
 if (Platform.OS === 'android' && UIManager.setLayoutAnimationEnabledExperimental) {
@@ -652,7 +653,7 @@ export default function UserStatsModal({ user, toViewProfile, hexOverlay, hexPro
                                     const r = safeNumber(item?.reps, 0);
                                     const rm = setAdjusted1RM(w, r);
                                     return (
-                                        <Pressable style={styles.setRow} onPress={() => handleOpenSet(item)}>
+                                        <TouchableOpacity style={styles.setRow} onPress={() => handleOpenSet(item)}>
                                             <View style={[styles.setDot, { backgroundColor: ACC_DETAIL }]} />
                                             <View style={{ flex: 1 }}>
                                                 <Text style={styles.setMain}>{w}lbs x {r}</Text>
@@ -662,7 +663,7 @@ export default function UserStatsModal({ user, toViewProfile, hexOverlay, hexPro
                                                 <Text style={styles.rmValue}>{rm}</Text>
                                             </View>
                                             <MaterialCommunityIcons name="chevron-right" size={scaledSize(18)} color={COLORS.subtext} style={{ marginLeft: scaleSize(scaledSize(6)) }} />
-                                        </Pressable>
+                                        </TouchableOpacity>
                                     );
                                 }}
                                 renderSectionHeader={({ section }) => (
