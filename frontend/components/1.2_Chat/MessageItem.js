@@ -343,8 +343,8 @@ const styles = StyleSheet.create({
     rowSelf: { alignItems: "flex-end" },
     rowOther: { alignItems: "flex-start" },
     hRow: { flexDirection: "row", alignItems: "center" },
-    avatarSlot: { width: scaleSize(30), marginRight: scaleSize(8), alignItems: 'flex-start' },
-    avatar: { width: scaleSize(26), height: scaleSize(26), borderRadius: scaleSize(13), backgroundColor: theme.field },
+    avatarSlot: { width: scaleSize(28), marginRight: scaleSize(8), alignItems: 'flex-start' },
+    avatar: { width: scaleSize(24), height: scaleSize(24), borderRadius: scaleSize(12), backgroundColor: theme.field },
     avatarFallback: { backgroundColor: theme.field },
     wrap: { position: "relative", overflow: 'visible' },
 

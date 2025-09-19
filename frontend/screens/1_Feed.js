@@ -443,6 +443,7 @@ export default function Feed({ navigation, route }) {
 
         focusedPostIndex.current = index;
         translatingIndexRef.current = index;
+        commentsHiddenSV.value = 0;
 
         const resolveFocusPageY = () => {
             try {
@@ -941,7 +942,8 @@ export default function Feed({ navigation, route }) {
                 runOnJS(setUnfocusGestureActive)(true);
                 interactiveProgressSV.value = 0;
                 interTranslateSV.value = 0;
-                commentsHiddenSV.value = 0; // reset collapse state at gesture start
+                commentsHiddenSV.value = 1;
+                try { runOnJS(signalCommentsCollapse)(); } catch {}
             })
             .onUpdate((e) => {
                 if (isTransitioningSV.value === 1 || panEnabledSV.value === 0) return;
@@ -1022,6 +1024,7 @@ export default function Feed({ navigation, route }) {
                     runOnJS(clearUnfocusFlagsJS)();
                     // Reopen comments to its open position if user cancels
                     runOnJS(signalCommentsReopen)();
+                    commentsHiddenSV.value = 0;
                     // Brief lockout before accepting a new pan session
                     panEnabledSV.value = withDelay(INTERACTIVE_LOCKOUT_MS, withTiming(1, { duration: 0 }));
                 }

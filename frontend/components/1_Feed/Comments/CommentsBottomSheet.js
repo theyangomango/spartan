@@ -17,7 +17,7 @@ const dynamicStyles = getCommentsBottomSheetStyles(SCREEN_WIDTH, SCREEN_HEIGHT);
 
 const CommentsBottomSheet = ({ isVisible, postData, commentsBottomSheetExpandFlag, toViewProfile, collapseSignal, reopenSignal, interactiveProgress, interactiveProgressSV, interactiveScale = 0.85, openPositionPx }) => {
     // Smoother sheet expansion
-    const SHEET_OPEN_MS = 520;
+    const SHEET_OPEN_MS = 280;
     const [isInputFocused, setIsInputFocused] = useState(false);
     const bottomSheetRef = useRef(null);
     const footerTranslateY = useRef(new Animated.Value(0)).current; // moves when input focuses
@@ -128,7 +128,7 @@ const CommentsBottomSheet = ({ isVisible, postData, commentsBottomSheetExpandFla
                     }
                 } catch { }
             };
-            const id = setTimeout(() => requestAnimationFrame(open), 16);
+            requestAnimationFrame(open);
             // footer entrance animation
             footerOpacity.setValue(0);
             footerIntroY.setValue(10);
@@ -136,7 +136,6 @@ const CommentsBottomSheet = ({ isVisible, postData, commentsBottomSheetExpandFla
                 Animated.timing(footerOpacity, { toValue: 1, duration: 220, useNativeDriver: true }),
                 Animated.timing(footerIntroY, { toValue: 0, duration: 260, useNativeDriver: true }),
             ]).start();
-            return () => clearTimeout(id);
         } else {
             bottomSheetRef.current?.close();
             Animated.timing(footerOpacity, { toValue: 0, duration: 120, useNativeDriver: true }).start();
@@ -175,6 +174,12 @@ const CommentsBottomSheet = ({ isVisible, postData, commentsBottomSheetExpandFla
         try { bottomSheetRef.current?.snapToIndex?.(0); } catch { }
         isClosingRef.current = false;
     }, [reopenSignal, isVisible, postPid]);
+
+    useEffect(() => {
+        if (!isVisible) {
+            isClosingRef.current = false;
+        }
+    }, [isVisible]);
 
     // Interactive unfocus: only fade/slide the footer; avoid snapping the sheet each frame (prevents jitter)
     const updateFromProgress = useCallback((progress) => {
@@ -225,16 +230,26 @@ const CommentsBottomSheet = ({ isVisible, postData, commentsBottomSheetExpandFla
         }
     }
 
+    const enforceVisibleIndex = useCallback(() => {
+        requestAnimationFrame(() => {
+            try { bottomSheetRef.current?.snapToIndex?.(0); } catch {}
+        });
+    }, []);
+
     // Handle sheet index change (defensively guard against stray event objects)
     const handleSheetIndexChange = useCallback((idx) => {
         const index = typeof idx === 'number' ? idx : -1;
+        if (isVisible && postPid && !isClosingRef.current && index < 0) {
+            enforceVisibleIndex();
+            return;
+        }
         try {
             // Decouple from the dispatch tick of any press/gesture by scheduling to next frame
             requestAnimationFrame(() => setIsSheetExpanded(index === 1));
         } catch {
             setIsSheetExpanded(index === 1);
         }
-    }, []);
+    }, [isVisible, postPid, enforceVisibleIndex]);
 
     // Assume baseline container height and mark ready on mount to avoid relying on layout events
     useEffect(() => {

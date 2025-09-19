@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState, useMemo } from "react";
+import React, { useEffect, useRef, useState, useMemo, useCallback } from "react";
 import {
     View,
     FlatList,
@@ -31,13 +31,16 @@ import * as Haptics from "expo-haptics";
 
 import { Gesture, GestureDetector } from "react-native-gesture-handler";
 import theme from "../theme/mfpDark";
-import Animated, { useSharedValue, withTiming } from "react-native-reanimated";
+import Animated, { useSharedValue, withTiming, runOnJS } from "react-native-reanimated";
 
 import scaleSize from "../helper/scaleSize";
 
 const { width: W } = Dimensions.get("window");
 const MAX_REVEAL = 72;
-const EDGE_BACK_GESTURE_WIDTH = 24; // do not capture pan near iOS back-swipe area
+const EDGE_BACK_GESTURE_WIDTH = 16; // keep back swipe near bezel available
+const LEFT_REVEAL_ZONE = W * 0.38;  // reduced width so reveal doesn't block edge gesture
+const RIGHT_REVEAL_ZONE = W * 0.58;
+const BACK_SWIPE_TRIGGER = 118;     // large swipe distance triggers goBack
 
 const COLORS = { surface: theme.surface, primary: theme.primary, hairline: theme.hairline, bg: theme.bg, text: theme.textPrimary, subtext: theme.textSecondary, field: theme.field };
 
@@ -220,39 +223,59 @@ export default function Chat({ navigation, route }) {
     const revealSelf = useSharedValue(0);  // your messages
     const revealOther = useSharedValue(0); // other users
     const mode = useSharedValue(0);        // 0 none, 1 self, 2 other
+    const triggeredBack = useSharedValue(false);
+
+    const handleGestureBack = useCallback(() => {
+        try { navigation.goBack(); } catch { }
+    }, [navigation]);
 
     const pan = Gesture.Pan()
-        .minDistance(8)
-        .activeOffsetX([-16, 16])
+        .minDistance(6)
+        .activeOffsetX([-12, 12])
         .failOffsetY([-12, 12])
         .onBegin((e) => {
             "worklet";
-            // If gesture starts within the system back-swipe edge, don't capture.
+            triggeredBack.value = false;
             if (e.absoluteX <= EDGE_BACK_GESTURE_WIDTH) { mode.value = 0; return; }
-            if (e.absoluteX > W * 0.55) mode.value = 1; // right 45% => your messages
-            else if (e.absoluteX < W * 0.45) mode.value = 2; // left 45% => others
+            if (e.absoluteX > RIGHT_REVEAL_ZONE) mode.value = 1; // right side => your messages
+            else if (e.absoluteX < LEFT_REVEAL_ZONE) mode.value = 2; // left side => others
             else mode.value = 0;
         })
         .onUpdate((e) => {
             "worklet";
+            if (triggeredBack.value) return;
             if (mode.value === 1) {
                 const dx = e.translationX < 0 ? Math.min(MAX_REVEAL, -e.translationX) : 0;
                 revealSelf.value = dx;
             } else if (mode.value === 2) {
                 const dx = e.translationX > 0 ? Math.min(MAX_REVEAL, e.translationX) : 0;
                 revealOther.value = dx;
+                if (e.translationX > BACK_SWIPE_TRIGGER) {
+                    triggeredBack.value = true;
+                    revealOther.value = 0;
+                    mode.value = 0;
+                    runOnJS(handleGestureBack)();
+                }
             }
         })
         .onEnd(() => {
             "worklet";
-            if (mode.value === 1) revealSelf.value = withTiming(0, { duration: 160 });
-            if (mode.value === 2) revealOther.value = withTiming(0, { duration: 160 });
+            if (!triggeredBack.value) {
+                if (mode.value === 1) revealSelf.value = withTiming(0, { duration: 160 });
+                if (mode.value === 2) revealOther.value = withTiming(0, { duration: 160 });
+            }
             mode.value = 0;
         })
         .onFinalize(() => {
             "worklet";
-            revealSelf.value = withTiming(0, { duration: 160 });
-            revealOther.value = withTiming(0, { duration: 160 });
+            if (!triggeredBack.value) {
+                revealSelf.value = withTiming(0, { duration: 160 });
+                revealOther.value = withTiming(0, { duration: 160 });
+            } else {
+                revealSelf.value = 0;
+                revealOther.value = 0;
+            }
+            triggeredBack.value = false;
             mode.value = 0;
         });
 
