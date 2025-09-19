@@ -1,9 +1,8 @@
 import React, { useEffect, useMemo, useRef, useState, useCallback } from "react";
-import { View, StyleSheet, TextInput, Platform, Image, KeyboardAvoidingView, Keyboard, Pressable, Dimensions } from "react-native";
+import { StyleSheet, Platform, KeyboardAvoidingView, Keyboard, Dimensions } from "react-native";
 import BottomSheet from "@gorhom/bottom-sheet";
-import Reanimated, { useAnimatedReaction, runOnJS, useAnimatedStyle, useSharedValue, withTiming, cancelAnimation } from 'react-native-reanimated';
+import Reanimated, { useAnimatedReaction, runOnJS, useAnimatedStyle, useSharedValue, withTiming } from 'react-native-reanimated';
 import theme from "../../../theme/mfpDark";
-import { Ionicons } from '@expo/vector-icons';
 import CommentsModal from "./CommentsModal";
 import incrementDocValue from "../../../../backend/helper/firebase/incrementDocValue";
 import updateDoc from "../../../../backend/helper/firebase/updateDoc";
@@ -11,6 +10,7 @@ import sendNotification from "../../../../backend/sendNotification";
 import { getCommentsBottomSheetStyles } from "../../../helper/getCommentsBottomSheetStyles";
 
 import scaleSize from "../../../helper/scaleSize";
+import CommentsInputRow from "./CommentsInputRow";
 
 const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('screen');
 const dynamicStyles = getCommentsBottomSheetStyles(SCREEN_WIDTH, SCREEN_HEIGHT);
@@ -66,9 +66,18 @@ const CommentsBottomSheet = ({ isVisible, postData, commentsBottomSheetExpandFla
         return 0;
     }, []);
 
+    const resolveOpenHeight = useCallback(() => {
+        if (sheetOpenHeight.value > 0) return sheetOpenHeight.value;
+        if (typeof openPositionPx === 'number') {
+            const h = containerHRef.current || (SCREEN_HEIGHT - scaleSize(85));
+            return Math.max(0, Math.min(h, openPositionPx));
+        }
+        return getSnapPointPx(snapPoints[0]);
+    }, [getSnapPointPx, openPositionPx, snapPoints, sheetOpenHeight]);
+
     // Handle send comment
-    const handleSend = () => {
-        if (!inputText) return;
+    const handleSend = useCallback(() => {
+        if (!inputText || !postData) return;
         const newComment = {
             handle: global.userData.handle,
             uid: global.userData.uid,
@@ -119,7 +128,7 @@ const CommentsBottomSheet = ({ isVisible, postData, commentsBottomSheetExpandFla
         sendNotification(postData.uid, notif);
 
         setInputText('');
-    };
+    }, [inputText, postData, replyingToIndex]);
 
     // Handle input focus
     const handleInputFocus = () => {
@@ -165,20 +174,23 @@ const CommentsBottomSheet = ({ isVisible, postData, commentsBottomSheetExpandFla
             footerIntroY.value = withTiming(0, { duration: 260 });
         } else {
             pendingCloseRef.current = false;
-            const fallback = (() => {
-                if (sheetOpenHeight.value > 0) return sheetOpenHeight.value;
-                if (typeof openPositionPx === 'number') {
-                    const h = containerHRef.current || (SCREEN_HEIGHT - scaleSize(85));
-                    return Math.max(0, Math.min(h, openPositionPx));
-                }
-                return getSnapPointPx(snapPoints[0]);
-            })();
+            const fallback = resolveOpenHeight();
             sheetOpenHeight.value = fallback;
             sheetTranslateY.value = fallback;
             bottomSheetRef.current?.close();
             footerOpacity.value = withTiming(0, { duration: 120 });
         }
-    }, [isVisible, postPid, containerReady, openPositionPx, getSnapPointPx, sheetOpenHeight, sheetTranslateY, snapPoints]);
+    }, [
+        containerReady,
+        getSnapPointPx,
+        isVisible,
+        openPositionPx,
+        postPid,
+        resolveOpenHeight,
+        sheetOpenHeight,
+        sheetTranslateY,
+        snapPoints,
+    ]);
 
     // Emit a small open signal after the sheet has animated in
     useEffect(() => {
@@ -186,10 +198,6 @@ const CommentsBottomSheet = ({ isVisible, postData, commentsBottomSheetExpandFla
         const id = setTimeout(() => { try { setOpenSignal(Date.now()); } catch { } }, 90);
         return () => clearTimeout(id);
     }, [isVisible, postPid, containerReady]);
-
-    useEffect(() => () => {
-        // no-op cleanup placeholder: timers handled by callers
-    }, []);
 
     // Imperative collapse during interactive unfocus (ignore interactive updates during close)
     const isClosingRef = useRef(false);
@@ -205,8 +213,6 @@ const CommentsBottomSheet = ({ isVisible, postData, commentsBottomSheetExpandFla
                 bottomSheetRef.current?.close?.();
             }
         } catch { }
-        // cancelAnimation(footerOpacity);
-        // footerOpacity.value = withTiming(0.5, { duration: Math.min(duration, 160) });
         sheetTranslateY.value = sheetOpenHeight.value;
         // Leave reset to callers so we don't resnap after closing
     }, [footerOpacity, sheetOpenHeight, sheetTranslateY]);
@@ -231,7 +237,6 @@ const CommentsBottomSheet = ({ isVisible, postData, commentsBottomSheetExpandFla
 
     // Imperative reopen if interactive drag cancels
     useEffect(() => {
-        console.log('reopen');
         if (!isVisible || !postPid) return;
         if (!reopenSignal) return;
         if (!pendingCloseRef.current) return;
@@ -239,16 +244,11 @@ const CommentsBottomSheet = ({ isVisible, postData, commentsBottomSheetExpandFla
         isClosingRef.current = false;
         sheetTranslateY.value = 0;
         if (sheetOpenHeight.value === 0) {
-            if (typeof openPositionPx === 'number') {
-                const h = containerHRef.current || (SCREEN_HEIGHT - scaleSize(85));
-                sheetOpenHeight.value = Math.max(0, Math.min(h, openPositionPx));
-            } else {
-                sheetOpenHeight.value = getSnapPointPx(snapPoints[0]);
-            }
+            sheetOpenHeight.value = resolveOpenHeight();
         }
         footerOpacity.value = withTiming(1, { duration: 200 });
         try { bottomSheetRef.current?.snapToIndex?.(0); } catch { }
-    }, [reopenSignal, isVisible, postPid, footerOpacity, openPositionPx, getSnapPointPx, sheetOpenHeight, sheetTranslateY, snapPoints]);
+    }, [reopenSignal, isVisible, postPid, footerOpacity, resolveOpenHeight, sheetOpenHeight, sheetTranslateY]);
 
     useEffect(() => {
         if (!isVisible) {
@@ -268,7 +268,6 @@ const CommentsBottomSheet = ({ isVisible, postData, commentsBottomSheetExpandFla
         
         if (progress == 0) return;
         footerOpacity.value = 1 - progress;
-        console.log(footerOpacity.value);
         footerDragY.value = progress * 120;
         if (pendingCloseRef.current && pRaw >= CLOSE_COMPLETE_PROGRESS) {
             pendingCloseRef.current = false;
@@ -416,31 +415,18 @@ const CommentsBottomSheet = ({ isVisible, postData, commentsBottomSheetExpandFla
                 pointerEvents={isVisible && !!postPid ? 'box-none' : 'none'}
                 style={[styles.footer, footerAnimatedStyle]}
             >
-                <View style={styles.inputContainer}>
-                    <View style={styles.image_ctnr}>
-                        <Image source={{ uri: global.userData.image }} style={styles.pfp} />
-                    </View>
-                    <TextInput
-                        ref={textInputRef}
-                        placeholder={
-                            replyingToIndex == null
-                                ? "Add comment"
-                                : (postData?.comments?.[replyingToIndex]?.handle
-                                    ? `Replying to ${postData.comments[replyingToIndex].handle}`
-                                    : "Add comment")
-                        }
-                        placeholderTextColor="#C9D2E3"
-                        style={styles.textInput}
-                        onFocus={handleInputFocus}
-                        onBlur={handleInputBlur}
-                        value={inputText}
-                        onChangeText={setInputText}
-                        editable={isVisible && !!postPid}
-                    />
-                    <Pressable style={styles.sendButton} onPress={handleSend} disabled={!isVisible || !postPid}>
-                        <Ionicons name="send" size={dynamicStyles.sendButtonSize} color="#E5E7EB" />
-                    </Pressable>
-                </View>
+                <CommentsInputRow
+                    inputRef={textInputRef}
+                    value={inputText}
+                    onChangeText={setInputText}
+                    onFocus={handleInputFocus}
+                    onBlur={handleInputBlur}
+                    onPressSend={handleSend}
+                    editable={isVisible && !!postPid}
+                    canSend={isVisible && !!postPid}
+                    replyingToHandle={replyingToIndex != null ? postData?.comments?.[replyingToIndex]?.handle : null}
+                    dynamicStyles={dynamicStyles}
+                />
             </Reanimated.View>
         </KeyboardAvoidingView>
     );
@@ -472,40 +458,6 @@ const styles = StyleSheet.create({
         backgroundColor: theme.surface,
         width: '100%',
         borderRadius: scaleSize(40)
-    },
-    inputContainer: {
-        flex: 1,
-        marginHorizontal: scaleSize(18),
-        marginTop: scaleSize(14),
-        marginBottom: scaleSize(26),
-        backgroundColor: theme.field,
-        borderRadius: scaleSize(30),
-        flexDirection: 'row',
-        alignItems: 'center',
-        paddingHorizontal: scaleSize(12),
-        height: dynamicStyles.inputHeight,
-    },
-    image_ctnr: {
-        width: dynamicStyles.pfpSize,
-        aspectRatio: 1
-    },
-    pfp: {
-        flex: 1,
-        borderRadius: scaleSize(100)
-    },
-    textInput: {
-        flex: 1,
-        borderRadius: scaleSize(20),
-        paddingHorizontal: scaleSize(15),
-        paddingVertical: dynamicStyles.inputPaddingVertical,
-        color: '#E5E7EB',
-        fontFamily: 'Outfit_500Medium',
-        fontSize: scaleSize(dynamicStyles.inputFontSize),
-    },
-    sendButton: {
-        paddingHorizontal: scaleSize(10),
-        justifyContent: 'center',
-        alignItems: 'center',
     },
 });
 

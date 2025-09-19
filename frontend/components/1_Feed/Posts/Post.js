@@ -12,17 +12,14 @@ import {
     StyleSheet,
     View,
     Animated,
-    Pressable,
-    FlatList,
     Dimensions,
     Easing,
 } from "react-native";
 import Reanimated, { useAnimatedStyle } from 'react-native-reanimated';
-import FastImage from "react-native-fast-image";
-import Video from "react-native-video";
 import PostHeader from "./PostHeader";
 import PostFooter from "./PostFooter";
 import FeedFocusContext from "../../../screens/feed/hooks/FeedFocusContext";
+import PostMediaCarousel from "./PostMediaCarousel";
 
 const { width: W } = Dimensions.get("window");
 const AR = 0.8;
@@ -31,41 +28,6 @@ const BORDER = 35;
 const B_IN = 1.02;
 const B_OUT = 1;
 const B_FRICTION = 60;
-
-const ImageSlide = React.memo(({ uri, style }) => (
-    <View style={styles.imageWrapper}>
-        <FastImage
-            source={{
-                uri,
-                priority: FastImage.priority.normal,
-                cache: FastImage.cacheControl.immutable,
-            }}
-            style={style}
-            resizeMode={FastImage.resizeMode.cover}
-        />
-    </View>
-));
-
-/** 🔊 Audio fix: ignoreSilentSwitch + explicit volume */
-const VideoSlide = React.memo(({ uri, style, paused, isActive }) => (
-    <View style={styles.imageWrapper}>
-        <Video
-            source={typeof uri === "string" && uri.startsWith("http") ? { uri } : uri}
-            style={style}
-            resizeMode="cover"
-            paused={!isActive || paused}
-            repeat
-            muted={false}
-            volume={1.0}
-            /** iOS: play sound even if hardware mute is on */
-            ignoreSilentSwitch="ignore"
-            /** Keep background/inactive behavior as before */
-            playInBackground={false}
-            playWhenInactive={false}
-            controls={false}
-        />
-    </View>
-));
 
 const Post = forwardRef(function Post({
     data,
@@ -122,17 +84,9 @@ const Post = forwardRef(function Post({
     const highlightOpacity = useRef(new Animated.Value(0)).current;
     const scale = useRef(new Animated.Value(1)).current;
     const viewRef = useRef(null);
-    const flatListRef = useRef(null);
+    const carouselRef = useRef(null);
 
     const [currentIndex, setCurrentIndex] = useState(0);
-    const [pausedList, setPausedList] = useState(mediaList.map(() => false));
-
-    // RN Animated opacity removed to avoid mixing with Reanimated on the same view
-
-    // Base styles (bottom radius animated separately)
-    const [containerStyle, imageStyle] = useMemo(() => {
-        return [styles.gallery, styles.image];
-    }, []);
 
     // Animate bottom corners during unfocus: BORDER -> 0 as interactiveUnfocusSV goes 0 -> 1
     const roundedBottomStyle = useAnimatedStyle(() => {
@@ -227,88 +181,15 @@ const Post = forwardRef(function Post({
         }
     }, [resolvedIsFocused, resolvedHandleFocusPost, index]);
 
-    // Manual pause toggle (tap)
-    const togglePauseAtIndex = useCallback((idx) => {
-        setPausedList((prev) => prev.map((v, i) => (i === idx ? !v : v)));
-    }, []);
-
-    // Horizontal swipe inside the post
-    const currentOffsetXRef = useRef(0);
-    const lastReportedIndexRef = useRef(0);
-    const updateIndex = useCallback((nextIndex) => {
-        if (typeof nextIndex !== 'number') return;
-        lastReportedIndexRef.current = nextIndex;
+    const handleIndexChange = useCallback((nextIndex) => {
         setCurrentIndex((prev) => (prev === nextIndex ? prev : nextIndex));
     }, []);
-    const onScroll = useCallback((e) => {
-        const offsetX = e.nativeEvent.contentOffset.x;
-        currentOffsetXRef.current = offsetX;
-        const i = Math.round(offsetX / W);
-        if (i !== lastReportedIndexRef.current) {
-            updateIndex(i);
-        }
-    }, [updateIndex]);
-
-    const handleScrollSettled = useCallback((e) => {
-        const offsetX = e?.nativeEvent?.contentOffset?.x ?? currentOffsetXRef.current;
-        currentOffsetXRef.current = offsetX;
-        const i = Math.round(offsetX / W);
-        if (i !== lastReportedIndexRef.current) {
-            updateIndex(i);
-        }
-    }, [updateIndex]);
-
-    // Keep pausedList length in sync with media length
-    useEffect(() => {
-        setPausedList((prev) => mediaList.map((_, i) => prev[i] ?? false));
-    }, [mediaList.length]);
-
-    const keyExtractor = (item, idx) => (item.uri || "") + idx;
-
-    const getItemLayout = (_, index) => ({
-        length: W,
-        offset: W * index,
-        index,
-    });
 
     // Imperative horizontal pan control from Feed-level gesture
-    const panStartOffsetRef = useRef(0);
-    const extDragActiveRef = useRef(false);
     useImperativeHandle(ref, () => ({
-        hSwipeBegin: () => {
-            if (!resolvedIsFocused) return false;
-            extDragActiveRef.current = true;
-            panStartOffsetRef.current = currentOffsetXRef.current || (currentIndex * W);
-            return true;
-        },
-        hSwipeUpdate: (dx) => {
-            if (!extDragActiveRef.current) return;
-            const maxOffset = Math.max(0, (mediaList.length - 1) * W);
-            let target = (panStartOffsetRef.current || 0) - (dx || 0);
-            if (target < 0) target = 0;
-            if (target > maxOffset) target = maxOffset;
-            try { flatListRef.current?.scrollToOffset({ offset: target, animated: false }); } catch {}
-        },
-        hSwipeEnd: (dx, vx) => {
-            if (!extDragActiveRef.current) return;
-            extDragActiveRef.current = false;
-            const start = panStartOffsetRef.current || 0;
-            const current = currentOffsetXRef.current ?? start - (dx || 0);
-            const rawIndex = current / W;
-            // Velocity-assisted snap
-            let targetIndex = Math.round(rawIndex);
-            const SPEED = 420; // px/s
-            if (typeof vx === 'number' && Math.abs(vx) > SPEED) {
-                targetIndex = vx < 0 ? Math.ceil(rawIndex) : Math.floor(rawIndex);
-            }
-            if (targetIndex < 0) targetIndex = 0;
-            if (targetIndex > mediaList.length - 1) targetIndex = mediaList.length - 1;
-            try {
-                currentOffsetXRef.current = targetIndex * W;
-                updateIndex(targetIndex);
-                flatListRef.current?.scrollToIndex({ index: targetIndex, animated: true });
-            } catch {}
-        },
+        hSwipeBegin: () => (carouselRef.current?.hSwipeBegin?.() ?? false),
+        hSwipeUpdate: (dx) => { carouselRef.current?.hSwipeUpdate?.(dx); },
+        hSwipeEnd: (dx, vx) => { carouselRef.current?.hSwipeEnd?.(dx, vx); },
         measureScreenTop: () => new Promise((resolve) => {
             try {
                 if (viewRef.current?.measureInWindow) {
@@ -322,7 +203,7 @@ const Post = forwardRef(function Post({
             } catch {}
             resolve(null);
         }),
-    }), [resolvedIsFocused, mediaList?.length, currentIndex, updateIndex]);
+    }), [carouselRef, viewRef]);
 
     // (external swipe state removed; handled via imperative hSwipe* methods)
 
@@ -356,73 +237,18 @@ const Post = forwardRef(function Post({
                 ]}
             >
                 <View style={styles.body}>
-                    <Reanimated.View style={[containerStyle, roundedBottomStyle, { overflow: 'hidden' }]}>
-                        <FlatList
-                            ref={flatListRef}
-                            data={mediaList}
-                            horizontal
-                            pagingEnabled
-                            bounces={false}
-                            overScrollMode="never"
-                            // While another post is focused, this carousel must not capture swipes
-                            scrollEnabled={!resolvedIsSomePostFocused || resolvedIsFocused}
-                            snapToInterval={W}
-                            decelerationRate="fast"
-                            showsHorizontalScrollIndicator={false}
-                            keyExtractor={keyExtractor}
-                            getItemLayout={getItemLayout}
-                            style={{ width: '100%', height: '100%' }}
-                            renderItem={({ item, index: i }) => {
-                            const handlePress = (e) => {
-                                const x = e.nativeEvent.locationX;
-                                if (x > W * 0.1 && x < W * 0.9) {
-                                    // Only handle pause toggle if focused, current, and video
-                                    if (resolvedIsFocused && item.type === "video" && i === currentIndex) {
-                                        togglePauseAtIndex(i);
-                                    } else if (!resolvedIsFocused && !resolvedIsSomePostFocused) {
-                                        // Only allow focusing when no other post is already focused
-                                        // Wait for compact header measurement to avoid overshoot/jitter
-                                        focusMe(true);
-                                    }
-                                }
-                            };
-
-                            // EXACT RULES:
-                            // 1) If a post is focused:
-                            //    - play ONLY if this post is focused AND this slide is the current slide AND it's a video.
-                            //    - otherwise pause.
-                            // 2) If no post is focused:
-                            //    - play ONLY if this post is centered (shouldPlay) AND this slide is the current slide AND it's a video.
-                            //    - otherwise pause.
-                            const isCurrentSlide = i === currentIndex;
-                            const allowAutoplay = resolvedIsSomePostFocused ? resolvedIsFocused : !!shouldPlay;
-                            const meetsRule = allowAutoplay && isCurrentSlide && item.type === "video";
-                            const isManuallyPaused = pausedList[i];
-                            const actuallyPaused = !meetsRule || isManuallyPaused;
-
-                            if (item.type === "video") {
-                                return (
-                                    <Pressable onPress={handlePress}>
-                                        <VideoSlide
-                                            uri={item.uri}
-                                            style={imageStyle}
-                                            paused={actuallyPaused}
-                                            isActive={!actuallyPaused}
-                                        />
-                                    </Pressable>
-                                );
-                            }
-
-                            return (
-                                <Pressable onPress={handlePress}>
-                                    <ImageSlide uri={item.uri} style={imageStyle} />
-                                </Pressable>
-                            );
-                            }}
-                            onScroll={onScroll}
-                            scrollEventThrottle={16}
-                            onMomentumScrollEnd={handleScrollSettled}
-                            onScrollEndDrag={handleScrollSettled}
+                    <Reanimated.View style={[styles.gallery, roundedBottomStyle, { overflow: 'hidden' }]}>
+                        <PostMediaCarousel
+                            ref={carouselRef}
+                            mediaList={mediaList}
+                            currentIndex={currentIndex}
+                            onIndexChange={handleIndexChange}
+                            isFocused={resolvedIsFocused}
+                            isAnyPostFocused={resolvedIsSomePostFocused}
+                            shouldPlay={shouldPlay}
+                            onRequestFocus={focusMe}
+                            galleryStyle={{ width: '100%', height: '100%' }}
+                            imageStyle={styles.image}
                         />
                     </Reanimated.View>
                 </View>
@@ -485,7 +311,6 @@ const styles = StyleSheet.create({
         borderTopRightRadius: BORDER,
         backgroundColor: require('../../../theme/mfpDark').default.surface,
     },
-    imageWrapper: { width: W, height: W / AR, overflow: "hidden" },
     image: {
         width: W,
         height: W / AR,

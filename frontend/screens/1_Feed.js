@@ -10,7 +10,7 @@ import { Dimensions, SafeAreaView, StyleSheet, View, RefreshControl } from "reac
 import { useFocusEffect, useIsFocused } from '@react-navigation/native';
 import { StatusBar } from "expo-status-bar";
 import { useSafeAreaInsets, SafeAreaView as SafeAreaInsetsView } from "react-native-safe-area-context";
-import Reanimated, { useSharedValue, useAnimatedScrollHandler, useAnimatedStyle, useDerivedValue, runOnJS, withTiming, withSpring, withDelay, Easing as ReEasing } from 'react-native-reanimated';
+import Reanimated, { useSharedValue, useAnimatedScrollHandler, useAnimatedStyle, useDerivedValue, runOnJS, withTiming, withSpring, Easing as ReEasing } from 'react-native-reanimated';
 import { Gesture, GestureDetector } from 'react-native-gesture-handler';
 
 import PostListItem from "../components/1_Feed/PostListItem";
@@ -31,6 +31,7 @@ import useFilteredFeed from "../helper/useFilteredFeed";
 import MaskedView from "@react-native-masked-view/masked-view";
 import useFeedUserData from "./feed/hooks/useFeedUserData";
 import { FeedFocusProvider } from "./feed/hooks/FeedFocusContext";
+import useFeedUnfocusGesture from "./feed/hooks/useFeedUnfocusGesture";
 
 const { width, height } = Dimensions.get("window");
 const TARGET_POSITION = getScrollTargetPosition(width, height),
@@ -877,141 +878,34 @@ export default function Feed({ navigation, route }) {
     const listData = useMemo(() => ([...(posts || [])]), [posts]);
     const listKeyExtractor = useCallback((item, i) => String(item?.pid || item?.id || i), []);
 
-    // ---------- Upward pan to unfocus (interactive) ----------
-    // Use device height to set a sensible drag distance
-    const FULL_GESTURE_PX = Math.max(84, Math.min(height * 0.16, 200));
-    // Make progress feel snappier near the start
-    const PROGRESS_SLOW_K = 1.2; // lower = more sensitive early progress
-    const CLOSE_THRESHOLD = 0.1; // keep similar close feel
-    const REOPEN_THRESHOLD = 0.06; // hysteresis to avoid flicker when user drags back down
-    const commentsHiddenSV = useSharedValue(0); // 0 visible, 1 hidden (collapsed) during interactive pan
-    const panUnfocus = useMemo(() => {
-        return Gesture.Pan()
-            .minPointers(1)
-            .maxPointers(1)
-            // Immediately give up when the user swipes horizontally (so carousels scroll)
-            .failOffsetX([-12, 12])
-            .activeOffsetY([-4, 4])
-            // Expand the gesture start region both above AND below the post.
-            // This ensures that after focusing a top-clipped post, gestures remain
-            // responsive across the entire visual card, not just the originally
-            // visible slice. Symmetric hitSlop prevents dead zones near the bottom.
-            .hitSlop({ top: height, bottom: height, left: 0, right: 0 })
-            .shouldCancelWhenOutside(false)
-            .cancelsTouchesInView(false)
-            .enabled(!!isSomePostFocused)
-            .simultaneousWithExternalGesture(Gesture.Native())
-            .onBegin(() => {
-                // Block if a transition is settling or we are in lockout window
-                if (isTransitioningSV.value === 1 || panEnabledSV.value === 0) {
-                    return;
-                }
-                runOnJS(suspendInteractiveAlignment)();
-                // mark interactive
-                isUnfocusingRef.current = true;
-                runOnJS(setUnfocusGestureActive)(true);
-                interactiveProgressSV.value = 0;
-                interTranslateSV.value = 0;
-                commentsHiddenSV.value = 1;
-                try { runOnJS(signalCommentsCollapse)(); } catch { }
-            })
-            .onUpdate((e) => {
-                if (isTransitioningSV.value === 1 || panEnabledSV.value === 0) return;
-                if (!isSomePostFocused) return;
-                const ty = Math.min(0, e.translationY);
-                const dyUp = -ty; // positive upwards drag in px
-                const base = focusBaseSV.value || 0; // can be negative or positive
-                // Normalize UI progress by absolute distance to origin so timing is consistent
-                const distToZero = Math.max(1, Math.abs(base));
-                let pNorm = dyUp / distToZero;
-                if (pNorm < 0) pNorm = 0; if (pNorm > 1) pNorm = 1;
-                // Apply eased curve for a more gradual feel (UI-only)
-                const p = Math.pow(pNorm, PROGRESS_SLOW_K);
-                interactiveProgressSV.value = p;
-                const collapseThresholdPx = Math.max(COMMENTS_COLLAPSE_MIN_PX, CLOSE_THRESHOLD * distToZero);
-                const shouldCollapseByDistance = dyUp > collapseThresholdPx;
-                const shouldReopenByDistance = dyUp < COMMENTS_REOPEN_MAX_PX;
-                // Early collapse/restore of comments sheet to avoid perceived lag
-                if (commentsHiddenSV.value === 0 && (pNorm > CLOSE_THRESHOLD || shouldCollapseByDistance)) {
-                    commentsHiddenSV.value = 1;
-                    try { runOnJS(signalCommentsCollapse)(); } catch { }
-                } else if (commentsHiddenSV.value === 1 && pNorm < REOPEN_THRESHOLD && shouldReopenByDistance) {
-                    commentsHiddenSV.value = 0;
-                    try { runOnJS(signalCommentsReopen)(); } catch { }
-                }
-                // Reveal overlay header and chips progressively
-                const fh = headerH.value || 0;
-                focusHide.value = Math.max(0, fh * (1 - p));
-                // Fade stories/chips
-                storiesOpacitySV.value = p;
-                // Move the focused card at a constant speed (1:1 with finger),
-                // clamped to the remaining distance in the correct direction.
-                const sign = base < 0 ? 1 : -1; // direction toward zero
-                const interMag = Math.min(dyUp, Math.abs(base));
-                interTranslateSV.value = sign * interMag;
-            })
-            .onEnd((e) => {
-                if (isTransitioningSV.value === 1 || panEnabledSV.value === 0) return;
-                if (!isSomePostFocused) return;
-                const ty = Math.min(0, e.translationY);
-                const dyUp = -ty;
-                const baseNow = focusBaseSV.value || 0; // can be negative or positive
-                const distToZero = Math.max(1, Math.abs(baseNow));
-                let pNorm = dyUp / distToZero;
-                if (pNorm < 0) pNorm = 0; if (pNorm > 1) pNorm = 1;
-                const shouldClose = pNorm > CLOSE_THRESHOLD || (e.velocityY || 0) < -350;
-                // Commit the current combined translation (base + inter) to avoid a visual jump
-                const interMagNow = Math.min(dyUp, Math.abs(baseNow));
-                const signNow = baseNow < 0 ? 1 : -1;
-                const combinedNow = baseNow + signNow * interMagNow;
-                const startValue = Math.abs(combinedNow) < 0.5 ? 0 : combinedNow;
-                focusTranslateSV.value = startValue;
-                interTranslateSV.value = 0;
-                // Enter a brief lockout so a second immediate pan doesn't race animations
-                panEnabledSV.value = 0;
-                if (shouldClose) {
-                    focusBaseSV.value = startValue;
-                    focusOffsetRef.current = startValue;
-                    // Collapse comments immediately for responsiveness
-                    runOnJS(signalCommentsCollapse)();
-                    try {
-                        focusHide.value = withTiming(0, { duration: ANIMATION_DURATION, easing: ReEasing.out(ReEasing.cubic) });
-                        interactiveProgressSV.value = withTiming(1, { duration: ANIMATION_DURATION, easing: ReEasing.out(ReEasing.cubic) });
-                        storiesOpacitySV.value = withTiming(1, { duration: ANIMATION_DURATION, easing: ReEasing.out(ReEasing.cubic) });
-                        focusTranslateSV.value = startValue;
-                        focusTranslateSV.value = withSpring(0, FOCUS_SPRING_CONFIG);
-                    } catch { }
-                    // Delegate JS cleanup for unfocus
-                    runOnJS(handleBackPress)('gesture');
-                } else {
-                    // cancel: return to focused state
-                    focusHide.value = withTiming(headerH.value, { duration: INTERACTIVE_CANCEL_MS, easing: ReEasing.out(ReEasing.cubic) });
-                    interactiveProgressSV.value = withTiming(0, { duration: INTERACTIVE_CANCEL_MS, easing: ReEasing.out(ReEasing.cubic) });
-                    interTranslateSV.value = withTiming(0, { duration: INTERACTIVE_CANCEL_MS, easing: ReEasing.out(ReEasing.cubic) });
-                    storiesOpacitySV.value = withTiming(0, { duration: INTERACTIVE_CANCEL_FADE_MS, easing: ReEasing.out(ReEasing.cubic) });
-                    // Animate base back to focused offset on UI thread
-                    focusTranslateSV.value = withSpring(focusBaseSV.value, FOCUS_SPRING_CONFIG);
-                    // Clear flags on JS
-                    runOnJS(clearUnfocusFlagsJS)();
-                    // Reopen comments to its open position if user cancels
-                    runOnJS(signalCommentsReopen)();
-                    commentsHiddenSV.value = 0;
-                    // Brief lockout before accepting a new pan session
-                    panEnabledSV.value = withDelay(INTERACTIVE_LOCKOUT_MS, withTiming(1, { duration: 0 }));
-                }
-            })
-            .onFinalize(() => {
-                // keep isUnfocusingRef until animateView callback clears it on success path
-            });
-    }, [
-        isSomePostFocused,
+    const { panUnfocus, commentsHiddenSV } = useFeedUnfocusGesture({
         height,
+        isSomePostFocused,
+        isTransitioningSV,
+        panEnabledSV,
+        suspendInteractiveAlignment,
+        setUnfocusGestureActive,
+        isUnfocusingRef,
+        interactiveProgressSV,
+        interTranslateSV,
+        focusBaseSV,
+        focusTranslateSV,
+        focusOffsetRef,
+        focusHide,
+        storiesOpacitySV,
+        headerH,
         signalCommentsCollapse,
         signalCommentsReopen,
         handleBackPress,
         clearUnfocusFlagsJS,
-        suspendInteractiveAlignment,
-    ]);
+        FOCUS_SPRING_CONFIG,
+        ANIMATION_DURATION,
+        INTERACTIVE_CANCEL_MS,
+        INTERACTIVE_CANCEL_FADE_MS,
+        INTERACTIVE_LOCKOUT_MS,
+        COMMENTS_COLLAPSE_MIN_PX,
+        COMMENTS_REOPEN_MAX_PX,
+    });
 
     // Focused-only horizontal swipe at the same wrapper level to change slides
     // Feed-level handlers to proxy horizontal pan to the focused Post
