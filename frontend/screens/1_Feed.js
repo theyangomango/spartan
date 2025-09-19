@@ -272,9 +272,14 @@ export default function Feed({ navigation, route }) {
         },
         onScroll: (e) => {
             const y = e.contentOffset.y;
-            // If pulling down (y<0) or actively refreshing, freeze header animation
-            if (y < 0 || refreshingSV.value === 1) {
+            // If pulling down or actively refreshing, snap header fully open
+            if (y <= 0 || refreshingSV.value === 1) {
                 prevY.value = y;
+                hidden.value = 0;
+                if (isFocusSV.value === 0) {
+                    const h = headerH.value;
+                    if (h > 0) runOnJS(setVisibleHeaderJS)(h);
+                }
                 runOnJS(handleScrollJS)(y);
                 return;
             }
