@@ -2,6 +2,7 @@ import { onCall, HttpsError } from "firebase-functions/v2/https";
 import { defineSecret } from "firebase-functions/params";
 import * as logger from "firebase-functions/logger";
 import { setGlobalOptions } from "firebase-functions/v2";
+import { onSchedule } from "firebase-functions/v2/scheduler";
 import { onDocumentCreated } from "firebase-functions/v2/firestore";
 import { initializeApp } from "firebase-admin/app";
 import { getFirestore, FieldValue } from "firebase-admin/firestore";
@@ -374,6 +375,304 @@ export const fatsecretLookupBarcode = onCall(
     return { food };
   }
 );
+
+
+// --------------- Leaderboard Last Rank Refresh ---------------- //
+const EPSILON = 1e-6;
+
+function toUid(value) {
+  if (value === undefined || value === null) return null;
+  try {
+    const str = String(value).trim();
+    return str ? str : null;
+  } catch {
+    return null;
+  }
+}
+
+function safeNumber(value) {
+  const n = Number(value);
+  return Number.isFinite(n) ? n : 0;
+}
+
+function computeGlobalRanks(valueMap) {
+  const entries = Array.from(valueMap.entries()).map(([uid, value]) => ({
+    uid,
+    value: safeNumber(value),
+  }));
+  entries.sort((a, b) => b.value - a.value);
+
+  const ranks = new Map();
+  let lastRank = 0;
+  let lastValue = null;
+  entries.forEach((entry, index) => {
+    if (index === 0) {
+      lastRank = 1;
+      lastValue = entry.value;
+    } else if (Math.abs(entry.value - lastValue) > EPSILON) {
+      lastRank = index + 1;
+      lastValue = entry.value;
+    }
+    ranks.set(entry.uid, lastRank);
+  });
+  return ranks;
+}
+
+function computeSubsetRank(valueMap, uid, subset) {
+  if (!subset || subset.size === 0) return null;
+  const target = String(uid);
+  if (!subset.has(target)) {
+    subset = new Set([...subset, target]);
+  }
+
+  const userValue = safeNumber(valueMap.get(target));
+  let participants = 0;
+  let greater = 0;
+  subset.forEach((member) => {
+    const id = String(member);
+    if (!id) return;
+    if (!valueMap.has(id) && id !== target) return;
+    participants += 1;
+    if (id === target) return;
+    const val = safeNumber(valueMap.get(id));
+    if (val > userValue + EPSILON) greater += 1;
+  });
+  if (participants === 0) return null;
+  return greater + 1;
+}
+
+function lastRanksEqual(prev, next) {
+  const prevKeys = Object.keys(prev || {});
+  const nextKeys = Object.keys(next || {});
+  if (prevKeys.length !== nextKeys.length) return false;
+  for (const exercise of nextKeys) {
+    if (!Object.prototype.hasOwnProperty.call(prev, exercise)) return false;
+    const prevScopes = prev[exercise] || {};
+    const nextScopes = next[exercise] || {};
+    const prevScopeKeys = Object.keys(prevScopes);
+    const nextScopeKeys = Object.keys(nextScopes);
+    if (prevScopeKeys.length !== nextScopeKeys.length) return false;
+    for (const scope of nextScopeKeys) {
+      if (!Object.prototype.hasOwnProperty.call(prevScopes, scope)) return false;
+      const a = safeNumber(prevScopes[scope]);
+      const b = safeNumber(nextScopes[scope]);
+      if (a !== b) return false;
+    }
+  }
+  return true;
+}
+
+export const refreshLeaderboardLastRanks = onSchedule(
+  {
+    schedule: '0 * * * *',
+    region: 'us-central1',
+    timeoutSeconds: 540,
+    memory: '1GiB',
+  },
+  async () => {
+    const started = Date.now();
+    const usersSnap = await adminDb.collection('users').get();
+    if (usersSnap.empty) {
+      logger.info('refreshLeaderboardLastRanks: no users found');
+      return;
+    }
+
+    const users = [];
+    const followingByUid = new Map();
+    const statsByUid = new Map();
+    const existingLastRanks = new Map();
+
+    usersSnap.forEach((docSnap) => {
+      try {
+        const data = docSnap.data() || {};
+        const uid = toUid(data?.uid) || docSnap.id;
+        if (!uid) return;
+        const ref = docSnap.ref;
+        const statsExercises =
+          data?.statsExercises && typeof data.statsExercises === 'object'
+            ? data.statsExercises
+            : {};
+
+        const followingSet = new Set([uid]);
+        const followingArr = Array.isArray(data?.following) ? data.following : [];
+        for (const entry of followingArr) {
+          const fUid = toUid(entry?.uid ?? entry?.id ?? entry);
+          if (fUid) followingSet.add(fUid);
+        }
+
+        users.push({ uid, ref, statsExercises, data });
+        followingByUid.set(uid, followingSet);
+        statsByUid.set(uid, statsExercises);
+        existingLastRanks.set(uid, data?.lastRanks || {});
+      } catch (err) {
+        logger.warn('refreshLeaderboardLastRanks: failed to process user doc', {
+          id: docSnap.id,
+          message: err?.message || err,
+        });
+      }
+    });
+
+    if (!users.length) {
+      logger.info('refreshLeaderboardLastRanks: no users after filtering');
+      return;
+    }
+
+    const tribeMembers = new Map();
+    const tribesForUser = new Map();
+    try {
+      const tribeSnap = await adminDb.collection('tribes').get();
+      tribeSnap.forEach((docSnap) => {
+        const tid = docSnap.id;
+        const data = docSnap.data() || {};
+        const membersArr = Array.isArray(data?.members) ? data.members : [];
+        const set = tribeMembers.get(tid) || new Set();
+        membersArr.forEach((member) => {
+          const mUid = toUid(member?.uid ?? member?.id ?? member);
+          if (!mUid) return;
+          set.add(mUid);
+          const byUser = tribesForUser.get(mUid) || new Set();
+          byUser.add(tid);
+          tribesForUser.set(mUid, byUser);
+        });
+        if (set.size) tribeMembers.set(tid, set);
+      });
+    } catch (err) {
+      logger.warn('refreshLeaderboardLastRanks: tribe fetch failed', err?.message || err);
+    }
+
+    users.forEach(({ uid, data }) => {
+      const arr = Array.isArray(data?.tribeIds) ? data.tribeIds : [];
+      arr.forEach((tidRaw) => {
+        const tid = toUid(tidRaw);
+        if (!tid) return;
+        const memberSet = tribeMembers.get(tid) || new Set();
+        memberSet.add(uid);
+        tribeMembers.set(tid, memberSet);
+        const byUser = tribesForUser.get(uid) || new Set();
+        byUser.add(tid);
+        tribesForUser.set(uid, byUser);
+      });
+    });
+
+    const allExercises = new Set();
+    statsByUid.forEach((stats) => {
+      Object.keys(stats || {}).forEach((exercise) => {
+        if (exercise) allExercises.add(exercise);
+      });
+    });
+
+    if (!allExercises.size) {
+      logger.info('refreshLeaderboardLastRanks: no exercises found to rank');
+      return;
+    }
+
+    const exerciseMaps = new Map();
+    for (const exercise of allExercises) {
+      const valueMap = new Map();
+      users.forEach(({ uid }) => {
+        const stats = statsByUid.get(uid) || {};
+        const exStats = stats?.[exercise] || {};
+        const value = safeNumber(exStats?.['1RM']);
+        valueMap.set(uid, value);
+      });
+      const ranks = computeGlobalRanks(valueMap);
+      exerciseMaps.set(exercise, { valueMap, ranks });
+    }
+
+    const updates = [];
+    users.forEach(({ uid, ref, statsExercises }) => {
+      const exerciseNames = Object.keys(statsExercises || {});
+      const nextLastRanks = {};
+
+      if (!exerciseNames.length) {
+        const existing = existingLastRanks.get(uid) || {};
+        if (Object.keys(existing).length) {
+          updates.push({
+            ref,
+            data: { lastRanks: FieldValue.delete(), lastRanksUpdatedAt: FieldValue.serverTimestamp() },
+          });
+        }
+        return;
+      }
+
+      const followingSet = followingByUid.get(uid) || new Set([uid]);
+      const tribeSet = tribesForUser.get(uid) || new Set();
+
+      exerciseNames.forEach((exercise) => {
+        const config = exerciseMaps.get(exercise);
+        if (!config) return;
+        const scopes = {};
+        const globalRank = config.ranks.get(uid);
+        if (Number.isFinite(globalRank)) scopes.global = globalRank;
+
+        const followingRank = computeSubsetRank(config.valueMap, uid, followingSet);
+        if (Number.isFinite(followingRank)) scopes.following = followingRank;
+
+        tribeSet.forEach((tid) => {
+          const members = tribeMembers.get(tid);
+          if (!members || !members.size) return;
+          const rank = computeSubsetRank(config.valueMap, uid, members);
+          if (Number.isFinite(rank)) scopes[tid] = rank;
+        });
+
+        if (Object.keys(scopes).length) {
+          nextLastRanks[exercise] = scopes;
+        }
+      });
+
+      const existing = existingLastRanks.get(uid) || {};
+      const newIsEmpty = Object.keys(nextLastRanks).length === 0;
+      let needsUpdate = false;
+      if (newIsEmpty) {
+        if (Object.keys(existing).length) needsUpdate = true;
+      } else if (!Object.keys(existing).length) {
+        needsUpdate = true;
+      } else if (!lastRanksEqual(existing, nextLastRanks)) {
+        needsUpdate = true;
+      }
+
+      if (!needsUpdate) return;
+
+      const updateData = newIsEmpty
+        ? { lastRanks: FieldValue.delete(), lastRanksUpdatedAt: FieldValue.serverTimestamp() }
+        : { lastRanks: nextLastRanks, lastRanksUpdatedAt: FieldValue.serverTimestamp() };
+      updates.push({ ref, data: updateData });
+    });
+
+    if (!updates.length) {
+      logger.info(
+        'refreshLeaderboardLastRanks: no user updates required (%d users, %d exercises, %dms)',
+        users.length,
+        allExercises.size,
+        Date.now() - started,
+      );
+      return;
+    }
+
+    let batch = adminDb.batch();
+    let writes = 0;
+    for (const { ref, data } of updates) {
+      batch.set(ref, data, { merge: true });
+      writes += 1;
+      if (writes === 400) {
+        await batch.commit();
+        batch = adminDb.batch();
+        writes = 0;
+      }
+    }
+    if (writes > 0) {
+      await batch.commit();
+    }
+
+    logger.info(
+      'refreshLeaderboardLastRanks: updated %d users (%d exercises) in %dms',
+      updates.length,
+      allExercises.size,
+      Date.now() - started,
+    );
+  }
+);
+
 
 // ---------------- Chat: Push Notifications on New Messages ---------------- //
 

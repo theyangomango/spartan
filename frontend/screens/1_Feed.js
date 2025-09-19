@@ -974,6 +974,13 @@ export default function Feed({ navigation, route }) {
                     focusOffsetRef.current = startValue;
                     // Collapse comments immediately for responsiveness
                     runOnJS(signalCommentsCollapse)();
+                    try {
+                        focusHide.value = withTiming(0, { duration: ANIMATION_DURATION, easing: ReEasing.out(ReEasing.cubic) });
+                        interactiveProgressSV.value = withTiming(1, { duration: ANIMATION_DURATION, easing: ReEasing.out(ReEasing.cubic) });
+                        storiesOpacitySV.value = withTiming(1, { duration: ANIMATION_DURATION, easing: ReEasing.out(ReEasing.cubic) });
+                        focusTranslateSV.value = startValue;
+                        focusTranslateSV.value = withSpring(0, FOCUS_SPRING_CONFIG);
+                    } catch { }
                     // Delegate JS cleanup for unfocus
                     runOnJS(handleBackPress)('gesture');
                 } else {

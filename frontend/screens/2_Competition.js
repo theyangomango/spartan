@@ -188,6 +188,25 @@ function filterBlockedVisibility(list) {
     }
 }
 
+function resolveLastRank(user, exercise, scopeKey) {
+    if (!user || !exercise || !scopeKey) return null;
+    const perExercise = user?.lastRanks?.[exercise];
+    if (!perExercise) return null;
+    const raw = perExercise?.[scopeKey];
+    const num = Number(raw);
+    if (!Number.isFinite(num) || num <= 0) return null;
+    return num;
+}
+
+function applyLastRanks(list, exercise, scopeKey) {
+    if (!Array.isArray(list)) return [];
+    if (!exercise || !scopeKey) return list.map((u) => ({ ...u, lastRank: null }));
+    return list.map((user) => ({
+        ...user,
+        lastRank: resolveLastRank(user, exercise, scopeKey) ?? null,
+    }));
+}
+
 export default function Competition({ navigation, route }) {
     const usersRef = useRef([]);
     const userUnsubRef = useRef(null);
@@ -383,10 +402,13 @@ export default function Competition({ navigation, route }) {
             const memberSet = new Set(currentTribe.members || []);
             const tribeUsers = all.filter((u) => memberSet.has(u?.uid));
             const visible = filterBlockedVisibility(tribeUsers);
+            const tribeScopeKey = String(currentTribe?.id || selectedTribeId || '');
             if (activeComparison) {
-                setUserList(computeTribeRanking(visible, activeComparison));
+                const ranked = computeTribeRanking(visible, activeComparison);
+                setUserList(applyLastRanks(ranked, activeComparison?.exercise, tribeScopeKey));
             } else {
-                setUserList(rankUsers(visible, comparedExercise, comparedMetric));
+                const ranked = rankUsers(visible, comparedExercise, comparedMetric);
+                setUserList(applyLastRanks(ranked, comparedExercise, tribeScopeKey));
             }
             return;
         }
@@ -396,12 +418,14 @@ export default function Competition({ navigation, route }) {
             const followingSet = new Set((global.userData?.following || []).map((u) => u.uid));
             const base = all.filter((usr) => usr?.uid === global.userData?.uid || followingSet.has(usr?.uid));
             const visible = filterBlockedVisibility(base);
-            setUserList(rankUsers(visible, comparedExercise, comparedMetric));
+            const ranked = rankUsers(visible, comparedExercise, comparedMetric);
+            setUserList(applyLastRanks(ranked, comparedExercise, 'following'));
         } else {
             const visible = filterBlockedVisibility(all);
-            setUserList(rankUsers(visible, comparedExercise, comparedMetric)); // Global
+            const ranked = rankUsers(visible, comparedExercise, comparedMetric);
+            setUserList(applyLastRanks(ranked, comparedExercise, 'global'));
         }
-    }, [isCustomTribe, tribesHydrated, currentTribe, activeComparison, comparedExercise, comparedMetric, scope]);
+    }, [isCustomTribe, tribesHydrated, currentTribe, activeComparison, comparedExercise, comparedMetric, scope, selectedTribeId]);
 
     // Run recompute ONLY when ready. Otherwise keep showing cached list.
     useEffect(() => {
@@ -713,7 +737,11 @@ export default function Competition({ navigation, route }) {
                         const memberSet = new Set(currentTribe.members || []);
                         const tribeUsers = all.filter((x) => memberSet.has(x?.uid));
                         const comp = tribeComparisons[idx];
-                        if (comp) setUserList(computeTribeRanking(tribeUsers, comp));
+                        if (comp) {
+                            const tribeScopeKey = String(currentTribe?.id || selectedTribeId || '');
+                            const ranked = computeTribeRanking(tribeUsers, comp);
+                            setUserList(applyLastRanks(ranked, comp?.exercise, tribeScopeKey));
+                        }
                     }
                 }}
                 tribeComparisonSummary={activeComparison ? summaryOf(activeComparison) : "Not set"}
