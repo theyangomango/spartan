@@ -40,6 +40,8 @@ const INTERACTIVE_START_MS = 220; // when entering focus, settle interactive pro
 const INTERACTIVE_CANCEL_MS = 300; // when canceling interactive unfocus, return to focused
 const INTERACTIVE_CANCEL_FADE_MS = 260; // chips/story fade when canceling
 const INTERACTIVE_LOCKOUT_MS = 340; // brief lockout after cancel
+const COMMENTS_COLLAPSE_MIN_PX = 28; // ensure small offsets don't instantly collapse sheet
+const COMMENTS_REOPEN_MAX_PX = 16;  // distance under which the sheet can safely reopen
 const FOCUS_SPRING_CONFIG = {
     damping: 24,
     stiffness: 240,
@@ -112,6 +114,8 @@ export default function Feed({ navigation, route }) {
     const feedTopSignalRef = useRef(0);
     // Keep track of which index is currently translating (focus/unfocus animation)
     const translatingIndexRef = useRef(-1);
+    const alignmentSuspendedRef = useRef(false);
+    const unfocusGestureTimeoutRef = useRef(null);
 
     useEffect(() => {
         focusedPostIndex.current = focusedIndexState;
@@ -120,6 +124,13 @@ export default function Feed({ navigation, route }) {
     useEffect(() => {
         translatingIndexRef.current = translatingIndexState;
     }, [translatingIndexState]);
+
+    useEffect(() => () => {
+        if (unfocusGestureTimeoutRef.current) {
+            clearTimeout(unfocusGestureTimeoutRef.current);
+            unfocusGestureTimeoutRef.current = null;
+        }
+    }, []);
 
     // Highlight target when navigating from notifications
     const highlightPidRef = useRef(null);
@@ -297,6 +308,12 @@ export default function Feed({ navigation, route }) {
     const ensureFocusedAlignment = useCallback((idx, sessionId, attempt = 0) => {
         if (idx < 0) return;
         if (focusSessionNonceRef.current !== sessionId) return;
+        if (alignmentSuspendedRef.current) {
+            if (attempt < 6) {
+                setTimeout(() => ensureFocusedAlignment(idx, sessionId, attempt + 1), 64);
+            }
+            return;
+        }
         const ref = postRefs.current?.[idx];
         if (!ref?.measureScreenTop) {
             if (attempt < 6) {
@@ -500,12 +517,42 @@ export default function Feed({ navigation, route }) {
         }
     };
 
+    // JS helpers for runOnJS calls from worklet
+    const suspendInteractiveAlignment = useCallback(() => {
+        alignmentSuspendedRef.current = true;
+        if (unfocusGestureTimeoutRef.current) {
+            clearTimeout(unfocusGestureTimeoutRef.current);
+            unfocusGestureTimeoutRef.current = null;
+        }
+    }, []);
+    const resumeInteractiveAlignment = useCallback(() => {
+        alignmentSuspendedRef.current = false;
+    }, []);
+    const clearUnfocusFlagsJS = useCallback(() => {
+        isUnfocusingRef.current = false;
+        resumeInteractiveAlignment();
+        if (unfocusGestureTimeoutRef.current) {
+            clearTimeout(unfocusGestureTimeoutRef.current);
+            unfocusGestureTimeoutRef.current = null;
+        }
+        setUnfocusGestureActive(false);
+        if (isSomePostFocused && focusedPostIndex.current !== -1) {
+            const idx = focusedPostIndex.current;
+            const sessionId = focusSessionNonceRef.current;
+            unfocusGestureTimeoutRef.current = setTimeout(() => {
+                ensureFocusedAlignment(idx, sessionId, 0);
+                unfocusGestureTimeoutRef.current = null;
+            }, 0);
+        }
+    }, [ensureFocusedAlignment, isSomePostFocused, resumeInteractiveAlignment]);
+
     /* ---------- helper: run the trio animation ---------- */
     const onFocusTranslateEnd = useCallback((clearTranslating) => {
         // Called after the translate animation settles
         isTransitioning.current = false; /* 🔓 unlock */
         try { isTransitioningSV.value = 0; } catch { }
         try { panEnabledSV.value = 1; } catch { }
+        resumeInteractiveAlignment();
         isUnfocusingRef.current = false;
         if (clearTranslating) {
             // Finishing unfocus: commit state after animation to avoid layout jump
@@ -516,7 +563,7 @@ export default function Feed({ navigation, route }) {
             setTranslatingIndexState(-1);
             try { setUnfocusGestureActive(false); } catch { }
         }
-    }, []);
+    }, [resumeInteractiveAlignment]);
 
     const animateView = (translateYValue, opacityValue) => {
         try {
@@ -531,15 +578,6 @@ export default function Feed({ navigation, route }) {
             isUnfocusingRef.current = false;
         }
     };
-
-    // JS helpers for runOnJS calls from worklet
-    const scheduleClearUnfocusGestureActive = useCallback((delayMs) => {
-        try { setTimeout(() => setUnfocusGestureActive(false), delayMs || 0); } catch { }
-    }, []);
-    const clearUnfocusFlagsJS = useCallback(() => {
-        try { isUnfocusingRef.current = false; } catch { }
-        try { setUnfocusGestureActive(false); } catch { }
-    }, []);
     const signalCommentsCollapse = useCallback(() => {
         try { setCommentsCollapseSignal(Date.now()); } catch { }
     }, []);
@@ -868,6 +906,7 @@ export default function Feed({ navigation, route }) {
                 if (isTransitioningSV.value === 1 || panEnabledSV.value === 0) {
                     return;
                 }
+                runOnJS(suspendInteractiveAlignment)();
                 // mark interactive
                 isUnfocusingRef.current = true;
                 runOnJS(setUnfocusGestureActive)(true);
@@ -889,11 +928,14 @@ export default function Feed({ navigation, route }) {
                 // Apply eased curve for a more gradual feel (UI-only)
                 const p = Math.pow(pNorm, PROGRESS_SLOW_K);
                 interactiveProgressSV.value = p;
+                const collapseThresholdPx = Math.max(COMMENTS_COLLAPSE_MIN_PX, CLOSE_THRESHOLD * distToZero);
+                const shouldCollapseByDistance = dyUp > collapseThresholdPx;
+                const shouldReopenByDistance = dyUp < COMMENTS_REOPEN_MAX_PX;
                 // Early collapse/restore of comments sheet to avoid perceived lag
-                if (commentsHiddenSV.value === 0 && pNorm > CLOSE_THRESHOLD) {
+                if (commentsHiddenSV.value === 0 && (pNorm > CLOSE_THRESHOLD || shouldCollapseByDistance)) {
                     commentsHiddenSV.value = 1;
                     try { runOnJS(signalCommentsCollapse)(); } catch { }
-                } else if (commentsHiddenSV.value === 1 && pNorm < REOPEN_THRESHOLD) {
+                } else if (commentsHiddenSV.value === 1 && pNorm < REOPEN_THRESHOLD && shouldReopenByDistance) {
                     commentsHiddenSV.value = 0;
                     try { runOnJS(signalCommentsReopen)(); } catch { }
                 }
@@ -928,21 +970,12 @@ export default function Feed({ navigation, route }) {
                 // Enter a brief lockout so a second immediate pan doesn't race animations
                 panEnabledSV.value = 0;
                 if (shouldClose) {
-                    // Smoothly finish header reveal to avoid jump
-                    focusHide.value = withTiming(0, { duration: ANIMATION_DURATION, easing: ReEasing.out(ReEasing.cubic) });
-                    interactiveProgressSV.value = withTiming(1, { duration: ANIMATION_DURATION, easing: ReEasing.out(ReEasing.cubic) });
-                    storiesOpacitySV.value = withTiming(1, { duration: ANIMATION_DURATION, easing: ReEasing.out(ReEasing.cubic) });
+                    focusBaseSV.value = startValue;
+                    focusOffsetRef.current = startValue;
                     // Collapse comments immediately for responsiveness
                     runOnJS(signalCommentsCollapse)();
-                    focusTranslateSV.value = withSpring(0, FOCUS_SPRING_CONFIG, () => {
-                        runOnJS(onFocusTranslateEnd)(true);
-                    });
                     // Delegate JS cleanup for unfocus
                     runOnJS(handleBackPress)('gesture');
-                    // Keep wrapper for the duration to avoid a frame of unwrapped layout
-                    runOnJS(scheduleClearUnfocusGestureActive)(ANIMATION_DURATION + 20);
-                    // Re-enable pan after the unfocus animation if still relevant
-                    panEnabledSV.value = withDelay(ANIMATION_DURATION + 40, withTiming(1, { duration: 0 }));
                 } else {
                     // cancel: return to focused state
                     focusHide.value = withTiming(headerH.value, { duration: INTERACTIVE_CANCEL_MS, easing: ReEasing.out(ReEasing.cubic) });
@@ -963,7 +996,15 @@ export default function Feed({ navigation, route }) {
             .onFinalize(() => {
                 // keep isUnfocusingRef until animateView callback clears it on success path
             });
-    }, [isSomePostFocused, height, signalCommentsCollapse, signalCommentsReopen]);
+    }, [
+        isSomePostFocused,
+        height,
+        signalCommentsCollapse,
+        signalCommentsReopen,
+        handleBackPress,
+        clearUnfocusFlagsJS,
+        suspendInteractiveAlignment,
+    ]);
 
     // Focused-only horizontal swipe at the same wrapper level to change slides
     // Feed-level handlers to proxy horizontal pan to the focused Post

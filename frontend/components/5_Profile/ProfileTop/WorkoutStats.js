@@ -1,9 +1,8 @@
 import React from 'react';
 import theme from '../../../theme/mfpDark';
-import { StyleSheet, View, Text, Dimensions } from "react-native";
+import { StyleSheet, View, Text } from "react-native";
 import scaleSize from "../../../helper/scaleSize";
 
-const { height: screenHeight } = Dimensions.get('window');
 const scaledSize = (size) => scaleSize(size);
 
 function formatNumber(value) {
@@ -53,7 +52,8 @@ const styles = StyleSheet.create({
         width: '31.5%',
         height: scaleSize(scaledSize(68)),
         borderRadius: scaleSize(scaledSize(8)),
-        marginVertical: scaleSize(scaledSize(9)),
+        marginTop: scaleSize(scaledSize(9)),
+        marginBottom: 0,
         marginHorizontal: scaleSize(scaledSize(3.5)),
         justifyContent: 'center',
         alignItems: 'center',

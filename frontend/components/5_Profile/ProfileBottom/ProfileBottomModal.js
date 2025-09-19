@@ -79,13 +79,13 @@ const styles = StyleSheet.create({
     panel_border: {
         borderColor: theme.primary,
         borderBottomWidth: scaledSize(1.5),
-        paddingTop: scaleSize(scaledSize(8)),
+        paddingTop: scaleSize(scaledSize(4)),
         marginHorizontal: scaleSize(scaledSize(16))
     },
     panel_btns: {
         flexDirection: 'row',
         marginHorizontal: scaleSize(scaledSize(16)),
-        marginTop: scaleSize(scaledSize(8)),
+        marginTop: scaleSize(scaledSize(2)),
         justifyContent: 'space-between',
     },
     panel_btn: {
