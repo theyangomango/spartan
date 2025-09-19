@@ -1,7 +1,7 @@
 import React, { useEffect, useMemo, useRef, useState, useCallback } from "react";
-import { View, StyleSheet, TextInput, Platform, Image, KeyboardAvoidingView, Animated as RNAnimated, Keyboard, Pressable, Dimensions } from "react-native";
+import { View, StyleSheet, TextInput, Platform, Image, KeyboardAvoidingView, Keyboard, Pressable, Dimensions } from "react-native";
 import BottomSheet from "@gorhom/bottom-sheet";
-import Reanimated, { useAnimatedReaction, runOnJS, useAnimatedStyle, useSharedValue } from 'react-native-reanimated';
+import Reanimated, { useAnimatedReaction, runOnJS, useAnimatedStyle, useSharedValue, withTiming, cancelAnimation } from 'react-native-reanimated';
 import theme from "../../../theme/mfpDark";
 import { Ionicons } from '@expo/vector-icons';
 import CommentsModal from "./CommentsModal";
@@ -21,14 +21,18 @@ const CommentsBottomSheet = ({ isVisible, postData, commentsBottomSheetExpandFla
     const SHEET_OPEN_MS = 280;
     const [isInputFocused, setIsInputFocused] = useState(false);
     const bottomSheetRef = useRef(null);
-    const footerTranslateY = useRef(new RNAnimated.Value(0)).current; // moves when input focuses
-    const footerIntroY = useRef(new RNAnimated.Value(10)).current;    // small entrance slide
-    const footerDragY = useRef(new RNAnimated.Value(0)).current;      // follows interactive unfocus to slide footer down
-    const footerOpacity = useRef(new RNAnimated.Value(0)).current;    // fade with sheet
+    const footerTranslateY = useSharedValue(0); // moves when input focuses
+    const footerIntroY = useSharedValue(10);    // small entrance slide
+    const footerDragY = useSharedValue(0);      // follows interactive unfocus to slide footer down
+    const footerOpacity = useSharedValue(0);    // fade with sheet
     const sheetTranslateY = useSharedValue(0);
     const sheetOpenHeight = useSharedValue(0);
     const sheetStyle = useAnimatedStyle(() => ({
         transform: [{ translateY: sheetTranslateY.value }],
+    }));
+    const footerAnimatedStyle = useAnimatedStyle(() => ({
+        opacity: footerOpacity.value,
+        transform: [{ translateY: footerTranslateY.value + footerIntroY.value + footerDragY.value }],
     }));
     const pendingCloseRef = useRef(false);
     const snapPoints = useMemo(() => ["34.5%", "92%"], []);
@@ -120,23 +124,15 @@ const CommentsBottomSheet = ({ isVisible, postData, commentsBottomSheetExpandFla
     // Handle input focus
     const handleInputFocus = () => {
         setIsInputFocused(true);
-        try { bottomSheetRef.current?.snapToIndex?.(1, { duration: SHEET_OPEN_MS }); } catch { try { bottomSheetRef.current?.expand?.(); } catch {} }
-        RNAnimated.timing(footerTranslateY, {
-            toValue: -315,
-            duration: 225,
-            useNativeDriver: true
-        }).start();
+        try { bottomSheetRef.current?.snapToIndex?.(1, { duration: SHEET_OPEN_MS }); } catch { try { bottomSheetRef.current?.expand?.(); } catch { } }
+        footerTranslateY.value = withTiming(-315, { duration: 225 });
     };
 
     // Handle input blur
     const handleInputBlur = () => {
         setIsInputFocused(false);
         setReplyingToIndex(null);
-        RNAnimated.timing(footerTranslateY, {
-            toValue: 0,
-            duration: 200,
-            useNativeDriver: true
-        }).start();
+        footerTranslateY.value = withTiming(0, { duration: 200 });
     };
 
     // Handle visibility: open sheet from bottom + sync footer entrance
@@ -163,12 +159,10 @@ const CommentsBottomSheet = ({ isVisible, postData, commentsBottomSheetExpandFla
             };
             requestAnimationFrame(open);
             // footer entrance animation
-            footerOpacity.setValue(0);
-            footerIntroY.setValue(10);
-            RNAnimated.parallel([
-                RNAnimated.timing(footerOpacity, { toValue: 1, duration: 220, useNativeDriver: true }),
-                RNAnimated.timing(footerIntroY, { toValue: 0, duration: 260, useNativeDriver: true }),
-            ]).start();
+            footerOpacity.value = 0;
+            footerIntroY.value = 10;
+            footerOpacity.value = withTiming(1, { duration: 220 });
+            footerIntroY.value = withTiming(0, { duration: 260 });
         } else {
             pendingCloseRef.current = false;
             const fallback = (() => {
@@ -182,14 +176,14 @@ const CommentsBottomSheet = ({ isVisible, postData, commentsBottomSheetExpandFla
             sheetOpenHeight.value = fallback;
             sheetTranslateY.value = fallback;
             bottomSheetRef.current?.close();
-            RNAnimated.timing(footerOpacity, { toValue: 0, duration: 120, useNativeDriver: true }).start();
+            footerOpacity.value = withTiming(0, { duration: 120 });
         }
     }, [isVisible, postPid, containerReady, openPositionPx, getSnapPointPx, sheetOpenHeight, sheetTranslateY, snapPoints]);
 
     // Emit a small open signal after the sheet has animated in
     useEffect(() => {
         if (!isVisible || !postPid || !containerReady) return;
-        const id = setTimeout(() => { try { setOpenSignal(Date.now()); } catch {} }, 90);
+        const id = setTimeout(() => { try { setOpenSignal(Date.now()); } catch { } }, 90);
         return () => clearTimeout(id);
     }, [isVisible, postPid, containerReady]);
 
@@ -211,8 +205,8 @@ const CommentsBottomSheet = ({ isVisible, postData, commentsBottomSheetExpandFla
                 bottomSheetRef.current?.close?.();
             }
         } catch { }
-        try { footerOpacity.stopAnimation && footerOpacity.stopAnimation(); } catch {}
-        RNAnimated.timing(footerOpacity, { toValue: 0, duration: Math.min(duration, 160), useNativeDriver: true }).start();
+        // cancelAnimation(footerOpacity);
+        // footerOpacity.value = withTiming(0.5, { duration: Math.min(duration, 160) });
         sheetTranslateY.value = sheetOpenHeight.value;
         // Leave reset to callers so we don't resnap after closing
     }, [footerOpacity, sheetOpenHeight, sheetTranslateY]);
@@ -237,6 +231,7 @@ const CommentsBottomSheet = ({ isVisible, postData, commentsBottomSheetExpandFla
 
     // Imperative reopen if interactive drag cancels
     useEffect(() => {
+        console.log('reopen');
         if (!isVisible || !postPid) return;
         if (!reopenSignal) return;
         if (!pendingCloseRef.current) return;
@@ -251,7 +246,7 @@ const CommentsBottomSheet = ({ isVisible, postData, commentsBottomSheetExpandFla
                 sheetOpenHeight.value = getSnapPointPx(snapPoints[0]);
             }
         }
-        RNAnimated.timing(footerOpacity, { toValue: 1, duration: 200, useNativeDriver: true }).start();
+        footerOpacity.value = withTiming(1, { duration: 200 });
         try { bottomSheetRef.current?.snapToIndex?.(0); } catch { }
     }, [reopenSignal, isVisible, postPid, footerOpacity, openPositionPx, getSnapPointPx, sheetOpenHeight, sheetTranslateY, snapPoints]);
 
@@ -264,14 +259,17 @@ const CommentsBottomSheet = ({ isVisible, postData, commentsBottomSheetExpandFla
 
     // Interactive unfocus: fade/slide the footer while we translate the sheet wrapper
     const updateFromProgress = useCallback((progress, forcedScaled) => {
-        if (!isVisible || !postPid || isClosingRef.current) return;
+        if (!isVisible || !postPid ) return;
         const slow = Math.max(0, interactiveScale || 0);
         const pRaw = Math.max(0, (progress || 0));
         const pSlow = typeof forcedScaled === 'number'
             ? Math.min(1, Math.max(0, forcedScaled))
             : Math.min(1, pRaw * slow);
-        try { footerOpacity.setValue(1 - pSlow); } catch {}
-        try { footerDragY.setValue(pSlow * 120); } catch {}
+        
+        if (progress == 0) return;
+        footerOpacity.value = 1 - progress;
+        console.log(footerOpacity.value);
+        footerDragY.value = progress * 120;
         if (pendingCloseRef.current && pRaw >= CLOSE_COMPLETE_PROGRESS) {
             pendingCloseRef.current = false;
             closeSheet();
@@ -308,7 +306,7 @@ const CommentsBottomSheet = ({ isVisible, postData, commentsBottomSheetExpandFla
 
     // Expand the bottom sheet when flagged
     useEffect(() => {
-        try { bottomSheetRef.current?.snapToIndex?.(1, { duration: SHEET_OPEN_MS }); } catch { try { bottomSheetRef.current?.expand?.(); } catch {} }
+        try { bottomSheetRef.current?.snapToIndex?.(1, { duration: SHEET_OPEN_MS }); } catch { try { bottomSheetRef.current?.expand?.(); } catch { } }
     }, [commentsBottomSheetExpandFlag]);
 
     useEffect(() => {
@@ -327,7 +325,7 @@ const CommentsBottomSheet = ({ isVisible, postData, commentsBottomSheetExpandFla
 
     const enforceVisibleIndex = useCallback(() => {
         requestAnimationFrame(() => {
-            try { bottomSheetRef.current?.snapToIndex?.(0); } catch {}
+            try { bottomSheetRef.current?.snapToIndex?.(0); } catch { }
         });
     }, []);
 
@@ -414,12 +412,9 @@ const CommentsBottomSheet = ({ isVisible, postData, commentsBottomSheetExpandFla
                 </BottomSheet>
             </Reanimated.View>
             {/* Keep footer mounted to preserve TextInput state across post updates/likes */}
-            <RNAnimated.View
+            <Reanimated.View
                 pointerEvents={isVisible && !!postPid ? 'box-none' : 'none'}
-                style={[
-                    styles.footer,
-                    { opacity: footerOpacity, transform: [{ translateY: RNAnimated.add(RNAnimated.add(footerTranslateY, footerIntroY), footerDragY) }] }
-                ]}
+                style={[styles.footer, footerAnimatedStyle]}
             >
                 <View style={styles.inputContainer}>
                     <View style={styles.image_ctnr}>
@@ -446,7 +441,7 @@ const CommentsBottomSheet = ({ isVisible, postData, commentsBottomSheetExpandFla
                         <Ionicons name="send" size={dynamicStyles.sendButtonSize} color="#E5E7EB" />
                     </Pressable>
                 </View>
-            </RNAnimated.View>
+            </Reanimated.View>
         </KeyboardAvoidingView>
     );
 };

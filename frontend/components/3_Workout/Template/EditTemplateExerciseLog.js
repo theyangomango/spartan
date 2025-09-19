@@ -1,7 +1,7 @@
 import React, { useState, useRef } from "react";
 import { View, StyleSheet, Text, Pressable, Image, Animated, Dimensions } from "react-native";
 import scaleSize from "../../../helper/scaleSize";
-import { MaterialCommunityIcons, Entypo } from '@expo/vector-icons';
+import { Entypo } from '@expo/vector-icons';
 import RNBounceable from "@freakycoder/react-native-bounceable";
 import ExerciseOptionsPanel from "../NewWorkout/Tracking/ExerciseOptionsPanel";
 import TemplateSetRow from "./TemplateSetRow";
@@ -94,9 +94,8 @@ export default function EditTemplateExerciseLog({ name, muscle, exerciseIndex, u
             </Animated.View>
             <Animated.View style={[styles.add_set_btn_ctnr, { opacity: fadeAnim }]}>
                 <RNBounceable activeOpacity={0.5} onPress={addSet} style={styles.add_set_btn}>
-                    <Entypo name="plus" size={scaledSize(18)} color={theme.textPrimary} />
+                    <Entypo name="plus" size={scaledSize(18)} color={theme.primary} />
                     <Text style={styles.add_set_text}>Add Set</Text>
-                    <MaterialCommunityIcons name="arm-flex" size={scaledSize(20)} color={theme.muted} />
                 </RNBounceable>
             </Animated.View>
         </View>
@@ -159,10 +158,22 @@ const styles = StyleSheet.create({
         width: '18%',
         alignItems: 'center',
     },
-    label_text: { fontFamily: 'Mulish_800ExtraBold', fontSize: scaleSize(14), color: theme.textSecondary },
+    label_text: { fontFamily: 'Mulish_800ExtraBold', fontSize: scaleSize(15), color: theme.textPrimary },
     add_set_btn_ctnr: {
         paddingHorizontal: scaleSize(scaledSize(20)),
     },
-    add_set_btn: { width: '100%', marginTop: scaleSize(scaledSize(8)), alignSelf: 'center', height: scaleSize(scaledSize(30)), borderRadius: scaleSize(scaledSize(20)), backgroundColor: theme.field, justifyContent: 'center', alignItems: 'center', flexDirection: 'row' },
+    add_set_btn: {
+        width: '100%',
+        marginTop: scaleSize(scaledSize(8)),
+        alignSelf: 'center',
+        height: scaleSize(scaledSize(30)),
+        borderRadius: scaleSize(scaledSize(20)),
+        backgroundColor: theme.restPillBg,
+        borderWidth: StyleSheet.hairlineWidth,
+        borderColor: theme.primaryHairline,
+        justifyContent: 'center',
+        alignItems: 'center',
+        flexDirection: 'row',
+    },
     add_set_text: { fontFamily: 'Outfit_600SemiBold', color: theme.textPrimary, fontSize: scaleSize(15), marginLeft: scaleSize(scaledSize(1)), marginRight: scaleSize(scaledSize(5)) },
 });
