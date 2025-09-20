@@ -8,6 +8,7 @@ import incrementDocValue from "../../../../backend/helper/firebase/incrementDocV
 import updateDoc from "../../../../backend/helper/firebase/updateDoc";
 import sendNotification from "../../../../backend/sendNotification";
 import { getCommentsBottomSheetStyles } from "../../../helper/getCommentsBottomSheetStyles";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import scaleSize from "../../../helper/scaleSize";
 import CommentsInputRow from "./CommentsInputRow";
@@ -43,6 +44,15 @@ const CommentsBottomSheet = ({ isVisible, postData, commentsBottomSheetExpandFla
     const [inputText, setInputText] = useState('');
     const [replyingToIndex, setReplyingToIndex] = useState(null);
     const textInputRef = useRef(null);
+    const insets = useSafeAreaInsets();
+    const safeBottomInset = useMemo(() => Math.max(insets.bottom || 0, scaleSize(6)), [insets.bottom]);
+    const footerBaseStyle = useMemo(() => ({
+        paddingBottom: safeBottomInset - scaleSize(12),
+        paddingTop: scaleSize(2),
+        minHeight: dynamicStyles.inputHeight + safeBottomInset + scaleSize(4),
+        borderTopLeftRadius: scaleSize(40),
+        borderTopRightRadius: scaleSize(40),
+    }), [dynamicStyles.inputHeight, safeBottomInset]);
 
     const getSnapPointPx = useCallback((point) => {
         if (point == null) return 0;
@@ -152,33 +162,45 @@ const CommentsBottomSheet = ({ isVisible, postData, commentsBottomSheetExpandFla
         if (isVisible && hasPost && containerReady) {
             pendingCloseRef.current = false;
             sheetTranslateY.value = 0;
+
+            const containerH = containerHRef.current || (SCREEN_HEIGHT - scaleSize(85));
+            const defaultPx = getSnapPointPx(snapPoints[0]);
+            const targetHeight = typeof openPositionPx === 'number'
+                ? Math.max(0, Math.min(containerH, openPositionPx))
+                : defaultPx;
+
+            sheetOpenHeight.value = targetHeight;
+
             const open = () => {
                 try {
-                    if (typeof openPositionPx === 'number') {
-                        const h = containerHRef.current || (SCREEN_HEIGHT - scaleSize(85));
-                        const desired = Math.max(0, Math.min(h, openPositionPx));
-                        sheetOpenHeight.value = desired;
-                        bottomSheetRef.current?.snapToPosition?.(desired, { duration: SHEET_OPEN_MS });
+                    if (typeof openPositionPx === 'number' && bottomSheetRef.current?.snapToPosition) {
+                        bottomSheetRef.current.snapToPosition(targetHeight, { duration: SHEET_OPEN_MS });
                     } else {
-                        const defaultPx = getSnapPointPx(snapPoints[0]);
-                        sheetOpenHeight.value = defaultPx;
                         bottomSheetRef.current?.snapToIndex?.(0, { duration: SHEET_OPEN_MS });
                     }
                 } catch { }
             };
-            requestAnimationFrame(open);
-            // footer entrance animation
+
+            try { requestAnimationFrame(open); } catch { open(); }
+
             footerOpacity.value = 0;
             footerIntroY.value = 10;
+            footerDragY.value = 0;
             footerOpacity.value = withTiming(1, { duration: 220 });
             footerIntroY.value = withTiming(0, { duration: 260 });
+
         } else {
             pendingCloseRef.current = false;
+            if (!isVisible || !hasPost) {
+                try { textInputRef.current?.blur?.(); } catch { }
+            }
             const fallback = resolveOpenHeight();
             sheetOpenHeight.value = fallback;
             sheetTranslateY.value = fallback;
-            bottomSheetRef.current?.close();
+            try { bottomSheetRef.current?.close?.(); } catch { }
             footerOpacity.value = withTiming(0, { duration: 120 });
+            footerIntroY.value = withTiming(0, { duration: 180 });
+            footerDragY.value = withTiming(0, { duration: 180 });
         }
     }, [
         containerReady,
@@ -190,6 +212,9 @@ const CommentsBottomSheet = ({ isVisible, postData, commentsBottomSheetExpandFla
         sheetOpenHeight,
         sheetTranslateY,
         snapPoints,
+        footerDragY,
+        footerIntroY,
+        footerOpacity,
     ]);
 
     // Emit a small open signal after the sheet has animated in
@@ -206,6 +231,7 @@ const CommentsBottomSheet = ({ isVisible, postData, commentsBottomSheetExpandFla
         if (isClosingRef.current) return;
         isClosingRef.current = true;
         pendingCloseRef.current = false;
+        try { textInputRef.current?.blur?.(); } catch { }
         try {
             if (bottomSheetRef.current?.snapToPosition) {
                 bottomSheetRef.current.snapToPosition(0, { duration });
@@ -215,7 +241,7 @@ const CommentsBottomSheet = ({ isVisible, postData, commentsBottomSheetExpandFla
         } catch { }
         sheetTranslateY.value = sheetOpenHeight.value;
         // Leave reset to callers so we don't resnap after closing
-    }, [footerOpacity, sheetOpenHeight, sheetTranslateY]);
+    }, [sheetOpenHeight, sheetTranslateY]);
 
     useEffect(() => {
         if (!isVisible || !postPid) return;
@@ -305,8 +331,9 @@ const CommentsBottomSheet = ({ isVisible, postData, commentsBottomSheetExpandFla
 
     // Expand the bottom sheet when flagged
     useEffect(() => {
-        try { bottomSheetRef.current?.snapToIndex?.(1, { duration: SHEET_OPEN_MS }); } catch { try { bottomSheetRef.current?.expand?.(); } catch { } }
-    }, [commentsBottomSheetExpandFlag]);
+        if (!isVisible || !postPid) return;
+        try { bottomSheetRef.current?.snapToIndex?.(0, { duration: SHEET_OPEN_MS }); } catch { try { bottomSheetRef.current?.snapToPosition?.(getSnapPointPx(snapPoints[0]), { duration: SHEET_OPEN_MS }); } catch { } }
+    }, [commentsBottomSheetExpandFlag, getSnapPointPx, isVisible, postPid, snapPoints]);
 
     useEffect(() => {
         if (replyingToIndex != null) {
@@ -413,7 +440,7 @@ const CommentsBottomSheet = ({ isVisible, postData, commentsBottomSheetExpandFla
             {/* Keep footer mounted to preserve TextInput state across post updates/likes */}
             <Reanimated.View
                 pointerEvents={isVisible && !!postPid ? 'box-none' : 'none'}
-                style={[styles.footer, footerAnimatedStyle]}
+                style={[styles.footer, footerBaseStyle, footerAnimatedStyle]}
             >
                 <CommentsInputRow
                     inputRef={textInputRef}
@@ -452,12 +479,9 @@ const styles = StyleSheet.create({
     },
     footer: {
         position: 'absolute',
-        top: scaleSize(SCREEN_HEIGHT - 180),
-        height: scaleSize(95 + SCREEN_WIDTH / 2),
-        paddingBottom: scaleSize(SCREEN_WIDTH / 2),
+        bottom: 0,
         backgroundColor: theme.surface,
         width: '100%',
-        borderRadius: scaleSize(40)
     },
 });
 

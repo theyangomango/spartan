@@ -9,8 +9,8 @@ const useInputStyles = (dynamicStyles) => useMemo(() => ({
     container: {
         flex: 1,
         marginHorizontal: scaleSize(18),
-        marginTop: scaleSize(14),
-        marginBottom: scaleSize(26),
+        marginTop: scaleSize(8),
+        marginBottom: scaleSize(10),
         backgroundColor: theme.field,
         borderRadius: scaleSize(30),
         flexDirection: 'row',
