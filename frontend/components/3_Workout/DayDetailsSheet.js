@@ -156,14 +156,24 @@ const HistoryCalendarModal = memo(function HistoryCalendarModal({
 }) {
     const insets = useSafeAreaInsets();
     const listRef = useRef(null);
+    const monthsCacheRef = useRef({ key: null, months: [] });
 
-    const marksArray = useMemo(() => {
-        if (!markedDayKeys) return [];
-        if (markedDayKeys instanceof Set) return Array.from(markedDayKeys);
-        if (Array.isArray(markedDayKeys)) return markedDayKeys.slice();
-        if (typeof markedDayKeys === 'object') return Object.keys(markedDayKeys || {});
-        return [];
+    const marksSet = useMemo(() => {
+        if (!markedDayKeys) return new Set();
+        if (markedDayKeys instanceof Set) return markedDayKeys;
+        if (Array.isArray(markedDayKeys)) return new Set(markedDayKeys);
+        if (typeof markedDayKeys === 'object') return new Set(Object.keys(markedDayKeys || {}));
+        return new Set();
     }, [markedDayKeys]);
+
+    const marksSignature = useMemo(() => {
+        if (!marksSet?.size) return 'empty';
+        try {
+            return Array.from(marksSet).sort().join('|');
+        } catch {
+            return 'marks';
+        }
+    }, [marksSet]);
 
     const normalizedSelectedDate = useMemo(() => {
         if (!selectedDate) return null;
@@ -173,10 +183,30 @@ const HistoryCalendarModal = memo(function HistoryCalendarModal({
         return next;
     }, [selectedDate]);
 
+    const selectedSignature = normalizedSelectedDate ? String(normalizedSelectedDate.getTime()) : 'null';
+
+    const monthsCacheKey = useMemo(() => `${marksSignature}|${selectedSignature}`, [marksSignature, selectedSignature]);
+
     const months = useMemo(() => {
-        const set = new Set(marksArray);
-        return buildCalendarMonths(normalizedSelectedDate, set);
-    }, [marksArray, normalizedSelectedDate]);
+        if (monthsCacheRef.current.key === monthsCacheKey && monthsCacheRef.current.months.length) {
+            return monthsCacheRef.current.months;
+        }
+        const computed = buildCalendarMonths(normalizedSelectedDate, marksSet);
+        monthsCacheRef.current = { key: monthsCacheKey, months: computed };
+        return computed;
+    }, [monthsCacheKey, normalizedSelectedDate, marksSet]);
+
+    const currentScrollKeyRef = useRef(null);
+    const monthOffsetsRef = useRef(new Map());
+    useEffect(() => {
+        currentScrollKeyRef.current = null;
+        monthOffsetsRef.current = new Map();
+    }, [monthsCacheKey]);
+    useEffect(() => {
+        if (!visible) {
+            currentScrollKeyRef.current = null;
+        }
+    }, [visible]);
 
     const targetMonthIndex = useMemo(() => {
         if (!months.length) return 0;
@@ -202,18 +232,31 @@ const HistoryCalendarModal = memo(function HistoryCalendarModal({
     }, [onSelectDate]);
 
     useEffect(() => {
-        if (!visible || !listRef.current || !months.length) return;
-        const index = Math.max(0, Math.min(targetMonthIndex, months.length - 1));
-        requestAnimationFrame(() => {
-            try {
-                listRef.current?.scrollToIndex?.({ index, animated: false });
-            } catch (e) {
-                setTimeout(() => {
-                    try { listRef.current?.scrollToIndex?.({ index, animated: false }); } catch { }
-                }, 16);
+        if (!visible || !months.length) return;
+        const targetMonth = months[targetMonthIndex];
+        if (!targetMonth) return;
+        const targetKey = `${monthsCacheKey}|${targetMonth.monthIndex}`;
+        if (currentScrollKeyRef.current === targetKey) return;
+        let attempts = 0;
+        const maxAttempts = 10;
+
+        const scroll = () => {
+            const ref = listRef.current;
+            const offset = monthOffsetsRef.current.get(targetMonth.monthIndex);
+            if (!ref || offset === undefined) {
+                if (attempts++ < maxAttempts) requestAnimationFrame(scroll);
+                return;
             }
-        });
-    }, [visible, targetMonthIndex, months.length]);
+            try {
+                ref.scrollToOffset({ offset, animated: false });
+                currentScrollKeyRef.current = targetKey;
+            } catch (err) {
+                if (attempts++ < maxAttempts) setTimeout(scroll, 30);
+            }
+        };
+
+        requestAnimationFrame(scroll);
+    }, [visible, targetMonthIndex, months.length, monthsCacheKey]);
 
     return (
         <Modal
@@ -264,8 +307,21 @@ const HistoryCalendarModal = memo(function HistoryCalendarModal({
                             keyExtractor={(item) => String(item.monthIndex)}
                             showsVerticalScrollIndicator={false}
                             contentContainerStyle={styles.calendarScrollContent}
+                            initialNumToRender={months.length}
+                            maxToRenderPerBatch={months.length}
+                            windowSize={months.length + 2}
+                            updateCellsBatchingPeriod={16}
+                            removeClippedSubviews={false}
                             renderItem={({ item }) => (
-                                <View style={styles.calendarMonthBlock}>
+                                <View
+                                    style={styles.calendarMonthBlock}
+                                    onLayout={(event) => {
+                                        const { y } = event.nativeEvent.layout || {};
+                                        if (typeof y === 'number') {
+                                            monthOffsetsRef.current.set(item.monthIndex, y);
+                                        }
+                                    }}
+                                >
                                     <Text style={styles.calendarMonthLabel}>{item.label}</Text>
                                     <View style={styles.calendarGrid}>
                                         {item.cells.map((cell, idx) => {
@@ -305,11 +361,7 @@ const HistoryCalendarModal = memo(function HistoryCalendarModal({
                                     </View>
                                 </View>
                             )}
-                            onScrollToIndexFailed={({ index }) => {
-                                setTimeout(() => {
-                                    try { listRef.current?.scrollToIndex?.({ index, animated: false }); } catch { }
-                                }, 32);
-                            }}
+                            onScrollToIndexFailed={() => {}}
                         />
                     </View>
                 </View>
@@ -1162,7 +1214,7 @@ const styles = StyleSheet.create({
         width: scaleSize(34),
         height: scaleSize(34),
         borderRadius: scaleSize(12),
-        backgroundColor: theme.field,
+        backgroundColor: '#39414fff',
         alignItems: 'center',
         justifyContent: 'center',
     },
@@ -1209,7 +1261,7 @@ const styles = StyleSheet.create({
         backgroundColor: theme.fieldDeep,
     },
     calendarDayLogged: {
-        backgroundColor: 'rgba(45,158,255,0.18)',
+        backgroundColor: 'rgba(45, 158, 255, 0.26)',
     },
     calendarDayToday: {
         borderWidth: StyleSheet.hairlineWidth,

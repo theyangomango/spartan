@@ -59,5 +59,5 @@ const styles = StyleSheet.create({
   title: { flex: 1, fontFamily: 'Nunito_800ExtraBold', fontSize: scaleSize(16), color: theme.textPrimary, textAlign: 'center', marginTop: scaleSize(2) },
   dateNavBtn: { width: scaleSize(36), height: scaleSize(36), alignItems: 'center', justifyContent: 'center' },
   trailingGroup: { flexDirection: 'row', alignItems: 'center', justifyContent: 'flex-end', width: scaleSize(74) },
-  calendarBtn: { marginLeft: scaleSize(2) },
+  calendarBtn: { marginRight: scaleSize(4) },
 });
