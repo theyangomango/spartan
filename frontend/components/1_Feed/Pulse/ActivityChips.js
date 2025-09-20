@@ -136,12 +136,12 @@ export default function ActivityChips({
         const fromLive = Array.from(map.values()).flat();
         // Only show followed users' pulses (exclude self) and supported types
         const filtered = fromLive.filter(
-            (e) => (e?.type === "workout" || e?.type === "leaderboard") && String(e?.uid || "") !== selfUid
+            (e) => e?.type === "workout" && String(e?.uid || "") !== selfUid
         );
         const base =
             filtered.length === 0 && Array.isArray(fallbackItems) && fallbackItems.length
                 ? fallbackItems.filter(
-                      (e) => (e?.type === "workout" || e?.type === "leaderboard") && String(e?.uid || "") !== selfUid
+                      (e) => e?.type === "workout" && String(e?.uid || "") !== selfUid
                   )
                 : filtered;
         return base.sort((a, b) => toMillis(b.ts) - toMillis(a.ts));
@@ -161,8 +161,14 @@ export default function ActivityChips({
                 removeClippedSubviews={false}
                 style={styles.list}
                 contentContainerStyle={styles.listContent}
-                renderItem={({ item }) => (
-                    <Chip ev={item} navigation={navigation} onPressChip={onPressChip} />
+                renderItem={({ item, index }) => (
+                    <Chip
+                        ev={item}
+                        index={index}
+                        items={items}
+                        navigation={navigation}
+                        onPressChip={onPressChip}
+                    />
                 )}
             />
         </View>
@@ -174,7 +180,7 @@ const AVATAR = ss(38);
 const BADGE = ss(21);
 const CHIP_H = AVATAR + ss(28);
 
-function Chip({ ev, navigation, onPressChip }) {
+function Chip({ ev, index, items, navigation, onPressChip }) {
     const tint = styleFor(ev?.type);
     const timeMs = toMillis(ev?.ts);
     const rel = timeMs ? relTime(timeMs) : "";
@@ -185,7 +191,12 @@ function Chip({ ev, navigation, onPressChip }) {
     const { text, emphasize } = buildPrimary(ev);
 
     const handlePress = () => {
-        if (onPressChip) return onPressChip(ev);
+        if (onPressChip) {
+            try { return onPressChip(ev, index, items); }
+            catch (e) {
+                console.log('[ActivityChips] onPressChip error', e);
+            }
+        }
 
         // If this chip represents a workout event, jump to the Workout tab
         // and request the FriendsActivitySheet to open.

@@ -702,7 +702,7 @@ function NutritionFacts({ extras }) {
 }
 
 const styles = StyleSheet.create({
-    header: { height: scaleSize(52), flexDirection: 'row', alignItems: 'center', paddingHorizontal: scaleSize(8) },
+    header: { height: scaleSize(36), flexDirection: 'row', alignItems: 'center', paddingHorizontal: scaleSize(8) },
     backBtn: {
         width: scaleSize(42),
         height: scaleSize(42),

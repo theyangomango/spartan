@@ -1,7 +1,8 @@
 import React, { useCallback, useEffect, useMemo, useRef, memo, useState } from "react";
-import { View, StyleSheet, InteractionManager, Animated } from "react-native";
+import { View, StyleSheet, InteractionManager, Animated, ActivityIndicator } from "react-native";
 import { useNavigation } from "@react-navigation/native";
 import BottomSheet, { BottomSheetBackdrop } from "@gorhom/bottom-sheet";
+import PagerView from "react-native-pager-view";
 import NewWorkoutModal from "../../3_Workout/NewWorkout/NewWorkoutModal";
 import { getDoc, doc } from "firebase/firestore";
 import { db } from "../../../../firebase.config";
@@ -19,26 +20,66 @@ const HANDLE_FRIEND_BACKGROUND = "#e0a4002c";
 // Not full-screen; slides up to ~94% height. Locked to friend/past view.
 const FeedWorkoutViewerSheet = ({
   expandToggle,
+  items: itemsProp,
+  activeIndex = 0,
+  onChangeIndex,
   workout,
   friendUid,
   friendPfp,
   onClose,
 }) => {
   const bottomSheetRef = useRef(null);
+  const pagerRef = useRef(null);
   const snapPoints = useMemo(() => ["94%"], []);
   const timerRef = useRef("");
   const [mountContent, setMountContent] = useState(false);
   const toastAnim = useRef(new Animated.Value(0)).current;
   const [toastText, setToastText] = useState("Template added");
   const navigation = useNavigation();
+  const [currentIndex, setCurrentIndex] = useState(() => Math.max(0, Math.min(activeIndex, (Array.isArray(itemsProp) && itemsProp.length ? itemsProp.length - 1 : 0))));
+  const [, setStatsTick] = useState(0);
 
-  // Flip expandToggle to open the sheet; handle first toggle as well.
+  const items = useMemo(() => {
+    if (Array.isArray(itemsProp) && itemsProp.length) return itemsProp;
+    if (workout) {
+      const friendUidEff = String(friendUid || workout?.__friendUid || workout?.creatorUID || workout?.creatorUid || "");
+      const friendPfpEff = friendPfp || workout?.__friendPfp || null;
+      const friendPfpVersionEff = workout?.__friendPfpVersion ?? workout?.friendPfpVersion ?? workout?.pfpVersion ?? 0;
+      const key = `${friendUidEff || "viewer"}:${workout?.wid || workout?.id || "wk"}`;
+      return [{
+        key,
+        workout,
+        friendUid: friendUidEff,
+        friendPfp: friendPfpEff,
+        friendPfpVersion: friendPfpVersionEff,
+        chip: null,
+      }];
+    }
+    return [];
+  }, [itemsProp, workout, friendUid, friendPfp]);
+
   useEffect(() => {
-    if (!workout) return; // don't expand unless we have content
-    // Mount core content right away to avoid perceived delay, rely on virtualization for smoothness
+    if (!items.length) {
+      setMountContent(false);
+      return;
+    }
     setMountContent(true);
     requestAnimationFrame(() => bottomSheetRef.current?.expand());
-  }, [expandToggle, workout]);
+  }, [expandToggle, items.length]);
+
+  useEffect(() => {
+    if (!items.length) return;
+    const target = Math.max(0, Math.min(activeIndex, items.length - 1));
+    setCurrentIndex(target);
+    requestAnimationFrame(() => {
+      const pager = pagerRef.current;
+      if (!pager) return;
+      try {
+        if (typeof pager.setPageWithoutAnimation === "function") pager.setPageWithoutAnimation(target);
+        else if (typeof pager.setPage === "function") pager.setPage(target);
+      } catch {}
+    });
+  }, [activeIndex, items]);
 
   const renderBackdrop = useCallback(
     (props) => (
@@ -60,35 +101,35 @@ const FeedWorkoutViewerSheet = ({
   // Cheer is a no-op in feed context (could be wired later)
   const noop = useCallback(() => {}, []);
 
-  const friendUidEff = String(friendUid || workout?.__friendUid || workout?.creatorUID || workout?.creatorUid || "");
-  const friendPfpEff = friendPfp || workout?.__friendPfp || null;
+  const friendStatsCacheRef = useRef(new Map());
+  const pendingStatsRef = useRef(new Set());
 
-  // Fetch friend stats once for accurate "Previous" in read-only viewer (no live stream here)
-  const friendStatsRef = useRef(null);
-  const pendingFetchRef = useRef(0);
-  // Fetch friend stats once per friend after the sheet is opened to avoid competing with animation
-  const fetchFriendStats = useCallback(async () => {
-    const key = `${friendUidEff}`;
-    if (!friendUidEff) return;
-    // ensure only one in-flight
-    if (pendingFetchRef.current && pendingFetchRef.current === key) return;
-    pendingFetchRef.current = key;
+  const fetchFriendStats = useCallback(async (uid) => {
+    const key = String(uid || "");
+    if (!key) return;
+    if (friendStatsCacheRef.current.has(key) || pendingStatsRef.current.has(key)) return;
+    pendingStatsRef.current.add(key);
     try {
-      const snap = await getDoc(doc(db, "users", friendUidEff));
+      const snap = await getDoc(doc(db, "users", key));
       const data = snap.exists() ? (snap.data() || {}) : {};
-      friendStatsRef.current = data?.statsExercises || null;
+      friendStatsCacheRef.current.set(key, data?.statsExercises || null);
+      setStatsTick((tick) => (tick + 1) % 1_000_000);
     } catch {}
-  }, [friendUidEff]);
+    finally {
+      pendingStatsRef.current.delete(key);
+    }
+  }, []);
 
   const handleSheetChange = useCallback((index) => {
     if (index >= 0) {
       setMountContent(true);
-      // Best-effort: fetch in background after interactions; doesn't block paint
-      InteractionManager.runAfterInteractions(() => { fetchFriendStats(); });
+      const entry = items[Math.max(0, Math.min(currentIndex, items.length - 1))];
+      const uid = entry?.friendUid || entry?.workout?.__friendUid || entry?.workout?.creatorUID || entry?.workout?.creatorUid;
+      if (uid) InteractionManager.runAfterInteractions(() => { fetchFriendStats(uid); });
     } else {
       setMountContent(false);
     }
-  }, [fetchFriendStats]);
+  }, [items, currentIndex, fetchFriendStats]);
 
   const showToast = useCallback((msg) => {
     setToastText(msg || "Template added");
@@ -128,6 +169,18 @@ const FeedWorkoutViewerSheet = ({
     }
   }, [showToast]);
 
+  useEffect(() => {
+    const entry = items[Math.max(0, Math.min(currentIndex, items.length - 1))];
+    const uid = entry?.friendUid || entry?.workout?.__friendUid || entry?.workout?.creatorUID || entry?.workout?.creatorUid;
+    if (uid) InteractionManager.runAfterInteractions(() => { fetchFriendStats(uid); });
+  }, [items, currentIndex, fetchFriendStats]);
+
+  const handlePageSelected = useCallback((event) => {
+    const idx = event?.nativeEvent?.position ?? 0;
+    setCurrentIndex(idx);
+    onChangeIndex?.(idx);
+  }, [onChangeIndex]);
+
   return (
     <View style={styles.outer} pointerEvents="box-none">
       <BottomSheet
@@ -144,43 +197,72 @@ const FeedWorkoutViewerSheet = ({
         handleIndicatorStyle={{ backgroundColor: HANDLE_FRIEND_ACCENT }}
         handleStyle={{ backgroundColor: HANDLE_FRIEND_BACKGROUND }}
       >
-        {workout && mountContent && (
+        {mountContent && items.length > 0 && (
           <>
-          <NewWorkoutModal
-            timerRef={timerRef}
-            workout={workout}
-            // Read-only: no editing/finishing
-            cancelWorkout={noop}
-            updateWorkout={noop}
-            finishWorkout={noop}
-            showGroupModal={noop}
-            userWorkoutStats={friendStatsRef.current || undefined}
-            onPressBack={handleBack}
-            onCheer={noop}
-            onCopyTemplate={handleCopyTemplate}
-            onPressPfp={() => {
-              try { bottomSheetRef.current?.close(); } catch {}
-              if (!friendUidEff) return;
-              const meUid = String(global?.userData?.uid || "");
-              const rootNav = navigation?.getParent?.('ROOT');
-              if (friendUidEff === meUid) {
-                if (rootNav?.navigate) rootNav.navigate('Profile', { transition: 'slide-from-right' });
-                else navigation.navigate('Profile', { transition: 'slide-from-right' });
-              } else {
-                if (rootNav?.navigate) rootNav.navigate('ViewProfile', { user: { uid: friendUidEff } });
-                else navigation.navigate('ViewProfile', { user: { uid: friendUidEff } });
-              }
-            }}
-            // Hard-lock friend view so controls are read-only
-            forceViewingFriend={friendUidEff}
-            friendPfp={friendPfpEff}
-            // No live stream for past workouts (avoids extra listeners)
-            streamLive={false}
-          />
-          {/* Copy Template toast centered near top of sheet */}
-          <View pointerEvents="none" style={styles.toastWrap}>
-            <CopyTemplateToast anim={toastAnim} text={toastText} />
-          </View>
+            <PagerView
+              ref={pagerRef}
+              style={styles.pager}
+              initialPage={Math.max(0, Math.min(currentIndex, items.length - 1))}
+              onPageSelected={handlePageSelected}
+            >
+              {items.map((item, idx) => {
+                const key = item?.key || `${idx}`;
+                const workoutEntry = item?.workout || null;
+                const friendUidEff = String(
+                  item?.friendUid ||
+                  workoutEntry?.__friendUid ||
+                  workoutEntry?.creatorUID ||
+                  workoutEntry?.creatorUid ||
+                  ""
+                );
+                const friendPfpEff = item?.friendPfp || workoutEntry?.__friendPfp || null;
+                const friendPfpVersionEff = item?.friendPfpVersion ?? workoutEntry?.__friendPfpVersion ?? workoutEntry?.friendPfpVersion ?? 0;
+                const stats = friendUidEff ? friendStatsCacheRef.current.get(friendUidEff) || undefined : undefined;
+
+                return (
+                  <View key={key} style={styles.page} collapsable={false}>
+                    {workoutEntry ? (
+                      <NewWorkoutModal
+                        timerRef={timerRef}
+                        workout={workoutEntry}
+                        cancelWorkout={noop}
+                        updateWorkout={noop}
+                        finishWorkout={noop}
+                        showGroupModal={noop}
+                        userWorkoutStats={stats}
+                        onPressBack={handleBack}
+                        onCheer={noop}
+                        onCopyTemplate={handleCopyTemplate}
+                        onPressPfp={() => {
+                          try { bottomSheetRef.current?.close(); } catch {}
+                          if (!friendUidEff) return;
+                          const meUid = String(global?.userData?.uid || "");
+                          const rootNav = navigation?.getParent?.('ROOT');
+                          if (friendUidEff === meUid) {
+                            if (rootNav?.navigate) rootNav.navigate('Profile', { transition: 'slide-from-right' });
+                            else navigation.navigate('Profile', { transition: 'slide-from-right' });
+                          } else {
+                            if (rootNav?.navigate) rootNav.navigate('ViewProfile', { user: { uid: friendUidEff } });
+                            else navigation.navigate('ViewProfile', { user: { uid: friendUidEff } });
+                          }
+                        }}
+                        forceViewingFriend={friendUidEff || false}
+                        friendPfp={friendPfpEff}
+                        friendPfpVersion={friendPfpVersionEff}
+                        streamLive={false}
+                      />
+                    ) : (
+                      <View style={styles.loadingWrap}>
+                        <ActivityIndicator size="large" color={theme.primary || '#fff'} />
+                      </View>
+                    )}
+                  </View>
+                );
+              })}
+            </PagerView>
+            <View pointerEvents="none" style={styles.toastWrap}>
+              <CopyTemplateToast anim={toastAnim} text={toastText} />
+            </View>
           </>
         )}
       </BottomSheet>
@@ -197,6 +279,17 @@ const styles = StyleSheet.create({
     bottom: 0,
     zIndex: 999,
   },
+  pager: {
+    flex: 1,
+  },
+  page: {
+    flex: 1,
+  },
+  loadingWrap: {
+    flex: 1,
+    alignItems: "center",
+    justifyContent: "center",
+  },
   // Position toast near the top of the sheet content
   toastWrap: {
     position: "absolute",
@@ -208,6 +301,12 @@ const styles = StyleSheet.create({
   },
 });
 
-const areEqual = (prev, next) => prev.expandToggle === next.expandToggle && prev.workout === next.workout;
+const areEqual = (prev, next) =>
+  prev.expandToggle === next.expandToggle &&
+  prev.items === next.items &&
+  prev.activeIndex === next.activeIndex &&
+  prev.workout === next.workout &&
+  prev.friendUid === next.friendUid &&
+  prev.friendPfp === next.friendPfp;
 
 export default memo(FeedWorkoutViewerSheet, areEqual);

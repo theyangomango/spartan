@@ -1,7 +1,6 @@
 // components/3_Workout/sections/StartCluster.jsx
 import React, { memo } from "react";
 import { View, Pressable, StyleSheet, Platform, Animated } from "react-native";
-import { AddSquare } from "iconsax-react-native";
 import { Feather } from "@expo/vector-icons";
 import LiveStack from "../LiveStack";
 import StartOpenButton from "../ui/StartOpenButton";
@@ -11,7 +10,6 @@ import theme from "../../../theme/mfpDark";
 import scaleSize from "../../../helper/scaleSize";
 
 const StartCluster = ({
-    navigation,
     scaleAnim,
     hasActiveWorkout,
     onStartWorkout,
@@ -19,6 +17,7 @@ const StartCluster = ({
     onOpenFriends,
     hasNewFriendsUpdates,
     friendsStackUsers,
+    onOpenDayDetails,
 }) => {
     const scale = scaleAnim || new Animated.Value(1);
     const showStack =
@@ -27,17 +26,17 @@ const StartCluster = ({
     return (
         <View style={styles.wrap} pointerEvents="box-none">
             <View style={styles.actionsRow} pointerEvents="box-none">
-                {/* Make a Post */}
+                {/* Day details / history */}
                 <View style={styles.glowWrap} pointerEvents="box-none">
                     <Pressable
                         hitSlop={8}
                         android_ripple={{ color: "rgba(255,255,255,0.08)", radius: SMALL_SIZE / 2, borderless: true }}
                         accessibilityRole="button"
-                        accessibilityLabel="Create a post"
+                        accessibilityLabel="View workout history details"
                         style={({ pressed }) => [styles.smallBtn, styles.smallBtnBump, pressed && styles.smallBtnPressed]}
-                        onPress={() => { navigation?.navigate('SelectPhotos'); }}
+                        onPress={() => onOpenDayDetails?.()}
                     >
-                        <AddSquare size={24} color="#E5E7EB" />
+                        <Feather name="calendar" size={22} color="#E5E7EB" />
                     </Pressable>
                 </View>
 

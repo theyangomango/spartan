@@ -18,6 +18,7 @@ export default function FeedHeaderOverlay({
   allUsersRef,
   activeWorkout,
   timerRef,
+  onPressActivityChip,
   // animated shared values and styles
   overlayHeaderStyle,
   normalHeaderOpacityStyle,
@@ -96,7 +97,7 @@ export default function FeedHeaderOverlay({
           }}
           style={chipsOpacityStyle}
         >
-          <ActivityChips navigation={navigation} />
+          <ActivityChips navigation={navigation} onPressChip={onPressActivityChip} />
         </Reanimated.View>
       </Reanimated.View>
 
@@ -124,4 +125,3 @@ export default function FeedHeaderOverlay({
     </>
   );
 }
-

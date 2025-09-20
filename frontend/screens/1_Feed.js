@@ -31,6 +31,9 @@ import MaskedView from "@react-native-masked-view/masked-view";
 import useFeedUserData from "./feed/hooks/useFeedUserData";
 import { FeedFocusProvider } from "./feed/hooks/FeedFocusContext";
 import useFeedUnfocusGesture from "./feed/hooks/useFeedUnfocusGesture";
+import { toMillis as toMillisSafe } from "../utils/friends";
+import { doc, getDoc } from "firebase/firestore";
+import { db } from "../../firebase.config";
 import {
     TARGET_POSITION,
     FOCUS_ANIMATION_DURATION as ANIMATION_DURATION,
@@ -72,9 +75,8 @@ export default function Feed({ navigation, route }) {
     const [commentsReopenSignal, setCommentsReopenSignal] = useState(0);
     // Pre-mounted bottom sheet viewer for workouts
     const [feedWorkoutExpandToggle, setFeedWorkoutExpandToggle] = useState(false);
-    const [feedSelectedWorkout, setFeedSelectedWorkout] = useState(null);
-    const [feedSelectedFriendUid, setFeedSelectedFriendUid] = useState("");
-    const [feedSelectedFriendPfp, setFeedSelectedFriendPfp] = useState(null);
+    const [feedWorkoutItems, setFeedWorkoutItems] = useState([]);
+    const [feedWorkoutActiveIndex, setFeedWorkoutActiveIndex] = useState(0);
     // Pull-to-refresh state
     const [refreshing, setRefreshing] = useState(false);
 
@@ -112,6 +114,9 @@ export default function Feed({ navigation, route }) {
     const translatingIndexRef = useRef(-1);
     const alignmentSuspendedRef = useRef(false);
     const unfocusGestureTimeoutRef = useRef(null);
+    const activityChipWorkoutCacheRef = useRef(new Map());
+    const activityChipUserWorkoutsRef = useRef(new Map());
+    const activityViewerSessionRef = useRef(0);
 
     useEffect(() => {
         focusedPostIndex.current = focusedIndexState;
@@ -714,13 +719,201 @@ export default function Feed({ navigation, route }) {
         return true;
     }, [posts, handleFocusPost]);
 
+    const chipKeyOf = (chip) => {
+        if (!chip) return "";
+        const uid = String(chip?.uid || "");
+        const widRaw =
+            chip?.workoutID ??
+            chip?.workoutId ??
+            chip?.wid ??
+            chip?.workout?.wid ??
+            chip?.workoutId ??
+            null;
+        const wid = widRaw ? String(widRaw) : "";
+        const fallbackId = chip?.id ? String(chip.id) : "";
+        return `${uid}:${wid || fallbackId}`;
+    };
+
+    const ensureUserCompletedWorkouts = useCallback(async (uid) => {
+        const key = String(uid || "");
+        if (!key) return [];
+        if (activityChipUserWorkoutsRef.current.has(key)) {
+            const cached = activityChipUserWorkoutsRef.current.get(key);
+            return Array.isArray(cached) ? cached : [];
+        }
+        try {
+            const docRef = doc(db, "users", key);
+            const snap = await getDoc(docRef);
+            const data = snap.exists() ? (snap.data() || {}) : {};
+            const arr = Array.isArray(data?.completedWorkouts) ? data.completedWorkouts : [];
+            activityChipUserWorkoutsRef.current.set(key, arr);
+            return arr;
+        } catch (e) {
+            console.log("[Feed] failed to load completedWorkouts", key, e);
+            activityChipUserWorkoutsRef.current.set(key, []);
+            return [];
+        }
+    }, []);
+
+    const ensureWorkoutForChip = useCallback(async (chip) => {
+        if (!chip) return null;
+        const cacheKey = chipKeyOf(chip);
+        if (cacheKey && activityChipWorkoutCacheRef.current.has(cacheKey)) {
+            return activityChipWorkoutCacheRef.current.get(cacheKey);
+        }
+
+        const uid = String(chip?.uid || "");
+        if (!uid) return null;
+
+        const workouts = await ensureUserCompletedWorkouts(uid);
+        const targetIdRaw =
+            chip?.workoutID ??
+            chip?.workoutId ??
+            chip?.wid ??
+            chip?.workout?.wid ??
+            null;
+        const targetId = targetIdRaw ? String(targetIdRaw) : "";
+        let match = null;
+
+        if (targetId) {
+            match = workouts.find((w) => String(w?.wid || w?.id || w?.workoutID || "") === targetId) || null;
+        }
+
+        if (!match && workouts.length) {
+            const chipMs = toMillisSafe(chip?.ts);
+            if (chipMs) {
+                const MAX_DIFF_MS = 1000 * 60 * 60 * 12; // 12h tolerance
+                let bestDiff = Number.POSITIVE_INFINITY;
+                for (const w of workouts) {
+                    const wMs = toMillisSafe(w?.finishedAt ?? w?.createdAt ?? w?.created);
+                    if (!wMs) continue;
+                    const diff = Math.abs(wMs - chipMs);
+                    if (diff < bestDiff && diff <= MAX_DIFF_MS) {
+                        bestDiff = diff;
+                        match = w;
+                    }
+                }
+            }
+        }
+
+        const base = match ? { ...match } : {
+            wid: targetId || `${uid}:${chip?.id || "chip"}`,
+            created: toMillisSafe(chip?.ts) || Date.now(),
+            exercises: [],
+            duration: 0,
+            volume: 0,
+            reps: 0,
+            PBs: 0,
+            templateName: chip?.templateName || chip?.workoutName || "Workout",
+            name: chip?.workoutName || chip?.templateName || "Workout",
+        };
+
+        const friendUid = uid;
+        const friendPfp = chip?.pfp || chip?.pfpUrl || chip?.photoURL || chip?.image || null;
+        const friendPfpVersion = chip?.pfpVersion ?? chip?.version ?? 0;
+
+        const enriched = {
+            ...base,
+            wid: base?.wid || base?.id || targetId || `${uid}:${chip?.id || "chip"}`,
+            creatorUID: String(base?.creatorUID || base?.creatorUid || base?.uid || friendUid),
+            templateName: base?.templateName || base?.template?.name || chip?.templateName || base?.name,
+            name: base?.name || base?.templateName || chip?.workoutName || chip?.templateName || "Workout",
+            exercises: Array.isArray(base?.exercises) ? base.exercises : [],
+            __friendUid: friendUid,
+            __friendPfp: friendPfp,
+            __friendPfpVersion: friendPfpVersion,
+            __chipKey: cacheKey || `${uid}:${chip?.id || "chip"}`,
+        };
+
+        if (cacheKey) {
+            activityChipWorkoutCacheRef.current.set(cacheKey, enriched);
+        }
+
+        return enriched;
+    }, [ensureUserCompletedWorkouts]);
+
+    const handlePressActivityChip = useCallback(async (chip, index = 0, items = []) => {
+        if (!chip) return;
+        const source = Array.isArray(items) ? items.filter((it) => it?.type === 'workout') : [];
+        if (!source.length) return;
+
+        const boundedIndex = Math.min(Math.max(index, 0), source.length - 1);
+        const sessionId = activityViewerSessionRef.current + 1;
+        activityViewerSessionRef.current = sessionId;
+
+        const prepared = source.map((entry) => {
+            const key = chipKeyOf(entry);
+            return {
+                key: key || `${String(entry?.uid || 'u')}:${String(entry?.id || Math.random().toString(36).slice(2))}`,
+                workout: key ? activityChipWorkoutCacheRef.current.get(key) || null : null,
+                friendUid: String(entry?.uid || ''),
+                friendPfp: entry?.pfp || entry?.pfpUrl || entry?.photoURL || entry?.image || null,
+                friendPfpVersion: entry?.pfpVersion ?? entry?.version ?? 0,
+                chip: entry,
+            };
+        });
+
+        setFeedWorkoutItems(prepared);
+        setFeedWorkoutActiveIndex(boundedIndex);
+        setFeedWorkoutExpandToggle((flag) => !flag);
+
+        const prime = async (targetChip, targetIndex) => {
+            try {
+                const workout = await ensureWorkoutForChip(targetChip);
+                if (!workout) return;
+                if (activityViewerSessionRef.current !== sessionId) return;
+                setFeedWorkoutItems((prev) => {
+                    if (activityViewerSessionRef.current !== sessionId) return prev;
+                    if (!Array.isArray(prev) || targetIndex >= prev.length) return prev;
+                    const current = prev[targetIndex];
+                    if (current?.workout) return prev;
+                    const next = [...prev];
+                    next[targetIndex] = { ...current, workout };
+                    return next;
+                });
+            } catch (e) {
+                console.log('[Feed] ensureWorkoutForChip error', e);
+            }
+        };
+
+        if (!prepared[boundedIndex]?.workout) {
+            await prime(source[boundedIndex], boundedIndex);
+        }
+
+        source.forEach((entry, idx) => {
+            if (idx === boundedIndex) return;
+            if (prepared[idx]?.workout) return;
+            prime(entry, idx);
+        });
+    }, [ensureWorkoutForChip]);
+
+    useEffect(() => {
+        const sessionId = activityViewerSessionRef.current;
+        const current = Array.isArray(feedWorkoutItems) ? feedWorkoutItems[feedWorkoutActiveIndex] : null;
+        if (!current || current.workout || !current.chip) return;
+        ensureWorkoutForChip(current.chip)
+            .then((workout) => {
+                if (!workout) return;
+                if (activityViewerSessionRef.current !== sessionId) return;
+                setFeedWorkoutItems((prev) => {
+                    if (activityViewerSessionRef.current !== sessionId) return prev;
+                    if (!Array.isArray(prev) || feedWorkoutActiveIndex >= prev.length) return prev;
+                    const clone = [...prev];
+                    const existing = clone[feedWorkoutActiveIndex];
+                    if (!existing || existing.workout) return prev;
+                    clone[feedWorkoutActiveIndex] = { ...existing, workout };
+                    return clone;
+                });
+            })
+            .catch((e) => console.log('[Feed] ensureWorkoutForChip active error', e));
+    }, [feedWorkoutActiveIndex, feedWorkoutItems, ensureWorkoutForChip]);
+
     // View workout details using FeedWorkoutViewerSheet (bottom sheet, not full-screen)
     function openViewWorkoutModal(workoutIndex) {
         try {
             const post = posts?.[workoutIndex];
             const w = post?.workout;
             if (!w) return;
-            // Normalize minimal fields expected by NewWorkoutModal
             const fallback = {
                 wid: w?.wid || w?.id,
                 creatorUID: w?.creatorUID || w?.creatorUid || post?.uid || (global?.userData?.uid || ""),
@@ -733,18 +926,28 @@ export default function Feed({ navigation, route }) {
                 templateName: w?.templateName || w?.template?.name,
             };
             const wk = { ...fallback, ...w };
-            // Resolve friend uid + pfp (author of the post/workout)
             const friendUid = String(post?.uid || wk.creatorUID || wk.creatorUid || "");
-            const friendPfp =
-                post?.pfp || wk?.pfp || wk?.pfpUrl || post?.photoURL || post?.image || "";
+            const friendPfp = post?.pfp || wk?.pfp || wk?.pfpUrl || post?.photoURL || post?.image || "";
+            const friendPfpVersion = post?.pfpVersion ?? wk?.pfpVersion ?? wk?.version ?? 0;
             wk.__friendUid = friendUid;
-            wk.__friendPfp = friendPfp;
+            wk.__friendPfp = friendPfp || null;
+            wk.__friendPfpVersion = friendPfpVersion ?? 0;
 
-            setFeedSelectedWorkout(wk);
-            setFeedSelectedFriendUid(friendUid);
-            setFeedSelectedFriendPfp(friendPfp || null);
+            activityViewerSessionRef.current += 1;
+            const item = {
+                key: `${friendUid}:${wk?.wid || wk?.id || workoutIndex}`,
+                workout: wk,
+                friendUid,
+                friendPfp: friendPfp || null,
+                friendPfpVersion: friendPfpVersion ?? 0,
+                chip: null,
+            };
+            setFeedWorkoutItems([item]);
+            setFeedWorkoutActiveIndex(0);
             setFeedWorkoutExpandToggle((f) => !f);
-        } catch { }
+        } catch (e) {
+            console.log('[Feed] openViewWorkoutModal error', e);
+        }
     }
     const closeViewWorkoutModal = () => {
         // Keep last workout cached to avoid race clearing when reopening quickly.
@@ -1100,6 +1303,7 @@ export default function Feed({ navigation, route }) {
                         backHeaderHRef={backHeaderHRef}
                         setBackHeaderH={setBackHeaderH}
                         isSomePostFocused={isSomePostFocused}
+                        onPressActivityChip={handlePressActivityChip}
                     />
                 </SafeAreaInsetsView>
 
@@ -1130,9 +1334,9 @@ export default function Feed({ navigation, route }) {
                 {/* Workout viewer bottom sheet (pre-mounted, slides up) */}
                 <FeedWorkoutViewerSheet
                     expandToggle={feedWorkoutExpandToggle}
-                    workout={feedSelectedWorkout}
-                    friendUid={feedSelectedFriendUid}
-                    friendPfp={feedSelectedFriendPfp}
+                    items={feedWorkoutItems}
+                    activeIndex={feedWorkoutActiveIndex}
+                    onChangeIndex={setFeedWorkoutActiveIndex}
                     onClose={closeViewWorkoutModal}
                 />
             </SafeAreaView>

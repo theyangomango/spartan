@@ -15,7 +15,7 @@ import FeedHeader from "../components/1_Feed/FeedHeader";
 import Footer from "../components/Footer";
 
 // Sections
-import WeekCalendar from "../components/3_Workout/sections/WeekCalendar";
+// import WeekCalendar from "../components/3_Workout/sections/WeekCalendar";
 import TemplatesRail from "../components/3_Workout/sections/TemplatesRail";
 import SectionDivider from "../components/3_Workout/ui/SectionDivider";
 import HubRow from "../components/3_Workout/sections/HubRow";
@@ -481,6 +481,14 @@ export default function Workout({ navigation, route }) {
         setFriendsSheetToggle((f) => !f);
     }, []);
 
+    const openDayDetailsToday = useCallback(() => {
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+        setDaySheetDate(today);
+        setDaySheetVisible(true);
+        setDaySheetToggle((f) => !f);
+    }, [setDaySheetDate, setDaySheetVisible, setDaySheetToggle]);
+
     // Header prop identities kept stable to avoid header re-renders
     const headerScrollToTop = useCallback(() => { }, []);
     const headerOpenCurrentWorkout = useCallback(() => setIsNewWorkoutVisible(true), [setIsNewWorkoutVisible]);
@@ -494,13 +502,6 @@ export default function Workout({ navigation, route }) {
         }
     }, [navigation, messages]);
     const toggleNotifications = useCallback(() => setNotificationsBottomSheetExpandFlag((f) => !f), []);
-
-    // Stable callbacks for props used inside conditionally rendered children
-    const onDayPressWeek = useCallback((d) => {
-        setDaySheetDate(d);
-        setDaySheetVisible(true);
-        setDaySheetToggle((f) => !f);
-    }, []);
 
     const onFriendsClose = useCallback(() => setFriendsSheetVisible(false), []);
     const onFriendsJoin = useCallback((item) => {
@@ -638,10 +639,7 @@ export default function Workout({ navigation, route }) {
                 )}
             </Animated.View>
             <View style={styles.content}>
-                <WeekCalendar
-                    workoutsMap={global?.userData?.workoutsByDate || {}}
-                    onDayPress={onDayPressWeek}
-                />
+                {/* WeekCalendar temporarily disabled */}
 
                 {/* Hub row */}
                 <View>
@@ -656,30 +654,30 @@ export default function Workout({ navigation, route }) {
                         onPodiumReady={handleHubRowImagesReady}
                     />
                 </View>
-
-                {/* Symmetric divider with equal spacing above and below */}
-                <SectionDivider
-                    containerBg={theme.bg}
-                    dashColor="rgba(255,255,255,0.22)"
-                    dotColor="#ffffff2d"
-                />
-
-                {/* Templates rail (relative positioning within content) */}
-                {afterPaint && (
-                    <View>
-                        <TemplatesRail
-                            templates={templatesWithNone}
-                            onIndexChange={setActiveIdx}
-                            onAddTemplate={initTemplateAndToggle}
-                            onOpenTemplate={openEditTemplateAndToggle}
-                        />
-                    </View>
-                )}
+                {/* Templates rail relocated near Start cluster */}
+            </View>
+            <View style={styles.templatesDock} pointerEvents="box-none">
+                <View style={styles.templatesWrap} pointerEvents="auto">
+                    <SectionDivider
+                        containerBg={theme.bg}
+                        dashColor="rgba(255,255,255,0.22)"
+                        dotColor="#ffffff2d"
+                    />
+                    {afterPaint && (
+                        <View>
+                            <TemplatesRail
+                                templates={templatesWithNone}
+                                onIndexChange={setActiveIdx}
+                                onAddTemplate={initTemplateAndToggle}
+                                onOpenTemplate={openEditTemplateAndToggle}
+                            />
+                        </View>
+                    )}
+                </View>
             </View>
             {/* START cluster */}
             <View style={styles.clusterWrap} pointerEvents="box-none">
                 <StartCluster
-                    navigation={navigation}
                     scaleAnim={scaleAnim}
                     hasActiveWorkout={hasActiveWorkout}
                     onStartWorkout={onStartWorkout}
@@ -687,6 +685,7 @@ export default function Workout({ navigation, route }) {
                     onOpenFriends={openFriends}
                     hasNewFriendsUpdates={hasAnyStack}
                     friendsStackUsers={stackUsers}
+                    onOpenDayDetails={openDayDetailsToday}
                 />
             </View>
             <Footer currentScreenName={"Workout"} navigation={navigation} />
@@ -694,7 +693,7 @@ export default function Workout({ navigation, route }) {
             {afterPaint && (
                 <NotificationsBottomSheet notificationsBottomSheetExpandFlag={notificationsBottomSheetExpandFlag} />
             )}
-            {/* Day details (mount after first paint or when opened) */}
+            {/* Day details (open via History button) */}
             {(afterPaint || daySheetVisible) && (
                 <View style={StyleSheet.absoluteFill} pointerEvents={daySheetVisible ? "auto" : "none"}>
                     <DayDetailsSheet
@@ -820,8 +819,21 @@ const styles = StyleSheet.create({
     root: { flex: 1, backgroundColor: theme.bg },
     content: { flex: 1, paddingTop: scaleSize(2), paddingBottom: scaleSize(FOOTER_HEIGHT + ss(22) + BTN_SIZE + TPL_BOTTOM_GAP) },
 
-    templatesDock: { position: "absolute", left: 0, right: 0, bottom: scaleSize(FOOTER_HEIGHT + ss(22) + BTN_SIZE + TPL_BOTTOM_GAP) },
-    clusterWrap: { position: "absolute", left: 0, right: 0, bottom: scaleSize(FOOTER_HEIGHT + ss(20)), alignItems: "center" },
+    templatesDock: {
+        position: "absolute",
+        left: 0,
+        right: 0,
+        bottom: scaleSize(FOOTER_HEIGHT + ss(48) + BTN_SIZE + TPL_BOTTOM_GAP),
+        alignItems: "center",
+    },
+    templatesWrap: { width: "100%", alignItems: "center" },
+    clusterWrap: {
+        position: "absolute",
+        left: 0,
+        right: 0,
+        bottom: scaleSize(FOOTER_HEIGHT + ss(48)),
+        alignItems: "center",
+    },
 
     // Invite banner wrapper (same positioning/animation as original)
     inviteBannerWrap: {
