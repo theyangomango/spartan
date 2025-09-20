@@ -1,11 +1,9 @@
-import RNBounceable from '@freakycoder/react-native-bounceable';
 import React, { useCallback, useState } from 'react';
-import { View, Text, StyleSheet, Dimensions, TouchableOpacity, Alert } from 'react-native';
-import scaleSizeFont, { ts } from '../helper/scaleSize';
-import { Ionicons, Octicons } from '@expo/vector-icons';
+import { View, Text, StyleSheet, Dimensions, TouchableOpacity } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
 import theme from '../theme/mfpDark';
-import useGoogleAuth from '../auth/useGoogleAuth';
-import { upsertGoogleUser } from '../auth/googleAccount';
+import AuthButton from '../components/auth/AuthButton';
+import GoogleAuthButton from '../components/auth/GoogleAuthButton';
 
 const { width: screenWidth, height: screenHeight } = Dimensions.get('window');
 
@@ -16,8 +14,7 @@ function scaleSize(size) {
 }
 
 const LogIn = ({ navigation }) => {
-    const [googleBusy, setGoogleBusy] = useState(false);
-    const { signIn: startGoogleSignIn, isConfigured: isGoogleConfigured } = useGoogleAuth();
+    const [errorMsg, setErrorMsg] = useState('');
 
     const toSignUpScreen = useCallback(() => {
         navigation.navigate('SignUp');
@@ -27,44 +24,25 @@ const LogIn = ({ navigation }) => {
         navigation.navigate('UserLogInCredentials');
     }, [navigation]);
 
-    const handleGoogleLogin = useCallback(async () => {
-        if (!isGoogleConfigured) {
-            Alert.alert('Google Sign-In', 'Add your EXPO_PUBLIC_GOOGLE_* client IDs to enable Google auth.');
-            return;
-        }
-        if (googleBusy) return;
-        setGoogleBusy(true);
+    const handleGoogleSuccess = useCallback(() => {
+        setErrorMsg('');
         try {
-            const profile = await startGoogleSignIn();
-            if (!profile) return;
-
-            await upsertGoogleUser(profile);
-
-            try {
-                const { jumpToTab } = require('../../navigationRef');
-                if (jumpToTab) {
-                    jumpToTab('Workout');
-                    return;
-                }
-            } catch {}
-            navigation.navigate('Tabs', { screen: 'Workout' });
-        } catch (err) {
-            const message = err instanceof Error ? err.message : 'Google sign-in failed. Please try again.';
-            Alert.alert('Google Sign-In', message);
-        } finally {
-            setGoogleBusy(false);
-        }
-    }, [googleBusy, isGoogleConfigured, navigation, startGoogleSignIn]);
+            const { jumpToTab } = require('../../navigationRef');
+            if (jumpToTab) {
+                jumpToTab('Workout');
+                return;
+            }
+        } catch {}
+        navigation.navigate('Tabs', { screen: 'Workout' });
+    }, [navigation]);
 
     return (
         <View style={styles.container}>
             <View style={styles.iconContainer}>
-                <RNBounceable onPress={toSignUpScreen}>
-                    <Ionicons name="chevron-back" size={scaleSize(24)} color={theme.textSecondary} style={styles.closeIcon} />
-                </RNBounceable>
-                {/* <RNBounceable>
-                    <Octicons name="question" size={23} color="#666" style={styles.helpIcon} />
-                </RNBounceable> */}
+                <TouchableOpacity onPress={toSignUpScreen} style={styles.closeHitSlop}>
+                    <Ionicons name="chevron-back" size={scaleSize(24)} color={theme.textSecondary} />
+                </TouchableOpacity>
+                {/* Placeholder for future help action */}
             </View>
             <View style={styles.top_ctnr}>
                 <Text style={styles.title}>Log In to Spartan</Text>
@@ -74,18 +52,14 @@ const LogIn = ({ navigation }) => {
             </View>
 
             <View style={styles.bottomContainer}>
+                {!!errorMsg && <Text style={styles.errorText}>{errorMsg}</Text>}
                 <AuthButton icon="person" text="Phone / Email / Username" onPress={toUserLogInCredentials} />
-                <AuthButton
-                    icon="logo-google"
-                    text={!isGoogleConfigured ? 'Google setup required' : (googleBusy ? 'Signing in…' : 'Continue with Google')}
-                    onPress={handleGoogleLogin}
-                    disabled={googleBusy || !isGoogleConfigured}
-                />
+                <GoogleAuthButton onSuccess={handleGoogleSuccess} onError={setErrorMsg} />
 
                 <View pointerEvents="none" style={{ opacity: 0.4 }}>
-                    <AuthButton icon="logo-apple" text="Continue with Apple" onPress={() => {}} disabled />
-                    <AuthButton icon="logo-instagram" text="Continue with Instagram" onPress={() => {}} disabled />
-                    <AuthButton icon="logo-facebook" text="Continue with Facebook" onPress={() => {}} disabled />
+                    <AuthButton icon="logo-apple" text="Continue with Apple" disabled />
+                    <AuthButton icon="logo-instagram" text="Continue with Instagram" disabled />
+                    <AuthButton icon="logo-facebook" text="Continue with Facebook" disabled />
                 </View>
             </View>
 
@@ -98,17 +72,6 @@ const LogIn = ({ navigation }) => {
         </View>
     );
 };
-
-const AuthButton = ({ icon, text, onPress, disabled = false }) => (
-    <RNBounceable
-        style={[styles.button, disabled && styles.buttonDisabled]}
-        onPress={disabled ? undefined : onPress}
-        disabled={disabled}
-    >
-        <Ionicons name={icon} size={scaleSize(19)} color={theme.textPrimary} style={styles.icon} />
-        <Text style={styles.auth_button_text}>{text}</Text>
-    </RNBounceable>
-);
 
 const styles = StyleSheet.create({
     container: {
@@ -126,7 +89,7 @@ const styles = StyleSheet.create({
         flexDirection: 'row',
         justifyContent: 'space-between',
     },
-    closeIcon: {
+    closeHitSlop: {
         padding: scaleSize(10),
     },
     top_ctnr: {
@@ -151,28 +114,11 @@ const styles = StyleSheet.create({
     bottomContainer: {
         marginHorizontal: scaleSize(25),
     },
-    button: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        borderWidth: scaleSize(1.3),
-        borderColor: theme.hairline,
-        backgroundColor: theme.field,
-        paddingVertical: scaleSize(14),
-        borderRadius: scaleSize(8),
-        marginVertical: scaleSize(7),
-        justifyContent: 'center',
-    },
-    buttonDisabled: {
-        opacity: 0.55,
-    },
-    icon: {
-        position: 'absolute',
-        left: scaleSize(17),
-    },
-    auth_button_text: {
-        fontSize: scaleSize(14.5),
-        fontFamily: 'SourceSansPro_600SemiBold',
-        color: theme.textPrimary,
+    errorText: {
+        color: '#B91C1C',
+        fontFamily: 'Outfit_600SemiBold',
+        marginBottom: scaleSize(8),
+        textAlign: 'center',
     },
     footer: {
         position: 'absolute',
