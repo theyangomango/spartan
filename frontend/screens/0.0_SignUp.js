@@ -30,6 +30,8 @@ const SignUp = ({ navigation, route }) => {
     }, [navigation]);
 
     const handleGoogleSignUp = useCallback(async () => {
+        console.log('google signup');
+
         if (!isGoogleConfigured) {
             Alert.alert('Google Sign-In', 'Add your EXPO_PUBLIC_GOOGLE_* client IDs to enable Google auth.');
             return;
@@ -37,8 +39,11 @@ const SignUp = ({ navigation, route }) => {
         if (googleBusy) return;
         setGoogleBusy(true);
         try {
+            console.log('start try');
+
             const profile = await startGoogleSignIn();
             if (!profile) return;
+
 
             await upsertGoogleUser(profile);
 

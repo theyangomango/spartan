@@ -36,9 +36,11 @@ const DISCOVERY = {
 
 const hasAnyClientId = Boolean(fallbackClientId);
 
-const nativeRedirectForClient = (clientId) => (
-  clientId ? `com.googleusercontent.apps.${clientId}:/oauthredirect` : undefined
-);
+const nativeRedirectForClient = (clientId) => {
+  if (!clientId) return undefined;
+  const bareId = clientId.replace(/\.apps\.googleusercontent\.com$/i, '');
+  return `com.googleusercontent.apps.${bareId}:/oauthredirect`;
+};
 
 export default function useGoogleAuth() {
   const executionEnvironment = Constants.executionEnvironment || 'standalone';
@@ -64,6 +66,21 @@ export default function useGoogleAuth() {
     useProxy: useProxyDefault,
     native: nativeRedirectUri,
   });
+
+  if (__DEV__) {
+    console.log('[GoogleAuth]', {
+      executionEnvironment,
+      isStoreClient,
+      isStandaloneLike,
+      isUsingExpoProxy,
+      nativeClientId,
+      proxyClientId,
+      effectiveClientId,
+      useProxyDefault,
+      nativeRedirectUri,
+      resolvedRedirectUri,
+    });
+  }
 
   const [request, , promptAsync] = Google.useAuthRequest({
     responseType: 'code',
@@ -98,6 +115,7 @@ export default function useGoogleAuth() {
       const useProxy = useProxyDefault;
       const redirectUri = resolvedRedirectUri;
       const result = await promptAsync({ useProxy });
+
       if (!result) return null;
       if (result.type !== 'success') {
         if (result.type === 'dismiss' || result.type === 'cancel') {
