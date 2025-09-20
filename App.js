@@ -146,15 +146,39 @@ export default function App() {
     const prevUnreadMsgRef = useRef(null);
     const lastBuzzAtRef = useRef(0);
     const lastNotificationBuzzAtRef = useRef(0); // dedupe foreground push vs unread snapshot
+    const logoutCleanupRef = useRef(null);
+    const logoutResetTimerRef = useRef(null);
 
     useEffect(() => {
         // Expose a minimal auth setter so login/signup can notify App immediately
         // AsyncStorage.clear();
 
         global.setAuthUid = (uid) => {
-            try { if (uid) AsyncStorage.setItem('uid', uid).catch(() => {}); } catch {}
-            uidRef.current = uid || null;
-            setIsAuthenticated(!!uid);
+            const normalizedUid = uid ? String(uid) : null;
+            try {
+                if (normalizedUid) {
+                    AsyncStorage.setItem('uid', normalizedUid).catch(() => {});
+                } else {
+                    AsyncStorage.removeItem('uid').catch(() => {});
+                }
+            } catch {}
+            if (!normalizedUid) {
+                try { logoutCleanupRef.current?.(); } catch {}
+                uidRef.current = null;
+                setUserReady(false);
+                try { global.userData = {}; } catch {}
+            } else {
+                if (logoutResetTimerRef.current) {
+                    try { clearTimeout(logoutResetTimerRef.current); } catch {}
+                    logoutResetTimerRef.current = null;
+                }
+                uidRef.current = normalizedUid;
+            }
+            setIsAuthenticated(!!normalizedUid);
+        };
+
+        global.logout = () => {
+            try { global.setAuthUid?.(null); } catch {}
         };
 
         (async () => {
@@ -165,6 +189,9 @@ export default function App() {
             } catch (err) { console.error(err); }
             finally { setAuthChecked(true); }
         })();
+        return () => {
+            try { delete global.setAuthUid; delete global.logout; } catch {}
+        };
     }, []);
 
     // Hydrate global.userData as early as possible when authenticated
@@ -398,6 +425,62 @@ export default function App() {
         };
         return () => { try { global.triggerRestReminder = null; } catch {} };
     }, []);
+
+    useEffect(() => {
+        logoutCleanupRef.current = () => {
+            try { pendingChatCidRef.current = null; } catch {}
+            if (pendingNavTimerRef.current) {
+                try { clearTimeout(pendingNavTimerRef.current); } catch {}
+                pendingNavTimerRef.current = null;
+            }
+            if (logoutResetTimerRef.current) {
+                try { clearTimeout(logoutResetTimerRef.current); } catch {}
+                logoutResetTimerRef.current = null;
+            }
+            if (unsubRef.current) {
+                try { unsubRef.current(); } catch {}
+                unsubRef.current = null;
+            }
+            if (notifUnsubRef.current) {
+                try { notifUnsubRef.current(); } catch {}
+                notifUnsubRef.current = null;
+            }
+            try {
+                const Notifications = notificationsRef.current;
+                if (notifResponseSubRef.current && Notifications?.removeNotificationSubscription) {
+                    Notifications.removeNotificationSubscription(notifResponseSubRef.current);
+                }
+            } catch {}
+            notifResponseSubRef.current = null;
+            prevUnreadMsgRef.current = null;
+            prevUnreadNotifRef.current = null;
+            lastBuzzAtRef.current = 0;
+            lastNotificationBuzzAtRef.current = 0;
+            restReminderCycleRef.current = 0;
+            restAckRef.current = 0;
+            try { delete global.__restCycleAck; } catch {}
+            setRestReminderVisible(false);
+
+            const attemptReset = () => {
+                try {
+                    if (navigationRef?.isReady?.()) {
+                        navigationRef.resetRoot({ index: 0, routes: [{ name: 'SignUp' }] });
+                        logoutResetTimerRef.current = null;
+                        return;
+                    }
+                } catch {}
+                logoutResetTimerRef.current = setTimeout(attemptReset, 60);
+            };
+            attemptReset();
+        };
+        return () => {
+            logoutCleanupRef.current = null;
+            if (logoutResetTimerRef.current) {
+                try { clearTimeout(logoutResetTimerRef.current); } catch {}
+                logoutResetTimerRef.current = null;
+            }
+        };
+    }, [setRestReminderVisible]);
 
     // Unified buzz helper with simple throttle
     const buzzOnce = () => {

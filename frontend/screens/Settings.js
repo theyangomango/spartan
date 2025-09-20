@@ -19,7 +19,17 @@ export default function Settings({ navigation }) {
   const logout = useCallback(() => {
     Alert.alert('Log out', 'Are you sure you want to log out?', [
       { text: 'Cancel', style: 'cancel' },
-      { text: 'Log out', style: 'destructive', onPress: () => { try { global.setAuthUid?.(null); } catch {} navigation.reset({ index: 0, routes: [{ name: 'SignUp' }] }); } },
+      {
+        text: 'Log out',
+        style: 'destructive',
+        onPress: () => {
+          try {
+            if (global.logout) global.logout();
+            else global.setAuthUid?.(null);
+          } catch {}
+          navigation.reset({ index: 0, routes: [{ name: 'SignUp' }] });
+        },
+      },
     ]);
   }, [navigation]);
 
