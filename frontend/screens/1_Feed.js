@@ -5,7 +5,7 @@
  * * Does NOT handle backend calls from user interactions
  */
 
-import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useRef, useState, startTransition } from "react";
 import { SafeAreaView, StyleSheet, View, RefreshControl } from "react-native";
 import { useFocusEffect, useIsFocused } from '@react-navigation/native';
 import { StatusBar } from "expo-status-bar";
@@ -123,7 +123,7 @@ export default function Feed({ navigation, route }) {
 
     useEffect(() => () => {
         if (unfocusGestureTimeoutRef.current) {
-            clearTimeout(unfocusGestureTimeoutRef.current);
+            cancelAnimationFrame(unfocusGestureTimeoutRef.current);
             unfocusGestureTimeoutRef.current = null;
         }
     }, []);
@@ -338,14 +338,14 @@ export default function Feed({ navigation, route }) {
         if (focusSessionNonceRef.current !== sessionId) return;
         if (alignmentSuspendedRef.current) {
             if (attempt < 6) {
-                setTimeout(() => ensureFocusedAlignment(idx, sessionId, attempt + 1), 64);
+                requestAnimationFrame(() => ensureFocusedAlignment(idx, sessionId, attempt + 1));
             }
             return;
         }
         const ref = postRefs.current?.[idx];
         if (!ref?.measureScreenTop) {
             if (attempt < 6) {
-                setTimeout(() => ensureFocusedAlignment(idx, sessionId, attempt + 1), 48);
+                requestAnimationFrame(() => ensureFocusedAlignment(idx, sessionId, attempt + 1));
             }
             return;
         }
@@ -355,7 +355,7 @@ export default function Feed({ navigation, route }) {
                 const targetTop = backHeaderHRef.current || (insets?.top ? insets.top + 44 : TARGET_POSITION);
                 if (!Number.isFinite(top) || !Number.isFinite(targetTop)) {
                     if (attempt < 6) {
-                        setTimeout(() => ensureFocusedAlignment(idx, sessionId, attempt + 1), 64);
+                        requestAnimationFrame(() => ensureFocusedAlignment(idx, sessionId, attempt + 1));
                     }
                     return;
                 }
@@ -364,15 +364,9 @@ export default function Feed({ navigation, route }) {
                 const PRIMARY_THRESHOLD = 6;
                 const RECHECK_THRESHOLD = 1.1;
                 if (absDiff <= RECHECK_THRESHOLD) {
-                    if (attempt < 2 && absDiff > 0.4) {
-                        setTimeout(() => ensureFocusedAlignment(idx, sessionId, attempt + 1), 72);
-                    }
                     return;
                 }
                 if (absDiff <= PRIMARY_THRESHOLD) {
-                    if (attempt < 2) {
-                        setTimeout(() => ensureFocusedAlignment(idx, sessionId, attempt + 1), 88);
-                    }
                     return;
                 }
                 const next = (focusOffsetRef.current || 0) - diff;
@@ -381,13 +375,13 @@ export default function Feed({ navigation, route }) {
                 try {
                     focusTranslateSV.value = withSpring(next, FOCUS_SPRING_CONFIG);
                 } catch { }
-                if (attempt < 5) {
-                    setTimeout(() => ensureFocusedAlignment(idx, sessionId, attempt + 1), 120);
+                if (attempt < 3) {
+                    requestAnimationFrame(() => ensureFocusedAlignment(idx, sessionId, attempt + 1));
                 }
             })
             .catch(() => {
                 if (attempt < 6) {
-                    setTimeout(() => ensureFocusedAlignment(idx, sessionId, attempt + 1), 64);
+                    requestAnimationFrame(() => ensureFocusedAlignment(idx, sessionId, attempt + 1));
                 }
             });
     }, [insets?.top]);
@@ -421,9 +415,11 @@ export default function Feed({ navigation, route }) {
         stopFlatListMomentum();
 
         focusedPostIndex.current = index;
-        setFocusedIndexState(index);
         translatingIndexRef.current = index;
-        setTranslatingIndexState(index);
+        startTransition(() => {
+            setFocusedIndexState(index);
+            setTranslatingIndexState(index);
+        });
         commentsHiddenSV.value = 0;
 
         const resolveFocusPageY = () => {
@@ -458,7 +454,7 @@ export default function Feed({ navigation, route }) {
             // Begin card translation first, then enter focus mode so header chips hide in sync
             animateView(delta, 0);
             // Enter focus mode and ensure other posts fade out gradually
-            setIsSomePostFocused(true);
+        startTransition(() => setIsSomePostFocused(true));
             try { interactiveProgressSV.value = withTiming(0, { duration: INTERACTIVE_START_MS, easing: ReEasing.out(ReEasing.cubic) }); } catch { }
             try {
                 setTimeout(() => ensureFocusedAlignment(index, sessionId, 0), ANIMATION_DURATION + 96);
@@ -552,7 +548,7 @@ export default function Feed({ navigation, route }) {
     const suspendInteractiveAlignment = useCallback(() => {
         alignmentSuspendedRef.current = true;
         if (unfocusGestureTimeoutRef.current) {
-            clearTimeout(unfocusGestureTimeoutRef.current);
+            cancelAnimationFrame(unfocusGestureTimeoutRef.current);
             unfocusGestureTimeoutRef.current = null;
         }
     }, []);
@@ -563,17 +559,18 @@ export default function Feed({ navigation, route }) {
         isUnfocusingRef.current = false;
         resumeInteractiveAlignment();
         if (unfocusGestureTimeoutRef.current) {
-            clearTimeout(unfocusGestureTimeoutRef.current);
+            cancelAnimationFrame(unfocusGestureTimeoutRef.current);
             unfocusGestureTimeoutRef.current = null;
         }
         setUnfocusGestureActive(false);
         if (isSomePostFocused && focusedPostIndex.current !== -1) {
             const idx = focusedPostIndex.current;
             const sessionId = focusSessionNonceRef.current;
-            unfocusGestureTimeoutRef.current = setTimeout(() => {
-                ensureFocusedAlignment(idx, sessionId, 0);
+            const frameId = requestAnimationFrame(() => {
                 unfocusGestureTimeoutRef.current = null;
-            }, 0);
+                ensureFocusedAlignment(idx, sessionId, 0);
+            });
+            unfocusGestureTimeoutRef.current = frameId;
         }
     }, [ensureFocusedAlignment, isSomePostFocused, resumeInteractiveAlignment]);
 
@@ -587,11 +584,13 @@ export default function Feed({ navigation, route }) {
         isUnfocusingRef.current = false;
         if (clearTranslating) {
             // Finishing unfocus: commit state after animation to avoid layout jump
-            try { setIsSomePostFocused(false); } catch { }
+            try { startTransition(() => setIsSomePostFocused(false)); } catch { }
             try { focusedPostIndex.current = -1; } catch { }
-            setFocusedIndexState(-1);
             translatingIndexRef.current = -1;
-            setTranslatingIndexState(-1);
+            startTransition(() => {
+                setFocusedIndexState(-1);
+                setTranslatingIndexState(-1);
+            });
             try { setUnfocusGestureActive(false); } catch { }
         }
     }, [resumeInteractiveAlignment]);
