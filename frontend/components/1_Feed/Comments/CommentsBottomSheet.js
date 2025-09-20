@@ -24,7 +24,6 @@ const CommentsBottomSheet = ({ isVisible, postData, commentsBottomSheetExpandFla
     const bottomSheetRef = useRef(null);
     const footerTranslateY = useSharedValue(0); // moves when input focuses
     const footerIntroY = useSharedValue(10);    // small entrance slide
-    const footerDragY = useSharedValue(0);      // follows interactive unfocus to slide footer down
     const footerOpacity = useSharedValue(0);    // fade with sheet
     const sheetTranslateY = useSharedValue(0);
     const sheetOpenHeight = useSharedValue(0);
@@ -34,7 +33,7 @@ const CommentsBottomSheet = ({ isVisible, postData, commentsBottomSheetExpandFla
     }));
     const footerAnimatedStyle = useAnimatedStyle(() => ({
         opacity: footerOpacity.value,
-        transform: [{ translateY: footerTranslateY.value + footerIntroY.value + footerDragY.value }],
+        transform: [{ translateY: footerTranslateY.value + footerIntroY.value }],
     }));
     const pendingCloseRef = useRef(false);
     const snapPoints = useMemo(() => ["34.5%", "92%"], []);
@@ -47,7 +46,7 @@ const CommentsBottomSheet = ({ isVisible, postData, commentsBottomSheetExpandFla
     const insets = useSafeAreaInsets();
     const safeAreaBottom = Math.max(0, insets.bottom || 0);
     const footerTopPadding = scaleSize(6);
-    const footerBottomPadding = safeAreaBottom + scaleSize(8);
+    const footerBottomPadding = safeAreaBottom - scaleSize(12);
     const footerBaseStyle = useMemo(() => ({
         paddingBottom: footerBottomPadding,
         paddingTop: footerTopPadding,
@@ -189,7 +188,6 @@ const CommentsBottomSheet = ({ isVisible, postData, commentsBottomSheetExpandFla
 
             footerOpacity.value = 0;
             footerIntroY.value = 10;
-            footerDragY.value = 0;
             footerOpacity.value = withTiming(1, { duration: 220 });
             footerIntroY.value = withTiming(0, { duration: 260 });
 
@@ -205,7 +203,6 @@ const CommentsBottomSheet = ({ isVisible, postData, commentsBottomSheetExpandFla
             try { bottomSheetRef.current?.close?.(); } catch { }
             footerOpacity.value = withTiming(0, { duration: 120 });
             footerIntroY.value = withTiming(0, { duration: 180 });
-            footerDragY.value = withTiming(0, { duration: 180 });
         }
     }, [
         getSnapPointPx,
@@ -216,7 +213,6 @@ const CommentsBottomSheet = ({ isVisible, postData, commentsBottomSheetExpandFla
         sheetOpenHeight,
         sheetTranslateY,
         snapPoints,
-        footerDragY,
         footerIntroY,
         footerOpacity,
     ]);
@@ -299,17 +295,13 @@ const CommentsBottomSheet = ({ isVisible, postData, commentsBottomSheetExpandFla
             : Math.min(1, pRaw * slow);
 
         const clampedRaw = Math.min(1, pRaw);
-        const openHeight = sheetOpenHeightRef.current || 0;
-        const dragDistance = openHeight > 0 ? openHeight * pSlow : pSlow * 120;
-
         footerOpacity.value = Math.max(0, 1 - clampedRaw);
-        footerDragY.value = Math.max(0, dragDistance);
 
         if (pendingCloseRef.current && !unfocusGestureActive && pRaw >= CLOSE_COMPLETE_PROGRESS) {
             pendingCloseRef.current = false;
             closeSheet();
         }
-    }, [isVisible, postPid, interactiveScale, closeSheet, footerDragY, footerOpacity, unfocusGestureActive]);
+    }, [isVisible, postPid, interactiveScale, closeSheet, footerOpacity, unfocusGestureActive]);
 
     // Worklet-driven updates via SharedValue (preferred)
     useAnimatedReaction(
