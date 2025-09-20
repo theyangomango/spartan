@@ -40,8 +40,6 @@ const VideoSlide = React.memo(({ uri, style, paused, isActive }) => (
     </View>
 ));
 
-const SPEED_THRESHOLD = 420; // px/s
-
 const PostMediaCarousel = forwardRef(function PostMediaCarousel({
     mediaList,
     currentIndex,
@@ -56,7 +54,6 @@ const PostMediaCarousel = forwardRef(function PostMediaCarousel({
     const flatListRef = useRef(null);
     const [pausedList, setPausedList] = useState(() => mediaList.map(() => false));
     const currentOffsetXRef = useRef(currentIndex * W);
-    const panStartOffsetRef = useRef(0);
     const extDragActiveRef = useRef(false);
     const lastReportedIndexRef = useRef(currentIndex || 0);
 
@@ -98,34 +95,14 @@ const PostMediaCarousel = forwardRef(function PostMediaCarousel({
         hSwipeBegin: () => {
             if (!isFocused) return false;
             extDragActiveRef.current = true;
-            panStartOffsetRef.current = currentOffsetXRef.current || (currentIndex * W);
             return true;
         },
-        hSwipeUpdate: (dx) => {
-            if (!extDragActiveRef.current) return;
-            const maxOffset = Math.max(0, (mediaList.length - 1) * W);
-            let target = (panStartOffsetRef.current || 0) - (dx || 0);
-            if (target < 0) target = 0;
-            if (target > maxOffset) target = maxOffset;
-            flatListRef.current?.scrollToOffset({ offset: target, animated: false });
-        },
-        hSwipeEnd: (dx, vx) => {
+        hSwipeUpdate: () => {},
+        hSwipeEnd: () => {
             if (!extDragActiveRef.current) return;
             extDragActiveRef.current = false;
-            const start = panStartOffsetRef.current || 0;
-            const current = currentOffsetXRef.current ?? start - (dx || 0);
-            const rawIndex = current / W;
-            let targetIndex = Math.round(rawIndex);
-            if (typeof vx === 'number' && Math.abs(vx) > SPEED_THRESHOLD) {
-                targetIndex = vx < 0 ? Math.ceil(rawIndex) : Math.floor(rawIndex);
-            }
-            if (targetIndex < 0) targetIndex = 0;
-            if (targetIndex > mediaList.length - 1) targetIndex = mediaList.length - 1;
-            currentOffsetXRef.current = targetIndex * W;
-            updateIndex(targetIndex);
-            flatListRef.current?.scrollToIndex({ index: targetIndex, animated: true });
         },
-    }), [isFocused, mediaList.length, currentIndex, updateIndex]);
+    }), [isFocused]);
 
     const keyExtractor = useCallback((item, idx) => `${item.uri || ''}${idx}`, []);
 

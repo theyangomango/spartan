@@ -977,6 +977,7 @@ export default function Feed({ navigation, route }) {
             .maxPointers(1)
             .activeOffsetX([-6, 6])
             .failOffsetY([-8, 8])
+            .simultaneousWithExternalGesture(Gesture.Native())
             .onBegin(() => { try { runOnJS(hSwipeBeginJS)(); } catch { } })
             .onUpdate((e) => { try { runOnJS(hSwipeUpdateJS)(e.translationX); } catch { } })
             .onEnd((e) => { try { runOnJS(hSwipeEndJS)(e.translationX, e.velocityX); } catch { } });
