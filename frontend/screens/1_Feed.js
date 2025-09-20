@@ -91,6 +91,8 @@ export default function Feed({ navigation, route }) {
     const flatListRef = useRef(null);
     const isTransitioning = useRef(false); /* 🔒 */
     const isUnfocusingRef = useRef(false); // true while interactive unfocus gesture is active
+    const justRefocusedRef = useRef(false);
+    const refocusTimeoutRef = useRef(null);
     const [unfocusGestureActive, setUnfocusGestureActive] = useState(false);
 
     // ✅ Shared header users (global/users + following + prefetch)
@@ -132,6 +134,33 @@ export default function Feed({ navigation, route }) {
             unfocusGestureTimeoutRef.current = null;
         }
     }, []);
+
+    useEffect(() => {
+        if (isScreenFocused) {
+            if (refocusTimeoutRef.current) {
+                clearTimeout(refocusTimeoutRef.current);
+            }
+            justRefocusedRef.current = true;
+            refocusTimeoutRef.current = setTimeout(() => {
+                justRefocusedRef.current = false;
+                refocusTimeoutRef.current = null;
+            }, 400);
+        } else {
+            justRefocusedRef.current = false;
+            if (refocusTimeoutRef.current) {
+                clearTimeout(refocusTimeoutRef.current);
+                refocusTimeoutRef.current = null;
+            }
+        }
+
+        return () => {
+            if (refocusTimeoutRef.current) {
+                clearTimeout(refocusTimeoutRef.current);
+                refocusTimeoutRef.current = null;
+            }
+            justRefocusedRef.current = false;
+        };
+    }, [isScreenFocused]);
 
     // Highlight target when navigating from notifications
     const highlightPidRef = useRef(null);
@@ -737,19 +766,38 @@ export default function Feed({ navigation, route }) {
     };
 
     // Implement scrollToTop function
-    const scrollToTop = () => {
+    const scrollToTop = useCallback(() => {
         if (flatListRef.current) {
             flatListRef.current.scrollToOffset({ offset: 0, animated: true });
         }
-    };
+    }, []);
+
+    useEffect(() => {
+        try { global.scrollFeedToTop = scrollToTop; } catch { }
+        return () => {
+            try {
+                if (global.scrollFeedToTop === scrollToTop) {
+                    global.scrollFeedToTop = undefined;
+                }
+            } catch { }
+        };
+    }, [scrollToTop]);
 
     // Respond to param-based triggers while screen is already focused
     useEffect(() => {
+        let cleanup;
+
         if (route?.params?.scrollToTop) {
-            const id = setTimeout(() => scrollToTop(), 30);
-            try { navigation.setParams({ scrollToTop: false }); } catch { }
-            return () => clearTimeout(id);
+            if (justRefocusedRef.current) {
+                justRefocusedRef.current = false;
+                try { navigation.setParams({ scrollToTop: false }); } catch { }
+            } else {
+                const id = setTimeout(() => scrollToTop(), 30);
+                cleanup = () => clearTimeout(id);
+                try { navigation.setParams({ scrollToTop: false }); } catch { }
+            }
         }
+
         if (route?.params?.focusPid) {
             const pid = String(route.params.focusPid);
             setPendingFocusPid(pid);
@@ -757,41 +805,41 @@ export default function Feed({ navigation, route }) {
                 const ok = scrollToPid(pid);
                 if (ok) setPendingFocusPid(null);
             }, 50);
+            const focusCleanup = () => clearTimeout(id);
+            cleanup = cleanup
+                ? () => { cleanup(); focusCleanup(); }
+                : focusCleanup;
             try { navigation.setParams({ focusPid: undefined }); } catch { }
-            return () => clearTimeout(id);
         }
-    }, [route?.params?.scrollToTop, route?.params?.focusPid]);
 
-    // Scroll to top when triggered by Footer reselection (param or global signal)
+        return cleanup;
+    }, [route?.params?.scrollToTop, route?.params?.focusPid, navigation, scrollToPid, scrollToTop]);
+
+    // Scroll to top when triggered by legacy global signal
     useFocusEffect(
         useCallback(() => {
-            // Param-based trigger
-            if (route?.params?.scrollToTop) {
-                const id = setTimeout(() => scrollToTop(), 30);
-                // reset param so it doesn't re-trigger on next focus
-                try { navigation.setParams({ scrollToTop: false }); } catch { }
-                return () => clearTimeout(id);
-            }
-            // Focus a specific post by pid (from notifications)
-            if (route?.params?.focusPid) {
-                const pid = String(route.params.focusPid);
-                setPendingFocusPid(pid);
-                const id = setTimeout(() => {
-                    const ok = scrollToPid(pid);
-                    if (ok) setPendingFocusPid(null);
-                }, 50);
-                try { navigation.setParams({ focusPid: undefined }); } catch { }
-                return () => clearTimeout(id);
-            }
-            // Global-signal fallback
-            const lastRef = feedTopSignalRef.current || 0;
             const sig = Number(global?.scrollFeedToTopSignal || 0);
-            if (sig && sig !== lastRef) {
+            if (!sig) return undefined;
+
+            const lastRef = feedTopSignalRef.current || 0;
+            const handled = Number(global?.scrollFeedToTopHandled || 0);
+
+            if (justRefocusedRef.current) {
+                if (sig !== lastRef) {
+                    feedTopSignalRef.current = sig;
+                }
+                return undefined;
+            }
+
+            if (sig !== lastRef && sig !== handled) {
                 feedTopSignalRef.current = sig;
+                try { global.scrollFeedToTopHandled = sig; } catch { }
                 const id = setTimeout(() => scrollToTop(), 30);
                 return () => clearTimeout(id);
             }
-        }, [route?.params?.scrollToTop, navigation])
+
+            return undefined;
+        }, [scrollToTop])
     );
 
     // Retry pending focus once posts are available

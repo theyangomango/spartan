@@ -464,7 +464,7 @@ function lastRanksEqual(prev, next) {
 
 export const refreshLeaderboardLastRanks = onSchedule(
   {
-    schedule: '0 * * * *',
+    schedule: '0 0 * * *',
     region: 'us-central1',
     timeoutSeconds: 540,
     memory: '1GiB',
