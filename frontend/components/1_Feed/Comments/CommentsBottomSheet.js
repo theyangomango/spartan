@@ -80,11 +80,13 @@ const CommentsBottomSheet = ({ isVisible, postData, commentsBottomSheetExpandFla
     const resolveOpenHeight = useCallback(() => {
         if (sheetOpenHeight.value > 0) return sheetOpenHeight.value;
         if (sheetOpenHeightRef.current > 0) return sheetOpenHeightRef.current;
+        const defaultPx = getSnapPointPx(snapPoints[0]);
         if (typeof openPositionPx === 'number') {
             const h = containerHRef.current || (SCREEN_HEIGHT - scaleSize(85));
-            return Math.max(0, Math.min(h, openPositionPx));
+            const desired = Math.max(0, Math.min(h, openPositionPx));
+            return desired > defaultPx ? desired : defaultPx;
         }
-        return getSnapPointPx(snapPoints[0]);
+        return defaultPx;
     }, [getSnapPointPx, openPositionPx, snapPoints, sheetOpenHeight]);
 
     // Handle send comment
@@ -167,16 +169,21 @@ const CommentsBottomSheet = ({ isVisible, postData, commentsBottomSheetExpandFla
 
             const containerH = containerHRef.current || (SCREEN_HEIGHT - scaleSize(85));
             const defaultPx = getSnapPointPx(snapPoints[0]);
-            const targetHeight = typeof openPositionPx === 'number'
+            const desiredHeight = typeof openPositionPx === 'number'
                 ? Math.max(0, Math.min(containerH, openPositionPx))
                 : defaultPx;
+            const targetHeight = desiredHeight > defaultPx ? desiredHeight : defaultPx;
 
             sheetOpenHeight.value = targetHeight;
             sheetOpenHeightRef.current = targetHeight;
 
             const open = () => {
                 try {
-                    if (typeof openPositionPx === 'number' && bottomSheetRef.current?.snapToPosition) {
+                    if (
+                        typeof openPositionPx === 'number' &&
+                        targetHeight !== defaultPx &&
+                        bottomSheetRef.current?.snapToPosition
+                    ) {
                         bottomSheetRef.current.snapToPosition(targetHeight, { duration: SHEET_OPEN_MS });
                     } else {
                         bottomSheetRef.current?.snapToIndex?.(0, { duration: SHEET_OPEN_MS });

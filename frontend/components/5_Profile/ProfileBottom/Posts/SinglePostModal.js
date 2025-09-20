@@ -66,15 +66,13 @@ export default function SinglePostModal({ visible, post, onClose, onOpenWorkout 
         ]).start();
     }, [heartScale, heartOpacity]);
 
-    // Re-mount & gate the sheet's visibility so its own effect runs
-    const [mountCommentsSheet, setMountCommentsSheet] = useState(false);
     const [sheetVisible, setSheetVisible] = useState(false);
     // Local workout viewer state so the post remains focused behind the sheet
     const [viewerWorkout, setViewerWorkout] = useState(null);
     const [viewerToggle, setViewerToggle] = useState(false);
     const [commentsExpandFlag, setCommentsExpandFlag] = useState(false);
     const sheetKeyRef = useRef(0);
-    const openTimer = useRef(null);
+    const reopenTimerRef = useRef(null);
 
     // Compute exact open position for the comments sheet so its top matches
     // the bottom of the focused post, regardless of device.
@@ -95,17 +93,7 @@ export default function SinglePostModal({ visible, post, onClose, onOpenWorkout 
     }, [openPositionPx]);
 
     useEffect(() => {
-        // cleanup any pending timers on unmount or visibility flip
-        return () => {
-            if (openTimer.current) {
-                clearTimeout(openTimer.current);
-                openTimer.current = null;
-            }
-        };
-    }, []);
-
-    useEffect(() => {
-        if (visible) {
+        if (visible && post) {
             // reset + fade in
             isClosingRef.current = false;
             fadeSV.value = 0;
@@ -125,37 +113,28 @@ export default function SinglePostModal({ visible, post, onClose, onOpenWorkout 
             // force remount so the sheet's internal useEffect runs fresh
             sheetKeyRef.current += 1;
             setCommentsExpandFlag(false);
-            setMountCommentsSheet(false); // mount a bit later to avoid jank
-            setSheetVisible(false);
-
-            // Mount + show the sheet on a short, consistent delay (match Feed timing)
-            if (openTimer.current) clearTimeout(openTimer.current);
-            openTimer.current = setTimeout(() => {
-                try {
-                    setMountCommentsSheet(true);
-                    requestAnimationFrame(() => setSheetVisible(true)); // triggers snapToIndex(0) inside the sheet
-                } catch {
-                    setMountCommentsSheet(true);
-                    setSheetVisible(true);
-                }
+            setSheetVisible(true);
+            if (reopenTimerRef.current) {
+                clearTimeout(reopenTimerRef.current);
+                reopenTimerRef.current = null;
+            }
+            reopenTimerRef.current = setTimeout(() => {
+                try { setReopenSignal(Date.now()); } catch {}
+                reopenTimerRef.current = null;
             }, 30);
         } else {
-            // If parent forces invisible, just clear timers
-            if (openTimer.current) {
-                clearTimeout(openTimer.current);
-                openTimer.current = null;
+            setSheetVisible(false);
+            setCommentsExpandFlag(false);
+            if (reopenTimerRef.current) {
+                clearTimeout(reopenTimerRef.current);
+                reopenTimerRef.current = null;
             }
         }
-    }, [visible]);
+    }, [visible, post]);
 
     const close = () => {
         if (isClosingRef.current) return;
         isClosingRef.current = true;
-
-        if (openTimer.current) {
-            clearTimeout(openTimer.current);
-            openTimer.current = null;
-        }
 
         // 1) trigger an immediate sheet collapse (mirror Feed behavior)
         try { setCollapseSignal(Date.now()); } catch {}
@@ -164,7 +143,7 @@ export default function SinglePostModal({ visible, post, onClose, onOpenWorkout 
             const targetProgress = Math.max(1, 1 / Math.max(0.0001, interactiveScaleSlow));
             interactiveProgressSV.value = withTiming(targetProgress, { duration: 220, easing: REAEasing.out(REAEasing.cubic) });
         } catch {}
-        // keep sheet mounted/visible until the modal finishes closing to keep visuals in sync
+        // keep sheet visible until the modal finishes closing to keep visuals in sync
 
         // 2) animate stage up and fade out backdrop/top bar
         try { translateYSV.value = withTiming(-SH, { duration: 220 }); } catch {}
@@ -174,6 +153,7 @@ export default function SinglePostModal({ visible, post, onClose, onOpenWorkout 
 
         // 3) after sheet close duration, notify parent to unmount modal
         setTimeout(() => {
+            setSheetVisible(false);
             onClose && onClose();
             isClosingRef.current = false;
         }, SHEET_CLOSE_DUR);
@@ -230,6 +210,7 @@ export default function SinglePostModal({ visible, post, onClose, onOpenWorkout 
                     fadeSV.value = withTiming(1, { duration: 160 });
                     translateYSV.value = withTiming(0, { duration: 190 });
                     interactiveProgressSV.value = withTiming(0, { duration: 190 });
+                    runOnJS(setReopenSignal)(Date.now());
                 }
             })
             .onFinalize(() => {
@@ -333,18 +314,17 @@ export default function SinglePostModal({ visible, post, onClose, onOpenWorkout 
                     </Reanimated.View>
                     </GestureDetector>
                     {/* Bottom sheets (mounted inside modal so they're above everything) */}
-                    {mountCommentsSheet && (
+                    {post && (
                         <CommentsBottomSheet
                             key={`comments-${sheetKeyRef.current}-${post?.pid ?? "x"}`}
-                            isVisible={sheetVisible}                    // flips true after fade -> sheet snaps to computed px
+                            isVisible={sheetVisible}
                             postData={post}
-                            commentsBottomSheetExpandFlag={commentsExpandFlag} // toggle -> expand to 92%
+                            commentsBottomSheetExpandFlag={commentsExpandFlag}
                             toViewProfile={() => { }}
                             collapseSignal={collapseSignal}
                             reopenSignal={reopenSignal}
                             interactiveProgressSV={interactiveProgressSV}
-                            interactiveScale={interactiveScaleSlow}
-                            openPositionPx={openPositionPx}
+                            interactiveScale={3.0}
                         />
                     )}
                     <ShareBottomSheet
