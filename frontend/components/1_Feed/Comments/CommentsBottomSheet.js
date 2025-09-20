@@ -38,21 +38,22 @@ const CommentsBottomSheet = ({ isVisible, postData, commentsBottomSheetExpandFla
     const pendingCloseRef = useRef(false);
     const snapPoints = useMemo(() => ["34.5%", "92%"], []);
     const containerHRef = useRef(SCREEN_HEIGHT - scaleSize(85));
-    const [containerReady, setContainerReady] = useState(false);
     const [isSheetExpanded, setIsSheetExpanded] = useState(false);
     const [openSignal, setOpenSignal] = useState(0);
     const [inputText, setInputText] = useState('');
     const [replyingToIndex, setReplyingToIndex] = useState(null);
     const textInputRef = useRef(null);
     const insets = useSafeAreaInsets();
-    const safeBottomInset = useMemo(() => Math.max(insets.bottom || 0, scaleSize(6)), [insets.bottom]);
+    const safeAreaBottom = Math.max(0, insets.bottom || 0);
+    const footerTopPadding = scaleSize(6);
+    const footerBottomPadding = safeAreaBottom - scaleSize(12);
     const footerBaseStyle = useMemo(() => ({
-        paddingBottom: safeBottomInset - scaleSize(12),
-        paddingTop: scaleSize(2),
-        minHeight: dynamicStyles.inputHeight + safeBottomInset + scaleSize(4),
+        paddingBottom: footerBottomPadding,
+        paddingTop: footerTopPadding,
+        minHeight: dynamicStyles.inputHeight + footerBottomPadding + footerTopPadding,
         borderTopLeftRadius: scaleSize(40),
         borderTopRightRadius: scaleSize(40),
-    }), [dynamicStyles.inputHeight, safeBottomInset]);
+    }), [dynamicStyles.inputHeight, footerBottomPadding, footerTopPadding]);
 
     const getSnapPointPx = useCallback((point) => {
         if (point == null) return 0;
@@ -159,7 +160,7 @@ const CommentsBottomSheet = ({ isVisible, postData, commentsBottomSheetExpandFla
     const postPid = postData?.pid;
     useEffect(() => {
         const hasPost = !!postPid;
-        if (isVisible && hasPost && containerReady) {
+        if (isVisible && hasPost) {
             pendingCloseRef.current = false;
             sheetTranslateY.value = 0;
 
@@ -203,7 +204,6 @@ const CommentsBottomSheet = ({ isVisible, postData, commentsBottomSheetExpandFla
             footerDragY.value = withTiming(0, { duration: 180 });
         }
     }, [
-        containerReady,
         getSnapPointPx,
         isVisible,
         openPositionPx,
@@ -219,10 +219,10 @@ const CommentsBottomSheet = ({ isVisible, postData, commentsBottomSheetExpandFla
 
     // Emit a small open signal after the sheet has animated in
     useEffect(() => {
-        if (!isVisible || !postPid || !containerReady) return;
+        if (!isVisible || !postPid) return;
         const id = setTimeout(() => { try { setOpenSignal(Date.now()); } catch { } }, 90);
         return () => clearTimeout(id);
-    }, [isVisible, postPid, containerReady]);
+    }, [isVisible, postPid]);
 
     // Imperative collapse during interactive unfocus (ignore interactive updates during close)
     const isClosingRef = useRef(false);
@@ -376,11 +376,6 @@ const CommentsBottomSheet = ({ isVisible, postData, commentsBottomSheetExpandFla
             setIsSheetExpanded(index === 1);
         }
     }, [isVisible, postPid, enforceVisibleIndex, getSnapPointPx, sheetOpenHeight, snapPoints]);
-
-    // Assume baseline container height and mark ready on mount to avoid relying on layout events
-    useEffect(() => {
-        try { requestAnimationFrame(() => setContainerReady(true)); } catch { setContainerReady(true); }
-    }, []);
 
     // Disable content panning while user is performing the unfocus gesture to avoid gesture competition
     const [contentPanEnabled, setContentPanEnabled] = useState(true);
