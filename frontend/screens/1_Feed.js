@@ -6,7 +6,7 @@
  */
 
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { Dimensions, SafeAreaView, StyleSheet, View, RefreshControl } from "react-native";
+import { SafeAreaView, StyleSheet, View, RefreshControl } from "react-native";
 import { useFocusEffect, useIsFocused } from '@react-navigation/native';
 import { StatusBar } from "expo-status-bar";
 import { useSafeAreaInsets, SafeAreaView as SafeAreaInsetsView } from "react-native-safe-area-context";
@@ -25,32 +25,25 @@ import FeedHeaderOverlay from "../components/1_Feed/FeedHeaderOverlay";
 
 import Footer from "../components/Footer";
 import theme from "../theme/mfpDark";
-import getScrollTargetPosition from "../helper/getScrollTargetPosition";
 import isThisUser from "../helper/isThisUser";
 import useFilteredFeed from "../helper/useFilteredFeed";
 import MaskedView from "@react-native-masked-view/masked-view";
 import useFeedUserData from "./feed/hooks/useFeedUserData";
 import { FeedFocusProvider } from "./feed/hooks/FeedFocusContext";
 import useFeedUnfocusGesture from "./feed/hooks/useFeedUnfocusGesture";
-
-const { width, height } = Dimensions.get("window");
-const TARGET_POSITION = getScrollTargetPosition(width, height),
-    ANIMATION_DURATION = 320; // main focus/unfocus translation + fades
-// More gradual timings for various phases
-const INTERACTIVE_START_MS = 220; // when entering focus, settle interactive progress to 0
-const INTERACTIVE_CANCEL_MS = 300; // when canceling interactive unfocus, return to focused
-const INTERACTIVE_CANCEL_FADE_MS = 260; // chips/story fade when canceling
-const INTERACTIVE_LOCKOUT_MS = 340; // brief lockout after cancel
-const COMMENTS_COLLAPSE_MIN_PX = 28; // ensure small offsets don't instantly collapse sheet
-const COMMENTS_REOPEN_MAX_PX = 16;  // distance under which the sheet can safely reopen
-const FOCUS_SPRING_CONFIG = {
-    damping: 24,
-    stiffness: 240,
-    mass: 0.9,
-    restDisplacementThreshold: 0.15,
-    restSpeedThreshold: 0.15,
-    overshootClamping: true,
-};
+import {
+    TARGET_POSITION,
+    FOCUS_ANIMATION_DURATION as ANIMATION_DURATION,
+    INTERACTIVE_START_MS,
+    INTERACTIVE_CANCEL_MS,
+    INTERACTIVE_CANCEL_FADE_MS,
+    INTERACTIVE_LOCKOUT_MS,
+    COMMENTS_COLLAPSE_MIN_PX,
+    COMMENTS_REOPEN_MAX_PX,
+    FOCUS_SPRING_CONFIG,
+    WINDOW_WIDTH as width,
+    WINDOW_HEIGHT as height,
+} from "./feed/constants";
 
 export default function Feed({ navigation, route }) {
     const insets = useSafeAreaInsets();
@@ -988,7 +981,31 @@ export default function Feed({ navigation, route }) {
             .onUpdate((e) => { try { runOnJS(hSwipeUpdateJS)(e.translationX); } catch { } })
             .onEnd((e) => { try { runOnJS(hSwipeEndJS)(e.translationX, e.velocityX); } catch { } });
     }, [isSomePostFocused, hSwipeBeginJS, hSwipeUpdateJS, hSwipeEndJS]);
-    const combinedGesture = useMemo(() => Gesture.Simultaneous(panUnfocus, horizontalSwipe), [panUnfocus, horizontalSwipe]);
+    const handleFooterTap = useCallback((absoluteX, absoluteY) => {
+        try {
+            if (!isSomePostFocused) return;
+            const idx = focusedPostIndex.current;
+            if (idx == null || idx < 0) return;
+            const ref = postRefs.current?.[idx];
+            if (!ref || typeof ref?.handleFooterTap !== 'function') return;
+            ref.handleFooterTap(absoluteX, absoluteY);
+        } catch { }
+    }, [isSomePostFocused]);
+
+    const footerTapGesture = useMemo(() => {
+        return Gesture.Tap()
+            .enabled(!!isSomePostFocused)
+            .maxDistance(18)
+            .onEnd((event, success) => {
+                if (!success) return;
+                try { runOnJS(handleFooterTap)(event.absoluteX, event.absoluteY); } catch { }
+            });
+    }, [isSomePostFocused, handleFooterTap]);
+
+    const combinedGesture = useMemo(
+        () => Gesture.Simultaneous(panUnfocus, horizontalSwipe, footerTapGesture),
+        [panUnfocus, horizontalSwipe, footerTapGesture]
+    );
 
     return (
         <FeedFocusProvider value={focusContextValue}>

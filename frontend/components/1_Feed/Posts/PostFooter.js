@@ -3,43 +3,50 @@
  * * Handles backend calls from user interactions
  */
 
-import React, { useState, useEffect, useRef, forwardRef, useImperativeHandle } from 'react';
+import React, { useEffect, useRef, forwardRef, useImperativeHandle } from 'react';
 import { View, Text, StyleSheet, Pressable, Animated, Dimensions, Easing } from 'react-native';
 import { BlurView } from 'expo-blur';
-import { Heart, Messages1, Send2 } from 'iconsax-react-native';
+import { Heart, Messages1 } from 'iconsax-react-native';
 import RNBounceable from '@freakycoder/react-native-bounceable';
 import Svg, { Path } from "react-native-svg";
 
 import PostFooterInfoPanel from './PostFooterInfoPanel';
-import updateDoc from '../../../../backend/helper/firebase/updateDoc';
-import arrayAppend from '../../../../backend/helper/firebase/arrayAppend';
-import arrayErase from '../../../../backend/helper/firebase/arrayErase';
-import sendNotification from '../../../../backend/sendNotification';
 import { getPostFooterStyles } from '../../../helper/getPostFooterStyles';
-import isThisUser from '../../../helper/isThisUser'
 import { FOCUS_ANIM_MS, FOCUS_EASING } from './animConfig';
+
+import usePostFooterInteractions from './hooks/usePostFooterInteractions';
 
 import scaleSize from "../../../helper/scaleSize";
 
 const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get("window");
 const dynamicStyles = getPostFooterStyles(SCREEN_WIDTH, SCREEN_HEIGHT);
 
-const PostFooter = forwardRef(function PostFooter({ data, onPressCommentButton, onPressShareButton, isSomePostFocused, isUnfocusing, focusModeSV, interactiveUnfocusSV }, ref) {
-    const [isLiked, setIsLiked] = useState(false);
-    const [isSaved, setIsSaved] = useState(false);
+const PostFooter = forwardRef(function PostFooter({
+    data,
+    onPressCommentButton,
+    onPressShareButton,
+    isSomePostFocused,
+    isUnfocusing,
+    focusModeSV,
+    interactiveUnfocusSV,
+}, ref) {
     const opacityAnim = useRef(new Animated.Value(isSomePostFocused && !isUnfocusing ? 1 : 0)).current;
 
-    // Determine if post is already liked by current user
-    useEffect(() => {
-        if (global?.userData) {
-            (Array.isArray(data?.likes) ? data.likes : []).forEach(item => {
-                if (isThisUser(item?.uid)) setIsLiked(true);
-            });
-            (Array.isArray(global?.userData?.savedPosts) ? global.userData.savedPosts : []).forEach(pid => {
-                if (pid === data?.pid) setIsSaved(true); // TODO standardize backend storage for saved posts
-            });
-        }
-    }, [global?.userData]);
+    const {
+        isLiked,
+        isSaved,
+        ensureLike,
+        assignButtonRef,
+        handlePressLikeButton,
+        handlePressSaveButton,
+        pressComment,
+        pressShare,
+        handleTapAt,
+    } = usePostFooterInteractions({
+        data,
+        onPressCommentButton,
+        onPressShareButton,
+    });
 
     // Animate appearance/disappearance when post is focused/unfocused.
     // Fade OUT immediately when unfocus starts (isUnfocusing=true).
@@ -53,124 +60,90 @@ const PostFooter = forwardRef(function PostFooter({ data, onPressCommentButton, 
         }).start();
     }, [isSomePostFocused, isUnfocusing]);
 
-    // Toggle "like" status & update Firestore
-    function handlePressLikeButton() {
-        // guard numeric likeCount
-        if (typeof data.likeCount !== 'number') data.likeCount = Number(data.likeCount) || 0;
-        if (!isLiked) {
-            data.likeCount++;
-            data.likes.push({
-                uid: global.userData.uid,
-                pfp: global.userData.image,
-                handle: global.userData.handle,
-                name: global.userData.name
-            });
-            // Update only the changed fields to minimize snapshot churn
-            updateDoc('posts', data.pid, { likeCount: data.likeCount, likes: data.likes });
-
-            const notif = {
-                uid: global.userData.uid,
-                pfp: global.userData.image,
-                handle: global.userData.handle,
-                name: global.userData.name,
-                type: 'liked-post',
-                pid: data.pid,
-                timestamp: Date.now()
-            };
-            sendNotification(data.uid, notif);
-        } else {
-            data.likeCount--;
-            data.likes = data.likes.filter(item => item.uid !== global.userData.uid);
-            updateDoc('posts', data.pid, { likeCount: data.likeCount, likes: data.likes });
-        }
-        setIsLiked((v) => !v);
-    }
-
-    // Expose imperative API for parent (e.g., double-tap to like)
-    const ensureLike = () => { if (!isLiked) handlePressLikeButton(); };
     useImperativeHandle(ref, () => ({
         toggleLike: handlePressLikeButton,
         ensureLike,
-        setLiked: (val) => setIsLiked(!!val),
         isLiked,
-    }), [isLiked]);
-
-    // Toggle "save" status & update user doc
-    function handlePressSaveButton() {
-        if (!isSaved) arrayAppend('users', global.userData.uid, 'savedPosts', data.pid);
-        else arrayErase('users', global.userData.uid, 'savedPosts', data.pid);
-        setIsSaved((v) => !v);
-    }
+        pressLike: handlePressLikeButton,
+        pressComment,
+        pressShare,
+        pressSave: handlePressSaveButton,
+        handleTapAt,
+    }), [ensureLike, handlePressLikeButton, handlePressSaveButton, handleTapAt, isLiked, pressComment, pressShare]);
 
     return (
-        <View style={styles.mainContainer}>
+        <View style={styles.mainContainer} collapsable={false}>
             <View style={styles.top}>
                 {/* Left portion: like, comment, share */}
                 <View style={styles.left}>
-                    <RNBounceable style={styles.likeButton} onPress={handlePressLikeButton} hitSlop={{ top: scaleSize(4), bottom: scaleSize(12), left: scaleSize(12), right: scaleSize(12) }}>
-                        <BlurView style={styles.likeButtonBlurView}>
-                            <Heart
-                                size={dynamicStyles.iconSize}
-                                color={isLiked ? '#FE5555' : '#fff'}
-                                variant="Bold"
-                            />
-                            <Text style={styles.likeButtonText}>{data.likeCount}</Text>
-                        </BlurView>
-                    </RNBounceable>
+                    <View ref={(node) => assignButtonRef('like', node)} collapsable={false}>
+                        <RNBounceable
+                            style={styles.likeButton}
+                            onPress={handlePressLikeButton}
+                            hitSlop={{ top: scaleSize(4), bottom: scaleSize(12), left: scaleSize(12), right: scaleSize(12) }}
+                        >
+                            <BlurView style={styles.likeButtonBlurView}>
+                                <Heart
+                                    size={dynamicStyles.iconSize}
+                                    color={isLiked ? '#FE5555' : '#fff'}
+                                    variant="Bold"
+                                />
+                                <Text style={styles.likeButtonText}>{data.likeCount}</Text>
+                            </BlurView>
+                        </RNBounceable>
+                    </View>
 
-                    <Pressable
-                        // disabled={!isSomePostFocused}
-                        onPress={onPressCommentButton}
-                        style={styles.commentButton}
-                        hitSlop={{ top: scaleSize(4), bottom: scaleSize(12), left: scaleSize(12), right: scaleSize(12) }}
-                    >
-                        <Messages1 size={dynamicStyles.iconSize} color="#fff" variant="Bold" />
-                        <Text style={styles.commentButtonText}>{data.commentCount}</Text>
-                    </Pressable>
+                    <View ref={(node) => assignButtonRef('comment', node)} collapsable={false}>
+                        <Pressable
+                            onPress={pressComment}
+                            style={styles.commentButton}
+                            hitSlop={{ top: scaleSize(4), bottom: scaleSize(12), left: scaleSize(12), right: scaleSize(12) }}
+                        >
+                            <Messages1 size={dynamicStyles.iconSize} color="#fff" variant="Bold" />
+                            <Text style={styles.commentButtonText}>{data.commentCount}</Text>
+                        </Pressable>
+                    </View>
 
-                    {/* <Pressable
-                        // disabled={!isSomePostFocused}
-                        disabled
-                        // onPress={onPressShareButton}
-                        style={[styles.shareButton]}
-                    >
-                        <Send2 size={dynamicStyles.iconSize - 4} color="#fff" variant="Bold" />
-                        <Text style={styles.shareButtonText}>{data.shareCount}</Text>
-                    </Pressable> */}
                 </View>
 
                 {/* Right portion: save button */}
-                <RNBounceable style={styles.saveButton} onPress={handlePressSaveButton} hitSlop={{ top: scaleSize(4), bottom: scaleSize(12), left: scaleSize(12), right: scaleSize(12) }}>
-                    {isSaved ? (
-                        <Svg
-                            xmlns="http://www.w3.org/2000/svg"
-                            width={dynamicStyles.iconSize}
-                            height={dynamicStyles.iconSize}
-                            viewBox="0 0 24 24"
-                            fill="#FDF764"
-                            stroke="#FDF764"
-                            strokeWidth={2.2}
-                            strokeLinecap="round"
-                            strokeLinejoin="round"
-                        >
-                            <Path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z" />
-                        </Svg>
-                    ) : (
-                        <Svg
-                            xmlns="http://www.w3.org/2000/svg"
-                            width={dynamicStyles.iconSize}
-                            height={dynamicStyles.iconSize}
-                            viewBox="0 0 24 24"
-                            fill="none"
-                            stroke="#fff"
-                            strokeWidth={2.2}
-                            strokeLinecap="round"
-                            strokeLinejoin="round"
-                        >
-                            <Path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z" />
-                        </Svg>
-                    )}
-                </RNBounceable>
+                <View ref={(node) => assignButtonRef('save', node)} collapsable={false}>
+                    <RNBounceable
+                        style={styles.saveButton}
+                        onPress={handlePressSaveButton}
+                        hitSlop={{ top: scaleSize(4), bottom: scaleSize(12), left: scaleSize(12), right: scaleSize(12) }}
+                    >
+                        {isSaved ? (
+                            <Svg
+                                xmlns="http://www.w3.org/2000/svg"
+                                width={dynamicStyles.iconSize}
+                                height={dynamicStyles.iconSize}
+                                viewBox="0 0 24 24"
+                                fill="#FDF764"
+                                stroke="#FDF764"
+                                strokeWidth={2.2}
+                                strokeLinecap="round"
+                                strokeLinejoin="round"
+                            >
+                                <Path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z" />
+                            </Svg>
+                        ) : (
+                            <Svg
+                                xmlns="http://www.w3.org/2000/svg"
+                                width={dynamicStyles.iconSize}
+                                height={dynamicStyles.iconSize}
+                                viewBox="0 0 24 24"
+                                fill="none"
+                                stroke="#fff"
+                                strokeWidth={2.2}
+                                strokeLinecap="round"
+                                strokeLinejoin="round"
+                            >
+                                <Path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z" />
+                            </Svg>
+                        )}
+                    </RNBounceable>
+                </View>
             </View>
             {/* Footer with animated comment text, user handle, etc. */}
             <PostFooterInfoPanel
@@ -220,19 +193,6 @@ const styles = StyleSheet.create({
         marginLeft: scaleSize(6)
     },
     commentButtonText: {
-        color: '#fff',
-        fontFamily: 'Poppins_700Bold',
-        fontSize: scaleSize(dynamicStyles.fontSize),
-        paddingVertical: scaleSize(1),
-        paddingHorizontal: scaleSize(5),
-    },
-    shareButton: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        paddingHorizontal: scaleSize(dynamicStyles.buttonPaddingHorizontal - 4),
-        paddingVertical: dynamicStyles.buttonPaddingVertical,
-    },
-    shareButtonText: {
         color: '#fff',
         fontFamily: 'Poppins_700Bold',
         fontSize: scaleSize(dynamicStyles.fontSize),

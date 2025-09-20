@@ -78,6 +78,7 @@ const Post = forwardRef(function Post({
     const scale = useRef(new Animated.Value(1)).current;
     const viewRef = useRef(null);
     const carouselRef = useRef(null);
+    const footerRef = useRef(null);
 
     const [currentIndex, setCurrentIndex] = useState(0);
 
@@ -192,6 +193,11 @@ const Post = forwardRef(function Post({
         setCurrentIndex((prev) => (prev === nextIndex ? prev : nextIndex));
     }, []);
 
+    const handleFooterTapFromOverlay = useCallback((absoluteX, absoluteY) => {
+        if (!footerRef.current?.handleTapAt) return;
+        footerRef.current.handleTapAt(absoluteX, absoluteY);
+    }, []);
+
     // Imperative horizontal pan control from Feed-level gesture
     useImperativeHandle(ref, () => ({
         hSwipeBegin: () => (carouselRef.current?.hSwipeBegin?.() ?? false),
@@ -210,7 +216,8 @@ const Post = forwardRef(function Post({
             } catch {}
             resolve(null);
         }),
-    }), [carouselRef, viewRef]);
+        handleFooterTap: handleFooterTapFromOverlay,
+    }), [carouselRef, viewRef, handleFooterTapFromOverlay]);
 
     // (external swipe state removed; handled via imperative hSwipe* methods)
 
@@ -273,6 +280,7 @@ const Post = forwardRef(function Post({
                     openViewWorkout={() => openViewWorkoutModal(index)}
                 />
                 <PostFooter
+                    ref={footerRef}
                     data={data}
                     image={pfp}
                     isSomePostFocused={resolvedIsSomePostFocused}
