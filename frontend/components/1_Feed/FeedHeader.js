@@ -38,8 +38,8 @@ const s = (n) => Math.round(n * scale);
 const METRICS = (() => {
     const paddingH = dynamicStyles.paddingHorizontal;
     const paddingTop = s(2);
-    const paddingBottom = s(10);
-    const centerH = s(34);
+    const paddingBottom = s(12);
+    const centerH = s(40);
     const marginTop = s(5);
     const icon = dynamicStyles.iconSize;
     const iconTop = Math.round((centerH - icon) / 2);
