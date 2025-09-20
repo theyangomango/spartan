@@ -1,9 +1,9 @@
 // components/3_Workout/DayDetailsSheet.jsx
 import React, { memo, useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { View, Text, StyleSheet, Pressable, Animated, useWindowDimensions, VirtualizedList, Easing } from "react-native";
+import { View, Text, StyleSheet, Pressable, Animated, useWindowDimensions, VirtualizedList, Easing, Modal, FlatList } from "react-native";
 import { Gesture, GestureDetector } from 'react-native-gesture-handler';
 import { useSharedValue, runOnJS } from 'react-native-reanimated';
-import BottomSheet, { BottomSheetBackdrop, BottomSheetScrollView, BottomSheetView } from "@gorhom/bottom-sheet";
+import BottomSheet, { BottomSheetBackdrop, BottomSheetView } from "@gorhom/bottom-sheet";
 import theme from "../../theme/mfpDark";
 import NewWorkoutModal from "./NewWorkout/NewWorkoutModal";
 import CopyTemplateToast from "./ui/CopyTemplateToast";
@@ -19,6 +19,8 @@ import { parseMacrosFromDescription, parseExtraNutrientsFromDescription } from "
 
 import scaleSize from "../../helper/scaleSize";
 import { ScrollView } from "react-native-gesture-handler";
+import { Ionicons } from "@expo/vector-icons";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 const HEADER_HEIGHT = scaleSize(48);
 const EDGE_BACK_GESTURE_WIDTH = 200; // px area from left edge to trigger back swipe
@@ -52,6 +54,269 @@ const shiftDate = (d, delta) => {
 };
 
 const toNumber = (n) => (Number(n || 0) || 0);
+
+const MONTH_NAMES = [
+    'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
+    'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec',
+];
+
+const WEEKDAY_LABELS = ['M', 'T', 'W', 'T', 'F', 'S', 'S'];
+
+const monthIndexOf = (date) => (date.getFullYear() * 12) + date.getMonth();
+
+const parseKeyToDate = (key) => {
+    if (!key) return null;
+    const parts = key.split('-');
+    if (parts.length !== 3) return null;
+    const [y, m, d] = parts.map((part) => Number(part));
+    if (!Number.isFinite(y) || !Number.isFinite(m) || !Number.isFinite(d)) return null;
+    const date = new Date(y, m - 1, d);
+    if (Number.isNaN(date.getTime())) return null;
+    date.setHours(0, 0, 0, 0);
+    return date;
+};
+
+const buildMonthData = (year, month, markedSet, selectedKey, todayKey) => {
+    const first = new Date(year, month, 1);
+    first.setHours(0, 0, 0, 0);
+    const daysInMonth = new Date(year, month + 1, 0).getDate();
+    const firstDay = first.getDay(); // 0 = Sunday
+    const offset = (firstDay + 6) % 7; // convert to Monday-first index
+
+    const cells = [];
+    for (let i = 0; i < offset; i += 1) cells.push(null);
+    for (let day = 1; day <= daysInMonth; day += 1) {
+        const date = new Date(year, month, day);
+        date.setHours(0, 0, 0, 0);
+        const key = dayKey(date);
+        cells.push({
+            key,
+            day,
+            timestamp: date.getTime(),
+            isMarked: markedSet?.has?.(key) || false,
+            isSelected: key === selectedKey,
+            isToday: key === todayKey,
+        });
+    }
+    while (cells.length % 7 !== 0) cells.push(null);
+
+    return {
+        label: `${MONTH_NAMES[month]} ${year}`,
+        cells,
+        monthIndex: (year * 12) + month,
+    };
+};
+
+const buildCalendarMonths = (selectedDate, markedSet) => {
+    const safeDate = selectedDate ? new Date(selectedDate) : new Date();
+    if (Number.isNaN(safeDate.getTime())) safeDate.setTime(Date.now());
+    safeDate.setHours(0, 0, 0, 0);
+    const selectedMonthIdx = monthIndexOf(safeDate);
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const todayIdx = monthIndexOf(today);
+    const selectedKey = dayKey(safeDate);
+    const todayKey = dayKey(today);
+
+    const baseSet = markedSet instanceof Set ? markedSet : new Set();
+    const marksArray = Array.from(baseSet).map((key) => parseKeyToDate(key)).filter(Boolean);
+    const markIndices = marksArray.map((date) => monthIndexOf(date));
+
+    let minIdx = selectedMonthIdx - 6;
+    let maxIdx = selectedMonthIdx + 6;
+
+    if (markIndices.length) {
+        minIdx = Math.min(minIdx, ...markIndices);
+        maxIdx = Math.max(maxIdx, ...markIndices);
+    }
+
+    minIdx = Math.min(minIdx, todayIdx);
+    maxIdx = Math.max(maxIdx, todayIdx);
+
+    // Add buffer months so lists never feel cramped
+    minIdx -= 1;
+    maxIdx += 1;
+
+    const months = [];
+    for (let idx = minIdx; idx <= maxIdx; idx += 1) {
+        const year = Math.floor(idx / 12);
+        const month = idx - (year * 12);
+        months.push(buildMonthData(year, month, baseSet, selectedKey, todayKey));
+    }
+
+    return months;
+};
+
+const HistoryCalendarModal = memo(function HistoryCalendarModal({
+    visible,
+    onClose,
+    onSelectDate,
+    selectedDate,
+    markedDayKeys,
+}) {
+    const insets = useSafeAreaInsets();
+    const listRef = useRef(null);
+
+    const marksArray = useMemo(() => {
+        if (!markedDayKeys) return [];
+        if (markedDayKeys instanceof Set) return Array.from(markedDayKeys);
+        if (Array.isArray(markedDayKeys)) return markedDayKeys.slice();
+        if (typeof markedDayKeys === 'object') return Object.keys(markedDayKeys || {});
+        return [];
+    }, [markedDayKeys]);
+
+    const normalizedSelectedDate = useMemo(() => {
+        if (!selectedDate) return null;
+        const next = new Date(selectedDate);
+        if (Number.isNaN(next.getTime())) return null;
+        next.setHours(0, 0, 0, 0);
+        return next;
+    }, [selectedDate]);
+
+    const months = useMemo(() => {
+        const set = new Set(marksArray);
+        return buildCalendarMonths(normalizedSelectedDate, set);
+    }, [marksArray, normalizedSelectedDate]);
+
+    const targetMonthIndex = useMemo(() => {
+        if (!months.length) return 0;
+        const selectedIdx = normalizedSelectedDate ? monthIndexOf(normalizedSelectedDate) : null;
+        if (selectedIdx !== null) {
+            const match = months.findIndex((m) => m.monthIndex === selectedIdx);
+            if (match !== -1) return match;
+        }
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+        const todayIdx = monthIndexOf(today);
+        const todayMatch = months.findIndex((m) => m.monthIndex === todayIdx);
+        if (todayMatch !== -1) return todayMatch;
+        return months.length - 1;
+    }, [months, normalizedSelectedDate]);
+
+    const handleSelect = useCallback((timestamp) => {
+        if (!Number.isFinite(timestamp)) return;
+        const next = new Date(timestamp);
+        if (Number.isNaN(next.getTime())) return;
+        next.setHours(0, 0, 0, 0);
+        onSelectDate?.(next);
+    }, [onSelectDate]);
+
+    useEffect(() => {
+        if (!visible || !listRef.current || !months.length) return;
+        const index = Math.max(0, Math.min(targetMonthIndex, months.length - 1));
+        requestAnimationFrame(() => {
+            try {
+                listRef.current?.scrollToIndex?.({ index, animated: false });
+            } catch (e) {
+                setTimeout(() => {
+                    try { listRef.current?.scrollToIndex?.({ index, animated: false }); } catch { }
+                }, 16);
+            }
+        });
+    }, [visible, targetMonthIndex, months.length]);
+
+    return (
+        <Modal
+            visible={!!visible}
+            transparent
+            animationType="fade"
+            onRequestClose={onClose}
+            statusBarTranslucent
+        >
+            <View style={styles.calendarModalRoot}>
+                <Pressable style={styles.calendarBackdrop} onPress={onClose}>
+                    <View />
+                </Pressable>
+                <View
+                    style={[
+                        styles.calendarModalContent,
+                        {
+                            paddingTop: insets.top + scaleSize(18),
+                            paddingBottom: Math.max(scaleSize(18), insets.bottom + scaleSize(12)),
+                        },
+                    ]}
+                    pointerEvents="box-none"
+                >
+                    <View style={styles.calendarCard}>
+                        <View style={styles.calendarHeaderRow}>
+                            <Pressable
+                                onPress={onClose}
+                                hitSlop={12}
+                                style={styles.calendarCloseBtn}
+                                accessibilityRole="button"
+                                accessibilityLabel="Close calendar"
+                            >
+                                <Ionicons name="close" size={20} color={theme.textPrimary} />
+                            </Pressable>
+                            <Text style={styles.calendarTitle}>Calendar</Text>
+                            <View style={styles.calendarHeaderSpacer} />
+                        </View>
+
+                        <View style={styles.calendarWeekHeader}>
+                            {WEEKDAY_LABELS.map((label, idx) => (
+                                <Text key={`${label}-${idx}`} style={styles.calendarWeekdayText}>{label}</Text>
+                            ))}
+                        </View>
+
+                        <FlatList
+                            ref={listRef}
+                            data={months}
+                            keyExtractor={(item) => String(item.monthIndex)}
+                            showsVerticalScrollIndicator={false}
+                            contentContainerStyle={styles.calendarScrollContent}
+                            renderItem={({ item }) => (
+                                <View style={styles.calendarMonthBlock}>
+                                    <Text style={styles.calendarMonthLabel}>{item.label}</Text>
+                                    <View style={styles.calendarGrid}>
+                                        {item.cells.map((cell, idx) => {
+                                            const cellKey = cell ? `${item.monthIndex}-${cell.key}` : `placeholder-${item.monthIndex}-${idx}`;
+                                            if (!cell) {
+                                                return <View key={cellKey} style={styles.calendarCell} />;
+                                            }
+                                            return (
+                                                <Pressable
+                                                    key={cellKey}
+                                                    style={styles.calendarCell}
+                                                    hitSlop={10}
+                                                    onPress={() => handleSelect(cell.timestamp)}
+                                                    accessibilityRole="button"
+                                                    accessibilityLabel={`Go to ${cell.key}`}
+                                                >
+                                                    <View
+                                                        style={[
+                                                            styles.calendarDayCircle,
+                                                            cell.isMarked && styles.calendarDayLogged,
+                                                            cell.isToday && styles.calendarDayToday,
+                                                            cell.isSelected && styles.calendarDaySelected,
+                                                        ]}
+                                                    >
+                                                        <Text
+                                                            style={[
+                                                                styles.calendarDayText,
+                                                                (cell.isMarked || cell.isSelected) && styles.calendarDayTextActive,
+                                                            ]}
+                                                        >
+                                                            {cell.day}
+                                                        </Text>
+                                                    </View>
+                                                </Pressable>
+                                            );
+                                        })}
+                                    </View>
+                                </View>
+                            )}
+                            onScrollToIndexFailed={({ index }) => {
+                                setTimeout(() => {
+                                    try { listRef.current?.scrollToIndex?.({ index, animated: false }); } catch { }
+                                }, 32);
+                            }}
+                        />
+                    </View>
+                </View>
+            </View>
+        </Modal>
+    );
+});
 
 const DayDetailsSheet = ({
     /** OPTION A: explicit visibility */
@@ -107,6 +372,7 @@ const DayDetailsSheet = ({
     const TOTAL_PAGES = 100000;
     const BASE_INDEX = Math.floor(TOTAL_PAGES / 2);
     const [baseIndex, setBaseIndex] = useState(BASE_INDEX);
+    const [calendarVisible, setCalendarVisible] = useState(false);
 
     // Expand helper that tolerates ref not being ready on first render
     const expandSafely = useCallback(() => {
@@ -333,6 +599,49 @@ const DayDetailsSheet = ({
     }, [global?.__loggedFoodsSig]);
     const completedWorkoutsCount = useMemo(() => (global?.userData?.completedWorkouts || []).length, [(global?.userData?.completedWorkouts || [])]);
 
+    const calendarMarkedSet = useMemo(() => {
+        const set = new Set();
+        const addKey = (value) => {
+            if (value === null || value === undefined) return;
+            if (typeof value === 'string' && value.includes('-')) {
+                set.add(value);
+                return;
+            }
+            const key = dayKey(value);
+            if (key) set.add(key);
+        };
+
+        try {
+            const completed = Array.isArray(global?.userData?.completedWorkouts) ? global.userData.completedWorkouts : [];
+            completed.forEach((w) => {
+                addKey(w?.finishedAt ?? w?.completedAt ?? w?.createdAt ?? w?.created ?? 0);
+            });
+        } catch { }
+
+        try {
+            const current = global?.userData?.currentWorkout;
+            if (current) addKey(current?.createdAt ?? current?.created ?? Date.now());
+        } catch { }
+
+        try {
+            const map = global?.userData?.loggedFoods || {};
+            const looksNested = map && typeof map === 'object' && Object.values(map)[0] && !('dayKey' in (Object.values(map)[0] || {}));
+            if (looksNested) {
+                Object.entries(map || {}).forEach(([dk, entries]) => {
+                    if (entries && Object.keys(entries || {}).length) addKey(dk);
+                });
+            } else {
+                Object.values(map || {}).forEach((entry) => {
+                    if (!entry) return;
+                    if (entry?.dayKey) addKey(entry.dayKey);
+                    else addKey(entry?.createdAt ?? entry?.created ?? entry?.ts ?? entry?.timestamp);
+                });
+            }
+        } catch { }
+
+        return set;
+    }, [completedWorkoutsCount, loggedFoodsCount, global?.userData?.currentWorkout?.created, global?.userData?.currentWorkout?.createdAt]);
+
     // Current, prev, next day data from global (instant render)
     const prevDate = useMemo(() => shiftDate(date, -1), [date]);
     const nextDate = useMemo(() => shiftDate(date, 1), [date]);
@@ -466,6 +775,10 @@ const DayDetailsSheet = ({
         setHeaderDate(date);
     }, [date]);
 
+    useEffect(() => {
+        if (!visible) setCalendarVisible(false);
+    }, [visible]);
+
     // Slide pages horizontally by delta days; always animate
     const slideBy = useCallback((delta) => {
         try {
@@ -476,6 +789,24 @@ const DayDetailsSheet = ({
             }, 16);
         }
     }, [baseIndex]);
+
+    const openCalendar = useCallback(() => setCalendarVisible(true), []);
+    const closeCalendar = useCallback(() => setCalendarVisible(false), []);
+
+    const handleCalendarSelect = useCallback((picked) => {
+        if (!picked) return;
+        const normalized = new Date(picked);
+        if (Number.isNaN(normalized.getTime())) return;
+        normalized.setHours(0, 0, 0, 0);
+        setHeaderDate(normalized);
+        onChangeDate?.(normalized);
+        setCalendarVisible(false);
+        try {
+            requestAnimationFrame(() => {
+                try { listRef.current?.scrollToIndex({ index: baseIndex, animated: false }); } catch { }
+            });
+        } catch { }
+    }, [baseIndex, onChangeDate]);
 
     const StaticHeaderRow = useMemo(() => {
         const title = fmt(headerDate) || "Select a date";
@@ -492,9 +823,10 @@ const DayDetailsSheet = ({
                         if (h && Math.abs(h - headerHeight) > 1) setHeaderHeight(h);
                     } catch {}
                 }}
+                onOpenCalendar={openCalendar}
             />
         );
-    }, [headerDate, date, onChangeDate, handleTitlePress, titleScale, headerHeight, slideBy]);
+    }, [headerDate, handleTitlePress, titleScale, headerHeight, slideBy, openCalendar]);
 
     const showToast = useCallback((msg) => {
         setToastText(msg || "Template added");
@@ -550,16 +882,24 @@ const DayDetailsSheet = ({
     }, [listOpacity, viewerOpacity, viewerTranslateX, screenWidth]);
 
     return (
-        <View style={styles.outerContainer} pointerEvents="box-none">
-            <BottomSheet
-                ref={bottomSheetRef}
-                index={-1}
-                snapPoints={snapPoints}
-                enablePanDownToClose
-                enableContentPanningGesture={true}
-                enableHandlePanningGesture={true}
-                backdropComponent={renderBackdrop}
-                handleComponent={() => (
+        <>
+            <HistoryCalendarModal
+                visible={calendarVisible}
+                onClose={closeCalendar}
+                onSelectDate={handleCalendarSelect}
+                selectedDate={headerDate}
+                markedDayKeys={calendarMarkedSet}
+            />
+            <View style={styles.outerContainer} pointerEvents="box-none">
+                <BottomSheet
+                    ref={bottomSheetRef}
+                    index={-1}
+                    snapPoints={snapPoints}
+                    enablePanDownToClose
+                    enableContentPanningGesture={true}
+                    enableHandlePanningGesture={true}
+                    backdropComponent={renderBackdrop}
+                    handleComponent={() => (
                     <View style={styles.handleWrap}>
                         {/* Fading yellow background when viewer is open */}
                         <Animated.View
@@ -585,11 +925,11 @@ const DayDetailsSheet = ({
                             />
                         </View>
                     </View>
-                )}
-                backgroundStyle={styles.bottomSheetBackground}
-                simultaneousHandlers={listRef}
-                onClose={handleClose}
-            >
+                    )}
+                    backgroundStyle={styles.bottomSheetBackground}
+                    simultaneousHandlers={listRef}
+                    onClose={handleClose}
+                >
                 {/* Content (static header + horizontally paged days via VirtualizedList) */}
                 <BottomSheetView style={{ flex: 1 }}>
                     {!shouldRenderContent ? null : (
@@ -733,8 +1073,9 @@ const DayDetailsSheet = ({
                             )}
                         </View>
                 </OverlayContainer>
-            </BottomSheet>
-        </View>
+                </BottomSheet>
+            </View>
+        </>
     );
 };
 
@@ -794,7 +1135,99 @@ const styles = StyleSheet.create({
     secondary: { backgroundColor: theme.field },
     secondaryText: { color: theme.textPrimary },
     btnText: { fontFamily: "Outfit_700Bold", fontSize: scaleSize(14) },
-    
+
+    calendarModalRoot: { flex: 1, justifyContent: 'center', alignItems: 'center' },
+    calendarBackdrop: { ...StyleSheet.absoluteFillObject, backgroundColor: 'rgba(0,0,0,0.2)' },
+    calendarModalContent: { flex: 1, width: '100%', alignItems: 'center', paddingHorizontal: scaleSize(18) },
+    calendarCard: {
+        width: '100%',
+        height: '90%',
+        backgroundColor: theme.fieldDeep,
+        borderRadius: scaleSize(22),
+        paddingHorizontal: scaleSize(18),
+        paddingVertical: scaleSize(16),
+        shadowColor: '#000',
+        shadowOpacity: 0.25,
+        shadowRadius: scaleSize(18),
+        shadowOffset: { width: 0, height: scaleSize(12) },
+        elevation: 14,
+    },
+    calendarHeaderRow: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        marginBottom: scaleSize(20),
+    },
+    calendarCloseBtn: {
+        width: scaleSize(34),
+        height: scaleSize(34),
+        borderRadius: scaleSize(12),
+        backgroundColor: theme.field,
+        alignItems: 'center',
+        justifyContent: 'center',
+    },
+    calendarTitle: {
+        fontFamily: 'Nunito_800ExtraBold',
+        fontSize: scaleSize(16),
+        color: theme.textPrimary,
+    },
+    calendarHeaderSpacer: { width: scaleSize(34), height: scaleSize(34) },
+    calendarWeekHeader: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        marginBottom: scaleSize(12),
+    },
+    calendarWeekdayText: {
+        flex: 1,
+        textAlign: 'center',
+        fontFamily: 'Outfit_600SemiBold',
+        fontSize: scaleSize(12.5),
+        color: theme.muted,
+    },
+    calendarScrollContent: { paddingBottom: scaleSize(28) },
+    calendarMonthBlock: { marginBottom: scaleSize(22) },
+    calendarMonthLabel: {
+        fontFamily: 'Nunito_800ExtraBold',
+        fontSize: scaleSize(15.5),
+        color: theme.textPrimary,
+        marginBottom: scaleSize(10),
+    },
+    calendarGrid: { flexDirection: 'row', flexWrap: 'wrap' },
+    calendarCell: {
+        width: '14.2857%',
+        aspectRatio: 1,
+        alignItems: 'center',
+        justifyContent: 'center',
+        marginBottom: scaleSize(12),
+    },
+    calendarDayCircle: {
+        width: scaleSize(36),
+        height: scaleSize(36),
+        borderRadius: scaleSize(18),
+        alignItems: 'center',
+        justifyContent: 'center',
+        backgroundColor: theme.fieldDeep,
+    },
+    calendarDayLogged: {
+        backgroundColor: 'rgba(45,158,255,0.18)',
+    },
+    calendarDayToday: {
+        borderWidth: StyleSheet.hairlineWidth,
+        borderColor: theme.primary,
+    },
+    calendarDaySelected: {
+        borderWidth: scaleSize(2),
+        borderColor: theme.success,
+        backgroundColor: theme.fieldDeep,
+    },
+    calendarDayText: {
+        fontFamily: 'Outfit_600SemiBold',
+        fontSize: scaleSize(13),
+        color: theme.textSecondary,
+    },
+    calendarDayTextActive: { color: theme.textPrimary },
+    calendarDayCheck: { position: 'absolute', top: scaleSize(-2), right: scaleSize(-2) },
+
     // Position toast near the top of the overlay content
     toastWrap: {
         position: "absolute",

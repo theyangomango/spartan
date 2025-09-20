@@ -146,6 +146,9 @@ const eq = (a, b) => {
 
 export default memo(TemplatesRail, eq);
 
+const EMPTY_CARD_BG = "#1d2c45cd";
+const EMPTY_CARD_BORDER = "rgba(95, 155, 215, 0.46)";
+
 const styles = StyleSheet.create({
     wrap: { justifyContent: "space-between" },
     page: { height: TPL_CARD_H },
@@ -175,7 +178,12 @@ const styles = StyleSheet.create({
     },
     railPressed: { transform: [{ scale: 0.99 }] },
     // Empty shows dashed border hint; saved uses solid border
-    railEmpty: { backgroundColor: theme.surface, borderStyle: "dashed", borderColor: theme.hairline },
+    railEmpty: {
+        backgroundColor: EMPTY_CARD_BG,
+        borderStyle: "dashed",
+        borderColor: EMPTY_CARD_BORDER,
+        borderWidth: scaleSize(1.5),
+    },
     railSaved: { backgroundColor: theme.surface, borderColor: theme.hairline },
     dumbbellSaved: {
         backgroundColor: theme.field,
@@ -203,12 +211,12 @@ const styles = StyleSheet.create({
         justifyContent: "center",
     },
     dumbbellEmpty: {
-        backgroundColor: theme.field,
-        borderWidth: StyleSheet.hairlineWidth,
-        borderColor: theme.hairline,
+        backgroundColor: EMPTY_CARD_BG,
+        borderWidth: scaleSize(1),
+        borderColor: EMPTY_CARD_BORDER,
         ...Platform.select({
             ios: {
-                backgroundColor: theme.field,
+                backgroundColor: EMPTY_CARD_BG,
                 shadowColor: "#000",
                 shadowOpacity: 0.12,
                 shadowRadius: scaleSize(5),
