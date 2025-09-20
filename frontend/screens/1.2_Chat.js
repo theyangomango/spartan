@@ -31,16 +31,17 @@ import * as Haptics from "expo-haptics";
 
 import { Gesture, GestureDetector } from "react-native-gesture-handler";
 import theme from "../theme/mfpDark";
-import Animated, { useSharedValue, withTiming, runOnJS, useAnimatedStyle } from "react-native-reanimated";
+import Animated, { runOnJS, useSharedValue, withTiming } from "react-native-reanimated";
 
 import scaleSize from "../helper/scaleSize";
 
 const { width: W } = Dimensions.get("window");
 const MAX_REVEAL = 72;
-const EDGE_BACK_GESTURE_WIDTH = 16; // keep back swipe near bezel available
-const LEFT_REVEAL_ZONE = W * 0.38;  // reduced width so reveal doesn't block edge gesture
-const RIGHT_REVEAL_ZONE = W * 0.58;
-const BACK_SWIPE_TRIGGER = 118;     // large swipe distance triggers goBack
+const BACK_START_WIDTH = W * 0.1; // capture left-edge pan for back gesture
+const BACK_COMPLETE_DISTANCE = W * 0.33; // require ~33% drag to pop
+const BACK_COMPLETE_VELOCITY = 1100; // px/s fling threshold
+
+const AnimatedKeyboardAvoidingView = Animated.createAnimatedComponent(KeyboardAvoidingView);
 
 const COLORS = { surface: theme.surface, primary: theme.primary, hairline: theme.hairline, bg: theme.bg, text: theme.textPrimary, subtext: theme.textSecondary, field: theme.field };
 
@@ -220,75 +221,35 @@ export default function Chat({ navigation, route }) {
     }, [data?.users]);
 
     /** ---------------- Split swipe gesture to reveal timestamps ---------------- */
-    const revealSelf = useSharedValue(0);  // your messages
-    const revealOther = useSharedValue(0); // other users
-    const mode = useSharedValue(0);        // 0 none, 1 self, 2 other, 3 back
-    const triggeredBack = useSharedValue(false);
-    const backOffset = useSharedValue(0);
-    const otherMessageZones = useSharedValue([]);
+    const revealSelf = useSharedValue(0);    // your messages
+    const revealOther = useSharedValue(0);   // other users
+    const surfaceOffset = useSharedValue(0); // horizontal shift for back swipe
+    const mode = useSharedValue(0);          // 0 none, 1 self, 2 other, 3 back, 4 back-completing
 
-    const otherMessageBoundsRef = useRef(new Map());
-    const lastScrollY = useRef(0);
-    const updateMessageBounds = useCallback((key, isSelf, bounds) => {
-        if (!key) return;
-        const map = otherMessageBoundsRef.current;
-        if (isSelf || !bounds) map.delete(key);
-        else map.set(key, bounds);
-        otherMessageZones.value = Array.from(map.values());
-    }, [otherMessageZones]);
-
-    const adjustMessageZonesForScroll = useCallback((delta) => {
-        if (!delta) return;
-        const prevMap = otherMessageBoundsRef.current;
-        if (!prevMap || prevMap.size === 0) return;
-        const updatedMap = new Map();
-        prevMap.forEach((bounds, key) => {
-            if (!bounds) return;
-            updatedMap.set(key, {
-                top: bounds.top - delta,
-                bottom: bounds.bottom - delta,
-            });
-        });
-        otherMessageBoundsRef.current = updatedMap;
-        otherMessageZones.value = Array.from(updatedMap.values());
-    }, [otherMessageZones]);
-
-    const handleGestureBack = useCallback(() => {
-        try { navigation.goBack(); } catch { }
+    const handleEdgeBack = useCallback(() => {
+        navigation.goBack();
     }, [navigation]);
 
     const pan = Gesture.Pan()
-        .minDistance(6)
-        .activeOffsetX([-12, 12])
+        .minDistance(8)
+        .activeOffsetX([-16, 16])
         .failOffsetY([-12, 12])
         .onBegin((e) => {
             "worklet";
-            triggeredBack.value = false;
-            backOffset.value = 0;
-
-            if (e.absoluteX <= EDGE_BACK_GESTURE_WIDTH) {
+            const startX = e.absoluteX;
+            if (startX <= BACK_START_WIDTH) {
                 mode.value = 3;
+                revealSelf.value = 0;
+                revealOther.value = 0;
+                surfaceOffset.value = 0;
                 return;
             }
-
-            let insideOther = false;
-            const zones = otherMessageZones.value;
-            for (let i = 0; i < zones.length; i++) {
-                const zone = zones[i];
-                if (!zone) continue;
-                if (e.absoluteY >= zone.top && e.absoluteY <= zone.bottom) {
-                    insideOther = true;
-                    break;
-                }
-            }
-
-            if (e.absoluteX > RIGHT_REVEAL_ZONE) mode.value = 1;
-            else if (insideOther) mode.value = 2;
-            else mode.value = 3;
+            if (startX > W * 0.55) mode.value = 1; // right 45% => your messages
+            else if (startX > BACK_START_WIDTH && startX < W * 0.45) mode.value = 2; // left 45% => others
+            else mode.value = 0;
         })
         .onUpdate((e) => {
             "worklet";
-            if (triggeredBack.value) return;
             if (mode.value === 1) {
                 const dx = e.translationX < 0 ? Math.min(MAX_REVEAL, -e.translationX) : 0;
                 revealSelf.value = dx;
@@ -296,37 +257,47 @@ export default function Chat({ navigation, route }) {
                 const dx = e.translationX > 0 ? Math.min(MAX_REVEAL, e.translationX) : 0;
                 revealOther.value = dx;
             } else if (mode.value === 3) {
-                backOffset.value = Math.max(0, e.translationX);
+                const dx = e.translationX > 0 ? Math.min(W, e.translationX) : 0;
+                surfaceOffset.value = dx;
             }
         })
         .onEnd((e) => {
             "worklet";
             if (mode.value === 1) {
                 revealSelf.value = withTiming(0, { duration: 160 });
-            } else if (mode.value === 2) {
-                revealOther.value = withTiming(0, { duration: 160 });
-            } else if (mode.value === 3) {
-                const distance = backOffset.value;
-                const velocity = e.velocityX;
-                const shouldGoBack = distance > BACK_SWIPE_TRIGGER || velocity > 600;
-                if (shouldGoBack) {
-                    triggeredBack.value = true;
-                    backOffset.value = 0;
-                    runOnJS(handleGestureBack)();
-                } else {
-                    backOffset.value = withTiming(0, { duration: 200 });
-                }
+                mode.value = 0;
+                return;
             }
-            mode.value = 0;
+            if (mode.value === 2) {
+                revealOther.value = withTiming(0, { duration: 160 });
+                mode.value = 0;
+                return;
+            }
+            if (mode.value === 3) {
+                const shouldGoBack = surfaceOffset.value > BACK_COMPLETE_DISTANCE || e.velocityX > BACK_COMPLETE_VELOCITY;
+                if (shouldGoBack) {
+                    mode.value = 4;
+                    surfaceOffset.value = 0;
+                    runOnJS(handleEdgeBack)();
+                    return;
+                }
+                surfaceOffset.value = 0;
+                mode.value = 0;
+            }
         })
         .onFinalize(() => {
             "worklet";
-            if (!triggeredBack.value) {
-                revealSelf.value = withTiming(0, { duration: 160 });
-                revealOther.value = withTiming(0, { duration: 160 });
-                backOffset.value = withTiming(0, { duration: 200 });
+            const currentMode = mode.value;
+            if (currentMode === 4) {
+                mode.value = 0;
+                return;
             }
-            triggeredBack.value = false;
+            revealSelf.value = withTiming(0, { duration: 160 });
+            revealOther.value = withTiming(0, { duration: 160 });
+            if (currentMode === 3) {
+                surfaceOffset.value = 0;
+            }
+            mode.value = 0;
         });
 
     /** ---------------- Date chips (inverted list friendly) ---------------- */
@@ -439,7 +410,6 @@ export default function Chat({ navigation, route }) {
                 revealMax={MAX_REVEAL}
                 onOpenMedia={openMedia}
                 onOpenActions={openActions}
-                onBoundsChange={updateMessageBounds}
             />
         );
     };
@@ -453,19 +423,18 @@ export default function Chat({ navigation, route }) {
         return C;
     }, []);
 
-    const slideStyle = useAnimatedStyle(() => ({ transform: [{ translateX: Math.max(0, backOffset.value) }] }));
-
     return (
-        <KeyboardAvoidingView
-            style={styles.flex}
-            behavior={Platform.OS === "ios" ? "padding" : undefined}
-            keyboardVerticalOffset={Platform.OS === "ios" ? 0 : 0}
-        >
-            <StatusBar barStyle="light-content" />
-            <GestureDetector gesture={pan}>
-                <Animated.View style={[styles.container, { paddingTop: insets.top }, slideStyle]}>
+        <GestureDetector gesture={pan}>
+            <AnimatedKeyboardAvoidingView
+                style={styles.flex}
+                behavior={Platform.OS === "ios" ? "padding" : undefined}
+                keyboardVerticalOffset={Platform.OS === "ios" ? 0 : 0}
+            >
+                <StatusBar barStyle="light-content" />
+                <View style={[styles.container, { paddingTop: insets.top }]}>
                     <ChatHeader
                         usersExcludingSelf={headerUsersExcludingSelf}
+                        // toMessages={() => navigation.navigate("Messages", { message: data, index })}
                         toMessages={() => navigation.goBack()}
                     />
 
@@ -500,16 +469,12 @@ export default function Chat({ navigation, route }) {
                                 try {
                                     const y = e?.nativeEvent?.contentOffset?.y || 0;
                                     isNearBottomRef.current = y <= 80; // inverted: 0 is newest
-                                    const delta = y - lastScrollY.current;
-                                    if (delta !== 0) {
-                                        adjustMessageZonesForScroll(delta);
-                                        lastScrollY.current = y;
-                                    }
                                 } catch { }
                             }}
                         />
                     </View>
 
+                    {/* input row w/ integrated media button + reply preview */}
                     <MessageInput
                         text={text}
                         setText={setText}
@@ -548,9 +513,9 @@ export default function Chat({ navigation, route }) {
                     />
 
                     <MediaViewerModal visible={!!viewer} payload={viewer} onClose={closeViewer} />
-                </Animated.View>
-            </GestureDetector>
-        </KeyboardAvoidingView>
+                </View>
+            </AnimatedKeyboardAvoidingView>
+        </GestureDetector>
     );
 }
 

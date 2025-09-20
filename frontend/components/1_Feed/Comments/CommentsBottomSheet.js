@@ -431,7 +431,7 @@ const CommentsBottomSheet = ({ isVisible, postData, commentsBottomSheetExpandFla
                     style={{ position: 'absolute', left: 0, right: 0 }}
                     backgroundStyle={{ backgroundColor: theme.surface }}
                     topInset={0}
-                    enableContentPanningGesture={contentPanEnabled}
+                    enableContentPanningGesture={true}
                     enablePanDownToClose={false}
                 >
                     {postData && (
@@ -484,7 +484,6 @@ const styles = StyleSheet.create({
         left: 0,
         right: 0,
         bottom: 0,
-        pointerEvents: 'box-none',
     },
     footer: {
         position: 'absolute',

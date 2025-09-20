@@ -54,7 +54,6 @@ const Post = forwardRef(function Post({
     programFocusSignal,
 }, ref) {
     const { pfp } = data;
-    const focusContext = useContext(FeedFocusContext);
     const {
         isSomePostFocused: ctxIsSomePostFocused = false,
         focusedIndex: ctxFocusedIndex = -1,
@@ -62,19 +61,13 @@ const Post = forwardRef(function Post({
         interactiveUnfocusSV: ctxInteractiveUnfocusSV = null,
         unfocusGestureActive: ctxUnfocusGestureActive = false,
         handleFocusPost: ctxHandleFocusPost = () => {},
-    } = focusContext || {};
+    } = useContext(FeedFocusContext) || {};
 
-    const resolvedIsSomePostFocused = typeof isSomePostFocused === 'boolean'
-        ? isSomePostFocused
-        : ctxIsSomePostFocused;
-
-    const resolvedIsFocused = typeof isFocused === 'boolean'
-        ? isFocused
-        : (resolvedIsSomePostFocused && ctxFocusedIndex === index);
-
-    const resolvedFocusModeSV = focusModeSV || ctxFocusModeSV;
-    const resolvedInteractiveUnfocusSV = interactiveUnfocusSV || ctxInteractiveUnfocusSV;
-    const resolvedHandleFocusPost = handleFocusPost || ctxHandleFocusPost;
+    const resolvedIsSomePostFocused = isSomePostFocused ?? ctxIsSomePostFocused;
+    const resolvedIsFocused = isFocused ?? (resolvedIsSomePostFocused && ctxFocusedIndex === index);
+    const resolvedFocusModeSV = focusModeSV ?? ctxFocusModeSV;
+    const resolvedInteractiveUnfocusSV = interactiveUnfocusSV ?? ctxInteractiveUnfocusSV;
+    const resolvedHandleFocusPost = handleFocusPost ?? ctxHandleFocusPost;
     // Normalize media for backward compatibility where posts stored `images: string[]`
     const mediaList = useMemo(() => {
         if (Array.isArray(data?.media)) return data.media;
@@ -174,10 +167,24 @@ const Post = forwardRef(function Post({
 
     // Focus handler
     const focusMe = useCallback((preferWaitForHeader = false) => {
-        if (!resolvedIsFocused && viewRef.current && viewRef.current.measure) {
-            viewRef.current.measure((_, __, ___, ____, _____, pageY) =>
-                resolvedHandleFocusPost(index, pageY, preferWaitForHeader)
-            );
+        if (resolvedIsFocused) return;
+        const node = viewRef.current;
+        if (!node) return;
+
+        const handleMeasure = (pageY) => {
+            if (typeof pageY === 'number') {
+                resolvedHandleFocusPost(index, pageY, preferWaitForHeader);
+            } else {
+                resolvedHandleFocusPost(index, undefined, preferWaitForHeader);
+            }
+        };
+
+        if (node.measureInWindow) {
+            node.measureInWindow((_, y) => handleMeasure(y));
+            return;
+        }
+        if (node.measure) {
+            node.measure((_, __, ___, ____, _____, pageY) => handleMeasure(pageY));
         }
     }, [resolvedIsFocused, resolvedHandleFocusPost, index]);
 
@@ -220,13 +227,17 @@ const Post = forwardRef(function Post({
         return {};
     }, [resolvedIsFocused, resolvedFocusModeSV, resolvedInteractiveUnfocusSV]);
 
+    // useEffect(() => {
+    //     console.log(resolvedIsFocused, resolvedIsSomePostFocused, index);
+    // }, [resolvedIsFocused, resolvedIsSomePostFocused])
+
     return (
         <Reanimated.View
             ref={viewRef}
             style={[styles.wrapper, interactiveFadeStyle]}
             // When a different post is focused, completely disable pointer events
             // on this post so it can’t intercept gestures.
-            pointerEvents={resolvedIsSomePostFocused && !resolvedIsFocused ? "none" : "auto"}
+            pointerEvents={(resolvedIsSomePostFocused && !resolvedIsFocused) ? "none" : "auto"}
         >
             <Animated.View
                 style={[

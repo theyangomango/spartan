@@ -1,4 +1,4 @@
-import React, { memo } from "react";
+import React, { memo, useCallback } from "react";
 import Reanimated from "react-native-reanimated";
 import Post from "./Posts/Post";
 import { usePostFocus } from "../../screens/feed/hooks/FeedFocusContext";
@@ -40,8 +40,19 @@ const PostListItem = memo(function PostListItem({
 
   const shouldPlay = isScreenFocused && !isSomePostFocused && index === centeredIndex;
 
+  const registerRef = useCallback((el) => {
+    if (!postRefs) return;
+    const map = postRefs.current || {};
+    if (el) {
+      map[index] = el;
+    } else if (map[index]) {
+      delete map[index];
+    }
+    postRefs.current = map;
+  }, [postRefs, index]);
+
   const postProps = {
-    ref: (el) => { if (postRefs) postRefs.current = { ...(postRefs.current || {}), [index]: el }; },
+    ref: registerRef,
     data: item,
     index,
     openCommentsModal,

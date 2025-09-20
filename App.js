@@ -756,11 +756,8 @@ export default function App() {
                         component={Chat}
                         options={Platform.select({
                             ios: {
-                                // Keep a narrow edge for back-swipe to avoid
-                                // conflicting with Chat's own horizontal pan gestures.
-                                gestureEnabled: true,
-                                gestureDirection: 'horizontal',
-                                gestureResponseDistance: 30,
+                                // Disable the native back swipe so Chat's custom gesture can fully control the transition.
+                                gestureEnabled: false,
                                 cardStyleInterpolator: CardStyleInterpolators.forHorizontalIOS,
                             },
                             android: {

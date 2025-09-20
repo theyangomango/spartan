@@ -442,7 +442,10 @@ export default function Feed({ navigation, route }) {
                     const rel = lay.y - currentOffset;
                     const computed = headerVisible + rel;
                     if (Number.isFinite(computed)) {
-                        return Math.max(0, computed);
+                        // Preserve negative values so posts clipped above the viewport
+                        // start from their actual screen position, preventing the two-step
+                        // correction that previously occurred when clamping to zero.
+                        return computed;
                     }
                 }
             } catch { }
@@ -666,15 +669,6 @@ export default function Feed({ navigation, route }) {
         setHighlightSignal(Date.now());
         // Create a new nonce to uniquely identify this request
         const myNonce = (programFocusNonceRef.current = (programFocusNonceRef.current || 0) + 1);
-
-        // Helper to compute screen Y for the item without measure (pretend in-window)
-        const computePageY = () => {
-            const l = itemLayoutsRef.current.get(idx);
-            if (!l) return null;
-            const vHeader = Math.max(0, visibleHeaderHRef.current || 0);
-            const yScreen = vHeader + (l.y - scrollOffsetY.current);
-            return yScreen;
-        };
 
         const lay = itemLayoutsRef.current.get(idx);
         const visibleH = Math.max(0, visibleHeaderHRef.current || 0);
