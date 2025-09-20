@@ -2,6 +2,7 @@
   "expo": {
     "name": "Spartan",
     "slug": "spartan",
+    "scheme": "spartan",
     "version": "1.0.0",
     "sdkVersion": "50.0.0",
     "orientation": "portrait",

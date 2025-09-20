@@ -10,6 +10,8 @@ import makeID from '../../backend/helper/makeID';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import arrayAppend from '../../backend/helper/firebase/arrayAppend';
 import incrementDocValue from '../../backend/helper/firebase/incrementDocValue';
+import buildInitialUser from '../utils/buildInitialUser';
+import { SPARTAN_ACCOUNT } from '../constants/spartanAccount';
 
 /* --- NEW: default PFP upload on sign-up --- */
 import uploadImage from '../../backend/storage/uploadImage';
@@ -96,90 +98,16 @@ const NewUserCreation = ({ navigation }) => {
                 defaultPfpUrl = await uploadImage(defaultPfpLocalUri, `pfps/${newID}.png`);
             }
 
-            // Pre-follow the official Spartan account
-            const SPARTAN_ACCOUNT = {
-                handle: 'spartan',
-                name: 'Spartan',
-                pfp: 'https://firebasestorage.googleapis.com/v0/b/spartan-8a55f.appspot.com/o/pfps%2F24247ffa-0706-4b01-aff2-eec0dd592f56.png?alt=media&token=d412d55b-a488-4db2-a888-e171f2d0aa5e',
-                uid: '24247ffa-0706-4b01-aff2-eec0dd592f56'
-            };
-
-            const newUser = {
-                bio: "",
-                completedWorkouts: [],
-                currentWorkout: null,
-                email: trimmedEmailOrPhone.includes('@') ? trimmedEmailOrPhone : null,
-                phoneNumber: trimmedEmailOrPhone.includes('@') ? null : trimmedEmailOrPhone,
-                exploreFeedPosts: [],
-                feedPosts: [],
-                feedStories: [{
-                    handle: trimmedUsername,
-                    name: trimmedName,
-                    pfp: defaultPfpUrl || '',   // use uploaded default
-                    stories: [],
-                    uid: newID
-                }],
-                followerCount: 0,
-                followers: [],
-                following: [SPARTAN_ACCOUNT],
-                followingCount: 1,
-                handle: trimmedUsername,
-                pfp: defaultPfpUrl || '',
-                image: defaultPfpUrl || '',
-                joined: Date.now(),
-                lastActive: Date.now(),
-                messages: [],
-                name: trimmedName,
-                notificationEvents: [],
-                notificationNewComments: 0,
-                notificationNewEvents: 0,
-                notificationNewLikes: 0,
-                password: password,
-                postCount: 0,
-                posts: [],
-                progressPhotos: [],
-                savedPosts: [],
-                statsExercises: {},
-                statsHexagon: {
-                    overall: 0, abs: 0, legs: 0, chest: 0, back: 0, arms: 0, shoulders: 0
-                },
-                statsTotalHours: 0,
-                statsTotalVolume: 0,
-                statsTotalWorkouts: 0,
-                templates: [
-                    {
-                        exercises: [
-                            { muscle: 'Chest', name: 'Bench Press (Barbell)', sets: [{ previous: null, reps: 0, weight: 0, type: null }, { previous: null, reps: 0, weight: 0, type: null }, { previous: null, reps: 0, weight: 0, type: null }] },
-                            { muscle: 'Chest', name: 'Incline Bench (Barbell)', sets: [{ previous: null, reps: 0, weight: 0, type: null }, { previous: null, reps: 0, weight: 0, type: null }, { previous: null, reps: 0, weight: 0, type: null }] },
-                            { muscle: 'Chest', name: 'Chest Fly (Machine)', sets: [{ previous: null, reps: 0, weight: 0, type: null }, { previous: null, reps: 0, weight: 0, type: null }, { previous: null, reps: 0, weight: 0, type: null }] },
-                            { muscle: 'Shoulders', name: 'Shoulder Press (Machine)', sets: [{ previous: null, reps: 0, weight: 0, type: null }, { previous: null, reps: 0, weight: 0, type: null }, { previous: null, reps: 0, weight: 0, type: null }] },
-                            { muscle: 'Arms', name: 'Standing Tricep Extension (Dumbbell)', sets: [{ previous: null, reps: 0, weight: 0, type: null }, { previous: null, reps: 0, weight: 0, type: null }, { previous: null, reps: 0, weight: 0, type: null }] },
-                        ],
-                        lastDate: null, name: 'Push (Spartan)', tid: makeID()
-                    },
-                    {
-                        exercises: [
-                            { muscle: 'Back', name: 'Pull-Up (Assisted)', sets: [{ previous: null, reps: 0, weight: 0, type: null }, { previous: null, reps: 0, weight: 0, type: null }, { previous: null, reps: 0, weight: 0, type: null }] },
-                            { muscle: 'Back', name: 'Seated Row (Machine)', sets: [{ previous: null, reps: 0, weight: 0, type: null }, { previous: null, reps: 0, weight: 0, type: null }, { previous: null, reps: 0, weight: 0, type: null }] },
-                            { muscle: 'Shoulders', name: 'Lateral Raise (Dumbell)', sets: [{ previous: null, reps: 0, weight: 0, type: null }, { previous: null, reps: 0, weight: 0, type: null }, { previous: null, reps: 0, weight: 0, type: null }] },
-                            { muscle: 'Shoulders', name: 'Front Raise (Dumbell)', sets: [{ previous: null, reps: 0, weight: 0, type: null }, { previous: null, reps: 0, weight: 0, type: null }, { previous: null, reps: 0, weight: 0, type: null }] },
-                            { muscle: 'Arms', name: 'Preacher Curl (Machine)', sets: [{ previous: null, reps: 0, weight: 0, type: null }, { previous: null, reps: 0, weight: 0, type: null }, { previous: null, reps: 0, weight: 0, type: null }] },
-                        ],
-                        lastDate: null, name: 'Pull (Spartan)', tid: makeID()
-                    },
-                    {
-                        exercises: [
-                            { muscle: 'Legs', name: 'Leg Press (Machine)', sets: [{ previous: null, reps: 0, weight: 0, type: null }, { previous: null, reps: 0, weight: 0, type: null }, { previous: null, reps: 0, weight: 0, type: null }] },
-                            { muscle: 'Legs', name: 'Calf Raise on Leg Press (Machine)', sets: [{ previous: null, reps: 0, weight: 0, type: null }, { previous: null, reps: 0, weight: 0, type: null }, { previous: null, reps: 0, weight: 0, type: null }] },
-                            { muscle: 'Legs', name: 'Glute-Ham Raise', sets: [{ previous: null, reps: 0, weight: 0, type: null }, { previous: null, reps: 0, weight: 0, type: null }, { previous: null, reps: 0, weight: 0, type: null }] },
-                            { muscle: 'Legs', name: 'Hip Adduction (Machine)', sets: [{ previous: null, reps: 0, weight: 0, type: null }, { previous: null, reps: 0, weight: 0, type: null }, { previous: null, reps: 0, weight: 0, type: null }] },
-                            { muscle: 'Legs', name: 'Leg Extension (Machine)', sets: [{ previous: null, reps: 0, weight: 0, type: null }, { previous: null, reps: 0, weight: 0, type: null }, { previous: null, reps: 0, weight: 0, type: null }] },
-                        ],
-                        lastDate: null, name: 'Legs (Spartan)', tid: makeID()
-                    }
-                ],
+            const newUser = buildInitialUser({
                 uid: newID,
-            };
+                handle: trimmedUsername,
+                name: trimmedName,
+                email: isEmail ? trimmedEmailOrPhone : null,
+                phoneNumber: isEmail ? null : trimmedEmailOrPhone,
+                image: defaultPfpUrl || '',
+                password,
+                authProvider: 'password',
+            });
 
             // Persist uid (await so errors don’t surface as unhandled)
             await AsyncStorage.setItem('uid', newID);
