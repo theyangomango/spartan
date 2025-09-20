@@ -1,9 +1,11 @@
 import RNBounceable from '@freakycoder/react-native-bounceable';
-import React from 'react';
-import { View, Text, StyleSheet, Dimensions, TouchableOpacity } from 'react-native';
+import React, { useCallback, useState } from 'react';
+import { View, Text, StyleSheet, Dimensions, TouchableOpacity, Alert } from 'react-native';
 import scaleSizeFont, { ts } from '../helper/scaleSize';
 import { Ionicons, Octicons } from '@expo/vector-icons';
 import theme from '../theme/mfpDark';
+import useGoogleAuth from '../auth/useGoogleAuth';
+import { upsertGoogleUser } from '../auth/googleAccount';
 
 const { width: screenWidth, height: screenHeight } = Dimensions.get('window');
 
@@ -14,13 +16,45 @@ function scaleSize(size) {
 }
 
 const LogIn = ({ navigation }) => {
-    function toSignUpScreen() {
-        navigation.navigate('SignUp');
-    }
+    const [googleBusy, setGoogleBusy] = useState(false);
+    const { signIn: startGoogleSignIn, isConfigured: isGoogleConfigured } = useGoogleAuth();
 
-    function toUserLogInCredentials() {
+    const toSignUpScreen = useCallback(() => {
+        navigation.navigate('SignUp');
+    }, [navigation]);
+
+    const toUserLogInCredentials = useCallback(() => {
         navigation.navigate('UserLogInCredentials');
-    }
+    }, [navigation]);
+
+    const handleGoogleLogin = useCallback(async () => {
+        if (!isGoogleConfigured) {
+            Alert.alert('Google Sign-In', 'Add your EXPO_PUBLIC_GOOGLE_* client IDs to enable Google auth.');
+            return;
+        }
+        if (googleBusy) return;
+        setGoogleBusy(true);
+        try {
+            const profile = await startGoogleSignIn();
+            if (!profile) return;
+
+            await upsertGoogleUser(profile);
+
+            try {
+                const { jumpToTab } = require('../../navigationRef');
+                if (jumpToTab) {
+                    jumpToTab('Workout');
+                    return;
+                }
+            } catch {}
+            navigation.navigate('Tabs', { screen: 'Workout' });
+        } catch (err) {
+            const message = err instanceof Error ? err.message : 'Google sign-in failed. Please try again.';
+            Alert.alert('Google Sign-In', message);
+        } finally {
+            setGoogleBusy(false);
+        }
+    }, [googleBusy, isGoogleConfigured, navigation, startGoogleSignIn]);
 
     return (
         <View style={styles.container}>
@@ -41,13 +75,17 @@ const LogIn = ({ navigation }) => {
 
             <View style={styles.bottomContainer}>
                 <AuthButton icon="person" text="Phone / Email / Username" onPress={toUserLogInCredentials} />
+                <AuthButton
+                    icon="logo-google"
+                    text={!isGoogleConfigured ? 'Google setup required' : (googleBusy ? 'Signing in…' : 'Continue with Google')}
+                    onPress={handleGoogleLogin}
+                    disabled={googleBusy || !isGoogleConfigured}
+                />
 
-                {/* // ! Disabled for Beta */}
                 <View pointerEvents="none" style={{ opacity: 0.4 }}>
-                    <AuthButton icon="logo-google" text="Continue with Google" onPress={() => {}} />
-                    <AuthButton icon="logo-apple" text="Continue with Apple" onPress={() => {}} />
-                    <AuthButton icon="logo-instagram" text="Continue with Instagram" onPress={() => {}} />
-                    <AuthButton icon="logo-facebook" text="Continue with Facebook" onPress={() => {}} />
+                    <AuthButton icon="logo-apple" text="Continue with Apple" onPress={() => {}} disabled />
+                    <AuthButton icon="logo-instagram" text="Continue with Instagram" onPress={() => {}} disabled />
+                    <AuthButton icon="logo-facebook" text="Continue with Facebook" onPress={() => {}} disabled />
                 </View>
             </View>
 
@@ -61,14 +99,16 @@ const LogIn = ({ navigation }) => {
     );
 };
 
-const AuthButton = ({ icon, text, onPress }) => {
-    return (
-        <RNBounceable style={styles.button} onPress={onPress}>
-            <Ionicons name={icon} size={scaleSize(19)} color={theme.textPrimary} style={styles.icon} />
-            <Text style={styles.auth_button_text}>{text}</Text>
-        </RNBounceable>
-    );
-};
+const AuthButton = ({ icon, text, onPress, disabled = false }) => (
+    <RNBounceable
+        style={[styles.button, disabled && styles.buttonDisabled]}
+        onPress={disabled ? undefined : onPress}
+        disabled={disabled}
+    >
+        <Ionicons name={icon} size={scaleSize(19)} color={theme.textPrimary} style={styles.icon} />
+        <Text style={styles.auth_button_text}>{text}</Text>
+    </RNBounceable>
+);
 
 const styles = StyleSheet.create({
     container: {
@@ -121,6 +161,9 @@ const styles = StyleSheet.create({
         borderRadius: scaleSize(8),
         marginVertical: scaleSize(7),
         justifyContent: 'center',
+    },
+    buttonDisabled: {
+        opacity: 0.55,
     },
     icon: {
         position: 'absolute',
