@@ -202,20 +202,9 @@ export default function Feed({ navigation, route }) {
     useDerivedValue(() => {
         const totalHidden = Math.min(headerH.value, hidden.value + focusHide.value);
         const raw = Math.max(0, headerH.value - totalHidden);
-        // Half-pixel rounding reduces sub-pixel thrash
+        // Half-pixel rounding reduces sub-pixel thrash while keeping top alignment exact.
         const target = Math.round(raw * 2) / 2;
-        const diff = Math.abs(visibleSmoothSV.value - target);
-        if (diff < 0.15) {
-            visibleSmoothSV.value = target;
-        } else {
-            // Gentle spring without overshoot to avoid bounce past target
-            visibleSmoothSV.value = withSpring(target, {
-                damping: 22,
-                stiffness: 240,
-                mass: 1,
-                overshootClamping: true,
-            });
-        }
+        visibleSmoothSV.value = target;
     });
     const maskContainerStyle = useAnimatedStyle(() => ({ top: visibleSmoothSV.value }));
     const chipsOpacityStyle = useAnimatedStyle(() => ({ opacity: storiesOpacitySV.value }));
