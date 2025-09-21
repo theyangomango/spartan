@@ -1,16 +1,14 @@
 import React, { useRef, memo } from "react";
 import { View, Text, StyleSheet, Pressable, Animated, Dimensions, Platform } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
+import { LinearGradient } from "expo-linear-gradient";
 import {
     DOTS_H,
     TPL_CARD_H,
     TPL_HEIGHT,
     BLUE,
-    SAVED_TPL_TINT,
-    SAVED_TPL_BORDER,
 } from "./workoutTheme";
 import { Weight } from "iconsax-react-native";
-import theme from "../../../theme/mfpDark";
 import scaleSize from "../../../helper/scaleSize";
 import { strong as haptic } from "../../../utils/haptics";
 
@@ -43,11 +41,6 @@ function TemplatesRail({ templates = [], onIndexChange, onAddTemplate, onOpenTem
                 renderItem={({ item }) => {
                     const isNone = !!item.isNone;
 
-                    const railStyle = [
-                        styles.rail,
-                        isNone ? styles.railEmpty : styles.railSaved,
-                    ];
-
                     const handlePress = () => {
                         try { haptic(); } catch {}
                         if (isNone) {
@@ -57,54 +50,65 @@ function TemplatesRail({ templates = [], onIndexChange, onAddTemplate, onOpenTem
                         }
                     };
 
+                    const exercisesCount = Array.isArray(item.exercises)
+                        ? item.exercises.length
+                        : Number.isFinite(item.exercises) ? item.exercises : 0;
+
                     return (
                         <View style={[styles.page, { width: PAGE_W }]}>
                             <Pressable
                                 onPress={handlePress}
-                                android_ripple={{ color: "rgba(0,0,0,0.06)" }}
-                                style={({ pressed }) => [railStyle, pressed && styles.railPressed]}
+                                android_ripple={{ color: "rgba(0,0,0,0.08)" }}
+                                style={({ pressed }) => [styles.railTouchable, pressed && styles.railPressed]}
                                 accessibilityRole="button"
                             >
-                                <View style={styles.left}>
-                                    <View
-                                        style={[
-                                            styles.dumbbell,
-                                            isNone ? styles.dumbbellEmpty : styles.dumbbellSaved,
-                                        ]}
-                                    >
-                                        {!isNone && <Weight size={23} color={'#7FC2FF'} variant='Broken' />}
-                                    </View>
-
-                                    <View style={{ flex: 1, minWidth: 0 }}>
-                                        <Text numberOfLines={1} style={[styles.title, isNone && styles.titleNone]}>
-                                            {item.name}
-                                        </Text>
-
-                                        <View style={styles.metaRow}>
-                                            {isNone ? (
-                                                <View style={styles.metaChunk}>
-                                                    <Ionicons name="sparkles-outline" size={12.5} color="#64748B" />
-                                                    <Text style={styles.metaSub}>Tap to create</Text>
-                                                </View>
-                                            ) : (
-                                                <>
-                                                    <View style={styles.metaChunk}>
-                                                        <Weight size={19} color={BLUE.ACCENT} variant='Broken' />
-                                                        <Text style={styles.metaLabel}>
-                                                            {(Array.isArray(item.exercises) ? item.exercises.length : item.exercises || 0)} exercises
-                                                        </Text>
-                                                    </View>
-                                                    <View style={styles.metaChunk}>
-                                                        <Ionicons name="calendar-outline" size={12.5} color={BLUE.ACCENT} />
-                                                        <Text style={styles.metaLabel}>{item.lastDate ?? "New!"}</Text>
-                                                    </View>
-                                                </>
-                                            )}
+                                {isNone ? (
+                                    <View style={[styles.cardBase, styles.cardEmpty]}>
+                                        <View style={styles.emptyIconWrap}>
+                                            <Ionicons name="add" size={22} color={BLUE.ACCENT} />
+                                        </View>
+                                        <View style={styles.emptyTextColumn}>
+                                            <Text numberOfLines={1} style={styles.emptyTitle}>{item.name}</Text>
+                                            <View style={styles.emptySubWrap}>
+                                                <Ionicons name="sparkles-outline" size={14} color={BLUE.ACCENT} />
+                                                <Text style={styles.emptySubtitle}>Tap to create</Text>
+                                            </View>
                                         </View>
                                     </View>
-                                </View>
-
-                                <Ionicons name="chevron-forward" size={18} color={BLUE.ACCENT} />
+                                ) : (
+                                    <LinearGradient
+                                        colors={SAVED_TEMPLATE_GRADIENT}
+                                        start={{ x: 0, y: 0 }}
+                                        end={{ x: 1, y: 1 }}
+                                        style={[styles.cardBase, styles.cardSaved]}
+                                    >
+                                        <View style={styles.iconWrapSaved}>
+                                            <Weight size={24} color={BLUE.ACCENT} variant="Broken" />
+                                        </View>
+                                        <View style={styles.contentColumn}>
+                                            <View style={styles.textColumn}>
+                                                <View style={styles.headerRow}>
+                                                    <Text numberOfLines={1} style={styles.title}>{item.name}</Text>
+                                                </View>
+                                                <View style={styles.metaRow}>
+                                                    <View style={styles.metaPill}>
+                                                        <Ionicons name="barbell-outline" size={13} color="#B9D9FF" />
+                                                        <Text style={styles.metaLabel}>{exercisesCount} exercises</Text>
+                                                    </View>
+                                                    <View style={styles.metaPill}>
+                                                        <Ionicons name="calendar-outline" size={13} color="#B9D9FF" />
+                                                        <Text style={styles.metaLabel}>{item.lastDate ?? "New!"}</Text>
+                                                    </View>
+                                                </View>
+                                            </View>
+                                            <View style={styles.chevronContainer}>
+                                                <View style={styles.chevronBubble}>
+                                                    <Ionicons name="chevron-forward" size={16} color="rgba(12, 23, 40, 0.9)" />
+                                                </View>
+                                            </View>
+                                        </View>
+                                    </LinearGradient>
+                                )}
                             </Pressable>
                         </View>
                     );
@@ -153,94 +157,150 @@ const eq = (a, b) => {
 
 export default memo(TemplatesRail, eq); 
 
-const EMPTY_CARD_BG = "#1d2c45b3";
-const EMPTY_CARD_BORDER = "rgba(95, 155, 215, 0.33)";
+const EMPTY_CARD_BG = "rgba(26, 38, 61, 0.78)";
+const EMPTY_CARD_BORDER = "rgba(95, 155, 215, 0.45)";
+const SAVED_TEMPLATE_GRADIENT = ["#1F3D6A", "#0C172A"];
 
 const styles = StyleSheet.create({
     wrap: { justifyContent: "space-between" },
-    page: { height: TPL_CARD_H }, 
-    rail: {
+    page: { height: TPL_CARD_H },
+    railTouchable: {
         height: TPL_CARD_H,
         marginHorizontal: scaleSize(16),
-        borderRadius: scaleSize(18),
+        borderRadius: scaleSize(22),
+        overflow: "hidden",
+        ...Platform.select({
+            ios: {
+                shadowColor: "#000",
+                shadowOpacity: 0.14,
+                shadowRadius: scaleSize(8),
+                shadowOffset: { width: 0, height: scaleSize(4) },
+            },
+            android: { elevation: 2 },
+        }),
+        backgroundColor: "transparent",
+    },
+    railPressed: { transform: [{ scale: 0.98 }] },
+    cardBase: {
+        flexDirection: "row",
+        alignItems: "center",
+        height: TPL_CARD_H,
         paddingVertical: scaleSize(14),
-        paddingHorizontal: scaleSize(14),
+        paddingHorizontal: scaleSize(18),
+        borderRadius: scaleSize(22),
+        position: "relative",
+    },
+    cardSaved: {
+        borderWidth: scaleSize(1),
+        borderColor: "rgba(119, 184, 255, 0.32)",
+        overflow: "hidden",
+    },
+    iconWrapSaved: {
+        width: scaleSize(40),
+        height: scaleSize(40),
+        borderRadius: scaleSize(20),
+        alignItems: "center",
+        justifyContent: "center",
+        marginRight: scaleSize(12),
+        backgroundColor: "rgba(42, 96, 155, 0.7)",
+        borderWidth: StyleSheet.hairlineWidth,
+        borderColor: "rgba(154, 212, 255, 0.6)",
+    },
+    contentColumn: {
+        flex: 1,
+        minWidth: 0,
+        height: "100%",
         flexDirection: "row",
         alignItems: "center",
         justifyContent: "space-between",
-
-        backgroundColor: theme.surface,
-        borderWidth: scaleSize(1),
-        borderColor: theme.hairline,
-        ...Platform.select({
-            ios: {
-                backgroundColor: theme.surface,
-                shadowColor: "#000",
-                shadowOpacity: 0.12,
-                shadowRadius: scaleSize(6),
-                shadowOffset: { width: 0, height: scaleSize(3) },
-            },
-            android: { elevation: 1 },
-        }),
     },
-    railPressed: { transform: [{ scale: 0.99 }] },
-    // Empty shows dashed border hint; saved uses solid border
-    railEmpty: {
+    textColumn: { flex: 1, minWidth: 0, gap: scaleSize(6) },
+    headerRow: {
+        flexDirection: "row",
+        alignItems: "center",
+        justifyContent: "flex-start",
+    },
+    title: {
+        flex: 1,
+        fontFamily: "Outfit_700Bold",
+        fontSize: scaleSize(15),
+        color: "#F2F6FD",
+        includeFontPadding: false,
+    },
+    metaRow: {
+        flexDirection: "row",
+        alignItems: "center",
+        gap: scaleSize(6),
+        flexWrap: "wrap",
+    },
+    metaPill: {
+        flexDirection: "row",
+        alignItems: "center",
+        gap: scaleSize(4),
+        paddingVertical: scaleSize(3),
+        paddingHorizontal: scaleSize(10),
+        borderRadius: scaleSize(999),
+        backgroundColor: "rgba(30, 73, 130, 0.75)",
+        borderWidth: StyleSheet.hairlineWidth,
+        borderColor: "rgba(170, 221, 255, 0.45)",
+    },
+    metaLabel: {
+        fontFamily: "Outfit_600SemiBold",
+        fontSize: scaleSize(11.5),
+        color: "#F4F8FF",
+        includeFontPadding: false,
+    },
+    cardEmpty: {
         backgroundColor: EMPTY_CARD_BG,
         borderStyle: "dashed",
         borderColor: EMPTY_CARD_BORDER,
         borderWidth: scaleSize(1.5),
+        justifyContent: "flex-start",
+        gap: scaleSize(18),
     },
-    railSaved: { backgroundColor: theme.surface, borderColor: theme.hairline },
-    dumbbellSaved: {
-        backgroundColor: theme.field,
-        borderWidth: StyleSheet.hairlineWidth,
-        borderColor: theme.hairline,
-        ...Platform.select({
-            ios: {
-                backgroundColor: theme.field,
-                shadowColor: "#000",
-                shadowOpacity: 0.12,
-                shadowRadius: scaleSize(5),
-                shadowOffset: { width: 0, height: scaleSize(2) },
-            },
-            android: { elevation: 1 },
-        })
+    emptyIconWrap: {
+        width: scaleSize(44),
+        height: scaleSize(44),
+        borderRadius: scaleSize(22),
+        borderWidth: scaleSize(1.3),
+        borderColor: EMPTY_CARD_BORDER,
+        backgroundColor: "rgba(34, 57, 92, 0.6)",
+        alignItems: "center",
+        justifyContent: "center",
+        marginRight: scaleSize(10),
     },
-    
-    left: { flexDirection: "row", alignItems: "center", gap: scaleSize(10), flex: 1, minWidth: 0 },
-
-    dumbbell: {
-        width: scaleSize(36),
-        height: scaleSize(36),
-        borderRadius: scaleSize(18),
+    emptyTextColumn: { flex: 1, minWidth: 0, gap: scaleSize(4) },
+    emptyTitle: {
+        fontFamily: "Outfit_700Bold",
+        fontSize: scaleSize(15),
+        color: "#E9F1FF",
+        includeFontPadding: false,
+    },
+    emptySubWrap: {
+        flexDirection: "row",
+        alignItems: "center",
+        gap: scaleSize(5),
+    },
+    chevronContainer: {
+        height: "100%",
+        justifyContent: "center",
+        alignItems: "center",
+        paddingLeft: scaleSize(8),
+    },
+    chevronBubble: {
+        width: scaleSize(26),
+        height: scaleSize(26),
+        borderRadius: scaleSize(13),
+        backgroundColor: "rgba(188, 223, 255, 0.9)",
         alignItems: "center",
         justifyContent: "center",
     },
-    dumbbellEmpty: {
-        backgroundColor: EMPTY_CARD_BG,
-        borderWidth: scaleSize(1),
-        borderColor: EMPTY_CARD_BORDER,
-        ...Platform.select({
-            ios: {
-                backgroundColor: EMPTY_CARD_BG,
-                shadowColor: "#000",
-                shadowOpacity: 0.12,
-                shadowRadius: scaleSize(5),
-                shadowOffset: { width: 0, height: scaleSize(2) },
-            },
-            android: { elevation: 1 },
-        })
+    emptySubtitle: {
+        fontFamily: "Outfit_600SemiBold",
+        fontSize: scaleSize(12.5),
+        color: "#B4C7E4",
+        includeFontPadding: false,
     },
-
-    title: { fontFamily: "Outfit_700Bold", fontSize: scaleSize(16), color: "#E5E7EB", includeFontPadding: false },
-    titleNone: { color: "#E5E7EB" },
-
-    metaRow: { flexDirection: "row", alignItems: "center", gap: scaleSize(12), marginTop: scaleSize(4) },
-    metaChunk: { flexDirection: "row", alignItems: "center", gap: scaleSize(5) },
-    metaLabel: { fontFamily: "Outfit_700Bold", fontSize: scaleSize(12.5), color: "#E5E7EB" },
-    metaSub: { fontFamily: "Outfit_600SemiBold", fontSize: scaleSize(12.5), color: "#94A3B8" },
-
     dotsRow: {
         position: "absolute",
         left: 0,

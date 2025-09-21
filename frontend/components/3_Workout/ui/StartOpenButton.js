@@ -269,8 +269,6 @@ const styles = StyleSheet.create({
     },
     // Extra styling when OPEN to create a crisp white rim + glow
     startBtnOpen: {
-        width: scaleSize(BTN_SIZE * 1.05),
-        height: scaleSize(BTN_SIZE * 1.05),
         borderWidth: 0, // no crisp rim; rely on haloSoft
         // Keep the same white halo on iOS as the START state
         ...Platform.select({
