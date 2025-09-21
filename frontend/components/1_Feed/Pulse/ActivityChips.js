@@ -285,10 +285,6 @@ function Chip({ ev, index, items, navigation, onPressChip }) {
                     </View>
                 )}
             </View>
-            {/* Prominent chevron */}
-            <View style={styles.chevWrap}>
-                <Icon name="chevron-right" size={ss(18)} color="#E5E7EB" />
-            </View>
         </TouchableOpacity>
     );
 }
@@ -306,7 +302,7 @@ const styles = StyleSheet.create({
         alignItems: "center",
         paddingVertical: scaleSize(ss(10)),
         paddingLeft: scaleSize(ss(12)),
-        paddingRight: scaleSize(ss(10)),
+        paddingRight: scaleSize(ss(26)),
         borderRadius: scaleSize(ss(16)),
         // Use themed surface for dark mode cohesion
         backgroundColor: theme.field,
@@ -369,11 +365,10 @@ const styles = StyleSheet.create({
     copyCol: {
         minWidth: 0,
         flex: 1,
-        paddingRight: scaleSize(ss(10)),
     },
     primaryUnified: {
         fontFamily: "Outfit_700Bold",
-        fontSize: scaleSize(13.5),
+        fontSize: scaleSize(13),
         color: theme.textPrimary,
         letterSpacing: 0.2,
     },
@@ -397,16 +392,5 @@ const styles = StyleSheet.create({
         fontFamily: "Outfit_600SemiBold",
         fontSize: scaleSize(11.5),
         color: theme.textSecondary,
-    },
-
-    // Chevron
-    chevWrap: {
-        width: scaleSize(ss(26)),
-        height: scaleSize(ss(26)),
-        borderRadius: scaleSize(ss(13)),
-        alignItems: "center",
-        justifyContent: "center",
-        backgroundColor: "rgba(255,255,255,0.08)",
-        marginLeft: scaleSize(ss(2)),
     },
 });

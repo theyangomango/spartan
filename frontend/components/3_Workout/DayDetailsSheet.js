@@ -375,6 +375,7 @@ const DayDetailsSheet = ({
     /** Core context */
     date,
     workoutOn = false,         // optional — quick visual flag
+    session,
 
     /** Actions */
     onClose,
@@ -422,13 +423,19 @@ const DayDetailsSheet = ({
     const [calendarVisible, setCalendarVisible] = useState(false);
 
     // Expand helper that tolerates ref not being ready on first render
-    const expandSafely = useCallback(() => {
+    const openSessionsRef = useRef([]);
+
+    const expandSafely = useCallback((sessionId) => {
         let tries = 0;
         const tryExpand = () => {
             const ref = bottomSheetRef.current;
             if (ref && typeof ref.expand === "function") {
                 try { ref.expand(); } catch { }
                 setIsExpanded(true);
+                if (sessionId != null) {
+                    const queue = openSessionsRef.current;
+                    if (queue[queue.length - 1] !== sessionId) queue.push(sessionId);
+                }
             } else if (tries < 6) {
                 tries += 1;
                 requestAnimationFrame(tryExpand);
@@ -442,18 +449,19 @@ const DayDetailsSheet = ({
         if (typeof visible === "undefined") return;
         if (visible) {
             // Make sure it expands even on the first mount
-            expandSafely();
+            expandSafely(session);
         } else {
             try { bottomSheetRef.current?.close(); } catch { }
             setIsExpanded(false);
         }
-    }, [visible, expandSafely]);
+    }, [visible, session, expandSafely]);
 
     // any openToggle flip expands
     useEffect(() => {
+        if (typeof visible !== "undefined") return;
         if (typeof openToggle === "undefined") return;
-        expandSafely();
-    }, [openToggle, expandSafely]);
+        expandSafely(session);
+    }, [openToggle, visible, session, expandSafely]);
 
     const renderBackdrop = useCallback(
         (props) => (
@@ -475,7 +483,9 @@ const DayDetailsSheet = ({
             try { listOpacity.setValue(1); viewerOpacity.setValue(0); } catch { }
         }
         setIsExpanded(false);
-        onClose?.();
+        const queue = openSessionsRef.current;
+        const closingSession = queue.shift();
+        onClose?.(closingSession);
     }, [onClose, selectedWorkout, selectedFood, listOpacity, viewerOpacity]);
 
     const isToday = useMemo(() => dayKey(date) === dayKey(new Date()), [date]);

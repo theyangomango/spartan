@@ -56,7 +56,6 @@ import useWorkoutStore from "../state/workoutStore";
 
 // utils
 import millisToHoursMinutesSeconds from "../helper/millisToHoursMinutesSeconds";
-import usePodiumPreview from "../hooks/usePodiumPreview";
 import { initUserFeed, registerFeedSetters } from "../helper/initUserFeed";
 
 // Firestore (for invites)
@@ -85,6 +84,16 @@ const toDayKey = (d) => {
     x.setHours(0, 0, 0, 0);
     return `${x.getFullYear()}-${String(x.getMonth() + 1).padStart(2, "0")}-${String(x.getDate()).padStart(2, "0")}`;
 };
+
+const ACTIVITY_WEEKLY_GOAL = Object.freeze({
+    sedentary: 1,
+    light: 3,
+    moderate: 4,
+    active: 5,
+    athlete: 7,
+});
+const DEFAULT_WEEKLY_GOAL = 4;
+const DIVIDER_ADJUST = scaleSize(6);
 
 export default function Workout({ navigation, route }) {
     /* ---------- resolve uid & user ---------- */
@@ -118,7 +127,6 @@ export default function Workout({ navigation, route }) {
 
     /* ---------- first paint guard ---------- */
     const [afterPaint, setAfterPaint] = useState(false);
-    const [hubRowImagesReady, setHubRowImagesReady] = useState(false);
     const hubRowReadyNotifiedRef = useRef(false);
     useEffect(() => {
         const task = InteractionManager.runAfterInteractions(() => {
@@ -127,17 +135,13 @@ export default function Workout({ navigation, route }) {
         return () => task?.cancel?.();
     }, []);
 
-    const handleHubRowImagesReady = useCallback(() => {
-        setHubRowImagesReady(true);
-    }, []);
-
     useEffect(() => {
-        if (!afterPaint || !hubRowImagesReady || hubRowReadyNotifiedRef.current) return;
+        if (!afterPaint || hubRowReadyNotifiedRef.current) return;
         hubRowReadyNotifiedRef.current = true;
         requestAnimationFrame(() => {
             try { global.__markHubRowReady?.(); } catch {}
         });
-    }, [afterPaint, hubRowImagesReady]);
+    }, [afterPaint]);
 
     /* ---------- prevent phantom “00:00” ---------- */
     useEffect(() => {
@@ -194,6 +198,39 @@ export default function Workout({ navigation, route }) {
         [user?.macroGoals?.calories, user?.macrosGoal?.calories]
     );
     const fill = Math.min(100, (todayCalories / Math.max(1, caloriesGoal)) * 100);
+
+    const { workoutsThisWeek, weeklyGoal } = useMemo(() => {
+        const workouts = (() => {
+            try {
+                const arr = global?.userData?.completedWorkouts;
+                return Array.isArray(arr) ? arr : [];
+            } catch {
+                return [];
+            }
+        })();
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+        const start = new Date(today);
+        start.setDate(today.getDate() - today.getDay());
+        const end = new Date(start);
+        end.setDate(start.getDate() + 7);
+        const startMs = start.getTime();
+        const endMs = end.getTime();
+
+        let completed = 0;
+        for (const wk of workouts) {
+            const ts = toMillis(wk?.created || 0);
+            if (!ts) continue;
+            if (ts >= startMs && ts < endMs) completed += 1;
+        }
+
+        const activityKey = String(user?.personalInfo?.activity || "").toLowerCase();
+        const derivedGoal = ACTIVITY_WEEKLY_GOAL[activityKey] ?? DEFAULT_WEEKLY_GOAL;
+        return {
+            workoutsThisWeek: completed,
+            weeklyGoal: derivedGoal,
+        };
+    }, [user?.completedWorkouts, user?.personalInfo?.activity]);
 
     /* ---------- templates (state & CRUD via hook) ---------- */
     const {
@@ -256,9 +293,6 @@ export default function Workout({ navigation, route }) {
             console.log("handleCopyTemplate error", e);
         }
     }, [uid, user?.templates, showTemplateToast]);
-
-    /* ---------- podium preview ---------- */
-    const { top3, label: PREVIEW_LABEL } = usePodiumPreview(afterPaint);
 
     /* ---------- friends activity ---------- */
     const { items: friendsActivity, refresh: refreshFriends, loading: friendsLoading } = useFriendsActivity(user, afterPaint);
@@ -486,9 +520,10 @@ export default function Workout({ navigation, route }) {
         const today = new Date();
         today.setHours(0, 0, 0, 0);
         setDaySheetDate(today);
+        setDaySheetSession((prev) => prev + 1);
         setDaySheetVisible(true);
         setDaySheetToggle((f) => !f);
-    }, [setDaySheetDate, setDaySheetVisible, setDaySheetToggle]);
+    }, [setDaySheetDate, setDaySheetSession, setDaySheetVisible, setDaySheetToggle]);
 
     // Header prop identities kept stable to avoid header re-renders
     const headerScrollToTop = useCallback(() => { }, []);
@@ -529,6 +564,7 @@ export default function Workout({ navigation, route }) {
     /* ---------- Day sheet + meals ---------- */
     const [daySheetToggle, setDaySheetToggle] = useState(false);
     const [daySheetVisible, setDaySheetVisible] = useState(false);
+    const [daySheetSession, setDaySheetSession] = useState(0);
     const [daySheetDate, setDaySheetDate] = useState(null);
     const sheetDate = useMemo(() => daySheetDate ?? stableToday, [daySheetDate, stableToday]);
     const sheetFromGlobal = useMemo(() => {
@@ -646,27 +682,27 @@ export default function Workout({ navigation, route }) {
                 {/* Hub row */}
                 <View>
                     <HubRow
-                        navigation={navigation}
                         afterPaint={afterPaint}
                         fill={fill}
                         todayCalories={todayCalories}
                         caloriesGoal={caloriesGoal}
-                        top3={top3}
-                        PREVIEW_LABEL={PREVIEW_LABEL}
-                        onPodiumReady={handleHubRowImagesReady}
+                        workoutsThisWeek={workoutsThisWeek}
+                        weeklyGoal={weeklyGoal}
                     />
                 </View>
                 {/* Templates rail relocated near Start cluster */}
             </View>
             <View style={styles.templatesDock} pointerEvents="box-none">
                 <View style={styles.templatesWrap} pointerEvents="auto">
-                    <SectionDivider
-                        containerBg={theme.bg}
-                        dashColor="rgba(255,255,255,0.22)"
-                        dotColor="#ffffff2d"
-                    />
+                    <View style={styles.templatesDivider}>
+                        <SectionDivider
+                            containerBg={theme.bg}
+                            dashColor="rgba(255,255,255,0.22)"
+                            dotColor="#ffffff2d"
+                        />
+                    </View>
                     {afterPaint && (
-                        <View>
+                        <View style={styles.templatesRailShell}>
                             <TemplatesRail
                                 templates={templatesWithNone}
                                 onIndexChange={setActiveIdx}
@@ -702,12 +738,18 @@ export default function Workout({ navigation, route }) {
                         visible={daySheetVisible}
                         openToggle={daySheetToggle}
                         date={sheetDate}
+                        session={daySheetSession}
                         workouts={dayWorkouts}
                         meals={sheetMeals}
                         totals={sheetTotals}
                         calories={sheetTotals?.calories || 0}
                         workoutOn={(dayWorkouts?.length || 0) > 0}
-                        onClose={() => setDaySheetVisible(false)}
+                        onClose={(closingSession) => {
+                            setDaySheetVisible((prev) => {
+                                if (closingSession == null) return false;
+                                return closingSession === daySheetSession ? false : prev;
+                            });
+                        }}
                         onChangeDate={(d) => {
                             // No prefetch: macros derive from global.userData.loggedFoods only
                             try {
@@ -829,6 +871,8 @@ const styles = StyleSheet.create({
         alignItems: "center",
     },
     templatesWrap: { width: "100%", alignItems: "center" },
+    templatesDivider: { width: "100%", alignItems: "center", marginTop: DIVIDER_ADJUST },
+    templatesRailShell: { width: "100%" },
     clusterWrap: {
         position: "absolute",
         left: 0,

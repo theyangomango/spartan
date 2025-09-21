@@ -92,7 +92,7 @@ const styles = StyleSheet.create({
         }),
     },
     // Raise side buttons to form a wider "V" with START/OPEN
-    smallBtnBump: { top: scaleSize(-6), position: 'relative' },
+    smallBtnBump: { top: scaleSize(-14), position: 'relative' },
     smallBtnPressed: { transform: [{ scale: 0.96 }], backgroundColor: '#515A6B' },
 });
 

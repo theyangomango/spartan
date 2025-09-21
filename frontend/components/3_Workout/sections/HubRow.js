@@ -1,44 +1,33 @@
 import React, { memo } from "react";
 import { View, Text, StyleSheet, Platform } from "react-native";
 import { AnimatedCircularProgress } from "react-native-circular-progress";
-import { usePfp } from "../../../helper/usePFPs";
 import { ss } from "./workoutTheme"; // keep path consistent with your project
-import MiniPodium from "./MiniPodium";
 import theme from "../../../theme/mfpDark";
 // Single root navigator; no nested overlay helpers needed
 import scaleSize from "../../../helper/scaleSize";
 // Removed unused bounceable/touchable imports to keep things lean
 
-const PodiumPreview = memo(function PodiumPreview({ top3 = [], onReady }) {
-    // Call hooks a fixed number of times to avoid rules-of-hooks violations
-    const u0 = top3?.[0] || null;
-    const u1 = top3?.[1] || null;
-    const u2 = top3?.[2] || null;
-    const p0 = usePfp(u0?.uid, u0?.pfpVersion ?? 0);
-    const p1 = usePfp(u1?.uid, u1?.pfpVersion ?? 0);
-    const p2 = usePfp(u2?.uid, u2?.pfpVersion ?? 0);
-    const data = [
-        { present: !!u0, pfp: p0 || u0?.fallbackPfp || "", handle: u0?.handle || "", stat: u0?.stat || 0 },
-        { present: !!u1, pfp: p1 || u1?.fallbackPfp || "", handle: u1?.handle || "", stat: u1?.stat || 0 },
-        { present: !!u2, pfp: p2 || u2?.fallbackPfp || "", handle: u2?.handle || "", stat: u2?.stat || 0 },
-    ];
-    return <MiniPodium data={data} onImagesReady={onReady} />;
-});
+const RING_SIZE = ss(132);
+const RING_STROKE = 11;
+const CARD_MIN_HEIGHT = RING_SIZE + scaleSize(70); // allow room for label + SVG stroke bleed
 
 function HubRowCmp({
     afterPaint,
     fill,
     todayCalories,
     caloriesGoal,
-    top3,
-    PREVIEW_LABEL,
-    onPodiumReady,
+    workoutsThisWeek,
+    weeklyGoal,
 }) {
     // Hard-guard every numeric prop sent into Animated components
     const safeFill =
         Number.isFinite(fill) ? Math.max(0, Math.min(100, Number(fill))) : 0;
     const safeToday = Number.isFinite(todayCalories) ? todayCalories : 0;
     const safeGoal = Number.isFinite(caloriesGoal) ? Math.max(1, caloriesGoal) : 1;
+    const safeWeeklyCount = Number.isFinite(workoutsThisWeek) ? Math.max(0, workoutsThisWeek) : 0;
+    const safeWeeklyGoal = Number.isFinite(weeklyGoal) ? Math.max(0, weeklyGoal) : 0;
+    const weeklyFill = safeWeeklyGoal > 0 ? Math.min(100, (safeWeeklyCount / safeWeeklyGoal) * 100) : 0;
+    const workoutsDisplay = safeWeeklyGoal > 0 ? `${safeWeeklyCount}/${safeWeeklyGoal}` : `${safeWeeklyCount}`;
 
     return (
         <View style={styles.hubRow}>
@@ -50,8 +39,8 @@ function HubRowCmp({
                 <View style={styles.ringWrap}>
                     {afterPaint ? (
                         <AnimatedCircularProgress
-                            size={ss(132)}
-                            width={11}
+                            size={RING_SIZE}
+                            width={RING_STROKE}
                             fill={safeFill}
                             tintColor="#2D9EFF"
                             backgroundColor="#bbdbff4f"
@@ -75,18 +64,37 @@ function HubRowCmp({
                 </View>
             </View>
 
-            {/* Mini podium */}
+            {/* Weekly workouts */}
             <View style={styles.card}>
-                <View style={styles.headerRow}>
-                    <Text
-                        style={[styles.podiumCaption, styles.podiumCaptionClamp]}
-                        numberOfLines={1}
-                        ellipsizeMode="tail"
-                    >
-                        {PREVIEW_LABEL}
-                    </Text>
+                <View style={[styles.headerRow, styles.headerRowStart]}>
+                    <Text style={styles.macrosCaption}>Workouts this week</Text>
                 </View>
-                {afterPaint ? <PodiumPreview top3={top3} onReady={onPodiumReady} /> : null}
+                <View style={styles.ringWrap}>
+                    {afterPaint ? (
+                        <AnimatedCircularProgress
+                            size={RING_SIZE}
+                            width={RING_STROKE}
+                            fill={weeklyFill}
+                            tintColor="#68CF5C"
+                            backgroundColor="#c3f2c34f"
+                            lineCap="round"
+                            arcSweepAngle={360}
+                            rotation={0}
+                        >
+                            {() => (
+                                <View style={styles.ringCenter}>
+                                    <Text style={styles.workoutsValue}>{workoutsDisplay}</Text>
+                                    <Text style={styles.workoutsSub}>sessions</Text>
+                                </View>
+                            )}
+                        </AnimatedCircularProgress>
+                    ) : (
+                        <View style={styles.ringCenter}>
+                            <Text style={styles.workoutsValue}>{workoutsDisplay}</Text>
+                            <Text style={styles.workoutsSub}>sessions</Text>
+                        </View>
+                    )}
+                </View>
             </View>
         </View>
     );
@@ -97,9 +105,8 @@ const areEqual = (a, b) => (
     a.fill === b.fill &&
     a.todayCalories === b.todayCalories &&
     a.caloriesGoal === b.caloriesGoal &&
-    a.PREVIEW_LABEL === b.PREVIEW_LABEL &&
-    a.top3 === b.top3 &&
-    a.onPodiumReady === b.onPodiumReady
+    a.workoutsThisWeek === b.workoutsThisWeek &&
+    a.weeklyGoal === b.weeklyGoal
 );
 
 export default memo(HubRowCmp, areEqual);
@@ -113,6 +120,7 @@ const styles = StyleSheet.create({
         padding: scaleSize(14),
         borderWidth: StyleSheet.hairlineWidth,
         borderColor: theme.hairline,
+        minHeight: CARD_MIN_HEIGHT,
         ...Platform.select({
             // Tone down card drop shadow for a flatter look
             ios: {
@@ -129,12 +137,12 @@ const styles = StyleSheet.create({
     headerRowStart: { justifyContent: "flex-start", gap: scaleSize(6) },
 
     macrosCaption: { color: "#ffffffff", fontSize: scaleSize(12), fontFamily: "Outfit_700Bold" },
-    podiumCaption: { color: "#ffffffff", fontSize: scaleSize(12), fontFamily: "Outfit_700Bold" },
-    podiumCaptionClamp: { flex: 1, marginRight: scaleSize(8), maxWidth: '85%' },
 
-    ringWrap: { flex: 1, alignItems: "center", justifyContent: "center", marginTop: 0 },
+    ringWrap: { flex: 1, alignItems: "center", justifyContent: "center", marginTop: 0, paddingVertical: scaleSize(6), minHeight: RING_SIZE + scaleSize(12) },
     ringCenter: { alignItems: "center", justifyContent: "center", marginTop: scaleSize(2) },
     // Match NutritionSummaryCard ring text styles
     kcalValue: { color: theme.textPrimary, fontSize: scaleSize(25), fontFamily: "Outfit_800ExtraBold", marginBottom: 0 },
     kcalSub: { color: theme.textSecondary, fontSize: scaleSize(12), fontFamily: "Outfit_700Bold", marginBottom: scaleSize(4) },
+    workoutsValue: { color: theme.textPrimary, fontSize: scaleSize(25), fontFamily: "Outfit_800ExtraBold", marginBottom: 0 },
+    workoutsSub: { color: theme.textSecondary, fontSize: scaleSize(12), fontFamily: "Outfit_700Bold", marginBottom: scaleSize(4) },
 });
