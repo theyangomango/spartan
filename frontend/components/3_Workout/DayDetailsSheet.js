@@ -1,6 +1,6 @@
 // components/3_Workout/DayDetailsSheet.jsx
 import React, { memo, useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { View, Text, StyleSheet, Pressable, Animated, useWindowDimensions, VirtualizedList, Easing, Modal, FlatList } from "react-native";
+import { View, Text, StyleSheet, Pressable, Animated, useWindowDimensions, VirtualizedList, Easing, Modal, ScrollView, InteractionManager } from "react-native";
 import { Gesture, GestureDetector } from 'react-native-gesture-handler';
 import { useSharedValue, runOnJS } from 'react-native-reanimated';
 import BottomSheet, { BottomSheetBackdrop, BottomSheetView } from "@gorhom/bottom-sheet";
@@ -18,7 +18,6 @@ import { parseMacrosFromDescription, parseExtraNutrientsFromDescription } from "
 // No foodLogs usage: macros derive only from global.userData.loggedFoods
 
 import scaleSize from "../../helper/scaleSize";
-import { ScrollView } from "react-native-gesture-handler";
 import { Ionicons } from "@expo/vector-icons";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
@@ -157,6 +156,7 @@ const HistoryCalendarModal = memo(function HistoryCalendarModal({
     const insets = useSafeAreaInsets();
     const listRef = useRef(null);
     const monthsCacheRef = useRef({ key: null, months: [] });
+    const readyRef = useRef(false);
 
     const marksSet = useMemo(() => {
         if (!markedDayKeys) return new Set();
@@ -197,14 +197,20 @@ const HistoryCalendarModal = memo(function HistoryCalendarModal({
     }, [monthsCacheKey, normalizedSelectedDate, marksSet]);
 
     const currentScrollKeyRef = useRef(null);
-    const monthOffsetsRef = useRef(new Map());
+    const scrollViewRef = useRef(null);
+    const scrollPerformedRef = useRef(false);
+
     useEffect(() => {
         currentScrollKeyRef.current = null;
-        monthOffsetsRef.current = new Map();
+        readyRef.current = false;
+        scrollPerformedRef.current = false;
     }, [monthsCacheKey]);
+
     useEffect(() => {
         if (!visible) {
             currentScrollKeyRef.current = null;
+            readyRef.current = false;
+            scrollPerformedRef.current = false;
         }
     }, [visible]);
 
@@ -231,32 +237,24 @@ const HistoryCalendarModal = memo(function HistoryCalendarModal({
         onSelectDate?.(next);
     }, [onSelectDate]);
 
-    useEffect(() => {
-        if (!visible || !months.length) return;
-        const targetMonth = months[targetMonthIndex];
-        if (!targetMonth) return;
-        const targetKey = `${monthsCacheKey}|${targetMonth.monthIndex}`;
-        if (currentScrollKeyRef.current === targetKey) return;
-        let attempts = 0;
-        const maxAttempts = 10;
-
-        const scroll = () => {
-            const ref = listRef.current;
-            const offset = monthOffsetsRef.current.get(targetMonth.monthIndex);
-            if (!ref || offset === undefined) {
-                if (attempts++ < maxAttempts) requestAnimationFrame(scroll);
-                return;
-            }
-            try {
-                ref.scrollToOffset({ offset, animated: false });
-                currentScrollKeyRef.current = targetKey;
-            } catch (err) {
-                if (attempts++ < maxAttempts) setTimeout(scroll, 30);
-            }
-        };
-
-        requestAnimationFrame(scroll);
-    }, [visible, targetMonthIndex, months.length, monthsCacheKey]);
+    const handleTargetLayout = useCallback((monthIndex, layoutY) => {
+        if (!visible) return;
+        if (scrollPerformedRef.current) return;
+        const target = months[targetMonthIndex];
+        if (!target || monthIndex !== target.monthIndex) return;
+        const offset = Math.max(0, layoutY);
+        const targetKey = `${monthsCacheKey}|${monthIndex}`;
+        InteractionManager.runAfterInteractions(() => {
+            requestAnimationFrame(() => {
+                try {
+                    scrollViewRef.current?.scrollTo({ y: offset, animated: false });
+                    currentScrollKeyRef.current = targetKey;
+                    readyRef.current = true;
+                    scrollPerformedRef.current = true;
+                } catch { /* ignore */ }
+            });
+        });
+    }, [visible, months, targetMonthIndex, monthsCacheKey]);
 
     return (
         <Modal
@@ -301,25 +299,19 @@ const HistoryCalendarModal = memo(function HistoryCalendarModal({
                             ))}
                         </View>
 
-                        <FlatList
-                            ref={listRef}
-                            data={months}
-                            keyExtractor={(item) => String(item.monthIndex)}
+                        <ScrollView
+                            ref={scrollViewRef}
                             showsVerticalScrollIndicator={false}
                             contentContainerStyle={styles.calendarScrollContent}
-                            initialNumToRender={months.length}
-                            maxToRenderPerBatch={months.length}
-                            windowSize={months.length + 2}
-                            updateCellsBatchingPeriod={16}
-                            removeClippedSubviews={false}
-                            renderItem={({ item }) => (
+                        >
+                            {months.map((item) => (
                                 <View
+                                    key={item.monthIndex}
                                     style={styles.calendarMonthBlock}
                                     onLayout={(event) => {
-                                        const { y } = event.nativeEvent.layout || {};
-                                        if (typeof y === 'number') {
-                                            monthOffsetsRef.current.set(item.monthIndex, y);
-                                        }
+                                        const { layout } = event?.nativeEvent || {};
+                                        if (!layout || typeof layout.y !== 'number') return;
+                                        handleTargetLayout(item.monthIndex, layout.y);
                                     }}
                                 >
                                     <Text style={styles.calendarMonthLabel}>{item.label}</Text>
@@ -327,11 +319,11 @@ const HistoryCalendarModal = memo(function HistoryCalendarModal({
                                         {item.cells.map((cell, idx) => {
                                             const cellKey = cell ? `${item.monthIndex}-${cell.key}` : `placeholder-${item.monthIndex}-${idx}`;
                                             if (!cell) {
-                                                return <View key={cellKey} style={styles.calendarCell} />;
-                                            }
-                                            return (
-                                                <Pressable
-                                                    key={cellKey}
+                                                    return <View key={cellKey} style={styles.calendarCell} />;
+                                                }
+                                                return (
+                                                    <Pressable
+                                                        key={cellKey}
                                                     style={styles.calendarCell}
                                                     hitSlop={10}
                                                     onPress={() => handleSelect(cell.timestamp)}
@@ -360,9 +352,8 @@ const HistoryCalendarModal = memo(function HistoryCalendarModal({
                                         })}
                                     </View>
                                 </View>
-                            )}
-                            onScrollToIndexFailed={() => {}}
-                        />
+                            ))}
+                        </ScrollView>
                     </View>
                 </View>
             </View>

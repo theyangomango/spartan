@@ -822,7 +822,7 @@ const styles = StyleSheet.create({
     templatesDock: {
         position: "absolute",
         left: 0,
-        right: 0,
+        right: 0, 
         bottom: scaleSize(FOOTER_HEIGHT + ss(48) + BTN_SIZE + TPL_BOTTOM_GAP),
         alignItems: "center",
     },
