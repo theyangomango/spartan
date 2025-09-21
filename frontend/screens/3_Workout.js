@@ -19,6 +19,7 @@ import Footer from "../components/Footer";
 import TemplatesRail from "../components/3_Workout/sections/TemplatesRail";
 import SectionDivider from "../components/3_Workout/ui/SectionDivider";
 import HubRow from "../components/3_Workout/sections/HubRow";
+import TribeStatsCard from "../components/3_Workout/sections/TribeStatsCard";
 import StartCluster from "../components/3_Workout/sections/StartCluster";
 
 // Modals / Sheets
@@ -641,6 +642,7 @@ export default function Workout({ navigation, route }) {
             <View style={styles.content}>
                 {/* WeekCalendar temporarily disabled */}
 
+                <TribeStatsCard />
                 {/* Hub row */}
                 <View>
                     <HubRow
@@ -823,7 +825,7 @@ const styles = StyleSheet.create({
         position: "absolute",
         left: 0,
         right: 0, 
-        bottom: scaleSize(FOOTER_HEIGHT + ss(48) + BTN_SIZE + TPL_BOTTOM_GAP),
+        bottom: scaleSize(FOOTER_HEIGHT + ss(40) + BTN_SIZE + TPL_BOTTOM_GAP),
         alignItems: "center",
     },
     templatesWrap: { width: "100%", alignItems: "center" },
@@ -831,7 +833,7 @@ const styles = StyleSheet.create({
         position: "absolute",
         left: 0,
         right: 0,
-        bottom: scaleSize(FOOTER_HEIGHT + ss(45)),
+        bottom: scaleSize(FOOTER_HEIGHT + ss(40)),
         alignItems: "center",
     },
 

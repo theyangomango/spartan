@@ -8,6 +8,7 @@ import { SMALL_SIZE, ROW_WIDTH } from "./workoutTheme";
 import theme from "../../../theme/mfpDark";
 
 import scaleSize from "../../../helper/scaleSize";
+import { strong as haptic } from "../../../utils/haptics";
 
 const StartCluster = ({
     scaleAnim,
@@ -34,7 +35,7 @@ const StartCluster = ({
                         accessibilityRole="button"
                         accessibilityLabel="View workout history details"
                         style={({ pressed }) => [styles.smallBtn, styles.smallBtnBump, pressed && styles.smallBtnPressed]}
-                        onPress={() => onOpenDayDetails?.()}
+                        onPress={() => { try { haptic(); } catch {} onOpenDayDetails?.(); }}
                     >
                         <Feather name="calendar" size={22} color="#E5E7EB" />
                     </Pressable>
@@ -53,7 +54,7 @@ const StartCluster = ({
                         accessibilityRole="button"
                         accessibilityLabel="Friends training now"
                         style={({ pressed }) => [styles.smallBtn, styles.smallBtnBump, pressed && styles.smallBtnPressed]}
-                        onPress={onOpenFriends}
+                        onPress={() => { try { haptic(); } catch {} onOpenFriends?.(); }}
                     >
                         {showStack ? <LiveStack users={friendsStackUsers} /> : <Feather name="users" size={21} color="#E5E7EB" />}
                     </Pressable>

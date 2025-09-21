@@ -20,6 +20,7 @@ import { parseMacrosFromDescription, parseExtraNutrientsFromDescription } from "
 import scaleSize from "../../helper/scaleSize";
 import { Ionicons } from "@expo/vector-icons";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { strong as haptic } from "../../utils/haptics";
 
 const HEADER_HEIGHT = scaleSize(48);
 const EDGE_BACK_GESTURE_WIDTH = 200; // px area from left edge to trigger back swipe
@@ -265,7 +266,10 @@ const HistoryCalendarModal = memo(function HistoryCalendarModal({
             statusBarTranslucent
         >
             <View style={styles.calendarModalRoot}>
-                <Pressable style={styles.calendarBackdrop} onPress={onClose}>
+                <Pressable
+                    style={styles.calendarBackdrop}
+                    onPress={() => { try { haptic(); } catch {} onClose?.(); }}
+                >
                     <View />
                 </Pressable>
                 <View
@@ -281,7 +285,7 @@ const HistoryCalendarModal = memo(function HistoryCalendarModal({
                     <View style={styles.calendarCard}>
                         <View style={styles.calendarHeaderRow}>
                             <Pressable
-                                onPress={onClose}
+                                onPress={() => { try { haptic(); } catch {} onClose?.(); }}
                                 hitSlop={12}
                                 style={styles.calendarCloseBtn}
                                 accessibilityRole="button"
@@ -319,14 +323,14 @@ const HistoryCalendarModal = memo(function HistoryCalendarModal({
                                         {item.cells.map((cell, idx) => {
                                             const cellKey = cell ? `${item.monthIndex}-${cell.key}` : `placeholder-${item.monthIndex}-${idx}`;
                                             if (!cell) {
-                                                    return <View key={cellKey} style={styles.calendarCell} />;
-                                                }
-                                                return (
-                                                    <Pressable
-                                                        key={cellKey}
+                                                return <View key={cellKey} style={styles.calendarCell} />;
+                                            }
+                                            return (
+                                                <Pressable
+                                                    key={cellKey}
                                                     style={styles.calendarCell}
                                                     hitSlop={10}
-                                                    onPress={() => handleSelect(cell.timestamp)}
+                                                    onPress={() => { try { haptic(); } catch {} handleSelect(cell.timestamp); }}
                                                     accessibilityRole="button"
                                                     accessibilityLabel={`Go to ${cell.key}`}
                                                 >
@@ -785,7 +789,11 @@ const DayDetailsSheet = ({
                         {foodsList.map((it, idx) => {
                             const kcal = Math.round((it?.macros?.calories) || parseMacrosFromDescription(it?.desc || '', it?.qty ?? 1).calories || 0);
                             return (
-                                <Pressable key={`${it.name}-${idx}`} style={styles.foodRowCard} onPress={() => openFood(it)}>
+                                <Pressable
+                                    key={`${it.name}-${idx}`}
+                                    style={styles.foodRowCard}
+                                    onPress={() => { try { haptic(); } catch {} openFood(it); }}
+                                >
                                     <View style={{ flex: 1, paddingRight: scaleSize(12) }}>
                                         <Text style={styles.foodRowName} numberOfLines={1}>{it.name}</Text>
                                         <Text style={styles.foodRowBucketLine} numberOfLines={1}>{it.bucket}</Text>
@@ -799,11 +807,17 @@ const DayDetailsSheet = ({
 
                 {/* Actions */}
                 <View style={styles.actions}>
-                    <Pressable style={[styles.btn, styles.secondary]} onPress={handleOpenMacros}>
+                    <Pressable
+                        style={[styles.btn, styles.secondary]}
+                        onPress={() => { try { haptic(); } catch {} handleOpenMacros(); }}
+                    >
                         <Text style={[styles.btnText, styles.secondaryText]}>Open Macros</Text>
                     </Pressable>
                     {isTodayPage && (
-                        <Pressable style={[styles.btn, styles.primary]} onPress={handleStartWorkout}>
+                        <Pressable
+                            style={[styles.btn, styles.primary]}
+                            onPress={() => { try { haptic(); } catch {} handleStartWorkout(); }}
+                        >
                             <Text style={[styles.btnText, styles.primaryText]}>Start Workout</Text>
                         </Pressable>
                     )}

@@ -12,6 +12,7 @@ import {
 import { Weight } from "iconsax-react-native";
 import theme from "../../../theme/mfpDark";
 import scaleSize from "../../../helper/scaleSize";
+import { strong as haptic } from "../../../utils/haptics";
 
 function TemplatesRail({ templates = [], onIndexChange, onAddTemplate, onOpenTemplate }) {
     const { width: PAGE_W } = Dimensions.get("window");
@@ -47,8 +48,14 @@ function TemplatesRail({ templates = [], onIndexChange, onAddTemplate, onOpenTem
                         isNone ? styles.railEmpty : styles.railSaved,
                     ];
 
-                    const handlePress = () =>
-                        isNone ? onAddTemplate && onAddTemplate() : onOpenTemplate && onOpenTemplate(item);
+                    const handlePress = () => {
+                        try { haptic(); } catch {}
+                        if (isNone) {
+                            onAddTemplate && onAddTemplate();
+                        } else {
+                            onOpenTemplate && onOpenTemplate(item);
+                        }
+                    };
 
                     return (
                         <View style={[styles.page, { width: PAGE_W }]}>

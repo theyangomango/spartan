@@ -7,6 +7,8 @@ import { BTN_SIZE } from "../sections/workoutTheme";
 import theme from "../../../theme/mfpDark";
 
 import scaleSize from "../../../helper/scaleSize";
+import { strong as haptic } from "../../../utils/haptics";
+import * as Haptics from "expo-haptics";
 
 /**
  * Minimal black circular button that either:
@@ -27,12 +29,53 @@ export default function  StartOpenButton({ hasActiveWorkout, onOpen, onStart, ho
     const firedRef = useRef(false);
     const freezeActiveRef = useRef(false);
     const freezeTimerRef = useRef(null);
+    const holdHapticsRef = useRef([]);
     // Keep the visual "full ring" moment so the completion feels satisfying
     const FREEZE_MS = 1200;
+
+    const clearHoldHaptics = () => {
+        if (holdHapticsRef.current.length) {
+            holdHapticsRef.current.forEach((id) => clearTimeout(id));
+            holdHapticsRef.current = [];
+        }
+    };
+
+    const scheduleHoldHaptics = () => {
+        clearHoldHaptics();
+        const total = Math.max(holdMs, 220);
+        const maxDelay = Math.max(0, total - 10);
+        const pulsePlan = [
+            { ratio: 0, style: Haptics.ImpactFeedbackStyle.Light },
+            { ratio: 0.12, style: Haptics.ImpactFeedbackStyle.Light },
+            { ratio: 0.24, style: Haptics.ImpactFeedbackStyle.Medium },
+            { ratio: 0.4, style: Haptics.ImpactFeedbackStyle.Medium },
+            { ratio: 0.58, style: Haptics.ImpactFeedbackStyle.Medium },
+            { ratio: 0.75, style: Haptics.ImpactFeedbackStyle.Heavy },
+            { ratio: 0.88, style: Haptics.ImpactFeedbackStyle.Heavy },
+            { ratio: 0.97, style: Haptics.ImpactFeedbackStyle.Heavy },
+        ];
+
+        const timers = [];
+        let lastDelay = -Infinity;
+        pulsePlan.forEach(({ ratio, style }) => {
+            let delay = Math.round(total * ratio);
+            if (delay > maxDelay) delay = maxDelay;
+            delay = Math.max(0, delay);
+            if (delay <= lastDelay) delay = Math.min(maxDelay, lastDelay + 25);
+            lastDelay = delay;
+            const id = setTimeout(() => {
+                try { Haptics.impactAsync?.(style); } catch { }
+            }, delay);
+            timers.push(id);
+        });
+        holdHapticsRef.current = timers;
+    };
 
     const maybeStart = () => {
         if (firedRef.current) return;
         firedRef.current = true;
+        clearHoldHaptics();
+        try { haptic(); } catch {}
         onStart?.();
     };
 
@@ -55,6 +98,7 @@ export default function  StartOpenButton({ hasActiveWorkout, onOpen, onStart, ho
         firedRef.current = false;
         clearFreeze();
         armed.value = 1;
+        scheduleHoldHaptics();
         progress.value = withTiming(1, { duration: holdMs, easing: Easing.linear }, (finished) => {
             if (finished && armed.value === 1) {
                 runOnJS(maybeStart)();
@@ -72,6 +116,7 @@ export default function  StartOpenButton({ hasActiveWorkout, onOpen, onStart, ho
     const handleLongPress = () => {
         // Fallback path for some Android devices that fire longPress simultaneously
         if (!hasActiveWorkout && armed.value === 1 && !firedRef.current) {
+            clearHoldHaptics();
             runOnJS(maybeStart)();
             armed.value = 0;
             progress.value = 0;
@@ -80,6 +125,7 @@ export default function  StartOpenButton({ hasActiveWorkout, onOpen, onStart, ho
 
     const handlePressOut = () => {
         if (hasActiveWorkout) return;
+        clearHoldHaptics();
         // If hold already completed and we're freezing the full ring, don't retract on release
         if (freezeActiveRef.current) return;
         armed.value = 0; // disarm so completion callback won't trigger
@@ -88,10 +134,15 @@ export default function  StartOpenButton({ hasActiveWorkout, onOpen, onStart, ho
     };
 
     // Cleanup on unmount
-    useEffect(() => () => clearFreeze(), []);
+    useEffect(() => () => { clearFreeze(); clearHoldHaptics(); }, []);
 
     /* ------------- Static halo (OPEN state) ------------- */
     // Non-pulsing white halo that hugs the black button and extends a few pixels outward.
+
+    const handleOpenPress = () => {
+        try { haptic(); } catch {}
+        onOpen?.();
+    };
 
     return (
         <View style={styles.wrap}>
@@ -101,7 +152,7 @@ export default function  StartOpenButton({ hasActiveWorkout, onOpen, onStart, ho
             <View style={styles.backDisc} />
             <Pressable
                 {...(hasActiveWorkout
-                    ? { onPress: onOpen }
+                    ? { onPress: handleOpenPress }
                     : {
                         onLongPress: handleLongPress, // fallback
                         delayLongPress: holdMs,

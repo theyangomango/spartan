@@ -54,7 +54,7 @@ const styles = StyleSheet.create({
         alignItems: "center",
     },
     sectionDividerInner: {
-        height: scaleSize(40),
+        height: scaleSize(35),
         justifyContent: "center",
         alignItems: "center",
         ...Platform.select({

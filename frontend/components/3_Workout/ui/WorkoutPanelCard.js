@@ -5,6 +5,7 @@ import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { Clock } from 'iconsax-react-native';
 
 import scaleSize from "../../../helper/scaleSize";
+import { strong as haptic } from '../../../utils/haptics';
 
 const mins = (ms) => Math.max(0, Math.round(Number(ms || 0) / 60000));
 const minutesLabel = (ms) => `${mins(ms)} min`;
@@ -23,9 +24,12 @@ const WorkoutPanelCard = ({
   style,
 }) => {
   const Container = onPress ? Pressable : View;
+  const pressProps = onPress
+    ? { onPress: () => { try { haptic(); } catch {} onPress(); } }
+    : {};
 
   return (
-    <Container style={[styles.panel, style]} onPress={onPress}>
+    <Container style={[styles.panel, style]} {...pressProps}>
       <View style={styles.headerRow}>
         <View style={{ flex: 1 }}>
           <Text style={[styles.title, titleStyle]} numberOfLines={1}>{title}</Text>

@@ -28,6 +28,7 @@ import calculate1RM from "../../helper/calculate1RM";
 import { useNavigation } from "@react-navigation/native";
 
 import scaleSize from "../../helper/scaleSize";
+import { strong as haptic } from "../../utils/haptics";
 
 const { height: screenHeight, width: screenWidth } = Dimensions.get("window");
 const scale = screenHeight / 844;
@@ -252,7 +253,7 @@ const FriendPanel = memo(({ item, overlay, onSelect, highlight = false }) => {
           backgroundColor: COLORS.card,
         }
       ]}
-      onPress={() => onSelect?.(item, pfpUri)}
+      onPress={() => { try { haptic(); } catch {} onSelect?.(item, pfpUri); }}
       activeScale={0.965}
     >
       <View style={styles.headerRow}>
