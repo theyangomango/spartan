@@ -802,7 +802,12 @@ const styles = StyleSheet.create({
         alignItems: "center",
         marginBottom: TPL_BOTTOM_GAP,
     },
-    templatesDivider: { width: "100%", alignItems: "center", marginTop: DIVIDER_ADJUST },
+    templatesDivider: {
+        width: "100%",
+        alignItems: "center",
+        marginTop: DIVIDER_ADJUST,
+        marginBottom: DIVIDER_ADJUST,
+    },
     templatesRailShell: { width: "100%" },
     clusterWrap: {
         width: "100%",

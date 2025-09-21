@@ -91,7 +91,7 @@ function HubRowCmp({
                 </View>
                 <View style={styles.statRow}>
                     <View style={styles.statHeadingRow}>
-                        <Text style={styles.statLabel}>Sessions this week</Text>
+                        <Text style={styles.statLabel}>Workouts this week</Text>
                         <Text style={styles.statValue}>{workoutsDisplay}</Text>
                     </View>
                     <View style={styles.progressTrack}>
