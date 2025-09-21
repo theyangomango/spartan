@@ -831,7 +831,7 @@ const styles = StyleSheet.create({
         position: "absolute",
         left: 0,
         right: 0,
-        bottom: scaleSize(FOOTER_HEIGHT + ss(48)),
+        bottom: scaleSize(FOOTER_HEIGHT + ss(45)),
         alignItems: "center",
     },
 

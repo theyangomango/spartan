@@ -144,14 +144,14 @@ const eq = (a, b) => {
     return sig(a.templates) === sig(b.templates);
 };
 
-export default memo(TemplatesRail, eq);
+export default memo(TemplatesRail, eq); 
 
-const EMPTY_CARD_BG = "#1d2c45cd";
-const EMPTY_CARD_BORDER = "rgba(95, 155, 215, 0.46)";
+const EMPTY_CARD_BG = "#1d2c45b3";
+const EMPTY_CARD_BORDER = "rgba(95, 155, 215, 0.33)";
 
 const styles = StyleSheet.create({
     wrap: { justifyContent: "space-between" },
-    page: { height: TPL_CARD_H },
+    page: { height: TPL_CARD_H }, 
     rail: {
         height: TPL_CARD_H,
         marginHorizontal: scaleSize(16),

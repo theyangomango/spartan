@@ -1,5 +1,5 @@
 import React, { memo } from "react";
-import { View, Text, Pressable, StyleSheet, Platform } from "react-native";
+import { View, Text, StyleSheet, Platform } from "react-native";
 import { AnimatedCircularProgress } from "react-native-circular-progress";
 import { usePfp } from "../../../helper/usePFPs";
 import { ss } from "./workoutTheme"; // keep path consistent with your project
@@ -26,7 +26,6 @@ const PodiumPreview = memo(function PodiumPreview({ top3 = [], onReady }) {
 });
 
 function HubRowCmp({
-    navigation,
     afterPaint,
     fill,
     todayCalories,
@@ -44,20 +43,8 @@ function HubRowCmp({
     return (
         <View style={styles.hubRow}>
             {/* Calories card */}
-            <Pressable
-                accessibilityRole="button"
-                android_ripple={{ color: "rgba(255,255,255,0.06)", radius: 140, borderless: false }}
-                style={({ pressed }) => [styles.card, pressed && styles.cardPressed]}
-                onPressIn={() => {
-                    try {
-                        const rootNav = navigation?.getParent?.('ROOT');
-                        if (rootNav?.navigate) rootNav.navigate('MacroTracking', { transition: 'slide-from-left' });
-                        else navigation.navigate('MacroTracking', { transition: 'slide-from-left' });
-                    } catch { }
-                }}
-            >
+            <View style={styles.card}>
                 <View style={[styles.headerRow, styles.headerRowStart]}>
-                    <Text style={styles.chevronLeft}>‹</Text>
                     <Text style={styles.macrosCaption}>Today’s Calories</Text>
                 </View>
                 <View style={styles.ringWrap}>
@@ -86,21 +73,10 @@ function HubRowCmp({
                         </View>
                     )}
                 </View>
-            </Pressable>
+            </View>
 
             {/* Mini podium */}
-            <Pressable
-                accessibilityRole="button"
-                android_ripple={{ color: "rgba(255,255,255,0.06)", radius: 140, borderless: false }}
-                style={({ pressed }) => [styles.card, pressed && styles.cardPressed]}
-                onPressIn={() => {
-                    try {
-                        const rootNav = navigation?.getParent?.('ROOT');
-                        if (rootNav?.navigate) rootNav.navigate('Competition', { transition: 'slide-from-right', disableSwipeBack: true });
-                        else navigation.navigate('Competition', { transition: 'slide-from-right', disableSwipeBack: true });
-                    } catch { }
-                }}
-            >
+            <View style={styles.card}>
                 <View style={styles.headerRow}>
                     <Text
                         style={[styles.podiumCaption, styles.podiumCaptionClamp]}
@@ -109,10 +85,9 @@ function HubRowCmp({
                     >
                         {PREVIEW_LABEL}
                     </Text>
-                    <Text style={styles.chevronRight}>›</Text>
                 </View>
                 {afterPaint ? <PodiumPreview top3={top3} onReady={onPodiumReady} /> : null}
-            </Pressable>
+            </View>
         </View>
     );
 }
@@ -150,29 +125,12 @@ const styles = StyleSheet.create({
             android: { elevation: 1 },
         }),
     },
-    cardPressed: {
-        transform: [{ scale: 0.985 }],
-        backgroundColor: "#232932",
-        borderColor: "rgba(255,255,255,0.16)",
-        ...Platform.select({
-            ios: {
-                backgroundColor: "#232932",
-                shadowOpacity: 0.14,
-                shadowRadius: scaleSize(8),
-                shadowOffset: { width: 0, height: scaleSize(3) },
-            },
-            android: { elevation: 1 },
-        }),
-    },
-
     headerRow: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", marginBottom: scaleSize(12) },
     headerRowStart: { justifyContent: "flex-start", gap: scaleSize(6) },
 
     macrosCaption: { color: "#ffffffff", fontSize: scaleSize(12), fontFamily: "Outfit_700Bold" },
     podiumCaption: { color: "#ffffffff", fontSize: scaleSize(12), fontFamily: "Outfit_700Bold" },
     podiumCaptionClamp: { flex: 1, marginRight: scaleSize(8), maxWidth: '85%' },
-    chevronRight: { color: "#ffffffff", fontSize: scaleSize(18), lineHeight: scaleSize(18), includeFontPadding: false },
-    chevronLeft: { color: "#ffffffff", fontSize: scaleSize(18), lineHeight: scaleSize(18), includeFontPadding: false },
 
     ringWrap: { flex: 1, alignItems: "center", justifyContent: "center", marginTop: 0 },
     ringCenter: { alignItems: "center", justifyContent: "center", marginTop: scaleSize(2) },
