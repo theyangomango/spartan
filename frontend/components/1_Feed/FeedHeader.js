@@ -16,11 +16,9 @@ import {
 } from "react-native";
 import FastImage from "react-native-fast-image";
 import { Ionicons, MaterialIcons } from "@expo/vector-icons";
-import millisToHoursMinutesSeconds from "../../helper/millisToHoursMinutesSeconds";
 import { usePfp } from "../../helper/usePFPs";
 import RNBounceable from "@freakycoder/react-native-bounceable";
 import Svg, { Path } from "react-native-svg";
-import { Weight } from "iconsax-react-native";
 import { getFeedHeaderStyles } from "../../helper/getFeedHeaderStyles";
 import { db } from "../../../firebase.config";
 import { collection, query, where, onSnapshot, getDocs, orderBy, limit, doc } from "firebase/firestore";
@@ -409,15 +407,6 @@ const SearchUsersBar = ({ navigation, allUsersRef, disabled = false }) => {
 
 /* ----------------------------- FeedHeader ----------------------------- */
 
-// Small helper matching Feed screen logic
-const toMillis = (v) => {
-    if (typeof v === "number") return v;
-    if (v?.toMillis) return v.toMillis();
-    if (typeof v?.seconds === "number") return v.seconds * 1000;
-    const n = new Date(v).getTime();
-    return Number.isFinite(n) ? n : 0;
-};
-
 const FeedHeader = ({
     toMessagesScreen,
     onOpenNotifications,
@@ -427,33 +416,14 @@ const FeedHeader = ({
     navigation,
     allUsersRef,
 
-    // workout pill
-    workout,        // ← rely only on this (no globals)
-    openCurrentWorkout,
-    timerRef,       // ← must be a ref updated by parent; empty string means “no workout”
+    // workout props intentionally ignored so header layout stays static
+    workout: _workout,
+    openCurrentWorkout: _openCurrentWorkout,
+    timerRef: _timerRef,
     heightAdjust = 0, // optional fine-tune for overall header height (affects padding only)
 }) => {
     const [unreadCount, setUnreadCount] = useState(0);
     const [unreadMessages, setUnreadMessages] = useState(0);
-
-    // Mirror timerRef, with a fallback to compute from workout timestamps if ref is empty.
-    const [elapsed, setElapsed] = useState(""); // never default to "00:00"
-    useEffect(() => {
-        const id = setInterval(() => {
-            let v = (timerRef?.current || "").trim();
-            if (!v && workout?.wid) {
-                const createdMs = toMillis(workout?.created ?? workout?.createdAt);
-                if (createdMs) v = millisToHoursMinutesSeconds(Math.max(1000, Date.now() - createdMs));
-            }
-            setElapsed((prev) => (prev !== v ? v : prev));
-        }, 500);
-        return () => clearInterval(id);
-    }, [timerRef, workout?.wid, workout?.created, workout?.createdAt]);
-
-    // Show pill only when:
-    //  - we have a workout prop with a wid
-    //  - and we have a non-empty elapsed string not equal to "00:00"
-    const showPill = !!workout?.wid && !!elapsed && elapsed !== "00:00";
 
     useEffect(() => {
         const uid = global?.userData?.uid;
@@ -500,28 +470,16 @@ const FeedHeader = ({
             {/* Center: fixed-height slot */}
             <View style={styles.centerArea}>
                 <View style={styles.centerSlot}>
-                    {showPill ? (
-                        <RNBounceable
-                            onPress={() => (openCurrentWorkout ? openCurrentWorkout() : navigation?.navigate?.("Workout"))}
-                            style={styles.resumeBtnBlue}
-                            accessibilityLabel={`Open ongoing workout, elapsed ${elapsed}`}
-                        >
-                            <Weight size={s(18)} color="#FFFFFF" variant="Bold" />
-                            <View style={styles.dotBlue} />
-                            <Text style={styles.resumeTimeBlue}>{elapsed}</Text>
-                        </RNBounceable>
-                    ) : (
-                        <RNBounceable onPress={scrollToTop} style={styles.logoWrap}>
-                            <View style={styles.logo_image_ctnr}>
-                                <FastImage
-                                    source={require("../../../frontend/assets/logo_feed_black.png")}
-                                    style={styles.logo_image}
-                                    resizeMode={FastImage.resizeMode.contain}
-                                />
-                            </View>
-                            <Text style={styles.logo_text}>SPARTAN</Text>
-                        </RNBounceable>
-                    )}
+                    <RNBounceable onPress={scrollToTop} style={styles.logoWrap}>
+                        <View style={styles.logo_image_ctnr}>
+                            <FastImage
+                                source={require("../../../frontend/assets/logo_feed_black.png")}
+                                style={styles.logo_image}
+                                resizeMode={FastImage.resizeMode.contain}
+                            />
+                        </View>
+                        <Text style={styles.logo_text}>SPARTAN</Text>
+                    </RNBounceable>
                 </View>
             </View>
             {/* Right: notifications + messages */}
@@ -613,36 +571,6 @@ const styles = StyleSheet.create({
         color: theme.textPrimary,
         includeFontPadding: false,
         ...Platform.select({ android: { lineHeight: scaleSize(s(19)) } }),
-    },
-
-    resumeBtnBlue: {
-        height: "100%",
-        flexDirection: "row",
-        alignItems: "center",
-        paddingHorizontal: scaleSize(s(14)),
-        borderRadius: scaleSize(METRICS.centerH / 2),
-        backgroundColor: theme.primary,
-        borderWidth: scaleSize(1),
-        borderColor: "transparent",
-        ...Platform.select({
-            ios: {
-                backgroundColor: theme.primary,
-                shadowColor: theme.primary,
-                shadowOpacity: 0.18,
-                shadowRadius: scaleSize(4),
-                shadowOffset: { width: 0, height: scaleSize(3) },
-            },
-            android: { elevation: 3 },
-        }),
-    },
-    dotBlue: { width: scaleSize(s(5)), height: scaleSize(s(5)), borderRadius: scaleSize(s(2.5)), backgroundColor: theme.textPrimary, marginHorizontal: scaleSize(s(7)), opacity: 0.9 },
-    resumeTimeBlue: {
-        fontFamily: "Outfit_700Bold",
-        fontSize: scaleSize(s(13)),
-        color: theme.textPrimary,
-        letterSpacing: 0.2,
-        includeFontPadding: false,
-        ...Platform.select({ android: { lineHeight: scaleSize(s(15)) } }),
     },
 
     right_icons: { flexDirection: "row", position: "absolute", right: METRICS.paddingH, top: METRICS.iconTop, alignItems: "center" },

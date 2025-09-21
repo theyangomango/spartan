@@ -126,6 +126,13 @@ export default function Workout({ navigation, route }) {
     /* ---------- first paint guard ---------- */
     const [afterPaint, setAfterPaint] = useState(false);
     const hubRowReadyNotifiedRef = useRef(false);
+    const [notificationsBottomSheetExpandFlag, setNotificationsBottomSheetExpandFlag] = useState(false);
+    const [hasMountedNotificationsSheet, setHasMountedNotificationsSheet] = useState(false);
+    const [hasMountedFriendsSheet, setHasMountedFriendsSheet] = useState(false);
+    const [hasMountedNewWorkoutSheet, setHasMountedNewWorkoutSheet] = useState(false);
+    const [hasMountedEditTemplateSheet, setHasMountedEditTemplateSheet] = useState(false);
+    const [hasMountedDaySheet, setHasMountedDaySheet] = useState(false);
+    const [hasMountedGroupModal, setHasMountedGroupModal] = useState(false);
     useEffect(() => {
         const task = InteractionManager.runAfterInteractions(() => {
             requestAnimationFrame(() => setAfterPaint(true));
@@ -139,6 +146,19 @@ export default function Workout({ navigation, route }) {
         requestAnimationFrame(() => {
             try { global.__markHubRowReady?.(); } catch {}
         });
+    }, [afterPaint]);
+
+    useEffect(() => {
+        if (!afterPaint) return;
+        const timers = [
+            setTimeout(() => setHasMountedNotificationsSheet(true), 40),
+            setTimeout(() => setHasMountedNewWorkoutSheet(true), 80),
+            setTimeout(() => setHasMountedFriendsSheet(true), 120),
+            setTimeout(() => setHasMountedDaySheet(true), 160),
+            setTimeout(() => setHasMountedEditTemplateSheet(true), 200),
+            setTimeout(() => setHasMountedGroupModal(true), 240),
+        ];
+        return () => { timers.forEach((id) => clearTimeout(id)); };
     }, [afterPaint]);
 
     /* ---------- prevent phantom “00:00” ---------- */
@@ -298,8 +318,47 @@ export default function Workout({ navigation, route }) {
     const [friendsSheetToggle, setFriendsSheetToggle] = useState(false);
     const [focusFriendUid, setFocusFriendUid] = useState(null);
     const [focusWorkoutWid, setFocusWorkoutWid] = useState(null);
-    useEffect(() => { refreshFriends(); }, [refreshFriends]);
-    useEffect(() => { if (friendsSheetVisible) refreshFriends(); }, [friendsSheetVisible, refreshFriends]);
+    useEffect(() => {
+        if (!afterPaint) return;
+        let cancelled = false;
+        const task = InteractionManager.runAfterInteractions(() => {
+            if (!cancelled) refreshFriends();
+        });
+        return () => {
+            cancelled = true;
+            try { task?.cancel?.(); } catch { }
+        };
+    }, [afterPaint, refreshFriends]);
+    useEffect(() => {
+        if (!friendsSheetVisible) return;
+        let cancelled = false;
+        const task = InteractionManager.runAfterInteractions(() => {
+            if (!cancelled) refreshFriends();
+        });
+        return () => {
+            cancelled = true;
+            try { task?.cancel?.(); } catch { }
+        };
+    }, [friendsSheetVisible, refreshFriends]);
+
+    useEffect(() => {
+        if (isNewWorkoutVisible) setHasMountedNewWorkoutSheet(true);
+    }, [isNewWorkoutVisible]);
+    useEffect(() => {
+        if (friendsSheetVisible) setHasMountedFriendsSheet(true);
+    }, [friendsSheetVisible]);
+    useEffect(() => {
+        if (daySheetVisible) setHasMountedDaySheet(true);
+    }, [daySheetVisible]);
+    useEffect(() => {
+        if (isEditTemplateVisible) setHasMountedEditTemplateSheet(true);
+    }, [isEditTemplateVisible]);
+    useEffect(() => {
+        if (inviteSheetOpen) setHasMountedGroupModal(true);
+    }, [inviteSheetOpen]);
+    useEffect(() => {
+        if (notificationsBottomSheetExpandFlag) setHasMountedNotificationsSheet(true);
+    }, [notificationsBottomSheetExpandFlag]);
 
     // Avoid "flash of new" before user doc loads by gating on user readiness.
     const userLoaded = user != null; // useUserDoc returns null until first snapshot
@@ -307,8 +366,6 @@ export default function Workout({ navigation, route }) {
         ? ((user?.friendsActivityLastViewedAt?.toMillis?.() ||
             new Date(user?.friendsActivityLastViewedAt || 0).getTime()) || 0)
         : Number.POSITIVE_INFINITY; // while loading, treat as already up-to-date so nothing appears new
-
-    const [notificationsBottomSheetExpandFlag, setNotificationsBottomSheetExpandFlag] = useState(false);
 
     /* ---------- Workout Manager (state + persistence + timer) ---------- */
     // Track last consumed global open signal
@@ -436,20 +493,25 @@ export default function Workout({ navigation, route }) {
     }, [activeIdx, templatesWithNone, startNewWorkoutFromTemplate]);
 
     // Stable handlers to avoid re-rendering StartCluster on every parent render
-    const openNewWorkout = useCallback(() => setIsNewWorkoutVisible(true), [setIsNewWorkoutVisible]);
+    const openNewWorkout = useCallback(() => {
+        setHasMountedNewWorkoutSheet(true);
+        setIsNewWorkoutVisible(true);
+    }, [setHasMountedNewWorkoutSheet, setIsNewWorkoutVisible]);
     const openFriends = useCallback(() => {
+        setHasMountedFriendsSheet(true);
         setFriendsSheetVisible(true);
         setFriendsSheetToggle((f) => !f);
-    }, []);
+    }, [setHasMountedFriendsSheet, setFriendsSheetVisible, setFriendsSheetToggle]);
 
     const openDayDetailsToday = useCallback(() => {
         const today = new Date();
         today.setHours(0, 0, 0, 0);
+        setHasMountedDaySheet(true);
         setDaySheetDate(today);
         setDaySheetSession((prev) => prev + 1);
         setDaySheetVisible(true);
         setDaySheetToggle((f) => !f);
-    }, [setDaySheetDate, setDaySheetSession, setDaySheetVisible, setDaySheetToggle]);
+    }, [setHasMountedDaySheet, setDaySheetDate, setDaySheetSession, setDaySheetVisible, setDaySheetToggle]);
 
     // Header prop identities kept stable to avoid header re-renders
     const headerScrollToTop = useCallback(() => { }, []);
@@ -476,7 +538,10 @@ export default function Workout({ navigation, route }) {
     }, []);
     const onConsumedFocusCb = useCallback(() => { setFocusFriendUid(null); setFocusWorkoutWid(null); }, []);
 
-    const showGroupModalCb = useCallback(() => setInviteSheetOpen(true), []);
+    const showGroupModalCb = useCallback(() => {
+        setHasMountedGroupModal(true);
+        setInviteSheetOpen(true);
+    }, [setHasMountedGroupModal, setInviteSheetOpen]);
     const registerInviteHandlerCb = useCallback((fn) => { inviteHandlerRef.current = fn; }, []);
     const closeGroupModalCb = useCallback(() => setInviteSheetOpen(false), []);
     const onInviteCb = useCallback((users) => {
@@ -565,6 +630,13 @@ export default function Workout({ navigation, route }) {
     });
 
     /* ---------------- render ---------------- */
+    const shouldRenderNotificationsSheet = notificationsBottomSheetExpandFlag || hasMountedNotificationsSheet;
+    const shouldRenderDaySheet = daySheetVisible || hasMountedDaySheet;
+    const shouldRenderFriendsSheet = friendsSheetVisible || hasMountedFriendsSheet;
+    const shouldRenderNewWorkoutSheet = isNewWorkoutVisible || hasMountedNewWorkoutSheet;
+    const shouldRenderEditTemplateSheet = isEditTemplateVisible || hasMountedEditTemplateSheet;
+    const shouldRenderGroupModal = inviteSheetOpen || hasMountedGroupModal;
+
     return (
         <SafeAreaView style={styles.root}>
             <StatusBar barStyle="light-content" backgroundColor={theme.bg} />
@@ -653,11 +725,11 @@ export default function Workout({ navigation, route }) {
             </View>
             <Footer currentScreenName={"Workout"} navigation={navigation} />
             {/* Notifications (same UX as Feed) */}
-            {afterPaint && (
+            {shouldRenderNotificationsSheet && (
                 <NotificationsBottomSheet notificationsBottomSheetExpandFlag={notificationsBottomSheetExpandFlag} />
             )}
             {/* Day details (open via History button) */}
-            {(afterPaint || daySheetVisible) && (
+            {shouldRenderDaySheet && (
                 <View style={StyleSheet.absoluteFill} pointerEvents={daySheetVisible ? "auto" : "none"}>
                     <DayDetailsSheet
                         visible={daySheetVisible}
@@ -704,7 +776,7 @@ export default function Workout({ navigation, route }) {
                 </View>
             )}
             {/* Friends sheet */}
-            {(afterPaint || friendsSheetVisible) && (
+            {shouldRenderFriendsSheet && (
                 <View style={StyleSheet.absoluteFill} pointerEvents={friendsSheetVisible ? "auto" : "none"}>
                     <FriendsActivitySheet
                         visible={friendsSheetVisible}
@@ -723,7 +795,7 @@ export default function Workout({ navigation, route }) {
                 </View>
             )}
             {/* New Workout sheet */}
-            {(afterPaint || isNewWorkoutVisible) && (
+            {shouldRenderNewWorkoutSheet && (
                 <NewWorkoutBottomSheet
                     cancelNewWorkout={cancelWorkout}
                     updateNewWorkout={updateNewWorkout}
@@ -737,7 +809,7 @@ export default function Workout({ navigation, route }) {
                 />
             )}
             {/* Template editor (kept identical behavior) */}
-            {(afterPaint || isEditTemplateVisible) && (
+            {shouldRenderEditTemplateSheet && (
                 <EditTemplateBottomSheet
                     isVisible={isEditTemplateVisible}
                     setIsVisible={setIsEditTemplateVisible}
@@ -771,7 +843,7 @@ export default function Workout({ navigation, route }) {
                 <CopyTemplateToast anim={toastAnim} text={toastMsg || "Template added"} />
             </Animated.View>
             {/* Invite picker mounted at screen level so backdrop covers everything */}
-            {(afterPaint || inviteSheetOpen) && (
+            {shouldRenderGroupModal && (
                 <GroupModalBottomSheet
                     groupModalExpandFlag={inviteSheetOpen}
                     closeGroupModal={closeGroupModalCb}
