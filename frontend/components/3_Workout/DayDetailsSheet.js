@@ -816,7 +816,7 @@ const DayDetailsSheet = ({
                 )}
 
                 {/* Actions */}
-                <View style={styles.actions}>
+                {/* <View style={styles.actions}>
                     <Pressable
                         style={[styles.btn, styles.secondary]}
                         onPress={() => { try { haptic(); } catch {} handleOpenMacros(); }}
@@ -831,7 +831,7 @@ const DayDetailsSheet = ({
                             <Text style={[styles.btnText, styles.primaryText]}>Start Workout</Text>
                         </Pressable>
                     )}
-                </View>
+                </View> */}
             </View>
         );
     }, [handleOpenMacros, handleStartWorkout, handleTitlePress, onChangeDate, openFood, openViewer, titleScale, workoutOn]);

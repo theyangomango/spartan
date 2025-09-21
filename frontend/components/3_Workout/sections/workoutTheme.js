@@ -5,7 +5,8 @@ export { ss } from "../../../helper/scaleSize";
 
 const { width: W } = Dimensions.get("window");
 
-export const FOOTER_HEIGHT = 87;
+const FOOTER_BASE = 78;
+export const FOOTER_HEIGHT = ss(FOOTER_BASE);
 
 /* START cluster proportions (Nike-like) */
 // Slightly larger central action button
@@ -24,8 +25,31 @@ export const TPL_CARD_H = TPL_HEIGHT - DOTS_H - ss(8);
 // subtracting part of the growth so spacing feels like iPhone 13.
 const BASE_BTN = Math.round(390 * 0.32); // baseline (iPhone 13)
 const BTN_DELTA = Math.max(0, BTN_SIZE - BASE_BTN);
-// Start with ss(32) and subtract ~60% of extra button growth. Keep a sensible floor.
-export const TPL_BOTTOM_GAP = Math.max(ss(10));
+const BTN_DELTA_NEG = Math.max(0, BASE_BTN - BTN_SIZE);
+
+const FOOTER_EXTRA = Math.max(0, FOOTER_HEIGHT - FOOTER_BASE);
+
+// Start with ss(28) and let footer growth push the rail down slightly while larger
+// buttons pull it back up. Smaller buttons loosen the gap a touch for breathing room.
+const BASE_TPL_GAP = ss(28);
+export const TPL_BOTTOM_GAP = Math.max(
+    ss(12),
+    BASE_TPL_GAP
+        + Math.round(FOOTER_EXTRA * 0.4)
+        - Math.round(BTN_DELTA * 0.55)
+        + Math.round(BTN_DELTA_NEG * 0.2),
+);
+
+// Divider margin mirrors the same forces so the dotted line stays visually centered
+// between HubRow and the templates, even as footer height/screen scale changes.
+const BASE_DIVIDER_MARGIN = ss(12);
+export const TPL_DIVIDER_MARGIN = Math.max(
+    ss(8),
+    BASE_DIVIDER_MARGIN
+        + Math.round(FOOTER_EXTRA * 0.3)
+        - Math.round(BTN_DELTA * 0.25)
+        + Math.round(BTN_DELTA_NEG * 0.1),
+);
 
 /* Blue palette (refined) */
 export const BLUE = {

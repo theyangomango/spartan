@@ -35,7 +35,7 @@ import UserStatsAfterWorkoutSheet from "../components/2_Competition/UserStats/Us
 import { onHexagonUpdate } from "../utils/hexagonEvents";
 
 // Theme & Hooks (project)
-import { ss, FOOTER_HEIGHT, BTN_SIZE, TPL_BOTTOM_GAP, TPL_HEIGHT } from "../components/3_Workout/sections/workoutTheme";
+import { ss, FOOTER_HEIGHT, BTN_SIZE, TPL_BOTTOM_GAP, TPL_HEIGHT, TPL_DIVIDER_MARGIN } from "../components/3_Workout/sections/workoutTheme";
 import theme from "../theme/mfpDark";
 // Remove foodLogs dependency; compute macros from global.userData.loggedFoods only
 import useResolvedUid from "../hooks/useResolvedUid";
@@ -92,7 +92,6 @@ const ACTIVITY_WEEKLY_GOAL = Object.freeze({
     athlete: 7,
 });
 const DEFAULT_WEEKLY_GOAL = 4;
-const DIVIDER_ADJUST = scaleSize(6);
 
 export default function Workout({ navigation, route }) {
     /* ---------- resolve uid & user ---------- */
@@ -805,8 +804,8 @@ const styles = StyleSheet.create({
     templatesDivider: {
         width: "100%",
         alignItems: "center",
-        marginTop: DIVIDER_ADJUST,
-        marginBottom: DIVIDER_ADJUST,
+        marginTop: TPL_DIVIDER_MARGIN,
+        marginBottom: TPL_DIVIDER_MARGIN,
     },
     templatesRailShell: { width: "100%" },
     clusterWrap: {
