@@ -1,18 +1,23 @@
 import React, { memo, useRef, useCallback } from "react";
 import { View, Text, StyleSheet, Platform, Pressable, Animated } from "react-native";
-import { AnimatedCircularProgress } from "react-native-circular-progress";
-import { ss } from "./workoutTheme"; // keep path consistent with your project
+import { Feather } from "@expo/vector-icons";
+import { LinearGradient } from "expo-linear-gradient";
 import theme from "../../../theme/mfpDark";
 // Single root navigator; no nested overlay helpers needed
 import scaleSize from "../../../helper/scaleSize";
 import { strong as haptic } from "../../../utils/haptics";
 // Removed unused bounceable/touchable imports to keep things lean
 
-const RING_SIZE = ss(126);
-const RING_STROKE = 11;
-const CARD_MIN_HEIGHT = RING_SIZE + scaleSize(36); // allow room for label + SVG stroke bleed
-const DIVIDER_HEIGHT = RING_SIZE - scaleSize(10);
+const CARD_MIN_HEIGHT = scaleSize(170);
 const CARD_RADIUS = scaleSize(30);
+
+const CARD_GRADIENT = ["#1D2437", "#121926"];
+const CARD_BORDER = "rgba(92, 162, 255, 0.24)";
+const CARD_SHEEN = "rgba(120, 180, 255, 0.12)";
+const BADGE_BG = "rgba(45, 158, 255, 0.16)";
+const BADGE_BORDER = "rgba(45, 158, 255, 0.45)";
+const PROGRESS_TRACK = "rgba(64, 96, 146, 0.35)";
+const PROGRESS_FILL = "#2D9EFF";
 
 function HubRowCmp({
     afterPaint,
@@ -58,72 +63,59 @@ function HubRowCmp({
     const safeWeeklyGoal = Number.isFinite(weeklyGoal) ? Math.max(0, weeklyGoal) : 0;
     const weeklyFill = safeWeeklyGoal > 0 ? Math.min(100, (safeWeeklyCount / safeWeeklyGoal) * 100) : 0;
     const workoutsDisplay = safeWeeklyGoal > 0 ? `${safeWeeklyCount}/${safeWeeklyGoal}` : `${safeWeeklyCount}`;
+    const caloriesFillWidth = afterPaint ? `${safeFill}%` : "0%";
+    const weeklyFillWidth = afterPaint ? `${weeklyFill}%` : "0%";
     const cardContent = (
-        <View style={styles.metricsRow}>
-            <View style={styles.metric}>
-                {/* <View style={[styles.headerRow, styles.headerRowStart, { paddingLeft: scaleSize(10) }]}>
-                    <Text style={styles.macrosCaption}>Today’s Calories</Text>
-                </View> */}
-                <View style={styles.ringWrap}>
-                    {afterPaint ? (
-                        <AnimatedCircularProgress
-                            size={RING_SIZE}
-                            width={RING_STROKE}
-                            fill={safeFill}
-                            tintColor="#2D9EFF"
-                            backgroundColor="#bbdbff4f"
-                            lineCap="round"
-                            arcSweepAngle={360}
-                            rotation={0}
-                        >
-                            {() => (
-                                <View style={styles.ringCenter}>
-                                    <Text style={styles.kcalValue}>{Math.max(0, safeToday)}</Text>
-                                    <Text style={styles.kcalSub}>/ {safeGoal} kcal</Text>
-                                </View>
-                            )}
-                        </AnimatedCircularProgress>
-                    ) : (
-                        <View style={styles.ringCenter}>
-                            <Text style={styles.kcalValue}>{Math.max(0, safeToday)}</Text>
-                            <Text style={styles.kcalSub}>/ {safeGoal} kcal</Text>
-                        </View>
-                    )}
+        <View style={styles.cardBody}>
+            <View style={styles.cardTop}>
+                <Text style={styles.headerTitle}>Your Progress</Text>
+                <View style={styles.headerBadge}>
+                    <View style={styles.headerDot} />
+                    <Text style={styles.headerBadgeText}>VIEW LOGS</Text>
+                    <Feather name="chevron-right" size={scaleSize(12)} color={theme.textPrimary} style={styles.headerIcon} />
                 </View>
             </View>
-            <View style={styles.divider} />
-            <View style={styles.metric}>
-                {/* <View style={[styles.headerRow, styles.headerRowStart]}>
-                    <Text style={styles.macrosCaption}>Workouts this week</Text>
-                </View> */}
-                <View style={styles.ringWrap}>
-                    {afterPaint ? (
-                        <AnimatedCircularProgress
-                            size={RING_SIZE}
-                            width={RING_STROKE}
-                            fill={weeklyFill}
-                            tintColor="#2D9EFF"
-                            backgroundColor="#bbdbff4f"
-                            lineCap="round"
-                            arcSweepAngle={360}
-                            rotation={0}
-                        >
-                            {() => (
-                                <View style={styles.ringCenter}>
-                                    <Text style={styles.workoutsValue}>{workoutsDisplay}</Text>
-                                    <Text style={styles.workoutsSub}>Sessions{"\n"}this week</Text>
-                                </View>
-                            )}
-                        </AnimatedCircularProgress>
-                    ) : (
-                        <View style={styles.ringCenter}>
-                            <Text style={styles.workoutsValue}>{workoutsDisplay}</Text>
-                            <Text style={styles.workoutsSub}>Sessions{"\n"}this week</Text>
-                        </View>
-                    )}
+
+            <View style={styles.statsList}>
+                <View style={styles.statRow}>
+                    <View style={styles.statHeadingRow}>
+                        <Text style={styles.statLabel}>Calories today</Text>
+                        <Text style={styles.statValue}>
+                            {Math.max(0, safeToday)}
+                            <Text style={styles.statValueSub}> / {safeGoal} kcal</Text>
+                        </Text>
+                    </View>
+                    <View style={styles.progressTrack}>
+                        <View style={[styles.progressFill, { width: caloriesFillWidth }]} />
+                    </View>
+                </View>
+                <View style={styles.statRow}>
+                    <View style={styles.statHeadingRow}>
+                        <Text style={styles.statLabel}>Sessions this week</Text>
+                        <Text style={styles.statValue}>{workoutsDisplay}</Text>
+                    </View>
+                    <View style={styles.progressTrack}>
+                        <View style={[styles.progressFill, { width: weeklyFillWidth }]} />
+                    </View>
                 </View>
             </View>
         </View>
+    );
+
+    const animatedCardStyle = interactive ? { transform: [{ scale }] } : null;
+
+    const cardShell = (
+        <Animated.View style={[styles.cardShadow, animatedCardStyle]}>
+            <LinearGradient
+                colors={CARD_GRADIENT}
+                start={{ x: 0, y: 0 }}
+                end={{ x: 1, y: 1 }}
+                style={styles.cardGradient}
+            >
+                <View pointerEvents="none" style={styles.cardSheen} />
+                {cardContent}
+            </LinearGradient>
+        </Animated.View>
     );
 
     return (
@@ -132,22 +124,21 @@ function HubRowCmp({
                 <Pressable
                     style={styles.pressable}
                     hitSlop={scaleSize(8)}
-                    android_ripple={{ color: "rgba(255,255,255,0.08)", borderless: false }}
+                    android_ripple={{ color: "rgba(82, 150, 255, 0.18)", borderless: false }}
                     accessibilityRole="button"
                     accessibilityState={{ disabled: !interactive }}
                     onPress={handlePress}
                     onPressIn={handlePressIn}
                     onPressOut={handlePressOut}
                 >
-                    <Animated.View style={[styles.card, styles.cardPressable, { transform: [{ scale }] }]}>
-                        {cardContent}
-                    </Animated.View>
+                    {cardShell}
                 </Pressable>
             ) : (
-                <View style={styles.card}>{cardContent}</View>
+                cardShell
             )}
         </View>
     );
+
 }
 
 const areEqual = (a, b) => (
@@ -164,55 +155,124 @@ export default memo(HubRowCmp, areEqual);
 const styles = StyleSheet.create({
     hubRow: { paddingHorizontal: scaleSize(16), marginTop: scaleSize(6) },
     pressable: { borderRadius: CARD_RADIUS },
-    card: {
-        flex: 1,
-        backgroundColor: theme.surface,
+    cardShadow: {
+        width: "100%",
         borderRadius: CARD_RADIUS,
-        paddingHorizontal: scaleSize(16),
-        paddingVertical: scaleSize(16),
-        justifyContent: "center",
-        borderWidth: scaleSize(1),
-        borderColor: theme.hairline,
         minHeight: CARD_MIN_HEIGHT,
         ...Platform.select({
-            // Tone down card drop shadow for a flatter look
             ios: {
-                backgroundColor: theme.surface,
                 shadowColor: "#000",
-                shadowOpacity: 0.16,
-                shadowRadius: scaleSize(6),
-                shadowOffset: { width: 0, height: scaleSize(3) },
+                shadowOpacity: 0.22,
+                shadowRadius: scaleSize(12),
+                shadowOffset: { width: 0, height: scaleSize(6) },
             },
-            android: { elevation: 1 },
+            android: {
+                elevation: 4,
+            },
         }),
     },
-    cardPressable: { overflow: "hidden" },
-    metricsRow: { flexDirection: "row", alignItems: "stretch", gap: scaleSize(16) },
-    metric: { flex: 1, justifyContent: "center" },
-    divider: {
-        width: 2,
-        backgroundColor: "rgba(255,255,255,0.14)",
-        alignSelf: "center",
-        height: DIVIDER_HEIGHT,
+    cardGradient: {
+        flex: 1,
+        borderRadius: CARD_RADIUS,
+        paddingHorizontal: scaleSize(18),
+        paddingVertical: scaleSize(18),
+        borderWidth: scaleSize(1),
+        borderColor: CARD_BORDER,
+        backgroundColor: theme.primaryDeep,
+        overflow: "hidden",
     },
-    headerRow: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", marginBottom: scaleSize(12) },
-    headerRowStart: { justifyContent: "flex-start", gap: scaleSize(6) },
-
-    macrosCaption: { color: "#ffffffff", fontSize: scaleSize(12), fontFamily: "Outfit_700Bold" },
-
-    ringWrap: { alignItems: "center", justifyContent: "center", marginTop: 0, paddingVertical: scaleSize(8), minHeight: RING_SIZE + scaleSize(10) },
-    ringCenter: { alignItems: "center", justifyContent: "center", marginTop: 0 },
-    // Match NutritionSummaryCard ring text styles
-    kcalValue: { color: theme.textPrimary, fontSize: scaleSize(23), fontFamily: "Outfit_800ExtraBold", marginBottom: scaleSize(2) },
-    kcalSub: { color: theme.textSecondary, fontSize: scaleSize(11), fontFamily: "Outfit_700Bold", marginBottom: scaleSize(2) },
-    workoutsValue: { color: theme.textPrimary, fontSize: scaleSize(23), fontFamily: "Outfit_800ExtraBold", marginBottom: scaleSize(4) },
-    workoutsSub: {
+    cardSheen: {
+        position: "absolute",
+        top: -scaleSize(48),
+        right: -scaleSize(16),
+        width: scaleSize(188),
+        height: scaleSize(188),
+        borderRadius: scaleSize(94),
+        backgroundColor: CARD_SHEEN,
+        opacity: 0.35,
+        transform: [{ rotate: "28deg" }],
+    },
+    cardBody: {
+        flex: 1,
+        gap: scaleSize(16),
+    },
+    cardTop: {
+        flexDirection: "row",
+        alignItems: "center",
+        justifyContent: "space-between",
+    },
+    headerTitle: {
+        fontFamily: "Outfit_700Bold",
+        fontSize: scaleSize(18),
         color: theme.textPrimary,
-        opacity: 0.8,
-        fontSize: scaleSize(11),
+        letterSpacing: 0.2,
+    },
+    headerBadge: {
+        flexDirection: "row",
+        alignItems: "center",
+        paddingVertical: scaleSize(5),
+        paddingHorizontal: scaleSize(10),
+        borderRadius: scaleSize(999),
+        backgroundColor: BADGE_BG,
+        borderWidth: 1,
+        borderColor: BADGE_BORDER,
+        gap: scaleSize(6),
+    },
+    headerDot: {
+        width: scaleSize(6),
+        height: scaleSize(6),
+        borderRadius: scaleSize(3),
+        backgroundColor: theme.primary,
+    },
+    headerBadgeText: {
+        color: theme.textPrimary,
+        fontFamily: "Outfit_700Bold",
+        fontSize: scaleSize(10),
+        letterSpacing: 0.6,
+        textTransform: "uppercase",
+    },
+    headerIcon: {
+        marginLeft: scaleSize(2),
+        marginTop: scaleSize(1),
+    },
+    statsList: {
+        gap: scaleSize(12),
+    },
+    statRow: {
+        gap: scaleSize(8),
+    },
+    statHeadingRow: {
+        flexDirection: "row",
+        alignItems: "center",
+        justifyContent: "space-between",
+    },
+    statLabel: {
+        color: theme.textSecondary,
         fontFamily: "Outfit_600SemiBold",
-        textAlign: "center",
-        lineHeight: scaleSize(13),
-        marginTop: scaleSize(-2)
+        fontSize: scaleSize(11),
+        letterSpacing: 0.4,
+        textTransform: "uppercase",
+    },
+    statValue: {
+        color: theme.textPrimary,
+        fontFamily: "Outfit_700Bold",
+        fontSize: scaleSize(16),
+        letterSpacing: 0.2,
+    },
+    statValueSub: {
+        color: theme.textSecondary,
+        fontFamily: "Outfit_600SemiBold",
+        fontSize: scaleSize(12),
+    },
+    progressTrack: {
+        height: scaleSize(8),
+        borderRadius: scaleSize(999),
+        backgroundColor: PROGRESS_TRACK,
+        overflow: "hidden",
+    },
+    progressFill: {
+        height: "100%",
+        backgroundColor: PROGRESS_FILL,
+        borderRadius: scaleSize(999),
     },
 });
