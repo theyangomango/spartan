@@ -1,21 +1,57 @@
 // components/3_Workout/sections/StartCluster.jsx
-import React, { memo, useMemo } from "react";
-import { View, Pressable, StyleSheet, Platform, Animated, useWindowDimensions } from "react-native";
+import React, { memo, useMemo, useState, useCallback, useRef } from "react";
+import { View, Pressable, StyleSheet, Platform, Animated, useWindowDimensions, Text, Dimensions, Modal } from "react-native";
 import { Feather } from "@expo/vector-icons";
+import { AddSquare } from "iconsax-react-native";
 import StartOpenButton from "../ui/StartOpenButton";
 import { SMALL_SIZE, ROW_WIDTH } from "./workoutTheme";
 import theme from "../../../theme/mfpDark";
 
 import scaleSize from "../../../helper/scaleSize";
+import { strong as haptic } from "../../../utils/haptics";
+
+const PRIVACY_OPTIONS = Object.freeze([
+    {
+        value: "global",
+        icon: "globe",
+        label: "Global",
+        shortLabel: "Global",
+        description: "Share with everyone in Spartan.",
+    },
+    {
+        value: "friends",
+        icon: "users",
+        label: "Friends",
+        shortLabel: "Friends",
+        description: "Only your confirmed friends can see it.",
+    },
+    {
+        value: "hidden",
+        icon: "lock",
+        label: "Hidden",
+        shortLabel: "Hidden",
+        description: "Keep this workout private to you.",
+    },
+]);
 
 const StartCluster = ({
     scaleAnim,
     hasActiveWorkout,
     onStartWorkout,
     onOpenNewWorkout,
+    onOpenCreatePost,
 }) => {
     const scale = scaleAnim || new Animated.Value(1);
     const { height: screenHeight } = useWindowDimensions();
+    const buttonRef = useRef(null);
+    const [panelAnchor, setPanelAnchor] = useState(null);
+    const [privacyMode, setPrivacyMode] = useState(PRIVACY_OPTIONS[0].value);
+    const [privacyOpen, setPrivacyOpen] = useState(false);
+    const privacyDisabled = !!hasActiveWorkout;
+    const currentPrivacy = useMemo(
+        () => PRIVACY_OPTIONS.find((opt) => opt.value === privacyMode) || PRIVACY_OPTIONS[0],
+        [privacyMode]
+    );
     const containerStyle = useMemo(
         () => ({
             minHeight: Math.max(scaleSize(180), Math.round(screenHeight * 0.22)),
@@ -24,36 +60,156 @@ const StartCluster = ({
         [screenHeight],
     );
 
+    const closePrivacy = useCallback(() => setPrivacyOpen(false), []);
+
+    const togglePrivacy = useCallback(() => {
+        if (privacyDisabled) return;
+        setPrivacyOpen((open) => !open);
+        try { haptic(); } catch {}
+    }, [privacyDisabled]);
+
+    const handleSelectPrivacy = useCallback((value) => {
+        try { haptic(); } catch {}
+        setPrivacyMode(value);
+        closePrivacy();
+    }, [closePrivacy]);
+
+    const updatePanelAnchor = useCallback(() => {
+        if (!buttonRef.current) return;
+        try {
+            buttonRef.current.measureInWindow((x, y, width, height) => {
+                if (typeof x === "number" && typeof y === "number") {
+                    setPanelAnchor({ x, y, width, height });
+                }
+            });
+        } catch {
+            // noop
+        }
+    }, []);
+
+    React.useEffect(() => {
+        if (privacyDisabled && privacyOpen) closePrivacy();
+    }, [privacyDisabled, privacyOpen, closePrivacy]);
+
+    React.useEffect(() => {
+        if (privacyOpen) {
+            updatePanelAnchor();
+            const id = setTimeout(updatePanelAnchor, 30);
+            return () => clearTimeout(id);
+        }
+        return undefined;
+    }, [privacyOpen, updatePanelAnchor]);
+
+    const panelStyle = useMemo(() => {
+        if (!panelAnchor) return null;
+        const panelWidth = scaleSize(188);
+        const estPanelHeight = scaleSize(216);
+        const horizontalPadding = scaleSize(16);
+        const verticalPadding = scaleSize(14);
+        const { width: screenW, height: screenH } = Dimensions.get("window");
+        const centerX = panelAnchor.x + panelAnchor.width / 2;
+        let left = centerX - panelWidth / 2;
+        left = Math.min(Math.max(left, horizontalPadding), screenW - panelWidth - horizontalPadding);
+        let top = panelAnchor.y - estPanelHeight - scaleSize(12);
+        top = Math.max(verticalPadding, Math.min(top, screenH - estPanelHeight - verticalPadding));
+        return { left, top, width: panelWidth };
+    }, [panelAnchor]);
+
+    const handleButtonLayout = useCallback(() => {
+        updatePanelAnchor();
+    }, [updatePanelAnchor]);
+
+    const handleCreatePost = useCallback(() => {
+        if (typeof onOpenCreatePost !== 'function') return;
+        try { haptic(); } catch {}
+        onOpenCreatePost();
+    }, [onOpenCreatePost]);
+
     return (
-        <View style={[styles.wrap, containerStyle]} pointerEvents="box-none">
-            <View style={styles.actionsRow} pointerEvents="box-none">
-                <View style={styles.glowWrap} pointerEvents="none">
-                    <Pressable
-                        pointerEvents="none"
-                        style={[styles.smallBtn, styles.smallBtnBump]}
-                    >
-                        <Feather name="calendar" size={22} color="#E5E7EB" />
-                    </Pressable>
-                </View>
+        <>
+            {privacyOpen && (
+                <Modal
+                    transparent
+                    animationType="fade"
+                    visible
+                    onRequestClose={closePrivacy}
+                >
+                    <View style={styles.modalRoot} pointerEvents="box-none">
+                        <Pressable style={styles.privacyBackdrop} onPress={closePrivacy} />
+                        {panelStyle && (
+                            <View pointerEvents="box-none" style={StyleSheet.absoluteFill}>
+                                <View style={[styles.privacyPanel, panelStyle]} pointerEvents="auto">
+                                    {PRIVACY_OPTIONS.map((option) => {
+                                        const active = option.value === privacyMode;
+                                        return (
+                                            <Pressable
+                                                key={option.value}
+                                                onPress={() => handleSelectPrivacy(option.value)}
+                                                style={[styles.privacyOption, active && styles.privacyOptionActive]}
+                                                android_ripple={{ color: "rgba(148, 197, 255, 0.12)" }}
+                                            >
+                                                <View style={styles.privacyOptionHeader}>
+                                                    <Feather
+                                                        name={option.icon}
+                                                        size={16}
+                                                        color={active ? theme.textPrimary : "#B4C6E0"}
+                                                    />
+                                                    <Text style={[styles.privacyOptionLabel, active && styles.privacyOptionLabelActive]}>
+                                                        {option.label}
+                                                    </Text>
+                                                    {active && <Feather name="check" size={14} color={theme.textPrimary} />}
+                                                </View>
+                                                <Text style={styles.privacyOptionDescription}>{option.description}</Text>
+                                            </Pressable>
+                                        );
+                                    })}
+                                </View>
+                            </View>
+                        )}
+                    </View>
+                </Modal>
+            )}
+            <View style={[styles.wrap, containerStyle]} pointerEvents="box-none">
+                <View style={styles.actionsRow} pointerEvents="box-none">
+                    <View style={[styles.glowWrap, styles.privacyWrap]}>
+                        <Pressable
+                            ref={buttonRef}
+                            onLayout={handleButtonLayout}
+                            onPress={togglePrivacy}
+                            disabled={privacyDisabled}
+                            style={[styles.smallBtn, styles.smallBtnBump, privacyOpen && styles.smallBtnActive, privacyDisabled && styles.smallBtnDisabled]}
+                            accessibilityRole="button"
+                            accessibilityLabel={`Workout visibility: ${currentPrivacy.label}`}
+                            accessibilityState={{ disabled: privacyDisabled, expanded: privacyOpen }}
+                        >
+                            <Feather name={currentPrivacy.icon} size={22} color="#E5E7EB" style={styles.privacyIcon} />
+                        </Pressable>
+                        <Text style={styles.privacyLabel}>{currentPrivacy.shortLabel}</Text>
+                    </View>
 
-                <Animated.View style={{ transform: [{ scale }] }}>
-                    <StartOpenButton hasActiveWorkout={hasActiveWorkout} onOpen={onOpenNewWorkout} onStart={onStartWorkout} />
-                </Animated.View>
+                    <Animated.View style={{ transform: [{ scale }] }}>
+                        <StartOpenButton hasActiveWorkout={hasActiveWorkout} onOpen={onOpenNewWorkout} onStart={onStartWorkout} />
+                    </Animated.View>
 
-                <View style={styles.glowWrap} pointerEvents="none">
-                    <Pressable
-                        pointerEvents="none"
-                        style={[styles.smallBtn, styles.smallBtnBump]}
-                    >
-                        <Feather name="users" size={21} color="#E5E7EB" />
-                    </Pressable>
+                    <View style={[styles.glowWrap, styles.postWrap]}>
+                        <Pressable
+                            onPress={handleCreatePost}
+                            style={[styles.smallBtn, styles.smallBtnBump]}
+                            accessibilityRole="button"
+                            accessibilityLabel="Create a new post"
+                        >
+                            <AddSquare size={22} color="#E5E7EB" />
+                        </Pressable>
+                        <Text style={[styles.actionLabel, styles.actionLabelHidden]}>POST</Text>
+                    </View>
                 </View>
             </View>
-        </View>
+        </>
     );
 };
 
 const styles = StyleSheet.create({
+    modalRoot: { flex: 1, position: "relative" },
     wrap: { alignItems: "center", justifyContent: "center" },
     actionsRow: {
         width: ROW_WIDTH,
@@ -62,7 +218,7 @@ const styles = StyleSheet.create({
         justifyContent: "space-between",
         marginBottom: scaleSize(10),
     },
-    glowWrap: { position: "relative", alignItems: "center", justifyContent: "center" },
+    glowWrap: { position: "relative", alignItems: "center", justifyContent: "center", overflow: "visible" },
     smallBtn: {
         width: SMALL_SIZE,
         height: SMALL_SIZE,
@@ -77,6 +233,83 @@ const styles = StyleSheet.create({
         }),
     },
     smallBtnBump: { top: scaleSize(-6), position: "relative" },
+    smallBtnActive: { borderWidth: StyleSheet.hairlineWidth, borderColor: "rgba(141, 191, 255, 0.6)" },
+    smallBtnDisabled: { opacity: 0.7 },
+    privacyWrap: { position: "relative" },
+    privacyIcon: { marginBottom: scaleSize(2) },
+    privacyLabel: {
+        marginTop: scaleSize(4),
+        fontSize: scaleSize(10),
+        color: "#E3E8F4",
+        fontFamily: "Outfit_600SemiBold",
+        letterSpacing: 0.2,
+        includeFontPadding: false,
+        textTransform: "uppercase",
+    },
+    postWrap: { position: "relative" },
+    actionLabel: {
+        marginTop: scaleSize(4),
+        fontSize: scaleSize(10),
+        color: "#E3E8F4",
+        fontFamily: "Outfit_600SemiBold",
+        letterSpacing: 0.2,
+        includeFontPadding: false,
+        textTransform: "uppercase",
+    },
+    actionLabelHidden: { opacity: 0 },
+    privacyBackdrop: {
+        ...StyleSheet.absoluteFillObject,
+        backgroundColor: "rgba(11, 16, 28, 0.52)",
+    },
+    privacyPanel: {
+        position: "absolute",
+        backgroundColor: "#111827f5",
+        borderRadius: scaleSize(16),
+        paddingVertical: scaleSize(10),
+        paddingHorizontal: scaleSize(12),
+        borderWidth: StyleSheet.hairlineWidth,
+        borderColor: "rgba(90, 140, 220, 0.4)",
+        gap: scaleSize(6),
+        ...Platform.select({
+            ios: {
+                shadowColor: "#000",
+                shadowOpacity: 0.28,
+                shadowRadius: scaleSize(9),
+                shadowOffset: { width: 0, height: scaleSize(4) },
+            },
+            android: { elevation: 6 },
+        }),
+    },
+    privacyOption: {
+        borderRadius: scaleSize(12),
+        paddingVertical: scaleSize(8),
+        paddingHorizontal: scaleSize(10),
+        backgroundColor: "transparent",
+        gap: scaleSize(4),
+    },
+    privacyOptionActive: {
+        backgroundColor: "rgba(65, 105, 225, 0.18)",
+    },
+    privacyOptionHeader: {
+        flexDirection: "row",
+        alignItems: "center",
+        justifyContent: "space-between",
+    },
+    privacyOptionLabel: {
+        flex: 1,
+        marginLeft: scaleSize(8),
+        marginRight: scaleSize(8),
+        fontFamily: "Outfit_700Bold",
+        fontSize: scaleSize(13),
+        color: "#A5B4CF",
+    },
+    privacyOptionLabelActive: { color: theme.textPrimary },
+    privacyOptionDescription: {
+        fontFamily: "Outfit_500Medium",
+        fontSize: scaleSize(11),
+        color: "#9AA5BE",
+        lineHeight: scaleSize(14),
+    },
 });
 
 export default memo(StartCluster);

@@ -54,8 +54,8 @@ function TribeStatsCardCmp({ onPress }) {
                 <Animated.View style={[styles.card, { transform: [{ scale }] }]}>
                     <View style={styles.metaColumn}>
                         <Text style={styles.subtitle}>
-                            Your community's totals this week
-                            <Text style={styles.subtitleAction}>.{'\n'}View friends</Text>
+                            Your community's totals this week.
+                            <Text style={styles.subtitleAction}>{'\n'}View friends</Text>
                         </Text>
                     </View>
                     <View style={styles.statsRow}>

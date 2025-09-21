@@ -13,7 +13,7 @@ export const FOOTER_HEIGHT = ss(FOOTER_BASE);
 export const BTN_SIZE = Math.round(W * 0.38);
 export const SMALL_SIZE = Math.round(W * 0.132);
 export const BTN_GAP = ss(20);
-export const ROW_WIDTH = BTN_SIZE + SMALL_SIZE * 2 + BTN_GAP * 2 + ss(15);
+export const ROW_WIDTH = BTN_SIZE + SMALL_SIZE * 2 + BTN_GAP * 2 + ss(20);
 
 /* Templates rail sizing — compact */
 export const TPL_HEIGHT = ss(100);

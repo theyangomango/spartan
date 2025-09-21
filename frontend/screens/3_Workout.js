@@ -513,6 +513,14 @@ export default function Workout({ navigation, route }) {
         setDaySheetToggle((f) => !f);
     }, [setHasMountedDaySheet, setDaySheetDate, setDaySheetSession, setDaySheetVisible, setDaySheetToggle]);
 
+    const openCreatePost = useCallback(() => {
+        try {
+            navigation?.navigate('SelectPhotos', { userData: global?.userData || {} });
+        } catch {
+            try { navigation?.navigate('SelectPhotos'); } catch { }
+        }
+    }, [navigation]);
+
     // Header prop identities kept stable to avoid header re-renders
     const headerScrollToTop = useCallback(() => { }, []);
     const headerOpenCurrentWorkout = useCallback(() => setIsNewWorkoutVisible(true), [setIsNewWorkoutVisible]);
@@ -719,6 +727,7 @@ export default function Workout({ navigation, route }) {
                             hasActiveWorkout={hasActiveWorkout}
                             onStartWorkout={onStartWorkout}
                             onOpenNewWorkout={openNewWorkout}
+                            onOpenCreatePost={openCreatePost}
                         />
                     </View>
                 </View>
