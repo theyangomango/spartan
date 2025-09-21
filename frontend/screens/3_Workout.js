@@ -603,52 +603,54 @@ export default function Workout({ navigation, route }) {
                 )}
             </Animated.View>
             <View style={styles.content}>
-                {/* WeekCalendar temporarily disabled */}
+                <View style={styles.mainContent}>
+                    {/* WeekCalendar temporarily disabled */}
 
-                <TribeStatsCard onPress={openFriends} />
-                {/* Hub row */}
-                <View>
-                    <HubRow
-                        afterPaint={afterPaint}
-                        fill={fill}
-                        todayCalories={todayCalories}
-                        caloriesGoal={caloriesGoal}
-                        workoutsThisWeek={workoutsThisWeek}
-                        weeklyGoal={weeklyGoal}
-                        onPress={openDayDetailsToday}
-                    />
-                </View>
-                {/* Templates rail relocated near Start cluster */}
-            </View>
-            <View style={styles.templatesDock} pointerEvents="box-none">
-                <View style={styles.templatesWrap} pointerEvents="auto">
-                    <View style={styles.templatesDivider}>
-                        <SectionDivider
-                            containerBg={theme.bg}
-                            dashColor="rgba(255,255,255,0.22)"
-                            dotColor="#ffffff2d"
+                    <TribeStatsCard onPress={openFriends} />
+                    {/* Hub row */}
+                    <View>
+                        <HubRow
+                            afterPaint={afterPaint}
+                            fill={fill}
+                            todayCalories={todayCalories}
+                            caloriesGoal={caloriesGoal}
+                            workoutsThisWeek={workoutsThisWeek}
+                            weeklyGoal={weeklyGoal}
+                            onPress={openDayDetailsToday}
                         />
                     </View>
-                    {afterPaint && (
-                        <View style={styles.templatesRailShell}>
-                            <TemplatesRail
-                                templates={templatesWithNone}
-                                onIndexChange={setActiveIdx}
-                                onAddTemplate={initTemplateAndToggle}
-                                onOpenTemplate={openEditTemplateAndToggle}
+                </View>
+
+                <View style={styles.bottomStack} pointerEvents="box-none">
+                    <View style={styles.templatesDock}>
+                        <View style={styles.templatesDivider}>
+                            <SectionDivider
+                                containerBg={theme.bg}
+                                dashColor="rgba(255,255,255,0.22)"
+                                dotColor="#ffffff2d"
                             />
                         </View>
-                    )}
+                        {afterPaint && (
+                            <View style={styles.templatesRailShell}>
+                                <TemplatesRail
+                                    templates={templatesWithNone}
+                                    onIndexChange={setActiveIdx}
+                                    onAddTemplate={initTemplateAndToggle}
+                                    onOpenTemplate={openEditTemplateAndToggle}
+                                />
+                            </View>
+                        )}
+                    </View>
+
+                    <View style={styles.clusterWrap}>
+                        <StartCluster
+                            scaleAnim={scaleAnim}
+                            hasActiveWorkout={hasActiveWorkout}
+                            onStartWorkout={onStartWorkout}
+                            onOpenNewWorkout={openNewWorkout}
+                        />
+                    </View>
                 </View>
-            </View>
-            {/* START cluster */}
-            <View style={styles.clusterWrap} pointerEvents="box-none">
-                <StartCluster
-                    scaleAnim={scaleAnim}
-                    hasActiveWorkout={hasActiveWorkout}
-                    onStartWorkout={onStartWorkout}
-                    onOpenNewWorkout={openNewWorkout}
-                />
             </View>
             <Footer currentScreenName={"Workout"} navigation={navigation} />
             {/* Notifications (same UX as Feed) */}
@@ -785,23 +787,25 @@ export default function Workout({ navigation, route }) {
 const styles = StyleSheet.create({
     // MyFitnessPal-like dark background
     root: { flex: 1, backgroundColor: theme.bg },
-    content: { flex: 1, paddingTop: scaleSize(2), paddingBottom: scaleSize(FOOTER_HEIGHT + ss(22) + BTN_SIZE + TPL_BOTTOM_GAP) },
-
-    templatesDock: {
-        position: "absolute",
-        left: 0,
-        right: 0, 
-        bottom: scaleSize(FOOTER_HEIGHT + ss(57) + BTN_SIZE + TPL_BOTTOM_GAP),
+    content: {
+        flex: 1,
+        paddingTop: scaleSize(2),
+        paddingBottom: scaleSize(FOOTER_HEIGHT),
+    },
+    mainContent: { flex: 1, width: "100%" },
+    bottomStack: {
+        width: "100%",
         alignItems: "center",
     },
-    templatesWrap: { width: "100%", alignItems: "center" },
+    templatesDock: {
+        width: "100%",
+        alignItems: "center",
+        marginBottom: TPL_BOTTOM_GAP,
+    },
     templatesDivider: { width: "100%", alignItems: "center", marginTop: DIVIDER_ADJUST },
     templatesRailShell: { width: "100%" },
     clusterWrap: {
-        position: "absolute",
-        left: 0,
-        right: 0,
-        bottom: scaleSize(FOOTER_HEIGHT + ss(37)),
+        width: "100%",
         alignItems: "center",
     },
 

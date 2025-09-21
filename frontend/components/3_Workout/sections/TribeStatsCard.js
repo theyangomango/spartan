@@ -1,14 +1,13 @@
 import React, { memo, useRef, useCallback } from "react";
 import { View, Text, StyleSheet, Platform, Pressable, Animated } from "react-native";
-import theme from "../../../theme/mfpDark";
 import scaleSize from "../../../helper/scaleSize";
 import { strong as haptic } from "../../../utils/haptics";
 
-const CARD_BG = theme.surface;
-const CARD_BORDER = theme.hairline;
-const BADGE_BG = "rgba(45, 158, 255, 0.18)";
-const BADGE_BORDER = theme.primaryHairline;
-const BADGE_TEXT = theme.primary;
+const CARD_BG = "#362B1A";
+const CARD_BORDER = "rgba(255, 202, 120, 0.45)";
+const TEXT_PRIMARY = "#FFF0D5";
+const TEXT_SECONDARY = "rgba(255, 230, 190, 0.78)";
+const DIVIDER_COLOR = "rgba(255, 214, 153, 0.3)";
 
 const MOCK_STATS = [
     { key: "reps", label: "Total Reps", value: "14,320" },
@@ -42,7 +41,7 @@ function TribeStatsCardCmp({ onPress }) {
         <View style={styles.wrap}>
             <Pressable
                 disabled={!interactive}
-                android_ripple={{ color: "rgba(255,255,255,0.08)" }}
+                android_ripple={{ color: "rgba(255, 214, 153, 0.16)" }}
                 style={styles.pressable}
                 accessibilityRole="button"
                 accessibilityLabel="Open friends activity"
@@ -54,10 +53,10 @@ function TribeStatsCardCmp({ onPress }) {
             >
                 <Animated.View style={[styles.card, { transform: [{ scale }] }]}>
                     <View style={styles.metaColumn}>
-                        <View style={styles.badge}>
-                            <Text style={styles.badgeText}>Spartan</Text>
-                        </View>
-                        <Text style={styles.subtitle}>24h tribe totals</Text>
+                        <Text style={styles.subtitle}>
+                            Your community's totals this week
+                            <Text style={styles.subtitleAction}>.{'\n'}View friends</Text>
+                        </Text>
                     </View>
                     <View style={styles.statsRow}>
                         {MOCK_STATS.map((stat, idx) => (
@@ -106,8 +105,8 @@ const styles = StyleSheet.create({
         backgroundColor: CARD_BG,
         borderRadius: CARD_RADIUS,
         paddingVertical: scaleSize(20),
-        paddingLeft: 12,
-        paddingRight: 4,
+        paddingLeft: scaleSize(16),
+        paddingRight: scaleSize(4),
         borderWidth: scaleSize(1),
         borderColor: CARD_BORDER,
         ...Platform.select({
@@ -122,22 +121,29 @@ const styles = StyleSheet.create({
             },
         }),
     },
-    metaColumn: { gap: scaleSize(4), width: scaleSize(70), alignItems: "flex-start", justifyContent: "center" },
-    badge: {
-        paddingHorizontal: scaleSize(10),
-        paddingVertical: scaleSize(4),
-        borderRadius: scaleSize(999),
-        backgroundColor: BADGE_BG,
-        borderWidth: StyleSheet.hairlineWidth,
-        borderColor: BADGE_BORDER,
+    metaColumn: {
+        gap: scaleSize(2),
+        maxWidth: scaleSize(120),
+        alignItems: "flex-start",
+        justifyContent: "center",
+        paddingRight: scaleSize(8),
+        flexShrink: 1,
     },
-    badgeText: { fontFamily: "Outfit_700Bold", fontSize: scaleSize(10), color: BADGE_TEXT, letterSpacing: 0.4 },
-    subtitle: { fontFamily: "Outfit_600SemiBold", fontSize: scaleSize(9.5), color: theme.textSecondary, letterSpacing: 0.28 },
+    subtitle: {
+        fontFamily: "Outfit_600SemiBold",
+        fontSize: scaleSize(10),
+        color: TEXT_SECONDARY,
+        letterSpacing: 0.28,
+    },
+    subtitleAction: {
+        color: TEXT_PRIMARY,
+        fontFamily: "Outfit_700Bold",
+    },
     statsRow: {
         flexDirection: "row",
         alignItems: "center",
         flex: 1,
-        marginLeft: scaleSize(14),
+        marginLeft: scaleSize(6),
         paddingRight: scaleSize(4),
     },
     statCol: {
@@ -155,7 +161,7 @@ const styles = StyleSheet.create({
     statColMiddle: {
         borderLeftWidth: 2,
         borderRightWidth: 2,
-        borderColor: "rgba(234, 240, 247, 0.16)",
+        borderColor: DIVIDER_COLOR,
         paddingHorizontal: scaleSize(6),
     },
     statColCompact: {
@@ -164,13 +170,13 @@ const styles = StyleSheet.create({
         alignItems: "center",
         justifyContent: "center",
     },
-    statValue: { fontFamily: "Outfit_800ExtraBold", fontSize: scaleSize(18), color: theme.textPrimary, letterSpacing: 0.24 },
+    statValue: { fontFamily: "Outfit_800ExtraBold", fontSize: scaleSize(18), color: TEXT_PRIMARY, letterSpacing: 0.24 },
     statValueCompact: { fontSize: scaleSize(18) },
     statLabel: {
         marginTop: scaleSize(2),
         fontFamily: "Outfit_600SemiBold",
         fontSize: scaleSize(11),
-        color: theme.textSecondary,
+        color: TEXT_SECONDARY,
         letterSpacing: 0.24,
     },
     statLabelCompact: { fontSize: scaleSize(11) },

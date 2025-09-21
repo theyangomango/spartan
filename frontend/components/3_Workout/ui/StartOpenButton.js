@@ -255,11 +255,10 @@ const styles = StyleSheet.create({
         // overflow: "hidden",
         alignItems: "center",
         justifyContent: "center",
-        backgroundColor: "#0A0A0A",
         borderWidth: 0, // remove inner ring outline
         ...Platform.select({
             ios: {
-                backgroundColor: "#0A0A0A",
+                backgroundColor: "#0a0a0aff",
                 shadowColor: "#FFFFFF",
                 shadowOpacity: 0.8,
                 shadowRadius: scaleSize(16),

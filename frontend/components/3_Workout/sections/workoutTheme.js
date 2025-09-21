@@ -25,7 +25,7 @@ export const TPL_CARD_H = TPL_HEIGHT - DOTS_H - ss(8);
 const BASE_BTN = Math.round(390 * 0.32); // baseline (iPhone 13)
 const BTN_DELTA = Math.max(0, BTN_SIZE - BASE_BTN);
 // Start with ss(32) and subtract ~60% of extra button growth. Keep a sensible floor.
-export const TPL_BOTTOM_GAP = Math.max(ss(18), ss(32) - Math.round(BTN_DELTA * 0.6));
+export const TPL_BOTTOM_GAP = Math.max(ss(10));
 
 /* Blue palette (refined) */
 export const BLUE = {
