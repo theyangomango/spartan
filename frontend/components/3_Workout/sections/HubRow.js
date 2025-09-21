@@ -1,124 +1,125 @@
-import React, { memo } from "react";
-import { View, Text, StyleSheet, Platform } from "react-native";
-import { AnimatedCircularProgress } from "react-native-circular-progress";
-import { ss } from "./workoutTheme"; // keep path consistent with your project
+import React, { memo, useRef, useCallback } from "react";
+import { View, Text, StyleSheet, Platform, Pressable, Animated } from "react-native";
 import theme from "../../../theme/mfpDark";
-// Single root navigator; no nested overlay helpers needed
 import scaleSize from "../../../helper/scaleSize";
-// Removed unused bounceable/touchable imports to keep things lean
+import { ss } from "./workoutTheme";
+import { AnimatedCircularProgress } from "react-native-circular-progress";
+import { strong as haptic } from "../../../utils/haptics";
 
-const RING_SIZE = ss(132);
-const RING_STROKE = 11;
-const CARD_MIN_HEIGHT = RING_SIZE + scaleSize(70); // allow room for label + SVG stroke bleed
+const RING_SIZE = ss(110);
+const RING_STROKE = 9;
+const CARD_MIN_HEIGHT = RING_SIZE + scaleSize(32);
 
 function HubRowCmp({
     afterPaint,
-    fill,
     todayCalories,
     caloriesGoal,
     workoutsThisWeek,
     weeklyGoal,
+    onPress,
 }) {
     // Hard-guard every numeric prop sent into Animated components
-    const safeFill =
-        Number.isFinite(fill) ? Math.max(0, Math.min(100, Number(fill))) : 0;
     const safeToday = Number.isFinite(todayCalories) ? todayCalories : 0;
     const safeGoal = Number.isFinite(caloriesGoal) ? Math.max(1, caloriesGoal) : 1;
     const safeWeeklyCount = Number.isFinite(workoutsThisWeek) ? Math.max(0, workoutsThisWeek) : 0;
     const safeWeeklyGoal = Number.isFinite(weeklyGoal) ? Math.max(0, weeklyGoal) : 0;
-    const weeklyFill = safeWeeklyGoal > 0 ? Math.min(100, (safeWeeklyCount / safeWeeklyGoal) * 100) : 0;
-    const workoutsDisplay = safeWeeklyGoal > 0 ? `${safeWeeklyCount}/${safeWeeklyGoal}` : `${safeWeeklyCount}`;
+    const caloriesEaten = Math.max(0, Math.round(safeToday));
+    const caloriesFill = safeGoal > 0 ? Math.min(100, (caloriesEaten / safeGoal) * 100) : 0;
+
+    const scale = useRef(new Animated.Value(1)).current;
+
+    const animateTo = useCallback((value) => {
+        Animated.spring(scale, {
+            toValue: value,
+            useNativeDriver: true,
+            speed: 18,
+            bounciness: 8,
+        }).start();
+    }, [scale]);
+
+    const handlePressIn = useCallback(() => animateTo(0.97), [animateTo]);
+    const handlePressOut = useCallback(() => animateTo(1), [animateTo]);
+    const handlePress = useCallback(() => {
+        if (!onPress) return;
+        try { haptic(); } catch { }
+        onPress();
+    }, [onPress]);
+
+    const interactive = typeof onPress === "function";
 
     return (
         <View style={styles.hubRow}>
-            {/* Calories card */}
-            <View style={styles.card}>
-                <View style={[styles.headerRow, styles.headerRowStart]}>
-                    <Text style={styles.macrosCaption}>Today’s Calories</Text>
-                </View>
-                <View style={styles.ringWrap}>
-                    {afterPaint ? (
-                        <AnimatedCircularProgress
-                            size={RING_SIZE}
-                            width={RING_STROKE}
-                            fill={safeFill}
-                            tintColor="#2D9EFF"
-                            backgroundColor="#bbdbff4f"
-                            lineCap="round"
-                            arcSweepAngle={360}
-                            rotation={0}
-                        >
-                            {() => (
-                                <View style={styles.ringCenter}>
-                                    <Text style={styles.kcalValue}>{Math.max(0, safeToday)}</Text>
-                                    <Text style={styles.kcalSub}>/ {safeGoal} kcal</Text>
-                                </View>
-                            )}
-                        </AnimatedCircularProgress>
-                    ) : (
-                        <View style={styles.ringCenter}>
-                            <Text style={styles.kcalValue}>{Math.max(0, safeToday)}</Text>
-                            <Text style={styles.kcalSub}>/ {safeGoal} kcal</Text>
+            <Pressable
+                disabled={!interactive}
+                android_ripple={{ color: "rgba(255,255,255,0.08)" }}
+                style={styles.pressable}
+                accessibilityRole="button"
+                accessibilityLabel="Open day details"
+                accessibilityState={{ disabled: !interactive }}
+                hitSlop={scaleSize(8)}
+                onPress={handlePress}
+                onPressIn={interactive ? handlePressIn : undefined}
+                onPressOut={interactive ? handlePressOut : undefined}
+            >
+                <Animated.View style={[styles.card, { transform: [{ scale }] }]}
+                >
+                    <View style={styles.cardInner}>
+                        <View style={styles.ringSection}>
+                            <View style={styles.ringWrap}>
+                                {afterPaint ? (
+                                    <AnimatedCircularProgress
+                                        size={RING_SIZE}
+                                        width={RING_STROKE}
+                                        fill={caloriesFill}
+                                        tintColor="#2D9EFF"
+                                        backgroundColor="#bbdbff4f"
+                                        lineCap="round"
+                                        arcSweepAngle={360}
+                                        rotation={0}
+                                    >
+                                        {() => (
+                                            <View style={styles.ringCenter}>
+                                                <Text style={styles.kcalValue}>{caloriesEaten}</Text>
+                                                <Text style={styles.kcalSub}>/ {safeGoal} kcal</Text>
+                                            </View>
+                                        )}
+                                    </AnimatedCircularProgress>
+                                ) : (
+                                    <View style={styles.ringCenter}>
+                                        <Text style={styles.kcalValue}>{caloriesEaten}</Text>
+                                        <Text style={styles.kcalSub}>/ {safeGoal} kcal</Text>
+                                    </View>
+                                )}
+                            </View>
                         </View>
-                    )}
-                </View>
-            </View>
-
-            {/* Weekly workouts */}
-            <View style={styles.card}>
-                <View style={[styles.headerRow, styles.headerRowStart]}>
-                    <Text style={styles.macrosCaption}>Workouts this week</Text>
-                </View>
-                <View style={styles.ringWrap}>
-                    {afterPaint ? (
-                        <AnimatedCircularProgress
-                            size={RING_SIZE}
-                            width={RING_STROKE}
-                            fill={weeklyFill}
-                            tintColor="#68CF5C"
-                            backgroundColor="#c3f2c34f"
-                            lineCap="round"
-                            arcSweepAngle={360}
-                            rotation={0}
-                        >
-                            {() => (
-                                <View style={styles.ringCenter}>
-                                    <Text style={styles.workoutsValue}>{workoutsDisplay}</Text>
-                                    <Text style={styles.workoutsSub}>sessions</Text>
-                                </View>
-                            )}
-                        </AnimatedCircularProgress>
-                    ) : (
-                        <View style={styles.ringCenter}>
-                            <Text style={styles.workoutsValue}>{workoutsDisplay}</Text>
-                            <Text style={styles.workoutsSub}>sessions</Text>
-                        </View>
-                    )}
-                </View>
-            </View>
+                    </View>
+                </Animated.View>
+            </Pressable>
         </View>
     );
 }
 
 const areEqual = (a, b) => (
     a.afterPaint === b.afterPaint &&
-    a.fill === b.fill &&
     a.todayCalories === b.todayCalories &&
     a.caloriesGoal === b.caloriesGoal &&
     a.workoutsThisWeek === b.workoutsThisWeek &&
-    a.weeklyGoal === b.weeklyGoal
+    a.weeklyGoal === b.weeklyGoal &&
+    a.onPress === b.onPress
 );
 
 export default memo(HubRowCmp, areEqual);
 
 const styles = StyleSheet.create({
     hubRow: { flexDirection: "row", gap: scaleSize(12), paddingHorizontal: scaleSize(16), marginTop: scaleSize(6) },
+    pressable: { flex: 1, borderRadius: scaleSize(24) },
     card: {
         flex: 1,
         backgroundColor: theme.surface,
-        borderRadius: scaleSize(22),
-        padding: scaleSize(14),
-        borderWidth: StyleSheet.hairlineWidth,
+        borderRadius: scaleSize(24),
+        paddingVertical: scaleSize(8),
+        paddingHorizontal: scaleSize(10),
+        borderWidth: scaleSize(1),
         borderColor: theme.hairline,
         minHeight: CARD_MIN_HEIGHT,
         ...Platform.select({
@@ -133,16 +134,21 @@ const styles = StyleSheet.create({
             android: { elevation: 1 },
         }),
     },
-    headerRow: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", marginBottom: scaleSize(12) },
-    headerRowStart: { justifyContent: "flex-start", gap: scaleSize(6) },
+    cardInner: { flexDirection: "row", alignItems: "center", justifyContent: "flex-start", flex: 1 },
+    cardDivider: {
+        width: StyleSheet.hairlineWidth,
+        backgroundColor: theme.hairline,
+        marginHorizontal: scaleSize(10),
+        marginVertical: scaleSize(4),
+        borderRadius: scaleSize(2),
+        alignSelf: "stretch",
+    },
+    metricSection: { flex: 1, paddingHorizontal: scaleSize(4) },
+    ringSection: { flex: 0.38, alignItems: "center", justifyContent: "center", alignSelf: "stretch" },
 
-    macrosCaption: { color: "#ffffffff", fontSize: scaleSize(12), fontFamily: "Outfit_700Bold" },
-
-    ringWrap: { flex: 1, alignItems: "center", justifyContent: "center", marginTop: 0, paddingVertical: scaleSize(6), minHeight: RING_SIZE + scaleSize(12) },
-    ringCenter: { alignItems: "center", justifyContent: "center", marginTop: scaleSize(2) },
-    // Match NutritionSummaryCard ring text styles
-    kcalValue: { color: theme.textPrimary, fontSize: scaleSize(25), fontFamily: "Outfit_800ExtraBold", marginBottom: 0 },
-    kcalSub: { color: theme.textSecondary, fontSize: scaleSize(12), fontFamily: "Outfit_700Bold", marginBottom: scaleSize(4) },
-    workoutsValue: { color: theme.textPrimary, fontSize: scaleSize(25), fontFamily: "Outfit_800ExtraBold", marginBottom: 0 },
-    workoutsSub: { color: theme.textSecondary, fontSize: scaleSize(12), fontFamily: "Outfit_700Bold", marginBottom: scaleSize(4) },
+    metricBody: { flex: 1, justifyContent: "center" },
+    ringWrap: { alignItems: "center", justifyContent: "center", paddingVertical: scaleSize(1) },
+    ringCenter: { alignItems: "center", justifyContent: "center" },
+    kcalValue: { color: theme.textPrimary, fontSize: scaleSize(21), fontFamily: "Outfit_800ExtraBold", marginBottom: 0 },
+    kcalSub: { color: theme.textSecondary, fontSize: scaleSize(10), fontFamily: "Outfit_700Bold", marginBottom: scaleSize(2) },
 });

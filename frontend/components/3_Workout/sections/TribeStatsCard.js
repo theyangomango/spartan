@@ -1,7 +1,8 @@
-import React, { memo } from "react";
-import { View, Text, StyleSheet, Platform } from "react-native";
+import React, { memo, useRef, useCallback } from "react";
+import { View, Text, StyleSheet, Platform, Pressable, Animated } from "react-native";
 import theme from "../../../theme/mfpDark";
 import scaleSize from "../../../helper/scaleSize";
+import { strong as haptic } from "../../../utils/haptics";
 
 const CARD_BG = theme.surface;
 const CARD_BORDER = theme.hairline;
@@ -15,61 +16,96 @@ const MOCK_STATS = [
     { key: "pbs", label: "PRs", value: "28" },
 ];
 
-function TribeStatsCardCmp() {
+function TribeStatsCardCmp({ onPress }) {
+    const scale = useRef(new Animated.Value(1)).current;
+
+    const animateTo = useCallback((value) => {
+        Animated.spring(scale, {
+            toValue: value,
+            useNativeDriver: true,
+            speed: 18,
+            bounciness: 8,
+        }).start();
+    }, [scale]);
+
+    const handlePressIn = useCallback(() => animateTo(0.97), [animateTo]);
+    const handlePressOut = useCallback(() => animateTo(1), [animateTo]);
+    const handlePress = useCallback(() => {
+        if (!onPress) return;
+        try { haptic(); } catch { }
+        onPress();
+    }, [onPress]);
+
+    const interactive = typeof onPress === "function";
+
     return (
         <View style={styles.wrap}>
-            <View style={styles.card}>
-                <View style={styles.metaColumn}>
-                    <View style={styles.badge}>
-                        <Text style={styles.badgeText}>Spartan</Text>
-                    </View>
-                    <Text style={styles.subtitle}>24h tribe totals</Text>
-                </View>
-                <View style={styles.statsRow}>
-                    {MOCK_STATS.map((stat, idx) => (
-                        <View
-                            // eslint-disable-next-line react/no-array-index-key
-                            key={stat.key || idx}
-                            style={[
-                                styles.statCol,
-                                idx === 2 ? styles.statColCompact : styles.statColWide,
-                                idx === 1 && styles.statColMiddle,
-                            ]}
-                        >
-                            <Text
-                                style={[styles.statValue, idx === 2 && styles.statValueCompact]}
-                                numberOfLines={1}
-                                ellipsizeMode="clip"
-                            >
-                                {stat.value}
-                            </Text>
-                            <Text
-                                style={[styles.statLabel, idx === 2 && styles.statLabelCompact]}
-                                numberOfLines={1}
-                                ellipsizeMode="tail"
-                            >
-                                {stat.label}
-                            </Text>
+            <Pressable
+                disabled={!interactive}
+                android_ripple={{ color: "rgba(255,255,255,0.08)" }}
+                style={styles.pressable}
+                accessibilityRole="button"
+                accessibilityLabel="Open friends activity"
+                accessibilityState={{ disabled: !interactive }}
+                hitSlop={scaleSize(8)}
+                onPress={handlePress}
+                onPressIn={interactive ? handlePressIn : undefined}
+                onPressOut={interactive ? handlePressOut : undefined}
+            >
+                <Animated.View style={[styles.card, { transform: [{ scale }] }]}>
+                    <View style={styles.metaColumn}>
+                        <View style={styles.badge}>
+                            <Text style={styles.badgeText}>Spartan</Text>
                         </View>
-                    ))}
-                </View>
-            </View>
+                        <Text style={styles.subtitle}>24h tribe totals</Text>
+                    </View>
+                    <View style={styles.statsRow}>
+                        {MOCK_STATS.map((stat, idx) => (
+                            <View
+                                // eslint-disable-next-line react/no-array-index-key
+                                key={stat.key || idx}
+                                style={[
+                                    styles.statCol,
+                                    idx === 2 ? styles.statColCompact : styles.statColWide,
+                                    idx === 1 && styles.statColMiddle,
+                                ]}
+                            >
+                                <Text
+                                    style={[styles.statValue, idx === 2 && styles.statValueCompact]}
+                                    numberOfLines={1}
+                                    ellipsizeMode="clip"
+                                >
+                                    {stat.value}
+                                </Text>
+                                <Text
+                                    style={[styles.statLabel, idx === 2 && styles.statLabelCompact]}
+                                    numberOfLines={1}
+                                    ellipsizeMode="tail"
+                                >
+                                    {stat.label}
+                                </Text>
+                            </View>
+                        ))}
+                    </View>
+                </Animated.View>
+            </Pressable>
         </View>
     );
 }
 
 export default memo(TribeStatsCardCmp);
 
-const CARD_RADIUS = scaleSize(20);
+const CARD_RADIUS = scaleSize(24);
 
 const styles = StyleSheet.create({
     wrap: { paddingHorizontal: scaleSize(16), marginBottom: scaleSize(6) },
+    pressable: { borderRadius: CARD_RADIUS },
     card: {
         flexDirection: "row",
         alignItems: "center",
         backgroundColor: CARD_BG,
         borderRadius: CARD_RADIUS,
-        paddingVertical: scaleSize(16),
+        paddingVertical: scaleSize(20),
         paddingLeft: 12,
         paddingRight: 4,
         borderWidth: scaleSize(1),
@@ -117,8 +153,8 @@ const styles = StyleSheet.create({
         flexGrow: 35,
     },
     statColMiddle: {
-        borderLeftWidth: StyleSheet.hairlineWidth,
-        borderRightWidth: StyleSheet.hairlineWidth,
+        borderLeftWidth: 2,
+        borderRightWidth: 2,
         borderColor: "rgba(234, 240, 247, 0.16)",
         paddingHorizontal: scaleSize(6),
     },

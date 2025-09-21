@@ -41,7 +41,6 @@ import theme from "../theme/mfpDark";
 import useResolvedUid from "../hooks/useResolvedUid";
 import useUserDoc from "../hooks/useUserDoc";
 import useFriendsActivity from "../hooks/useFriendsActivity";
-import useLiveFollowing from "../hooks/useLiveFollowing";
 import useTemplates from "../hooks/useTemplates";
 import useHeaderSearchUsers from "../hooks/useHeaderSearchUsers";
 import useWorkoutInvites from "../hooks/useWorkoutInvites";
@@ -310,78 +309,6 @@ export default function Workout({ navigation, route }) {
             new Date(user?.friendsActivityLastViewedAt || 0).getTime()) || 0)
         : Number.POSITIVE_INFINITY; // while loading, treat as already up-to-date so nothing appears new
 
-    const itemTs = useCallback(
-        (it) => Math.max(
-            toMillis(it?.created) || 0,
-            toMillis(it?.startedAt) || 0,
-            toMillis(it?.finishedAt) || 0
-        ),
-        []
-    );
-
-    // treat as completed only if finishedAt exists and workout has some signal of work
-    const looksCompleted = useCallback((it) => {
-        const fin = toMillis(it?.finishedAt);
-        if (!fin) return false;
-        const vol = Number(it?.volume || 0);
-        const reps = Number(it?.reps || it?.totalReps || 0);
-        const dur = Number(it?.duration || 0);
-        const hasSets =
-            Array.isArray(it?.exercises) &&
-            it.exercises.some((ex) => Array.isArray(ex?.sets) && ex.sets.length > 0);
-        return vol > 0 || reps > 0 || dur > 0 || hasSets;
-    }, []);
-
-    const newCompletedItems = useMemo(() => {
-        if (!userLoaded) return [];
-        const v = lastViewedAtMs || 0;
-        const arr = Array.isArray(friendsActivity) ? friendsActivity : [];
-        return arr.filter((it) => itemTs(it) > v && looksCompleted(it));
-    }, [userLoaded, friendsActivity, lastViewedAtMs, itemTs, looksCompleted]);
-
-    /* ---------- LIVE FOLLOWING: always treat live as new ---------- */
-    const liveNow = useLiveFollowing(user); // [{uid,pfp,pfpVersion,isLive:true,_ts}]
-    const nonLiveNew = useMemo(() => {
-        if (!userLoaded) return [];
-        const liveSet = new Set(liveNow.map((x) => x.uid));
-        const uniq = [];
-        (Array.isArray(newCompletedItems) ? newCompletedItems : []).forEach((it) => {
-            const uidX = it?.uid;
-            if (!uidX || liveSet.has(uidX)) return;
-            if (uniq.find((u) => u.uid === uidX)) return;
-            uniq.push({
-                uid: uidX,
-                pfp: it?.pfp || it?.pfpUrl || it?.photoURL || it?.image || it?.avatar || "",
-                pfpVersion: it?.pfpVersion || 0,
-                isLive: false,
-                _ts: itemTs(it),
-            });
-        });
-        uniq.sort((a, b) => (b._ts || 0) - (a._ts || 0));
-        return uniq;
-    }, [userLoaded, newCompletedItems, liveNow, itemTs]);
-
-    // Raw stack candidates
-    const rawStackUsers = useMemo(() => {
-        if (!userLoaded || friendsLoading) return [];
-        const merged = [...liveNow, ...nonLiveNew];
-        return merged.slice(0, 3);
-    }, [userLoaded, friendsLoading, liveNow, nonLiveNew]);
-
-    // Debounce the visual swap-in to avoid brief flashes during initial fetch/settling
-    const [stackUsers, setStackUsers] = useState([]);
-    useEffect(() => {
-        let id;
-        if (rawStackUsers.length > 0) {
-            id = setTimeout(() => setStackUsers(rawStackUsers), 150);
-        } else {
-            // clear immediately to remove once definitively empty
-            setStackUsers([]);
-        }
-        return () => id && clearTimeout(id);
-    }, [rawStackUsers]);
-
-    const hasAnyStack = userLoaded && !friendsLoading && stackUsers.length > 0;
     const [notificationsBottomSheetExpandFlag, setNotificationsBottomSheetExpandFlag] = useState(false);
 
     /* ---------- Workout Manager (state + persistence + timer) ---------- */
@@ -678,7 +605,7 @@ export default function Workout({ navigation, route }) {
             <View style={styles.content}>
                 {/* WeekCalendar temporarily disabled */}
 
-                <TribeStatsCard />
+                <TribeStatsCard onPress={openFriends} />
                 {/* Hub row */}
                 <View>
                     <HubRow
@@ -688,6 +615,7 @@ export default function Workout({ navigation, route }) {
                         caloriesGoal={caloriesGoal}
                         workoutsThisWeek={workoutsThisWeek}
                         weeklyGoal={weeklyGoal}
+                        onPress={openDayDetailsToday}
                     />
                 </View>
                 {/* Templates rail relocated near Start cluster */}
@@ -720,10 +648,6 @@ export default function Workout({ navigation, route }) {
                     hasActiveWorkout={hasActiveWorkout}
                     onStartWorkout={onStartWorkout}
                     onOpenNewWorkout={openNewWorkout}
-                    onOpenFriends={openFriends}
-                    hasNewFriendsUpdates={hasAnyStack}
-                    friendsStackUsers={stackUsers}
-                    onOpenDayDetails={openDayDetailsToday}
                 />
             </View>
             <Footer currentScreenName={"Workout"} navigation={navigation} />
@@ -867,7 +791,7 @@ const styles = StyleSheet.create({
         position: "absolute",
         left: 0,
         right: 0, 
-        bottom: scaleSize(FOOTER_HEIGHT + ss(40) + BTN_SIZE + TPL_BOTTOM_GAP),
+        bottom: scaleSize(FOOTER_HEIGHT + ss(57) + BTN_SIZE + TPL_BOTTOM_GAP),
         alignItems: "center",
     },
     templatesWrap: { width: "100%", alignItems: "center" },
@@ -877,7 +801,7 @@ const styles = StyleSheet.create({
         position: "absolute",
         left: 0,
         right: 0,
-        bottom: scaleSize(FOOTER_HEIGHT + ss(40)),
+        bottom: scaleSize(FOOTER_HEIGHT + ss(37)),
         alignItems: "center",
     },
 
