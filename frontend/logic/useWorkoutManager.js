@@ -21,7 +21,7 @@ import {
 import { db } from "../../firebase.config";
 import updateDoc from "../../backend/helper/firebase/updateDoc";
 // removed per consolidation: incrementDocValue, arrayAppend
-import useWorkoutStore from "../state/workoutStore";
+import useWorkoutStore, { WORKOUT_SHEET_STATES } from "../state/workoutStore";
 import makeID from "../../backend/helper/makeID";
 import calculate1RM from "../helper/calculate1RM";
 import computeHexagonStats from "./computeHexagonStats"; // retained for local fallback only
@@ -82,25 +82,48 @@ export default function useWorkoutManager({ uid, navigation, millisToHMS }) {
     const [completedWorkout, setCompletedWorkout] = useState(null);
     const [isSummaryModalVisible, setIsSummaryModalVisible] = useState(false);
     const pendingHeavyRef = useRef(null);
-    const [isNewWorkoutVisible, setIsNewWorkoutVisible] = useState(false);
+    const [isNewWorkoutVisible, setInternalSheetVisible] = useState(false);
     const lastCancelAtRef = useRef(0);
+
+    const setIsNewWorkoutVisible = useCallback((value) => {
+        setInternalSheetVisible(!!value);
+    }, []);
+
+    const setWorkoutInStore = useCallback((value) => {
+        try { useWorkoutStore.getState().setWorkout(value); } catch { }
+    }, []);
+
+    const setSheetState = useCallback((value) => {
+        try { useWorkoutStore.getState().setSheetState(value || WORKOUT_SHEET_STATES.HIDDEN); } catch { }
+    }, []);
+
+    const setTimerString = useCallback((value) => {
+        try { useWorkoutStore.getState().setTimer(value); } catch { }
+    }, []);
 
     /* ------------ timer ------------ */
     const timerRef = useRef("");
     const timerIdRef = useRef(null);
     const setTimerNow = useCallback(
         (createdMs) => {
-            if (!createdMs) return;
+            if (!createdMs) {
+                timerRef.current = "";
+                setTimerString("");
+                return;
+            }
             const diff = Date.now() - createdMs;
-            timerRef.current = millisToHMS(Math.max(1000, diff));
+            const formatted = millisToHMS(Math.max(1000, diff));
+            timerRef.current = formatted;
+            setTimerString(formatted);
         },
-        [millisToHMS]
+        [millisToHMS, setTimerString]
     );
     const stopTimer = useCallback(() => {
         try { if (timerIdRef.current) clearInterval(timerIdRef.current); } catch { }
         timerIdRef.current = null;
         timerRef.current = "";
-    }, []);
+        setTimerString("");
+    }, [setTimerString]);
     const startTimer = useCallback(
         (createdMs) => {
             stopTimer();
@@ -270,8 +293,9 @@ export default function useWorkoutManager({ uid, navigation, millisToHMS }) {
         } catch { }
         stopTimer();
         setIsNewWorkoutVisible(false);
-        try { useWorkoutStore.setState({ workout: null }); } catch {}
-    }, [stopTimer]);
+        setWorkoutInStore(null);
+        setSheetState(WORKOUT_SHEET_STATES.HIDDEN);
+    }, [stopTimer, setSheetState, setWorkoutInStore, setIsNewWorkoutVisible]);
 
     /**
      * Purge *all* traces of this user from a group workout across backend.
@@ -347,7 +371,8 @@ export default function useWorkoutManager({ uid, navigation, millisToHMS }) {
                 if (!existing || recentlyCancelled) {
                     if (recentlyCancelled) {
                         // Make sure no stale state remains before creating the new workout
-                        try { useWorkoutStore.setState({ workout: null }); } catch {}
+                        setWorkoutInStore(null);
+                        setSheetState(WORKOUT_SHEET_STATES.HIDDEN);
                     }
                     global.isCurrentlyWorkingOut = true;
                     const wid = makeID();
@@ -377,7 +402,8 @@ export default function useWorkoutManager({ uid, navigation, millisToHMS }) {
                     // Mark local state as just-started so UI (e.g., reminder) can react once.
                     // Do not persist this flag to Firestore.
                     const localWorkout = { ...newWorkout, __justStarted: true };
-                    try { useWorkoutStore.setState({ workout: localWorkout }); } catch {}
+                    setWorkoutInStore(localWorkout);
+                    setSheetState(WORKOUT_SHEET_STATES.EXPANDED);
                     // Signal the Workout screen and open the sheet; do both to defeat any transient races
                     try { global.openCurrentWorkoutSignal = Date.now(); } catch {}
                     setIsNewWorkoutVisible(true);
@@ -391,19 +417,20 @@ export default function useWorkoutManager({ uid, navigation, millisToHMS }) {
                     createWorkoutDoc(wid, name).catch((e) => console.log("createWorkoutDoc error", e));
                 } else {
                     setIsNewWorkoutVisible(true);
+                    setSheetState(WORKOUT_SHEET_STATES.EXPANDED);
                 }
             } catch (e) {
                 console.log("startWorkout error", e);
                 Alert.alert("Couldn't start workout", e?.message || "Please try again.");
             }
         },
-        [uid, startTimer, clearPersistDebounce, createWorkoutDoc, defaultWorkoutName]
+        [uid, startTimer, clearPersistDebounce, createWorkoutDoc, defaultWorkoutName, setSheetState, setWorkoutInStore, setIsNewWorkoutVisible]
     );
 
     const updateNewWorkout = useCallback((next) => {
-        try { useWorkoutStore.setState({ workout: next }); } catch {}
+        setWorkoutInStore(next);
         persistCurrentWorkout(next);
-    }, [persistCurrentWorkout]);
+    }, [persistCurrentWorkout, setWorkoutInStore]);
 
     const cancelWorkout = useCallback(async () => {
         try {
@@ -796,7 +823,8 @@ export default function useWorkoutManager({ uid, navigation, millisToHMS }) {
             }
 
             // Update local store and UI immediately
-            try { useWorkoutStore.setState({ workout: localJoined }); } catch {}
+            setWorkoutInStore(localJoined);
+            setSheetState(WORKOUT_SHEET_STATES.EXPANDED);
             setIsNewWorkoutVisible(true);
             startTimer(createdForTimer);
             try { global.isCurrentlyWorkingOut = true; } catch {}
@@ -831,7 +859,7 @@ export default function useWorkoutManager({ uid, navigation, millisToHMS }) {
         } catch (e) {
             console.log("joinExternalWorkout error", e);
         }
-    }, [uid, startTimer]);
+    }, [uid, startTimer, setSheetState, setWorkoutInStore, setIsNewWorkoutVisible]);
 
     /* ------------ Rehydrate from Firestore user doc ------------ */
     useEffect(() => {
@@ -839,7 +867,8 @@ export default function useWorkoutManager({ uid, navigation, millisToHMS }) {
         if (Date.now() < suppressUntil) return; // ignore brief stale rehydrate
         const remote = sanitizeWorkout(global?.userData?.currentWorkout);
         if (!useWorkoutStore.getState().workout && remote && remote.created) {
-            try { useWorkoutStore.setState({ workout: remote }); } catch {}
+            setWorkoutInStore(remote);
+            setSheetState(WORKOUT_SHEET_STATES.COLLAPSED);
             startTimer(remote.created);
             try {
                 global.isCurrentlyWorkingOut = true;

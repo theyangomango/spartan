@@ -10,13 +10,16 @@ const { width: SCREEN_WIDTH } = Dimensions.get("window");
 // Scaled paddings and derived widths
 const H_PADDING = scaleSize(16);
 const BANNER_WIDTH = SCREEN_WIDTH - H_PADDING * 2;
+const BANNER_GAP = scaleSize(12);
+const BANNER_PAGE_WIDTH = SCREEN_WIDTH;
+const BANNER_PAGE_MARGIN = H_PADDING;
 
 // Scaled fonts (slightly larger for readability)
 const ts = require('../../helper/scaleSize').ts;
 const FONT_SELECTOR = ts(13);
 const FONT_METRIC = ts(13);
-const FONT_BANNER_TITLE = ts(16);
-const FONT_BANNER_META = ts(12);
+const FONT_BANNER_TITLE = ts(14.5);
+const FONT_BANNER_META = ts(11.5);
 
 // Scaled icons
 const ICON_TROPHY = scaleSize(19);
@@ -37,12 +40,13 @@ const METRIC_PAD_V = scaleSize(8);
 
 const BANNER_RADIUS = scaleSize(22);
 const BANNER_PAD_H = scaleSize(16);
-const BANNER_PAD_V = scaleSize(10);
+const BANNER_PAD_V = scaleSize(12);
+const BANNER_MIN_HEIGHT = scaleSize(78);
 const BANNER_MB = scaleSize(2);
 
 const ICON_PILL_SIZE = scaleSize(32);
 const ICON_PILL_RADIUS = scaleSize(18);
-const ICON_PILL_MR = scaleSize(10);
+const ICON_PILL_MR = scaleSize(14);
 
 const DOT_SIZE = scaleSize(6);
 const DOT_ACTIVE_SIZE = scaleSize(8);
@@ -56,19 +60,18 @@ const DOT_MB = scaleSize(2);
 const ACCENT = "#FFDFA3";            // warm gold accent
 const ACCENT_BG = "rgba(255, 214, 153, 0.18)";
 const ACCENT_BORDER = "rgba(255, 214, 153, 0.45)";
-const BANNER_GRADIENT = ["#3D2D1C", "#24170C"];
-const BANNER_BORDER = "rgba(255, 214, 153, 0.48)";
-const BANNER_SHEEN = "rgba(255, 240, 210, 0.16)";
-const BANNER_TEXT_PRIMARY = "#FFF2D8";
-const BANNER_TEXT_SECONDARY = "rgba(255, 235, 210, 0.82)";
-const BADGE_BG = "rgba(255, 214, 153, 0.18)";
-const BADGE_BORDER = "rgba(255, 214, 153, 0.42)";
-const BADGE_SECONDARY_BG = "rgba(255, 214, 153, 0.1)";
-const BADGE_SECONDARY_BORDER = "rgba(255, 214, 153, 0.28)";
-const BADGE_TEXT = "#FFD899";
-const BADGE_TEXT_SECONDARY = "#FFEFD6";
-const CHEVRON_BG = "rgba(255, 214, 153, 0.16)";
-const CHEVRON_BORDER = "rgba(255, 214, 153, 0.32)";
+const BANNER_GRADIENT = ["#59411B", "#3A2511"];
+const BANNER_BORDER = "rgba(255, 206, 124, 0.55)";
+const BANNER_TEXT_PRIMARY = "#FFF6E0";
+const BANNER_TEXT_SECONDARY = "rgba(255, 238, 210, 0.82)";
+const BADGE_BG = "rgba(255, 206, 124, 0.18)";
+const BADGE_BORDER = "rgba(255, 206, 124, 0.46)";
+const BADGE_SECONDARY_BG = "rgba(255, 206, 124, 0.12)";
+const BADGE_SECONDARY_BORDER = "rgba(255, 206, 124, 0.3)";
+const BADGE_TEXT = "#FFD07C";
+const BADGE_TEXT_SECONDARY = "#FFEBC1";
+const CHEVRON_BG = "rgba(255, 206, 124, 0.18)";
+const CHEVRON_BORDER = "rgba(255, 206, 124, 0.34)";
 // Dark mode palette for Competition
 const THEME = require("../../theme/mfpDark").default;
 const TITLE_COLOR = THEME.textPrimary;   // light text on dark
@@ -107,7 +110,7 @@ export default function LeaderboardModal({
     const normalizeByBodyweight = !!(isTribeFocused && activeComp?.normalizeByBodyweight);
 
     const onScrollEnd = (e) => {
-        const idx = Math.round(e.nativeEvent.contentOffset.x / BANNER_WIDTH);
+        const idx = Math.round(e.nativeEvent.contentOffset.x / BANNER_PAGE_WIDTH);
         if (idx !== activeCompIndex) onActiveCompChange(idx);
     };
 
@@ -120,7 +123,10 @@ export default function LeaderboardModal({
         try {
             const ref = bannerRef.current;
             if (ref && typeof ref.scrollToIndex === 'function') {
-                ref.scrollToIndex({ index: Math.max(0, Math.min(activeCompIndex, tribeComparisons.length - 1)), animated: false });
+                ref.scrollToIndex({
+                    index: Math.max(0, Math.min(activeCompIndex, tribeComparisons.length - 1)),
+                    animated: false,
+                });
             }
         } catch {}
         // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -130,7 +136,7 @@ export default function LeaderboardModal({
         if (isTribeFocused) {
             if (hasComparisons) {
                 return (
-                    <View style={{ marginBottom: scaleSize(10) }}>
+                    <View style={{ marginBottom: scaleSize(10), marginHorizontal: -H_PADDING }}>
                         <FlatList
                             ref={bannerRef}
                             horizontal
@@ -139,52 +145,60 @@ export default function LeaderboardModal({
                             showsHorizontalScrollIndicator={false}
                             pagingEnabled
                             snapToAlignment="start"
+                            snapToInterval={BANNER_PAGE_WIDTH}
                             decelerationRate="fast"
                             onMomentumScrollEnd={onScrollEnd}
                             initialScrollIndex={activeCompIndex}
-                            getItemLayout={(_, index) => ({ length: BANNER_WIDTH, offset: BANNER_WIDTH * index, index })}
-                            renderItem={({ item }) => (
-                                <TouchableOpacity
-                                    activeOpacity={0.92}
-                                    style={[styles.bannerTouchable, { width: BANNER_WIDTH }]}
-                                    onPress={onOpenTribeComparison}
-                                >
-                                    <View style={styles.bannerShadow}>
-                                        <LinearGradient
-                                            colors={BANNER_GRADIENT}
-                                            start={{ x: 0, y: 0 }}
-                                            end={{ x: 1, y: 1 }}
-                                            style={styles.bannerCard}
+                            getItemLayout={(_, index) => ({ length: BANNER_PAGE_WIDTH, offset: BANNER_PAGE_WIDTH * index, index })}
+                            renderItem={({ item, index }) => {
+                                const isFirst = index === 0;
+                                const isLast = index === tribeComparisons.length - 1;
+                                const marginLeft = isFirst ? BANNER_PAGE_MARGIN : BANNER_GAP / 2;
+                                const marginRight = isLast ? BANNER_PAGE_MARGIN : BANNER_GAP / 2;
+
+                                return (
+                                    <View style={{ width: BANNER_PAGE_WIDTH }}>
+                                        <TouchableOpacity
+                                            activeOpacity={0.92}
+                                            style={[styles.bannerTouchable, { marginLeft, marginRight }]}
+                                            onPress={onOpenTribeComparison}
                                         >
-                                            <View pointerEvents="none" style={styles.bannerSheen} />
-                                            <View style={styles.bannerContent}>
-                                                <View style={styles.iconPill}>
-                                                    <Ionicons name="trophy" size={ICON_TROPHY} color={ACCENT} />
-                                                </View>
-                                                <View style={styles.bannerTextColumn}>
-                                                    <Text style={styles.bannerTitle} numberOfLines={1}>
-                                                        {item.exercise}
-                                                    </Text>
-                                                    <View style={styles.bannerMetaRow}>
-                                                        <View style={styles.metricBadge}>
-                                                            <Text style={styles.metricBadgeText}>{metricLabel(item.metric)}</Text>
+                                            <View style={styles.bannerShadow}>
+                                                <LinearGradient
+                                                    colors={BANNER_GRADIENT}
+                                                    start={{ x: 0, y: 0 }}
+                                                    end={{ x: 1, y: 1 }}
+                                                    style={styles.bannerCard}
+                                                >
+                                                    <View style={styles.bannerContent}>
+                                                        <View style={styles.iconPill}>
+                                                            <Ionicons name="trophy" size={ICON_TROPHY} color={ACCENT} />
                                                         </View>
-                                                        {item.normalizeByBodyweight && (
-                                                            <View style={[styles.metricBadge, styles.metricBadgeSecondary]}>
-                                                                <Text style={[styles.metricBadgeText, styles.metricBadgeTextSecondary]}>per lb</Text>
+                                                        <View style={styles.bannerTextColumn}>
+                                                            <Text style={styles.bannerTitle} numberOfLines={1}>
+                                                                {item.exercise}
+                                                            </Text>
+                                                            <View style={styles.bannerMetaRow}>
+                                                                <View style={styles.metricBadge}>
+                                                                    <Text style={styles.metricBadgeText}>{metricLabel(item.metric)}</Text>
+                                                                </View>
+                                                                {item.normalizeByBodyweight && (
+                                                                    <View style={[styles.metricBadge, styles.metricBadgeSecondary]}>
+                                                                        <Text style={[styles.metricBadgeText, styles.metricBadgeTextSecondary]}>per lb</Text>
+                                                                    </View>
+                                                                )}
                                                             </View>
-                                                        )}
-                                                        <Text style={[styles.bannerMeta, styles.bannerMetaHint]}>Tap to view breakdown</Text>
+                                                        </View>
+                                                        <View style={styles.chevronPill}>
+                                                            <Ionicons name="chevron-forward" size={ICON_CHEVRON} color={BANNER_TEXT_SECONDARY} />
+                                                        </View>
                                                     </View>
-                                                </View>
-                                                <View style={styles.chevronPill}>
-                                                    <Ionicons name="chevron-forward" size={ICON_CHEVRON} color={BANNER_TEXT_SECONDARY} />
-                                                </View>
+                                                </LinearGradient>
                                             </View>
-                                        </LinearGradient>
+                                        </TouchableOpacity>
                                     </View>
-                                </TouchableOpacity>
-                            )}
+                                );
+                            }}
                             contentContainerStyle={{ paddingHorizontal: 0 }}
                         />
                         {tribeComparisons.length > 1 && (
@@ -214,7 +228,6 @@ export default function LeaderboardModal({
                             end={{ x: 1, y: 1 }}
                             style={styles.bannerCard}
                         >
-                            <View pointerEvents="none" style={styles.bannerSheen} />
                             <View style={styles.bannerContent}>
                                 <View style={styles.iconPill}>
                                     <Ionicons name="trophy" size={ICON_TROPHY_LG} color={ACCENT} />
@@ -223,8 +236,8 @@ export default function LeaderboardModal({
                                     <Text style={styles.bannerTitle} numberOfLines={1}>
                                         Set Tribe Comparisons
                                     </Text>
-                                    <Text style={styles.bannerDescription} numberOfLines={2}>
-                                        Personalize which lifts and metrics your crew competes on.
+                                    <Text style={styles.bannerDescription} numberOfLines={1} ellipsizeMode="tail">
+                                        Add lifts or metrics your tribe cares about.
                                     </Text>
                                 </View>
                                 <View style={styles.chevronPill}>
@@ -395,7 +408,7 @@ const styles = StyleSheet.create({
     bannerTouchable: {
         borderRadius: BANNER_RADIUS,
         marginBottom: BANNER_MB,
-        width: "100%",
+        width: BANNER_WIDTH,
     },
     bannerShadow: {
         borderRadius: BANNER_RADIUS,
@@ -404,6 +417,7 @@ const styles = StyleSheet.create({
         shadowOpacity: 0.18,
         shadowRadius: scaleSize(18),
         elevation: 6,
+        minHeight: BANNER_MIN_HEIGHT,
     },
     bannerCard: {
         borderRadius: BANNER_RADIUS,
@@ -412,21 +426,12 @@ const styles = StyleSheet.create({
         borderWidth: scaleSize(1),
         borderColor: BANNER_BORDER,
         overflow: "hidden",
-    },
-    bannerSheen: {
-        position: "absolute",
-        top: -scaleSize(48),
-        right: -scaleSize(12),
-        width: scaleSize(170),
-        height: scaleSize(170),
-        borderRadius: scaleSize(85),
-        backgroundColor: BANNER_SHEEN,
-        opacity: 0.7,
-        transform: [{ rotate: "28deg" }],
+        minHeight: BANNER_MIN_HEIGHT,
     },
     bannerContent: {
         flexDirection: "row",
         alignItems: "center",
+        minHeight: BANNER_MIN_HEIGHT - BANNER_PAD_V * 2,
     },
     iconPill: {
         width: ICON_PILL_SIZE,
@@ -444,6 +449,7 @@ const styles = StyleSheet.create({
         marginRight: scaleSize(12),
         minWidth: 0,
         justifyContent: "center",
+        paddingLeft: scaleSize(2),
     },
     bannerTitle: {
         fontFamily: "Outfit_800ExtraBold",
@@ -454,8 +460,8 @@ const styles = StyleSheet.create({
     bannerMetaRow: {
         flexDirection: "row",
         alignItems: "center",
-        flexWrap: "wrap",
-        marginTop: scaleSize(6),
+        flexWrap: "nowrap",
+        marginTop: scaleSize(4),
     },
     metricBadge: {
         flexDirection: "row",
@@ -475,9 +481,9 @@ const styles = StyleSheet.create({
     },
     metricBadgeText: {
         fontFamily: "Outfit_700Bold",
-        fontSize: scaleSize(12),
+        fontSize: scaleSize(10.5),
         color: BADGE_TEXT,
-        letterSpacing: 0.3,
+        letterSpacing: 0.38,
         textTransform: "uppercase",
     },
     metricBadgeTextSecondary: {
@@ -491,13 +497,10 @@ const styles = StyleSheet.create({
         marginLeft: scaleSize(4),
         flexShrink: 1,
     },
-    bannerMetaHint: {
-        marginBottom: 0,
-    },
     bannerDescription: {
         marginTop: scaleSize(6),
         fontFamily: "Outfit_600SemiBold",
-        fontSize: scaleSize(FONT_BANNER_META),
+        fontSize: scaleSize(10.5),
         color: BANNER_TEXT_SECONDARY,
         letterSpacing: 0.2,
     },

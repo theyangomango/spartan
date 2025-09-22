@@ -5,7 +5,7 @@ import {
     View,
     Modal,
     Text,
-    Animated,
+    Animated as RNAnimated,
     Pressable,
     InteractionManager,
     LayoutAnimation,
@@ -20,11 +20,13 @@ let FlashListLib = null;
 try { FlashListLib = require("@shopify/flash-list"); } catch {}
 const canUseFlashList = !!(FlashListLib && FlashListLib.FlashList && UIManager?.getViewManagerConfig && UIManager.getViewManagerConfig('CellContainer') && UIManager.getViewManagerConfig('AutoLayoutView'));
 const BaseListComponent = canUseFlashList ? FlashListLib.FlashList : FlatList;
-const AnimatedFlashList = Animated.createAnimatedComponent(BaseListComponent);
+const AnimatedFlashList = RNAnimated.createAnimatedComponent(BaseListComponent);
 import { BlurView } from "expo-blur";
 import { LinearGradient } from "expo-linear-gradient";
+import Animated, { useAnimatedStyle, interpolate, interpolateColor, Extrapolate, useAnimatedReaction, runOnJS } from "react-native-reanimated";
 import RNBounceable from "@freakycoder/react-native-bounceable";
 import { Weight } from "iconsax-react-native";
+import { MaterialCommunityIcons } from "@expo/vector-icons";
 import * as Haptics from "expo-haptics";
 import ProgressBanner from "./Tracking/ProgressBanner";
 import ExerciseLog from "./Tracking/ExerciseLog";
@@ -51,7 +53,14 @@ import useWorkoutTotals from "./hooks/useWorkoutTotals";
 
 import scaleSize from "../../../helper/scaleSize";
 
-const NewWorkoutModal = ({
+const HANDLE_HORIZONTAL_PADDING = scaleSize(18);
+const HEADER_COLLAPSED_RADIUS = scaleSize(20);
+const HEADER_COLLAPSED_TRANSLATE = scaleSize(14);
+const HEADER_COLLAPSED_PADDING_V = scaleSize(10);
+const HEADER_EXPANDED_PADDING_V = scaleSize(6);
+const HEADER_EXPANDED_PADDING_H = scaleSize(24);
+
+const ActiveWorkoutModal = ({
     workout,
     cancelWorkout,
     updateWorkout,
@@ -72,6 +81,7 @@ const NewWorkoutModal = ({
     // Stream live state from Firestore (participants/presence/currentWorkout)?
     // For viewing completed workouts, pass false to reduce startup cost.
     streamLive = true,
+    animatedIndex,
 }) => {
 
     // Enable LayoutAnimation on Android
@@ -104,7 +114,7 @@ const NewWorkoutModal = ({
     // Invite picker now controlled by parent (Workout screen)
     // Parent provides showGroupModal() to open, and registerInviteHandler(fn) to receive callback.
 
-    const scrollY = useRef(new Animated.Value(0)).current;
+    const scrollY = useRef(new RNAnimated.Value(0)).current;
     const listRef = useRef(null);
     const [keyboardHeight, setKeyboardHeight] = useState(0);
 
@@ -323,6 +333,81 @@ const NewWorkoutModal = ({
     }, [finishWorkout, isFinishing]);
 
     const borderOpacity = scrollY.interpolate({ inputRange: [0, 98], outputRange: [0, 1], extrapolate: "clamp" });
+
+    const collapsedOverlayActiveRef = useRef(false);
+    const [collapsedOverlayActive, setCollapsedOverlayActive] = useState(false);
+
+    const collapsedTitle = useMemo(() => {
+        const raw = workout?.name || workout?.title || workout?.templateName;
+        if (typeof raw === 'string') {
+            const trimmed = raw.trim();
+            if (trimmed.length) return trimmed;
+        }
+        return 'Active workout';
+    }, [workout?.name, workout?.title, workout?.templateName]);
+
+    const collapsedTimer = timerRef?.current || "00:00";
+
+    const headerAnimatedStyle = useAnimatedStyle(() => {
+        const value = animatedIndex?.value ?? 1;
+        const collapsedWidth = Math.max(0, screenWidth - HANDLE_HORIZONTAL_PADDING * 2);
+        return {
+            maxWidth: interpolate(value, [0, 1], [collapsedWidth, screenWidth]),
+            marginTop: interpolate(value, [0, 1], [scaleSize(4), 0]),
+            paddingHorizontal: interpolate(value, [0, 1], [HANDLE_HORIZONTAL_PADDING, HEADER_EXPANDED_PADDING_H]),
+            paddingVertical: interpolate(value, [0, 1], [HEADER_COLLAPSED_PADDING_V, HEADER_EXPANDED_PADDING_V]),
+            borderRadius: interpolate(value, [0, 1], [HEADER_COLLAPSED_RADIUS, 0]),
+            backgroundColor: interpolateColor(value, [0, 1], [theme.surface, 'rgba(0,0,0,0)']),
+            transform: [
+                {
+                    translateY: interpolate(value, [0, 1], [HEADER_COLLAPSED_TRANSLATE, 0], Extrapolate.CLAMP),
+                },
+            ],
+            shadowColor: '#000',
+            shadowOpacity: interpolate(value, [0, 0.4, 1], [0.22, 0.1, 0]),
+            shadowRadius: interpolate(value, [0, 0.4, 1], [scaleSize(8), scaleSize(4), 0]),
+            shadowOffset: {
+                width: 0,
+                height: interpolate(value, [0, 0.4, 1], [scaleSize(4), scaleSize(2), 0], Extrapolate.CLAMP),
+            },
+            elevation: interpolate(value, [0, 0.4, 1], [6, 3, 0]),
+        };
+    });
+
+    const headerContentAnimatedStyle = useAnimatedStyle(() => {
+        const value = animatedIndex?.value ?? 1;
+        return {
+            opacity: interpolate(value, [0, 0.5, 1], [0, 0.25, 1], Extrapolate.CLAMP),
+            transform: [
+                {
+                    scale: interpolate(value, [0, 1], [0.94, 1], Extrapolate.CLAMP),
+                },
+            ],
+        };
+    });
+
+    const headerCollapsedOverlayAnimatedStyle = useAnimatedStyle(() => {
+        const value = animatedIndex?.value ?? 1;
+        return {
+            opacity: interpolate(value, [0, 0.45, 0.7], [1, 1, 0], Extrapolate.CLAMP),
+            transform: [{ translateY: interpolate(value, [0, 1], [scaleSize(4), 0], Extrapolate.CLAMP) }],
+        };
+    });
+
+    const updateCollapsedOverlayActive = useCallback((active) => {
+        if (collapsedOverlayActiveRef.current === active) return;
+        collapsedOverlayActiveRef.current = active;
+        setCollapsedOverlayActive(active);
+    }, []);
+
+    useAnimatedReaction(
+        () => animatedIndex?.value ?? 1,
+        (value) => {
+            const shouldShow = value < 0.55;
+            runOnJS(updateCollapsedOverlayActive)(shouldShow);
+        },
+        [animatedIndex]
+    );
     // Dimming logic:
     // - When Reminder Modal is visible: dim content
     // - Else, dim when not viewing your active workout (friend view or past self workout)
@@ -343,11 +428,11 @@ const NewWorkoutModal = ({
     }, [viewingSelfEffective, myActiveWid, cardWid, workout?.__justStarted, workout?.wid]);
     const dimDueToContext = !isActiveSelf;
     // Smoothly animate context dim to avoid harsh jumps when switching between spectating and self
-    const contentDimAnim = useRef(new Animated.Value(1)).current;
+    const contentDimAnim = useRef(new RNAnimated.Value(1)).current;
     const targetOpacity = reminderVisible ? 0.6 : (dimDueToContext ? 0.6 : 1);
     useEffect(() => {
         try {
-            Animated.timing(contentDimAnim, {
+            RNAnimated.timing(contentDimAnim, {
                 toValue: targetOpacity,
                 duration: 180,
                 easing: Easing.out(Easing.cubic),
@@ -599,33 +684,52 @@ const NewWorkoutModal = ({
     return (
         <View style={styles.main_ctnr}>
             {/* Header */}
-            <View style={styles.header}>
-                <GroupHeader
-                    viewingSelf={viewingSelfEffective}
-                    overlayPfp={headerOverlayPfp}
-                    onLongPressInvite={lockFriend ? undefined : (viewingSelfEffective ? showGroupModal : undefined)}
-                    onFinish={viewingSelfEffective ? openFinishConfirm : undefined}
-                    // Only show Cheer when the friend's session is ongoing. Provide stable handler to avoid re-renders.
-                    onCheer={friendOngoing ? onCheerStable : undefined}
-                    // When viewing a completed workout, show Copy Template instead
-                    onCopyTemplate={!viewingSelfEffective && !friendOngoing ? (() => onCopyTemplate?.(baseWorkout)) : undefined}
-                    countdown={countdown}
-                    onAddTime={viewingSelfEffective ? openRestModal : undefined}
-                    timerRef={timerRef}
-                    headerStyle={styles.headerInner}
-                    onBack={handleBack}
-                    onPressPfp={!viewingSelfEffective ? onPressPfp : undefined}
-                    // When spectating (modes 3 & 4), disable group press to keep UI identical
-                    disableGroupPress={lockFriend || !viewingSelfEffective}
-                    inActiveGroup={inActiveGroupEffective}
-                    // Place PFP on the left whenever spectating (modes 2/3/4)
-                    pfpOnLeft={!viewingSelfEffective}
-                    // When user opens group menu, flip on live streaming first (and open)
-                    onOpenMenu={() => { setLiveEnabled(true); try { openMenu(); } catch {} }}
-                    onLongPressInvite={() => { setLiveEnabled(true); try { showGroupModal?.(); } catch {} }}
-                />
-            </View>
-            <Animated.View style={[styles.headerShadow, { opacity: borderOpacity }]} />
+            <Animated.View style={[styles.headerAnimated, headerAnimatedStyle]} pointerEvents="box-none">
+                <Animated.View
+                    style={[styles.headerCollapsedOverlay, headerCollapsedOverlayAnimatedStyle]}
+                    pointerEvents={collapsedOverlayActive ? 'auto' : 'none'}
+                >
+                    <View style={styles.collapsedCard}>
+                        <View style={styles.collapsedRow}>
+                            <View style={styles.collapsedIconWrap}>
+                                <MaterialCommunityIcons name="timer-outline" size={scaleSize(18)} color={theme.textPrimary} />
+                            </View>
+                            <View style={styles.collapsedTextWrap}>
+                                <Text style={styles.collapsedTitle} numberOfLines={1}>{collapsedTitle}</Text>
+                                <Text style={styles.collapsedSubtitle}>{viewingSelfEffective ? 'Tap to resume' : 'Viewing workout'}</Text>
+                            </View>
+                            <View style={styles.collapsedTimerWrap}>
+                                <Text style={styles.collapsedTimerText}>{collapsedTimer}</Text>
+                            </View>
+                        </View>
+                    </View>
+                </Animated.View>
+                <Animated.View
+                    style={[styles.headerContent, headerContentAnimatedStyle]}
+                    pointerEvents={collapsedOverlayActive ? 'none' : 'auto'}
+                >
+                    <GroupHeader
+                        viewingSelf={viewingSelfEffective}
+                        overlayPfp={headerOverlayPfp}
+                        onLongPressInvite={lockFriend ? undefined : (viewingSelfEffective ? showGroupModal : undefined)}
+                        onFinish={viewingSelfEffective ? openFinishConfirm : undefined}
+                        onCheer={friendOngoing ? onCheerStable : undefined}
+                        onCopyTemplate={!viewingSelfEffective && !friendOngoing ? (() => onCopyTemplate?.(baseWorkout)) : undefined}
+                        countdown={countdown}
+                        onAddTime={viewingSelfEffective ? openRestModal : undefined}
+                        timerRef={timerRef}
+                        headerStyle={styles.headerInner}
+                        onBack={handleBack}
+                        onPressPfp={!viewingSelfEffective ? onPressPfp : undefined}
+                        disableGroupPress={lockFriend || !viewingSelfEffective}
+                        inActiveGroup={inActiveGroupEffective}
+                        pfpOnLeft={!viewingSelfEffective}
+                        onOpenMenu={() => { setLiveEnabled(true); try { openMenu(); } catch {} }}
+                        onLongPressInvite={() => { setLiveEnabled(true); try { showGroupModal?.(); } catch {} }}
+                    />
+                </Animated.View>
+            </Animated.View>
+            <RNAnimated.View style={[styles.headerShadow, { opacity: borderOpacity }]} />
             {/* Body */}
             {friendWaiting ? (
                 <View style={styles.waitingWrap}>
@@ -634,7 +738,7 @@ const NewWorkoutModal = ({
             ) : (
                 isEmptyList ? (
                     // Robust empty state rendered outside the list to avoid FlashList measurement quirks
-                    (<Animated.View style={[styles.scrollview, { opacity: contentDimAnim }]}> 
+                    (<RNAnimated.View style={[styles.scrollview, { opacity: contentDimAnim }]}>
                         <ProgressBanner totalReps={totals.reps} totalVolume={totals.volume} personalBests={totals.PBs} />
                         {viewingSelfEffective && (
                             <>
@@ -647,10 +751,10 @@ const NewWorkoutModal = ({
                             </>
                         )}
                         <View style={{ height: scaleSize(scaledSize(250) + Math.max(0, keyboardHeight - scaledSize(40))) }} />
-                    </Animated.View>)
+                    </RNAnimated.View>)
                 ) : (
                     /* Animated FlashList for smoother, low-overhead virtualization */
-                    (<Animated.View style={[styles.listWrap, { opacity: contentDimAnim }]}> 
+                    (<RNAnimated.View style={[styles.listWrap, { opacity: contentDimAnim }]}>
                         <AnimatedFlashList
                             key={`wlist-${cardWid}`}
                             ref={listRef}
@@ -692,13 +796,13 @@ const NewWorkoutModal = ({
                             )}
                             showsVerticalScrollIndicator={false}
                             scrollEventThrottle={16}
-                            onScroll={Animated.event([{ nativeEvent: { contentOffset: { y: scrollY } } }], { useNativeDriver: true })}
+                            onScroll={RNAnimated.event([{ nativeEvent: { contentOffset: { y: scrollY } } }], { useNativeDriver: true })}
                             keyboardShouldPersistTaps="handled"
                             keyboardDismissMode={Platform.OS === 'ios' ? 'on-drag' : 'none'}
                             {...(canUseFlashList ? { estimatedItemSize: scaledSize(72) } : {})}
                             contentContainerStyle={styles.scrollview}
                         />
-                    </Animated.View>)
+                    </RNAnimated.View>)
                 )
             )}
             {/* Add / Replace Exercises */}
@@ -805,7 +909,7 @@ const NewWorkoutModal = ({
                             <View style={styles.reminderContent}>
                                 <Text style={styles.reminderTitle}>Track Reps Honestly</Text>
                                 <Text style={styles.reminderBody}>
-                                    Train for you, not anyone else. Maintain good form. Don't ego lift.{"\n"}Proud of you king 👑
+                                    Train for you, not anyone else. Maintain good form. Don't ego lift.{'\n'}Proud of you king 👑
                                 </Text>
                             </View>
                         </View>
@@ -844,19 +948,79 @@ const NewWorkoutModal = ({
 const styles = StyleSheet.create({
     main_ctnr: { flex: 1 },
 
-    // Let BottomSheet control background color; keep transparent here
-    header: { backgroundColor: 'transparent' },
+    // Header animation wrappers
+    headerAnimated: { backgroundColor: 'transparent', position: 'relative', alignItems: 'stretch', alignSelf: 'center', width: '100%' },
+    headerContent: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        width: '100%',
+        zIndex: 2,
+    },
     headerInner: {
-        paddingBottom: scaleSize(scaledSize(6)),
-        paddingHorizontal: scaleSize(scaledSize(22)),
-        paddingTop: scaleSize(scaledSize(6)),
-        flexDirection: "row",
-        alignItems: "center",
-        justifyContent: "space-between",
-        backgroundColor: 'transparent',
-        zIndex: 5,
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'space-between',
     },
     headerShadow: { height: scaleSize(scaledSize(2)), backgroundColor: theme.hairline },
+    headerCollapsedOverlay: {
+        position: 'absolute',
+        left: 0,
+        right: 0,
+        top: 0,
+        zIndex: 3,
+    },
+    collapsedCard: {
+        backgroundColor: theme.surface,
+        borderRadius: scaleSize(18),
+        paddingVertical: scaleSize(10),
+        paddingHorizontal: scaleSize(14),
+        shadowColor: '#000',
+        shadowOpacity: 0.2,
+        shadowRadius: scaleSize(8),
+        shadowOffset: { width: 0, height: scaleSize(3) },
+        elevation: 5,
+        borderWidth: StyleSheet.hairlineWidth,
+        borderColor: 'rgba(255,255,255,0.12)',
+    },
+    collapsedRow: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        gap: scaleSize(10),
+    },
+    collapsedIconWrap: {
+        width: scaleSize(34),
+        height: scaleSize(34),
+        borderRadius: scaleSize(17),
+        backgroundColor: 'rgba(255,255,255,0.1)',
+        alignItems: 'center',
+        justifyContent: 'center',
+    },
+    collapsedTextWrap: { flex: 1 },
+    collapsedTitle: {
+        fontFamily: 'Poppins_600SemiBold',
+        fontSize: scaleSize(13.2),
+        color: theme.textPrimary,
+        marginBottom: scaleSize(2),
+    },
+    collapsedSubtitle: {
+        fontFamily: 'Poppins_500Medium',
+        fontSize: scaleSize(11.2),
+        color: theme.textSecondary || 'rgba(255,255,255,0.7)',
+    },
+    collapsedTimerWrap: {
+        paddingHorizontal: scaleSize(12),
+        paddingVertical: scaleSize(6),
+        borderRadius: scaleSize(14),
+        backgroundColor: theme.primary,
+    },
+    collapsedTimerText: {
+        fontFamily: 'Poppins_600SemiBold',
+        fontSize: scaleSize(11.5),
+        color: '#fff',
+        letterSpacing: 0.2,
+    },
 
     // Allow the BottomSheet background to show through
     scrollview: { paddingTop: scaleSize(scaledSize(5)), backgroundColor: 'transparent' },
@@ -932,7 +1096,7 @@ const styles = StyleSheet.create({
         shadowColor: "#0F172A",
         shadowOpacity: 0.12,
         shadowRadius: scaleSize(24),
-        shadowOffset: { width: 0, height: scaleSize(scaledSize(12)) },
+        shadowOffset: { width: 0, height: scaleSize(12) },
         elevation: 16,
     },
     reminderContainer: {
@@ -965,4 +1129,4 @@ const areEqualModalProps = (prev, next) => (
     prev.finishWorkout === next.finishWorkout
 );
 
-export default memo(NewWorkoutModal, areEqualModalProps);
+export default memo(ActiveWorkoutModal, areEqualModalProps);

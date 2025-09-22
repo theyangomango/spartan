@@ -52,6 +52,7 @@ import PrivateProfileInfo from './frontend/screens/PrivateProfileInfo';
 import DeleteAccount from './frontend/screens/DeleteAccount';
 // Dark theme palette
 import theme from './frontend/theme/mfpDark';
+import ActiveWorkoutBottomSheet from './frontend/components/3_Workout/NewWorkout/ActiveWorkoutBottomSheet';
 
 // Ensure a defined global.userData early so screens can read without crashing
 try { global.userData = global.userData || {}; } catch {}
@@ -868,6 +869,7 @@ export default function App() {
                 </RootStack.Navigator>
             </NavigationContainer>
             )}
+            <ActiveWorkoutBottomSheet />
             {/* Global Rest Reminder Modal */}
             <Modal
                 key={`rest-reminder-${restReminderKey}`}

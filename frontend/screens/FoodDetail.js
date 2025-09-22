@@ -72,7 +72,7 @@ export default function FoodDetail({ navigation, route }) {
                 if (mode === 'edit' && entry?.extrasPerServing) {
                     if (!cancelled) setExtrasPS(entry.extrasPerServing);
                     // Prime local cache
-                    try { await setFoodExtrasPS(fid, entry.extrasPerServing); } catch {}
+                    try { await setFoodExtrasPS(fid, entry.extrasPerServing); } catch { }
                     return;
                 }
 
@@ -80,7 +80,7 @@ export default function FoodDetail({ navigation, route }) {
                 try {
                     const cachedLocal = await getFoodExtrasPS(fid);
                     if (cachedLocal && !cancelled) { setExtrasPS(cachedLocal); return; }
-                } catch {}
+                } catch { }
 
                 // 3) Fetch from FatSecret API
                 const res = await getFoodById(fid).catch(() => null);
@@ -107,8 +107,8 @@ export default function FoodDetail({ navigation, route }) {
                     setExtrasPS(cached);
                 }
                 // Save locally for next time
-                try { await setFoodExtrasPS(fid, cached); } catch {}
-            } catch {}
+                try { await setFoodExtrasPS(fid, cached); } catch { }
+            } catch { }
         })();
         return () => { cancelled = true; };
     }, [mode, food?.food_id, entry?.foodId, entry?.food_id]);
@@ -173,9 +173,9 @@ export default function FoodDetail({ navigation, route }) {
     };
 
     const save = () => {
-        if (!entry?.key || !dayKey) { try { navigation.goBack(); } catch {} return; }
+        if (!entry?.key || !dayKey) { try { navigation.goBack(); } catch { } return; }
         const uid = global?.userData?.uid || global?.userData?.id;
-        if (!uid) { try { navigation.goBack(); } catch {} return; }
+        if (!uid) { try { navigation.goBack(); } catch { } return; }
 
         // Build patch synchronously and optimistically update local mirror for instant UI
         const qty = round2(Number(servings) || 1);
@@ -206,31 +206,33 @@ export default function FoodDetail({ navigation, route }) {
             } else {
                 map[entry.key] = { ...(map[entry.key] || {}), ...patch };
             }
-            try { global.__loggedFoodsSig = (global.__loggedFoodsSig || 0) + 1; } catch {}
-        } catch {}
+            try { global.__loggedFoodsSig = (global.__loggedFoodsSig || 0) + 1; } catch { }
+        } catch { }
 
         // Navigate back immediately
-        try { navigation.goBack(); } catch {}
+        try { navigation.goBack(); } catch { }
 
         // Persist in background
         (async () => {
             try {
                 const uref = doc(db, 'users', uid);
                 const fieldPath = `loggedFoods.${dayKey}.${entry.key}`;
-                await updateDoc(uref, { [fieldPath]: {
-                    ...patch,
-                    updatedAt: serverTimestamp(),
-                } });
+                await updateDoc(uref, {
+                    [fieldPath]: {
+                        ...patch,
+                        updatedAt: serverTimestamp(),
+                    }
+                });
                 // remove any legacy flat key if present
                 const flatPath = `loggedFoods.${entry.key}`;
-                await updateDoc(uref, { [flatPath]: deleteField() }).catch(() => {});
+                await updateDoc(uref, { [flatPath]: deleteField() }).catch(() => { });
                 // Touch recent foods
                 await touchRecentFood(uid, {
                     foodId: entry?.foodId || entry?.food_id || '',
                     name: entry?.name || '',
                     brand: entry?.brand || '',
                     description: entry?.desc || '',
-                }, extrasPS || null).catch(() => {});
+                }, extrasPS || null).catch(() => { });
             } catch (e) {
                 console.log('Failed to update food entry (async):', e?.message || e);
             }
@@ -239,7 +241,7 @@ export default function FoodDetail({ navigation, route }) {
 
     const addNew = () => {
         const uid = global?.userData?.uid || global?.userData?.id;
-        if (!uid || !dayKey || !food) { try { navigation.goBack(); } catch {} return; }
+        if (!uid || !dayKey || !food) { try { navigation.goBack(); } catch { } return; }
 
         // Build flat entry synchronously for instant UI update
         const qty = round2(Number(servings) || 1);
@@ -270,11 +272,11 @@ export default function FoodDetail({ navigation, route }) {
             const map = (global.userData.loggedFoods = global.userData.loggedFoods || {});
             map[dayKey] = map[dayKey] || {};
             map[dayKey][newId] = { ...flat, createdAt: Date.now(), updatedAt: Date.now() };
-            try { global.__loggedFoodsSig = (global.__loggedFoodsSig || 0) + 1; } catch {}
-        } catch {}
+            try { global.__loggedFoodsSig = (global.__loggedFoodsSig || 0) + 1; } catch { }
+        } catch { }
 
         // Navigate back instantly; persist in background
-        try { navigation.goBack(); } catch {}
+        try { navigation.goBack(); } catch { }
 
         // Persist to Firestore + recent foods asynchronously
         (async () => {
@@ -285,11 +287,11 @@ export default function FoodDetail({ navigation, route }) {
             } catch {
                 try {
                     await setDoc(doc(db, 'users', uid), { loggedFoods: { [dayKey]: { [newId]: flat } } }, { merge: true });
-                } catch {}
+                } catch { }
             }
             try {
                 await touchRecentFood(uid, { foodId: flat.foodId, name: flat.name, brand: flat.brand, description: flat.desc }, extrasPS || null);
-            } catch {}
+            } catch { }
         })().catch((e) => console.log('Add food async error:', e?.message || e));
     };
 
@@ -305,11 +307,11 @@ export default function FoodDetail({ navigation, route }) {
                 </Pressable>
                 <Text style={styles.headerTitle} numberOfLines={1}>Add Food</Text>
                 {mode === 'add' ? (
-                    <Pressable style={styles.saveBtn} onPress={() => { try { haptic(); } catch {} addNew(); }} disabled={saving} hitSlop={8}>
+                    <Pressable style={styles.saveBtn} onPress={() => { try { haptic(); } catch { } addNew(); }} disabled={saving} hitSlop={8}>
                         <Ionicons name="add" size={22} color={saving ? 'rgba(255,255,255,0.5)' : COLORS.text} />
                     </Pressable>
                 ) : (
-                    <Pressable style={styles.saveBtn} onPress={() => { try { haptic(); } catch {} save(); }} disabled={saving} hitSlop={8}>
+                    <Pressable style={styles.saveBtn} onPress={() => { try { haptic(); } catch { } save(); }} disabled={saving} hitSlop={8}>
                         <Ionicons name="checkmark" size={22} color={saving ? 'rgba(255,255,255,0.5)' : COLORS.text} />
                     </Pressable>
                 )}
@@ -334,7 +336,7 @@ export default function FoodDetail({ navigation, route }) {
                 <View style={styles.rowWrap}>
                     <Text style={styles.rowLabel}>Number of Servings</Text>
                     <View style={styles.inputWrap}>
-                        <Pressable style={[styles.stepBtn, styles.stepLeft]} onPress={() => { try { haptic(); } catch {} adjust(-0.5); }}>
+                        <Pressable style={[styles.stepBtn, styles.stepLeft]} onPress={() => { try { haptic(); } catch { } adjust(-0.5); }}>
                             <Ionicons name="remove" size={16} color={COLORS.text} />
                         </Pressable>
                         <TextInput
@@ -350,7 +352,7 @@ export default function FoodDetail({ navigation, route }) {
                             placeholder="1"
                             placeholderTextColor={COLORS.subtext}
                         />
-                        <Pressable style={[styles.stepBtn, styles.stepRight]} onPress={() => { try { haptic(); } catch {} adjust(+0.5); }}>
+                        <Pressable style={[styles.stepBtn, styles.stepRight]} onPress={() => { try { haptic(); } catch { } adjust(+0.5); }}>
                             <Ionicons name="add" size={16} color={COLORS.text} />
                         </Pressable>
                     </View>
@@ -364,7 +366,7 @@ export default function FoodDetail({ navigation, route }) {
                         {MEAL_OPTIONS.map((opt) => (
                             <Pressable
                                 key={opt}
-                                onPress={() => { try { haptic(); } catch {} setMeal(opt); }}
+                                onPress={() => { try { haptic(); } catch { } setMeal(opt); }}
                                 style={[styles.mealChip, meal === opt && styles.mealChipActive]}
                             >
                                 <Text style={[styles.mealChipText, meal === opt && styles.mealChipTextActive]}>{opt}</Text>
@@ -424,7 +426,7 @@ export function FoodDetailInline({ entry = {}, onClose, containerStyle }) {
                 try {
                     const cachedLocal = await getFoodExtrasPS(fid);
                     if (cachedLocal && !cancelled) { setExtrasPS(cachedLocal); return; }
-                } catch {}
+                } catch { }
 
                 // 2) Fetch from FatSecret
                 const res = await getFoodById(fid).catch(() => null);
@@ -447,8 +449,8 @@ export function FoodDetailInline({ entry = {}, onClose, containerStyle }) {
                     cholesterol_mg: toNum(def.cholesterol),
                 };
                 if (!cancelled) setExtrasPS(cached);
-                try { await setFoodExtrasPS(fid, cached); } catch {}
-            } catch {}
+                try { await setFoodExtrasPS(fid, cached); } catch { }
+            } catch { }
         })();
         return () => { cancelled = true; };
     }, [entry?.foodId, entry?.food_id]);
@@ -571,21 +573,7 @@ function MacroRow({ m }) {
                             strokeWidth={stroke}
                             fill="none"
                         />
-                        {/* Protein */}
-                        {pInt > 0 && dashP > 0 && (
-                            <Circle
-                                cx={cx}
-                                cy={cy}
-                                r={r}
-                                stroke={COLORS.protein}
-                                strokeWidth={stroke}
-                                fill="none"
-                                strokeDasharray={`${dashP}, ${circ}`}
-                                strokeDashoffset={offP}
-                                strokeLinecap="round"
-                                transform={`rotate(-90 ${cx} ${cy})`}
-                            />
-                        )}
+
                         {/* Carbs */}
                         {cInt > 0 && dashC > 0 && (
                             <Circle
@@ -612,6 +600,21 @@ function MacroRow({ m }) {
                                 fill="none"
                                 strokeDasharray={`${dashF}, ${circ}`}
                                 strokeDashoffset={offF}
+                                strokeLinecap="round"
+                                transform={`rotate(-90 ${cx} ${cy})`}
+                            />
+                        )}
+                        {/* Protein */}
+                        {pInt > 0 && dashP > 0 && (
+                            <Circle
+                                cx={cx}
+                                cy={cy}
+                                r={r}
+                                stroke={COLORS.protein}
+                                strokeWidth={stroke}
+                                fill="none"
+                                strokeDasharray={`${dashP}, ${circ}`}
+                                strokeDashoffset={offP}
                                 strokeLinecap="round"
                                 transform={`rotate(-90 ${cx} ${cy})`}
                             />

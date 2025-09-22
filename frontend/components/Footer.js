@@ -1,12 +1,14 @@
 import React from 'react';
-import { Pressable, StyleSheet, View, Platform } from 'react-native';
+import { Pressable, StyleSheet, View } from 'react-native';
 import { Home, Cup, Weight, Profile as ProfileIcon } from 'iconsax-react-native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
-import useWorkoutStore from '../state/workoutStore';
+import useWorkoutStore, { WORKOUT_SHEET_STATES } from '../state/workoutStore';
 import { jumpToTab, navigationRef } from '../../navigationRef';
 import theme from '../theme/mfpDark';
 
 import scaleSize from "../helper/scaleSize";
+
+const FOOTER_BASE_HEIGHT = scaleSize(87);
 
 const COLORS = {
     active: theme.textPrimary,
@@ -59,27 +61,15 @@ const Footer = ({ currentScreenName, navigation }) => {
         return currentScreenName === screenName ? COLORS.active : COLORS.inactive;
     };
 
-    const getWorkoutIndicatorStyle = () => ({
-        backgroundColor: hasActiveWorkout ? COLORS.workoutHalo : 'transparent',
-        borderWidth: hasActiveWorkout ? StyleSheet.hairlineWidth : 0,
-        borderColor: hasActiveWorkout ? COLORS.workoutHaloBorder : 'transparent',
-        padding: hasActiveWorkout ? 7 : 3,
-        ...(
-            hasActiveWorkout
-                ? Platform.select({
-                    ios: {
-                        backgroundColor: COLORS.workoutHalo,
-                        shadowColor: theme.primary,
-                        shadowOpacity: 0.18,
-                        shadowRadius: scaleSize(7),
-                        shadowOffset: { width: 0, height: scaleSize(2) },
-                    },
-                    android: { elevation: 2 },
-                    default: {},
-                })
-                : {}
-        ),
-    });
+    const markSheetExpanded = () => {
+        try {
+            const store = useWorkoutStore.getState();
+            if (!store.workout) return;
+            store.setSheetState(WORKOUT_SHEET_STATES.EXPANDED);
+            const makeVisible = store.sheetHandlers?.setIsVisible;
+            if (typeof makeVisible === 'function') makeVisible(true);
+        } catch {}
+    };
 
     return (
         <View style={styles.outer_view} pointerEvents="auto">
@@ -124,12 +114,13 @@ const Footer = ({ currentScreenName, navigation }) => {
 
                 {/* Workout (direct tab) */}
                 <View style={styles.workout_icon_ctnr}>
-                    <View style={[styles.workout_indicator_ctnr, getWorkoutIndicatorStyle()]}>
+                    <View style={styles.workout_indicator_ctnr}>
                         <Pressable
                             delayPressIn={0}
                             onPressIn={() => {
                                 const alreadyOnWorkout = currentScreenName === 'Workout';
                                 if (hasActiveWorkout) {
+                                    markSheetExpanded();
                                     if (alreadyOnWorkout) {
                                         // Open the New Workout modal immediately when on Workout
                                         try { global.openWorkoutModal && global.openWorkoutModal(); } catch {}
@@ -191,17 +182,19 @@ const Footer = ({ currentScreenName, navigation }) => {
     );
 };
 
+
 const styles = StyleSheet.create({
     outer_view: {
         position: 'absolute',
         bottom: 0, left: 0, right: 0,
-        height: scaleSize(87),
+        height: FOOTER_BASE_HEIGHT,
+        justifyContent: 'flex-end',
     },
     main_ctnr: {
         flexDirection: 'row',
         justifyContent: 'center',
         alignItems: 'center',
-        height: '100%',
+        height: FOOTER_BASE_HEIGHT,
         paddingHorizontal: scaleSize(13),
         paddingBottom: scaleSize(13),
         backgroundColor: COLORS.bg,
@@ -226,7 +219,7 @@ const styles = StyleSheet.create({
         left: 0,
         right: 0,
         bottom: 0,
-        height: '40%', // bottom 20% of the footer area
+        height: scaleSize(35),
         backgroundColor: 'transparent',
         zIndex: 2,
     },

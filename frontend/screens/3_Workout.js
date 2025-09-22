@@ -23,7 +23,6 @@ import TribeStatsCard from "../components/3_Workout/sections/TribeStatsCard";
 import StartCluster from "../components/3_Workout/sections/StartCluster";
 
 // Modals / Sheets
-import NewWorkoutBottomSheet from "../components/3_Workout/NewWorkout/NewWorkoutBottomSheet";
 import GroupModalBottomSheet from "../components/3_Workout/NewWorkout/Group/GroupModalBottomSheet";
 import EditTemplateBottomSheet from "../components/3_Workout/Template/EditTemplateBottomSheet";
 import WorkoutSummaryModal from "../components/3_Workout/WorkoutSummaryModal";
@@ -129,7 +128,6 @@ export default function Workout({ navigation, route }) {
     const [notificationsBottomSheetExpandFlag, setNotificationsBottomSheetExpandFlag] = useState(false);
     const [hasMountedNotificationsSheet, setHasMountedNotificationsSheet] = useState(false);
     const [hasMountedFriendsSheet, setHasMountedFriendsSheet] = useState(false);
-    const [hasMountedNewWorkoutSheet, setHasMountedNewWorkoutSheet] = useState(false);
     const [hasMountedEditTemplateSheet, setHasMountedEditTemplateSheet] = useState(false);
     const [hasMountedDaySheet, setHasMountedDaySheet] = useState(false);
     const [hasMountedGroupModal, setHasMountedGroupModal] = useState(false);
@@ -152,7 +150,6 @@ export default function Workout({ navigation, route }) {
         if (!afterPaint) return;
         const timers = [
             setTimeout(() => setHasMountedNotificationsSheet(true), 40),
-            setTimeout(() => setHasMountedNewWorkoutSheet(true), 80),
             setTimeout(() => setHasMountedFriendsSheet(true), 120),
             setTimeout(() => setHasMountedDaySheet(true), 160),
             setTimeout(() => setHasMountedEditTemplateSheet(true), 200),
@@ -342,9 +339,6 @@ export default function Workout({ navigation, route }) {
     }, [friendsSheetVisible, refreshFriends]);
 
     useEffect(() => {
-        if (isNewWorkoutVisible) setHasMountedNewWorkoutSheet(true);
-    }, [isNewWorkoutVisible]);
-    useEffect(() => {
         if (friendsSheetVisible) setHasMountedFriendsSheet(true);
     }, [friendsSheetVisible]);
     useEffect(() => {
@@ -384,6 +378,8 @@ export default function Workout({ navigation, route }) {
         postWorkout,
         joinExternalWorkout, // used by InviteBanner accept
     } = useWorkoutManager({ uid, navigation, millisToHMS: millisToHoursMinutesSeconds });
+
+    const setSheetHandlers = useWorkoutStore((s) => s.setSheetHandlers);
 
     // Expose imperative opener for Footer when already on Workout
     useEffect(() => {
@@ -494,9 +490,8 @@ export default function Workout({ navigation, route }) {
 
     // Stable handlers to avoid re-rendering StartCluster on every parent render
     const openNewWorkout = useCallback(() => {
-        setHasMountedNewWorkoutSheet(true);
         setIsNewWorkoutVisible(true);
-    }, [setHasMountedNewWorkoutSheet, setIsNewWorkoutVisible]);
+    }, [setIsNewWorkoutVisible]);
     const openFriends = useCallback(() => {
         setHasMountedFriendsSheet(true);
         setFriendsSheetVisible(true);
@@ -559,6 +554,41 @@ export default function Workout({ navigation, route }) {
         }
         setInviteSheetOpen(false);
     }, []);
+
+    useEffect(() => {
+        if (!setSheetHandlers) return;
+        setSheetHandlers({
+            cancelWorkout,
+            updateWorkout: updateNewWorkout,
+            finishWorkout,
+            showGroupModal: showGroupModalCb,
+            registerInviteHandler: registerInviteHandlerCb,
+            timerRef,
+            setIsVisible: setIsNewWorkoutVisible,
+            getUserWorkoutStats: () => global?.userData?.statsExercises || {},
+        });
+        return () => {
+            setSheetHandlers({
+                cancelWorkout: () => {},
+                updateWorkout: () => {},
+                finishWorkout: () => {},
+                showGroupModal: () => {},
+                registerInviteHandler: () => {},
+                timerRef: null,
+                setIsVisible: () => {},
+                getUserWorkoutStats: () => ({}),
+            });
+        };
+    }, [
+        setSheetHandlers,
+        cancelWorkout,
+        updateNewWorkout,
+        finishWorkout,
+        showGroupModalCb,
+        registerInviteHandlerCb,
+        timerRef,
+        setIsNewWorkoutVisible,
+    ]);
 
     /* ---------- Day sheet + meals ---------- */
     const [daySheetToggle, setDaySheetToggle] = useState(false);
@@ -641,7 +671,6 @@ export default function Workout({ navigation, route }) {
     const shouldRenderNotificationsSheet = notificationsBottomSheetExpandFlag || hasMountedNotificationsSheet;
     const shouldRenderDaySheet = daySheetVisible || hasMountedDaySheet;
     const shouldRenderFriendsSheet = friendsSheetVisible || hasMountedFriendsSheet;
-    const shouldRenderNewWorkoutSheet = isNewWorkoutVisible || hasMountedNewWorkoutSheet;
     const shouldRenderEditTemplateSheet = isEditTemplateVisible || hasMountedEditTemplateSheet;
     const shouldRenderGroupModal = inviteSheetOpen || hasMountedGroupModal;
 
@@ -802,20 +831,6 @@ export default function Workout({ navigation, route }) {
                         onView={onFriendsView}
                     />
                 </View>
-            )}
-            {/* New Workout sheet */}
-            {shouldRenderNewWorkoutSheet && (
-                <NewWorkoutBottomSheet
-                    cancelNewWorkout={cancelWorkout}
-                    updateNewWorkout={updateNewWorkout}
-                    finishNewWorkout={finishWorkout}
-                    isVisible={isNewWorkoutVisible}
-                    setIsVisible={setIsNewWorkoutVisible}
-                    timerRef={timerRef}
-                    showGroupModal={showGroupModalCb}
-                    registerInviteHandler={registerInviteHandlerCb}
-                    userWorkoutStats={global?.userData?.statsExercises || {}}
-                />
             )}
             {/* Template editor (kept identical behavior) */}
             {shouldRenderEditTemplateSheet && (

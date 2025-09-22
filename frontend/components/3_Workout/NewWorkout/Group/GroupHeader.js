@@ -1,6 +1,6 @@
 // components/Tracking/Group/GroupHeader.jsx
 import React, { useEffect, useRef, memo } from "react";
-import { View, Text, StyleSheet, Dimensions, Pressable } from "react-native";
+import { View, Text, StyleSheet, Pressable } from "react-native";
 import scaleSize from "../../../../helper/scaleSize";
 import * as Haptics from "expo-haptics";
 import RNBounceable from "@freakycoder/react-native-bounceable";
@@ -9,7 +9,6 @@ import FastImage from "react-native-fast-image";
 import TimerDisplay from "../TimerDisplay";
 import theme from "../../../../theme/mfpDark";
 
-const { height: screenHeight } = Dimensions.get("window");
 const scaledSize = (size) => scaleSize(size);
 
 // Small helper so "", "  ", null, undefined are treated as no-URI
@@ -66,7 +65,7 @@ const GroupHeader = ({
     const withHaptics = (fn) => () => { try { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Heavy); } catch {} finally { try { fn?.(); } catch {} } };
 
     return (
-        <View style={headerStyle}>
+        <View style={[styles.container, headerStyle]}>
             {/* Left: timer (self/participating) OR back chevron + optional PFP */}
             <View style={[styles.leftWrap, (!showTimerLeft) && styles.leftRow]}>
                 {showTimerLeft ? (
@@ -171,7 +170,13 @@ const GroupHeader = ({
 };
 
 const styles = StyleSheet.create({
-    leftWrap: { alignItems: "center", justifyContent: "center" },
+    container: {
+        width: '100%',
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+    },
+    leftWrap: { alignItems: "center", justifyContent: "center", flexShrink: 0 },
     leftRow: { flexDirection: "row", alignItems: "center", gap: scaleSize(scaledSize(10)) },
     backBtn: {
         width: scaleSize(scaledSize(36)),
@@ -199,7 +204,7 @@ const styles = StyleSheet.create({
     // Center timer
     timer_text_ctnr: { position: "absolute", left: 0, right: 0, top: scaleSize(scaledSize(10)) },
 
-    header_right: { flexDirection: "row", alignItems: "center" },
+    header_right: { flexDirection: "row", alignItems: "center", flexShrink: 0 },
 
     // PFP-only button
     pfpBtn: {
