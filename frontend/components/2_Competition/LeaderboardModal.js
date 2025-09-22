@@ -1,5 +1,6 @@
 import React, { useMemo, useRef, useEffect } from "react";
 import { View, Text, StyleSheet, FlatList, TouchableOpacity, Dimensions } from "react-native";
+import { LinearGradient } from "expo-linear-gradient";
 import { Ionicons } from "@expo/vector-icons";
 import LeaderboardCard from "../2_Competition/LeaderboardCard";
 import scaleSize from "../../helper/scaleSize";
@@ -14,9 +15,8 @@ const BANNER_WIDTH = SCREEN_WIDTH - H_PADDING * 2;
 const ts = require('../../helper/scaleSize').ts;
 const FONT_SELECTOR = ts(13);
 const FONT_METRIC = ts(13);
-const FONT_BANNER_TITLE = ts(15);
-const FONT_BANNER_META = ts(14);
-const FONT_TRIBE_TITLE = ts(16);
+const FONT_BANNER_TITLE = ts(16);
+const FONT_BANNER_META = ts(12);
 
 // Scaled icons
 const ICON_TROPHY = scaleSize(19);
@@ -37,18 +37,12 @@ const METRIC_PAD_V = scaleSize(8);
 
 const BANNER_RADIUS = scaleSize(22);
 const BANNER_PAD_H = scaleSize(16);
-const BANNER_PAD_V = scaleSize(14);
+const BANNER_PAD_V = scaleSize(10);
 const BANNER_MB = scaleSize(2);
 
-const ICON_PILL_SIZE = scaleSize(35);
-const ICON_PILL_RADIUS = scaleSize(20);
+const ICON_PILL_SIZE = scaleSize(32);
+const ICON_PILL_RADIUS = scaleSize(18);
 const ICON_PILL_MR = scaleSize(10);
-
-const TRIBE_BTN_RADIUS = scaleSize(18);
-const TRIBE_BTN_PAD_H = scaleSize(16);
-const TRIBE_BTN_PAD_V = scaleSize(12);
-const TRIBE_BTN_GAP = scaleSize(10);
-const TRIBE_BTN_MB = scaleSize(10);
 
 const DOT_SIZE = scaleSize(6);
 const DOT_ACTIVE_SIZE = scaleSize(8);
@@ -59,14 +53,25 @@ const DOT_MT = scaleSize(4);
 const DOT_MB = scaleSize(2);
 
 // Accent palette (tweak here if you want a different vibe)
-const ACCENT = "#f6b000ff";            // rich gold
-const ACCENT_BG = "#f6b00041";         // dark yellow-tinted background
-const ACCENT_BORDER = "rgba(246, 176, 0, 0.60)"; // lighter yellow border
+const ACCENT = "#FFDFA3";            // warm gold accent
+const ACCENT_BG = "rgba(255, 214, 153, 0.18)";
+const ACCENT_BORDER = "rgba(255, 214, 153, 0.45)";
+const BANNER_GRADIENT = ["#3D2D1C", "#24170C"];
+const BANNER_BORDER = "rgba(255, 214, 153, 0.48)";
+const BANNER_SHEEN = "rgba(255, 240, 210, 0.16)";
+const BANNER_TEXT_PRIMARY = "#FFF2D8";
+const BANNER_TEXT_SECONDARY = "rgba(255, 235, 210, 0.82)";
+const BADGE_BG = "rgba(255, 214, 153, 0.18)";
+const BADGE_BORDER = "rgba(255, 214, 153, 0.42)";
+const BADGE_SECONDARY_BG = "rgba(255, 214, 153, 0.1)";
+const BADGE_SECONDARY_BORDER = "rgba(255, 214, 153, 0.28)";
+const BADGE_TEXT = "#FFD899";
+const BADGE_TEXT_SECONDARY = "#FFEFD6";
+const CHEVRON_BG = "rgba(255, 214, 153, 0.16)";
+const CHEVRON_BORDER = "rgba(255, 214, 153, 0.32)";
 // Dark mode palette for Competition
 const THEME = require("../../theme/mfpDark").default;
-const BANNER_BG = THEME.surface;         // neutral modal pill/bg
 const TITLE_COLOR = THEME.textPrimary;   // light text on dark
-const ICON_MUTED = THEME.textSecondary;
 
 export default function LeaderboardModal({
     userList,
@@ -140,24 +145,44 @@ export default function LeaderboardModal({
                             getItemLayout={(_, index) => ({ length: BANNER_WIDTH, offset: BANNER_WIDTH * index, index })}
                             renderItem={({ item }) => (
                                 <TouchableOpacity
-                                    activeOpacity={0.95}
-                                    style={[styles.bannerCard, { width: BANNER_WIDTH }]}
+                                    activeOpacity={0.92}
+                                    style={[styles.bannerTouchable, { width: BANNER_WIDTH }]}
                                     onPress={onOpenTribeComparison}
                                 >
-                                    <View style={styles.iconPill}>
-                                        <Ionicons name="trophy" size={ICON_TROPHY} color={ACCENT} />
+                                    <View style={styles.bannerShadow}>
+                                        <LinearGradient
+                                            colors={BANNER_GRADIENT}
+                                            start={{ x: 0, y: 0 }}
+                                            end={{ x: 1, y: 1 }}
+                                            style={styles.bannerCard}
+                                        >
+                                            <View pointerEvents="none" style={styles.bannerSheen} />
+                                            <View style={styles.bannerContent}>
+                                                <View style={styles.iconPill}>
+                                                    <Ionicons name="trophy" size={ICON_TROPHY} color={ACCENT} />
+                                                </View>
+                                                <View style={styles.bannerTextColumn}>
+                                                    <Text style={styles.bannerTitle} numberOfLines={1}>
+                                                        {item.exercise}
+                                                    </Text>
+                                                    <View style={styles.bannerMetaRow}>
+                                                        <View style={styles.metricBadge}>
+                                                            <Text style={styles.metricBadgeText}>{metricLabel(item.metric)}</Text>
+                                                        </View>
+                                                        {item.normalizeByBodyweight && (
+                                                            <View style={[styles.metricBadge, styles.metricBadgeSecondary]}>
+                                                                <Text style={[styles.metricBadgeText, styles.metricBadgeTextSecondary]}>per lb</Text>
+                                                            </View>
+                                                        )}
+                                                        <Text style={[styles.bannerMeta, styles.bannerMetaHint]}>Tap to view breakdown</Text>
+                                                    </View>
+                                                </View>
+                                                <View style={styles.chevronPill}>
+                                                    <Ionicons name="chevron-forward" size={ICON_CHEVRON} color={BANNER_TEXT_SECONDARY} />
+                                                </View>
+                                            </View>
+                                        </LinearGradient>
                                     </View>
-                                    <View style={{ flex: 1, marginRight: scaleSize(8) }}>
-                                        {/* Line 1: exercise */}
-                                        <Text style={styles.bannerTitle} numberOfLines={1}>
-                                            {item.exercise}
-                                        </Text>
-                                        {/* Line 2: metric + per-lb */}
-                                        <Text style={styles.bannerMeta} numberOfLines={1}>
-                                            {metricLabel(item.metric)}{item.normalizeByBodyweight ? " • per lb" : ""}
-                                        </Text>
-                                    </View>
-                                    <Ionicons name="chevron-forward" size={ICON_CHEVRON} color={ICON_MUTED} />
                                 </TouchableOpacity>
                             )}
                             contentContainerStyle={{ paddingHorizontal: 0 }}
@@ -178,17 +203,36 @@ export default function LeaderboardModal({
             // No comparisons yet → simple CTA (no extra explainer line)
             return (
                 <TouchableOpacity
-                    activeOpacity={0.9}
+                    activeOpacity={0.92}
                     onPress={onOpenTribeComparison}
-                    style={styles.tribeHeaderButton}
+                    style={styles.bannerTouchable}
                 >
-                    <View style={styles.iconPill}>
-                        <Ionicons name="trophy" size={ICON_TROPHY_LG} color={ACCENT} />
+                    <View style={styles.bannerShadow}>
+                        <LinearGradient
+                            colors={BANNER_GRADIENT}
+                            start={{ x: 0, y: 0 }}
+                            end={{ x: 1, y: 1 }}
+                            style={styles.bannerCard}
+                        >
+                            <View pointerEvents="none" style={styles.bannerSheen} />
+                            <View style={styles.bannerContent}>
+                                <View style={styles.iconPill}>
+                                    <Ionicons name="trophy" size={ICON_TROPHY_LG} color={ACCENT} />
+                                </View>
+                                <View style={styles.bannerTextColumn}>
+                                    <Text style={styles.bannerTitle} numberOfLines={1}>
+                                        Set Tribe Comparisons
+                                    </Text>
+                                    <Text style={styles.bannerDescription} numberOfLines={2}>
+                                        Personalize which lifts and metrics your crew competes on.
+                                    </Text>
+                                </View>
+                                <View style={styles.chevronPill}>
+                                    <Ionicons name="chevron-forward" size={ICON_CHEVRON} color={BANNER_TEXT_SECONDARY} />
+                                </View>
+                            </View>
+                        </LinearGradient>
                     </View>
-                    <Text style={styles.tribeHeaderTitle} numberOfLines={1}>
-                        Set Tribe Comparisons
-                    </Text>
-                    <Ionicons name="chevron-forward" size={ICON_CHEVRON} color={ICON_MUTED} />
                 </TouchableOpacity>
             );
         }
@@ -347,22 +391,42 @@ const styles = StyleSheet.create({
     },
     metricText: { fontFamily: "Outfit_700Bold", fontSize: scaleSize(FONT_METRIC), color: '#6FB8FF', letterSpacing: 0.2 },
 
-    // tribe banner — yellow-themed pill (dark bg + light border)
+    // tribe banner — premium treatment inspired by workout cards
+    bannerTouchable: {
+        borderRadius: BANNER_RADIUS,
+        marginBottom: BANNER_MB,
+        width: "100%",
+    },
+    bannerShadow: {
+        borderRadius: BANNER_RADIUS,
+        shadowColor: "#000",
+        shadowOffset: { width: 0, height: scaleSize(10) },
+        shadowOpacity: 0.18,
+        shadowRadius: scaleSize(18),
+        elevation: 6,
+    },
     bannerCard: {
-        flexDirection: "row",
-        alignItems: "center",
+        borderRadius: BANNER_RADIUS,
         paddingHorizontal: BANNER_PAD_H,
         paddingVertical: BANNER_PAD_V,
-        borderRadius: BANNER_RADIUS,
-        backgroundColor: ACCENT_BG,
         borderWidth: scaleSize(1),
-        borderColor: ACCENT_BORDER,
-        shadowColor: "#000",
-        shadowOffset: { width: 0, height: scaleSize(8) },
-        shadowOpacity: 0.12,
-        shadowRadius: scaleSize(14),
-        elevation: 4,
-        marginBottom: BANNER_MB,
+        borderColor: BANNER_BORDER,
+        overflow: "hidden",
+    },
+    bannerSheen: {
+        position: "absolute",
+        top: -scaleSize(48),
+        right: -scaleSize(12),
+        width: scaleSize(170),
+        height: scaleSize(170),
+        borderRadius: scaleSize(85),
+        backgroundColor: BANNER_SHEEN,
+        opacity: 0.7,
+        transform: [{ rotate: "28deg" }],
+    },
+    bannerContent: {
+        flexDirection: "row",
+        alignItems: "center",
     },
     iconPill: {
         width: ICON_PILL_SIZE,
@@ -371,35 +435,83 @@ const styles = StyleSheet.create({
         alignItems: "center",
         justifyContent: "center",
         backgroundColor: ACCENT_BG,
-        marginRight: ICON_PILL_MR,
-    },
-    bannerTitle: { fontFamily: "Outfit_700Bold", fontSize: scaleSize(FONT_BANNER_TITLE), color: TITLE_COLOR },
-    bannerMeta: { fontFamily: "Outfit_600SemiBold", fontSize: scaleSize(FONT_BANNER_META), color: ICON_MUTED, opacity: 0.98, marginTop: scaleSize(2), letterSpacing: 0.2 },
-
-    // minimal “no comparisons yet” CTA
-    tribeHeaderButton: {
-        flexDirection: "row",
-        alignItems: "center",
-        paddingHorizontal: TRIBE_BTN_PAD_H,
-        paddingVertical: TRIBE_BTN_PAD_V,
-        borderRadius: TRIBE_BTN_RADIUS,
-        backgroundColor: ACCENT_BG,
         borderWidth: scaleSize(1),
         borderColor: ACCENT_BORDER,
-        shadowColor: "#000",
-        shadowOffset: { width: 0, height: scaleSize(8) },
-        shadowOpacity: 0.08,
-        shadowRadius: scaleSize(16),
-        elevation: 4,
-        marginBottom: TRIBE_BTN_MB,
-        gap: TRIBE_BTN_GAP,
+        marginRight: ICON_PILL_MR,
     },
-    tribeHeaderTitle: {
+    bannerTextColumn: {
         flex: 1,
+        marginRight: scaleSize(12),
+        minWidth: 0,
+        justifyContent: "center",
+    },
+    bannerTitle: {
+        fontFamily: "Outfit_800ExtraBold",
+        fontSize: scaleSize(FONT_BANNER_TITLE),
+        color: BANNER_TEXT_PRIMARY,
+        letterSpacing: 0.3,
+    },
+    bannerMetaRow: {
+        flexDirection: "row",
+        alignItems: "center",
+        flexWrap: "wrap",
+        marginTop: scaleSize(6),
+    },
+    metricBadge: {
+        flexDirection: "row",
+        alignItems: "center",
+        paddingHorizontal: scaleSize(10),
+        paddingVertical: scaleSize(3),
+        borderRadius: scaleSize(999),
+        backgroundColor: BADGE_BG,
+        borderWidth: scaleSize(1),
+        borderColor: BADGE_BORDER,
+        marginRight: scaleSize(6),
+        marginBottom: scaleSize(4),
+    },
+    metricBadgeSecondary: {
+        backgroundColor: BADGE_SECONDARY_BG,
+        borderColor: BADGE_SECONDARY_BORDER,
+    },
+    metricBadgeText: {
         fontFamily: "Outfit_700Bold",
-        fontSize: scaleSize(FONT_TRIBE_TITLE),
-        color: TITLE_COLOR,
+        fontSize: scaleSize(12),
+        color: BADGE_TEXT,
+        letterSpacing: 0.3,
+        textTransform: "uppercase",
+    },
+    metricBadgeTextSecondary: {
+        color: BADGE_TEXT_SECONDARY,
+    },
+    bannerMeta: {
+        fontFamily: "Outfit_600SemiBold",
+        fontSize: scaleSize(FONT_BANNER_META),
+        color: BANNER_TEXT_SECONDARY,
+        letterSpacing: 0.25,
+        marginLeft: scaleSize(4),
+        flexShrink: 1,
+    },
+    bannerMetaHint: {
+        marginBottom: 0,
+    },
+    bannerDescription: {
+        marginTop: scaleSize(6),
+        fontFamily: "Outfit_600SemiBold",
+        fontSize: scaleSize(FONT_BANNER_META),
+        color: BANNER_TEXT_SECONDARY,
         letterSpacing: 0.2,
+    },
+    chevronPill: {
+        width: scaleSize(30),
+        height: scaleSize(30),
+        borderRadius: scaleSize(16),
+        alignItems: "center",
+        justifyContent: "center",
+        borderWidth: scaleSize(1),
+        borderColor: CHEVRON_BORDER,
+        backgroundColor: CHEVRON_BG,
+        marginLeft: scaleSize(8),
+        alignSelf: "center",
     },
 
     // pager dots

@@ -16,14 +16,14 @@ const PRIVACY_OPTIONS = Object.freeze([
         icon: "globe",
         label: "Global",
         shortLabel: "Global",
-        description: "Share with everyone in Spartan.",
+        description: "Everyone in the app can see your workout.",
     },
     {
         value: "friends",
         icon: "users",
         label: "Friends",
         shortLabel: "Friends",
-        description: "Only your confirmed friends can see it.",
+        description: "Only your friends can see your workout.",
     },
     {
         value: "hidden",
