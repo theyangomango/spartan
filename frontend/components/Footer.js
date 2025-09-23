@@ -1,11 +1,11 @@
-import React, { useMemo } from 'react';
+import React, { useEffect, useMemo } from 'react';
 import { Pressable, StyleSheet, View } from 'react-native';
 import { Home, Cup, Weight, Profile as ProfileIcon } from 'iconsax-react-native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import useWorkoutStore, { WORKOUT_SHEET_STATES } from '../state/workoutStore';
 import { jumpToTab, navigationRef } from '../../navigationRef';
 import theme from '../theme/mfpDark';
-import Animated, { useAnimatedStyle, useDerivedValue } from 'react-native-reanimated';
+import Animated, { useAnimatedStyle, useDerivedValue, useSharedValue, withTiming } from 'react-native-reanimated';
 
 import scaleSize from "../helper/scaleSize";
 
@@ -25,7 +25,7 @@ const COLORS = {
     hairline: theme.hairline,
 };
 
-const Footer = ({ currentScreenName, navigation, isOverlay = false }) => {
+const Footer = ({ currentScreenName, navigation, isOverlay = false, isHiddenByFocus = false, overlayProgressSV }) => {
     const globalOverlayEnabled = Boolean(global?.__USE_GLOBAL_FOOTER);
     if (!isOverlay && globalOverlayEnabled) {
         return null;
@@ -80,8 +80,8 @@ const Footer = ({ currentScreenName, navigation, isOverlay = false }) => {
     };
 
     const footerPointerEvents = useMemo(() => (
-        hasActiveWorkout && sheetState === WORKOUT_SHEET_STATES.EXPANDED ? 'none' : 'auto'
-    ), [hasActiveWorkout, sheetState]);
+        (isHiddenByFocus || (hasActiveWorkout && sheetState === WORKOUT_SHEET_STATES.EXPANDED)) ? 'none' : 'auto'
+    ), [hasActiveWorkout, sheetState, isHiddenByFocus]);
 
     const footerReveal = useDerivedValue(() => {
         if (!hasActiveWorkout) return 1;
@@ -91,9 +91,16 @@ const Footer = ({ currentScreenName, navigation, isOverlay = false }) => {
         return 1 - clamped;
     }, [hasActiveWorkout, sheetSharedAnimatedIndex]);
 
-    const outerAnimatedStyle = useAnimatedStyle(() => ({
-        transform: [{ translateY: FOOTER_HIDE_OFFSET * (1 - footerReveal.value) }],
-    }));
+const focusVisibility = useSharedValue(isHiddenByFocus ? 0 : 1);
+
+    const outerAnimatedStyle = useAnimatedStyle(() => {
+        const overlayProgress = overlayProgressSV?.value ?? 1;
+        const combined = footerReveal.value * focusVisibility.value * overlayProgress;
+        return {
+            transform: [{ translateY: FOOTER_HIDE_OFFSET * (1 - combined) }],
+            opacity: combined,
+        };
+    });
 
     return (
         <Animated.View style={[styles.outer_view, outerAnimatedStyle]} pointerEvents={footerPointerEvents}>
@@ -252,8 +259,8 @@ const styles = StyleSheet.create({
 });
 
 // Avoid unnecessary re-renders across tab switches
-export default React.memo(Footer, (prev, next) => {
-    return (
-        prev.currentScreenName === next.currentScreenName
-    );
-});
+export default React.memo(Footer, (prev, next) => (
+    prev.currentScreenName === next.currentScreenName &&
+    prev.isHiddenByFocus === next.isHiddenByFocus &&
+    prev.overlayProgressSV === next.overlayProgressSV
+));

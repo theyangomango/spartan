@@ -90,7 +90,7 @@ export default function FeedHeaderOverlay({
             heightAdjust={-2}
           />
         </Reanimated.View>
-        <Reanimated.View
+        {/* <Reanimated.View
           onLayout={(e) => {
             const h = e.nativeEvent.layout.height || 0;
             if (h && Math.abs(h - chipsH.value) > 1) chipsH.value = h;
@@ -98,7 +98,7 @@ export default function FeedHeaderOverlay({
           style={chipsOpacityStyle}
         >
           <ActivityChips navigation={navigation} onPressChip={onPressActivityChip} />
-        </Reanimated.View>
+        </Reanimated.View> */}
       </Reanimated.View>
 
       {/* Compact back header shown while a post is focused */}

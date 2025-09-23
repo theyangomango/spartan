@@ -447,8 +447,10 @@ export default function Feed({ navigation, route }) {
             try { focusBaseSV.value = -delta; } catch { }
             // Begin card translation first, then enter focus mode so header chips hide in sync
             animateView(delta, 0);
+            // Hide global overlays immediately; state update follows once focus settles
+            try { global.__setFeedOverlayHidden?.(true); } catch {}
             // Enter focus mode and ensure other posts fade out gradually
-        startTransition(() => setIsSomePostFocused(true));
+            startTransition(() => setIsSomePostFocused(true));
             try { interactiveProgressSV.value = withTiming(0, { duration: INTERACTIVE_START_MS, easing: ReEasing.out(ReEasing.cubic) }); } catch { }
             try {
                 setTimeout(() => ensureFocusedAlignment(index, sessionId, 0), ANIMATION_DURATION + 96);
@@ -501,6 +503,8 @@ export default function Feed({ navigation, route }) {
 
         const fromGesture = origin === 'gesture';
 
+        try { global.__setFeedOverlayHidden?.(false); } catch {}
+
         try {
             focusHide.value = withTiming(0, { duration: ANIMATION_DURATION, easing: ReEasing.out(ReEasing.cubic) });
             interactiveProgressSV.value = withTiming(1, { duration: ANIMATION_DURATION, easing: ReEasing.out(ReEasing.cubic) });
@@ -512,6 +516,18 @@ export default function Feed({ navigation, route }) {
 
         flatListRef.current?.setNativeProps({ scrollEnabled: true });
     };
+
+    const updateOverlayProgress = useCallback((value) => {
+        try { global.__setFeedOverlayProgress?.(value); } catch {}
+    }, []);
+
+    useEffect(() => {
+        try { global.__setFeedOverlayHidden?.(isSomePostFocused); } catch {}
+    }, [isSomePostFocused]);
+
+    useEffect(() => () => {
+        try { global.__setFeedOverlayHidden?.(false); } catch {}
+    }, []);
 
     // When a post is focused/unfocused, animate header fully hidden/visible to avoid interference
     useEffect(() => {
@@ -557,6 +573,9 @@ export default function Feed({ navigation, route }) {
             unfocusGestureTimeoutRef.current = null;
         }
         setUnfocusGestureActive(false);
+        if (isSomePostFocused) {
+            try { global.__setFeedOverlayHidden?.(true); } catch {}
+        }
         if (isSomePostFocused && focusedPostIndex.current !== -1) {
             const idx = focusedPostIndex.current;
             const sessionId = focusSessionNonceRef.current;
@@ -578,6 +597,7 @@ export default function Feed({ navigation, route }) {
         isUnfocusingRef.current = false;
         if (clearTranslating) {
             // Finishing unfocus: commit state after animation to avoid layout jump
+            try { global.__setFeedOverlayHidden?.(false); } catch {}
             try { startTransition(() => setIsSomePostFocused(false)); } catch { }
             try { focusedPostIndex.current = -1; } catch { }
             translatingIndexRef.current = -1;
@@ -1129,6 +1149,7 @@ export default function Feed({ navigation, route }) {
         signalCommentsReopen,
         handleBackPress,
         clearUnfocusFlagsJS,
+        setOverlayProgress: updateOverlayProgress,
         FOCUS_SPRING_CONFIG,
         ANIMATION_DURATION,
         INTERACTIVE_CANCEL_MS,

@@ -16,6 +16,7 @@ import { createStackNavigator, CardStyleInterpolators, TransitionSpecs } from '@
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { Platform, Modal, View, Text, Pressable, StyleSheet, Dimensions, Vibration, TextInput, LogBox } from 'react-native';
 import { rs, ts } from './frontend/helper/scaleSize';
+import { useSharedValue } from 'react-native-reanimated';
 import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
@@ -25,6 +26,7 @@ import { useFonts } from 'expo-font';
 import { customFonts } from './fonts';
 import { db } from './firebase.config';
 import { doc, onSnapshot, collection, query, where } from 'firebase/firestore';
+import { initCommunityStats, refreshCommunityStats } from './frontend/logic/communityStats';
 
 /* Screens */
 import SignUp from './frontend/screens/0.0_SignUp';
@@ -63,6 +65,11 @@ const NativeStack = createNativeStackNavigator();
 // Single root stack: iOS uses classic stack for left-slide; Android uses native-stack for perf
 const RootStack = Platform.OS === 'ios' ? createStackNavigator() : createNativeStackNavigator();
 const Tab = createBottomTabNavigator();
+
+const FOOTER_MAIN_SCREENS = ['Feed', 'MacroTracking', 'Workout', 'Competition', 'Profile'];
+const FOOTER_ROUTE_TAB_OVERRIDES = {
+    ViewProfile: 'Profile',
+};
 
 // Enable native screens for reduced memory and faster transitions
 enableScreens(true);
@@ -154,8 +161,12 @@ export default function App() {
     const [fontsReady] = useFonts(customFonts);
     const [authChecked, setAuthChecked] = useState(false);
     const [currentTabName, setCurrentTabName] = useState('Workout');
+    const [isFooterVisible, setIsFooterVisible] = useState(false);
+    const [isFeedPostFocused, setIsFeedPostFocused] = useState(false);
     const [isAuthenticated, setIsAuthenticated] = useState(false);
     const [userReady, setUserReady] = useState(false);
+    const [communityStatsReady, setCommunityStatsReady] = useState(false);
+    const feedOverlayProgressSV = useSharedValue(1);
     const uidRef = useRef(null);
     const unsubRef = useRef(null);
     const notifUnsubRef = useRef(null);
@@ -169,15 +180,65 @@ export default function App() {
     const handleNavigationStateUpdate = useCallback(() => {
         const rootState = navigationRef.current?.getRootState?.();
         const activeTab = getActiveTabNameFromState(rootState);
-        if (activeTab) {
-            setCurrentTabName((prev) => (prev === activeTab ? prev : activeTab));
+        const currentRouteName = navigationRef.current?.getCurrentRoute?.()?.name;
+
+        let showFooter = false;
+        let nextFooterScreen = currentTabName;
+
+        if (currentRouteName === 'Tabs') {
+            if (activeTab && FOOTER_MAIN_SCREENS.includes(activeTab)) {
+                showFooter = true;
+                nextFooterScreen = activeTab;
+            }
+        } else if (currentRouteName && FOOTER_MAIN_SCREENS.includes(currentRouteName)) {
+            showFooter = true;
+            nextFooterScreen = currentRouteName;
+        } else if (currentRouteName && FOOTER_ROUTE_TAB_OVERRIDES[currentRouteName]) {
+            showFooter = true;
+            nextFooterScreen = FOOTER_ROUTE_TAB_OVERRIDES[currentRouteName];
         }
-    }, []);
+
+        setIsFooterVisible(showFooter);
+
+        if (showFooter && nextFooterScreen && nextFooterScreen !== currentTabName) {
+            setCurrentTabName(nextFooterScreen);
+            return;
+        }
+
+        if (!showFooter && activeTab && FOOTER_MAIN_SCREENS.includes(activeTab) && activeTab !== currentTabName) {
+            setCurrentTabName(activeTab);
+        }
+
+        if (!showFooter && isFeedPostFocused) {
+            setIsFeedPostFocused(false);
+            feedOverlayProgressSV.value = 1;
+        }
+    }, [currentTabName, isFeedPostFocused, feedOverlayProgressSV]);
 
     useEffect(() => {
         try { global.__USE_GLOBAL_FOOTER = true; } catch {}
         return () => { try { delete global.__USE_GLOBAL_FOOTER; } catch {} };
     }, []);
+
+    useEffect(() => {
+        try {
+            global.__setFeedOverlayHidden = (hidden) => {
+                const isHidden = !!hidden;
+                feedOverlayProgressSV.value = isHidden ? 0 : 1;
+                setIsFeedPostFocused((prev) => (prev === isHidden ? prev : isHidden));
+            };
+            global.__setFeedOverlayProgress = (progress) => {
+                const numeric = Number(progress);
+                if (!Number.isFinite(numeric)) return;
+                const clamped = numeric < 0 ? 0 : numeric > 1 ? 1 : numeric;
+                feedOverlayProgressSV.value = clamped;
+            };
+        } catch {}
+        return () => {
+            try { delete global.__setFeedOverlayHidden; } catch {}
+            try { delete global.__setFeedOverlayProgress; } catch {}
+        };
+    }, [feedOverlayProgressSV]);
 
     useEffect(() => {
         // Expose a minimal auth setter so login/signup can notify App immediately
@@ -355,6 +416,12 @@ export default function App() {
         unsubRef.current = onSnapshot(ref, async (snap) => {
             try { global.userData = { uid, ...(snap.data() || {}) }; } catch {}
             setUserReady(true);
+            try {
+                const maybeRefresh = refreshCommunityStats({ force: true });
+                if (maybeRefresh && typeof maybeRefresh.catch === 'function') {
+                    maybeRefresh.catch(() => {});
+                }
+            } catch {}
 
             // Register for push notifications (EAS project id required)
             try {
@@ -512,6 +579,25 @@ export default function App() {
         };
     }, [setRestReminderVisible]);
 
+    useEffect(() => {
+        let cancelled = false;
+        if (!isAuthenticated) {
+            setCommunityStatsReady(true);
+            return () => { cancelled = true; };
+        }
+        if (!userReady) {
+            setCommunityStatsReady(false);
+            return () => { cancelled = true; };
+        }
+        setCommunityStatsReady(false);
+        initCommunityStats().then(() => {
+            if (!cancelled) setCommunityStatsReady(true);
+        }).catch(() => {
+            if (!cancelled) setCommunityStatsReady(true);
+        });
+        return () => { cancelled = true; };
+    }, [isAuthenticated, userReady]);
+
     // Unified buzz helper with simple throttle
     const buzzOnce = () => {
         const now = Date.now();
@@ -638,7 +724,7 @@ export default function App() {
     }, [appForceReady]);
     const hasUserData = authChecked && (!isAuthenticated || userReady);
     const shouldWaitForHubRow = isAuthenticated;
-    const appReady = fontsReady && (hasUserData || appForceReady);
+    const appReady = fontsReady && (hasUserData || appForceReady) && (communityStatsReady || appForceReady);
 
     // Hide splash only after the first layout to avoid white flash
     const [hasLaidOut, setHasLaidOut] = useState(false);
@@ -902,12 +988,19 @@ export default function App() {
                 </RootStack.Navigator>
             </NavigationContainer>
             )}
-            <ActiveWorkoutBottomSheet />
-            {authChecked && (
+            {isFooterVisible && (
+                <ActiveWorkoutBottomSheet
+                    hideForFocus={isFeedPostFocused}
+                    overlayProgressSV={feedOverlayProgressSV}
+                />
+            )}
+            {authChecked && isFooterVisible && (
                 <Footer
                     currentScreenName={currentTabName}
                     navigation={navigationRef.current}
                     isOverlay
+                    isHiddenByFocus={isFeedPostFocused}
+                    overlayProgressSV={feedOverlayProgressSV}
                 />
             )}
             {/* Global Rest Reminder Modal */}

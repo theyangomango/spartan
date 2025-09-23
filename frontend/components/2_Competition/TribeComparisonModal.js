@@ -11,6 +11,7 @@ import {
     TouchableWithoutFeedback,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
+import { Swipeable } from "react-native-gesture-handler";
 import SelectExerciseModal from "../2_Competition/SelectExercise/SelectExerciseModal";
 import RNBounceable from "@freakycoder/react-native-bounceable";
 
@@ -40,36 +41,66 @@ const PILL_ACTIVE_BG = "rgba(45, 158, 255, 0.16)";
 const PILL_ACTIVE_BORDER = theme.primaryHairline || "rgba(45, 158, 255, 0.45)";
 const PILL_ACTIVE_TEXT = theme.accentBlue || theme.primary;
 
+// Manage cards – dark theme styling
+const CARD_BG = theme.surface;
+const CARD_BORDER = theme.hairline;
+const CARD_TEXT_PRIMARY = theme.textPrimary;
+const CARD_PILL_PRIMARY_BG = "rgba(235, 244, 255, 0.16)";
+const CARD_PILL_PRIMARY_BORDER = "rgba(174, 208, 255, 0.28)";
+const CARD_PILL_PRIMARY_TEXT = "#F5FAFF";
+const CARD_PILL_MUTED_BG = "rgba(126, 108, 255, 0.2)";
+const CARD_PILL_MUTED_BORDER = "rgba(170, 153, 255, 0.42)";
+const CARD_PILL_MUTED_TEXT = "#E2DEFF";
+const TROPHY_ACCENT = theme.accentGold || "#F2C663";
+const TROPHY_RING = "rgba(242, 198, 99, 0.18)";
+
 export default function TribeComparisonModal({ visible, onClose, initialList = [], onSaveList }) {
     const [items, setItems] = useState(() => sanitize(initialList));
     const [editingIndex, setEditingIndex] = useState(-1);
     const [exercisePickerOpen, setExercisePickerOpen] = useState(false);
 
+    const sanitizedInitial = React.useMemo(() => sanitize(initialList), [initialList]);
+
     React.useEffect(() => {
-        if (visible) {
-            setItems(sanitize(initialList));
+        if (!visible) return;
+        setItems((prev) => {
+            if (listsEqual(prev, sanitizedInitial)) return prev;
             setEditingIndex(-1);
             setExercisePickerOpen(false);
-        }
-    }, [visible, initialList]);
+            return sanitizedInitial;
+        });
+    }, [visible, sanitizedInitial]);
+
+    const commitItems = React.useCallback(
+        (nextOrUpdater, options) => {
+            setItems((prev) => {
+                const next = typeof nextOrUpdater === "function" ? nextOrUpdater(prev) : nextOrUpdater;
+                const normalized = sanitize(next);
+                const payloadOptions = options ? { finalize: false, ...options } : { finalize: false };
+                if (listsEqual(prev, normalized)) return prev;
+                onSaveList?.(normalized, payloadOptions);
+                return normalized;
+            });
+        },
+        [onSaveList]
+    );
 
     const startAdd = () => {
-        setItems((prev) => [...prev, { exercise: "Bench Press (Barbell)", metric: "1RM", normalizeByBodyweight: false }]);
-        setEditingIndex(items.length);
+        const nextIndex = items.length;
+        commitItems((prev) => [...prev, { exercise: "Bench Press (Barbell)", metric: "1RM", normalizeByBodyweight: false }]);
+        setEditingIndex(nextIndex);
     };
 
     const startEdit = (index) => setEditingIndex(index);
 
     const deleteItem = (index) => {
-        setItems((prev) => prev.filter((_, i) => i !== index));
+        commitItems((prev) => prev.filter((_, i) => i !== index));
         if (editingIndex === index) setEditingIndex(-1);
     };
 
     const updateField = (index, patch) => {
-        setItems((prev) => prev.map((it, i) => (i === index ? { ...it, ...patch } : it)));
+        commitItems((prev) => prev.map((it, i) => (i === index ? { ...it, ...patch } : it)));
     };
-
-    const handleSave = () => onSaveList?.(sanitize(items));
 
     const editing = editingIndex >= 0 ? items[editingIndex] : null;
 
@@ -80,36 +111,82 @@ export default function TribeComparisonModal({ visible, onClose, initialList = [
                     <TouchableWithoutFeedback onPress={() => { }}>
                         <View style={styles.card}>
                             <View style={styles.headerRow}>
-                                <Text style={styles.title}>Manage Tribe Comparisons</Text>
+                                <View>
+                                    <Text style={styles.title}>Manage Tribe Comparisons</Text>
+                                    <Text style={styles.subtitle}>Choose the metrics shown for your tribe leaderboard</Text>
+                                </View>
                                 <Pressable hitSlop={12} onPress={onClose}>
                                     <Ionicons name="close" size={20} color={PRIMARY_TEXT} />
                                 </Pressable>
                             </View>
 
                             <FlatList
+                                style={styles.list}
                                 data={items}
                                 keyExtractor={(_, i) => `cmp-${i}`}
                                 renderItem={({ item, index }) => {
+                                    const isFirst = index === 0;
+                                    const pills = [
+                                        { key: "metric", label: metricLabel(item.metric), tone: "primary" },
+                                        ...(item.normalizeByBodyweight
+                                            ? [{ key: "per", label: "per lb", tone: "muted" }]
+                                            : []),
+                                    ];
+
                                     return (
-                                        <TouchableOpacity
-                                            activeOpacity={0.9}
-                                            onPress={() => startEdit(index)}
-                                            style={styles.itemCard}
+                                        <Swipeable
+                                            overshootRight={false}
+                                            friction={2.2}
+                                            rightThreshold={scaleSize(32)}
+                                            renderRightActions={(progress, dragX) => (
+                                                <View style={styles.swipeActions}>
+                                                    <RNBounceable
+                                                        style={styles.swipeDelete}
+                                                        onPress={() => deleteItem(index)}
+                                                        activeOpacity={0.9}
+                                                    >
+                                                        <Ionicons name="trash" size={16} color={DELETE_RED} style={{ marginRight: scaleSize(6) }} />
+                                                        <Text style={styles.swipeDeleteText}>Delete</Text>
+                                                    </RNBounceable>
+                                                </View>
+                                            )}
                                         >
-                                            <View style={{ flex: 1, marginRight: scaleSize(8) }}>
-                                                {/* line 1: exercise */}
-                                                <Text style={styles.itemTitle} numberOfLines={1}>
-                                                    {item.exercise}
-                                                </Text>
-                                                {/* line 2: metric + per-lb */}
-                                                <Text style={styles.itemMeta} numberOfLines={1}>
-                                                    {metricLabel(item.metric)}{item.normalizeByBodyweight ? " • per lb" : ""}
-                                                </Text>
-                                            </View>
-                                            <TouchableOpacity onPress={() => deleteItem(index)} hitSlop={10} style={styles.deleteBtn}>
-                                                <Ionicons name="trash-outline" size={18} color={DELETE_RED} />
+                                            <TouchableOpacity
+                                                activeOpacity={0.9}
+                                                onPress={() => startEdit(index)}
+                                                style={[styles.itemCard, isFirst && styles.itemCardFirst]}
+                                            >
+                                                <View style={styles.itemBody}>
+                                                    <View style={styles.trophyBadge}>
+                                                        <Ionicons
+                                                            name="trophy"
+                                                            size={scaleSize(16)}
+                                                            color={TROPHY_ACCENT}
+                                                        />
+                                                    </View>
+                                                    <View style={styles.itemContent}>
+                                                        <Text style={styles.itemTitle} numberOfLines={1}>
+                                                            {item.exercise}
+                                                        </Text>
+                                                        <View style={styles.itemMetaRow}>
+                                                            {pills.map((pill) => (
+                                                                <View
+                                                                    key={pill.key}
+                                                                    style={[styles.itemPill, pill.tone === "muted" ? styles.itemPillMuted : styles.itemPillPrimary]}
+                                                                >
+                                                                    <Text
+                                                                        style={[styles.itemPillText, pill.tone === "muted" && styles.itemPillTextMuted]}
+                                                                        numberOfLines={1}
+                                                                    >
+                                                                        {pill.label}
+                                                                    </Text>
+                                                                </View>
+                                                            ))}
+                                                        </View>
+                                                    </View>
+                                                </View>
                                             </TouchableOpacity>
-                                        </TouchableOpacity>
+                                        </Swipeable>
                                     );
                                 }}
                                 ListEmptyComponent={
@@ -118,18 +195,12 @@ export default function TribeComparisonModal({ visible, onClose, initialList = [
                                         <Text style={styles.emptySub}>Add targets for exercises, metrics, and per-lb normalization.</Text>
                                     </View>
                                 }
-                                contentContainerStyle={{ paddingBottom: scaleSize(8) }}
+                                contentContainerStyle={styles.listContent}
                             />
 
                             <View style={styles.footerRow}>
-                                <RNBounceable style={styles.addBtn} activeOpacity={0.9} onPress={startAdd}>
-                                    <Ionicons name="add" size={18} color={ACTION_GHOST_TEXT} style={{ marginRight: scaleSize(6) }} />
-                                    <Text style={styles.addText}>Add Comparison</Text>
-                                </RNBounceable>
-
-                                <RNBounceable style={styles.saveButton} activeOpacity={0.9} onPress={handleSave}>
-                                    <Ionicons name="save-outline" size={18} color={ACTION_PRIMARY_TEXT} style={{ marginRight: scaleSize(8) }} />
-                                    <Text style={styles.saveText}>Save</Text>
+                                <RNBounceable style={styles.addRow} activeOpacity={0.9} onPress={startAdd}>
+                                    <Text style={styles.addRowText}>+ Add Comparison</Text>
                                 </RNBounceable>
                             </View>
 
@@ -239,6 +310,19 @@ export default function TribeComparisonModal({ visible, onClose, initialList = [
     );
 }
 
+const listsEqual = (a = [], b = []) => {
+    if (a.length !== b.length) return false;
+    for (let i = 0; i < a.length; i += 1) {
+        const left = a[i];
+        const right = b[i];
+        if (!right) return false;
+        if (left.exercise !== right.exercise) return false;
+        if (left.metric !== right.metric) return false;
+        if (!!left.normalizeByBodyweight !== !!right.normalizeByBodyweight) return false;
+    }
+    return true;
+};
+
 const sanitize = (arr) =>
     (arr || []).map((x) => ({
         exercise: x?.exercise || "Bench Press (Barbell)",
@@ -289,55 +373,114 @@ const styles = StyleSheet.create({
     },
     title: { fontFamily: "Outfit_700Bold", fontSize: scaleSize(18), color: PRIMARY_TEXT },
 
+    list: { marginHorizontal: -scaleSize(18) },
+    listContent: { paddingBottom: 0 },
+
     itemCard: {
         flexDirection: "row",
         alignItems: "center",
-        paddingVertical: scaleSize(14),
-        paddingHorizontal: scaleSize(18),
-        backgroundColor: TILE_BG,
-        borderRadius: scaleSize(18),
-        marginBottom: scaleSize(10),
+        backgroundColor: "transparent",
+        width: "100%",
+        alignSelf: "stretch",
+        borderBottomWidth: StyleSheet.hairlineWidth,
+        borderBottomColor: CARD_BORDER,
+    },
+    itemCardFirst: { borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: CARD_BORDER },
+    itemBody: {
+        flexDirection: "row",
+        alignItems: "center",
+        paddingVertical: scaleSize(8),
+        paddingHorizontal: scaleSize(14),
+        width: "100%",
+        flex: 1,
+        backgroundColor: CARD_BG,
         borderWidth: StyleSheet.hairlineWidth,
-        borderColor: TILE_BORDER,
-        shadowColor: "#000",
-        shadowOpacity: 0.08,
-        shadowRadius: scaleSize(12),
-        shadowOffset: { width: 0, height: scaleSize(6) },
-        elevation: 2,
+        borderColor: CARD_BORDER,
+        borderRadius: scaleSize(10),
     },
-    deleteBtn: {
-        padding: scaleSize(6),
-        borderRadius: scaleSize(12),
-        backgroundColor: "rgba(255,92,99,0.14)",
-        marginLeft: scaleSize(4),
+    trophyBadge: {
+        width: scaleSize(28),
+        height: scaleSize(28),
+        borderRadius: scaleSize(14),
+        alignItems: "center",
+        justifyContent: "center",
+        backgroundColor: TROPHY_RING,
+        marginRight: scaleSize(10),
     },
-    itemTitle: { fontFamily: "Outfit_700Bold", fontSize: scaleSize(14), color: PRIMARY_TEXT },
-    itemMeta: { fontFamily: "Outfit_600SemiBold", fontSize: scaleSize(12.5), color: SECONDARY_TEXT, marginTop: scaleSize(2) },
+    itemContent: { flex: 1, marginRight: scaleSize(8), minWidth: 0 },
+    itemTitle: {
+        fontFamily: "Outfit_800ExtraBold",
+        fontSize: scaleSize(13.5),
+        color: CARD_TEXT_PRIMARY,
+        letterSpacing: 0.2,
+    },
+    itemMetaRow: { flexDirection: "row", flexWrap: "wrap", marginTop: scaleSize(8) },
+    itemPill: {
+        paddingHorizontal: scaleSize(10),
+        paddingVertical: scaleSize(3),
+        borderRadius: scaleSize(999),
+        borderWidth: StyleSheet.hairlineWidth,
+        marginRight: scaleSize(6),
+        marginBottom: scaleSize(6),
+    },
+    itemPillPrimary: {
+        backgroundColor: CARD_PILL_PRIMARY_BG,
+        borderColor: CARD_PILL_PRIMARY_BORDER,
+    },
+    itemPillMuted: {
+        backgroundColor: CARD_PILL_MUTED_BG,
+        borderColor: CARD_PILL_MUTED_BORDER,
+    },
+    itemPillText: {
+        fontFamily: "Outfit_700Bold",
+        fontSize: scaleSize(10.5),
+        color: CARD_PILL_PRIMARY_TEXT,
+        letterSpacing: 0.2,
+    },
+    itemPillTextMuted: { color: CARD_PILL_MUTED_TEXT },
+    swipeActions: {
+        justifyContent: "center",
+        alignItems: "center",
+        flexDirection: "row",
+        paddingRight: scaleSize(6),
+        height: "100%",
+    },
+    swipeDelete: {
+        flexDirection: "row",
+        alignItems: "center",
+        justifyContent: "center",
+        paddingHorizontal: scaleSize(18),
+        minWidth: scaleSize(110),
+        height: "100%",
+        backgroundColor: "rgba(255,92,99,0.12)",
+        borderLeftWidth: StyleSheet.hairlineWidth,
+        borderLeftColor: "rgba(255, 120, 126, 0.32)",
+    },
+    swipeDeleteText: { fontFamily: "Outfit_700Bold", fontSize: scaleSize(12.5), color: DELETE_RED, letterSpacing: 0.2 },
 
     emptyBox: { alignItems: "center", paddingVertical: scaleSize(24) },
     emptyText: { fontFamily: "Outfit_700Bold", color: PRIMARY_TEXT },
     emptySub: { fontFamily: "Outfit_400Regular", color: SECONDARY_TEXT, marginTop: scaleSize(6), textAlign: "center" },
 
-    footerRow: {
+    footerRow: { marginTop: scaleSize(6) },
+    addRow: {
         flexDirection: "row",
         alignItems: "center",
-        justifyContent: "space-between",
-        marginTop: scaleSize(16),
-    },
-
-    addBtn: {
-        flexDirection: "row",
-        alignItems: "center",
-        paddingHorizontal: scaleSize(18),
+        justifyContent: "center",
         paddingVertical: scaleSize(12),
-        minHeight: scaleSize(44),
-        borderRadius: scaleSize(18),
-        backgroundColor: ACTION_GHOST_BG,
-        borderWidth: StyleSheet.hairlineWidth,
-        borderColor: ACTION_GHOST_BORDER,
-        flexShrink: 0,
+        width: "100%",
+        borderTopWidth: StyleSheet.hairlineWidth,
+        borderTopColor: CARD_BORDER,
+        borderRadius: scaleSize(12),
+        backgroundColor: theme.primary,
+        marginTop: scaleSize(12),
     },
-    addText: { fontFamily: "Outfit_700Bold", color: ACTION_GHOST_TEXT, fontSize: scaleSize(13.5) },
+    addRowText: {
+        fontFamily: "Outfit_700Bold",
+        color: ACTION_PRIMARY_TEXT,
+        fontSize: scaleSize(13),
+        letterSpacing: 0.4,
+    },
 
     saveButton: {
         flexDirection: "row",

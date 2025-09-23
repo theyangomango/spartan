@@ -859,14 +859,14 @@ export default function Competition({ navigation, route }) {
                 visible={comparisonManagerVisible}
                 onClose={() => setComparisonManagerVisible(false)}
                 initialList={tribeComparisons}
-                onSaveList={async (list) => {
+                onSaveList={async (list, options) => {
                     if (!selectedTribeId) return;
                     await updateDoc(doc(db, "tribes", selectedTribeId), {
                         comparisons: list,
                         updatedAt: serverTimestamp(),
                     });
-                    setComparisonManagerVisible(false);
                     if (activeCompIndex >= list.length) setActiveCompIndex(0);
+                    if (options?.finalize ?? true) setComparisonManagerVisible(false);
                 }}
             />
 

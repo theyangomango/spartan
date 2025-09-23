@@ -99,7 +99,13 @@ export default function LeaderboardModal({
     canvasColor,
 }) {
     const hasComparisons = isTribeFocused && tribeComparisons.length > 0;
-    const activeComp = hasComparisons ? tribeComparisons[Math.min(activeCompIndex, tribeComparisons.length - 1)] : null;
+    const safeActiveIndex = useMemo(() => {
+        if (!hasComparisons) return 0;
+        const maxIndex = Math.max(0, tribeComparisons.length - 1);
+        return Math.min(Math.max(0, activeCompIndex), maxIndex);
+    }, [activeCompIndex, hasComparisons, tribeComparisons.length]);
+
+    const activeComp = hasComparisons ? tribeComparisons[safeActiveIndex] : null;
 
     const exercise = isTribeFocused
         ? (activeComp?.exercise || "Bench Press (Barbell)")
@@ -112,7 +118,7 @@ export default function LeaderboardModal({
 
     const normalizeByBodyweight = !!(isTribeFocused && activeComp?.normalizeByBodyweight);
 
-    const scrollX = useRef(new Animated.Value(activeCompIndex * BANNER_PAGE_WIDTH)).current;
+    const scrollX = useRef(new Animated.Value(safeActiveIndex * BANNER_PAGE_WIDTH)).current;
 
     const handleScroll = useMemo(() => (
         Animated.event(
@@ -130,8 +136,8 @@ export default function LeaderboardModal({
 
     useEffect(() => {
         if (!hasComparisons) return;
-        scrollX.setValue(activeCompIndex * BANNER_PAGE_WIDTH);
-    }, [activeCompIndex, hasComparisons, scrollX]);
+        scrollX.setValue(safeActiveIndex * BANNER_PAGE_WIDTH);
+    }, [safeActiveIndex, hasComparisons, scrollX]);
 
     // Keep banner scrolled to the active comparison when index changes post-mount
     useEffect(() => {
@@ -141,13 +147,13 @@ export default function LeaderboardModal({
             const ref = bannerRef.current;
             if (ref && typeof ref.scrollToIndex === 'function') {
                 ref.scrollToIndex({
-                    index: Math.max(0, Math.min(activeCompIndex, tribeComparisons.length - 1)),
+                    index: safeActiveIndex,
                     animated: false,
                 });
             }
         } catch {}
         // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [activeCompIndex, isTribeFocused, hasComparisons]);
+    }, [safeActiveIndex, isTribeFocused, hasComparisons]);
 
     const header = useMemo(() => {
         if (isTribeFocused) {
@@ -165,7 +171,7 @@ export default function LeaderboardModal({
                             snapToInterval={BANNER_PAGE_WIDTH}
                             decelerationRate="fast"
                             onMomentumScrollEnd={onScrollEnd}
-                            initialScrollIndex={activeCompIndex}
+                            initialScrollIndex={safeActiveIndex}
                             onScroll={handleScroll}
                             scrollEventThrottle={16}
                             getItemLayout={(_, index) => ({ length: BANNER_PAGE_WIDTH, offset: BANNER_PAGE_WIDTH * index, index })}

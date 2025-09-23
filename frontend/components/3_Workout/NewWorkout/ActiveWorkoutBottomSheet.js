@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useRef, useState, useMemo, memo } from "react";
-import { View, StyleSheet } from "react-native";
+import { View, StyleSheet, Dimensions } from "react-native";
 import BottomSheet from "@gorhom/bottom-sheet";
 import Animated, {
     useAnimatedStyle,
@@ -7,6 +7,7 @@ import Animated, {
     Extrapolate,
     useSharedValue,
     useDerivedValue,
+    withTiming,
 } from "react-native-reanimated";
 import theme from "../../../theme/mfpDark";
 import ActiveWorkoutModal from "./ActiveWorkoutModal";
@@ -19,7 +20,10 @@ const COLLAPSED_PEEK = FOOTER_HEIGHT + scaleSize(48);
 const COLLAPSED_SNAP = COLLAPSED_PEEK;
 const noop = () => { };
 
-const ActiveWorkoutBottomSheet = () => {
+const SCREEN_HEIGHT = Dimensions.get("window").height || 0;
+const FOCUS_HIDE_DISTANCE = SCREEN_HEIGHT > 0 ? SCREEN_HEIGHT : (COLLAPSED_PEEK + scaleSize(320));
+
+const ActiveWorkoutBottomSheet = ({ hideForFocus = false, overlayProgressSV }) => {
     const bottomSheetRef = useRef(null);
     const snapPoints = useMemo(() => [COLLAPSED_SNAP, "94%"], []);
     const [contentKey, setContentKey] = useState(0);
@@ -45,12 +49,19 @@ const ActiveWorkoutBottomSheet = () => {
     const isVisible = hasWorkout && (isExpanded || isCollapsed);
 
     const sharedAnimatedIndex = useSharedValue(isExpanded ? 1 : 0);
+    const focusVisibility = useSharedValue(hideForFocus ? 0 : 1);
     const sheetProgress = useDerivedValue(() => {
         const value = sharedAnimatedIndex.value;
         if (value <= 0) return 0;
         if (value >= 1) return 1;
         return value;
     }, [sharedAnimatedIndex]);
+
+    useEffect(() => {
+        if (!hasWorkout) {
+            focusVisibility.value = 1;
+        }
+    }, [hasWorkout, focusVisibility]);
 
     useEffect(() => {
         if (!setSheetSharedAnimatedIndex) return;
@@ -82,6 +93,16 @@ const ActiveWorkoutBottomSheet = () => {
         return {
             zIndex: z,
             elevation: z,
+        };
+    });
+
+    const focusAnimatedStyle = useAnimatedStyle(() => {
+        const overlayProgress = overlayProgressSV?.value ?? 1;
+        const focus = focusVisibility.value * overlayProgress;
+        const translateY = FOCUS_HIDE_DISTANCE * (1 - focus);
+        return {
+            opacity: focus,
+            transform: [{ translateY }],
         };
     });
 
@@ -168,9 +189,10 @@ const ActiveWorkoutBottomSheet = () => {
     }
 
     const sheetStyle = isExpanded ? styles.sheetExpanded : styles.sheetCollapsed;
+    const pointerEvents = hideForFocus ? 'none' : 'box-none';
 
     return (
-        <Animated.View style={[styles.sheetWrapper, containerAnimatedStyle]} pointerEvents="box-none">
+        <Animated.View style={[styles.sheetWrapper, containerAnimatedStyle, focusAnimatedStyle]} pointerEvents={pointerEvents}>
             <BottomSheet
                 ref={bottomSheetRef}
                 index={isExpanded ? 1 : (isCollapsed ? 0 : -1)}
@@ -260,7 +282,10 @@ const SheetBackdrop = ({ animatedIndex, style }) => {
     );
 };
 
-export default memo(ActiveWorkoutBottomSheet);
+export default memo(ActiveWorkoutBottomSheet, (prev, next) => (
+    prev.hideForFocus === next.hideForFocus &&
+    prev.overlayProgressSV === next.overlayProgressSV
+));
 
 const AnimatedIndexBridge = ({ animatedIndex, sharedIndex }) => {
     useDerivedValue(() => {

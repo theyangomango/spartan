@@ -146,13 +146,13 @@ const StartCluster = ({
                                                 key={option.value}
                                                 onPress={() => handleSelectPrivacy(option.value)}
                                                 style={[styles.privacyOption, active && styles.privacyOptionActive]}
-                                                android_ripple={{ color: "rgba(148, 197, 255, 0.12)" }}
+                                                android_ripple={{ color: "rgba(90, 158, 255, 0.16)" }}
                                             >
                                                 <View style={styles.privacyOptionHeader}>
                                                     <Feather
                                                         name={option.icon}
                                                         size={16}
-                                                        color={active ? theme.textPrimary : "#B4C6E0"}
+                                                        color={active ? theme.textPrimary : "#A9B9D6"}
                                                     />
                                                     <Text style={[styles.privacyOptionLabel, active && styles.privacyOptionLabelActive]}>
                                                         {option.label}
@@ -259,16 +259,16 @@ const styles = StyleSheet.create({
     actionLabelHidden: { opacity: 0 },
     privacyBackdrop: {
         ...StyleSheet.absoluteFillObject,
-        backgroundColor: "rgba(11, 16, 28, 0.52)",
+        backgroundColor: "rgba(8, 13, 24, 0.58)",
     },
     privacyPanel: {
         position: "absolute",
-        backgroundColor: "rgba(30, 44, 70, 0.96)",
+        backgroundColor: "rgba(19, 28, 46, 0.94)",
         borderRadius: scaleSize(20),
         paddingVertical: scaleSize(14),
         paddingHorizontal: scaleSize(16),
         borderWidth: scaleSize(1),
-        borderColor: "rgba(134, 193, 255, 0.55)",
+        borderColor: "rgba(127, 190, 255, 0.4)",
         gap: scaleSize(8),
         minWidth: scaleSize(210),
         ...Platform.select({
@@ -285,11 +285,11 @@ const styles = StyleSheet.create({
         borderRadius: scaleSize(14),
         paddingVertical: scaleSize(10),
         paddingHorizontal: scaleSize(12),
-        backgroundColor: "rgba(25, 35, 55, 0.72)",
+        backgroundColor: "rgba(17, 26, 43, 0.78)",
         gap: scaleSize(6),
     },
     privacyOptionActive: {
-        backgroundColor: "rgba(71, 147, 255, 0.28)",
+        backgroundColor: "rgba(45, 158, 255, 0.22)",
     },
     privacyOptionHeader: {
         flexDirection: "row",
@@ -302,13 +302,13 @@ const styles = StyleSheet.create({
         marginRight: scaleSize(8),
         fontFamily: "Outfit_700Bold",
         fontSize: scaleSize(13.5),
-        color: "#CFD8EE",
+        color: "#DAE2F6",
     },
     privacyOptionLabelActive: { color: theme.textPrimary },
     privacyOptionDescription: {
         fontFamily: "Outfit_500Medium",
         fontSize: scaleSize(11.5),
-        color: "#B5C2DA",
+        color: "#ADB9D4",
         lineHeight: scaleSize(15),
     },
 });
