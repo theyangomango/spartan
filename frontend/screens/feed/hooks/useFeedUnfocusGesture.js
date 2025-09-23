@@ -47,20 +47,6 @@ export default function useFeedUnfocusGesture({
 }) {
     const commentsHiddenSV = useSharedValue(0);
 
-    const setOverlayProgressJS = (value) => {
-        try { global.__setFeedOverlayProgress?.(value); } catch {}
-    };
-
-    const setOverlayProgress = (value) => {
-        'worklet';
-        const target = global.__feedOverlayProgressSV;
-        if (target) {
-            target.value = value;
-        } else {
-            runOnJS(setOverlayProgressJS)(value);
-        }
-    };
-
     const panUnfocus = useMemo(() => {
         return Gesture.Pan()
             .minPointers(1)
@@ -83,7 +69,6 @@ export default function useFeedUnfocusGesture({
                 interTranslateSV.value = 0;
                 commentsHiddenSV.value = 1;
                 runOnJS(signalCommentsCollapse)();
-                setOverlayProgress(0);
             })
             .onUpdate((event) => {
                 if (isTransitioningSV.value === 1 || panEnabledSV.value === 0) return;
@@ -100,7 +85,6 @@ export default function useFeedUnfocusGesture({
 
                 const eased = Math.pow(progressNorm, PROGRESS_SLOW_K);
                 interactiveProgressSV.value = eased;
-                setOverlayProgress(eased);
 
                 const collapseThresholdPx = Math.max(COMMENTS_COLLAPSE_MIN_PX, CLOSE_THRESHOLD * distanceToZero);
                 const shouldCollapse = dragUp > collapseThresholdPx;
@@ -158,7 +142,6 @@ export default function useFeedUnfocusGesture({
                     focusTranslateSV.value = startValue;
                     focusTranslateSV.value = withSpring(0, FOCUS_SPRING_CONFIG);
 
-                    setOverlayProgress(1);
                     runOnJS(handleBackPress)('gesture');
                 } else {
                     focusHide.value = withTiming(headerH.value, { duration: INTERACTIVE_CANCEL_MS, easing: ReEasing.out(ReEasing.cubic) });
@@ -171,7 +154,6 @@ export default function useFeedUnfocusGesture({
                     runOnJS(signalCommentsReopen)();
                     commentsHiddenSV.value = 0;
                     panEnabledSV.value = withDelay(INTERACTIVE_LOCKOUT_MS, withTiming(1, { duration: 0 }));
-                    setOverlayProgress(0);
                 }
             });
     }, [

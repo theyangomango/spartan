@@ -4,6 +4,7 @@ import BottomSheet from "@gorhom/bottom-sheet";
 import Animated, {
     useAnimatedStyle,
     interpolate,
+    interpolateColor,
     Extrapolate,
     useSharedValue,
     useDerivedValue,
@@ -19,11 +20,14 @@ const FOOTER_HEIGHT = scaleSize(87);
 const COLLAPSED_PEEK = FOOTER_HEIGHT + scaleSize(48);
 const COLLAPSED_SNAP = COLLAPSED_PEEK;
 const noop = () => { };
+const SHEET_RADIUS = scaleSize(22);
+const HANDLE_BG_COLLAPSED = 'rgba(45, 158, 255, 0.96)';
+const HANDLE_BG_EXPANDED = 'rgba(45, 158, 255, 0)';
 
 const SCREEN_HEIGHT = Dimensions.get("window").height || 0;
 const FOCUS_HIDE_DISTANCE = SCREEN_HEIGHT > 0 ? SCREEN_HEIGHT : (COLLAPSED_PEEK + scaleSize(320));
 
-const ActiveWorkoutBottomSheet = ({ hideForFocus = false, overlayProgressSV }) => {
+const ActiveWorkoutBottomSheet = ({ hideForFocus = false, overlayProgressSV, visibilityProgressSV, isActive = true }) => {
     const bottomSheetRef = useRef(null);
     const snapPoints = useMemo(() => [COLLAPSED_SNAP, "94%"], []);
     const [contentKey, setContentKey] = useState(0);
@@ -94,9 +98,12 @@ const ActiveWorkoutBottomSheet = ({ hideForFocus = false, overlayProgressSV }) =
 
     const focusAnimatedStyle = useAnimatedStyle(() => {
         const overlayProgress = overlayProgressSV?.value ?? (hideForFocus ? 0 : 1);
-        const translateY = FOCUS_HIDE_DISTANCE * (1 - overlayProgress);
+        const visibility = visibilityProgressSV?.value ?? (isActive ? 1 : 0);
+        const combinedRaw = overlayProgress * visibility;
+        const combined = combinedRaw < 0 ? 0 : combinedRaw > 1 ? 1 : combinedRaw;
+        const translateY = FOCUS_HIDE_DISTANCE * (1 - combined);
         return {
-            opacity: overlayProgress,
+            opacity: combined,
             transform: [{ translateY }],
         };
     });
@@ -184,7 +191,8 @@ const ActiveWorkoutBottomSheet = ({ hideForFocus = false, overlayProgressSV }) =
     }
 
     const sheetStyle = isExpanded ? styles.sheetExpanded : styles.sheetCollapsed;
-    const pointerEvents = hideForFocus ? 'none' : 'box-none';
+    const pointerEvents = (hideForFocus || !isActive) ? 'none' : 'box-none';
+    const gesturesEnabled = isActive && !hideForFocus;
 
     return (
         <Animated.View style={[styles.sheetWrapper, containerAnimatedStyle, focusAnimatedStyle]} pointerEvents={pointerEvents}>
@@ -196,7 +204,8 @@ const ActiveWorkoutBottomSheet = ({ hideForFocus = false, overlayProgressSV }) =
                 keyboardBehavior="interactive"
                 keyboardBlurBehavior="restore"
                 enablePanDownToClose={false}
-                enableContentPanningGesture
+                enableContentPanningGesture={gesturesEnabled}
+                enableHandlePanningGesture={gesturesEnabled}
                 style={[sheetStyle, styles.sheetOffset]}
                 onClose={() => {
                     if (allowCloseRef.current) {
@@ -231,14 +240,14 @@ const ActiveWorkoutBottomSheet = ({ hideForFocus = false, overlayProgressSV }) =
                     />
                 )}
                 handleStyle={{
-                    borderTopLeftRadius: scaleSize(22),
-                    borderTopRightRadius: scaleSize(22),
+                    borderTopLeftRadius: SHEET_RADIUS,
+                    borderTopRightRadius: SHEET_RADIUS,
                 }}
-                backgroundStyle={{
-                    backgroundColor: theme.surface,
-                    borderTopLeftRadius: scaleSize(22),
-                    borderTopRightRadius: scaleSize(22),
-                }}
+                backgroundComponent={(props) => (
+                    <SheetBackground
+                        {...props}
+                    />
+                )}
             >
                 <ActiveWorkoutModal
                     key={`nw-${contentKey}-${String(workout?.wid || "now")}`}
@@ -277,19 +286,44 @@ const SheetBackdrop = ({ animatedIndex, style }) => {
     );
 };
 
+const SheetBackground = ({ animatedIndex, style }) => {
+    const animatedStyle = useAnimatedStyle(() => ({
+        backgroundColor: interpolateColor(animatedIndex.value, [0, 1], [HANDLE_BG_COLLAPSED, theme.surface]),
+        borderTopLeftRadius: SHEET_RADIUS,
+        borderTopRightRadius: SHEET_RADIUS,
+    }));
+
+    return (
+        <Animated.View
+            pointerEvents="none"
+            style={[style, styles.sheetBackground, animatedStyle]}
+        />
+    );
+};
+
 export default memo(ActiveWorkoutBottomSheet, (prev, next) => (
     prev.hideForFocus === next.hideForFocus &&
-    prev.overlayProgressSV === next.overlayProgressSV
+    prev.overlayProgressSV === next.overlayProgressSV &&
+    prev.visibilityProgressSV === next.visibilityProgressSV &&
+    prev.isActive === next.isActive
 ));
 
 const AnimatedIndexBridge = ({ animatedIndex, sharedIndex }) => {
     useDerivedValue(() => {
         sharedIndex.value = animatedIndex.value;
     });
+
+    const wrapperStyle = useAnimatedStyle(() => {
+        const progress = sharedIndex.value ?? 0;
+        return {
+            backgroundColor: interpolateColor(progress, [0, 1], [HANDLE_BG_COLLAPSED, HANDLE_BG_EXPANDED]),
+        };
+    }, [sharedIndex]);
+
     return (
-        <View style={styles.handleWrapper} pointerEvents="none">
+        <Animated.View style={[styles.handleWrapper, wrapperStyle]} pointerEvents="none">
             <View style={styles.handleBar} />
-        </View>
+        </Animated.View>
     );
 };
 
@@ -312,10 +346,18 @@ const styles = StyleSheet.create({
     sheetOffset: {
         // marginBottom: -FOOTER_HEIGHT,
     },
+    sheetBackground: {
+        borderTopLeftRadius: SHEET_RADIUS,
+        borderTopRightRadius: SHEET_RADIUS,
+    },
     handleWrapper: {
         width: '100%',
         alignItems: 'center',
         paddingTop: scaleSize(10),
+        paddingBottom: scaleSize(6),
+        borderTopLeftRadius: SHEET_RADIUS,
+        borderTopRightRadius: SHEET_RADIUS,
+        overflow: 'hidden',
     },
     handleBar: {
         width: scaleSize(40),

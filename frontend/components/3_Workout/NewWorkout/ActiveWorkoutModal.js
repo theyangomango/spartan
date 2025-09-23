@@ -15,7 +15,6 @@ import {
     Easing,
 } from "react-native";
 import { Dimensions, FlatList } from "react-native";
-import { MaterialCommunityIcons } from "@expo/vector-icons";
 // AsyncStorage removed for reminder gating; show only on create/join events
 let FlashListLib = null;
 try { FlashListLib = require("@shopify/flash-list"); } catch {}
@@ -24,6 +23,7 @@ const BaseListComponent = canUseFlashList ? FlashListLib.FlashList : FlatList;
 const AnimatedFlashList = RNAnimated.createAnimatedComponent(BaseListComponent);
 import { BlurView } from "expo-blur";
 import { LinearGradient } from "expo-linear-gradient";
+import { MaterialCommunityIcons } from "@expo/vector-icons";
 import Animated, { useAnimatedStyle, interpolate, interpolateColor, Extrapolate, useAnimatedReaction, runOnJS } from "react-native-reanimated";
 import RNBounceable from "@freakycoder/react-native-bounceable";
 import { Weight } from "iconsax-react-native";
@@ -54,11 +54,13 @@ import useWorkoutTotals from "./hooks/useWorkoutTotals";
 import scaleSize from "../../../helper/scaleSize";
 
 const HANDLE_HORIZONTAL_PADDING = scaleSize(0);
-const HEADER_COLLAPSED_RADIUS = scaleSize(20);
 const HEADER_COLLAPSED_TRANSLATE = scaleSize(0);
 const HEADER_COLLAPSED_PADDING_V = scaleSize(0);
 const HEADER_EXPANDED_PADDING_V = scaleSize(6);
 const HEADER_EXPANDED_PADDING_H = scaleSize(24);
+const HEADER_COLLAPSED_BG = 'rgba(45, 158, 255, 0.96)';
+const HEADER_EXPANDED_BG = 'rgba(45, 158, 255, 0)';
+const SHEET_EXPANDED_BG = theme.surface;
 
 const ActiveWorkoutModal = ({
     workout,
@@ -335,15 +337,15 @@ const ActiveWorkoutModal = ({
 
     const borderOpacity = scrollY.interpolate({ inputRange: [0, 98], outputRange: [0, 1], extrapolate: "clamp" });
 
-    const collapsedTimerText = timerRef?.current || "00:00";
-    const collapsedTitle = useMemo(() => {
-        const raw = workout?.name || workout?.title || workout?.templateName;
-        if (typeof raw === 'string') {
-            const trimmed = raw.trim();
-            if (trimmed.length) return trimmed;
-        }
-        return viewingSelfEffective ? 'Active workout' : 'Viewing workout';
-    }, [workout?.name, workout?.title, workout?.templateName, viewingSelfEffective]);
+    const [collapsedTimerText, setCollapsedTimerText] = useState(() => timerRef?.current || "00:00");
+    useEffect(() => {
+        const updateTimer = () => {
+            setCollapsedTimerText(timerRef?.current || "00:00");
+        };
+        updateTimer();
+        const intervalId = setInterval(updateTimer, 1000);
+        return () => clearInterval(intervalId);
+    }, [timerRef]);
 
     const collapsedOverlayActiveRef = useRef(false);
     const [collapsedOverlayActive, setCollapsedOverlayActive] = useState(false);
@@ -366,13 +368,17 @@ const ActiveWorkoutModal = ({
     const headerAnimatedStyle = useAnimatedStyle(() => {
         const value = animatedIndex?.value ?? 1;
         const collapsedWidth = Math.max(0, screenWidth - HANDLE_HORIZONTAL_PADDING * 2);
+        const backgroundColor = interpolateColor(value, [0, 1], [HEADER_COLLAPSED_BG, HEADER_EXPANDED_BG]);
         return {
             maxWidth: interpolate(value, [0, 1], [collapsedWidth, screenWidth]),
             marginTop: interpolate(value, [0, 1], [scaleSize(-8), 0]),
-            paddingHorizontal: interpolate(value, [0, 1], [HANDLE_HORIZONTAL_PADDING, HEADER_EXPANDED_PADDING_H]),
+            paddingHorizontal: HEADER_EXPANDED_PADDING_H,
             paddingVertical: interpolate(value, [0, 1], [HEADER_COLLAPSED_PADDING_V, HEADER_EXPANDED_PADDING_V]),
-            borderRadius: interpolate(value, [0, 1], [scaleSize(12), 0]),
-            backgroundColor: 'transparent',
+            borderTopLeftRadius: 0,
+            borderTopRightRadius: 0,
+            borderBottomLeftRadius: 0,
+            borderBottomRightRadius: 0,
+            backgroundColor,
             transform: [
                 {
                     translateY: interpolate(value, [0, 1], [HEADER_COLLAPSED_TRANSLATE, 0], Extrapolate.CLAMP),
@@ -397,9 +403,15 @@ const ActiveWorkoutModal = ({
 
     const headerCollapsedOverlayAnimatedStyle = useAnimatedStyle(() => {
         const value = animatedIndex?.value ?? 1;
+        const backgroundColor = interpolateColor(value, [0, 1], [HEADER_COLLAPSED_BG, HEADER_EXPANDED_BG]);
         return {
             opacity: interpolate(value, [0, 0.35, 0.7], [1, 0.7, 0], Extrapolate.CLAMP),
             transform: [{ translateY: interpolate(value, [0, 1], [scaleSize(12), 0], Extrapolate.CLAMP) }],
+            backgroundColor,
+            borderTopLeftRadius: 0,
+            borderTopRightRadius: 0,
+            borderBottomLeftRadius: 0,
+            borderBottomRightRadius: 0,
         };
     });
 
@@ -407,6 +419,14 @@ const ActiveWorkoutModal = ({
         const value = animatedIndex?.value ?? 1;
         return {
             opacity: interpolate(value, [0, 0.35, 0.7, 1], [0, 0.25, 0.7, 1], Extrapolate.CLAMP),
+            backgroundColor: interpolateColor(value, [0, 1], [HEADER_COLLAPSED_BG, SHEET_EXPANDED_BG]),
+        };
+    });
+
+    const sheetBackgroundAnimatedStyle = useAnimatedStyle(() => {
+        const value = animatedIndex?.value ?? 1;
+        return {
+            backgroundColor: interpolateColor(value, [0, 1], [HEADER_COLLAPSED_BG, SHEET_EXPANDED_BG]),
         };
     });
 
@@ -684,7 +704,7 @@ const ActiveWorkoutModal = ({
     }, []);
 
     return (
-        <View style={styles.main_ctnr}>
+        <Animated.View style={[styles.main_ctnr, sheetBackgroundAnimatedStyle]}>
             {/* Header */}
             <Animated.View style={[styles.headerAnimated, headerAnimatedStyle]} pointerEvents="box-none">
                 <Animated.View
@@ -696,17 +716,16 @@ const ActiveWorkoutModal = ({
                         onPress={() => { try { onExpandSheet?.(); } catch {} }}
                         hitSlop={scaleSize(12)}
                     >
-                        <View style={styles.collapsedLeft}>
-                            <View style={styles.collapsedIconPill}>
-                                <MaterialCommunityIcons name="timer-outline" size={scaleSize(18)} color={theme.primary} />
-                            </View>
-                            <Text style={styles.collapsedTitle} numberOfLines={1}>{collapsedTitle}</Text>
-                        </View>
-                        <View style={styles.collapsedRight}>
-                            <View style={styles.collapsedTimerPill}>
-                                <MaterialCommunityIcons name="clock-outline" size={scaleSize(14)} color={theme.textPrimary} style={{ marginRight: scaleSize(4) }} />
-                                <Text style={styles.collapsedTimer}>{collapsedTimerText}</Text>
-                            </View>
+                        <View style={styles.collapsedHudContent}>
+                            <Text style={styles.collapsedHudLabel} numberOfLines={1}>
+                                Ongoing Workout
+                            </Text>
+                            <Text style={styles.collapsedHudSeparator}>
+                                •
+                            </Text>
+                            <Text style={styles.collapsedHudTimer} numberOfLines={1}>
+                                {collapsedTimerText}
+                            </Text>
                         </View>
                     </Pressable>
                 </Animated.View>
@@ -842,12 +861,24 @@ const ActiveWorkoutModal = ({
             >
                 <View style={styles.modalOverlay}>
                     <View style={styles.modalContainer}>
-                        <Text style={styles.modalText}>Are you sure you want to delete this workout?</Text>
-                        <RNBounceable onPress={handleDeleteWorkout} style={styles.deleteWorkoutBtn}>
-                            <Text style={styles.deleteWorkoutText}>Delete Workout</Text>
+                        <LinearGradient
+                            colors={["#2D9EFF", "#60A5FA"]}
+                            start={{ x: 0, y: 0 }}
+                            end={{ x: 1, y: 0 }}
+                            style={styles.modalAccentBar}
+                        />
+                        <View style={[styles.modalIconRing, styles.modalIconRingDanger]}>
+                            <MaterialCommunityIcons name="alert-decagram" size={scaleSize(26)} color="#FEE2E2" />
+                        </View>
+                        <Text style={styles.modalTitle}>Cancel workout?</Text>
+                        <Text style={styles.modalBody}>
+                            This clears your current progress. You can always start a new session from the hub.
+                        </Text>
+                        <RNBounceable onPress={handleDeleteWorkout} style={[styles.modalAction, styles.modalActionDanger]}>
+                            <Text style={styles.modalActionText}>Yes, cancel workout</Text>
                         </RNBounceable>
-                        <RNBounceable onPress={() => setDeleteConfirmModalVisible(false)} style={styles.cancelDeleteBtn}>
-                            <Text style={styles.cancelDeleteText}>Cancel</Text>
+                        <RNBounceable onPress={() => setDeleteConfirmModalVisible(false)} style={[styles.modalAction, styles.modalActionSecondary]}>
+                            <Text style={styles.modalActionSecondaryText}>Keep working</Text>
                         </RNBounceable>
                     </View>
                 </View>
@@ -861,19 +892,31 @@ const ActiveWorkoutModal = ({
                 statusBarTranslucent
             >
                 <Pressable style={styles.modalOverlay} onPress={() => setFinishConfirmModalVisible(false)}>
-                    <Pressable style={styles.finishModalContainer} onPress={(e) => e.stopPropagation()}>
-                        <Text style={styles.finishTitle}>Finish workout?</Text>
+                    <Pressable style={styles.modalContainer} onPress={(e) => e.stopPropagation()}>
+                        <LinearGradient
+                            colors={["#34D399", "#22C55E"]}
+                            start={{ x: 0, y: 0 }}
+                            end={{ x: 1, y: 0 }}
+                            style={styles.modalAccentBar}
+                        />
+                        <View style={[styles.modalIconRing, styles.modalIconRingSuccess]}>
+                            <MaterialCommunityIcons name="check-decagram" size={scaleSize(26)} color="#D1FAE5" />
+                        </View>
+                        <Text style={styles.modalTitle}>Finish workout?</Text>
+                        <Text style={styles.modalBody}>
+                            Double-check your sets and PRs before saving. You can always edit from the workout log later.
+                        </Text>
 
                         <RNBounceable
                             onPress={handleFinishWorkout}
-                            style={[styles.finishBtn, isFinishing ? styles.finishBtnDisabled : null]}
+                            style={[styles.modalAction, styles.modalActionSuccess, isFinishing && styles.modalActionDisabled]}
                             disabled={isFinishing}
                         >
-                            <Text style={styles.finishBtnText}>{isFinishing ? "Finishing…" : "Finish Workout"}</Text>
+                            <Text style={styles.modalActionText}>{isFinishing ? "Finishing…" : "Finish workout"}</Text>
                         </RNBounceable>
 
-                        <RNBounceable onPress={() => setFinishConfirmModalVisible(false)} style={styles.keepEditingBtn}>
-                            <Text style={styles.keepEditingText}>Keep Working</Text>
+                        <RNBounceable onPress={() => setFinishConfirmModalVisible(false)} style={[styles.modalAction, styles.modalActionSecondary]}>
+                            <Text style={styles.modalActionSecondaryText}>Keep working</Text>
                         </RNBounceable>
                     </Pressable>
                 </Pressable>
@@ -949,7 +992,7 @@ const ActiveWorkoutModal = ({
                     )}
                 </View>
             ) : null; })()}
-        </View >
+        </Animated.View >
     );
 };
 
@@ -957,7 +1000,7 @@ const styles = StyleSheet.create({
     main_ctnr: { flex: 1 },
 
     // Header animation wrappers
-    headerAnimated: { backgroundColor: 'transparent', position: 'relative', alignItems: 'stretch', alignSelf: 'center', width: '100%' },
+    headerAnimated: { backgroundColor: 'transparent', position: 'relative', alignItems: 'stretch', alignSelf: 'center', width: '100%', overflow: 'hidden' },
     headerCollapsedOverlay: {
         position: 'absolute',
         left: 0,
@@ -981,15 +1024,14 @@ const styles = StyleSheet.create({
     headerShadow: { height: scaleSize(scaledSize(2)), backgroundColor: theme.hairline },
     bodyContainer: { flex: 1, width: '100%' },
     collapsedHud: {
-        backgroundColor: 'rgba(33, 44, 68, 0.96)',
-        flex: 1,
-        width: '100%',
+        // backgroundColor: 'rgba(33, 44, 68, 0.96)',
         flexDirection: 'row',
-        // backgroundColor: 'rgba(17, 25, 40, 0.94)',
-        borderRadius: scaleSize(18),
-        paddingVertical: scaleSize(10),
-        paddingHorizontal: scaleSize(14),
-        borderWidth: scaleSize(1),
+        justifyContent: 'center',
+        alignItems: 'center',
+        width: '100%',
+        // borderRadius: scaleSize(18),
+        paddingHorizontal: scaleSize(18),
+        // borderWidth: scaleSize(1),
         borderColor: 'rgba(110, 184, 255, 0.38)',
         shadowColor: '#000',
         shadowOpacity: 0.12,
@@ -997,44 +1039,29 @@ const styles = StyleSheet.create({
         shadowOffset: { width: 0, height: scaleSize(4) },
         elevation: 6,
     },
-    collapsedLeft: {
+    collapsedHudContent: {
         flexDirection: 'row',
         alignItems: 'center',
-        flex: 1,
-        marginRight: scaleSize(12),
-        gap: scaleSize(10),
-    },
-    collapsedIconPill: {
-        width: scaleSize(34),
-        height: scaleSize(34),
-        borderRadius: scaleSize(17),
-        alignItems: 'center',
         justifyContent: 'center',
-        backgroundColor: 'rgba(59, 130, 246, 0.18)',
+        marginTop: scaleSize(-4)
     },
-    collapsedTitle: {
+    collapsedHudLabel: {
         fontFamily: 'Outfit_700Bold',
         fontSize: scaleSize(14),
         color: theme.textPrimary,
         flexShrink: 1,
+        textAlign: 'center',
     },
-    collapsedRight: {
-        flexDirection: 'row',
-        alignItems: 'center',
-    },
-    collapsedTimerPill: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        paddingHorizontal: scaleSize(12),
-        paddingVertical: scaleSize(6),
-        borderRadius: scaleSize(14),
-        backgroundColor: 'rgba(148, 163, 184, 0.18)',
-    },
-    collapsedTimer: {
-        fontFamily: 'Outfit_600SemiBold',
-        fontSize: scaleSize(12),
+    collapsedHudSeparator: {
+        fontFamily: 'Outfit_700Bold',
+        fontSize: scaleSize(14),
         color: theme.textPrimary,
-        letterSpacing: 0.15,
+        marginHorizontal: scaleSize(12),
+    },
+    collapsedHudTimer: {
+        fontFamily: 'Outfit_700Bold',
+        fontSize: scaleSize(14),
+        color: theme.textPrimary,
     },
     // Allow the BottomSheet background to show through
     scrollview: { paddingTop: scaleSize(scaledSize(5)), backgroundColor: 'transparent' },
@@ -1085,21 +1112,119 @@ const styles = StyleSheet.create({
     },
     cancel_btn_text: { fontSize: scaleSize(16), fontFamily: "Outfit_700Bold", color: "#FFFFFF", marginRight: scaleSize(scaledSize(4.5)) },
 
-    modalOverlay: { flex: 1, justifyContent: "center", alignItems: "center", backgroundColor: "rgba(0,0,0,0.5)", paddingHorizontal: scaleSize(scaledSize(24)) },
-    modalContainer: { width: "100%", padding: scaleSize(scaledSize(20)), backgroundColor: theme.surface, borderRadius: scaleSize(scaledSize(15)), alignItems: "center" },
-    modalText: { fontSize: scaleSize(16), color: theme.textPrimary, fontFamily: "Outfit_700Bold", marginBottom: scaleSize(scaledSize(20)), textAlign: "center" },
-    deleteWorkoutBtn: { width: "100%", paddingVertical: scaleSize(scaledSize(10)), backgroundColor: "#D94C4C", borderRadius: scaleSize(scaledSize(8)), alignItems: "center", marginBottom: scaleSize(scaledSize(10)) },
-    deleteWorkoutText: { color: "#FFFFFF", fontSize: scaleSize(14), fontFamily: "Outfit_700Bold" },
-    cancelDeleteBtn: { width: "100%", paddingVertical: scaleSize(scaledSize(10)), backgroundColor: '#21242dff', borderRadius: scaleSize(scaledSize(8)), alignItems: "center" },
-    cancelDeleteText: { color: theme.textPrimary, fontSize: scaleSize(14), fontFamily: "Outfit_700Bold" },
-
-    finishModalContainer: { width: "100%", padding: scaleSize(scaledSize(20)), backgroundColor: theme.surface, borderRadius: scaleSize(scaledSize(16)), alignItems: "center" },
-    finishTitle: { fontSize: scaleSize(18), color: theme.textPrimary, fontFamily: "Outfit_700Bold", textAlign: "center", marginBottom: scaleSize(scaledSize(16)) },
-    finishBtn: { width: "100%", paddingVertical: scaleSize(scaledSize(10)), backgroundColor: theme.successButton, borderRadius: scaleSize(scaledSize(10)), alignItems: "center", marginBottom: scaleSize(scaledSize(10)) },
-    finishBtnText: { color: "#fff", fontSize: scaleSize(14.5), fontFamily: "Outfit_700Bold" },
-    finishBtnDisabled: { opacity: 0.6 },
-    keepEditingBtn: { width: "100%", paddingVertical: scaleSize(scaledSize(10)), backgroundColor: '#21242dff', borderRadius: scaleSize(scaledSize(10)), alignItems: "center" },
-    keepEditingText: { color: theme.textPrimary, fontSize: scaleSize(14), fontFamily: "Outfit_600SemiBold" },
+    modalOverlay: {
+        flex: 1,
+        justifyContent: "center",
+        alignItems: "center",
+        backgroundColor: "rgba(8, 13, 24, 0.78)",
+        paddingHorizontal: scaleSize(scaledSize(24)),
+    },
+    modalContainer: {
+        width: "100%",
+        maxWidth: scaleSize(scaledSize(360)),
+        paddingTop: scaleSize(scaledSize(36)),
+        paddingBottom: scaleSize(scaledSize(24)),
+        paddingHorizontal: scaleSize(scaledSize(24)),
+        backgroundColor: 'rgba(20, 28, 45, 0.96)',
+        borderRadius: scaleSize(scaledSize(24)),
+        borderWidth: scaleSize(1),
+        borderColor: 'rgba(99, 123, 171, 0.38)',
+        alignItems: "center",
+        shadowColor: '#000000',
+        shadowOpacity: 0.28,
+        shadowRadius: scaleSize(scaledSize(24)),
+        shadowOffset: { width: 0, height: scaleSize(scaledSize(14)) },
+        elevation: 16,
+        overflow: 'hidden',
+    },
+    modalAccentBar: {
+        position: 'absolute',
+        left: 0,
+        right: 0,
+        top: 0,
+        height: scaleSize(scaledSize(6)),
+        borderTopLeftRadius: scaleSize(scaledSize(24)),
+        borderTopRightRadius: scaleSize(scaledSize(24)),
+        opacity: 0.9,
+    },
+    modalIconRing: {
+        width: scaleSize(scaledSize(58)),
+        height: scaleSize(scaledSize(58)),
+        borderRadius: scaleSize(scaledSize(32)),
+        alignItems: 'center',
+        justifyContent: 'center',
+        marginBottom: scaleSize(scaledSize(18)),
+        borderWidth: scaleSize(1.5),
+    },
+    modalIconRingDanger: {
+        backgroundColor: 'rgba(239,68,68,0.12)',
+        borderColor: 'rgba(239,68,68,0.36)',
+    },
+    modalIconRingSuccess: {
+        backgroundColor: 'rgba(34,197,94,0.12)',
+        borderColor: 'rgba(34,197,94,0.36)',
+    },
+    modalTitle: {
+        fontSize: scaleSize(20),
+        fontFamily: 'Poppins_700Bold',
+        color: theme.textPrimary,
+        textAlign: 'center',
+        marginBottom: scaleSize(scaledSize(10)),
+        letterSpacing: 0.2,
+    },
+    modalBody: {
+        fontSize: scaleSize(13.8),
+        fontFamily: 'Outfit_500Medium',
+        color: theme.textSecondary,
+        textAlign: 'center',
+        marginBottom: scaleSize(scaledSize(22)),
+        lineHeight: scaleSize(scaledSize(20)),
+    },
+    modalAction: {
+        width: '100%',
+        borderRadius: scaleSize(scaledSize(14)),
+        paddingVertical: scaleSize(scaledSize(12)),
+        alignItems: 'center',
+        justifyContent: 'center',
+        marginBottom: scaleSize(scaledSize(12)),
+    },
+    modalActionDanger: {
+        backgroundColor: '#EF4444',
+        shadowColor: '#EF4444',
+        shadowOpacity: 0.32,
+        shadowRadius: scaleSize(scaledSize(12)),
+        shadowOffset: { width: 0, height: scaleSize(scaledSize(6)) },
+        elevation: 6,
+    },
+    modalActionSuccess: {
+        backgroundColor: '#10B981',
+        shadowColor: '#10B981',
+        shadowOpacity: 0.32,
+        shadowRadius: scaleSize(scaledSize(12)),
+        shadowOffset: { width: 0, height: scaleSize(scaledSize(6)) },
+        elevation: 6,
+    },
+    modalActionSecondary: {
+        backgroundColor: 'rgba(148, 163, 184, 0.12)',
+        borderWidth: scaleSize(1),
+        borderColor: 'rgba(148, 197, 255, 0.24)',
+        marginBottom: 0,
+    },
+    modalActionText: {
+        fontFamily: 'Poppins_700Bold',
+        fontSize: scaleSize(14.5),
+        color: '#F8FAFC',
+        letterSpacing: 0.3,
+    },
+    modalActionSecondaryText: {
+        fontFamily: 'Outfit_600SemiBold',
+        fontSize: scaleSize(13.5),
+        color: theme.textPrimary,
+        letterSpacing: 0.25,
+    },
+    modalActionDisabled: {
+        opacity: 0.6,
+    },
     // Reminder styles (gradient border card)
     reminderWrapper: {
         width: "92%",

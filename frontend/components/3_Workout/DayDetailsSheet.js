@@ -1,5 +1,5 @@
 // components/3_Workout/DayDetailsSheet.jsx
-import React, { memo, useCallback, useEffect, useMemo, useRef, useState } from "react";
+import React, { memo, useCallback, useEffect, useMemo, useRef, useState, useLayoutEffect } from "react";
 import { View, Text, StyleSheet, Pressable, Animated, useWindowDimensions, VirtualizedList, Easing, Modal, ScrollView, InteractionManager } from "react-native";
 import { Gesture, GestureDetector } from 'react-native-gesture-handler';
 import { useSharedValue, runOnJS } from 'react-native-reanimated';
@@ -21,6 +21,7 @@ import scaleSize from "../../helper/scaleSize";
 import { Ionicons } from "@expo/vector-icons";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { strong as haptic } from "../../utils/haptics";
+import { FlashList } from "@shopify/flash-list";
 
 const HEADER_HEIGHT = scaleSize(48);
 const EDGE_BACK_GESTURE_WIDTH = 200; // px area from left edge to trigger back swipe
@@ -104,6 +105,7 @@ const buildMonthData = (year, month, markedSet, selectedKey, todayKey) => {
         label: `${MONTH_NAMES[month]} ${year}`,
         cells,
         monthIndex: (year * 12) + month,
+        rows: Math.max(1, Math.ceil(cells.length / 7)),
     };
 };
 
@@ -157,7 +159,11 @@ const HistoryCalendarModal = memo(function HistoryCalendarModal({
     const insets = useSafeAreaInsets();
     const listRef = useRef(null);
     const monthsCacheRef = useRef({ key: null, months: [] });
-    const readyRef = useRef(false);
+    const lastTargetRef = useRef({ key: null, index: null });
+    const alignedSignatureRef = useRef(null);
+    const [months, setMonths] = useState(() => monthsCacheRef.current.months || []);
+    const [listReady, setListReady] = useState(false);
+    const { width: screenWidth } = useWindowDimensions();
 
     const marksSet = useMemo(() => {
         if (!markedDayKeys) return new Set();
@@ -188,32 +194,26 @@ const HistoryCalendarModal = memo(function HistoryCalendarModal({
 
     const monthsCacheKey = useMemo(() => `${marksSignature}|${selectedSignature}`, [marksSignature, selectedSignature]);
 
-    const months = useMemo(() => {
-        if (monthsCacheRef.current.key === monthsCacheKey && monthsCacheRef.current.months.length) {
-            return monthsCacheRef.current.months;
+    useEffect(() => {
+        const cached = monthsCacheRef.current;
+        if (cached.key === monthsCacheKey && cached.months.length) {
+            setMonths(cached.months);
+            return;
         }
-        const computed = buildCalendarMonths(normalizedSelectedDate, marksSet);
-        monthsCacheRef.current = { key: monthsCacheKey, months: computed };
-        return computed;
+
+        let cancelled = false;
+        const task = InteractionManager.runAfterInteractions(() => {
+            if (cancelled) return;
+            const computed = buildCalendarMonths(normalizedSelectedDate, marksSet);
+            monthsCacheRef.current = { key: monthsCacheKey, months: computed };
+            setMonths(computed);
+        });
+
+        return () => {
+            cancelled = true;
+            try { task?.cancel?.(); } catch { }
+        };
     }, [monthsCacheKey, normalizedSelectedDate, marksSet]);
-
-    const currentScrollKeyRef = useRef(null);
-    const scrollViewRef = useRef(null);
-    const scrollPerformedRef = useRef(false);
-
-    useEffect(() => {
-        currentScrollKeyRef.current = null;
-        readyRef.current = false;
-        scrollPerformedRef.current = false;
-    }, [monthsCacheKey]);
-
-    useEffect(() => {
-        if (!visible) {
-            currentScrollKeyRef.current = null;
-            readyRef.current = false;
-            scrollPerformedRef.current = false;
-        }
-    }, [visible]);
 
     const targetMonthIndex = useMemo(() => {
         if (!months.length) return 0;
@@ -230,6 +230,36 @@ const HistoryCalendarModal = memo(function HistoryCalendarModal({
         return months.length - 1;
     }, [months, normalizedSelectedDate]);
 
+    const safeTargetIndex = useMemo(() => {
+        if (!months.length) return null;
+        return Math.min(Math.max(targetMonthIndex, 0), months.length - 1);
+    }, [months, targetMonthIndex]);
+
+    useEffect(() => {
+        lastTargetRef.current = { key: monthsCacheKey, index: null };
+        alignedSignatureRef.current = null;
+        setListReady(false);
+    }, [monthsCacheKey]);
+
+    const targetSignature = useMemo(() => {
+        if (safeTargetIndex === null) return null;
+        return `${monthsCacheKey}-${safeTargetIndex}`;
+    }, [monthsCacheKey, safeTargetIndex]);
+
+    useEffect(() => {
+        if (!visible) {
+            lastTargetRef.current = { key: null, index: null };
+            alignedSignatureRef.current = null;
+            setListReady(false);
+        }
+    }, [visible]);
+
+    useEffect(() => {
+        if (visible && !months.length) {
+            setListReady(true);
+        }
+    }, [months.length, visible]);
+
     const handleSelect = useCallback((timestamp) => {
         if (!Number.isFinite(timestamp)) return;
         const next = new Date(timestamp);
@@ -238,24 +268,165 @@ const HistoryCalendarModal = memo(function HistoryCalendarModal({
         onSelectDate?.(next);
     }, [onSelectDate]);
 
-    const handleTargetLayout = useCallback((monthIndex, layoutY) => {
-        if (!visible) return;
-        if (scrollPerformedRef.current) return;
-        const target = months[targetMonthIndex];
-        if (!target || monthIndex !== target.monthIndex) return;
-        const offset = Math.max(0, layoutY);
-        const targetKey = `${monthsCacheKey}|${monthIndex}`;
-        InteractionManager.runAfterInteractions(() => {
-            requestAnimationFrame(() => {
-                try {
-                    scrollViewRef.current?.scrollTo({ y: offset, animated: false });
-                    currentScrollKeyRef.current = targetKey;
-                    readyRef.current = true;
-                    scrollPerformedRef.current = true;
-                } catch { /* ignore */ }
-            });
+    const monthHeights = useMemo(() => {
+        if (!months.length) return [];
+        const contentPadding = scaleSize(18) * 2;
+        const cardPadding = scaleSize(18) * 2;
+        const cardWidth = Math.max(0, screenWidth - contentPadding);
+        const gridWidth = Math.max(0, cardWidth - cardPadding);
+        const cellSize = gridWidth > 0 ? (gridWidth / 7) : scaleSize(42);
+        const cellSpacing = scaleSize(12);
+        const labelHeight = scaleSize(18);
+        const labelMarginBottom = scaleSize(10);
+        const blockMarginBottom = scaleSize(22);
+
+        return months.map((item) => {
+            const rows = item?.rows && Number.isFinite(item.rows) ? item.rows : Math.max(1, Math.ceil((item?.cells?.length || 7) / 7));
+            const gridHeight = rows * (cellSize + cellSpacing);
+            const total = labelHeight + labelMarginBottom + gridHeight + blockMarginBottom;
+            return Math.max(1, Math.round(total));
         });
-    }, [visible, months, targetMonthIndex, monthsCacheKey]);
+    }, [months, screenWidth]);
+
+    const monthOffsets = useMemo(() => {
+        if (!monthHeights.length) return [];
+        const offsets = new Array(monthHeights.length);
+        let running = 0;
+        for (let i = 0; i < monthHeights.length; i += 1) {
+            offsets[i] = running;
+            running += monthHeights[i];
+        }
+        return offsets;
+    }, [monthHeights]);
+
+    const overrideItemLayout = useCallback((layout, _item, index) => {
+        const size = monthHeights[index];
+        if (!size) return;
+        layout.size = size;
+        layout.offset = monthOffsets[index] ?? 0;
+    }, [monthHeights, monthOffsets]);
+
+    const estimatedItemSize = useMemo(() => {
+        if (monthHeights.length) {
+            const targetIdx = safeTargetIndex ?? 0;
+            const idx = Math.min(Math.max(targetIdx, 0), monthHeights.length - 1);
+            return monthHeights[idx] || monthHeights[0];
+        }
+
+        const contentPadding = scaleSize(18) * 2;
+        const cardPadding = scaleSize(18) * 2;
+        const cardWidth = Math.max(0, screenWidth - contentPadding);
+        const gridWidth = Math.max(0, cardWidth - cardPadding);
+        const cellSize = gridWidth > 0 ? gridWidth / 7 : scaleSize(42);
+        const rowHeight = cellSize + scaleSize(12);
+        const labelHeight = scaleSize(24);
+        const spacing = scaleSize(22);
+        return Math.max(240, Math.round(labelHeight + (rowHeight * 6) + spacing));
+    }, [monthHeights, safeTargetIndex, screenWidth]);
+
+    useLayoutEffect(() => {
+        if (!visible) return;
+        if (targetSignature == null) return;
+        if (!months.length) return;
+
+        const list = listRef.current;
+        if (!list || typeof list.scrollToIndex !== 'function') return;
+
+        if (alignedSignatureRef.current === targetSignature) {
+            setListReady(true);
+            return;
+        }
+
+        let cancelled = false;
+        const attemptScroll = (retries = 4) => {
+            if (cancelled) return;
+            try {
+                list.scrollToIndex({ index: safeTargetIndex, animated: false });
+                lastTargetRef.current = { key: targetSignature, index: safeTargetIndex };
+                setListReady(true);
+            } catch {
+                if (retries <= 0) {
+                    setListReady(true);
+                    return;
+                }
+                requestAnimationFrame(() => attemptScroll(retries - 1));
+            }
+        };
+
+        attemptScroll();
+
+        return () => {
+            cancelled = true;
+        };
+    }, [visible, targetSignature, safeTargetIndex, months.length]);
+
+    const handleMonthLayout = useCallback((monthIndex) => {
+        if (!visible) return;
+        if (targetSignature == null) return;
+        if (alignedSignatureRef.current === targetSignature) return;
+        const target = months[safeTargetIndex ?? -1];
+        if (!target || target.monthIndex !== monthIndex) return;
+
+        alignedSignatureRef.current = targetSignature;
+        setListReady(true);
+    }, [visible, targetSignature, months, safeTargetIndex]);
+
+    const renderMonth = useCallback(({ item }) => (
+        <View
+            style={styles.calendarMonthBlock}
+            onLayout={(event) => {
+                handleMonthLayout(item.monthIndex);
+            }}
+        >
+            <Text style={styles.calendarMonthLabel}>{item.label}</Text>
+            <View style={styles.calendarGrid}>
+                {item.cells.map((cell, idx) => {
+                    const cellKey = cell ? `${item.monthIndex}-${cell.key}` : `placeholder-${item.monthIndex}-${idx}`;
+                    if (!cell) {
+                        return <View key={cellKey} style={styles.calendarCell} />;
+                    }
+                    return (
+                        <Pressable
+                            key={cellKey}
+                            style={styles.calendarCell}
+                            hitSlop={10}
+                            onPress={() => { try { haptic(); } catch {} handleSelect(cell.timestamp); }}
+                            accessibilityRole="button"
+                            accessibilityLabel={`Go to ${cell.key}`}
+                        >
+                            <View
+                                style={[
+                                    styles.calendarDayCircle,
+                                    cell.isMarked && styles.calendarDayLogged,
+                                    cell.isToday && styles.calendarDayToday,
+                                    cell.isSelected && styles.calendarDaySelected,
+                                ]}
+                            >
+                                <Text
+                                    style={[
+                                        styles.calendarDayText,
+                                        (cell.isMarked || cell.isSelected) && styles.calendarDayTextActive,
+                                    ]}
+                                >
+                                    {cell.day}
+                                </Text>
+                            </View>
+                        </Pressable>
+                    );
+                })}
+            </View>
+        </View>
+    ), [handleSelect, handleMonthLayout]);
+
+    const keyExtractor = useCallback((item) => String(item.monthIndex), []);
+
+    const renderEmpty = useCallback(() => (
+        <View style={styles.calendarLoadingWrap}>
+            <Text style={styles.calendarLoadingText}>Loading…</Text>
+        </View>
+    ), []);
+
+    const initialScrollIndex = safeTargetIndex ?? undefined;
 
     return (
         <Modal
@@ -303,61 +474,28 @@ const HistoryCalendarModal = memo(function HistoryCalendarModal({
                             ))}
                         </View>
 
-                        <ScrollView
-                            ref={scrollViewRef}
-                            showsVerticalScrollIndicator={false}
-                            contentContainerStyle={styles.calendarScrollContent}
-                        >
-                            {months.map((item) => (
-                                <View
-                                    key={item.monthIndex}
-                                    style={styles.calendarMonthBlock}
-                                    onLayout={(event) => {
-                                        const { layout } = event?.nativeEvent || {};
-                                        if (!layout || typeof layout.y !== 'number') return;
-                                        handleTargetLayout(item.monthIndex, layout.y);
-                                    }}
-                                >
-                                    <Text style={styles.calendarMonthLabel}>{item.label}</Text>
-                                    <View style={styles.calendarGrid}>
-                                        {item.cells.map((cell, idx) => {
-                                            const cellKey = cell ? `${item.monthIndex}-${cell.key}` : `placeholder-${item.monthIndex}-${idx}`;
-                                            if (!cell) {
-                                                return <View key={cellKey} style={styles.calendarCell} />;
-                                            }
-                                            return (
-                                                <Pressable
-                                                    key={cellKey}
-                                                    style={styles.calendarCell}
-                                                    hitSlop={10}
-                                                    onPress={() => { try { haptic(); } catch {} handleSelect(cell.timestamp); }}
-                                                    accessibilityRole="button"
-                                                    accessibilityLabel={`Go to ${cell.key}`}
-                                                >
-                                                    <View
-                                                        style={[
-                                                            styles.calendarDayCircle,
-                                                            cell.isMarked && styles.calendarDayLogged,
-                                                            cell.isToday && styles.calendarDayToday,
-                                                            cell.isSelected && styles.calendarDaySelected,
-                                                        ]}
-                                                    >
-                                                        <Text
-                                                            style={[
-                                                                styles.calendarDayText,
-                                                                (cell.isMarked || cell.isSelected) && styles.calendarDayTextActive,
-                                                            ]}
-                                                        >
-                                                            {cell.day}
-                                                        </Text>
-                                                    </View>
-                                                </Pressable>
-                                            );
-                                        })}
-                                    </View>
-                                </View>
-                            ))}
-                        </ScrollView>
+                        <View style={[styles.calendarListWrap, listReady ? null : styles.calendarListHidden]}>
+                            <FlashList
+                                key={targetSignature || monthsCacheKey}
+                                ref={listRef}
+                                data={months}
+                                keyExtractor={keyExtractor}
+                                renderItem={renderMonth}
+                                estimatedItemSize={estimatedItemSize}
+                                showsVerticalScrollIndicator={false}
+                                contentContainerStyle={styles.calendarScrollContent}
+                                initialScrollIndex={initialScrollIndex}
+                                onScrollToIndexFailed={({ index }) => {
+                                    requestAnimationFrame(() => {
+                                        try { listRef.current?.scrollToIndex({ index, animated: false }); } catch { }
+                                    });
+                                }}
+                                extraData={monthsCacheKey}
+                                ListEmptyComponent={renderEmpty}
+                                overrideItemLayout={overrideItemLayout}
+                                removeClippedSubviews
+                            />
+                        </View>
                     </View>
                 </View>
             </View>
@@ -421,6 +559,7 @@ const DayDetailsSheet = ({
     const BASE_INDEX = Math.floor(TOTAL_PAGES / 2);
     const [baseIndex, setBaseIndex] = useState(BASE_INDEX);
     const [calendarVisible, setCalendarVisible] = useState(false);
+    const [hasMountedCalendar, setHasMountedCalendar] = useState(false);
 
     // Expand helper that tolerates ref not being ready on first render
     const openSessionsRef = useRef([]);
@@ -875,6 +1014,10 @@ const DayDetailsSheet = ({
         } catch { }
     }, [baseIndex, onChangeDate]);
 
+    useEffect(() => {
+        if (calendarVisible) setHasMountedCalendar(true);
+    }, [calendarVisible]);
+
     const StaticHeaderRow = useMemo(() => {
         const title = fmt(headerDate) || "Select a date";
         return (
@@ -950,13 +1093,15 @@ const DayDetailsSheet = ({
 
     return (
         <>
-            <HistoryCalendarModal
-                visible={calendarVisible}
-                onClose={closeCalendar}
-                onSelectDate={handleCalendarSelect}
-                selectedDate={headerDate}
-                markedDayKeys={calendarMarkedSet}
-            />
+            {(calendarVisible || hasMountedCalendar) && (
+                <HistoryCalendarModal
+                    visible={calendarVisible}
+                    onClose={closeCalendar}
+                    onSelectDate={handleCalendarSelect}
+                    selectedDate={headerDate}
+                    markedDayKeys={calendarMarkedSet}
+                />
+            )}
             <View style={styles.outerContainer} pointerEvents="box-none">
                 <BottomSheet
                     ref={bottomSheetRef}
@@ -1293,7 +1438,10 @@ const styles = StyleSheet.create({
         color: theme.textSecondary,
     },
     calendarDayTextActive: { color: theme.textPrimary },
-    calendarDayCheck: { position: 'absolute', top: scaleSize(-2), right: scaleSize(-2) },
+    calendarListWrap: { flex: 1, alignSelf: 'stretch' },
+    calendarListHidden: { opacity: 0 },
+    calendarLoadingWrap: { paddingVertical: scaleSize(40), alignItems: 'center', justifyContent: 'center' },
+    calendarLoadingText: { fontFamily: 'Outfit_600SemiBold', fontSize: scaleSize(12.5), color: theme.textSecondary },
 
     // Position toast near the top of the overlay content
     toastWrap: {

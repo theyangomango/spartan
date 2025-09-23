@@ -1,13 +1,35 @@
-import React, { useCallback, useMemo, useRef, useState } from "react";
+import React, { useCallback, useMemo, useRef, useState, useEffect } from "react";
+import { useWindowDimensions } from "react-native";
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import BottomSheet, { BottomSheetBackdrop } from "@gorhom/bottom-sheet";
 import theme from "../../../theme/mfpDark";
 import ProfileBottomModal from "./ProfileBottomModal";
+import scaleSize from "../../../helper/scaleSize";
 
-const ProfileBottomBottomSheet = ({ selectedPanel, setSelectedPanel, posts, savedPosts, completedWorkouts, onOpenWorkout }) => {
+const ProfileBottomBottomSheet = ({ selectedPanel, setSelectedPanel, posts, savedPosts, completedWorkouts, onOpenWorkout, topContentHeight }) => {
     const bottomSheetRef = useRef(null);
-    const snapPoints = useMemo(() => ["55%", "94%"], []);
+    const insets = useSafeAreaInsets();
+    const { height: windowHeight } = useWindowDimensions();
+    const snapPoints = useMemo(() => {
+        const B = insets.bottom || 0;
+        const T = insets.top || 0;
+        const safeHeight = Math.max(windowHeight, 1);
+        const fallbackTop = T + safeHeight * 0.45;
+        let targetTop = typeof topContentHeight === 'number' && topContentHeight > 0 ? (T + topContentHeight) : fallbackTop;
+        // Keep the top anchor within the screen bounds to avoid negative snap sizes.
+        const maxTop = Math.max(0, safeHeight - B - 1);
+        const collapsedInset = scaleSize(0);
+        targetTop = Math.min(Math.max(targetTop + collapsedInset, 0), maxTop);
+        const collapsed = Math.max(1, Math.ceil(safeHeight - targetTop - B));
+        const expanded = Math.max(collapsed + 1, Math.ceil(safeHeight * 0.94 - B));
+        return [collapsed, expanded];
+    }, [insets.bottom, insets.top, windowHeight, topContentHeight]);
     const [isBottomSheetExpanded, setIsBottomSheetExpanded] = useState(false);
+
+    useEffect(() => {
+        if (topContentHeight == null) return;
+        bottomSheetRef.current?.snapToIndex(0);
+    }, [topContentHeight, insets.top]);
 
     const handleSheetChanges = useCallback((idx) => {
         const index = typeof idx === 'number' ? idx : -1;
@@ -35,8 +57,6 @@ const ProfileBottomBottomSheet = ({ selectedPanel, setSelectedPanel, posts, save
         ),
         []
     );
-
-    const insets = useSafeAreaInsets();
 
     return (
         <BottomSheet

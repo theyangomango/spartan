@@ -14,6 +14,8 @@ const { height: screenHeight } = Dimensions.get("window");
 const scale = screenHeight / 844;
 const s = (n) => Math.round(n * scale);
 const ENABLE_LAYOUT_ANIM = false;
+const SYNC_DEBOUNCE_MS = 80;
+const RAF_FALLBACK_MS = 24;
 
 // simple debounce
 const useDebounced = (fn, delay = 120) => {
@@ -73,11 +75,36 @@ function ExerciseLog({
     // Debounced parent sync
     const { schedule: scheduleSync, flush: flushSync } = useDebounced(
         (payload) => updateSets(exerciseIndex, payload),
-        120
+        SYNC_DEBOUNCE_MS
     );
 
-    // Ensure we don’t drop the last few edits
-    useEffect(() => () => { flushSync(setsRef.current); }, [flushSync]);
+    const rafFlushRef = useRef(null);
+    const cancelPendingRafFlush = useCallback(() => {
+        if (!rafFlushRef.current) return;
+        if (typeof cancelAnimationFrame === "function") {
+            cancelAnimationFrame(rafFlushRef.current);
+        } else {
+            clearTimeout(rafFlushRef.current);
+        }
+        rafFlushRef.current = null;
+    }, []);
+
+    const flushNextFrame = useCallback((payload) => {
+        cancelPendingRafFlush();
+        const raf = (typeof requestAnimationFrame === "function")
+            ? requestAnimationFrame
+            : (cb) => setTimeout(cb, RAF_FALLBACK_MS);
+        rafFlushRef.current = raf(() => {
+            rafFlushRef.current = null;
+            flushSync(payload);
+        });
+    }, [cancelPendingRafFlush, flushSync]);
+
+    useEffect(() => () => {
+        // Ensure pending edits still sync if the row unmounts mid-typing
+        cancelPendingRafFlush();
+        flushSync(setsRef.current);
+    }, [cancelPendingRafFlush, flushSync]);
 
     // ----- Previous sets (read-only display) -----
     const [previousSets, setPreviousSets] = useState([]);
@@ -161,7 +188,7 @@ function ExerciseLog({
     const addSet = withLayout(() => {
         const next = [...(setsRef.current || []), { id: genLocalId(), weight: 0, reps: 0, isDone: false }];
         setDraft(next);
-        scheduleSync(next);
+        flushNextFrame(next);
         try { Haptics.selectionAsync?.(); } catch {}
     });
 
@@ -179,7 +206,7 @@ function ExerciseLog({
         const cur = setsRef.current || [];
         const next = cur.filter((s) => s?.id !== sid);
         setDraft(next);
-        scheduleSync(next);
+        flushNextFrame(next);
     });
 
     const toggleIsDoneById = useCallback((sid) => {
@@ -193,11 +220,10 @@ function ExerciseLog({
         const toggledDone = !row.isDone;
         next[idx] = { ...row, isDone: toggledDone };
         setDraft(next);
-        // immediate sync feels better for done/undone (still one update)
-        scheduleSync(next);
+        flushNextFrame(next);
         // Light haptic feedback only when completing a set
         if (toggledDone) { try { Haptics.impactAsync?.(Haptics.ImpactFeedbackStyle.Light); } catch {} }
-    }, [scheduleSync]);
+    }, [flushNextFrame]);
 
     return (
         <View style={styles.main_ctnr}>

@@ -16,16 +16,19 @@ const COLORS = {
     active: theme.textPrimary,
     // Darker inactive for stronger selected contrast
     inactive: '#4F5A69',
-    // Align indicator + icon with brand primary for dark theme
-    workoutActive: theme.primary,
-    // Subtle brand-tinted halo for dark surfaces
-    workoutHalo: 'rgba(45, 158, 255, 0.16)', // theme.primary @ 16%
-    workoutHaloBorder: 'rgba(45, 158, 255, 0.6)',
     bg: theme.bg,
     hairline: theme.hairline,
 };
 
-const Footer = ({ currentScreenName, navigation, isOverlay = false, isHiddenByFocus = false, overlayProgressSV }) => {
+const Footer = ({
+    currentScreenName,
+    navigation,
+    isOverlay = false,
+    isHiddenByFocus = false,
+    overlayProgressSV,
+    visibilityProgressSV,
+    disableInteractions = false,
+}) => {
     const globalOverlayEnabled = Boolean(global?.__USE_GLOBAL_FOOTER);
     if (!isOverlay && globalOverlayEnabled) {
         return null;
@@ -61,27 +64,13 @@ const Footer = ({ currentScreenName, navigation, isOverlay = false, isHiddenByFo
     const sheetSharedAnimatedIndex = useWorkoutStore((s) => s.sheetSharedAnimatedIndex);
     const sheetState = useWorkoutStore((s) => s.sheetState);
 
-    const getIconColor = (screenName) => {
-        if (screenName === 'Workout' && hasActiveWorkout) {
-            // Keep icon white when actively on Workout; otherwise show blue hint
-            return currentScreenName === 'Workout' ? COLORS.active : COLORS.workoutActive;
-        }
-        return currentScreenName === screenName ? COLORS.active : COLORS.inactive;
-    };
-
-    const markSheetExpanded = () => {
-        try {
-            const store = useWorkoutStore.getState();
-            if (!store.workout) return;
-            store.setSheetState(WORKOUT_SHEET_STATES.EXPANDED);
-            const makeVisible = store.sheetHandlers?.setIsVisible;
-            if (typeof makeVisible === 'function') makeVisible(true);
-        } catch {}
-    };
+    const getIconColor = (screenName) => (
+        currentScreenName === screenName ? COLORS.active : COLORS.inactive
+    );
 
     const footerPointerEvents = useMemo(() => (
-        (isHiddenByFocus || (hasActiveWorkout && sheetState === WORKOUT_SHEET_STATES.EXPANDED)) ? 'none' : 'auto'
-    ), [hasActiveWorkout, sheetState, isHiddenByFocus]);
+        (disableInteractions || isHiddenByFocus || (hasActiveWorkout && sheetState === WORKOUT_SHEET_STATES.EXPANDED)) ? 'none' : 'auto'
+    ), [disableInteractions, hasActiveWorkout, sheetState, isHiddenByFocus]);
 
     const footerReveal = useDerivedValue(() => {
         if (!hasActiveWorkout) return 1;
@@ -93,7 +82,9 @@ const Footer = ({ currentScreenName, navigation, isOverlay = false, isHiddenByFo
 
     const outerAnimatedStyle = useAnimatedStyle(() => {
         const overlayProgress = overlayProgressSV?.value ?? (isHiddenByFocus ? 0 : 1);
-        const combined = footerReveal.value * overlayProgress;
+        const visibility = visibilityProgressSV?.value ?? (disableInteractions ? 0 : 1);
+        const combinedRaw = footerReveal.value * overlayProgress * visibility;
+        const combined = combinedRaw < 0 ? 0 : combinedRaw > 1 ? 1 : combinedRaw;
         return {
             transform: [{ translateY: FOOTER_HIDE_OFFSET * (1 - combined) }],
             opacity: combined,
@@ -148,15 +139,9 @@ const Footer = ({ currentScreenName, navigation, isOverlay = false, isHiddenByFo
                             delayPressIn={0}
                             onPressIn={() => {
                                 const alreadyOnWorkout = currentScreenName === 'Workout';
-                                if (hasActiveWorkout) {
-                                    markSheetExpanded();
-                                    if (alreadyOnWorkout) {
-                                        // Open the New Workout modal immediately when on Workout
-                                        try { global.openWorkoutModal && global.openWorkoutModal(); } catch {}
-                                    } else {
-                                        // Navigating to Workout: hint it should open on arrival
-                                        try { global.openCurrentWorkoutSignal = Date.now(); } catch {}
-                                    }
+                                if (alreadyOnWorkout && hasActiveWorkout) {
+                                    // Open the New Workout modal immediately when on Workout
+                                    try { global.openWorkoutModal && global.openWorkoutModal(); } catch {}
                                 }
                                 go('Workout')();
                             }}
@@ -260,5 +245,7 @@ const styles = StyleSheet.create({
 export default React.memo(Footer, (prev, next) => (
     prev.currentScreenName === next.currentScreenName &&
     prev.isHiddenByFocus === next.isHiddenByFocus &&
-    prev.overlayProgressSV === next.overlayProgressSV
+    prev.overlayProgressSV === next.overlayProgressSV &&
+    prev.visibilityProgressSV === next.visibilityProgressSV &&
+    prev.disableInteractions === next.disableInteractions
 ));

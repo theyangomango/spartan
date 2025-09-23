@@ -61,6 +61,15 @@ export default function Profile({ navigation }) {
         setProfileSelectedWorkout(null);
     }, []);
 
+    const [profileTopHeight, setProfileTopHeight] = useState(null);
+    const handleProfileTopLayout = useCallback((event) => {
+        const nextHeight = event?.nativeEvent?.layout?.height || 0;
+        setProfileTopHeight((prev) => {
+            if (prev == null) return nextHeight;
+            return Math.abs(prev - nextHeight) > 1 ? nextHeight : prev;
+        });
+    }, []);
+
     useEffect(() => {
         getPosts();
         getSavedPosts();
@@ -169,7 +178,7 @@ export default function Profile({ navigation }) {
     return (
         <SafeAreaView style={styles.main_ctnr}>
             <StatusBar barStyle="light-content" backgroundColor={theme.bg} />
-            <View style={styles.body_ctnr}>
+            <View style={styles.body_ctnr} onLayout={handleProfileTopLayout}>
                 <ProfileHeader
                     onPressCreateBtn={uploadPost}
                     onPressSettings={() => {
@@ -201,6 +210,7 @@ export default function Profile({ navigation }) {
                 completedWorkouts={(global?.userData?.completedWorkouts || [])}
                 navigation={navigation}
                 onOpenWorkout={openWorkoutViewer}
+                topContentHeight={profileTopHeight}
             />
 
             <EditProfileBottomSheet
@@ -252,7 +262,7 @@ const styles = StyleSheet.create({
         backgroundColor: theme.bg,
     },
     body_ctnr: {
-        height: '45%',
         paddingHorizontal: scaleSize(10),
+        paddingBottom: scaleSize(14),
     },
 });

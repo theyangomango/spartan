@@ -11,7 +11,7 @@ import { usePfp } from "../helper/usePFPs";
  * - Provides `accept` and `decline` handlers
  * - Optionally calls `onAccepted(wid, seedWorkout)` when joining
  */
-export default function useWorkoutInvites({ uid, onAccepted } = {}) {
+export default function useWorkoutInvites({ uid, onAccepted, enabled = true } = {}) {
   const [invites, setInvites] = useState([]);
   const [currentInvite, setCurrentInvite] = useState(null);
 
@@ -24,8 +24,9 @@ export default function useWorkoutInvites({ uid, onAccepted } = {}) {
   }, [bannerHeight]);
 
   useEffect(() => {
+    if (!enabled) return undefined;
     const me = String(uid || global?.userData?.uid || "");
-    if (!me) return;
+    if (!me) return undefined;
     const qInv = query(collection(db, "workoutInvites"), where("toUid", "==", me), where("status", "==", "pending"));
     const unsub = onSnapshot(qInv, (snap) => {
       const list = snap.docs.map((d) => ({ id: d.id, ...d.data() }));
@@ -33,7 +34,7 @@ export default function useWorkoutInvites({ uid, onAccepted } = {}) {
       setInvites(list);
     });
     return () => unsub();
-  }, [uid]);
+  }, [uid, enabled]);
 
   useEffect(() => { setCurrentInvite(invites?.[0] || null); }, [invites]);
 
@@ -89,4 +90,3 @@ export default function useWorkoutInvites({ uid, onAccepted } = {}) {
     decline,
   };
 }
-

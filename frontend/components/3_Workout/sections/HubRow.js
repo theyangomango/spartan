@@ -1,14 +1,15 @@
 import React, { memo, useRef, useCallback } from "react";
 import { View, Text, StyleSheet, Platform, Pressable, Animated } from "react-native";
-import { Feather } from "@expo/vector-icons";
+import { Feather, Ionicons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
+import RNBounceable from "@freakycoder/react-native-bounceable";
 import theme from "../../../theme/mfpDark";
 // Single root navigator; no nested overlay helpers needed
 import scaleSize from "../../../helper/scaleSize";
 import { strong as haptic } from "../../../utils/haptics";
+import { HUB_CARD_HEIGHT } from "./workoutTheme";
 // Removed unused bounceable/touchable imports to keep things lean
-
-const CARD_MIN_HEIGHT = scaleSize(170);
+const CARD_MIN_HEIGHT = HUB_CARD_HEIGHT;
 const CARD_RADIUS = scaleSize(30);
 
 const CARD_GRADIENT = ["#26324B", "#1A2438"];
@@ -27,9 +28,12 @@ function HubRowCmp({
     workoutsThisWeek,
     weeklyGoal,
     onPress,
+    onViewStats,
 }) {
     const scale = useRef(new Animated.Value(1)).current;
     const interactive = typeof onPress === "function";
+    const viewStatsEnabled = typeof onViewStats === "function";
+    const skipNextParentPressRef = useRef(false);
 
     const animateTo = useCallback(
         (value) => {
@@ -47,6 +51,10 @@ function HubRowCmp({
     const handlePressOut = useCallback(() => animateTo(1), [animateTo]);
     const handlePress = useCallback(() => {
         if (!interactive) return;
+        if (skipNextParentPressRef.current) {
+            skipNextParentPressRef.current = false;
+            return;
+        }
         try {
             haptic();
         } catch {
@@ -65,15 +73,50 @@ function HubRowCmp({
     const workoutsDisplay = safeWeeklyGoal > 0 ? `${safeWeeklyCount}/${safeWeeklyGoal}` : `${safeWeeklyCount}`;
     const caloriesFillWidth = afterPaint ? `${safeFill}%` : "0%";
     const weeklyFillWidth = afterPaint ? `${weeklyFill}%` : "0%";
+    const handleViewStatsPressIn = useCallback(() => {
+        skipNextParentPressRef.current = true;
+    }, []);
+
+    const handleViewStatsPress = useCallback(() => {
+        if (!viewStatsEnabled) return;
+        try {
+            haptic();
+        } catch {
+            // haptic best-effort
+        }
+        onViewStats();
+        setTimeout(() => {
+            skipNextParentPressRef.current = false;
+        }, 160);
+    }, [viewStatsEnabled, onViewStats]);
+
     const cardContent = (
         <View style={styles.cardBody}>
             <View style={styles.cardTop}>
-                <Text style={styles.headerTitle}>Your Progress</Text>
-                <View style={styles.headerBadge}>
-                    <View style={styles.headerDot} />
-                    <Text style={styles.headerBadgeText}>VIEW LOGS</Text>
-                    <Feather name="chevron-right" size={scaleSize(12)} color={theme.textPrimary} style={styles.headerIcon} />
+                <View style={styles.headerCopy}>
+                    <Text style={styles.headerTitle}>Your Progress</Text>
+                    <View style={styles.subtitleRow}>
+                        <Ionicons
+                            name="sparkles-outline"
+                            size={scaleSize(14)}
+                            color={theme.textSecondary}
+                        />
+                        <Text style={styles.headerSubtitle}>Tap to see logs</Text>
+                    </View>
                 </View>
+                <RNBounceable
+                    style={[styles.headerBadge, !viewStatsEnabled && styles.headerBadgeDisabled]}
+                    hitSlop={scaleSize(6)}
+                    accessibilityRole="button"
+                    accessibilityState={{ disabled: !viewStatsEnabled }}
+                    onPress={handleViewStatsPress}
+                    onPressIn={handleViewStatsPressIn}
+                    disabled={!viewStatsEnabled}
+                >
+                    <View style={styles.headerDot} />
+                    <Text style={styles.headerBadgeText}>VIEW STATS</Text>
+                    <Feather name="chevron-right" size={scaleSize(12)} color={theme.textPrimary} style={styles.headerIcon} />
+                </RNBounceable>
             </View>
 
             <View style={styles.statsList}>
@@ -147,7 +190,8 @@ const areEqual = (a, b) => (
     a.todayCalories === b.todayCalories &&
     a.caloriesGoal === b.caloriesGoal &&
     a.workoutsThisWeek === b.workoutsThisWeek &&
-    a.weeklyGoal === b.weeklyGoal
+    a.weeklyGoal === b.weeklyGoal &&
+    a.onViewStats === b.onViewStats
 );
 
 export default memo(HubRowCmp, areEqual);
@@ -194,12 +238,16 @@ const styles = StyleSheet.create({
     },
     cardBody: {
         flex: 1,
-        gap: scaleSize(16),
+        gap: scaleSize(14),
     },
     cardTop: {
         flexDirection: "row",
         alignItems: "center",
         justifyContent: "space-between",
+    },
+    headerCopy: {
+        flex: 1,
+        gap: scaleSize(4),
     },
     headerTitle: {
         fontFamily: "Outfit_700Bold",
@@ -207,16 +255,30 @@ const styles = StyleSheet.create({
         color: theme.textPrimary,
         letterSpacing: 0.2,
     },
+    subtitleRow: {
+        flexDirection: "row",
+        alignItems: "center",
+        gap: scaleSize(6),
+    },
+    headerSubtitle: {
+        fontFamily: "Outfit_500Medium",
+        fontSize: scaleSize(12),
+        color: theme.textSecondary,
+        letterSpacing: 0.2,
+    },
     headerBadge: {
         flexDirection: "row",
         alignItems: "center",
-        paddingVertical: scaleSize(5),
+        paddingVertical: scaleSize(4),
         paddingHorizontal: scaleSize(10),
         borderRadius: scaleSize(999),
         backgroundColor: BADGE_BG,
         borderWidth: 1,
         borderColor: BADGE_BORDER,
         gap: scaleSize(6),
+    },
+    headerBadgeDisabled: {
+        opacity: 0.5,
     },
     headerDot: {
         width: scaleSize(6),
@@ -236,10 +298,10 @@ const styles = StyleSheet.create({
         marginTop: scaleSize(1),
     },
     statsList: {
-        gap: scaleSize(12),
+        gap: scaleSize(10),
     },
     statRow: {
-        gap: scaleSize(8),
+        gap: scaleSize(6),
     },
     statHeadingRow: {
         flexDirection: "row",

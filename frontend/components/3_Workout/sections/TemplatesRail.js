@@ -1,5 +1,5 @@
-import React, { useRef, memo } from "react";
-import { View, Text, StyleSheet, Pressable, Animated, Dimensions, Platform } from "react-native";
+import React, { useRef, memo, useCallback, useMemo } from "react";
+import { View, Text, StyleSheet, Pressable, Animated, Platform, useWindowDimensions } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
 import {
@@ -9,21 +9,97 @@ import {
     BLUE,
 } from "./workoutTheme";
 import { Weight } from "iconsax-react-native";
-import scaleSize from "../../../helper/scaleSize";
+import scaleSize, { ts } from "../../../helper/scaleSize";
 import { strong as haptic } from "../../../utils/haptics";
 
 function TemplatesRail({ templates = [], onIndexChange, onAddTemplate, onOpenTemplate }) {
-    const { width: PAGE_W } = Dimensions.get("window");
+    const { width: windowWidth } = useWindowDimensions();
+    const pageWidth = useMemo(() => Math.max(windowWidth || 1, 1), [windowWidth]);
     const x = useRef(new Animated.Value(0)).current;
 
     const onScroll = Animated.event([{ nativeEvent: { contentOffset: { x } } }], {
         useNativeDriver: false,
     });
 
-    const handleMomentumEnd = (e) => {
-        const idx = Math.round(e.nativeEvent.contentOffset.x / PAGE_W);
+    const handleMomentumEnd = useCallback((e) => {
+        const idx = Math.round(e.nativeEvent.contentOffset.x / pageWidth);
         onIndexChange && onIndexChange(idx);
-    };
+    }, [onIndexChange, pageWidth]);
+
+    const renderItem = useCallback(({ item }) => {
+        const isNone = !!item.isNone;
+
+        const handlePress = () => {
+            try { haptic(); } catch {}
+            if (isNone) {
+                onAddTemplate && onAddTemplate();
+            } else {
+                onOpenTemplate && onOpenTemplate(item);
+            }
+        };
+
+        const exercisesCount = Array.isArray(item.exercises)
+            ? item.exercises.length
+            : Number.isFinite(item.exercises) ? item.exercises : 0;
+
+        const exercisesLabel = exercisesCount === 1 ? "exercise" : "exercises";
+
+        return (
+            <View style={[styles.page, { width: pageWidth }]}>
+                <Pressable
+                    onPress={handlePress}
+                    android_ripple={{ color: "rgba(0,0,0,0.08)" }}
+                    style={({ pressed }) => [styles.railTouchable, pressed && styles.railPressed]}
+                    accessibilityRole="button"
+                >
+                    {isNone ? (
+                        <View style={[styles.cardBase, styles.cardEmpty]}>
+                            <View style={styles.emptyIconWrap}>
+                                <Ionicons name="add" size={22} color={BLUE.ACCENT} />
+                            </View>
+                            <View style={styles.emptyTextColumn}>
+                                <Text numberOfLines={1} style={styles.emptyTitle}>{item.name}</Text>
+                                <View style={styles.emptySubWrap}>
+                                    <Ionicons name="sparkles-outline" size={14} color={BLUE.ACCENT} />
+                                    <Text style={styles.emptySubtitle}>Tap to create</Text>
+                                </View>
+                            </View>
+                        </View>
+                    ) : (
+                        <LinearGradient
+                            colors={SELECTED_TEMPLATE_GRADIENT}
+                            start={{ x: 0, y: 0 }}
+                            end={{ x: 1, y: 1 }}
+                            style={[styles.cardBase, styles.cardSelected]}
+                        >
+                            <View style={styles.selectedContent}>
+                                <View style={styles.iconPill}>
+                                    <Weight size={scaleSize(21)} color={ICON_PILL_ICON} variant="Broken" />
+                                </View>
+                                <View style={styles.selectedTextColumn}>
+                                    <Text style={styles.selectedTag}>Selected Template</Text>
+                                    <Text numberOfLines={1} style={styles.selectedTitle}>{item.name}</Text>
+                                    <View style={styles.metaRow}>
+                                        <View style={styles.metaBadge}>
+                                            <Ionicons name="barbell-outline" size={13} color={META_BADGE_ICON} />
+                                            <Text style={styles.metaBadgeText}>{exercisesCount} {exercisesLabel}</Text>
+                                        </View>
+                                        <View style={styles.metaBadge}>
+                                            <Ionicons name="calendar-outline" size={13} color={META_BADGE_ICON} />
+                                            <Text style={styles.metaBadgeText}>{item.lastDate ?? "New!"}</Text>
+                                        </View>
+                                    </View>
+                                </View>
+                                <View style={styles.chevronPill}>
+                                    <Ionicons name="chevron-forward" size={16} color={CHEVRON_ICON} />
+                                </View>
+                            </View>
+                        </LinearGradient>
+                    )}
+                </Pressable>
+            </View>
+        );
+    }, [onAddTemplate, onOpenTemplate, pageWidth]);
 
     return (
         <View style={[styles.wrap, { height: TPL_HEIGHT }]}>
@@ -33,92 +109,21 @@ function TemplatesRail({ templates = [], onIndexChange, onAddTemplate, onOpenTem
                 horizontal
                 pagingEnabled
                 showsHorizontalScrollIndicator={false}
-                snapToInterval={PAGE_W}
+                snapToInterval={pageWidth}
                 decelerationRate="fast"
                 onMomentumScrollEnd={handleMomentumEnd}
                 onScroll={onScroll}
                 scrollEventThrottle={16}
-                renderItem={({ item }) => {
-                    const isNone = !!item.isNone;
-
-                    const handlePress = () => {
-                        try { haptic(); } catch {}
-                        if (isNone) {
-                            onAddTemplate && onAddTemplate();
-                        } else {
-                            onOpenTemplate && onOpenTemplate(item);
-                        }
-                    };
-
-                    const exercisesCount = Array.isArray(item.exercises)
-                        ? item.exercises.length
-                        : Number.isFinite(item.exercises) ? item.exercises : 0;
-
-                    return (
-                        <View style={[styles.page, { width: PAGE_W }]}>
-                            <Pressable
-                                onPress={handlePress}
-                                android_ripple={{ color: "rgba(0,0,0,0.08)" }}
-                                style={({ pressed }) => [styles.railTouchable, pressed && styles.railPressed]}
-                                accessibilityRole="button"
-                            >
-                                {isNone ? (
-                                    <View style={[styles.cardBase, styles.cardEmpty]}>
-                                        <View style={styles.emptyIconWrap}>
-                                            <Ionicons name="add" size={22} color={BLUE.ACCENT} />
-                                        </View>
-                                        <View style={styles.emptyTextColumn}>
-                                            <Text numberOfLines={1} style={styles.emptyTitle}>{item.name}</Text>
-                                            <View style={styles.emptySubWrap}>
-                                                <Ionicons name="sparkles-outline" size={14} color={BLUE.ACCENT} />
-                                                <Text style={styles.emptySubtitle}>Tap to create</Text>
-                                            </View>
-                                        </View>
-                                    </View>
-                                ) : (
-                                    <LinearGradient
-                                        colors={SAVED_TEMPLATE_GRADIENT}
-                                        start={{ x: 0, y: 0 }}
-                                        end={{ x: 1, y: 1 }}
-                                        style={[styles.cardBase, styles.cardSaved]}
-                                    >
-                                        <View style={styles.iconWrapSaved}>
-                                            <Weight size={24} color={BLUE.ACCENT} variant="Broken" />
-                                        </View>
-                                        <View style={styles.contentColumn}>
-                                            <View style={styles.textColumn}>
-                                                <View style={styles.headerRow}>
-                                                    <Text numberOfLines={1} style={styles.title}>{item.name}</Text>
-                                                </View>
-                                                <View style={styles.metaRow}>
-                                                    <View style={styles.metaPill}>
-                                                        <Ionicons name="barbell-outline" size={13} color="#B9D9FF" />
-                                                        <Text style={styles.metaLabel}>{exercisesCount} exercises</Text>
-                                                    </View>
-                                                    <View style={styles.metaPill}>
-                                                        <Ionicons name="calendar-outline" size={13} color="#B9D9FF" />
-                                                        <Text style={styles.metaLabel}>{item.lastDate ?? "New!"}</Text>
-                                                    </View>
-                                                </View>
-                                            </View>
-                                            <View style={styles.chevronContainer}>
-                                                <View style={styles.chevronBubble}>
-                                                    <Ionicons name="chevron-forward" size={16} color="rgba(12, 23, 40, 0.9)" />
-                                                </View>
-                                            </View>
-                                        </View>
-                                    </LinearGradient>
-                                )}
-                            </Pressable>
-                        </View>
-                    );
-                }}
+                renderItem={renderItem}
+                getItemLayout={(_, index) => ({ length: pageWidth, offset: pageWidth * index, index })}
+                initialNumToRender={1}
+                maxToRenderPerBatch={2}
             />
 
             {/* indicators (tight to the cards) */}
             <View style={[styles.dotsRow, { height: DOTS_H }]}>
                 {templates.map((_, i) => {
-                    const inputRange = [(i - 1) * PAGE_W, i * PAGE_W, (i + 1) * PAGE_W];
+                    const inputRange = [(i - 1) * pageWidth, i * pageWidth, (i + 1) * pageWidth];
                     const w = x.interpolate({ inputRange, outputRange: [8, 34, 8], extrapolate: "clamp" });
                     const o = x.interpolate({ inputRange, outputRange: [0.25, 0.9, 0.25], extrapolate: "clamp" });
                     return <Animated.View key={i} style={[styles.dash, { width: w, opacity: o }]} />;
@@ -159,11 +164,30 @@ export default memo(TemplatesRail, eq);
 
 const EMPTY_CARD_BG = "rgba(38, 56, 88, 0.88)";
 const EMPTY_CARD_BORDER = "rgba(126, 186, 246, 0.58)";
-const SAVED_TEMPLATE_GRADIENT = ["#1F3D6A", "#0C172A"];
+const SELECTED_TEMPLATE_GRADIENT = ["#17345D", "#0A1527"];
+const SELECTED_TEMPLATE_BORDER = "rgba(114, 187, 255, 0.38)";
+const ICON_PILL_BG = "rgba(125, 196, 255, 0.22)";
+const ICON_PILL_BORDER = "rgba(144, 210, 255, 0.46)";
+const ICON_PILL_ICON = "#9DD1FF";
+const SELECTED_TAG_COLOR = "rgba(198, 223, 255, 0.82)";
+const SELECTED_TITLE_COLOR = "#F4F9FF";
+const META_BADGE_BG = "rgba(136, 205, 255, 0.22)";
+const META_BADGE_BORDER = "rgba(160, 218, 255, 0.45)";
+const META_BADGE_TEXT = "#E0EEFF";
+const META_BADGE_ICON = "#A6D6FF";
+const CHEVRON_BG = "rgba(128, 199, 255, 0.2)";
+const CHEVRON_BORDER = "rgba(156, 214, 255, 0.45)";
+const CHEVRON_ICON = "#F1F6FF";
+
+const ICON_PILL_SIZE = scaleSize(32);
+const ICON_PILL_RADIUS = scaleSize(18);
+const FONT_SELECTED_TAG = ts(10);
+const FONT_SELECTED_TITLE = ts(13);
+const FONT_META_BADGE = ts(10);
 
 const styles = StyleSheet.create({
     wrap: { justifyContent: "space-between" },
-    page: { height: TPL_CARD_H },
+    page: { height: TPL_CARD_H, justifyContent: "center" },
     railTouchable: {
         height: TPL_CARD_H,
         marginHorizontal: scaleSize(16),
@@ -190,65 +214,98 @@ const styles = StyleSheet.create({
         borderRadius: scaleSize(22),
         position: "relative",
     },
-    cardSaved: {
+    cardSelected: {
         borderWidth: scaleSize(1),
-        borderColor: "rgba(119, 184, 255, 0.32)",
+        borderColor: SELECTED_TEMPLATE_BORDER,
         overflow: "hidden",
+        paddingHorizontal: scaleSize(18),
+        paddingVertical: scaleSize(8),
+        minHeight: scaleSize(78),
     },
-    iconWrapSaved: {
-        width: scaleSize(40),
-        height: scaleSize(40),
-        borderRadius: scaleSize(20),
+    selectedContent: {
+        flexDirection: "row",
+        alignItems: "center",
+        minHeight: "100%",
+        flex: 1,
+        width: "100%",
+        paddingVertical: scaleSize(4),
+    },
+    iconPill: {
+        width: ICON_PILL_SIZE,
+        height: ICON_PILL_SIZE,
+        borderRadius: ICON_PILL_RADIUS,
         alignItems: "center",
         justifyContent: "center",
-        marginRight: scaleSize(12),
-        backgroundColor: "rgba(42, 96, 155, 0.7)",
-        borderWidth: StyleSheet.hairlineWidth,
-        borderColor: "rgba(154, 212, 255, 0.6)",
+        marginRight: scaleSize(14),
+        backgroundColor: ICON_PILL_BG,
+        borderWidth: scaleSize(1),
+        borderColor: ICON_PILL_BORDER,
     },
-    contentColumn: {
+    selectedTextColumn: {
         flex: 1,
         minWidth: 0,
-        height: "100%",
-        flexDirection: "row",
-        alignItems: "center",
-        justifyContent: "space-between",
+        marginRight: scaleSize(12),
+        justifyContent: "center",
+        paddingLeft: scaleSize(2),
+        paddingTop: scaleSize(2),
     },
-    textColumn: { flex: 1, minWidth: 0, gap: scaleSize(6) },
-    headerRow: {
-        flexDirection: "row",
-        alignItems: "center",
-        justifyContent: "flex-start",
-    },
-    title: {
-        flex: 1,
-        fontFamily: "Outfit_700Bold",
-        fontSize: scaleSize(15),
-        color: "#F2F6FD",
+    selectedTag: {
+        fontFamily: "Outfit_600SemiBold",
+        fontSize: scaleSize(FONT_SELECTED_TAG),
+        letterSpacing: 1,
+        textTransform: "uppercase",
+        color: SELECTED_TAG_COLOR,
         includeFontPadding: false,
+        marginBottom: scaleSize(2),
+    },
+    selectedTitle: {
+        fontFamily: "Outfit_800ExtraBold",
+        fontSize: scaleSize(FONT_SELECTED_TITLE),
+        color: SELECTED_TITLE_COLOR,
+        includeFontPadding: false,
+        letterSpacing: 0.3,
+        marginBottom: 0,
     },
     metaRow: {
         flexDirection: "row",
         alignItems: "center",
-        gap: scaleSize(6),
         flexWrap: "wrap",
+        gap: scaleSize(6),
+        marginTop: scaleSize(4),
     },
-    metaPill: {
+    metaBadge: {
         flexDirection: "row",
         alignItems: "center",
         gap: scaleSize(4),
         paddingVertical: scaleSize(3),
         paddingHorizontal: scaleSize(10),
         borderRadius: scaleSize(999),
-        backgroundColor: "rgba(30, 73, 130, 0.75)",
-        borderWidth: StyleSheet.hairlineWidth,
-        borderColor: "rgba(170, 221, 255, 0.45)",
+        backgroundColor: META_BADGE_BG,
+        borderWidth: scaleSize(1),
+        borderColor: META_BADGE_BORDER,
+        marginBottom: scaleSize(4),
+        marginRight: scaleSize(4),
+        marginTop: scaleSize(1),
     },
-    metaLabel: {
-        fontFamily: "Outfit_600SemiBold",
-        fontSize: scaleSize(11.5),
-        color: "#F4F8FF",
+    metaBadgeText: {
+        fontFamily: "Outfit_700Bold",
+        fontSize: scaleSize(FONT_META_BADGE),
+        color: META_BADGE_TEXT,
         includeFontPadding: false,
+        letterSpacing: 0.38,
+        textTransform: "uppercase",
+    },
+    chevronPill: {
+        width: scaleSize(30),
+        height: scaleSize(30),
+        borderRadius: scaleSize(16),
+        alignItems: "center",
+        justifyContent: "center",
+        backgroundColor: CHEVRON_BG,
+        borderWidth: scaleSize(1),
+        borderColor: CHEVRON_BORDER,
+        marginLeft: scaleSize(8),
+        alignSelf: "center",
     },
     cardEmpty: {
         backgroundColor: EMPTY_CARD_BG,
@@ -280,20 +337,6 @@ const styles = StyleSheet.create({
         flexDirection: "row",
         alignItems: "center",
         gap: scaleSize(5),
-    },
-    chevronContainer: {
-        height: "100%",
-        justifyContent: "center",
-        alignItems: "center",
-        paddingLeft: scaleSize(8),
-    },
-    chevronBubble: {
-        width: scaleSize(26),
-        height: scaleSize(26),
-        borderRadius: scaleSize(13),
-        backgroundColor: "rgba(188, 223, 255, 0.9)",
-        alignItems: "center",
-        justifyContent: "center",
     },
     emptySubtitle: {
         fontFamily: "Outfit_600SemiBold",

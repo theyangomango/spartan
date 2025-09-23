@@ -31,10 +31,19 @@ import FriendsActivitySheet from "../components/3_Workout/FriendsActivitySheet";
 import InviteBanner from "../components/3_Workout/InviteBanner";
 import NotificationsBottomSheet from "../components/1_Feed/Notifications/NotificationsBottomSheet";
 import UserStatsAfterWorkoutSheet from "../components/2_Competition/UserStats/UserStatsAfterWorkoutSheet";
+import UserStatsBottomSheet from "../components/2_Competition/UserStats/UserStatsBottomSheet";
 import { onHexagonUpdate } from "../utils/hexagonEvents";
 
 // Theme & Hooks (project)
-import { ss, FOOTER_HEIGHT, BTN_SIZE, TPL_BOTTOM_GAP, TPL_HEIGHT, TPL_DIVIDER_MARGIN } from "../components/3_Workout/sections/workoutTheme";
+import {
+    ss,
+    FOOTER_HEIGHT,
+    BTN_SIZE,
+    TPL_BOTTOM_GAP,
+    TPL_HEIGHT,
+    TPL_DIVIDER_MARGIN_TOP,
+    TPL_DIVIDER_MARGIN_BOTTOM,
+} from "../components/3_Workout/sections/workoutTheme";
 import theme from "../theme/mfpDark";
 // Remove foodLogs dependency; compute macros from global.userData.loggedFoods only
 import useResolvedUid from "../hooks/useResolvedUid";
@@ -50,7 +59,7 @@ import makeID from "../../backend/helper/makeID";
 
 // Local logic
 import useWorkoutManager from "../logic/useWorkoutManager";
-import useWorkoutStore from "../state/workoutStore";
+import useWorkoutStore, { WORKOUT_SHEET_STATES } from "../state/workoutStore";
 
 // utils
 import millisToHoursMinutesSeconds from "../helper/millisToHoursMinutesSeconds";
@@ -65,6 +74,13 @@ import scaleSize from "../helper/scaleSize";
 // navigationRef and StackActions no longer needed here with single root stack
 
 // MiniPodium preview derives from user's last Competition view
+
+const HUB_SHADOW_RADIUS = scaleSize(12);
+const HUB_SHADOW_OFFSET = scaleSize(6);
+const HUB_SHADOW_DOWN = HUB_SHADOW_RADIUS + HUB_SHADOW_OFFSET;
+const TPL_SHADOW_RADIUS = scaleSize(8);
+const TPL_SHADOW_OFFSET = scaleSize(6);
+const TPL_SHADOW_UP = Math.max(0, TPL_SHADOW_RADIUS - TPL_SHADOW_OFFSET);
 
 /* ---------------- helpers ---------------- */
 const toMillis = (v) => {
@@ -186,6 +202,16 @@ export default function Workout({ navigation, route }) {
     const uid = useResolvedUid(route);
     const [messages, setMessages] = useState(null);
     const [footerKeyDummy, setFooterKeyDummy] = useState(0);
+    const hubRowRef = useRef(null);
+    const dividerRef = useRef(null);
+    const templatesRailRef = useRef(null);
+    const [hubMetrics, setHubMetrics] = useState(null);
+    const [dividerMetrics, setDividerMetrics] = useState(null);
+    const [templatesMetrics, setTemplatesMetrics] = useState(null);
+    const [dividerSpacing, setDividerSpacing] = useState(() => ({
+        top: TPL_DIVIDER_MARGIN_TOP,
+        bottom: TPL_DIVIDER_MARGIN_BOTTOM,
+    }));
     const feedInitOnceRef = useRef(false);
     useEffect(() => {
         // Register setters immediately to keep header hooks consistent across screens
@@ -201,6 +227,105 @@ export default function Workout({ navigation, route }) {
         }
     }, [uid]);
     const user = useUserDoc(uid, { ignoreKeys: ['currentWorkout'] }); // avoid rerenders on workout typing
+
+    const measureRef = useCallback((ref, setter) => {
+        requestAnimationFrame(() => {
+            const node = ref?.current;
+            if (!node || typeof node.measure !== 'function') return;
+            node.measure((x, y, width, height, pageX, pageY) => {
+                setter((prev) => {
+                    if (
+                        prev
+                        && Math.abs(prev.pageY - pageY) < 0.5
+                        && Math.abs(prev.height - height) < 0.5
+                        && Math.abs(prev.pageX - pageX) < 0.5
+                        && Math.abs(prev.width - width) < 0.5
+                    ) {
+                        return prev;
+                    }
+                    return { x, y, width, height, pageX, pageY };
+                });
+            });
+        });
+    }, []);
+
+    const handleHubLayout = useCallback(() => {
+        measureRef(hubRowRef, setHubMetrics);
+    }, [measureRef]);
+
+    const handleDividerLayout = useCallback(() => {
+        measureRef(dividerRef, setDividerMetrics);
+    }, [measureRef]);
+
+    const handleTemplatesLayout = useCallback(() => {
+        measureRef(templatesRailRef, setTemplatesMetrics);
+    }, [measureRef]);
+
+    useEffect(() => {
+        if (!hubMetrics || !templatesMetrics || !dividerMetrics) return;
+        const hubBottom = hubMetrics.pageY + hubMetrics.height;
+        const templatesTop = templatesMetrics.pageY;
+        const dividerHeight = dividerMetrics.height;
+        if (!Number.isFinite(hubBottom) || !Number.isFinite(templatesTop) || !Number.isFinite(dividerHeight)) return;
+
+        const gap = templatesTop - hubBottom;
+        if (!Number.isFinite(gap) || gap <= 0) return;
+
+        const available = gap - dividerHeight;
+        if (!Number.isFinite(available) || available <= 0) {
+            setDividerSpacing((prev) => {
+                if (!prev || (prev.top === 0 && prev.bottom === 0)) return prev;
+                return { top: 0, bottom: 0 };
+            });
+            return;
+        }
+
+        const deltaHub = HUB_SHADOW_DOWN;
+        const deltaTemplate = -TPL_SHADOW_UP;
+
+        let topRaw = (available + deltaTemplate + deltaHub) / 2;
+        let bottomRaw = available - topRaw;
+
+        if (!Number.isFinite(topRaw) || !Number.isFinite(bottomRaw)) return;
+
+        if (topRaw < 0) {
+            bottomRaw += topRaw;
+            topRaw = 0;
+        }
+        if (bottomRaw < 0) {
+            topRaw += bottomRaw;
+            bottomRaw = 0;
+        }
+
+        let nextTop = Math.max(0, Math.round(topRaw));
+        let nextBottom = Math.max(0, Math.round(bottomRaw));
+
+        const targetSum = Math.max(0, Math.round(available));
+        const sum = nextTop + nextBottom;
+        if (sum !== targetSum) {
+            const diff = targetSum - sum;
+            const adjustedBottom = nextBottom + diff;
+            if (adjustedBottom >= 0) {
+                nextBottom = adjustedBottom;
+            }
+        }
+
+        setDividerSpacing((prev) => {
+            if (
+                prev
+                && Math.abs((prev.top ?? 0) - nextTop) < 0.5
+                && Math.abs((prev.bottom ?? 0) - nextBottom) < 0.5
+            ) {
+                return prev;
+            }
+            return { top: nextTop, bottom: nextBottom };
+        });
+    }, [hubMetrics, templatesMetrics, dividerMetrics]);
+
+    const dividerSpacingStyle = useMemo(() => ({
+        marginTop: dividerSpacing.top,
+        marginBottom: dividerSpacing.bottom,
+    }), [dividerSpacing]);
 
     const markFriendsViewed = React.useCallback(async () => {
         try {
@@ -220,6 +345,9 @@ export default function Workout({ navigation, route }) {
     const [hasMountedEditTemplateSheet, setHasMountedEditTemplateSheet] = useState(false);
     const [hasMountedDaySheet, setHasMountedDaySheet] = useState(false);
     const [hasMountedGroupModal, setHasMountedGroupModal] = useState(false);
+    const [isUserStatsVisible, setIsUserStatsVisible] = useState(false);
+    const [hasMountedUserStatsSheet, setHasMountedUserStatsSheet] = useState(false);
+    const [showTribeCard, setShowTribeCard] = useState(false);
     useEffect(() => {
         const task = InteractionManager.runAfterInteractions(() => {
             requestAnimationFrame(() => setAfterPaint(true));
@@ -233,6 +361,12 @@ export default function Workout({ navigation, route }) {
         requestAnimationFrame(() => {
             try { global.__markHubRowReady?.(); } catch {}
         });
+    }, [afterPaint]);
+
+    useEffect(() => {
+        if (!afterPaint) return;
+        const id = setTimeout(() => setShowTribeCard(true), 0);
+        return () => clearTimeout(id);
     }, [afterPaint]);
 
     useEffect(() => {
@@ -442,6 +576,9 @@ export default function Workout({ navigation, route }) {
     useEffect(() => {
         if (notificationsBottomSheetExpandFlag) setHasMountedNotificationsSheet(true);
     }, [notificationsBottomSheetExpandFlag]);
+    useEffect(() => {
+        if (isUserStatsVisible) setHasMountedUserStatsSheet(true);
+    }, [isUserStatsVisible]);
 
     // Avoid "flash of new" before user doc loads by gating on user readiness.
     const userLoaded = user != null; // useUserDoc returns null until first snapshot
@@ -516,8 +653,17 @@ export default function Workout({ navigation, route }) {
 
     const hasActiveWorkout = useWorkoutStore((s) => !!s.workout);
     const workoutWid = useWorkoutStore((s) => (s.workout ? s.workout.wid : null));
+    const activeWorkout = useWorkoutStore((s) => s.workout);
     // Header search users (shared hook)
-    const { allUsersRef, mergeUsersIntoRef } = useHeaderSearchUsers({ following: global?.userData?.following, enablePrefetch: true });
+    const headerFollowing = useMemo(() => {
+        try {
+            const list = global?.userData?.following;
+            return Array.isArray(list) ? [...list] : [];
+        } catch {
+            return [];
+        }
+    }, [user?.following]);
+    const { allUsersRef, mergeUsersIntoRef } = useHeaderSearchUsers({ following: headerFollowing, enablePrefetch: afterPaint });
 
     /* ---------- Auto-open current workout or friends sheet when navigated with intent ---------- */
     useEffect(() => {
@@ -580,6 +726,12 @@ export default function Workout({ navigation, route }) {
     // Stable handlers to avoid re-rendering StartCluster on every parent render
     const openNewWorkout = useCallback(() => {
         setIsNewWorkoutVisible(true);
+        try {
+            const store = useWorkoutStore.getState();
+            store.setSheetState(WORKOUT_SHEET_STATES.EXPANDED);
+        } catch {
+            // no-op if store unavailable
+        }
     }, [setIsNewWorkoutVisible]);
     const openFriends = useCallback(() => {
         setHasMountedFriendsSheet(true);
@@ -592,10 +744,15 @@ export default function Workout({ navigation, route }) {
         today.setHours(0, 0, 0, 0);
         setHasMountedDaySheet(true);
         setDaySheetDate(today);
+        hydrateDaySheetData(today);
         setDaySheetSession((prev) => prev + 1);
         setDaySheetVisible(true);
         setDaySheetToggle((f) => !f);
-    }, [setHasMountedDaySheet, setDaySheetDate, setDaySheetSession, setDaySheetVisible, setDaySheetToggle]);
+    }, [setHasMountedDaySheet, setDaySheetDate, hydrateDaySheetData, setDaySheetSession, setDaySheetVisible, setDaySheetToggle]);
+
+    const openUserStats = useCallback(() => {
+        setIsUserStatsVisible(true);
+    }, []);
 
     const openCreatePost = useCallback(() => {
         try {
@@ -684,44 +841,42 @@ export default function Workout({ navigation, route }) {
     const [daySheetVisible, setDaySheetVisible] = useState(false);
     const [daySheetSession, setDaySheetSession] = useState(0);
     const [daySheetDate, setDaySheetDate] = useState(null);
+    const [daySheetData, setDaySheetData] = useState(() => makeEmptyDaySheetSnapshot());
     const sheetDate = useMemo(() => daySheetDate ?? stableToday, [daySheetDate, stableToday]);
-    const sheetFromGlobal = useMemo(() => {
-        const dk = toDayKey(sheetDate);
-        const map = global?.userData?.loggedFoods || {};
-        const buckets = { Breakfast: [], Lunch: [], Dinner: [], Snacks: [] };
-        const totals = { calories: 0, protein: 0, carbs: 0, fat: 0 };
+    const loggedFoodsSig = (() => {
+        try { return global?.__loggedFoodsSig; } catch { return undefined; }
+    })();
+    const completedWorkoutsSig = useMemo(() => {
         try {
-            const looksNested = map && typeof map === 'object' && map[dk] && !('dayKey' in (Object.values(map)[0] || {}));
-            const source = looksNested ? (map[dk] || {}) : map;
-            Object.entries(source || {}).forEach(([id, e]) => {
-                const sameDay = looksNested ? true : (String(e?.dayKey || '') === dk);
-                if (!sameDay) return;
-                const meal = String(e?.meal || '').toLowerCase();
-                const bucket = meal.startsWith('break') ? 'Breakfast' : meal.startsWith('lun') ? 'Lunch' : meal.startsWith('din') ? 'Dinner' : 'Snacks';
-                const qty = typeof e?.quantity === 'number' ? e.quantity : 1;
-                const m = e?.macros || {};
-                const macros = {
-                    calories: Number(m.calories) || 0,
-                    protein: Number(m.protein) || 0,
-                    carbs: Number(m.carbs) || 0,
-                    fat: Number(m.fat) || 0,
-                };
-                buckets[bucket].push({ key: id, name: e?.name || 'Food', brand: e?.brand || '', desc: e?.desc || '', quantity: qty, foodId: e?.foodId || '', macros });
-                totals.calories += macros.calories; totals.protein += macros.protein; totals.carbs += macros.carbs; totals.fat += macros.fat;
-            });
-        } catch {}
-        return { meals: buckets, totals: { calories: Math.round(totals.calories), protein: Math.round(totals.protein), carbs: Math.round(totals.carbs), fat: Math.round(totals.fat) } };
-    }, [sheetDate, global?.__loggedFoodsSig]);
-    const sheetMeals = sheetFromGlobal.meals;
-    const sheetTotals = sheetFromGlobal.totals;
-    const dayWorkouts = useMemo(() => {
-        const dk = toDayKey(sheetDate);
-        const completed = Array.isArray(global?.userData?.completedWorkouts) ? global.userData.completedWorkouts : [];
-        const active = global?.userData?.currentWorkout ? [global.userData.currentWorkout] : [];
-        return [...completed, ...active]
-            .filter((w) => { const when = toMillis(w?.created ?? w?.createdAt); return when && toDayKey(when) === dk; })
-            .sort((a, b) => toMillis(b?.created ?? b?.createdAt) - toMillis(a?.created ?? a?.createdAt));
-    }, [sheetDate]);
+            const arr = global?.userData?.completedWorkouts;
+            if (!Array.isArray(arr) || arr.length === 0) return 'len:0';
+            const last = arr[arr.length - 1];
+            const ts = toMillis(last?.created ?? last?.createdAt ?? last?.finishedAt ?? 0);
+            return `len:${arr.length}:last:${ts}`;
+        } catch {
+            return 'len:0';
+        }
+    }, [user?.completedWorkouts]);
+    const hydrateDaySheetData = useCallback((targetDate) => {
+        const globalData = (() => {
+            try { return global?.userData || {}; } catch { return {}; }
+        })();
+        const snapshot = buildDaySheetSnapshot({
+            date: targetDate,
+            loggedFoods: globalData.loggedFoods || {},
+            completedWorkouts: Array.isArray(user?.completedWorkouts) ? user.completedWorkouts : globalData.completedWorkouts,
+            activeWorkout,
+        });
+        setDaySheetData(snapshot);
+        return snapshot;
+    }, [activeWorkout, user?.completedWorkouts, loggedFoodsSig, completedWorkoutsSig]);
+    useEffect(() => {
+        if (!daySheetVisible) return;
+        hydrateDaySheetData(sheetDate);
+    }, [daySheetVisible, sheetDate, hydrateDaySheetData]);
+    const daySheetMeals = daySheetData.meals || makeEmptyMeals();
+    const daySheetTotals = daySheetData.totals || makeEmptyTotals();
+    const daySheetWorkouts = Array.isArray(daySheetData.workouts) ? daySheetData.workouts : [];
 
     /* ---------- Header height (for banner anchoring) ---------- */
     const [headerHeight, setHeaderHeight] = useState(0);
@@ -743,6 +898,7 @@ export default function Workout({ navigation, route }) {
         decline: declineInvite,
     } = useWorkoutInvites({
         uid,
+        enabled: afterPaint,
         onAccepted: async (wid, seed) => {
             try { global.isCurrentlyWorkingOut = true; } catch { }
             try {
@@ -762,6 +918,7 @@ export default function Workout({ navigation, route }) {
     const shouldRenderFriendsSheet = friendsSheetVisible || hasMountedFriendsSheet;
     const shouldRenderEditTemplateSheet = isEditTemplateVisible || hasMountedEditTemplateSheet;
     const shouldRenderGroupModal = inviteSheetOpen || hasMountedGroupModal;
+    const shouldRenderUserStatsSheet = isUserStatsVisible || hasMountedUserStatsSheet;
 
     return (
         <SafeAreaView style={styles.root}>
@@ -803,9 +960,13 @@ export default function Workout({ navigation, route }) {
                 <View style={styles.mainContent}>
                     {/* WeekCalendar temporarily disabled */}
 
-                    <TribeStatsCard onPress={openFriends} />
+                    {showTribeCard ? (
+                        <TribeStatsCard onPress={openFriends} />
+                    ) : (
+                        <View style={styles.tribeCardSkeleton} />
+                    )}
                     {/* Hub row */}
-                    <View>
+                    <View ref={hubRowRef} onLayout={handleHubLayout}>
                         <HubRow
                             afterPaint={afterPaint}
                             fill={fill}
@@ -814,13 +975,18 @@ export default function Workout({ navigation, route }) {
                             workoutsThisWeek={workoutsThisWeek}
                             weeklyGoal={weeklyGoal}
                             onPress={openDayDetailsToday}
+                            onViewStats={openUserStats}
                         />
                     </View>
                 </View>
 
                 <View style={styles.bottomStack} pointerEvents="box-none">
                     <View style={styles.templatesDock}>
-                        <View style={styles.templatesDivider}>
+                        <View
+                            ref={dividerRef}
+                            onLayout={handleDividerLayout}
+                            style={[styles.templatesDivider, dividerSpacingStyle]}
+                        >
                             <SectionDivider
                                 containerBg={theme.bg}
                                 dashColor="rgba(255,255,255,0.22)"
@@ -828,7 +994,11 @@ export default function Workout({ navigation, route }) {
                             />
                         </View>
                         {afterPaint && (
-                            <View style={styles.templatesRailShell}>
+                            <View
+                                ref={templatesRailRef}
+                                onLayout={handleTemplatesLayout}
+                                style={styles.templatesRailShell}
+                            >
                                 <TemplatesRail
                                     templates={templatesWithNone}
                                     onIndexChange={setActiveIdx}
@@ -863,11 +1033,11 @@ export default function Workout({ navigation, route }) {
                         openToggle={daySheetToggle}
                         date={sheetDate}
                         session={daySheetSession}
-                        workouts={dayWorkouts}
-                        meals={sheetMeals}
-                        totals={sheetTotals}
-                        calories={sheetTotals?.calories || 0}
-                        workoutOn={(dayWorkouts?.length || 0) > 0}
+                        workouts={daySheetWorkouts}
+                        meals={daySheetMeals}
+                        totals={daySheetTotals}
+                        calories={daySheetTotals?.calories || 0}
+                        workoutOn={(daySheetWorkouts?.length || 0) > 0}
                         onClose={(closingSession) => {
                             setDaySheetVisible((prev) => {
                                 if (closingSession == null) return false;
@@ -880,7 +1050,11 @@ export default function Workout({ navigation, route }) {
                                 const nd = new Date(d);
                                 if (!Number.isNaN(nd.getTime())) nd.setHours(0, 0, 0, 0);
                                 setDaySheetDate(nd);
-                            } catch { setDaySheetDate(d); }
+                                hydrateDaySheetData(nd);
+                            } catch {
+                                setDaySheetDate(d);
+                                hydrateDaySheetData(d);
+                            }
                             // Keep sheet open; no re-expand
                         }}
                         onStartWorkout={onStartWorkout}
@@ -951,6 +1125,14 @@ export default function Workout({ navigation, route }) {
                     heightPercent={0.92}
                 />
             )}
+            {shouldRenderUserStatsSheet && (
+                <UserStatsBottomSheet
+                    user={user}
+                    navigation={navigation}
+                    isVisible={isUserStatsVisible}
+                    setIsVisible={setIsUserStatsVisible}
+                />
+            )}
             {/* Copy Template toast (above Templates rail) */}
             <Animated.View pointerEvents="none" style={styles.toastWrap}>
                 <CopyTemplateToast anim={toastAnim} text={toastMsg || "Template added"} />
@@ -977,6 +1159,13 @@ const styles = StyleSheet.create({
         paddingBottom: scaleSize(FOOTER_HEIGHT),
     },
     mainContent: { flex: 1, width: "100%" },
+    tribeCardSkeleton: {
+        height: scaleSize(124),
+        marginHorizontal: scaleSize(16),
+        marginBottom: scaleSize(6),
+        borderRadius: scaleSize(24),
+        backgroundColor: "rgba(255,255,255,0.06)",
+    },
     bottomStack: {
         width: "100%",
         alignItems: "center",
@@ -989,8 +1178,8 @@ const styles = StyleSheet.create({
     templatesDivider: {
         width: "100%",
         alignItems: "center",
-        marginTop: TPL_DIVIDER_MARGIN,
-        marginBottom: TPL_DIVIDER_MARGIN,
+        marginTop: TPL_DIVIDER_MARGIN_TOP,
+        marginBottom: TPL_DIVIDER_MARGIN_BOTTOM,
     },
     templatesRailShell: { width: "100%" },
     clusterWrap: {

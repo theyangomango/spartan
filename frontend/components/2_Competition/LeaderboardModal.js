@@ -39,8 +39,8 @@ const METRIC_PAD_H = scaleSize(14);
 const METRIC_PAD_V = scaleSize(8);
 
 const BANNER_RADIUS = scaleSize(28);
-const BANNER_PAD_H = scaleSize(16);
-const BANNER_PAD_V = scaleSize(7);
+const BANNER_PAD_H = scaleSize(18);
+const BANNER_PAD_V = scaleSize(5);
 const BANNER_MIN_HEIGHT = scaleSize(78);
 const BANNER_MB = scaleSize(2);
 const BANNER_PAGER_PT = scaleSize(6);

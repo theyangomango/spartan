@@ -33,6 +33,7 @@ export default function ViewProfile({ navigation, route }) {
     const [viewerWorkout, setViewerWorkout] = useState(null);
     const [viewerToggle, setViewerToggle] = useState(false);
     const [isOptionsVisible, setIsOptionsVisible] = useState(false);
+    const [profileTopHeight, setProfileTopHeight] = useState(null);
     const [isBlocked, setIsBlocked] = useState(false);
     const openViewer = useCallback((wk) => {
         if (!wk) { setViewerWorkout(null); return; }
@@ -170,11 +171,19 @@ export default function ViewProfile({ navigation, route }) {
     const headerHandle = profileUserData?.handle || user?.handle || user?.username || '';
     function handleOpenViewStats() { setIsViewStatsBottomSheetVisible(true); }
 
+    const handleProfileTopLayout = useCallback((event) => {
+        const nextHeight = event?.nativeEvent?.layout?.height || 0;
+        setProfileTopHeight((prev) => {
+            if (prev == null) return nextHeight;
+            return Math.abs(prev - nextHeight) > 1 ? nextHeight : prev;
+        });
+    }, []);
+
     if (blockedFromViewing) {
         return (
             <SafeAreaView style={styles.main_ctnr}>
                 <StatusBar barStyle="light-content" backgroundColor={theme.bg} />
-                <View style={styles.body_ctnr}>
+                <View style={styles.body_ctnr} onLayout={handleProfileTopLayout}>
                     <ViewProfileHeader handle={headerHandle} goBack={goBack} toMessages={() => {}} onOpenOptions={() => {}} />
                 </View>
                 <Footer currentScreenName={'Profile'} navigation={navigation} />
@@ -185,7 +194,7 @@ export default function ViewProfile({ navigation, route }) {
     return (
         <SafeAreaView style={styles.main_ctnr}>
             <StatusBar barStyle="light-content" backgroundColor={theme.bg} />
-            <View style={styles.body_ctnr}>
+            <View style={styles.body_ctnr} onLayout={handleProfileTopLayout}>
                 <ViewProfileHeader handle={headerHandle} goBack={goBack} toMessages={toMessages} onOpenOptions={() => setIsOptionsVisible(true)} />
                 <ViewProfileInfo
                     userData={profileUserData}
@@ -202,6 +211,7 @@ export default function ViewProfile({ navigation, route }) {
                 completedWorkouts={profileUserData && profileUserData.completedWorkouts}
                 navigation={navigation}
                 onOpenWorkout={openViewer}
+                topContentHeight={profileTopHeight}
             />
             <Footer currentScreenName={'Profile'} navigation={navigation} />
 
@@ -283,7 +293,7 @@ const styles = StyleSheet.create({
         backgroundColor: theme.bg,
     },
     body_ctnr: {
-        height: '45%',
         paddingHorizontal: scaleSize(10),
+        paddingBottom: scaleSize(14),
     }
 });

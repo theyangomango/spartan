@@ -45,14 +45,14 @@ const PILL_ACTIVE_TEXT = theme.accentBlue || theme.primary;
 const CARD_BG = theme.surface;
 const CARD_BORDER = theme.hairline;
 const CARD_TEXT_PRIMARY = theme.textPrimary;
-const CARD_PILL_PRIMARY_BG = "rgba(235, 244, 255, 0.16)";
-const CARD_PILL_PRIMARY_BORDER = "rgba(174, 208, 255, 0.28)";
-const CARD_PILL_PRIMARY_TEXT = "#F5FAFF";
-const CARD_PILL_MUTED_BG = "rgba(126, 108, 255, 0.2)";
-const CARD_PILL_MUTED_BORDER = "rgba(170, 153, 255, 0.42)";
-const CARD_PILL_MUTED_TEXT = "#E2DEFF";
 const TROPHY_ACCENT = theme.accentGold || "#F2C663";
 const TROPHY_RING = "rgba(242, 198, 99, 0.18)";
+const LIST_PILL_BG = "rgba(255, 239, 208, 0.88)";
+const LIST_PILL_BORDER = "rgba(255, 224, 178, 0.92)";
+const LIST_PILL_TEXT = "#4A341C";
+const LIST_PILL_SECONDARY_BG = "rgba(135, 122, 188, 0.32)";
+const LIST_PILL_SECONDARY_BORDER = "rgba(186, 174, 233, 0.55)";
+const LIST_PILL_SECONDARY_TEXT = "#EADFFF";
 
 export default function TribeComparisonModal({ visible, onClose, initialList = [], onSaveList }) {
     const [items, setItems] = useState(() => sanitize(initialList));
@@ -451,27 +451,28 @@ const styles = StyleSheet.create({
     },
     itemPill: {
         paddingHorizontal: scaleSize(10),
-        paddingVertical: scaleSize(3),
+        paddingVertical: scaleSize(4),
         borderRadius: scaleSize(999),
-        borderWidth: StyleSheet.hairlineWidth,
+        borderWidth: scaleSize(1),
         marginRight: scaleSize(6),
         marginBottom: scaleSize(6),
     },
     itemPillPrimary: {
-        backgroundColor: CARD_PILL_PRIMARY_BG,
-        borderColor: CARD_PILL_PRIMARY_BORDER,
+        backgroundColor: LIST_PILL_BG,
+        borderColor: LIST_PILL_BORDER,
     },
     itemPillMuted: {
-        backgroundColor: CARD_PILL_MUTED_BG,
-        borderColor: CARD_PILL_MUTED_BORDER,
+        backgroundColor: LIST_PILL_SECONDARY_BG,
+        borderColor: LIST_PILL_SECONDARY_BORDER,
     },
     itemPillText: {
         fontFamily: "Outfit_700Bold",
         fontSize: scaleSize(10.5),
-        color: CARD_PILL_PRIMARY_TEXT,
-        letterSpacing: 0.2,
+        color: LIST_PILL_TEXT,
+        letterSpacing: 0.4,
+        textTransform: "uppercase",
     },
-    itemPillTextMuted: { color: CARD_PILL_MUTED_TEXT },
+    itemPillTextMuted: { color: LIST_PILL_SECONDARY_TEXT },
     swipeActions: {
         justifyContent: "center",
         alignItems: "center",
@@ -502,6 +503,7 @@ const styles = StyleSheet.create({
         alignItems: "center",
         justifyContent: "center",
         paddingVertical: scaleSize(12),
+        borderRadius: scaleSize(16),
         width: "100%",
         borderTopWidth: StyleSheet.hairlineWidth,
         borderTopColor: CARD_BORDER,

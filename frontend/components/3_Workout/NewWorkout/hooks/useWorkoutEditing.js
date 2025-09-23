@@ -34,15 +34,51 @@ export default function useWorkoutEditing({ workout, updateWorkout, viewingSelf 
 
     /* ----------- micro-batched commit (reduces re-renders) ----------- */
     const pendingRef = useRef(null);  // last computed "next workout"
-    const timerRef = useRef(0);
-    const MICRO_DELAY = 120; // ms; batches multiple quick edits (typing/toggles)
+    const flushHandleRef = useRef(null);
+    const flushUsingRafRef = useRef(false);
 
-    const flush = useCallback(() => {
-        timerRef.current = 0;
+    const clearScheduledFlush = useCallback(() => {
+        if (!flushHandleRef.current) return;
+        if (flushUsingRafRef.current && typeof cancelAnimationFrame === "function") {
+            cancelAnimationFrame(flushHandleRef.current);
+        } else {
+            clearTimeout(flushHandleRef.current);
+        }
+        flushHandleRef.current = null;
+        flushUsingRafRef.current = false;
+    }, []);
+
+    const flushPending = useCallback(() => {
         const next = pendingRef.current;
         pendingRef.current = null;
         if (next) updateWorkoutRef.current(next);
     }, []);
+
+    const scheduleFlush = useCallback(() => {
+        if (flushHandleRef.current) return;
+
+        const raf = (typeof requestAnimationFrame === "function")
+            ? requestAnimationFrame
+            : (typeof global !== "undefined" && typeof global.requestAnimationFrame === "function"
+                ? global.requestAnimationFrame
+                : null);
+
+        if (raf) {
+            flushUsingRafRef.current = true;
+            flushHandleRef.current = raf(() => {
+                flushHandleRef.current = null;
+                flushUsingRafRef.current = false;
+                flushPending();
+            });
+            return;
+        }
+
+        flushUsingRafRef.current = false;
+        flushHandleRef.current = setTimeout(() => {
+            flushHandleRef.current = null;
+            flushPending();
+        }, 32);
+    }, [flushPending]);
 
     /** Queue an update in a short micro-batch window. If producer returns the *same* object, skip. */
     const commit = useCallback((producer) => {
@@ -51,15 +87,13 @@ export default function useWorkoutEditing({ workout, updateWorkout, viewingSelf 
         const next = producer(current);
         if (!next || next === current) return; // nothing changed
         pendingRef.current = next; // only the latest wins
-        if (!timerRef.current) {
-            timerRef.current = setTimeout(flush, MICRO_DELAY);
-        }
-    }, [flush]);
+        scheduleFlush();
+    }, [scheduleFlush]);
 
     // cancel pending timer on unmount
     useEffect(() => () => {
-        if (timerRef.current) clearTimeout(timerRef.current);
-    }, []);
+        clearScheduledFlush();
+    }, [clearScheduledFlush]);
 
     /* ------------------------------ actions ------------------------------ */
 

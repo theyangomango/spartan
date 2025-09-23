@@ -1,6 +1,6 @@
 // components/3_Workout/DayDetails/DateHeader.js
 import React from 'react';
-import { View, StyleSheet, Pressable, Animated, Text } from 'react-native';
+import { View, StyleSheet, Pressable, Animated } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import theme from '../../../theme/mfpDark';
 import scaleSize from '../../../helper/scaleSize';
@@ -54,10 +54,10 @@ const styles = StyleSheet.create({
     borderBottomWidth: StyleSheet.hairlineWidth,
     borderBottomColor: theme.hairline,
   },
-  dateHeaderRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
+  dateHeaderRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', },
   leadingGroup: { width: scaleSize(74), alignItems: 'flex-start', justifyContent: 'center' },
-  titlePress: { flex: 1 },
-  title: { flex: 1, fontFamily: 'Nunito_800ExtraBold', fontSize: scaleSize(16), color: theme.textPrimary, textAlign: 'center', marginTop: scaleSize(2) },
+  titlePress: { flex: 1, alignItems: 'center', justifyContent: 'center', minHeight: scaleSize(36) },
+  title: { fontFamily: 'Nunito_800ExtraBold', fontSize: scaleSize(16), color: theme.textPrimary, textAlign: 'center' },
   dateNavBtn: { width: scaleSize(36), height: scaleSize(36), alignItems: 'center', justifyContent: 'center' },
   trailingGroup: { flexDirection: 'row', alignItems: 'center', justifyContent: 'flex-end', width: scaleSize(74) },
   calendarBtn: { marginRight: scaleSize(4) },

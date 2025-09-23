@@ -44,10 +44,9 @@ const styles = StyleSheet.create({
         marginHorizontal: scaleSize(scaledSize(15)),
         paddingHorizontal: scaleSize(scaledSize(15)),
         borderRadius: scaleSize(scaledSize(25)),
-        // Darker card to pop against sheet background
-        backgroundColor: theme.surface,
-        borderWidth: scaleSize(1),
-        borderColor: 'rgba(255,255,255,0.28)',
+        backgroundColor: 'rgba(17, 27, 44, 0.92)',
+        borderWidth: scaleSize(1.2),
+        borderColor: theme.primaryHairline,
         justifyContent: 'center', // Centering the entire content
         shadowColor: '#000',
         shadowOffset: { width: 0, height: scaleSize(scaledSize(2)) },

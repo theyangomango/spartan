@@ -15,7 +15,7 @@ import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { createStackNavigator, CardStyleInterpolators, TransitionSpecs } from '@react-navigation/stack';
 import { Platform, Modal, View, Text, Pressable, StyleSheet, Dimensions, Vibration, TextInput, LogBox } from 'react-native';
 import { rs, ts } from './frontend/helper/scaleSize';
-import { useSharedValue, runOnUI } from 'react-native-reanimated';
+import { useSharedValue, runOnUI, withTiming, Easing } from 'react-native-reanimated';
 import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
@@ -116,6 +116,7 @@ export default function App() {
     const [userReady, setUserReady] = useState(false);
     const [communityStatsReady, setCommunityStatsReady] = useState(false);
     const feedOverlayProgressSV = useSharedValue(1);
+    const footerVisibilitySV = useSharedValue(0);
     const uidRef = useRef(null);
     const unsubRef = useRef(null);
     const notifUnsubRef = useRef(null);
@@ -163,6 +164,14 @@ export default function App() {
             feedOverlayProgressSV.value = 1;
         }
     }, [currentTabName, isFeedPostFocused, feedOverlayProgressSV]);
+
+    useEffect(() => {
+        const target = isFooterVisible ? 1 : 0;
+        footerVisibilitySV.value = withTiming(target, {
+            duration: target ? 220 : 180,
+            easing: target ? Easing.out(Easing.quad) : Easing.in(Easing.quad),
+        });
+    }, [footerVisibilitySV, isFooterVisible]);
 
     useEffect(() => {
         try { global.__USE_GLOBAL_FOOTER = true; } catch {}
@@ -953,19 +962,23 @@ export default function App() {
                 </RootStack.Navigator>
             </NavigationContainer>
             )}
-            {isFooterVisible && (
+            {authChecked && isAuthenticated && (
                 <ActiveWorkoutBottomSheet
                     hideForFocus={isFeedPostFocused}
                     overlayProgressSV={feedOverlayProgressSV}
+                    visibilityProgressSV={footerVisibilitySV}
+                    isActive={isFooterVisible}
                 />
             )}
-            {authChecked && isFooterVisible && (
+            {authChecked && isAuthenticated && (
                 <Footer
                     currentScreenName={currentTabName}
                     navigation={navigationRef.current}
                     isOverlay
                     isHiddenByFocus={isFeedPostFocused}
                     overlayProgressSV={feedOverlayProgressSV}
+                    visibilityProgressSV={footerVisibilitySV}
+                    disableInteractions={!isFooterVisible}
                 />
             )}
             {/* Global Rest Reminder Modal */}
