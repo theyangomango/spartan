@@ -1,4 +1,4 @@
-import React, { useMemo, useRef, useEffect } from "react";
+import React, { useMemo, useRef, useEffect, useCallback } from "react";
 import { View, Text, StyleSheet, FlatList, TouchableOpacity, Dimensions, Animated } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
 import { Ionicons } from "@expo/vector-icons";
@@ -119,6 +119,18 @@ export default function LeaderboardModal({
     const normalizeByBodyweight = !!(isTribeFocused && activeComp?.normalizeByBodyweight);
 
     const scrollX = useRef(new Animated.Value(safeActiveIndex * BANNER_PAGE_WIDTH)).current;
+    const lastReportedBannerIndex = useRef(safeActiveIndex);
+
+    useEffect(() => {
+        lastReportedBannerIndex.current = safeActiveIndex;
+    }, [safeActiveIndex]);
+
+    const notifyBannerChange = useCallback((idx) => {
+        if (!hasComparisons) return;
+        if (idx === lastReportedBannerIndex.current) return;
+        lastReportedBannerIndex.current = idx;
+        onActiveCompChange(idx);
+    }, [hasComparisons, onActiveCompChange]);
 
     const handleScroll = useMemo(() => (
         Animated.event(
@@ -127,10 +139,15 @@ export default function LeaderboardModal({
         )
     ), [scrollX]);
 
-    const onScrollEnd = (e) => {
+    const onScrollEndDrag = useCallback((e) => {
         const idx = Math.round(e.nativeEvent.contentOffset.x / BANNER_PAGE_WIDTH);
-        if (idx !== activeCompIndex) onActiveCompChange(idx);
-    };
+        notifyBannerChange(idx);
+    }, [notifyBannerChange]);
+
+    const onScrollEnd = useCallback((e) => {
+        const idx = Math.round(e.nativeEvent.contentOffset.x / BANNER_PAGE_WIDTH);
+        notifyBannerChange(idx);
+    }, [notifyBannerChange]);
 
     const bannerRef = useRef(null);
 
@@ -170,6 +187,7 @@ export default function LeaderboardModal({
                             snapToAlignment="start"
                             snapToInterval={BANNER_PAGE_WIDTH}
                             decelerationRate="fast"
+                            onScrollEndDrag={onScrollEndDrag}
                             onMomentumScrollEnd={onScrollEnd}
                             initialScrollIndex={safeActiveIndex}
                             onScroll={handleScroll}

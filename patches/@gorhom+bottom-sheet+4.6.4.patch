@@ -1,5 +1,180 @@
+diff --git a/node_modules/@gorhom/bottom-sheet/lib/commonjs/components/bottomSheet/BottomSheet.js b/node_modules/@gorhom/bottom-sheet/lib/commonjs/components/bottomSheet/BottomSheet.js
+index 55d5e15..e2b09f2 100644
+--- a/node_modules/@gorhom/bottom-sheet/lib/commonjs/components/bottomSheet/BottomSheet.js
++++ b/node_modules/@gorhom/bottom-sheet/lib/commonjs/components/bottomSheet/BottomSheet.js
+@@ -107,6 +107,7 @@ const BottomSheetComponent = /*#__PURE__*/(0, _react.forwardRef)(function Bottom
+     // private
+     $modal = false,
+     detached = false,
++    suppressStickyElements = true,
+     // components
+     handleComponent,
+     backdropComponent,
+@@ -118,6 +119,104 @@ const BottomSheetComponent = /*#__PURE__*/(0, _react.forwardRef)(function Bottom
+     accessibilityLabel: _providedAccessibilityLabel = _constants2.DEFAULT_ACCESSIBILITY_LABEL,
+     accessibilityRole: _providedAccessibilityRole = _constants2.DEFAULT_ACCESSIBILITY_ROLE
+   } = props; //#endregion
++  const stickySuppressionIdRef = (0, _react.useRef)(null);
++  const stickySuppressionLastRef = (0, _react.useRef)(null);
++  const hasExplicitIndex = (0, _react.useRef)(Object.prototype.hasOwnProperty.call(props, 'index'));
++  const suppressionThresholdRef = (0, _react.useRef)(Array.isArray(_providedSnapPoints) && _providedSnapPoints.length > 1 ? 0 : -0.5);
++  const suppressionActivateMarginRef = (0, _react.useRef)(Array.isArray(_providedSnapPoints) && _providedSnapPoints.length > 1 ? 0.12 : 0);
++  const suppressionReleaseMarginRef = (0, _react.useRef)(Array.isArray(_providedSnapPoints) && _providedSnapPoints.length > 1 ? 0.08 : 0.04);
++  const ensureStickySuppressionId = (0, _react.useCallback)(() => {
++    if (stickySuppressionIdRef.current == null) {
++      const rand = Math.random().toString(36).slice(2);
++      stickySuppressionIdRef.current = `bs-${Date.now().toString(36)}-${rand}`;
++    }
++    return stickySuppressionIdRef.current;
++  }, []);
++  const applyStickySuppression = (0, _react.useCallback)(shouldSuppress => {
++    if (!suppressStickyElements) {
++      return;
++    }
++    if (stickySuppressionLastRef.current === shouldSuppress) {
++      return;
++    }
++    stickySuppressionLastRef.current = shouldSuppress;
++    try {
++      const id = ensureStickySuppressionId();
++      const setter = global.__setStickyElementsSuppressed;
++      if (typeof setter === 'function') {
++        setter(id, shouldSuppress);
++      }
++    } catch {}
++  }, [ensureStickySuppressionId, suppressStickyElements]);
++  const syncSuppressionFromIndex = (0, _react.useCallback)(indexValue => {
++    if (!suppressStickyElements) {
++      return;
++    }
++    if (indexValue == null || Number.isNaN(indexValue)) {
++      return;
++    }
++    const threshold = suppressionThresholdRef.current;
++    const activateMargin = suppressionActivateMarginRef.current;
++    const releaseMargin = suppressionReleaseMarginRef.current;
++    const epsilon = 1e-3;
++    const last = stickySuppressionLastRef.current === true;
++    if (last) {
++      if (indexValue <= threshold - releaseMargin - epsilon) {
++        applyStickySuppression(false);
++      }
++    } else {
++      if (indexValue >= threshold + activateMargin + epsilon) {
++        applyStickySuppression(true);
++      }
++    }
++  }, [applyStickySuppression, suppressStickyElements]);
++  (0, _react.useEffect)(() => {
++    const hasExpandedState = Array.isArray(_providedSnapPoints) && _providedSnapPoints.length > 1;
++    suppressionThresholdRef.current = hasExpandedState ? 0 : -0.5;
++    suppressionActivateMarginRef.current = hasExpandedState ? 0.12 : 0;
++    suppressionReleaseMarginRef.current = hasExpandedState ? 0.08 : 0.04;
++  }, [_providedSnapPoints]);
++  (0, _react.useEffect)(() => {
++    if (!hasExplicitIndex.current) {
++      return;
++    }
++
++    syncSuppressionFromIndex(_providedIndex);
++  }, [_providedIndex, syncSuppressionFromIndex]);
++  (0, _react.useEffect)(() => {
++    if (suppressStickyElements) {
++      return;
++    }
++
++    if (stickySuppressionIdRef.current == null) {
++      return;
++    }
++
++    stickySuppressionLastRef.current = null;
++
++    try {
++      const setter = global.__setStickyElementsSuppressed;
++
++      if (typeof setter === 'function') {
++        setter(stickySuppressionIdRef.current, false);
++      }
++    } catch {}
++  }, [suppressStickyElements]);
++  (0, _react.useEffect)(() => {
++    return () => {
++      if (stickySuppressionIdRef.current == null) {
++        return;
++      }
++
++      try {
++        const setter = global.__setStickyElementsSuppressed;
++
++        if (typeof setter === 'function') {
++          setter(stickySuppressionIdRef.current, false);
++        }
++      } catch {}
++    };
++  }, []);
+   //#region animations configurations
+ 
+   const _providedAnimationConfigs = (0, _react.useMemo)(() => {
+@@ -372,6 +471,18 @@ const BottomSheetComponent = /*#__PURE__*/(0, _react.forwardRef)(function Bottom
+ 
+     return currentIndex;
+   }, [android_keyboardInputMode]); //#endregion
++  (0, _reactNativeReanimated.useAnimatedReaction)(() => suppressStickyElements ? animatedIndex.value : Number.NEGATIVE_INFINITY, value => {
++    if (!suppressStickyElements) {
++      return;
++    }
++
++    if (value === Number.NEGATIVE_INFINITY) {
++      return;
++    }
++
++    (0, _reactNativeReanimated.runOnJS)(syncSuppressionFromIndex)(value);
++  });
++
+   //#region private methods
+ 
+   /**
+@@ -437,11 +548,12 @@ const BottomSheetComponent = /*#__PURE__*/(0, _react.forwardRef)(function Bottom
+         animatedCurrentIndex: animatedCurrentIndex.value
+       }
+     });
++    syncSuppressionFromIndex(index);
+ 
+     if (_providedOnChange) {
+       _providedOnChange(index);
+     }
+-  }, [_providedOnChange, animatedCurrentIndex]);
++  }, [_providedOnChange, animatedCurrentIndex, syncSuppressionFromIndex]);
+   const handleOnAnimate = (0, _react.useCallback)(function handleOnAnimate(toPoint) {
+     const snapPoints = animatedSnapPoints.value;
+     const toIndex = snapPoints.indexOf(toPoint);
+@@ -453,6 +565,15 @@ const BottomSheetComponent = /*#__PURE__*/(0, _react.forwardRef)(function Bottom
+         fromIndex: animatedCurrentIndex.value
+       }
+     });
++    if (toIndex >= 0) {
++      if (toIndex <= 0) {
++        applyStickySuppression(false);
++      } else {
++        applyStickySuppression(true);
++      }
++    } else if (toIndex === -1) {
++      applyStickySuppression(false);
++    }
+ 
+     if (!_providedOnAnimate) {
+       return;
+@@ -461,7 +582,7 @@ const BottomSheetComponent = /*#__PURE__*/(0, _react.forwardRef)(function Bottom
+     if (toIndex !== animatedCurrentIndex.value) {
+       _providedOnAnimate(animatedCurrentIndex.value, toIndex);
+     }
+-  }, [_providedOnAnimate, animatedSnapPoints, animatedCurrentIndex]); //#endregion
++  }, [_providedOnAnimate, _providedSnapPoints, animatedSnapPoints, animatedCurrentIndex, applyStickySuppression]); //#endregion
+   //#region animation
+ 
+   const stopAnimation = (0, _reactNativeReanimated.useWorkletCallback)(() => {
 diff --git a/node_modules/@gorhom/bottom-sheet/lib/module/components/bottomSheet/BottomSheet.js b/node_modules/@gorhom/bottom-sheet/lib/module/components/bottomSheet/BottomSheet.js
-index 9b18d5e..0685780 100644
+index 9b18d5e..ed08392 100644
 --- a/node_modules/@gorhom/bottom-sheet/lib/module/components/bottomSheet/BottomSheet.js
 +++ b/node_modules/@gorhom/bottom-sheet/lib/module/components/bottomSheet/BottomSheet.js
 @@ -1,4 +1,4 @@
@@ -16,32 +191,73 @@ index 9b18d5e..0685780 100644
      // components
      handleComponent,
      backdropComponent,
-@@ -87,6 +88,56 @@ const BottomSheetComponent = /*#__PURE__*/forwardRef(function BottomSheet(props,
+@@ -87,6 +88,97 @@ const BottomSheetComponent = /*#__PURE__*/forwardRef(function BottomSheet(props,
      accessibilityLabel: _providedAccessibilityLabel = DEFAULT_ACCESSIBILITY_LABEL,
      accessibilityRole: _providedAccessibilityRole = DEFAULT_ACCESSIBILITY_ROLE
    } = props; //#endregion
 +  const stickySuppressionIdRef = useRef(null);
 +  const stickySuppressionLastRef = useRef(null);
-+  const updateStickySuppression = useCallback(index => {
-+    if (!suppressStickyElements) {
-+      return;
-+    }
++  const hasExplicitIndex = useRef(Object.prototype.hasOwnProperty.call(props, 'index'));
++  const suppressionThresholdRef = useRef(Array.isArray(_providedSnapPoints) && _providedSnapPoints.length > 1 ? 0 : -0.5);
++  const suppressionActivateMarginRef = useRef(Array.isArray(_providedSnapPoints) && _providedSnapPoints.length > 1 ? 0.12 : 0);
++  const suppressionReleaseMarginRef = useRef(Array.isArray(_providedSnapPoints) && _providedSnapPoints.length > 1 ? 0.08 : 0.04);
++  const ensureStickySuppressionId = useCallback(() => {
 +    if (stickySuppressionIdRef.current == null) {
 +      const rand = Math.random().toString(36).slice(2);
 +      stickySuppressionIdRef.current = `bs-${Date.now().toString(36)}-${rand}`;
 +    }
-+    const shouldSuppress = typeof index === 'number' && index > -1;
++    return stickySuppressionIdRef.current;
++  }, []);
++  const applyStickySuppression = useCallback(shouldSuppress => {
++    if (!suppressStickyElements) {
++      return;
++    }
 +    if (stickySuppressionLastRef.current === shouldSuppress) {
 +      return;
 +    }
 +    stickySuppressionLastRef.current = shouldSuppress;
 +    try {
++      const id = ensureStickySuppressionId();
 +      const setter = global.__setStickyElementsSuppressed;
 +      if (typeof setter === 'function') {
-+        setter(stickySuppressionIdRef.current, shouldSuppress);
++        setter(id, shouldSuppress);
 +      }
 +    } catch {}
-+  }, [suppressStickyElements]);
++  }, [ensureStickySuppressionId, suppressStickyElements]);
++  const syncSuppressionFromIndex = useCallback(indexValue => {
++    if (!suppressStickyElements) {
++      return;
++    }
++    if (indexValue == null || Number.isNaN(indexValue)) {
++      return;
++    }
++    const threshold = suppressionThresholdRef.current;
++    const activateMargin = suppressionActivateMarginRef.current;
++    const releaseMargin = suppressionReleaseMarginRef.current;
++    const epsilon = 1e-3;
++    const last = stickySuppressionLastRef.current === true;
++    if (last) {
++      if (indexValue <= threshold - releaseMargin - epsilon) {
++        applyStickySuppression(false);
++      }
++    } else {
++      if (indexValue >= threshold + activateMargin + epsilon) {
++        applyStickySuppression(true);
++      }
++    }
++  }, [applyStickySuppression, suppressStickyElements]);
++  useEffect(() => {
++    const hasExpandedState = Array.isArray(_providedSnapPoints) && _providedSnapPoints.length > 1;
++    suppressionThresholdRef.current = hasExpandedState ? 0 : -0.5;
++    suppressionActivateMarginRef.current = hasExpandedState ? 0.12 : 0;
++    suppressionReleaseMarginRef.current = hasExpandedState ? 0.08 : 0.04;
++  }, [_providedSnapPoints]);
++  useEffect(() => {
++    if (!hasExplicitIndex.current) {
++      return;
++    }
++    syncSuppressionFromIndex(_providedIndex);
++  }, [_providedIndex, syncSuppressionFromIndex]);
 +  useEffect(() => {
 +    if (suppressStickyElements) {
 +      return;
@@ -73,17 +289,273 @@ index 9b18d5e..0685780 100644
    //#region animations configurations
  
    const _providedAnimationConfigs = useMemo(() => {
-@@ -406,11 +457,12 @@ const BottomSheetComponent = /*#__PURE__*/forwardRef(function BottomSheet(props,
+@@ -341,6 +433,16 @@ const BottomSheetComponent = /*#__PURE__*/forwardRef(function BottomSheet(props,
+ 
+     return currentIndex;
+   }, [android_keyboardInputMode]); //#endregion
++  useAnimatedReaction(() => suppressStickyElements ? animatedIndex.value : Number.NEGATIVE_INFINITY, value => {
++    if (!suppressStickyElements) {
++      return;
++    }
++    if (value === Number.NEGATIVE_INFINITY) {
++      return;
++    }
++    runOnJS(syncSuppressionFromIndex)(value);
++  });
++
+   //#region private methods
+ 
+   /**
+@@ -406,11 +508,12 @@ const BottomSheetComponent = /*#__PURE__*/forwardRef(function BottomSheet(props,
          animatedCurrentIndex: animatedCurrentIndex.value
        }
      });
-+    updateStickySuppression(index);
++    syncSuppressionFromIndex(index);
  
      if (_providedOnChange) {
        _providedOnChange(index);
      }
 -  }, [_providedOnChange, animatedCurrentIndex]);
-+  }, [_providedOnChange, animatedCurrentIndex, updateStickySuppression]);
++  }, [_providedOnChange, animatedCurrentIndex, syncSuppressionFromIndex]);
    const handleOnAnimate = useCallback(function handleOnAnimate(toPoint) {
      const snapPoints = animatedSnapPoints.value;
      const toIndex = snapPoints.indexOf(toPoint);
+@@ -422,6 +525,15 @@ const BottomSheetComponent = /*#__PURE__*/forwardRef(function BottomSheet(props,
+         fromIndex: animatedCurrentIndex.value
+       }
+     });
++    if (toIndex >= 0) {
++      if (toIndex <= 0) {
++        applyStickySuppression(false);
++      } else {
++        applyStickySuppression(true);
++      }
++    } else if (toIndex === -1) {
++      applyStickySuppression(false);
++    }
+ 
+     if (!_providedOnAnimate) {
+       return;
+@@ -430,7 +542,7 @@ const BottomSheetComponent = /*#__PURE__*/forwardRef(function BottomSheet(props,
+     if (toIndex !== animatedCurrentIndex.value) {
+       _providedOnAnimate(animatedCurrentIndex.value, toIndex);
+     }
+-  }, [_providedOnAnimate, animatedSnapPoints, animatedCurrentIndex]); //#endregion
++  }, [_providedOnAnimate, _providedSnapPoints, animatedSnapPoints, animatedCurrentIndex, applyStickySuppression]); //#endregion
+   //#region animation
+ 
+   const stopAnimation = useWorkletCallback(() => {
+diff --git a/node_modules/@gorhom/bottom-sheet/src/components/bottomSheet/BottomSheet.tsx b/node_modules/@gorhom/bottom-sheet/src/components/bottomSheet/BottomSheet.tsx
+index cd6ea6b..ef96387 100644
+--- a/node_modules/@gorhom/bottom-sheet/src/components/bottomSheet/BottomSheet.tsx
++++ b/node_modules/@gorhom/bottom-sheet/src/components/bottomSheet/BottomSheet.tsx
+@@ -5,6 +5,7 @@ import React, {
+   useImperativeHandle,
+   memo,
+   useEffect,
++  useRef,
+ } from 'react';
+ import { Platform } from 'react-native';
+ import invariant from 'invariant';
+@@ -111,6 +112,7 @@ const BottomSheetComponent = forwardRef<BottomSheet, BottomSheetProps>(
+       enablePanDownToClose = DEFAULT_ENABLE_PAN_DOWN_TO_CLOSE,
+       enableDynamicSizing = DEFAULT_DYNAMIC_SIZING,
+       overDragResistanceFactor = DEFAULT_OVER_DRAG_RESISTANCE_FACTOR,
++      suppressStickyElements = true,
+ 
+       // styles
+       style: _providedStyle,
+@@ -173,6 +175,126 @@ const BottomSheetComponent = forwardRef<BottomSheet, BottomSheetProps>(
+     } = props;
+     //#endregion
+ 
++    const stickySuppressionIdRef = useRef<string | null>(null);
++    const stickySuppressionLastRef = useRef<boolean | null>(null);
++    const hasExplicitIndex = useRef(
++      Object.prototype.hasOwnProperty.call(props, 'index'),
++    );
++    const suppressionThresholdRef = useRef<number>(
++      Array.isArray(_providedSnapPoints) && _providedSnapPoints.length > 1
++        ? 0
++        : -0.5,
++    );
++    const suppressionActivateMarginRef = useRef<number>(
++      Array.isArray(_providedSnapPoints) && _providedSnapPoints.length > 1
++        ? 0.12
++        : 0,
++    );
++    const suppressionReleaseMarginRef = useRef<number>(
++      Array.isArray(_providedSnapPoints) && _providedSnapPoints.length > 1
++        ? 0.08
++        : 0.04,
++    );
++
++    const ensureStickySuppressionId = useCallback(() => {
++      if (stickySuppressionIdRef.current == null) {
++        const rand = Math.random().toString(36).slice(2);
++        stickySuppressionIdRef.current = `bs-${Date.now().toString(36)}-${rand}`;
++      }
++      return stickySuppressionIdRef.current;
++    }, []);
++
++    const applyStickySuppression = useCallback(
++      (shouldSuppress: boolean) => {
++        if (!suppressStickyElements) {
++          return;
++        }
++        if (stickySuppressionLastRef.current === shouldSuppress) {
++          return;
++        }
++        stickySuppressionLastRef.current = shouldSuppress;
++        try {
++          const id = ensureStickySuppressionId();
++          const setter = (global as any).__setStickyElementsSuppressed;
++          if (typeof setter === 'function') {
++            setter(id, shouldSuppress);
++          }
++        } catch {}
++      },
++      [ensureStickySuppressionId, suppressStickyElements],
++    );
++
++    const syncSuppressionFromIndex = useCallback(
++      (indexValue?: number) => {
++        if (!suppressStickyElements) {
++          return;
++        }
++        if (indexValue == null || Number.isNaN(indexValue)) {
++          return;
++        }
++        const threshold = suppressionThresholdRef.current;
++        const activateMargin = suppressionActivateMarginRef.current;
++        const releaseMargin = suppressionReleaseMarginRef.current;
++        const epsilon = 1e-3;
++        const last = stickySuppressionLastRef.current === true;
++        if (last) {
++          if (indexValue <= threshold + releaseMargin + epsilon) {
++            applyStickySuppression(false);
++          }
++        } else {
++          if (indexValue >= threshold + activateMargin + epsilon) {
++            applyStickySuppression(true);
++          }
++        }
++      },
++      [applyStickySuppression, suppressStickyElements],
++    );
++
++    useEffect(() => {
++      const hasExpandedState =
++        Array.isArray(_providedSnapPoints) && _providedSnapPoints.length > 1;
++      suppressionThresholdRef.current = hasExpandedState ? 0 : -0.5;
++      suppressionActivateMarginRef.current = hasExpandedState ? 0.12 : 0;
++      suppressionReleaseMarginRef.current = hasExpandedState ? 0.08 : 0.04;
++    }, [_providedSnapPoints]);
++
++    useEffect(() => {
++      if (!hasExplicitIndex.current) {
++        return;
++      }
++      syncSuppressionFromIndex(_providedIndex);
++    }, [_providedIndex, syncSuppressionFromIndex]);
++
++    useEffect(() => {
++      if (suppressStickyElements) {
++        return;
++      }
++      if (stickySuppressionIdRef.current == null) {
++        return;
++      }
++      stickySuppressionLastRef.current = null;
++      try {
++        const setter = (global as any).__setStickyElementsSuppressed;
++        if (typeof setter === 'function') {
++          setter(stickySuppressionIdRef.current, false);
++        }
++      } catch {}
++    }, [suppressStickyElements]);
++
++    useEffect(() => {
++      return () => {
++        if (stickySuppressionIdRef.current == null) {
++          return;
++        }
++        try {
++          const setter = (global as any).__setStickyElementsSuppressed;
++          if (typeof setter === 'function') {
++            setter(stickySuppressionIdRef.current, false);
++          }
++        } catch {}
++      };
++    }, []);
++
+     //#region animations configurations
+     const _providedAnimationConfigs = useMemo(() => {
+       if (!animationConfigs) {
+@@ -534,6 +656,19 @@ const BottomSheetComponent = forwardRef<BottomSheet, BottomSheetProps>(
+     }, [android_keyboardInputMode]);
+     //#endregion
+ 
++    useAnimatedReaction(
++      () => (suppressStickyElements ? animatedIndex.value : Number.NEGATIVE_INFINITY),
++      (value) => {
++        if (!suppressStickyElements) {
++          return;
++        }
++        if (value === Number.NEGATIVE_INFINITY) {
++          return;
++        }
++        runOnJS(syncSuppressionFromIndex)(value);
++      },
++    );
++
+     //#region private methods
+     /**
+      * Calculate the next position based on keyboard state.
+@@ -625,11 +760,13 @@ const BottomSheetComponent = forwardRef<BottomSheet, BottomSheetProps>(
+           },
+         });
+ 
++        syncSuppressionFromIndex(index);
++
+         if (_providedOnChange) {
+           _providedOnChange(index);
+         }
+       },
+-      [_providedOnChange, animatedCurrentIndex]
++      [_providedOnChange, animatedCurrentIndex, syncSuppressionFromIndex]
+     );
+     const handleOnAnimate = useCallback(
+       function handleOnAnimate(toPoint: number) {
+@@ -645,6 +782,16 @@ const BottomSheetComponent = forwardRef<BottomSheet, BottomSheetProps>(
+           },
+         });
+ 
++        if (toIndex >= 0) {
++          if (toIndex <= 0) {
++            applyStickySuppression(false);
++          } else {
++            applyStickySuppression(true);
++          }
++        } else if (toIndex === -1) {
++          applyStickySuppression(false);
++        }
++
+         if (!_providedOnAnimate) {
+           return;
+         }
+@@ -653,7 +800,13 @@ const BottomSheetComponent = forwardRef<BottomSheet, BottomSheetProps>(
+           _providedOnAnimate(animatedCurrentIndex.value, toIndex);
+         }
+       },
+-      [_providedOnAnimate, animatedSnapPoints, animatedCurrentIndex]
++      [
++        _providedOnAnimate,
++        _providedSnapPoints,
++        animatedSnapPoints,
++        animatedCurrentIndex,
++        applyStickySuppression,
++      ]
+     );
+     //#endregion
+ 

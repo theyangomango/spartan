@@ -17,14 +17,28 @@ function TemplatesRail({ templates = [], onIndexChange, onAddTemplate, onOpenTem
     const pageWidth = useMemo(() => Math.max(windowWidth || 1, 1), [windowWidth]);
     const x = useRef(new Animated.Value(0)).current;
 
-    const onScroll = Animated.event([{ nativeEvent: { contentOffset: { x } } }], {
-        useNativeDriver: false,
-    });
+    const lastReportedIndex = useRef(0);
+
+    const notifyIndexChange = useCallback((idx) => {
+        if (idx === lastReportedIndex.current) return;
+        lastReportedIndex.current = idx;
+        onIndexChange && onIndexChange(idx);
+    }, [onIndexChange]);
+
+    const onScroll = useMemo(() => Animated.event(
+        [{ nativeEvent: { contentOffset: { x } } }],
+        { useNativeDriver: false }
+    ), [x]);
+
+    const handleScrollEndDrag = useCallback((e) => {
+        const idx = Math.round(e.nativeEvent.contentOffset.x / pageWidth);
+        notifyIndexChange(idx);
+    }, [notifyIndexChange, pageWidth]);
 
     const handleMomentumEnd = useCallback((e) => {
         const idx = Math.round(e.nativeEvent.contentOffset.x / pageWidth);
-        onIndexChange && onIndexChange(idx);
-    }, [onIndexChange, pageWidth]);
+        notifyIndexChange(idx);
+    }, [notifyIndexChange, pageWidth]);
 
     const renderItem = useCallback(({ item }) => {
         const isNone = !!item.isNone;
@@ -111,6 +125,7 @@ function TemplatesRail({ templates = [], onIndexChange, onAddTemplate, onOpenTem
                 showsHorizontalScrollIndicator={false}
                 snapToInterval={pageWidth}
                 decelerationRate="fast"
+                onScrollEndDrag={handleScrollEndDrag}
                 onMomentumScrollEnd={handleMomentumEnd}
                 onScroll={onScroll}
                 scrollEventThrottle={16}
