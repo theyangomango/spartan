@@ -7,7 +7,6 @@ import {
     StyleSheet,
     Pressable,
     FlatList,
-    Dimensions,
     TouchableWithoutFeedback,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
@@ -20,7 +19,6 @@ import { withStrongPress } from "../../utils/haptics";
 
 const METRICS = ["1RM", "Volume", "Reps"];
 const metricLabel = (m) => (m === '1RM' ? '1RM' : m);
-const { width } = Dimensions.get("window");
 
 const theme = require("../../theme/mfpDark").default;
 
@@ -386,7 +384,8 @@ const styles = StyleSheet.create({
         elevation: 6,
     },
     editorCard: {
-        width: scaleSize(Math.min(width - 32, 480)),
+        width: "100%",
+        maxWidth: scaleSize(420),
         borderRadius: scaleSize(20),
         backgroundColor: MODAL_BG,
         padding: scaleSize(18),

@@ -8,7 +8,7 @@ import RNBounceable from "@freakycoder/react-native-bounceable";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { LinearGradient } from "expo-linear-gradient";
 import theme from "../../../../theme/mfpDark";
-import useFriendsActivity from "../../../../hooks/useFriendsActivity";
+import useCommunityActivity from "../../../../hooks/useCommunityActivity";
 import useLiveFollowing from "../../../../hooks/useLiveFollowing";
 
 const { height: screenHeight } = Dimensions.get("window");
@@ -107,7 +107,7 @@ const GroupModal = ({ closeGroupModal, onInvite }) => {
     }, [searchQuery, JSON.stringify((Array.isArray(followingUsers) ? followingUsers : []).map((u) => u?.uid || u))]);
 
     // Load friends' recent activity and live status for time grouping
-    const { items: friendActivityItems } = useFriendsActivity(global?.userData);
+    const { items: friendActivityItems } = useCommunityActivity(global?.userData);
     const liveNow = useLiveFollowing(global?.userData); // [{uid, _ts, isLive:true}]
 
     const sections = useMemo(() => {

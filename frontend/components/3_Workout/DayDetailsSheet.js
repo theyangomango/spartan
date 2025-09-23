@@ -16,6 +16,8 @@ import DateHeader from "./DayDetails/DateHeader";
 import OverlayContainer from "./DayDetails/OverlayContainer";
 import { parseMacrosFromDescription, parseExtraNutrientsFromDescription } from "../../utils/nutrition";
 // No foodLogs usage: macros derive only from global.userData.loggedFoods
+import { canViewWorkout } from "../../utils/workoutPrivacy";
+import { buildExerciseSummaries } from "../../utils/workoutSummary";
 
 import scaleSize from "../../helper/scaleSize";
 import { Ionicons } from "@expo/vector-icons";
@@ -55,6 +57,73 @@ const shiftDate = (d, delta) => {
 };
 
 const toNumber = (n) => (Number(n || 0) || 0);
+
+const toMillis = (value) => {
+    if (!value && value !== 0) return undefined;
+    if (typeof value === 'number') return value;
+    if (value?.toMillis) return value.toMillis();
+    const t = new Date(value).getTime();
+    return Number.isFinite(t) ? t : undefined;
+};
+
+const bestTimestamp = (workout) => Math.max(
+    toMillis(workout?.finishedAt) ?? 0,
+    toMillis(workout?.completedAt) ?? 0,
+    toMillis(workout?.startedAt) ?? 0,
+    toMillis(workout?.createdAt) ?? 0,
+    toMillis(workout?.created) ?? 0,
+);
+
+const formatWorkoutDateTime = (ts) => {
+    if (!ts) return '';
+    const d = new Date(ts);
+    if (Number.isNaN(d.getTime())) return '';
+    let timePart = '';
+    try {
+        timePart = d
+            .toLocaleTimeString(undefined, { hour: 'numeric', minute: '2-digit', hour12: true })
+            .toLowerCase()
+            .replace(/[\s.]/g, '');
+    } catch {
+        timePart = '';
+    }
+    let datePart = '';
+    try {
+        const nowYear = new Date().getFullYear();
+        const opts = d.getFullYear() === nowYear
+            ? { month: 'short', day: 'numeric' }
+            : { month: 'short', day: 'numeric', year: '2-digit' };
+        datePart = d.toLocaleDateString(undefined, opts);
+    } catch {
+        datePart = '';
+    }
+    if (timePart && datePart) return `${timePart}, ${datePart}`;
+    return timePart || datePart;
+};
+
+const firstName = (name = '') => {
+    const str = String(name).trim();
+    if (!str) return '';
+    const raw = (str.split(/\s+/)[0] || str).replace(/[.,;:]+$/, '');
+    return raw;
+};
+
+const initials = (name = '') => {
+    const parts = String(name).trim().split(/\s+/);
+    const a = (parts[0] || '').charAt(0);
+    const b = (parts[1] || '').charAt(0);
+    return (a + b).toUpperCase() || 'Y';
+};
+
+const ensureHandle = (workout) => {
+    const fallbackHandle = global?.userData?.handle ?? workout?.handle ?? workout?.username ?? '';
+    const fromName = firstName(workout?.name ?? global?.userData?.name ?? '')?.toLowerCase();
+    const base = fallbackHandle || fromName;
+    if (!base) return '@you';
+    const normalized = String(base).trim();
+    if (!normalized) return '@you';
+    return normalized.startsWith('@') ? normalized : `@${normalized}`;
+};
 
 const MONTH_NAMES = [
     'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
@@ -523,6 +592,10 @@ const DayDetailsSheet = ({
 }) => {
     const bottomSheetRef = useRef(null);
     const navigation = useNavigation();
+    const viewerData = (() => {
+        try { return global?.userData || null; } catch { return null; }
+    })();
+    const viewerUid = viewerData?.uid ? String(viewerData.uid) : "";
     const { width: screenWidth } = useWindowDimensions();
     const [isExpanded, setIsExpanded] = useState(false);
     // Header date updates instantly as you swipe (independent from committed date)
@@ -671,8 +744,10 @@ const DayDetailsSheet = ({
             reps: w?.reps,
             PBs: w?.PBs ?? w?.pbs ?? 0,
             templateName: w?.templateName || w?.template?.name,
+            privacyMode: w?.privacyMode ?? 'hidden',
         };
         const wk = { ...fallback, ...w };
+        if (!wk.privacyMode) wk.privacyMode = 'hidden';
         // Resolve friend uid + pfp (fallbacks similar to FriendsActivitySheet)
         const friendUid = String(wk.creatorUID || wk.creatorUid || "");
         const friendPfp =
@@ -897,27 +972,37 @@ const DayDetailsSheet = ({
                     </View>
                 ) : (
                     dayWorkouts.slice(0, 3).map((w, i) => {
-                        const exCount = Array.isArray(w?.exercises) ? w.exercises.length : 0;
-                        const setCount = Array.isArray(w?.exercises)
-                            ? w.exercises.reduce((acc, e) => acc + (e?.sets?.length || 0), 0)
-                            : 0;
-                        const durMs = w?.duration ?? Math.max(0, (Date.now() - Number(w?.created || 0)));
+                        const durationMs = Number.isFinite(Number(w?.duration)) && Number(w?.duration) > 0
+                            ? Number(w?.duration)
+                            : Math.max(0, (Date.now() - Number(w?.created || 0)));
+                        const durationSeconds = Math.max(0, Math.round(durationMs / 1000));
                         const pbs = Number(w?.PBs ?? 0);
                         const t = w?.templateName || w?.template?.name || w?.name || "Workout";
                         const hasTemplate = (w && w.tid != null);
-                        const subtitle = `${exCount} exercises • ${setCount} sets`;
+                        const ts = bestTimestamp(w);
+                        const metaParts = [ensureHandle(w)];
+                        const dateTime = formatWorkoutDateTime(ts);
+                        if (dateTime) metaParts.push(dateTime);
+                        const fallbackName = w?.name ?? global?.userData?.name ?? 'You';
+                        const pfpUri = w?.pfp || w?.pfpUrl || w?.photoURL || w?.photo || global?.userData?.image;
+
                         return (
                             <WorkoutPanelCard
                                 key={`${w?.wid || i}`}
                                 title={t}
                                 titleStyle={hasTemplate ? { color: theme.primary } : null}
-                                subtitle={subtitle}
+                                metaParts={metaParts}
+                                uid={w?.uid}
+                                pfpVersion={w?.pfpVersion || 0}
                                 pbs={pbs}
-                                durationMs={durMs}
+                                durationSeconds={durationSeconds}
                                 volume={toNumber(w?.volume)}
                                 reps={toNumber(w?.reps)}
+                                exerciseSummaries={buildExerciseSummaries(w)}
                                 onPress={() => openViewer(w)}
-                                showChevron
+                                pfpUri={pfpUri}
+                                fallbackLabel={initials(fallbackName)}
+                                style={{ marginVertical: scaleSize(5) }}
                             />
                         );
                     })
@@ -1124,17 +1209,30 @@ const DayDetailsSheet = ({
                             pointerEvents="none"
                         />
                         <View style={{ alignItems: 'center', paddingVertical: scaleSize(8) }}>
-                            {/* Yellow handle bar (only shown while viewer slides in) */}
-                            <Animated.View
+                            <View
                                 style={{
                                     width: scaleSize(42),
                                     height: scaleSize(4),
                                     borderRadius: scaleSize(2),
-                                    backgroundColor: HANDLE_ACCENT,
-                                    opacity: selectedWorkout ? handleAccentOpacity : 0,
+                                    backgroundColor: HANDLE_NEUTRAL,
+                                    overflow: 'hidden',
                                 }}
-                                pointerEvents="none"
-                            />
+                            >
+                                {/* Yellow handle bar (only shown while viewer slides in) */}
+                                <Animated.View
+                                    style={{
+                                        position: 'absolute',
+                                        left: 0,
+                                        right: 0,
+                                        top: 0,
+                                        bottom: 0,
+                                        backgroundColor: HANDLE_ACCENT,
+                                        opacity: selectedWorkout ? handleAccentOpacity : 0,
+                                        borderRadius: scaleSize(2),
+                                    }}
+                                    pointerEvents="none"
+                                />
+                            </View>
                         </View>
                     </View>
                     )}
@@ -1231,39 +1329,48 @@ const DayDetailsSheet = ({
                             {/* header is fixed above; overlay now sits flush to top without extra spacer */}
                             {!selectedWorkout || !viewerReady ? null : (
                                 <View style={{ flex: 1 }}>
-                                    <NewWorkoutModal
-                                        timerRef={timerRef}
-                                        workout={selectedWorkout}
-                                        cancelWorkout={() => { }}
-                                        updateWorkout={() => { }}
-                                        finishWorkout={() => { }}
-                                        showGroupModal={() => { }}
-                                        userWorkoutStats={global?.userData?.statsExercises || {}}
-                                        onPressBack={closeViewer}
-                                        onCheer={() => { }}
-                                        onCopyTemplate={handleCopyTemplate}
-                                        onPressPfp={() => {
-                                            try { bottomSheetRef.current?.close(); } catch { }
-                                            const uid = String(selectedWorkout?.__friendUid || selectedWorkout?.creatorUID || '');
-                                            if (!uid) return;
-                                            const meUid = String(global?.userData?.uid || '');
-                                            const rootNav = navigation?.getParent?.('ROOT');
-                                            if (uid === meUid) {
-                                                if (rootNav?.navigate) rootNav.navigate('Profile', { transition: 'slide-from-right' });
-                                                else navigation.navigate('Profile', { transition: 'slide-from-right' });
-                                            } else {
-                                                if (rootNav?.navigate) rootNav.navigate('ViewProfile', { user: { uid } });
-                                                else navigation.navigate('ViewProfile', { user: { uid } });
-                                            }
-                                        }}
-                                        forceViewingFriend={String(selectedWorkout.__friendUid || selectedWorkout.creatorUID || "")}
-                                        friendPfp={selectedWorkout.__friendPfp || null}
-                                        streamLive={false}
-                                    />
-                                    {/* Copy Template toast centered near top of overlay */}
-                                    <View pointerEvents="none" style={styles.toastWrap}>
-                                        <CopyTemplateToast anim={toastAnim} text={toastText} />
-                                    </View>
+                                    {canViewWorkout(selectedWorkout, viewerUid, viewerData) ? (
+                                        <>
+                                            <NewWorkoutModal
+                                                timerRef={timerRef}
+                                                workout={selectedWorkout}
+                                                cancelWorkout={() => { }}
+                                                updateWorkout={() => { }}
+                                                finishWorkout={() => { }}
+                                                showGroupModal={() => { }}
+                                                userWorkoutStats={global?.userData?.statsExercises || {}}
+                                                onPressBack={closeViewer}
+                                                onCheer={() => { }}
+                                                onCopyTemplate={handleCopyTemplate}
+                                                onPressPfp={() => {
+                                                    try { bottomSheetRef.current?.close(); } catch { }
+                                                    const uid = String(selectedWorkout?.__friendUid || selectedWorkout?.creatorUID || '');
+                                                    if (!uid) return;
+                                                    const meUid = String(global?.userData?.uid || '');
+                                                    const rootNav = navigation?.getParent?.('ROOT');
+                                                    if (uid === meUid) {
+                                                        if (rootNav?.navigate) rootNav.navigate('Profile', { transition: 'slide-from-right' });
+                                                        else navigation.navigate('Profile', { transition: 'slide-from-right' });
+                                                    } else {
+                                                        if (rootNav?.navigate) rootNav.navigate('ViewProfile', { user: { uid } });
+                                                        else navigation.navigate('ViewProfile', { user: { uid } });
+                                                    }
+                                                }}
+                                                forceViewingFriend={String(selectedWorkout.__friendUid || selectedWorkout.creatorUID || "")}
+                                                friendPfp={selectedWorkout.__friendPfp || null}
+                                                streamLive={false}
+                                            />
+                                            {/* Copy Template toast centered near top of overlay */}
+                                            <View pointerEvents="none" style={styles.toastWrap}>
+                                                <CopyTemplateToast anim={toastAnim} text={toastText} />
+                                            </View>
+                                        </>
+                                    ) : (
+                                        <View style={styles.lockedWrap}>
+                                            <Text style={styles.lockedTitle}>Workout is private</Text>
+                                            <Text style={styles.lockedSubtitle}>You do not have permission to view this workout.</Text>
+                                        </View>
+                                    )}
                                 </View>
                             )}
                             {/* Food details overlay */}
@@ -1451,6 +1558,25 @@ const styles = StyleSheet.create({
         top: scaleSize(14),
         alignItems: "center",
         zIndex: 40,
+    },
+    lockedWrap: {
+        flex: 1,
+        alignItems: "center",
+        justifyContent: "center",
+        paddingHorizontal: scaleSize(28),
+    },
+    lockedTitle: {
+        fontFamily: "Outfit_700Bold",
+        fontSize: scaleSize(16),
+        color: theme.textPrimary,
+        marginBottom: scaleSize(6),
+        textAlign: "center",
+    },
+    lockedSubtitle: {
+        fontFamily: "Outfit_500Medium",
+        fontSize: scaleSize(13),
+        color: theme.textSecondary,
+        textAlign: "center",
     },
 });
 

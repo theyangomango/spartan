@@ -8,9 +8,16 @@ import ExercisesFlatlist from './ExercisesFlatlist';
 import AnimatedButton from './AnimatedButton';
 import theme from "../../../../theme/mfpDark";
 
-// Slightly lighter tints than original palette (very subtle)
-const LIGHT_SURFACE = "#353942"; // ~+3-4 on surface
-const LIGHT_FIELD = "#31353d";   // ~+3-4 on field
+const OVERLAY_BG = 'rgba(8, 12, 24, 0.78)';
+const MODAL_BG = '#121A2C';
+const LIGHT_SURFACE = '#1F2A42';
+const LIGHT_FIELD = '#233552';
+const FIELD_BORDER = 'rgba(120, 198, 255, 0.24)';
+const ICON_COLOR = '#D2DCF0';
+const TEXT_PRIMARY = '#F6F8FF';
+const TEXT_SECONDARY = '#8FA3C2';
+const ACCENT = theme.primary;
+const ACCENT_SOFT = 'rgba(102, 202, 255, 0.24)';
 
 const { height: screenHeight } = Dimensions.get('window');
 const scaledSize = (size) => scaleSize(size);
@@ -189,11 +196,11 @@ export default function SelectExerciseModal({ closeModal, appendExercises }) {
 
                 {/* Search */}
                 <View style={styles.searchContainer}>
-                    <Ionicons name="search" size={scaledSize(20)} color={theme.textSecondary} style={styles.searchIcon} />
+                    <Ionicons name="search" size={scaledSize(20)} color={ICON_COLOR} style={styles.searchIcon} />
                     <TextInput
                         style={styles.searchInput}
                         placeholder="Search exercises..."
-                        placeholderTextColor={theme.textSecondary}
+                        placeholderTextColor={TEXT_SECONDARY}
                         value={inputQuery}
                         onChangeText={handleSearch}
                         onFocus={closeAllDropdowns}
@@ -212,7 +219,7 @@ export default function SelectExerciseModal({ closeModal, appendExercises }) {
                             }}
                         >
                             <Text style={styles.filterButtonText} numberOfLines={1}>{bodyPartButtonLabel}</Text>
-                            <Ionicons name={bodyPartOpen ? "chevron-up" : "chevron-down"} size={scaledSize(16)} color={theme.textPrimary} />
+                            <Ionicons name={bodyPartOpen ? "chevron-up" : "chevron-down"} size={scaledSize(16)} color={ICON_COLOR} />
                         </Pressable>
 
                         {bodyPartOpen && (
@@ -251,7 +258,7 @@ export default function SelectExerciseModal({ closeModal, appendExercises }) {
                             }}
                         >
                             <Text style={styles.filterButtonText} numberOfLines={1}>{equipmentButtonLabel}</Text>
-                            <Ionicons name={equipmentOpen ? "chevron-up" : "chevron-down"} size={scaledSize(16)} color={theme.textPrimary} />
+                            <Ionicons name={equipmentOpen ? "chevron-up" : "chevron-down"} size={scaledSize(16)} color={ICON_COLOR} />
                         </Pressable>
 
                         {equipmentOpen && (
@@ -303,7 +310,7 @@ const styles = StyleSheet.create({
         flex: 1,
         justifyContent: 'center',
         alignItems: 'center',
-        backgroundColor: 'rgba(0, 0, 0, 0.4)',
+        backgroundColor: OVERLAY_BG,
     },
     outside_pressable: {
         flex: 1,
@@ -312,7 +319,7 @@ const styles = StyleSheet.create({
     main_ctnr: {
         width: '94%',
         height: '81%',
-        backgroundColor: '#31394cff',
+        backgroundColor: MODAL_BG,
         borderRadius: scaleSize(scaledSize(20)),
         shadowColor: '#000',
         shadowOffset: { width: 0, height: scaleSize(scaledSize(6)) },
@@ -329,7 +336,7 @@ const styles = StyleSheet.create({
         paddingBottom: scaleSize(scaledSize(10)),
     },
     newButton: {
-        backgroundColor: theme.field,
+        backgroundColor: ACCENT_SOFT,
         paddingHorizontal: scaleSize(scaledSize(20)),
         paddingVertical: scaleSize(scaledSize(4.5)),
         borderRadius: scaleSize(scaledSize(8)),
@@ -338,7 +345,7 @@ const styles = StyleSheet.create({
         opacity: 0.5,
     },
     newButtonText: {
-        color: theme.textSecondary,
+        color: ACCENT,
         fontFamily: 'Outfit_700Bold',
         fontSize: scaleSize(14),
     },
@@ -352,7 +359,7 @@ const styles = StyleSheet.create({
         marginBottom: scaleSize(scaledSize(10)),
         alignSelf: 'center',
         borderWidth: StyleSheet.hairlineWidth,
-        borderColor: theme.hairline,
+        borderColor: FIELD_BORDER,
     },
     searchIcon: {
         marginRight: scaleSize(scaledSize(8)),
@@ -361,7 +368,7 @@ const styles = StyleSheet.create({
         flex: 1,
         padding: scaleSize(scaledSize(8)),
         fontSize: scaleSize(14),
-        color: theme.textPrimary,
+        color: TEXT_PRIMARY,
         fontFamily: 'Outfit_700Bold',
     },
 
@@ -386,11 +393,11 @@ const styles = StyleSheet.create({
         borderRadius: scaleSize(scaledSize(10)),
         backgroundColor: LIGHT_FIELD,
         borderWidth: StyleSheet.hairlineWidth,
-        borderColor: theme.hairline,
+        borderColor: FIELD_BORDER,
     },
     filterButtonText: {
         fontSize: scaleSize(13),
-        color: theme.textPrimary,
+        color: TEXT_PRIMARY,
         fontFamily: 'Outfit_700Bold',
         flexShrink: 1,
         marginRight: scaleSize(scaledSize(6)),
@@ -412,19 +419,19 @@ const styles = StyleSheet.create({
         zIndex: 3,
         maxHeight: scaleSize(scaledSize(220)),
         borderWidth: StyleSheet.hairlineWidth,
-        borderColor: theme.hairline,
+        borderColor: FIELD_BORDER,
     },
     dropdownItem: {
         paddingVertical: scaleSize(scaledSize(8)),
         paddingHorizontal: scaleSize(scaledSize(10)),
     },
-    dropdownItemActive: { backgroundColor: theme.addBtnBg },
+    dropdownItemActive: { backgroundColor: ACCENT_SOFT },
     dropdownItemText: {
         fontSize: scaleSize(13),
-        color: theme.textPrimary,
+        color: TEXT_PRIMARY,
         fontFamily: 'Outfit_700Bold',
     },
-    dropdownItemTextActive: { color: theme.primary },
+    dropdownItemTextActive: { color: ACCENT },
     dropdownBackdrop: {
         position: 'absolute',
         top: scaleSize(scaledSize(140)), // below the header & search bar region; tweak if needed

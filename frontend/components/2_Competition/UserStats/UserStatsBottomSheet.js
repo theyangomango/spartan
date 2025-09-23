@@ -6,6 +6,7 @@ import UserStatsModal from "./UserStatsModal";
 import scaleSize from "../../../helper/scaleSize";
 
 import { onHexagonUpdate } from "../../../utils/hexagonEvents";
+import { coercePrivacyMode } from "../../../utils/workoutPrivacy";
 
 const toDayKey = (d) => {
     try {
@@ -80,9 +81,10 @@ const LeaderboardBottomSheet = ({ isVisible, setIsVisible, user, navigation }) =
                     const list = Array.isArray(entry.sets) ? entry.sets.slice() : [];
                     const lastWid = list.length ? list[list.length - 1]?.wid : null;
                     if (lastWid !== wid) {
+                        const setPrivacy = coercePrivacyMode(cw?.privacyMode);
                         for (const s of sets) {
                             const r = Number(s?.reps)||0; const w = Number(s?.weight)||0;
-                            if (r>0 && w>0) list.push({ weight: w, reps: r, date: dk, wid });
+                            if (r>0 && w>0) list.push({ weight: w, reps: r, date: dk, wid, privacyMode: setPrivacy });
                         }
                         entry.sets = list;
                         stats[name] = entry;

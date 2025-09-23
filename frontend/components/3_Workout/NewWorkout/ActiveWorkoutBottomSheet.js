@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useRef, useState, useMemo, memo } from "react";
-import { View, StyleSheet, Dimensions } from "react-native";
+import { StyleSheet, Dimensions } from "react-native";
 import BottomSheet from "@gorhom/bottom-sheet";
 import Animated, {
     useAnimatedStyle,
@@ -23,6 +23,8 @@ const noop = () => { };
 const SHEET_RADIUS = scaleSize(22);
 const HANDLE_BG_COLLAPSED = 'rgba(45, 157, 255, 0.76)';
 const HANDLE_BG_EXPANDED = 'rgba(45, 158, 255, 0)';
+const HANDLE_BAR_COLOR_COLLAPSED = 'rgba(31, 79, 150, 0.95)';
+const HANDLE_BAR_COLOR_EXPANDED = 'rgba(226, 232, 240, 0.7)';
 const COLLAPSE_COLOR_THRESHOLD = 0.15;
 
 const SCREEN_HEIGHT = Dimensions.get("window").height || 0;
@@ -334,9 +336,21 @@ const AnimatedIndexBridge = ({ animatedIndex, sharedIndex }) => {
         };
     }, [sharedIndex]);
 
+    const handleBarStyle = useAnimatedStyle(() => {
+        const rawProgress = sharedIndex.value ?? 0;
+        const clampedProgress = rawProgress < 0 ? 0 : rawProgress > 1 ? 1 : rawProgress;
+        return {
+            backgroundColor: interpolateColor(
+                clampedProgress,
+                [0, 1],
+                [HANDLE_BAR_COLOR_COLLAPSED, HANDLE_BAR_COLOR_EXPANDED],
+            ),
+        };
+    }, [sharedIndex]);
+
     return (
         <Animated.View style={[styles.handleWrapper, wrapperStyle]} pointerEvents="none">
-            <View style={styles.handleBar} />
+            <Animated.View style={[styles.handleBar, handleBarStyle]} />
         </Animated.View>
     );
 };
@@ -377,6 +391,5 @@ const styles = StyleSheet.create({
         width: scaleSize(40),
         height: scaleSize(4),
         borderRadius: scaleSize(2),
-        backgroundColor: 'rgba(226, 232, 240, 0.7)',
     },
 });

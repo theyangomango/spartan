@@ -27,6 +27,7 @@ import calculate1RM from "../helper/calculate1RM";
 import computeHexagonStats from "./computeHexagonStats"; // retained for local fallback only
 // Cloud Functions disabled: compute hex locally and write directly
 import { emitHexagonUpdate } from "../utils/hexagonEvents";
+import { coercePrivacyMode } from "../utils/workoutPrivacy";
 
 /* ---------------- helpers ---------------- */
 const toMillis = (v) => {
@@ -57,8 +58,9 @@ const sanitizeWorkout = (w) => {
         : [];
     // Strip ephemeral local-only flags
     const { __justStarted, ...rest } = w;
-    // Remove undefined at the top level to satisfy Firestore
-    const restClean = cleanObj(rest);
+    // Enforce a valid privacy mode and remove undefined values before persisting
+    const enforced = { ...rest, privacyMode: coercePrivacyMode(rest?.privacyMode) };
+    const restClean = cleanObj(enforced);
     return {
         ...restClean,
         created,
@@ -138,9 +140,16 @@ export default function useWorkoutManager({ uid, navigation, millisToHMS }) {
         if (tplName && String(tplName).trim()) return String(tplName).trim();
         try {
             const d = new Date(createdMs || Date.now());
-            const m = d.getMonth() + 1;
-            const day = d.getDate();
-            return `${m}/${day} Workout`;
+            const hours = d.getHours();
+            let prefix;
+            if (hours < 12) {
+                prefix = "Morning";
+            } else if (hours < 17) {
+                prefix = "Afternoon";
+            } else {
+                prefix = "Evening";
+            }
+            return `${prefix} Workout`;
         } catch {
             return "Workout";
         }
@@ -264,7 +273,7 @@ export default function useWorkoutManager({ uid, navigation, millisToHMS }) {
 
     /* ------------ helpers ------------ */
     const createWorkoutDoc = useCallback(
-        async (wid, name) => {
+        async (wid, name, privacyMode) => {
             await setDoc(
                 doc(db, "workouts", wid),
                 {
@@ -275,6 +284,7 @@ export default function useWorkoutManager({ uid, navigation, millisToHMS }) {
                     members: [uid],
                     updatedAt: serverTimestamp(),
                     ...(name ? { name: String(name) } : {}),
+                    privacyMode: coercePrivacyMode(privacyMode),
                 },
                 { merge: true }
             );
@@ -362,7 +372,7 @@ export default function useWorkoutManager({ uid, navigation, millisToHMS }) {
 
     /* ------------ public API ------------ */
     const startNewWorkoutFromTemplate = useCallback(
-        (tplOrNull) => {
+        (tplOrNull, options = {}) => {
             if (!uid) { Alert.alert("Sign in required", "Please log in to start a workout."); return; }
 
             try {
@@ -378,6 +388,7 @@ export default function useWorkoutManager({ uid, navigation, millisToHMS }) {
                     const wid = makeID();
                     const created = Date.now();
                     const name = defaultWorkoutName(tplOrNull, created);
+                    const appliedPrivacy = coercePrivacyMode(options?.privacyMode || "global");
 
                     const normalizeSets = (sets) =>
                         Array.isArray(sets) && sets.length
@@ -397,6 +408,7 @@ export default function useWorkoutManager({ uid, navigation, millisToHMS }) {
                         exercises: exercisesFromTpl,
                         tid: tplOrNull?.tid || tplOrNull?.id || null,
                         volume: 0, reps: 0, PBs: 0,
+                        privacyMode: appliedPrivacy,
                     };
 
                     // Mark local state as just-started so UI (e.g., reminder) can react once.
@@ -414,7 +426,7 @@ export default function useWorkoutManager({ uid, navigation, millisToHMS }) {
                     setDoc(doc(db, "users", uid), { currentWorkout: newWorkout }, { merge: true })
                         .catch((e) => console.log("setDoc users.currentWorkout error", e));
 
-                    createWorkoutDoc(wid, name).catch((e) => console.log("createWorkoutDoc error", e));
+                    createWorkoutDoc(wid, name, appliedPrivacy).catch((e) => console.log("createWorkoutDoc error", e));
                 } else {
                     setIsNewWorkoutVisible(true);
                     setSheetState(WORKOUT_SHEET_STATES.EXPANDED);
@@ -495,7 +507,16 @@ export default function useWorkoutManager({ uid, navigation, millisToHMS }) {
                 const ensuredName = (currW?.name && String(currW.name).trim())
                     ? String(currW.name).trim()
                     : defaultWorkoutName({ name: currW?.templateName || currW?.template?.name || null }, currW?.created);
-                const completed = { ...currW, name: ensuredName, duration, exercises: cleanedExercises, reps: totalReps, volume: totalVolume, PBs: totalPBs };
+                const completed = {
+                    ...currW,
+                    name: ensuredName,
+                    duration,
+                    exercises: cleanedExercises,
+                    reps: totalReps,
+                    volume: totalVolume,
+                    PBs: totalPBs,
+                    privacyMode: coercePrivacyMode(currW?.privacyMode),
+                };
 
                 // Only persist/share if there's meaningful work
                 const hasWork = cleanedExercises.length > 0 || totalVolume > 0 || totalReps > 0;
@@ -703,9 +724,10 @@ export default function useWorkoutManager({ uid, navigation, millisToHMS }) {
                                 const entryPrev = nextStats?.[name] || {};
                                 const entry = { ...entryPrev };
                                 entry.sets = Array.isArray(entry.sets) ? entry.sets.slice() : [];
+                                const setPrivacy = coercePrivacyMode(completed?.privacyMode ?? currW?.privacyMode);
                                 for (const s of (ex?.sets || [])) {
                                     const r = Number(s?.reps)||0; const w = Number(s?.weight)||0;
-                                    if (r>0 && w>0) entry.sets.push({ weight:w, reps:r, date: today2, wid: completed?.wid || currW?.wid });
+                                    if (r>0 && w>0) entry.sets.push({ weight:w, reps:r, date: today2, wid: completed?.wid || currW?.wid, privacyMode: setPrivacy });
                                 }
                                 nextStats[name] = entry;
                             }
@@ -723,8 +745,10 @@ export default function useWorkoutManager({ uid, navigation, millisToHMS }) {
                             for (const ex of (cleanedExercises || [])) {
                                 const name = String(ex?.name || '').trim(); if (!name) continue;
                                 const payloadSets = [];
+                                const setPrivacy = coercePrivacyMode(completed?.privacyMode ?? currW?.privacyMode);
                                 for (const s of (Array.isArray(ex?.sets) ? ex.sets : [])) {
-                                    const r = Number(s?.reps)||0; const w = Number(s?.weight)||0; if (r>0 && w>0) payloadSets.push({ weight:w, reps:r, date: today2, wid: completed?.wid || currW?.wid });
+                                    const r = Number(s?.reps)||0; const w = Number(s?.weight)||0;
+                                    if (r>0 && w>0) payloadSets.push({ weight:w, reps:r, date: today2, wid: completed?.wid || currW?.wid, privacyMode: setPrivacy });
                                 }
                                 if (payloadSets.length) updateFields[`statsExercises.${name}.sets`] = arrayUnion(...payloadSets);
                             }

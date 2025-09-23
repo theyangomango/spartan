@@ -1,4 +1,4 @@
-import React, { memo, useRef, useCallback } from "react";
+import React, { memo, useRef, useCallback, useEffect } from "react";
 import { View, Text, StyleSheet, Platform, Pressable, Animated } from "react-native";
 import { Feather, Ionicons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
@@ -22,6 +22,7 @@ const PROGRESS_FILL = "#49AFFF";
 
 function HubRowCmp({
     afterPaint,
+    dataHydrated,
     fill,
     todayCalories,
     caloriesGoal,
@@ -29,6 +30,7 @@ function HubRowCmp({
     weeklyGoal,
     onPress,
     onViewStats,
+    onReady,
 }) {
     const scale = useRef(new Animated.Value(1)).current;
     const interactive = typeof onPress === "function";
@@ -77,6 +79,57 @@ function HubRowCmp({
         skipNextParentPressRef.current = true;
     }, []);
 
+    const readyRef = useRef(false);
+    const readyRafRef = useRef({ outer: null, inner: null });
+    const clearReadyRafs = useCallback(() => {
+        const { outer, inner } = readyRafRef.current;
+        if (typeof outer === "number") {
+            cancelAnimationFrame(outer);
+        }
+        if (typeof inner === "number") {
+            cancelAnimationFrame(inner);
+        }
+        readyRafRef.current = { outer: null, inner: null };
+    }, []);
+
+    const scheduleReady = useCallback(() => {
+        if (readyRef.current || !afterPaint || !dataHydrated) return;
+        clearReadyRafs();
+        const outer = requestAnimationFrame(() => {
+            const inner = requestAnimationFrame(() => {
+                if (readyRef.current || !afterPaint || !dataHydrated) return;
+                readyRef.current = true;
+                try {
+                    onReady?.();
+                } catch {
+                    // noop — readiness signal is best-effort
+                }
+            });
+            readyRafRef.current.inner = inner;
+        });
+        readyRafRef.current.outer = outer;
+    }, [afterPaint, clearReadyRafs, dataHydrated, onReady]);
+
+    useEffect(() => {
+        if (!afterPaint || !dataHydrated) {
+            readyRef.current = false;
+            clearReadyRafs();
+            return () => {
+                clearReadyRafs();
+            };
+        }
+        const metricsReady = Number.isFinite(safeGoal) && Number.isFinite(safeWeeklyGoal);
+        if (!metricsReady) {
+            return () => {
+                clearReadyRafs();
+            };
+        }
+        scheduleReady();
+        return () => {
+            clearReadyRafs();
+        };
+    }, [afterPaint, clearReadyRafs, dataHydrated, safeFill, safeGoal, safeToday, safeWeeklyCount, safeWeeklyGoal, scheduleReady, weeklyFill]);
+
     const handleViewStatsPress = useCallback(() => {
         if (!viewStatsEnabled) return;
         try {
@@ -101,7 +154,7 @@ function HubRowCmp({
                             size={scaleSize(14)}
                             color={theme.textSecondary}
                         />
-                        <Text style={styles.headerSubtitle}>Tap to see logs</Text>
+                        <Text style={styles.headerSubtitle}>Tap to see logs.</Text>
                     </View>
                 </View>
                 <RNBounceable
@@ -186,12 +239,14 @@ function HubRowCmp({
 
 const areEqual = (a, b) => (
     a.afterPaint === b.afterPaint &&
+    a.dataHydrated === b.dataHydrated &&
     a.fill === b.fill &&
     a.todayCalories === b.todayCalories &&
     a.caloriesGoal === b.caloriesGoal &&
     a.workoutsThisWeek === b.workoutsThisWeek &&
     a.weeklyGoal === b.weeklyGoal &&
-    a.onViewStats === b.onViewStats
+    a.onViewStats === b.onViewStats &&
+    a.onReady === b.onReady
 );
 
 export default memo(HubRowCmp, areEqual);

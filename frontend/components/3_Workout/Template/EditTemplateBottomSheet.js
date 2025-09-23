@@ -7,7 +7,16 @@ import scaleSize from "../../../helper/scaleSize";
 
 const EditTemplateBottomSheet = ({ isVisible, setIsVisible, openedTemplateRef, updateTemplate, deleteTemplate }) => {
     const bottomSheetRef = useRef(null);
-    const snapPoints = useMemo(() => ["94%"], []);
+    const snapPoints = useMemo(() => ["100%"], []);
+
+    const handleClose = useCallback(() => {
+        try { bottomSheetRef.current?.close?.(); } catch {}
+        try { setIsVisible(false); } catch {}
+    }, [setIsVisible]);
+
+    const handleSave = useCallback(() => {
+        handleClose();
+    }, [handleClose]);
 
     const renderBackdrop = useCallback(
         (props) => (
@@ -37,7 +46,8 @@ const EditTemplateBottomSheet = ({ isVisible, setIsVisible, openedTemplateRef, u
             backdropComponent={renderBackdrop}
             keyboardBehavior="interactive"
             keyboardBlurBehavior="restore"
-            enablePanDownToClose
+            enablePanDownToClose={false}
+            enableHandlePanningGesture={false}
             enableContentPanningGesture={false}
             onClose={() => { try { setIsVisible(false); } catch {} }}
             onChange={(index) => { if (index < 0) { try { setIsVisible(false); } catch {} } }}
@@ -59,6 +69,8 @@ const EditTemplateBottomSheet = ({ isVisible, setIsVisible, openedTemplateRef, u
                     openedTemplateRef={openedTemplateRef}
                     updateTemplate={updateTemplate}
                     deleteTemplate={deleteTemplate}
+                    closeModal={handleClose}
+                    onSave={handleSave}
                 />
             }
         </BottomSheet>

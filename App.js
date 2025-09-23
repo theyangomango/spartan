@@ -265,12 +265,14 @@ export default function App() {
                 uidRef.current = null;
                 setUserReady(false);
                 try { global.userData = {}; } catch {}
+                try { delete global.__userDocHydrated; } catch {}
             } else {
                 if (logoutResetTimerRef.current) {
                     try { clearTimeout(logoutResetTimerRef.current); } catch {}
                     logoutResetTimerRef.current = null;
                 }
                 uidRef.current = normalizedUid;
+                try { delete global.__userDocHydrated; } catch {}
             }
             setIsAuthenticated(!!normalizedUid);
         };
@@ -419,10 +421,12 @@ export default function App() {
 
         const uid = uidRef.current;
         if (!isAuthenticated || !uid) return;
+        try { delete global.__userDocHydrated; } catch {}
         const ref = doc(db, 'users', uid);
         unsubRef.current = onSnapshot(ref, async (snap) => {
             try { global.userData = { uid, ...(snap.data() || {}) }; } catch {}
             setUserReady(true);
+            try { global.__userDocHydrated = true; } catch {}
             try {
                 const maybeRefresh = refreshCommunityStats({ force: true });
                 if (maybeRefresh && typeof maybeRefresh.catch === 'function') {
@@ -492,6 +496,7 @@ export default function App() {
             if (!userReady) {
                 try { const uid = uidRef.current; global.userData = { ...(global.userData || {}), uid, id: uid }; } catch {}
                 setUserReady(true);
+                try { global.__userDocHydrated = true; } catch {}
             }
         }, 2500);
         return () => clearTimeout(id);

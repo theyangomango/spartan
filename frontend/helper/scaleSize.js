@@ -44,9 +44,9 @@ function computeTextScale() {
   // Less aggressive: use the smaller axis scale and smaller bumps
   const base = Math.max(1, SCALE_MIN);
   let bump = 0;
-  if (SCREEN_WIDTH >= 430 || SCREEN_HEIGHT >= 930) bump = 0.06; // XL devices
-  else if (SCREEN_WIDTH >= 414 || SCREEN_HEIGHT >= 896) bump = 0.04; // Large / Plus
-  else if (SCREEN_WIDTH >= 390 || SCREEN_HEIGHT >= 844) bump = 0.02; // Standard modern
+  if (SCREEN_WIDTH >= 430 || SCREEN_HEIGHT >= 930) bump = 0.07; // XL devices
+  else if (SCREEN_WIDTH >= 414 || SCREEN_HEIGHT >= 896) bump = 0.05; // Large / Plus
+  else if (SCREEN_WIDTH >= 390 || SCREEN_HEIGHT >= 844) bump = 0.03; // Standard modern
   else bump = 0.00; // Small/older — no bump
   return Math.min(1.15, base + bump);
 }

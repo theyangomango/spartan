@@ -188,7 +188,11 @@ const StartCluster = ({
                     </View>
 
                     <Animated.View style={{ transform: [{ scale }] }}>
-                        <StartOpenButton hasActiveWorkout={hasActiveWorkout} onOpen={onOpenNewWorkout} onStart={onStartWorkout} />
+                        <StartOpenButton
+                            hasActiveWorkout={hasActiveWorkout}
+                            onOpen={onOpenNewWorkout}
+                            onStart={() => onStartWorkout?.(privacyMode)}
+                        />
                     </Animated.View>
 
                     <View style={[styles.glowWrap, styles.postWrap]}>
@@ -239,7 +243,7 @@ const styles = StyleSheet.create({
     privacyIcon: { marginBottom: scaleSize(2) },
     privacyLabel: {
         marginTop: scaleSize(4),
-        fontSize: scaleSize(10),
+        fontSize: scaleSize(11),
         color: "#E3E8F4",
         fontFamily: "Outfit_600SemiBold",
         letterSpacing: 0.2,
@@ -249,7 +253,7 @@ const styles = StyleSheet.create({
     postWrap: { position: "relative" },
     actionLabel: {
         marginTop: scaleSize(4),
-        fontSize: scaleSize(10),
+        fontSize: scaleSize(11),
         color: "#E3E8F4",
         fontFamily: "Outfit_600SemiBold",
         letterSpacing: 0.2,
@@ -301,13 +305,13 @@ const styles = StyleSheet.create({
         marginLeft: scaleSize(8),
         marginRight: scaleSize(8),
         fontFamily: "Outfit_700Bold",
-        fontSize: scaleSize(13.5),
+        fontSize: scaleSize(14.5),
         color: "#DAE2F6",
     },
     privacyOptionLabelActive: { color: theme.textPrimary },
     privacyOptionDescription: {
         fontFamily: "Outfit_500Medium",
-        fontSize: scaleSize(11.5),
+        fontSize: scaleSize(12.5),
         color: "#ADB9D4",
         lineHeight: scaleSize(15),
     },

@@ -1,10 +1,11 @@
-import React, { useState, useCallback, useEffect } from "react";
-import { StyleSheet, View, Modal, ScrollView, Text, TextInput, Dimensions } from "react-native";
+import React, { useState, useCallback, useRef } from "react";
+import { StyleSheet, View, Modal, ScrollView, Text, TextInput } from "react-native";
+import { LinearGradient } from "expo-linear-gradient";
+import { MaterialCommunityIcons } from "@expo/vector-icons";
 import scaleSize from "../../../helper/scaleSize";
 import SelectExerciseModal from "../NewWorkout/SelectExercise/SelectExerciseModal";
 import RNBounceable from "@freakycoder/react-native-bounceable";
 import EditTemplateExerciseLog from "./EditTemplateExerciseLog";
-import { Weight } from 'iconsax-react-native';
 import theme from "../../../theme/mfpDark";
 
 const normalizeSetType = (value) => {
@@ -31,14 +32,14 @@ const normalizeTemplate = (tpl = {}) => ({
         : [],
 });
 
-const { height: screenHeight } = Dimensions.get('window');
 const scaledSize = (size) => scaleSize(size);
 
-const EditTemplateModal = ({ openedTemplateRef, updateTemplate, deleteTemplate }) => {
+const EditTemplateModal = ({ openedTemplateRef, updateTemplate, deleteTemplate, closeModal, onSave }) => {
     const [selectExerciseModalVisible, setSelectExerciseModalVisible] = useState(false);
     const [replaceIndex, setReplaceIndex] = useState(null);
     const [deleteConfirmModalVisible, setDeleteConfirmModalVisible] = useState(false);
     const [template, setTemplate] = useState(() => normalizeTemplate(openedTemplateRef.current));
+    const titleInputRef = useRef(null);
 
     const showSelectExerciseModal = useCallback(() => {
         setSelectExerciseModalVisible(true);
@@ -62,11 +63,9 @@ const EditTemplateModal = ({ openedTemplateRef, updateTemplate, deleteTemplate }
                     })),
                 ],
             };
-            const normalized = normalizeTemplate(next);
-            try { openedTemplateRef.current = normalized; updateTemplate(); } catch {}
-            return normalized;
+            return normalizeTemplate(next);
         });
-    }, [openedTemplateRef, updateTemplate]);
+    }, []);
 
     const updateSets = useCallback((exerciseIndex, newSets) => {
         setTemplate(prevTemplate => {
@@ -75,11 +74,9 @@ const EditTemplateModal = ({ openedTemplateRef, updateTemplate, deleteTemplate }
                 index === exerciseIndex ? { ...exercise, sets: normalizedSets } : exercise
             ));
             const next = { ...prevTemplate, exercises: updatedExercises };
-            const normalized = normalizeTemplate(next);
-            try { openedTemplateRef.current = normalized; updateTemplate(); } catch {}
-            return normalized;
+            return normalizeTemplate(next);
         });
-    }, [openedTemplateRef, updateTemplate]);
+    }, []);
 
     const replaceExercise = useCallback((index) => {
         setReplaceIndex(index);
@@ -106,10 +103,7 @@ const EditTemplateModal = ({ openedTemplateRef, updateTemplate, deleteTemplate }
                         ? { name: choice.name, muscle: choice.muscle, sets: newSets }
                         : ex
                 ));
-                const next = { ...prev, exercises: nextExercises };
-                const normalized = normalizeTemplate(next);
-                try { openedTemplateRef.current = normalized; updateTemplate(); } catch {}
-                return normalized;
+                return normalizeTemplate({ ...prev, exercises: nextExercises });
             });
             setReplaceIndex(null);
             setSelectExerciseModalVisible(false);
@@ -122,26 +116,18 @@ const EditTemplateModal = ({ openedTemplateRef, updateTemplate, deleteTemplate }
     }, [appendExercises, replaceIndex]);
 
     const deleteExercise = useCallback((index) => {
-        setTemplate((prev) => {
-            const next = { ...prev, exercises: prev.exercises.filter((_, i) => i !== index) };
-            try { openedTemplateRef.current = next; updateTemplate(); } catch {}
-            return next;
-        });
-    }, [openedTemplateRef, updateTemplate]);
-
-    useEffect(() => {
-        openedTemplateRef.current = template;
-        updateTemplate();
-    }, [template, updateTemplate]);
+        setTemplate((prev) => normalizeTemplate({
+            ...prev,
+            exercises: prev.exercises.filter((_, i) => i !== index),
+        }));
+    }, []);
 
     const handleChangeTitle = useCallback((text) => {
-        // Keep local template state in sync and push update immediately
-        setTemplate((prev) => {
-            const next = { ...prev, name: text };
-            try { openedTemplateRef.current = next; updateTemplate(); } catch {}
-            return next;
-        });
-    }, [openedTemplateRef, updateTemplate]);
+        setTemplate((prev) => normalizeTemplate({
+            ...prev,
+            name: text,
+        }));
+    }, []);
 
     const confirmDeleteTemplate = () => {
         if (template.exercises.length === 0) handleDeleteTemplate();
@@ -153,26 +139,54 @@ const EditTemplateModal = ({ openedTemplateRef, updateTemplate, deleteTemplate }
         deleteTemplate();
     }, [deleteTemplate]);
 
+    const handleClosePress = useCallback(() => {
+        const originalExercisesCount = Array.isArray(openedTemplateRef?.current?.exercises)
+            ? openedTemplateRef.current.exercises.length
+            : 0;
+        if (originalExercisesCount === 0 && (template?.exercises?.length ?? 0) === 0) {
+            handleDeleteTemplate();
+            return;
+        }
+        if (typeof closeModal === 'function') closeModal();
+    }, [template, openedTemplateRef, handleDeleteTemplate, closeModal]);
+
+    const handleSavePress = useCallback(() => {
+        const normalized = normalizeTemplate(template);
+        setTemplate(normalized);
+        try { openedTemplateRef.current = normalized; } catch { }
+        try { updateTemplate(); } catch { }
+        if (typeof onSave === 'function') onSave(normalized);
+    }, [template, openedTemplateRef, updateTemplate, onSave]);
+
     return (
         <View style={styles.mainContainer}>
-            <View style={styles.header}>
+            <View style={styles.navBar}>
+                <View style={styles.sideSlotLeft}>
+                    <RNBounceable onPress={handleClosePress} style={styles.iconButton}>
+                        <Text style={styles.iconButtonLabel}>✕</Text>
+                    </RNBounceable>
+                </View>
                 <TextInput
-                    style={styles.titleInput}
+                    ref={titleInputRef}
+                    style={styles.navTitleInput}
                     value={template?.name ?? ""}
                     onChangeText={handleChangeTitle}
-                    placeholder="Untitled Template"
+                    placeholder="New Template"
                     placeholderTextColor={theme.textSecondary}
+                    selectionColor={theme.primary}
+                    returnKeyType="done"
+                    blurOnSubmit
                 />
-                <View style={styles.headerRight}>
-                    {/* <RNBounceable style={styles.savedButton}>
-                        <Text style={styles.savedButtonText}>Saved</Text>
-                    </RNBounceable> */}
+                <View style={styles.sideSlotRight}>
+                    <RNBounceable onPress={handleSavePress} style={styles.saveButton}>
+                        <Text style={styles.saveButtonText}>Save</Text>
+                    </RNBounceable>
                 </View>
             </View>
-            <View style={styles.headerShadow} />
             <ScrollView
                 showsVerticalScrollIndicator={false}
                 style={styles.scrollView}
+                contentContainerStyle={styles.scrollContent}
             >
                 {template.exercises.map((ex, index) => (
                     <EditTemplateExerciseLog
@@ -188,14 +202,11 @@ const EditTemplateModal = ({ openedTemplateRef, updateTemplate, deleteTemplate }
                 ))}
                 <RNBounceable onPress={showSelectExerciseModal} style={styles.addExerciseButton}>
                     <Text style={styles.addExerciseText}>Add Exercises</Text>
-                    <Weight size={scaledSize(22)} color="#FFFFFF" variant='Bold' />
                 </RNBounceable>
 
                 <RNBounceable style={styles.cancelButton} onPress={confirmDeleteTemplate}>
                     <Text style={styles.deleteButtonText}>Delete Template</Text>
                 </RNBounceable>
-
-                <View style={{ height: scaleSize(scaledSize(150)) }} />
             </ScrollView>
             <Modal
                 animationType='fade'
@@ -208,18 +219,31 @@ const EditTemplateModal = ({ openedTemplateRef, updateTemplate, deleteTemplate }
             </Modal>
             <Modal
                 animationType="fade"
-                transparent={true}
+                transparent
                 visible={deleteConfirmModalVisible}
                 onRequestClose={() => setDeleteConfirmModalVisible(false)}
+                statusBarTranslucent
             >
                 <View style={styles.modalOverlay}>
                     <View style={styles.modalContainer}>
-                        <Text style={styles.modalText}>Are you sure you want to delete this template?</Text>
-                        <RNBounceable onPress={handleDeleteTemplate} style={styles.deleteTemplateBtn}>
-                            <Text style={styles.deleteTemplateText}>Delete Template</Text>
+                        <LinearGradient
+                            colors={["#2D9EFF", "#60A5FA"]}
+                            start={{ x: 0, y: 0 }}
+                            end={{ x: 1, y: 0 }}
+                            style={styles.modalAccentBar}
+                        />
+                        <View style={[styles.modalIconRing, styles.modalIconRingDanger]}>
+                            <MaterialCommunityIcons name="trash-can-outline" size={scaleSize(26)} color="#FEE2E2" />
+                        </View>
+                        <Text style={styles.modalTitle}>Delete template?</Text>
+                        <Text style={styles.modalBody}>
+                            This removes the template permanently. You can always build a new one from the workout hub.
+                        </Text>
+                        <RNBounceable onPress={handleDeleteTemplate} style={[styles.modalAction, styles.modalActionDanger]}>
+                            <Text style={styles.modalActionText}>Yes, delete template</Text>
                         </RNBounceable>
-                        <RNBounceable onPress={() => setDeleteConfirmModalVisible(false)} style={styles.cancelDeleteBtn}>
-                            <Text style={styles.cancelDeleteText}>Cancel</Text>
+                        <RNBounceable onPress={() => setDeleteConfirmModalVisible(false)} style={[styles.modalAction, styles.modalActionSecondary]}>
+                            <Text style={styles.modalActionSecondaryText}>Keep template</Text>
                         </RNBounceable>
                     </View>
                 </View>
@@ -231,50 +255,86 @@ const EditTemplateModal = ({ openedTemplateRef, updateTemplate, deleteTemplate }
 const styles = StyleSheet.create({
     mainContainer: {
         flex: 1,
+        paddingTop: scaledSize(12),
     },
-    header: {
-        paddingBottom: scaleSize(scaledSize(6)),
-        paddingLeft: scaleSize(scaledSize(15)),
-        paddingRight: scaleSize(scaledSize(22)),
+    navBar: {
+        paddingHorizontal: scaledSize(20),
+        paddingTop: scaledSize(18),
+        paddingBottom: scaledSize(12),
         flexDirection: 'row',
         alignItems: 'center',
         justifyContent: 'space-between',
-        zIndex: 1,
     },
-    headerShadow: { height: scaleSize(scaledSize(2)), backgroundColor: theme.hairline },
-    titleInput: {
-        flex: 1,
-        fontFamily: 'Outfit_700Bold',
-        fontSize: scaleSize(18.5),
-        color: theme.textPrimary,
-        paddingVertical: scaleSize(scaledSize(5)),
-        paddingHorizontal: scaleSize(scaledSize(10)),
-    },
-    headerRight: {
-        flexDirection: 'row',
-        alignItems: 'center',
-    },
-    savedButton: {
-        width: scaleSize(scaledSize(80)),
-        height: scaleSize(scaledSize(35)),
-        borderRadius: scaleSize(scaledSize(12)),
-        backgroundColor: theme.field,
+    sideSlotLeft: {
+        width: scaledSize(60),
+        alignItems: 'flex-start',
         justifyContent: 'center',
-        alignItems: 'center'
     },
-    savedButtonText: {
+    sideSlotRight: {
+        width: scaledSize(60),
+        alignItems: 'flex-end',
+        justifyContent: 'center',
+    },
+    iconButton: {
+        width: scaledSize(40),
+        height: scaledSize(40),
+        borderRadius: scaledSize(14),
+        backgroundColor: '#1a1d27',
+        justifyContent: 'center',
+        alignItems: 'center',
+        shadowColor: '#000',
+        shadowOpacity: 0.3,
+        shadowRadius: scaledSize(8),
+        shadowOffset: { width: 0, height: scaledSize(4) },
+        elevation: 4,
+    },
+    iconButtonLabel: {
         fontFamily: 'Outfit_700Bold',
-        fontSize: scaleSize(15.5),
-        color: theme.textSecondary,
+        fontSize: scaleSize(16),
+        color: '#FFFFFF',
+    },
+    saveButton: {
+        minWidth: scaleSize(68),
+        paddingHorizontal: scaledSize(14),
+        height: scaledSize(36),
+        borderRadius: scaledSize(12),
+        backgroundColor: theme.primary,
+        justifyContent: 'center',
+        alignItems: 'center',
+        shadowColor: theme.primary,
+        shadowOpacity: 0.35,
+        shadowRadius: scaledSize(10),
+        shadowOffset: { width: 0, height: scaledSize(4) },
+        elevation: 5,
+    },
+    saveButtonText: {
+        fontFamily: 'Outfit_700Bold',
+        fontSize: scaleSize(15),
+        color: '#FFFFFF',
+    },
+    navTitleInput: {
+        flex: 1,
+        textAlign: 'center',
+        fontFamily: 'Outfit_600SemiBold',
+        fontSize: scaleSize(17),
+        color: theme.textPrimary,
+        backgroundColor: theme.field,
+        borderRadius: scaledSize(12),
+        paddingVertical: scaledSize(6),
+        textAlignVertical: 'center',
+        marginHorizontal: scaleSize(15)
     },
     scrollView: {
-        paddingTop: scaleSize(scaledSize(5))
+        paddingTop: scaledSize(5)
+    },
+    scrollContent: {
+        paddingBottom: scaledSize(120),
     },
     addExerciseButton: {
-        marginHorizontal: scaleSize(scaledSize(20)),
-        marginTop: scaleSize(scaledSize(18)),
-        height: scaleSize(scaledSize(40)),
-        borderRadius: scaleSize(scaledSize(12)),
+        marginHorizontal: scaledSize(20),
+        marginTop: scaledSize(18),
+        height: scaledSize(40),
+        borderRadius: scaledSize(12),
         // Match NewWorkout add_exercise_btn styling
         backgroundColor: 'rgba(45, 157, 255, 0.6)',
         justifyContent: 'center',
@@ -282,70 +342,134 @@ const styles = StyleSheet.create({
         flexDirection: 'row',
         shadowColor: theme.primary,
         shadowOpacity: 0.15,
-        shadowRadius: scaleSize(scaledSize(6)),
-        shadowOffset: { width: 0, height: scaleSize(scaledSize(3)) },
+        shadowRadius: scaledSize(6),
+        shadowOffset: { width: 0, height: scaledSize(3) },
         elevation: 2,
     },
     addExerciseText: {
         fontSize: scaleSize(16),
         fontFamily: 'Outfit_700Bold',
         color: '#FFFFFF',
-        marginRight: scaleSize(scaledSize(4.5))
+        marginRight: scaledSize(4.5)
     },
     cancelButton: {
-        marginHorizontal: scaleSize(scaledSize(20)),
-        marginTop: scaleSize(scaledSize(14)),
-        height: scaleSize(scaledSize(40)),
-        borderRadius: scaleSize(scaledSize(12)),
+        marginHorizontal: scaledSize(20),
+        marginTop: scaledSize(14),
+        height: scaledSize(40),
+        borderRadius: scaledSize(12),
         backgroundColor: 'rgba(217,76,76,0.7)',
         justifyContent: 'center',
         alignItems: 'center',
         flexDirection: 'row',
         shadowColor: '#D94C4C',
         shadowOpacity: 0.15,
-        shadowRadius: scaleSize(scaledSize(6)),
-        shadowOffset: { width: 0, height: scaleSize(scaledSize(3)) },
+        shadowRadius: scaledSize(6),
+        shadowOffset: { width: 0, height: scaledSize(3) },
         elevation: 2,
     },
     deleteButtonText: {
         fontSize: scaleSize(16),
         fontFamily: 'Outfit_700Bold',
         color: '#FFFFFF',
-        marginRight: scaleSize(scaledSize(4.5))
+        marginRight: scaledSize(4.5)
     },
     modalOverlay: {
         flex: 1,
         justifyContent: 'center',
         alignItems: 'center',
-        backgroundColor: 'rgba(0, 0, 0, 0.5)',
+        backgroundColor: 'rgba(8, 13, 24, 0.78)',
+        paddingHorizontal: scaledSize(24),
     },
     modalContainer: {
-        width: '80%',
-        padding: scaleSize(scaledSize(20)),
-        backgroundColor: theme.surface,
-        borderRadius: scaleSize(scaledSize(15)),
-        alignItems: 'center',
-    },
-    modalText: {
-        fontSize: scaleSize(16),
-        color: theme.textPrimary,
-        fontFamily: 'Outfit_700Bold',
-        marginBottom: scaleSize(scaledSize(20)),
-        textAlign: 'center',
-    },
-    deleteTemplateBtn: { width: '100%', paddingVertical: scaleSize(scaledSize(10)), backgroundColor: '#D94C4C', borderRadius: scaleSize(scaledSize(8)), alignItems: 'center', marginBottom: scaleSize(scaledSize(10)) },
-    deleteTemplateText: { color: '#FFFFFF', fontSize: scaleSize(14), fontFamily: 'Outfit_700Bold' },
-    cancelDeleteBtn: {
         width: '100%',
-        paddingVertical: scaleSize(scaledSize(8)),
-        backgroundColor: theme.field,
-        borderRadius: scaleSize(scaledSize(8)),
+        maxWidth: scaledSize(360),
+        paddingTop: scaledSize(36),
+        paddingBottom: scaledSize(24),
+        paddingHorizontal: scaledSize(24),
+        backgroundColor: 'rgba(20, 28, 45, 0.96)',
+        borderRadius: scaledSize(24),
+        borderWidth: scaledSize(1),
+        borderColor: 'rgba(99, 123, 171, 0.38)',
         alignItems: 'center',
+        shadowColor: '#000000',
+        shadowOpacity: 0.28,
+        shadowRadius: scaledSize(24),
+        shadowOffset: { width: 0, height: scaledSize(14) },
+        elevation: 16,
+        overflow: 'hidden',
     },
-    cancelDeleteText: {
+    modalAccentBar: {
+        position: 'absolute',
+        left: 0,
+        right: 0,
+        top: 0,
+        height: scaledSize(6),
+        borderTopLeftRadius: scaledSize(24),
+        borderTopRightRadius: scaledSize(24),
+        opacity: 0.9,
+    },
+    modalIconRing: {
+        width: scaledSize(58),
+        height: scaledSize(58),
+        borderRadius: scaledSize(32),
+        alignItems: 'center',
+        justifyContent: 'center',
+        marginBottom: scaledSize(18),
+        borderWidth: scaledSize(1.5),
+    },
+    modalIconRingDanger: {
+        backgroundColor: 'rgba(239,68,68,0.12)',
+        borderColor: 'rgba(239,68,68,0.36)',
+    },
+    modalTitle: {
+        fontSize: scaleSize(20),
+        fontFamily: 'Poppins_700Bold',
+        color: theme.textPrimary,
+        textAlign: 'center',
+        marginBottom: scaledSize(10),
+        letterSpacing: 0.2,
+    },
+    modalBody: {
+        fontSize: scaleSize(13.8),
+        fontFamily: 'Outfit_500Medium',
         color: theme.textSecondary,
-        fontSize: scaleSize(14),
-        fontFamily: 'Outfit_700Bold',
+        textAlign: 'center',
+        marginBottom: scaledSize(22),
+        lineHeight: scaledSize(20),
+    },
+    modalAction: {
+        width: '100%',
+        borderRadius: scaledSize(14),
+        paddingVertical: scaledSize(12),
+        alignItems: 'center',
+        justifyContent: 'center',
+        marginBottom: scaledSize(12),
+    },
+    modalActionDanger: {
+        backgroundColor: '#EF4444',
+        shadowColor: '#EF4444',
+        shadowOpacity: 0.32,
+        shadowRadius: scaledSize(12),
+        shadowOffset: { width: 0, height: scaledSize(6) },
+        elevation: 6,
+    },
+    modalActionSecondary: {
+        backgroundColor: 'rgba(148, 163, 184, 0.12)',
+        borderWidth: scaledSize(1),
+        borderColor: 'rgba(148, 197, 255, 0.24)',
+        marginBottom: 0,
+    },
+    modalActionText: {
+        fontFamily: 'Poppins_700Bold',
+        fontSize: scaleSize(14.5),
+        color: '#F8FAFC',
+        letterSpacing: 0.3,
+    },
+    modalActionSecondaryText: {
+        fontFamily: 'Outfit_600SemiBold',
+        fontSize: scaleSize(13.5),
+        color: theme.textPrimary,
+        letterSpacing: 0.25,
     },
 });
 

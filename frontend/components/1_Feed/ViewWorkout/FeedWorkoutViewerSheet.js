@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useRef, memo, useState } from "react";
-import { View, StyleSheet, InteractionManager, Animated, ActivityIndicator } from "react-native";
+import { View, StyleSheet, InteractionManager, Animated, ActivityIndicator, Text } from "react-native";
 import { useNavigation } from "@react-navigation/native";
 import BottomSheet, { BottomSheetBackdrop } from "@gorhom/bottom-sheet";
 import PagerView from "react-native-pager-view";
@@ -10,6 +10,7 @@ import CopyTemplateToast from "../../3_Workout/ui/CopyTemplateToast";
 import updateDoc from "../../../../backend/helper/firebase/updateDoc";
 import makeID from "../../../../backend/helper/makeID";
 import theme from "../../../theme/mfpDark";
+import { canViewWorkout, sanitizeStatsForViewer } from "../../../utils/workoutPrivacy";
 
 import scaleSize from "../../../helper/scaleSize";
 
@@ -38,6 +39,10 @@ const FeedWorkoutViewerSheet = ({
   const navigation = useNavigation();
   const [currentIndex, setCurrentIndex] = useState(() => Math.max(0, Math.min(activeIndex, (Array.isArray(itemsProp) && itemsProp.length ? itemsProp.length - 1 : 0))));
   const [, setStatsTick] = useState(0);
+  const viewerData = (() => {
+    try { return global?.userData || null; } catch { return null; }
+  })();
+  const viewerUid = viewerData?.uid ? String(viewerData.uid) : "";
 
   const items = useMemo(() => {
     if (Array.isArray(itemsProp) && itemsProp.length) return itemsProp;
@@ -112,7 +117,10 @@ const FeedWorkoutViewerSheet = ({
     try {
       const snap = await getDoc(doc(db, "users", key));
       const data = snap.exists() ? (snap.data() || {}) : {};
-      friendStatsCacheRef.current.set(key, data?.statsExercises || null);
+      friendStatsCacheRef.current.set(
+        key,
+        sanitizeStatsForViewer(data?.statsExercises || null, key, viewerUid, viewerData)
+      );
       setStatsTick((tick) => (tick + 1) % 1_000_000);
     } catch {}
     finally {
@@ -124,12 +132,15 @@ const FeedWorkoutViewerSheet = ({
     if (index >= 0) {
       setMountContent(true);
       const entry = items[Math.max(0, Math.min(currentIndex, items.length - 1))];
-      const uid = entry?.friendUid || entry?.workout?.__friendUid || entry?.workout?.creatorUID || entry?.workout?.creatorUid;
-      if (uid) InteractionManager.runAfterInteractions(() => { fetchFriendStats(uid); });
+      const workoutObj = entry?.workout || null;
+      const uid = entry?.friendUid || workoutObj?.__friendUid || workoutObj?.creatorUID || workoutObj?.creatorUid;
+      if (uid && canViewWorkout(workoutObj, viewerUid, viewerData)) {
+        InteractionManager.runAfterInteractions(() => { fetchFriendStats(uid); });
+      }
     } else {
       setMountContent(false);
     }
-  }, [items, currentIndex, fetchFriendStats]);
+  }, [items, currentIndex, fetchFriendStats, viewerUid, viewerData]);
 
   const showToast = useCallback((msg) => {
     setToastText(msg || "Template added");
@@ -171,9 +182,12 @@ const FeedWorkoutViewerSheet = ({
 
   useEffect(() => {
     const entry = items[Math.max(0, Math.min(currentIndex, items.length - 1))];
-    const uid = entry?.friendUid || entry?.workout?.__friendUid || entry?.workout?.creatorUID || entry?.workout?.creatorUid;
-    if (uid) InteractionManager.runAfterInteractions(() => { fetchFriendStats(uid); });
-  }, [items, currentIndex, fetchFriendStats]);
+    const workoutObj = entry?.workout || null;
+    const uid = entry?.friendUid || workoutObj?.__friendUid || workoutObj?.creatorUID || workoutObj?.creatorUid;
+    if (uid && canViewWorkout(workoutObj, viewerUid, viewerData)) {
+      InteractionManager.runAfterInteractions(() => { fetchFriendStats(uid); });
+    }
+  }, [items, currentIndex, fetchFriendStats, viewerUid, viewerData]);
 
   const handlePageSelected = useCallback((event) => {
     const idx = event?.nativeEvent?.position ?? 0;
@@ -207,7 +221,10 @@ const FeedWorkoutViewerSheet = ({
             >
               {items.map((item, idx) => {
                 const key = item?.key || `${idx}`;
-                const workoutEntry = item?.workout || null;
+                const rawWorkout = item?.workout || null;
+                const workoutEntry = (rawWorkout && typeof rawWorkout === 'object')
+                  ? (rawWorkout.privacyMode ? rawWorkout : { ...rawWorkout, privacyMode: rawWorkout?.privacyMode ?? 'hidden' })
+                  : null;
                 const friendUidEff = String(
                   item?.friendUid ||
                   workoutEntry?.__friendUid ||
@@ -222,35 +239,42 @@ const FeedWorkoutViewerSheet = ({
                 return (
                   <View key={key} style={styles.page} collapsable={false}>
                     {workoutEntry ? (
-                      <NewWorkoutModal
-                        timerRef={timerRef}
-                        workout={workoutEntry}
-                        cancelWorkout={noop}
-                        updateWorkout={noop}
-                        finishWorkout={noop}
-                        showGroupModal={noop}
-                        userWorkoutStats={stats}
-                        onPressBack={handleBack}
-                        onCheer={noop}
-                        onCopyTemplate={handleCopyTemplate}
-                        onPressPfp={() => {
-                          try { bottomSheetRef.current?.close(); } catch {}
-                          if (!friendUidEff) return;
-                          const meUid = String(global?.userData?.uid || "");
-                          const rootNav = navigation?.getParent?.('ROOT');
-                          if (friendUidEff === meUid) {
-                            if (rootNav?.navigate) rootNav.navigate('Profile', { transition: 'slide-from-right' });
-                            else navigation.navigate('Profile', { transition: 'slide-from-right' });
-                          } else {
-                            if (rootNav?.navigate) rootNav.navigate('ViewProfile', { user: { uid: friendUidEff } });
-                            else navigation.navigate('ViewProfile', { user: { uid: friendUidEff } });
-                          }
-                        }}
-                        forceViewingFriend={friendUidEff || false}
-                        friendPfp={friendPfpEff}
-                        friendPfpVersion={friendPfpVersionEff}
-                        streamLive={false}
-                      />
+                      canViewWorkout(workoutEntry, viewerUid, viewerData) ? (
+                        <NewWorkoutModal
+                          timerRef={timerRef}
+                          workout={workoutEntry}
+                          cancelWorkout={noop}
+                          updateWorkout={noop}
+                          finishWorkout={noop}
+                          showGroupModal={noop}
+                          userWorkoutStats={stats}
+                          onPressBack={handleBack}
+                          onCheer={noop}
+                          onCopyTemplate={handleCopyTemplate}
+                          onPressPfp={() => {
+                            try { bottomSheetRef.current?.close(); } catch {}
+                            if (!friendUidEff) return;
+                            const meUid = String(global?.userData?.uid || "");
+                            const rootNav = navigation?.getParent?.('ROOT');
+                            if (friendUidEff === meUid) {
+                              if (rootNav?.navigate) rootNav.navigate('Profile', { transition: 'slide-from-right' });
+                              else navigation.navigate('Profile', { transition: 'slide-from-right' });
+                            } else {
+                              if (rootNav?.navigate) rootNav.navigate('ViewProfile', { user: { uid: friendUidEff } });
+                              else navigation.navigate('ViewProfile', { user: { uid: friendUidEff } });
+                            }
+                          }}
+                          forceViewingFriend={friendUidEff || false}
+                          friendPfp={friendPfpEff}
+                          friendPfpVersion={friendPfpVersionEff}
+                          streamLive={false}
+                        />
+                      ) : (
+                        <View style={styles.lockedWrap}>
+                          <Text style={styles.lockedTitle}>Workout is private</Text>
+                          <Text style={styles.lockedSubtitle}>You are not able to view this workout.</Text>
+                        </View>
+                      )
                     ) : (
                       <View style={styles.loadingWrap}>
                         <ActivityIndicator size="large" color={theme.primary || '#fff'} />
@@ -289,6 +313,25 @@ const styles = StyleSheet.create({
     flex: 1,
     alignItems: "center",
     justifyContent: "center",
+  },
+  lockedWrap: {
+    flex: 1,
+    alignItems: "center",
+    justifyContent: "center",
+    paddingHorizontal: scaleSize(24),
+  },
+  lockedTitle: {
+    fontFamily: "Outfit_700Bold",
+    fontSize: scaleSize(16),
+    color: theme.textPrimary,
+    marginBottom: scaleSize(6),
+    textAlign: "center",
+  },
+  lockedSubtitle: {
+    fontFamily: "Outfit_500Medium",
+    fontSize: scaleSize(13),
+    color: theme.textSecondary,
+    textAlign: "center",
   },
   // Position toast near the top of the sheet content
   toastWrap: {

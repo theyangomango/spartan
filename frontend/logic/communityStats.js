@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { collection, documentId, getDocs, query, where } from "firebase/firestore";
 import { db } from "../../firebase.config";
+import { canViewWorkout, coercePrivacyMode } from "../utils/workoutPrivacy";
 
 const STORAGE_PREFIX = "@communityStats:v1:";
 const STALE_AFTER_MS = 5 * 60 * 1000; // 5 minutes
@@ -150,11 +151,19 @@ async function computeStatsForUser(user) {
     const weekKey = currentWeekKey();
     const now = Date.now();
     const totals = { reps: 0, volume: 0, pbs: 0 };
+    const viewerData = user || {};
 
     const accumulateFrom = (workouts, ownerUid) => {
         if (!Array.isArray(workouts)) return;
         for (const workout of workouts) {
             if (!isValidCompletedWorkout(workout, ownerUid)) continue;
+            const privacyMode = coercePrivacyMode(workout?.privacyMode);
+            const normalizedWorkout = {
+                ...workout,
+                privacyMode,
+                creatorUID: workout?.creatorUID || workout?.creatorUid || ownerUid,
+            };
+            if (!canViewWorkout(normalizedWorkout, uid, viewerData)) continue;
             const when = workoutTimestamp(workout);
             if (!Number.isFinite(when) || when < weekKey || when > now) continue;
             const repsVal = Number(workout?.reps ?? 0);

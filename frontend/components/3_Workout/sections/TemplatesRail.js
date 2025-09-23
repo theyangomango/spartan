@@ -27,8 +27,14 @@ function TemplatesRail({ templates = [], onIndexChange, onAddTemplate, onOpenTem
 
     const onScroll = useMemo(() => Animated.event(
         [{ nativeEvent: { contentOffset: { x } } }],
-        { useNativeDriver: false }
-    ), [x]);
+        {
+            useNativeDriver: false,
+            listener: (event) => {
+                const nextIndex = Math.round(event.nativeEvent.contentOffset.x / pageWidth);
+                notifyIndexChange(nextIndex);
+            },
+        }
+    ), [x, notifyIndexChange, pageWidth]);
 
     const handleScrollEndDrag = useCallback((e) => {
         const idx = Math.round(e.nativeEvent.contentOffset.x / pageWidth);
@@ -95,11 +101,9 @@ function TemplatesRail({ templates = [], onIndexChange, onAddTemplate, onOpenTem
                                     <Text numberOfLines={1} style={styles.selectedTitle}>{item.name}</Text>
                                     <View style={styles.metaRow}>
                                         <View style={styles.metaBadge}>
-                                            <Ionicons name="barbell-outline" size={13} color={META_BADGE_ICON} />
                                             <Text style={styles.metaBadgeText}>{exercisesCount} {exercisesLabel}</Text>
                                         </View>
                                         <View style={styles.metaBadge}>
-                                            <Ionicons name="calendar-outline" size={13} color={META_BADGE_ICON} />
                                             <Text style={styles.metaBadgeText}>{item.lastDate ?? "New"}</Text>
                                         </View>
                                     </View>
@@ -121,10 +125,13 @@ function TemplatesRail({ templates = [], onIndexChange, onAddTemplate, onOpenTem
                 data={templates}
                 keyExtractor={(it) => it.id || it.tid}
                 horizontal
-                pagingEnabled
                 showsHorizontalScrollIndicator={false}
                 snapToInterval={pageWidth}
-                decelerationRate="fast"
+                snapToAlignment="start"
+                disableIntervalMomentum
+                decelerationRate={Platform.OS === "ios" ? "fast" : 0.92}
+                bounces={false}
+                overScrollMode="never"
                 onScrollEndDrag={handleScrollEndDrag}
                 onMomentumScrollEnd={handleMomentumEnd}
                 onScroll={onScroll}
@@ -193,12 +200,13 @@ const META_BADGE_ICON = "#A6D6FF";
 const CHEVRON_BG = "rgba(128, 199, 255, 0.2)";
 const CHEVRON_BORDER = "rgba(156, 214, 255, 0.45)";
 const CHEVRON_ICON = "#F1F6FF";
+const SELECTED_TEXT_OFFSET = scaleSize(2);
 
 const ICON_PILL_SIZE = scaleSize(32);
 const ICON_PILL_RADIUS = scaleSize(18);
-const FONT_SELECTED_TAG = ts(10);
+const FONT_SELECTED_TAG = ts(9.5);
 const FONT_SELECTED_TITLE = ts(13);
-const FONT_META_BADGE = ts(10);
+const FONT_META_BADGE = ts(9);
 
 const styles = StyleSheet.create({
     wrap: { justifyContent: "space-between" },
@@ -224,7 +232,6 @@ const styles = StyleSheet.create({
         flexDirection: "row",
         alignItems: "center",
         height: TPL_CARD_H,
-        paddingVertical: scaleSize(14),
         paddingHorizontal: scaleSize(18),
         borderRadius: scaleSize(22),
         position: "relative",
@@ -251,7 +258,8 @@ const styles = StyleSheet.create({
         borderRadius: ICON_PILL_RADIUS,
         alignItems: "center",
         justifyContent: "center",
-        marginRight: scaleSize(14),
+        marginLeft: scaleSize(10),
+        marginRight: scaleSize(12),
         backgroundColor: ICON_PILL_BG,
         borderWidth: scaleSize(1),
         borderColor: ICON_PILL_BORDER,
@@ -262,7 +270,7 @@ const styles = StyleSheet.create({
         marginRight: scaleSize(12),
         justifyContent: "center",
         paddingLeft: scaleSize(2),
-        paddingTop: scaleSize(2),
+        paddingTop: scaleSize(10),
     },
     selectedTag: {
         fontFamily: "Outfit_600SemiBold",
@@ -271,7 +279,8 @@ const styles = StyleSheet.create({
         textTransform: "uppercase",
         color: SELECTED_TAG_COLOR,
         includeFontPadding: false,
-        marginBottom: scaleSize(2),
+        marginBottom: scaleSize(3),
+        marginLeft: SELECTED_TEXT_OFFSET,
     },
     selectedTitle: {
         fontFamily: "Outfit_800ExtraBold",
@@ -280,26 +289,26 @@ const styles = StyleSheet.create({
         includeFontPadding: false,
         letterSpacing: 0.3,
         marginBottom: 0,
+        marginLeft: SELECTED_TEXT_OFFSET,
     },
     metaRow: {
         flexDirection: "row",
         alignItems: "center",
         flexWrap: "wrap",
-        gap: scaleSize(6),
-        marginTop: scaleSize(4),
+        gap: scaleSize(4),
+        marginTop: scaleSize(3),
     },
     metaBadge: {
         flexDirection: "row",
         alignItems: "center",
         gap: scaleSize(4),
-        paddingVertical: scaleSize(3),
+        paddingVertical: scaleSize(4),
         paddingHorizontal: scaleSize(10),
         borderRadius: scaleSize(999),
         backgroundColor: META_BADGE_BG,
         borderWidth: scaleSize(1),
         borderColor: META_BADGE_BORDER,
         marginBottom: scaleSize(4),
-        marginRight: scaleSize(4),
         marginTop: scaleSize(1),
     },
     metaBadgeText: {
@@ -331,15 +340,15 @@ const styles = StyleSheet.create({
         gap: scaleSize(18),
     },
     emptyIconWrap: {
-        width: scaleSize(44),
-        height: scaleSize(44),
+        width: scaleSize(32),
+        height: scaleSize(32),
         borderRadius: scaleSize(22),
         borderWidth: scaleSize(1.3),
         borderColor: EMPTY_CARD_BORDER,
         backgroundColor: "rgba(46, 74, 120, 0.72)",
         alignItems: "center",
         justifyContent: "center",
-        marginRight: scaleSize(10),
+        marginLeft: scaleSize(10),
     },
     emptyTextColumn: { flex: 1, minWidth: 0, gap: scaleSize(4) },
     emptyTitle: {

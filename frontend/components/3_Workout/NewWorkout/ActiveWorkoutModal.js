@@ -32,7 +32,6 @@ import ProgressBanner from "./Tracking/ProgressBanner";
 import ExerciseLog from "./Tracking/ExerciseLog";
 import SelectExerciseModal from "./SelectExercise/SelectExerciseModal";
 import { usePfp } from "../../../helper/usePFPs";
-import { ss as scaledSize } from "../../../utils/scale";
 import theme from "../../../theme/mfpDark";
 // Lazy-load confetti only when needed to keep bundle lean during editing
 
@@ -62,6 +61,12 @@ const HEADER_COLLAPSED_BG = 'rgba(45, 157, 255, 0.58)';
 const HEADER_EXPANDED_BG = 'rgba(45, 158, 255, 0)';
 const SHEET_EXPANDED_BG = theme.surface;
 const SHEET_COLOR_THRESHOLD = 0.15;
+
+// FlashList sizing helpers to keep footer actions from overlapping while template data hydrates
+const ESTIMATED_EXERCISE_BASE_HEIGHT = scaleSize(136);
+const ESTIMATED_SET_ROW_HEIGHT = scaleSize(52);
+const ESTIMATED_LIST_EXTRA_SPACE = scaleSize(160);
+const ESTIMATED_ITEM_MAX_HEIGHT = scaleSize(520);
 
 const ActiveWorkoutModal = ({
     workout,
@@ -484,6 +489,32 @@ const ActiveWorkoutModal = ({
     const exercisesData = useMemo(() => (Array.isArray(baseWorkout?.exercises) ? baseWorkout.exercises : []), [baseWorkout?.exercises]);
     const isEmptyList = exercisesData.length === 0;
 
+    const flashListEstimates = useMemo(() => {
+        const fallback = {
+            estimatedItemSize: ESTIMATED_EXERCISE_BASE_HEIGHT,
+            estimatedListHeight: ESTIMATED_EXERCISE_BASE_HEIGHT + ESTIMATED_LIST_EXTRA_SPACE,
+        };
+        if (!canUseFlashList) return fallback;
+        if (!exercisesData.length) return fallback;
+
+        const totalHeight = exercisesData.reduce((sum, ex) => {
+            const setCount = Array.isArray(ex?.sets) ? ex.sets.length : 0;
+            return sum + ESTIMATED_EXERCISE_BASE_HEIGHT + (setCount * ESTIMATED_SET_ROW_HEIGHT);
+        }, 0);
+        const averageHeight = totalHeight / exercisesData.length;
+
+        return {
+            estimatedItemSize: Math.max(
+                ESTIMATED_EXERCISE_BASE_HEIGHT,
+                Math.min(ESTIMATED_ITEM_MAX_HEIGHT, Math.round(averageHeight))
+            ),
+            estimatedListHeight: Math.max(
+                ESTIMATED_EXERCISE_BASE_HEIGHT,
+                Math.round(totalHeight + ESTIMATED_LIST_EXTRA_SPACE)
+            ),
+        };
+    }, [exercisesData, canUseFlashList]);
+
     // ===== PFPs (stable) =====
     const selfPfpVersion = global?.userData?.pfpVersion ?? 0;
     const selfPfpUri = usePfp(meUid, selfPfpVersion) ||
@@ -791,7 +822,7 @@ const ActiveWorkoutModal = ({
                                 </RNBounceable>
                             </>
                         )}
-                        <View style={{ height: scaleSize(scaledSize(250) + Math.max(0, keyboardHeight - scaledSize(40))) }} />
+                        <View style={{ height: scaleSize(250) + Math.max(0, keyboardHeight - scaleSize(40)) }} />
                     </RNAnimated.View>)
                 ) : (
                     /* Animated FlashList for smoother, low-overhead virtualization */
@@ -832,7 +863,7 @@ const ActiveWorkoutModal = ({
                                             </RNBounceable>
                                         </>
                                     )}
-                                    <View style={{ height: scaleSize(scaledSize(250) + Math.max(0, keyboardHeight - scaledSize(40))) }} />
+                                    <View style={{ height: scaleSize(250) + Math.max(0, keyboardHeight - scaleSize(40)) }} />
                                 </>
                             )}
                             showsVerticalScrollIndicator={false}
@@ -840,7 +871,10 @@ const ActiveWorkoutModal = ({
                             onScroll={RNAnimated.event([{ nativeEvent: { contentOffset: { y: scrollY } } }], { useNativeDriver: true })}
                             keyboardShouldPersistTaps="handled"
                             keyboardDismissMode={Platform.OS === 'ios' ? 'on-drag' : 'none'}
-                            {...(canUseFlashList ? { estimatedItemSize: scaledSize(72) } : {})}
+                            {...(canUseFlashList ? {
+                                estimatedItemSize: flashListEstimates.estimatedItemSize,
+                                estimatedListSize: { width: screenWidth, height: flashListEstimates.estimatedListHeight },
+                            } : {})}
                             contentContainerStyle={styles.scrollview}
                         />
                     </RNAnimated.View>)
@@ -989,7 +1023,7 @@ const ActiveWorkoutModal = ({
                         ref={confettiRef}
                         autoStart={false}
                         count={120}
-                        origin={{ x: screenWidth / 2, y: -scaledSize(60) }}
+                        origin={{ x: screenWidth / 2, y: -scaleSize(60) }}
                         fadeOut
                         explosionSpeed={220}
                         fallSpeed={1500}
@@ -999,7 +1033,7 @@ const ActiveWorkoutModal = ({
                         <ConfettiCannon
                             key={confettiTick}
                             count={120}
-                            origin={{ x: screenWidth / 2, y: -scaledSize(60) }}
+                            origin={{ x: screenWidth / 2, y: -scaleSize(60) }}
                             fadeOut
                             explosionSpeed={220}
                             fallSpeed={1500}
@@ -1036,7 +1070,7 @@ const styles = StyleSheet.create({
         alignItems: 'center',
         justifyContent: 'space-between',
     },
-    headerShadow: { height: scaleSize(scaledSize(2)), backgroundColor: theme.hairline },
+    headerShadow: { height: scaleSize(2), backgroundColor: theme.hairline },
     bodyContainer: { flex: 1, width: '100%' },
     collapsedHud: {
         // backgroundColor: 'rgba(33, 44, 68, 0.96)',
@@ -1079,7 +1113,7 @@ const styles = StyleSheet.create({
         color: theme.textPrimary,
     },
     // Allow the BottomSheet background to show through
-    scrollview: { paddingTop: scaleSize(scaledSize(5)), backgroundColor: 'transparent' },
+    scrollview: { paddingTop: scaleSize(5), backgroundColor: 'transparent' },
     // Ensure FlashList receives a parent with a valid size
     listWrap: { flex: 1 },
 
@@ -1087,10 +1121,10 @@ const styles = StyleSheet.create({
     waitingText: { marginTop: scaleSize(6), fontFamily: "Nunito_700Bold", color: theme.textPrimary },
 
     add_exercise_btn: {
-        marginHorizontal: scaleSize(scaledSize(20)),
-        marginTop: scaleSize(scaledSize(18)),
-        height: scaleSize(scaledSize(40)),
-        borderRadius: scaleSize(scaledSize(12)),
+        marginHorizontal: scaleSize(20),
+        marginTop: scaleSize(18),
+        height: scaleSize(40),
+        borderRadius: scaleSize(12),
         // Slightly muted brand blue for softer contrast
         backgroundColor: 'rgba(45, 157, 255, 0.6)',
         justifyContent: "center",
@@ -1098,22 +1132,22 @@ const styles = StyleSheet.create({
         flexDirection: "row",
         shadowColor: theme.primary,
         shadowOpacity: 0.15,
-        shadowRadius: scaleSize(scaledSize(6)),
-        shadowOffset: { width: 0, height: scaleSize(scaledSize(3)) },
+        shadowRadius: scaleSize(6),
+        shadowOffset: { width: 0, height: scaleSize(3) },
         elevation: 2,
     },
     add_exercise_text: {
         fontSize: scaleSize(16),
         fontFamily: "Outfit_700Bold",
         color: "#FFFFFF",
-        marginRight: scaleSize(scaledSize(4.5)),
+        marginRight: scaleSize(4.5),
     },
 
     cancel_btn: {
-        marginHorizontal: scaleSize(scaledSize(20)),
-        marginTop: scaleSize(scaledSize(14)),
-        height: scaleSize(scaledSize(40)),
-        borderRadius: scaleSize(scaledSize(12)),
+        marginHorizontal: scaleSize(20),
+        marginTop: scaleSize(14),
+        height: scaleSize(40),
+        borderRadius: scaleSize(12),
         // Slightly muted red
         backgroundColor: 'rgba(217,76,76,0.7)',
         justifyContent: "center",
@@ -1121,34 +1155,34 @@ const styles = StyleSheet.create({
         flexDirection: "row",
         shadowColor: "#D94C4C",
         shadowOpacity: 0.15,
-        shadowRadius: scaleSize(scaledSize(6)),
-        shadowOffset: { width: 0, height: scaleSize(scaledSize(3)) },
+        shadowRadius: scaleSize(6),
+        shadowOffset: { width: 0, height: scaleSize(3) },
         elevation: 2,
     },
-    cancel_btn_text: { fontSize: scaleSize(16), fontFamily: "Outfit_700Bold", color: "#FFFFFF", marginRight: scaleSize(scaledSize(4.5)) },
+    cancel_btn_text: { fontSize: scaleSize(16), fontFamily: "Outfit_700Bold", color: "#FFFFFF", marginRight: scaleSize(4.5) },
 
     modalOverlay: {
         flex: 1,
         justifyContent: "center",
         alignItems: "center",
         backgroundColor: "rgba(8, 13, 24, 0.78)",
-        paddingHorizontal: scaleSize(scaledSize(24)),
+        paddingHorizontal: scaleSize(24),
     },
     modalContainer: {
         width: "100%",
-        maxWidth: scaleSize(scaledSize(360)),
-        paddingTop: scaleSize(scaledSize(36)),
-        paddingBottom: scaleSize(scaledSize(24)),
-        paddingHorizontal: scaleSize(scaledSize(24)),
+        maxWidth: scaleSize(360),
+        paddingTop: scaleSize(36),
+        paddingBottom: scaleSize(24),
+        paddingHorizontal: scaleSize(24),
         backgroundColor: 'rgba(20, 28, 45, 0.96)',
-        borderRadius: scaleSize(scaledSize(24)),
+        borderRadius: scaleSize(24),
         borderWidth: scaleSize(1),
         borderColor: 'rgba(99, 123, 171, 0.38)',
         alignItems: "center",
         shadowColor: '#000000',
         shadowOpacity: 0.28,
-        shadowRadius: scaleSize(scaledSize(24)),
-        shadowOffset: { width: 0, height: scaleSize(scaledSize(14)) },
+        shadowRadius: scaleSize(24),
+        shadowOffset: { width: 0, height: scaleSize(14) },
         elevation: 16,
         overflow: 'hidden',
     },
@@ -1157,18 +1191,18 @@ const styles = StyleSheet.create({
         left: 0,
         right: 0,
         top: 0,
-        height: scaleSize(scaledSize(6)),
-        borderTopLeftRadius: scaleSize(scaledSize(24)),
-        borderTopRightRadius: scaleSize(scaledSize(24)),
+        height: scaleSize(6),
+        borderTopLeftRadius: scaleSize(24),
+        borderTopRightRadius: scaleSize(24),
         opacity: 0.9,
     },
     modalIconRing: {
-        width: scaleSize(scaledSize(58)),
-        height: scaleSize(scaledSize(58)),
-        borderRadius: scaleSize(scaledSize(32)),
+        width: scaleSize(58),
+        height: scaleSize(58),
+        borderRadius: scaleSize(32),
         alignItems: 'center',
         justifyContent: 'center',
-        marginBottom: scaleSize(scaledSize(18)),
+        marginBottom: scaleSize(18),
         borderWidth: scaleSize(1.5),
     },
     modalIconRingDanger: {
@@ -1184,7 +1218,7 @@ const styles = StyleSheet.create({
         fontFamily: 'Poppins_700Bold',
         color: theme.textPrimary,
         textAlign: 'center',
-        marginBottom: scaleSize(scaledSize(10)),
+        marginBottom: scaleSize(10),
         letterSpacing: 0.2,
     },
     modalBody: {
@@ -1192,31 +1226,31 @@ const styles = StyleSheet.create({
         fontFamily: 'Outfit_500Medium',
         color: theme.textSecondary,
         textAlign: 'center',
-        marginBottom: scaleSize(scaledSize(22)),
-        lineHeight: scaleSize(scaledSize(20)),
+        marginBottom: scaleSize(22),
+        lineHeight: scaleSize(20),
     },
     modalAction: {
         width: '100%',
-        borderRadius: scaleSize(scaledSize(14)),
-        paddingVertical: scaleSize(scaledSize(12)),
+        borderRadius: scaleSize(14),
+        paddingVertical: scaleSize(12),
         alignItems: 'center',
         justifyContent: 'center',
-        marginBottom: scaleSize(scaledSize(12)),
+        marginBottom: scaleSize(12),
     },
     modalActionDanger: {
         backgroundColor: '#EF4444',
         shadowColor: '#EF4444',
         shadowOpacity: 0.32,
-        shadowRadius: scaleSize(scaledSize(12)),
-        shadowOffset: { width: 0, height: scaleSize(scaledSize(6)) },
+        shadowRadius: scaleSize(12),
+        shadowOffset: { width: 0, height: scaleSize(6) },
         elevation: 6,
     },
     modalActionSuccess: {
         backgroundColor: '#10B981',
         shadowColor: '#10B981',
         shadowOpacity: 0.32,
-        shadowRadius: scaleSize(scaledSize(12)),
-        shadowOffset: { width: 0, height: scaleSize(scaledSize(6)) },
+        shadowRadius: scaleSize(12),
+        shadowOffset: { width: 0, height: scaleSize(6) },
         elevation: 6,
     },
     modalActionSecondary: {
@@ -1243,8 +1277,8 @@ const styles = StyleSheet.create({
     // Reminder styles (gradient border card)
     reminderWrapper: {
         width: "92%",
-        borderRadius: scaleSize(scaledSize(20)),
-        padding: scaleSize(scaledSize(3)), // gradient border width
+        borderRadius: scaleSize(20),
+        padding: scaleSize(3), // gradient border width
         // shadow on wrapper for proper elevation
         backgroundColor: '#60A5FA', // match gradient base so iOS shadow can render without warnings
         shadowColor: "#0F172A",
@@ -1255,14 +1289,14 @@ const styles = StyleSheet.create({
     },
     reminderContainer: {
         backgroundColor: theme.surface,
-        borderRadius: scaleSize(scaledSize(18)),
+        borderRadius: scaleSize(18),
     },
     reminderContent: {
-        paddingVertical: scaleSize(scaledSize(18)),
-        paddingHorizontal: scaleSize(scaledSize(20)),
+        paddingVertical: scaleSize(18),
+        paddingHorizontal: scaleSize(20),
         alignItems: "center",
     },
-    reminderTitle: { fontSize: scaleSize(16), color: theme.textPrimary, fontFamily: "Nunito_800ExtraBold", marginBottom: scaleSize(scaledSize(14)) },
+    reminderTitle: { fontSize: scaleSize(16), color: theme.textPrimary, fontFamily: "Nunito_800ExtraBold", marginBottom: scaleSize(14) },
     reminderBody: { fontSize: scaleSize(14), color: theme.textSecondary, fontFamily: "Nunito_700Bold", textAlign: "center" },
 });
 

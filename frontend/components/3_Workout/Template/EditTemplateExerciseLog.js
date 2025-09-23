@@ -1,5 +1,5 @@
 import React, { useState, useRef } from "react";
-import { View, StyleSheet, Text, Pressable, Image, Animated, Dimensions } from "react-native";
+import { View, StyleSheet, Text, Pressable, Image, Animated } from "react-native";
 import scaleSize from "../../../helper/scaleSize";
 import { Entypo } from '@expo/vector-icons';
 import RNBounceable from "@freakycoder/react-native-bounceable";
@@ -7,8 +7,6 @@ import ExerciseOptionsPanel from "../NewWorkout/Tracking/ExerciseOptionsPanel";
 import TemplateSetRow from "./TemplateSetRow";
 import theme from "../../../theme/mfpDark";
 
-const { height: screenHeight } = Dimensions.get('window');
-const scaledSize = (size) => scaleSize(size);
 
 export default function EditTemplateExerciseLog({ name, muscle, exerciseIndex, updateSets, sets, replaceExercise, deleteExercise }) {
     const [isPanelVisible, setIsPanelVisible] = useState(false);
@@ -24,7 +22,7 @@ export default function EditTemplateExerciseLog({ name, muscle, exerciseIndex, u
             setIsPanelVisible(true);
             setPanelPosition({
                 top: scaleSize(event.nativeEvent.pageY + 25),
-                left: scaleSize(scaledSize(18))
+                left: scaleSize(18)
             });
         }
     };
@@ -94,7 +92,7 @@ export default function EditTemplateExerciseLog({ name, muscle, exerciseIndex, u
             </Animated.View>
             <Animated.View style={[styles.add_set_btn_ctnr, { opacity: fadeAnim }]}>
                 <RNBounceable activeOpacity={0.5} onPress={addSet} style={styles.add_set_btn}>
-                    <Entypo name="plus" size={scaledSize(18)} color={theme.primary} />
+                    <Entypo name="plus" size={scaleSize(18)} color={theme.primary} />
                     <Text style={styles.add_set_text}>Add Set</Text>
                 </RNBounceable>
             </Animated.View>
@@ -104,22 +102,22 @@ export default function EditTemplateExerciseLog({ name, muscle, exerciseIndex, u
 
 const styles = StyleSheet.create({
     main_ctnr: {
-        marginTop: scaleSize(scaledSize(16)),
-        marginBottom: scaleSize(scaledSize(6)),
+        marginTop: scaleSize(16),
+        marginBottom: scaleSize(6),
         position: 'relative',
     },
     header: {
         flexDirection: 'row',
         alignItems: 'center',
-        paddingLeft: scaleSize(scaledSize(20)),
-        paddingBottom: scaleSize(scaledSize(10)),
-        marginHorizontal: scaleSize(scaledSize(2.5)),
+        paddingLeft: scaleSize(20),
+        paddingBottom: scaleSize(10),
+        marginHorizontal: scaleSize(2.5),
     },
     nameContainer: {
         flexDirection: 'row',
         alignItems: 'center',
         flexShrink: 1,
-        marginRight: scaleSize(scaledSize(10)),
+        marginRight: scaleSize(10),
     },
     exercise_text: { fontFamily: 'Mulish_800ExtraBold', color: theme.primary, fontSize: scaleSize(15), flexShrink: 1 },
     // muscle_ctnr and muscle_text removed
@@ -127,20 +125,20 @@ const styles = StyleSheet.create({
         flexDirection: 'row',
         alignItems: 'center',
         marginLeft: 'auto',
-        marginRight: scaleSize(scaledSize(10)),
+        marginRight: scaleSize(10),
         opacity: 0.5
     },
     pfp: {
-        width: scaleSize(scaledSize(34)),
+        width: scaleSize(34),
         aspectRatio: 1,
-        borderRadius: scaleSize(scaledSize(20)),
-        borderWidth: scaleSize(scaledSize(2)),
+        borderRadius: scaleSize(20),
+        borderWidth: scaleSize(2),
         borderColor: '#f4f4f4',
     },
     pfpOverlap: {
-        marginLeft: scaleSize(scaledSize(-24)),
+        marginLeft: scaleSize(-24),
     },
-    labels: { flexDirection: 'row', paddingBottom: scaleSize(scaledSize(5)), marginHorizontal: scaleSize(scaledSize(2.5)) },
+    labels: { flexDirection: 'row', paddingBottom: scaleSize(5), marginHorizontal: scaleSize(2.5) },
     set_ctnr: {
         marginLeft: '5%',
         width: '8%',
@@ -160,14 +158,14 @@ const styles = StyleSheet.create({
     },
     label_text: { fontFamily: 'Mulish_800ExtraBold', fontSize: scaleSize(15), color: theme.textPrimary },
     add_set_btn_ctnr: {
-        paddingHorizontal: scaleSize(scaledSize(20)),
+        paddingHorizontal: scaleSize(20),
     },
     add_set_btn: {
         width: '100%',
-        marginTop: scaleSize(scaledSize(8)),
+        marginTop: scaleSize(8),
         alignSelf: 'center',
-        height: scaleSize(scaledSize(30)),
-        borderRadius: scaleSize(scaledSize(20)),
+        height: scaleSize(30),
+        borderRadius: scaleSize(20),
         backgroundColor: theme.restPillBg,
         borderWidth: StyleSheet.hairlineWidth,
         borderColor: theme.primaryHairline,
@@ -175,5 +173,5 @@ const styles = StyleSheet.create({
         alignItems: 'center',
         flexDirection: 'row',
     },
-    add_set_text: { fontFamily: 'Outfit_600SemiBold', color: theme.textPrimary, fontSize: scaleSize(15), marginLeft: scaleSize(scaledSize(1)), marginRight: scaleSize(scaledSize(5)) },
+    add_set_text: { fontFamily: 'Outfit_600SemiBold', color: theme.textPrimary, fontSize: scaleSize(15), marginLeft: scaleSize(1), marginRight: scaleSize(5) },
 });

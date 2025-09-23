@@ -1,8 +1,9 @@
-import React, { useCallback, useEffect, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useState } from "react";
 import { SafeAreaView, StyleSheet, View, StatusBar } from "react-native";
 import Footer from "../components/Footer";
 import ProfileBottomBottomSheet from "../components/5_Profile/ProfileBottom/ProfileBottomBottomSheet";
 import ViewProfileRowButtons from "../components/ViewProfile/ViewProfileRowButtons";
+import { filterViewableWorkouts } from "../utils/workoutPrivacy";
 import ViewProfileInfo from "../components/ViewProfile/ViewProfileInfo";
 import ViewProfileHeader from "../components/ViewProfile/ViewProfileHeader";
 import readDoc from "../../backend/helper/firebase/readDoc";
@@ -191,6 +192,12 @@ export default function ViewProfile({ navigation, route }) {
         );
     }
 
+    const viewerData = (() => { try { return global?.userData || null; } catch { return null; } })();
+    const viewerUid = viewerData?.uid ? String(viewerData.uid) : "";
+    const visibleCompletedWorkouts = useMemo(() => (
+        filterViewableWorkouts(profileUserData?.completedWorkouts || [], viewerUid, viewerData)
+    ), [profileUserData?.completedWorkouts, viewerUid, viewerData]);
+
     return (
         <SafeAreaView style={styles.main_ctnr}>
             <StatusBar barStyle="light-content" backgroundColor={theme.bg} />
@@ -208,7 +215,7 @@ export default function ViewProfile({ navigation, route }) {
             <ProfileBottomBottomSheet selectedPanel={selectedPanel}
                 setSelectedPanel={setSelectedPanel}
                 posts={posts}
-                completedWorkouts={profileUserData && profileUserData.completedWorkouts}
+                completedWorkouts={visibleCompletedWorkouts}
                 navigation={navigation}
                 onOpenWorkout={openViewer}
                 topContentHeight={profileTopHeight}

@@ -6,6 +6,10 @@ export function usePfp(uid, version = 0) {
     const [uri, setUri] = useState(null);
 
     useEffect(() => {
+        if (!uid) {
+            setUri(null);
+            return () => { };
+        }
         let alive = true;
         (async () => {
             try {

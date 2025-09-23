@@ -53,8 +53,11 @@ export default function Profile({ navigation }) {
             reps: wk?.reps,
             PBs: wk?.PBs ?? wk?.pbs ?? 0,
             templateName: wk?.templateName || wk?.template?.name,
+            privacyMode: wk?.privacyMode ?? 'hidden',
         };
-        setProfileSelectedWorkout({ ...fallback, ...wk });
+        const normalized = { ...fallback, ...wk };
+        if (!normalized.privacyMode) normalized.privacyMode = 'hidden';
+        setProfileSelectedWorkout(normalized);
         setProfileWorkoutExpandToggle((t) => !t);
     }, []);
     const closeWorkoutViewer = useCallback(() => {

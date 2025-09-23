@@ -176,7 +176,7 @@ const styles = StyleSheet.create({
         backgroundColor: CARD_BG,
         borderRadius: CARD_RADIUS,
         paddingVertical: scaleSize(20),
-        paddingLeft: scaleSize(16),
+        paddingLeft: scaleSize(20),
         paddingRight: scaleSize(4),
         borderWidth: scaleSize(1),
         borderColor: CARD_BORDER,
@@ -191,7 +191,7 @@ const styles = StyleSheet.create({
     },
     subtitle: {
         fontFamily: "Outfit_600SemiBold",
-        fontSize: scaleSize(10),
+        fontSize: scaleSize(scaleSize(10)),
         color: TEXT_SECONDARY,
         letterSpacing: 0.28,
     },
@@ -203,7 +203,7 @@ const styles = StyleSheet.create({
         flexDirection: "row",
         alignItems: "center",
         flex: 1,
-        marginLeft: scaleSize(6),
+        marginLeft: scaleSize(4),
         paddingRight: scaleSize(4),
     },
     statCol: {
@@ -233,14 +233,14 @@ const styles = StyleSheet.create({
     statColLoading: {
         opacity: 0.7,
     },
-    statValue: { fontFamily: "Outfit_800ExtraBold", fontSize: scaleSize(18), color: TEXT_PRIMARY, letterSpacing: 0.24 },
-    statValueCompact: { fontSize: scaleSize(18) },
+    statValue: { fontFamily: "Outfit_800ExtraBold", fontSize: scaleSize(scaleSize(18)), color: TEXT_PRIMARY, letterSpacing: 0.24 },
+    statValueCompact: { fontSize: scaleSize(scaleSize(18)) },
     statLabel: {
         marginTop: scaleSize(2),
         fontFamily: "Outfit_600SemiBold",
-        fontSize: scaleSize(11),
+        fontSize: scaleSize(scaleSize(11)),
         color: TEXT_SECONDARY,
         letterSpacing: 0.24,
     },
-    statLabelCompact: { fontSize: scaleSize(11) },
+    statLabelCompact: { fontSize: scaleSize(scaleSize(11))},
 });

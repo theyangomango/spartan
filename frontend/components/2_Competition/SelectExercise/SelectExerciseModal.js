@@ -3,9 +3,16 @@ import { StyleSheet, View, Text, Pressable, TextInput, Animated, Dimensions } fr
 import scaleSize from "../../../helper/scaleSize";
 import { withStrongPress, strong as hapticStrong } from "../../../utils/haptics";
 const theme = require("../../../theme/mfpDark").default;
-// Very subtle lightening from the original palette
-const LIGHT_SURFACE = "#353942"; // ~+3-4 from surface
-const LIGHT_FIELD = "#31353d";   // ~+3-4 from field
+const OVERLAY_BG = 'rgba(8, 12, 24, 0.78)';
+const MODAL_BG = '#111828ff';
+const LIGHT_SURFACE = '#1F2A42';
+const LIGHT_FIELD = '#233552';
+const FIELD_BORDER = 'rgba(120, 198, 255, 0.24)';
+const ICON_COLOR = '#D2DCF0';
+const TEXT_PRIMARY = '#F6F8FF';
+const TEXT_SECONDARY = '#8FA3C2';
+const ACCENT = theme.primary;
+const ACCENT_SOFT = 'rgba(102, 202, 255, 0.24)';
 import { Ionicons } from '@expo/vector-icons';
 // Reuse the Workout selectors + list for consistent style/UX
 import ExercisesFlatlist from "../../3_Workout/NewWorkout/SelectExercise/ExercisesFlatlist";
@@ -147,11 +154,11 @@ const SelectExerciseModal = memo(({ closeModal, setComparedExercise }) => {
 
                 {/* Search */}
                 <View style={styles.searchContainer}>
-                    <Ionicons name="search" size={scaledSize(20)} color="#BBC4D2" style={styles.searchIcon} />
+                    <Ionicons name="search" size={scaledSize(20)} color={ICON_COLOR} style={styles.searchIcon} />
                     <TextInput
                         style={styles.searchInput}
                         placeholder="Search exercises..."
-                        placeholderTextColor="#BBC4D2"
+                        placeholderTextColor={TEXT_SECONDARY}
                         value={inputQuery}
                         onChangeText={handleSearch}
                         onFocus={closeAllDropdowns}
@@ -170,7 +177,7 @@ const SelectExerciseModal = memo(({ closeModal, setComparedExercise }) => {
                             })}
                         >
                             <Text style={styles.filterButtonText} numberOfLines={1}>{bodyPartButtonLabel}</Text>
-                            <Ionicons name={bodyPartOpen ? "chevron-up" : "chevron-down"} size={scaledSize(16)} color="#EAF0F7" />
+                            <Ionicons name={bodyPartOpen ? "chevron-up" : "chevron-down"} size={scaledSize(16)} color={ICON_COLOR} />
                         </Pressable>
 
                         {bodyPartOpen && (
@@ -209,7 +216,7 @@ const SelectExerciseModal = memo(({ closeModal, setComparedExercise }) => {
                             })}
                         >
                             <Text style={styles.filterButtonText} numberOfLines={1}>{equipmentButtonLabel}</Text>
-                            <Ionicons name={equipmentOpen ? "chevron-up" : "chevron-down"} size={scaledSize(16)} color="#EAF0F7" />
+                            <Ionicons name={equipmentOpen ? "chevron-up" : "chevron-down"} size={scaledSize(16)} color={ICON_COLOR} />
                         </Pressable>
 
                         {equipmentOpen && (
@@ -266,7 +273,7 @@ const styles = StyleSheet.create({
         alignItems: 'center',
         // Dimming backdrop for stronger contrast with the modal
         // Align with the workout picker overlay for consistency
-        backgroundColor: 'rgba(0, 0, 0, 0.4)',
+        backgroundColor: OVERLAY_BG,
     },
     outside_pressable: {
         flex: 1,
@@ -275,7 +282,7 @@ const styles = StyleSheet.create({
     main_ctnr: {
         width: '94%',
         height: '81%',
-        backgroundColor: '#31394cff',
+        backgroundColor: MODAL_BG,
         borderRadius: scaleSize(scaledSize(20)),
         shadowColor: '#000',
         shadowOffset: { width: 0, height: scaleSize(scaledSize(6)) },
@@ -315,14 +322,14 @@ const styles = StyleSheet.create({
         marginBottom: scaleSize(scaledSize(10)),
         alignSelf: 'center',
         borderWidth: StyleSheet.hairlineWidth,
-        borderColor: theme.hairline,
+        borderColor: FIELD_BORDER,
     },
     searchIcon: { marginRight: scaleSize(scaledSize(8)) },
     searchInput: {
         flex: 1,
         padding: scaleSize(scaledSize(8)),
         fontSize: scaleSize(14),
-        color: '#EAEAEA',
+        color: TEXT_PRIMARY,
         fontFamily: 'Outfit_700Bold',
     },
     filterRow: {
@@ -342,11 +349,11 @@ const styles = StyleSheet.create({
         borderRadius: scaleSize(scaledSize(10)),
         backgroundColor: LIGHT_FIELD,
         borderWidth: StyleSheet.hairlineWidth,
-        borderColor: theme.hairline,
+        borderColor: FIELD_BORDER,
     },
     filterButtonText: {
         fontSize: scaleSize(13),
-        color: '#EAEAEA',
+        color: TEXT_PRIMARY,
         fontFamily: 'Outfit_700Bold',
         flexShrink: 1,
         marginRight: scaleSize(scaledSize(6)),
@@ -368,12 +375,12 @@ const styles = StyleSheet.create({
         zIndex: 3,
         maxHeight: scaleSize(scaledSize(220)),
         borderWidth: StyleSheet.hairlineWidth,
-        borderColor: theme.hairline,
+        borderColor: FIELD_BORDER,
     },
     dropdownItem: { paddingVertical: scaleSize(scaledSize(8)), paddingHorizontal: scaleSize(scaledSize(10)) },
-    dropdownItemActive: { backgroundColor: LIGHT_FIELD },
-    dropdownItemText: { fontSize: scaleSize(13), color: '#EAEAEA', fontFamily: 'Outfit_700Bold' },
-    dropdownItemTextActive: { color: '#6FB8FF' },
+    dropdownItemActive: { backgroundColor: ACCENT_SOFT },
+    dropdownItemText: { fontSize: scaleSize(13), color: TEXT_PRIMARY, fontFamily: 'Outfit_700Bold' },
+    dropdownItemTextActive: { color: ACCENT },
     dropdownBackdrop: {
         position: 'absolute',
         top: scaleSize(scaledSize(140)),

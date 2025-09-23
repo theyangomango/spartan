@@ -12,6 +12,7 @@ import { exercises as EXERCISE_DEFS } from "../../3_Workout/NewWorkout/SelectExe
 import scaleSize from "../../../helper/scaleSize";
 import { TouchableOpacity } from "react-native";
 import { withStrongPress } from "../../../utils/haptics";
+import { sanitizeStatsForViewer, canViewWorkout } from "../../../utils/workoutPrivacy";
 
 // Enable LayoutAnimation on Android
 if (Platform.OS === 'android' && UIManager.setLayoutAnimationEnabledExperimental) {
@@ -24,9 +25,8 @@ const scaledSize = (n) => scaleSize(n);
 // Theme (dark mode for Competition context) — hook to global theme
 const THEME = require("../../../theme/mfpDark").default;
 const COLORS = {
-    bg: THEME.surface,         // sheet/card background
-    // Use a deeper tone than surface to improve contrast with sheet background
-    card: THEME.fieldDeep,     // cards within the sheet
+    bg: THEME.bg,              // modal background (match FriendsActivitySheet)
+    card: THEME.surface,       // elevated cards on dark surface
     text: THEME.textPrimary,   // primary text
     subtext: THEME.textSecondary,
     accent: THEME.primary,
@@ -235,6 +235,10 @@ const GOLD_BORDER = 'rgba(250, 204, 21, 0.60)';
 export default function UserStatsModal({ user, toViewProfile, hexOverlay, hexProps = {}, deferExercises = false }) {
     // Optionally defer heavy grouping work until after interactions (for smoother open)
     const [showExercises, setShowExercises] = useState(!deferExercises);
+    const viewerData = (() => {
+        try { return global?.userData || null; } catch { return null; }
+    })();
+    const viewerUid = viewerData?.uid ? String(viewerData.uid) : "";
     useEffect(() => {
         if (!deferExercises) return;
         let task;
@@ -243,9 +247,12 @@ export default function UserStatsModal({ user, toViewProfile, hexOverlay, hexPro
         return () => { try { task?.cancel?.(); } catch { } };
     }, [deferExercises]);
 
+    const statsForViewer = useMemo(() => sanitizeStatsForViewer(user?.statsExercises || {}, user?.uid, viewerUid, viewerData), [user?.statsExercises, user?.uid, viewerUid, viewerData]);
+    const userForViewer = useMemo(() => ({ ...user, statsExercises: statsForViewer }), [user, statsForViewer]);
+
     const exerciseGroups = useMemo(() => (
-        showExercises ? getExercisesGrouped(user) : []
-    ), [showExercises, user?.statsExercises, user?.uid]);
+        showExercises ? getExercisesGrouped(userForViewer) : []
+    ), [showExercises, userForViewer]);
     const [collapsed, setCollapsed] = useState({}); // { [group]: true }
     const toggleGroup = (g) => {
         try { LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut); } catch { }
@@ -282,7 +289,7 @@ export default function UserStatsModal({ user, toViewProfile, hexOverlay, hexPro
 
     const detailSets = useMemo(() => {
         if (!detailName) return [];
-        const sets = (user?.statsExercises?.[detailName]?.sets || []);
+        const sets = (statsForViewer?.[detailName]?.sets || []);
         if (!Array.isArray(sets) || sets.length === 0) return [];
         // Sort reverse-chronological by date (YYYY-MM-DD) then by original order (descending)
         const withIdx = sets.map((s, i) => ({ ...s, __i: i }));
@@ -304,7 +311,7 @@ export default function UserStatsModal({ user, toViewProfile, hexOverlay, hexPro
             return (b.__i || 0) - (a.__i || 0);
         });
         return withIdx.map(({ __i, ...rest }) => rest);
-    }, [detailName, user?.statsExercises, user?.uid]);
+    }, [detailName, statsForViewer, user?.uid]);
 
     // Group sets by date label (like NotificationsModal)
     const detailSections = useMemo(() => {
@@ -345,13 +352,19 @@ export default function UserStatsModal({ user, toViewProfile, hexOverlay, hexPro
     ), [viewerTranslateX, screenWidth]);
     const timerRef = useRef("");
 
+    const ensurePrivacy = (wk) => {
+        if (!wk || typeof wk !== 'object') return null;
+        if (wk.privacyMode) return wk;
+        return { ...wk, privacyMode: wk?.privacyMode ?? 'hidden' };
+    };
+
     const findWorkoutByWid = async (widRaw) => {
         const wid = String(widRaw || "");
         if (!wid) return null;
         // 1) Prefer visible user's completedWorkouts if available
         try {
             const fromProp = Array.isArray(user?.completedWorkouts) ? user.completedWorkouts.find(w => String(w?.wid || w?.id || "") === wid) : null;
-            if (fromProp) return fromProp;
+            if (fromProp) return ensurePrivacy(fromProp);
         } catch {}
         // 2) If viewing self, use local completedWorkouts
         try {
@@ -359,7 +372,7 @@ export default function UserStatsModal({ user, toViewProfile, hexOverlay, hexPro
             if (me && String(me?.uid || "") === String(user?.uid || "")) {
                 const arr = Array.isArray(me?.completedWorkouts) ? me.completedWorkouts : [];
                 const found = arr.find(w => String(w?.wid || w?.id || "") === wid);
-                if (found) return found;
+                if (found) return ensurePrivacy(found);
             }
         } catch {}
         // 3) Fallback: fetch from Firestore
@@ -367,10 +380,10 @@ export default function UserStatsModal({ user, toViewProfile, hexOverlay, hexPro
             const snap = await getDoc(doc(db, "workouts", wid));
             if (snap.exists()) {
                 const d = snap.data() || {};
-                return { wid, ...d };
+                return ensurePrivacy({ wid, ...d });
             }
         } catch {}
-        return { wid };
+        return { wid, privacyMode: 'hidden' };
     };
 
     const handleOpenSet = async (set) => {
@@ -689,26 +702,33 @@ export default function UserStatsModal({ user, toViewProfile, hexOverlay, hexPro
                 <View style={styles.viewerHandleWrap}>
                     <Animated.View style={[styles.viewerHandleIndicator, { opacity: viewerHandleOpacity }]} />
                 </View>
-                {viewerWorkout ? (
-                    <View style={{ flex: 1 }}>
-                        <NewWorkoutModal
-                            timerRef={timerRef}
-                            workout={viewerWorkout}
-                            cancelWorkout={() => {}}
-                            updateWorkout={() => {}}
-                            finishWorkout={() => {}}
-                            showGroupModal={() => {}}
-                            userWorkoutStats={user?.statsExercises || undefined}
-                            onPressBack={closeViewer}
-                            onCheer={() => {}}
-                            onCopyTemplate={() => {}}
-                            onPressPfp={closeViewer}
-                            forceViewingFriend={String(user?.uid || "")}
-                            friendPfp={user?.image || user?.pfp || null}
-                            streamLive={false}
-                        />
+        {viewerWorkout ? (
+            <View style={{ flex: 1 }}>
+                {canViewWorkout(viewerWorkout, viewerUid, viewerData) ? (
+                    <NewWorkoutModal
+                        timerRef={timerRef}
+                        workout={viewerWorkout}
+                        cancelWorkout={() => {}}
+                        updateWorkout={() => {}}
+                        finishWorkout={() => {}}
+                        showGroupModal={() => {}}
+                        userWorkoutStats={statsForViewer || undefined}
+                        onPressBack={closeViewer}
+                        onCheer={() => {}}
+                        onCopyTemplate={() => {}}
+                        onPressPfp={closeViewer}
+                        forceViewingFriend={String(user?.uid || "")}
+                        friendPfp={user?.image || user?.pfp || null}
+                        streamLive={false}
+                    />
+                ) : (
+                    <View style={styles.lockedWrap}>
+                        <Text style={styles.lockedTitle}>Workout is private</Text>
+                        <Text style={styles.lockedSubtitle}>You do not have permission to view this workout.</Text>
                     </View>
-                ) : null}
+                )}
+            </View>
+        ) : null}
                 </Animated.View>
             </GestureDetector>
         ) : null}
@@ -1102,4 +1122,23 @@ const styles = StyleSheet.create({
     },
     rmLabel: { fontSize: scaleSize(9), fontFamily: 'Outfit_600SemiBold', color: GOLD, marginRight: scaleSize(scaledSize(5)), letterSpacing: 0.6 },
     rmValue: { fontSize: scaleSize(12.5), fontFamily: 'Outfit_800ExtraBold', color: GOLD },
+    lockedWrap: {
+        flex: 1,
+        alignItems: 'center',
+        justifyContent: 'center',
+        paddingHorizontal: scaleSize(scaledSize(28)),
+    },
+    lockedTitle: {
+        fontFamily: 'Outfit_700Bold',
+        fontSize: scaleSize(scaledSize(16)),
+        color: COLORS.text,
+        marginBottom: scaleSize(scaledSize(6)),
+        textAlign: 'center',
+    },
+    lockedSubtitle: {
+        fontFamily: 'Outfit_500Medium',
+        fontSize: scaleSize(scaledSize(13)),
+        color: COLORS.subtext,
+        textAlign: 'center',
+    },
 });

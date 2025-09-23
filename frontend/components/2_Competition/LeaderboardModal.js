@@ -1,5 +1,5 @@
 import React, { useMemo, useRef, useEffect, useCallback } from "react";
-import { View, Text, StyleSheet, FlatList, TouchableOpacity, Dimensions, Animated } from "react-native";
+import { View, Text, StyleSheet, FlatList, TouchableOpacity, Dimensions, Animated, Platform } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
 import { Ionicons } from "@expo/vector-icons";
 import LeaderboardCard from "../2_Competition/LeaderboardCard";
@@ -135,9 +135,15 @@ export default function LeaderboardModal({
     const handleScroll = useMemo(() => (
         Animated.event(
             [{ nativeEvent: { contentOffset: { x: scrollX } } }],
-            { useNativeDriver: false }
+            {
+                useNativeDriver: false,
+                listener: (event) => {
+                    const nextIndex = Math.round(event.nativeEvent.contentOffset.x / BANNER_PAGE_WIDTH);
+                    notifyBannerChange(nextIndex);
+                },
+            }
         )
-    ), [scrollX]);
+    ), [scrollX, notifyBannerChange]);
 
     const onScrollEndDrag = useCallback((e) => {
         const idx = Math.round(e.nativeEvent.contentOffset.x / BANNER_PAGE_WIDTH);
@@ -183,10 +189,12 @@ export default function LeaderboardModal({
                             data={tribeComparisons}
                             keyExtractor={(_, i) => `tribe-comp-${i}`}
                             showsHorizontalScrollIndicator={false}
-                            pagingEnabled
                             snapToAlignment="start"
                             snapToInterval={BANNER_PAGE_WIDTH}
-                            decelerationRate="fast"
+                            disableIntervalMomentum
+                            decelerationRate={Platform.OS === "ios" ? "fast" : 0.92}
+                            bounces={false}
+                            overScrollMode="never"
                             onScrollEndDrag={onScrollEndDrag}
                             onMomentumScrollEnd={onScrollEnd}
                             initialScrollIndex={safeActiveIndex}
@@ -588,7 +596,7 @@ const styles = StyleSheet.create({
     },
     metricBadgeText: {
         fontFamily: "Outfit_700Bold",
-        fontSize: scaleSize(10),
+        fontSize: scaleSize(10.5),
         color: BADGE_TEXT,
         letterSpacing: 0.38,
         textTransform: "uppercase",

@@ -291,8 +291,10 @@ export default function SinglePostModal({ visible, post, onClose, onOpenWorkout 
                                                     reps: w?.reps,
                                                     PBs: w?.PBs ?? w?.pbs ?? 0,
                                                     templateName: w?.templateName || w?.template?.name,
+                                                    privacyMode: w?.privacyMode ?? 'hidden',
                                                 };
                                                 const wk = { ...fallback, ...w };
+                                                if (!wk.privacyMode) wk.privacyMode = 'hidden';
                                                 // Open workout viewer INSIDE this modal, keeping the post focused behind
                                                 setViewerWorkout(wk);
                                                 setViewerToggle((t) => !t);
@@ -326,6 +328,7 @@ export default function SinglePostModal({ visible, post, onClose, onOpenWorkout 
                             reopenSignal={reopenSignal}
                             interactiveProgressSV={interactiveProgressSV}
                             interactiveScale={3.0}
+                            openPositionPx={openPositionPx}
                         />
                     )}
                     <ShareBottomSheet

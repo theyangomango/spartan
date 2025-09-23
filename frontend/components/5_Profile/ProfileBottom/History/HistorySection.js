@@ -1,8 +1,9 @@
 // HistorySection.js
-import React, { memo, useMemo } from "react";
+import React, { memo } from "react";
 import { StyleSheet, FlatList, View, Pressable } from "react-native";
 import WorkoutHistoryCard from "./WorkoutHistoryCard";
 import { toMillis } from "../../../../utils/friends";
+import { filterViewableWorkouts } from "../../../../utils/workoutPrivacy";
 import { withStrongPress } from "../../../../utils/haptics";
 
 import scaleSize from "../../../../helper/scaleSize";
@@ -20,15 +21,14 @@ const exercises = [
 ];
 
 const HistorySection = ({ isVisible, isBottomSheetExpanded, completedWorkouts, onOpenWorkout }) => {
-    // Sort workouts newest -> oldest without mutating the input array
-    const sortedWorkouts = useMemo(() => {
-        const list = Array.isArray(completedWorkouts) ? [...completedWorkouts] : [];
-        return list.sort((a, b) => {
-            const aMs = toMillis(a?.created ?? a?.createdAt ?? a?.finishedAt);
-            const bMs = toMillis(b?.created ?? b?.createdAt ?? b?.finishedAt);
-            return bMs - aMs;
-        });
-    }, [completedWorkouts]);
+    const viewer = (() => { try { return global?.userData || null; } catch { return null; } })();
+    const viewerUid = viewer?.uid ? String(viewer.uid) : "";
+    const filteredWorkouts = filterViewableWorkouts(Array.isArray(completedWorkouts) ? completedWorkouts : [], viewerUid, viewer);
+    const sortedWorkouts = [...filteredWorkouts].sort((a, b) => {
+        const aMs = toMillis(a?.created ?? a?.createdAt ?? a?.finishedAt);
+        const bMs = toMillis(b?.created ?? b?.createdAt ?? b?.finishedAt);
+        return bMs - aMs;
+    });
     const renderWorkout = ({ item }) => (
         <Pressable onPress={withStrongPress(() => onOpenWorkout && onOpenWorkout(item))}>
             <WorkoutHistoryCard workout={item} />

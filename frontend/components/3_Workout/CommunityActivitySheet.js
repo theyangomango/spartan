@@ -1,10 +1,9 @@
-// components/3_Workout/FriendsActivitySheet.jsx
+// components/3_Workout/CommunityActivitySheet.jsx
 import React, { memo, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   View,
   Text,
   StyleSheet,
-  Image,
   SectionList,
   Animated,
   Dimensions,
@@ -16,10 +15,6 @@ import { Gesture, GestureDetector } from 'react-native-gesture-handler';
 import { useSharedValue, runOnJS } from 'react-native-reanimated';
 import BottomSheet, { BottomSheetBackdrop } from "@gorhom/bottom-sheet";
 import theme from "../../theme/mfpDark";
-import RNBounceable from "@freakycoder/react-native-bounceable";
-import { Clock } from "iconsax-react-native";
-import { MaterialCommunityIcons, FontAwesome6 } from "@expo/vector-icons";
-import { usePfp } from "../../helper/usePFPs";
 import NewWorkoutModal from "./NewWorkout/NewWorkoutModal";
 import { getPfpUrl } from "../../pfpCache";
 import { onSnapshot, doc, getDoc } from "firebase/firestore";
@@ -28,7 +23,9 @@ import calculate1RM from "../../helper/calculate1RM";
 import { useNavigation } from "@react-navigation/native";
 
 import scaleSize from "../../helper/scaleSize";
-import { strong as haptic } from "../../utils/haptics";
+import WorkoutPanelCard from "./ui/WorkoutPanelCard";
+import { canViewWorkout, sanitizeStatsForViewer } from "../../utils/workoutPrivacy";
+import { buildExerciseSummaries } from "../../utils/workoutSummary";
 
 const { height: screenHeight, width: screenWidth } = Dimensions.get("window");
 const scale = screenHeight / 844;
@@ -73,21 +70,6 @@ const toSec = (x) => {
   const n = Number(x ?? 0);
   return n > 9999 ? Math.round(n / 1000) : Math.round(n);
 };
-const formatTimer = (value) => {
-  if (value == null) return "00:00";
-  if (typeof value === "string") return value;
-  const sec = Number(value) || 0;
-  const h = Math.floor(sec / 3600);
-  const m = Math.floor((sec % 3600) / 60);
-  const s = sec % 60;
-  const mm = String(m).padStart(2, "0");
-  const ss = String(s).padStart(2, "0");
-  return h > 0 ? `${h}:${mm}:${ss}` : `${mm}:${ss}`;
-};
-const formatNumber = (n) => {
-  if (n === undefined || n === null) return "0";
-  try { return Number(n).toLocaleString(); } catch { return String(n); }
-};
 const firstName = (name = "") => {
   const str = String(name).trim();
   if (!str) return "Friend";
@@ -127,6 +109,23 @@ const dateLabel = (ts) => {
       ? { month: "short", day: "numeric" }
       : { month: "short", day: "numeric", year: "2-digit" };
   return d.toLocaleDateString(undefined, opts);
+};
+const dateTimeLabel = (ts) => {
+  if (!ts) return "";
+  const d = new Date(ts);
+  if (Number.isNaN(d.getTime())) return "";
+  let timePart = "";
+  try {
+    timePart = d
+      .toLocaleTimeString(undefined, { hour: "numeric", minute: "2-digit", hour12: true })
+      .toLowerCase()
+      .replace(/[\s.]/g, "");
+  } catch {
+    timePart = "";
+  }
+  const datePart = dateLabel(ts);
+  if (timePart && datePart) return `${timePart}, ${datePart}`;
+  return timePart || datePart;
 };
 
 /* ---------------- grouping ---------------- */
@@ -274,110 +273,41 @@ const FriendPanel = memo(({ item, overlay, onSelect, highlight = false }) => {
     } catch {}
   }
 
-  const cachedPfp = usePfp(item?.uid, item?.pfpVersion || 0);
   const pfpUri =
-    cachedPfp ||
     item?.pfp ||
     item?.pfpUrl ||
     item?.photoURL ||
     item?.photo ||
     item?.avatar;
 
-  const when = dateLabel(bestTimestamp(item));
-
   // Only consider it template-based when underlying workout carries a tid
   const hasTemplate = item?.workout && item.workout.tid != null;
 
+  const timestamp = bestTimestamp(item);
+  const metaParts = [handleText(item)];
+  const dateTime = dateTimeLabel(timestamp);
+  if (dateTime) metaParts.push(dateTime);
+  const exerciseSummaries = buildExerciseSummaries(item?.workout);
+
   return (
-    <RNBounceable
-      style={[
-        styles.panel,
-        highlight && {
-          borderColor: 'rgba(45,158,255,0.55)',
-          shadowColor: '#2D9EFF',
-          shadowOpacity: 0.18,
-          backgroundColor: COLORS.card,
-        }
-      ]}
-      onPress={() => { try { haptic(); } catch {} onSelect?.(item, pfpUri); }}
-      activeScale={0.965}
-    >
-      <View style={styles.headerRow}>
-        {pfpUri ? (
-          <Image source={{ uri: pfpUri }} style={styles.pfp} />
-        ) : (
-          <View style={[styles.pfp, styles.pfpFallback]}>
-            <Text style={styles.pfpInitials}>{initials(item?.name)}</Text>
-          </View>
-        )}
-
-        <View style={{ flex: 1 }}>
-          <Text style={[styles.templateTitle, hasTemplate && styles.templateTitleBlue]} numberOfLines={1} ellipsizeMode="tail">
-            {templateName(item)}
-          </Text>
-          <Text style={styles.handleText}>
-            {handleText(item)}
-            {when ? ` · ${when}` : ""}
-          </Text>
-        </View>
-
-        <View style={styles.rightAccessories}>
-          {isLive ? (
-            <View style={styles.livePill}>
-              <View style={styles.liveDot} />
-              <Clock color={COLORS.text} size={s(14)} variant="Bold" />
-              <Text style={styles.liveText}>{formatTimer(durationSec)}</Text>
-            </View>
-          ) : (
-            pbs > 0 && (
-              <View style={styles.prPill}>
-                <FontAwesome6 name="trophy" size={s(12)} color="#FACC15" />
-                <Text style={styles.prText}>{pbs} PR{pbs === 1 ? "" : "s"}</Text>
-              </View>
-            )
-          )}
-          {/* <MaterialCommunityIcons name="chevron-right" size={s(22)} color={COLORS.subtext} /> */}
-        </View>
-      </View>
-      <View style={styles.divider} />
-      <View style={styles.statsRow}>
-        <View style={[styles.statCard, { flex: 1.05 }]}>
-          <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-            <View style={[styles.statIconWrap, { marginBottom: 0, marginRight: scaleSize(s(8)) }]}>
-              <Clock color={theme.textSecondary} size={s(15)} variant="Bold" />
-            </View>
-            <View style={styles.statTextCol}>
-              <Text style={styles.statLabel}>Duration</Text>
-              <Text style={styles.statValue} numberOfLines={1}>{formatTimer(durationSec)}</Text>
-            </View>
-          </View>
-        </View>
-
-        <View style={[styles.statCard, { flex: 1.2 }]}>
-          <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-            <View style={[styles.statIconWrap, { marginBottom: 0, marginRight: scaleSize(s(8)) }]}>
-              <MaterialCommunityIcons name="weight-lifter" size={s(15)} color={theme.textSecondary} />
-            </View>
-            <View style={styles.statTextCol}>
-              <Text style={styles.statLabel}>Volume</Text>
-              <Text style={styles.statValue} numberOfLines={1}>{formatNumber(vol)} lb</Text>
-            </View>
-          </View>
-        </View>
-
-        <View style={styles.statCard}>
-          <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-            <View style={[styles.statIconWrap, { marginBottom: 0, marginRight: scaleSize(s(8)) }]}>
-              <MaterialCommunityIcons name="arm-flex" size={s(15)} color={theme.textSecondary} />
-            </View>
-            <View style={styles.statTextCol}>
-              <Text style={styles.statLabel}>Reps</Text>
-              <Text style={styles.statValue} numberOfLines={1}>{formatNumber(reps)}</Text>
-            </View>
-          </View>
-        </View>
-      </View>
-    </RNBounceable>
+    <WorkoutPanelCard
+      onPress={() => onSelect?.(item, pfpUri)}
+      highlight={highlight}
+      uid={item?.uid}
+      pfpVersion={item?.pfpVersion || 0}
+      pfpUri={pfpUri}
+      fallbackLabel={initials(item?.name)}
+      title={templateName(item)}
+      titleStyle={hasTemplate ? styles.templateTitleBlue : null}
+      metaParts={metaParts}
+      isLive={isLive}
+      liveDurationSeconds={durationSec}
+      durationSeconds={durationSec}
+      volume={vol}
+      reps={reps}
+      pbs={pbs}
+      exerciseSummaries={exerciseSummaries}
+    />
   );
 }, (prev, next) => {
   // Custom comparator to minimize re-renders
@@ -402,10 +332,14 @@ const FriendPanel = memo(({ item, overlay, onSelect, highlight = false }) => {
 });
 
 /* ---------------- sheet ---------------- */
-const FriendsActivitySheet = ({ visible, openToggle, items = [], onClose, onViewed, onCopyTemplate, focusUid, focusWid, onConsumedFocus }) => {
+const CommunityActivitySheet = ({ visible, openToggle, items = [], onClose, onViewed, onCopyTemplate, focusUid, focusWid, onConsumedFocus }) => {
   const bottomSheetRef = useRef(null);
   const cacheRef = useRef([]);
   const navigation = useNavigation();
+  const viewerData = (() => {
+    try { return global?.userData || null; } catch { return null; }
+  })();
+  const viewerUid = viewerData?.uid ? String(viewerData.uid) : "";
 
   useEffect(() => {
     if (Array.isArray(items) && items.length) cacheRef.current = items;
@@ -630,15 +564,22 @@ const FriendsActivitySheet = ({ visible, openToggle, items = [], onClose, onView
       reps: item?.reps,
       PBs: item?.PBs ?? item?.pbs ?? 0,
       templateName: item?.templateName,
+      privacyMode: item?.workout?.privacyMode ?? item?.privacyMode ?? 'hidden',
     };
 
     const wk = selfActive
       ? (global?.userData?.currentWorkout || fallbackWorkout)
       : ((item?.workout && typeof item.workout === "object") ? item.workout : fallbackWorkout);
 
+    const safeWorkout = wk ? { ...wk, privacyMode: wk?.privacyMode ?? 'hidden' } : null;
+
+    if (!canViewWorkout(safeWorkout, viewerUid, viewerData)) {
+      return;
+    }
+
     setSelectedItem({
       ...item,
-      workout: wk,
+      workout: safeWorkout,
       friendPfp: pfpUri || null,
       friendPfpVersion: item?.pfpVersion || 0,
       friendUid: String(item?.uid || item?.userId || item?.user?.uid || ""), // pass concrete friend uid
@@ -794,7 +735,10 @@ const FriendsActivitySheet = ({ visible, openToggle, items = [], onClose, onView
   // Fetch viewer's statsExercises once per friend when selected (non-blocking, no live stream)
   const viewerStatsRef = useRef(null);
   useEffect(() => {
-    if (!selectedItem?.friendUid) { viewerStatsRef.current = null; return; }
+    if (!selectedItem?.friendUid || !canViewWorkout(selectedItem?.workout, viewerUid, viewerData)) {
+      viewerStatsRef.current = null;
+      return;
+    }
     const uid = String(selectedItem.friendUid);
     let cancelled = false;
     const run = () => {
@@ -802,7 +746,7 @@ const FriendsActivitySheet = ({ visible, openToggle, items = [], onClose, onView
         .then((snap) => {
           if (cancelled) return;
           const data = snap.exists() ? (snap.data() || {}) : {};
-          viewerStatsRef.current = data?.statsExercises || null;
+          viewerStatsRef.current = sanitizeStatsForViewer(data?.statsExercises || null, uid, viewerUid, viewerData);
         })
         .catch(() => {});
     };
@@ -812,7 +756,7 @@ const FriendsActivitySheet = ({ visible, openToggle, items = [], onClose, onView
       run();
     }
     return () => { cancelled = true; };
-  }, [selectedItem?.friendUid]);
+  }, [selectedItem?.friendUid, selectedItem?.workout, viewerUid, viewerData]);
 
   // Edge back-swipe to close the inline viewer (iOS-like)
   const backEligible = useSharedValue(0);
@@ -892,38 +836,45 @@ const FriendsActivitySheet = ({ visible, openToggle, items = [], onClose, onView
             <GestureDetector gesture={backPan}>
               <View style={{ flex: 1 }}>
                 <View style={{ flex: 1 }}>
-                  <NewWorkoutModal
-                    timerRef={timerRef}
-                    workout={selectedItem.workout}
-                    cancelWorkout={noop}
-                    updateWorkout={noop}
-                    finishWorkout={noop}
-                    showGroupModal={noop}
-                    userWorkoutStats={viewerStatsRef.current || undefined}
-                    onPressBack={closeViewer}
-                    onCheer={noopCheer}
-                    onCopyTemplate={handleCopyTemplateCb}
-                    onPressPfp={() => {
-                      try { bottomSheetRef.current?.close(); } catch {}
-                      const uid = String(selectedItem?.friendUid || '');
-                      if (!uid) return;
-                      const meUid = String(global?.userData?.uid || '');
-                      const rootNav = navigation?.getParent?.('ROOT');
-                      if (uid === meUid) {
-                        if (rootNav?.navigate) rootNav.navigate('Profile', { transition: 'slide-from-right' });
-                        else navigation.navigate('Profile', { transition: 'slide-from-right' });
-                      } else {
-                        if (rootNav?.navigate) rootNav.navigate('ViewProfile', { user: { uid } });
-                        else navigation.navigate('ViewProfile', { user: { uid } });
-                      }
-                    }}
-                    /* 🔒 LOCK friend view so header/controls don't flip to self */
-                    forceViewingFriend={selectedItem.friendUid}
-                    friendPfp={selectedItem.friendPfp || null}
-                    friendPfpVersion={selectedItem.friendPfpVersion || 0}
-                    /* 🚀 Stream live only when the item is live */
-                    streamLive={!!selectedItem.streamLive}
-                  />
+                  {canViewWorkout(selectedItem.workout, viewerUid, viewerData) ? (
+                    <NewWorkoutModal
+                      timerRef={timerRef}
+                      workout={selectedItem.workout}
+                      cancelWorkout={noop}
+                      updateWorkout={noop}
+                      finishWorkout={noop}
+                      showGroupModal={noop}
+                      userWorkoutStats={viewerStatsRef.current || undefined}
+                      onPressBack={closeViewer}
+                      onCheer={noopCheer}
+                      onCopyTemplate={handleCopyTemplateCb}
+                      onPressPfp={() => {
+                        try { bottomSheetRef.current?.close(); } catch {}
+                        const uid = String(selectedItem?.friendUid || '');
+                        if (!uid) return;
+                        const meUid = String(global?.userData?.uid || '');
+                        const rootNav = navigation?.getParent?.('ROOT');
+                        if (uid === meUid) {
+                          if (rootNav?.navigate) rootNav.navigate('Profile', { transition: 'slide-from-right' });
+                          else navigation.navigate('Profile', { transition: 'slide-from-right' });
+                        } else {
+                          if (rootNav?.navigate) rootNav.navigate('ViewProfile', { user: { uid } });
+                          else navigation.navigate('ViewProfile', { user: { uid } });
+                        }
+                      }}
+                      /* 🔒 LOCK friend view so header/controls don't flip to self */
+                      forceViewingFriend={selectedItem.friendUid}
+                      friendPfp={selectedItem.friendPfp || null}
+                      friendPfpVersion={selectedItem.friendPfpVersion || 0}
+                      /* 🚀 Stream live only when the item is live */
+                      streamLive={!!selectedItem.streamLive}
+                    />
+                  ) : (
+                    <View style={styles.lockedWrap}>
+                      <Text style={styles.lockedTitle}>Workout is private</Text>
+                      <Text style={styles.lockedSubtitle}>You do not have permission to view this workout.</Text>
+                    </View>
+                  )}
                 </View>
               </View>
             </GestureDetector>
@@ -1011,6 +962,25 @@ const styles = StyleSheet.create({
 
   viewerContainer: { ...StyleSheet.absoluteFillObject, backgroundColor: COLORS.bg },
   loadingWrap: { flex: 1, alignItems: "center", justifyContent: "center" },
+  lockedWrap: {
+    flex: 1,
+    alignItems: "center",
+    justifyContent: "center",
+    paddingHorizontal: scaleSize(s(28)),
+  },
+  lockedTitle: {
+    fontFamily: "Outfit_700Bold",
+    fontSize: scaleSize(s(16)),
+    color: COLORS.text,
+    marginBottom: scaleSize(s(6)),
+    textAlign: "center",
+  },
+  lockedSubtitle: {
+    fontFamily: "Outfit_500Medium",
+    fontSize: scaleSize(s(13)),
+    color: COLORS.subtext,
+    textAlign: "center",
+  },
 
   emptyWrap: { paddingVertical: scaleSize(s(24)), alignItems: "center" },
   emptyText: { fontFamily: "Outfit_600SemiBold", color: "rgba(15,23,42,0.5)", fontSize: scaleSize(s(12)) },
@@ -1033,4 +1003,4 @@ const styles = StyleSheet.create({
   },
 });
 
-export default memo(FriendsActivitySheet);
+export default memo(CommunityActivitySheet);

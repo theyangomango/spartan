@@ -32,8 +32,10 @@ import useFeedUserData from "./feed/hooks/useFeedUserData";
 import { FeedFocusProvider } from "./feed/hooks/FeedFocusContext";
 import useFeedUnfocusGesture from "./feed/hooks/useFeedUnfocusGesture";
 import { toMillis as toMillisSafe } from "../utils/friends";
+import { canViewWorkout, coercePrivacyMode } from "../utils/workoutPrivacy";
 import { doc, getDoc } from "firebase/firestore";
 import { db } from "../../firebase.config";
+import scaleSize from "../helper/scaleSize";
 import {
     TARGET_POSITION,
     FOCUS_ANIMATION_DURATION as ANIMATION_DURATION,
@@ -73,6 +75,8 @@ export default function Feed({ navigation, route }) {
     const [commentsBottomSheetExpandFlag, setCommentsBottomSheetExpandFlag] = useState(false);
     const [commentsCollapseSignal, setCommentsCollapseSignal] = useState(0);
     const [commentsReopenSignal, setCommentsReopenSignal] = useState(0);
+    const [commentsOpenPositionPx, setCommentsOpenPositionPx] = useState(null);
+    const commentsContainerTop = useMemo(() => scaleSize(85), []);
     // Pre-mounted bottom sheet viewer for workouts
     const [feedWorkoutExpandToggle, setFeedWorkoutExpandToggle] = useState(false);
     const [feedWorkoutItems, setFeedWorkoutItems] = useState([]);
@@ -125,6 +129,12 @@ export default function Feed({ navigation, route }) {
     useEffect(() => {
         translatingIndexRef.current = translatingIndexState;
     }, [translatingIndexState]);
+
+    useEffect(() => {
+        if (!isSomePostFocused) {
+            setCommentsOpenPositionPx(null);
+        }
+    }, [isSomePostFocused]);
 
     useEffect(() => () => {
         if (unfocusGestureTimeoutRef.current) {
@@ -380,6 +390,50 @@ export default function Feed({ navigation, route }) {
             });
     }, [insets?.top]);
 
+    const applyCommentsOpenPosition = useCallback((top, measuredHeight) => {
+        if (!Number.isFinite(top) || !Number.isFinite(measuredHeight)) return;
+        const containerHeight = height - commentsContainerTop;
+        const bottomY = top + measuredHeight;
+        const openPx = Math.max(0, Math.min(containerHeight, containerHeight - (bottomY - commentsContainerTop)));
+        setCommentsOpenPositionPx(openPx);
+    }, [commentsContainerTop, setCommentsOpenPositionPx]);
+
+    const scheduleCommentsOpenPositionUpdate = useCallback((idx, targetTop, sessionId) => {
+        if (!Number.isFinite(targetTop)) return;
+
+        const layout = itemLayoutsRef.current?.get?.(idx);
+        if (layout && Number.isFinite(layout?.h)) {
+            applyCommentsOpenPosition(targetTop, layout.h);
+        }
+
+        const ref = postRefs.current?.[idx];
+        if (!ref || typeof ref?.measureScreenFrame !== 'function') return;
+
+        const measure = (attempt = 0) => {
+            if (focusSessionNonceRef.current !== sessionId) return;
+            try {
+                Promise.resolve(ref.measureScreenFrame())
+                    .then((frame) => {
+                        if (focusSessionNonceRef.current !== sessionId) return;
+                        const top = frame && Number.isFinite(frame?.top) ? frame.top : null;
+                        const h = frame && Number.isFinite(frame?.height) ? frame.height : null;
+                        if (!Number.isFinite(top) || !Number.isFinite(h)) {
+                            if (attempt < 6) requestAnimationFrame(() => measure(attempt + 1));
+                            return;
+                        }
+                        applyCommentsOpenPosition(top, h);
+                    })
+                    .catch(() => {
+                        if (attempt < 6) requestAnimationFrame(() => measure(attempt + 1));
+                    });
+            } catch {
+                if (attempt < 6) requestAnimationFrame(() => measure(attempt + 1));
+            }
+        };
+
+        requestAnimationFrame(() => measure(0));
+    }, [applyCommentsOpenPosition]);
+
     /* ---------- focus / unfocus handlers ---------- */
     const handleFocusPost = (index, pageY, preferWaitForHeader = false) => {
         // Any manual focus should invalidate stale programmatic focus requests
@@ -390,6 +444,8 @@ export default function Feed({ navigation, route }) {
         try { isTransitioningSV.value = 1; } catch { }
         try { panEnabledSV.value = 0; } catch { }
         const sessionId = (focusSessionNonceRef.current = (focusSessionNonceRef.current || 0) + 1);
+
+        setCommentsOpenPositionPx(null);
 
         const maybeSyncScrollOffset = () => {
             if (typeof pageY !== 'number') return;
@@ -445,6 +501,7 @@ export default function Feed({ navigation, route }) {
             // store target focused offset for interactive gesture math
             focusOffsetRef.current = -delta;
             try { focusBaseSV.value = -delta; } catch { }
+            scheduleCommentsOpenPositionUpdate(index, Vfinal, sessionId);
             // Begin card translation first, then enter focus mode so header chips hide in sync
             animateView(delta, 0);
             // Hide global overlays immediately; state update follows once focus settles
@@ -491,6 +548,7 @@ export default function Feed({ navigation, route }) {
         try { programFocusNonceRef.current += 1; } catch { }
         try { setPendingFocusPid(null); } catch { }
         try { focusSessionNonceRef.current += 1; } catch { }
+        setCommentsOpenPositionPx(null);
         if (isTransitioning.current) return; /* 🔒 */
         isTransitioning.current = true;
         try { isTransitioningSV.value = 1; } catch { }
@@ -812,29 +870,44 @@ export default function Feed({ navigation, route }) {
             templateName: chip?.templateName || chip?.workoutName || "Workout",
             name: chip?.workoutName || chip?.templateName || "Workout",
         };
+        const baseWithPrivacy = base?.privacyMode ? base : { ...base, privacyMode: base?.privacyMode ?? 'hidden' };
 
         const friendUid = uid;
         const friendPfp = chip?.pfp || chip?.pfpUrl || chip?.photoURL || chip?.image || null;
         const friendPfpVersion = chip?.pfpVersion ?? chip?.version ?? 0;
 
         const enriched = {
-            ...base,
-            wid: base?.wid || base?.id || targetId || `${uid}:${chip?.id || "chip"}`,
-            creatorUID: String(base?.creatorUID || base?.creatorUid || base?.uid || friendUid),
-            templateName: base?.templateName || base?.template?.name || chip?.templateName || base?.name,
-            name: base?.name || base?.templateName || chip?.workoutName || chip?.templateName || "Workout",
-            exercises: Array.isArray(base?.exercises) ? base.exercises : [],
+            ...baseWithPrivacy,
+            wid: baseWithPrivacy?.wid || baseWithPrivacy?.id || targetId || `${uid}:${chip?.id || "chip"}`,
+            creatorUID: String(baseWithPrivacy?.creatorUID || baseWithPrivacy?.creatorUid || baseWithPrivacy?.uid || friendUid),
+            templateName: baseWithPrivacy?.templateName || baseWithPrivacy?.template?.name || chip?.templateName || baseWithPrivacy?.name,
+            name: baseWithPrivacy?.name || baseWithPrivacy?.templateName || chip?.workoutName || chip?.templateName || "Workout",
+            exercises: Array.isArray(baseWithPrivacy?.exercises) ? baseWithPrivacy.exercises : [],
             __friendUid: friendUid,
             __friendPfp: friendPfp,
             __friendPfpVersion: friendPfpVersion,
             __chipKey: cacheKey || `${uid}:${chip?.id || "chip"}`,
         };
 
-        if (cacheKey) {
-            activityChipWorkoutCacheRef.current.set(cacheKey, enriched);
+        const viewerData = (() => { try { return global?.userData || null; } catch { return null; } })();
+        const viewerUid = viewerData?.uid ? String(viewerData.uid) : "";
+        let result = enriched;
+        if (!canViewWorkout(enriched, viewerUid, viewerData)) {
+            result = {
+                privacyMode: coercePrivacyMode(enriched?.privacyMode),
+                creatorUID: enriched?.creatorUID,
+                wid: enriched?.wid,
+                name: enriched?.name,
+                templateName: enriched?.templateName,
+                exercises: [],
+            };
         }
 
-        return enriched;
+        if (cacheKey) {
+            activityChipWorkoutCacheRef.current.set(cacheKey, result);
+        }
+
+        return result;
     }, [ensureUserCompletedWorkouts]);
 
     const handlePressActivityChip = useCallback(async (chip, index = 0, items = []) => {
@@ -1329,6 +1402,7 @@ export default function Feed({ navigation, route }) {
                     interactiveScale={3.0}
                     collapseSignal={commentsCollapseSignal}
                     reopenSignal={commentsReopenSignal}
+                    openPositionPx={commentsOpenPositionPx}
                     unfocusGestureActive={unfocusGestureActive}
                 />
                 <ShareBottomSheet

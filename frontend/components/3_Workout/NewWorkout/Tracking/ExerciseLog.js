@@ -1,18 +1,14 @@
 // components/3_Workout/NewWorkout/Tracking/ExerciseLog.js
 import React, { useState, useEffect, useRef, memo, useCallback } from "react";
-import { View, StyleSheet, Text, Pressable, Animated, Dimensions, LayoutAnimation, Platform, UIManager } from "react-native";
+import { View, StyleSheet, Text, Pressable, Animated, LayoutAnimation, Platform, UIManager } from "react-native";
 import * as Haptics from "expo-haptics";
-import { MaterialCommunityIcons, Entypo } from "@expo/vector-icons";
+import { Entypo } from "@expo/vector-icons";
 import RNBounceable from "@freakycoder/react-native-bounceable";
 import SetRow from "./SetRow";
 import theme from "../../../../theme/mfpDark";
 import ExerciseOptionsPanel from "./ExerciseOptionsPanel";
 
 import scaleSize from "../../../../helper/scaleSize";
-
-const { height: screenHeight } = Dimensions.get("window");
-const scale = screenHeight / 844;
-const s = (n) => Math.round(n * scale);
 const ENABLE_LAYOUT_ANIM = false;
 const SYNC_DEBOUNCE_MS = 80;
 const RAF_FALLBACK_MS = 24;
@@ -173,7 +169,7 @@ function ExerciseLog({
         if (isPanelVisible) setIsPanelVisible(false);
         else {
             setIsPanelVisible(true);
-            setPanelPosition({ top: scaleSize(event?.nativeEvent?.pageY + 25), left: scaleSize(s(18)) });
+            setPanelPosition({ top: scaleSize(event?.nativeEvent?.pageY + 25), left: scaleSize(18) });
         }
     };
 
@@ -275,7 +271,7 @@ function ExerciseLog({
             {!readOnly && (
                 <Animated.View style={[styles.add_set_btn_ctnr, { opacity: fadeAnim }]}>
                     <RNBounceable activeOpacity={0.5} onPress={addSet} style={styles.add_set_btn}>
-                        <Entypo name="plus" size={s(18)} color={theme.primary} />
+                        <Entypo name="plus" size={scaleSize(18)} color={theme.primary} />
                         <Text style={styles.add_set_text}>Add Set</Text>
                     </RNBounceable>
                 </Animated.View>
@@ -297,26 +293,26 @@ const areEqual = (prev, next) => {
 export default memo(ExerciseLog, areEqual);
 
 const styles = StyleSheet.create({
-    main_ctnr: { marginTop: scaleSize(s(16)), marginBottom: scaleSize(s(6)), position: "relative" },
-    header: { flexDirection: "row", alignItems: "center", paddingLeft: scaleSize(s(20)), paddingBottom: scaleSize(s(10)), marginHorizontal: scaleSize(s(2.5)) },
-    nameContainer: { flexDirection: "row", alignItems: "center", flexShrink: 1, marginRight: scaleSize(s(10)) },
-    exercise_text: { fontFamily: "Mulish_800ExtraBold", color: theme.primary, fontSize: scaleSize(s(15)), flexShrink: 1 },
-    muscle_ctnr: { borderRadius: scaleSize(s(15)), height: scaleSize(s(23.5)), paddingHorizontal: scaleSize(s(12)), alignItems: "center", justifyContent: "center", marginLeft: scaleSize(s(5)) },
-    muscle_text: { fontFamily: "Poppins_700Bold", fontSize: scaleSize(s(12)), color: "#fff" },
-    labels: { flexDirection: "row", paddingBottom: scaleSize(s(5)), marginHorizontal: scaleSize(s(2.5)) },
+    main_ctnr: { marginTop: scaleSize(16), marginBottom: scaleSize(6), position: "relative" },
+    header: { flexDirection: "row", alignItems: "center", paddingLeft: scaleSize(20), paddingBottom: scaleSize(10), marginHorizontal: scaleSize(2.5) },
+    nameContainer: { flexDirection: "row", alignItems: "center", flexShrink: 1, marginRight: scaleSize(10) },
+    exercise_text: { fontFamily: "Mulish_800ExtraBold", color: theme.primary, fontSize: scaleSize(15), flexShrink: 1 },
+    muscle_ctnr: { borderRadius: scaleSize(15), height: scaleSize(23.5), paddingHorizontal: scaleSize(12), alignItems: "center", justifyContent: "center", marginLeft: scaleSize(5) },
+    muscle_text: { fontFamily: "Poppins_700Bold", fontSize: scaleSize(12), color: "#fff" },
+    labels: { flexDirection: "row", paddingBottom: scaleSize(5), marginHorizontal: scaleSize(2.5) },
     set_col: { marginLeft: "5%", width: "8%", alignItems: "center" },
     prev_col: { width: "38%", alignItems: "center" },
     w_col: { width: "18%", alignItems: "center" },
     r_col: { width: "18%", alignItems: "center" },
     // Increase contrast for readability in dark mode
-    label_text: { fontFamily: "Mulish_800ExtraBold", fontSize: scaleSize(s(15)), color: theme.textPrimary },
-    add_set_btn_ctnr: { paddingHorizontal: scaleSize(s(20)) },
+    label_text: { fontFamily: "Mulish_800ExtraBold", fontSize: scaleSize(15), color: theme.textPrimary },
+    add_set_btn_ctnr: { paddingHorizontal: scaleSize(20) },
     add_set_btn: {
         width: "100%",
-        marginTop: scaleSize(s(8)),
+        marginTop: scaleSize(8),
         alignSelf: "center",
-        height: scaleSize(s(28)),
-        borderRadius: scaleSize(s(20)),
+        height: scaleSize(28),
+        borderRadius: scaleSize(20),
         backgroundColor: theme.restPillBg,
         borderWidth: StyleSheet.hairlineWidth,
         borderColor: theme.primaryHairline,
@@ -324,5 +320,5 @@ const styles = StyleSheet.create({
         alignItems: "center",
         flexDirection: "row",
     },
-    add_set_text: { fontFamily: "Outfit_600SemiBold", color: theme.textPrimary, fontSize: scaleSize(s(15)), marginLeft: scaleSize(s(1)), marginRight: scaleSize(s(5)) },
+    add_set_text: { fontFamily: "Outfit_600SemiBold", color: theme.textPrimary, fontSize: scaleSize(15), marginLeft: scaleSize(1), marginRight: scaleSize(5) },
 });

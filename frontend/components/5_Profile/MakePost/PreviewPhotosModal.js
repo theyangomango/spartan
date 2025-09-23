@@ -58,22 +58,25 @@ const PreviewPhotosModal = ({ assets, images, selectedOrderMap, toggleSelect, lo
     return (
         <View style={styles.container}>
             <View style={styles.headerRow}>
-                <Text style={styles.headerTitle}>All Photos</Text>
-                <View style={styles.headerRight}>
+                <View style={styles.headerLeft}>
                     {isLimited && (
                         <Pressable onPress={withStrongPress(onRequestMoreAccess)} hitSlop={10} style={styles.allowMorePill} android_disableSound>
-                            <Ionicons name="images-outline" size={14} color={theme.accentBlue} style={{ marginRight: scaleSize(6) }} />
+                            <Ionicons name="images-outline" size={16} color={theme.accentBlue} style={{ marginRight: scaleSize(6) }} />
                             <Text style={styles.allowMoreText}>Allow More Photos</Text>
                         </Pressable>
                     )}
                     {images.length > 0 && (
-                        <>
-                            <Pressable onPress={withStrongPress(clearSelection)} hitSlop={10} style={styles.clearPill} android_disableSound>
-                                <Ionicons name="close" size={14} color={theme.textSecondary} style={{ marginRight: scaleSize(6) }} />
-                                <Text style={styles.clearPillText}>Clear</Text>
-                            </Pressable>
-                            <Text style={styles.selectionCount}>{images.length} selected</Text>
-                        </>
+                        <Pressable onPress={withStrongPress(clearSelection)} hitSlop={10} style={styles.clearPill} android_disableSound>
+                            <Ionicons name="close" size={16} color={theme.textSecondary} style={{ marginRight: scaleSize(6) }} />
+                            <Text style={styles.clearPillText}>Clear</Text>
+                        </Pressable>
+                    )}
+                </View>
+                <View style={styles.headerRight}>
+                    {images.length > 0 && (
+                        <View style={styles.selectionPill}>
+                            <Text style={styles.selectionPillText}>{images.length} selected</Text>
+                        </View>
                     )}
                 </View>
             </View>
@@ -136,50 +139,58 @@ const styles = StyleSheet.create({
         alignItems: 'center',
         backgroundColor: theme.surface,
     },
-    headerTitle: {
-        fontFamily: 'Mulish_700Bold',
-        fontSize: scaleSize(16),
-        color: theme.textPrimary,
+    headerLeft: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        flex: 1,
     },
     headerRight: {
         flexDirection: 'row',
         alignItems: 'center',
+        justifyContent: 'flex-end',
+        flexShrink: 0,
     },
     allowMorePill: {
         flexDirection: 'row',
         alignItems: 'center',
-        paddingHorizontal: scaleSize(10),
-        height: scaleSize(28),
-        borderRadius: scaleSize(14),
+        paddingHorizontal: scaleSize(14),
+        height: scaleSize(36),
+        borderRadius: scaleSize(18),
         backgroundColor: theme.field,
-        marginRight: scaleSize(10),
+        marginRight: scaleSize(12),
         borderWidth: scaleSize(1),
         borderColor: theme.accentBlue,
     },
     allowMoreText: {
         fontFamily: 'Mulish_700Bold',
-        fontSize: scaleSize(12),
+        fontSize: scaleSize(13),
         color: theme.accentBlue,
     },
     clearPill: {
         flexDirection: 'row',
         alignItems: 'center',
-        paddingHorizontal: scaleSize(10),
-        height: scaleSize(28),
-        borderRadius: scaleSize(14),
+        paddingHorizontal: scaleSize(14),
+        height: scaleSize(36),
+        borderRadius: scaleSize(18),
         backgroundColor: theme.field,
-        marginRight: scaleSize(10),
+        borderWidth: scaleSize(1),
+        borderColor: theme.primaryHairline,
     },
     clearPillText: {
         fontFamily: 'Mulish_700Bold',
-        fontSize: scaleSize(12),
+        fontSize: scaleSize(14),
         color: theme.textPrimary,
     },
-    selectionCount: {
+    selectionPill: {
+        backgroundColor: theme.primary,
+        borderRadius: scaleSize(18),
+        paddingHorizontal: scaleSize(16),
+        paddingVertical: scaleSize(9),
+    },
+    selectionPillText: {
         fontFamily: 'Mulish_700Bold',
-        fontSize: scaleSize(13),
-        color: theme.primary,
-        marginLeft: scaleSize(4),
+        fontSize: scaleSize(14),
+        color: '#fff',
     },
 });
 

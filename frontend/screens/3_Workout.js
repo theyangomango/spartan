@@ -27,7 +27,7 @@ import GroupModalBottomSheet from "../components/3_Workout/NewWorkout/Group/Grou
 import EditTemplateBottomSheet from "../components/3_Workout/Template/EditTemplateBottomSheet";
 import WorkoutSummaryModal from "../components/3_Workout/WorkoutSummaryModal";
 import DayDetailsSheet from "../components/3_Workout/DayDetailsSheet";
-import FriendsActivitySheet from "../components/3_Workout/FriendsActivitySheet";
+import CommunityActivitySheet from "../components/3_Workout/CommunityActivitySheet";
 import InviteBanner from "../components/3_Workout/InviteBanner";
 import NotificationsBottomSheet from "../components/1_Feed/Notifications/NotificationsBottomSheet";
 import UserStatsAfterWorkoutSheet from "../components/2_Competition/UserStats/UserStatsAfterWorkoutSheet";
@@ -48,7 +48,7 @@ import theme from "../theme/mfpDark";
 // Remove foodLogs dependency; compute macros from global.userData.loggedFoods only
 import useResolvedUid from "../hooks/useResolvedUid";
 import useUserDoc from "../hooks/useUserDoc";
-import useFriendsActivity from "../hooks/useFriendsActivity";
+import useCommunityActivity from "../hooks/useCommunityActivity";
 import useTemplates from "../hooks/useTemplates";
 import useHeaderSearchUsers from "../hooks/useHeaderSearchUsers";
 import useWorkoutInvites from "../hooks/useWorkoutInvites";
@@ -75,12 +75,9 @@ import scaleSize from "../helper/scaleSize";
 
 // MiniPodium preview derives from user's last Competition view
 
-const HUB_SHADOW_RADIUS = scaleSize(12);
-const HUB_SHADOW_OFFSET = scaleSize(6);
-const HUB_SHADOW_DOWN = HUB_SHADOW_RADIUS + HUB_SHADOW_OFFSET;
-const TPL_SHADOW_RADIUS = scaleSize(8);
-const TPL_SHADOW_OFFSET = scaleSize(6);
-const TPL_SHADOW_UP = Math.max(0, TPL_SHADOW_RADIUS - TPL_SHADOW_OFFSET);
+const DIVIDER_DIFF_BASE = Math.max(0, TPL_DIVIDER_MARGIN_TOP - TPL_DIVIDER_MARGIN_BOTTOM);
+const DIVIDER_DIFF_FUDGE = scaleSize(10); // eyeballed to match iOS shadow bloom perfectly
+const DIVIDER_DIFF = DIVIDER_DIFF_BASE + DIVIDER_DIFF_FUDGE;
 
 /* ---------------- helpers ---------------- */
 const toMillis = (v) => {
@@ -280,10 +277,9 @@ export default function Workout({ navigation, route }) {
             return;
         }
 
-        const deltaHub = HUB_SHADOW_DOWN;
-        const deltaTemplate = -TPL_SHADOW_UP;
+        const desiredDiff = Math.max(-available, Math.min(available, DIVIDER_DIFF));
 
-        let topRaw = (available + deltaTemplate + deltaHub) / 2;
+        let topRaw = (available + desiredDiff) / 2;
         let bottomRaw = available - topRaw;
 
         if (!Number.isFinite(topRaw) || !Number.isFinite(bottomRaw)) return;
@@ -297,18 +293,8 @@ export default function Workout({ navigation, route }) {
             bottomRaw = 0;
         }
 
-        let nextTop = Math.max(0, Math.round(topRaw));
-        let nextBottom = Math.max(0, Math.round(bottomRaw));
-
-        const targetSum = Math.max(0, Math.round(available));
-        const sum = nextTop + nextBottom;
-        if (sum !== targetSum) {
-            const diff = targetSum - sum;
-            const adjustedBottom = nextBottom + diff;
-            if (adjustedBottom >= 0) {
-                nextBottom = adjustedBottom;
-            }
-        }
+        const nextTop = Math.max(0, topRaw);
+        const nextBottom = Math.max(0, bottomRaw);
 
         setDividerSpacing((prev) => {
             if (
@@ -354,13 +340,13 @@ export default function Workout({ navigation, route }) {
         return () => task?.cancel?.();
     }, []);
 
-    useEffect(() => {
-        if (!afterPaint || hubRowReadyNotifiedRef.current) return;
+    const handleHubRowReady = useCallback(() => {
+        if (hubRowReadyNotifiedRef.current) return;
         hubRowReadyNotifiedRef.current = true;
         requestAnimationFrame(() => {
             try { global.__markHubRowReady?.(); } catch {}
         });
-    }, [afterPaint]);
+    }, []);
 
     useEffect(() => {
         if (!afterPaint) return;
@@ -531,8 +517,8 @@ export default function Workout({ navigation, route }) {
         }
     }, [uid, user?.templates, showTemplateToast]);
 
-    /* ---------- friends activity ---------- */
-    const { items: friendsActivity, refresh: refreshFriends, loading: friendsLoading } = useFriendsActivity(user, afterPaint);
+    /* ---------- community activity ---------- */
+    const { items: communityActivity, refresh: refreshFriends, loading: friendsLoading } = useCommunityActivity(user, afterPaint);
     const [friendsSheetVisible, setFriendsSheetVisible] = useState(false);
     const [friendsSheetToggle, setFriendsSheetToggle] = useState(false);
     const [focusFriendUid, setFocusFriendUid] = useState(null);
@@ -714,9 +700,9 @@ export default function Workout({ navigation, route }) {
     );
 
     /* ---------- New workout from current template selection ---------- */
-    const onStartWorkout = useCallback(() => {
+    const onStartWorkout = useCallback((privacyMode) => {
         const selected = templatesWithNone[Math.max(0, Math.min(activeIdx, templatesWithNone.length - 1))];
-        startNewWorkoutFromTemplate(selected?.isNone ? null : selected);
+        startNewWorkoutFromTemplate(selected?.isNone ? null : selected, { privacyMode });
     }, [activeIdx, templatesWithNone, startNewWorkoutFromTemplate]);
 
     // Stable handlers to avoid re-rendering StartCluster on every parent render
@@ -874,6 +860,10 @@ export default function Workout({ navigation, route }) {
     const daySheetTotals = daySheetData.totals || makeEmptyTotals();
     const daySheetWorkouts = Array.isArray(daySheetData.workouts) ? daySheetData.workouts : [];
 
+    const hubRowDataHydrated = (() => {
+        try { return !!global?.__userDocHydrated; } catch { return false; }
+    })();
+
     /* ---------- Header height (for banner anchoring) ---------- */
     const [headerHeight, setHeaderHeight] = useState(0);
     const onHeaderLayout = useCallback((e) => {
@@ -969,6 +959,8 @@ export default function Workout({ navigation, route }) {
                             caloriesGoal={caloriesGoal}
                             workoutsThisWeek={workoutsThisWeek}
                             weeklyGoal={weeklyGoal}
+                            dataHydrated={hubRowDataHydrated}
+                            onReady={handleHubRowReady}
                             onPress={openDayDetailsToday}
                             onViewStats={openUserStats}
                         />
@@ -1071,16 +1063,16 @@ export default function Workout({ navigation, route }) {
                     />
                 </View>
             )}
-            {/* Friends sheet */}
+            {/* Community sheet */}
             {shouldRenderFriendsSheet && (
                 <View style={StyleSheet.absoluteFill} pointerEvents={friendsSheetVisible ? "auto" : "none"}>
-                    <FriendsActivitySheet
+                    <CommunityActivitySheet
                         visible={friendsSheetVisible}
                         openToggle={friendsSheetToggle}
                         focusUid={focusFriendUid}
                         focusWid={focusWorkoutWid}
                         onConsumedFocus={onConsumedFocusCb}
-                        items={friendsActivity}
+                        items={communityActivity}
                         lastViewedAt={user?.friendsActivityLastViewedAt}
                         onViewed={markFriendsViewed}
                         onClose={onFriendsClose}
