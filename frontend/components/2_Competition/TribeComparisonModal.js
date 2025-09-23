@@ -16,6 +16,7 @@ import SelectExerciseModal from "../2_Competition/SelectExercise/SelectExerciseM
 import RNBounceable from "@freakycoder/react-native-bounceable";
 
 import scaleSize from "../../helper/scaleSize";
+import { withStrongPress } from "../../utils/haptics";
 
 const METRICS = ["1RM", "Volume", "Reps"];
 const metricLabel = (m) => (m === '1RM' ? '1RM' : m);
@@ -125,7 +126,7 @@ export default function TribeComparisonModal({ visible, onClose, initialList = [
 
     return (
         <Modal visible={visible} transparent animationType="fade" statusBarTranslucent onRequestClose={onClose}>
-            <TouchableWithoutFeedback onPress={onClose}>
+            <TouchableWithoutFeedback onPress={withStrongPress(onClose)}>
                 <View style={styles.backdrop}>
                     <TouchableWithoutFeedback onPress={() => { }}>
                         <View style={styles.card}>
@@ -134,7 +135,7 @@ export default function TribeComparisonModal({ visible, onClose, initialList = [
                                     <Text style={styles.title}>Manage Tribe Comparisons</Text>
                                     <Text style={styles.subtitle}>Choose the metrics shown for your tribe leaderboard</Text>
                                 </View>
-                                <Pressable hitSlop={12} onPress={onClose}>
+                                <Pressable hitSlop={12} onPress={withStrongPress(onClose)}>
                                     <Ionicons name="close" size={20} color={PRIMARY_TEXT} />
                                 </Pressable>
                             </View>
@@ -161,7 +162,7 @@ export default function TribeComparisonModal({ visible, onClose, initialList = [
                                                 <View style={styles.swipeActions}>
                                                     <RNBounceable
                                                         style={styles.swipeDelete}
-                                                        onPress={() => deleteItem(index)}
+                                                        onPress={withStrongPress(() => deleteItem(index))}
                                                         activeOpacity={0.9}
                                                     >
                                                         <Ionicons name="trash" size={16} color={DELETE_RED} style={{ marginRight: scaleSize(6) }} />
@@ -172,7 +173,7 @@ export default function TribeComparisonModal({ visible, onClose, initialList = [
                                         >
                                             <TouchableOpacity
                                                 activeOpacity={0.9}
-                                                onPress={() => startEdit(index)}
+                                                onPress={withStrongPress(() => startEdit(index))}
                                                 style={[styles.itemCard, isFirst && styles.itemCardFirst]}
                                             >
                                                 <View style={styles.itemBody}>
@@ -219,8 +220,14 @@ export default function TribeComparisonModal({ visible, onClose, initialList = [
                             />
 
                             <View style={styles.footerRow}>
-                                <RNBounceable style={styles.addRow} activeOpacity={0.9} onPress={startAdd}>
-                                    <Text style={styles.addRowText}><Text style={styles.addRowPlus}>+</Text> Add Comparison</Text>
+                                <RNBounceable style={styles.addRow} activeOpacity={0.9} onPress={withStrongPress(startAdd)}>
+                                    <Ionicons
+                                        name="add"
+                                        size={scaleSize(16)}
+                                        color={ACTION_PRIMARY_TEXT}
+                                        style={styles.addRowIcon}
+                                    />
+                                    <Text style={styles.addRowText}>Add Comparison</Text>
                                 </RNBounceable>
                             </View>
 
@@ -236,13 +243,16 @@ export default function TribeComparisonModal({ visible, onClose, initialList = [
                 statusBarTranslucent
                 onRequestClose={closeEditor}
             >
-                <TouchableWithoutFeedback onPress={closeEditor}>
+                <TouchableWithoutFeedback onPress={withStrongPress(closeEditor)}>
                     <View style={styles.backdrop}>
                         <TouchableWithoutFeedback onPress={() => { }}>
                             <View style={styles.editorCard}>
                                 <View style={styles.headerRow}>
-                                    <Text style={styles.title}>Edit Comparison</Text>
-                                    <Pressable hitSlop={12} onPress={closeEditor}>
+                                    <View style={{ flex: 1, paddingRight: scaleSize(12) }}>
+                                        <Text style={styles.title}>Edit Comparison</Text>
+                                        <Text style={styles.subtitle}>Choose the exercise and metric your tribe will compete in.</Text>
+                                    </View>
+                                    <Pressable hitSlop={12} onPress={withStrongPress(closeEditor)}>
                                         <Ionicons name="close" size={20} color={PRIMARY_TEXT} />
                                     </Pressable>
                                 </View>
@@ -252,7 +262,7 @@ export default function TribeComparisonModal({ visible, onClose, initialList = [
                                         <TouchableOpacity
                                             activeOpacity={0.85}
                                             style={styles.inputRow}
-                                            onPress={() => setExercisePickerOpen(true)}
+                                            onPress={withStrongPress(() => setExercisePickerOpen(true))}
                                         >
                                             <Ionicons name="barbell" size={18} color={PRIMARY_TEXT} style={{ marginRight: scaleSize(10) }} />
                                             <View style={{ flex: 1 }}>
@@ -270,7 +280,7 @@ export default function TribeComparisonModal({ visible, onClose, initialList = [
                                                     return (
                                                         <TouchableOpacity
                                                             key={m}
-                                                            onPress={() => updateDraft({ metric: m })}
+                                                            onPress={withStrongPress(() => updateDraft({ metric: m }))}
                                                             style={[styles.pill, active && styles.pillActive]}
                                                             activeOpacity={0.85}
                                                         >
@@ -284,7 +294,7 @@ export default function TribeComparisonModal({ visible, onClose, initialList = [
                                         <TouchableOpacity
                                             style={styles.toggleRow}
                                             activeOpacity={0.85}
-                                            onPress={() => updateDraft({ normalizeByBodyweight: !draft.normalizeByBodyweight })}
+                                            onPress={withStrongPress(() => updateDraft({ normalizeByBodyweight: !draft.normalizeByBodyweight }))}
                                         >
                                             <Ionicons
                                                 name={draft.normalizeByBodyweight ? "checkbox" : "square-outline"}
@@ -300,7 +310,11 @@ export default function TribeComparisonModal({ visible, onClose, initialList = [
                                     </>
                                 )}
 
-                                <TouchableOpacity style={styles.saveButton} activeOpacity={0.9} onPress={handleSaveDraft}>
+                                <TouchableOpacity
+                                    style={styles.saveButton}
+                                    activeOpacity={0.9}
+                                    onPress={withStrongPress(handleSaveDraft)}
+                                >
                                     <Ionicons name="checkmark" size={18} color={ACTION_PRIMARY_TEXT} style={{ marginRight: scaleSize(8) }} />
                                     <Text style={styles.saveText}>Done</Text>
                                 </TouchableOpacity>
@@ -397,7 +411,7 @@ const styles = StyleSheet.create({
         fontSize: scaleSize(11.5),
         color: "rgba(230, 235, 250, 0.72)",
         letterSpacing: 0.2,
-        marginTop: scaleSize(2),
+        marginTop: scaleSize(8),
         maxWidth: scaleSize(280),
     },
 
@@ -416,9 +430,10 @@ const styles = StyleSheet.create({
     itemCardFirst: { borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: CARD_BORDER },
     itemBody: {
         flexDirection: "row",
-        alignItems: "flex-start",
-        paddingVertical: scaleSize(8),
-        paddingHorizontal: scaleSize(14),
+        alignItems: "center",
+        paddingTop: scaleSize(10),
+        paddingBottom: scaleSize(6),
+        paddingHorizontal: scaleSize(18),
         width: "100%",
         flex: 1,
         backgroundColor: CARD_BG,
@@ -427,31 +442,31 @@ const styles = StyleSheet.create({
         borderRadius: 0,
     },
     trophyBadge: {
-        width: scaleSize(26),
-        height: scaleSize(26),
-        borderRadius: scaleSize(13),
+        width: scaleSize(36),
+        height: scaleSize(36),
+        borderRadius: scaleSize(20),
         alignItems: "center",
         justifyContent: "center",
         backgroundColor: TROPHY_RING,
-        marginRight: scaleSize(12),
-        marginTop: scaleSize(2),
+        marginRight: scaleSize(16),
     },
     trophyBadgeIcon: { marginTop: scaleSize(1) },
     itemContent: { flex: 1, minWidth: 0 },
     itemTitle: {
         fontFamily: "Outfit_800ExtraBold",
-        fontSize: scaleSize(13.5),
+        fontSize: scaleSize(12.5),
         color: CARD_TEXT_PRIMARY,
         letterSpacing: 0.2,
+        lineHeight: scaleSize(16),
     },
     itemMetaRow: {
         flexDirection: "row",
         flexWrap: "wrap",
-        marginTop: scaleSize(6),
+        marginTop: scaleSize(5),
     },
     itemPill: {
         paddingHorizontal: scaleSize(10),
-        paddingVertical: scaleSize(4),
+        paddingVertical: scaleSize(3),
         borderRadius: scaleSize(999),
         borderWidth: scaleSize(1),
         marginRight: scaleSize(6),
@@ -467,7 +482,7 @@ const styles = StyleSheet.create({
     },
     itemPillText: {
         fontFamily: "Outfit_700Bold",
-        fontSize: scaleSize(10.5),
+        fontSize: scaleSize(9.8),
         color: LIST_PILL_TEXT,
         letterSpacing: 0.4,
         textTransform: "uppercase",
@@ -516,9 +531,7 @@ const styles = StyleSheet.create({
         fontSize: scaleSize(13),
         letterSpacing: 0.4,
     },
-    addRowPlus: {
-        fontFamily: "Outfit_800ExtraBold",
-        fontSize: scaleSize(15),
+    addRowIcon: {
         marginRight: scaleSize(6),
     },
 
@@ -530,7 +543,7 @@ const styles = StyleSheet.create({
         minHeight: scaleSize(44),
         borderRadius: scaleSize(18),
         backgroundColor: ACTION_PRIMARY,
-        shadowColor: "#000",
+        shadowColors: "#000",
         shadowOpacity: 0.18,
         shadowRadius: scaleSize(14),
         shadowOffset: { width: 0, height: scaleSize(6) },
@@ -545,7 +558,6 @@ const styles = StyleSheet.create({
         paddingVertical: scaleSize(12),
         borderBottomColor: TILE_BORDER,
         borderBottomWidth: StyleSheet.hairlineWidth,
-        marginTop: scaleSize(10),
     },
     label: { fontFamily: "Outfit_600SemiBold", fontSize: scaleSize(13), color: PRIMARY_TEXT },
     value: { fontFamily: "Outfit_500Medium", fontSize: scaleSize(14), color: PRIMARY_TEXT },

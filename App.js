@@ -56,6 +56,7 @@ import theme from './frontend/theme/mfpDark';
 import ActiveWorkoutBottomSheet from './frontend/components/3_Workout/NewWorkout/ActiveWorkoutBottomSheet';
 import Footer from './frontend/components/Footer';
 import MainTabs from './frontend/navigation/MainTabs';
+import useFooterSuppressionStore, { setFooterSuppressed, clearFooterSuppression } from './frontend/state/footerSuppressionStore';
 
 // Ensure a defined global.userData early so screens can read without crashing
 try { global.userData = global.userData || {}; } catch {}
@@ -110,6 +111,7 @@ export default function App() {
     const [fontsReady] = useFonts(customFonts);
     const [authChecked, setAuthChecked] = useState(false);
     const [currentTabName, setCurrentTabName] = useState('Workout');
+    const [isFooterNavEligible, setIsFooterNavEligible] = useState(false);
     const [isFooterVisible, setIsFooterVisible] = useState(false);
     const [isFeedPostFocused, setIsFeedPostFocused] = useState(false);
     const [isAuthenticated, setIsAuthenticated] = useState(false);
@@ -118,6 +120,7 @@ export default function App() {
     const feedOverlayProgressSV = useSharedValue(1);
     const footerVisibilitySV = useSharedValue(0);
     const footerVisibilityTargetRef = useRef(false);
+    const isFooterSuppressed = useFooterSuppressionStore((s) => s.isSuppressed);
     const uidRef = useRef(null);
     const unsubRef = useRef(null);
     const notifUnsubRef = useRef(null);
@@ -161,11 +164,7 @@ export default function App() {
             nextFooterScreen = FOOTER_ROUTE_TAB_OVERRIDES[currentRouteName];
         }
 
-        const targetValue = showFooter ? 1 : 0;
-        if (footerVisibilityTargetRef.current !== showFooter || footerVisibilitySV.value !== targetValue) {
-            animateFooterVisibility(showFooter);
-        }
-        setIsFooterVisible((prev) => (prev === showFooter ? prev : showFooter));
+        setIsFooterNavEligible((prev) => (prev === showFooter ? prev : showFooter));
 
         if (showFooter && nextFooterScreen && nextFooterScreen !== currentTabName) {
             setCurrentTabName(nextFooterScreen);
@@ -180,7 +179,32 @@ export default function App() {
             setIsFeedPostFocused(false);
             feedOverlayProgressSV.value = 1;
         }
-    }, [animateFooterVisibility, currentTabName, isFeedPostFocused, feedOverlayProgressSV]);
+    }, [currentTabName, isFeedPostFocused, feedOverlayProgressSV, setIsFooterNavEligible]);
+
+    useEffect(() => {
+        const shouldShow = isFooterNavEligible && !isFooterSuppressed;
+        animateFooterVisibility(shouldShow);
+        setIsFooterVisible((prev) => (prev === shouldShow ? prev : shouldShow));
+    }, [animateFooterVisibility, isFooterNavEligible, isFooterSuppressed]);
+
+    useEffect(() => {
+        const setter = (id, suppressed) => {
+            const key = typeof id === 'string' ? id : (id == null ? '' : String(id));
+            if (!key) {
+                return;
+            }
+            setFooterSuppressed(key, !!suppressed);
+        };
+        try { global.__setStickyElementsSuppressed = setter; } catch {}
+        return () => {
+            try {
+                if (global.__setStickyElementsSuppressed === setter) {
+                    delete global.__setStickyElementsSuppressed;
+                }
+            } catch {}
+            clearFooterSuppression();
+        };
+    }, []);
 
     useEffect(() => {
         try { global.__USE_GLOBAL_FOOTER = true; } catch {}

@@ -1,0 +1,89 @@
+diff --git a/node_modules/@gorhom/bottom-sheet/lib/module/components/bottomSheet/BottomSheet.js b/node_modules/@gorhom/bottom-sheet/lib/module/components/bottomSheet/BottomSheet.js
+index 9b18d5e..0685780 100644
+--- a/node_modules/@gorhom/bottom-sheet/lib/module/components/bottomSheet/BottomSheet.js
++++ b/node_modules/@gorhom/bottom-sheet/lib/module/components/bottomSheet/BottomSheet.js
+@@ -1,4 +1,4 @@
+-import React, { useMemo, useCallback, forwardRef, useImperativeHandle, memo, useEffect } from 'react';
++import React, { useMemo, useCallback, forwardRef, useImperativeHandle, memo, useEffect, useRef } from 'react';
+ import { Platform } from 'react-native';
+ import invariant from 'invariant';
+ import Animated, { useAnimatedReaction, useSharedValue, useAnimatedStyle, useDerivedValue, runOnJS, interpolate, Extrapolate, runOnUI, cancelAnimation, useWorkletCallback, // @ts-expect-error Module '"react-native-reanimated"' has no exported member 'ReduceMotion'
+@@ -76,6 +76,7 @@ const BottomSheetComponent = /*#__PURE__*/forwardRef(function BottomSheet(props,
+     // private
+     $modal = false,
+     detached = false,
++    suppressStickyElements = true,
+     // components
+     handleComponent,
+     backdropComponent,
+@@ -87,6 +88,56 @@ const BottomSheetComponent = /*#__PURE__*/forwardRef(function BottomSheet(props,
+     accessibilityLabel: _providedAccessibilityLabel = DEFAULT_ACCESSIBILITY_LABEL,
+     accessibilityRole: _providedAccessibilityRole = DEFAULT_ACCESSIBILITY_ROLE
+   } = props; //#endregion
++  const stickySuppressionIdRef = useRef(null);
++  const stickySuppressionLastRef = useRef(null);
++  const updateStickySuppression = useCallback(index => {
++    if (!suppressStickyElements) {
++      return;
++    }
++    if (stickySuppressionIdRef.current == null) {
++      const rand = Math.random().toString(36).slice(2);
++      stickySuppressionIdRef.current = `bs-${Date.now().toString(36)}-${rand}`;
++    }
++    const shouldSuppress = typeof index === 'number' && index > -1;
++    if (stickySuppressionLastRef.current === shouldSuppress) {
++      return;
++    }
++    stickySuppressionLastRef.current = shouldSuppress;
++    try {
++      const setter = global.__setStickyElementsSuppressed;
++      if (typeof setter === 'function') {
++        setter(stickySuppressionIdRef.current, shouldSuppress);
++      }
++    } catch {}
++  }, [suppressStickyElements]);
++  useEffect(() => {
++    if (suppressStickyElements) {
++      return;
++    }
++    if (stickySuppressionIdRef.current == null) {
++      return;
++    }
++    stickySuppressionLastRef.current = null;
++    try {
++      const setter = global.__setStickyElementsSuppressed;
++      if (typeof setter === 'function') {
++        setter(stickySuppressionIdRef.current, false);
++      }
++    } catch {}
++  }, [suppressStickyElements]);
++  useEffect(() => {
++    return () => {
++      if (stickySuppressionIdRef.current == null) {
++        return;
++      }
++      try {
++        const setter = global.__setStickyElementsSuppressed;
++        if (typeof setter === 'function') {
++          setter(stickySuppressionIdRef.current, false);
++        }
++      } catch {}
++    };
++  }, []);
+   //#region animations configurations
+ 
+   const _providedAnimationConfigs = useMemo(() => {
+@@ -406,11 +457,12 @@ const BottomSheetComponent = /*#__PURE__*/forwardRef(function BottomSheet(props,
+         animatedCurrentIndex: animatedCurrentIndex.value
+       }
+     });
++    updateStickySuppression(index);
+ 
+     if (_providedOnChange) {
+       _providedOnChange(index);
+     }
+-  }, [_providedOnChange, animatedCurrentIndex]);
++  }, [_providedOnChange, animatedCurrentIndex, updateStickySuppression]);
+   const handleOnAnimate = useCallback(function handleOnAnimate(toPoint) {
+     const snapPoints = animatedSnapPoints.value;
+     const toIndex = snapPoints.indexOf(toPoint);

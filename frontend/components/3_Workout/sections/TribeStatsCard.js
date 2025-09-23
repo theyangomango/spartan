@@ -1,14 +1,17 @@
 import React, { memo, useRef, useCallback, useMemo } from "react";
 import { View, Text, StyleSheet, Platform, Pressable, Animated } from "react-native";
+import { LinearGradient } from "expo-linear-gradient";
 import scaleSize from "../../../helper/scaleSize";
 import { strong as haptic } from "../../../utils/haptics";
 import { useCommunityStats, refreshCommunityStats } from "../../../logic/communityStats";
 
-const CARD_BG = "#433422";
-const CARD_BORDER = "rgba(255, 210, 156, 0.58)";
-const TEXT_PRIMARY = "#FFF5E2";
-const TEXT_SECONDARY = "rgba(255, 235, 205, 0.82)";
-const DIVIDER_COLOR = "rgba(255, 222, 180, 0.42)";
+const CARD_BG = "#5A3C1F";
+const CARD_BORDER = "rgba(248, 201, 129, 0.44)";
+const TEXT_PRIMARY = "#FFF3DB";
+const TEXT_SECONDARY = "rgba(255, 230, 186, 0.72)";
+const DIVIDER_COLOR = "rgba(248, 201, 129, 0.38)";
+const RIPPLE_COLOR = "rgba(248, 201, 129, 0.26)";
+const CARD_GRADIENT = ["#5A3C1F", "#2C2620"];
 
 const formatWithSeparators = (value) => {
     const n = Math.round(Number(value) || 0);
@@ -87,7 +90,7 @@ function TribeStatsCardCmp({ onPress }) {
         <View style={styles.wrap}>
             <Pressable
                 disabled={!interactive}
-                android_ripple={{ color: "rgba(255, 218, 170, 0.24)" }}
+                android_ripple={{ color: RIPPLE_COLOR }}
                 style={styles.pressable}
                 accessibilityRole="button"
                 accessibilityLabel="Open friends activity"
@@ -97,42 +100,49 @@ function TribeStatsCardCmp({ onPress }) {
                 onPressIn={interactive ? handlePressIn : undefined}
                 onPressOut={interactive ? handlePressOut : undefined}
             >
-                <Animated.View style={[styles.card, { transform: [{ scale }] }] }>
-                    <View style={styles.metaColumn}>
-                        <Text style={styles.subtitle}>
-                            Your community's totals this week.
-                            <Text style={styles.subtitleAction}>{'\n'}View friends</Text>
-                        </Text>
-                    </View>
-                    <View style={styles.statsRow}>
-                        {statsDisplay.map((stat, idx) => (
-                            <View
-                                // eslint-disable-next-line react/no-array-index-key
-                                key={stat.key || idx}
-                                style={[
-                                    styles.statCol,
-                                    idx === 2 ? styles.statColCompact : styles.statColWide,
-                                    idx === 1 && styles.statColMiddle,
-                                    loading && !hasSnapshot && styles.statColLoading,
-                                ]}
-                            >
-                                <Text
-                                    style={[styles.statValue, idx === 2 && styles.statValueCompact]}
-                                    numberOfLines={1}
-                                    ellipsizeMode="clip"
+                <Animated.View style={[styles.cardShadow, { transform: [{ scale }] }] }>
+                    <LinearGradient
+                        colors={CARD_GRADIENT}
+                        start={{ x: 0, y: 0 }}
+                        end={{ x: 1, y: 1 }}
+                        style={styles.card}
+                    >
+                        <View style={styles.metaColumn}>
+                            <Text style={styles.subtitle}>
+                                Your community's totals this week.
+                                <Text style={styles.subtitleAction}>{'\n'}View friends</Text>
+                            </Text>
+                        </View>
+                        <View style={styles.statsRow}>
+                            {statsDisplay.map((stat, idx) => (
+                                <View
+                                    // eslint-disable-next-line react/no-array-index-key
+                                    key={stat.key || idx}
+                                    style={[
+                                        styles.statCol,
+                                        idx === 2 ? styles.statColCompact : styles.statColWide,
+                                        idx === 1 && styles.statColMiddle,
+                                        loading && !hasSnapshot && styles.statColLoading,
+                                    ]}
                                 >
-                                    {stat.value}
-                                </Text>
-                                <Text
-                                    style={[styles.statLabel, idx === 2 && styles.statLabelCompact]}
-                                    numberOfLines={1}
-                                    ellipsizeMode="tail"
-                                >
-                                    {stat.label}
-                                </Text>
-                            </View>
-                        ))}
-                    </View>
+                                    <Text
+                                        style={[styles.statValue, idx === 2 && styles.statValueCompact]}
+                                        numberOfLines={1}
+                                        ellipsizeMode="clip"
+                                    >
+                                        {stat.value}
+                                    </Text>
+                                    <Text
+                                        style={[styles.statLabel, idx === 2 && styles.statLabelCompact]}
+                                        numberOfLines={1}
+                                        ellipsizeMode="tail"
+                                    >
+                                        {stat.label}
+                                    </Text>
+                                </View>
+                            ))}
+                        </View>
+                    </LinearGradient>
                 </Animated.View>
             </Pressable>
         </View>
@@ -146,16 +156,8 @@ const CARD_RADIUS = scaleSize(24);
 const styles = StyleSheet.create({
     wrap: { paddingHorizontal: scaleSize(16), marginBottom: scaleSize(6) },
     pressable: { borderRadius: CARD_RADIUS },
-    card: {
-        flexDirection: "row",
-        alignItems: "center",
-        backgroundColor: CARD_BG,
+    cardShadow: {
         borderRadius: CARD_RADIUS,
-        paddingVertical: scaleSize(20),
-        paddingLeft: scaleSize(16),
-        paddingRight: scaleSize(4),
-        borderWidth: scaleSize(1),
-        borderColor: CARD_BORDER,
         ...Platform.select({
             ios: {
                 shadowColor: "#000",
@@ -167,6 +169,17 @@ const styles = StyleSheet.create({
                 elevation: 4,
             },
         }),
+    },
+    card: {
+        flexDirection: "row",
+        alignItems: "center",
+        backgroundColor: CARD_BG,
+        borderRadius: CARD_RADIUS,
+        paddingVertical: scaleSize(20),
+        paddingLeft: scaleSize(16),
+        paddingRight: scaleSize(4),
+        borderWidth: scaleSize(1),
+        borderColor: CARD_BORDER,
     },
     metaColumn: {
         gap: scaleSize(2),
@@ -184,7 +197,7 @@ const styles = StyleSheet.create({
     },
     subtitleAction: {
         color: TEXT_PRIMARY,
-        fontFamily: "Outfit_700Bold",
+        fontFamily: "Outfit_800ExtraBold",
     },
     statsRow: {
         flexDirection: "row",

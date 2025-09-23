@@ -86,7 +86,7 @@ function TemplatesRail({ templates = [], onIndexChange, onAddTemplate, onOpenTem
                                         </View>
                                         <View style={styles.metaBadge}>
                                             <Ionicons name="calendar-outline" size={13} color={META_BADGE_ICON} />
-                                            <Text style={styles.metaBadgeText}>{item.lastDate ?? "New!"}</Text>
+                                            <Text style={styles.metaBadgeText}>{item.lastDate ?? "New"}</Text>
                                         </View>
                                     </View>
                                 </View>

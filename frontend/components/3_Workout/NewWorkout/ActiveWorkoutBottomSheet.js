@@ -21,8 +21,9 @@ const COLLAPSED_PEEK = FOOTER_HEIGHT + scaleSize(48);
 const COLLAPSED_SNAP = COLLAPSED_PEEK;
 const noop = () => { };
 const SHEET_RADIUS = scaleSize(22);
-const HANDLE_BG_COLLAPSED = 'rgba(45, 158, 255, 0.96)';
+const HANDLE_BG_COLLAPSED = 'rgba(45, 157, 255, 0.76)';
 const HANDLE_BG_EXPANDED = 'rgba(45, 158, 255, 0)';
+const COLLAPSE_COLOR_THRESHOLD = 0.15;
 
 const SCREEN_HEIGHT = Dimensions.get("window").height || 0;
 const FOCUS_HIDE_DISTANCE = SCREEN_HEIGHT > 0 ? SCREEN_HEIGHT : (COLLAPSED_PEEK + scaleSize(320));
@@ -206,6 +207,7 @@ const ActiveWorkoutBottomSheet = ({ hideForFocus = false, overlayProgressSV, vis
                 enablePanDownToClose={false}
                 enableContentPanningGesture={gesturesEnabled}
                 enableHandlePanningGesture={gesturesEnabled}
+                suppressStickyElements={false}
                 style={[sheetStyle, styles.sheetOffset]}
                 onClose={() => {
                     if (allowCloseRef.current) {
@@ -287,11 +289,18 @@ const SheetBackdrop = ({ animatedIndex, style }) => {
 };
 
 const SheetBackground = ({ animatedIndex, style }) => {
-    const animatedStyle = useAnimatedStyle(() => ({
-        backgroundColor: interpolateColor(animatedIndex.value, [0, 1], [HANDLE_BG_COLLAPSED, theme.surface]),
-        borderTopLeftRadius: SHEET_RADIUS,
-        borderTopRightRadius: SHEET_RADIUS,
-    }));
+    const animatedStyle = useAnimatedStyle(() => {
+        const progress = animatedIndex.value < 0 ? 0 : animatedIndex.value > 1 ? 1 : animatedIndex.value;
+        const backgroundColor = progress <= COLLAPSE_COLOR_THRESHOLD
+            ? interpolateColor(progress, [0, COLLAPSE_COLOR_THRESHOLD], [HANDLE_BG_COLLAPSED, theme.surface])
+            : theme.surface;
+
+        return {
+            backgroundColor,
+            borderTopLeftRadius: SHEET_RADIUS,
+            borderTopRightRadius: SHEET_RADIUS,
+        };
+    });
 
     return (
         <Animated.View
@@ -314,9 +323,14 @@ const AnimatedIndexBridge = ({ animatedIndex, sharedIndex }) => {
     });
 
     const wrapperStyle = useAnimatedStyle(() => {
-        const progress = sharedIndex.value ?? 0;
+        const rawProgress = sharedIndex.value ?? 0;
+        const clampedProgress = rawProgress < 0 ? 0 : rawProgress > 1 ? 1 : rawProgress;
+        const backgroundColor = clampedProgress <= COLLAPSE_COLOR_THRESHOLD
+            ? interpolateColor(clampedProgress, [0, COLLAPSE_COLOR_THRESHOLD], [HANDLE_BG_COLLAPSED, HANDLE_BG_EXPANDED])
+            : HANDLE_BG_EXPANDED;
+
         return {
-            backgroundColor: interpolateColor(progress, [0, 1], [HANDLE_BG_COLLAPSED, HANDLE_BG_EXPANDED]),
+            backgroundColor,
         };
     }, [sharedIndex]);
 

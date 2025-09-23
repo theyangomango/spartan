@@ -58,9 +58,10 @@ const HEADER_COLLAPSED_TRANSLATE = scaleSize(0);
 const HEADER_COLLAPSED_PADDING_V = scaleSize(0);
 const HEADER_EXPANDED_PADDING_V = scaleSize(6);
 const HEADER_EXPANDED_PADDING_H = scaleSize(24);
-const HEADER_COLLAPSED_BG = 'rgba(45, 158, 255, 0.96)';
+const HEADER_COLLAPSED_BG = 'rgba(45, 157, 255, 0.58)';
 const HEADER_EXPANDED_BG = 'rgba(45, 158, 255, 0)';
 const SHEET_EXPANDED_BG = theme.surface;
+const SHEET_COLOR_THRESHOLD = 0.15;
 
 const ActiveWorkoutModal = ({
     workout,
@@ -367,13 +368,16 @@ const ActiveWorkoutModal = ({
 
     const headerAnimatedStyle = useAnimatedStyle(() => {
         const value = animatedIndex?.value ?? 1;
+        const progress = value < 0 ? 0 : value > 1 ? 1 : value;
         const collapsedWidth = Math.max(0, screenWidth - HANDLE_HORIZONTAL_PADDING * 2);
-        const backgroundColor = interpolateColor(value, [0, 1], [HEADER_COLLAPSED_BG, HEADER_EXPANDED_BG]);
+        const backgroundColor = progress <= SHEET_COLOR_THRESHOLD
+            ? interpolateColor(progress, [0, SHEET_COLOR_THRESHOLD], [HEADER_COLLAPSED_BG, HEADER_EXPANDED_BG])
+            : HEADER_EXPANDED_BG;
         return {
-            maxWidth: interpolate(value, [0, 1], [collapsedWidth, screenWidth]),
-            marginTop: interpolate(value, [0, 1], [scaleSize(-8), 0]),
+            maxWidth: interpolate(progress, [0, 1], [collapsedWidth, screenWidth]),
+            marginTop: interpolate(progress, [0, 1], [scaleSize(-8), 0]),
             paddingHorizontal: HEADER_EXPANDED_PADDING_H,
-            paddingVertical: interpolate(value, [0, 1], [HEADER_COLLAPSED_PADDING_V, HEADER_EXPANDED_PADDING_V]),
+            paddingVertical: interpolate(progress, [0, 1], [HEADER_COLLAPSED_PADDING_V, HEADER_EXPANDED_PADDING_V]),
             borderTopLeftRadius: 0,
             borderTopRightRadius: 0,
             borderBottomLeftRadius: 0,
@@ -381,7 +385,7 @@ const ActiveWorkoutModal = ({
             backgroundColor,
             transform: [
                 {
-                    translateY: interpolate(value, [0, 1], [HEADER_COLLAPSED_TRANSLATE, 0], Extrapolate.CLAMP),
+                    translateY: interpolate(progress, [0, 1], [HEADER_COLLAPSED_TRANSLATE, 0], Extrapolate.CLAMP),
                 },
             ],
             shadowOpacity: 0,
@@ -403,7 +407,10 @@ const ActiveWorkoutModal = ({
 
     const headerCollapsedOverlayAnimatedStyle = useAnimatedStyle(() => {
         const value = animatedIndex?.value ?? 1;
-        const backgroundColor = interpolateColor(value, [0, 1], [HEADER_COLLAPSED_BG, HEADER_EXPANDED_BG]);
+        const progress = value < 0 ? 0 : value > 1 ? 1 : value;
+        const backgroundColor = progress <= SHEET_COLOR_THRESHOLD
+            ? interpolateColor(progress, [0, SHEET_COLOR_THRESHOLD], [HEADER_COLLAPSED_BG, HEADER_EXPANDED_BG])
+            : HEADER_EXPANDED_BG;
         return {
             opacity: interpolate(value, [0, 0.35, 0.7], [1, 0.7, 0], Extrapolate.CLAMP),
             transform: [{ translateY: interpolate(value, [0, 1], [scaleSize(12), 0], Extrapolate.CLAMP) }],
@@ -417,16 +424,24 @@ const ActiveWorkoutModal = ({
 
     const bodyAnimatedStyle = useAnimatedStyle(() => {
         const value = animatedIndex?.value ?? 1;
+        const progress = value < 0 ? 0 : value > 1 ? 1 : value;
+        const backgroundColor = progress <= SHEET_COLOR_THRESHOLD
+            ? interpolateColor(progress, [0, SHEET_COLOR_THRESHOLD], [HEADER_COLLAPSED_BG, SHEET_EXPANDED_BG])
+            : SHEET_EXPANDED_BG;
         return {
             opacity: interpolate(value, [0, 0.35, 0.7, 1], [0, 0.25, 0.7, 1], Extrapolate.CLAMP),
-            backgroundColor: interpolateColor(value, [0, 1], [HEADER_COLLAPSED_BG, SHEET_EXPANDED_BG]),
+            backgroundColor,
         };
     });
 
     const sheetBackgroundAnimatedStyle = useAnimatedStyle(() => {
         const value = animatedIndex?.value ?? 1;
+        const progress = value < 0 ? 0 : value > 1 ? 1 : value;
+        const backgroundColor = progress <= SHEET_COLOR_THRESHOLD
+            ? interpolateColor(progress, [0, SHEET_COLOR_THRESHOLD], [HEADER_COLLAPSED_BG, SHEET_EXPANDED_BG])
+            : SHEET_EXPANDED_BG;
         return {
-            backgroundColor: interpolateColor(value, [0, 1], [HEADER_COLLAPSED_BG, SHEET_EXPANDED_BG]),
+            backgroundColor,
         };
     });
 
