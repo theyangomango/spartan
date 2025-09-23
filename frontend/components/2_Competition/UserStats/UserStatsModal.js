@@ -11,6 +11,7 @@ import HexagonalStats from "./HexagonalStats";
 import { exercises as EXERCISE_DEFS } from "../../3_Workout/NewWorkout/SelectExercise/EXERCISES";
 import scaleSize from "../../../helper/scaleSize";
 import { TouchableOpacity } from "react-native";
+import { withStrongPress } from "../../../utils/haptics";
 
 // Enable LayoutAnimation on Android
 if (Platform.OS === 'android' && UIManager.setLayoutAnimationEnabledExperimental) {
@@ -458,7 +459,7 @@ export default function UserStatsModal({ user, toViewProfile, hexOverlay, hexPro
             <View style={styles.grabber} />
             {/* Header */}
             <View style={styles.header}>
-                <Pressable onPress={toViewProfile} style={styles.headerLeft} hitSlop={10}>
+                <Pressable onPress={withStrongPress(toViewProfile)} style={styles.headerLeft} hitSlop={10}>
                     <FastImage
                         source={{
                             uri: user.image,
@@ -523,7 +524,7 @@ export default function UserStatsModal({ user, toViewProfile, hexOverlay, hexPro
                             const isCollapsed = !!collapsed[group];
                             return (
                                 <View key={`group-${group}`}>
-                                    <Pressable style={styles.groupHeaderRow} onPress={() => toggleGroup(group)}>
+                                    <Pressable style={styles.groupHeaderRow} onPress={withStrongPress(() => toggleGroup(group))}>
                                         <Text style={styles.groupHeader}>{group}</Text>
                                         <MaterialCommunityIcons
                                             name={isCollapsed ? "chevron-down" : "chevron-up"}
@@ -545,7 +546,7 @@ export default function UserStatsModal({ user, toViewProfile, hexOverlay, hexPro
                                                     { position: "relative" },
                                                     pressed && styles.exerciseCardPressed,
                                                 ]}
-                                                onPress={() => openDetail(name)}
+                                                onPress={withStrongPress(() => openDetail(name))}
                                             >
                                                 {/* Accent bar based on muscle group */}
                                                 {/* <View style={[styles.accentBar, { backgroundColor: ACC }]} /> */}
@@ -628,7 +629,7 @@ export default function UserStatsModal({ user, toViewProfile, hexOverlay, hexPro
                     >
                         {/* Header card – neutral card styling, minimal accent */}
                         <View style={styles.detailHeader}>
-                            <Pressable onPress={closeDetail} hitSlop={10} style={styles.detailBackRow}>
+                            <Pressable onPress={withStrongPress(closeDetail)} hitSlop={10} style={styles.detailBackRow}>
                                 <MaterialCommunityIcons name="chevron-left" size={scaledSize(18)} color={COLORS.text} />
                                 <Text numberOfLines={1} style={styles.detailTitle}>{detailName}</Text>
                             </Pressable>
@@ -653,7 +654,7 @@ export default function UserStatsModal({ user, toViewProfile, hexOverlay, hexPro
                                     const r = safeNumber(item?.reps, 0);
                                     const rm = setAdjusted1RM(w, r);
                                     return (
-                                        <TouchableOpacity style={styles.setRow} onPress={() => handleOpenSet(item)}>
+                                        <TouchableOpacity style={styles.setRow} onPress={withStrongPress(() => handleOpenSet(item))}>
                                             <View style={[styles.setDot, { backgroundColor: ACC_DETAIL }]} />
                                             <View style={{ flex: 1 }}>
                                                 <Text style={styles.setMain}>{w}lbs x {r}</Text>

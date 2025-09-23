@@ -15,6 +15,7 @@ import {
     Easing,
 } from "react-native";
 import { Dimensions, FlatList } from "react-native";
+import { MaterialCommunityIcons } from "@expo/vector-icons";
 // AsyncStorage removed for reminder gating; show only on create/join events
 let FlashListLib = null;
 try { FlashListLib = require("@shopify/flash-list"); } catch {}
@@ -26,7 +27,6 @@ import { LinearGradient } from "expo-linear-gradient";
 import Animated, { useAnimatedStyle, interpolate, interpolateColor, Extrapolate, useAnimatedReaction, runOnJS } from "react-native-reanimated";
 import RNBounceable from "@freakycoder/react-native-bounceable";
 import { Weight } from "iconsax-react-native";
-import { MaterialCommunityIcons } from "@expo/vector-icons";
 import * as Haptics from "expo-haptics";
 import ProgressBanner from "./Tracking/ProgressBanner";
 import ExerciseLog from "./Tracking/ExerciseLog";
@@ -53,10 +53,10 @@ import useWorkoutTotals from "./hooks/useWorkoutTotals";
 
 import scaleSize from "../../../helper/scaleSize";
 
-const HANDLE_HORIZONTAL_PADDING = scaleSize(18);
+const HANDLE_HORIZONTAL_PADDING = scaleSize(0);
 const HEADER_COLLAPSED_RADIUS = scaleSize(20);
-const HEADER_COLLAPSED_TRANSLATE = scaleSize(14);
-const HEADER_COLLAPSED_PADDING_V = scaleSize(10);
+const HEADER_COLLAPSED_TRANSLATE = scaleSize(0);
+const HEADER_COLLAPSED_PADDING_V = scaleSize(0);
 const HEADER_EXPANDED_PADDING_V = scaleSize(6);
 const HEADER_EXPANDED_PADDING_H = scaleSize(24);
 
@@ -82,6 +82,7 @@ const ActiveWorkoutModal = ({
     // For viewing completed workouts, pass false to reduce startup cost.
     streamLive = true,
     animatedIndex,
+    onExpandSheet,
 }) => {
 
     // Enable LayoutAnimation on Android
@@ -334,50 +335,58 @@ const ActiveWorkoutModal = ({
 
     const borderOpacity = scrollY.interpolate({ inputRange: [0, 98], outputRange: [0, 1], extrapolate: "clamp" });
 
-    const collapsedOverlayActiveRef = useRef(false);
-    const [collapsedOverlayActive, setCollapsedOverlayActive] = useState(false);
-
+    const collapsedTimerText = timerRef?.current || "00:00";
     const collapsedTitle = useMemo(() => {
         const raw = workout?.name || workout?.title || workout?.templateName;
         if (typeof raw === 'string') {
             const trimmed = raw.trim();
             if (trimmed.length) return trimmed;
         }
-        return 'Active workout';
-    }, [workout?.name, workout?.title, workout?.templateName]);
+        return viewingSelfEffective ? 'Active workout' : 'Viewing workout';
+    }, [workout?.name, workout?.title, workout?.templateName, viewingSelfEffective]);
 
-    const collapsedTimer = timerRef?.current || "00:00";
+    const collapsedOverlayActiveRef = useRef(false);
+    const [collapsedOverlayActive, setCollapsedOverlayActive] = useState(false);
+
+    const updateCollapsedOverlayActive = useCallback((active) => {
+        if (collapsedOverlayActiveRef.current === active) return;
+        collapsedOverlayActiveRef.current = active;
+        setCollapsedOverlayActive(active);
+    }, []);
+
+    useAnimatedReaction(
+        () => animatedIndex?.value ?? 1,
+        (value) => {
+            const shouldShow = value < 0.6;
+            runOnJS(updateCollapsedOverlayActive)(shouldShow);
+        },
+        [animatedIndex]
+    );
 
     const headerAnimatedStyle = useAnimatedStyle(() => {
         const value = animatedIndex?.value ?? 1;
         const collapsedWidth = Math.max(0, screenWidth - HANDLE_HORIZONTAL_PADDING * 2);
         return {
             maxWidth: interpolate(value, [0, 1], [collapsedWidth, screenWidth]),
-            marginTop: interpolate(value, [0, 1], [scaleSize(4), 0]),
+            marginTop: interpolate(value, [0, 1], [scaleSize(-8), 0]),
             paddingHorizontal: interpolate(value, [0, 1], [HANDLE_HORIZONTAL_PADDING, HEADER_EXPANDED_PADDING_H]),
             paddingVertical: interpolate(value, [0, 1], [HEADER_COLLAPSED_PADDING_V, HEADER_EXPANDED_PADDING_V]),
-            borderRadius: interpolate(value, [0, 1], [HEADER_COLLAPSED_RADIUS, 0]),
-            backgroundColor: interpolateColor(value, [0, 1], [theme.surface, 'rgba(0,0,0,0)']),
+            borderRadius: interpolate(value, [0, 1], [scaleSize(12), 0]),
+            backgroundColor: 'transparent',
             transform: [
                 {
                     translateY: interpolate(value, [0, 1], [HEADER_COLLAPSED_TRANSLATE, 0], Extrapolate.CLAMP),
                 },
             ],
-            shadowColor: '#000',
-            shadowOpacity: interpolate(value, [0, 0.4, 1], [0.22, 0.1, 0]),
-            shadowRadius: interpolate(value, [0, 0.4, 1], [scaleSize(8), scaleSize(4), 0]),
-            shadowOffset: {
-                width: 0,
-                height: interpolate(value, [0, 0.4, 1], [scaleSize(4), scaleSize(2), 0], Extrapolate.CLAMP),
-            },
-            elevation: interpolate(value, [0, 0.4, 1], [6, 3, 0]),
+            shadowOpacity: 0,
+            elevation: 0,
         };
     });
 
     const headerContentAnimatedStyle = useAnimatedStyle(() => {
         const value = animatedIndex?.value ?? 1;
         return {
-            opacity: interpolate(value, [0, 0.5, 1], [0, 0.25, 1], Extrapolate.CLAMP),
+            opacity: interpolate(value, [0, 0.35, 0.7, 1], [0, 0.25, 0.65, 1], Extrapolate.CLAMP),
             transform: [
                 {
                     scale: interpolate(value, [0, 1], [0.94, 1], Extrapolate.CLAMP),
@@ -389,25 +398,18 @@ const ActiveWorkoutModal = ({
     const headerCollapsedOverlayAnimatedStyle = useAnimatedStyle(() => {
         const value = animatedIndex?.value ?? 1;
         return {
-            opacity: interpolate(value, [0, 0.45, 0.7], [1, 1, 0], Extrapolate.CLAMP),
-            transform: [{ translateY: interpolate(value, [0, 1], [scaleSize(4), 0], Extrapolate.CLAMP) }],
+            opacity: interpolate(value, [0, 0.35, 0.7], [1, 0.7, 0], Extrapolate.CLAMP),
+            transform: [{ translateY: interpolate(value, [0, 1], [scaleSize(12), 0], Extrapolate.CLAMP) }],
         };
     });
 
-    const updateCollapsedOverlayActive = useCallback((active) => {
-        if (collapsedOverlayActiveRef.current === active) return;
-        collapsedOverlayActiveRef.current = active;
-        setCollapsedOverlayActive(active);
-    }, []);
+    const bodyAnimatedStyle = useAnimatedStyle(() => {
+        const value = animatedIndex?.value ?? 1;
+        return {
+            opacity: interpolate(value, [0, 0.35, 0.7, 1], [0, 0.25, 0.7, 1], Extrapolate.CLAMP),
+        };
+    });
 
-    useAnimatedReaction(
-        () => animatedIndex?.value ?? 1,
-        (value) => {
-            const shouldShow = value < 0.55;
-            runOnJS(updateCollapsedOverlayActive)(shouldShow);
-        },
-        [animatedIndex]
-    );
     // Dimming logic:
     // - When Reminder Modal is visible: dim content
     // - Else, dim when not viewing your active workout (friend view or past self workout)
@@ -689,20 +691,24 @@ const ActiveWorkoutModal = ({
                     style={[styles.headerCollapsedOverlay, headerCollapsedOverlayAnimatedStyle]}
                     pointerEvents={collapsedOverlayActive ? 'auto' : 'none'}
                 >
-                    <View style={styles.collapsedCard}>
-                        <View style={styles.collapsedRow}>
-                            <View style={styles.collapsedIconWrap}>
-                                <MaterialCommunityIcons name="timer-outline" size={scaleSize(18)} color={theme.textPrimary} />
+                    <Pressable
+                        style={styles.collapsedHud}
+                        onPress={() => { try { onExpandSheet?.(); } catch {} }}
+                        hitSlop={scaleSize(12)}
+                    >
+                        <View style={styles.collapsedLeft}>
+                            <View style={styles.collapsedIconPill}>
+                                <MaterialCommunityIcons name="timer-outline" size={scaleSize(18)} color={theme.primary} />
                             </View>
-                            <View style={styles.collapsedTextWrap}>
-                                <Text style={styles.collapsedTitle} numberOfLines={1}>{collapsedTitle}</Text>
-                                <Text style={styles.collapsedSubtitle}>{viewingSelfEffective ? 'Tap to resume' : 'Viewing workout'}</Text>
-                            </View>
-                            <View style={styles.collapsedTimerWrap}>
-                                <Text style={styles.collapsedTimerText}>{collapsedTimer}</Text>
+                            <Text style={styles.collapsedTitle} numberOfLines={1}>{collapsedTitle}</Text>
+                        </View>
+                        <View style={styles.collapsedRight}>
+                            <View style={styles.collapsedTimerPill}>
+                                <MaterialCommunityIcons name="clock-outline" size={scaleSize(14)} color={theme.textPrimary} style={{ marginRight: scaleSize(4) }} />
+                                <Text style={styles.collapsedTimer}>{collapsedTimerText}</Text>
                             </View>
                         </View>
-                    </View>
+                    </Pressable>
                 </Animated.View>
                 <Animated.View
                     style={[styles.headerContent, headerContentAnimatedStyle]}
@@ -731,6 +737,7 @@ const ActiveWorkoutModal = ({
             </Animated.View>
             <RNAnimated.View style={[styles.headerShadow, { opacity: borderOpacity }]} />
             {/* Body */}
+            <Animated.View style={[styles.bodyContainer, bodyAnimatedStyle]} pointerEvents={collapsedOverlayActive ? 'none' : 'auto'}>
             {friendWaiting ? (
                 <View style={styles.waitingWrap}>
                     <Text style={styles.waitingText}>Loading friend…</Text>
@@ -805,6 +812,7 @@ const ActiveWorkoutModal = ({
                     </RNAnimated.View>)
                 )
             )}
+            </Animated.View>
             {/* Add / Replace Exercises */}
             <Modal animationType="fade" transparent visible={selectExerciseModalVisible}>
                 <SelectExerciseModal
@@ -950,6 +958,14 @@ const styles = StyleSheet.create({
 
     // Header animation wrappers
     headerAnimated: { backgroundColor: 'transparent', position: 'relative', alignItems: 'stretch', alignSelf: 'center', width: '100%' },
+    headerCollapsedOverlay: {
+        position: 'absolute',
+        left: 0,
+        right: 0,
+        top: 0,
+        zIndex: 3,
+        alignItems: 'center',
+    },
     headerContent: {
         flexDirection: 'row',
         alignItems: 'center',
@@ -963,65 +979,63 @@ const styles = StyleSheet.create({
         justifyContent: 'space-between',
     },
     headerShadow: { height: scaleSize(scaledSize(2)), backgroundColor: theme.hairline },
-    headerCollapsedOverlay: {
-        position: 'absolute',
-        left: 0,
-        right: 0,
-        top: 0,
-        zIndex: 3,
-    },
-    collapsedCard: {
-        backgroundColor: theme.surface,
+    bodyContainer: { flex: 1, width: '100%' },
+    collapsedHud: {
+        backgroundColor: 'rgba(33, 44, 68, 0.96)',
+        flex: 1,
+        width: '100%',
+        flexDirection: 'row',
+        // backgroundColor: 'rgba(17, 25, 40, 0.94)',
         borderRadius: scaleSize(18),
         paddingVertical: scaleSize(10),
         paddingHorizontal: scaleSize(14),
+        borderWidth: scaleSize(1),
+        borderColor: 'rgba(110, 184, 255, 0.38)',
         shadowColor: '#000',
-        shadowOpacity: 0.2,
-        shadowRadius: scaleSize(8),
-        shadowOffset: { width: 0, height: scaleSize(3) },
-        elevation: 5,
-        borderWidth: StyleSheet.hairlineWidth,
-        borderColor: 'rgba(255,255,255,0.12)',
+        shadowOpacity: 0.12,
+        shadowRadius: scaleSize(10),
+        shadowOffset: { width: 0, height: scaleSize(4) },
+        elevation: 6,
     },
-    collapsedRow: {
+    collapsedLeft: {
         flexDirection: 'row',
         alignItems: 'center',
-        justifyContent: 'space-between',
+        flex: 1,
+        marginRight: scaleSize(12),
         gap: scaleSize(10),
     },
-    collapsedIconWrap: {
+    collapsedIconPill: {
         width: scaleSize(34),
         height: scaleSize(34),
         borderRadius: scaleSize(17),
-        backgroundColor: 'rgba(255,255,255,0.1)',
         alignItems: 'center',
         justifyContent: 'center',
+        backgroundColor: 'rgba(59, 130, 246, 0.18)',
     },
-    collapsedTextWrap: { flex: 1 },
     collapsedTitle: {
-        fontFamily: 'Poppins_600SemiBold',
-        fontSize: scaleSize(13.2),
+        fontFamily: 'Outfit_700Bold',
+        fontSize: scaleSize(14),
         color: theme.textPrimary,
-        marginBottom: scaleSize(2),
+        flexShrink: 1,
     },
-    collapsedSubtitle: {
-        fontFamily: 'Poppins_500Medium',
-        fontSize: scaleSize(11.2),
-        color: theme.textSecondary || 'rgba(255,255,255,0.7)',
+    collapsedRight: {
+        flexDirection: 'row',
+        alignItems: 'center',
     },
-    collapsedTimerWrap: {
+    collapsedTimerPill: {
+        flexDirection: 'row',
+        alignItems: 'center',
         paddingHorizontal: scaleSize(12),
         paddingVertical: scaleSize(6),
         borderRadius: scaleSize(14),
-        backgroundColor: theme.primary,
+        backgroundColor: 'rgba(148, 163, 184, 0.18)',
     },
-    collapsedTimerText: {
-        fontFamily: 'Poppins_600SemiBold',
-        fontSize: scaleSize(11.5),
-        color: '#fff',
-        letterSpacing: 0.2,
+    collapsedTimer: {
+        fontFamily: 'Outfit_600SemiBold',
+        fontSize: scaleSize(12),
+        color: theme.textPrimary,
+        letterSpacing: 0.15,
     },
-
     // Allow the BottomSheet background to show through
     scrollview: { paddingTop: scaleSize(scaledSize(5)), backgroundColor: 'transparent' },
     // Ensure FlashList receives a parent with a valid size
@@ -1126,7 +1140,8 @@ const areEqualModalProps = (prev, next) => (
     prev.onCopyTemplate === next.onCopyTemplate &&
     prev.cancelWorkout === next.cancelWorkout &&
     prev.updateWorkout === next.updateWorkout &&
-    prev.finishWorkout === next.finishWorkout
+    prev.finishWorkout === next.finishWorkout &&
+    prev.onExpandSheet === next.onExpandSheet
 );
 
 export default memo(ActiveWorkoutModal, areEqualModalProps);

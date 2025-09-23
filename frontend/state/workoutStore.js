@@ -24,6 +24,7 @@ export const useWorkoutStore = create((set, get) => ({
     getUserWorkoutStats: () => ({}),
     timerRef: null,
   },
+  sheetSharedAnimatedIndex: null,
 
   setWorkout: (workout) =>
     set((state) => ({
@@ -49,7 +50,9 @@ export const useWorkoutStore = create((set, get) => ({
 
   setSheetHandlers: (handlers = {}) =>
     set((state) => ({ sheetHandlers: { ...state.sheetHandlers, ...handlers } })),
+
+  setSheetSharedAnimatedIndex: (value) =>
+    set((state) => (state.sheetSharedAnimatedIndex === value ? state : { sheetSharedAnimatedIndex: value })),
 }));
 
 export default useWorkoutStore;
-

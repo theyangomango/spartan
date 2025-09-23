@@ -1,14 +1,16 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import { Pressable, StyleSheet, View } from 'react-native';
 import { Home, Cup, Weight, Profile as ProfileIcon } from 'iconsax-react-native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import useWorkoutStore, { WORKOUT_SHEET_STATES } from '../state/workoutStore';
 import { jumpToTab, navigationRef } from '../../navigationRef';
 import theme from '../theme/mfpDark';
+import Animated, { useAnimatedStyle, useDerivedValue } from 'react-native-reanimated';
 
 import scaleSize from "../helper/scaleSize";
 
 const FOOTER_BASE_HEIGHT = scaleSize(87);
+export const FOOTER_HIDE_OFFSET = FOOTER_BASE_HEIGHT + scaleSize(18);
 
 const COLORS = {
     active: theme.textPrimary,
@@ -23,7 +25,16 @@ const COLORS = {
     hairline: theme.hairline,
 };
 
-const Footer = ({ currentScreenName, navigation }) => {
+const Footer = ({ currentScreenName, navigation, isOverlay = false }) => {
+    const globalOverlayEnabled = Boolean(global?.__USE_GLOBAL_FOOTER);
+    if (!isOverlay && globalOverlayEnabled) {
+        return null;
+    }
+    const nav = (navigation && typeof navigation.navigate === 'function')
+        ? navigation
+        : (navigationRef.current && typeof navigationRef.current.navigate === 'function')
+            ? navigationRef.current
+            : navigationRef;
     // Switch tabs fast and without animations; clears overlays one-way
     const go = (screenName, params, options = {}) => () => {
         const { force = false } = options;
@@ -35,13 +46,8 @@ const Footer = ({ currentScreenName, navigation }) => {
 
         // Jump to the tab, removing overlays if needed, with minimal state change
         if (!jumpToTab(screenName, navParams)) {
-            // Fallback to targeting the existing Tabs route explicitly
             try {
-                if (navigation?.navigate) {
-                    navigation.navigate('Tabs', { transition: 'none', screen: screenName, params: fallbackParams });
-                } else {
-                    navigationRef.navigate('Tabs', { transition: 'none', screen: screenName, params: fallbackParams });
-                }
+                nav.navigate('Tabs', { transition: 'none', screen: screenName, params: fallbackParams });
             } catch {
                 try {
                     navigationRef.navigate('Tabs', { transition: 'none', screen: screenName, params: fallbackParams });
@@ -52,6 +58,8 @@ const Footer = ({ currentScreenName, navigation }) => {
 
     // Subscribe to workout presence only (boolean); avoids polling and reduces rerenders
     const hasActiveWorkout = useWorkoutStore((s) => !!s.workout) || !!global?.isCurrentlyWorkingOut;
+    const sheetSharedAnimatedIndex = useWorkoutStore((s) => s.sheetSharedAnimatedIndex);
+    const sheetState = useWorkoutStore((s) => s.sheetState);
 
     const getIconColor = (screenName) => {
         if (screenName === 'Workout' && hasActiveWorkout) {
@@ -71,8 +79,24 @@ const Footer = ({ currentScreenName, navigation }) => {
         } catch {}
     };
 
+    const footerPointerEvents = useMemo(() => (
+        hasActiveWorkout && sheetState === WORKOUT_SHEET_STATES.EXPANDED ? 'none' : 'auto'
+    ), [hasActiveWorkout, sheetState]);
+
+    const footerReveal = useDerivedValue(() => {
+        if (!hasActiveWorkout) return 1;
+        if (!sheetSharedAnimatedIndex) return 1;
+        const value = sheetSharedAnimatedIndex.value;
+        const clamped = value < 0 ? 0 : value > 1 ? 1 : value;
+        return 1 - clamped;
+    }, [hasActiveWorkout, sheetSharedAnimatedIndex]);
+
+    const outerAnimatedStyle = useAnimatedStyle(() => ({
+        transform: [{ translateY: FOOTER_HIDE_OFFSET * (1 - footerReveal.value) }],
+    }));
+
     return (
-        <View style={styles.outer_view} pointerEvents="auto">
+        <Animated.View style={[styles.outer_view, outerAnimatedStyle]} pointerEvents={footerPointerEvents}>
             <View style={styles.main_ctnr}>
                     {/* Feed (Stack tab → child Feed) */}
                     <View style={styles.icon_ctnr}>
@@ -178,7 +202,7 @@ const Footer = ({ currentScreenName, navigation }) => {
                 onStartShouldSetResponder={() => true}
                 pointerEvents="auto"
             />
-        </View>
+        </Animated.View>
     );
 };
 
@@ -189,6 +213,8 @@ const styles = StyleSheet.create({
         bottom: 0, left: 0, right: 0,
         height: FOOTER_BASE_HEIGHT,
         justifyContent: 'flex-end',
+        zIndex: 2147483647,
+        elevation: 2147483647,
     },
     main_ctnr: {
         flexDirection: 'row',
@@ -221,7 +247,7 @@ const styles = StyleSheet.create({
         bottom: 0,
         height: scaleSize(35),
         backgroundColor: 'transparent',
-        zIndex: 2,
+        zIndex: 2147483647,
     },
 });
 

@@ -301,7 +301,7 @@ export default function FoodDetail({ navigation, route }) {
         <SafeAreaView style={{ flex: 1, backgroundColor: COLORS.bg }}>
             <StatusBar barStyle="light-content" backgroundColor={COLORS.bg} />
             {/* Header inside safe area */}
-            <View style={styles.header}>
+            <View style={[styles.header, styles.headerScreenOffset]}>
                 <Pressable style={styles.backBtn} onPress={() => navigation.goBack()} hitSlop={8}>
                     <Ionicons name="chevron-back" size={22} color={COLORS.text} />
                 </Pressable>
@@ -705,7 +705,8 @@ function NutritionFacts({ extras }) {
 }
 
 const styles = StyleSheet.create({
-    header: { height: scaleSize(36), flexDirection: 'row', alignItems: 'center', paddingHorizontal: scaleSize(8) },
+    header: { minHeight: scaleSize(36), flexDirection: 'row', alignItems: 'center', paddingHorizontal: scaleSize(8) },
+    headerScreenOffset: { paddingTop: scaleSize(6), paddingBottom: scaleSize(6) },
     backBtn: {
         width: scaleSize(42),
         height: scaleSize(42),

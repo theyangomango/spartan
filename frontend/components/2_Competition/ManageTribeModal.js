@@ -4,6 +4,7 @@ import { Modal, View, StyleSheet, Pressable, Text, TextInput } from "react-nativ
 import RNBounceable from "@freakycoder/react-native-bounceable";
 
 import scaleSize from "../../helper/scaleSize";
+import { withStrongPress } from "../../utils/haptics";
 
 function ManageTribeModal({
     visible,
@@ -25,7 +26,7 @@ function ManageTribeModal({
             presentationStyle="overFullScreen"
         >
             <View style={styles.modalBackdrop}>
-                <Pressable style={StyleSheet.absoluteFill} onPress={onCancel} />
+                <Pressable style={StyleSheet.absoluteFill} onPress={withStrongPress(onCancel)} />
                 <View style={styles.modalCard} onStartShouldSetResponder={() => true}>
                     <Text style={styles.modalTitle}>Manage tribe</Text>
                     {tribe ? (
@@ -49,13 +50,13 @@ function ManageTribeModal({
                                     />
                                     <RNBounceable
                                         style={[styles.btn, styles.btnPrimary, { marginBottom: scaleSize(8) }]}
-                                        onPress={onRename}
+                                        onPress={withStrongPress(onRename)}
                                     >
                                         <Text style={[styles.btnText, styles.btnPrimaryText]}>Rename</Text>
                                     </RNBounceable>
                                 </>
                             )}
-                            <RNBounceable style={[styles.btn, styles.btnDanger]} onPress={onLeave}>
+                            <RNBounceable style={[styles.btn, styles.btnDanger]} onPress={withStrongPress(onLeave)}>
                                 <Text style={[styles.btnText, styles.btnDangerText]}>Leave tribe</Text>
                             </RNBounceable>
                         </>

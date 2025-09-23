@@ -4,6 +4,7 @@ import { Modal, View, StyleSheet, Pressable, Text, TextInput } from "react-nativ
 import RNBounceable from "@freakycoder/react-native-bounceable";
 
 import scaleSize from "../../helper/scaleSize";
+import { withStrongPress } from "../../utils/haptics";
 
 function CreateTribeModal({ visible, value, onChangeText, onCancel, onCreate }) {
     return (
@@ -16,7 +17,7 @@ function CreateTribeModal({ visible, value, onChangeText, onCancel, onCreate }) 
             presentationStyle="overFullScreen"
         >
             <View style={styles.modalBackdrop}>
-                <Pressable style={StyleSheet.absoluteFill} onPress={onCancel} />
+                <Pressable style={StyleSheet.absoluteFill} onPress={withStrongPress(onCancel)} />
                 <View style={styles.modalCard} onStartShouldSetResponder={() => true}>
                     <Text style={styles.modalTitle}>Create a tribe</Text>
                     <TextInput
@@ -29,10 +30,10 @@ function CreateTribeModal({ visible, value, onChangeText, onCancel, onCreate }) 
                         returnKeyType="done"
                     />
                     <View style={styles.modalActions}>
-                        <RNBounceable style={[styles.btn, styles.btnGhost]} onPress={onCancel}>
+                        <RNBounceable style={[styles.btn, styles.btnGhost]} onPress={withStrongPress(onCancel)}>
                             <Text style={[styles.btnText, styles.btnGhostText]}>Cancel</Text>
                         </RNBounceable>
-                        <RNBounceable style={[styles.btn, styles.btnPrimary]} onPress={onCreate}>
+                        <RNBounceable style={[styles.btn, styles.btnPrimary]} onPress={withStrongPress(onCreate)}>
                             <Text style={[styles.btnText, styles.btnPrimaryText]}>Create</Text>
                         </RNBounceable>
                     </View>

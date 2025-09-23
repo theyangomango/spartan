@@ -213,7 +213,7 @@ function HoldRing({ progress }) {
                     cy={size / 2}
                     r={r}
                     strokeWidth={6}
-                    stroke="#2dffa0c1"
+                    stroke="#3c95f5ff"
                     fill="none"
                     strokeDasharray={`${c} ${c}`}
                     animatedProps={animatedProps}

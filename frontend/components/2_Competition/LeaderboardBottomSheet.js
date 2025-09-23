@@ -6,6 +6,7 @@ import theme from "../../theme/mfpDark";
 import LeaderboardModal from "./LeaderboardModal";
 
 import scaleSize from "../../helper/scaleSize";
+import { withStrongPress } from "../../utils/haptics";
 
 const LeaderboardBottomSheet = ({
     userList,
@@ -135,7 +136,7 @@ const BlockedViewClean = React.memo(({ message, onResolve }) => {
             <Text style={stylesLocal.text}>{message}</Text>
             <Text style={stylesLocal.sub}>Enter your personal info to enable per-lb ranking.</Text>
             {onResolve && (
-                <TouchableOpacity style={stylesLocal.btn} activeOpacity={0.9} onPress={onResolve}>
+                <TouchableOpacity style={stylesLocal.btn} activeOpacity={0.9} onPress={withStrongPress(onResolve)}>
                     <Text style={stylesLocal.btnText}>Enter Personal Info</Text>
                 </TouchableOpacity>
             )}
@@ -157,7 +158,7 @@ const BlockedView = React.memo(({ message, onResolve }) => {
                 <Text style={stylesLocal.text}>{message}</Text>
                 <Text style={stylesLocal.sub}>Enter your personal info to enable per-lb ranking.</Text>
                 {onResolve && (
-                    <TouchableOpacity style={stylesLocal.btn} activeOpacity={0.9} onPress={onResolve}>
+                    <TouchableOpacity style={stylesLocal.btn} activeOpacity={0.9} onPress={withStrongPress(onResolve)}>
                         <Text style={stylesLocal.btnText}>Enter Personal Info</Text>
                     </TouchableOpacity>
                 )}

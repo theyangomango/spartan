@@ -157,8 +157,8 @@ const eq = (a, b) => {
 
 export default memo(TemplatesRail, eq); 
 
-const EMPTY_CARD_BG = "rgba(26, 38, 61, 0.78)";
-const EMPTY_CARD_BORDER = "rgba(95, 155, 215, 0.45)";
+const EMPTY_CARD_BG = "rgba(38, 56, 88, 0.88)";
+const EMPTY_CARD_BORDER = "rgba(126, 186, 246, 0.58)";
 const SAVED_TEMPLATE_GRADIENT = ["#1F3D6A", "#0C172A"];
 
 const styles = StyleSheet.create({
@@ -264,7 +264,7 @@ const styles = StyleSheet.create({
         borderRadius: scaleSize(22),
         borderWidth: scaleSize(1.3),
         borderColor: EMPTY_CARD_BORDER,
-        backgroundColor: "rgba(34, 57, 92, 0.6)",
+        backgroundColor: "rgba(46, 74, 120, 0.72)",
         alignItems: "center",
         justifyContent: "center",
         marginRight: scaleSize(10),

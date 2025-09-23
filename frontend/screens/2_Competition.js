@@ -46,6 +46,7 @@ import PersonalInfoSheet from "../components/2_MacroTracking/PersonalInfoSheet";
 import theme from "../theme/mfpDark";
 
 import scaleSizeFont from "../helper/scaleSize";
+import { withStrongPress } from "../utils/haptics";
 
 const { width, height } = Dimensions.get("window");
 
@@ -684,7 +685,7 @@ export default function Competition({ navigation, route }) {
                 >
                     <View style={styles.headerRightContainer}>
                         <RNBounceable
-                            onPress={() => setTribeMenuVisible(true)}
+                            onPress={withStrongPress(() => setTribeMenuVisible(true))}
                             style={[styles.tribeButtonRow, styles.tribeButtonPill]}
                             activeScale={0.96}
                             hitSlop={{ top: SIZES.tribeHitSlop, bottom: SIZES.tribeHitSlop, left: SIZES.tribeHitSlop, right: SIZES.tribeHitSlop }}

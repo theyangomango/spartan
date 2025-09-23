@@ -11,13 +11,13 @@ import { strong as haptic } from "../../../utils/haptics";
 const CARD_MIN_HEIGHT = scaleSize(170);
 const CARD_RADIUS = scaleSize(30);
 
-const CARD_GRADIENT = ["#1D2437", "#121926"];
-const CARD_BORDER = "rgba(92, 162, 255, 0.24)";
-const CARD_SHEEN = "rgba(120, 180, 255, 0.12)";
-const BADGE_BG = "rgba(45, 158, 255, 0.16)";
-const BADGE_BORDER = "rgba(45, 158, 255, 0.45)";
-const PROGRESS_TRACK = "rgba(64, 96, 146, 0.35)";
-const PROGRESS_FILL = "#2D9EFF";
+const CARD_GRADIENT = ["#26324B", "#1A2438"];
+const CARD_BORDER = "rgba(110, 184, 255, 0.38)";
+const CARD_SHEEN = "rgba(148, 208, 255, 0.18)";
+const BADGE_BG = "rgba(62, 168, 255, 0.26)";
+const BADGE_BORDER = "rgba(62, 168, 255, 0.55)";
+const PROGRESS_TRACK = "rgba(82, 126, 188, 0.46)";
+const PROGRESS_FILL = "#49AFFF";
 
 function HubRowCmp({
     afterPaint,

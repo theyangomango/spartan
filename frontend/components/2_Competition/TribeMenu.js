@@ -4,6 +4,7 @@ import { Modal, View, Text, StyleSheet, Pressable } from "react-native";
 import RNBounceable from "@freakycoder/react-native-bounceable";
 import { Ionicons } from "@expo/vector-icons";
 import scaleSize from "../../helper/scaleSize";
+import { withStrongPress } from "../../utils/haptics";
 const ts = require('../../helper/scaleSize').ts;
 
 // Scaled sizes (baseline ~ iPhone 12/13: 390x844)
@@ -53,14 +54,14 @@ const TribeMenu = ({
         >
             <View style={styles.menuBackdrop}>
                 {/* BACKDROP CLICK TARGET */}
-                <Pressable style={StyleSheet.absoluteFill} onPress={onClose} />
+                <Pressable style={StyleSheet.absoluteFill} onPress={withStrongPress(onClose)} />
 
                 {/* CARD */}
                 <View style={styles.menuCard}>
                     <Text style={styles.menuTitle}>Tribes</Text>
 
                     {/* Global */}
-                    <RNBounceable style={styles.menuItem} onPress={onSelectGlobal}>
+                    <RNBounceable style={styles.menuItem} onPress={withStrongPress(onSelectGlobal)}>
                         <Ionicons name="globe-outline" size={ICON_ITEM} color="#EAEAEA" />
                         <Text style={styles.menuItemText}>All (Global)</Text>
                         {!selectedTribeId && scope === "Global" && (
@@ -69,7 +70,7 @@ const TribeMenu = ({
                     </RNBounceable>
 
                     {/* Following (under Global) */}
-                    <RNBounceable style={styles.menuItem} onPress={onSelectFollowing}>
+                    <RNBounceable style={styles.menuItem} onPress={withStrongPress(onSelectFollowing)}>
                         <Ionicons name="people-outline" size={ICON_ITEM} color="#EAEAEA" />
                         <Text style={styles.menuItemText}>Following</Text>
                         {!selectedTribeId && scope === "Following" && (
@@ -86,7 +87,7 @@ const TribeMenu = ({
                         <RNBounceable
                             key={t.id}
                             style={styles.menuItem}
-                            onPress={() => onSelectTribe?.(t.id)}
+                            onPress={withStrongPress(() => onSelectTribe?.(t.id))}
                         >
                             <Ionicons name="people-circle-outline" size={ICON_ITEM} color="#EAEAEA" />
                             <Text style={styles.menuItemText}>{t.name}</Text>
@@ -98,12 +99,12 @@ const TribeMenu = ({
 
                     <View style={styles.menuDivider} />
 
-                    <RNBounceable style={styles.menuItem} onPress={onCreatePress}>
+                    <RNBounceable style={styles.menuItem} onPress={withStrongPress(onCreatePress)}>
                         <Ionicons name="add-circle-outline" size={ICON_ITEM} color="#EAEAEA" />
                         <Text style={styles.menuItemText}>Create tribe</Text>
                     </RNBounceable>
 
-                    <RNBounceable style={styles.menuItem} onPress={onJoinPress}>
+                    <RNBounceable style={styles.menuItem} onPress={withStrongPress(onJoinPress)}>
                         <Ionicons name="log-in-outline" size={ICON_ITEM} color="#EAEAEA" />
                         <Text style={styles.menuItemText}>Join by code</Text>
                     </RNBounceable>
@@ -111,7 +112,7 @@ const TribeMenu = ({
                     {!!current && (
                         <>
                             <View style={styles.menuDivider} />
-                            <RNBounceable style={styles.menuItem} onPress={onManagePress}>
+                            <RNBounceable style={styles.menuItem} onPress={withStrongPress(onManagePress)}>
                                 <Ionicons name="settings-outline" size={ICON_ITEM} color="#EAEAEA" />
                                 <Text style={styles.menuItemText}>Manage current tribe</Text>
                             </RNBounceable>

@@ -3,11 +3,11 @@ import { View, Text, StyleSheet, Platform, Pressable, Animated } from "react-nat
 import scaleSize from "../../../helper/scaleSize";
 import { strong as haptic } from "../../../utils/haptics";
 
-const CARD_BG = "#362B1A";
-const CARD_BORDER = "rgba(255, 202, 120, 0.45)";
-const TEXT_PRIMARY = "#FFF0D5";
-const TEXT_SECONDARY = "rgba(255, 230, 190, 0.78)";
-const DIVIDER_COLOR = "rgba(255, 214, 153, 0.3)";
+const CARD_BG = "#433422";
+const CARD_BORDER = "rgba(255, 210, 156, 0.58)";
+const TEXT_PRIMARY = "#FFF5E2";
+const TEXT_SECONDARY = "rgba(255, 235, 205, 0.82)";
+const DIVIDER_COLOR = "rgba(255, 222, 180, 0.42)";
 
 const MOCK_STATS = [
     { key: "reps", label: "Total Reps", value: "14,320" },
@@ -41,7 +41,7 @@ function TribeStatsCardCmp({ onPress }) {
         <View style={styles.wrap}>
             <Pressable
                 disabled={!interactive}
-                android_ripple={{ color: "rgba(255, 214, 153, 0.16)" }}
+                android_ripple={{ color: "rgba(255, 218, 170, 0.24)" }}
                 style={styles.pressable}
                 accessibilityRole="button"
                 accessibilityLabel="Open friends activity"

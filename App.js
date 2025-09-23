@@ -4,7 +4,7 @@ import 'expo-dev-client';
 import 'react-native-reanimated';
 // Polyfills required by Firebase Storage in RN (atob/btoa)
 import './frontend/polyfills/base64';
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import * as SplashScreen from 'expo-splash-screen';
 import { NavigationContainer } from '@react-navigation/native';
 // Lazy-load expo-notifications to avoid native module errors on simulator
@@ -53,6 +53,7 @@ import DeleteAccount from './frontend/screens/DeleteAccount';
 // Dark theme palette
 import theme from './frontend/theme/mfpDark';
 import ActiveWorkoutBottomSheet from './frontend/components/3_Workout/NewWorkout/ActiveWorkoutBottomSheet';
+import Footer from './frontend/components/Footer';
 
 // Ensure a defined global.userData early so screens can read without crashing
 try { global.userData = global.userData || {}; } catch {}
@@ -134,10 +135,25 @@ function Tabs({ route }) {
     );
 }
 
+const getActiveTabNameFromState = (state) => {
+    if (!state || !state.routes) return null;
+    const tabsRoute = state.routes.find((route) => route.name === 'Tabs');
+    if (!tabsRoute) return null;
+    let nestedState = tabsRoute.state;
+    if (!nestedState || !nestedState.routes) return null;
+    let route = nestedState.routes[nestedState.index ?? 0];
+    while (route?.state && route.state.routes) {
+        const nextState = route.state;
+        route = nextState.routes[nextState.index ?? 0];
+    }
+    return route?.name || null;
+};
+
 export default function App() {
     // Load every registered font (frontend/fonts.js) before hiding the splash screen
     const [fontsReady] = useFonts(customFonts);
     const [authChecked, setAuthChecked] = useState(false);
+    const [currentTabName, setCurrentTabName] = useState('Workout');
     const [isAuthenticated, setIsAuthenticated] = useState(false);
     const [userReady, setUserReady] = useState(false);
     const uidRef = useRef(null);
@@ -149,6 +165,19 @@ export default function App() {
     const lastNotificationBuzzAtRef = useRef(0); // dedupe foreground push vs unread snapshot
     const logoutCleanupRef = useRef(null);
     const logoutResetTimerRef = useRef(null);
+
+    const handleNavigationStateUpdate = useCallback(() => {
+        const rootState = navigationRef.current?.getRootState?.();
+        const activeTab = getActiveTabNameFromState(rootState);
+        if (activeTab) {
+            setCurrentTabName((prev) => (prev === activeTab ? prev : activeTab));
+        }
+    }, []);
+
+    useEffect(() => {
+        try { global.__USE_GLOBAL_FOOTER = true; } catch {}
+        return () => { try { delete global.__USE_GLOBAL_FOOTER; } catch {} };
+    }, []);
 
     useEffect(() => {
         // Expose a minimal auth setter so login/signup can notify App immediately
@@ -671,7 +700,11 @@ export default function App() {
     return (
         <GestureHandlerRootView style={{ flex: 1, backgroundColor: theme.bg }} onLayout={onLayoutRootView}>
             {authChecked && (
-            <NavigationContainer ref={navigationRef}>
+            <NavigationContainer
+                ref={navigationRef}
+                onReady={handleNavigationStateUpdate}
+                onStateChange={handleNavigationStateUpdate}
+            >
                 {/* Single root navigator with all screens */}
                 <RootStack.Navigator
                     id="ROOT"
@@ -870,6 +903,13 @@ export default function App() {
             </NavigationContainer>
             )}
             <ActiveWorkoutBottomSheet />
+            {authChecked && (
+                <Footer
+                    currentScreenName={currentTabName}
+                    navigation={navigationRef.current}
+                    isOverlay
+                />
+            )}
             {/* Global Rest Reminder Modal */}
             <Modal
                 key={`rest-reminder-${restReminderKey}`}

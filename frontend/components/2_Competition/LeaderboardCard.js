@@ -4,6 +4,7 @@ import FastImage from 'react-native-fast-image';
 import { Entypo, FontAwesome } from '@expo/vector-icons';
 import RNBounceable from '@freakycoder/react-native-bounceable';
 import scaleSize from '../../helper/scaleSize';
+import { withStrongPress } from '../../utils/haptics';
 const ts = require('../../helper/scaleSize').ts;
 import theme from '../../theme/mfpDark';
 
@@ -83,7 +84,7 @@ export default function LeaderboardCard({
 
     return (
         <RNBounceable
-            onPress={handlePress}
+            onPress={withStrongPress(handlePress)}
             style={
                 userIsSelf
                     ? [styles.self_card_ctnr, { height: SELF_CARD_HEIGHT, backgroundColor: bgColor || require("../../theme/mfpDark").default.bg }]
@@ -125,7 +126,8 @@ export default function LeaderboardCard({
                             {showBestSet ? (
                                 showBestSetWhenNotTribe ? (
                                     bestSetIsNA ? (
-                                        <Text style={[styles.best_set_text, { fontSize: scaleSize(FONT_BEST) }]}>N/A</Text>
+                                        // <Text style={[styles.best_set_text, { fontSize: scaleSize(FONT_BEST) }]}>N/A</Text>
+                                        <></>
                                     ) : (
                                         <Text style={[styles.best_set_text, { fontSize: scaleSize(FONT_BEST) }]} numberOfLines={1}>
                                             {bestSet.reps} x {bestSet.weight} lbs

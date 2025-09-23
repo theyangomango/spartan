@@ -1,25 +1,25 @@
 import React, { useMemo, useRef, useEffect } from "react";
-import { View, Text, StyleSheet, FlatList, TouchableOpacity, Dimensions } from "react-native";
+import { View, Text, StyleSheet, FlatList, TouchableOpacity, Dimensions, Animated } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
 import { Ionicons } from "@expo/vector-icons";
 import LeaderboardCard from "../2_Competition/LeaderboardCard";
 import scaleSize from "../../helper/scaleSize";
+import { withStrongPress } from "../../utils/haptics";
 import { Weight } from "iconsax-react-native";
 
 const { width: SCREEN_WIDTH } = Dimensions.get("window");
 // Scaled paddings and derived widths
 const H_PADDING = scaleSize(16);
-const BANNER_WIDTH = SCREEN_WIDTH - H_PADDING * 2;
-const BANNER_GAP = scaleSize(12);
+const BANNER_OUTER_PADDING = scaleSize(16);
 const BANNER_PAGE_WIDTH = SCREEN_WIDTH;
-const BANNER_PAGE_MARGIN = H_PADDING;
+const BANNER_WIDTH = SCREEN_WIDTH - BANNER_OUTER_PADDING * 2;
 
 // Scaled fonts (slightly larger for readability)
 const ts = require('../../helper/scaleSize').ts;
 const FONT_SELECTOR = ts(13);
 const FONT_METRIC = ts(13);
-const FONT_BANNER_TITLE = ts(14.5);
-const FONT_BANNER_META = ts(11.5);
+const FONT_BANNER_TITLE = ts(13);
+const FONT_BANNER_META = ts(11);
 
 // Scaled icons
 const ICON_TROPHY = scaleSize(19);
@@ -38,40 +38,42 @@ const SELECTOR_GAP = scaleSize(8);
 const METRIC_PAD_H = scaleSize(14);
 const METRIC_PAD_V = scaleSize(8);
 
-const BANNER_RADIUS = scaleSize(22);
+const BANNER_RADIUS = scaleSize(28);
 const BANNER_PAD_H = scaleSize(16);
-const BANNER_PAD_V = scaleSize(12);
+const BANNER_PAD_V = scaleSize(7);
 const BANNER_MIN_HEIGHT = scaleSize(78);
 const BANNER_MB = scaleSize(2);
+const BANNER_PAGER_PT = scaleSize(6);
+const BANNER_PAGER_PB = scaleSize(4);
 
 const ICON_PILL_SIZE = scaleSize(32);
 const ICON_PILL_RADIUS = scaleSize(18);
 const ICON_PILL_MR = scaleSize(14);
 
 const DOT_SIZE = scaleSize(6);
-const DOT_ACTIVE_SIZE = scaleSize(8);
+const DOT_ACTIVE_SIZE = scaleSize(34);
 const DOT_RADIUS = DOT_SIZE / 2;
-const DOT_ACTIVE_RADIUS = DOT_ACTIVE_SIZE / 2;
 const DOT_GAP = scaleSize(6);
 const DOT_MT = scaleSize(4);
 const DOT_MB = scaleSize(2);
 
-// Accent palette (tweak here if you want a different vibe)
-const ACCENT = "#FFDFA3";            // warm gold accent
-const ACCENT_BG = "rgba(255, 214, 153, 0.18)";
-const ACCENT_BORDER = "rgba(255, 214, 153, 0.45)";
-const BANNER_GRADIENT = ["#59411B", "#3A2511"];
-const BANNER_BORDER = "rgba(255, 206, 124, 0.55)";
-const BANNER_TEXT_PRIMARY = "#FFF6E0";
-const BANNER_TEXT_SECONDARY = "rgba(255, 238, 210, 0.82)";
-const BADGE_BG = "rgba(255, 206, 124, 0.18)";
-const BADGE_BORDER = "rgba(255, 206, 124, 0.46)";
-const BADGE_SECONDARY_BG = "rgba(255, 206, 124, 0.12)";
-const BADGE_SECONDARY_BORDER = "rgba(255, 206, 124, 0.3)";
-const BADGE_TEXT = "#FFD07C";
-const BADGE_TEXT_SECONDARY = "#FFEBC1";
-const CHEVRON_BG = "rgba(255, 206, 124, 0.18)";
-const CHEVRON_BORDER = "rgba(255, 206, 124, 0.34)";
+// Accent palette (warm gold on a deep coffee base, echoing TribeStatsCard)
+const ACCENT = "#F8C981";
+const ACCENT_BG = "rgba(248, 201, 129, 0.28)";
+const ACCENT_BORDER = "rgba(248, 201, 129, 0.55)";
+const BANNER_GRADIENT = ["#5A3C1F", "#2C2620"];
+const BANNER_BORDER = "rgba(248, 201, 129, 0.44)";
+const BANNER_TEXT_PRIMARY = "#FFF3DB";
+const BANNER_TEXT_SECONDARY = "rgba(254, 233, 203, 0.82)";
+const BADGE_BG = "rgba(255, 239, 208, 0.88)";
+const BADGE_BORDER = "rgba(255, 224, 178, 0.92)";
+const BADGE_SECONDARY_BG = "rgba(135, 122, 188, 0.32)";
+const BADGE_SECONDARY_BORDER = "rgba(186, 174, 233, 0.55)";
+const BADGE_TEXT = "#4A341C";
+const BADGE_TEXT_SECONDARY = "#EADFFF";
+const BANNER_TAG_COLOR = "rgba(255, 229, 193, 0.78)";
+const CHEVRON_BG = "rgba(248, 201, 129, 0.18)";
+const CHEVRON_BORDER = "rgba(248, 201, 129, 0.32)";
 // Dark mode palette for Competition
 const THEME = require("../../theme/mfpDark").default;
 const TITLE_COLOR = THEME.textPrimary;   // light text on dark
@@ -109,12 +111,26 @@ export default function LeaderboardModal({
 
     const normalizeByBodyweight = !!(isTribeFocused && activeComp?.normalizeByBodyweight);
 
+    const scrollX = useRef(new Animated.Value(activeCompIndex * BANNER_PAGE_WIDTH)).current;
+
+    const handleScroll = useMemo(() => (
+        Animated.event(
+            [{ nativeEvent: { contentOffset: { x: scrollX } } }],
+            { useNativeDriver: false }
+        )
+    ), [scrollX]);
+
     const onScrollEnd = (e) => {
         const idx = Math.round(e.nativeEvent.contentOffset.x / BANNER_PAGE_WIDTH);
         if (idx !== activeCompIndex) onActiveCompChange(idx);
     };
 
     const bannerRef = useRef(null);
+
+    useEffect(() => {
+        if (!hasComparisons) return;
+        scrollX.setValue(activeCompIndex * BANNER_PAGE_WIDTH);
+    }, [activeCompIndex, hasComparisons, scrollX]);
 
     // Keep banner scrolled to the active comparison when index changes post-mount
     useEffect(() => {
@@ -136,8 +152,8 @@ export default function LeaderboardModal({
         if (isTribeFocused) {
             if (hasComparisons) {
                 return (
-                    <View style={{ marginBottom: scaleSize(10), marginHorizontal: -H_PADDING }}>
-                        <FlatList
+                    <View style={styles.bannerPager}>
+                        <Animated.FlatList
                             ref={bannerRef}
                             horizontal
                             data={tribeComparisons}
@@ -149,19 +165,18 @@ export default function LeaderboardModal({
                             decelerationRate="fast"
                             onMomentumScrollEnd={onScrollEnd}
                             initialScrollIndex={activeCompIndex}
+                            onScroll={handleScroll}
+                            scrollEventThrottle={16}
                             getItemLayout={(_, index) => ({ length: BANNER_PAGE_WIDTH, offset: BANNER_PAGE_WIDTH * index, index })}
                             renderItem={({ item, index }) => {
-                                const isFirst = index === 0;
-                                const isLast = index === tribeComparisons.length - 1;
-                                const marginLeft = isFirst ? BANNER_PAGE_MARGIN : BANNER_GAP / 2;
-                                const marginRight = isLast ? BANNER_PAGE_MARGIN : BANNER_GAP / 2;
-
+                                const metricCopy = metricLabel(item.metric);
+                                const summary = `Ranked by ${metricCopy}${item.normalizeByBodyweight ? " • per lb" : ""}`;
                                 return (
                                     <View style={{ width: BANNER_PAGE_WIDTH }}>
                                         <TouchableOpacity
                                             activeOpacity={0.92}
-                                            style={[styles.bannerTouchable, { marginLeft, marginRight }]}
-                                            onPress={onOpenTribeComparison}
+                                            style={styles.bannerTouchable}
+                                            onPress={withStrongPress(onOpenTribeComparison)}
                                         >
                                             <View style={styles.bannerShadow}>
                                                 <LinearGradient
@@ -175,6 +190,7 @@ export default function LeaderboardModal({
                                                             <Ionicons name="trophy" size={ICON_TROPHY} color={ACCENT} />
                                                         </View>
                                                         <View style={styles.bannerTextColumn}>
+                                                            <Text style={styles.bannerTag}>Active Comparison</Text>
                                                             <Text style={styles.bannerTitle} numberOfLines={1}>
                                                                 {item.exercise}
                                                             </Text>
@@ -188,6 +204,9 @@ export default function LeaderboardModal({
                                                                     </View>
                                                                 )}
                                                             </View>
+                                                            {/* <Text style={styles.bannerSummary} numberOfLines={1}>
+                                                                {summary}
+                                                            </Text> */}
                                                         </View>
                                                         <View style={styles.chevronPill}>
                                                             <Ionicons name="chevron-forward" size={ICON_CHEVRON} color={BANNER_TEXT_SECONDARY} />
@@ -199,16 +218,46 @@ export default function LeaderboardModal({
                                     </View>
                                 );
                             }}
-                            contentContainerStyle={{ paddingHorizontal: 0 }}
+                            contentContainerStyle={{}}
                         />
                         {tribeComparisons.length > 1 && (
                             <View style={styles.dotsRow}>
-                                {tribeComparisons.map((_, i) => (
-                                    <View
-                                        key={`dot-${i}`}
-                                        style={[styles.dot, i === activeCompIndex && styles.dotActive]}
-                                    />
-                                ))}
+                                {tribeComparisons.map((_, i) => {
+                                    const inputRange = [
+                                        (i - 1) * BANNER_PAGE_WIDTH,
+                                        i * BANNER_PAGE_WIDTH,
+                                        (i + 1) * BANNER_PAGE_WIDTH,
+                                    ];
+
+                                    const width = scrollX.interpolate({
+                                        inputRange,
+                                        outputRange: [DOT_SIZE, DOT_ACTIVE_SIZE, DOT_SIZE],
+                                        extrapolate: "clamp",
+                                    });
+
+                                    const opacity = scrollX.interpolate({
+                                        inputRange,
+                                        outputRange: [0.28, 1, 0.28],
+                                        extrapolate: "clamp",
+                                    });
+
+                                    const backgroundColor = scrollX.interpolate({
+                                        inputRange,
+                                        outputRange: [
+                                            "rgba(255, 236, 204, 0.34)",
+                                            ACCENT,
+                                            "rgba(255, 236, 204, 0.34)",
+                                        ],
+                                        extrapolate: "clamp",
+                                    });
+
+                                    return (
+                                        <Animated.View
+                                            key={`dot-${i}`}
+                                            style={[styles.dot, { width, opacity, backgroundColor }]}
+                                        />
+                                    );
+                                })}
                             </View>
                         )}
                     </View>
@@ -216,49 +265,52 @@ export default function LeaderboardModal({
             }
             // No comparisons yet → simple CTA (no extra explainer line)
             return (
-                <TouchableOpacity
-                    activeOpacity={0.92}
-                    onPress={onOpenTribeComparison}
-                    style={styles.bannerTouchable}
-                >
-                    <View style={styles.bannerShadow}>
-                        <LinearGradient
-                            colors={BANNER_GRADIENT}
-                            start={{ x: 0, y: 0 }}
-                            end={{ x: 1, y: 1 }}
-                            style={styles.bannerCard}
-                        >
-                            <View style={styles.bannerContent}>
-                                <View style={styles.iconPill}>
-                                    <Ionicons name="trophy" size={ICON_TROPHY_LG} color={ACCENT} />
+                <View style={styles.bannerPager}>
+                    <TouchableOpacity
+                        activeOpacity={0.92}
+                        onPress={withStrongPress(onOpenTribeComparison)}
+                        style={styles.bannerTouchable}
+                    >
+                        <View style={styles.bannerShadow}>
+                            <LinearGradient
+                                colors={BANNER_GRADIENT}
+                                start={{ x: 0, y: 0 }}
+                                end={{ x: 1, y: 1 }}
+                                style={styles.bannerCard}
+                            >
+                                <View style={styles.bannerContent}>
+                                    <View style={styles.iconPill}>
+                                        <Ionicons name="trophy" size={ICON_TROPHY_LG} color={ACCENT} />
+                                    </View>
+                                    <View style={styles.bannerTextColumn}>
+                                        <Text style={styles.bannerTag}>Set Comparison</Text>
+                                        <Text style={styles.bannerTitle} numberOfLines={1}>
+                                            Set Tribe Comparisons
+                                        </Text>
+                                        <Text style={styles.bannerDescription} numberOfLines={1} ellipsizeMode="tail">
+                                            Add lifts or metrics your tribe cares about.
+                                        </Text>
+                                    </View>
+                                    <View style={styles.chevronPill}>
+                                        <Ionicons name="chevron-forward" size={ICON_CHEVRON} color={BANNER_TEXT_SECONDARY} />
+                                    </View>
                                 </View>
-                                <View style={styles.bannerTextColumn}>
-                                    <Text style={styles.bannerTitle} numberOfLines={1}>
-                                        Set Tribe Comparisons
-                                    </Text>
-                                    <Text style={styles.bannerDescription} numberOfLines={1} ellipsizeMode="tail">
-                                        Add lifts or metrics your tribe cares about.
-                                    </Text>
-                                </View>
-                                <View style={styles.chevronPill}>
-                                    <Ionicons name="chevron-forward" size={ICON_CHEVRON} color={BANNER_TEXT_SECONDARY} />
-                                </View>
-                            </View>
-                        </LinearGradient>
-                    </View>
-                </TouchableOpacity>
+                            </LinearGradient>
+                        </View>
+                    </TouchableOpacity>
+                </View>
             );
         }
 
         // Non-tribe: selector + metric toggle (unchanged)
         return (
             <View style={styles.headerRow}>
-                <TouchableOpacity onPress={openModal} activeOpacity={0.85} style={styles.selectorPill}>
+                <TouchableOpacity onPress={withStrongPress(openModal)} activeOpacity={0.85} style={styles.selectorPill}>
                     {/* <Ionicons name="barbell" size={16} color="#222" /> */}
                     <Weight size={ICON_WEIGHT} color={TITLE_COLOR} variant='Broken' />
                     <Text style={styles.selectorText} numberOfLines={1}>{categoryCompared}</Text>
                 </TouchableOpacity>
-                <TouchableOpacity onPress={onToggleMetric} activeOpacity={0.85} style={styles.metricPill}>
+                <TouchableOpacity onPress={withStrongPress(onToggleMetric)} activeOpacity={0.85} style={styles.metricPill}>
                     <Text style={styles.metricText}>{metricLabel(comparedMetric)}</Text>
                 </TouchableOpacity>
             </View>
@@ -273,6 +325,8 @@ export default function LeaderboardModal({
         categoryCompared,
         comparedMetric,
         onToggleMetric,
+        handleScroll,
+        scrollX,
     ]);
 
     // Compute display ranks with ties (standard competition ranking: 1,1,3,4 or 1,1,1,4,...)
@@ -404,18 +458,27 @@ const styles = StyleSheet.create({
     },
     metricText: { fontFamily: "Outfit_700Bold", fontSize: scaleSize(FONT_METRIC), color: '#6FB8FF', letterSpacing: 0.2 },
 
-    // tribe banner — premium treatment inspired by workout cards
+    bannerPager: {
+        marginBottom: scaleSize(10),
+        marginHorizontal: -H_PADDING,
+        paddingTop: BANNER_PAGER_PT,
+        paddingBottom: BANNER_PAGER_PB,
+        width: SCREEN_WIDTH,
+        alignSelf: "center",
+    },
     bannerTouchable: {
         borderRadius: BANNER_RADIUS,
         marginBottom: BANNER_MB,
+        marginHorizontal: BANNER_OUTER_PADDING,
         width: BANNER_WIDTH,
     },
     bannerShadow: {
         borderRadius: BANNER_RADIUS,
-        shadowColor: "#000",
-        shadowOffset: { width: 0, height: scaleSize(10) },
-        shadowOpacity: 0.18,
-        shadowRadius: scaleSize(18),
+        width: "100%",
+        shadowColor: "rgba(24, 15, 8, 0.5)",
+        shadowOffset: { width: 0, height: scaleSize(12) },
+        shadowOpacity: 0.22,
+        shadowRadius: scaleSize(20),
         elevation: 6,
         minHeight: BANNER_MIN_HEIGHT,
     },
@@ -423,6 +486,7 @@ const styles = StyleSheet.create({
         borderRadius: BANNER_RADIUS,
         paddingHorizontal: BANNER_PAD_H,
         paddingVertical: BANNER_PAD_V,
+        width: "100%",
         borderWidth: scaleSize(1),
         borderColor: BANNER_BORDER,
         overflow: "hidden",
@@ -432,6 +496,7 @@ const styles = StyleSheet.create({
         flexDirection: "row",
         alignItems: "center",
         minHeight: BANNER_MIN_HEIGHT - BANNER_PAD_V * 2,
+        paddingVertical: scaleSize(4),
     },
     iconPill: {
         width: ICON_PILL_SIZE,
@@ -450,6 +515,15 @@ const styles = StyleSheet.create({
         minWidth: 0,
         justifyContent: "center",
         paddingLeft: scaleSize(2),
+        paddingTop: scaleSize(2),
+    },
+    bannerTag: {
+        fontFamily: "Outfit_600SemiBold",
+        fontSize: scaleSize(10),
+        color: BANNER_TAG_COLOR,
+        letterSpacing: 1,
+        textTransform: "uppercase",
+        marginBottom: scaleSize(2),
     },
     bannerTitle: {
         fontFamily: "Outfit_800ExtraBold",
@@ -463,16 +537,24 @@ const styles = StyleSheet.create({
         flexWrap: "nowrap",
         marginTop: scaleSize(4),
     },
+    bannerSummary: {
+        marginTop: scaleSize(6),
+        fontFamily: "Outfit_500Medium",
+        fontSize: scaleSize(11),
+        color: BANNER_TEXT_SECONDARY,
+        letterSpacing: 0.15,
+    },
     metricBadge: {
         flexDirection: "row",
         alignItems: "center",
         paddingHorizontal: scaleSize(10),
         paddingVertical: scaleSize(3),
+        marginTop: scaleSize(1),
         borderRadius: scaleSize(999),
         backgroundColor: BADGE_BG,
         borderWidth: scaleSize(1),
         borderColor: BADGE_BORDER,
-        marginRight: scaleSize(6),
+        marginRight: scaleSize(4),
         marginBottom: scaleSize(4),
     },
     metricBadgeSecondary: {
@@ -481,7 +563,7 @@ const styles = StyleSheet.create({
     },
     metricBadgeText: {
         fontFamily: "Outfit_700Bold",
-        fontSize: scaleSize(10.5),
+        fontSize: scaleSize(10),
         color: BADGE_TEXT,
         letterSpacing: 0.38,
         textTransform: "uppercase",
@@ -498,7 +580,7 @@ const styles = StyleSheet.create({
         flexShrink: 1,
     },
     bannerDescription: {
-        marginTop: scaleSize(6),
+        marginTop: scaleSize(4),
         fontFamily: "Outfit_600SemiBold",
         fontSize: scaleSize(10.5),
         color: BANNER_TEXT_SECONDARY,
@@ -527,10 +609,8 @@ const styles = StyleSheet.create({
         marginBottom: DOT_MB,
     },
     dot: {
-        width: DOT_SIZE,
         height: DOT_SIZE,
         borderRadius: DOT_RADIUS,
-        backgroundColor: "rgba(255,255,255,0.28)",
+        backgroundColor: "rgba(255, 236, 204, 0.34)",
     },
-    dotActive: { backgroundColor: "#6FB8FF", width: DOT_ACTIVE_SIZE, height: DOT_ACTIVE_SIZE, borderRadius: DOT_ACTIVE_RADIUS },
 });

@@ -65,11 +65,11 @@ const StartCluster = ({
     const togglePrivacy = useCallback(() => {
         if (privacyDisabled) return;
         setPrivacyOpen((open) => !open);
-        try { haptic(); } catch {}
+        try { haptic(); } catch { }
     }, [privacyDisabled]);
 
     const handleSelectPrivacy = useCallback((value) => {
-        try { haptic(); } catch {}
+        try { haptic(); } catch { }
         setPrivacyMode(value);
         closePrivacy();
     }, [closePrivacy]);
@@ -121,7 +121,7 @@ const StartCluster = ({
 
     const handleCreatePost = useCallback(() => {
         if (typeof onOpenCreatePost !== 'function') return;
-        try { haptic(); } catch {}
+        try { haptic(); } catch { }
         onOpenCreatePost();
     }, [onOpenCreatePost]);
 
@@ -171,13 +171,13 @@ const StartCluster = ({
             )}
             <View style={[styles.wrap, containerStyle]} pointerEvents="box-none">
                 <View style={styles.actionsRow} pointerEvents="box-none">
-                    <View style={[styles.glowWrap, styles.privacyWrap]}>
+                    <View style={[styles.glowWrap, styles.privacyWrap, privacyDisabled && styles.smallBtnDisabled]}>
                         <Pressable
                             ref={buttonRef}
                             onLayout={handleButtonLayout}
                             onPress={togglePrivacy}
                             disabled={privacyDisabled}
-                            style={[styles.smallBtn, styles.smallBtnBump, privacyOpen && styles.smallBtnActive, privacyDisabled && styles.smallBtnDisabled]}
+                            style={[styles.smallBtn, styles.smallBtnBump, privacyOpen && styles.smallBtnActive]}
                             accessibilityRole="button"
                             accessibilityLabel={`Workout visibility: ${currentPrivacy.label}`}
                             accessibilityState={{ disabled: privacyDisabled, expanded: privacyOpen }}
@@ -234,7 +234,7 @@ const styles = StyleSheet.create({
     },
     smallBtnBump: { top: scaleSize(-6), position: "relative" },
     smallBtnActive: { borderWidth: StyleSheet.hairlineWidth, borderColor: "rgba(141, 191, 255, 0.6)" },
-    smallBtnDisabled: { opacity: 0.7 },
+    smallBtnDisabled: { opacity: 0.3 },
     privacyWrap: { position: "relative" },
     privacyIcon: { marginBottom: scaleSize(2) },
     privacyLabel: {
@@ -263,32 +263,33 @@ const styles = StyleSheet.create({
     },
     privacyPanel: {
         position: "absolute",
-        backgroundColor: "#111827f5",
-        borderRadius: scaleSize(16),
-        paddingVertical: scaleSize(10),
-        paddingHorizontal: scaleSize(12),
-        borderWidth: StyleSheet.hairlineWidth,
-        borderColor: "rgba(90, 140, 220, 0.4)",
-        gap: scaleSize(6),
+        backgroundColor: "rgba(30, 44, 70, 0.96)",
+        borderRadius: scaleSize(20),
+        paddingVertical: scaleSize(14),
+        paddingHorizontal: scaleSize(16),
+        borderWidth: scaleSize(1),
+        borderColor: "rgba(134, 193, 255, 0.55)",
+        gap: scaleSize(8),
+        minWidth: scaleSize(210),
         ...Platform.select({
             ios: {
                 shadowColor: "#000",
-                shadowOpacity: 0.28,
-                shadowRadius: scaleSize(9),
-                shadowOffset: { width: 0, height: scaleSize(4) },
+                shadowOpacity: 0.32,
+                shadowRadius: scaleSize(12),
+                shadowOffset: { width: 0, height: scaleSize(6) },
             },
-            android: { elevation: 6 },
+            android: { elevation: 10 },
         }),
     },
     privacyOption: {
-        borderRadius: scaleSize(12),
-        paddingVertical: scaleSize(8),
-        paddingHorizontal: scaleSize(10),
-        backgroundColor: "transparent",
-        gap: scaleSize(4),
+        borderRadius: scaleSize(14),
+        paddingVertical: scaleSize(10),
+        paddingHorizontal: scaleSize(12),
+        backgroundColor: "rgba(25, 35, 55, 0.72)",
+        gap: scaleSize(6),
     },
     privacyOptionActive: {
-        backgroundColor: "rgba(65, 105, 225, 0.18)",
+        backgroundColor: "rgba(71, 147, 255, 0.28)",
     },
     privacyOptionHeader: {
         flexDirection: "row",
@@ -300,15 +301,15 @@ const styles = StyleSheet.create({
         marginLeft: scaleSize(8),
         marginRight: scaleSize(8),
         fontFamily: "Outfit_700Bold",
-        fontSize: scaleSize(13),
-        color: "#A5B4CF",
+        fontSize: scaleSize(13.5),
+        color: "#CFD8EE",
     },
     privacyOptionLabelActive: { color: theme.textPrimary },
     privacyOptionDescription: {
         fontFamily: "Outfit_500Medium",
-        fontSize: scaleSize(11),
-        color: "#9AA5BE",
-        lineHeight: scaleSize(14),
+        fontSize: scaleSize(11.5),
+        color: "#B5C2DA",
+        lineHeight: scaleSize(15),
     },
 });
 

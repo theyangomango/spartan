@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef, memo, useMemo } from "react";
 import { StyleSheet, View, Text, Pressable, TextInput, Animated, Dimensions } from "react-native";
 import scaleSize from "../../../helper/scaleSize";
+import { withStrongPress, strong as hapticStrong } from "../../../utils/haptics";
 const theme = require("../../../theme/mfpDark").default;
 // Very subtle lightening from the original palette
 const LIGHT_SURFACE = "#353942"; // ~+3-4 from surface
@@ -76,11 +77,14 @@ const SelectExerciseModal = memo(({ closeModal, setComparedExercise }) => {
 
     // Single-select: immediate pick on press
     function selectExercise(ex) {
+        try { hapticStrong(); } catch {}
         try { setComparedExercise?.(ex?.name || ''); } catch {}
         try { closeAllDropdowns(); } catch {}
         try { closeModal?.(); } catch {}
     }
-    const deselectExercise = () => {};
+    const deselectExercise = () => {
+        try { hapticStrong(); } catch {}
+    };
 
     // Debounce search input
     const debounceRef = useRef(null);
@@ -136,7 +140,7 @@ const SelectExerciseModal = memo(({ closeModal, setComparedExercise }) => {
 
     return (
         <View style={styles.modal_outside}>
-            <Pressable onPress={() => closeModal()} style={styles.outside_pressable} />
+            <Pressable onPress={withStrongPress(() => closeModal?.())} style={styles.outside_pressable} />
             <View style={styles.main_ctnr}>
                 {/* No header actions in Competition picker */}
                 <View style={styles.header} />
@@ -160,10 +164,10 @@ const SelectExerciseModal = memo(({ closeModal, setComparedExercise }) => {
                     <View style={styles.dropdownWrap}>
                         <Pressable
                             style={styles.filterButton}
-                            onPress={() => {
+                            onPress={withStrongPress(() => {
                                 setEquipmentOpen(false);
                                 setBodyPartOpen((o) => !o);
-                            }}
+                            })}
                         >
                             <Text style={styles.filterButtonText} numberOfLines={1}>{bodyPartButtonLabel}</Text>
                             <Ionicons name={bodyPartOpen ? "chevron-up" : "chevron-down"} size={scaledSize(16)} color="#EAF0F7" />
@@ -175,10 +179,10 @@ const SelectExerciseModal = memo(({ closeModal, setComparedExercise }) => {
                                     <Pressable
                                         key={String(opt.label)}
                                         style={[styles.dropdownItem, bodyPartValue === opt.value && styles.dropdownItemActive]}
-                                        onPress={() => {
+                                        onPress={withStrongPress(() => {
                                             setBodyPartValue(opt.value);
                                             setBodyPartOpen(false);
-                                        }}
+                                        })}
                                     >
                                         <Text
                                             style={[
@@ -199,10 +203,10 @@ const SelectExerciseModal = memo(({ closeModal, setComparedExercise }) => {
                     <View style={styles.dropdownWrap}>
                         <Pressable
                             style={styles.filterButton}
-                            onPress={() => {
+                            onPress={withStrongPress(() => {
                                 setBodyPartOpen(false);
                                 setEquipmentOpen((o) => !o);
-                            }}
+                            })}
                         >
                             <Text style={styles.filterButtonText} numberOfLines={1}>{equipmentButtonLabel}</Text>
                             <Ionicons name={equipmentOpen ? "chevron-up" : "chevron-down"} size={scaledSize(16)} color="#EAF0F7" />
@@ -214,10 +218,10 @@ const SelectExerciseModal = memo(({ closeModal, setComparedExercise }) => {
                                     <Pressable
                                         key={String(opt.label)}
                                         style={[styles.dropdownItem, equipmentValue === opt.value && styles.dropdownItemActive]}
-                                        onPress={() => {
+                                        onPress={withStrongPress(() => {
                                             setEquipmentValue(opt.value);
                                             setEquipmentOpen(false);
-                                        }}
+                                        })}
                                     >
                                         <Text
                                             style={[
@@ -237,7 +241,7 @@ const SelectExerciseModal = memo(({ closeModal, setComparedExercise }) => {
 
                 {/* Backdrop to close dropdowns without closing modal */}
                 {(bodyPartOpen || equipmentOpen) && (
-                    <Pressable style={styles.dropdownBackdrop} onPress={closeAllDropdowns} />
+                    <Pressable style={styles.dropdownBackdrop} onPress={withStrongPress(closeAllDropdowns)} />
                 )}
 
                 {/* List */}
@@ -248,7 +252,7 @@ const SelectExerciseModal = memo(({ closeModal, setComparedExercise }) => {
                     animatedPress
                 />
             </View>
-            <Pressable onPress={() => closeModal()} style={styles.outside_pressable} />
+            <Pressable onPress={withStrongPress(() => closeModal?.())} style={styles.outside_pressable} />
         </View>
     );
 });

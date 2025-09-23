@@ -4,6 +4,7 @@ import { Modal, View, Text, TextInput, StyleSheet, Pressable } from "react-nativ
 import RNBounceable from "@freakycoder/react-native-bounceable";
 
 import scaleSize from "../../helper/scaleSize";
+import { withStrongPress } from "../../utils/haptics";
 
 const JoinTribeModal = ({ visible, value, onChangeText, onCancel, onJoin }) => {
     return (
@@ -17,7 +18,7 @@ const JoinTribeModal = ({ visible, value, onChangeText, onCancel, onJoin }) => {
         >
             <View style={styles.modalBackdrop}>
                 {/* Backdrop to close */}
-                <Pressable style={StyleSheet.absoluteFill} onPress={onCancel} />
+                <Pressable style={StyleSheet.absoluteFill} onPress={withStrongPress(onCancel)} />
 
                 <View style={styles.modalCard}>
                     <Text style={styles.modalTitle}>Join a tribe</Text>
@@ -40,10 +41,10 @@ const JoinTribeModal = ({ visible, value, onChangeText, onCancel, onJoin }) => {
                     />
 
                     <View style={styles.modalActions}>
-                        <RNBounceable style={[styles.btn, styles.btnGhost]} onPress={onCancel}>
+                        <RNBounceable style={[styles.btn, styles.btnGhost]} onPress={withStrongPress(onCancel)}>
                             <Text style={[styles.btnText, styles.btnGhostText]}>Cancel</Text>
                         </RNBounceable>
-                        <RNBounceable style={[styles.btn, styles.btnPrimary]} onPress={onJoin}>
+                        <RNBounceable style={[styles.btn, styles.btnPrimary]} onPress={withStrongPress(onJoin)}>
                             <Text style={[styles.btnText, styles.btnPrimaryText]}>Join</Text>
                         </RNBounceable>
                     </View>
