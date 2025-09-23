@@ -92,6 +92,95 @@ const ACTIVITY_WEEKLY_GOAL = Object.freeze({
 });
 const DEFAULT_WEEKLY_GOAL = 4;
 
+const makeEmptyMeals = () => ({
+    Breakfast: [],
+    Lunch: [],
+    Dinner: [],
+    Snacks: [],
+});
+
+const makeEmptyTotals = () => ({ calories: 0, protein: 0, carbs: 0, fat: 0 });
+
+const makeEmptyDaySheetSnapshot = () => ({
+    meals: makeEmptyMeals(),
+    totals: makeEmptyTotals(),
+    workouts: [],
+});
+
+const normalizeMealBucket = (meal) => {
+    const key = String(meal || '').toLowerCase();
+    if (key.startsWith('break')) return 'Breakfast';
+    if (key.startsWith('lun')) return 'Lunch';
+    if (key.startsWith('din')) return 'Dinner';
+    return 'Snacks';
+};
+
+const buildDaySheetSnapshot = ({ date, loggedFoods, completedWorkouts, activeWorkout }) => {
+    const dayKey = toDayKey(date);
+    const meals = makeEmptyMeals();
+    const totals = makeEmptyTotals();
+
+    try {
+        const map = loggedFoods && typeof loggedFoods === 'object' ? loggedFoods : {};
+        const firstValue = Object.values(map || {})[0] || {};
+        const looksNested = map && typeof map === 'object' && map[dayKey] && !('dayKey' in firstValue);
+        const source = looksNested ? (map[dayKey] || {}) : map;
+
+        Object.entries(source || {}).forEach(([id, entry]) => {
+            const sameDay = looksNested ? true : (String(entry?.dayKey || '') === dayKey);
+            if (!sameDay) return;
+            const bucket = normalizeMealBucket(entry?.meal);
+            const qty = typeof entry?.quantity === 'number' ? entry.quantity : 1;
+            const macrosRaw = entry?.macros || {};
+            const macros = {
+                calories: Number(macrosRaw.calories) || 0,
+                protein: Number(macrosRaw.protein) || 0,
+                carbs: Number(macrosRaw.carbs) || 0,
+                fat: Number(macrosRaw.fat) || 0,
+            };
+            meals[bucket].push({
+                key: id,
+                name: entry?.name || 'Food',
+                brand: entry?.brand || '',
+                desc: entry?.desc || '',
+                quantity: qty,
+                foodId: entry?.foodId || '',
+                macros,
+            });
+            totals.calories += macros.calories;
+            totals.protein += macros.protein;
+            totals.carbs += macros.carbs;
+            totals.fat += macros.fat;
+        });
+    } catch {}
+
+    const completed = Array.isArray(completedWorkouts) ? completedWorkouts : [];
+    const fallbackActive = (() => {
+        try { return global?.userData?.currentWorkout || null; } catch { return null; }
+    })();
+    const activeList = [];
+    if (activeWorkout) activeList.push(activeWorkout);
+    else if (fallbackActive) activeList.push(fallbackActive);
+
+    const workouts = [...completed, ...activeList]
+        .filter((w) => {
+            const created = toMillis(w?.created ?? w?.createdAt ?? w?.finishedAt);
+            return created && toDayKey(created) === dayKey;
+        })
+        .sort((a, b) => toMillis(b?.created ?? b?.createdAt ?? b?.finishedAt) - toMillis(a?.created ?? a?.createdAt ?? a?.finishedAt));
+
+    return {
+        meals,
+        totals: {
+            calories: Math.round(totals.calories),
+            protein: Math.round(totals.protein),
+            carbs: Math.round(totals.carbs),
+            fat: Math.round(totals.fat),
+        },
+        workouts,
+    };
+};
+
 export default function Workout({ navigation, route }) {
     /* ---------- resolve uid & user ---------- */
     const uid = useResolvedUid(route);

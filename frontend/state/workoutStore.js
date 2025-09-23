@@ -1,4 +1,4 @@
-import { create } from 'zustand';
+import { createWithEqualityFn } from 'zustand/traditional';
 
 export const WORKOUT_SHEET_STATES = Object.freeze({
   HIDDEN: 'hidden',
@@ -10,7 +10,7 @@ const noop = () => {};
 
 // Centralized workout editing store to avoid re-rendering the parent screen.
 // Components can subscribe to just the slices they need.
-export const useWorkoutStore = create((set, get) => ({
+export const useWorkoutStore = createWithEqualityFn((set, get) => ({
   workout: null,
   sheetState: WORKOUT_SHEET_STATES.HIDDEN,
   timer: '',

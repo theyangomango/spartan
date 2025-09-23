@@ -517,10 +517,6 @@ export default function Feed({ navigation, route }) {
         flatListRef.current?.setNativeProps({ scrollEnabled: true });
     };
 
-    const updateOverlayProgress = useCallback((value) => {
-        try { global.__setFeedOverlayProgress?.(value); } catch {}
-    }, []);
-
     useEffect(() => {
         try { global.__setFeedOverlayHidden?.(isSomePostFocused); } catch {}
     }, [isSomePostFocused]);
@@ -1149,7 +1145,6 @@ export default function Feed({ navigation, route }) {
         signalCommentsReopen,
         handleBackPress,
         clearUnfocusFlagsJS,
-        setOverlayProgress: updateOverlayProgress,
         FOCUS_SPRING_CONFIG,
         ANIMATION_DURATION,
         INTERACTIVE_CANCEL_MS,

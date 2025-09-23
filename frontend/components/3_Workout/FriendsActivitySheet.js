@@ -185,6 +185,52 @@ const groupByTime = (items, nowMs) => {
   return ordered;
 };
 
+const sortFriendsItems = (items, liveOverlays) => {
+  const overlayMap = liveOverlays || {};
+  const src = Array.isArray(items) ? items : [];
+  if (src.length <= 1) return src.slice();
+  const score = (it) => {
+    if (!it) return 0;
+    if (it?.live) {
+      const uid = String(it?.uid ?? "");
+      const overlay = uid ? overlayMap[uid] : undefined;
+      return overlay?.ts || toMillis(it?.startedAt) || bestTimestamp(it);
+    }
+    return bestTimestamp(it);
+  };
+  const arr = src.slice();
+  arr.sort((a, b) => score(b) - score(a));
+  return arr;
+};
+
+const shallowArrayEqual = (a, b) => {
+  if (a === b) return true;
+  if (!Array.isArray(a) || !Array.isArray(b)) return false;
+  if (a.length !== b.length) return false;
+  for (let i = 0; i < a.length; i += 1) {
+    if (a[i] !== b[i]) return false;
+  }
+  return true;
+};
+
+const shallowSectionsEqual = (a, b) => {
+  if (a === b) return true;
+  if (!Array.isArray(a) || !Array.isArray(b)) return false;
+  if (a.length !== b.length) return false;
+  for (let i = 0; i < a.length; i += 1) {
+    const sa = a[i] || {};
+    const sb = b[i] || {};
+    if (sa.title !== sb.title) return false;
+    const da = Array.isArray(sa.data) ? sa.data : [];
+    const db = Array.isArray(sb.data) ? sb.data : [];
+    if (da.length !== db.length) return false;
+    for (let j = 0; j < da.length; j += 1) {
+      if (da[j] !== db[j]) return false;
+    }
+  }
+  return true;
+};
+
 /* ---------------- row ---------------- */
 const FriendPanel = memo(({ item, overlay, onSelect, highlight = false }) => {
   const isLive = !!item?.live;
@@ -448,19 +494,28 @@ const FriendsActivitySheet = ({ visible, openToggle, items = [], onClose, onView
     };
   }, [visible, displayItems]);
 
-  const sortedItems = useMemo(() => {
-    const score = (it) => {
-      if (it?.live) {
-        const ov = it?.uid ? liveOverlays[String(it.uid)] : undefined;
-        return (ov?.ts) || toMillis(it?.startedAt) || bestTimestamp(it);
-      }
-      return bestTimestamp(it);
+  const [sortedItems, setSortedItems] = useState(() => sortFriendsItems(displayItems, liveOverlays));
+
+  useEffect(() => {
+    let cancelled = false;
+    const run = () => {
+      if (cancelled) return;
+      const next = sortFriendsItems(displayItems, liveOverlays);
+      setSortedItems((prev) => (shallowArrayEqual(prev, next) ? prev : next));
     };
-    const src = Array.isArray(displayItems) ? displayItems : [];
-    return [...src].sort((a, b) => (score(b) - score(a)));
+    let task;
+    try {
+      task = InteractionManager.runAfterInteractions(run);
+    } catch {
+      run();
+      return () => { cancelled = true; };
+    }
+    return () => {
+      cancelled = true;
+      try { task?.cancel?.(); } catch {}
+    };
   }, [displayItems, liveOverlays]);
 
-  const hasLive = useMemo(() => sortedItems?.some((it) => it?.live), [sortedItems]);
   // Move viewer-related state above effects that depend on it to avoid TDZ issues
   const [selectedItem, setSelectedItem] = useState(null);
   const [viewerReady, setViewerReady] = useState(false);
@@ -691,7 +746,28 @@ const FriendsActivitySheet = ({ visible, openToggle, items = [], onClose, onView
     </View>
   ), [handleAccentOpacity]);
 
-  const sections = useMemo(() => groupByTime(sortedItems, Date.now()), [sortedItems]);
+  const [sections, setSections] = useState(() => groupByTime(sortedItems, Date.now()));
+
+  useEffect(() => {
+    let cancelled = false;
+    const nowMs = Date.now();
+    const run = () => {
+      if (cancelled) return;
+      const next = groupByTime(sortedItems, nowMs);
+      setSections((prev) => (shallowSectionsEqual(prev, next) ? prev : next));
+    };
+    let task;
+    try {
+      task = InteractionManager.runAfterInteractions(run);
+    } catch {
+      run();
+      return () => { cancelled = true; };
+    }
+    return () => {
+      cancelled = true;
+      try { task?.cancel?.(); } catch {}
+    };
+  }, [sortedItems]);
   const keyExtractor = useCallback((it, i) => String(it.id || it.wid || (it.uid ? `${it.uid}_${bestTimestamp(it) || i}` : i)), []);
   const renderItem = useCallback(
     ({ item }) => {

@@ -13,10 +13,9 @@ import * as Device from 'expo-device';
 import { navigationRef } from './navigationRef';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { createStackNavigator, CardStyleInterpolators, TransitionSpecs } from '@react-navigation/stack';
-import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { Platform, Modal, View, Text, Pressable, StyleSheet, Dimensions, Vibration, TextInput, LogBox } from 'react-native';
 import { rs, ts } from './frontend/helper/scaleSize';
-import { useSharedValue } from 'react-native-reanimated';
+import { useSharedValue, runOnUI } from 'react-native-reanimated';
 import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
@@ -56,15 +55,12 @@ import DeleteAccount from './frontend/screens/DeleteAccount';
 import theme from './frontend/theme/mfpDark';
 import ActiveWorkoutBottomSheet from './frontend/components/3_Workout/NewWorkout/ActiveWorkoutBottomSheet';
 import Footer from './frontend/components/Footer';
+import MainTabs from './frontend/navigation/MainTabs';
 
 // Ensure a defined global.userData early so screens can read without crashing
 try { global.userData = global.userData || {}; } catch {}
-
-const NativeStack = createNativeStackNavigator();
-
 // Single root stack: iOS uses classic stack for left-slide; Android uses native-stack for perf
 const RootStack = Platform.OS === 'ios' ? createStackNavigator() : createNativeStackNavigator();
-const Tab = createBottomTabNavigator();
 
 const FOOTER_MAIN_SCREENS = ['Feed', 'MacroTracking', 'Workout', 'Competition', 'Profile'];
 const FOOTER_ROUTE_TAB_OVERRIDES = {
@@ -94,53 +90,6 @@ try {
 } catch {}
 
 /* No nested stacks; everything registers on RootStack */
-
-/* ---------- Universal One-Way Overlay ---------- */
-// Register the screens you want to be able to open as one-way overlays
-const OVERLAY_SCREENS = {
-    MacroTracking,
-    Competition,
-    ViewProfile,
-    SearchUsers,
-    Feed,
-    Workout,
-    Profile,
-    Messages,
-    Chat,
-};
-
-const OneWayScreen = ({ route, navigation }) => {
-    const { target, params } = route?.params || {};
-    const Comp = target ? OVERLAY_SCREENS[target] : null;
-    if (!Comp) return null;
-    // Provide a route shape so child screens can read route.params as usual
-    const childRoute = { key: `${target}-overlay`, name: target, params };
-    return <Comp navigation={navigation} route={childRoute} />;
-};
-
-// Stable Tabs component defined outside of App to avoid identity churn
-function Tabs({ route }) {
-    const Tab = createBottomTabNavigator();
-    return (
-        <Tab.Navigator
-            initialRouteName="Workout"
-            screenOptions={{
-                headerShown: false,
-                tabBarStyle: { display: 'none' },
-                lazy: false,
-                unmountOnBlur: false,
-                detachInactiveScreens: false,
-                freezeOnBlur: true,
-            }}
-        >
-            <Tab.Screen name="Feed" component={Feed} initialParams={route?.params || {}} />
-            <Tab.Screen name="MacroTracking" component={MacroTracking} />
-            <Tab.Screen name="Workout" component={Workout} initialParams={route?.params || {}} />
-            <Tab.Screen name="Competition" component={Competition} />
-            <Tab.Screen name="Profile" component={Profile} />
-        </Tab.Navigator>
-    );
-}
 
 const getActiveTabNameFromState = (state) => {
     if (!state || !state.routes) return null;
@@ -237,6 +186,22 @@ export default function App() {
         return () => {
             try { delete global.__setFeedOverlayHidden; } catch {}
             try { delete global.__setFeedOverlayProgress; } catch {}
+        };
+    }, [feedOverlayProgressSV]);
+
+    useEffect(() => {
+        const sv = feedOverlayProgressSV;
+        runOnUI(() => {
+            'worklet';
+            global.__feedOverlayProgressSV = sv;
+        })();
+        return () => {
+            runOnUI(() => {
+                'worklet';
+                if (global.__feedOverlayProgressSV === sv) {
+                    global.__feedOverlayProgressSV = null;
+                }
+            })();
         };
     }, [feedOverlayProgressSV]);
 
@@ -842,7 +807,7 @@ export default function App() {
                     {/* Main tabs (kept mounted). Force no animation when focusing Tabs. */}
                     <RootStack.Screen
                         name="Tabs"
-                        component={Tabs}
+                        component={MainTabs}
                         initialParams={{ uid: uidRef.current, transition: 'none' }}
                         options={Platform.select({
                             ios: {

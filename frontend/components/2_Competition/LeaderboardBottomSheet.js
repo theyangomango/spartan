@@ -46,6 +46,11 @@ const LeaderboardBottomSheet = ({
     const [isBottomSheetExpanded, setIsBottomSheetExpanded] = useState(false);
 
     const handleSheetChanges = useCallback((index) => {
+        if (index < 0) {
+            // Keep the sheet at its smallest snap point instead of letting it fully close.
+            bottomSheetRef.current?.snapToIndex(0);
+            return;
+        }
         setIsBottomSheetExpanded(index === 1);
     }, []);
 
@@ -55,6 +60,7 @@ const LeaderboardBottomSheet = ({
                 {...props}
                 disappearsOnIndex={0}
                 appearsOnIndex={1}
+                pressBehavior="collapse"
                 opacity={0.4}
             />
         ),

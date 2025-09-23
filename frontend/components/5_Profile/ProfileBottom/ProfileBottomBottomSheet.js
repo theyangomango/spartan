@@ -11,6 +11,11 @@ const ProfileBottomBottomSheet = ({ selectedPanel, setSelectedPanel, posts, save
 
     const handleSheetChanges = useCallback((idx) => {
         const index = typeof idx === 'number' ? idx : -1;
+        if (index < 0) {
+            bottomSheetRef.current?.snapToIndex(0);
+            setIsBottomSheetExpanded(false);
+            return;
+        }
         try {
             requestAnimationFrame(() => setIsBottomSheetExpanded(index === 1));
         } catch {
@@ -24,6 +29,7 @@ const ProfileBottomBottomSheet = ({ selectedPanel, setSelectedPanel, posts, save
                 {...props}
                 disappearsOnIndex={0}
                 appearsOnIndex={1}
+                pressBehavior="collapse"
                 opacity={0}
             />
         ),
@@ -44,6 +50,8 @@ const ProfileBottomBottomSheet = ({ selectedPanel, setSelectedPanel, posts, save
             backgroundStyle={{ backgroundColor: theme.bg }}
             bottomInset={insets.bottom || 0}
             topInset={insets.top || 0}
+            enablePanDownToClose={false}
+            enableOverDrag={false}
             detached
         >
             <ProfileBottomModal
