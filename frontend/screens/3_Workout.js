@@ -346,7 +346,6 @@ export default function Workout({ navigation, route }) {
     const [hasMountedDaySheet, setHasMountedDaySheet] = useState(false);
     const [hasMountedGroupModal, setHasMountedGroupModal] = useState(false);
     const [isUserStatsVisible, setIsUserStatsVisible] = useState(false);
-    const [hasMountedUserStatsSheet, setHasMountedUserStatsSheet] = useState(false);
     const [showTribeCard, setShowTribeCard] = useState(false);
     useEffect(() => {
         const task = InteractionManager.runAfterInteractions(() => {
@@ -576,9 +575,6 @@ export default function Workout({ navigation, route }) {
     useEffect(() => {
         if (notificationsBottomSheetExpandFlag) setHasMountedNotificationsSheet(true);
     }, [notificationsBottomSheetExpandFlag]);
-    useEffect(() => {
-        if (isUserStatsVisible) setHasMountedUserStatsSheet(true);
-    }, [isUserStatsVisible]);
 
     // Avoid "flash of new" before user doc loads by gating on user readiness.
     const userLoaded = user != null; // useUserDoc returns null until first snapshot
@@ -918,7 +914,6 @@ export default function Workout({ navigation, route }) {
     const shouldRenderFriendsSheet = friendsSheetVisible || hasMountedFriendsSheet;
     const shouldRenderEditTemplateSheet = isEditTemplateVisible || hasMountedEditTemplateSheet;
     const shouldRenderGroupModal = inviteSheetOpen || hasMountedGroupModal;
-    const shouldRenderUserStatsSheet = isUserStatsVisible || hasMountedUserStatsSheet;
 
     return (
         <SafeAreaView style={styles.root}>
@@ -1125,14 +1120,12 @@ export default function Workout({ navigation, route }) {
                     heightPercent={0.92}
                 />
             )}
-            {shouldRenderUserStatsSheet && (
-                <UserStatsBottomSheet
-                    user={user}
-                    navigation={navigation}
-                    isVisible={isUserStatsVisible}
-                    setIsVisible={setIsUserStatsVisible}
-                />
-            )}
+            <UserStatsBottomSheet
+                user={user}
+                navigation={navigation}
+                isVisible={isUserStatsVisible}
+                setIsVisible={setIsUserStatsVisible}
+            />
             {/* Copy Template toast (above Templates rail) */}
             <Animated.View pointerEvents="none" style={styles.toastWrap}>
                 <CopyTemplateToast anim={toastAnim} text={toastMsg || "Template added"} />

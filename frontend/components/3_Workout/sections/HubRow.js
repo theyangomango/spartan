@@ -115,7 +115,7 @@ function HubRowCmp({
                 >
                     <View style={styles.headerDot} />
                     <Text style={styles.headerBadgeText}>VIEW STATS</Text>
-                    <Feather name="chevron-right" size={scaleSize(12)} color={theme.textPrimary} style={styles.headerIcon} />
+                    <Feather name="chevron-down" size={scaleSize(12)} color={theme.textPrimary} style={styles.headerIcon} />
                 </RNBounceable>
             </View>
 
@@ -269,7 +269,7 @@ const styles = StyleSheet.create({
     headerBadge: {
         flexDirection: "row",
         alignItems: "center",
-        paddingVertical: scaleSize(4),
+        paddingVertical: scaleSize(6),
         paddingHorizontal: scaleSize(10),
         borderRadius: scaleSize(999),
         backgroundColor: BADGE_BG,

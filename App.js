@@ -117,6 +117,7 @@ export default function App() {
     const [communityStatsReady, setCommunityStatsReady] = useState(false);
     const feedOverlayProgressSV = useSharedValue(1);
     const footerVisibilitySV = useSharedValue(0);
+    const footerVisibilityTargetRef = useRef(false);
     const uidRef = useRef(null);
     const unsubRef = useRef(null);
     const notifUnsubRef = useRef(null);
@@ -126,6 +127,18 @@ export default function App() {
     const lastNotificationBuzzAtRef = useRef(0); // dedupe foreground push vs unread snapshot
     const logoutCleanupRef = useRef(null);
     const logoutResetTimerRef = useRef(null);
+
+    const animateFooterVisibility = useCallback((visible) => {
+        if (footerVisibilityTargetRef.current === visible && footerVisibilitySV.value === (visible ? 1 : 0)) {
+            return;
+        }
+        footerVisibilityTargetRef.current = visible;
+        const target = visible ? 1 : 0;
+        footerVisibilitySV.value = withTiming(target, {
+            duration: visible ? 180 : 130,
+            easing: visible ? Easing.out(Easing.cubic) : Easing.in(Easing.cubic),
+        });
+    }, [footerVisibilitySV]);
 
     const handleNavigationStateUpdate = useCallback(() => {
         const rootState = navigationRef.current?.getRootState?.();
@@ -148,7 +161,11 @@ export default function App() {
             nextFooterScreen = FOOTER_ROUTE_TAB_OVERRIDES[currentRouteName];
         }
 
-        setIsFooterVisible(showFooter);
+        const targetValue = showFooter ? 1 : 0;
+        if (footerVisibilityTargetRef.current !== showFooter || footerVisibilitySV.value !== targetValue) {
+            animateFooterVisibility(showFooter);
+        }
+        setIsFooterVisible((prev) => (prev === showFooter ? prev : showFooter));
 
         if (showFooter && nextFooterScreen && nextFooterScreen !== currentTabName) {
             setCurrentTabName(nextFooterScreen);
@@ -163,15 +180,7 @@ export default function App() {
             setIsFeedPostFocused(false);
             feedOverlayProgressSV.value = 1;
         }
-    }, [currentTabName, isFeedPostFocused, feedOverlayProgressSV]);
-
-    useEffect(() => {
-        const target = isFooterVisible ? 1 : 0;
-        footerVisibilitySV.value = withTiming(target, {
-            duration: target ? 220 : 180,
-            easing: target ? Easing.out(Easing.quad) : Easing.in(Easing.quad),
-        });
-    }, [footerVisibilitySV, isFooterVisible]);
+    }, [animateFooterVisibility, currentTabName, isFeedPostFocused, feedOverlayProgressSV]);
 
     useEffect(() => {
         try { global.__USE_GLOBAL_FOOTER = true; } catch {}
