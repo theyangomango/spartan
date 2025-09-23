@@ -5,6 +5,7 @@ import followUser from "../../../backend/user/followUser";
 import unfollowUser from "../../../backend/user/unfollowUser";
 import theme from "../../theme/mfpDark";
 import scaleSizeGlobal from "../../helper/scaleSize";
+import { withStrongPress } from "../../utils/haptics";
 
 const { width: screenWidth } = Dimensions.get('window');
 const scale = screenWidth / 375; // Base screen width assumed as 375
@@ -59,14 +60,14 @@ export default function ViewProfileRowButtons({ handleOpenViewStats, user }) {
 
     return (
         <View style={styles.row}>
-            <RNBounceable style={styles.flex} onPress={toggleFollow} disabled={busy}>
+            <RNBounceable style={styles.flex} onPress={withStrongPress(toggleFollow)} disabled={busy}>
                 <View style={[styles.flex, isFollowing ? styles.following_button : styles.follow_button]}>
                     <Text style={isFollowing ? styles.following_button_text : styles.follow_button_text}>
                         {isFollowing ? "Following" : "Follow"}
                     </Text>
                 </View>
             </RNBounceable>
-            <RNBounceable style={styles.flex} onPress={handleOpenViewStats}>
+            <RNBounceable style={styles.flex} onPress={withStrongPress(handleOpenViewStats)}>
                 <View style={[styles.view_stats_button, styles.flex]}>
                     <Text style={styles.view_stats_button_text}>View Stats</Text>
                 </View>

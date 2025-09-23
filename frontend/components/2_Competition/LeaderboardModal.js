@@ -50,11 +50,12 @@ const ICON_PILL_SIZE = scaleSize(32);
 const ICON_PILL_RADIUS = scaleSize(18);
 const ICON_PILL_MR = scaleSize(14);
 
-const DOT_SIZE = scaleSize(6);
-const DOT_ACTIVE_SIZE = scaleSize(34);
-const DOT_RADIUS = DOT_SIZE / 2;
+const DOT_HEIGHT = scaleSize(4);
+const DOT_MIN_WIDTH = scaleSize(8);
+const DOT_MAX_WIDTH = scaleSize(32);
+const DOT_RADIUS = scaleSize(999);
 const DOT_GAP = scaleSize(6);
-const DOT_MT = scaleSize(4);
+const DOT_MT = scaleSize(6);
 const DOT_MB = scaleSize(2);
 
 // Accent palette (warm gold on a deep coffee base, echoing TribeStatsCard)
@@ -231,22 +232,22 @@ export default function LeaderboardModal({
 
                                     const width = scrollX.interpolate({
                                         inputRange,
-                                        outputRange: [DOT_SIZE, DOT_ACTIVE_SIZE, DOT_SIZE],
+                                        outputRange: [DOT_MIN_WIDTH, DOT_MAX_WIDTH, DOT_MIN_WIDTH],
                                         extrapolate: "clamp",
                                     });
 
                                     const opacity = scrollX.interpolate({
                                         inputRange,
-                                        outputRange: [0.28, 1, 0.28],
+                                        outputRange: [0.25, 1, 0.25],
                                         extrapolate: "clamp",
                                     });
 
                                     const backgroundColor = scrollX.interpolate({
                                         inputRange,
                                         outputRange: [
-                                            "rgba(255, 236, 204, 0.34)",
+                                            "rgba(255, 236, 204, 0.32)",
                                             ACCENT,
-                                            "rgba(255, 236, 204, 0.34)",
+                                            "rgba(255, 236, 204, 0.32)",
                                         ],
                                         extrapolate: "clamp",
                                     });
@@ -609,8 +610,8 @@ const styles = StyleSheet.create({
         marginBottom: DOT_MB,
     },
     dot: {
-        height: DOT_SIZE,
+        height: DOT_HEIGHT,
         borderRadius: DOT_RADIUS,
-        backgroundColor: "rgba(255, 236, 204, 0.34)",
+        backgroundColor: "rgba(255, 236, 204, 0.32)",
     },
 });

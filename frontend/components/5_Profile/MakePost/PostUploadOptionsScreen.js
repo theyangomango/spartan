@@ -17,6 +17,7 @@ import PostHonestyModal from "./PostHonestyModal";
 import BottomSheet, { BottomSheetBackdrop } from "@gorhom/bottom-sheet";
 import WorkoutHistoryCard from "../ProfileBottom/History/WorkoutHistoryCard";
 import theme from '../../../theme/mfpDark';
+import { withStrongPress } from "../../../utils/haptics";
 
 import scaleSize1 from "../../../helper/scaleSize";
 
@@ -119,7 +120,7 @@ export default function PostOptionsScreen({ navigation, route }) {
         <View style={styles.main_ctnr}>
             <SafeAreaView>
                 <View style={styles.header}>
-                    <TouchableOpacity onPress={goBack} style={styles.back_icon_ctnr}>
+                    <TouchableOpacity onPress={withStrongPress(goBack)} style={styles.back_icon_ctnr}>
                         <FontAwesome6 name='chevron-left' size={scaleSize(17)} color={theme.textSecondary} />
                     </TouchableOpacity>
                     <View style={styles.title_text_ctnr}>
@@ -127,7 +128,7 @@ export default function PostOptionsScreen({ navigation, route }) {
                     </View>
                     <View style={styles.share_button_ctnr}>
                         <TouchableOpacity
-                            onPress={beginShare}
+                            onPress={withStrongPress(beginShare)}
                             style={[styles.share_btn, (caption.length === 0 || isSharing) && styles.share_btn_disabled]}
                             disabled={caption.length === 0 || isSharing}
                         >
@@ -155,7 +156,7 @@ export default function PostOptionsScreen({ navigation, route }) {
                     </View>
                 </View>
 
-                <Pressable onPress={() => workoutSheetRef.current?.expand?.()}>
+                <Pressable onPress={withStrongPress(() => workoutSheetRef.current?.expand?.())}>
                     <View style={[styles.btn_ctnr, styles.top_btn_ctnr]}>
                         <View style={styles.btn_left}>
                             <View style={[styles.btn_icon_ctnr, styles.workout_icon_ctnr]}>
@@ -229,7 +230,7 @@ export default function PostOptionsScreen({ navigation, route }) {
                     <View style={styles.sheetHeader}>
                         <Text style={styles.sheetTitle}>Your Workouts</Text>
                         {selectedWorkout && (
-                            <TouchableOpacity onPress={() => setSelectedWorkout(null)}>
+                            <TouchableOpacity onPress={withStrongPress(() => setSelectedWorkout(null))}>
                                 <Text style={styles.clearAttach}>Remove</Text>
                             </TouchableOpacity>
                         )}
@@ -238,7 +239,7 @@ export default function PostOptionsScreen({ navigation, route }) {
                         data={workoutList}
                         keyExtractor={(item, index) => index.toString()}
                         renderItem={({ item }) => (
-                            <Pressable onPress={() => { setSelectedWorkout(item); workoutSheetRef.current?.close?.(); }}>
+                            <Pressable onPress={withStrongPress(() => { setSelectedWorkout(item); workoutSheetRef.current?.close?.(); })}>
                                 <WorkoutHistoryCard workout={item} />
                             </Pressable>
                         )}

@@ -39,7 +39,7 @@ export default function MacroGoalsSheet({
     const [showInfo, setShowInfo] = useState(false);
 
     const fadeToInfo = useCallback(() => {
-        try { haptic(); } catch {}
+        try { haptic(); } catch { }
         setShowInfo(true);
         // Snap the sheet to the larger snap; BottomSheet will invoke onChange for us.
         sheetRef.current?.snapToIndex?.(1);
@@ -88,13 +88,13 @@ export default function MacroGoalsSheet({
         if (openSignal == null) return;
         if (index < 0) {
             // setTimeout helps if onChange(-1) fires after parent set(0)
-            try { sheetRef.current?.snapToIndex?.(0); } catch {}
-            requestAnimationFrame(() => { try { sheetRef.current?.snapToIndex?.(0); } catch {} });
-            const t = setTimeout(() => { try { sheetRef.current?.snapToIndex?.(0); } catch {} }, 120);
+            try { sheetRef.current?.snapToIndex?.(0); } catch { }
+            requestAnimationFrame(() => { try { sheetRef.current?.snapToIndex?.(0); } catch { } });
+            const t = setTimeout(() => { try { sheetRef.current?.snapToIndex?.(0); } catch { } }, 120);
             return () => clearTimeout(t);
         } else {
             // already open — ensure it is at least at index 0
-            try { sheetRef.current?.snapToIndex?.(Math.max(0, index)); } catch {}
+            try { sheetRef.current?.snapToIndex?.(Math.max(0, index)); } catch { }
         }
     }, [openSignal]);
 
@@ -250,7 +250,7 @@ export default function MacroGoalsSheet({
     }, [onCancel, onChangeIndex]);
 
     const saveSheet = useCallback(() => {
-        try { haptic(); } catch {}
+        try { haptic(); } catch { }
         onSave?.();
         onChangeIndex?.(-1);
         sheetRef.current?.close?.();
@@ -280,7 +280,7 @@ export default function MacroGoalsSheet({
             preKeyboardIndexRef.current = current;
             if (current !== 1) {
                 expandedForKeyboardRef.current = true;
-                try { sheetRef.current?.expand?.(); } catch { try { sheetRef.current?.snapToIndex?.(1); } catch {} }
+                try { sheetRef.current?.expand?.(); } catch { try { sheetRef.current?.snapToIndex?.(1); } catch { } }
             }
         };
 
@@ -290,7 +290,7 @@ export default function MacroGoalsSheet({
             expandedForKeyboardRef.current = false;
             preKeyboardIndexRef.current = null;
             if (typeof target === 'number' && index >= 0 && target !== index) {
-                try { sheetRef.current?.snapToIndex?.(target); } catch {}
+                try { sheetRef.current?.snapToIndex?.(target); } catch { }
             }
         };
 
@@ -421,7 +421,7 @@ export default function MacroGoalsSheet({
                             onBack={fadeToGoals}
                             onSave={() => {
                                 // Persist personal info, compute recommendations, apply directly to inputs, then return
-                                try { onSavePersonalInfo?.(); } catch {}
+                                try { onSavePersonalInfo?.(); } catch { }
                                 const rec = computeRecommendedMacros(goalForm);
                                 if (rec) {
                                     // Apply recommended values into the Edit Goals inputs

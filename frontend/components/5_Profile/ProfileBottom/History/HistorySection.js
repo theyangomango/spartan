@@ -3,6 +3,7 @@ import React, { memo, useMemo } from "react";
 import { StyleSheet, FlatList, View, Pressable } from "react-native";
 import WorkoutHistoryCard from "./WorkoutHistoryCard";
 import { toMillis } from "../../../../utils/friends";
+import { withStrongPress } from "../../../../utils/haptics";
 
 import scaleSize from "../../../../helper/scaleSize";
 
@@ -29,7 +30,7 @@ const HistorySection = ({ isVisible, isBottomSheetExpanded, completedWorkouts, o
         });
     }, [completedWorkouts]);
     const renderWorkout = ({ item }) => (
-        <Pressable onPress={() => onOpenWorkout && onOpenWorkout(item)}>
+        <Pressable onPress={withStrongPress(() => onOpenWorkout && onOpenWorkout(item))}>
             <WorkoutHistoryCard workout={item} />
         </Pressable>
     );

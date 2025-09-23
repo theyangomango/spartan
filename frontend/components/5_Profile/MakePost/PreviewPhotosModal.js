@@ -5,6 +5,7 @@ import { Ionicons } from '@expo/vector-icons';
 import PreviewPhoto from './PreviewPhoto';
 import theme from '../../../theme/mfpDark';
 import scaleSize from '../../../helper/scaleSize';
+import { withStrongPress } from "../../../utils/haptics";
 
 const screenWidth = Dimensions.get('window').width;
 const NUM_COLUMNS = 3;
@@ -60,14 +61,14 @@ const PreviewPhotosModal = ({ assets, images, selectedOrderMap, toggleSelect, lo
                 <Text style={styles.headerTitle}>All Photos</Text>
                 <View style={styles.headerRight}>
                     {isLimited && (
-                        <Pressable onPress={onRequestMoreAccess} hitSlop={10} style={styles.allowMorePill} android_disableSound>
+                        <Pressable onPress={withStrongPress(onRequestMoreAccess)} hitSlop={10} style={styles.allowMorePill} android_disableSound>
                             <Ionicons name="images-outline" size={14} color={theme.accentBlue} style={{ marginRight: scaleSize(6) }} />
                             <Text style={styles.allowMoreText}>Allow More Photos</Text>
                         </Pressable>
                     )}
                     {images.length > 0 && (
                         <>
-                            <Pressable onPress={clearSelection} hitSlop={10} style={styles.clearPill} android_disableSound>
+                            <Pressable onPress={withStrongPress(clearSelection)} hitSlop={10} style={styles.clearPill} android_disableSound>
                                 <Ionicons name="close" size={14} color={theme.textSecondary} style={{ marginRight: scaleSize(6) }} />
                                 <Text style={styles.clearPillText}>Clear</Text>
                             </Pressable>

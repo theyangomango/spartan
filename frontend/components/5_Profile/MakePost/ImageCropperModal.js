@@ -5,6 +5,7 @@ import ZoomCropper from './ZoomCropper';
 import * as ImageManipulator from 'expo-image-manipulator';
 import { Ionicons } from '@expo/vector-icons';
 import scaleSize from '../../../helper/scaleSize';
+import { withStrongPress } from "../../../utils/haptics";
 
 const { width: SCREEN_W, height: SCREEN_H } = Dimensions.get('window');
 
@@ -107,11 +108,11 @@ export default function ImageCropperModal({
             setRoiTop(top);
           }}
         >
-          <TouchableOpacity onPress={onCancel} style={styles.headerBtn}>
+          <TouchableOpacity onPress={withStrongPress(onCancel)} style={styles.headerBtn}>
             <Ionicons name="close" size={22} color="#fff" />
             <Text style={styles.headerBtnText}>Cancel</Text>
           </TouchableOpacity>
-          <TouchableOpacity onPress={doCrop} style={styles.headerBtn}>
+          <TouchableOpacity onPress={withStrongPress(doCrop)} style={styles.headerBtn}>
             <Ionicons name="checkmark" size={22} color="#fff" />
             <Text style={styles.headerBtnText}>Done</Text>
           </TouchableOpacity>

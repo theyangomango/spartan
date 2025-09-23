@@ -3,6 +3,7 @@ import React, { useMemo, useState } from "react";
 import { StyleSheet, View } from "react-native";
 import FastImage from 'react-native-fast-image';
 import { Pressable } from 'react-native';
+import { withStrongPress } from "../../../../utils/haptics";
 
 import scaleSize from "../../../../helper/scaleSize";
 
@@ -22,7 +23,7 @@ export default function PostPreview({ postData, onPress }) {
                 pressed ? styles.pressed : null,
             ]}
             // Avoid capturing/deferring the SyntheticEvent to prevent pooling warnings
-            onPress={() => { try { onPress && onPress(); } catch {} }}
+            onPress={withStrongPress(() => { try { onPress && onPress(); } catch {} })}
         >
             {/* Lightweight placeholder to avoid blank cell while image decodes */}
             {!loaded && <View style={styles.placeholder} />}

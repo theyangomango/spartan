@@ -4,6 +4,7 @@ import { Send2 } from 'iconsax-react-native';
 import RNBounceable from "@freakycoder/react-native-bounceable";
 import theme from "../../theme/mfpDark";
 import scaleSizeGlobal from "../../helper/scaleSize";
+import { withStrongPress } from "../../utils/haptics";
 
 const { height: SCREEN_HEIGHT } = Dimensions.get('window');
 const scale = SCREEN_HEIGHT / 844; // match Profile header baseline
@@ -16,12 +17,12 @@ export default function ViewProfileHeader({ handle, goBack, toMessages, onOpenOp
     return (
         <View style={styles.main_ctnr}>
             <View style={styles.sideLeft}>
-                <RNBounceable onPress={goBack} hitSlop={10}>
+                <RNBounceable onPress={withStrongPress(goBack)} hitSlop={10}>
                     <Feather name="chevron-left" size={scaleSize(22.5)} color={theme.textSecondary} />
                 </RNBounceable>
             </View>
 
-            <RNBounceable onPress={onOpenOptions} hitSlop={10} style={styles.center}>
+            <RNBounceable onPress={withStrongPress(onOpenOptions)} hitSlop={10} style={styles.center}>
                 <View style={styles.handleRow}>
                     <Text style={styles.handle_text} numberOfLines={1} ellipsizeMode="tail">{handle}</Text>
                     <Feather name="chevron-down" size={scaleSize(18)} color={theme.textSecondary} style={{ marginLeft: scaleSize(4) }} />
@@ -29,7 +30,7 @@ export default function ViewProfileHeader({ handle, goBack, toMessages, onOpenOp
             </RNBounceable>
 
             <View style={styles.sideRight}>
-                <RNBounceable onPress={toMessages} hitSlop={10}>
+                <RNBounceable onPress={withStrongPress(toMessages)} hitSlop={10}>
                     <View style={styles.message_icon_btn}>
                         <Send2 size={scaleSize(19)} color={theme.textSecondary} variant="Linear" />
                     </View>

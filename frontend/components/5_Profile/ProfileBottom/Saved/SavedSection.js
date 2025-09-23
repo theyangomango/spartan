@@ -5,6 +5,7 @@ import MasonryList from "@react-native-seoul/masonry-list";
 import PostPreview from "../Posts/PostPreview";
 import SinglePostModal from "../Posts/SinglePostModal";
 import FastImage from 'react-native-fast-image';
+import { withStrongPress } from "../../../../utils/haptics";
 
 import scaleSize from "../../../../helper/scaleSize";
 
@@ -17,9 +18,15 @@ const SavedSection = ({ posts, isVisible, onOpenWorkout }) => {
 
     const closeModal = () => setSelectedPost(null);
 
-    const renderPost = ({ item }) => (
-        <PostPreview postData={item} onPress={() => { try { requestAnimationFrame(() => handlePostPress(item)); } catch { handlePostPress(item); } }} />
-    );
+    const renderPost = ({ item }) => {
+        const handlePress = () => {
+            try { requestAnimationFrame(() => handlePostPress(item)); }
+            catch { handlePostPress(item); }
+        };
+        return (
+            <PostPreview postData={item} onPress={withStrongPress(handlePress)} />
+        );
+    };
 
     // Always show newest → oldest
     const sortedPosts = useMemo(() => {

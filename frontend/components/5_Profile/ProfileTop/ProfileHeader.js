@@ -7,6 +7,7 @@ import { Dimensions } from 'react-native';
 import scaleSize from "../../../helper/scaleSize";
 import { AddSquare } from "iconsax-react-native";
 import theme from "../../../theme/mfpDark";
+import { withStrongPress } from "../../../utils/haptics";
 
 const { height: screenHeight } = Dimensions.get('window');
 const scaledSize = (size) => scaleSize(size);
@@ -14,7 +15,7 @@ const scaledSize = (size) => scaleSize(size);
 export default function ProfileHeader({ onPressCreateBtn, onPressSettings }) {
     return (
         <View style={styles.main_ctnr}>
-            <RNBounceable style={styles.leftBtn} onPress={onPressSettings}>
+            <RNBounceable style={styles.leftBtn} onPress={withStrongPress(onPressSettings)}>
                 <Setting2 size={24} color={theme.textSecondary} />
             </RNBounceable>
             <RNBounceable>
@@ -26,7 +27,7 @@ export default function ProfileHeader({ onPressCreateBtn, onPressSettings }) {
                 </View>
             </RNBounceable>
             <View style={styles.right}>
-                <RNBounceable onPress={onPressCreateBtn}>
+                <RNBounceable onPress={withStrongPress(onPressCreateBtn)}>
                     <View style={styles.create_btn_ctnr}>
                         {/* <FontAwesome6 name='plus' size={scaledSize(13)} color="#bbb" /> */}
                         <AddSquare size={24} color={theme.textSecondary} />

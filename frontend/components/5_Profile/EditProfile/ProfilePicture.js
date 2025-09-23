@@ -8,6 +8,7 @@ import { deleteObject, ref, uploadBytes } from "firebase/storage";
 import { storage } from "../../../../firebase.config";
 import * as ImageManipulator from 'expo-image-manipulator';
 import THEME from "../../../theme/mfpDark";
+import { withStrongPress } from "../../../utils/haptics";
 
 
 import scaleSize from "../../../helper/scaleSize";
@@ -63,7 +64,7 @@ const ProfilePicture = ({ imageUri, setPFP }) => {
     };
 
     return (
-        <TouchableOpacity onPress={pickImage}>
+        <TouchableOpacity onPress={withStrongPress(pickImage)}>
             <View style={styles.pfpContainer}>
                 <Image source={{ uri: profileImage }} style={styles.profilePicture} />
                 <View style={styles.cameraIconContainer}>

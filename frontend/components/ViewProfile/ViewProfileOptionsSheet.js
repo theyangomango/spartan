@@ -4,6 +4,7 @@ import BottomSheet, { BottomSheetBackdrop } from '@gorhom/bottom-sheet';
 import { Feather } from '@expo/vector-icons';
 import theme from '../../theme/mfpDark';
 import scaleSize from '../../helper/scaleSize';
+import { withStrongPress } from "../../utils/haptics";
 
 const ViewProfileOptionsSheet = ({ isVisible, setIsVisible, handle = '', isBlocked = false, onBlock, onUnblock }) => {
   const bottomSheetRef = useRef(null);
@@ -50,7 +51,7 @@ const ViewProfileOptionsSheet = ({ isVisible, setIsVisible, handle = '', isBlock
         <Text style={styles.headerText}>Options</Text>
 
         {isBlocked ? (
-          <Pressable style={styles.row} onPress={() => { onUnblock && onUnblock(); close(); }}>
+          <Pressable style={styles.row} onPress={withStrongPress(() => { onUnblock && onUnblock(); close(); })}>
             <View style={styles.rowLeft}>
               <Feather name="unlock" size={scaleSize(22)} color={theme.success || '#10B981'} />
             </View>
@@ -59,7 +60,7 @@ const ViewProfileOptionsSheet = ({ isVisible, setIsVisible, handle = '', isBlock
             </Text>
           </Pressable>
         ) : (
-          <Pressable style={styles.row} onPress={() => { onBlock && onBlock(); close(); }}>
+          <Pressable style={styles.row} onPress={withStrongPress(() => { onBlock && onBlock(); close(); })}>
             <View style={styles.rowLeft}>
               <Feather name="user-x" size={scaleSize(22)} color={theme.danger || '#ef4444'} />
             </View>
@@ -69,7 +70,7 @@ const ViewProfileOptionsSheet = ({ isVisible, setIsVisible, handle = '', isBlock
           </Pressable>
         )}
 
-        <Pressable style={styles.row} onPress={close}>
+        <Pressable style={styles.row} onPress={withStrongPress(close)}>
           <View style={styles.rowLeft}>
             <Feather name="x" size={scaleSize(22)} color={theme.textSecondary} />
           </View>

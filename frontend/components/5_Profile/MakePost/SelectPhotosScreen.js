@@ -7,6 +7,7 @@ import PreviewPhotosBottomSheet from './PreviewPhotosBottomSheet';
 import ImageCropperModal from './ImageCropperModal';
 import theme from '../../../theme/mfpDark';
 import scaleSize from '../../../helper/scaleSize';
+import { withStrongPress } from "../../../utils/haptics";
 
 const screenHeight = Dimensions.get('window').height;
 const scaledSize = (size) => scaleSize(size);
@@ -145,7 +146,7 @@ export default function SelectPhotosScreen({ navigation, route }) {
     return (
         <SafeAreaView style={styles.container}>
             <View style={styles.header_ctnr}>
-                <TouchableOpacity onPress={goBack}>
+                <TouchableOpacity onPress={withStrongPress(goBack)}>
                     <View style={styles.close_icon_ctnr}>
                         <Ionicons name='close' size={scaledSize(23)} color={theme.textSecondary} />
                     </View>
@@ -153,7 +154,7 @@ export default function SelectPhotosScreen({ navigation, route }) {
                 <View style={styles.header_text_ctnr}>
                     <Text style={styles.title_text}>New Post</Text>
                 </View>
-                <TouchableOpacity onPress={next}>
+                <TouchableOpacity onPress={withStrongPress(next)}>
                     <View style={styles.next_icon_ctnr}>
                         <FontAwesome6 name='chevron-right' size={scaledSize(17)} color={images.length > 0 ? theme.primary : theme.textSecondary} />
                     </View>
@@ -190,7 +191,7 @@ export default function SelectPhotosScreen({ navigation, route }) {
                 ) : null}
 
                 {selectedImages.length > 0 && (
-                    <TouchableOpacity style={styles.crop_btn} onPress={openCropper}>
+                    <TouchableOpacity style={styles.crop_btn} onPress={withStrongPress(openCropper)}>
                         <Ionicons name='crop' size={scaledSize(20)} color={'#fff'} />
                         <Text style={styles.crop_btn_text}>Crop</Text>
                     </TouchableOpacity>

@@ -10,55 +10,35 @@ import {
     Dimensions,
     TouchableWithoutFeedback,
 } from "react-native";
-import { LinearGradient } from "expo-linear-gradient";
 import { Ionicons } from "@expo/vector-icons";
-import { Weight } from "iconsax-react-native";
 import SelectExerciseModal from "../2_Competition/SelectExercise/SelectExerciseModal";
 import RNBounceable from "@freakycoder/react-native-bounceable";
 
 import scaleSize from "../../helper/scaleSize";
-import { withStrongPress } from "../../utils/haptics";
 
 const METRICS = ["1RM", "Volume", "Reps"];
-const metricLabel = (m) => (m === "1RM" ? "1RM" : m);
+const metricLabel = (m) => (m === '1RM' ? '1RM' : m);
 const { width } = Dimensions.get("window");
 
 const theme = require("../../theme/mfpDark").default;
 
-const CARD_MAX_WIDTH = Math.min(width - scaleSize(40), scaleSize(520));
-const CARD_BG = "rgba(18, 20, 28, 0.97)";
-const CARD_GRADIENT = ["#262938", "#141621"];
-const CARD_STROKE = "rgba(116, 140, 210, 0.24)";
-const HEADER_GRADIENT = ["rgba(36, 38, 56, 0.96)", "rgba(18, 20, 32, 0.94)"];
-const HEADER_BORDER = "rgba(126, 148, 206, 0.34)";
-const SECTION_DIVIDER = "rgba(96, 112, 170, 0.22)";
-
-// Styled to mirror the refreshed Tribe Banner treatment
-const TRIBE_CARD_GRADIENT = ["#31344A", "#1C1D2C"];
-const TRIBE_CARD_BORDER = "rgba(138, 152, 218, 0.38)";
-const TRIBE_ACCENT = "#F4C56E";
-const TRIBE_TEXT_PRIMARY = "#F5F6FF";
-const TRIBE_ACCENT_BG = "rgba(244, 197, 110, 0.2)";
-const TRIBE_ACCENT_BORDER = "rgba(244, 197, 110, 0.38)";
-const TRIBE_BADGE_BG = "rgba(244, 197, 110, 0.18)";
-const TRIBE_BADGE_BORDER = "rgba(244, 197, 110, 0.32)";
-const TRIBE_BADGE_SECONDARY_BG = "rgba(148, 198, 255, 0.18)";
-const TRIBE_BADGE_SECONDARY_BORDER = "rgba(148, 198, 255, 0.32)";
-const TRIBE_BADGE_TEXT = "#FCE3B5";
-const TRIBE_BADGE_TEXT_SECONDARY = "#D6E8FF";
-const TRIBE_DELETE_BG = "rgba(255, 122, 140, 0.16)";
-const TRIBE_DELETE_BORDER = "rgba(255, 150, 162, 0.32)";
-const TRIBE_DELETE_ICON = "#FFB5BF";
-const ITEM_SHADOW_COLOR = "rgba(16, 18, 30, 0.4)";
-
-const ADD_BTN_GRADIENT = ["#3A3D55", "#25273A"];
-
-const FOOTER_GRADIENT = ["#2D9EFF", "#7BB8FF"];
-const EMPTY_GRADIENT = ["rgba(244, 197, 110, 0.08)", "rgba(28, 30, 44, 0.82)"];
-const OPTION_BG = "rgba(27, 29, 42, 0.92)";
-const OPTION_BORDER = "rgba(132, 148, 206, 0.32)";
-const TOGGLE_ACTIVE_BG = "rgba(244, 197, 110, 0.22)";
-const TOGGLE_ACTIVE_BORDER = "rgba(244, 197, 110, 0.45)";
+// palette tuned to match competition stack
+const MODAL_BG = theme.fieldDeep;
+const TILE_BG = theme.surface;
+const TILE_BORDER = theme.hairline;
+const MONOGRAM_BG = theme.field;
+const PRIMARY_TEXT = theme.textPrimary;
+const SECONDARY_TEXT = theme.textSecondary;
+const ACTION_PRIMARY = theme.primary;
+const ACTION_PRIMARY_TEXT = "#FFFFFF";
+const ACTION_GHOST_BG = theme.field;
+const ACTION_GHOST_TEXT = theme.textPrimary;
+const ACTION_GHOST_BORDER = theme.hairline;
+const DELETE_RED = "#FF5C63";
+const CHECKBOX_ACTIVE = theme.primary;
+const PILL_ACTIVE_BG = "rgba(45, 158, 255, 0.16)";
+const PILL_ACTIVE_BORDER = theme.primaryHairline || "rgba(45, 158, 255, 0.45)";
+const PILL_ACTIVE_TEXT = theme.accentBlue || theme.primary;
 
 export default function TribeComparisonModal({ visible, onClose, initialList = [], onSaveList }) {
     const [items, setItems] = useState(() => sanitize(initialList));
@@ -74,10 +54,7 @@ export default function TribeComparisonModal({ visible, onClose, initialList = [
     }, [visible, initialList]);
 
     const startAdd = () => {
-        setItems((prev) => [
-            ...prev,
-            { exercise: "Bench Press (Barbell)", metric: "1RM", normalizeByBodyweight: false },
-        ]);
+        setItems((prev) => [...prev, { exercise: "Bench Press (Barbell)", metric: "1RM", normalizeByBodyweight: false }]);
         setEditingIndex(items.length);
     };
 
@@ -98,158 +75,69 @@ export default function TribeComparisonModal({ visible, onClose, initialList = [
 
     return (
         <Modal visible={visible} transparent animationType="fade" statusBarTranslucent onRequestClose={onClose}>
-            <TouchableWithoutFeedback onPress={withStrongPress(onClose)}>
+            <TouchableWithoutFeedback onPress={onClose}>
                 <View style={styles.backdrop}>
                     <TouchableWithoutFeedback onPress={() => { }}>
                         <View style={styles.card}>
-                            <LinearGradient
-                                colors={CARD_GRADIENT}
-                                start={{ x: 0, y: 0 }}
-                                end={{ x: 0, y: 1 }}
-                                style={styles.cardGradient}
-                                pointerEvents="none"
-                            />
-                            <LinearGradient colors={HEADER_GRADIENT} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={styles.header}>
-                                <View style={styles.headerCopy}>
-                                    <Text style={styles.title}>Tribe Comparisons</Text>
-                                    <Text style={styles.subtitle} numberOfLines={2}>
-                                        Pick the lifts your tribe competes on.
-                                    </Text>
-                                </View>
-                                <Pressable hitSlop={12} onPress={withStrongPress(onClose)} style={styles.closeBtn}>
-                                    <Ionicons name="close" size={18} color={TRIBE_TEXT_PRIMARY} />
+                            <View style={styles.headerRow}>
+                                <Text style={styles.title}>Manage Tribe Comparisons</Text>
+                                <Pressable hitSlop={12} onPress={onClose}>
+                                    <Ionicons name="close" size={20} color={PRIMARY_TEXT} />
                                 </Pressable>
-                            </LinearGradient>
-
-                            <View style={styles.listSection}>
-                                <FlatList
-                                    data={items}
-                                    keyExtractor={(_, i) => `cmp-${i}`}
-                                    contentContainerStyle={[
-                                        styles.listContent,
-                                        items.length === 0 && styles.listContentEmpty,
-                                    ]}
-                                    renderItem={({ item, index }) => {
-                                        const metricCopy = metricLabel(item.metric);
-                                        const summary = `Ranked by ${metricCopy}${item.normalizeByBodyweight ? " • per lb" : ""}`;
-
-                                        return (
-                                            <TouchableOpacity
-                                                activeOpacity={0.92}
-                                                onPress={withStrongPress(() => startEdit(index))}
-                                                style={styles.itemTouchable}
-                                            >
-                                                <View style={styles.itemShadow}>
-                                                    <LinearGradient
-                                                        colors={TRIBE_CARD_GRADIENT}
-                                                        start={{ x: 0, y: 0 }}
-                                                        end={{ x: 1, y: 1 }}
-                                                        style={styles.itemCard}
-                                                    >
-                                                        <View style={styles.itemContent}>
-                                                            <View style={styles.itemIconPill}>
-                                                                <Weight size={scaleSize(18)} color={TRIBE_ACCENT} variant="Bold" />
-                                                            </View>
-                                                            <View style={styles.itemTextColumn}>
-                                                                <Text style={styles.itemTitle} numberOfLines={1}>
-                                                                    {item.exercise}
-                                                                </Text>
-                                                                <Text style={styles.itemSubtitle} numberOfLines={1}>
-                                                                    {summary}
-                                                                </Text>
-                                                                <View style={styles.itemMetaRow}>
-                                                                    <View style={styles.metaBadge}>
-                                                                        <Text style={styles.metaBadgeText}>{metricCopy}</Text>
-                                                                    </View>
-                                                                    {item.normalizeByBodyweight ? (
-                                                                        <View style={[styles.metaBadge, styles.metaBadgeSecondary]}>
-                                                                            <Text style={[styles.metaBadgeText, styles.metaBadgeTextSecondary]}>per lb</Text>
-                                                                        </View>
-                                                                    ) : null}
-                                                                </View>
-                                                            </View>
-                                                            <TouchableOpacity
-                                                                onPress={withStrongPress(() => deleteItem(index))}
-                                                                hitSlop={10}
-                                                                style={styles.deletePill}
-                                                            >
-                                                                <Ionicons name="trash-outline" size={scaleSize(16)} color={TRIBE_DELETE_ICON} />
-                                                            </TouchableOpacity>
-                                                        </View>
-                                                    </LinearGradient>
-                                                </View>
-                                            </TouchableOpacity>
-                                        );
-                                    }}
-                                    ListEmptyComponent={(
-                                        <View style={styles.emptyState}>
-                                            <LinearGradient
-                                                colors={EMPTY_GRADIENT}
-                                                start={{ x: 0, y: 0 }}
-                                                end={{ x: 1, y: 1 }}
-                                                style={styles.emptyGradient}
-                                            >
-                                                <View style={styles.emptyIcon}>
-                                                    <Ionicons name="sparkles-outline" size={scaleSize(18)} color={TRIBE_ACCENT} />
-                                                </View>
-                                                <Text style={styles.emptyTitle}>No comparisons yet</Text>
-                                                <Text style={styles.emptySubtitle}>
-                                                    Add lifts or goals to let everyone know what winning looks like for your tribe.
-                                                </Text>
-                                            </LinearGradient>
-                                        </View>
-                                    )}
-                                />
                             </View>
+
+                            <FlatList
+                                data={items}
+                                keyExtractor={(_, i) => `cmp-${i}`}
+                                renderItem={({ item, index }) => {
+                                    return (
+                                        <TouchableOpacity
+                                            activeOpacity={0.9}
+                                            onPress={() => startEdit(index)}
+                                            style={styles.itemCard}
+                                        >
+                                            <View style={{ flex: 1, marginRight: scaleSize(8) }}>
+                                                {/* line 1: exercise */}
+                                                <Text style={styles.itemTitle} numberOfLines={1}>
+                                                    {item.exercise}
+                                                </Text>
+                                                {/* line 2: metric + per-lb */}
+                                                <Text style={styles.itemMeta} numberOfLines={1}>
+                                                    {metricLabel(item.metric)}{item.normalizeByBodyweight ? " • per lb" : ""}
+                                                </Text>
+                                            </View>
+                                            <TouchableOpacity onPress={() => deleteItem(index)} hitSlop={10} style={styles.deleteBtn}>
+                                                <Ionicons name="trash-outline" size={18} color={DELETE_RED} />
+                                            </TouchableOpacity>
+                                        </TouchableOpacity>
+                                    );
+                                }}
+                                ListEmptyComponent={
+                                    <View style={styles.emptyBox}>
+                                        <Text style={styles.emptyText}>No comparisons yet</Text>
+                                        <Text style={styles.emptySub}>Add targets for exercises, metrics, and per-lb normalization.</Text>
+                                    </View>
+                                }
+                                contentContainerStyle={{ paddingBottom: scaleSize(8) }}
+                            />
 
                             <View style={styles.footerRow}>
-                                <RNBounceable
-                                    style={styles.addBtnOuter}
-                                    activeScale={0.97}
-                                    onPress={withStrongPress(startAdd)}
-                                >
-                                    <LinearGradient
-                                        colors={ADD_BTN_GRADIENT}
-                                        start={{ x: 0, y: 0 }}
-                                        end={{ x: 1, y: 1 }}
-                                        style={styles.addBtn}
-                                    >
-                                        <Ionicons
-                                            name="add"
-                                            size={scaleSize(18)}
-                                            color={TRIBE_TEXT_PRIMARY}
-                                            style={{ marginRight: scaleSize(8) }}
-                                        />
-                                        <Text style={styles.addText}>Add comparison</Text>
-                                    </LinearGradient>
+                                <RNBounceable style={styles.addBtn} activeOpacity={0.9} onPress={startAdd}>
+                                    <Ionicons name="add" size={18} color={ACTION_GHOST_TEXT} style={{ marginRight: scaleSize(6) }} />
+                                    <Text style={styles.addText}>Add Comparison</Text>
                                 </RNBounceable>
 
-                                {/* <RNBounceable
-                                    style={styles.saveBtnOuter}
-                                    activeScale={0.96}
-                                    onPress={withStrongPress(handleSave)}
-                                >
-                                    <LinearGradient
-                                        colors={FOOTER_GRADIENT}
-                                        start={{ x: 0, y: 0 }}
-                                        end={{ x: 1, y: 1 }}
-                                        style={styles.saveGradient}
-                                    >
-                                        <Ionicons
-                                            name="save-outline"
-                                            size={scaleSize(17)}
-                                            color="#0e1320"
-                                            style={{ marginRight: scaleSize(8) }}
-                                        />
-                                        <Text style={styles.saveText}>Save</Text>
-                                    </LinearGradient>
-                                </RNBounceable> */}
+                                <RNBounceable style={styles.saveButton} activeOpacity={0.9} onPress={handleSave}>
+                                    <Ionicons name="save-outline" size={18} color={ACTION_PRIMARY_TEXT} style={{ marginRight: scaleSize(8) }} />
+                                    <Text style={styles.saveText}>Save</Text>
+                                </RNBounceable>
                             </View>
+
                         </View>
                     </TouchableWithoutFeedback>
                 </View>
             </TouchableWithoutFeedback>
-
+            {/* Inline editor */}
             <Modal
                 visible={editingIndex >= 0}
                 transparent
@@ -257,134 +145,80 @@ export default function TribeComparisonModal({ visible, onClose, initialList = [
                 statusBarTranslucent
                 onRequestClose={() => setEditingIndex(-1)}
             >
-                <TouchableWithoutFeedback onPress={withStrongPress(() => setEditingIndex(-1))}>
+                <TouchableWithoutFeedback onPress={() => setEditingIndex(-1)}>
                     <View style={styles.backdrop}>
                         <TouchableWithoutFeedback onPress={() => { }}>
                             <View style={styles.editorCard}>
-                                <LinearGradient
-                                    colors={HEADER_GRADIENT}
-                                    start={{ x: 0, y: 0 }}
-                                    end={{ x: 1, y: 1 }}
-                                    style={styles.editorHeader}
-                                >
-                                    <View style={styles.editorHeaderCopy}>
-                                        <Text style={styles.editorTitle}>Edit comparison</Text>
-                                        {editing ? (
-                                            <Text style={styles.editorSubtitle} numberOfLines={1}>
-                                                {editing.exercise}
-                                            </Text>
-                                        ) : null}
-                                    </View>
-                                    <Pressable
-                                        hitSlop={12}
-                                        onPress={withStrongPress(() => setEditingIndex(-1))}
-                                        style={styles.closeBtn}
-                                    >
-                                        <Ionicons name="close" size={18} color={TRIBE_TEXT_PRIMARY} />
+                                <View style={styles.headerRow}>
+                                    <Text style={styles.title}>Edit Comparison</Text>
+                                    <Pressable hitSlop={12} onPress={() => setEditingIndex(-1)}>
+                                        <Ionicons name="close" size={20} color={PRIMARY_TEXT} />
                                     </Pressable>
-                                </LinearGradient>
+                                </View>
 
-                                {editing ? (
-                                    <View style={styles.editorBody}>
+                                {editing && (
+                                    <>
                                         <TouchableOpacity
-                                            activeOpacity={0.9}
-                                            style={styles.optionCard}
-                                            onPress={withStrongPress(() => setExercisePickerOpen(true))}
+                                            activeOpacity={0.85}
+                                            style={styles.inputRow}
+                                            onPress={() => setExercisePickerOpen(true)}
                                         >
-                                            <View style={styles.optionIcon}>
-                                                <Weight size={scaleSize(18)} color={TRIBE_ACCENT} variant="Bold" />
-                                            </View>
+                                            <Ionicons name="barbell" size={18} color={PRIMARY_TEXT} style={{ marginRight: scaleSize(10) }} />
                                             <View style={{ flex: 1 }}>
-                                                <Text style={styles.optionLabel}>Exercise</Text>
-                                                <Text style={styles.optionValue} numberOfLines={1}>
-                                                    {editing.exercise}
-                                                </Text>
+                                                <Text style={styles.label}>Exercise</Text>
+                                                <Text style={styles.value} numberOfLines={1}>{editing.exercise}</Text>
                                             </View>
-                                            <Ionicons name="chevron-forward" size={scaleSize(18)} color={theme.textSecondary} />
+                                            <Ionicons name="chevron-forward" size={18} color={SECONDARY_TEXT} />
                                         </TouchableOpacity>
 
-                                        <Text style={styles.sectionLabel}>Metric</Text>
-                                        <View style={styles.metricPills}>
-                                            {METRICS.map((m) => {
-                                                const active = m === editing.metric;
-                                                return (
-                                                    <TouchableOpacity
-                                                        key={m}
-                                                        onPress={withStrongPress(() => updateField(editingIndex, { metric: m }))}
-                                                        activeOpacity={0.85}
-                                                        style={[styles.metricChip, active && styles.metricChipActive]}
-                                                    >
-                                                        <Text
-                                                            style={[styles.metricChipText, active && styles.metricChipTextActive]}
+                                        <View style={styles.metricRow}>
+                                            <Text style={styles.label}>Metric</Text>
+                                            <View style={styles.metricPills}>
+                                                {METRICS.map((m) => {
+                                                    const active = m === editing.metric;
+                                                    return (
+                                                        <TouchableOpacity
+                                                            key={m}
+                                                            onPress={() => updateField(editingIndex, { metric: m })}
+                                                            style={[styles.pill, active && styles.pillActive]}
+                                                            activeOpacity={0.85}
                                                         >
-                                                            {metricLabel(m)}
-                                                        </Text>
-                                                    </TouchableOpacity>
-                                                );
-                                            })}
+                                                            <Text style={[styles.pillText, active && styles.pillTextActive]}>{metricLabel(m)}</Text>
+                                                        </TouchableOpacity>
+                                                    );
+                                                })}
+                                            </View>
                                         </View>
 
                                         <TouchableOpacity
-                                            style={styles.toggleCard}
-                                            activeOpacity={0.88}
-                                            onPress={withStrongPress(() =>
-                                                updateField(editingIndex, {
-                                                    normalizeByBodyweight: !editing.normalizeByBodyweight,
-                                                })
-                                            )}
+                                            style={styles.toggleRow}
+                                            activeOpacity={0.85}
+                                            onPress={() => updateField(editingIndex, { normalizeByBodyweight: !editing.normalizeByBodyweight })}
                                         >
-                                            <View style={styles.optionIcon}>
-                                                <Ionicons
-                                                    name="body-outline"
-                                                    size={scaleSize(18)}
-                                                    color={theme.primary}
-                                                />
-                                            </View>
+                                            <Ionicons
+                                                name={editing.normalizeByBodyweight ? "checkbox" : "square-outline"}
+                                                size={20}
+                                                color={editing.normalizeByBodyweight ? CHECKBOX_ACTIVE : SECONDARY_TEXT}
+                                                style={{ marginRight: scaleSize(10) }}
+                                            />
                                             <View style={{ flex: 1 }}>
-                                                <Text style={styles.optionLabel}>Normalize by bodyweight</Text>
-                                                <Text style={styles.optionHint}>Rank by (metric ÷ bodyweight)</Text>
-                                            </View>
-                                            <View
-                                                style={[
-                                                    styles.toggleBadge,
-                                                    editing.normalizeByBodyweight && styles.toggleBadgeActive,
-                                                ]}
-                                            >
-                                                <Ionicons
-                                                    name={editing.normalizeByBodyweight ? "checkmark" : "add"}
-                                                    size={scaleSize(16)}
-                                                    color={editing.normalizeByBodyweight ? theme.textPrimary : theme.textSecondary}
-                                                />
+                                                <Text style={styles.label}>Normalize by Bodyweight</Text>
+                                                <Text style={styles.subtle}>Rank by (metric ÷ bodyweight)</Text>
                                             </View>
                                         </TouchableOpacity>
-                                    </View>
-                                ) : null}
+                                    </>
+                                )}
 
-                                <RNBounceable
-                                    style={styles.doneBtnOuter}
-                                    activeScale={0.96}
-                                    onPress={withStrongPress(() => setEditingIndex(-1))}
-                                >
-                                    <LinearGradient
-                                        colors={FOOTER_GRADIENT}
-                                        start={{ x: 0, y: 0 }}
-                                        end={{ x: 1, y: 1 }}
-                                        style={styles.doneGradient}
-                                    >
-                                        <Ionicons
-                                            name="checkmark"
-                                            size={scaleSize(18)}
-                                            color="#0e1320"
-                                            style={{ marginRight: scaleSize(6) }}
-                                        />
-                                        <Text style={styles.doneText}>Done</Text>
-                                    </LinearGradient>
-                                </RNBounceable>
+                                <TouchableOpacity style={styles.saveButton} activeOpacity={0.9} onPress={() => setEditingIndex(-1)}>
+                                    <Ionicons name="checkmark" size={18} color={ACTION_PRIMARY_TEXT} style={{ marginRight: scaleSize(8) }} />
+                                    <Text style={styles.saveText}>Done</Text>
+                                </TouchableOpacity>
                             </View>
                         </TouchableWithoutFeedback>
                     </View>
                 </TouchableWithoutFeedback>
 
+                {/* Exercise picker */}
                 <Modal
                     visible={exercisePickerOpen}
                     transparent
@@ -415,381 +249,147 @@ const sanitize = (arr) =>
 const styles = StyleSheet.create({
     backdrop: {
         flex: 1,
-        backgroundColor: "rgba(4, 7, 12, 0.74)",
+        backgroundColor: "rgba(0,0,0,0.35)",
         justifyContent: "center",
         alignItems: "center",
         paddingHorizontal: scaleSize(18),
     },
     card: {
-        width: CARD_MAX_WIDTH,
-        borderRadius: scaleSize(24),
-        backgroundColor: CARD_BG,
-        borderWidth: scaleSize(1),
-        borderColor: CARD_STROKE,
-        overflow: "hidden",
-        shadowColor: "rgba(10, 12, 24, 0.6)",
-        shadowOpacity: 0.26,
+        width: "100%",
+        borderRadius: scaleSize(20),
+        backgroundColor: MODAL_BG,
+        padding: scaleSize(18),
+        borderWidth: StyleSheet.hairlineWidth,
+        borderColor: TILE_BORDER,
+        shadowColor: "#000",
+        shadowOpacity: 0.2,
         shadowRadius: scaleSize(20),
-        shadowOffset: { width: 0, height: scaleSize(12) },
-        elevation: 10,
-    },
-    cardGradient: {
-        ...StyleSheet.absoluteFillObject,
-    },
-    header: {
-        paddingHorizontal: scaleSize(22),
-        paddingTop: scaleSize(20),
-        paddingBottom: scaleSize(18),
-        flexDirection: "row",
-        alignItems: "flex-start",
-        justifyContent: "space-between",
-        borderBottomWidth: StyleSheet.hairlineWidth,
-        borderBottomColor: HEADER_BORDER,
-    },
-    headerCopy: { flex: 1, paddingRight: scaleSize(12) },
-    title: {
-        fontFamily: "Outfit_700Bold",
-        fontSize: scaleSize(18),
-        color: TRIBE_TEXT_PRIMARY,
-    },
-    subtitle: {
-        fontFamily: "Outfit_400Regular",
-        fontSize: scaleSize(12.5),
-        color: "rgba(214, 220, 255, 0.76)",
-        marginTop: scaleSize(6),
-    },
-    closeBtn: {
-        width: scaleSize(32),
-        height: scaleSize(32),
-        borderRadius: scaleSize(16),
-        alignItems: "center",
-        justifyContent: "center",
-        backgroundColor: "rgba(44, 46, 66, 0.72)",
-        borderWidth: StyleSheet.hairlineWidth,
-        borderColor: "rgba(136, 152, 218, 0.36)",
-    },
-    listSection: {
-        paddingHorizontal: scaleSize(18),
-        paddingTop: scaleSize(18),
-        paddingBottom: scaleSize(12),
-        maxHeight: scaleSize(360),
-    },
-    listContent: {
-        paddingBottom: scaleSize(12),
-    },
-    listContentEmpty: {
-        flexGrow: 1,
-        justifyContent: "center",
-    },
-    itemTouchable: {
-        borderRadius: scaleSize(20),
-        marginBottom: scaleSize(14),
-        alignSelf: "stretch",
-    },
-    itemShadow: {
-        borderRadius: scaleSize(20),
-        shadowColor: ITEM_SHADOW_COLOR,
-        shadowOpacity: 0.24,
-        shadowRadius: scaleSize(16),
-        shadowOffset: { width: 0, height: scaleSize(7) },
+        shadowOffset: { width: 0, height: scaleSize(10) },
         elevation: 6,
-        backgroundColor: "transparent",
-        alignSelf: "stretch",
     },
-    itemCard: {
+    editorCard: {
+        width: scaleSize(Math.min(width - 32, 480)),
         borderRadius: scaleSize(20),
-        borderWidth: scaleSize(1),
-        borderColor: TRIBE_CARD_BORDER,
-        paddingHorizontal: scaleSize(16),
-        paddingVertical: scaleSize(11),
-        overflow: "hidden",
-        width: "100%",
-    },
-    itemContent: {
-        flexDirection: "row",
-        alignItems: "center",
-    },
-    itemIconPill: {
-        width: scaleSize(32),
-        height: scaleSize(32),
-        borderRadius: scaleSize(16),
-        alignItems: "center",
-        justifyContent: "center",
-        backgroundColor: TRIBE_ACCENT_BG,
-        borderWidth: scaleSize(1),
-        borderColor: TRIBE_ACCENT_BORDER,
-        marginRight: scaleSize(12),
-    },
-    itemTextColumn: {
-        flex: 1,
-        minWidth: 0,
-    },
-    itemTitle: {
-        fontFamily: "Outfit_800ExtraBold",
-        fontSize: scaleSize(13),
-        color: TRIBE_TEXT_PRIMARY,
-        letterSpacing: 0.18,
-    },
-    itemSubtitle: {
-        fontFamily: "Outfit_500Medium",
-        fontSize: scaleSize(11),
-        color: "rgba(201, 208, 238, 0.75)",
-        marginTop: scaleSize(2),
-    },
-    itemMetaRow: {
-        flexDirection: "row",
-        flexWrap: "wrap",
-        alignItems: "center",
-        marginTop: scaleSize(8),
-        gap: scaleSize(6),
-    },
-    metaBadge: {
-        flexDirection: "row",
-        alignItems: "center",
-        paddingHorizontal: scaleSize(10),
-        paddingVertical: scaleSize(4),
-        borderRadius: scaleSize(999),
-        backgroundColor: TRIBE_BADGE_BG,
-        borderWidth: scaleSize(1),
-        borderColor: TRIBE_BADGE_BORDER,
-    },
-    metaBadgeSecondary: {
-        backgroundColor: TRIBE_BADGE_SECONDARY_BG,
-        borderColor: TRIBE_BADGE_SECONDARY_BORDER,
-    },
-    metaBadgeText: {
-        fontFamily: "Outfit_700Bold",
-        fontSize: scaleSize(10),
-        color: TRIBE_BADGE_TEXT,
-        letterSpacing: 0.36,
-        textTransform: "uppercase",
-    },
-    metaBadgeTextSecondary: {
-        color: TRIBE_BADGE_TEXT_SECONDARY,
-    },
-    deletePill: {
-        width: scaleSize(34),
-        height: scaleSize(34),
-        borderRadius: scaleSize(18),
-        alignItems: "center",
-        justifyContent: "center",
-        backgroundColor: TRIBE_DELETE_BG,
-        borderWidth: scaleSize(1),
-        borderColor: TRIBE_DELETE_BORDER,
-        marginLeft: scaleSize(12),
-    },
-    emptyState: { alignItems: "center" },
-    emptyGradient: {
-        width: "100%",
-        borderRadius: scaleSize(18),
-        paddingVertical: scaleSize(26),
-        paddingHorizontal: scaleSize(18),
+        backgroundColor: MODAL_BG,
+        padding: scaleSize(18),
         borderWidth: StyleSheet.hairlineWidth,
-        borderColor: "rgba(120, 184, 255, 0.24)",
-        alignItems: "center",
+        borderColor: TILE_BORDER,
+        shadowColor: "#000",
+        shadowOpacity: 0.2,
+        shadowRadius: scaleSize(20),
+        shadowOffset: { width: 0, height: scaleSize(10) },
+        elevation: 6,
     },
-    emptyIcon: {
-        width: scaleSize(44),
-        height: scaleSize(44),
-        borderRadius: scaleSize(22),
-        alignItems: "center",
-        justifyContent: "center",
-        backgroundColor: TRIBE_ACCENT_BG,
-        marginBottom: scaleSize(12),
-    },
-    emptyTitle: {
-        fontFamily: "Outfit_700Bold",
-        fontSize: scaleSize(15),
-        color: TRIBE_TEXT_PRIMARY,
-    },
-    emptySubtitle: {
-        fontFamily: "Outfit_400Regular",
-        fontSize: scaleSize(12.5),
-        color: "rgba(210, 218, 246, 0.75)",
-        textAlign: "center",
-        marginTop: scaleSize(8),
-    },
-    footerRow: {
-        paddingHorizontal: scaleSize(18),
-        paddingBottom: scaleSize(20),
-        paddingTop: scaleSize(10),
-        borderTopWidth: StyleSheet.hairlineWidth,
-        borderTopColor: SECTION_DIVIDER,
+
+    headerRow: {
         flexDirection: "row",
         alignItems: "center",
-        gap: scaleSize(12),
+        justifyContent: "space-between",
+        marginBottom: scaleSize(16),
     },
-    addBtnOuter: { flex: 1 },
+    title: { fontFamily: "Outfit_700Bold", fontSize: scaleSize(18), color: PRIMARY_TEXT },
+
+    itemCard: {
+        flexDirection: "row",
+        alignItems: "center",
+        paddingVertical: scaleSize(14),
+        paddingHorizontal: scaleSize(18),
+        backgroundColor: TILE_BG,
+        borderRadius: scaleSize(18),
+        marginBottom: scaleSize(10),
+        borderWidth: StyleSheet.hairlineWidth,
+        borderColor: TILE_BORDER,
+        shadowColor: "#000",
+        shadowOpacity: 0.08,
+        shadowRadius: scaleSize(12),
+        shadowOffset: { width: 0, height: scaleSize(6) },
+        elevation: 2,
+    },
+    deleteBtn: {
+        padding: scaleSize(6),
+        borderRadius: scaleSize(12),
+        backgroundColor: "rgba(255,92,99,0.14)",
+        marginLeft: scaleSize(4),
+    },
+    itemTitle: { fontFamily: "Outfit_700Bold", fontSize: scaleSize(14), color: PRIMARY_TEXT },
+    itemMeta: { fontFamily: "Outfit_600SemiBold", fontSize: scaleSize(12.5), color: SECONDARY_TEXT, marginTop: scaleSize(2) },
+
+    emptyBox: { alignItems: "center", paddingVertical: scaleSize(24) },
+    emptyText: { fontFamily: "Outfit_700Bold", color: PRIMARY_TEXT },
+    emptySub: { fontFamily: "Outfit_400Regular", color: SECONDARY_TEXT, marginTop: scaleSize(6), textAlign: "center" },
+
+    footerRow: {
+        flexDirection: "row",
+        alignItems: "center",
+        justifyContent: "space-between",
+        marginTop: scaleSize(16),
+    },
+
     addBtn: {
         flexDirection: "row",
         alignItems: "center",
-        justifyContent: "center",
+        paddingHorizontal: scaleSize(18),
         paddingVertical: scaleSize(12),
+        minHeight: scaleSize(44),
         borderRadius: scaleSize(18),
+        backgroundColor: ACTION_GHOST_BG,
         borderWidth: StyleSheet.hairlineWidth,
-        borderColor: "rgba(138, 152, 218, 0.32)",
+        borderColor: ACTION_GHOST_BORDER,
+        flexShrink: 0,
     },
-    addText: {
-        fontFamily: "Outfit_700Bold",
-        fontSize: scaleSize(13.5),
-        color: TRIBE_TEXT_PRIMARY,
-    },
-    saveBtnOuter: { flex: 1 },
-    saveGradient: {
+    addText: { fontFamily: "Outfit_700Bold", color: ACTION_GHOST_TEXT, fontSize: scaleSize(13.5) },
+
+    saveButton: {
         flexDirection: "row",
         alignItems: "center",
-        justifyContent: "center",
+        paddingHorizontal: scaleSize(22),
         paddingVertical: scaleSize(12),
+        minHeight: scaleSize(44),
         borderRadius: scaleSize(18),
-    },
-    saveText: {
-        fontFamily: "Outfit_700Bold",
-        fontSize: scaleSize(14),
-        color: "#0e1320",
-    },
-    editorCard: {
-        width: Math.min(width - scaleSize(48), scaleSize(420)),
-        borderRadius: scaleSize(24),
-        backgroundColor: CARD_BG,
-        borderWidth: scaleSize(1),
-        borderColor: CARD_STROKE,
-        overflow: "hidden",
+        backgroundColor: ACTION_PRIMARY,
         shadowColor: "#000",
-        shadowOpacity: 0.28,
-        shadowRadius: scaleSize(18),
-        shadowOffset: { width: 0, height: scaleSize(12) },
-        elevation: 12,
+        shadowOpacity: 0.18,
+        shadowRadius: scaleSize(14),
+        shadowOffset: { width: 0, height: scaleSize(6) },
+        elevation: 3,
+        flexShrink: 0,
     },
-    editorHeader: {
-        paddingHorizontal: scaleSize(20),
-        paddingVertical: scaleSize(18),
-        borderBottomWidth: StyleSheet.hairlineWidth,
-        borderBottomColor: HEADER_BORDER,
+    saveText: { fontFamily: "Outfit_700Bold", color: ACTION_PRIMARY_TEXT, fontSize: scaleSize(14.5) },
+
+    inputRow: {
         flexDirection: "row",
         alignItems: "center",
-        justifyContent: "space-between",
-    },
-    editorHeaderCopy: { flex: 1, paddingRight: scaleSize(12) },
-    editorTitle: {
-        fontFamily: "Outfit_700Bold",
-        fontSize: scaleSize(17),
-        color: TRIBE_TEXT_PRIMARY,
-    },
-    editorSubtitle: {
-        fontFamily: "Outfit_400Regular",
-        fontSize: scaleSize(12.5),
-        color: "rgba(214, 220, 255, 0.74)",
-        marginTop: scaleSize(4),
-    },
-    editorBody: {
-        paddingHorizontal: scaleSize(20),
-        paddingTop: scaleSize(18),
-        paddingBottom: scaleSize(14),
-        gap: scaleSize(16),
-    },
-    optionCard: {
-        flexDirection: "row",
-        alignItems: "center",
-        paddingHorizontal: scaleSize(16),
-        paddingVertical: scaleSize(14),
-        borderRadius: scaleSize(18),
-        backgroundColor: OPTION_BG,
-        borderWidth: StyleSheet.hairlineWidth,
-        borderColor: OPTION_BORDER,
-    },
-    optionIcon: {
-        width: scaleSize(40),
-        height: scaleSize(40),
-        borderRadius: scaleSize(20),
-        alignItems: "center",
-        justifyContent: "center",
-        marginRight: scaleSize(12),
-        backgroundColor: TRIBE_ACCENT_BG,
-        borderWidth: StyleSheet.hairlineWidth,
-        borderColor: TRIBE_ACCENT_BORDER,
-    },
-    optionLabel: {
-        fontFamily: "Outfit_600SemiBold",
-        fontSize: scaleSize(13),
-        color: "rgba(218, 224, 255, 0.82)",
-    },
-    optionValue: {
-        fontFamily: "Outfit_700Bold",
-        fontSize: scaleSize(14),
-        color: TRIBE_TEXT_PRIMARY,
-        marginTop: scaleSize(4),
-    },
-    sectionLabel: {
-        fontFamily: "Outfit_600SemiBold",
-        fontSize: scaleSize(12.5),
-        color: "rgba(204, 210, 245, 0.6)",
-        textTransform: "uppercase",
-        letterSpacing: 0.8,
-        marginTop: scaleSize(4),
-    },
-    metricPills: { flexDirection: "row", flexWrap: "wrap", gap: scaleSize(8) },
-    metricChip: {
-        paddingHorizontal: scaleSize(14),
-        paddingVertical: scaleSize(7),
-        borderRadius: scaleSize(999),
-        borderWidth: StyleSheet.hairlineWidth,
-        borderColor: OPTION_BORDER,
-        backgroundColor: "rgba(35, 38, 58, 0.82)",
-    },
-    metricChipActive: {
-        backgroundColor: TRIBE_ACCENT_BG,
-        borderColor: TRIBE_ACCENT_BORDER,
-    },
-    metricChipText: {
-        fontFamily: "Outfit_600SemiBold",
-        fontSize: scaleSize(12.5),
-        color: "rgba(212, 220, 255, 0.68)",
-    },
-    metricChipTextActive: { color: TRIBE_TEXT_PRIMARY },
-    toggleCard: {
-        flexDirection: "row",
-        alignItems: "center",
-        paddingHorizontal: scaleSize(16),
-        paddingVertical: scaleSize(14),
-        borderRadius: scaleSize(18),
-        backgroundColor: OPTION_BG,
-        borderWidth: StyleSheet.hairlineWidth,
-        borderColor: OPTION_BORDER,
-    },
-    optionHint: {
-        fontFamily: "Outfit_400Regular",
-        fontSize: scaleSize(12),
-        color: "rgba(206, 214, 248, 0.5)",
-        marginTop: scaleSize(4),
-    },
-    toggleBadge: {
-        width: scaleSize(34),
-        height: scaleSize(34),
-        borderRadius: scaleSize(17),
-        alignItems: "center",
-        justifyContent: "center",
-        backgroundColor: "rgba(42, 44, 62, 0.82)",
-        borderWidth: StyleSheet.hairlineWidth,
-        borderColor: OPTION_BORDER,
-    },
-    toggleBadgeActive: {
-        backgroundColor: TOGGLE_ACTIVE_BG,
-        borderColor: TOGGLE_ACTIVE_BORDER,
-    },
-    doneBtnOuter: {
-        paddingHorizontal: scaleSize(20),
-        paddingBottom: scaleSize(20),
-    },
-    doneGradient: {
-        flexDirection: "row",
-        alignItems: "center",
-        justifyContent: "center",
-        borderRadius: scaleSize(18),
         paddingVertical: scaleSize(12),
+        borderBottomColor: TILE_BORDER,
+        borderBottomWidth: StyleSheet.hairlineWidth,
+        marginTop: scaleSize(10),
     },
-    doneText: {
-        fontFamily: "Outfit_700Bold",
-        fontSize: scaleSize(14),
-        color: "#0e1320",
+    label: { fontFamily: "Outfit_600SemiBold", fontSize: scaleSize(13), color: PRIMARY_TEXT },
+    value: { fontFamily: "Outfit_500Medium", fontSize: scaleSize(14), color: PRIMARY_TEXT },
+
+    metricRow: { marginTop: scaleSize(14) },
+    metricPills: { flexDirection: "row", marginTop: scaleSize(10) },
+    pill: {
+        borderRadius: scaleSize(999),
+        paddingHorizontal: scaleSize(14),
+        paddingVertical: scaleSize(8),
+        backgroundColor: MONOGRAM_BG,
+        marginRight: scaleSize(8),
     },
+    pillActive: {
+        backgroundColor: PILL_ACTIVE_BG,
+        borderWidth: StyleSheet.hairlineWidth,
+        borderColor: PILL_ACTIVE_BORDER,
+    },
+    pillText: { fontFamily: "Outfit_600SemiBold", fontSize: scaleSize(13), color: SECONDARY_TEXT },
+    pillTextActive: { color: PILL_ACTIVE_TEXT },
+
+    toggleRow: {
+        flexDirection: "row",
+        alignItems: "center",
+        paddingVertical: scaleSize(14),
+        borderBottomColor: TILE_BORDER,
+        borderBottomWidth: StyleSheet.hairlineWidth,
+    },
+    subtle: { fontFamily: "Outfit_400Regular", fontSize: scaleSize(12), color: SECONDARY_TEXT },
 });

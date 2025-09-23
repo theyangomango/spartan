@@ -3,12 +3,13 @@ import { Modal, View, Text, StyleSheet, Pressable } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import theme from '../../../theme/mfpDark';
 import scaleSize from '../../../helper/scaleSize';
+import { withStrongPress } from "../../../utils/haptics";
 
 export default function PostHonestyModal({ visible, onConfirm, onCancel }) {
     return (
         <Modal transparent visible={visible} animationType="fade" onRequestClose={onCancel}>
             <View style={styles.backdrop}>
-                <Pressable style={styles.backdropTouchable} onPress={onCancel} />
+                <Pressable style={styles.backdropTouchable} onPress={withStrongPress(onCancel)} />
                 <View style={styles.card}>
                     <View style={styles.iconRow}>
                         <View style={styles.iconWrap}>
@@ -20,10 +21,10 @@ export default function PostHonestyModal({ visible, onConfirm, onCancel }) {
                         Share authentic progress. Avoid misrepresenting results or posting edited photos as unedited.
                     </Text>
                     <View style={styles.btnRow}>
-                        <Pressable style={[styles.btn, styles.cancel]} onPress={onCancel}>
+                        <Pressable style={[styles.btn, styles.cancel]} onPress={withStrongPress(onCancel)}>
                             <Text style={[styles.btnText, styles.cancelText]}>Cancel</Text>
                         </Pressable>
-                        <Pressable style={[styles.btn, styles.confirm]} onPress={onConfirm}>
+                        <Pressable style={[styles.btn, styles.confirm]} onPress={withStrongPress(onConfirm)}>
                             <Text style={[styles.btnText, styles.confirmText]}>I Agree</Text>
                         </Pressable>
                     </View>

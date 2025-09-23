@@ -4,6 +4,7 @@ import scaleSize from "../../../helper/scaleSize";
 import FastImage from 'react-native-fast-image';
 import { usePfp } from "../../../helper/usePFPs";
 import theme from '../../../theme/mfpDark';
+import { withStrongPress } from "../../../utils/haptics";
 
 const { height: screenHeight } = Dimensions.get('window');
 const scaledSize = (size) => scaleSize(size);
@@ -16,7 +17,7 @@ export default function ProfileInfo({ userData, pfp, onPressFollowers, onPressFo
     return (
         <View style={styles.main_ctnr}>
             <View style={styles.top_row}>
-                <Pressable style={styles.followers_stat_ctnr} onPress={onPressFollowers} hitSlop={8}>
+                <Pressable style={styles.followers_stat_ctnr} onPress={withStrongPress(onPressFollowers)} hitSlop={8}>
                     <Text style={styles.user_stat_count_text}>{followersCount}</Text>
                     <Text style={styles.user_stat_text}>Followers</Text>
                 </Pressable>
@@ -31,7 +32,7 @@ export default function ProfileInfo({ userData, pfp, onPressFollowers, onPressFo
                         <View style={[styles.pfp, { backgroundColor: '#e5e7eb' }]} />
                     )}
                 </View>
-                <Pressable style={styles.following_stat_ctnr} onPress={onPressFollowing} hitSlop={8}>
+                <Pressable style={styles.following_stat_ctnr} onPress={withStrongPress(onPressFollowing)} hitSlop={8}>
                     <Text style={styles.user_stat_count_text}>{followingCount}</Text>
                     <Text style={styles.user_stat_text}>Following</Text>
                 </Pressable>

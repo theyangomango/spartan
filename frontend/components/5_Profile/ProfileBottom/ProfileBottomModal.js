@@ -6,6 +6,7 @@ import Svg, { Path } from "react-native-svg";
 import PostsSection from "./Posts/PostsSection";
 import HistorySection from "./History/HistorySection";
 import SavedSection from "./Saved/SavedSection";
+import { withStrongPress } from "../../../utils/haptics";
 
 const { height: screenHeight } = Dimensions.get('window');
 const scaledSize = (size) => scaleSize(size);
@@ -15,17 +16,17 @@ const ProfileBottomModal = ({ selectedPanel, setSelectedPanel, posts, savedPosts
         <View style={styles.container}>
             <View style={styles.panel_btns}>
                 <View style={styles.panel_btn}>
-                    <Pressable onPress={() => setSelectedPanel('posts')}>
+                    <Pressable onPress={withStrongPress(() => setSelectedPanel('posts'))}>
                         <Grid2 size={scaledSize(28)} color={selectedPanel === 'posts' ? "#359ffc" : "#888"} />
                     </Pressable>
                 </View>
                 <View style={styles.panel_btn}>
-                    <Pressable onPress={() => setSelectedPanel('history')}>
+                    <Pressable onPress={withStrongPress(() => setSelectedPanel('history'))}>
                         <Clock size={scaledSize(28)} color={selectedPanel === 'history' ? "#359ffc" : "#888"} />
                     </Pressable>
                 </View>
                 <View style={[styles.panel_btn]}>
-                    <Pressable onPress={() => setSelectedPanel('saved')}>
+                    <Pressable onPress={withStrongPress(() => setSelectedPanel('saved'))}>
                         {/* Bookmark icon */}
                         <Svg
                             xmlns="http://www.w3.org/2000/svg"

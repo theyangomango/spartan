@@ -2,12 +2,13 @@ import React from "react";
 import { StyleSheet, View, Pressable, Text, Image } from "react-native";
 import theme from '../../../theme/mfpDark';
 import scaleSize from '../../../helper/scaleSize';
+import { withStrongPress } from "../../../utils/haptics";
 
 function PreviewPhoto({ id, uri, selected, order, onToggle }) {
     const handlePress = () => onToggle(uri);
 
     return (
-        <Pressable onPress={handlePress} style={styles.image_ctnr} android_disableSound>
+        <Pressable onPress={withStrongPress(handlePress)} style={styles.image_ctnr} android_disableSound>
             <Image source={{ uri }} style={styles.image} resizeMode="cover" />
             {selected && (
                 <>

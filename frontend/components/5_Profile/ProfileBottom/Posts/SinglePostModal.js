@@ -22,6 +22,7 @@ import ShareBottomSheet from "../../../1_Feed/SharePost/ShareBottomSheet";
 import FeedWorkoutViewerSheet from "../../../1_Feed/ViewWorkout/FeedWorkoutViewerSheet";
 
 import scaleSize from "../../../../helper/scaleSize";
+import { withStrongPress } from "../../../../utils/haptics";
 
 const { width: SW, height: SH } = Dimensions.get("window");
 const TARGET_Y = getScrollTargetPosition(SW, SH);
@@ -249,7 +250,7 @@ export default function SinglePostModal({ visible, post, onClose, onOpenWorkout 
                             },
                         ]}
                     >
-                        <TouchableOpacity onPress={close} style={styles.backBtn} activeOpacity={0.8}>
+                        <TouchableOpacity onPress={withStrongPress(close)} style={styles.backBtn} activeOpacity={0.8}>
                             <Ionicons name="chevron-back" size={dyn.iconSize} color="#fff" />
                         </TouchableOpacity>
                     </Reanimated.View>
