@@ -2,10 +2,8 @@
 import React, { useEffect, useRef } from "react";
 import { View, Pressable, Text, StyleSheet, Platform } from "react-native";
 import Svg, { Circle, Defs, RadialGradient, Stop } from "react-native-svg";
-import Reanimated, { useSharedValue, withTiming, withDelay, withSequence, Easing, useAnimatedProps, runOnJS } from "react-native-reanimated";
+import Reanimated, { useSharedValue, withTiming, withDelay, withSequence, Easing, useAnimatedProps, runOnJS, useAnimatedStyle } from "react-native-reanimated";
 import { BTN_SIZE } from "../sections/workoutTheme";
-import theme from "../../../theme/mfpDark";
-
 import scaleSize from "../../../helper/scaleSize";
 import { strong as haptic } from "../../../utils/haptics";
 import * as Haptics from "expo-haptics";
@@ -20,12 +18,15 @@ import * as Haptics from "expo-haptics";
  *  - onOpen: () => void
  *  - onStart: () => void
  *  - holdMs?: number (default 650)
+ *  - templateFocusIndex?: number
  */
-export default function  StartOpenButton({ hasActiveWorkout, onOpen, onStart, holdMs = 550 }) {
+export default function StartOpenButton({ hasActiveWorkout, onOpen, onStart, holdMs = 550, templateFocusIndex }) {
     /* ------------- Long-press ring (START state) ------------- */
     // Reanimated progress on the UI thread to avoid JS jank
     const progress = useSharedValue(0);      // 0..1
     const armed = useSharedValue(0);         // 1 while holding, 0 otherwise
+    const bounceScale = useSharedValue(1);
+    const focusInitializedRef = useRef(false);
     const firedRef = useRef(false);
     const freezeActiveRef = useRef(false);
     const freezeTimerRef = useRef(null);
@@ -136,6 +137,28 @@ export default function  StartOpenButton({ hasActiveWorkout, onOpen, onStart, ho
     // Cleanup on unmount
     useEffect(() => () => { clearFreeze(); clearHoldHaptics(); }, []);
 
+    /* ------------- Template focus bounce ------------- */
+    useEffect(() => {
+        if (templateFocusIndex == null) return;
+        if (hasActiveWorkout) {
+            bounceScale.value = withTiming(1, { duration: 140, easing: Easing.out(Easing.cubic) });
+            return;
+        }
+        if (!focusInitializedRef.current) {
+            focusInitializedRef.current = true;
+            return;
+        }
+        bounceScale.value = 1;
+        bounceScale.value = withSequence(
+            withTiming(1.08, { duration: 160, easing: Easing.out(Easing.cubic) }),
+            withTiming(1.0, { duration: 220, easing: Easing.out(Easing.cubic) })
+        );
+    }, [templateFocusIndex, hasActiveWorkout, bounceScale]);
+
+    const bounceStyle = useAnimatedStyle(() => ({
+        transform: [{ scale: bounceScale.value }],
+    }));
+
     /* ------------- Static halo (OPEN state) ------------- */
     // Non-pulsing white halo that hugs the black button and extends a few pixels outward.
 
@@ -145,7 +168,7 @@ export default function  StartOpenButton({ hasActiveWorkout, onOpen, onStart, ho
     };
 
     return (
-        <View style={styles.wrap}>
+        <Reanimated.View style={[styles.wrap, bounceStyle]}>
             {/* White halo: iOS via shadow, Android via SVG radial gradient */}
             {Platform.OS !== 'ios' && <Halo size={BTN_SIZE * 1.12} />}
             {/* Hidden back disc (no visible ring) */}
@@ -173,7 +196,7 @@ export default function  StartOpenButton({ hasActiveWorkout, onOpen, onStart, ho
 
             {/* START state progress ring (UI-thread, jank-free) */}
             {!hasActiveWorkout && <HoldRing progress={progress} />}
-        </View>
+        </Reanimated.View>
     );
 }
 

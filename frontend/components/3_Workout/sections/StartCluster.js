@@ -51,6 +51,7 @@ const StartCluster = ({
     onStartWorkout,
     onOpenNewWorkout,
     onOpenCreatePost,
+    templateFocusIndex,
 }) => {
     const scale = scaleAnim || new Animated.Value(1);
     const { height: screenHeight } = useWindowDimensions();
@@ -206,6 +207,7 @@ const StartCluster = ({
                             hasActiveWorkout={hasActiveWorkout}
                             onOpen={onOpenNewWorkout}
                             onStart={() => onStartWorkout?.(privacyMode)}
+                            templateFocusIndex={templateFocusIndex}
                         />
                     </Animated.View>
 

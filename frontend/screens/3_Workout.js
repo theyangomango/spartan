@@ -1003,6 +1003,7 @@ export default function Workout({ navigation, route }) {
                             onStartWorkout={onStartWorkout}
                             onOpenNewWorkout={openNewWorkout}
                             onOpenCreatePost={openCreatePost}
+                            templateFocusIndex={activeIdx}
                         />
                     </View>
                 </View>
