@@ -44,8 +44,8 @@ const ts = require('../../helper/scaleSize').ts;
 const InfoPanel = ({ isVisible, opacity }) => {
     return (isVisible && (<Animated.View style={[styles.infoPanel, { opacity, paddingHorizontal: dynamicStyles.paddingHorizontal, paddingVertical: dynamicStyles.paddingVertical }]}>
         <Text style={[styles.infoText, { fontSize: scaleSize(dynamicStyles.fontSize), lineHeight: scaleSize(ts(dynamicStyles.lineHeight)) }]}>
-            Leaderboard rankings are based on the calculated 1 Rep Max (1RM). 
-            Each set performed is calculated using the Brzycki Formula: 1RM = Weight * 36/(37 - Reps)
+            Leaderboard rankings are based on the calculated 1 Rep Max (1RM (Adj)).
+            Each set performed is calculated using the Brzycki Formula: 1RM (Adj) = Weight * 36/(37 - Reps)
         </Text>
     </Animated.View>));
 };

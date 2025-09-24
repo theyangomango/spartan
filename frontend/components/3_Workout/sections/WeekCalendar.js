@@ -59,7 +59,7 @@ const makeWeekDays = (startDate) =>
  */
 export default function WeekCalendar({ workoutsMap = {}, onWeekChange, onDayPress }) {
     /* ---- layout ---- */
-    const OUTER_HPAD = 14; // align with Feed ActivityChips left padding
+    const OUTER_HPAD = 14;
     const INNER_HPAD = 14;
     const CELL_GAP = 8;
 

@@ -216,31 +216,6 @@ const Post = forwardRef(function Post({
             } catch {}
             resolve(null);
         }),
-        measureScreenFrame: () => new Promise((resolve) => {
-            try {
-                if (viewRef.current?.measureInWindow) {
-                    viewRef.current.measureInWindow((_, y, __, height) => {
-                        if (typeof y === 'number' && typeof height === 'number') {
-                            resolve({ top: y, height, bottom: y + height });
-                        } else {
-                            resolve(null);
-                        }
-                    });
-                    return;
-                }
-                if (viewRef.current?.measure) {
-                    viewRef.current.measure((_, __, ___, height, _____, pageY) => {
-                        if (typeof pageY === 'number' && typeof height === 'number') {
-                            resolve({ top: pageY, height, bottom: pageY + height });
-                        } else {
-                            resolve(null);
-                        }
-                    });
-                    return;
-                }
-            } catch {}
-            resolve(null);
-        }),
         handleFooterTap: handleFooterTapFromOverlay,
     }), [carouselRef, viewRef, handleFooterTapFromOverlay]);
 

@@ -16,7 +16,6 @@ import { Gesture, GestureDetector } from 'react-native-gesture-handler';
 import PostListItem from "../components/1_Feed/PostListItem";
 import createCellRenderer from "../components/1_Feed/createCellRenderer";
 import useHeaderSearchUsers from "../hooks/useHeaderSearchUsers";
-// import ChipsRoundMask from "../components/1_Feed/Pulse/ChipsRoundMask";
 import NotificationsBottomSheet from "../components/1_Feed/Notifications/NotificationsBottomSheet";
 import CommentsBottomSheet from "../components/1_Feed/Comments/CommentsBottomSheet";
 import ShareBottomSheet from "../components/1_Feed/SharePost/ShareBottomSheet";
@@ -30,18 +29,11 @@ import useFilteredFeed from "../helper/useFilteredFeed";
 import MaskedView from "@react-native-masked-view/masked-view";
 import useFeedUserData from "./feed/hooks/useFeedUserData";
 import { FeedFocusProvider } from "./feed/hooks/FeedFocusContext";
-import useFeedUnfocusGesture from "./feed/hooks/useFeedUnfocusGesture";
-import { toMillis as toMillisSafe } from "../utils/friends";
-import { canViewWorkout, coercePrivacyMode } from "../utils/workoutPrivacy";
-import { doc, getDoc } from "firebase/firestore";
-import { db } from "../../firebase.config";
-import scaleSize from "../helper/scaleSize";
 import {
     TARGET_POSITION,
     FOCUS_ANIMATION_DURATION as ANIMATION_DURATION,
     INTERACTIVE_START_MS,
     INTERACTIVE_CANCEL_MS,
-    INTERACTIVE_CANCEL_FADE_MS,
     INTERACTIVE_LOCKOUT_MS,
     COMMENTS_COLLAPSE_MIN_PX,
     COMMENTS_REOPEN_MAX_PX,
@@ -75,8 +67,6 @@ export default function Feed({ navigation, route }) {
     const [commentsBottomSheetExpandFlag, setCommentsBottomSheetExpandFlag] = useState(false);
     const [commentsCollapseSignal, setCommentsCollapseSignal] = useState(0);
     const [commentsReopenSignal, setCommentsReopenSignal] = useState(0);
-    const [commentsOpenPositionPx, setCommentsOpenPositionPx] = useState(null);
-    const commentsContainerTop = useMemo(() => scaleSize(85), []);
     // Pre-mounted bottom sheet viewer for workouts
     const [feedWorkoutExpandToggle, setFeedWorkoutExpandToggle] = useState(false);
     const [feedWorkoutItems, setFeedWorkoutItems] = useState([]);
@@ -106,7 +96,7 @@ export default function Feed({ navigation, route }) {
     const itemLayoutsRef = useRef(new Map()); // index -> { y, h }
     const viewableSetRef = useRef(new Set());
     const postRefs = useRef({});
-    // Track current visible height of the collapsible header (overlay header + chips)
+    // Track current visible height of the collapsible header
     const visibleHeaderHRef = useRef(0);
     const setVisibleHeaderJS = (v) => { visibleHeaderHRef.current = v || 0; };
     // Measure the compact back header shown during focus
@@ -118,8 +108,6 @@ export default function Feed({ navigation, route }) {
     const translatingIndexRef = useRef(-1);
     const alignmentSuspendedRef = useRef(false);
     const unfocusGestureTimeoutRef = useRef(null);
-    const activityChipWorkoutCacheRef = useRef(new Map());
-    const activityChipUserWorkoutsRef = useRef(new Map());
     const activityViewerSessionRef = useRef(0);
 
     useEffect(() => {
@@ -129,12 +117,6 @@ export default function Feed({ navigation, route }) {
     useEffect(() => {
         translatingIndexRef.current = translatingIndexState;
     }, [translatingIndexState]);
-
-    useEffect(() => {
-        if (!isSomePostFocused) {
-            setCommentsOpenPositionPx(null);
-        }
-    }, [isSomePostFocused]);
 
     useEffect(() => () => {
         if (unfocusGestureTimeoutRef.current) {
@@ -190,9 +172,7 @@ export default function Feed({ navigation, route }) {
     /* ---------- animated values ---------- */
     // Reanimated header reveal values (UI thread)
     const headerH = useSharedValue(0);
-    const chipsH = useSharedValue(0); // minimum visible height (keep chips in view)
-    const maskH = useSharedValue(0);  // height of rounded mask under chips
-    const hidden = useSharedValue(0); // 0..(H - chipsH)
+    const hidden = useSharedValue(0); // header hide distance
     const prevY = useSharedValue(0);
     const focusHide = useSharedValue(0); // when focusing a post, fully hide header
     const isFocusSV = useSharedValue(0); // freeze JS mirrors during focus
@@ -201,7 +181,6 @@ export default function Feed({ navigation, route }) {
     const focusBaseSV = useSharedValue(0);          // base focused translateY (negative)
     const interTranslateSV = useSharedValue(0);     // overlay translate during drag
     const focusTranslateSV = useSharedValue(0);     // base translate for focus/unfocus
-    const storiesOpacitySV = useSharedValue(1);     // chips fade
     // Animated styles: overlay header translate
     const overlayHeaderStyle = useAnimatedStyle(() => {
         const totalHidden = Math.min(headerH.value, hidden.value + focusHide.value);
@@ -217,7 +196,6 @@ export default function Feed({ navigation, route }) {
         visibleSmoothSV.value = target;
     });
     const maskContainerStyle = useAnimatedStyle(() => ({ top: visibleSmoothSV.value }));
-    const chipsOpacityStyle = useAnimatedStyle(() => ({ opacity: storiesOpacitySV.value }));
     // Cross-fade headers during interactive unfocus: normal header fades in while back header fades out
     const normalHeaderOpacityStyle = useAnimatedStyle(() => ({
         opacity: isFocusSV.value === 1 ? interactiveProgressSV.value : 1,
@@ -289,7 +267,7 @@ export default function Feed({ navigation, route }) {
     }, []);
 
     // Reanimated scroll handler: UI-thread header control + forward to JS logic
-    // Ratio to slow header/chips/mask displacement relative to user scroll
+    // Ratio to slow header displacement relative to user scroll
     const HEADER_SCROLL_RATIO = 0.2; // e.g., 10px scroll -> 5px displacement
     const refreshingSV = useSharedValue(0);
     const onScrollRe = useAnimatedScrollHandler({
@@ -313,7 +291,7 @@ export default function Feed({ navigation, route }) {
             prevY.value = y;
             const H = headerH.value;
             if (H > 0) {
-                const minVisible = Math.min(Math.max(chipsH.value + maskH.value, 0), H);
+                const minVisible = 0;
                 const maxHidden = Math.max(0, H - minVisible);
                 // Apply slowed displacement factor so UI moves slower than finger
                 let next = hidden.value + dy * HEADER_SCROLL_RATIO; // dy>0 hide; dy<0 reveal
@@ -390,50 +368,6 @@ export default function Feed({ navigation, route }) {
             });
     }, [insets?.top]);
 
-    const applyCommentsOpenPosition = useCallback((top, measuredHeight) => {
-        if (!Number.isFinite(top) || !Number.isFinite(measuredHeight)) return;
-        const containerHeight = height - commentsContainerTop;
-        const bottomY = top + measuredHeight;
-        const openPx = Math.max(0, Math.min(containerHeight, containerHeight - (bottomY - commentsContainerTop)));
-        setCommentsOpenPositionPx(openPx);
-    }, [commentsContainerTop, setCommentsOpenPositionPx]);
-
-    const scheduleCommentsOpenPositionUpdate = useCallback((idx, targetTop, sessionId) => {
-        if (!Number.isFinite(targetTop)) return;
-
-        const layout = itemLayoutsRef.current?.get?.(idx);
-        if (layout && Number.isFinite(layout?.h)) {
-            applyCommentsOpenPosition(targetTop, layout.h);
-        }
-
-        const ref = postRefs.current?.[idx];
-        if (!ref || typeof ref?.measureScreenFrame !== 'function') return;
-
-        const measure = (attempt = 0) => {
-            if (focusSessionNonceRef.current !== sessionId) return;
-            try {
-                Promise.resolve(ref.measureScreenFrame())
-                    .then((frame) => {
-                        if (focusSessionNonceRef.current !== sessionId) return;
-                        const top = frame && Number.isFinite(frame?.top) ? frame.top : null;
-                        const h = frame && Number.isFinite(frame?.height) ? frame.height : null;
-                        if (!Number.isFinite(top) || !Number.isFinite(h)) {
-                            if (attempt < 6) requestAnimationFrame(() => measure(attempt + 1));
-                            return;
-                        }
-                        applyCommentsOpenPosition(top, h);
-                    })
-                    .catch(() => {
-                        if (attempt < 6) requestAnimationFrame(() => measure(attempt + 1));
-                    });
-            } catch {
-                if (attempt < 6) requestAnimationFrame(() => measure(attempt + 1));
-            }
-        };
-
-        requestAnimationFrame(() => measure(0));
-    }, [applyCommentsOpenPosition]);
-
     /* ---------- focus / unfocus handlers ---------- */
     const handleFocusPost = (index, pageY, preferWaitForHeader = false) => {
         // Any manual focus should invalidate stale programmatic focus requests
@@ -444,8 +378,6 @@ export default function Feed({ navigation, route }) {
         try { isTransitioningSV.value = 1; } catch { }
         try { panEnabledSV.value = 0; } catch { }
         const sessionId = (focusSessionNonceRef.current = (focusSessionNonceRef.current || 0) + 1);
-
-        setCommentsOpenPositionPx(null);
 
         const maybeSyncScrollOffset = () => {
             if (typeof pageY !== 'number') return;
@@ -470,7 +402,6 @@ export default function Feed({ navigation, route }) {
             setFocusedIndexState(index);
             setTranslatingIndexState(index);
         });
-        commentsHiddenSV.value = 0;
 
         const resolveFocusPageY = () => {
             try {
@@ -493,7 +424,7 @@ export default function Feed({ navigation, route }) {
 
         const startFocus = () => {
             const resolvedPageY = resolveFocusPageY();
-            const Vstart = visibleHeaderHRef.current || 0; // overlay header+chips visible height right before focus
+            const Vstart = visibleHeaderHRef.current || 0; // overlay header visible height right before focus
             const Vfinal = backHeaderHRef.current || (insets?.top ? insets.top + 44 : TARGET_POSITION);
             // Needed translation Δ for the card: Vfinal - (resolvedPageY - Vstart) = - (resolvedPageY - Vstart - Vfinal)
             // animateView negates the input, so pass (resolvedPageY - Vstart - Vfinal)
@@ -501,13 +432,10 @@ export default function Feed({ navigation, route }) {
             // store target focused offset for interactive gesture math
             focusOffsetRef.current = -delta;
             try { focusBaseSV.value = -delta; } catch { }
-            scheduleCommentsOpenPositionUpdate(index, Vfinal, sessionId);
-            // Begin card translation first, then enter focus mode so header chips hide in sync
-            animateView(delta, 0);
-            // Hide global overlays immediately; state update follows once focus settles
-            try { global.__setFeedOverlayHidden?.(true); } catch {}
+            // Begin card translation first, then enter focus mode so the header hides in sync
+            animateView(delta);
             // Enter focus mode and ensure other posts fade out gradually
-            startTransition(() => setIsSomePostFocused(true));
+        startTransition(() => setIsSomePostFocused(true));
             try { interactiveProgressSV.value = withTiming(0, { duration: INTERACTIVE_START_MS, easing: ReEasing.out(ReEasing.cubic) }); } catch { }
             try {
                 setTimeout(() => ensureFocusedAlignment(index, sessionId, 0), ANIMATION_DURATION + 96);
@@ -548,7 +476,6 @@ export default function Feed({ navigation, route }) {
         try { programFocusNonceRef.current += 1; } catch { }
         try { setPendingFocusPid(null); } catch { }
         try { focusSessionNonceRef.current += 1; } catch { }
-        setCommentsOpenPositionPx(null);
         if (isTransitioning.current) return; /* 🔒 */
         isTransitioning.current = true;
         try { isTransitioningSV.value = 1; } catch { }
@@ -561,8 +488,6 @@ export default function Feed({ navigation, route }) {
 
         const fromGesture = origin === 'gesture';
 
-        try { global.__setFeedOverlayHidden?.(false); } catch {}
-
         try {
             focusHide.value = withTiming(0, { duration: ANIMATION_DURATION, easing: ReEasing.out(ReEasing.cubic) });
             interactiveProgressSV.value = withTiming(1, { duration: ANIMATION_DURATION, easing: ReEasing.out(ReEasing.cubic) });
@@ -570,18 +495,10 @@ export default function Feed({ navigation, route }) {
 
         if (!fromGesture) stopFlatListMomentum();
 
-        animateView(0, 1);
+        animateView(0);
 
         flatListRef.current?.setNativeProps({ scrollEnabled: true });
     };
-
-    useEffect(() => {
-        try { global.__setFeedOverlayHidden?.(isSomePostFocused); } catch {}
-    }, [isSomePostFocused]);
-
-    useEffect(() => () => {
-        try { global.__setFeedOverlayHidden?.(false); } catch {}
-    }, []);
 
     // When a post is focused/unfocused, animate header fully hidden/visible to avoid interference
     useEffect(() => {
@@ -627,9 +544,6 @@ export default function Feed({ navigation, route }) {
             unfocusGestureTimeoutRef.current = null;
         }
         setUnfocusGestureActive(false);
-        if (isSomePostFocused) {
-            try { global.__setFeedOverlayHidden?.(true); } catch {}
-        }
         if (isSomePostFocused && focusedPostIndex.current !== -1) {
             const idx = focusedPostIndex.current;
             const sessionId = focusSessionNonceRef.current;
@@ -651,7 +565,6 @@ export default function Feed({ navigation, route }) {
         isUnfocusingRef.current = false;
         if (clearTranslating) {
             // Finishing unfocus: commit state after animation to avoid layout jump
-            try { global.__setFeedOverlayHidden?.(false); } catch {}
             try { startTransition(() => setIsSomePostFocused(false)); } catch { }
             try { focusedPostIndex.current = -1; } catch { }
             translatingIndexRef.current = -1;
@@ -663,13 +576,12 @@ export default function Feed({ navigation, route }) {
         }
     }, [resumeInteractiveAlignment]);
 
-    const animateView = (translateYValue, opacityValue) => {
+    const animateView = (translateYValue) => {
         try {
             const clearTranslating = translateYValue === 0;
             focusTranslateSV.value = withSpring(-translateYValue, FOCUS_SPRING_CONFIG, () => {
                 runOnJS(onFocusTranslateEnd)(clearTranslating);
             });
-            storiesOpacitySV.value = withTiming(opacityValue, { duration: ANIMATION_DURATION, easing: ReEasing.out(ReEasing.cubic) });
         } catch {
             // Fallback: clear flags
             isTransitioning.current = false;
@@ -782,209 +694,7 @@ export default function Feed({ navigation, route }) {
         return true;
     }, [posts, handleFocusPost]);
 
-    const chipKeyOf = (chip) => {
-        if (!chip) return "";
-        const uid = String(chip?.uid || "");
-        const widRaw =
-            chip?.workoutID ??
-            chip?.workoutId ??
-            chip?.wid ??
-            chip?.workout?.wid ??
-            chip?.workoutId ??
-            null;
-        const wid = widRaw ? String(widRaw) : "";
-        const fallbackId = chip?.id ? String(chip.id) : "";
-        return `${uid}:${wid || fallbackId}`;
-    };
-
-    const ensureUserCompletedWorkouts = useCallback(async (uid) => {
-        const key = String(uid || "");
-        if (!key) return [];
-        if (activityChipUserWorkoutsRef.current.has(key)) {
-            const cached = activityChipUserWorkoutsRef.current.get(key);
-            return Array.isArray(cached) ? cached : [];
-        }
-        try {
-            const docRef = doc(db, "users", key);
-            const snap = await getDoc(docRef);
-            const data = snap.exists() ? (snap.data() || {}) : {};
-            const arr = Array.isArray(data?.completedWorkouts) ? data.completedWorkouts : [];
-            activityChipUserWorkoutsRef.current.set(key, arr);
-            return arr;
-        } catch (e) {
-            console.log("[Feed] failed to load completedWorkouts", key, e);
-            activityChipUserWorkoutsRef.current.set(key, []);
-            return [];
-        }
-    }, []);
-
-    const ensureWorkoutForChip = useCallback(async (chip) => {
-        if (!chip) return null;
-        const cacheKey = chipKeyOf(chip);
-        if (cacheKey && activityChipWorkoutCacheRef.current.has(cacheKey)) {
-            return activityChipWorkoutCacheRef.current.get(cacheKey);
-        }
-
-        const uid = String(chip?.uid || "");
-        if (!uid) return null;
-
-        const workouts = await ensureUserCompletedWorkouts(uid);
-        const targetIdRaw =
-            chip?.workoutID ??
-            chip?.workoutId ??
-            chip?.wid ??
-            chip?.workout?.wid ??
-            null;
-        const targetId = targetIdRaw ? String(targetIdRaw) : "";
-        let match = null;
-
-        if (targetId) {
-            match = workouts.find((w) => String(w?.wid || w?.id || w?.workoutID || "") === targetId) || null;
-        }
-
-        if (!match && workouts.length) {
-            const chipMs = toMillisSafe(chip?.ts);
-            if (chipMs) {
-                const MAX_DIFF_MS = 1000 * 60 * 60 * 12; // 12h tolerance
-                let bestDiff = Number.POSITIVE_INFINITY;
-                for (const w of workouts) {
-                    const wMs = toMillisSafe(w?.finishedAt ?? w?.createdAt ?? w?.created);
-                    if (!wMs) continue;
-                    const diff = Math.abs(wMs - chipMs);
-                    if (diff < bestDiff && diff <= MAX_DIFF_MS) {
-                        bestDiff = diff;
-                        match = w;
-                    }
-                }
-            }
-        }
-
-        const base = match ? { ...match } : {
-            wid: targetId || `${uid}:${chip?.id || "chip"}`,
-            created: toMillisSafe(chip?.ts) || Date.now(),
-            exercises: [],
-            duration: 0,
-            volume: 0,
-            reps: 0,
-            PBs: 0,
-            templateName: chip?.templateName || chip?.workoutName || "Workout",
-            name: chip?.workoutName || chip?.templateName || "Workout",
-        };
-        const baseWithPrivacy = base?.privacyMode ? base : { ...base, privacyMode: base?.privacyMode ?? 'hidden' };
-
-        const friendUid = uid;
-        const friendPfp = chip?.pfp || chip?.pfpUrl || chip?.photoURL || chip?.image || null;
-        const friendPfpVersion = chip?.pfpVersion ?? chip?.version ?? 0;
-
-        const enriched = {
-            ...baseWithPrivacy,
-            wid: baseWithPrivacy?.wid || baseWithPrivacy?.id || targetId || `${uid}:${chip?.id || "chip"}`,
-            creatorUID: String(baseWithPrivacy?.creatorUID || baseWithPrivacy?.creatorUid || baseWithPrivacy?.uid || friendUid),
-            templateName: baseWithPrivacy?.templateName || baseWithPrivacy?.template?.name || chip?.templateName || baseWithPrivacy?.name,
-            name: baseWithPrivacy?.name || baseWithPrivacy?.templateName || chip?.workoutName || chip?.templateName || "Workout",
-            exercises: Array.isArray(baseWithPrivacy?.exercises) ? baseWithPrivacy.exercises : [],
-            __friendUid: friendUid,
-            __friendPfp: friendPfp,
-            __friendPfpVersion: friendPfpVersion,
-            __chipKey: cacheKey || `${uid}:${chip?.id || "chip"}`,
-        };
-
-        const viewerData = (() => { try { return global?.userData || null; } catch { return null; } })();
-        const viewerUid = viewerData?.uid ? String(viewerData.uid) : "";
-        let result = enriched;
-        if (!canViewWorkout(enriched, viewerUid, viewerData)) {
-            result = {
-                privacyMode: coercePrivacyMode(enriched?.privacyMode),
-                creatorUID: enriched?.creatorUID,
-                wid: enriched?.wid,
-                name: enriched?.name,
-                templateName: enriched?.templateName,
-                exercises: [],
-            };
-        }
-
-        if (cacheKey) {
-            activityChipWorkoutCacheRef.current.set(cacheKey, result);
-        }
-
-        return result;
-    }, [ensureUserCompletedWorkouts]);
-
-    const handlePressActivityChip = useCallback(async (chip, index = 0, items = []) => {
-        if (!chip) return;
-        const source = Array.isArray(items) ? items.filter((it) => it?.type === 'workout') : [];
-        if (!source.length) return;
-
-        const boundedIndex = Math.min(Math.max(index, 0), source.length - 1);
-        const sessionId = activityViewerSessionRef.current + 1;
-        activityViewerSessionRef.current = sessionId;
-
-        const prepared = source.map((entry) => {
-            const key = chipKeyOf(entry);
-            return {
-                key: key || `${String(entry?.uid || 'u')}:${String(entry?.id || Math.random().toString(36).slice(2))}`,
-                workout: key ? activityChipWorkoutCacheRef.current.get(key) || null : null,
-                friendUid: String(entry?.uid || ''),
-                friendPfp: entry?.pfp || entry?.pfpUrl || entry?.photoURL || entry?.image || null,
-                friendPfpVersion: entry?.pfpVersion ?? entry?.version ?? 0,
-                chip: entry,
-            };
-        });
-
-        setFeedWorkoutItems(prepared);
-        setFeedWorkoutActiveIndex(boundedIndex);
-        setFeedWorkoutExpandToggle((flag) => !flag);
-
-        const prime = async (targetChip, targetIndex) => {
-            try {
-                const workout = await ensureWorkoutForChip(targetChip);
-                if (!workout) return;
-                if (activityViewerSessionRef.current !== sessionId) return;
-                setFeedWorkoutItems((prev) => {
-                    if (activityViewerSessionRef.current !== sessionId) return prev;
-                    if (!Array.isArray(prev) || targetIndex >= prev.length) return prev;
-                    const current = prev[targetIndex];
-                    if (current?.workout) return prev;
-                    const next = [...prev];
-                    next[targetIndex] = { ...current, workout };
-                    return next;
-                });
-            } catch (e) {
-                console.log('[Feed] ensureWorkoutForChip error', e);
-            }
-        };
-
-        if (!prepared[boundedIndex]?.workout) {
-            await prime(source[boundedIndex], boundedIndex);
-        }
-
-        source.forEach((entry, idx) => {
-            if (idx === boundedIndex) return;
-            if (prepared[idx]?.workout) return;
-            prime(entry, idx);
-        });
-    }, [ensureWorkoutForChip]);
-
-    useEffect(() => {
-        const sessionId = activityViewerSessionRef.current;
-        const current = Array.isArray(feedWorkoutItems) ? feedWorkoutItems[feedWorkoutActiveIndex] : null;
-        if (!current || current.workout || !current.chip) return;
-        ensureWorkoutForChip(current.chip)
-            .then((workout) => {
-                if (!workout) return;
-                if (activityViewerSessionRef.current !== sessionId) return;
-                setFeedWorkoutItems((prev) => {
-                    if (activityViewerSessionRef.current !== sessionId) return prev;
-                    if (!Array.isArray(prev) || feedWorkoutActiveIndex >= prev.length) return prev;
-                    const clone = [...prev];
-                    const existing = clone[feedWorkoutActiveIndex];
-                    if (!existing || existing.workout) return prev;
-                    clone[feedWorkoutActiveIndex] = { ...existing, workout };
-                    return clone;
-                });
-            })
-            .catch((e) => console.log('[Feed] ensureWorkoutForChip active error', e));
-    }, [feedWorkoutActiveIndex, feedWorkoutItems, ensureWorkoutForChip]);
+    
 
     // View workout details using FeedWorkoutViewerSheet (bottom sheet, not full-screen)
     function openViewWorkoutModal(workoutIndex) {
@@ -1194,38 +904,9 @@ export default function Feed({ navigation, route }) {
 
     // Following hydration and small prefetch handled in useHeaderSearchUsers
 
-    // Build data: posts only; header+chips are handled by overlay + spacer
+    // Build data: posts only; header handled by overlay + spacer
     const listData = useMemo(() => ([...(posts || [])]), [posts]);
     const listKeyExtractor = useCallback((item, i) => String(item?.pid || item?.id || i), []);
-
-    const { panUnfocus, commentsHiddenSV } = useFeedUnfocusGesture({
-        height,
-        isSomePostFocused,
-        isTransitioningSV,
-        panEnabledSV,
-        suspendInteractiveAlignment,
-        setUnfocusGestureActive,
-        isUnfocusingRef,
-        interactiveProgressSV,
-        interTranslateSV,
-        focusBaseSV,
-        focusTranslateSV,
-        focusOffsetRef,
-        focusHide,
-        storiesOpacitySV,
-        headerH,
-        signalCommentsCollapse,
-        signalCommentsReopen,
-        handleBackPress,
-        clearUnfocusFlagsJS,
-        FOCUS_SPRING_CONFIG,
-        ANIMATION_DURATION,
-        INTERACTIVE_CANCEL_MS,
-        INTERACTIVE_CANCEL_FADE_MS,
-        INTERACTIVE_LOCKOUT_MS,
-        COMMENTS_COLLAPSE_MIN_PX,
-        COMMENTS_REOPEN_MAX_PX,
-    });
 
     // Focused-only horizontal swipe at the same wrapper level to change slides
     // Feed-level handlers to proxy horizontal pan to the focused Post
@@ -1284,8 +965,8 @@ export default function Feed({ navigation, route }) {
     }, [isSomePostFocused, handleFooterTap]);
 
     const combinedGesture = useMemo(
-        () => Gesture.Simultaneous(panUnfocus, horizontalSwipe, footerTapGesture),
-        [panUnfocus, horizontalSwipe, footerTapGesture]
+        () => Gesture.Simultaneous(horizontalSwipe, footerTapGesture),
+        [horizontalSwipe, footerTapGesture]
     );
 
     return (
@@ -1359,7 +1040,7 @@ export default function Feed({ navigation, route }) {
                         responsive. */}
                 </SafeAreaView>
 
-                {/* Overlay header (FeedHeader + ActivityChips) that reveals/collapses; spacer keeps posts pushed */}
+                {/* Overlay header (FeedHeader) that reveals/collapses; spacer keeps posts pushed */}
                 <SafeAreaInsetsView edges={['top']} pointerEvents="box-none" style={{ position: 'absolute', top: 0, left: 0, right: 0 }}>
                     <FeedHeaderOverlay
                         navigation={navigation}
@@ -1372,16 +1053,13 @@ export default function Feed({ navigation, route }) {
                         timerRef={headerTimerRef}
                         overlayHeaderStyle={overlayHeaderStyle}
                         normalHeaderOpacityStyle={normalHeaderOpacityStyle}
-                        chipsOpacityStyle={chipsOpacityStyle}
                         backHeaderOpacityStyle={backHeaderOpacityStyle}
                         headerH={headerH}
                         hidden={hidden}
-                        chipsH={chipsH}
                         visibleHeaderHRef={visibleHeaderHRef}
                         backHeaderHRef={backHeaderHRef}
                         setBackHeaderH={setBackHeaderH}
                         isSomePostFocused={isSomePostFocused}
-                        onPressActivityChip={handlePressActivityChip}
                     />
                 </SafeAreaInsetsView>
 
@@ -1402,7 +1080,6 @@ export default function Feed({ navigation, route }) {
                     interactiveScale={3.0}
                     collapseSignal={commentsCollapseSignal}
                     reopenSignal={commentsReopenSignal}
-                    openPositionPx={commentsOpenPositionPx}
                     unfocusGestureActive={unfocusGestureActive}
                 />
                 <ShareBottomSheet

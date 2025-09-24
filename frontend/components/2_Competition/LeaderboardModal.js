@@ -114,7 +114,7 @@ export default function LeaderboardModal({
     const metric = isTribeFocused
         ? (activeComp?.metric || "1RM")
         : (comparedMetric || "1RM");
-    const metricLabel = (m) => (m === '1RM' ? '1RM' : m);
+    const metricLabel = (m) => (m === '1RM' ? '1RM (Adj)' : m);
 
     const normalizeByBodyweight = !!(isTribeFocused && activeComp?.normalizeByBodyweight);
 

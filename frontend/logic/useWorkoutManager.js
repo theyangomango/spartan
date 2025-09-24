@@ -11,7 +11,6 @@ import {
     increment,
     deleteDoc,
     collection,
-    addDoc,
     getDocs,
     query,
     where,
@@ -538,29 +537,6 @@ export default function useWorkoutManager({ uid, navigation, millisToHMS }) {
                     setIsSummaryModalVisible(true);
                     // Clear local immediately so header/footer and store reset without waiting
                     clearCurrentWorkoutLocally();
-
-                    // Publish a pulse for ActivityChips (non-blocking)
-                    try {
-                        const me = String(uid || global?.userData?.uid || "");
-                        if (me) {
-                            const pulse = {
-                                type: 'workout',
-                                ts: String(toMillis(completed?.created) || Date.now()),
-                                uid: me,
-                                handle: global?.userData?.handle || '',
-                                name: global?.userData?.name || '',
-                                pfpVersion: 0,
-                                detail: '',
-                                // surface workout naming for chips
-                                templateName: completed?.templateName || completed?.template?.name || null,
-                                workoutName: completed?.name || null,
-                                workoutID: completed?.wid,
-                            };
-                            addDoc(collection(db, 'users', me, 'pulse'), pulse).catch(() => {});
-                        }
-                    } catch (e) {
-                        // best-effort; do not block finish flow
-                    }
 
                     // Combine completedWorkouts append + totals + clear currentWorkout into one user doc update (reduces triggers)
                     try {

@@ -3,10 +3,9 @@ import { View } from "react-native";
 import Reanimated from "react-native-reanimated";
 import { SafeAreaView as SafeAreaInsetsView } from "react-native-safe-area-context";
 import FeedHeader from "./FeedHeader";
-import ActivityChips from "./Pulse/ActivityChips";
 import theme from "../../theme/mfpDark";
 
-// Encapsulates the overlaying FeedHeader + ActivityChips, plus the compact back header overlay
+// Encapsulates the overlaying FeedHeader plus the compact back header overlay
 // shown while a post is focused. Handles height measurements via callbacks/refs provided by parent.
 export default function FeedHeaderOverlay({
   // navigation & actions
@@ -18,16 +17,13 @@ export default function FeedHeaderOverlay({
   allUsersRef,
   activeWorkout,
   timerRef,
-  onPressActivityChip,
   // animated shared values and styles
   overlayHeaderStyle,
   normalHeaderOpacityStyle,
-  chipsOpacityStyle,
   backHeaderOpacityStyle,
   // layout shared values/refs
   headerH,
   hidden,
-  chipsH,
   visibleHeaderHRef,
   backHeaderHRef,
   setBackHeaderH,
@@ -90,15 +86,6 @@ export default function FeedHeaderOverlay({
             heightAdjust={-2}
           />
         </Reanimated.View>
-        {/* <Reanimated.View
-          onLayout={(e) => {
-            const h = e.nativeEvent.layout.height || 0;
-            if (h && Math.abs(h - chipsH.value) > 1) chipsH.value = h;
-          }}
-          style={chipsOpacityStyle}
-        >
-          <ActivityChips navigation={navigation} onPressChip={onPressActivityChip} />
-        </Reanimated.View> */}
       </Reanimated.View>
 
       {/* Compact back header shown while a post is focused */}

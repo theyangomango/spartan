@@ -70,6 +70,13 @@ const computeVolume = (exercise) => {
     return sets.reduce((sum, s) => sum + safeNumber(s?.weight, 0) * safeNumber(s?.reps, 0), 0);
 };
 
+const computeTotalReps = (exercise) => {
+    const explicit = safeNumber(exercise?.Reps ?? exercise?.totalReps ?? exercise?.total_reps, NaN);
+    if (Number.isFinite(explicit)) return explicit;
+    const sets = Array.isArray(exercise?.sets) ? exercise.sets : [];
+    return sets.reduce((sum, s) => sum + safeNumber(s?.reps, 0), 0);
+};
+
 const bestTopSet = (exercise) => {
     const sets = Array.isArray(exercise?.sets) ? exercise.sets : [];
     if (!sets.length) return null;
@@ -273,7 +280,7 @@ export default function UserStatsModal({ user, toViewProfile, hexOverlay, hexPro
     const openDetail = (name) => {
         if (!name) return;
         // reset slide position before mounting
-        try { detailTranslateX.setValue(screenWidth); } catch {}
+        try { detailTranslateX.setValue(screenWidth); } catch { }
         setDetailName(name);
         try {
             Animated.timing(detailTranslateX, { toValue: 0, duration: 260, useNativeDriver: true }).start();
@@ -365,7 +372,7 @@ export default function UserStatsModal({ user, toViewProfile, hexOverlay, hexPro
         try {
             const fromProp = Array.isArray(user?.completedWorkouts) ? user.completedWorkouts.find(w => String(w?.wid || w?.id || "") === wid) : null;
             if (fromProp) return ensurePrivacy(fromProp);
-        } catch {}
+        } catch { }
         // 2) If viewing self, use local completedWorkouts
         try {
             const me = global?.userData;
@@ -374,7 +381,7 @@ export default function UserStatsModal({ user, toViewProfile, hexOverlay, hexPro
                 const found = arr.find(w => String(w?.wid || w?.id || "") === wid);
                 if (found) return ensurePrivacy(found);
             }
-        } catch {}
+        } catch { }
         // 3) Fallback: fetch from Firestore
         try {
             const snap = await getDoc(doc(db, "workouts", wid));
@@ -382,7 +389,7 @@ export default function UserStatsModal({ user, toViewProfile, hexOverlay, hexPro
                 const d = snap.data() || {};
                 return ensurePrivacy({ wid, ...d });
             }
-        } catch {}
+        } catch { }
         return { wid, privacyMode: 'hidden' };
     };
 
@@ -396,7 +403,7 @@ export default function UserStatsModal({ user, toViewProfile, hexOverlay, hexPro
             const wk = await findWorkoutByWid(wid);
             if (wk) {
                 setViewerWorkout(wk);
-                try { viewerTranslateX.setValue(screenWidth); } catch {}
+                try { viewerTranslateX.setValue(screenWidth); } catch { }
                 Animated.timing(viewerTranslateX, { toValue: 0, duration: 260, useNativeDriver: true }).start();
             } else {
                 setViewerOpen(false);
@@ -421,13 +428,13 @@ export default function UserStatsModal({ user, toViewProfile, hexOverlay, hexPro
     // Detail back gesture
     const detailBackEligible = useSharedValue(0);
     const onDetailBackUpdateX = React.useCallback((dx) => {
-        try { detailTranslateX.setValue(Math.max(0, dx || 0)); } catch {}
+        try { detailTranslateX.setValue(Math.max(0, dx || 0)); } catch { }
     }, [detailTranslateX]);
     const onDetailBackEnd = React.useCallback((dx, vx) => {
         const shouldClose = (dx || 0) > BACK_SWIPE_TRIGGER || (vx || 0) > 600;
         if (shouldClose) closeDetail();
         else {
-            try { Animated.timing(detailTranslateX, { toValue: 0, duration: 180, useNativeDriver: true }).start(); } catch {}
+            try { Animated.timing(detailTranslateX, { toValue: 0, duration: 180, useNativeDriver: true }).start(); } catch { }
         }
     }, [detailTranslateX]);
     const detailBackPan = useMemo(() => (
@@ -445,13 +452,13 @@ export default function UserStatsModal({ user, toViewProfile, hexOverlay, hexPro
     // Viewer back gesture
     const viewerBackEligible = useSharedValue(0);
     const onViewerBackUpdateX = React.useCallback((dx) => {
-        try { viewerTranslateX.setValue(Math.max(0, dx || 0)); } catch {}
+        try { viewerTranslateX.setValue(Math.max(0, dx || 0)); } catch { }
     }, [viewerTranslateX]);
     const onViewerBackEnd = React.useCallback((dx, vx) => {
         const shouldClose = (dx || 0) > BACK_SWIPE_TRIGGER || (vx || 0) > 600;
         if (shouldClose) closeViewer();
         else {
-            try { Animated.timing(viewerTranslateX, { toValue: 0, duration: 180, useNativeDriver: true }).start(); } catch {}
+            try { Animated.timing(viewerTranslateX, { toValue: 0, duration: 180, useNativeDriver: true }).start(); } catch { }
         }
     }, [viewerTranslateX]);
     const viewerBackPan = useMemo(() => (
@@ -520,7 +527,6 @@ export default function UserStatsModal({ user, toViewProfile, hexOverlay, hexPro
                 </View>
 
                 {/* Exercises */}
-                <Text style={styles.sectionTitle}>Exercises</Text>
                 <View style={styles.exerciseList}>
                     {!showExercises ? (
                         <View style={[styles.emptyCard, { paddingVertical: scaleSize(scaledSize(30)) }]}>
@@ -532,16 +538,18 @@ export default function UserStatsModal({ user, toViewProfile, hexOverlay, hexPro
                             <Text style={styles.emptyText}>No exercises tracked yet.</Text>
                         </View>
                     ) : (
-                        exerciseGroups.map(({ group, items }) => {
-                            const ACC = groupAccent(group);
+                        exerciseGroups.map(({ group, items }, groupIndex) => {
                             const isCollapsed = !!collapsed[group];
                             return (
                                 <View key={`group-${group}`}>
-                                    <Pressable style={styles.groupHeaderRow} onPress={withStrongPress(() => toggleGroup(group))}>
-                                        <Text style={styles.groupHeader}>{group}</Text>
+                                    <Pressable
+                                        style={[styles.groupHeaderRow, groupIndex > 0 && styles.groupHeaderRowSpacing]}
+                                        onPress={withStrongPress(() => toggleGroup(group))}
+                                    >
+                                        <Text style={styles.groupHeader}>{`${group} Exercises`}</Text>
                                         <MaterialCommunityIcons
                                             name={isCollapsed ? "chevron-down" : "chevron-up"}
-                                            size={scaledSize(18)}
+                                            size={scaledSize(24)}
                                             color={COLORS.subtext}
                                         />
                                     </Pressable>
@@ -549,6 +557,7 @@ export default function UserStatsModal({ user, toViewProfile, hexOverlay, hexPro
                                         const oneRM = estimate1RM(exercise);
                                         const volume = computeVolume(exercise);
                                         const setsCount = Array.isArray(exercise?.sets) ? exercise.sets.length : 0;
+                                        const totalReps = computeTotalReps(exercise);
                                         const top = bestTopSet(exercise);
 
                                         return (
@@ -556,6 +565,7 @@ export default function UserStatsModal({ user, toViewProfile, hexOverlay, hexPro
                                                 key={`${name}-${idx}`}
                                                 style={({ pressed }) => [
                                                     styles.exerciseCard,
+                                                    idx === 0 && styles.exerciseCardFirst,
                                                     { position: "relative" },
                                                     pressed && styles.exerciseCardPressed,
                                                 ]}
@@ -564,67 +574,49 @@ export default function UserStatsModal({ user, toViewProfile, hexOverlay, hexPro
                                                 {/* Accent bar based on muscle group */}
                                                 {/* <View style={[styles.accentBar, { backgroundColor: ACC }]} /> */}
 
-                                                {/* Row: icon + name + 1RM pill */}
-                                                <View style={styles.exerciseHeader}>
-                                                    <View style={styles.nameRow}>
-                                                        {/* <View style={[styles.iconCircle, { backgroundColor: rgba(ACC, 0.16), borderColor: rgba(ACC, 0.45) }]}>
-                                                            <MaterialCommunityIcons name="dumbbell" size={scaledSize(13)} color={ACC} />
-                                                        </View> */}
-                                                        <Text numberOfLines={2} style={styles.exerciseName}>{name}</Text>
-                                                    </View>
-                                                    <View style={styles.headerRight}>
-                                                        {!!oneRM && oneRM > 0 && (
-                                                            <View style={styles.oneRMPill}>
-                                                                <Text style={styles.oneRMLabel}>1RM</Text>
-                                                                <Text style={styles.oneRMValue}>{oneRM}</Text>
-                                                            </View>
-                                                        )}
-                                                        <MaterialCommunityIcons name="chevron-right" size={scaledSize(18)} color={COLORS.subtext} />
-                                                    </View>
-                                                </View>
-
-                                                <View style={styles.divider} />
-
-                                                {/* Stat row: 3 compact columns with icons */}
-                                                <View style={styles.metaRow}>
-                                                    <View style={[styles.metaCell, { flex: 0.95 }]}>
-                                                        <View style={styles.metaCellRow}>
-                                                            <View style={styles.metaIconWrapLeft}>
-                                                                <MaterialCommunityIcons name="weight-lifter" size={scaledSize(12)} color={COLORS.text} />
-                                                            </View>
-                                                            <View style={styles.metaTextCol}>
-                                                                <Text style={styles.metaLabel}>Volume</Text>
-                                                                <Text style={styles.metaValue} numberOfLines={1}>{fmtK(volume)}</Text>
-                                                            </View>
+                                                <View style={styles.cardRow}>
+                                                    <View style={styles.cardContentColumn}>
+                                                        <View style={styles.cardHeaderRow}>
+                                                            <Text numberOfLines={2} style={styles.exerciseName}>{name}</Text>
+                                                            {!!oneRM && oneRM > 0 && (
+                                                                <View style={styles.oneRMRow}>
+                                                                    <Text style={styles.oneRMLabel}>1RM (Adj)</Text>
+                                                                    <Text style={styles.oneRMValue}>{oneRM}</Text>
+                                                                </View>
+                                                            )}
                                                         </View>
-                                                    </View>
-                                                    <View style={[styles.metaCell, { flex: 0.8 }]}>
-                                                        <View style={[styles.metaCellRow]}>
-                                                            <View style={styles.metaIconWrapLeft}>
-                                                                <MaterialCommunityIcons name="view-grid-outline" size={scaledSize(12)} color={COLORS.text} />
-                                                            </View>
-                                                            <View style={styles.metaTextCol}>
+
+                                                        {/* Stat row: compact columns with label/value pairs */}
+                                                        <View style={styles.metaRow}>
+                                                            <View style={styles.metaCell}>
                                                                 <Text style={styles.metaLabel}>Sets</Text>
                                                                 <Text style={styles.metaValue} numberOfLines={1}>{setsCount}</Text>
                                                             </View>
-                                                        </View>
-                                                    </View>
-                                                    <View style={[styles.metaCell, { flex: 1 }]}>
-                                                        <View style={styles.metaCellRow}>
-                                                            <View style={styles.metaIconWrapLeft}>
-                                                                <MaterialCommunityIcons name="trending-up" size={scaledSize(12)} color={COLORS.text} />
+                                                            <View style={styles.metaDivider} />
+                                                            <View style={styles.metaCell}>
+                                                                <Text style={styles.metaLabel}>Reps</Text>
+                                                                <Text style={styles.metaValue} numberOfLines={1}>{fmtK(totalReps)}</Text>
                                                             </View>
-                                                            <View style={styles.metaTextCol}>
+                                                            <View style={styles.metaDivider} />
+                                                            <View style={styles.metaCell}>
+                                                                <Text style={styles.metaLabel}>Volume</Text>
+                                                                <Text style={styles.metaValue} numberOfLines={1}>{fmtK(volume)}</Text>
+                                                            </View>
+                                                            <View style={styles.metaDivider} />
+                                                            <View style={styles.metaCell}>
                                                                 <Text style={styles.metaLabel}>Top Set</Text>
                                                                 <Text style={styles.metaValue} numberOfLines={1}>{top ? `${top.weight} x ${top.reps}` : "-"}</Text>
                                                             </View>
                                                         </View>
                                                     </View>
+
+                                                    <View style={styles.cardChevronColumn}>
+                                                        <MaterialCommunityIcons name="chevron-right" size={scaledSize(22)} color={COLORS.subtext} />
+                                                    </View>
                                                 </View>
                                             </Pressable>
                                         );
                                     })}
-                                    <View style={{ height: scaleSize(scaledSize(6)) }} />
                                 </View>
                             );
                         })
@@ -673,7 +665,7 @@ export default function UserStatsModal({ user, toViewProfile, hexOverlay, hexPro
                                                 <Text style={styles.setMain}>{w}lbs x {r}</Text>
                                             </View>
                                             <View style={styles.rmPill}>
-                                                <Text style={styles.rmLabel}>1RM</Text>
+                                                <Text style={styles.rmLabel}>1RM (Adj)</Text>
                                                 <Text style={styles.rmValue}>{rm}</Text>
                                             </View>
                                             <MaterialCommunityIcons name="chevron-right" size={scaledSize(18)} color={COLORS.subtext} style={{ marginLeft: scaleSize(scaledSize(6)) }} />
@@ -694,44 +686,44 @@ export default function UserStatsModal({ user, toViewProfile, hexOverlay, hexPro
                     </Animated.View>
                 </GestureDetector>
             ) : null}
-        {/* Workout viewer overlay (fades in over this sheet) */}
-        {viewerOpen ? (
-            <GestureDetector gesture={viewerBackPan}>
-                <Animated.View style={[styles.workoutOverlay, { transform: [{ translateX: viewerTranslateX }] }]} pointerEvents="auto">
-                {/* Yellow friend-view handle bar (fades while panning) */}
-                <View style={styles.viewerHandleWrap}>
-                    <Animated.View style={[styles.viewerHandleIndicator, { opacity: viewerHandleOpacity }]} />
-                </View>
-        {viewerWorkout ? (
-            <View style={{ flex: 1 }}>
-                {canViewWorkout(viewerWorkout, viewerUid, viewerData) ? (
-                    <NewWorkoutModal
-                        timerRef={timerRef}
-                        workout={viewerWorkout}
-                        cancelWorkout={() => {}}
-                        updateWorkout={() => {}}
-                        finishWorkout={() => {}}
-                        showGroupModal={() => {}}
-                        userWorkoutStats={statsForViewer || undefined}
-                        onPressBack={closeViewer}
-                        onCheer={() => {}}
-                        onCopyTemplate={() => {}}
-                        onPressPfp={closeViewer}
-                        forceViewingFriend={String(user?.uid || "")}
-                        friendPfp={user?.image || user?.pfp || null}
-                        streamLive={false}
-                    />
-                ) : (
-                    <View style={styles.lockedWrap}>
-                        <Text style={styles.lockedTitle}>Workout is private</Text>
-                        <Text style={styles.lockedSubtitle}>You do not have permission to view this workout.</Text>
-                    </View>
-                )}
-            </View>
-        ) : null}
-                </Animated.View>
-            </GestureDetector>
-        ) : null}
+            {/* Workout viewer overlay (fades in over this sheet) */}
+            {viewerOpen ? (
+                <GestureDetector gesture={viewerBackPan}>
+                    <Animated.View style={[styles.workoutOverlay, { transform: [{ translateX: viewerTranslateX }] }]} pointerEvents="auto">
+                        {/* Yellow friend-view handle bar (fades while panning) */}
+                        <View style={styles.viewerHandleWrap}>
+                            <Animated.View style={[styles.viewerHandleIndicator, { opacity: viewerHandleOpacity }]} />
+                        </View>
+                        {viewerWorkout ? (
+                            <View style={{ flex: 1 }}>
+                                {canViewWorkout(viewerWorkout, viewerUid, viewerData) ? (
+                                    <NewWorkoutModal
+                                        timerRef={timerRef}
+                                        workout={viewerWorkout}
+                                        cancelWorkout={() => { }}
+                                        updateWorkout={() => { }}
+                                        finishWorkout={() => { }}
+                                        showGroupModal={() => { }}
+                                        userWorkoutStats={statsForViewer || undefined}
+                                        onPressBack={closeViewer}
+                                        onCheer={() => { }}
+                                        onCopyTemplate={() => { }}
+                                        onPressPfp={closeViewer}
+                                        forceViewingFriend={String(user?.uid || "")}
+                                        friendPfp={user?.image || user?.pfp || null}
+                                        streamLive={false}
+                                    />
+                                ) : (
+                                    <View style={styles.lockedWrap}>
+                                        <Text style={styles.lockedTitle}>Workout is private</Text>
+                                        <Text style={styles.lockedSubtitle}>You do not have permission to view this workout.</Text>
+                                    </View>
+                                )}
+                            </View>
+                        ) : null}
+                    </Animated.View>
+                </GestureDetector>
+            ) : null}
         </View>
     );
 }
@@ -856,18 +848,8 @@ const styles = StyleSheet.create({
         paddingTop: scaleSize(scaledSize(26)),
     },
 
-    sectionTitle: {
-        marginTop: scaleSize(scaledSize(12)),
-        marginBottom: scaleSize(scaledSize(8)),
-        paddingHorizontal: scaleSize(scaledSize(2)),
-        fontSize: scaleSize(15),
-        fontFamily: "Outfit_600SemiBold",
-        color: COLORS.subtext,
-        letterSpacing: 0.4,
-    },
-
     exerciseList: {
-        // gap: scaledSize(20),
+        marginHorizontal: -scaleSize(scaledSize(17)),
     },
 
     // Group header within Exercises
@@ -875,16 +857,20 @@ const styles = StyleSheet.create({
         flexDirection: 'row',
         alignItems: 'center',
         justifyContent: 'space-between',
-        paddingHorizontal: scaleSize(scaledSize(2)),
-        paddingVertical: scaleSize(scaledSize(2)),
+        paddingLeft: scaleSize(scaledSize(20)),
+        paddingRight: scaleSize(26),
+        paddingVertical: scaleSize(scaledSize(8)),
+    },
+    groupHeaderRowSpacing: {
+        marginTop: scaleSize(scaledSize(36)),
     },
     groupHeader: {
-        marginTop: scaleSize(scaledSize(6)),
+        marginTop: scaleSize(scaledSize(2)),
         marginBottom: scaleSize(scaledSize(2)),
-        fontSize: scaleSize(13.5),
-        fontFamily: "Outfit_600SemiBold",
-        color: COLORS.subtext,
-        letterSpacing: 0.3,
+        fontSize: scaleSize(16),
+        fontFamily: "Outfit_700Bold",
+        color: COLORS.text,
+        letterSpacing: 0.25,
     },
 
     // Empty state
@@ -902,22 +888,23 @@ const styles = StyleSheet.create({
         color: COLORS.subtext,
     },
 
-    // Modern exercise card
+    // Exercise row (full-width list style)
     exerciseCard: {
         backgroundColor: COLORS.card,
-        borderRadius: scaleSize(scaledSize(20)),
-        marginVertical: scaleSize(3),
-        borderWidth: scaleSize(1),
-        borderColor: COLORS.hairline,
-        paddingHorizontal: scaleSize(scaledSize(14)),
-        paddingVertical: scaleSize(scaledSize(12)),
-        shadowColor: "#000",
-        shadowOffset: { width: 0, height: scaleSize(scaledSize(6)) },
-        shadowOpacity: 0.09,
-        shadowRadius: scaleSize(scaledSize(14)),
-        elevation: 7,
+        borderRadius: 0,
+        marginVertical: 0,
+        width: '100%',
+        paddingHorizontal: scaleSize(scaledSize(18)),
+        paddingTop: scaleSize(scaledSize(12)),
+        paddingBottom: scaleSize(scaledSize(8)),
+        borderBottomWidth: 1.1,
+        borderBottomColor: COLORS.hairline,
     },
-    exerciseCardPressed: { backgroundColor: "rgba(255,255,255,0.02)" },
+    exerciseCardFirst: {
+        borderTopWidth: StyleSheet.hairlineWidth,
+        borderTopColor: COLORS.hairline,
+    },
+    exerciseCardPressed: { backgroundColor: "rgba(255,255,255,0.04)" },
     accentBar: {
         position: "absolute",
         left: 0,
@@ -929,76 +916,77 @@ const styles = StyleSheet.create({
         borderBottomLeftRadius: scaleSize(scaledSize(16)),
     },
 
-    exerciseHeader: { flexDirection: "row", alignItems: "center", marginBottom: scaleSize(scaledSize(0)) },
-    nameRow: {
-        flexDirection: "row",
-        alignItems: "center",
-        flex: 1,
-        minWidth: 0,
+    cardRow: { flexDirection: 'row', alignItems: 'center' },
+    cardContentColumn: { flex: 1, minWidth: 0, gap: scaleSize(scaledSize(10)) },
+    cardHeaderRow: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        paddingLeft: scaleSize(4),
+        paddingBottom: scaleSize(4)
     },
-    iconCircle: {
-        width: scaleSize(scaledSize(26)),
-        height: scaleSize(scaledSize(26)),
-        borderRadius: scaleSize(scaledSize(13)),
-        alignItems: "center",
-        justifyContent: "center",
-        marginRight: scaleSize(scaledSize(8)),
-        backgroundColor: '#ffffff22',
-        borderWidth: StyleSheet.hairlineWidth,
+    cardChevronColumn: {
+        width: scaleSize(scaledSize(28)),
+        justifyContent: 'center',
+        alignItems: 'flex-end'
     },
+
     exerciseName: {
         flex: 1,
         fontSize: scaleSize(13),
         fontFamily: "Nunito_800ExtraBold",
-        color: COLORS.text,
+        color: '#48aaffff',
     },
-    headerRight: { flexDirection: 'row', alignItems: 'center', gap: scaleSize(scaledSize(4)) },
-
-    divider: { height: StyleSheet.hairlineWidth, backgroundColor: COLORS.hairline, marginVertical: scaleSize(scaledSize(8)) },
-
-    oneRMPill: {
-        flexDirection: "row",
-        alignItems: "center",
-        paddingHorizontal: scaleSize(scaledSize(8)),
-        paddingVertical: scaleSize(scaledSize(3)),
-        borderRadius: scaleSize(scaledSize(999)),
-        borderWidth: scaleSize(1),
-        borderColor: GOLD_BORDER,
-        backgroundColor: GOLD_BG,
+    oneRMRow: {
+        flexDirection: 'row',
+        marginRight: scaleSize(scaledSize(4)),
     },
     oneRMLabel: {
-        fontSize: scaleSize(9),
-        fontFamily: "Nunito_800ExtraBold",
-        color: GOLD,
-        marginRight: scaleSize(scaledSize(5)),
-        letterSpacing: 0,
+        fontSize: scaleSize(10),
+        fontFamily: 'Outfit_600SemiBold',
+        color: COLORS.subtext,
+        marginRight: scaleSize(scaledSize(6)),
+        letterSpacing: 0.2,
     },
     oneRMValue: {
-        fontSize: scaleSize(12.5),
-        fontFamily: "Nunito_800ExtraBold",
+        fontSize: scaleSize(14),
+        fontFamily: 'Nunito_800ExtraBold',
         color: GOLD,
+        lineHeight: scaleSize(scaledSize(18)),
     },
 
-    metaRow: { flexDirection: "row", alignItems: "stretch", gap: scaleSize(scaledSize(8)), marginTop: scaleSize(scaledSize(1)), paddingHorizontal: scaleSize(8) },
-    metaCell: { paddingVertical: scaleSize(scaledSize(5)) },
-    metaCellRow: { flexDirection: 'row', alignItems: 'center' },
-    metaIconWrapLeft: {
-        width: scaleSize(scaledSize(30)),
-        height: scaleSize(scaledSize(30)),
-        borderRadius: scaleSize(scaledSize(15)),
+    metaRow: {
+        flexDirection: 'row',
+        alignItems: 'stretch',
+    },
+    metaCell: {
+        flex: 1,
         alignItems: 'center',
         justifyContent: 'center',
-        marginRight: scaleSize(scaledSize(8)),
-        backgroundColor: '#ffffff23',
+        minWidth: 0,
+        paddingVertical: scaleSize(scaledSize(1)),
     },
-    metaTextCol: { flex: 1, minWidth: 0 },
+    metaDivider: {
+        width: StyleSheet.hairlineWidth,
+        backgroundColor: COLORS.hairline,
+        marginHorizontal: scaleSize(scaledSize(8)),
+        marginVertical: scaleSize(scaledSize(2)),
+    },
     metaLabel: {
-        fontSize: scaleSize(12),
+        fontSize: scaleSize(10.5),
         fontFamily: "Outfit_600SemiBold",
         color: COLORS.subtext,
-        letterSpacing: 0.3,
+        letterSpacing: 0.2,
+        textAlign: 'center',
     },
-    metaValue: { fontSize: scaleSize(13), lineHeight: scaleSize(scaledSize(18)), fontFamily: "Outfit_800ExtraBold", color: COLORS.text, marginTop: scaleSize(scaledSize(1)) },
+    metaValue: {
+        fontSize: scaleSize(13),
+        lineHeight: scaleSize(scaledSize(18)),
+        fontFamily: "Outfit_800ExtraBold",
+        color: COLORS.text,
+        marginTop: scaleSize(scaledSize(1)),
+        textAlign: 'center',
+    },
 
     // Detail overlay
     detailOverlay: {
@@ -1063,7 +1051,7 @@ const styles = StyleSheet.create({
         shadowOffset: { width: 0, height: scaleSize(scaledSize(6)) },
     },
     detailBackRow: { flexDirection: 'row', alignItems: 'center', flex: 1, minWidth: 0, gap: scaleSize(scaledSize(6)) },
-    
+
     detailTitle: {
         flex: 1,
         fontSize: scaleSize(15),

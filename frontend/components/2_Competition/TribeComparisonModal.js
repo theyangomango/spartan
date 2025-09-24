@@ -18,7 +18,7 @@ import scaleSize from "../../helper/scaleSize";
 import { withStrongPress } from "../../utils/haptics";
 
 const METRICS = ["1RM", "Volume", "Reps"];
-const metricLabel = (m) => (m === '1RM' ? '1RM' : m);
+const metricLabel = (m) => (m === '1RM' ? '1RM (Adj)' : m);
 
 const theme = require("../../theme/mfpDark").default;
 

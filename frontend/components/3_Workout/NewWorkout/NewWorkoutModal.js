@@ -207,6 +207,16 @@ const NewWorkoutModal = ({
         ? workout
         : ((activeWorkout && String(activeWorkout?.wid || "") === cardWid) ? activeWorkout : workout);
 
+    const workoutTitle = String(baseWorkout?.name ?? '').trim();
+    const workoutTitleDisplay = useMemo(() => {
+        if (!workoutTitle) return null;
+        return (
+            <View style={styles.titleDisplayContainer}>
+                <Text style={styles.titleDisplayText} numberOfLines={2}>{workoutTitle}</Text>
+            </View>
+        );
+    }, [workoutTitle]);
+
     // Prefer friend's stats when viewing others; if live stats are absent (e.g., viewing a completed workout),
     // fall back to provided userWorkoutStats if available from the parent.
     const statsForPrevious = useMemo(() => {
@@ -625,6 +635,7 @@ const NewWorkoutModal = ({
                 isEmptyList ? (
                     // Robust empty state rendered outside the list to avoid FlashList measurement quirks
                     (<Animated.View style={[styles.scrollview, { opacity: contentDimAnim }]}> 
+                        {workoutTitleDisplay}
                         {viewingSelfEffective && (
                             <>
                                 <RNBounceable onPress={showSelectExerciseModal} style={styles.add_exercise_btn}>
@@ -683,6 +694,7 @@ const NewWorkoutModal = ({
                             keyboardDismissMode={Platform.OS === 'ios' ? 'on-drag' : 'none'}
                             {...(canUseFlashList ? { estimatedItemSize: scaledSize(72) } : {})}
                             contentContainerStyle={styles.scrollview}
+                            ListHeaderComponent={workoutTitleDisplay}
                         />
                     </Animated.View>)
                 )
@@ -846,6 +858,16 @@ const styles = StyleSheet.create({
 
     // Allow the BottomSheet background to show through
     scrollview: { paddingTop: scaleSize(scaledSize(5)), backgroundColor: 'transparent' },
+    titleDisplayContainer: {
+        paddingHorizontal: scaleSize(scaledSize(24)),
+        marginBottom: scaleSize(scaledSize(12)),
+    },
+    titleDisplayText: {
+        fontFamily: 'Outfit_700Bold',
+        fontSize: scaleSize(20),
+        color: theme.textPrimary,
+        textAlign: 'left',
+    },
     // Ensure FlashList receives a parent with a valid size
     listWrap: { flex: 1 },
 

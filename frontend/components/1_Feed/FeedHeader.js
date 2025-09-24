@@ -25,7 +25,6 @@ import { collection, query, where, onSnapshot, getDocs, orderBy, limit, doc } fr
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import theme from "../../theme/mfpDark";
 import scaleSize from "../../helper/scaleSize";
-import { withStrongPress } from "../../utils/haptics";
 // Single root navigator; no need for StackActions/nested refs here
 
 const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get("window");
@@ -98,7 +97,7 @@ const ProfileCard = React.memo(({ user, query, onPress }) => {
     const hasPfp = !!pfpUri;
 
     return (
-        <RNBounceable onPress={withStrongPress(onPress)} style={styles.profileCard} bounceEffectIn={0.96}>
+        <RNBounceable onPress={onPress} style={styles.profileCard} bounceEffectIn={0.96}>
             <View style={styles.profileLeft}>
                 <View
                     style={[styles.avatarRing, { width: avatarSize, height: avatarSize, borderRadius: scaleSize(avatarSize / 2) }]}
@@ -294,7 +293,7 @@ const SearchUsersBar = ({ navigation, allUsersRef, disabled = false }) => {
 
     return (
         <>
-            <RNBounceable onPress={withStrongPress(open)} bounceEffectIn={0.5} style={[styles.searchIconBtn, visible && { opacity: 0 }]} accessibilityLabel="Search users" ref={iconRef} onLayout={measureAnchor} pointerEvents={visible ? 'none' : 'auto'}>
+            <RNBounceable onPress={open} bounceEffectIn={0.5} style={[styles.searchIconBtn, visible && { opacity: 0 }]} accessibilityLabel="Search users" ref={iconRef} onLayout={measureAnchor} pointerEvents={visible ? 'none' : 'auto'}>
                         <Ionicons name="search" size={dynamicStyles.iconSize} color="#CBD5E1" />
             </RNBounceable>
 
@@ -345,7 +344,7 @@ const SearchUsersBar = ({ navigation, allUsersRef, disabled = false }) => {
                                         returnKeyType="search"
                                     />
                                     <TouchableOpacity
-                                        onPress={withStrongPress(() => (qStr ? (setQStr(""), setResults([])) : close()))}
+                                        onPress={() => (qStr ? (setQStr(""), setResults([])) : close())}
                                         style={styles.clearBtn}
                                         accessibilityLabel={qStr ? "Clear search" : "Close search"}
                                     >
@@ -452,7 +451,7 @@ const FeedHeader = ({
     if (backButton) {
         return (
             <View style={[styles.back_header]}>
-                <TouchableOpacity onPress={withStrongPress(onBackPress)}>
+                <TouchableOpacity onPress={onBackPress}>
                     <Ionicons name="chevron-back" size={dynamicStyles.iconSize} color="#E5E7EB" />
                 </TouchableOpacity>
             </View>
@@ -471,7 +470,7 @@ const FeedHeader = ({
             {/* Center: fixed-height slot */}
             <View style={styles.centerArea}>
                 <View style={styles.centerSlot}>
-                    <RNBounceable onPress={withStrongPress(scrollToTop)} style={styles.logoWrap}>
+                    <RNBounceable onPress={scrollToTop} style={styles.logoWrap}>
                         <View style={styles.logo_image_ctnr}>
                             <FastImage
                                 source={require("../../../frontend/assets/logo_feed_black.png")}
@@ -485,7 +484,7 @@ const FeedHeader = ({
             </View>
             {/* Right: notifications + messages */}
             <View style={styles.right_icons}>
-                <RNBounceable onPress={withStrongPress(onOpenNotifications)} style={styles.heart_button}>
+                <RNBounceable onPress={onOpenNotifications} style={styles.heart_button}>
                     <Svg
                         xmlns="http://www.w3.org/2000/svg"
                         width={dynamicStyles.iconSize}
@@ -509,12 +508,12 @@ const FeedHeader = ({
                 </RNBounceable>
 
                 <RNBounceable
-                    onPress={withStrongPress(() => {
+                    onPress={() => {
                         try {
                             if (typeof toMessagesScreen === 'function') return toMessagesScreen();
                         } catch { }
                         try { navigation?.navigate?.('Messages'); } catch { }
-                    })}
+                    }}
                     style={styles.message_button}
                 >
                     <MaterialIcons name="alternate-email" size={dynamicStyles.iconSize + 1.5} color={"#cbd5e1"} />

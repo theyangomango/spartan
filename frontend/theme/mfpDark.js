@@ -15,7 +15,7 @@ const MFP_DARK = {
 
     // Text
     textPrimary: '#EAF0F7',
-    textSecondary: '#BBC4D2',
+    textSecondary: '#a5afbeff',
 
     // Accents
     primary: '#2D9EFF',     // existing brand blue

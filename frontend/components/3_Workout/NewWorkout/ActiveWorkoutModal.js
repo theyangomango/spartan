@@ -226,6 +226,16 @@ const ActiveWorkoutModal = ({
         ? workout
         : ((activeWorkout && String(activeWorkout?.wid || "") === cardWid) ? activeWorkout : workout);
 
+    const workoutTitle = String(baseWorkout?.name ?? '').trim();
+    const workoutTitleDisplay = useMemo(() => {
+        if (!workoutTitle) return null;
+        return (
+            <View style={styles.titleDisplayContainer}>
+                <Text style={styles.titleDisplayText} numberOfLines={2}>{workoutTitle}</Text>
+            </View>
+        );
+    }, [workoutTitle]);
+
     // Prefer friend's stats when viewing others; if live stats are absent (e.g., viewing a completed workout),
     // fall back to provided userWorkoutStats if available from the parent.
     const statsForPrevious = useMemo(() => {
@@ -793,79 +803,81 @@ const ActiveWorkoutModal = ({
             <RNAnimated.View style={[styles.headerShadow, { opacity: borderOpacity }]} />
             {/* Body */}
             <Animated.View style={[styles.bodyContainer, bodyAnimatedStyle]} pointerEvents={collapsedOverlayActive ? 'none' : 'auto'}>
-            {friendWaiting ? (
-                <View style={styles.waitingWrap}>
-                    <Text style={styles.waitingText}>Loading friend…</Text>
-                </View>
-            ) : (
-                isEmptyList ? (
-                    // Robust empty state rendered outside the list to avoid FlashList measurement quirks
-                    (<RNAnimated.View style={[styles.scrollview, { opacity: contentDimAnim }]}>
-                        {viewingSelfEffective && (
-                            <>
-                                <RNBounceable onPress={showSelectExerciseModal} style={styles.add_exercise_btn}>
-                                    <Text style={styles.add_exercise_text}>Add Exercises</Text>
-                                </RNBounceable>
-                                <RNBounceable onPress={confirmCancelWorkout} style={styles.cancel_btn}>
-                                    <Text style={styles.cancel_btn_text}>Cancel Workout</Text>
-                                </RNBounceable>
-                            </>
-                        )}
-                        <View style={{ height: scaleSize(250) + Math.max(0, keyboardHeight - scaleSize(40)) }} />
-                    </RNAnimated.View>)
+                {friendWaiting ? (
+                    <View style={styles.waitingWrap}>
+                        <Text style={styles.waitingText}>Loading friend…</Text>
+                    </View>
                 ) : (
-                    /* Animated FlashList for smoother, low-overhead virtualization */
-                    (<RNAnimated.View style={[styles.listWrap, { opacity: contentDimAnim }]}>
-                        <AnimatedFlashList
-                            key={`wlist-${cardWid}`}
-                            ref={listRef}
-                            data={exercisesData}
-                            keyExtractor={(ex, i) => `${ex?.name || "ex"}-${i}`}
-                            renderItem={({ item: ex, index: exerciseIndex }) => (
-                                <ExerciseLog
-                                    name={ex.name}
-                                    muscle={ex.muscle}
-                                    exerciseIndex={exerciseIndex}
-                                    sets={ex.sets}
-                                    prevSets={Array.isArray(ex.prev) ? ex.prev : (prevSetsMapRef.current?.get(ex.name) || undefined)}
-                                    updateSets={updateSets}
-                                    replaceExercise={replaceExercise}
-                                    deleteExercise={() => deleteExercise(exerciseIndex)}
-                                    
-                                    userWorkoutStats={statsForPrevious}
-                                    readOnly={!viewingSelfEffective}
-                                    onStatFocus={handleStatFocus}
-                                />
-                            )}
-                            ListFooterComponent={(
+                    isEmptyList ? (
+                        // Robust empty state rendered outside the list to avoid FlashList measurement quirks
+                        (<RNAnimated.View style={[styles.scrollview, { opacity: contentDimAnim }]}> 
+                            {workoutTitleDisplay}
+                            {viewingSelfEffective && (
                                 <>
-                                    {viewingSelfEffective && (
-                                        <>
-                                            <RNBounceable onPress={showSelectExerciseModal} style={styles.add_exercise_btn}>
-                                                <Text style={styles.add_exercise_text}>Add Exercises</Text>
-                                            </RNBounceable>
-                                            <RNBounceable onPress={confirmCancelWorkout} style={styles.cancel_btn}>
-                                                <Text style={styles.cancel_btn_text}>Cancel Workout</Text>
-                                            </RNBounceable>
-                                        </>
-                                    )}
-                                    <View style={{ height: scaleSize(250) + Math.max(0, keyboardHeight - scaleSize(40)) }} />
+                                    <RNBounceable onPress={showSelectExerciseModal} style={styles.add_exercise_btn}>
+                                        <Text style={styles.add_exercise_text}>Add Exercises</Text>
+                                    </RNBounceable>
+                                    <RNBounceable onPress={confirmCancelWorkout} style={styles.cancel_btn}>
+                                        <Text style={styles.cancel_btn_text}>Cancel Workout</Text>
+                                    </RNBounceable>
                                 </>
                             )}
-                            showsVerticalScrollIndicator={false}
-                            scrollEventThrottle={16}
-                            onScroll={RNAnimated.event([{ nativeEvent: { contentOffset: { y: scrollY } } }], { useNativeDriver: true })}
-                            keyboardShouldPersistTaps="handled"
-                            keyboardDismissMode={Platform.OS === 'ios' ? 'on-drag' : 'none'}
-                            {...(canUseFlashList ? {
-                                estimatedItemSize: flashListEstimates.estimatedItemSize,
-                                estimatedListSize: { width: screenWidth, height: flashListEstimates.estimatedListHeight },
-                            } : {})}
-                            contentContainerStyle={styles.scrollview}
-                        />
-                    </RNAnimated.View>)
-                )
-            )}
+                            <View style={{ height: scaleSize(250) + Math.max(0, keyboardHeight - scaleSize(40)) }} />
+                        </RNAnimated.View>)
+                    ) : (
+                        /* Animated FlashList for smoother, low-overhead virtualization */
+                        (<RNAnimated.View style={[styles.listWrap, { opacity: contentDimAnim }]}>
+                            <AnimatedFlashList
+                                key={`wlist-${cardWid}`}
+                                ref={listRef}
+                                data={exercisesData}
+                                keyExtractor={(ex, i) => `${ex?.name || "ex"}-${i}`}
+                                renderItem={({ item: ex, index: exerciseIndex }) => (
+                                    <ExerciseLog
+                                        name={ex.name}
+                                        muscle={ex.muscle}
+                                        exerciseIndex={exerciseIndex}
+                                        sets={ex.sets}
+                                        prevSets={Array.isArray(ex.prev) ? ex.prev : (prevSetsMapRef.current?.get(ex.name) || undefined)}
+                                        updateSets={updateSets}
+                                        replaceExercise={replaceExercise}
+                                        deleteExercise={() => deleteExercise(exerciseIndex)}
+                                        
+                                        userWorkoutStats={statsForPrevious}
+                                        readOnly={!viewingSelfEffective}
+                                        onStatFocus={handleStatFocus}
+                                    />
+                                )}
+                                ListFooterComponent={(
+                                    <>
+                                        {viewingSelfEffective && (
+                                            <>
+                                                <RNBounceable onPress={showSelectExerciseModal} style={styles.add_exercise_btn}>
+                                                    <Text style={styles.add_exercise_text}>Add Exercises</Text>
+                                                </RNBounceable>
+                                                <RNBounceable onPress={confirmCancelWorkout} style={styles.cancel_btn}>
+                                                    <Text style={styles.cancel_btn_text}>Cancel Workout</Text>
+                                                </RNBounceable>
+                                            </>
+                                        )}
+                                        <View style={{ height: scaleSize(250) + Math.max(0, keyboardHeight - scaleSize(40)) }} />
+                                    </>
+                                )}
+                                showsVerticalScrollIndicator={false}
+                                scrollEventThrottle={16}
+                                onScroll={RNAnimated.event([{ nativeEvent: { contentOffset: { y: scrollY } } }], { useNativeDriver: true })}
+                                keyboardShouldPersistTaps="handled"
+                                keyboardDismissMode={Platform.OS === 'ios' ? 'on-drag' : 'none'}
+                                {...(canUseFlashList ? {
+                                    estimatedItemSize: flashListEstimates.estimatedItemSize,
+                                    estimatedListSize: { width: screenWidth, height: flashListEstimates.estimatedListHeight },
+                                } : {})}
+                                contentContainerStyle={styles.scrollview}
+                                ListHeaderComponent={workoutTitleDisplay}
+                            />
+                        </RNAnimated.View>)
+                    )
+                )}
             </Animated.View>
             {/* Add / Replace Exercises */}
             <Modal animationType="fade" transparent visible={selectExerciseModalVisible}>
@@ -1100,6 +1112,16 @@ const styles = StyleSheet.create({
     },
     // Allow the BottomSheet background to show through
     scrollview: { paddingTop: scaleSize(5), backgroundColor: 'transparent' },
+    titleDisplayContainer: {
+        paddingHorizontal: scaleSize(24),
+        marginBottom: scaleSize(12),
+    },
+    titleDisplayText: {
+        fontFamily: 'Outfit_700Bold',
+        fontSize: scaleSize(20),
+        color: theme.textPrimary,
+        textAlign: 'left',
+    },
     // Ensure FlashList receives a parent with a valid size
     listWrap: { flex: 1 },
 

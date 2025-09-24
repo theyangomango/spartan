@@ -188,6 +188,9 @@ const EditTemplateModal = ({ openedTemplateRef, updateTemplate, deleteTemplate, 
                 style={styles.scrollView}
                 contentContainerStyle={styles.scrollContent}
             >
+                <View style={styles.titleDisplayContainer}>
+                    <Text style={styles.titleDisplayText}>{template?.name ?? ""}</Text>
+                </View>
                 {template.exercises.map((ex, index) => (
                     <EditTemplateExerciseLog
                         name={ex.name}
@@ -309,16 +312,16 @@ const styles = StyleSheet.create({
     },
     saveButtonText: {
         fontFamily: 'Outfit_700Bold',
-        fontSize: scaleSize(15),
+        fontSize: scaleSize(14),
         color: '#FFFFFF',
     },
     navTitleInput: {
         flex: 1,
         textAlign: 'center',
         fontFamily: 'Outfit_600SemiBold',
-        fontSize: scaleSize(17),
+        fontSize: scaleSize(15),
         color: theme.textPrimary,
-        backgroundColor: theme.field,
+        backgroundColor: theme.fieldDeep,
         borderRadius: scaledSize(12),
         paddingVertical: scaledSize(6),
         textAlignVertical: 'center',
@@ -329,6 +332,15 @@ const styles = StyleSheet.create({
     },
     scrollContent: {
         paddingBottom: scaledSize(120),
+    },
+    titleDisplayContainer: {
+        paddingHorizontal: scaledSize(24),
+        marginBottom: scaledSize(12),
+    },
+    titleDisplayText: {
+        fontFamily: 'Outfit_700Bold',
+        fontSize: scaleSize(20),
+        color: theme.textPrimary,
     },
     addExerciseButton: {
         marginHorizontal: scaledSize(20),

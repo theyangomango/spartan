@@ -24,7 +24,7 @@ export async function seedDemoPulses(currentUid, following = []) {
 
     const choices = [
         { type: "prs", detail: "3 PRs" },
-        { type: "1rm", detail: "new 1RM" },
+        { type: "1rm", detail: "new 1RM (Adj)" },
         { type: "streak", detail: "12 days" },
         { type: "milestone", detail: "Bench 225×1" },
         { type: "macro", detail: "Hit macros" },
