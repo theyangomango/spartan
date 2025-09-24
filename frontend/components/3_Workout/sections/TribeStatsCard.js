@@ -1,17 +1,18 @@
 import React, { memo, useRef, useCallback, useMemo } from "react";
 import { View, Text, StyleSheet, Platform, Pressable, Animated } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
+import { Ionicons } from "@expo/vector-icons";
 import scaleSize from "../../../helper/scaleSize";
 import { strong as haptic } from "../../../utils/haptics";
 import { useCommunityStats, refreshCommunityStats } from "../../../logic/communityStats";
 
-const CARD_BG = "#5A3C1F";
-const CARD_BORDER = "rgba(248, 201, 129, 0.44)";
-const TEXT_PRIMARY = "#FFF3DB";
-const TEXT_SECONDARY = "rgba(255, 230, 186, 0.72)";
-const DIVIDER_COLOR = "rgba(248, 201, 129, 0.38)";
-const RIPPLE_COLOR = "rgba(248, 201, 129, 0.26)";
-const CARD_GRADIENT = ["#5A3C1F", "#2C2620"];
+const CARD_BG = "#3E271B";
+const CARD_BORDER = "rgba(255, 223, 186, 0.42)";
+const TEXT_PRIMARY = "#FFF7E8";
+const TEXT_SECONDARY = "rgba(255, 236, 210, 0.78)";
+const DIVIDER_COLOR = "rgba(255, 228, 194, 0.26)";
+const RIPPLE_COLOR = "rgba(255, 236, 204, 0.28)";
+const CARD_GRADIENT = ["#6B3A1F", "#251F30"];
 
 const formatWithSeparators = (value) => {
     const n = Math.round(Number(value) || 0);
@@ -76,9 +77,9 @@ function TribeStatsCardCmp({ onPress }) {
         try {
             const maybeRefresh = refreshCommunityStats({ force: true });
             if (maybeRefresh && typeof maybeRefresh.catch === "function") {
-                maybeRefresh.catch(() => {});
+                maybeRefresh.catch(() => { });
             }
-        } catch {}
+        } catch { }
         if (!onPress) return;
         try { haptic(); } catch { }
         onPress();
@@ -100,7 +101,7 @@ function TribeStatsCardCmp({ onPress }) {
                 onPressIn={interactive ? handlePressIn : undefined}
                 onPressOut={interactive ? handlePressOut : undefined}
             >
-                <Animated.View style={[styles.cardShadow, { transform: [{ scale }] }] }>
+                <Animated.View style={[styles.cardShadow, { transform: [{ scale }] }]}>
                     <LinearGradient
                         colors={CARD_GRADIENT}
                         start={{ x: 0, y: 0 }}
@@ -108,10 +109,16 @@ function TribeStatsCardCmp({ onPress }) {
                         style={styles.card}
                     >
                         <View style={styles.metaColumn}>
-                            <Text style={styles.subtitle}>
-                                Your community's totals this week.
-                                <Text style={styles.subtitleAction}>{'\n'}View friends</Text>
-                            </Text>
+                            <Text style={styles.subtitle}>You and your friends' totals this week.</Text>
+                            <View style={styles.subtitleActionRow}>
+                                <Ionicons
+                                    name="sparkles-outline"
+                                    size={scaleSize(11)}
+                                    color={TEXT_PRIMARY}
+                                    style={styles.subtitleTapIcon}
+                                />
+                                <Text style={styles.subtitleAction}>Tap to view</Text>
+                            </View>
                         </View>
                         <View style={styles.statsRow}>
                             {statsDisplay.map((stat, idx) => (
@@ -176,17 +183,17 @@ const styles = StyleSheet.create({
         backgroundColor: CARD_BG,
         borderRadius: CARD_RADIUS,
         paddingVertical: scaleSize(20),
-        paddingLeft: scaleSize(20),
-        paddingRight: scaleSize(4),
+        paddingLeft: scaleSize(26),
+        paddingRight: scaleSize(10),
         borderWidth: scaleSize(1),
         borderColor: CARD_BORDER,
     },
     metaColumn: {
         gap: scaleSize(2),
-        maxWidth: scaleSize(120),
+        maxWidth: scaleSize(110),
         alignItems: "flex-start",
         justifyContent: "center",
-        paddingRight: scaleSize(8),
+        // paddingRight: scaleSize(8),
         flexShrink: 1,
     },
     subtitle: {
@@ -196,14 +203,23 @@ const styles = StyleSheet.create({
         letterSpacing: 0.28,
     },
     subtitleAction: {
-        color: TEXT_PRIMARY,
         fontFamily: "Outfit_800ExtraBold",
+        fontSize: scaleSize(scaleSize(10)),
+        color: TEXT_PRIMARY,
+    },
+    subtitleActionRow: {
+        flexDirection: "row",
+        alignItems: "center",
+        gap: scaleSize(6),
+    },
+    subtitleTapIcon: {
+        marginTop: scaleSize(1),
     },
     statsRow: {
         flexDirection: "row",
         alignItems: "center",
         flex: 1,
-        marginLeft: scaleSize(4),
+        marginLeft: scaleSize(6),
         paddingRight: scaleSize(4),
     },
     statCol: {
@@ -234,13 +250,13 @@ const styles = StyleSheet.create({
         opacity: 0.7,
     },
     statValue: { fontFamily: "Outfit_800ExtraBold", fontSize: scaleSize(scaleSize(18)), color: TEXT_PRIMARY, letterSpacing: 0.24 },
-    statValueCompact: { fontSize: scaleSize(scaleSize(18)) },
+    statValueCompact: { fontSize: scaleSize(18) },
     statLabel: {
         marginTop: scaleSize(2),
         fontFamily: "Outfit_600SemiBold",
-        fontSize: scaleSize(scaleSize(11)),
+        fontSize: scaleSize(11),
         color: TEXT_SECONDARY,
         letterSpacing: 0.24,
     },
-    statLabelCompact: { fontSize: scaleSize(scaleSize(11))},
+    statLabelCompact: { fontSize: scaleSize(11) },
 });

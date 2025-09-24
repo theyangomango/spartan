@@ -32,8 +32,9 @@ const scale = screenHeight / 844;
 const s = (n) => Math.round(n * scale);
 
 // Static separators to avoid re-creating functions each render
-const ItemSeparator = () => <View style={{ height: scaleSize(s(10)) }} />;
-const SectionSeparator = () => <View style={{ height: scaleSize(s(12)) }} />;
+const CARD_GAP = 14;
+const ItemSeparator = () => <View style={{ height: scaleSize(CARD_GAP) }} />;
+const SectionSeparator = () => <View style={{ height: scaleSize(CARD_GAP) }} />;
 
 const COLORS = {
   bg: theme.bg,
@@ -797,7 +798,7 @@ const CommunityActivitySheet = ({ visible, openToggle, items = [], onClose, onVi
       >
         <Animated.View style={{ flex: 1, opacity: listOpacity }} pointerEvents={selectedItem ? 'none' : 'auto'}>
           <View style={styles.header}>
-            <Text style={styles.headerTitle}>Friends training</Text>
+            <Text style={styles.headerTitle}>Community Training</Text>
             <Text style={styles.headerSub}>
               {sortedItems.length} updates • {liveCount} live
             </Text>
@@ -890,7 +891,7 @@ const styles = StyleSheet.create({
   sheetBg: { backgroundColor: COLORS.bg, borderTopLeftRadius: scaleSize(22), borderTopRightRadius: scaleSize(22) },
   handleWrap: { borderTopLeftRadius: scaleSize(22), borderTopRightRadius: scaleSize(22) },
 
-  header: { paddingHorizontal: scaleSize(16), paddingVertical: scaleSize(8) },
+  header: { paddingHorizontal: scaleSize(16), paddingVertical: scaleSize(12) },
   headerTitle: { fontFamily: "Outfit_700Bold", fontSize: scaleSize(16), color: COLORS.text },
   headerSub: { marginTop: scaleSize(2), fontFamily: "Outfit_500Medium", fontSize: scaleSize(12.5), color: COLORS.subtext },
 

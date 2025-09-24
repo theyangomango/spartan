@@ -1,5 +1,5 @@
 import React, { memo } from "react";
-import { StyleSheet, View, Pressable, Dimensions } from "react-native";
+import { StyleSheet, View, Pressable } from "react-native";
 import scaleSize from "../../../helper/scaleSize";
 import { Grid2, Clock } from 'iconsax-react-native';
 import Svg, { Path } from "react-native-svg";
@@ -8,10 +8,12 @@ import HistorySection from "./History/HistorySection";
 import SavedSection from "./Saved/SavedSection";
 import { withStrongPress } from "../../../utils/haptics";
 
-const { height: screenHeight } = Dimensions.get('window');
 const scaledSize = (size) => scaleSize(size);
 
 const ProfileBottomModal = ({ selectedPanel, setSelectedPanel, posts, savedPosts, completedWorkouts, isBottomSheetExpanded, onOpenWorkout }) => {
+    const isSavedPrivate = typeof savedPosts === 'undefined';
+    const normalizedSavedPosts = Array.isArray(savedPosts) ? savedPosts : [];
+
     return (
         <View style={styles.container}>
             <View style={styles.panel_btns}>
@@ -61,10 +63,11 @@ const ProfileBottomModal = ({ selectedPanel, setSelectedPanel, posts, savedPosts
                 onOpenWorkout={onOpenWorkout}
             />
             <SavedSection
-                posts={savedPosts}
+                posts={normalizedSavedPosts}
                 isVisible={selectedPanel === 'saved'}
-                isBottomSheetExpanded={isBottomSheetExpanded}
                 onOpenWorkout={onOpenWorkout}
+                isPrivate={isSavedPrivate}
+                isBottomSheetExpanded={isBottomSheetExpanded}
             />
         </View>
     );

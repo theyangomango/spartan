@@ -271,7 +271,6 @@ function ExerciseLog({
             {!readOnly && (
                 <Animated.View style={[styles.add_set_btn_ctnr, { opacity: fadeAnim }]}>
                     <RNBounceable activeOpacity={0.5} onPress={addSet} style={styles.add_set_btn}>
-                        <Entypo name="plus" size={scaleSize(18)} color={theme.primary} />
                         <Text style={styles.add_set_text}>Add Set</Text>
                     </RNBounceable>
                 </Animated.View>

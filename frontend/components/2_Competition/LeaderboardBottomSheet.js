@@ -32,17 +32,16 @@ const LeaderboardBottomSheet = ({
     const bottomSheetRef = useRef(null);
     const insets = useSafeAreaInsets();
     const { height: H } = useWindowDimensions();
-    // Numeric snap points that compensate for BOTTOM inset so the sheet's top
-    // aligns with the 40% podium band exactly (no overlap, no gap).
+    // Numeric snap points sized so the sheet hugs the bottom edge while the top
+    // aligns with the 40% podium band (collapsed) or ~6% band (expanded).
     const snapPoints = useMemo(() => {
-        const B = insets.bottom || 0;
-        // For @gorhom/bottom-sheet: top position = H - B - snapPoint
-        // We want top position = 0.40 * H => snapPoint = 0.60*H - B
+        // For @gorhom/bottom-sheet: top position = H - snapPoint.
+        // We want top position = 0.40 * H => snapPoint = 0.60 * H.
         // Use ceil to prefer no visual gap over a sub‑pixel gap.
-        const collapsed = Math.max(1, Math.ceil(H * 0.60 - B));
-        const expanded = Math.max(1, Math.ceil(H * 0.94 - B));
+        const collapsed = Math.max(1, Math.ceil(H * 0.60));
+        const expanded = Math.max(1, Math.ceil(H * 0.94));
         return [collapsed, expanded];
-    }, [H, insets.bottom]);
+    }, [H]);
     const [isBottomSheetExpanded, setIsBottomSheetExpanded] = useState(false);
 
     const handleSheetChanges = useCallback((index) => {
@@ -79,7 +78,6 @@ const LeaderboardBottomSheet = ({
             // Use custom canvas color (from Competition screen) for unified canvas
             backgroundStyle={{ backgroundColor: canvasColor || require("../../theme/mfpDark").default.bg, borderTopLeftRadius: scaleSize(25), borderTopRightRadius: scaleSize(25) }}
             enablePanDownToClose={false}
-            bottomInset={insets.bottom || 0}
             // Keep topInset for correct max height on devices with a notch,
             // but numeric snap points ensure the collapsed state still aligns
             // perfectly with the podium band (no gap).

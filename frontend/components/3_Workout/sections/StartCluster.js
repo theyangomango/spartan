@@ -1,7 +1,7 @@
 // components/3_Workout/sections/StartCluster.jsx
 import React, { memo, useMemo, useState, useCallback, useRef } from "react";
 import { View, Pressable, StyleSheet, Platform, Animated, useWindowDimensions, Text, Dimensions, Modal } from "react-native";
-import { Feather } from "@expo/vector-icons";
+import { Feather, MaterialCommunityIcons } from "@expo/vector-icons";
 import { AddSquare } from "iconsax-react-native";
 import StartOpenButton from "../ui/StartOpenButton";
 import { SMALL_SIZE, ROW_WIDTH } from "./workoutTheme";
@@ -10,29 +10,40 @@ import theme from "../../../theme/mfpDark";
 import scaleSize from "../../../helper/scaleSize";
 import { strong as haptic } from "../../../utils/haptics";
 
+const DEFAULT_PRIVACY_ICON = Feather;
+
 const PRIVACY_OPTIONS = Object.freeze([
     {
         value: "global",
-        icon: "globe",
+        Icon: MaterialCommunityIcons,
+        iconName: "earth",
         label: "Global",
         shortLabel: "Global",
         description: "Everyone in the app can see your workout.",
     },
     {
         value: "friends",
-        icon: "users",
+        Icon: Feather,
+        iconName: "users",
         label: "Friends",
         shortLabel: "Friends",
         description: "Only your friends can see your workout.",
     },
     {
         value: "hidden",
-        icon: "lock",
+        Icon: Feather,
+        iconName: "lock",
         label: "Hidden",
         shortLabel: "Hidden",
         description: "Keep this workout private to you.",
     },
 ]);
+
+const renderPrivacyIcon = (option, props) => {
+    if (!option) return null;
+    const IconComponent = option.Icon || DEFAULT_PRIVACY_ICON;
+    return <IconComponent name={option.iconName} {...props} />;
+};
 
 const StartCluster = ({
     scaleAnim,
@@ -149,11 +160,10 @@ const StartCluster = ({
                                                 android_ripple={{ color: "rgba(90, 158, 255, 0.16)" }}
                                             >
                                                 <View style={styles.privacyOptionHeader}>
-                                                    <Feather
-                                                        name={option.icon}
-                                                        size={16}
-                                                        color={active ? theme.textPrimary : "#A9B9D6"}
-                                                    />
+                                                    {renderPrivacyIcon(option, {
+                                                        size: 16,
+                                                        color: active ? theme.textPrimary : "#A9B9D6",
+                                                    })}
                                                     <Text style={[styles.privacyOptionLabel, active && styles.privacyOptionLabelActive]}>
                                                         {option.label}
                                                     </Text>
@@ -182,7 +192,11 @@ const StartCluster = ({
                             accessibilityLabel={`Workout visibility: ${currentPrivacy.label}`}
                             accessibilityState={{ disabled: privacyDisabled, expanded: privacyOpen }}
                         >
-                            <Feather name={currentPrivacy.icon} size={22} color="#E5E7EB" style={styles.privacyIcon} />
+                            {renderPrivacyIcon(currentPrivacy, {
+                                size: 22,
+                                color: "#E5E7EB",
+                                style: styles.privacyIcon,
+                            })}
                         </Pressable>
                         <Text style={styles.privacyLabel}>{currentPrivacy.shortLabel}</Text>
                     </View>

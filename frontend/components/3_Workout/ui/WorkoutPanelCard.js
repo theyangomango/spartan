@@ -18,7 +18,7 @@ const COLORS = {
     bg: theme.bg,
     card: theme.surface,
     text: theme.textPrimary,
-    subtext: theme.textSecondary,
+    subtext: '#b2b2b2ff',
     hairline: theme.hairline,
 };
 
@@ -90,7 +90,7 @@ const WorkoutPanelCard = ({
   const durationLabel = formatTimer(isLive ? liveDurationSeconds : durationSeconds);
   const fallbackText = fallbackLabel || initialsFrom(title);
   const hasSummary = Array.isArray(exerciseSummaries) && exerciseSummaries.length > 0;
-
+ 
   return (
     <Container
       style={[
@@ -168,7 +168,7 @@ const WorkoutPanelCard = ({
       )}
 
       <View style={styles.statsRow}>
-        <View style={[styles.statCard, { flex: 1.05 }]}>
+        <View style={[styles.statCard, { flex: 1.25 }]}>
           <View style={styles.statInnerRow}>
             <View style={[styles.statIconWrap, styles.statIconTight]}>
               <Clock color={theme.textSecondary} size={s(15)} variant="Bold" />
@@ -180,7 +180,7 @@ const WorkoutPanelCard = ({
           </View>
         </View>
 
-        <View style={[styles.statCard, { flex: 1.2 }]}>
+        <View style={[styles.statCard, { flex: 1.35 }]}>
           <View style={styles.statInnerRow}>
             <View style={[styles.statIconWrap, styles.statIconTight]}>
               <MaterialCommunityIcons name="weight-lifter" size={s(15)} color={theme.textSecondary} />
@@ -211,8 +211,8 @@ const WorkoutPanelCard = ({
 
 const styles = StyleSheet.create({
   panel: {
-    paddingHorizontal: scaleSize(s(14)),
-    paddingVertical: scaleSize(s(10)),
+    paddingHorizontal: scaleSize(s(16)),
+    paddingVertical: scaleSize(s(12)),
     borderRadius: scaleSize(s(20)),
     backgroundColor: COLORS.card,
     shadowColor: '#000',
@@ -300,6 +300,7 @@ const styles = StyleSheet.create({
   summarySection: {
     gap: scaleSize(s(6)),
     paddingHorizontal: scaleSize(s(6)),
+    paddingVertical: scaleSize(s(3))
   },
   summaryHeaderRow: {
     flexDirection: 'row',
@@ -318,7 +319,7 @@ const styles = StyleSheet.create({
     minWidth: 0,
   },
   summaryHeaderBest: {
-    flex: 0.42,
+    flex: 0.41,
     textAlign: 'left',
     paddingLeft: scaleSize(s(4)),
   },

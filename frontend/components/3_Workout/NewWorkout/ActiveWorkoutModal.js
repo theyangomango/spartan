@@ -28,7 +28,6 @@ import Animated, { useAnimatedStyle, interpolate, interpolateColor, Extrapolate,
 import RNBounceable from "@freakycoder/react-native-bounceable";
 import { Weight } from "iconsax-react-native";
 import * as Haptics from "expo-haptics";
-import ProgressBanner from "./Tracking/ProgressBanner";
 import ExerciseLog from "./Tracking/ExerciseLog";
 import SelectExerciseModal from "./SelectExercise/SelectExerciseModal";
 import { usePfp } from "../../../helper/usePFPs";
@@ -48,7 +47,6 @@ import GroupMenu from "./Group/GroupMenu";
 import RestTimerModal from "./RestTimerModal";
 import useRestTimer from "./hooks/useRestTimer";
 import useWorkoutEditing from "./hooks/useWorkoutEditing";
-import useWorkoutTotals from "./hooks/useWorkoutTotals";
 
 import scaleSize from "../../../helper/scaleSize";
 
@@ -227,14 +225,6 @@ const ActiveWorkoutModal = ({
     const baseWorkout = viewingSelfEffective
         ? workout
         : ((activeWorkout && String(activeWorkout?.wid || "") === cardWid) ? activeWorkout : workout);
-
-    const totals = useWorkoutTotals({
-        baseWorkout,
-        activeStats,
-        viewingSelf: viewingSelfEffective,
-        workout,
-        updateWorkout,
-    });
 
     // Prefer friend's stats when viewing others; if live stats are absent (e.g., viewing a completed workout),
     // fall back to provided userWorkoutStats if available from the parent.
@@ -811,7 +801,6 @@ const ActiveWorkoutModal = ({
                 isEmptyList ? (
                     // Robust empty state rendered outside the list to avoid FlashList measurement quirks
                     (<RNAnimated.View style={[styles.scrollview, { opacity: contentDimAnim }]}>
-                        <ProgressBanner totalReps={totals.reps} totalVolume={totals.volume} personalBests={totals.PBs} />
                         {viewingSelfEffective && (
                             <>
                                 <RNBounceable onPress={showSelectExerciseModal} style={styles.add_exercise_btn}>
@@ -847,9 +836,6 @@ const ActiveWorkoutModal = ({
                                     readOnly={!viewingSelfEffective}
                                     onStatFocus={handleStatFocus}
                                 />
-                            )}
-                            ListHeaderComponent={(
-                                <ProgressBanner totalReps={totals.reps} totalVolume={totals.volume} personalBests={totals.PBs} />
                             )}
                             ListFooterComponent={(
                                 <>

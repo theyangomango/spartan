@@ -1,6 +1,6 @@
 // SavedSection.js — carbon copy of PostsSection for Saved posts
 import React, { memo, useEffect, useMemo, useState } from "react";
-import { StyleSheet, View } from "react-native";
+import { StyleSheet, View, Text } from "react-native";
 import MasonryList from "@react-native-seoul/masonry-list";
 import PostPreview from "../Posts/PostPreview";
 import SinglePostModal from "../Posts/SinglePostModal";
@@ -8,8 +8,9 @@ import FastImage from 'react-native-fast-image';
 import { withStrongPress } from "../../../../utils/haptics";
 
 import scaleSize from "../../../../helper/scaleSize";
+import theme from "../../../../theme/mfpDark";
 
-const SavedSection = ({ posts, isVisible, onOpenWorkout }) => {
+const SavedSection = ({ posts, isVisible, onOpenWorkout, isPrivate = false, isBottomSheetExpanded }) => {
     const [selectedPost, setSelectedPost] = useState(null);
 
     const handlePostPress = (postData) => {
@@ -49,9 +50,24 @@ const SavedSection = ({ posts, isVisible, onOpenWorkout }) => {
 
     const hasPosts = Array.isArray(sortedPosts) && sortedPosts.length > 0;
 
+    const privateMessageStyle = [
+        styles.privateMessageCtnr,
+        isBottomSheetExpanded ? styles.privateMessageExpanded : styles.privateMessageCollapsed,
+    ];
+
     return (
-        <View style={[styles.scrollable_ctnr, !isVisible && styles.hidden]}>
-            {hasPosts ? (
+        <View
+            style={[
+                styles.scrollable_ctnr,
+                !isVisible && styles.hidden,
+                isPrivate && !isBottomSheetExpanded && styles.privateCollapsed,
+            ]}
+        >
+            {isPrivate ? (
+                <View style={privateMessageStyle}>
+                    <Text style={styles.privateMessageText}>Saved posts are private</Text>
+                </View>
+            ) : hasPosts ? (
                 <MasonryList
                     data={sortedPosts}
                     keyExtractor={(item, index) => String(item?.pid ?? index)}
@@ -99,7 +115,33 @@ const styles = StyleSheet.create({
         margin: scaleSize(2),
         aspectRatio: 1,
         borderRadius: scaleSize(10),
-        backgroundColor: require('../../../../theme/mfpDark').default.field,
+        backgroundColor: theme.field,
+    },
+    privateMessageCtnr: {
+        alignItems: 'center',
+        paddingHorizontal: scaleSize(16),
+    },
+    privateMessageExpanded: {
+        flex: 1,
+        justifyContent: 'center',
+        paddingVertical: scaleSize(40),
+    },
+    privateMessageCollapsed: {
+        alignSelf: 'stretch',
+        justifyContent: 'flex-start',
+        paddingTop: scaleSize(20),
+        paddingBottom: scaleSize(12),
+    },
+    privateMessageText: {
+        fontFamily: 'Poppins_500Medium',
+        fontSize: scaleSize(14),
+        color: theme.hairline,
+        textAlign: 'center',
+    },
+    privateCollapsed: {
+        flexGrow: 0,
+        flexBasis: 'auto',
+        flexShrink: 0,
     },
 });
 

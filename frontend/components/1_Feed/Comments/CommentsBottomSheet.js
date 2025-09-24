@@ -36,8 +36,15 @@ const CommentsBottomSheet = ({ isVisible, postData, commentsBottomSheetExpandFla
         transform: [{ translateY: footerTranslateY.value + footerIntroY.value }],
     }));
     const pendingCloseRef = useRef(false);
-    const snapPoints = useMemo(() => ["34.5%", "92%"], []);
     const containerHRef = useRef(SCREEN_HEIGHT - scaleSize(85));
+    const baseSnapPoint = useMemo(() => {
+        if (typeof openPositionPx === 'number' && Number.isFinite(openPositionPx)) {
+            const containerH = containerHRef.current || (SCREEN_HEIGHT - scaleSize(85));
+            return Math.max(0, Math.min(containerH, openPositionPx));
+        }
+        return "34.5%";
+    }, [openPositionPx]);
+    const snapPoints = useMemo(() => [baseSnapPoint], [baseSnapPoint]);
     const [isSheetExpanded, setIsSheetExpanded] = useState(false);
     const [openSignal, setOpenSignal] = useState(0);
     const [inputText, setInputText] = useState('');
@@ -147,7 +154,7 @@ const CommentsBottomSheet = ({ isVisible, postData, commentsBottomSheetExpandFla
     // Handle input focus
     const handleInputFocus = () => {
         setIsInputFocused(true);
-        try { bottomSheetRef.current?.snapToIndex?.(1, { duration: SHEET_OPEN_MS }); } catch { try { bottomSheetRef.current?.expand?.(); } catch { } }
+        try { bottomSheetRef.current?.snapToIndex?.(0, { duration: SHEET_OPEN_MS }); } catch { try { bottomSheetRef.current?.expand?.(); } catch { } }
         footerTranslateY.value = withTiming(-315, { duration: 225 });
     };
 
@@ -375,19 +382,15 @@ const CommentsBottomSheet = ({ isVisible, postData, commentsBottomSheetExpandFla
             const h0 = getSnapPointPx(snapPoints[0]);
             sheetOpenHeight.value = h0;
             sheetOpenHeightRef.current = h0;
-        } else if (index === 1) {
-            const h1 = getSnapPointPx(snapPoints[1]);
-            sheetOpenHeight.value = h1;
-            sheetOpenHeightRef.current = h1;
         } else if (index < 0) {
             sheetOpenHeight.value = 0;
             sheetOpenHeightRef.current = 0;
         }
         try {
             // Decouple from the dispatch tick of any press/gesture by scheduling to next frame
-            requestAnimationFrame(() => setIsSheetExpanded(index === 1));
+            requestAnimationFrame(() => setIsSheetExpanded(index >= 0));
         } catch {
-            setIsSheetExpanded(index === 1);
+            setIsSheetExpanded(index >= 0);
         }
     }, [isVisible, postPid, enforceVisibleIndex, getSnapPointPx, sheetOpenHeight, snapPoints]);
 

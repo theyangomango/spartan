@@ -1,7 +1,6 @@
 import React, { useRef, memo, useCallback, useMemo } from "react";
 import { View, Text, StyleSheet, Pressable, Animated, Platform, useWindowDimensions } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
-import { LinearGradient } from "expo-linear-gradient";
 import {
     DOTS_H,
     TPL_CARD_H,
@@ -50,7 +49,7 @@ function TemplatesRail({ templates = [], onIndexChange, onAddTemplate, onOpenTem
         const isNone = !!item.isNone;
 
         const handlePress = () => {
-            try { haptic(); } catch {}
+            try { haptic(); } catch { }
             if (isNone) {
                 onAddTemplate && onAddTemplate();
             } else {
@@ -64,6 +63,15 @@ function TemplatesRail({ templates = [], onIndexChange, onAddTemplate, onOpenTem
 
         const exercisesLabel = exercisesCount === 1 ? "exercise" : "exercises";
 
+        const lastDateLabel = typeof item?.lastDate === "string"
+            ? item.lastDate.trim() || "New"
+            : item?.lastDate ? String(item.lastDate) : "New";
+
+        const metaBadges = [
+            lastDateLabel ? { key: "last", label: lastDateLabel } : null,
+            exercisesCount > 0 ? { key: "exercises", label: `${exercisesCount} ${exercisesLabel}` } : null,
+        ].filter(Boolean);
+
         return (
             <View style={[styles.page, { width: pageWidth }]}>
                 <Pressable
@@ -73,46 +81,35 @@ function TemplatesRail({ templates = [], onIndexChange, onAddTemplate, onOpenTem
                     accessibilityRole="button"
                 >
                     {isNone ? (
-                        <View style={[styles.cardBase, styles.cardEmpty]}>
-                            <View style={styles.emptyIconWrap}>
-                                <Ionicons name="add" size={22} color={BLUE.ACCENT} />
-                            </View>
-                            <View style={styles.emptyTextColumn}>
-                                <Text numberOfLines={1} style={styles.emptyTitle}>{item.name}</Text>
-                                <View style={styles.emptySubWrap}>
-                                    <Ionicons name="sparkles-outline" size={14} color={BLUE.ACCENT} />
-                                    <Text style={styles.emptySubtitle}>Tap to create</Text>
+                        <View style={styles.emptyShadow}>
+                            <View style={[styles.cardBase, styles.cardEmpty]}>
+                                <View style={styles.emptyIconWrap}>
+                                    <Ionicons name="add" size={22} color={BLUE.ACCENT} />
+                                </View>
+                                <View style={styles.emptyTextColumn}>
+                                    <Text numberOfLines={1} style={styles.emptyTitle}>{item.name}</Text>
+                                    <View style={styles.emptySubWrap}>
+                                        <Ionicons name="sparkles-outline" size={14} color={BLUE.ACCENT} />
+                                        <Text style={styles.emptySubtitle}>Tap to create</Text>
+                                    </View>
                                 </View>
                             </View>
                         </View>
                     ) : (
-                        <LinearGradient
-                            colors={SELECTED_TEMPLATE_GRADIENT}
-                            start={{ x: 0, y: 0 }}
-                            end={{ x: 1, y: 1 }}
-                            style={[styles.cardBase, styles.cardSelected]}
-                        >
-                            <View style={styles.selectedContent}>
-                                <View style={styles.iconPill}>
-                                    <Weight size={scaleSize(21)} color={ICON_PILL_ICON} variant="Broken" />
+                        <View style={styles.selectedShadow}>
+                            <View style={[styles.cardBase, styles.cardTemplate]}>
+                                <View style={styles.templateIconWrap}>
+                                    <Weight size={scaleSize(21)} color={TEMPLATE_ICON_COLOR} variant="Broken" />
                                 </View>
-                                <View style={styles.selectedTextColumn}>
-                                    <Text style={styles.selectedTag}>Selected Template</Text>
-                                    <Text numberOfLines={1} style={styles.selectedTitle}>{item.name}</Text>
-                                    <View style={styles.metaRow}>
-                                        <View style={styles.metaBadge}>
-                                            <Text style={styles.metaBadgeText}>{exercisesCount} {exercisesLabel}</Text>
-                                        </View>
-                                        <View style={styles.metaBadge}>
-                                            <Text style={styles.metaBadgeText}>{item.lastDate ?? "New"}</Text>
-                                        </View>
+                                <View style={styles.templateTextColumn}>
+                                    <Text numberOfLines={1} style={styles.templateTitle}>{item.name}</Text>
+                                    <View style={styles.templateSubWrap}>
+                                        <Ionicons name="sparkles-outline" size={14} color={BLUE.ACCENT} />
+                                        <Text style={styles.templateSubtitle}>Tap to edit</Text>
                                     </View>
                                 </View>
-                                <View style={styles.chevronPill}>
-                                    <Ionicons name="chevron-forward" size={16} color={CHEVRON_ICON} />
-                                </View>
                             </View>
-                        </LinearGradient>
+                        </View>
                     )}
                 </Pressable>
             </View>
@@ -182,31 +179,25 @@ const eq = (a, b) => {
     return sig(a.templates) === sig(b.templates);
 };
 
-export default memo(TemplatesRail, eq); 
+export default memo(TemplatesRail, eq);
 
 const EMPTY_CARD_BG = "rgba(38, 56, 88, 0.88)";
 const EMPTY_CARD_BORDER = "rgba(126, 186, 246, 0.58)";
-const SELECTED_TEMPLATE_GRADIENT = ["#17345D", "#0A1527"];
-const SELECTED_TEMPLATE_BORDER = "rgba(114, 187, 255, 0.38)";
-const ICON_PILL_BG = "rgba(125, 196, 255, 0.22)";
-const ICON_PILL_BORDER = "rgba(144, 210, 255, 0.46)";
-const ICON_PILL_ICON = "#9DD1FF";
-const SELECTED_TAG_COLOR = "rgba(198, 223, 255, 0.82)";
-const SELECTED_TITLE_COLOR = "#F4F9FF";
+const TEMPLATE_CARD_BG = "rgba(24, 42, 70, 0.94)";
+const TEMPLATE_CARD_BORDER = "rgba(126, 186, 246, 0.62)";
+const TEMPLATE_ICON_BG = "rgba(128, 198, 255, 0.24)";
+const TEMPLATE_ICON_BORDER = "rgba(148, 212, 255, 0.55)";
+const TEMPLATE_ICON_COLOR = "#C6E2FF";
+const TEMPLATE_SUBTITLE_COLOR = "#C7DCF8";
 const META_BADGE_BG = "rgba(136, 205, 255, 0.22)";
 const META_BADGE_BORDER = "rgba(160, 218, 255, 0.45)";
 const META_BADGE_TEXT = "#E0EEFF";
-const META_BADGE_ICON = "#A6D6FF";
-const CHEVRON_BG = "rgba(128, 199, 255, 0.2)";
-const CHEVRON_BORDER = "rgba(156, 214, 255, 0.45)";
-const CHEVRON_ICON = "#F1F6FF";
-const SELECTED_TEXT_OFFSET = scaleSize(2);
-
-const ICON_PILL_SIZE = scaleSize(32);
-const ICON_PILL_RADIUS = scaleSize(18);
-const FONT_SELECTED_TAG = ts(9.5);
-const FONT_SELECTED_TITLE = ts(13);
-const FONT_META_BADGE = ts(9);
+const FONT_META_BADGE = ts(10);
+const CARD_RADIUS = scaleSize(28);
+const CARD_MIN_HEIGHT = scaleSize(78);
+const CARD_SHADOW_COLOR = "rgba(11, 32, 58, 0.55)";
+const CARD_SHADOW_OFFSET = scaleSize(10);
+const CARD_SHADOW_RADIUS = scaleSize(20);
 
 const styles = StyleSheet.create({
     wrap: { justifyContent: "space-between" },
@@ -214,8 +205,16 @@ const styles = StyleSheet.create({
     railTouchable: {
         height: TPL_CARD_H,
         marginHorizontal: scaleSize(16),
+        borderRadius: CARD_RADIUS,
+        backgroundColor: "transparent",
+        justifyContent: "center",
+    },
+    railPressed: { transform: [{ scale: 0.98 }] },
+    emptyShadow: {
+        flex: 1,
         borderRadius: scaleSize(22),
-        overflow: "hidden",
+        backgroundColor: "transparent",
+        width: "100%",
         ...Platform.select({
             ios: {
                 shadowColor: "#000",
@@ -225,9 +224,23 @@ const styles = StyleSheet.create({
             },
             android: { elevation: 2 },
         }),
-        backgroundColor: "transparent",
     },
-    railPressed: { transform: [{ scale: 0.98 }] },
+    selectedShadow: {
+        flex: 1,
+        borderRadius: CARD_RADIUS,
+        minHeight: CARD_MIN_HEIGHT,
+        backgroundColor: "transparent",
+        width: "100%",
+        ...Platform.select({
+            ios: {
+                shadowColor: CARD_SHADOW_COLOR,
+                shadowOpacity: 0.24,
+                shadowRadius: CARD_SHADOW_RADIUS,
+                shadowOffset: { width: 0, height: CARD_SHADOW_OFFSET },
+            },
+            android: { elevation: 6 },
+        }),
+    },
     cardBase: {
         flexDirection: "row",
         alignItems: "center",
@@ -236,73 +249,62 @@ const styles = StyleSheet.create({
         borderRadius: scaleSize(22),
         position: "relative",
     },
-    cardSelected: {
-        borderWidth: scaleSize(1),
-        borderColor: SELECTED_TEMPLATE_BORDER,
-        overflow: "hidden",
-        paddingHorizontal: scaleSize(18),
-        paddingVertical: scaleSize(8),
-        minHeight: scaleSize(78),
-    },
-    selectedContent: {
-        flexDirection: "row",
-        alignItems: "center",
-        minHeight: "100%",
+    cardTemplate: {
         flex: 1,
-        width: "100%",
-        paddingVertical: scaleSize(4),
+        minHeight: CARD_MIN_HEIGHT,
+        backgroundColor: TEMPLATE_CARD_BG,
+        borderWidth: scaleSize(1.4),
+        borderColor: TEMPLATE_CARD_BORDER,
+        borderRadius: scaleSize(22),
+        justifyContent: "flex-start",
+        gap: scaleSize(18),
     },
-    iconPill: {
-        width: ICON_PILL_SIZE,
-        height: ICON_PILL_SIZE,
-        borderRadius: ICON_PILL_RADIUS,
+    templateIconWrap: {
+        width: scaleSize(32),
+        height: scaleSize(32),
+        borderRadius: scaleSize(22),
+        borderWidth: scaleSize(1.3),
+        borderColor: TEMPLATE_ICON_BORDER,
+        backgroundColor: TEMPLATE_ICON_BG,
         alignItems: "center",
         justifyContent: "center",
         marginLeft: scaleSize(10),
-        marginRight: scaleSize(12),
-        backgroundColor: ICON_PILL_BG,
-        borderWidth: scaleSize(1),
-        borderColor: ICON_PILL_BORDER,
     },
-    selectedTextColumn: {
+    templateTextColumn: {
         flex: 1,
         minWidth: 0,
-        marginRight: scaleSize(12),
-        justifyContent: "center",
-        paddingLeft: scaleSize(2),
-        paddingTop: scaleSize(10),
+        gap: scaleSize(6),
+        paddingRight: scaleSize(4),
     },
-    selectedTag: {
+    templateTitle: {
+        fontFamily: "Outfit_700Bold",
+        fontSize: scaleSize(15),
+        color: "#EEF5FF",
+        includeFontPadding: false,
+    },
+    templateSubWrap: {
+        flexDirection: "row",
+        alignItems: "center",
+        gap: scaleSize(5),
+    },
+    templateSubtitle: {
         fontFamily: "Outfit_600SemiBold",
-        fontSize: scaleSize(FONT_SELECTED_TAG),
-        letterSpacing: 1,
-        textTransform: "uppercase",
-        color: SELECTED_TAG_COLOR,
+        fontSize: scaleSize(12.5),
+        color: TEMPLATE_SUBTITLE_COLOR,
         includeFontPadding: false,
-        marginBottom: scaleSize(3),
-        marginLeft: SELECTED_TEXT_OFFSET,
-    },
-    selectedTitle: {
-        fontFamily: "Outfit_800ExtraBold",
-        fontSize: scaleSize(FONT_SELECTED_TITLE),
-        color: SELECTED_TITLE_COLOR,
-        includeFontPadding: false,
-        letterSpacing: 0.3,
-        marginBottom: 0,
-        marginLeft: SELECTED_TEXT_OFFSET,
     },
     metaRow: {
         flexDirection: "row",
         alignItems: "center",
         flexWrap: "wrap",
         gap: scaleSize(4),
-        marginTop: scaleSize(3),
+        marginTop: scaleSize(4),
     },
     metaBadge: {
         flexDirection: "row",
         alignItems: "center",
         gap: scaleSize(4),
-        paddingVertical: scaleSize(4),
+        paddingVertical: scaleSize(3),
         paddingHorizontal: scaleSize(10),
         borderRadius: scaleSize(999),
         backgroundColor: META_BADGE_BG,
@@ -318,18 +320,6 @@ const styles = StyleSheet.create({
         includeFontPadding: false,
         letterSpacing: 0.38,
         textTransform: "uppercase",
-    },
-    chevronPill: {
-        width: scaleSize(30),
-        height: scaleSize(30),
-        borderRadius: scaleSize(16),
-        alignItems: "center",
-        justifyContent: "center",
-        backgroundColor: CHEVRON_BG,
-        borderWidth: scaleSize(1),
-        borderColor: CHEVRON_BORDER,
-        marginLeft: scaleSize(8),
-        alignSelf: "center",
     },
     cardEmpty: {
         backgroundColor: EMPTY_CARD_BG,

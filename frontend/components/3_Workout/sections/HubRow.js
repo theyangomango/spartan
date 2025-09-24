@@ -154,22 +154,22 @@ function HubRowCmp({
                             size={scaleSize(14)}
                             color={theme.textSecondary}
                         />
-                        <Text style={styles.headerSubtitle}>Tap to see logs.</Text>
+                        <Text style={styles.headerSubtitle}>Tap to view all your logs.</Text>
                     </View>
                 </View>
-                <RNBounceable
+                <View
                     style={[styles.headerBadge, !viewStatsEnabled && styles.headerBadgeDisabled]}
                     hitSlop={scaleSize(6)}
                     accessibilityRole="button"
-                    accessibilityState={{ disabled: !viewStatsEnabled }}
-                    onPress={handleViewStatsPress}
-                    onPressIn={handleViewStatsPressIn}
-                    disabled={!viewStatsEnabled}
+                    // accessibilityState={{ disabled: !viewStatsEnabled }}
+                    // onPress={handleViewStatsPress}
+                    // onPressIn={handleViewStatsPressIn}
+                    // disabled={!viewStatsEnabled}
                 >
                     <View style={styles.headerDot} />
-                    <Text style={styles.headerBadgeText}>VIEW STATS</Text>
-                    <Feather name="chevron-down" size={scaleSize(12)} color={theme.textPrimary} style={styles.headerIcon} />
-                </RNBounceable>
+                    <Text style={styles.headerBadgeText}>Personal Hub</Text>
+                    {/* <Feather name="chevron-down" size={scaleSize(12)} color={theme.textPrimary} style={styles.headerIcon} /> */}
+                </View>
             </View>
 
             <View style={styles.statsList}>
@@ -294,6 +294,7 @@ const styles = StyleSheet.create({
     cardBody: {
         flex: 1,
         gap: scaleSize(14),
+        paddingHorizontal: scaleSize(4)
     },
     cardTop: {
         flexDirection: "row",
@@ -306,7 +307,7 @@ const styles = StyleSheet.create({
     },
     headerTitle: {
         fontFamily: "Outfit_700Bold",
-        fontSize: scaleSize(18),
+        fontSize: scaleSize(17),
         color: theme.textPrimary,
         letterSpacing: 0.2,
     },
@@ -344,7 +345,7 @@ const styles = StyleSheet.create({
     headerBadgeText: {
         color: theme.textPrimary,
         fontFamily: "Outfit_700Bold",
-        fontSize: scaleSize(10),
+        fontSize: scaleSize(11),
         letterSpacing: 0.6,
         textTransform: "uppercase",
     },

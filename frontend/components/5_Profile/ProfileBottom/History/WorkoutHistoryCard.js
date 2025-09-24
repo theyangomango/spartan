@@ -104,7 +104,7 @@ export default function WorkoutHistoryCard({ workout }) {
       exerciseSummaries={buildExerciseSummaries(workout)}
       pfpUri={pfpUri}
       fallbackLabel={initials(fallbackName)}
-      style={{ marginHorizontal: scaleSize(16), marginVertical: scaleSize(5) }}
+      style={{ marginHorizontal: scaleSize(16), marginBottom: scaleSize(14) }}
     />
   );
 }

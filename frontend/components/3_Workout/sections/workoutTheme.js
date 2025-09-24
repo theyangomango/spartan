@@ -21,7 +21,7 @@ export const DOTS_H = ss(10);
 export const TPL_CARD_H = TPL_HEIGHT - DOTS_H - ss(6);
 
 /* Hub card sizing (shared so spacing can react when design tweaks height) */
-export const HUB_CARD_HEIGHT = ss(190);
+export const HUB_CARD_HEIGHT = ss(185);
 const HUB_CARD_BASE = ss(170);
 const HUB_CARD_EXTRA = Math.max(0, HUB_CARD_HEIGHT - HUB_CARD_BASE);
 const HUB_CARD_NEG = Math.max(0, HUB_CARD_BASE - HUB_CARD_HEIGHT);

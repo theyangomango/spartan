@@ -119,6 +119,7 @@ export default function App() {
     const [communityStatsReady, setCommunityStatsReady] = useState(false);
     const feedOverlayProgressSV = useSharedValue(1);
     const footerVisibilitySV = useSharedValue(0);
+    const workoutSheetProgressSV = useSharedValue(0);
     const footerVisibilityTargetRef = useRef(false);
     const isFooterSuppressed = useFooterSuppressionStore((s) => s.isSuppressed);
     const uidRef = useRef(null);
@@ -1006,6 +1007,7 @@ export default function App() {
                     overlayProgressSV={feedOverlayProgressSV}
                     visibilityProgressSV={footerVisibilitySV}
                     isActive={isFooterVisible}
+                    collapseProgressSV={workoutSheetProgressSV}
                 />
             )}
             {authChecked && isAuthenticated && (
@@ -1017,6 +1019,7 @@ export default function App() {
                     overlayProgressSV={feedOverlayProgressSV}
                     visibilityProgressSV={footerVisibilitySV}
                     disableInteractions={!isFooterVisible}
+                    workoutSheetProgressSV={workoutSheetProgressSV}
                 />
             )}
             {/* Global Rest Reminder Modal */}

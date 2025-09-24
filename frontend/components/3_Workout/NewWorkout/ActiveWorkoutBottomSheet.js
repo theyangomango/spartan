@@ -23,14 +23,14 @@ const noop = () => { };
 const SHEET_RADIUS = scaleSize(22);
 const HANDLE_BG_COLLAPSED = 'rgba(45, 157, 255, 0.76)';
 const HANDLE_BG_EXPANDED = 'rgba(45, 158, 255, 0)';
-const HANDLE_BAR_COLOR_COLLAPSED = 'rgba(31, 79, 150, 0.95)';
+const HANDLE_BAR_COLOR_COLLAPSED = 'rgba(23, 62, 120, 0.95)';
 const HANDLE_BAR_COLOR_EXPANDED = 'rgba(226, 232, 240, 0.7)';
 const COLLAPSE_COLOR_THRESHOLD = 0.15;
 
 const SCREEN_HEIGHT = Dimensions.get("window").height || 0;
 const FOCUS_HIDE_DISTANCE = SCREEN_HEIGHT > 0 ? SCREEN_HEIGHT : (COLLAPSED_PEEK + scaleSize(320));
 
-const ActiveWorkoutBottomSheet = ({ hideForFocus = false, overlayProgressSV, visibilityProgressSV, isActive = true }) => {
+const ActiveWorkoutBottomSheet = ({ hideForFocus = false, overlayProgressSV, visibilityProgressSV, isActive = true, collapseProgressSV = null }) => {
     const bottomSheetRef = useRef(null);
     const snapPoints = useMemo(() => [COLLAPSED_SNAP, "94%"], []);
     const [contentKey, setContentKey] = useState(0);
@@ -65,6 +65,23 @@ const ActiveWorkoutBottomSheet = ({ hideForFocus = false, overlayProgressSV, vis
         if (value >= 1) return 1;
         return value;
     }, [sharedAnimatedIndex]);
+
+    useDerivedValue(() => {
+        if (!collapseProgressSV) {
+            return;
+        }
+        const progress = sheetProgress.value;
+        const clamped = progress < 0 ? 0 : progress > 1 ? 1 : progress;
+        collapseProgressSV.value = hasWorkout ? clamped : 0;
+    }, [collapseProgressSV, hasWorkout]);
+
+    useEffect(() => {
+        return () => {
+            if (collapseProgressSV) {
+                collapseProgressSV.value = 0;
+            }
+        };
+    }, [collapseProgressSV]);
 
     useEffect(() => {
         if (!setSheetSharedAnimatedIndex) return;

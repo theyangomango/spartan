@@ -883,35 +883,15 @@ const DayDetailsSheet = ({
         };
 
         try {
+            // Only completed workouts contribute calendar marks.
             const completed = Array.isArray(global?.userData?.completedWorkouts) ? global.userData.completedWorkouts : [];
             completed.forEach((w) => {
                 addKey(w?.finishedAt ?? w?.completedAt ?? w?.createdAt ?? w?.created ?? 0);
             });
         } catch { }
 
-        try {
-            const current = global?.userData?.currentWorkout;
-            if (current) addKey(current?.createdAt ?? current?.created ?? Date.now());
-        } catch { }
-
-        try {
-            const map = global?.userData?.loggedFoods || {};
-            const looksNested = map && typeof map === 'object' && Object.values(map)[0] && !('dayKey' in (Object.values(map)[0] || {}));
-            if (looksNested) {
-                Object.entries(map || {}).forEach(([dk, entries]) => {
-                    if (entries && Object.keys(entries || {}).length) addKey(dk);
-                });
-            } else {
-                Object.values(map || {}).forEach((entry) => {
-                    if (!entry) return;
-                    if (entry?.dayKey) addKey(entry.dayKey);
-                    else addKey(entry?.createdAt ?? entry?.created ?? entry?.ts ?? entry?.timestamp);
-                });
-            }
-        } catch { }
-
         return set;
-    }, [completedWorkoutsCount, loggedFoodsCount, global?.userData?.currentWorkout?.created, global?.userData?.currentWorkout?.createdAt]);
+    }, [completedWorkoutsCount]);
 
     // Current, prev, next day data from global (instant render)
     const prevDate = useMemo(() => shiftDate(date, -1), [date]);
@@ -1002,7 +982,7 @@ const DayDetailsSheet = ({
                                 onPress={() => openViewer(w)}
                                 pfpUri={pfpUri}
                                 fallbackLabel={initials(fallbackName)}
-                                style={{ marginVertical: scaleSize(5) }}
+                                style={{ marginBottom: scaleSize(14) }}
                             />
                         );
                     })

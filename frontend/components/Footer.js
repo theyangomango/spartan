@@ -28,6 +28,7 @@ const Footer = ({
     overlayProgressSV,
     visibilityProgressSV,
     disableInteractions = false,
+    workoutSheetProgressSV = null,
 }) => {
     const globalOverlayEnabled = Boolean(global?.__USE_GLOBAL_FOOTER);
     if (!isOverlay && globalOverlayEnabled) {
@@ -62,6 +63,8 @@ const Footer = ({
     // Subscribe to workout presence only (boolean); avoids polling and reduces rerenders
     const hasActiveWorkout = useWorkoutStore((s) => !!s.workout) || !!global?.isCurrentlyWorkingOut;
     const sheetSharedAnimatedIndex = useWorkoutStore((s) => s.sheetSharedAnimatedIndex);
+
+    const collapseProgressSharedValue = workoutSheetProgressSV ?? sheetSharedAnimatedIndex;
     const sheetState = useWorkoutStore((s) => s.sheetState);
 
     const getIconColor = (screenName) => (
@@ -73,12 +76,11 @@ const Footer = ({
     ), [disableInteractions, hasActiveWorkout, sheetState, isHiddenByFocus]);
 
     const footerReveal = useDerivedValue(() => {
-        if (!hasActiveWorkout) return 1;
-        if (!sheetSharedAnimatedIndex) return 1;
-        const value = sheetSharedAnimatedIndex.value;
+        if (!collapseProgressSharedValue) return 1;
+        const value = collapseProgressSharedValue.value;
         const clamped = value < 0 ? 0 : value > 1 ? 1 : value;
         return 1 - clamped;
-    }, [hasActiveWorkout, sheetSharedAnimatedIndex]);
+    }, [collapseProgressSharedValue]);
 
     const outerAnimatedStyle = useAnimatedStyle(() => {
         const overlayProgress = overlayProgressSV?.value ?? (isHiddenByFocus ? 0 : 1);
@@ -247,5 +249,6 @@ export default React.memo(Footer, (prev, next) => (
     prev.isHiddenByFocus === next.isHiddenByFocus &&
     prev.overlayProgressSV === next.overlayProgressSV &&
     prev.visibilityProgressSV === next.visibilityProgressSV &&
-    prev.disableInteractions === next.disableInteractions
+    prev.disableInteractions === next.disableInteractions &&
+    prev.workoutSheetProgressSV === next.workoutSheetProgressSV
 ));
