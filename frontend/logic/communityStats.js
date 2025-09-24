@@ -88,18 +88,31 @@ function isValidCompletedWorkout(workout, ownerUid) {
 }
 
 function gatherFriendUids(user) {
-    const seen = new Set();
     const meUid = String(user?.uid || "");
-    const add = (entry) => {
-        const uid = normalizeUid(entry);
-        if (!uid || uid === meUid || seen.has(uid)) return;
-        seen.add(String(uid));
-    };
     const following = Array.isArray(user?.following) ? user.following : [];
     const followers = Array.isArray(user?.followers) ? user.followers : [];
-    following.forEach(add);
-    followers.forEach(add);
-    return Array.from(seen);
+
+    const toSet = (list) => {
+        const set = new Set();
+        list.forEach((entry) => {
+            const uid = normalizeUid(entry);
+            if (!uid) return;
+            const normalized = String(uid);
+            if (!normalized || normalized === meUid) return;
+            set.add(normalized);
+        });
+        return set;
+    };
+
+    const followingSet = toSet(following);
+    const followersSet = toSet(followers);
+
+    const mutual = [];
+    followingSet.forEach((uid) => {
+        if (followersSet.has(uid)) mutual.push(uid);
+    });
+
+    return mutual;
 }
 
 async function computeStatsForUser(user) {

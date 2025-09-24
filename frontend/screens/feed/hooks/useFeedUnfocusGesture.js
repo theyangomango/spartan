@@ -34,6 +34,7 @@ export default function useFeedUnfocusGesture({
   signalCommentsReopen,
   handleBackPress,
   clearUnfocusFlagsJS,
+  focusAnimationDuration,
   INTERACTIVE_CANCEL_MS,
   INTERACTIVE_LOCKOUT_MS,
   COMMENTS_COLLAPSE_MIN_PX,
@@ -131,6 +132,14 @@ export default function useFeedUnfocusGesture({
         const shouldClose = eased > CLOSE_THRESHOLD || velocityClose;
 
         if (shouldClose) {
+          focusHide.value = withTiming(0, {
+            duration: focusAnimationDuration,
+            easing: ReEasing.out(ReEasing.cubic),
+          });
+          interactiveProgressSV.value = withTiming(1, {
+            duration: focusAnimationDuration,
+            easing: ReEasing.out(ReEasing.cubic),
+          });
           commentsHiddenSV.value = 1;
           runOnJS(setUnfocusGestureActive)(false);
           commitInteractiveOffset();
@@ -190,6 +199,7 @@ export default function useFeedUnfocusGesture({
     suspendInteractiveAlignment,
     resumeInteractiveAlignment,
     clearUnfocusFlagsJS,
+    focusAnimationDuration,
     INTERACTIVE_CANCEL_MS,
     INTERACTIVE_LOCKOUT_MS,
     COMMENTS_COLLAPSE_MIN_PX,

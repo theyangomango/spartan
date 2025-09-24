@@ -59,7 +59,7 @@ import MainTabs from './frontend/navigation/MainTabs';
 import useFooterSuppressionStore, { setFooterSuppressed, clearFooterSuppression } from './frontend/state/footerSuppressionStore';
 
 // Ensure a defined global.userData early so screens can read without crashing
-try { global.userData = global.userData || {}; } catch {}
+try { global.userData = global.userData || {}; } catch { }
 // Single root stack: iOS uses classic stack for left-slide; Android uses native-stack for perf
 const RootStack = Platform.OS === 'ios' ? createStackNavigator() : createNativeStackNavigator();
 
@@ -75,7 +75,7 @@ enableFreeze(true);
 // (no screens optimization toggles — use defaults)
 
 // Keep native splash screen visible while we preload fonts and hydrate auth
-try { SplashScreen.preventAutoHideAsync(); } catch {}
+try { SplashScreen.preventAutoHideAsync(); } catch { }
 
 // Prefer dark keyboard appearance globally on iOS
 try {
@@ -88,7 +88,7 @@ try {
             TextInput.defaultProps.keyboardAppearance = 'dark';
         }
     }
-} catch {}
+} catch { }
 
 /* No nested stacks; everything registers on RootStack */
 
@@ -196,20 +196,20 @@ export default function App() {
             }
             setFooterSuppressed(key, !!suppressed);
         };
-        try { global.__setStickyElementsSuppressed = setter; } catch {}
+        try { global.__setStickyElementsSuppressed = setter; } catch { }
         return () => {
             try {
                 if (global.__setStickyElementsSuppressed === setter) {
                     delete global.__setStickyElementsSuppressed;
                 }
-            } catch {}
+            } catch { }
             clearFooterSuppression();
         };
     }, []);
 
     useEffect(() => {
-        try { global.__USE_GLOBAL_FOOTER = true; } catch {}
-        return () => { try { delete global.__USE_GLOBAL_FOOTER; } catch {} };
+        try { global.__USE_GLOBAL_FOOTER = true; } catch { }
+        return () => { try { delete global.__USE_GLOBAL_FOOTER; } catch { } };
     }, []);
 
     useEffect(() => {
@@ -225,10 +225,10 @@ export default function App() {
                 const clamped = numeric < 0 ? 0 : numeric > 1 ? 1 : numeric;
                 feedOverlayProgressSV.value = clamped;
             };
-        } catch {}
+        } catch { }
         return () => {
-            try { delete global.__setFeedOverlayHidden; } catch {}
-            try { delete global.__setFeedOverlayProgress; } catch {}
+            try { delete global.__setFeedOverlayHidden; } catch { }
+            try { delete global.__setFeedOverlayProgress; } catch { }
         };
     }, [feedOverlayProgressSV]);
 
@@ -256,30 +256,30 @@ export default function App() {
             const normalizedUid = uid ? String(uid) : null;
             try {
                 if (normalizedUid) {
-                    AsyncStorage.setItem('uid', normalizedUid).catch(() => {});
+                    AsyncStorage.setItem('uid', normalizedUid).catch(() => { });
                 } else {
-                    AsyncStorage.removeItem('uid').catch(() => {});
+                    AsyncStorage.removeItem('uid').catch(() => { });
                 }
-            } catch {}
+            } catch { }
             if (!normalizedUid) {
-                try { logoutCleanupRef.current?.(); } catch {}
+                try { logoutCleanupRef.current?.(); } catch { }
                 uidRef.current = null;
                 setUserReady(false);
-                try { global.userData = {}; } catch {}
-                try { delete global.__userDocHydrated; } catch {}
+                try { global.userData = {}; } catch { }
+                try { delete global.__userDocHydrated; } catch { }
             } else {
                 if (logoutResetTimerRef.current) {
-                    try { clearTimeout(logoutResetTimerRef.current); } catch {}
+                    try { clearTimeout(logoutResetTimerRef.current); } catch { }
                     logoutResetTimerRef.current = null;
                 }
                 uidRef.current = normalizedUid;
-                try { delete global.__userDocHydrated; } catch {}
+                try { delete global.__userDocHydrated; } catch { }
             }
             setIsAuthenticated(!!normalizedUid);
         };
 
         global.logout = () => {
-            try { global.setAuthUid?.(null); } catch {}
+            try { global.setAuthUid?.(null); } catch { }
         };
 
         (async () => {
@@ -291,7 +291,7 @@ export default function App() {
             finally { setAuthChecked(true); }
         })();
         return () => {
-            try { delete global.setAuthUid; delete global.logout; } catch {}
+            try { delete global.setAuthUid; delete global.logout; } catch { }
         };
     }, []);
 
@@ -321,7 +321,7 @@ export default function App() {
                     vibrationPattern: [0, 250, 250, 250], lightColor: '#FF231F7C',
                     lockscreenVisibility: Notifications.AndroidNotificationVisibility.PUBLIC,
                     enableVibrate: true, enableLights: true,
-                }).catch(() => {});
+                }).catch(() => { });
             }
         } catch (e) {
             if (__DEV__) console.log('expo-notifications unavailable:', e?.message || e);
@@ -347,14 +347,14 @@ export default function App() {
                         return true;
                     }
                 }
-            } catch {}
+            } catch { }
 
             const ok = navigateRoot && navigateRoot('Chat', { data: { cid }, usersExcludingSelf: [] });
             if (ok) {
                 pendingChatCidRef.current = null;
                 return true;
             }
-        } catch {}
+        } catch { }
         return false;
     }, [isAuthenticated]);
 
@@ -362,7 +362,7 @@ export default function App() {
         // If a pending deep link exists and auth just became ready, attempt navigation
         if (pendingChatCidRef.current) {
             // clear any previous timer
-            if (pendingNavTimerRef.current) { try { clearTimeout(pendingNavTimerRef.current); } catch {} pendingNavTimerRef.current = null; }
+            if (pendingNavTimerRef.current) { try { clearTimeout(pendingNavTimerRef.current); } catch { } pendingNavTimerRef.current = null; }
             // try immediately; if not ready, retry shortly
             const attempt = () => {
                 if (tryNavigateToPendingChat()) return;
@@ -371,7 +371,7 @@ export default function App() {
             attempt();
         }
         return () => {
-            if (pendingNavTimerRef.current) { try { clearTimeout(pendingNavTimerRef.current); } catch {} pendingNavTimerRef.current = null; }
+            if (pendingNavTimerRef.current) { try { clearTimeout(pendingNavTimerRef.current); } catch { } pendingNavTimerRef.current = null; }
         };
     }, [isAuthenticated, tryNavigateToPendingChat]);
 
@@ -394,13 +394,13 @@ export default function App() {
                     }
                 }
                 if (id) lastHandledNotifIdRef.current = id;
-            } catch {}
+            } catch { }
         };
 
         // Cold start: process the last response, if any
         Notifications.getLastNotificationResponseAsync?.().then((resp) => {
             if (resp) handleResponse(resp);
-        }).catch(() => {});
+        }).catch(() => { });
 
         notifResponseSubRef.current = Notifications.addNotificationResponseReceivedListener(handleResponse);
 
@@ -409,7 +409,7 @@ export default function App() {
                 if (notifResponseSubRef.current && Notifications?.removeNotificationSubscription) {
                     Notifications.removeNotificationSubscription(notifResponseSubRef.current);
                 }
-            } catch {}
+            } catch { }
             notifResponseSubRef.current = null;
         };
     }, [notificationsRef.current, tryNavigateToPendingChat]);
@@ -417,23 +417,23 @@ export default function App() {
     // Request push permissions and register token on login
     useEffect(() => {
         // cleanup previous subscription
-        if (unsubRef.current) { try { unsubRef.current(); } catch {} unsubRef.current = null; }
+        if (unsubRef.current) { try { unsubRef.current(); } catch { } unsubRef.current = null; }
         setUserReady(false);
 
         const uid = uidRef.current;
         if (!isAuthenticated || !uid) return;
-        try { delete global.__userDocHydrated; } catch {}
+        try { delete global.__userDocHydrated; } catch { }
         const ref = doc(db, 'users', uid);
         unsubRef.current = onSnapshot(ref, async (snap) => {
-            try { global.userData = { uid, ...(snap.data() || {}) }; } catch {}
+            try { global.userData = { uid, ...(snap.data() || {}) }; } catch { }
             setUserReady(true);
-            try { global.__userDocHydrated = true; } catch {}
+            try { global.__userDocHydrated = true; } catch { }
             try {
                 const maybeRefresh = refreshCommunityStats({ force: true });
                 if (maybeRefresh && typeof maybeRefresh.catch === 'function') {
-                    maybeRefresh.catch(() => {});
+                    maybeRefresh.catch(() => { });
                 }
-            } catch {}
+            } catch { }
 
             // Register for push notifications (EAS project id required)
             try {
@@ -444,8 +444,8 @@ export default function App() {
                         try {
                             const updateDoc = require('./backend/helper/firebase/updateDoc').default;
                             await updateDoc('users', uid, { expoPushToken: '' });
-                            try { global.userData.expoPushToken = ''; } catch {}
-                        } catch {}
+                            try { global.userData.expoPushToken = ''; } catch { }
+                        } catch { }
                     }
                     if (!wantsPush) return;
                     const { status: existingStatus } = await notificationsRef.current.getPermissionsAsync();
@@ -460,7 +460,7 @@ export default function App() {
                         if (t && t !== (global?.userData?.expoPushToken || '')) {
                             const updateDoc = require('./backend/helper/firebase/updateDoc').default;
                             await updateDoc('users', uid, { expoPushToken: t });
-                            try { global.userData.expoPushToken = t; } catch {}
+                            try { global.userData.expoPushToken = t; } catch { }
                         }
                     }
                 }
@@ -473,7 +473,7 @@ export default function App() {
                     prevUnreadMsgRef.current = nextCount;
                 } else if (Number.isFinite(nextCount) && nextCount > prevUnreadMsgRef.current) {
                     let route = null;
-                    try { if (navigationRef?.isReady?.() && navigationRef?.getCurrentRoute) { route = navigationRef.getCurrentRoute(); } } catch {}
+                    try { if (navigationRef?.isReady?.() && navigationRef?.getCurrentRoute) { route = navigationRef.getCurrentRoute(); } } catch { }
                     if (!route || route?.name !== 'Chat') {
                         const soundsOn = (global?.userData?.settings?.sounds !== false);
                         if (soundsOn) buzzOnce();
@@ -482,12 +482,12 @@ export default function App() {
                 } else {
                     prevUnreadMsgRef.current = nextCount;
                 }
-            } catch {}
+            } catch { }
         }, (err) => {
             console.warn('User document subscription error:', err?.message || err);
             // proceed but keep ready false to avoid crashing screens
         });
-        return () => { if (unsubRef.current) { try { unsubRef.current(); } catch {} unsubRef.current = null; } };
+        return () => { if (unsubRef.current) { try { unsubRef.current(); } catch { } unsubRef.current = null; } };
     }, [isAuthenticated]);
 
     // Safety: if user doc doesn't arrive promptly (offline, slow network), proceed with minimal data
@@ -495,9 +495,9 @@ export default function App() {
         if (!isAuthenticated || userReady) return;
         const id = setTimeout(() => {
             if (!userReady) {
-                try { const uid = uidRef.current; global.userData = { ...(global.userData || {}), uid, id: uid }; } catch {}
+                try { const uid = uidRef.current; global.userData = { ...(global.userData || {}), uid, id: uid }; } catch { }
                 setUserReady(true);
-                try { global.__userDocHydrated = true; } catch {}
+                try { global.__userDocHydrated = true; } catch { }
             }
         }, 2500);
         return () => clearTimeout(id);
@@ -523,36 +523,36 @@ export default function App() {
                 // If this cycle is already acknowledged, do not show again
                 const ack = Number(global.__restCycleAck || restAckRef.current || 0);
                 if (cycleId && ack && cycleId === ack) return;
-            } catch {}
+            } catch { }
             const soundsOn = (global?.userData?.settings?.sounds !== false);
             if (soundsOn) {
-                try { Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success); } catch {}
-                try { Vibration.vibrate(180); } catch {}
+                try { Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success); } catch { }
+                try { Vibration.vibrate(180); } catch { }
             }
             setRestReminderKey((k) => k + 1);
             restReminderCycleRef.current = Number(cycleId || 0);
             setRestReminderVisible(true);
         };
-        return () => { try { global.triggerRestReminder = null; } catch {} };
+        return () => { try { global.triggerRestReminder = null; } catch { } };
     }, []);
 
     useEffect(() => {
         logoutCleanupRef.current = () => {
-            try { pendingChatCidRef.current = null; } catch {}
+            try { pendingChatCidRef.current = null; } catch { }
             if (pendingNavTimerRef.current) {
-                try { clearTimeout(pendingNavTimerRef.current); } catch {}
+                try { clearTimeout(pendingNavTimerRef.current); } catch { }
                 pendingNavTimerRef.current = null;
             }
             if (logoutResetTimerRef.current) {
-                try { clearTimeout(logoutResetTimerRef.current); } catch {}
+                try { clearTimeout(logoutResetTimerRef.current); } catch { }
                 logoutResetTimerRef.current = null;
             }
             if (unsubRef.current) {
-                try { unsubRef.current(); } catch {}
+                try { unsubRef.current(); } catch { }
                 unsubRef.current = null;
             }
             if (notifUnsubRef.current) {
-                try { notifUnsubRef.current(); } catch {}
+                try { notifUnsubRef.current(); } catch { }
                 notifUnsubRef.current = null;
             }
             try {
@@ -560,7 +560,7 @@ export default function App() {
                 if (notifResponseSubRef.current && Notifications?.removeNotificationSubscription) {
                     Notifications.removeNotificationSubscription(notifResponseSubRef.current);
                 }
-            } catch {}
+            } catch { }
             notifResponseSubRef.current = null;
             prevUnreadMsgRef.current = null;
             prevUnreadNotifRef.current = null;
@@ -568,7 +568,7 @@ export default function App() {
             lastNotificationBuzzAtRef.current = 0;
             restReminderCycleRef.current = 0;
             restAckRef.current = 0;
-            try { delete global.__restCycleAck; } catch {}
+            try { delete global.__restCycleAck; } catch { }
             setRestReminderVisible(false);
 
             const attemptReset = () => {
@@ -578,7 +578,7 @@ export default function App() {
                         logoutResetTimerRef.current = null;
                         return;
                     }
-                } catch {}
+                } catch { }
                 logoutResetTimerRef.current = setTimeout(attemptReset, 60);
             };
             attemptReset();
@@ -586,7 +586,7 @@ export default function App() {
         return () => {
             logoutCleanupRef.current = null;
             if (logoutResetTimerRef.current) {
-                try { clearTimeout(logoutResetTimerRef.current); } catch {}
+                try { clearTimeout(logoutResetTimerRef.current); } catch { }
                 logoutResetTimerRef.current = null;
             }
         };
@@ -616,8 +616,8 @@ export default function App() {
         const now = Date.now();
         if (now - lastBuzzAtRef.current < 600) return; // throttle to avoid double buzz
         lastBuzzAtRef.current = now;
-        try { Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success); } catch {}
-        try { Vibration.vibrate(180); } catch {}
+        try { Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success); } catch { }
+        try { Vibration.vibrate(180); } catch { }
     };
 
     // Also surface a modal whenever a notification is received while app is foreground
@@ -634,7 +634,7 @@ export default function App() {
                             if (navigationRef?.isReady?.() && navigationRef?.getCurrentRoute) {
                                 route = navigationRef.getCurrentRoute();
                             }
-                        } catch {}
+                        } catch { }
                         const dtype = evt?.request?.content?.data?.type;
                         if (dtype === 'chat' && route?.name === 'Chat') {
                             // Still handle rest reminder modal detection below
@@ -647,7 +647,7 @@ export default function App() {
                                 lastNotificationBuzzAtRef.current = now;
                             }
                         }
-                    } catch {}
+                    } catch { }
                     const title = String(evt?.request?.content?.title || '').toLowerCase();
                     // Prefer cycle-aware gating via data.cycleId
                     const cycleId = Number(evt?.request?.content?.data?.cycleId || 0);
@@ -659,12 +659,12 @@ export default function App() {
                             setRestReminderVisible(true);
                         }
                     }
-                } catch {}
+                } catch { }
             });
-        } catch {}
+        } catch { }
         return () => {
             if (notifListenerRef.current && notificationsRef.current?.removeNotificationSubscription) {
-                try { notificationsRef.current.removeNotificationSubscription(notifListenerRef.current); } catch {}
+                try { notificationsRef.current.removeNotificationSubscription(notifListenerRef.current); } catch { }
             }
             notifListenerRef.current = null;
         };
@@ -694,10 +694,10 @@ export default function App() {
                         }
                     }
                     prevUnreadNotifRef.current = count;
-                } catch {}
+                } catch { }
             });
-        } catch {}
-        return () => { if (notifUnsubRef.current) { try { notifUnsubRef.current(); } catch {} notifUnsubRef.current = null; } };
+        } catch { }
+        return () => { if (notifUnsubRef.current) { try { notifUnsubRef.current(); } catch { } notifUnsubRef.current = null; } };
     }, [global?.userData?.uid]);
 
     const [appForceReady, setAppForceReady] = useState(false);
@@ -712,9 +712,9 @@ export default function App() {
                     setHubRowReady(true);
                 }
             };
-        } catch {}
+        } catch { }
         return () => {
-            try { delete global.__markHubRowReady; } catch {}
+            try { delete global.__markHubRowReady; } catch { }
         };
     }, []);
 
@@ -747,7 +747,7 @@ export default function App() {
             // Wait a frame after layout so content can paint before hiding splash
             requestAnimationFrame(() => {
                 requestAnimationFrame(() => {
-                    SplashScreen.hideAsync().catch(() => {});
+                    SplashScreen.hideAsync().catch(() => { });
                 });
             });
         }
@@ -758,7 +758,7 @@ export default function App() {
         if (appReady && hasLaidOut && (!shouldWaitForHubRow || hubRowReady)) {
             requestAnimationFrame(() => {
                 requestAnimationFrame(() => {
-                    SplashScreen.hideAsync().catch(() => {});
+                    SplashScreen.hideAsync().catch(() => { });
                 });
             });
         }
@@ -769,7 +769,7 @@ export default function App() {
         if (appForceReady) {
             hubRowReadyRef.current = true;
             setHubRowReady(true);
-            SplashScreen.hideAsync().catch(() => {});
+            SplashScreen.hideAsync().catch(() => { });
         }
     }, [appForceReady]);
 
@@ -788,10 +788,10 @@ export default function App() {
         try {
             const { jumpToTab } = require('./navigationRef');
             if (jumpToTab) jumpToTab('Workout');
-            try { global.openCurrentWorkoutSignal = Date.now(); } catch {}
-        } catch {}
+            try { global.openCurrentWorkoutSignal = Date.now(); } catch { }
+        } catch { }
         // Acknowledge this cycle to avoid re-showing until a new timer starts
-        try { const cid = Number(restReminderCycleRef.current || 0); if (cid) { global.__restCycleAck = cid; restAckRef.current = cid; } } catch {}
+        try { const cid = Number(restReminderCycleRef.current || 0); if (cid) { global.__restCycleAck = cid; restAckRef.current = cid; } } catch { }
         setRestReminderVisible(false);
     };
 
@@ -799,150 +799,93 @@ export default function App() {
     return (
         <GestureHandlerRootView style={{ flex: 1, backgroundColor: theme.bg }} onLayout={onLayoutRootView}>
             {authChecked && (
-            <NavigationContainer
-                ref={navigationRef}
-                onReady={handleNavigationStateUpdate}
-                onStateChange={handleNavigationStateUpdate}
-            >
-                {/* Single root navigator with all screens */}
-                <RootStack.Navigator
-                    id="ROOT"
-                    key={isAuthenticated ? 'auth' : 'guest'}
-                    initialRouteName={isAuthenticated ? 'Tabs' : 'SignUp'}
-                    screenOptions={({ route }) => {
-                        const transition = route?.params?.transition; // 'slide-from-left' | 'slide-from-right' | 'fade' | 'none'
-                        const isFade = transition === 'fade';
-                        const isSlideLeft = transition === 'slide-from-left';
-                        const isNone = transition === 'none';
-                        return Platform.select({
-                            ios: {
-                                headerShown: false,
-                                gestureEnabled: !isNone,
-                                // Make back-swipe easier to trigger by expanding the response area
-                                // from the default ~30px to a wider edge (approx 140px).
-                                // Use a numeric value for broad compatibility with stack v6.
-                                gestureResponseDistance: Math.min(200, Dimensions.get('window').width),
-                                animationEnabled: !isNone,
-                                gestureDirection: isSlideLeft ? 'horizontal-inverted' : 'horizontal',
-                                cardStyleInterpolator: isFade
-                                    ? CardStyleInterpolators.forFadeFromCenter
-                                    : CardStyleInterpolators.forHorizontalIOS,
-                                transitionSpec: {
-                                    open: TransitionSpecs.TransitionIOSSpec,
-                                    close: TransitionSpecs.TransitionIOSSpec,
-                                },
-                            },
-                            android: {
-                                headerShown: false,
-                                gestureEnabled: !isNone,
-                                fullScreenGestureEnabled: !isNone,
-                                animation: isNone
-                                    ? 'none'
-                                    : (isFade
-                                        ? 'fade'
-                                        : (isSlideLeft ? 'slide_from_left' : 'slide_from_right')),
-                            },
-                            default: { headerShown: false, gestureEnabled: true },
-                        });
-                    }}
+                <NavigationContainer
+                    ref={navigationRef}
+                    onReady={handleNavigationStateUpdate}
+                    onStateChange={handleNavigationStateUpdate}
                 >
-                    {/* Auth screens */}
-                    <RootStack.Screen name="SignUp" component={SignUp} />
-                    <RootStack.Screen name="LogIn" component={LogIn} />
-                    <RootStack.Screen name="NewUserCreation" component={NewUserCreation} />
-                    <RootStack.Screen name="UserLogInCredentials" component={UserLogInCredentials} />
-
-                    {/* Main tabs (kept mounted). Force no animation when focusing Tabs. */}
-                    <RootStack.Screen
-                        name="Tabs"
-                        component={MainTabs}
-                        initialParams={{ uid: uidRef.current, transition: 'none' }}
-                        options={Platform.select({
-                            ios: {
-                                headerShown: false,
-                                animationEnabled: false,
-                                gestureEnabled: false,
-                                cardStyleInterpolator: CardStyleInterpolators.forNoAnimation,
-                            },
-                            android: {
-                                headerShown: false,
-                                gestureEnabled: false,
-                                fullScreenGestureEnabled: false,
-                                animation: 'none',
-                            },
-                            default: { headerShown: false },
-                        })}
-                    />
-
-                    {/* Peer screens for one-way transitions */}
-                    <RootStack.Screen name="Feed" component={Feed} initialParams={{ uid: uidRef.current }} />
-
-                    {/* Overlay-capable peers with one-way (no close) animation on iOS */}
-                    <RootStack.Screen
-                        name="MacroTracking"
-                        component={MacroTracking}
-                        options={({ route }) => Platform.select({
-                            ios: {
-                                gestureEnabled: true,
-                                gestureDirection: route?.params?.transition === 'slide-from-left' ? 'horizontal-inverted' : 'horizontal',
-                                cardStyleInterpolator: route?.params?.transition === 'fade'
-                                    ? CardStyleInterpolators.forFadeFromCenter
-                                    : CardStyleInterpolators.forHorizontalIOS,
-                                transitionSpec: {
-                                    open: TransitionSpecs.TransitionIOSSpec,
-                                    close: { animation: 'timing', config: { duration: 0 } },
-                                },
-                            },
-                            android: {
-                                gestureEnabled: true,
-                                fullScreenGestureEnabled: true,
-                                animation: route?.params?.transition === 'fade'
-                                    ? 'fade'
-                                    : (route?.params?.transition === 'slide-from-left' ? 'slide_from_left' : 'slide_from_right'),
-                            },
-                            default: {},
-                        })}
-                    />
-
-                    <RootStack.Screen
-                        name="Workout"
-                        component={Workout}
-                        initialParams={{ uid: uidRef.current }}
-                        options={({ route }) => Platform.select({
-                            ios: {
-                                gestureEnabled: true,
-                                gestureDirection: route?.params?.transition === 'slide-from-left' ? 'horizontal-inverted' : 'horizontal',
-                                cardStyleInterpolator: route?.params?.transition === 'fade'
-                                    ? CardStyleInterpolators.forFadeFromCenter
-                                    : CardStyleInterpolators.forHorizontalIOS,
-                                transitionSpec: {
-                                    open: TransitionSpecs.TransitionIOSSpec,
-                                    close: { animation: 'timing', config: { duration: 0 } },
-                                },
-                            },
-                            android: {
-                                gestureEnabled: true,
-                                fullScreenGestureEnabled: true,
-                                animation: route?.params?.transition === 'fade'
-                                    ? 'fade'
-                                    : (route?.params?.transition === 'slide-from-left' ? 'slide_from_left' : 'slide_from_right'),
-                            },
-                            default: {},
-                        })}
-                    />
-
-                    <RootStack.Screen
-                        name="Competition"
-                        component={Competition}
-                        options={({ route }) => {
-                            const isSlideLeft = route?.params?.transition === 'slide-from-left';
-                            const isFade = route?.params?.transition === 'fade';
-                            const noSwipe = !!route?.params?.disableSwipeBack;
+                    {/* Single root navigator with all screens */}
+                    <RootStack.Navigator
+                        id="ROOT"
+                        key={isAuthenticated ? 'auth' : 'guest'}
+                        initialRouteName={isAuthenticated ? 'Tabs' : 'SignUp'}
+                        screenOptions={({ route }) => {
+                            const transition = route?.params?.transition; // 'slide-from-left' | 'slide-from-right' | 'fade' | 'none'
+                            const isFade = transition === 'fade';
+                            const isSlideLeft = transition === 'slide-from-left';
+                            const isNone = transition === 'none';
                             return Platform.select({
                                 ios: {
-                                    gestureEnabled: !noSwipe,
+                                    headerShown: false,
+                                    gestureEnabled: !isNone,
+                                    // Make back-swipe easier to trigger by expanding the response area
+                                    // from the default ~30px to a wider edge (approx 140px).
+                                    // Use a numeric value for broad compatibility with stack v6.
+                                    gestureResponseDistance: Math.min(200, Dimensions.get('window').width),
+                                    animationEnabled: !isNone,
                                     gestureDirection: isSlideLeft ? 'horizontal-inverted' : 'horizontal',
                                     cardStyleInterpolator: isFade
+                                        ? CardStyleInterpolators.forFadeFromCenter
+                                        : CardStyleInterpolators.forHorizontalIOS,
+                                    transitionSpec: {
+                                        open: TransitionSpecs.TransitionIOSSpec,
+                                        close: TransitionSpecs.TransitionIOSSpec,
+                                    },
+                                },
+                                android: {
+                                    headerShown: false,
+                                    gestureEnabled: !isNone,
+                                    fullScreenGestureEnabled: !isNone,
+                                    animation: isNone
+                                        ? 'none'
+                                        : (isFade
+                                            ? 'fade'
+                                            : (isSlideLeft ? 'slide_from_left' : 'slide_from_right')),
+                                },
+                                default: { headerShown: false, gestureEnabled: true },
+                            });
+                        }}
+                    >
+                        {/* Auth screens */}
+                        <RootStack.Screen name="SignUp" component={SignUp} />
+                        <RootStack.Screen name="LogIn" component={LogIn} />
+                        <RootStack.Screen name="NewUserCreation" component={NewUserCreation} />
+                        <RootStack.Screen name="UserLogInCredentials" component={UserLogInCredentials} />
+
+                        {/* Main tabs (kept mounted). Force no animation when focusing Tabs. */}
+                        <RootStack.Screen
+                            name="Tabs"
+                            component={MainTabs}
+                            initialParams={{ uid: uidRef.current, transition: 'none' }}
+                            options={Platform.select({
+                                ios: {
+                                    headerShown: false,
+                                    animationEnabled: false,
+                                    gestureEnabled: false,
+                                    cardStyleInterpolator: CardStyleInterpolators.forNoAnimation,
+                                },
+                                android: {
+                                    headerShown: false,
+                                    gestureEnabled: false,
+                                    fullScreenGestureEnabled: false,
+                                    animation: 'none',
+                                },
+                                default: { headerShown: false },
+                            })}
+                        />
+
+                        {/* Peer screens for one-way transitions */}
+                        <RootStack.Screen name="Feed" component={Feed} initialParams={{ uid: uidRef.current }} />
+
+                        {/* Overlay-capable peers with one-way (no close) animation on iOS */}
+                        <RootStack.Screen
+                            name="MacroTracking"
+                            component={MacroTracking}
+                            options={({ route }) => Platform.select({
+                                ios: {
+                                    gestureEnabled: true,
+                                    gestureDirection: route?.params?.transition === 'slide-from-left' ? 'horizontal-inverted' : 'horizontal',
+                                    cardStyleInterpolator: route?.params?.transition === 'fade'
                                         ? CardStyleInterpolators.forFadeFromCenter
                                         : CardStyleInterpolators.forHorizontalIOS,
                                     transitionSpec: {
@@ -951,55 +894,112 @@ export default function App() {
                                     },
                                 },
                                 android: {
-                                    gestureEnabled: !noSwipe,
-                                    fullScreenGestureEnabled: !noSwipe,
-                                    animation: isFade
+                                    gestureEnabled: true,
+                                    fullScreenGestureEnabled: true,
+                                    animation: route?.params?.transition === 'fade'
                                         ? 'fade'
-                                        : (isSlideLeft ? 'slide_from_left' : 'slide_from_right'),
+                                        : (route?.params?.transition === 'slide-from-left' ? 'slide_from_left' : 'slide_from_right'),
                                 },
                                 default: {},
-                            });
-                        }}
-                    />
+                            })}
+                        />
 
-                    <RootStack.Screen name="Profile" component={Profile} />
-                    <RootStack.Screen name="Explore" component={Explore} />
+                        <RootStack.Screen
+                            name="Workout"
+                            component={Workout}
+                            initialParams={{ uid: uidRef.current }}
+                            options={({ route }) => Platform.select({
+                                ios: {
+                                    gestureEnabled: true,
+                                    gestureDirection: route?.params?.transition === 'slide-from-left' ? 'horizontal-inverted' : 'horizontal',
+                                    cardStyleInterpolator: route?.params?.transition === 'fade'
+                                        ? CardStyleInterpolators.forFadeFromCenter
+                                        : CardStyleInterpolators.forHorizontalIOS,
+                                    transitionSpec: {
+                                        open: TransitionSpecs.TransitionIOSSpec,
+                                        close: { animation: 'timing', config: { duration: 0 } },
+                                    },
+                                },
+                                android: {
+                                    gestureEnabled: true,
+                                    fullScreenGestureEnabled: true,
+                                    animation: route?.params?.transition === 'fade'
+                                        ? 'fade'
+                                        : (route?.params?.transition === 'slide-from-left' ? 'slide_from_left' : 'slide_from_right'),
+                                },
+                                default: {},
+                            })}
+                        />
 
-                    {/* Messaging / social */}
-                    <RootStack.Screen name="Messages" component={Messages} />
-                    <RootStack.Screen
-                        name="Chat"
-                        component={Chat}
-                        options={Platform.select({
-                            ios: {
-                                // Disable the native back swipe so Chat's custom gesture can fully control the transition.
-                                gestureEnabled: false,
-                                cardStyleInterpolator: CardStyleInterpolators.forHorizontalIOS,
-                            },
-                            android: {
-                                gestureEnabled: true,
-                                fullScreenGestureEnabled: true,
-                                animation: 'slide_from_right',
-                            },
-                            default: {},
-                        })}
-                    />
-                    <RootStack.Screen name="ViewProfile" component={ViewProfile} />
-                    <RootStack.Screen name="SearchUsers" component={SearchUsers} />
-                    <RootStack.Screen name="Settings" component={Settings} />
-                    <RootStack.Screen name="PrivacyPolicy" component={PrivacyPolicy} />
-                    <RootStack.Screen name="TermsOfService" component={TermsOfService} />
-                    <RootStack.Screen name="Credits" component={Credits} />
-                    <RootStack.Screen name="PrivateProfileInfo" component={PrivateProfileInfo} />
-                    <RootStack.Screen name="DeleteAccount" component={DeleteAccount} />
+                        <RootStack.Screen
+                            name="Competition"
+                            component={Competition}
+                            options={({ route }) => {
+                                const isSlideLeft = route?.params?.transition === 'slide-from-left';
+                                const isFade = route?.params?.transition === 'fade';
+                                const noSwipe = !!route?.params?.disableSwipeBack;
+                                return Platform.select({
+                                    ios: {
+                                        gestureEnabled: !noSwipe,
+                                        gestureDirection: isSlideLeft ? 'horizontal-inverted' : 'horizontal',
+                                        cardStyleInterpolator: isFade
+                                            ? CardStyleInterpolators.forFadeFromCenter
+                                            : CardStyleInterpolators.forHorizontalIOS,
+                                        transitionSpec: {
+                                            open: TransitionSpecs.TransitionIOSSpec,
+                                            close: { animation: 'timing', config: { duration: 0 } },
+                                        },
+                                    },
+                                    android: {
+                                        gestureEnabled: !noSwipe,
+                                        fullScreenGestureEnabled: !noSwipe,
+                                        animation: isFade
+                                            ? 'fade'
+                                            : (isSlideLeft ? 'slide_from_left' : 'slide_from_right'),
+                                    },
+                                    default: {},
+                                });
+                            }}
+                        />
 
-                    {/* Creator */}
-                    <RootStack.Screen name="SelectPhotos" component={SelectPhotosScreen} />
-                    <RootStack.Screen name="PostOptions" component={PostUploadOptionsScreen} />
-                    {/* Nutrition */}
-                    <RootStack.Screen name="FoodDetail" component={FoodDetail} />
-                </RootStack.Navigator>
-            </NavigationContainer>
+                        <RootStack.Screen name="Profile" component={Profile} />
+                        <RootStack.Screen name="Explore" component={Explore} />
+
+                        {/* Messaging / social */}
+                        <RootStack.Screen name="Messages" component={Messages} />
+                        <RootStack.Screen
+                            name="Chat"
+                            component={Chat}
+                            options={Platform.select({
+                                ios: {
+                                    // Disable the native back swipe so Chat's custom gesture can fully control the transition.
+                                    gestureEnabled: false,
+                                    cardStyleInterpolator: CardStyleInterpolators.forHorizontalIOS,
+                                },
+                                android: {
+                                    gestureEnabled: true,
+                                    fullScreenGestureEnabled: true,
+                                    animation: 'slide_from_right',
+                                },
+                                default: {},
+                            })}
+                        />
+                        <RootStack.Screen name="ViewProfile" component={ViewProfile} />
+                        <RootStack.Screen name="SearchUsers" component={SearchUsers} />
+                        <RootStack.Screen name="Settings" component={Settings} />
+                        <RootStack.Screen name="PrivacyPolicy" component={PrivacyPolicy} />
+                        <RootStack.Screen name="TermsOfService" component={TermsOfService} />
+                        <RootStack.Screen name="Credits" component={Credits} />
+                        <RootStack.Screen name="PrivateProfileInfo" component={PrivateProfileInfo} />
+                        <RootStack.Screen name="DeleteAccount" component={DeleteAccount} />
+
+                        {/* Creator */}
+                        <RootStack.Screen name="SelectPhotos" component={SelectPhotosScreen} />
+                        <RootStack.Screen name="PostOptions" component={PostUploadOptionsScreen} />
+                        {/* Nutrition */}
+                        <RootStack.Screen name="FoodDetail" component={FoodDetail} />
+                    </RootStack.Navigator>
+                </NavigationContainer>
             )}
             {authChecked && isAuthenticated && (
                 <ActiveWorkoutBottomSheet
@@ -1028,9 +1028,9 @@ export default function App() {
                 visible={restReminderVisible}
                 transparent
                 animationType="fade"
-                onRequestClose={() => { try { const cid = Number(restReminderCycleRef.current || 0); if (cid) { global.__restCycleAck = cid; restAckRef.current = cid; } } catch {}; setRestReminderVisible(false); }}
+                onRequestClose={() => { try { const cid = Number(restReminderCycleRef.current || 0); if (cid) { global.__restCycleAck = cid; restAckRef.current = cid; } } catch { }; setRestReminderVisible(false); }}
             >
-                <Pressable style={restStyles.overlay} onPress={() => { try { const cid = Number(restReminderCycleRef.current || 0); if (cid) { global.__restCycleAck = cid; restAckRef.current = cid; } } catch {}; setRestReminderVisible(false); }}>
+                <Pressable style={restStyles.overlay} onPress={() => { try { const cid = Number(restReminderCycleRef.current || 0); if (cid) { global.__restCycleAck = cid; restAckRef.current = cid; } } catch { }; setRestReminderVisible(false); }}>
                     <View style={restStyles.card}>
                         <View style={restStyles.iconRow}>
                             <View style={restStyles.iconCircle}><Ionicons name="timer-outline" size={rs(26)} color={theme.accentBlue} /></View>
@@ -1038,7 +1038,7 @@ export default function App() {
                         <Text style={restStyles.title}>Rest Complete</Text>
                         <Text style={restStyles.body}>Time to crush your next set 🥱</Text>
                         <View style={restStyles.row}>
-                            <Pressable style={[restStyles.btn, restStyles.secondary]} onPress={() => { try { const cid = Number(restReminderCycleRef.current || 0); if (cid) { global.__restCycleAck = cid; restAckRef.current = cid; } } catch {}; setRestReminderVisible(false); }}>
+                            <Pressable style={[restStyles.btn, restStyles.secondary]} onPress={() => { try { const cid = Number(restReminderCycleRef.current || 0); if (cid) { global.__restCycleAck = cid; restAckRef.current = cid; } } catch { }; setRestReminderVisible(false); }}>
                                 <Ionicons name="close" size={rs(16)} color={theme.textPrimary} style={{ marginRight: rs(6) }} />
                                 <Text style={[restStyles.btnText, restStyles.secondaryText]}>Dismiss</Text>
                             </Pressable>

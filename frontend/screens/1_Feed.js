@@ -935,6 +935,7 @@ export default function Feed({ navigation, route }) {
         signalCommentsReopen,
         handleBackPress,
         clearUnfocusFlagsJS,
+        focusAnimationDuration: ANIMATION_DURATION,
         INTERACTIVE_CANCEL_MS,
         INTERACTIVE_LOCKOUT_MS,
         COMMENTS_COLLAPSE_MIN_PX,
