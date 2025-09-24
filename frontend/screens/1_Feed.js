@@ -475,7 +475,7 @@ export default function Feed({ navigation, route }) {
         }
     };
 
-    const handleBackPress = (origin = 'button') => {
+    const handleBackPress = (origin = 'button', options = {}) => {
         // Invalidate any pending programmatic focus callbacks
         try { programFocusNonceRef.current += 1; } catch { }
         try { setPendingFocusPid(null); } catch { }
@@ -491,15 +491,22 @@ export default function Feed({ navigation, route }) {
         setShareBottomSheetCloseFlag((f) => !f);
 
         const fromGesture = origin === 'gesture';
+        const preAnimated = !!(fromGesture && options?.preAnimated);
 
-        try {
-            focusHide.value = withTiming(0, { duration: ANIMATION_DURATION, easing: ReEasing.out(ReEasing.cubic) });
-            interactiveProgressSV.value = withTiming(1, { duration: ANIMATION_DURATION, easing: ReEasing.out(ReEasing.cubic) });
-        } catch { }
+        if (!preAnimated) {
+            try {
+                focusHide.value = withTiming(0, { duration: ANIMATION_DURATION, easing: ReEasing.out(ReEasing.cubic) });
+                interactiveProgressSV.value = withTiming(1, { duration: ANIMATION_DURATION, easing: ReEasing.out(ReEasing.cubic) });
+            } catch { }
+        }
 
         if (!fromGesture) stopFlatListMomentum();
 
-        animateView(0);
+        if (!preAnimated) {
+            animateView(0);
+        } else if (typeof options?.onComplete === 'function') {
+            options.onComplete(true);
+        }
 
         flatListRef.current?.setNativeProps({ scrollEnabled: true });
     };
@@ -934,6 +941,8 @@ export default function Feed({ navigation, route }) {
         signalCommentsCollapse,
         signalCommentsReopen,
         handleBackPress,
+        focusSpringConfig: FOCUS_SPRING_CONFIG,
+        onFocusTranslateEnd,
         clearUnfocusFlagsJS,
         focusAnimationDuration: ANIMATION_DURATION,
         INTERACTIVE_CANCEL_MS,

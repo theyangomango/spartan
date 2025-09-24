@@ -5,6 +5,7 @@ import {
   runOnJS,
   withTiming,
   withDelay,
+  withSpring,
   Easing as ReEasing,
 } from 'react-native-reanimated';
 
@@ -33,6 +34,8 @@ export default function useFeedUnfocusGesture({
   signalCommentsCollapse,
   signalCommentsReopen,
   handleBackPress,
+  focusSpringConfig,
+  onFocusTranslateEnd,
   clearUnfocusFlagsJS,
   focusAnimationDuration,
   INTERACTIVE_CANCEL_MS,
@@ -42,6 +45,17 @@ export default function useFeedUnfocusGesture({
 }) {
   const commentsHiddenSV = useSharedValue(0);
   const peakDragUpSV = useSharedValue(0);
+
+  const queueSignalCommentsCollapse = useMemo(() => {
+    return () => {
+      const trigger = () => signalCommentsCollapse && signalCommentsCollapse();
+      if (typeof requestAnimationFrame === 'function') {
+        requestAnimationFrame(trigger);
+      } else {
+        setTimeout(trigger, 16);
+      }
+    };
+  }, [signalCommentsCollapse]);
 
   const panUnfocus = useMemo(() => {
     const commitInteractiveOffset = () => {
@@ -74,7 +88,7 @@ export default function useFeedUnfocusGesture({
         commentsHiddenSV.value = 1;
         peakDragUpSV.value = 0;
         interTranslateSV.value = 0;
-        runOnJS(signalCommentsCollapse)();
+        runOnJS(queueSignalCommentsCollapse)();
       })
       .onUpdate((event) => {
         if (isTransitioningSV.value === 1 || panEnabledSV.value === 0 || !isSomePostFocused) return;
@@ -103,7 +117,7 @@ export default function useFeedUnfocusGesture({
         const reopenByDistance = dragUp < COMMENTS_REOPEN_MAX_PX;
         if (commentsHiddenSV.value === 0 && (progress > CLOSE_THRESHOLD || shouldCollapse)) {
           commentsHiddenSV.value = 1;
-          runOnJS(signalCommentsCollapse)();
+          runOnJS(queueSignalCommentsCollapse)();
         } else if (commentsHiddenSV.value === 1 && progress < REOPEN_THRESHOLD && reopenByDistance) {
           commentsHiddenSV.value = 0;
           runOnJS(signalCommentsReopen)();
@@ -132,6 +146,8 @@ export default function useFeedUnfocusGesture({
         const shouldClose = eased > CLOSE_THRESHOLD || velocityClose;
 
         if (shouldClose) {
+          isTransitioningSV.value = 1;
+          panEnabledSV.value = 0;
           focusHide.value = withTiming(0, {
             duration: focusAnimationDuration,
             easing: ReEasing.out(ReEasing.cubic),
@@ -142,8 +158,19 @@ export default function useFeedUnfocusGesture({
           });
           commentsHiddenSV.value = 1;
           runOnJS(setUnfocusGestureActive)(false);
-          commitInteractiveOffset();
-          runOnJS(handleBackPress)('gesture');
+          const committed = commitInteractiveOffset();
+          const needsSpring = Math.abs(committed) > 0.5;
+          if (needsSpring) {
+            focusTranslateSV.value = withSpring(0, focusSpringConfig, () => {
+              if (onFocusTranslateEnd) runOnJS(onFocusTranslateEnd)(true);
+            });
+          } else {
+            focusTranslateSV.value = 0;
+          }
+          runOnJS(handleBackPress)('gesture', {
+            preAnimated: true,
+            onComplete: needsSpring ? undefined : onFocusTranslateEnd,
+          });
           if (resumeInteractiveAlignment) runOnJS(resumeInteractiveAlignment)();
           peakDragUpSV.value = 0;
           return;
@@ -190,7 +217,7 @@ export default function useFeedUnfocusGesture({
     focusBaseSV,
     focusHide,
     headerH,
-    signalCommentsCollapse,
+    queueSignalCommentsCollapse,
     signalCommentsReopen,
     handleBackPress,
     interTranslateSV,
@@ -198,6 +225,8 @@ export default function useFeedUnfocusGesture({
     syncFocusOffsetJS,
     suspendInteractiveAlignment,
     resumeInteractiveAlignment,
+    focusSpringConfig,
+    onFocusTranslateEnd,
     clearUnfocusFlagsJS,
     focusAnimationDuration,
     INTERACTIVE_CANCEL_MS,

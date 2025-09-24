@@ -21,6 +21,7 @@ function TemplatesRail({ templates = [], onIndexChange, onAddTemplate, onOpenTem
     const notifyIndexChange = useCallback((idx) => {
         if (idx === lastReportedIndex.current) return;
         lastReportedIndex.current = idx;
+        try { haptic(); } catch { }
         onIndexChange && onIndexChange(idx);
     }, [onIndexChange]);
 

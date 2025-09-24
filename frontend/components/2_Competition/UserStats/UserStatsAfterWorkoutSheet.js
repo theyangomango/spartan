@@ -150,6 +150,7 @@ export default function UserStatsAfterWorkoutSheet({
                         diffHighlightColor: '#F2B84B'
                     }}
                     deferExercises={true}
+                    visible={visible}
                 />
             </View>
         </BottomSheet>

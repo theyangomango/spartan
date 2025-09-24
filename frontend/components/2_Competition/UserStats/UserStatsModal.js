@@ -27,13 +27,14 @@ if (Platform.OS === 'android' && UIManager.setLayoutAnimationEnabledExperimental
     try { UIManager.setLayoutAnimationEnabledExperimental(true); } catch { }
 }
 
-export default function UserStatsModal({ user, toViewProfile, hexOverlay, hexProps = {}, deferExercises = false }) {
+export default function UserStatsModal({ user, toViewProfile, hexOverlay, hexProps = {}, deferExercises = false, visible = true }) {
     // Optionally defer heavy grouping work until after interactions (for smoother open)
     const [showExercises, setShowExercises] = useState(!deferExercises);
     const viewerData = (() => {
         try { return global?.userData || null; } catch { return null; }
     })();
     const viewerUid = viewerData?.uid ? String(viewerData.uid) : "";
+    const isVisible = !!visible;
     useEffect(() => {
         if (!deferExercises) return;
         let task;
@@ -276,6 +277,36 @@ export default function UserStatsModal({ user, toViewProfile, hexOverlay, hexPro
         } catch { setViewerWorkout(null); setViewerOpen(false); }
     };
 
+    const resetToHome = useCallback(() => {
+        setDetailName(null);
+        setDetailWorkouts([]);
+        setDetailLoading(false);
+        try { detailTranslateX.setValue(screenWidth); } catch { }
+        setViewerWorkout(null);
+        setViewerOpen(false);
+        try { viewerTranslateX.setValue(screenWidth); } catch { }
+    }, [detailTranslateX, viewerTranslateX, screenWidth]);
+
+    const prevVisibleRef = useRef(isVisible);
+    const prevUidRef = useRef(String(user?.uid || ""));
+
+    useEffect(() => {
+        const prevVisible = prevVisibleRef.current;
+        const prevUid = prevUidRef.current;
+        const uid = String(user?.uid || "");
+
+        const becameVisible = isVisible && !prevVisible;
+        const becameHidden = !isVisible && prevVisible;
+        const uidChanged = uid !== prevUid;
+
+        if (becameVisible || becameHidden || (isVisible && uidChanged)) {
+            resetToHome();
+        }
+
+        prevVisibleRef.current = isVisible;
+        prevUidRef.current = uid;
+    }, [isVisible, user?.uid, resetToHome]);
+
     // Back-swipe gesture (edge) for detail and viewer overlays
     const EDGE_BACK_GESTURE_WIDTH = 200;
     const BACK_SWIPE_TRIGGER = 36;
@@ -451,4 +482,3 @@ export default function UserStatsModal({ user, toViewProfile, hexOverlay, hexPro
         </View>
     );
 }
-

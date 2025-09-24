@@ -5,6 +5,7 @@ import { db } from "../../firebase.config";
 import updateDoc from "../../backend/helper/firebase/updateDoc";
 import computeHexagonStats from "../logic/computeHexagonStats";
 import { emitHexagonUpdate } from "../utils/hexagonEvents";
+import { emitUserDataUpdate } from "../utils/userDataEvents";
 
 /**
  * Subscribes to users/{uid}, returns {user} and also writes into global.userData.
@@ -62,6 +63,7 @@ export default function useUserDoc(uid, options = {}) {
             // keep global in sync for legacy consumers (full object)
             const mergedForGlobal = { ...(global.userData || {}), ...dataForUser, uid, id: uid };
             global.userData = mergedForGlobal;
+            emitUserDataUpdate();
 
             // apply ignoreKeys to reduce needless rerenders in interested screens
             const cmp = stripKeys(dataForUser, ignoreKeys);

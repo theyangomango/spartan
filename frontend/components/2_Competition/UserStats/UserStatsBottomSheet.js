@@ -116,6 +116,7 @@ const LeaderboardBottomSheet = ({ isVisible, setIsVisible, user, navigation }) =
                     key={tick}
                     user={effectiveUser}
                     toViewProfile={toViewProfile}
+                    visible={isVisible}
                 />
             )}
         </BottomSheet>

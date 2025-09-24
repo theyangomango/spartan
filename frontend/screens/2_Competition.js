@@ -44,6 +44,7 @@ import RNBounceable from "@freakycoder/react-native-bounceable";
 import Footer from "../components/Footer";
 import PersonalInfoSheet from "../components/2_MacroTracking/PersonalInfoSheet";
 import theme from "../theme/mfpDark";
+import { subscribeUserData, emitUserDataUpdate } from "../utils/userDataEvents";
 
 import scaleSizeFont from "../helper/scaleSize";
 import { withStrongPress } from "../utils/haptics";
@@ -263,6 +264,41 @@ export default function Competition({ navigation, route }) {
     useEffect(() => { LAST_SELECTED_TRIBE_ID = selectedTribeId; setPersisted({ selectedTribeId }); }, [selectedTribeId]);
     useEffect(() => { LAST_USERLIST = userList; setPersisted({ userList }); }, [userList]);
 
+    const [userSignals, setUserSignals] = useState({ followingKey: "", followersKey: "", tribeKey: "" });
+
+    useEffect(() => subscribeUserData((data) => {
+        const normalizeList = (list) => {
+            if (!Array.isArray(list) || !list.length) return "[]";
+            const mapped = list.map((entry) => {
+                if (!entry) return "";
+                if (typeof entry === "string" || typeof entry === "number") return String(entry);
+                if (typeof entry === "object") {
+                    return String(
+                        entry.uid ||
+                        entry.id ||
+                        entry.userUid ||
+                        entry.memberUid ||
+                        entry.followerUid ||
+                        entry.followUid ||
+                        ""
+                    );
+                }
+                return "";
+            }).filter(Boolean);
+            mapped.sort();
+            return mapped.join("|");
+        };
+
+        const followingKey = normalizeList(data?.following);
+        const followersKey = normalizeList(data?.followers);
+        const tribeKey = normalizeList(data?.tribeIds);
+
+        setUserSignals((prev) => {
+            if (prev.followingKey === followingKey && prev.followersKey === followersKey && prev.tribeKey === tribeKey) return prev;
+            return { followingKey, followersKey, tribeKey };
+        });
+    }), []);
+
     // ---- init users on mount/focus
     const initUsers = useCallback(async () => {
         const allUsers = await getAllUsers();
@@ -304,6 +340,7 @@ export default function Competition({ navigation, route }) {
                 userUnsubRef.current = onSnapshot(doc(db, "users", global.userData.uid), async (docSnap) => {
                     const data = docSnap.data();
                     global.userData = data;
+                    emitUserDataUpdate();
                     // Apply last saved view once per mount
                     try { hydrateFromLastView(data?.competitionLastView); } catch { }
                     initUsers(); // refresh users; recompute gated elsewhere
@@ -433,7 +470,7 @@ export default function Competition({ navigation, route }) {
         if (!usersLoaded) return;
         if (isCustomTribe && (!tribesHydrated || !currentTribe)) return;
         recompute();
-    }, [usersLoaded, isCustomTribe, tribesHydrated, currentTribe, comparedExercise, activeComparison, scope, recompute]);
+    }, [usersLoaded, isCustomTribe, tribesHydrated, currentTribe, comparedExercise, activeComparison, scope, recompute, userSignals.followingKey, userSignals.followersKey, userSignals.tribeKey]);
 
     // keep comp index valid
     useEffect(() => {
@@ -518,7 +555,10 @@ export default function Competition({ navigation, route }) {
         };
         try {
             await updateDoc(doc(db, 'users', uid), { personalInfo: info, updatedAt: serverTimestamp() });
-            try { global.userData = { ...(global.userData || {}), personalInfo: info }; } catch {}
+            try {
+                global.userData = { ...(global.userData || {}), personalInfo: info };
+                emitUserDataUpdate();
+            } catch {}
             setBlockedReason(null);
         } catch (e) {
             console.log('savePersonalInfo error', e?.message || e);

@@ -6,6 +6,9 @@ import { Ionicons } from '@expo/vector-icons';
 import scaleSize from "../../helper/scaleSize";
 import { strong as haptic } from '../../utils/haptics';
 
+const HEADER_MARGIN_TOP = scaleSize(5);
+const HEADER_PADDING_TOP = scaleSize(2); // Keep vertical offset consistent with Feed/Workout header
+
 export default function DateHeader({ title, onPrev, onNext, onTitlePress, COLORS }) {
     const insets = useSafeAreaInsets();
     const styles = useMemo(() => makeStyles(COLORS, insets), [COLORS, insets]);
@@ -42,8 +45,8 @@ const makeStyles = (COLORS, insets) =>
             alignItems: 'center',
             justifyContent: 'space-between',
             paddingHorizontal: scaleSize(26),
-            // Pad from the top safe area so the header starts below the notch/status bar
-            paddingTop: scaleSize(Math.max((insets?.top || 0) + 11, 12)),
+            // Match Feed/Workout header vertical offsets (safe-area + shared spacing)
+            paddingTop: (insets?.top || 0) + HEADER_MARGIN_TOP + HEADER_PADDING_TOP,
             paddingBottom: scaleSize(6),
         },
         textColor: { color: COLORS.text || COLORS.textPrimary || '#0F172A' },

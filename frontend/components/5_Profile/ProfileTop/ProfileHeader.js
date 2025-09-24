@@ -3,14 +3,14 @@ import { StyleSheet, View, Text } from "react-native";
 import { FontAwesome6, Entypo } from '@expo/vector-icons';
 import { Setting2 } from "iconsax-react-native";
 import RNBounceable from "@freakycoder/react-native-bounceable";
-import { Dimensions } from 'react-native';
 import scaleSize from "../../../helper/scaleSize";
 import { AddSquare } from "iconsax-react-native";
 import theme from "../../../theme/mfpDark";
 import { withStrongPress } from "../../../utils/haptics";
 
-const { height: screenHeight } = Dimensions.get('window');
 const scaledSize = (size) => scaleSize(size);
+const HEADER_MARGIN_TOP = scaleSize(5);
+const HEADER_PADDING_TOP = scaleSize(2); // Keep vertical origin aligned with Feed/Workout header
 
 export default function ProfileHeader({ onPressCreateBtn, onPressSettings }) {
     return (
@@ -45,7 +45,8 @@ const styles = StyleSheet.create({
         justifyContent: 'space-between',
         paddingHorizontal: scaleSize(scaledSize(22)),
         paddingBottom: scaleSize(scaledSize(15)),
-        paddingTop: scaleSize(scaledSize(6))
+        paddingTop: HEADER_PADDING_TOP,
+        marginTop: HEADER_MARGIN_TOP,
     },
     center: {
         flexDirection: 'row',

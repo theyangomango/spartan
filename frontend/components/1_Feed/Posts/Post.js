@@ -14,12 +14,15 @@ import {
     Animated,
     Dimensions,
     Easing,
+    Image,
 } from "react-native";
 import Reanimated, { useAnimatedStyle } from 'react-native-reanimated';
 import PostHeader from "./PostHeader";
 import PostFooter from "./PostFooter";
 import FeedFocusContext from "../../../screens/feed/hooks/FeedFocusContext";
 import PostMediaCarousel from "./PostMediaCarousel";
+import * as ImageManipulator from 'expo-image-manipulator';
+import ImageColors from 'react-native-image-colors';
 
 const { width: W } = Dimensions.get("window");
 const AR = 0.8;
@@ -28,6 +31,206 @@ const BORDER = 35;
 const B_IN = 1.02;
 const B_OUT = 1;
 const B_FRICTION = 60;
+
+// Fractional rectangle (normalized 0..1) covering the header handle text region.
+const HEADER_RECT_LEFT = 0.19;
+const HEADER_RECT_TOP = 0.045;
+const HEADER_RECT_HEIGHT = 0.048;
+const HEADER_RECT_MIN_WIDTH = 0.22;
+const HEADER_RECT_MAX_WIDTH = 0.5;
+const HEADER_RECT_CHAR_WIDTH = 0.018;
+const HEADER_LIGHTNESS_THRESHOLD = 0.6;
+const HEADER_PATCH_RESIZE_TARGET = 200;
+
+const clamp = (value, min, max) => Math.min(Math.max(value, min), max);
+
+const makeHeaderToneKey = (uri, rect) => {
+    if (!uri || !rect) return null;
+    const { left, top, width, height } = rect;
+    return `${uri}|${left.toFixed(3)}|${top.toFixed(3)}|${width.toFixed(3)}|${height.toFixed(3)}`;
+};
+
+const computeHeaderRectNormalized = (handle) => {
+    const length = Math.max(0, (handle || '').length);
+    const width = clamp(
+        HEADER_RECT_MIN_WIDTH + HEADER_RECT_CHAR_WIDTH * length,
+        HEADER_RECT_MIN_WIDTH,
+        HEADER_RECT_MAX_WIDTH,
+    );
+    return {
+        left: HEADER_RECT_LEFT,
+        top: HEADER_RECT_TOP,
+        width,
+        height: HEADER_RECT_HEIGHT,
+    };
+};
+
+const getImageDimensions = (uri) => new Promise((resolve, reject) => {
+    if (!uri) {
+        reject(new Error('Missing URI'));
+        return;
+    }
+    Image.getSize(uri,
+        (width, height) => {
+            if (width && height) resolve({ width, height });
+            else reject(new Error('Invalid image dimensions'));
+        },
+        (err) => reject(err || new Error('Failed to get image size')),
+    );
+});
+
+const computeHeaderCropRect = (imgWidth, imgHeight, rect) => {
+    if (!rect) return null;
+
+    if (!imgWidth || !imgHeight) return null;
+
+    const containerWidth = W;
+    const containerHeight = W / AR;
+
+    const rectLeft = rect.left * containerWidth;
+    const rectTop = rect.top * containerHeight;
+    const rectWidth = rect.width * containerWidth;
+    const rectHeight = rect.height * containerHeight;
+
+    const scale = Math.max(containerWidth / imgWidth, containerHeight / imgHeight);
+    if (!isFinite(scale) || scale <= 0) return null;
+
+    const scaledWidth = imgWidth * scale;
+    const scaledHeight = imgHeight * scale;
+
+    const offsetX = (scaledWidth - containerWidth) / 2;
+    const offsetY = (scaledHeight - containerHeight) / 2;
+
+    const leftScaled = clamp(rectLeft + offsetX, 0, scaledWidth);
+    const topScaled = clamp(rectTop + offsetY, 0, scaledHeight);
+    const rightScaled = clamp(leftScaled + rectWidth, leftScaled, scaledWidth);
+    const bottomScaled = clamp(topScaled + rectHeight, topScaled, scaledHeight);
+
+    const cropWidthScaled = Math.max(1, rightScaled - leftScaled);
+    const cropHeightScaled = Math.max(1, bottomScaled - topScaled);
+
+    const originX = Math.floor(leftScaled / scale);
+    const originY = Math.floor(topScaled / scale);
+    const width = Math.max(1, Math.round(cropWidthScaled / scale));
+    const height = Math.max(1, Math.round(cropHeightScaled / scale));
+
+    if (originX >= imgWidth || originY >= imgHeight) return null;
+
+    const safeOriginX = clamp(originX, 0, imgWidth - 1);
+    const safeOriginY = clamp(originY, 0, imgHeight - 1);
+    const maxWidth = Math.max(1, imgWidth - safeOriginX);
+    const maxHeight = Math.max(1, imgHeight - safeOriginY);
+
+    return {
+        originX: safeOriginX,
+        originY: safeOriginY,
+        width: clamp(width, 1, maxWidth),
+        height: clamp(height, 1, maxHeight),
+    };
+};
+
+const extractUsableColor = (colors) => {
+    if (!colors) return null;
+    const candidates = [
+        colors.background,
+        colors.dominant,
+        colors.average,
+        colors.detail,
+        colors.primary,
+        colors.secondary,
+        colors.vibrant,
+        colors.lightVibrant,
+        colors.darkVibrant,
+        colors.muted,
+        colors.lightMuted,
+        colors.darkMuted,
+    ];
+    for (const value of candidates) {
+        if (typeof value === 'string' && value.trim()) {
+            return value.trim();
+        }
+    }
+    if (typeof colors.fallback === 'string' && colors.fallback.trim()) {
+        return colors.fallback.trim();
+    }
+    return null;
+};
+
+const parseColorString = (input) => {
+    if (!input || typeof input !== 'string') return null;
+    const color = input.trim();
+    if (color.startsWith('#')) {
+        const hex = color.slice(1);
+        const expanded = (() => {
+            if (hex.length === 3) return hex.split('').map((c) => `${c}${c}`).join('');
+            if (hex.length === 4) return hex.slice(0, 3).split('').map((c) => `${c}${c}`).join('');
+            if (hex.length === 6 || hex.length === 8) return hex.slice(0, 6);
+            return null;
+        })();
+        if (!expanded || expanded.length !== 6) return null;
+        const r = parseInt(expanded.slice(0, 2), 16);
+        const g = parseInt(expanded.slice(2, 4), 16);
+        const b = parseInt(expanded.slice(4, 6), 16);
+        if ([r, g, b].some((v) => Number.isNaN(v))) return null;
+        return { r, g, b };
+    }
+
+    const match = color.match(/rgba?\(([^)]+)\)/i);
+    if (match && match[1]) {
+        const parts = match[1].split(',').map((v) => Number(v.trim())).filter((v, idx) => idx < 3);
+        if (parts.length === 3 && parts.every((v) => Number.isFinite(v))) {
+            const [r, g, b] = parts.map((v) => clamp(Math.round(v), 0, 255));
+            return { r, g, b };
+        }
+    }
+
+    return null;
+};
+
+const srgbToLinear = (v) => {
+    const c = v / 255;
+    if (c <= 0.04045) return c / 12.92;
+    return Math.pow((c + 0.055) / 1.055, 2.4);
+};
+
+const computeLuminance = ({ r, g, b }) => (
+    0.2126 * srgbToLinear(r) +
+    0.7152 * srgbToLinear(g) +
+    0.0722 * srgbToLinear(b)
+);
+
+// Crop the media to the handle rectangle, downscale it, and estimate whether it's light enough
+// to require dark text for readability.
+const analyzeHeaderPatchLightness = async (uri, rect) => {
+    const { width, height } = await getImageDimensions(uri);
+    const crop = computeHeaderCropRect(width, height, rect);
+    if (!crop) return false;
+
+    const operations = [{ crop }];
+    if (crop.width > HEADER_PATCH_RESIZE_TARGET) {
+        operations.push({ resize: { width: HEADER_PATCH_RESIZE_TARGET } });
+    }
+
+    const result = await ImageManipulator.manipulateAsync(
+        uri,
+        operations,
+        { compress: 0.8, format: ImageManipulator.SaveFormat.JPEG }
+    );
+
+    const colors = await ImageColors.getColors(result?.uri || uri, {
+        fallback: '#000000',
+        cache: true,
+        key: `post-header-${makeHeaderToneKey(result?.uri || uri, rect)}`,
+    });
+
+    const colorString = extractUsableColor(colors);
+    const rgb = parseColorString(colorString);
+    if (!rgb) {
+        return false;
+    }
+    const luminance = computeLuminance(rgb);
+    return luminance >= HEADER_LIGHTNESS_THRESHOLD;
+};
 
 const Post = forwardRef(function Post({
     data,
@@ -81,6 +284,48 @@ const Post = forwardRef(function Post({
     const footerRef = useRef(null);
 
     const [currentIndex, setCurrentIndex] = useState(0);
+    const [isLightHeader, setIsLightHeader] = useState(false);
+
+    const headerToneCacheRef = useRef(new Map());
+    const headerTonePendingRef = useRef(new Map());
+
+    const currentMedia = mediaList[currentIndex] || null;
+    const currentMediaUri = typeof currentMedia?.uri === 'string'
+        ? currentMedia.uri
+        : (typeof currentMedia?.url === 'string' ? currentMedia.url : null);
+    const currentMediaType = typeof currentMedia?.type === 'string'
+        ? currentMedia.type.toLowerCase()
+        : 'image';
+
+    const headerRect = useMemo(() => computeHeaderRectNormalized(data?.handle), [data?.handle]);
+    const resolveHeaderTone = useCallback(async (uri, rect) => {
+        const key = makeHeaderToneKey(uri, rect);
+        if (!key) return false;
+        const cache = headerToneCacheRef.current;
+        if (cache.has(key)) {
+            return cache.get(key);
+        }
+
+        const pending = headerTonePendingRef.current;
+        if (pending.has(key)) {
+            return pending.get(key);
+        }
+
+        const promise = analyzeHeaderPatchLightness(uri, rect)
+            .then((value) => {
+                cache.set(key, value);
+                pending.delete(key);
+                return value;
+            })
+            .catch(() => {
+                pending.delete(key);
+                cache.set(key, false);
+                return false;
+            });
+
+        pending.set(key, promise);
+        return promise;
+    }, []);
 
     // Animate bottom corners during unfocus: BORDER -> 0 as interactiveUnfocusSV goes 0 -> 1
     const roundedBottomStyle = useAnimatedStyle(() => {
@@ -198,6 +443,40 @@ const Post = forwardRef(function Post({
         footerRef.current.handleTapAt(absoluteX, absoluteY);
     }, []);
 
+    // Recompute header tone whenever the visible media changes.
+    useEffect(() => {
+        if (!currentMediaUri || (currentMediaType && currentMediaType !== 'image') || !headerRect) {
+            setIsLightHeader(false);
+            return;
+        }
+
+        const cacheKey = makeHeaderToneKey(currentMediaUri, headerRect);
+        if (!cacheKey) {
+            setIsLightHeader(false);
+            return;
+        }
+
+        const cachedValue = headerToneCacheRef.current.get(cacheKey);
+        if (typeof cachedValue === 'boolean') {
+            setIsLightHeader(cachedValue);
+            return;
+        }
+
+        let cancelled = false;
+        setIsLightHeader(false);
+        resolveHeaderTone(currentMediaUri, headerRect)
+            .then((value) => {
+                if (!cancelled) setIsLightHeader(!!value);
+            })
+            .catch(() => {
+                if (!cancelled) setIsLightHeader(false);
+            });
+
+        return () => {
+            cancelled = true;
+        };
+    }, [currentMediaUri, currentMediaType, resolveHeaderTone, headerRect]);
+
     // Imperative horizontal pan control from Feed-level gesture
     useImperativeHandle(ref, () => ({
         hSwipeBegin: () => (carouselRef.current?.hSwipeBegin?.() ?? false),
@@ -278,6 +557,7 @@ const Post = forwardRef(function Post({
                     totalImages={mediaList.length}
                     toViewProfile={() => toViewProfile(index)}
                     openViewWorkout={() => openViewWorkoutModal(index)}
+                    isLightHeader={isLightHeader}
                 />
                 <PostFooter
                     ref={footerRef}
