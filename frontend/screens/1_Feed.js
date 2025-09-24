@@ -29,6 +29,7 @@ import useFilteredFeed from "../helper/useFilteredFeed";
 import MaskedView from "@react-native-masked-view/masked-view";
 import useFeedUserData from "./feed/hooks/useFeedUserData";
 import { FeedFocusProvider } from "./feed/hooks/FeedFocusContext";
+import useFeedUnfocusGesture from "./feed/hooks/useFeedUnfocusGesture";
 import {
     TARGET_POSITION,
     FOCUS_ANIMATION_DURATION as ANIMATION_DURATION,
@@ -82,7 +83,7 @@ export default function Feed({ navigation, route }) {
     const isUnfocusingRef = useRef(false); // true while interactive unfocus gesture is active
     const justRefocusedRef = useRef(false);
     const refocusTimeoutRef = useRef(null);
-    const unfocusGestureActive = false;
+    const [unfocusGestureActive, setUnfocusGestureActive] = useState(false);
 
     // ✅ Shared header users (global/users + following + prefetch)
     const { allUsersRef, mergeUsersIntoRef } = useHeaderSearchUsers({
@@ -165,6 +166,9 @@ export default function Feed({ navigation, route }) {
     // For reliable programmatic focus
     const lastScrollTsRef = useRef(0);
     const focusOffsetRef = useRef(0); // current focused translateY offset (negative)
+    const syncFocusOffsetJS = useCallback((value) => {
+        focusOffsetRef.current = value || 0;
+    }, []);
     // Shared locks on UI thread to guard gesture reentry/race
     const isTransitioningSV = useSharedValue(0); // 1 while focus/unfocus animation settles
     const panEnabledSV = useSharedValue(1); // 0 temporarily blocks new pan sessions
@@ -543,6 +547,7 @@ export default function Feed({ navigation, route }) {
             cancelAnimationFrame(unfocusGestureTimeoutRef.current);
             unfocusGestureTimeoutRef.current = null;
         }
+        setUnfocusGestureActive(false);
         if (isSomePostFocused && focusedPostIndex.current !== -1) {
             const idx = focusedPostIndex.current;
             const sessionId = focusSessionNonceRef.current;
@@ -563,6 +568,10 @@ export default function Feed({ navigation, route }) {
         resumeInteractiveAlignment();
         isUnfocusingRef.current = false;
         if (clearTranslating) {
+            syncFocusOffsetJS(0);
+            try { focusBaseSV.value = 0; } catch { }
+        }
+        if (clearTranslating) {
             // Finishing unfocus: commit state after animation to avoid layout jump
             try { startTransition(() => setIsSomePostFocused(false)); } catch { }
             try { focusedPostIndex.current = -1; } catch { }
@@ -572,7 +581,7 @@ export default function Feed({ navigation, route }) {
                 setTranslatingIndexState(-1);
             });
         }
-    }, [resumeInteractiveAlignment]);
+    }, [resumeInteractiveAlignment, syncFocusOffsetJS]);
 
     const animateView = (translateYValue) => {
         try {
@@ -906,6 +915,32 @@ export default function Feed({ navigation, route }) {
     const listData = useMemo(() => ([...(posts || [])]), [posts]);
     const listKeyExtractor = useCallback((item, i) => String(item?.pid || item?.id || i), []);
 
+    const { panUnfocus } = useFeedUnfocusGesture({
+        height,
+        isSomePostFocused,
+        isTransitioningSV,
+        panEnabledSV,
+        setUnfocusGestureActive,
+        isUnfocusingRef,
+        interactiveProgressSV,
+        focusBaseSV,
+        interTranslateSV,
+        focusTranslateSV,
+        syncFocusOffsetJS,
+        suspendInteractiveAlignment,
+        resumeInteractiveAlignment,
+        focusHide,
+        headerH,
+        signalCommentsCollapse,
+        signalCommentsReopen,
+        handleBackPress,
+        clearUnfocusFlagsJS,
+        INTERACTIVE_CANCEL_MS,
+        INTERACTIVE_LOCKOUT_MS,
+        COMMENTS_COLLAPSE_MIN_PX,
+        COMMENTS_REOPEN_MAX_PX,
+    });
+
     // Focused-only horizontal swipe at the same wrapper level to change slides
     // Feed-level handlers to proxy horizontal pan to the focused Post
     const hSwipeBeginJS = useCallback(() => {
@@ -963,8 +998,8 @@ export default function Feed({ navigation, route }) {
     }, [isSomePostFocused, handleFooterTap]);
 
     const combinedGesture = useMemo(
-        () => Gesture.Simultaneous(horizontalSwipe, footerTapGesture),
-        [horizontalSwipe, footerTapGesture]
+        () => Gesture.Simultaneous(panUnfocus, horizontalSwipe, footerTapGesture),
+        [panUnfocus, horizontalSwipe, footerTapGesture]
     );
 
     return (

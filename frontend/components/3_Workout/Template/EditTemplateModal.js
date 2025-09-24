@@ -1,4 +1,4 @@
-import React, { useState, useCallback, useRef } from "react";
+import React, { useState, useCallback } from "react";
 import { StyleSheet, View, Modal, ScrollView, Text, TextInput } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
@@ -39,7 +39,6 @@ const EditTemplateModal = ({ openedTemplateRef, updateTemplate, deleteTemplate, 
     const [replaceIndex, setReplaceIndex] = useState(null);
     const [deleteConfirmModalVisible, setDeleteConfirmModalVisible] = useState(false);
     const [template, setTemplate] = useState(() => normalizeTemplate(openedTemplateRef.current));
-    const titleInputRef = useRef(null);
 
     const showSelectExerciseModal = useCallback(() => {
         setSelectExerciseModalVisible(true);
@@ -166,17 +165,7 @@ const EditTemplateModal = ({ openedTemplateRef, updateTemplate, deleteTemplate, 
                         <Text style={styles.iconButtonLabel}>✕</Text>
                     </RNBounceable>
                 </View>
-                <TextInput
-                    ref={titleInputRef}
-                    style={styles.navTitleInput}
-                    value={template?.name ?? ""}
-                    onChangeText={handleChangeTitle}
-                    placeholder="New Template"
-                    placeholderTextColor={theme.textSecondary}
-                    selectionColor={theme.primary}
-                    returnKeyType="done"
-                    blurOnSubmit
-                />
+                <View style={styles.navSpacer} />
                 <View style={styles.sideSlotRight}>
                     <RNBounceable onPress={handleSavePress} style={styles.saveButton}>
                         <Text style={styles.saveButtonText}>Save</Text>
@@ -189,7 +178,17 @@ const EditTemplateModal = ({ openedTemplateRef, updateTemplate, deleteTemplate, 
                 contentContainerStyle={styles.scrollContent}
             >
                 <View style={styles.titleDisplayContainer}>
-                    <Text style={styles.titleDisplayText}>{template?.name ?? ""}</Text>
+                    <TextInput
+                        style={styles.titleDisplayText}
+                        value={template?.name ?? ""}
+                        onChangeText={handleChangeTitle}
+                        placeholder="New Template"
+                        placeholderTextColor={theme.textSecondary}
+                        selectionColor={theme.primary}
+                        returnKeyType="done"
+                        blurOnSubmit
+                        autoFocus
+                    />
                 </View>
                 {template.exercises.map((ex, index) => (
                     <EditTemplateExerciseLog
@@ -315,17 +314,8 @@ const styles = StyleSheet.create({
         fontSize: scaleSize(14),
         color: '#FFFFFF',
     },
-    navTitleInput: {
+    navSpacer: {
         flex: 1,
-        textAlign: 'center',
-        fontFamily: 'Outfit_600SemiBold',
-        fontSize: scaleSize(15),
-        color: theme.textPrimary,
-        backgroundColor: theme.fieldDeep,
-        borderRadius: scaledSize(12),
-        paddingVertical: scaledSize(6),
-        textAlignVertical: 'center',
-        marginHorizontal: scaleSize(15)
     },
     scrollView: {
         paddingTop: scaledSize(5)

@@ -5,6 +5,7 @@ import {
     View,
     Modal,
     Text,
+    TextInput,
     Animated as RNAnimated,
     Pressable,
     InteractionManager,
@@ -226,15 +227,45 @@ const ActiveWorkoutModal = ({
         ? workout
         : ((activeWorkout && String(activeWorkout?.wid || "") === cardWid) ? activeWorkout : workout);
 
-    const workoutTitle = String(baseWorkout?.name ?? '').trim();
+    const workoutNameValue = String(workout?.name ?? '');
+    const baseWorkoutName = String(baseWorkout?.name ?? '');
+
+    const handleChangeWorkoutTitle = useCallback((text) => {
+        if (!viewingSelfEffective) return;
+        updateWorkout({ ...(workout || {}), name: text });
+    }, [viewingSelfEffective, updateWorkout, workout]);
+
     const workoutTitleDisplay = useMemo(() => {
-        if (!workoutTitle) return null;
+        if (viewingSelfEffective) {
+            return (
+                <View style={styles.titleDisplayContainer}>
+                    <TextInput
+                        style={[styles.titleDisplayText, styles.titleDisplayInput]}
+                        value={workoutNameValue}
+                        onChangeText={handleChangeWorkoutTitle}
+                        placeholder="Workout name"
+                        placeholderTextColor={theme.textSecondary}
+                        selectionColor={theme.primary}
+                        returnKeyType="done"
+                        blurOnSubmit
+                        multiline
+                        scrollEnabled={false}
+                        autoCorrect
+                        autoCapitalize="words"
+                    />
+                </View>
+            );
+        }
+
+        const trimmedDisplay = baseWorkoutName.trim();
+        if (!trimmedDisplay) return null;
+
         return (
             <View style={styles.titleDisplayContainer}>
-                <Text style={styles.titleDisplayText} numberOfLines={2}>{workoutTitle}</Text>
+                <Text style={styles.titleDisplayText} numberOfLines={2}>{trimmedDisplay}</Text>
             </View>
         );
-    }, [workoutTitle]);
+    }, [viewingSelfEffective, workoutNameValue, baseWorkoutName, handleChangeWorkoutTitle]);
 
     // Prefer friend's stats when viewing others; if live stats are absent (e.g., viewing a completed workout),
     // fall back to provided userWorkoutStats if available from the parent.
@@ -1121,6 +1152,12 @@ const styles = StyleSheet.create({
         fontSize: scaleSize(20),
         color: theme.textPrimary,
         textAlign: 'left',
+    },
+    titleDisplayInput: {
+        width: '100%',
+        padding: 0,
+        paddingVertical: 0,
+        textAlignVertical: 'top',
     },
     // Ensure FlashList receives a parent with a valid size
     listWrap: { flex: 1 },

@@ -1,16 +1,16 @@
 import { useEffect, useState } from "react";
-import AsyncStorage from "@react-native-async-storage/async-storage";
 import { collection, documentId, getDocs, query, where } from "firebase/firestore";
 import { db } from "../../firebase.config";
-import { canViewWorkout, coercePrivacyMode } from "../utils/workoutPrivacy";
+import { canViewWorkout, coercePrivacyMode, PRIVACY } from "../utils/workoutPrivacy";
 
-const STORAGE_PREFIX = "@communityStats:v1:";
 const STALE_AFTER_MS = 5 * 60 * 1000; // 5 minutes
 const MAX_FRIEND_BATCH = 10;
 
 const oneDayMs = 24 * 60 * 60 * 1000;
 
 const listeners = new Set();
+
+const ALLOWED_FRIEND_PRIVACY = new Set([PRIVACY.FRIENDS, PRIVACY.GLOBAL]);
 
 let lastUid = null;
 let snapshot = {
@@ -102,46 +102,6 @@ function gatherFriendUids(user) {
     return Array.from(seen);
 }
 
-async function loadFromStorage(uid, key) {
-    try {
-        const raw = await AsyncStorage.getItem(key);
-        if (!raw) return false;
-        const parsed = JSON.parse(raw);
-        if (!parsed || typeof parsed !== "object") return false;
-        const weekKey = currentWeekKey();
-        snapshot = {
-            ...snapshot,
-            stats: {
-                reps: Number(parsed?.stats?.reps ?? 0) || 0,
-                volume: Number(parsed?.stats?.volume ?? 0) || 0,
-                pbs: Number(parsed?.stats?.pbs ?? 0) || 0,
-            },
-            updatedAt: Number(parsed?.updatedAt || 0) || 0,
-            weekKey: Number(parsed?.weekKey || 0) || 0,
-            ready: parsed?.weekKey === weekKey,
-            stale: parsed?.weekKey !== weekKey || (Date.now() - (Number(parsed?.updatedAt || 0) || 0) > STALE_AFTER_MS),
-        };
-        emit();
-        return true;
-    } catch (err) {
-        console.log("communityStats storage load error", err?.message || err);
-        return false;
-    }
-}
-
-async function persistToStorage(key) {
-    try {
-        const payload = {
-            stats: snapshot.stats,
-            updatedAt: snapshot.updatedAt,
-            weekKey: snapshot.weekKey,
-        };
-        await AsyncStorage.setItem(key, JSON.stringify(payload));
-    } catch (err) {
-        console.log("communityStats storage save error", err?.message || err);
-    }
-}
-
 async function computeStatsForUser(user) {
     const uid = String(user?.uid || "").trim();
     if (!uid) {
@@ -155,6 +115,8 @@ async function computeStatsForUser(user) {
 
     const accumulateFrom = (workouts, ownerUid) => {
         if (!Array.isArray(workouts)) return;
+        const ownerId = ownerUid ? String(ownerUid).trim() : "";
+        const isViewerOwner = ownerId && ownerId === uid;
         for (const workout of workouts) {
             if (!isValidCompletedWorkout(workout, ownerUid)) continue;
             const privacyMode = coercePrivacyMode(workout?.privacyMode);
@@ -163,6 +125,7 @@ async function computeStatsForUser(user) {
                 privacyMode,
                 creatorUID: workout?.creatorUID || workout?.creatorUid || ownerUid,
             };
+            if (!isViewerOwner && !ALLOWED_FRIEND_PRIVACY.has(privacyMode)) continue;
             if (!canViewWorkout(normalizedWorkout, uid, viewerData)) continue;
             const when = workoutTimestamp(workout);
             if (!Number.isFinite(when) || when < weekKey || when > now) continue;
@@ -231,11 +194,7 @@ async function ensureInitPromise() {
             emit();
             return;
         }
-        const storageKey = `${STORAGE_PREFIX}${uid}`;
-        await loadFromStorage(uid, storageKey);
-        if (!snapshot.ready) {
-            await refreshCommunityStats({ force: true, storageKey, user });
-        }
+        await refreshCommunityStats({ force: true, user });
     })();
     try { await initPromise; } catch (err) { console.log("communityStats init error", err?.message || err); }
     return initPromise;
@@ -248,7 +207,7 @@ export async function initCommunityStats(options = {}) {
     return ensureInitPromise();
 }
 
-export async function refreshCommunityStats({ force = false, storageKey, user } = {}) {
+export async function refreshCommunityStats({ force = false, user } = {}) {
     if (refreshPromise) {
         return refreshPromise;
     }
@@ -273,7 +232,6 @@ export async function refreshCommunityStats({ force = false, storageKey, user } 
         return;
     }
 
-    const key = storageKey || `${STORAGE_PREFIX}${uid}`;
     const nowWeekKey = currentWeekKey();
     const stale = snapshot.weekKey !== nowWeekKey || (Date.now() - (snapshot.updatedAt || 0) > STALE_AFTER_MS);
 
@@ -295,7 +253,6 @@ export async function refreshCommunityStats({ force = false, storageKey, user } 
                 weekKey: result.weekKey,
                 stale: false,
             };
-            await persistToStorage(key);
         } catch (err) {
             console.log("communityStats refresh error", err?.message || err);
             snapshot = {
@@ -321,10 +278,4 @@ export function useCommunityStats() {
     const [snap, setSnap] = useState(() => getCommunityStatsSnapshot());
     useEffect(() => subscribeCommunityStats(setSnap), []);
     return snap;
-}
-
-export function clearCommunityStatsCacheFor(uid) {
-    const userId = uid ? String(uid) : String(getCurrentUser()?.uid || "");
-    if (!userId) return;
-    AsyncStorage.removeItem(`${STORAGE_PREFIX}${userId}`).catch(() => {});
 }

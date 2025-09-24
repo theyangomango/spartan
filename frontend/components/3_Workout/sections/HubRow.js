@@ -1,6 +1,6 @@
 import React, { memo, useRef, useCallback, useEffect } from "react";
 import { View, Text, StyleSheet, Platform, Pressable, Animated } from "react-native";
-import { Feather, Ionicons } from "@expo/vector-icons";
+import { Ionicons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
 import RNBounceable from "@freakycoder/react-native-bounceable";
 import theme from "../../../theme/mfpDark";
@@ -15,8 +15,6 @@ const CARD_RADIUS = scaleSize(30);
 const CARD_GRADIENT = ["#26324B", "#1A2438"];
 const CARD_BORDER = "rgba(110, 184, 255, 0.38)";
 const CARD_SHEEN = "rgba(148, 208, 255, 0.18)";
-const BADGE_BG = "rgba(62, 168, 255, 0.26)";
-const BADGE_BORDER = "rgba(62, 168, 255, 0.55)";
 const PROGRESS_TRACK = "rgba(82, 126, 188, 0.46)";
 const PROGRESS_FILL = "#49AFFF";
 
@@ -29,13 +27,10 @@ function HubRowCmp({
     workoutsThisWeek,
     weeklyGoal,
     onPress,
-    onViewStats,
     onReady,
 }) {
     const scale = useRef(new Animated.Value(1)).current;
     const interactive = typeof onPress === "function";
-    const viewStatsEnabled = typeof onViewStats === "function";
-    const skipNextParentPressRef = useRef(false);
 
     const animateTo = useCallback(
         (value) => {
@@ -53,10 +48,6 @@ function HubRowCmp({
     const handlePressOut = useCallback(() => animateTo(1), [animateTo]);
     const handlePress = useCallback(() => {
         if (!interactive) return;
-        if (skipNextParentPressRef.current) {
-            skipNextParentPressRef.current = false;
-            return;
-        }
         try {
             haptic();
         } catch {
@@ -75,10 +66,6 @@ function HubRowCmp({
     const workoutsDisplay = safeWeeklyGoal > 0 ? `${safeWeeklyCount}/${safeWeeklyGoal}` : `${safeWeeklyCount}`;
     const caloriesFillWidth = afterPaint ? `${safeFill}%` : "0%";
     const weeklyFillWidth = afterPaint ? `${weeklyFill}%` : "0%";
-    const handleViewStatsPressIn = useCallback(() => {
-        skipNextParentPressRef.current = true;
-    }, []);
-
     const readyRef = useRef(false);
     const readyRafRef = useRef({ outer: null, inner: null });
     const clearReadyRafs = useCallback(() => {
@@ -130,45 +117,17 @@ function HubRowCmp({
         };
     }, [afterPaint, clearReadyRafs, dataHydrated, safeFill, safeGoal, safeToday, safeWeeklyCount, safeWeeklyGoal, scheduleReady, weeklyFill]);
 
-    const handleViewStatsPress = useCallback(() => {
-        if (!viewStatsEnabled) return;
-        try {
-            haptic();
-        } catch {
-            // haptic best-effort
-        }
-        onViewStats();
-        setTimeout(() => {
-            skipNextParentPressRef.current = false;
-        }, 160);
-    }, [viewStatsEnabled, onViewStats]);
-
     const cardContent = (
         <View style={styles.cardBody}>
             <View style={styles.cardTop}>
-                <View style={styles.headerCopy}>
-                    <Text style={styles.headerTitle}>Your Progress</Text>
-                    <View style={styles.subtitleRow}>
-                        <Ionicons
-                            name="sparkles-outline"
-                            size={scaleSize(14)}
-                            color={theme.textSecondary}
-                        />
-                        <Text style={styles.headerSubtitle}>Tap to view all your logs.</Text>
-                    </View>
-                </View>
-                <View
-                    style={[styles.headerBadge, !viewStatsEnabled && styles.headerBadgeDisabled]}
-                    hitSlop={scaleSize(6)}
-                    accessibilityRole="button"
-                    // accessibilityState={{ disabled: !viewStatsEnabled }}
-                    // onPress={handleViewStatsPress}
-                    // onPressIn={handleViewStatsPressIn}
-                    // disabled={!viewStatsEnabled}
-                >
-                    <View style={styles.headerDot} />
-                    <Text style={styles.headerBadgeText}>Personal Hub</Text>
-                    {/* <Feather name="chevron-down" size={scaleSize(12)} color={theme.textPrimary} style={styles.headerIcon} /> */}
+                <Text style={styles.headerTitle}>Your Progress</Text>
+                <View style={styles.subtitleRow}>
+                    <Ionicons
+                        name="sparkles-outline"
+                        size={scaleSize(14)}
+                        color={theme.textSecondary}
+                    />
+                    <Text style={styles.headerSubtitle}>Tap to view logs</Text>
                 </View>
             </View>
 
@@ -245,7 +204,6 @@ const areEqual = (a, b) => (
     a.caloriesGoal === b.caloriesGoal &&
     a.workoutsThisWeek === b.workoutsThisWeek &&
     a.weeklyGoal === b.weeklyGoal &&
-    a.onViewStats === b.onViewStats &&
     a.onReady === b.onReady
 );
 
@@ -301,10 +259,6 @@ const styles = StyleSheet.create({
         alignItems: "center",
         justifyContent: "space-between",
     },
-    headerCopy: {
-        flex: 1,
-        gap: scaleSize(4),
-    },
     headerTitle: {
         fontFamily: "Outfit_700Bold",
         fontSize: scaleSize(17),
@@ -321,37 +275,6 @@ const styles = StyleSheet.create({
         fontSize: scaleSize(12),
         color: theme.textSecondary,
         letterSpacing: 0.2,
-    },
-    headerBadge: {
-        flexDirection: "row",
-        alignItems: "center",
-        paddingVertical: scaleSize(6),
-        paddingHorizontal: scaleSize(10),
-        borderRadius: scaleSize(999),
-        backgroundColor: BADGE_BG,
-        borderWidth: 1,
-        borderColor: BADGE_BORDER,
-        gap: scaleSize(6),
-    },
-    headerBadgeDisabled: {
-        opacity: 0.5,
-    },
-    headerDot: {
-        width: scaleSize(6),
-        height: scaleSize(6),
-        borderRadius: scaleSize(3),
-        backgroundColor: theme.primary,
-    },
-    headerBadgeText: {
-        color: theme.textPrimary,
-        fontFamily: "Outfit_700Bold",
-        fontSize: scaleSize(11),
-        letterSpacing: 0.6,
-        textTransform: "uppercase",
-    },
-    headerIcon: {
-        marginLeft: scaleSize(2),
-        marginTop: scaleSize(1),
     },
     statsList: {
         gap: scaleSize(10),

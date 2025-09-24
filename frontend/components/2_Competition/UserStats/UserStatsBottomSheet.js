@@ -11,8 +11,8 @@ import { coercePrivacyMode } from "../../../utils/workoutPrivacy";
 const toDayKey = (d) => {
     try {
         const x = new Date(typeof d === 'number' || typeof d === 'string' ? d : (d?.toMillis?.() ? d.toMillis() : Date.now()));
-        x.setHours(0,0,0,0);
-        return `${x.getFullYear()}-${String(x.getMonth()+1).padStart(2, '0')}-${String(x.getDate()).padStart(2, '0')}`;
+        x.setHours(0, 0, 0, 0);
+        return `${x.getFullYear()}-${String(x.getMonth() + 1).padStart(2, '0')}-${String(x.getDate()).padStart(2, '0')}`;
     } catch { return ''; }
 };
 
@@ -83,15 +83,15 @@ const LeaderboardBottomSheet = ({ isVisible, setIsVisible, user, navigation }) =
                     if (lastWid !== wid) {
                         const setPrivacy = coercePrivacyMode(cw?.privacyMode);
                         for (const s of sets) {
-                            const r = Number(s?.reps)||0; const w = Number(s?.weight)||0;
-                            if (r>0 && w>0) list.push({ weight: w, reps: r, date: dk, wid, privacyMode: setPrivacy });
+                            const r = Number(s?.reps) || 0; const w = Number(s?.weight) || 0;
+                            if (r > 0 && w > 0) list.push({ weight: w, reps: r, date: dk, wid, privacyMode: setPrivacy });
                         }
                         entry.sets = list;
                         stats[name] = entry;
                     }
                 }
             }
-        } catch {}
+        } catch { }
         const latestHex = me?.statsHexagon || u?.statsHexagon || null;
         return { ...u, statsExercises: stats, ...(latestHex ? { statsHexagon: latestHex } : {}) };
     }, [user, (global?.userData?.completedWorkouts || []).length, global?.userData?.statsExercises]);
@@ -102,7 +102,7 @@ const LeaderboardBottomSheet = ({ isVisible, setIsVisible, user, navigation }) =
             index={-1}
             backdropComponent={renderBackdrop}
             snapPoints={snapPoints}
-            handleIndicatorStyle={{backgroundColor: '#fff'}}
+            handleIndicatorStyle={{ backgroundColor: '#fff' }}
             backgroundStyle={{
                 backgroundColor: require("../../../theme/mfpDark").default.bg,
                 borderTopLeftRadius: scaleSize(25),

@@ -17,8 +17,8 @@ const PRIVACY_OPTIONS = Object.freeze([
         value: "global",
         Icon: MaterialCommunityIcons,
         iconName: "earth",
-        label: "Global",
-        shortLabel: "Global",
+        label: "Public",
+        shortLabel: "Public",
         description: "Everyone in the app can see your workout.",
     },
     {
