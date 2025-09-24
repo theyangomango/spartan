@@ -1,79 +1,20 @@
-import React, { useEffect, useMemo, useRef } from 'react';
-import { Modal, View, Text, StyleSheet, Dimensions, Pressable, Animated, FlatList, UIManager } from 'react-native';
-let FlashListLib = null;
-try { FlashListLib = require('@shopify/flash-list'); } catch {}
-const canUseFlashListSummary = !!(FlashListLib && FlashListLib.FlashList && UIManager?.getViewManagerConfig && UIManager.getViewManagerConfig('CellContainer') && UIManager.getViewManagerConfig('AutoLayoutView'));
-const SummaryList = canUseFlashListSummary ? FlashListLib.FlashList : FlatList;
-import { Clock } from 'iconsax-react-native';
-import { MaterialCommunityIcons } from '@expo/vector-icons';
+import React, { useEffect, useRef } from 'react';
+import { Modal, Pressable, StyleSheet, Animated, View, Text } from 'react-native';
 import RNBounceable from '@freakycoder/react-native-bounceable';
 import { LinearGradient } from 'expo-linear-gradient';
-import roundToNearestMinute from '../../helper/roundToNearestMinute';
+import { MaterialCommunityIcons } from '@expo/vector-icons';
+
+import WorkoutHistoryCard from '../5_Profile/ProfileBottom/History/WorkoutHistoryCard';
 import theme from '../../theme/mfpDark';
 import scaleSize from '../../helper/scaleSize';
 
-const { height: screenHeight } = Dimensions.get('window');
-const scaledSize = (size) => scaleSize(size);
-const LIST_MAX_H = Math.round(screenHeight * 0.35);
-
 const COLORS = {
     bgDim: 'rgba(15, 23, 42, 0.45)',
-    card: theme.surface,
     text: theme.textPrimary,
-    subtext: theme.textSecondary,
     hairline: theme.hairline,
-    chipText: '#FFFFFF',
     green: '#40D99B',
     greenDark: '#25B57E',
-    blue: theme.primary,
-    icon: theme.primary,
 };
-
-const muscleColors = {
-    Chest: '#FFAFB8',
-    Shoulders: '#A1CDEE',
-    Arms: '#CBBCFF',
-    Back: '#95E0C8',
-    Triceps: '#FFD580',
-    Legs: '#FFB347',
-    Abs: '#FF7561',
-};
-
-function toDate(d) {
-    try {
-        if (d?.toDate) return d.toDate();
-        const maybe = new Date(d);
-        return isNaN(+maybe) ? new Date() : maybe;
-    } catch {
-        return new Date();
-    }
-}
-
-function formatDateNice(d) {
-    const opts = { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' };
-    return d.toLocaleDateString(undefined, opts);
-}
-
-function formatNumber(n) {
-    if (n === undefined || n === null) return '0';
-    try {
-        return Number(n).toLocaleString();
-    } catch {
-        return String(n);
-    }
-}
-
-function bestSet(sets) {
-    if (!Array.isArray(sets) || sets.length === 0) return null;
-    const parsed = sets.map((s) => ({
-        weight: Number(s.weight ?? 0),
-        reps: Number(s.reps ?? 0),
-    }));
-    parsed.sort((a, b) => b.weight - a.weight || b.reps - a.reps);
-    return parsed[0];
-}
-
-const Divider = () => <View style={styles.divider} />;
 
 const WorkoutSummaryModal = ({ isVisible, workout, onClose, postWorkout }) => {
     const scaleAnim = useRef(new Animated.Value(0.96)).current;
@@ -91,130 +32,38 @@ const WorkoutSummaryModal = ({ isVisible, workout, onClose, postWorkout }) => {
         }
     }, [isVisible, opacityAnim, scaleAnim]);
 
-    const createdDate = useMemo(() => toDate(workout?.created), [workout?.created]);
-
-    const totalSets = useMemo(() => {
-        return workout?.exercises?.reduce((acc, e) => acc + (e.sets?.length || 0), 0) ?? 0;
-    }, [workout?.exercises]);
-
     if (!workout) return null;
-
-    const renderExercise = ({ item }) => {
-        const chipColor = muscleColors[item.muscle || ''] || '#CBD5E1';
-        const top = bestSet(item.sets);
-        return (
-            <View style={styles.row}>
-                <View style={styles.rowLeft}>
-                    <Text style={styles.exerciseName} numberOfLines={1} ellipsizeMode="tail">
-                        {`${item.sets?.length || 0} x ${item.name}`}
-                    </Text>
-                    {/* {!!item.muscle && (
-                        <View style={[styles.muscleChip, { backgroundColor: chipColor }]}>
-                            <Text style={styles.muscleChipText}>{item.muscle}</Text>
-                        </View>
-                    )} */}
-                </View>
-                <View style={styles.rowRight}>
-                    {top ? (
-                        <View style={styles.bestPill}>
-                            <MaterialCommunityIcons name="weight" size={scaledSize(14)} color={COLORS.text} />
-                            <Text style={styles.bestPillText}>{`${top.weight} lb × ${top.reps}`}</Text>
-                        </View>
-                    ) : (
-                        <Text style={styles.naText}>N/A</Text>
-                    )}
-                </View>
-            </View>
-        );
-    };
 
     return (
         <Modal animationType="fade" transparent visible={isVisible} onRequestClose={onClose}>
             <Pressable style={styles.backdrop} onPress={onClose}>
-                <Animated.View style={[
-                    styles.card,
-                    { transform: [{ scale: scaleAnim }], opacity: opacityAnim },
-                    { renderToHardwareTextureAndroid: true, shouldRasterizeIOS: true }
-                ]}>
-                    {/* Header */}
-          <View style={styles.header}>
-                        <View>
-                            <Text style={styles.headerDate}>{formatDateNice(createdDate)}</Text>
-                            <Text style={styles.headerSub}>
-                                {workout.exercises?.length || 0} exercises • {totalSets} sets
-                            </Text>
-                        </View>
-                        <View style={styles.headerBadge}>
-                            <MaterialCommunityIcons name="trophy" color="#FACC15" size={scaledSize(16)} />
-                            <Text style={styles.headerBadgeText}>
-                                {workout.PBs ?? 0} PB{(workout.PBs ?? 0) === 1 ? '' : 's'}
-                            </Text>
-                        </View>
-                    </View>
-                    <View style={styles.headerDivider} />
+                <Animated.View
+                    style={[styles.container, { transform: [{ scale: scaleAnim }], opacity: opacityAnim }]}
+                    renderToHardwareTextureAndroid
+                    shouldRasterizeIOS
+                >
+                    <View style={styles.sheetCard}>
+                        <View pointerEvents="none" style={styles.sheetBackdrop} />
 
-                    {/* Stats */}
-                    <View style={styles.statsRow}>
-                        <View style={styles.statCard}>
-                            <View style={styles.statIconWrap}>
-                                <Clock color={COLORS.text} size={scaledSize(16)} variant="Bold" />
-                            </View>
-                            <Text style={styles.statLabel}>Duration</Text>
-                            <Text style={styles.statValue}>{roundToNearestMinute(workout.duration)} min</Text>
+                        <WorkoutHistoryCard workout={workout} />
+
+                        <View style={styles.actions}>
+                            <RNBounceable style={styles.secondaryBtn} onPress={onClose}>
+                                <Text style={styles.secondaryBtnText}>Close</Text>
+                            </RNBounceable>
+
+                            <RNBounceable style={styles.primaryBtn} onPress={postWorkout}>
+                                <LinearGradient
+                                    colors={[COLORS.green, COLORS.greenDark]}
+                                    start={{ x: 0, y: 0 }}
+                                    end={{ x: 1, y: 1 }}
+                                    style={styles.primaryGradient}
+                                >
+                                    <Text style={styles.primaryBtnText}>Share Post</Text>
+                                    <MaterialCommunityIcons name="arm-flex" size={scaleSize(18)} color="#fff" />
+                                </LinearGradient>
+                            </RNBounceable>
                         </View>
-                        <View style={styles.statCard}>
-                            <View style={styles.statIconWrap}>
-                                <MaterialCommunityIcons name="weight-lifter" size={scaledSize(16)} color={COLORS.text} />
-                            </View>
-                            <Text style={styles.statLabel}>Volume</Text>
-                            <Text style={styles.statValue}>{formatNumber(workout.volume)} lb</Text>
-                        </View>
-                        <View style={styles.statCard}>
-                            <View style={styles.statIconWrap}>
-                                <MaterialCommunityIcons name="arm-flex" size={scaledSize(16)} color={COLORS.text} />
-                            </View>
-                            <Text style={styles.statLabel}>Highlights</Text>
-                            <Text style={styles.statValue}>{workout.PBs ?? 0} PR</Text>
-                        </View>
-                    </View>
-
-                    {/* Table header */}
-                    <View style={styles.tableHeader}>
-                        <Text style={[styles.tableHeaderText, { flex: 1 }]}>Exercise</Text>
-                        <Text style={styles.tableHeaderText}>Best Set</Text>
-                    </View>
-                    <Divider />
-
-                    {/* List */}
-                    <SummaryList
-                        style={styles.list}
-                        data={Array.isArray(workout.exercises) ? workout.exercises : []}
-                        renderItem={renderExercise}
-                        keyExtractor={(item, index) => `${item.name}-${index}`}
-                        ItemSeparatorComponent={Divider}
-                        contentContainerStyle={{ paddingBottom: scaleSize(scaledSize(6)) }}
-                        showsVerticalScrollIndicator={false}
-                        keyboardShouldPersistTaps="handled"
-                        {...(canUseFlashListSummary ? { estimatedItemSize: scaledSize(52) } : {})}
-                    />
-
-                    {/* Actions */}
-                    <View style={styles.actions}>
-                        <RNBounceable style={styles.secondaryBtn} onPress={onClose}>
-                            <Text style={styles.secondaryBtnText}>Close</Text>
-                        </RNBounceable>
-
-                        <RNBounceable style={styles.primaryBtn} onPress={postWorkout}>
-                            <LinearGradient
-                                colors={[COLORS.green, COLORS.greenDark]}
-                                start={{ x: 0, y: 0 }}
-                                end={{ x: 1, y: 1 }}
-                                style={styles.primaryGradient}
-                            >
-                                <Text style={styles.primaryBtnText}>Share Post</Text>
-                                <MaterialCommunityIcons name="arm-flex" size={scaledSize(18)} color="#fff" />
-                            </LinearGradient>
-                        </RNBounceable>
                     </View>
                 </Animated.View>
             </Pressable>
@@ -228,184 +77,53 @@ const styles = StyleSheet.create({
         backgroundColor: COLORS.bgDim,
         justifyContent: 'center',
         alignItems: 'center',
-        paddingHorizontal: scaleSize(scaledSize(16)),
+        paddingHorizontal: scaleSize(16),
     },
-
-    card: {
+    container: {
         width: '100%',
-        backgroundColor: COLORS.card,
-        borderRadius: scaleSize(scaledSize(20)),
-        paddingVertical: scaleSize(scaledSize(14)),
-        paddingHorizontal: scaleSize(scaledSize(18)),
+    },
+    sheetCard: {
+        width: '100%',
+        paddingBottom: scaleSize(4),
+        position: 'relative',
+    },
+    sheetBackdrop: {
+        position: 'absolute',
+        left: scaleSize(16),
+        right: scaleSize(16),
+        top: 0,
+        bottom: 0,
+        backgroundColor: theme.surface,
+        borderRadius: scaleSize(20),
+        borderWidth: StyleSheet.hairlineWidth,
+        borderColor: COLORS.hairline,
         shadowColor: '#000',
-        shadowOffset: { width: 0, height: scaleSize(scaledSize(8)) },
+        shadowOffset: { width: 0, height: scaleSize(8) },
         shadowOpacity: 0.18,
-        shadowRadius: scaleSize(scaledSize(18)),
+        shadowRadius: scaleSize(18),
         elevation: 12,
-        borderWidth: StyleSheet.hairlineWidth,
-        borderColor: COLORS.hairline,
     },
-
-    header: {
-        marginBottom: scaleSize(scaledSize(10)),
-        flexDirection: 'row',
-        justifyContent: 'space-between',
-        alignItems: 'center',
-    },
-    headerDate: {
-        fontFamily: 'Outfit_800ExtraBold',
-        fontSize: scaleSize(18),
-        color: COLORS.text,
-    },
-    headerSub: {
-        marginTop: scaleSize(scaledSize(2)),
-        fontFamily: 'Outfit_600SemiBold',
-        fontSize: scaleSize(12.5),
-        color: COLORS.subtext,
-    },
-    headerBadge: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        backgroundColor: 'rgba(250, 204, 21, 0.24)',
-        borderRadius: scaleSize(scaledSize(999)),
-        paddingVertical: scaleSize(scaledSize(6)),
-        paddingHorizontal: scaleSize(scaledSize(10)),
-        gap: scaleSize(scaledSize(6)),
-        borderWidth: StyleSheet.hairlineWidth,
-        borderColor: 'rgba(250, 204, 21, 0.60)',
-    },
-    headerBadgeText: {
-        fontFamily: 'Outfit_600SemiBold',
-        fontSize: scaleSize(12.5),
-        color: '#FACC15',
-    },
-    headerDivider: { height: StyleSheet.hairlineWidth, backgroundColor: COLORS.hairline, marginVertical: scaleSize(scaledSize(8)) },
-
-    statsRow: {
-        flexDirection: 'row',
-        gap: scaleSize(scaledSize(10)),
-        marginBottom: scaleSize(scaledSize(10)),
-    },
-    statCard: {
-        flex: 1,
-        backgroundColor: theme.field,
-        borderRadius: scaleSize(scaledSize(14)),
-        paddingVertical: scaleSize(scaledSize(10)),
-        paddingHorizontal: scaleSize(scaledSize(12)),
-        borderWidth: StyleSheet.hairlineWidth,
-        borderColor: COLORS.hairline,
-    },
-    statIconWrap: {
-        width: scaleSize(scaledSize(26)),
-        height: scaleSize(scaledSize(26)),
-        borderRadius: scaleSize(scaledSize(13)),
-        justifyContent: 'center',
-        alignItems: 'center',
-        backgroundColor: theme.field,
-        marginBottom: scaleSize(scaledSize(6)),
-    },
-    statLabel: {
-        fontFamily: 'Outfit_600SemiBold',
-        fontSize: scaleSize(11.5),
-        color: COLORS.subtext,
-    },
-    statValue: {
-        marginTop: scaleSize(scaledSize(2)),
-        fontFamily: 'Outfit_800ExtraBold',
-        fontSize: scaleSize(15),
-        color: COLORS.text,
-    },
-
-    tableHeader: {
-        paddingTop: scaleSize(scaledSize(4)),
-        paddingBottom: scaleSize(scaledSize(8)),
-        flexDirection: 'row',
-        justifyContent: 'space-between',
-        alignItems: 'flex-end',
-    },
-    tableHeaderText: {
-        fontFamily: 'Outfit_600SemiBold',
-        fontSize: scaleSize(12.5),
-        color: COLORS.subtext,
-    },
-
-    divider: {
-        height: StyleSheet.hairlineWidth,
-        backgroundColor: COLORS.hairline,
-    },
-
-    // Constrain list so it measures and scrolls instead of collapsing
-    list: {
-        maxHeight: LIST_MAX_H,
-        alignSelf: 'stretch',
-    },
-
-    row: {
-        minHeight: scaleSize(scaledSize(46)),
-        flexDirection: 'row',
-        alignItems: 'center',
-        paddingVertical: scaleSize(scaledSize(6)),
-    },
-    rowLeft: {
-        flex: 1,
-        paddingRight: scaleSize(scaledSize(10)),
-    },
-    exerciseName: {
-        fontFamily: 'Outfit_500Medium',
-        fontSize: scaleSize(13.5),
-        color: COLORS.text,
-        marginBottom: scaleSize(scaledSize(4)),
-    },
-    muscleChip: {
-        alignSelf: 'flex-start',
-        borderRadius: scaleSize(scaledSize(999)),
-        paddingHorizontal: scaleSize(scaledSize(8)),
-        paddingVertical: scaleSize(scaledSize(2)),
-    },
-    muscleChipText: {
-        fontFamily: 'Poppins_700Bold',
-        fontSize: scaleSize(10.5),
-        color: COLORS.chipText,
-    },
-
-    rowRight: {
-        width: '30%',
-        alignItems: 'flex-end',
-    },
-    bestPill: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        gap: scaleSize(scaledSize(6)),
-        borderRadius: scaleSize(scaledSize(999)),
-        paddingVertical: scaleSize(scaledSize(6)),
-        paddingHorizontal: scaleSize(scaledSize(10)),
-        backgroundColor: theme.field,
-        borderWidth: StyleSheet.hairlineWidth,
-        borderColor: COLORS.hairline,
-    },
-    bestPillText: {
-        fontFamily: 'Outfit_600SemiBold',
-        fontSize: scaleSize(12.5),
-        color: COLORS.text,
-    },
-    naText: {
-        fontFamily: 'Outfit_500Medium',
-        fontSize: scaleSize(12.5),
-        color: COLORS.subtext,
-    },
-
     actions: {
-        marginTop: scaleSize(scaledSize(12)),
         flexDirection: 'row',
-        gap: scaleSize(scaledSize(10)),
+        gap: scaleSize(10),
+        marginHorizontal: scaleSize(16),
+        marginTop: -scaleSize(14),
+        paddingTop: scaleSize(12),
+        paddingBottom: scaleSize(12),
+        borderTopWidth: StyleSheet.hairlineWidth,
+        borderColor: COLORS.hairline,
+        backgroundColor: theme.surface,
+        borderBottomLeftRadius: scaleSize(20),
+        borderBottomRightRadius: scaleSize(20),
+        zIndex: 1,
     },
     secondaryBtn: {
         flex: 1,
-        borderRadius: scaleSize(scaledSize(14)),
+        borderRadius: scaleSize(14),
         borderWidth: StyleSheet.hairlineWidth,
         borderColor: COLORS.hairline,
         backgroundColor: theme.field,
-        paddingVertical: scaleSize(scaledSize(10)),
+        paddingVertical: scaleSize(10),
         alignItems: 'center',
         justifyContent: 'center',
     },
@@ -416,16 +134,16 @@ const styles = StyleSheet.create({
     },
     primaryBtn: {
         flex: 1,
-        borderRadius: scaleSize(scaledSize(14)),
+        borderRadius: scaleSize(14),
         overflow: 'hidden',
     },
     primaryGradient: {
         width: '100%',
-        paddingVertical: scaleSize(scaledSize(10)),
+        paddingVertical: scaleSize(10),
         alignItems: 'center',
         justifyContent: 'center',
         flexDirection: 'row',
-        gap: scaleSize(scaledSize(8)),
+        gap: scaleSize(8),
     },
     primaryBtnText: {
         color: '#fff',

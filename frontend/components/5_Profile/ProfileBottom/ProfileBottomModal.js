@@ -10,7 +10,7 @@ import { withStrongPress } from "../../../utils/haptics";
 
 const scaledSize = (size) => scaleSize(size);
 
-const ProfileBottomModal = ({ selectedPanel, setSelectedPanel, posts, savedPosts, completedWorkouts, isBottomSheetExpanded, onOpenWorkout }) => {
+const ProfileBottomModal = ({ selectedPanel, setSelectedPanel, posts, savedPosts, completedWorkouts, isBottomSheetExpanded, onOpenWorkout, onScrollExpandRequest }) => {
     const isSavedPrivate = typeof savedPosts === 'undefined';
     const normalizedSavedPosts = Array.isArray(savedPosts) ? savedPosts : [];
 
@@ -54,6 +54,7 @@ const ProfileBottomModal = ({ selectedPanel, setSelectedPanel, posts, savedPosts
                     isVisible={selectedPanel === 'posts'}
                     isBottomSheetExpanded={isBottomSheetExpanded}
                     onOpenWorkout={onOpenWorkout}
+                    onScrollExpandRequest={onScrollExpandRequest}
                 />
             )}
             <HistorySection
@@ -61,6 +62,7 @@ const ProfileBottomModal = ({ selectedPanel, setSelectedPanel, posts, savedPosts
                 isVisible={selectedPanel === 'history'}
                 isBottomSheetExpanded={isBottomSheetExpanded}
                 onOpenWorkout={onOpenWorkout}
+                onScrollExpandRequest={onScrollExpandRequest}
             />
             <SavedSection
                 posts={normalizedSavedPosts}
@@ -68,6 +70,7 @@ const ProfileBottomModal = ({ selectedPanel, setSelectedPanel, posts, savedPosts
                 onOpenWorkout={onOpenWorkout}
                 isPrivate={isSavedPrivate}
                 isBottomSheetExpanded={isBottomSheetExpanded}
+                onScrollExpandRequest={onScrollExpandRequest}
             />
         </View>
     );

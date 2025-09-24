@@ -1,5 +1,5 @@
 // HistorySection.js
-import React, { memo } from "react";
+import React, { memo, useCallback, useEffect, useRef } from "react";
 import { StyleSheet, FlatList, View, Pressable } from "react-native";
 import WorkoutHistoryCard from "./WorkoutHistoryCard";
 import { toMillis } from "../../../../utils/friends";
@@ -20,7 +20,7 @@ const exercises = [
     { name: "5 x Reverse Curls (Barbell)", muscle: "Biceps" }
 ];
 
-const HistorySection = ({ isVisible, isBottomSheetExpanded, completedWorkouts, onOpenWorkout }) => {
+const HistorySection = ({ isVisible, isBottomSheetExpanded, completedWorkouts, onOpenWorkout, onScrollExpandRequest }) => {
     const viewer = (() => { try { return global?.userData || null; } catch { return null; } })();
     const viewerUid = viewer?.uid ? String(viewer.uid) : "";
     const filteredWorkouts = filterViewableWorkouts(Array.isArray(completedWorkouts) ? completedWorkouts : [], viewerUid, viewer);
@@ -35,6 +35,61 @@ const HistorySection = ({ isVisible, isBottomSheetExpanded, completedWorkouts, o
         </Pressable>
     );
 
+    const isDraggingRef = useRef(false);
+    const recentlyDraggedRef = useRef(false);
+    const dragEndTimeoutRef = useRef(null);
+
+    const clearDragEndTimeout = useCallback(() => {
+        const timeoutId = dragEndTimeoutRef.current;
+        if (!timeoutId) return;
+        clearTimeout(timeoutId);
+        dragEndTimeoutRef.current = null;
+    }, []);
+
+    const scheduleRecentlyDraggedReset = useCallback(() => {
+        clearDragEndTimeout();
+        dragEndTimeoutRef.current = setTimeout(() => {
+            recentlyDraggedRef.current = false;
+            dragEndTimeoutRef.current = null;
+        }, 180);
+    }, [clearDragEndTimeout]);
+
+    useEffect(() => () => {
+        clearDragEndTimeout();
+    }, [clearDragEndTimeout]);
+
+    useEffect(() => {
+        if (isVisible) return;
+        isDraggingRef.current = false;
+        recentlyDraggedRef.current = false;
+        clearDragEndTimeout();
+    }, [isVisible, clearDragEndTimeout]);
+
+    const handleScrollBeginDrag = useCallback(() => {
+        isDraggingRef.current = true;
+        recentlyDraggedRef.current = true;
+        clearDragEndTimeout();
+    }, [clearDragEndTimeout]);
+
+    const handleScrollEndDrag = useCallback(() => {
+        isDraggingRef.current = false;
+        recentlyDraggedRef.current = true;
+        scheduleRecentlyDraggedReset();
+    }, [scheduleRecentlyDraggedReset]);
+
+    const handleMomentumScrollEnd = useCallback(() => {
+        isDraggingRef.current = false;
+        recentlyDraggedRef.current = false;
+        clearDragEndTimeout();
+    }, [clearDragEndTimeout]);
+
+    const handleScroll = useCallback((event) => {
+        if (typeof onScrollExpandRequest !== 'function') return;
+        const offsetY = event?.nativeEvent?.contentOffset?.y ?? 0;
+        if (!isDraggingRef.current && !recentlyDraggedRef.current) return;
+        onScrollExpandRequest(Math.max(0, offsetY));
+    }, [onScrollExpandRequest]);
+
     return (
         <View style={[styles.wrap, !isVisible && styles.hidden]}>
             <FlatList
@@ -44,6 +99,11 @@ const HistorySection = ({ isVisible, isBottomSheetExpanded, completedWorkouts, o
                 contentContainerStyle={styles.scrollable_ctnr}
                 ListFooterComponent={<View style={{ height: isBottomSheetExpanded ? 100 : 400 }} />}
                 initialNumToRender={3}
+                onScroll={handleScroll}
+                scrollEventThrottle={16}
+                onScrollBeginDrag={handleScrollBeginDrag}
+                onScrollEndDrag={handleScrollEndDrag}
+                onMomentumScrollEnd={handleMomentumScrollEnd}
             />
         </View>
     );

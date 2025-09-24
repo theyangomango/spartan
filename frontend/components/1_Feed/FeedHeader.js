@@ -46,6 +46,10 @@ const METRICS = (() => {
     return { paddingH, paddingTop, paddingBottom, centerH, marginTop, iconTop, logoPadTop, iconBox };
 })();
 
+const BASE_BACK_HEADER_HEIGHT = scaleSize(METRICS.centerH + METRICS.paddingTop + METRICS.paddingBottom);
+const FOCUSED_HEADER_OFFSET = scaleSize(6);
+const FOCUSED_BACK_HEADER_HEIGHT = Math.max(BASE_BACK_HEADER_HEIGHT - FOCUSED_HEADER_OFFSET, scaleSize(METRICS.centerH + METRICS.paddingTop));
+
 /* ------------------------------ Debounce ------------------------------ */
 const useDebounce = (fn, delay = 220) => {
     const t = useRef(null);
@@ -410,8 +414,6 @@ const SearchUsersBar = ({ navigation, allUsersRef, disabled = false }) => {
 const FeedHeader = ({
     toMessagesScreen,
     onOpenNotifications,
-    backButton,
-    onBackPress,
     scrollToTop,
     navigation,
     allUsersRef,
@@ -447,16 +449,6 @@ const FeedHeader = ({
         });
         return () => { try { unsub(); } catch {} };
     }, []);
-
-    if (backButton) {
-        return (
-            <View style={[styles.back_header]}>
-                <TouchableOpacity onPress={onBackPress}>
-                    <Ionicons name="chevron-back" size={dynamicStyles.iconSize} color="#E5E7EB" />
-                </TouchableOpacity>
-            </View>
-        );
-    }
 
     return (
         <View style={[
@@ -530,6 +522,14 @@ const FeedHeader = ({
 
 export default memo(FeedHeader);
 
+export const FocusedFeedHeader = memo(({ onBackPress }) => (
+    <View style={[styles.back_header, styles.focused_header]}>
+        <TouchableOpacity onPress={onBackPress}>
+            <Ionicons name="chevron-back" size={dynamicStyles.iconSize} color="#E5E7EB" />
+        </TouchableOpacity>
+    </View>
+));
+
 /* -------------------------------- Styles ------------------------------- */
 const styles = StyleSheet.create({
     main_ctnr: {
@@ -549,9 +549,17 @@ const styles = StyleSheet.create({
         backgroundColor: theme.bg,
         flexDirection: "row",
         paddingLeft: METRICS.paddingH,
-        height: scaleSize(METRICS.centerH + METRICS.paddingTop + METRICS.paddingBottom),
+        paddingRight: METRICS.paddingH,
+        paddingTop: METRICS.paddingTop,
+        paddingBottom: METRICS.paddingBottom,
+        height: BASE_BACK_HEADER_HEIGHT,
         alignItems: "center",
         marginTop: METRICS.marginTop,
+    },
+
+    focused_header: {
+        height: FOCUSED_BACK_HEADER_HEIGHT,
+        paddingBottom: Math.max(METRICS.paddingBottom - FOCUSED_HEADER_OFFSET, 0),
     },
 
     leftArea: { position: "absolute", left: METRICS.paddingH, top: METRICS.iconTop },

@@ -51,6 +51,7 @@ const styles = StyleSheet.create({
   headerContainer: {
     paddingHorizontal: scaleSize(16),
     paddingBottom: scaleSize(6),
+    paddingTop: scaleSize(6),
     borderBottomWidth: StyleSheet.hairlineWidth,
     borderBottomColor: theme.hairline,
   },

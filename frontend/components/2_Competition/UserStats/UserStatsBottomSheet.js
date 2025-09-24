@@ -102,11 +102,11 @@ const LeaderboardBottomSheet = ({ isVisible, setIsVisible, user, navigation }) =
             index={-1}
             backdropComponent={renderBackdrop}
             snapPoints={snapPoints}
-            handleStyle={{ display: 'none' }}
+            handleIndicatorStyle={{backgroundColor: '#fff'}}
             backgroundStyle={{
-                backgroundColor: require("../../../theme/mfpDark").default.surface,
-                borderTopLeftRadius: scaleSize(20),
-                borderTopRightRadius: scaleSize(20),
+                backgroundColor: require("../../../theme/mfpDark").default.bg,
+                borderTopLeftRadius: scaleSize(25),
+                borderTopRightRadius: scaleSize(25),
             }}
             enablePanDownToClose
             onClose={() => setIsVisible(false)}

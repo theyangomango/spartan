@@ -2,7 +2,7 @@ import React from "react";
 import { View } from "react-native";
 import Reanimated from "react-native-reanimated";
 import { SafeAreaView as SafeAreaInsetsView } from "react-native-safe-area-context";
-import FeedHeader from "./FeedHeader";
+import FeedHeader, { FocusedFeedHeader } from "./FeedHeader";
 import theme from "../../theme/mfpDark";
 
 // Encapsulates the overlaying FeedHeader plus the compact back header overlay
@@ -45,17 +45,7 @@ export default function FeedHeaderOverlay({
         }}
       >
         <SafeAreaInsetsView edges={['top']}>
-          <FeedHeader
-            navigation={navigation}
-            toMessagesScreen={toMessagesScreen}
-            onOpenNotifications={onOpenNotifications}
-            backButton={true}
-            onBackPress={onBackPress}
-            scrollToTop={scrollToTop}
-            allUsersRef={allUsersRef}
-            workout={activeWorkout}
-            timerRef={timerRef}
-          />
+          <FocusedFeedHeader onBackPress={onBackPress} />
         </SafeAreaInsetsView>
       </View>
 
@@ -77,8 +67,6 @@ export default function FeedHeaderOverlay({
             navigation={navigation}
             toMessagesScreen={toMessagesScreen}
             onOpenNotifications={onOpenNotifications}
-            backButton={false}
-            onBackPress={onBackPress}
             scrollToTop={scrollToTop}
             allUsersRef={allUsersRef}
             workout={activeWorkout}
@@ -95,17 +83,7 @@ export default function FeedHeaderOverlay({
             edges={['top']}
             onLayout={(e) => { const h = e.nativeEvent.layout.height || 0; backHeaderHRef.current = h; setBackHeaderH(h); }}
           >
-            <FeedHeader
-              navigation={navigation}
-              toMessagesScreen={toMessagesScreen}
-              onOpenNotifications={onOpenNotifications}
-              backButton={true}
-              onBackPress={onBackPress}
-              scrollToTop={scrollToTop}
-              allUsersRef={allUsersRef}
-              workout={activeWorkout}
-              timerRef={timerRef}
-            />
+            <FocusedFeedHeader onBackPress={onBackPress} />
           </SafeAreaInsetsView>
         </Reanimated.View>
       )}

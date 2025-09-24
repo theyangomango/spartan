@@ -82,7 +82,7 @@ export default function Feed({ navigation, route }) {
     const isUnfocusingRef = useRef(false); // true while interactive unfocus gesture is active
     const justRefocusedRef = useRef(false);
     const refocusTimeoutRef = useRef(null);
-    const [unfocusGestureActive, setUnfocusGestureActive] = useState(false);
+    const unfocusGestureActive = false;
 
     // ✅ Shared header users (global/users + following + prefetch)
     const { allUsersRef, mergeUsersIntoRef } = useHeaderSearchUsers({
@@ -543,7 +543,6 @@ export default function Feed({ navigation, route }) {
             cancelAnimationFrame(unfocusGestureTimeoutRef.current);
             unfocusGestureTimeoutRef.current = null;
         }
-        setUnfocusGestureActive(false);
         if (isSomePostFocused && focusedPostIndex.current !== -1) {
             const idx = focusedPostIndex.current;
             const sessionId = focusSessionNonceRef.current;
@@ -572,7 +571,6 @@ export default function Feed({ navigation, route }) {
                 setFocusedIndexState(-1);
                 setTranslatingIndexState(-1);
             });
-            try { setUnfocusGestureActive(false); } catch { }
         }
     }, [resumeInteractiveAlignment]);
 

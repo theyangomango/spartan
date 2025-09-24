@@ -6,8 +6,11 @@ import theme from "../../../theme/mfpDark";
 import ProfileBottomModal from "./ProfileBottomModal";
 import scaleSize from "../../../helper/scaleSize";
 
+const AUTO_EXPAND_SCROLL_THRESHOLD = 200;
+
 const ProfileBottomBottomSheet = ({ selectedPanel, setSelectedPanel, posts, savedPosts, completedWorkouts, onOpenWorkout, topContentHeight }) => {
     const bottomSheetRef = useRef(null);
+    const autoExpandTriggeredRef = useRef(false);
     const insets = useSafeAreaInsets();
     const { height: windowHeight } = useWindowDimensions();
     const snapPoints = useMemo(() => {
@@ -34,6 +37,7 @@ const ProfileBottomBottomSheet = ({ selectedPanel, setSelectedPanel, posts, save
     const handleSheetChanges = useCallback((idx) => {
         const index = typeof idx === 'number' ? idx : -1;
         if (index < 0) {
+            autoExpandTriggeredRef.current = false;
             bottomSheetRef.current?.snapToIndex(0);
             setIsBottomSheetExpanded(false);
             return;
@@ -43,7 +47,21 @@ const ProfileBottomBottomSheet = ({ selectedPanel, setSelectedPanel, posts, save
         } catch {
             setIsBottomSheetExpanded(index === 1);
         }
+        if (index === 0) {
+            autoExpandTriggeredRef.current = false;
+        }
     }, []);
+
+    const handleAutoExpandScroll = useCallback((offsetY = 0) => {
+        const distance = Math.max(0, Number(offsetY) || 0);
+        if (distance < AUTO_EXPAND_SCROLL_THRESHOLD) {
+            autoExpandTriggeredRef.current = false;
+            return;
+        }
+        if (isBottomSheetExpanded || autoExpandTriggeredRef.current) return;
+        autoExpandTriggeredRef.current = true;
+        bottomSheetRef.current?.snapToIndex(1);
+    }, [isBottomSheetExpanded]);
 
     const renderBackdrop = useCallback(
         (props) => (
@@ -82,6 +100,7 @@ const ProfileBottomBottomSheet = ({ selectedPanel, setSelectedPanel, posts, save
                 completedWorkouts={completedWorkouts}
                 isBottomSheetExpanded={isBottomSheetExpanded}
                 onOpenWorkout={onOpenWorkout}
+                onScrollExpandRequest={handleAutoExpandScroll}
             />
         </BottomSheet>
     );

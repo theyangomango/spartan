@@ -1,5 +1,5 @@
 // SavedSection.js — carbon copy of PostsSection for Saved posts
-import React, { memo, useEffect, useMemo, useState } from "react";
+import React, { memo, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { StyleSheet, View, Text } from "react-native";
 import MasonryList from "@react-native-seoul/masonry-list";
 import PostPreview from "../Posts/PostPreview";
@@ -10,7 +10,7 @@ import { withStrongPress } from "../../../../utils/haptics";
 import scaleSize from "../../../../helper/scaleSize";
 import theme from "../../../../theme/mfpDark";
 
-const SavedSection = ({ posts, isVisible, onOpenWorkout, isPrivate = false, isBottomSheetExpanded }) => {
+const SavedSection = ({ posts, isVisible, onOpenWorkout, isPrivate = false, isBottomSheetExpanded, onScrollExpandRequest }) => {
     const [selectedPost, setSelectedPost] = useState(null);
 
     const handlePostPress = (postData) => {
@@ -49,11 +49,66 @@ const SavedSection = ({ posts, isVisible, onOpenWorkout, isPrivate = false, isBo
     }, [sortedPosts]);
 
     const hasPosts = Array.isArray(sortedPosts) && sortedPosts.length > 0;
-
+    
     const privateMessageStyle = [
         styles.privateMessageCtnr,
         isBottomSheetExpanded ? styles.privateMessageExpanded : styles.privateMessageCollapsed,
     ];
+
+    const isDraggingRef = useRef(false);
+    const recentlyDraggedRef = useRef(false);
+    const dragEndTimeoutRef = useRef(null);
+
+    const clearDragEndTimeout = useCallback(() => {
+        const timeoutId = dragEndTimeoutRef.current;
+        if (!timeoutId) return;
+        clearTimeout(timeoutId);
+        dragEndTimeoutRef.current = null;
+    }, []);
+
+    const scheduleRecentlyDraggedReset = useCallback(() => {
+        clearDragEndTimeout();
+        dragEndTimeoutRef.current = setTimeout(() => {
+            recentlyDraggedRef.current = false;
+            dragEndTimeoutRef.current = null;
+        }, 180);
+    }, [clearDragEndTimeout]);
+
+    useEffect(() => () => {
+        clearDragEndTimeout();
+    }, [clearDragEndTimeout]);
+
+    useEffect(() => {
+        if (isVisible) return;
+        isDraggingRef.current = false;
+        recentlyDraggedRef.current = false;
+        clearDragEndTimeout();
+    }, [isVisible, clearDragEndTimeout]);
+
+    const handleScrollBeginDrag = useCallback(() => {
+        isDraggingRef.current = true;
+        recentlyDraggedRef.current = true;
+        clearDragEndTimeout();
+    }, [clearDragEndTimeout]);
+
+    const handleScrollEndDrag = useCallback(() => {
+        isDraggingRef.current = false;
+        recentlyDraggedRef.current = true;
+        scheduleRecentlyDraggedReset();
+    }, [scheduleRecentlyDraggedReset]);
+
+    const handleMomentumScrollEnd = useCallback(() => {
+        isDraggingRef.current = false;
+        recentlyDraggedRef.current = false;
+        clearDragEndTimeout();
+    }, [clearDragEndTimeout]);
+
+    const handleScroll = useCallback((event) => {
+        if (typeof onScrollExpandRequest !== 'function') return;
+        const offsetY = event?.nativeEvent?.contentOffset?.y ?? 0;
+        if (!isDraggingRef.current && !recentlyDraggedRef.current) return;
+        onScrollExpandRequest(Math.max(0, offsetY));
+    }, [onScrollExpandRequest]);
 
     return (
         <View
@@ -78,6 +133,11 @@ const SavedSection = ({ posts, isVisible, onOpenWorkout, isPrivate = false, isBo
                     initialNumToRender={12}
                     maxToRenderPerBatch={12}
                     windowSize={7}
+                    onScroll={handleScroll}
+                    scrollEventThrottle={16}
+                    onScrollBeginDrag={handleScrollBeginDrag}
+                    onScrollEndDrag={handleScrollEndDrag}
+                    onMomentumScrollEnd={handleMomentumScrollEnd}
                 />
             ) : (
                 <View style={styles.skeletonGrid}>

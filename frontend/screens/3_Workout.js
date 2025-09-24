@@ -913,8 +913,6 @@ export default function Workout({ navigation, route }) {
                 <FeedHeader
                     toMessagesScreen={toMessagesScreenCb}
                     onOpenNotifications={toggleNotifications}
-                    backButton={false}
-                    onBackPress={onBackPress}
                     scrollToTop={headerScrollToTop}
                     navigation={navigation}
                     allUsersRef={allUsersRef}

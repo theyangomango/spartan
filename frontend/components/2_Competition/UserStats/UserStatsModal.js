@@ -1,5 +1,5 @@
-import React, { useEffect, useMemo, useRef, useState } from "react";
-import { StyleSheet, View, Text, ScrollView, Pressable, Dimensions, UIManager, Platform, LayoutAnimation, InteractionManager, ActivityIndicator, Animated, FlatList, SectionList } from "react-native";
+import React, { useEffect, useMemo, useRef, useState, useCallback } from "react";
+import { StyleSheet, View, Text, ScrollView, Pressable, Dimensions, UIManager, Platform, LayoutAnimation, InteractionManager, ActivityIndicator, Animated, FlatList } from "react-native";
 import { Gesture, GestureDetector } from 'react-native-gesture-handler';
 import { useSharedValue, runOnJS } from 'react-native-reanimated';
 import NewWorkoutModal from "../../3_Workout/NewWorkout/NewWorkoutModal";
@@ -10,9 +10,9 @@ import FastImage from "react-native-fast-image";
 import HexagonalStats from "./HexagonalStats";
 import { exercises as EXERCISE_DEFS } from "../../3_Workout/NewWorkout/SelectExercise/EXERCISES";
 import scaleSize from "../../../helper/scaleSize";
-import { TouchableOpacity } from "react-native";
 import { withStrongPress } from "../../../utils/haptics";
 import { sanitizeStatsForViewer, canViewWorkout } from "../../../utils/workoutPrivacy";
+import WorkoutHistoryCard from "../../5_Profile/ProfileBottom/History/WorkoutHistoryCard";
 
 // Enable LayoutAnimation on Android
 if (Platform.OS === 'android' && UIManager.setLayoutAnimationEnabledExperimental) {
@@ -75,6 +75,50 @@ const computeTotalReps = (exercise) => {
     if (Number.isFinite(explicit)) return explicit;
     const sets = Array.isArray(exercise?.sets) ? exercise.sets : [];
     return sets.reduce((sum, s) => sum + safeNumber(s?.reps, 0), 0);
+};
+
+const extractWid = (entry) => {
+    if (!entry) return "";
+    const candidates = [entry?.wid, entry?.workoutWid, entry?.workoutId, entry?.workoutID, entry?.id];
+    for (const candidate of candidates) {
+        if (candidate || candidate === 0) {
+            const str = String(candidate).trim();
+            if (str) return str;
+        }
+    }
+    return "";
+};
+
+const toMillis = (value) => {
+    if (value == null) return 0;
+    if (typeof value === 'number') return Number.isFinite(value) ? value : 0;
+    if (typeof value === 'object') {
+        if (typeof value.toMillis === 'function') {
+            const millis = value.toMillis();
+            return Number.isFinite(millis) ? millis : 0;
+        }
+        if (Number.isFinite(value.seconds)) return value.seconds * 1000;
+        if (Number.isFinite(value._seconds)) return value._seconds * 1000;
+    }
+    const parsed = new Date(value).getTime();
+    return Number.isFinite(parsed) ? parsed : 0;
+};
+
+const workoutSortTimestamp = (workout) => Math.max(
+    toMillis(workout?.finishedAt),
+    toMillis(workout?.completedAt),
+    toMillis(workout?.completedAtMillis),
+    toMillis(workout?.finishedAtMillis),
+    toMillis(workout?.startedAt),
+    toMillis(workout?.createdAt),
+    toMillis(workout?.created),
+    toMillis(workout?.updatedAt),
+);
+
+const ensureWorkoutPrivacy = (wk) => {
+    if (!wk || typeof wk !== 'object') return null;
+    if (Object.prototype.hasOwnProperty.call(wk, 'privacyMode') && wk.privacyMode) return wk;
+    return { ...wk, privacyMode: wk?.privacyMode ?? 'hidden' };
 };
 
 const bestTopSet = (exercise) => {
@@ -320,29 +364,113 @@ export default function UserStatsModal({ user, toViewProfile, hexOverlay, hexPro
         return withIdx.map(({ __i, ...rest }) => rest);
     }, [detailName, statsForViewer, user?.uid]);
 
-    // Group sets by date label (like NotificationsModal)
-    const detailSections = useMemo(() => {
-        if (!Array.isArray(detailSets) || detailSets.length === 0) return [];
-        const map = new Map(); // preserves insertion order based on sorted detailSets
-        for (const s of detailSets) {
-            const label = dateLabelFromRaw(s?.date) || 'Undated';
-            if (!map.has(label)) map.set(label, []);
-            map.get(label).push(s);
+    const detailWorkoutIds = useMemo(() => {
+        if (!detailName || !Array.isArray(detailSets) || detailSets.length === 0) return [];
+        const seen = new Set();
+        const list = [];
+        for (const set of detailSets) {
+            const wid = extractWid(set);
+            if (!wid || seen.has(wid)) continue;
+            seen.add(wid);
+            list.push(wid);
         }
-        return Array.from(map.entries()).map(([title, data]) => ({ title, data }));
-    }, [detailSets]);
+        return list;
+    }, [detailName, detailSets]);
 
-    const setAdjusted1RM = (w, r) => {
-        const W = safeNumber(w, 0); const R = safeNumber(r, 0);
-        if (W <= 0 || R <= 0) return 0;
-        return Math.round(W * (1 + R / 30));
-    };
+    const detailWorkoutCache = useRef(new Map());
+    const [detailWorkouts, setDetailWorkouts] = useState([]);
+    const [detailLoading, setDetailLoading] = useState(false);
 
-    const ACC_DETAIL = useMemo(() => {
-        if (!detailName) return COLORS.accent;
-        const group = NAME_TO_GROUP.get(detailName) || "Other";
-        return groupAccent(group);
+    const sortWorkouts = useCallback((items) => (
+        [...items].sort((a, b) => workoutSortTimestamp(b) - workoutSortTimestamp(a))
+    ), []);
+
+    useEffect(() => {
+        if (!detailName) {
+            setDetailWorkouts([]);
+            setDetailLoading(false);
+            return;
+        }
+        const targetWids = detailWorkoutIds;
+        if (!targetWids.length) {
+            setDetailWorkouts([]);
+            setDetailLoading(false);
+            return;
+        }
+
+        const cache = detailWorkoutCache.current;
+        const widSet = new Set(targetWids);
+
+        const primeFromCollection = (collection) => {
+            const list = Array.isArray(collection) ? collection : [];
+            for (const item of list) {
+                const wid = extractWid(item);
+                if (!wid || !widSet.has(wid)) continue;
+                if (!cache.has(wid)) {
+                    const payload = item && typeof item === 'object' ? { ...item, wid } : { wid };
+                    cache.set(wid, ensureWorkoutPrivacy(payload));
+                }
+            }
+        };
+
+        try { primeFromCollection(user?.completedWorkouts); } catch { }
+        try { primeFromCollection(user?.recentWorkouts); } catch { }
+        try { primeFromCollection(user?.workouts); } catch { }
+        try {
+            const me = global?.userData;
+            if (me && String(me?.uid || "") === String(user?.uid || "")) {
+                primeFromCollection(me?.completedWorkouts);
+            }
+        } catch { }
+
+        let active = true;
+
+        const collectFromCache = () => {
+            const items = [];
+            for (const wid of targetWids) {
+                const wk = cache.get(wid);
+                if (wk && canViewWorkout(wk, viewerUid, viewerData)) items.push(wk);
+            }
+            return sortWorkouts(items);
+        };
+
+        setDetailWorkouts(collectFromCache());
+
+        const missing = targetWids.filter((wid) => !cache.has(wid));
+        if (!missing.length) {
+            setDetailLoading(false);
+            return () => { active = false; };
+        }
+
+        setDetailLoading(true);
+
+        (async () => {
+            for (const wid of missing) {
+                if (!active) break;
+                try {
+                    const wk = await findWorkoutByWid(wid);
+                    if (!active) break;
+                    if (wk) cache.set(wid, ensureWorkoutPrivacy(wk));
+                } catch { }
+            }
+            if (!active) return;
+            setDetailWorkouts(collectFromCache());
+            setDetailLoading(false);
+        })();
+
+        return () => { active = false; };
+    }, [detailName, detailWorkoutIds, viewerUid, viewerData, sortWorkouts, user, findWorkoutByWid]);
+
+    const detailWorkoutCount = detailWorkoutIds.length;
+    const detailWorkoutKeyExtractor = useCallback((item, index) => {
+        const wid = extractWid(item);
+        return `${detailName || 'exercise'}-${wid || index}`;
     }, [detailName]);
+    const renderDetailWorkout = useCallback(({ item }) => (
+        <Pressable onPress={withStrongPress(() => handleOpenWorkoutCard(item))}>
+            <WorkoutHistoryCard workout={item} />
+        </Pressable>
+    ), [handleOpenWorkoutCard]);
 
     // ---- Workout viewer state (open per set press) ----
     const [viewerOpen, setViewerOpen] = useState(false);
@@ -359,19 +487,25 @@ export default function UserStatsModal({ user, toViewProfile, hexOverlay, hexPro
     ), [viewerTranslateX, screenWidth]);
     const timerRef = useRef("");
 
-    const ensurePrivacy = (wk) => {
-        if (!wk || typeof wk !== 'object') return null;
-        if (wk.privacyMode) return wk;
-        return { ...wk, privacyMode: wk?.privacyMode ?? 'hidden' };
-    };
+    const openWorkoutViewer = useCallback((workout) => {
+        if (!workout) return;
+        const sanitized = ensureWorkoutPrivacy(workout);
+        if (!sanitized) return;
+        setViewerWorkout(sanitized);
+        setViewerOpen(true);
+        try { viewerTranslateX.setValue(screenWidth); } catch { }
+        try {
+            Animated.timing(viewerTranslateX, { toValue: 0, duration: 260, useNativeDriver: true }).start();
+        } catch { }
+    }, [viewerTranslateX]);
 
-    const findWorkoutByWid = async (widRaw) => {
+    const findWorkoutByWid = useCallback(async (widRaw) => {
         const wid = String(widRaw || "");
         if (!wid) return null;
         // 1) Prefer visible user's completedWorkouts if available
         try {
             const fromProp = Array.isArray(user?.completedWorkouts) ? user.completedWorkouts.find(w => String(w?.wid || w?.id || "") === wid) : null;
-            if (fromProp) return ensurePrivacy(fromProp);
+            if (fromProp) return ensureWorkoutPrivacy(fromProp);
         } catch { }
         // 2) If viewing self, use local completedWorkouts
         try {
@@ -379,7 +513,7 @@ export default function UserStatsModal({ user, toViewProfile, hexOverlay, hexPro
             if (me && String(me?.uid || "") === String(user?.uid || "")) {
                 const arr = Array.isArray(me?.completedWorkouts) ? me.completedWorkouts : [];
                 const found = arr.find(w => String(w?.wid || w?.id || "") === wid);
-                if (found) return ensurePrivacy(found);
+                if (found) return ensureWorkoutPrivacy(found);
             }
         } catch { }
         // 3) Fallback: fetch from Firestore
@@ -387,31 +521,16 @@ export default function UserStatsModal({ user, toViewProfile, hexOverlay, hexPro
             const snap = await getDoc(doc(db, "workouts", wid));
             if (snap.exists()) {
                 const d = snap.data() || {};
-                return ensurePrivacy({ wid, ...d });
+                return ensureWorkoutPrivacy({ wid, ...d });
             }
         } catch { }
         return { wid, privacyMode: 'hidden' };
-    };
+    }, [user?.completedWorkouts, user?.uid]);
 
-    const handleOpenSet = async (set) => {
-        if (!set) return;
-        const wid = String(set?.wid || "");
-        if (!wid) return;
-        // Keep detail screen mounted; slide in viewer as a child from right
-        setViewerOpen(true);
-        try {
-            const wk = await findWorkoutByWid(wid);
-            if (wk) {
-                setViewerWorkout(wk);
-                try { viewerTranslateX.setValue(screenWidth); } catch { }
-                Animated.timing(viewerTranslateX, { toValue: 0, duration: 260, useNativeDriver: true }).start();
-            } else {
-                setViewerOpen(false);
-            }
-        } catch {
-            setViewerOpen(false);
-        }
-    };
+    const handleOpenWorkoutCard = useCallback((workout) => {
+        if (!workout) return;
+        openWorkoutViewer(workout);
+    }, [openWorkoutViewer]);
     const closeViewer = () => {
         try {
             Animated.timing(viewerTranslateX, { toValue: screenWidth, duration: 220, useNativeDriver: true }).start(({ finished }) => {
@@ -475,8 +594,6 @@ export default function UserStatsModal({ user, toViewProfile, hexOverlay, hexPro
 
     return (
         <View style={styles.container}>
-            {/* Grabber */}
-            <View style={styles.grabber} />
             {/* Header */}
             <View style={styles.header}>
                 <Pressable onPress={withStrongPress(toViewProfile)} style={styles.headerLeft} hitSlop={10}>
@@ -640,47 +757,41 @@ export default function UserStatsModal({ user, toViewProfile, hexOverlay, hexPro
                             </Pressable>
                             <View style={styles.detailCountPill}>
                                 <MaterialCommunityIcons name="view-grid-outline" size={scaledSize(11)} color={COLORS.subtext} />
-                                <Text style={styles.detailCountText}>{detailSets.length} sets</Text>
+                                <Text style={styles.detailCountText}>
+                                    {detailWorkoutCount} {detailWorkoutCount === 1 ? 'workout' : 'workouts'}
+                                </Text>
                             </View>
                         </View>
 
-                        {detailSets.length === 0 ? (
+                        {detailWorkoutIds.length === 0 ? (
                             <View style={styles.detailEmpty}>
-                                <Text style={styles.emptyText}>No sets yet.</Text>
+                                <Text style={styles.emptyText}>No workouts yet.</Text>
                             </View>
                         ) : (
-                            <SectionList
-                                sections={detailSections}
-                                keyExtractor={(item, index) => `${detailName}-${item?.wid || 'w'}-${item?.date || 'd'}-${item?.weight || 'wt'}-${item?.reps || 'r'}-${index}`}
+                            <FlatList
+                                data={detailWorkouts}
+                                keyExtractor={detailWorkoutKeyExtractor}
                                 contentContainerStyle={styles.detailListContent}
                                 showsVerticalScrollIndicator={false}
-                                renderItem={({ item }) => {
-                                    const w = safeNumber(item?.weight, 0);
-                                    const r = safeNumber(item?.reps, 0);
-                                    const rm = setAdjusted1RM(w, r);
-                                    return (
-                                        <TouchableOpacity style={styles.setRow} onPress={withStrongPress(() => handleOpenSet(item))}>
-                                            <View style={[styles.setDot, { backgroundColor: ACC_DETAIL }]} />
-                                            <View style={{ flex: 1 }}>
-                                                <Text style={styles.setMain}>{w}lbs x {r}</Text>
-                                            </View>
-                                            <View style={styles.rmPill}>
-                                                <Text style={styles.rmLabel}>1RM (Adj)</Text>
-                                                <Text style={styles.rmValue}>{rm}</Text>
-                                            </View>
-                                            <MaterialCommunityIcons name="chevron-right" size={scaledSize(18)} color={COLORS.subtext} style={{ marginLeft: scaleSize(scaledSize(6)) }} />
-                                        </TouchableOpacity>
-                                    );
-                                }}
-                                renderSectionHeader={({ section }) => (
-                                    <View style={styles.detailSectionHeaderWrap}>
-                                        <Text style={styles.detailSectionHeaderText}>{section.title}</Text>
+                                renderItem={renderDetailWorkout}
+                                ListEmptyComponent={(
+                                    <View style={styles.detailEmpty}>
+                                        {detailLoading ? (
+                                            <ActivityIndicator size="small" color={COLORS.subtext} />
+                                        ) : (
+                                            <Text style={styles.emptyText}>No workouts available.</Text>
+                                        )}
                                     </View>
                                 )}
-                                ItemSeparatorComponent={() => <View style={{ height: scaleSize(scaledSize(2)) }} />}
-                                SectionSeparatorComponent={() => <View style={{ height: scaleSize(scaledSize(4)) }} />}
-                                stickySectionHeadersEnabled={false}
-                                ListFooterComponent={<View style={{ height: scaleSize(scaledSize(40)) }} />}
+                                ListFooterComponent={(
+                                    detailLoading ? (
+                                        <View style={styles.detailLoadingFooter}>
+                                            <ActivityIndicator size="small" color={COLORS.subtext} />
+                                        </View>
+                                    ) : (
+                                        <View style={{ height: scaleSize(scaledSize(40)) }} />
+                                    )
+                                )}
                             />
                         )}
                     </Animated.View>
@@ -1081,35 +1192,12 @@ const styles = StyleSheet.create({
         justifyContent: 'center',
         paddingVertical: scaleSize(scaledSize(20)),
     },
-    detailListContent: { paddingBottom: scaleSize(scaledSize(56)), gap: scaleSize(scaledSize(0)) },
-    detailSectionHeaderWrap: { paddingTop: scaleSize(scaledSize(8)), paddingBottom: scaleSize(scaledSize(2)) },
-    detailSectionHeaderText: { fontFamily: 'Outfit_800ExtraBold', fontSize: scaleSize(13.5), color: COLORS.subtext, letterSpacing: 0.3 },
-    setRow: {
-        flexDirection: 'row',
+    detailListContent: { paddingBottom: scaleSize(scaledSize(56)) },
+    detailLoadingFooter: {
+        paddingVertical: scaleSize(scaledSize(16)),
         alignItems: 'center',
-        backgroundColor: COLORS.card,
-        borderRadius: scaleSize(scaledSize(14)),
-        borderWidth: scaleSize(1),
-        borderColor: COLORS.hairline,
-        paddingLeft: scaleSize(18),
-        paddingRight: scaleSize(scaledSize(12)),
-        paddingVertical: scaleSize(scaledSize(10)),
+        justifyContent: 'center',
     },
-    setDot: { width: scaleSize(scaledSize(8)), height: scaleSize(scaledSize(8)), borderRadius: scaleSize(scaledSize(4)), marginRight: scaleSize(scaledSize(8)) },
-    setMain: { fontSize: scaleSize(14), fontFamily: 'Outfit_700Bold', color: COLORS.text },
-    setSub: { fontSize: scaleSize(11.5), fontFamily: 'Outfit_500Medium', color: COLORS.subtext, marginTop: scaleSize(scaledSize(2)) },
-    rmPill: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        paddingHorizontal: scaleSize(scaledSize(7)),
-        paddingVertical: scaleSize(scaledSize(3)),
-        borderRadius: scaleSize(scaledSize(999)),
-        borderWidth: scaleSize(1),
-        borderColor: GOLD_BORDER,
-        backgroundColor: GOLD_BG,
-    },
-    rmLabel: { fontSize: scaleSize(9), fontFamily: 'Outfit_600SemiBold', color: GOLD, marginRight: scaleSize(scaledSize(5)), letterSpacing: 0.6 },
-    rmValue: { fontSize: scaleSize(12.5), fontFamily: 'Outfit_800ExtraBold', color: GOLD },
     lockedWrap: {
         flex: 1,
         alignItems: 'center',
