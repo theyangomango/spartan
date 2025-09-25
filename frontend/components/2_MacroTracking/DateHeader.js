@@ -1,17 +1,15 @@
 import React, { useMemo, useRef } from 'react';
 import { View, Text, Pressable, StyleSheet, Animated } from 'react-native';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 
 import scaleSize from "../../helper/scaleSize";
 import { strong as haptic } from '../../utils/haptics';
+import { getUnifiedHeaderMetrics } from '../../theme/headerMetrics';
 
-const HEADER_MARGIN_TOP = scaleSize(5);
-const HEADER_PADDING_TOP = scaleSize(2); // Keep vertical offset consistent with Feed/Workout header
+const METRICS = getUnifiedHeaderMetrics();
 
 export default function DateHeader({ title, onPrev, onNext, onTitlePress, COLORS }) {
-    const insets = useSafeAreaInsets();
-    const styles = useMemo(() => makeStyles(COLORS, insets), [COLORS, insets]);
+    const styles = useMemo(() => makeStyles(COLORS), [COLORS]);
     const scale = useRef(new Animated.Value(1)).current;
 
     const handleTitlePress = () => {
@@ -25,29 +23,30 @@ export default function DateHeader({ title, onPrev, onNext, onTitlePress, COLORS
     return (
         <View style={styles.container}>
             <Pressable onPress={() => { try { haptic(); } catch {} onPrev?.(); }} hitSlop={8}>
-                <Ionicons name="chevron-back" size={24} color={styles.textColor.color} />
+                <Ionicons name="chevron-back" size={METRICS.iconSize} color={styles.textColor.color} />
             </Pressable>
             <Pressable onPress={() => { try { haptic(); } catch {} handleTitlePress(); }} disabled={!onTitlePress} hitSlop={8}>
                 <Animated.Text style={[styles.title, { transform: [{ scale }] }]}>{title}</Animated.Text>
             </Pressable>
             <Pressable onPress={() => { try { haptic(); } catch {} onNext?.(); }} hitSlop={8}>
-                <Ionicons name="chevron-forward" size={24} color={styles.textColor.color} />
+                <Ionicons name="chevron-forward" size={METRICS.iconSize} color={styles.textColor.color} />
             </Pressable>
         </View>
     );
 }
 
-const makeStyles = (COLORS, insets) =>
+const makeStyles = (COLORS) =>
     StyleSheet.create({
         container: {
             backgroundColor: COLORS.bg || COLORS.background || '#F8FAFC',
             flexDirection: 'row',
             alignItems: 'center',
             justifyContent: 'space-between',
-            paddingHorizontal: scaleSize(26),
-            // Match Feed/Workout header vertical offsets (safe-area + shared spacing)
-            paddingTop: (insets?.top || 0) + HEADER_MARGIN_TOP + HEADER_PADDING_TOP,
-            paddingBottom: scaleSize(6),
+            paddingHorizontal: METRICS.paddingH,
+            paddingTop: METRICS.paddingTop,
+            paddingBottom: METRICS.paddingBottom,
+            marginTop: METRICS.marginTop,
+            minHeight: METRICS.paddingTop + METRICS.paddingBottom + METRICS.centerH,
         },
         textColor: { color: COLORS.text || COLORS.textPrimary || '#0F172A' },
         title: { fontSize: scaleSize(16), fontFamily: 'Nunito_800ExtraBold', color: COLORS.text || '#0F172A' },

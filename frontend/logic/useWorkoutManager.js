@@ -271,19 +271,54 @@ export default function useWorkoutManager({ uid, navigation, millisToHMS }) {
     );
 
     /* ------------ helpers ------------ */
+    const readCreatorDetails = () => {
+        const safeTrim = (value) => (typeof value === "string" ? value.trim() : "");
+        const safeUid = uid ? String(uid) : "";
+        let userDetails = null;
+        try {
+            userDetails = global?.userData || null;
+        } catch {
+            userDetails = null;
+        }
+
+        const handle = safeTrim(userDetails?.handle);
+        const name = safeTrim(userDetails?.name);
+        const pfp = safeTrim(userDetails?.image);
+
+        const versionSource = userDetails?.pfpVersion ?? userDetails?.pfp_version ?? userDetails?.pfpVer ?? userDetails?.version;
+        const parsedVersion = Number(versionSource);
+        const pfpVersion = Number.isFinite(parsedVersion) && parsedVersion >= 0 ? parsedVersion : 0;
+
+        return { uid: safeUid, handle, name, pfp, pfpVersion };
+    };
+
     const createWorkoutDoc = useCallback(
         async (wid, name, privacyMode) => {
+            const { uid: creatorUidStr, handle: creatorHandle, name: creatorName, pfp: creatorPfp, pfpVersion } = readCreatorDetails();
+            const creatorPayload = {
+                uid: creatorUidStr,
+                ...(creatorHandle ? { handle: creatorHandle } : {}),
+                ...(creatorName ? { name: creatorName } : {}),
+                ...(creatorPfp ? { pfp: creatorPfp } : {}),
+                pfpVersion,
+            };
             await setDoc(
                 doc(db, "workouts", wid),
                 {
                     wid,
-                    creatorUid: uid,
+                    creatorUid: creatorUidStr || uid,
+                    creatorUID: creatorUidStr || uid,
                     createdAt: serverTimestamp(),
                     active: true,
-                    members: [uid],
+                    members: [creatorUidStr || uid],
                     updatedAt: serverTimestamp(),
                     ...(name ? { name: String(name) } : {}),
                     privacyMode: coercePrivacyMode(privacyMode),
+                    ...(creatorHandle ? { creatorHandle } : {}),
+                    ...(creatorName ? { creatorName } : {}),
+                    ...(creatorPfp ? { pfp: creatorPfp, creatorPfp } : {}),
+                    pfpVersion,
+                    creator: creatorPayload,
                 },
                 { merge: true }
             );
@@ -398,9 +433,24 @@ export default function useWorkoutManager({ uid, navigation, millisToHMS }) {
                         ? tplOrNull.exercises.map((ex) => ({ ...ex, sets: normalizeSets(ex?.sets) }))
                         : [];
 
+                    const {
+                        uid: creatorUidStr,
+                        handle: creatorHandle,
+                        name: creatorDisplayName,
+                        pfp: creatorPfp,
+                        pfpVersion: creatorPfpVersion,
+                    } = readCreatorDetails();
+                    const creatorMetadata = {
+                        uid: creatorUidStr,
+                        ...(creatorHandle ? { handle: creatorHandle } : {}),
+                        ...(creatorDisplayName ? { name: creatorDisplayName } : {}),
+                        ...(creatorPfp ? { pfp: creatorPfp } : {}),
+                        pfpVersion: creatorPfpVersion,
+                    };
+
                     const newWorkout = {
                         wid,
-                        creatorUID: uid,
+                        creatorUID: creatorUidStr || uid,
                         created,
                         name,
                         users: [],
@@ -408,6 +458,11 @@ export default function useWorkoutManager({ uid, navigation, millisToHMS }) {
                         tid: tplOrNull?.tid || tplOrNull?.id || null,
                         volume: 0, reps: 0, PBs: 0,
                         privacyMode: appliedPrivacy,
+                        ...(creatorHandle ? { creatorHandle } : {}),
+                        ...(creatorDisplayName ? { creatorName: creatorDisplayName } : {}),
+                        ...(creatorPfp ? { pfp: creatorPfp, creatorPfp } : {}),
+                        pfpVersion: creatorPfpVersion,
+                        creator: creatorMetadata,
                     };
 
                     // Mark local state as just-started so UI (e.g., reminder) can react once.

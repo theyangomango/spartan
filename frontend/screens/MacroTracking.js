@@ -2,6 +2,7 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { View, UIManager, Platform, LayoutAnimation, StatusBar, useWindowDimensions, VirtualizedList } from 'react-native';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
+import { SafeAreaView as SafeAreaInsetsView } from 'react-native-safe-area-context';
 import Footer from '../components/Footer';
 
 // search is handled inside FoodSearchOverlay to reduce re-renders
@@ -469,13 +470,15 @@ export default function MacroTracking({ navigation, route }) {
             <View style={{ flex: 1 }}>
                 <StatusBar barStyle="light-content" backgroundColor={COLORS.bg} />
                 {/* Header */}
-                <DateHeader
-                    title={formatDate(headerDate)}
-                    onPrev={() => slideBy(-1)}
-                    onNext={() => slideBy(1)}
-                    onTitlePress={jumpToToday}
-                    COLORS={COLORS}
-                />
+                <SafeAreaInsetsView edges={['top']} style={{ backgroundColor: COLORS.bg }}>
+                    <DateHeader
+                        title={formatDate(headerDate)}
+                        onPrev={() => slideBy(-1)}
+                        onNext={() => slideBy(1)}
+                        onTitlePress={jumpToToday}
+                        COLORS={COLORS}
+                    />
+                </SafeAreaInsetsView>
 
                 {/* Body: horizontally swipeable pages */}
                 <VirtualizedList

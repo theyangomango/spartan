@@ -7,30 +7,31 @@ import scaleSize from "../../../helper/scaleSize";
 import { AddSquare } from "iconsax-react-native";
 import theme from "../../../theme/mfpDark";
 import { withStrongPress } from "../../../utils/haptics";
+import { getUnifiedHeaderMetrics } from "../../../theme/headerMetrics";
 
-const scaledSize = (size) => scaleSize(size);
-const HEADER_MARGIN_TOP = scaleSize(5);
-const HEADER_PADDING_TOP = scaleSize(2); // Keep vertical origin aligned with Feed/Workout header
+const METRICS = getUnifiedHeaderMetrics();
+const ICON_SIZE = METRICS.iconSize;
+const ICON_WRAPPER_SIZE = scaleSize(ICON_SIZE + 6);
 
 export default function ProfileHeader({ onPressCreateBtn, onPressSettings }) {
     return (
         <View style={styles.main_ctnr}>
-            <RNBounceable style={styles.leftBtn} onPress={withStrongPress(onPressSettings)}>
-                <Setting2 size={24} color={theme.textSecondary} />
+            <RNBounceable style={styles.iconBtn} onPress={withStrongPress(onPressSettings)}>
+                <Setting2 size={ICON_SIZE} color={theme.textSecondary} />
             </RNBounceable>
             <RNBounceable>
                 <View style={styles.center}>
                     <Text style={styles.handle_text}>{global.userData.handle}</Text>
                     {/* <View style={styles.down_arrow_ctnr}>
-                        <Entypo name="chevron-down" size={scaledSize(18)} color="#A3A7B0" />
+                        <Entypo name="chevron-down" size={scaleSize(18)} color="#A3A7B0" />
                     </View> */}
                 </View>
             </RNBounceable>
             <View style={styles.right}>
                 <RNBounceable onPress={withStrongPress(onPressCreateBtn)}>
                     <View style={styles.create_btn_ctnr}>
-                        {/* <FontAwesome6 name='plus' size={scaledSize(13)} color="#bbb" /> */}
-                        <AddSquare size={24} color={theme.textSecondary} />
+                        {/* <FontAwesome6 name='plus' size={scaleSize(13)} color="#bbb" /> */}
+                        <AddSquare size={ICON_SIZE} color={theme.textSecondary} />
                     </View>
                 </RNBounceable>
             </View>
@@ -43,10 +44,11 @@ const styles = StyleSheet.create({
         alignItems: 'center',
         flexDirection: 'row',
         justifyContent: 'space-between',
-        paddingHorizontal: scaleSize(scaledSize(22)),
-        paddingBottom: scaleSize(scaledSize(15)),
-        paddingTop: HEADER_PADDING_TOP,
-        marginTop: HEADER_MARGIN_TOP,
+        paddingHorizontal: METRICS.paddingH,
+        paddingBottom: METRICS.paddingBottom,
+        paddingTop: METRICS.paddingTop,
+        marginTop: METRICS.marginTop,
+        minHeight: METRICS.paddingTop + METRICS.paddingBottom + METRICS.centerH,
     },
     center: {
         flexDirection: 'row',
@@ -54,7 +56,7 @@ const styles = StyleSheet.create({
     handle_text: {
         fontFamily: 'Outfit_600SemiBold',
         fontSize: scaleSize(16),
-        padding: scaleSize(scaledSize(2)),
+        padding: scaleSize(2),
         color: theme.textPrimary,
     },
     down_arrow_ctnr: {
@@ -64,13 +66,19 @@ const styles = StyleSheet.create({
         flexDirection: 'row',
     },
     create_btn_ctnr: {
-        borderWidth: scaleSize(scaledSize(1.5)),
-        width: scaleSize(scaledSize(21.5)),
-        borderRadius: scaleSize(scaledSize(5)),
-        aspectRatio: 1,
+        borderWidth: scaleSize(1.5),
+        width: ICON_WRAPPER_SIZE,
+        height: ICON_WRAPPER_SIZE,
+        borderRadius: ICON_WRAPPER_SIZE / 2,
         alignItems: 'center',
         justifyContent: 'center',
         borderColor: theme.hairline,
     },
-    leftBtn: { paddingTop: scaleSize(scaledSize(1)) },
+    iconBtn: {
+        width: ICON_WRAPPER_SIZE,
+        height: ICON_WRAPPER_SIZE,
+        borderRadius: ICON_WRAPPER_SIZE / 2,
+        alignItems: 'center',
+        justifyContent: 'center',
+    },
 });
