@@ -22,6 +22,7 @@ const HANDLE_FRIEND_BACKGROUND = '#e0a4002c';
 const GOLD = '#FACC15';
 const GOLD_BG = 'rgba(250, 204, 21, 0.24)';
 const GOLD_BORDER = 'rgba(250, 204, 21, 0.60)';
+const DETAIL_HEADER_GRADIENT = ['#273756', '#101623'];
 
 const styles = StyleSheet.create({
     container: {
@@ -225,6 +226,10 @@ const styles = StyleSheet.create({
         justifyContent: 'center',
         alignItems: 'flex-end'
     },
+    cardChevronColumnLeft: {
+        alignItems: 'flex-start',
+        marginRight: scaleSize(scaledSize(12)),
+    },
 
     exerciseName: {
         flex: 1,
@@ -328,45 +333,112 @@ const styles = StyleSheet.create({
         borderRadius: scaleSize(scaledSize(999)),
         backgroundColor: HANDLE_FRIEND_ACCENT,
     },
-    detailHeader: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        justifyContent: 'space-between',
-        borderWidth: scaleSize(1),
-        borderRadius: scaleSize(scaledSize(16)),
-        paddingHorizontal: scaleSize(scaledSize(14)),
+    detailHeaderWrapper: {
+        marginBottom: scaleSize(scaledSize(8)),
+    },
+    detailHeaderCard: {
+        borderRadius: 0,
+        paddingHorizontal: scaleSize(scaledSize(18)),
         paddingVertical: scaleSize(scaledSize(10)),
-        marginBottom: scaleSize(scaledSize(6)),
-        // Neutral card styling to reduce blue
-        backgroundColor: COLORS.card,
-        borderColor: COLORS.hairline,
-        shadowColor: '#000',
-        shadowOpacity: 0.06,
-        shadowRadius: scaleSize(scaledSize(10)),
-        shadowOffset: { width: 0, height: scaleSize(scaledSize(6)) },
+        borderWidth: 0,
+        shadowColor: 'transparent',
+        overflow: 'hidden',
     },
-    detailBackRow: { flexDirection: 'row', alignItems: 'center', flex: 1, minWidth: 0, gap: scaleSize(scaledSize(6)) },
-
-    detailTitle: {
-        flex: 1,
-        fontSize: scaleSize(15),
-        fontFamily: 'Outfit_700Bold',
-        letterSpacing: 0.2,
-        color: COLORS.text,
-        marginLeft: scaleSize(scaledSize(4)),
-    },
-    detailCountPill: {
+    detailHeaderTopRow: {
         flexDirection: 'row',
         alignItems: 'center',
-        borderWidth: scaleSize(1),
-        borderRadius: scaleSize(scaledSize(999)),
-        paddingHorizontal: scaleSize(scaledSize(12)),
-        paddingVertical: scaleSize(scaledSize(6)),
-        gap: scaleSize(scaledSize(6)),
-        backgroundColor: COLORS.iconBg,
-        borderColor: COLORS.hairline,
+        minHeight: scaleSize(scaledSize(34)),
     },
-    detailCountText: { fontSize: scaleSize(12.5), fontFamily: 'Outfit_700Bold', color: COLORS.subtext },
+    detailBackButton: {
+        width: scaleSize(scaledSize(28)),
+        height: scaleSize(scaledSize(28)),
+        borderRadius: scaleSize(scaledSize(14)),
+        alignItems: 'center',
+        justifyContent: 'center',
+        backgroundColor: 'rgba(18, 28, 44, 0.6)',
+        borderWidth: StyleSheet.hairlineWidth,
+        borderColor: 'rgba(110, 184, 255, 0.16)',
+    },
+    detailBackButtonPressed: {
+        backgroundColor: 'rgba(255,255,255,0.12)',
+    },
+    detailHeaderTitleWrap: {
+        flex: 1,
+        marginHorizontal: scaleSize(scaledSize(10)),
+        minWidth: 0,
+    },
+    detailHeaderTitle: {
+        fontSize: scaleSize(15),
+        lineHeight: scaleSize(scaledSize(18)),
+        fontFamily: 'Outfit_700Bold',
+        color: COLORS.text,
+        letterSpacing: 0.2,
+    },
+    detailHeaderSubtitle: {
+        marginTop: scaleSize(scaledSize(2)),
+        fontSize: scaleSize(10),
+        fontFamily: 'Outfit_500Medium',
+        color: 'rgba(208, 224, 255, 0.65)',
+        letterSpacing: 0.32,
+    },
+    detailOneRmPill: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        paddingHorizontal: scaleSize(scaledSize(9)),
+        paddingVertical: scaleSize(scaledSize(3)),
+        borderRadius: scaleSize(scaledSize(10)),
+        backgroundColor: 'rgba(250, 204, 21, 0.12)',
+        borderWidth: StyleSheet.hairlineWidth,
+        borderColor: 'rgba(250, 204, 21, 0.35)',
+    },
+    detailOneRmLabel: {
+        fontSize: scaleSize(9.5),
+        fontFamily: 'Outfit_600SemiBold',
+        color: '#d6c87a',
+        marginRight: scaleSize(scaledSize(3)),
+        letterSpacing: 0.4,
+    },
+    detailOneRmValue: {
+        fontSize: scaleSize(14),
+        fontFamily: 'Nunito_800ExtraBold',
+        color: GOLD,
+    },
+    detailMetricsRow: {
+        flexDirection: 'row',
+        alignItems: 'stretch',
+        marginTop: scaleSize(scaledSize(8)),
+        borderRadius: scaleSize(scaledSize(10)),
+        backgroundColor: 'rgba(10, 16, 28, 0.55)',
+        borderWidth: StyleSheet.hairlineWidth,
+        borderColor: 'rgba(110, 184, 255, 0.18)',
+        overflow: 'hidden',
+    },
+    detailMetric: {
+        flex: 1,
+        alignItems: 'center',
+        justifyContent: 'center',
+        paddingVertical: scaleSize(scaledSize(5)),
+        paddingHorizontal: scaleSize(scaledSize(5)),
+        minWidth: 0,
+    },
+    detailMetricLabel: {
+        fontSize: scaleSize(9.5),
+        fontFamily: 'Outfit_600SemiBold',
+        color: 'rgba(208, 224, 255, 0.68)',
+        letterSpacing: 0.3,
+        textTransform: 'uppercase',
+    },
+    detailMetricValue: {
+        marginTop: scaleSize(scaledSize(2)),
+        fontSize: scaleSize(13),
+        fontFamily: 'Outfit_700Bold',
+        color: COLORS.text,
+        letterSpacing: 0.15,
+    },
+    detailMetricDivider: {
+        width: StyleSheet.hairlineWidth,
+        backgroundColor: 'rgba(110, 184, 255, 0.16)',
+    },
     detailEmpty: {
         backgroundColor: COLORS.card,
         borderRadius: scaleSize(scaledSize(16)),
@@ -413,6 +485,7 @@ export {
     GOLD_BG,
     GOLD_BORDER,
     styles,
+    DETAIL_HEADER_GRADIENT,
 };
 
 export default styles;

@@ -10,12 +10,20 @@ import {
     fmtK,
 } from './userStatsUtils';
 
-export default function UserStatsExerciseCard({ name, exercise, isFirst, onPress }) {
+export default function UserStatsExerciseCard({
+    name,
+    exercise,
+    isFirst,
+    onPress,
+    style: containerStyle,
+    chevronSide = 'right',
+}) {
     const oneRM = estimate1RM(exercise);
     const volume = computeVolume(exercise);
     const setsCount = Array.isArray(exercise?.sets) ? exercise.sets.length : 0;
     const totalReps = computeTotalReps(exercise);
     const top = bestTopSet(exercise);
+    const chevronName = chevronSide === 'left' ? 'chevron-left' : 'chevron-right';
 
     return (
         <Pressable
@@ -24,10 +32,16 @@ export default function UserStatsExerciseCard({ name, exercise, isFirst, onPress
                 isFirst && styles.exerciseCardFirst,
                 { position: 'relative' },
                 pressed && styles.exerciseCardPressed,
+                containerStyle,
             ]}
             onPress={onPress}
         >
             <View style={styles.cardRow}>
+                {chevronSide === 'left' && (
+                    <View style={[styles.cardChevronColumn, styles.cardChevronColumnLeft]}>
+                        <MaterialCommunityIcons name={chevronName} size={scaledSize(22)} color={COLORS.subtext} />
+                    </View>
+                )}
                 <View style={styles.cardContentColumn}>
                     <View style={styles.cardHeaderRow}>
                         <Text numberOfLines={2} style={styles.exerciseName}>{name}</Text>
@@ -62,9 +76,11 @@ export default function UserStatsExerciseCard({ name, exercise, isFirst, onPress
                     </View>
                 </View>
 
-                <View style={styles.cardChevronColumn}>
-                    <MaterialCommunityIcons name="chevron-right" size={scaledSize(22)} color={COLORS.subtext} />
-                </View>
+                {chevronSide === 'right' && (
+                    <View style={styles.cardChevronColumn}>
+                        <MaterialCommunityIcons name={chevronName} size={scaledSize(22)} color={COLORS.subtext} />
+                    </View>
+                )}
             </View>
         </Pressable>
     );

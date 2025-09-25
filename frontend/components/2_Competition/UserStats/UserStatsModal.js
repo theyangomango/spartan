@@ -206,7 +206,7 @@ export default function UserStatsModal({ user, toViewProfile, hexOverlay, hexPro
         return () => { active = false; };
     }, [detailName, detailWorkoutIds, viewerUid, viewerData, sortWorkouts, user, findWorkoutByWid]);
 
-    const detailWorkoutCount = detailWorkoutIds.length;
+    const detailExercise = detailName ? statsForViewer?.[detailName] : null;
 
 
     // ---- Workout viewer state (open per set press) ----
@@ -459,8 +459,8 @@ export default function UserStatsModal({ user, toViewProfile, hexOverlay, hexPro
                 gesture={detailBackPan}
                 detailName={detailName}
                 translateX={detailTranslateX}
-                workoutCount={detailWorkoutCount}
                 workoutIds={detailWorkoutIds}
+                exercise={detailExercise}
                 workouts={detailWorkouts}
                 loading={detailLoading}
                 onClose={closeDetail}
