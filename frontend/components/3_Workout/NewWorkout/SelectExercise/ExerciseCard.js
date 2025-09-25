@@ -1,38 +1,18 @@
 import React, { memo, useState } from 'react';
-import { Pressable, TouchableOpacity, StyleSheet, Text, View, Dimensions } from 'react-native';
+import { Pressable, TouchableOpacity, StyleSheet, Text, View } from 'react-native';
 import scaleSize from '../../../../helper/scaleSize';
 // import { Ionicons } from '@expo/vector-icons';
 import ExerciseImagePreview from './ExerciseImagePreview';
 
-const { height: screenHeight } = Dimensions.get('window');
 const scaledSize = (size) => scaleSize(size);
 
-const ACCENTS = ["#4FA6FF", "#F7B646", "#2DD4AE", "#F87171", "#A78BFA", "#38CFFF"]; // [blue, amber, teal, coral, violet, cyan]
-const MUSCLE_ACCENT = {
-    Chest: "#F87171",
-    Back: "#38CFFF",
-    Shoulders: "#F7B646",
-    Arms: "#A78BFA",
-    Legs: "#2DD4AE",
-    Abs: "#4FA6FF",
-};
-const hexToRgb = (hex) => {
-    const m = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
-    if (!m) return { r: 45, g: 158, b: 255 };
-    return { r: parseInt(m[1], 16), g: parseInt(m[2], 16), b: parseInt(m[3], 16) };
-};
-const rgba = (hex, a) => { const { r, g, b } = hexToRgb(hex); return `rgba(${r}, ${g}, ${b}, ${a})`; };
-
 const COLORS = {
-    cardBg: '#29313eff',
+    cardBg: '#272c35ff',
     text: '#F7F9FF',
-    subtext: '#BCC8DE',
+    subtext: '#bcc8de9b',
     accent: '#7FD1FF',
-    hairline: 'rgba(120, 198, 255, 0.45)',
-    statBg: '#253F66',
-    statBorder: 'rgba(122, 196, 255, 0.38)',
+    hairline: 'rgba(93, 104, 113, 0.45)',
     selectedBg: 'rgba(102, 202, 255, 0.32)',
-    pillText: '#F3F7FF',
 };
 
 const ExerciseCard = memo(({ name, muscleGroup, selectExercise, deselectExercise, showExerciseInfo, userStats, touchable = false }) => {
@@ -58,22 +38,10 @@ const ExerciseCard = memo(({ name, muscleGroup, selectExercise, deselectExercise
                 <ExerciseImagePreview exercise={name} />
                 <View style={styles.textContainer}>
                     <Text style={styles.exerciseName}>{name}</Text>
-                    <View style={styles.row}>
-                        {/* <Text style={styles.lastDone}>{lastDone}</Text> */}
-                        {(() => {
-                            const ACC = MUSCLE_ACCENT[muscleGroup] || ACCENTS[0];
-                            return (
-                                <View style={[
-                                    styles.muscle_ctnr,
-                                    { backgroundColor: rgba(ACC, 0.75), borderColor: rgba(ACC, 0.42) }
-                                ]}>
-                                    <Text style={[styles.muscle_text, { color: COLORS.pillText }]}>{muscleGroup}</Text>
-                                </View>
-                            );
-                        })()}
-                        </View>
-                    </View>
+                    {/* <Text style={styles.lastDone}>{lastDone}</Text> */}
+                    <Text style={styles.muscleGroupText}>{muscleGroup}</Text>
                 </View>
+            </View>
             <View style={styles.rightContainer}>
                 <Text style={styles.timesCompleted}>{timesCompleted}</Text>
                 { /* Info icon hidden for this release
@@ -117,10 +85,6 @@ const styles = StyleSheet.create({
         flex: 1,
         paddingLeft: scaleSize(scaledSize(10)),
     },
-    row: {
-        flexDirection: 'row',
-        alignItems: 'center',
-    },
     selected: { backgroundColor: COLORS.selectedBg },
     exerciseName: {
         fontFamily: 'Outfit_700Bold',
@@ -129,20 +93,11 @@ const styles = StyleSheet.create({
         marginVertical: scaleSize(scaledSize(3)),
         flexWrap: 'wrap',
     },
-    muscle_ctnr: {
-        borderRadius: scaleSize(scaledSize(999)),
-        paddingHorizontal: scaleSize(scaledSize(12)),
-        height: scaleSize(scaledSize(22)),
-        alignItems: 'center',
-        justifyContent: 'center',
-        backgroundColor: COLORS.statBg,
-        borderWidth: StyleSheet.hairlineWidth,
-        borderColor: COLORS.statBorder,
-    },
-    muscle_text: {
-        fontFamily: 'Outfit_700Bold',
-        fontSize: scaleSize(12),
-        color: COLORS.pillText,
+    muscleGroupText: {
+        fontFamily: 'Outfit_500Medium',
+        fontSize: scaleSize(12.5),
+        color: COLORS.subtext,
+        marginTop: scaleSize(scaledSize(2)),
     },
     lastDone: {
         fontFamily: 'Outfit_500Medium',

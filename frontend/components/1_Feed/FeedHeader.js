@@ -25,7 +25,6 @@ import { collection, query, where, onSnapshot, getDocs, orderBy, limit, doc } fr
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import theme from "../../theme/mfpDark";
 import scaleSize from "../../helper/scaleSize";
-import { getUnifiedHeaderMetrics } from "../../theme/headerMetrics";
 // Single root navigator; no need for StackActions/nested refs here
 
 const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get("window");
@@ -34,11 +33,22 @@ const scale = SCREEN_WIDTH / 375;
 const s = (n) => Math.round(n * scale);
 
 // Unified sizing metrics (reduces magic numbers)
-const METRICS = getUnifiedHeaderMetrics();
+const METRICS = (() => {
+    const paddingH = dynamicStyles.paddingHorizontal;
+    const paddingTop = s(2);
+    const paddingBottom = s(12);
+    const centerH = s(40);
+    const marginTop = s(5);
+    const icon = dynamicStyles.iconSize;
+    const iconTop = Math.round((centerH - icon) / 2);
+    const iconBox = icon + 6; // header/overlay icon wrapper size
+    const logoPadTop = Math.max(0, s(0.5)); // visual alignment
+    return { paddingH, paddingTop, paddingBottom, centerH, marginTop, iconTop, logoPadTop, iconBox };
+})();
 
-const BASE_BACK_HEADER_HEIGHT = METRICS.baseHeaderHeight;
-const FOCUSED_HEADER_OFFSET = METRICS.focusedHeaderOffset;
-const FOCUSED_BACK_HEADER_HEIGHT = METRICS.focusedHeaderHeight;
+const BASE_BACK_HEADER_HEIGHT = scaleSize(METRICS.centerH + METRICS.paddingTop + METRICS.paddingBottom);
+const FOCUSED_HEADER_OFFSET = scaleSize(6);
+const FOCUSED_BACK_HEADER_HEIGHT = Math.max(BASE_BACK_HEADER_HEIGHT - FOCUSED_HEADER_OFFSET, scaleSize(METRICS.centerH + METRICS.paddingTop));
 
 /* ------------------------------ Debounce ------------------------------ */
 const useDebounce = (fn, delay = 220) => {

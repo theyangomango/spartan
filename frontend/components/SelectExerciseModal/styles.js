@@ -3,7 +3,7 @@ import scaleSize from '../../helper/scaleSize';
 import theme from '../../theme/mfpDark';
 
 const OVERLAY_BG = 'rgba(8, 12, 24, 0.42)';
-const MODAL_BG = theme.bg;
+const MODAL_BG = '#29313eff';
 const LIGHT_SURFACE = '#1F2A42';
 const LIGHT_FIELD = '#515760ff';
 const FIELD_BORDER = 'rgba(120, 198, 255, 0.24)';

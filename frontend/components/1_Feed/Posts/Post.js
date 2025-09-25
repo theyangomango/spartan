@@ -16,8 +16,7 @@ import {
     Easing,
     Image,
 } from "react-native";
-import { Gesture, GestureDetector } from 'react-native-gesture-handler';
-import Reanimated, { runOnJS, useAnimatedStyle } from 'react-native-reanimated';
+import Reanimated, { useAnimatedStyle } from 'react-native-reanimated';
 import PostHeader from "./PostHeader";
 import PostFooter from "./PostFooter";
 import FeedFocusContext from "../../../screens/feed/hooks/FeedFocusContext";
@@ -282,7 +281,6 @@ const Post = forwardRef(function Post({
     const scale = useRef(new Animated.Value(1)).current;
     const viewRef = useRef(null);
     const carouselRef = useRef(null);
-    const overlaySwipeActiveRef = useRef(false);
     const footerRef = useRef(null);
 
     const [currentIndex, setCurrentIndex] = useState(0);
@@ -445,53 +443,6 @@ const Post = forwardRef(function Post({
         footerRef.current.handleTapAt(absoluteX, absoluteY);
     }, []);
 
-    const handleOverlaySwipeBegin = useCallback(() => {
-        if (!resolvedIsFocused) {
-            overlaySwipeActiveRef.current = false;
-            return;
-        }
-        const handled = carouselRef.current?.hSwipeBegin?.() ?? false;
-        overlaySwipeActiveRef.current = handled;
-    }, [resolvedIsFocused]);
-
-    const handleOverlaySwipeUpdate = useCallback((dx) => {
-        if (!overlaySwipeActiveRef.current) return;
-        carouselRef.current?.hSwipeUpdate?.(dx);
-    }, []);
-
-    const handleOverlaySwipeEnd = useCallback((dx, vx) => {
-        if (!overlaySwipeActiveRef.current) return;
-        overlaySwipeActiveRef.current = false;
-        carouselRef.current?.hSwipeEnd?.(dx, vx);
-    }, []);
-
-    const handleOverlaySwipeFinalize = useCallback(() => {
-        if (!overlaySwipeActiveRef.current) return;
-        overlaySwipeActiveRef.current = false;
-        carouselRef.current?.hSwipeEnd?.(0, 0);
-    }, []);
-
-    const focusedSwipeGesture = useMemo(() => (
-        Gesture.Pan()
-            .enabled(!!resolvedIsFocused)
-            .minPointers(1)
-            .maxPointers(1)
-            .activeOffsetX([-6, 6])
-            .failOffsetY([-8, 8])
-            .cancelsTouchesInView(false)
-            .simultaneousWithExternalGesture(Gesture.Native())
-            .onBegin(() => { runOnJS(handleOverlaySwipeBegin)(); })
-            .onUpdate((event) => { runOnJS(handleOverlaySwipeUpdate)(event.translationX); })
-            .onEnd((event) => { runOnJS(handleOverlaySwipeEnd)(event.translationX, event.velocityX); })
-            .onFinalize(() => { runOnJS(handleOverlaySwipeFinalize)(); })
-    ), [
-        handleOverlaySwipeBegin,
-        handleOverlaySwipeEnd,
-        handleOverlaySwipeFinalize,
-        handleOverlaySwipeUpdate,
-        resolvedIsFocused,
-    ]);
-
     // Recompute header tone whenever the visible media changes.
     useEffect(() => {
         if (!currentMediaUri || (currentMediaType && currentMediaType !== 'image') || !headerRect) {
@@ -574,66 +525,64 @@ const Post = forwardRef(function Post({
             // on this post so it can’t intercept gestures.
             pointerEvents={(resolvedIsSomePostFocused && !resolvedIsFocused) ? "none" : "auto"}
         >
-            <GestureDetector gesture={focusedSwipeGesture}>
+            <Animated.View
+                style={[
+                    styles.card,
+                    resolvedIsFocused && { zIndex: 10 },
+                    { transform: [{ scale }] },
+                    fadeInOnFocus ? { opacity: focusFadeOpacity } : null,
+                ]}
+            >
+                <View style={styles.body}>
+                    <Reanimated.View style={[styles.gallery, roundedBottomStyle, { overflow: 'hidden' }]}>
+                        <PostMediaCarousel
+                            ref={carouselRef}
+                            mediaList={mediaList}
+                            currentIndex={currentIndex}
+                            onIndexChange={handleIndexChange}
+                            isFocused={resolvedIsFocused}
+                            isAnyPostFocused={resolvedIsSomePostFocused}
+                            shouldPlay={shouldPlay}
+                            onRequestFocus={focusMe}
+                            galleryStyle={{ width: '100%', height: '100%' }}
+                            imageStyle={styles.image}
+                        />
+                    </Reanimated.View>
+                </View>
+
+                <PostHeader
+                    data={data}
+                    url={pfp}
+                    position={currentIndex}
+                    totalImages={mediaList.length}
+                    toViewProfile={() => toViewProfile(index)}
+                    openViewWorkout={() => openViewWorkoutModal(index)}
+                    isLightHeader={isLightHeader}
+                />
+                <PostFooter
+                    ref={footerRef}
+                    data={data}
+                    image={pfp}
+                    isSomePostFocused={resolvedIsSomePostFocused}
+                    isUnfocusing={resolvedIsFocused ? ctxUnfocusGestureActive : false}
+                    focusModeSV={resolvedFocusModeSV}
+                    interactiveUnfocusSV={resolvedInteractiveUnfocusSV}
+                    onPressCommentButton={() => {
+                        if (!resolvedIsSomePostFocused) focusMe(true);
+                        if (resolvedIsFocused) openCommentsModal(index);
+                    }}
+                    onPressShareButton={() => {
+                        if (!resolvedIsSomePostFocused) focusMe(true);
+                        if (resolvedIsFocused) openShareModal(index);
+                    }}
+                />
+
+                {/* highlight overlay above content */}
                 <Animated.View
-                    style={[
-                        styles.card,
-                        resolvedIsFocused && { zIndex: 10 },
-                        { transform: [{ scale }] },
-                        fadeInOnFocus ? { opacity: focusFadeOpacity } : null,
-                    ]}
-                >
-                    <View style={styles.body}>
-                        <Reanimated.View style={[styles.gallery, roundedBottomStyle, { overflow: 'hidden' }]}>
-                            <PostMediaCarousel
-                                ref={carouselRef}
-                                mediaList={mediaList}
-                                currentIndex={currentIndex}
-                                onIndexChange={handleIndexChange}
-                                isFocused={resolvedIsFocused}
-                                isAnyPostFocused={resolvedIsSomePostFocused}
-                                shouldPlay={shouldPlay}
-                                onRequestFocus={focusMe}
-                                galleryStyle={{ width: '100%', height: '100%' }}
-                                imageStyle={styles.image}
-                            />
-                        </Reanimated.View>
-                    </View>
-
-                    <PostHeader
-                        data={data}
-                        url={pfp}
-                        position={currentIndex}
-                        totalImages={mediaList.length}
-                        toViewProfile={() => toViewProfile(index)}
-                        openViewWorkout={() => openViewWorkoutModal(index)}
-                        isLightHeader={isLightHeader}
-                    />
-                    <PostFooter
-                        ref={footerRef}
-                        data={data}
-                        image={pfp}
-                        isSomePostFocused={resolvedIsSomePostFocused}
-                        isUnfocusing={resolvedIsFocused ? ctxUnfocusGestureActive : false}
-                        focusModeSV={resolvedFocusModeSV}
-                        interactiveUnfocusSV={resolvedInteractiveUnfocusSV}
-                        onPressCommentButton={() => {
-                            if (!resolvedIsSomePostFocused) focusMe(true);
-                            if (resolvedIsFocused) openCommentsModal(index);
-                        }}
-                        onPressShareButton={() => {
-                            if (!resolvedIsSomePostFocused) focusMe(true);
-                            if (resolvedIsFocused) openShareModal(index);
-                        }}
-                    />
-
-                    {/* highlight overlay above content */}
-                    <Animated.View
-                        pointerEvents="none"
-                        style={[StyleSheet.absoluteFill, { borderRadius: BORDER, backgroundColor: '#FFF4B3', opacity: highlightOpacity }]}
-                    />
-                </Animated.View>
-            </GestureDetector>
+                    pointerEvents="none"
+                    style={[StyleSheet.absoluteFill, { borderRadius: BORDER, backgroundColor: '#FFF4B3', opacity: highlightOpacity }]}
+                />
+            </Animated.View>
         </Reanimated.View>
     );
 });

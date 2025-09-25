@@ -10,8 +10,9 @@ import {
     Dimensions,
     Text,
     InteractionManager,
-    Platform,
+    Pressable,
 } from "react-native";
+import Podium from "../components/2_Competition/Podium";
 import rankUsers from "../helper/rankUsers";
 import LeaderboardBottomSheet from "../components/2_Competition/LeaderboardBottomSheet";
 import UserStatsBottomSheet from "../components/2_Competition/UserStats/UserStatsBottomSheet";
@@ -63,17 +64,12 @@ const SIZES = {
     // header
     headerIconSize: scaleSize(21),                  // base icon size
     chevronDelta: scaleSize(6),                     // difference for chevron icon
-    headerPaddingHorizontal: scaleSize(24, "w"),    // horizontal padding scales with width
+    headerPaddingHorizontal: scaleSize(30, "w"),    // horizontal padding scales with width
     headerPaddingTop: scaleSize(8, "h"),            // top padding scales with height
 
-    // tribe scope button
-    tribeBtnMarginLeft: scaleSize(10),
-    tribeBtnPadH: scaleSize(12),
-    tribeBtnPadV: scaleSize(8),
-    tribeBtnRadius: scaleSize(16),
     tribeHitSlop: scaleSize(8),
 
-    tribeLabelFont: scaleSize(14),
+    tribeLabelFont: scaleSize(15),
     tribeLabelMaxWidth: scaleSize(160),
     tribeLabelMarginRight: scaleSize(2),
 
@@ -83,6 +79,23 @@ const SIZES = {
     chevronML: scaleSize(4),
     chevronMT: scaleSize(1),
 };
+
+const STAGE_VERTICAL_OFFSET = scaleSize(25);
+
+const DEFAULT_BODY_FOCUS = "overall";
+const BODY_FOCUS_OPTIONS = [
+    { label: "Overall", value: "overall" },
+    { label: "Chest", value: "chest" },
+    { label: "Shoulders", value: "shoulders" },
+    { label: "Abs", value: "abs" },
+    { label: "Back", value: "back" },
+    { label: "Legs", value: "legs" },
+    { label: "Arms", value: "arms" },
+];
+const BODY_FOCUS_LABEL_MAP = BODY_FOCUS_OPTIONS.reduce((acc, opt) => {
+    acc[opt.value] = opt.label;
+    return acc;
+}, {});
 
 // -------- tiny persistence (no deps) --------
 const GLOBAL_KEY = "__competition_state__";
@@ -97,6 +110,7 @@ const setPersisted = (patch) => {
 let LAST_SCOPE = "Global";
 let LAST_SELECTED_TRIBE_ID = null;
 let LAST_USERLIST = null;
+let LAST_BODY_FOCUS = DEFAULT_BODY_FOCUS;
 
 const genCode = (len = 6) => {
     const chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
@@ -237,6 +251,13 @@ export default function Competition({ navigation, route }) {
     const [comparedMetric, setComparedMetric] = useState("1RM");
     const exerciseStatKey = comparedMetric === "1RM" ? "1RM" : comparedMetric;
 
+    const [bodyFocus, setBodyFocus] = useState(
+        persisted.bodyFocus ?? LAST_BODY_FOCUS ?? DEFAULT_BODY_FOCUS
+    );
+    const [isBodyFocusMenuVisible, setIsBodyFocusMenuVisible] = useState(false);
+    const focusToggleAnchorRef = useRef(null);
+    const [focusMenuAnchor, setFocusMenuAnchor] = useState({ x: SIZES.headerPaddingHorizontal, y: 0, width: 0, height: 0 });
+
     // Tribes
     const [tribes, setTribes] = useState([]);
     const [selectedTribeId, setSelectedTribeId] = useState(
@@ -262,6 +283,7 @@ export default function Competition({ navigation, route }) {
     useEffect(() => { LAST_SCOPE = scope; setPersisted({ scope }); }, [scope]);
     useEffect(() => { LAST_SELECTED_TRIBE_ID = selectedTribeId; setPersisted({ selectedTribeId }); }, [selectedTribeId]);
     useEffect(() => { LAST_USERLIST = userList; setPersisted({ userList }); }, [userList]);
+    useEffect(() => { LAST_BODY_FOCUS = bodyFocus; setPersisted({ bodyFocus }); }, [bodyFocus]);
 
     const [userSignals, setUserSignals] = useState({ followingKey: "", followersKey: "", tribeKey: "" });
 
@@ -329,6 +351,7 @@ export default function Competition({ navigation, route }) {
                 setScope(scopeX);
                 if (lastView.exercise) setComparedExercise(lastView.exercise);
                 if (lastView.metric) setComparedMetric(lastView.metric);
+                if (typeof lastView.bodyFocus === 'string' && lastView.bodyFocus) setBodyFocus(lastView.bodyFocus);
             }
         };
 
@@ -341,7 +364,7 @@ export default function Competition({ navigation, route }) {
                     global.userData = data;
                     emitUserDataUpdate();
                     // Apply last saved view once per mount
-                    try { hydrateFromLastView(data?.competitionLastView); } catch { }
+                    try { hydrateFromLastView(data?.competitionLastView); } catch {}
                     initUsers(); // refresh users; recompute gated elsewhere
                 });
             }, 0);
@@ -372,11 +395,12 @@ export default function Competition({ navigation, route }) {
                     setScope(scopeX);
                     if (lv.exercise) setComparedExercise(lv.exercise);
                     if (lv.metric) setComparedMetric(lv.metric);
+                    if (typeof lv.bodyFocus === 'string' && lv.bodyFocus) setBodyFocus(lv.bodyFocus);
                 }
                 appliedLastViewRef.current = true;
             }
-        } catch { }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+        } catch {}
+        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []);
 
     // ---- tribes subscription
@@ -413,6 +437,29 @@ export default function Competition({ navigation, route }) {
             : null;
 
     useEffect(() => {
+        if (isCustomTribe) setIsBodyFocusMenuVisible(false);
+    }, [isCustomTribe]);
+
+    const handleToggleFocusMenu = useCallback(() => {
+        if (isCustomTribe) return;
+        if (isBodyFocusMenuVisible) {
+            setIsBodyFocusMenuVisible(false);
+            return;
+        }
+        const measureAndOpen = () => {
+            try {
+                focusToggleAnchorRef.current?.measureInWindow?.((x = 0, y = 0, width = 0, height = 0) => {
+                    setFocusMenuAnchor({ x, y, width, height });
+                    setIsBodyFocusMenuVisible(true);
+                });
+            } catch {
+                setIsBodyFocusMenuVisible(true);
+            }
+        };
+        requestAnimationFrame(measureAndOpen);
+    }, [isCustomTribe, isBodyFocusMenuVisible]);
+
+    useEffect(() => {
         const uid = global?.userData?.uid;
         if (!uid) return;
         const tribesRef = collection(db, "tribes");
@@ -431,6 +478,7 @@ export default function Competition({ navigation, route }) {
     // ---- single source of truth recompute (gated)
     const recompute = useCallback(() => {
         const all = usersRef.current || [];
+        const hexFocusKey = typeof bodyFocus === 'string' && bodyFocus ? bodyFocus : null;
 
         if (isCustomTribe) {
             // if we intend to show a tribe, do NOT recompute until tribe docs are ready
@@ -444,25 +492,48 @@ export default function Competition({ navigation, route }) {
                 const ranked = computeTribeRanking(visible, activeComparison);
                 setUserList(applyLastRanks(ranked, activeComparison?.exercise, tribeScopeKey));
             } else {
+                // Tribe without custom comparison falls back to exercise-based leaderboard
                 const ranked = rankUsers(visible, comparedExercise, comparedMetric);
                 setUserList(applyLastRanks(ranked, comparedExercise, tribeScopeKey));
             }
             return;
         }
 
+        const buildHexRanking = (list, scopeKeyLabel) => {
+            const arr = Array.isArray(list)
+                ? list.map((user) => {
+                    const hexVal = Number(user?.statsHexagon?.[hexFocusKey] ?? 0);
+                    return {
+                        ...user,
+                        __hexValue: Number.isFinite(hexVal) ? hexVal : 0,
+                    };
+                })
+                : [];
+            arr.sort((a, b) => (Number(b.__hexValue ?? 0) || 0) - (Number(a.__hexValue ?? 0) || 0));
+            setUserList(applyLastRanks(arr, null, scopeKeyLabel));
+        };
+
         // fallback scopes
         if (scope === "Following") {
             const followingSet = new Set((global.userData?.following || []).map((u) => u.uid));
             const base = all.filter((usr) => usr?.uid === global.userData?.uid || followingSet.has(usr?.uid));
             const visible = filterBlockedVisibility(base);
+            if (hexFocusKey) {
+                buildHexRanking(visible, `following_hex_${hexFocusKey}`);
+                return;
+            }
             const ranked = rankUsers(visible, comparedExercise, comparedMetric);
             setUserList(applyLastRanks(ranked, comparedExercise, 'following'));
         } else {
             const visible = filterBlockedVisibility(all);
+            if (hexFocusKey) {
+                buildHexRanking(visible, `global_hex_${hexFocusKey}`);
+                return;
+            }
             const ranked = rankUsers(visible, comparedExercise, comparedMetric);
             setUserList(applyLastRanks(ranked, comparedExercise, 'global'));
         }
-    }, [isCustomTribe, tribesHydrated, currentTribe, activeComparison, comparedExercise, comparedMetric, scope, selectedTribeId]);
+    }, [bodyFocus, isCustomTribe, tribesHydrated, currentTribe, activeComparison, comparedExercise, comparedMetric, scope, selectedTribeId]);
 
     // Run recompute ONLY when ready. Otherwise keep showing cached list.
     useEffect(() => {
@@ -476,7 +547,7 @@ export default function Competition({ navigation, route }) {
         if (activeCompIndex >= tribeComparisons.length) setActiveCompIndex(0);
     }, [tribeComparisons.length, activeCompIndex]);
 
-  const rankedDisplay = useMemo(() => userList || [], [userList]);
+    const rankedDisplay = useMemo(() => userList || [], [userList]);
 
     // When comparison or tribe changes, ensure block state is up to date
     useEffect(() => {
@@ -495,6 +566,23 @@ export default function Competition({ navigation, route }) {
         setSelectedUser(user);
         setIsUserStatsBottomSheetVisible(true);
     };
+
+    const handleActiveCompChange = useCallback((nextIndex) => {
+        const total = Array.isArray(tribeComparisons) ? tribeComparisons.length : 0;
+        const clampedIndex = total > 0 ? Math.min(Math.max(0, nextIndex), total - 1) : 0;
+        setActiveCompIndex(clampedIndex);
+
+        if (!isCustomTribe || !currentTribe) return;
+        const comp = tribeComparisons[clampedIndex];
+        if (!comp) return;
+
+        const all = usersRef.current || [];
+        const memberSet = new Set(currentTribe.members || []);
+        const tribeUsers = all.filter((x) => memberSet.has(x?.uid));
+        const tribeScopeKey = String(currentTribe?.id || selectedTribeId || '');
+        const ranked = computeTribeRanking(tribeUsers, comp);
+        setUserList(applyLastRanks(ranked, comp?.exercise, tribeScopeKey));
+    }, [tribeComparisons, isCustomTribe, currentTribe, selectedTribeId]);
 
     const onOpenCreateFromMenu = useCallback(() => {
         setTribeMenuVisible(false);
@@ -657,6 +745,7 @@ export default function Competition({ navigation, route }) {
                 type: scope === "Following" ? "following" : "global",
                 exercise: comparedExercise,
                 metric: comparedMetric || "1RM",
+                bodyFocus,
             };
         }
 
@@ -666,18 +755,124 @@ export default function Competition({ navigation, route }) {
         try {
             updateDoc(doc(db, "users", uid), { competitionLastView: payload }).catch(() => {});
         } catch { /* ignore */ }
-    }, [selectedTribeId, activeComparison, scope, comparedExercise, comparedMetric]);
+    }, [selectedTribeId, activeComparison, scope, comparedExercise, comparedMetric, bodyFocus]);
+
+    const bodyFocusLabel = useMemo(
+        () => BODY_FOCUS_LABEL_MAP[bodyFocus] || BODY_FOCUS_LABEL_MAP[DEFAULT_BODY_FOCUS],
+        [bodyFocus]
+    );
 
     const scopeLabel = useMemo(() => {
         if (selectedTribeId) return currentTribe?.name || "Tribe";
         return scope === "Following" ? "Following" : "Global";
     }, [selectedTribeId, currentTribe, scope]);
 
-    // Use a unified background tone across the screen and sheet canvases
-    const leaderboardCanvas = theme.bg;
+    const hexFocusKey = useMemo(
+        () => (typeof bodyFocus === 'string' && bodyFocus ? bodyFocus : DEFAULT_BODY_FOCUS),
+        [bodyFocus]
+    );
+    const usingHexFocus = useMemo(
+        () => !isCustomTribe && !!hexFocusKey,
+        [isCustomTribe, hexFocusKey]
+    );
+
+    const dropdownLeft = useMemo(() => {
+        const padding = SIZES.headerPaddingHorizontal;
+        const baseX = Number(focusMenuAnchor?.x ?? padding);
+        const approxWidth = scaleSize(180, "w");
+        const maxLeft = Math.max(padding, width - approxWidth - padding);
+        return Math.min(Math.max(baseX, padding), maxLeft);
+    }, [focusMenuAnchor?.x, width]);
+
+    const dropdownTop = useMemo(() => {
+        const anchorY = Number(focusMenuAnchor?.y ?? 0);
+        const anchorHeight = Number(focusMenuAnchor?.height ?? 0);
+        return Math.max(0, anchorY + anchorHeight + scaleSize(6));
+    }, [focusMenuAnchor?.y, focusMenuAnchor?.height]);
+
+    const podiumData = useMemo(() => {
+        if (!rankedDisplay || rankedDisplay.length === 0) return null;
+        const top3 = rankedDisplay.slice(0, 3).map((u) => {
+            let stat = 0;
+            if (isCustomTribe && activeComparison) {
+                stat = u?._tribeValue ?? 0;
+            } else if (usingHexFocus) {
+                const val = Number(u?.__hexValue ?? u?.statsHexagon?.[hexFocusKey] ?? 0);
+                stat = Number.isFinite(val) ? val : 0;
+            } else {
+                const exStats = u?.statsExercises?.[comparedExercise] || {};
+                stat = exStats?.[exerciseStatKey] ?? 0;
+            }
+            return { handle: u?.handle, pfp: u?.image, stat };
+        });
+        return top3.filter(Boolean);
+    }, [rankedDisplay, isCustomTribe, activeComparison, usingHexFocus, hexFocusKey, comparedExercise, exerciseStatKey]);
+
+    // Compute a custom leaderboard canvas color a couple shades lighter
+    const leaderboardCanvas = useMemo(() => {
+        const lightenColor = (hex, amount = 0.1) => {
+            if (typeof hex !== 'string') return hex;
+            let h = hex.replace('#', '').trim();
+            let a = 1;
+            if (h.length === 8) {
+                const aa = h.slice(6, 8);
+                a = Math.max(0, Math.min(1, parseInt(aa, 16) / 255));
+                h = h.slice(0, 6);
+            }
+            if (h.length !== 6) return hex;
+            const r = parseInt(h.slice(0, 2), 16);
+            const g = parseInt(h.slice(2, 4), 16);
+            const b = parseInt(h.slice(4, 6), 16);
+            const mix = (c) => Math.round(c + (255 - c) * amount);
+            const rr = mix(r), gg = mix(g), bb = mix(b);
+            return `rgba(${rr}, ${gg}, ${bb}, ${a})`;
+        };
+        return lightenColor(theme.bg, 0.1);
+    }, []);
 
     return (
         <View style={styles.mainContainer}>
+            <Modal
+                visible={isBodyFocusMenuVisible}
+                transparent
+                animationType="fade"
+                onRequestClose={() => setIsBodyFocusMenuVisible(false)}
+            >
+                <View style={styles.focusModalOverlay}>
+                    <Pressable
+                        style={StyleSheet.absoluteFill}
+                        onPress={() => setIsBodyFocusMenuVisible(false)}
+                        android_ripple={{ color: "transparent" }}
+                    />
+                    <View style={[styles.focusDropdown, { top: dropdownTop, left: dropdownLeft }]}>
+                        {BODY_FOCUS_OPTIONS.map((opt) => (
+                            <TouchableOpacity
+                                key={opt.value}
+                                style={[
+                                    styles.focusOption,
+                                    opt.value === bodyFocus && styles.focusOptionActive,
+                                ]}
+                                activeOpacity={0.7}
+                                onPress={withStrongPress(() => {
+                                    setBodyFocus(opt.value);
+                                    setIsBodyFocusMenuVisible(false);
+                                })}
+                            >
+                                <Text
+                                    style={[
+                                        styles.focusOptionLabel,
+                                        opt.value === bodyFocus && styles.focusOptionLabelActive,
+                                    ]}
+                                    numberOfLines={1}
+                                    ellipsizeMode="tail"
+                                >
+                                    {opt.label}
+                                </Text>
+                            </TouchableOpacity>
+                        ))}
+                    </View>
+                </View>
+            </Modal>
             <SafeAreaView>
                 <View
                     style={[
@@ -688,27 +883,49 @@ export default function Competition({ navigation, route }) {
                         },
                     ]}
                 >
+                    <View style={styles.headerLeftContainer}>
+                        <View ref={focusToggleAnchorRef} collapsable={false} style={styles.focusToggleWrap}>
+                            <RNBounceable
+                                onPress={withStrongPress(handleToggleFocusMenu)}
+                                style={[styles.focusToggle, isCustomTribe && styles.focusToggleDisabled]}
+                                activeScale={0.96}
+                                accessibilityRole="button"
+                                accessibilityLabel="Change leaderboard focus"
+                                disabled={isCustomTribe}
+                            >
+                                <Text style={styles.focusToggleLabel} numberOfLines={1} ellipsizeMode="tail">
+                                    {bodyFocusLabel}
+                                </Text>
+                                <Ionicons
+                                    name={isBodyFocusMenuVisible ? "chevron-up" : "chevron-down"}
+                                    size={Math.max(18, SIZES.headerIconSize - SIZES.chevronDelta)}
+                                    color="rgba(255,255,255,0.95)"
+                                    style={styles.focusToggleIcon}
+                                />
+                            </RNBounceable>
+                        </View>
+                    </View>
                     <View style={styles.headerRightContainer}>
                         <RNBounceable
                             onPress={withStrongPress(() => setTribeMenuVisible(true))}
-                            style={[styles.tribeButtonRow, styles.tribeButtonPill]}
+                            style={styles.scopeToggle}
                             activeScale={0.96}
                             hitSlop={{ top: SIZES.tribeHitSlop, bottom: SIZES.tribeHitSlop, left: SIZES.tribeHitSlop, right: SIZES.tribeHitSlop }}
                             accessibilityRole="button"
                             accessibilityLabel="Change leaderboard scope"
                         >
                             <Ionicons
-                                name="people"
-                                size={SIZES.headerIconSize}
-                                color="#fff"
-                                style={{ marginRight: SIZES.iconMR, marginTop: SIZES.iconMT }}
+                                name="chevron-down"
+                                size={Math.max(18, SIZES.headerIconSize - SIZES.chevronDelta)}
+                                color="rgba(255,255,255,0.95)"
+                                style={{ marginRight: SIZES.chevronML, marginTop: SIZES.chevronMT, opacity: 0 }}
                             />
                             <Text style={styles.tribeLabel} numberOfLines={1} ellipsizeMode="tail">
                                 {scopeLabel}
                             </Text>
                             <Ionicons
                                 name="chevron-down"
-                                size={Math.max(12, SIZES.headerIconSize - SIZES.chevronDelta)}
+                                size={Math.max(18, SIZES.headerIconSize - SIZES.chevronDelta)}
                                 color="rgba(255,255,255,0.95)"
                                 style={{ marginLeft: SIZES.chevronML, marginTop: SIZES.chevronMT }}
                             />
@@ -718,6 +935,7 @@ export default function Competition({ navigation, route }) {
             </SafeAreaView>
 
             <InfoPanel isVisible={false} opacity={useRef(new Animated.Value(0)).current} />
+            <Podium data={podiumData} isTribeFocused={isCustomTribe} topOffset={STAGE_VERTICAL_OFFSET} />
 
             <LeaderboardBottomSheet
                 userList={rankedDisplay}
@@ -731,29 +949,19 @@ export default function Competition({ navigation, route }) {
                     setSelectedUser(u);
                     setIsUserStatsBottomSheetVisible(true);
                 }}
+                isHexFocus={usingHexFocus}
+                hexFocusKey={hexFocusKey}
+                hexFocusLabel={bodyFocusLabel}
                 isTribeFocused={isCustomTribe}
                 tribeComparisons={tribeComparisons}
                 activeCompIndex={activeCompIndex}
-                onActiveCompChange={(idx) => {
-                    setActiveCompIndex(idx);
-                    // compute immediately if we have tribe members
-                    const all = usersRef.current || [];
-                    if (isCustomTribe && currentTribe) {
-                        const memberSet = new Set(currentTribe.members || []);
-                        const tribeUsers = all.filter((x) => memberSet.has(x?.uid));
-                        const comp = tribeComparisons[idx];
-                        if (comp) {
-                            const tribeScopeKey = String(currentTribe?.id || selectedTribeId || '');
-                            const ranked = computeTribeRanking(tribeUsers, comp);
-                            setUserList(applyLastRanks(ranked, comp?.exercise, tribeScopeKey));
-                        }
-                    }
-                }}
+                onActiveCompChange={handleActiveCompChange}
                 tribeComparisonSummary={activeComparison ? summaryOf(activeComparison) : "Not set"}
                 onOpenTribeComparison={() => setComparisonManagerVisible(true)}
                 blockedMessage={blockedReason}
                 onResolveBlocked={() => setPersonalSheetIndex(1)}
                 canvasColor={leaderboardCanvas}
+                topOffset={STAGE_VERTICAL_OFFSET}
             />
 
             <UserStatsBottomSheet
@@ -897,35 +1105,90 @@ export default function Competition({ navigation, route }) {
 const styles = StyleSheet.create({
     // Dark mode background for Competition screen (lighter MFP-like)
     mainContainer: { flex: 1, backgroundColor: theme.bg },
-    header: { alignItems: "flex-end", justifyContent: "flex-end", flexDirection: "row" },
-    headerRightContainer: { flexDirection: "row", alignItems: "center" },
-    tribeButtonRow: {
+    header: {
+        alignItems: "center",
+        justifyContent: "space-between",
+        flexDirection: "row",
+        width: "100%",
+    },
+    headerLeftContainer: {
+        flex: 1,
         flexDirection: "row",
         alignItems: "center",
-        marginLeft: SIZES.tribeBtnMarginLeft,
-        paddingHorizontal: SIZES.tribeBtnPadH,
-        paddingVertical: SIZES.tribeBtnPadV,
-        borderRadius: SIZES.tribeBtnRadius,
+        justifyContent: "flex-start",
+        minWidth: 0,
     },
-
-    tribeButtonPill: {
-        // Increase contrast vs. header background
-        backgroundColor: "rgba(255, 255, 255, 0.26)",
-        borderWidth: scaleSizeFont(1),
-        borderColor: "rgba(255,255,255,0.48)",
-        ...Platform.select({
-            ios: {
-                backgroundColor: "rgba(255, 255, 255, 0.26)",
-                shadowColor: '#000',
-                shadowOpacity: 0.18,
-                shadowRadius: scaleSizeFont(8),
-                shadowOffset: { width: 0, height: scaleSizeFont(2) },
-            },
-            android: { elevation: 2 },
-            default: {},
-        })
+    headerRightContainer: {
+        flexDirection: "row",
+        alignItems: "center",
+        justifyContent: "flex-end",
+        flexShrink: 0,
     },
-
+    scopeToggle: {
+        flexDirection: "row",
+        alignItems: "center",
+    },
+    focusToggleWrap: {
+        position: "relative",
+    },
+    focusToggle: {
+        flexDirection: "row",
+        alignItems: "center",
+        paddingHorizontal: scaleSize(14),
+        paddingVertical: scaleSize(8),
+        borderRadius: scaleSize(18),
+        backgroundColor: "rgba(255,255,255,0.14)",
+    },
+    focusToggleDisabled: {
+        opacity: 0.5,
+    },
+    focusToggleLabel: {
+        color: "#fff",
+        fontFamily: "Outfit_600SemiBold",
+        fontSize: scaleSizeFont(14),
+        includeFontPadding: false,
+        letterSpacing: 0.2,
+        maxWidth: scaleSize(140, "w"),
+    },
+    focusToggleIcon: {
+        marginLeft: scaleSize(6),
+        marginTop: scaleSize(1),
+    },
+    focusDropdown: {
+        position: "absolute",
+        borderRadius: scaleSize(16),
+        backgroundColor: "rgba(13, 36, 61, 0.96)",
+        paddingVertical: scaleSize(6),
+        minWidth: scaleSize(158, "w"),
+        borderWidth: scaleSize(1),
+        borderColor: "rgba(255,255,255,0.18)",
+        shadowColor: "#000",
+        shadowOpacity: 0.22,
+        shadowRadius: scaleSize(8),
+        shadowOffset: { width: 0, height: scaleSize(6) },
+        elevation: 6,
+    },
+    focusOption: {
+        paddingVertical: scaleSize(8),
+        paddingHorizontal: scaleSize(14),
+        borderRadius: scaleSize(12),
+        marginHorizontal: scaleSize(6),
+    },
+    focusOptionActive: {
+        backgroundColor: "rgba(45,158,255,0.18)",
+    },
+    focusOptionLabel: {
+        fontFamily: "Outfit_500Medium",
+        fontSize: scaleSizeFont(13),
+        color: "rgba(255,255,255,0.86)",
+        letterSpacing: 0.15,
+    },
+    focusOptionLabelActive: {
+        color: "#fff",
+    },
+    focusModalOverlay: {
+        flex: 1,
+    },
     tribeLabel: {
         color: "#fff",
         fontFamily: "Outfit_600SemiBold",

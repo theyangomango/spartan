@@ -56,14 +56,6 @@ const PostMediaCarousel = forwardRef(function PostMediaCarousel({
     const currentOffsetXRef = useRef(currentIndex * W);
     const extDragActiveRef = useRef(false);
     const lastReportedIndexRef = useRef(currentIndex || 0);
-    const dragStateRef = useRef({
-        active: false,
-        startOffset: 0,
-        startIndex: 0,
-        moved: false,
-        lastOffset: 0,
-    });
-    const maxOffsetRef = useRef(Math.max(0, (mediaList.length - 1) * W));
 
     useEffect(() => {
         setPausedList((prev) => mediaList.map((_, i) => prev[i] ?? false));
@@ -73,48 +65,6 @@ const PostMediaCarousel = forwardRef(function PostMediaCarousel({
         currentOffsetXRef.current = currentIndex * W;
         lastReportedIndexRef.current = currentIndex;
     }, [currentIndex]);
-
-    useEffect(() => {
-        maxOffsetRef.current = Math.max(0, (mediaList.length - 1) * W);
-    }, [mediaList.length]);
-
-    useEffect(() => {
-        if (!isFocused) {
-            dragStateRef.current = {
-                active: false,
-                startOffset: 0,
-                startIndex: 0,
-                moved: false,
-                lastOffset: 0,
-            };
-        }
-    }, [isFocused]);
-
-    const scrollToOffsetImmediate = useCallback((offset) => {
-        const list = flatListRef.current;
-        if (!list) return;
-        const maxOffset = maxOffsetRef.current;
-        const clamped = Math.max(0, Math.min(maxOffset, offset));
-        try {
-            list.scrollToOffset({ offset: clamped, animated: false });
-        } catch { }
-        currentOffsetXRef.current = clamped;
-        return clamped;
-    }, []);
-
-    const animateToIndex = useCallback((index) => {
-        const list = flatListRef.current;
-        if (!list) return;
-        const maxIndex = Math.max(0, mediaList.length - 1);
-        const safeIndex = Math.max(0, Math.min(maxIndex, Math.round(index)));
-        const targetOffset = safeIndex * W;
-        currentOffsetXRef.current = targetOffset;
-        lastReportedIndexRef.current = safeIndex;
-        try {
-            list.scrollToOffset({ offset: targetOffset, animated: true });
-        } catch { }
-        onIndexChange(safeIndex);
-    }, [mediaList.length, onIndexChange]);
 
     const togglePauseAtIndex = useCallback((idx) => {
         setPausedList((prev) => prev.map((v, i) => (i === idx ? !v : v)));
@@ -143,95 +93,16 @@ const PostMediaCarousel = forwardRef(function PostMediaCarousel({
 
     useImperativeHandle(ref, () => ({
         hSwipeBegin: () => {
-            if (!isFocused || mediaList.length <= 1) return false;
+            if (!isFocused) return false;
             extDragActiveRef.current = true;
-            const startOffset = currentOffsetXRef.current;
-            dragStateRef.current = {
-                active: true,
-                startOffset,
-                startIndex: lastReportedIndexRef.current,
-                moved: false,
-                lastOffset: startOffset,
-            };
             return true;
         },
-        hSwipeUpdate: (dx = 0) => {
-            if (!dragStateRef.current.active) return;
-            const startOffset = dragStateRef.current.startOffset || 0;
-            const nextOffset = startOffset - dx;
-            const updated = scrollToOffsetImmediate(nextOffset);
-            dragStateRef.current.lastOffset = updated;
-            if (!dragStateRef.current.moved && Math.abs(dx) > 2) {
-                dragStateRef.current.moved = true;
-            }
-        },
-        hSwipeEnd: (dx = 0, vx = 0) => {
-            if (!dragStateRef.current.active) return;
-            const {
-                startOffset = 0,
-                startIndex = lastReportedIndexRef.current,
-                moved,
-            } = dragStateRef.current;
-            const velocityX = vx || 0;
-            const translationX = dx || 0;
-            const finalOffset = scrollToOffsetImmediate(startOffset - translationX);
-
-            if (!moved) {
-                dragStateRef.current = {
-                    active: false,
-                    startOffset: 0,
-                    startIndex: 0,
-                    moved: false,
-                    lastOffset: finalOffset,
-                };
-                extDragActiveRef.current = false;
-                updateIndex(startIndex);
-                scrollToOffsetImmediate(startIndex * W);
-                return;
-            }
-
-            const distanceThreshold = W * 0.3;
-            const velocityThreshold = 350;
-
-            let targetIndex = startIndex;
-            const maxIndex = Math.max(0, mediaList.length - 1);
-
-            const shouldAdvance = (
-                translationX <= -distanceThreshold || velocityX <= -velocityThreshold
-            );
-            const shouldRetreat = (
-                translationX >= distanceThreshold || velocityX >= velocityThreshold
-            );
-
-            if (shouldAdvance && startIndex < maxIndex) {
-                targetIndex = startIndex + 1;
-            } else if (shouldRetreat && startIndex > 0) {
-                targetIndex = startIndex - 1;
-            }
-
-            dragStateRef.current = {
-                active: false,
-                startOffset: 0,
-                startIndex: 0,
-                moved: false,
-                lastOffset: finalOffset,
-            };
+        hSwipeUpdate: () => {},
+        hSwipeEnd: () => {
+            if (!extDragActiveRef.current) return;
             extDragActiveRef.current = false;
-            const safeTarget = Math.max(0, Math.min(mediaList.length - 1, targetIndex));
-            if (safeTarget === lastReportedIndexRef.current) {
-                scrollToOffsetImmediate(safeTarget * W);
-                updateIndex(safeTarget);
-                return;
-            }
-            animateToIndex(safeTarget);
         },
-    }), [
-        animateToIndex,
-        isFocused,
-        mediaList.length,
-        scrollToOffsetImmediate,
-        updateIndex,
-    ]);
+    }), [isFocused]);
 
     const keyExtractor = useCallback((item, idx) => `${item.uri || ''}${idx}`, []);
 
@@ -290,7 +161,7 @@ const PostMediaCarousel = forwardRef(function PostMediaCarousel({
             pagingEnabled
             bounces={false}
             overScrollMode="never"
-            scrollEnabled={!isAnyPostFocused}
+            scrollEnabled={!isAnyPostFocused || isFocused}
             snapToInterval={W}
             decelerationRate="fast"
             showsHorizontalScrollIndicator={false}
