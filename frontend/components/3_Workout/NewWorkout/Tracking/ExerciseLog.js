@@ -41,6 +41,7 @@ function ExerciseLog({
     deleteExercise,
     userWorkoutStats,
     readOnly = false,
+    showOptionsTriggerIcon = false,
     onStatFocus,         // optional: notify parent when any set input is focused
 }) {
     // ----- Android layout animation enable -----
@@ -161,15 +162,40 @@ function ExerciseLog({
 
     // ----- Panel -----
     const [isPanelVisible, setIsPanelVisible] = useState(false);
-    const [panelPosition, setPanelPosition] = useState({ top: 0, left: 0 });
+    const [panelPosition, setPanelPosition] = useState({ top: 0, left: 0, anchorX: null });
     const fadeAnim = useRef(new Animated.Value(1)).current;
+    const optionsAnchorRef = useRef(null);
 
     const togglePanel = (event) => {
         if (readOnly) return;
         if (isPanelVisible) setIsPanelVisible(false);
         else {
-            setIsPanelVisible(true);
-            setPanelPosition({ top: scaleSize(event?.nativeEvent?.pageY + 25), left: scaleSize(18) });
+            const fallbackTop = scaleSize((event?.nativeEvent?.pageY ?? 0) + 25);
+            const fallbackLeft = scaleSize(18);
+            const openWithPosition = (pos) => {
+                setPanelPosition(pos);
+                setIsPanelVisible(true);
+            };
+
+            if (showOptionsTriggerIcon && optionsAnchorRef.current?.measureInWindow) {
+                try {
+                    optionsAnchorRef.current.measureInWindow((x, y, width, height) => {
+                        if (typeof x === "number" && typeof width === "number" && typeof y === "number") {
+                            openWithPosition({
+                                top: (y || 0) + (height || 0) + scaleSize(12),
+                                anchorX: (x || 0) + (width || 0) / 2,
+                            });
+                        } else {
+                            openWithPosition({ top: fallbackTop, left: fallbackLeft, anchorX: null });
+                        }
+                    });
+                    return;
+                } catch {
+                    // fall back below
+                }
+            }
+
+            openWithPosition({ top: fallbackTop, left: fallbackLeft, anchorX: null });
         }
     };
 
@@ -234,9 +260,23 @@ function ExerciseLog({
             )}
 
             <Animated.View style={[styles.header, { opacity: fadeAnim }]}>
-                <Pressable style={styles.nameContainer} onPress={togglePanel} disabled={readOnly}>
+                <Pressable
+                    style={styles.nameContainer}
+                    onPress={(!showOptionsTriggerIcon && !readOnly) ? togglePanel : undefined}
+                    disabled={readOnly || showOptionsTriggerIcon}
+                >
                     <Text style={styles.exercise_text} numberOfLines={1}>{name}</Text>
                 </Pressable>
+                {showOptionsTriggerIcon && !readOnly && (
+                    <Pressable
+                        ref={optionsAnchorRef}
+                        onPress={togglePanel}
+                        hitSlop={{ top: scaleSize(6), bottom: scaleSize(6), left: scaleSize(6), right: scaleSize(6) }}
+                        style={styles.optionsButton}
+                    >
+                        <Entypo name="menu" size={scaleSize(18)} color={theme.primary} />
+                    </Pressable>
+                )}
             </Animated.View>
 
             <Animated.View style={[styles.labels, { opacity: fadeAnim }]}>
@@ -285,7 +325,9 @@ const areEqual = (prev, next) => {
         // parent-driven replacement of the whole sets array
         (prev.name === next.name &&
         prev.muscle === next.muscle &&
-        prev.readOnly === next.readOnly && prev.sets === next.sets)
+        prev.readOnly === next.readOnly &&
+        prev.showOptionsTriggerIcon === next.showOptionsTriggerIcon &&
+        prev.sets === next.sets)
     );
 };
 
@@ -293,8 +335,25 @@ export default memo(ExerciseLog, areEqual);
 
 const styles = StyleSheet.create({
     main_ctnr: { marginTop: scaleSize(16), marginBottom: scaleSize(6), position: "relative" },
-    header: { flexDirection: "row", alignItems: "center", paddingLeft: scaleSize(20), paddingBottom: scaleSize(10), marginHorizontal: scaleSize(2.5) },
-    nameContainer: { flexDirection: "row", alignItems: "center", flexShrink: 1, marginRight: scaleSize(10) },
+    header: {
+        flexDirection: "row",
+        alignItems: "center",
+        paddingLeft: scaleSize(20),
+        paddingRight: scaleSize(14),
+        paddingBottom: scaleSize(10),
+        marginHorizontal: scaleSize(2.5),
+    },
+    nameContainer: { flexDirection: "row", alignItems: "center", flexShrink: 1, marginRight: scaleSize(10), flex: 1 },
+    optionsButton: {
+        backgroundColor: theme.restPillBg,
+        borderRadius: scaleSize(10),
+        borderWidth: StyleSheet.hairlineWidth,
+        borderColor: theme.primaryHairline,
+        height: scaleSize(26),
+        width: scaleSize(32),
+        justifyContent: "center",
+        alignItems: "center",
+    },
     exercise_text: { fontFamily: "Mulish_800ExtraBold", color: theme.primary, fontSize: scaleSize(15), flexShrink: 1 },
     muscle_ctnr: { borderRadius: scaleSize(15), height: scaleSize(23.5), paddingHorizontal: scaleSize(12), alignItems: "center", justifyContent: "center", marginLeft: scaleSize(5) },
     muscle_text: { fontFamily: "Poppins_700Bold", fontSize: scaleSize(12), color: "#fff" },

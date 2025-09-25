@@ -25,15 +25,27 @@ const ExerciseOptionsPanel = ({ visible, onClose, position, replaceExercise, del
         }
     }, [visible]);
 
+    const anchorX = typeof position?.anchorX === "number" ? position.anchorX : null;
+    const desiredLeft = anchorX != null ? anchorX - PANEL_WIDTH + scaleSize(42) : position?.left;
     // Keep panel within screen bounds
     const safeLeft = Math.min(
-        Math.max(12, position?.left ?? 12),
+        Math.max(12, typeof desiredLeft === "number" ? desiredLeft : 12),
         screenWidth - PANEL_WIDTH - 12
     );
     const safeTop = Math.min(
         Math.max(80, position?.top ?? 80),
         screenHeight - 140
     );
+    const caretWidth = scaleSize(12);
+    const caretHalf = caretWidth / 2;
+    let caretLeft = scaleSize(18);
+    if (anchorX != null) {
+        const relativeAnchor = anchorX - safeLeft;
+        caretLeft = Math.min(
+            PANEL_WIDTH - scaleSize(24),
+            Math.max(scaleSize(12), relativeAnchor - caretHalf)
+        );
+    }
 
     return (
         <Modal transparent visible={visible} animationType="none" onRequestClose={onClose}>
@@ -45,7 +57,7 @@ const ExerciseOptionsPanel = ({ visible, onClose, position, replaceExercise, del
                     ]}
                 >
                     {/* caret */}
-                    <View style={styles.caret} />
+                    <View style={[styles.caret, { left: caretLeft }]} />
 
                     <Text style={styles.header}>Exercise options</Text>
 

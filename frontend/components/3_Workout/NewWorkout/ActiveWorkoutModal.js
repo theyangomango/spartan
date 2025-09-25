@@ -814,7 +814,6 @@ const ActiveWorkoutModal = ({
                         viewingSelf={viewingSelfEffective}
                         overlayPfp={headerOverlayPfp}
                         onLongPressInvite={lockFriend ? undefined : (viewingSelfEffective ? showGroupModal : undefined)}
-                        onFinish={viewingSelfEffective ? openFinishConfirm : undefined}
                         onCheer={friendOngoing ? onCheerStable : undefined}
                         onCopyTemplate={!viewingSelfEffective && !friendOngoing ? (() => onCopyTemplate?.(baseWorkout)) : undefined}
                         countdown={countdown}
@@ -848,6 +847,9 @@ const ActiveWorkoutModal = ({
                                     <RNBounceable onPress={showSelectExerciseModal} style={styles.add_exercise_btn}>
                                         <Text style={styles.add_exercise_text}>Add Exercises</Text>
                                     </RNBounceable>
+                                    <RNBounceable onPress={isEmptyList ? confirmCancelWorkout : openFinishConfirm} style={styles.finish_btn}>
+                                        <Text style={styles.finish_btn_text}>Finish Workout</Text>
+                                    </RNBounceable>
                                     <RNBounceable onPress={confirmCancelWorkout} style={styles.cancel_btn}>
                                         <Text style={styles.cancel_btn_text}>Cancel Workout</Text>
                                     </RNBounceable>
@@ -873,9 +875,10 @@ const ActiveWorkoutModal = ({
                                         updateSets={updateSets}
                                         replaceExercise={replaceExercise}
                                         deleteExercise={() => deleteExercise(exerciseIndex)}
-                                        
+
                                         userWorkoutStats={statsForPrevious}
                                         readOnly={!viewingSelfEffective}
+                                        showOptionsTriggerIcon
                                         onStatFocus={handleStatFocus}
                                     />
                                 )}
@@ -885,6 +888,9 @@ const ActiveWorkoutModal = ({
                                             <>
                                                 <RNBounceable onPress={showSelectExerciseModal} style={styles.add_exercise_btn}>
                                                     <Text style={styles.add_exercise_text}>Add Exercises</Text>
+                                                </RNBounceable>
+                                                <RNBounceable onPress={isEmptyList ? confirmCancelWorkout : openFinishConfirm} style={styles.finish_btn}>
+                                                    <Text style={styles.finish_btn_text}>Finish Workout</Text>
                                                 </RNBounceable>
                                                 <RNBounceable onPress={confirmCancelWorkout} style={styles.cancel_btn}>
                                                     <Text style={styles.cancel_btn_text}>Cancel Workout</Text>
@@ -1145,13 +1151,11 @@ const styles = StyleSheet.create({
     scrollview: { paddingTop: scaleSize(5), backgroundColor: 'transparent' },
     titleDisplayContainer: {
         paddingHorizontal: scaleSize(24),
-        marginBottom: scaleSize(12),
     },
     titleDisplayText: {
         fontFamily: 'Outfit_700Bold',
         fontSize: scaleSize(20),
         color: theme.textPrimary,
-        textAlign: 'left',
     },
     titleDisplayInput: {
         width: '100%',
@@ -1182,7 +1186,29 @@ const styles = StyleSheet.create({
         elevation: 2,
     },
     add_exercise_text: {
-        fontSize: scaleSize(16),
+        fontSize: scaleSize(15),
+        fontFamily: "Outfit_700Bold",
+        color: "#FFFFFF",
+        marginRight: scaleSize(4.5),
+    },
+
+    finish_btn: {
+        marginHorizontal: scaleSize(20),
+        marginTop: scaleSize(40),
+        height: scaleSize(40),
+        borderRadius: scaleSize(12),
+        backgroundColor: 'rgba(34, 197, 94, 0.82)',
+        justifyContent: "center",
+        alignItems: "center",
+        flexDirection: "row",
+        shadowColor: "#22C55E",
+        shadowOpacity: 0.18,
+        shadowRadius: scaleSize(6),
+        shadowOffset: { width: 0, height: scaleSize(3) },
+        elevation: 2,
+    },
+    finish_btn_text: {
+        fontSize: scaleSize(15),
         fontFamily: "Outfit_700Bold",
         color: "#FFFFFF",
         marginRight: scaleSize(4.5),
@@ -1204,7 +1230,7 @@ const styles = StyleSheet.create({
         shadowOffset: { width: 0, height: scaleSize(3) },
         elevation: 2,
     },
-    cancel_btn_text: { fontSize: scaleSize(16), fontFamily: "Outfit_700Bold", color: "#FFFFFF", marginRight: scaleSize(4.5) },
+    cancel_btn_text: { fontSize: scaleSize(15), fontFamily: "Outfit_700Bold", color: "#FFFFFF", marginRight: scaleSize(4.5) },
 
     modalOverlay: {
         flex: 1,
