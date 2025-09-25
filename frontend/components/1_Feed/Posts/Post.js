@@ -478,6 +478,7 @@ const Post = forwardRef(function Post({
             .maxPointers(1)
             .activeOffsetX([-6, 6])
             .failOffsetY([-8, 8])
+            .cancelsTouchesInView(false)
             .simultaneousWithExternalGesture(Gesture.Native())
             .onBegin(() => { runOnJS(handleOverlaySwipeBegin)(); })
             .onUpdate((event) => { runOnJS(handleOverlaySwipeUpdate)(event.translationX); })

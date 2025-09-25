@@ -56,7 +56,13 @@ const PostMediaCarousel = forwardRef(function PostMediaCarousel({
     const currentOffsetXRef = useRef(currentIndex * W);
     const extDragActiveRef = useRef(false);
     const lastReportedIndexRef = useRef(currentIndex || 0);
-    const dragStateRef = useRef({ active: false, startOffset: 0, startIndex: 0 });
+    const dragStateRef = useRef({
+        active: false,
+        startOffset: 0,
+        startIndex: 0,
+        moved: false,
+        lastOffset: 0,
+    });
     const maxOffsetRef = useRef(Math.max(0, (mediaList.length - 1) * W));
 
     useEffect(() => {
@@ -74,7 +80,13 @@ const PostMediaCarousel = forwardRef(function PostMediaCarousel({
 
     useEffect(() => {
         if (!isFocused) {
-            dragStateRef.current.active = false;
+            dragStateRef.current = {
+                active: false,
+                startOffset: 0,
+                startIndex: 0,
+                moved: false,
+                lastOffset: 0,
+            };
         }
     }, [isFocused]);
 
@@ -87,6 +99,7 @@ const PostMediaCarousel = forwardRef(function PostMediaCarousel({
             list.scrollToOffset({ offset: clamped, animated: false });
         } catch { }
         currentOffsetXRef.current = clamped;
+        return clamped;
     }, []);
 
     const animateToIndex = useCallback((index) => {
@@ -132,10 +145,13 @@ const PostMediaCarousel = forwardRef(function PostMediaCarousel({
         hSwipeBegin: () => {
             if (!isFocused || mediaList.length <= 1) return false;
             extDragActiveRef.current = true;
+            const startOffset = currentOffsetXRef.current;
             dragStateRef.current = {
                 active: true,
-                startOffset: currentOffsetXRef.current,
+                startOffset,
                 startIndex: lastReportedIndexRef.current,
+                moved: false,
+                lastOffset: startOffset,
             };
             return true;
         },
@@ -143,40 +159,78 @@ const PostMediaCarousel = forwardRef(function PostMediaCarousel({
             if (!dragStateRef.current.active) return;
             const startOffset = dragStateRef.current.startOffset || 0;
             const nextOffset = startOffset - dx;
-            scrollToOffsetImmediate(nextOffset);
+            const updated = scrollToOffsetImmediate(nextOffset);
+            dragStateRef.current.lastOffset = updated;
+            if (!dragStateRef.current.moved && Math.abs(dx) > 2) {
+                dragStateRef.current.moved = true;
+            }
         },
         hSwipeEnd: (dx = 0, vx = 0) => {
             if (!dragStateRef.current.active) return;
-            const startOffset = dragStateRef.current.startOffset || 0;
-            const rawOffset = startOffset - dx;
-            const delta = -dx;
+            const {
+                startOffset = 0,
+                startIndex = lastReportedIndexRef.current,
+                moved,
+            } = dragStateRef.current;
             const velocityX = vx || 0;
+            const translationX = dx || 0;
+            const finalOffset = scrollToOffsetImmediate(startOffset - translationX);
 
-            let targetIndex = Math.round(rawOffset / W);
-
-            const velocityThreshold = 350;
-            if (Math.abs(velocityX) > velocityThreshold) {
-                targetIndex = velocityX > 0
-                    ? Math.floor(rawOffset / W)
-                    : Math.ceil(rawOffset / W);
-            } else {
-                const distanceThreshold = W * 0.35;
-                if (delta > distanceThreshold) {
-                    targetIndex = Math.ceil(rawOffset / W);
-                } else if (delta < -distanceThreshold) {
-                    targetIndex = Math.floor(rawOffset / W);
-                }
+            if (!moved) {
+                dragStateRef.current = {
+                    active: false,
+                    startOffset: 0,
+                    startIndex: 0,
+                    moved: false,
+                    lastOffset: finalOffset,
+                };
+                extDragActiveRef.current = false;
+                updateIndex(startIndex);
+                scrollToOffsetImmediate(startIndex * W);
+                return;
             }
 
-            dragStateRef.current = { active: false, startOffset: 0, startIndex: 0 };
+            const distanceThreshold = W * 0.3;
+            const velocityThreshold = 350;
+
+            let targetIndex = startIndex;
+            const maxIndex = Math.max(0, mediaList.length - 1);
+
+            const shouldAdvance = (
+                translationX <= -distanceThreshold || velocityX <= -velocityThreshold
+            );
+            const shouldRetreat = (
+                translationX >= distanceThreshold || velocityX >= velocityThreshold
+            );
+
+            if (shouldAdvance && startIndex < maxIndex) {
+                targetIndex = startIndex + 1;
+            } else if (shouldRetreat && startIndex > 0) {
+                targetIndex = startIndex - 1;
+            }
+
+            dragStateRef.current = {
+                active: false,
+                startOffset: 0,
+                startIndex: 0,
+                moved: false,
+                lastOffset: finalOffset,
+            };
             extDragActiveRef.current = false;
-            animateToIndex(targetIndex);
+            const safeTarget = Math.max(0, Math.min(mediaList.length - 1, targetIndex));
+            if (safeTarget === lastReportedIndexRef.current) {
+                scrollToOffsetImmediate(safeTarget * W);
+                updateIndex(safeTarget);
+                return;
+            }
+            animateToIndex(safeTarget);
         },
     }), [
         animateToIndex,
         isFocused,
         mediaList.length,
         scrollToOffsetImmediate,
+        updateIndex,
     ]);
 
     const keyExtractor = useCallback((item, idx) => `${item.uri || ''}${idx}`, []);
@@ -236,7 +290,7 @@ const PostMediaCarousel = forwardRef(function PostMediaCarousel({
             pagingEnabled
             bounces={false}
             overScrollMode="never"
-            scrollEnabled={!isAnyPostFocused || isFocused}
+            scrollEnabled={!isAnyPostFocused}
             snapToInterval={W}
             decelerationRate="fast"
             showsHorizontalScrollIndicator={false}
