@@ -879,6 +879,7 @@ const ActiveWorkoutModal = ({
                                         userWorkoutStats={statsForPrevious}
                                         readOnly={!viewingSelfEffective}
                                         showOptionsTriggerIcon
+                                        syncColumnOnEdit={viewingSelfEffective}
                                         onStatFocus={handleStatFocus}
                                     />
                                 )}

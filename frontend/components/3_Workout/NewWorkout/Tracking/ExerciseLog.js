@@ -42,6 +42,7 @@ function ExerciseLog({
     userWorkoutStats,
     readOnly = false,
     showOptionsTriggerIcon = false,
+    syncColumnOnEdit = false,
     onStatFocus,         // optional: notify parent when any set input is focused
 }) {
     // ----- Android layout animation enable -----
@@ -210,6 +211,7 @@ function ExerciseLog({
     const addSet = withLayout(() => {
         const next = [...(setsRef.current || []), { id: genLocalId(), weight: 0, reps: 0, isDone: false }];
         setDraft(next);
+        setsRef.current = next;
         flushNextFrame(next);
         try { Haptics.selectionAsync?.(); } catch {}
     });
@@ -219,15 +221,42 @@ function ExerciseLog({
         const idx = cur.findIndex((s) => (s?.id) === sid);
         if (idx < 0) return;
         const next = cur.slice();
-        next[idx] = { ...(cur[idx] || {}), ...patch, id: cur[idx]?.id || sid };
+        const prevRow = cur[idx] || {};
+        const nextRow = { ...prevRow, ...patch, id: prevRow?.id || sid };
+        const rowChanged = Object.keys(patch).some((key) => nextRow[key] !== prevRow[key]);
+        next[idx] = rowChanged ? nextRow : prevRow;
+
+        if (syncColumnOnEdit) {
+            const shouldSyncWeight = Object.prototype.hasOwnProperty.call(patch, "weight") && patch.weight !== prevRow?.weight;
+            const shouldSyncReps = Object.prototype.hasOwnProperty.call(patch, "reps") && patch.reps !== prevRow?.reps;
+
+            if (shouldSyncWeight || shouldSyncReps) {
+                for (let i = idx + 1; i < next.length; i++) {
+                    const row = next[i];
+                    if (!row || row.isDone) continue;
+                    if (shouldSyncWeight && row.weight !== patch.weight) {
+                        next[i] = { ...row, weight: patch.weight, id: row.id || `${name}-${i}` };
+                    }
+                    if (shouldSyncReps && row.reps !== patch.reps) {
+                        const target = next[i] || row;
+                        next[i] = { ...target, reps: patch.reps, id: (target.id || row.id || `${name}-${i}`) };
+                    }
+                }
+            }
+        }
+
+        if (!rowChanged && next.every((item, i) => item === cur[i])) return;
+
         setDraft(next);
+        setsRef.current = next;
         scheduleSync(next);
-    }, [scheduleSync]);
+    }, [scheduleSync, syncColumnOnEdit, name]);
 
     const deleteSetById = withLayout((sid) => {
         const cur = setsRef.current || [];
         const next = cur.filter((s) => s?.id !== sid);
         setDraft(next);
+        setsRef.current = next;
         flushNextFrame(next);
     });
 
@@ -242,6 +271,7 @@ function ExerciseLog({
         const toggledDone = !row.isDone;
         next[idx] = { ...row, isDone: toggledDone };
         setDraft(next);
+        setsRef.current = next;
         flushNextFrame(next);
         // Light haptic feedback only when completing a set
         if (toggledDone) { try { Haptics.impactAsync?.(Haptics.ImpactFeedbackStyle.Light); } catch {} }
@@ -327,6 +357,7 @@ const areEqual = (prev, next) => {
         prev.muscle === next.muscle &&
         prev.readOnly === next.readOnly &&
         prev.showOptionsTriggerIcon === next.showOptionsTriggerIcon &&
+        prev.syncColumnOnEdit === next.syncColumnOnEdit &&
         prev.sets === next.sets)
     );
 };

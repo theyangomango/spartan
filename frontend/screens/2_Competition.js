@@ -12,7 +12,6 @@ import {
     InteractionManager,
     Platform,
 } from "react-native";
-import Podium from "../components/2_Competition/Podium";
 import rankUsers from "../helper/rankUsers";
 import LeaderboardBottomSheet from "../components/2_Competition/LeaderboardBottomSheet";
 import UserStatsBottomSheet from "../components/2_Competition/UserStats/UserStatsBottomSheet";
@@ -674,42 +673,8 @@ export default function Competition({ navigation, route }) {
         return scope === "Following" ? "Following" : "Global";
     }, [selectedTribeId, currentTribe, scope]);
 
-    const podiumData = useMemo(() => {
-        if (!rankedDisplay || rankedDisplay.length === 0) return null;
-        const top3 = rankedDisplay.slice(0, 3).map((u) => {
-            let stat = 0;
-            if (isCustomTribe && activeComparison) {
-                stat = u?._tribeValue ?? 0;
-            } else {
-                const exStats = u?.statsExercises?.[comparedExercise] || {};
-                stat = exStats?.[exerciseStatKey] ?? 0;
-            }
-            return { handle: u?.handle, pfp: u?.image, stat };
-        });
-        return top3.filter(Boolean);
-    }, [rankedDisplay, isCustomTribe, activeComparison, comparedExercise, exerciseStatKey]);
-
-    // Compute a custom leaderboard canvas color a couple shades lighter
-    const leaderboardCanvas = useMemo(() => {
-        const lightenColor = (hex, amount = 0.1) => {
-            if (typeof hex !== 'string') return hex;
-            let h = hex.replace('#', '').trim();
-            let a = 1;
-            if (h.length === 8) {
-                const aa = h.slice(6, 8);
-                a = Math.max(0, Math.min(1, parseInt(aa, 16) / 255));
-                h = h.slice(0, 6);
-            }
-            if (h.length !== 6) return hex;
-            const r = parseInt(h.slice(0, 2), 16);
-            const g = parseInt(h.slice(2, 4), 16);
-            const b = parseInt(h.slice(4, 6), 16);
-            const mix = (c) => Math.round(c + (255 - c) * amount);
-            const rr = mix(r), gg = mix(g), bb = mix(b);
-            return `rgba(${rr}, ${gg}, ${bb}, ${a})`;
-        };
-        return lightenColor(theme.bg, 0.1);
-    }, []);
+    // Use a unified background tone across the screen and sheet canvases
+    const leaderboardCanvas = theme.bg;
 
     return (
         <View style={styles.mainContainer}>
@@ -753,7 +718,6 @@ export default function Competition({ navigation, route }) {
             </SafeAreaView>
 
             <InfoPanel isVisible={false} opacity={useRef(new Animated.Value(0)).current} />
-            <Podium data={podiumData} />
 
             <LeaderboardBottomSheet
                 userList={rankedDisplay}

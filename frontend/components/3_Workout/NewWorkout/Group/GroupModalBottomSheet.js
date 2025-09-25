@@ -27,7 +27,7 @@ const GroupModalBottomSheet = ({ groupModalExpandFlag, closeGroupModal, onInvite
                 appearsOnIndex={0}
                 disappearsOnIndex={-1}
                 pressBehavior="close"
-                style={[props?.style, { backgroundColor: "rgba(2, 6, 23, 0.45)" }]}
+                style={[props?.style, { backgroundColor: "rgba(2, 6, 23, 0.65)" }]}
             />
         ),
         []

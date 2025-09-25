@@ -5,7 +5,6 @@ import { Ionicons } from "@expo/vector-icons";
 import LeaderboardCard from "../2_Competition/LeaderboardCard";
 import scaleSize from "../../helper/scaleSize";
 import { withStrongPress } from "../../utils/haptics";
-import { Weight } from "iconsax-react-native";
 
 const { width: SCREEN_WIDTH } = Dimensions.get("window");
 // Scaled paddings and derived widths
@@ -16,8 +15,6 @@ const BANNER_WIDTH = SCREEN_WIDTH - BANNER_OUTER_PADDING * 2;
 
 // Scaled fonts (slightly larger for readability)
 const ts = require('../../helper/scaleSize').ts;
-const FONT_SELECTOR = ts(13);
-const FONT_METRIC = ts(13);
 const FONT_BANNER_TITLE = ts(13);
 const FONT_BANNER_META = ts(11);
 
@@ -25,18 +22,9 @@ const FONT_BANNER_META = ts(11);
 const ICON_TROPHY = scaleSize(19);
 const ICON_TROPHY_LG = scaleSize(20);
 const ICON_CHEVRON = scaleSize(18);
-const ICON_WEIGHT = scaleSize(21);
 
 // Scaled layout
 const CONTAINER_PT = scaleSize(12);
-const HEADER_GAP = scaleSize(10);
-const HEADER_MB = scaleSize(12);
-const SELECTOR_PAD_L = scaleSize(16);
-const SELECTOR_PAD_R = scaleSize(12);
-const SELECTOR_PAD_V = scaleSize(8);
-const SELECTOR_GAP = scaleSize(8);
-const METRIC_PAD_H = scaleSize(14);
-const METRIC_PAD_V = scaleSize(8);
 
 const BANNER_RADIUS = scaleSize(28);
 const BANNER_PAD_H = scaleSize(18);
@@ -75,16 +63,11 @@ const BADGE_TEXT_SECONDARY = "#EADFFF";
 const BANNER_TAG_COLOR = "rgba(255, 229, 193, 0.78)";
 const CHEVRON_BG = "rgba(248, 201, 129, 0.18)";
 const CHEVRON_BORDER = "rgba(248, 201, 129, 0.32)";
-// Dark mode palette for Competition
-const THEME = require("../../theme/mfpDark").default;
-const TITLE_COLOR = THEME.textPrimary;   // light text on dark
 
 export default function LeaderboardModal({
     userList,
     categoryCompared,
     comparedMetric,
-    onToggleMetric,
-    openModal,
     openBottomSheet,
     isBottomSheetExpanded,
 
@@ -335,29 +318,14 @@ export default function LeaderboardModal({
             );
         }
 
-        // Non-tribe: selector + metric toggle (unchanged)
-        return (
-            <View style={styles.headerRow}>
-                <TouchableOpacity onPress={withStrongPress(openModal)} activeOpacity={0.85} style={styles.selectorPill}>
-                    {/* <Ionicons name="barbell" size={16} color="#222" /> */}
-                    <Weight size={ICON_WEIGHT} color={TITLE_COLOR} variant='Broken' />
-                    <Text style={styles.selectorText} numberOfLines={1}>{categoryCompared}</Text>
-                </TouchableOpacity>
-                <TouchableOpacity onPress={withStrongPress(onToggleMetric)} activeOpacity={0.85} style={styles.metricPill}>
-                    <Text style={styles.metricText}>{metricLabel(comparedMetric)}</Text>
-                </TouchableOpacity>
-            </View>
-        );
+        // Non-tribe view no longer shows selector pills
+        return null;
     }, [
         isTribeFocused,
         hasComparisons,
         tribeComparisons,
         activeCompIndex,
         onOpenTribeComparison,
-        openModal,
-        categoryCompared,
-        comparedMetric,
-        onToggleMetric,
         handleScroll,
         scrollX,
     ]);
@@ -458,38 +426,6 @@ export default function LeaderboardModal({
 
 const styles = StyleSheet.create({
     container: { flex: 1, paddingHorizontal: H_PADDING, paddingTop: CONTAINER_PT },
-
-    // non-tribe header
-    headerRow: {
-        flexDirection: "row",
-        alignItems: "center",
-        marginBottom: HEADER_MB,
-        gap: HEADER_GAP,
-    },
-    selectorPill: {
-        flexDirection: "row",
-        alignItems: "center",
-        paddingRight: SELECTOR_PAD_R,
-        paddingLeft: SELECTOR_PAD_L,
-        paddingVertical: SELECTOR_PAD_V,
-        // Higher-contrast pill vs. sheet background
-        backgroundColor: '#34425C',
-        borderWidth: scaleSize(1),
-        borderColor: '#567099',
-        borderRadius: scaleSize(999),
-        flex: 1,
-        gap: SELECTOR_GAP,
-    },
-    selectorText: { fontFamily: "Outfit_600SemiBold", fontSize: scaleSize(FONT_SELECTOR), color: TITLE_COLOR, flexShrink: 1, letterSpacing: 0.2 },
-    metricPill: {
-        paddingHorizontal: METRIC_PAD_H,
-        paddingVertical: METRIC_PAD_V,
-        backgroundColor: '#34425C',
-        borderWidth: scaleSize(1),
-        borderColor: '#567099',
-        borderRadius: scaleSize(999),
-    },
-    metricText: { fontFamily: "Outfit_700Bold", fontSize: scaleSize(FONT_METRIC), color: '#6FB8FF', letterSpacing: 0.2 },
 
     bannerPager: {
         marginBottom: scaleSize(10),
