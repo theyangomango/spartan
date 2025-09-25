@@ -27,7 +27,7 @@ if (Platform.OS === 'android' && UIManager.setLayoutAnimationEnabledExperimental
     try { UIManager.setLayoutAnimationEnabledExperimental(true); } catch { }
 }
 
-export default function UserStatsModal({ user, toViewProfile, hexOverlay, hexProps = {}, deferExercises = false, visible = true }) {
+export default function UserStatsModal({ user, toViewProfile, hexOverlay, hexProps = {}, deferExercises = false, visible = true, onDetailActiveChange = () => {} }) {
     // Optionally defer heavy grouping work until after interactions (for smoother open)
     const [showExercises, setShowExercises] = useState(!deferExercises);
     const viewerData = (() => {
@@ -82,6 +82,15 @@ export default function UserStatsModal({ user, toViewProfile, hexOverlay, hexPro
             });
         } catch { setDetailName(null); }
     };
+
+    useEffect(() => {
+        try { onDetailActiveChange(Boolean(detailName)); } catch { }
+        return () => {
+            if (detailName) {
+                try { onDetailActiveChange(false); } catch { }
+            }
+        };
+    }, [detailName, onDetailActiveChange]);
 
     const detailSets = useMemo(() => {
         if (!detailName) return [];

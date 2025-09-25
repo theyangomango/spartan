@@ -1,12 +1,31 @@
-import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { StyleSheet, Text, View } from "react-native";
-import BottomSheet, { BottomSheetBackdrop, BottomSheetFooter } from "@gorhom/bottom-sheet";
-import LeaderboardModal from "../LeaderboardModal";
+import React, { forwardRef, useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { StyleSheet } from "react-native";
+import BottomSheet, { BottomSheetBackdrop } from "@gorhom/bottom-sheet";
+import Animated from "react-native-reanimated";
+import { LinearGradient } from "expo-linear-gradient";
 import UserStatsModal from "./UserStatsModal";
 import scaleSize from "../../../helper/scaleSize";
 
 import { onHexagonUpdate } from "../../../utils/hexagonEvents";
 import { coercePrivacyMode } from "../../../utils/workoutPrivacy";
+import { DETAIL_HEADER_GRADIENT, SHEET_HANDLE_GRADIENT, SHEET_HANDLE_GRADIENT_ACTIVE } from "./UserStatsStyles";
+
+const SheetHandle = forwardRef(({ style, gradient = DETAIL_HEADER_GRADIENT, active = false, ...rest }, ref) => (
+    <Animated.View
+        ref={ref}
+        {...rest}
+        style={[handleStyles.container, active && handleStyles.containerActive, style]}
+    >
+        <LinearGradient
+            colors={gradient}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 1 }}
+            style={[handleStyles.indicator, active && handleStyles.indicatorActive]}
+        />
+    </Animated.View>
+));
+
+SheetHandle.displayName = 'UserStatsSheetHandle';
 
 const toDayKey = (d) => {
     try {
@@ -20,6 +39,15 @@ const LeaderboardBottomSheet = ({ isVisible, setIsVisible, user, navigation }) =
     const bottomSheetRef = useRef(null);
     const snapPoints = useMemo(() => ["94%"], []);
     const [tick, setTick] = useState(0);
+    const [detailActive, setDetailActive] = useState(false);
+
+    const renderHandle = useCallback((props) => (
+        <SheetHandle
+            {...props}
+            active={detailActive}
+            gradient={detailActive ? SHEET_HANDLE_GRADIENT_ACTIVE : SHEET_HANDLE_GRADIENT}
+        />
+    ), [detailActive]);
 
     const renderBackdrop = useCallback(
         (props) => (
@@ -96,20 +124,27 @@ const LeaderboardBottomSheet = ({ isVisible, setIsVisible, user, navigation }) =
         return { ...u, statsExercises: stats, ...(latestHex ? { statsHexagon: latestHex } : {}) };
     }, [user, (global?.userData?.completedWorkouts || []).length, global?.userData?.statsExercises]);
 
+    const handleDetailActiveChange = useCallback((active) => {
+        setDetailActive(!!active);
+    }, []);
+
     return (
         <BottomSheet
             ref={bottomSheetRef}
             index={-1}
             backdropComponent={renderBackdrop}
             snapPoints={snapPoints}
-            handleIndicatorStyle={{ backgroundColor: '#fff' }}
+            handleComponent={renderHandle}
             backgroundStyle={{
                 backgroundColor: require("../../../theme/mfpDark").default.bg,
                 borderTopLeftRadius: scaleSize(25),
                 borderTopRightRadius: scaleSize(25),
             }}
             enablePanDownToClose
-            onClose={() => setIsVisible(false)}
+            onClose={() => {
+                setIsVisible(false);
+                setDetailActive(false);
+            }}
         >
             {effectiveUser && (
                 <UserStatsModal
@@ -117,6 +152,7 @@ const LeaderboardBottomSheet = ({ isVisible, setIsVisible, user, navigation }) =
                     user={effectiveUser}
                     toViewProfile={toViewProfile}
                     visible={isVisible}
+                    onDetailActiveChange={handleDetailActiveChange}
                 />
             )}
         </BottomSheet>
@@ -125,5 +161,24 @@ const LeaderboardBottomSheet = ({ isVisible, setIsVisible, user, navigation }) =
 
 export default React.memo(LeaderboardBottomSheet);
 
-const styles = StyleSheet.create({
-})
+const handleStyles = StyleSheet.create({
+    container: {
+        alignItems: 'center',
+        paddingTop: scaleSize(10),
+        paddingBottom: scaleSize(8),
+    },
+    containerActive: {
+        paddingTop: scaleSize(12),
+        paddingBottom: scaleSize(10),
+    },
+    indicator: {
+        width: scaleSize(44),
+        height: scaleSize(5),
+        borderRadius: scaleSize(3),
+    },
+    indicatorActive: {
+        width: scaleSize(56),
+        height: scaleSize(6),
+        borderRadius: scaleSize(999),
+    },
+});

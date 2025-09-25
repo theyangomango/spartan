@@ -23,6 +23,9 @@ const GOLD = '#FACC15';
 const GOLD_BG = 'rgba(250, 204, 21, 0.24)';
 const GOLD_BORDER = 'rgba(250, 204, 21, 0.60)';
 const DETAIL_HEADER_GRADIENT = ['#273756', '#101623'];
+const DETAIL_METRIC_GRADIENT = ['rgba(62, 92, 149, 0.42)', 'rgba(18, 25, 38, 0.65)'];
+const SHEET_HANDLE_GRADIENT = ['#303E5B', '#111926'];
+const SHEET_HANDLE_GRADIENT_ACTIVE = ['#47619A', '#1A2438'];
 
 const styles = StyleSheet.create({
     container: {
@@ -407,33 +410,36 @@ const styles = StyleSheet.create({
         flexDirection: 'row',
         alignItems: 'stretch',
         marginTop: scaleSize(scaledSize(8)),
-        borderRadius: scaleSize(scaledSize(10)),
-        backgroundColor: 'rgba(10, 16, 28, 0.55)',
+        borderRadius: scaleSize(scaledSize(12)),
         borderWidth: StyleSheet.hairlineWidth,
-        borderColor: 'rgba(110, 184, 255, 0.18)',
+        borderColor: 'rgba(115, 189, 255, 0.24)',
         overflow: 'hidden',
+        backgroundColor: 'rgba(12, 20, 32, 0.6)',
     },
     detailMetric: {
         flex: 1,
         alignItems: 'center',
         justifyContent: 'center',
-        paddingVertical: scaleSize(scaledSize(5)),
-        paddingHorizontal: scaleSize(scaledSize(5)),
+        paddingVertical: scaleSize(scaledSize(6)),
+        paddingHorizontal: scaleSize(scaledSize(8)),
         minWidth: 0,
     },
     detailMetricLabel: {
-        fontSize: scaleSize(9.5),
+        marginTop: scaleSize(scaledSize(4)),
+        fontSize: scaleSize(9),
         fontFamily: 'Outfit_600SemiBold',
-        color: 'rgba(208, 224, 255, 0.68)',
+        color: 'rgba(205, 219, 255, 0.65)',
         letterSpacing: 0.3,
         textTransform: 'uppercase',
     },
     detailMetricValue: {
-        marginTop: scaleSize(scaledSize(2)),
-        fontSize: scaleSize(13),
+        fontSize: scaleSize(15),
         fontFamily: 'Outfit_700Bold',
-        color: COLORS.text,
-        letterSpacing: 0.15,
+        color: '#E3EEFF',
+        letterSpacing: 0.12,
+        textShadowColor: 'rgba(15, 24, 38, 0.35)',
+        textShadowOffset: { width: 0, height: scaleSize(1) },
+        textShadowRadius: scaleSize(2),
     },
     detailMetricDivider: {
         width: StyleSheet.hairlineWidth,
@@ -486,6 +492,9 @@ export {
     GOLD_BORDER,
     styles,
     DETAIL_HEADER_GRADIENT,
+    DETAIL_METRIC_GRADIENT,
+    SHEET_HANDLE_GRADIENT,
+    SHEET_HANDLE_GRADIENT_ACTIVE,
 };
 
 export default styles;

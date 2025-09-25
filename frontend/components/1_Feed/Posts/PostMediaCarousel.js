@@ -56,6 +56,8 @@ const PostMediaCarousel = forwardRef(function PostMediaCarousel({
     const currentOffsetXRef = useRef(currentIndex * W);
     const extDragActiveRef = useRef(false);
     const lastReportedIndexRef = useRef(currentIndex || 0);
+    const dragStateRef = useRef({ active: false, startOffset: 0, startIndex: 0 });
+    const maxOffsetRef = useRef(Math.max(0, (mediaList.length - 1) * W));
 
     useEffect(() => {
         setPausedList((prev) => mediaList.map((_, i) => prev[i] ?? false));
@@ -65,6 +67,41 @@ const PostMediaCarousel = forwardRef(function PostMediaCarousel({
         currentOffsetXRef.current = currentIndex * W;
         lastReportedIndexRef.current = currentIndex;
     }, [currentIndex]);
+
+    useEffect(() => {
+        maxOffsetRef.current = Math.max(0, (mediaList.length - 1) * W);
+    }, [mediaList.length]);
+
+    useEffect(() => {
+        if (!isFocused) {
+            dragStateRef.current.active = false;
+        }
+    }, [isFocused]);
+
+    const scrollToOffsetImmediate = useCallback((offset) => {
+        const list = flatListRef.current;
+        if (!list) return;
+        const maxOffset = maxOffsetRef.current;
+        const clamped = Math.max(0, Math.min(maxOffset, offset));
+        try {
+            list.scrollToOffset({ offset: clamped, animated: false });
+        } catch { }
+        currentOffsetXRef.current = clamped;
+    }, []);
+
+    const animateToIndex = useCallback((index) => {
+        const list = flatListRef.current;
+        if (!list) return;
+        const maxIndex = Math.max(0, mediaList.length - 1);
+        const safeIndex = Math.max(0, Math.min(maxIndex, Math.round(index)));
+        const targetOffset = safeIndex * W;
+        currentOffsetXRef.current = targetOffset;
+        lastReportedIndexRef.current = safeIndex;
+        try {
+            list.scrollToOffset({ offset: targetOffset, animated: true });
+        } catch { }
+        onIndexChange(safeIndex);
+    }, [mediaList.length, onIndexChange]);
 
     const togglePauseAtIndex = useCallback((idx) => {
         setPausedList((prev) => prev.map((v, i) => (i === idx ? !v : v)));
@@ -93,16 +130,54 @@ const PostMediaCarousel = forwardRef(function PostMediaCarousel({
 
     useImperativeHandle(ref, () => ({
         hSwipeBegin: () => {
-            if (!isFocused) return false;
+            if (!isFocused || mediaList.length <= 1) return false;
             extDragActiveRef.current = true;
+            dragStateRef.current = {
+                active: true,
+                startOffset: currentOffsetXRef.current,
+                startIndex: lastReportedIndexRef.current,
+            };
             return true;
         },
-        hSwipeUpdate: () => {},
-        hSwipeEnd: () => {
-            if (!extDragActiveRef.current) return;
-            extDragActiveRef.current = false;
+        hSwipeUpdate: (dx = 0) => {
+            if (!dragStateRef.current.active) return;
+            const startOffset = dragStateRef.current.startOffset || 0;
+            const nextOffset = startOffset - dx;
+            scrollToOffsetImmediate(nextOffset);
         },
-    }), [isFocused]);
+        hSwipeEnd: (dx = 0, vx = 0) => {
+            if (!dragStateRef.current.active) return;
+            const startOffset = dragStateRef.current.startOffset || 0;
+            const rawOffset = startOffset - dx;
+            const delta = -dx;
+            const velocityX = vx || 0;
+
+            let targetIndex = Math.round(rawOffset / W);
+
+            const velocityThreshold = 350;
+            if (Math.abs(velocityX) > velocityThreshold) {
+                targetIndex = velocityX > 0
+                    ? Math.floor(rawOffset / W)
+                    : Math.ceil(rawOffset / W);
+            } else {
+                const distanceThreshold = W * 0.35;
+                if (delta > distanceThreshold) {
+                    targetIndex = Math.ceil(rawOffset / W);
+                } else if (delta < -distanceThreshold) {
+                    targetIndex = Math.floor(rawOffset / W);
+                }
+            }
+
+            dragStateRef.current = { active: false, startOffset: 0, startIndex: 0 };
+            extDragActiveRef.current = false;
+            animateToIndex(targetIndex);
+        },
+    }), [
+        animateToIndex,
+        isFocused,
+        mediaList.length,
+        scrollToOffsetImmediate,
+    ]);
 
     const keyExtractor = useCallback((item, idx) => `${item.uri || ''}${idx}`, []);
 
