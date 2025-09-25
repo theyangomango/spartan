@@ -64,6 +64,8 @@ const styles = StyleSheet.create({
         paddingRight: scaleSize(scaledSize(18)),
         justifyContent: 'space-between',
         backgroundColor: COLORS.cardBg,
+        paddingTop: scaleSize(1),
+        paddingBottom: scaleSize(4)
     },
     leftContainer: {
         flexDirection: 'row',
@@ -80,15 +82,15 @@ const styles = StyleSheet.create({
     },
     textContainer: {
         flexDirection: 'column',
-        paddingVertical: scaleSize(scaledSize(8)),
+        // paddingVertical: scaleSize(scaledSize(8)),
         justifyContent: 'center',
         flex: 1,
-        paddingLeft: scaleSize(scaledSize(10)),
+        paddingLeft: scaleSize(scaledSize(14)),
     },
     selected: { backgroundColor: COLORS.selectedBg },
     exerciseName: {
         fontFamily: 'Outfit_700Bold',
-        fontSize: scaleSize(15),
+        fontSize: scaleSize(14),
         color: COLORS.text,
         marginVertical: scaleSize(scaledSize(3)),
         flexWrap: 'wrap',

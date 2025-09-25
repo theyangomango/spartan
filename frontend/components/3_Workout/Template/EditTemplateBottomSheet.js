@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useMemo, useRef } from "react";
+import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import BottomSheet, { BottomSheetBackdrop } from "@gorhom/bottom-sheet";
 import EditTemplateModal from "./EditTemplateModal";
 import theme from "../../../theme/mfpDark";
@@ -8,6 +8,7 @@ import scaleSize from "../../../helper/scaleSize";
 const EditTemplateBottomSheet = ({ isVisible, setIsVisible, openedTemplateRef, updateTemplate, deleteTemplate }) => {
     const bottomSheetRef = useRef(null);
     const snapPoints = useMemo(() => ["100%"], []);
+    const [renderContent, setRenderContent] = useState(isVisible);
 
     const handleClose = useCallback(() => {
         try { bottomSheetRef.current?.close?.(); } catch {}
@@ -32,11 +33,17 @@ const EditTemplateBottomSheet = ({ isVisible, setIsVisible, openedTemplateRef, u
 
     useEffect(() => {
         if (isVisible) {
+            setRenderContent(true);
             try { bottomSheetRef.current?.expand?.(); } catch {}
         } else {
             try { bottomSheetRef.current?.close?.(); } catch {}
         }
     }, [isVisible]);
+
+    const handleSheetClose = useCallback(() => {
+        setRenderContent(false);
+        try { setIsVisible(false); } catch {}
+    }, [setIsVisible]);
 
     return (
         <BottomSheet
@@ -45,12 +52,12 @@ const EditTemplateBottomSheet = ({ isVisible, setIsVisible, openedTemplateRef, u
             snapPoints={snapPoints}
             backdropComponent={renderBackdrop}
             keyboardBehavior="interactive"
-            keyboardBlurBehavior="restore"
+            keyboardBlurBehavior="none"
             enablePanDownToClose={false}
             enableHandlePanningGesture={false}
             enableContentPanningGesture={false}
-            onClose={() => { try { setIsVisible(false); } catch {} }}
-            onChange={(index) => { if (index < 0) { try { setIsVisible(false); } catch {} } }}
+            onClose={handleSheetClose}
+            onChange={(index) => { if (index < 0) handleSheetClose(); }}
             handleStyle={{
                 borderTopLeftRadius: scaleSize(22),
                 borderTopRightRadius: scaleSize(22),
@@ -64,7 +71,7 @@ const EditTemplateBottomSheet = ({ isVisible, setIsVisible, openedTemplateRef, u
                 borderTopRightRadius: scaleSize(22),
             }}
         >
-            {isVisible &&
+            {renderContent &&
                 <EditTemplateModal
                     openedTemplateRef={openedTemplateRef}
                     updateTemplate={updateTemplate}

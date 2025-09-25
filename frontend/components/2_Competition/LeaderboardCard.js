@@ -150,7 +150,10 @@ function formatStat(value, metric, normalizeByBodyweight) {
     let statText = Math.round(v).toString();
     let unitText = 'lbs';
 
-    if (metric === 'Reps') {
+    if (metric === 'Hex') {
+        statText = Math.round(v).toString();
+        unitText = 'pts';
+    } else if (metric === 'Reps') {
         if (normalizeByBodyweight) {
             statText = v.toFixed(2);
             unitText = 'reps/lb';

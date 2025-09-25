@@ -5,13 +5,14 @@ import {
     View,
     Modal,
     TouchableOpacity,
-    Animated,
+    Animated as RNAnimated,
     SafeAreaView,
     Dimensions,
     Text,
     InteractionManager,
     Pressable,
 } from "react-native";
+import Animated, { useAnimatedStyle, useSharedValue } from "react-native-reanimated";
 import Podium from "../components/2_Competition/Podium";
 import rankUsers from "../helper/rankUsers";
 import LeaderboardBottomSheet from "../components/2_Competition/LeaderboardBottomSheet";
@@ -257,6 +258,13 @@ export default function Competition({ navigation, route }) {
     const [isBodyFocusMenuVisible, setIsBodyFocusMenuVisible] = useState(false);
     const focusToggleAnchorRef = useRef(null);
     const [focusMenuAnchor, setFocusMenuAnchor] = useState({ x: SIZES.headerPaddingHorizontal, y: 0, width: 0, height: 0 });
+    const userStatsSheetProgress = useSharedValue(0);
+
+    useEffect(() => {
+        if (isUserStatsBottomSheetVisible) {
+            userStatsSheetProgress.value = 1;
+        }
+    }, [isUserStatsBottomSheetVisible, userStatsSheetProgress]);
 
     // Tribes
     const [tribes, setTribes] = useState([]);
@@ -458,6 +466,48 @@ export default function Competition({ navigation, route }) {
         };
         requestAnimationFrame(measureAndOpen);
     }, [isCustomTribe, isBodyFocusMenuVisible]);
+
+    const headerOverlayAnimatedStyle = useAnimatedStyle(() => {
+        const progressRaw = userStatsSheetProgress.value;
+        const progress = progressRaw < 0 ? 0 : progressRaw > 1 ? 1 : progressRaw;
+        return { opacity: 1 - progress };
+    }, [userStatsSheetProgress]);
+
+    const headerInlineAnimatedStyle = useAnimatedStyle(() => {
+        const progressRaw = userStatsSheetProgress.value;
+        const progress = progressRaw < 0 ? 0 : progressRaw > 1 ? 1 : progressRaw;
+        return { opacity: progress };
+    }, [userStatsSheetProgress]);
+
+    const renderHeaderLeftContent = useCallback((attachRef = true) => {
+        const focusToggleRef = attachRef ? focusToggleAnchorRef : null;
+        return (
+            <View
+                ref={focusToggleRef}
+                collapsable={false}
+                style={styles.focusToggleWrap}
+            >
+                <RNBounceable
+                    onPress={withStrongPress(handleToggleFocusMenu)}
+                    style={[styles.focusToggle, isCustomTribe && styles.focusToggleDisabled]}
+                    activeScale={0.96}
+                    accessibilityRole="button"
+                    accessibilityLabel="Change leaderboard focus"
+                    disabled={isCustomTribe}
+                >
+                    <Text style={styles.focusToggleLabel} numberOfLines={1} ellipsizeMode="tail">
+                        {bodyFocusLabel}
+                    </Text>
+                    <Ionicons
+                        name={isBodyFocusMenuVisible ? "chevron-up" : "chevron-down"}
+                        size={Math.max(18, SIZES.headerIconSize - SIZES.chevronDelta)}
+                        color="rgba(255,255,255,0.95)"
+                        style={styles.focusToggleIcon}
+                    />
+                </RNBounceable>
+            </View>
+        );
+    }, [bodyFocusLabel, handleToggleFocusMenu, isBodyFocusMenuVisible, isCustomTribe]);
 
     useEffect(() => {
         const uid = global?.userData?.uid;
@@ -883,28 +933,12 @@ export default function Competition({ navigation, route }) {
                         },
                     ]}
                 >
-                    <View style={styles.headerLeftContainer}>
-                        <View ref={focusToggleAnchorRef} collapsable={false} style={styles.focusToggleWrap}>
-                            <RNBounceable
-                                onPress={withStrongPress(handleToggleFocusMenu)}
-                                style={[styles.focusToggle, isCustomTribe && styles.focusToggleDisabled]}
-                                activeScale={0.96}
-                                accessibilityRole="button"
-                                accessibilityLabel="Change leaderboard focus"
-                                disabled={isCustomTribe}
-                            >
-                                <Text style={styles.focusToggleLabel} numberOfLines={1} ellipsizeMode="tail">
-                                    {bodyFocusLabel}
-                                </Text>
-                                <Ionicons
-                                    name={isBodyFocusMenuVisible ? "chevron-up" : "chevron-down"}
-                                    size={Math.max(18, SIZES.headerIconSize - SIZES.chevronDelta)}
-                                    color="rgba(255,255,255,0.95)"
-                                    style={styles.focusToggleIcon}
-                                />
-                            </RNBounceable>
-                        </View>
-                    </View>
+                    <Animated.View
+                        style={[styles.headerLeftContainer, headerInlineAnimatedStyle]}
+                        pointerEvents="none"
+                    >
+                        {renderHeaderLeftContent(false)}
+                    </Animated.View>
                     <View style={styles.headerRightContainer}>
                         <RNBounceable
                             onPress={withStrongPress(() => setTribeMenuVisible(true))}
@@ -934,7 +968,36 @@ export default function Competition({ navigation, route }) {
                 </View>
             </SafeAreaView>
 
-            <InfoPanel isVisible={false} opacity={useRef(new Animated.Value(0)).current} />
+            <Animated.View
+                pointerEvents={isUserStatsBottomSheetVisible ? "none" : "box-none"}
+                style={[
+                    styles.headerLeftOverlayShell,
+                    isUserStatsBottomSheetVisible && styles.headerLeftOverlayLowered,
+                    headerOverlayAnimatedStyle,
+                ]}
+            >
+                <SafeAreaView pointerEvents="box-none">
+                    <View
+                        pointerEvents="box-none"
+                        style={[
+                            styles.headerOverlayRow,
+                            {
+                                paddingHorizontal: SIZES.headerPaddingHorizontal,
+                                paddingTop: SIZES.headerPaddingTop,
+                            },
+                        ]}
+                    >
+                        <View
+                            style={styles.headerLeftOverlayContent}
+                            pointerEvents={isUserStatsBottomSheetVisible ? "none" : "auto"}
+                        >
+                            {renderHeaderLeftContent(!isUserStatsBottomSheetVisible)}
+                        </View>
+                    </View>
+                </SafeAreaView>
+            </Animated.View>
+
+            <InfoPanel isVisible={false} opacity={useRef(new RNAnimated.Value(0)).current} />
             <Podium data={podiumData} isTribeFocused={isCustomTribe} topOffset={STAGE_VERTICAL_OFFSET} />
 
             <LeaderboardBottomSheet
@@ -969,6 +1032,7 @@ export default function Competition({ navigation, route }) {
                 navigation={navigation}
                 isVisible={isUserStatsBottomSheetVisible}
                 setIsVisible={setIsUserStatsBottomSheetVisible}
+                sheetProgressSV={userStatsSheetProgress}
             />
 
             <Footer currentScreenName={"Competition"} navigation={navigation} />
@@ -1118,11 +1182,36 @@ const styles = StyleSheet.create({
         justifyContent: "flex-start",
         minWidth: 0,
     },
+    headerLeftOverlayShell: {
+        position: "absolute",
+        top: 0,
+        left: 0,
+        right: 0,
+        zIndex: 1000,
+        elevation: 20,
+    },
+    headerLeftOverlayLowered: {
+        zIndex: 0,
+        elevation: 0,
+    },
+    headerOverlayRow: {
+        width: "100%",
+        flexDirection: "row",
+        alignItems: "center",
+        justifyContent: "flex-start",
+    },
     headerRightContainer: {
         flexDirection: "row",
         alignItems: "center",
         justifyContent: "flex-end",
         flexShrink: 0,
+    },
+    headerLeftOverlayContent: {
+        flexDirection: "row",
+        alignItems: "center",
+        justifyContent: "flex-start",
+        alignSelf: "flex-start",
+        flexShrink: 1,
     },
     scopeToggle: {
         flexDirection: "row",

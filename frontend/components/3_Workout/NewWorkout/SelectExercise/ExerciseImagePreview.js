@@ -847,15 +847,15 @@ const ExerciseImagePreview = ({ exercise }) => {
 
 const styles = StyleSheet.create({
     imageContainer: {
-        width: scaleSize(55),
+        width: scaleSize(60),
         aspectRatio: 1,
         overflow: 'hidden',
     },
     image: {
         // width: 135,
         // height: 135,
-        width: scaleSize(55),
-        height: scaleSize(55),
+        width: scaleSize(60),
+        height: scaleSize(60),
         resizeMode: 'contain'
     },
     defaultImage: {

@@ -70,6 +70,9 @@ export default function LeaderboardModal({
     comparedMetric,
     openBottomSheet,
     isBottomSheetExpanded,
+    isHexFocus = false,
+    hexFocusKey = null,
+    hexFocusLabel = "",
 
     // tribe
     isTribeFocused,
@@ -80,6 +83,8 @@ export default function LeaderboardModal({
     onOpenTribeComparison,
     // Custom canvas color for Leaderboard cards
     canvasColor,
+    onScrollExpandRequest,
+    renderTribeBanners = true,
 }) {
     const hasComparisons = isTribeFocused && tribeComparisons.length > 0;
     const safeActiveIndex = useMemo(() => {
@@ -90,249 +95,70 @@ export default function LeaderboardModal({
 
     const activeComp = hasComparisons ? tribeComparisons[safeActiveIndex] : null;
 
+    const usingHexFocus = !isTribeFocused && isHexFocus && !!hexFocusKey;
+
     const exercise = isTribeFocused
         ? (activeComp?.exercise || "Bench Press (Barbell)")
         : (categoryCompared || "Bench Press (Barbell)");
 
     const metric = isTribeFocused
         ? (activeComp?.metric || "1RM")
-        : (comparedMetric || "1RM");
+        : (usingHexFocus ? "Hex" : (comparedMetric || "1RM"));
     const metricLabel = (m) => (m === '1RM' ? '1RM (Adj)' : m);
 
     const normalizeByBodyweight = !!(isTribeFocused && activeComp?.normalizeByBodyweight);
 
-    const scrollX = useRef(new Animated.Value(safeActiveIndex * BANNER_PAGE_WIDTH)).current;
-    const lastReportedBannerIndex = useRef(safeActiveIndex);
-
-    useEffect(() => {
-        lastReportedBannerIndex.current = safeActiveIndex;
-    }, [safeActiveIndex]);
-
-    const notifyBannerChange = useCallback((idx) => {
-        if (!hasComparisons) return;
-        if (idx === lastReportedBannerIndex.current) return;
-        lastReportedBannerIndex.current = idx;
-        onActiveCompChange(idx);
-    }, [hasComparisons, onActiveCompChange]);
-
-    const handleScroll = useMemo(() => (
-        Animated.event(
-            [{ nativeEvent: { contentOffset: { x: scrollX } } }],
-            {
-                useNativeDriver: false,
-                listener: (event) => {
-                    const nextIndex = Math.round(event.nativeEvent.contentOffset.x / BANNER_PAGE_WIDTH);
-                    notifyBannerChange(nextIndex);
-                },
-            }
-        )
-    ), [scrollX, notifyBannerChange]);
-
-    const onScrollEndDrag = useCallback((e) => {
-        const idx = Math.round(e.nativeEvent.contentOffset.x / BANNER_PAGE_WIDTH);
-        notifyBannerChange(idx);
-    }, [notifyBannerChange]);
-
-    const onScrollEnd = useCallback((e) => {
-        const idx = Math.round(e.nativeEvent.contentOffset.x / BANNER_PAGE_WIDTH);
-        notifyBannerChange(idx);
-    }, [notifyBannerChange]);
-
-    const bannerRef = useRef(null);
-
-    useEffect(() => {
-        if (!hasComparisons) return;
-        scrollX.setValue(safeActiveIndex * BANNER_PAGE_WIDTH);
-    }, [safeActiveIndex, hasComparisons, scrollX]);
-
-    // Keep banner scrolled to the active comparison when index changes post-mount
-    useEffect(() => {
-        if (!isTribeFocused) return;
-        if (!(hasComparisons)) return;
-        try {
-            const ref = bannerRef.current;
-            if (ref && typeof ref.scrollToIndex === 'function') {
-                ref.scrollToIndex({
-                    index: safeActiveIndex,
-                    animated: false,
-                });
-            }
-        } catch {}
-        // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [safeActiveIndex, isTribeFocused, hasComparisons]);
-
     const header = useMemo(() => {
-        if (isTribeFocused) {
-            if (hasComparisons) {
-                return (
-                    <View style={styles.bannerPager}>
-                        <Animated.FlatList
-                            ref={bannerRef}
-                            horizontal
-                            data={tribeComparisons}
-                            keyExtractor={(_, i) => `tribe-comp-${i}`}
-                            showsHorizontalScrollIndicator={false}
-                            snapToAlignment="start"
-                            snapToInterval={BANNER_PAGE_WIDTH}
-                            disableIntervalMomentum
-                            decelerationRate={Platform.OS === "ios" ? "fast" : 0.92}
-                            bounces={false}
-                            overScrollMode="never"
-                            onScrollEndDrag={onScrollEndDrag}
-                            onMomentumScrollEnd={onScrollEnd}
-                            initialScrollIndex={safeActiveIndex}
-                            onScroll={handleScroll}
-                            scrollEventThrottle={16}
-                            getItemLayout={(_, index) => ({ length: BANNER_PAGE_WIDTH, offset: BANNER_PAGE_WIDTH * index, index })}
-                            renderItem={({ item, index }) => {
-                                const metricCopy = metricLabel(item.metric);
-                                const summary = `Ranked by ${metricCopy}${item.normalizeByBodyweight ? " • per lb" : ""}`;
-                                return (
-                                    <View style={{ width: BANNER_PAGE_WIDTH }}>
-                                        <TouchableOpacity
-                                            activeOpacity={0.92}
-                                            style={styles.bannerTouchable}
-                                            onPress={withStrongPress(onOpenTribeComparison)}
-                                        >
-                                            <View style={styles.bannerShadow}>
-                                                <LinearGradient
-                                                    colors={BANNER_GRADIENT}
-                                                    start={{ x: 0, y: 0 }}
-                                                    end={{ x: 1, y: 1 }}
-                                                    style={styles.bannerCard}
-                                                >
-                                                    <View style={styles.bannerContent}>
-                                                        <View style={styles.iconPill}>
-                                                            <Ionicons name="trophy" size={ICON_TROPHY} color={ACCENT} />
-                                                        </View>
-                                                        <View style={styles.bannerTextColumn}>
-                                                            <Text style={styles.bannerTag}>Active Comparison</Text>
-                                                            <Text style={styles.bannerTitle} numberOfLines={1}>
-                                                                {item.exercise}
-                                                            </Text>
-                                                            <View style={styles.bannerMetaRow}>
-                                                                <View style={styles.metricBadge}>
-                                                                    <Text style={styles.metricBadgeText}>{metricLabel(item.metric)}</Text>
-                                                                </View>
-                                                                {item.normalizeByBodyweight && (
-                                                                    <View style={[styles.metricBadge, styles.metricBadgeSecondary]}>
-                                                                        <Text style={[styles.metricBadgeText, styles.metricBadgeTextSecondary]}>per lb</Text>
-                                                                    </View>
-                                                                )}
-                                                            </View>
-                                                            {/* <Text style={styles.bannerSummary} numberOfLines={1}>
-                                                                {summary}
-                                                            </Text> */}
-                                                        </View>
-                                                        <View style={styles.chevronPill}>
-                                                            <Ionicons name="chevron-forward" size={ICON_CHEVRON} color={BANNER_TEXT_SECONDARY} />
-                                                        </View>
-                                                    </View>
-                                                </LinearGradient>
-                                            </View>
-                                        </TouchableOpacity>
-                                    </View>
-                                );
-                            }}
-                            contentContainerStyle={{}}
-                        />
-                        {tribeComparisons.length > 1 && (
-                            <View style={styles.dotsRow}>
-                                {tribeComparisons.map((_, i) => {
-                                    const inputRange = [
-                                        (i - 1) * BANNER_PAGE_WIDTH,
-                                        i * BANNER_PAGE_WIDTH,
-                                        (i + 1) * BANNER_PAGE_WIDTH,
-                                    ];
-
-                                    const width = scrollX.interpolate({
-                                        inputRange,
-                                        outputRange: [DOT_MIN_WIDTH, DOT_MAX_WIDTH, DOT_MIN_WIDTH],
-                                        extrapolate: "clamp",
-                                    });
-
-                                    const opacity = scrollX.interpolate({
-                                        inputRange,
-                                        outputRange: [0.25, 1, 0.25],
-                                        extrapolate: "clamp",
-                                    });
-
-                                    const backgroundColor = scrollX.interpolate({
-                                        inputRange,
-                                        outputRange: [
-                                            "rgba(255, 236, 204, 0.32)",
-                                            ACCENT,
-                                            "rgba(255, 236, 204, 0.32)",
-                                        ],
-                                        extrapolate: "clamp",
-                                    });
-
-                                    return (
-                                        <Animated.View
-                                            key={`dot-${i}`}
-                                            style={[styles.dot, { width, opacity, backgroundColor }]}
-                                        />
-                                    );
-                                })}
-                            </View>
-                        )}
-                    </View>
-                );
-            }
-            // No comparisons yet → simple CTA (no extra explainer line)
-            return (
-                <View style={styles.bannerPager}>
-                    <TouchableOpacity
-                        activeOpacity={0.92}
-                        onPress={withStrongPress(onOpenTribeComparison)}
-                        style={styles.bannerTouchable}
-                    >
-                        <View style={styles.bannerShadow}>
-                            <LinearGradient
-                                colors={BANNER_GRADIENT}
-                                start={{ x: 0, y: 0 }}
-                                end={{ x: 1, y: 1 }}
-                                style={styles.bannerCard}
-                            >
-                                <View style={styles.bannerContent}>
-                                    <View style={styles.iconPill}>
-                                        <Ionicons name="trophy" size={ICON_TROPHY_LG} color={ACCENT} />
-                                    </View>
-                                    <View style={styles.bannerTextColumn}>
-                                        <Text style={styles.bannerTag}>Set Comparison</Text>
-                                        <Text style={styles.bannerTitle} numberOfLines={1}>
-                                            Set Tribe Comparisons
-                                        </Text>
-                                        <Text style={styles.bannerDescription} numberOfLines={1} ellipsizeMode="tail">
-                                            Add lifts or metrics your tribe cares about.
-                                        </Text>
-                                    </View>
-                                    <View style={styles.chevronPill}>
-                                        <Ionicons name="chevron-forward" size={ICON_CHEVRON} color={BANNER_TEXT_SECONDARY} />
-                                    </View>
-                                </View>
-                            </LinearGradient>
-                        </View>
-                    </TouchableOpacity>
-                </View>
-            );
-        }
-
-        // Non-tribe view no longer shows selector pills
-        return null;
+        if (!renderTribeBanners || !isTribeFocused) return null;
+        return (
+            <TribeComparisonBannerCarousel
+                isTribeFocused={isTribeFocused}
+                tribeComparisons={tribeComparisons}
+                activeCompIndex={activeCompIndex}
+                onActiveCompChange={onActiveCompChange}
+                onOpenTribeComparison={onOpenTribeComparison}
+            />
+        );
     }, [
+        renderTribeBanners,
         isTribeFocused,
-        hasComparisons,
         tribeComparisons,
         activeCompIndex,
+        onActiveCompChange,
         onOpenTribeComparison,
-        handleScroll,
-        scrollX,
     ]);
 
     // Compute display ranks with ties (standard competition ranking: 1,1,3,4 or 1,1,1,4,...)
     const displayRanks = useMemo(() => {
         if (!Array.isArray(userList) || userList.length === 0) return [];
+
+        if (usingHexFocus) {
+            const values = userList.map((item) => {
+                const raw = Number(item?.__hexValue ?? item?.statsHexagon?.[hexFocusKey] ?? 0);
+                return Number.isFinite(raw) ? Math.round(raw * 1000) / 1000 : 0;
+            });
+            const ranks = new Array(values.length);
+            let lastVal = null;
+            let lastRank = 0;
+            for (let i = 0; i < values.length; i++) {
+                const v = values[i];
+                if (i === 0) {
+                    ranks[i] = 1;
+                    lastRank = 1;
+                    lastVal = v;
+                    continue;
+                }
+                const isEqual = Object.is(v, lastVal) || Math.abs((v || 0) - (lastVal || 0)) < 1e-9;
+                if (isEqual) {
+                    ranks[i] = lastRank;
+                } else {
+                    ranks[i] = i + 1;
+                    lastRank = ranks[i];
+                    lastVal = v;
+                }
+            }
+            return ranks;
+        }
 
         // Extract the value used for ordering for each user as shown in the list.
         const values = userList.map((item) => {
@@ -372,16 +198,26 @@ export default function LeaderboardModal({
             }
         }
         return ranks;
-    }, [userList, isTribeFocused, normalizeByBodyweight, categoryCompared, metric]);
+    }, [userList, usingHexFocus, hexFocusKey, isTribeFocused, normalizeByBodyweight, categoryCompared, metric]);
 
     const renderItem = ({ item, index }) => {
         const isBW = normalizeByBodyweight;
         const missingBW = !!(isBW && item?.__noWeightForBW);
-        const value = isTribeFocused && typeof item?._tribeValue === "number"
-            ? item._tribeValue
-            : (item?.statsExercises?.[exercise]?.[metric] ?? 0);
+        let rawValue;
+        if (isTribeFocused) {
+            rawValue = typeof item?._tribeValue === "number" ? item._tribeValue : 0;
+        } else if (usingHexFocus) {
+            const val = Number(item?.__hexValue ?? item?.statsHexagon?.[hexFocusKey] ?? 0);
+            rawValue = Number.isFinite(val) ? val : 0;
+        } else {
+            rawValue = item?.statsExercises?.[exercise]?.[metric] ?? 0;
+        }
 
-        const bestSet = item?.statsExercises?.[exercise]?.bestSet;
+        const value = Number.isFinite(rawValue) ? rawValue : 0;
+
+        const bestSet = usingHexFocus ? null : item?.statsExercises?.[exercise]?.bestSet;
+        const cardMetric = usingHexFocus ? "Hex" : metric;
+        const cardExercise = usingHexFocus ? (hexFocusLabel || hexFocusKey || "Overall") : exercise;
 
         return (
             <LeaderboardCard
@@ -395,21 +231,78 @@ export default function LeaderboardModal({
                 userIsSelf={item?.uid === global?.userData?.uid}
                 bestSet={bestSet}
                 isTribeFocused={!!isTribeFocused}
-                metric={metric}
-                exercise={exercise}
-                normalizeByBodyweight={normalizeByBodyweight}
-                missingWeightData={missingBW}
-                showBestSetWhenNotTribe
+                metric={cardMetric}
+                exercise={cardExercise}
+                normalizeByBodyweight={usingHexFocus ? false : normalizeByBodyweight}
+                missingWeightData={usingHexFocus ? false : missingBW}
+                showBestSetWhenNotTribe={!usingHexFocus}
                 bgColor={canvasColor}
             />
         );
     };
 
+    const isDraggingRef = useRef(false);
+    const recentlyDraggedRef = useRef(false);
+    const dragEndTimeoutRef = useRef(null);
+
+    const clearDragEndTimeout = useCallback(() => {
+        const timeoutId = dragEndTimeoutRef.current;
+        if (!timeoutId) return;
+        clearTimeout(timeoutId);
+        dragEndTimeoutRef.current = null;
+    }, []);
+
+    const scheduleRecentlyDraggedReset = useCallback(() => {
+        clearDragEndTimeout();
+        dragEndTimeoutRef.current = setTimeout(() => {
+            recentlyDraggedRef.current = false;
+            dragEndTimeoutRef.current = null;
+        }, 180);
+    }, [clearDragEndTimeout]);
+
+    useEffect(() => () => {
+        clearDragEndTimeout();
+    }, [clearDragEndTimeout]);
+
+    const handleScrollBeginDrag = useCallback(() => {
+        isDraggingRef.current = true;
+        recentlyDraggedRef.current = true;
+        clearDragEndTimeout();
+    }, [clearDragEndTimeout]);
+
+    const handleScrollEndDrag = useCallback(() => {
+        isDraggingRef.current = false;
+        recentlyDraggedRef.current = true;
+        scheduleRecentlyDraggedReset();
+    }, [scheduleRecentlyDraggedReset]);
+
+    const handleMomentumScrollEnd = useCallback(() => {
+        isDraggingRef.current = false;
+        recentlyDraggedRef.current = false;
+        clearDragEndTimeout();
+    }, [clearDragEndTimeout]);
+
+    const handleListScroll = useCallback((event) => {
+        if (typeof onScrollExpandRequest !== 'function') return;
+        if (!isDraggingRef.current && !recentlyDraggedRef.current) return;
+        try {
+            const offsetY = event?.nativeEvent?.contentOffset?.y ?? 0;
+            onScrollExpandRequest(Math.max(0, offsetY));
+        } catch {
+            // ignore any errors from malformed scroll events
+        }
+    }, [onScrollExpandRequest]);
+
     // no explicit getItemLayout — let FlatList measure items, and use a large footer to
     // guarantee the last card can scroll fully into view under the bottom sheet
 
     return (
-        <View style={styles.container}>
+        <View
+            style={[
+                styles.container,
+                renderTribeBanners && isTribeFocused && styles.containerWithTribeBanners,
+            ]}
+        >
             {header}
             <FlatList
                 data={userList}
@@ -417,6 +310,11 @@ export default function LeaderboardModal({
                 renderItem={renderItem}
                 contentContainerStyle={{ paddingBottom: scaleSize(24) }}
                 ListFooterComponent={<View style={{ height: isBottomSheetExpanded ? scaleSize(100) : scaleSize(400) }} />}
+                onScroll={handleListScroll}
+                scrollEventThrottle={16}
+                onScrollBeginDrag={handleScrollBeginDrag}
+                onScrollEndDrag={handleScrollEndDrag}
+                onMomentumScrollEnd={handleMomentumScrollEnd}
                 showsVerticalScrollIndicator={false}
             />
             <View style={{ height: isBottomSheetExpanded ? 24 : 8 }} />
@@ -426,6 +324,9 @@ export default function LeaderboardModal({
 
 const styles = StyleSheet.create({
     container: { flex: 1, paddingHorizontal: H_PADDING, paddingTop: CONTAINER_PT },
+    containerWithTribeBanners: {
+        paddingTop: 0,
+    },
 
     bannerPager: {
         marginBottom: scaleSize(10),
@@ -582,4 +483,224 @@ const styles = StyleSheet.create({
         borderRadius: DOT_RADIUS,
         backgroundColor: "rgba(255, 236, 204, 0.32)",
     },
+});
+
+export const TribeComparisonBannerCarousel = React.memo(({
+    isTribeFocused,
+    tribeComparisons = [],
+    activeCompIndex = 0,
+    onActiveCompChange = () => { },
+    onOpenTribeComparison = () => { },
+    style,
+}) => {
+    const hasComparisons = isTribeFocused && Array.isArray(tribeComparisons) && tribeComparisons.length > 0;
+
+    const safeActiveIndex = useMemo(() => {
+        if (!hasComparisons) return 0;
+        const maxIndex = Math.max(0, tribeComparisons.length - 1);
+        return Math.min(Math.max(0, activeCompIndex), maxIndex);
+    }, [hasComparisons, tribeComparisons.length, activeCompIndex]);
+
+    const scrollX = useRef(new Animated.Value(safeActiveIndex * BANNER_PAGE_WIDTH)).current;
+    const bannerRef = useRef(null);
+    const lastReportedBannerIndex = useRef(safeActiveIndex);
+
+    useEffect(() => {
+        lastReportedBannerIndex.current = safeActiveIndex;
+    }, [safeActiveIndex]);
+
+    const notifyBannerChange = useCallback((idx) => {
+        if (!hasComparisons) return;
+        if (idx === lastReportedBannerIndex.current) return;
+        lastReportedBannerIndex.current = idx;
+        onActiveCompChange(idx);
+    }, [hasComparisons, onActiveCompChange]);
+
+    const handleScroll = useMemo(() => (
+        Animated.event(
+            [{ nativeEvent: { contentOffset: { x: scrollX } } }],
+            {
+                useNativeDriver: false,
+                listener: (event) => {
+                    const nextIndex = Math.round(event.nativeEvent.contentOffset.x / BANNER_PAGE_WIDTH);
+                    notifyBannerChange(nextIndex);
+                },
+            }
+        )
+    ), [scrollX, notifyBannerChange]);
+
+    const onScrollEndDrag = useCallback((e) => {
+        const idx = Math.round(e.nativeEvent.contentOffset.x / BANNER_PAGE_WIDTH);
+        notifyBannerChange(idx);
+    }, [notifyBannerChange]);
+
+    const onMomentumEnd = useCallback((e) => {
+        const idx = Math.round(e.nativeEvent.contentOffset.x / BANNER_PAGE_WIDTH);
+        notifyBannerChange(idx);
+    }, [notifyBannerChange]);
+
+    useEffect(() => {
+        if (!hasComparisons) return;
+        scrollX.setValue(safeActiveIndex * BANNER_PAGE_WIDTH);
+    }, [hasComparisons, safeActiveIndex, scrollX]);
+
+    useEffect(() => {
+        if (!hasComparisons) return;
+        try {
+            const ref = bannerRef.current;
+            if (ref && typeof ref.scrollToIndex === 'function') {
+                ref.scrollToIndex({ index: safeActiveIndex, animated: false });
+            }
+        } catch { }
+    }, [hasComparisons, safeActiveIndex]);
+
+    const metricLabel = useCallback((m) => (m === '1RM' ? '1RM (Adj)' : m), []);
+
+    if (!isTribeFocused) return null;
+
+    if (!hasComparisons) {
+        return (
+            <View style={[styles.bannerPager, style]}>
+                <TouchableOpacity
+                    activeOpacity={0.92}
+                    onPress={withStrongPress(onOpenTribeComparison)}
+                    style={styles.bannerTouchable}
+                >
+                    <View style={styles.bannerShadow}>
+                        <LinearGradient
+                            colors={BANNER_GRADIENT}
+                            start={{ x: 0, y: 0 }}
+                            end={{ x: 1, y: 1 }}
+                            style={styles.bannerCard}
+                        >
+                            <View style={styles.bannerContent}>
+                                <View style={styles.iconPill}>
+                                    <Ionicons name="trophy" size={ICON_TROPHY_LG} color={ACCENT} />
+                                </View>
+                                <View style={styles.bannerTextColumn}>
+                                    <Text style={styles.bannerTag}>Set Comparison</Text>
+                                    <Text style={styles.bannerTitle} numberOfLines={1}>
+                                        Set Tribe Comparisons
+                                    </Text>
+                                    <Text style={styles.bannerDescription} numberOfLines={1} ellipsizeMode="tail">
+                                        Add lifts or metrics your tribe cares about.
+                                    </Text>
+                                </View>
+                                <View style={styles.chevronPill}>
+                                    <Ionicons name="chevron-forward" size={ICON_CHEVRON} color={BANNER_TEXT_SECONDARY} />
+                                </View>
+                            </View>
+                        </LinearGradient>
+                    </View>
+                </TouchableOpacity>
+            </View>
+        );
+    }
+
+    return (
+        <View style={[styles.bannerPager, style]}>
+            <Animated.FlatList
+                ref={bannerRef}
+                horizontal
+                data={tribeComparisons}
+                keyExtractor={(_, i) => `tribe-comp-${i}`}
+                showsHorizontalScrollIndicator={false}
+                snapToAlignment="start"
+                snapToInterval={BANNER_PAGE_WIDTH}
+                disableIntervalMomentum
+                decelerationRate={Platform.OS === "ios" ? "fast" : 0.92}
+                bounces={false}
+                overScrollMode="never"
+                onScrollEndDrag={onScrollEndDrag}
+                onMomentumScrollEnd={onMomentumEnd}
+                initialScrollIndex={safeActiveIndex}
+                onScroll={handleScroll}
+                scrollEventThrottle={16}
+                getItemLayout={(_, index) => ({ length: BANNER_PAGE_WIDTH, offset: BANNER_PAGE_WIDTH * index, index })}
+                renderItem={({ item }) => (
+                    <View style={{ width: BANNER_PAGE_WIDTH }}>
+                        <TouchableOpacity
+                            activeOpacity={0.92}
+                            style={styles.bannerTouchable}
+                            onPress={withStrongPress(onOpenTribeComparison)}
+                        >
+                            <View style={styles.bannerShadow}>
+                                <LinearGradient
+                                    colors={BANNER_GRADIENT}
+                                    start={{ x: 0, y: 0 }}
+                                    end={{ x: 1, y: 1 }}
+                                    style={styles.bannerCard}
+                                >
+                                    <View style={styles.bannerContent}>
+                                        <View style={styles.iconPill}>
+                                            <Ionicons name="trophy" size={ICON_TROPHY} color={ACCENT} />
+                                        </View>
+                                        <View style={styles.bannerTextColumn}>
+                                            <Text style={styles.bannerTitle} numberOfLines={1}>
+                                                {item.exercise}
+                                            </Text>
+                                            <View style={styles.bannerMetaRow}>
+                                                <View style={styles.metricBadge}>
+                                                    <Text style={styles.metricBadgeText}>{metricLabel(item.metric)}</Text>
+                                                </View>
+                                                {item.normalizeByBodyweight && (
+                                                    <View style={[styles.metricBadge, styles.metricBadgeSecondary]}>
+                                                        <Text style={[styles.metricBadgeText, styles.metricBadgeTextSecondary]}>per lb</Text>
+                                                    </View>
+                                                )}
+                                            </View>
+                                        </View>
+                                        <View style={styles.chevronPill}>
+                                            <Ionicons name="chevron-forward" size={ICON_CHEVRON} color={BANNER_TEXT_SECONDARY} />
+                                        </View>
+                                    </View>
+                                </LinearGradient>
+                            </View>
+                        </TouchableOpacity>
+                    </View>
+                )}
+                contentContainerStyle={{}}
+            />
+            {tribeComparisons.length > 1 && (
+                <View style={styles.dotsRow}>
+                    {tribeComparisons.map((_, i) => {
+                        const inputRange = [
+                            (i - 1) * BANNER_PAGE_WIDTH,
+                            i * BANNER_PAGE_WIDTH,
+                            (i + 1) * BANNER_PAGE_WIDTH,
+                        ];
+
+                        const width = scrollX.interpolate({
+                            inputRange,
+                            outputRange: [DOT_MIN_WIDTH, DOT_MAX_WIDTH, DOT_MIN_WIDTH],
+                            extrapolate: "clamp",
+                        });
+
+                        const opacity = scrollX.interpolate({
+                            inputRange,
+                            outputRange: [0.25, 1, 0.25],
+                            extrapolate: "clamp",
+                        });
+
+                        const backgroundColor = scrollX.interpolate({
+                            inputRange,
+                            outputRange: [
+                                "rgba(255, 236, 204, 0.32)",
+                                ACCENT,
+                                "rgba(255, 236, 204, 0.32)",
+                            ],
+                            extrapolate: "clamp",
+                        });
+
+                        return (
+                            <Animated.View
+                                key={`dot-${i}`}
+                                style={[styles.dot, { width, opacity, backgroundColor }]}
+                            />
+                        );
+                    })}
+                </View>
+            )}
+        </View>
+    );
 });

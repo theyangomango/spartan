@@ -62,7 +62,7 @@ export default function EditableStat({ placeholder = '0', isFinished, value, set
                     editable
                     keyboardType="numeric"
                     placeholder={placeholder}
-                    placeholderTextColor={theme.textSecondary}
+                    placeholderTextColor={'#888'}
                     onFocus={() => { setIsSelected(true); try { onFocus?.(); } catch {} }}
                     onBlur={() => setIsSelected(false)}
                     style={styles.text}

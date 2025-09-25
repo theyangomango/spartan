@@ -2,16 +2,17 @@ import { StyleSheet } from 'react-native';
 import scaleSize from '../../helper/scaleSize';
 import theme from '../../theme/mfpDark';
 
-const OVERLAY_BG = 'rgba(8, 12, 24, 0.42)';
-const MODAL_BG = '#29313eff';
+const OVERLAY_BG = 'rgba(87, 92, 108, 0.42)';
+const MODAL_BG = '#272c35ff';
 const LIGHT_SURFACE = '#1F2A42';
-const LIGHT_FIELD = '#515760ff';
+const LIGHT_FIELD = '#59606aff';
 const FIELD_BORDER = 'rgba(120, 198, 255, 0.24)';
 const ICON_COLOR = '#D2DCF0';
 const TEXT_PRIMARY = '#F6F8FF';
-const TEXT_SECONDARY = '#8FA3C2';
+const TEXT_SECONDARY = '#aab8cdff';
 const ACCENT = theme.primary;
 const ACCENT_SOFT = 'rgba(102, 202, 255, 0.24)';
+const DROPDOWN_BACKDROP_BG = 'rgba(23, 27, 41, 0.72)';
 
 const scaledSize = (size) => scaleSize(size);
 
@@ -46,16 +47,15 @@ const selectExerciseModalStyles = StyleSheet.create({
         paddingTop: scaleSize(scaledSize(10)),
         paddingBottom: scaleSize(scaledSize(10)),
     },
-    newButton: {
+    closeButton: {
         backgroundColor: ACCENT_SOFT,
         paddingHorizontal: scaleSize(scaledSize(20)),
         paddingVertical: scaleSize(scaledSize(4.5)),
         borderRadius: scaleSize(scaledSize(8)),
         justifyContent: 'center',
         alignItems: 'center',
-        opacity: 0.5,
     },
-    newButtonText: {
+    closeButtonText: {
         color: ACCENT,
         fontFamily: 'Outfit_700Bold',
         fontSize: scaleSize(14),
@@ -129,6 +129,7 @@ const selectExerciseModalStyles = StyleSheet.create({
         maxHeight: scaleSize(scaledSize(220)),
         borderWidth: StyleSheet.hairlineWidth,
         borderColor: FIELD_BORDER,
+        overflow: 'hidden'
     },
     dropdownItem: {
         paddingVertical: scaleSize(scaledSize(8)),
@@ -151,6 +152,7 @@ const selectExerciseModalStyles = StyleSheet.create({
         left: 0,
         right: 0,
         bottom: 0,
+        backgroundColor: DROPDOWN_BACKDROP_BG,
         zIndex: 1,
     },
 });

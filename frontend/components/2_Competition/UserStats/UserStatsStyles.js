@@ -276,7 +276,7 @@ const styles = StyleSheet.create({
         marginVertical: scaleSize(scaledSize(2)),
     },
     metaLabel: {
-        fontSize: scaleSize(10.5),
+        fontSize: scaleSize(11.5),
         fontFamily: "Outfit_600SemiBold",
         color: COLORS.subtext,
         letterSpacing: 0.2,

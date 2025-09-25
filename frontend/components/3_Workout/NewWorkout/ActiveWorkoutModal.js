@@ -374,16 +374,6 @@ const ActiveWorkoutModal = ({
 
     const borderOpacity = scrollY.interpolate({ inputRange: [0, 98], outputRange: [0, 1], extrapolate: "clamp" });
 
-    const [collapsedTimerText, setCollapsedTimerText] = useState(() => timerRef?.current || "00:00");
-    useEffect(() => {
-        const updateTimer = () => {
-            setCollapsedTimerText(timerRef?.current || "00:00");
-        };
-        updateTimer();
-        const intervalId = setInterval(updateTimer, 1000);
-        return () => clearInterval(intervalId);
-    }, [timerRef]);
-
     const collapsedOverlayActiveRef = useRef(false);
     const [collapsedOverlayActive, setCollapsedOverlayActive] = useState(false);
 
@@ -546,6 +536,76 @@ const ActiveWorkoutModal = ({
         };
     }, [exercisesData, canUseFlashList]);
 
+    const listPerformanceProps = useMemo(() => {
+        if (canUseFlashList) {
+            return {
+                estimatedItemSize: flashListEstimates.estimatedItemSize,
+                estimatedListSize: {
+                    width: screenWidth,
+                    height: flashListEstimates.estimatedListHeight,
+                },
+                drawDistance: scaleSize(320),
+            };
+        }
+        return {
+            initialNumToRender: 4,
+            maxToRenderPerBatch: 6,
+            windowSize: 9,
+            removeClippedSubviews: Platform.OS === 'android',
+        };
+    }, [canUseFlashList, flashListEstimates.estimatedItemSize, flashListEstimates.estimatedListHeight, screenWidth]);
+
+    const scrollHandler = useMemo(
+        () => RNAnimated.event(
+            [{ nativeEvent: { contentOffset: { y: scrollY } } }],
+            { useNativeDriver: true }
+        ),
+        [scrollY]
+    );
+
+    const renderExerciseItem = useCallback(({
+        item: ex,
+        index: exerciseIndex,
+    }) => (
+        <ExerciseLog
+            name={ex.name}
+            muscle={ex.muscle}
+            exerciseIndex={exerciseIndex}
+            sets={ex.sets}
+            prevSets={Array.isArray(ex.prev) ? ex.prev : (prevSetsMapRef.current?.get(ex.name) || undefined)}
+            updateSets={updateSets}
+            replaceExercise={replaceExercise}
+            deleteExercise={deleteExercise}
+            userWorkoutStats={statsForPrevious}
+            readOnly={!viewingSelfEffective}
+            showOptionsTriggerIcon
+            syncColumnOnEdit={viewingSelfEffective}
+            onStatFocus={handleStatFocus}
+        />
+    ), [deleteExercise, replaceExercise, statsForPrevious, updateSets, viewingSelfEffective, handleStatFocus]);
+
+    const renderFooter = useCallback(() => (
+        <>
+            {viewingSelfEffective && (
+                <>
+                    <RNBounceable onPress={showSelectExerciseModal} style={styles.add_exercise_btn}>
+                        <Text style={styles.add_exercise_text}>Add Exercises</Text>
+                    </RNBounceable>
+                    <RNBounceable
+                        onPress={isEmptyList ? confirmCancelWorkout : openFinishConfirm}
+                        style={styles.finish_btn}
+                    >
+                        <Text style={styles.finish_btn_text}>Finish Workout</Text>
+                    </RNBounceable>
+                    <RNBounceable onPress={confirmCancelWorkout} style={styles.cancel_btn}>
+                        <Text style={styles.cancel_btn_text}>Cancel Workout</Text>
+                    </RNBounceable>
+                </>
+            )}
+            <View style={{ height: scaleSize(250) + Math.max(0, keyboardHeight - scaleSize(40)) }} />
+        </>
+    ), [confirmCancelWorkout, isEmptyList, keyboardHeight, openFinishConfirm, showSelectExerciseModal, viewingSelfEffective]);
+
     // ===== PFPs (stable) =====
     const selfPfpVersion = global?.userData?.pfpVersion ?? 0;
     const selfPfpUri = usePfp(meUid, selfPfpVersion) ||
@@ -659,6 +719,26 @@ const ActiveWorkoutModal = ({
             onViewingChange?.(true);
         }
     }, [onPressBack, viewingSelfEffective, meUid, setViewing, onViewingChange]);
+
+    const handleCopyTemplate = useCallback(() => {
+        try { onCopyTemplate?.(baseWorkout); } catch {}
+    }, [onCopyTemplate, baseWorkout]);
+
+    const handleCollapsedPress = useCallback(() => {
+        try { onExpandSheet?.(); } catch {}
+    }, [onExpandSheet]);
+
+    const handleOpenMenu = useCallback(() => {
+        if (lockFriend || !viewingSelfEffective) return;
+        setLiveEnabled(true);
+        try { openMenu(); } catch {}
+    }, [lockFriend, openMenu, viewingSelfEffective]);
+
+    const handleLongPressInvite = useCallback(() => {
+        if (lockFriend || !viewingSelfEffective) return;
+        setLiveEnabled(true);
+        try { showGroupModal?.(); } catch {}
+    }, [lockFriend, showGroupModal, viewingSelfEffective]);
 
     // Listen for cheer events for this workout to trigger confetti when others cheer
     useEffect(() => {
@@ -790,7 +870,7 @@ const ActiveWorkoutModal = ({
                 >
                     <Pressable
                         style={styles.collapsedHud}
-                        onPress={() => { try { onExpandSheet?.(); } catch {} }}
+                        onPress={handleCollapsedPress}
                         hitSlop={scaleSize(12)}
                     >
                         <View style={styles.collapsedHudContent}>
@@ -800,9 +880,7 @@ const ActiveWorkoutModal = ({
                             <Text style={styles.collapsedHudSeparator}>
                                 •
                             </Text>
-                            <Text style={styles.collapsedHudTimer} numberOfLines={1}>
-                                {collapsedTimerText}
-                            </Text>
+                            <CollapsedTimerText timerRef={timerRef} />
                         </View>
                     </Pressable>
                 </Animated.View>
@@ -813,9 +891,8 @@ const ActiveWorkoutModal = ({
                     <GroupHeader
                         viewingSelf={viewingSelfEffective}
                         overlayPfp={headerOverlayPfp}
-                        onLongPressInvite={lockFriend ? undefined : (viewingSelfEffective ? showGroupModal : undefined)}
                         onCheer={friendOngoing ? onCheerStable : undefined}
-                        onCopyTemplate={!viewingSelfEffective && !friendOngoing ? (() => onCopyTemplate?.(baseWorkout)) : undefined}
+                        onCopyTemplate={!viewingSelfEffective && !friendOngoing ? handleCopyTemplate : undefined}
                         countdown={countdown}
                         onAddTime={viewingSelfEffective ? openRestModal : undefined}
                         timerRef={timerRef}
@@ -825,8 +902,8 @@ const ActiveWorkoutModal = ({
                         disableGroupPress={lockFriend || !viewingSelfEffective}
                         inActiveGroup={inActiveGroupEffective}
                         pfpOnLeft={!viewingSelfEffective}
-                        onOpenMenu={() => { setLiveEnabled(true); try { openMenu(); } catch {} }}
-                        onLongPressInvite={() => { setLiveEnabled(true); try { showGroupModal?.(); } catch {} }}
+                        onOpenMenu={handleOpenMenu}
+                        onLongPressInvite={handleLongPressInvite}
                     />
                 </Animated.View>
             </Animated.View>
@@ -865,51 +942,14 @@ const ActiveWorkoutModal = ({
                                 ref={listRef}
                                 data={exercisesData}
                                 keyExtractor={(ex, i) => `${ex?.name || "ex"}-${i}`}
-                                renderItem={({ item: ex, index: exerciseIndex }) => (
-                                    <ExerciseLog
-                                        name={ex.name}
-                                        muscle={ex.muscle}
-                                        exerciseIndex={exerciseIndex}
-                                        sets={ex.sets}
-                                        prevSets={Array.isArray(ex.prev) ? ex.prev : (prevSetsMapRef.current?.get(ex.name) || undefined)}
-                                        updateSets={updateSets}
-                                        replaceExercise={replaceExercise}
-                                        deleteExercise={() => deleteExercise(exerciseIndex)}
-
-                                        userWorkoutStats={statsForPrevious}
-                                        readOnly={!viewingSelfEffective}
-                                        showOptionsTriggerIcon
-                                        syncColumnOnEdit={viewingSelfEffective}
-                                        onStatFocus={handleStatFocus}
-                                    />
-                                )}
-                                ListFooterComponent={(
-                                    <>
-                                        {viewingSelfEffective && (
-                                            <>
-                                                <RNBounceable onPress={showSelectExerciseModal} style={styles.add_exercise_btn}>
-                                                    <Text style={styles.add_exercise_text}>Add Exercises</Text>
-                                                </RNBounceable>
-                                                <RNBounceable onPress={isEmptyList ? confirmCancelWorkout : openFinishConfirm} style={styles.finish_btn}>
-                                                    <Text style={styles.finish_btn_text}>Finish Workout</Text>
-                                                </RNBounceable>
-                                                <RNBounceable onPress={confirmCancelWorkout} style={styles.cancel_btn}>
-                                                    <Text style={styles.cancel_btn_text}>Cancel Workout</Text>
-                                                </RNBounceable>
-                                            </>
-                                        )}
-                                        <View style={{ height: scaleSize(250) + Math.max(0, keyboardHeight - scaleSize(40)) }} />
-                                    </>
-                                )}
+                                renderItem={renderExerciseItem}
+                                ListFooterComponent={renderFooter}
                                 showsVerticalScrollIndicator={false}
                                 scrollEventThrottle={16}
-                                onScroll={RNAnimated.event([{ nativeEvent: { contentOffset: { y: scrollY } } }], { useNativeDriver: true })}
+                                onScroll={scrollHandler}
                                 keyboardShouldPersistTaps="handled"
                                 keyboardDismissMode={Platform.OS === 'ios' ? 'on-drag' : 'none'}
-                                {...(canUseFlashList ? {
-                                    estimatedItemSize: flashListEstimates.estimatedItemSize,
-                                    estimatedListSize: { width: screenWidth, height: flashListEstimates.estimatedListHeight },
-                                } : {})}
+                                {...listPerformanceProps}
                                 contentContainerStyle={styles.scrollview}
                                 ListHeaderComponent={workoutTitleDisplay}
                             />
@@ -1080,6 +1120,25 @@ const ActiveWorkoutModal = ({
         </Animated.View >
     );
 };
+
+const CollapsedTimerText = memo(({ timerRef }) => {
+    const [timer, setTimer] = useState(() => timerRef?.current || "00:00");
+
+    useEffect(() => {
+        const update = () => {
+            setTimer(timerRef?.current || "00:00");
+        };
+        update();
+        const intervalId = setInterval(update, 1000);
+        return () => clearInterval(intervalId);
+    }, [timerRef]);
+
+    return (
+        <Text style={styles.collapsedHudTimer} numberOfLines={1}>
+            {timer}
+        </Text>
+    );
+});
 
 const styles = StyleSheet.create({
     main_ctnr: { flex: 1 },

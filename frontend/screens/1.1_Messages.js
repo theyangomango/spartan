@@ -28,13 +28,44 @@ export default function Messages({ navigation, route }) {
     useEffect(() => {
         const incoming = route?.params?.messages;
         if (Array.isArray(incoming)) {
-            // seed chats and hydrate from cache
-            const enriched = incoming.map((chat) => ({
-                ...chat,
-                content: cachedLatestByCid[chat.cid] || cachedMessages.find((c) => c.cid === chat.cid)?.content || [],
-            }));
+            // Seed chats using whatever latest content we've already fetched.
+            // If neither cache has a hit, fall back to the payload's own content
+            // so the preview renders immediately instead of waiting for listeners.
+            const enriched = incoming.map((chat) => {
+                const cachedLatest = cachedLatestByCid[chat.cid];
+                const cachedChat = cachedMessages.find((c) => c.cid === chat.cid);
+                const payloadContent = Array.isArray(chat?.content) ? chat.content : [];
+                const cachedContent = Array.isArray(cachedChat?.content) ? cachedChat.content : [];
+
+                const resolvedContent = Array.isArray(cachedLatest) && cachedLatest.length > 0
+                    ? cachedLatest
+                    : (payloadContent.length > 0 ? payloadContent : cachedContent);
+
+                return {
+                    ...chat,
+                    content: resolvedContent,
+                };
+            });
             setChats(enriched);
             cachedMessages = enriched;
+
+            // Prime the latest-by-cid cache so subsequent renders keep showing
+            // the preloaded preview until Firestore listeners deliver updates.
+            const nextLatest = { ...cachedLatestByCid };
+            let didChange = false;
+            enriched.forEach((chat) => {
+                const existing = nextLatest[chat.cid];
+                if (!Array.isArray(existing) || existing.length === 0) {
+                    if (Array.isArray(chat.content) && chat.content.length > 0) {
+                        nextLatest[chat.cid] = chat.content;
+                        didChange = true;
+                    }
+                }
+            });
+            if (didChange) {
+                cachedLatestByCid = nextLatest;
+                setLatestByCid(nextLatest);
+            }
         }
     }, [route?.params?.messages]);
 

@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef, useMemo } from "react";
+import React, { useState, useEffect, useRef, useMemo, useCallback } from "react";
 import { View, Text, Pressable, TextInput, Animated, InteractionManager } from "react-native";
 import scaleSize from "../../../../helper/scaleSize";
 import { Ionicons } from '@expo/vector-icons';
@@ -9,7 +9,17 @@ import AnimatedButton from './AnimatedButton';
 import styles, { ICON_COLOR, TEXT_SECONDARY } from "../../../SelectExerciseModal/styles";
 const scaledSize = (size) => scaleSize(size);
 
-// Body-part options and an order map to "sort accordingly"
+const getSetCount = (statsMap = {}, name) => {
+    const exerciseStats = statsMap?.[name];
+    if (!exerciseStats) return 0;
+    const sets = exerciseStats?.sets;
+    if (Array.isArray(sets)) return sets.length;
+    if (typeof sets === "number") return sets;
+    const fallback = exerciseStats?.setCount ?? exerciseStats?.totalSets;
+    return typeof fallback === "number" ? fallback : 0;
+};
+
+// Body-part options the user can filter by
 const BODY_PART_OPTIONS = [
     { label: "Any Body Part", value: null },
     { label: "Chest", value: "Chest" },
@@ -19,16 +29,6 @@ const BODY_PART_OPTIONS = [
     { label: "Legs", value: "Legs" },
     { label: "Abs", value: "Abs" },
 ];
-const GROUP_ORDER = {
-    Chest: 0,
-    Back: 1,
-    Shoulders: 2,
-    Arms: 3,
-    Legs: 4,
-    Abs: 5,
-    "Full Body": 6,
-    default: 7,
-};
 
 // Equipment options (bucketed to common categories)
 const EQUIPMENT_OPTIONS = [
@@ -63,9 +63,10 @@ const normalizeEquipment = (raw) => {
 export default function SelectExerciseModal({ closeModal, appendExercises }) {
     const selectedExercisesRef = useRef([]);
     // input text vs debounced value used for filtering
-    const [inputQuery, setInputQuery] = useState('');
-    const [searchQuery, setSearchQuery] = useState('');
+    const [inputQuery, setInputQuery] = useState("");
+    const [searchQuery, setSearchQuery] = useState("");
     const opacity = useRef(new Animated.Value(1)).current;
+    const statsExercises = global?.userData?.statsExercises;
 
     // Dropdown states
     const [bodyPartOpen, setBodyPartOpen] = useState(false);
@@ -135,6 +136,7 @@ export default function SelectExerciseModal({ closeModal, appendExercises }) {
         const q = searchQuery.trim().toLowerCase();
         const bodyFilter = bodyPartValue?.toLowerCase() ?? null;
         const equipFilter = equipmentValue ?? null; // already normalized label
+        const statsMap = statsExercises || {};
 
         let list = indexedExercises.filter(ex => {
             const nameMatch = ex.nameLc.includes(q);
@@ -143,36 +145,36 @@ export default function SelectExerciseModal({ closeModal, appendExercises }) {
             return nameMatch && groupMatch && equipMatch;
         });
 
-        // Sort: primarily by muscle group when no body-part filter, then name A→Z
-        if (!bodyFilter) {
-            list.sort((a, b) => {
-                const ga = GROUP_ORDER[a.muscleGroup] ?? GROUP_ORDER.default;
-                const gb = GROUP_ORDER[b.muscleGroup] ?? GROUP_ORDER.default;
-                if (ga !== gb) return ga - gb;
-                return a.name.localeCompare(b.name);
-            });
-        } else {
-            list.sort((a, b) => a.name.localeCompare(b.name));
-        }
+        list.sort((a, b) => {
+            const setsA = getSetCount(statsMap, a.name);
+            const setsB = getSetCount(statsMap, b.name);
+            if (setsA !== setsB) return setsB - setsA;
+            return a.name.localeCompare(b.name);
+        });
 
         return list;
-    }, [searchQuery, bodyPartValue, equipmentValue, indexedExercises]);
+    }, [searchQuery, bodyPartValue, equipmentValue, indexedExercises, statsExercises]);
 
     const bodyPartButtonLabel = BODY_PART_OPTIONS.find(o => o.value === bodyPartValue)?.label ?? "Any Body Part";
     const equipmentButtonLabel = EQUIPMENT_OPTIONS.find(o => o.value === equipmentValue)?.label ?? "Any Equipment";
 
-    const closeAllDropdowns = () => {
+    const closeAllDropdowns = useCallback(() => {
         setBodyPartOpen(false);
         setEquipmentOpen(false);
-    };
+    }, []);
+
+    const handleClose = useCallback(() => {
+        closeAllDropdowns();
+        try { closeModal?.(); } catch {}
+    }, [closeAllDropdowns, closeModal]);
 
     return (
         <View style={styles.modal_outside}>
-            <Pressable onPress={() => closeModal()} style={styles.outside_pressable} />
+            <Pressable onPress={handleClose} style={styles.outside_pressable} />
             <View style={styles.main_ctnr}>
                 <View style={styles.header}>
-                    <RNBounceable style={styles.newButton}>
-                        <Text style={styles.newButtonText}>New</Text>
+                    <RNBounceable style={styles.closeButton} onPress={handleClose}>
+                        <Text style={styles.closeButtonText}>Close</Text>
                     </RNBounceable>
                     <AnimatedButton
                         opacity={opacity}

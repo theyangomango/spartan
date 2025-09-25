@@ -7,9 +7,9 @@ const ts = require('../../helper/scaleSize').ts;
 import theme from '../../theme/mfpDark';
 
 // Scaled sizes (baseline ~ iPhone 12/13: 390x844)
-const PFP_SIZE_LEFT = scaleSize(60);
-const PFP_SIZE_CENTER = scaleSize(64);
-const PFP_SIZE_RIGHT = scaleSize(56);
+const PFP_SIZE_LEFT = scaleSize(54);
+const PFP_SIZE_CENTER = scaleSize(58);
+const PFP_SIZE_RIGHT = scaleSize(50);
  
 const BAR_HEIGHT_LEFT = scaleSize(105);
 const BAR_HEIGHT_CENTER = scaleSize(133);
@@ -28,11 +28,15 @@ const BAR_TEXT_PT = scaleSize(6);
 
 const AnimatedLinearGradient = Animated.createAnimatedComponent(LinearGradient);
 
-export default function Podium({ data }) {
+export default function Podium({ data, isTribeFocused = false, topOffset = 0 }) {
     // Subtle animated drift for blue streaks
     const drift1 = useRef(new Animated.Value(0)).current;
     const drift2 = useRef(new Animated.Value(0)).current;
     const drift3 = useRef(new Animated.Value(0)).current;
+
+    const gradientProps = isTribeFocused
+        ? { colors: ["#6B3A1F", "#251F30"] }
+        : { colors: ["#1B4F8A", "#133A6D", "#0F2743"], locations: [0, 0.62, 1] };
 
     useEffect(() => {
         const makeLoop = (val, duration, delay = 0) => {
@@ -88,66 +92,67 @@ export default function Podium({ data }) {
             {/* Full-screen blue gradient background (behind entire screen) */}
             <View style={styles.bg_fullscreen} pointerEvents="none">
                 <LinearGradient
-                    // Slightly lighter midnight-blue gradient
-                    colors={["#1B4F8A", "#133A6D", "#0F2743"]}
-                    locations={[0, 0.62, 1]}
-                    // Move gradient origin further toward screen center and slightly lower
-                    start={{ x: 0.30, y: 0.26 }}
-                    end={{ x: 0.92, y: 1.0 }}
+                    // Default midnight gradient; switches to tribe palette when focused
+                    {...gradientProps}
+                    // Horizontal sweep across the podium band
+                    start={{ x: 0, y: 0.5 }}
+                    end={{ x: 1, y: 0.5 }}
                     style={StyleSheet.absoluteFillObject}
                 />
 
-                {/* Faint blue streaks near the top for visual interest */}
-                <View style={styles.streaks_container}>
-                    <AnimatedLinearGradient
-                        colors={[
-                            'rgba(45,158,255,0.00)', // transparent
-                            'rgba(45,158,255,0.14)', // faint blue core
-                            'rgba(45,158,255,0.00)', // transparent
-                        ]}
-                        locations={[0, 0.5, 1]}
-                        start={{ x: 0, y: 0.5 }}
-                        end={{ x: 1, y: 0.5 }}
-                        style={[
-                            styles.streak_base,
-                            styles.streak_one,
-                            { opacity: op1, transform: [{ translateX: tx1 }, { rotate: '-14deg' }] },
-                        ]}
-                    />
-                    <AnimatedLinearGradient
-                        colors={[
-                            'rgba(45,158,255,0.00)',
-                            'rgba(45,158,255,0.10)',
-                            'rgba(45,158,255,0.00)',
-                        ]}
-                        locations={[0, 0.5, 1]}
-                        start={{ x: 0, y: 0.5 }}
-                        end={{ x: 1, y: 0.5 }}
-                        style={[
-                            styles.streak_base,
-                            styles.streak_two,
-                            { opacity: op2, transform: [{ translateX: tx2 }, { translateY: ty2 }, { rotate: '-12deg' }] },
-                        ]}
-                    />
-                    <AnimatedLinearGradient
-                        colors={[
-                            'rgba(45,158,255,0.00)',
-                            'rgba(45,158,255,0.08)',
-                            'rgba(45,158,255,0.00)',
-                        ]}
-                        locations={[0, 0.5, 1]}
-                        start={{ x: 0, y: 0.5 }}
-                        end={{ x: 1, y: 0.5 }}
-                        style={[
-                            styles.streak_base,
-                            styles.streak_three,
-                            { opacity: op3, transform: [{ translateX: tx3 }, { translateY: ty3 }, { rotate: '-10deg' }] },
-                        ]}
-                    />
-                </View>
+                {/* Strips disabled per design request; keep block for easy re-enable */}
+                {false && (
+                    <View style={styles.streaks_container}>
+                        <AnimatedLinearGradient
+                            colors={[
+                                'rgba(45,158,255,0.00)', // transparent
+                                'rgba(45,158,255,0.14)', // faint blue core
+                                'rgba(45,158,255,0.00)', // transparent
+                            ]}
+                            locations={[0, 0.5, 1]}
+                            start={{ x: 0, y: 0.5 }}
+                            end={{ x: 1, y: 0.5 }}
+                            style={[
+                                styles.streak_base,
+                                styles.streak_one,
+                                { opacity: op1, transform: [{ translateX: tx1 }, { rotate: '-14deg' }] },
+                            ]}
+                        />
+                        <AnimatedLinearGradient
+                            colors={[
+                                'rgba(45,158,255,0.00)',
+                                'rgba(45,158,255,0.10)',
+                                'rgba(45,158,255,0.00)',
+                            ]}
+                            locations={[0, 0.5, 1]}
+                            start={{ x: 0, y: 0.5 }}
+                            end={{ x: 1, y: 0.5 }}
+                            style={[
+                                styles.streak_base,
+                                styles.streak_two,
+                                { opacity: op2, transform: [{ translateX: tx2 }, { translateY: ty2 }, { rotate: '-12deg' }] },
+                            ]}
+                        />
+                        <AnimatedLinearGradient
+                            colors={[
+                                'rgba(45,158,255,0.00)',
+                                'rgba(45,158,255,0.08)',
+                                'rgba(45,158,255,0.00)',
+                            ]}
+                            locations={[0, 0.5, 1]}
+                            start={{ x: 0, y: 0.5 }}
+                            end={{ x: 1, y: 0.5 }}
+                            style={[
+                                styles.streak_base,
+                                styles.streak_three,
+                                { opacity: op3, transform: [{ translateX: tx3 }, { translateY: ty3 }, { rotate: '-10deg' }] },
+                            ]}
+                        />
+                    </View>
+                )}
             </View>
             {/* Podium content band (top ~40% of screen) */}
-            <View style={styles.podium_band}>
+            <View style={[styles.podium_band, { top: topOffset }]}>
                 {/* Left */}
                 <View style={styles.left}>
                     <View style={[styles.pfp_ctnr, { width: PFP_SIZE_LEFT }]}>
@@ -269,6 +274,7 @@ const styles = StyleSheet.create({
         borderTopLeftRadius: BAR_RADIUS,
         borderTopRightRadius: BAR_RADIUS,
         marginHorizontal: BAR_MARGIN_H,
+        marginTop: scaleSize(3),
         alignItems: 'center'
     },
     left: { alignItems: 'center', width: '28%' },

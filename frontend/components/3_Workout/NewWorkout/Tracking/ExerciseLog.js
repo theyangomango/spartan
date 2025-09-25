@@ -104,6 +104,14 @@ function ExerciseLog({
         flushSync(setsRef.current);
     }, [cancelPendingRafFlush, flushSync]);
 
+    const handleReplaceExercise = useCallback(() => {
+        if (replaceExercise) replaceExercise(exerciseIndex);
+    }, [exerciseIndex, replaceExercise]);
+
+    const handleDeleteExercise = useCallback(() => {
+        if (deleteExercise) deleteExercise(exerciseIndex);
+    }, [deleteExercise, exerciseIndex]);
+
     // ----- Previous sets (read-only display) -----
     const [previousSets, setPreviousSets] = useState([]);
     useEffect(() => {
@@ -284,8 +292,8 @@ function ExerciseLog({
                     visible={isPanelVisible}
                     onClose={() => setIsPanelVisible(false)}
                     position={panelPosition}
-                    replaceExercise={() => replaceExercise(exerciseIndex)}
-                    deleteExercise={() => deleteExercise(exerciseIndex)}
+                    replaceExercise={handleReplaceExercise}
+                    deleteExercise={handleDeleteExercise}
                 />
             )}
 

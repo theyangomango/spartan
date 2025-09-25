@@ -314,6 +314,7 @@ export default function MacroGoalsSheet({
             onChange={onChangeIndex}
             backgroundStyle={styles.sheetBackground}
             handleIndicatorStyle={styles.sheetHandle}
+            handleStyle={styles.sheetHandleContainer}
             backdropComponent={(props) => <BottomSheetBackdrop {...props} disappearsOnIndex={-1} appearsOnIndex={0} pressBehavior="close" />}
             keyboardBehavior="interactive"
             keyboardBlurBehavior="restore"
@@ -442,17 +443,6 @@ export default function MacroGoalsSheet({
                     </Animated.View>
                 </View>
 
-                {/* Footer only in GOALS mode (unchanged) */}
-                {!showInfo && (
-                    <View style={[styles.sheetButtons, { paddingHorizontal: scaleSize(18) }]}>
-                        <Pressable style={[styles.btn, styles.btnGhost]} onPress={closeSheet}>
-                            <Text style={[styles.btnText, styles.btnGhostText]}>Cancel</Text>
-                        </Pressable>
-                        <Pressable style={[styles.btn, styles.btnPrimary]} onPress={saveSheet}>
-                            <Text style={[styles.btnText, styles.btnPrimaryText]}>Save</Text>
-                        </Pressable>
-                    </View>
-                )}
             </KeyboardAvoidingView>
         </BottomSheet>
     );
@@ -472,7 +462,8 @@ const makeStyles = (COLORS) => {
 
     return StyleSheet.create({
         sheetBackground: { backgroundColor: card, borderTopLeftRadius: scaleSize(24), borderTopRightRadius: scaleSize(24), borderWidth: StyleSheet.hairlineWidth, borderColor: hairline },
-        sheetHandle: { backgroundColor: '#3A3D45', width: scaleSize(44), height: scaleSize(4), borderRadius: scaleSize(2) },
+        sheetHandleContainer: { paddingVertical: scaleSize(14), alignItems: 'center' },
+        sheetHandle: { backgroundColor: 'rgba(255,255,255,0.9)', width: scaleSize(44), height: scaleSize(4), borderRadius: scaleSize(2) },
 
         modeWrap: { ...StyleSheet.absoluteFillObject },
 

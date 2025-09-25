@@ -1,31 +1,16 @@
-import React, { forwardRef, useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { StyleSheet } from "react-native";
+import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { Animated as RNAnimated, StyleSheet, View } from "react-native";
 import BottomSheet, { BottomSheetBackdrop } from "@gorhom/bottom-sheet";
-import Animated from "react-native-reanimated";
-import { LinearGradient } from "expo-linear-gradient";
+import { useSharedValue, useAnimatedReaction } from "react-native-reanimated";
 import UserStatsModal from "./UserStatsModal";
 import scaleSize from "../../../helper/scaleSize";
 
 import { onHexagonUpdate } from "../../../utils/hexagonEvents";
 import { coercePrivacyMode } from "../../../utils/workoutPrivacy";
-import { DETAIL_HEADER_GRADIENT, SHEET_HANDLE_GRADIENT, SHEET_HANDLE_GRADIENT_ACTIVE } from "./UserStatsStyles";
 
-const SheetHandle = forwardRef(({ style, gradient = DETAIL_HEADER_GRADIENT, active = false, ...rest }, ref) => (
-    <Animated.View
-        ref={ref}
-        {...rest}
-        style={[handleStyles.container, active && handleStyles.containerActive, style]}
-    >
-        <LinearGradient
-            colors={gradient}
-            start={{ x: 0, y: 0 }}
-            end={{ x: 1, y: 1 }}
-            style={[handleStyles.indicator, active && handleStyles.indicatorActive]}
-        />
-    </Animated.View>
-));
-
-SheetHandle.displayName = 'UserStatsSheetHandle';
+const HANDLE_ACCENT = "#E0A500";
+const HANDLE_BG = "#e0a4002c";
+const HANDLE_NEUTRAL = "#D0D7E2";
 
 const toDayKey = (d) => {
     try {
@@ -35,19 +20,82 @@ const toDayKey = (d) => {
     } catch { return ''; }
 };
 
-const LeaderboardBottomSheet = ({ isVisible, setIsVisible, user, navigation }) => {
+const LeaderboardBottomSheet = ({ isVisible, setIsVisible, user, navigation, sheetProgressSV }) => {
     const bottomSheetRef = useRef(null);
     const snapPoints = useMemo(() => ["94%"], []);
     const [tick, setTick] = useState(0);
     const [detailActive, setDetailActive] = useState(false);
+    const handleAccentOpacity = useRef(new RNAnimated.Value(0)).current;
+    const animatedIndexSV = useSharedValue(-1);
+    const animatedPositionSV = useSharedValue(0);
+    const openPositionSV = useSharedValue(0);
+    const closePositionSV = useSharedValue(1);
 
-    const renderHandle = useCallback((props) => (
-        <SheetHandle
-            {...props}
-            active={detailActive}
-            gradient={detailActive ? SHEET_HANDLE_GRADIENT_ACTIVE : SHEET_HANDLE_GRADIENT}
-        />
-    ), [detailActive]);
+    useAnimatedReaction(
+        () => animatedIndexSV.value,
+        (value) => {
+            const currentPos = animatedPositionSV.value;
+            if (currentPos === undefined || currentPos === null) return;
+            if (value === 0) {
+                openPositionSV.value = currentPos;
+            } else if (value <= -1) {
+                closePositionSV.value = currentPos;
+            }
+        },
+        []
+    );
+
+    useAnimatedReaction(
+        () => animatedPositionSV.value,
+        (position) => {
+            if (!sheetProgressSV) return;
+            if (position === undefined || position === null) return;
+            const openPos = openPositionSV.value;
+            let closePos = closePositionSV.value;
+            if (position > openPos && position > closePos) {
+                closePos = position;
+                closePositionSV.value = closePos;
+            }
+            if (closePos <= openPos) closePos = openPos + 1;
+            const span = closePos - openPos;
+            const normalized = span > 0 ? 1 - ((position - openPos) / span) : 1;
+            let clamped = normalized;
+            if (clamped < 0) clamped = 0;
+            if (clamped > 1) clamped = 1;
+            sheetProgressSV.value = clamped;
+        },
+        [sheetProgressSV]
+    );
+
+    useEffect(() => {
+        RNAnimated.timing(handleAccentOpacity, {
+            toValue: detailActive ? 1 : 0,
+            duration: 180,
+            useNativeDriver: true,
+        }).start();
+    }, [detailActive, handleAccentOpacity]);
+
+    const renderHandle = useCallback(() => (
+        <View style={styles.handleWrap}>
+            <RNAnimated.View
+                style={[StyleSheet.absoluteFillObject, {
+                    backgroundColor: HANDLE_BG,
+                    opacity: handleAccentOpacity,
+                    borderTopLeftRadius: scaleSize(20),
+                    borderTopRightRadius: scaleSize(20),
+                }]}
+                pointerEvents="none"
+            />
+            <View style={styles.handleGripContainer}>
+                <View style={styles.handleGrip}>
+                    <RNAnimated.View
+                        style={[styles.handleAccent, { opacity: handleAccentOpacity }]}
+                        pointerEvents="none"
+                    />
+                </View>
+            </View>
+        </View>
+    ), [handleAccentOpacity]);
 
     const renderBackdrop = useCallback(
         (props) => (
@@ -64,8 +112,10 @@ const LeaderboardBottomSheet = ({ isVisible, setIsVisible, user, navigation }) =
     useEffect(() => {
         if (isVisible) {
             bottomSheetRef.current.expand();
+        } else if (sheetProgressSV) {
+            sheetProgressSV.value = 0;
         }
-    }, [isVisible]);
+    }, [isVisible, sheetProgressSV]);
 
     // Live refresh when hexagon changes elsewhere in the app
     useEffect(() => {
@@ -132,6 +182,8 @@ const LeaderboardBottomSheet = ({ isVisible, setIsVisible, user, navigation }) =
         <BottomSheet
             ref={bottomSheetRef}
             index={-1}
+            animatedIndex={animatedIndexSV}
+            animatedPosition={animatedPositionSV}
             backdropComponent={renderBackdrop}
             snapPoints={snapPoints}
             handleComponent={renderHandle}
@@ -161,24 +213,29 @@ const LeaderboardBottomSheet = ({ isVisible, setIsVisible, user, navigation }) =
 
 export default React.memo(LeaderboardBottomSheet);
 
-const handleStyles = StyleSheet.create({
-    container: {
+const styles = StyleSheet.create({
+    handleWrap: {
+        borderTopLeftRadius: scaleSize(20),
+        borderTopRightRadius: scaleSize(20),
+    },
+    handleGripContainer: {
         alignItems: 'center',
-        paddingTop: scaleSize(10),
-        paddingBottom: scaleSize(8),
+        paddingVertical: scaleSize(8),
     },
-    containerActive: {
-        paddingTop: scaleSize(12),
-        paddingBottom: scaleSize(10),
+    handleGrip: {
+        width: scaleSize(42),
+        height: scaleSize(4),
+        borderRadius: scaleSize(2),
+        backgroundColor: HANDLE_NEUTRAL,
+        overflow: 'hidden',
     },
-    indicator: {
-        width: scaleSize(44),
-        height: scaleSize(5),
-        borderRadius: scaleSize(3),
-    },
-    indicatorActive: {
-        width: scaleSize(56),
-        height: scaleSize(6),
-        borderRadius: scaleSize(999),
+    handleAccent: {
+        position: 'absolute',
+        left: 0,
+        right: 0,
+        top: 0,
+        bottom: 0,
+        backgroundColor: HANDLE_ACCENT,
+        borderRadius: scaleSize(2),
     },
 });

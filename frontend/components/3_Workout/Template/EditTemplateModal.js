@@ -1,5 +1,5 @@
 import React, { useState, useCallback } from "react";
-import { StyleSheet, View, Modal, ScrollView, Text, TextInput } from "react-native";
+import { StyleSheet, View, Modal, ScrollView, Text, TextInput, Keyboard } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import scaleSize from "../../../helper/scaleSize";
@@ -7,6 +7,7 @@ import SelectExerciseModal from "../NewWorkout/SelectExercise/SelectExerciseModa
 import RNBounceable from "@freakycoder/react-native-bounceable";
 import EditTemplateExerciseLog from "./EditTemplateExerciseLog";
 import theme from "../../../theme/mfpDark";
+import { strong as haptic } from "../../../utils/haptics";
 
 const normalizeSetType = (value) => {
     const raw = typeof value === "string" ? value.toLowerCase() : "";
@@ -48,6 +49,12 @@ const EditTemplateModal = ({ openedTemplateRef, updateTemplate, deleteTemplate, 
         setSelectExerciseModalVisible(false);
         setReplaceIndex(null);
     }, []);
+
+    const dismissOverlays = useCallback(() => {
+        try { Keyboard.dismiss(); } catch { }
+        closeSelectExerciseModal();
+        setDeleteConfirmModalVisible(false);
+    }, [closeSelectExerciseModal]);
 
     const appendExercises = useCallback((exercises) => {
         setTemplate((prev) => {
@@ -104,15 +111,14 @@ const EditTemplateModal = ({ openedTemplateRef, updateTemplate, deleteTemplate, 
                 ));
                 return normalizeTemplate({ ...prev, exercises: nextExercises });
             });
-            setReplaceIndex(null);
-            setSelectExerciseModalVisible(false);
+            closeSelectExerciseModal();
             return;
         }
 
         // Default: append all picked exercises
         appendExercises(Array.isArray(picked) ? picked : [picked]);
-        setSelectExerciseModalVisible(false);
-    }, [appendExercises, replaceIndex]);
+        closeSelectExerciseModal();
+    }, [appendExercises, replaceIndex, closeSelectExerciseModal]);
 
     const deleteExercise = useCallback((index) => {
         setTemplate((prev) => normalizeTemplate({
@@ -134,11 +140,12 @@ const EditTemplateModal = ({ openedTemplateRef, updateTemplate, deleteTemplate, 
     };
 
     const handleDeleteTemplate = useCallback(() => {
-        setDeleteConfirmModalVisible(false);
+        dismissOverlays();
         deleteTemplate();
-    }, [deleteTemplate]);
+    }, [dismissOverlays, deleteTemplate]);
 
     const handleClosePress = useCallback(() => {
+        try { haptic(); } catch { }
         const originalExercisesCount = Array.isArray(openedTemplateRef?.current?.exercises)
             ? openedTemplateRef.current.exercises.length
             : 0;
@@ -146,16 +153,19 @@ const EditTemplateModal = ({ openedTemplateRef, updateTemplate, deleteTemplate, 
             handleDeleteTemplate();
             return;
         }
+        dismissOverlays();
         if (typeof closeModal === 'function') closeModal();
-    }, [template, openedTemplateRef, handleDeleteTemplate, closeModal]);
+    }, [template, openedTemplateRef, handleDeleteTemplate, closeModal, dismissOverlays]);
 
     const handleSavePress = useCallback(() => {
+        try { haptic(); } catch { }
+        dismissOverlays();
         const normalized = normalizeTemplate(template);
         setTemplate(normalized);
         try { openedTemplateRef.current = normalized; } catch { }
         try { updateTemplate(); } catch { }
         if (typeof onSave === 'function') onSave(normalized);
-    }, [template, openedTemplateRef, updateTemplate, onSave]);
+    }, [template, openedTemplateRef, updateTemplate, onSave, dismissOverlays]);
 
     return (
         <View style={styles.mainContainer}>
