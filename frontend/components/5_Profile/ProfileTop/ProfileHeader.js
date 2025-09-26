@@ -12,12 +12,13 @@ import { getUnifiedHeaderMetrics } from "../../../theme/headerMetrics";
 const METRICS = getUnifiedHeaderMetrics();
 const ICON_SIZE = METRICS.iconSize;
 const ICON_WRAPPER_SIZE = scaleSize(ICON_SIZE + 6);
+const ICON_COLOR = "#CBD5E1";
 
 export default function ProfileHeader({ onPressCreateBtn, onPressSettings }) {
     return (
         <View style={styles.main_ctnr}>
             <RNBounceable style={styles.iconBtn} onPress={withStrongPress(onPressSettings)}>
-                <Setting2 size={ICON_SIZE} color={theme.textSecondary} />
+                <Setting2 size={ICON_SIZE} color={ICON_COLOR} variant="Linear" />
             </RNBounceable>
             <RNBounceable>
                 <View style={styles.center}>
@@ -28,11 +29,9 @@ export default function ProfileHeader({ onPressCreateBtn, onPressSettings }) {
                 </View>
             </RNBounceable>
             <View style={styles.right}>
-                <RNBounceable onPress={withStrongPress(onPressCreateBtn)}>
-                    <View style={styles.create_btn_ctnr}>
-                        {/* <FontAwesome6 name='plus' size={scaleSize(13)} color="#bbb" /> */}
-                        <AddSquare size={ICON_SIZE} color={theme.textSecondary} />
-                    </View>
+                <RNBounceable style={styles.iconBtn} onPress={withStrongPress(onPressCreateBtn)}>
+                    {/* <FontAwesome6 name='plus' size={scaleSize(13)} color="#bbb" /> */}
+                    <AddSquare size={ICON_SIZE} color={ICON_COLOR} variant="Linear" />
                 </RNBounceable>
             </View>
         </View>
@@ -64,15 +63,6 @@ const styles = StyleSheet.create({
     },
     right: {
         flexDirection: 'row',
-    },
-    create_btn_ctnr: {
-        borderWidth: scaleSize(1.5),
-        width: ICON_WRAPPER_SIZE,
-        height: ICON_WRAPPER_SIZE,
-        borderRadius: ICON_WRAPPER_SIZE / 2,
-        alignItems: 'center',
-        justifyContent: 'center',
-        borderColor: theme.hairline,
     },
     iconBtn: {
         width: ICON_WRAPPER_SIZE,

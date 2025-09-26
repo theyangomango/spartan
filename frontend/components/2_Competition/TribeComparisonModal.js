@@ -41,7 +41,7 @@ const PILL_ACTIVE_BORDER = theme.primaryHairline || "rgba(45, 158, 255, 0.45)";
 const PILL_ACTIVE_TEXT = theme.accentBlue || theme.primary;
 
 // Manage cards – dark theme styling
-const CARD_BG = theme.surface;
+const CARD_BG = theme.surface
 const CARD_BORDER = theme.hairline;
 const CARD_TEXT_PRIMARY = theme.textPrimary;
 const TROPHY_ACCENT = theme.accentGold || "#F2C663";
@@ -372,6 +372,7 @@ const styles = StyleSheet.create({
     },
     card: {
         width: "100%",
+        maxHeight: "80%",
         borderRadius: scaleSize(20),
         backgroundColor: MODAL_BG,
         padding: scaleSize(18),
@@ -420,7 +421,6 @@ const styles = StyleSheet.create({
     itemCard: {
         flexDirection: "row",
         alignItems: "center",
-        backgroundColor: "transparent",
         width: "100%",
         alignSelf: "stretch",
         borderBottomWidth: StyleSheet.hairlineWidth,
@@ -436,7 +436,7 @@ const styles = StyleSheet.create({
         width: "100%",
         flex: 1,
         backgroundColor: CARD_BG,
-        borderWidth: StyleSheet.hairlineWidth,
+        borderBottomWidth: StyleSheet.hairlineWidth,
         borderColor: CARD_BORDER,
         borderRadius: 0,
     },
@@ -452,8 +452,8 @@ const styles = StyleSheet.create({
     trophyBadgeIcon: { marginTop: scaleSize(1) },
     itemContent: { flex: 1, minWidth: 0 },
     itemTitle: {
-        fontFamily: "Outfit_800ExtraBold",
-        fontSize: scaleSize(12.5),
+        fontFamily: "Outfit_700Bold",
+        fontSize: scaleSize(13),
         color: CARD_TEXT_PRIMARY,
         letterSpacing: 0.2,
         lineHeight: scaleSize(16),
@@ -481,7 +481,7 @@ const styles = StyleSheet.create({
     },
     itemPillText: {
         fontFamily: "Outfit_700Bold",
-        fontSize: scaleSize(9.8),
+        fontSize: scaleSize(9),
         color: LIST_PILL_TEXT,
         letterSpacing: 0.4,
         textTransform: "uppercase",

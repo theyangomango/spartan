@@ -1,11 +1,12 @@
-import React, { useEffect, useMemo, useRef, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { View, StyleSheet, SectionList, Text, ActivityIndicator } from "react-native";
-import { collection, query, orderBy, limit, onSnapshot, getDocs, startAfter } from "firebase/firestore";
+import { collection, query, orderBy, limit, onSnapshot, getDocs, startAfter, doc, setDoc } from "firebase/firestore";
 import { db } from "../../../../firebase.config";
 import ButtonRow from "./ButtonRow";
 import NotificationCard from "./NotificationCard";
 import scaleSize, { ts } from "../../../helper/scaleSize";
 import theme from "../../../theme/mfpDark";
+import acceptWorkoutInvite from "../../../helper/workoutInvites";
 
 const PAGE_SIZE = 20;
 
@@ -66,6 +67,52 @@ export default function NotificationsModal({ visible, uid, closeBottomSheet }) {
 
         return () => { try { unsub(); } catch {} };
     }, [uid, visible, global?.userData?.uid]);
+
+    const handleAcceptInvite = useCallback(async (item) => {
+        const effUid = uid || global?.userData?.uid;
+        const inviteId = String(item?.inviteId || "");
+        const wid = String(item?.wid || "");
+        if (!effUid || !inviteId || !wid) return false;
+
+        try {
+            const { seedWorkout } = await acceptWorkoutInvite({ inviteId, wid, toUid: effUid });
+
+            try {
+                await setDoc(
+                    doc(db, "users", effUid, "notifications", String(item.id)),
+                    { inviteStatus: "accepted", read: true },
+                    { merge: true }
+                );
+            } catch {}
+
+            setEvents((prev) => prev.map((evt) => (
+                evt?.id === item?.id
+                    ? { ...evt, inviteStatus: "accepted", read: true }
+                    : evt
+            )));
+
+            try {
+                global.__pendingWorkoutJoin = {
+                    wid,
+                    seedWorkout: seedWorkout || null,
+                    inviterUid: String(item?.uid || ""),
+                    ts: Date.now(),
+                };
+            } catch {}
+
+            try { closeBottomSheet?.(); } catch {}
+
+            try {
+                const { jumpToTab } = require('../../../../navigationRef');
+                jumpToTab('Workout', { _joinTs: Date.now() });
+            } catch {}
+
+            return true;
+        } catch (err) {
+            console.log('handleAcceptInvite error', err);
+            return false;
+        }
+    }, [uid, closeBottomSheet, setEvents]);
 
     // Load older pages when the user scrolls near the bottom
     const loadMore = async () => {
@@ -207,7 +254,7 @@ export default function NotificationsModal({ visible, uid, closeBottomSheet }) {
                             if (item?.pid) jumpToTab('Feed', { focusPid: String(item.pid), _t: Date.now() });
                             else jumpToTab('Feed');
                         } catch {}
-                    }} />
+                    }} onAcceptWorkoutInvite={item?.type === 'workout-invite' ? (() => handleAcceptInvite(item)) : undefined} />
                 )}
                 renderSectionHeader={({ section }) => (
                     <View style={styles.sectionHeaderWrap}>

@@ -32,6 +32,7 @@ import * as Haptics from "expo-haptics";
 import ExerciseLog from "./Tracking/ExerciseLog";
 import SelectExerciseModal from "./SelectExercise/SelectExerciseModal";
 import { usePfp } from "../../../helper/usePFPs";
+import sendNotification from "../../../../backend/sendNotification";
 import theme from "../../../theme/mfpDark";
 // Lazy-load confetti only when needed to keep bundle lean during editing
 
@@ -802,17 +803,46 @@ const ActiveWorkoutModal = ({
                 { merge: true }
             );
 
-            const batch = selectedUsers.map((u) =>
-                addDoc(collection(db, "workoutInvites"), {
-                    wid,
-                    fromUid: myUid,
-                    fromHandle: global?.userData?.handle || "",
-                    toUid: String(u?.uid),
-                    status: "pending",
-                    createdAt: serverTimestamp(),
+            const inviterHandle = global?.userData?.handle || "";
+            const inviterName = global?.userData?.name || "";
+            const inviterPfp = global?.userData?.image || global?.userData?.pfp || "";
+            const inviterPfpVersion = global?.userData?.pfpVersion || 0;
+
+            await Promise.all(
+                selectedUsers.map(async (u) => {
+                    const toUid = String(u?.uid || "");
+                    if (!toUid || toUid === myUid) return;
+
+                    try {
+                        const inviteRef = await addDoc(collection(db, "workoutInvites"), {
+                            wid,
+                            fromUid: myUid,
+                            fromHandle: inviterHandle,
+                            fromName: inviterName,
+                            fromPfp: inviterPfp,
+                            fromPfpVersion: inviterPfpVersion,
+                            toUid,
+                            status: "pending",
+                            createdAt: serverTimestamp(),
+                        });
+
+                        await sendNotification(toUid, {
+                            uid: myUid,
+                            handle: inviterHandle,
+                            name: inviterName,
+                            pfp: inviterPfp,
+                            pfpVersion: inviterPfpVersion,
+                            type: "workout-invite",
+                            wid,
+                            inviteId: inviteRef.id,
+                            timestamp: Date.now(),
+                            inviteStatus: "pending",
+                        });
+                    } catch (inviteErr) {
+                        console.log("handleInviteSelected notify error", inviteErr);
+                    }
                 })
             );
-            await Promise.all(batch);
 
         } catch (e) {
             console.log("handleInviteSelected error", e);

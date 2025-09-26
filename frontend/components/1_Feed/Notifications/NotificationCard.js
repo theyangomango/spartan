@@ -2,7 +2,7 @@ import React, { useEffect, useMemo, useState } from "react";
 import { View, Text, StyleSheet, Pressable } from "react-native";
 import FastImage from "react-native-fast-image";
 import RNBounceable from "@freakycoder/react-native-bounceable";
-import { Heart, MessageCircle, AtSign, UserPlus } from "lucide-react-native";
+import { Heart, MessageCircle, AtSign, UserPlus, Activity } from "lucide-react-native";
 import { LinearGradient } from "expo-linear-gradient";
 
 import scaleSize, { ts } from "../../../helper/scaleSize";
@@ -33,13 +33,16 @@ function getDisplayMessage(item) {
             return `replied to your comment "${ellipsize(item.content, 50)}"`;
         case "mention":
             return "mentioned you";
+        case "workout-invite":
+            return "invited you to a workout";
         default:
             return "";
     }
 }
 
-export default function NotificationCard({ item, onPressCard }) {
+export default function NotificationCard({ item, onPressCard, onAcceptWorkoutInvite }) {
     const [isFollowing, setIsFollowing] = useState(false);
+    const [acceptingInvite, setAcceptingInvite] = useState(false);
     const pfpUri = usePfp(item.uid, item.pfpVersion ?? 0);
 
     /* check initial follow state */
@@ -81,6 +84,21 @@ export default function NotificationCard({ item, onPressCard }) {
 
     const unread = item?.read === false;
 
+    const showAcceptAction = item?.type === "workout-invite" && typeof onAcceptWorkoutInvite === "function";
+    const inviteAccepted = showAcceptAction && item?.inviteStatus === "accepted";
+
+    const handleAcceptInvite = async () => {
+        if (!showAcceptAction || inviteAccepted || acceptingInvite) return;
+        setAcceptingInvite(true);
+        try {
+            await onAcceptWorkoutInvite();
+        } catch (err) {
+            console.log('accept workout invite notification error', err);
+        } finally {
+            setAcceptingInvite(false);
+        }
+    };
+
     const { IconCmp, accent, accent2, lightAccent, badgeBg } = useMemo(() => {
         switch (item.type) {
             case "liked-post":
@@ -93,6 +111,8 @@ export default function NotificationCard({ item, onPressCard }) {
                 return { IconCmp: AtSign, accent: "#885FFF", accent2: "#A78BFA", lightAccent: "rgba(136,95,255,0.14)", badgeBg: "rgba(136,95,255,0.06)" };
             case "follow":
                 return { IconCmp: UserPlus, accent: "#22C55E", accent2: "#34D399", lightAccent: "rgba(34,197,94,0.16)", badgeBg: "rgba(34,197,94,0.06)" };
+            case "workout-invite":
+                return { IconCmp: Activity, accent: "#0EA5E9", accent2: "#38BDF8", lightAccent: "rgba(14,165,233,0.18)", badgeBg: "rgba(14,165,233,0.08)" };
             default:
                 return { IconCmp: MessageCircle, accent: "#64748B", accent2: "#94A3B8", lightAccent: "rgba(100,116,139,0.12)", badgeBg: "rgba(100,116,139,0.06)" };
         }
@@ -161,6 +181,18 @@ export default function NotificationCard({ item, onPressCard }) {
                             {isFollowing ? "Following" : "Follow Back"}
                         </Text>
                     </RNBounceable>
+                )}
+                {showAcceptAction && (
+                    <Pressable
+                        style={[styles.inviteAcceptBtn, (inviteAccepted || acceptingInvite) && styles.inviteAcceptBtnDisabled]}
+                        onPress={handleAcceptInvite}
+                        disabled={inviteAccepted || acceptingInvite}
+                        hitSlop={10}
+                    >
+                        <Text style={styles.inviteAcceptText}>
+                            {inviteAccepted ? "Accepted" : acceptingInvite ? "Accepting…" : "Accept"}
+                        </Text>
+                    </Pressable>
                 )}
             </View>
         </Pressable>
@@ -273,5 +305,23 @@ const styles = StyleSheet.create({
     },
     followTextPressed: {
         color: theme.accentBlue,
+    },
+    inviteAcceptBtn: {
+        marginLeft: scaleSize(10),
+        paddingHorizontal: scaleSize(16),
+        paddingVertical: scaleSize(7),
+        borderRadius: scaleSize(999),
+        backgroundColor: "#10B981",
+        alignItems: "center",
+        justifyContent: "center",
+        minWidth: scaleSize(74),
+    },
+    inviteAcceptBtnDisabled: {
+        backgroundColor: "rgba(16,185,129,0.24)",
+    },
+    inviteAcceptText: {
+        color: "#fff",
+        fontFamily: "Outfit_700Bold",
+        fontSize: scaleSize(12.5),
     },
 });

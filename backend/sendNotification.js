@@ -14,6 +14,9 @@ export default async function sendNotification(uid, event) {
         case 'replied-comment':
             incrementDocValue('users', uid, 'notificationNewComments');
             break;
+        case 'workout-invite':
+            // leave counters unchanged for now (only contributes to general events)
+            break;
     }
     incrementDocValue('users', uid, 'notificationNewEvents');
 
@@ -44,6 +47,8 @@ export default async function sendNotification(uid, event) {
                 title = 'New comment'; body = `${h}: ${String(event?.content || '').slice(0, 80)}`; break;
             case 'replied-comment':
                 title = 'New reply'; body = `${h} replied: ${String(event?.content || '').slice(0, 80)}`; break;
+            case 'workout-invite':
+                title = 'Workout invite'; body = `${h} invited you to a workout`; break;
             default:
                 title = 'New notification'; body = `${h} interacted with you`; break;
         }
@@ -51,7 +56,18 @@ export default async function sendNotification(uid, event) {
         await fetch('https://exp.host/--/api/v2/push/send', {
             method: 'POST',
             headers: { 'Accept': 'application/json', 'Content-Type': 'application/json' },
-            body: JSON.stringify({ to, sound: 'default', title, body, data: { nidType: event?.type || 'event', pid: event?.pid || null } })
+            body: JSON.stringify({
+                to,
+                sound: 'default',
+                title,
+                body,
+                data: {
+                    nidType: event?.type || 'event',
+                    pid: event?.pid || null,
+                    wid: event?.wid || null,
+                    inviteId: event?.inviteId || null,
+                },
+            })
         });
     } catch (e) { /* ignore network errors to avoid blocking UX */ }
 }

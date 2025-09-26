@@ -572,6 +572,7 @@ export default function Workout({ navigation, route }) {
     /* ---------- Workout Manager (state + persistence + timer) ---------- */
     // Track last consumed global open signal
     const openSignalRef = useRef(0);
+    const pendingInviteJoinRef = useRef(0);
     const {
         timerRef,
         isNewWorkoutVisible,
@@ -696,7 +697,26 @@ export default function Workout({ navigation, route }) {
                 const id = setTimeout(() => setIsNewWorkoutVisible(true), 30);
                 return () => clearTimeout(id);
             }
-        }, [route?.params?.openCurrent, route?.params?.openFriends, route?.params?.focusFriendUid, route?.params?.focusWorkoutWid, hasActiveWorkout, navigation])
+
+            const pending = (() => {
+                try { return global?.__pendingWorkoutJoin || null; } catch { return null; }
+            })();
+            if (pending && pending.wid) {
+                const joinSig = Number(pending.ts || Date.now());
+                if (pendingInviteJoinRef.current !== joinSig) {
+                    pendingInviteJoinRef.current = joinSig;
+                    try { global.__pendingWorkoutJoin = null; } catch {}
+                    try {
+                        const res = joinExternalWorkout?.({ wid: String(pending.wid), seedWorkout: pending.seedWorkout || null, inviterUid: pending.inviterUid || null });
+                        if (res && typeof res.then === 'function') {
+                            res.catch?.((err) => console.log('pending workout join error', err?.message || err));
+                        }
+                    } catch (err) {
+                        console.log('pending workout join error', err?.message || err);
+                    }
+                }
+            }
+        }, [route?.params?.openCurrent, route?.params?.openFriends, route?.params?.focusFriendUid, route?.params?.focusWorkoutWid, hasActiveWorkout, navigation, joinExternalWorkout])
     );
 
     /* ---------- New workout from current template selection ---------- */

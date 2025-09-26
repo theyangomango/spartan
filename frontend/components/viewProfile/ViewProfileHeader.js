@@ -1,91 +1,81 @@
-import { StyleSheet, View, Text, Dimensions } from "react-native";
-import { Feather } from '@expo/vector-icons';
-import { Send2 } from 'iconsax-react-native';
+import { StyleSheet, View, Text } from "react-native";
+import { Feather, Ionicons, MaterialIcons } from "@expo/vector-icons";
 import RNBounceable from "@freakycoder/react-native-bounceable";
 import theme from "../../theme/mfpDark";
-import scaleSizeGlobal from "../../helper/scaleSize";
+import scaleSize from "../../helper/scaleSize";
 import { withStrongPress } from "../../utils/haptics";
+import { getUnifiedHeaderMetrics } from "../../theme/headerMetrics";
 
-const { height: SCREEN_HEIGHT } = Dimensions.get('window');
-const scale = SCREEN_HEIGHT / 844; // match Profile header baseline
-
-function scaleSize(size) {
-    return Math.round(size * scale);
-}
+const METRICS = getUnifiedHeaderMetrics();
+const ICON_SIZE = METRICS.iconSize;
+const ICON_WRAPPER_SIZE = scaleSize(ICON_SIZE + 6);
+const ICON_COLOR = "#CBD5E1";
 
 export default function ViewProfileHeader({ handle, goBack, toMessages, onOpenOptions }) {
     return (
         <View style={styles.main_ctnr}>
-            <View style={styles.sideLeft}>
-                <RNBounceable onPress={withStrongPress(goBack)} hitSlop={10}>
-                    <Feather name="chevron-left" size={scaleSize(22.5)} color={theme.textSecondary} />
-                </RNBounceable>
-            </View>
+            <RNBounceable onPress={withStrongPress(goBack)} hitSlop={10} style={styles.iconBtn}>
+                <Ionicons name="chevron-back" size={ICON_SIZE} color={ICON_COLOR} />
+            </RNBounceable>
 
             <RNBounceable onPress={withStrongPress(onOpenOptions)} hitSlop={10} style={styles.center}>
                 <View style={styles.handleRow}>
-                    <Text style={styles.handle_text} numberOfLines={1} ellipsizeMode="tail">{handle}</Text>
-                    <Feather name="chevron-down" size={scaleSize(18)} color={theme.textSecondary} style={{ marginLeft: scaleSize(4) }} />
+                    <Text style={styles.handle_text} numberOfLines={1} ellipsizeMode="tail">
+                        {handle}
+                    </Text>
+                    <Feather
+                        name="chevron-down"
+                        size={scaleSize(18)}
+                        color={theme.textSecondary}
+                        style={styles.centerChevron}
+                    />
                 </View>
             </RNBounceable>
 
-            <View style={styles.sideRight}>
-                <RNBounceable onPress={withStrongPress(toMessages)} hitSlop={10}>
-                    <View style={styles.message_icon_btn}>
-                        <Send2 size={scaleSize(19)} color={theme.textSecondary} variant="Linear" />
-                    </View>
-                </RNBounceable>
-            </View>
+            <RNBounceable onPress={withStrongPress(toMessages)} hitSlop={10} style={styles.iconBtn}>
+                <MaterialIcons name="alternate-email" size={ICON_SIZE + 1.5} color={ICON_COLOR} />
+            </RNBounceable>
         </View>
     );
 }
 
 const styles = StyleSheet.create({
     main_ctnr: {
-        alignItems: 'center',
-        flexDirection: 'row',
-        paddingHorizontal: scaleSize(22),
-        paddingBottom: scaleSize(8),
-        paddingTop: scaleSize(6),
+        alignItems: "center",
+        flexDirection: "row",
+        justifyContent: "space-between",
+        paddingHorizontal: METRICS.paddingH,
+        paddingBottom: METRICS.paddingBottom,
+        paddingTop: METRICS.paddingTop,
+        marginTop: METRICS.marginTop,
+        minHeight: METRICS.paddingTop + METRICS.paddingBottom + METRICS.centerH,
     },
     center: {
         flex: 1,
-        alignItems: 'center',
-        justifyContent: 'center',
-        paddingHorizontal: scaleSize(8),
+        alignItems: "center",
+        justifyContent: "center",
+        paddingHorizontal: scaleSize(12),
     },
     handleRow: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        maxWidth: '100%'
+        flexDirection: "row",
+        alignItems: "center",
+        maxWidth: "100%",
     },
     handle_text: {
-        fontFamily: 'Outfit_600SemiBold',
-        fontSize: scaleSizeGlobal(16),
+        fontFamily: "Outfit_600SemiBold",
+        fontSize: scaleSize(16),
         padding: scaleSize(2),
         color: theme.textPrimary,
-        maxWidth: '100%'
+        maxWidth: "100%",
     },
-    sideLeft: {
-        width: scaleSize(56),
-        alignItems: 'flex-start',
-        justifyContent: 'center',
+    centerChevron: {
+        marginLeft: scaleSize(4),
     },
-    sideRight: {
-        width: scaleSize(56),
-        alignItems: 'flex-end',
-        justifyContent: 'center',
+    iconBtn: {
+        width: ICON_WRAPPER_SIZE,
+        height: ICON_WRAPPER_SIZE,
+        borderRadius: ICON_WRAPPER_SIZE / 2,
+        alignItems: "center",
+        justifyContent: "center",
     },
-    message_icon_btn: {
-        width: scaleSize(34),
-        height: scaleSize(34),
-        borderRadius: scaleSize(20),
-        backgroundColor: 'transparent',
-        borderWidth: scaleSize(1),
-        borderColor: theme.hairline,
-        alignItems: 'center',
-        justifyContent: 'center',
-        shadowColor: 'transparent',
-        elevation: 0,
-    }
 });

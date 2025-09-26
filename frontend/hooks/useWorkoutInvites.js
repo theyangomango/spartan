@@ -1,8 +1,9 @@
 // hooks/useWorkoutInvites.js
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Animated } from "react-native";
-import { arrayUnion, collection, doc, getDoc, onSnapshot, query, serverTimestamp, updateDoc, where } from "firebase/firestore";
+import { collection, doc, onSnapshot, query, serverTimestamp, updateDoc, where } from "firebase/firestore";
 import { db } from "../../firebase.config";
+import acceptWorkoutInvite from "../helper/workoutInvites";
 import { usePfp } from "../helper/usePFPs";
 
 /**
@@ -54,16 +55,10 @@ export default function useWorkoutInvites({ uid, onAccepted, enabled = true } = 
       const me = String(uid || global?.userData?.uid || "");
       const wid = String(currentInvite?.wid || "");
       if (!me || !wid) return;
-      await updateDoc(doc(db, "workouts", wid), { members: arrayUnion(me), updatedAt: serverTimestamp(), active: true });
-      await updateDoc(doc(db, "workoutInvites", currentInvite.id), { status: "accepted", actedAt: serverTimestamp() });
 
-      let seed = null;
-      try {
-        const wSnap = await getDoc(doc(db, "workouts", wid));
-        seed = wSnap.exists() ? wSnap.data() : null;
-      } catch {}
+      const { seedWorkout } = await acceptWorkoutInvite({ inviteId: currentInvite.id, wid, toUid: me });
 
-      onAccepted?.(wid, seed);
+      onAccepted?.(wid, seedWorkout || null);
       setInvites((prev) => prev.filter((x) => x.id !== currentInvite.id));
     } catch (e) {
       console.log("Accept invite error", e);
