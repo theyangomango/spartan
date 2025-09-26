@@ -6,7 +6,7 @@ import theme from "../../../theme/mfpDark";
 import scaleSize from "../../../helper/scaleSize";
 
 const MONTH_NAMES = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
-const WEEKDAY_LABELS = ['M', 'T', 'W', 'T', 'F', 'S', 'S'];
+const WEEKDAY_LABELS = ['S', 'M', 'T', 'W', 'T', 'F', 'S'];
 
 const dayKey = (d) => {
     if (!d) return '';
@@ -35,7 +35,7 @@ const buildMonthData = (year, month, markedSet, selectedKey, todayKey) => {
     first.setHours(0, 0, 0, 0);
     const daysInMonth = new Date(year, month + 1, 0).getDate();
     const firstDay = first.getDay();
-    const offset = (firstDay + 6) % 7; // Monday start
+    const offset = firstDay; // Sunday start
 
     const cells = [];
     for (let i = 0; i < offset; i += 1) cells.push(null);
@@ -202,9 +202,9 @@ const HistoryCalendarModal = memo(function HistoryCalendarModal({ visible, onClo
                                                     <View
                                                         style={[
                                                             styles.dayCircle,
-                                                            cell.isMarked && styles.dayLogged,
                                                             cell.isToday && styles.dayToday,
                                                             cell.isSelected && styles.daySelected,
+                                                            cell.isMarked && styles.dayLogged,
                                                         ]}
                                                     >
                                                         <Text
@@ -277,7 +277,7 @@ const styles = StyleSheet.create({
     },
     dayLogged: { backgroundColor: 'rgba(45, 158, 255, 0.26)' },
     dayToday: { borderWidth: StyleSheet.hairlineWidth, borderColor: theme.primary },
-    daySelected: { borderWidth: scaleSize(2), borderColor: theme.success, backgroundColor: theme.fieldDeep },
+    daySelected: { borderWidth: scaleSize(2), borderColor: theme.success },
     dayText: { fontFamily: 'Outfit_600SemiBold', fontSize: scaleSize(13), color: theme.textSecondary },
     dayTextActive: { color: theme.textPrimary },
 });

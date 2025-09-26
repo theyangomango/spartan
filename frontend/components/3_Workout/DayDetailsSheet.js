@@ -466,9 +466,9 @@ const HistoryCalendarModal = memo(function HistoryCalendarModal({
                             <View
                                 style={[
                                     styles.calendarDayCircle,
-                                    cell.isMarked && styles.calendarDayLogged,
                                     cell.isToday && styles.calendarDayToday,
                                     cell.isSelected && styles.calendarDaySelected,
+                                    cell.isMarked && styles.calendarDayLogged,
                                 ]}
                             >
                                 <Text
@@ -1517,7 +1517,6 @@ const styles = StyleSheet.create({
     calendarDaySelected: {
         borderWidth: scaleSize(2),
         borderColor: theme.success,
-        backgroundColor: theme.fieldDeep,
     },
     calendarDayText: {
         fontFamily: 'Outfit_600SemiBold',
