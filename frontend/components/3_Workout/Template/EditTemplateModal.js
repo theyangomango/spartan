@@ -8,6 +8,7 @@ import RNBounceable from "@freakycoder/react-native-bounceable";
 import EditTemplateExerciseLog from "./EditTemplateExerciseLog";
 import theme from "../../../theme/mfpDark";
 import { strong as haptic } from "../../../utils/haptics";
+import { Copy } from "iconsax-react-native";
 
 const normalizeSetType = (value) => {
     const raw = typeof value === "string" ? value.toLowerCase() : "";
@@ -35,15 +36,24 @@ const normalizeTemplate = (tpl = {}) => ({
 
 const scaledSize = (size) => scaleSize(size);
 
-const EditTemplateModal = ({ openedTemplateRef, updateTemplate, deleteTemplate, closeModal, onSave }) => {
+const EditTemplateModal = ({
+    openedTemplateRef,
+    updateTemplate,
+    deleteTemplate,
+    closeModal,
+    onSave,
+    readOnly = false,
+    onCopyTemplate,
+}) => {
     const [selectExerciseModalVisible, setSelectExerciseModalVisible] = useState(false);
     const [replaceIndex, setReplaceIndex] = useState(null);
     const [deleteConfirmModalVisible, setDeleteConfirmModalVisible] = useState(false);
     const [template, setTemplate] = useState(() => normalizeTemplate(openedTemplateRef.current));
 
     const showSelectExerciseModal = useCallback(() => {
+        if (readOnly) return;
         setSelectExerciseModalVisible(true);
-    }, []);
+    }, [readOnly]);
 
     const closeSelectExerciseModal = useCallback(() => {
         setSelectExerciseModalVisible(false);
@@ -57,6 +67,7 @@ const EditTemplateModal = ({ openedTemplateRef, updateTemplate, deleteTemplate, 
     }, [closeSelectExerciseModal]);
 
     const appendExercises = useCallback((exercises) => {
+        if (readOnly) return;
         setTemplate((prev) => {
             const next = {
                 ...prev,
@@ -71,9 +82,10 @@ const EditTemplateModal = ({ openedTemplateRef, updateTemplate, deleteTemplate, 
             };
             return normalizeTemplate(next);
         });
-    }, []);
+    }, [readOnly]);
 
     const updateSets = useCallback((exerciseIndex, newSets) => {
+        if (readOnly) return;
         setTemplate(prevTemplate => {
             const normalizedSets = (Array.isArray(newSets) ? newSets : []).map(normalizeTemplateSet);
             const updatedExercises = prevTemplate.exercises.map((exercise, index) => (
@@ -82,14 +94,16 @@ const EditTemplateModal = ({ openedTemplateRef, updateTemplate, deleteTemplate, 
             const next = { ...prevTemplate, exercises: updatedExercises };
             return normalizeTemplate(next);
         });
-    }, []);
+    }, [readOnly]);
 
     const replaceExercise = useCallback((index) => {
+        if (readOnly) return;
         setReplaceIndex(index);
         setSelectExerciseModalVisible(true);
-    }, []);
+    }, [readOnly]);
 
     const handleAppendOrReplace = useCallback((picked) => {
+        if (readOnly) return;
         const choice = Array.isArray(picked) ? picked[0] : picked;
         const isReplacing = replaceIndex !== null && replaceIndex >= 0;
 
@@ -118,34 +132,43 @@ const EditTemplateModal = ({ openedTemplateRef, updateTemplate, deleteTemplate, 
         // Default: append all picked exercises
         appendExercises(Array.isArray(picked) ? picked : [picked]);
         closeSelectExerciseModal();
-    }, [appendExercises, replaceIndex, closeSelectExerciseModal]);
+    }, [appendExercises, replaceIndex, closeSelectExerciseModal, readOnly]);
 
     const deleteExercise = useCallback((index) => {
+        if (readOnly) return;
         setTemplate((prev) => normalizeTemplate({
             ...prev,
             exercises: prev.exercises.filter((_, i) => i !== index),
         }));
-    }, []);
+    }, [readOnly]);
 
     const handleChangeTitle = useCallback((text) => {
+        if (readOnly) return;
         setTemplate((prev) => normalizeTemplate({
             ...prev,
             name: text,
         }));
-    }, []);
+    }, [readOnly]);
 
     const confirmDeleteTemplate = () => {
+        if (readOnly) return;
         if (template.exercises.length === 0) handleDeleteTemplate();
         else setDeleteConfirmModalVisible(true);
     };
 
     const handleDeleteTemplate = useCallback(() => {
+        if (readOnly) return;
         dismissOverlays();
         deleteTemplate();
-    }, [dismissOverlays, deleteTemplate]);
+    }, [dismissOverlays, deleteTemplate, readOnly]);
 
     const handleClosePress = useCallback(() => {
         try { haptic(); } catch { }
+        if (readOnly) {
+            dismissOverlays();
+            if (typeof closeModal === 'function') closeModal();
+            return;
+        }
         const originalExercisesCount = Array.isArray(openedTemplateRef?.current?.exercises)
             ? openedTemplateRef.current.exercises.length
             : 0;
@@ -155,7 +178,7 @@ const EditTemplateModal = ({ openedTemplateRef, updateTemplate, deleteTemplate, 
         }
         dismissOverlays();
         if (typeof closeModal === 'function') closeModal();
-    }, [template, openedTemplateRef, handleDeleteTemplate, closeModal, dismissOverlays]);
+    }, [template, openedTemplateRef, handleDeleteTemplate, closeModal, dismissOverlays, readOnly]);
 
     const handleSavePress = useCallback(() => {
         try { haptic(); } catch { }
@@ -167,9 +190,19 @@ const EditTemplateModal = ({ openedTemplateRef, updateTemplate, deleteTemplate, 
         if (typeof onSave === 'function') onSave(normalized);
     }, [template, openedTemplateRef, updateTemplate, onSave, dismissOverlays]);
 
+    const handleCopyPress = useCallback(() => {
+        try { haptic(); } catch { }
+        dismissOverlays();
+        const normalized = normalizeTemplate(template);
+        setTemplate(normalized);
+        if (typeof onCopyTemplate === 'function') {
+            onCopyTemplate(normalized);
+        }
+    }, [template, dismissOverlays, onCopyTemplate]);
+
     return (
         <View style={styles.mainContainer}>
-            <View style={styles.navBar}>
+            <View style={[styles.navBar, readOnly && styles.navBarReadOnly]}>
                 <View style={styles.sideSlotLeft}>
                     <RNBounceable onPress={handleClosePress} style={styles.iconButton}>
                         <Text style={styles.iconButtonLabel}>✕</Text>
@@ -177,9 +210,16 @@ const EditTemplateModal = ({ openedTemplateRef, updateTemplate, deleteTemplate, 
                 </View>
                 <View style={styles.navSpacer} />
                 <View style={styles.sideSlotRight}>
-                    <RNBounceable onPress={handleSavePress} style={styles.saveButton}>
-                        <Text style={styles.saveButtonText}>Save</Text>
-                    </RNBounceable>
+                    {readOnly ? (
+                        <RNBounceable onPress={handleCopyPress} style={styles.copyButton}>
+                            <Copy size={scaledSize(18)} color="#E0EEFF" variant="Linear" />
+                            <Text style={styles.copyButtonText}>Copy Template</Text>
+                        </RNBounceable>
+                    ) : (
+                        <RNBounceable onPress={handleSavePress} style={styles.saveButton}>
+                            <Text style={styles.saveButtonText}>Save</Text>
+                        </RNBounceable>
+                    )}
                 </View>
             </View>
             <ScrollView
@@ -195,9 +235,11 @@ const EditTemplateModal = ({ openedTemplateRef, updateTemplate, deleteTemplate, 
                         placeholder="New Template"
                         placeholderTextColor={theme.textSecondary}
                         selectionColor={theme.primary}
+                        editable={!readOnly}
+                        selectTextOnFocus={!readOnly}
                         returnKeyType="done"
                         blurOnSubmit
-                        autoFocus
+                        autoFocus={!readOnly}
                     />
                 </View>
                 {template.exercises.map((ex, index) => (
@@ -210,56 +252,65 @@ const EditTemplateModal = ({ openedTemplateRef, updateTemplate, deleteTemplate, 
                         updateSets={updateSets}
                         replaceExercise={replaceExercise}
                         deleteExercise={deleteExercise}
+                        readOnly={readOnly}
                     />
                 ))}
-                <RNBounceable onPress={showSelectExerciseModal} style={styles.addExerciseButton}>
-                    <Text style={styles.addExerciseText}>Add Exercises</Text>
-                </RNBounceable>
+                {!readOnly && (
+                    <>
+                        <RNBounceable onPress={showSelectExerciseModal} style={styles.addExerciseButton}>
+                            <Text style={styles.addExerciseText}>Add Exercises</Text>
+                        </RNBounceable>
 
-                <RNBounceable style={styles.cancelButton} onPress={confirmDeleteTemplate}>
-                    <Text style={styles.deleteButtonText}>Delete Template</Text>
-                </RNBounceable>
+                        <RNBounceable style={styles.cancelButton} onPress={confirmDeleteTemplate}>
+                            <Text style={styles.deleteButtonText}>Delete Template</Text>
+                        </RNBounceable>
+                    </>
+                )}
             </ScrollView>
-            <Modal
-                animationType='fade'
-                transparent={true}
-                visible={selectExerciseModalVisible}>
-                <SelectExerciseModal
-                    closeModal={closeSelectExerciseModal}
-                    appendExercises={handleAppendOrReplace}
-                />
-            </Modal>
-            <Modal
-                animationType="fade"
-                transparent
-                visible={deleteConfirmModalVisible}
-                onRequestClose={() => setDeleteConfirmModalVisible(false)}
-                statusBarTranslucent
-            >
-                <View style={styles.modalOverlay}>
-                    <View style={styles.modalContainer}>
-                        <LinearGradient
-                            colors={["#2D9EFF", "#60A5FA"]}
-                            start={{ x: 0, y: 0 }}
-                            end={{ x: 1, y: 0 }}
-                            style={styles.modalAccentBar}
-                        />
-                        <View style={[styles.modalIconRing, styles.modalIconRingDanger]}>
-                            <MaterialCommunityIcons name="trash-can-outline" size={scaleSize(26)} color="#FEE2E2" />
+            {!readOnly && (
+                <Modal
+                    animationType='fade'
+                    transparent={true}
+                    visible={selectExerciseModalVisible}>
+                    <SelectExerciseModal
+                        closeModal={closeSelectExerciseModal}
+                        appendExercises={handleAppendOrReplace}
+                    />
+                </Modal>
+            )}
+            {!readOnly && (
+                <Modal
+                    animationType="fade"
+                    transparent
+                    visible={deleteConfirmModalVisible}
+                    onRequestClose={() => setDeleteConfirmModalVisible(false)}
+                    statusBarTranslucent
+                >
+                    <View style={styles.modalOverlay}>
+                        <View style={styles.modalContainer}>
+                            <LinearGradient
+                                colors={["#2D9EFF", "#60A5FA"]}
+                                start={{ x: 0, y: 0 }}
+                                end={{ x: 1, y: 0 }}
+                                style={styles.modalAccentBar}
+                            />
+                            <View style={[styles.modalIconRing, styles.modalIconRingDanger]}>
+                                <MaterialCommunityIcons name="trash-can-outline" size={scaleSize(26)} color="#FEE2E2" />
+                            </View>
+                            <Text style={styles.modalTitle}>Delete template?</Text>
+                            <Text style={styles.modalBody}>
+                                This removes the template permanently. You can always build a new one from the workout hub.
+                            </Text>
+                            <RNBounceable onPress={handleDeleteTemplate} style={[styles.modalAction, styles.modalActionDanger]}>
+                                <Text style={styles.modalActionText}>Yes, delete template</Text>
+                            </RNBounceable>
+                            <RNBounceable onPress={() => setDeleteConfirmModalVisible(false)} style={[styles.modalAction, styles.modalActionSecondary]}>
+                                <Text style={styles.modalActionSecondaryText}>Keep template</Text>
+                            </RNBounceable>
                         </View>
-                        <Text style={styles.modalTitle}>Delete template?</Text>
-                        <Text style={styles.modalBody}>
-                            This removes the template permanently. You can always build a new one from the workout hub.
-                        </Text>
-                        <RNBounceable onPress={handleDeleteTemplate} style={[styles.modalAction, styles.modalActionDanger]}>
-                            <Text style={styles.modalActionText}>Yes, delete template</Text>
-                        </RNBounceable>
-                        <RNBounceable onPress={() => setDeleteConfirmModalVisible(false)} style={[styles.modalAction, styles.modalActionSecondary]}>
-                            <Text style={styles.modalActionSecondaryText}>Keep template</Text>
-                        </RNBounceable>
                     </View>
-                </View>
-            </Modal>
+                </Modal>
+            )}
         </View>
     );
 };
@@ -276,6 +327,10 @@ const styles = StyleSheet.create({
         flexDirection: 'row',
         alignItems: 'center',
         justifyContent: 'space-between',
+    },
+    navBarReadOnly: {
+        paddingTop: scaledSize(30),
+        paddingHorizontal: scaledSize(24),
     },
     sideSlotLeft: {
         width: scaledSize(60),
@@ -323,6 +378,25 @@ const styles = StyleSheet.create({
         fontFamily: 'Outfit_700Bold',
         fontSize: scaleSize(14),
         color: '#FFFFFF',
+    },
+    copyButton: {
+        minWidth: scaleSize(160),
+        paddingHorizontal: scaledSize(16),
+        height: scaleSize(40),
+        borderRadius: scaledSize(14),
+        backgroundColor: '#166CC9',
+        borderWidth: scaledSize(1.1),
+        borderColor: '#166CC9',
+        justifyContent: 'center',
+        alignItems: 'center',
+        flexDirection: 'row',
+        marginTop: scaledSize(4),
+    },
+    copyButtonText: {
+        fontFamily: 'Outfit_700Bold',
+        fontSize: scaleSize(13.5),
+        color: '#E0EEFF',
+        marginLeft: scaledSize(8),
     },
     navSpacer: {
         flex: 1,

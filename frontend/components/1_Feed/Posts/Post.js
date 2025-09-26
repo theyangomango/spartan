@@ -32,7 +32,7 @@ const B_IN = 1.02;
 const B_OUT = 1;
 const B_FRICTION = 60;
 
-const DEBUG_SHOW_TONE_OVERLAY = true;
+const DEBUG_SHOW_TONE_OVERLAY = false;
 
 // Fractional rectangle (normalized 0..1) covering the header handle text region.
 const HEADER_RECT_LEFT = 0.19;

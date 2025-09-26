@@ -8,7 +8,7 @@ import TemplateSetRow from "./TemplateSetRow";
 import theme from "../../../theme/mfpDark";
 
 
-export default function EditTemplateExerciseLog({ name, muscle, exerciseIndex, updateSets, sets, replaceExercise, deleteExercise }) {
+export default function EditTemplateExerciseLog({ name, muscle, exerciseIndex, updateSets, sets, replaceExercise, deleteExercise, readOnly = false }) {
     const [isPanelVisible, setIsPanelVisible] = useState(false);
     const [panelPosition, setPanelPosition] = useState({ top: 0, left: 0 });
     const fadeAnim = useRef(new Animated.Value(1)).current;
@@ -16,6 +16,7 @@ export default function EditTemplateExerciseLog({ name, muscle, exerciseIndex, u
     // Muscle badge removed for Edit Template modal
 
     const togglePanel = (event) => {
+        if (readOnly) return;
         if (isPanelVisible) {
             setIsPanelVisible(false);
         } else {
@@ -28,6 +29,7 @@ export default function EditTemplateExerciseLog({ name, muscle, exerciseIndex, u
     };
 
     function addSet() {
+        if (readOnly) return;
         updateSets(exerciseIndex, [...sets, {
             previous: '405 lb x 12',
             weight: 0,
@@ -37,29 +39,37 @@ export default function EditTemplateExerciseLog({ name, muscle, exerciseIndex, u
     }
 
     function updateSet(index, newSet) {
+        if (readOnly) return;
         const newSets = [...sets];
         newSets[index] = newSet;
         updateSets(exerciseIndex, newSets);
     }
 
     function deleteSet(index) {
+        if (readOnly) return;
         const newSets = sets.filter((_, i) => i !== index);
         updateSets(exerciseIndex, newSets);
     }
 
     return (
         <View style={styles.main_ctnr}>
-            <ExerciseOptionsPanel
-                visible={isPanelVisible}
-                onClose={() => {
-                    setIsPanelVisible(false);
-                }}
-                position={panelPosition}
-                replaceExercise={() => replaceExercise(exerciseIndex)}
-                deleteExercise={() => deleteExercise(exerciseIndex)}
-            />
+            {!readOnly && (
+                <ExerciseOptionsPanel
+                    visible={isPanelVisible}
+                    onClose={() => {
+                        setIsPanelVisible(false);
+                    }}
+                    position={panelPosition}
+                    replaceExercise={() => replaceExercise(exerciseIndex)}
+                    deleteExercise={() => deleteExercise(exerciseIndex)}
+                />
+            )}
             <Animated.View style={[styles.header, { opacity: fadeAnim }]}>
-                <Pressable style={styles.nameContainer} onPress={togglePanel}>
+                <Pressable
+                    style={styles.nameContainer}
+                    onPress={togglePanel}
+                    disabled={readOnly}
+                >
                     <Text style={styles.exercise_text} numberOfLines={1}>{name}</Text>
                 </Pressable>
 
@@ -86,16 +96,25 @@ export default function EditTemplateExerciseLog({ name, muscle, exerciseIndex, u
             <Animated.View style={{ opacity: fadeAnim }}>
                 {sets.map((set, index) => {
                     return (
-                        <TemplateSetRow set={set} index={index} key={index} updateSet={updateSet} handleDelete={() => deleteSet(index)} />
+                        <TemplateSetRow
+                            set={set}
+                            index={index}
+                            key={index}
+                            updateSet={updateSet}
+                            handleDelete={() => deleteSet(index)}
+                            readOnly={readOnly}
+                        />
                     );
                 })}
             </Animated.View>
-            <Animated.View style={[styles.add_set_btn_ctnr, { opacity: fadeAnim }]}>
-                <RNBounceable activeOpacity={0.5} onPress={addSet} style={styles.add_set_btn}>
-                    <Entypo name="plus" size={scaleSize(18)} color={theme.primary} />
-                    <Text style={styles.add_set_text}>Add Set</Text>
-                </RNBounceable>
-            </Animated.View>
+            {!readOnly && (
+                <Animated.View style={[styles.add_set_btn_ctnr, { opacity: fadeAnim }]}>
+                    <RNBounceable activeOpacity={0.5} onPress={addSet} style={styles.add_set_btn}>
+                        <Entypo name="plus" size={scaleSize(18)} color={theme.primary} />
+                        <Text style={styles.add_set_text}>Add Set</Text>
+                    </RNBounceable>
+                </Animated.View>
+            )}
         </View>
     );
 }

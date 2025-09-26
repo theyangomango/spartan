@@ -54,6 +54,7 @@ export default function ViewProfileInfo({ userData, onPressFollowers, onPressFol
 
 const styles = StyleSheet.create({
     main_ctnr: {
+        marginTop: scaleSize(5),
         marginBottom: scaleSize(5),
     },
     top_row: {

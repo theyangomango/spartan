@@ -53,6 +53,7 @@ export default function ProfileInfo({ userData, pfp, onPressFollowers, onPressFo
 
 const styles = StyleSheet.create({
     main_ctnr: {
+        marginTop: scaleSize(5),
         marginBottom: scaleSize(scaledSize(5)),
     },
     top_row: {
@@ -95,7 +96,7 @@ const styles = StyleSheet.create({
         alignItems: 'center',
     },
     name_and_score_ctnr: {
-        marginTop: scaleSize(scaledSize(25)),
+        marginTop: scaleSize(scaledSize(20)),
         flexDirection: 'row',
         paddingBottom: scaleSize(scaledSize(3.5)),
         width: '100%',

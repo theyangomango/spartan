@@ -13,7 +13,7 @@ const buildMetrics = () => {
 
     const paddingH = dynamicStyles.paddingHorizontal;
     const paddingTop = s(2);
-    const paddingBottom = s(12);
+    const paddingBottom = s(2);
     const centerH = s(40);
     const marginTop = s(5);
     const icon = dynamicStyles.iconSize;

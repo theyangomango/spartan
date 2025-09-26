@@ -4,7 +4,6 @@ import ProfileHeader from "../components/5_Profile/ProfileTop/ProfileHeader";
 import ProfileInfo from "../components/5_Profile/ProfileTop/ProfileInfo";
 import ProfileRowButtons from "../components/5_Profile/ProfileTop/ProfileRowButtons";
 import WorkoutStats from "../components/5_Profile/ProfileTop/WorkoutStats";
-import readDoc from "../../backend/helper/firebase/readDoc";
 import readDocsByIds from "../../backend/helper/firebase/readDocsByIds";
 import EditProfileBottomSheet from "../components/5_Profile/EditProfile/EditProfileBottomSheet";
 // ⬇️ swap OUT the old ViewStatsBottomSheet
@@ -208,7 +207,7 @@ export default function Profile({ navigation }) {
                 selectedPanel={selectedPanel}
                 setSelectedPanel={setSelectedPanel}
                 posts={posts}
-                savedPosts={savedPosts}
+                templates={templates}
                 completedWorkouts={(global?.userData?.completedWorkouts || [])}
                 navigation={navigation}
                 onOpenWorkout={openWorkoutViewer}

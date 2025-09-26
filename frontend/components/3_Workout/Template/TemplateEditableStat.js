@@ -16,7 +16,7 @@ import theme from "../../../theme/mfpDark";
 const { height: screenHeight } = Dimensions.get('window');
 const scaledSize = (size) => scaleSize(size);
 
-export default function TemplateEditableStat({ placeholder = '0', value, setValue }) {
+export default function TemplateEditableStat({ placeholder = '0', value, setValue, readOnly = false }) {
     const [isSelected, setIsSelected] = useState(false);
     const inputRef = useRef(null);
     const accessoryIdRef = useRef(Platform.OS === 'ios' ? `tpl-edit-accessory-${Math.random().toString(36).slice(2)}` : null);
@@ -53,34 +53,38 @@ export default function TemplateEditableStat({ placeholder = '0', value, setValu
     return (
         <>
             <Pressable
+                disabled={readOnly}
                 onPress={() => {
-                    inputRef.current.focus();
+                    if (readOnly) return;
+                    inputRef.current?.focus?.();
                     setIsSelected(true);
                 }}
                 style={[
                     styles.editing,
-                    isSelected && styles.selected
+                    isSelected && !readOnly && styles.selected,
                 ]}
             >
                 <TextInput
                     ref={inputRef}
-                    editable
+                    editable={!readOnly}
+                    selectTextOnFocus={!readOnly}
                     keyboardType="numeric"
                     placeholder={placeholder}
                     placeholderTextColor={theme.textSecondary}
-                    onFocus={() => setIsSelected(true)}
+                    onFocus={() => !readOnly && setIsSelected(true)}
                     onEndEditing={() => setIsSelected(false)}
-                    style={styles.text}
-                    value={value === '0' ? '' : value.toString()}
+                    style={[styles.text, readOnly && styles.readOnlyText]}
+                    value={value === '0' ? (readOnly ? '0' : '') : value.toString()}
                     onChangeText={handleChangeText}
                     blurOnSubmit={false}
                     returnKeyType={Platform.OS === 'android' ? 'done' : 'default'}
                     onSubmitEditing={() => Keyboard.dismiss()}
-                    inputAccessoryViewID={Platform.OS === 'ios' ? accessoryIdRef.current : undefined}
+                    inputAccessoryViewID={!readOnly && Platform.OS === 'ios' ? accessoryIdRef.current : undefined}
+                    pointerEvents={readOnly ? 'none' : 'auto'}
                 />
             </Pressable>
 
-            {Platform.OS === 'ios' && (
+            {!readOnly && Platform.OS === 'ios' && (
                 <InputAccessoryView nativeID={accessoryIdRef.current}>
                     <View style={styles.accessoryBar}>
                         <View style={{ flex: 1 }} />
@@ -99,6 +103,7 @@ const styles = StyleSheet.create({
     selected: { borderColor: theme.primary },
     finished: { backgroundColor: theme.successBg },
     text: { fontFamily: 'Poppins_700Bold', fontSize: scaleSize(15), flex: 1, textAlign: 'center', color: theme.textPrimary },
+    readOnlyText: { color: theme.textPrimary },
     accessoryBar: {
         flexDirection: 'row',
         alignItems: 'center',

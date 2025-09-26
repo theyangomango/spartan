@@ -8,6 +8,7 @@ import {
     Alert,
     InteractionManager,
     StatusBar,
+    Modal,
 } from "react-native";
 
 // Header & Footer
@@ -474,15 +475,31 @@ export default function Workout({ navigation, route }) {
 
     /* ---------- Copy template (from friend's completed workout) ---------- */
     const toastAnim = useRef(new Animated.Value(0)).current; // 0 hidden, 1 visible
+    const toastTimeoutRef = useRef(null);
+    const [toastPortalVisible, setToastPortalVisible] = useState(false);
+    const saveTemplatePendingRef = useRef(false);
     const [toastMsg, setToastMsg] = useState("");
     const showTemplateToast = useCallback((msg) => {
         setToastMsg(msg || "Template added");
+        setToastPortalVisible(true);
+        if (toastTimeoutRef.current) clearTimeout(toastTimeoutRef.current);
         Animated.sequence([
             Animated.timing(toastAnim, { toValue: 1, duration: 180, useNativeDriver: true }),
             Animated.delay(1800),
             Animated.timing(toastAnim, { toValue: 0, duration: 200, useNativeDriver: true }),
         ]).start();
+        toastTimeoutRef.current = setTimeout(() => {
+            setToastPortalVisible(false);
+            toastTimeoutRef.current = null;
+        }, 2200);
     }, [toastAnim]);
+
+    useEffect(() => () => {
+        if (toastTimeoutRef.current) {
+            clearTimeout(toastTimeoutRef.current);
+            toastTimeoutRef.current = null;
+        }
+    }, []);
 
     const handleCopyTemplate = useCallback((wk) => {
         try {
@@ -584,7 +601,6 @@ export default function Workout({ navigation, route }) {
         updateNewWorkout,
         cancelWorkout,
         finishWorkout,
-        postWorkout,
         joinExternalWorkout, // used by InviteBanner accept
     } = useWorkoutManager({ uid, navigation, millisToHMS: millisToHoursMinutesSeconds });
 
@@ -633,6 +649,65 @@ export default function Workout({ navigation, route }) {
         setIsSummaryModalVisible(false);
         requestAnimationFrame(() => setHexChangeVisible(true));
     }, [setIsSummaryModalVisible]);
+
+    const handleSaveSummaryTemplate = useCallback(async () => {
+        const workout = completedWorkout;
+        if (!workout || saveTemplatePendingRef.current) return;
+        const hasTemplate =
+            workout?.tid != null ||
+            workout?.templateId != null ||
+            (workout?.template && workout.template.tid != null);
+        if (hasTemplate || !uid) return;
+
+        saveTemplatePendingRef.current = true;
+        try {
+            const tid = makeID();
+            const exercises = (Array.isArray(workout?.exercises) ? workout.exercises : []).map((ex) => ({
+                name: ex?.name || "",
+                muscle: ex?.muscle || "",
+                sets: (Array.isArray(ex?.sets) ? ex.sets : []).map((s) => ({
+                    weight: Number(s?.weight) || 0,
+                    reps: Number(s?.reps) || 0,
+                    type: (() => {
+                        const raw = typeof s?.type === "string" ? s.type.toLowerCase() : "";
+                        return raw === "warmup" || raw === "dropset" || raw === "failure" ? raw : null;
+                    })(),
+                })),
+            }));
+            const newTemplate = { id: tid, tid, name: "New Template", exercises, lastDate: null };
+            const prevFromUser = Array.isArray(user?.templates) ? user.templates : null;
+            const prevFromGlobal = (() => {
+                try {
+                    return Array.isArray(global?.userData?.templates) ? [...global.userData.templates] : null;
+                } catch {
+                    return null;
+                }
+            })();
+            const prev = prevFromUser || prevFromGlobal || [];
+            const next = [...prev, newTemplate];
+
+            try {
+                await updateDoc("users", uid, { templates: next });
+            } catch (err) {
+                console.log("handleSaveSummaryTemplate updateDoc error", err);
+            }
+
+            try {
+                global.userData = { ...(global.userData || {}), templates: next };
+                global.__templatesLocalSig = JSON.stringify(next || []);
+                global.__templatesDirty = true;
+            } catch {
+                // ignore global sync issues
+            }
+
+            showTemplateToast("Template saved ✓");
+        } catch (err) {
+            console.log("handleSaveSummaryTemplate error", err);
+        } finally {
+            saveTemplatePendingRef.current = false;
+            handleSummaryClose();
+        }
+    }, [completedWorkout, handleSummaryClose, uid, user?.templates, showTemplateToast]);
 
     const hasActiveWorkout = useWorkoutStore((s) => !!s.workout);
     const workoutWid = useWorkoutStore((s) => (s.workout ? s.workout.wid : null));
@@ -1117,7 +1192,7 @@ export default function Workout({ navigation, route }) {
                     isVisible={isSummaryModalVisible}
                     workout={completedWorkout}
                     onClose={handleSummaryClose}
-                    postWorkout={postWorkout}
+                    onSaveTemplate={handleSaveSummaryTemplate}
                 />
             )}
             {/* Stats after workout bottom sheet (exact UserStats UI, animated numbers) */}
@@ -1138,9 +1213,21 @@ export default function Workout({ navigation, route }) {
                 setIsVisible={setIsUserStatsVisible}
             />
             {/* Copy Template toast (above Templates rail) */}
-            <Animated.View pointerEvents="none" style={styles.toastWrap}>
-                <CopyTemplateToast anim={toastAnim} text={toastMsg || "Template added"} />
-            </Animated.View>
+            {toastPortalVisible && (
+                <Modal
+                    visible
+                    animationType="none"
+                    transparent
+                    statusBarTranslucent
+                    onRequestClose={() => setToastPortalVisible(false)}
+                >
+                    <View pointerEvents="none" style={StyleSheet.absoluteFill}>
+                        <Animated.View pointerEvents="none" style={styles.toastWrap}>
+                            <CopyTemplateToast anim={toastAnim} text={toastMsg || "Template added"} />
+                        </Animated.View>
+                    </View>
+                </Modal>
+            )}
             {/* Invite picker mounted at screen level so backdrop covers everything */}
             {shouldRenderGroupModal && (
                 <GroupModalBottomSheet

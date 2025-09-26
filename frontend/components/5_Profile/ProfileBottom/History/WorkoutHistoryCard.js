@@ -74,7 +74,7 @@ const ensureHandle = (workout) => {
   return normalized.startsWith('@') ? normalized : `@${normalized}`;
 };
 
-export default function WorkoutHistoryCard({ workout }) {
+export default function WorkoutHistoryCard({ workout, style }) {
   const pbs = Number(workout?.PBs ?? workout?.pbs ?? 0);
   const title = workout?.templateName || workout?.template?.name || workout?.name || 'Workout';
   const hasTemplate = (workout && workout.tid != null);
@@ -104,7 +104,7 @@ export default function WorkoutHistoryCard({ workout }) {
       exerciseSummaries={buildExerciseSummaries(workout)}
       pfpUri={pfpUri}
       fallbackLabel={initials(fallbackName)}
-      style={{ marginHorizontal: scaleSize(16), marginBottom: scaleSize(14) }}
+      style={[{ marginHorizontal: scaleSize(16), marginBottom: scaleSize(14) }, style]}
     />
   );
 }

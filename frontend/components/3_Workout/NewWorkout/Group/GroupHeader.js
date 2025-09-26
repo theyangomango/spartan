@@ -174,7 +174,7 @@ const GroupHeader = ({
                         </RNBounceable>
                     ) : (
                         <RNBounceable onPress={onCopyTemplate ? withHaptics(onCopyTemplate) : undefined} style={styles.copy_btn}>
-                            <Copy size={scaledSize(20)} color="#ffffff" variant="Bold" />
+                            <Copy size={scaledSize(20)} color="#ffffff" variant='Linear' />
                             <Text style={styles.copy_btn_text}>Copy Template</Text>
                         </RNBounceable>
                     )

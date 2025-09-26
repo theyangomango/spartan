@@ -10,7 +10,7 @@ import SetTypePanel from "../NewWorkout/Tracking/SetTypePanel";
 
 const scaledSize = (size) => scaleSize(size);
 
-export default function TemplateSetRow({ set, updateSet, index, handleDelete }) {
+export default function TemplateSetRow({ set, updateSet, index, handleDelete, readOnly = false }) {
     const weight = Number(set?.weight ?? 0);
     const reps = Number(set?.reps ?? 0);
 
@@ -18,6 +18,7 @@ export default function TemplateSetRow({ set, updateSet, index, handleDelete }) 
     const [panelPosition, setPanelPosition] = useState({ top: 0, left: 0 });
 
     const openTypePanel = (event) => {
+        if (readOnly) return;
         const y = event?.nativeEvent?.pageY || 0;
         setPanelPosition({ top: scaleSize(y + scaledSize(8)), left: scaleSize(scaledSize(20)) });
         setIsTypePanelVisible(true);
@@ -39,19 +40,10 @@ export default function TemplateSetRow({ set, updateSet, index, handleDelete }) 
 
     return (
         <View style={styles.container}>
-            <SwipeableItem
-                key={index}
-                item={set}
-                itemKey={(set && (set.id || String(index))) || `tpl-set-${index}`}
-                overSwipe={scaledSize(36)}
-                activationThreshold={8}
-                renderUnderlayLeft={(params) => renderUnderlayLeft(params?.ref)}
-                snapPointsLeft={[scaledSize(96)]}
-                onSwipeableLeftOpen={undefined}
-            >
+            {readOnly ? (
                 <View style={styles.stat_row}>
                     <Pressable
-                        onPress={openTypePanel}
+                        disabled
                         style={[styles.set_ctnr, set?.type && [styles.set_ctnr_typed, typePillBg(set?.type)]]}
                     >
                         <Text style={[styles.set_number_text, set?.type && [styles.set_letter_text, typePillText(set?.type)]]}>
@@ -63,35 +55,85 @@ export default function TemplateSetRow({ set, updateSet, index, handleDelete }) 
                         <Text style={styles.previous_stat_text}>—</Text>
                     </View>
 
-                    <View style={styles.weight_unit_ctnr} pointerEvents="none">
+                    <View style={styles.weight_unit_ctnr}>
                         <TemplateEditableStat
                             value={String(weight)}
                             setValue={(value) => updateSet(index, { ...set, weight: value })}
+                            readOnly
                         />
                     </View>
 
-                    <View style={styles.reps_ctnr} pointerEvents="none">
+                    <View style={styles.reps_ctnr}>
                         <TemplateEditableStat
                             value={String(reps)}
                             setValue={(value) => updateSet(index, { ...set, reps: value })}
+                            readOnly
                         />
                     </View>
 
                     <View style={styles.done_ctnr}>
-                        <View style={styles.checkmark_ctnr} pointerEvents="none">
+                        <View style={styles.checkmark_ctnr}>
                             <MaterialCommunityIcons name="check-bold" size={scaledSize(16)} color={theme.textSecondary} />
                         </View>
                     </View>
                 </View>
-            </SwipeableItem>
+            ) : (
+                <SwipeableItem
+                    key={index}
+                    item={set}
+                    itemKey={(set && (set.id || String(index))) || `tpl-set-${index}`}
+                    overSwipe={scaledSize(36)}
+                    activationThreshold={8}
+                    renderUnderlayLeft={(params) => renderUnderlayLeft(params?.ref)}
+                    snapPointsLeft={[scaledSize(96)]}
+                    onSwipeableLeftOpen={undefined}
+                >
+                    <View style={styles.stat_row}>
+                        <Pressable
+                            onPress={openTypePanel}
+                            style={[styles.set_ctnr, set?.type && [styles.set_ctnr_typed, typePillBg(set?.type)]]}
+                        >
+                            <Text style={[styles.set_number_text, set?.type && [styles.set_letter_text, typePillText(set?.type)]]}>
+                                {set?.type ? typeLetter(set?.type) : (index + 1)}
+                            </Text>
+                        </Pressable>
 
-            <SetTypePanel
-                visible={isTypePanelVisible}
-                onClose={() => setIsTypePanelVisible(false)}
-                position={panelPosition}
-                current={set?.type || null}
-                onSelect={handleSelectType}
-            />
+                        <View style={styles.previous_ctnr}>
+                            <Text style={styles.previous_stat_text}>—</Text>
+                        </View>
+
+                        <View style={styles.weight_unit_ctnr} pointerEvents="none">
+                            <TemplateEditableStat
+                                value={String(weight)}
+                                setValue={(value) => updateSet(index, { ...set, weight: value })}
+                            />
+                        </View>
+
+                        <View style={styles.reps_ctnr} pointerEvents="none">
+                            <TemplateEditableStat
+                                value={String(reps)}
+                                setValue={(value) => updateSet(index, { ...set, reps: value })}
+                            />
+                        </View>
+
+                        <View style={styles.done_ctnr}>
+                            <View style={styles.checkmark_ctnr} pointerEvents="none">
+                                <MaterialCommunityIcons name="check-bold" size={scaledSize(16)} color={theme.textSecondary} />
+                            </View>
+                        </View>
+                    </View>
+                </SwipeableItem>
+            )}
+
+            {!readOnly && (
+                <SetTypePanel
+                    visible={isTypePanelVisible}
+                    onClose={() => setIsTypePanelVisible(false)}
+                    position={panelPosition}
+                    current={set?.type || null}
+                    onSelect={handleSelectType}
+                />
+            )}
         </View>
     );
 }

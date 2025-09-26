@@ -1,18 +1,17 @@
 import React, { memo } from "react";
 import { StyleSheet, View, Pressable } from "react-native";
 import scaleSize from "../../../helper/scaleSize";
-import { Grid2, Clock } from 'iconsax-react-native';
-import Svg, { Path } from "react-native-svg";
+import { Grid2, Clock, Weight } from 'iconsax-react-native';
 import PostsSection from "./Posts/PostsSection";
 import HistorySection from "./History/HistorySection";
-import SavedSection from "./Saved/SavedSection";
+import TemplatesSection from "./Templates/TemplatesSection";
 import { withStrongPress } from "../../../utils/haptics";
 
 const scaledSize = (size) => scaleSize(size);
 
-const ProfileBottomModal = ({ selectedPanel, setSelectedPanel, posts, savedPosts, completedWorkouts, isBottomSheetExpanded, onOpenWorkout, onScrollExpandRequest }) => {
-    const isSavedPrivate = typeof savedPosts === 'undefined';
-    const normalizedSavedPosts = Array.isArray(savedPosts) ? savedPosts : [];
+const ProfileBottomModal = ({ selectedPanel, setSelectedPanel, posts, templates, completedWorkouts, isBottomSheetExpanded, onOpenWorkout, onScrollExpandRequest }) => {
+    const normalizedTemplates = Array.isArray(templates) ? templates : [];
+    const viewingSelfTemplates = templates !== undefined && templates !== null;
 
     return (
         <View style={styles.container}>
@@ -28,21 +27,11 @@ const ProfileBottomModal = ({ selectedPanel, setSelectedPanel, posts, savedPosts
                     </Pressable>
                 </View>
                 <View style={[styles.panel_btn]}>
-                    <Pressable onPress={withStrongPress(() => setSelectedPanel('saved'))}>
-                        {/* Bookmark icon */}
-                        <Svg
-                            xmlns="http://www.w3.org/2000/svg"
-                            width={scaledSize(28)}
-                            height={scaledSize(28)}
-                            viewBox="0 0 24 24"
-                            fill="none"
-                            stroke={selectedPanel === 'saved' ? "#359ffc" : "#888"}
-                            strokeWidth={1.5}
-                            strokeLinecap="round"
-                            strokeLinejoin="round"
-                        >
-                            <Path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z" />
-                        </Svg>
+                    <Pressable onPress={withStrongPress(() => setSelectedPanel('templates'))}>
+                        <Weight
+                            size={scaledSize(28)}
+                            color={selectedPanel === 'templates' ? "#359ffc" : "#888"}
+                        />
                     </Pressable>
                 </View>
             </View>
@@ -64,13 +53,12 @@ const ProfileBottomModal = ({ selectedPanel, setSelectedPanel, posts, savedPosts
                 onOpenWorkout={onOpenWorkout}
                 onScrollExpandRequest={onScrollExpandRequest}
             />
-            <SavedSection
-                posts={normalizedSavedPosts}
-                isVisible={selectedPanel === 'saved'}
-                onOpenWorkout={onOpenWorkout}
-                isPrivate={isSavedPrivate}
+            <TemplatesSection
+                templates={normalizedTemplates}
+                isVisible={selectedPanel === 'templates'}
                 isBottomSheetExpanded={isBottomSheetExpanded}
                 onScrollExpandRequest={onScrollExpandRequest}
+                viewingSelf={viewingSelfTemplates}
             />
         </View>
     );
