@@ -199,7 +199,7 @@ export const TribeComparisonBannerCarousel = React.memo(({
                                         Set Tribe Comparisons
                                     </Text>
                                     <Text style={styles.bannerDescription} numberOfLines={1} ellipsizeMode="tail">
-                                        Add lifts or metrics your tribe cares about.
+                                        Add lifts and metrics for your tribe.
                                     </Text>
                                 </View>
                                 <View style={styles.chevronPill}>

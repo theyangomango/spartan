@@ -24,8 +24,6 @@ const dynamicStyles = getPostFooterStyles(SCREEN_WIDTH, SCREEN_HEIGHT);
 const PostFooter = forwardRef(function PostFooter({
     data,
     isLightFooter = false,
-    onCommentButtonLayout,
-    onCommentButtonNode,
     onPressCommentButton,
     onPressShareButton,
     isSomePostFocused,
@@ -99,16 +97,7 @@ const PostFooter = forwardRef(function PostFooter({
                         </RNBounceable>
                     </View>
 
-                    <View
-                        ref={(node) => {
-                            assignButtonRef('comment', node);
-                            if (typeof onCommentButtonNode === 'function') {
-                                onCommentButtonNode(node);
-                            }
-                        }}
-                        onLayout={onCommentButtonLayout}
-                        collapsable={false}
-                    >
+                    <View ref={(node) => assignButtonRef('comment', node)} collapsable={false}>
                         <Pressable
                             onPress={pressComment}
                             style={styles.commentButton}

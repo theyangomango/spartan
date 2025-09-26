@@ -16,6 +16,26 @@ import FeedWorkoutViewerSheet from "../components/1_Feed/ViewWorkout/FeedWorkout
 import FollowListBottomSheet from "../components/FollowListBottomSheet";
 
 import theme from "../theme/mfpDark";
+import { subscribeUserData } from "../utils/userDataEvents";
+
+const templateListsEqual = (a, b) => {
+    if (a === b) return true;
+    if (!Array.isArray(a) || !Array.isArray(b)) return false;
+    if (a.length !== b.length) return false;
+    for (let i = 0; i < a.length; i += 1) {
+        const left = a[i] || {};
+        const right = b[i] || {};
+        const leftId = left?.tid ?? left?.id ?? null;
+        const rightId = right?.tid ?? right?.id ?? null;
+        if (leftId !== rightId) return false;
+        if ((left?.name || '') !== (right?.name || '')) return false;
+        const leftExercises = Array.isArray(left?.exercises) ? left.exercises.length : Number(left?.exercises || 0);
+        const rightExercises = Array.isArray(right?.exercises) ? right.exercises.length : Number(right?.exercises || 0);
+        if (leftExercises !== rightExercises) return false;
+        if ((left?.lastDate || null) !== (right?.lastDate || null)) return false;
+    }
+    return true;
+};
 
 export default function Profile({ navigation }) {
     const [, setRerender] = useState(0);
@@ -26,7 +46,10 @@ export default function Profile({ navigation }) {
     }, []);
     const userData = global.userData || {};
     const [posts, setPosts] = useState([]);
-    const [savedPosts, setSavedPosts] = useState([]);
+    const [templates, setTemplates] = useState(() => {
+        const raw = userData?.templates;
+        return Array.isArray(raw) ? raw : [];
+    });
     const [selectedPanel, setSelectedPanel] = useState("posts");
     const [isEditProfileBottomSheetVisible, setIsEditProfileBottomSheetVisible] = useState(false);
 
@@ -74,8 +97,15 @@ export default function Profile({ navigation }) {
     }, []);
 
     useEffect(() => {
+        const unsubscribe = subscribeUserData((nextUser) => {
+            const nextTemplates = Array.isArray(nextUser?.templates) ? nextUser.templates : [];
+            setTemplates((prev) => (templateListsEqual(prev, nextTemplates) ? prev : nextTemplates));
+        });
+        return unsubscribe;
+    }, []);
+
+    useEffect(() => {
         getPosts();
-        getSavedPosts();
     }, []);
 
 
@@ -83,8 +113,10 @@ export default function Profile({ navigation }) {
     const lastOpenSigRef = React.useRef(0);
     useEffect(() => {
         const unsub = navigation.addListener('focus', () => {
-            // Refresh saved posts when returning to profile
-            try { getSavedPosts(); } catch {}
+            try {
+                const globalTemplates = Array.isArray(global?.userData?.templates) ? global.userData.templates : [];
+                setTemplates((prev) => (templateListsEqual(prev, globalTemplates) ? prev : globalTemplates));
+            } catch {}
             const sig = Number(global?.profileOpenSelectPhotosSignal || 0);
             if (sig && sig !== lastOpenSigRef.current) {
                 lastOpenSigRef.current = sig;
@@ -127,39 +159,6 @@ export default function Profile({ navigation }) {
             await Promise.all(promises);
         } catch (e) {
             // keep existing posts on failure
-        }
-    }
-
-    async function getSavedPosts() {
-        try {
-            const ids = Array.isArray(userData.savedPosts) ? userData.savedPosts : [];
-            const n = ids.length;
-            if (!n) { setSavedPosts([]); return; }
-
-            const buffer = new Array(n);
-            setSavedPosts([]);
-
-            const firstChunk = ids.slice(0, 10);
-            const tail = ids.slice(10);
-
-            const firstDocs = await readDocsByIds('posts', firstChunk);
-            firstDocs.forEach((doc, i) => { if (doc && !doc.pid) doc.pid = firstChunk[i]; buffer[i] = doc; });
-            setSavedPosts(buffer.filter(Boolean));
-
-            const promises = [];
-            for (let i = 0; i < tail.length; i += 10) {
-                const group = tail.slice(i, i + 10);
-                const startIndex = 10 + i;
-                promises.push(
-                    readDocsByIds('posts', group).then((docs) => {
-                        docs.forEach((doc, j) => { const id = group[j]; if (doc && !doc.pid) doc.pid = id; buffer[startIndex + j] = doc; });
-                        setSavedPosts(buffer.filter(Boolean));
-                    })
-                );
-            }
-            await Promise.all(promises);
-        } catch (e) {
-            // keep existing savedPosts on failure
         }
     }
 

@@ -131,7 +131,7 @@ export default function TribeComparisonModal({ visible, onClose, initialList = [
                             <View style={styles.headerRow}>
                                 <View style={{ flex: 1, paddingRight: scaleSize(12) }}>
                                     <Text style={styles.title}>Manage Tribe Comparisons</Text>
-                                    <Text style={styles.subtitle}>Choose the metrics shown for your tribe leaderboard</Text>
+                                    <Text style={styles.subtitle}>Choose the lifts and metrics shown for your tribe leaderboard</Text>
                                 </View>
                                 <Pressable hitSlop={12} onPress={withStrongPress(onClose)}>
                                     <Ionicons name="close" size={20} color={PRIMARY_TEXT} />

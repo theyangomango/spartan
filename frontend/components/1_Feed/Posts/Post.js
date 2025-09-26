@@ -36,21 +36,21 @@ const DEBUG_SHOW_TONE_OVERLAY = true;
 
 // Fractional rectangle (normalized 0..1) covering the header handle text region.
 const HEADER_RECT_LEFT = 0.19;
-const HEADER_RECT_TOP = 0.045;
+const HEADER_RECT_TOP = 0.049;
 const HEADER_RECT_HEIGHT = 0.048;
 const HEADER_RECT_MIN_WIDTH = 0.22;
 const HEADER_RECT_MAX_WIDTH = 0.5;
 const HEADER_RECT_CHAR_WIDTH = 0.018;
 
 const FOOTER_RECT_LEFT = 0.25;
-const FOOTER_RECT_TOP = 0.78;
-const FOOTER_RECT_HEIGHT = 0.12;
-const FOOTER_RECT_BASE_WIDTH = 0.24;
-const FOOTER_RECT_MIN_WIDTH = 0.22;
-const FOOTER_RECT_MAX_WIDTH = 0.4;
+const FOOTER_RECT_TOP = 0.82;
+const FOOTER_RECT_HEIGHT = 0.06;
+const FOOTER_RECT_BASE_WIDTH = 0.15;
+const FOOTER_RECT_MIN_WIDTH = 0.1;
+const FOOTER_RECT_MAX_WIDTH = 0.18;
 const FOOTER_RECT_CHAR_WIDTH = 0.015;
 
-const MEDIA_LIGHTNESS_THRESHOLD = 0.6;
+const MEDIA_LIGHTNESS_THRESHOLD = 0.7;
 const PATCH_RESIZE_TARGET = 200;
 
 const clamp = (value, min, max) => Math.min(Math.max(value, min), max);
@@ -310,9 +310,6 @@ const Post = forwardRef(function Post({
     const viewRef = useRef(null);
     const carouselRef = useRef(null);
     const footerRef = useRef(null);
-    const galleryContainerRef = useRef(null);
-    const commentButtonNodeRef = useRef(null);
-    const footerMeasureTimeoutRef = useRef(null);
 
     const [currentIndex, setCurrentIndex] = useState(0);
     const [isLightHeader, setIsLightHeader] = useState(false);
@@ -330,105 +327,10 @@ const Post = forwardRef(function Post({
         : 'image';
 
     const headerRect = useMemo(() => computeHeaderRectNormalized(data?.handle), [data?.handle]);
-
-    const fallbackFooterRect = useMemo(
+    const footerRect = useMemo(
         () => computeFooterRectNormalized(data?.commentCount),
         [data?.commentCount]
     );
-
-    const [footerRect, setFooterRect] = useState(fallbackFooterRect);
-
-    useEffect(() => {
-        setFooterRect(fallbackFooterRect);
-    }, [fallbackFooterRect]);
-
-    const measureNodeInWindow = useCallback((node) => new Promise((resolve) => {
-        if (!node) {
-            resolve(null);
-            return;
-        }
-        const measure = node.measureInWindow
-            ? node.measureInWindow.bind(node)
-            : node.measure?.bind(node);
-        if (!measure) {
-            resolve(null);
-            return;
-        }
-        measure((x, y, width, height) => {
-            if (!Number.isFinite(x) || !Number.isFinite(y)) {
-                resolve(null);
-                return;
-            }
-            resolve({ x, y, width, height });
-        });
-    }), []);
-
-    const updateFooterRectFromMeasurement = useCallback(async () => {
-        const galleryNode = galleryContainerRef.current;
-        const commentNode = commentButtonNodeRef.current;
-        if (!galleryNode || !commentNode) return;
-
-        const [gallery, comment] = await Promise.all([
-            measureNodeInWindow(galleryNode),
-            measureNodeInWindow(commentNode),
-        ]);
-
-        if (!gallery || !comment) return;
-
-        const relativeLeft = comment.x - gallery.x;
-        const relativeTop = comment.y - gallery.y;
-
-        const widthNorm = (comment.width && comment.width > 0)
-            ? clamp(comment.width / W, 0, 1)
-            : (fallbackFooterRect?.width ?? 0);
-        const heightNorm = (comment.height && comment.height > 0)
-            ? clamp(comment.height / (W / AR), 0, 1)
-            : (fallbackFooterRect?.height ?? 0);
-
-        setFooterRect({
-            left: clamp(relativeLeft / W, 0, 1),
-            top: clamp(relativeTop / (W / AR), 0, 1),
-            width: widthNorm,
-            height: heightNorm,
-        });
-    }, [measureNodeInWindow, fallbackFooterRect]);
-
-    const scheduleFooterMeasurement = useCallback(() => {
-        if (footerMeasureTimeoutRef.current) {
-            clearTimeout(footerMeasureTimeoutRef.current);
-        }
-        footerMeasureTimeoutRef.current = setTimeout(() => {
-            footerMeasureTimeoutRef.current = null;
-            updateFooterRectFromMeasurement();
-        }, 0);
-    }, [updateFooterRectFromMeasurement]);
-
-    useEffect(() => () => {
-        if (footerMeasureTimeoutRef.current) {
-            clearTimeout(footerMeasureTimeoutRef.current);
-        }
-    }, []);
-
-    const handleCommentButtonNode = useCallback((node) => {
-        commentButtonNodeRef.current = node;
-        if (!node) {
-            setFooterRect(fallbackFooterRect);
-            return;
-        }
-        scheduleFooterMeasurement();
-    }, [fallbackFooterRect, scheduleFooterMeasurement]);
-
-    const handleCommentButtonLayout = useCallback(() => {
-        scheduleFooterMeasurement();
-    }, [scheduleFooterMeasurement]);
-
-    const handleGalleryLayout = useCallback(() => {
-        scheduleFooterMeasurement();
-    }, [scheduleFooterMeasurement]);
-
-    useEffect(() => {
-        scheduleFooterMeasurement();
-    }, [scheduleFooterMeasurement, currentMediaUri, currentIndex, fallbackFooterRect]);
 
     const debugHeaderOverlayStyle = useMemo(() => {
         if (!DEBUG_SHOW_TONE_OVERLAY) return null;
@@ -727,12 +629,7 @@ const Post = forwardRef(function Post({
                 ]}
             >
                 <View style={styles.body}>
-                    <Reanimated.View
-                        ref={galleryContainerRef}
-                        onLayout={handleGalleryLayout}
-                        collapsable={false}
-                        style={[styles.gallery, roundedBottomStyle, { overflow: 'hidden' }]}
-                    >
+                    <Reanimated.View style={[styles.gallery, roundedBottomStyle, { overflow: 'hidden' }]}>
                         <PostMediaCarousel
                             ref={carouselRef}
                             mediaList={mediaList}
@@ -778,8 +675,6 @@ const Post = forwardRef(function Post({
                     data={data}
                     image={pfp}
                     isLightFooter={isLightFooter}
-                    onCommentButtonNode={handleCommentButtonNode}
-                    onCommentButtonLayout={handleCommentButtonLayout}
                     isSomePostFocused={resolvedIsSomePostFocused}
                     isUnfocusing={resolvedIsFocused ? ctxUnfocusGestureActive : false}
                     focusModeSV={resolvedFocusModeSV}

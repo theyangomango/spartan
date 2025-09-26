@@ -6,6 +6,7 @@ import scaleSize from "../../../../helper/scaleSize";
 import * as Haptics from "expo-haptics";
 import RNBounceable from "@freakycoder/react-native-bounceable";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
+import { Copy } from "iconsax-react-native";
 import FastImage from "react-native-fast-image";
 import TimerDisplay from "../TimerDisplay";
 import theme from "../../../../theme/mfpDark";
@@ -173,7 +174,7 @@ const GroupHeader = ({
                         </RNBounceable>
                     ) : (
                         <RNBounceable onPress={onCopyTemplate ? withHaptics(onCopyTemplate) : undefined} style={styles.copy_btn}>
-                            <MaterialCommunityIcons name="content-copy" size={scaledSize(18)} color="#ffffff" />
+                            <Copy size={scaledSize(20)} color="#ffffff" variant="Bold" />
                             <Text style={styles.copy_btn_text}>Copy Template</Text>
                         </RNBounceable>
                     )
