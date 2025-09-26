@@ -1,5 +1,4 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { StyleSheet, View } from "react-native";
 import BottomSheet, { BottomSheetBackdrop } from "@gorhom/bottom-sheet";
 import { useSharedValue, useAnimatedReaction } from "react-native-reanimated";
 import UserStatsModal from "./UserStatsModal";
@@ -7,8 +6,6 @@ import scaleSize from "../../../helper/scaleSize";
 
 import { onHexagonUpdate } from "../../../utils/hexagonEvents";
 import { coercePrivacyMode } from "../../../utils/workoutPrivacy";
-
-const HANDLE_NEUTRAL = "#D0D7E2";
 
 const toDayKey = (d) => {
     try {
@@ -63,13 +60,7 @@ const LeaderboardBottomSheet = ({ isVisible, setIsVisible, user, navigation, she
         [sheetProgressSV]
     );
 
-    const renderHandle = useCallback(() => (
-        <View style={styles.handleWrap}>
-            <View style={styles.handleGripContainer}>
-                <View style={styles.handleGrip} />
-            </View>
-        </View>
-    ), []);
+    const renderHandle = useCallback(() => null, []);
 
     const renderBackdrop = useCallback(
         (props) => (
@@ -161,6 +152,7 @@ const LeaderboardBottomSheet = ({ isVisible, setIsVisible, user, navigation, she
             backdropComponent={renderBackdrop}
             snapPoints={snapPoints}
             handleComponent={renderHandle}
+            handleHeight={0}
             backgroundStyle={{
                 backgroundColor: require("../../../theme/mfpDark").default.bg,
                 borderTopLeftRadius: scaleSize(25),
@@ -185,21 +177,3 @@ const LeaderboardBottomSheet = ({ isVisible, setIsVisible, user, navigation, she
 };
 
 export default React.memo(LeaderboardBottomSheet);
-
-const styles = StyleSheet.create({
-    handleWrap: {
-        borderTopLeftRadius: scaleSize(20),
-        borderTopRightRadius: scaleSize(20),
-    },
-    handleGripContainer: {
-        alignItems: 'center',
-        paddingVertical: scaleSize(8),
-    },
-    handleGrip: {
-        width: scaleSize(42),
-        height: scaleSize(4),
-        borderRadius: scaleSize(2),
-        backgroundColor: HANDLE_NEUTRAL,
-        overflow: 'hidden',
-    },
-});

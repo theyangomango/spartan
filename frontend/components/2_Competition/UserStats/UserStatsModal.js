@@ -370,6 +370,7 @@ export default function UserStatsModal({ user, toViewProfile, hexOverlay, hexPro
 
     return (
         <View style={styles.container}>
+            <View style={styles.grabber} accessible={false} importantForAccessibility="no" />
             {/* Header */}
             <View style={styles.header}>
                 <Pressable onPress={withStrongPress(toViewProfile)} style={styles.headerLeft} hitSlop={10}>

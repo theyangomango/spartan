@@ -130,7 +130,7 @@ const MONTH_NAMES = [
     'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec',
 ];
 
-const WEEKDAY_LABELS = ['M', 'T', 'W', 'T', 'F', 'S', 'S'];
+const WEEKDAY_LABELS = ['S', 'M', 'T', 'W', 'T', 'F', 'S'];
 
 const monthIndexOf = (date) => (date.getFullYear() * 12) + date.getMonth();
 
@@ -151,7 +151,7 @@ const buildMonthData = (year, month, markedSet, selectedKey, todayKey) => {
     first.setHours(0, 0, 0, 0);
     const daysInMonth = new Date(year, month + 1, 0).getDate();
     const firstDay = first.getDay(); // 0 = Sunday
-    const offset = (firstDay + 6) % 7; // convert to Monday-first index
+    const offset = firstDay; // align grid to Sunday-first index
 
     const cells = [];
     for (let i = 0; i < offset; i += 1) cells.push(null);
