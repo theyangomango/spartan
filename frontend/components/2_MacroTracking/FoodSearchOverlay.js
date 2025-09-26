@@ -29,6 +29,8 @@ import { fetchRecentFoods } from '../../utils/recentFoods';
 import scaleSize from "../../helper/scaleSize";
 import { strong as haptic } from '../../utils/haptics';
 
+const SCAN_RETRY_DELAY_MS = 500;
+
 export default function FoodSearchOverlay({
     visible,
     activeMeal,
@@ -53,6 +55,34 @@ export default function FoodSearchOverlay({
     const [scanBusy, setScanBusy] = useState(false);
     const [scanError, setScanError] = useState('');
     const [scanLocked, setScanLocked] = useState(false); // throttle duplicate scans
+    const scanRetryTimeoutRef = useRef(null);
+
+    const clearScanRetry = useCallback(() => {
+        if (scanRetryTimeoutRef.current) {
+            clearTimeout(scanRetryTimeoutRef.current);
+            scanRetryTimeoutRef.current = null;
+        }
+    }, []);
+
+    const scheduleScanRetry = useCallback(() => {
+        clearScanRetry();
+        scanRetryTimeoutRef.current = setTimeout(() => {
+            setScanLocked(false);
+            scanRetryTimeoutRef.current = null;
+        }, SCAN_RETRY_DELAY_MS);
+    }, [clearScanRetry]);
+
+    useEffect(() => {
+        if (!scannerVisible) {
+            clearScanRetry();
+            setScanLocked(false);
+            setScanBusy(false);
+        }
+
+        return () => {
+            clearScanRetry();
+        };
+    }, [scannerVisible, clearScanRetry]);
 
     const loadRecentFoods = useCallback(async () => {
         try {
@@ -190,6 +220,9 @@ export default function FoodSearchOverlay({
                                 const perm = await requestPermission();
                                 if (!perm?.granted) return;
                             }
+                            clearScanRetry();
+                            setScanLocked(false);
+                            setScanBusy(false);
                             setScannerVisible(true);
                             // dismiss keyboard to reduce jank
                             try { Keyboard.dismiss(); } catch {}
@@ -282,7 +315,12 @@ export default function FoodSearchOverlay({
                     visible={scannerVisible}
                     animationType="slide"
                     presentationStyle="fullScreen"
-                    onRequestClose={() => { setScannerVisible(false); setScanBusy(false); setScanLocked(false); }}
+                    onRequestClose={() => {
+                        setScannerVisible(false);
+                        setScanBusy(false);
+                        setScanLocked(false);
+                        clearScanRetry();
+                    }}
                 >
                     <View style={{ flex: 1, backgroundColor: 'black' }}>
                         {/* Camera */}
@@ -298,6 +336,7 @@ export default function FoodSearchOverlay({
                                     const data = String(scan?.data || '').trim();
                                     if (!data) return;
                                     setScanLocked(true);
+                                    scheduleScanRetry();
                                     setScanBusy(true);
                                     setScanError('');
                                     try {
@@ -306,6 +345,7 @@ export default function FoodSearchOverlay({
                                         if (!digits) {
                                             setScanError('Invalid barcode');
                                             setScanLocked(false);
+                                            clearScanRetry();
                                             setScanBusy(false);
                                             return;
                                         }
@@ -315,13 +355,16 @@ export default function FoodSearchOverlay({
                                             setScannerVisible(false);
                                             // Open details screen directly to add
                                             goToDetails(food);
+                                            clearScanRetry();
                                         } else {
                                             setScanError('No match found for this barcode');
                                             setScanLocked(false);
+                                            scheduleScanRetry();
                                         }
                                     } catch (e) {
                                         setScanError(String(e?.message || 'Lookup failed'));
                                         setScanLocked(false);
+                                        scheduleScanRetry();
                                     } finally {
                                         setScanBusy(false);
                                     }
@@ -329,7 +372,12 @@ export default function FoodSearchOverlay({
                             >
                                 {/* Overlay header */}
                                 <View style={styles.scannerHeader}>
-                                    <Pressable onPress={() => { setScannerVisible(false); setScanBusy(false); setScanLocked(false); }} hitSlop={12}>
+                                    <Pressable onPress={() => {
+                                        setScannerVisible(false);
+                                        setScanBusy(false);
+                                        setScanLocked(false);
+                                        clearScanRetry();
+                                    }} hitSlop={12}>
                                         <Ionicons name="close" size={26} color="#fff" />
                                     </Pressable>
                                     <Text style={styles.scannerTitle}>Scan a barcode</Text>

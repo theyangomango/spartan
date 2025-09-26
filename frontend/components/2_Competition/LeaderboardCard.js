@@ -18,6 +18,7 @@ const PFP_SIZE = scaleSize(42);
 const FONT_HANDLE = ts(14);
 const FONT_NAME = ts(13);
 const FONT_STAT = ts(14);
+const FONT_HEX_STAT = ts(15);
 const FONT_RANK = ts(14);
 const FONT_BEST = ts(14);
 
@@ -56,6 +57,8 @@ export default function LeaderboardCard({
 }) {
     // Format the large stat and unit depending on metric & normalization
     const { statText, unitText } = formatStat(value, metric, normalizeByBodyweight);
+    const isHexMetric = String(metric) === 'Hex';
+    const statFontSize = scaleSize(isHexMetric ? FONT_HEX_STAT : FONT_STAT);
 
     // Subline: Only show best set when metric is '1RM'.
     // Otherwise, show nothing under the blue stat.
@@ -115,13 +118,13 @@ export default function LeaderboardCard({
                 <View style={{ alignItems: 'flex-end' }}>
                     {missingWeightData ? (
                         <>
-                            <Text style={[styles.stat_text, { fontSize: scaleSize(FONT_STAT) }]}>—</Text>
+                            <Text style={[styles.stat_text, { fontSize: statFontSize }]}>—</Text>
                             <Text style={[styles.best_set_text, { fontSize: scaleSize(FONT_BEST) }]}>No Weight Data</Text>
                         </>
                     ) : (
                         <>
-                            <Text style={[styles.stat_text, { fontSize: scaleSize(FONT_STAT) }]}>
-                                {statText} {unitText}
+                            <Text style={[styles.stat_text, { fontSize: statFontSize }]}>
+                                {unitText ? `${statText} ${unitText}` : statText}
                             </Text>
                             {showBestSet ? (
                                 showBestSetWhenNotTribe ? (
@@ -151,8 +154,8 @@ function formatStat(value, metric, normalizeByBodyweight) {
     let unitText = 'lbs';
 
     if (metric === 'Hex') {
-        statText = Math.round(v).toString();
-        unitText = 'pts';
+        statText = v.toFixed(1);
+        unitText = null;
     } else if (metric === 'Reps') {
         if (normalizeByBodyweight) {
             statText = v.toFixed(2);

@@ -17,6 +17,9 @@ export default async function sendNotification(uid, event) {
         case 'workout-invite':
             // leave counters unchanged for now (only contributes to general events)
             break;
+        case 'follow':
+            // falls through to overall events counter only
+            break;
     }
     incrementDocValue('users', uid, 'notificationNewEvents');
 
@@ -49,6 +52,8 @@ export default async function sendNotification(uid, event) {
                 title = 'New reply'; body = `${h} replied: ${String(event?.content || '').slice(0, 80)}`; break;
             case 'workout-invite':
                 title = 'Workout invite'; body = `${h} invited you to a workout`; break;
+            case 'follow':
+                title = 'New follower'; body = `${h} followed you`; break;
             default:
                 title = 'New notification'; body = `${h} interacted with you`; break;
         }
@@ -66,6 +71,7 @@ export default async function sendNotification(uid, event) {
                     pid: event?.pid || null,
                     wid: event?.wid || null,
                     inviteId: event?.inviteId || null,
+                    followerUid: event?.uid || null,
                 },
             })
         });

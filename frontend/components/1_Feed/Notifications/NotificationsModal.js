@@ -114,6 +114,40 @@ export default function NotificationsModal({ visible, uid, closeBottomSheet }) {
         }
     }, [uid, closeBottomSheet, setEvents]);
 
+    const handlePressNotification = useCallback((item) => {
+        try { closeBottomSheet?.(); } catch {}
+
+        if (item?.type === 'follow') {
+            const payload = {
+                user: {
+                    uid: String(item?.uid || ''),
+                    handle: item?.handle || '',
+                    name: item?.name || '',
+                    pfp: item?.pfp || '',
+                },
+                transition: 'slide-from-right',
+            };
+
+            try {
+                const { navigateRoot } = require('../../../../navigationRef');
+                if (navigateRoot('ViewProfile', payload)) return;
+            } catch {}
+
+            try {
+                const { navigationRef } = require('../../../../navigationRef');
+                navigationRef?.navigate?.('ViewProfile', payload);
+            } catch {}
+
+            return;
+        }
+
+        try {
+            const { jumpToTab } = require('../../../../navigationRef');
+            if (item?.pid) jumpToTab('Feed', { focusPid: String(item.pid), _t: Date.now() });
+            else jumpToTab('Feed');
+        } catch {}
+    }, [closeBottomSheet]);
+
     // Load older pages when the user scrolls near the bottom
     const loadMore = async () => {
         if (loadingMore || !hasMore) return;
@@ -247,14 +281,11 @@ export default function NotificationsModal({ visible, uid, closeBottomSheet }) {
                 ref={listRef}
                 sections={sections}
                 renderItem={({ item }) => (
-                    <MemoNotificationCard item={item} onPressCard={() => {
-                        try { closeBottomSheet?.(); } catch {}
-                        try {
-                            const { jumpToTab } = require('../../../../navigationRef');
-                            if (item?.pid) jumpToTab('Feed', { focusPid: String(item.pid), _t: Date.now() });
-                            else jumpToTab('Feed');
-                        } catch {}
-                    }} onAcceptWorkoutInvite={item?.type === 'workout-invite' ? (() => handleAcceptInvite(item)) : undefined} />
+                    <MemoNotificationCard
+                        item={item}
+                        onPressCard={() => handlePressNotification(item)}
+                        onAcceptWorkoutInvite={item?.type === 'workout-invite' ? (() => handleAcceptInvite(item)) : undefined}
+                    />
                 )}
                 renderSectionHeader={({ section }) => (
                     <View style={styles.sectionHeaderWrap}>
@@ -275,7 +306,7 @@ export default function NotificationsModal({ visible, uid, closeBottomSheet }) {
                     loadingMore ? (
                         <View style={styles.footerWrap}><ActivityIndicator color={theme.textSecondary} /></View>
                     ) : !hasMore ? (
-                        <View style={styles.footerWrap}><Text style={styles.footerText}>You're all caught up</Text></View>
+                        <View style={styles.footerWrap}><Text style={styles.footerText}>You're all caught up.</Text></View>
                     ) : null
                 }
                 ListEmptyComponent={visible ? <View style={styles.emptyWrap} /> : null}

@@ -23,6 +23,9 @@ const dynamicStyles = getPostFooterStyles(SCREEN_WIDTH, SCREEN_HEIGHT);
 
 const PostFooter = forwardRef(function PostFooter({
     data,
+    isLightFooter = false,
+    onCommentButtonLayout,
+    onCommentButtonNode,
     onPressCommentButton,
     onPressShareButton,
     isSomePostFocused,
@@ -71,6 +74,9 @@ const PostFooter = forwardRef(function PostFooter({
         handleTapAt,
     }), [ensureLike, handlePressLikeButton, handlePressSaveButton, handleTapAt, isLiked, pressComment, pressShare]);
 
+    const commentIconColor = isLightFooter ? '#333' : '#fff';
+    const commentTextStyle = [styles.commentButtonText, isLightFooter && styles.commentButtonTextDark];
+
     return (
         <View style={styles.mainContainer} collapsable={false}>
             <View style={styles.top}>
@@ -93,14 +99,23 @@ const PostFooter = forwardRef(function PostFooter({
                         </RNBounceable>
                     </View>
 
-                    <View ref={(node) => assignButtonRef('comment', node)} collapsable={false}>
+                    <View
+                        ref={(node) => {
+                            assignButtonRef('comment', node);
+                            if (typeof onCommentButtonNode === 'function') {
+                                onCommentButtonNode(node);
+                            }
+                        }}
+                        onLayout={onCommentButtonLayout}
+                        collapsable={false}
+                    >
                         <Pressable
                             onPress={pressComment}
                             style={styles.commentButton}
                             hitSlop={{ top: scaleSize(4), bottom: scaleSize(12), left: scaleSize(12), right: scaleSize(12) }}
                         >
-                            <Messages1 size={dynamicStyles.iconSize} color="#fff" variant="Bold" />
-                            <Text style={styles.commentButtonText}>{data.commentCount}</Text>
+                            <Messages1 size={dynamicStyles.iconSize} color={commentIconColor} variant="Bold" />
+                            <Text style={commentTextStyle}>{data.commentCount}</Text>
                         </Pressable>
                     </View>
 
@@ -198,6 +213,9 @@ const styles = StyleSheet.create({
         fontSize: scaleSize(dynamicStyles.fontSize),
         paddingVertical: scaleSize(1),
         paddingHorizontal: scaleSize(5),
+    },
+    commentButtonTextDark: {
+        color: '#333',
     },
     saveButton: {
         flexDirection: 'row',

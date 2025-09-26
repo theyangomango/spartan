@@ -32,6 +32,8 @@ const B_IN = 1.02;
 const B_OUT = 1;
 const B_FRICTION = 60;
 
+const DEBUG_SHOW_TONE_OVERLAY = true;
+
 // Fractional rectangle (normalized 0..1) covering the header handle text region.
 const HEADER_RECT_LEFT = 0.19;
 const HEADER_RECT_TOP = 0.045;
@@ -39,15 +41,25 @@ const HEADER_RECT_HEIGHT = 0.048;
 const HEADER_RECT_MIN_WIDTH = 0.22;
 const HEADER_RECT_MAX_WIDTH = 0.5;
 const HEADER_RECT_CHAR_WIDTH = 0.018;
-const HEADER_LIGHTNESS_THRESHOLD = 0.6;
-const HEADER_PATCH_RESIZE_TARGET = 200;
+
+const FOOTER_RECT_LEFT = 0.25;
+const FOOTER_RECT_TOP = 0.78;
+const FOOTER_RECT_HEIGHT = 0.12;
+const FOOTER_RECT_BASE_WIDTH = 0.24;
+const FOOTER_RECT_MIN_WIDTH = 0.22;
+const FOOTER_RECT_MAX_WIDTH = 0.4;
+const FOOTER_RECT_CHAR_WIDTH = 0.015;
+
+const MEDIA_LIGHTNESS_THRESHOLD = 0.6;
+const PATCH_RESIZE_TARGET = 200;
 
 const clamp = (value, min, max) => Math.min(Math.max(value, min), max);
 
-const makeHeaderToneKey = (uri, rect) => {
+const makeToneKey = (uri, rect, prefix = '') => {
     if (!uri || !rect) return null;
     const { left, top, width, height } = rect;
-    return `${uri}|${left.toFixed(3)}|${top.toFixed(3)}|${width.toFixed(3)}|${height.toFixed(3)}`;
+    const base = `${uri}|${left.toFixed(3)}|${top.toFixed(3)}|${width.toFixed(3)}|${height.toFixed(3)}`;
+    return prefix ? `${prefix}|${base}` : base;
 };
 
 const computeHeaderRectNormalized = (handle) => {
@@ -65,6 +77,21 @@ const computeHeaderRectNormalized = (handle) => {
     };
 };
 
+const computeFooterRectNormalized = (commentCount) => {
+    const length = Math.max(1, String(commentCount ?? '').length);
+    const width = clamp(
+        FOOTER_RECT_BASE_WIDTH + FOOTER_RECT_CHAR_WIDTH * length,
+        FOOTER_RECT_MIN_WIDTH,
+        FOOTER_RECT_MAX_WIDTH,
+    );
+    return {
+        left: FOOTER_RECT_LEFT,
+        top: FOOTER_RECT_TOP,
+        width,
+        height: FOOTER_RECT_HEIGHT,
+    };
+};
+
 const getImageDimensions = (uri) => new Promise((resolve, reject) => {
     if (!uri) {
         reject(new Error('Missing URI'));
@@ -79,7 +106,7 @@ const getImageDimensions = (uri) => new Promise((resolve, reject) => {
     );
 });
 
-const computeHeaderCropRect = (imgWidth, imgHeight, rect) => {
+const computeCropRect = (imgWidth, imgHeight, rect) => {
     if (!rect) return null;
 
     if (!imgWidth || !imgHeight) return null;
@@ -199,16 +226,16 @@ const computeLuminance = ({ r, g, b }) => (
     0.0722 * srgbToLinear(b)
 );
 
-// Crop the media to the handle rectangle, downscale it, and estimate whether it's light enough
+// Crop the media to a normalized rectangle, downscale it, and estimate whether it's light enough
 // to require dark text for readability.
-const analyzeHeaderPatchLightness = async (uri, rect) => {
+const analyzePatchLightness = async (uri, rect, keyPrefix = 'post-tone') => {
     const { width, height } = await getImageDimensions(uri);
-    const crop = computeHeaderCropRect(width, height, rect);
+    const crop = computeCropRect(width, height, rect);
     if (!crop) return false;
 
     const operations = [{ crop }];
-    if (crop.width > HEADER_PATCH_RESIZE_TARGET) {
-        operations.push({ resize: { width: HEADER_PATCH_RESIZE_TARGET } });
+    if (crop.width > PATCH_RESIZE_TARGET) {
+        operations.push({ resize: { width: PATCH_RESIZE_TARGET } });
     }
 
     const result = await ImageManipulator.manipulateAsync(
@@ -217,10 +244,11 @@ const analyzeHeaderPatchLightness = async (uri, rect) => {
         { compress: 0.8, format: ImageManipulator.SaveFormat.JPEG }
     );
 
+    const toneKey = makeToneKey(result?.uri || uri, rect, keyPrefix);
     const colors = await ImageColors.getColors(result?.uri || uri, {
         fallback: '#000000',
         cache: true,
-        key: `post-header-${makeHeaderToneKey(result?.uri || uri, rect)}`,
+        key: toneKey || `${keyPrefix}-${uri}`,
     });
 
     const colorString = extractUsableColor(colors);
@@ -229,7 +257,7 @@ const analyzeHeaderPatchLightness = async (uri, rect) => {
         return false;
     }
     const luminance = computeLuminance(rgb);
-    return luminance >= HEADER_LIGHTNESS_THRESHOLD;
+    return luminance >= MEDIA_LIGHTNESS_THRESHOLD;
 };
 
 const Post = forwardRef(function Post({
@@ -282,12 +310,16 @@ const Post = forwardRef(function Post({
     const viewRef = useRef(null);
     const carouselRef = useRef(null);
     const footerRef = useRef(null);
+    const galleryContainerRef = useRef(null);
+    const commentButtonNodeRef = useRef(null);
+    const footerMeasureTimeoutRef = useRef(null);
 
     const [currentIndex, setCurrentIndex] = useState(0);
     const [isLightHeader, setIsLightHeader] = useState(false);
+    const [isLightFooter, setIsLightFooter] = useState(false);
 
-    const headerToneCacheRef = useRef(new Map());
-    const headerTonePendingRef = useRef(new Map());
+    const toneCacheRef = useRef(new Map());
+    const tonePendingRef = useRef(new Map());
 
     const currentMedia = mediaList[currentIndex] || null;
     const currentMediaUri = typeof currentMedia?.uri === 'string'
@@ -298,20 +330,146 @@ const Post = forwardRef(function Post({
         : 'image';
 
     const headerRect = useMemo(() => computeHeaderRectNormalized(data?.handle), [data?.handle]);
-    const resolveHeaderTone = useCallback(async (uri, rect) => {
-        const key = makeHeaderToneKey(uri, rect);
+
+    const fallbackFooterRect = useMemo(
+        () => computeFooterRectNormalized(data?.commentCount),
+        [data?.commentCount]
+    );
+
+    const [footerRect, setFooterRect] = useState(fallbackFooterRect);
+
+    useEffect(() => {
+        setFooterRect(fallbackFooterRect);
+    }, [fallbackFooterRect]);
+
+    const measureNodeInWindow = useCallback((node) => new Promise((resolve) => {
+        if (!node) {
+            resolve(null);
+            return;
+        }
+        const measure = node.measureInWindow
+            ? node.measureInWindow.bind(node)
+            : node.measure?.bind(node);
+        if (!measure) {
+            resolve(null);
+            return;
+        }
+        measure((x, y, width, height) => {
+            if (!Number.isFinite(x) || !Number.isFinite(y)) {
+                resolve(null);
+                return;
+            }
+            resolve({ x, y, width, height });
+        });
+    }), []);
+
+    const updateFooterRectFromMeasurement = useCallback(async () => {
+        const galleryNode = galleryContainerRef.current;
+        const commentNode = commentButtonNodeRef.current;
+        if (!galleryNode || !commentNode) return;
+
+        const [gallery, comment] = await Promise.all([
+            measureNodeInWindow(galleryNode),
+            measureNodeInWindow(commentNode),
+        ]);
+
+        if (!gallery || !comment) return;
+
+        const relativeLeft = comment.x - gallery.x;
+        const relativeTop = comment.y - gallery.y;
+
+        const widthNorm = (comment.width && comment.width > 0)
+            ? clamp(comment.width / W, 0, 1)
+            : (fallbackFooterRect?.width ?? 0);
+        const heightNorm = (comment.height && comment.height > 0)
+            ? clamp(comment.height / (W / AR), 0, 1)
+            : (fallbackFooterRect?.height ?? 0);
+
+        setFooterRect({
+            left: clamp(relativeLeft / W, 0, 1),
+            top: clamp(relativeTop / (W / AR), 0, 1),
+            width: widthNorm,
+            height: heightNorm,
+        });
+    }, [measureNodeInWindow, fallbackFooterRect]);
+
+    const scheduleFooterMeasurement = useCallback(() => {
+        if (footerMeasureTimeoutRef.current) {
+            clearTimeout(footerMeasureTimeoutRef.current);
+        }
+        footerMeasureTimeoutRef.current = setTimeout(() => {
+            footerMeasureTimeoutRef.current = null;
+            updateFooterRectFromMeasurement();
+        }, 0);
+    }, [updateFooterRectFromMeasurement]);
+
+    useEffect(() => () => {
+        if (footerMeasureTimeoutRef.current) {
+            clearTimeout(footerMeasureTimeoutRef.current);
+        }
+    }, []);
+
+    const handleCommentButtonNode = useCallback((node) => {
+        commentButtonNodeRef.current = node;
+        if (!node) {
+            setFooterRect(fallbackFooterRect);
+            return;
+        }
+        scheduleFooterMeasurement();
+    }, [fallbackFooterRect, scheduleFooterMeasurement]);
+
+    const handleCommentButtonLayout = useCallback(() => {
+        scheduleFooterMeasurement();
+    }, [scheduleFooterMeasurement]);
+
+    const handleGalleryLayout = useCallback(() => {
+        scheduleFooterMeasurement();
+    }, [scheduleFooterMeasurement]);
+
+    useEffect(() => {
+        scheduleFooterMeasurement();
+    }, [scheduleFooterMeasurement, currentMediaUri, currentIndex, fallbackFooterRect]);
+
+    const debugHeaderOverlayStyle = useMemo(() => {
+        if (!DEBUG_SHOW_TONE_OVERLAY) return null;
+        if (!headerRect || !currentMediaUri || (currentMediaType && currentMediaType !== 'image')) {
+            return null;
+        }
+        return {
+            left: headerRect.left * W,
+            top: headerRect.top * (W / AR),
+            width: headerRect.width * W,
+            height: headerRect.height * (W / AR),
+        };
+    }, [headerRect, currentMediaUri, currentMediaType]);
+
+    const debugFooterOverlayStyle = useMemo(() => {
+        if (!DEBUG_SHOW_TONE_OVERLAY) return null;
+        if (!footerRect || !currentMediaUri || (currentMediaType && currentMediaType !== 'image')) {
+            return null;
+        }
+        return {
+            left: footerRect.left * W,
+            top: footerRect.top * (W / AR),
+            width: footerRect.width * W,
+            height: footerRect.height * (W / AR),
+        };
+    }, [footerRect, currentMediaUri, currentMediaType]);
+
+    const resolveTone = useCallback(async (uri, rect, keyPrefix = 'post') => {
+        const key = makeToneKey(uri, rect, keyPrefix);
         if (!key) return false;
-        const cache = headerToneCacheRef.current;
+        const cache = toneCacheRef.current;
         if (cache.has(key)) {
             return cache.get(key);
         }
 
-        const pending = headerTonePendingRef.current;
+        const pending = tonePendingRef.current;
         if (pending.has(key)) {
             return pending.get(key);
         }
 
-        const promise = analyzeHeaderPatchLightness(uri, rect)
+        const promise = analyzePatchLightness(uri, rect, keyPrefix)
             .then((value) => {
                 cache.set(key, value);
                 pending.delete(key);
@@ -445,18 +603,19 @@ const Post = forwardRef(function Post({
 
     // Recompute header tone whenever the visible media changes.
     useEffect(() => {
+        const keyPrefix = 'post-header';
         if (!currentMediaUri || (currentMediaType && currentMediaType !== 'image') || !headerRect) {
             setIsLightHeader(false);
             return;
         }
 
-        const cacheKey = makeHeaderToneKey(currentMediaUri, headerRect);
+        const cacheKey = makeToneKey(currentMediaUri, headerRect, keyPrefix);
         if (!cacheKey) {
             setIsLightHeader(false);
             return;
         }
 
-        const cachedValue = headerToneCacheRef.current.get(cacheKey);
+        const cachedValue = toneCacheRef.current.get(cacheKey);
         if (typeof cachedValue === 'boolean') {
             setIsLightHeader(cachedValue);
             return;
@@ -464,7 +623,7 @@ const Post = forwardRef(function Post({
 
         let cancelled = false;
         setIsLightHeader(false);
-        resolveHeaderTone(currentMediaUri, headerRect)
+        resolveTone(currentMediaUri, headerRect, keyPrefix)
             .then((value) => {
                 if (!cancelled) setIsLightHeader(!!value);
             })
@@ -475,7 +634,41 @@ const Post = forwardRef(function Post({
         return () => {
             cancelled = true;
         };
-    }, [currentMediaUri, currentMediaType, resolveHeaderTone, headerRect]);
+    }, [currentMediaUri, currentMediaType, resolveTone, headerRect]);
+
+    useEffect(() => {
+        const keyPrefix = 'post-footer';
+        if (!currentMediaUri || (currentMediaType && currentMediaType !== 'image') || !footerRect) {
+            setIsLightFooter(false);
+            return;
+        }
+
+        const cacheKey = makeToneKey(currentMediaUri, footerRect, keyPrefix);
+        if (!cacheKey) {
+            setIsLightFooter(false);
+            return;
+        }
+
+        const cachedValue = toneCacheRef.current.get(cacheKey);
+        if (typeof cachedValue === 'boolean') {
+            setIsLightFooter(cachedValue);
+            return;
+        }
+
+        let cancelled = false;
+        setIsLightFooter(false);
+        resolveTone(currentMediaUri, footerRect, keyPrefix)
+            .then((value) => {
+                if (!cancelled) setIsLightFooter(!!value);
+            })
+            .catch(() => {
+                if (!cancelled) setIsLightFooter(false);
+            });
+
+        return () => {
+            cancelled = true;
+        };
+    }, [currentMediaUri, currentMediaType, resolveTone, footerRect]);
 
     // Imperative horizontal pan control from Feed-level gesture
     useImperativeHandle(ref, () => ({
@@ -534,7 +727,12 @@ const Post = forwardRef(function Post({
                 ]}
             >
                 <View style={styles.body}>
-                    <Reanimated.View style={[styles.gallery, roundedBottomStyle, { overflow: 'hidden' }]}>
+                    <Reanimated.View
+                        ref={galleryContainerRef}
+                        onLayout={handleGalleryLayout}
+                        collapsable={false}
+                        style={[styles.gallery, roundedBottomStyle, { overflow: 'hidden' }]}
+                    >
                         <PostMediaCarousel
                             ref={carouselRef}
                             mediaList={mediaList}
@@ -547,6 +745,22 @@ const Post = forwardRef(function Post({
                             galleryStyle={{ width: '100%', height: '100%' }}
                             imageStyle={styles.image}
                         />
+                        {DEBUG_SHOW_TONE_OVERLAY && (
+                            <>
+                                {debugHeaderOverlayStyle && (
+                                    <View
+                                        pointerEvents="none"
+                                        style={[styles.debugToneOverlay, debugHeaderOverlayStyle]}
+                                    />
+                                )}
+                                {debugFooterOverlayStyle && (
+                                    <View
+                                        pointerEvents="none"
+                                        style={[styles.debugToneOverlay, debugFooterOverlayStyle]}
+                                    />
+                                )}
+                            </>
+                        )}
                     </Reanimated.View>
                 </View>
 
@@ -563,6 +777,9 @@ const Post = forwardRef(function Post({
                     ref={footerRef}
                     data={data}
                     image={pfp}
+                    isLightFooter={isLightFooter}
+                    onCommentButtonNode={handleCommentButtonNode}
+                    onCommentButtonLayout={handleCommentButtonLayout}
                     isSomePostFocused={resolvedIsSomePostFocused}
                     isUnfocusing={resolvedIsFocused ? ctxUnfocusGestureActive : false}
                     focusModeSV={resolvedFocusModeSV}
@@ -616,5 +833,12 @@ const styles = StyleSheet.create({
         borderTopLeftRadius: BORDER,
         borderTopRightRadius: BORDER,
         overflow: "hidden",
+    },
+    debugToneOverlay: {
+        position: 'absolute',
+        backgroundColor: 'rgba(255, 0, 0, 0.28)',
+        borderColor: 'rgba(255, 0, 0, 0.6)',
+        borderWidth: 1,
+        zIndex: 20,
     },
 });

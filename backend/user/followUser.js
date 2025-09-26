@@ -1,5 +1,6 @@
 import arrayAppend from "../helper/firebase/arrayAppend";
 import incrementDocValue from '../helper/firebase/incrementDocValue'
+import sendNotification from "../sendNotification";
 
 // Normalize objects stored inside arrays so arrayUnion/arrayRemove match reliably
 const normalizeRef = (u) => ({
@@ -19,4 +20,21 @@ export default async function followUser(this_user, user) {
 
     try { await arrayAppend('users', otherRef.uid, 'followers', meRef); } catch {}
     try { await incrementDocValue('users', otherRef.uid, 'followerCount'); } catch {}
+
+    try {
+        if (meRef.uid && meRef.uid !== otherRef.uid) {
+            const event = {
+                uid: meRef.uid,
+                handle: meRef.handle,
+                name: meRef.name,
+                pfp: meRef.pfp,
+                pfpVersion: this_user?.pfpVersion || this_user?.imageVersion || 0,
+                type: 'follow',
+                timestamp: Date.now(),
+            };
+            await sendNotification(otherRef.uid, event);
+        }
+    } catch (err) {
+        console.log('followUser notification error', err?.message || err);
+    }
 }
