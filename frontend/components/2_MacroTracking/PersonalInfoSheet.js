@@ -8,7 +8,6 @@ import {
     Pressable,
     ScrollView,
     KeyboardAvoidingView,
-    Keyboard,
     Platform,
     Animated,
     Easing,
@@ -208,7 +207,7 @@ export function PersonalInfoContent({ goalForm, setGoalForm, onBack, onSave, COL
 }
 
 /** Default export: BottomSheet wrapper */
-export default function PersonalInfoSheet({ index, onChangeIndex, goalForm, setGoalForm, onClose, onCancel, onSave, COLORS }) {
+export default function PersonalInfoSheet({ index, onChangeIndex, goalForm, setGoalForm, onClose, onSave, COLORS }) {
     const styles = useMemo(() => makeStyles(COLORS), [COLORS]);
     const sheetRef = useRef(null);
 
@@ -217,14 +216,7 @@ export default function PersonalInfoSheet({ index, onChangeIndex, goalForm, setG
         []
     );
 
-    const handleCancel = useCallback(() => {
-        const targetIndex = 0;
-        try { Keyboard.dismiss(); } catch { }
-        try { sheetRef.current?.snapToIndex?.(targetIndex); } catch { }
-        onCancel?.();
-    }, [onCancel]);
-
-    const closeSheet = useCallback(() => {
+    const handleClose = useCallback(() => {
         onChangeIndex?.(-1);
         onClose?.();
         sheetRef.current?.close?.();
@@ -232,8 +224,9 @@ export default function PersonalInfoSheet({ index, onChangeIndex, goalForm, setG
 
     const handleSave = useCallback(() => {
         onSave?.();
-        closeSheet();
-    }, [onSave, closeSheet]);
+        onChangeIndex?.(-1);
+        sheetRef.current?.close?.();
+    }, [onSave, onChangeIndex]);
 
     return (
         <BottomSheet
@@ -251,7 +244,7 @@ export default function PersonalInfoSheet({ index, onChangeIndex, goalForm, setG
             <PersonalInfoContent
                 goalForm={goalForm}
                 setGoalForm={setGoalForm}
-                onBack={handleCancel}
+                onBack={handleClose}
                 onSave={handleSave}
                 COLORS={COLORS}
             />
