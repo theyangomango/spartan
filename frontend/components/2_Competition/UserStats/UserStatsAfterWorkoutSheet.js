@@ -125,7 +125,7 @@ export default function UserStatsAfterWorkoutSheet({
             }} backdropComponent={(props) => (
                 <BottomSheetBackdrop {...props} appearsOnIndex={0} disappearsOnIndex={-1} />
             )}
-            handleIndicatorStyle={{ backgroundColor: '#fff' }}
+            handleStyle={{ display: 'none' }}
         >
             <View style={{ flex: 1 }}>
                 <UserStatsModal
