@@ -208,7 +208,7 @@ function TribeStatsCardCmp({ onPress }) {
                     </Animated.View>
                     {!friendsAvailable && (
                         <Animated.View pointerEvents="none" style={[styles.noticeOverlay, { transform: [{ scale }] }]}>
-                            <Text style={styles.noticeBadge}>Add a friend to view community stats.</Text>
+                            <Text style={styles.noticeBadge}>Add a friend to unlock</Text>
                         </Animated.View>
                     )}
                 </View>

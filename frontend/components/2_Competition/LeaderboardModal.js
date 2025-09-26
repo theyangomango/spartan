@@ -1,16 +1,15 @@
 import React, { useMemo, useRef, useEffect, useCallback } from "react";
-import { View, Text, StyleSheet, FlatList, TouchableOpacity, Dimensions, Animated, Platform } from "react-native";
+import { View, Text, StyleSheet, FlatList, TouchableOpacity, Dimensions, Animated, Platform, useWindowDimensions } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
 import { Ionicons } from "@expo/vector-icons";
 import LeaderboardCard from "../2_Competition/LeaderboardCard";
 import scaleSize from "../../helper/scaleSize";
-import { withStrongPress } from "../../utils/haptics";
+import { withStrongPress, strong as triggerStrongHaptic } from "../../utils/haptics";
 
 const { width: SCREEN_WIDTH } = Dimensions.get("window");
 // Scaled paddings and derived widths
 const H_PADDING = scaleSize(16);
 const BANNER_OUTER_PADDING = scaleSize(16);
-const BANNER_PAGE_WIDTH = SCREEN_WIDTH;
 const BANNER_WIDTH = SCREEN_WIDTH - BANNER_OUTER_PADDING * 2;
 
 // Scaled fonts (slightly larger for readability)
@@ -29,7 +28,7 @@ const CONTAINER_PT = scaleSize(12);
 const BANNER_RADIUS = scaleSize(28);
 const BANNER_PAD_H = scaleSize(18);
 const BANNER_PAD_V = scaleSize(5);
-const BANNER_MIN_HEIGHT = scaleSize(78);
+const BANNER_MIN_HEIGHT = scaleSize(88);
 const BANNER_MB = scaleSize(2);
 const BANNER_PAGER_PT = scaleSize(6);
 const BANNER_PAGER_PB = scaleSize(4);
@@ -495,26 +494,37 @@ export const TribeComparisonBannerCarousel = React.memo(({
 }) => {
     const hasComparisons = isTribeFocused && Array.isArray(tribeComparisons) && tribeComparisons.length > 0;
 
+    const { width: windowWidth } = useWindowDimensions();
+    const pageWidth = useMemo(() => Math.max(windowWidth || SCREEN_WIDTH || 1, 1), [windowWidth]);
+    const cardWidth = useMemo(() => Math.max(pageWidth - BANNER_OUTER_PADDING * 2, 1), [pageWidth]);
+
     const safeActiveIndex = useMemo(() => {
         if (!hasComparisons) return 0;
         const maxIndex = Math.max(0, tribeComparisons.length - 1);
         return Math.min(Math.max(0, activeCompIndex), maxIndex);
     }, [hasComparisons, tribeComparisons.length, activeCompIndex]);
 
-    const scrollX = useRef(new Animated.Value(safeActiveIndex * BANNER_PAGE_WIDTH)).current;
+    const scrollX = useRef(new Animated.Value(0)).current;
     const bannerRef = useRef(null);
     const lastReportedBannerIndex = useRef(safeActiveIndex);
-
-    useEffect(() => {
-        lastReportedBannerIndex.current = safeActiveIndex;
-    }, [safeActiveIndex]);
+    const previousPageWidth = useRef(pageWidth);
 
     const notifyBannerChange = useCallback((idx) => {
         if (!hasComparisons) return;
         if (idx === lastReportedBannerIndex.current) return;
         lastReportedBannerIndex.current = idx;
+        try { triggerStrongHaptic(); } catch {}
         onActiveCompChange(idx);
     }, [hasComparisons, onActiveCompChange]);
+
+    const computeIndexFromOffset = useCallback((offset) => {
+        if (!hasComparisons) return 0;
+        const width = pageWidth || 1;
+        const clamped = Math.max(0, Number(offset) || 0);
+        const nextIndex = Math.round(clamped / width);
+        const maxIndex = Math.max(0, tribeComparisons.length - 1);
+        return Math.min(Math.max(nextIndex, 0), maxIndex);
+    }, [hasComparisons, pageWidth, tribeComparisons.length]);
 
     const handleScroll = useMemo(() => (
         Animated.event(
@@ -522,37 +532,46 @@ export const TribeComparisonBannerCarousel = React.memo(({
             {
                 useNativeDriver: false,
                 listener: (event) => {
-                    const nextIndex = Math.round(event.nativeEvent.contentOffset.x / BANNER_PAGE_WIDTH);
+                    const nextIndex = computeIndexFromOffset(event.nativeEvent.contentOffset.x);
                     notifyBannerChange(nextIndex);
                 },
             }
         )
-    ), [scrollX, notifyBannerChange]);
+    ), [scrollX, notifyBannerChange, computeIndexFromOffset]);
 
     const onScrollEndDrag = useCallback((e) => {
-        const idx = Math.round(e.nativeEvent.contentOffset.x / BANNER_PAGE_WIDTH);
+        const idx = computeIndexFromOffset(e.nativeEvent.contentOffset.x);
         notifyBannerChange(idx);
-    }, [notifyBannerChange]);
+    }, [notifyBannerChange, computeIndexFromOffset]);
 
     const onMomentumEnd = useCallback((e) => {
-        const idx = Math.round(e.nativeEvent.contentOffset.x / BANNER_PAGE_WIDTH);
+        const idx = computeIndexFromOffset(e.nativeEvent.contentOffset.x);
         notifyBannerChange(idx);
-    }, [notifyBannerChange]);
+    }, [notifyBannerChange, computeIndexFromOffset]);
 
     useEffect(() => {
-        if (!hasComparisons) return;
-        scrollX.setValue(safeActiveIndex * BANNER_PAGE_WIDTH);
-    }, [hasComparisons, safeActiveIndex, scrollX]);
+        const widthChanged = Math.abs((previousPageWidth.current || 0) - pageWidth) > 0.5;
+        previousPageWidth.current = pageWidth;
 
-    useEffect(() => {
-        if (!hasComparisons) return;
+        if (!hasComparisons) {
+            lastReportedBannerIndex.current = safeActiveIndex;
+            scrollX.setValue(0);
+            return;
+        }
+
+        const indexChanged = safeActiveIndex !== lastReportedBannerIndex.current;
+        if (!indexChanged && !widthChanged) return;
+
+        lastReportedBannerIndex.current = safeActiveIndex;
+        scrollX.setValue(safeActiveIndex * pageWidth);
+
         try {
             const ref = bannerRef.current;
             if (ref && typeof ref.scrollToIndex === 'function') {
-                ref.scrollToIndex({ index: safeActiveIndex, animated: false });
+                ref.scrollToIndex({ index: safeActiveIndex, animated: !widthChanged });
             }
         } catch { }
-    }, [hasComparisons, safeActiveIndex]);
+    }, [hasComparisons, safeActiveIndex, pageWidth, scrollX]);
 
     const metricLabel = useCallback((m) => (m === '1RM' ? '1RM (Adj)' : m), []);
 
@@ -560,11 +579,11 @@ export const TribeComparisonBannerCarousel = React.memo(({
 
     if (!hasComparisons) {
         return (
-            <View style={[styles.bannerPager, style]}>
+            <View style={[styles.bannerPager, style, { width: pageWidth }]}>
                 <TouchableOpacity
                     activeOpacity={0.92}
                     onPress={withStrongPress(onOpenTribeComparison)}
-                    style={styles.bannerTouchable}
+                    style={[styles.bannerTouchable, { width: cardWidth }]}
                 >
                     <View style={styles.bannerShadow}>
                         <LinearGradient
@@ -598,7 +617,7 @@ export const TribeComparisonBannerCarousel = React.memo(({
     }
 
     return (
-        <View style={[styles.bannerPager, style]}>
+        <View style={[styles.bannerPager, style, { width: pageWidth }]}>
             <Animated.FlatList
                 ref={bannerRef}
                 horizontal
@@ -606,7 +625,7 @@ export const TribeComparisonBannerCarousel = React.memo(({
                 keyExtractor={(_, i) => `tribe-comp-${i}`}
                 showsHorizontalScrollIndicator={false}
                 snapToAlignment="start"
-                snapToInterval={BANNER_PAGE_WIDTH}
+                snapToInterval={pageWidth}
                 disableIntervalMomentum
                 decelerationRate={Platform.OS === "ios" ? "fast" : 0.92}
                 bounces={false}
@@ -616,12 +635,12 @@ export const TribeComparisonBannerCarousel = React.memo(({
                 initialScrollIndex={safeActiveIndex}
                 onScroll={handleScroll}
                 scrollEventThrottle={16}
-                getItemLayout={(_, index) => ({ length: BANNER_PAGE_WIDTH, offset: BANNER_PAGE_WIDTH * index, index })}
+                getItemLayout={(_, index) => ({ length: pageWidth, offset: pageWidth * index, index })}
                 renderItem={({ item }) => (
-                    <View style={{ width: BANNER_PAGE_WIDTH }}>
+                    <View style={{ width: pageWidth }}>
                         <TouchableOpacity
                             activeOpacity={0.92}
-                            style={styles.bannerTouchable}
+                            style={[styles.bannerTouchable, { width: cardWidth }]}
                             onPress={withStrongPress(onOpenTribeComparison)}
                         >
                             <View style={styles.bannerShadow}>
@@ -665,9 +684,9 @@ export const TribeComparisonBannerCarousel = React.memo(({
                 <View style={styles.dotsRow}>
                     {tribeComparisons.map((_, i) => {
                         const inputRange = [
-                            (i - 1) * BANNER_PAGE_WIDTH,
-                            i * BANNER_PAGE_WIDTH,
-                            (i + 1) * BANNER_PAGE_WIDTH,
+                            (i - 1) * pageWidth,
+                            i * pageWidth,
+                            (i + 1) * pageWidth,
                         ];
 
                         const width = scrollX.interpolate({

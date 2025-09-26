@@ -81,7 +81,7 @@ const SIZES = {
     chevronMT: scaleSize(1),
 };
 
-const STAGE_VERTICAL_OFFSET = scaleSize(25);
+const STAGE_VERTICAL_OFFSET = scaleSize(0);
 
 const DEFAULT_BODY_FOCUS = "overall";
 const BODY_FOCUS_OPTIONS = [
@@ -480,6 +480,28 @@ export default function Competition({ navigation, route }) {
     }, [userStatsSheetProgress]);
 
     const renderHeaderLeftContent = useCallback((attachRef = true) => {
+        if (isCustomTribe && currentTribe) {
+            return (
+                <View style={styles.manageButtonWrap} collapsable={false}>
+                    <RNBounceable
+                        onPress={withStrongPress(() => setManageModalVisible(true))}
+                        style={styles.manageButton}
+                        activeScale={0.96}
+                        accessibilityRole="button"
+                        accessibilityLabel="Manage current tribe"
+                    >
+                        <Ionicons
+                            name="settings-outline"
+                            size={15}
+                            color="rgba(255,255,255,0.95)"
+                            style={styles.manageButtonIcon}
+                        />
+                        <Text style={styles.manageButtonLabel}>Manage</Text>
+                    </RNBounceable>
+                </View>
+            );
+        }
+
         const focusToggleRef = attachRef ? focusToggleAnchorRef : null;
         return (
             <View
@@ -507,7 +529,7 @@ export default function Competition({ navigation, route }) {
                 </RNBounceable>
             </View>
         );
-    }, [bodyFocusLabel, handleToggleFocusMenu, isBodyFocusMenuVisible, isCustomTribe]);
+    }, [bodyFocusLabel, currentTribe, handleToggleFocusMenu, isBodyFocusMenuVisible, isCustomTribe]);
 
     useEffect(() => {
         const uid = global?.userData?.uid;
@@ -813,9 +835,15 @@ export default function Competition({ navigation, route }) {
     );
 
     const scopeLabel = useMemo(() => {
-        if (selectedTribeId) return currentTribe?.name || "Tribe";
+        if (selectedTribeId) return "Tribe";
         return scope === "Following" ? "Following" : "Global";
-    }, [selectedTribeId, currentTribe, scope]);
+    }, [selectedTribeId, scope]);
+
+    const scopeSubtitle = useMemo(() => {
+        if (!selectedTribeId) return null;
+        const name = currentTribe?.name;
+        return name ? String(name) : null;
+    }, [selectedTribeId, currentTribe]);
 
     const hexFocusKey = useMemo(
         () => (typeof bodyFocus === 'string' && bodyFocus ? bodyFocus : DEFAULT_BODY_FOCUS),
@@ -902,7 +930,6 @@ export default function Competition({ navigation, route }) {
                                     styles.focusOption,
                                     opt.value === bodyFocus && styles.focusOptionActive,
                                 ]}
-                                activeOpacity={0.7}
                                 onPress={withStrongPress(() => {
                                     setBodyFocus(opt.value);
                                     setIsBodyFocusMenuVisible(false);
@@ -954,9 +981,21 @@ export default function Competition({ navigation, route }) {
                                 color="rgba(255,255,255,0.95)"
                                 style={{ marginRight: SIZES.chevronML, marginTop: SIZES.chevronMT, opacity: 0 }}
                             />
-                            <Text style={styles.tribeLabel} numberOfLines={1} ellipsizeMode="tail">
-                                {scopeLabel}
-                            </Text>
+                            {scopeSubtitle ? (
+                                <Text
+                                    style={[styles.tribeLabel, styles.tribeLabelTwoLine]}
+                                    numberOfLines={2}
+                                    ellipsizeMode="tail"
+                                >
+                                    {scopeLabel}
+                                    {"\n"}
+                                    <Text style={styles.tribeSubtitleInline}>{scopeSubtitle}</Text>
+                                </Text>
+                            ) : (
+                                <Text style={styles.tribeLabel} numberOfLines={1} ellipsizeMode="tail">
+                                    {scopeLabel}
+                                </Text>
+                            )}
                             <Ionicons
                                 name="chevron-down"
                                 size={Math.max(18, SIZES.headerIconSize - SIZES.chevronDelta)}
@@ -1098,10 +1137,6 @@ export default function Competition({ navigation, route }) {
                     setTribeMenuVisible(false);
                     requestAnimationFrame(() => setJoinModalVisible(true));
                 }}
-                onManagePress={() => {
-                    setTribeMenuVisible(false);
-                    requestAnimationFrame(() => setManageModalVisible(true));
-                }}
             />
 
             <CreateTribeModal
@@ -1217,7 +1252,15 @@ const styles = StyleSheet.create({
         flexDirection: "row",
         alignItems: "center",
     },
+    tribeLabelTwoLine: {
+        textAlign: "center",
+        marginRight: SIZES.tribeLabelMarginRight,
+        lineHeight: scaleSizeFont(SIZES.tribeLabelFont) + scaleSize(2),
+    },
     focusToggleWrap: {
+        position: "relative",
+    },
+    manageButtonWrap: {
         position: "relative",
     },
     focusToggle: {
@@ -1226,7 +1269,26 @@ const styles = StyleSheet.create({
         paddingHorizontal: scaleSize(14),
         paddingVertical: scaleSize(8),
         borderRadius: scaleSize(18),
-        backgroundColor: "rgba(255,255,255,0.14)",
+        backgroundColor: "rgba(178, 199, 243, 0.32)",
+    },
+    manageButton: {
+        flexDirection: "row",
+        alignItems: "center",
+        paddingHorizontal: scaleSize(16),
+        paddingVertical: scaleSize(8),
+        borderRadius: scaleSize(18),
+        backgroundColor: "rgba(191, 111, 87, 0.44)",
+    },
+    manageButtonIcon: {
+        marginRight: scaleSize(6),
+        marginTop: scaleSize(1),
+    },
+    manageButtonLabel: {
+        color: "#fff",
+        fontFamily: "Outfit_600SemiBold",
+        fontSize: scaleSizeFont(14),
+        includeFontPadding: false,
+        letterSpacing: 0.2,
     },
     focusToggleDisabled: {
         opacity: 0.5,
@@ -1284,7 +1346,15 @@ const styles = StyleSheet.create({
         fontSize: scaleSizeFont(SIZES.tribeLabelFont),
         includeFontPadding: false,
         maxWidth: SIZES.tribeLabelMaxWidth,
+        letterSpacing: 0.2,
         marginRight: SIZES.tribeLabelMarginRight,
+        textAlign: "center",
+    },
+    tribeSubtitleInline: {
+        color: "rgba(255,255,255,0.72)",
+        fontFamily: "Outfit_500Medium",
+        fontSize: scaleSizeFont(12.5),
+        includeFontPadding: false,
         letterSpacing: 0.2,
     },
 });

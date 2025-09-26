@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { Animated as RNAnimated, StyleSheet, View } from "react-native";
+import { StyleSheet, View } from "react-native";
 import BottomSheet, { BottomSheetBackdrop } from "@gorhom/bottom-sheet";
 import { useSharedValue, useAnimatedReaction } from "react-native-reanimated";
 import UserStatsModal from "./UserStatsModal";
@@ -8,8 +8,6 @@ import scaleSize from "../../../helper/scaleSize";
 import { onHexagonUpdate } from "../../../utils/hexagonEvents";
 import { coercePrivacyMode } from "../../../utils/workoutPrivacy";
 
-const HANDLE_ACCENT = "#E0A500";
-const HANDLE_BG = "#e0a4002c";
 const HANDLE_NEUTRAL = "#D0D7E2";
 
 const toDayKey = (d) => {
@@ -24,8 +22,6 @@ const LeaderboardBottomSheet = ({ isVisible, setIsVisible, user, navigation, she
     const bottomSheetRef = useRef(null);
     const snapPoints = useMemo(() => ["94%"], []);
     const [tick, setTick] = useState(0);
-    const [detailActive, setDetailActive] = useState(false);
-    const handleAccentOpacity = useRef(new RNAnimated.Value(0)).current;
     const animatedIndexSV = useSharedValue(-1);
     const animatedPositionSV = useSharedValue(0);
     const openPositionSV = useSharedValue(0);
@@ -67,35 +63,13 @@ const LeaderboardBottomSheet = ({ isVisible, setIsVisible, user, navigation, she
         [sheetProgressSV]
     );
 
-    useEffect(() => {
-        RNAnimated.timing(handleAccentOpacity, {
-            toValue: detailActive ? 1 : 0,
-            duration: 180,
-            useNativeDriver: true,
-        }).start();
-    }, [detailActive, handleAccentOpacity]);
-
     const renderHandle = useCallback(() => (
         <View style={styles.handleWrap}>
-            <RNAnimated.View
-                style={[StyleSheet.absoluteFillObject, {
-                    backgroundColor: HANDLE_BG,
-                    opacity: handleAccentOpacity,
-                    borderTopLeftRadius: scaleSize(20),
-                    borderTopRightRadius: scaleSize(20),
-                }]}
-                pointerEvents="none"
-            />
             <View style={styles.handleGripContainer}>
-                <View style={styles.handleGrip}>
-                    <RNAnimated.View
-                        style={[styles.handleAccent, { opacity: handleAccentOpacity }]}
-                        pointerEvents="none"
-                    />
-                </View>
+                <View style={styles.handleGrip} />
             </View>
         </View>
-    ), [handleAccentOpacity]);
+    ), []);
 
     const renderBackdrop = useCallback(
         (props) => (
@@ -174,8 +148,8 @@ const LeaderboardBottomSheet = ({ isVisible, setIsVisible, user, navigation, she
         return { ...u, statsExercises: stats, ...(latestHex ? { statsHexagon: latestHex } : {}) };
     }, [user, (global?.userData?.completedWorkouts || []).length, global?.userData?.statsExercises]);
 
-    const handleDetailActiveChange = useCallback((active) => {
-        setDetailActive(!!active);
+    const handleDetailActiveChange = useCallback(() => {
+        /* keep header styling static when detail overlay opens */
     }, []);
 
     return (
@@ -195,7 +169,6 @@ const LeaderboardBottomSheet = ({ isVisible, setIsVisible, user, navigation, she
             enablePanDownToClose
             onClose={() => {
                 setIsVisible(false);
-                setDetailActive(false);
             }}
         >
             {effectiveUser && (
@@ -228,14 +201,5 @@ const styles = StyleSheet.create({
         borderRadius: scaleSize(2),
         backgroundColor: HANDLE_NEUTRAL,
         overflow: 'hidden',
-    },
-    handleAccent: {
-        position: 'absolute',
-        left: 0,
-        right: 0,
-        top: 0,
-        bottom: 0,
-        backgroundColor: HANDLE_ACCENT,
-        borderRadius: scaleSize(2),
     },
 });

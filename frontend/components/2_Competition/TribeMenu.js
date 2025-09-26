@@ -38,10 +38,7 @@ const TribeMenu = ({
     onSelectTribe,
     onCreatePress,
     onJoinPress,
-    onManagePress,
 }) => {
-    const current = tribes.find((t) => t.id === selectedTribeId);
-
     return (
         <Modal
             visible={visible}
@@ -98,16 +95,6 @@ const TribeMenu = ({
                         <Ionicons name="log-in-outline" size={ICON_ITEM} color="#EAEAEA" />
                         <Text style={styles.menuItemText}>Join by code</Text>
                     </RNBounceable>
-
-                    {!!current && (
-                        <>
-                            <View style={styles.menuDivider} />
-                            <RNBounceable style={styles.menuItem} onPress={withStrongPress(onManagePress)}>
-                                <Ionicons name="settings-outline" size={ICON_ITEM} color="#EAEAEA" />
-                                <Text style={styles.menuItemText}>Manage current tribe</Text>
-                            </RNBounceable>
-                        </>
-                    )}
                 </View>
             </View>
         </Modal>

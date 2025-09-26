@@ -339,6 +339,13 @@ const styles = StyleSheet.create({
     detailHeaderWrapper: {
         marginBottom: scaleSize(scaledSize(8)),
     },
+    detailHeaderSimpleCard: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        paddingHorizontal: scaleSize(scaledSize(18)),
+        paddingVertical: scaleSize(scaledSize(12)),
+        backgroundColor: 'transparent',
+    },
     detailHeaderCard: {
         borderRadius: 0,
         paddingHorizontal: scaleSize(scaledSize(18)),
