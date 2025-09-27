@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { View, Text, StyleSheet, Pressable, Dimensions } from 'react-native';
+import { View, Text, StyleSheet, Pressable } from 'react-native';
 import Svg, { Path } from "react-native-svg";
 import RNBounceable from '@freakycoder/react-native-bounceable';
 import { getCommentCardStyles } from '../../../helper/getCommentCardStyles';
@@ -10,8 +10,7 @@ import { useNavigation } from '@react-navigation/native';
 
 import scaleSize from "../../../helper/scaleSize";
 
-const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get("window");
-const dynamicStyles = getCommentCardStyles(SCREEN_WIDTH, SCREEN_HEIGHT);
+const dynamicStyles = getCommentCardStyles();
 
 // Small helper for a versioned, cached avatar
 const Pfp = ({ uid, version = 0, fallbackUri, style }) => {
@@ -212,12 +211,12 @@ const styles = StyleSheet.create({
         alignItems: 'center',
     },
     handle_text: {
-        fontSize: scaleSize(dynamicStyles.fontSize),
+        fontSize: dynamicStyles.fontSize,
         fontFamily: 'Outfit_500Medium',
         color: '#B8BFCA',
     },
     time_text: {
-        fontSize: scaleSize(dynamicStyles.fontSize - 1),
+        fontSize: dynamicStyles.timeFontSize,
         fontFamily: 'Outfit_500Medium',
         color: '#A1A7B3',
         marginLeft: scaleSize(6),
@@ -228,7 +227,7 @@ const styles = StyleSheet.create({
     },
     content_text: {
         fontFamily: 'Outfit_500Medium',
-        fontSize: scaleSize(dynamicStyles.fontSize),
+        fontSize: dynamicStyles.fontSize,
         flexWrap: 'wrap',
         color: '#E5E7EB',
     },
@@ -246,22 +245,22 @@ const styles = StyleSheet.create({
         borderRadius: scaleSize(30),
     },
     reply_text: {
-        fontSize: scaleSize(dynamicStyles.replyFontSize),
+        fontSize: dynamicStyles.replyFontSize,
         fontFamily: 'Outfit_600SemiBold',
         color: '#E5E7EB',
     },
     heart_icon_ctnr: {
-        width: scaleSize(dynamicStyles.heartIconSize * 1.7),
-        height: scaleSize(dynamicStyles.heartIconSize * 1.7),
+        width: dynamicStyles.heartIconSize * 1.7,
+        height: dynamicStyles.heartIconSize * 1.7,
         marginLeft: scaleSize(8),
-        borderRadius: scaleSize(dynamicStyles.heartIconSize * 0.85),
+        borderRadius: dynamicStyles.heartIconSize * 0.85,
         alignItems: 'center',
         position: 'relative',
     },
     likeCount: {
         position: 'absolute',
         bottom: dynamicStyles.likeCountBottom,
-        fontSize: scaleSize(dynamicStyles.likeCountFontSize),
+        fontSize: dynamicStyles.likeCountFontSize,
         color: '#E5E7EB',
         fontFamily: 'Outfit_600SemiBold',
         paddingHorizontal: scaleSize(4),

@@ -175,7 +175,7 @@ export default function Feed({ navigation, route }) {
     // Highlight target when navigating from notifications
     const highlightPidRef = useRef(null);
     const [highlightSignal, setHighlightSignal] = useState(0);
-    const [pendingFocusPid, setPendingFocusPid] = useState(null);
+    const [pendingScrollRequest, setPendingScrollRequest] = useState(null);
     // Programmatic focusing (simulate user press)
     const programFocusPidRef = useRef(null);
     const [programFocusSignal, setProgramFocusSignal] = useState(0);
@@ -713,24 +713,40 @@ export default function Feed({ navigation, route }) {
         }
     }, [navigation]);
 
-    // Scroll to a specific post by pid and focus it reliably
-    const scrollToPid = useCallback((pid) => {
+    // Scroll to a specific post by pid, optionally focusing it
+    const scrollToPid = useCallback((pid, { focus = true } = {}) => {
         if (!pid || !Array.isArray(posts) || posts.length === 0) return false;
         const idx = posts.findIndex((p) => String(p?.pid || '') === String(pid));
         if (idx < 0) return false;
-        highlightPidRef.current = String(pid);
+        const normalizedPid = String(pid);
+        highlightPidRef.current = normalizedPid;
         setHighlightSignal(Date.now());
-        // Create a new nonce to uniquely identify this request
-        const myNonce = (programFocusNonceRef.current = (programFocusNonceRef.current || 0) + 1);
 
         const lay = itemLayoutsRef.current.get(idx);
         const visibleH = Math.max(0, visibleHeaderHRef.current || 0);
         const viewportTop = scrollOffsetY.current;
         const viewportBottom = viewportTop + (height - visibleH);
+        const fullyVisible = lay && lay.y >= viewportTop && (lay.y + lay.h) <= viewportBottom;
 
-        // If already fully visible, trigger programmatic focus; Post will measure pageY
-        if (lay && lay.y >= viewportTop && (lay.y + lay.h) <= viewportBottom) {
-            programFocusPidRef.current = String(pid);
+        if (!focus) {
+            if (!fullyVisible) {
+                if (lay) {
+                    const targetOffset = Math.max(0, lay.y - 8);
+                    try {
+                        flatListRef.current?.scrollToOffset?.({ offset: targetOffset, animated: false });
+                        scrollOffsetY.current = targetOffset;
+                    } catch {}
+                } else {
+                    try { flatListRef.current?.scrollToIndex?.({ index: idx, viewPosition: 0, animated: false }); } catch {}
+                }
+            }
+            return true;
+        }
+
+        const myNonce = (programFocusNonceRef.current = (programFocusNonceRef.current || 0) + 1);
+
+        if (fullyVisible) {
+            programFocusPidRef.current = normalizedPid;
             // small delay to ensure layout refs are fresh
             setTimeout(() => {
                 if (programFocusNonceRef.current !== myNonce) return; // stale
@@ -739,15 +755,14 @@ export default function Feed({ navigation, route }) {
             return true;
         }
 
-        // Otherwise, jump the list to reveal the item near the top of viewport
         if (lay) {
             const targetOffset = Math.max(0, lay.y - 8);
             try {
                 flatListRef.current?.scrollToOffset?.({ offset: targetOffset, animated: false });
                 scrollOffsetY.current = targetOffset;
-            } catch { }
+            } catch {}
         } else {
-            try { flatListRef.current?.scrollToIndex?.({ index: idx, viewPosition: 0, animated: false }); } catch { }
+            try { flatListRef.current?.scrollToIndex?.({ index: idx, viewPosition: 0, animated: false }); } catch {}
         }
 
         // Poll until layout is available and scroll has settled, then trigger a measured focus
@@ -758,14 +773,14 @@ export default function Feed({ navigation, route }) {
             const hasLay = !!itemLayoutsRef.current.get(idx);
             if (hasLay && stable) {
                 if (programFocusNonceRef.current !== myNonce) return; // stale
-                programFocusPidRef.current = String(pid);
+                programFocusPidRef.current = normalizedPid;
                 setProgramFocusSignal(myNonce);
                 return;
             }
             if (tries++ >= MAX) {
                 // Fallback: force focus anyway
                 if (programFocusNonceRef.current !== myNonce) return; // stale
-                programFocusPidRef.current = String(pid);
+                programFocusPidRef.current = normalizedPid;
                 setProgramFocusSignal(myNonce);
                 return;
             }
@@ -856,22 +871,26 @@ export default function Feed({ navigation, route }) {
             }
         }
 
-        if (route?.params?.focusPid) {
-            const pid = String(route.params.focusPid);
-            setPendingFocusPid(pid);
-            const id = setTimeout(() => {
-                const ok = scrollToPid(pid);
-                if (ok) setPendingFocusPid(null);
-            }, 50);
-            const focusCleanup = () => clearTimeout(id);
-            cleanup = cleanup
-                ? () => { cleanup(); focusCleanup(); }
-                : focusCleanup;
-            try { navigation.setParams({ focusPid: undefined }); } catch { }
+        if (route?.params?.focusPid || route?.params?.scrollPid) {
+            const rawPid = route?.params?.focusPid ?? route?.params?.scrollPid;
+            if (rawPid !== undefined && rawPid !== null) {
+                const pid = String(rawPid);
+                const focus = Boolean(route?.params?.focusPid);
+                setPendingScrollRequest({ pid, focus });
+                const id = setTimeout(() => {
+                    const ok = scrollToPid(pid, { focus });
+                    if (ok) setPendingScrollRequest(null);
+                }, 50);
+                const focusCleanup = () => clearTimeout(id);
+                cleanup = cleanup
+                    ? () => { cleanup(); focusCleanup(); }
+                    : focusCleanup;
+            }
+            try { navigation.setParams({ focusPid: undefined, scrollPid: undefined }); } catch { }
         }
 
         return cleanup;
-    }, [route?.params?.scrollToTop, route?.params?.focusPid, navigation, scrollToPid, scrollToTop]);
+    }, [route?.params?.scrollToTop, route?.params?.focusPid, route?.params?.scrollPid, navigation, scrollToPid, scrollToTop]);
 
     // Scroll to top when triggered by legacy global signal
     useFocusEffect(
@@ -900,12 +919,13 @@ export default function Feed({ navigation, route }) {
         }, [scrollToTop])
     );
 
-    // Retry pending focus once posts are available
+    // Retry pending scroll requests once posts are available
     useEffect(() => {
-        if (!pendingFocusPid) return;
-        const ok = scrollToPid(pendingFocusPid);
-        if (ok) setPendingFocusPid(null);
-    }, [pendingFocusPid, posts]);
+        const req = pendingScrollRequest;
+        if (!req?.pid) return;
+        const ok = scrollToPid(req.pid, { focus: req.focus });
+        if (ok) setPendingScrollRequest(null);
+    }, [pendingScrollRequest, posts, scrollToPid]);
 
     // Custom CellRenderer to capture y/height of each cell in content coordinates
     const CellRenderer = useMemo(() =>

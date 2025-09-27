@@ -143,7 +143,7 @@ export default function NotificationsModal({ visible, uid, closeBottomSheet }) {
 
         try {
             const { jumpToTab } = require('../../../../navigationRef');
-            if (item?.pid) jumpToTab('Feed', { focusPid: String(item.pid), _t: Date.now() });
+            if (item?.pid) jumpToTab('Feed', { scrollPid: String(item.pid), _t: Date.now() });
             else jumpToTab('Feed');
         } catch {}
     }, [closeBottomSheet]);

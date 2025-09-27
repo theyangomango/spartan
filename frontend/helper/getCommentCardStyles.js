@@ -1,22 +1,16 @@
 /**
- * Calculates the styles of Comment Card based on screen dimensions
- * @param width - screen width
- * @param height - screen height
- * @return styles object
+ * Calculates commonly reused CommentCard measurements using scaleSize.
  */
 
-import scaleSize, { BASE_HEIGHT, BASE_WIDTH } from './scaleSize';
+import scaleSize from './scaleSize';
 
-export const getCommentCardStyles = (width, height) => {
-    const s = Math.min(width / BASE_WIDTH, height / BASE_HEIGHT);
-    const sc = (n) => Math.round(n * s);
-    return {
-        pfpSize: sc(38),
-        fontSize: scaleSize(sc(14)),
-        replyButtonWidth: sc(75),
-        heartIconSize: sc(18.5),
-        likeCountFontSize: sc(10),
-        likeCountBottom: -sc(3),
-        replyFontSize: sc(12.5),
-    };
-};
+export const getCommentCardStyles = () => ({
+    pfpSize: scaleSize(38),
+    fontSize: scaleSize(14),
+    timeFontSize: scaleSize(13),
+    replyButtonWidth: scaleSize(75),
+    heartIconSize: scaleSize(18.5),
+    likeCountFontSize: scaleSize(10),
+    likeCountBottom: scaleSize(-3),
+    replyFontSize: scaleSize(12.5),
+});

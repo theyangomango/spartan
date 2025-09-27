@@ -230,7 +230,10 @@ const CommentsBottomSheet = ({ isVisible, postData, commentsBottomSheetExpandFla
             if (!isVisible || !hasPost) {
                 try { textInputRef.current?.blur?.(); } catch { }
             }
-            const fallback = resolveOpenHeight();
+            let fallback = getSnapPointPx(snapPoints[0]);
+            if (!Number.isFinite(fallback) || fallback <= 0) {
+                fallback = resolveOpenHeight();
+            }
             sheetOpenHeight.value = fallback;
             sheetOpenHeightRef.current = fallback;
             sheetTranslateY.value = fallback;
@@ -273,9 +276,12 @@ const CommentsBottomSheet = ({ isVisible, postData, commentsBottomSheetExpandFla
                 bottomSheetRef.current?.close?.();
             }
         } catch { }
-        sheetTranslateY.value = sheetOpenHeight.value;
+        const baseHeight = getSnapPointPx(snapPoints[0]);
+        sheetOpenHeight.value = baseHeight;
+        sheetOpenHeightRef.current = baseHeight;
+        sheetTranslateY.value = baseHeight;
         // Leave reset to callers so we don't resnap after closing
-    }, [sheetOpenHeight, sheetTranslateY]);
+    }, [getSnapPointPx, sheetOpenHeight, sheetTranslateY, snapPoints]);
 
     useEffect(() => {
         if (!isVisible || !postPid) return;
@@ -366,9 +372,22 @@ const CommentsBottomSheet = ({ isVisible, postData, commentsBottomSheetExpandFla
     }, [interactiveProgress, isVisible, postPid, interactiveProgressSV, updateFromProgress, interactiveScale, sheetOpenHeight, sheetTranslateY]);
 
     // Expand the bottom sheet when flagged
+    const lastExpandSignalRef = useRef(commentsBottomSheetExpandFlag);
     useEffect(() => {
+        const signalChanged = lastExpandSignalRef.current !== commentsBottomSheetExpandFlag;
+        lastExpandSignalRef.current = commentsBottomSheetExpandFlag;
+        if (!signalChanged) return;
         if (!isVisible || !postPid) return;
-        try { bottomSheetRef.current?.snapToIndex?.(0, { duration: SHEET_OPEN_MS }); } catch { try { bottomSheetRef.current?.snapToPosition?.(getSnapPointPx(snapPoints[0]), { duration: SHEET_OPEN_MS }); } catch { } }
+        try {
+            bottomSheetRef.current?.snapToIndex?.(1, { duration: SHEET_OPEN_MS });
+        } catch {
+            try {
+                const fullHeight = getSnapPointPx(snapPoints[1]);
+                if (fullHeight > 0) {
+                    bottomSheetRef.current?.snapToPosition?.(fullHeight, { duration: SHEET_OPEN_MS });
+                }
+            } catch { }
+        }
     }, [commentsBottomSheetExpandFlag, getSnapPointPx, isVisible, postPid, snapPoints]);
 
     useEffect(() => {
