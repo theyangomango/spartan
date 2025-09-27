@@ -229,10 +229,105 @@ export default function Messages({ navigation, route }) {
             name: userData.name,
         };
 
+        // Deduplicate and sanitize selected users (ignore entries without a uid)
+        const dedupedUsers = [];
+        const seen = new Set();
+        (Array.isArray(usersExcludingSelf) ? usersExcludingSelf : []).forEach((user) => {
+            const uid = String(user?.uid || "");
+            if (!uid || seen.has(uid)) return;
+            seen.add(uid);
+            dedupedUsers.push(user);
+        });
+
+        if (!selfUser.uid || dedupedUsers.length === 0) return;
+
+        const buildParticipantKey = (uids) => (
+            Array.from(new Set((uids || []).map((id) => String(id || "")).filter(Boolean)))
+                .sort()
+                .join("|")
+        );
+
+        const targetKey = buildParticipantKey([...dedupedUsers.map((u) => u.uid), selfUser.uid]);
+        if (!targetKey) return;
+
+        const usersMatchKey = (candidate) => {
+            const memberUids = Array.isArray(candidate?.memberUids) && candidate.memberUids.length
+                ? candidate.memberUids
+                : Array.isArray(candidate?.users)
+                    ? candidate.users.map((u) => u?.uid)
+                    : [];
+            return buildParticipantKey(memberUids) === targetKey;
+        };
+
+        const ensureChatCached = (chatData) => {
+            if (!chatData?.cid) return chatData;
+            const safeContent = Array.isArray(chatData.content) ? chatData.content : [];
+            let resolved = chatData;
+
+            setChats((prev) => {
+                const base = Array.isArray(prev) ? prev : [];
+                const existing = base.find((c) => c.cid === chatData.cid);
+                if (existing) {
+                    resolved = existing;
+                    return prev;
+                }
+                const augmented = { ...chatData, content: safeContent };
+                const next = [...base, augmented];
+                cachedMessages = next;
+                resolved = augmented;
+                return next;
+            });
+            setLatestByCid((prev) => {
+                if (prev?.[chatData.cid]) return prev;
+                const next = { ...(prev || {}), [chatData.cid]: safeContent };
+                cachedLatestByCid = next;
+                return next;
+            });
+
+            return resolved;
+        };
+
+        // 1) Check existing chats already loaded in state
+        const existingLoaded = (Array.isArray(chats) ? chats : []).find(usersMatchKey);
+        if (existingLoaded) {
+            const participants = Array.isArray(existingLoaded.users)
+                ? existingLoaded.users.filter((u) => String(u?.uid || "") !== String(selfUser.uid))
+                : dedupedUsers;
+            setIsCreateGroupChatBottomSheetVisible(false);
+            navigation.navigate("Chat", { data: existingLoaded, usersExcludingSelf: participants });
+            return;
+        }
+
+        // 2) Check cached message refs on the user doc (in case chat exists but not yet hydrated)
+        const userMessages = Array.isArray(global?.userData?.messages) ? global.userData.messages : [];
+        const existingEntry = userMessages.find((entry) => {
+            const otherUsers = Array.isArray(entry?.otherUsers) ? entry.otherUsers : [];
+            const key = buildParticipantKey([selfUser.uid, ...otherUsers.map((u) => u?.uid)]);
+            return key === targetKey;
+        });
+
+        if (existingEntry?.mid) {
+            try {
+                const docRef = doc(db, "messages", existingEntry.mid);
+                const docSnap = await getDoc(docRef);
+                if (docSnap.exists()) {
+                    const fetched = ensureChatCached({ cid: existingEntry.mid, ...docSnap.data(), content: [] });
+                    const participants = Array.isArray(fetched?.users)
+                        ? fetched.users.filter((u) => String(u?.uid || "") !== String(selfUser.uid))
+                        : (Array.isArray(existingEntry.otherUsers) ? existingEntry.otherUsers : dedupedUsers);
+                    setIsCreateGroupChatBottomSheetVisible(false);
+                    navigation.navigate("Chat", { data: fetched, usersExcludingSelf: participants });
+                    return;
+                }
+            } catch (err) {
+                console.log("initChat existing fetch error", err);
+            }
+        }
+
         const cid = makeID();
 
         // Append this chat reference to every participant's user doc so it shows up for all
-        const allParticipants = [...usersExcludingSelf, selfUser];
+        const allParticipants = [...dedupedUsers, selfUser];
         await Promise.all(
             allParticipants.map((u) => {
                 const otherUsers = allParticipants.filter((x) => x.uid !== u.uid);
@@ -241,17 +336,10 @@ export default function Messages({ navigation, route }) {
         );
 
         const newChat = await createChat(userData.uid, allParticipants, cid);
-        const chatObj = { ...newChat, content: [] };
-
-        setChats((prev) => {
-            const updated = [...prev, chatObj];
-            cachedMessages = updated;
-            return updated;
-        });
-        setLatestByCid((prev) => ({ ...prev, [cid]: [] }));
+        const chatObj = ensureChatCached({ ...newChat, content: [] });
 
         setIsCreateGroupChatBottomSheetVisible(false);
-        navigation.navigate("Chat", { data: chatObj, usersExcludingSelf });
+        navigation.navigate("Chat", { data: chatObj, usersExcludingSelf: dedupedUsers });
     };
 
     if (!userData || !chats) return null;
