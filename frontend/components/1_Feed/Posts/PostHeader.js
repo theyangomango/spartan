@@ -18,7 +18,11 @@ function PostHeader({
     isLightHeader, // if true, render dark text for readability on light media
 }) {
     // Use a stable version (e.g., user.updatedAt or incrementing int) to bust cache only when PFP changes
-    const pfpUri = usePfp(data.uid, data.pfpVersion ?? 0);
+    const pfpUri = usePfp(
+        data.uid,
+        data.pfpVersion ?? 0,
+        data?.pfp || data?.pfpUrl || data?.image || data?.photoURL || data?.avatar || ""
+    );
 
     return (
         <View style={styles.outer}>
@@ -132,7 +136,7 @@ const styles = StyleSheet.create({
     /* avatar rendered with FastImage */
     pfp: {
         flex: 1,
-        borderRadius: scaleSize(scaleSize(43.5) / 2),
+        borderRadius: scaleSize(43.5) / 2,
     },
     text_ctnr: {
         padding: scaleSize(4),
@@ -184,7 +188,7 @@ const styles = StyleSheet.create({
     dot: {
         width: scaleSize(9),
         height: scaleSize(5),
-        borderRadius: scaleSize(scaleSize(5) / 2),
+        borderRadius: scaleSize(5) / 2,
         backgroundColor: "#fff",
         opacity: 0.5,
         marginHorizontal: scaleSize(3.5),
@@ -192,7 +196,7 @@ const styles = StyleSheet.create({
     dash: {
         width: scaleSize(21),
         height: scaleSize(5),
-        borderRadius: scaleSize(scaleSize(5) / 2),
+        borderRadius: scaleSize(5) / 2,
         backgroundColor: "#fff",
         marginHorizontal: scaleSize(3.5),
     },

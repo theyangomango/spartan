@@ -71,7 +71,7 @@ const WorkoutPanelCard = ({
   style,
   exerciseSummaries = [],
 }) => {
-  const cachedPfp = usePfp(uid, pfpVersion);
+  const cachedPfp = usePfp(uid, pfpVersion, pfpUri);
   const resolvedPfp = cachedPfp || pfpUri || null;
 
   const isPressable = typeof onPress === 'function';

@@ -67,8 +67,8 @@ const safeDisplayTime = (timestamp) => {
 };
 
 /* Versioned PFP with immutable caching */
-const Pfp = ({ uid, version = 0, style }) => {
-    const uri = usePfp(uid, version);
+const Pfp = ({ uid, version = 0, fallbackUri, style }) => {
+    const uri = usePfp(uid, version, fallbackUri);
     return uri ? (
         <FastImage
             source={{ uri, priority: FastImage.priority.normal, cache: FastImage.cacheControl.immutable }}
@@ -103,6 +103,14 @@ export default function MessageCard({ usersExcludingSelf, content, timestamp, to
                         <Pfp
                             uid={user0?.uid}
                             version={user0?.pfpVersion ?? 0}
+                            fallbackUri={
+                                user0?.pfp ||
+                                user0?.pfpUrl ||
+                                user0?.image ||
+                                user0?.photoURL ||
+                                user0?.avatar ||
+                                ""
+                            }
                             style={[
                                 styles.pfp,
                                 styles.topLeft,
@@ -112,6 +120,14 @@ export default function MessageCard({ usersExcludingSelf, content, timestamp, to
                         <Pfp
                             uid={user1?.uid}
                             version={user1?.pfpVersion ?? 0}
+                            fallbackUri={
+                                user1?.pfp ||
+                                user1?.pfpUrl ||
+                                user1?.image ||
+                                user1?.photoURL ||
+                                user1?.avatar ||
+                                ""
+                            }
                             style={[
                                 styles.pfp,
                                 styles.bottomRight,
@@ -123,6 +139,14 @@ export default function MessageCard({ usersExcludingSelf, content, timestamp, to
                     <Pfp
                         uid={user0?.uid}
                         version={user0?.pfpVersion ?? 0}
+                        fallbackUri={
+                            user0?.pfp ||
+                            user0?.pfpUrl ||
+                            user0?.image ||
+                            user0?.photoURL ||
+                            user0?.avatar ||
+                            ""
+                        }
                         style={[styles.single, { width: dyn.profile, height: dyn.profile, borderRadius: scaleSize(dyn.profile / 2) }]}
                     />
                 )}

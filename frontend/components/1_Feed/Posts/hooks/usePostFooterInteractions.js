@@ -59,7 +59,9 @@ export default function usePostFooterInteractions({ data, onPressCommentButton, 
             if (nextLiked) {
                 const updatedLikes = [...(Array.isArray(data.likes) ? data.likes : []), {
                     uid: user.uid,
-                    pfp: user.image,
+                    handle: user.handle ?? '',
+                    name: user.name ?? '',
+                    pfp: user.image ?? user.pfp ?? user.pfpUrl ?? user.photoURL ?? '',
                 }];
                 data.likes = updatedLikes;
                 data.likeCount = likeCount + 1;

@@ -4,7 +4,7 @@
  * * No user interactivity
  */
 
-import React from 'react';
+import React, { useMemo } from 'react';
 import { View, Text, StyleSheet } from 'react-native';
 import Reanimated, { useAnimatedStyle } from 'react-native-reanimated';
 // No safe-area offset here; this panel sits inside the post card,
@@ -14,8 +14,8 @@ import FastImage from 'react-native-fast-image';
 import { usePfp } from '../../../helper/usePFPs';
 
 /* Small helper that resolves & renders a PFP with immutable caching */
-const Pfp = ({ uid, version = 0, style }) => {
-    const uri = usePfp(uid, version);
+const Pfp = ({ uid, version = 0, fallbackUri, style }) => {
+    const uri = usePfp(uid, version, fallbackUri);
     return uri ? (
         <FastImage
             source={{
@@ -32,15 +32,13 @@ const Pfp = ({ uid, version = 0, style }) => {
 };
 
 const PostFooterInfoPanel = ({ data, opacityAnim, focusModeSV, interactiveUnfocusSV }) => {
-    const following = global?.userData?.following ?? [];
     const likes = Array.isArray(data?.likes) ? data.likes : [];
 
-    // up to 3 likes from people the user follows
-    const filteredLikes = likes
-        .filter(like => following.some(f => f?.uid === like?.uid))
-        .slice(0, 3);
+    // show at most two likes in the footer, regardless of follow state
+    const visibleLikes = useMemo(() => likes.slice(0, 2), [likes]);
 
-    const handles = filteredLikes.map(like => like.handle);
+    const handles = useMemo(() => visibleLikes.map((like) => like?.handle ?? like?.name ?? ''), [visibleLikes]);
+    const handleList = useMemo(() => handles.filter(Boolean), [handles]);
 
     // During unfocus, fade out interactively using shared value (0..1)
     const unfocusOpacityStyle = useAnimatedStyle(() => {
@@ -58,12 +56,20 @@ const PostFooterInfoPanel = ({ data, opacityAnim, focusModeSV, interactiveUnfocu
     return (
         <Reanimated.View style={[styles.container, unfocusOpacityStyle]} pointerEvents="none">
             <View style={styles.profilePictures}>
-                {filteredLikes.length > 0 ? (
-                    filteredLikes.map((like, index) => (
+                {visibleLikes.length > 0 ? (
+                    visibleLikes.map((like, index) => (
                         <Pfp
                             key={`${like.uid}-${index}`}
                             uid={like.uid}
                             version={like.pfpVersion ?? 0}
+                            fallbackUri={
+                                like?.pfp ||
+                                like?.pfpUrl ||
+                                like?.image ||
+                                like?.photoURL ||
+                                like?.avatar ||
+                                ""
+                            }
                             style={[
                                 styles.profilePicture,
                                 index === 0
@@ -78,14 +84,21 @@ const PostFooterInfoPanel = ({ data, opacityAnim, focusModeSV, interactiveUnfocu
                     <Pfp
                         uid={data.uid}
                         version={data.pfpVersion ?? 0}
+                        fallbackUri={
+                            data?.pfp ||
+                            data?.pfpUrl ||
+                            data?.image ||
+                            data?.photoURL ||
+                            ""
+                        }
                         style={styles.profilePicture}
                     />
                 )}
             </View>
 
             <Text numberOfLines={1} ellipsizeMode="tail" style={styles.likedByText}>
-                {filteredLikes.length > 0
-                    ? `Liked by ${handles.join(', ')}`
+                {visibleLikes.length > 0
+                    ? `Liked by ${handleList.length > 0 ? handleList.join(', ') : 'someone'}`
                     : data.caption}
             </Text>
         </Reanimated.View>

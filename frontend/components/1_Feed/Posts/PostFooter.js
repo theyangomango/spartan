@@ -75,6 +75,13 @@ const PostFooter = forwardRef(function PostFooter({
     const commentIconColor = isLightFooter ? '#333' : '#fff';
     const commentTextStyle = [styles.commentButtonText, isLightFooter && styles.commentButtonTextDark];
 
+    const likeCount = Array.isArray(data?.likes)
+        ? data.likes.length
+        : Number(data?.likeCount) || 0;
+    const commentCount = Array.isArray(data?.comments)
+        ? Math.max(0, data.comments.length - 1)
+        : Number(data?.commentCount) || 0;
+
     return (
         <View style={styles.mainContainer} collapsable={false}>
             <View style={styles.top}>
@@ -92,7 +99,7 @@ const PostFooter = forwardRef(function PostFooter({
                                     color={isLiked ? '#FE5555' : '#fff'}
                                     variant="Bold"
                                 />
-                                <Text style={styles.likeButtonText}>{data.likeCount}</Text>
+                                <Text style={styles.likeButtonText}>{likeCount}</Text>
                             </BlurView>
                         </RNBounceable>
                     </View>
@@ -104,7 +111,7 @@ const PostFooter = forwardRef(function PostFooter({
                             hitSlop={{ top: scaleSize(4), bottom: scaleSize(12), left: scaleSize(12), right: scaleSize(12) }}
                         >
                             <Messages1 size={dynamicStyles.iconSize} color={commentIconColor} variant="Bold" />
-                            <Text style={commentTextStyle}>{data.commentCount}</Text>
+                            <Text style={commentTextStyle}>{commentCount}</Text>
                         </Pressable>
                     </View>
 

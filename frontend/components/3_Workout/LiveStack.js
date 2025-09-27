@@ -11,8 +11,8 @@ import scaleSize from "../../helper/scaleSize";
 
 /** Single avatar that sources from usePfp(uid), falling back to provided URI */
 const AvatarSlot = memo(function AvatarSlot({ uid, size, left = 0, fallbackUri, version = 0 }) {
-    const resolved = usePfp(uid, version);
-    const uri = resolved || fallbackUri || null;
+    const resolved = usePfp(uid, version, fallbackUri);
+    const uri = resolved || null;
 
     return (
         <View

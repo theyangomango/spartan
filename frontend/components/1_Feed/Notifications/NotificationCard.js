@@ -43,7 +43,11 @@ function getDisplayMessage(item) {
 export default function NotificationCard({ item, onPressCard, onAcceptWorkoutInvite }) {
     const [isFollowing, setIsFollowing] = useState(false);
     const [acceptingInvite, setAcceptingInvite] = useState(false);
-    const pfpUri = usePfp(item.uid, item.pfpVersion ?? 0);
+    const pfpUri = usePfp(
+        item.uid,
+        item.pfpVersion ?? 0,
+        item?.pfp || item?.pfpUrl || item?.photoURL || item?.image || ""
+    );
 
     /* check initial follow state */
     useEffect(() => {
@@ -239,8 +243,8 @@ const styles = StyleSheet.create({
     },
     pfpIconBadge: {
         position: "absolute",
-        right: scaleSize(-scaleSize(5)),
-        bottom: scaleSize(-scaleSize(5)),
+        right: -scaleSize(5),
+        bottom: -scaleSize(5),
         width: scaleSize(26),
         height: scaleSize(26),
         borderRadius: scaleSize(13),
@@ -283,7 +287,7 @@ const styles = StyleSheet.create({
         fontFamily: "Outfit_600SemiBold",
     },
     timeWrap: { flexDirection: 'row', alignItems: 'center', gap: scaleSize(6) },
-    unreadDot: { width: scaleSize(7), height: scaleSize(7), borderRadius: scaleSize(scaleSize(7)/2) },
+    unreadDot: { width: scaleSize(7), height: scaleSize(7), borderRadius: scaleSize(7) / 2 },
 
     followBtn: {
         backgroundColor: theme.field,

@@ -14,8 +14,8 @@ const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get("window");
 const dynamicStyles = getCommentCardStyles(SCREEN_WIDTH, SCREEN_HEIGHT);
 
 // Small helper for a versioned, cached avatar
-const Pfp = ({ uid, version = 0, style }) => {
-    const uri = usePfp(uid, version);
+const Pfp = ({ uid, version = 0, fallbackUri, style }) => {
+    const uri = usePfp(uid, version, fallbackUri);
     return uri ? (
         <FastImage
             source={{
@@ -76,7 +76,19 @@ export default function CommentCard({
         <View style={[styles.card, isReply && styles.replyCard, isFirst && styles.firstCard]}>
             <Pressable onPress={handleNavigateToProfile}>
                 <View style={styles.pfp_ctnr}>
-                    <Pfp uid={data.uid} version={data.pfpVersion ?? 0} style={styles.pfp} />
+                    <Pfp
+                        uid={data.uid}
+                        version={data.pfpVersion ?? 0}
+                        fallbackUri={
+                            data?.pfp ||
+                            data?.pfpUrl ||
+                            data?.image ||
+                            data?.photoURL ||
+                            data?.avatar ||
+                            ""
+                        }
+                        style={styles.pfp}
+                    />
                 </View>
             </Pressable>
 

@@ -6,7 +6,7 @@
  */
 
 import React, { useCallback, useEffect, useMemo, useRef, useState, startTransition } from "react";
-import { SafeAreaView, StyleSheet, View, RefreshControl } from "react-native";
+import { SafeAreaView, StyleSheet, View, RefreshControl, Dimensions } from "react-native";
 import { useFocusEffect, useIsFocused } from '@react-navigation/native';
 import { StatusBar } from "expo-status-bar";
 import { useSafeAreaInsets, SafeAreaView as SafeAreaInsetsView } from "react-native-safe-area-context";
@@ -27,6 +27,7 @@ import theme from "../theme/mfpDark";
 import isThisUser from "../helper/isThisUser";
 import useFilteredFeed from "../helper/useFilteredFeed";
 import MaskedView from "@react-native-masked-view/masked-view";
+import scaleSize from "../helper/scaleSize";
 import useFeedUserData from "./feed/hooks/useFeedUserData";
 import { FeedFocusProvider } from "./feed/hooks/FeedFocusContext";
 import useFeedUnfocusGesture from "./feed/hooks/useFeedUnfocusGesture";
@@ -52,6 +53,18 @@ export default function Feed({ navigation, route }) {
     // State
     const posts = useFilteredFeed(global.userData ? global.userData?.following : []);
 
+    const POST_ASPECT_RATIO = 0.8;
+    const screenHeight = useMemo(() => {
+        const dims = Dimensions.get('screen');
+        return Number.isFinite(dims?.height) ? dims.height : height;
+    }, []);
+    const commentsContainerOffset = useMemo(() => scaleSize(85), []);
+    const maxCommentsSheetHeight = useMemo(
+        () => Math.max(0, screenHeight - commentsContainerOffset),
+        [screenHeight, commentsContainerOffset]
+    );
+    const postCardHeight = useMemo(() => width / POST_ASPECT_RATIO, []);
+
     const {
         activeWorkout,
         footerKey,
@@ -74,6 +87,8 @@ export default function Feed({ navigation, route }) {
     const [feedWorkoutActiveIndex, setFeedWorkoutActiveIndex] = useState(0);
     // Pull-to-refresh state
     const [refreshing, setRefreshing] = useState(false);
+    const commentsSnapHeightRef = useRef(null);
+    const [commentsSnapHeight, setCommentsSnapHeight] = useState(null);
 
     /* ---------- refs ---------- */
     const scrollOffsetY = useRef(0);
@@ -319,6 +334,19 @@ export default function Feed({ navigation, route }) {
     // Clear any pending throttled center calc on unmount
     useEffect(() => () => { try { if (pendingCenterTimeoutRef.current) { clearTimeout(pendingCenterTimeoutRef.current); pendingCenterTimeoutRef.current = null; } } catch { } }, []);
 
+    const updateCommentsSnapHeight = useCallback((targetTop) => {
+        if (!Number.isFinite(targetTop)) return;
+        const bottom = targetTop + postCardHeight;
+        const rawHeight = screenHeight - bottom;
+        const clamped = Math.max(0, Math.min(maxCommentsSheetHeight, rawHeight));
+        if (!Number.isFinite(clamped)) return;
+        const prev = commentsSnapHeightRef.current;
+        commentsSnapHeightRef.current = clamped;
+        if (prev == null || Math.abs(prev - clamped) > 0.5) {
+            setCommentsSnapHeight(clamped);
+        }
+    }, [postCardHeight, screenHeight, maxCommentsSheetHeight]);
+
     const ensureFocusedAlignment = useCallback((idx, sessionId, attempt = 0) => {
         if (idx < 0) return;
         if (focusSessionNonceRef.current !== sessionId) return;
@@ -345,6 +373,7 @@ export default function Feed({ navigation, route }) {
                     }
                     return;
                 }
+                updateCommentsSnapHeight(targetTop);
                 const diff = top - targetTop;
                 const absDiff = Math.abs(diff);
                 const PRIMARY_THRESHOLD = 6;
@@ -370,7 +399,7 @@ export default function Feed({ navigation, route }) {
                     requestAnimationFrame(() => ensureFocusedAlignment(idx, sessionId, attempt + 1));
                 }
             });
-    }, [insets?.top]);
+    }, [insets?.top, updateCommentsSnapHeight]);
 
     /* ---------- focus / unfocus handlers ---------- */
     const handleFocusPost = (index, pageY, preferWaitForHeader = false) => {
@@ -430,6 +459,7 @@ export default function Feed({ navigation, route }) {
             const resolvedPageY = resolveFocusPageY();
             const Vstart = visibleHeaderHRef.current || 0; // overlay header visible height right before focus
             const Vfinal = backHeaderHRef.current || (insets?.top ? insets.top + 44 : TARGET_POSITION);
+            updateCommentsSnapHeight(Vfinal);
             // Needed translation Δ for the card: Vfinal - (resolvedPageY - Vstart) = - (resolvedPageY - Vstart - Vfinal)
             // animateView negates the input, so pass (resolvedPageY - Vstart - Vfinal)
             const delta = resolvedPageY - Vstart - Vfinal;
@@ -587,8 +617,10 @@ export default function Feed({ navigation, route }) {
                 setFocusedIndexState(-1);
                 setTranslatingIndexState(-1);
             });
+            commentsSnapHeightRef.current = null;
+            setCommentsSnapHeight(null);
         }
-    }, [resumeInteractiveAlignment, syncFocusOffsetJS]);
+    }, [resumeInteractiveAlignment, setCommentsSnapHeight, syncFocusOffsetJS]);
 
     const animateView = (translateYValue) => {
         try {
@@ -1012,6 +1044,8 @@ export default function Feed({ navigation, route }) {
         [panUnfocus, horizontalSwipe, footerTapGesture]
     );
 
+    const commentsSnapHeightValue = Number.isFinite(commentsSnapHeight) ? commentsSnapHeight : null;
+
     return (
         <FeedFocusProvider value={focusContextValue}>
             <SafeAreaView style={{ flex: 1, backgroundColor: theme.bg }}>
@@ -1124,6 +1158,7 @@ export default function Feed({ navigation, route }) {
                     collapseSignal={commentsCollapseSignal}
                     reopenSignal={commentsReopenSignal}
                     unfocusGestureActive={unfocusGestureActive}
+                    openPositionPx={commentsSnapHeightValue ?? undefined}
                 />
                 <ShareBottomSheet
                     shareBottomSheetCloseFlag={shareBottomSheetCloseFlag}

@@ -260,13 +260,13 @@ const styles = StyleSheet.create({
     },
     subtitle: {
         fontFamily: "Outfit_600SemiBold",
-        fontSize: scaleSize(scaleSize(10)),
+        fontSize: scaleSize(10),
         color: TEXT_SECONDARY,
         letterSpacing: 0.28,
     },
     subtitleAction: {
         fontFamily: "Outfit_800ExtraBold",
-        fontSize: scaleSize(scaleSize(10)),
+        fontSize: scaleSize(10),
         color: TEXT_PRIMARY,
     },
     subtitleActionRow: {
@@ -311,7 +311,7 @@ const styles = StyleSheet.create({
     statColLoading: {
         opacity: 0.7,
     },
-    statValue: { fontFamily: "Outfit_800ExtraBold", fontSize: scaleSize(scaleSize(18)), color: TEXT_PRIMARY, letterSpacing: 0.24 },
+    statValue: { fontFamily: "Outfit_800ExtraBold", fontSize: scaleSize(18), color: TEXT_PRIMARY, letterSpacing: 0.24 },
     statValueCompact: { fontSize: scaleSize(18) },
     statLabel: {
         marginTop: scaleSize(2),

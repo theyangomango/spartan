@@ -36,8 +36,8 @@ const CommentsBottomSheet = ({ isVisible, postData, commentsBottomSheetExpandFla
         transform: [{ translateY: footerTranslateY.value + footerIntroY.value }],
     }));
     const pendingCloseRef = useRef(false);
-    const snapPoints = useMemo(() => ["34.5%", "92%"], []);
     const containerHRef = useRef(SCREEN_HEIGHT - scaleSize(85));
+    const snapPoints = useMemo(() => ["34.5%", "92%"], []);
     const [isSheetExpanded, setIsSheetExpanded] = useState(false);
     const [openSignal, setOpenSignal] = useState(0);
     const [inputText, setInputText] = useState('');

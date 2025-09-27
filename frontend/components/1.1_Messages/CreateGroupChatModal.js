@@ -148,7 +148,7 @@ export default function CreateGroupChatModal({ initChat }) {
                 style={[
                     styles.createButtonWrap,
                     // Respect device safe area so the button doesn't look cramped.
-                    { bottom: scaleSize(Math.max(scaleSize(16), insets.bottom + scaleSize(10))) },
+                    { bottom: Math.max(scaleSize(16), insets.bottom + scaleSize(10)) },
                     selectedUsers.length <= 1 && { opacity: 0.6 },
                 ]}
                 onPress={() => initChat(selectedUsers)}

@@ -28,7 +28,11 @@ const SIZES = {
 
 const ProfileCard = ({ user, onSelect, isSelected, baseBg, selectedBg }) => {
     // resolve PFP via uid (+ optional version) with immutable caching
-    const pfpUri = usePfp(user.uid, user.pfpVersion ?? 0);
+    const pfpUri = usePfp(
+        user.uid,
+        user.pfpVersion ?? 0,
+        user?.pfp || user?.pfpUrl || user?.image || user?.photoURL || user?.avatar || ""
+    );
     const radius = SIZES.pfp / 2;
 
     return (

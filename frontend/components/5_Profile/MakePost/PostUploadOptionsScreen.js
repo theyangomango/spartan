@@ -36,7 +36,14 @@ export default function PostOptionsScreen({ navigation, route }) {
     const [honestyVisible, setHonestyVisible] = useState(false);
     const [selectedWorkout, setSelectedWorkout] = useState(workout || null);
     const workoutSheetRef = useRef(null);
-    const workoutList = useMemo(() => (Array.isArray(global?.userData?.completedWorkouts) ? global.userData.completedWorkouts : []), [(global?.userData?.completedWorkouts || []).length]);
+    const workoutList = useMemo(() => {
+        if (!Array.isArray(global?.userData?.completedWorkouts)) return [];
+        return [...global.userData.completedWorkouts].sort((a, b) => {
+            const latestA = toMillis(a?.created ?? a?.createdAt);
+            const latestB = toMillis(b?.created ?? b?.createdAt);
+            return latestB - latestA;
+        });
+    }, [(global?.userData?.completedWorkouts || []).length]);
     const snapPoints = useMemo(() => ["94%"], []);
     const renderBackdrop = useCallback(
         (props) => (
