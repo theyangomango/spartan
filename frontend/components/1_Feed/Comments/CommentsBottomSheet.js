@@ -22,7 +22,7 @@ const TARGET_POSITION = getScrollTargetPosition(SCREEN_WIDTH, SCREEN_HEIGHT);
 
 const CommentsBottomSheet = ({ isVisible, postData, commentsBottomSheetExpandFlag, toViewProfile, collapseSignal, reopenSignal, interactiveProgress, interactiveProgressSV, interactiveScale = 0.85, openPositionPx, unfocusGestureActive = false, onShowLikesSheet }) => {
     // Smoother sheet expansion
-    const SHEET_OPEN_MS = 280;
+    const SHEET_OPEN_MS = 220;
     const commentsContainerOffset = useMemo(() => scaleSize(85), []);
     const containerHeight = useMemo(
         () => Math.max(0, SCREEN_HEIGHT - commentsContainerOffset),
@@ -59,6 +59,8 @@ const CommentsBottomSheet = ({ isVisible, postData, commentsBottomSheetExpandFla
         transform: [{ translateY: footerTranslateY.value + footerIntroY.value }],
     }));
     const pendingCloseRef = useRef(false);
+    const stickySuppressionIdRef = useRef(null);
+    const lastStickySuppressedRef = useRef(false);
     const containerHRef = useRef(containerHeight);
     const snapPoints = useMemo(() => [firstSnapPoint || 0, "92%"], [firstSnapPoint]);
 
@@ -81,6 +83,23 @@ const CommentsBottomSheet = ({ isVisible, postData, commentsBottomSheetExpandFla
         borderTopLeftRadius: scaleSize(40),
         borderTopRightRadius: scaleSize(40),
     }), [dynamicStyles.inputHeight, footerBottomPadding, footerTopPadding]);
+
+    const applyStickySuppression = useCallback((shouldSuppress) => {
+        if (!stickySuppressionIdRef.current) {
+            const rand = Math.random().toString(36).slice(2);
+            stickySuppressionIdRef.current = `comments-sheet-${Date.now().toString(36)}-${rand}`;
+        }
+        if (lastStickySuppressedRef.current === shouldSuppress) return;
+        lastStickySuppressedRef.current = shouldSuppress;
+        const setter = global?.__setStickyElementsSuppressed;
+        if (typeof setter !== 'function') return;
+        try { setter(stickySuppressionIdRef.current, shouldSuppress); } catch {}
+    }, []);
+
+    useEffect(() => {
+        applyStickySuppression(Boolean(isVisible));
+        return () => { applyStickySuppression(false); };
+    }, [applyStickySuppression, isVisible]);
 
     const getSnapPointPx = useCallback((point) => {
         if (point == null) return 0;
@@ -115,6 +134,20 @@ const CommentsBottomSheet = ({ isVisible, postData, commentsBottomSheetExpandFla
         }
         return defaultPx;
     }, [containerHeight, getSnapPointPx, openPositionPx, snapPoints, sheetOpenHeight]);
+
+    useAnimatedReaction(
+        () => {
+            if (!isVisible) return 0;
+            const openHeight = sheetOpenHeight.value;
+            if (!(openHeight > 0)) return 1;
+            const translate = sheetTranslateY.value;
+            const ratio = 1 - Math.min(1, Math.max(0, translate / openHeight));
+            return ratio > 0.015 ? 1 : 0;
+        },
+        (shouldSuppress) => {
+            runOnJS(applyStickySuppression)(shouldSuppress === 1);
+        }
+    );
 
     // Handle send comment
     const handleSend = useCallback(() => {
@@ -218,7 +251,8 @@ const CommentsBottomSheet = ({ isVisible, postData, commentsBottomSheetExpandFla
                 } catch { }
             };
 
-            try { requestAnimationFrame(open); } catch { open(); }
+            open();
+            try { requestAnimationFrame(open); } catch {}
 
             footerOpacity.value = 0;
             footerIntroY.value = 10;
@@ -479,6 +513,7 @@ const CommentsBottomSheet = ({ isVisible, postData, commentsBottomSheetExpandFla
                     topInset={0}
                     enableContentPanningGesture={true}
                     enablePanDownToClose={false}
+                    suppressStickyElements={false}
                 >
                     {postData && (
                         <CommentsModal
