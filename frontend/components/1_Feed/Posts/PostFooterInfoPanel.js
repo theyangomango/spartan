@@ -32,13 +32,50 @@ const Pfp = ({ uid, version = 0, fallbackUri, style }) => {
 };
 
 const PostFooterInfoPanel = ({ data, opacityAnim, focusModeSV, interactiveUnfocusSV }) => {
-    const likes = Array.isArray(data?.likes) ? data.likes : [];
+    const viewerUid = (() => {
+        try {
+            const raw = global?.userData?.uid;
+            return raw ? String(raw) : null;
+        } catch {
+            return null;
+        }
+    })();
+
+    const likes = useMemo(() => {
+        if (!Array.isArray(data?.likes)) return [];
+        return data.likes
+            .map((like) => {
+                if (!like) return null;
+                if (typeof like === 'string' || typeof like === 'number') {
+                    const uid = String(like).trim();
+                    return uid ? { uid } : null;
+                }
+                return like;
+            })
+            .filter((like) => {
+                if (!like) return false;
+                if (!viewerUid) return true;
+                const uid = like?.uid;
+                if (uid === undefined || uid === null) return true;
+                return String(uid) !== viewerUid;
+            });
+    }, [data?.likes, viewerUid]);
 
     // show at most two likes in the footer, regardless of follow state
     const visibleLikes = useMemo(() => likes.slice(0, 2), [likes]);
 
-    const handles = useMemo(() => visibleLikes.map((like) => like?.handle ?? like?.name ?? ''), [visibleLikes]);
-    const handleList = useMemo(() => handles.filter(Boolean), [handles]);
+    const handleList = useMemo(
+        () =>
+            visibleLikes
+                .map((like) => {
+                    const handle = (like?.handle ?? '').trim();
+                    if (handle) return handle;
+                    const name = (like?.name ?? '').trim();
+                    return name;
+                })
+                .filter(Boolean),
+        [visibleLikes],
+    );
 
     // During unfocus, fade out interactively using shared value (0..1)
     const unfocusOpacityStyle = useAnimatedStyle(() => {
