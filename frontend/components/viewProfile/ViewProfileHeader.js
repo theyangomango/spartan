@@ -1,5 +1,5 @@
 import { StyleSheet, View, Text } from "react-native";
-import { Feather, Ionicons, MaterialIcons } from "@expo/vector-icons";
+import { ArrowDown2, ArrowLeft2, DirectInbox } from "iconsax-react-native";
 import RNBounceable from "@freakycoder/react-native-bounceable";
 import theme from "../../theme/mfpDark";
 import scaleSize from "../../helper/scaleSize";
@@ -8,14 +8,16 @@ import { getUnifiedHeaderMetrics } from "../../theme/headerMetrics";
 
 const METRICS = getUnifiedHeaderMetrics();
 const ICON_SIZE = METRICS.iconSize;
-const ICON_WRAPPER_SIZE = scaleSize(ICON_SIZE + 6);
+const HEADER_HORIZONTAL_PADDING = Math.max(0, METRICS.paddingH - scaleSize(6));
+const ICON_WRAPPER_SIZE = scaleSize(ICON_SIZE + 2);
 const ICON_COLOR = "#CBD5E1";
+const ICON_STROKE_WIDTH = 2.4;
 
 export default function ViewProfileHeader({ handle, goBack, toMessages, onOpenOptions }) {
     return (
         <View style={styles.main_ctnr}>
             <RNBounceable onPress={withStrongPress(goBack)} hitSlop={10} style={styles.iconBtn}>
-                <Ionicons name="chevron-back" size={ICON_SIZE} color={ICON_COLOR} />
+                <ArrowLeft2 size={ICON_SIZE} color={ICON_COLOR} strokeWidth={ICON_STROKE_WIDTH} />
             </RNBounceable>
 
             <RNBounceable onPress={withStrongPress(onOpenOptions)} hitSlop={10} style={styles.center}>
@@ -23,17 +25,17 @@ export default function ViewProfileHeader({ handle, goBack, toMessages, onOpenOp
                     <Text style={styles.handle_text} numberOfLines={1} ellipsizeMode="tail">
                         {handle}
                     </Text>
-                    <Feather
-                        name="chevron-down"
+                    <ArrowDown2
                         size={scaleSize(18)}
                         color={theme.textSecondary}
+                        strokeWidth={ICON_STROKE_WIDTH}
                         style={styles.centerChevron}
                     />
                 </View>
             </RNBounceable>
 
             <RNBounceable onPress={withStrongPress(toMessages)} hitSlop={10} style={styles.iconBtn}>
-                <MaterialIcons name="alternate-email" size={ICON_SIZE + 1.5} color={ICON_COLOR} />
+                <DirectInbox size={ICON_SIZE} color={ICON_COLOR} strokeWidth={ICON_STROKE_WIDTH} />
             </RNBounceable>
         </View>
     );
@@ -44,7 +46,7 @@ const styles = StyleSheet.create({
         alignItems: "center",
         flexDirection: "row",
         justifyContent: "space-between",
-        paddingHorizontal: METRICS.paddingH,
+        paddingHorizontal: HEADER_HORIZONTAL_PADDING,
         paddingBottom: METRICS.paddingBottom,
         paddingTop: METRICS.paddingTop,
         marginTop: METRICS.marginTop,
@@ -54,7 +56,7 @@ const styles = StyleSheet.create({
         flex: 1,
         alignItems: "center",
         justifyContent: "center",
-        paddingHorizontal: scaleSize(12),
+        paddingHorizontal: scaleSize(6),
     },
     handleRow: {
         flexDirection: "row",
