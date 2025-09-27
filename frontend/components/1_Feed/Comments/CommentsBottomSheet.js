@@ -10,16 +10,39 @@ import sendNotification from "../../../../backend/sendNotification";
 import { getCommentsBottomSheetStyles } from "../../../helper/getCommentsBottomSheetStyles";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
+import getScrollTargetPosition from "../../../helper/getScrollTargetPosition";
 import scaleSize from "../../../helper/scaleSize";
 import CommentsInputRow from "./CommentsInputRow";
 
 const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('screen');
 const dynamicStyles = getCommentsBottomSheetStyles(SCREEN_WIDTH, SCREEN_HEIGHT);
 const CLOSE_COMPLETE_PROGRESS = 0.92;
+const POST_ASPECT_RATIO = 0.8;
+const TARGET_POSITION = getScrollTargetPosition(SCREEN_WIDTH, SCREEN_HEIGHT);
 
 const CommentsBottomSheet = ({ isVisible, postData, commentsBottomSheetExpandFlag, toViewProfile, collapseSignal, reopenSignal, interactiveProgress, interactiveProgressSV, interactiveScale = 0.85, openPositionPx, unfocusGestureActive = false }) => {
     // Smoother sheet expansion
     const SHEET_OPEN_MS = 280;
+    const commentsContainerOffset = useMemo(() => scaleSize(85), []);
+    const containerHeight = useMemo(
+        () => Math.max(0, SCREEN_HEIGHT - commentsContainerOffset),
+        [commentsContainerOffset]
+    );
+    const focusedPostSnapHeight = useMemo(() => {
+        const postCardHeight = SCREEN_WIDTH / POST_ASPECT_RATIO;
+        const rawHeight = SCREEN_HEIGHT - (TARGET_POSITION + postCardHeight);
+        return Math.max(0, Math.min(containerHeight, rawHeight));
+    }, [containerHeight]);
+    const firstSnapPoint = useMemo(() => {
+        if (Number.isFinite(openPositionPx) && openPositionPx > 0) {
+            return Math.max(0, Math.min(containerHeight, openPositionPx));
+        }
+        if (focusedPostSnapHeight > 0) {
+            return focusedPostSnapHeight;
+        }
+        const fallbackRatio = 0.345; // legacy default to avoid a zero snap height
+        return Math.max(0, Math.min(containerHeight, containerHeight * fallbackRatio));
+    }, [containerHeight, focusedPostSnapHeight, openPositionPx]);
     const [isInputFocused, setIsInputFocused] = useState(false);
     const bottomSheetRef = useRef(null);
     const footerTranslateY = useSharedValue(0); // moves when input focuses
@@ -36,8 +59,12 @@ const CommentsBottomSheet = ({ isVisible, postData, commentsBottomSheetExpandFla
         transform: [{ translateY: footerTranslateY.value + footerIntroY.value }],
     }));
     const pendingCloseRef = useRef(false);
-    const containerHRef = useRef(SCREEN_HEIGHT - scaleSize(85));
-    const snapPoints = useMemo(() => ["34.5%", "92%"], []);
+    const containerHRef = useRef(containerHeight);
+    const snapPoints = useMemo(() => [firstSnapPoint || 0, "92%"], [firstSnapPoint]);
+
+    useEffect(() => {
+        containerHRef.current = containerHeight;
+    }, [containerHeight]);
     const [isSheetExpanded, setIsSheetExpanded] = useState(false);
     const [openSignal, setOpenSignal] = useState(0);
     const [inputText, setInputText] = useState('');
@@ -65,7 +92,7 @@ const CommentsBottomSheet = ({ isVisible, postData, commentsBottomSheetExpandFla
             if (trimmed.endsWith('%')) {
                 const ratio = parseFloat(trimmed.slice(0, -1));
                 if (Number.isFinite(ratio)) {
-                    const containerH = containerHRef.current || (SCREEN_HEIGHT - scaleSize(85));
+                    const containerH = containerHRef.current || containerHeight;
                     return Math.max(0, containerH * (ratio / 100));
                 }
             }
@@ -75,19 +102,19 @@ const CommentsBottomSheet = ({ isVisible, postData, commentsBottomSheetExpandFla
             }
         }
         return 0;
-    }, []);
+    }, [containerHeight]);
 
     const resolveOpenHeight = useCallback(() => {
         if (sheetOpenHeight.value > 0) return sheetOpenHeight.value;
         if (sheetOpenHeightRef.current > 0) return sheetOpenHeightRef.current;
         const defaultPx = getSnapPointPx(snapPoints[0]);
         if (typeof openPositionPx === 'number') {
-            const h = containerHRef.current || (SCREEN_HEIGHT - scaleSize(85));
+            const h = containerHRef.current || containerHeight;
             const desired = Math.max(0, Math.min(h, openPositionPx));
             return desired > defaultPx ? desired : defaultPx;
         }
         return defaultPx;
-    }, [getSnapPointPx, openPositionPx, snapPoints, sheetOpenHeight]);
+    }, [containerHeight, getSnapPointPx, openPositionPx, snapPoints, sheetOpenHeight]);
 
     // Handle send comment
     const handleSend = useCallback(() => {
@@ -167,7 +194,7 @@ const CommentsBottomSheet = ({ isVisible, postData, commentsBottomSheetExpandFla
             pendingCloseRef.current = false;
             sheetTranslateY.value = 0;
 
-            const containerH = containerHRef.current || (SCREEN_HEIGHT - scaleSize(85));
+            const containerH = containerHRef.current || containerHeight;
             const defaultPx = getSnapPointPx(snapPoints[0]);
             const desiredHeight = typeof openPositionPx === 'number'
                 ? Math.max(0, Math.min(containerH, openPositionPx))
