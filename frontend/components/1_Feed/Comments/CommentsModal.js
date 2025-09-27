@@ -26,7 +26,8 @@ export default function CommentsModal({
     isSheetExpanded,
     setReplyingToIndex,
     toViewProfile,
-    openSignal
+    openSignal,
+    onShowLikesSheet,
 }) {
     const comments = postData.comments;
     const flatListRef = useRef(null);
@@ -41,18 +42,46 @@ export default function CommentsModal({
      * @param {number} index - Index of the comment.
      * @param {number} replyIndex - Index of the reply (-1 if not a reply).
      */
+    const currentUser = global?.userData || {};
+
+    const buildLikeEntry = () => ({
+        uid: currentUser.uid,
+        handle: currentUser.handle ?? '',
+        name: currentUser.name ?? '',
+        pfp: currentUser.image ?? currentUser.pfp ?? currentUser.pfpUrl ?? currentUser.photoURL ?? '',
+        pfpVersion: currentUser.pfpVersion ?? currentUser.pfpVer ?? 0,
+    });
+
     const handleLikeComment = (index, replyIndex) => {
         const target = replyIndex === -1 ? comments[index] : comments[index].replies[replyIndex];
-        target.likeCount += 1;
-        target.likedUsers.push(global.userData.uid);
+        if (!target) return;
+
+        const likeEntry = buildLikeEntry();
+        const alreadyLiked = Array.isArray(target.likedUsers)
+            ? target.likedUsers.some((entry) => {
+                if (!entry) return false;
+                if (typeof entry === 'string' || typeof entry === 'number') {
+                    return String(entry) === String(currentUser.uid || '');
+                }
+                return String(entry?.uid || '') === String(currentUser.uid || '');
+            })
+            : false;
+
+        if (alreadyLiked) return;
+
+        target.likeCount = (Number(target.likeCount) || 0) + 1;
+        if (!Array.isArray(target.likedUsers)) {
+            target.likedUsers = [];
+        }
+        target.likedUsers.push(likeEntry);
 
         updateDoc("posts", postData.pid, { comments });
 
         const notif = {
-            uid: global.userData.uid,
-            pfp: global.userData.image,
-            handle: global.userData.handle,
-            name: global.userData.name,
+            uid: currentUser.uid,
+            pfp: likeEntry.pfp,
+            handle: likeEntry.handle,
+            name: likeEntry.name,
             type: "liked-comment",
             content: target.content,
             pid: postData.pid,
@@ -69,13 +98,29 @@ export default function CommentsModal({
      */
     const handleUnlikeComment = (index, replyIndex) => {
         const target = replyIndex === -1 ? comments[index] : comments[index].replies[replyIndex];
-        target.likeCount -= 1;
-        const userIndex = target.likedUsers.indexOf(global.userData.uid);
-        if (userIndex > -1) {
-            target.likedUsers.splice(userIndex, 1);
+        if (!target) return;
+
+        target.likeCount = Math.max(0, (Number(target.likeCount) || 0) - 1);
+        if (Array.isArray(target.likedUsers)) {
+            const matchIndex = target.likedUsers.findIndex((entry) => {
+                if (!entry) return false;
+                if (typeof entry === 'string' || typeof entry === 'number') {
+                    return String(entry) === String(currentUser.uid || '');
+                }
+                return String(entry?.uid || '') === String(currentUser.uid || '');
+            });
+            if (matchIndex > -1) {
+                target.likedUsers.splice(matchIndex, 1);
+            }
         }
 
         updateDoc("posts", postData.pid, { comments });
+    };
+
+    const handleOpenLikesList = (likedUsers, label) => {
+        if (typeof onShowLikesSheet !== 'function') return;
+        const normalized = Array.isArray(likedUsers) ? likedUsers.filter(Boolean) : [];
+        onShowLikesSheet(normalized, label);
     };
 
     return (
@@ -106,6 +151,7 @@ export default function CommentsModal({
                             replyIndex={-1}
                             toViewProfile={toViewProfile}
                             isFirst={index === 0}
+                            onOpenLikesList={() => handleOpenLikesList(item?.likedUsers, 'Liked this comment')}
                         />
 
                         {/* Render Replies if any */}
@@ -120,6 +166,7 @@ export default function CommentsModal({
                                 isReply={true}
                                 replyIndex={replyIndex}
                                 toViewProfile={toViewProfile}
+                                onOpenLikesList={() => handleOpenLikesList(reply?.likedUsers, 'Liked this reply')}
                             />
                         ))}
                     </View>

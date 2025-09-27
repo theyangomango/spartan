@@ -652,35 +652,37 @@ export default function Feed({ navigation, route }) {
     const openShareModal = useCallback(() => {
         setShareBottomSheetExpandFlag((f) => !f);
     }, []);
+    const showLikesSheet = useCallback((users, title = 'Liked by') => {
+        const processed = Array.isArray(users)
+            ? users
+                .map((entry) => {
+                    if (!entry) return null;
+                    if (typeof entry === 'string' || typeof entry === 'number') {
+                        const uid = String(entry).trim();
+                        return uid ? uid : null;
+                    }
+                    if (typeof entry === 'object') {
+                        const uid = entry?.uid ?? entry?.id;
+                        if (uid == null) return entry;
+                        const safeUid = String(uid).trim();
+                        if (!safeUid) return null;
+                        return { ...entry, uid: safeUid };
+                    }
+                    return null;
+                })
+                .filter(Boolean)
+            : [];
+        setLikesSheetUsers(processed);
+        setLikesSheetTitle(title || 'Liked by');
+        setLikesSheetVisible(true);
+    }, [setLikesSheetUsers, setLikesSheetTitle, setLikesSheetVisible]);
     const openLikesSheet = useCallback((idx) => {
         if (idx == null || idx < 0 || !Array.isArray(posts)) return;
         const post = posts[idx];
         if (!post) return;
 
-        const normalizedUsers = (Array.isArray(post.likes) ? post.likes : [])
-            .map((entry) => {
-                if (!entry) return null;
-                if (typeof entry === 'string' || typeof entry === 'number') {
-                    const uid = String(entry).trim();
-                    return uid ? { uid } : null;
-                }
-                const uid = entry?.uid ?? entry?.id;
-                const safeUid = typeof uid === 'number' || typeof uid === 'string' ? String(uid).trim() : '';
-                if (!safeUid) return null;
-                return {
-                    uid: safeUid,
-                    handle: entry.handle || entry.username || '',
-                    name: entry.name || entry.displayName || '',
-                    pfp: entry.pfp || entry.image || entry.photoURL || entry.avatar || '',
-                    pfpVersion: entry.pfpVersion || entry.pfpVer || 0,
-                };
-            })
-            .filter(Boolean);
-
-        setLikesSheetUsers(normalizedUsers);
-        setLikesSheetTitle('Liked by');
-        setLikesSheetVisible(true);
-    }, [posts]);
+        showLikesSheet(post.likes, 'Liked by');
+    }, [posts, showLikesSheet]);
     const handleOpenNotifications = useCallback(() => {
         setNotificationsBottomSheetExpandFlag((f) => !f);
     }, []);
@@ -1194,6 +1196,7 @@ export default function Feed({ navigation, route }) {
                     reopenSignal={commentsReopenSignal}
                     unfocusGestureActive={unfocusGestureActive}
                     openPositionPx={commentsSnapHeightValue ?? undefined}
+                    onShowLikesSheet={showLikesSheet}
                 />
                 <FollowListBottomSheet
                     isVisible={likesSheetVisible}

@@ -20,7 +20,7 @@ const CLOSE_COMPLETE_PROGRESS = 0.92;
 const POST_ASPECT_RATIO = 0.8;
 const TARGET_POSITION = getScrollTargetPosition(SCREEN_WIDTH, SCREEN_HEIGHT);
 
-const CommentsBottomSheet = ({ isVisible, postData, commentsBottomSheetExpandFlag, toViewProfile, collapseSignal, reopenSignal, interactiveProgress, interactiveProgressSV, interactiveScale = 0.85, openPositionPx, unfocusGestureActive = false }) => {
+const CommentsBottomSheet = ({ isVisible, postData, commentsBottomSheetExpandFlag, toViewProfile, collapseSignal, reopenSignal, interactiveProgress, interactiveProgressSV, interactiveScale = 0.85, openPositionPx, unfocusGestureActive = false, onShowLikesSheet }) => {
     // Smoother sheet expansion
     const SHEET_OPEN_MS = 280;
     const commentsContainerOffset = useMemo(() => scaleSize(85), []);
@@ -469,6 +469,7 @@ const CommentsBottomSheet = ({ isVisible, postData, commentsBottomSheetExpandFla
                             setReplyingToIndex={setReplyingToIndex}
                             toViewProfile={toViewProfile}
                             openSignal={openSignal}
+                            onShowLikesSheet={onShowLikesSheet}
                         />
                     )}
                 </BottomSheet>

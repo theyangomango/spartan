@@ -41,11 +41,20 @@ export default function CommentCard({
     replyIndex,
     toViewProfile,
     isFirst = false,
+    onOpenLikesList,
 }) {
     const navigation = useNavigation();
-    const [isLiked, setIsLiked] = useState(
-        data.isCaption ? false : data.likedUsers.includes(global.userData.uid)
-    );
+    const viewerUid = global?.userData?.uid;
+    const initialLiked = !data.isCaption && Array.isArray(data?.likedUsers)
+        ? data.likedUsers.some((entry) => {
+            if (!entry) return false;
+            if (typeof entry === 'string' || typeof entry === 'number') {
+                return String(entry) === String(viewerUid || '');
+            }
+            return String(entry?.uid || '') === String(viewerUid || '');
+        })
+        : false;
+    const [isLiked, setIsLiked] = useState(initialLiked);
 
     function handlePressLikeButton() {
         if (!isLiked) {
@@ -71,6 +80,15 @@ export default function CommentCard({
             } catch { toViewProfile(data); }
         }
     }
+
+    const hasLikes = !data.isCaption && Number(data.likeCount) > 0;
+
+    const handlePressLikeCount = () => {
+        if (!hasLikes) return;
+        if (typeof onOpenLikesList === 'function') {
+            onOpenLikesList();
+        }
+    };
 
     return (
         <View style={[styles.card, isReply && styles.replyCard, isFirst && styles.firstCard]}>
@@ -149,7 +167,13 @@ export default function CommentCard({
                                 />
                             </Svg>
                         )}
-                        <Text style={styles.likeCount}>{data.likeCount}</Text>
+                        <Text
+                            style={styles.likeCount}
+                            onPress={handlePressLikeCount}
+                            suppressHighlighting
+                        >
+                            {data.likeCount}
+                        </Text>
                     </RNBounceable>
                 </View>
             )}
