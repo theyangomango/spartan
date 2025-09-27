@@ -1,4 +1,4 @@
-import React, { useCallback, useMemo, useRef, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { StyleSheet, View, ScrollView, Text, TouchableOpacity, Image, TextInput, Pressable, SafeAreaView, Dimensions, FlatList } from "react-native";
 import { FontAwesome6, AntDesign } from '@expo/vector-icons';
 import { Location, Weight } from 'iconsax-react-native';
@@ -6,7 +6,6 @@ import { Feather } from '@expo/vector-icons';
 import makeID from "../../../../backend/helper/makeID";
 // Storage handled via native resumable helper to avoid RN Blob issues
 import * as ImageManipulator from 'expo-image-manipulator';
-import * as FileSystem from 'expo-file-system';
 import uploadResumableNative from "../../../../backend/storage/uploadResumableNative";
 import createPost from "../../../../backend/posts/createPost";
 import arrayAppend from "../../../../backend/helper/firebase/arrayAppend";
@@ -36,6 +35,16 @@ export default function PostOptionsScreen({ navigation, route }) {
     const [honestyVisible, setHonestyVisible] = useState(false);
     const [selectedWorkout, setSelectedWorkout] = useState(workout || null);
     const workoutSheetRef = useRef(null);
+    const sharePromiseRef = useRef(null);
+    const isMountedRef = useRef(true);
+
+    useEffect(() => {
+        isMountedRef.current = true;
+        return () => {
+            isMountedRef.current = false;
+            sharePromiseRef.current = null;
+        };
+    }, []);
     const workoutList = useMemo(() => {
         if (!Array.isArray(global?.userData?.completedWorkouts)) return [];
         return [...global.userData.completedWorkouts].sort((a, b) => {
@@ -61,66 +70,105 @@ export default function PostOptionsScreen({ navigation, route }) {
         navigation.goBack();
     }
 
-    async function compressImage(uri) {
-        const compressedImage = await ImageManipulator.manipulateAsync(
-            uri,
-            [],
-            { compress: 0.001, format: ImageManipulator.SaveFormat.JPEG }
-        );
-        return compressedImage.uri;
-    }
-
     const beginShare = () => setHonestyVisible(true);
 
     async function sharePost() {
-        setIsSharing(true); // Disable the button
+        if (isSharing || sharePromiseRef.current) return;
+        if (!images || images.length === 0) return;
+
+        setIsSharing(true);
 
         const pid = makeID();
-        var downloadedImageURLs = [];
-
-        for (let index = 0; index < images.length; index++) {
-            const image = images[index];
-
-            try {
-                // Compress while preserving quality/resolution
-                let compressedUri = await compressUnder250KB(image);
-                // Safety: ensure we have a file:// path readable by FileSystem (iOS can return ph:// from MediaLibrary)
-                if (!compressedUri || !compressedUri.startsWith('file://')) {
-                    const tmp = await ImageManipulator.manipulateAsync(
-                        compressedUri || image,
-                        [],
-                        { compress: 1, format: ImageManipulator.SaveFormat.JPEG }
-                    );
-                    compressedUri = tmp?.uri;
-                }
-                // Pick extension and proper content-type from URI
-                const withoutQuery = (compressedUri || '').split('?')[0];
-                const match = withoutQuery.match(/\.([a-zA-Z0-9]+)$/);
-                const ext = (match ? match[1] : 'jpg').toLowerCase();
-                const mime = ext === 'png' ? 'image/png' : (ext === 'webp' ? 'image/webp' : 'image/jpeg');
-
-                const id = makeID();
-                const path = `posts/${pid}-${id}.${ext}`;
-                const { url } = await uploadResumableNative({ fileUri: compressedUri, path, mime });
-                downloadedImageURLs.push(url);
-            } catch (error) {
-                console.error(`Error processing image ${index + 1}:`, error);
+        const previousPosts = global?.userData && Array.isArray(global.userData.posts)
+            ? [...global.userData.posts]
+            : null;
+        let appendedOptimistically = false;
+        if (global?.userData) {
+            const existing = Array.isArray(global.userData.posts) ? global.userData.posts : [];
+            if (!existing.includes(pid)) {
+                global.userData.posts = [...existing, pid];
+                appendedOptimistically = true;
             }
         }
 
-        // Convert to media objects expected by feed renderer
-        const media = downloadedImageURLs.map((url) => ({ uri: url, type: 'image' }));
-        createPost(global.userData.uid, global.userData.handle, global.userData.image, caption, media, pid, selectedWorkout);
-        arrayAppend('users', global.userData.uid, 'posts', pid);
-        await arrayAppend('global', 'posts', 'PIDs', pid);
-        try {
-            const { jumpToTab } = require('../../../../navigationRef');
-            jumpToTab('Feed');
-        } catch {
-            navigation.navigate('Tabs', { screen: 'Feed' });
-        }
+        const runShare = async () => {
+            try {
+                const uploads = await Promise.all(images.map(async (image, index) => {
+                    try {
+                        let compressedUri = await compressUnder250KB(image);
+                        if (!compressedUri || !compressedUri.startsWith('file://')) {
+                            const tmp = await ImageManipulator.manipulateAsync(
+                                compressedUri || image,
+                                [],
+                                { compress: 1, format: ImageManipulator.SaveFormat.JPEG }
+                            );
+                            compressedUri = tmp?.uri;
+                        }
 
-        setIsSharing(false); // Re-enable the button
+                        const withoutQuery = (compressedUri || '').split('?')[0];
+                        const match = withoutQuery.match(/\.([a-zA-Z0-9]+)$/);
+                        const ext = (match ? match[1] : 'jpg').toLowerCase();
+                        const mime = ext === 'png' ? 'image/png' : (ext === 'webp' ? 'image/webp' : 'image/jpeg');
+
+                        const id = makeID();
+                        const path = `posts/${pid}-${id}.${ext}`;
+                        const { url } = await uploadResumableNative({ fileUri: compressedUri, path, mime });
+                        return { index, url };
+                    } catch (error) {
+                        console.error(`Error processing image ${index + 1}:`, error);
+                        return null;
+                    }
+                }));
+
+                const media = uploads
+                    .filter(Boolean)
+                    .sort((a, b) => a.index - b.index)
+                    .map(({ url }) => ({ uri: url, type: 'image' }));
+
+                if (media.length === 0) {
+                    throw new Error('No media uploaded successfully');
+                }
+
+                const uid = global?.userData?.uid;
+                if (!uid) throw new Error('Missing user UID for createPost');
+
+                await createPost(
+                    uid,
+                    global?.userData?.handle,
+                    global?.userData?.image,
+                    caption,
+                    media,
+                    pid,
+                    selectedWorkout
+                );
+
+                await Promise.allSettled([
+                    arrayAppend('users', uid, 'posts', pid),
+                    arrayAppend('global', 'posts', 'PIDs', pid),
+                ]);
+            } catch (error) {
+                console.error('sharePost failed', error);
+                if (appendedOptimistically && global?.userData) {
+                    global.userData.posts = previousPosts ?? [];
+                }
+            } finally {
+                sharePromiseRef.current = null;
+                if (isMountedRef.current) {
+                    setIsSharing(false);
+                }
+            }
+        };
+
+        sharePromiseRef.current = runShare();
+
+        setTimeout(() => {
+            try {
+                const { jumpToTab } = require('../../../../navigationRef');
+                jumpToTab('Feed');
+            } catch {
+                navigation.navigate('Tabs', { screen: 'Feed' });
+            }
+        }, 0);
     }
 
     return (

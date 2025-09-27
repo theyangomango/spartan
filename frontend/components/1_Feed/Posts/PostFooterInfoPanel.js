@@ -1,11 +1,11 @@
 /**
  * Displays additional information about the post
  * Shows "Liked by..." or the post's caption if not liked by any friends
- * * No user interactivity
+ * * Tappable to open a likes list sheet when provided
  */
 
-import React, { useMemo } from 'react';
-import { View, Text, StyleSheet } from 'react-native';
+import React, { useCallback, useMemo } from 'react';
+import { View, Text, StyleSheet, Pressable } from 'react-native';
 import Reanimated, { useAnimatedStyle } from 'react-native-reanimated';
 // No safe-area offset here; this panel sits inside the post card,
 // not at the device edge.
@@ -31,7 +31,7 @@ const Pfp = ({ uid, version = 0, fallbackUri, style }) => {
     );
 };
 
-const PostFooterInfoPanel = ({ data, opacityAnim, focusModeSV, interactiveUnfocusSV }) => {
+const PostFooterInfoPanel = ({ data, opacityAnim, focusModeSV, interactiveUnfocusSV, onPress }) => {
     const viewerUid = (() => {
         try {
             const raw = global?.userData?.uid;
@@ -90,54 +90,69 @@ const PostFooterInfoPanel = ({ data, opacityAnim, focusModeSV, interactiveUnfocu
         }
     });
 
+    const handlePress = useCallback(() => {
+        if (typeof onPress === 'function') {
+            onPress();
+        }
+    }, [onPress]);
+
+    const canPress = typeof onPress === 'function';
+
     return (
-        <Reanimated.View style={[styles.container, unfocusOpacityStyle]} pointerEvents="none">
-            <View style={styles.profilePictures}>
-                {visibleLikes.length > 0 ? (
-                    visibleLikes.map((like, index) => (
+        <Reanimated.View style={[styles.container, unfocusOpacityStyle]} pointerEvents={canPress ? 'auto' : 'none'}>
+            <Pressable
+                style={styles.pressable}
+                onPress={handlePress}
+                disabled={!canPress}
+                hitSlop={{ top: scaleSize(8), bottom: scaleSize(8), left: scaleSize(6), right: scaleSize(6) }}
+            >
+                <View style={styles.profilePictures}>
+                    {visibleLikes.length > 0 ? (
+                        visibleLikes.map((like, index) => (
+                            <Pfp
+                                key={`${like.uid}-${index}`}
+                                uid={like.uid}
+                                version={like.pfpVersion ?? 0}
+                                fallbackUri={
+                                    like?.pfp ||
+                                    like?.pfpUrl ||
+                                    like?.image ||
+                                    like?.photoURL ||
+                                    like?.avatar ||
+                                    ""
+                                }
+                                style={[
+                                    styles.profilePicture,
+                                    index === 0
+                                        ? styles.profilePicture1
+                                        : index === 1
+                                            ? styles.profilePicture2
+                                            : styles.profilePicture3,
+                                ]}
+                            />
+                        ))
+                    ) : (
                         <Pfp
-                            key={`${like.uid}-${index}`}
-                            uid={like.uid}
-                            version={like.pfpVersion ?? 0}
+                            uid={data.uid}
+                            version={data.pfpVersion ?? 0}
                             fallbackUri={
-                                like?.pfp ||
-                                like?.pfpUrl ||
-                                like?.image ||
-                                like?.photoURL ||
-                                like?.avatar ||
+                                data?.pfp ||
+                                data?.pfpUrl ||
+                                data?.image ||
+                                data?.photoURL ||
                                 ""
                             }
-                            style={[
-                                styles.profilePicture,
-                                index === 0
-                                    ? styles.profilePicture1
-                                    : index === 1
-                                        ? styles.profilePicture2
-                                        : styles.profilePicture3,
-                            ]}
+                            style={styles.profilePicture}
                         />
-                    ))
-                ) : (
-                    <Pfp
-                        uid={data.uid}
-                        version={data.pfpVersion ?? 0}
-                        fallbackUri={
-                            data?.pfp ||
-                            data?.pfpUrl ||
-                            data?.image ||
-                            data?.photoURL ||
-                            ""
-                        }
-                        style={styles.profilePicture}
-                    />
-                )}
-            </View>
+                    )}
+                </View>
 
-            <Text numberOfLines={1} ellipsizeMode="tail" style={styles.likedByText}>
-                {visibleLikes.length > 0
-                    ? `Liked by ${handleList.length > 0 ? handleList.join(', ') : 'someone'}`
-                    : data.caption}
-            </Text>
+                <Text numberOfLines={1} ellipsizeMode="tail" style={styles.likedByText}>
+                    {visibleLikes.length > 0
+                        ? `Liked by ${handleList.length > 0 ? handleList.join(', ') : 'someone'}`
+                        : data.caption}
+                </Text>
+            </Pressable>
         </Reanimated.View>
     );
 };
@@ -182,6 +197,11 @@ const styles = StyleSheet.create({
         fontFamily: 'Poppins_700Bold',
         fontSize: scaleSize(12.5),
         width: '85%',
+    },
+    pressable: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        flex: 1,
     },
 });
 

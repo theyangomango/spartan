@@ -18,6 +18,7 @@ const PostListItem = memo(function PostListItem({
   // actions
   openCommentsModal,
   openShareModal,
+  openLikesSheet,
   toViewProfilePosts,
   openViewWorkoutModal,
   // refs
@@ -57,6 +58,7 @@ const PostListItem = memo(function PostListItem({
     index,
     openCommentsModal,
     openShareModal,
+    openLikesSheet,
     toViewProfile: toViewProfilePosts,
     openViewWorkoutModal,
     highlightPid,

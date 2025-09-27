@@ -19,6 +19,7 @@ import useHeaderSearchUsers from "../hooks/useHeaderSearchUsers";
 import NotificationsBottomSheet from "../components/1_Feed/Notifications/NotificationsBottomSheet";
 import CommentsBottomSheet from "../components/1_Feed/Comments/CommentsBottomSheet";
 import ShareBottomSheet from "../components/1_Feed/SharePost/ShareBottomSheet";
+import FollowListBottomSheet from "../components/FollowListBottomSheet";
 import FeedWorkoutViewerSheet from "../components/1_Feed/ViewWorkout/FeedWorkoutViewerSheet";
 import FeedHeaderOverlay from "../components/1_Feed/FeedHeaderOverlay";
 
@@ -85,6 +86,9 @@ export default function Feed({ navigation, route }) {
     const [feedWorkoutExpandToggle, setFeedWorkoutExpandToggle] = useState(false);
     const [feedWorkoutItems, setFeedWorkoutItems] = useState([]);
     const [feedWorkoutActiveIndex, setFeedWorkoutActiveIndex] = useState(0);
+    const [likesSheetVisible, setLikesSheetVisible] = useState(false);
+    const [likesSheetUsers, setLikesSheetUsers] = useState([]);
+    const [likesSheetTitle, setLikesSheetTitle] = useState('Liked by');
     // Pull-to-refresh state
     const [refreshing, setRefreshing] = useState(false);
     const commentsSnapHeightRef = useRef(null);
@@ -648,6 +652,35 @@ export default function Feed({ navigation, route }) {
     const openShareModal = useCallback(() => {
         setShareBottomSheetExpandFlag((f) => !f);
     }, []);
+    const openLikesSheet = useCallback((idx) => {
+        if (idx == null || idx < 0 || !Array.isArray(posts)) return;
+        const post = posts[idx];
+        if (!post) return;
+
+        const normalizedUsers = (Array.isArray(post.likes) ? post.likes : [])
+            .map((entry) => {
+                if (!entry) return null;
+                if (typeof entry === 'string' || typeof entry === 'number') {
+                    const uid = String(entry).trim();
+                    return uid ? { uid } : null;
+                }
+                const uid = entry?.uid ?? entry?.id;
+                const safeUid = typeof uid === 'number' || typeof uid === 'string' ? String(uid).trim() : '';
+                if (!safeUid) return null;
+                return {
+                    uid: safeUid,
+                    handle: entry.handle || entry.username || '',
+                    name: entry.name || entry.displayName || '',
+                    pfp: entry.pfp || entry.image || entry.photoURL || entry.avatar || '',
+                    pfpVersion: entry.pfpVersion || entry.pfpVer || 0,
+                };
+            })
+            .filter(Boolean);
+
+        setLikesSheetUsers(normalizedUsers);
+        setLikesSheetTitle('Liked by');
+        setLikesSheetVisible(true);
+    }, [posts]);
     const handleOpenNotifications = useCallback(() => {
         setNotificationsBottomSheetExpandFlag((f) => !f);
     }, []);
@@ -902,6 +935,7 @@ export default function Feed({ navigation, route }) {
                 programFocusSignal={programFocusSignal}
                 openCommentsModal={openCommentsModal}
                 openShareModal={openShareModal}
+                openLikesSheet={openLikesSheet}
                 toViewProfilePosts={toViewProfilePosts}
                 openViewWorkoutModal={openViewWorkoutModal}
                 postRefs={postRefs}
@@ -913,6 +947,7 @@ export default function Feed({ navigation, route }) {
             highlightSignal,
             openCommentsModal,
             openShareModal,
+            openLikesSheet,
             toViewProfilePosts,
             openViewWorkoutModal,
         ]
@@ -1159,6 +1194,13 @@ export default function Feed({ navigation, route }) {
                     reopenSignal={commentsReopenSignal}
                     unfocusGestureActive={unfocusGestureActive}
                     openPositionPx={commentsSnapHeightValue ?? undefined}
+                />
+                <FollowListBottomSheet
+                    isVisible={likesSheetVisible}
+                    setIsVisible={setLikesSheetVisible}
+                    title={likesSheetTitle}
+                    users={likesSheetUsers}
+                    navigation={navigation}
                 />
                 <ShareBottomSheet
                     shareBottomSheetCloseFlag={shareBottomSheetCloseFlag}

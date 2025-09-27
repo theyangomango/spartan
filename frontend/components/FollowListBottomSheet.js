@@ -5,6 +5,7 @@ import FastImage from 'react-native-fast-image';
 import theme from '../theme/mfpDark';
 import { usePfp } from '../helper/usePFPs';
 import isThisUser from '../helper/isThisUser';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import scaleSize from "../helper/scaleSize";
 
@@ -27,8 +28,9 @@ function normalizeUser(u) {
 
 export default function FollowListBottomSheet({ isVisible, setIsVisible, title = 'Followers', users = [], navigation }) {
     const bottomSheetRef = useRef(null);
-  const snapPoints = useMemo(() => ['93%'], []);
+  const snapPoints = useMemo(() => ['98%'], []);
     const [list, setList] = useState([]);
+    const insets = useSafeAreaInsets();
 
     // Build derived list; rely on embedded refs (normalized on write). Avoid extra reads here.
     useEffect(() => {
@@ -45,23 +47,35 @@ export default function FollowListBottomSheet({ isVisible, setIsVisible, title =
     }
   }, [isVisible]);
 
-    const renderBackdrop = useCallback((props) => (
-        <BottomSheetBackdrop {...props} appearsOnIndex={0} disappearsOnIndex={-1} opacity={0.45} />
-    ), []);
+    const renderBackdrop = useCallback(
+        (props) => (
+            <BottomSheetBackdrop
+                {...props}
+                appearsOnIndex={0}
+                disappearsOnIndex={-1}
+                opacity={0.45}
+                style={[props.style, styles.backdrop, { top: -insets.top, bottom: -Math.max(0, insets.bottom) }]}
+            />
+        ),
+        [insets.bottom, insets.top],
+    );
 
     const onPressUser = (u) => {
         if (!u?.uid) return;
         try {
-            if (isThisUser(u.uid)) {
-                const rootNav = navigation?.getParent?.('ROOT');
+            const navigatingToSelf = isThisUser(u.uid);
+            const rootNav = navigation?.getParent?.('ROOT');
+            if (navigatingToSelf) {
                 if (rootNav?.navigate) rootNav.navigate('Profile');
                 else navigation.navigate('Profile');
             } else {
-                const rootNav = navigation?.getParent?.('ROOT');
                 if (rootNav?.navigate) rootNav.navigate('ViewProfile', { user: u });
                 else navigation.navigate('ViewProfile', { user: u });
             }
-            setTimeout(() => setIsVisible(false), 0);
+
+            if (navigatingToSelf) {
+                setTimeout(() => setIsVisible(false), 0);
+            }
         } catch { }
     };
 
@@ -87,18 +101,21 @@ export default function FollowListBottomSheet({ isVisible, setIsVisible, title =
     };
 
     return (
-        <BottomSheet
-            ref={bottomSheetRef}
-            index={isVisible ? 0 : -1}
-            snapPoints={snapPoints}
-            handleStyle={{ display: 'none' }}
-            backgroundStyle={{ backgroundColor: theme.bg }}
-            backdropComponent={renderBackdrop}
-            enablePanDownToClose
-            onClose={() => setIsVisible(false)}
-            detached
-            style={{ marginTop: scaleSize(s(6)) }}
-        >
+        <View pointerEvents="box-none" style={styles.wrapper}>
+            <BottomSheet
+                ref={bottomSheetRef}
+                index={isVisible ? 0 : -1}
+                snapPoints={snapPoints}
+                handleStyle={{ display: 'none' }}
+                backgroundStyle={{ backgroundColor: theme.bg }}
+                backdropComponent={renderBackdrop}
+                enablePanDownToClose
+                onClose={() => setIsVisible(false)}
+                detached
+                style={styles.sheet}
+                topInset={insets.top}
+                bottomInset={Math.max(0, insets.bottom)}
+            >
             <View style={styles.header}>
                 <Text style={styles.title}>{title}</Text>
             </View>
@@ -110,10 +127,19 @@ export default function FollowListBottomSheet({ isVisible, setIsVisible, title =
                 contentContainerStyle={{ paddingBottom: scaleSize(s(14)), paddingTop: scaleSize(s(18)), paddingHorizontal: scaleSize(s(16)) }}
             />
         </BottomSheet>
+        </View>
     );
 }
 
 const styles = StyleSheet.create({
+    wrapper: {
+        ...StyleSheet.absoluteFillObject,
+        zIndex: 1400,
+        elevation: 50,
+    },
+    sheet: {
+        marginTop: scaleSize(s(6)),
+    },
     header: {
         paddingTop: scaleSize(s(24)),
         paddingHorizontal: scaleSize(s(22)),
@@ -137,4 +163,8 @@ const styles = StyleSheet.create({
     name: { fontFamily: 'Outfit_400Regular', fontSize: scaleSize(s(12.5)), color: theme.textSecondary, marginTop: scaleSize(s(2)) },
     // start divider aligned with item horizontal padding so it begins left of the pfp
     sep: { height: StyleSheet.hairlineWidth, backgroundColor: theme.hairline, marginHorizontal: scaleSize(s(2)) },
+    backdrop: {
+        left: 0,
+        right: 0,
+    },
 });

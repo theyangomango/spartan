@@ -26,6 +26,7 @@ const PostFooter = forwardRef(function PostFooter({
     isLightFooter = false,
     onPressCommentButton,
     onPressShareButton,
+    onPressInfoPanel,
     isSomePostFocused,
     isUnfocusing,
     focusModeSV,
@@ -163,6 +164,7 @@ const PostFooter = forwardRef(function PostFooter({
                 // Drive unfocus fade-out interactively
                 focusModeSV={focusModeSV}
                 interactiveUnfocusSV={interactiveUnfocusSV}
+                onPress={onPressInfoPanel}
             />
         </View>
     );

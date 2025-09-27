@@ -275,6 +275,7 @@ const Post = forwardRef(function Post({
     handleFocusPost,
     openCommentsModal,
     openShareModal,
+    openLikesSheet,
     toViewProfile,
     openViewWorkoutModal,
     shouldPlay, // when NO post is focused: true if this post is centered
@@ -687,6 +688,12 @@ const Post = forwardRef(function Post({
                         if (!resolvedIsSomePostFocused) focusMe(true);
                         if (resolvedIsFocused) openShareModal(index);
                     }}
+                    onPressInfoPanel={() => {
+                        if (!resolvedIsSomePostFocused) focusMe(true);
+                        if (resolvedIsFocused && typeof openLikesSheet === 'function') {
+                            openLikesSheet(index);
+                        }
+                    }}
                 />
 
                 {/* highlight overlay above content */}
@@ -707,7 +714,8 @@ const areEqual = (prev, next) =>
     prev.highlightPid === next.highlightPid &&
     prev.highlightSignal === next.highlightSignal &&
     prev.programFocusPid === next.programFocusPid &&
-    prev.programFocusSignal === next.programFocusSignal;
+    prev.programFocusSignal === next.programFocusSignal &&
+    prev.openLikesSheet === next.openLikesSheet;
 
 export default React.memo(Post, areEqual);
 
