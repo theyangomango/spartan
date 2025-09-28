@@ -449,12 +449,15 @@ export default function Workout({ navigation, route }) {
         }
 
         const activityKey = String(user?.personalInfo?.activity || "").toLowerCase();
-        const derivedGoal = ACTIVITY_WEEKLY_GOAL[activityKey] ?? DEFAULT_WEEKLY_GOAL;
+        const activityGoal = ACTIVITY_WEEKLY_GOAL[activityKey] ?? DEFAULT_WEEKLY_GOAL;
+        const storedGoalRaw = Number(user?.weeklyWorkoutGoal);
+        const storedGoal = Number.isFinite(storedGoalRaw) ? Math.round(storedGoalRaw) : 0;
+        const derivedGoal = storedGoal > 0 ? storedGoal : activityGoal;
         return {
             workoutsThisWeek: completed,
             weeklyGoal: derivedGoal,
         };
-    }, [user?.completedWorkouts, user?.personalInfo?.activity]);
+    }, [user?.completedWorkouts, user?.personalInfo?.activity, user?.weeklyWorkoutGoal]);
 
     /* ---------- templates (state & CRUD via hook) ---------- */
     const {
