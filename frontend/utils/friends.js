@@ -57,7 +57,7 @@ export const normalizeFriendWorkout = (w, profile) => {
         calories: Number(w?.calories || 0),
         templateName: w?.templateName || w?.template?.name || w?.template || w?.name || "Workout",
         wid: w?.wid || undefined,
-        privacyMode: w?.privacyMode ?? 'hidden',
+        privacyMode: w?.privacyMode ?? 'global',
     };
 };
 
@@ -79,6 +79,6 @@ export const normalizeFriendLive = (cw, profile) => {
             : cw?.duration,
         templateName: cw?.templateName || cw?.template?.name || cw?.title || cw?.name || "Workout",
         wid: cw?.wid || cw?.id,
-        privacyMode: cw?.privacyMode ?? 'hidden',
+        privacyMode: cw?.privacyMode ?? 'global',
     };
 };

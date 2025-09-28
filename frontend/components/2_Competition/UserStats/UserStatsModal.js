@@ -270,7 +270,7 @@ export default function UserStatsModal({ user, toViewProfile, hexOverlay, hexPro
                 return ensureWorkoutPrivacy({ wid, ...d });
             }
         } catch { }
-        return { wid, privacyMode: 'hidden' };
+        return { wid, privacyMode: 'global' };
     }, [user?.completedWorkouts, user?.uid]);
 
     const handleOpenWorkoutCard = useCallback((workout) => {

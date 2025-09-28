@@ -223,7 +223,7 @@ const FeedWorkoutViewerSheet = ({
                 const key = item?.key || `${idx}`;
                 const rawWorkout = item?.workout || null;
                 const workoutEntry = (rawWorkout && typeof rawWorkout === 'object')
-                  ? (rawWorkout.privacyMode ? rawWorkout : { ...rawWorkout, privacyMode: rawWorkout?.privacyMode ?? 'hidden' })
+                  ? (rawWorkout.privacyMode ? rawWorkout : { ...rawWorkout, privacyMode: rawWorkout?.privacyMode ?? 'global' })
                   : null;
                 const friendUidEff = String(
                   item?.friendUid ||

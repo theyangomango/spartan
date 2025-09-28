@@ -565,14 +565,14 @@ const CommunityActivitySheet = ({ visible, openToggle, items = [], onClose, onVi
       reps: item?.reps,
       PBs: item?.PBs ?? item?.pbs ?? 0,
       templateName: item?.templateName,
-      privacyMode: item?.workout?.privacyMode ?? item?.privacyMode ?? 'hidden',
+      privacyMode: item?.workout?.privacyMode ?? item?.privacyMode ?? 'global',
     };
 
     const wk = selfActive
       ? (global?.userData?.currentWorkout || fallbackWorkout)
       : ((item?.workout && typeof item.workout === "object") ? item.workout : fallbackWorkout);
 
-    const safeWorkout = wk ? { ...wk, privacyMode: wk?.privacyMode ?? 'hidden' } : null;
+    const safeWorkout = wk ? { ...wk, privacyMode: wk?.privacyMode ?? 'global' } : null;
 
     if (!canViewWorkout(safeWorkout, viewerUid, viewerData)) {
       return;

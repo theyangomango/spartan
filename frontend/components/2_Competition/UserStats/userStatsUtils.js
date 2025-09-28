@@ -79,7 +79,7 @@ const workoutSortTimestamp = (workout) => Math.max(
 const ensureWorkoutPrivacy = (wk) => {
     if (!wk || typeof wk !== 'object') return null;
     if (Object.prototype.hasOwnProperty.call(wk, 'privacyMode') && wk.privacyMode) return wk;
-    return { ...wk, privacyMode: wk?.privacyMode ?? 'hidden' };
+    return { ...wk, privacyMode: wk?.privacyMode ?? 'global' };
 };
 
 const bestTopSet = (exercise) => {

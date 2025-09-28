@@ -4,22 +4,7 @@ const PRIVACY_MODES = Object.freeze({
     GLOBAL: "global",
 });
 
-const VALID_PRIVACY_SET = new Set([
-    PRIVACY_MODES.HIDDEN,
-    PRIVACY_MODES.FRIENDS,
-    PRIVACY_MODES.GLOBAL,
-]);
-
-const toLowerString = (value) => {
-    if (typeof value === "string") return value.trim().toLowerCase();
-    if (value == null) return "";
-    return String(value).trim().toLowerCase();
-};
-
-export const coercePrivacyMode = (value) => {
-    const normalized = toLowerString(value);
-    return VALID_PRIVACY_SET.has(normalized) ? normalized : PRIVACY_MODES.HIDDEN;
-};
+export const coercePrivacyMode = () => PRIVACY_MODES.GLOBAL;
 
 const getViewerData = (data) => {
     if (data) return data;
@@ -114,75 +99,18 @@ export const isViewerFriend = (viewerData, targetUid) => {
 };
 
 export const canViewWorkout = (workout, viewerUidInput, viewerDataInput) => {
-    const workoutObj = workout && typeof workout === "object" ? workout : null;
-    if (!workoutObj) return false;
-
-    const viewerData = getViewerData(viewerDataInput);
-
-    const viewerUid = viewerUidInput ? String(viewerUidInput) : (viewerData?.uid ? String(viewerData.uid) : "");
-    const ownerUid = resolveWorkoutOwnerUid(workoutObj);
-    const privacy = coercePrivacyMode(workoutObj?.privacyMode);
-
-    if (viewerUid && ownerUid && viewerUid === ownerUid) return true;
-
-    switch (privacy) {
-        case PRIVACY_MODES.GLOBAL:
-            return true;
-        case PRIVACY_MODES.FRIENDS:
-            return isViewerFriend(viewerData, ownerUid);
-        case PRIVACY_MODES.HIDDEN:
-        default:
-            return false;
-    }
+    return true;
 };
 
 export const PRIVACY = PRIVACY_MODES;
 
 export const filterViewableWorkouts = (workouts, viewerUidInput, viewerDataInput) => {
-    const list = Array.isArray(workouts) ? workouts : [];
-    if (!list.length) return list;
-    const viewerData = getViewerData(viewerDataInput);
-    const viewerUid = viewerUidInput ? String(viewerUidInput) : (viewerData?.uid ? String(viewerData.uid) : "");
-    return list.filter((wk) => canViewWorkout(wk, viewerUid, viewerData));
+    return Array.isArray(workouts) ? workouts : [];
 };
 
 export const sanitizeStatsForViewer = (statsInput, ownerUidInput, viewerUidInput, viewerDataInput) => {
     const stats = statsInput && typeof statsInput === 'object' ? statsInput : {};
-    const ownerUid = ownerUidInput ? String(ownerUidInput) : "";
-    const viewerData = getViewerData(viewerDataInput);
-    const viewerUid = viewerUidInput ? String(viewerUidInput) : (viewerData?.uid ? String(viewerData.uid) : "");
-    if (viewerUid && ownerUid && viewerUid === ownerUid) return stats;
-
-    let modified = false;
-    const next = {};
-
-    for (const [name, value] of Object.entries(stats)) {
-        if (!value || typeof value !== 'object') {
-            next[name] = value;
-            continue;
-        }
-
-        const sets = Array.isArray(value.sets) ? value.sets : null;
-        if (!sets || sets.length === 0) {
-            next[name] = value;
-            continue;
-        }
-
-        const filtered = sets.filter((set) => {
-            const privacy = coercePrivacyMode(set?.privacyMode ?? value?.privacyMode ?? null);
-            return canViewWorkout({ privacyMode: privacy, creatorUID: ownerUid }, viewerUid, viewerData);
-        });
-
-        if (filtered.length !== sets.length) modified = true;
-        if (filtered.length === sets.length) {
-            next[name] = value;
-            continue;
-        }
-
-        next[name] = { ...value, sets: filtered };
-    }
-
-    return modified ? next : stats;
+    return stats;
 };
 
 export default {

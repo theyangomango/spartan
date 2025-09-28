@@ -68,7 +68,7 @@ export default function UserStatsExerciseDetailScreen({
                         <View style={styles.detailHeaderTitleWrap}>
                             <Text numberOfLines={2} style={styles.detailHeaderTitle}>{headerName}</Text>
                             <Text numberOfLines={1} style={styles.detailHeaderSubtitle}>
-                                All your workouts that included this exercise
+                                All workouts that included this exercise
                             </Text>
                         </View>
                     </View>

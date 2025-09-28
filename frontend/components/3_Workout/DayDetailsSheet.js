@@ -744,10 +744,10 @@ const DayDetailsSheet = ({
             reps: w?.reps,
             PBs: w?.PBs ?? w?.pbs ?? 0,
             templateName: w?.templateName || w?.template?.name,
-            privacyMode: w?.privacyMode ?? 'hidden',
+            privacyMode: w?.privacyMode ?? 'global',
         };
         const wk = { ...fallback, ...w };
-        if (!wk.privacyMode) wk.privacyMode = 'hidden';
+        if (!wk.privacyMode) wk.privacyMode = 'global';
         // Resolve friend uid + pfp (fallbacks similar to FriendsActivitySheet)
         const friendUid = String(wk.creatorUID || wk.creatorUid || "");
         const friendPfp =

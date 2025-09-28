@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { collection, documentId, getDocs, query, where } from "firebase/firestore";
 import { db } from "../../firebase.config";
-import { canViewWorkout, coercePrivacyMode, PRIVACY } from "../utils/workoutPrivacy";
+import { canViewWorkout, coercePrivacyMode } from "../utils/workoutPrivacy";
 
 const STALE_AFTER_MS = 5 * 60 * 1000; // 5 minutes
 const MAX_FRIEND_BATCH = 10;
@@ -9,8 +9,6 @@ const MAX_FRIEND_BATCH = 10;
 const oneDayMs = 24 * 60 * 60 * 1000;
 
 const listeners = new Set();
-
-const ALLOWED_FRIEND_PRIVACY = new Set([PRIVACY.FRIENDS, PRIVACY.GLOBAL]);
 
 let lastUid = null;
 let snapshot = {
@@ -138,7 +136,6 @@ async function computeStatsForUser(user) {
                 privacyMode,
                 creatorUID: workout?.creatorUID || workout?.creatorUid || ownerUid,
             };
-            if (!isViewerOwner && !ALLOWED_FRIEND_PRIVACY.has(privacyMode)) continue;
             if (!canViewWorkout(normalizedWorkout, uid, viewerData)) continue;
             const when = workoutTimestamp(workout);
             if (!Number.isFinite(when) || when < weekKey || when > now) continue;

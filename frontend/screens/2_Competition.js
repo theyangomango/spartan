@@ -293,7 +293,14 @@ export default function Competition({ navigation, route }) {
     useEffect(() => { LAST_USERLIST = userList; setPersisted({ userList }); }, [userList]);
     useEffect(() => { LAST_BODY_FOCUS = bodyFocus; setPersisted({ bodyFocus }); }, [bodyFocus]);
 
-    const [userSignals, setUserSignals] = useState({ followingKey: "", followersKey: "", tribeKey: "" });
+    const [userSignals, setUserSignals] = useState({
+        followingKey: "",
+        followersKey: "",
+        tribeKey: "",
+        statsKey: "",
+        hexagonKey: "",
+        profileKey: "",
+    });
 
     useEffect(() => subscribeUserData((data) => {
         const normalizeList = (list) => {
@@ -322,9 +329,78 @@ export default function Competition({ navigation, route }) {
         const followersKey = normalizeList(data?.followers);
         const tribeKey = normalizeList(data?.tribeIds);
 
+        const statsKey = (() => {
+            const stats = data?.statsExercises;
+            if (!stats || typeof stats !== "object") return "";
+            try {
+                const pieces = Object.keys(stats).sort().map((exercise) => {
+                    const entry = stats[exercise] || {};
+                    const best = entry.bestSet ? `${entry.bestSet.reps || 0}x${entry.bestSet.weight || 0}` : "";
+                    return `${exercise}:${entry["1RM"] || 0}:${entry.Volume || 0}:${entry.Reps || 0}:${best}`;
+                });
+                return pieces.join("|");
+            } catch {
+                return "";
+            }
+        })();
+
+        const hexagonKey = (() => {
+            const hex = data?.statsHexagon;
+            if (!hex || typeof hex !== "object") return "";
+            try {
+                return Object.keys(hex).sort().map((k) => `${k}:${hex[k] || 0}`).join("|");
+            } catch {
+                return "";
+            }
+        })();
+
+        const profileKey = (() => {
+            const pieces = [
+                data?.handle || "",
+                data?.displayName || "",
+                data?.name || "",
+                data?.image || "",
+                data?.pfp || "",
+                data?.pfpVersion || "",
+            ];
+            return pieces.join("|");
+        })();
+
+        if (data?.uid) {
+            usersRef.current = Array.isArray(usersRef.current)
+                ? (() => {
+                    const next = [...usersRef.current];
+                    const idx = next.findIndex((u) => u?.uid === data.uid);
+                    if (idx >= 0) {
+                        next[idx] = { ...next[idx], ...data };
+                        return next;
+                    }
+                    return next;
+                })()
+                : usersRef.current;
+
+            setUserList((prev) => {
+                if (!Array.isArray(prev)) return prev;
+                const next = [...prev];
+                const idx = next.findIndex((u) => u?.uid === data.uid);
+                if (idx === -1) return prev;
+                next[idx] = { ...next[idx], ...data };
+                return next;
+            });
+        }
+
         setUserSignals((prev) => {
-            if (prev.followingKey === followingKey && prev.followersKey === followersKey && prev.tribeKey === tribeKey) return prev;
-            return { followingKey, followersKey, tribeKey };
+            if (
+                prev.followingKey === followingKey &&
+                prev.followersKey === followersKey &&
+                prev.tribeKey === tribeKey &&
+                prev.statsKey === statsKey &&
+                prev.hexagonKey === hexagonKey &&
+                prev.profileKey === profileKey
+            ) {
+                return prev;
+            }
+            return { followingKey, followersKey, tribeKey, statsKey, hexagonKey, profileKey };
         });
     }), []);
 
@@ -612,7 +688,22 @@ export default function Competition({ navigation, route }) {
         if (!usersLoaded) return;
         if (isCustomTribe && (!tribesHydrated || !currentTribe)) return;
         recompute();
-    }, [usersLoaded, isCustomTribe, tribesHydrated, currentTribe, comparedExercise, activeComparison, scope, recompute, userSignals.followingKey, userSignals.followersKey, userSignals.tribeKey]);
+    }, [
+        usersLoaded,
+        isCustomTribe,
+        tribesHydrated,
+        currentTribe,
+        comparedExercise,
+        activeComparison,
+        scope,
+        recompute,
+        userSignals.followingKey,
+        userSignals.followersKey,
+        userSignals.tribeKey,
+        userSignals.statsKey,
+        userSignals.hexagonKey,
+        userSignals.profileKey,
+    ]);
 
     // keep comp index valid
     useEffect(() => {

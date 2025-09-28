@@ -214,7 +214,11 @@ function decayFactorFromDays(d) {
 
 // Utility to clamp and round
 const clamp = (v, lo, hi) => Math.min(hi, Math.max(lo, v));
-const r = (v) => Math.round(v);
+const roundTo3 = (value) => {
+  const n = Number(value);
+  if (!Number.isFinite(n)) return 0;
+  return Math.round((n + Number.EPSILON) * 1000) / 1000;
+};
 
 // Main export
 function looksLegacy(hex) {
@@ -370,7 +374,7 @@ export default function computeHexagonStats({
   });
 
   // Overall: simple average
-  const overall = r(
+  const overall = roundTo3(
     (Number(next.shoulders || 0) +
       Number(next.chest || 0) +
       Number(next.arms || 0) +
@@ -381,12 +385,12 @@ export default function computeHexagonStats({
   );
 
   const rounded = {
-    shoulders: r(next.shoulders || 0),
-    chest: r(next.chest || 0),
-    arms: r(next.arms || 0),
-    legs: r(next.legs || 0),
-    back: r(next.back || 0),
-    abs: r(next.abs || 0),
+    shoulders: roundTo3(next.shoulders || 0),
+    chest: roundTo3(next.chest || 0),
+    arms: roundTo3(next.arms || 0),
+    legs: roundTo3(next.legs || 0),
+    back: roundTo3(next.back || 0),
+    abs: roundTo3(next.abs || 0),
     overall,
   };
 

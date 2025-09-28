@@ -75,10 +75,10 @@ export default function Profile({ navigation }) {
             reps: wk?.reps,
             PBs: wk?.PBs ?? wk?.pbs ?? 0,
             templateName: wk?.templateName || wk?.template?.name,
-            privacyMode: wk?.privacyMode ?? 'hidden',
+            privacyMode: wk?.privacyMode ?? 'global',
         };
         const normalized = { ...fallback, ...wk };
-        if (!normalized.privacyMode) normalized.privacyMode = 'hidden';
+        if (!normalized.privacyMode) normalized.privacyMode = 'global';
         setProfileSelectedWorkout(normalized);
         setProfileWorkoutExpandToggle((t) => !t);
     }, []);

@@ -77,7 +77,7 @@ const normalizeCompletedWorkout = (w, profile) => {
     volume: Number(w?.volume || 0),
     reps: Number(w?.reps || 0),
     PBs: Number(w?.PBs ?? w?.pbs ?? 0),
-    privacyMode: w?.privacyMode ?? 'hidden',
+    privacyMode: w?.privacyMode ?? 'global',
 
     exercises: exercisesArr,
     exerciseCount: exercisesArr.length,
@@ -87,7 +87,7 @@ const normalizeCompletedWorkout = (w, profile) => {
     workout: {
       creatorUID: w?.creatorUID || w?.creatorUid || profile.uid,
       ...w,
-      privacyMode: w?.privacyMode ?? 'hidden',
+      privacyMode: w?.privacyMode ?? 'global',
     },
   };
 };
@@ -115,7 +115,7 @@ const normalizeLiveWorkout = (cw, profile) => {
     volume: Number(cw?.volume || 0),
     reps: Number(cw?.reps || 0),
     PBs: Number(cw?.PBs ?? cw?.pbs ?? 0),
-    privacyMode: cw?.privacyMode ?? 'hidden',
+    privacyMode: cw?.privacyMode ?? 'global',
 
     exercises: exercisesArr,
     exerciseCount: exercisesArr.length,
@@ -127,7 +127,7 @@ const normalizeLiveWorkout = (cw, profile) => {
       ...cw,
       wid,
       created: started || Date.now(),
-      privacyMode: cw?.privacyMode ?? 'hidden',
+      privacyMode: cw?.privacyMode ?? 'global',
     },
   };
 };
