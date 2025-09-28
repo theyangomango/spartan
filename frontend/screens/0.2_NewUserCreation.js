@@ -149,9 +149,17 @@ const NewUserCreation = ({ navigation, route }) => {
         <TouchableWithoutFeedback onPress={Keyboard.dismiss} accessible={false}>
             <View style={styles.container}>
                 <View style={styles.iconContainer}>
-                    <RNBounceable onPress={goBack}>
-                        <Feather name="chevron-left" size={scaleSize(27)} color={theme.textSecondary} style={styles.backIcon} />
-                    </RNBounceable>
+                    <View style={styles.iconSide}>
+                        <RNBounceable onPress={goBack}>
+                            <Feather name="chevron-left" size={scaleSize(27)} color={theme.textSecondary} style={styles.backIcon} />
+                        </RNBounceable>
+                    </View>
+                    <View style={styles.handleWrapper}>
+                        {!!usernameFromRoute && (
+                            <Text style={styles.handleText}>@{usernameFromRoute}</Text>
+                        )}
+                    </View>
+                    <View style={styles.iconSide} />
                 </View>
 
                 <View style={styles.formWrapper}>
@@ -221,13 +229,28 @@ const styles = StyleSheet.create({
         left: scaleSize(15),
         right: scaleSize(15),
         flexDirection: 'row',
+        alignItems: 'center',
         justifyContent: 'space-between',
         zIndex: 1,
     },
     backIcon: { paddingHorizontal: scaleSize(8), paddingVertical: scaleSize(6) },
     helpIcon: { padding: scaleSize(8) },
+    iconSide: {
+        width: scaleSize(44),
+        alignItems: 'flex-start',
+        justifyContent: 'center',
+    },
+    handleWrapper: {
+        flex: 1,
+        alignItems: 'center',
+    },
     formWrapper: { flex: 1, paddingTop: scaleSize(screenHeight * 0.15) },
     formContainer: { alignItems: 'center', paddingHorizontal: scaleSize(22) },
+    handleText: {
+        color: theme.textPrimary,
+        fontFamily: 'Outfit_600SemiBold',
+        fontSize: scaleSize(16),
+    },
     title: {
         fontSize: scaleSize(15),
         fontWeight: '400',
