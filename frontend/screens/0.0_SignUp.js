@@ -1,4 +1,4 @@
-import React, { useCallback } from 'react';
+import React, { useCallback, useRef, useState } from 'react';
 import {
     View,
     Text,
@@ -6,6 +6,9 @@ import {
     Dimensions,
     TouchableOpacity,
     ImageBackground,
+    TextInput,
+    Keyboard,
+    TouchableWithoutFeedback,
 } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import theme from '../theme/mfpDark';
@@ -13,6 +16,7 @@ import theme from '../theme/mfpDark';
 import AuthButton from '../components/auth/AuthButton';
 import GoogleAuthButton from '../components/auth/GoogleAuthButton';
 import authBackground from '../assets/AUTH_BACKGROUND.jpg';
+import readDoc from '../../backend/helper/firebase/readDoc';
 
 const { width: screenWidth } = Dimensions.get('window');
 
@@ -22,16 +26,71 @@ function scaleSize(size) {
     return Math.round(size * scale);
 }
 
+const isValidUsername = (value) => /^[a-z0-9_.]{3,20}$/.test(value);
+const HERO_TARGET_GAP = scaleSize(125);
+const ACTIONS_MARGIN_TOP = scaleSize(12);
+const USERNAME_CONTAINER_MARGIN_BOTTOM = scaleSize(16);
+const MIN_HERO_MARGIN = scaleSize(20);
+
 const SignUp = ({ navigation }) => {
+    const [username, setUsername] = useState('');
+    const [usernameError, setUsernameError] = useState('');
+    const [checkingUsername, setCheckingUsername] = useState(false);
+    const usernameInputRef = useRef(null);
+    const [usernameHeight, setUsernameHeight] = useState(0);
     const insets = useSafeAreaInsets();
+
+    const dismissKeyboard = useCallback(() => {
+        usernameInputRef.current?.blur();
+        Keyboard.dismiss();
+    }, []);
 
     const toLogInScreen = useCallback(() => {
         navigation.navigate('LogIn');
     }, [navigation]);
 
-    const toNewUserCreationScreen = useCallback(() => {
-        navigation.navigate('NewUserCreation');
-    }, [navigation]);
+    const toNewUserCreationScreen = useCallback(async () => {
+        if (checkingUsername) {
+            return;
+        }
+
+        const trimmedUsername = username.trim();
+        const normalizedUsername = trimmedUsername.toLowerCase();
+
+        if (!trimmedUsername) {
+            setUsernameError('Please create a username to continue.');
+            return;
+        }
+
+        if (!isValidUsername(normalizedUsername)) {
+            setUsernameError('Username must be 3–20 characters (a–z, 0–9, _ or .).');
+            return;
+        }
+
+        dismissKeyboard();
+        setUsernameError('');
+        setCheckingUsername(true);
+
+        try {
+            const users = await readDoc('global', 'users');
+            const existing = Array.isArray(users?.all) ? users.all : [];
+            const handleExists = existing.some(
+                (user) => String(user?.handle || '').toLowerCase() === normalizedUsername
+            );
+
+            if (handleExists) {
+                setUsernameError('Username is already taken.');
+                return;
+            }
+
+            navigation.navigate('NewUserCreation', { username: normalizedUsername });
+        } catch (error) {
+            console.warn('Username availability check failed:', error?.message || error);
+            setUsernameError('Unable to verify username right now. Please try again.');
+        } finally {
+            setCheckingUsername(false);
+        }
+    }, [checkingUsername, dismissKeyboard, navigation, username]);
 
     const handleGoogleSuccess = useCallback(() => {
         try {
@@ -44,6 +103,17 @@ const SignUp = ({ navigation }) => {
         navigation.navigate('Tabs', { screen: 'Workout' });
     }, [navigation]);
 
+    const handleUsernameChange = useCallback((value) => {
+        const sanitized = value.replace(/[^a-zA-Z0-9_.]/g, '').toLowerCase();
+        setUsernameError('');
+        setUsername(sanitized.slice(0, 20));
+    }, []);
+
+    const heroMarginBottom = Math.max(
+        MIN_HERO_MARGIN,
+        HERO_TARGET_GAP - (usernameHeight + USERNAME_CONTAINER_MARGIN_BOTTOM)
+    );
+
     return (
         <ImageBackground
             source={authBackground}
@@ -51,36 +121,66 @@ const SignUp = ({ navigation }) => {
             imageStyle={styles.backgroundImage}
             resizeMode="cover"
         >
-            <SafeAreaView style={styles.safeArea} edges={['top', 'bottom']}>
-                <View style={[styles.inner, { paddingBottom: scaleSize(120) + insets.bottom }]}>
-                    <View style={styles.heroSection}>
-                        <Text style={styles.heroTitle}>Welcome to Spartan</Text>
-                        <Text style={styles.heroSubtitle}>
-                            Find your tribe. Lift with purpose. Unlock relentless performance.
-                        </Text>
+            <TouchableWithoutFeedback onPress={dismissKeyboard} accessible={false}>
+                <SafeAreaView style={styles.safeArea} edges={['top', 'bottom']}>
+                    <View style={[styles.inner, { paddingBottom: scaleSize(120) + insets.bottom }]}>
+                        <View style={[styles.heroSection, { marginBottom: heroMarginBottom }]}>
+                            <Text style={styles.heroTitle}>Welcome to Spartan</Text>
+                            <Text style={styles.heroSubtitle}>
+                                Find your tribe. Lift with purpose. Unlock relentless performance.
+                            </Text>
+                        </View>
+
+                        <View
+                            style={styles.usernameContainer}
+                            onLayout={({ nativeEvent }) => {
+                                const { height } = nativeEvent.layout;
+                                if (Math.abs(height - usernameHeight) > 1) {
+                                    setUsernameHeight(height);
+                                }
+                            }}
+                        >
+                            <Text style={styles.usernameLabel}>Create a Username</Text>
+                            <View style={[styles.usernameInputWrapper, usernameError && styles.usernameInputError]}>
+                                <Text style={styles.usernamePrefix}>@</Text>
+                                <TextInput
+                                    ref={usernameInputRef}
+                                    value={username}
+                                    onChangeText={handleUsernameChange}
+                                    autoCapitalize="none"
+                                    autoCorrect={false}
+                                    placeholder="yourusername"
+                                    placeholderTextColor={theme.textSecondary}
+                                    style={styles.usernameInput}
+                                    returnKeyType="done"
+                                />
+                            </View>
+                            {!!usernameError && <Text style={styles.usernameError}>{usernameError}</Text>}
+                        </View>
+
+                        <View style={styles.actions}>
+                            <GoogleAuthButton
+                                onSuccess={handleGoogleSuccess}
+                                style={styles.googleButton}
+                            />
+                            <AuthButton
+                                text={checkingUsername ? 'Checking...' : 'Continue'}
+                                onPress={toNewUserCreationScreen}
+                                style={styles.primaryButton}
+                                textStyle={styles.primaryButtonText}
+                                disabled={checkingUsername}
+                            />
+                        </View>
                     </View>
 
-                    <View style={styles.actions}>
-                        <GoogleAuthButton
-                            onSuccess={handleGoogleSuccess}
-                            style={styles.googleButton}
-                        />
-                        <AuthButton
-                            text="Continue"
-                            onPress={toNewUserCreationScreen}
-                            style={styles.primaryButton}
-                            textStyle={styles.primaryButtonText}
-                        />
+                    <View style={[styles.footer, { bottom: insets.bottom + scaleSize(20) }]}>
+                        <Text style={styles.footer_regular_text}>Already have an account?</Text>
+                        <TouchableOpacity activeOpacity={0.5} onPress={toLogInScreen}>
+                            <Text style={styles.log_in_text}>Log in</Text>
+                        </TouchableOpacity>
                     </View>
-                </View>
-
-                <View style={[styles.footer, { bottom: insets.bottom + scaleSize(20) }]}>
-                    <Text style={styles.footer_regular_text}>Already have an account?</Text>
-                    <TouchableOpacity activeOpacity={0.5} onPress={toLogInScreen}>
-                        <Text style={styles.log_in_text}>Log in</Text>
-                    </TouchableOpacity>
-                </View>
-            </SafeAreaView>
+                </SafeAreaView>
+            </TouchableWithoutFeedback>
         </ImageBackground>
     );
 };
@@ -105,7 +205,7 @@ const styles = StyleSheet.create({
     heroSection: {
         alignItems: 'center',
         paddingHorizontal: scaleSize(10),
-        marginBottom: scaleSize(85),
+        marginBottom: HERO_TARGET_GAP,
     },
     heroTitle: {
         fontSize: scaleSize(25),
@@ -123,7 +223,49 @@ const styles = StyleSheet.create({
     },
     actions: {
         width: '100%',
-        marginTop: scaleSize(12),
+        marginTop: ACTIONS_MARGIN_TOP,
+    },
+    usernameContainer: {
+        width: '100%',
+        marginBottom: USERNAME_CONTAINER_MARGIN_BOTTOM,
+    },
+    usernameLabel: {
+        fontFamily: 'Outfit_600SemiBold',
+        color: theme.textPrimary,
+        fontSize: scaleSize(13.5),
+        marginBottom: scaleSize(8),
+    },
+    usernameInputWrapper: {
+        width: '100%',
+        flexDirection: 'row',
+        alignItems: 'center',
+        paddingVertical: scaleSize(12),
+        paddingHorizontal: scaleSize(14),
+        borderRadius: scaleSize(12),
+        backgroundColor: theme.surface,
+        borderWidth: StyleSheet.hairlineWidth,
+        borderColor: theme.hairline,
+    },
+    usernameInput: {
+        flex: 1,
+        fontFamily: 'Outfit_500Medium',
+        fontSize: scaleSize(14),
+        color: theme.textPrimary,
+    },
+    usernamePrefix: {
+        marginRight: scaleSize(6),
+        fontFamily: 'Outfit_600SemiBold',
+        fontSize: scaleSize(14),
+        color: theme.textSecondary,
+    },
+    usernameInputError: {
+        borderColor: '#F97316',
+    },
+    usernameError: {
+        marginTop: scaleSize(6),
+        color: '#F97316',
+        fontFamily: 'Outfit_500Medium',
+        fontSize: scaleSize(12),
     },
     googleButton: {
         backgroundColor: '#fff',

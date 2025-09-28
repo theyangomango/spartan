@@ -22,6 +22,17 @@ function scaleSize(size) {
     return Math.round(size * scale);
 }
 
+const HERO_TARGET_GAP = scaleSize(125);
+const USERNAME_APPROX_HEIGHT = scaleSize(70); // mirrors SignUp username block height
+const USERNAME_CONTAINER_MARGIN = scaleSize(16);
+const MIN_HERO_MARGIN = scaleSize(20);
+const HERO_MARGIN_BOTTOM = Math.max(
+    MIN_HERO_MARGIN,
+    HERO_TARGET_GAP - (USERNAME_APPROX_HEIGHT + USERNAME_CONTAINER_MARGIN)
+);
+
+const ACTIONS_MARGIN_TOP = scaleSize(12);
+
 const LogIn = ({ navigation }) => {
     const [errorMsg, setErrorMsg] = useState('');
     const insets = useSafeAreaInsets();
@@ -125,7 +136,7 @@ const styles = StyleSheet.create({
     heroSection: {
         alignItems: 'center',
         paddingHorizontal: scaleSize(10),
-        marginBottom: scaleSize(85),
+        marginBottom: HERO_MARGIN_BOTTOM,
     },
     heroTitle: {
         fontSize: scaleSize(25),
@@ -143,7 +154,7 @@ const styles = StyleSheet.create({
     },
     actions: {
         width: '100%',
-        marginTop: scaleSize(12),
+        marginTop: ACTIONS_MARGIN_TOP,
     },
     errorText: {
         color: '#F87171',

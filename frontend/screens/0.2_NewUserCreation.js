@@ -1,8 +1,7 @@
 import RNBounceable from '@freakycoder/react-native-bounceable';
 import React, { useState, useRef } from 'react';
 import { View, Text, StyleSheet, TextInput, Dimensions, Keyboard, TouchableWithoutFeedback, TouchableOpacity } from 'react-native';
-import scaleSizeFont, { ts } from '../helper/scaleSize';
-import { Ionicons, Octicons, Feather } from '@expo/vector-icons';
+import { Octicons, Feather } from '@expo/vector-icons';
 import theme from '../theme/mfpDark';
 import createDoc from '../../backend/helper/firebase/createDoc';
 import readDoc from '../../backend/helper/firebase/readDoc';
@@ -22,14 +21,14 @@ const { width: screenWidth, height: screenHeight } = Dimensions.get('window');
 const scale = screenWidth / 375; // Base screen width assumed as 375
 function scaleSize(size) { return Math.round(size * scale); }
 
-const NewUserCreation = ({ navigation }) => {
+const NewUserCreation = ({ navigation, route }) => {
     const [emailOrPhone, setEmailOrPhone] = useState('');
-    const [username, setUsername] = useState('');
     const [name, setName] = useState('');
     const [password, setPassword] = useState('');
     const [errorMsg, setErrorMsg] = useState('');
     const [submitting, setSubmitting] = useState(false);
     const emailOrPhoneInputRef = useRef(null);
+    const usernameFromRoute = route?.params?.username ?? '';
 
     function goBack() { navigation.goBack(); }
 
@@ -47,14 +46,19 @@ const NewUserCreation = ({ navigation }) => {
             if (submitting) return;
             setErrorMsg('');
             // Basic validation
-            if (!emailOrPhone.trim() || !username.trim() || !name.trim() || !password.trim()) {
+            const trimmedEmailOrPhone = emailOrPhone.toLowerCase().trim();
+            const trimmedUsername = usernameFromRoute.toLowerCase().trim();
+            const trimmedName = name.trim();
+
+            if (!trimmedEmailOrPhone || !trimmedName || !password.trim()) {
                 setErrorMsg('Please fill out all fields.');
                 return;
             }
 
-            const trimmedEmailOrPhone = emailOrPhone.toLowerCase().trim();
-            const trimmedUsername = username.toLowerCase().trim();
-            const trimmedName = name.trim();
+            if (!trimmedUsername) {
+                setErrorMsg('Please go back and create a username.');
+                return;
+            }
 
             // Constraints
             if (trimmedName.length < 2 || trimmedName.length > 40) {
@@ -163,16 +167,6 @@ const NewUserCreation = ({ navigation }) => {
                             value={name}
                             onChangeText={setName}
                             autoFocus={true}
-                        />
-
-                        <Text style={styles.title}>Create a Username</Text>
-                        <TextInput
-                            style={styles.input}
-                            placeholder="Username"
-                            placeholderTextColor={theme.textSecondary}
-                            value={username}
-                            onChangeText={setUsername}
-                            autoCapitalize='none'
                         />
 
                         <Text style={styles.title}>Email / Phone Number</Text>

@@ -38,7 +38,7 @@ const styles = StyleSheet.create({
     borderWidth: scaleSize(1.3),
     borderColor: theme.hairline,
     backgroundColor: theme.field,
-    paddingVertical: scaleSize(13),
+    paddingVertical: scaleSize(11.5),
     borderRadius: scaleSize(10),
     marginVertical: scaleSize(4),
     justifyContent: 'center',
