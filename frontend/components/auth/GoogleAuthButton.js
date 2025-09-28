@@ -77,7 +77,7 @@ const styles = StyleSheet.create({
   button: {
     borderWidth: scaleSize(1.2),
     borderRadius: scaleSize(10),
-    paddingVertical: scaleSize(15),
+    paddingVertical: scaleSize(14.5),
   },
   buttonText: {
     color: '#3b3e47ff',

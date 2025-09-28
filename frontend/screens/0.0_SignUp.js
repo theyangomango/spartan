@@ -48,6 +48,7 @@ const SignUp = ({ navigation }) => {
         <ImageBackground
             source={authBackground}
             style={styles.background}
+            imageStyle={styles.backgroundImage}
             resizeMode="cover"
         >
             <SafeAreaView style={styles.safeArea} edges={['top', 'bottom']}>
@@ -89,13 +90,16 @@ const styles = StyleSheet.create({
         flex: 1,
         backgroundColor: theme.bg,
     },
+    backgroundImage: {
+        opacity: 0.75,
+    },
     safeArea: {
         flex: 1,
     },
     inner: {
         flex: 1,
         justifyContent: 'center',
-        paddingHorizontal: scaleSize(22),
+        paddingHorizontal: scaleSize(26),
         paddingTop: scaleSize(70),
     },
     heroSection: {
@@ -114,8 +118,8 @@ const styles = StyleSheet.create({
         textAlign: 'center',
         fontFamily: 'Nunito_700Bold',
         color: '#ffffffd2',
-        lineHeight: scaleSize(20),
-        marginHorizontal: scaleSize(20)
+        lineHeight: scaleSize(21),
+        marginHorizontal: scaleSize(20),
     },
     actions: {
         width: '100%',
