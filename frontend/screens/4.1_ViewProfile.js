@@ -52,7 +52,9 @@ export default function ViewProfile({ navigation, route }) {
         setViewerWorkout({ ...fallback, ...wk });
         setViewerToggle((t) => !t);
     }, [user?.uid]);
-    const closeViewer = useCallback(() => setViewerWorkout(null), []);
+    const closeViewer = useCallback(() => {
+        // Mirror Feed viewer: keep the cached workout so re-opening is instantaneous.
+    }, []);
 
     useEffect(() => {
         getFullUserData();

@@ -83,7 +83,8 @@ export default function Profile({ navigation }) {
         setProfileWorkoutExpandToggle((t) => !t);
     }, []);
     const closeWorkoutViewer = useCallback(() => {
-        setProfileSelectedWorkout(null);
+        // Intentionally leave the last workout cached; the sheet collapsing shouldn't
+        // wipe the data so reopening is instant (mirrors Feed behaviour).
     }, []);
 
     const [profileTopHeight, setProfileTopHeight] = useState(null);
