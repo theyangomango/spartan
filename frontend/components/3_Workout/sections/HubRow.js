@@ -80,6 +80,16 @@ function HubRowCmp({
     const workoutsDisplay = normalizedWeeklyGoal > 0 ? `${safeWeeklyCount}/${normalizedWeeklyGoal}` : `${safeWeeklyCount}`;
     const caloriesFillWidth = afterPaint ? `${safeFill}%` : "0%";
     const weeklyFillWidth = afterPaint ? `${weeklyFill}%` : "0%";
+    const withinCalorieGoal = safeGoal > 0 && Math.abs(safeToday - safeGoal) <= safeGoal * 0.1;
+    const atOrAboveWeeklyGoal = normalizedWeeklyGoal > 0 && safeWeeklyCount >= normalizedWeeklyGoal;
+    const caloriesFillStyle = [
+        styles.progressFill,
+        { width: caloriesFillWidth, backgroundColor: withinCalorieGoal ? theme.success : PROGRESS_FILL },
+    ];
+    const weeklyFillStyle = [
+        styles.progressFill,
+        { width: weeklyFillWidth, backgroundColor: atOrAboveWeeklyGoal ? theme.success : PROGRESS_FILL },
+    ];
     const readyRef = useRef(false);
     const readyRafRef = useRef({ outer: null, inner: null });
     const clearReadyRafs = useCallback(() => {
@@ -218,7 +228,7 @@ function HubRowCmp({
                         </Text>
                     </View>
                     <View style={styles.progressTrack}>
-                        <View style={[styles.progressFill, { width: caloriesFillWidth }]} />
+                        <View style={caloriesFillStyle} />
                     </View>
                 </View>
                 <View style={styles.statRow}>
@@ -240,7 +250,7 @@ function HubRowCmp({
                         </View>
                     </View>
                     <View style={styles.progressTrack}>
-                        <View style={[styles.progressFill, { width: weeklyFillWidth }]} />
+                        <View style={weeklyFillStyle} />
                     </View>
                 </View>
             </View>
