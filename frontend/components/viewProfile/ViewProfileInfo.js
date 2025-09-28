@@ -4,6 +4,7 @@ import { usePfp } from "../../helper/usePFPs";
 import theme from "../../theme/mfpDark";
 import scaleSizeGlobal from "../../helper/scaleSize";
 import { withStrongPress } from "../../utils/haptics";
+import formatHexStat from "../../utils/formatHexStat";
 // Removed plus overlay next to PFP for cleaner ViewProfile
 
 const { height: screenHeight } = Dimensions.get('window');
@@ -15,6 +16,8 @@ export default function ViewProfileInfo({ userData, onPressFollowers, onPressFol
     // Derive counts from array lengths for accuracy
     const followersCount = Array.isArray(userData?.followers) ? userData.followers.length : 0;
     const followingCount = Array.isArray(userData?.following) ? userData.following.length : 0;
+    const overallLabel = `${formatHexStat(userData?.statsHexagon?.overall)} overall`;
+
     return (
         <View style={styles.main_ctnr}>
             <View style={styles.top_row}>
@@ -42,7 +45,7 @@ export default function ViewProfileInfo({ userData, onPressFollowers, onPressFol
                 <View style={styles.name_and_score_ctnr}>
                     <Text style={styles.name_text}>{userData && userData.name}</Text>
                     <View style={styles.border_line}></View>
-                    <Text style={styles.score_text}>{(userData?.statsHexagon?.overall ?? 0)} overall</Text>
+                    <Text style={styles.score_text}>{overallLabel}</Text>
                 </View>
                 <View style={styles.bio_ctnr}>
                     <Text style={styles.bio_text}>{userData && (userData.bio ? userData.bio : 'No bio yet...')}</Text>

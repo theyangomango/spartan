@@ -2,6 +2,7 @@ import React from "react";
 import { StyleSheet, View, Dimensions } from "react-native";
 import scaleSize from "../../../helper/scaleSize";
 import { Svg, Polygon, Text as SvgText, Defs, LinearGradient, Stop, Circle, TSpan } from "react-native-svg";
+import formatHexStat from "../../../utils/formatHexStat";
 
 const { width: screenWidth, height: screenHeight } = Dimensions.get("window");
 
@@ -145,6 +146,8 @@ const HexagonalStats = ({
                 {showLabels && labelPts.map(({ x, y, i }) => {
                     const curr = data[i];
                     const prev = prevData ? prevData[i] : null;
+                    const formattedCurr = formatHexStat(curr);
+                    const formattedPrev = formatHexStat(prev);
                     const changed = prevData && Number(prev) !== Number(curr);
                     const isSide = (i === 1 || i === 2 || i === 4 || i === 5); // CHEST, ARMS, BACK, ABS
                     // For the right-hand side labels (CHEST, ARMS) we want text to flow leftwards
@@ -181,14 +184,14 @@ const HexagonalStats = ({
                                     {changed ? (
                                         // inline prev → new for non-side positions
                                         <>
-                                            <TSpan fill={prevColor} fontFamily="Outfit_700Bold" fontSize={valueFont}>{String(prev)}</TSpan>
+                                            <TSpan fill={prevColor} fontFamily="Outfit_700Bold" fontSize={valueFont}>{formattedPrev}</TSpan>
                                             {/* extra padding before arrow for clarity */}
                                             <TSpan dx={scaledSize(8)} fill={prevColor} fontFamily="Outfit_700Bold" fontSize={valueFont}>{'→'}</TSpan>
                                             {/* extra padding before the golden value */}
-                                            <TSpan dx={scaledSize(8)} fill={diffHighlightColor} fontFamily="Outfit_800ExtraBold" fontSize={valueFontBig}>{String(curr)}</TSpan>
+                                            <TSpan dx={scaledSize(8)} fill={diffHighlightColor} fontFamily="Outfit_800ExtraBold" fontSize={valueFontBig}>{formattedCurr}</TSpan>
                                         </>
                                     ) : (
-                                        String(curr)
+                                        formattedCurr
                                     )}
                                 </SvgText>
                             ) : (
@@ -204,7 +207,7 @@ const HexagonalStats = ({
                                         fontFamily="Outfit_700Bold"
                                         fontSize={valueFont}
                                     >
-                                        {String(prev)}
+                                        {formattedPrev}
                                     </SvgText>
                                     {/* Bottom line: arrow + new highlighted value */}
                                     <SvgText
@@ -214,7 +217,7 @@ const HexagonalStats = ({
                                         alignmentBaseline="middle"
                                     >
                                         <TSpan fill={prevColor} fontFamily="Outfit_700Bold" fontSize={valueFont}>{'→  '}</TSpan>
-                                        <TSpan fill={diffHighlightColor} fontFamily="Outfit_800ExtraBold" fontSize={valueFontBig}>{String(curr)}</TSpan>
+                                        <TSpan fill={diffHighlightColor} fontFamily="Outfit_800ExtraBold" fontSize={valueFontBig}>{formattedCurr}</TSpan>
                                     </SvgText>
                                 </>
                             )}

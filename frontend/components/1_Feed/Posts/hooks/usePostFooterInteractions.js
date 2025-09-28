@@ -7,6 +7,8 @@ import arrayErase from '../../../../../backend/helper/firebase/arrayErase';
 import sendNotification from '../../../../../backend/sendNotification';
 import scaleSize from '../../../../helper/scaleSize';
 
+const DOUBLE_TAP_GUARD_MS = 300;
+
 function resolveUser() {
     return global?.userData || {};
 }
@@ -20,6 +22,7 @@ export default function usePostFooterInteractions({ data, onPressCommentButton, 
     const [isSaved, setIsSaved] = useState(false);
 
     const buttonRefs = useRef({});
+    const lastLikeToggleRef = useRef(0);
 
     // Initialise like/save state once user data is available.
     useEffect(() => {
@@ -52,42 +55,66 @@ export default function usePostFooterInteractions({ data, onPressCommentButton, 
             return;
         }
 
-        const nextLiked = !isLiked;
-        const likeCount = Number(data.likeCount) || 0;
+        setIsLiked((prev) => {
+            const now = Date.now();
+            const nextLiked = !prev;
 
-        try {
-            if (nextLiked) {
-                const updatedLikes = [...(Array.isArray(data.likes) ? data.likes : []), {
-                    uid: user.uid,
-                    handle: user.handle ?? '',
-                    name: user.name ?? '',
-                    pfp: user.image ?? user.pfp ?? user.pfpUrl ?? user.photoURL ?? '',
-                }];
-                data.likes = updatedLikes;
-                data.likeCount = likeCount + 1;
-                updateDoc('posts', data.pid, { likeCount: data.likeCount, likes: updatedLikes });
-
-                sendNotification(data.uid, {
-                    uid: user.uid,
-                    pfp: user.image,
-                    handle: user.handle,
-                    name: user.name,
-                    type: 'liked-post',
-                    pid: data.pid,
-                    timestamp: Date.now(),
-                });
-            } else {
-                const updatedLikes = (Array.isArray(data.likes) ? data.likes : []).filter((item) => item?.uid !== user.uid);
-                data.likes = updatedLikes;
-                data.likeCount = Math.max(0, likeCount - 1);
-                updateDoc('posts', data.pid, { likeCount: data.likeCount, likes: updatedLikes });
+            // Prevent accidental double toggles caused by overlapping gesture handlers.
+            if (now - lastLikeToggleRef.current < DOUBLE_TAP_GUARD_MS) {
+                return prev;
             }
-        } catch (error) {
-            console.warn('Failed to update like state', error);
-        }
 
-        setIsLiked(nextLiked);
-    }, [data, isLiked]);
+            const likeCount = Number(data.likeCount) || 0;
+
+            try {
+                if (nextLiked) {
+                    const likesArray = Array.isArray(data.likes) ? data.likes : [];
+                    const hasUser = likesArray.some((item) => item?.uid === user.uid);
+
+                    if (!hasUser) {
+                        const updatedLikes = [
+                            ...likesArray,
+                            {
+                                uid: user.uid,
+                                handle: user.handle ?? '',
+                                name: user.name ?? '',
+                                pfp: user.image ?? user.pfp ?? user.pfpUrl ?? user.photoURL ?? '',
+                            },
+                        ];
+
+                        data.likes = updatedLikes;
+                        data.likeCount = likeCount + 1;
+                        updateDoc('posts', data.pid, { likeCount: data.likeCount, likes: updatedLikes });
+
+                        sendNotification(data.uid, {
+                            uid: user.uid,
+                            pfp: user.image,
+                            handle: user.handle,
+                            name: user.name,
+                            type: 'liked-post',
+                            pid: data.pid,
+                            timestamp: Date.now(),
+                        });
+                    }
+                } else {
+                    const likesArray = Array.isArray(data.likes) ? data.likes : [];
+                    const updatedLikes = likesArray.filter((item) => item?.uid !== user.uid);
+
+                    if (updatedLikes.length !== likesArray.length) {
+                        const nextCount = Math.max(0, likeCount - 1);
+                        data.likes = updatedLikes;
+                        data.likeCount = nextCount;
+                        updateDoc('posts', data.pid, { likeCount: nextCount, likes: updatedLikes });
+                    }
+                }
+            } catch (error) {
+                console.warn('Failed to update like state', error);
+            }
+
+            lastLikeToggleRef.current = now;
+            return nextLiked;
+        });
+    }, [data]);
 
     const ensureLike = useCallback(() => {
         if (!isLiked) handlePressLikeButton();

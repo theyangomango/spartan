@@ -14,6 +14,7 @@ import UserStatsExerciseCard from "./UserStatsExerciseCard";
 import UserStatsExerciseDetailScreen from "./UserStatsExerciseDetailScreen";
 import UserStatsWorkoutViewerScreen from "./UserStatsWorkoutViewerScreen";
 import { styles, COLORS, scaledSize, screenWidth } from "./UserStatsStyles";
+import formatHexStat from "../../../utils/formatHexStat";
 import {
     getExercisesGrouped,
     ensureWorkoutPrivacy,
@@ -54,9 +55,11 @@ export default function UserStatsModal({ user, toViewProfile, hexOverlay, hexPro
         try { LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut); } catch { }
         setCollapsed((s) => ({ ...s, [g]: !s[g] }));
     };
-    const overall = Math.round(user?.statsHexagon?.overall ?? 0);
+    const overallNumber = Number(user?.statsHexagon?.overall ?? 0);
+    const overall = formatHexStat(overallNumber);
     const prevOverallRaw = hexProps?.prevStatsHexagon?.overall;
-    const prevOverall = Number.isFinite(Number(prevOverallRaw)) ? Math.round(Number(prevOverallRaw)) : null;
+    const prevOverallNumber = Number(prevOverallRaw);
+    const prevOverall = Number.isFinite(prevOverallNumber) ? formatHexStat(prevOverallNumber) : null;
     const ovrChanged = prevOverall !== null && prevOverall !== overall;
     const joinedLabel = formatJoinDate(
         user?.joined
