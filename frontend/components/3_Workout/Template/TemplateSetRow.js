@@ -8,8 +8,6 @@ import TemplateEditableStat from './TemplateEditableStat';
 import theme from "../../../theme/mfpDark";
 import SetTypePanel from "../NewWorkout/Tracking/SetTypePanel";
 
-const scaledSize = (size) => scaleSize(size);
-
 export default function TemplateSetRow({ set, updateSet, index, handleDelete, readOnly = false }) {
     const weight = Number(set?.weight ?? 0);
     const reps = Number(set?.reps ?? 0);
@@ -20,7 +18,7 @@ export default function TemplateSetRow({ set, updateSet, index, handleDelete, re
     const openTypePanel = (event) => {
         if (readOnly) return;
         const y = event?.nativeEvent?.pageY || 0;
-        setPanelPosition({ top: scaleSize(y + scaledSize(8)), left: scaleSize(scaledSize(20)) });
+        setPanelPosition({ top: y + scaleSize(8), left: scaleSize(20) });
         setIsTypePanelVisible(true);
     };
 
@@ -73,7 +71,7 @@ export default function TemplateSetRow({ set, updateSet, index, handleDelete, re
 
                     <View style={styles.done_ctnr}>
                         <View style={styles.checkmark_ctnr}>
-                            <MaterialCommunityIcons name="check-bold" size={scaledSize(16)} color={theme.textSecondary} />
+                            <MaterialCommunityIcons name="check-bold" size={scaleSize(16)} color={theme.textSecondary} />
                         </View>
                     </View>
                 </View>
@@ -82,10 +80,10 @@ export default function TemplateSetRow({ set, updateSet, index, handleDelete, re
                     key={index}
                     item={set}
                     itemKey={(set && (set.id || String(index))) || `tpl-set-${index}`}
-                    overSwipe={scaledSize(36)}
+                    overSwipe={scaleSize(36)}
                     activationThreshold={8}
                     renderUnderlayLeft={(params) => renderUnderlayLeft(params?.ref)}
-                    snapPointsLeft={[scaledSize(96)]}
+                    snapPointsLeft={[scaleSize(96)]}
                     onSwipeableLeftOpen={undefined}
                 >
                     <View style={styles.stat_row}>
@@ -118,7 +116,7 @@ export default function TemplateSetRow({ set, updateSet, index, handleDelete, re
 
                         <View style={styles.done_ctnr}>
                             <View style={styles.checkmark_ctnr} pointerEvents="none">
-                                <MaterialCommunityIcons name="check-bold" size={scaledSize(16)} color={theme.textSecondary} />
+                                <MaterialCommunityIcons name="check-bold" size={scaleSize(16)} color={theme.textSecondary} />
                             </View>
                         </View>
                     </View>
@@ -152,7 +150,7 @@ const UnderlayLeft = ({ onDelete }) => {
         <View style={styles.underlayLeft}>
             <Animated.View style={[styles.deletePillWrap, animWrap]}>
                 <Pressable onPress={onDelete} style={styles.deletePill} hitSlop={16}>
-                    <Ionicons name="trash-outline" size={scaledSize(20)} color="#fff" />
+                    <Ionicons name="trash-outline" size={scaleSize(20)} color="#fff" />
                 </Pressable>
             </Animated.View>
         </View>
@@ -161,12 +159,12 @@ const UnderlayLeft = ({ onDelete }) => {
 
 const styles = StyleSheet.create({
     container: { flex: 1 },
-    stat_row: { flexDirection: 'row', paddingVertical: scaleSize(scaledSize(9)), alignItems: 'center', borderBottomWidth: 1, borderBottomColor: 'rgba(255,255,255,0.16)' },
+    stat_row: { flexDirection: 'row', paddingVertical: scaleSize(9), alignItems: 'center', borderBottomWidth: 1, borderBottomColor: 'rgba(255,255,255,0.16)' },
     set_ctnr: {
         marginLeft: '5%',
         width: '8%',
-        height: scaleSize(scaledSize(24)),
-        borderRadius: scaleSize(scaledSize(8)),
+        height: scaleSize(24),
+        borderRadius: scaleSize(8),
         backgroundColor: theme.field,
         borderWidth: scaleSize(1),
         borderColor: 'rgba(255,255,255,0.30)',
@@ -180,11 +178,11 @@ const styles = StyleSheet.create({
     reps_ctnr: { width: '18%', alignItems: 'center' },
     set_number_text: { fontFamily: 'Poppins_700Bold', fontSize: scaleSize(14), color: theme.textPrimary },
     previous_stat_text: { fontFamily: 'Poppins_700Bold', fontSize: scaleSize(15), color: theme.textPrimary },
-    done_ctnr: { width: '10.5%', height: scaleSize(scaledSize(22)), alignItems: 'center' },
+    done_ctnr: { width: '10.5%', height: scaleSize(22), alignItems: 'center' },
     checkmark_ctnr: {
-        paddingHorizontal: scaleSize(scaledSize(10)),
+        paddingHorizontal: scaleSize(10),
         height: '100%',
-        borderRadius: scaleSize(scaledSize(7)),
+        borderRadius: scaleSize(7),
         backgroundColor: theme.field,
         borderWidth: StyleSheet.hairlineWidth,
         borderColor: 'rgba(255,255,255,0.16)',
@@ -197,19 +195,19 @@ const styles = StyleSheet.create({
         bottom: 0,
         justifyContent: 'center',
         alignItems: 'flex-end',
-        marginVertical: scaleSize(scaledSize(2)),
-        paddingRight: scaleSize(scaledSize(12)),
+        marginVertical: scaleSize(2),
+        paddingRight: scaleSize(12),
     },
     deletePillWrap: { height: '86%', justifyContent: 'center', alignItems: 'center' },
     deletePill: {
-        width: scaleSize(scaledSize(70)),
+        width: scaleSize(70),
         height: '100%',
-        minHeight: scaleSize(scaledSize(28)),
-        borderRadius: scaleSize(scaledSize(12)),
+        minHeight: scaleSize(28),
+        borderRadius: scaleSize(12),
         backgroundColor: '#e65252',
         alignItems: 'center',
         justifyContent: 'center',
-        paddingHorizontal: scaleSize(scaledSize(10)),
+        paddingHorizontal: scaleSize(10),
     },
 });
 

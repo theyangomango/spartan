@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useMemo, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { SafeAreaView, StyleSheet, View, StatusBar } from "react-native";
 import Footer from "../components/Footer";
 import ProfileBottomBottomSheet from "../components/5_Profile/ProfileBottom/ProfileBottomBottomSheet";
@@ -33,6 +33,7 @@ export default function ViewProfile({ navigation, route }) {
     const [followListMode, setFollowListMode] = useState('followers');
     const [viewerWorkout, setViewerWorkout] = useState(null);
     const [viewerToggle, setViewerToggle] = useState(false);
+    const viewerInstanceRef = useRef(0);
     const [isOptionsVisible, setIsOptionsVisible] = useState(false);
     const [profileTopHeight, setProfileTopHeight] = useState(null);
     const [isBlocked, setIsBlocked] = useState(false);
@@ -49,10 +50,17 @@ export default function ViewProfile({ navigation, route }) {
             PBs: wk?.PBs ?? wk?.pbs ?? 0,
             templateName: wk?.templateName || wk?.template?.name,
         };
-        setViewerWorkout({ ...fallback, ...wk });
+        viewerInstanceRef.current = (viewerInstanceRef.current + 1) % 1_000_000_000;
+        setViewerWorkout({ ...fallback, ...wk, __viewerInstance: viewerInstanceRef.current });
         setViewerToggle((t) => !t);
     }, [user?.uid]);
-    const closeViewer = useCallback(() => setViewerWorkout(null), []);
+    const closeViewer = useCallback((closingInstance) => {
+        setViewerWorkout((prev) => {
+            if (!prev) return prev;
+            if (Number.isFinite(closingInstance) && prev.__viewerInstance !== closingInstance) return prev;
+            return null;
+        });
+    }, []);
 
     useEffect(() => {
         getFullUserData();

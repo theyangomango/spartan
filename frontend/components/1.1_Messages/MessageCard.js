@@ -6,7 +6,7 @@ import getDisplayTime from "../../helper/getDisplayTime";
 import { usePfp } from "../../helper/usePFPs";
 import theme from "../../theme/mfpDark";
 
-import scaleSize, { ts } from "../../helper/scaleSize";
+import scaleSize from "../../helper/scaleSize";
 
 const { width, height } = Dimensions.get("window");
 
@@ -153,18 +153,18 @@ export default function MessageCard({ usersExcludingSelf, content, timestamp, to
             </View>
             {/* middle: text */}
             <View style={styles.textCol}>
-                <Text style={[styles.handle, { fontSize: ts(dyn.handle) }]} numberOfLines={1} ellipsizeMode="tail">
+                <Text style={[styles.handle, { fontSize: dyn.handle }]} numberOfLines={1} ellipsizeMode="tail">
                     {handles}
                 </Text>
                 {!!preview && (
-                    <Text style={[styles.content, { fontSize: ts(dyn.content) }]} numberOfLines={1} ellipsizeMode="tail">
+                    <Text style={[styles.content, { fontSize: dyn.content }]} numberOfLines={1} ellipsizeMode="tail">
                         {preview}
                     </Text>
                 )}
             </View>
             {/* right: time */}
             <View style={styles.timeCol}>
-                {!!timeStr && <Text style={[styles.time, { fontSize: ts(dyn.date) }]}>{timeStr}</Text>}
+                {!!timeStr && <Text style={[styles.time, { fontSize: dyn.date }]}>{timeStr}</Text>}
             </View>
         </RNBounceable>
     );

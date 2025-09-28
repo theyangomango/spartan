@@ -14,8 +14,6 @@ import scaleSize from "../../../helper/scaleSize";
 import theme from "../../../theme/mfpDark";
 
 const { height: screenHeight } = Dimensions.get('window');
-const scaledSize = (size) => scaleSize(size);
-
 export default function TemplateEditableStat({ placeholder = '0', value, setValue, readOnly = false }) {
     const [isSelected, setIsSelected] = useState(false);
     const inputRef = useRef(null);
@@ -99,7 +97,7 @@ export default function TemplateEditableStat({ placeholder = '0', value, setValu
 }
 
 const styles = StyleSheet.create({
-    editing: { width: scaleSize(scaledSize(63)), height: scaleSize(scaledSize(26)), borderRadius: scaleSize(scaledSize(9)), backgroundColor: theme.field, borderWidth: scaleSize(1), borderColor: 'rgba(255,255,255,0.30)' },
+    editing: { width: scaleSize(63), height: scaleSize(26), borderRadius: scaleSize(9), backgroundColor: theme.field, borderWidth: scaleSize(1), borderColor: 'rgba(255,255,255,0.30)' },
     selected: { borderColor: theme.primary },
     finished: { backgroundColor: theme.successBg },
     text: { fontFamily: 'Poppins_700Bold', fontSize: scaleSize(15), flex: 1, textAlign: 'center', color: theme.textPrimary },
@@ -107,17 +105,17 @@ const styles = StyleSheet.create({
     accessoryBar: {
         flexDirection: 'row',
         alignItems: 'center',
-        paddingHorizontal: scaleSize(scaledSize(12)),
-        paddingVertical: scaleSize(scaledSize(8)),
+        paddingHorizontal: scaleSize(12),
+        paddingVertical: scaleSize(8),
         borderTopWidth: StyleSheet.hairlineWidth,
         borderColor: theme.hairline,
         backgroundColor: theme.surface,
     },
     accessoryBtn: {
         backgroundColor: theme.field,
-        paddingHorizontal: scaleSize(scaledSize(12)),
-        paddingVertical: scaleSize(scaledSize(6)),
-        borderRadius: scaleSize(scaledSize(8)),
+        paddingHorizontal: scaleSize(12),
+        paddingVertical: scaleSize(6),
+        borderRadius: scaleSize(8),
     },
     accessoryBtnText: {
         color: theme.textPrimary,

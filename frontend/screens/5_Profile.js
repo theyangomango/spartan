@@ -62,6 +62,7 @@ export default function Profile({ navigation }) {
     // Workout viewer state (reuses Feed viewer)
     const [profileSelectedWorkout, setProfileSelectedWorkout] = useState(null);
     const [profileWorkoutExpandToggle, setProfileWorkoutExpandToggle] = useState(false);
+    const viewerInstanceRef = useRef(0);
     const openWorkoutViewer = useCallback((wk) => {
         if (!wk) { setProfileSelectedWorkout(null); return; }
         // Normalize minimal fields expected by NewWorkoutModal
@@ -79,11 +80,17 @@ export default function Profile({ navigation }) {
         };
         const normalized = { ...fallback, ...wk };
         if (!normalized.privacyMode) normalized.privacyMode = 'global';
+        viewerInstanceRef.current = (viewerInstanceRef.current + 1) % 1_000_000_000;
+        normalized.__viewerInstance = viewerInstanceRef.current;
         setProfileSelectedWorkout(normalized);
         setProfileWorkoutExpandToggle((t) => !t);
     }, []);
-    const closeWorkoutViewer = useCallback(() => {
-        setProfileSelectedWorkout(null);
+    const closeWorkoutViewer = useCallback((closingInstance) => {
+        setProfileSelectedWorkout((prev) => {
+            if (!prev) return prev;
+            if (Number.isFinite(closingInstance) && prev.__viewerInstance !== closingInstance) return prev;
+            return null;
+        });
     }, []);
 
     const [profileTopHeight, setProfileTopHeight] = useState(null);

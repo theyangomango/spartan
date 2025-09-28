@@ -9,7 +9,6 @@ import Animated, { useAnimatedStyle } from "react-native-reanimated";
 import theme from "../../../../theme/mfpDark";
 
 const { height: screenHeight } = Dimensions.get("window");
-const scaledSize = (size) => scaleSize(size);
 const ENABLE_LAYOUT_ANIM = false;
 
 // Enable LayoutAnimation on Android once
@@ -52,7 +51,7 @@ function SetRow({
     const openTypePanel = (e) => {
         if (readOnly) return;
         const y = e?.nativeEvent?.pageY || 0;
-        setPanelPos({ top: scaleSize(y + scaledSize(8)), left: scaleSize(scaledSize(20)) });
+        setPanelPos({ top: y + scaleSize(8), left: scaleSize(20) });
         setTypePanelOpen(true);
     };
     const onSelectType = (type) => {
@@ -66,12 +65,12 @@ function SetRow({
             <SwipeableItem
                 item={set}
                 itemKey={itemKey || (set && (set.id || String(index))) }
-                overSwipe={scaledSize(36)}
+                overSwipe={scaleSize(36)}
                 // Lower threshold so a light horizontal swipe wins over vertical scroll
                 activationThreshold={8}
                 renderUnderlayLeft={readOnly ? undefined : (params) => renderUnderlayLeft(params?.ref)}
                 // Open a bit wider so the trash hit target is generous
-                snapPointsLeft={readOnly ? [] : [scaledSize(96)]}
+                snapPointsLeft={readOnly ? [] : [scaleSize(96)]}
                 onSwipeableLeftOpen={undefined} // never auto-delete via swipe threshold; explicit tap only
             >
                 <View style={[styles.stat_row, doneLocal && styles.done]}>
@@ -124,7 +123,7 @@ function SetRow({
                             disabled={readOnly}
                         >
                             {/* Brighter primary tint when unfinished for visibility */}
-                            <MaterialCommunityIcons name="check-bold" size={scaledSize(16)} color={doneLocal ? "#fff" : theme.primary} />
+                            <MaterialCommunityIcons name="check-bold" size={scaleSize(16)} color={doneLocal ? "#fff" : theme.primary} />
                         </Pressable>
                     </View>
                 </View>
@@ -172,7 +171,7 @@ const UnderlayLeft = ({ onDelete }) => {
         <View style={styles.underlayLeft}>
             <Animated.View style={[styles.deletePillWrap, animWrap]}>
                 <Pressable onPress={onDelete} style={styles.deletePill} hitSlop={16}>
-                    <Ionicons name="trash-outline" size={scaledSize(20)} color="#fff" />
+                    <Ionicons name="trash-outline" size={scaleSize(20)} color="#fff" />
                 </Pressable>
             </Animated.View>
         </View>
@@ -181,13 +180,13 @@ const UnderlayLeft = ({ onDelete }) => {
 
 const styles = StyleSheet.create({
     container: { flex: 1 },
-    stat_row: { flexDirection: "row", paddingVertical: scaleSize(scaledSize(9)), alignItems: "center", borderBottomWidth: 1, borderBottomColor: 'rgba(255,255,255,0.16)' },
+    stat_row: { flexDirection: "row", paddingVertical: scaleSize(9), alignItems: "center", borderBottomWidth: 1, borderBottomColor: 'rgba(255,255,255,0.16)' },
     done: { backgroundColor: theme.successRowBg },
     set_ctnr: {
         marginLeft: "5%",
         width: "8%",
-        height: scaleSize(scaledSize(24)),
-        borderRadius: scaleSize(scaledSize(8)),
+        height: scaleSize(24),
+        borderRadius: scaleSize(8),
         backgroundColor: theme.field,
         borderWidth: scaleSize(1),
         borderColor: 'rgba(255,255,255,0.30)',
@@ -202,20 +201,20 @@ const styles = StyleSheet.create({
     set_letter_text: { fontFamily: "Outfit_700Bold", fontSize: scaleSize(14.8) },
     // Make previous-set text more legible
     previous_stat_text: { fontFamily: "Poppins_700Bold", fontSize: scaleSize(15), color: theme.textPrimary },
-    done_ctnr: { width: "10.5%", height: scaleSize(scaledSize(22)), alignItems: "center" },
+    done_ctnr: { width: "10.5%", height: scaleSize(22), alignItems: "center" },
     checkmark_ctnr: {
-        paddingHorizontal: scaleSize(scaledSize(10)),
+        paddingHorizontal: scaleSize(10),
         height: "100%",
-        borderRadius: scaleSize(scaledSize(7)),
+        borderRadius: scaleSize(7),
         backgroundColor: theme.restPillBg,
         borderWidth: StyleSheet.hairlineWidth,
         borderColor: theme.primaryHairline,
         justifyContent: "center",
     },
     checkmark_ctnr_selected: {
-        paddingHorizontal: scaleSize(scaledSize(8)),
+        paddingHorizontal: scaleSize(8),
         height: "100%",
-        borderRadius: scaleSize(scaledSize(7)),
+        borderRadius: scaleSize(7),
         justifyContent: "center",
         backgroundColor: theme.success,
         borderWidth: 0,
@@ -227,19 +226,19 @@ const styles = StyleSheet.create({
         bottom: 0,
         justifyContent: "center",
         alignItems: "flex-end",
-        marginVertical: scaleSize(scaledSize(2)),
-        paddingRight: scaleSize(scaledSize(12)),
+        marginVertical: scaleSize(2),
+        paddingRight: scaleSize(12),
     },
     deletePillWrap: { height: "86%", justifyContent: "center", alignItems: "center" },
     deletePill: {
-        width: scaleSize(scaledSize(70)),
+        width: scaleSize(70),
         height: "100%",
-        minHeight: scaleSize(scaledSize(28)),
-        borderRadius: scaleSize(scaledSize(12)),
+        minHeight: scaleSize(28),
+        borderRadius: scaleSize(12),
         backgroundColor: "#e65252",
         alignItems: "center",
         justifyContent: "center",
-        paddingHorizontal: scaleSize(scaledSize(10)),
+        paddingHorizontal: scaleSize(10),
     },
 });
 

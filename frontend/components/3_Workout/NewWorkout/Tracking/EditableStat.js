@@ -4,8 +4,6 @@ import scaleSize from "../../../../helper/scaleSize";
 import theme from "../../../../theme/mfpDark";
 
 const { height: screenHeight } = Dimensions.get('window');
-const scaledSize = (size) => scaleSize(size);
-
 export default function EditableStat({ placeholder = '0', isFinished, value, setValue, onFocus }) {
     const [isSelected, setIsSelected] = useState(false);
     const inputRef = useRef(null);
@@ -91,9 +89,9 @@ export default function EditableStat({ placeholder = '0', isFinished, value, set
 
 const styles = StyleSheet.create({
     editing: {
-        width: scaleSize(scaledSize(63)),
-        height: scaleSize(scaledSize(26)),
-        borderRadius: scaleSize(scaledSize(9)),
+        width: scaleSize(63),
+        height: scaleSize(26),
+        borderRadius: scaleSize(9),
         // Darker chip with stronger border for contrast
         backgroundColor: theme.field,
         borderWidth: scaleSize(1),
@@ -115,17 +113,17 @@ const styles = StyleSheet.create({
     accessoryBar: {
         flexDirection: 'row',
         alignItems: 'center',
-        paddingHorizontal: scaleSize(scaledSize(12)),
-        paddingVertical: scaleSize(scaledSize(8)),
+        paddingHorizontal: scaleSize(12),
+        paddingVertical: scaleSize(8),
         borderTopWidth: StyleSheet.hairlineWidth,
         borderColor: theme.hairline,
         backgroundColor: theme.surface,
     },
     accessoryBtn: {
         backgroundColor: theme.field,
-        paddingHorizontal: scaleSize(scaledSize(12)),
-        paddingVertical: scaleSize(scaledSize(6)),
-        borderRadius: scaleSize(scaledSize(8)),
+        paddingHorizontal: scaleSize(12),
+        paddingVertical: scaleSize(6),
+        borderRadius: scaleSize(8),
     },
     accessoryBtnText: {
         color: theme.textPrimary,

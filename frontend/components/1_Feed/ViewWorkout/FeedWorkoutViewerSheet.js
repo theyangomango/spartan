@@ -39,6 +39,8 @@ const FeedWorkoutViewerSheet = ({
   const navigation = useNavigation();
   const [currentIndex, setCurrentIndex] = useState(() => Math.max(0, Math.min(activeIndex, (Array.isArray(itemsProp) && itemsProp.length ? itemsProp.length - 1 : 0))));
   const [, setStatsTick] = useState(0);
+  const latestInstanceRef = useRef(null);
+  const pendingCloseInstanceRef = useRef(null);
   const viewerData = (() => {
     try { return global?.userData || null; } catch { return null; }
   })();
@@ -62,6 +64,14 @@ const FeedWorkoutViewerSheet = ({
     }
     return [];
   }, [itemsProp, workout, friendUid, friendPfp]);
+
+  useEffect(() => {
+    const entry = items[Math.max(0, Math.min(currentIndex, items.length - 1))];
+    const instance = Number.isFinite(entry?.workout?.__viewerInstance)
+      ? entry.workout.__viewerInstance
+      : null;
+    latestInstanceRef.current = instance;
+  }, [items, currentIndex]);
 
   useEffect(() => {
     if (!items.length) {
@@ -131,6 +141,7 @@ const FeedWorkoutViewerSheet = ({
   const handleSheetChange = useCallback((index) => {
     if (index >= 0) {
       setMountContent(true);
+      pendingCloseInstanceRef.current = null;
       const entry = items[Math.max(0, Math.min(currentIndex, items.length - 1))];
       const workoutObj = entry?.workout || null;
       const uid = entry?.friendUid || workoutObj?.__friendUid || workoutObj?.creatorUID || workoutObj?.creatorUid;
@@ -139,6 +150,7 @@ const FeedWorkoutViewerSheet = ({
       }
     } else {
       setMountContent(false);
+      pendingCloseInstanceRef.current = latestInstanceRef.current;
     }
   }, [items, currentIndex, fetchFriendStats, viewerUid, viewerData]);
 
@@ -195,6 +207,12 @@ const FeedWorkoutViewerSheet = ({
     onChangeIndex?.(idx);
   }, [onChangeIndex]);
 
+  const handleClose = useCallback(() => {
+    const closingInstance = pendingCloseInstanceRef.current ?? latestInstanceRef.current ?? null;
+    pendingCloseInstanceRef.current = null;
+    onClose?.(closingInstance);
+  }, [onClose]);
+
   return (
     <View style={styles.outer} pointerEvents="box-none">
       <BottomSheet
@@ -203,7 +221,7 @@ const FeedWorkoutViewerSheet = ({
         snapPoints={snapPoints}
         backdropComponent={renderBackdrop}
         enablePanDownToClose
-        onClose={onClose}
+        onClose={handleClose}
         onChange={handleSheetChange}
         // Dark surface background to match NewWorkoutModal's transparent sections
         backgroundStyle={{ backgroundColor: theme.surface }}
