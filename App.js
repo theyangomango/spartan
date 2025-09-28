@@ -26,6 +26,7 @@ import { customFonts } from './fonts';
 import { db } from './firebase.config';
 import { doc, onSnapshot, collection, query, where } from 'firebase/firestore';
 import { initCommunityStats, refreshCommunityStats } from './frontend/logic/communityStats';
+import { Asset } from 'expo-asset';
 
 /* Screens */
 import SignUp from './frontend/screens/0.0_SignUp';
@@ -57,6 +58,8 @@ import ActiveWorkoutBottomSheet from './frontend/components/3_Workout/NewWorkout
 import Footer from './frontend/components/Footer';
 import MainTabs from './frontend/navigation/MainTabs';
 import useFooterSuppressionStore, { setFooterSuppressed, clearFooterSuppression } from './frontend/state/footerSuppressionStore';
+
+const AUTH_BACKGROUND_ASSET = require('./frontend/assets/AUTH_BACKGROUND.jpg');
 
 // Ensure a defined global.userData early so screens can read without crashing
 try { global.userData = global.userData || {}; } catch { }
@@ -117,6 +120,8 @@ export default function App() {
     const [isAuthenticated, setIsAuthenticated] = useState(false);
     const [userReady, setUserReady] = useState(false);
     const [communityStatsReady, setCommunityStatsReady] = useState(false);
+    const [authBackgroundReady, setAuthBackgroundReady] = useState(false);
+    const authBackgroundReadyRef = useRef(false);
     const feedOverlayProgressSV = useSharedValue(1);
     const footerVisibilitySV = useSharedValue(0);
     const workoutSheetProgressSV = useSharedValue(0);
@@ -187,6 +192,48 @@ export default function App() {
         animateFooterVisibility(shouldShow);
         setIsFooterVisible((prev) => (prev === shouldShow ? prev : shouldShow));
     }, [animateFooterVisibility, isFooterNavEligible, isFooterSuppressed]);
+
+    useEffect(() => {
+        if (isAuthenticated) {
+            if (!authBackgroundReadyRef.current) {
+                authBackgroundReadyRef.current = true;
+                setAuthBackgroundReady(true);
+            }
+            return;
+        }
+
+        Asset.loadAsync(AUTH_BACKGROUND_ASSET).catch(() => { });
+    }, [isAuthenticated]);
+
+    useEffect(() => {
+        if (authBackgroundReady && !authBackgroundReadyRef.current) {
+            authBackgroundReadyRef.current = true;
+        }
+    }, [authBackgroundReady]);
+
+    useEffect(() => {
+        if (!isAuthenticated) {
+            authBackgroundReadyRef.current = false;
+            setAuthBackgroundReady(false);
+        }
+    }, [isAuthenticated]);
+
+    useEffect(() => {
+        if (isAuthenticated) {
+            return;
+        }
+        try {
+            global.__markAuthBackgroundReady = () => {
+                if (!authBackgroundReadyRef.current) {
+                    authBackgroundReadyRef.current = true;
+                    setAuthBackgroundReady(true);
+                }
+            };
+        } catch { }
+        return () => {
+            try { delete global.__markAuthBackgroundReady; } catch { }
+        };
+    }, [isAuthenticated]);
 
     useEffect(() => {
         const setter = (id, suppressed) => {
@@ -737,13 +784,18 @@ export default function App() {
     }, [appForceReady]);
     const hasUserData = authChecked && (!isAuthenticated || userReady);
     const shouldWaitForHubRow = isAuthenticated;
-    const appReady = fontsReady && (hasUserData || appForceReady) && (communityStatsReady || appForceReady);
+    const shouldWaitForAuthBackground = !isAuthenticated;
+    const appReady = fontsReady
+        && (hasUserData || appForceReady)
+        && (communityStatsReady || appForceReady);
 
     // Hide splash only after the first layout to avoid white flash
     const [hasLaidOut, setHasLaidOut] = useState(false);
     const onLayoutRootView = React.useCallback(() => {
         setHasLaidOut(true);
-        if (appReady && (!shouldWaitForHubRow || hubRowReady)) {
+        if (appReady
+            && (!shouldWaitForHubRow || hubRowReady)
+            && (!shouldWaitForAuthBackground || authBackgroundReadyRef.current)) {
             // Wait a frame after layout so content can paint before hiding splash
             requestAnimationFrame(() => {
                 requestAnimationFrame(() => {
@@ -751,24 +803,31 @@ export default function App() {
                 });
             });
         }
-    }, [appReady, hubRowReady, shouldWaitForHubRow]);
+    }, [appReady, hubRowReady, shouldWaitForAuthBackground, shouldWaitForHubRow]);
 
     // Safety: if readiness flips after initial layout, still hide splash
     useEffect(() => {
-        if (appReady && hasLaidOut && (!shouldWaitForHubRow || hubRowReady)) {
+        if (appReady
+            && hasLaidOut
+            && (!shouldWaitForHubRow || hubRowReady)
+            && (!shouldWaitForAuthBackground || authBackgroundReadyRef.current)) {
             requestAnimationFrame(() => {
                 requestAnimationFrame(() => {
                     SplashScreen.hideAsync().catch(() => { });
                 });
             });
         }
-    }, [appReady, hasLaidOut, hubRowReady, shouldWaitForHubRow]);
+    }, [appReady, hasLaidOut, hubRowReady, shouldWaitForAuthBackground, shouldWaitForHubRow]);
 
     // Absolute fallback: ensure splash hides even if layout event didn't fire
     useEffect(() => {
         if (appForceReady) {
             hubRowReadyRef.current = true;
             setHubRowReady(true);
+            if (!authBackgroundReadyRef.current) {
+                authBackgroundReadyRef.current = true;
+                setAuthBackgroundReady(true);
+            }
             SplashScreen.hideAsync().catch(() => { });
         }
     }, [appForceReady]);
