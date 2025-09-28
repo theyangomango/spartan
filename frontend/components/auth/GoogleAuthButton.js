@@ -13,6 +13,7 @@ const GoogleAuthButton = ({
   onError,
   disabled,
   style,
+  shouldProceed,
 }) => {
   const { signIn, isConfigured } = useGoogleAuth();
   const [busy, setBusy] = useState(false);
@@ -32,11 +33,25 @@ const GoogleAuthButton = ({
   }, [onSuccess]);
 
   const onPress = useCallback(async () => {
+    if (busy) return;
+
+    try {
+      if (typeof shouldProceed === 'function') {
+        const proceed = await shouldProceed();
+        if (!proceed) {
+          return;
+        }
+      }
+    } catch (preCheckError) {
+      // upstream handler already surfaced feedback
+      console.warn('Google auth pre-check failed:', preCheckError?.message || preCheckError);
+      return;
+    }
+
     if (!isConfigured) {
       handleError('Add your EXPO_PUBLIC_GOOGLE_* client IDs to enable Google auth.');
       return;
     }
-    if (busy) return;
     setBusy(true);
     try {
       const profile = await signIn();
@@ -50,7 +65,7 @@ const GoogleAuthButton = ({
     } finally {
       setBusy(false);
     }
-  }, [busy, handleError, handleSuccess, isConfigured, signIn]);
+  }, [busy, handleError, handleSuccess, isConfigured, shouldProceed, signIn]);
 
   const buttonText = !isConfigured
     ? 'Google setup required'

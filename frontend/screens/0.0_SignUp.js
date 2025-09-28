@@ -35,7 +35,7 @@ const MIN_HERO_MARGIN = scaleSize(20);
 const SignUp = ({ navigation }) => {
     const [username, setUsername] = useState('');
     const [usernameError, setUsernameError] = useState('');
-    const [checkingUsername, setCheckingUsername] = useState(false);
+    const checkingUsernameRef = useRef(false);
     const usernameInputRef = useRef(null);
     const [usernameHeight, setUsernameHeight] = useState(0);
     const insets = useSafeAreaInsets();
@@ -49,9 +49,9 @@ const SignUp = ({ navigation }) => {
         navigation.navigate('LogIn');
     }, [navigation]);
 
-    const toNewUserCreationScreen = useCallback(async () => {
-        if (checkingUsername) {
-            return;
+    const ensureUsernameReady = useCallback(async () => {
+        if (checkingUsernameRef.current) {
+            return null;
         }
 
         const trimmedUsername = username.trim();
@@ -59,17 +59,17 @@ const SignUp = ({ navigation }) => {
 
         if (!trimmedUsername) {
             setUsernameError('Please create a username to continue.');
-            return;
+            return null;
         }
 
         if (!isValidUsername(normalizedUsername)) {
             setUsernameError('Username must be 3–20 characters (a–z, 0–9, _ or .).');
-            return;
+            return null;
         }
 
         dismissKeyboard();
         setUsernameError('');
-        setCheckingUsername(true);
+        checkingUsernameRef.current = true;
 
         try {
             const users = await readDoc('global', 'users');
@@ -80,17 +80,27 @@ const SignUp = ({ navigation }) => {
 
             if (handleExists) {
                 setUsernameError('Username is already taken.');
-                return;
+                return null;
             }
 
-            navigation.navigate('NewUserCreation', { username: normalizedUsername });
+            return normalizedUsername;
         } catch (error) {
             console.warn('Username availability check failed:', error?.message || error);
             setUsernameError('Unable to verify username right now. Please try again.');
+            return null;
         } finally {
-            setCheckingUsername(false);
+            checkingUsernameRef.current = false;
         }
-    }, [checkingUsername, dismissKeyboard, navigation, username]);
+    }, [dismissKeyboard, username]);
+
+    const toNewUserCreationScreen = useCallback(async () => {
+        const normalizedUsername = await ensureUsernameReady();
+        if (!normalizedUsername) {
+            return;
+        }
+
+        navigation.navigate('NewUserCreation', { username: normalizedUsername });
+    }, [ensureUsernameReady, navigation]);
 
     const handleGoogleSuccess = useCallback(() => {
         try {
@@ -155,20 +165,27 @@ const SignUp = ({ navigation }) => {
                                     returnKeyType="done"
                                 />
                             </View>
-                            {!!usernameError && <Text style={styles.usernameError}>{usernameError}</Text>}
+                            <Text
+                                style={[
+                                    styles.usernameError,
+                                    !usernameError && styles.usernameErrorHidden,
+                                ]}
+                            >
+                                {usernameError || 'placeholder'}
+                            </Text>
                         </View>
 
                         <View style={styles.actions}>
                             <GoogleAuthButton
                                 onSuccess={handleGoogleSuccess}
                                 style={styles.googleButton}
+                                shouldProceed={ensureUsernameReady}
                             />
                             <AuthButton
-                                text={checkingUsername ? 'Checking...' : 'Continue'}
+                                text="Continue"
                                 onPress={toNewUserCreationScreen}
                                 style={styles.primaryButton}
                                 textStyle={styles.primaryButtonText}
-                                disabled={checkingUsername}
                             />
                         </View>
                     </View>
@@ -266,6 +283,9 @@ const styles = StyleSheet.create({
         color: '#F97316',
         fontFamily: 'Outfit_500Medium',
         fontSize: scaleSize(12),
+    },
+    usernameErrorHidden: {
+        opacity: 0,
     },
     googleButton: {
         backgroundColor: '#fff',
