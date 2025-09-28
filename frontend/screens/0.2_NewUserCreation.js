@@ -152,9 +152,6 @@ const NewUserCreation = ({ navigation, route }) => {
                     <RNBounceable onPress={goBack}>
                         <Feather name="chevron-left" size={scaleSize(27)} color={theme.textSecondary} style={styles.backIcon} />
                     </RNBounceable>
-                    <RNBounceable>
-                        <Octicons name="question" size={scaleSize(22)} color={theme.textSecondary} style={styles.helpIcon} />
-                    </RNBounceable>
                 </View>
 
                 <View style={styles.formWrapper}>
