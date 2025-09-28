@@ -104,17 +104,18 @@ const styles = StyleSheet.create({
         marginBottom: scaleSize(85),
     },
     heroTitle: {
-        fontSize: scaleSize(26),
+        fontSize: scaleSize(25),
         fontFamily: 'Poppins_700Bold',
         color: theme.textPrimary,
-        marginBottom: scaleSize(18),
+        marginBottom: scaleSize(20),
     },
     heroSubtitle: {
         fontSize: scaleSize(13.5),
         textAlign: 'center',
         fontFamily: 'Nunito_700Bold',
-        color: theme.textSecondary,
+        color: '#ffffffd2',
         lineHeight: scaleSize(20),
+        marginHorizontal: scaleSize(20)
     },
     actions: {
         width: '100%',
@@ -135,7 +136,7 @@ const styles = StyleSheet.create({
     primaryButtonText: {
         color: '#FFFFFF',
         fontFamily: 'Nunito_800ExtraBold',
-        fontSize: scaleSize(16),
+        fontSize: scaleSize(14),
         letterSpacing: scaleSize(0.4)
     },
     footer: {

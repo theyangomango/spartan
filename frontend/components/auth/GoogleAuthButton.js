@@ -80,8 +80,8 @@ const styles = StyleSheet.create({
     paddingVertical: scaleSize(15),
   },
   buttonText: {
-    color: '#202124',
-    fontSize: scaleSize(16),
+    color: '#3b3e47ff',
+    fontSize: scaleSize(14),
     fontFamily: 'Nunito_800ExtraBold',
   },
   googleIcon: {
