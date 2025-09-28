@@ -1,8 +1,9 @@
 import React, { useCallback, useState } from 'react';
-import { Alert } from 'react-native';
+import { Alert, StyleSheet, Image } from 'react-native';
 import useGoogleAuth from '../../auth/useGoogleAuth';
 import { upsertGoogleUser } from '../../auth/googleAccount';
 import AuthButton from './AuthButton';
+import scaleSize from '../../helper/scaleSize';
 
 const DEFAULT_LABEL = 'Continue with Google';
 
@@ -57,13 +58,37 @@ const GoogleAuthButton = ({
 
   return (
     <AuthButton
-      icon="logo-google"
+      iconComponent={(
+        <Image
+          source={require('../../assets/google_g_logo.png')}
+          style={styles.googleIcon}
+        />
+      )}
       text={buttonText}
       onPress={onPress}
       disabled={disabled || busy || !isConfigured}
-      style={style}
+      style={[styles.button, style]}
+      textStyle={styles.buttonText}
     />
   );
 };
+
+const styles = StyleSheet.create({
+  button: {
+    borderWidth: scaleSize(1.2),
+    borderRadius: scaleSize(10),
+    paddingVertical: scaleSize(15),
+  },
+  buttonText: {
+    color: '#202124',
+    fontSize: scaleSize(16),
+    fontFamily: 'Nunito_800ExtraBold',
+  },
+  googleIcon: {
+    width: scaleSize(20),
+    height: scaleSize(20),
+    resizeMode: 'contain',
+  },
+});
 
 export default GoogleAuthButton;

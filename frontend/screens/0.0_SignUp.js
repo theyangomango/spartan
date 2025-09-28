@@ -1,12 +1,20 @@
 import React, { useCallback } from 'react';
-import { View, Text, StyleSheet, Dimensions, TouchableOpacity } from 'react-native';
+import {
+    View,
+    Text,
+    StyleSheet,
+    Dimensions,
+    TouchableOpacity,
+    ImageBackground,
+} from 'react-native';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import theme from '../theme/mfpDark';
 
-import scaleSizeFont from "../helper/scaleSize";
 import AuthButton from '../components/auth/AuthButton';
 import GoogleAuthButton from '../components/auth/GoogleAuthButton';
+import authBackground from '../assets/AUTH_BACKGROUND.jpg';
 
-const { width: screenWidth, height: screenHeight } = Dimensions.get('window');
+const { width: screenWidth } = Dimensions.get('window');
 
 const scale = screenWidth / 375; // Base screen width assumed as 375
 
@@ -15,6 +23,8 @@ function scaleSize(size) {
 }
 
 const SignUp = ({ navigation }) => {
+    const insets = useSafeAreaInsets();
+
     const toLogInScreen = useCallback(() => {
         navigation.navigate('LogIn');
     }, [navigation]);
@@ -35,91 +45,118 @@ const SignUp = ({ navigation }) => {
     }, [navigation]);
 
     return (
-        <View style={styles.container}>
-            <View style={styles.iconContainer}></View>
-            <View style={styles.top_ctnr}>
-                <Text style={styles.title}>Sign Up for Spartan</Text>
-                <Text style={styles.subtitle}>
-                    Create an account to view posts, track workouts, connect with friends, and more.
-                </Text>
-            </View>
+        <ImageBackground
+            source={authBackground}
+            style={styles.background}
+            resizeMode="cover"
+        >
+            <SafeAreaView style={styles.safeArea} edges={['top', 'bottom']}>
+                <View style={[styles.inner, { paddingBottom: scaleSize(120) + insets.bottom }]}>
+                    <View style={styles.heroSection}>
+                        <Text style={styles.heroTitle}>Welcome to Spartan</Text>
+                        <Text style={styles.heroSubtitle}>
+                            Lift with purpose. Rally your crew. Unlock relentless performance.
+                        </Text>
+                    </View>
 
-            <View style={styles.bottomContainer}>
-                <AuthButton icon="person" text="Phone / Email" onPress={toNewUserCreationScreen} />
-                <GoogleAuthButton onSuccess={handleGoogleSuccess} />
-
-                <View pointerEvents="none" style={{ opacity: 0.4 }}>
-                    <AuthButton icon="logo-apple" text="Continue with Apple" disabled />
-                    <AuthButton icon="logo-instagram" text="Continue with Instagram" disabled />
-                    <AuthButton icon="logo-facebook" text="Continue with Facebook" disabled />
+                    <View style={styles.actions}>
+                        <GoogleAuthButton
+                            onSuccess={handleGoogleSuccess}
+                            style={styles.googleButton}
+                        />
+                        <AuthButton
+                            text="Continue"
+                            onPress={toNewUserCreationScreen}
+                            style={styles.primaryButton}
+                            textStyle={styles.primaryButtonText}
+                        />
+                    </View>
                 </View>
-            </View>
 
-            <View style={styles.footer}>
-                <Text style={styles.footer_regular_text}>Already have an account? </Text>
-                <TouchableOpacity activeOpacity={0.5} onPress={toLogInScreen}>
-                    <Text style={styles.log_in_text}> Log in</Text>
-                </TouchableOpacity>
-            </View>
-        </View>
+                <View style={[styles.footer, { bottom: insets.bottom + scaleSize(20) }]}>
+                    <Text style={styles.footer_regular_text}>Already have an account?</Text>
+                    <TouchableOpacity activeOpacity={0.5} onPress={toLogInScreen}>
+                        <Text style={styles.log_in_text}>Log in</Text>
+                    </TouchableOpacity>
+                </View>
+            </SafeAreaView>
+        </ImageBackground>
     );
 };
 
 const styles = StyleSheet.create({
-    container: {
+    background: {
         flex: 1,
-        overflow: 'hidden',
-        justifyContent: 'center',
-        paddingBottom: scaleSize(35),
         backgroundColor: theme.bg,
     },
-    iconContainer: {
-        position: 'absolute',
-        top: '6%',
-        left: scaleSizeFont(15),
-        right: scaleSizeFont(15),
-        flexDirection: 'row',
-        justifyContent: 'space-between',
+    safeArea: {
+        flex: 1,
     },
-    top_ctnr: {
+    inner: {
+        flex: 1,
         justifyContent: 'center',
+        paddingHorizontal: scaleSize(22),
+        paddingTop: scaleSize(70),
+    },
+    heroSection: {
         alignItems: 'center',
+        paddingHorizontal: scaleSize(10),
+        marginBottom: scaleSize(85),
     },
-    title: {
-        fontSize: scaleSize(21), // Scaled font size
-        fontFamily: 'Poppins_600SemiBold',
-        marginLeft: scaleSize(1),
-        marginBottom: scaleSize(10),
+    heroTitle: {
+        fontSize: scaleSize(26),
+        fontFamily: 'Poppins_700Bold',
         color: theme.textPrimary,
+        marginBottom: scaleSize(18),
     },
-    subtitle: {
-        fontSize: scaleSize(12), // Scaled font size
-        marginHorizontal: scaleSize(45),
+    heroSubtitle: {
+        fontSize: scaleSize(13.5),
         textAlign: 'center',
-        fontFamily: 'Mulish_400Regular',
-        marginBottom: scaleSize(15),
+        fontFamily: 'Nunito_700Bold',
         color: theme.textSecondary,
+        lineHeight: scaleSize(20),
     },
-    bottomContainer: {
-        marginHorizontal: scaleSize(25),
+    actions: {
+        width: '100%',
+        marginTop: scaleSize(12),
+    },
+    googleButton: {
+        backgroundColor: '#fff',
+        borderRadius: scaleSize(14),
+        marginBottom: scaleSize(12),
+        width: '100%',
+    },
+    primaryButton: {
+        backgroundColor: theme.primary,
+        borderColor: theme.primary,
+        borderRadius: scaleSize(12),
+        width: '100%',
+    },
+    primaryButtonText: {
+        color: '#FFFFFF',
+        fontFamily: 'Nunito_800ExtraBold',
+        fontSize: scaleSize(16),
+        letterSpacing: scaleSize(0.4)
     },
     footer: {
         position: 'absolute',
         flexDirection: 'row',
-        bottom: '5.5%',
-        left: 0,
-        right: 0,
-        height: scaleSize(68),
+        left: scaleSize(28),
+        right: scaleSize(28),
+        height: scaleSize(56),
         backgroundColor: theme.surface,
         alignItems: 'center',
         justifyContent: 'center',
-        borderTopWidth: StyleSheet.hairlineWidth,
+        borderRadius: scaleSize(16),
+        borderWidth: StyleSheet.hairlineWidth,
         borderColor: theme.hairline,
+        paddingHorizontal: scaleSize(18),
     },
     footer_regular_text: {
         fontFamily: 'Outfit_400Regular',
         fontSize: scaleSize(14.5),
         color: theme.textSecondary,
+        marginRight: scaleSize(4),
     },
     log_in_text: {
         fontFamily: 'Outfit_600SemiBold',
