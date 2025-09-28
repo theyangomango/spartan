@@ -41,7 +41,7 @@ export default function FoodDetail({ navigation, route }) {
     const mealNameInit = route?.params?.mealName || 'Dinner';
     const dayKey = route?.params?.dayKey || '';
     const [servings, setServings] = useState(() => {
-        const n = Number(entry?.quantity || 1);
+        const n = Number(entry?.quantity ?? entry?.qty ?? 1);
         return Number.isFinite(n) && n > 0 ? n : 1;
     });
     const [meal, setMeal] = useState(mealNameInit);

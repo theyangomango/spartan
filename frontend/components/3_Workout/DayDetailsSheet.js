@@ -831,12 +831,16 @@ const DayDetailsSheet = ({
                 if (!e) continue;
                 const bucket = normalizeMealBucket(e?.meal);
                 const macros = e?.macros || parseMacrosFromDescription(e?.desc || '', Number(e?.quantity) || 1);
+                const qty = (() => {
+                    const direct = Number(e?.quantity ?? e?.qty);
+                    return Number.isFinite(direct) && direct > 0 ? direct : 1;
+                })();
                 const item = {
                     key: k,
                     name: e?.name || 'Food',
                     brand: e?.brand || '',
                     desc: e?.desc || '',
-                    qty: typeof e?.quantity === 'number' ? e.quantity : 1,
+                    qty,
                     foodId: e?.foodId || e?.food_id || '',
                     macros,
                 };
@@ -920,10 +924,16 @@ const DayDetailsSheet = ({
             for (const b of buckets) {
                 const arr = Array.isArray(dayMeals?.[b]) ? dayMeals[b] : [];
                 for (const it of arr) {
+                    const qty = (() => {
+                        if (typeof it?.qty === 'number') return it.qty;
+                        if (typeof it?.quantity === 'number') return it.quantity;
+                        const parsed = Number(it?.qty ?? it?.quantity);
+                        return Number.isFinite(parsed) && parsed > 0 ? parsed : null;
+                    })();
                     out.push({
                         name: it?.name || "Food",
                         desc: it?.desc || "",
-                        qty: typeof it?.quantity === "number" ? it.quantity : null,
+                        qty,
                         bucket: b,
                         brand: it?.brand || '',
                         foodId: it?.foodId || it?.food_id || '',
