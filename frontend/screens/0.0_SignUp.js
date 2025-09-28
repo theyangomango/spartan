@@ -56,7 +56,7 @@ const SignUp = ({ navigation }) => {
                     <View style={styles.heroSection}>
                         <Text style={styles.heroTitle}>Welcome to Spartan</Text>
                         <Text style={styles.heroSubtitle}>
-                            Lift with purpose. Rally your crew. Unlock relentless performance.
+                            Find your tribe. Lift with purpose. Unlock relentless performance.
                         </Text>
                     </View>
 
