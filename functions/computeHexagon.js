@@ -138,7 +138,11 @@ function toDayKey(d) {
 function parseDayKey(k) { if (!k) return 0; try { const [y, m, d] = String(k).split("-").map(Number); const dt = new Date(y, (m || 1) - 1, d || 1); dt.setHours(0,0,0,0); return dt.getTime(); } catch { return 0; } }
 function daysSince(ts) { if (!ts) return Number.POSITIVE_INFINITY; const ms = Date.now() - ts; return Math.max(0, Math.floor(ms / (24*3600*1000))); }
 const clamp = (v, lo, hi) => Math.min(hi, Math.max(lo, v));
-const r = (v) => Math.round(v);
+const roundTo3 = (value) => {
+  const n = Number(value);
+  if (!Number.isFinite(n)) return 0;
+  return Math.round((n + Number.EPSILON) * 1000) / 1000;
+};
 
 export function computeHexagonFromStats({ statsExercises = {}, prevStatsHexagon = {}, trainedExerciseNames = [] } = {}) {
   const trainedGroups = new Set();
@@ -235,17 +239,16 @@ export function computeHexagonFromStats({ statsExercises = {}, prevStatsHexagon 
     else next[g] = Math.max(prevVal * (decayFactors[g] || 1), next[g]);
   });
 
-  const overall = r((Number(next.shoulders||0)+Number(next.chest||0)+Number(next.arms||0)+Number(next.legs||0)+Number(next.back||0)+Number(next.abs||0))/6);
+  const overall = roundTo3((Number(next.shoulders||0)+Number(next.chest||0)+Number(next.arms||0)+Number(next.legs||0)+Number(next.back||0)+Number(next.abs||0))/6);
   return { statsHexagon: {
-    shoulders: r(next.shoulders || 0),
-    chest: r(next.chest || 0),
-    arms: r(next.arms || 0),
-    legs: r(next.legs || 0),
-    back: r(next.back || 0),
-    abs: r(next.abs || 0),
+    shoulders: roundTo3(next.shoulders || 0),
+    chest: roundTo3(next.chest || 0),
+    arms: roundTo3(next.arms || 0),
+    legs: roundTo3(next.legs || 0),
+    back: roundTo3(next.back || 0),
+    abs: roundTo3(next.abs || 0),
     overall,
   }};
 }
 
 export default computeHexagonFromStats;
-
