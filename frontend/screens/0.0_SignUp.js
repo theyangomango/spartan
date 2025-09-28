@@ -127,20 +127,9 @@ const SignUp = ({ navigation }) => {
     return (
         <ImageBackground
             source={authBackground}
-            defaultSource={authBackground}
             style={styles.background}
             imageStyle={styles.backgroundImage}
             resizeMode="cover"
-            onLoadEnd={() => {
-                try {
-                    global.__markAuthBackgroundReady?.();
-                } catch { }
-            }}
-            onError={() => {
-                try {
-                    global.__markAuthBackgroundReady?.();
-                } catch { }
-            }}
         >
             <TouchableWithoutFeedback onPress={dismissKeyboard} accessible={false}>
                 <SafeAreaView style={styles.safeArea} edges={['top', 'bottom']}>

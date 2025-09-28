@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useRef, useState, useCallback } from "react";
-import { View, StyleSheet, ScrollView } from "react-native";
+import { View, StyleSheet, ScrollView, Text } from "react-native";
 import MessageCard from "../components/1.1_Messages/MessageCard";
 import MessagesHeader from "../components/1.1_Messages/MessagesHeader";
 import CreateGroupChatBottomSheet from "../components/1.1_Messages/CreateGroupChatBottomSheet";
@@ -365,6 +365,13 @@ export default function Messages({ navigation, route }) {
         return merged;
     }, [chats, latestByCid]);
 
+    const filteredMessages = useMemo(() => {
+        if (scope === "Group") {
+            return sortedMessages.filter((message) => message.isGroup);
+        }
+        return sortedMessages;
+    }, [sortedMessages, scope]);
+
     return (
         <View style={styles.mainContainer}>
             <MessagesHeader
@@ -380,24 +387,31 @@ export default function Messages({ navigation, route }) {
                     contentContainerStyle={styles.cardsContent}
                     showsVerticalScrollIndicator={false}
                 >
-                    {sortedMessages.map((msg, _sortedIndex) => {
-                        if (scope === "Group" && !msg.isGroup) return null;
+                    {filteredMessages.length === 0 ? (
+                        <View style={styles.emptyStateContainer}>
+                            <Text style={styles.emptyStateTitle}>No messages yet</Text>
+                            <Text style={styles.emptyStateSubtitle}>
+                                Send a DM to connect with your friends.
+                            </Text>
+                        </View>
+                    ) : (
+                        filteredMessages.map((msg) => {
+                            const originalIndex = chats.findIndex((m) => m.cid === msg.cid);
+                            const usersExcludingSelf = msg.users.filter((u) => u.uid !== userData.uid);
+                            const lastMsg = msg.content?.[0];
 
-                        const originalIndex = chats.findIndex((m) => m.cid === msg.cid);
-                        const usersExcludingSelf = msg.users.filter((u) => u.uid !== userData.uid);
-                        const lastMsg = msg.content?.[0];
-
-                        return (
-                            <MessageCard
-                                key={`${msg.cid}-${originalIndex}`}
-                                usersExcludingSelf={usersExcludingSelf}
-                                content={lastMsg?.text || ""}
-                                timestamp={lastMsg?.timestamp || null}
-                                toChat={toChat}
-                                index={originalIndex} // preserve original index for navigation/state
-                            />
-                        );
-                    })}
+                            return (
+                                <MessageCard
+                                    key={`${msg.cid}-${originalIndex}`}
+                                    usersExcludingSelf={usersExcludingSelf}
+                                    content={lastMsg?.text || ""}
+                                    timestamp={lastMsg?.timestamp || null}
+                                    toChat={toChat}
+                                    index={originalIndex} // preserve original index for navigation/state
+                                />
+                            );
+                        })
+                    )}
                 </ScrollView>
             </View>
 
@@ -425,5 +439,23 @@ const styles = StyleSheet.create({
     cardsContent: {
         paddingHorizontal: scaleSize(4),
         paddingBottom: scaleSize(18),
+    },
+    emptyStateContainer: {
+        paddingVertical: scaleSize(60),
+        paddingHorizontal: scaleSize(24),
+        alignItems: "center",
+    },
+    emptyStateTitle: {
+        color: theme.textPrimary,
+        fontSize: scaleSize(18),
+        fontFamily: "Outfit_600SemiBold",
+        marginBottom: scaleSize(8),
+        textAlign: "center",
+    },
+    emptyStateSubtitle: {
+        color: theme.textSecondary,
+        fontSize: scaleSize(14),
+        fontFamily: "Outfit_400Regular",
+        textAlign: "center",
     },
 });
