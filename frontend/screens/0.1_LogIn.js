@@ -125,7 +125,7 @@ const styles = StyleSheet.create({
     heroSection: {
         alignItems: 'center',
         paddingHorizontal: scaleSize(10),
-        marginBottom: scaleSize(60),
+        marginBottom: scaleSize(85),
     },
     heroTitle: {
         fontSize: scaleSize(25),
@@ -143,6 +143,7 @@ const styles = StyleSheet.create({
     },
     actions: {
         width: '100%',
+        marginTop: scaleSize(12),
     },
     errorText: {
         color: '#F87171',
@@ -155,7 +156,6 @@ const styles = StyleSheet.create({
         borderColor: theme.primary,
         borderRadius: scaleSize(12),
         width: '100%',
-        marginBottom: scaleSize(12),
     },
     primaryButtonText: {
         color: '#FFFFFF',
