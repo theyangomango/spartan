@@ -1,11 +1,20 @@
 import React, { useCallback, useState } from 'react';
-import { View, Text, StyleSheet, Dimensions, TouchableOpacity } from 'react-native';
+import {
+    View,
+    Text,
+    StyleSheet,
+    Dimensions,
+    TouchableOpacity,
+    ImageBackground,
+} from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import theme from '../theme/mfpDark';
 import AuthButton from '../components/auth/AuthButton';
 import GoogleAuthButton from '../components/auth/GoogleAuthButton';
+import authBackground from '../assets/AUTH_BACKGROUND.jpg';
 
-const { width: screenWidth, height: screenHeight } = Dimensions.get('window');
+const { width: screenWidth } = Dimensions.get('window');
 
 const scale = screenWidth / 375; // Base screen width assumed as 375
 
@@ -15,6 +24,7 @@ function scaleSize(size) {
 
 const LogIn = ({ navigation }) => {
     const [errorMsg, setErrorMsg] = useState('');
+    const insets = useSafeAreaInsets();
 
     const toSignUpScreen = useCallback(() => {
         navigation.navigate('SignUp');
@@ -37,106 +47,147 @@ const LogIn = ({ navigation }) => {
     }, [navigation]);
 
     return (
-        <View style={styles.container}>
-            <View style={styles.iconContainer}>
-                <TouchableOpacity onPress={toSignUpScreen} style={styles.closeHitSlop}>
+        <ImageBackground
+            source={authBackground}
+            defaultSource={authBackground}
+            style={styles.background}
+            imageStyle={styles.backgroundImage}
+            resizeMode="cover"
+        >
+            <SafeAreaView style={styles.safeArea} edges={['top', 'bottom']}>
+                <TouchableOpacity
+                    style={[styles.backButton, { top: insets.top + scaleSize(6) }]}
+                    onPress={toSignUpScreen}
+                    activeOpacity={0.6}
+                >
                     <Ionicons name="chevron-back" size={scaleSize(24)} color={theme.textSecondary} />
                 </TouchableOpacity>
-                {/* Placeholder for future help action */}
-            </View>
-            <View style={styles.top_ctnr}>
-                <Text style={styles.title}>Log In to Spartan</Text>
-                <Text style={styles.subtitle}>
-                    Log in to see past posts and workouts, message friends, see notifications, and more.
-                </Text>
-            </View>
 
-            <View style={styles.bottomContainer}>
-                {!!errorMsg && <Text style={styles.errorText}>{errorMsg}</Text>}
-                <AuthButton icon="person" text="Phone / Email / Username" onPress={toUserLogInCredentials} />
-                <GoogleAuthButton onSuccess={handleGoogleSuccess} onError={setErrorMsg} />
+                <View style={[styles.inner, { paddingBottom: scaleSize(120) + insets.bottom }]}>
+                    <View style={styles.heroSection}>
+                        <Text style={styles.heroTitle}>Log in to Spartan</Text>
+                        <Text style={styles.heroSubtitle}>
+                            Log in to track macros, see friends' workouts, and more.
+                        </Text>
+                    </View>
 
-                <View pointerEvents="none" style={{ opacity: 0.4 }}>
-                    <AuthButton icon="logo-apple" text="Continue with Apple" disabled />
-                    <AuthButton icon="logo-instagram" text="Continue with Instagram" disabled />
-                    <AuthButton icon="logo-facebook" text="Continue with Facebook" disabled />
+                    <View style={styles.actions}>
+                        {!!errorMsg && <Text style={styles.errorText}>{errorMsg}</Text>}
+                        <GoogleAuthButton
+                            onSuccess={handleGoogleSuccess}
+                            onError={setErrorMsg}
+                            style={styles.googleButton}
+                        />
+                        <AuthButton
+                            icon="person"
+                            text="Phone / Email / Username"
+                            onPress={toUserLogInCredentials}
+                            style={styles.primaryButton}
+                            textStyle={styles.primaryButtonText}
+                        />
+                    </View>
                 </View>
-            </View>
 
-            <View style={styles.footer}>
-                <Text style={styles.footer_regular_text}>Don't have an account? </Text>
-                <TouchableOpacity activeOpacity={0.5} onPress={toSignUpScreen}>
-                    <Text style={styles.sign_up_text}> Sign Up</Text>
-                </TouchableOpacity>
-            </View>
-        </View>
+                <View style={[styles.footer, { bottom: insets.bottom + scaleSize(20) }]}>
+                    <Text style={styles.footer_regular_text}>Don't have an account?</Text>
+                    <TouchableOpacity activeOpacity={0.5} onPress={toSignUpScreen}>
+                        <Text style={styles.sign_up_text}> Sign Up</Text>
+                    </TouchableOpacity>
+                </View>
+            </SafeAreaView>
+        </ImageBackground>
     );
 };
 
 const styles = StyleSheet.create({
-    container: {
+    background: {
         flex: 1,
-        overflow: 'hidden',
-        justifyContent: 'center',
-        paddingBottom: scaleSize(35),
         backgroundColor: theme.bg,
     },
-    iconContainer: {
+    backgroundImage: {
+        opacity: 0.75,
+    },
+    safeArea: {
+        flex: 1,
+    },
+    backButton: {
         position: 'absolute',
-        top: '6%',
-        left: scaleSize(15),
-        right: scaleSize(15),
-        flexDirection: 'row',
-        justifyContent: 'space-between',
+        left: scaleSize(16),
+        padding: scaleSize(8),
+        zIndex: 1,
     },
-    closeHitSlop: {
-        padding: scaleSize(10),
-    },
-    top_ctnr: {
+    inner: {
+        flex: 1,
         justifyContent: 'center',
+        paddingHorizontal: scaleSize(26),
+        paddingTop: scaleSize(70),
+    },
+    heroSection: {
         alignItems: 'center',
+        paddingHorizontal: scaleSize(10),
+        marginBottom: scaleSize(60),
     },
-    title: {
-        fontSize: scaleSize(21),
-        fontFamily: 'Poppins_600SemiBold',
-        marginLeft: scaleSize(1),
-        marginBottom: scaleSize(10),
+    heroTitle: {
+        fontSize: scaleSize(25),
+        fontFamily: 'Poppins_700Bold',
         color: theme.textPrimary,
+        marginBottom: scaleSize(20),
     },
-    subtitle: {
-        fontSize: scaleSize(12),
-        marginHorizontal: scaleSize(45),
+    heroSubtitle: {
+        fontSize: scaleSize(13.5),
         textAlign: 'center',
-        fontFamily: 'Mulish_400Regular',
-        marginBottom: scaleSize(15),
-        color: theme.textSecondary,
+        fontFamily: 'Nunito_700Bold',
+        color: '#ffffffd2',
+        lineHeight: scaleSize(21),
+        marginHorizontal: scaleSize(20),
     },
-    bottomContainer: {
-        marginHorizontal: scaleSize(25),
+    actions: {
+        width: '100%',
     },
     errorText: {
-        color: '#B91C1C',
+        color: '#F87171',
         fontFamily: 'Outfit_600SemiBold',
         marginBottom: scaleSize(8),
         textAlign: 'center',
     },
+    primaryButton: {
+        backgroundColor: theme.primary,
+        borderColor: theme.primary,
+        borderRadius: scaleSize(12),
+        width: '100%',
+        marginBottom: scaleSize(12),
+    },
+    primaryButtonText: {
+        color: '#FFFFFF',
+        fontFamily: 'Nunito_800ExtraBold',
+        fontSize: scaleSize(14),
+        letterSpacing: scaleSize(0.4),
+    },
+    googleButton: {
+        backgroundColor: '#fff',
+        borderRadius: scaleSize(14),
+        marginBottom: scaleSize(12),
+        width: '100%',
+    },
     footer: {
         position: 'absolute',
         flexDirection: 'row',
-        bottom: '5.5%',
-        left: 0,
-        right: 0,
-        height: scaleSize(68),
+        left: scaleSize(28),
+        right: scaleSize(28),
+        height: scaleSize(56),
         backgroundColor: theme.surface,
         alignItems: 'center',
         justifyContent: 'center',
-        borderTopWidth: StyleSheet.hairlineWidth,
+        borderRadius: scaleSize(16),
+        borderWidth: StyleSheet.hairlineWidth,
         borderColor: theme.hairline,
+        paddingHorizontal: scaleSize(18),
     },
     footer_regular_text: {
         fontFamily: 'Outfit_400Regular',
         fontSize: scaleSize(14.5),
         color: theme.textSecondary,
+        marginRight: scaleSize(4),
     },
     sign_up_text: {
         fontFamily: 'Outfit_600SemiBold',
