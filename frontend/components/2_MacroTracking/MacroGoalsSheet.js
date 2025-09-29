@@ -197,7 +197,86 @@ export default function MacroGoalsSheet({
     // ----------------- AUTO CALC (existing) with placeholder mode -----------------
     const manualRef = useRef({ calories: false, protein: false, carbs: false, fat: false });
     const onlyDigits = (s) => s.replace(/[^\d]/g, '');
+    const sanitizeDecimalInput = (s) => {
+        if (!s) return '';
+        const filtered = s.replace(/[^0-9.]/g, '');
+        if (!filtered) return '';
+        const firstDot = filtered.indexOf('.');
+        if (firstDot === -1) {
+            return filtered.replace(/^0+(\d)/, '$1');
+        }
+        const beforeDot = filtered.slice(0, firstDot).replace(/^0+(\d)/, '$1');
+        const afterDot = filtered.slice(firstDot + 1).replace(/\./g, '');
+        return `${beforeDot || '0'}.${afterDot}`;
+    };
     const markManual = (k) => { manualRef.current[k] = true; setUsePlaceholderMacros(false); };
+    const trimTrailingZeros = (value) => value.replace(/(\.\d*?[1-9])0+$/u, '$1').replace(/\.0+$/u, '').replace(/^0+(?=\d)/u, '');
+    const formatMacroValue = (value) => {
+        if (!Number.isFinite(value) || value < 0) return '0';
+        if (value === 0) return '0';
+        const str = value.toFixed(6);
+        const trimmed = trimTrailingZeros(str);
+        return trimmed.length ? trimmed : '0';
+    };
+    const roundDisplayMacro = (value) => {
+        if (value == null) return '';
+        if (typeof value === 'string' && value.trim() === '') return '';
+        const numeric = Number(value);
+        if (!Number.isFinite(numeric)) return '';
+        return String(Math.max(0, Math.round(numeric)));
+    };
+    const caloriesFromMacros = (protein, carbs, fat) => {
+        const parse = (v) => {
+            const n = Number(v);
+            return Number.isFinite(n) ? n : 0;
+        };
+        const total = parse(protein) * 4 + parse(carbs) * 4 + parse(fat) * 9;
+        return String(Math.round(total));
+    };
+    const handleMacroChange = (macroKey) => (text) => {
+        const cleaned = sanitizeDecimalInput(text);
+        markManual(macroKey);
+        manualRef.current.calories = true;
+        setGoalForm((prev) => {
+            const next = { ...prev, [macroKey]: cleaned };
+            return { ...next, calories: caloriesFromMacros(next.protein, next.carbs, next.fat) };
+        });
+    };
+    const handleCaloriesChange = (text) => {
+        const digits = onlyDigits(text);
+        markManual('calories');
+        manualRef.current.protein = true;
+        manualRef.current.carbs = true;
+        manualRef.current.fat = true;
+        if (digits === '') {
+            setGoalForm((prev) => ({ ...prev, calories: '' }));
+            return;
+        }
+        setGoalForm((prev) => {
+            const nextCaloriesNumber = Number(digits);
+            const baseProtein = Number(prev.protein) || 0;
+            const baseCarbs = Number(prev.carbs) || 0;
+            const baseFat = Number(prev.fat) || 0;
+            const baseCalories = baseProtein * 4 + baseCarbs * 4 + baseFat * 9;
+            if (!baseCalories || !Number.isFinite(nextCaloriesNumber)) {
+                return { ...prev, calories: digits };
+            }
+            const scale = nextCaloriesNumber / baseCalories;
+            if (!Number.isFinite(scale) || scale < 0) {
+                return { ...prev, calories: digits };
+            }
+            const scaledProtein = formatMacroValue(baseProtein * scale);
+            const scaledCarbs = formatMacroValue(baseCarbs * scale);
+            const scaledFat = formatMacroValue(baseFat * scale);
+            return {
+                ...prev,
+                calories: digits,
+                protein: scaledProtein,
+                carbs: scaledCarbs,
+                fat: scaledFat,
+            };
+        });
+    };
 
     const gender = goalForm?.gender ?? 'male';
     const weight = goalForm?.weight ?? '';
@@ -309,7 +388,7 @@ export default function MacroGoalsSheet({
         <BottomSheet
             ref={sheetRef}
             index={index}
-            snapPoints={['60%', '95%']}
+            snapPoints={['60%', '93%']}
             enablePanDownToClose
             onChange={onChangeIndex}
             backgroundStyle={styles.sheetBackground}
@@ -331,11 +410,15 @@ export default function MacroGoalsSheet({
                                 <Text style={styles.sheetTitle}>Adjust Macro goals</Text>
                             </View>
 
+                            <Text style={styles.sheetDescription}>
+                                Edit protein, carbs, or fat to change their ratio. Updating calories will scale all three while preserving that balance.
+                            </Text>
+
                             <View style={styles.row}>
                                 <LabeledNumber
                                     label="Calories"
                                     value={goalForm.calories}
-                                    onChangeText={(t) => { markManual('calories'); setGoalForm((s) => ({ ...s, calories: onlyDigits(t) })); }}
+                                    onChangeText={handleCaloriesChange}
                                     suffix="kcal"
                                     styles={styles}
                                     placeholder={effectivePlaceholders.calories}
@@ -344,40 +427,43 @@ export default function MacroGoalsSheet({
                                 />
                             </View>
 
-                            <View style={[styles.row, { marginTop: scaleSize(10) }]}>
+                            <View style={[styles.row, { marginTop: scaleSize(10) }]}> 
                                 <LabeledNumber
                                     label="Protein"
-                                    value={goalForm.protein}
-                                    onChangeText={(t) => { markManual('protein'); setGoalForm((s) => ({ ...s, protein: onlyDigits(t) })); }}
+                                    value={roundDisplayMacro(goalForm.protein)}
+                                    onChangeText={handleMacroChange('protein')}
                                     suffix="g"
                                     styles={styles}
                                     placeholder={effectivePlaceholders.protein}
                                     placeholderTextColor={styles.placeholder.color}
                                     selectionColor={styles.accent.color}
+                                    keyboardType="decimal-pad"
                                 />
 
                                 <View style={{ width: scaleSize(12) }} />
                                 <LabeledNumber
                                     label="Carbs"
-                                    value={goalForm.carbs}
-                                    onChangeText={(t) => { markManual('carbs'); setGoalForm((s) => ({ ...s, carbs: onlyDigits(t) })); }}
+                                    value={roundDisplayMacro(goalForm.carbs)}
+                                    onChangeText={handleMacroChange('carbs')}
                                     suffix="g"
                                     styles={styles}
                                     placeholder={effectivePlaceholders.carbs}
                                     placeholderTextColor={styles.placeholder.color}
                                     selectionColor={styles.accent.color}
+                                    keyboardType="decimal-pad"
                                 />
                                 <View style={{ width: scaleSize(12) }} />
 
                                 <LabeledNumber
                                     label="Fat"
-                                    value={goalForm.fat}
-                                    onChangeText={(t) => { markManual('fat'); setGoalForm((s) => ({ ...s, fat: onlyDigits(t) })); }}
+                                    value={roundDisplayMacro(goalForm.fat)}
+                                    onChangeText={handleMacroChange('fat')}
                                     suffix="g"
                                     styles={styles}
                                     placeholder={effectivePlaceholders.fat}
                                     placeholderTextColor={styles.placeholder.color}
                                     selectionColor={styles.accent.color}
+                                    keyboardType="decimal-pad"
                                 />
                             </View>
 
@@ -471,6 +557,7 @@ const makeStyles = (COLORS) => {
 
         headerRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: scaleSize(8) },
         sheetTitle: { fontSize: scaleSize(18), fontFamily: 'Outfit_700Bold', color: text },
+        sheetDescription: { fontSize: scaleSize(12.5), fontFamily: 'Outfit_400Regular', color: subtext, marginBottom: scaleSize(12) },
 
         smallLinkPill: {
             flexDirection: 'row',

@@ -12,13 +12,14 @@ export default function LabeledNumber({
     placeholder = '0',
     placeholderTextColor,
     selectionColor,
+    keyboardType = 'number-pad',
 }) {
     return (
         <View style={{ flex: 1 }}>
             <Text style={styles.inputLabel}>{label}</Text>
             <View style={styles.inputBox}>
                 <TextInput
-                    keyboardType="number-pad"
+                    keyboardType={keyboardType}
                     returnKeyType="done"
                     value={String(value ?? '')}
                     onChangeText={onChangeText}
