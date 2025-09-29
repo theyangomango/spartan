@@ -388,7 +388,7 @@ export default function MacroGoalsSheet({
         <BottomSheet
             ref={sheetRef}
             index={index}
-            snapPoints={['60%', '93%']}
+            snapPoints={['65%', '93%']}
             enablePanDownToClose
             onChange={onChangeIndex}
             backgroundStyle={styles.sheetBackground}
