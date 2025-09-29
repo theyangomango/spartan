@@ -51,16 +51,28 @@ export default function MacroGoalsSheet({
         }).start();
     }, [modeAnim]);
 
+    const suppressKeyboardExpandRef = useRef(false);
+    const suppressKeyboardTimerRef = useRef(null);
+
     const fadeToGoals = useCallback(() => {
-        // Snap back to smaller snap; BottomSheet will invoke onChange for us.
+        suppressKeyboardExpandRef.current = true;
+        if (suppressKeyboardTimerRef.current) {
+            clearTimeout(suppressKeyboardTimerRef.current);
+        }
+        suppressKeyboardTimerRef.current = setTimeout(() => {
+            suppressKeyboardExpandRef.current = false;
+            suppressKeyboardTimerRef.current = null;
+        }, 320);
+        try { Keyboard.dismiss(); } catch { }
         sheetRef.current?.snapToIndex?.(0);
+        onChangeIndex?.(0);
         Animated.timing(modeAnim, {
             toValue: 0,
             duration: 180,
             easing: Easing.out(Easing.quad),
             useNativeDriver: true,
         }).start(({ finished }) => finished && setShowInfo(false));
-    }, [modeAnim]);
+    }, [modeAnim, onChangeIndex]);
 
     // Reset to goals mode whenever the sheet closes
     useEffect(() => {
@@ -347,12 +359,19 @@ export default function MacroGoalsSheet({
     // Expand to max when keyboard opens; restore when it closes (GOALS mode only)
     const preKeyboardIndexRef = useRef(null);
     const expandedForKeyboardRef = useRef(false);
+    useEffect(() => () => {
+        if (suppressKeyboardTimerRef.current) {
+            clearTimeout(suppressKeyboardTimerRef.current);
+            suppressKeyboardTimerRef.current = null;
+        }
+    }, []);
     useEffect(() => {
         if (index < 0) return; // only when sheet is open
 
         const onKbShow = () => {
             // only apply on Goals mode, not Personal Info
             if (showInfo) return;
+            if (suppressKeyboardExpandRef.current) return;
             if (expandedForKeyboardRef.current) return;
             const current = typeof index === 'number' ? index : 0;
             // store where we were before expanding
