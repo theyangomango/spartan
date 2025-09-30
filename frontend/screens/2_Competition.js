@@ -108,7 +108,7 @@ const setPersisted = (patch) => {
 };
 
 // module fallbacks (if global gets cleared)
-let LAST_SCOPE = "Global";
+let LAST_SCOPE = "Following";
 let LAST_SELECTED_TRIBE_ID = null;
 let LAST_USERLIST = null;
 let LAST_BODY_FOCUS = DEFAULT_BODY_FOCUS;
@@ -252,9 +252,10 @@ export default function Competition({ navigation, route }) {
     const [comparedMetric, setComparedMetric] = useState("1RM");
     const exerciseStatKey = comparedMetric === "1RM" ? "1RM" : comparedMetric;
 
-    const [bodyFocus, setBodyFocus] = useState(
-        persisted.bodyFocus ?? LAST_BODY_FOCUS ?? DEFAULT_BODY_FOCUS
-    );
+    const [bodyFocus, setBodyFocus] = useState(() => {
+        const savedFocus = persisted.bodyFocus ?? LAST_BODY_FOCUS ?? DEFAULT_BODY_FOCUS;
+        return BODY_FOCUS_LABEL_MAP[savedFocus] ? savedFocus : DEFAULT_BODY_FOCUS;
+    });
     const [isBodyFocusMenuVisible, setIsBodyFocusMenuVisible] = useState(false);
     const focusToggleAnchorRef = useRef(null);
     const [focusMenuAnchor, setFocusMenuAnchor] = useState({ x: SIZES.headerPaddingHorizontal, y: 0, width: 0, height: 0 });
