@@ -7,12 +7,14 @@ import scaleSize from "../../../../helper/scaleSize";
 import theme from "../../../../theme/mfpDark";
 import { withStrongPress } from "../../../../utils/haptics";
 import EditTemplateModal from "../../../3_Workout/Template/EditTemplateModal";
+import { BLUE } from "../../../3_Workout/sections/workoutTheme";
 import makeID from "../../../../../backend/helper/makeID";
 import updateDoc from "../../../../../backend/helper/firebase/updateDoc";
 import { emitUserDataUpdate } from "../../../../utils/userDataEvents";
 import { SafeAreaView } from "react-native-safe-area-context";
 
-const TEMPLATE_ICON_COLOR = "#C6E2FF";
+const TEMPLATE_ICON_COLOR = "#EEF5FF";
+const TEMPLATE_SECONDARY_ICON_COLOR = BLUE.ACCENT;
 const TEMPLATE_ICON_BG = "rgba(128, 198, 255, 0.24)";
 const TEMPLATE_ICON_BORDER = "rgba(148, 212, 255, 0.55)";
 const TEMPLATE_CARD_BG = "rgba(24, 42, 70, 0.94)";
@@ -21,7 +23,7 @@ const TEMPLATE_SHADOW_COLOR = "rgba(11, 32, 58, 0.55)";
 const TEMPLATE_SUBTITLE_COLOR = "#C7DCF8";
 const BADGE_TEXT = "#E0EEFF";
 const CARD_RADIUS = scaleSize(22);
-const CARD_MIN_HEIGHT = scaleSize(85);
+const CARD_MIN_HEIGHT = scaleSize(78);
 
 const normalizeSetType = (value) => {
     const raw = typeof value === "string" ? value.toLowerCase() : "";
@@ -275,13 +277,13 @@ const TemplatesSection = ({ templates, isVisible, isBottomSheetExpanded, onScrol
                     style={({ pressed }) => [styles.card, pressed && styles.cardPressed]}
                 >
                     <View style={styles.iconWrap}>
-                        <Weight size={scaleSize(21)} color={TEMPLATE_ICON_COLOR} variant="Broken" />
+                        <Weight size={scaleSize(19)} color={TEMPLATE_ICON_COLOR} variant="Broken" />
                     </View>
                     <View style={styles.cardContent}>
                         <Text style={styles.cardTitle} numberOfLines={1}>{name}</Text>
                         {metaSubtitle ? (
                             <View style={styles.cardSubRow}>
-                                <Weight size={scaleSize(14)} color={TEMPLATE_ICON_COLOR} variant="Broken" style={styles.cardSubIcon} />
+                                <Weight size={scaleSize(14)} color={TEMPLATE_SECONDARY_ICON_COLOR} variant="Broken" style={styles.cardSubIcon} />
                                 <Text style={styles.cardSubtitle} numberOfLines={1}>{metaSubtitle}</Text>
                             </View>
                         ) : null}
@@ -373,6 +375,7 @@ const styles = StyleSheet.create({
         borderRadius: CARD_RADIUS,
         backgroundColor: "transparent",
         overflow: "visible",
+        minHeight: CARD_MIN_HEIGHT,
         ...Platform.select({
             ios: {
                 shadowColor: TEMPLATE_SHADOW_COLOR,
@@ -391,29 +394,33 @@ const styles = StyleSheet.create({
         backgroundColor: TEMPLATE_CARD_BG,
         borderRadius: CARD_RADIUS,
         minHeight: CARD_MIN_HEIGHT,
-        borderWidth: scaleSize(1.2),
+        borderWidth: scaleSize(1.4),
         borderColor: TEMPLATE_CARD_BORDER,
-        paddingHorizontal: scaleSize(18),
-        paddingVertical: scaleSize(16),
+        paddingHorizontal: scaleSize(20),
+        paddingVertical: scaleSize(18),
+        justifyContent: "flex-start",
     },
     cardPressed: {
-        transform: [{ scale: 0.97 }],
+        transform: [{ scale: 0.98 }],
         opacity: 0.9,
     },
     iconWrap: {
-        width: scaleSize(40),
-        height: scaleSize(40),
+        width: scaleSize(32),
+        height: scaleSize(32),
         borderRadius: scaleSize(22),
-        borderWidth: scaleSize(1.2),
+        borderWidth: scaleSize(1.3),
         borderColor: TEMPLATE_ICON_BORDER,
         backgroundColor: TEMPLATE_ICON_BG,
         alignItems: "center",
         justifyContent: "center",
+        marginLeft: scaleSize(10),
     },
     cardContent: {
         flex: 1,
         minWidth: 0,
-        marginLeft: scaleSize(16),
+        marginLeft: scaleSize(18),
+        paddingRight: scaleSize(4),
+        justifyContent: "center",
     },
     cardTitle: {
         fontFamily: "Outfit_700Bold",
