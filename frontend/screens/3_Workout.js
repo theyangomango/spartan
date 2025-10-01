@@ -76,9 +76,11 @@ import scaleSize from "../helper/scaleSize";
 
 // MiniPodium preview derives from user's last Competition view
 
-const DIVIDER_DIFF_BASE = Math.max(0, TPL_DIVIDER_MARGIN_TOP - TPL_DIVIDER_MARGIN_BOTTOM);
-const DIVIDER_DIFF_FUDGE = scaleSize(10); // eyeballed to match iOS shadow bloom perfectly
-const DIVIDER_DIFF = DIVIDER_DIFF_BASE + DIVIDER_DIFF_FUDGE;
+const HUB_DROP_ALLOWANCE = Math.max(0, TPL_DIVIDER_MARGIN_TOP - TPL_DIVIDER_MARGIN_BOTTOM);
+
+const TPL_SHADOW_OFFSET = ss(10);
+const TPL_SHADOW_RADIUS = ss(20);
+const TPL_SHADOW_UP = Math.max(0, Math.round(TPL_SHADOW_RADIUS - TPL_SHADOW_OFFSET));
 
 /* ---------------- helpers ---------------- */
 const toMillis = (v) => {
@@ -270,7 +272,9 @@ export default function Workout({ navigation, route }) {
         if (!Number.isFinite(gap) || gap <= 0) return;
 
         const available = gap - dividerHeight;
-        if (!Number.isFinite(available) || available <= 0) {
+        if (!Number.isFinite(available)) return;
+
+        if (available <= 0) {
             setDividerSpacing((prev) => {
                 if (!prev || (prev.top === 0 && prev.bottom === 0)) return prev;
                 return { top: 0, bottom: 0 };
@@ -278,24 +282,15 @@ export default function Workout({ navigation, route }) {
             return;
         }
 
-        const desiredDiff = Math.max(-available, Math.min(available, DIVIDER_DIFF));
+        const biasNumerator = available + HUB_DROP_ALLOWANCE - TPL_SHADOW_UP;
+        let biasedTop = biasNumerator / 2;
+        if (!Number.isFinite(biasedTop)) return;
 
-        let topRaw = (available + desiredDiff) / 2;
-        let bottomRaw = available - topRaw;
+        if (biasedTop < 0) biasedTop = 0;
+        if (biasedTop > available) biasedTop = available;
 
-        if (!Number.isFinite(topRaw) || !Number.isFinite(bottomRaw)) return;
-
-        if (topRaw < 0) {
-            bottomRaw += topRaw;
-            topRaw = 0;
-        }
-        if (bottomRaw < 0) {
-            topRaw += bottomRaw;
-            bottomRaw = 0;
-        }
-
-        const nextTop = Math.max(0, topRaw);
-        const nextBottom = Math.max(0, bottomRaw);
+        const nextTop = biasedTop;
+        const nextBottom = Math.max(0, available - nextTop);
 
         setDividerSpacing((prev) => {
             if (

@@ -56,6 +56,7 @@ const styles = StyleSheet.create({
     sectionDividerInner: {
         height: scaleSize(20),
         alignItems: "center",
+        justifyContent: "center",
         ...Platform.select({
             ios: { overflow: "visible" },
             android: { overflow: "hidden" },
