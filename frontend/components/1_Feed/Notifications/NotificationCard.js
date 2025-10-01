@@ -189,7 +189,7 @@ export default function NotificationCard({ item, onPressCard, onAcceptWorkoutInv
                             },
                         ]}
                     >
-                        <View style={[styles.pfpIconBadgeInner, { backgroundColor: badgeBg } ]}>
+                        <View style={[styles.pfpIconBadgeInner, { backgroundColor: badgeBg }]}>
                             <IconCmp size={scaleSize(13)} color={theme.textPrimary} strokeWidth={2.5} />
                         </View>
                     </LinearGradient>
@@ -201,10 +201,7 @@ export default function NotificationCard({ item, onPressCard, onAcceptWorkoutInv
                         <Text style={styles.handle} numberOfLines={1}>
                             {item.handle}
                         </Text>
-                        <View style={styles.timeWrap}>
-                            {unread && <View style={[styles.unreadDot, { backgroundColor: accent }]} />}
-                            <Text style={styles.time}>{timeAgo}</Text>
-                        </View>
+
                     </View>
                     <Text style={styles.message} numberOfLines={2}>
                         {getDisplayMessage(item)}
@@ -262,8 +259,15 @@ export default function NotificationCard({ item, onPressCard, onAcceptWorkoutInv
                                 </Pressable>
                             </>
                         )}
+
                     </View>
+
                 )}
+
+                <View style={styles.timeWrap}>
+                    {unread && <View style={[styles.unreadDot, { backgroundColor: accent }]} />}
+                    <Text style={styles.time}>{timeAgo}</Text>
+                </View>
             </View>
         </Pressable>
     );
@@ -352,7 +356,7 @@ const styles = StyleSheet.create({
         color: theme.textSecondary,
         fontFamily: "Outfit_600SemiBold",
     },
-    timeWrap: { flexDirection: 'row', alignItems: 'center', gap: scaleSize(6) },
+    timeWrap: { flexDirection: 'row', alignItems: 'center', paddingLeft: scaleSize(10) },
     unreadDot: { width: scaleSize(7), height: scaleSize(7), borderRadius: scaleSize(7) / 2 },
 
     followBtn: {
