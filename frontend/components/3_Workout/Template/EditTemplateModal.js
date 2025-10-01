@@ -329,7 +329,7 @@ const styles = StyleSheet.create({
         justifyContent: 'space-between',
     },
     navBarReadOnly: {
-        paddingTop: scaledSize(30),
+        paddingTop: scaledSize(18),
         paddingHorizontal: scaledSize(24),
     },
     sideSlotLeft: {

@@ -336,7 +336,7 @@ const TemplatesSection = ({ templates, isVisible, isBottomSheetExpanded, onScrol
                 presentationStyle="fullScreen"
                 onRequestClose={closePreview}
             >
-                <SafeAreaView style={styles.previewModalContainer} edges={['top', 'bottom']}>
+                <SafeAreaView style={styles.previewModalContainer} edges={['bottom']}>
                     <EditTemplateModal
                         key={previewKey}
                         openedTemplateRef={previewTemplateRef}
@@ -471,6 +471,7 @@ const styles = StyleSheet.create({
     previewModalContainer: {
         flex: 1,
         backgroundColor: theme.surface,
+        paddingTop: scaleSize(18),
     },
 });
 
