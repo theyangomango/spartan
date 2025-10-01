@@ -11,6 +11,8 @@
     "messages": [],
     "followers": [],
     "following": [],
+    "followRequestsIn": [],
+    "followRequestsOut": [],
     "feedPosts": [],
     "feedStories": [],
     "posts": [],
@@ -25,5 +27,10 @@
     },
     "followerCount": 0,
     "followingCount": 0,
-    "postCount": 0
+    "postCount": 0,
+    "settings": {
+        "profilePrivate": false,
+        "units": "lb",
+        "push": true
+    }
 }

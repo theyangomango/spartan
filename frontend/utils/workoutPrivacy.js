@@ -98,25 +98,87 @@ export const isViewerFriend = (viewerData, targetUid) => {
     return false;
 };
 
-export const canViewWorkout = (workout, viewerUidInput, viewerDataInput) => {
+export const canViewerAccessProfile = (ownerInput, viewerUidInput, viewerDataInput) => {
+    if (!ownerInput || typeof ownerInput !== 'object') return true;
+
+    const ownerUid = extractUid(ownerInput.uid ?? ownerInput.id ?? ownerInput);
+    if (!ownerUid) return true;
+
+    const isPrivate = !!(ownerInput?.settings?.profilePrivate);
+    if (!isPrivate) return true;
+
+    let viewerUid = extractUid(viewerUidInput);
+    const viewerData = getViewerData(viewerDataInput);
+    if (!viewerUid && viewerData?.uid) viewerUid = String(viewerData.uid);
+
+    if (viewerUid && viewerUid === ownerUid) return true;
+
+    const sources = [
+        ownerInput.followers,
+        ownerInput.followersList,
+        ownerInput.followersMap,
+        ownerInput.approvedFollowers,
+    ];
+
+    for (const source of sources) {
+        if (collectionHasUid(source, viewerUid)) return true;
+    }
+
+    if (viewerUid && viewerData && isViewerFriend(viewerData, ownerUid)) return true;
+
+    return false;
+};
+
+export const canViewWorkout = (workout, viewerUidInput, viewerDataInput, ownerDataInput = null) => {
+    if (!workout || typeof workout !== 'object') return false;
+
+    const viewerData = getViewerData(viewerDataInput);
+    let viewerUid = extractUid(viewerUidInput);
+    if (!viewerUid && viewerData?.uid) viewerUid = String(viewerData.uid);
+
+    const ownerUid = resolveWorkoutOwnerUid(workout);
+    if (ownerUid && viewerUid && ownerUid === viewerUid) return true;
+
+    let ownerData = ownerDataInput && typeof ownerDataInput === 'object' ? ownerDataInput : null;
+    if (!ownerData) {
+        ownerData = workout.owner || workout.ownerProfile || workout.profile || workout.creator || null;
+    }
+    if (ownerData && typeof ownerData === 'object' && !ownerData.uid && ownerUid) {
+        ownerData = { ...ownerData, uid: ownerUid };
+    }
+
+    if (ownerData && ownerData.settings && ownerData.settings.profilePrivate !== undefined) {
+        if (!canViewerAccessProfile(ownerData, viewerUid, viewerData)) return false;
+    }
+
     return true;
 };
 
 export const PRIVACY = PRIVACY_MODES;
 
-export const filterViewableWorkouts = (workouts, viewerUidInput, viewerDataInput) => {
-    return Array.isArray(workouts) ? workouts : [];
+export const filterViewableWorkouts = (workouts, viewerUidInput, viewerDataInput, ownerDataInput = null) => {
+    if (!Array.isArray(workouts)) return [];
+    return workouts.filter((workout) => canViewWorkout(workout, viewerUidInput, viewerDataInput, ownerDataInput));
 };
 
-export const sanitizeStatsForViewer = (statsInput, ownerUidInput, viewerUidInput, viewerDataInput) => {
+export const sanitizeStatsForViewer = (statsInput, ownerUidInput, viewerUidInput, viewerDataInput, ownerDataInput = null) => {
     const stats = statsInput && typeof statsInput === 'object' ? statsInput : {};
-    return stats;
+    const ownerData = ownerDataInput && typeof ownerDataInput === 'object'
+        ? ownerDataInput
+        : (ownerUidInput ? { uid: extractUid(ownerUidInput), settings: {} } : null);
+
+    if (!ownerData || canViewerAccessProfile(ownerData, viewerUidInput, viewerDataInput)) {
+        return stats;
+    }
+
+    return {};
 };
 
 export default {
     PRIVACY,
     coercePrivacyMode,
     canViewWorkout,
+    canViewerAccessProfile,
     isViewerFriend,
     resolveWorkoutOwnerUid,
     filterViewableWorkouts,

@@ -18,7 +18,11 @@ export default async function sendNotification(uid, event) {
             // leave counters unchanged for now (only contributes to general events)
             break;
         case 'follow':
-            // falls through to overall events counter only
+        case 'follow-request':
+        // falls through to overall events counter only
+            break;
+        case 'follow-accepted':
+            // overall events counter only
             break;
     }
     incrementDocValue('users', uid, 'notificationNewEvents');
@@ -54,6 +58,10 @@ export default async function sendNotification(uid, event) {
                 title = 'Workout invite'; body = `${h} invited you to a workout`; break;
             case 'follow':
                 title = 'New follower'; body = `${h} followed you`; break;
+            case 'follow-request':
+                title = 'Follow request'; body = `${h} requested to follow you`; break;
+            case 'follow-accepted':
+                title = 'Follow request accepted'; body = `${h} accepted your follow request`; break;
             default:
                 title = 'New notification'; body = `${h} interacted with you`; break;
         }

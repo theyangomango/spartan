@@ -20,6 +20,12 @@ export default async function blockUser(this_user, user) {
   try { await unfollowUser(meRef, otherRef); } catch {}
   try { await unfollowUser(otherRef, meRef); } catch {}
 
+  // Remove any pending follow requests between the two accounts
+  try { await arrayErase('users', meRef.uid, 'followRequestsOut', otherRef); } catch {}
+  try { await arrayErase('users', meRef.uid, 'followRequestsIn', otherRef); } catch {}
+  try { await arrayErase('users', otherRef.uid, 'followRequestsOut', meRef); } catch {}
+  try { await arrayErase('users', otherRef.uid, 'followRequestsIn', meRef); } catch {}
+
   // 2) Append normalized entry to my 'blocked'; arrayUnion prevents duplicates
   try { await arrayAppend('users', meRef.uid, 'blocked', otherRef); } catch {}
 

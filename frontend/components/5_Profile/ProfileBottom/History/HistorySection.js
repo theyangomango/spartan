@@ -20,10 +20,15 @@ const exercises = [
     { name: "5 x Reverse Curls (Barbell)", muscle: "Biceps" }
 ];
 
-const HistorySection = ({ isVisible, isBottomSheetExpanded, completedWorkouts, onOpenWorkout, onScrollExpandRequest }) => {
+const HistorySection = ({ isVisible, isBottomSheetExpanded, completedWorkouts, onOpenWorkout, onScrollExpandRequest, ownerData }) => {
     const viewer = (() => { try { return global?.userData || null; } catch { return null; } })();
     const viewerUid = viewer?.uid ? String(viewer.uid) : "";
-    const filteredWorkouts = filterViewableWorkouts(Array.isArray(completedWorkouts) ? completedWorkouts : [], viewerUid, viewer);
+    const filteredWorkouts = filterViewableWorkouts(
+        Array.isArray(completedWorkouts) ? completedWorkouts : [],
+        viewerUid,
+        viewer,
+        ownerData || viewer
+    );
     const sortedWorkouts = [...filteredWorkouts].sort((a, b) => {
         const aMs = toMillis(a?.created ?? a?.createdAt ?? a?.finishedAt);
         const bMs = toMillis(b?.created ?? b?.createdAt ?? b?.finishedAt);

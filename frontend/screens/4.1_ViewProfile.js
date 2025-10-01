@@ -3,7 +3,7 @@ import { SafeAreaView, StyleSheet, View, StatusBar } from "react-native";
 import Footer from "../components/Footer";
 import ProfileBottomBottomSheet from "../components/5_Profile/ProfileBottom/ProfileBottomBottomSheet";
 import ViewProfileRowButtons from "../components/ViewProfile/ViewProfileRowButtons";
-import { filterViewableWorkouts } from "../utils/workoutPrivacy";
+import { filterViewableWorkouts, canViewerAccessProfile } from "../utils/workoutPrivacy";
 import ViewProfileInfo from "../components/ViewProfile/ViewProfileInfo";
 import ViewProfileHeader from "../components/ViewProfile/ViewProfileHeader";
 import readDoc from "../../backend/helper/firebase/readDoc";
@@ -76,12 +76,6 @@ export default function ViewProfile({ navigation, route }) {
             setBlockedFromViewing(false);
         }
     }
-
-    useEffect(() => {
-        if (profileUserData) {
-            getPosts();
-        }
-    }, [profileUserData]);
 
     useEffect(() => {
         // derive blocked status from global cache
@@ -196,9 +190,22 @@ export default function ViewProfile({ navigation, route }) {
 
     const viewerData = (() => { try { return global?.userData || null; } catch { return null; } })();
     const viewerUid = viewerData?.uid ? String(viewerData.uid) : "";
+    const canViewContent = canViewerAccessProfile(profileUserData, viewerUid, viewerData);
+
     const visibleCompletedWorkouts = useMemo(() => (
-        filterViewableWorkouts(profileUserData?.completedWorkouts || [], viewerUid, viewerData)
-    ), [profileUserData?.completedWorkouts, viewerUid, viewerData]);
+        !canViewContent
+            ? []
+            : filterViewableWorkouts(profileUserData?.completedWorkouts || [], viewerUid, viewerData, profileUserData)
+    ), [profileUserData?.completedWorkouts, viewerUid, viewerData, profileUserData, canViewContent]);
+
+    useEffect(() => {
+        if (!profileUserData) return;
+        if (!canViewContent) {
+            setPosts([]);
+            return;
+        }
+        getPosts();
+    }, [profileUserData, canViewContent]);
 
     return (
         <SafeAreaView style={styles.main_ctnr}>
@@ -210,17 +217,21 @@ export default function ViewProfile({ navigation, route }) {
                     onPressFollowers={() => { setFollowListMode('followers'); setIsFollowListVisible(true); }}
                     onPressFollowing={() => { setFollowListMode('following'); setIsFollowListVisible(true); }}
                 />
-                <ViewProfileRowButtons handleOpenViewStats={handleOpenViewStats} user={user} />
+                <ViewProfileRowButtons handleOpenViewStats={handleOpenViewStats} user={profileUserData || user} />
                 <WorkoutStats userData={profileUserData} />
             </View>
 
             <ProfileBottomBottomSheet selectedPanel={selectedPanel}
                 setSelectedPanel={setSelectedPanel}
-                posts={posts}
+                posts={canViewContent ? posts : []}
+                templates={canViewContent ? profileUserData?.templates : []}
                 completedWorkouts={visibleCompletedWorkouts}
                 navigation={navigation}
                 onOpenWorkout={openViewer}
                 topContentHeight={profileTopHeight}
+                contentLocked={!canViewContent}
+                lockedSubtitle={profileUserData?.settings?.profilePrivate ? 'Only approved followers can see these posts, workouts, and templates.' : ''}
+                ownerData={profileUserData}
             />
             <Footer currentScreenName={'Profile'} navigation={navigation} />
 

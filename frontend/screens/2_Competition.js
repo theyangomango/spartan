@@ -46,6 +46,7 @@ import Footer from "../components/Footer";
 import PersonalInfoSheet from "../components/2_MacroTracking/PersonalInfoSheet";
 import theme from "../theme/mfpDark";
 import { subscribeUserData, emitUserDataUpdate } from "../utils/userDataEvents";
+import { canViewerAccessProfile } from "../utils/workoutPrivacy";
 
 import scaleSizeFont from "../helper/scaleSize";
 import { withStrongPress } from "../utils/haptics";
@@ -182,6 +183,11 @@ function filterBlockedVisibility(list) {
         const myBlockedSet = new Set(
             myBlocked.map((x) => String((x && (x.uid || x.id)) || x || ''))
         );
+        const viewerData = (() => {
+            try { return global?.userData || null; }
+            catch { return null; }
+        })();
+        const viewerUid = viewerData?.uid ? String(viewerData.uid) : '';
         const theyBlockedMe = (u) => {
             const arr = Array.isArray(u?.blocked) ? u.blocked : [];
             for (let i = 0; i < arr.length; i++) {
@@ -197,6 +203,7 @@ function filterBlockedVisibility(list) {
             if (uid === meUid) return true; // always include self
             if (myBlockedSet.has(uid)) return false; // I blocked them
             if (theyBlockedMe(u)) return false; // they blocked me
+            if (!canViewerAccessProfile(u, viewerUid, viewerData)) return false;
             return true;
         });
     } catch {

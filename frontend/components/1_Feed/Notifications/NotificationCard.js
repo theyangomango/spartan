@@ -2,7 +2,7 @@ import React, { useEffect, useMemo, useState } from "react";
 import { View, Text, StyleSheet, Pressable } from "react-native";
 import FastImage from "react-native-fast-image";
 import RNBounceable from "@freakycoder/react-native-bounceable";
-import { Heart, MessageCircle, AtSign, UserPlus, Activity } from "lucide-react-native";
+import { Heart, MessageCircle, AtSign, UserPlus, Activity, Check } from "lucide-react-native";
 import { LinearGradient } from "expo-linear-gradient";
 
 import scaleSize, { ts } from "../../../helper/scaleSize";
@@ -23,6 +23,10 @@ function getDisplayMessage(item) {
     switch (item.type) {
         case "follow":
             return "followed you";
+        case "follow-request":
+            return "requested to follow you";
+        case "follow-accepted":
+            return "accepted your follow request";
         case "liked-post":
             return "liked your post";
         case "liked-comment":
@@ -40,9 +44,10 @@ function getDisplayMessage(item) {
     }
 }
 
-export default function NotificationCard({ item, onPressCard, onAcceptWorkoutInvite }) {
+export default function NotificationCard({ item, onPressCard, onAcceptWorkoutInvite, onAcceptFollowRequest, onDeclineFollowRequest }) {
     const [isFollowing, setIsFollowing] = useState(false);
     const [acceptingInvite, setAcceptingInvite] = useState(false);
+    const [respondingRequest, setRespondingRequest] = useState(false);
     const pfpUri = usePfp(
         item.uid,
         item.pfpVersion ?? 0,
@@ -51,7 +56,7 @@ export default function NotificationCard({ item, onPressCard, onAcceptWorkoutInv
 
     /* check initial follow state */
     useEffect(() => {
-        if (item.type === "follow") {
+        if (item.type === "follow" || item.type === "follow-accepted") {
             const isFollower = !!global?.userData?.following?.some((f) => f?.uid === item.uid);
             setIsFollowing(isFollower);
         }
@@ -91,6 +96,10 @@ export default function NotificationCard({ item, onPressCard, onAcceptWorkoutInv
     const showAcceptAction = item?.type === "workout-invite" && typeof onAcceptWorkoutInvite === "function";
     const inviteAccepted = showAcceptAction && item?.inviteStatus === "accepted";
 
+    const requestStatus = String(item?.requestStatus || '').toLowerCase();
+    const showFollowRequestActions = item?.type === "follow-request" && typeof onAcceptFollowRequest === "function" && typeof onDeclineFollowRequest === "function";
+    const requestHandled = showFollowRequestActions && (requestStatus === 'accepted' || requestStatus === 'declined');
+
     const handleAcceptInvite = async () => {
         if (!showAcceptAction || inviteAccepted || acceptingInvite) return;
         setAcceptingInvite(true);
@@ -100,6 +109,30 @@ export default function NotificationCard({ item, onPressCard, onAcceptWorkoutInv
             console.log('accept workout invite notification error', err);
         } finally {
             setAcceptingInvite(false);
+        }
+    };
+
+    const handleAcceptFollowRequest = async () => {
+        if (!showFollowRequestActions || respondingRequest || requestHandled) return;
+        setRespondingRequest(true);
+        try {
+            await onAcceptFollowRequest();
+        } catch (err) {
+            console.log('accept follow request notification error', err);
+        } finally {
+            setRespondingRequest(false);
+        }
+    };
+
+    const handleDeclineFollowRequest = async () => {
+        if (!showFollowRequestActions || respondingRequest || requestHandled) return;
+        setRespondingRequest(true);
+        try {
+            await onDeclineFollowRequest();
+        } catch (err) {
+            console.log('decline follow request notification error', err);
+        } finally {
+            setRespondingRequest(false);
         }
     };
 
@@ -114,7 +147,10 @@ export default function NotificationCard({ item, onPressCard, onAcceptWorkoutInv
             case "mention":
                 return { IconCmp: AtSign, accent: "#885FFF", accent2: "#A78BFA", lightAccent: "rgba(136,95,255,0.14)", badgeBg: "rgba(136,95,255,0.06)" };
             case "follow":
+            case "follow-request":
                 return { IconCmp: UserPlus, accent: "#22C55E", accent2: "#34D399", lightAccent: "rgba(34,197,94,0.16)", badgeBg: "rgba(34,197,94,0.06)" };
+            case "follow-accepted":
+                return { IconCmp: Check, accent: "#2D92FF", accent2: "#6AB6FF", lightAccent: "rgba(45,146,255,0.16)", badgeBg: "rgba(45,146,255,0.06)" };
             case "workout-invite":
                 return { IconCmp: Activity, accent: "#0EA5E9", accent2: "#38BDF8", lightAccent: "rgba(14,165,233,0.18)", badgeBg: "rgba(14,165,233,0.08)" };
             default:
@@ -197,6 +233,36 @@ export default function NotificationCard({ item, onPressCard, onAcceptWorkoutInv
                             {inviteAccepted ? "Accepted" : acceptingInvite ? "Accepting…" : "Accept"}
                         </Text>
                     </Pressable>
+                )}
+                {showFollowRequestActions && (
+                    <View style={styles.requestActionsWrap}>
+                        {requestHandled ? (
+                            <Text style={styles.requestHandledText}>
+                                {requestStatus === 'accepted' ? 'Accepted' : 'Declined'}
+                            </Text>
+                        ) : (
+                            <>
+                                <Pressable
+                                    style={[styles.requestActionBtn, styles.requestAcceptBtn, respondingRequest && styles.requestActionDisabled]}
+                                    onPress={handleAcceptFollowRequest}
+                                    disabled={respondingRequest}
+                                    hitSlop={10}
+                                >
+                                    <Text style={styles.requestAcceptText}>
+                                        {respondingRequest ? 'One moment…' : 'Accept'}
+                                    </Text>
+                                </Pressable>
+                                <Pressable
+                                    style={[styles.requestActionBtn, styles.requestDeclineBtn, respondingRequest && styles.requestActionDisabled]}
+                                    onPress={handleDeclineFollowRequest}
+                                    disabled={respondingRequest}
+                                    hitSlop={10}
+                                >
+                                    <Text style={styles.requestDeclineText}>Decline</Text>
+                                </Pressable>
+                            </>
+                        )}
+                    </View>
                 )}
             </View>
         </Pressable>
@@ -327,5 +393,46 @@ const styles = StyleSheet.create({
         color: "#fff",
         fontFamily: "Outfit_700Bold",
         fontSize: scaleSize(12.5),
+    },
+    requestActionsWrap: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        marginLeft: scaleSize(10),
+    },
+    requestActionBtn: {
+        paddingHorizontal: scaleSize(14),
+        paddingVertical: scaleSize(7),
+        borderRadius: scaleSize(999),
+        borderWidth: StyleSheet.hairlineWidth,
+        minWidth: scaleSize(74),
+        alignItems: 'center',
+        justifyContent: 'center',
+    },
+    requestAcceptBtn: {
+        backgroundColor: 'rgba(34,197,94,0.16)',
+        borderColor: 'rgba(34,197,94,0.36)',
+    },
+    requestDeclineBtn: {
+        backgroundColor: 'rgba(100,116,139,0.14)',
+        borderColor: 'rgba(100,116,139,0.28)',
+        marginLeft: scaleSize(6),
+    },
+    requestAcceptText: {
+        fontFamily: 'Outfit_700Bold',
+        fontSize: scaleSize(12),
+        color: '#22C55E',
+    },
+    requestDeclineText: {
+        fontFamily: 'Outfit_700Bold',
+        fontSize: scaleSize(12),
+        color: '#94A3B8',
+    },
+    requestActionDisabled: {
+        opacity: 0.6,
+    },
+    requestHandledText: {
+        fontFamily: 'Outfit_700Bold',
+        fontSize: scaleSize(12),
+        color: '#94A3B8',
     },
 });

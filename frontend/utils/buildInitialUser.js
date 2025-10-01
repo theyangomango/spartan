@@ -84,6 +84,8 @@ export default function buildInitialUser({
     followers: [],
     following: [{ ...SPARTAN_ACCOUNT }],
     followingCount: 1,
+    followRequestsIn: [],
+    followRequestsOut: [],
     handle,
     pfp: safeImage,
     image: safeImage,
@@ -115,6 +117,11 @@ export default function buildInitialUser({
     statsTotalVolume: 0,
     statsTotalWorkouts: 0,
     templates,
+    settings: {
+      profilePrivate: false,
+      units: 'lb',
+      push: true,
+    },
     uid,
     ...extra,
   };

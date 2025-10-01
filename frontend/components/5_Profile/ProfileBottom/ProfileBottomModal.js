@@ -1,17 +1,46 @@
 import React, { memo } from "react";
-import { StyleSheet, View, Pressable } from "react-native";
+import { StyleSheet, View, Pressable, Text } from "react-native";
 import scaleSize from "../../../helper/scaleSize";
 import { Grid2, Clock, Weight } from 'iconsax-react-native';
 import PostsSection from "./Posts/PostsSection";
 import HistorySection from "./History/HistorySection";
 import TemplatesSection from "./Templates/TemplatesSection";
 import { withStrongPress } from "../../../utils/haptics";
+import { Ionicons } from "@expo/vector-icons";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 const scaledSize = (size) => scaleSize(size);
 
-const ProfileBottomModal = ({ selectedPanel, setSelectedPanel, posts, templates, completedWorkouts, isBottomSheetExpanded, onOpenWorkout, onScrollExpandRequest }) => {
+const ProfileBottomModal = ({ selectedPanel, setSelectedPanel, posts, templates, completedWorkouts, isBottomSheetExpanded, onOpenWorkout, onScrollExpandRequest, contentLocked = false, lockedSubtitle = '', ownerData = null }) => {
     const normalizedTemplates = Array.isArray(templates) ? templates : [];
-    const viewingSelfTemplates = templates !== undefined && templates !== null;
+    const insets = useSafeAreaInsets();
+    const isViewingSelf = (() => {
+        const ownerUid = ownerData?.uid ? String(ownerData.uid) : null;
+        try {
+            const viewerUid = global?.userData?.uid ? String(global.userData.uid) : null;
+            return ownerUid && viewerUid && ownerUid === viewerUid;
+        } catch {
+            return false;
+        }
+    })();
+    const viewingSelfTemplates = isViewingSelf;
+
+    if (contentLocked) {
+        const safeBottom = insets?.bottom || 0;
+        const paddingBottom = safeBottom + scaleSize(110);
+        const paddingTop = scaleSize(25);
+        return (
+            <View style={[styles.container, styles.lockedContainer, { paddingBottom, paddingTop }]}>
+                <View style={styles.lockIconWrap}>
+                    <Ionicons name="lock-closed" size={scaleSize(40)} color="#9CA3AF" />
+                </View>
+                <Text style={styles.lockedTitle}>This account is private</Text>
+                <Text style={styles.lockedSubtitle}>
+                    {lockedSubtitle || 'Follow this user to see their posts, workouts, and templates.'}
+                </Text>
+            </View>
+        );
+    }
 
     return (
         <View style={styles.container}>
@@ -52,6 +81,7 @@ const ProfileBottomModal = ({ selectedPanel, setSelectedPanel, posts, templates,
                 isBottomSheetExpanded={isBottomSheetExpanded}
                 onOpenWorkout={onOpenWorkout}
                 onScrollExpandRequest={onScrollExpandRequest}
+                ownerData={ownerData}
             />
             <TemplatesSection
                 templates={normalizedTemplates}
@@ -93,7 +123,36 @@ const styles = StyleSheet.create({
     },
     hidden: {
         display: 'none',
-    }
+    },
+    lockedContainer: {
+        flex: 1,
+        alignItems: 'center',
+        justifyContent: 'flex-start',
+        paddingHorizontal: scaleSize(24),
+    },
+    lockIconWrap: {
+        width: scaleSize(80),
+        height: scaleSize(80),
+        borderRadius: scaleSize(40),
+        backgroundColor: 'rgba(148, 163, 184, 0.14)',
+        alignItems: 'center',
+        justifyContent: 'center',
+        marginBottom: scaleSize(12),
+    },
+    lockedTitle: {
+        fontFamily: 'Outfit_700Bold',
+        fontSize: scaleSize(18),
+        color: '#E5E7EB',
+        marginBottom: scaleSize(6),
+    },
+    lockedSubtitle: {
+        fontFamily: 'Outfit_400Regular',
+        fontSize: scaleSize(14),
+        lineHeight: scaleSize(20),
+        textAlign: 'center',
+        color: '#9CA3AF',
+        maxWidth: '80%',
+    },
 });
 
 export default memo(ProfileBottomModal);

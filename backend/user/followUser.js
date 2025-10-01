@@ -1,6 +1,8 @@
 import arrayAppend from "../helper/firebase/arrayAppend";
+import arrayErase from "../helper/firebase/arrayErase";
 import incrementDocValue from '../helper/firebase/incrementDocValue'
 import sendNotification from "../sendNotification";
+import readDoc from "../helper/firebase/readDoc";
 
 // Normalize objects stored inside arrays so arrayUnion/arrayRemove match reliably
 const normalizeRef = (u) => ({
@@ -13,6 +15,52 @@ const normalizeRef = (u) => ({
 export default async function followUser(this_user, user) {
     const meRef = normalizeRef(this_user);
     const otherRef = normalizeRef(user);
+
+    if (!meRef.uid || !otherRef.uid) {
+        return { status: 'error', reason: 'missing-uid' };
+    }
+
+    let targetDoc = null;
+    try { targetDoc = await readDoc('users', otherRef.uid); }
+    catch { targetDoc = null; }
+
+    const isPrivate = !!targetDoc?.settings?.profilePrivate;
+    const alreadyFollower = Array.isArray(targetDoc?.followers)
+        ? targetDoc.followers.some((entry) => String(entry?.uid || entry?.id || entry) === meRef.uid)
+        : false;
+    const alreadyRequested = Array.isArray(targetDoc?.followRequestsIn)
+        ? targetDoc.followRequestsIn.some((entry) => String(entry?.uid || entry?.id || entry) === meRef.uid)
+        : false;
+
+    if (isPrivate && !alreadyFollower) {
+        if (!alreadyRequested) {
+            try { await arrayAppend('users', otherRef.uid, 'followRequestsIn', meRef); } catch {}
+            try { await arrayAppend('users', meRef.uid, 'followRequestsOut', otherRef); } catch {}
+
+            try {
+                if (meRef.uid !== otherRef.uid) {
+                    const event = {
+                        uid: meRef.uid,
+                        handle: meRef.handle,
+                        name: meRef.name,
+                        pfp: meRef.pfp,
+                        pfpVersion: this_user?.pfpVersion || this_user?.imageVersion || 0,
+                        type: 'follow-request',
+                        timestamp: Date.now(),
+                    };
+                    await sendNotification(otherRef.uid, event);
+                }
+            } catch (err) {
+                console.log('followUser follow-request notification error', err?.message || err);
+            }
+        }
+
+        return { status: 'requested', private: true };
+    }
+
+    // Ensure any stale requests are cleared before finalizing follow
+    try { await arrayErase('users', otherRef.uid, 'followRequestsIn', meRef); } catch {}
+    try { await arrayErase('users', meRef.uid, 'followRequestsOut', otherRef); } catch {}
 
     // Append normalized entries; arrayUnion prevents duplicates of the same shape
     try { await arrayAppend('users', meRef.uid, 'following', otherRef); } catch {}
@@ -37,4 +85,6 @@ export default async function followUser(this_user, user) {
     } catch (err) {
         console.log('followUser notification error', err?.message || err);
     }
+
+    return { status: 'following', private: isPrivate };
 }

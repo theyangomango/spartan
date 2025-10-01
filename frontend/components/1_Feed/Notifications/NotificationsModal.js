@@ -7,6 +7,8 @@ import NotificationCard from "./NotificationCard";
 import scaleSize, { ts } from "../../../helper/scaleSize";
 import theme from "../../../theme/mfpDark";
 import acceptWorkoutInvite from "../../../helper/workoutInvites";
+import acceptFollowRequest from "../../../../backend/user/acceptFollowRequest";
+import declineFollowRequest from "../../../../backend/user/declineFollowRequest";
 
 const PAGE_SIZE = 20;
 
@@ -114,10 +116,105 @@ export default function NotificationsModal({ visible, uid, closeBottomSheet }) {
         }
     }, [uid, closeBottomSheet, setEvents]);
 
+    const handleAcceptFollowRequest = useCallback(async (item) => {
+        const effUid = uid || global?.userData?.uid;
+        const requesterUid = String(item?.uid || "");
+        if (!effUid || !requesterUid) return false;
+
+        const currentUser = (() => { try { return global?.userData || {}; } catch { return {}; } })();
+        const requester = {
+            uid: requesterUid,
+            handle: item?.handle || '',
+            name: item?.name || '',
+            pfp: item?.pfp || '',
+        };
+
+        try {
+            await acceptFollowRequest(currentUser, requester);
+            try {
+                await setDoc(
+                    doc(db, "users", effUid, "notifications", String(item.id)),
+                    { requestStatus: 'accepted', read: true },
+                    { merge: true }
+                );
+            } catch {}
+
+            setEvents((prev) => prev.map((evt) => (
+                evt?.id === item?.id
+                    ? { ...evt, requestStatus: 'accepted', read: true }
+                    : evt
+            )));
+
+            try {
+                if (!global.userData || typeof global.userData !== 'object') global.userData = {};
+                const removeByUid = (list = []) => list.filter((entry) => String(entry?.uid || entry?.id || entry) !== requesterUid);
+                const pending = Array.isArray(global.userData.followRequestsIn) ? removeByUid(global.userData.followRequestsIn) : [];
+                global.userData.followRequestsIn = pending;
+
+                const followers = Array.isArray(global.userData.followers) ? [...global.userData.followers] : [];
+                if (!followers.some((entry) => String(entry?.uid || entry?.id || entry) === requesterUid)) followers.push(requester);
+                global.userData.followers = followers;
+
+                const followerCount = Number.isFinite(Number(global.userData.followerCount))
+                    ? Math.max(Number(global.userData.followerCount), followers.length)
+                    : followers.length;
+                global.userData.followerCount = followerCount;
+            } catch {}
+
+            return true;
+        } catch (err) {
+            console.log('handleAcceptFollowRequest error', err);
+            return false;
+        }
+    }, [uid, setEvents]);
+
+    const handleDeclineFollowRequest = useCallback(async (item) => {
+        const effUid = uid || global?.userData?.uid;
+        const requesterUid = String(item?.uid || "");
+        if (!effUid || !requesterUid) return false;
+
+        const currentUser = (() => { try { return global?.userData || {}; } catch { return {}; } })();
+        const requester = {
+            uid: requesterUid,
+            handle: item?.handle || '',
+            name: item?.name || '',
+            pfp: item?.pfp || '',
+        };
+
+        try {
+            await declineFollowRequest(currentUser, requester);
+            try {
+                await setDoc(
+                    doc(db, "users", effUid, "notifications", String(item.id)),
+                    { requestStatus: 'declined', read: true },
+                    { merge: true }
+                );
+            } catch {}
+
+            setEvents((prev) => prev.map((evt) => (
+                evt?.id === item?.id
+                    ? { ...evt, requestStatus: 'declined', read: true }
+                    : evt
+            )));
+
+            try {
+                if (!global.userData || typeof global.userData !== 'object') global.userData = {};
+                const removeByUid = (list = []) => list.filter((entry) => String(entry?.uid || entry?.id || entry) !== requesterUid);
+                const pending = Array.isArray(global.userData.followRequestsIn) ? removeByUid(global.userData.followRequestsIn) : [];
+                global.userData.followRequestsIn = pending;
+            } catch {}
+
+            return true;
+        } catch (err) {
+            console.log('handleDeclineFollowRequest error', err);
+            return false;
+        }
+    }, [uid, setEvents]);
+
     const handlePressNotification = useCallback((item) => {
         try { closeBottomSheet?.(); } catch {}
 
-        if (item?.type === 'follow') {
+        if (["follow", "follow-request", "follow-accepted"].includes(item?.type)) {
             const payload = {
                 user: {
                     uid: String(item?.uid || ''),
@@ -285,6 +382,8 @@ export default function NotificationsModal({ visible, uid, closeBottomSheet }) {
                         item={item}
                         onPressCard={() => handlePressNotification(item)}
                         onAcceptWorkoutInvite={item?.type === 'workout-invite' ? (() => handleAcceptInvite(item)) : undefined}
+                        onAcceptFollowRequest={item?.type === 'follow-request' ? (() => handleAcceptFollowRequest(item)) : undefined}
+                        onDeclineFollowRequest={item?.type === 'follow-request' ? (() => handleDeclineFollowRequest(item)) : undefined}
                     />
                 )}
                 renderSectionHeader={({ section }) => (

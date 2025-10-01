@@ -8,7 +8,7 @@ import scaleSize from "../../../helper/scaleSize";
 
 const AUTO_EXPAND_SCROLL_THRESHOLD = 200;
 
-const ProfileBottomBottomSheet = ({ selectedPanel, setSelectedPanel, posts, templates, completedWorkouts, onOpenWorkout, topContentHeight }) => {
+const ProfileBottomBottomSheet = ({ selectedPanel, setSelectedPanel, posts, templates, completedWorkouts, onOpenWorkout, topContentHeight, contentLocked = false, lockedSubtitle = '', ownerData = null }) => {
     const bottomSheetRef = useRef(null);
     const autoExpandTriggeredRef = useRef(false);
     const insets = useSafeAreaInsets();
@@ -101,6 +101,9 @@ const ProfileBottomBottomSheet = ({ selectedPanel, setSelectedPanel, posts, temp
                 isBottomSheetExpanded={isBottomSheetExpanded}
                 onOpenWorkout={onOpenWorkout}
                 onScrollExpandRequest={handleAutoExpandScroll}
+                contentLocked={contentLocked}
+                lockedSubtitle={lockedSubtitle}
+                ownerData={ownerData}
             />
         </BottomSheet>
     );

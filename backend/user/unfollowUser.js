@@ -15,6 +15,10 @@ export default async function unfollowUser(this_user, user) {
     const meRef = normalizeRef(this_user);
     const otherRef = normalizeRef(user);
 
+    // Clear any lingering follow requests in either direction
+    try { await arrayErase('users', meRef.uid, 'followRequestsOut', otherRef); } catch {}
+    try { await arrayErase('users', otherRef.uid, 'followRequestsIn', meRef); } catch {}
+
     // First attempt fast arrayRemove with normalized shapes (covers recent follows)
     try { await arrayErase('users', meRef.uid, 'following', otherRef); } catch {}
     try { await arrayErase('users', otherRef.uid, 'followers', meRef); } catch {}

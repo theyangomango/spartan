@@ -6,6 +6,7 @@ import { doc, updateDoc as fsUpdateDoc } from 'firebase/firestore';
 import { db } from '../../firebase.config';
 import useUserDoc from '../hooks/useUserDoc';
 import theme from '../theme/mfpDark';
+import approveAllFollowRequests from '../../backend/user/approveAllFollowRequests';
 
 export default function PrivateProfileInfo({ navigation }) {
   const uid = global?.userData?.uid || null;
@@ -23,6 +24,32 @@ export default function PrivateProfileInfo({ navigation }) {
       if (!uid) return;
       await fsUpdateDoc(doc(db, 'users', uid), { 'settings.profilePrivate': next });
       try { global.userData = { ...(global.userData || {}), settings: { ...(global.userData?.settings || {}), profilePrivate: next } }; } catch {}
+
+      if (!next) {
+        const pending = (() => {
+          try { return Array.isArray(global?.userData?.followRequestsIn) ? [...global.userData.followRequestsIn] : []; }
+          catch { return []; }
+        })();
+
+        try { await approveAllFollowRequests(uid); } catch {}
+
+        try {
+          if (!global.userData || typeof global.userData !== 'object') global.userData = {};
+          const followers = Array.isArray(global.userData.followers) ? [...global.userData.followers] : [];
+          const seen = new Set(followers.map((entry) => String(entry?.uid || entry?.id || entry)));
+          pending.forEach((entry) => {
+            const uid = String(entry?.uid || entry?.id || entry || '');
+            if (uid && !seen.has(uid)) {
+              followers.push(entry);
+              seen.add(uid);
+            }
+          });
+          global.userData.followers = followers;
+          global.userData.followRequestsIn = [];
+          const followerCount = Number.isFinite(Number(global.userData.followerCount)) ? Number(global.userData.followerCount) : followers.length;
+          global.userData.followerCount = Math.max(followerCount, followers.length);
+        } catch {}
+      }
     } catch {}
   }, [uid]);
   return (

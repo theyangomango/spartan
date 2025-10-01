@@ -15,6 +15,8 @@ export default async function initUser(handle, name = null, phoneNumber) {
         bio: '',
         followers: [],
         following: [],
+        followRequestsIn: [],
+        followRequestsOut: [],
         feedPosts: [],
         feedStories: [],
         progressPhotos: [],
@@ -30,6 +32,11 @@ export default async function initUser(handle, name = null, phoneNumber) {
         },
         followerCount: 0,
         followingCount: 0,
-        postCount: 0
+        postCount: 0,
+        settings: {
+            profilePrivate: false,
+            units: 'lb',
+            push: true,
+        }
     });
 }

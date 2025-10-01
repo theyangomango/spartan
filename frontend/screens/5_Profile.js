@@ -213,6 +213,8 @@ export default function Profile({ navigation }) {
                 navigation={navigation}
                 onOpenWorkout={openWorkoutViewer}
                 topContentHeight={profileTopHeight}
+                contentLocked={false}
+                ownerData={userData}
             />
 
             <EditProfileBottomSheet
