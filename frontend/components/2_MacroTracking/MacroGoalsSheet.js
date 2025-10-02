@@ -407,7 +407,7 @@ export default function MacroGoalsSheet({
         <BottomSheet
             ref={sheetRef}
             index={index}
-            snapPoints={['65%', '93%']}
+            snapPoints={['70%', '93%']}
             enablePanDownToClose
             onChange={onChangeIndex}
             backgroundStyle={styles.sheetBackground}
@@ -426,7 +426,7 @@ export default function MacroGoalsSheet({
                     >
                         <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
                             <View style={styles.headerRow}>
-                                <Text style={styles.sheetTitle}>Adjust Macro goals</Text>
+                                <Text style={styles.sheetTitle}>Adjust Macro Goals</Text>
                             </View>
 
                             <Text style={styles.sheetDescription}>

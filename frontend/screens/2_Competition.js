@@ -241,7 +241,7 @@ export default function Competition({ navigation, route }) {
     const persisted = getPersisted();
 
     const [userList, setUserList] = useState(persisted.userList ?? LAST_USERLIST);
-    const [comparedExercise, setComparedExercise] = useState("Bench Press (Barbell)");
+    const [comparedExercise, setComparedExercise] = useState("Overall");
     const [scope, setScope] = useState(persisted.scope ?? LAST_SCOPE);
     // Backward compatibility: migrate legacy scope label
     useEffect(() => {
@@ -441,9 +441,14 @@ export default function Competition({ navigation, route }) {
                 const scopeX = (type === 'following' || type === 'followers') ? 'Following' : 'Global';
                 setSelectedTribeId(null);
                 setScope(scopeX);
-                if (lastView.exercise) setComparedExercise(lastView.exercise);
-                if (lastView.metric) setComparedMetric(lastView.metric);
+                const focus = typeof lastView.bodyFocus === 'string' && lastView.bodyFocus ? lastView.bodyFocus : null;
                 if (typeof lastView.bodyFocus === 'string' && lastView.bodyFocus) setBodyFocus(lastView.bodyFocus);
+                if ((focus || DEFAULT_BODY_FOCUS) === 'overall') {
+                    setComparedExercise('Overall');
+                } else if (lastView.exercise) {
+                    setComparedExercise(lastView.exercise);
+                }
+                if (lastView.metric) setComparedMetric(lastView.metric);
             }
         };
 
@@ -485,9 +490,14 @@ export default function Competition({ navigation, route }) {
                     const scopeX = (type === 'following' || type === 'followers') ? 'Following' : 'Global';
                     setSelectedTribeId(null);
                     setScope(scopeX);
-                    if (lv.exercise) setComparedExercise(lv.exercise);
-                    if (lv.metric) setComparedMetric(lv.metric);
+                    const focus = typeof lv.bodyFocus === 'string' && lv.bodyFocus ? lv.bodyFocus : null;
                     if (typeof lv.bodyFocus === 'string' && lv.bodyFocus) setBodyFocus(lv.bodyFocus);
+                    if ((focus || DEFAULT_BODY_FOCUS) === 'overall') {
+                        setComparedExercise('Overall');
+                    } else if (lv.exercise) {
+                        setComparedExercise(lv.exercise);
+                    }
+                    if (lv.metric) setComparedMetric(lv.metric);
                 }
                 appliedLastViewRef.current = true;
             }
@@ -531,6 +541,13 @@ export default function Competition({ navigation, route }) {
     useEffect(() => {
         if (isCustomTribe) setIsBodyFocusMenuVisible(false);
     }, [isCustomTribe]);
+
+    useEffect(() => {
+        if (isCustomTribe) return;
+        if (bodyFocus === 'overall' && comparedExercise !== 'Overall') {
+            setComparedExercise('Overall');
+        }
+    }, [isCustomTribe, bodyFocus, comparedExercise]);
 
     const handleToggleFocusMenu = useCallback(() => {
         if (isCustomTribe) return;

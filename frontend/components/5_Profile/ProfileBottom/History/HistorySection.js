@@ -1,12 +1,13 @@
 // HistorySection.js
 import React, { memo, useCallback, useEffect, useRef } from "react";
-import { StyleSheet, FlatList, View, Pressable } from "react-native";
+import { StyleSheet, FlatList, View, Pressable, Text } from "react-native";
 import WorkoutHistoryCard from "./WorkoutHistoryCard";
 import { toMillis } from "../../../../utils/friends";
 import { filterViewableWorkouts } from "../../../../utils/workoutPrivacy";
 import { withStrongPress } from "../../../../utils/haptics";
 
 import scaleSize from "../../../../helper/scaleSize";
+import theme from "../../../../theme/mfpDark";
 
 const lastUsedDate = "July 6th";
 const exercises = [
@@ -20,7 +21,15 @@ const exercises = [
     { name: "5 x Reverse Curls (Barbell)", muscle: "Biceps" }
 ];
 
-const HistorySection = ({ isVisible, isBottomSheetExpanded, completedWorkouts, onOpenWorkout, onScrollExpandRequest, ownerData }) => {
+const HistorySection = ({
+    isVisible,
+    isBottomSheetExpanded,
+    completedWorkouts,
+    onOpenWorkout,
+    onScrollExpandRequest,
+    ownerData,
+    viewingSelf = false,
+}) => {
     const viewer = (() => { try { return global?.userData || null; } catch { return null; } })();
     const viewerUid = viewer?.uid ? String(viewer.uid) : "";
     const filteredWorkouts = filterViewableWorkouts(
@@ -39,6 +48,11 @@ const HistorySection = ({ isVisible, isBottomSheetExpanded, completedWorkouts, o
             <WorkoutHistoryCard workout={item} />
         </Pressable>
     );
+
+    const isEmpty = sortedWorkouts.length === 0;
+    const emptySubtitleText = viewingSelf
+        ? 'Complete a workout to see it here.'
+        : 'This user has not logged any workouts yet.';
 
     const isDraggingRef = useRef(false);
     const recentlyDraggedRef = useRef(false);
@@ -97,19 +111,26 @@ const HistorySection = ({ isVisible, isBottomSheetExpanded, completedWorkouts, o
 
     return (
         <View style={[styles.wrap, !isVisible && styles.hidden]}>
-            <FlatList
-                data={sortedWorkouts}
-                keyExtractor={(item, index) => index.toString()}
-                renderItem={renderWorkout}
-                contentContainerStyle={styles.scrollable_ctnr}
-                ListFooterComponent={<View style={{ height: isBottomSheetExpanded ? 100 : 400 }} />}
-                initialNumToRender={3}
-                onScroll={handleScroll}
-                scrollEventThrottle={16}
-                onScrollBeginDrag={handleScrollBeginDrag}
-                onScrollEndDrag={handleScrollEndDrag}
-                onMomentumScrollEnd={handleMomentumScrollEnd}
-            />
+            {isEmpty ? (
+                <View style={[styles.emptyState, isBottomSheetExpanded ? styles.emptyExpanded : styles.emptyCollapsed]}>
+                    <Text style={styles.emptyTitle}>No workouts yet</Text>
+                    <Text style={styles.emptySubtitle}>{emptySubtitleText}</Text>
+                </View>
+            ) : (
+                <FlatList
+                    data={sortedWorkouts}
+                    keyExtractor={(item, index) => index.toString()}
+                    renderItem={renderWorkout}
+                    contentContainerStyle={styles.scrollable_ctnr}
+                    ListFooterComponent={<View style={{ height: isBottomSheetExpanded ? 100 : 400 }} />}
+                    initialNumToRender={3}
+                    onScroll={handleScroll}
+                    scrollEventThrottle={16}
+                    onScrollBeginDrag={handleScrollBeginDrag}
+                    onScrollEndDrag={handleScrollEndDrag}
+                    onMomentumScrollEnd={handleMomentumScrollEnd}
+                />
+            )}
         </View>
     );
 };
@@ -124,7 +145,31 @@ const styles = StyleSheet.create({
     },
     hidden: {
         display: 'none',
-    }
+    },
+    emptyState: {
+        alignItems: 'center',
+        paddingHorizontal: scaleSize(24),
+    },
+    emptyCollapsed: {
+        paddingVertical: scaleSize(18),
+    },
+    emptyExpanded: {
+        flex: 1,
+        justifyContent: 'center',
+        paddingVertical: scaleSize(40),
+    },
+    emptyTitle: {
+        fontFamily: 'Outfit_700Bold',
+        fontSize: scaleSize(15),
+        color: '#E9F1FF',
+        marginBottom: scaleSize(6),
+    },
+    emptySubtitle: {
+        fontFamily: 'Outfit_500Medium',
+        fontSize: scaleSize(12.5),
+        color: theme.textSecondary,
+        textAlign: 'center',
+    },
 });
 
 export default memo(HistorySection);

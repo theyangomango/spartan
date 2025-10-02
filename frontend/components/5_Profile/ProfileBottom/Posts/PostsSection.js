@@ -1,6 +1,6 @@
 // PostsSection.js
 import React, { memo, useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { StyleSheet, View } from "react-native";
+import { StyleSheet, Text, View } from "react-native";
 import MasonryList from "@react-native-seoul/masonry-list";
 import PostPreview from "./PostPreview";
 import SinglePostModal from "./SinglePostModal";
@@ -8,8 +8,16 @@ import FastImage from 'react-native-fast-image';
 import { withStrongPress } from "../../../../utils/haptics";
 
 import scaleSize from "../../../../helper/scaleSize";
+import theme from "../../../../theme/mfpDark";
 
-const PostsSection = ({ posts, isVisible, onOpenWorkout, onScrollExpandRequest }) => {
+const PostsSection = ({
+    posts,
+    isVisible,
+    isBottomSheetExpanded,
+    onOpenWorkout,
+    onScrollExpandRequest,
+    viewingSelf = false,
+}) => {
     const [selectedPost, setSelectedPost] = useState(null);
 
     const handlePostPress = (postData) => {
@@ -29,11 +37,13 @@ const PostsSection = ({ posts, isVisible, onOpenWorkout, onScrollExpandRequest }
     };
 
     // Always show newest → oldest
+    const postsLoaded = Array.isArray(posts);
+
     const sortedPosts = useMemo(() => {
-        if (!Array.isArray(posts)) return [];
+        if (!postsLoaded) return [];
         const toMs = (p) => Number(p?.created ?? p?.createdAt ?? p?.timestamp ?? 0) || 0;
         return [...posts].sort((a, b) => toMs(b) - toMs(a));
-    }, [posts]);
+    }, [posts, postsLoaded]);
 
     // Warm the image cache for the first few tiles
     useEffect(() => {
@@ -47,7 +57,8 @@ const PostsSection = ({ posts, isVisible, onOpenWorkout, onScrollExpandRequest }
         }
     }, [sortedPosts]);
 
-    const hasPosts = Array.isArray(sortedPosts) && sortedPosts.length > 0;
+    const hasPosts = postsLoaded && sortedPosts.length > 0;
+    const showEmptyState = postsLoaded && sortedPosts.length === 0;
     const isDraggingRef = useRef(false);
     const recentlyDraggedRef = useRef(false);
     const dragEndTimeoutRef = useRef(null);
@@ -105,7 +116,13 @@ const PostsSection = ({ posts, isVisible, onOpenWorkout, onScrollExpandRequest }
 
     return (
         <View style={[styles.scrollable_ctnr, !isVisible && styles.hidden]}>
-            {hasPosts ? (
+            {!postsLoaded ? (
+                <View style={styles.skeletonGrid}>
+                    {Array.from({ length: 12 }).map((_, i) => (
+                        <View key={i} style={styles.skeletonTile} />
+                    ))}
+                </View>
+            ) : hasPosts ? (
                 <MasonryList
                     data={sortedPosts}
                     keyExtractor={(item, index) => String(item?.pid ?? index)}
@@ -122,13 +139,14 @@ const PostsSection = ({ posts, isVisible, onOpenWorkout, onScrollExpandRequest }
                     onScrollEndDrag={handleScrollEndDrag}
                     onMomentumScrollEnd={handleMomentumScrollEnd}
                 />
-            ) : (
-                <View style={styles.skeletonGrid}>
-                    {Array.from({ length: 12 }).map((_, i) => (
-                        <View key={i} style={styles.skeletonTile} />
-                    ))}
+            ) : showEmptyState ? (
+                <View style={[styles.emptyState, isBottomSheetExpanded ? styles.emptyExpanded : styles.emptyCollapsed]}>
+                    <Text style={styles.emptyTitle}>No posts yet</Text>
+                    <Text style={styles.emptySubtitle}>
+                        {viewingSelf ? 'Share a post to see it here.' : 'This user has not shared any posts yet.'}
+                    </Text>
                 </View>
-            )}
+            ) : null}
 
             {/* Single Post Focus Modal */}
             <SinglePostModal
@@ -158,7 +176,31 @@ const styles = StyleSheet.create({
         margin: scaleSize(2),
         aspectRatio: 1,
         borderRadius: scaleSize(10),
-        backgroundColor: require('../../../../theme/mfpDark').default.field,
+        backgroundColor: theme.field,
+    },
+    emptyState: {
+        alignItems: 'center',
+        paddingHorizontal: scaleSize(24),
+    },
+    emptyCollapsed: {
+        paddingVertical: scaleSize(18),
+    },
+    emptyExpanded: {
+        flex: 1,
+        justifyContent: 'center',
+        paddingVertical: scaleSize(40),
+    },
+    emptyTitle: {
+        fontFamily: 'Outfit_700Bold',
+        fontSize: scaleSize(15),
+        color: '#E9F1FF',
+        marginBottom: scaleSize(6),
+    },
+    emptySubtitle: {
+        fontFamily: 'Outfit_500Medium',
+        fontSize: scaleSize(12.5),
+        color: theme.textSecondary,
+        textAlign: 'center',
     },
 });
 

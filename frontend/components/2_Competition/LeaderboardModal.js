@@ -45,8 +45,8 @@ export default function LeaderboardModal({
     const usingHexFocus = !isTribeFocused && isHexFocus && !!hexFocusKey;
 
     const exercise = isTribeFocused
-        ? (activeComp?.exercise || "Bench Press (Barbell)")
-        : (categoryCompared || "Bench Press (Barbell)");
+        ? (activeComp?.exercise || "Overall")
+        : (categoryCompared || "Overall");
 
     const metric = isTribeFocused
         ? (activeComp?.metric || "1RM")

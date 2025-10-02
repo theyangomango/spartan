@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useState } from "react";
 import { View, Text, StyleSheet, Pressable } from "react-native";
 import FastImage from "react-native-fast-image";
 import RNBounceable from "@freakycoder/react-native-bounceable";
@@ -10,7 +10,9 @@ import theme from "../../../theme/mfpDark";
 import getDisplayTimeDifference from "../../../helper/getDisplayTimeDifference";
 import followUser from "../../../../backend/user/followUser";
 import unfollowUser from "../../../../backend/user/unfollowUser";
+import cancelFollowRequest from "../../../../backend/user/cancelFollowRequest";
 import { usePfp } from "../../../helper/usePFPs";
+import { subscribeUserData } from "../../../utils/userDataEvents";
 
 /* -------- helpers -------- */
 const ellipsize = (str = "", max = 60) => {
@@ -105,44 +107,125 @@ const withAlpha = (color, alpha = 1) => {
 };
 
 export default function NotificationCard({ item, onPressCard, onAcceptWorkoutInvite, onAcceptFollowRequest, onDeclineFollowRequest }) {
-    const [isFollowing, setIsFollowing] = useState(false);
     const [acceptingInvite, setAcceptingInvite] = useState(false);
     const [respondingRequest, setRespondingRequest] = useState(false);
+    const [followState, setFollowState] = useState('none');
+    const [followBusy, setFollowBusy] = useState(false);
     const pfpUri = usePfp(
         item.uid,
         item.pfpVersion ?? 0,
         item?.pfp || item?.pfpUrl || item?.photoURL || item?.image || ""
     );
 
-    /* check initial follow state */
+    const targetUid = useMemo(() => String(item?.uid || item?.id || ''), [item?.uid, item?.id]);
+
+    const deriveFollowState = useCallback(() => {
+        if (!targetUid) return 'none';
+        try {
+            const viewer = global?.userData || {};
+            const isFollowing = Array.isArray(viewer?.following)
+                ? viewer.following.some((f) => String(f?.uid || f?.id || f) === targetUid)
+                : false;
+            if (isFollowing) return 'following';
+
+            const isRequested = Array.isArray(viewer?.followRequestsOut)
+                ? viewer.followRequestsOut.some((f) => String(f?.uid || f?.id || f) === targetUid)
+                : false;
+            if (isRequested) return 'requested';
+        } catch {}
+
+        return 'none';
+    }, [targetUid]);
+
     useEffect(() => {
-        if (item.type === "follow" || item.type === "follow-accepted") {
-            const isFollower = !!global?.userData?.following?.some((f) => f?.uid === item.uid);
-            setIsFollowing(isFollower);
+        if (item?.type === 'follow') {
+            setFollowState(deriveFollowState());
         }
-    }, [item]);
+    }, [deriveFollowState, item?.type]);
 
-    /* toggle follow / unfollow */
-    const handleFollowToggle = () => {
-        const currentUser = {
-            name: global?.userData?.name,
-            handle: global?.userData?.handle,
-            pfp: global?.userData?.image,
-            uid: global?.userData?.uid,
+    useEffect(() => {
+        if (item?.type !== 'follow') return undefined;
+        const unsubscribe = subscribeUserData(() => {
+            setFollowState(deriveFollowState());
+        });
+        return unsubscribe;
+    }, [deriveFollowState, item?.type]);
+
+    const normalizeRef = useCallback((u = {}) => ({
+        uid: String(u?.uid || u?.id || ''),
+        handle: u?.handle || u?.username || '',
+        name: u?.name || u?.displayName || '',
+        pfp: u?.pfp || u?.image || u?.photoURL || u?.pfpUrl || u?.photoUrl || '',
+    }), []);
+
+    const applyFollowStateToGlobal = useCallback((state, otherRef) => {
+        const otherUid = String(otherRef?.uid || otherRef?.id || '');
+        if (!otherUid) return;
+
+        try {
+            if (!global.userData || typeof global.userData !== 'object') {
+                global.userData = {};
+            }
+
+            const followingList = Array.isArray(global?.userData?.following) ? [...global.userData.following] : [];
+            const requestsList = Array.isArray(global?.userData?.followRequestsOut) ? [...global.userData.followRequestsOut] : [];
+
+            const removeByUid = (list) => list.filter((entry) => String(entry?.uid || entry?.id || entry) !== otherUid);
+
+            if (state === 'following') {
+                const exists = followingList.some((entry) => String(entry?.uid || entry?.id || entry) === otherUid);
+                if (!exists) followingList.push(otherRef);
+                global.userData.following = followingList;
+                global.userData.followRequestsOut = removeByUid(requestsList);
+            } else if (state === 'requested') {
+                const exists = requestsList.some((entry) => String(entry?.uid || entry?.id || entry) === otherUid);
+                if (!exists) requestsList.push(otherRef);
+                global.userData.followRequestsOut = requestsList;
+                global.userData.following = removeByUid(followingList);
+            } else {
+                global.userData.following = removeByUid(followingList);
+                global.userData.followRequestsOut = removeByUid(requestsList);
+            }
+        } catch {}
+    }, []);
+
+    const handleFollowToggle = useCallback(async () => {
+        if (item?.type !== 'follow' || followBusy) return;
+
+        const currentUser = normalizeRef(global?.userData || {});
+        const notifUser = normalizeRef(item || {});
+        if (!currentUser.uid || !notifUser.uid) return;
+
+        const prevState = followState;
+        const setState = (state) => {
+            setFollowState(state);
+            applyFollowStateToGlobal(state, notifUser);
         };
 
-        const notifUser = {
-            name: item.name,
-            handle: item.handle,
-            pfp: item.pfp,
-            uid: item.uid,
-        };
-
-        if (isFollowing) unfollowUser(currentUser, notifUser);
-        else followUser(currentUser, notifUser);
-
-        setIsFollowing((prev) => !prev);
-    };
+        setFollowBusy(true);
+        try {
+            if (followState === 'following') {
+                setState('none');
+                await unfollowUser(currentUser, notifUser);
+            } else if (followState === 'requested') {
+                setState('none');
+                await cancelFollowRequest(currentUser, notifUser);
+            } else {
+                setState('requested');
+                const result = await followUser(currentUser, notifUser);
+                const nextStatus = result?.status === 'following'
+                    ? 'following'
+                    : result?.status === 'requested'
+                        ? 'requested'
+                        : 'none';
+                setState(nextStatus);
+            }
+        } catch (err) {
+            setState(prevState);
+        } finally {
+            setFollowBusy(false);
+        }
+    }, [applyFollowStateToGlobal, followBusy, followState, item, normalizeRef]);
 
     const timeAgo = getDisplayTimeDifference(
         (typeof item?.timestamp === 'number')
@@ -233,11 +316,8 @@ export default function NotificationCard({ item, onPressCard, onAcceptWorkoutInv
         const accentHex = hexToRgba(base.accent) ? base.accent : "#4F5B76";
         const accent2Hex = hexToRgba(base.accent2) ? base.accent2 : "#7A85A1";
 
-        const cardBg = mixHex(theme.field, accentHex, 0.18);
-        const cardBgUnread = mixHex(theme.fieldDeep, accentHex, 0.28);
-        const cardBorder = withAlpha(accentHex, 0.28);
-        const cardBorderUnread = withAlpha(accentHex, 0.42);
-        const cardShadow = withAlpha(accentHex, 0.5);
+        const cardBg = theme.field;
+        const cardBgUnread = theme.field;
         const buttonBg = withAlpha(accentHex, 0.16);
         const buttonBgActive = withAlpha(accentHex, 0.26);
         const buttonBorder = withAlpha(accentHex, 0.4);
@@ -253,9 +333,6 @@ export default function NotificationCard({ item, onPressCard, onAcceptWorkoutInv
             accent2: accent2Hex,
             cardBg,
             cardBgUnread,
-            cardBorder,
-            cardBorderUnread,
-            cardShadow,
             buttonBg,
             buttonBgActive,
             buttonBorder,
@@ -274,9 +351,6 @@ export default function NotificationCard({ item, onPressCard, onAcceptWorkoutInv
         badgeBg,
         cardBg,
         cardBgUnread,
-        cardBorder,
-        cardBorderUnread,
-        cardShadow,
         buttonBg,
         buttonBgActive,
         buttonBorder,
@@ -291,13 +365,19 @@ export default function NotificationCard({ item, onPressCard, onAcceptWorkoutInv
     const neutralButtonBorder = withAlpha(theme.muted, 0.28);
     const neutralButtonText = mixHex(theme.muted, "#F1F5FF", 0.22);
 
+    const isFollowing = followState === 'following';
+    const isRequested = followState === 'requested';
+    const requestedButtonBg = withAlpha(accent, 0.12);
+    const requestedButtonBorder = withAlpha(accent, 0.35);
+    const requestedButtonText = mixHex(accent, "#F5F8FF", 0.28);
+
     return (
         <Pressable style={({ pressed }) => [styles.pressable, pressed && { opacity: 0.95 }]} onPress={onPressCard}>
             <View
                 style={[
                     styles.card,
-                    { backgroundColor: cardBg, borderColor: cardBorder, shadowColor: cardShadow },
-                    unread && { backgroundColor: cardBgUnread, borderColor: cardBorderUnread },
+                    { backgroundColor: cardBg },
+                    unread && { backgroundColor: cardBgUnread },
                 ]}
             >
                 {/* avatar + type badge */}
@@ -354,17 +434,20 @@ export default function NotificationCard({ item, onPressCard, onAcceptWorkoutInv
                             styles.followBtn,
                             { backgroundColor: buttonBg, borderColor: buttonBorder },
                             isFollowing && { backgroundColor: buttonBgActive, borderColor: buttonBorderActive },
+                            isRequested && { backgroundColor: requestedButtonBg, borderColor: requestedButtonBorder },
                         ]}
                         onPress={handleFollowToggle}
+                        disabled={followBusy}
                     >
                         <Text
                             style={[
                                 styles.followText,
                                 { color: buttonText },
                                 isFollowing && { color: buttonTextActive },
+                                isRequested && { color: requestedButtonText },
                             ]}
                         >
-                            {isFollowing ? "Following" : "Follow Back"}
+                            {isFollowing ? "Following" : isRequested ? "Requested" : "Follow Back"}
                         </Text>
                     </RNBounceable>
                 )}
@@ -455,13 +538,6 @@ const styles = StyleSheet.create({
         paddingVertical: scaleSize(12),
         backgroundColor: theme.field,
         borderRadius: scaleSize(16),
-        borderWidth: StyleSheet.hairlineWidth,
-        borderColor: theme.hairline,
-        shadowColor: "#05070d",
-        shadowOpacity: 0.2,
-        shadowRadius: scaleSize(10),
-        shadowOffset: { width: 0, height: scaleSize(4) },
-        elevation: 2,
     },
     pfpWrap: { position: "relative", marginRight: scaleSize(12) },
     pfp: {

@@ -73,6 +73,7 @@ const ProfileBottomModal = ({ selectedPanel, setSelectedPanel, posts, templates,
                     isBottomSheetExpanded={isBottomSheetExpanded}
                     onOpenWorkout={onOpenWorkout}
                     onScrollExpandRequest={onScrollExpandRequest}
+                    viewingSelf={isViewingSelf}
                 />
             )}
             <HistorySection
@@ -82,6 +83,7 @@ const ProfileBottomModal = ({ selectedPanel, setSelectedPanel, posts, templates,
                 onOpenWorkout={onOpenWorkout}
                 onScrollExpandRequest={onScrollExpandRequest}
                 ownerData={ownerData}
+                viewingSelf={isViewingSelf}
             />
             <TemplatesSection
                 templates={normalizedTemplates}

@@ -55,7 +55,7 @@ const NotificationsBottomSheet = ({ notificationsBottomSheetExpandFlag }) => {
                 snapPoints={snapPoints}
                 backdropComponent={renderBackdrop}
                 enablePanDownToClose
-                handleStyle={styles.hiddenHandle}
+                handleIndicatorStyle={{backgroundColor: '#fff'}}
                 backgroundStyle={styles.bottomSheetBackground}
                 onClose={handleClose}
             >
@@ -79,9 +79,6 @@ const styles = StyleSheet.create({
         right: 0,
         // Ensure this sits above header overlays and top safe-area mask in Feed
         zIndex: 100,
-    },
-    hiddenHandle: {
-        display: "none", // Hide the default handle
     },
     bottomSheetBackground: {
         backgroundColor: theme.bg,

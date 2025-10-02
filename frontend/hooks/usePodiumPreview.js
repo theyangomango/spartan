@@ -15,10 +15,29 @@ function safeBodyweight(u) {
   );
 }
 
+const HEX_KEYS = new Set(["overall", "chest", "shoulders", "abs", "back", "legs", "arms"]);
+
 function top3For(users, exercise, metric = "1RM", normalizeByBodyweight = false) {
+  const exerciseKey = typeof exercise === "string" ? exercise.trim() : "";
+  const normalized = exerciseKey.toLowerCase();
+
+  if (HEX_KEYS.has(normalized)) {
+    const arr = (users || []).map((u) => {
+      const val = Number(u?.statsHexagon?.[normalized] ?? 0);
+      return {
+        uid: u?.uid,
+        handle: u?.handle || "",
+        image: u?.pfp || u?.image || "",
+        value: Number.isFinite(val) ? val : 0,
+      };
+    });
+    arr.sort((a, b) => (b.value || 0) - (a.value || 0));
+    return arr.slice(0, 3).map((x) => ({ uid: x.uid, handle: x.handle, stat: x.value, fallbackPfp: x.image }));
+  }
+
   const key = metric === "1RM" ? "1RM" : metric;
   const arr = (users || []).map((u) => {
-    const stats = u?.statsExercises?.[exercise] || {};
+    const stats = u?.statsExercises?.[exerciseKey] || {};
     const base = Number(stats?.[key] || 0);
     const bw = normalizeByBodyweight ? Math.max(1, Number(safeBodyweight(u)) || 1) : 1;
     const val = base / bw;
@@ -35,7 +54,7 @@ function top3For(users, exercise, metric = "1RM", normalizeByBodyweight = false)
 
 export default function usePodiumPreview(enabled = true) {
   const [top3, setTop3] = useState([]);
-  const [label, setLabel] = useState("Bench Press • 1RM (Adj)");
+  const [label, setLabel] = useState("Overall • Hex");
 
   const lastView = useMemo(() => (global?.userData?.competitionLastView || null), [global?.userData?.competitionLastView]);
 
@@ -51,8 +70,8 @@ export default function usePodiumPreview(enabled = true) {
 
         // Defaults
         let scope = "global";
-        let exercise = "Bench Press (Barbell)";
-        let metric = "1RM";
+        let exercise = "Overall";
+        let metric = "Hex";
         let normalize = false;
         let tribeId = null;
         let tribeName = null;
@@ -99,17 +118,22 @@ export default function usePodiumPreview(enabled = true) {
           } catch {}
         }
 
-        const nextTop = top3For(pool, exercise, metric, normalize);
+        const exerciseKey = typeof exercise === "string" ? exercise.trim() : "";
+        const isHex = HEX_KEYS.has(exerciseKey.toLowerCase());
+        const effectiveMetric = isHex ? "Hex" : metric;
+        const effectiveNormalize = isHex ? false : normalize;
+
+        const nextTop = top3For(pool, exerciseKey, effectiveMetric, effectiveNormalize);
         if (!cancelled) setTop3(nextTop);
 
         const scopeLabel = scope === "following" ? "Following" : scope === "tribe" ? (tribeName || "Tribe") : null;
-        const metricLabel = metric === '1RM' ? '1RM (Adj)' : metric;
-        const nextLabel = scopeLabel ? `${scopeLabel} • ${exercise} • ${metricLabel}` : `${exercise} • ${metricLabel}`;
+        const metricLabel = effectiveMetric === '1RM' ? '1RM (Adj)' : effectiveMetric;
+        const nextLabel = scopeLabel ? `${scopeLabel} • ${exerciseKey || exercise} • ${metricLabel}` : `${exerciseKey || exercise} • ${metricLabel}`;
         if (!cancelled) setLabel(nextLabel);
       } catch (e) {
         if (!cancelled) {
           setTop3([]);
-          setLabel("Bench Press • 1RM (Adj)");
+          setLabel("Overall • Hex");
         }
       }
     })();
