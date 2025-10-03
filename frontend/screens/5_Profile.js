@@ -16,6 +16,7 @@ import FollowListBottomSheet from "../components/FollowListBottomSheet";
 
 import theme from "../theme/mfpDark";
 import { subscribeUserData } from "../utils/userDataEvents";
+import { clearFooterSuppression } from "../state/footerSuppressionStore";
 
 const templateListsEqual = (a, b) => {
     if (a === b) return true;
@@ -113,6 +114,7 @@ export default function Profile({ navigation }) {
     const lastOpenSigRef = React.useRef(0);
     useEffect(() => {
         const unsub = navigation.addListener('focus', () => {
+            clearFooterSuppression();
             try {
                 const globalTemplates = Array.isArray(global?.userData?.templates) ? global.userData.templates : [];
                 setTemplates((prev) => (templateListsEqual(prev, globalTemplates) ? prev : globalTemplates));

@@ -19,6 +19,8 @@ import FollowListBottomSheet from "../components/FollowListBottomSheet";
 import ViewProfileOptionsSheet from "../components/ViewProfile/ViewProfileOptionsSheet";
 import blockUser from "../../backend/user/blockUser";
 import unblockUser from "../../backend/user/unblockUser";
+import { useFocusEffect } from "@react-navigation/native";
+import { clearFooterSuppression } from "../state/footerSuppressionStore";
 
 import scaleSize from "../helper/scaleSize";
 
@@ -36,6 +38,13 @@ export default function ViewProfile({ navigation, route }) {
     const [isOptionsVisible, setIsOptionsVisible] = useState(false);
     const [profileTopHeight, setProfileTopHeight] = useState(null);
     const [isBlocked, setIsBlocked] = useState(false);
+
+    useFocusEffect(
+        useCallback(() => {
+            clearFooterSuppression();
+            return undefined;
+        }, [])
+    );
     const openViewer = useCallback((wk) => {
         if (!wk) { setViewerWorkout(null); return; }
         const fallback = {

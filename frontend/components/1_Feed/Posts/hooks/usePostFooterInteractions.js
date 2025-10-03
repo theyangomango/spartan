@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { Alert } from 'react-native';
+import { strong as haptic } from '../../../../utils/haptics';
 
 import updateDoc from '../../../../../backend/helper/firebase/updateDoc';
 import arrayAppend from '../../../../../backend/helper/firebase/arrayAppend';
@@ -54,6 +55,8 @@ export default function usePostFooterInteractions({ data, onPressCommentButton, 
             Alert?.alert?.('Oops', 'Please log in to like posts.');
             return;
         }
+
+        try { haptic(); } catch {}
 
         setIsLiked((prev) => {
             const now = Date.now();
@@ -137,6 +140,7 @@ export default function usePostFooterInteractions({ data, onPressCommentButton, 
             console.warn('Failed to toggle saved post', error);
         }
 
+        try { haptic(); } catch {}
         setIsSaved((prev) => !prev);
     }, [data?.pid, isSaved]);
 
