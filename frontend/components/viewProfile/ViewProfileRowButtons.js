@@ -17,6 +17,14 @@ function scaleSize(size) {
 }
 
 export default function ViewProfileRowButtons({ handleOpenViewStats, user }) {
+    const targetIsPrivate = Boolean(
+        user?.settings?.profilePrivate ??
+        user?.profilePrivate ??
+        user?.isPrivate ??
+        user?.privateProfile ??
+        user?.private
+    );
+
     const deriveInitialState = () => {
         const viewer = (() => { try { return global?.userData || {}; } catch { return {}; } })();
         const targetUid = String(user?.uid || user?.id || '');
@@ -104,8 +112,8 @@ export default function ViewProfileRowButtons({ handleOpenViewStats, user }) {
                 updateState('none', other);
                 await cancelFollowRequest(me, other);
             } else {
-                // assume request until backend confirms otherwise
-                updateState('requested', other);
+                const optimisticState = targetIsPrivate ? 'requested' : 'following';
+                updateState(optimisticState, other);
                 const result = await followUser(me, other);
                 const nextStatus = result?.status === 'following'
                     ? 'following'
