@@ -1,6 +1,7 @@
 // components/1.1_Messages/MessagesHeader.jsx
 import React, { useState } from "react";
 import { StyleSheet, View, Text, TouchableOpacity } from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { FontAwesome6, FontAwesome5 } from "@expo/vector-icons";
 import RNBounceable from "@freakycoder/react-native-bounceable";
 import scaleSize from "../../helper/scaleSize";
@@ -8,13 +9,21 @@ import theme from "../../theme/mfpDark";
 
 const ACCENT = theme.primary;
 const HAIRLINE = theme.hairline;
+const BASE_HEADER_TOP = scaleSize(36);
+const HEADER_CONTENT_OFFSET = scaleSize(20);
+const ICON_TOP_OFFSET = scaleSize(10);
 
 export default function MessagesHeader({
     toFeedScreen,
     openCreateGroupChatBottomSheet,
     setScope,
 }) {
+    const insets = useSafeAreaInsets();
     const [selectedButton, setSelectedButton] = useState("All");
+
+    const safeTop = Math.max(insets?.top ?? 0, BASE_HEADER_TOP);
+    const paddingTop = safeTop + HEADER_CONTENT_OFFSET;
+    const iconTop = safeTop + ICON_TOP_OFFSET;
 
     const onPressTab = (tab) => {
         setSelectedButton(tab);
@@ -37,13 +46,13 @@ export default function MessagesHeader({
     );
 
     return (
-        <View style={styles.root}>
+        <View style={[styles.root, { paddingTop }]}>
             <View style={styles.row}>
                 {/* Back */}
                 <TouchableOpacity
                     activeOpacity={0.6}
                     onPress={toFeedScreen}
-                    style={[styles.iconCircle, styles.leftIcon]}
+                    style={[styles.iconCircle, styles.leftIcon, { top: iconTop }]}
                 >
                     <FontAwesome6 name="chevron-left" size={scaleSize(16)} color={ACCENT} />
                 </TouchableOpacity>
@@ -52,7 +61,7 @@ export default function MessagesHeader({
                 <TouchableOpacity
                     activeOpacity={0.6}
                     onPress={openCreateGroupChatBottomSheet}
-                    style={[styles.iconCircle, styles.rightIcon]}
+                    style={[styles.iconCircle, styles.rightIcon, { top: iconTop }]}
                 >
                     <FontAwesome5 name="users" size={scaleSize(16)} color={ACCENT} />
                     {/* subtle in-pill + badge */}
@@ -82,7 +91,7 @@ export default function MessagesHeader({
 }
 
 const styles = StyleSheet.create({
-    root: { backgroundColor: theme.bg, paddingTop: 20 },
+    root: { backgroundColor: theme.bg },
     row: {
         flexDirection: "row",
         justifyContent: "center",
@@ -94,7 +103,6 @@ const styles = StyleSheet.create({
     /* circular icon containers */
     iconCircle: {
         position: "absolute",
-        top: scaleSize(10),
         width: scaleSize(28),
         height: scaleSize(28),
         borderRadius: scaleSize(14),

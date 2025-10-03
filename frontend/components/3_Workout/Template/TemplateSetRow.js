@@ -101,14 +101,14 @@ export default function TemplateSetRow({ set, updateSet, index, handleDelete, re
                             <Text style={styles.previous_stat_text}>—</Text>
                         </View>
 
-                        <View style={styles.weight_unit_ctnr} pointerEvents="none">
+                        <View style={styles.weight_unit_ctnr}>
                             <TemplateEditableStat
                                 value={String(weight)}
                                 setValue={(value) => updateSet(index, { ...set, weight: value })}
                             />
                         </View>
 
-                        <View style={styles.reps_ctnr} pointerEvents="none">
+                        <View style={styles.reps_ctnr}>
                             <TemplateEditableStat
                                 value={String(reps)}
                                 setValue={(value) => updateSet(index, { ...set, reps: value })}

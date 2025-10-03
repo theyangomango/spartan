@@ -22,9 +22,6 @@ try { FlashListLib = require("@shopify/flash-list"); } catch {}
 const canUseFlashList = !!(FlashListLib && FlashListLib.FlashList && UIManager?.getViewManagerConfig && UIManager.getViewManagerConfig('CellContainer') && UIManager.getViewManagerConfig('AutoLayoutView'));
 const BaseListComponent = canUseFlashList ? FlashListLib.FlashList : FlatList;
 const AnimatedFlashList = RNAnimated.createAnimatedComponent(BaseListComponent);
-import { BlurView } from "expo-blur";
-import { LinearGradient } from "expo-linear-gradient";
-import { MaterialCommunityIcons } from "@expo/vector-icons";
 import Animated, { useAnimatedStyle, interpolate, interpolateColor, Extrapolate, useAnimatedReaction, runOnJS } from "react-native-reanimated";
 import RNBounceable from "@freakycoder/react-native-bounceable";
 import { Weight } from "iconsax-react-native";
@@ -51,6 +48,8 @@ import useRestTimer from "./hooks/useRestTimer";
 import useWorkoutEditing from "./hooks/useWorkoutEditing";
 
 import scaleSize from "../../../helper/scaleSize";
+import ConfirmWorkoutModal from "./components/ConfirmWorkoutModal";
+import WorkoutReminderModal from "./components/WorkoutReminderModal";
 
 const HANDLE_HORIZONTAL_PADDING = scaleSize(0);
 const HEADER_COLLAPSED_TRANSLATE = scaleSize(0);
@@ -1006,76 +1005,30 @@ const ActiveWorkoutModal = ({
                 onAdd={addCountdown}
                 onReset={resetCountdown}
             />
-            {/* Delete confirm */}
-            <Modal
-                animationType="fade"
-                transparent
+            <ConfirmWorkoutModal
                 visible={deleteConfirmModalVisible}
+                variant="cancel"
+                title="Cancel workout?"
+                body="This clears your current progress. You can always start a new session from the hub."
+                primaryLabel="Yes, cancel workout"
+                secondaryLabel="Keep working"
+                onPrimary={handleDeleteWorkout}
+                onSecondary={() => setDeleteConfirmModalVisible(false)}
                 onRequestClose={() => setDeleteConfirmModalVisible(false)}
-                statusBarTranslucent
-            >
-                <View style={styles.modalOverlay}>
-                    <View style={styles.modalContainer}>
-                        <LinearGradient
-                            colors={["#2D9EFF", "#60A5FA"]}
-                            start={{ x: 0, y: 0 }}
-                            end={{ x: 1, y: 0 }}
-                            style={styles.modalAccentBar}
-                        />
-                        <View style={[styles.modalIconRing, styles.modalIconRingDanger]}>
-                            <MaterialCommunityIcons name="alert-decagram" size={scaleSize(26)} color="#FEE2E2" />
-                        </View>
-                        <Text style={styles.modalTitle}>Cancel workout?</Text>
-                        <Text style={styles.modalBody}>
-                            This clears your current progress. You can always start a new session from the hub.
-                        </Text>
-                        <RNBounceable onPress={withStrongPress(handleDeleteWorkout)} style={[styles.modalAction, styles.modalActionDanger]}>
-                            <Text style={styles.modalActionText}>Yes, cancel workout</Text>
-                        </RNBounceable>
-                        <RNBounceable onPress={withStrongPress(() => setDeleteConfirmModalVisible(false))} style={[styles.modalAction, styles.modalActionSecondary]}>
-                            <Text style={styles.modalActionSecondaryText}>Keep working</Text>
-                        </RNBounceable>
-                    </View>
-                </View>
-            </Modal>
-            {/* Finish confirm (self only) */}
-            <Modal
-                animationType="fade"
-                transparent
+            />
+            <ConfirmWorkoutModal
                 visible={finishConfirmModalVisible}
+                variant="finish"
+                title="Finish workout?"
+                body="Double-check your sets and PRs before saving. You can always edit from the workout log later."
+                primaryLabel="Finish workout"
+                primaryBusyLabel="Finishing…"
+                primaryBusy={isFinishing}
+                secondaryLabel="Keep working"
+                onPrimary={handleFinishWorkout}
+                onSecondary={() => setFinishConfirmModalVisible(false)}
                 onRequestClose={() => setFinishConfirmModalVisible(false)}
-                statusBarTranslucent
-            >
-                <Pressable style={styles.modalOverlay} onPress={withStrongPress(() => setFinishConfirmModalVisible(false))}>
-                    <Pressable style={styles.modalContainer} onPress={(e) => e.stopPropagation()}>
-                        <LinearGradient
-                            colors={["#34D399", "#22C55E"]}
-                            start={{ x: 0, y: 0 }}
-                            end={{ x: 1, y: 0 }}
-                            style={styles.modalAccentBar}
-                        />
-                        <View style={[styles.modalIconRing, styles.modalIconRingSuccess]}>
-                            <MaterialCommunityIcons name="check-decagram" size={scaleSize(26)} color="#D1FAE5" />
-                        </View>
-                        <Text style={styles.modalTitle}>Finish workout?</Text>
-                        <Text style={styles.modalBody}>
-                            Double-check your sets and PRs before saving. You can always edit from the workout log later.
-                        </Text>
-
-                        <RNBounceable
-                            onPress={withStrongPress(handleFinishWorkout)}
-                            style={[styles.modalAction, styles.modalActionSuccess, isFinishing && styles.modalActionDisabled]}
-                            disabled={isFinishing}
-                        >
-                            <Text style={styles.modalActionText}>{isFinishing ? "Finishing…" : "Finish workout"}</Text>
-                        </RNBounceable>
-
-                        <RNBounceable onPress={withStrongPress(() => setFinishConfirmModalVisible(false))} style={[styles.modalAction, styles.modalActionSecondary]}>
-                            <Text style={styles.modalActionSecondaryText}>Keep working</Text>
-                        </RNBounceable>
-                    </Pressable>
-                </Pressable>
-            </Modal>
+            />
             {/* Group menu & invite picker — hidden when locked to friend */}
             {!lockFriend && (
                 <GroupMenu
@@ -1092,36 +1045,10 @@ const ActiveWorkoutModal = ({
                     }}
                 />
             )}
-            {/* Tracking reminder (self only) */}
-            <Modal
-                key={`reminder-${reminderVisible ? 1 : 0}`}
+            <WorkoutReminderModal
                 visible={reminderVisible}
-                transparent
-                animationType="fade"
                 onDismiss={() => setReminderVisible(false)}
-                onRequestClose={() => setReminderVisible(false)}
-            >
-                <Pressable style={styles.modalOverlay} onPress={withStrongPress(() => setReminderVisible(false))}>
-                    <BlurView style={StyleSheet.absoluteFill} intensity={28} tint="dark" />
-                    <LinearGradient
-                        // Slightly more contrasted blue→mint gradient for the reminder card
-                        colors={["#60A5FA", "#2D9EFF", "#5EEAD4"]}
-                        locations={[0, 0.55, 1]}
-                        start={{ x: 0, y: 0 }}
-                        end={{ x: 1, y: 1 }}
-                        style={styles.reminderWrapper}
-                    >
-                        <View style={styles.reminderContainer}>
-                            <View style={styles.reminderContent}>
-                                <Text style={styles.reminderTitle}>Track Reps Honestly</Text>
-                                <Text style={styles.reminderBody}>
-                                    Train for you, not anyone else. Maintain good form. Don't ego lift.{'\n'}Proud of you king 👑
-                                </Text>
-                            </View>
-                        </View>
-                    </LinearGradient>
-                </Pressable>
-            </Modal>
+            />
             {/* Confetti overlay (mount when cheering is relevant: spectating live OR self active) */}
             {(friendOngoing || isActiveSelf) && (() => { const ConfettiCannon = loadConfettiModule(); return ConfettiCannon ? (
                 <View pointerEvents="none" style={StyleSheet.absoluteFill}>
@@ -1322,143 +1249,6 @@ const styles = StyleSheet.create({
     },
     cancel_btn_text: { fontSize: scaleSize(15), fontFamily: "Outfit_700Bold", color: "#FFFFFF", marginRight: scaleSize(4.5) },
 
-    modalOverlay: {
-        flex: 1,
-        justifyContent: "center",
-        alignItems: "center",
-        backgroundColor: "rgba(8, 13, 24, 0.78)",
-        paddingHorizontal: scaleSize(24),
-    },
-    modalContainer: {
-        width: "100%",
-        maxWidth: scaleSize(360),
-        paddingTop: scaleSize(36),
-        paddingBottom: scaleSize(24),
-        paddingHorizontal: scaleSize(24),
-        backgroundColor: 'rgba(20, 28, 45, 0.96)',
-        borderRadius: scaleSize(24),
-        borderWidth: scaleSize(1),
-        borderColor: 'rgba(99, 123, 171, 0.38)',
-        alignItems: "center",
-        shadowColor: '#000000',
-        shadowOpacity: 0.28,
-        shadowRadius: scaleSize(24),
-        shadowOffset: { width: 0, height: scaleSize(14) },
-        elevation: 16,
-        overflow: 'hidden',
-    },
-    modalAccentBar: {
-        position: 'absolute',
-        left: 0,
-        right: 0,
-        top: 0,
-        height: scaleSize(6),
-        borderTopLeftRadius: scaleSize(24),
-        borderTopRightRadius: scaleSize(24),
-        opacity: 0.9,
-    },
-    modalIconRing: {
-        width: scaleSize(58),
-        height: scaleSize(58),
-        borderRadius: scaleSize(32),
-        alignItems: 'center',
-        justifyContent: 'center',
-        marginBottom: scaleSize(18),
-        borderWidth: scaleSize(1.5),
-    },
-    modalIconRingDanger: {
-        backgroundColor: 'rgba(239,68,68,0.12)',
-        borderColor: 'rgba(239,68,68,0.36)',
-    },
-    modalIconRingSuccess: {
-        backgroundColor: 'rgba(34,197,94,0.12)',
-        borderColor: 'rgba(34,197,94,0.36)',
-    },
-    modalTitle: {
-        fontSize: scaleSize(20),
-        fontFamily: 'Poppins_700Bold',
-        color: theme.textPrimary,
-        textAlign: 'center',
-        marginBottom: scaleSize(10),
-        letterSpacing: 0.2,
-    },
-    modalBody: {
-        fontSize: scaleSize(13.8),
-        fontFamily: 'Outfit_500Medium',
-        color: theme.textSecondary,
-        textAlign: 'center',
-        marginBottom: scaleSize(22),
-        lineHeight: scaleSize(20),
-    },
-    modalAction: {
-        width: '100%',
-        borderRadius: scaleSize(14),
-        paddingVertical: scaleSize(12),
-        alignItems: 'center',
-        justifyContent: 'center',
-        marginBottom: scaleSize(12),
-    },
-    modalActionDanger: {
-        backgroundColor: '#EF4444',
-        shadowColor: '#EF4444',
-        shadowOpacity: 0.32,
-        shadowRadius: scaleSize(12),
-        shadowOffset: { width: 0, height: scaleSize(6) },
-        elevation: 6,
-    },
-    modalActionSuccess: {
-        backgroundColor: '#10B981',
-        shadowColor: '#10B981',
-        shadowOpacity: 0.32,
-        shadowRadius: scaleSize(12),
-        shadowOffset: { width: 0, height: scaleSize(6) },
-        elevation: 6,
-    },
-    modalActionSecondary: {
-        backgroundColor: 'rgba(148, 163, 184, 0.12)',
-        borderWidth: scaleSize(1),
-        borderColor: 'rgba(148, 197, 255, 0.24)',
-        marginBottom: 0,
-    },
-    modalActionText: {
-        fontFamily: 'Poppins_700Bold',
-        fontSize: scaleSize(14.5),
-        color: '#F8FAFC',
-        letterSpacing: 0.3,
-    },
-    modalActionSecondaryText: {
-        fontFamily: 'Outfit_600SemiBold',
-        fontSize: scaleSize(13.5),
-        color: theme.textPrimary,
-        letterSpacing: 0.25,
-    },
-    modalActionDisabled: {
-        opacity: 0.6,
-    },
-    // Reminder styles (gradient border card)
-    reminderWrapper: {
-        width: "92%",
-        borderRadius: scaleSize(20),
-        padding: scaleSize(3), // gradient border width
-        // shadow on wrapper for proper elevation
-        backgroundColor: '#60A5FA', // match gradient base so iOS shadow can render without warnings
-        shadowColor: "#0F172A",
-        shadowOpacity: 0.12,
-        shadowRadius: scaleSize(24),
-        shadowOffset: { width: 0, height: scaleSize(12) },
-        elevation: 16,
-    },
-    reminderContainer: {
-        backgroundColor: theme.surface,
-        borderRadius: scaleSize(18),
-    },
-    reminderContent: {
-        paddingVertical: scaleSize(18),
-        paddingHorizontal: scaleSize(20),
-        alignItems: "center",
-    },
-    reminderTitle: { fontSize: scaleSize(16), color: theme.textPrimary, fontFamily: "Nunito_800ExtraBold", marginBottom: scaleSize(14) },
-    reminderBody: { fontSize: scaleSize(14), color: theme.textSecondary, fontFamily: "Nunito_700Bold", textAlign: "center" },
 });
 
 // Prevent unnecessary re-renders: only re-render when meaningful props change.

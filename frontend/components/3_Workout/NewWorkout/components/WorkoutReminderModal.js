@@ -1,7 +1,5 @@
 import React, { memo } from "react";
 import { Modal, Pressable, StyleSheet, Text, View } from "react-native";
-import { BlurView } from "expo-blur";
-import { LinearGradient } from "expo-linear-gradient";
 
 import scaleSize from "../../../../helper/scaleSize";
 import { ss as scaledSize } from "../../../../utils/scale";
@@ -23,21 +21,13 @@ const WorkoutReminderModal = ({ visible, onDismiss, title, body }) => {
             onDismiss={handleDismiss}
         >
             <Pressable style={styles.overlay} onPress={withStrongPress(handleDismiss)}>
-                <BlurView style={StyleSheet.absoluteFill} intensity={28} tint="dark" />
-                <LinearGradient
-                    colors={["#60A5FA", "#2D9EFF", "#5EEAD4"]}
-                    locations={[0, 0.55, 1]}
-                    start={{ x: 0, y: 0 }}
-                    end={{ x: 1, y: 1 }}
-                    style={styles.wrapper}
-                >
-                    <View style={styles.container}>
-                        <View style={styles.content}>
-                            <Text style={styles.title}>{title}</Text>
-                            <Text style={styles.body}>{body}</Text>
-                        </View>
+                <View style={styles.card}>
+                    <View style={styles.accentBar} />
+                    <View style={styles.content}>
+                        <Text style={styles.title}>{title}</Text>
+                        <Text style={styles.body}>{body}</Text>
                     </View>
-                </LinearGradient>
+                </View>
             </Pressable>
         </Modal>
     );
@@ -55,39 +45,46 @@ const styles = StyleSheet.create({
         flex: 1,
         justifyContent: "center",
         alignItems: "center",
-        backgroundColor: "rgba(8, 13, 24, 0.78)",
+        backgroundColor: "rgba(8, 11, 20, 0.82)",
         paddingHorizontal: scaleSize(scaledSize(24)),
     },
-    wrapper: {
+    card: {
         width: "92%",
+        maxWidth: scaleSize(scaledSize(340)),
+        backgroundColor: theme.surface,
         borderRadius: scaleSize(scaledSize(20)),
-        padding: scaleSize(scaledSize(3)),
-        backgroundColor: "#60A5FA",
-        shadowColor: "#0F172A",
-        shadowOpacity: 0.12,
-        shadowRadius: scaleSize(24),
+        borderWidth: scaleSize(scaledSize(1)),
+        borderColor: "rgba(255, 255, 255, 0.08)",
+        shadowColor: "#000000",
+        shadowOpacity: 0.2,
+        shadowRadius: scaleSize(scaledSize(24)),
         shadowOffset: { width: 0, height: scaleSize(scaledSize(12)) },
         elevation: 16,
+        overflow: "hidden",
     },
-    container: {
-        backgroundColor: theme.surface,
-        borderRadius: scaleSize(scaledSize(18)),
+    accentBar: {
+        height: scaleSize(scaledSize(3)),
+        backgroundColor: theme.primary,
+        width: "100%",
     },
     content: {
-        paddingVertical: scaleSize(scaledSize(18)),
-        paddingHorizontal: scaleSize(scaledSize(20)),
+        paddingVertical: scaleSize(scaledSize(22)),
+        paddingHorizontal: scaleSize(scaledSize(22)),
         alignItems: "center",
     },
     title: {
-        fontSize: scaleSize(16),
+        fontSize: scaleSize(scaledSize(16.5)),
         color: theme.textPrimary,
-        fontFamily: "Nunito_800ExtraBold",
-        marginBottom: scaleSize(scaledSize(14)),
+        fontFamily: "Outfit_700Bold",
+        marginBottom: scaleSize(scaledSize(10)),
+        letterSpacing: 0.15,
+        textAlign: "center",
     },
     body: {
-        fontSize: scaleSize(14),
+        fontSize: scaleSize(scaledSize(13.4)),
         color: theme.textSecondary,
-        fontFamily: "Nunito_700Bold",
+        fontFamily: "Outfit_500Medium",
         textAlign: "center",
+        lineHeight: scaleSize(scaledSize(19)),
     },
 });

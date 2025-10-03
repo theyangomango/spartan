@@ -182,7 +182,7 @@ const makeStyles = (COLORS) =>
         // Slightly lighter modal card + stronger outline and shadow for separation
         modalCard: {
             width: '86%',
-            backgroundColor: COLORS?.modalCard || '#46506A', // lighter than surface
+            backgroundColor: require('../../theme/mfpDark').MFP_DARK.field, // lighter than surface
             borderRadius: scaleSize(18),
             paddingVertical: scaleSize(18),
             paddingHorizontal: scaleSize(16),
@@ -196,20 +196,20 @@ const makeStyles = (COLORS) =>
         },
         modalTitle: { fontFamily: 'Outfit_600SemiBold', fontSize: scaleSize(16), color: COLORS?.text || '#E5E7EB', marginBottom: scaleSize(12) },
         inputLabel: { fontFamily: 'Outfit_600SemiBold', color: COLORS?.subtext || '#A1A7B3', marginBottom: scaleSize(6), marginTop: scaleSize(4), fontSize: scaleSize(12.5) },
-        inputField: { backgroundColor: COLORS?.fieldBg || '#1E2128', borderRadius: scaleSize(10), paddingHorizontal: scaleSize(12), paddingVertical: scaleSize(10), fontFamily: 'Outfit_500Medium', color: COLORS?.text || '#E5E7EB', marginBottom: scaleSize(10), fontSize: scaleSize(15) },
+        inputField: { backgroundColor: require('../../theme/mfpDark').MFP_DARK.fieldDeep, borderRadius: scaleSize(10), paddingHorizontal: scaleSize(12), paddingVertical: scaleSize(10), fontFamily: 'Outfit_500Medium', color: COLORS?.text || '#E5E7EB', marginBottom: scaleSize(10), fontSize: scaleSize(15) },
         row2: { flexDirection: 'row', gap: scaleSize(10) },
         col: { flex: 1 },
         quickRow: { flexDirection: 'row', flexWrap: 'wrap', gap: scaleSize(8), marginBottom: scaleSize(12) },
-        chip: { paddingVertical: scaleSize(8), paddingHorizontal: scaleSize(12), borderRadius: scaleSize(999), backgroundColor: COLORS?.fieldBg || '#1E2128' },
+        chip: { paddingVertical: scaleSize(8), paddingHorizontal: scaleSize(12), borderRadius: scaleSize(999), backgroundColor: require('../../theme/mfpDark').MFP_DARK.fieldDeep },
         chipActive: { backgroundColor: '#2D9EFF22', borderWidth: StyleSheet.hairlineWidth, borderColor: '#2D9EFF55' },
         chipText: { fontFamily: 'Outfit_500Medium', color: COLORS?.text || '#E5E7EB', fontSize: scaleSize(13) },
         chipTextActive: { color: '#7fb5ff' },
         customRow: { flexDirection: 'row', alignItems: 'center', gap: scaleSize(10), marginBottom: scaleSize(14) },
         customLabel: { fontFamily: 'Outfit_500Medium', color: COLORS?.subtext || '#A1A7B3', fontSize: scaleSize(12.5) },
-        customInput: { flex: 1, paddingVertical: scaleSize(10), paddingHorizontal: scaleSize(12), borderRadius: scaleSize(10), backgroundColor: COLORS?.fieldBg || '#1E2128', fontFamily: 'Outfit_500Medium', color: COLORS?.text || '#E5E7EB', fontSize: scaleSize(15) },
+        customInput: { flex: 1, paddingVertical: scaleSize(10), paddingHorizontal: scaleSize(12), borderRadius: scaleSize(10), backgroundColor: require('../../theme/mfpDark').MFP_DARK.fieldDeep, fontFamily: 'Outfit_500Medium', color: COLORS?.text || '#E5E7EB', fontSize: scaleSize(15) },
         modalButtons: { flexDirection: 'row', justifyContent: 'flex-end', gap: scaleSize(10) },
         modalBtn: { paddingVertical: scaleSize(10), paddingHorizontal: scaleSize(16), borderRadius: scaleSize(10) },
-        cancelBtn: { backgroundColor: COLORS?.fieldBg || '#1E2128' },
+        cancelBtn: {backgroundColor: require('../../theme/mfpDark').MFP_DARK.fieldDeep },
         confirmBtn: { backgroundColor: '#55A8FF' },
         modalBtnText: { fontFamily: 'Outfit_600SemiBold', fontSize: scaleSize(14) },
         cancelBtnText: { color: COLORS?.text || '#E5E7EB' },

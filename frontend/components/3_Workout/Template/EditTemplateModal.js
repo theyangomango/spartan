@@ -1,5 +1,5 @@
-import React, { useState, useCallback } from "react";
-import { StyleSheet, View, Modal, ScrollView, Text, TextInput, Keyboard } from "react-native";
+import React, { useState, useCallback, useRef } from "react";
+import { StyleSheet, View, Modal, ScrollView, Text, TextInput, Keyboard, Platform, InputAccessoryView, Pressable } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import scaleSize from "../../../helper/scaleSize";
@@ -49,6 +49,7 @@ const EditTemplateModal = ({
     const [replaceIndex, setReplaceIndex] = useState(null);
     const [deleteConfirmModalVisible, setDeleteConfirmModalVisible] = useState(false);
     const [template, setTemplate] = useState(() => normalizeTemplate(openedTemplateRef.current));
+    const titleAccessoryIdRef = useRef(Platform.OS === 'ios' ? `templateTitleAccessory-${Math.random().toString(36).slice(2, 10)}` : null);
 
     const showSelectExerciseModal = useCallback(() => {
         if (readOnly) return;
@@ -240,6 +241,7 @@ const EditTemplateModal = ({
                         returnKeyType="done"
                         blurOnSubmit
                         autoFocus={!readOnly}
+                        inputAccessoryViewID={!readOnly && Platform.OS === 'ios' ? titleAccessoryIdRef.current : undefined}
                     />
                 </View>
                 {template.exercises.map((ex, index) => (
@@ -267,6 +269,16 @@ const EditTemplateModal = ({
                     </>
                 )}
             </ScrollView>
+            {!readOnly && Platform.OS === 'ios' && (
+                <InputAccessoryView nativeID={titleAccessoryIdRef.current}>
+                    <View style={styles.titleAccessoryBar}>
+                        <View style={{ flex: 1 }} />
+                        <Pressable onPress={() => Keyboard.dismiss()} style={styles.titleAccessoryButton} hitSlop={12}>
+                            <MaterialCommunityIcons name="keyboard-outline" size={scaleSize(20)} color={theme.textPrimary} />
+                        </Pressable>
+                    </View>
+                </InputAccessoryView>
+            )}
             {!readOnly && (
                 <Modal
                     animationType='fade'
@@ -397,6 +409,20 @@ const styles = StyleSheet.create({
         fontSize: scaleSize(13.5),
         color: '#E0EEFF',
         marginLeft: scaledSize(8),
+    },
+    titleAccessoryBar: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        paddingHorizontal: scaleSize(12),
+        paddingVertical: scaleSize(3),
+    },
+    titleAccessoryButton: {
+        backgroundColor: '#5F636C',
+        borderRadius: scaleSize(12),
+        width: scaleSize(64),
+        height: scaleSize(40),
+        alignItems: 'center',
+        justifyContent: 'center',
     },
     navSpacer: {
         flex: 1,

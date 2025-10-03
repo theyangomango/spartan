@@ -1,5 +1,6 @@
 import React, { useEffect, useMemo, useRef, useState, useCallback } from "react";
 import { View, StyleSheet, ScrollView, Text } from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import MessageCard from "../components/1.1_Messages/MessageCard";
 import MessagesHeader from "../components/1.1_Messages/MessagesHeader";
 import CreateGroupChatBottomSheet from "../components/1.1_Messages/CreateGroupChatBottomSheet";
@@ -23,6 +24,7 @@ import { ensureMessageListener, syncMessageListeners } from "../logic/messagesPr
 
 export default function Messages({ navigation, route }) {
     const userData = global.userData;
+    const insets = useSafeAreaInsets();
     const [chats, setChats] = useState(() => getMessagesCache());
     const [latestByCid, setLatestByCid] = useState(() => getLatestByCidCache());
     const [scope, setScope] = useState("All");
@@ -394,6 +396,8 @@ export default function Messages({ navigation, route }) {
         return sortedMessages;
     }, [sortedMessages, scope]);
 
+    const cardsBottomPadding = scaleSize(18) + (insets?.bottom ?? 0);
+
     return (
         <View style={styles.mainContainer}>
             <MessagesHeader
@@ -406,7 +410,7 @@ export default function Messages({ navigation, route }) {
             <View style={styles.cardsContainer}>
                 <ScrollView
                     style={styles.cardsScrollView}
-                    contentContainerStyle={styles.cardsContent}
+                    contentContainerStyle={[styles.cardsContent, { paddingBottom: cardsBottomPadding }]}
                     showsVerticalScrollIndicator={false}
                 >
                     {filteredMessages.length === 0 ? (
@@ -456,7 +460,6 @@ const styles = StyleSheet.create({
     mainContainer: {
         flex: 1,
         backgroundColor: theme.bg,
-        paddingTop: scaleSize(36),
     },
     cardsContainer: {
         flex: 1,

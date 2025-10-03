@@ -1,6 +1,5 @@
 import React, { memo, useMemo } from "react";
 import { Modal, Pressable, Text, StyleSheet, View } from "react-native";
-import { LinearGradient } from "expo-linear-gradient";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import RNBounceable from "@freakycoder/react-native-bounceable";
 
@@ -14,25 +13,25 @@ const styles = StyleSheet.create({
         flex: 1,
         justifyContent: "center",
         alignItems: "center",
-        backgroundColor: "rgba(8, 13, 24, 0.78)",
+        backgroundColor: "rgba(8, 11, 20, 0.82)",
         paddingHorizontal: scaleSize(scaledSize(24)),
     },
     modalContainer: {
         width: "100%",
         maxWidth: scaleSize(scaledSize(360)),
-        paddingTop: scaleSize(scaledSize(36)),
-        paddingBottom: scaleSize(scaledSize(24)),
-        paddingHorizontal: scaleSize(scaledSize(24)),
-        backgroundColor: "rgba(20, 28, 45, 0.96)",
-        borderRadius: scaleSize(scaledSize(24)),
+        paddingTop: scaleSize(scaledSize(30)),
+        paddingBottom: scaleSize(scaledSize(22)),
+        paddingHorizontal: scaleSize(scaledSize(22)),
+        backgroundColor: theme.surface,
+        borderRadius: scaleSize(scaledSize(20)),
         borderWidth: scaleSize(scaledSize(1)),
-        borderColor: "rgba(99, 123, 171, 0.38)",
+        borderColor: "rgba(255, 255, 255, 0.08)",
         alignItems: "center",
         shadowColor: "#000000",
-        shadowOpacity: 0.28,
-        shadowRadius: scaleSize(scaledSize(24)),
+        shadowOpacity: 0.22,
+        shadowRadius: scaleSize(scaledSize(26)),
         shadowOffset: { width: 0, height: scaleSize(scaledSize(14)) },
-        elevation: 16,
+        elevation: 18,
         overflow: "hidden",
     },
     modalAccentBar: {
@@ -40,85 +39,59 @@ const styles = StyleSheet.create({
         left: 0,
         right: 0,
         top: 0,
-        height: scaleSize(scaledSize(6)),
-        borderTopLeftRadius: scaleSize(scaledSize(24)),
-        borderTopRightRadius: scaleSize(scaledSize(24)),
-        opacity: 0.9,
+        height: scaleSize(scaledSize(3.5)),
+        borderTopLeftRadius: scaleSize(scaledSize(20)),
+        borderTopRightRadius: scaleSize(scaledSize(20)),
     },
     modalIconRing: {
-        width: scaleSize(scaledSize(58)),
-        height: scaleSize(scaledSize(58)),
-        borderRadius: scaleSize(scaledSize(32)),
+        width: scaleSize(scaledSize(54)),
+        height: scaleSize(scaledSize(54)),
+        borderRadius: scaleSize(scaledSize(27)),
         alignItems: "center",
         justifyContent: "center",
         marginBottom: scaleSize(scaledSize(18)),
-        borderWidth: scaleSize(scaledSize(1.5)),
-    },
-    modalIconRingDanger: {
-        backgroundColor: "rgba(239,68,68,0.12)",
-        borderColor: "rgba(239,68,68,0.36)",
-    },
-    modalIconRingSuccess: {
-        backgroundColor: "rgba(34,197,94,0.12)",
-        borderColor: "rgba(34,197,94,0.36)",
+        borderWidth: scaleSize(scaledSize(1)),
     },
     modalTitle: {
-        fontSize: scaleSize(scaledSize(20)),
-        fontFamily: "Poppins_700Bold",
+        fontSize: scaleSize(scaledSize(18.5)),
+        fontFamily: "Outfit_700Bold",
         color: theme.textPrimary,
         textAlign: "center",
-        marginBottom: scaleSize(scaledSize(10)),
-        letterSpacing: 0.2,
+        marginBottom: scaleSize(scaledSize(8)),
+        letterSpacing: 0.1,
     },
     modalBody: {
-        fontSize: scaleSize(scaledSize(13.8)),
+        fontSize: scaleSize(scaledSize(13.4)),
         fontFamily: "Outfit_500Medium",
         color: theme.textSecondary,
         textAlign: "center",
-        marginBottom: scaleSize(scaledSize(22)),
-        lineHeight: scaleSize(scaledSize(20)),
+        marginBottom: scaleSize(scaledSize(20)),
+        lineHeight: scaleSize(scaledSize(19)),
     },
     modalAction: {
         width: "100%",
-        borderRadius: scaleSize(scaledSize(14)),
+        borderRadius: scaleSize(scaledSize(12)),
         paddingVertical: scaleSize(scaledSize(12)),
         alignItems: "center",
         justifyContent: "center",
         marginBottom: scaleSize(scaledSize(12)),
     },
-    modalActionDanger: {
-        backgroundColor: "#EF4444",
-        shadowColor: "#EF4444",
-        shadowOpacity: 0.32,
-        shadowRadius: scaleSize(scaledSize(12)),
-        shadowOffset: { width: 0, height: scaleSize(scaledSize(6)) },
-        elevation: 6,
-    },
-    modalActionSuccess: {
-        backgroundColor: "#10B981",
-        shadowColor: "#10B981",
-        shadowOpacity: 0.32,
-        shadowRadius: scaleSize(scaledSize(12)),
-        shadowOffset: { width: 0, height: scaleSize(scaledSize(6)) },
-        elevation: 6,
+    modalActionText: {
+        fontFamily: "Outfit_700Bold",
+        fontSize: scaleSize(scaledSize(14.3)),
+        letterSpacing: 0.25,
     },
     modalActionSecondary: {
-        backgroundColor: "rgba(148, 163, 184, 0.12)",
+        backgroundColor: theme.field,
         borderWidth: scaleSize(scaledSize(1)),
-        borderColor: "rgba(148, 197, 255, 0.24)",
+        borderColor: "rgba(255, 255, 255, 0.08)",
         marginBottom: 0,
-    },
-    modalActionText: {
-        fontFamily: "Poppins_700Bold",
-        fontSize: scaleSize(scaledSize(14.5)),
-        color: "#F8FAFC",
-        letterSpacing: 0.3,
     },
     modalActionSecondaryText: {
         fontFamily: "Outfit_600SemiBold",
-        fontSize: scaleSize(scaledSize(13.5)),
+        fontSize: scaleSize(scaledSize(13.4)),
         color: theme.textPrimary,
-        letterSpacing: 0.25,
+        letterSpacing: 0.2,
     },
     modalActionDisabled: {
         opacity: 0.6,
@@ -127,18 +100,24 @@ const styles = StyleSheet.create({
 
 const VARIANT_CONFIG = {
     cancel: {
-        gradient: ["#2D9EFF", "#60A5FA"],
-        iconName: "trash-can-outline",
-        iconColor: "#FEE2E2",
-        ringStyle: styles.modalIconRingDanger,
-        actionStyle: styles.modalActionDanger,
+        iconName: "alert-decagram",
+        iconColor: "#FFE3E6",
+        accent: "#F36B78",
+        accentSoft: "rgba(243, 107, 120, 0.16)",
+        accentBorder: "rgba(243, 107, 120, 0.32)",
+        primaryBg: "#F25764",
+        primaryText: theme.textPrimary,
+        primaryShadow: "rgba(242, 87, 100, 0.35)",
     },
     finish: {
-        gradient: ["#34D399", "#22C55E"],
         iconName: "check-decagram",
-        iconColor: "#D1FAE5",
-        ringStyle: styles.modalIconRingSuccess,
-        actionStyle: styles.modalActionSuccess,
+        iconColor: "#C5F8DD",
+        accent: theme.success,
+        accentSoft: "rgba(16, 185, 129, 0.16)",
+        accentBorder: "rgba(16, 185, 129, 0.32)",
+        primaryBg: theme.successButton,
+        primaryText: theme.textPrimary,
+        primaryShadow: "rgba(16, 185, 129, 0.32)",
     },
 };
 
@@ -160,11 +139,14 @@ const ConfirmWorkoutModal = ({
     const config = useMemo(() => {
         const base = VARIANT_CONFIG[variant] || VARIANT_CONFIG.finish;
         return {
-            gradient: base.gradient,
             iconName: iconName || base.iconName,
             iconColor: iconColor || base.iconColor,
-            ringStyle: base.ringStyle,
-            actionStyle: base.actionStyle,
+            accent: base.accent,
+            accentSoft: base.accentSoft,
+            accentBorder: base.accentBorder,
+            primaryBg: base.primaryBg,
+            primaryText: base.primaryText,
+            primaryShadow: base.primaryShadow,
         };
     }, [variant, iconName, iconColor]);
 
@@ -199,13 +181,8 @@ const ConfirmWorkoutModal = ({
         >
             <Pressable style={styles.modalOverlay} onPress={withStrongPress(handleBackdropPress)}>
                 <Pressable style={styles.modalContainer} onPress={(e) => e.stopPropagation()}>
-                    <LinearGradient
-                        colors={config.gradient}
-                        start={{ x: 0, y: 0 }}
-                        end={{ x: 1, y: 0 }}
-                        style={styles.modalAccentBar}
-                    />
-                    <View style={[styles.modalIconRing, config.ringStyle]}>
+                    <View style={[styles.modalAccentBar, { backgroundColor: config.accent }]} />
+                    <View style={[styles.modalIconRing, { backgroundColor: config.accentSoft, borderColor: config.accentBorder }] }>
                         <MaterialCommunityIcons
                             name={config.iconName}
                             size={scaleSize(26)}
@@ -216,10 +193,21 @@ const ConfirmWorkoutModal = ({
                     {renderBody()}
                     <RNBounceable
                         onPress={withStrongPress(handlePrimaryPress)}
-                        style={[styles.modalAction, config.actionStyle, primaryBusy && styles.modalActionDisabled]}
+                        style={[
+                            styles.modalAction,
+                            {
+                                backgroundColor: config.primaryBg,
+                                shadowColor: config.primaryShadow,
+                                shadowOpacity: 0.32,
+                                shadowRadius: scaleSize(scaledSize(10)),
+                                shadowOffset: { width: 0, height: scaleSize(scaledSize(5)) },
+                                elevation: 6,
+                            },
+                            primaryBusy && styles.modalActionDisabled,
+                        ]}
                         disabled={primaryBusy}
                     >
-                        <Text style={styles.modalActionText}>
+                        <Text style={[styles.modalActionText, { color: config.primaryText }]}>
                             {primaryBusy ? (primaryBusyLabel || primaryLabel) : primaryLabel}
                         </Text>
                     </RNBounceable>
