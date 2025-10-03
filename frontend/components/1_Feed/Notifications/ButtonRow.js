@@ -85,10 +85,10 @@ export default memo(
 const styles = StyleSheet.create({
     container: {},
     row: {
-        paddingTop: scaleSize(24),
-        paddingBottom: scaleSize(10),
+        paddingTop: scaleSize(16),
+        paddingBottom: scaleSize(12),
         alignItems: "center",
-        paddingHorizontal: scaleSize(14),
+        paddingHorizontal: scaleSize(26),
     },
 
     chip: {

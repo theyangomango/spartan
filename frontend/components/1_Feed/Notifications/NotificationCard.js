@@ -107,7 +107,15 @@ const withAlpha = (color, alpha = 1) => {
     return `rgba(${rgba.r},${rgba.g},${rgba.b},${a})`;
 };
 
-export default function NotificationCard({ item, onPressCard, onAcceptWorkoutInvite, onAcceptFollowRequest, onDeclineFollowRequest }) {
+export default function NotificationCard({
+    item,
+    onPressCard,
+    onAcceptWorkoutInvite,
+    onAcceptFollowRequest,
+    onDeclineFollowRequest,
+    isFirst,
+    isLast,
+}) {
     const [acceptingInvite, setAcceptingInvite] = useState(false);
     const [respondingRequest, setRespondingRequest] = useState(false);
     const [followState, setFollowState] = useState('none');
@@ -321,8 +329,8 @@ export default function NotificationCard({ item, onPressCard, onAcceptWorkoutInv
         const accentHex = hexToRgba(base.accent) ? base.accent : "#4F5B76";
         const accent2Hex = hexToRgba(base.accent2) ? base.accent2 : "#7A85A1";
 
-        const cardBg = theme.field;
-        const cardBgUnread = theme.field;
+        const cardBg = theme.surface;
+        const cardBgUnread = mixHex(theme.surface, '#FFFFFF', 0.12);
         const buttonBg = withAlpha(accentHex, 0.16);
         const buttonBgActive = withAlpha(accentHex, 0.26);
         const buttonBorder = withAlpha(accentHex, 0.4);
@@ -376,15 +384,14 @@ export default function NotificationCard({ item, onPressCard, onAcceptWorkoutInv
     const requestedButtonBorder = withAlpha(accent, 0.35);
     const requestedButtonText = mixHex(accent, "#F5F8FF", 0.28);
 
+    const cardStyles = [styles.card];
+    if (isFirst) cardStyles.push(styles.firstCard);
+    if (isLast) cardStyles.push(styles.lastCard);
+    cardStyles.push({ backgroundColor: unread ? cardBgUnread : cardBg });
+
     return (
-        <Pressable style={({ pressed }) => [styles.pressable, pressed && { opacity: 0.95 }]} onPress={withStrongPress(onPressCard)}>
-            <View
-                style={[
-                    styles.card,
-                    { backgroundColor: cardBg },
-                    unread && { backgroundColor: cardBgUnread },
-                ]}
-            >
+        <Pressable style={({ pressed }) => [styles.pressable, pressed && styles.pressablePressed]} onPress={withStrongPress(onPressCard)}>
+            <View style={cardStyles}>
                 {/* avatar + type badge */}
                 <View style={styles.pfpWrap}>
                     {pfpUri ? (
@@ -523,7 +530,7 @@ export default function NotificationCard({ item, onPressCard, onAcceptWorkoutInv
 
                 )}
 
-                <View style={styles.timeWrap}>
+                <View style={styles.trailingColumn}>
                     {unread && <View style={[styles.unreadDot, { backgroundColor: accent }]} />}
                     <Text style={styles.time}>{timeAgo}</Text>
                 </View>
@@ -534,17 +541,24 @@ export default function NotificationCard({ item, onPressCard, onAcceptWorkoutInv
 
 /* -------------- styles -------------- */
 const styles = StyleSheet.create({
-    pressable: { borderRadius: scaleSize(18) },
+    pressable: {
+        width: '100%',
+        alignSelf: 'stretch',
+    },
+    pressablePressed: { opacity: 0.92 },
     card: {
         flexDirection: "row",
         alignItems: "center",
-        marginVertical: scaleSize(6),
-        paddingHorizontal: scaleSize(14),
-        paddingVertical: scaleSize(12),
-        backgroundColor: theme.field,
-        borderRadius: scaleSize(16),
+        justifyContent: 'flex-start',
+        paddingHorizontal: scaleSize(26),
+        paddingVertical: scaleSize(14),
+        backgroundColor: theme.surface,
+        borderBottomWidth: StyleSheet.hairlineWidth,
+        borderColor: theme.hairline,
     },
-    pfpWrap: { position: "relative", marginRight: scaleSize(12) },
+    firstCard: { borderTopWidth: StyleSheet.hairlineWidth },
+    lastCard: { borderBottomWidth: StyleSheet.hairlineWidth },
+    pfpWrap: { position: "relative", marginRight: scaleSize(16) },
     pfp: {
         width: scaleSize(44),
         aspectRatio: 1,
@@ -582,13 +596,13 @@ const styles = StyleSheet.create({
         alignItems: "center",
         justifyContent: "center",
     },
-    textContainer: { flex: 1, minWidth: 0 },
-    topRow: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", marginBottom: scaleSize(1) },
+    textContainer: { flex: 1, minWidth: 0, paddingRight: scaleSize(12) },
+    topRow: { flexDirection: "row", alignItems: "center", marginBottom: scaleSize(4) },
     handle: {
         fontSize: scaleSize(13.5),
         fontFamily: "Outfit_600SemiBold",
         color: theme.textPrimary,
-        maxWidth: '70%'
+        maxWidth: '100%'
     },
     message: {
         fontSize: scaleSize(13),
@@ -596,19 +610,24 @@ const styles = StyleSheet.create({
         fontFamily: "Outfit_400Regular",
         lineHeight: scaleSize(20),
     },
+    trailingColumn: {
+        alignItems: 'flex-end',
+        justifyContent: 'center',
+        paddingLeft: scaleSize(12),
+        marginLeft: 'auto',
+    },
     time: {
         fontSize: scaleSize(12),
         color: theme.textSecondary,
-        fontFamily: "Outfit_600SemiBold",
+        fontFamily: "Outfit_500Medium",
     },
-    timeWrap: { flexDirection: 'row', alignItems: 'center', paddingLeft: scaleSize(10) },
-    unreadDot: { width: scaleSize(7), height: scaleSize(7), borderRadius: scaleSize(7) / 2 },
+    unreadDot: { width: scaleSize(7), height: scaleSize(7), borderRadius: scaleSize(7) / 2, marginBottom: scaleSize(6) },
 
     followBtn: {
         paddingVertical: scaleSize(8),
         paddingHorizontal: scaleSize(12),
         borderRadius: scaleSize(14),
-        marginLeft: scaleSize(10),
+        marginLeft: scaleSize(12),
         borderWidth: scaleSize(1),
     },
     followText: {
@@ -632,7 +651,7 @@ const styles = StyleSheet.create({
     requestActionsWrap: {
         flexDirection: 'row',
         alignItems: 'center',
-        marginLeft: scaleSize(10),
+        marginLeft: scaleSize(12),
     },
     requestActionBtn: {
         paddingHorizontal: scaleSize(14),

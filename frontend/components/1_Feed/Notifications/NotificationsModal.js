@@ -365,8 +365,47 @@ export default function NotificationsModal({ visible, uid, closeBottomSheet }) {
 
     const sections = groupedByFilter[selectedButton] || [];
 
+    const unreadCount = useMemo(
+        () => events.reduce((acc, evt) => (evt?.read === false ? acc + 1 : acc), 0),
+        [events, refreshTick]
+    );
+
+    const pendingRequests = useMemo(
+        () => events.filter((evt) => evt?.type === 'follow-request' && !['accepted', 'declined'].includes(String(evt?.requestStatus || '').toLowerCase())).length,
+        [events, refreshTick]
+    );
+
+    const summaryText = unreadCount > 0
+        ? `You have ${unreadCount} unread ${unreadCount === 1 ? 'notification' : 'notifications'}.`
+        : 'You’re all caught up — nice work!';
+
+    const heroBadges = useMemo(() => {
+        const arr = [];
+        if (newLikes > 0) arr.push({ label: `${newLikes} new ${newLikes === 1 ? 'like' : 'likes'}` });
+        if (newComments > 0) arr.push({ label: `${newComments} new ${newComments === 1 ? 'comment' : 'comments'}` });
+        if (pendingRequests > 0) arr.push({ label: `${pendingRequests} follow request${pendingRequests === 1 ? '' : 's'}` });
+        return arr;
+    }, [newLikes, newComments, pendingRequests]);
+
     return (
         <View style={styles.container}>
+            <View style={styles.heroWrap}>
+                <Text style={styles.heroTitle}>Activity Center</Text>
+                <Text style={styles.heroSubtitle}>{summaryText}</Text>
+                <View style={styles.heroBadgeRow}>
+                    {heroBadges.length === 0 ? (
+                        <View style={[styles.heroBadge, styles.heroBadgeMuted]}>
+                            <Text style={styles.heroBadgeMutedText}>No new highlights yet</Text>
+                        </View>
+                    ) : (
+                        heroBadges.map((badge) => (
+                            <View key={badge.label} style={styles.heroBadge}>
+                                <Text style={styles.heroBadgeText}>{badge.label}</Text>
+                            </View>
+                        ))
+                    )}
+                </View>
+            </View>
             <ButtonRow
                 buttons={NOTIF_BUTTONS}
                 selectedButton={selectedButton}
@@ -377,13 +416,15 @@ export default function NotificationsModal({ visible, uid, closeBottomSheet }) {
             <SectionList
                 ref={listRef}
                 sections={sections}
-                renderItem={({ item }) => (
+                renderItem={({ item, index, section }) => (
                     <MemoNotificationCard
                         item={item}
                         onPressCard={() => handlePressNotification(item)}
                         onAcceptWorkoutInvite={item?.type === 'workout-invite' ? (() => handleAcceptInvite(item)) : undefined}
                         onAcceptFollowRequest={item?.type === 'follow-request' ? (() => handleAcceptFollowRequest(item)) : undefined}
                         onDeclineFollowRequest={item?.type === 'follow-request' ? (() => handleDeclineFollowRequest(item)) : undefined}
+                        isFirst={index === 0}
+                        isLast={index === (section?.data?.length ?? 0) - 1}
                     />
                 )}
                 renderSectionHeader={({ section }) => (
@@ -408,7 +449,12 @@ export default function NotificationsModal({ visible, uid, closeBottomSheet }) {
                         <View style={styles.footerWrap}><Text style={styles.footerText}>You're all caught up.</Text></View>
                     ) : null
                 }
-                ListEmptyComponent={visible ? <View style={styles.emptyWrap} /> : null}
+                ListEmptyComponent={visible ? (
+                    <View style={styles.emptyState}>
+                        <Text style={styles.emptyStateTitle}>No notifications yet</Text>
+                        <Text style={styles.emptyStateSubtitle}>We’ll keep this page updated as soon as new activity rolls in.</Text>
+                    </View>
+                ) : null}
             />
         </View>
     );
@@ -422,15 +468,66 @@ const styles = StyleSheet.create({
         backgroundColor: theme.bg,
         borderTopLeftRadius: scaleSize(26),
         borderTopRightRadius: scaleSize(26),
+        overflow: 'hidden',
     },
     flatList: {
-        paddingHorizontal: scaleSize(12),
+        flex: 1,
     },
     listContent: {
-        paddingBottom: scaleSize(18),
+        paddingBottom: scaleSize(24),
+        paddingHorizontal: 0,
     },
-    emptyWrap: { height: scaleSize(60) },
-    sectionHeaderWrap: { paddingHorizontal: scaleSize(14), paddingTop: scaleSize(10), paddingBottom: scaleSize(6) },
+    heroWrap: {
+        paddingHorizontal: scaleSize(26),
+        paddingTop: scaleSize(26),
+        paddingBottom: scaleSize(12),
+    },
+    heroTitle: {
+        fontFamily: 'Outfit_700Bold',
+        fontSize: ts(20),
+        color: theme.textPrimary,
+    },
+    heroSubtitle: {
+        fontFamily: 'Outfit_500Medium',
+        fontSize: ts(13),
+        color: theme.textSecondary,
+        marginTop: scaleSize(6),
+    },
+    heroBadgeRow: {
+        flexDirection: 'row',
+        flexWrap: 'wrap',
+        marginTop: scaleSize(12),
+        marginHorizontal: -scaleSize(4),
+    },
+    heroBadge: {
+        paddingHorizontal: scaleSize(12),
+        paddingVertical: scaleSize(6),
+        borderRadius: scaleSize(14),
+        backgroundColor: theme.surface,
+        borderWidth: StyleSheet.hairlineWidth,
+        borderColor: theme.hairline,
+        marginHorizontal: scaleSize(4),
+        marginTop: scaleSize(6),
+    },
+    heroBadgeText: {
+        fontFamily: 'Outfit_600SemiBold',
+        fontSize: ts(12),
+        color: theme.textPrimary,
+    },
+    heroBadgeMuted: {
+        backgroundColor: 'rgba(148,163,184,0.12)',
+        borderColor: 'transparent',
+    },
+    heroBadgeMutedText: {
+        fontFamily: 'Outfit_500Medium',
+        fontSize: ts(12),
+        color: theme.textSecondary,
+    },
+    sectionHeaderWrap: {
+        paddingTop: scaleSize(16),
+        paddingBottom: scaleSize(8),
+        paddingHorizontal: scaleSize(26),
+    },
     sectionHeaderText: {
         fontFamily: "Outfit_700Bold",
         fontSize: scaleSize(12),
@@ -439,4 +536,22 @@ const styles = StyleSheet.create({
     },
     footerWrap: { paddingVertical: scaleSize(14), alignItems: 'center', justifyContent: 'center' },
     footerText: { fontFamily: 'Outfit_600SemiBold', fontSize: scaleSize(12), color: theme.textSecondary },
+    emptyState: {
+        paddingHorizontal: scaleSize(24),
+        paddingVertical: scaleSize(48),
+        alignItems: 'center',
+    },
+    emptyStateTitle: {
+        fontFamily: 'Outfit_700Bold',
+        fontSize: ts(15),
+        color: theme.textPrimary,
+        marginBottom: scaleSize(6),
+    },
+    emptyStateSubtitle: {
+        fontFamily: 'Outfit_500Medium',
+        fontSize: ts(12.5),
+        color: theme.textSecondary,
+        textAlign: 'center',
+        lineHeight: ts(18),
+    },
 });
