@@ -1,14 +1,14 @@
 import React, { useState, useRef } from "react";
-import { TextInput, StyleSheet, Pressable, Dimensions, Keyboard, Platform, InputAccessoryView, View } from "react-native";
+import { TextInput, StyleSheet, Pressable, Dimensions, Keyboard, Platform } from "react-native";
 import scaleSize from "../../../../helper/scaleSize";
 import theme from "../../../../theme/mfpDark";
-import { MaterialCommunityIcons } from "@expo/vector-icons";
+import KeyboardDismissAccessory, { useKeyboardAccessoryId } from "../../../common/KeyboardDismissAccessory";
 
 const { height: screenHeight } = Dimensions.get('window');
 export default function EditableStat({ placeholder = '0', isFinished, value, setValue, onFocus }) {
     const [isSelected, setIsSelected] = useState(false);
     const inputRef = useRef(null);
-    const accessoryIdRef = useRef(`statAccessory_${Math.random().toString(36).slice(2, 9)}`);
+    const accessoryId = useKeyboardAccessoryId();
 
     const handleChangeText = (text) => {
         // If the text is empty, set the value to 0
@@ -68,22 +68,12 @@ export default function EditableStat({ placeholder = '0', isFinished, value, set
                     value={value === '0' ? '' : value.toString()}
                     onChangeText={handleChangeText}
                     blurOnSubmit={false}
-                    inputAccessoryViewID={Platform.OS === 'ios' ? accessoryIdRef.current : undefined}
+                    inputAccessoryViewID={Platform.OS === 'ios' ? accessoryId : undefined}
                     returnKeyType={Platform.OS === 'android' ? 'done' : 'default'}
                     onSubmitEditing={() => Keyboard.dismiss()}
                 />
             </Pressable>
-
-            {Platform.OS === 'ios' && (
-                <InputAccessoryView nativeID={accessoryIdRef.current}>
-                    <View style={styles.accessoryBar}>
-                        <View style={{ flex: 1 }} />
-                        <Pressable onPress={() => Keyboard.dismiss()} style={styles.accessoryBtn} hitSlop={12}>
-                            <MaterialCommunityIcons name="keyboard-outline" size={scaleSize(20)} color={theme.textPrimary} />
-                        </Pressable>
-                    </View>
-                </InputAccessoryView>
-            )}
+            <KeyboardDismissAccessory accessoryID={accessoryId} />
         </>
     )
 }
@@ -110,20 +100,5 @@ const styles = StyleSheet.create({
         flex: 1,
         textAlign: 'center',
         color: theme.textPrimary,
-    },
-    accessoryBar: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        paddingHorizontal: scaleSize(12),
-        paddingVertical: scaleSize(3),
-    },
-    accessoryBtn: {
-        backgroundColor: '#5F636C',
-        borderRadius: scaleSize(12),
-        width: scaleSize(64),
-        height: scaleSize(40),
-        alignItems: 'center',
-        justifyContent: 'center',
-        borderWidth: 0,
     },
 });

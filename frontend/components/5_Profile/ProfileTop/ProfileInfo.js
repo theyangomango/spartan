@@ -56,7 +56,7 @@ export default function ProfileInfo({ userData, pfp, onPressFollowers, onPressFo
 const styles = StyleSheet.create({
     main_ctnr: {
         marginTop: scaleSize(5),
-        marginBottom: scaleSize(scaledSize(5)),
+        marginBottom: scaledSize(5),
     },
     top_row: {
         flexDirection: 'row',
@@ -64,18 +64,18 @@ const styles = StyleSheet.create({
         alignItems: 'center',
     },
     pfp_ctnr: {
-        marginHorizontal: scaleSize(scaledSize(12)),
+        marginHorizontal: scaledSize(12),
         alignItems: 'center',
         position: 'relative',
-        borderWidth: scaleSize(scaledSize(3)),
-        borderRadius: scaleSize(scaledSize(26.5)),
-        padding: scaleSize(scaledSize(2.25)),
+        borderWidth: scaledSize(3),
+        borderRadius: scaledSize(26.5),
+        padding: scaledSize(2.25),
         borderColor: require('../../../theme/mfpDark').default.hairline,
     },
     pfp: {
-        width: scaleSize(scaledSize(54)),
+        width: scaledSize(54),
         aspectRatio: 1,
-        borderRadius: scaleSize(scaledSize(22.5)),
+        borderRadius: scaledSize(22.5),
     },
     followers_stat_ctnr: {
         alignItems: 'flex-end',
@@ -87,7 +87,7 @@ const styles = StyleSheet.create({
         fontFamily: 'Outfit_600SemiBold',
         fontSize: scaleSize(17),
         color: '#E5E7EB',
-        paddingBottom: scaleSize(scaledSize(1)),
+        paddingBottom: scaledSize(1),
     },
     user_stat_text: {
         fontFamily: 'Outfit_600SemiBold',
@@ -98,9 +98,9 @@ const styles = StyleSheet.create({
         alignItems: 'center',
     },
     name_and_score_ctnr: {
-        marginTop: scaleSize(scaledSize(20)),
+        marginTop: scaledSize(20),
         flexDirection: 'row',
-        paddingBottom: scaleSize(scaledSize(3.5)),
+        paddingBottom: scaledSize(3.5),
         width: '100%',
         justifyContent: 'center',
         alignItems: 'center',
@@ -108,8 +108,8 @@ const styles = StyleSheet.create({
     border_line: {
         height: '60%',
         alignSelf: 'center',
-        borderWidth: scaleSize(scaledSize(1)),
-        marginHorizontal: scaleSize(scaledSize(10)),
+        borderWidth: scaledSize(1),
+        marginHorizontal: scaledSize(10),
         borderColor: require('../../../theme/mfpDark').default.hairline,
     },
     name_text: {
@@ -126,13 +126,13 @@ const styles = StyleSheet.create({
         flex: 1,
         textAlign: 'left',
     },
-    bio_ctnr: { marginTop: scaleSize(scaledSize(2)) },
+    bio_ctnr: { marginTop: scaledSize(2) },
     bio_text: {
         // Make bio visually distinct from handle: lighter weight, softer color
         fontFamily: 'Outfit_400Regular',
         fontSize: scaleSize(13),
         color: theme.textSecondary,
-        lineHeight: scaleSize(scaledSize(17)),
+        lineHeight: scaledSize(17),
         letterSpacing: 0.1,
     },
 });

@@ -5,19 +5,17 @@ import {
     Pressable,
     Dimensions,
     Platform,
-    InputAccessoryView,
-    View,
     Keyboard,
 } from "react-native";
 import scaleSize from "../../../helper/scaleSize";
 import theme from "../../../theme/mfpDark";
-import { MaterialCommunityIcons } from "@expo/vector-icons";
+import KeyboardDismissAccessory, { useKeyboardAccessoryId } from "../../common/KeyboardDismissAccessory";
 
 const { height: screenHeight } = Dimensions.get('window');
 export default function TemplateEditableStat({ placeholder = '0', value, setValue, readOnly = false }) {
     const [isSelected, setIsSelected] = useState(false);
     const inputRef = useRef(null);
-    const accessoryIdRef = useRef(Platform.OS === 'ios' ? `tpl-edit-accessory-${Math.random().toString(36).slice(2)}` : null);
+    const accessoryId = useKeyboardAccessoryId();
 
     const handleChangeText = (text) => {
         // If the text is empty, set the value to 0
@@ -77,21 +75,11 @@ export default function TemplateEditableStat({ placeholder = '0', value, setValu
                     blurOnSubmit={false}
                     returnKeyType={Platform.OS === 'android' ? 'done' : 'default'}
                     onSubmitEditing={() => Keyboard.dismiss()}
-                    inputAccessoryViewID={!readOnly && Platform.OS === 'ios' ? accessoryIdRef.current : undefined}
+                    inputAccessoryViewID={!readOnly && Platform.OS === 'ios' ? accessoryId : undefined}
                     pointerEvents={readOnly ? 'none' : 'auto'}
                 />
             </Pressable>
-
-            {!readOnly && Platform.OS === 'ios' && (
-                <InputAccessoryView nativeID={accessoryIdRef.current}>
-                    <View style={styles.accessoryBar}>
-                        <View style={{ flex: 1 }} />
-                        <Pressable onPress={() => Keyboard.dismiss()} style={styles.accessoryBtn} hitSlop={12}>
-                            <MaterialCommunityIcons name="keyboard-outline" size={scaleSize(20)} color={theme.textPrimary} />
-                        </Pressable>
-                    </View>
-                </InputAccessoryView>
-            )}
+            {!readOnly && <KeyboardDismissAccessory accessoryID={accessoryId} />}
         </>
     )
 }
@@ -102,19 +90,4 @@ const styles = StyleSheet.create({
     finished: { backgroundColor: theme.successBg },
     text: { fontFamily: 'Poppins_700Bold', fontSize: scaleSize(15), flex: 1, textAlign: 'center', color: theme.textPrimary },
     readOnlyText: { color: theme.textPrimary },
-    accessoryBar: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        paddingHorizontal: scaleSize(12),
-        paddingVertical: scaleSize(3),
-    },
-    accessoryBtn: {
-        backgroundColor: '#5F636C',
-        borderRadius: scaleSize(12),
-        width: scaleSize(64),
-        height: scaleSize(40),
-        alignItems: 'center',
-        justifyContent: 'center',
-        borderWidth: 0,
-    },
 });

@@ -1,10 +1,11 @@
 import React, { useState } from "react";
-import { StyleSheet, View, ScrollView, Text, TextInput, Dimensions } from "react-native";
+import { StyleSheet, View, ScrollView, Text, Dimensions } from "react-native";
 import ProfilePicture from "./ProfilePicture";
 import formatPhoneNumber from "../../../helper/formatPhoneNumber";
 import updateDoc from "../../../../backend/helper/firebase/updateDoc";
 import THEME from "../../../theme/mfpDark";
 import scaleSize from "../../../helper/scaleSize";
+import DismissableTextInput from "../../common/DismissableTextInput";
 
 const { width: screenWidth } = Dimensions.get('window');
 const scale = screenWidth / 375; // Base screen width assumed as 375
@@ -27,59 +28,66 @@ const EditProfileModal = ({ setPFP }) => {
                 <Text style={styles.heading}>Personal Information</Text>
                 <View style={styles.inputContainer}>
                     <Text style={styles.label}>Username</Text>
-                    <TextInput
+                    <DismissableTextInput
                         style={styles.non_editable_input_text}
                         placeholder={global.userData.handle}
                         placeholderTextColor={THEME.muted}
                         editable={false}
+                        enableAccessory={false}
                     />
                 </View>
                 <View style={styles.inputContainer}>
                     <Text style={styles.label}>Name</Text>
-                    <TextInput
+                    <DismissableTextInput
                         style={styles.non_editable_input_text}
                         placeholder={global.userData.name}
                         editable={false}
                         placeholderTextColor={THEME.muted}
+                        enableAccessory={false}
                     />
                 </View>
                 <View style={styles.inputContainer}>
                     <Text style={styles.label}>Bio</Text>
-                    <TextInput
+                    <DismissableTextInput
                         style={styles.editable_input_text}
                         value={bio}
                         onChangeText={setBio}
                         onBlur={handleBioBlur}
                         placeholderTextColor={THEME.muted}
                         selectionColor={THEME.primary}
+                        multiline
+                        returnKeyType="default"
                     />
                 </View>
                 <View style={styles.inputContainer}>
                     <Text style={styles.label}>Email</Text>
-                    <TextInput
+                    <DismissableTextInput
                         style={styles.non_editable_input_text}
                         placeholder={global.userData.email}
                         editable={false}
                         placeholderTextColor={THEME.muted}
+                        enableAccessory={false}
                     />
                 </View>
                 <View style={styles.inputContainer}>
                     <Text style={styles.label}>Phone Number</Text>
-                    <TextInput
+                    <DismissableTextInput
                         style={styles.non_editable_input_text}
                         placeholder={formatPhoneNumber(global.userData.phoneNumber)}
                         editable={false}
                         placeholderTextColor={THEME.muted}
+                        enableAccessory={false}
                     />
                 </View>
                 <View style={styles.inputContainer}>
                     <Text style={styles.label}>Password</Text>
-                    <TextInput
+                    <DismissableTextInput
                         style={styles.non_editable_input_text}
                         placeholder="********"
                         editable={false}
                         placeholderTextColor={THEME.muted}
                         secureTextEntry
+                        enableAccessory={false}
                     />
                 </View>
             </ScrollView>
@@ -98,7 +106,7 @@ const styles = StyleSheet.create({
     },
     heading: {
         fontSize: scaleSize(13.5),
-        fontFamily: 'Poppins_600SemiBold',
+        fontFamily: 'Outfit_600SemiBold',
         letterSpacing: 0.1,
         color: THEME.textSecondary,
         alignSelf: 'flex-start',

@@ -396,6 +396,7 @@ export default function Messages({ navigation, route }) {
         return sortedMessages;
     }, [sortedMessages, scope]);
 
+    const topInset = Math.max(insets?.top || 0, 0);
     const cardsBottomPadding = scaleSize(18) + (insets?.bottom ?? 0);
 
     return (
@@ -405,6 +406,7 @@ export default function Messages({ navigation, route }) {
                 toFeedScreen={toFeedScreen}
                 setScope={setScope}
                 openCreateGroupChatBottomSheet={openCreateGroupChatBottomSheet}
+                topInset={topInset}
             />
 
             <View style={styles.cardsContainer}>

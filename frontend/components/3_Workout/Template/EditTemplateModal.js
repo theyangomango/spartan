@@ -1,5 +1,5 @@
-import React, { useState, useCallback, useRef } from "react";
-import { StyleSheet, View, Modal, ScrollView, Text, TextInput, Keyboard, Platform, InputAccessoryView, Pressable } from "react-native";
+import React, { useState, useCallback } from "react";
+import { StyleSheet, View, Modal, ScrollView, Text, TextInput, Keyboard, Platform, Pressable } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import scaleSize from "../../../helper/scaleSize";
@@ -9,6 +9,7 @@ import EditTemplateExerciseLog from "./EditTemplateExerciseLog";
 import theme from "../../../theme/mfpDark";
 import { strong as haptic, withStrongPress } from "../../../utils/haptics";
 import { Copy } from "iconsax-react-native";
+import KeyboardDismissAccessory, { useKeyboardAccessoryId } from "../../common/KeyboardDismissAccessory";
 
 const normalizeSetType = (value) => {
     const raw = typeof value === "string" ? value.toLowerCase() : "";
@@ -49,7 +50,7 @@ const EditTemplateModal = ({
     const [replaceIndex, setReplaceIndex] = useState(null);
     const [deleteConfirmModalVisible, setDeleteConfirmModalVisible] = useState(false);
     const [template, setTemplate] = useState(() => normalizeTemplate(openedTemplateRef.current));
-    const titleAccessoryIdRef = useRef(Platform.OS === 'ios' ? `templateTitleAccessory-${Math.random().toString(36).slice(2, 10)}` : null);
+    const titleAccessoryId = useKeyboardAccessoryId();
 
     const showSelectExerciseModal = useCallback(() => {
         if (readOnly) return;
@@ -241,7 +242,7 @@ const EditTemplateModal = ({
                         returnKeyType="done"
                         blurOnSubmit
                         autoFocus={!readOnly}
-                        inputAccessoryViewID={!readOnly && Platform.OS === 'ios' ? titleAccessoryIdRef.current : undefined}
+                        inputAccessoryViewID={!readOnly && Platform.OS === 'ios' ? titleAccessoryId : undefined}
                     />
                 </View>
                 {template.exercises.map((ex, index) => (
@@ -269,16 +270,7 @@ const EditTemplateModal = ({
                     </>
                 )}
             </ScrollView>
-            {!readOnly && Platform.OS === 'ios' && (
-                <InputAccessoryView nativeID={titleAccessoryIdRef.current}>
-                    <View style={styles.titleAccessoryBar}>
-                        <View style={{ flex: 1 }} />
-                        <Pressable onPress={() => Keyboard.dismiss()} style={styles.titleAccessoryButton} hitSlop={12}>
-                            <MaterialCommunityIcons name="keyboard-outline" size={scaleSize(20)} color={theme.textPrimary} />
-                        </Pressable>
-                    </View>
-                </InputAccessoryView>
-            )}
+            {!readOnly && <KeyboardDismissAccessory accessoryID={titleAccessoryId} />}
             {!readOnly && (
                 <Modal
                     animationType='fade'
@@ -410,20 +402,6 @@ const styles = StyleSheet.create({
         color: '#E0EEFF',
         marginLeft: scaledSize(8),
     },
-    titleAccessoryBar: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        paddingHorizontal: scaleSize(12),
-        paddingVertical: scaleSize(3),
-    },
-    titleAccessoryButton: {
-        backgroundColor: '#5F636C',
-        borderRadius: scaleSize(12),
-        width: scaleSize(64),
-        height: scaleSize(40),
-        alignItems: 'center',
-        justifyContent: 'center',
-    },
     navSpacer: {
         flex: 1,
     },
@@ -534,12 +512,12 @@ const styles = StyleSheet.create({
         borderColor: 'rgba(239,68,68,0.36)',
     },
     modalTitle: {
-        fontSize: scaleSize(20),
-        fontFamily: 'Poppins_700Bold',
+        fontSize: scaleSize(18.5),
+        fontFamily: 'Outfit_700Bold',
         color: theme.textPrimary,
         textAlign: 'center',
-        marginBottom: scaledSize(10),
-        letterSpacing: 0.2,
+        marginBottom: scaledSize(12),
+        letterSpacing: 0.15,
     },
     modalBody: {
         fontSize: scaleSize(13.8),
@@ -572,10 +550,10 @@ const styles = StyleSheet.create({
         marginBottom: 0,
     },
     modalActionText: {
-        fontFamily: 'Poppins_700Bold',
-        fontSize: scaleSize(14.5),
+        fontFamily: 'Outfit_700Bold',
+        fontSize: scaleSize(14),
         color: '#F8FAFC',
-        letterSpacing: 0.3,
+        letterSpacing: 0.2,
     },
     modalActionSecondaryText: {
         fontFamily: 'Outfit_600SemiBold',

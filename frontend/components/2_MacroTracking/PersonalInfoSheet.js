@@ -4,7 +4,6 @@ import {
     View,
     Text,
     StyleSheet,
-    TextInput,
     Pressable,
     ScrollView,
     KeyboardAvoidingView,
@@ -17,6 +16,7 @@ import { Ionicons } from '@expo/vector-icons';
 
 import scaleSize from "../../helper/scaleSize";
 import { strong as haptic } from '../../utils/haptics';
+import DismissableTextInput from '../common/DismissableTextInput';
 
 export function PersonalInfoContent({ goalForm, setGoalForm, onBack, onSave, COLORS }) {
     const styles = useMemo(() => makeStyles(COLORS), [COLORS]);
@@ -86,7 +86,7 @@ export function PersonalInfoContent({ goalForm, setGoalForm, onBack, onSave, COL
                     <View style={styles.row}>
                         <View style={{ flex: 1 }}>
                             <View style={styles.inputBox}>
-                                <TextInput
+                                <DismissableTextInput
                                     keyboardType="number-pad"
                                     returnKeyType="done"
                                     value={String(weight)}
@@ -109,7 +109,7 @@ export function PersonalInfoContent({ goalForm, setGoalForm, onBack, onSave, COL
                     <View style={styles.row}>
                         <View style={{ flex: 1 }}>
                             <View style={styles.inputBox}>
-                                <TextInput
+                                <DismissableTextInput
                                     keyboardType="number-pad"
                                     returnKeyType="done"
                                     value={String(heightFt)}
@@ -125,7 +125,7 @@ export function PersonalInfoContent({ goalForm, setGoalForm, onBack, onSave, COL
                         <View style={{ width: scaleSize(12) }} />
                         <View style={{ flex: 1 }}>
                             <View style={styles.inputBox}>
-                                <TextInput
+                                <DismissableTextInput
                                     keyboardType="number-pad"
                                     returnKeyType="done"
                                     value={String(heightIn)}

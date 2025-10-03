@@ -192,20 +192,20 @@ const styles = StyleSheet.create({
         justifyContent: 'space-between',
     },
     leftWrap: { alignItems: "center", justifyContent: "center", flexShrink: 0 },
-    leftRow: { flexDirection: "row", alignItems: "center", gap: scaleSize(scaledSize(10)) },
+    leftRow: { flexDirection: "row", alignItems: "center", gap: scaledSize(10) },
     backBtn: {
-        width: scaleSize(scaledSize(36)),
-        height: scaleSize(scaledSize(36)),
-        borderRadius: scaleSize(scaledSize(12)),
+        width: scaledSize(36),
+        height: scaledSize(36),
+        borderRadius: scaledSize(12),
         backgroundColor: theme.field,
         alignItems: "center",
         justifyContent: "center",
     },
     rest_timer_ctnr: {
         alignItems: "center",
-        paddingVertical: scaleSize(scaledSize(6)),
-        paddingHorizontal: scaleSize(scaledSize(12)),
-        borderRadius: scaleSize(scaledSize(12)),
+        paddingVertical: scaledSize(6),
+        paddingHorizontal: scaledSize(12),
+        borderRadius: scaledSize(12),
         backgroundColor: theme.restPillBg,
     },
     iconWrapper: { flexDirection: "row", alignItems: "center" },
@@ -213,7 +213,7 @@ const styles = StyleSheet.create({
         fontSize: scaleSize(15),
         color: '#FFFFFF',
         fontFamily: "Outfit_700Bold",
-        marginLeft: scaleSize(scaledSize(10)),
+        marginLeft: scaledSize(10),
     },
 
     // Center timer
@@ -223,23 +223,23 @@ const styles = StyleSheet.create({
 
     // Invite button with trailing avatar
     inviteBtnWrapper: {
-        borderRadius: scaleSize(scaledSize(10)),
+        borderRadius: scaledSize(10),
         overflow: 'hidden',
         flexShrink: 0,
     },
     pfpBtn: {
         flexDirection: "row",
         alignItems: "center",
-        height: scaleSize(scaledSize(38)),
-        paddingHorizontal: scaleSize(scaledSize(12)),
-        borderRadius: scaleSize(scaledSize(12)),
+        height: scaledSize(38),
+        paddingHorizontal: scaledSize(12),
+        borderRadius: scaledSize(12),
     },
     pfpFriend: { opacity: 0.85 },
 
     pfpWrap: {
-        width: scaleSize(scaledSize(28)),
-        height: scaleSize(scaledSize(28)),
-        borderRadius: scaleSize(scaledSize(20)),
+        width: scaledSize(28),
+        height: scaledSize(28),
+        borderRadius: scaledSize(20),
         backgroundColor: theme.surface,
         justifyContent: "center",
         alignItems: "center",
@@ -250,11 +250,11 @@ const styles = StyleSheet.create({
         elevation: 2,
         borderWidth: scaleSize(1),
         borderColor: theme.hairline,
-        marginLeft: scaleSize(scaledSize(8)),
+        marginLeft: scaledSize(8),
     },
-    pfpLeftWrap: { width: scaleSize(scaledSize(32)), height: scaleSize(scaledSize(32)) },
+    pfpLeftWrap: { width: scaledSize(32), height: scaledSize(32) },
     pfpFriendRing: { borderColor: theme.primary },
-    pfp: { width: "100%", height: "100%", borderRadius: scaleSize(scaledSize(20)) },
+    pfp: { width: "100%", height: "100%", borderRadius: scaledSize(20) },
 
     inviteText: {
         fontFamily: "Outfit_700Bold",
@@ -269,9 +269,9 @@ const styles = StyleSheet.create({
 
     // Self: Finish
     finish_btn: {
-        width: scaleSize(scaledSize(83)),
-        height: scaleSize(scaledSize(34)),
-        borderRadius: scaleSize(scaledSize(10)),
+        width: scaledSize(83),
+        height: scaledSize(34),
+        borderRadius: scaledSize(10),
         backgroundColor: theme.successButton,
         justifyContent: "center",
         alignItems: "center",
@@ -284,13 +284,13 @@ const styles = StyleSheet.create({
 
     // Viewing: sleeker Cheer pill
     cheer_btn: {
-        height: scaleSize(scaledSize(34)),
-        paddingHorizontal: scaleSize(scaledSize(12)),
-        borderRadius: scaleSize(scaledSize(10)),
+        height: scaledSize(34),
+        paddingHorizontal: scaledSize(12),
+        borderRadius: scaledSize(10),
         backgroundColor: theme.primary,
         flexDirection: "row",
         alignItems: "center",
-        gap: scaleSize(scaledSize(6)),
+        gap: scaledSize(6),
         shadowColor: theme.primary,
         shadowOpacity: 0.25,
         shadowRadius: scaleSize(8),
@@ -305,14 +305,14 @@ const styles = StyleSheet.create({
     },
     // Copy template button – slightly darker blue than primary for better balance
     copy_btn: {
-        height: scaleSize(scaledSize(34)),
-        paddingHorizontal: scaleSize(scaledSize(12)),
-        borderRadius: scaleSize(scaledSize(12)),
+        height: scaledSize(34),
+        paddingHorizontal: scaledSize(12),
+        borderRadius: scaledSize(12),
         // Darken brand blue further per feedback
         backgroundColor: '#166CC9',
         flexDirection: "row",
         alignItems: "center",
-        gap: scaleSize(scaledSize(6)),
+        gap: scaledSize(6),
         shadowColor: '#166CC9',
         shadowOpacity: 0.2,
         shadowRadius: scaleSize(6),

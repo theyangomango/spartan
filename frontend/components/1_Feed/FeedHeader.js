@@ -6,7 +6,6 @@ import {
     Text,
     TouchableOpacity,
     Dimensions,
-    TextInput,
     FlatList,
     Modal,
     TouchableWithoutFeedback,
@@ -26,6 +25,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import theme from "../../theme/mfpDark";
 import scaleSize from "../../helper/scaleSize";
 import { withStrongPress } from "../../utils/haptics";
+import DismissableTextInput from "../common/DismissableTextInput";
 // Single root navigator; no need for StackActions/nested refs here
 
 const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get("window");
@@ -336,7 +336,7 @@ const SearchUsersBar = ({ navigation, allUsersRef, disabled = false }) => {
                             >
 
                                 <View style={styles.overlayInputWrap}>
-                                    <TextInput
+                                    <DismissableTextInput
                                         style={styles.overlayInput}
                                         placeholder="Search people"
                                         placeholderTextColor="#9AA5B1"

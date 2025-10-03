@@ -88,8 +88,8 @@ const styles = StyleSheet.create({
   iconBtn: { padding: scaleSize(6), width: scaleSize(40) },
   title: { fontFamily: 'Outfit_700Bold', fontSize: scaleSize(18), color: theme.textPrimary },
   content: { paddingHorizontal: scaleSize(16), paddingTop: scaleSize(10), paddingBottom: scaleSize(18) },
-  p: { fontFamily: 'Outfit_400Regular', fontSize: scaleSize(14), color: theme.textSecondary, lineHeight: scaleSize(ts(20)), marginBottom: scaleSize(6) },
-  li: { fontFamily: 'Outfit_400Regular', fontSize: scaleSize(14), color: theme.textSecondary, lineHeight: scaleSize(ts(20)), marginLeft: scaleSize(6) },
+  p: { fontFamily: 'Outfit_400Regular', fontSize: scaleSize(14), color: theme.textSecondary, lineHeight: ts(20), marginBottom: scaleSize(6) },
+  li: { fontFamily: 'Outfit_400Regular', fontSize: scaleSize(14), color: theme.textSecondary, lineHeight: ts(20), marginLeft: scaleSize(6) },
   row: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingVertical: scaleSize(14), borderTopWidth: StyleSheet.hairlineWidth, borderColor: theme.hairline, marginTop: scaleSize(12) },
   rowLabel: { fontFamily: 'Outfit_600SemiBold', fontSize: scaleSize(14), color: theme.textPrimary },
 });

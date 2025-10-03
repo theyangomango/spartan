@@ -172,23 +172,23 @@ const styles = StyleSheet.create({
     container: {
         flexDirection: 'row',
         alignItems: 'center',
-        height: scaleSize(scaledSize(40)),
+        height: scaledSize(40),
         backgroundColor: '#fff',
-        borderRadius: scaleSize(scaledSize(20)),
-        paddingHorizontal: scaleSize(scaledSize(8)),
+        borderRadius: scaledSize(20),
+        paddingHorizontal: scaledSize(8),
         shadowColor: '#999',
-        shadowOffset: { width: 0, height: scaleSize(scaledSize(1)) },
+        shadowOffset: { width: 0, height: scaledSize(1) },
         shadowOpacity: 0.3,
-        shadowRadius: scaleSize(scaledSize(1.5)),
+        shadowRadius: scaledSize(1.5),
         elevation: 3,
         position: 'relative', // Ensure positioning context for dropdown
     },
     iconButton: {
         justifyContent: 'center',
         alignItems: 'center',
-        width: scaleSize(scaledSize(24)), // Fixed width to prevent shifting
-        height: scaleSize(scaledSize(24)), // Set height equal to width for a perfect circle
-        borderRadius: scaleSize(scaledSize(12)), // Half of width/height to make it circular
+        width: scaledSize(24), // Fixed width to prevent shifting
+        height: scaledSize(24), // Set height equal to width for a perfect circle
+        borderRadius: scaledSize(12), // Half of width/height to make it circular
     },
     animatedContainer: {
         overflow: 'hidden',
@@ -208,23 +208,23 @@ const styles = StyleSheet.create({
         fontWeight: '700', // Make text bold
     },
     actionButton: {
-        padding: scaleSize(scaledSize(4)),
+        padding: scaledSize(4),
     },
     userCardsContainer: {
         position: 'absolute',
-        top: scaleSize(scaledSize(50)), // Adjust based on your layout
+        top: scaledSize(50), // Adjust based on your layout
         left: 0,
         right: 0,
         backgroundColor: '#fff',
-        maxHeight: scaleSize(scaledSize(300)),
-        borderRadius: scaleSize(scaledSize(10)),
+        maxHeight: scaledSize(300),
+        borderRadius: scaledSize(10),
         shadowColor: '#000',
-        shadowOffset: { width: 0, height: scaleSize(scaledSize(2)) },
+        shadowOffset: { width: 0, height: scaledSize(2) },
         shadowOpacity: 0.2,
-        shadowRadius: scaleSize(scaledSize(4)),
+        shadowRadius: scaledSize(4),
         elevation: 5,
         zIndex: 10,
-        marginTop: scaleSize(scaledSize(8)),
+        marginTop: scaledSize(8),
     },
     // Removed noResults and noResultsText styles as they are no longer used
 });

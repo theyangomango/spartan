@@ -9,21 +9,25 @@ import theme from "../../theme/mfpDark";
 
 const ACCENT = theme.primary;
 const HAIRLINE = theme.hairline;
-const BASE_HEADER_TOP = scaleSize(36);
-const HEADER_CONTENT_OFFSET = scaleSize(20);
+
+const BASE_TOP_PADDING = scaleSize(18);
 const ICON_TOP_OFFSET = scaleSize(10);
 
 export default function MessagesHeader({
     toFeedScreen,
     openCreateGroupChatBottomSheet,
     setScope,
+    topInset,
 }) {
     const insets = useSafeAreaInsets();
     const [selectedButton, setSelectedButton] = useState("All");
 
-    const safeTop = Math.max(insets?.top ?? 0, BASE_HEADER_TOP);
-    const paddingTop = safeTop + HEADER_CONTENT_OFFSET;
-    const iconTop = safeTop + ICON_TOP_OFFSET;
+    const safeTop = Math.max(
+        typeof topInset === "number" ? topInset : insets?.top || 0,
+        0,
+    );
+    const headerPaddingTop = BASE_TOP_PADDING + safeTop;
+    const iconTop = ICON_TOP_OFFSET;
 
     const onPressTab = (tab) => {
         setSelectedButton(tab);
@@ -46,7 +50,7 @@ export default function MessagesHeader({
     );
 
     return (
-        <View style={[styles.root, { paddingTop }]}>
+        <View style={[styles.root, { paddingTop: headerPaddingTop }]}>
             <View style={styles.row}>
                 {/* Back */}
                 <TouchableOpacity

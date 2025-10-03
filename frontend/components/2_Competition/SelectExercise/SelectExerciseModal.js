@@ -7,6 +7,7 @@ import { Ionicons } from '@expo/vector-icons';
 import ExercisesFlatlist from "../../3_Workout/NewWorkout/SelectExercise/ExercisesFlatlist";
 import { exercises } from "../../3_Workout/NewWorkout/SelectExercise/EXERCISES";
 import styles, { ICON_COLOR, TEXT_SECONDARY } from "../../SelectExerciseModal/styles";
+import RNBounceable from "@freakycoder/react-native-bounceable";
 const scaledSize = (size) => scaleSize(size);
 
 // Body-part options and an order map to "sort accordingly"
@@ -137,8 +138,14 @@ const SelectExerciseModal = memo(({ closeModal, setComparedExercise }) => {
         <View style={styles.modal_outside}>
             <Pressable onPress={withStrongPress(() => closeModal?.())} style={styles.outside_pressable} />
             <View style={styles.main_ctnr}>
-                {/* No header actions in Competition picker */}
-                <View style={styles.header} />
+                <View style={styles.header}>
+                    <RNBounceable
+                        style={styles.closeButton}
+                        onPress={withStrongPress(() => closeModal?.())}
+                    >
+                        <Text style={styles.closeButtonText}>Close</Text>
+                    </RNBounceable>
+                </View>
 
                 {/* Search */}
                 <View style={styles.searchContainer}>

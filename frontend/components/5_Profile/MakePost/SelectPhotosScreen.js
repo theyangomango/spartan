@@ -237,20 +237,20 @@ const styles = StyleSheet.create({
     },
     header_ctnr: {
         alignItems: 'center',
-        paddingHorizontal: scaleSize(scaledSize(5)),
-        paddingTop: scaleSize(scaledSize(5)),
-        paddingBottom: scaleSize(scaledSize(15)),
+        paddingHorizontal: scaledSize(5),
+        paddingTop: scaledSize(5),
+        paddingBottom: scaledSize(15),
         flexDirection: 'row',
         justifyContent: 'space-between',
         backgroundColor: theme.bg
     },
     close_icon_ctnr: {
-        paddingHorizontal: scaleSize(scaledSize(18))
+        paddingHorizontal: scaledSize(18)
     },
     header_text_ctnr: {
     },
     next_icon_ctnr: {
-        paddingHorizontal: scaleSize(scaledSize(23))
+        paddingHorizontal: scaledSize(23)
     },
     title_text: {
         fontFamily: 'Outfit_600SemiBold',
@@ -270,18 +270,18 @@ const styles = StyleSheet.create({
     },
     crop_btn: {
         position: 'absolute',
-        right: scaleSize(scaledSize(14)),
-        top: scaleSize(scaledSize(14)),
-        paddingHorizontal: scaleSize(scaledSize(10)),
-        paddingVertical: scaleSize(scaledSize(6)),
-        borderRadius: scaleSize(scaledSize(12)),
+        right: scaledSize(14),
+        top: scaledSize(14),
+        paddingHorizontal: scaledSize(10),
+        paddingVertical: scaledSize(6),
+        borderRadius: scaledSize(12),
         backgroundColor: 'rgba(0,0,0,0.45)',
         flexDirection: 'row',
         alignItems: 'center',
     },
     crop_btn_text: {
         color: '#fff',
-        marginLeft: scaleSize(scaledSize(8)),
+        marginLeft: scaledSize(8),
         fontFamily: 'Outfit_600SemiBold',
         fontSize: scaleSize(12),
     }

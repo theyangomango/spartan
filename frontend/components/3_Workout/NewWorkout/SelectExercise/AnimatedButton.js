@@ -35,9 +35,9 @@ const styles = StyleSheet.create({
     },
     addButton: {
         backgroundColor: '#51A9FF',
-        paddingHorizontal: scaleSize(scaledSize(20)),
-        paddingVertical: scaleSize(scaledSize(4.5)),
-        borderRadius: scaleSize(scaledSize(8)),
+        paddingHorizontal: scaledSize(20),
+        paddingVertical: scaledSize(6),
+        borderRadius: scaledSize(8),
         justifyContent: 'center',
         alignItems: 'center'
     },

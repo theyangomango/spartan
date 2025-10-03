@@ -78,7 +78,7 @@ const GroupMenu = ({ visible, onClose, participants = [], viewing, onInvite, onS
                                 />
                             )}
                             ItemSeparatorComponent={() => <View style={styles.menuHairline} />}
-                            style={{ maxHeight: scaleSize(scaledSize(260)) }}
+                            style={{ maxHeight: scaledSize(260) }}
                         />
                     )}
                 </View>
@@ -93,16 +93,16 @@ const styles = StyleSheet.create({
     menuBackdrop: {
         flex: 1,
         backgroundColor: "rgba(0,0,0,0.15)",
-        paddingTop: scaleSize(scaledSize(70)),
-        paddingRight: scaleSize(scaledSize(12)),
+        paddingTop: scaledSize(70),
+        paddingRight: scaledSize(12),
         alignItems: "flex-end",
     },
     menuCard: {
-        width: scaleSize(scaledSize(300)),
+        width: scaledSize(300),
         backgroundColor: theme.surface,
-        borderRadius: scaleSize(scaledSize(14)),
-        paddingVertical: scaleSize(scaledSize(10)),
-        paddingHorizontal: scaleSize(scaledSize(10)),
+        borderRadius: scaledSize(14),
+        paddingVertical: scaledSize(10),
+        paddingHorizontal: scaledSize(10),
         shadowColor: "#000",
         shadowOpacity: 0.12,
         shadowRadius: scaleSize(12),
@@ -113,62 +113,62 @@ const styles = StyleSheet.create({
         fontFamily: "Outfit_700Bold",
         fontSize: scaleSize(16),
         color: theme.textPrimary,
-        marginBottom: scaleSize(scaledSize(6)),
-        paddingHorizontal: scaleSize(scaledSize(4)),
+        marginBottom: scaledSize(6),
+        paddingHorizontal: scaledSize(4),
     },
 
     menuItem: {
         flexDirection: "row",
         alignItems: "center",
-        paddingVertical: scaleSize(scaledSize(10)),
-        paddingHorizontal: scaleSize(scaledSize(8)),
-        borderRadius: scaleSize(scaledSize(10)),
+        paddingVertical: scaledSize(10),
+        paddingHorizontal: scaledSize(8),
+        borderRadius: scaledSize(10),
     },
     menuItemText: {
         fontFamily: "Outfit_600SemiBold",
         color: theme.textPrimary,
-        marginLeft: scaleSize(scaledSize(8)),
+        marginLeft: scaledSize(8),
         flexShrink: 1,
     },
 
     menuDivider: {
         height: scaleSize(1),
         backgroundColor: theme.hairline,
-        marginVertical: scaleSize(scaledSize(8)),
+        marginVertical: scaledSize(8),
     },
     menuSectionHeader: {
         fontFamily: "Outfit_600SemiBold",
         fontSize: scaleSize(12.5),
         color: theme.textSecondary,
-        paddingHorizontal: scaleSize(scaledSize(6)),
-        marginTop: scaleSize(scaledSize(6)),
-        marginBottom: scaleSize(scaledSize(4)),
+        paddingHorizontal: scaledSize(6),
+        marginTop: scaledSize(6),
+        marginBottom: scaledSize(4),
     },
     menuEmpty: {
         fontFamily: "Outfit_500Medium",
         fontSize: scaleSize(12.5),
         color: theme.textSecondary,
-        paddingHorizontal: scaleSize(scaledSize(8)),
-        paddingVertical: scaleSize(scaledSize(6)),
+        paddingHorizontal: scaledSize(8),
+        paddingVertical: scaledSize(6),
     },
     menuHairline: {
         height: StyleSheet.hairlineWidth,
         backgroundColor: theme.hairline,
-        marginLeft: scaleSize(scaledSize(50)),
+        marginLeft: scaledSize(50),
     },
 
     participantRow: {
         flexDirection: "row",
         alignItems: "center",
-        paddingVertical: scaleSize(scaledSize(8)),
-        paddingHorizontal: scaleSize(scaledSize(6)),
+        paddingVertical: scaledSize(8),
+        paddingHorizontal: scaledSize(6),
     },
     participantPfpWrap: {
-        width: scaleSize(scaledSize(30)),
-        height: scaleSize(scaledSize(30)),
-        borderRadius: scaleSize(scaledSize(15)),
+        width: scaledSize(30),
+        height: scaledSize(30),
+        borderRadius: scaledSize(15),
         overflow: "hidden",
-        marginRight: scaleSize(scaledSize(10)),
+        marginRight: scaledSize(10),
         backgroundColor: theme.surface,
         borderWidth: scaleSize(1),
         borderColor: theme.hairline,

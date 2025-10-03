@@ -40,7 +40,7 @@ export default function UserStatsExerciseDetailScreen({
                 <ActivityIndicator size="small" color={COLORS.subtext} />
             </View>
         ) : (
-            <View style={{ height: scaleSize(scaledSize(40)) }} />
+            <View style={{ height: scaledSize(40) }} />
         )
     ), [loading]);
 

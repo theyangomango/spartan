@@ -62,8 +62,8 @@ export default ExerciseCard;
 const styles = StyleSheet.create({
     card: {
         flexDirection: 'row',
-        paddingLeft: scaleSize(scaledSize(20)),
-        paddingRight: scaleSize(scaledSize(18)),
+        paddingLeft: scaledSize(20),
+        paddingRight: scaledSize(18),
         justifyContent: 'space-between',
         backgroundColor: COLORS.cardBg,
         paddingTop: scaleSize(1),
@@ -77,31 +77,31 @@ const styles = StyleSheet.create({
     border: {
         position: 'absolute',
         bottom: 0,
-        left: scaleSize(scaledSize(13)),
-        right: scaleSize(scaledSize(13)),
-        height: scaleSize(scaledSize(1)),
+        left: scaledSize(13),
+        right: scaledSize(13),
+        height: scaledSize(1),
         backgroundColor: COLORS.hairline,
     },
     textContainer: {
         flexDirection: 'column',
-        // paddingVertical: scaleSize(scaledSize(8)),
+        // paddingVertical: scaledSize(8),
         justifyContent: 'center',
         flex: 1,
-        paddingLeft: scaleSize(scaledSize(14)),
+        paddingLeft: scaledSize(14),
     },
     selected: { backgroundColor: COLORS.selectedBg },
     exerciseName: {
         fontFamily: 'Outfit_700Bold',
         fontSize: scaleSize(14),
         color: COLORS.text,
-        marginVertical: scaleSize(scaledSize(3)),
+        marginVertical: scaledSize(3),
         flexWrap: 'wrap',
     },
     muscleGroupText: {
         fontFamily: 'Outfit_500Medium',
         fontSize: scaleSize(12.5),
         color: COLORS.subtext,
-        marginTop: scaleSize(scaledSize(2)),
+        marginTop: scaledSize(2),
     },
     lastDone: {
         fontFamily: 'Outfit_500Medium',
@@ -111,12 +111,12 @@ const styles = StyleSheet.create({
     rightContainer: {
         flexDirection: 'row',
         alignItems: 'center',
-        marginLeft: scaleSize(scaledSize(10)),
+        marginLeft: scaledSize(10),
     },
     timesCompleted: {
         fontFamily: 'Outfit_700Bold',
         fontSize: scaleSize(14.5),
-        marginRight: scaleSize(scaledSize(8)),
+        marginRight: scaledSize(8),
         color: COLORS.accent,
     },
 });

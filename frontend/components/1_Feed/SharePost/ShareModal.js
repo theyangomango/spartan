@@ -1,12 +1,13 @@
 import { BlurView } from 'expo-blur';
 import React, { useEffect, useState } from 'react';
-import { View, Text, FlatList, StyleSheet, Dimensions, TextInput, TouchableOpacity } from 'react-native';
+import { View, Text, FlatList, StyleSheet, Dimensions, TouchableOpacity } from 'react-native';
 import Icon from 'react-native-vector-icons/Ionicons';
 import ProfileCard from '../../ProfileCard';
 import RNBounceable from '@freakycoder/react-native-bounceable';
 import theme from '../../../theme/mfpDark';
 
 import scaleSize from "../../../helper/scaleSize";
+import DismissableTextInput from "../../common/DismissableTextInput";
 
 export default function ShareModal({ closeBottomSheet }) {
     const [followingUsers, setFollowingUsers] = useState([]);
@@ -63,11 +64,12 @@ export default function ShareModal({ closeBottomSheet }) {
             <View style={styles.header}>
                 <View style={styles.searchContainer}>
                     <Icon name="search" size={20} color="#9AA5B1" style={styles.searchIcon} />
-                    <TextInput
+                    <DismissableTextInput
                         style={styles.searchBar}
                         placeholder="Search"
                         value={searchQuery}
                         onChangeText={setSearchQuery}
+                        returnKeyType="search"
                     />
                 </View>
             </View>
@@ -137,7 +139,7 @@ const styles = StyleSheet.create({
     },
     sendButtonText: {
         color: 'white',
-        fontSize: scaleSize(15.5),
-        fontFamily: 'Poppins_600SemiBold'
+        fontSize: scaleSize(15),
+        fontFamily: 'Outfit_600SemiBold'
     },
 });

@@ -29,25 +29,25 @@ export default function ProfileRowButtons({ handleOpenEditProfile, handleOpenVie
 
 const styles = StyleSheet.create({
     row: {
-        marginHorizontal: scaleSize(scaledSize(5)),
-        marginTop: scaleSize(scaledSize(10)),
+        marginHorizontal: scaledSize(5),
+        marginTop: scaledSize(10),
         flexDirection: "row",
         justifyContent: "space-around",
-        height: scaleSize(scaledSize(32)),
+        height: scaledSize(32),
     },
     flex: {
         flex: 1,
     },
     button: {
-        paddingHorizontal: scaleSize(scaledSize(20)),
-        borderRadius: scaleSize(scaledSize(10)),
+        paddingHorizontal: scaledSize(20),
+        borderRadius: scaledSize(10),
         // Increase contrast on Feed/bg: subtle translucent pill + hairline
         backgroundColor: 'rgba(255,255,255,0.18)',
-        borderWidth: scaleSize(scaledSize(1)),
+        borderWidth: scaledSize(1),
         borderColor: theme.hairline,
         justifyContent: "center",
         alignItems: "center",
-        marginHorizontal: scaleSize(scaledSize(3)),
+        marginHorizontal: scaledSize(3),
         shadowColor: '#000',
         shadowOpacity: 0.12,
         shadowRadius: scaleSize(6),

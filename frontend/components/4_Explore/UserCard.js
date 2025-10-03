@@ -28,34 +28,34 @@ const UserCard = ({ user, toViewProfile }) => {
 
 const styles = StyleSheet.create({
     itemContainer: {
-        marginHorizontal: scaleSize(scaledSize(8)),
-        paddingHorizontal: scaleSize(scaledSize(11)),
-        paddingVertical: scaleSize(scaledSize(9)),
+        marginHorizontal: scaledSize(8),
+        paddingHorizontal: scaledSize(11),
+        paddingVertical: scaledSize(9),
         flexDirection: 'row',
         alignItems: 'center',
         borderBottomWidth: scaledSize(1.5),
         borderBottomColor: '#eee',
     },
     pfp_ctnr: {
-        width: scaleSize(scaledSize(47)),
+        width: scaledSize(47),
         aspectRatio: 1,
-        borderRadius: scaleSize(scaledSize(40)),
+        borderRadius: scaledSize(40),
         position: 'relative',
     },
     text_ctnr: {
-        marginLeft: scaleSize(scaledSize(12)),
+        marginLeft: scaledSize(12),
         flex: 1,
     },
     pfp: {
         width: '100%',
         height: '100%',
-        borderRadius: scaleSize(scaledSize(40)),
+        borderRadius: scaledSize(40),
     },
     handle_text: {
         fontFamily: 'Poppins_600SemiBold',
         fontSize: scaleSize(12.5),
         color: '#000',
-        marginBottom: scaleSize(scaledSize(1.5)),
+        marginBottom: scaledSize(1.5),
     },
     name_text: {
         fontFamily: 'Poppins_500Medium',
@@ -63,20 +63,20 @@ const styles = StyleSheet.create({
         color: '#888',
     },
     iconOutline: {
-        width: scaleSize(scaledSize(24)),
-        height: scaleSize(scaledSize(24)),
+        width: scaledSize(24),
+        height: scaledSize(24),
         borderRadius: scaleSize(100),
-        borderWidth: scaleSize(scaledSize(2)),
+        borderWidth: scaledSize(2),
         borderColor: '#888',
         justifyContent: 'center',
         alignItems: 'center',
-        marginRight: scaleSize(scaledSize(8)),
+        marginRight: scaledSize(8),
     },
     selectedIcon: {
         borderColor: '#2D9EFF',
     },
     filledIcon: {
-        width: scaleSize(scaledSize(16)),
+        width: scaledSize(16),
         aspectRatio: 1,
         borderRadius: scaleSize(100),
         backgroundColor: '#2D9EFF',

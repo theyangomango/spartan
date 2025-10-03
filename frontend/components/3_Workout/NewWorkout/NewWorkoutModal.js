@@ -675,7 +675,7 @@ const NewWorkoutModal = ({
                                 </RNBounceable>
                             </>
                         )}
-                        <View style={{ height: scaleSize(scaledSize(250) + Math.max(0, keyboardHeight - scaledSize(40))) }} />
+                        <View style={{ height: scaledSize(250) + Math.max(0, keyboardHeight - scaledSize(40)) }} />
                     </Animated.View>)
                 ) : (
                     /* Animated FlashList for smoother, low-overhead virtualization */
@@ -713,7 +713,7 @@ const NewWorkoutModal = ({
                                             </RNBounceable>
                                         </>
                                     )}
-                                    <View style={{ height: scaleSize(scaledSize(250) + Math.max(0, keyboardHeight - scaledSize(40))) }} />
+                                    <View style={{ height: scaledSize(250) + Math.max(0, keyboardHeight - scaledSize(40)) }} />
                                 </>
                             )}
                             showsVerticalScrollIndicator={false}
@@ -826,22 +826,22 @@ const styles = StyleSheet.create({
     // Let BottomSheet control background color; keep transparent here
     header: { backgroundColor: 'transparent' },
     headerInner: {
-        paddingBottom: scaleSize(scaledSize(6)),
-        paddingHorizontal: scaleSize(scaledSize(22)),
-        paddingTop: scaleSize(scaledSize(6)),
+        paddingBottom: scaledSize(6),
+        paddingHorizontal: scaledSize(22),
+        paddingTop: scaledSize(6),
         flexDirection: "row",
         alignItems: "center",
         justifyContent: "space-between",
         backgroundColor: 'transparent',
         zIndex: 5,
     },
-    headerShadow: { height: scaleSize(scaledSize(2)), backgroundColor: theme.hairline },
+    headerShadow: { height: scaledSize(2), backgroundColor: theme.hairline },
 
     // Allow the BottomSheet background to show through
-    scrollview: { paddingTop: scaleSize(scaledSize(5)), backgroundColor: 'transparent' },
+    scrollview: { paddingTop: scaledSize(5), backgroundColor: 'transparent' },
     titleDisplayContainer: {
-        paddingHorizontal: scaleSize(scaledSize(24)),
-        marginBottom: scaleSize(scaledSize(12)),
+        paddingHorizontal: scaledSize(24),
+        marginBottom: scaledSize(12),
     },
     titleDisplayText: {
         fontFamily: 'Outfit_700Bold',
@@ -856,10 +856,10 @@ const styles = StyleSheet.create({
     waitingText: { marginTop: scaleSize(6), fontFamily: "Nunito_700Bold", color: theme.textPrimary },
 
     add_exercise_btn: {
-        marginHorizontal: scaleSize(scaledSize(20)),
-        marginTop: scaleSize(scaledSize(18)),
-        height: scaleSize(scaledSize(40)),
-        borderRadius: scaleSize(scaledSize(12)),
+        marginHorizontal: scaledSize(20),
+        marginTop: scaledSize(18),
+        height: scaledSize(40),
+        borderRadius: scaledSize(12),
         // Slightly muted brand blue for softer contrast
         backgroundColor: 'rgba(45, 157, 255, 0.6)',
         justifyContent: "center",
@@ -867,22 +867,22 @@ const styles = StyleSheet.create({
         flexDirection: "row",
         shadowColor: theme.primary,
         shadowOpacity: 0.15,
-        shadowRadius: scaleSize(scaledSize(6)),
-        shadowOffset: { width: 0, height: scaleSize(scaledSize(3)) },
+        shadowRadius: scaledSize(6),
+        shadowOffset: { width: 0, height: scaledSize(3) },
         elevation: 2,
     },
     add_exercise_text: {
         fontSize: scaleSize(16),
         fontFamily: "Outfit_700Bold",
         color: "#FFFFFF",
-        marginRight: scaleSize(scaledSize(4.5)),
+        marginRight: scaledSize(4.5),
     },
 
     cancel_btn: {
-        marginHorizontal: scaleSize(scaledSize(20)),
-        marginTop: scaleSize(scaledSize(14)),
-        height: scaleSize(scaledSize(40)),
-        borderRadius: scaleSize(scaledSize(12)),
+        marginHorizontal: scaledSize(20),
+        marginTop: scaledSize(14),
+        height: scaledSize(40),
+        borderRadius: scaledSize(12),
         // Slightly muted red
         backgroundColor: 'rgba(217,76,76,0.7)',
         justifyContent: "center",
@@ -890,11 +890,11 @@ const styles = StyleSheet.create({
         flexDirection: "row",
         shadowColor: "#D94C4C",
         shadowOpacity: 0.15,
-        shadowRadius: scaleSize(scaledSize(6)),
-        shadowOffset: { width: 0, height: scaleSize(scaledSize(3)) },
+        shadowRadius: scaledSize(6),
+        shadowOffset: { width: 0, height: scaledSize(3) },
         elevation: 2,
     },
-    cancel_btn_text: { fontSize: scaleSize(16), fontFamily: "Outfit_700Bold", color: "#FFFFFF", marginRight: scaleSize(scaledSize(4.5)) },
+    cancel_btn_text: { fontSize: scaleSize(16), fontFamily: "Outfit_700Bold", color: "#FFFFFF", marginRight: scaledSize(4.5) },
 
 });
 

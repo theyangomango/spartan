@@ -1,6 +1,6 @@
 // screens/FoodDetail.js
 import React, { useMemo, useState, useEffect } from 'react';
-import { View, Text, StyleSheet, Pressable, ScrollView, StatusBar, SafeAreaView, TextInput, Platform } from 'react-native';
+import { View, Text, StyleSheet, Pressable, ScrollView, StatusBar, SafeAreaView, Platform } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import theme from '../theme/mfpDark';
 import { db } from '../../firebase.config';
@@ -13,6 +13,7 @@ import Svg, { Circle } from 'react-native-svg';
 import { strong as haptic } from '../utils/haptics';
 
 import scaleSize from "../helper/scaleSize";
+import DismissableTextInput from "../components/common/DismissableTextInput";
 
 const COLORS = {
     bg: theme.bg,
@@ -339,7 +340,7 @@ export default function FoodDetail({ navigation, route }) {
                         <Pressable style={[styles.stepBtn, styles.stepLeft]} onPress={() => { try { haptic(); } catch { } adjust(-0.5); }}>
                             <Ionicons name="remove" size={16} color={COLORS.text} />
                         </Pressable>
-                        <TextInput
+                        <DismissableTextInput
                             value={String(servings)}
                             onChangeText={onChangeText}
                             onBlur={() => {
@@ -351,6 +352,7 @@ export default function FoodDetail({ navigation, route }) {
                             style={styles.input}
                             placeholder="1"
                             placeholderTextColor={COLORS.subtext}
+                            returnKeyType="done"
                         />
                         <Pressable style={[styles.stepBtn, styles.stepRight]} onPress={() => { try { haptic(); } catch { } adjust(+0.5); }}>
                             <Ionicons name="add" size={16} color={COLORS.text} />

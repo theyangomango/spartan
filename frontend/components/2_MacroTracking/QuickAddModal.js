@@ -1,9 +1,10 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { View, Text, StyleSheet, TextInput, Modal, Pressable, Keyboard } from 'react-native';
+import { View, Text, StyleSheet, Modal, Pressable, Keyboard } from 'react-native';
 import RNBounceable from '@freakycoder/react-native-bounceable';
 
 import scaleSize from "../../helper/scaleSize";
 import { strong as haptic } from '../../utils/haptics';
+import DismissableTextInput from '../common/DismissableTextInput';
 
 export default function QuickAddModal({ visible, onClose, onSubmit, COLORS }) {
     const styles = useMemo(() => makeStyles(COLORS), [COLORS]);
@@ -74,44 +75,48 @@ export default function QuickAddModal({ visible, onClose, onSubmit, COLORS }) {
                     <Text style={styles.modalTitle}>Quick Add</Text>
 
                     <Text style={styles.inputLabel}>Name</Text>
-                    <TextInput
+                    <DismissableTextInput
                         value={name}
                         onChangeText={setName}
                         placeholder="e.g., Greek Yogurt"
                         placeholderTextColor="#aaa"
                         style={styles.inputField}
+                        returnKeyType="done"
                     />
 
                     <Text style={styles.inputLabel}>Brand (optional)</Text>
-                    <TextInput
+                    <DismissableTextInput
                         value={brand}
                         onChangeText={setBrand}
                         placeholder="e.g., Custom"
                         placeholderTextColor="#aaa"
                         style={styles.inputField}
+                        returnKeyType="done"
                     />
 
                     <View style={styles.row2}>
                         <View style={styles.col}>
                             <Text style={styles.inputLabel}>Calories</Text>
-                            <TextInput
+                            <DismissableTextInput
                                 value={calories}
                                 onChangeText={setCalories}
                                 placeholder="kcal"
                                 placeholderTextColor="#aaa"
                                 style={styles.inputField}
                                 keyboardType="numeric"
+                                returnKeyType="done"
                             />
                         </View>
                         <View style={styles.col}>
                             <Text style={styles.inputLabel}>Protein</Text>
-                            <TextInput
+                            <DismissableTextInput
                                 value={protein}
                                 onChangeText={setProtein}
                                 placeholder="g"
                                 placeholderTextColor="#aaa"
                                 style={styles.inputField}
                                 keyboardType="numeric"
+                                returnKeyType="done"
                             />
                         </View>
                     </View>
@@ -119,24 +124,26 @@ export default function QuickAddModal({ visible, onClose, onSubmit, COLORS }) {
                     <View style={styles.row2}>
                         <View style={styles.col}>
                             <Text style={styles.inputLabel}>Carbs</Text>
-                            <TextInput
+                            <DismissableTextInput
                                 value={carbs}
                                 onChangeText={setCarbs}
                                 placeholder="g"
                                 placeholderTextColor="#aaa"
                                 style={styles.inputField}
                                 keyboardType="numeric"
+                                returnKeyType="done"
                             />
                         </View>
                         <View style={styles.col}>
                             <Text style={styles.inputLabel}>Fat</Text>
-                            <TextInput
+                            <DismissableTextInput
                                 value={fat}
                                 onChangeText={setFat}
                                 placeholder="g"
                                 placeholderTextColor="#aaa"
                                 style={styles.inputField}
                                 keyboardType="numeric"
+                                returnKeyType="done"
                             />
                         </View>
                     </View>
@@ -151,13 +158,14 @@ export default function QuickAddModal({ visible, onClose, onSubmit, COLORS }) {
                     </View>
                     <View style={styles.customRow}>
                         <Text style={styles.customLabel}>Custom</Text>
-                        <TextInput
+                        <DismissableTextInput
                             value={portion}
                             onChangeText={setPortion}
                             placeholder="e.g. 0.5 or 1/3"
                             placeholderTextColor="#aaa"
                             style={styles.customInput}
                             keyboardType="decimal-pad"
+                            returnKeyType="done"
                         />
                     </View>
 

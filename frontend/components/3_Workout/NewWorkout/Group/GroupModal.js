@@ -225,7 +225,7 @@ const GroupModal = ({ closeGroupModal, onInvite }) => {
                     end={{ x: 1, y: 1 }}
                     style={styles.sendButton}
                 >
-                    <Icon name="person-add-outline" size={scaledSize(18)} color="#fff" style={{ marginRight: scaleSize(scaledSize(8)) }} />
+                    <Icon name="person-add-outline" size={scaledSize(18)} color="#fff" style={{ marginRight: scaledSize(8) }} />
                     <Text style={styles.sendButtonText}>
                         {`Invite${selectedUsers.length > 0 ? ` (${selectedUsers.length})` : ""}`}
                     </Text>
@@ -241,12 +241,12 @@ const styles = StyleSheet.create({
     modalOverlay: { flex: 1, alignItems: "center" },
 
     header: {
-        height: scaleSize(scaledSize(48)),
-        paddingTop: scaleSize(scaledSize(16)),
+        height: scaledSize(48),
+        paddingTop: scaledSize(16),
         flexDirection: "row",
         alignItems: "center",
         justifyContent: "center",
-        marginBottom: scaleSize(scaledSize(10)),
+        marginBottom: scaledSize(10),
     },
     modalText: {
         fontFamily: "Nunito_800ExtraBold",
@@ -260,19 +260,19 @@ const styles = StyleSheet.create({
         flexDirection: "row",
         alignItems: "center",
         backgroundColor: theme.field,
-        borderRadius: scaleSize(scaledSize(12)),
+        borderRadius: scaledSize(12),
         borderWidth: StyleSheet.hairlineWidth,
         borderColor: theme.hairline,
         width: "90%",
-        paddingHorizontal: scaleSize(scaledSize(10)),
-        paddingVertical: scaleSize(scaledSize(6)),
-        marginBottom: scaleSize(scaledSize(10)),
+        paddingHorizontal: scaledSize(10),
+        paddingVertical: scaledSize(6),
+        marginBottom: scaledSize(10),
     },
-    searchIcon: { marginRight: scaleSize(scaledSize(8)) },
+    searchIcon: { marginRight: scaledSize(8) },
     searchBar: {
         flex: 1,
-        paddingHorizontal: scaleSize(scaledSize(8)),
-        paddingVertical: scaleSize(scaledSize(6)),
+        paddingHorizontal: scaledSize(8),
+        paddingVertical: scaledSize(6),
         fontSize: scaleSize(14),
         color: theme.textPrimary,
         fontFamily: "Nunito_600SemiBold",
@@ -280,7 +280,7 @@ const styles = StyleSheet.create({
     },
 
     list: { flex: 1, width: "100%" },
-    sectionHeaderWrap: { width: "100%", paddingHorizontal: scaleSize(scaledSize(22)), paddingTop: scaleSize(scaledSize(10)), paddingBottom: scaleSize(scaledSize(6)) },
+    sectionHeaderWrap: { width: "100%", paddingHorizontal: scaledSize(22), paddingTop: scaledSize(10), paddingBottom: scaledSize(6) },
     sectionHeaderText: {
         fontFamily: "Outfit_700Bold",
         fontSize: scaleSize(12),
@@ -290,9 +290,9 @@ const styles = StyleSheet.create({
 
     sendButtonWrap: {
         position: "absolute",
-        left: scaleSize(scaledSize(22)),
-        right: scaleSize(scaledSize(22)),
-        borderRadius: scaleSize(scaledSize(18)),
+        left: scaledSize(22),
+        right: scaledSize(22),
+        borderRadius: scaledSize(18),
         // Give the shadow a base color for iOS' shadow renderer
         backgroundColor: theme.bg,
         shadowColor: "#000",
@@ -305,9 +305,9 @@ const styles = StyleSheet.create({
         flexDirection: "row",
         alignItems: "center",
         justifyContent: "center",
-        borderRadius: scaleSize(scaledSize(18)),
-        paddingVertical: scaleSize(scaledSize(14)),
-        paddingHorizontal: scaleSize(scaledSize(30)),
+        borderRadius: scaledSize(18),
+        paddingVertical: scaledSize(14),
+        paddingHorizontal: scaledSize(30),
     },
     sendButtonText: {
         color: "#fff",

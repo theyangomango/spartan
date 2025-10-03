@@ -1,6 +1,7 @@
 // components/2_MacroTracking/LabeledNumber.js
 import React from 'react';
-import { View, Text, TextInput } from 'react-native';
+import { View, Text } from 'react-native';
+import DismissableTextInput from '../common/DismissableTextInput';
 
 export default function LabeledNumber({
     label,
@@ -18,7 +19,7 @@ export default function LabeledNumber({
         <View style={{ flex: 1 }}>
             <Text style={styles.inputLabel}>{label}</Text>
             <View style={styles.inputBox}>
-                <TextInput
+                <DismissableTextInput
                     keyboardType={keyboardType}
                     returnKeyType="done"
                     value={String(value ?? '')}

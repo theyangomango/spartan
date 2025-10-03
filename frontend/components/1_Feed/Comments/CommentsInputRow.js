@@ -1,9 +1,10 @@
 import { useMemo } from 'react';
-import { View, TextInput, Image, Pressable } from 'react-native';
+import { View, Image, Pressable } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 
 import theme from '../../../theme/mfpDark';
 import scaleSize from '../../../helper/scaleSize';
+import DismissableTextInput from '../../common/DismissableTextInput';
 
 const useInputStyles = (dynamicStyles) => useMemo(() => ({
     container: {
@@ -62,7 +63,7 @@ export default function CommentsInputRow({
             <View style={styles.imageWrapper}>
                 <Image source={{ uri: global.userData.image }} style={styles.pfp} />
             </View>
-            <TextInput
+            <DismissableTextInput
                 ref={inputRef}
                 placeholder={placeholder}
                 placeholderTextColor="#C9D2E3"
@@ -72,6 +73,8 @@ export default function CommentsInputRow({
                 value={value}
                 onChangeText={onChangeText}
                 editable={editable}
+                multiline
+                returnKeyType="send"
             />
             <Pressable style={styles.sendButton} onPress={onPressSend} disabled={!canSend}>
                 <Ionicons name="send" size={dynamicStyles.sendButtonSize} color="#E5E7EB" />

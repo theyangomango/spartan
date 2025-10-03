@@ -1159,6 +1159,7 @@ export default function Competition({ navigation, route }) {
                 userList={rankedDisplay}
                 categoryCompared={comparedExercise}
                 comparedMetric={comparedMetric}
+                scopeKey={scope}
                 onToggleMetric={() =>
                     setComparedMetric((prev) => (prev === "1RM" ? "Volume" : prev === "Volume" ? "Reps" : "1RM"))
                 }

@@ -1,9 +1,10 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { View, Text, StyleSheet, TextInput, Modal, Pressable } from 'react-native';
+import { View, Text, StyleSheet, Modal } from 'react-native';
 import RNBounceable from '@freakycoder/react-native-bounceable';
 
 import scaleSize from "../../helper/scaleSize";
 import { strong as haptic } from '../../utils/haptics';
+import DismissableTextInput from '../common/DismissableTextInput';
 
 export default function PortionPickerModal({ visible, onCancel, onConfirm, COLORS }) {
     const styles = useMemo(() => makeStyles(COLORS), [COLORS]);
@@ -47,7 +48,7 @@ export default function PortionPickerModal({ visible, onCancel, onConfirm, COLOR
                         <Text style={styles.customLabel}>Custom</Text>
                         <View style={[styles.customInputWrapper, focused && styles.customInputWrapperFocused]}>
                             <Text style={styles.customInputIcon}>✎</Text>
-                            <TextInput
+                            <DismissableTextInput
                                 value={input}
                                 onChangeText={setInput}
                                 onFocus={() => setFocused(true)}

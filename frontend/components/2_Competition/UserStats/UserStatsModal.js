@@ -426,9 +426,9 @@ export default function UserStatsModal({ user, toViewProfile, hexOverlay, hexPro
                 {/* Exercises */}
                 <View style={styles.exerciseList}>
                     {!showExercises ? (
-                        <View style={[styles.emptyCard, { paddingVertical: scaleSize(scaledSize(30)) }]}>
+                        <View style={[styles.emptyCard, { paddingVertical: scaledSize(30) }]}>
                             <ActivityIndicator size="small" color={COLORS.accent} />
-                            <Text style={[styles.emptyText, { marginTop: scaleSize(scaledSize(6)) }]}>Loading…</Text>
+                            <Text style={[styles.emptyText, { marginTop: scaledSize(6) }]}>Loading…</Text>
                         </View>
                     ) : exerciseGroups.length === 0 ? (
                         <View style={styles.emptyCard}>
@@ -465,7 +465,7 @@ export default function UserStatsModal({ user, toViewProfile, hexOverlay, hexPro
                     )}
                 </View>
 
-                <View style={{ height: scaleSize(scaledSize(100)) }} />
+                <View style={{ height: scaledSize(100) }} />
             </ScrollView>
             <UserStatsExerciseDetailScreen
                 visible={!!detailName}

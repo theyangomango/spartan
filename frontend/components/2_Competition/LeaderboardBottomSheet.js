@@ -17,6 +17,7 @@ const LeaderboardBottomSheet = ({
     onToggleMetric,
     openModal,
     openBottomSheet,
+    scopeKey = null,
     isHexFocus = false,
     hexFocusKey = null,
     hexFocusLabel = "",
@@ -146,6 +147,7 @@ const LeaderboardBottomSheet = ({
                     isHexFocus={isHexFocus}
                     hexFocusKey={hexFocusKey}
                     hexFocusLabel={hexFocusLabel}
+                    scopeKey={scopeKey}
 
                     // NEW
                     isTribeFocused={isTribeFocused}

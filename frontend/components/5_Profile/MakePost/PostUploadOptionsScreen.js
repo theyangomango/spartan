@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { StyleSheet, View, ScrollView, Text, TouchableOpacity, Image, TextInput, Pressable, SafeAreaView, Dimensions, FlatList } from "react-native";
+import { StyleSheet, View, ScrollView, Text, TouchableOpacity, Image, Pressable, SafeAreaView, Dimensions, FlatList } from "react-native";
 import { FontAwesome6, AntDesign } from '@expo/vector-icons';
 import { Location, Weight } from 'iconsax-react-native';
 import { Feather } from '@expo/vector-icons';
@@ -19,6 +19,7 @@ import theme from '../../../theme/mfpDark';
 import { withStrongPress } from "../../../utils/haptics";
 
 import scaleSize1 from "../../../helper/scaleSize";
+import DismissableTextInput from "../../common/DismissableTextInput";
 
 const { width: screenWidth, height: screenHeight } = Dimensions.get('window');
 const scale = screenWidth / 375; // Assuming a base screen width of 375 (like iPhone X)
@@ -200,13 +201,14 @@ export default function PostOptionsScreen({ navigation, route }) {
                         style={styles.post_preview_image}
                     />
                     <View style={styles.caption_input_ctnr}>
-                        <TextInput
+                        <DismissableTextInput
                             placeholder="Write a caption..."
                             placeholderTextColor={theme.textSecondary}
                             value={caption}
                             onChangeText={setCaption}
                             style={styles.caption_text}
-                            multiline={true}
+                            multiline
+                            returnKeyType="default"
                         />
                     </View>
                 </View>

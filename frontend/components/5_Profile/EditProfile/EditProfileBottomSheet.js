@@ -37,6 +37,7 @@ const EditProfileBottomSheet = ({ isVisible, setIsVisible, setPFP }) => {
             backdropComponent={renderBackdrop}
             onChange={handleSheetChanges}
             backgroundStyle={{ backgroundColor: require("../../../theme/mfpDark").default.bg }}
+            handleIndicatorStyle={{backgroundColor: '#fff'}}
             enablePanDownToClose
             onClose={() => {
                 setIsVisible(false);

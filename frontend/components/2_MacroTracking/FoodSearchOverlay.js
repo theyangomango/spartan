@@ -4,7 +4,6 @@ import {
     View,
     Text,
     StyleSheet,
-    TextInput,
     Pressable,
     Modal,
     KeyboardAvoidingView,
@@ -28,6 +27,7 @@ import { fetchRecentFoods } from '../../utils/recentFoods';
 
 import scaleSize from "../../helper/scaleSize";
 import { strong as haptic } from '../../utils/haptics';
+import DismissableTextInput from '../common/DismissableTextInput';
 
 const SCAN_RETRY_DELAY_MS = 500;
 
@@ -249,7 +249,7 @@ export default function FoodSearchOverlay({
                 {/* Search Bar */}
                 <View style={styles.searchContainer}>
                     <View style={styles.searchBox}>
-                        <TextInput
+                        <DismissableTextInput
                             ref={inputRef}
                             autoFocus={false}
                             placeholder="Search for a food..."
