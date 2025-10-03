@@ -1,29 +1,32 @@
 import React from "react";
-import { View, Text, StyleSheet, Dimensions } from "react-native";
-import RNBounceable from "@freakycoder/react-native-bounceable";
+import { View, Text, StyleSheet } from "react-native";
 import FastImage from "react-native-fast-image";
 import getDisplayTime from "../../helper/getDisplayTime";
 import { usePfp } from "../../helper/usePFPs";
 import theme from "../../theme/mfpDark";
 
-import scaleSize from "../../helper/scaleSize";
+import scaleSize, { ts } from "../../helper/scaleSize";
 import { strong as haptic } from "../../utils/haptics";
+import { TouchableOpacity } from "react-native";
 
-const { width, height } = Dimensions.get("window");
+const CARD_MIN_HEIGHT = scaleSize(70);
+const PROFILE_SIZE = scaleSize(44);
+const SMALL_PROFILE_SIZE = scaleSize(31);
+const HANDLE_FONT = ts(15);
+const CONTENT_FONT = ts(13);
+const DATE_FONT = ts(12);
 
-// Dynamic sizing
-const getDynamicStyles = () => {
-    if (width >= 430 && height >= 932) {
-        return { handle: 16, content: 14, date: 13, profile: 46, small: 32, cardH: 72 };
-    } else if (width >= 390 && height >= 844) {
-        return { handle: 15, content: 13, date: 12, profile: 44, small: 31, cardH: 70 };
-    } else if (width >= 375 && height >= 812) {
-        return { handle: 14.5, content: 12.5, date: 11.5, profile: 42, small: 30, cardH: 68 };
-    } else {
-        return { handle: 14, content: 12, date: 11, profile: 40, small: 29, cardH: 66 };
-    }
+const SMALL_PFP_STYLE = {
+    width: SMALL_PROFILE_SIZE,
+    height: SMALL_PROFILE_SIZE,
+    borderRadius: SMALL_PROFILE_SIZE / 2,
 };
-const dyn = getDynamicStyles();
+
+const SINGLE_PFP_STYLE = {
+    width: PROFILE_SIZE,
+    height: PROFILE_SIZE,
+    borderRadius: PROFILE_SIZE / 2,
+};
 
 /* ---------- Helpers: robust timestamp + compact fallback ---------- */
 const toMillis = (t) => {
@@ -81,7 +84,7 @@ const Pfp = ({ uid, version = 0, fallbackUri, style }) => {
     );
 };
 
-export default function MessageCard({ usersExcludingSelf, content, timestamp, toChat, index }) {
+export default function MessageCard({ usersExcludingSelf, content, timestamp, toChat, index, isFirst, isLast }) {
     const handles = usersExcludingSelf.map((user) => user.handle).join(", ");
     const user0 = usersExcludingSelf[0];
     const user1 = usersExcludingSelf[1];
@@ -92,16 +95,20 @@ export default function MessageCard({ usersExcludingSelf, content, timestamp, to
             .toString()
             .trim() || ""; // keep minimal and sleek; no noisy placeholders
 
+    const cardStyles = [styles.card];
+    if (isFirst) cardStyles.push(styles.firstCard);
+    if (isLast) cardStyles.push(styles.lastCard);
+
     return (
-        <RNBounceable
+        <TouchableOpacity
             onPress={() => {
                 try { haptic(); } catch {}
                 toChat?.(index, usersExcludingSelf);
             }}
-            style={[styles.card, { minHeight: dyn.cardH }]}
+            style={cardStyles}
         >
             {/* left: avatars */}
-            <View style={[styles.pfpsWrap, { width: dyn.profile, height: dyn.profile }]}>
+            <View style={styles.pfpsWrap}>
                 {usersExcludingSelf.length > 1 ? (
                     <>
                         <Pfp
@@ -118,7 +125,7 @@ export default function MessageCard({ usersExcludingSelf, content, timestamp, to
                             style={[
                                 styles.pfp,
                                 styles.topLeft,
-                                { width: dyn.small, height: dyn.small, borderRadius: scaleSize(dyn.small / 2) },
+                                SMALL_PFP_STYLE,
                             ]}
                         />
                         <Pfp
@@ -135,7 +142,7 @@ export default function MessageCard({ usersExcludingSelf, content, timestamp, to
                             style={[
                                 styles.pfp,
                                 styles.bottomRight,
-                                { width: dyn.small, height: dyn.small, borderRadius: scaleSize(dyn.small / 2) },
+                                SMALL_PFP_STYLE,
                             ]}
                         />
                     </>
@@ -151,49 +158,56 @@ export default function MessageCard({ usersExcludingSelf, content, timestamp, to
                             user0?.avatar ||
                             ""
                         }
-                        style={[styles.single, { width: dyn.profile, height: dyn.profile, borderRadius: scaleSize(dyn.profile / 2) }]}
+                        style={[styles.single, SINGLE_PFP_STYLE]}
                     />
                 )}
             </View>
             {/* middle: text */}
             <View style={styles.textCol}>
-                <Text style={[styles.handle, { fontSize: dyn.handle }]} numberOfLines={1} ellipsizeMode="tail">
+                <Text style={styles.handle} numberOfLines={1} ellipsizeMode="tail">
                     {handles}
                 </Text>
                 {!!preview && (
-                    <Text style={[styles.content, { fontSize: dyn.content }]} numberOfLines={1} ellipsizeMode="tail">
+                    <Text style={styles.content} numberOfLines={1} ellipsizeMode="tail">
                         {preview}
                     </Text>
                 )}
             </View>
             {/* right: time */}
             <View style={styles.timeCol}>
-                {!!timeStr && <Text style={[styles.time, { fontSize: dyn.date }]}>{timeStr}</Text>}
+                {!!timeStr && <Text style={styles.time}>{timeStr}</Text>}
             </View>
-        </RNBounceable>
+        </TouchableOpacity>
     );
 }
 
 const styles = StyleSheet.create({
     card: {
-        marginHorizontal: scaleSize(11),
-        paddingHorizontal: scaleSize(18),
-        paddingVertical: scaleSize(14),
-        borderRadius: scaleSize(18),
+        width: "100%",
+        alignSelf: "stretch",
+        minHeight: CARD_MIN_HEIGHT,
+        paddingHorizontal: scaleSize(26),
+        paddingVertical: scaleSize(14.5),
         flexDirection: "row",
         alignItems: "center",
         justifyContent: "space-between",
-        backgroundColor: theme.fieldDeep,
-        marginBottom: scaleSize(12),
-        borderWidth: scaleSize(1),
-        borderColor: "rgba(255,255,255,0.08)",
-        shadowColor: "#000",
-        shadowOpacity: 0.12,
-        shadowRadius: scaleSize(12),
-        shadowOffset: { width: 0, height: scaleSize(6) },
+        backgroundColor: theme.surface,
+        borderBottomWidth: 1.5,
+        borderColor: theme.hairline,
+    },
+    firstCard: {
+        borderTopWidth: StyleSheet.hairlineWidth,
+    },
+    lastCard: {
+        borderBottomWidth: StyleSheet.hairlineWidth,
     },
 
-    pfpsWrap: { position: "relative", marginRight: scaleSize(12) },
+    pfpsWrap: {
+        position: "relative",
+        marginRight: scaleSize(12),
+        width: PROFILE_SIZE,
+        height: PROFILE_SIZE,
+    },
     pfp: {
         position: "absolute",
         borderWidth: scaleSize(1),
@@ -210,13 +224,21 @@ const styles = StyleSheet.create({
         fontFamily: "Outfit_600SemiBold",
         color: theme.textPrimary,
         letterSpacing: 0.2,
+        fontSize: HANDLE_FONT,
     },
     content: {
         fontFamily: "Outfit_400Regular",
         color: theme.textSecondary,
         opacity: 0.92,
+        fontSize: CONTENT_FONT,
     },
 
     timeCol: { paddingLeft: scaleSize(8), alignItems: "flex-end", justifyContent: "center" },
-    time: { color: theme.textSecondary, fontFamily: "Outfit_500Medium", letterSpacing: 0.2, opacity: 0.9 },
+    time: {
+        color: theme.textSecondary,
+        fontFamily: "Outfit_500Medium",
+        letterSpacing: 0.2,
+        opacity: 0.9,
+        fontSize: DATE_FONT,
+    },
 });

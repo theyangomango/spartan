@@ -6,7 +6,6 @@ import {
     Modal,
     Text,
     Animated,
-    Pressable,
     InteractionManager,
     LayoutAnimation,
     Platform,
@@ -21,8 +20,6 @@ try { FlashListLib = require("@shopify/flash-list"); } catch {}
 const canUseFlashList = !!(FlashListLib && FlashListLib.FlashList && UIManager?.getViewManagerConfig && UIManager.getViewManagerConfig('CellContainer') && UIManager.getViewManagerConfig('AutoLayoutView'));
 const BaseListComponent = canUseFlashList ? FlashListLib.FlashList : FlatList;
 const AnimatedFlashList = Animated.createAnimatedComponent(BaseListComponent);
-import { BlurView } from "expo-blur";
-import { LinearGradient } from "expo-linear-gradient";
 import RNBounceable from "@freakycoder/react-native-bounceable";
 import { Weight } from "iconsax-react-native";
 import * as Haptics from "expo-haptics";
@@ -49,6 +46,8 @@ import useRestTimer from "./hooks/useRestTimer";
 import useWorkoutEditing from "./hooks/useWorkoutEditing";
 
 import scaleSize from "../../../helper/scaleSize";
+import ConfirmWorkoutModal from "./components/ConfirmWorkoutModal";
+import WorkoutReminderModal from "./components/WorkoutReminderModal";
 
 const NewWorkoutModal = ({
     workout,
@@ -748,52 +747,30 @@ const NewWorkoutModal = ({
                 onAdd={addCountdown}
                 onReset={resetCountdown}
             />
-            {/* Delete confirm */}
-            <Modal
-                animationType="fade"
-                transparent
+            <ConfirmWorkoutModal
                 visible={deleteConfirmModalVisible}
+                variant="cancel"
+                title="Cancel workout?"
+                body="This clears your current progress. You can always start a new session from the hub."
+                primaryLabel="Yes, cancel workout"
+                secondaryLabel="Keep working"
+                onPrimary={handleDeleteWorkout}
+                onSecondary={() => setDeleteConfirmModalVisible(false)}
                 onRequestClose={() => setDeleteConfirmModalVisible(false)}
-                statusBarTranslucent
-            >
-                <View style={styles.modalOverlay}>
-                    <View style={styles.modalContainer}>
-                        <Text style={styles.modalText}>Are you sure you want to delete this workout?</Text>
-                        <RNBounceable onPress={handleDeleteWorkout} style={styles.deleteWorkoutBtn}>
-                            <Text style={styles.deleteWorkoutText}>Delete Workout</Text>
-                        </RNBounceable>
-                        <RNBounceable onPress={() => setDeleteConfirmModalVisible(false)} style={styles.cancelDeleteBtn}>
-                            <Text style={styles.cancelDeleteText}>Cancel</Text>
-                        </RNBounceable>
-                    </View>
-                </View>
-            </Modal>
-            {/* Finish confirm (self only) */}
-            <Modal
-                animationType="fade"
-                transparent
+            />
+            <ConfirmWorkoutModal
                 visible={finishConfirmModalVisible}
+                variant="finish"
+                title="Finish workout?"
+                body="Double-check your sets and PRs before saving. You can always edit from the workout log later."
+                primaryLabel="Finish workout"
+                primaryBusyLabel="Finishing…"
+                primaryBusy={isFinishing}
+                secondaryLabel="Keep working"
+                onPrimary={handleFinishWorkout}
+                onSecondary={() => setFinishConfirmModalVisible(false)}
                 onRequestClose={() => setFinishConfirmModalVisible(false)}
-                statusBarTranslucent
-            >
-                <Pressable style={styles.modalOverlay} onPress={() => setFinishConfirmModalVisible(false)}>
-                    <Pressable style={styles.finishModalContainer} onPress={(e) => e.stopPropagation()}>
-                        <Text style={styles.finishTitle}>Finish workout?</Text>
-
-                        <RNBounceable
-                            onPress={handleFinishWorkout}
-                            style={[styles.finishBtn, isFinishing ? styles.finishBtnDisabled : null]}
-                            disabled={isFinishing}
-                        >
-                            <Text style={styles.finishBtnText}>{isFinishing ? "Finishing…" : "Finish Workout"}</Text>
-                        </RNBounceable>
-
-                        <RNBounceable onPress={() => setFinishConfirmModalVisible(false)} style={styles.keepEditingBtn}>
-                            <Text style={styles.keepEditingText}>Keep Working</Text>
-                        </RNBounceable>
-                    </Pressable>
-                </Pressable>
-            </Modal>
+            />
             {/* Group menu & invite picker — hidden when locked to friend */}
             {!lockFriend && (
                 <GroupMenu
@@ -810,36 +787,10 @@ const NewWorkoutModal = ({
                     }}
                 />
             )}
-            {/* Tracking reminder (self only) */}
-            <Modal
-                key={`reminder-${reminderVisible ? 1 : 0}`}
+            <WorkoutReminderModal
                 visible={reminderVisible}
-                transparent
-                animationType="fade"
                 onDismiss={() => setReminderVisible(false)}
-                onRequestClose={() => setReminderVisible(false)}
-            >
-                <Pressable style={styles.modalOverlay} onPress={() => setReminderVisible(false)}>
-                    <BlurView style={StyleSheet.absoluteFill} intensity={28} tint="dark" />
-                    <LinearGradient
-                        // Slightly more contrasted blue→mint gradient for the reminder card
-                        colors={["#60A5FA", "#2D9EFF", "#5EEAD4"]}
-                        locations={[0, 0.55, 1]}
-                        start={{ x: 0, y: 0 }}
-                        end={{ x: 1, y: 1 }}
-                        style={styles.reminderWrapper}
-                    >
-                        <View style={styles.reminderContainer}>
-                            <View style={styles.reminderContent}>
-                                <Text style={styles.reminderTitle}>Track Reps Honestly</Text>
-                                <Text style={styles.reminderBody}>
-                                    Train for you, not anyone else. Maintain good form. Don't ego lift.{"\n"}Proud of you king 👑
-                                </Text>
-                            </View>
-                        </View>
-                    </LinearGradient>
-                </Pressable>
-            </Modal>
+            />
             {/* Confetti overlay (mount when cheering is relevant: spectating live OR self active) */}
             {(friendOngoing || isActiveSelf) && (() => { const ConfettiCannon = loadConfettiModule(); return ConfettiCannon ? (
                 <View pointerEvents="none" style={StyleSheet.absoluteFill}>
@@ -945,45 +896,6 @@ const styles = StyleSheet.create({
     },
     cancel_btn_text: { fontSize: scaleSize(16), fontFamily: "Outfit_700Bold", color: "#FFFFFF", marginRight: scaleSize(scaledSize(4.5)) },
 
-    modalOverlay: { flex: 1, justifyContent: "center", alignItems: "center", backgroundColor: "rgba(0,0,0,0.5)", paddingHorizontal: scaleSize(scaledSize(24)) },
-    modalContainer: { width: "100%", padding: scaleSize(scaledSize(20)), backgroundColor: theme.surface, borderRadius: scaleSize(scaledSize(15)), alignItems: "center" },
-    modalText: { fontSize: scaleSize(16), color: theme.textPrimary, fontFamily: "Outfit_700Bold", marginBottom: scaleSize(scaledSize(20)), textAlign: "center" },
-    deleteWorkoutBtn: { width: "100%", paddingVertical: scaleSize(scaledSize(10)), backgroundColor: "#D94C4C", borderRadius: scaleSize(scaledSize(8)), alignItems: "center", marginBottom: scaleSize(scaledSize(10)) },
-    deleteWorkoutText: { color: "#FFFFFF", fontSize: scaleSize(14), fontFamily: "Outfit_700Bold" },
-    cancelDeleteBtn: { width: "100%", paddingVertical: scaleSize(scaledSize(10)), backgroundColor: '#21242dff', borderRadius: scaleSize(scaledSize(8)), alignItems: "center" },
-    cancelDeleteText: { color: theme.textPrimary, fontSize: scaleSize(14), fontFamily: "Outfit_700Bold" },
-
-    finishModalContainer: { width: "100%", padding: scaleSize(scaledSize(20)), backgroundColor: theme.surface, borderRadius: scaleSize(scaledSize(16)), alignItems: "center" },
-    finishTitle: { fontSize: scaleSize(18), color: theme.textPrimary, fontFamily: "Outfit_700Bold", textAlign: "center", marginBottom: scaleSize(scaledSize(16)) },
-    finishBtn: { width: "100%", paddingVertical: scaleSize(scaledSize(10)), backgroundColor: theme.successButton, borderRadius: scaleSize(scaledSize(10)), alignItems: "center", marginBottom: scaleSize(scaledSize(10)) },
-    finishBtnText: { color: "#fff", fontSize: scaleSize(14.5), fontFamily: "Outfit_700Bold" },
-    finishBtnDisabled: { opacity: 0.6 },
-    keepEditingBtn: { width: "100%", paddingVertical: scaleSize(scaledSize(10)), backgroundColor: '#21242dff', borderRadius: scaleSize(scaledSize(10)), alignItems: "center" },
-    keepEditingText: { color: theme.textPrimary, fontSize: scaleSize(14), fontFamily: "Outfit_600SemiBold" },
-    // Reminder styles (gradient border card)
-    reminderWrapper: {
-        width: "92%",
-        borderRadius: scaleSize(scaledSize(20)),
-        padding: scaleSize(scaledSize(3)), // gradient border width
-        // shadow on wrapper for proper elevation
-        backgroundColor: '#60A5FA', // match gradient base so iOS shadow can render without warnings
-        shadowColor: "#0F172A",
-        shadowOpacity: 0.12,
-        shadowRadius: scaleSize(24),
-        shadowOffset: { width: 0, height: scaleSize(scaledSize(12)) },
-        elevation: 16,
-    },
-    reminderContainer: {
-        backgroundColor: theme.surface,
-        borderRadius: scaleSize(scaledSize(18)),
-    },
-    reminderContent: {
-        paddingVertical: scaleSize(scaledSize(18)),
-        paddingHorizontal: scaleSize(scaledSize(20)),
-        alignItems: "center",
-    },
-    reminderTitle: { fontSize: scaleSize(16), color: theme.textPrimary, fontFamily: "Nunito_800ExtraBold", marginBottom: scaleSize(scaledSize(14)) },
-    reminderBody: { fontSize: scaleSize(14), color: theme.textSecondary, fontFamily: "Nunito_700Bold", textAlign: "center" },
 });
 
 // Prevent unnecessary re-renders: only re-render when meaningful props change.

@@ -1,7 +1,8 @@
 import React, { useState, useRef } from "react";
-import { TextInput, StyleSheet, Pressable, Dimensions, Keyboard, Platform, InputAccessoryView, View, Text } from "react-native";
+import { TextInput, StyleSheet, Pressable, Dimensions, Keyboard, Platform, InputAccessoryView, View } from "react-native";
 import scaleSize from "../../../../helper/scaleSize";
 import theme from "../../../../theme/mfpDark";
+import { MaterialCommunityIcons } from "@expo/vector-icons";
 
 const { height: screenHeight } = Dimensions.get('window');
 export default function EditableStat({ placeholder = '0', isFinished, value, setValue, onFocus }) {
@@ -77,8 +78,8 @@ export default function EditableStat({ placeholder = '0', isFinished, value, set
                 <InputAccessoryView nativeID={accessoryIdRef.current}>
                     <View style={styles.accessoryBar}>
                         <View style={{ flex: 1 }} />
-                        <Pressable onPress={() => Keyboard.dismiss()} style={styles.accessoryBtn} hitSlop={8}>
-                            <Text style={styles.accessoryBtnText}>Hide</Text>
+                        <Pressable onPress={() => Keyboard.dismiss()} style={styles.accessoryBtn} hitSlop={12}>
+                            <MaterialCommunityIcons name="keyboard-outline" size={scaleSize(20)} color={theme.textPrimary} />
                         </Pressable>
                     </View>
                 </InputAccessoryView>
@@ -114,20 +115,15 @@ const styles = StyleSheet.create({
         flexDirection: 'row',
         alignItems: 'center',
         paddingHorizontal: scaleSize(12),
-        paddingVertical: scaleSize(8),
-        borderTopWidth: StyleSheet.hairlineWidth,
-        borderColor: theme.hairline,
-        backgroundColor: theme.surface,
+        paddingVertical: scaleSize(3),
     },
     accessoryBtn: {
-        backgroundColor: theme.field,
-        paddingHorizontal: scaleSize(12),
-        paddingVertical: scaleSize(6),
-        borderRadius: scaleSize(8),
-    },
-    accessoryBtnText: {
-        color: theme.textPrimary,
-        fontFamily: 'Outfit_700Bold',
-        fontSize: scaleSize(13),
+        backgroundColor: '#5F636C',
+        borderRadius: scaleSize(12),
+        width: scaleSize(64),
+        height: scaleSize(40),
+        alignItems: 'center',
+        justifyContent: 'center',
+        borderWidth: 0,
     },
 });

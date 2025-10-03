@@ -417,10 +417,14 @@ export default function Messages({ navigation, route }) {
                             </Text>
                         </View>
                     ) : (
-                        filteredMessages.map((msg) => {
+                        filteredMessages.map((msg, listIndex) => {
                             const originalIndex = chats.findIndex((m) => m.cid === msg.cid);
-                            const usersExcludingSelf = msg.users.filter((u) => u.uid !== userData.uid);
+                            const usersExcludingSelf = Array.isArray(msg.users)
+                                ? msg.users.filter((u) => u.uid !== userData.uid)
+                                : [];
                             const lastMsg = msg.content?.[0];
+                            const isFirst = listIndex === 0;
+                            const isLast = listIndex === filteredMessages.length - 1;
 
                             return (
                                 <MessageCard
@@ -430,6 +434,8 @@ export default function Messages({ navigation, route }) {
                                     timestamp={lastMsg?.timestamp || null}
                                     toChat={toChat}
                                     index={originalIndex} // preserve original index for navigation/state
+                                    isFirst={isFirst}
+                                    isLast={isLast}
                                 />
                             );
                         })
@@ -456,10 +462,9 @@ const styles = StyleSheet.create({
         flex: 1,
     },
     cardsScrollView: {
-        paddingTop: scaleSize(10),
+        marginTop: scaleSize(6),
     },
     cardsContent: {
-        paddingHorizontal: scaleSize(4),
         paddingBottom: scaleSize(18),
     },
     emptyStateContainer: {

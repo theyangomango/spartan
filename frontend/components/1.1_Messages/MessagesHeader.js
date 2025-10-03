@@ -82,7 +82,7 @@ export default function MessagesHeader({
 }
 
 const styles = StyleSheet.create({
-    root: { backgroundColor: theme.bg, paddingTop: 16 },
+    root: { backgroundColor: theme.bg, paddingTop: 20 },
     row: {
         flexDirection: "row",
         justifyContent: "center",
