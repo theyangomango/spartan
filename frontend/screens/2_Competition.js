@@ -67,7 +67,7 @@ const SIZES = {
     headerIconSize: scaleSize(21),                  // base icon size
     chevronDelta: scaleSize(6),                     // difference for chevron icon
     headerPaddingHorizontal: scaleSize(30, "w"),    // horizontal padding scales with width
-    headerPaddingTop: scaleSize(8, "h"),            // top padding scales with height
+    headerPaddingTop: scaleSize(6),            // top padding aligns with global header spacing
 
     tribeHitSlop: scaleSize(8),
 

@@ -15,12 +15,12 @@ const CARD_HEIGHT = scaleSize(64);
 const SELF_CARD_HEIGHT = scaleSize(86);
 const PFP_SIZE = scaleSize(42);
 
-const FONT_HANDLE = ts(14);
-const FONT_NAME = ts(13);
-const FONT_STAT = ts(14);
-const FONT_HEX_STAT = ts(15);
-const FONT_RANK = ts(14);
-const FONT_BEST = ts(14);
+const FONT_HANDLE = ts(13);
+const FONT_NAME = ts(12);
+const FONT_STAT = ts(13);
+const FONT_HEX_STAT = ts(14);
+const FONT_RANK = ts(13);
+const FONT_BEST = ts(13);
 
 const ICON_ARROW = scaleSize(20);
 const ICON_MINUS = scaleSize(16);

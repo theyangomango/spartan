@@ -16,13 +16,13 @@ const BAR_HEIGHT_CENTER = scaleSize(133);
 const BAR_HEIGHT_RIGHT = scaleSize(83);
 const BAR_WIDTH = scaleSize(80);
 
-const FONT_HANDLE = ts(14);
+const FONT_HANDLE = ts(13);
 const FONT_BAR = ts(27);
 
 const BAR_RADIUS = scaleSize(10);
 const BAR_MARGIN_H = scaleSize(13);
 
-const HANDLE_PT = scaleSize(4);
+const HANDLE_PT = scaleSize(5);
 const HANDLE_PB = scaleSize(10);
 const BAR_TEXT_PT = scaleSize(6);
 

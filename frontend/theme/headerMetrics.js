@@ -12,10 +12,10 @@ const buildMetrics = () => {
     const s = (n) => Math.round(n * scale);
 
     const paddingH = dynamicStyles.paddingHorizontal;
-    const paddingTop = s(2);
-    const paddingBottom = s(2);
+    const paddingTop = scaleSize(0);
+    const paddingBottom = s(0);
     const centerH = s(40);
-    const marginTop = s(5);
+    const marginTop = 0;
     const icon = dynamicStyles.iconSize;
     const iconTop = Math.round((centerH - icon) / 2);
     const iconBox = icon + 6;
@@ -53,4 +53,3 @@ export const getUnifiedHeaderMetrics = () => {
 };
 
 export const getUnifiedHeaderSafeAreaOffset = () => getUnifiedHeaderMetrics().safeAreaOffset;
-

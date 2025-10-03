@@ -10,7 +10,7 @@ import theme from "../../theme/mfpDark";
 const ACCENT = theme.primary;
 const HAIRLINE = theme.hairline;
 
-const BASE_TOP_PADDING = scaleSize(18);
+const BASE_TOP_PADDING = scaleSize(6);
 const ICON_TOP_OFFSET = scaleSize(10);
 
 export default function MessagesHeader({
