@@ -65,6 +65,7 @@ import useWorkoutStore, { WORKOUT_SHEET_STATES } from "../state/workoutStore";
 // utils
 import millisToHoursMinutesSeconds from "../helper/millisToHoursMinutesSeconds";
 import { initUserFeed, registerFeedSetters } from "../helper/initUserFeed";
+import { getMessagesCache, subscribeMessagesCache } from "../state/messagesCache";
 
 // Firestore (for invites)
 import { serverTimestamp } from "firebase/firestore";
@@ -200,7 +201,7 @@ const buildDaySheetSnapshot = ({ date, loggedFoods, completedWorkouts, activeWor
 export default function Workout({ navigation, route }) {
     /* ---------- resolve uid & user ---------- */
     const uid = useResolvedUid(route);
-    const [messages, setMessages] = useState(null);
+    const [messages, setMessages] = useState(() => getMessagesCache());
     const [footerKeyDummy, setFooterKeyDummy] = useState(0);
     const hubRowRef = useRef(null);
     const dividerRef = useRef(null);
@@ -226,6 +227,12 @@ export default function Workout({ navigation, route }) {
             return () => task?.cancel?.();
         }
     }, [uid]);
+    useEffect(() => {
+        const unsubscribe = subscribeMessagesCache((snapshot) => {
+            setMessages(snapshot);
+        });
+        return unsubscribe;
+    }, []);
     const user = useUserDoc(uid, { ignoreKeys: ['currentWorkout'] }); // avoid rerenders on workout typing
 
     const measureRef = useCallback((ref, setter) => {

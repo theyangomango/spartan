@@ -4,9 +4,10 @@ import { doc, onSnapshot } from "firebase/firestore";
 import { initUserFeed, registerFeedSetters } from "../../../helper/initUserFeed";
 import millisToHoursMinutesSeconds from "../../../helper/millisToHoursMinutesSeconds";
 import { db } from "../../../../firebase.config";
+import { getMessagesCache, subscribeMessagesCache } from "../../../state/messagesCache";
 
 export default function useFeedUserData({ UID, navigation, route, isScreenFocused }) {
-    const [messages, setMessages] = useState(null);
+    const [messages, setMessages] = useState(() => getMessagesCache());
     const [footerKey, setFooterKey] = useState(0);
     const [activeWorkout, setActiveWorkout] = useState(null);
 
@@ -30,6 +31,13 @@ export default function useFeedUserData({ UID, navigation, route, isScreenFocuse
 
         if (UID) initUserFeed(UID);
     }, [UID]);
+
+    useEffect(() => {
+        const unsubscribe = subscribeMessagesCache((snapshot) => {
+            setMessages(snapshot);
+        });
+        return unsubscribe;
+    }, []);
 
     useEffect(() => {
         if (!UID) return undefined;

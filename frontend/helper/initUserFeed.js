@@ -2,6 +2,7 @@ import { getUserStories, getUserMessages } from '../../backend/getUserFeed';
 import retrieveUserExploreFeed from '../../backend/retrieveUserExploreFeed';
 import readDoc from '../../backend/helper/firebase/readDoc';
 import FastImage from 'react-native-fast-image';
+import { getMessagesCache, getMessagesPreloadState, hydrateMessagesCache } from '../state/messagesCache';
 
 let userDataRef = { current: null };
 
@@ -10,6 +11,9 @@ let setMessagesFn, setFooterKeyFn;
 export function registerFeedSetters({ setMessages, setFooterKey }) {
     setMessagesFn = setMessages;
     setFooterKeyFn = setFooterKey;
+    if (typeof setMessagesFn === 'function') {
+        setMessagesFn(getMessagesCache());
+    }
 }
 
 
@@ -61,8 +65,33 @@ export async function initUserFeed(UID) {
 
 // 2️⃣ Messages
 async function initUserMessages(userData) {
+    const cached = getMessagesCache();
+    if (cached.length > 0) {
+        if (typeof setMessagesFn === 'function') {
+            setMessagesFn(cached);
+        }
+        return cached;
+    }
+
+    const { promise, uid } = getMessagesPreloadState();
+    if (promise && userData?.uid && uid === userData.uid) {
+        try {
+            const preloaded = await promise;
+            if (typeof setMessagesFn === 'function') {
+                setMessagesFn(preloaded);
+            }
+            return preloaded;
+        } catch {
+            // Fall back to manual fetch below
+        }
+    }
+
     const messages = await getUserMessages(userData);
-    setMessagesFn(messages);
+    const hydrated = hydrateMessagesCache(messages);
+    if (typeof setMessagesFn === 'function') {
+        setMessagesFn(hydrated);
+    }
+    return hydrated;
 }
 
 // 3️⃣ Explore Feed (global.exploreFeedPosts + preload)

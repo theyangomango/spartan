@@ -58,6 +58,7 @@ import ActiveWorkoutBottomSheet from './frontend/components/3_Workout/NewWorkout
 import Footer from './frontend/components/Footer';
 import MainTabs from './frontend/navigation/MainTabs';
 import useFooterSuppressionStore, { setFooterSuppressed, clearFooterSuppression } from './frontend/state/footerSuppressionStore';
+import { preloadMessagesForUid, resetMessagesState } from './frontend/logic/messagesPreloader';
 
 const AUTH_BACKGROUND_ASSET = require('./frontend/assets/AUTH_BACKGROUND.jpg');
 
@@ -136,6 +137,7 @@ export default function App() {
     const lastNotificationBuzzAtRef = useRef(0); // dedupe foreground push vs unread snapshot
     const logoutCleanupRef = useRef(null);
     const logoutResetTimerRef = useRef(null);
+    const prevMessagesSigRef = useRef('');
 
     const animateFooterVisibility = useCallback((visible) => {
         if (footerVisibilityTargetRef.current === visible && footerVisibilitySV.value === (visible ? 1 : 0)) {
@@ -314,6 +316,8 @@ export default function App() {
                 setUserReady(false);
                 try { global.userData = {}; } catch { }
                 try { delete global.__userDocHydrated; } catch { }
+                prevMessagesSigRef.current = '';
+                resetMessagesState();
             } else {
                 if (logoutResetTimerRef.current) {
                     try { clearTimeout(logoutResetTimerRef.current); } catch { }
@@ -321,6 +325,7 @@ export default function App() {
                 }
                 uidRef.current = normalizedUid;
                 try { delete global.__userDocHydrated; } catch { }
+                prevMessagesSigRef.current = '';
             }
             setIsAuthenticated(!!normalizedUid);
         };
@@ -482,6 +487,20 @@ export default function App() {
                 }
             } catch { }
 
+            const data = snap.data() || {};
+            const messagesArr = Array.isArray(data.messages) ? data.messages : [];
+            const sig = (() => {
+                if (!messagesArr.length) return 'len:0';
+                const mids = messagesArr
+                    .map((entry) => String(entry?.mid || ''))
+                    .filter((mid) => mid.length > 0);
+                return `len:${mids.length}:${mids.join('|')}`;
+            })();
+            if (prevMessagesSigRef.current !== sig) {
+                prevMessagesSigRef.current = sig;
+                preloadMessagesForUid(uid, { userDoc: data }).catch(() => { });
+            }
+
             // Register for push notifications (EAS project id required)
             try {
                 if (Device.isDevice && notificationsRef.current) {
@@ -598,6 +617,8 @@ export default function App() {
                 try { unsubRef.current(); } catch { }
                 unsubRef.current = null;
             }
+            prevMessagesSigRef.current = '';
+            resetMessagesState();
             if (notifUnsubRef.current) {
                 try { notifUnsubRef.current(); } catch { }
                 notifUnsubRef.current = null;

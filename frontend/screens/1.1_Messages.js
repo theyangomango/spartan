@@ -12,61 +12,65 @@ import { db } from "../../firebase.config";
 import { useFocusEffect } from '@react-navigation/native';
 import updateDocMerge from "../../backend/helper/firebase/updateDoc";
 import theme from "../theme/mfpDark";
-
-// ✅ Soft global cache for in-memory persistence
-let cachedMessages = [];
-let cachedLatestByCid = Object.create(null); // { [cid]: [latestMessage] }
+import {
+    getMessagesCache,
+    getLatestByCidCache,
+    hydrateMessagesCache,
+    mergeLatestBatchIntoCache,
+    subscribeMessagesCache,
+} from "../state/messagesCache";
+import { ensureMessageListener, syncMessageListeners } from "../logic/messagesPreloader";
 
 export default function Messages({ navigation, route }) {
     const userData = global.userData;
-    const [chats, setChats] = useState(cachedMessages);
-    const [latestByCid, setLatestByCid] = useState(cachedLatestByCid);
+    const [chats, setChats] = useState(() => getMessagesCache());
+    const [latestByCid, setLatestByCid] = useState(() => getLatestByCidCache());
     const [scope, setScope] = useState("All");
     const [isCreateGroupChatBottomSheetVisible, setIsCreateGroupChatBottomSheetVisible] = useState(false);
+
+    useEffect(() => {
+        const unsubscribe = subscribeMessagesCache((messages, latest) => {
+            setChats(messages);
+            setLatestByCid(latest);
+        });
+        return unsubscribe;
+    }, []);
 
     // Load from route.params once (initial chat metadata)
     useEffect(() => {
         const incoming = route?.params?.messages;
-        if (Array.isArray(incoming)) {
-            // Seed chats using whatever latest content we've already fetched.
-            // If neither cache has a hit, fall back to the payload's own content
-            // so the preview renders immediately instead of waiting for listeners.
-            const enriched = incoming.map((chat) => {
-                const cachedLatest = cachedLatestByCid[chat.cid];
-                const cachedChat = cachedMessages.find((c) => c.cid === chat.cid);
-                const payloadContent = Array.isArray(chat?.content) ? chat.content : [];
+        if (!Array.isArray(incoming)) return;
+
+        const existingMessages = getMessagesCache();
+        const existingLatest = getLatestByCidCache();
+
+        const enriched = incoming
+            .map((chat) => {
+                if (!chat || typeof chat !== 'object') return null;
+                const cid = String(chat.cid || chat.mid || chat.id || '');
+                if (!cid) return null;
+
+                const cachedLatest = Array.isArray(existingLatest[cid]) ? existingLatest[cid] : [];
+                const cachedChat = existingMessages.find((c) => c.cid === cid);
+                const payloadContent = Array.isArray(chat.content) ? chat.content : [];
                 const cachedContent = Array.isArray(cachedChat?.content) ? cachedChat.content : [];
 
-                const resolvedContent = Array.isArray(cachedLatest) && cachedLatest.length > 0
+                const resolvedContent = cachedLatest.length > 0
                     ? cachedLatest
                     : (payloadContent.length > 0 ? payloadContent : cachedContent);
 
                 return {
                     ...chat,
+                    cid,
                     content: resolvedContent,
                 };
-            });
-            setChats(enriched);
-            cachedMessages = enriched;
+            })
+            .filter(Boolean);
 
-            // Prime the latest-by-cid cache so subsequent renders keep showing
-            // the preloaded preview until Firestore listeners deliver updates.
-            const nextLatest = { ...cachedLatestByCid };
-            let didChange = false;
-            enriched.forEach((chat) => {
-                const existing = nextLatest[chat.cid];
-                if (!Array.isArray(existing) || existing.length === 0) {
-                    if (Array.isArray(chat.content) && chat.content.length > 0) {
-                        nextLatest[chat.cid] = chat.content;
-                        didChange = true;
-                    }
-                }
-            });
-            if (didChange) {
-                cachedLatestByCid = nextLatest;
-                setLatestByCid(nextLatest);
-            }
-        }
+        const normalized = hydrateMessagesCache(enriched);
+        syncMessageListeners(normalized.map((chat) => chat.cid));
+        setChats(normalized);
+        setLatestByCid(getLatestByCidCache());
     }, [route?.params?.messages]);
 
     // Live snapshot: Listen for latest message in each chat
@@ -80,11 +84,7 @@ export default function Messages({ navigation, route }) {
         const flush = () => {
             raf = null;
             if (Object.keys(bufferRef.updates).length === 0) return;
-            setLatestByCid((prev) => {
-                const next = { ...prev, ...bufferRef.updates };
-                cachedLatestByCid = next;
-                return next;
-            });
+            mergeLatestBatchIntoCache(bufferRef.updates);
             bufferRef.updates = Object.create(null);
         };
 
@@ -120,14 +120,17 @@ export default function Messages({ navigation, route }) {
                     const data = snap.data() || {};
                     const arr = Array.isArray(data.messages) ? data.messages : [];
                     if (!arr.length) {
-                        setChats([]);
-                        cachedMessages = [];
+                        const cleared = hydrateMessagesCache([]);
+                        syncMessageListeners([]);
+                        setChats(cleared);
+                        setLatestByCid(getLatestByCidCache());
                         return;
                     }
 
                     // Get chat docs for each mid; skip ones we already have
-                    const mids = Array.from(new Set(arr.map((m) => m?.mid).filter(Boolean)));
-                    const have = new Set((cachedMessages || []).map((c) => c?.cid));
+                    const mids = Array.from(new Set(arr.map((m) => m?.mid).filter(Boolean))).map((mid) => String(mid));
+                    const cached = getMessagesCache();
+                    const have = new Set(cached.map((c) => c?.cid).filter(Boolean));
                     const need = mids.filter((mid) => !have.has(mid));
 
                     const fetched = await Promise.all(
@@ -135,7 +138,13 @@ export default function Messages({ navigation, route }) {
                             try {
                                 const cRef = doc(db, 'messages', mid);
                                 const d = await getDoc(cRef);
-                                return d.exists() ? { ...d.data(), content: [] } : null;
+                                if (!d.exists()) return null;
+                                const docData = d.data() || {};
+                                return {
+                                    ...docData,
+                                    cid: docData?.cid || mid,
+                                    content: Array.isArray(docData?.content) ? docData.content : [],
+                                };
                             } catch {
                                 return null;
                             }
@@ -143,17 +152,33 @@ export default function Messages({ navigation, route }) {
                     );
 
                     // Merge with any existing cached chats and keep order based on mids
-                    const byCid = new Map((cachedMessages || []).map((c) => [c.cid, c]));
-                    fetched.filter(Boolean).forEach((c) => byCid.set(c.cid, c));
-                    const merged = mids.map((mid) => byCid.get(mid)).filter(Boolean);
-                    setChats(merged);
-                    cachedMessages = merged;
+                    const byCid = new Map(cached.map((c) => [c.cid, c]));
+                    fetched.filter(Boolean).forEach((chat) => {
+                        const cid = String(chat?.cid || '');
+                        if (!cid) return;
+                        const content = Array.isArray(chat.content) ? chat.content : [];
+                        byCid.set(cid, { ...chat, cid, content });
+                    });
+                    const merged = mids
+                        .map((mid) => {
+                            const cid = String(mid || '');
+                            const entry = byCid.get(cid);
+                            if (!entry) return null;
+                            const content = Array.isArray(entry.content) ? entry.content : [];
+                            return { ...entry, cid, content };
+                        })
+                        .filter(Boolean);
+
+                    const normalized = hydrateMessagesCache(merged);
+                    syncMessageListeners(normalized.map((chat) => chat.cid));
+                    setChats(normalized);
+                    setLatestByCid(getLatestByCidCache());
                 });
             } catch {}
         };
 
         // If already seeded via route or cache, skip baseline attach
-        if (Array.isArray(route?.params?.messages) || (cachedMessages && cachedMessages.length > 0)) {
+        if (Array.isArray(route?.params?.messages) || getMessagesCache().length > 0) {
             return () => {};
         }
 
@@ -260,31 +285,28 @@ export default function Messages({ navigation, route }) {
         };
 
         const ensureChatCached = (chatData) => {
-            if (!chatData?.cid) return chatData;
+            if (!chatData || typeof chatData !== 'object') return chatData;
+            const cid = String(chatData.cid || chatData.mid || '');
+            if (!cid) return chatData;
             const safeContent = Array.isArray(chatData.content) ? chatData.content : [];
-            let resolved = chatData;
 
-            setChats((prev) => {
-                const base = Array.isArray(prev) ? prev : [];
-                const existing = base.find((c) => c.cid === chatData.cid);
-                if (existing) {
-                    resolved = existing;
-                    return prev;
+            const snapshot = getMessagesCache();
+            const existing = snapshot.find((c) => c.cid === cid);
+            if (existing) {
+                if (!Array.isArray(existing.content) || existing.content.length === 0) {
+                    mergeLatestBatchIntoCache({ [cid]: safeContent });
                 }
-                const augmented = { ...chatData, content: safeContent };
-                const next = [...base, augmented];
-                cachedMessages = next;
-                resolved = augmented;
-                return next;
-            });
-            setLatestByCid((prev) => {
-                if (prev?.[chatData.cid]) return prev;
-                const next = { ...(prev || {}), [chatData.cid]: safeContent };
-                cachedLatestByCid = next;
-                return next;
-            });
+                return existing;
+            }
 
-            return resolved;
+            const augmented = { ...chatData, cid, content: safeContent };
+            const normalized = hydrateMessagesCache([...snapshot, augmented]);
+            setChats(normalized);
+            mergeLatestBatchIntoCache({ [cid]: safeContent });
+            ensureMessageListener(cid);
+            setLatestByCid(getLatestByCidCache());
+
+            return normalized.find((c) => c.cid === cid) || augmented;
         };
 
         // 1) Check existing chats already loaded in state
