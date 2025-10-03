@@ -431,6 +431,7 @@ const FeedHeader = ({
     openCurrentWorkout: _openCurrentWorkout,
     timerRef: _timerRef,
     heightAdjust = 0, // optional fine-tune for overall header height (affects padding only)
+    topAdjust = 0,
 }) => {
     const [unreadCount, setUnreadCount] = useState(0);
     const [unreadMessages, setUnreadMessages] = useState(0);
@@ -458,10 +459,14 @@ const FeedHeader = ({
         return () => { try { unsub(); } catch {} };
     }, []);
 
+    const adjustedPaddingTop = topAdjust !== 0 ? Math.max(0, METRICS.paddingTop + topAdjust) : null;
+    const adjustedPaddingBottom = heightAdjust !== 0 ? Math.max(0, METRICS.paddingBottom + heightAdjust) : null;
+
     return (
         <View style={[
             styles.main_ctnr,
-            heightAdjust ? { paddingBottom: scaleSize(METRICS.paddingBottom + heightAdjust) } : null,
+            adjustedPaddingTop !== null ? { paddingTop: adjustedPaddingTop } : null,
+            adjustedPaddingBottom !== null ? { paddingBottom: adjustedPaddingBottom } : null,
         ]}>
             {/* Left: Search */}
             <View style={styles.leftArea}>
@@ -530,8 +535,12 @@ const FeedHeader = ({
 
 export default memo(FeedHeader);
 
-export const FocusedFeedHeader = memo(({ onBackPress }) => (
-    <View style={[styles.back_header, styles.focused_header]}>
+export const FocusedFeedHeader = memo(({ onBackPress, topAdjust = 0 }) => (
+    <View style={[
+        styles.back_header,
+        styles.focused_header,
+        topAdjust !== 0 ? { paddingTop: Math.max(0, METRICS.paddingTop + topAdjust) } : null,
+    ]}>
         <TouchableOpacity onPress={withStrongPress(onBackPress)}>
             <Ionicons name="chevron-back" size={dynamicStyles.iconSize} color="#E5E7EB" />
         </TouchableOpacity>

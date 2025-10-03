@@ -4,6 +4,9 @@ import Reanimated from "react-native-reanimated";
 import { SafeAreaView as SafeAreaInsetsView } from "react-native-safe-area-context";
 import FeedHeader, { FocusedFeedHeader } from "./FeedHeader";
 import theme from "../../theme/mfpDark";
+import scaleSize from "../../helper/scaleSize";
+
+const HEADER_TOP_TRIM = scaleSize(4);
 
 // Encapsulates the overlaying FeedHeader plus the compact back header overlay
 // shown while a post is focused. Handles height measurements via callbacks/refs provided by parent.
@@ -45,7 +48,7 @@ export default function FeedHeaderOverlay({
         }}
       >
         <SafeAreaInsetsView edges={['top']}>
-          <FocusedFeedHeader onBackPress={onBackPress} />
+          <FocusedFeedHeader onBackPress={onBackPress} topAdjust={-HEADER_TOP_TRIM} />
         </SafeAreaInsetsView>
       </View>
 
@@ -72,6 +75,7 @@ export default function FeedHeaderOverlay({
             workout={activeWorkout}
             timerRef={timerRef}
             heightAdjust={-2}
+            topAdjust={-HEADER_TOP_TRIM}
           />
         </Reanimated.View>
       </Reanimated.View>
@@ -83,7 +87,7 @@ export default function FeedHeaderOverlay({
             edges={['top']}
             onLayout={(e) => { const h = e.nativeEvent.layout.height || 0; backHeaderHRef.current = h; setBackHeaderH(h); }}
           >
-            <FocusedFeedHeader onBackPress={onBackPress} />
+            <FocusedFeedHeader onBackPress={onBackPress} topAdjust={-HEADER_TOP_TRIM} />
           </SafeAreaInsetsView>
         </Reanimated.View>
       )}
