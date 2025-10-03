@@ -2,6 +2,7 @@ import React from 'react';
 import { Pressable, View, Text } from 'react-native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { styles, COLORS, scaledSize } from './UserStatsStyles';
+import { withStrongPress } from '../../../utils/haptics';
 import {
     estimate1RM,
     computeVolume,
@@ -25,6 +26,8 @@ export default function UserStatsExerciseCard({
     const top = bestTopSet(exercise);
     const chevronName = chevronSide === 'left' ? 'chevron-left' : 'chevron-right';
 
+    const handlePress = typeof onPress === 'function' ? withStrongPress(onPress) : undefined;
+
     return (
         <Pressable
             style={({ pressed }) => [
@@ -34,7 +37,7 @@ export default function UserStatsExerciseCard({
                 pressed && styles.exerciseCardPressed,
                 containerStyle,
             ]}
-            onPress={onPress}
+            onPress={handlePress}
         >
             <View style={styles.cardRow}>
                 {chevronSide === 'left' && (

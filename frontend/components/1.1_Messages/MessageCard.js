@@ -7,6 +7,7 @@ import { usePfp } from "../../helper/usePFPs";
 import theme from "../../theme/mfpDark";
 
 import scaleSize from "../../helper/scaleSize";
+import { strong as haptic } from "../../utils/haptics";
 
 const { width, height } = Dimensions.get("window");
 
@@ -93,7 +94,10 @@ export default function MessageCard({ usersExcludingSelf, content, timestamp, to
 
     return (
         <RNBounceable
-            onPress={() => toChat(index, usersExcludingSelf)}
+            onPress={() => {
+                try { haptic(); } catch {}
+                toChat?.(index, usersExcludingSelf);
+            }}
             style={[styles.card, { minHeight: dyn.cardH }]}
         >
             {/* left: avatars */}

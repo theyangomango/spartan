@@ -13,6 +13,7 @@ import unfollowUser from "../../../../backend/user/unfollowUser";
 import cancelFollowRequest from "../../../../backend/user/cancelFollowRequest";
 import { usePfp } from "../../../helper/usePFPs";
 import { subscribeUserData } from "../../../utils/userDataEvents";
+import { strong as haptic, withStrongPress } from "../../../utils/haptics";
 
 /* -------- helpers -------- */
 const ellipsize = (str = "", max = 60) => {
@@ -191,6 +192,7 @@ export default function NotificationCard({ item, onPressCard, onAcceptWorkoutInv
 
     const handleFollowToggle = useCallback(async () => {
         if (item?.type !== 'follow' || followBusy) return;
+        try { haptic(); } catch {}
 
         const currentUser = normalizeRef(global?.userData || {});
         const notifUser = normalizeRef(item || {});
@@ -245,6 +247,7 @@ export default function NotificationCard({ item, onPressCard, onAcceptWorkoutInv
 
     const handleAcceptInvite = async () => {
         if (!showAcceptAction || inviteAccepted || acceptingInvite) return;
+        try { haptic(); } catch {}
         setAcceptingInvite(true);
         try {
             await onAcceptWorkoutInvite();
@@ -257,6 +260,7 @@ export default function NotificationCard({ item, onPressCard, onAcceptWorkoutInv
 
     const handleAcceptFollowRequest = async () => {
         if (!showFollowRequestActions || respondingRequest || requestHandled) return;
+        try { haptic(); } catch {}
         setRespondingRequest(true);
         try {
             await onAcceptFollowRequest();
@@ -269,6 +273,7 @@ export default function NotificationCard({ item, onPressCard, onAcceptWorkoutInv
 
     const handleDeclineFollowRequest = async () => {
         if (!showFollowRequestActions || respondingRequest || requestHandled) return;
+        try { haptic(); } catch {}
         setRespondingRequest(true);
         try {
             await onDeclineFollowRequest();
@@ -372,7 +377,7 @@ export default function NotificationCard({ item, onPressCard, onAcceptWorkoutInv
     const requestedButtonText = mixHex(accent, "#F5F8FF", 0.28);
 
     return (
-        <Pressable style={({ pressed }) => [styles.pressable, pressed && { opacity: 0.95 }]} onPress={onPressCard}>
+        <Pressable style={({ pressed }) => [styles.pressable, pressed && { opacity: 0.95 }]} onPress={withStrongPress(onPressCard)}>
             <View
                 style={[
                     styles.card,

@@ -2,13 +2,14 @@ import React from 'react';
 import { View, Text, StyleSheet, Pressable, Dimensions } from 'react-native';
 import scaleSize from '../../helper/scaleSize';
 import FastImage from 'react-native-fast-image';
+import { withStrongPress } from '../../utils/haptics';
 
 const { height: screenHeight } = Dimensions.get('window');
 const scaledSize = (size) => scaleSize(size);
 
 const UserCard = ({ user, toViewProfile }) => {
     return (
-        <Pressable style={styles.itemContainer} onPress={() => toViewProfile(user)}>
+        <Pressable style={styles.itemContainer} onPress={withStrongPress(() => toViewProfile?.(user))}>
             <View style={styles.pfp_ctnr}>
                 <FastImage
                     source={{ uri: user.pfp }}

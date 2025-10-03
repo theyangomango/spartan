@@ -7,6 +7,7 @@ import Animated, { useAnimatedStyle } from 'react-native-reanimated';
 import TemplateEditableStat from './TemplateEditableStat';
 import theme from "../../../theme/mfpDark";
 import SetTypePanel from "../NewWorkout/Tracking/SetTypePanel";
+import { withStrongPress } from "../../../utils/haptics";
 
 export default function TemplateSetRow({ set, updateSet, index, handleDelete, readOnly = false }) {
     const weight = Number(set?.weight ?? 0);
@@ -88,7 +89,7 @@ export default function TemplateSetRow({ set, updateSet, index, handleDelete, re
                 >
                     <View style={styles.stat_row}>
                         <Pressable
-                            onPress={openTypePanel}
+                            onPress={withStrongPress(openTypePanel)}
                             style={[styles.set_ctnr, set?.type && [styles.set_ctnr_typed, typePillBg(set?.type)]]}
                         >
                             <Text style={[styles.set_number_text, set?.type && [styles.set_letter_text, typePillText(set?.type)]]}>
@@ -149,7 +150,7 @@ const UnderlayLeft = ({ onDelete }) => {
     return (
         <View style={styles.underlayLeft}>
             <Animated.View style={[styles.deletePillWrap, animWrap]}>
-                <Pressable onPress={onDelete} style={styles.deletePill} hitSlop={16}>
+                <Pressable onPress={withStrongPress(onDelete)} style={styles.deletePill} hitSlop={16}>
                     <Ionicons name="trash-outline" size={scaleSize(20)} color="#fff" />
                 </Pressable>
             </Animated.View>

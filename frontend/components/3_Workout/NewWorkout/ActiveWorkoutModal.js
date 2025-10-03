@@ -28,7 +28,7 @@ import { MaterialCommunityIcons } from "@expo/vector-icons";
 import Animated, { useAnimatedStyle, interpolate, interpolateColor, Extrapolate, useAnimatedReaction, runOnJS } from "react-native-reanimated";
 import RNBounceable from "@freakycoder/react-native-bounceable";
 import { Weight } from "iconsax-react-native";
-import * as Haptics from "expo-haptics";
+import { strong as haptic, withStrongPress } from "../../../utils/haptics";
 import ExerciseLog from "./Tracking/ExerciseLog";
 import SelectExerciseModal from "./SelectExercise/SelectExerciseModal";
 import { usePfp } from "../../../helper/usePFPs";
@@ -344,7 +344,7 @@ const ActiveWorkoutModal = ({
         try { LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut); } catch { }
         appendExercises(Array.isArray(picked) ? picked : [picked]);
         setSelectExerciseModalVisible(false);
-        try { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Heavy); } catch {}
+        haptic();
     }, [appendExercises, replaceIndex, viewingSelfEffective, workout, updateWorkout]);
 
     // deleteExercise and updateSets provided by hook
@@ -589,16 +589,16 @@ const ActiveWorkoutModal = ({
         <>
             {viewingSelfEffective && (
                 <>
-                    <RNBounceable onPress={showSelectExerciseModal} style={styles.add_exercise_btn}>
+                    <RNBounceable onPress={withStrongPress(showSelectExerciseModal)} style={styles.add_exercise_btn}>
                         <Text style={styles.add_exercise_text}>Add Exercises</Text>
                     </RNBounceable>
                     <RNBounceable
-                        onPress={isEmptyList ? confirmCancelWorkout : openFinishConfirm}
+                        onPress={withStrongPress(isEmptyList ? confirmCancelWorkout : openFinishConfirm)}
                         style={styles.finish_btn}
                     >
                         <Text style={styles.finish_btn_text}>Finish Workout</Text>
                     </RNBounceable>
-                    <RNBounceable onPress={confirmCancelWorkout} style={styles.cancel_btn}>
+                    <RNBounceable onPress={withStrongPress(confirmCancelWorkout)} style={styles.cancel_btn}>
                         <Text style={styles.cancel_btn_text}>Cancel Workout</Text>
                     </RNBounceable>
                 </>
@@ -900,7 +900,7 @@ const ActiveWorkoutModal = ({
                 >
                     <Pressable
                         style={styles.collapsedHud}
-                        onPress={handleCollapsedPress}
+                        onPress={withStrongPress(handleCollapsedPress)}
                         hitSlop={scaleSize(12)}
                     >
                         <View style={styles.collapsedHudContent}>
@@ -951,13 +951,13 @@ const ActiveWorkoutModal = ({
                             {workoutTitleDisplay}
                             {viewingSelfEffective && (
                                 <>
-                                    <RNBounceable onPress={showSelectExerciseModal} style={styles.add_exercise_btn}>
+                                    <RNBounceable onPress={withStrongPress(showSelectExerciseModal)} style={styles.add_exercise_btn}>
                                         <Text style={styles.add_exercise_text}>Add Exercises</Text>
                                     </RNBounceable>
-                                    <RNBounceable onPress={isEmptyList ? confirmCancelWorkout : openFinishConfirm} style={styles.finish_btn}>
+                                    <RNBounceable onPress={withStrongPress(isEmptyList ? confirmCancelWorkout : openFinishConfirm)} style={styles.finish_btn}>
                                         <Text style={styles.finish_btn_text}>Finish Workout</Text>
                                     </RNBounceable>
-                                    <RNBounceable onPress={confirmCancelWorkout} style={styles.cancel_btn}>
+                                    <RNBounceable onPress={withStrongPress(confirmCancelWorkout)} style={styles.cancel_btn}>
                                         <Text style={styles.cancel_btn_text}>Cancel Workout</Text>
                                     </RNBounceable>
                                 </>
@@ -1029,10 +1029,10 @@ const ActiveWorkoutModal = ({
                         <Text style={styles.modalBody}>
                             This clears your current progress. You can always start a new session from the hub.
                         </Text>
-                        <RNBounceable onPress={handleDeleteWorkout} style={[styles.modalAction, styles.modalActionDanger]}>
+                        <RNBounceable onPress={withStrongPress(handleDeleteWorkout)} style={[styles.modalAction, styles.modalActionDanger]}>
                             <Text style={styles.modalActionText}>Yes, cancel workout</Text>
                         </RNBounceable>
-                        <RNBounceable onPress={() => setDeleteConfirmModalVisible(false)} style={[styles.modalAction, styles.modalActionSecondary]}>
+                        <RNBounceable onPress={withStrongPress(() => setDeleteConfirmModalVisible(false))} style={[styles.modalAction, styles.modalActionSecondary]}>
                             <Text style={styles.modalActionSecondaryText}>Keep working</Text>
                         </RNBounceable>
                     </View>
@@ -1046,7 +1046,7 @@ const ActiveWorkoutModal = ({
                 onRequestClose={() => setFinishConfirmModalVisible(false)}
                 statusBarTranslucent
             >
-                <Pressable style={styles.modalOverlay} onPress={() => setFinishConfirmModalVisible(false)}>
+                <Pressable style={styles.modalOverlay} onPress={withStrongPress(() => setFinishConfirmModalVisible(false))}>
                     <Pressable style={styles.modalContainer} onPress={(e) => e.stopPropagation()}>
                         <LinearGradient
                             colors={["#34D399", "#22C55E"]}
@@ -1063,14 +1063,14 @@ const ActiveWorkoutModal = ({
                         </Text>
 
                         <RNBounceable
-                            onPress={handleFinishWorkout}
+                            onPress={withStrongPress(handleFinishWorkout)}
                             style={[styles.modalAction, styles.modalActionSuccess, isFinishing && styles.modalActionDisabled]}
                             disabled={isFinishing}
                         >
                             <Text style={styles.modalActionText}>{isFinishing ? "Finishing…" : "Finish workout"}</Text>
                         </RNBounceable>
 
-                        <RNBounceable onPress={() => setFinishConfirmModalVisible(false)} style={[styles.modalAction, styles.modalActionSecondary]}>
+                        <RNBounceable onPress={withStrongPress(() => setFinishConfirmModalVisible(false))} style={[styles.modalAction, styles.modalActionSecondary]}>
                             <Text style={styles.modalActionSecondaryText}>Keep working</Text>
                         </RNBounceable>
                     </Pressable>
@@ -1101,7 +1101,7 @@ const ActiveWorkoutModal = ({
                 onDismiss={() => setReminderVisible(false)}
                 onRequestClose={() => setReminderVisible(false)}
             >
-                <Pressable style={styles.modalOverlay} onPress={() => setReminderVisible(false)}>
+                <Pressable style={styles.modalOverlay} onPress={withStrongPress(() => setReminderVisible(false))}>
                     <BlurView style={StyleSheet.absoluteFill} intensity={28} tint="dark" />
                     <LinearGradient
                         // Slightly more contrasted blue→mint gradient for the reminder card

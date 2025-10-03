@@ -3,6 +3,7 @@ import { Pressable, TouchableOpacity, StyleSheet, Text, View } from 'react-nativ
 import scaleSize from '../../../../helper/scaleSize';
 // import { Ionicons } from '@expo/vector-icons';
 import ExerciseImagePreview from './ExerciseImagePreview';
+import { strong as haptic } from '../../../../utils/haptics';
 
 const scaledSize = (size) => scaleSize(size);
 
@@ -22,6 +23,7 @@ const ExerciseCard = memo(({ name, muscleGroup, selectExercise, deselectExercise
     const timesCompleted = userStats && Array.isArray(userStats.sets) ? userStats.sets.length : '';
 
     function toggleSelected() {
+        try { haptic(); } catch {}
         if (isSelected) {
             deselectExercise({ name: name, muscle: muscleGroup });
         } else {

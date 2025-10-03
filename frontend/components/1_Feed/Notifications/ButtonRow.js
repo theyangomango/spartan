@@ -3,13 +3,14 @@ import { View, Text, StyleSheet, ScrollView } from "react-native";
 import RNBounceable from "@freakycoder/react-native-bounceable";
 import scaleSize, { ts } from "../../../helper/scaleSize";
 import theme from "../../../theme/mfpDark";
+import { withStrongPress } from "../../../utils/haptics";
 
 function Chip({ label, selected, onPress, badgeCount }) {
     return (
         <RNBounceable
             key={label}
             style={[styles.chip, selected && styles.chipSelected]}
-            onPress={onPress}
+            onPress={withStrongPress(onPress)}
         >
             <Text style={[styles.chipText, selected && styles.chipTextSelected]}>
                 {label}
@@ -61,7 +62,7 @@ function ButtonRow({
                         label={label}
                         selected={selectedButton === label}
                         badgeCount={badgesByLabel[label] || 0}
-                        onPress={() => setSelectedButton(label)}
+                        onPress={withStrongPress(() => setSelectedButton(label))}
                     />
                 ))}
             </ScrollView>

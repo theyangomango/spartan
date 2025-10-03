@@ -7,6 +7,7 @@ import { usePfp } from '../../../helper/usePFPs';
 import theme from '../../../theme/mfpDark';
 
 import scaleSize from "../../../helper/scaleSize";
+import { withStrongPress } from '../../../utils/haptics';
 
 const scale = (w) => w / 375;
 
@@ -17,7 +18,7 @@ const ProfileCard = ({ user, query, onPress }) => {
   const hasPfp = !!pfpUri;
 
   return (
-    <RNBounceable onPress={onPress} style={styles.profileCard} bounceEffectIn={0.96}>
+    <RNBounceable onPress={withStrongPress(onPress)} style={styles.profileCard} bounceEffectIn={0.96}>
       <View style={styles.profileLeft}>
         <View style={[styles.avatarRing, { width: avatarSize, height: avatarSize, borderRadius: scaleSize(avatarSize / 2) }] }>
           {hasPfp ? (

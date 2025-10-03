@@ -6,6 +6,7 @@ import RNBounceable from "@freakycoder/react-native-bounceable";
 import ExerciseOptionsPanel from "../NewWorkout/Tracking/ExerciseOptionsPanel";
 import TemplateSetRow from "./TemplateSetRow";
 import theme from "../../../theme/mfpDark";
+import { withStrongPress } from "../../../utils/haptics";
 
 
 export default function EditTemplateExerciseLog({ name, muscle, exerciseIndex, updateSets, sets, replaceExercise, deleteExercise, readOnly = false }) {
@@ -67,7 +68,7 @@ export default function EditTemplateExerciseLog({ name, muscle, exerciseIndex, u
             <Animated.View style={[styles.header, { opacity: fadeAnim }]}>
                 <Pressable
                     style={styles.nameContainer}
-                    onPress={togglePanel}
+                    onPress={withStrongPress(togglePanel)}
                     disabled={readOnly}
                 >
                     <Text style={styles.exercise_text} numberOfLines={1}>{name}</Text>
@@ -109,7 +110,7 @@ export default function EditTemplateExerciseLog({ name, muscle, exerciseIndex, u
             </Animated.View>
             {!readOnly && (
                 <Animated.View style={[styles.add_set_btn_ctnr, { opacity: fadeAnim }]}>
-                    <RNBounceable activeOpacity={0.5} onPress={addSet} style={styles.add_set_btn}>
+                    <RNBounceable activeOpacity={0.5} onPress={withStrongPress(addSet)} style={styles.add_set_btn}>
                         <Entypo name="plus" size={scaleSize(18)} color={theme.primary} />
                         <Text style={styles.add_set_text}>Add Set</Text>
                     </RNBounceable>

@@ -3,6 +3,7 @@ import { View, Text, StyleSheet, Modal, TouchableOpacity, Animated, Dimensions }
 import RNBounceable from "@freakycoder/react-native-bounceable";
 import theme from "../../../../theme/mfpDark";
 import { MaterialCommunityIcons, FontAwesome6 } from '@expo/vector-icons';
+import { withStrongPress } from "../../../../utils/haptics";
 
 import scaleSize from "../../../../helper/scaleSize";
 
@@ -49,7 +50,7 @@ const ExerciseOptionsPanel = ({ visible, onClose, position, replaceExercise, del
 
     return (
         <Modal transparent visible={visible} animationType="none" onRequestClose={onClose}>
-            <TouchableOpacity style={styles.modalOverlay} activeOpacity={1} onPress={onClose}>
+            <TouchableOpacity style={styles.modalOverlay} activeOpacity={1} onPress={withStrongPress(onClose)}>
                 <Animated.View
                     style={[
                         styles.panel,
@@ -62,7 +63,7 @@ const ExerciseOptionsPanel = ({ visible, onClose, position, replaceExercise, del
                     <Text style={styles.header}>Exercise options</Text>
 
                     <RNBounceable
-                        onPress={() => { replaceExercise(); onClose(); }}
+                        onPress={withStrongPress(() => { replaceExercise?.(); onClose?.(); })}
                         style={styles.row}
                         hitSlop={8}
                     >
@@ -78,7 +79,7 @@ const ExerciseOptionsPanel = ({ visible, onClose, position, replaceExercise, del
                     <View style={styles.divider} />
 
                     <RNBounceable
-                        onPress={() => { deleteExercise(); onClose(); }}
+                        onPress={withStrongPress(() => { deleteExercise?.(); onClose?.(); })}
                         style={styles.row}
                         hitSlop={8}
                     >

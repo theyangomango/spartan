@@ -7,7 +7,7 @@ import SelectExerciseModal from "../NewWorkout/SelectExercise/SelectExerciseModa
 import RNBounceable from "@freakycoder/react-native-bounceable";
 import EditTemplateExerciseLog from "./EditTemplateExerciseLog";
 import theme from "../../../theme/mfpDark";
-import { strong as haptic } from "../../../utils/haptics";
+import { strong as haptic, withStrongPress } from "../../../utils/haptics";
 import { Copy } from "iconsax-react-native";
 
 const normalizeSetType = (value) => {
@@ -257,11 +257,11 @@ const EditTemplateModal = ({
                 ))}
                 {!readOnly && (
                     <>
-                        <RNBounceable onPress={showSelectExerciseModal} style={styles.addExerciseButton}>
+                        <RNBounceable onPress={withStrongPress(showSelectExerciseModal)} style={styles.addExerciseButton}>
                             <Text style={styles.addExerciseText}>Add Exercises</Text>
                         </RNBounceable>
 
-                        <RNBounceable style={styles.cancelButton} onPress={confirmDeleteTemplate}>
+                        <RNBounceable style={styles.cancelButton} onPress={withStrongPress(confirmDeleteTemplate)}>
                             <Text style={styles.deleteButtonText}>Delete Template</Text>
                         </RNBounceable>
                     </>
@@ -301,10 +301,10 @@ const EditTemplateModal = ({
                             <Text style={styles.modalBody}>
                                 This removes the template permanently. You can always build a new one from the workout hub.
                             </Text>
-                            <RNBounceable onPress={handleDeleteTemplate} style={[styles.modalAction, styles.modalActionDanger]}>
+                            <RNBounceable onPress={withStrongPress(handleDeleteTemplate)} style={[styles.modalAction, styles.modalActionDanger]}>
                                 <Text style={styles.modalActionText}>Yes, delete template</Text>
                             </RNBounceable>
-                            <RNBounceable onPress={() => setDeleteConfirmModalVisible(false)} style={[styles.modalAction, styles.modalActionSecondary]}>
+                            <RNBounceable onPress={withStrongPress(() => setDeleteConfirmModalVisible(false))} style={[styles.modalAction, styles.modalActionSecondary]}>
                                 <Text style={styles.modalActionSecondaryText}>Keep template</Text>
                             </RNBounceable>
                         </View>

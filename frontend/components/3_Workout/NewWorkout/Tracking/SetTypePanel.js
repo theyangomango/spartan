@@ -2,13 +2,14 @@ import React, { useEffect, useRef, memo } from "react";
 import { View, Text, StyleSheet, Modal, TouchableOpacity, Animated, Dimensions } from "react-native";
 import RNBounceable from "@freakycoder/react-native-bounceable";
 import theme from "../../../../theme/mfpDark";
+import { withStrongPress } from "../../../../utils/haptics";
 
 import scaleSize from "../../../../helper/scaleSize";
 
 const { width: screenWidth, height: screenHeight } = Dimensions.get("window");
 
 const ITEM = ({ color, letter, label, onPress }) => (
-  <RNBounceable onPress={onPress} style={styles.itemRow} activeOpacity={0.7}>
+  <RNBounceable onPress={withStrongPress(onPress)} style={styles.itemRow} activeOpacity={0.7}>
     <View style={[styles.letterBadge, { backgroundColor: color }]}>
       <Text style={styles.letterText}>{letter}</Text>
     </View>
@@ -38,7 +39,7 @@ function SetTypePanel({ visible, onClose, position, current, onSelect }) {
 
   return (
     <Modal transparent visible={visible} animationType="none" onRequestClose={onClose}>
-      <TouchableOpacity style={styles.overlay} activeOpacity={1} onPress={onClose}>
+      <TouchableOpacity style={styles.overlay} activeOpacity={1} onPress={withStrongPress(onClose)}>
         <Animated.View style={[styles.panel, { top: safeTop, left: safeLeft, width: panelWidth, transform: [{ scale }], opacity }]}>
           <View style={styles.caret} />
 

@@ -6,6 +6,7 @@ import { usePfp } from '../helper/usePFPs';
 import theme from '../theme/mfpDark';
 import Icon from 'react-native-vector-icons/Ionicons';
 import { LinearGradient } from 'expo-linear-gradient';
+import { withStrongPress } from '../utils/haptics';
 
 const { height } = Dimensions.get('window');
 
@@ -37,7 +38,7 @@ const ProfileCard = ({ user, onSelect, isSelected, baseBg, selectedBg }) => {
 
     return (
         <Pressable
-            onPress={() => onSelect(user)}
+            onPress={withStrongPress(() => onSelect?.(user))}
             style={({ pressed }) => [
                 styles.itemContainer,
                 // Allow consumers to override the base and selected background colors.
