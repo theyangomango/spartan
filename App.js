@@ -44,6 +44,7 @@ import Messages from './frontend/screens/1.1_Messages';
 import Chat from './frontend/screens/1.2_Chat';
 import ViewProfile from './frontend/screens/4.1_ViewProfile';
 import MacroTracking from './frontend/screens/MacroTracking';
+import Notifications from './frontend/screens/Notifications';
 import FoodDetail from './frontend/screens/FoodDetail';
 import SearchUsers from './frontend/screens/SearchUsers';
 import Settings from './frontend/screens/Settings';
@@ -59,6 +60,7 @@ import Footer from './frontend/components/Footer';
 import MainTabs from './frontend/navigation/MainTabs';
 import useFooterSuppressionStore, { setFooterSuppressed, clearFooterSuppression } from './frontend/state/footerSuppressionStore';
 import { preloadMessagesForUid, resetMessagesState } from './frontend/logic/messagesPreloader';
+import { ensureNotificationsListener, stopNotificationsListener } from './frontend/state/notificationsStore';
 
 const AUTH_BACKGROUND_ASSET = require('./frontend/assets/AUTH_BACKGROUND.jpg');
 
@@ -318,6 +320,7 @@ export default function App() {
                 try { delete global.__userDocHydrated; } catch { }
                 prevMessagesSigRef.current = '';
                 resetMessagesState();
+                stopNotificationsListener();
             } else {
                 if (logoutResetTimerRef.current) {
                     try { clearTimeout(logoutResetTimerRef.current); } catch { }
@@ -480,6 +483,7 @@ export default function App() {
             try { global.userData = { uid, ...(snap.data() || {}) }; } catch { }
             setUserReady(true);
             try { global.__userDocHydrated = true; } catch { }
+            ensureNotificationsListener(uid);
             try {
                 const maybeRefresh = refreshCommunityStats({ force: true });
                 if (maybeRefresh && typeof maybeRefresh.catch === 'function') {
@@ -553,7 +557,10 @@ export default function App() {
             console.warn('User document subscription error:', err?.message || err);
             // proceed but keep ready false to avoid crashing screens
         });
-        return () => { if (unsubRef.current) { try { unsubRef.current(); } catch { } unsubRef.current = null; } };
+        return () => {
+            if (unsubRef.current) { try { unsubRef.current(); } catch { } unsubRef.current = null; }
+            stopNotificationsListener();
+        };
     }, [isAuthenticated]);
 
     // Safety: if user doc doesn't arrive promptly (offline, slow network), proceed with minimal data
@@ -619,6 +626,7 @@ export default function App() {
             }
             prevMessagesSigRef.current = '';
             resetMessagesState();
+            stopNotificationsListener();
             if (notifUnsubRef.current) {
                 try { notifUnsubRef.current(); } catch { }
                 notifUnsubRef.current = null;
@@ -1047,6 +1055,11 @@ export default function App() {
 
                         {/* Messaging / social */}
                         <RootStack.Screen name="Messages" component={Messages} />
+                        <RootStack.Screen
+                            name="Notifications"
+                            component={Notifications}
+                            options={{ headerShown: false }}
+                        />
                         <RootStack.Screen
                             name="Chat"
                             component={Chat}

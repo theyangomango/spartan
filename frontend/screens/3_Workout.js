@@ -30,7 +30,6 @@ import WorkoutSummaryModal from "../components/3_Workout/WorkoutSummaryModal";
 import DayDetailsSheet from "../components/3_Workout/DayDetailsSheet";
 import CommunityActivitySheet from "../components/3_Workout/CommunityActivitySheet";
 import InviteBanner from "../components/3_Workout/InviteBanner";
-import NotificationsBottomSheet from "../components/1_Feed/Notifications/NotificationsBottomSheet";
 import UserStatsAfterWorkoutSheet from "../components/2_Competition/UserStats/UserStatsAfterWorkoutSheet";
 import UserStatsBottomSheet from "../components/2_Competition/UserStats/UserStatsBottomSheet";
 import { onHexagonUpdate } from "../utils/hexagonEvents";
@@ -328,8 +327,6 @@ export default function Workout({ navigation, route }) {
     /* ---------- first paint guard ---------- */
     const [afterPaint, setAfterPaint] = useState(false);
     const hubRowReadyNotifiedRef = useRef(false);
-    const [notificationsBottomSheetExpandFlag, setNotificationsBottomSheetExpandFlag] = useState(false);
-    const [hasMountedNotificationsSheet, setHasMountedNotificationsSheet] = useState(false);
     const [hasMountedFriendsSheet, setHasMountedFriendsSheet] = useState(false);
     const [hasMountedEditTemplateSheet, setHasMountedEditTemplateSheet] = useState(false);
     const [hasMountedDaySheet, setHasMountedDaySheet] = useState(false);
@@ -360,7 +357,6 @@ export default function Workout({ navigation, route }) {
     useEffect(() => {
         if (!afterPaint) return;
         const timers = [
-            setTimeout(() => setHasMountedNotificationsSheet(true), 40),
             setTimeout(() => setHasMountedFriendsSheet(true), 120),
             setTimeout(() => setHasMountedDaySheet(true), 160),
             setTimeout(() => setHasMountedEditTemplateSheet(true), 200),
@@ -580,10 +576,6 @@ export default function Workout({ navigation, route }) {
     useEffect(() => {
         if (inviteSheetOpen) setHasMountedGroupModal(true);
     }, [inviteSheetOpen]);
-    useEffect(() => {
-        if (notificationsBottomSheetExpandFlag) setHasMountedNotificationsSheet(true);
-    }, [notificationsBottomSheetExpandFlag]);
-
     // Avoid "flash of new" before user doc loads by gating on user readiness.
     const userLoaded = user != null; // useUserDoc returns null until first snapshot
     const lastViewedAtMs = userLoaded
@@ -856,7 +848,11 @@ export default function Workout({ navigation, route }) {
             navigation?.navigate("Messages", { returnTo: 'Workout' });
         }
     }, [navigation, messages]);
-    const toggleNotifications = useCallback(() => setNotificationsBottomSheetExpandFlag((f) => !f), []);
+    const toggleNotifications = useCallback(() => {
+        try {
+            navigation?.navigate?.('Notifications', { transition: 'slide-from-right' });
+        } catch {}
+    }, [navigation]);
 
     const onFriendsClose = useCallback(() => setFriendsSheetVisible(false), []);
     const onFriendsJoin = useCallback((item) => {
@@ -999,7 +995,6 @@ export default function Workout({ navigation, route }) {
     });
 
     /* ---------------- render ---------------- */
-    const shouldRenderNotificationsSheet = notificationsBottomSheetExpandFlag || hasMountedNotificationsSheet;
     const shouldRenderDaySheet = daySheetVisible || hasMountedDaySheet;
     const shouldRenderFriendsSheet = friendsSheetVisible || hasMountedFriendsSheet;
     const shouldRenderEditTemplateSheet = isEditTemplateVisible || hasMountedEditTemplateSheet;
@@ -1107,10 +1102,6 @@ export default function Workout({ navigation, route }) {
                 </View>
             </View>
             <Footer currentScreenName={"Workout"} navigation={navigation} />
-            {/* Notifications (same UX as Feed) */}
-            {shouldRenderNotificationsSheet && (
-                <NotificationsBottomSheet notificationsBottomSheetExpandFlag={notificationsBottomSheetExpandFlag} />
-            )}
             {/* Day details (open via History button) */}
             {shouldRenderDaySheet && (
                 <View style={StyleSheet.absoluteFill} pointerEvents={daySheetVisible ? "auto" : "none"}>

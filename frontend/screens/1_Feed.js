@@ -1,7 +1,7 @@
 /**
  * Feed Screen. Retrieves and displays stories and posts.
  * Handles Navigation to the Messages Screen.
- * Handles the NotificationsBottomSheet, CommentsBottomSheet, ShareBottomSheet, and Workout viewer sheet
+ * Handles the CommentsBottomSheet, ShareBottomSheet, and Workout viewer sheet
  * * Does NOT handle backend calls from user interactions
  */
 
@@ -16,7 +16,6 @@ import { Gesture, GestureDetector } from 'react-native-gesture-handler';
 import PostListItem from "../components/1_Feed/PostListItem";
 import createCellRenderer from "../components/1_Feed/createCellRenderer";
 import useHeaderSearchUsers from "../hooks/useHeaderSearchUsers";
-import NotificationsBottomSheet from "../components/1_Feed/Notifications/NotificationsBottomSheet";
 import CommentsBottomSheet from "../components/1_Feed/Comments/CommentsBottomSheet";
 import ShareBottomSheet from "../components/1_Feed/SharePost/ShareBottomSheet";
 import FollowListBottomSheet from "../components/FollowListBottomSheet";
@@ -78,7 +77,6 @@ export default function Feed({ navigation, route }) {
     const [translatingIndexState, setTranslatingIndexState] = useState(-1);
     const [shareBottomSheetExpandFlag, setShareBottomSheetExpandFlag] = useState(false);
     const [shareBottomSheetCloseFlag, setShareBottomSheetCloseFlag] = useState(false);
-    const [notificationsBottomSheetExpandFlag, setNotificationsBottomSheetExpandFlag] = useState(false);
     const [commentsBottomSheetExpandFlag, setCommentsBottomSheetExpandFlag] = useState(false);
     const [commentsCollapseSignal, setCommentsCollapseSignal] = useState(0);
     const [commentsReopenSignal, setCommentsReopenSignal] = useState(0);
@@ -684,8 +682,10 @@ export default function Feed({ navigation, route }) {
         showLikesSheet(post.likes, 'Liked by');
     }, [posts, showLikesSheet]);
     const handleOpenNotifications = useCallback(() => {
-        setNotificationsBottomSheetExpandFlag((f) => !f);
-    }, []);
+        try {
+            navigation?.navigate?.('Notifications', { transition: 'slide-from-right' });
+        } catch {}
+    }, [navigation]);
 
     // Profile navigation from posts
     const toViewProfilePosts = useCallback((idx) => {
@@ -1203,7 +1203,6 @@ export default function Feed({ navigation, route }) {
                 {/* Pan overlay handled above; nothing additional here. */}
 
 
-                <NotificationsBottomSheet notificationsBottomSheetExpandFlag={notificationsBottomSheetExpandFlag} />
                 <CommentsBottomSheet
                     isVisible={isSomePostFocused}
                     postData={focusedPostIndex.current === -1 ? null : posts[focusedPostIndex.current]}
