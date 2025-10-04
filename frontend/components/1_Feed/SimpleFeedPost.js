@@ -167,6 +167,15 @@ const SimpleFeedPost = ({
     const caption = (data?.caption || "").trim();
     const weightUnit = resolveWeightUnit();
 
+    const shouldShowSubtitle = useMemo(() => {
+        if (caption.length === 0) return false;
+        if (!workout) return true;
+        const normalizedCaption = caption.toLowerCase();
+        const normalizedTitle = (title || "").trim().toLowerCase();
+        if (!normalizedTitle) return true;
+        return normalizedCaption !== normalizedTitle;
+    }, [caption, workout, title]);
+
     const workoutName = useMemo(() => {
         if (!workout) return "";
         const candidate = workout?.templateName || workout?.template?.name || workout?.name;
@@ -408,7 +417,7 @@ const SimpleFeedPost = ({
                         <Text style={[styles.titleText, isWorkoutTitle ? styles.workoutTitleText : null]} numberOfLines={2}>
                             {title}
                         </Text>
-                        {workout && caption ? (
+                        {shouldShowSubtitle ? (
                             <Text style={styles.captionText} numberOfLines={3}>
                                 {caption}
                             </Text>
@@ -643,8 +652,7 @@ const styles = StyleSheet.create({
     metricsRow: {
         flexDirection: "row",
         justifyContent: 'space-between',
-        marginTop: scaleSize(6),
-        paddingVertical: scaleSize(8),
+        paddingVertical: scaleSize(6),
         marginHorizontal: scaleSize(20),
     },
     metricCenter: {
@@ -658,6 +666,7 @@ const styles = StyleSheet.create({
         fontFamily: "Outfit_600SemiBold",
         fontSize: scaleSize(11.2),
         letterSpacing: 0.2,
+        paddingBottom: scaleSize(1.5)
     },
     metricValue: {
         color: theme.textPrimary,
