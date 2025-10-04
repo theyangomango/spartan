@@ -167,6 +167,21 @@ const SimpleFeedPost = ({
     const caption = (data?.caption || "").trim();
     const weightUnit = resolveWeightUnit();
 
+    const workoutName = useMemo(() => {
+        if (!workout) return "";
+        const candidate = workout?.templateName || workout?.template?.name || workout?.name;
+        if (typeof candidate === "string") return candidate.trim();
+        if (candidate) return String(candidate).trim();
+        return "";
+    }, [workout]);
+
+    const isWorkoutTitle = useMemo(() => {
+        if (!workoutName) return false;
+        const normalizedTitle = (title || "").trim();
+        if (!normalizedTitle) return false;
+        return normalizedTitle.toLowerCase() === workoutName.toLowerCase();
+    }, [title, workoutName]);
+
     const mediaList = useMemo(() => {
         const fromMedia = Array.isArray(data?.media) ? data.media.map(normalizeMediaEntry) : [];
         const fromImages = Array.isArray(data?.images) ? data.images.map(normalizeMediaEntry) : [];
@@ -390,7 +405,7 @@ const SimpleFeedPost = ({
                     </View>
 
                     <View style={styles.titleBlock}>
-                        <Text style={styles.titleText} numberOfLines={2}>
+                        <Text style={[styles.titleText, isWorkoutTitle ? styles.workoutTitleText : null]} numberOfLines={2}>
                             {title}
                         </Text>
                         {caption ? (
@@ -609,7 +624,10 @@ const styles = StyleSheet.create({
     titleText: {
         color: theme.textPrimary,
         fontFamily: "Outfit_700Bold",
-        fontSize: scaleSize(18),
+        fontSize: scaleSize(17),
+    },
+    workoutTitleText: {
+        color: '#74abf7ff',
     },
     captionText: {
         color: theme.textSecondary,
