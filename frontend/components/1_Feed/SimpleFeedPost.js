@@ -169,8 +169,8 @@ const SimpleFeedPost = ({
     const weightUnit = resolveWeightUnit();
 
     const shouldShowSubtitle = useMemo(() => {
+        if (!workout) return false;
         if (caption.length === 0) return false;
-        if (!workout) return true;
         const normalizedCaption = caption.toLowerCase();
         const normalizedTitle = (title || "").trim().toLowerCase();
         if (!normalizedTitle) return true;
@@ -696,7 +696,7 @@ const styles = StyleSheet.create({
     titleText: {
         color: theme.textPrimary,
         fontFamily: "Outfit_700Bold",
-        fontSize: scaleSize(17),
+        fontSize: scaleSize(16),
     },
     workoutTitleText: {
         color: '#74abf7ff',
