@@ -20,7 +20,7 @@ const CLOSE_COMPLETE_PROGRESS = 0.92;
 const POST_ASPECT_RATIO = 0.8;
 const TARGET_POSITION = getScrollTargetPosition(SCREEN_WIDTH, SCREEN_HEIGHT);
 
-const CommentsBottomSheet = ({ isVisible, postData, commentsBottomSheetExpandFlag, toViewProfile, collapseSignal, reopenSignal, interactiveProgress, interactiveProgressSV, interactiveScale = 0.85, openPositionPx, unfocusGestureActive = false, onShowLikesSheet }) => {
+const CommentsBottomSheet = ({ isVisible, postData, commentsBottomSheetExpandFlag, toViewProfile, collapseSignal, reopenSignal, interactiveProgress, interactiveProgressSV, interactiveScale = 0.85, openPositionPx, unfocusGestureActive = false, onShowLikesSheet, onDismiss }) => {
     // Smoother sheet expansion
     const SHEET_OPEN_MS = 220;
     const commentsContainerOffset = useMemo(() => scaleSize(85), []);
@@ -352,12 +352,18 @@ const CommentsBottomSheet = ({ isVisible, postData, commentsBottomSheetExpandFla
         try { bottomSheetRef.current?.snapToIndex?.(0); } catch { }
     }, [reopenSignal, isVisible, postPid, footerOpacity, resolveOpenHeight, sheetOpenHeight, sheetTranslateY]);
 
+    const lastVisibleRef = useRef(isVisible);
     useEffect(() => {
         if (!isVisible) {
             pendingCloseRef.current = false;
             isClosingRef.current = false;
         }
-    }, [isVisible]);
+        const wasVisible = lastVisibleRef.current;
+        lastVisibleRef.current = isVisible;
+        if (wasVisible && !isVisible && typeof onDismiss === 'function') {
+            try { onDismiss(); } catch { }
+        }
+    }, [isVisible, onDismiss]);
 
     // Interactive unfocus: fade/slide the footer while we translate the sheet wrapper
     const updateFromProgress = useCallback((progress, forcedScaled) => {
@@ -462,6 +468,9 @@ const CommentsBottomSheet = ({ isVisible, postData, commentsBottomSheetExpandFla
         } else if (index < 0) {
             sheetOpenHeight.value = 0;
             sheetOpenHeightRef.current = 0;
+            if (typeof onDismiss === 'function') {
+                try { onDismiss(); } catch { }
+            }
         }
         try {
             // Decouple from the dispatch tick of any press/gesture by scheduling to next frame
@@ -469,7 +478,7 @@ const CommentsBottomSheet = ({ isVisible, postData, commentsBottomSheetExpandFla
         } catch {
             setIsSheetExpanded(index === 1);
         }
-    }, [isVisible, postPid, enforceVisibleIndex, getSnapPointPx, sheetOpenHeight, snapPoints]);
+    }, [isVisible, postPid, enforceVisibleIndex, getSnapPointPx, sheetOpenHeight, snapPoints, onDismiss]);
 
     // Disable content panning while user is performing the unfocus gesture to avoid gesture competition
     const [contentPanEnabled, setContentPanEnabled] = useState(true);

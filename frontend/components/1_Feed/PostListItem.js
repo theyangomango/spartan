@@ -1,85 +1,59 @@
 import React, { memo, useCallback } from "react";
-import Reanimated from "react-native-reanimated";
-import Post from "./Posts/Post";
-import { usePostFocus } from "../../screens/feed/hooks/FeedFocusContext";
+import SimpleFeedPost from "./SimpleFeedPost";
 
-// Renders a single feed post item, handling focused/translating overlay state.
-// This keeps the Feed screen simpler by isolating conditional wrappers and props.
 const PostListItem = memo(function PostListItem({
   item,
   index,
-  isScreenFocused,
-  centeredIndex,
-  // highlights/programmatic focus
   highlightPid,
   highlightSignal,
-  programFocusPid,
-  programFocusSignal,
-  // actions
   openCommentsModal,
   openShareModal,
   openLikesSheet,
   toViewProfilePosts,
   openViewWorkoutModal,
-  // refs
-  postRefs,
 }) {
-  const {
-    isSomePostFocused,
-    isFocused,
-    translatingIndex,
-    interPostStyle,
-  } = usePostFocus(index);
-
-  const isFocusedPost = !!isFocused;
-  const isTranslatingPost = index === translatingIndex;
-
-  const wrapperStyle = [
-    { width: "100%" },
-    (isFocusedPost || isTranslatingPost) && { zIndex: 9999, elevation: 32 },
-  ];
-
-  const shouldPlay = isScreenFocused && !isSomePostFocused && index === centeredIndex;
-
-  const registerRef = useCallback((el) => {
-    if (!postRefs) return;
-    const map = postRefs.current || {};
-    if (el) {
-      map[index] = el;
-    } else if (map[index]) {
-      delete map[index];
+  const handleProfile = useCallback(() => {
+    if (typeof toViewProfilePosts === "function") {
+      toViewProfilePosts(index);
     }
-    postRefs.current = map;
-  }, [postRefs, index]);
+  }, [toViewProfilePosts, index]);
 
-  const postProps = {
-    ref: registerRef,
-    data: item,
-    index,
-    openCommentsModal,
-    openShareModal,
-    openLikesSheet,
-    toViewProfile: toViewProfilePosts,
-    openViewWorkoutModal,
-    highlightPid,
-    highlightSignal,
-    programFocusPid,
-    programFocusSignal,
-    shouldPlay,
-  };
+  const handleWorkout = useCallback(() => {
+    if (typeof openViewWorkoutModal === "function") {
+      openViewWorkoutModal(index);
+    }
+  }, [openViewWorkoutModal, index]);
 
-  if (isFocusedPost || isTranslatingPost) {
-    return (
-      <Reanimated.View style={[wrapperStyle, interPostStyle]} pointerEvents="auto">
-        <Post {...postProps} />
-      </Reanimated.View>
-    );
-  }
+  const handleComments = useCallback(() => {
+    if (typeof openCommentsModal === "function") {
+      openCommentsModal(index);
+    }
+  }, [openCommentsModal, index]);
+
+  const handleShare = useCallback(() => {
+    if (typeof openShareModal === "function") {
+      openShareModal(index);
+    }
+  }, [openShareModal, index]);
+
+  const handleLikes = useCallback(() => {
+    if (typeof openLikesSheet === "function") {
+      openLikesSheet(index);
+    }
+  }, [openLikesSheet, index]);
 
   return (
-    <Reanimated.View style={wrapperStyle} pointerEvents={isSomePostFocused ? "none" : "auto"}>
-      <Post {...postProps} />
-    </Reanimated.View>
+    <SimpleFeedPost
+      data={item}
+      index={index}
+      highlightPid={highlightPid}
+      highlightSignal={highlightSignal}
+      onPressProfile={handleProfile}
+      onPressWorkout={handleWorkout}
+      onPressComments={handleComments}
+      onPressShare={handleShare}
+      onPressLikes={handleLikes}
+    />
   );
 });
 

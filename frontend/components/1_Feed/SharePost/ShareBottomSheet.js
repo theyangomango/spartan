@@ -19,7 +19,8 @@ const { width, height } = Dimensions.get("screen");
 
 const ShareBottomSheet = ({
     shareBottomSheetCloseFlag,
-    shareBottomSheetExpandFlag
+    shareBottomSheetExpandFlag,
+    onDismiss,
 }) => {
     const bottomSheetRef = useRef(null);
 
@@ -68,6 +69,11 @@ const ShareBottomSheet = ({
                 enablePanDownToClose
                 handleStyle={styles.hiddenHandle}
                 backgroundStyle={styles.bottomSheetBackground}
+                onChange={(index) => {
+                    if (index === -1 && typeof onDismiss === 'function') {
+                        try { onDismiss(); } catch { }
+                    }
+                }}
             >
                 <ShareModal closeBottomSheet={() => bottomSheetRef.current.close()} />
             </BottomSheet>

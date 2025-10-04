@@ -1,0 +1,595 @@
+import React, { useMemo, useEffect, useRef } from "react";
+import {
+  View,
+  Text,
+  StyleSheet,
+  Pressable,
+  Animated,
+} from "react-native";
+import FastImage from "react-native-fast-image";
+import { Heart, Messages1, Send2 } from "iconsax-react-native";
+import { MaterialCommunityIcons } from "@expo/vector-icons";
+
+import theme from "../../theme/mfpDark";
+import scaleSize from "../../helper/scaleSize";
+import { usePfp } from "../../helper/usePFPs";
+import usePostFooterInteractions from "./Posts/hooks/usePostFooterInteractions";
+
+const AnimatedPressable = Animated.createAnimatedComponent(Pressable);
+
+const toNumber = (value, fallback = 0) => {
+  const num = Number(value);
+  return Number.isFinite(num) ? num : fallback;
+};
+
+const formatTimestamp = (value) => {
+  if (!value && value !== 0) return "";
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return "";
+
+  let datePart = "";
+  let timePart = "";
+  try {
+    datePart = date.toLocaleDateString(undefined, {
+      month: "long",
+      day: "2-digit",
+      year: "numeric",
+    });
+  } catch {}
+  try {
+    timePart = date.toLocaleTimeString(undefined, {
+      hour: "numeric",
+      minute: "2-digit",
+    });
+  } catch {}
+
+  if (datePart && timePart) return `${datePart} at ${timePart}`;
+  return datePart || timePart || "";
+};
+
+const formatDuration = (durationMs) => {
+  const ms = Number(durationMs);
+  if (!Number.isFinite(ms) || ms <= 0) return "--";
+  const totalMinutes = Math.max(0, Math.round(ms / 60000));
+  const hours = Math.floor(totalMinutes / 60);
+  const minutes = totalMinutes % 60;
+  if (hours > 0 && minutes > 0) return `${hours}h ${minutes}m`;
+  if (hours > 0) return `${hours}h`;
+  if (minutes > 0) return `${minutes}m`;
+  const totalSeconds = Math.max(0, Math.round(ms / 1000));
+  if (totalSeconds >= 60) {
+    const mins = Math.floor(totalSeconds / 60);
+    const seconds = totalSeconds % 60;
+    return `${mins}m ${seconds}s`;
+  }
+  return `${totalSeconds}s`;
+};
+
+const formatNumber = (value) => {
+  const num = Number(value);
+  if (!Number.isFinite(num)) return "--";
+  try {
+    return num.toLocaleString();
+  } catch {
+    return String(num);
+  }
+};
+
+const resolveWorkoutTitle = (workout, caption) => (
+  workout?.templateName ||
+  workout?.template?.name ||
+  workout?.name ||
+  caption ||
+  "Workout"
+);
+
+const resolveWeightUnit = () => {
+  try {
+    const raw = global?.userData?.settings?.units || global?.userData?.units;
+    if (!raw) return "lb";
+    const normalized = String(raw).toLowerCase();
+    return normalized === "kg" ? "kg" : "lb";
+  } catch {
+    return "lb";
+  }
+};
+
+const pickMedia = (data) => {
+  if (!data) return null;
+  if (Array.isArray(data.media) && data.media.length > 0) {
+    return data.media.find((m) => m?.uri) || null;
+  }
+  if (Array.isArray(data.images) && data.images.length > 0) {
+    return { uri: data.images[0], type: "image" };
+  }
+  return null;
+};
+
+const initialsFrom = (name = "") => {
+  const parts = String(name).trim().split(/\s+/).filter(Boolean);
+  if (!parts.length) return "";
+  if (parts.length === 1) return parts[0].slice(0, 2).toUpperCase();
+  return `${parts[0][0]}${parts[1][0]}`.toUpperCase();
+};
+
+const SimpleFeedPost = ({
+  data,
+  index,
+  highlightPid,
+  highlightSignal,
+  onPressProfile,
+  onPressWorkout,
+  onPressComments,
+  onPressShare,
+  onPressLikes,
+}) => {
+  const highlightOpacity = useRef(new Animated.Value(0)).current;
+  const isHighlighted = useMemo(() => {
+    if (!highlightPid) return false;
+    const pid = data?.pid ?? data?.id;
+    if (pid === undefined || pid === null) return false;
+    return String(pid) === String(highlightPid);
+  }, [data?.pid, data?.id, highlightPid]);
+
+  useEffect(() => {
+    if (!isHighlighted) {
+      highlightOpacity.setValue(0);
+      return;
+    }
+    if (!highlightSignal) return;
+    highlightOpacity.setValue(0);
+    Animated.sequence([
+      Animated.timing(highlightOpacity, {
+        toValue: 0.35,
+        duration: 180,
+        useNativeDriver: true,
+      }),
+      Animated.timing(highlightOpacity, {
+        toValue: 0,
+        duration: 420,
+        useNativeDriver: true,
+      }),
+    ]).start();
+  }, [highlightSignal, isHighlighted, highlightOpacity]);
+
+  const workout = data?.workout || null;
+  const title = resolveWorkoutTitle(workout, data?.caption);
+  const timestamp = formatTimestamp(data?.created);
+  const caption = (data?.caption || "").trim();
+  const weightUnit = resolveWeightUnit();
+
+  const media = useMemo(() => pickMedia(data), [data]);
+
+  const pfpUri = usePfp(
+    data?.uid ? String(data.uid) : "",
+    data?.pfpVersion ?? 0,
+    data?.pfp || data?.pfpUrl || data?.image || data?.photoURL || ""
+  );
+
+  const likeCount = useMemo(() => (
+    Array.isArray(data?.likes)
+      ? data.likes.length
+      : toNumber(data?.likeCount)
+  ), [data?.likes, data?.likeCount]);
+
+  const commentCount = useMemo(() => (
+    Array.isArray(data?.comments)
+      ? Math.max(0, data.comments.length - 1)
+      : toNumber(data?.commentCount)
+  ), [data?.comments, data?.commentCount]);
+
+  const {
+    isLiked,
+    assignButtonRef,
+    handlePressLikeButton,
+    pressComment,
+    pressShare,
+    handlePressSaveButton,
+    isSaved,
+  } = usePostFooterInteractions({
+    data,
+    onPressCommentButton: () => onPressComments?.(index, data),
+    onPressShareButton: () => onPressShare?.(index, data),
+  });
+
+  const visibleLikes = useMemo(() => {
+    if (!Array.isArray(data?.likes)) return [];
+    const viewerUid = (() => {
+      try {
+        return global?.userData?.uid ? String(global.userData.uid) : null;
+      } catch {
+        return null;
+      }
+    })();
+    return data.likes
+      .map((entry) => {
+        if (!entry) return null;
+        if (typeof entry === "string" || typeof entry === "number") {
+          const uid = String(entry).trim();
+          return uid ? { uid } : null;
+        }
+        return entry;
+      })
+      .filter((entry) => {
+        if (!entry) return false;
+        if (!viewerUid) return true;
+        const uid = entry?.uid;
+        if (uid === undefined || uid === null) return true;
+        return String(uid) !== viewerUid;
+      })
+      .slice(0, 2);
+  }, [data?.likes]);
+
+  const likeLine = useMemo(() => {
+    if (visibleLikes.length > 0) {
+      const handles = visibleLikes
+        .map((entry) => {
+          const handle = (entry?.handle || "").trim();
+          if (handle) return handle.startsWith("@") ? handle : `@${handle}`;
+          const name = (entry?.name || "").trim();
+          return name;
+        })
+        .filter(Boolean);
+      if (handles.length === 1) return `Liked by ${handles[0]}`;
+      if (handles.length === 2) return `Liked by ${handles[0]} and ${handles[1]}`;
+      if (handles.length > 2) return `Liked by ${handles.slice(0, 2).join(", ")}`;
+      return "Liked by someone";
+    }
+    return caption || "Be the first to give a Like!";
+  }, [visibleLikes, caption]);
+
+  const firstLikePfp = useMemo(() => {
+    const first = visibleLikes[0];
+    return first?.pfp || first?.pfpUrl || first?.image || first?.photoURL || null;
+  }, [visibleLikes]);
+
+  const durationLabel = formatDuration(workout?.duration);
+  const volumeLabel = formatNumber(workout?.volume);
+  const recordsLabel = formatNumber(workout?.PBs ?? workout?.pbs ?? 0);
+
+  const displayName = useMemo(() => {
+    const name = (data?.name || "").trim();
+    if (name) return name;
+    const handle = (data?.handle || "user").trim();
+    return handle.startsWith("@") ? handle : `@${handle}`;
+  }, [data?.name, data?.handle]);
+
+  const likeColor = isLiked ? "#FE5555" : theme.textPrimary;
+
+  return (
+    <View style={styles.wrapper}>
+      <View style={styles.card}>
+        <View style={styles.sectionTop}>
+          <View style={styles.headerRow}>
+            <Pressable style={styles.avatarWrap} onPress={() => onPressProfile?.(index, data)}>
+              {pfpUri ? (
+                <FastImage
+                  source={{
+                    uri: pfpUri,
+                    priority: FastImage.priority.high,
+                    cache: FastImage.cacheControl.immutable,
+                  }}
+                  style={styles.avatar}
+                  resizeMode={FastImage.resizeMode.cover}
+                />
+              ) : (
+                <View style={[styles.avatar, styles.avatarFallback]}>
+                  <Text style={styles.avatarInitials}>{initialsFrom(displayName)}</Text>
+                </View>
+              )}
+            </Pressable>
+
+            <View style={styles.headerTextCol}>
+              <Pressable onPress={() => onPressProfile?.(index, data)}>
+                <Text style={styles.nameText} numberOfLines={1}>
+                  {displayName}
+                </Text>
+              </Pressable>
+              {!!timestamp && (
+                <Text style={styles.timestampText} numberOfLines={1}>
+                  {timestamp}
+                </Text>
+              )}
+            </View>
+
+            {workout ? (
+              <Pressable style={styles.workoutButton} onPress={() => onPressWorkout?.(index, data)}>
+                <MaterialCommunityIcons name="dumbbell" size={scaleSize(16)} color={theme.textPrimary} />
+                <Text style={styles.workoutButtonText}>Workout</Text>
+              </Pressable>
+            ) : null}
+          </View>
+
+          <View style={styles.titleBlock}>
+            <Text style={styles.titleText} numberOfLines={2}>
+              {title}
+            </Text>
+            {caption ? (
+              <Text style={styles.captionText} numberOfLines={3}>
+                {caption}
+              </Text>
+            ) : null}
+          </View>
+        </View>
+
+        {workout ? (
+          <Pressable
+            onPress={() => onPressWorkout?.(index, data)}
+            style={styles.metricsRow}
+          >
+            <View style={styles.metricItem}>
+              <MaterialCommunityIcons name="clock-outline" size={scaleSize(18)} color={theme.textSecondary} />
+              <View style={styles.metricTextCol}>
+                <Text style={styles.metricLabel}>Duration</Text>
+                <Text style={styles.metricValue}>{durationLabel}</Text>
+              </View>
+            </View>
+
+            <View style={styles.metricItem}>
+              <MaterialCommunityIcons name="weight-lifter" size={scaleSize(18)} color={theme.textSecondary} />
+              <View style={styles.metricTextCol}>
+                <Text style={styles.metricLabel}>Volume</Text>
+                <Text style={styles.metricValue}>{volumeLabel} {weightUnit}</Text>
+              </View>
+            </View>
+
+            <View style={styles.metricItem}>
+              <MaterialCommunityIcons name="medal-outline" size={scaleSize(18)} color={theme.textSecondary} />
+              <View style={styles.metricTextCol}>
+                <Text style={styles.metricLabel}>Records</Text>
+                <Text style={styles.metricValue}>{recordsLabel}</Text>
+              </View>
+            </View>
+          </Pressable>
+        ) : null}
+
+        {media?.uri ? (
+          <FastImage
+            source={{
+              uri: media.uri,
+              priority: FastImage.priority.normal,
+              cache: FastImage.cacheControl.immutable,
+            }}
+            style={styles.media}
+            resizeMode={FastImage.resizeMode.cover}
+          />
+        ) : null}
+
+        <View style={styles.sectionBottom}>
+          <View style={styles.actionsRow}>
+            <AnimatedPressable
+              ref={(node) => assignButtonRef?.("like", node)}
+              style={styles.actionButton}
+              onPress={handlePressLikeButton}
+            >
+              <Heart size={scaleSize(22)} color={likeColor} variant="Bold" />
+              <Text style={styles.actionText}>{formatNumber(likeCount)}</Text>
+            </AnimatedPressable>
+
+            <AnimatedPressable
+              ref={(node) => assignButtonRef?.("comment", node)}
+              style={styles.actionButton}
+              onPress={pressComment}
+            >
+              <Messages1 size={scaleSize(22)} color={theme.textPrimary} variant="Bold" />
+              <Text style={styles.actionText}>{formatNumber(commentCount)}</Text>
+            </AnimatedPressable>
+
+            <AnimatedPressable
+              ref={(node) => assignButtonRef?.("share", node)}
+              style={styles.actionButton}
+              onPress={pressShare}
+            >
+              <Send2 size={scaleSize(22)} color={theme.textPrimary} variant="Bold" />
+              <Text style={styles.actionText}>Share</Text>
+            </AnimatedPressable>
+
+            <AnimatedPressable
+              ref={(node) => assignButtonRef?.("save", node)}
+              style={styles.actionButton}
+              onPress={handlePressSaveButton}
+            >
+              <MaterialCommunityIcons
+                name={isSaved ? "bookmark" : "bookmark-outline"}
+                size={scaleSize(22)}
+                color={theme.textPrimary}
+              />
+              <Text style={styles.actionText}>{isSaved ? "Saved" : "Save"}</Text>
+            </AnimatedPressable>
+          </View>
+
+          <Pressable
+            onPress={() => onPressLikes?.(index, data)}
+            disabled={!onPressLikes}
+            style={styles.likesRow}
+          >
+            {firstLikePfp ? (
+              <FastImage
+                source={{ uri: firstLikePfp, priority: FastImage.priority.low, cache: FastImage.cacheControl.immutable }}
+                style={styles.likeAvatar}
+                resizeMode={FastImage.resizeMode.cover}
+              />
+            ) : null}
+            <Text style={styles.likesText} numberOfLines={2}>
+              {likeLine}
+            </Text>
+          </Pressable>
+        </View>
+      </View>
+      <Animated.View
+        pointerEvents="none"
+        style={[styles.highlightOverlay, { opacity: highlightOpacity }]}
+      />
+    </View>
+  );
+};
+
+export default React.memo(SimpleFeedPost);
+
+const styles = StyleSheet.create({
+  wrapper: {
+    width: "100%",
+    marginTop: scaleSize(14),
+    marginBottom: scaleSize(12),
+    position: 'relative',
+  },
+  card: {
+    backgroundColor: theme.surface,
+    paddingBottom: scaleSize(22),
+  },
+  sectionTop: {
+    paddingHorizontal: scaleSize(18),
+    paddingTop: scaleSize(18),
+  },
+  sectionBottom: {
+    paddingHorizontal: scaleSize(18),
+    paddingTop: scaleSize(18),
+  },
+  headerRow: {
+    flexDirection: "row",
+    alignItems: "center",
+  },
+  avatarWrap: {
+    width: scaleSize(40),
+    aspectRatio: 1,
+    borderRadius: scaleSize(23),
+    overflow: "hidden",
+    marginRight: scaleSize(12),
+  },
+  avatar: {
+    width: "100%",
+    height: "100%",
+    borderRadius: scaleSize(23),
+    backgroundColor: theme.field,
+  },
+  avatarFallback: {
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  avatarInitials: {
+    color: theme.textPrimary,
+    fontFamily: "Poppins_600SemiBold",
+    fontSize: scaleSize(15),
+  },
+  headerTextCol: {
+    flex: 1,
+    minWidth: 0,
+  },
+  nameText: {
+    color: theme.textPrimary,
+    fontFamily: "Poppins_600SemiBold",
+    fontSize: scaleSize(14),
+  },
+  timestampText: {
+    color: theme.textSecondary,
+    fontFamily: "Outfit_400Regular",
+    fontSize: scaleSize(11.5),
+    marginTop: scaleSize(2),
+  },
+  workoutButton: {
+    flexDirection: "row",
+    alignItems: "center",
+    paddingHorizontal: scaleSize(10),
+    paddingVertical: scaleSize(6),
+    backgroundColor: "rgba(255,255,255,0.08)",
+    borderRadius: scaleSize(16),
+  },
+  workoutButtonText: {
+    color: theme.textPrimary,
+    fontFamily: "Outfit_600SemiBold",
+    fontSize: scaleSize(11),
+    marginLeft: scaleSize(6),
+  },
+  titleBlock: {
+    marginTop: scaleSize(14),
+  },
+  titleText: {
+    color: theme.textPrimary,
+    fontFamily: "Outfit_700Bold",
+    fontSize: scaleSize(18),
+  },
+  captionText: {
+    color: theme.textSecondary,
+    fontFamily: "Outfit_400Regular",
+    fontSize: scaleSize(13),
+    marginTop: scaleSize(6),
+  },
+  metricsRow: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    marginTop: scaleSize(18),
+    paddingVertical: scaleSize(14),
+    paddingHorizontal: scaleSize(12),
+    backgroundColor: "rgba(255,255,255,0.04)",
+    marginHorizontal: scaleSize(18),
+  },
+  metricItem: {
+    flex: 1,
+    flexDirection: "row",
+    alignItems: "center",
+  },
+  metricTextCol: {
+    marginLeft: scaleSize(8),
+  },
+  metricLabel: {
+    color: theme.textSecondary,
+    fontFamily: "Outfit_500Medium",
+    fontSize: scaleSize(11),
+  },
+  metricValue: {
+    color: theme.textPrimary,
+    fontFamily: "Outfit_600SemiBold",
+    fontSize: scaleSize(14),
+    marginTop: scaleSize(2),
+  },
+  media: {
+    width: "100%",
+    aspectRatio: 0.75,
+    marginTop: scaleSize(16),
+  },
+  actionsRow: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    marginTop: scaleSize(16),
+  },
+  actionButton: {
+    flexDirection: "row",
+    alignItems: "center",
+  },
+  actionText: {
+    color: theme.textPrimary,
+    fontFamily: "Outfit_500Medium",
+    fontSize: scaleSize(12.5),
+    marginLeft: scaleSize(6),
+  },
+  likesRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginTop: scaleSize(18),
+    width: "100%",
+  },
+  likeAvatar: {
+    width: scaleSize(32),
+    height: scaleSize(32),
+    borderRadius: scaleSize(32 / 2),
+    marginRight: scaleSize(10),
+    borderWidth: scaleSize(2),
+    borderColor: "#fff",
+  },
+  likesText: {
+    flex: 1,
+    color: theme.textPrimary,
+    fontFamily: "Poppins_600SemiBold",
+    fontSize: scaleSize(13),
+  },
+  highlightOverlay: {
+    position: 'absolute',
+    left: 0,
+    right: 0,
+    top: scaleSize(14),
+    bottom: scaleSize(12),
+    backgroundColor: "#FFF4B3",
+  },
+});
