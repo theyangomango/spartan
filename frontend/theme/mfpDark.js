@@ -12,7 +12,7 @@ const MFP_DARK = {
 
     // Lines & shadows
     hairline: 'rgba(255,255,255,0.27)',
-
+ 
     // Text
     textPrimary: '#EAF0F7',
     textSecondary: '#a5afbeff',
