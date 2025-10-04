@@ -1384,7 +1384,7 @@ const styles = StyleSheet.create({
         flexDirection: "row",
         alignItems: "center",
         paddingHorizontal: scaleSize(14),
-        paddingVertical: scaleSize(8),
+        paddingVertical: scaleSize(10),
         borderRadius: scaleSize(18),
         backgroundColor: "rgba(178, 199, 243, 0.32)",
     },
