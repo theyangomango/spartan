@@ -563,7 +563,7 @@ const styles = StyleSheet.create({
         alignItems: "center",
     },
     avatarWrap: {
-        width: scaleSize(40),
+        width: scaleSize(36),
         aspectRatio: 1,
         borderRadius: scaleSize(23),
         overflow: "hidden",
