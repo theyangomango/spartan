@@ -17,6 +17,7 @@ import theme from "../../theme/mfpDark";
 import scaleSize from "../../helper/scaleSize";
 import { usePfp } from "../../helper/usePFPs";
 import usePostFooterInteractions from "./Posts/hooks/usePostFooterInteractions";
+import { buildExerciseSummaries } from "../../utils/workoutSummary";
 
 const AnimatedPressable = Animated.createAnimatedComponent(Pressable);
 const { width: SCREEN_WIDTH } = Dimensions.get("window");
@@ -175,6 +176,11 @@ const SimpleFeedPost = ({
         if (!normalizedTitle) return true;
         return normalizedCaption !== normalizedTitle;
     }, [caption, workout, title]);
+
+    const exerciseSummaries = useMemo(() => {
+        if (!workout) return [];
+        return buildExerciseSummaries(workout, 3);
+    }, [workout]);
 
     const workoutName = useMemo(() => {
         if (!workout) return "";
@@ -454,6 +460,28 @@ const SimpleFeedPost = ({
                     </Pressable>
                 ) : null}
 
+                {workout && mediaList.length === 0 && exerciseSummaries.length > 0 ? (
+                    <View style={styles.workoutSummaryBlock}>
+                        <View style={styles.workoutSummaryHeader}>
+                            <Text style={[styles.workoutSummaryHeaderText, styles.workoutSummaryHeaderExercise]}>Exercise</Text>
+                            <Text style={[styles.workoutSummaryHeaderText, styles.workoutSummaryHeaderBest]}>Best Set</Text>
+                        </View>
+                        {exerciseSummaries.map((row, idx) => {
+                            const key = `${row.exercise || 'exercise'}-${idx}`;
+                            const isLast = idx === exerciseSummaries.length - 1;
+                            return (
+                                <View
+                                    style={[styles.workoutSummaryRow, !isLast && styles.workoutSummaryRowBorder]}
+                                    key={key}
+                                >
+                                    <Text style={styles.workoutSummaryExercise} numberOfLines={1}>{row.exercise || 'Exercise'}</Text>
+                                    <Text style={styles.workoutSummaryBest} numberOfLines={1}>{row.bestSet || '--'}</Text>
+                                </View>
+                            );
+                        })}
+                    </View>
+                ) : null}
+
                 {mediaList.length > 0 ? (
                     <View
                         style={[styles.mediaContainer, mediaSize ? { height: mediaSize } : null]}
@@ -664,7 +692,7 @@ const styles = StyleSheet.create({
     metricLabel: {
         color: 'rgba(255,255,255,0.58)',
         fontFamily: "Outfit_600SemiBold",
-        fontSize: scaleSize(11.2),
+        fontSize: scaleSize(12),
         letterSpacing: 0.2,
         paddingBottom: scaleSize(1.5)
     },
@@ -673,10 +701,61 @@ const styles = StyleSheet.create({
         fontFamily: "Outfit_700Bold",
         fontSize: scaleSize(15.5),
     },
+    workoutSummaryBlock: {
+        marginTop: scaleSize(6),
+        marginHorizontal: scaleSize(20),
+        paddingTop: scaleSize(10),
+        paddingBottom: scaleSize(4),
+        borderTopWidth: StyleSheet.hairlineWidth,
+        borderColor: 'rgba(255,255,255,0.14)',
+    },
+    workoutSummaryHeader: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        paddingBottom: scaleSize(2),
+    },
+    workoutSummaryHeaderText: {
+        color: theme.textSecondary,
+        fontFamily: "Outfit_700Bold",
+        fontSize: scaleSize(13),
+        letterSpacing: 0.2,
+        textTransform: 'uppercase',
+    },
+    workoutSummaryHeaderExercise: {
+        flex: 1,
+        paddingRight: scaleSize(12),
+    },
+    workoutSummaryHeaderBest: {
+        minWidth: scaleSize(96),
+        textAlign: 'right',
+    },
+    workoutSummaryRow: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        paddingVertical: scaleSize(4),
+    },
+    workoutSummaryRowBorder: {
+        borderColor: 'rgba(255,255,255,0.08)',
+    },
+    workoutSummaryExercise: {
+        flex: 1,
+        paddingRight: scaleSize(12),
+        color: theme.textPrimary,
+        fontFamily: "Outfit_500Medium",
+        fontSize: scaleSize(14),
+    },
+    workoutSummaryBest: {
+        minWidth: scaleSize(96),
+        flexShrink: 0,
+        textAlign: 'right',
+        color: theme.textSecondary,
+        fontFamily: "Outfit_500Medium",
+        fontSize: scaleSize(14),
+    },
     recordsValueRow: {
         flexDirection: 'row',
         alignItems: 'center',
-        marginTop: scaleSize(4),
     },
     recordsValueText: {
         marginLeft: scaleSize(6),
