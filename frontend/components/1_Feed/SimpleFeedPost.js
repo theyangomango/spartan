@@ -408,7 +408,7 @@ const SimpleFeedPost = ({
                         <Text style={[styles.titleText, isWorkoutTitle ? styles.workoutTitleText : null]} numberOfLines={2}>
                             {title}
                         </Text>
-                        {caption ? (
+                        {workout && caption ? (
                             <Text style={styles.captionText} numberOfLines={3}>
                                 {caption}
                             </Text>
@@ -620,6 +620,7 @@ const styles = StyleSheet.create({
     },
     titleBlock: {
         marginTop: scaleSize(14),
+        paddingBottom: scaleSize(5)
     },
     titleText: {
         color: theme.textPrimary,
@@ -633,7 +634,7 @@ const styles = StyleSheet.create({
         color: theme.textSecondary,
         fontFamily: "Outfit_400Regular",
         fontSize: scaleSize(13),
-        marginTop: scaleSize(6),
+        marginTop: scaleSize(4),
     },
     metricsLeft: {
         flexDirection: "row",
