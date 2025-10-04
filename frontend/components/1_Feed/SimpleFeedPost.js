@@ -442,6 +442,9 @@ const SimpleFeedPost = ({
                                 pagingEnabled
                                 snapToInterval={mediaSize}
                                 decelerationRate="fast"
+                                bounces={false}
+                                alwaysBounceHorizontal={false}
+                                overScrollMode="never"
                                 showsHorizontalScrollIndicator={false}
                                 keyExtractor={keyExtractor}
                                 renderItem={renderMediaItem}
@@ -466,7 +469,10 @@ const SimpleFeedPost = ({
                     </View>
                 )}
 
-                <View style={styles.sectionBottom}>
+                <View style={[
+                    styles.sectionBottom,
+                    mediaList.length === 0 ? styles.sectionBottomDivider : null,
+                ]}>
                     <View style={styles.actionsRow}>
                         <AnimatedPressable
                             ref={(node) => assignButtonRef?.("like", node)}
@@ -545,8 +551,12 @@ const styles = StyleSheet.create({
         width: '32%'
     },
     sectionBottom: {
-        paddingTop: scaleSize(16),
-        paddingBottom: scaleSize(16),
+        paddingTop: scaleSize(6),
+        paddingBottom: scaleSize(8),
+    },
+    sectionBottomDivider: {
+        borderTopWidth: 1,
+        borderTopColor: theme.hairline,
     },
     headerRow: {
         flexDirection: "row",
@@ -688,15 +698,17 @@ const styles = StyleSheet.create({
         flexDirection: "row",
         justifyContent: "space-between",
         alignItems: "center",
+        paddingHorizontal: scaleSize(16),
     },
     actionButton: {
         flex: 1,
         flexDirection: "row",
         alignItems: "center",
         justifyContent: "center",
+        paddingVertical: scaleSize(6),
     },
     actionButtonMiddle: {
-        flex: 1.4,
+        marginHorizontal: scaleSize(14),
     },
     actionText: {
         color: theme.textPrimary,
