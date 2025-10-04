@@ -43,6 +43,7 @@ import Competition from './frontend/screens/2_Competition';
 import Messages from './frontend/screens/1.1_Messages';
 import Chat from './frontend/screens/1.2_Chat';
 import ViewProfile from './frontend/screens/4.1_ViewProfile';
+import PastWorkoutScreen from './frontend/screens/PastWorkoutScreen';
 import MacroTracking from './frontend/screens/MacroTracking';
 import Notifications from './frontend/screens/Notifications';
 import FoodDetail from './frontend/screens/FoodDetail';
@@ -1078,6 +1079,11 @@ export default function App() {
                             })}
                         />
                         <RootStack.Screen name="ViewProfile" component={ViewProfile} />
+                        <RootStack.Screen
+                            name="PastWorkout"
+                            component={PastWorkoutScreen}
+                            options={{ headerShown: false }}
+                        />
                         <RootStack.Screen name="SearchUsers" component={SearchUsers} />
                         <RootStack.Screen name="Settings" component={Settings} />
                         <RootStack.Screen name="PrivacyPolicy" component={PrivacyPolicy} />

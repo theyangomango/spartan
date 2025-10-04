@@ -26,7 +26,6 @@ import useHeaderSearchUsers from "../hooks/useHeaderSearchUsers";
 import CommentsBottomSheet from "../components/1_Feed/Comments/CommentsBottomSheet";
 import ShareBottomSheet from "../components/1_Feed/SharePost/ShareBottomSheet";
 import FollowListBottomSheet from "../components/FollowListBottomSheet";
-import FeedWorkoutViewerSheet from "../components/1_Feed/ViewWorkout/FeedWorkoutViewerSheet";
 import Footer from "../components/Footer";
 import theme from "../theme/mfpDark";
 import scaleSize from "../helper/scaleSize";
@@ -37,6 +36,51 @@ import { toMillis as toMillisSafe } from "../utils/friends";
 
 const HEADER_TOP_TRIM = scaleSize(4);
 const LIST_BOTTOM_INSET = scaleSize(120);
+
+const toNumber = (value, fallback = 0) => {
+  const num = Number(value);
+  return Number.isFinite(num) ? num : fallback;
+};
+
+const sanitizeWorkoutForRoute = (workout) => {
+  if (!workout || typeof workout !== "object") return null;
+
+  const replacer = (_key, value) => (typeof value === "function" ? undefined : value);
+
+  try {
+    return JSON.parse(JSON.stringify(workout, replacer));
+  } catch {
+    const clone = { ...workout };
+    clone.exercises = Array.isArray(workout.exercises)
+      ? workout.exercises.map((exercise) => {
+          if (!exercise || typeof exercise !== "object") return {};
+          const sets = Array.isArray(exercise.sets)
+            ? exercise.sets.map((set) => {
+                if (!set || typeof set !== "object") return {};
+                const { weight, reps, unit, units, weightUnit, kg, lbs, ...rest } = set;
+                const normalized = {
+                  ...rest,
+                  weight: Number(weight ?? kg ?? lbs ?? 0) || 0,
+                  reps: Number(reps ?? set?.rep ?? set?.r ?? 0) || 0,
+                };
+                const resolvedUnit = unit || units || weightUnit || (kg != null ? "kg" : undefined);
+                if (resolvedUnit) normalized.unit = resolvedUnit;
+                return normalized;
+              })
+            : [];
+          return { ...exercise, sets };
+        })
+      : [];
+    return clone;
+  }
+};
+
+const ensureAtHandle = (value) => {
+  if (!value) return "";
+  const str = String(value).trim();
+  if (!str) return "";
+  return str.startsWith("@") ? str : `@${str}`;
+};
 
 export default function Feed({ navigation, route }) {
   const insets = useSafeAreaInsets();
@@ -70,15 +114,11 @@ export default function Feed({ navigation, route }) {
   const [likesSheetVisible, setLikesSheetVisible] = useState(false);
   const [likesSheetUsers, setLikesSheetUsers] = useState([]);
   const [likesSheetTitle, setLikesSheetTitle] = useState("Liked by");
-  const [feedWorkoutExpandToggle, setFeedWorkoutExpandToggle] = useState(false);
-  const [feedWorkoutItems, setFeedWorkoutItems] = useState([]);
-  const [feedWorkoutActiveIndex, setFeedWorkoutActiveIndex] = useState(0);
 
   const highlightPidRef = useRef(null);
   const [highlightSignal, setHighlightSignal] = useState(0);
   const [pendingScrollRequest, setPendingScrollRequest] = useState(null);
 
-  const activityViewerSessionRef = useRef(0);
 
   const resolveTimestamp = useCallback((item) => {
     if (!item) return 0;
@@ -212,45 +252,96 @@ export default function Feed({ navigation, route }) {
     if (!Array.isArray(listData) || index == null || index < 0 || index >= listData.length) {
       return;
     }
+
     const post = listData[index];
-    const w = post?.workout;
-    if (!w) return;
+    const workoutInput = post?.workout;
+    if (!workoutInput) return;
+
     const fallback = {
-      wid: w?.wid || w?.id,
-      creatorUID: w?.creatorUID || w?.creatorUid || post?.uid || (global?.userData?.uid || ""),
-      created: w?.created || w?.createdAt || Date.now(),
-      exercises: Array.isArray(w?.exercises) ? w.exercises : [],
-      duration: w?.duration,
-      volume: w?.volume,
-      reps: w?.reps,
-      PBs: w?.PBs ?? w?.pbs ?? 0,
-      templateName: w?.templateName || w?.template?.name,
+      wid: workoutInput?.wid || workoutInput?.id,
+      creatorUID: workoutInput?.creatorUID || workoutInput?.creatorUid || post?.uid || (global?.userData?.uid || ""),
+      created: workoutInput?.created || workoutInput?.createdAt || Date.now(),
+      exercises: Array.isArray(workoutInput?.exercises) ? workoutInput.exercises : [],
+      duration: workoutInput?.duration,
+      volume: workoutInput?.volume,
+      reps: workoutInput?.reps,
+      PBs: workoutInput?.PBs ?? workoutInput?.pbs ?? 0,
+      templateName: workoutInput?.templateName || workoutInput?.template?.name,
     };
-    const wk = { ...fallback, ...w };
-    const friendUid = String(post?.uid || wk.creatorUID || wk.creatorUid || "");
-    const friendPfp = post?.pfp || wk?.pfp || wk?.pfpUrl || post?.photoURL || post?.image || "";
-    const friendPfpVersion = post?.pfpVersion ?? wk?.pfpVersion ?? wk?.version ?? 0;
-    wk.__friendUid = friendUid;
-    wk.__friendPfp = friendPfp || null;
-    wk.__friendPfpVersion = friendPfpVersion ?? 0;
 
-    activityViewerSessionRef.current += 1;
-    const item = {
-      key: `${friendUid}:${wk?.wid || wk?.id || index}`,
-      workout: wk,
-      friendUid,
-      friendPfp: friendPfp || null,
-      friendPfpVersion: friendPfpVersion ?? 0,
-      chip: null,
+    const mergedWorkout = { ...fallback, ...workoutInput };
+    const ownerUid = String(post?.uid || mergedWorkout.creatorUID || mergedWorkout.creatorUid || "");
+    const ownerHandle = ensureAtHandle(post?.handle || mergedWorkout.handle || mergedWorkout.username || "");
+    const ownerName = post?.name || mergedWorkout.ownerName || mergedWorkout.name || "";
+    const ownerPfp = post?.pfp || mergedWorkout.pfp || mergedWorkout.pfpUrl || mergedWorkout.photoURL || mergedWorkout.photo || "";
+    const ownerPfpVersion = post?.pfpVersion ?? mergedWorkout.pfpVersion ?? mergedWorkout.version ?? 0;
+
+    const sanitizedWorkout = sanitizeWorkoutForRoute({
+      ...mergedWorkout,
+      creatorUID: ownerUid || mergedWorkout.creatorUID,
+      creatorUid: ownerUid || mergedWorkout.creatorUid,
+      handle: ownerHandle || mergedWorkout.handle,
+      pfp: ownerPfp,
+      pfpUrl: ownerPfp,
+      pfpVersion: ownerPfpVersion,
+      ownerName,
+    });
+
+    if (!sanitizedWorkout) return;
+
+    const likeCount = Array.isArray(post?.likes) ? post.likes.length : toNumber(post?.likeCount);
+    const commentCount = Array.isArray(post?.comments)
+      ? Math.max(0, post.comments.length - 1)
+      : toNumber(post?.commentCount);
+
+    const sanitizeEntry = (entry) => {
+      if (!entry || typeof entry !== "object") return entry;
+      try {
+        return JSON.parse(JSON.stringify(entry, (_key, value) => (typeof value === "function" ? undefined : value)));
+      } catch {
+        return { ...entry };
+      }
     };
-    setFeedWorkoutItems([item]);
-    setFeedWorkoutActiveIndex(0);
-    setFeedWorkoutExpandToggle((flag) => !flag);
-  }, [listData]);
 
-  const closeViewWorkoutModal = () => {
-    // Keep last workout cached to avoid race clearing when reopening quickly.
-  };
+    const likesForRoute = Array.isArray(post?.likes)
+      ? post.likes.map(sanitizeEntry)
+      : [];
+
+    const mediaForRoute = Array.isArray(post?.media)
+      ? post.media.map(sanitizeEntry)
+      : [];
+
+    const imagesForRoute = Array.isArray(post?.images)
+      ? post.images.map(sanitizeEntry)
+      : [];
+
+    const tagsForRoute = Array.isArray(post?.tags) ? [...post.tags] : [];
+    const taggedForRoute = Array.isArray(post?.tagged) ? [...post.tagged] : [];
+
+    navigation?.navigate?.("PastWorkout", {
+      workout: sanitizedWorkout,
+      owner: {
+        uid: ownerUid,
+        handle: ownerHandle,
+        name: ownerName,
+        pfp: ownerPfp,
+        pfpVersion: ownerPfpVersion,
+      },
+      postMeta: {
+        pid: post?.pid ?? post?.id ?? `${ownerUid}:${sanitizedWorkout?.wid ?? sanitizedWorkout?.id ?? index}`,
+        caption: typeof post?.caption === "string" ? post.caption : "",
+        created: post?.created ?? post?.createdAt ?? sanitizedWorkout?.created ?? null,
+        likeCount,
+        commentCount,
+        likes: likesForRoute,
+        media: mediaForRoute,
+        images: imagesForRoute,
+        shareCount: toNumber(post?.shareCount),
+        tags: tagsForRoute,
+        tagged: taggedForRoute,
+      },
+    });
+  }, [listData, navigation]);
 
   const scrollToTop = useCallback(() => {
     if (flatListRef.current) {
@@ -438,14 +529,6 @@ export default function Feed({ navigation, route }) {
       />
 
       <Footer key={footerKey} currentScreenName="Feed" navigation={navigation} />
-
-      <FeedWorkoutViewerSheet
-        expandToggle={feedWorkoutExpandToggle}
-        items={feedWorkoutItems}
-        activeIndex={feedWorkoutActiveIndex}
-        onChangeIndex={setFeedWorkoutActiveIndex}
-        onClose={closeViewWorkoutModal}
-      />
     </SafeAreaView>
   );
 }
