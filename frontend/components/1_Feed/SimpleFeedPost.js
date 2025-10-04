@@ -624,9 +624,9 @@ const styles = StyleSheet.create({
     metricsRow: {
         flexDirection: "row",
         justifyContent: 'space-between',
-        marginTop: scaleSize(18),
+        marginTop: scaleSize(6),
         paddingVertical: scaleSize(8),
-        marginHorizontal: scaleSize(18),
+        marginHorizontal: scaleSize(20),
     },
     metricCenter: {
         paddingHorizontal: scaleSize(1),
@@ -681,15 +681,15 @@ const styles = StyleSheet.create({
     },
     mediaDot: {
         width: scaleSize(6),
-        height: scaleSize(4),
+        height: scaleSize(4.5),
         borderRadius: 100,
         backgroundColor: 'rgba(255,255,255,0.22)',
         marginHorizontal: scaleSize(3),
     },
     mediaDash: {
-        width: scaleSize(18),
-        height: scaleSize(4),
-        borderRadius: scaleSize(3) / 2,
+        width: scaleSize(22),
+        height: scaleSize(4.5),
+        borderRadius: 100,
         backgroundColor: 'rgba(255,255,255,0.6)',
         marginHorizontal: scaleSize(3),
     },
