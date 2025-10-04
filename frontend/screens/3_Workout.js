@@ -76,12 +76,6 @@ import scaleSize from "../helper/scaleSize";
 
 // MiniPodium preview derives from user's last Competition view
 
-const HUB_DROP_ALLOWANCE = Math.max(0, TPL_DIVIDER_MARGIN_TOP - TPL_DIVIDER_MARGIN_BOTTOM);
-
-const TPL_SHADOW_OFFSET = ss(10);
-const TPL_SHADOW_RADIUS = ss(20);
-const TPL_SHADOW_UP = Math.max(0, Math.round(TPL_SHADOW_RADIUS - TPL_SHADOW_OFFSET));
-
 /* ---------------- helpers ---------------- */
 const toMillis = (v) => {
     if (typeof v === "number") return v;
@@ -288,15 +282,11 @@ export default function Workout({ navigation, route }) {
             return;
         }
 
-        const biasNumerator = available + HUB_DROP_ALLOWANCE - TPL_SHADOW_UP;
-        let biasedTop = biasNumerator / 2;
-        if (!Number.isFinite(biasedTop)) return;
+        const halfGap = available / 2;
+        if (!Number.isFinite(halfGap)) return;
 
-        if (biasedTop < 0) biasedTop = 0;
-        if (biasedTop > available) biasedTop = available;
-
-        const nextTop = biasedTop;
-        const nextBottom = Math.max(0, available - nextTop);
+        const nextTop = halfGap;
+        const nextBottom = Math.max(0, available - halfGap);
 
         setDividerSpacing((prev) => {
             if (
@@ -1014,6 +1004,8 @@ export default function Workout({ navigation, route }) {
                     workout={headerWorkoutObj}
                     timerRef={timerRef}
                     openCurrentWorkout={headerOpenCurrentWorkout}
+                    heightAdjust={-2}
+                    topAdjust={-scaleSize(4)}
                 />
             </View>
             {/* Invite banner (absolute, anchored below header & within SafeArea) */}

@@ -39,7 +39,8 @@ const METRICS = (() => {
     const paddingTop = s(2);
     const paddingBottom = s(12);
     const centerH = s(40);
-    const marginTop = s(5);
+    // Remove the extra top margin so the header sits flush with other screens
+    const marginTop = 0;
     const icon = dynamicStyles.iconSize;
     const iconTop = Math.round((centerH - icon) / 2);
     const iconBox = icon + 6; // header/overlay icon wrapper size
