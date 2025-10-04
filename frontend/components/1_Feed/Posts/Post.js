@@ -25,7 +25,7 @@ import * as ImageManipulator from 'expo-image-manipulator';
 import ImageColors from 'react-native-image-colors';
 
 const { width: W } = Dimensions.get("window");
-const AR = 0.8;
+const AR = 1;
 const BORDER = 35;
 
 const B_IN = 1.02;

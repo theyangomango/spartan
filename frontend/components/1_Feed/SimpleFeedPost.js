@@ -1,14 +1,17 @@
-import React, { useMemo, useEffect, useRef } from "react";
+import React, { useMemo, useEffect, useRef, useState, useCallback } from "react";
 import {
     View,
     Text,
     StyleSheet,
     Pressable,
     Animated,
+    FlatList,
+    Dimensions,
 } from "react-native";
 import FastImage from "react-native-fast-image";
 import { Heart, Messages1 } from "iconsax-react-native";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
+import Video from "react-native-video";
 
 import theme from "../../theme/mfpDark";
 import scaleSize from "../../helper/scaleSize";
@@ -16,6 +19,7 @@ import { usePfp } from "../../helper/usePFPs";
 import usePostFooterInteractions from "./Posts/hooks/usePostFooterInteractions";
 
 const AnimatedPressable = Animated.createAnimatedComponent(Pressable);
+const { width: SCREEN_WIDTH } = Dimensions.get("window");
 
 const toNumber = (value, fallback = 0) => {
     const num = Number(value);
@@ -94,13 +98,18 @@ const resolveWeightUnit = () => {
     }
 };
 
-const pickMedia = (data) => {
-    if (!data) return null;
-    if (Array.isArray(data.media) && data.media.length > 0) {
-        return data.media.find((m) => m?.uri) || null;
+const normalizeMediaEntry = (entry) => {
+    if (!entry) return null;
+    if (typeof entry === "string") {
+        const uri = entry.trim();
+        return uri ? { uri, type: "image" } : null;
     }
-    if (Array.isArray(data.images) && data.images.length > 0) {
-        return { uri: data.images[0], type: "image" };
+    if (typeof entry === "object") {
+        const uri = entry.uri || entry.url || entry.image || entry.photoURL || null;
+        if (!uri) return null;
+        const rawType = (entry.type || entry.mediaType || entry.kind || "image").toLowerCase();
+        const type = rawType.includes("video") ? "video" : "image";
+        return { ...entry, uri, type };
     }
     return null;
 };
@@ -158,7 +167,83 @@ const SimpleFeedPost = ({
     const caption = (data?.caption || "").trim();
     const weightUnit = resolveWeightUnit();
 
-    const media = useMemo(() => pickMedia(data), [data]);
+    const mediaList = useMemo(() => {
+        const fromMedia = Array.isArray(data?.media) ? data.media.map(normalizeMediaEntry) : [];
+        const fromImages = Array.isArray(data?.images) ? data.images.map(normalizeMediaEntry) : [];
+        const merged = [...fromMedia, ...fromImages].filter(Boolean);
+        if (merged.length === 0) return [];
+        const seen = new Set();
+        const deduped = [];
+        merged.forEach((entry) => {
+            const key = typeof entry?.uri === 'string' ? entry.uri : JSON.stringify(entry);
+            if (key && !seen.has(key)) {
+                seen.add(key);
+                deduped.push(entry);
+            }
+        });
+        return deduped;
+    }, [data?.media, data?.images]);
+
+    const [mediaIndex, setMediaIndex] = useState(0);
+    const [mediaSize, setMediaSize] = useState(0);
+
+    useEffect(() => {
+        if (mediaIndex >= mediaList.length) {
+            setMediaIndex(0);
+        }
+    }, [mediaList.length, mediaIndex]);
+
+    const handleMediaLayout = useCallback((event) => {
+        const width = event?.nativeEvent?.layout?.width;
+        if (!width) return;
+        if (Math.abs(width - mediaSize) < 0.5) return;
+        setMediaSize(width);
+    }, [mediaSize]);
+
+    const handleMediaScroll = useCallback((event) => {
+        if (!mediaSize) return;
+        const offsetX = event?.nativeEvent?.contentOffset?.x ?? 0;
+        const nextIndex = Math.round(offsetX / mediaSize);
+        if (Number.isFinite(nextIndex)) setMediaIndex(nextIndex);
+    }, [mediaSize]);
+
+    const renderMediaItem = useCallback(({ item }) => {
+        const containerStyle = [
+            styles.mediaSlide,
+            { width: mediaSize || SCREEN_WIDTH, height: mediaSize || SCREEN_WIDTH },
+        ];
+        if (!item?.uri) {
+            return <View style={containerStyle} />;
+        }
+        if (item.type === "video") {
+            const source = typeof item.uri === "string" ? { uri: item.uri } : item.uri;
+            return (
+                <View style={containerStyle}>
+                    <Video
+                        source={source}
+                        style={styles.mediaContent}
+                        resizeMode="cover"
+                        paused
+                        repeat
+                        muted
+                    />
+                </View>
+            );
+        }
+        return (
+            <View style={containerStyle}>
+                <FastImage
+                    source={{
+                        uri: item.uri,
+                        priority: FastImage.priority.normal,
+                        cache: FastImage.cacheControl.immutable,
+                    }}
+                    style={styles.mediaContent}
+                    resizeMode={FastImage.resizeMode.cover}
+                />
+            </View>
+        );
+    }, [mediaSize]);
 
     const pfpUri = usePfp(
         data?.uid ? String(data.uid) : "",
@@ -254,6 +339,7 @@ const SimpleFeedPost = ({
     }, [data?.name, data?.handle]);
 
     const likeColor = isLiked ? "#FE5555" : theme.textPrimary;
+    const keyExtractor = useCallback((item, idx) => `${item?.uri || 'media'}-${idx}`, []);
 
     return (
         <View style={styles.wrapper}>
@@ -342,17 +428,41 @@ const SimpleFeedPost = ({
                     </Pressable>
                 ) : null}
 
-                {media?.uri ? (
-                    <FastImage
-                        source={{
-                            uri: media.uri,
-                            priority: FastImage.priority.normal,
-                            cache: FastImage.cacheControl.immutable,
-                        }}
-                        style={styles.media}
-                        resizeMode={FastImage.resizeMode.cover}
-                    />
+                {mediaList.length > 0 ? (
+                    <View
+                        style={[styles.mediaContainer, mediaSize ? { height: mediaSize } : null]}
+                        onLayout={handleMediaLayout}
+                    >
+                        {mediaSize > 0 ? (
+                            <FlatList
+                                data={mediaList}
+                                horizontal
+                                pagingEnabled
+                                snapToInterval={mediaSize}
+                                decelerationRate="fast"
+                                showsHorizontalScrollIndicator={false}
+                                keyExtractor={keyExtractor}
+                                renderItem={renderMediaItem}
+                                style={styles.mediaList}
+                                onScroll={handleMediaScroll}
+                                onMomentumScrollEnd={handleMediaScroll}
+                                scrollEventThrottle={16}
+                                nestedScrollEnabled
+                            />
+                        ) : null}
+                    </View>
                 ) : null}
+
+                {mediaList.length > 1 && (
+                    <View style={styles.mediaIndicatorRow} pointerEvents="none">
+                        {mediaList.map((_, idx) => (
+                            <View
+                                key={`${idx}-indicator`}
+                                style={idx === mediaIndex ? styles.mediaDash : styles.mediaDot}
+                            />
+                        ))}
+                    </View>
+                )}
 
                 <View style={styles.sectionBottom}>
                     <View style={styles.actionsRow}>
@@ -534,10 +644,46 @@ const styles = StyleSheet.create({
     recordsValueText: {
         marginLeft: scaleSize(6),
     },
-    media: {
+    mediaContainer: {
         width: "100%",
-        aspectRatio: 0.75,
         marginTop: scaleSize(4),
+        borderRadius: 0,
+        overflow: "hidden",
+        backgroundColor: theme.field,
+        position: 'relative',
+    },
+    mediaList: {
+        width: '100%',
+        height: '100%',
+    },
+    mediaSlide: {
+        justifyContent: 'center',
+        alignItems: 'center',
+    },
+    mediaContent: {
+        width: '100%',
+        height: '100%',
+    },
+    mediaIndicatorRow: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'center',
+        marginTop: scaleSize(10),
+    },
+    mediaDot: {
+        width: scaleSize(9),
+        height: scaleSize(5),
+        borderRadius: scaleSize(5) / 2,
+        backgroundColor: '#fff',
+        opacity: 0.5,
+        marginHorizontal: scaleSize(3.5),
+    },
+    mediaDash: {
+        width: scaleSize(21),
+        height: scaleSize(5),
+        borderRadius: scaleSize(5) / 2,
+        backgroundColor: '#fff',
+        marginHorizontal: scaleSize(3.5),
     },
     actionsRow: {
         flexDirection: "row",
