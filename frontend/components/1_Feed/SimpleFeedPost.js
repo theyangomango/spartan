@@ -7,7 +7,7 @@ import {
   Animated,
 } from "react-native";
 import FastImage from "react-native-fast-image";
-import { Heart, Messages1, Send2 } from "iconsax-react-native";
+import { Heart, Messages1 } from "iconsax-react-native";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 
 import theme from "../../theme/mfpDark";
@@ -183,7 +183,6 @@ const SimpleFeedPost = ({
     assignButtonRef,
     handlePressLikeButton,
     pressComment,
-    pressShare,
     handlePressSaveButton,
     isSaved,
   } = usePostFooterInteractions({
@@ -362,7 +361,7 @@ const SimpleFeedPost = ({
               style={styles.actionButton}
               onPress={handlePressLikeButton}
             >
-              <Heart size={scaleSize(22)} color={likeColor} variant="Bold" />
+              <Heart size={scaleSize(20)} color={likeColor} variant="Bold" />
               <Text style={styles.actionText}>{formatNumber(likeCount)}</Text>
             </AnimatedPressable>
 
@@ -371,17 +370,8 @@ const SimpleFeedPost = ({
               style={styles.actionButton}
               onPress={pressComment}
             >
-              <Messages1 size={scaleSize(22)} color={theme.textPrimary} variant="Bold" />
+              <Messages1 size={scaleSize(20)} color={theme.textPrimary} variant="Bold" />
               <Text style={styles.actionText}>{formatNumber(commentCount)}</Text>
-            </AnimatedPressable>
-
-            <AnimatedPressable
-              ref={(node) => assignButtonRef?.("share", node)}
-              style={styles.actionButton}
-              onPress={pressShare}
-            >
-              <Send2 size={scaleSize(22)} color={theme.textPrimary} variant="Bold" />
-              <Text style={styles.actionText}>Share</Text>
             </AnimatedPressable>
 
             <AnimatedPressable
@@ -391,7 +381,7 @@ const SimpleFeedPost = ({
             >
               <MaterialCommunityIcons
                 name={isSaved ? "bookmark" : "bookmark-outline"}
-                size={scaleSize(22)}
+                size={scaleSize(20)}
                 color={theme.textPrimary}
               />
               <Text style={styles.actionText}>{isSaved ? "Saved" : "Save"}</Text>
@@ -555,8 +545,10 @@ const styles = StyleSheet.create({
     marginTop: scaleSize(16),
   },
   actionButton: {
+    flex: 1,
     flexDirection: "row",
     alignItems: "center",
+    justifyContent: "center",
   },
   actionText: {
     color: theme.textPrimary,
