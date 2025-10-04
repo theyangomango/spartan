@@ -33,7 +33,6 @@ import scaleSize from "../helper/scaleSize";
 import isThisUser from "../helper/isThisUser";
 import useFilteredFeed from "../helper/useFilteredFeed";
 import useFeedUserData from "./feed/hooks/useFeedUserData";
-import useWorkoutFeed from "../helper/useWorkoutFeed";
 import { toMillis as toMillisSafe } from "../utils/friends";
 
 const HEADER_TOP_TRIM = scaleSize(4);
@@ -48,7 +47,6 @@ export default function Feed({ navigation, route }) {
   const followingList = global.userData ? global.userData?.following : [];
 
   const posts = useFilteredFeed(followingList);
-  const workoutFeed = useWorkoutFeed(followingList, UID);
 
   const {
     activeWorkout,
@@ -102,32 +100,10 @@ export default function Feed({ navigation, route }) {
   }, []);
 
   const listData = useMemo(() => {
-    const basePosts = Array.isArray(posts) ? posts : [];
-    const workoutItems = Array.isArray(workoutFeed) ? workoutFeed : [];
-
-    const seenWorkoutKeys = new Set();
-    basePosts.forEach((item) => {
-      const owner = String(item?.uid || item?.workout?.creatorUid || item?.workout?.creatorUID || "");
-      const wid = String(item?.workout?.wid ?? item?.workout?.id ?? "");
-      if (owner && wid) {
-        seenWorkoutKeys.add(`${owner}:${wid}`);
-      }
-    });
-
-    const dedupedWorkoutItems = workoutItems.filter((item) => {
-      const owner = String(item?.uid || item?.workout?.creatorUid || item?.workout?.creatorUID || "");
-      const wid = String(item?.workout?.wid ?? item?.workout?.id ?? "");
-      if (owner && wid) {
-        const key = `${owner}:${wid}`;
-        if (seenWorkoutKeys.has(key)) return false;
-      }
-      return true;
-    });
-
-    const merged = [...basePosts, ...dedupedWorkoutItems];
-    merged.sort((a, b) => resolveTimestamp(b) - resolveTimestamp(a));
-    return merged;
-  }, [posts, workoutFeed, resolveTimestamp]);
+    const basePosts = Array.isArray(posts) ? [...posts] : [];
+    basePosts.sort((a, b) => resolveTimestamp(b) - resolveTimestamp(a));
+    return basePosts;
+  }, [posts, resolveTimestamp]);
 
   const onRefresh = useCallback(async () => {
     try {
