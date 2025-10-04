@@ -351,14 +351,13 @@ export default function Feed({ navigation, route }) {
   return (
     <SafeAreaView style={styles.screen}>
       <StatusBar style="light" />
+      <View style={styles.headerWrap}>{headerComponent}</View>
       <FlatList
         ref={flatListRef}
         data={listData}
         keyExtractor={listKeyExtractor}
         renderItem={renderPost}
-        ListHeaderComponent={headerComponent}
-        ListHeaderComponentStyle={styles.headerSpacer}
-        stickyHeaderIndices={[0]}
+        style={styles.list}
         refreshControl={(
           <RefreshControl
             refreshing={refreshing}
@@ -430,8 +429,13 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: theme.bg,
   },
-  headerSpacer: {
-    paddingBottom: scaleSize(2),
+  headerWrap: {
     backgroundColor: theme.bg,
+    paddingBottom: scaleSize(2),
+    zIndex: 2,
+    elevation: 2,
+  },
+  list: {
+    flex: 1,
   },
 });

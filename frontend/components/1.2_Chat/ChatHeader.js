@@ -12,6 +12,14 @@ const ACCENT = theme.primary;
 const HAIRLINE = theme.hairline;
 const BG = theme.bg;
 
+const BACK_GUTTER = 24;
+const SINGLE_PFP_SIZE = scaleSize(36);
+const SINGLE_PFP_RADIUS = Math.round(SINGLE_PFP_SIZE / 2);
+const STACKED_PFP_SIZE = scaleSize(28);
+const STACKED_PFP_RADIUS = Math.round(STACKED_PFP_SIZE / 2);
+const STACKED_OFFSET = scaleSize(4);
+const AVATAR_BORDER = Math.max(1, scaleSize(1));
+
 const ChatHeader = ({ usersExcludingSelf = [], toMessages }) => {
     const navigation = useNavigation();
     const handles = usersExcludingSelf
@@ -45,6 +53,9 @@ const ChatHeader = ({ usersExcludingSelf = [], toMessages }) => {
         else navigation.goBack();
     };
 
+    const primaryLabel = names || (handles ? handles.replace(/@/g, '').trim() : 'Direct Message');
+    const secondaryLabel = handles;
+
     return (
         <View style={styles.header}>
             {/* Back pill — same as MessagesHeader */}
@@ -54,7 +65,7 @@ const ChatHeader = ({ usersExcludingSelf = [], toMessages }) => {
                 hitSlop={{ top: scaleSize(8), bottom: scaleSize(8), left: scaleSize(8), right: scaleSize(8) }}
                 style={[styles.iconCircle, styles.leftIcon]}
             >
-                <FontAwesome6 name="chevron-left" size={scaleSize(16)} color={ACCENT} />
+                <FontAwesome6 name="chevron-left" size={scaleSize(13)} color={ACCENT} />
             </TouchableOpacity>
             {/* Scooted content so it never overlaps the pill */}
             <View style={styles.centerRow}>
@@ -80,8 +91,14 @@ const ChatHeader = ({ usersExcludingSelf = [], toMessages }) => {
                 </View>
 
                 <View style={styles.textWrap}>
-                    <Text numberOfLines={1} style={styles.nameText}>{names}</Text>
-                    <Text numberOfLines={1} style={styles.handleText}>{handles}</Text>
+                    <Text numberOfLines={1} style={styles.nameText}>
+                        {primaryLabel}
+                    </Text>
+                    {!!secondaryLabel && (
+                        <Text numberOfLines={1} style={styles.handleText}>
+                            {secondaryLabel}
+                        </Text>
+                    )}
                 </View>
             </View>
             <View style={{ width: scaleSize(12) }} />
@@ -102,8 +119,8 @@ const styles = StyleSheet.create({
     // exact pill spec + ensure it’s on top
     iconCircle: {
         position: "absolute",
-        top: scaleSize(10),
-        left: scaleSize(20),
+        top: "50%",
+        transform: [{ translateY: -scaleSize(14) }],
         width: scaleSize(28),
         height: scaleSize(28),
         borderRadius: scaleSize(14),
@@ -117,35 +134,61 @@ const styles = StyleSheet.create({
         shadowRadius: scaleSize(7),
         shadowOffset: { width: 0, height: scaleSize(3) },
         elevation: 2,
-        zIndex: 10,
     },
-    leftIcon: {},
+    leftIcon: { left: scaleSize(20) },
 
-    // leave space = left(20) + pill(28) + gutter(12)
+    // leave space = left(20) + pill(28) + gutter(24)
     centerRow: {
         flexDirection: "row",
         alignItems: "center",
         paddingHorizontal: scaleSize(14),
-        paddingLeft: scaleSize(20 + 28 + 12),
+        paddingLeft: scaleSize(20 + 28 + BACK_GUTTER),
     },
-    pfpContainer: { width: scaleSize(44), height: scaleSize(44), marginRight: scaleSize(10), position: "relative" },
+    pfpContainer: {
+        width: SINGLE_PFP_SIZE,
+        height: SINGLE_PFP_SIZE,
+        marginRight: scaleSize(12),
+        position: "relative",
+        justifyContent: "center",
+        alignItems: "center",
+    },
     pfp: {
-        width: scaleSize(30),
-        height: scaleSize(30),
-        borderRadius: scaleSize(15),
+        width: STACKED_PFP_SIZE,
+        height: STACKED_PFP_SIZE,
+        borderRadius: STACKED_PFP_RADIUS,
         position: "absolute",
-        borderWidth: scaleSize(2),
+        borderWidth: AVATAR_BORDER,
         borderColor: theme.bg,
         backgroundColor: theme.field,
     },
-    pfpTL: { top: scaleSize(2), left: scaleSize(2) },
-    pfpBR: { bottom: scaleSize(2), right: scaleSize(2) },
-    pfpSingle: { width: scaleSize(38), height: scaleSize(38), borderRadius: scaleSize(19), backgroundColor: theme.field },
+    pfpTL: { top: STACKED_OFFSET, left: STACKED_OFFSET },
+    pfpBR: { bottom: STACKED_OFFSET, right: STACKED_OFFSET },
+    pfpSingle: {
+        width: SINGLE_PFP_SIZE,
+        height: SINGLE_PFP_SIZE,
+        borderRadius: SINGLE_PFP_RADIUS,
+        backgroundColor: theme.field,
+        borderWidth: AVATAR_BORDER,
+        borderColor: theme.bg,
+    },
     pfpPh: { backgroundColor: theme.field },
 
     textWrap: { flex: 1, justifyContent: "center" },
-    nameText: { fontFamily: "Nunito_700Bold", fontSize: scaleSize(16), color: theme.textPrimary},
-    handleText: { fontFamily: "Nunito_700Bold", fontSize: scaleSize(12.5), color: theme.textSecondary, marginTop: scaleSize(1) },
+    nameText: {
+        fontFamily: "Nunito_700Bold",
+        fontSize: ts(17),
+        color: theme.textPrimary,
+        lineHeight: ts(22),
+        includeFontPadding: false,
+    },
+    handleText: {
+        fontFamily: "Nunito_600SemiBold",
+        fontSize: ts(13),
+        color: theme.textSecondary,
+        marginTop: scaleSize(2),
+        lineHeight: ts(18),
+        includeFontPadding: false,
+    },
 });
 
 export default ChatHeader;
