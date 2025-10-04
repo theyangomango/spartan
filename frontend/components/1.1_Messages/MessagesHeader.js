@@ -11,7 +11,6 @@ const ACCENT = theme.primary;
 const HAIRLINE = theme.hairline;
 
 const BASE_TOP_PADDING = scaleSize(6);
-const ICON_TOP_OFFSET = scaleSize(10);
 
 export default function MessagesHeader({
     toFeedScreen,
@@ -27,7 +26,6 @@ export default function MessagesHeader({
         0,
     );
     const headerPaddingTop = BASE_TOP_PADDING + safeTop;
-    const iconTop = ICON_TOP_OFFSET;
 
     const onPressTab = (tab) => {
         setSelectedButton(tab);
@@ -40,7 +38,7 @@ export default function MessagesHeader({
             style={[
                 styles.chip,
                 active && styles.chipActive,
-                { width: scaleSize(110), height: scaleSize(38) },
+                { width: scaleSize(105), height: scaleSize(34) },
             ]}
         >
             <Text style={[styles.chipText, active && styles.chipTextActive]}>
@@ -56,21 +54,21 @@ export default function MessagesHeader({
                 <TouchableOpacity
                     activeOpacity={0.6}
                     onPress={toFeedScreen}
-                    style={[styles.iconCircle, styles.leftIcon, { top: iconTop }]}
+                    style={[styles.iconCircle, styles.leftIcon]}
                 >
-                    <FontAwesome6 name="chevron-left" size={scaleSize(16)} color={ACCENT} />
+                    <FontAwesome6 name="chevron-left" size={scaleSize(13)} color={ACCENT} />
                 </TouchableOpacity>
 
                 {/* Create group — simplified to a single icon for cleaner look */}
                 <TouchableOpacity
                     activeOpacity={0.6}
                     onPress={openCreateGroupChatBottomSheet}
-                    style={[styles.iconCircle, styles.rightIcon, { top: iconTop }]}
+                    style={[styles.iconCircle, styles.rightIcon]}
                 >
-                    <FontAwesome5 name="users" size={scaleSize(16)} color={ACCENT} />
+                    <FontAwesome5 name="users" size={scaleSize(13)} color={ACCENT} />
                     {/* subtle in-pill + badge */}
                     <View style={styles.plusBadge}>
-                        <FontAwesome5 name="plus" size={scaleSize(7.5)} color={theme.textPrimary} />
+                        <FontAwesome5 name="plus" size={scaleSize(7)} color={theme.textPrimary} />
                     </View>
                 </TouchableOpacity>
 
@@ -99,6 +97,7 @@ const styles = StyleSheet.create({
     row: {
         flexDirection: "row",
         justifyContent: "center",
+        alignItems: "center",
         width: "100%",
         paddingBottom: scaleSize(6),
         paddingHorizontal: scaleSize(20),
@@ -107,6 +106,8 @@ const styles = StyleSheet.create({
     /* circular icon containers */
     iconCircle: {
         position: "absolute",
+        top: "50%",
+        transform: [{ translateY: -scaleSize(14) }],
         width: scaleSize(28),
         height: scaleSize(28),
         borderRadius: scaleSize(14),
@@ -126,11 +127,11 @@ const styles = StyleSheet.create({
     // no extra bubble; keep the pill clean
     plusBadge: {
         position: "absolute",
-        right: scaleSize(-3),
-        bottom: scaleSize(-3),
-        width: scaleSize(16),
-        height: scaleSize(16),
-        borderRadius: scaleSize(8),
+        right: scaleSize(-6),
+        bottom: scaleSize(-4.5),
+        width: scaleSize(17),
+        aspectRatio: 1,
+        borderRadius: scaleSize(10),
         backgroundColor: ACCENT,
         alignItems: "center",
         justifyContent: "center",
@@ -159,9 +160,7 @@ const styles = StyleSheet.create({
         borderRadius: scaleSize(999),
         alignItems: "center",
         justifyContent: "center",
-        marginHorizontal: scaleSize(2),
         backgroundColor: theme.surface,
-        paddingHorizontal: scaleSize(14),
     },
     chipActive: {
         backgroundColor: ACCENT,
