@@ -179,7 +179,7 @@ const SimpleFeedPost = ({
 
     const exerciseSummaries = useMemo(() => {
         if (!workout) return [];
-        return buildExerciseSummaries(workout, 3);
+        return buildExerciseSummaries(workout, Number.MAX_SAFE_INTEGER);
     }, [workout]);
 
     const workoutName = useMemo(() => {
