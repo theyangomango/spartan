@@ -16,7 +16,7 @@ import {
 } from "../../../state/notificationsStore";
 import { shallow } from "zustand/shallow";
 
-export const NOTIFICATION_FILTERS = ["All Activity", "Likes", "Comments", "Mentions"];
+export const NOTIFICATION_FILTERS = ["All", "Likes", "Comments", "Mentions"];
 
 export default function NotificationsModal({ uid, navigation, filter = NOTIFICATION_FILTERS[0] }) {
     const listRef = useRef(null);
@@ -286,7 +286,7 @@ export default function NotificationsModal({ uid, navigation, filter = NOTIFICAT
     // Precompute sections for all filters when events change; switch is then instant
     const groupedByFilter = useMemo(() => {
         const filters = {
-            "All Activity": (e) => true,
+            "All": (e) => true,
             Likes: (e) => ["liked-post", "liked-story", "liked-comment"].includes(e.type),
             Comments: (e) => ["comment", "replied-comment"].includes(e.type),
             Mentions: (e) => e.type === "mention",

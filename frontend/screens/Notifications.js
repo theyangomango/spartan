@@ -19,10 +19,11 @@ export default function Notifications({ navigation }) {
     const [selectedFilter, setSelectedFilter] = useState(NOTIFICATION_FILTERS[0]);
     const [isMenuOpen, setMenuOpen] = useState(false);
 
-    const { newLikes, newComments } = useNotificationsStore(
+    const { newLikes, newComments, events } = useNotificationsStore(
         useCallback((state) => ({
             newLikes: state.newLikes,
             newComments: state.newComments,
+            events: state.events,
         }), []),
     );
 
@@ -30,6 +31,13 @@ export default function Notifications({ navigation }) {
         Likes: newLikes,
         Comments: newComments,
     }), [newLikes, newComments]);
+
+    const updatesSubtitle = useMemo(() => {
+        if (!events || events.length === 0) return 'No new updates';
+        const unread = events.filter((evt) => evt?.read === false).length;
+        if (unread <= 0) return 'No new updates';
+        return `${unread} new update${unread === 1 ? '' : 's'}`;
+    }, [events]);
 
     useFocusEffect(
         useCallback(() => {
@@ -59,10 +67,15 @@ export default function Notifications({ navigation }) {
         <SafeAreaView style={styles.safe} edges={['top']}>
             <StatusBar barStyle="light-content" backgroundColor={theme.bg} />
             <View style={styles.header}>
-                <RNBounceable style={styles.backBtn} onPress={handleBack}>
-                    <Ionicons name="chevron-back" size={scaleSize(22)} color={theme.textPrimary} />
-                </RNBounceable>
-                <View style={styles.headerCenter}>
+                <View style={styles.headerSide}>
+                    <RNBounceable style={styles.backBtn} onPress={handleBack}>
+                        <Ionicons name="chevron-back" size={scaleSize(22)} color={theme.textPrimary} />
+                    </RNBounceable>
+                </View>
+                <View style={styles.headerCenter} pointerEvents="none">
+                    <Text style={styles.headerTitle}>Activity</Text>
+                </View>
+                <View style={[styles.headerSide, styles.headerSideRight]}>
                     <Pressable
                         style={styles.dropdownTrigger}
                         onPress={() => setMenuOpen((open) => !open)}
@@ -101,6 +114,9 @@ export default function Notifications({ navigation }) {
                     )}
                 </View>
             </View>
+            <View style={styles.subtitleRow}>
+                <Text style={styles.headerSubtitle}>{updatesSubtitle}</Text>
+            </View>
             <View style={styles.content}>
                 <NotificationsModal uid={uid} navigation={navigation} filter={selectedFilter} />
             </View>
@@ -120,17 +136,40 @@ const styles = StyleSheet.create({
         flexDirection: 'row',
         alignItems: 'center',
         paddingHorizontal: scaleSize(22),
-        paddingBottom: scaleSize(6),
         paddingTop: scaleSize(10),
         zIndex: 1200,
         elevation: 12,
     },
+    headerSide: {
+        flex: 1,
+        alignItems: 'flex-start',
+        justifyContent: 'center',
+        position: 'relative',
+    },
+    headerSideRight: {
+        alignItems: 'flex-end',
+    },
     headerCenter: {
         flex: 1,
-        alignItems: 'flex-end',
-        position: 'relative',
-        overflow: 'visible',
-        zIndex: 50,
+        alignItems: 'center',
+        justifyContent: 'center',
+    },
+    subtitleRow: {
+        paddingHorizontal: scaleSize(22),
+        alignItems: 'center',
+    },
+    headerTitle: {
+        color: theme.textPrimary,
+        fontFamily: 'Outfit_700Bold',
+        fontSize: ts(16),
+    },
+    headerSubtitle: {
+        marginTop: scaleSize(-5),
+        color: theme.textSecondary,
+        fontFamily: 'Outfit_500Medium',
+        fontSize: ts(12),
+        textAlign: 'center',
+        paddingBottom: scaleSize(8)
     },
     backBtn: {
         height: scaleSize(36),
@@ -157,7 +196,6 @@ const styles = StyleSheet.create({
         alignItems: 'center',
         paddingHorizontal: scaleSize(6),
         paddingVertical: scaleSize(4),
-        alignSelf: 'flex-end',
     },
     dropdownMenu: {
         position: 'absolute',
