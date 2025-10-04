@@ -317,7 +317,7 @@ export default function NotificationCard({
                 break;
             case "follow":
             case "follow-request":
-                base = { IconCmp: UserPlus, accent: "#22C55E", accent2: "#34D399", badgeBg: "rgba(34,197,94,0.1)" };
+                base = { IconCmp: UserPlus, accent: "#16A34A", accent2: "#22C55E", badgeBg: "rgba(22,163,74,0.12)" };
                 break;
             case "follow-accepted":
                 base = { IconCmp: Check, accent: "#2D92FF", accent2: "#6AB6FF", badgeBg: "rgba(45,146,255,0.1)" };

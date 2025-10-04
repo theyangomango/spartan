@@ -9,23 +9,23 @@ import scaleSize, { ts } from "../../helper/scaleSize";
 import { strong as haptic } from "../../utils/haptics";
 import { TouchableOpacity } from "react-native";
 
-const CARD_MIN_HEIGHT = scaleSize(70);
-const PROFILE_SIZE = scaleSize(44);
-const SMALL_PROFILE_SIZE = scaleSize(31);
-const HANDLE_FONT = ts(15);
-const CONTENT_FONT = ts(13);
+const CARD_MIN_HEIGHT = scaleSize(65);
+const PROFILE_SIZE = scaleSize(38);
+const SMALL_PROFILE_SIZE = scaleSize(32);
+const HANDLE_FONT = ts(13);
+const CONTENT_FONT = ts(12);
 const DATE_FONT = ts(12);
 
 const SMALL_PFP_STYLE = {
     width: SMALL_PROFILE_SIZE,
     height: SMALL_PROFILE_SIZE,
-    borderRadius: SMALL_PROFILE_SIZE / 2,
+    borderRadius: 100,
 };
 
 const SINGLE_PFP_STYLE = {
     width: PROFILE_SIZE,
     height: PROFILE_SIZE,
-    borderRadius: PROFILE_SIZE / 2,
+    borderRadius: 100,
 };
 
 /* ---------- Helpers: robust timestamp + compact fallback ---------- */
@@ -187,7 +187,6 @@ const styles = StyleSheet.create({
         alignSelf: "stretch",
         minHeight: CARD_MIN_HEIGHT,
         paddingHorizontal: scaleSize(26),
-        paddingVertical: scaleSize(14.5),
         flexDirection: "row",
         alignItems: "center",
         justifyContent: "space-between",
@@ -216,7 +215,7 @@ const styles = StyleSheet.create({
     },
     topLeft: { top: 0, left: 0 },
     bottomRight: { bottom: 0, right: 0 },
-    single: { backgroundColor: theme.field, borderWidth: scaleSize(1), borderColor: "rgba(255,255,255,0.1)" },
+    single: { backgroundColor: theme.field, borderColor: "rgba(255,255,255,0.1)" },
 
     textCol: { flex: 1, minWidth: 0 },
     handle: {
