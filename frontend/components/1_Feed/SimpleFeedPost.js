@@ -551,7 +551,7 @@ const SimpleFeedPost = ({
                                 pressed ? styles.likesContainerPressed : null,
                             ]}
                         >
-                            {likeCount === 1 && (firstLikerAvatar || firstLikerInitials) ? (
+                            {likeCount > 0 && (firstLikerAvatar || firstLikerInitials) ? (
                                 <View style={styles.likesAvatarWrap}>
                                     {firstLikerAvatar ? (
                                         <FastImage
