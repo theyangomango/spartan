@@ -1,4 +1,4 @@
-import React, { useMemo, useCallback } from "react";
+import React, { useMemo, useCallback, useState, useRef, useEffect } from "react";
 import {
   SafeAreaView,
   View,
@@ -8,12 +8,14 @@ import {
   Text,
 } from "react-native";
 import { useNavigation, useRoute } from "@react-navigation/native";
-import { Ionicons } from "@expo/vector-icons";
+import { Ionicons, MaterialCommunityIcons } from "@expo/vector-icons";
 
 import SimpleFeedPost from "../components/1_Feed/SimpleFeedPost";
 import PastWorkoutExerciseLog from "../components/1_Feed/PastWorkoutExerciseLog";
 import theme from "../theme/mfpDark";
 import scaleSize from "../helper/scaleSize";
+import makeID from "../../backend/helper/makeID";
+import updateDoc from "../../backend/helper/firebase/updateDoc";
 
 const HEADER_ICON_SIZE = scaleSize(20);
 
@@ -30,10 +32,24 @@ const PastWorkoutScreen = () => {
   const workout = route.params?.workout ?? null;
   const owner = route.params?.owner ?? {};
   const postMeta = route.params?.postMeta ?? {};
+  const onCopyTemplateParam = route.params?.onCopyTemplate;
+  const [isCopying, setIsCopying] = useState(false);
+  const [copyStatus, setCopyStatus] = useState("");
+  const copyTimeoutRef = useRef(null);
 
   const handleBack = () => {
     navigation.goBack();
   };
+
+  const showCopyStatus = useCallback((message) => {
+    setCopyStatus(message);
+    if (copyTimeoutRef.current) clearTimeout(copyTimeoutRef.current);
+    copyTimeoutRef.current = setTimeout(() => setCopyStatus(""), 1800);
+  }, []);
+
+  useEffect(() => () => {
+    if (copyTimeoutRef.current) clearTimeout(copyTimeoutRef.current);
+  }, []);
 
   const exercises = useMemo(() => (
     Array.isArray(workout?.exercises)
@@ -88,6 +104,50 @@ const PastWorkoutScreen = () => {
     };
   }, [workout, postMeta?.pid, postMeta?.created, postMeta?.likes, postMeta?.likeCount, postMeta?.comments, postMeta?.commentCount, postMeta?.media, postMeta?.images, postMeta?.shareCount, postMeta?.tags, postMeta?.tagged, owner?.uid, owner?.name, owner?.pfpVersion, ownerHandle, ownerPfp, caption]);
 
+  const handleCopyTemplate = useCallback(async () => {
+    if (isCopying) return;
+    const source = cardData?.workout || workout;
+    const uid = String(global?.userData?.uid || "").trim();
+    if (!source || !uid) {
+      showCopyStatus("Copy unavailable");
+      return;
+    }
+
+    setIsCopying(true);
+    try {
+      const tid = makeID();
+      const name = source?.templateName || source?.template?.name || source?.name || "Copied Template";
+      const exercisesPayload = (Array.isArray(source?.exercises) ? source.exercises : []).map((ex) => ({
+        name: ex?.name || "",
+        muscle: ex?.muscle || "",
+        sets: (Array.isArray(ex?.sets) ? ex.sets : []).map((s) => ({
+          weight: Number(s?.weight) || 0,
+          reps: Number(s?.reps) || 0,
+          type: (() => {
+            const raw = typeof s?.type === "string" ? s.type.toLowerCase() : "";
+            return raw === "warmup" || raw === "dropset" || raw === "failure" ? raw : null;
+          })(),
+        })),
+      }));
+
+      const newTemplate = { id: tid, tid, name, exercises: exercisesPayload, lastDate: null };
+      const prevTemplates = Array.isArray(global?.userData?.templates) ? global.userData.templates : [];
+
+      updateDoc("users", uid, { templates: [...prevTemplates, newTemplate] }).catch(() => {});
+      try { global.userData.templates = [...prevTemplates, newTemplate]; } catch {}
+
+      if (typeof onCopyTemplateParam === 'function') {
+        try { onCopyTemplateParam(source); } catch {}
+      }
+
+      showCopyStatus("Template copied ✓");
+    } catch (err) {
+      showCopyStatus("Copy failed");
+    } finally {
+      setIsCopying(false);
+    }
+  }, [cardData, workout, isCopying, showCopyStatus, onCopyTemplateParam]);
+
   const handlePressProfile = useCallback(() => {
     if (!owner?.uid) return;
     const user = {
@@ -141,7 +201,21 @@ const PastWorkoutScreen = () => {
 
         {workout && exercises.length > 0 ? (
           <View style={styles.detailSection}>
-            <Text style={styles.sectionTitle}>Detailed Sets</Text>
+            <View style={styles.logsHeader}>
+              <View style={styles.logsTitleWrap}>
+                <Text style={styles.logsTitle} numberOfLines={1}>{workout?.name || workout?.templateName || "Workout"}</Text>
+              </View>
+              <Pressable
+                onPress={handleCopyTemplate}
+                style={[styles.copyButton, isCopying && styles.copyButtonDisabled]}
+                disabled={isCopying}
+              >
+                <Text style={styles.copyButtonText}>{isCopying ? "Copying..." : "Copy Template"}</Text>
+              </Pressable>
+            </View>
+            {copyStatus ? (
+              <Text style={styles.copyStatusText}>{copyStatus}</Text>
+            ) : null}
             {exercises.map((exercise, index) => (
               <PastWorkoutExerciseLog key={`${exercise?.name || "exercise"}-${index}`} exercise={exercise} index={index} />
             ))}
@@ -205,12 +279,53 @@ const styles = StyleSheet.create({
   detailSection: {
     marginTop: scaleSize(4),
   },
-  sectionTitle: {
+  logsHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    paddingHorizontal: scaleSize(18),
+    marginBottom: scaleSize(8),
+  },
+  logsTitleWrap: {
+    flex: 1,
+    marginRight: scaleSize(12),
+  },
+  logsTitle: {
     color: theme.textPrimary,
-    fontFamily: "Outfit_600SemiBold",
+    fontFamily: "Mulish_800ExtraBold",
     fontSize: scaleSize(16),
-    marginBottom: scaleSize(12),
+  },
+  copyButton: {
+    flexDirection: "row",
+    alignItems: "center",
+    paddingHorizontal: scaleSize(18),
+    paddingVertical: scaleSize(8),
+    borderRadius: scaleSize(14),
+    backgroundColor: theme.field,
+    borderWidth: 0.5,
+    shadowColor: "#000",
+    shadowOpacity: 0.22,
+    shadowOffset: { width: 0, height: scaleSize(4) },
+    shadowRadius: scaleSize(6),
+    elevation: 4,
+  },
+  copyButtonDisabled: {
+    opacity: 0.6,
+  },
+  copyButtonIcon: {
+    marginRight: scaleSize(6),
+  },
+  copyButtonText: {
+    color: "#ffffff",
+    fontFamily: "Outfit_700Bold",
+    fontSize: scaleSize(13.5),
+  },
+  copyStatusText: {
+    marginBottom: scaleSize(6),
     marginHorizontal: scaleSize(18),
+    color: theme.textSecondary,
+    fontFamily: "Outfit_500Medium",
+    fontSize: scaleSize(12.5),
   },
 });
 
