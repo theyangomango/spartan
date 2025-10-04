@@ -335,7 +335,7 @@ const SimpleFeedPost = ({
         const name = (data?.name || "").trim();
         if (name) return name;
         const handle = (data?.handle || "user").trim();
-        return handle.startsWith("@") ? handle : `@${handle}`;
+        return `${handle}`;
     }, [data?.name, data?.handle]);
 
     const likeColor = isLiked ? "#FE5555" : theme.textPrimary;
@@ -406,14 +406,16 @@ const SimpleFeedPost = ({
                         onPress={() => onPressWorkout?.(index, data)}
                         style={styles.metricsRow}
                     >
-                        <View style={styles.metricColumn}>
-                            <Text style={styles.metricLabel}>Duration</Text>
-                            <Text style={styles.metricValue}>{durationLabel}</Text>
-                        </View>
+                        <View style={styles.metricsLeft}>
+                            <View style={styles.metricColumnLeft}>
+                                <Text style={styles.metricLabel}>Duration</Text>
+                                <Text style={styles.metricValue}>{durationLabel}</Text>
+                            </View>
 
-                        <View style={[styles.metricColumn, styles.metricCenter]}>
-                            <Text style={styles.metricLabel}>Volume</Text>
-                            <Text style={styles.metricValue}>{volumeLabel} {weightUnit}</Text>
+                            <View style={[styles.metricColumnLeft, styles.metricCenter]}>
+                                <Text style={styles.metricLabel}>Volume</Text>
+                                <Text style={styles.metricValue}>{volumeLabel} {weightUnit}</Text>
+                            </View>
                         </View>
 
                         <View style={[styles.metricColumn, styles.metricRight]}>
@@ -528,7 +530,7 @@ export default React.memo(SimpleFeedPost);
 const styles = StyleSheet.create({
     wrapper: {
         width: "100%",
-        marginTop: scaleSize(14),
+        marginTop: scaleSize(8),
         marginBottom: scaleSize(12),
         position: 'relative',
     },
@@ -537,7 +539,10 @@ const styles = StyleSheet.create({
     },
     sectionTop: {
         paddingHorizontal: scaleSize(18),
-        paddingTop: scaleSize(18),
+        paddingTop: scaleSize(14),
+    },
+    metricColumnLeft: {
+        width: '32%'
     },
     sectionBottom: {
         paddingTop: scaleSize(16),
@@ -602,15 +607,16 @@ const styles = StyleSheet.create({
         fontSize: scaleSize(13),
         marginTop: scaleSize(6),
     },
+    metricsLeft: {
+        flexDirection: "row",
+        flex: 1
+    },
     metricsRow: {
         flexDirection: "row",
-        alignItems: "flex-start",
+        justifyContent: 'space-between',
         marginTop: scaleSize(18),
         paddingVertical: scaleSize(8),
         marginHorizontal: scaleSize(18),
-    },
-    metricColumn: {
-        flex: 1,
     },
     metricCenter: {
         paddingHorizontal: scaleSize(1),
@@ -633,13 +639,6 @@ const styles = StyleSheet.create({
         flexDirection: 'row',
         alignItems: 'center',
         marginTop: scaleSize(4),
-    },
-    recordsIconFirst: {
-        marginRight: scaleSize(3),
-    },
-    recordsIcon: {
-        marginLeft: scaleSize(3),
-        marginRight: scaleSize(3),
     },
     recordsValueText: {
         marginLeft: scaleSize(6),

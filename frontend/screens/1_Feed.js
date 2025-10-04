@@ -33,6 +33,8 @@ import scaleSize from "../helper/scaleSize";
 import isThisUser from "../helper/isThisUser";
 import useFilteredFeed from "../helper/useFilteredFeed";
 import useFeedUserData from "./feed/hooks/useFeedUserData";
+import useWorkoutFeed from "../helper/useWorkoutFeed";
+import { toMillis as toMillisSafe } from "../utils/friends";
 
 const HEADER_TOP_TRIM = scaleSize(4);
 const LIST_BOTTOM_INSET = scaleSize(120);
@@ -43,7 +45,10 @@ export default function Feed({ navigation, route }) {
 
   const UID = "userData" in global ? global.userData.uid : route?.params?.uid;
 
-  const posts = useFilteredFeed(global.userData ? global.userData?.following : []);
+  const followingList = global.userData ? global.userData?.following : [];
+
+  const posts = useFilteredFeed(followingList);
+  const workoutFeed = useWorkoutFeed(followingList, UID);
 
   const {
     activeWorkout,
@@ -77,7 +82,52 @@ export default function Feed({ navigation, route }) {
 
   const activityViewerSessionRef = useRef(0);
 
-  const listData = useMemo(() => (Array.isArray(posts) ? posts : []), [posts]);
+  const resolveTimestamp = useCallback((item) => {
+    if (!item) return 0;
+    const fallback = item?.workout || null;
+    const candidates = [
+      item?.created,
+      item?.createdAt,
+      item?.updatedAt,
+      fallback?.created,
+      fallback?.createdAt,
+      fallback?.completedAt,
+      fallback?.finishedAt,
+    ];
+    for (const value of candidates) {
+      const ms = toMillisSafe(value);
+      if (ms) return ms;
+    }
+    return 0;
+  }, []);
+
+  const listData = useMemo(() => {
+    const basePosts = Array.isArray(posts) ? posts : [];
+    const workoutItems = Array.isArray(workoutFeed) ? workoutFeed : [];
+
+    const seenWorkoutKeys = new Set();
+    basePosts.forEach((item) => {
+      const owner = String(item?.uid || item?.workout?.creatorUid || item?.workout?.creatorUID || "");
+      const wid = String(item?.workout?.wid ?? item?.workout?.id ?? "");
+      if (owner && wid) {
+        seenWorkoutKeys.add(`${owner}:${wid}`);
+      }
+    });
+
+    const dedupedWorkoutItems = workoutItems.filter((item) => {
+      const owner = String(item?.uid || item?.workout?.creatorUid || item?.workout?.creatorUID || "");
+      const wid = String(item?.workout?.wid ?? item?.workout?.id ?? "");
+      if (owner && wid) {
+        const key = `${owner}:${wid}`;
+        if (seenWorkoutKeys.has(key)) return false;
+      }
+      return true;
+    });
+
+    const merged = [...basePosts, ...dedupedWorkoutItems];
+    merged.sort((a, b) => resolveTimestamp(b) - resolveTimestamp(a));
+    return merged;
+  }, [posts, workoutFeed, resolveTimestamp]);
 
   const onRefresh = useCallback(async () => {
     try {

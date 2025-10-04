@@ -25,11 +25,17 @@ export default function usePostFooterInteractions({ data, onPressCommentButton, 
     const buttonRefs = useRef({});
     const lastLikeToggleRef = useRef(0);
 
+    const interactionsEnabled = !!data?.pid && !String(data.pid).startsWith('workout:');
+
     // Initialise like/save state once user data is available.
     useEffect(() => {
         const user = resolveUser();
         const uid = user.uid;
-        if (!uid) return;
+        if (!uid || !interactionsEnabled) {
+            setIsLiked(false);
+            setIsSaved(false);
+            return;
+        }
 
         try {
             setIsLiked(Array.isArray(data?.likes) && data.likes.some((item) => item?.uid === uid));
@@ -38,7 +44,7 @@ export default function usePostFooterInteractions({ data, onPressCommentButton, 
             setIsLiked(false);
             setIsSaved(false);
         }
-    }, [data?.likes, data?.pid, global?.userData?.uid, global?.userData?.savedPosts]);
+    }, [data?.likes, data?.pid, global?.userData?.uid, global?.userData?.savedPosts, interactionsEnabled]);
 
     const assignButtonRef = useCallback((key, node) => {
         if (!key) return;
@@ -50,6 +56,8 @@ export default function usePostFooterInteractions({ data, onPressCommentButton, 
     }, []);
 
     const handlePressLikeButton = useCallback(() => {
+        if (!interactionsEnabled) return;
+
         const user = resolveUser();
         if (!user?.uid) {
             Alert?.alert?.('Oops', 'Please log in to like posts.');
@@ -117,13 +125,16 @@ export default function usePostFooterInteractions({ data, onPressCommentButton, 
             lastLikeToggleRef.current = now;
             return nextLiked;
         });
-    }, [data]);
+    }, [data, interactionsEnabled]);
 
     const ensureLike = useCallback(() => {
+        if (!interactionsEnabled) return;
         if (!isLiked) handlePressLikeButton();
-    }, [handlePressLikeButton, isLiked]);
+    }, [handlePressLikeButton, interactionsEnabled, isLiked]);
 
     const handlePressSaveButton = useCallback(() => {
+        if (!interactionsEnabled) return;
+
         const user = resolveUser();
         if (!user?.uid) {
             Alert?.alert?.('Oops', 'Please log in to save posts.');
@@ -142,21 +153,24 @@ export default function usePostFooterInteractions({ data, onPressCommentButton, 
 
         try { haptic(); } catch {}
         setIsSaved((prev) => !prev);
-    }, [data?.pid, isSaved]);
+    }, [data?.pid, interactionsEnabled, isSaved]);
 
     const pressComment = useCallback(() => {
+        if (!interactionsEnabled) return;
         if (typeof onPressCommentButton === 'function') {
             onPressCommentButton();
         }
-    }, [onPressCommentButton]);
+    }, [interactionsEnabled, onPressCommentButton]);
 
     const pressShare = useCallback(() => {
+        if (!interactionsEnabled) return;
         if (typeof onPressShareButton === 'function') {
             onPressShareButton();
         }
-    }, [onPressShareButton]);
+    }, [interactionsEnabled, onPressShareButton]);
 
     const handleTapAt = useCallback((absoluteX, absoluteY) => {
+        if (!interactionsEnabled) return false;
         const tolerance = scaleSize(8);
 
         const buttons = [
@@ -193,7 +207,8 @@ export default function usePostFooterInteractions({ data, onPressCommentButton, 
                 handler();
             });
         });
-    }, [handlePressLikeButton, handlePressSaveButton, onPressShareButton, pressComment, pressShare]);
+        return handled;
+    }, [handlePressLikeButton, handlePressSaveButton, interactionsEnabled, onPressShareButton, pressComment, pressShare]);
 
     return {
         isLiked,
