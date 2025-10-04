@@ -244,7 +244,7 @@ const styles = StyleSheet.create({
         alignItems: "center",
         backgroundColor: CARD_BG,
         borderRadius: CARD_RADIUS,
-        paddingVertical: scaleSize(20),
+        paddingVertical: scaleSize(22),
         paddingLeft: scaleSize(26),
         paddingRight: scaleSize(10),
         borderWidth: scaleSize(1),

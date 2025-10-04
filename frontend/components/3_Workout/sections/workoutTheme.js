@@ -16,8 +16,8 @@ export const BTN_GAP = ss(20);
 export const ROW_WIDTH = BTN_SIZE + SMALL_SIZE * 2 + BTN_GAP * 2 + ss(20);
 
 /* Templates rail sizing — compact */
-export const TPL_HEIGHT = ss(105);
-export const DOTS_H = ss(10);
+export const TPL_HEIGHT = ss(110);
+export const DOTS_H = ss(15);
 export const TPL_CARD_H = TPL_HEIGHT - DOTS_H - ss(6);
 
 /* Hub card sizing (shared so spacing can react when design tweaks height) */
