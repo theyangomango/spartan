@@ -306,56 +306,73 @@ const SimpleFeedPost = ({
         onPressShareButton: () => onPressShare?.(index, data),
     });
 
-    const visibleLikes = useMemo(() => {
+    const normalizedLikes = useMemo(() => {
         if (!Array.isArray(data?.likes)) return [];
-        const viewerUid = (() => {
-            try {
-                return global?.userData?.uid ? String(global.userData.uid) : null;
-            } catch {
-                return null;
-            }
-        })();
+        const seen = new Set();
+
         return data.likes
             .map((entry) => {
                 if (!entry) return null;
                 if (typeof entry === "string" || typeof entry === "number") {
                     const uid = String(entry).trim();
-                    return uid ? { uid } : null;
+                    if (!uid) return null;
+                    return { uid };
                 }
-                return entry;
+
+                const uid = entry?.uid ?? entry?.id ?? null;
+                const handle = entry?.handle ?? entry?.username ?? entry?.tag ?? "";
+                const name = entry?.name ?? entry?.displayName ?? "";
+                const avatar = entry?.pfp || entry?.pfpUrl || entry?.avatar || entry?.image || entry?.photoURL || entry?.photoUrl || null;
+
+                return {
+                    uid: uid ? String(uid) : null,
+                    handle: typeof handle === "string" ? handle : "",
+                    name: typeof name === "string" ? name : "",
+                    avatar,
+                };
             })
             .filter((entry) => {
                 if (!entry) return false;
-                if (!viewerUid) return true;
-                const uid = entry?.uid;
-                if (uid === undefined || uid === null) return true;
-                return String(uid) !== viewerUid;
-            })
-            .slice(0, 2);
+                if (!entry.uid && !entry.handle && !entry.name) return false;
+                const key = entry.uid || entry.handle?.toLowerCase() || entry.name?.toLowerCase();
+                if (!key) return true;
+                if (seen.has(key)) return false;
+                seen.add(key);
+                return true;
+            });
     }, [data?.likes]);
 
-    const likeLine = useMemo(() => {
-        if (visibleLikes.length > 0) {
-            const handles = visibleLikes
-                .map((entry) => {
-                    const handle = (entry?.handle || "").trim();
-                    if (handle) return handle.startsWith("@") ? handle : `@${handle}`;
-                    const name = (entry?.name || "").trim();
-                    return name;
-                })
-                .filter(Boolean);
-            if (handles.length === 1) return `Liked by ${handles[0]}`;
-            if (handles.length === 2) return `Liked by ${handles[0]} and ${handles[1]}`;
-            if (handles.length > 2) return `Liked by ${handles.slice(0, 2).join(", ")}`;
+    const firstLiker = normalizedLikes[0] || null;
+
+    const formattedFirstHandle = useMemo(() => {
+        if (!firstLiker) return "";
+        const handle = (firstLiker.handle || "").trim();
+        if (handle) return handle.startsWith("@") ? handle : `@${handle}`;
+        const name = (firstLiker.name || "").trim();
+        if (name) return name;
+        if (firstLiker.uid) return `User ${firstLiker.uid.slice(-4)}`;
+        return "someone";
+    }, [firstLiker]);
+
+    const likeMessage = useMemo(() => {
+        if (likeCount <= 0) return "No likes yet — be the first!";
+        if (likeCount === 1) {
+            if (formattedFirstHandle) return `Liked by ${formattedFirstHandle}`;
             return "Liked by someone";
         }
-        return caption || "Be the first to give a Like!";
-    }, [visibleLikes, caption]);
+        if (formattedFirstHandle) {
+            const others = Math.max(0, likeCount - 1);
+            return `Liked by ${formattedFirstHandle} and ${formatNumber(others)} more`;
+        }
+        return `Liked by ${formatNumber(likeCount)} people`;
+    }, [likeCount, formattedFirstHandle]);
 
-    const firstLikePfp = useMemo(() => {
-        const first = visibleLikes[0];
-        return first?.pfp || first?.pfpUrl || first?.image || first?.photoURL || null;
-    }, [visibleLikes]);
+    const firstLikerAvatar = useMemo(() => firstLiker?.avatar || null, [firstLiker]);
+    const firstLikerInitials = useMemo(() => {
+        if (!firstLiker) return "";
+        const source = (firstLiker.name || firstLiker.handle || "").replace(/^@/, "");
+        return initialsFrom(source);
+    }, [firstLiker]);
 
     const durationLabel = formatDuration(workout?.duration);
     const volumeLabel = formatNumber(workout?.volume);
@@ -526,53 +543,70 @@ const SimpleFeedPost = ({
                     mediaList.length === 0 ? styles.sectionBottomDivider : null,
                 ]}>
                     <View style={styles.actionsRow}>
-                        <AnimatedPressable
-                            ref={(node) => assignButtonRef?.("like", node)}
-                            style={styles.actionButton}
-                            onPress={handlePressLikeButton}
+                        <Pressable
+                            onPress={() => onPressLikes?.(index, data)}
+                            disabled={!onPressLikes}
+                            style={({ pressed }) => [
+                                styles.likesContainer,
+                                pressed ? styles.likesContainerPressed : null,
+                            ]}
                         >
-                            <Heart size={scaleSize(20)} color={likeColor} variant="Bold" />
-                            <Text style={styles.actionText}>{formatNumber(likeCount)}</Text>
-                        </AnimatedPressable>
+                            {likeCount === 1 && (firstLikerAvatar || firstLikerInitials) ? (
+                                <View style={styles.likesAvatarWrap}>
+                                    {firstLikerAvatar ? (
+                                        <FastImage
+                                            source={{
+                                                uri: firstLikerAvatar,
+                                                priority: FastImage.priority.low,
+                                                cache: FastImage.cacheControl.immutable,
+                                            }}
+                                            style={styles.likesAvatar}
+                                            resizeMode={FastImage.resizeMode.cover}
+                                        />
+                                    ) : (
+                                        <View style={[styles.likesAvatar, styles.likesAvatarFallback]}>
+                                            <Text style={styles.likesAvatarInitials}>{firstLikerInitials}</Text>
+                                        </View>
+                                    )}
+                                </View>
+                            ) : null}
+                            <Text style={styles.likesText} numberOfLines={2}>
+                                {likeMessage}
+                            </Text>
+                        </Pressable>
 
-                        <AnimatedPressable
-                            ref={(node) => assignButtonRef?.("comment", node)}
-                            style={[styles.actionButton, styles.actionButtonMiddle]}
-                            onPress={pressComment}
-                        >
-                            <Messages1 size={scaleSize(20)} color={theme.textPrimary} variant="Bold" />
-                            <Text style={styles.actionText}>{formatNumber(commentCount)}</Text>
-                        </AnimatedPressable>
+                        <View style={styles.buttonsContainer}>
+                            <AnimatedPressable
+                                ref={(node) => assignButtonRef?.("like", node)}
+                                style={styles.actionButton}
+                                onPress={handlePressLikeButton}
+                            >
+                                <Heart size={scaleSize(20)} color={likeColor} variant="Bold" />
+                                <Text style={styles.actionText}>{formatNumber(likeCount)}</Text>
+                            </AnimatedPressable>
 
-                        <AnimatedPressable
-                            ref={(node) => assignButtonRef?.("save", node)}
-                            style={styles.actionButton}
-                            onPress={handlePressSaveButton}
-                        >
-                            <MaterialCommunityIcons
-                                name={isSaved ? "bookmark" : "bookmark-outline"}
-                                size={scaleSize(20)}
-                                color={theme.textPrimary}
-                            />
-                        </AnimatedPressable>
+                            <AnimatedPressable
+                                ref={(node) => assignButtonRef?.("comment", node)}
+                                style={[styles.actionButton, styles.actionButtonMiddle]}
+                                onPress={pressComment}
+                            >
+                                <Messages1 size={scaleSize(20)} color={theme.textPrimary} variant="Bold" />
+                                <Text style={styles.actionText}>{formatNumber(commentCount)}</Text>
+                            </AnimatedPressable>
+
+                            {/* <AnimatedPressable
+                                ref={(node) => assignButtonRef?.("save", node)}
+                                style={styles.actionButton}
+                                onPress={handlePressSaveButton}
+                            >
+                                <MaterialCommunityIcons
+                                    name={isSaved ? "bookmark" : "bookmark-outline"}
+                                    size={scaleSize(20)}
+                                    color={theme.textPrimary}
+                                />
+                            </AnimatedPressable> */}
+                        </View>
                     </View>
-
-                    {/* <Pressable
-            onPress={() => onPressLikes?.(index, data)}
-            disabled={!onPressLikes}
-            style={styles.likesRow}
-          >
-            {firstLikePfp ? (
-              <FastImage
-                source={{ uri: firstLikePfp, priority: FastImage.priority.low, cache: FastImage.cacheControl.immutable }}
-                style={styles.likeAvatar}
-                resizeMode={FastImage.resizeMode.cover}
-              />
-            ) : null}
-            <Text style={styles.likesText} numberOfLines={2}>
-              {likeLine}
-            </Text>
-          </Pressable> */}
                 </View>
             </View>
             <Animated.View
@@ -802,9 +836,50 @@ const styles = StyleSheet.create({
     },
     actionsRow: {
         flexDirection: "row",
-        justifyContent: "space-between",
         alignItems: "center",
         paddingHorizontal: scaleSize(16),
+    },
+    likesContainer: {
+        flex: 1,
+        flexDirection: "row",
+        alignItems: "center",
+        paddingRight: scaleSize(12),
+        paddingVertical: scaleSize(6),
+    },
+    likesContainerPressed: {
+        opacity: 0.8,
+    },
+    likesAvatarWrap: {
+        marginRight: scaleSize(10),
+    },
+    likesAvatar: {
+        width: scaleSize(32),
+        height: scaleSize(32),
+        borderRadius: scaleSize(32) / 2,
+        borderWidth: scaleSize(2),
+        borderColor: "#fff",
+        backgroundColor: theme.field,
+    },
+    likesAvatarFallback: {
+        alignItems: "center",
+        justifyContent: "center",
+    },
+    likesAvatarInitials: {
+        color: theme.textPrimary,
+        fontFamily: "Poppins_600SemiBold",
+        fontSize: scaleSize(13),
+    },
+    likesText: {
+        flex: 1,
+        color: theme.textPrimary,
+        fontFamily: "Outfit_500Medium",
+        fontSize: scaleSize(12.5),
+    },
+    buttonsContainer: {
+        width: "32%",
+        flexDirection: "row",
+        alignItems: "center",
+        justifyContent: "space-between",
     },
     actionButton: {
         flex: 1,
@@ -814,33 +889,12 @@ const styles = StyleSheet.create({
         paddingVertical: scaleSize(6),
     },
     actionButtonMiddle: {
-        marginHorizontal: scaleSize(14),
     },
     actionText: {
         color: theme.textPrimary,
         fontFamily: "Outfit_500Medium",
         fontSize: scaleSize(12.5),
         marginLeft: scaleSize(6),
-    },
-    likesRow: {
-        flexDirection: "row",
-        alignItems: "center",
-        marginTop: scaleSize(18),
-        width: "100%",
-    },
-    likeAvatar: {
-        width: scaleSize(32),
-        height: scaleSize(32),
-        borderRadius: scaleSize(32 / 2),
-        marginRight: scaleSize(10),
-        borderWidth: scaleSize(2),
-        borderColor: "#fff",
-    },
-    likesText: {
-        flex: 1,
-        color: theme.textPrimary,
-        fontFamily: "Poppins_600SemiBold",
-        fontSize: scaleSize(13),
     },
     highlightOverlay: {
         position: 'absolute',
