@@ -329,14 +329,13 @@ const styles = StyleSheet.create({
         fontSize: scaleSize(14),
     },
     detailSection: {
-        marginTop: scaleSize(4),
+        marginTop: scaleSize(16),
     },
     logsHeader: {
         flexDirection: "row",
         alignItems: "center",
         justifyContent: "space-between",
         paddingHorizontal: scaleSize(18),
-        marginBottom: scaleSize(8),
     },
     logsTitleWrap: {
         flex: 1,

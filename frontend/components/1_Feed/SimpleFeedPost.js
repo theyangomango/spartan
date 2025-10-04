@@ -570,7 +570,7 @@ const SimpleFeedPost = ({
                                     )}
                                 </View>
                             ) : null}
-                            <Text style={styles.likesText} numberOfLines={2}>
+                            <Text style={styles.likesText} numberOfLines={1}>
                                 {likeMessage}
                             </Text>
                         </Pressable>
@@ -852,7 +852,7 @@ const styles = StyleSheet.create({
         marginRight: scaleSize(6),
     },
     likesAvatar: {
-        width: scaleSize(25),
+        width: scaleSize(23),
         aspectRatio: 1,
         borderRadius: scaleSize(32) / 2,
         borderWidth: scaleSize(2),
@@ -872,7 +872,7 @@ const styles = StyleSheet.create({
         flex: 1,
         color: theme.textPrimary,
         fontFamily: "Outfit_500Medium",
-        fontSize: scaleSize(12.5),
+        fontSize: scaleSize(14),
     },
     buttonsContainer: {
         width: "32%",
