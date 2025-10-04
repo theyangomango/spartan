@@ -9,7 +9,7 @@ import scaleSize, { ts } from "../../helper/scaleSize";
 import { strong as haptic } from "../../utils/haptics";
 import { TouchableOpacity } from "react-native";
 
-const CARD_MIN_HEIGHT = scaleSize(68);
+const CARD_MIN_HEIGHT = scaleSize(72);
 const PROFILE_SIZE = scaleSize(38);
 const SMALL_PROFILE_SIZE = scaleSize(32);
 const HANDLE_FONT = ts(13);

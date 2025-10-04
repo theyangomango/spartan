@@ -316,27 +316,23 @@ const SimpleFeedPost = ({
             onPress={() => onPressWorkout?.(index, data)}
             style={styles.metricsRow}
           >
-            <View style={styles.metricItem}>
-              <MaterialCommunityIcons name="clock-outline" size={scaleSize(18)} color={theme.textSecondary} />
-              <View style={styles.metricTextCol}>
-                <Text style={styles.metricLabel}>Duration</Text>
-                <Text style={styles.metricValue}>{durationLabel}</Text>
-              </View>
+            <View style={styles.metricColumn}>
+              <Text style={styles.metricLabel}>Duration</Text>
+              <Text style={styles.metricValue}>{durationLabel}</Text>
             </View>
 
-            <View style={styles.metricItem}>
-              <MaterialCommunityIcons name="weight-lifter" size={scaleSize(18)} color={theme.textSecondary} />
-              <View style={styles.metricTextCol}>
-                <Text style={styles.metricLabel}>Volume</Text>
-                <Text style={styles.metricValue}>{volumeLabel} {weightUnit}</Text>
-              </View>
+            <View style={[styles.metricColumn, styles.metricCenter]}>
+              <Text style={styles.metricLabel}>Volume</Text>
+              <Text style={styles.metricValue}>{volumeLabel} {weightUnit}</Text>
             </View>
 
-            <View style={styles.metricItem}>
-              <MaterialCommunityIcons name="medal-outline" size={scaleSize(18)} color={theme.textSecondary} />
-              <View style={styles.metricTextCol}>
-                <Text style={styles.metricLabel}>Records</Text>
-                <Text style={styles.metricValue}>{recordsLabel}</Text>
+            <View style={[styles.metricColumn, styles.metricRight]}>
+              <Text style={styles.metricLabel}>Records</Text>
+              <View style={styles.recordsValueRow}>
+                <MaterialCommunityIcons name="medal" size={scaleSize(16)} color="#FFD700" style={styles.recordsIconFirst} />
+                <MaterialCommunityIcons name="medal" size={scaleSize(16)} color="#C0C0C0" style={styles.recordsIcon} />
+                <MaterialCommunityIcons name="medal" size={scaleSize(16)} color="#CD7F32" style={styles.recordsIcon} />
+                <Text style={[styles.metricValue, styles.recordsValueText]}>{recordsLabel}</Text>
               </View>
             </View>
           </Pressable>
@@ -388,7 +384,7 @@ const SimpleFeedPost = ({
             </AnimatedPressable>
           </View>
 
-          <Pressable
+          {/* <Pressable
             onPress={() => onPressLikes?.(index, data)}
             disabled={!onPressLikes}
             style={styles.likesRow}
@@ -403,7 +399,7 @@ const SimpleFeedPost = ({
             <Text style={styles.likesText} numberOfLines={2}>
               {likeLine}
             </Text>
-          </Pressable>
+          </Pressable> */}
         </View>
       </View>
       <Animated.View
@@ -506,43 +502,55 @@ const styles = StyleSheet.create({
   },
   metricsRow: {
     flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
+    alignItems: "flex-start",
     marginTop: scaleSize(18),
-    paddingVertical: scaleSize(14),
-    paddingHorizontal: scaleSize(12),
-    backgroundColor: "rgba(255,255,255,0.04)",
+    paddingVertical: scaleSize(8),
     marginHorizontal: scaleSize(18),
   },
-  metricItem: {
+  metricColumn: {
     flex: 1,
-    flexDirection: "row",
-    alignItems: "center",
   },
-  metricTextCol: {
-    marginLeft: scaleSize(8),
+  metricCenter: {
+    paddingHorizontal: scaleSize(1),
+  },
+  metricRight: {
+    alignItems: 'flex-end',
   },
   metricLabel: {
-    color: theme.textSecondary,
-    fontFamily: "Outfit_500Medium",
-    fontSize: scaleSize(11),
+    color: 'rgba(255,255,255,0.58)',
+    fontFamily: "Outfit_600SemiBold",
+    fontSize: scaleSize(11.2),
+    letterSpacing: 0.2,
   },
   metricValue: {
     color: theme.textPrimary,
-    fontFamily: "Outfit_600SemiBold",
-    fontSize: scaleSize(14),
-    marginTop: scaleSize(2),
+    fontFamily: "Outfit_700Bold",
+    fontSize: scaleSize(15.5),
+  },
+  recordsValueRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginTop: scaleSize(4),
+  },
+  recordsIconFirst: {
+    marginRight: scaleSize(3),
+  },
+  recordsIcon: {
+    marginLeft: scaleSize(3),
+    marginRight: scaleSize(3),
+  },
+  recordsValueText: {
+    marginLeft: scaleSize(6),
   },
   media: {
     width: "100%",
     aspectRatio: 0.75,
-    marginTop: scaleSize(16),
+    marginTop: scaleSize(4),
   },
   actionsRow: {
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
-    marginTop: scaleSize(16),
   },
   actionButton: {
     flex: 1,

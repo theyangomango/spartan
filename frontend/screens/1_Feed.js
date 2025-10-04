@@ -329,19 +329,17 @@ export default function Feed({ navigation, route }) {
   ), [highlightSignal, openCommentsModal, openShareModal, openLikesSheet, toViewProfilePosts, openViewWorkoutModal]);
 
   const headerComponent = useMemo(() => (
-    <View style={styles.headerContainer}>
-      <FeedHeader
-        navigation={navigation}
-        toMessagesScreen={toMessagesScreen}
-        onOpenNotifications={handleOpenNotifications}
-        scrollToTop={scrollToTop}
-        allUsersRef={allUsersRef}
-        workout={activeWorkout}
-        timerRef={headerTimerRef}
-        heightAdjust={-2}
-        topAdjust={-HEADER_TOP_TRIM}
-      />
-    </View>
+    <FeedHeader
+      navigation={navigation}
+      toMessagesScreen={toMessagesScreen}
+      onOpenNotifications={handleOpenNotifications}
+      scrollToTop={scrollToTop}
+      allUsersRef={allUsersRef}
+      workout={activeWorkout}
+      timerRef={headerTimerRef}
+      heightAdjust={-2}
+      topAdjust={-HEADER_TOP_TRIM}
+    />
   ), [navigation, toMessagesScreen, handleOpenNotifications, scrollToTop, allUsersRef, activeWorkout, headerTimerRef]);
 
   const commentsVisible = activeSheet === "comments" && activePostIndex >= 0;
@@ -359,6 +357,8 @@ export default function Feed({ navigation, route }) {
         keyExtractor={listKeyExtractor}
         renderItem={renderPost}
         ListHeaderComponent={headerComponent}
+        ListHeaderComponentStyle={styles.headerSpacer}
+        stickyHeaderIndices={[0]}
         refreshControl={(
           <RefreshControl
             refreshing={refreshing}
@@ -430,8 +430,8 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: theme.bg,
   },
-  headerContainer: {
-    paddingHorizontal: scaleSize(18),
-    paddingBottom: scaleSize(12),
+  headerSpacer: {
+    paddingBottom: scaleSize(2),
+    backgroundColor: theme.bg,
   },
 });

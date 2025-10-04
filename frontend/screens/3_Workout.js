@@ -1005,14 +1005,13 @@ export default function Workout({ navigation, route }) {
                     timerRef={timerRef}
                     openCurrentWorkout={headerOpenCurrentWorkout}
                     heightAdjust={-2}
-                    topAdjust={-scaleSize(4)}
                 />
             </View>
             {/* Invite banner (absolute, anchored below header & within SafeArea) */}
             <Animated.View
                 style={[
                     styles.inviteBannerWrap,
-                    { top: scaleSize(headerHeight + 10), transform: [{ translateY: bannerY }] },
+                    {transform: [{ translateY: bannerY }] },
                 ]}
                 pointerEvents={currentInvite ? "auto" : "none"}
                 onLayout={handleInviteLayout}
@@ -1054,6 +1053,7 @@ export default function Workout({ navigation, route }) {
 
                 <View style={styles.bottomStack} pointerEvents="box-none">
                     <View style={styles.templatesDock}>
+                        <View style={styles.dividerSpacer} />
                         <View
                             ref={dividerRef}
                             onLayout={handleDividerLayout}
@@ -1234,7 +1234,7 @@ const styles = StyleSheet.create({
     root: { flex: 1, backgroundColor: theme.bg },
     content: {
         flex: 1,
-        paddingTop: scaleSize(2),
+        paddingTop: scaleSize(18),
         paddingBottom: scaleSize(FOOTER_HEIGHT),
     },
     mainContent: { flex: 1, width: "100%" },
@@ -1253,6 +1253,9 @@ const styles = StyleSheet.create({
         width: "100%",
         alignItems: "center",
         marginBottom: TPL_BOTTOM_GAP,
+    },
+    dividerSpacer: {
+        height: scaleSize(12),
     },
     templatesDivider: {
         width: "100%",

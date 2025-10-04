@@ -36,9 +36,9 @@ const s = (n) => Math.round(n * scale);
 // Unified sizing metrics (reduces magic numbers)
 const METRICS = (() => {
     const paddingH = dynamicStyles.paddingHorizontal;
-    const paddingTop = s(2);
-    const paddingBottom = s(12);
-    const centerH = s(40);
+    const paddingTop = s(0);
+    const paddingBottom = s(2);
+    const centerH = s(42);
     // Remove the extra top margin so the header sits flush with other screens
     const marginTop = 0;
     const icon = dynamicStyles.iconSize;
