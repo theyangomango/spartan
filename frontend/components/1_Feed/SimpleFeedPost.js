@@ -347,7 +347,7 @@ const SimpleFeedPost = ({
     const formattedFirstHandle = useMemo(() => {
         if (!firstLiker) return "";
         const handle = (firstLiker.handle || "").trim();
-        if (handle) return handle.startsWith("@") ? handle : `@${handle}`;
+        if (handle) return `${handle}`;
         const name = (firstLiker.name || "").trim();
         if (name) return name;
         if (firstLiker.uid) return `User ${firstLiker.uid.slice(-4)}`;
@@ -844,17 +844,16 @@ const styles = StyleSheet.create({
         flexDirection: "row",
         alignItems: "center",
         paddingRight: scaleSize(12),
-        paddingVertical: scaleSize(6),
     },
     likesContainerPressed: {
         opacity: 0.8,
     },
     likesAvatarWrap: {
-        marginRight: scaleSize(10),
+        marginRight: scaleSize(6),
     },
     likesAvatar: {
-        width: scaleSize(32),
-        height: scaleSize(32),
+        width: scaleSize(25),
+        aspectRatio: 1,
         borderRadius: scaleSize(32) / 2,
         borderWidth: scaleSize(2),
         borderColor: "#fff",
