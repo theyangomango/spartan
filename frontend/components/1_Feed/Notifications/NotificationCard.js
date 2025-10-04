@@ -107,6 +107,13 @@ const withAlpha = (color, alpha = 1) => {
     return `rgba(${rgba.r},${rgba.g},${rgba.b},${a})`;
 };
 
+const readUid = (value) => {
+    if (!value) return '';
+    if (typeof value === 'string' || typeof value === 'number') return String(value);
+    if (typeof value === 'object') return String(value?.uid || '');
+    return '';
+};
+
 export default function NotificationCard({
     item,
     onPressCard,
@@ -120,25 +127,21 @@ export default function NotificationCard({
     const [respondingRequest, setRespondingRequest] = useState(false);
     const [followState, setFollowState] = useState('none');
     const [followBusy, setFollowBusy] = useState(false);
-    const pfpUri = usePfp(
-        item.uid,
-        item.pfpVersion ?? 0,
-        item?.pfp || item?.pfpUrl || item?.photoURL || item?.image || ""
-    );
+    const pfpUri = usePfp(item?.uid, item?.pfpVersion ?? 0, item?.pfp || "");
 
-    const targetUid = useMemo(() => String(item?.uid || item?.id || ''), [item?.uid, item?.id]);
+    const targetUid = useMemo(() => String(item?.uid || ''), [item?.uid]);
 
     const deriveFollowState = useCallback(() => {
         if (!targetUid) return 'none';
         try {
             const viewer = global?.userData || {};
             const isFollowing = Array.isArray(viewer?.following)
-                ? viewer.following.some((f) => String(f?.uid || f?.id || f) === targetUid)
+                ? viewer.following.some((f) => readUid(f) === targetUid)
                 : false;
             if (isFollowing) return 'following';
 
             const isRequested = Array.isArray(viewer?.followRequestsOut)
-                ? viewer.followRequestsOut.some((f) => String(f?.uid || f?.id || f) === targetUid)
+                ? viewer.followRequestsOut.some((f) => readUid(f) === targetUid)
                 : false;
             if (isRequested) return 'requested';
         } catch {}
@@ -161,14 +164,14 @@ export default function NotificationCard({
     }, [deriveFollowState, item?.type]);
 
     const normalizeRef = useCallback((u = {}) => ({
-        uid: String(u?.uid || u?.id || ''),
-        handle: u?.handle || u?.username || '',
-        name: u?.name || u?.displayName || '',
-        pfp: u?.pfp || u?.image || u?.photoURL || u?.pfpUrl || u?.photoUrl || '',
+        uid: String(u?.uid || ''),
+        handle: u?.handle || '',
+        name: u?.name || '',
+        pfp: u?.pfp || '',
     }), []);
 
     const applyFollowStateToGlobal = useCallback((state, otherRef) => {
-        const otherUid = String(otherRef?.uid || otherRef?.id || '');
+        const otherUid = readUid(otherRef);
         if (!otherUid) return;
 
         try {
@@ -179,15 +182,15 @@ export default function NotificationCard({
             const followingList = Array.isArray(global?.userData?.following) ? [...global.userData.following] : [];
             const requestsList = Array.isArray(global?.userData?.followRequestsOut) ? [...global.userData.followRequestsOut] : [];
 
-            const removeByUid = (list) => list.filter((entry) => String(entry?.uid || entry?.id || entry) !== otherUid);
+            const removeByUid = (list) => list.filter((entry) => readUid(entry) !== otherUid);
 
             if (state === 'following') {
-                const exists = followingList.some((entry) => String(entry?.uid || entry?.id || entry) === otherUid);
+                const exists = followingList.some((entry) => readUid(entry) === otherUid);
                 if (!exists) followingList.push(otherRef);
                 global.userData.following = followingList;
                 global.userData.followRequestsOut = removeByUid(requestsList);
             } else if (state === 'requested') {
-                const exists = requestsList.some((entry) => String(entry?.uid || entry?.id || entry) === otherUid);
+                const exists = requestsList.some((entry) => readUid(entry) === otherUid);
                 if (!exists) requestsList.push(otherRef);
                 global.userData.followRequestsOut = requestsList;
                 global.userData.following = removeByUid(followingList);
@@ -550,17 +553,17 @@ const styles = StyleSheet.create({
         flexDirection: "row",
         alignItems: "center",
         justifyContent: 'flex-start',
-        paddingHorizontal: scaleSize(26),
+        paddingHorizontal: scaleSize(24),
         paddingVertical: scaleSize(14),
         backgroundColor: theme.surface,
-        borderBottomWidth: StyleSheet.hairlineWidth,
+        borderBottomWidth: 0.75,
         borderColor: theme.hairline,
     },
     firstCard: { borderTopWidth: StyleSheet.hairlineWidth },
     lastCard: { borderBottomWidth: StyleSheet.hairlineWidth },
     pfpWrap: { position: "relative", marginRight: scaleSize(16) },
     pfp: {
-        width: scaleSize(44),
+        width: scaleSize(38),
         aspectRatio: 1,
         borderRadius: scaleSize(22),
         borderWidth: StyleSheet.hairlineWidth,
@@ -572,10 +575,10 @@ const styles = StyleSheet.create({
     },
     pfpIconBadge: {
         position: "absolute",
-        right: -scaleSize(5),
+        right: -scaleSize(8),
         bottom: -scaleSize(5),
-        width: scaleSize(26),
-        height: scaleSize(26),
+        width: scaleSize(24),
+        aspectRatio: 1,
         borderRadius: scaleSize(13),
         alignItems: "center",
         justifyContent: "center",
@@ -597,7 +600,7 @@ const styles = StyleSheet.create({
         justifyContent: "center",
     },
     textContainer: { flex: 1, minWidth: 0, paddingRight: scaleSize(12) },
-    topRow: { flexDirection: "row", alignItems: "center", marginBottom: scaleSize(4) },
+    topRow: { flexDirection: "row", alignItems: "center", marginBottom: scaleSize(1) },
     handle: {
         fontSize: scaleSize(13.5),
         fontFamily: "Outfit_600SemiBold",

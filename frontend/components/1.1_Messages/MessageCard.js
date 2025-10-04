@@ -192,7 +192,7 @@ const styles = StyleSheet.create({
         alignItems: "center",
         justifyContent: "space-between",
         backgroundColor: theme.surface,
-        borderBottomWidth: 1.5,
+        borderBottomWidth: 0.75,
         borderColor: theme.hairline,
     },
     firstCard: {
