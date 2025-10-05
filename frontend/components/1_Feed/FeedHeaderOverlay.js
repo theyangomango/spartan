@@ -78,6 +78,7 @@ export default function FeedHeaderOverlay({
             topAdjust={-HEADER_TOP_TRIM}
             centerVariant="text"
             centerTitle="Feed"
+            centerTextPreset="feed"
           />
         </Reanimated.View>
       </Reanimated.View>

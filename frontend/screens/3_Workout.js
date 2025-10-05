@@ -1007,6 +1007,7 @@ export default function Workout({ navigation, route }) {
                     heightAdjust={-2}
                     centerVariant="text"
                     centerTitle={`${global.userData?.handle}`}
+                    centerTextPreset="workout"
                 />
             </View>
             {/* Invite banner (absolute, anchored below header & within SafeArea) */}

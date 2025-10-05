@@ -435,6 +435,7 @@ const FeedHeader = ({
     topAdjust = 0,
     centerVariant = "logo",
     centerTitle = "Feed",
+    centerTextPreset = "feed",
 }) => {
     const [unreadCount, setUnreadCount] = useState(0);
     const [unreadMessages, setUnreadMessages] = useState(0);
@@ -465,6 +466,7 @@ const FeedHeader = ({
     const adjustedPaddingTop = topAdjust !== 0 ? Math.max(0, METRICS.paddingTop + topAdjust) : null;
     const adjustedPaddingBottom = heightAdjust !== 0 ? Math.max(0, METRICS.paddingBottom + heightAdjust) : null;
     const computedCenterTitle = typeof centerTitle === "string" && centerTitle.trim() ? centerTitle : "Feed";
+    const centerTextStyle = centerTextPreset === "workout" ? styles.center_title_text_workout : styles.center_title_text_feed;
 
     return (
         <View style={[
@@ -495,7 +497,7 @@ const FeedHeader = ({
                                 <Text style={styles.logo_text}>SPARTAN</Text>
                             </>
                         ) : (
-                            <Text style={styles.center_title_text}>{computedCenterTitle}</Text>
+                            <Text style={centerTextStyle}>{computedCenterTitle}</Text>
                         )}
                     </RNBounceable>
                 </View>
@@ -624,10 +626,16 @@ const styles = StyleSheet.create({
         includeFontPadding: false,
         ...Platform.select({ android: { lineHeight: scaleSize(s(19)) } }),
     },
-    center_title_text: {
+    center_title_text_feed: {
         fontFamily: "Outfit_600SemiBold",
-        letterSpacing: 0.3,
+        letterSpacing: 0.35,
         fontSize: scaleSize(18),
+        color: theme.textPrimary,
+        includeFontPadding: false,
+    },
+    center_title_text_workout: {
+        fontFamily: "Outfit_600SemiBold",
+        fontSize: scaleSize(17),
         color: theme.textPrimary,
         includeFontPadding: false,
     },

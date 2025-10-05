@@ -54,7 +54,7 @@ const styles = StyleSheet.create({
     },
     handle_text: {
         fontFamily: 'Outfit_600SemiBold',
-        fontSize: scaleSize(16),
+        fontSize: scaleSize(17),
         padding: scaleSize(2),
         color: theme.textPrimary,
     },

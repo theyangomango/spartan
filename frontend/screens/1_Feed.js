@@ -460,6 +460,7 @@ export default function Feed({ navigation, route }) {
             topAdjust={-HEADER_TOP_TRIM}
             centerVariant="text"
             centerTitle="Feed"
+            centerTextPreset="feed"
         />
     ), [navigation, toMessagesScreen, handleOpenNotifications, scrollToTop, allUsersRef, activeWorkout, headerTimerRef]);
 
