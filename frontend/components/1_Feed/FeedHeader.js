@@ -38,7 +38,7 @@ const METRICS = (() => {
     const paddingH = dynamicStyles.paddingHorizontal;
     const paddingTop = s(0);
     const paddingBottom = s(4);
-    const centerH = s(42);
+    const centerH = s(46);
     // Remove the extra top margin so the header sits flush with other screens
     const marginTop = 0;
     const icon = dynamicStyles.iconSize;
@@ -611,7 +611,7 @@ const styles = StyleSheet.create({
         position: "relative",
     },
 
-    centerSlot: { paddingHorizontal: scaleSize(s(14)), height: "100%", minWidth: scaleSize(s(156)), alignItems: "center", justifyContent: "center" },
+    centerSlot: { paddingBottom: scaleSize(3.5), paddingHorizontal: scaleSize(s(14)), height: "100%", minWidth: scaleSize(s(156)), alignItems: "center", justifyContent: "center" },
 
     // Nudge the logo down slightly to align with side icons
     logoWrap: { height: "100%", flexDirection: "row", alignItems: "center", paddingTop: METRICS.logoPadTop },
