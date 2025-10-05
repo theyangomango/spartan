@@ -415,11 +415,9 @@ const SimpleFeedPost = ({
     const recordsLabel = formatNumber(workout?.PBs ?? workout?.pbs ?? 0);
 
     const displayName = useMemo(() => {
-        const name = (data?.name || "").trim();
-        if (name) return name;
         const handle = (data?.handle || "user").trim();
         return `${handle}`;
-    }, [data?.name, data?.handle]);
+    }, [data?.handle]);
 
     const likeColor = isLiked ? "#FE5555" : theme.textPrimary;
     const keyExtractor = useCallback((item, idx) => `${item?.uri || 'media'}-${idx}`, []);
