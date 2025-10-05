@@ -8,15 +8,18 @@ import {
     Text,
 } from "react-native";
 import { useNavigation, useRoute } from "@react-navigation/native";
-import { Ionicons, MaterialCommunityIcons } from "@expo/vector-icons";
+import { Ionicons } from "@expo/vector-icons";
 
 import SimpleFeedPost from "../components/1_Feed/SimpleFeedPost";
 import PastWorkoutExerciseLog from "../components/1_Feed/PastWorkoutExerciseLog";
+import CommentsBottomSheet from "../components/1_Feed/Comments/CommentsBottomSheet";
+import FollowListBottomSheet from "../components/FollowListBottomSheet";
 import theme from "../theme/mfpDark";
 import scaleSize from "../helper/scaleSize";
 import makeID from "../../backend/helper/makeID";
 import updateDoc from "../../backend/helper/firebase/updateDoc";
 import FastImage from "react-native-fast-image";
+import isThisUser from "../helper/isThisUser";
 import { usePfp } from "../helper/usePFPs";
 
 const HEADER_ICON_SIZE = scaleSize(20);
@@ -38,6 +41,11 @@ const PastWorkoutScreen = () => {
     const [isCopying, setIsCopying] = useState(false);
     const [copyStatus, setCopyStatus] = useState("");
     const copyTimeoutRef = useRef(null);
+    const [commentsVisible, setCommentsVisible] = useState(false);
+    const [commentsBottomSheetExpandFlag, setCommentsBottomSheetExpandFlag] = useState(false);
+    const [likesSheetVisible, setLikesSheetVisible] = useState(false);
+    const [likesSheetUsers, setLikesSheetUsers] = useState([]);
+    const [likesSheetTitle, setLikesSheetTitle] = useState("Liked by");
 
     const handleBack = () => {
         navigation.goBack();
@@ -110,6 +118,74 @@ const PastWorkoutScreen = () => {
             tagged: Array.isArray(postMeta?.tagged) ? postMeta.tagged : [],
         };
     }, [workout, postMeta?.pid, postMeta?.created, postMeta?.likes, postMeta?.likeCount, postMeta?.comments, postMeta?.commentCount, postMeta?.media, postMeta?.images, postMeta?.shareCount, postMeta?.tags, postMeta?.tagged, owner?.uid, owner?.name, owner?.pfpVersion, ownerHandle, ownerPfp, caption]);
+
+    const showLikesSheet = useCallback((users, title = "Liked by") => {
+        const processed = Array.isArray(users)
+            ? users
+                .map((entry) => {
+                    if (!entry) return null;
+                    if (typeof entry === "string" || typeof entry === "number") {
+                        const uid = String(entry).trim();
+                        return uid ? uid : null;
+                    }
+                    if (typeof entry === "object") {
+                        const uid = entry?.uid ?? entry?.id;
+                        if (uid == null) return entry;
+                        const safeUid = String(uid).trim();
+                        if (!safeUid) return null;
+                        return { ...entry, uid: safeUid };
+                    }
+                    return null;
+                })
+                .filter(Boolean)
+            : [];
+
+        setLikesSheetUsers(processed);
+        setLikesSheetTitle(title || "Liked by");
+        setLikesSheetVisible(true);
+    }, []);
+
+    const handlePressComments = useCallback((_index, data) => {
+        const target = data || cardData;
+        if (!target) return;
+        setCommentsVisible(true);
+        setCommentsBottomSheetExpandFlag((flag) => !flag);
+    }, [cardData]);
+
+    const handleDismissComments = useCallback(() => {
+        setCommentsVisible(false);
+    }, []);
+
+    const handlePressLikes = useCallback((_index, data) => {
+        const target = data || cardData;
+        if (!target) return;
+        showLikesSheet(target.likes, "Liked by");
+    }, [cardData, showLikesSheet]);
+
+    const handleViewProfileFromComments = useCallback((data) => {
+        if (!data) return;
+        const user = {
+            handle: data?.handle,
+            uid: data?.uid,
+            pfp: data?.pfp,
+            name: data?.name,
+        };
+        const rootNav = navigation?.getParent?.("ROOT");
+        if (isThisUser(data?.uid)) {
+            if (rootNav?.navigate) rootNav.navigate("Profile", { transition: "slide-from-right" });
+            else navigation.navigate("Profile", { transition: "slide-from-right" });
+        } else {
+            if (rootNav?.navigate) rootNav.navigate("ViewProfile", { user });
+            else navigation.navigate("ViewProfile", { user });
+        }
+    }, [navigation]);
+
+    useEffect(() => {
+        if (!cardData) {
+            setCommentsVisible(false);
+            setLikesSheetVisible(false);
+        }
+    }, [cardData]);
 
     const hasTemplate = useMemo(() => (
         !!(workout?.templateName || workout?.template?.name || workout?.tid || workout?.templateId)
@@ -216,9 +292,9 @@ const PastWorkoutScreen = () => {
                             highlightSignal={0}
                             onPressProfile={handlePressProfile}
                             onPressWorkout={noop}
-                            onPressComments={noop}
+                            onPressComments={handlePressComments}
                             onPressShare={noop}
-                            onPressLikes={noop}
+                            onPressLikes={handlePressLikes}
                         />
                     </View>
                 ) : (
@@ -229,6 +305,12 @@ const PastWorkoutScreen = () => {
                         </Text>
                     </View>
                 )}
+
+                {workout ? (
+                    <View style={styles.metaSection}>
+                        <Text style={styles.sectionTitle}>Workout Details</Text>
+                    </View>
+                ) : null}
 
                 {workout && exercises.length > 0 ? (
                     <View style={styles.detailSection}>
@@ -275,6 +357,23 @@ const PastWorkoutScreen = () => {
                 ) : null}
 
             </ScrollView>
+
+            <CommentsBottomSheet
+                isVisible={commentsVisible}
+                postData={commentsVisible && cardData ? cardData : null}
+                commentsBottomSheetExpandFlag={commentsBottomSheetExpandFlag}
+                toViewProfile={handleViewProfileFromComments}
+                onShowLikesSheet={showLikesSheet}
+                onDismiss={handleDismissComments}
+            />
+
+            <FollowListBottomSheet
+                isVisible={likesSheetVisible}
+                setIsVisible={setLikesSheetVisible}
+                title={likesSheetTitle}
+                users={likesSheetUsers}
+                navigation={navigation}
+            />
         </SafeAreaView>
     );
 };
@@ -309,6 +408,20 @@ const styles = StyleSheet.create({
     cardWrapper: {
         marginBottom: 0,
     },
+    metaSection: {
+        marginTop: scaleSize(16),
+    },
+    sectionTitle: {
+        marginHorizontal: scaleSize(18),
+        marginBottom: scaleSize(8),
+        color: theme.textPrimary,
+        fontFamily: "Mulish_800ExtraBold",
+        fontSize: scaleSize(16),
+        letterSpacing: 0.2,
+    },
+    detailsCard: {
+        marginHorizontal: scaleSize(16),
+    },
     emptyState: {
         marginHorizontal: scaleSize(16),
         marginVertical: scaleSize(24),
@@ -328,7 +441,6 @@ const styles = StyleSheet.create({
         fontSize: scaleSize(14),
     },
     detailSection: {
-        marginTop: scaleSize(16),
         paddingVertical: scaleSize(14),
         backgroundColor: theme.surface
     },

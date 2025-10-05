@@ -659,8 +659,6 @@ const styles = StyleSheet.create({
         paddingBottom: scaleSize(8),
     },
     sectionBottomDivider: {
-        borderTopWidth: 1,
-        borderTopColor: theme.hairline,
     },
     headerRow: {
         flexDirection: "row",
