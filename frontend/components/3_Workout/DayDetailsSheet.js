@@ -1247,10 +1247,7 @@ const DayDetailsSheet = ({
                 {/* Header is static above; this page starts with section content */}
                 {/* ------- Workouts ------- */}
                 <View style={styles.sectionHdrRow}>
-                    <Text style={styles.sectionHdr}>Workouts</Text>
-                    <Text style={[styles.sectionMeta, (dayWorkouts?.length || 0) ? styles.metaOn : styles.metaOff]}>
-                        {(dayWorkouts?.length || 0) > 0 ? "Logged" : "None"}
-                    </Text>
+                    <Text style={styles.sectionHdr}>Training</Text>
                 </View>
 
                 {(!dayWorkouts || dayWorkouts.length === 0) ? (
@@ -1275,7 +1272,7 @@ const DayDetailsSheet = ({
                 )}
 
                 {/* ------- Foods ------- */}
-                <View style={[styles.sectionHdrRow, { marginTop: scaleSize(12) }]}>
+                <View style={[styles.sectionHdrRow, { marginTop: scaleSize(20) }]}>
                     <Text style={styles.sectionHdr}>Foods</Text>
                     <Text style={styles.sectionMeta}>{calsToShowPage.toLocaleString()} kcal</Text>
                 </View>

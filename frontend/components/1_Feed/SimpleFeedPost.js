@@ -640,7 +640,6 @@ export default React.memo(SimpleFeedPost);
 const styles = StyleSheet.create({
     wrapper: {
         width: "100%",
-        marginTop: scaleSize(8),
         marginBottom: scaleSize(22),
         position: 'relative',
     },

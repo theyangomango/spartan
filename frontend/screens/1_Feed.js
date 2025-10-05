@@ -3,19 +3,21 @@
  */
 
 import React, {
-  useCallback,
-  useEffect,
-  useMemo,
-  useRef,
-  useState,
+    useCallback,
+    useEffect,
+    useMemo,
+    useRef,
+    useState,
 } from "react";
 import {
-  SafeAreaView,
-  StyleSheet,
-  FlatList,
-  RefreshControl,
-  View,
+    SafeAreaView,
+    StyleSheet,
+    FlatList,
+    RefreshControl,
+    View,
+    TouchableOpacity,
 } from "react-native";
+import { Feather } from "@expo/vector-icons";
 import { StatusBar } from "expo-status-bar";
 import { useIsFocused, useFocusEffect } from "@react-navigation/native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
@@ -38,506 +40,539 @@ const HEADER_TOP_TRIM = scaleSize(4);
 const LIST_BOTTOM_INSET = scaleSize(120);
 
 const toNumber = (value, fallback = 0) => {
-  const num = Number(value);
-  return Number.isFinite(num) ? num : fallback;
+    const num = Number(value);
+    return Number.isFinite(num) ? num : fallback;
 };
 
 const sanitizeWorkoutForRoute = (workout) => {
-  if (!workout || typeof workout !== "object") return null;
+    if (!workout || typeof workout !== "object") return null;
 
-  const replacer = (_key, value) => (typeof value === "function" ? undefined : value);
+    const replacer = (_key, value) => (typeof value === "function" ? undefined : value);
 
-  try {
-    return JSON.parse(JSON.stringify(workout, replacer));
-  } catch {
-    const clone = { ...workout };
-    clone.exercises = Array.isArray(workout.exercises)
-      ? workout.exercises.map((exercise) => {
-          if (!exercise || typeof exercise !== "object") return {};
-          const sets = Array.isArray(exercise.sets)
-            ? exercise.sets.map((set) => {
-                if (!set || typeof set !== "object") return {};
-                const { weight, reps, unit, units, weightUnit, kg, lbs, ...rest } = set;
-                const normalized = {
-                  ...rest,
-                  weight: Number(weight ?? kg ?? lbs ?? 0) || 0,
-                  reps: Number(reps ?? set?.rep ?? set?.r ?? 0) || 0,
-                };
-                const resolvedUnit = unit || units || weightUnit || (kg != null ? "kg" : undefined);
-                if (resolvedUnit) normalized.unit = resolvedUnit;
-                return normalized;
-              })
+    try {
+        return JSON.parse(JSON.stringify(workout, replacer));
+    } catch {
+        const clone = { ...workout };
+        clone.exercises = Array.isArray(workout.exercises)
+            ? workout.exercises.map((exercise) => {
+                if (!exercise || typeof exercise !== "object") return {};
+                const sets = Array.isArray(exercise.sets)
+                    ? exercise.sets.map((set) => {
+                        if (!set || typeof set !== "object") return {};
+                        const { weight, reps, unit, units, weightUnit, kg, lbs, ...rest } = set;
+                        const normalized = {
+                            ...rest,
+                            weight: Number(weight ?? kg ?? lbs ?? 0) || 0,
+                            reps: Number(reps ?? set?.rep ?? set?.r ?? 0) || 0,
+                        };
+                        const resolvedUnit = unit || units || weightUnit || (kg != null ? "kg" : undefined);
+                        if (resolvedUnit) normalized.unit = resolvedUnit;
+                        return normalized;
+                    })
+                    : [];
+                return { ...exercise, sets };
+            })
             : [];
-          return { ...exercise, sets };
-        })
-      : [];
-    return clone;
-  }
+        return clone;
+    }
 };
 
 const ensureAtHandle = (value) => {
-  if (!value) return "";
-  const str = String(value).trim();
-  if (!str) return "";
-  return str.startsWith("@") ? str : `@${str}`;
+    if (!value) return "";
+    const str = String(value).trim();
+    if (!str) return "";
+    return str.startsWith("@") ? str : `@${str}`;
 };
 
 export default function Feed({ navigation, route }) {
-  const insets = useSafeAreaInsets();
-  const isScreenFocused = useIsFocused();
+    const insets = useSafeAreaInsets();
+    const isScreenFocused = useIsFocused();
 
-  const UID = "userData" in global ? global.userData.uid : route?.params?.uid;
+    const UID = "userData" in global ? global.userData.uid : route?.params?.uid;
 
-  const followingList = global.userData ? global.userData?.following : [];
+    const followingList = global.userData ? global.userData?.following : [];
 
-  const posts = useFilteredFeed(followingList);
+    const posts = useFilteredFeed(followingList);
 
-  const {
-    activeWorkout,
-    footerKey,
-    headerTimerRef,
-    toMessagesScreen,
-  } = useFeedUserData({ UID, navigation, route, isScreenFocused });
+    const {
+        activeWorkout,
+        footerKey,
+        headerTimerRef,
+        toMessagesScreen,
+    } = useFeedUserData({ UID, navigation, route, isScreenFocused });
 
-  const { allUsersRef, mergeUsersIntoRef } = useHeaderSearchUsers({
-    following: global.userData?.following,
-    enablePrefetch: true,
-  });
-
-  const flatListRef = useRef(null);
-  const [refreshing, setRefreshing] = useState(false);
-  const [activePostIndex, setActivePostIndex] = useState(-1);
-  const [activeSheet, setActiveSheet] = useState(null); // 'comments' | 'share' | null
-  const [commentsBottomSheetExpandFlag, setCommentsBottomSheetExpandFlag] = useState(false);
-  const [shareBottomSheetExpandFlag, setShareBottomSheetExpandFlag] = useState(false);
-  const [shareBottomSheetCloseFlag, setShareBottomSheetCloseFlag] = useState(false);
-  const [likesSheetVisible, setLikesSheetVisible] = useState(false);
-  const [likesSheetUsers, setLikesSheetUsers] = useState([]);
-  const [likesSheetTitle, setLikesSheetTitle] = useState("Liked by");
-
-  const highlightPidRef = useRef(null);
-  const [highlightSignal, setHighlightSignal] = useState(0);
-  const [pendingScrollRequest, setPendingScrollRequest] = useState(null);
-
-
-  const resolveTimestamp = useCallback((item) => {
-    if (!item) return 0;
-    const fallback = item?.workout || null;
-    const candidates = [
-      item?.created,
-      item?.createdAt,
-      item?.updatedAt,
-      fallback?.created,
-      fallback?.createdAt,
-      fallback?.completedAt,
-      fallback?.finishedAt,
-    ];
-    for (const value of candidates) {
-      const ms = toMillisSafe(value);
-      if (ms) return ms;
-    }
-    return 0;
-  }, []);
-
-  const listData = useMemo(() => {
-    const basePosts = Array.isArray(posts) ? [...posts] : [];
-    basePosts.sort((a, b) => resolveTimestamp(b) - resolveTimestamp(a));
-    return basePosts;
-  }, [posts, resolveTimestamp]);
-
-  const onRefresh = useCallback(async () => {
-    try {
-      setRefreshing(true);
-      await new Promise((resolve) => setTimeout(resolve, 600));
-    } finally {
-      setRefreshing(false);
-    }
-  }, []);
-
-  const openCommentsModal = useCallback((index) => {
-    if (!Array.isArray(listData) || index == null || index < 0 || index >= listData.length) {
-      return;
-    }
-    setActivePostIndex(index);
-    setActiveSheet("comments");
-    setCommentsBottomSheetExpandFlag((flag) => !flag);
-  }, [listData]);
-
-  const dismissCommentsModal = useCallback(() => {
-    setActiveSheet((current) => {
-      if (current === "comments") {
-        setActivePostIndex(-1);
-        return null;
-      }
-      return current;
-    });
-  }, []);
-
-  const openShareModal = useCallback((index) => {
-    if (!Array.isArray(listData) || index == null || index < 0 || index >= listData.length) {
-      return;
-    }
-    setActivePostIndex(index);
-    setActiveSheet("share");
-    setShareBottomSheetExpandFlag((flag) => !flag);
-  }, [listData]);
-
-  const showLikesSheet = useCallback((users, title = "Liked by") => {
-    const processed = Array.isArray(users)
-      ? users
-          .map((entry) => {
-            if (!entry) return null;
-            if (typeof entry === "string" || typeof entry === "number") {
-              const uid = String(entry).trim();
-              return uid ? uid : null;
-            }
-            if (typeof entry === "object") {
-              const uid = entry?.uid ?? entry?.id;
-              if (uid == null) return entry;
-              const safeUid = String(uid).trim();
-              if (!safeUid) return null;
-              return { ...entry, uid: safeUid };
-            }
-            return null;
-          })
-          .filter(Boolean)
-      : [];
-    setLikesSheetUsers(processed);
-    setLikesSheetTitle(title || "Liked by");
-    setLikesSheetVisible(true);
-  }, []);
-
-  const openLikesSheet = useCallback((index) => {
-    if (!Array.isArray(listData) || index == null || index < 0 || index >= listData.length) {
-      return;
-    }
-    const post = listData[index];
-    if (!post) return;
-    showLikesSheet(post.likes, "Liked by");
-  }, [listData, showLikesSheet]);
-
-  const handleOpenNotifications = useCallback(() => {
-    try {
-      navigation?.navigate?.("Notifications", { transition: "slide-from-right" });
-    } catch {}
-  }, [navigation]);
-
-  const toViewProfilePosts = useCallback((index) => {
-    const post = listData[index];
-    if (!post) return;
-    const user = { handle: post.handle, uid: post.uid, pfp: post.pfp, name: post.name };
-    const rootNav = navigation?.getParent?.("ROOT");
-    if (isThisUser(post.uid)) {
-      if (rootNav?.navigate) rootNav.navigate("Profile", { transition: "slide-from-right" });
-      else navigation.navigate("Profile", { transition: "slide-from-right" });
-    } else {
-      if (rootNav?.navigate) rootNav.navigate("ViewProfile", { user });
-      else navigation.navigate("ViewProfile", { user });
-    }
-  }, [navigation, listData]);
-
-  const toViewProfileComments = useCallback((data) => {
-    const user = { handle: data.handle, uid: data.uid, pfp: data.pfp, name: data.name };
-    const rootNav = navigation?.getParent?.("ROOT");
-    if (isThisUser(data.uid)) {
-      if (rootNav?.navigate) rootNav.navigate("Profile", { transition: "slide-from-right" });
-      else navigation.navigate("Profile", { transition: "slide-from-right" });
-    } else {
-      if (rootNav?.navigate) rootNav.navigate("ViewProfile", { user });
-      else navigation.navigate("ViewProfile", { user });
-    }
-  }, [navigation]);
-
-  const openViewWorkoutModal = useCallback((index) => {
-    if (!Array.isArray(listData) || index == null || index < 0 || index >= listData.length) {
-      return;
-    }
-
-    const post = listData[index];
-    const workoutInput = post?.workout;
-    if (!workoutInput) return;
-
-    const fallback = {
-      wid: workoutInput?.wid || workoutInput?.id,
-      creatorUID: workoutInput?.creatorUID || workoutInput?.creatorUid || post?.uid || (global?.userData?.uid || ""),
-      created: workoutInput?.created || workoutInput?.createdAt || Date.now(),
-      exercises: Array.isArray(workoutInput?.exercises) ? workoutInput.exercises : [],
-      duration: workoutInput?.duration,
-      volume: workoutInput?.volume,
-      reps: workoutInput?.reps,
-      PBs: workoutInput?.PBs ?? workoutInput?.pbs ?? 0,
-      templateName: workoutInput?.templateName || workoutInput?.template?.name,
-    };
-
-    const mergedWorkout = { ...fallback, ...workoutInput };
-    const ownerUid = String(post?.uid || mergedWorkout.creatorUID || mergedWorkout.creatorUid || "");
-    const ownerHandle = ensureAtHandle(post?.handle || mergedWorkout.handle || mergedWorkout.username || "");
-    const ownerName = post?.name || mergedWorkout.ownerName || mergedWorkout.name || "";
-    const ownerPfp = post?.pfp || mergedWorkout.pfp || mergedWorkout.pfpUrl || mergedWorkout.photoURL || mergedWorkout.photo || "";
-    const ownerPfpVersion = post?.pfpVersion ?? mergedWorkout.pfpVersion ?? mergedWorkout.version ?? 0;
-
-    const sanitizedWorkout = sanitizeWorkoutForRoute({
-      ...mergedWorkout,
-      creatorUID: ownerUid || mergedWorkout.creatorUID,
-      creatorUid: ownerUid || mergedWorkout.creatorUid,
-      handle: ownerHandle || mergedWorkout.handle,
-      pfp: ownerPfp,
-      pfpUrl: ownerPfp,
-      pfpVersion: ownerPfpVersion,
-      ownerName,
+    const { allUsersRef, mergeUsersIntoRef } = useHeaderSearchUsers({
+        following: global.userData?.following,
+        enablePrefetch: true,
     });
 
-    if (!sanitizedWorkout) return;
+    const flatListRef = useRef(null);
+    const [refreshing, setRefreshing] = useState(false);
+    const [activePostIndex, setActivePostIndex] = useState(-1);
+    const [activeSheet, setActiveSheet] = useState(null); // 'comments' | 'share' | null
+    const [commentsBottomSheetExpandFlag, setCommentsBottomSheetExpandFlag] = useState(false);
+    const [shareBottomSheetExpandFlag, setShareBottomSheetExpandFlag] = useState(false);
+    const [shareBottomSheetCloseFlag, setShareBottomSheetCloseFlag] = useState(false);
+    const [likesSheetVisible, setLikesSheetVisible] = useState(false);
+    const [likesSheetUsers, setLikesSheetUsers] = useState([]);
+    const [likesSheetTitle, setLikesSheetTitle] = useState("Liked by");
 
-    const likeCount = Array.isArray(post?.likes) ? post.likes.length : toNumber(post?.likeCount);
-    const commentCount = Array.isArray(post?.comments)
-      ? Math.max(0, post.comments.length - 1)
-      : toNumber(post?.commentCount);
+    const highlightPidRef = useRef(null);
+    const [highlightSignal, setHighlightSignal] = useState(0);
+    const [pendingScrollRequest, setPendingScrollRequest] = useState(null);
 
-    const sanitizeEntry = (entry) => {
-      if (!entry || typeof entry !== "object") return entry;
-      try {
-        return JSON.parse(JSON.stringify(entry, (_key, value) => (typeof value === "function" ? undefined : value)));
-      } catch {
-        return { ...entry };
-      }
-    };
 
-    const likesForRoute = Array.isArray(post?.likes)
-      ? post.likes.map(sanitizeEntry)
-      : [];
-
-    const mediaForRoute = Array.isArray(post?.media)
-      ? post.media.map(sanitizeEntry)
-      : [];
-
-    const imagesForRoute = Array.isArray(post?.images)
-      ? post.images.map(sanitizeEntry)
-      : [];
-
-    const tagsForRoute = Array.isArray(post?.tags) ? [...post.tags] : [];
-    const taggedForRoute = Array.isArray(post?.tagged) ? [...post.tagged] : [];
-
-    navigation?.navigate?.("PastWorkout", {
-      workout: sanitizedWorkout,
-      owner: {
-        uid: ownerUid,
-        handle: ownerHandle,
-        name: ownerName,
-        pfp: ownerPfp,
-        pfpVersion: ownerPfpVersion,
-      },
-      postMeta: {
-        pid: post?.pid ?? post?.id ?? `${ownerUid}:${sanitizedWorkout?.wid ?? sanitizedWorkout?.id ?? index}`,
-        caption: typeof post?.caption === "string" ? post.caption : "",
-        created: post?.created ?? post?.createdAt ?? sanitizedWorkout?.created ?? null,
-        likeCount,
-        commentCount,
-        likes: likesForRoute,
-        media: mediaForRoute,
-        images: imagesForRoute,
-        shareCount: toNumber(post?.shareCount),
-        tags: tagsForRoute,
-        tagged: taggedForRoute,
-      },
-    });
-  }, [listData, navigation]);
-
-  const scrollToTop = useCallback(() => {
-    if (flatListRef.current) {
-      flatListRef.current.scrollToOffset({ offset: 0, animated: true });
-    }
-  }, []);
-
-  useEffect(() => {
-    try { global.scrollFeedToTop = scrollToTop; } catch {}
-    return () => {
-      try {
-        if (global.scrollFeedToTop === scrollToTop) {
-          global.scrollFeedToTop = undefined;
+    const resolveTimestamp = useCallback((item) => {
+        if (!item) return 0;
+        const fallback = item?.workout || null;
+        const candidates = [
+            item?.created,
+            item?.createdAt,
+            item?.updatedAt,
+            fallback?.created,
+            fallback?.createdAt,
+            fallback?.completedAt,
+            fallback?.finishedAt,
+        ];
+        for (const value of candidates) {
+            const ms = toMillisSafe(value);
+            if (ms) return ms;
         }
-      } catch {}
-    };
-  }, [scrollToTop]);
+        return 0;
+    }, []);
 
-  const scrollToPid = useCallback((pid) => {
-    if (!pid || !Array.isArray(listData) || listData.length === 0) return false;
-    const idx = listData.findIndex((p) => String(p?.pid || "") === String(pid));
-    if (idx < 0) return false;
-    highlightPidRef.current = String(pid);
-    setHighlightSignal(Date.now());
-    try {
-      flatListRef.current?.scrollToIndex({ index: idx, animated: true, viewPosition: 0 });
-    } catch {
-      try { flatListRef.current?.scrollToOffset({ offset: 0, animated: true }); } catch {}
-    }
-    return true;
-  }, [listData]);
+    const listData = useMemo(() => {
+        const basePosts = Array.isArray(posts) ? [...posts] : [];
+        basePosts.sort((a, b) => resolveTimestamp(b) - resolveTimestamp(a));
+        return basePosts;
+    }, [posts, resolveTimestamp]);
 
-  useEffect(() => {
-    if (route?.params?.scrollToTop) {
-      const id = setTimeout(() => scrollToTop(), 30);
-      try { navigation.setParams({ scrollToTop: false }); } catch {}
-      return () => clearTimeout(id);
-    }
-    return undefined;
-  }, [route?.params?.scrollToTop, navigation, scrollToTop]);
+    const onRefresh = useCallback(async () => {
+        try {
+            setRefreshing(true);
+            await new Promise((resolve) => setTimeout(resolve, 600));
+        } finally {
+            setRefreshing(false);
+        }
+    }, []);
 
-  useEffect(() => {
-    if (route?.params?.focusPid || route?.params?.scrollPid) {
-      const rawPid = route?.params?.focusPid ?? route?.params?.scrollPid;
-      if (rawPid !== undefined && rawPid !== null) {
-        const pid = String(rawPid);
-        setPendingScrollRequest({ pid });
-        const id = setTimeout(() => {
-          const ok = scrollToPid(pid);
-          if (ok) setPendingScrollRequest(null);
-        }, 50);
-        const cleanup = () => clearTimeout(id);
-        try { navigation.setParams({ focusPid: undefined, scrollPid: undefined }); } catch {}
-        return cleanup;
-      }
-      try { navigation.setParams({ focusPid: undefined, scrollPid: undefined }); } catch {}
-    }
-    return undefined;
-  }, [route?.params?.focusPid, route?.params?.scrollPid, navigation, scrollToPid]);
+    const openCommentsModal = useCallback((index) => {
+        if (!Array.isArray(listData) || index == null || index < 0 || index >= listData.length) {
+            return;
+        }
+        setActivePostIndex(index);
+        setActiveSheet("comments");
+        setCommentsBottomSheetExpandFlag((flag) => !flag);
+    }, [listData]);
 
-  useEffect(() => {
-    if (!pendingScrollRequest?.pid) return;
-    const ok = scrollToPid(pendingScrollRequest.pid);
-    if (ok) setPendingScrollRequest(null);
-  }, [pendingScrollRequest, scrollToPid]);
-
-  useFocusEffect(
-    useCallback(() => {
-      const sig = Number(global?.scrollFeedToTopSignal || 0);
-      const handled = Number(global?.scrollFeedToTopHandled || 0);
-      if (sig && sig !== handled) {
-        try { global.scrollFeedToTopHandled = sig; } catch {}
-        const id = setTimeout(() => scrollToTop(), 30);
-        return () => clearTimeout(id);
-      }
-      return undefined;
-    }, [scrollToTop])
-  );
-
-  useEffect(() => {
-    if (!listData || listData.length === 0) return;
-    const seeded = listData
-      .map((p) => ({ uid: p?.uid, handle: p?.handle, name: p?.name, pfp: p?.pfp }))
-      .filter((u) => !!u.uid);
-    mergeUsersIntoRef(seeded);
-  }, [listData, mergeUsersIntoRef]);
-
-  const listKeyExtractor = useCallback((item, index) => String(item?.pid || item?.id || index), []);
-
-  const renderPost = useCallback(({ item, index }) => (
-    <PostListItem
-      item={item}
-      index={index}
-      highlightPid={highlightPidRef.current}
-      highlightSignal={highlightSignal}
-      openCommentsModal={openCommentsModal}
-      openShareModal={openShareModal}
-      openLikesSheet={openLikesSheet}
-      toViewProfilePosts={toViewProfilePosts}
-      openViewWorkoutModal={openViewWorkoutModal}
-    />
-  ), [highlightSignal, openCommentsModal, openShareModal, openLikesSheet, toViewProfilePosts, openViewWorkoutModal]);
-
-  const headerComponent = useMemo(() => (
-    <FeedHeader
-      navigation={navigation}
-      toMessagesScreen={toMessagesScreen}
-      onOpenNotifications={handleOpenNotifications}
-      scrollToTop={scrollToTop}
-      allUsersRef={allUsersRef}
-      workout={activeWorkout}
-      timerRef={headerTimerRef}
-      heightAdjust={-2}
-      topAdjust={-HEADER_TOP_TRIM}
-    />
-  ), [navigation, toMessagesScreen, handleOpenNotifications, scrollToTop, allUsersRef, activeWorkout, headerTimerRef]);
-
-  const commentsVisible = activeSheet === "comments" && activePostIndex >= 0;
-  const shareSheetVisible = activeSheet === "share";
-  const activePost = commentsVisible || shareSheetVisible
-    ? listData[activePostIndex] || null
-    : null;
-
-  return (
-    <SafeAreaView style={styles.screen}>
-      <StatusBar style="light" />
-      <View style={styles.headerWrap}>{headerComponent}</View>
-      <FlatList
-        ref={flatListRef}
-        data={listData}
-        keyExtractor={listKeyExtractor}
-        renderItem={renderPost}
-        style={styles.list}
-        refreshControl={(
-          <RefreshControl
-            refreshing={refreshing}
-            onRefresh={onRefresh}
-            tintColor={theme.textPrimary}
-            colors={[theme.textPrimary]}
-            progressBackgroundColor={theme.bg}
-          />
-        )}
-        contentContainerStyle={{
-          paddingBottom: LIST_BOTTOM_INSET + Math.max(0, insets.bottom || 0),
-        }}
-        showsVerticalScrollIndicator={false}
-      />
-
-      <CommentsBottomSheet
-        isVisible={commentsVisible}
-        postData={commentsVisible ? activePost : null}
-        commentsBottomSheetExpandFlag={commentsBottomSheetExpandFlag}
-        toViewProfile={toViewProfileComments}
-        onShowLikesSheet={showLikesSheet}
-        onDismiss={dismissCommentsModal}
-      />
-
-      <FollowListBottomSheet
-        isVisible={likesSheetVisible}
-        setIsVisible={setLikesSheetVisible}
-        title={likesSheetTitle}
-        users={likesSheetUsers}
-        navigation={navigation}
-      />
-
-      <ShareBottomSheet
-        shareBottomSheetCloseFlag={shareBottomSheetCloseFlag}
-        shareBottomSheetExpandFlag={shareSheetVisible ? shareBottomSheetExpandFlag : false}
-        onDismiss={() => {
-          setActiveSheet((current) => {
-            if (current === "share") {
-              setActivePostIndex(-1);
-              return null;
+    const dismissCommentsModal = useCallback(() => {
+        setActiveSheet((current) => {
+            if (current === "comments") {
+                setActivePostIndex(-1);
+                return null;
             }
             return current;
-          });
-        }}
-      />
+        });
+    }, []);
 
-      <Footer key={footerKey} currentScreenName="Feed" navigation={navigation} />
-    </SafeAreaView>
-  );
+    const openShareModal = useCallback((index) => {
+        if (!Array.isArray(listData) || index == null || index < 0 || index >= listData.length) {
+            return;
+        }
+        setActivePostIndex(index);
+        setActiveSheet("share");
+        setShareBottomSheetExpandFlag((flag) => !flag);
+    }, [listData]);
+
+    const showLikesSheet = useCallback((users, title = "Liked by") => {
+        const processed = Array.isArray(users)
+            ? users
+                .map((entry) => {
+                    if (!entry) return null;
+                    if (typeof entry === "string" || typeof entry === "number") {
+                        const uid = String(entry).trim();
+                        return uid ? uid : null;
+                    }
+                    if (typeof entry === "object") {
+                        const uid = entry?.uid ?? entry?.id;
+                        if (uid == null) return entry;
+                        const safeUid = String(uid).trim();
+                        if (!safeUid) return null;
+                        return { ...entry, uid: safeUid };
+                    }
+                    return null;
+                })
+                .filter(Boolean)
+            : [];
+        setLikesSheetUsers(processed);
+        setLikesSheetTitle(title || "Liked by");
+        setLikesSheetVisible(true);
+    }, []);
+
+    const openLikesSheet = useCallback((index) => {
+        if (!Array.isArray(listData) || index == null || index < 0 || index >= listData.length) {
+            return;
+        }
+        const post = listData[index];
+        if (!post) return;
+        showLikesSheet(post.likes, "Liked by");
+    }, [listData, showLikesSheet]);
+
+    const handleOpenNotifications = useCallback(() => {
+        try {
+            navigation?.navigate?.("Notifications", { transition: "slide-from-right" });
+        } catch { }
+    }, [navigation]);
+
+    const toViewProfilePosts = useCallback((index) => {
+        const post = listData[index];
+        if (!post) return;
+        const user = { handle: post.handle, uid: post.uid, pfp: post.pfp, name: post.name };
+        const rootNav = navigation?.getParent?.("ROOT");
+        if (isThisUser(post.uid)) {
+            if (rootNav?.navigate) rootNav.navigate("Profile", { transition: "slide-from-right" });
+            else navigation.navigate("Profile", { transition: "slide-from-right" });
+        } else {
+            if (rootNav?.navigate) rootNav.navigate("ViewProfile", { user });
+            else navigation.navigate("ViewProfile", { user });
+        }
+    }, [navigation, listData]);
+
+    const toViewProfileComments = useCallback((data) => {
+        const user = { handle: data.handle, uid: data.uid, pfp: data.pfp, name: data.name };
+        const rootNav = navigation?.getParent?.("ROOT");
+        if (isThisUser(data.uid)) {
+            if (rootNav?.navigate) rootNav.navigate("Profile", { transition: "slide-from-right" });
+            else navigation.navigate("Profile", { transition: "slide-from-right" });
+        } else {
+            if (rootNav?.navigate) rootNav.navigate("ViewProfile", { user });
+            else navigation.navigate("ViewProfile", { user });
+        }
+    }, [navigation]);
+
+    const openViewWorkoutModal = useCallback((index) => {
+        if (!Array.isArray(listData) || index == null || index < 0 || index >= listData.length) {
+            return;
+        }
+
+        const post = listData[index];
+        const workoutInput = post?.workout;
+        if (!workoutInput) return;
+
+        const fallback = {
+            wid: workoutInput?.wid || workoutInput?.id,
+            creatorUID: workoutInput?.creatorUID || workoutInput?.creatorUid || post?.uid || (global?.userData?.uid || ""),
+            created: workoutInput?.created || workoutInput?.createdAt || Date.now(),
+            exercises: Array.isArray(workoutInput?.exercises) ? workoutInput.exercises : [],
+            duration: workoutInput?.duration,
+            volume: workoutInput?.volume,
+            reps: workoutInput?.reps,
+            PBs: workoutInput?.PBs ?? workoutInput?.pbs ?? 0,
+            templateName: workoutInput?.templateName || workoutInput?.template?.name,
+        };
+
+        const mergedWorkout = { ...fallback, ...workoutInput };
+        const ownerUid = String(post?.uid || mergedWorkout.creatorUID || mergedWorkout.creatorUid || "");
+        const ownerHandle = ensureAtHandle(post?.handle || mergedWorkout.handle || mergedWorkout.username || "");
+        const ownerName = post?.name || mergedWorkout.ownerName || mergedWorkout.name || "";
+        const ownerPfp = post?.pfp || mergedWorkout.pfp || mergedWorkout.pfpUrl || mergedWorkout.photoURL || mergedWorkout.photo || "";
+        const ownerPfpVersion = post?.pfpVersion ?? mergedWorkout.pfpVersion ?? mergedWorkout.version ?? 0;
+
+        const sanitizedWorkout = sanitizeWorkoutForRoute({
+            ...mergedWorkout,
+            creatorUID: ownerUid || mergedWorkout.creatorUID,
+            creatorUid: ownerUid || mergedWorkout.creatorUid,
+            handle: ownerHandle || mergedWorkout.handle,
+            pfp: ownerPfp,
+            pfpUrl: ownerPfp,
+            pfpVersion: ownerPfpVersion,
+            ownerName,
+        });
+
+        if (!sanitizedWorkout) return;
+
+        const likeCount = Array.isArray(post?.likes) ? post.likes.length : toNumber(post?.likeCount);
+        const commentCount = Array.isArray(post?.comments)
+            ? Math.max(0, post.comments.length - 1)
+            : toNumber(post?.commentCount);
+
+        const sanitizeEntry = (entry) => {
+            if (!entry || typeof entry !== "object") return entry;
+            try {
+                return JSON.parse(JSON.stringify(entry, (_key, value) => (typeof value === "function" ? undefined : value)));
+            } catch {
+                return { ...entry };
+            }
+        };
+
+        const likesForRoute = Array.isArray(post?.likes)
+            ? post.likes.map(sanitizeEntry)
+            : [];
+
+        const mediaForRoute = Array.isArray(post?.media)
+            ? post.media.map(sanitizeEntry)
+            : [];
+
+        const imagesForRoute = Array.isArray(post?.images)
+            ? post.images.map(sanitizeEntry)
+            : [];
+
+        const tagsForRoute = Array.isArray(post?.tags) ? [...post.tags] : [];
+        const taggedForRoute = Array.isArray(post?.tagged) ? [...post.tagged] : [];
+
+        navigation?.navigate?.("PastWorkout", {
+            workout: sanitizedWorkout,
+            owner: {
+                uid: ownerUid,
+                handle: ownerHandle,
+                name: ownerName,
+                pfp: ownerPfp,
+                pfpVersion: ownerPfpVersion,
+            },
+            postMeta: {
+                pid: post?.pid ?? post?.id ?? `${ownerUid}:${sanitizedWorkout?.wid ?? sanitizedWorkout?.id ?? index}`,
+                caption: typeof post?.caption === "string" ? post.caption : "",
+                created: post?.created ?? post?.createdAt ?? sanitizedWorkout?.created ?? null,
+                likeCount,
+                commentCount,
+                likes: likesForRoute,
+                media: mediaForRoute,
+                images: imagesForRoute,
+                shareCount: toNumber(post?.shareCount),
+                tags: tagsForRoute,
+                tagged: taggedForRoute,
+            },
+        });
+    }, [listData, navigation]);
+
+    const scrollToTop = useCallback(() => {
+        if (flatListRef.current) {
+            flatListRef.current.scrollToOffset({ offset: 0, animated: true });
+        }
+    }, []);
+
+    useEffect(() => {
+        try { global.scrollFeedToTop = scrollToTop; } catch { }
+        return () => {
+            try {
+                if (global.scrollFeedToTop === scrollToTop) {
+                    global.scrollFeedToTop = undefined;
+                }
+            } catch { }
+        };
+    }, [scrollToTop]);
+
+    const scrollToPid = useCallback((pid) => {
+        if (!pid || !Array.isArray(listData) || listData.length === 0) return false;
+        const idx = listData.findIndex((p) => String(p?.pid || "") === String(pid));
+        if (idx < 0) return false;
+        highlightPidRef.current = String(pid);
+        setHighlightSignal(Date.now());
+        try {
+            flatListRef.current?.scrollToIndex({ index: idx, animated: true, viewPosition: 0 });
+        } catch {
+            try { flatListRef.current?.scrollToOffset({ offset: 0, animated: true }); } catch { }
+        }
+        return true;
+    }, [listData]);
+
+    useEffect(() => {
+        if (route?.params?.scrollToTop) {
+            const id = setTimeout(() => scrollToTop(), 30);
+            try { navigation.setParams({ scrollToTop: false }); } catch { }
+            return () => clearTimeout(id);
+        }
+        return undefined;
+    }, [route?.params?.scrollToTop, navigation, scrollToTop]);
+
+    useEffect(() => {
+        if (route?.params?.focusPid || route?.params?.scrollPid) {
+            const rawPid = route?.params?.focusPid ?? route?.params?.scrollPid;
+            if (rawPid !== undefined && rawPid !== null) {
+                const pid = String(rawPid);
+                setPendingScrollRequest({ pid });
+                const id = setTimeout(() => {
+                    const ok = scrollToPid(pid);
+                    if (ok) setPendingScrollRequest(null);
+                }, 50);
+                const cleanup = () => clearTimeout(id);
+                try { navigation.setParams({ focusPid: undefined, scrollPid: undefined }); } catch { }
+                return cleanup;
+            }
+            try { navigation.setParams({ focusPid: undefined, scrollPid: undefined }); } catch { }
+        }
+        return undefined;
+    }, [route?.params?.focusPid, route?.params?.scrollPid, navigation, scrollToPid]);
+
+    useEffect(() => {
+        if (!pendingScrollRequest?.pid) return;
+        const ok = scrollToPid(pendingScrollRequest.pid);
+        if (ok) setPendingScrollRequest(null);
+    }, [pendingScrollRequest, scrollToPid]);
+
+    useFocusEffect(
+        useCallback(() => {
+            const sig = Number(global?.scrollFeedToTopSignal || 0);
+            const handled = Number(global?.scrollFeedToTopHandled || 0);
+            if (sig && sig !== handled) {
+                try { global.scrollFeedToTopHandled = sig; } catch { }
+                const id = setTimeout(() => scrollToTop(), 30);
+                return () => clearTimeout(id);
+            }
+            return undefined;
+        }, [scrollToTop])
+    );
+
+    useEffect(() => {
+        if (!listData || listData.length === 0) return;
+        const seeded = listData
+            .map((p) => ({ uid: p?.uid, handle: p?.handle, name: p?.name, pfp: p?.pfp }))
+            .filter((u) => !!u.uid);
+        mergeUsersIntoRef(seeded);
+    }, [listData, mergeUsersIntoRef]);
+
+    const listKeyExtractor = useCallback((item, index) => String(item?.pid || item?.id || index), []);
+
+    const renderPost = useCallback(({ item, index }) => (
+        <PostListItem
+            item={item}
+            index={index}
+            highlightPid={highlightPidRef.current}
+            highlightSignal={highlightSignal}
+            openCommentsModal={openCommentsModal}
+            openShareModal={openShareModal}
+            openLikesSheet={openLikesSheet}
+            toViewProfilePosts={toViewProfilePosts}
+            openViewWorkoutModal={openViewWorkoutModal}
+        />
+    ), [highlightSignal, openCommentsModal, openShareModal, openLikesSheet, toViewProfilePosts, openViewWorkoutModal]);
+
+    const headerComponent = useMemo(() => (
+        <FeedHeader
+            navigation={navigation}
+            toMessagesScreen={toMessagesScreen}
+            onOpenNotifications={handleOpenNotifications}
+            scrollToTop={scrollToTop}
+            allUsersRef={allUsersRef}
+            workout={activeWorkout}
+            timerRef={headerTimerRef}
+            heightAdjust={-2}
+            topAdjust={-HEADER_TOP_TRIM}
+        />
+    ), [navigation, toMessagesScreen, handleOpenNotifications, scrollToTop, allUsersRef, activeWorkout, headerTimerRef]);
+
+    const commentsVisible = activeSheet === "comments" && activePostIndex >= 0;
+    const shareSheetVisible = activeSheet === "share";
+    const activePost = commentsVisible || shareSheetVisible
+        ? listData[activePostIndex] || null
+        : null;
+
+    return (
+        <SafeAreaView style={styles.screen}>
+            <StatusBar style="light" />
+            <View style={styles.headerWrap}>{headerComponent}</View>
+            <FlatList
+                ref={flatListRef}
+                data={listData}
+                keyExtractor={listKeyExtractor}
+                renderItem={renderPost}
+                style={styles.list}
+                refreshControl={(
+                    <RefreshControl
+                        refreshing={refreshing}
+                        onRefresh={onRefresh}
+                        tintColor={theme.textPrimary}
+                        colors={[theme.textPrimary]}
+                        progressBackgroundColor={theme.bg}
+                    />
+                )}
+                contentContainerStyle={{
+                    paddingBottom: LIST_BOTTOM_INSET + Math.max(0, insets.bottom || 0),
+                }}
+                showsVerticalScrollIndicator={false}
+            />
+
+            <TouchableOpacity
+                style={[
+                    styles.createPostButton,
+                    { bottom: (insets.bottom || 0) + scaleSize(85) },
+                ]}
+                activeOpacity={0.85}
+                onPress={() => { }}
+                accessibilityRole="button"
+                accessibilityLabel="Create a post"
+            >
+                <Feather
+                    name="plus"
+                    size={scaleSize(24)}
+                    color={'#000'}
+                />
+            </TouchableOpacity>
+
+            <CommentsBottomSheet
+                isVisible={commentsVisible}
+                postData={commentsVisible ? activePost : null}
+                commentsBottomSheetExpandFlag={commentsBottomSheetExpandFlag}
+                toViewProfile={toViewProfileComments}
+                onShowLikesSheet={showLikesSheet}
+                onDismiss={dismissCommentsModal}
+            />
+
+            <FollowListBottomSheet
+                isVisible={likesSheetVisible}
+                setIsVisible={setLikesSheetVisible}
+                title={likesSheetTitle}
+                users={likesSheetUsers}
+                navigation={navigation}
+            />
+
+            <ShareBottomSheet
+                shareBottomSheetCloseFlag={shareBottomSheetCloseFlag}
+                shareBottomSheetExpandFlag={shareSheetVisible ? shareBottomSheetExpandFlag : false}
+                onDismiss={() => {
+                    setActiveSheet((current) => {
+                        if (current === "share") {
+                            setActivePostIndex(-1);
+                            return null;
+                        }
+                        return current;
+                    });
+                }}
+            />
+
+            <Footer key={footerKey} currentScreenName="Feed" navigation={navigation} />
+        </SafeAreaView>
+    );
 }
 
 const styles = StyleSheet.create({
-  screen: {
-    flex: 1,
-    backgroundColor: theme.bg,
-  },
-  headerWrap: {
-    backgroundColor: theme.bg,
-    paddingBottom: scaleSize(2),
-    zIndex: 2,
-    elevation: 2,
-  },
-  list: {
-    flex: 1,
-  },
+    screen: {
+        flex: 1,
+        backgroundColor: theme.bg,
+    },
+    headerWrap: {
+        backgroundColor: theme.bg,
+        paddingBottom: scaleSize(2),
+        zIndex: 2,
+        elevation: 2,
+    },
+    list: {
+        flex: 1,
+    },
+    createPostButton: {
+        position: "absolute",
+        right: scaleSize(24),
+        width: scaleSize(56),
+        height: scaleSize(56),
+        borderRadius: scaleSize(28),
+        backgroundColor: "#FFFFFF",
+        alignItems: "center",
+        justifyContent: "center",
+        zIndex: 3,
+        elevation: 3,
+        shadowColor: "#000",
+        shadowOpacity: 0.2,
+        shadowRadius: 6,
+        shadowOffset: { width: 0, height: 3 },
+    },
 });
