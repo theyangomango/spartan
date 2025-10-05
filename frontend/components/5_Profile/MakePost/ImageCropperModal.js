@@ -15,6 +15,8 @@ export default function ImageCropperModal({
   aspectRatio = 1, // width / height; default to square crop
   onCancel,
   onDone,
+  anchorTop,
+  headerOffset,
 }) {
   const [imgSize, setImgSize] = useState(null); // { w, h }
   const [roiTop, setRoiTop] = useState(0); // visual offset to place frame lower on screen
@@ -100,17 +102,38 @@ export default function ImageCropperModal({
     }
   };
 
+  useEffect(() => {
+    if (!visible) return;
+    if (typeof anchorTop === 'number' && Number.isFinite(anchorTop)) {
+      setRoiTop(anchorTop);
+    }
+  }, [visible, anchorTop]);
+
+  const headerTop = useMemo(() => {
+    if (typeof headerOffset === 'number' && Number.isFinite(headerOffset)) {
+      return Math.max(0, headerOffset);
+    }
+    if (typeof anchorTop === 'number' && Number.isFinite(anchorTop)) {
+      return Math.max(scaleSize(32), anchorTop - scaleSize(54));
+    }
+    return scaleSize(48);
+  }, [headerOffset, anchorTop]);
+
   return (
     <Modal visible={!!visible} animationType="slide" transparent onRequestClose={onCancel}>
       <GestureHandlerRootView style={styles.root}>
         <View style={styles.backdrop} />
         <View
-          style={styles.header}
+          style={[styles.header, { top: headerTop - scaleSize(6) }]}
           pointerEvents="box-none"
           onLayout={(e) => {
             const { y = 0, height = 0 } = e?.nativeEvent?.layout || {};
             // place ROI just below header
-            const top = Math.max(0, y + height + 8);
+            if (typeof anchorTop === 'number' && Number.isFinite(anchorTop)) {
+              setRoiTop(anchorTop);
+              return;
+            }
+            const top = Math.max(0, y + height + scaleSize(18));
             setRoiTop(top);
           }}
         >
@@ -152,11 +175,10 @@ const styles = StyleSheet.create({
   backdrop: { ...StyleSheet.absoluteFillObject, backgroundColor: 'rgba(0,0,0,0.8)' },
   header: {
     position: 'absolute',
-    top: scaleSize(40),
     left: 0,
     right: 0,
     zIndex: 2,
-    paddingHorizontal: scaleSize(16),
+    paddingHorizontal: scaleSize(8),
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
@@ -174,7 +196,6 @@ const styles = StyleSheet.create({
   cropBox: {
     position: 'absolute',
     overflow: 'hidden',
-    borderRadius: scaleSize(20),
     backgroundColor: '#000',
     alignItems: 'center',
     justifyContent: 'center',
@@ -184,7 +205,6 @@ const styles = StyleSheet.create({
     left: 0,
     borderColor: '#ffffff',
     borderWidth: scaleSize(1),
-    borderRadius: scaleSize(20),
   },
   image: {
     // width/height are set dynamically via animated style

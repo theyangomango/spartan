@@ -58,6 +58,7 @@ const PreviewPhotosBottomSheet = ({ assets, images, selectedOrderMap, toggleSele
             onClose={() => {
             }}
             backgroundStyle={styles.background}
+            style={styles.sheet}
             handleStyle={styles.handle}
             handleIndicatorStyle={styles.handleIndicator}
         >
@@ -80,8 +81,14 @@ const PreviewPhotosBottomSheet = ({ assets, images, selectedOrderMap, toggleSele
 export default React.memo(PreviewPhotosBottomSheet);
 
 const styles = StyleSheet.create({
+    sheet: {
+        borderTopLeftRadius: 0,
+        borderTopRightRadius: 0,
+    },
     background: {
         backgroundColor: theme.surface,
+        borderTopLeftRadius: 0,
+        borderTopRightRadius: 0,
     },
     handle: {
         backgroundColor: 'transparent',

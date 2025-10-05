@@ -27,11 +27,12 @@ export default function SelectPhotosScreen({ navigation, route }) {
     const [cropUri, setCropUri] = useState(null);
     const [cropIndex, setCropIndex] = useState(-1);
     const [croppedMap, setCroppedMap] = useState({}); // { [originalUri]: croppedUri }
-    const [previewBottom, setPreviewBottom] = useState(null);
+    const [previewMetrics, setPreviewMetrics] = useState({ top: null, bottom: null });
 
     const { height: windowHeight } = useWindowDimensions();
     const insets = useSafeAreaInsets();
     const headerTopPadding = useMemo(() => scaledSize(12) + (Platform.OS === 'android' ? Math.max(0, insets.top) : 0), [insets.top]);
+    const headerOffset = useMemo(() => insets.top + scaledSize(12), [insets.top]);
 
     useEffect(() => {
         getInitialAssets();
@@ -150,10 +151,11 @@ export default function SelectPhotosScreen({ navigation, route }) {
     }, [cropIndex, images]);
 
     const collapsedSheetHeight = useMemo(() => {
-        if (!previewBottom || !windowHeight) return null;
-        const h = Math.max(0, windowHeight - previewBottom);
+        const bottom = previewMetrics.bottom;
+        if (typeof bottom !== 'number' || !windowHeight) return null;
+        const h = Math.max(0, windowHeight - bottom);
         return h || null;
-    }, [previewBottom, windowHeight]);
+    }, [previewMetrics.bottom, windowHeight]);
 
     return (
         <SafeAreaView style={styles.container}>
@@ -176,7 +178,7 @@ export default function SelectPhotosScreen({ navigation, route }) {
                 style={styles.preview_ctnr}
                 onLayout={(e) => {
                     const { y = 0, height = 0 } = e.nativeEvent.layout || {};
-                    setPreviewBottom(y + height);
+                    setPreviewMetrics({ top: y, bottom: y + height });
                 }}
             >
                 {selectedImages.length > 0 ? (
@@ -201,12 +203,12 @@ export default function SelectPhotosScreen({ navigation, route }) {
                         disableVerticalSwipe
                         pinchEnabled={false}
                     />
-                ) : assets.length > 0 ? (
-                    <Image
-                        source={{ uri: assets[0].uri }}
-                        style={styles.preview_image}
-                    />
-                ) : null}
+                ) : (
+                    <View style={styles.preview_placeholder}>
+                        <Ionicons name='image-outline' size={scaledSize(28)} color={theme.textSecondary} />
+                        <Text style={styles.preview_placeholder_text}>Pick photos below to start your post</Text>
+                    </View>
+                )}
 
                 {selectedImages.length > 0 && (
                     <TouchableOpacity style={styles.crop_btn} onPress={withStrongPress(openCropper)}>
@@ -242,6 +244,8 @@ export default function SelectPhotosScreen({ navigation, route }) {
                 visible={cropVisible}
                 uri={cropUri}
                 aspectRatio={FEED_ASPECT_RATIO}
+                anchorTop={previewMetrics.top}
+                headerOffset={headerOffset}
                 onCancel={() => { setCropVisible(false); setCropUri(null); }}
                 onDone={onCropDone}
             />
@@ -284,6 +288,19 @@ const styles = StyleSheet.create({
     preview_image: {
         width: '100%',
         aspectRatio: FEED_ASPECT_RATIO
+    },
+    preview_placeholder: {
+        flex: 1,
+        alignItems: 'center',
+        justifyContent: 'center',
+        paddingHorizontal: scaledSize(24),
+    },
+    preview_placeholder_text: {
+        marginTop: scaledSize(10),
+        color: theme.textSecondary,
+        fontFamily: 'Outfit_500Medium',
+        fontSize: scaleSize(13),
+        textAlign: 'center',
     },
     crop_btn: {
         position: 'absolute',
