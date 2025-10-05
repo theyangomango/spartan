@@ -10,14 +10,17 @@ import CopyTemplateToast from "./ui/CopyTemplateToast";
 import updateDoc from "../../../backend/helper/firebase/updateDoc";
 import makeID from "../../../backend/helper/makeID";
 import { useNavigation } from "@react-navigation/native";
-import WorkoutPanelCard from "./ui/WorkoutPanelCard";
+import SimpleFeedPost from "../1_Feed/SimpleFeedPost";
+import { navigateOneWay } from "../../../navigationRef";
+import { db } from "../../../firebase.config";
+import { doc, getDoc, collection, query, where, limit, getDocs } from "firebase/firestore";
+import { extractWid } from "../2_Competition/UserStats/userStatsUtils";
 import { FoodDetailInline } from "../../screens/FoodDetail";
 import DateHeader from "./DayDetails/DateHeader";
 import OverlayContainer from "./DayDetails/OverlayContainer";
 import { parseMacrosFromDescription, parseExtraNutrientsFromDescription } from "../../utils/nutrition";
 // No foodLogs usage: macros derive only from global.userData.loggedFoods
 import { canViewWorkout } from "../../utils/workoutPrivacy";
-import { buildExerciseSummaries } from "../../utils/workoutSummary";
 
 import scaleSize from "../../helper/scaleSize";
 import { Ionicons } from "@expo/vector-icons";
@@ -56,8 +59,6 @@ const shiftDate = (d, delta) => {
     return base;
 };
 
-const toNumber = (n) => (Number(n || 0) || 0);
-
 const toMillis = (value) => {
     if (!value && value !== 0) return undefined;
     if (typeof value === 'number') return value;
@@ -74,55 +75,101 @@ const bestTimestamp = (workout) => Math.max(
     toMillis(workout?.created) ?? 0,
 );
 
-const formatWorkoutDateTime = (ts) => {
-    if (!ts) return '';
-    const d = new Date(ts);
-    if (Number.isNaN(d.getTime())) return '';
-    let timePart = '';
+const buildWorkoutPid = (uid, workout, fallbackIndex) => {
+    const safeUid = uid ? String(uid) : 'self';
+    const baseId = workout?.wid ?? workout?.id ?? workout?.workoutId ?? workout?.logId ?? workout?.sessionId;
+    const suffix = baseId ? String(baseId) : String(bestTimestamp(workout) || fallbackIndex || Date.now());
+    return `workout:${safeUid}:${suffix}`;
+};
+
+const toNumber = (value, fallback = 0) => {
+    const num = Number(value);
+    return Number.isFinite(num) ? num : fallback;
+};
+
+const sanitizeEntry = (entry) => {
+    if (!entry || typeof entry !== 'object') return entry;
     try {
-        timePart = d
-            .toLocaleTimeString(undefined, { hour: 'numeric', minute: '2-digit', hour12: true })
-            .toLowerCase()
-            .replace(/[\s.]/g, '');
+        return JSON.parse(JSON.stringify(entry, (_key, val) => (typeof val === 'function' ? undefined : val)));
     } catch {
-        timePart = '';
+        return { ...entry };
     }
-    let datePart = '';
+};
+
+const ensureHandle = (value) => {
+    if (!value) return '';
+    const str = String(value).trim();
+    return str.startsWith('@') ? str.slice(1) : str;
+};
+
+const ensureAtHandle = (value) => {
+    const base = ensureHandle(value);
+    return base ? `@${base}` : '';
+};
+
+const buildFeedPostData = (workout, fallbackIndex = 0) => {
+    if (!workout || typeof workout !== 'object') return null;
+
+    const viewer = (() => { try { return global?.userData || null; } catch { return null; } })();
+    const ownerUid = workout?.uid ?? workout?.userUid ?? workout?.creatorUid ?? workout?.creatorUID ?? viewer?.uid ?? 'self';
+    const handle = workout?.handle || workout?.username || viewer?.handle || '';
+    const name = workout?.name || viewer?.name || handle || 'You';
+    const pfp = workout?.pfp || workout?.pfpUrl || workout?.photoURL || workout?.photo || viewer?.image || viewer?.pfp || viewer?.pfpUrl || '';
+    const pfpVersion = workout?.pfpVersion ?? workout?.pfp_version ?? viewer?.pfpVersion ?? viewer?.pfp_version ?? 0;
+    const created = bestTimestamp(workout);
+
+    return {
+        pid: buildWorkoutPid(ownerUid, workout, fallbackIndex),
+        uid: String(ownerUid || ''),
+        handle,
+        name,
+        pfp,
+        pfpVersion,
+        workout,
+        created,
+        createdAt: created,
+        likes: Array.isArray(workout?.likes) ? workout.likes : [],
+        likeCount: Number(workout?.likeCount ?? workout?.likesCount ?? 0) || 0,
+        comments: Array.isArray(workout?.comments) ? workout.comments : [],
+        commentCount: Number(workout?.commentCount ?? workout?.commentsCount ?? 0) || 0,
+        media: Array.isArray(workout?.media) ? workout.media : [],
+        images: Array.isArray(workout?.images) ? workout.images : [],
+        caption: workout?.caption || workout?.templateName || workout?.template?.name || workout?.name || '',
+        __synthetic: true,
+    };
+};
+
+const sanitizeWorkoutForRoute = (workout) => {
+    if (!workout || typeof workout !== 'object') return null;
+
+    const replacer = (_key, value) => (typeof value === 'function' ? undefined : value);
+
     try {
-        const nowYear = new Date().getFullYear();
-        const opts = d.getFullYear() === nowYear
-            ? { month: 'short', day: 'numeric' }
-            : { month: 'short', day: 'numeric', year: '2-digit' };
-        datePart = d.toLocaleDateString(undefined, opts);
+        return JSON.parse(JSON.stringify(workout, replacer));
     } catch {
-        datePart = '';
+        const clone = { ...workout };
+        clone.exercises = Array.isArray(workout.exercises)
+            ? workout.exercises.map((exercise) => {
+                if (!exercise || typeof exercise !== 'object') return {};
+                const sets = Array.isArray(exercise.sets)
+                    ? exercise.sets.map((set) => {
+                        if (!set || typeof set !== 'object') return {};
+                        const { weight, reps, unit, units, weightUnit, kg, lbs, ...rest } = set;
+                        const normalized = {
+                            ...rest,
+                            weight: Number(weight ?? kg ?? lbs ?? 0) || 0,
+                            reps: Number(reps ?? set?.rep ?? set?.r ?? 0) || 0,
+                        };
+                        const resolvedUnit = unit || units || weightUnit || (kg != null ? 'kg' : undefined);
+                        if (resolvedUnit) normalized.unit = resolvedUnit;
+                        return normalized;
+                    })
+                    : [];
+                return { ...exercise, sets };
+            })
+            : [];
+        return clone;
     }
-    if (timePart && datePart) return `${timePart}, ${datePart}`;
-    return timePart || datePart;
-};
-
-const firstName = (name = '') => {
-    const str = String(name).trim();
-    if (!str) return '';
-    const raw = (str.split(/\s+/)[0] || str).replace(/[.,;:]+$/, '');
-    return raw;
-};
-
-const initials = (name = '') => {
-    const parts = String(name).trim().split(/\s+/);
-    const a = (parts[0] || '').charAt(0);
-    const b = (parts[1] || '').charAt(0);
-    return (a + b).toUpperCase() || 'Y';
-};
-
-const ensureHandle = (workout) => {
-    const fallbackHandle = global?.userData?.handle ?? workout?.handle ?? workout?.username ?? '';
-    const fromName = firstName(workout?.name ?? global?.userData?.name ?? '')?.toLowerCase();
-    const base = fallbackHandle || fromName;
-    if (!base) return '@you';
-    const normalized = String(base).trim();
-    if (!normalized) return '@you';
-    return normalized.startsWith('@') ? normalized : `@${normalized}`;
 };
 
 const MONTH_NAMES = [
@@ -592,6 +639,10 @@ const DayDetailsSheet = ({
 }) => {
     const bottomSheetRef = useRef(null);
     const navigation = useNavigation();
+    const postCacheRef = useRef(new Map());
+    const widToPidRef = useRef(new Map());
+    const pendingFetchRef = useRef(new Set());
+    const [postCacheVersion, setPostCacheVersion] = useState(0);
     const viewerData = (() => {
         try { return global?.userData || null; } catch { return null; }
     })();
@@ -729,42 +780,243 @@ const DayDetailsSheet = ({
         onStartWorkout?.();
     }, [onStartWorkout]);
 
-    const openViewer = useCallback((w) => {
-        if (!w) return;
-        // Ensure only one overlay is active at a time
-        try { setSelectedFood(null); } catch {}
-        // Normalize minimal fields expected by NewWorkoutModal
-        const fallback = {
-            wid: w?.wid || w?.id,
-            creatorUID: w?.creatorUID || w?.creatorUid || (global?.userData?.uid || ""),
-            created: w?.created || w?.createdAt || Date.now(),
-            exercises: Array.isArray(w?.exercises) ? w.exercises : [],
-            duration: w?.duration,
-            volume: w?.volume,
-            reps: w?.reps,
-            PBs: w?.PBs ?? w?.pbs ?? 0,
-            templateName: w?.templateName || w?.template?.name,
-            privacyMode: w?.privacyMode ?? 'global',
+    const bumpPostCacheVersion = useCallback(() => {
+        setPostCacheVersion((v) => v + 1);
+    }, []);
+
+    const extractPostPidCandidates = useCallback((workout) => {
+        const candidates = new Set();
+        const add = (value) => {
+            if (value === undefined || value === null) return;
+            const str = String(value).trim();
+            if (str) candidates.add(str);
         };
-        const wk = { ...fallback, ...w };
-        if (!wk.privacyMode) wk.privacyMode = 'global';
-        // Resolve friend uid + pfp (fallbacks similar to FriendsActivitySheet)
-        const friendUid = String(wk.creatorUID || wk.creatorUid || "");
-        const friendPfp =
-            wk.pfp || wk.pfpUrl || wk.photoURL || wk.image || wk.avatar ||
-            (friendUid && friendUid === String(global?.userData?.uid || "")
-                ? (global?.userData?.pfp || global?.userData?.photoURL || global?.userData?.image || "")
-                : null);
-        wk.__friendUid = friendUid;
-        wk.__friendPfp = friendPfp;
-        setSelectedWorkout(wk);
-        // Mount content immediately; animate slide-in (no fades)
-        setViewerReady(true);
-        try { viewerTranslateX.setValue(screenWidth); } catch {}
+
+        add(workout?.postPid);
+        add(workout?.post_id);
+        add(workout?.postId);
+        add(workout?.linkedPostPid);
+        add(workout?.linkedPostId);
+        add(workout?.post?.pid);
+        add(workout?.post?.postPid);
+        add(workout?.linkedPost?.pid);
+        add(workout?.feedItem?.pid);
+        if (typeof workout?.pid === 'string' && workout.pid.startsWith('post:')) add(workout.pid);
+        add(workout?.postMeta?.pid);
+
+        return Array.from(candidates);
+    }, []);
+
+    const cachePost = useCallback((postData) => {
+        if (!postData) return;
+        const pid = String(postData?.pid || '').trim();
+        if (pid) {
+            postCacheRef.current.set(pid, postData);
+        }
+        const linkedWorkout = postData?.workout || {};
+        const wid = extractWid(linkedWorkout) || (postData?.workoutWid ? String(postData.workoutWid) : '');
+        if (wid) {
+            widToPidRef.current.set(wid, pid || null);
+        }
+        bumpPostCacheVersion();
+    }, [bumpPostCacheVersion]);
+
+    const markNoPostForWid = useCallback((wid) => {
+        if (!wid) return;
+        widToPidRef.current.set(wid, null);
+        bumpPostCacheVersion();
+    }, [bumpPostCacheVersion]);
+
+    const ensurePostDataForWorkout = useCallback(async (workout) => {
+        if (!workout || typeof workout !== 'object') return;
+
+        const pidCandidates = extractPostPidCandidates(workout);
+        const wid = extractWid(workout);
+
+        for (const pid of pidCandidates) {
+            if (postCacheRef.current.has(pid)) return;
+        }
+
+        if (wid) {
+            const mappedPid = widToPidRef.current.get(wid);
+            if (mappedPid !== undefined) {
+                if (mappedPid === null) return;
+                if (postCacheRef.current.has(mappedPid)) return;
+            }
+        }
+
+        for (const pid of pidCandidates) {
+            const key = `pid:${pid}`;
+            if (!pid || pendingFetchRef.current.has(key)) continue;
+            pendingFetchRef.current.add(key);
+            try {
+                const docSnap = await getDoc(doc(db, 'posts', pid));
+                if (docSnap.exists()) {
+                    const data = docSnap.data() || {};
+                    cachePost({ pid, ...data });
+                    pendingFetchRef.current.delete(key);
+                    return;
+                }
+                postCacheRef.current.set(pid, null);
+                bumpPostCacheVersion();
+            } catch (error) {
+                console.warn('DayDetailsSheet: failed to fetch post by pid', pid, error);
+            }
+            pendingFetchRef.current.delete(key);
+        }
+
+        if (!wid) return;
+
+        if (widToPidRef.current.has(wid) && widToPidRef.current.get(wid) === null) {
+            return;
+        }
+
+        const widKey = `wid:${wid}`;
+        if (pendingFetchRef.current.has(widKey)) return;
+
+        pendingFetchRef.current.add(widKey);
         try {
-            Animated.timing(viewerTranslateX, { toValue: 0, duration: 260, easing: Easing.out(Easing.cubic), useNativeDriver: true }).start();
-        } catch { }
-    }, [listOpacity, viewerOpacity, viewerTranslateX, screenWidth]);
+            let querySnap = await getDocs(query(collection(db, 'posts'), where('workoutWid', '==', wid), limit(1)));
+            if (querySnap.empty) {
+                querySnap = await getDocs(query(collection(db, 'posts'), where('workout.wid', '==', wid), limit(1)));
+            }
+            if (!querySnap.empty) {
+                const docSnap = querySnap.docs[0];
+                const data = docSnap.data() || {};
+                const pid = String(data?.pid || docSnap.id);
+                cachePost({ pid, ...data });
+                widToPidRef.current.set(wid, pid);
+            } else {
+                markNoPostForWid(wid);
+            }
+        } catch (error) {
+            console.warn('DayDetailsSheet: failed to query post by wid', wid, error);
+        }
+        pendingFetchRef.current.delete(widKey);
+    }, [cachePost, extractPostPidCandidates, markNoPostForWid]);
+
+    const getCachedPostForWorkout = useCallback((workout) => {
+        if (!workout || typeof workout !== 'object') return undefined;
+        const pidCandidates = extractPostPidCandidates(workout);
+        for (const pid of pidCandidates) {
+            if (postCacheRef.current.has(pid)) {
+                return postCacheRef.current.get(pid);
+            }
+        }
+        const wid = extractWid(workout);
+        if (wid) {
+            const mappedPid = widToPidRef.current.get(wid);
+            if (mappedPid === null) return null;
+            if (mappedPid && postCacheRef.current.has(mappedPid)) {
+                return postCacheRef.current.get(mappedPid);
+            }
+        }
+        return undefined;
+    }, [extractPostPidCandidates]);
+
+    const openPastWorkoutScreen = useCallback((postData, fallbackWorkout) => {
+        const workoutInput = postData?.workout || fallbackWorkout;
+        if (!workoutInput) return;
+
+        const fallback = {
+            wid: workoutInput?.wid || workoutInput?.id,
+            creatorUID: workoutInput?.creatorUID || workoutInput?.creatorUid || postData?.uid || global?.userData?.uid || '',
+            created: workoutInput?.created || workoutInput?.createdAt || Date.now(),
+            exercises: Array.isArray(workoutInput?.exercises) ? workoutInput.exercises : [],
+            duration: workoutInput?.duration,
+            volume: workoutInput?.volume,
+            reps: workoutInput?.reps,
+            PBs: workoutInput?.PBs ?? workoutInput?.pbs ?? 0,
+            templateName: workoutInput?.templateName || workoutInput?.template?.name,
+        };
+
+        const mergedWorkout = { ...fallback, ...workoutInput };
+
+        const ownerUid = String(postData?.uid || mergedWorkout.creatorUID || mergedWorkout.creatorUid || global?.userData?.uid || '');
+        const ownerHandle = ensureAtHandle(postData?.handle || mergedWorkout.handle || mergedWorkout.username || '');
+        const ownerName = postData?.name || mergedWorkout.ownerName || mergedWorkout.name || '';
+        const ownerPfp = postData?.pfp || mergedWorkout.pfp || mergedWorkout.pfpUrl || mergedWorkout.photoURL || mergedWorkout.photo || '';
+        const ownerPfpVersion = postData?.pfpVersion ?? mergedWorkout.pfpVersion ?? mergedWorkout.version ?? 0;
+
+        const sanitizedWorkout = sanitizeWorkoutForRoute({
+            ...mergedWorkout,
+            creatorUID: ownerUid || mergedWorkout.creatorUID,
+            creatorUid: ownerUid || mergedWorkout.creatorUid,
+            handle: ownerHandle || mergedWorkout.handle,
+            pfp: ownerPfp,
+            pfpUrl: ownerPfp,
+            pfpVersion: ownerPfpVersion,
+            ownerName,
+        });
+
+        if (!sanitizedWorkout) return;
+
+        const likeCount = Array.isArray(postData?.likes) ? postData.likes.length : toNumber(postData?.likeCount);
+        const commentCount = Array.isArray(postData?.comments)
+            ? Math.max(0, postData.comments.length - 1)
+            : toNumber(postData?.commentCount);
+
+        const likesForRoute = Array.isArray(postData?.likes) ? postData.likes.map(sanitizeEntry) : [];
+        const mediaForRoute = Array.isArray(postData?.media) ? postData.media.map(sanitizeEntry) : [];
+        const imagesForRoute = Array.isArray(postData?.images) ? postData.images.map(sanitizeEntry) : [];
+        const tagsForRoute = Array.isArray(postData?.tags) ? [...postData.tags] : [];
+        const taggedForRoute = Array.isArray(postData?.tagged) ? [...postData.tagged] : [];
+
+        const params = {
+            workout: sanitizedWorkout,
+            owner: {
+                uid: ownerUid,
+                handle: ownerHandle,
+                name: ownerName,
+                pfp: ownerPfp,
+                pfpVersion: ownerPfpVersion,
+            },
+            postMeta: {
+                pid: postData?.pid ?? postData?.id ?? `${ownerUid}:${sanitizedWorkout?.wid ?? sanitizedWorkout?.id ?? ''}`,
+                caption: typeof postData?.caption === 'string' ? postData.caption : '',
+                created: postData?.created ?? postData?.createdAt ?? sanitizedWorkout?.created ?? null,
+                likeCount,
+                commentCount,
+                likes: likesForRoute,
+                media: mediaForRoute,
+                images: imagesForRoute,
+                shareCount: toNumber(postData?.shareCount),
+                tags: tagsForRoute,
+                tagged: taggedForRoute,
+            },
+        };
+
+        const routed = navigateOneWay('PastWorkout', { animation: 'slide-from-right', params });
+        if (!routed) {
+            navigation?.navigate?.('PastWorkout', params);
+        }
+    }, [navigation]);
+
+    const openProfileFromPost = useCallback((postData, fallbackWorkout) => {
+        const source = postData || {};
+        const workoutSource = fallbackWorkout || source?.workout || {};
+        const targetUid = String(source.uid || workoutSource.uid || workoutSource.creatorUID || workoutSource.creatorUid || '');
+        if (!targetUid) return;
+
+        const rawHandle = source.handle || workoutSource.handle || workoutSource.username || '';
+        const cleanHandle = ensureHandle(rawHandle);
+        const name = source.name || workoutSource.ownerName || workoutSource.name || '';
+        const pfp = source.pfp || workoutSource.pfp || workoutSource.pfpUrl || workoutSource.photoURL || workoutSource.photo || '';
+
+        const meUid = String(global?.userData?.uid || '');
+        try { bottomSheetRef.current?.close?.(); } catch {}
+
+        const rootNav = navigation?.getParent?.('ROOT');
+        if (targetUid && targetUid === meUid) {
+            if (rootNav?.navigate) rootNav.navigate('Profile', { transition: 'slide-from-right' });
+            else navigation?.navigate?.('Profile', { transition: 'slide-from-right' });
+            return;
+        }
+
+        const routeParams = { user: { uid: targetUid, handle: cleanHandle, name, pfp } };
+        if (rootNav?.navigate) rootNav.navigate('ViewProfile', routeParams);
+        else navigation?.navigate?.('ViewProfile', routeParams);
+    }, [navigation]);
 
     const closeViewer = useCallback(() => {
         // Slide out overlay; header remains visible (always part of main screen)
@@ -945,6 +1197,51 @@ const DayDetailsSheet = ({
 
         const calsToShowPage = Number(dayTotals?.calories || dayCalories || 0);
 
+        const workoutFeedPosts = useMemo(() => {
+            if (!Array.isArray(dayWorkouts) || dayWorkouts.length === 0) return [];
+            return dayWorkouts.slice(0, 3).map((wk, idx) => {
+                const fallbackPost = buildFeedPostData(wk, idx);
+                if (!fallbackPost) return null;
+                const key = fallbackPost.pid || `${wk?.wid || wk?.id || idx}`;
+                const cached = getCachedPostForWorkout(wk);
+                if (cached && typeof cached === 'object') {
+                    const mergedLikeCount = Number(cached.likeCount ?? fallbackPost.likeCount ?? 0);
+                    const mergedCommentCount = Number(cached.commentCount ?? fallbackPost.commentCount ?? 0);
+                    return {
+                        key,
+                        post: {
+                            ...fallbackPost,
+                            ...cached,
+                            uid: String(cached.uid ?? fallbackPost.uid ?? ''),
+                            handle: cached.handle ?? fallbackPost.handle ?? '',
+                            name: cached.name ?? fallbackPost.name ?? '',
+                            pfp: cached.pfp ?? fallbackPost.pfp ?? '',
+                            pfpVersion: cached.pfpVersion ?? fallbackPost.pfpVersion ?? 0,
+                            caption: typeof cached.caption === 'string' ? cached.caption : fallbackPost.caption,
+                            workout: { ...(cached?.workout || {}), ...wk },
+                            likeCount: mergedLikeCount,
+                            commentCount: mergedCommentCount,
+                            likes: Array.isArray(cached.likes) ? cached.likes : fallbackPost.likes,
+                            comments: Array.isArray(cached.comments) ? cached.comments : fallbackPost.comments,
+                            media: Array.isArray(cached.media) ? cached.media : fallbackPost.media,
+                            images: Array.isArray(cached.images) ? cached.images : fallbackPost.images,
+                        },
+                        workout: wk,
+                    };
+                }
+                return { key, post: fallbackPost, workout: wk };
+            }).filter(Boolean);
+        }, [dayWorkouts, getCachedPostForWorkout, postCacheVersion]);
+
+        useEffect(() => {
+            const workouts = Array.isArray(dayWorkouts) ? dayWorkouts.slice(0, 3) : [];
+            if (!workouts.length) return;
+            const hydrate = async () => {
+                await Promise.all(workouts.map((wk) => ensurePostDataForWorkout(wk)));
+            };
+            hydrate();
+        }, [dayWorkouts, ensurePostDataForWorkout]);
+
         return (
             <View style={styles.ctnr}>
                 {/* Header is static above; this page starts with section content */}
@@ -961,41 +1258,20 @@ const DayDetailsSheet = ({
                         <Text style={styles.emptyText}>No completed workouts for this day.</Text>
                     </View>
                 ) : (
-                    dayWorkouts.slice(0, 3).map((w, i) => {
-                        const durationMs = Number.isFinite(Number(w?.duration)) && Number(w?.duration) > 0
-                            ? Number(w?.duration)
-                            : Math.max(0, (Date.now() - Number(w?.created || 0)));
-                        const durationSeconds = Math.max(0, Math.round(durationMs / 1000));
-                        const pbs = Number(w?.PBs ?? 0);
-                        const t = w?.templateName || w?.template?.name || w?.name || "Workout";
-                        const hasTemplate = (w && w.tid != null);
-                        const ts = bestTimestamp(w);
-                        const metaParts = [ensureHandle(w)];
-                        const dateTime = formatWorkoutDateTime(ts);
-                        if (dateTime) metaParts.push(dateTime);
-                        const fallbackName = w?.name ?? global?.userData?.name ?? 'You';
-                        const pfpUri = w?.pfp || w?.pfpUrl || w?.photoURL || w?.photo || global?.userData?.image;
-
-                        return (
-                            <WorkoutPanelCard
-                                key={`${w?.wid || i}`}
-                                title={t}
-                                titleStyle={hasTemplate ? { color: theme.primary } : null}
-                                metaParts={metaParts}
-                                uid={w?.uid}
-                                pfpVersion={w?.pfpVersion || 0}
-                                pbs={pbs}
-                                durationSeconds={durationSeconds}
-                                volume={toNumber(w?.volume)}
-                                reps={toNumber(w?.reps)}
-                                exerciseSummaries={buildExerciseSummaries(w)}
-                                onPress={() => openViewer(w)}
-                                pfpUri={pfpUri}
-                                fallbackLabel={initials(fallbackName)}
-                                style={{ marginBottom: scaleSize(14) }}
+                    workoutFeedPosts.map(({ key, post, workout }, idx) => (
+                        <View key={key} style={styles.feedPostWrapper}>
+                            <SimpleFeedPost
+                                data={post}
+                                index={idx}
+                                highlightPid={null}
+                                highlightSignal={0}
+                                onPressWorkout={(_, data) => openPastWorkoutScreen(data || post, workout)}
+                                onPressComments={(_, data) => openPastWorkoutScreen(data || post, workout)}
+                                onPressLikes={(_, data) => openPastWorkoutScreen(data || post, workout)}
+                                onPressProfile={(_, data) => openProfileFromPost(data || post, workout)}
                             />
-                        );
-                    })
+                        </View>
+                    ))
                 )}
 
                 {/* ------- Foods ------- */}
@@ -1048,7 +1324,7 @@ const DayDetailsSheet = ({
                 </View> */}
             </View>
         );
-    }, [handleOpenMacros, handleStartWorkout, handleTitlePress, onChangeDate, openFood, openViewer, titleScale, workoutOn]);
+    }, [handleOpenMacros, handleStartWorkout, handleTitlePress, onChangeDate, openFood, openPastWorkoutScreen, openProfileFromPost, titleScale, workoutOn, ensurePostDataForWorkout, getCachedPostForWorkout, postCacheVersion]);
 
     // Static header (doesn't move when swiping pages)
     useEffect(() => {
@@ -1395,6 +1671,7 @@ const styles = StyleSheet.create({
     invisibleHandle: { display: 'none' },
     handleWrap: { borderTopLeftRadius: scaleSize(20), borderTopRightRadius: scaleSize(20) },
     ctnr: { flex: 1, paddingHorizontal: scaleSize(16), paddingTop: scaleSize(8), paddingBottom: scaleSize(16) },
+    feedPostWrapper: { marginHorizontal: -scaleSize(16) },
     
 
     sectionHdrRow: { marginTop: scaleSize(6), marginBottom: scaleSize(6), flexDirection: "row", alignItems: "flex-end", justifyContent: "space-between" },
@@ -1404,30 +1681,37 @@ const styles = StyleSheet.create({
     metaOff: { color: theme.textSecondary },
 
     emptyCard: {
-        borderRadius: scaleSize(14),
-        paddingVertical: scaleSize(12),
-        paddingHorizontal: scaleSize(12),
+        marginHorizontal: -scaleSize(16),
+        borderRadius: 0,
+        paddingVertical: scaleSize(14),
+        paddingHorizontal: scaleSize(16),
         backgroundColor: theme.surface,
-        borderWidth: StyleSheet.hairlineWidth,
+        borderBottomWidth: StyleSheet.hairlineWidth,
+        borderTopWidth: StyleSheet.hairlineWidth,
         borderColor: theme.hairline,
     },
-    emptyText: { fontFamily: "Outfit_500Medium", fontSize: scaleSize(12.5), color: theme.textSecondary },
+    emptyText: {
+        fontFamily: "Outfit_500Medium",
+        fontSize: scaleSize(12.5),
+        color: theme.textSecondary,
+    },
 
     
 
     // New food card grid
-    foodListCol: { marginBottom: scaleSize(8) },
+    foodListCol: { marginBottom: 0, marginHorizontal: -scaleSize(16) },
     foodRowCard: {
         flexDirection: 'row',
         alignItems: 'center',
         justifyContent: 'space-between',
-        borderRadius: scaleSize(14),
-        paddingVertical: scaleSize(10),
+        paddingVertical: scaleSize(12),
         paddingHorizontal: scaleSize(16),
         backgroundColor: theme.surface,
-        borderWidth: StyleSheet.hairlineWidth,
+        borderRadius: 0,
+        borderWidth: 0,
+        borderBottomWidth: StyleSheet.hairlineWidth,
         borderColor: theme.hairline,
-        marginVertical: scaleSize(4),
+        marginVertical: 0,
     },
     foodRowName: { flex: 1, fontFamily: 'Nunito_700Bold', fontSize: scaleSize(12), color: theme.textPrimary },
     foodRowBucketLine: { fontFamily: 'Outfit_600SemiBold', fontSize: scaleSize(12), color: theme.textSecondary, marginTop: scaleSize(2) },

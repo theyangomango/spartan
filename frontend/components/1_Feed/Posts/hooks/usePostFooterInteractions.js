@@ -156,17 +156,21 @@ export default function usePostFooterInteractions({ data, onPressCommentButton, 
     }, [data?.pid, interactionsEnabled, isSaved]);
 
     const pressComment = useCallback(() => {
-        if (!interactionsEnabled) return;
-        if (typeof onPressCommentButton === 'function') {
+        if (typeof onPressCommentButton !== 'function') return;
+        if (!interactionsEnabled) {
             onPressCommentButton();
+            return;
         }
+        onPressCommentButton();
     }, [interactionsEnabled, onPressCommentButton]);
 
     const pressShare = useCallback(() => {
-        if (!interactionsEnabled) return;
-        if (typeof onPressShareButton === 'function') {
+        if (typeof onPressShareButton !== 'function') return;
+        if (!interactionsEnabled) {
             onPressShareButton();
+            return;
         }
+        onPressShareButton();
     }, [interactionsEnabled, onPressShareButton]);
 
     const handleTapAt = useCallback((absoluteX, absoluteY) => {
