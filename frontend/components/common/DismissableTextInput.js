@@ -13,6 +13,7 @@ const DismissableTextInput = forwardRef(({
     const shouldAttachAccessory = enableAccessory && Platform.OS === 'ios';
     const accessoryID = shouldAttachAccessory ? (providedAccessoryId || generatedId) : providedAccessoryId;
     const InputComponent = useBottomSheetInput ? BottomSheetTextInput : TextInput;
+    const showAccessory = shouldAttachAccessory && !providedAccessoryId && !useBottomSheetInput;
 
     return (
         <>
@@ -21,7 +22,7 @@ const DismissableTextInput = forwardRef(({
                 {...rest}
                 inputAccessoryViewID={accessoryID}
             />
-            {shouldAttachAccessory && !providedAccessoryId && (
+            {showAccessory && (
                 <KeyboardDismissAccessory accessoryID={accessoryID} />
             )}
         </>

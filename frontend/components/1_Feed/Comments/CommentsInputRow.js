@@ -1,6 +1,7 @@
 import { useMemo } from 'react';
-import { View, Image, Pressable } from 'react-native';
+import { View, Pressable } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import FastImage from 'react-native-fast-image';
 
 import theme from '../../../theme/mfpDark';
 import scaleSize from '../../../helper/scaleSize';
@@ -59,7 +60,7 @@ export default function CommentsInputRow({
     return (
         <View style={styles.container}>
             <View style={styles.imageWrapper}>
-                <Image source={{ uri: global.userData.image }} style={styles.pfp} />
+                <FastImage source={{ uri: global.userData.image }} style={styles.pfp} />
             </View>
             <DismissableTextInput
                 ref={inputRef}
