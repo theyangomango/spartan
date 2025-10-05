@@ -23,11 +23,11 @@ import scaleSize from "../../../helper/scaleSize"; // Import the scaleSize utili
 export default function CommentsModal({
     postData,
     handleTouchHeader,
-    isSheetExpanded,
     setReplyingToIndex,
     toViewProfile,
     openSignal,
     onShowLikesSheet,
+    bottomPadding = 0,
 }) {
     const comments = postData.comments;
     const flatListRef = useRef(null);
@@ -171,10 +171,7 @@ export default function CommentsModal({
                         ))}
                     </View>
                 )}
-                contentContainerStyle={[
-                    styles.commentsListContainer,
-                    { paddingTop: 0, marginTop: 0, paddingBottom: isSheetExpanded ? scaleSize(100) : scaleSize(525) }
-                ]}
+                contentContainerStyle={[styles.commentsListContainer, { paddingBottom: bottomPadding }]}
                 ListHeaderComponent={<View style={{ height: 0 }} />}
             />
         </KeyboardAvoidingView>

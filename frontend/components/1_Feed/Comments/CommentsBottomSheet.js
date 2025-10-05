@@ -1,6 +1,6 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { KeyboardAvoidingView, Platform, StyleSheet, View, Keyboard, Dimensions } from "react-native";
-import BottomSheet, { BottomSheetBackdrop, BottomSheetFooter } from "@gorhom/bottom-sheet";
+import BottomSheet, { BottomSheetBackdrop } from "@gorhom/bottom-sheet";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import CommentsModal from "./CommentsModal";
@@ -15,6 +15,7 @@ import theme from "../../../theme/mfpDark";
 const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get("screen");
 const dynamicStylesDefault = getCommentsBottomSheetStyles(SCREEN_WIDTH, SCREEN_HEIGHT);
 export const COMMENTS_BOTTOM_SHEET_TOP_OFFSET = scaleSize(85);
+const INPUT_MIN_HEIGHT = scaleSize(76);
 
 const CommentsBottomSheet = ({
     isVisible,
@@ -28,7 +29,6 @@ const CommentsBottomSheet = ({
     const snapPoints = useMemo(() => ["100%"], []);
     const [inputText, setInputText] = useState("");
     const [replyingToIndex, setReplyingToIndex] = useState(null);
-    const [isSheetExpanded, setIsSheetExpanded] = useState(false);
     const [openSignal, setOpenSignal] = useState(0);
     const textInputRef = useRef(null);
     const insets = useSafeAreaInsets();
@@ -71,15 +71,10 @@ const CommentsBottomSheet = ({
     }, [commentsBottomSheetExpandFlag, isVisible, postData]);
 
     const handleSheetChange = useCallback((index) => {
-        setIsSheetExpanded(index >= 0);
         if (index < 0) {
             closeSheet();
         }
     }, [closeSheet]);
-
-    useEffect(() => {
-        setIsSheetExpanded(Boolean(isVisible && postData));
-    }, [isVisible, postData]);
 
     const handleTouchHeader = useCallback(() => {
         Keyboard.dismiss();
@@ -161,27 +156,8 @@ const CommentsBottomSheet = ({
             : null
     ), [replyingToIndex, postData?.comments]);
 
-    const renderFooter = useCallback((props) => (
-        <BottomSheetFooter
-            {...props}
-            bottomInset={insets.bottom}
-        >
-            <View style={[styles.inputContainer, { paddingBottom: scaleSize(10) }]}>
-                <CommentsInputRow
-                    inputRef={textInputRef}
-                    value={inputText}
-                    onChangeText={setInputText}
-                    onFocus={() => { }}
-                    onBlur={() => { }}
-                    onPressSend={handleSend}
-                    editable={!!postPid}
-                    canSend={!!inputText.trim()}
-                    replyingToHandle={replyingHandle}
-                    dynamicStyles={dynamicStyles}
-                />
-            </View>
-        </BottomSheetFooter>
-    ), [dynamicStyles, handleSend, insets.bottom, inputText, postPid, replyingHandle]);
+    const inputSafeMargin = Math.max(scaleSize(12), insets.bottom);
+    const commentsListBottomPadding = dynamicStyles.inputHeight + scaleSize(36) + inputSafeMargin;
 
     return (
         <View
@@ -190,7 +166,7 @@ const CommentsBottomSheet = ({
         >
             <BottomSheet
                 ref={bottomSheetRef}
-                index={-1}
+                index={isVisible ? 0 : -1}
                 snapPoints={snapPoints}
                 enablePanDownToClose
                 onChange={handleSheetChange}
@@ -202,26 +178,35 @@ const CommentsBottomSheet = ({
                 keyboardBlurBehavior="restore"
                 android_keyboardInputMode="adjustResize"
                 topInset={COMMENTS_BOTTOM_SHEET_TOP_OFFSET}
-                footerComponent={renderFooter}
             >
                 {postData ? (
-                    <KeyboardAvoidingView
-                        style={styles.sheetContent}
-                        behavior={Platform.OS === "ios" ? "padding" : "height"}
-                        keyboardVerticalOffset={Platform.OS === "ios" ? insets.bottom : 0}
-                    >
+                    <View style={styles.sheetContent}>
                         <View style={styles.modalContainer}>
                             <CommentsModal
                                 postData={postData}
                                 handleTouchHeader={handleTouchHeader}
-                                isSheetExpanded={isSheetExpanded}
                                 setReplyingToIndex={setReplyingToIndex}
                                 toViewProfile={toViewProfile}
                                 openSignal={openSignal}
                                 onShowLikesSheet={onShowLikesSheet}
+                                bottomPadding={commentsListBottomPadding}
                             />
                         </View>
-                    </KeyboardAvoidingView>
+                        <View style={[styles.inputContainer, { marginBottom: inputSafeMargin }]}>
+                            <CommentsInputRow
+                                inputRef={textInputRef}
+                                value={inputText}
+                                onChangeText={setInputText}
+                                onFocus={() => { }}
+                                onBlur={() => { }}
+                                onPressSend={handleSend}
+                                editable={!!postPid}
+                                canSend={!!inputText.trim()}
+                                replyingToHandle={replyingHandle}
+                                dynamicStyles={dynamicStyles}
+                            />
+                        </View>
+                    </View>
                 ) : (
                     <View style={styles.emptyState} />
                 )}
@@ -249,15 +234,24 @@ const styles = StyleSheet.create({
     sheetContent: {
         flex: 1,
         backgroundColor: theme.surface,
-        paddingBottom: scaleSize(8),
+        justifyContent: "space-between",
     },
     modalContainer: {
         flex: 1,
     },
     inputContainer: {
-        paddingHorizontal: scaleSize(12),
-        paddingTop: scaleSize(4),
+        paddingHorizontal: scaleSize(16),
+        paddingTop: scaleSize(8),
+        paddingBottom: scaleSize(12),
         backgroundColor: theme.surface,
+        minHeight: INPUT_MIN_HEIGHT,
+        borderTopLeftRadius: scaleSize(18),
+        borderTopRightRadius: scaleSize(18),
+        shadowColor: "#000",
+        shadowOpacity: 0.1,
+        shadowRadius: scaleSize(8),
+        shadowOffset: { width: 0, height: -scaleSize(2) },
+        zIndex: 1,
     },
     emptyState: {
         height: 1,

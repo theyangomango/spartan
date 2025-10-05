@@ -16,7 +16,7 @@ const SELF_CARD_HEIGHT = scaleSize(86);
 const PFP_SIZE = scaleSize(39);
 
 const FONT_HANDLE = ts(13);
-const FONT_NAME = ts(12);
+const FONT_NAME = ts(13);
 const FONT_STAT = ts(13);
 const FONT_HEX_STAT = ts(14);
 const FONT_RANK = ts(13);

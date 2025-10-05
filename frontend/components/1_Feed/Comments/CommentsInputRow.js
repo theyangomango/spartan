@@ -15,8 +15,9 @@ const useInputStyles = (dynamicStyles) => useMemo(() => ({
         borderRadius: scaleSize(30),
         flexDirection: 'row',
         alignItems: 'center',
-        paddingHorizontal: scaleSize(12),
-        height: dynamicStyles.inputHeight,
+        paddingHorizontal: scaleSize(16),
+        paddingVertical: scaleSize(8),
+        minHeight: dynamicStyles.inputHeight + scaleSize(12),
     },
     imageWrapper: {
         width: dynamicStyles.pfpSize,
@@ -30,7 +31,7 @@ const useInputStyles = (dynamicStyles) => useMemo(() => ({
         flex: 1,
         borderRadius: scaleSize(20),
         paddingHorizontal: scaleSize(15),
-        paddingVertical: dynamicStyles.inputPaddingVertical,
+        paddingVertical: dynamicStyles.inputPaddingVertical + scaleSize(4),
         color: '#E5E7EB',
         fontFamily: 'Outfit_500Medium',
         fontSize: scaleSize(dynamicStyles.inputFontSize),
@@ -53,6 +54,7 @@ export default function CommentsInputRow({
     replyingToHandle,
     dynamicStyles,
     inputRef,
+    useBottomSheetInput: useBottomSheetInputProp = true,
 }) {
     const styles = useInputStyles(dynamicStyles);
     const placeholder = replyingToHandle ? `Replying to ${replyingToHandle}` : 'Add comment';
@@ -74,7 +76,7 @@ export default function CommentsInputRow({
                 editable={editable}
                 multiline
                 returnKeyType="send"
-                useBottomSheetInput
+                useBottomSheetInput={useBottomSheetInputProp}
             />
             <Pressable style={styles.sendButton} onPress={onPressSend} disabled={!canSend}>
                 <Ionicons name="send" size={dynamicStyles.sendButtonSize} color="#E5E7EB" />
