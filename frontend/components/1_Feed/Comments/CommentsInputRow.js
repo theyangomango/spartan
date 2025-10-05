@@ -9,10 +9,8 @@ import DismissableTextInput from '../../common/DismissableTextInput';
 const useInputStyles = (dynamicStyles) => useMemo(() => ({
     container: {
         flex: 1,
-        marginHorizontal: scaleSize(18),
         marginTop: scaleSize(8),
-        marginBottom: scaleSize(10),
-        backgroundColor: theme.field,
+        backgroundColor: theme.fieldDeep,
         borderRadius: scaleSize(30),
         flexDirection: 'row',
         alignItems: 'center',
@@ -75,6 +73,7 @@ export default function CommentsInputRow({
                 editable={editable}
                 multiline
                 returnKeyType="send"
+                useBottomSheetInput
             />
             <Pressable style={styles.sendButton} onPress={onPressSend} disabled={!canSend}>
                 <Ionicons name="send" size={dynamicStyles.sendButtonSize} color="#E5E7EB" />

@@ -890,7 +890,7 @@ const styles = StyleSheet.create({
         flex: 1,
         color: theme.textPrimary,
         fontFamily: "Outfit_500Medium",
-        fontSize: scaleSize(14),
+        fontSize: scaleSize(12.5),
     },
     buttonsContainer: {
         width: "32%",

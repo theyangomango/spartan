@@ -201,7 +201,7 @@ const PastWorkoutScreen = () => {
                     <Ionicons name="chevron-back" size={HEADER_ICON_SIZE} color={theme.textPrimary} />
                 </Pressable>
                 <Text style={styles.headerTitle} numberOfLines={1}>
-                    Past Workout
+                    Workout
                 </Text>
                 <View style={styles.headerRightSpacer} />
             </View>
@@ -304,7 +304,6 @@ const styles = StyleSheet.create({
         width: HEADER_ICON_SIZE,
     },
     content: {
-        paddingTop: scaleSize(8),
         paddingBottom: scaleSize(28),
     },
     cardWrapper: {

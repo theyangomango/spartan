@@ -1,6 +1,6 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { KeyboardAvoidingView, Platform, StyleSheet, View, Keyboard, Dimensions } from "react-native";
-import BottomSheet from "@gorhom/bottom-sheet";
+import BottomSheet, { BottomSheetBackdrop, BottomSheetFooter } from "@gorhom/bottom-sheet";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import CommentsModal from "./CommentsModal";
@@ -14,6 +14,7 @@ import theme from "../../../theme/mfpDark";
 
 const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get("screen");
 const dynamicStylesDefault = getCommentsBottomSheetStyles(SCREEN_WIDTH, SCREEN_HEIGHT);
+export const COMMENTS_BOTTOM_SHEET_TOP_OFFSET = scaleSize(85);
 
 const CommentsBottomSheet = ({
     isVisible,
@@ -24,7 +25,7 @@ const CommentsBottomSheet = ({
     onDismiss,
 }) => {
     const bottomSheetRef = useRef(null);
-    const snapPoints = useMemo(() => ["92%"], []);
+    const snapPoints = useMemo(() => ["100%"], []);
     const [inputText, setInputText] = useState("");
     const [replyingToIndex, setReplyingToIndex] = useState(null);
     const [isSheetExpanded, setIsSheetExpanded] = useState(false);
@@ -34,6 +35,15 @@ const CommentsBottomSheet = ({
     const postPid = postData?.pid ?? null;
 
     const dynamicStyles = useMemo(() => dynamicStylesDefault, []);
+
+    const renderBackdrop = useCallback((props) => (
+        <BottomSheetBackdrop
+            {...props}
+            appearsOnIndex={0}
+            disappearsOnIndex={-1}
+            pressBehavior="close"
+        />
+    ), []);
 
     const resetState = useCallback(() => {
         setInputText("");
@@ -151,6 +161,28 @@ const CommentsBottomSheet = ({
             : null
     ), [replyingToIndex, postData?.comments]);
 
+    const renderFooter = useCallback((props) => (
+        <BottomSheetFooter
+            {...props}
+            bottomInset={insets.bottom}
+        >
+            <View style={[styles.inputContainer, { paddingBottom: scaleSize(10) }]}>
+                <CommentsInputRow
+                    inputRef={textInputRef}
+                    value={inputText}
+                    onChangeText={setInputText}
+                    onFocus={() => { }}
+                    onBlur={() => { }}
+                    onPressSend={handleSend}
+                    editable={!!postPid}
+                    canSend={!!inputText.trim()}
+                    replyingToHandle={replyingHandle}
+                    dynamicStyles={dynamicStyles}
+                />
+            </View>
+        </BottomSheetFooter>
+    ), [dynamicStyles, handleSend, insets.bottom, inputText, postPid, replyingHandle]);
+
     return (
         <View
             style={styles.wrapper}
@@ -165,11 +197,18 @@ const CommentsBottomSheet = ({
                 backgroundStyle={styles.sheetBackground}
                 handleIndicatorStyle={styles.handleIndicator}
                 onClose={closeSheet}
+                backdropComponent={renderBackdrop}
+                keyboardBehavior="interactive"
+                keyboardBlurBehavior="restore"
+                android_keyboardInputMode="adjustResize"
+                topInset={COMMENTS_BOTTOM_SHEET_TOP_OFFSET}
+                footerComponent={renderFooter}
             >
                 {postData ? (
                     <KeyboardAvoidingView
                         style={styles.sheetContent}
-                        behavior={Platform.OS === "ios" ? "padding" : undefined}
+                        behavior={Platform.OS === "ios" ? "padding" : "height"}
+                        keyboardVerticalOffset={Platform.OS === "ios" ? insets.bottom : 0}
                     >
                         <View style={styles.modalContainer}>
                             <CommentsModal
@@ -182,20 +221,6 @@ const CommentsBottomSheet = ({
                                 onShowLikesSheet={onShowLikesSheet}
                             />
                         </View>
-                        <View style={[styles.inputContainer, { paddingBottom: insets.bottom + scaleSize(10) }]}>
-                            <CommentsInputRow
-                                inputRef={textInputRef}
-                                value={inputText}
-                                onChangeText={setInputText}
-                                onFocus={() => {}}
-                                onBlur={() => {}}
-                                onPressSend={handleSend}
-                                editable={!!postPid}
-                                canSend={!!inputText.trim()}
-                                replyingToHandle={replyingHandle}
-                                dynamicStyles={dynamicStyles}
-                            />
-                        </View>
                     </KeyboardAvoidingView>
                 ) : (
                     <View style={styles.emptyState} />
@@ -205,10 +230,11 @@ const CommentsBottomSheet = ({
     );
 };
 
+
 const styles = StyleSheet.create({
     wrapper: {
         position: "absolute",
-        top: scaleSize(85),
+        top: 0,
         left: 0,
         right: 0,
         bottom: 0,

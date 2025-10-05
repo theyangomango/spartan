@@ -17,7 +17,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import getScrollTargetPosition from "../../../../helper/getScrollTargetPosition";
 import { getFeedHeaderStyles } from "../../../../helper/getFeedHeaderStyles";
 import Post from "../../../1_Feed/Posts/Post";
-import CommentsBottomSheet from "../../../1_Feed/Comments/CommentsBottomSheet";
+import CommentsBottomSheet, { COMMENTS_BOTTOM_SHEET_TOP_OFFSET } from "../../../1_Feed/Comments/CommentsBottomSheet";
 import ShareBottomSheet from "../../../1_Feed/SharePost/ShareBottomSheet";
 import FeedWorkoutViewerSheet from "../../../1_Feed/ViewWorkout/FeedWorkoutViewerSheet";
 
@@ -78,7 +78,7 @@ export default function SinglePostModal({ visible, post, onClose, onOpenWorkout 
     // Compute exact open position for the comments sheet so its top matches
     // the bottom of the focused post, regardless of device.
     const POST_AR = 0.8; // keep in sync with Post.js AR
-    const containerTop = scaleSize(85); // must match CommentsBottomSheet styles.container.top
+    const containerTop = COMMENTS_BOTTOM_SHEET_TOP_OFFSET;
     const postTop = scaleSize(TARGET_Y - 15 + FOCUS_EXTRA_DROP);
     // Match Post.js body height exactly to ensure gesture overlay alignment
     const postHeight = SW / POST_AR;
