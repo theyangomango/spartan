@@ -458,7 +458,8 @@ export default function Feed({ navigation, route }) {
             timerRef={headerTimerRef}
             heightAdjust={-2}
             topAdjust={-HEADER_TOP_TRIM}
-            centerVariant="feedTitle"
+            centerVariant="text"
+            centerTitle="Feed"
         />
     ), [navigation, toMessagesScreen, handleOpenNotifications, scrollToTop, allUsersRef, activeWorkout, headerTimerRef]);
 

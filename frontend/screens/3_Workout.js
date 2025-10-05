@@ -1005,6 +1005,8 @@ export default function Workout({ navigation, route }) {
                     timerRef={timerRef}
                     openCurrentWorkout={headerOpenCurrentWorkout}
                     heightAdjust={-2}
+                    centerVariant="text"
+                    centerTitle={`${global.userData?.handle}`}
                 />
             </View>
             {/* Invite banner (absolute, anchored below header & within SafeArea) */}
@@ -1234,7 +1236,7 @@ const styles = StyleSheet.create({
     root: { flex: 1, backgroundColor: theme.bg },
     content: {
         flex: 1,
-        paddingTop: scaleSize(18),
+        paddingTop: scaleSize(4),
         paddingBottom: scaleSize(FOOTER_HEIGHT),
     },
     mainContent: { flex: 1, width: "100%" },

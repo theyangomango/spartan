@@ -434,6 +434,7 @@ const FeedHeader = ({
     heightAdjust = 0, // optional fine-tune for overall header height (affects padding only)
     topAdjust = 0,
     centerVariant = "logo",
+    centerTitle = "Feed",
 }) => {
     const [unreadCount, setUnreadCount] = useState(0);
     const [unreadMessages, setUnreadMessages] = useState(0);
@@ -463,6 +464,7 @@ const FeedHeader = ({
 
     const adjustedPaddingTop = topAdjust !== 0 ? Math.max(0, METRICS.paddingTop + topAdjust) : null;
     const adjustedPaddingBottom = heightAdjust !== 0 ? Math.max(0, METRICS.paddingBottom + heightAdjust) : null;
+    const computedCenterTitle = typeof centerTitle === "string" && centerTitle.trim() ? centerTitle : "Feed";
 
     return (
         <View style={[
@@ -479,7 +481,7 @@ const FeedHeader = ({
                 <View style={styles.centerSlot}>
                     <RNBounceable
                         onPress={withStrongPress(scrollToTop)}
-                        style={centerVariant === "logo" ? styles.logoWrap : styles.feedTitleWrap}
+                        style={centerVariant === "logo" ? styles.logoWrap : styles.titleWrap}
                     >
                         {centerVariant === "logo" ? (
                             <>
@@ -493,7 +495,7 @@ const FeedHeader = ({
                                 <Text style={styles.logo_text}>SPARTAN</Text>
                             </>
                         ) : (
-                            <Text style={styles.feed_title_text}>Feed</Text>
+                            <Text style={styles.center_title_text}>{computedCenterTitle}</Text>
                         )}
                     </RNBounceable>
                 </View>
@@ -611,21 +613,21 @@ const styles = StyleSheet.create({
 
     // Nudge the logo down slightly to align with side icons
     logoWrap: { height: "100%", flexDirection: "row", alignItems: "center", paddingTop: METRICS.logoPadTop },
-    feedTitleWrap: { height: "100%", alignItems: "center", justifyContent: "center" },
+    titleWrap: { height: "100%", alignItems: "center", justifyContent: "center" },
     logo_image_ctnr: { justifyContent: "center", alignItems: "center" },
     logo_image: { width: scaleSize(s(26.5)), height: scaleSize(s(26.5)) },
     logo_text: {
         paddingLeft: scaleSize(s(4)),
         fontFamily: "Inter_600SemiBold",
-        fontSize: scaleSize(s(16)),
+        fontSize: scaleSize(16),
         color: theme.textPrimary,
         includeFontPadding: false,
         ...Platform.select({ android: { lineHeight: scaleSize(s(19)) } }),
     },
-    feed_title_text: {
+    center_title_text: {
         fontFamily: "Outfit_600SemiBold",
-        letterSpacing: 0.25,
-        fontSize: scaleSize(s(18)),
+        letterSpacing: 0.3,
+        fontSize: scaleSize(18),
         color: theme.textPrimary,
         includeFontPadding: false,
     },
