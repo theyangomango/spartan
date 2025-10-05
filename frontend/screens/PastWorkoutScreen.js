@@ -277,7 +277,7 @@ const PastWorkoutScreen = () => {
                     <Ionicons name="chevron-back" size={HEADER_ICON_SIZE} color={theme.textPrimary} />
                 </Pressable>
                 <Text style={styles.headerTitle} numberOfLines={1}>
-                    Workout
+                    Workout Details
                 </Text>
                 <View style={styles.headerRightSpacer} />
             </View>
