@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState, useCallback, useRef } from 'react';
-import { Text, View, StyleSheet, TouchableOpacity, Image, Dimensions, SafeAreaView } from 'react-native';
+import { Text, View, StyleSheet, TouchableOpacity, Image, SafeAreaView, useWindowDimensions } from 'react-native';
 import { FontAwesome6, Ionicons } from '@expo/vector-icons';
 import * as MediaLibrary from 'expo-media-library';
 import Gallery from 'react-native-awesome-gallery';
@@ -9,8 +9,8 @@ import theme from '../../../theme/mfpDark';
 import scaleSize from '../../../helper/scaleSize';
 import { withStrongPress } from "../../../utils/haptics";
 
-const screenHeight = Dimensions.get('window').height;
 const scaledSize = (size) => scaleSize(size);
+const FEED_ASPECT_RATIO = 1; // square crop across selection & preview
 
 export default function SelectPhotosScreen({ navigation, route }) {
     const [assets, setAssets] = useState([]);
@@ -26,6 +26,9 @@ export default function SelectPhotosScreen({ navigation, route }) {
     const [cropUri, setCropUri] = useState(null);
     const [cropIndex, setCropIndex] = useState(-1);
     const [croppedMap, setCroppedMap] = useState({}); // { [originalUri]: croppedUri }
+    const [previewBottom, setPreviewBottom] = useState(null);
+
+    const { height: windowHeight } = useWindowDimensions();
 
     useEffect(() => {
         getInitialAssets();
@@ -143,6 +146,12 @@ export default function SelectPhotosScreen({ navigation, route }) {
         setCropIndex(-1);
     }, [cropIndex, images]);
 
+    const collapsedSheetHeight = useMemo(() => {
+        if (!previewBottom || !windowHeight) return null;
+        const h = Math.max(0, windowHeight - previewBottom);
+        return h || null;
+    }, [previewBottom, windowHeight]);
+
     return (
         <SafeAreaView style={styles.container}>
             <View style={styles.header_ctnr}>
@@ -152,7 +161,7 @@ export default function SelectPhotosScreen({ navigation, route }) {
                     </View>
                 </TouchableOpacity>
                 <View style={styles.header_text_ctnr}>
-                    <Text style={styles.title_text}>New Post</Text>
+                    <Text style={styles.title_text}>Pick Photos</Text>
                 </View>
                 <TouchableOpacity onPress={withStrongPress(next)}>
                     <View style={styles.next_icon_ctnr}>
@@ -160,7 +169,13 @@ export default function SelectPhotosScreen({ navigation, route }) {
                     </View>
                 </TouchableOpacity>
             </View>
-            <View style={styles.preview_ctnr}>
+            <View
+                style={styles.preview_ctnr}
+                onLayout={(e) => {
+                    const { y = 0, height = 0 } = e.nativeEvent.layout || {};
+                    setPreviewBottom(y + height);
+                }}
+            >
                 {selectedImages.length > 0 ? (
                     <Gallery
                         data={selectedImages}
@@ -168,7 +183,7 @@ export default function SelectPhotosScreen({ navigation, route }) {
                         renderItem={({ item, setImageDimensions }) => (
                             <Image
                                 source={{ uri: item.uri }}
-                                style={{ width: '100%', aspectRatio: 0.8, borderTopLeftRadius: scaleSize(35), borderTopRightRadius: scaleSize(35) }}
+                                style={styles.preview_image}
                                 onLoad={(e) => {
                                     const { width, height } = e.nativeEvent.source;
                                     setImageDimensions({ width, height });
@@ -186,7 +201,7 @@ export default function SelectPhotosScreen({ navigation, route }) {
                 ) : assets.length > 0 ? (
                     <Image
                         source={{ uri: assets[0].uri }}
-                        style={{ width: '100%', aspectRatio: 0.8, borderTopLeftRadius: scaleSize(35), borderTopRightRadius: scaleSize(35) }}
+                        style={styles.preview_image}
                     />
                 ) : null}
 
@@ -218,11 +233,12 @@ export default function SelectPhotosScreen({ navigation, route }) {
                     } catch {}
                     getInitialAssets();
                 }}
+                collapsedHeight={collapsedSheetHeight}
             />
             <ImageCropperModal
                 visible={cropVisible}
                 uri={cropUri}
-                aspectRatio={0.8}
+                aspectRatio={FEED_ASPECT_RATIO}
                 onCancel={() => { setCropVisible(false); setCropUri(null); }}
                 onDone={onCropDone}
             />
@@ -259,14 +275,13 @@ const styles = StyleSheet.create({
     },
     preview_ctnr: {
         width: '100%',
-        aspectRatio: 0.8,
+        aspectRatio: FEED_ASPECT_RATIO,
         backgroundColor: theme.surface,
-        borderTopLeftRadius: scaleSize(35),
-        borderTopRightRadius: scaleSize(35),
         overflow: 'hidden'
     },
     preview_image: {
-        flex: 1
+        width: '100%',
+        aspectRatio: FEED_ASPECT_RATIO
     },
     crop_btn: {
         position: 'absolute',

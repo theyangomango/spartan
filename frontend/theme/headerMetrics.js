@@ -12,7 +12,7 @@ const buildMetrics = () => {
     const s = (n) => Math.round(n * scale);
 
     const paddingH = dynamicStyles.paddingHorizontal;
-    const paddingTop = scaleSize(0);
+    const paddingTop = scaleSize(4);
     const paddingBottom = s(0);
     const centerH = s(40);
     const marginTop = 0;

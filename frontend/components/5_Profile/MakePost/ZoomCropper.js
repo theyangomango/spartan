@@ -5,7 +5,7 @@ import Animated, { useAnimatedStyle, useSharedValue } from 'react-native-reanima
 // Minimal, robust pinch + pan with focal anchoring.
 // Transform pipeline matches react-native-awesome-gallery (translate = offset + translation; then scale).
 
-const ZoomCropper = forwardRef(function ZoomCropper({ uri, width, height, baseWidth, baseHeight }, ref) {
+const ZoomCropper = forwardRef(function ZoomCropper({ uri, width, height, baseWidth, baseHeight, minScale = 1, maxScale = 6 }, ref) {
   const scale = useSharedValue(1);
   const offsetX = useSharedValue(0); // pan accumulation
   const offsetY = useSharedValue(0);
@@ -18,9 +18,9 @@ const ZoomCropper = forwardRef(function ZoomCropper({ uri, width, height, baseWi
   const adjFocalY = useSharedValue(0);
 
   // Smoothing constants
-  const SCALE_ALPHA = 0.22; // how fast scale follows the finger
-  const FOCAL_ALPHA = 0.25; // smoothing for focal movement
-  const TRANS_ALPHA = 0.28; // smoothing for pinch-derived translation
+  const SCALE_ALPHA = 0.65; // higher gain so scale reacts quickly
+  const FOCAL_ALPHA = 0.55; // smoother focal tracking without lag
+  const TRANS_ALPHA = 0.65; // speed up translation response
 
   // Utils inside worklets
   const setAdjustedFocal = (focalX, focalY) => {
@@ -44,7 +44,6 @@ const ZoomCropper = forwardRef(function ZoomCropper({ uri, width, height, baseWi
       .minDistance(1)
       .onChange((e) => {
         'worklet';
-        if (scale.value <= 1) return; // disable pan at base scale
         if ((e.numberOfPointers || 0) !== 1) return; // only 1 finger pans
         const sc = scale.value;
         const newW = baseWidth * sc;
@@ -52,6 +51,7 @@ const ZoomCropper = forwardRef(function ZoomCropper({ uri, width, height, baseWi
         const eps = 0.5;
         const maxX = Math.max(0, (newW - width) / 2 - eps);
         const maxY = Math.max(0, (newH - height) / 2 - eps);
+        if (maxX <= 0 && maxY <= 0) return; // nothing to pan when fully in frame
         const sx = offsetX.value + transX.value + (e.changeX || 0);
         const sy = offsetY.value + transY.value + (e.changeY || 0);
         const cx = clamp(sx, -maxX, maxX) - transX.value;
@@ -68,6 +68,7 @@ const ZoomCropper = forwardRef(function ZoomCropper({ uri, width, height, baseWi
         const eps = 0.5;
         const maxX = Math.max(0, (newW - width) / 2 - eps);
         const maxY = Math.max(0, (newH - height) / 2 - eps);
+        if (maxX <= 0 && maxY <= 0) return;
         const sx = offsetX.value + transX.value;
         const sy = offsetY.value + transY.value;
         const cx = clamp(sx, -maxX, maxX) - transX.value;
@@ -75,7 +76,7 @@ const ZoomCropper = forwardRef(function ZoomCropper({ uri, width, height, baseWi
         offsetX.value = cx;
         offsetY.value = cy;
       })
-  ), [width, height, baseWidth, baseHeight]);
+  ), [width, height, baseWidth, baseHeight, minScale, maxScale]);
 
   const pinch = useMemo(() => (
     Gesture.Pinch()
@@ -92,8 +93,8 @@ const ZoomCropper = forwardRef(function ZoomCropper({ uri, width, height, baseWi
         'worklet';
         if ((e.numberOfPointers || 0) < 2) return; // guard older RNGH without minPointers
         const raw = (e.scale || 1) * scaleOffset.value;
-        const clamped = Math.max(1, Math.min(6, raw));
-        // Low-pass filter scale for buttery feel
+        const clamped = Math.max(minScale, Math.min(maxScale, raw));
+        // faster catch-up to finger movement
         const ns = scale.value + SCALE_ALPHA * (clamped - scale.value);
         scale.value = ns;
         setAdjustedFocal((e.focalX || 0), (e.focalY || 0));
@@ -115,6 +116,22 @@ const ZoomCropper = forwardRef(function ZoomCropper({ uri, width, height, baseWi
         if (sx > maxX)  transX.value =  maxX - offsetX.value;
         if (sy < -maxY) transY.value = -maxY - offsetY.value;
         if (sy > maxY)  transY.value =  maxY - offsetY.value;
+      })
+      .onEnd(() => {
+        'worklet';
+        const sc = scale.value;
+        const newW = baseWidth * sc;
+        const newH = baseHeight * sc;
+        const eps = 0.5;
+        const maxX = Math.max(0, (newW - width) / 2 - eps);
+        const maxY = Math.max(0, (newH - height) / 2 - eps);
+        const finalX = clamp(offsetX.value + transX.value, -maxX, maxX);
+        const finalY = clamp(offsetY.value + transY.value, -maxY, maxY);
+        offsetX.value = finalX;
+        offsetY.value = finalY;
+        transX.value = 0;
+        transY.value = 0;
+        scaleOffset.value = sc;
       })
   ), [width, height, baseWidth, baseHeight]);
 

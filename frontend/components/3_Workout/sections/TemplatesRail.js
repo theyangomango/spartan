@@ -85,7 +85,7 @@ function TemplatesRail({ templates = [], onIndexChange, onAddTemplate, onOpenTem
                         <View style={styles.emptyShadow}>
                             <View style={[styles.cardBase, styles.cardEmpty]}>
                                 <View style={styles.emptyIconWrap}>
-                                    <Ionicons name="add" size={22} color={BLUE.ACCENT} />
+                                    <Ionicons name="add" size={18} color={'#fff'} />
                                 </View>
                                 <View style={styles.emptyTextColumn}>
                                     <Text numberOfLines={1} style={styles.emptyTitle}>{item.name}</Text>

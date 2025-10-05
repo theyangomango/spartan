@@ -1,14 +1,22 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { StyleSheet } from "react-native";
+import { Dimensions, StyleSheet } from "react-native";
 import BottomSheet, { BottomSheetBackdrop } from "@gorhom/bottom-sheet";
 import PreviewPhotosModal from "./PreviewPhotosModal";
 import theme from '../../../theme/mfpDark';
 
 import scaleSize from "../../../helper/scaleSize";
 
-const PreviewPhotosBottomSheet = ({ assets, images, selectedOrderMap, toggleSelect, loadMoreAssets, loading, hasNextPage, clearSelection, isLimited, onRequestMoreAccess }) => {
+const SCREEN_HEIGHT = Dimensions.get('window').height;
+
+const PreviewPhotosBottomSheet = ({ assets, images, selectedOrderMap, toggleSelect, loadMoreAssets, loading, hasNextPage, clearSelection, isLimited, onRequestMoreAccess, collapsedHeight }) => {
     const bottomSheetRef = useRef(null);
-    const snapPoints = useMemo(() => ["35%", "94%"], []);
+    const expandedHeight = useMemo(() => Math.round(SCREEN_HEIGHT * 0.94), []);
+    const snapPoints = useMemo(() => {
+        const defaultCollapsed = Math.round(SCREEN_HEIGHT * 0.45);
+        const candidate = (typeof collapsedHeight === 'number' && Number.isFinite(collapsedHeight)) ? collapsedHeight : defaultCollapsed;
+        const clamped = Math.max(Math.round(SCREEN_HEIGHT * 0.25), Math.min(candidate, expandedHeight));
+        return [clamped, expandedHeight];
+    }, [collapsedHeight, expandedHeight]);
     const [expanded, setExpanded] = useState(false);
 
     const handleSheetChanges = useCallback((index) => {
@@ -74,8 +82,6 @@ export default React.memo(PreviewPhotosBottomSheet);
 const styles = StyleSheet.create({
     background: {
         backgroundColor: theme.surface,
-        borderTopLeftRadius: scaleSize(22),
-        borderTopRightRadius: scaleSize(22),
     },
     handle: {
         backgroundColor: 'transparent',

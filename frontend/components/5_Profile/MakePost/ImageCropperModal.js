@@ -12,7 +12,7 @@ const { width: SCREEN_W, height: SCREEN_H } = Dimensions.get('window');
 export default function ImageCropperModal({
   visible,
   uri,
-  aspectRatio = 0.8, // width / height, same as feed
+  aspectRatio = 1, // width / height; default to square crop
   onCancel,
   onDone,
 }) {
@@ -42,6 +42,12 @@ export default function ImageCropperModal({
     const dh0 = h * scaleToCover; // dp
     return { scale: scaleToCover, dw0, dh0 };
   }, [imgSize, cw, ch]);
+
+  const minScale = useMemo(() => {
+    if (!cover || !cover.dw0 || !cover.dh0) return 1;
+    const containScale = Math.min(cw / cover.dw0, ch / cover.dh0);
+    return Math.min(1, containScale);
+  }, [cover, cw, ch]);
 
   // Read transform from ZoomCropper
   const cropperRef = useRef(null);
@@ -127,6 +133,7 @@ export default function ImageCropperModal({
               height={ch}
               baseWidth={cover.dw0}
               baseHeight={cover.dh0}
+              minScale={minScale}
             />
           )}
         </View>

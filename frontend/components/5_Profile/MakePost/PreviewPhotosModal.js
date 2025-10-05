@@ -124,8 +124,6 @@ const styles = StyleSheet.create({
     container: {
         backgroundColor: theme.surface,
         flex: 1,
-        borderTopLeftRadius: scaleSize(25),
-        borderTopRightRadius: scaleSize(25),
         overflow: 'hidden'
     },
     flatlist: {
